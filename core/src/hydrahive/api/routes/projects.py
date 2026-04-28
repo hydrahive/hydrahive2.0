@@ -1,0 +1,150 @@
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+
+from hydrahive.agents import config as agent_config
+from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.db import sessions as sessions_db
+from hydrahive.projects import ProjectValidationError, config as project_config
+from hydrahive.projects import members as project_members
+
+router = APIRouter(prefix="/api/projects", tags=["projects"])
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    description: str = ""
+    members: list[str] = []
+    llm_model: str
+    init_git: bool = False
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    status: str | None = None
+    members: list[str] | None = None
+
+
+def _check_access(project: dict, username: str, role: str) -> None:
+    if role == "admin":
+        return
+    if username in project.get("members", []) or project.get("created_by") == username:
+        return
+    raise HTTPException(status.HTTP_403_FORBIDDEN, "Kein Zugriff auf dieses Projekt")
+
+
+@router.get("")
+def list_projects(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    username, role = auth
+    if role == "admin":
+        return project_config.list_all()
+    return project_config.list_for_user(username)
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_project(
+    req: ProjectCreate,
+    auth: Annotated[tuple[str, str], Depends(require_admin)],
+) -> dict:
+    creator, _ = auth
+    try:
+        return project_config.create(
+            name=req.name,
+            description=req.description,
+            members=req.members,
+            llm_model=req.llm_model,
+            created_by=creator,
+            init_git=req.init_git,
+        )
+    except ProjectValidationError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+
+
+@router.get("/{project_id}")
+def get_project(
+    project_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    p = project_config.get(project_id)
+    if not p:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+    _check_access(p, *auth)
+    return p
+
+
+@router.patch("/{project_id}", dependencies=[Depends(require_admin)])
+def update_project(project_id: str, req: ProjectUpdate) -> dict:
+    changes = {k: v for k, v in req.model_dump().items() if v is not None}
+    try:
+        return project_config.update(project_id, **changes)
+    except KeyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+    except ProjectValidationError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[Depends(require_admin)])
+def delete_project(project_id: str) -> None:
+    if not project_config.delete(project_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+
+
+@router.post("/{project_id}/members/{username}", dependencies=[Depends(require_admin)])
+def add_member(project_id: str, username: str) -> dict:
+    try:
+        return project_members.add(project_id, username)
+    except KeyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+    except ProjectValidationError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+
+
+@router.delete("/{project_id}/members/{username}", dependencies=[Depends(require_admin)])
+def remove_member(project_id: str, username: str) -> dict:
+    try:
+        return project_members.remove(project_id, username)
+    except KeyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+
+
+@router.get("/{project_id}/sessions")
+def list_project_sessions(
+    project_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> list[dict]:
+    p = project_config.get(project_id)
+    if not p:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+    _check_access(p, *auth)
+    username, role = auth
+    out = []
+    all_sessions = sessions_db.list_for_user(username) if role != "admin" else \
+        sessions_db.list_for_agent(p["agent_id"])
+    for s in all_sessions:
+        if s.project_id == project_id:
+            out.append({
+                "id": s.id, "agent_id": s.agent_id, "user_id": s.user_id,
+                "project_id": s.project_id, "title": s.title, "status": s.status,
+                "created_at": s.created_at, "updated_at": s.updated_at,
+            })
+    return out
+
+
+@router.get("/{project_id}/agent")
+def get_project_agent(
+    project_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    p = project_config.get(project_id)
+    if not p:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+    _check_access(p, *auth)
+    agent = agent_config.get(p.get("agent_id", ""))
+    if not agent:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project-Agent nicht gefunden")
+    return agent

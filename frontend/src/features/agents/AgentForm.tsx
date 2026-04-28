@@ -1,0 +1,166 @@
+import { Save, Trash2, Loader2, Crown, User, Wrench } from "lucide-react"
+import { useEffect, useState } from "react"
+import { agentsApi, mcpInfoApi, type McpServerBrief } from "./api"
+import { McpSelector } from "./McpSelector"
+import { ToolsSelector } from "./ToolsSelector"
+import type { Agent, ToolMeta } from "./types"
+
+interface Props {
+  agent: Agent
+  models: string[]
+  tools: ToolMeta[]
+  onSaved: (a: Agent) => void
+  onDeleted: () => void
+}
+
+const TYPE_ICON = { master: Crown, project: User, specialist: Wrench }
+
+export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
+  const [draft, setDraft] = useState(agent)
+  const [prompt, setPrompt] = useState("")
+  const [originalPrompt, setOriginalPrompt] = useState("")
+  const [mcpServers, setMcpServers] = useState<McpServerBrief[]>([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDraft(agent)
+    setError(null)
+    agentsApi.getSystemPrompt(agent.id).then((r) => {
+      setPrompt(r.prompt)
+      setOriginalPrompt(r.prompt)
+    })
+  }, [agent.id])
+
+  useEffect(() => {
+    mcpInfoApi.list().then(setMcpServers).catch(() => {})
+  }, [])
+
+  const dirty =
+    JSON.stringify(draft) !== JSON.stringify(agent) || prompt !== originalPrompt
+  const Icon = TYPE_ICON[agent.type] ?? Wrench
+
+  async function save() {
+    setSaving(true)
+    setError(null)
+    try {
+      const { id, type, created_at, updated_at, created_by, ...patch } = draft
+      const updated = await agentsApi.update(agent.id, patch)
+      if (prompt !== originalPrompt) {
+        await agentsApi.setSystemPrompt(agent.id, prompt)
+        setOriginalPrompt(prompt)
+      }
+      onSaved(updated)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function remove() {
+    if (!confirm(`Agent "${agent.name}" wirklich löschen? Inkl. Memory + Workspace.`)) return
+    await agentsApi.delete(agent.id)
+    onDeleted()
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-6 py-4 border-b border-white/[6%] flex items-center gap-4">
+        <Icon size={18} className="text-violet-300 flex-shrink-0" />
+        <input
+          value={draft.name}
+          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          className="flex-1 bg-transparent text-lg font-bold text-white focus:outline-none"
+        />
+        <select
+          value={draft.status}
+          onChange={(e) => setDraft({ ...draft, status: e.target.value as Agent["status"] })}
+          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
+        >
+          <option value="active">aktiv</option>
+          <option value="disabled">deaktiviert</option>
+        </select>
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-violet-900/20"
+        >
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          Speichern
+        </button>
+        <button
+          onClick={remove}
+          className="p-2 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        {error && (
+          <div className="rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Typ">
+            <p className="text-sm text-zinc-300 font-mono">{draft.type}</p>
+          </Field>
+          <Field label="Modell">
+            <select
+              value={draft.llm_model}
+              onChange={(e) => setDraft({ ...draft, llm_model: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200"
+            >
+              {!models.includes(draft.llm_model) && (
+                <option value={draft.llm_model}>{draft.llm_model} (nicht in LLM-Config)</option>
+              )}
+              {models.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </Field>
+          <Field label="Temperatur">
+            <input type="number" step="0.1" min="0" max="2" value={draft.temperature}
+              onChange={(e) => setDraft({ ...draft, temperature: parseFloat(e.target.value) })}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
+          </Field>
+          <Field label="Max Tokens">
+            <input type="number" value={draft.max_tokens}
+              onChange={(e) => setDraft({ ...draft, max_tokens: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
+          </Field>
+        </div>
+
+        <Field label="Beschreibung">
+          <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
+        </Field>
+
+        <Field label={`Tools (${draft.tools.length}/${tools.length})`}>
+          <ToolsSelector available={tools} selected={draft.tools}
+            onChange={(t) => setDraft({ ...draft, tools: t })} />
+        </Field>
+
+        <Field label={`MCP-Server (${draft.mcp_servers.length}/${mcpServers.length})`}>
+          <McpSelector available={mcpServers} selected={draft.mcp_servers}
+            onChange={(s) => setDraft({ ...draft, mcp_servers: s })} />
+        </Field>
+
+        <Field label="System-Prompt">
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={10}
+            className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+        </Field>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</label>
+      {children}
+    </div>
+  )
+}

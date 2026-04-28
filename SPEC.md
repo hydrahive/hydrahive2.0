@@ -154,12 +154,14 @@ Grundstruktur. Die Config-Schicht (was jetzt steht) ist davon unabhängig.
 | `file_write` | Datei schreiben |
 | `file_patch` | Datei patch (diff-basiert) |
 | `file_search` | Dateien suchen |
-| `web_search` | Websuche |
+| `dir_list` | Verzeichnisinhalt auflisten |
+| `web_search` | Websuche (über lokalen SearxNG) |
 | `http_request` | HTTP-Requests |
 | `read_memory` | Eigene Memory-Notizen lesen |
 | `write_memory` | Eigene Memory-Notizen schreiben |
+| `todo_write` | Todo-Liste pro Session führen |
 | `ask_agent` | Anderen Agenten über AgentLink beauftragen |
-| `send_mail` | E-Mail senden |
+| `send_mail` | E-Mail senden (SMTP-Config nachträglich) |
 
 ### MCP-Tools (extern, per Config zugewiesen)
 
