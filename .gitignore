@@ -34,3 +34,22 @@ logs/
 # Test
 .pytest_cache/
 coverage/
+
+# Secrets — never commit these even by accident
+llm.json
+users.json
+sessions.db
+sessions.db-wal
+sessions.db-shm
+*.key
+*.pem
+*.p12
+secrets/
+credentials/
+config/llm.json
+config/users.json
+data/
+
+# Local dev overrides
+dev-start.local.sh
+.hh-local/
