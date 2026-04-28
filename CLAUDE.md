@@ -47,6 +47,38 @@ Wenn etwas nicht funktioniert oder ich unsicher bin — sofort sagen, nicht weit
 
 ## Technische Regeln
 
+**Datei-Größe — eiserne Regel:**
+- Max ~150 Zeilen pro Datei
+- Eine Datei = eine Verantwortung
+- Lieber 1000 kleine Dateien als 30 Monster-Dateien
+- Wenn eine Datei größer wird: aufteilen, nicht weiterschreiben
+
+**Co-location — kein Shotgun Surgery:**
+- Alles was zusammengehört liegt zusammen
+- Chat-Logik: alles in `features/chat/` — nicht auf 5 Dateien verteilt
+- Permissions: EIN zentrales Modul (`auth/permissions.py`) — alle anderen importieren nur davon, schreiben nie selbst Permission-Logik
+- Config: EINE Config-Quelle — nie Werte an mehreren Orten hardcoden
+- Wenn eine Änderung mehr als 2 Dateien anfassen muss: Struktur überdenken
+
+**Frontend: Feature-Folders:**
+```
+features/
+├── chat/         # ChatView.tsx + useChat.ts + api.ts + types.ts
+├── agents/       # alles für Agents zusammen
+├── projects/     # alles für Projekte zusammen
+└── auth/         # Login + permissions.ts ← einzige Permissions-Quelle
+```
+Keine Layer-Struktur (components/ hooks/ api/ types/ — alle getrennt).
+
+**Backend: Module nach Verantwortung:**
+```
+agents/master/session.py      # Session-Lifecycle, nur das
+agents/master/compaction.py   # Compaction, nur das
+tools/shell.py                # shell_exec, nur das
+llm/client.py                 # LiteLLM-Wrapper, nur das
+api/routes/agents.py          # /agents Endpoints, nur das
+```
+
 **Code:**
 - Python 3.12 + FastAPI für Backend
 - React + TypeScript + Vite für Frontend
@@ -67,6 +99,7 @@ Wenn etwas nicht funktioniert oder ich unsicher bin — sofort sagen, nicht weit
 - v1-Pattern (Boss/Worker über Chat-Nachrichten)
 - Features aus der "Nicht-Ziele"-Liste in SPEC.md
 - Issues öffnen und schließen ohne dass das Feature wirklich funktioniert
+- Funktionen die an mehreren Orten dupliziert werden
 
 ---
 
