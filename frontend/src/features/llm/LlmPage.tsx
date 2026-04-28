@@ -51,9 +51,9 @@ function AddProviderForm({ onAdd }: { onAdd: (p: LlmProvider) => void }) {
         <div>
           <label className="block text-xs text-zinc-500 mb-1">Provider</label>
           <select value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value, name: KNOWN_PROVIDERS.find(p => p.id === e.target.value)?.name ?? "" })}
-            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50">
-            <option value="">Auswählen…</option>
-            {KNOWN_PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50">
+            <option value="" className="bg-zinc-900 text-zinc-400">Auswählen…</option>
+            {KNOWN_PROVIDERS.map((p) => <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-200">{p.name}</option>)}
           </select>
         </div>
         <div>
@@ -143,9 +143,9 @@ export function LlmPage() {
           <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Standard-Modell</p>
           <select value={config.default_model}
             onChange={(e) => { const next = { ...config, default_model: e.target.value }; setConfig(next); save(next) }}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50">
-            <option value="">Auswählen…</option>
-            {allModels.map((m) => <option key={m} value={m}>{m}</option>)}
+            className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50">
+            <option value="" className="bg-zinc-900 text-zinc-400">Auswählen…</option>
+            {allModels.map((m) => <option key={m} value={m} className="bg-zinc-900 text-zinc-200">{m}</option>)}
           </select>
         </div>
       )}
