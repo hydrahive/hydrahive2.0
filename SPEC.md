@@ -112,6 +112,37 @@ Wird vom Installer mitinstalliert. Ermöglicht auch Federation zwischen zwei Hyd
 
 ---
 
+## Agent-Isolation (Ausführungsebene)
+
+**Entscheidung:** Agenten werden bei der Code-Ausführung auf OS-Ebene isoliert — nicht durch
+eigenen Python-Code, sondern durch Linux-Mechanismen. Die API-Schicht (User-Verwaltung, JWT)
+bleibt davon unberührt und braucht keine Root-Rechte.
+
+**Warum nicht "alles ist ein Linux-User":**
+- `useradd` aus der API heraus würde root im API-Prozess erfordern → inakzeptables Risiko
+- Linux-Usernamen (max 32 Zeichen, ASCII) passen nicht zu beliebigen HydraHive-Usernamen
+- Zwei parallele Auth-Systeme (Linux-PAM + JWT) erhöhen Komplexität ohne Nutzen
+
+**Was stattdessen:**
+
+| Ebene | Mechanismus |
+|---|---|
+| HydraHive-User + Auth | bleibt eigene Schicht (users.json + JWT) |
+| Agent-Ausführung (`shell_exec` etc.) | systemd-Unit mit `User=hh-agent`, `PrivateTmp=yes`, `ProtectSystem=strict`, `ReadWritePaths=<workspace>` |
+| Projekt-Workspaces | Linux-Gruppe `hh-proj-{id}` — alle Agents im Projekt teilen Zugriff per ACL |
+| Ressource-Limits | cgroup via systemd (`MemoryMax=`, `CPUQuota=`) |
+
+**Konsequenz für den Installer:**
+- Installer legt einen unprivilegierten System-User `hydrahive` für den API-Prozess an
+- Installer legt einen System-User `hh-agent` an unter dem alle Agenten-Prozesse laufen
+- Projekte bekommen beim Anlegen eine Linux-Gruppe + `setgid` auf dem Workspace-Verzeichnis
+- Die API selbst läuft nie als root
+
+**Wann umsetzen:** Beim Bau des Agent-Runners (`agents/master/runner.py`), nicht in der
+Grundstruktur. Die Config-Schicht (was jetzt steht) ist davon unabhängig.
+
+---
+
 ## Tools für Agenten
 
 ### Core-Tools (immer verfügbar, in Python implementiert)
