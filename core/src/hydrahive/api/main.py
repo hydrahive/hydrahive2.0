@@ -6,12 +6,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from hydrahive.agents import config as agent_config
+from hydrahive.agents import bootstrap as agent_bootstrap
 from hydrahive.api.middleware.users import ensure_admin
 from hydrahive.api.routes.agents import router as agents_router
 from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.llm import router as llm_router
+from hydrahive.api.routes.mcp import router as mcp_router
+from hydrahive.api.routes.projects import router as projects_router
+from hydrahive.api.routes.sessions import router as sessions_router
+from hydrahive.api.routes.system import router as system_router, set_start_time
 from hydrahive.api.routes.users import router as users_router
+from hydrahive.db import init_db
 from hydrahive.settings import settings
 
 logging.basicConfig(
@@ -24,8 +29,10 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
+    init_db()
     ensure_admin("admin", "changeme")
-    agent_config.ensure_master("admin")
+    agent_bootstrap.ensure_master("admin")
+    set_start_time()
     logger.info("HydraHive2 gestartet — Port %s", settings.port)
     yield
     logger.info("HydraHive2 beendet")
@@ -51,6 +58,10 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(agents_router)
 app.include_router(llm_router)
+app.include_router(mcp_router)
+app.include_router(projects_router)
+app.include_router(sessions_router)
+app.include_router(system_router)
 
 
 @app.get("/api/health")

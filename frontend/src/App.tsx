@@ -5,8 +5,9 @@ import { Layout } from "@/shared/Layout"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { ChatPage } from "@/features/chat/ChatPage"
 import { AgentsPage } from "@/features/agents/AgentsPage"
-import { ProjectsPage } from "@/features/agents/ProjectsPage"
+import { ProjectsPage } from "@/features/projects/ProjectsPage"
 import { LlmPage } from "@/features/llm/LlmPage"
+import { McpPage } from "@/features/mcp/McpPage"
 import { SystemPage } from "@/features/system/SystemPage"
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="llm" element={<LlmPage />} />
+          <Route path="mcp" element={<McpPage />} />
           <Route path="system" element={<SystemPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

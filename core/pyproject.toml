@@ -11,6 +11,8 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "pyjwt>=2.8",
     "litellm>=1.40",
+    "anthropic>=0.40",
+    "mcp>=1.0",
     "httpx>=0.27",
 ]
 
