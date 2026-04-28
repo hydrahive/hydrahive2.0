@@ -32,12 +32,12 @@ export function useChat(sessionId: string | null) {
 
   const reload = useCallback(async () => {
     if (!sessionId) {
-      setState({ messages: [], busy: false, iteration: 0, error: null })
+      setState({ messages: [], busy: false, iteration: 0, error: null, lastTurnTokens: null })
       return
     }
     try {
       const msgs = await chatApi.listMessages(sessionId)
-      setState({ messages: msgs, busy: false, iteration: 0, error: null })
+      setState((s) => ({ ...s, messages: msgs, busy: false, iteration: 0, error: null }))
     } catch (e) {
       setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Fehler" }))
     }
