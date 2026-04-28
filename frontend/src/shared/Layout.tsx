@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom"
-import { Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Settings } from "lucide-react"
+import { Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Server, Settings } from "lucide-react"
 import { cn } from "./cn"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 
@@ -17,6 +17,7 @@ const NAV_GROUPS = [
     label: "Konfiguration",
     items: [
       { path: "/llm", icon: Cpu, label: "LLM" },
+      { path: "/mcp", icon: Server, label: "MCP" },
       { path: "/system", icon: Settings, label: "System" },
     ],
   },

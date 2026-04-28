@@ -3,12 +3,34 @@ import { CheckCircle, Loader2, Plus, Trash2, XCircle, Zap } from "lucide-react"
 import { llmApi, type LlmConfig, type LlmProvider } from "./api"
 
 const KNOWN_PROVIDERS = [
-  { id: "anthropic", name: "Anthropic", placeholder: "sk-ant-..." },
-  { id: "openai", name: "OpenAI", placeholder: "sk-..." },
-  { id: "openrouter", name: "OpenRouter", placeholder: "sk-or-..." },
-  { id: "groq", name: "Groq", placeholder: "gsk_..." },
-  { id: "mistral", name: "Mistral", placeholder: "..." },
-  { id: "gemini", name: "Google Gemini", placeholder: "AIza..." },
+  {
+    id: "anthropic", name: "Anthropic", placeholder: "sk-ant-...",
+    models: ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022"],
+  },
+  {
+    id: "openai", name: "OpenAI", placeholder: "sk-...",
+    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo", "o1-preview", "o1-mini"],
+  },
+  {
+    id: "openrouter", name: "OpenRouter", placeholder: "sk-or-...",
+    models: ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-2.0-flash-exp", "deepseek/deepseek-r1", "meta-llama/llama-3.3-70b-instruct"],
+  },
+  {
+    id: "groq", name: "Groq", placeholder: "gsk_...",
+    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "deepseek-r1-distill-llama-70b"],
+  },
+  {
+    id: "mistral", name: "Mistral", placeholder: "...",
+    models: ["mistral-large-latest", "mistral-small-latest", "codestral-latest", "open-mistral-nemo"],
+  },
+  {
+    id: "gemini", name: "Google Gemini", placeholder: "AIza...",
+    models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"],
+  },
+  {
+    id: "minimax", name: "MiniMax", placeholder: "eyJ...",
+    models: ["MiniMax-M2", "MiniMax-M2.7", "abab6.5s-chat"],
+  },
 ]
 
 const EMPTY_PROVIDER: LlmProvider = { id: "", name: "", api_key: "", models: [] }
@@ -34,14 +56,21 @@ function ProviderCard({ provider, onDelete }: { provider: LlmProvider; onDelete:
 
 function AddProviderForm({ onAdd }: { onAdd: (p: LlmProvider) => void }) {
   const [form, setForm] = useState<LlmProvider>({ ...EMPTY_PROVIDER })
-  const [modelsText, setModelsText] = useState("")
+  const [selectedModels, setSelectedModels] = useState<string[]>([])
+  const [customModel, setCustomModel] = useState("")
   const known = KNOWN_PROVIDERS.find((p) => p.id === form.id)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    onAdd({ ...form, name: form.name || known?.name || form.id, models: modelsText.split(",").map((m) => m.trim()).filter(Boolean) })
+    const models = customModel.trim() ? [...selectedModels, customModel.trim()] : selectedModels
+    onAdd({ ...form, name: form.name || known?.name || form.id, models })
     setForm({ ...EMPTY_PROVIDER })
-    setModelsText("")
+    setSelectedModels([])
+    setCustomModel("")
+  }
+
+  function toggleModel(m: string) {
+    setSelectedModels((cur) => cur.includes(m) ? cur.filter((x) => x !== m) : [...cur, m])
   }
 
   return (
@@ -50,7 +79,7 @@ function AddProviderForm({ onAdd }: { onAdd: (p: LlmProvider) => void }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-zinc-500 mb-1">Provider</label>
-          <select value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value, name: KNOWN_PROVIDERS.find(p => p.id === e.target.value)?.name ?? "" })}
+          <select value={form.id} onChange={(e) => { setForm({ ...form, id: e.target.value, name: KNOWN_PROVIDERS.find(p => p.id === e.target.value)?.name ?? "" }); setSelectedModels([]) }}
             className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50">
             <option value="" className="bg-zinc-900 text-zinc-400">Auswählen…</option>
             {KNOWN_PROVIDERS.map((p) => <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-200">{p.name}</option>)}
@@ -63,13 +92,29 @@ function AddProviderForm({ onAdd }: { onAdd: (p: LlmProvider) => void }) {
             className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
         </div>
       </div>
-      <div>
-        <label className="block text-xs text-zinc-500 mb-1">Modelle (kommagetrennt)</label>
-        <input type="text" value={modelsText} onChange={(e) => setModelsText(e.target.value)}
-          placeholder="claude-sonnet-4-6, claude-opus-4-7"
-          className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
-      </div>
-      <button type="submit" disabled={!form.id || !form.api_key}
+
+      {known && (
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1.5">Modelle ({selectedModels.length} ausgewählt)</label>
+          <div className="flex flex-wrap gap-1.5">
+            {known.models.map((m) => {
+              const sel = selectedModels.includes(m)
+              return (
+                <button key={m} type="button" onClick={() => toggleModel(m)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all ${
+                    sel ? "bg-violet-500/[15%] border border-violet-500/40 text-violet-200"
+                        : "bg-white/[3%] border border-white/[8%] text-zinc-400 hover:text-zinc-200 hover:bg-white/[6%]"
+                  }`}>{m}</button>
+              )
+            })}
+          </div>
+          <input type="text" value={customModel} onChange={(e) => setCustomModel(e.target.value)}
+            placeholder="oder Custom-Modell eingeben…"
+            className="mt-2 w-full px-3 py-1.5 rounded-lg bg-white/[3%] border border-white/[6%] text-zinc-300 text-xs font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/40" />
+        </div>
+      )}
+
+      <button type="submit" disabled={!form.id || !form.api_key || (selectedModels.length === 0 && !customModel.trim())}
         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all">
         <Plus size={14} /> Hinzufügen
       </button>
