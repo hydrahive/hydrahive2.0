@@ -2,12 +2,16 @@
 # Installiert apt-Dependencies. Idempotent.
 set -euo pipefail
 
+# Locale für apt sauber setzen (Warnings sonst stören die Logs)
+export LANG=C.UTF-8 LC_ALL=C.UTF-8 DEBIAN_FRONTEND=noninteractive
+
+# npm absichtlich NICHT in der Liste — NodeSource liefert npm mit nodejs zusammen.
+# Das Ubuntu-npm-Paket konfligiert sonst: "nodejs : Conflicts: npm".
 REQUIRED_PACKAGES=(
   python3.12
   python3.12-venv
   python3-pip
   nodejs
-  npm
   git
   curl
 )
