@@ -1,0 +1,92 @@
+"""Helper-Funktionen für /api/system/* — Health-Checks und Counts."""
+from __future__ import annotations
+
+import json
+import os
+import shutil
+
+from hydrahive.db.connection import db
+from hydrahive.settings import settings
+
+
+def count_agents() -> tuple[int, dict]:
+    if not settings.agents_dir.exists():
+        return 0, {}
+    by_type: dict[str, int] = {}
+    total = 0
+    for d in settings.agents_dir.iterdir():
+        cfg = d / "config.json"
+        if not cfg.exists():
+            continue
+        try:
+            data = json.loads(cfg.read_text())
+            t = data.get("type", "?")
+            by_type[t] = by_type.get(t, 0) + 1
+            total += 1
+        except json.JSONDecodeError:
+            continue
+    return total, by_type
+
+
+def count_projects() -> tuple[int, int]:
+    pdir = settings.data_dir / "projects"
+    if not pdir.exists():
+        return 0, 0
+    total, active = 0, 0
+    for d in pdir.iterdir():
+        cfg = d / "config.json"
+        if not cfg.exists():
+            continue
+        try:
+            data = json.loads(cfg.read_text())
+            total += 1
+            if data.get("status", "active") == "active":
+                active += 1
+        except json.JSONDecodeError:
+            continue
+    return total, active
+
+
+def check_db_writable() -> dict:
+    try:
+        with db() as conn:
+            conn.execute("SELECT 1").fetchone()
+        return {"name": "DB", "ok": True, "detail": "lesbar/schreibbar"}
+    except Exception as e:
+        return {"name": "DB", "ok": False, "detail": str(e)}
+
+
+def check_llm_configured() -> dict:
+    try:
+        if not settings.llm_config.exists():
+            return {"name": "LLM", "ok": False, "detail": "Keine Config"}
+        cfg = json.loads(settings.llm_config.read_text())
+        if not cfg.get("default_model"):
+            return {"name": "LLM", "ok": False, "detail": "Kein Default-Model"}
+        providers = cfg.get("providers", [])
+        if not providers:
+            return {"name": "LLM", "ok": False, "detail": "Keine Provider"}
+        return {"name": "LLM", "ok": True, "detail": f"{cfg['default_model']} · {len(providers)} Provider"}
+    except Exception as e:
+        return {"name": "LLM", "ok": False, "detail": str(e)}
+
+
+def check_workspace_dir() -> dict:
+    ws = settings.data_dir / "workspaces"
+    if not ws.exists():
+        return {"name": "Workspaces", "ok": False, "detail": "Verzeichnis fehlt"}
+    return {"name": "Workspaces", "ok": os.access(ws, os.W_OK), "detail": str(ws)}
+
+
+def check_disk() -> dict:
+    try:
+        usage = shutil.disk_usage(settings.data_dir)
+        free_gb = usage.free / 1024**3
+        free_pct = usage.free / usage.total * 100
+        return {
+            "name": "Disk",
+            "ok": free_pct > 5,
+            "detail": f"{free_gb:.1f} GB frei ({free_pct:.0f}%)",
+        }
+    except Exception as e:
+        return {"name": "Disk", "ok": False, "detail": str(e)}
