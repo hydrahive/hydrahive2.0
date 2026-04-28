@@ -1,0 +1,9 @@
+{
+  "title": "Dashboard",
+  "subtitle": "Übersicht über dein HydraHive2-System",
+  "stats": {
+    "agents": "Agents",
+    "users": "User",
+    "online": "Online"
+  }
+}

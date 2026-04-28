@@ -3,6 +3,7 @@ import { Activity, Bot, Users } from "lucide-react"
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { cn } from "@/shared/cn"
+import { HelpButton } from "@/i18n/HelpButton"
 
 interface Agent { id: string; type: string; name: string; owner: string | null }
 interface User { username: string; role: string }
@@ -63,9 +64,12 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-xl font-bold text-white">Dashboard</h1>
-        <p className="text-zinc-500 text-sm mt-0.5">Systemübersicht</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-white">Dashboard</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">Systemübersicht</p>
+        </div>
+        <HelpButton topic="dashboard" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

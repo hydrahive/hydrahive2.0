@@ -1,0 +1,18 @@
+{
+  "groups": {
+    "main": "Main",
+    "config": "Configuration"
+  },
+  "items": {
+    "dashboard": "Dashboard",
+    "chat": "Chat",
+    "agents": "Agents",
+    "projects": "Projects",
+    "llm": "LLM",
+    "mcp": "MCP",
+    "system": "System",
+    "help": "Help"
+  },
+  "online": "Online",
+  "help_button": "Open page help"
+}

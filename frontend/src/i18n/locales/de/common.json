@@ -1,0 +1,62 @@
+{
+  "actions": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Anlegen",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "select": "Auswählen…",
+    "search": "Suchen",
+    "send": "Senden",
+    "stop": "Stop",
+    "retry": "Erneut versuchen",
+    "test": "Testen",
+    "connect": "Verbinden",
+    "disconnect": "Trennen",
+    "new": "Neu"
+  },
+  "status": {
+    "active": "aktiv",
+    "disabled": "deaktiviert",
+    "archived": "archiviert",
+    "connected": "verbunden",
+    "disconnected": "nicht verbunden",
+    "loading": "Lädt…",
+    "saving": "Speichert…",
+    "error": "Fehler",
+    "ok": "OK"
+  },
+  "labels": {
+    "name": "Name",
+    "description": "Beschreibung",
+    "type": "Typ",
+    "id": "ID",
+    "status": "Status",
+    "model": "Modell",
+    "tools": "Tools",
+    "members": "Mitglieder",
+    "created_at": "Erstellt",
+    "updated_at": "Aktualisiert",
+    "owner": "Besitzer",
+    "language": "Sprache"
+  },
+  "confirm": {
+    "delete": "Wirklich löschen?",
+    "discard_changes": "Änderungen verwerfen?"
+  },
+  "errors": {
+    "generic": "Ein Fehler ist aufgetreten",
+    "network": "Netzwerk-Fehler",
+    "not_found": "Nicht gefunden",
+    "forbidden": "Kein Zugriff",
+    "validation": "Eingabe ungültig"
+  },
+  "empty": {
+    "no_results": "Keine Ergebnisse",
+    "select_to_view": "Wähle einen Eintrag um Details zu sehen"
+  }
+}
