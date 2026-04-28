@@ -28,9 +28,25 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import os
+    import secrets
     settings.ensure_dirs()
     init_db()
-    ensure_admin("admin", "changeme")
+    # First-Run: Admin-Passwort entweder aus ENV oder Random-Generated und ins Log.
+    # Niemals "changeme" als Default — Login-by-Default-Credentials wäre verwundbar.
+    initial_pw = os.environ.get("HH_INITIAL_ADMIN_PASSWORD") or secrets.token_urlsafe(16)
+    user_was_new = ensure_admin("admin", initial_pw)
+    if user_was_new:
+        logger.warning(
+            "============================================================\n"
+            "  Erster Start — Admin-User angelegt:\n"
+            "    Username: admin\n"
+            "    Passwort: %s\n"
+            "  ↑ Dieses Passwort wird NUR EINMAL angezeigt — bitte sichern.\n"
+            "  Bei Bedarf via HH_INITIAL_ADMIN_PASSWORD Env-Var vorgeben.\n"
+            "============================================================",
+            initial_pw,
+        )
     agent_bootstrap.ensure_master("admin")
     set_start_time()
     logger.info("HydraHive2 gestartet — Port %s", settings.port)
@@ -46,9 +62,16 @@ app = FastAPI(
     redoc_url=None,
 )
 
+import os
+_cors_origins_env = os.environ.get("HH_CORS_ORIGINS", "").strip()
+_cors_origins = (
+    [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+    if _cors_origins_env
+    else ["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173"]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

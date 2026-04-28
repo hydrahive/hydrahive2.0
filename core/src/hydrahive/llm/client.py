@@ -41,10 +41,26 @@ _ANTHROPIC_OAUTH_IDENTITY = [
 MINIMAX_BASE_URL = "https://api.minimax.io/anthropic"
 
 
+_config_cache: tuple[float, dict] | None = None
+
+
 def _load_config() -> dict:
-    if not settings.llm_config.exists():
+    """LLM-Config laden mit mtime-basiertem Cache.
+
+    Bei jedem Anthropic-Call wurde die Config-Datei neu eingelesen — bei vielen
+    parallelen Streams summiert sich das. mtime-Check ist billig und invalidiert
+    nur wenn die Datei tatsächlich geändert wurde (z.B. nach LLM-Page-Save).
+    """
+    global _config_cache
+    path = settings.llm_config
+    if not path.exists():
         return {"providers": [], "default_model": ""}
-    return json.loads(settings.llm_config.read_text())
+    mtime = path.stat().st_mtime
+    if _config_cache and _config_cache[0] == mtime:
+        return _config_cache[1]
+    data = json.loads(path.read_text())
+    _config_cache = (mtime, data)
+    return data
 
 
 def _apply_keys(config: dict) -> None:

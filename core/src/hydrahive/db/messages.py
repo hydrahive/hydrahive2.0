@@ -90,26 +90,55 @@ def list_for_session(session_id: str, limit: int | None = None) -> list[Message]
 
 
 def list_for_llm(session_id: str) -> list[Message]:
-    """Like list_for_session but resolves the latest compaction entry.
+    """Wie list_for_session, aber resolved durch die neueste Compaction.
 
-    Returns the kept portion: messages from firstKeptEntryId onwards, with
-    compaction-rows themselves filtered out. Caller must fetch the summary
-    separately via `get_latest_summary()` and prepend it to the system prompt.
+    Gibt nur die kept-Portion zurück (ab firstKeptEntryId), ohne
+    Compaction-Rows. Caller muss `get_latest_summary()` separat laden.
+
+    SQL-optimiert: zwei gezielte Queries statt komplette History-Liste —
+    bei großen Sessions massiver Unterschied.
     """
-    full = list_for_session(session_id)
-    cmp_msg = next((m for m in reversed(full) if m.role == "compaction"), None)
-    if cmp_msg is None:
-        return full
+    with db() as conn:
+        cmp_row = conn.execute(
+            """SELECT id, created_at, metadata FROM messages
+               WHERE session_id = ? AND role = 'compaction'
+               ORDER BY created_at DESC LIMIT 1""",
+            (session_id,),
+        ).fetchone()
 
-    first_kept = (cmp_msg.metadata or {}).get("firstKeptEntryId")
-    if not first_kept:
-        return [m for m in full if m.role != "compaction"]
+        if cmp_row is None:
+            rows = conn.execute(
+                "SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC",
+                (session_id,),
+            ).fetchall()
+            return [Message.from_row(r) for r in rows]
 
-    kept_from = next((i for i, m in enumerate(full) if m.id == first_kept), None)
-    if kept_from is None:
-        return [m for m in full if m.role != "compaction"]
+        meta = json.loads(cmp_row["metadata"]) if cmp_row["metadata"] else {}
+        first_kept = meta.get("firstKeptEntryId")
+        if not first_kept:
+            rows = conn.execute(
+                "SELECT * FROM messages WHERE session_id = ? AND role != 'compaction' ORDER BY created_at ASC",
+                (session_id,),
+            ).fetchall()
+            return [Message.from_row(r) for r in rows]
 
-    return [m for m in full[kept_from:] if m.role != "compaction"]
+        ts_row = conn.execute(
+            "SELECT created_at FROM messages WHERE id = ?", (first_kept,),
+        ).fetchone()
+        if not ts_row:
+            rows = conn.execute(
+                "SELECT * FROM messages WHERE session_id = ? AND role != 'compaction' ORDER BY created_at ASC",
+                (session_id,),
+            ).fetchall()
+            return [Message.from_row(r) for r in rows]
+
+        rows = conn.execute(
+            """SELECT * FROM messages
+               WHERE session_id = ? AND role != 'compaction' AND created_at >= ?
+               ORDER BY created_at ASC""",
+            (session_id, ts_row["created_at"]),
+        ).fetchall()
+    return [Message.from_row(r) for r in rows]
 
 
 def get_latest_summary(session_id: str) -> str | None:

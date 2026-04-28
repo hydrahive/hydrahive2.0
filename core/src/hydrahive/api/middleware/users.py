@@ -71,8 +71,10 @@ def list_users() -> list[dict]:
     ]
 
 
-def ensure_admin(username: str, password: str) -> None:
-    """Creates admin user if no users exist yet (first-run setup)."""
+def ensure_admin(username: str, password: str) -> bool:
+    """Creates admin user if no users exist yet. Returns True if a new user was created."""
     if not _load():
         create(username, password, role="admin")
         logger.info("Admin '%s' beim ersten Start angelegt", username)
+        return True
+    return False

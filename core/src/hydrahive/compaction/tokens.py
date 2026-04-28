@@ -54,4 +54,12 @@ def context_window_for(model: str) -> int:
         return 128_000
     if "gemini" in m:
         return 1_000_000
+    if "minimax" in m:
+        return 256_000  # M2 / M2.7 / abab6.5: 245-256k Context
+    if "deepseek" in m:
+        return 128_000
+    if "llama" in m or "mistral" in m or "mixtral" in m:
+        return 128_000
+    if "qwen" in m:
+        return 262_144
     return 32_000  # safe default
