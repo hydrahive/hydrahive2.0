@@ -1,28 +1,72 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from hydrahive.agents import config as agent_config
+from hydrahive.agents import AgentValidationError, config as agent_config
+from hydrahive.agents._defaults import DEFAULT_TOOLS
 from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.tools import REGISTRY as TOOL_REGISTRY
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
 
-class CreateSpecialistRequest(BaseModel):
+class AgentCreate(BaseModel):
+    type: str
     name: str
-    domain: str
     llm_model: str
-    tools: list[str] = []
-    execution_mode: str | None = None
+    tools: list[str] | None = None
+    owner: str | None = None
+    description: str = ""
+    temperature: float = 0.7
+    max_tokens: int = 4096
+    thinking_budget: int = 0
+    mcp_servers: list[str] = []
+    project_id: str | None = None
+    domain: str | None = None
+    system_prompt: str | None = None
+
+
+class AgentUpdate(BaseModel):
+    name: str | None = None
+    llm_model: str | None = None
+    tools: list[str] | None = None
+    owner: str | None = None
+    description: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    thinking_budget: int | None = None
+    mcp_servers: list[str] | None = None
+    domain: str | None = None
+    status: str | None = None
+
+
+class SystemPromptUpdate(BaseModel):
+    prompt: str = Field(..., min_length=1)
+
+
+def _check_access(agent: dict, username: str, role: str) -> None:
+    if role != "admin" and agent.get("owner") != username:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Kein Zugriff")
+
+
+@router.get("/_meta/tools")
+def list_available_tools(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    return [
+        {"name": t.name, "description": t.description}
+        for t in TOOL_REGISTRY.values()
+    ]
+
+
+@router.get("/_meta/defaults")
+def list_defaults(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    return {"tools_per_type": DEFAULT_TOOLS, "types": list(DEFAULT_TOOLS.keys())}
 
 
 @router.get("")
-def list_agents(
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-) -> list[dict]:
+def list_agents(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     username, role = auth
     if role == "admin":
         return agent_config.list_all()
@@ -34,26 +78,54 @@ def get_agent(
     agent_id: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    username, role = auth
     agent = agent_config.get(agent_id)
     if not agent:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
-    if role != "admin" and agent.get("owner") != username:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Kein Zugriff")
+    _check_access(agent, *auth)
     return agent
 
 
-@router.post("", status_code=status.HTTP_201_CREATED,
-             dependencies=[Depends(require_admin)])
-def create_specialist(req: CreateSpecialistRequest) -> dict:
-    return agent_config.create(
-        agent_type="specialist",
-        name=req.name,
-        llm_model=req.llm_model,
-        tools=req.tools if req.tools else agent_config.DEFAULT_TOOLS["specialist"],
-        execution_mode=req.execution_mode,
-        domain=req.domain,
-    )
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_agent(
+    req: AgentCreate,
+    auth: Annotated[tuple[str, str], Depends(require_admin)],
+) -> dict:
+    creator, _ = auth
+    try:
+        return agent_config.create(
+            agent_type=req.type,
+            name=req.name,
+            llm_model=req.llm_model,
+            tools=req.tools,
+            owner=req.owner or creator,
+            created_by=creator,
+            description=req.description,
+            temperature=req.temperature,
+            max_tokens=req.max_tokens,
+            thinking_budget=req.thinking_budget,
+            mcp_servers=req.mcp_servers,
+            project_id=req.project_id,
+            domain=req.domain,
+            system_prompt=req.system_prompt,
+        )
+    except AgentValidationError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+
+
+@router.patch("/{agent_id}", dependencies=[Depends(require_admin)])
+def update_agent(agent_id: str, req: AgentUpdate) -> dict:
+    changes = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not changes:
+        agent = agent_config.get(agent_id)
+        if not agent:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        return agent
+    try:
+        return agent_config.update(agent_id, **changes)
+    except KeyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+    except AgentValidationError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
 
 
 @router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT,
@@ -61,3 +133,24 @@ def create_specialist(req: CreateSpecialistRequest) -> dict:
 def delete_agent(agent_id: str) -> None:
     if not agent_config.delete(agent_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+
+
+@router.get("/{agent_id}/system_prompt")
+def get_system_prompt(
+    agent_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    agent = agent_config.get(agent_id)
+    if not agent:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+    _check_access(agent, *auth)
+    return {"prompt": agent_config.get_system_prompt(agent_id)}
+
+
+@router.put("/{agent_id}/system_prompt", dependencies=[Depends(require_admin)])
+def set_system_prompt(agent_id: str, req: SystemPromptUpdate) -> dict:
+    try:
+        agent_config.set_system_prompt(agent_id, req.prompt)
+    except KeyError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+    return {"prompt": req.prompt}

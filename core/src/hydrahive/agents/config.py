@@ -4,114 +4,175 @@ import json
 import logging
 import shutil
 import uuid
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
+from hydrahive.agents import _prompt, _validation
+from hydrahive.agents._defaults import (
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_THINKING_BUDGET,
+    DEFAULT_TOOLS,
+)
+from hydrahive.agents._paths import agent_dir, config_path, ensure_workspace
+from hydrahive.db._utils import now_iso
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
 
 AgentType = Literal["master", "project", "specialist"]
 
-DEFAULT_TOOLS: dict[str, list[str]] = {
-    "master": [
-        "shell_exec", "file_read", "file_write", "file_patch",
-        "file_search", "web_search", "http_request",
-        "read_memory", "write_memory", "ask_agent", "send_mail",
-    ],
-    "project": [
-        "file_read", "file_write", "file_patch", "file_search",
-        "shell_exec", "git", "read_memory", "write_memory",
-    ],
-    "specialist": [],
-}
 
-
-def _agent_dir(agent_id: str) -> Path:
-    return settings.agents_dir / agent_id
-
-
-def _cfg_path(agent_id: str) -> Path:
-    return _agent_dir(agent_id) / "config.json"
+def _save_atomic(path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    tmp.replace(path)
 
 
 def create(
     agent_type: AgentType,
     name: str,
     llm_model: str,
+    *,
     tools: list[str] | None = None,
     owner: str | None = None,
-    execution_mode: str | None = None,
-    domain: str | None = None,
+    created_by: str | None = None,
+    description: str = "",
+    temperature: float = DEFAULT_TEMPERATURE,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    thinking_budget: int = DEFAULT_THINKING_BUDGET,
+    mcp_servers: list[str] | None = None,
     project_id: str | None = None,
-    workspace: str | None = None,
+    domain: str | None = None,
+    system_prompt: str | None = None,
 ) -> dict:
+    _validation.validate_type(agent_type)
+    _validation.validate_model(llm_model)
+    if tools is None:
+        tools = DEFAULT_TOOLS[agent_type]
+    _validation.validate_tools(tools)
+    _validation.validate_temperature(temperature)
+    _validation.validate_max_tokens(max_tokens)
+
     agent_id = str(uuid.uuid4())
-    cfg: dict = {
+    cfg: dict[str, Any] = {
         "id": agent_id,
         "type": agent_type,
         "name": name,
         "owner": owner,
+        "created_by": created_by or owner,
         "llm_model": llm_model,
-        "tools": tools if tools is not None else DEFAULT_TOOLS[agent_type],
-        "execution_mode": execution_mode,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "tools": list(tools),
+        "mcp_servers": list(mcp_servers or []),
+        "description": description,
+        "temperature": float(temperature),
+        "max_tokens": int(max_tokens),
+        "thinking_budget": int(thinking_budget),
+        "status": "active",
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
     }
-    if domain is not None:
-        cfg["domain"] = domain
-    if project_id is not None:
+    if project_id:
         cfg["project_id"] = project_id
-    if workspace is not None:
-        cfg["workspace"] = workspace
+    if domain:
+        cfg["domain"] = domain
 
-    agent_dir = _agent_dir(agent_id)
-    agent_dir.mkdir(parents=True, exist_ok=True)
-    for sub in ("soul", "memory", "skills"):
-        (agent_dir / sub).mkdir(exist_ok=True)
-    _cfg_path(agent_id).write_text(json.dumps(cfg, indent=2))
-    logger.info("Agent '%s' angelegt (type=%s, owner=%s)", name, agent_type, owner)
+    agent_dir(agent_id).mkdir(parents=True, exist_ok=True)
+    _save_atomic(config_path(agent_id), cfg)
+    if system_prompt:
+        _prompt.save(agent_id, system_prompt)
+    else:
+        _prompt.init_default(agent_id, agent_type)
+    ensure_workspace(cfg)
+
+    logger.info("Agent '%s' angelegt (id=%s, type=%s)", name, agent_id, agent_type)
+    return cfg
+
+
+def _normalize(cfg: dict) -> dict:
+    """Backfill defaults for fields that may be missing in older configs."""
+    cfg.setdefault("status", "active")
+    cfg.setdefault("description", "")
+    cfg.setdefault("temperature", DEFAULT_TEMPERATURE)
+    cfg.setdefault("max_tokens", DEFAULT_MAX_TOKENS)
+    cfg.setdefault("thinking_budget", DEFAULT_THINKING_BUDGET)
+    cfg.setdefault("mcp_servers", [])
+    cfg.setdefault("updated_at", cfg.get("created_at", ""))
+    cfg.setdefault("created_by", cfg.get("owner"))
+    cfg.setdefault("tools", [])
     return cfg
 
 
 def get(agent_id: str) -> dict | None:
-    path = _cfg_path(agent_id)
+    path = config_path(agent_id)
     if not path.exists():
         return None
-    return json.loads(path.read_text())
+    return _normalize(json.loads(path.read_text()))
 
 
 def list_all() -> list[dict]:
     if not settings.agents_dir.exists():
         return []
-    result = []
-    for d in settings.agents_dir.iterdir():
+    out = []
+    for d in sorted(settings.agents_dir.iterdir()):
         p = d / "config.json"
         if p.exists():
-            result.append(json.loads(p.read_text()))
-    return result
+            try:
+                out.append(_normalize(json.loads(p.read_text())))
+            except json.JSONDecodeError:
+                logger.warning("Defekte Agent-Config: %s", p)
+    return out
 
 
 def list_by_owner(owner: str) -> list[dict]:
     return [a for a in list_all() if a.get("owner") == owner]
 
 
-def ensure_master(username: str, llm_model: str = "claude-sonnet-4-6") -> dict:
-    """Creates a Masteragent for username if none exists yet."""
-    existing = [a for a in list_by_owner(username) if a["type"] == "master"]
-    if existing:
-        return existing[0]
-    return create(
-        agent_type="master",
-        name=f"{username}'s Assistant",
-        llm_model=llm_model,
-        owner=username,
-    )
+def update(agent_id: str, **changes: Any) -> dict:
+    cfg = get(agent_id)
+    if not cfg:
+        raise KeyError(f"Agent '{agent_id}' nicht gefunden")
+
+    for protected in ("id", "type", "created_at", "created_by"):
+        changes.pop(protected, None)
+
+    if "tools" in changes:
+        _validation.validate_tools(changes["tools"])
+    if "llm_model" in changes:
+        _validation.validate_model(changes["llm_model"])
+    if "temperature" in changes:
+        _validation.validate_temperature(changes["temperature"])
+    if "max_tokens" in changes:
+        _validation.validate_max_tokens(changes["max_tokens"])
+    if "status" in changes:
+        _validation.validate_status(changes["status"])
+
+    cfg.update(changes)
+    cfg["updated_at"] = now_iso()
+    _save_atomic(config_path(agent_id), cfg)
+    return cfg
+
+
+def get_system_prompt(agent_id: str) -> str:
+    cfg = get(agent_id)
+    if not cfg:
+        raise KeyError(f"Agent '{agent_id}' nicht gefunden")
+    return _prompt.load(agent_id, cfg.get("type", "specialist"))
+
+
+def set_system_prompt(agent_id: str, prompt: str) -> None:
+    cfg = get(agent_id)
+    if not cfg:
+        raise KeyError(f"Agent '{agent_id}' nicht gefunden")
+    _prompt.save(agent_id, prompt)
+    cfg["updated_at"] = now_iso()
+    _save_atomic(config_path(agent_id), cfg)
 
 
 def delete(agent_id: str) -> bool:
-    d = _agent_dir(agent_id)
+    d = agent_dir(agent_id)
     if not d.exists():
         return False
     shutil.rmtree(d)
+    logger.info("Agent gelöscht: %s", agent_id)
     return True
