@@ -4,24 +4,25 @@
 
 @layer base {
   :root {
-    --background: 224 15% 10%;
-    --foreground: 210 20% 92%;
-    --card: 224 15% 13%;
-    --card-foreground: 210 20% 92%;
-    --border: 224 12% 18%;
-    --input: 224 12% 18%;
-    --ring: 258 80% 65%;
-    --primary: 258 80% 65%;
+    /* slate-950 base — dunkel aber nicht schwarz */
+    --background: 222 47% 3%;
+    --foreground: 220 13% 91%;
+    --card: 240 5% 8%;
+    --card-foreground: 220 13% 91%;
+    --border: 240 5% 13%;
+    --input: 240 5% 13%;
+    --ring: 243 75% 59%;
+    --primary: 243 75% 59%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 224 12% 18%;
-    --secondary-foreground: 210 20% 80%;
-    --muted: 224 12% 16%;
-    --muted-foreground: 210 15% 55%;
+    --secondary: 240 5% 13%;
+    --secondary-foreground: 220 13% 75%;
+    --muted: 240 5% 11%;
+    --muted-foreground: 240 4% 46%;
     --accent: 258 80% 65%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
+    --destructive: 0 63% 58%;
     --destructive-foreground: 0 0% 100%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .light {
@@ -31,8 +32,8 @@
     --card-foreground: 224 15% 10%;
     --border: 214 14% 88%;
     --input: 214 14% 88%;
-    --ring: 258 80% 55%;
-    --primary: 258 80% 55%;
+    --ring: 243 75% 55%;
+    --primary: 243 75% 55%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 15% 93%;
     --secondary-foreground: 224 15% 20%;
@@ -47,5 +48,5 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
+  body { @apply bg-background text-foreground antialiased; }
 }
