@@ -36,8 +36,11 @@ logs/
 coverage/
 
 # Secrets — never commit these even by accident
-llm.json
-users.json
+# llm.json/users.json sind Config-Files unter /etc/hydrahive2/ oder ~/.hh2-dev/config/
+# — die liegen außerhalb des Repos. Hier explizit nur den config/-Subpath blockieren
+# damit die i18n-Locales wie locales/de/llm.json NICHT versehentlich gematcht werden.
+config/llm.json
+config/users.json
 sessions.db
 sessions.db-wal
 sessions.db-shm
@@ -46,8 +49,6 @@ sessions.db-shm
 *.p12
 secrets/
 credentials/
-config/llm.json
-config/users.json
 data/
 
 # Local dev overrides

@@ -1,0 +1,24 @@
+{
+  "title": "LLM Configuration",
+  "subtitle": "Providers, API keys, and default model",
+  "providers": {
+    "title": "Providers",
+    "add": "Add provider",
+    "none": "No provider configured yet",
+    "no_key": "No key",
+    "models_count": "{{count}} model",
+    "models_count_plural": "{{count}} models"
+  },
+  "form": {
+    "provider_label": "Provider",
+    "api_key": "API Key",
+    "models_label": "Models ({{selected}} selected)",
+    "custom_model": "or enter custom model…"
+  },
+  "default_model": "Default model",
+  "test": {
+    "button": "Test connection",
+    "saving": "Saving…",
+    "ok": "OK · \"{{response}}\""
+  }
+}

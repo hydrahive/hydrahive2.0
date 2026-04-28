@@ -1,0 +1,24 @@
+{
+  "title": "LLM-Konfiguration",
+  "subtitle": "Provider, API-Keys und Standard-Modell",
+  "providers": {
+    "title": "Provider",
+    "add": "Provider hinzufügen",
+    "none": "Noch kein Provider konfiguriert",
+    "no_key": "Kein Key",
+    "models_count": "{{count}} Modell",
+    "models_count_plural": "{{count}} Modelle"
+  },
+  "form": {
+    "provider_label": "Provider",
+    "api_key": "API Key",
+    "models_label": "Modelle ({{selected}} ausgewählt)",
+    "custom_model": "oder Custom-Modell eingeben…"
+  },
+  "default_model": "Standard-Modell",
+  "test": {
+    "button": "Verbindung testen",
+    "saving": "Speichern…",
+    "ok": "OK · \"{{response}}\""
+  }
+}
