@@ -1,6 +1,6 @@
 # HydraHive2 — Produktspezifikation
 
-> Stand: 2026-04-28 | Status: Entwurf — noch nicht freigegeben
+> Stand: 2026-04-28 | Status: Freigegeben
 
 ---
 
@@ -56,13 +56,14 @@ Wird vom Installer mitinstalliert. Ermöglicht auch Federation zwischen zwei Hyd
 
 - Eine Instanz pro Benutzer, automatisch beim User-Anlegen erstellt
 - Hat eine **Soul** (Identität, Charakter, Verhaltensmuster als Markdown-Dateien)
-- Hat **Gedächtnis** (eigene Markdown-Notizen, lesen + schreiben)
+- Hat **Gedächtnis** (Markdown-Files, lesen + schreiben, lernt aus Erfahrungen)
 - Hat **Fähigkeiten / Skills** (wiederverwendbare Verhaltensmuster, analog Claude Code Skills)
-- Kein Kontextverlust — Compaction statt Abschneiden
+- **Kein Kontextverlust** — 3-stufige Compaction wie OpenClaw: autoCompact + microCompact + sessionMemoryCompact
+- **Unrestricted** — kein Ausführungsmodus, arbeitet wie Claude Code, tut was nötig ist
 - Kann alle Messenger empfangen und beantworten
 - Kann Projektagenten über AgentLink beauftragen
 - Kann Spezialisten direkt ausleihen
-- Ausführungsmodus: `safe` / `elevated` / `root` (wie sudo)
+- Vergibt Ausführungsmodi an Projekt- und Spezialisten-Agenten
 - Tools: alle (shell, file, web, git, memory, ask_agent, MCP, email)
 
 ### Projektagent
@@ -80,8 +81,10 @@ Wird vom Installer mitinstalliert. Ermöglicht auch Federation zwischen zwei Hyd
 - Domänen-Experte (Kochrezepte, Security, Datenbank, Medizin, was auch immer)
 - Wird nicht dauerhaft betrieben — wird bei Bedarf geliehen
 - Bekommt Task + Kontext über AgentLink, gibt Ergebnis zurück, ist danach wieder frei
+- **Lernt aus Erfahrungen** — schreibt nach jedem Einsatz Notizen in eigene Memory-Files (was funktioniert hat, was nicht, welche Lösung geholfen hat)
 - Hat eigene Skills für seine Domäne
 - Mehrere Projektagenten / Masteragenten können denselben Spezialisten nutzen (sequenziell)
+- Ausführungsmodus: vom Masteragenten oder Admin zugewiesen
 - Tools: je nach Domäne konfigurierbar
 
 ---
@@ -170,7 +173,13 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 
 ## Web-Konsole (React)
 
-Seiten:
+**Design:**
+- Dark/Light Theme (beide)
+- Mehrsprachig: Deutsch, Englisch, Chinesisch
+- Dunkel gehalten, Farbakzente mit Verläufen — bunt aber nicht poppig
+- **Responsive**: Desktop = Sidebar links, Mobile = Navbar unten (wie WhatsApp/Telegram)
+
+**Seiten:**
 - **Login** — JWT
 - **Dashboard** — Systemstatus, laufende Agents
 - **Chat** — mit jedem Agenten chatten (SSE-Streaming)
