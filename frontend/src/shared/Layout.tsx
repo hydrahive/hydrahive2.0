@@ -1,24 +1,33 @@
 import { Link, Outlet, useLocation } from "react-router-dom"
-import { Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Server, Settings } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { BookOpen, Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Server, Settings } from "lucide-react"
 import { cn } from "./cn"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 
-const NAV_GROUPS = [
+interface NavItem {
+  path: string
+  icon: typeof Bot
+  labelKey: string
+}
+
+const NAV_GROUPS: { groupKey: string; items: NavItem[] }[] = [
   {
-    label: "Hauptmenü",
+    groupKey: "main",
     items: [
-      { path: "/", icon: LayoutDashboard, label: "Dashboard" },
-      { path: "/chat", icon: MessageSquare, label: "Chat" },
-      { path: "/agents", icon: Bot, label: "Agenten" },
-      { path: "/projects", icon: FolderKanban, label: "Projekte" },
+      { path: "/", icon: LayoutDashboard, labelKey: "dashboard" },
+      { path: "/chat", icon: MessageSquare, labelKey: "chat" },
+      { path: "/agents", icon: Bot, labelKey: "agents" },
+      { path: "/projects", icon: FolderKanban, labelKey: "projects" },
     ],
   },
   {
-    label: "Konfiguration",
+    groupKey: "config",
     items: [
-      { path: "/llm", icon: Cpu, label: "LLM" },
-      { path: "/mcp", icon: Server, label: "MCP" },
-      { path: "/system", icon: Settings, label: "System" },
+      { path: "/llm", icon: Cpu, labelKey: "llm" },
+      { path: "/mcp", icon: Server, labelKey: "mcp" },
+      { path: "/system", icon: Settings, labelKey: "system" },
+      { path: "/help", icon: BookOpen, labelKey: "help" },
     ],
   },
 ]
@@ -30,8 +39,9 @@ function useActive(path: string) {
   return path === "/" ? pathname === "/" : pathname.startsWith(path)
 }
 
-function SideNavItem({ path, icon: Icon, label }: { path: string; icon: typeof Bot; label: string }) {
+function SideNavItem({ path, icon: Icon, labelKey }: NavItem) {
   const active = useActive(path)
+  const { t } = useTranslation("nav")
   return (
     <Link
       to={path}
@@ -43,13 +53,14 @@ function SideNavItem({ path, icon: Icon, label }: { path: string; icon: typeof B
       )}
     >
       <Icon size={16} className={active ? "text-violet-400" : ""} />
-      <span>{label}</span>
+      <span>{t(`items.${labelKey}`)}</span>
     </Link>
   )
 }
 
-function BottomNavItem({ path, icon: Icon, label }: { path: string; icon: typeof Bot; label: string }) {
+function BottomNavItem({ path, icon: Icon, labelKey }: NavItem) {
   const active = useActive(path)
+  const { t } = useTranslation("nav")
   return (
     <Link
       to={path}
@@ -59,13 +70,14 @@ function BottomNavItem({ path, icon: Icon, label }: { path: string; icon: typeof
       )}
     >
       <Icon size={20} />
-      <span>{label}</span>
+      <span>{t(`items.${labelKey}`)}</span>
     </Link>
   )
 }
 
 export function Layout() {
   const { username, role, logout } = useAuthStore()
+  const { t } = useTranslation(["nav", "auth"])
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#020617]">
@@ -95,9 +107,9 @@ export function Layout() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
           {NAV_GROUPS.map((group) => (
-            <div key={group.label}>
+            <div key={group.groupKey}>
               <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-                {group.label}
+                {t(`groups.${group.groupKey}`)}
               </p>
               <div className="space-y-0.5">
                 {group.items.map((item) => (
@@ -107,6 +119,11 @@ export function Layout() {
             </div>
           ))}
         </nav>
+
+        {/* Sprach-Switcher */}
+        <div className="mx-2 mb-2">
+          <LanguageSwitcher />
+        </div>
 
         {/* User Footer */}
         <div className="mx-2 mb-3 rounded-xl bg-white/[3%] border border-white/[6%] p-3">
@@ -124,7 +141,7 @@ export function Layout() {
             <button
               onClick={logout}
               className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors"
-              title="Abmelden"
+              title={t("auth:logout")}
             >
               <LogOut size={14} />
             </button>

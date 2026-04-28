@@ -1,0 +1,34 @@
+{
+  "drawer": {
+    "title": "Page help",
+    "close": "Close"
+  },
+  "manual": {
+    "title": "Manual",
+    "subtitle": "Full HydraHive2 documentation",
+    "sections": {
+      "concepts": "Concepts",
+      "usage": "Usage",
+      "faq": "FAQ",
+      "glossary": "Glossary"
+    },
+    "topics": {
+      "architecture": "3-Tier Architecture",
+      "compaction": "Compaction",
+      "mcp": "MCP Protocol",
+      "tools": "Tools",
+      "workspaces": "Workspaces",
+      "dashboard": "Dashboard",
+      "chat": "Chat",
+      "agents": "Agents",
+      "projects": "Projects",
+      "llm": "LLM Configuration",
+      "mcp_servers": "MCP Servers",
+      "system": "System",
+      "faq_general": "General",
+      "faq_errors": "Error messages",
+      "faq_setup": "Setup",
+      "glossary_main": "Terms A-Z"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "title": "Chat",
+  "tabs": { "direct": "Direct", "projects": "Projects" },
+  "session": {
+    "list_title": "Sessions",
+    "new": "New session",
+    "no_sessions": "No sessions yet",
+    "no_direct": "No direct chats",
+    "no_project": "No project chats",
+    "select_or_new": "Select a session on the right or start a new one.",
+    "without_title": "Untitled",
+    "id_short": "Session ID",
+    "orphaned": "orphaned",
+    "orphaned_banner": "This session is orphaned — its agent was deleted.",
+    "delete_session": "Delete session",
+    "title_placeholder": "e.g. Research on idea XY",
+    "title_label": "Title (optional)"
+  },
+  "new_dialog": {
+    "title": "New session",
+    "mode": {
+      "direct": "Direct chat",
+      "direct_hint": "With a master or specialist agent",
+      "project": "In project",
+      "project_hint": "With a project agent inside its workspace"
+    },
+    "agent_label": "Agent",
+    "no_agents": "No active agent available.",
+    "project_label": "Project",
+    "no_projects": "No active project available.",
+    "start": "Start"
+  },
+  "input": {
+    "placeholder": "Write a message…",
+    "placeholder_disabled": "Select a session first…",
+    "hint": "Enter to send · Shift+Enter for new line",
+    "stop_title": "Stop — cancel response"
+  },
+  "messages": {
+    "empty": "Write a message to start…",
+    "iteration": "Iteration {{n}}…"
+  },
+  "tokens": {
+    "last_turn": "last turn",
+    "tooltip": "Input ↑ · Output ↓ · Cache-Read ⚡ · Cache-Write 💾",
+    "limit_tooltip": "Compaction threshold at {{limit}} tokens"
+  },
+  "compact": {
+    "button": "Compact",
+    "tooltip": "Summarize conversation now",
+    "skipped": "Skipped: {{reason}}",
+    "result": "{{summarized}} messages compacted, {{kept}} kept",
+    "result_with_tokens": "{{summarized}} messages compacted, {{kept}} kept · {{tokens}} tokens"
+  },
+  "compaction_block": {
+    "title": "Conversation summarized",
+    "stats_with_tokens": "{{tokens}} tokens compacted · {{read}} read · {{modified}} modified files",
+    "stats": "{{read}} read · {{modified}} modified files",
+    "files_read": "Files read",
+    "files_modified": "Files modified",
+    "summary": "Summary"
+  }
+}

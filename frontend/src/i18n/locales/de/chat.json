@@ -1,0 +1,66 @@
+{
+  "title": "Chat",
+  "tabs": {
+    "direct": "Direkt",
+    "projects": "Projekte"
+  },
+  "session": {
+    "list_title": "Sessions",
+    "new": "Neue Session",
+    "no_sessions": "Noch keine Sessions",
+    "no_direct": "Keine direkten Chats",
+    "no_project": "Keine Projekt-Chats",
+    "select_or_new": "Wähle rechts eine Session oder starte eine neue.",
+    "without_title": "Ohne Titel",
+    "id_short": "Session-ID",
+    "orphaned": "verwaist",
+    "orphaned_banner": "Diese Session ist verwaist — der zugehörige Agent wurde gelöscht.",
+    "delete_session": "Session löschen",
+    "title_placeholder": "z.B. Recherche zur Idee XY",
+    "title_label": "Titel (optional)"
+  },
+  "new_dialog": {
+    "title": "Neue Session",
+    "mode": {
+      "direct": "Direkter Chat",
+      "direct_hint": "Mit einem Master- oder Specialist-Agent",
+      "project": "Im Projekt",
+      "project_hint": "Mit einem Project-Agent in dessen Workspace"
+    },
+    "agent_label": "Agent",
+    "no_agents": "Kein aktiver Agent verfügbar.",
+    "project_label": "Projekt",
+    "no_projects": "Kein aktives Projekt vorhanden.",
+    "start": "Starten"
+  },
+  "input": {
+    "placeholder": "Nachricht schreiben…",
+    "placeholder_disabled": "Wähle erst eine Session…",
+    "hint": "Enter zum Senden · Shift+Enter für neue Zeile",
+    "stop_title": "Stop — Antwort abbrechen"
+  },
+  "messages": {
+    "empty": "Schreibe eine Nachricht um zu starten…",
+    "iteration": "Iteration {{n}}…"
+  },
+  "tokens": {
+    "last_turn": "letzter Turn",
+    "tooltip": "Input ↑ · Output ↓ · Cache-Read ⚡ · Cache-Write 💾",
+    "limit_tooltip": "Compact-Schwelle bei {{limit}} Tokens"
+  },
+  "compact": {
+    "button": "Compact",
+    "tooltip": "Konversation jetzt zusammenfassen",
+    "skipped": "Übersprungen: {{reason}}",
+    "result": "{{summarized}} Messages komprimiert, {{kept}} behalten",
+    "result_with_tokens": "{{summarized}} Messages komprimiert, {{kept}} behalten · {{tokens}} Tokens"
+  },
+  "compaction_block": {
+    "title": "Konversation zusammengefasst",
+    "stats_with_tokens": "{{tokens}} Tokens komprimiert · {{read}} gelesene · {{modified}} geänderte Dateien",
+    "stats": "{{read}} gelesene · {{modified}} geänderte Dateien",
+    "files_read": "Gelesene Dateien",
+    "files_modified": "Geänderte Dateien",
+    "summary": "Zusammenfassung"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "title": "Projects",
+  "list_title": "Projects",
+  "no_projects": "No projects yet",
+  "select_or_new": "Select a project on the right or create a new one.",
+  "fields": {
+    "members_count": "{{count}} members",
+    "members_label": "Members ({{count}})",
+    "git_init": "git",
+    "git_init_no": "no-git",
+    "agent": "Project agent",
+    "workspace": "Workspace",
+    "agent_loading": "(loading…)",
+    "created_by": "{{date}} by {{user}}"
+  },
+  "delete_confirm": "Delete project \"{{name}}\"?\n\nIncludes project agent, workspace, and all sessions.",
+  "members": {
+    "no_members": "No members",
+    "remove_confirm": "Remove '{{username}}' from project?",
+    "select_user": "Select user…"
+  },
+  "new_dialog": {
+    "title": "New project",
+    "name_placeholder": "e.g. Website Relaunch",
+    "model_label": "Model for project agent",
+    "no_model": "(no model configured)",
+    "git_init": "Initialize workspace with `git init`",
+    "no_users": "(no users)"
+  }
+}

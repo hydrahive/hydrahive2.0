@@ -1,4 +1,5 @@
 import { Plug, PlugZap, Plus, Server, Sparkles } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import type { McpServer } from "./types"
 
 interface Props {
@@ -15,6 +16,7 @@ export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">MCP-Server</p>
         <div className="flex items-center gap-1">
+          <HelpButton topic="mcp" />
           <button
             onClick={onQuickAdd}
             title="Aus Vorlage hinzufügen"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { AlertTriangle, Archive, Loader2 } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import { chatApi, type ProjectBrief } from "./api"
 import { MessageInput } from "./MessageInput"
 import { MessageList } from "./MessageList"
@@ -130,6 +131,7 @@ export function ChatPage() {
                 </p>
               </div>
               <TokenMeter sessionId={activeSession.id} refresh={tokenRefresh} />
+              <HelpButton topic="chat" />
               <button
                 onClick={handleCompact}
                 disabled={compacting || activeOrphaned}

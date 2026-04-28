@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { CheckCircle, Loader2, Plus, Trash2, XCircle, Zap } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import { llmApi, type LlmConfig, type LlmProvider } from "./api"
 
 const KNOWN_PROVIDERS = [
@@ -161,9 +162,12 @@ export function LlmPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-xl font-bold text-white">LLM-Konfiguration</h1>
-        <p className="text-zinc-500 text-sm mt-0.5">Provider, API-Keys und Standard-Modell</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-white">LLM-Konfiguration</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">Provider, API-Keys und Standard-Modell</p>
+        </div>
+        <HelpButton topic="llm" />
       </div>
 
       <div className="space-y-2">

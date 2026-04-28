@@ -1,0 +1,44 @@
+{
+  "title": "MCP-Server",
+  "list_title": "MCP-Server",
+  "no_servers": "Kein Server konfiguriert",
+  "select_or_new": "Wähle rechts einen Server oder lege einen neuen an.",
+  "transport": {
+    "stdio": "stdio (lokaler Subprocess)",
+    "http": "HTTP (streamable, modern)",
+    "sse": "SSE (Server-Sent Events, legacy)"
+  },
+  "fields": {
+    "transport": "Transport",
+    "id": "ID",
+    "id_label": "ID (a-z, 0-9, _ -)",
+    "id_placeholder": "z.B. fs",
+    "name_label": "Anzeige-Name",
+    "name_placeholder": "z.B. Filesystem",
+    "command": "Command",
+    "command_placeholder": "z.B. npx",
+    "args": "Args (whitespace-getrennt)",
+    "args_placeholder": "z.B. -y @modelcontextprotocol/server-filesystem /tmp",
+    "env": "Env (eine pro Zeile, KEY=VALUE)",
+    "url": "URL",
+    "tools_count": "Tools ({{count}})",
+    "no_tools": "Noch keine Tools — Server connecten zum Laden."
+  },
+  "actions": {
+    "new_button": "Neu",
+    "template_button": "Vorlage",
+    "template_tooltip": "Aus Vorlage hinzufügen",
+    "connect": "Connect",
+    "connected": "Verbunden",
+    "delete_confirm": "MCP-Server \"{{name}}\" löschen?",
+    "connection_failed": "Verbindung fehlgeschlagen"
+  },
+  "quick_add": {
+    "title": "Aus Vorlage hinzufügen — die Standard-MCP-Server in einem Klick",
+    "form_title": "{{name}} hinzufügen",
+    "server_id": "Server-ID"
+  },
+  "new_dialog": {
+    "title": "MCP-Server hinzufügen"
+  }
+}

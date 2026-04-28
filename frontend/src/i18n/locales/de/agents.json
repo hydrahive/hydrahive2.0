@@ -1,0 +1,38 @@
+{
+  "title": "Agenten",
+  "list_title": "Agents",
+  "no_agents": "Noch kein Agent",
+  "select_or_new": "Wähle rechts einen Agent oder lege einen neuen an.",
+  "type": {
+    "master": "Master",
+    "project": "Projekt",
+    "specialist": "Spezialist"
+  },
+  "fields": {
+    "type": "Typ",
+    "model": "Modell",
+    "temperature": "Temperatur",
+    "max_tokens": "Max Tokens",
+    "description": "Beschreibung",
+    "tools": "Tools",
+    "tools_count": "Tools ({{selected}}/{{total}})",
+    "mcp_servers": "MCP-Server",
+    "mcp_count": "MCP-Server ({{selected}}/{{total}})",
+    "system_prompt": "System-Prompt",
+    "model_not_in_config": "{{model}} (nicht in LLM-Config)"
+  },
+  "errors": {
+    "save_failed": "Speichern fehlgeschlagen",
+    "delete_confirm": "Agent \"{{name}}\" wirklich löschen? Inkl. Memory + Workspace.",
+    "no_servers_yet": "Noch keine MCP-Server angelegt — siehe MCP-Tab."
+  },
+  "new_dialog": {
+    "title": "Neuen Agent anlegen",
+    "type_label": "Typ",
+    "model_label": "Modell",
+    "no_model": "(kein Modell)",
+    "name_label": "Name",
+    "name_placeholder": "z.B. Research-Bot",
+    "defaults_hint": "Default-Tools für {{type}}: {{count}}"
+  }
+}

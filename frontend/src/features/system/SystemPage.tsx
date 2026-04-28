@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import {
   Activity, Bot, Database, Folder, MessageSquare, Server, Wrench, Zap,
 } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import { systemApi, type HealthCheck, type SystemInfo, type SystemStats } from "./api"
 import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
@@ -30,11 +31,14 @@ export function SystemPage() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <div>
-        <h1 className="text-xl font-bold text-white">System-Status</h1>
-        <p className="text-zinc-500 text-sm mt-0.5">
-          Auto-Refresh alle {REFRESH_MS / 1000}s · {info && `läuft seit ${formatUptime(info.uptime_seconds)}`}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-white">System-Status</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Auto-Refresh alle {REFRESH_MS / 1000}s · {info && `läuft seit ${formatUptime(info.uptime_seconds)}`}
+          </p>
+        </div>
+        <HelpButton topic="system" />
       </div>
 
       <HealthBar checks={checks} />

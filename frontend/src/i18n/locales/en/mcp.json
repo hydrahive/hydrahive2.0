@@ -1,0 +1,44 @@
+{
+  "title": "MCP Servers",
+  "list_title": "MCP Servers",
+  "no_servers": "No server configured",
+  "select_or_new": "Select a server on the right or create a new one.",
+  "transport": {
+    "stdio": "stdio (local subprocess)",
+    "http": "HTTP (streamable, modern)",
+    "sse": "SSE (Server-Sent Events, legacy)"
+  },
+  "fields": {
+    "transport": "Transport",
+    "id": "ID",
+    "id_label": "ID (a-z, 0-9, _ -)",
+    "id_placeholder": "e.g. fs",
+    "name_label": "Display name",
+    "name_placeholder": "e.g. Filesystem",
+    "command": "Command",
+    "command_placeholder": "e.g. npx",
+    "args": "Args (whitespace-separated)",
+    "args_placeholder": "e.g. -y @modelcontextprotocol/server-filesystem /tmp",
+    "env": "Env (KEY=VALUE per line)",
+    "url": "URL",
+    "tools_count": "Tools ({{count}})",
+    "no_tools": "No tools yet — connect to the server to load them."
+  },
+  "actions": {
+    "new_button": "New",
+    "template_button": "Template",
+    "template_tooltip": "Add from template",
+    "connect": "Connect",
+    "connected": "Connected",
+    "delete_confirm": "Delete MCP server \"{{name}}\"?",
+    "connection_failed": "Connection failed"
+  },
+  "quick_add": {
+    "title": "Add from template — the standard MCP servers in one click",
+    "form_title": "Add {{name}}",
+    "server_id": "Server ID"
+  },
+  "new_dialog": {
+    "title": "Add MCP server"
+  }
+}

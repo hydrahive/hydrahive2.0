@@ -1,0 +1,62 @@
+{
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "close": "Close",
+    "confirm": "Confirm",
+    "select": "Select…",
+    "search": "Search",
+    "send": "Send",
+    "stop": "Stop",
+    "retry": "Retry",
+    "test": "Test",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "new": "New"
+  },
+  "status": {
+    "active": "active",
+    "disabled": "disabled",
+    "archived": "archived",
+    "connected": "connected",
+    "disconnected": "not connected",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "error": "Error",
+    "ok": "OK"
+  },
+  "labels": {
+    "name": "Name",
+    "description": "Description",
+    "type": "Type",
+    "id": "ID",
+    "status": "Status",
+    "model": "Model",
+    "tools": "Tools",
+    "members": "Members",
+    "created_at": "Created",
+    "updated_at": "Updated",
+    "owner": "Owner",
+    "language": "Language"
+  },
+  "confirm": {
+    "delete": "Really delete?",
+    "discard_changes": "Discard changes?"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "network": "Network error",
+    "not_found": "Not found",
+    "forbidden": "No access",
+    "validation": "Invalid input"
+  },
+  "empty": {
+    "no_results": "No results",
+    "select_to_view": "Select an item to see details"
+  }
+}

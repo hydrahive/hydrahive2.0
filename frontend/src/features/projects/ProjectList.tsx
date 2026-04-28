@@ -1,4 +1,5 @@
 import { Folder, Plus } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import type { Project } from "./types"
 
 interface Props {
@@ -13,12 +14,15 @@ export function ProjectList({ projects, activeId, onSelect, onNew }: Props) {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Projekte</p>
-        <button
-          onClick={onNew}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors"
-        >
-          <Plus size={13} /> Neu
-        </button>
+        <div className="flex items-center gap-1">
+          <HelpButton topic="projects" />
+          <button
+            onClick={onNew}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors"
+          >
+            <Plus size={13} /> Neu
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">

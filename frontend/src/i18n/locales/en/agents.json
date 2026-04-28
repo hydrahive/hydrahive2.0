@@ -1,0 +1,38 @@
+{
+  "title": "Agents",
+  "list_title": "Agents",
+  "no_agents": "No agents yet",
+  "select_or_new": "Select an agent on the right or create a new one.",
+  "type": {
+    "master": "Master",
+    "project": "Project",
+    "specialist": "Specialist"
+  },
+  "fields": {
+    "type": "Type",
+    "model": "Model",
+    "temperature": "Temperature",
+    "max_tokens": "Max tokens",
+    "description": "Description",
+    "tools": "Tools",
+    "tools_count": "Tools ({{selected}}/{{total}})",
+    "mcp_servers": "MCP servers",
+    "mcp_count": "MCP servers ({{selected}}/{{total}})",
+    "system_prompt": "System prompt",
+    "model_not_in_config": "{{model}} (not in LLM config)"
+  },
+  "errors": {
+    "save_failed": "Save failed",
+    "delete_confirm": "Really delete agent \"{{name}}\"? Includes memory + workspace.",
+    "no_servers_yet": "No MCP servers configured yet — see MCP tab."
+  },
+  "new_dialog": {
+    "title": "Create new agent",
+    "type_label": "Type",
+    "model_label": "Model",
+    "no_model": "(no model)",
+    "name_label": "Name",
+    "name_placeholder": "e.g. Research-Bot",
+    "defaults_hint": "Default tools for {{type}}: {{count}}"
+  }
+}
