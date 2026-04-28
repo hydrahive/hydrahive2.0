@@ -53,3 +53,4 @@ data/
 # Local dev overrides
 dev-start.local.sh
 .hh-local/
+DEADJOE

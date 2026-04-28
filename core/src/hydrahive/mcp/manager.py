@@ -68,10 +68,21 @@ async def connect(server_id: str) -> McpClient:
 
 
 async def get_or_connect(server_id: str) -> McpClient:
-    """Lazy: liefert verbundenen Client, verbindet falls nötig."""
+    """Lazy: liefert verbundenen Client, verbindet falls nötig.
+
+    Wenn der bestehende Client zwar als verbunden markiert ist, aber unter der
+    Haube kaputt ist (Subprocess gecrasht, HTTP-Endpoint unerreichbar), würde
+    der nächste call_tool fehlschlagen — list_tools() dient als Health-Probe.
+    Bei Fehler: evicten und neu verbinden.
+    """
     existing = _clients.get(server_id)
     if existing and existing.is_connected:
-        return existing
+        try:
+            await existing.list_tools()
+            return existing
+        except Exception as e:
+            logger.warning("MCP %s wirkt verbunden ist aber kaputt (%s) — neu verbinden", server_id, e)
+            await disconnect(server_id)
     return await connect(server_id)
 
 
