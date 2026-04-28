@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin
+from hydrahive.llm import client as llm_client
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
@@ -44,3 +45,20 @@ def update_config(cfg: LlmConfig) -> dict:
     data = cfg.model_dump()
     _save(data)
     return data
+
+
+class TestRequest(BaseModel):
+    model: str | None = None
+
+
+@router.post("/test", dependencies=[Depends(require_admin)])
+async def test_connection(req: TestRequest) -> dict:
+    try:
+        result = await llm_client.complete(
+            messages=[{"role": "user", "content": "Reply with exactly one word: OK"}],
+            model=req.model or None,
+            max_tokens=10,
+        )
+        return {"ok": True, "response": result.strip()}
+    except Exception as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
