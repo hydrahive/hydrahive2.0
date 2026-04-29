@@ -15,5 +15,14 @@
     "help": "Hilfe"
   },
   "online": "Online",
-  "help_button": "Seiten-Hilfe öffnen"
+  "help_button": "Seiten-Hilfe öffnen",
+  "update": {
+    "available": "{{count}} Update verfügbar",
+    "available_plural": "{{count}} Updates verfügbar",
+    "confirm": "Jetzt aktualisieren?\n\nDer Server wird neu starten und ist für 1-2 Minuten nicht erreichbar.",
+    "starting": "Update wird gestartet…",
+    "in_progress": "Update läuft — warte auf Server…",
+    "done": "Update fertig — neue Version: {{commit}}",
+    "failed": "Update fehlgeschlagen: {{error}}"
+  }
 }

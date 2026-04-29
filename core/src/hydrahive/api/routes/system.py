@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import logging
 import platform
 import sys
 import time
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from hydrahive.api.middleware.auth import require_auth
+from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.routes._system_checks import (
     check_db_writable,
     check_disk,
@@ -19,7 +21,12 @@ from hydrahive.api.routes._system_checks import (
 from hydrahive.db.connection import db
 from hydrahive.settings import settings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/system", tags=["system"])
+
+UPDATE_SCRIPT = Path("/opt/hydrahive2/installer/update.sh")
+UPDATE_TRIGGER = settings.data_dir / ".update_request"
 
 _start_time: float = 0.0
 
@@ -92,3 +99,29 @@ def health(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
             check_disk(),
         ],
     }
+
+
+@router.post("/update", dependencies=[Depends(require_admin)])
+def trigger_update() -> dict:
+    """Writes a trigger file that systemd-path watches.
+
+    The hydrahive2-update.path unit (set up by installer 50-systemd.sh)
+    triggers hydrahive2-update.service which runs update.sh as root.
+    No sudo from inside the API process needed — works with
+    NoNewPrivileges=true on the main service.
+
+    Backend will be killed when update.sh restarts the service —
+    frontend should poll /health until reachable again with a new commit.
+    """
+    if not UPDATE_SCRIPT.exists():
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Update-Script nicht gefunden — nur in Production-Setup verfügbar",
+        )
+    try:
+        UPDATE_TRIGGER.write_text(str(int(time.time())))
+    except OSError as e:
+        logger.exception("Trigger-File konnte nicht geschrieben werden")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Update-Trigger fehlgeschlagen: {e}")
+    logger.warning("Update-Trigger geschrieben (%s) — systemd-Path-Watcher übernimmt", UPDATE_TRIGGER)
+    return {"started": True}

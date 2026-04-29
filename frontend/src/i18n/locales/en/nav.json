@@ -15,5 +15,14 @@
     "help": "Help"
   },
   "online": "Online",
-  "help_button": "Open page help"
+  "help_button": "Open page help",
+  "update": {
+    "available": "{{count}} update available",
+    "available_plural": "{{count}} updates available",
+    "confirm": "Update now?\n\nThe server will restart and be unreachable for 1-2 minutes.",
+    "starting": "Starting update…",
+    "in_progress": "Update running — waiting for server…",
+    "done": "Update complete — new version: {{commit}}",
+    "failed": "Update failed: {{error}}"
+  }
 }

@@ -88,6 +88,8 @@ export function Layout() {
   const [version, setVersion] = useState<string | null>(null)
   const [commit, setCommit] = useState<string | null>(null)
   const [updateBehind, setUpdateBehind] = useState<number | null>(null)
+  const [updateState, setUpdateState] = useState<"idle" | "starting" | "running" | "done" | "failed">("idle")
+  const [updateError, setUpdateError] = useState<string | null>(null)
 
   useEffect(() => {
     function loadHealth() {
@@ -99,6 +101,38 @@ export function Layout() {
     const t = setInterval(loadHealth, 5 * 60 * 1000)
     return () => clearInterval(t)
   }, [])
+
+  async function triggerUpdate() {
+    if (!confirm(t("nav:update.confirm"))) return
+    setUpdateState("starting")
+    setUpdateError(null)
+    try {
+      await api.post<{ started: boolean }>("/system/update", {})
+    } catch (e) {
+      setUpdateState("failed")
+      setUpdateError(e instanceof Error ? e.message : "")
+      return
+    }
+    setUpdateState("running")
+    const oldCommit = commit
+    const startedAt = Date.now()
+    const maxWaitMs = 5 * 60 * 1000
+    while (Date.now() - startedAt < maxWaitMs) {
+      await new Promise((r) => setTimeout(r, 3000))
+      try {
+        const h = await api.get<{ commit: string | null; update_behind: number | null }>("/health")
+        if (h.commit && h.commit !== oldCommit) {
+          setCommit(h.commit)
+          setUpdateBehind(h.update_behind)
+          setUpdateState("done")
+          setTimeout(() => setUpdateState("idle"), 5000)
+          return
+        }
+      } catch { /* server still down, keep polling */ }
+    }
+    setUpdateState("failed")
+    setUpdateError("timeout")
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#020617]">
@@ -177,17 +211,42 @@ export function Layout() {
         </div>
 
         {version && (
-          <p className="px-4 pb-2 text-[10px] text-zinc-600 font-mono tabular-nums text-right flex items-center justify-end gap-1.5">
+          <div className="px-4 pb-2 text-[10px] text-zinc-600 font-mono tabular-nums text-right flex items-center justify-end gap-1.5">
             <span>v{version}{commit && <> · <span className="text-zinc-700">{commit}</span></>}</span>
-            {updateBehind !== null && updateBehind > 0 && (
-              <span
-                title={`${updateBehind} commit${updateBehind === 1 ? "" : "s"} behind origin/main`}
-                className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 normal-case"
-              >
-                ↑{updateBehind}
+            {updateState === "idle" && updateBehind !== null && updateBehind > 0 && (
+              role === "admin" ? (
+                <button
+                  type="button"
+                  onClick={triggerUpdate}
+                  title={t("nav:update.available", { count: updateBehind })}
+                  className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 hover:border-amber-500/50 transition-colors cursor-pointer"
+                >
+                  ↑{updateBehind}
+                </button>
+              ) : (
+                <span
+                  title={t("nav:update.available", { count: updateBehind })}
+                  className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                >
+                  ↑{updateBehind}
+                </span>
+              )
+            )}
+            {updateState === "starting" && (
+              <span className="text-amber-300">{t("nav:update.starting")}</span>
+            )}
+            {updateState === "running" && (
+              <span className="text-amber-300 animate-pulse">{t("nav:update.in_progress")}</span>
+            )}
+            {updateState === "done" && (
+              <span className="text-emerald-400">✓ {t("nav:update.done", { commit })}</span>
+            )}
+            {updateState === "failed" && (
+              <span className="text-rose-400" title={updateError ?? ""}>
+                {t("nav:update.failed", { error: updateError ?? "" })}
               </span>
             )}
-          </p>
+          </div>
         )}
       </aside>
 
