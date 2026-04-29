@@ -53,7 +53,7 @@ async def run_master_for_event(event: IncomingEvent) -> str:
         if isinstance(ev, MessageStart):
             current_text = []
         elif isinstance(ev, TextDelta):
-            current_text.append(ev.delta)
+            current_text.append(ev.text)
         elif isinstance(ev, TextBlock):
             if current_text:
                 answer_parts.append("".join(current_text))
