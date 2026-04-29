@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_auth
+from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._sse import to_sse
 from hydrahive.compaction import compact_session, total_tokens
 from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
@@ -36,7 +37,7 @@ class MessageCreate(BaseModel):
 
 def _check_owner(session, username: str, role: str) -> None:
     if role != "admin" and session.user_id != username:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Kein Zugriff auf diese Session")
+        raise coded(status.HTTP_403_FORBIDDEN, "session_no_access")
 
 
 def _serialize_session(s) -> dict:
@@ -78,7 +79,7 @@ def create_session(
     username, _ = auth
     agent = agent_config.get(req.agent_id)
     if not agent:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     s = sessions_db.create(
         agent_id=req.agent_id,
         user_id=username,
@@ -95,7 +96,7 @@ def get_session(
 ) -> dict:
     s = sessions_db.get(session_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
     return _serialize_session(s)
 
@@ -108,7 +109,7 @@ def update_session(
 ) -> dict:
     s = sessions_db.get(session_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
     sessions_db.update(session_id, title=req.title, status=req.status)
     return _serialize_session(sessions_db.get(session_id))
@@ -121,7 +122,7 @@ def delete_session(
 ) -> None:
     s = sessions_db.get(session_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
     sessions_db.delete(session_id)
 
@@ -133,7 +134,7 @@ def list_messages(
 ) -> list[dict]:
     s = sessions_db.get(session_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
     return [_serialize_message(m) for m in messages_db.list_for_session(session_id)]
 
@@ -145,7 +146,7 @@ def get_tokens(
 ) -> dict:
     s = sessions_db.get(session_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
     agent = agent_config.get(s.agent_id)
     history = messages_db.list_for_llm(session_id) if agent else []
@@ -168,15 +169,15 @@ async def manual_compact(
 ) -> dict:
     s = sessions_db.get(session_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
     agent = agent_config.get(s.agent_id)
     if not agent:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     try:
         return await compact_session(session_id, model=agent["llm_model"], instructions=instructions)
     except Exception as e:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "validation_error", message=str(e))
 
 
 @router.post("/{session_id}/messages")
@@ -187,7 +188,7 @@ async def post_message(
 ) -> StreamingResponse:
     s = sessions_db.get(session_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Session nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
 
     events = runner_run(session_id, req.text)

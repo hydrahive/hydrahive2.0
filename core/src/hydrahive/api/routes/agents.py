@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+
+from hydrahive.api.middleware.errors import coded
 from pydantic import BaseModel, Field
 
 from hydrahive.agents import AgentValidationError, config as agent_config
@@ -49,7 +51,7 @@ class SystemPromptUpdate(BaseModel):
 
 def _check_access(agent: dict, username: str, role: str) -> None:
     if role != "admin" and agent.get("owner") != username:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Kein Zugriff")
+        raise coded(status.HTTP_403_FORBIDDEN, "agent_no_access")
 
 
 @router.get("/_meta/tools")
@@ -80,7 +82,7 @@ def get_agent(
 ) -> dict:
     agent = agent_config.get(agent_id)
     if not agent:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     _check_access(agent, *auth)
     return agent
 
@@ -109,7 +111,7 @@ def create_agent(
             system_prompt=req.system_prompt,
         )
     except AgentValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.patch("/{agent_id}", dependencies=[Depends(require_admin)])
@@ -118,21 +120,21 @@ def update_agent(agent_id: str, req: AgentUpdate) -> dict:
     if not changes:
         agent = agent_config.get(agent_id)
         if not agent:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+            raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
         return agent
     try:
         return agent_config.update(agent_id, **changes)
     except KeyError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     except AgentValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT,
                dependencies=[Depends(require_admin)])
 def delete_agent(agent_id: str) -> None:
     if not agent_config.delete(agent_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
 
 
 @router.get("/{agent_id}/system_prompt")
@@ -142,7 +144,7 @@ def get_system_prompt(
 ) -> dict:
     agent = agent_config.get(agent_id)
     if not agent:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     _check_access(agent, *auth)
     return {"prompt": agent_config.get_system_prompt(agent_id)}
 
@@ -152,5 +154,5 @@ def set_system_prompt(agent_id: str, req: SystemPromptUpdate) -> dict:
     try:
         agent_config.set_system_prompt(agent_id, req.prompt)
     except KeyError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     return {"prompt": req.prompt}

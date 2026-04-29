@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel
 
 from hydrahive.api.middleware import lockout
 from hydrahive.api.middleware.auth import create_token, require_auth
+from hydrahive.api.middleware.errors import coded
 from hydrahive.api.middleware.users import verify
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -35,15 +36,13 @@ def login(req: LoginRequest, request: Request) -> LoginResponse:
     ip = _client_ip(request)
     locked, retry_after = lockout.is_locked(req.username, ip)
     if locked:
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS,
-            "Zu viele fehlgeschlagene Login-Versuche, bitte später erneut.",
-            headers={"Retry-After": str(retry_after)},
-        )
+        exc = coded(status.HTTP_429_TOO_MANY_REQUESTS, "too_many_login_attempts", retry_after=retry_after)
+        exc.headers = {"Retry-After": str(retry_after)}
+        raise exc
     user = verify(req.username, req.password)
     if not user:
         lockout.record_failure(req.username, ip)
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Ungültige Zugangsdaten")
+        raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_credentials")
     lockout.reset(req.username, ip)
     token = create_token(user["username"], user["role"])
     return LoginResponse(access_token=token, username=user["username"], role=user["role"])

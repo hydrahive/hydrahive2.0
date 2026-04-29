@@ -81,7 +81,10 @@ export function ChatPage() {
     try {
       const r = await chatApi.compact(activeId)
       if (r.skipped) {
-        setCompactNote(t("compact.skipped", { reason: r.reason }))
+        const reason = r.reason_code
+          ? t(`compact.reasons.${r.reason_code}`, r.reason_params ?? {})
+          : "?"
+        setCompactNote(t("compact.skipped", { reason }))
       } else {
         setCompactNote(
           r.tokens_before

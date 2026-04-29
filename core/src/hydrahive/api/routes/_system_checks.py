@@ -51,31 +51,36 @@ def check_db_writable() -> dict:
     try:
         with db() as conn:
             conn.execute("SELECT 1").fetchone()
-        return {"name": "DB", "ok": True, "detail": "lesbar/schreibbar"}
+        return {"name_code": "db", "ok": True, "detail_code": "db_ok"}
     except Exception as e:
-        return {"name": "DB", "ok": False, "detail": str(e)}
+        return {"name_code": "db", "ok": False, "detail": str(e)}
 
 
 def check_llm_configured() -> dict:
     try:
         if not settings.llm_config.exists():
-            return {"name": "LLM", "ok": False, "detail": "Keine Config"}
+            return {"name_code": "llm", "ok": False, "detail_code": "llm_no_config"}
         cfg = json.loads(settings.llm_config.read_text())
         if not cfg.get("default_model"):
-            return {"name": "LLM", "ok": False, "detail": "Kein Default-Model"}
+            return {"name_code": "llm", "ok": False, "detail_code": "llm_no_model"}
         providers = cfg.get("providers", [])
         if not providers:
-            return {"name": "LLM", "ok": False, "detail": "Keine Provider"}
-        return {"name": "LLM", "ok": True, "detail": f"{cfg['default_model']} · {len(providers)} Provider"}
+            return {"name_code": "llm", "ok": False, "detail_code": "llm_no_provider"}
+        return {
+            "name_code": "llm",
+            "ok": True,
+            "detail_code": "llm_ok",
+            "params": {"model": cfg["default_model"], "count": len(providers)},
+        }
     except Exception as e:
-        return {"name": "LLM", "ok": False, "detail": str(e)}
+        return {"name_code": "llm", "ok": False, "detail": str(e)}
 
 
 def check_workspace_dir() -> dict:
     ws = settings.data_dir / "workspaces"
     if not ws.exists():
-        return {"name": "Workspaces", "ok": False, "detail": "Verzeichnis fehlt"}
-    return {"name": "Workspaces", "ok": os.access(ws, os.W_OK), "detail": str(ws)}
+        return {"name_code": "workspaces", "ok": False, "detail_code": "workspaces_missing"}
+    return {"name_code": "workspaces", "ok": os.access(ws, os.W_OK), "detail": str(ws)}
 
 
 def check_disk() -> dict:
@@ -84,9 +89,10 @@ def check_disk() -> dict:
         free_gb = usage.free / 1024**3
         free_pct = usage.free / usage.total * 100
         return {
-            "name": "Disk",
+            "name_code": "disk",
             "ok": free_pct > 5,
-            "detail": f"{free_gb:.1f} GB frei ({free_pct:.0f}%)",
+            "detail_code": "disk_detail",
+            "params": {"free_gb": f"{free_gb:.1f}", "free_pct": f"{free_pct:.0f}"},
         }
     except Exception as e:
-        return {"name": "Disk", "ok": False, "detail": str(e)}
+        return {"name_code": "disk", "ok": False, "detail": str(e)}

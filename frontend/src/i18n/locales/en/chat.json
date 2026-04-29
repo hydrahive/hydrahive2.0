@@ -52,7 +52,13 @@
     "tooltip": "Summarize conversation now",
     "skipped": "Skipped: {{reason}}",
     "result": "{{summarized}} messages compacted, {{kept}} kept",
-    "result_with_tokens": "{{summarized}} messages compacted, {{kept}} kept · {{tokens}} tokens"
+    "result_with_tokens": "{{summarized}} messages compacted, {{kept}} kept · {{tokens}} tokens",
+    "reasons": {
+      "too_short": "too short",
+      "nothing_to_compact": "nothing to compact",
+      "empty_to_summarize": "nothing to summarize",
+      "cancelled_by_hook": "cancelled by {{hook}}"
+    }
   },
   "compaction_block": {
     "title": "Conversation summarized",

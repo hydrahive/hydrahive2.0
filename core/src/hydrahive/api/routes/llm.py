@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+
+from hydrahive.api.middleware.errors import coded
 from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin
@@ -61,4 +63,4 @@ async def test_connection(req: TestRequest) -> dict:
         )
         return {"ok": True, "response": result.strip()}
     except Exception as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "llm_test_failed", message=str(e))

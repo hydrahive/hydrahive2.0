@@ -4,9 +4,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from hydrahive.api.middleware.errors import coded
 from hydrahive.settings import settings
 
 _bearer = HTTPBearer(auto_error=False)
@@ -25,9 +26,9 @@ def _decode(token: str) -> dict:
     try:
         return jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token abgelaufen")
+        raise coded(status.HTTP_401_UNAUTHORIZED, "token_expired")
     except jwt.InvalidTokenError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Ungültiger Token")
+        raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
 
 
 def require_auth(
@@ -35,7 +36,7 @@ def require_auth(
 ) -> tuple[str, str]:
     """Returns (username, role). Raises 401 if not authenticated."""
     if not creds:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Nicht authentifiziert")
+        raise coded(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
     payload = _decode(creds.credentials)
     return payload["sub"], payload["role"]
 
@@ -46,5 +47,5 @@ def require_admin(
     """Returns (username, role). Raises 403 if not admin."""
     username, role = auth
     if role != "admin":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Nur für Admins")
+        raise coded(status.HTTP_403_FORBIDDEN, "admin_only")
     return username, role

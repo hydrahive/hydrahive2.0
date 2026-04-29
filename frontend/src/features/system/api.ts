@@ -26,9 +26,12 @@ export interface SystemStats {
 }
 
 export interface HealthCheck {
-  name: string
+  name_code?: string
+  detail_code?: string
+  params?: Record<string, unknown>
+  name?: string
+  detail?: string
   ok: boolean
-  detail: string
 }
 
 export const systemApi = {

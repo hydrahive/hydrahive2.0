@@ -51,16 +51,16 @@ async def compact_session(
     full_history = messages_db.list_for_session(session_id)
     visible = resolve_through_compaction(full_history)
     if len(visible) < 4:
-        return {"skipped": True, "reason": "zu kurz"}
+        return {"skipped": True, "reason_code": "too_short"}
 
     cut = find_cut_point(visible, keep_recent_tokens)
     if cut.kept_from_index <= 0 and not cut.is_split_turn:
-        return {"skipped": True, "reason": "nichts zu kompaktieren"}
+        return {"skipped": True, "reason_code": "nothing_to_compact"}
 
     to_summarize = visible[: cut.kept_from_index]
     kept = visible[cut.kept_from_index:]
     if not to_summarize:
-        return {"skipped": True, "reason": "leerer to_summarize"}
+        return {"skipped": True, "reason_code": "empty_to_summarize"}
 
     ctx = CompactionContext(
         session_id=session_id,
@@ -79,7 +79,7 @@ async def compact_session(
         if h.before_compact:
             res = await h.before_compact(ctx)
             if res and res.cancel:
-                return {"skipped": True, "reason": f"abgebrochen von {h.name}"}
+                return {"skipped": True, "reason_code": "cancelled_by_hook", "reason_params": {"hook": h.name}}
             if res and res.summary:
                 return persist_compaction(session_id, kept, res.summary, ctx, dict(res.details), source=h.name)
 

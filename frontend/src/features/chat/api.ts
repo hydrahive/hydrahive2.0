@@ -22,7 +22,8 @@ export const chatApi = {
   listProjects: () => api.get<ProjectBrief[]>("/projects"),
   compact: (id: string) => api.post<{
     skipped?: boolean
-    reason?: string
+    reason_code?: string
+    reason_params?: Record<string, unknown>
     summarized_count?: number
     kept_count?: number
     tokens_before?: number
