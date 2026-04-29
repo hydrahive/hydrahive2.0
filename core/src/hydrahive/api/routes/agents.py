@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from hydrahive.agents import AgentValidationError, config as agent_config
 from hydrahive.agents._defaults import DEFAULT_TOOLS
 from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import REGISTRY as TOOL_REGISTRY
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
@@ -56,10 +57,11 @@ def _check_access(agent: dict, username: str, role: str) -> None:
 
 @router.get("/_meta/tools")
 def list_available_tools(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
-    return [
+    core = [
         {"name": t.name, "description": t.description}
         for t in TOOL_REGISTRY.values()
     ]
+    return core + plugin_bridge.all_tool_meta()
 
 
 @router.get("/_meta/defaults")

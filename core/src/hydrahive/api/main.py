@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from hydrahive.agents import bootstrap as agent_bootstrap
 from hydrahive.api.middleware.users import ensure_admin
+from hydrahive import plugins as plugin_system
 from hydrahive.api.routes.agents import router as agents_router
 from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.llm import router as llm_router
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
             initial_pw,
         )
     agent_bootstrap.ensure_master("admin")
+    plugin_system.load_all()
     set_start_time()
     update_task = asyncio.create_task(_update_check_loop())
     logger.info("HydraHive2 gestartet — Port %s", settings.port)

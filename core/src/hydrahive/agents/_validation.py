@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from hydrahive.llm import client as llm_client
+from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import REGISTRY as TOOL_REGISTRY
 
 
@@ -29,11 +30,16 @@ def validate_status(status: str) -> None:
 def validate_tools(tools: list[str]) -> None:
     if not isinstance(tools, list):
         raise AgentValidationError("tools muss eine Liste sein")
-    unknown = [t for t in tools if t not in TOOL_REGISTRY]
+    plugin_names = {t["name"] for t in plugin_bridge.all_tool_meta()}
+    unknown = [
+        t for t in tools
+        if t not in TOOL_REGISTRY and t not in plugin_names
+    ]
     if unknown:
+        available = sorted(set(TOOL_REGISTRY.keys()) | plugin_names)
         raise AgentValidationError(
             f"Unbekannte Tools: {', '.join(unknown)}. "
-            f"Verfügbar: {', '.join(sorted(TOOL_REGISTRY.keys()))}"
+            f"Verfügbar: {', '.join(available)}"
         )
 
 

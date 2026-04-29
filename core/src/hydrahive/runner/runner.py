@@ -10,6 +10,7 @@ from hydrahive.compaction import compact_session, should_compact
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
 from hydrahive.mcp import tool_bridge as mcp_bridge
+from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._call import CallResult, call_with_stream_or_fallback
 from hydrahive.runner.context import (
     extract_tool_uses,
@@ -67,7 +68,8 @@ async def run(session_id: str, user_input: str, *, tool_config: dict | None = No
 
     # MCP-Tools mergen (lazy connect bei Bedarf, Fehler eines Servers blockt Run nicht)
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
-    tool_schemas = schemas_for(local_tools) + mcp_schemas
+    plugin_schemas = plugin_bridge.schemas_for(local_tools)
+    tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
     allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
 
     # Persist user message
