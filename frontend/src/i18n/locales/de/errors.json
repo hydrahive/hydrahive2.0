@@ -37,5 +37,7 @@
   "username_exists": "Benutzername existiert bereits",
   "user_not_found": "Benutzer nicht gefunden",
 
+  "channel_unavailable": "Channel '{{channel}}' nicht verfügbar",
+
   "validation_error": "{{message}}"
 }

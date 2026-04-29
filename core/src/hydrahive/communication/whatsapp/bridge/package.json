@@ -1,0 +1,19 @@
+{
+  "name": "hydrahive2-whatsapp-bridge",
+  "version": "0.1.0",
+  "description": "Baileys-WhatsApp-Bridge für HydraHive2 (Loopback-HTTP-Service)",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "pino": "^9.5.0",
+    "qrcode": "^1.5.4"
+  }
+}

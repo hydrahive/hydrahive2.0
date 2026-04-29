@@ -96,6 +96,32 @@ class Settings:
     def agentlink_url(self) -> str:
         return os.environ.get("HH_AGENTLINK_URL", "http://127.0.0.1:7700")
 
+    # ------------------------------------------------------------------ communication
+
+    @cached_property
+    def backend_internal_url(self) -> str:
+        return os.environ.get("HH_INTERNAL_URL", f"http://127.0.0.1:{self.port}")
+
+    @cached_property
+    def whatsapp_enabled(self) -> bool:
+        return os.environ.get("HH_WA_ENABLED", "1").lower() in ("1", "true", "yes")
+
+    @cached_property
+    def whatsapp_data_dir(self) -> Path:
+        return self.data_dir / "whatsapp"
+
+    @cached_property
+    def whatsapp_bridge_port(self) -> int:
+        return int(os.environ.get("HH_WA_BRIDGE_PORT", "8767"))
+
+    @cached_property
+    def whatsapp_bridge_url(self) -> str:
+        return f"http://127.0.0.1:{self.whatsapp_bridge_port}"
+
+    @cached_property
+    def whatsapp_bridge_secret_file(self) -> Path:
+        return self.config_dir / "whatsapp_bridge.secret"
+
     # ------------------------------------------------------------------ helpers
 
     def ensure_dirs(self) -> None:

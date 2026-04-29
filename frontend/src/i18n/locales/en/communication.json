@@ -1,0 +1,37 @@
+{
+  "title": "Communication",
+  "subtitle": "Messengers and channels that reach your master agent",
+  "whatsapp": {
+    "label": "WhatsApp",
+    "description": "Incoming messages go straight to your master agent. 1:1 chats only, no media yet.",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "qr_hint": "Open WhatsApp → Linked devices → Scan this code",
+    "bridge_unavailable": "Bridge unavailable — install Node.js and run 'npm install' in the bridge directory.",
+    "bridge_error": "Bridge error: {{detail}}",
+    "states": {
+      "disconnected": "Not connected",
+      "connecting": "Connecting …",
+      "waiting_qr": "Waiting for QR scan",
+      "connected": "Connected",
+      "error": "Error"
+    },
+    "filter": {
+      "title": "Filter & permissions",
+      "intro": "These settings apply to your WhatsApp connection. Owners bypass all filters.",
+      "loading": "Loading filter …",
+      "private_chats": "Private chats",
+      "group_chats": "Group chats",
+      "keyword_label": "Activation keyword (empty = always reply)",
+      "keyword_placeholder": "e.g. !bot",
+      "owner": "Your own numbers (owner bypass)",
+      "owner_hint": "Owners see everything, even without keyword/whitelist.",
+      "allowed": "Whitelist (empty = allow all)",
+      "allowed_hint": "If set: only these numbers may write.",
+      "blocked": "Blacklist",
+      "blocked_hint": "These numbers are always ignored.",
+      "save": "Save",
+      "saved": "Saved"
+    }
+  }
+}
