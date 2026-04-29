@@ -14,8 +14,9 @@
 #   3. Verzeichnisse /var/lib/hydrahive2 + /etc/hydrahive2
 #   4. Python-venv im Repo, hydrahive-core via pip install -e
 #   5. Frontend bauen (npm install + run build)
-#   6. systemd-Service installieren + starten
-#   7. (optional) nginx-Reverse-Proxy
+#   6. WhatsApp-Bridge: npm-Module installieren
+#   7. systemd-Service installieren + starten
+#   8. (optional) nginx-Reverse-Proxy
 set -euo pipefail
 
 # --------------------------------------------------------------- Konfiguration
@@ -54,11 +55,14 @@ bash "$INSTALLER_DIR/modules/30-python.sh"
 log "Phase 5: Frontend"
 bash "$INSTALLER_DIR/modules/40-frontend.sh"
 
-log "Phase 6: systemd-Service"
+log "Phase 6: WhatsApp-Bridge"
+bash "$INSTALLER_DIR/modules/45-whatsapp.sh"
+
+log "Phase 7: systemd-Service"
 bash "$INSTALLER_DIR/modules/50-systemd.sh"
 
 if [ "$HH_INSTALL_NGINX" = "yes" ]; then
-  log "Phase 7: nginx (optional)"
+  log "Phase 8: nginx (optional)"
   bash "$INSTALLER_DIR/modules/60-nginx.sh"
 fi
 
