@@ -3,12 +3,15 @@ from __future__ import annotations
 DEFAULT_TOOLS: dict[str, list[str]] = {
     "master": [
         "shell_exec", "file_read", "file_write", "file_patch", "file_search",
-        "dir_list", "web_search", "http_request", "read_memory", "write_memory",
+        "dir_list", "web_search", "http_request",
+        "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "send_mail",
     ],
     "project": [
         "shell_exec", "file_read", "file_write", "file_patch", "file_search",
-        "dir_list", "read_memory", "write_memory", "todo_write", "ask_agent",
+        "dir_list",
+        "read_memory", "write_memory", "search_memory",
+        "todo_write", "ask_agent",
     ],
     "specialist": [],
 }
