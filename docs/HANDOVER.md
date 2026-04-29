@@ -1,18 +1,25 @@
-# HydraHive2 — Übergabe (Stand 2026-04-29 Nacht, WhatsApp + Filter)
+# HydraHive2 — Übergabe (Stand 2026-04-29 spät, WhatsApp + Filter + LLM-Failover)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## TL;DR
 
-Heute durchgezogen: **WhatsApp-Channel ist E2E live** — Baileys-Bridge
-als Node-Subprocess, Python-Adapter, Frontend `/communication`-Page mit
-Connect/QR-Scan/Status/Filter-Panel, **Pro-User-Filter-Config** (Owner,
-Whitelist, Blacklist, Keyword, Private/Group-Toggles) inklusive
-LID→Telefonnummer-Resolve. Eingehende Nachrichten landen automatisch
-als Sessions in der Chat-History (Foundation arbeitet sauber). Nächster
-großer Build-Tag ist der **Butler** als kanal-übergreifender Flow-
-Builder (im alten HydraHive ein 2200-Zeilen Feature mit ReactFlow).
+Diese Session durchgezogen: **WhatsApp-Channel ist E2E live** —
+Baileys-Bridge als Node-Subprocess, Python-Adapter, Frontend
+`/communication`-Page mit Connect/QR-Scan/Status/Filter-Panel,
+Pro-User-Filter-Config (Owner, Whitelist, Blacklist, Keyword,
+Private/Group-Toggles) inklusive LID→Telefonnummer-Resolve. Eingehende
+Nachrichten landen automatisch als Sessions in der Chat-History.
+Installer um Phase 6 erweitert (`45-whatsapp.sh`) damit `npm install`
+auch auf 216 läuft. Plus **LLM-Failover** ist live: pro Agent eine
+Fallback-Modell-Kette die bei Quota/Overload/Auth-Fehlern automatisch
+durchprobiert wird. NVIDIA-NIM-Quick-Add-Liste auf Coding-Modelle
+fokussiert (qwen2.5-coder, codestral, starcoder2, qwq).
+
+Nächster großer Build-Tag wäre der **Butler** als kanal-übergreifender
+Flow-Builder (im alten HydraHive ein 2200-Zeilen Feature mit
+ReactFlow). Vom User priorisiert, braucht SPEC-Erweiterung.
 
 **Korrektur an alter Roadmap**: AgentLink existiert bereits extern als
 Service — es geht nur noch um den Hookup unseres `ask_agent`-Stubs an
@@ -40,7 +47,9 @@ die existierende API.
 | Installer | 6-Phasen-Setup + systemd + nginx mit Security-Headers |
 | Plugin-System | MVP + Hub-UI, Self-Bootstrap-Loop verifiziert, Hub-Repo `github.com/hydrahive/hydrahive2-plugins` |
 | Communication-Foundation | Channel-Protocol + Registry + Session-Lookup + Master-Agent-Glue + Router |
-| **WhatsApp-Channel (NEU)** | Baileys-Node-Bridge (HTTP loopback 8767, multi-file Auth in `$HH_DATA_DIR/whatsapp/<user>/auth/`, Stream-515-Auto-Reconnect, Loop-Marker, LID-Resolve via `senderPn`/`participantPn`). Python-Adapter implementiert Channel-Protocol. Frontend `/communication` mit `WhatsAppCard` (Status, QR, Connect/Disconnect) und `WhatsAppFilterPanel` (Owner/Whitelist/Blacklist/Keyword/Private+Group, sichtbar wenn connected). Filter-Reihenfolge im Backend: Owner → Blacklist → Group/Private → Whitelist → Keyword. Eingehende Nachrichten persistieren als Sessions pro `(master, channel, external_user_id)`. |
+| **WhatsApp-Channel** | Baileys-Node-Bridge (HTTP loopback 8767, multi-file Auth in `$HH_DATA_DIR/whatsapp/<user>/auth/`, Stream-515-Auto-Reconnect, Loop-Marker, LID-Resolve via `senderPn`/`participantPn`). Python-Adapter implementiert Channel-Protocol. Frontend `/communication` mit `WhatsAppCard` (Status, QR, Connect/Disconnect) und `WhatsAppFilterPanel` (Owner/Whitelist/Blacklist/Keyword/Private+Group, sichtbar wenn connected). Filter-Reihenfolge im Backend: Owner → Blacklist → Group/Private → Whitelist → Keyword. Eingehende Nachrichten persistieren als Sessions pro `(master, channel, external_user_id)`. |
+| **LLM-Failover** | Pro Agent `fallback_models: list[str]` (UI: Pills mit ↑-Reorder + ×). `runner/_failover.py` mit Signal-Liste (401/402/429/529/quota/rate_limit/overloaded/credit/billing/expired). `runner/_call.py` versucht Stream nur auf primary, fällt dann auf Non-Stream-Loop über alle Modelle zurück und wechselt bei should_failover-Fehlern zum nächsten. Bewusst NICHT gebaut: 429-Cooldown pro Provider, Exponential-Backoff-Retry — nachreichbar wenn nötig. |
+| **Installer (Production)** | Phase 6 `45-whatsapp.sh` ergänzt: `npm install --no-audit --no-fund` im Bridge-Verzeichnis, idempotent, übersprungen wenn keine `package.json` da. update.sh macht den gleichen Schritt nach git pull. NodeSource Node 20 ist bereits in 00-deps.sh seit Tagen drin. Production-Deployment auf 216 ist damit ready. |
 
 ## Was offen ist
 
@@ -159,20 +168,23 @@ die existierende API.
 
 ## Empfohlene Reihenfolge nächster Build-Tag
 
-1. **WhatsApp-Production-Deployment auf 216** (Installer Node + npm install) — kurz, sonst läuft das Feature dort nicht.
-2. **Butler** als kanal-übergreifender Flow-Builder — großes Feature, vom User priorisiert. SPEC-Erweiterung zuerst.
-3. **AgentLink-Hookup** — kleiner als gedacht, weil AgentLink schon existiert.
-4. **Aufräumen** (`.gitkeep`, leerer `console/`-Ordner) — 5 Min.
+1. **WhatsApp-Production-Deployment auf 216** (Self-Update aus der UI klicken — Installer ist ready, müsste durchlaufen). 5-15 Min reine Test-Aktion.
+2. **Web → WhatsApp-Send**: Web-Antworten in einer WhatsApp-Session zurück über den Channel schicken. ~30 Min Channel-Send-Hook im Chat-Endpoint.
+3. **Butler** als kanal-übergreifender Flow-Builder — großes Feature, vom User priorisiert. SPEC-Erweiterung zuerst.
+4. **AgentLink-Hookup** — kleiner als gedacht, weil AgentLink schon existiert.
+5. **Aufräumen** (`.gitkeep`, leerer `console/`-Ordner) — 5 Min.
 
 ## Git-Stand
 
-Branch `main` ist auf `origin/main`. Heute hinzugekommen seit Tagesbeginn:
+Branch `main` ist auf `origin/main`. Diese Session: 6 Commits gepusht.
 
 ```
-06ce477 feat(communication): Foundation — Channel-Protocol, Session-Lookup, Agent-Glue
-8e80fc8 feat(system): Service-Restart-Knopf — Trigger-File + Modal mit /health-Polling
-c3f72df feat(plugins): Hub-UI Phase 2 — Marketplace mit Install/Update/Uninstall
-b8a18a5 feat(plugins): Plugin-System MVP — Loader, Tool-Bridge, hello-world
+b08af60 feat(llm): NVIDIA-NIM Quick-Add-Liste um Coding-Modelle erweitert
+6cfffe7 feat(runner): LLM-Failover bei Quota/Overload/Auth-Fehlern
+966cb81 feat(installer): WhatsApp-Bridge — npm install in Phase 6
+91c5f7e docs: HANDOVER konsolidiert — WhatsApp + Filter + Roadmap-Update
+0dd5b1a feat(communication/whatsapp): Channel über Baileys-Bridge mit Filter-Config
+c21ad5f fix(communication): TextDelta — ev.text statt ev.delta
 ```
 
-Heute Nacht (zum Commit anstehend): WhatsApp-Bridge + Adapter, WhatsApp-Frontend, Filter-Config, kleine Fixes (TextDelta, LID-Resolve, Stream-515-Auto-Reconnect, dev-start.sh HH_PORT/HH_INTERNAL_URL).
+Working-Tree wird nach diesem HANDOVER-Update clean.
