@@ -181,7 +181,6 @@ async def _minimax_complete(
         timeout=60.0,
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
-    messages = convert_images_for_minimax(messages)
     resp = await client.messages.create(
         model=_strip_provider_prefix(model),
         messages=messages,
