@@ -23,6 +23,13 @@ cd "$HH_REPO_DIR/frontend"
 sudo -u hydrahive npm install --silent
 sudo -u hydrahive npm run build --silent
 
+WA_BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
+if [ -f "$WA_BRIDGE_DIR/package.json" ]; then
+  log "WhatsApp-Bridge: npm install"
+  cd "$WA_BRIDGE_DIR"
+  sudo -u hydrahive npm install --silent --no-audit --no-fund
+fi
+
 log "Systemd-Units prüfen"
 HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
 if [ ! -f /etc/systemd/system/hydrahive2-update.path ] || [ ! -f /etc/systemd/system/hydrahive2-update.service ]; then
