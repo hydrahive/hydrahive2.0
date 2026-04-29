@@ -170,6 +170,14 @@ if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "hydrahive2-stt"; the
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
 fi
 
+if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
+   || ! systemctl is-active --quiet hydrahive2-websockify.service; then
+  log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"
+  HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" \
+    INSTALLER_DIR="$HH_REPO_DIR/installer" \
+    bash "$HH_REPO_DIR/installer/modules/65-vms.sh"
+fi
+
 log "nginx HTTPS prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
 if [ -f "$NGINX_CONF" ] && ! grep -q "ssl_certificate" "$NGINX_CONF"; then

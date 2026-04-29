@@ -19,8 +19,8 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
     args: list[str] = [
         "qemu-system-x86_64",
         "-name", f"hh2-{vm.name}",
-        "-machine", "q35,accel=kvm",
-        "-cpu", "host",
+        "-machine", "q35,accel=kvm:tcg",  # KVM bevorzugt, TCG als Fallback
+        "-cpu", "max",  # Beste Features die der Accel-Mode anbietet (KVM=host, TCG=max)
         "-smp", str(vm.cpu),
         "-m", str(vm.ram_mb),
         "-drive", f"file={vm.qcow2_path},format=qcow2,if=virtio,cache=writeback,discard=unmap",
