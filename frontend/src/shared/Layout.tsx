@@ -1,14 +1,17 @@
+import { useEffect, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { BookOpen, Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Server, Settings } from "lucide-react"
+import { BookOpen, Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Server, Settings, Users as UsersIcon } from "lucide-react"
 import { cn } from "./cn"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
+import { api } from "@/shared/api-client"
 
 interface NavItem {
   path: string
   icon: typeof Bot
   labelKey: string
+  roles?: ("admin" | "user")[]
 }
 
 const NAV_GROUPS: { groupKey: string; items: NavItem[] }[] = [
@@ -26,13 +29,17 @@ const NAV_GROUPS: { groupKey: string; items: NavItem[] }[] = [
     items: [
       { path: "/llm", icon: Cpu, labelKey: "llm" },
       { path: "/mcp", icon: Server, labelKey: "mcp" },
+      { path: "/users", icon: UsersIcon, labelKey: "users", roles: ["admin"] },
       { path: "/system", icon: Settings, labelKey: "system" },
       { path: "/help", icon: BookOpen, labelKey: "help" },
     ],
   },
 ]
 
-const ALL_NAV = NAV_GROUPS.flatMap((g) => g.items)
+function isVisible(item: NavItem, role: string | null): boolean {
+  if (!item.roles) return true
+  return role !== null && item.roles.includes(role as "admin" | "user")
+}
 
 function useActive(path: string) {
   const { pathname } = useLocation()
@@ -78,6 +85,20 @@ function BottomNavItem({ path, icon: Icon, labelKey }: NavItem) {
 export function Layout() {
   const { username, role, logout } = useAuthStore()
   const { t } = useTranslation(["nav", "auth"])
+  const [version, setVersion] = useState<string | null>(null)
+  const [commit, setCommit] = useState<string | null>(null)
+  const [updateBehind, setUpdateBehind] = useState<number | null>(null)
+
+  useEffect(() => {
+    function loadHealth() {
+      api.get<{ version: string; commit: string | null; update_behind: number | null }>("/health")
+        .then((r) => { setVersion(r.version); setCommit(r.commit); setUpdateBehind(r.update_behind) })
+        .catch(() => {})
+    }
+    loadHealth()
+    const t = setInterval(loadHealth, 5 * 60 * 1000)
+    return () => clearInterval(t)
+  }, [])
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#020617]">
@@ -106,18 +127,22 @@ export function Layout() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.groupKey}>
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-                {t(`groups.${group.groupKey}`)}
-              </p>
-              <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <SideNavItem key={item.path} {...item} />
-                ))}
+          {NAV_GROUPS.map((group) => {
+            const visible = group.items.filter((i) => isVisible(i, role))
+            if (visible.length === 0) return null
+            return (
+              <div key={group.groupKey}>
+                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                  {t(`groups.${group.groupKey}`)}
+                </p>
+                <div className="space-y-0.5">
+                  {visible.map((item) => (
+                    <SideNavItem key={item.path} {...item} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* Sprach-Switcher */}
@@ -126,8 +151,11 @@ export function Layout() {
         </div>
 
         {/* User Footer */}
-        <div className="mx-2 mb-3 rounded-xl bg-white/[3%] border border-white/[6%] p-3">
-          <div className="flex items-center gap-2.5">
+        <div className="mx-2 mb-3 rounded-xl bg-white/[3%] border border-white/[6%] p-1 flex items-center gap-1">
+          <Link
+            to="/profile"
+            className="flex-1 flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[4%] transition-colors min-w-0"
+          >
             <div className="relative shrink-0">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-700 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-violet-900/30">
                 {username?.[0]?.toUpperCase() ?? "?"}
@@ -138,15 +166,29 @@ export function Layout() {
               <p className="text-sm font-medium text-zinc-200 truncate">{username}</p>
               <p className="text-xs text-zinc-500">{role}</p>
             </div>
-            <button
-              onClick={logout}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors"
-              title={t("auth:logout")}
-            >
-              <LogOut size={14} />
-            </button>
-          </div>
+          </Link>
+          <button
+            onClick={logout}
+            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors flex-shrink-0"
+            title={t("auth:logout")}
+          >
+            <LogOut size={14} />
+          </button>
         </div>
+
+        {version && (
+          <p className="px-4 pb-2 text-[10px] text-zinc-600 font-mono tabular-nums text-right flex items-center justify-end gap-1.5">
+            <span>v{version}{commit && <> · <span className="text-zinc-700">{commit}</span></>}</span>
+            {updateBehind !== null && updateBehind > 0 && (
+              <span
+                title={`${updateBehind} commit${updateBehind === 1 ? "" : "s"} behind origin/main`}
+                className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 normal-case"
+              >
+                ↑{updateBehind}
+              </span>
+            )}
+          </p>
+        )}
       </aside>
 
       {/* Content */}
@@ -158,7 +200,7 @@ export function Layout() {
 
       {/* Bottom Nav — Mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-zinc-950/95 backdrop-blur border-t border-white/[6%] flex">
-        {ALL_NAV.slice(0, 5).map((item) => (
+        {NAV_GROUPS.flatMap((g) => g.items).filter((i) => isVisible(i, role)).slice(0, 5).map((item) => (
           <BottomNavItem key={item.path} {...item} />
         ))}
       </nav>

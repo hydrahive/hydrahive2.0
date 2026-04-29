@@ -9,10 +9,18 @@ import { ProjectsPage } from "@/features/projects/ProjectsPage"
 import { LlmPage } from "@/features/llm/LlmPage"
 import { McpPage } from "@/features/mcp/McpPage"
 import { SystemPage } from "@/features/system/SystemPage"
+import { UsersPage } from "@/features/users/UsersPage"
+import { ProfilePage } from "@/features/profile/ProfilePage"
 
 function Guard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
   if (!token) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+function AdminGuard({ children }: { children: React.ReactNode }) {
+  const role = useAuthStore((s) => s.role)
+  if (role !== "admin") return <Navigate to="/" replace />
   return <>{children}</>
 }
 
@@ -36,6 +44,8 @@ export default function App() {
           <Route path="llm" element={<LlmPage />} />
           <Route path="mcp" element={<McpPage />} />
           <Route path="system" element={<SystemPage />} />
+          <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
