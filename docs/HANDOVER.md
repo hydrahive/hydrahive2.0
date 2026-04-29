@@ -1,4 +1,4 @@
-# HydraHive2 — Übergabe (Stand 2026-04-29 Abend)
+# HydraHive2 — Übergabe (Stand 2026-04-29 Spätabend)
 
 Konsolidierter Snapshot nach intensivem Build-Tag. Beim Wieder-Aufnehmen
 diese Datei zuerst lesen, dann SPEC.md, dann konkret nach offenen Tasks fragen.
@@ -10,7 +10,9 @@ kann es jetzt selbst testen. Heute kamen dazu: i18n vollständig migriert,
 komplette Userverwaltung mit bcrypt + Admin-UI + Profile-Page,
 Sicherheits-Härtung (Failed-Login-Lockout, nginx-Headers, Swagger UI gehärtet),
 Self-Update aus der UI mit Live-Log-Modal, Backend-Error-Codes statt
-deutscher Strings, Memory-Suche, README.
+deutscher Strings, Memory-Suche, README. **Spätabend: Plugin-System-MVP** —
+externer Hub-Repo, Loader mit Crash-Isolation, hello-world-Demo per Chat
+verifiziert.
 
 ## Was steht (alles getestet + auf 216 deployed)
 
@@ -31,13 +33,14 @@ deutscher Strings, Memory-Suche, README.
 | **i18n** | DE/EN, 14 Namespaces, alle Feature-Folder migriert, **Backend-Errors als Codes statt deutsche Strings** |
 | Help-Drawer | pro Seite ?-Button, 7 Topics × 2 Sprachen |
 | Installer | 6-Phasen-Setup + systemd + nginx mit Security-Headers (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy) |
+| **Plugin-System** | MVP: Loader/Manifest/Registry/Context/Tool-Bridge im Core; Hub-Repo `hydrahive2-plugins` lokal mit hello-world-Demo; E2E aus Chat verifiziert |
 
 ## Was offen ist
 
 ### Größere Initiativen (jeweils ein halber bis ganzer Build-Tag)
 
-1. **Plugin-System** — Foundation für alles weitere (WhatsApp, MMX, project_stats etc.). Hooks sind in Compaction vorbereitet, Loader fehlt. plugin.yaml-Schema, Sandbox-Konzept zu klären. **Empfehlung: nächste größere Sache — bevor weitere Features in den Core wandern.**
-2. **WhatsApp-Bridge** als erstes echtes Plugin (Whatsmeow + QR-Login, in SPEC.md drin).
+1. **Plugin-System Phase 2 — Hub-UI**: Frontend `/plugins`-Seite mit Tabs Hub/Installiert. Backend-Routes `/api/plugins/{hub,installed,install,uninstall,update}`. Sparse-Checkout aus dem Hub-Repo (`git clone --depth=1 --filter=blob:none --sparse … && git sparse-checkout set plugins/<name>`). Restart-Trigger nach Install (Self-Update-Pattern wiederverwenden). Plus: `PluginContext.register_compaction_hook()` damit Plugins die schon vorhandenen Compaction-Extension-Points (`hooks.py`) nutzen können.
+2. **WhatsApp-Bridge** als erstes echtes Nutz-Plugin (Whatsmeow + QR-Login, in SPEC.md drin).
 3. **AgentLink** als externer Service — `ask_agent` ist Stub. Multi-Agent-Workflows fehlen, Redis Pub/Sub.
 4. **MMX-CLI / MiniMax Multimodal**: Audio/Video/Bild-Generierung als Plugin.
 
@@ -104,10 +107,10 @@ sudo journalctl -u hydrahive2 | grep -A 3 'Admin-User angelegt'
 
 ## Empfohlene Reihenfolge nächster Build-Tag
 
-1. **Lokal verifizieren** dass alles noch läuft (`./dev-start.sh`).
-2. **Plugin-System** als Foundation — danach kommen WhatsApp + MMX + project_stats automatisch sauber als Plugins, statt im Core-Code zu landen.
-3. **Aufräumen** (`.gitkeep`, `console/`) — 5 Min.
-4. Wenn Plugin-System steht: **WhatsApp-Bridge** als erstes Plugin, dann MMX/Multimodal.
+1. **Hub-Repo pushen** (`cd /home/till/hydrahive2-plugins && gh repo create hydrahive/hydrahive2-plugins --private --source=. --push`) — falls noch nicht erfolgt.
+2. **Plugin-System Phase 2** — Hub-UI bauen (Backend-Routes + Frontend `/plugins`-Page + Sparse-Checkout + Restart-Trigger). Damit kann Frauchen Plugins per Klick installieren.
+3. **Aufräumen** (`.gitkeep`, leerer `console/`-Ordner) — 5 Min.
+4. **WhatsApp-Bridge** als erstes echtes Nutz-Plugin im Hub-Repo, dann MMX/Multimodal.
 
 ## Git-Stand
 

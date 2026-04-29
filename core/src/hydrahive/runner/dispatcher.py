@@ -6,6 +6,7 @@ from dataclasses import asdict
 
 from hydrahive.db import tools as tools_db
 from hydrahive.mcp import tool_bridge as mcp_bridge
+from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import REGISTRY, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,11 @@ async def execute_tool(
                     output=output_text or None,
                     error=mcp_res.error,
                 )
+    elif tool_name.startswith(plugin_bridge.PREFIX):
+        plugin_res = await plugin_bridge.call(tool_name, args, ctx)
+        result = plugin_res or ToolResult.fail(
+            f"Plugin-Routing fehlgeschlagen für '{tool_name}'"
+        )
     elif tool_name not in REGISTRY:
         result = ToolResult.fail(f"Tool '{tool_name}' weder lokal noch MCP gefunden")
     else:
