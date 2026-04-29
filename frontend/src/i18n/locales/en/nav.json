@@ -18,10 +18,17 @@
   "help_button": "Open page help",
   "update": {
     "available": "Update available — click to update",
-    "confirm": "Update now?\n\nThe server will restart and be unreachable for 1-2 minutes.",
+    "modal_title": "System update",
+    "confirm_question": "Update now?",
+    "confirm_hint": "The server will restart and be unreachable for 1-2 minutes.",
+    "confirm_button": "Start update",
     "starting": "Starting update…",
-    "in_progress": "Update running — waiting for server…",
+    "in_progress": "Update running…",
     "done": "Update complete — new version: {{commit}}",
-    "failed": "Update failed: {{error}}"
+    "failed": "Update failed: {{error}}",
+    "log_title": "Live log",
+    "log_empty": "No output yet…",
+    "log_disconnected": "Server unreachable — waiting for restart…",
+    "close": "Close"
   }
 }

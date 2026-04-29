@@ -27,6 +27,7 @@ router = APIRouter(prefix="/api/system", tags=["system"])
 
 UPDATE_SCRIPT = Path("/opt/hydrahive2/installer/update.sh")
 UPDATE_TRIGGER = settings.data_dir / ".update_request"
+UPDATE_LOG = Path("/var/log/hydrahive2-update.log")
 
 _start_time: float = 0.0
 
@@ -125,3 +126,17 @@ def trigger_update() -> dict:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Update-Trigger fehlgeschlagen: {e}")
     logger.warning("Update-Trigger geschrieben (%s) — systemd-Path-Watcher übernimmt", UPDATE_TRIGGER)
     return {"started": True}
+
+
+@router.get("/update/log", dependencies=[Depends(require_admin)])
+def update_log(tail: int = 200) -> dict:
+    """Reads the last N lines from the update log file."""
+    if not UPDATE_LOG.exists():
+        return {"lines": [], "exists": False}
+    try:
+        with UPDATE_LOG.open("r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except (PermissionError, OSError) as e:
+        return {"lines": [], "exists": True, "error": str(e)}
+    capped = max(1, min(tail, 1000))
+    return {"lines": lines[-capped:], "exists": True}

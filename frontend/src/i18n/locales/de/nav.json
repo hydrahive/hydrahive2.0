@@ -18,10 +18,17 @@
   "help_button": "Seiten-Hilfe öffnen",
   "update": {
     "available": "Update verfügbar — klicken zum Aktualisieren",
-    "confirm": "Jetzt aktualisieren?\n\nDer Server wird neu starten und ist für 1-2 Minuten nicht erreichbar.",
+    "modal_title": "System-Update",
+    "confirm_question": "Jetzt aktualisieren?",
+    "confirm_hint": "Der Server wird neu starten und ist für 1-2 Minuten nicht erreichbar.",
+    "confirm_button": "Update starten",
     "starting": "Update wird gestartet…",
-    "in_progress": "Update läuft — warte auf Server…",
+    "in_progress": "Update läuft…",
     "done": "Update fertig — neue Version: {{commit}}",
-    "failed": "Update fehlgeschlagen: {{error}}"
+    "failed": "Update fehlgeschlagen: {{error}}",
+    "log_title": "Live-Log",
+    "log_empty": "Noch keine Ausgabe…",
+    "log_disconnected": "Server unerreichbar — warte auf Neustart…",
+    "close": "Schließen"
   }
 }
