@@ -185,7 +185,7 @@ async def _update_check_loop() -> None:
             _UPDATE_BEHIND = await asyncio.to_thread(_check_update_behind)
         except Exception as e:
             logger.debug("Update-Check fehlgeschlagen: %s", e)
-        await asyncio.sleep(1800)
+        await asyncio.sleep(300)
 
 
 @app.get("/api/health")
