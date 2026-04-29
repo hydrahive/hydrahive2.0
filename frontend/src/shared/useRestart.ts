@@ -32,7 +32,7 @@ export function useRestart() {
     while (Date.now() - startedAt < maxWaitMs) {
       await new Promise((r) => setTimeout(r, 1500))
       try {
-        await api.get<{ status: string }>("/health")
+        await fetch("/api/health", { signal: AbortSignal.timeout(3000) })
         if (backendDown) {
           setState("done")
           return

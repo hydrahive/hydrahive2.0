@@ -35,7 +35,8 @@ WA_BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
 if [ -f "$WA_BRIDGE_DIR/package.json" ]; then
   log "WhatsApp-Bridge: npm install"
   cd "$WA_BRIDGE_DIR"
-  sudo -u hydrahive npm install --silent --no-audit --no-fund
+  npm install --cache /tmp/npm-cache-hh --no-audit --no-fund --silent
+  chown -R hydrahive:hydrahive "$WA_BRIDGE_DIR/node_modules"
 fi
 
 log "Systemd-Units prüfen"
