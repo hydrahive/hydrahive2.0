@@ -218,17 +218,17 @@ export function Layout() {
                 <button
                   type="button"
                   onClick={triggerUpdate}
-                  title={t("nav:update.available", { count: updateBehind })}
+                  title={t("nav:update.available")}
                   className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 hover:border-amber-500/50 transition-colors cursor-pointer"
                 >
-                  ↑{updateBehind}
+                  ↑
                 </button>
               ) : (
                 <span
-                  title={t("nav:update.available", { count: updateBehind })}
+                  title={t("nav:update.available")}
                   className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300"
                 >
-                  ↑{updateBehind}
+                  ↑
                 </span>
               )
             )}
