@@ -33,16 +33,17 @@ verifiziert.
 | **i18n** | DE/EN, 14 Namespaces, alle Feature-Folder migriert, **Backend-Errors als Codes statt deutsche Strings** |
 | Help-Drawer | pro Seite ?-Button, 7 Topics × 2 Sprachen |
 | Installer | 6-Phasen-Setup + systemd + nginx mit Security-Headers (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy) |
-| **Plugin-System** | MVP: Loader/Manifest/Registry/Context/Tool-Bridge im Core; Hub-Repo `hydrahive2-plugins` lokal mit hello-world-Demo; E2E aus Chat verifiziert |
+| **Plugin-System** | MVP + **Hub-UI**: Loader/Manifest/Registry/Context/Tool-Bridge + Hub-Client (git clone/pull) + Installer (cp aus Cache). Frontend `/plugins`-Page (AdminGuard) mit Tabs Hub/Installiert, Install/Update/Uninstall, Restart-Hint. Hub-Repo `github.com/hydrahive/hydrahive2-plugins` (privat) gepusht. **Self-Bootstrap verifiziert**: lokaler Agent hat eigenständig `git-stats`-, `code-metrics`- und `file-search`-Plugins gebaut, in den Hub gepusht und über die UI installiert. |
 
 ## Was offen ist
 
 ### Größere Initiativen (jeweils ein halber bis ganzer Build-Tag)
 
-1. **Plugin-System Phase 2 — Hub-UI**: Frontend `/plugins`-Seite mit Tabs Hub/Installiert. Backend-Routes `/api/plugins/{hub,installed,install,uninstall,update}`. Sparse-Checkout aus dem Hub-Repo (`git clone --depth=1 --filter=blob:none --sparse … && git sparse-checkout set plugins/<name>`). Restart-Trigger nach Install (Self-Update-Pattern wiederverwenden). Plus: `PluginContext.register_compaction_hook()` damit Plugins die schon vorhandenen Compaction-Extension-Points (`hooks.py`) nutzen können.
-2. **WhatsApp-Bridge** als erstes echtes Nutz-Plugin (Whatsmeow + QR-Login, in SPEC.md drin).
-3. **AgentLink** als externer Service — `ask_agent` ist Stub. Multi-Agent-Workflows fehlen, Redis Pub/Sub.
-4. **MMX-CLI / MiniMax Multimodal**: Audio/Video/Bild-Generierung als Plugin.
+1. **WhatsApp-Bridge** als erstes echtes Nutz-Plugin (Whatsmeow + QR-Login, in SPEC.md drin).
+2. **AgentLink** als externer Service — `ask_agent` ist Stub. Multi-Agent-Workflows fehlen, Redis Pub/Sub.
+3. **MMX-CLI / MiniMax Multimodal**: Audio/Video/Bild-Generierung als Plugin.
+4. **`PluginContext.register_compaction_hook()`** — Mechanismus ist schon da (`compaction/hooks.py`), Plugin-API-Erweiterung fehlt damit Plugins eigene Compaction-Hooks anmelden können.
+5. **Production-Hub-Auth** — auf 216 läuft der Service als `hydrahive`-User ohne GitHub-SSH-Key. Optionen: Public-Hub-Repo, Deploy-Key, oder Token-basierter HTTPS-Clone.
 
 ### Kleinere Themen
 
@@ -107,10 +108,10 @@ sudo journalctl -u hydrahive2 | grep -A 3 'Admin-User angelegt'
 
 ## Empfohlene Reihenfolge nächster Build-Tag
 
-1. **Hub-Repo pushen** (`cd /home/till/hydrahive2-plugins && gh repo create hydrahive/hydrahive2-plugins --private --source=. --push`) — falls noch nicht erfolgt.
-2. **Plugin-System Phase 2** — Hub-UI bauen (Backend-Routes + Frontend `/plugins`-Page + Sparse-Checkout + Restart-Trigger). Damit kann Frauchen Plugins per Klick installieren.
-3. **Aufräumen** (`.gitkeep`, leerer `console/`-Ordner) — 5 Min.
-4. **WhatsApp-Bridge** als erstes echtes Nutz-Plugin im Hub-Repo, dann MMX/Multimodal.
+1. **WhatsApp-Bridge** als erstes echtes Nutz-Plugin im Hub-Repo, dann MMX/Multimodal.
+2. **Aufräumen** (`.gitkeep`, leerer `console/`-Ordner) — 5 Min.
+3. **Production-Hub-Auth** für 216 (Public-Repo oder Deploy-Key) bevor das auch dort nutzbar ist.
+4. **AgentLink** als externer Service damit Multi-Agent-Workflows real werden.
 
 ## Git-Stand
 

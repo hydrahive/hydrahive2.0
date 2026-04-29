@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { BookOpen, Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Server, Settings, Users as UsersIcon } from "lucide-react"
+import { BookOpen, Bot, Cpu, FolderKanban, LayoutDashboard, LogOut, MessageSquare, Puzzle, Server, Settings, Users as UsersIcon } from "lucide-react"
 import { cn } from "./cn"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
@@ -31,6 +31,7 @@ const NAV_GROUPS: { groupKey: string; items: NavItem[] }[] = [
       { path: "/llm", icon: Cpu, labelKey: "llm" },
       { path: "/mcp", icon: Server, labelKey: "mcp" },
       { path: "/users", icon: UsersIcon, labelKey: "users", roles: ["admin"] },
+      { path: "/plugins", icon: Puzzle, labelKey: "plugins", roles: ["admin"] },
       { path: "/system", icon: Settings, labelKey: "system" },
       { path: "/help", icon: BookOpen, labelKey: "help" },
     ],

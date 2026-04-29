@@ -1,0 +1,17 @@
+{
+  "title": "Plugins",
+  "tab_hub": "Hub",
+  "tab_installed": "Installiert",
+  "install": "Installieren",
+  "reinstall": "Neu installieren",
+  "uninstall": "Entfernen",
+  "update": "Aktualisieren",
+  "loaded": "geladen",
+  "not_loaded": "Fehler",
+  "installed_badge": "installiert",
+  "loading": "Lade Hub-Index…",
+  "hub_empty": "Keine Plugins im Hub gefunden.",
+  "installed_empty": "Noch keine Plugins installiert.",
+  "uninstall_confirm": "Plugin \"{{name}}\" wirklich entfernen?",
+  "restart_hint": "Plugin-Änderung übernommen. Service-Neustart empfohlen damit alte Module aus dem Speicher fallen."
+}

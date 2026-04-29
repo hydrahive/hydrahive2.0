@@ -39,6 +39,17 @@ class Settings:
         return self.data_dir / "plugins"
 
     @cached_property
+    def plugin_hub_cache(self) -> Path:
+        return self.data_dir / ".plugin-cache" / "hub"
+
+    @cached_property
+    def plugin_hub_git_url(self) -> str:
+        return os.environ.get(
+            "HH_PLUGIN_HUB_GIT_URL",
+            "git@github.com:hydrahive/hydrahive2-plugins.git",
+        )
+
+    @cached_property
     def sessions_db(self) -> Path:
         return self.data_dir / "sessions.db"
 
