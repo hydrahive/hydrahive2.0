@@ -1,30 +1,94 @@
-"""Speech-to-Text Endpoint — Groq Whisper."""
+"""Speech-to-Text Endpoint — Wyoming faster-whisper."""
 from __future__ import annotations
 
+import asyncio
 import logging
+import struct
+import tempfile
+from pathlib import Path
 from typing import Annotated
 
-import httpx
 from fastapi import APIRouter, Depends, File, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.llm.client import _load_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/stt", tags=["stt"])
 
-GROQ_STT_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
-MAX_AUDIO_BYTES = 25 * 1024 * 1024  # Groq limit: 25 MB
+STT_HOST = "127.0.0.1"
+STT_PORT = 10300
 
 
-def _get_groq_key() -> str:
-    cfg = _load_config()
-    for p in cfg.get("providers", []):
-        if p.get("id") == "groq":
-            return p.get("api_key", "")
+async def _wyoming_transcribe(audio_bytes: bytes) -> str:
+    """Schickt WAV-Audio über das Wyoming-Protokoll an faster-whisper."""
+    reader, writer = await asyncio.open_connection(STT_HOST, STT_PORT)
+    try:
+        # Wyoming Transcribe-Request senden
+        payload = b'{"type":"transcribe","data":{"language":"de","audio_format":{"type":"pcm","rate":16000,"width":2,"channels":1}}}\n'
+        writer.write(payload)
+        await writer.drain()
+
+        # Audio-Bytes als Wyoming AudioChunk senden
+        header = f'{{"type":"audio-chunk","data":{{"rate":16000,"width":2,"channels":1,"audio":true}}}}\n'.encode()
+        writer.write(header)
+        writer.write(struct.pack("<I", len(audio_bytes)))
+        writer.write(audio_bytes)
+        await writer.drain()
+
+        # AudioStop senden
+        writer.write(b'{"type":"audio-stop","data":{}}\n')
+        await writer.drain()
+
+        # Auf Transcript warten
+        while True:
+            line = await asyncio.wait_for(reader.readline(), timeout=30.0)
+            if not line:
+                break
+            import json
+            msg = json.loads(line.decode())
+            if msg.get("type") == "transcript":
+                return msg.get("data", {}).get("text", "").strip()
+    finally:
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
     return ""
+
+
+async def _convert_to_wav(audio_bytes: bytes, suffix: str) -> bytes:
+    """Konvertiert Audio zu 16kHz Mono WAV via ffmpeg."""
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as src:
+        src.write(audio_bytes)
+        src_path = Path(src.name)
+    wav_path = src_path.with_suffix(".wav")
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ffmpeg", "-y", "-i", str(src_path),
+            "-ar", "16000", "-ac", "1", "-f", "wav", str(wav_path),
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await asyncio.wait_for(proc.wait(), timeout=30.0)
+        if proc.returncode != 0:
+            raise RuntimeError("ffmpeg Konvertierung fehlgeschlagen")
+        return wav_path.read_bytes()
+    finally:
+        src_path.unlink(missing_ok=True)
+        wav_path.unlink(missing_ok=True)
+
+
+_MIME_EXT = {
+    "audio/webm": ".webm",
+    "audio/ogg": ".ogg",
+    "audio/mpeg": ".mp3",
+    "audio/mp4": ".m4a",
+    "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
+}
 
 
 @router.post("")
@@ -32,31 +96,27 @@ async def transcribe(
     audio: Annotated[UploadFile, File()],
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> JSONResponse:
-    key = _get_groq_key()
-    if not key:
-        raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "validation_error",
-                    message="Kein Groq-API-Key konfiguriert")
-
     data = await audio.read()
-    if len(data) > MAX_AUDIO_BYTES:
-        raise coded(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "validation_error",
-                    message="Audio zu groß (max 25 MB)")
+    if not data:
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message="Leere Audio-Datei")
 
-    filename = audio.filename or "audio.webm"
-    mime = audio.content_type or "audio/webm"
+    mime = (audio.content_type or "audio/webm").split(";")[0].strip()
+    suffix = _MIME_EXT.get(mime, ".webm")
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            GROQ_STT_URL,
-            headers={"Authorization": f"Bearer {key}"},
-            files={"file": (filename, data, mime)},
-            data={"model": "whisper-large-v3-turbo", "response_format": "json"},
-        )
+    try:
+        wav = await _convert_to_wav(data, suffix)
+    except Exception as e:
+        logger.warning("Audio-Konvertierung fehlgeschlagen: %s", e)
+        raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "validation_error",
+                    message="Audio-Konvertierung fehlgeschlagen — ffmpeg installiert?")
 
-    if resp.status_code != 200:
-        logger.warning("Groq STT Fehler %s: %s", resp.status_code, resp.text[:200])
-        raise coded(status.HTTP_502_BAD_GATEWAY, "validation_error",
-                    message=f"Groq STT Fehler: {resp.status_code}")
+    try:
+        text = await _wyoming_transcribe(wav)
+    except (ConnectionRefusedError, OSError):
+        raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "validation_error",
+                    message="STT-Service nicht erreichbar — Wyoming faster-whisper installiert?")
+    except asyncio.TimeoutError:
+        raise coded(status.HTTP_504_GATEWAY_TIMEOUT, "validation_error",
+                    message="STT-Timeout — Service überlastet?")
 
-    text = resp.json().get("text", "").strip()
     return JSONResponse({"text": text})
