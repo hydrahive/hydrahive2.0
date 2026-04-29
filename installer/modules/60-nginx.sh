@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Optional: nginx-Reverse-Proxy. Liefert das Frontend aus dist/ + proxied /api → Backend.
+# nginx-Reverse-Proxy mit HTTPS (Self-Signed-Cert).
+# getUserMedia (Mikrofon) erfordert einen Secure Context (HTTPS oder localhost).
 set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
@@ -9,32 +10,61 @@ if ! command -v nginx >/dev/null 2>&1; then
   apt-get install -y nginx >/dev/null
 fi
 
+if ! command -v openssl >/dev/null 2>&1; then
+  apt-get install -y openssl >/dev/null
+fi
+
+# Self-Signed-Cert anlegen falls noch nicht vorhanden
+TLS_DIR=/etc/hydrahive2/tls
+if [ ! -f "$TLS_DIR/hydrahive.crt" ]; then
+  log "Erzeuge Self-Signed-TLS-Zertifikat"
+  mkdir -p "$TLS_DIR"
+  openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+    -keyout "$TLS_DIR/hydrahive.key" \
+    -out    "$TLS_DIR/hydrahive.crt" \
+    -subj   "/CN=hydrahive2/O=HydraHive/C=DE" \
+    -addext "subjectAltName=IP:127.0.0.1" \
+    2>/dev/null
+  chmod 600 "$TLS_DIR/hydrahive.key"
+  chmod 644 "$TLS_DIR/hydrahive.crt"
+fi
+
 CONF_FILE=/etc/nginx/sites-available/hydrahive2
-log "Schreibe $CONF_FILE"
+log "Schreibe $CONF_FILE (HTTPS)"
 cat > "$CONF_FILE" <<EOF
+# HTTP → HTTPS redirect
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+
+    ssl_certificate     $TLS_DIR/hydrahive.crt;
+    ssl_certificate_key $TLS_DIR/hydrahive.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
 
     root $HH_REPO_DIR/frontend/dist;
     index index.html;
 
-    # Security-Headers — gelten für alle Responses (auch Errors)
+    add_header Strict-Transport-Security "max-age=31536000" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()" always;
-    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
-    # HSTS: aktivieren sobald HTTPS konfiguriert ist (sonst no-op)
-    # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    # microphone=(self) erlaubt Mikrofon-Zugriff vom gleichen Origin
+    add_header Permissions-Policy "geolocation=(), microphone=(self), camera=(), payment=()" always;
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' wss:; font-src 'self' data:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
 
-    # SPA-Fallback: jeder unbekannte Pfad → index.html
     location / {
         try_files \$uri \$uri/ /index.html;
     }
 
-    # Backend-API
     location /api/ {
         proxy_pass http://$HH_HOST:$HH_PORT;
         proxy_http_version 1.1;
@@ -42,11 +72,10 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-
-        # SSE-Streaming nicht buffern
         proxy_buffering off;
         proxy_cache off;
         proxy_read_timeout 600s;
+        client_max_body_size 50M;
     }
 }
 EOF

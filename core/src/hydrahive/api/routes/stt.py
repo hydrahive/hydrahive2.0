@@ -21,42 +21,60 @@ STT_HOST = "127.0.0.1"
 STT_PORT = 10300
 
 
-def _event(evt_type: str, data: dict, payload: bytes = b"") -> bytes:
-    """Serialisiert ein Wyoming-Event: JSON-Zeile + optionale Binary-Payload."""
-    header = json.dumps({
-        "type": evt_type,
-        "data": data,
-        "data_length": 0,
-        "payload_length": len(payload),
-    }) + "\n"
-    return header.encode() + payload
+async def _send(writer: asyncio.StreamWriter, etype: str,
+                data: dict | None = None, payload: bytes = b"") -> None:
+    """Wyoming wire format: header-JSON\n [data-JSON] [binary]."""
+    header: dict = {"type": etype}
+    data_bytes = b""
+    if data:
+        data_bytes = json.dumps(data, separators=(",", ":")).encode()
+        header["data_length"] = len(data_bytes)
+    if payload:
+        header["payload_length"] = len(payload)
+    writer.write(json.dumps(header, separators=(",", ":")).encode() + b"\n")
+    if data_bytes:
+        writer.write(data_bytes)
+    if payload:
+        writer.write(payload)
+    await writer.drain()
 
 
-async def _wyoming_transcribe(pcm_bytes: bytes) -> str:
-    """Schickt rohes PCM (16kHz, 16-bit, Mono) ans Wyoming-STT."""
-    reader, writer = await asyncio.open_connection(STT_HOST, STT_PORT)
+async def _recv(reader: asyncio.StreamReader) -> tuple[str, dict, bytes]:
+    """Liest ein Wyoming-Event: header → optionaler data-Block → optionaler payload."""
+    line = await asyncio.wait_for(reader.readline(), timeout=60.0)
+    if not line:
+        raise ConnectionError("Wyoming-Verbindung unerwartet geschlossen")
+    header = json.loads(line.decode())
+    data: dict = {}
+    if header.get("data_length", 0) > 0:
+        raw = await asyncio.wait_for(reader.readexactly(header["data_length"]), timeout=10.0)
+        data = json.loads(raw)
+    payload = b""
+    if header.get("payload_length", 0) > 0:
+        payload = await asyncio.wait_for(reader.readexactly(header["payload_length"]), timeout=30.0)
+    return header.get("type", ""), data, payload
+
+
+async def _wyoming_transcribe(pcm: bytes, rate: int = 16000,
+                               width: int = 2, channels: int = 1) -> str:
+    reader, writer = await asyncio.wait_for(
+        asyncio.open_connection(STT_HOST, STT_PORT), timeout=10.0
+    )
     try:
-        writer.write(_event("transcribe", {"language": "de"}))
-        writer.write(_event("audio-start", {"rate": 16000, "width": 2, "channels": 1}))
-
-        chunk_size = 4096
-        for i in range(0, len(pcm_bytes), chunk_size):
-            writer.write(_event(
-                "audio-chunk",
-                {"rate": 16000, "width": 2, "channels": 1},
-                pcm_bytes[i:i + chunk_size],
-            ))
-
-        writer.write(_event("audio-stop", {}))
-        await writer.drain()
+        fmt = {"rate": rate, "width": width, "channels": channels}
+        await _send(writer, "transcribe", {"language": "de"})
+        await _send(writer, "audio-start", fmt)
+        chunk_size = rate * width * channels  # 1 Sekunde pro Chunk
+        for i in range(0, len(pcm), chunk_size):
+            await _send(writer, "audio-chunk", fmt, pcm[i:i + chunk_size])
+        await _send(writer, "audio-stop")
 
         while True:
-            line = await asyncio.wait_for(reader.readline(), timeout=30.0)
-            if not line:
-                break
-            msg = json.loads(line.decode())
-            if msg.get("type") == "transcript":
-                return msg.get("data", {}).get("text", "").strip()
+            etype, data, _ = await _recv(reader)
+            if etype == "transcript":
+                return data.get("text", "").strip()
+            if etype == "error":
+                raise RuntimeError(data.get("text", "STT-Fehler"))
     finally:
         writer.close()
         try:
@@ -75,15 +93,13 @@ async def _to_pcm(audio_bytes: bytes, suffix: str) -> bytes:
     try:
         proc = await asyncio.create_subprocess_exec(
             "ffmpeg", "-y", "-i", str(src_path),
-            "-ar", "16000", "-ac", "1",
-            "-f", "s16le",          # raw signed 16-bit little-endian PCM, kein WAV-Header
-            str(pcm_path),
+            "-ar", "16000", "-ac", "1", "-f", "s16le", str(pcm_path),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
         await asyncio.wait_for(proc.wait(), timeout=30.0)
         if proc.returncode != 0:
-            raise RuntimeError("ffmpeg Konvertierung fehlgeschlagen")
+            raise RuntimeError("ffmpeg fehlgeschlagen")
         return pcm_path.read_bytes()
     finally:
         src_path.unlink(missing_ok=True)
@@ -91,12 +107,9 @@ async def _to_pcm(audio_bytes: bytes, suffix: str) -> bytes:
 
 
 _MIME_EXT = {
-    "audio/webm": ".webm",
-    "audio/ogg": ".ogg",
-    "audio/mpeg": ".mp3",
-    "audio/mp4": ".m4a",
-    "audio/wav": ".wav",
-    "audio/x-wav": ".wav",
+    "audio/webm": ".webm", "audio/ogg": ".ogg",
+    "audio/mpeg": ".mp3",  "audio/mp4": ".m4a",
+    "audio/wav": ".wav",   "audio/x-wav": ".wav",
 }
 
 
@@ -123,7 +136,7 @@ async def transcribe(
         text = await _wyoming_transcribe(pcm)
     except (ConnectionRefusedError, OSError):
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "validation_error",
-                    message="STT-Service nicht erreichbar — Wyoming faster-whisper läuft?")
+                    message="STT nicht erreichbar — Wyoming faster-whisper läuft?")
     except asyncio.TimeoutError:
         raise coded(status.HTTP_504_GATEWAY_TIMEOUT, "validation_error",
                     message="STT-Timeout — Service überlastet?")
