@@ -27,6 +27,7 @@ class AgentCreate(BaseModel):
     max_tokens: int = 4096
     thinking_budget: int = 0
     mcp_servers: list[str] = []
+    fallback_models: list[str] = []
     project_id: str | None = None
     domain: str | None = None
     system_prompt: str | None = None
@@ -42,6 +43,7 @@ class AgentUpdate(BaseModel):
     max_tokens: int | None = None
     thinking_budget: int | None = None
     mcp_servers: list[str] | None = None
+    fallback_models: list[str] | None = None
     domain: str | None = None
     status: str | None = None
 
@@ -108,6 +110,7 @@ def create_agent(
             max_tokens=req.max_tokens,
             thinking_budget=req.thinking_budget,
             mcp_servers=req.mcp_servers,
+            fallback_models=req.fallback_models,
             project_id=req.project_id,
             domain=req.domain,
             system_prompt=req.system_prompt,

@@ -19,7 +19,9 @@
     "mcp_servers": "MCP servers",
     "mcp_count": "MCP servers ({{selected}}/{{total}})",
     "system_prompt": "System prompt",
-    "model_not_in_config": "{{model}} (not in LLM config)"
+    "model_not_in_config": "{{model}} (not in LLM config)",
+    "fallback_models": "Fallback models",
+    "fallback_hint": "On quota/overload/auth errors of the primary model these are tried in order. Use ↑ to reorder."
   },
   "errors": {
     "save_failed": "Save failed",

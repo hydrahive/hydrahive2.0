@@ -135,6 +135,16 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           </Field>
         </div>
 
+        <Field label={t("fields.fallback_models")}>
+          <FallbackModelsSelector
+            primary={draft.llm_model}
+            available={models}
+            selected={draft.fallback_models ?? []}
+            onChange={(fb) => setDraft({ ...draft, fallback_models: fb })}
+          />
+          <p className="text-[11px] text-zinc-500 mt-1.5">{t("fields.fallback_hint")}</p>
+        </Field>
+
         <Field label={t("fields.description")}>
           <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
             className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
@@ -164,6 +174,51 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-1.5">
       <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</label>
       {children}
+    </div>
+  )
+}
+
+function FallbackModelsSelector({
+  primary, available, selected, onChange,
+}: { primary: string; available: string[]; selected: string[]; onChange: (s: string[]) => void }) {
+  const remaining = available.filter((m) => m !== primary && !selected.includes(m))
+  const add = (m: string) => onChange([...selected, m])
+  const remove = (m: string) => onChange(selected.filter((x) => x !== m))
+  const moveUp = (i: number) => {
+    if (i === 0) return
+    const next = [...selected]
+    ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+    onChange(next)
+  }
+  return (
+    <div className="space-y-2">
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((m, i) => (
+            <span key={m} className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md bg-violet-500/15 border border-violet-500/30 text-violet-200 text-xs font-mono">
+              <span className="text-[10px] text-violet-400 mr-0.5">{i + 1}.</span>
+              {m}
+              <button onClick={() => moveUp(i)} disabled={i === 0}
+                className="px-1 text-violet-300 hover:text-white disabled:opacity-30" title="hoch">↑</button>
+              <button onClick={() => remove(m)}
+                className="px-1 text-violet-300 hover:text-rose-300" title="entfernen">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      {remaining.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {remaining.map((m) => (
+            <button key={m} onClick={() => add(m)}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[3%] border border-white/[8%] text-zinc-400 hover:text-zinc-100 hover:bg-white/[6%] text-xs font-mono transition-colors">
+              + {m}
+            </button>
+          ))}
+        </div>
+      )}
+      {selected.length === 0 && remaining.length === 0 && (
+        <p className="text-xs text-zinc-600">—</p>
+      )}
     </div>
   )
 }
