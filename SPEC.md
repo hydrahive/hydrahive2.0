@@ -257,9 +257,38 @@ sudo bash update.sh
 
 ---
 
+## VM-Management (Core-Komponente)
+
+HydraHive2 kann lokale QEMU/KVM Virtual Machines direkt managen — ohne Proxmox- oder
+libvirt-Zwischenschicht. Use-Case: dedizierte Anwendungs-VMs (Game-Server, Test-Umgebungen,
+Dev-Sandboxes) die von einem Specialist-Agent administriert werden.
+
+### Funktionsumfang
+- VM-Lifecycle: erstellen, starten, stoppen (graceful + hard), löschen — Per-User-Owner
+- Disk: qcow2-Erzeugung, ISO-Boot, qcow2/raw/vmdk-Import bestehender Images
+- Konsole: VNC im Browser via websockify+noVNC, Token pro VM
+- Snapshots: erstellen + offline restore
+- Networking: Bridged via `br0` (Default, VMs bekommen DHCP-IPs aus dem LAN), Isoliert optional
+- Reconciliation-Loop: tatsächlicher Zustand wird kontinuierlich gegen DB abgeglichen,
+  kein Drift bei Crash/kill/Reboot
+
+### Nicht-Ziele
+- Multi-Host-Cluster (immer einzelner Host)
+- Live-Migration zwischen Hosts
+- HA / Auto-Failover
+- Container-Workloads (siehe Plugin/MCP für Docker)
+- Externes Backup (Snapshots only — Off-host-Backup ist Sache des Hosts)
+
+### Architektur
+`core/src/hydrahive/vms/` als Core-Modul (analog `communication/`). Routen unter
+`/api/vms/*`, Per-User-Isolation via `owner` wie bei Agents. Frontend `/vms`.
+Alle Module max ~150 Zeilen pro Datei, aufgeteilt in models/db/qemu_args/lifecycle/
+reconciler/iso/import_job/snapshots/vnc/events/errors.
+
+---
+
 ## Was explizit NICHT gebaut wird (ohne separate Entscheidung)
 
-- VM-Manager / KVM
 - DREAM-System
 - Widget-Dashboard mit Drag&Drop
 - Collaborative Composer (Yjs)

@@ -9,6 +9,7 @@
     "agents": "Agents",
     "projects": "Projects",
     "communication": "Communication",
+    "vms": "VMs",
     "llm": "LLM",
     "mcp": "MCP",
     "system": "System",
