@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Folder, MessageCircle, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { chatApi, type ProjectBrief } from "./api"
 import type { AgentBrief } from "./types"
 
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function NewSessionDialog({ onClose, onCreate }: Props) {
+  const { t } = useTranslation("chat")
+  const { t: tCommon } = useTranslation("common")
   const [mode, setMode] = useState<Mode>("direct")
   const [agents, setAgents] = useState<AgentBrief[]>([])
   const [projects, setProjects] = useState<ProjectBrief[]>([])
@@ -48,7 +51,7 @@ export function NewSessionDialog({ onClose, onCreate }: Props) {
       <form onSubmit={submit} onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl border border-white/[8%] bg-zinc-900 p-6 shadow-2xl shadow-black/40 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Neue Session</h2>
+          <h2 className="text-lg font-bold text-white">{t("new_dialog.title")}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>
@@ -56,17 +59,17 @@ export function NewSessionDialog({ onClose, onCreate }: Props) {
 
         <div className="grid grid-cols-2 gap-2">
           <ModeButton active={mode === "direct"} onClick={() => setMode("direct")} icon={MessageCircle}
-            label="Direkter Chat" hint="Mit einem Master- oder Specialist-Agent" />
+            label={t("new_dialog.mode.direct")} hint={t("new_dialog.mode.direct_hint")} />
           <ModeButton active={mode === "project"} onClick={() => setMode("project")} icon={Folder}
-            label="Im Projekt" hint="Mit einem Project-Agent in dessen Workspace" />
+            label={t("new_dialog.mode.project")} hint={t("new_dialog.mode.project_hint")} />
         </div>
 
         <div className="space-y-2">
           {mode === "direct" ? (
             <>
-              <label className="block text-xs font-medium text-zinc-400">Agent</label>
+              <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.agent_label")}</label>
               {agents.length === 0 ? (
-                <p className="text-sm text-zinc-500 py-2">Kein aktiver Agent verfügbar.</p>
+                <p className="text-sm text-zinc-500 py-2">{t("new_dialog.no_agents")}</p>
               ) : (
                 <select value={agentId} onChange={(e) => setAgentId(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm">
@@ -76,9 +79,9 @@ export function NewSessionDialog({ onClose, onCreate }: Props) {
             </>
           ) : (
             <>
-              <label className="block text-xs font-medium text-zinc-400">Projekt</label>
+              <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.project_label")}</label>
               {projects.length === 0 ? (
-                <p className="text-sm text-zinc-500 py-2">Kein aktives Projekt vorhanden.</p>
+                <p className="text-sm text-zinc-500 py-2">{t("new_dialog.no_projects")}</p>
               ) : (
                 <select value={projectId} onChange={(e) => setProjectId(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm">
@@ -90,18 +93,18 @@ export function NewSessionDialog({ onClose, onCreate }: Props) {
         </div>
 
         <div className="space-y-2">
-          <label className="block text-xs font-medium text-zinc-400">Titel (optional)</label>
+          <label className="block text-xs font-medium text-zinc-400">{t("session.title_label")}</label>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="z.B. Recherche zur Idee XY"
+            placeholder={t("session.title_placeholder")}
             className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600" />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">Abbrechen</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">{tCommon("actions.cancel")}</button>
           <button type="submit"
             disabled={mode === "direct" ? !agentId : !projectId}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20">
-            Starten
+            {t("new_dialog.start")}
           </button>
         </div>
       </form>

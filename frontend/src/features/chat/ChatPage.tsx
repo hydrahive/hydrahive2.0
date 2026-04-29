@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { AlertTriangle, Archive, Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { chatApi, type ProjectBrief } from "./api"
 import { MessageInput } from "./MessageInput"
@@ -11,6 +12,8 @@ import type { AgentBrief, Session } from "./types"
 import { useChat } from "./useChat"
 
 export function ChatPage() {
+  const { t, i18n } = useTranslation("chat")
+  const { t: tCommon } = useTranslation("common")
   const [sessions, setSessions] = useState<Session[]>([])
   const [agents, setAgents] = useState<AgentBrief[]>([])
   const [projects, setProjects] = useState<ProjectBrief[]>([])
@@ -78,17 +81,25 @@ export function ChatPage() {
     try {
       const r = await chatApi.compact(activeId)
       if (r.skipped) {
-        setCompactNote(`Übersprungen: ${r.reason}`)
+        setCompactNote(t("compact.skipped", { reason: r.reason }))
       } else {
         setCompactNote(
-          `${r.summarized_count} Messages komprimiert, ${r.kept_count} behalten` +
-          (r.tokens_before ? ` · ${r.tokens_before.toLocaleString("de")} Tokens` : ""),
+          r.tokens_before
+            ? t("compact.result_with_tokens", {
+                summarized: r.summarized_count,
+                kept: r.kept_count,
+                tokens: r.tokens_before.toLocaleString(i18n.language),
+              })
+            : t("compact.result", {
+                summarized: r.summarized_count,
+                kept: r.kept_count,
+              }),
         )
       }
       await chat.reload()
       setTokenRefresh((n) => n + 1)
     } catch (e) {
-      setCompactNote(e instanceof Error ? e.message : "Fehler")
+      setCompactNote(e instanceof Error ? e.message : tCommon("status.error"))
     } finally {
       setCompacting(false)
       setTimeout(() => setCompactNote(null), 5000)
@@ -107,22 +118,22 @@ export function ChatPage() {
                   {activeSession.title}
                 </h2>
                 <p className="text-xs text-zinc-600 mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>Session-ID: {activeSession.id.slice(0, 8)}…</span>
+                  <span>{t("session.id_short")}: {activeSession.id.slice(0, 8)}…</span>
                   {activeAgent && (
                     <span className="text-zinc-500">
                       · <span className="text-violet-300/80 font-mono">{activeAgent.llm_model}</span>
                     </span>
                   )}
                   {chat.lastTurnTokens && !chat.busy && (
-                    <span className="text-zinc-500" title="Input ↑ · Output ↓ · Cache-Read ⚡ · Cache-Write 💾">
-                      · letzter Turn: <span className="tabular-nums">
-                        <span className="text-emerald-400/80">↑{chat.lastTurnTokens.input.toLocaleString("de")}</span>
-                        {" "}<span className="text-emerald-400/80">↓{chat.lastTurnTokens.output.toLocaleString("de")}</span>
+                    <span className="text-zinc-500" title={t("tokens.tooltip")}>
+                      · {t("tokens.last_turn")}: <span className="tabular-nums">
+                        <span className="text-emerald-400/80">↑{chat.lastTurnTokens.input.toLocaleString(i18n.language)}</span>
+                        {" "}<span className="text-emerald-400/80">↓{chat.lastTurnTokens.output.toLocaleString(i18n.language)}</span>
                         {chat.lastTurnTokens.cache_read > 0 && (
-                          <> {" "}<span className="text-cyan-400/80">⚡{chat.lastTurnTokens.cache_read.toLocaleString("de")}</span></>
+                          <> {" "}<span className="text-cyan-400/80">⚡{chat.lastTurnTokens.cache_read.toLocaleString(i18n.language)}</span></>
                         )}
                         {chat.lastTurnTokens.cache_creation > 0 && (
-                          <> {" "}<span className="text-amber-400/80">💾{chat.lastTurnTokens.cache_creation.toLocaleString("de")}</span></>
+                          <> {" "}<span className="text-amber-400/80">💾{chat.lastTurnTokens.cache_creation.toLocaleString(i18n.language)}</span></>
                         )}
                       </span>
                     </span>
@@ -135,21 +146,21 @@ export function ChatPage() {
               <button
                 onClick={handleCompact}
                 disabled={compacting || activeOrphaned}
-                title="Konversation jetzt zusammenfassen"
+                title={t("compact.tooltip")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 {compacting ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
-                Compact
+                {t("compact.button")}
               </button>
             </div>
             {activeOrphaned && (
               <div className="mx-6 mt-4 px-4 py-3 rounded-lg border border-amber-500/30 bg-amber-500/[6%] text-sm text-amber-200 flex items-center justify-between gap-4">
-                <span>Diese Session ist verwaist — der zugehörige Agent wurde gelöscht.</span>
+                <span>{t("session.orphaned_banner")}</span>
                 <button
                   onClick={() => handleDelete(activeSession.id)}
                   className="px-3 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-100 text-xs whitespace-nowrap"
                 >
-                  Session löschen
+                  {t("session.delete_session")}
                 </button>
               </div>
             )}
@@ -163,7 +174,7 @@ export function ChatPage() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
-            Wähle links eine Session oder starte eine neue.
+            {t("session.select_or_new")}
           </div>
         )}
       </main>

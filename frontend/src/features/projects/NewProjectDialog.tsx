@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { GitBranch, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { llmInfoApi } from "@/features/agents/api"
 import { projectsApi, usersApi } from "./api"
 
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export function NewProjectDialog({ onClose, onCreated }: Props) {
+  const { t } = useTranslation("projects")
+  const { t: tCommon } = useTranslation("common")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [model, setModel] = useState("")
@@ -36,7 +39,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
       })
       onCreated(created.id)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Fehler")
+      setError(e instanceof Error ? e.message : tCommon("status.error"))
     } finally { setBusy(false) }
   }
 
@@ -49,38 +52,38 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
       <form onSubmit={submit} onClick={(e) => e.stopPropagation()}
         className="w-full max-w-lg rounded-2xl border border-white/[8%] bg-zinc-900 p-6 shadow-2xl shadow-black/40 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Neues Projekt</h2>
+          <h2 className="text-lg font-bold text-white">{t("new_dialog.title")}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">Name</label>
+          <label className="block text-xs font-medium text-zinc-400">{tCommon("labels.name")}</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required
-            placeholder="z.B. Website Relaunch"
+            placeholder={t("new_dialog.name_placeholder")}
             className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm" />
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">Beschreibung (optional)</label>
+          <label className="block text-xs font-medium text-zinc-400">{tCommon("labels.description")} (optional)</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
             className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm leading-relaxed" />
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">Modell für Project-Agent</label>
+          <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.model_label")}</label>
           <select value={model} onChange={(e) => setModel(e.target.value)}
             className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm">
-            {models.length === 0 && <option value="">(kein Modell konfiguriert)</option>}
+            {models.length === 0 && <option value="">{t("new_dialog.no_model")}</option>}
             {models.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">Members</label>
+          <label className="block text-xs font-medium text-zinc-400">{tCommon("labels.members")}</label>
           <div className="flex flex-wrap gap-1.5 px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] min-h-[40px]">
-            {users.length === 0 && <p className="text-xs text-zinc-600">(keine User)</p>}
+            {users.length === 0 && <p className="text-xs text-zinc-600">{t("new_dialog.no_users")}</p>}
             {users.map((u) => {
               const sel = members.includes(u)
               return (
@@ -98,7 +101,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
           <input type="checkbox" checked={initGit} onChange={(e) => setInitGit(e.target.checked)}
             className="w-4 h-4 accent-violet-600" />
           <span className="text-sm text-zinc-300 inline-flex items-center gap-1.5">
-            <GitBranch size={13} className="text-zinc-500" /> Workspace mit `git init` initialisieren
+            <GitBranch size={13} className="text-zinc-500" /> {t("new_dialog.git_init")}
           </span>
         </label>
 
@@ -107,10 +110,10 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">Abbrechen</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">{tCommon("actions.cancel")}</button>
           <button type="submit" disabled={busy || !name.trim() || !model}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20">
-            Anlegen
+            {tCommon("actions.create")}
           </button>
         </div>
       </form>

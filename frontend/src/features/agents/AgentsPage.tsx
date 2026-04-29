@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { AgentForm } from "./AgentForm"
 import { AgentList } from "./AgentList"
 import { NewAgentDialog } from "./NewAgentDialog"
@@ -6,6 +7,7 @@ import { agentsApi, llmInfoApi } from "./api"
 import type { Agent, ToolMeta } from "./types"
 
 export function AgentsPage() {
+  const { t } = useTranslation("agents")
   const [agents, setAgents] = useState<Agent[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [tools, setTools] = useState<ToolMeta[]>([])
@@ -60,7 +62,7 @@ export function AgentsPage() {
           />
         ) : (
           <div className="flex items-center justify-center h-full text-sm text-zinc-600">
-            Wähle links einen Agent oder lege einen neuen an.
+            {t("select_or_new")}
           </div>
         )}
       </main>

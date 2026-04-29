@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Loader2, Sparkles, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { mcpApi, type QuickAddTemplate } from "./api"
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function QuickAddPanel({ existingIds, onCreated }: Props) {
+  const { t } = useTranslation("mcp")
   const [templates, setTemplates] = useState<QuickAddTemplate[]>([])
   const [active, setActive] = useState<QuickAddTemplate | null>(null)
 
@@ -20,7 +22,7 @@ export function QuickAddPanel({ existingIds, onCreated }: Props) {
       <div className="flex items-center gap-2">
         <Sparkles size={14} className="text-violet-300" />
         <h2 className="text-sm font-semibold text-zinc-300">
-          Aus Vorlage hinzufügen — die Standard-MCP-Server in einem Klick
+          {t("quick_add.title")}
         </h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -65,6 +67,8 @@ export function QuickAddPanel({ existingIds, onCreated }: Props) {
 function QuickAddForm({ template, onClose, onCreated }: {
   template: QuickAddTemplate; onClose: () => void; onCreated: (id: string) => void
 }) {
+  const { t } = useTranslation("mcp")
+  const { t: tCommon } = useTranslation("common")
   const [serverId, setServerId] = useState(template.id)
   const [inputs, setInputs] = useState<Record<string, string>>(
     Object.fromEntries(template.user_inputs.map((i) => [i.key, i.default])),
@@ -78,7 +82,7 @@ function QuickAddForm({ template, onClose, onCreated }: {
     try {
       const created = await mcpApi.quickAdd(template.id, serverId, inputs)
       onCreated(created.id)
-    } catch (e) { setError(e instanceof Error ? e.message : "Fehler") }
+    } catch (e) { setError(e instanceof Error ? e.message : tCommon("status.error")) }
     finally { setBusy(false) }
   }
 
@@ -87,7 +91,7 @@ function QuickAddForm({ template, onClose, onCreated }: {
       <form onSubmit={submit} onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl border border-white/[8%] bg-zinc-900 p-6 shadow-2xl shadow-black/40 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">{template.name} hinzufügen</h2>
+          <h2 className="text-lg font-bold text-white">{t("quick_add.form_title", { name: template.name })}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>
@@ -95,7 +99,7 @@ function QuickAddForm({ template, onClose, onCreated }: {
         <p className="text-sm text-zinc-500 leading-snug">{template.description}</p>
 
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">Server-ID</label>
+          <label className="block text-xs font-medium text-zinc-400">{t("quick_add.server_id")}</label>
           <input value={serverId} onChange={(e) => setServerId(e.target.value)} required pattern="[a-zA-Z0-9_\-]+"
             className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm font-mono" />
         </div>
@@ -120,11 +124,11 @@ function QuickAddForm({ template, onClose, onCreated }: {
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">Abbrechen</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">{tCommon("actions.cancel")}</button>
           <button type="submit" disabled={busy}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 shadow-md shadow-violet-900/20">
             {busy && <Loader2 size={13} className="animate-spin" />}
-            Anlegen
+            {tCommon("actions.create")}
           </button>
         </div>
       </form>

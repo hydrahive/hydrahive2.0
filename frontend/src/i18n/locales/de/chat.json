@@ -16,6 +16,8 @@
     "orphaned": "verwaist",
     "orphaned_banner": "Diese Session ist verwaist — der zugehörige Agent wurde gelöscht.",
     "delete_session": "Session löschen",
+    "delete_confirm": "Session wirklich löschen?",
+    "unknown_project": "(unbekanntes Projekt)",
     "title_placeholder": "z.B. Recherche zur Idee XY",
     "title_label": "Titel (optional)"
   },

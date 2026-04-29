@@ -1,5 +1,6 @@
 import { Send, Square } from "lucide-react"
 import { useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 interface Props {
   onSend: (text: string) => void
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
+  const { t } = useTranslation("chat")
   const [text, setText] = useState("")
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -42,7 +44,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
           value={text}
           onChange={handleInput}
           onKeyDown={handleKey}
-          placeholder={disabled ? "Wähle erst eine Session…" : "Nachricht schreiben…"}
+          placeholder={disabled ? t("input.placeholder_disabled") : t("input.placeholder")}
           disabled={disabled}
           rows={1}
           className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none py-1.5 disabled:opacity-50"
@@ -51,7 +53,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
           <button
             onClick={onCancel}
             type="button"
-            title="Stop — Antwort abbrechen"
+            title={t("input.stop_title")}
             className="flex-shrink-0 p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 transition-all"
           >
             <Square size={14} fill="currentColor" />
@@ -67,7 +69,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
         )}
       </div>
       <p className="text-[10px] text-zinc-600 mt-1.5 px-1">
-        Enter zum Senden · Shift+Enter für neue Zeile
+        {t("input.hint")}
       </p>
     </div>
   )

@@ -13,6 +13,8 @@
     "orphaned": "orphaned",
     "orphaned_banner": "This session is orphaned — its agent was deleted.",
     "delete_session": "Delete session",
+    "delete_confirm": "Really delete this session?",
+    "unknown_project": "(unknown project)",
     "title_placeholder": "e.g. Research on idea XY",
     "title_label": "Title (optional)"
   },

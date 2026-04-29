@@ -1,4 +1,5 @@
 import { Folder, Plus } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { Project } from "./types"
 
@@ -10,24 +11,26 @@ interface Props {
 }
 
 export function ProjectList({ projects, activeId, onSelect, onNew }: Props) {
+  const { t } = useTranslation("projects")
+  const { t: tCommon } = useTranslation("common")
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
-        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Projekte</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("list_title")}</p>
         <div className="flex items-center gap-1">
           <HelpButton topic="projects" />
           <button
             onClick={onNew}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors"
           >
-            <Plus size={13} /> Neu
+            <Plus size={13} /> {tCommon("actions.new")}
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {projects.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">Noch kein Projekt</p>
+          <p className="text-xs text-zinc-600 text-center py-6">{t("no_projects")}</p>
         )}
         {projects.map((p) => {
           const active = p.id === activeId
@@ -46,7 +49,7 @@ export function ProjectList({ projects, activeId, onSelect, onNew }: Props) {
               <div className="flex-1 min-w-0">
                 <p className={`text-sm truncate ${active ? "text-white" : "text-zinc-300"}`}>{p.name}</p>
                 <p className="text-xs text-zinc-600 mt-0.5 truncate">
-                  {p.members.length} Member{p.members.length !== 1 ? "" : ""} · {p.git_initialized ? "git" : "no-git"}
+                  {t("fields.members_count", { count: p.members.length })} · {p.git_initialized ? t("fields.git_init") : t("fields.git_init_no")}
                 </p>
               </div>
             </div>

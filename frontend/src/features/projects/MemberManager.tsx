@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Plus, X } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { projectsApi, usersApi } from "./api"
 import type { Project } from "./types"
 
@@ -9,6 +10,8 @@ interface Props {
 }
 
 export function MemberManager({ project, onChange }: Props) {
+  const { t } = useTranslation("projects")
+  const { t: tCommon } = useTranslation("common")
   const [available, setAvailable] = useState<string[]>([])
   const [adding, setAdding] = useState("")
 
@@ -23,12 +26,12 @@ export function MemberManager({ project, onChange }: Props) {
       onChange(updated)
       setAdding("")
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Fehler")
+      alert(e instanceof Error ? e.message : tCommon("status.error"))
     }
   }
 
   async function remove(username: string) {
-    if (!confirm(`'${username}' aus Projekt entfernen?`)) return
+    if (!confirm(t("members.remove_confirm", { username }))) return
     const updated = await projectsApi.removeMember(project.id, username)
     onChange(updated)
   }
@@ -39,7 +42,7 @@ export function MemberManager({ project, onChange }: Props) {
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
         {project.members.length === 0 && (
-          <p className="text-xs text-zinc-600">Keine Members</p>
+          <p className="text-xs text-zinc-600">{t("members.no_members")}</p>
         )}
         {project.members.map((m) => (
           <span
@@ -63,7 +66,7 @@ export function MemberManager({ project, onChange }: Props) {
             onChange={(e) => setAdding(e.target.value)}
             className="flex-1 px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200"
           >
-            <option value="">User auswählen…</option>
+            <option value="">{t("members.select_user")}</option>
             {candidates.map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
           <button
@@ -71,7 +74,7 @@ export function MemberManager({ project, onChange }: Props) {
             disabled={!adding}
             className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm disabled:opacity-30"
           >
-            <Plus size={13} /> Hinzufügen
+            <Plus size={13} /> {tCommon("actions.add")}
           </button>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { Save, Trash2, Loader2, Crown, User, Wrench } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { agentsApi, mcpInfoApi, type McpServerBrief } from "./api"
 import { McpSelector } from "./McpSelector"
 import { ToolsSelector } from "./ToolsSelector"
@@ -16,6 +17,8 @@ interface Props {
 const TYPE_ICON = { master: Crown, project: User, specialist: Wrench }
 
 export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
+  const { t } = useTranslation("agents")
+  const { t: tCommon } = useTranslation("common")
   const [draft, setDraft] = useState(agent)
   const [prompt, setPrompt] = useState("")
   const [originalPrompt, setOriginalPrompt] = useState("")
@@ -52,14 +55,14 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
       }
       onSaved(updated)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen")
+      setError(e instanceof Error ? e.message : t("errors.save_failed"))
     } finally {
       setSaving(false)
     }
   }
 
   async function remove() {
-    if (!confirm(`Agent "${agent.name}" wirklich löschen? Inkl. Memory + Workspace.`)) return
+    if (!confirm(t("errors.delete_confirm", { name: agent.name }))) return
     await agentsApi.delete(agent.id)
     onDeleted()
   }
@@ -78,8 +81,8 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           onChange={(e) => setDraft({ ...draft, status: e.target.value as Agent["status"] })}
           className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
         >
-          <option value="active">aktiv</option>
-          <option value="disabled">deaktiviert</option>
+          <option value="active">{tCommon("status.active")}</option>
+          <option value="disabled">{tCommon("status.disabled")}</option>
         </select>
         <button
           onClick={save}
@@ -87,7 +90,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-violet-900/20"
         >
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          Speichern
+          {tCommon("actions.save")}
         </button>
         <button
           onClick={remove}
@@ -105,49 +108,49 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Typ">
-            <p className="text-sm text-zinc-300 font-mono">{draft.type}</p>
+          <Field label={t("fields.type")}>
+            <p className="text-sm text-zinc-300 font-mono">{t(`type.${draft.type}`)}</p>
           </Field>
-          <Field label="Modell">
+          <Field label={t("fields.model")}>
             <select
               value={draft.llm_model}
               onChange={(e) => setDraft({ ...draft, llm_model: e.target.value })}
               className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200"
             >
               {!models.includes(draft.llm_model) && (
-                <option value={draft.llm_model}>{draft.llm_model} (nicht in LLM-Config)</option>
+                <option value={draft.llm_model}>{t("fields.model_not_in_config", { model: draft.llm_model })}</option>
               )}
               {models.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
-          <Field label="Temperatur">
+          <Field label={t("fields.temperature")}>
             <input type="number" step="0.1" min="0" max="2" value={draft.temperature}
               onChange={(e) => setDraft({ ...draft, temperature: parseFloat(e.target.value) })}
               className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
           </Field>
-          <Field label="Max Tokens">
+          <Field label={t("fields.max_tokens")}>
             <input type="number" value={draft.max_tokens}
               onChange={(e) => setDraft({ ...draft, max_tokens: parseInt(e.target.value) })}
               className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
           </Field>
         </div>
 
-        <Field label="Beschreibung">
+        <Field label={t("fields.description")}>
           <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
             className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
         </Field>
 
-        <Field label={`Tools (${draft.tools.length}/${tools.length})`}>
+        <Field label={t("fields.tools_count", { selected: draft.tools.length, total: tools.length })}>
           <ToolsSelector available={tools} selected={draft.tools}
             onChange={(t) => setDraft({ ...draft, tools: t })} />
         </Field>
 
-        <Field label={`MCP-Server (${draft.mcp_servers.length}/${mcpServers.length})`}>
+        <Field label={t("fields.mcp_count", { selected: draft.mcp_servers.length, total: mcpServers.length })}>
           <McpSelector available={mcpServers} selected={draft.mcp_servers}
             onChange={(s) => setDraft({ ...draft, mcp_servers: s })} />
         </Field>
 
-        <Field label="System-Prompt">
+        <Field label={t("fields.system_prompt")}>
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={10}
             className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
         </Field>

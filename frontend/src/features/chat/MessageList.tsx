@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 import { Loader2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { MessageBubble } from "./MessageBubble"
 import type { Message } from "./types"
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function MessageList({ messages, busy, iteration, error }: Props) {
+  const { t } = useTranslation("chat")
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export function MessageList({ messages, busy, iteration, error }: Props) {
     <div ref={ref} className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
       {messages.length === 0 && !busy && (
         <div className="flex items-center justify-center h-full text-sm text-zinc-600">
-          Schreibe eine Nachricht um zu starten…
+          {t("messages.empty")}
         </div>
       )}
       {messages.map((m) => (
@@ -30,7 +32,7 @@ export function MessageList({ messages, busy, iteration, error }: Props) {
       {busy && (
         <div className="flex items-center gap-2 text-xs text-zinc-500 pl-11">
           <Loader2 size={12} className="animate-spin" />
-          <span>Iteration {iteration}…</span>
+          <span>{t("messages.iteration", { n: iteration })}</span>
         </div>
       )}
       {error && (

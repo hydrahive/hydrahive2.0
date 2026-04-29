@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Folder, Loader2, Save, Trash2, ExternalLink, GitBranch } from "lucide-react"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
 import { MemberManager } from "./MemberManager"
 import type { Project } from "./types"
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export function ProjectForm({ project, onSaved, onDeleted }: Props) {
+  const { t, i18n } = useTranslation("projects")
+  const { t: tCommon } = useTranslation("common")
   const [draft, setDraft] = useState(project)
   const [agentName, setAgentName] = useState("")
   const [saving, setSaving] = useState(false)
@@ -35,12 +38,12 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
       })
       onSaved(updated)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Fehler")
+      setError(e instanceof Error ? e.message : tCommon("status.error"))
     } finally { setSaving(false) }
   }
 
   async function remove() {
-    if (!confirm(`Projekt "${project.name}" löschen?\n\nIncl. Project-Agent, Workspace und alle Sessions.`)) return
+    if (!confirm(t("delete_confirm", { name: project.name }))) return
     await projectsApi.delete(project.id)
     onDeleted()
   }
@@ -59,15 +62,15 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
           onChange={(e) => setDraft({ ...draft, status: e.target.value as Project["status"] })}
           className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
         >
-          <option value="active">aktiv</option>
-          <option value="archived">archiviert</option>
+          <option value="active">{tCommon("status.active")}</option>
+          <option value="archived">{tCommon("status.archived")}</option>
         </select>
         <button
           onClick={save} disabled={!dirty || saving}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-violet-900/20"
         >
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          Speichern
+          {tCommon("actions.save")}
         </button>
         <button
           onClick={remove}
@@ -82,7 +85,7 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
           <div className="rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
         )}
 
-        <Field label="Beschreibung">
+        <Field label={tCommon("labels.description")}>
           <textarea
             value={draft.description} rows={3}
             onChange={(e) => setDraft({ ...draft, description: e.target.value })}
@@ -91,16 +94,16 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
         </Field>
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Project-Agent">
+          <Field label={t("fields.agent")}>
             <Link
               to="/agents"
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/[6%] border border-violet-500/20 text-sm text-violet-200 hover:bg-violet-500/[10%] transition-colors"
             >
-              <span className="flex-1 truncate">{agentName || "(geladen…)"}</span>
+              <span className="flex-1 truncate">{agentName || t("fields.agent_loading")}</span>
               <ExternalLink size={12} />
             </Link>
           </Field>
-          <Field label="Workspace">
+          <Field label={t("fields.workspace")}>
             <p className="px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-400 font-mono flex items-center gap-2">
               {project.git_initialized && <GitBranch size={12} className="text-violet-400" />}
               data/workspaces/projects/{project.id.slice(0, 8)}…
@@ -108,13 +111,16 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
           </Field>
         </div>
 
-        <Field label={`Members (${project.members.length})`}>
+        <Field label={t("fields.members_label", { count: project.members.length })}>
           <MemberManager project={project} onChange={onSaved} />
         </Field>
 
-        <Field label="Erstellt">
+        <Field label={tCommon("labels.created_at")}>
           <p className="text-xs text-zinc-500">
-            {new Date(project.created_at).toLocaleString("de-DE")} von {project.created_by}
+            {t("fields.created_by", {
+              date: new Date(project.created_at).toLocaleString(i18n.language),
+              user: project.created_by,
+            })}
           </p>
         </Field>
       </div>
