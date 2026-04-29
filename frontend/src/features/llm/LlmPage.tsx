@@ -36,10 +36,14 @@ const KNOWN_PROVIDERS = [
   {
     id: "nvidia", name: "NVIDIA NIM", placeholder: "nvapi-...",
     models: [
+      "nvidia_nim/qwen/qwen2.5-coder-32b-instruct",
+      "nvidia_nim/mistralai/codestral-22b-v0.1",
+      "nvidia_nim/bigcode/starcoder2-15b",
+      "nvidia_nim/qwen/qwq-32b-preview",
+      "nvidia_nim/deepseek-ai/deepseek-r1",
       "nvidia_nim/meta/llama-3.3-70b-instruct",
       "nvidia_nim/meta/llama-3.1-405b-instruct",
       "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct",
-      "nvidia_nim/deepseek-ai/deepseek-r1",
       "nvidia_nim/mistralai/mistral-large-2-instruct",
     ],
   },
