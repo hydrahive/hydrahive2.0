@@ -74,7 +74,7 @@ mit Live-Log-Modal, Backend-Error-Codes statt Strings, Memory-Suche.
 - **Bild-Upload im Chat** — Drag&Drop oder Paperclip-Button. Anthropic + LiteLLM unterstützen Image-Content-Blocks (`{type: "image", source: {…}}`). Backend muss Multipart-Endpoint + base64-Encoding zum LLM-Call durchschleusen.
 - **Datei-Upload im Chat** — Text-Files direkt als Inline-Content, Binär als Workspace-Datei mit auto-`file_read`-Hint. Größenlimit nötig.
 - **Voice-Eingabe** — Browser-Mic-Aufnahme → Whisper/lokale STT → Text in Chat-Input. Lokale STT-Optionen: `whisper.cpp`, `faster-whisper`. Vorbild: alter HydraHive `whatsapp_transcribe.py`.
-- **Voice-Ausgabe (TTS)** — Antwort des Agents als Audio. ElevenLabs (gut, externe API) oder Coqui/Piper (lokal). Pro-User-Config (Stimme, Sprache).
+- **Voice-Ausgabe (TTS)** — Antwort des Agents als Audio. Bevorzugt **MiniMax TTS** (haben wir eh schon als LLM-Provider, mmx-CLI kann auch Audio — siehe Memory `project_minimax_multimodal.md`). Alternativen wenn nötig: ElevenLabs (extern) oder Piper/Coqui (lokal). Pro-User-Config (Stimme, Sprache).
 - Hängt mit der Communication-Architektur zusammen: WhatsApp-Sprachnachrichten brauchen STT, eine WhatsApp-Voice-Antwort braucht TTS — gleicher Code-Pfad wie für Chat-Voice.
 
 ## Bekannte Schwächen / Tech-Debt
