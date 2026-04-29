@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react"
 import {
-  Activity, Bot, Database, Folder, MessageSquare, Server, Wrench, Zap,
+  Activity, Bot, Database, Folder, MessageSquare, RotateCw, Server, Wrench, Zap,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
+import { useAuthStore } from "@/features/auth/useAuthStore"
+import { RestartModal } from "@/shared/RestartModal"
+import { useRestart } from "@/shared/useRestart"
 import { systemApi, type HealthCheck, type SystemInfo, type SystemStats } from "./api"
 import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
@@ -13,6 +16,9 @@ const REFRESH_MS = 10_000
 export function SystemPage() {
   const { t } = useTranslation("system")
   const { t: tAgents } = useTranslation("agents")
+  const { t: tNav } = useTranslation("nav")
+  const role = useAuthStore((s) => s.role)
+  const restart = useRestart()
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [checks, setChecks] = useState<HealthCheck[]>([])
@@ -43,8 +49,28 @@ export function SystemPage() {
               : t("subtitle", { seconds: REFRESH_MS / 1000 })}
           </p>
         </div>
-        <HelpButton topic="system" />
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <button
+              onClick={restart.open}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
+            >
+              <RotateCw size={12} />
+              {tNav("restart.button")}
+            </button>
+          )}
+          <HelpButton topic="system" />
+        </div>
       </div>
+
+      {restart.state !== "idle" && (
+        <RestartModal
+          state={restart.state}
+          errorMessage={restart.error}
+          onConfirm={restart.confirm}
+          onClose={restart.close}
+        />
+      )}
 
       <HealthBar checks={checks} />
 

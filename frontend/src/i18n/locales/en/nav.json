@@ -31,5 +31,18 @@
     "log_empty": "No output yet…",
     "log_disconnected": "Server unreachable — waiting for restart…",
     "close": "Close"
+  },
+  "restart": {
+    "button": "Restart service",
+    "modal_title": "Service restart",
+    "confirm_question": "Restart backend now?",
+    "confirm_hint": "After restart, freshly installed/removed plugins take full effect. Backend is unreachable for ~5-10 seconds.",
+    "confirm_button": "Restart",
+    "starting": "Starting restart…",
+    "in_progress": "Backend restarting…",
+    "done": "Service is back up.",
+    "failed": "Restart failed: {{error}}",
+    "close": "Close",
+    "now": "Restart now"
   }
 }

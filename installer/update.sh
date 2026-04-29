@@ -57,6 +57,34 @@ EOF
   systemctl restart hydrahive2-update.path
 fi
 
+if [ ! -f /etc/systemd/system/hydrahive2-restart.path ] || [ ! -f /etc/systemd/system/hydrahive2-restart.service ]; then
+  log "Restart-Trigger-Units fehlen — werden angelegt"
+  cat > /etc/systemd/system/hydrahive2-restart.service <<EOF
+[Unit]
+Description=HydraHive2 Restart Runner
+ConditionPathExists=$HH_DATA_DIR/.restart_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.restart_request
+ExecStart=/bin/systemctl restart hydrahive2.service
+EOF
+  cat > /etc/systemd/system/hydrahive2-restart.path <<EOF
+[Unit]
+Description=HydraHive2 Restart-Trigger Watcher
+
+[Path]
+PathExists=$HH_DATA_DIR/.restart_request
+Unit=hydrahive2-restart.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  systemctl daemon-reload
+  systemctl enable hydrahive2-restart.path >/dev/null 2>&1
+  systemctl restart hydrahive2-restart.path
+fi
+
 log "nginx Security-Headers prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
 if [ -f "$NGINX_CONF" ] && ! grep -q "X-Frame-Options" "$NGINX_CONF"; then

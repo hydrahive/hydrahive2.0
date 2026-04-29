@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Puzzle } from "lucide-react"
+import { Puzzle, RotateCw } from "lucide-react"
 import { pluginsApi } from "./api"
 import type { HubPlugin, InstalledPlugin } from "./types"
 import { HubCard, InstalledCard } from "./PluginCard"
+import { RestartModal } from "@/shared/RestartModal"
+import { useRestart } from "@/shared/useRestart"
 
 type Tab = "hub" | "installed"
 
 export function PluginsPage() {
   const { t } = useTranslation("plugins")
+  const { t: tNav } = useTranslation("nav")
+  const restart = useRestart()
   const [tab, setTab] = useState<Tab>("hub")
   const [hub, setHub] = useState<HubPlugin[] | null>(null)
   const [installed, setInstalled] = useState<InstalledPlugin[]>([])
@@ -86,9 +90,18 @@ export function PluginsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Puzzle className="text-violet-400" size={20} />
-        <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Puzzle className="text-violet-400" size={20} />
+          <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
+        </div>
+        <button
+          onClick={restart.open}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
+        >
+          <RotateCw size={12} />
+          {tNav("restart.button")}
+        </button>
       </div>
 
       <div className="flex gap-2 border-b border-white/[6%]">
@@ -115,8 +128,15 @@ export function PluginsPage() {
       </div>
 
       {restartHint && (
-        <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs">
-          {restartHint}
+        <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-3">
+          <span>{restartHint}</span>
+          <button
+            onClick={restart.open}
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-100 text-[11px] font-medium transition-colors"
+          >
+            <RotateCw size={11} />
+            {tNav("restart.now")}
+          </button>
         </div>
       )}
 
@@ -145,6 +165,15 @@ export function PluginsPage() {
             </div>
           )}
         </div>
+      )}
+
+      {restart.state !== "idle" && (
+        <RestartModal
+          state={restart.state}
+          errorMessage={restart.error}
+          onConfirm={restart.confirm}
+          onClose={restart.close}
+        />
       )}
 
       {tab === "installed" && (
