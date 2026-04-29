@@ -11,6 +11,7 @@ import { McpPage } from "@/features/mcp/McpPage"
 import { SystemPage } from "@/features/system/SystemPage"
 import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
+import { PluginsPage } from "@/features/plugins/PluginsPage"
 
 function Guard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="mcp" element={<McpPage />} />
           <Route path="system" element={<SystemPage />} />
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
+          <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

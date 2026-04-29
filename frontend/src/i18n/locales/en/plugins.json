@@ -1,0 +1,17 @@
+{
+  "title": "Plugins",
+  "tab_hub": "Hub",
+  "tab_installed": "Installed",
+  "install": "Install",
+  "reinstall": "Reinstall",
+  "uninstall": "Uninstall",
+  "update": "Update",
+  "loaded": "loaded",
+  "not_loaded": "error",
+  "installed_badge": "installed",
+  "loading": "Loading hub index…",
+  "hub_empty": "No plugins found in hub.",
+  "installed_empty": "No plugins installed yet.",
+  "uninstall_confirm": "Really uninstall plugin \"{{name}}\"?",
+  "restart_hint": "Plugin change applied. A service restart is recommended so the old code drops out of memory."
+}

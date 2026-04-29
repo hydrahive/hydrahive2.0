@@ -16,6 +16,7 @@ from hydrahive.api.routes.agents import router as agents_router
 from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.llm import router as llm_router
 from hydrahive.api.routes.mcp import router as mcp_router
+from hydrahive.api.routes.plugins import router as plugins_router
 from hydrahive.api.routes.projects import router as projects_router
 from hydrahive.api.routes.sessions import router as sessions_router
 from hydrahive.api.routes.system import router as system_router, set_start_time
@@ -92,6 +93,7 @@ app.include_router(users_router)
 app.include_router(agents_router)
 app.include_router(llm_router)
 app.include_router(mcp_router)
+app.include_router(plugins_router)
 app.include_router(projects_router)
 app.include_router(sessions_router)
 app.include_router(system_router)

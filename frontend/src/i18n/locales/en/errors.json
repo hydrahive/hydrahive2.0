@@ -28,6 +28,11 @@
   "update_script_missing": "Update script not found — only available in production setup",
   "update_trigger_failed": "Update trigger failed: {{message}}",
 
+  "plugin_hub_unreachable": "Plugin hub unreachable: {{message}}",
+  "plugin_install_failed": "Plugin install failed: {{message}}",
+  "plugin_uninstall_failed": "Plugin uninstall failed: {{message}}",
+  "plugin_update_failed": "Plugin update failed: {{message}}",
+
   "username_exists": "Username already exists",
   "user_not_found": "User not found",
 

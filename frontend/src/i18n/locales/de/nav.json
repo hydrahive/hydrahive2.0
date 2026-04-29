@@ -12,6 +12,7 @@
     "mcp": "MCP",
     "system": "System",
     "users": "Benutzer",
+    "plugins": "Plugins",
     "help": "Hilfe"
   },
   "online": "Online",
