@@ -22,6 +22,7 @@ from hydrahive.api.routes.projects import router as projects_router
 from hydrahive.api.routes.sessions import router as sessions_router
 from hydrahive.api.routes.stt import router as stt_router
 from hydrahive.api.routes.tts import router as tts_router
+from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.routes.system import router as system_router, set_start_time
 from hydrahive.api.routes.users import router as users_router
 from hydrahive.communication import register as register_channel
@@ -129,6 +130,7 @@ app.include_router(projects_router)
 app.include_router(sessions_router)
 app.include_router(stt_router)
 app.include_router(tts_router)
+app.include_router(vms_router)
 app.include_router(system_router)
 
 

@@ -39,5 +39,26 @@
 
   "channel_unavailable": "Channel '{{channel}}' nicht verfügbar",
 
+  "vm_not_found": "VM nicht gefunden",
+  "vm_no_access": "Keine Berechtigung für diese VM",
+  "vm_name_invalid": "VM-Name ungültig (1–32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -)",
+  "vm_name_taken": "Eine VM mit diesem Namen existiert bereits",
+  "vm_network_mode_invalid": "Unbekannter Netzwerk-Modus",
+  "iso_not_found": "ISO '{{filename}}' nicht gefunden",
+  "iso_invalid_name": "Ungültiger ISO-Dateiname",
+  "iso_invalid_format": "Datei ist keine gültige ISO-9660 (Magic '{{magic}}')",
+  "iso_too_large": "ISO zu groß ({{size}} Bytes, Maximum {{max}})",
+  "iso_already_exists": "ISO '{{filename}}' existiert bereits",
+  "iso_read_failed": "ISO konnte nicht gelesen werden: {{error}}",
+  "qemu_img_missing": "qemu-img nicht installiert — bitte qemu-utils Paket installieren",
+  "qemu_system_missing": "qemu-system-x86_64 nicht installiert",
+  "qemu_start_failed": "QEMU-Start fehlgeschlagen (rc={{rc}})",
+  "qemu_daemonize_timeout": "QEMU-Daemon-Start Timeout",
+  "qemu_died_after_start": "QEMU-Prozess nach Start nicht mehr aktiv",
+  "qcow2_create_failed": "qcow2-Erzeugung fehlgeschlagen (rc={{rc}})",
+  "qcow2_exists": "qcow2-Datei existiert bereits: {{path}}",
+  "qcow2_missing": "qcow2-Datei fehlt: {{path}}",
+  "vnc_ports_exhausted": "Alle VNC-Ports (5900–5999) belegt",
+
   "validation_error": "{{message}}"
 }

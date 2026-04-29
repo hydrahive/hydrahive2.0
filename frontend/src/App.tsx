@@ -13,6 +13,7 @@ import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
+import { VMsPage } from "@/features/vms/VMsPage"
 
 function Guard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="communication" element={<CommunicationPage />} />
+          <Route path="vms" element={<VMsPage />} />
           <Route path="llm" element={<LlmPage />} />
           <Route path="mcp" element={<McpPage />} />
           <Route path="system" element={<SystemPage />} />

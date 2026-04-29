@@ -39,5 +39,26 @@
 
   "channel_unavailable": "Channel '{{channel}}' unavailable",
 
+  "vm_not_found": "VM not found",
+  "vm_no_access": "No permission for this VM",
+  "vm_name_invalid": "Invalid VM name (1–32 chars, must start with letter, only a-z A-Z 0-9 -)",
+  "vm_name_taken": "A VM with this name already exists",
+  "vm_network_mode_invalid": "Unknown network mode",
+  "iso_not_found": "ISO '{{filename}}' not found",
+  "iso_invalid_name": "Invalid ISO filename",
+  "iso_invalid_format": "File is not valid ISO-9660 (magic '{{magic}}')",
+  "iso_too_large": "ISO too large ({{size}} bytes, max {{max}})",
+  "iso_already_exists": "ISO '{{filename}}' already exists",
+  "iso_read_failed": "ISO could not be read: {{error}}",
+  "qemu_img_missing": "qemu-img not installed — please install qemu-utils package",
+  "qemu_system_missing": "qemu-system-x86_64 not installed",
+  "qemu_start_failed": "QEMU start failed (rc={{rc}})",
+  "qemu_daemonize_timeout": "QEMU daemon start timeout",
+  "qemu_died_after_start": "QEMU process died after start",
+  "qcow2_create_failed": "qcow2 creation failed (rc={{rc}})",
+  "qcow2_exists": "qcow2 file already exists: {{path}}",
+  "qcow2_missing": "qcow2 file missing: {{path}}",
+  "vnc_ports_exhausted": "All VNC ports (5900–5999) in use",
+
   "validation_error": "{{message}}"
 }

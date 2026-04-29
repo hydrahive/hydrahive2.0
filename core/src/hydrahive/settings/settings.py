@@ -110,6 +110,36 @@ class Settings:
     def whatsapp_data_dir(self) -> Path:
         return self.data_dir / "whatsapp"
 
+    # ------------------------------------------------------------------ vms
+
+    @cached_property
+    def vms_dir(self) -> Path:
+        return self.data_dir / "vms"
+
+    @cached_property
+    def vms_isos_dir(self) -> Path:
+        return self.vms_dir / "isos"
+
+    @cached_property
+    def vms_disks_dir(self) -> Path:
+        return self.vms_dir / "disks"
+
+    @cached_property
+    def vms_pids_dir(self) -> Path:
+        return self.vms_dir / "pids"
+
+    @cached_property
+    def vms_logs_dir(self) -> Path:
+        return self.vms_dir / "logs"
+
+    @cached_property
+    def vms_vnc_tokens_dir(self) -> Path:
+        return self.vms_dir / "vnc-tokens"
+
+    @cached_property
+    def vms_bridge(self) -> str:
+        return os.environ.get("HH_VMS_BRIDGE", "br0")
+
     @cached_property
     def whatsapp_bridge_port(self) -> int:
         return int(os.environ.get("HH_WA_BRIDGE_PORT", "8767"))
