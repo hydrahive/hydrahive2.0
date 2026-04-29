@@ -7,9 +7,10 @@ import time
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._system_checks import (
     check_db_writable,
     check_disk,
@@ -115,15 +116,12 @@ def trigger_update() -> dict:
     frontend should poll /health until reachable again with a new commit.
     """
     if not UPDATE_SCRIPT.exists():
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Update-Script nicht gefunden — nur in Production-Setup verfügbar",
-        )
+        raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "update_script_missing")
     try:
         UPDATE_TRIGGER.write_text(str(int(time.time())))
     except OSError as e:
         logger.exception("Trigger-File konnte nicht geschrieben werden")
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Update-Trigger fehlgeschlagen: {e}")
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "update_trigger_failed", message=str(e))
     logger.warning("Update-Trigger geschrieben (%s) — systemd-Path-Watcher übernimmt", UPDATE_TRIGGER)
     return {"started": True}
 

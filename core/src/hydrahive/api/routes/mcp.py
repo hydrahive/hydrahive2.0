@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+
+from hydrahive.api.middleware.errors import coded
 from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
@@ -60,7 +62,7 @@ class QuickAddRequest(BaseModel):
 def quick_add(req: QuickAddRequest) -> dict:
     template = mcp_defaults.get_template(req.template_id)
     if not template:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Template '{req.template_id}' unbekannt")
+        raise coded(status.HTTP_404_NOT_FOUND, "mcp_template_not_found", template_id=req.template_id)
     rendered = mcp_defaults.render(template, req.inputs)
     try:
         return _annotate_status(mcp_config.create(
@@ -73,7 +75,7 @@ def quick_add(req: QuickAddRequest) -> dict:
             description=rendered["description"],
         ))
     except McpValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.get("/servers")
@@ -91,14 +93,14 @@ def create_server(req: McpServerCreate) -> dict:
             description=req.description, enabled=req.enabled,
         ))
     except McpValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.get("/servers/{server_id}")
 def get_server(server_id: str, _: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     s = mcp_config.get(server_id)
     if not s:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "MCP-Server nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "mcp_server_not_found")
     return _annotate_status(s)
 
 
@@ -108,9 +110,9 @@ def update_server(server_id: str, req: McpServerUpdate) -> dict:
     try:
         return _annotate_status(mcp_config.update(server_id, **changes))
     except KeyError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "MCP-Server nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "mcp_server_not_found")
     except McpValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.delete("/servers/{server_id}", status_code=status.HTTP_204_NO_CONTENT,
@@ -118,7 +120,7 @@ def update_server(server_id: str, req: McpServerUpdate) -> dict:
 async def delete_server(server_id: str) -> None:
     await mcp_manager.disconnect(server_id)
     if not mcp_config.delete(server_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "MCP-Server nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "mcp_server_not_found")
 
 
 @router.post("/servers/{server_id}/connect", dependencies=[Depends(require_admin)])
@@ -134,9 +136,9 @@ async def connect_server(server_id: str) -> dict:
             ],
         }
     except KeyError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "MCP-Server nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "mcp_server_not_found")
     except Exception as e:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Verbindung fehlgeschlagen: {e}")
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "mcp_connection_failed", message=str(e))
 
 
 @router.post("/servers/{server_id}/disconnect", dependencies=[Depends(require_admin)])
@@ -151,9 +153,9 @@ async def list_server_tools(
     _: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> list[dict]:
     if not mcp_config.get(server_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "MCP-Server nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "mcp_server_not_found")
     try:
         tools = await mcp_manager.list_tools(server_id)
     except Exception as e:
-        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Tool-Listing fehlgeschlagen: {e}")
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "mcp_tool_listing_failed", message=str(e))
     return [{"name": t.name, "description": t.description, "schema": t.schema} for t in tools]

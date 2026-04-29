@@ -1,0 +1,35 @@
+{
+  "_fallback": "An error occurred",
+
+  "invalid_credentials": "Invalid credentials",
+  "too_many_login_attempts": "Too many failed login attempts, please try again later.",
+  "not_authenticated": "Not authenticated",
+  "token_expired": "Token expired",
+  "invalid_token": "Invalid token",
+  "admin_only": "Admin only",
+
+  "agent_not_found": "Agent not found",
+  "agent_no_access": "No access to this agent",
+
+  "session_not_found": "Session not found",
+  "session_no_access": "No access to this session",
+
+  "project_not_found": "Project not found",
+  "project_no_access": "No access to this project",
+  "project_agent_not_found": "Project agent not found",
+
+  "mcp_server_not_found": "MCP server not found",
+  "mcp_template_not_found": "Template '{{template_id}}' unknown",
+  "mcp_connection_failed": "Connection failed: {{message}}",
+  "mcp_tool_listing_failed": "Tool listing failed: {{message}}",
+
+  "llm_test_failed": "LLM test failed: {{message}}",
+
+  "update_script_missing": "Update script not found — only available in production setup",
+  "update_trigger_failed": "Update trigger failed: {{message}}",
+
+  "username_exists": "Username already exists",
+  "user_not_found": "User not found",
+
+  "validation_error": "{{message}}"
+}

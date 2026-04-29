@@ -1,0 +1,35 @@
+{
+  "_fallback": "Ein Fehler ist aufgetreten",
+
+  "invalid_credentials": "Ungültige Zugangsdaten",
+  "too_many_login_attempts": "Zu viele fehlgeschlagene Login-Versuche, bitte später erneut versuchen.",
+  "not_authenticated": "Nicht authentifiziert",
+  "token_expired": "Token abgelaufen",
+  "invalid_token": "Ungültiger Token",
+  "admin_only": "Nur für Admins",
+
+  "agent_not_found": "Agent nicht gefunden",
+  "agent_no_access": "Kein Zugriff auf diesen Agent",
+
+  "session_not_found": "Session nicht gefunden",
+  "session_no_access": "Kein Zugriff auf diese Session",
+
+  "project_not_found": "Projekt nicht gefunden",
+  "project_no_access": "Kein Zugriff auf dieses Projekt",
+  "project_agent_not_found": "Project-Agent nicht gefunden",
+
+  "mcp_server_not_found": "MCP-Server nicht gefunden",
+  "mcp_template_not_found": "Template '{{template_id}}' unbekannt",
+  "mcp_connection_failed": "Verbindung fehlgeschlagen: {{message}}",
+  "mcp_tool_listing_failed": "Tool-Listing fehlgeschlagen: {{message}}",
+
+  "llm_test_failed": "LLM-Test fehlgeschlagen: {{message}}",
+
+  "update_script_missing": "Update-Script nicht gefunden — nur in Production-Setup verfügbar",
+  "update_trigger_failed": "Update-Trigger fehlgeschlagen: {{message}}",
+
+  "username_exists": "Benutzername existiert bereits",
+  "user_not_found": "Benutzer nicht gefunden",
+
+  "validation_error": "{{message}}"
+}

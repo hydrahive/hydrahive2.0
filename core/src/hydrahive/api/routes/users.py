@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+
+from hydrahive.api.middleware.errors import coded
 from pydantic import BaseModel
 
 from hydrahive.agents import bootstrap as agent_bootstrap, config as agent_config
@@ -36,8 +38,8 @@ def get_users() -> list[dict]:
 def create_user(req: CreateUserRequest) -> dict:
     try:
         create(req.username, req.password, req.role)
-    except ValueError as e:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(e))
+    except ValueError:
+        raise coded(status.HTTP_409_CONFLICT, "username_exists")
     agent_bootstrap.ensure_master(req.username)
     return {"username": req.username, "role": req.role}
 
@@ -58,8 +60,8 @@ def change_own_password(
     username, _ = auth
     try:
         update_password(username, req.new_password)
-    except ValueError as e:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except ValueError:
+        raise coded(status.HTTP_404_NOT_FOUND, "user_not_found")
     return {"ok": True}
 
 
@@ -67,6 +69,6 @@ def change_own_password(
 def change_password(username: str, req: ChangePasswordRequest) -> dict:
     try:
         update_password(username, req.new_password)
-    except ValueError as e:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(e))
+    except ValueError:
+        raise coded(status.HTTP_404_NOT_FOUND, "user_not_found")
     return {"ok": True}

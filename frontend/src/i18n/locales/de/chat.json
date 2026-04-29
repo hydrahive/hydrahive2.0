@@ -55,7 +55,13 @@
     "tooltip": "Konversation jetzt zusammenfassen",
     "skipped": "Übersprungen: {{reason}}",
     "result": "{{summarized}} Messages komprimiert, {{kept}} behalten",
-    "result_with_tokens": "{{summarized}} Messages komprimiert, {{kept}} behalten · {{tokens}} Tokens"
+    "result_with_tokens": "{{summarized}} Messages komprimiert, {{kept}} behalten · {{tokens}} Tokens",
+    "reasons": {
+      "too_short": "zu kurz",
+      "nothing_to_compact": "nichts zu kompaktieren",
+      "empty_to_summarize": "leerer to_summarize",
+      "cancelled_by_hook": "abgebrochen von {{hook}}"
+    }
   },
   "compaction_block": {
     "title": "Konversation zusammengefasst",

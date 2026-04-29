@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.api.middleware.errors import coded
 from hydrahive.db import sessions as sessions_db
 from hydrahive.projects import ProjectValidationError, config as project_config
 from hydrahive.projects import members as project_members
@@ -34,7 +35,7 @@ def _check_access(project: dict, username: str, role: str) -> None:
         return
     if username in project.get("members", []) or project.get("created_by") == username:
         return
-    raise HTTPException(status.HTTP_403_FORBIDDEN, "Kein Zugriff auf dieses Projekt")
+    raise coded(status.HTTP_403_FORBIDDEN, "project_no_access")
 
 
 @router.get("")
@@ -61,7 +62,7 @@ def create_project(
             init_git=req.init_git,
         )
     except ProjectValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.get("/{project_id}")
@@ -71,7 +72,7 @@ def get_project(
 ) -> dict:
     p = project_config.get(project_id)
     if not p:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     _check_access(p, *auth)
     return p
 
@@ -82,16 +83,17 @@ def update_project(project_id: str, req: ProjectUpdate) -> dict:
     try:
         return project_config.update(project_id, **changes)
     except KeyError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     except ProjectValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT,
                dependencies=[Depends(require_admin)])
 def delete_project(project_id: str) -> None:
     if not project_config.delete(project_id):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+
 
 
 @router.post("/{project_id}/members/{username}", dependencies=[Depends(require_admin)])
@@ -99,9 +101,9 @@ def add_member(project_id: str, username: str) -> dict:
     try:
         return project_members.add(project_id, username)
     except KeyError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     except ProjectValidationError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
 @router.delete("/{project_id}/members/{username}", dependencies=[Depends(require_admin)])
@@ -109,7 +111,7 @@ def remove_member(project_id: str, username: str) -> dict:
     try:
         return project_members.remove(project_id, username)
     except KeyError:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
 
 
 @router.get("/{project_id}/sessions")
@@ -119,7 +121,7 @@ def list_project_sessions(
 ) -> list[dict]:
     p = project_config.get(project_id)
     if not p:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     _check_access(p, *auth)
     username, role = auth
     out = []
@@ -142,9 +144,9 @@ def get_project_agent(
 ) -> dict:
     p = project_config.get(project_id)
     if not p:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Projekt nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     _check_access(p, *auth)
     agent = agent_config.get(p.get("agent_id", ""))
     if not agent:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Project-Agent nicht gefunden")
+        raise coded(status.HTTP_404_NOT_FOUND, "project_agent_not_found")
     return agent
