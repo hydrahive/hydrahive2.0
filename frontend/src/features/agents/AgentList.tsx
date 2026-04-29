@@ -1,4 +1,5 @@
 import { Crown, Plus, User, Wrench } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { Agent } from "./types"
 
@@ -16,24 +17,26 @@ const TYPE_ICON = {
 }
 
 export function AgentList({ agents, activeId, onSelect, onNew }: Props) {
+  const { t } = useTranslation("agents")
+  const { t: tCommon } = useTranslation("common")
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
-        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Agents</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("list_title")}</p>
         <div className="flex items-center gap-1">
           <HelpButton topic="agents" />
           <button
             onClick={onNew}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors"
           >
-            <Plus size={13} /> Neu
+            <Plus size={13} /> {tCommon("actions.new")}
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {agents.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">Noch kein Agent</p>
+          <p className="text-xs text-zinc-600 text-center py-6">{t("no_agents")}</p>
         )}
         {agents.map((a) => {
           const Icon = TYPE_ICON[a.type] ?? Wrench
@@ -56,7 +59,7 @@ export function AgentList({ agents, activeId, onSelect, onNew }: Props) {
               <div className="flex-1 min-w-0">
                 <p className={`text-sm truncate ${active ? "text-white" : "text-zinc-300"}`}>{a.name}</p>
                 <p className="text-xs text-zinc-600 mt-0.5 truncate">
-                  {a.type} · {a.llm_model}
+                  {t(`type.${a.type}`)} · {a.llm_model}
                 </p>
               </div>
             </div>

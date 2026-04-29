@@ -1,5 +1,6 @@
 import { Loader2, Plug, PlugZap, Save, Server, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { mcpApi } from "./api"
 import { McpToolList } from "./McpToolList"
 import type { McpServer, McpTool } from "./types"
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function McpServerForm({ server, onSaved, onDeleted }: Props) {
+  const { t } = useTranslation("mcp")
+  const { t: tCommon } = useTranslation("common")
   const [draft, setDraft] = useState(server)
   const [argsText, setArgsText] = useState((server.args ?? []).join(" "))
   const [envText, setEnvText] = useState(
@@ -47,7 +50,7 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
         env, url: draft.url,
       })
       onSaved(updated)
-    } catch (e) { setError(e instanceof Error ? e.message : "Fehler") }
+    } catch (e) { setError(e instanceof Error ? e.message : tCommon("status.error")) }
     finally { setSaving(false) }
   }
 
@@ -63,12 +66,12 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
         setTools(r.tools)
         onSaved({ ...server, connected: r.connected })
       }
-    } catch (e) { setError(e instanceof Error ? e.message : "Verbindung fehlgeschlagen") }
+    } catch (e) { setError(e instanceof Error ? e.message : t("actions.connection_failed")) }
     finally { setBusy(false) }
   }
 
   async function remove() {
-    if (!confirm(`MCP-Server "${server.name}" löschen?`)) return
+    if (!confirm(t("actions.delete_confirm", { name: server.name }))) return
     await mcpApi.delete(server.id)
     onDeleted()
   }
@@ -87,12 +90,12 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
           } disabled:opacity-30`}>
           {busy ? <Loader2 size={14} className="animate-spin" /> :
             (server.connected ? <PlugZap size={14} /> : <Plug size={14} />)}
-          {server.connected ? "Verbunden" : "Connect"}
+          {server.connected ? t("actions.connected") : t("actions.connect")}
         </button>
         <button onClick={save} disabled={saving}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-30 shadow-md shadow-violet-900/20">
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          Speichern
+          {tCommon("actions.save")}
         </button>
         <button onClick={remove} className="p-2 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors">
           <Trash2 size={15} />
@@ -105,33 +108,33 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
         )}
 
         <div className="grid grid-cols-3 gap-4">
-          <Field label="Transport"><p className="text-sm text-zinc-300 font-mono">{server.transport}</p></Field>
-          <Field label="ID"><p className="text-sm text-zinc-300 font-mono">{server.id}</p></Field>
-          <Field label="Status">
+          <Field label={t("fields.transport")}><p className="text-sm text-zinc-300 font-mono">{server.transport}</p></Field>
+          <Field label={t("fields.id")}><p className="text-sm text-zinc-300 font-mono">{server.id}</p></Field>
+          <Field label={tCommon("labels.status")}>
             <label className="flex items-center gap-2 text-sm text-zinc-300">
               <input type="checkbox" checked={draft.enabled} onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
                 className="w-4 h-4 accent-violet-600" />
-              {draft.enabled ? "aktiviert" : "deaktiviert"}
+              {draft.enabled ? tCommon("status.active") : tCommon("status.disabled")}
             </label>
           </Field>
         </div>
 
-        <Field label="Beschreibung">
+        <Field label={tCommon("labels.description")}>
           <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
             className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
         </Field>
 
         {server.transport === "stdio" && (
           <>
-            <Field label="Command">
+            <Field label={t("fields.command")}>
               <input value={draft.command ?? ""} onChange={(e) => setDraft({ ...draft, command: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono" />
             </Field>
-            <Field label="Args (whitespace-getrennt)">
+            <Field label={t("fields.args")}>
               <input value={argsText} onChange={(e) => setArgsText(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono" />
             </Field>
-            <Field label="Env (eine pro Zeile, KEY=VALUE)">
+            <Field label={t("fields.env")}>
               <textarea value={envText} onChange={(e) => setEnvText(e.target.value)} rows={3}
                 className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono leading-relaxed" />
             </Field>
@@ -139,13 +142,13 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
         )}
 
         {(server.transport === "http" || server.transport === "sse") && (
-          <Field label="URL">
+          <Field label={t("fields.url")}>
             <input value={draft.url ?? ""} onChange={(e) => setDraft({ ...draft, url: e.target.value })}
               className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono" />
           </Field>
         )}
 
-        <Field label={`Tools (${tools.length})`}>
+        <Field label={t("fields.tools_count", { count: tools.length })}>
           <McpToolList tools={tools} />
         </Field>
       </div>

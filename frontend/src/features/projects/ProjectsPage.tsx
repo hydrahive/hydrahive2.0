@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
 import { NewProjectDialog } from "./NewProjectDialog"
 import { ProjectForm } from "./ProjectForm"
@@ -6,6 +7,7 @@ import { ProjectList } from "./ProjectList"
 import type { Project } from "./types"
 
 export function ProjectsPage() {
+  const { t } = useTranslation("projects")
   const [projects, setProjects] = useState<Project[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
@@ -43,7 +45,7 @@ export function ProjectsPage() {
           <ProjectForm key={active.id} project={active} onSaved={handleSaved} onDeleted={handleDeleted} />
         ) : (
           <div className="flex items-center justify-center h-full text-sm text-zinc-600">
-            Wähle rechts ein Projekt oder lege ein neues an.
+            {t("select_or_new")}
           </div>
         )}
       </main>

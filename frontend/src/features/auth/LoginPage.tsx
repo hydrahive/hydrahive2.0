@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "./useAuthStore"
 
@@ -10,6 +11,7 @@ interface LoginResponse {
 }
 
 export function LoginPage() {
+  const { t } = useTranslation("auth")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -26,7 +28,7 @@ export function LoginPage() {
       setAuth(res.access_token, res.username, res.role)
       navigate("/")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login fehlgeschlagen")
+      setError(err instanceof Error && err.message ? err.message : t("login.error"))
     } finally {
       setLoading(false)
     }
@@ -51,13 +53,13 @@ export function LoginPage() {
             <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-300 bg-clip-text text-transparent">
               HydraHive
             </h1>
-            <p className="text-zinc-500 text-sm mt-1">Willkommen zurück</p>
+            <p className="text-zinc-500 text-sm mt-1">{t("login.subtitle")}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wide">
-                Benutzername
+                {t("login.username")}
               </label>
               <input
                 type="text"
@@ -71,7 +73,7 @@ export function LoginPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wide">
-                Passwort
+                {t("login.password")}
               </label>
               <input
                 type="password"
@@ -94,7 +96,7 @@ export function LoginPage() {
               disabled={loading}
               className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-900/30 mt-2"
             >
-              {loading ? "Anmelden…" : "Anmelden"}
+              {loading ? t("login.submitting") : t("login.submit")}
             </button>
           </form>
         </div>

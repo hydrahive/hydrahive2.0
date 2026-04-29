@@ -1,4 +1,5 @@
 import { Plug, PlugZap, Plus, Server, Sparkles } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { McpServer } from "./types"
 
@@ -11,31 +12,32 @@ interface Props {
 }
 
 export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }: Props) {
+  const { t } = useTranslation("mcp")
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
-        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">MCP-Server</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("list_title")}</p>
         <div className="flex items-center gap-1">
           <HelpButton topic="mcp" />
           <button
             onClick={onQuickAdd}
-            title="Aus Vorlage hinzufügen"
+            title={t("actions.template_tooltip")}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-violet-300 hover:text-violet-200 hover:bg-violet-500/10 transition-colors"
           >
-            <Sparkles size={12} /> Vorlage
+            <Sparkles size={12} /> {t("actions.template_button")}
           </button>
           <button
             onClick={onNew}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors"
           >
-            <Plus size={12} /> Neu
+            <Plus size={12} /> {t("actions.new_button")}
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {servers.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">Kein Server konfiguriert</p>
+          <p className="text-xs text-zinc-600 text-center py-6">{t("no_servers")}</p>
         )}
         {servers.map((s) => {
           const active = s.id === activeId

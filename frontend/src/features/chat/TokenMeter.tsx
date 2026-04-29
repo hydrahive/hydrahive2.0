@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { chatApi } from "./api"
 
 interface Props {
@@ -14,6 +15,7 @@ interface TokenInfo {
 }
 
 export function TokenMeter({ sessionId, refresh }: Props) {
+  const { t, i18n } = useTranslation("chat")
   const [info, setInfo] = useState<TokenInfo | null>(null)
 
   useEffect(() => {
@@ -32,13 +34,15 @@ export function TokenMeter({ sessionId, refresh }: Props) {
       : pct < 80 ? "bg-amber-400"
       : "bg-rose-400"
 
+  const fmt = (n: number) => n.toLocaleString(i18n.language)
+
   return (
-    <div className="flex items-center gap-2" title={`Compact-Schwelle bei ${info.compact_threshold.toLocaleString("de")} Tokens`}>
+    <div className="flex items-center gap-2" title={t("tokens.limit_tooltip", { limit: fmt(info.compact_threshold) })}>
       <div className="w-20 h-1 bg-white/[6%] rounded-full overflow-hidden">
         <div className={`h-full ${barTone} transition-all`} style={{ width: `${pct}%` }} />
       </div>
       <span className={`text-[11px] font-mono tabular-nums ${tone}`}>
-        {info.used.toLocaleString("de")} / {(info.compact_threshold).toLocaleString("de")}
+        {fmt(info.used)} / {fmt(info.compact_threshold)}
       </span>
     </div>
   )

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import {
   Activity, Bot, Database, Folder, MessageSquare, Server, Wrench, Zap,
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { systemApi, type HealthCheck, type SystemInfo, type SystemStats } from "./api"
 import { HealthBar } from "./HealthBar"
@@ -10,6 +11,8 @@ import { StatCard } from "./StatCard"
 const REFRESH_MS = 10_000
 
 export function SystemPage() {
+  const { t } = useTranslation("system")
+  const { t: tAgents } = useTranslation("agents")
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [checks, setChecks] = useState<HealthCheck[]>([])
@@ -33,9 +36,11 @@ export function SystemPage() {
     <div className="space-y-6 max-w-6xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">System-Status</h1>
+          <h1 className="text-xl font-bold text-white">{t("title")}</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Auto-Refresh alle {REFRESH_MS / 1000}s · {info && `läuft seit ${formatUptime(info.uptime_seconds)}`}
+            {info
+              ? t("subtitle_with_uptime", { seconds: REFRESH_MS / 1000, uptime: formatUptime(info.uptime_seconds, t) })
+              : t("subtitle", { seconds: REFRESH_MS / 1000 })}
           </p>
         </div>
         <HelpButton topic="system" />
@@ -45,33 +50,35 @@ export function SystemPage() {
 
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Bot} label="Agents" value={stats.agents.total}
-            detail={Object.entries(stats.agents.by_type).map(([k, v]) => `${v} ${k}`).join(", ")}
+          <StatCard icon={Bot} label={t("stats.agents")} value={stats.agents.total}
+            detail={Object.entries(stats.agents.by_type)
+              .map(([k, v]) => t("stats.agents_detail", { count: v, type: tAgents(`type.${k}`) }))
+              .join(", ")}
             glow="bg-violet-500/40" />
-          <StatCard icon={Folder} label="Projekte" value={stats.projects.total}
-            detail={`${stats.projects.active} aktiv`} glow="bg-indigo-500/40" />
-          <StatCard icon={MessageSquare} label="Sessions" value={stats.sessions.total}
-            detail={`${stats.sessions.active} aktiv`} glow="bg-fuchsia-500/40" />
-          <StatCard icon={Activity} label="Messages" value={stats.messages.total}
-            detail={`${stats.messages.compactions} Compactions`} glow="bg-amber-500/40" />
-          <StatCard icon={Wrench} label="Tool-Calls" value={stats.tool_calls.total}
-            detail={`${stats.tool_calls.success_rate}% Success`} glow="bg-emerald-500/40" />
-          <StatCard icon={Database} label="DB-Größe"
+          <StatCard icon={Folder} label={t("stats.projects")} value={stats.projects.total}
+            detail={t("stats.projects_detail", { count: stats.projects.active })} glow="bg-indigo-500/40" />
+          <StatCard icon={MessageSquare} label={t("stats.sessions")} value={stats.sessions.total}
+            detail={t("stats.sessions_detail", { count: stats.sessions.active })} glow="bg-fuchsia-500/40" />
+          <StatCard icon={Activity} label={t("stats.messages")} value={stats.messages.total}
+            detail={t("stats.messages_detail", { count: stats.messages.compactions })} glow="bg-amber-500/40" />
+          <StatCard icon={Wrench} label={t("stats.tool_calls")} value={stats.tool_calls.total}
+            detail={t("stats.tool_calls_detail", { rate: stats.tool_calls.success_rate })} glow="bg-emerald-500/40" />
+          <StatCard icon={Database} label={t("stats.db_size")}
             value={info ? formatBytes(info.db_size_bytes) : "—"}
-            detail="sessions.db" glow="bg-cyan-500/40" />
-          <StatCard icon={Zap} label="Python" value={info?.python ?? "—"}
+            detail={t("stats.db_size_detail")} glow="bg-cyan-500/40" />
+          <StatCard icon={Zap} label={t("stats.python")} value={info?.python ?? "—"}
             detail={info?.platform} glow="bg-yellow-500/40" />
-          <StatCard icon={Server} label="Version" value={info?.version ?? "—"}
-            detail="HydraHive" glow="bg-rose-500/40" />
+          <StatCard icon={Server} label={t("stats.version")} value={info?.version ?? "—"}
+            detail={t("stats.version_detail")} glow="bg-rose-500/40" />
         </div>
       )}
 
       {info && (
         <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">Pfade</p>
-          <PathRow label="Data" value={info.data_dir} />
-          <PathRow label="Config" value={info.config_dir} />
-          <PathRow label="DB" value={info.db_path} />
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">{t("paths.title")}</p>
+          <PathRow label={t("paths.data")} value={info.data_dir} />
+          <PathRow label={t("paths.config")} value={info.config_dir} />
+          <PathRow label={t("paths.db")} value={info.db_path} />
         </div>
       )}
     </div>
@@ -94,9 +101,9 @@ function formatBytes(n: number): string {
   return `${(n / 1024 ** 3).toFixed(2)} GB`
 }
 
-function formatUptime(seconds: number): string {
-  if (seconds < 60) return `${Math.floor(seconds)}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
-  return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`
+function formatUptime(seconds: number, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  if (seconds < 60) return t("uptime.seconds", { n: Math.floor(seconds) })
+  if (seconds < 3600) return t("uptime.minutes", { m: Math.floor(seconds / 60), s: Math.floor(seconds % 60) })
+  if (seconds < 86400) return t("uptime.hours", { h: Math.floor(seconds / 3600), m: Math.floor((seconds % 3600) / 60) })
+  return t("uptime.days", { d: Math.floor(seconds / 86400), h: Math.floor((seconds % 86400) / 3600) })
 }

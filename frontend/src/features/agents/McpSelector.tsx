@@ -1,4 +1,5 @@
 import { Server } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import type { McpServerBrief } from "./api"
 
 interface Props {
@@ -8,8 +9,10 @@ interface Props {
 }
 
 export function McpSelector({ available, selected, onChange }: Props) {
+  const { t } = useTranslation("agents")
+  const { t: tCommon } = useTranslation("common")
   if (available.length === 0) {
-    return <p className="text-xs text-zinc-600">Noch keine MCP-Server angelegt — siehe MCP-Tab.</p>
+    return <p className="text-xs text-zinc-600">{t("errors.no_servers_yet")}</p>
   }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -33,7 +36,7 @@ export function McpSelector({ available, selected, onChange }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-zinc-200 truncate">{s.name}</p>
               <p className="text-[10.5px] text-zinc-500 mt-0.5">
-                {s.id} · {s.connected ? "verbunden" : "nicht verbunden"}
+                {s.id} · {s.connected ? tCommon("status.connected") : tCommon("status.disconnected")}
               </p>
             </div>
           </button>

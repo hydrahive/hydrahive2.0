@@ -1,9 +1,11 @@
 import { Wrench } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import type { McpTool } from "./types"
 
 export function McpToolList({ tools }: { tools: McpTool[] }) {
+  const { t } = useTranslation("mcp")
   if (tools.length === 0) {
-    return <p className="text-xs text-zinc-600">Noch keine Tools — Server connecten zum Laden.</p>
+    return <p className="text-xs text-zinc-600">{t("fields.no_tools")}</p>
   }
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
