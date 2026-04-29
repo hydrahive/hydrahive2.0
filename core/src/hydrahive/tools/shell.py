@@ -6,7 +6,9 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
     "Führt einen Shell-Befehl im Workspace aus. Gibt stdout, stderr und "
-    "Exit-Code zurück. Default-Timeout: 60s."
+    "Exit-Code zurück. Default-Timeout: 60s. "
+    "Bilder beschreiben/verstehen: `mmx vision describe --image <pfad_oder_url>` — "
+    "mmx ist global installiert und mit dem MiniMax-Key authentifiziert."
 )
 
 _SCHEMA = {

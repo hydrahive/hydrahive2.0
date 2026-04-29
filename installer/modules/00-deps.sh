@@ -49,4 +49,16 @@ if ! command -v uvx >/dev/null 2>&1; then
   fi
 fi
 
+# mmx CLI (MiniMax official CLI für Bild/Video/Musik-Generierung und Vision)
+if ! command -v mmx >/dev/null 2>&1; then
+  log "Installiere mmx-cli (MiniMax CLI)"
+  npm install -g mmx-cli --silent
+fi
+if [ -n "${MINIMAX_API_KEY:-}" ]; then
+  mmx auth login --api-key "${MINIMAX_API_KEY}" --non-interactive >/dev/null 2>&1 \
+    && log "mmx auth OK" || log "mmx auth fehlgeschlagen (Key prüfen)"
+else
+  log "MINIMAX_API_KEY nicht gesetzt — mmx auth login später manuell ausführen"
+fi
+
 log "Dependencies bereit."

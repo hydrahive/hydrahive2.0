@@ -27,7 +27,7 @@ async def process_upload(file: UploadFile, workspace: Path | None) -> list[dict]
     ext = Path(name).suffix.lower()
 
     if mime in IMAGE_TYPES and len(data) <= MAX_IMAGE_BYTES:
-        return [{
+        blocks: list[dict] = [{
             "type": "image",
             "source": {
                 "type": "base64",
@@ -35,6 +35,13 @@ async def process_upload(file: UploadFile, workspace: Path | None) -> list[dict]
                 "data": base64.standard_b64encode(data).decode(),
             },
         }]
+        # Bild auch auf Disk speichern damit shell_exec + mmx drankann
+        if workspace is not None:
+            workspace.mkdir(parents=True, exist_ok=True)
+            dest = workspace / name
+            dest.write_bytes(data)
+            blocks.append({"type": "text", "text": f"[Bild gespeichert: {dest}]"})
+        return blocks
 
     if ext in TEXT_EXTENSIONS and len(data) <= MAX_TEXT_BYTES:
         try:
