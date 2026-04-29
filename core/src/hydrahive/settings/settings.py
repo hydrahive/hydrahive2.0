@@ -46,7 +46,7 @@ class Settings:
     def plugin_hub_git_url(self) -> str:
         return os.environ.get(
             "HH_PLUGIN_HUB_GIT_URL",
-            "git@github.com:hydrahive/hydrahive2-plugins.git",
+            "https://github.com/hydrahive/hydrahive2-plugins.git",
         )
 
     @cached_property

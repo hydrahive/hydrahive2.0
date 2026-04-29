@@ -12,6 +12,20 @@ err() { printf "\033[1;31m[hh2-update]\033[0m %s\n" "$*" >&2; exit 1; }
 
 cd "$HH_REPO_DIR"
 
+log "SSH-Verzeichnis für $HH_USER prüfen"
+HH_HOME="/home/${HH_USER:-hydrahive}"
+SSH_DIR="$HH_HOME/.ssh"
+mkdir -p "$SSH_DIR"
+chown -R "${HH_USER:-hydrahive}:${HH_USER:-hydrahive}" "$HH_HOME"
+chmod 700 "$SSH_DIR"
+touch "$SSH_DIR/known_hosts"
+chown "${HH_USER:-hydrahive}:${HH_USER:-hydrahive}" "$SSH_DIR/known_hosts"
+chmod 600 "$SSH_DIR/known_hosts"
+if ! grep -q "github.com" "$SSH_DIR/known_hosts" 2>/dev/null; then
+  ssh-keyscan -t ed25519,rsa github.com 2>/dev/null >> "$SSH_DIR/known_hosts" || true
+  chown "${HH_USER:-hydrahive}:${HH_USER:-hydrahive}" "$SSH_DIR/known_hosts"
+fi
+
 log "git pull"
 sudo -u hydrahive git pull --ff-only
 
