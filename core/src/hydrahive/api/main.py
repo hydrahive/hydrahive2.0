@@ -112,23 +112,31 @@ def _detect_git_commit() -> str | None:
 
 
 def _check_update_behind() -> int | None:
+    """Returns 0 if HEAD == origin/main, 1 if behind, None if undetectable.
+
+    Uses git ls-remote (read-only, no .git writes) so it works even when
+    the systemd-Unit has ProtectSystem=strict and the repo dir is RO.
+    Trade-off: we can detect "update yes/no" but not the exact commit-count.
+    """
     if not (_REPO_ROOT / ".git").exists():
         return None
     try:
-        fetch = subprocess.run(
-            ["git", "-C", str(_REPO_ROOT), "fetch", "--quiet", "origin", "main"],
-            capture_output=True, timeout=15, check=False,
+        ls = subprocess.run(
+            ["git", "-C", str(_REPO_ROOT), "ls-remote", "origin", "main"],
+            capture_output=True, text=True, timeout=15, check=False,
         )
-        if fetch.returncode != 0:
+        if ls.returncode != 0 or not ls.stdout.strip():
             return None
-        result = subprocess.run(
-            ["git", "-C", str(_REPO_ROOT), "rev-list", "--count", "HEAD..origin/main"],
-            capture_output=True, text=True, timeout=5, check=False,
+        remote_sha = ls.stdout.split()[0]
+        head = subprocess.run(
+            ["git", "-C", str(_REPO_ROOT), "rev-parse", "HEAD"],
+            capture_output=True, text=True, timeout=2, check=False,
         )
-        if result.returncode != 0:
+        if head.returncode != 0:
             return None
-        return int(result.stdout.strip())
-    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        local_sha = head.stdout.strip()
+        return 0 if local_sha == remote_sha else 1
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
 
 
