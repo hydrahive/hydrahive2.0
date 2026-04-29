@@ -55,3 +55,6 @@ data/
 dev-start.local.sh
 .hh-local/
 DEADJOE
+
+# Claude Code harness
+.claude/
