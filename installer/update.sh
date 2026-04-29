@@ -39,10 +39,20 @@ if [ -f "$WA_BRIDGE_DIR/package.json" ]; then
   chown -R hydrahive:hydrahive "$WA_BRIDGE_DIR/node_modules"
 fi
 
-log "Systemd-Units prüfen"
+log "Systemd-Timer-Units prüfen und migrieren"
 HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
-if [ ! -f /etc/systemd/system/hydrahive2-update.path ] || [ ! -f /etc/systemd/system/hydrahive2-update.service ]; then
-  log "Self-Update-Units fehlen — werden angelegt"
+
+# Alte Path-Units deaktivieren falls noch vorhanden (Migration inotify → Timer)
+for old in hydrahive2-update.path hydrahive2-restart.path; do
+  if [ -f "/etc/systemd/system/$old" ]; then
+    systemctl stop "$old" >/dev/null 2>&1 || true
+    systemctl disable "$old" >/dev/null 2>&1 || true
+    rm -f "/etc/systemd/system/$old"
+  fi
+done
+
+if [ ! -f /etc/systemd/system/hydrahive2-update.timer ] || [ ! -f /etc/systemd/system/hydrahive2-update.service ]; then
+  log "Self-Update-Units anlegen"
   cat > /etc/systemd/system/hydrahive2-update.service <<EOF
 [Unit]
 Description=HydraHive2 Self-Update Runner
@@ -55,26 +65,28 @@ ExecStart=$HH_REPO_DIR/installer/update.sh
 StandardOutput=append:/var/log/hydrahive2-update.log
 StandardError=append:/var/log/hydrahive2-update.log
 EOF
-  cat > /etc/systemd/system/hydrahive2-update.path <<EOF
+  cat > /etc/systemd/system/hydrahive2-update.timer <<EOF
 [Unit]
-Description=HydraHive2 Update-Trigger Watcher
+Description=HydraHive2 Update-Trigger Poller
 
-[Path]
-PathExists=$HH_DATA_DIR/.update_request
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=5s
+AccuracySec=1s
 Unit=hydrahive2-update.service
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=timers.target
 EOF
   touch /var/log/hydrahive2-update.log
   chmod 644 /var/log/hydrahive2-update.log
   systemctl daemon-reload
-  systemctl enable hydrahive2-update.path >/dev/null 2>&1
-  systemctl restart hydrahive2-update.path
+  systemctl enable hydrahive2-update.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-update.timer
 fi
 
-if [ ! -f /etc/systemd/system/hydrahive2-restart.path ] || [ ! -f /etc/systemd/system/hydrahive2-restart.service ]; then
-  log "Restart-Trigger-Units fehlen — werden angelegt"
+if [ ! -f /etc/systemd/system/hydrahive2-restart.timer ] || [ ! -f /etc/systemd/system/hydrahive2-restart.service ]; then
+  log "Restart-Trigger-Units anlegen"
   cat > /etc/systemd/system/hydrahive2-restart.service <<EOF
 [Unit]
 Description=HydraHive2 Restart Runner
@@ -85,20 +97,22 @@ Type=oneshot
 ExecStartPre=/bin/rm -f $HH_DATA_DIR/.restart_request
 ExecStart=/bin/systemctl restart hydrahive2.service
 EOF
-  cat > /etc/systemd/system/hydrahive2-restart.path <<EOF
+  cat > /etc/systemd/system/hydrahive2-restart.timer <<EOF
 [Unit]
-Description=HydraHive2 Restart-Trigger Watcher
+Description=HydraHive2 Restart-Trigger Poller
 
-[Path]
-PathExists=$HH_DATA_DIR/.restart_request
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=5s
+AccuracySec=1s
 Unit=hydrahive2-restart.service
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=timers.target
 EOF
   systemctl daemon-reload
-  systemctl enable hydrahive2-restart.path >/dev/null 2>&1
-  systemctl restart hydrahive2-restart.path
+  systemctl enable hydrahive2-restart.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-restart.timer
 fi
 
 log "nginx Security-Headers prüfen"

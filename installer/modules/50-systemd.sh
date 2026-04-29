@@ -6,9 +6,9 @@ log() { printf "  · %s\n" "$*"; }
 
 SERVICE_FILE=/etc/systemd/system/hydrahive2.service
 UPDATE_SERVICE=/etc/systemd/system/hydrahive2-update.service
-UPDATE_PATH=/etc/systemd/system/hydrahive2-update.path
+UPDATE_TIMER=/etc/systemd/system/hydrahive2-update.timer
 RESTART_SERVICE=/etc/systemd/system/hydrahive2-restart.service
-RESTART_PATH=/etc/systemd/system/hydrahive2-restart.path
+RESTART_TIMER=/etc/systemd/system/hydrahive2-restart.timer
 
 # JWT-Secret generieren falls nicht da
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -66,17 +66,19 @@ StandardOutput=append:/var/log/hydrahive2-update.log
 StandardError=append:/var/log/hydrahive2-update.log
 EOF
 
-log "Schreibe $UPDATE_PATH (Trigger-Watcher)"
-cat > "$UPDATE_PATH" <<EOF
+log "Schreibe $UPDATE_TIMER (Trigger-Poller)"
+cat > "$UPDATE_TIMER" <<EOF
 [Unit]
-Description=HydraHive2 Update-Trigger Watcher
+Description=HydraHive2 Update-Trigger Poller
 
-[Path]
-PathExists=$HH_DATA_DIR/.update_request
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=5s
+AccuracySec=1s
 Unit=hydrahive2-update.service
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=timers.target
 EOF
 
 log "Schreibe $RESTART_SERVICE (Restart-Runner)"
@@ -91,18 +93,24 @@ ExecStartPre=/bin/rm -f $HH_DATA_DIR/.restart_request
 ExecStart=/bin/systemctl restart hydrahive2.service
 EOF
 
-log "Schreibe $RESTART_PATH (Trigger-Watcher)"
-cat > "$RESTART_PATH" <<EOF
+log "Schreibe $RESTART_TIMER (Trigger-Poller)"
+cat > "$RESTART_TIMER" <<EOF
 [Unit]
-Description=HydraHive2 Restart-Trigger Watcher
+Description=HydraHive2 Restart-Trigger Poller
 
-[Path]
-PathExists=$HH_DATA_DIR/.restart_request
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=5s
+AccuracySec=1s
 Unit=hydrahive2-restart.service
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=timers.target
 EOF
+
+# Alte Path-Units entfernen falls vorhanden
+rm -f /etc/systemd/system/hydrahive2-update.path
+rm -f /etc/systemd/system/hydrahive2-restart.path
 
 # Log-File mit korrekten Permissions vorbereiten
 touch /var/log/hydrahive2-update.log
@@ -111,13 +119,13 @@ chmod 644 /var/log/hydrahive2-update.log
 log "systemd reload + enable"
 systemctl daemon-reload
 systemctl enable hydrahive2.service >/dev/null 2>&1
-systemctl enable hydrahive2-update.path >/dev/null 2>&1
-systemctl enable hydrahive2-restart.path >/dev/null 2>&1
+systemctl enable hydrahive2-update.timer >/dev/null 2>&1
+systemctl enable hydrahive2-restart.timer >/dev/null 2>&1
 
-log "Starte Service + Update-Watcher + Restart-Watcher"
+log "Starte Service + Update-Timer + Restart-Timer"
 systemctl restart hydrahive2.service
-systemctl restart hydrahive2-update.path
-systemctl restart hydrahive2-restart.path
+systemctl restart hydrahive2-update.timer
+systemctl restart hydrahive2-restart.timer
 
 sleep 2
 if systemctl is-active --quiet hydrahive2.service; then
