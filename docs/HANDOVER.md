@@ -35,12 +35,13 @@ verifiziert.
 | Installer | 6-Phasen-Setup + systemd + nginx mit Security-Headers (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy) |
 | **Plugin-System** | MVP + **Hub-UI**: Loader/Manifest/Registry/Context/Tool-Bridge + Hub-Client (git clone/pull) + Installer (cp aus Cache). Frontend `/plugins`-Page (AdminGuard) mit Tabs Hub/Installiert, Install/Update/Uninstall, Restart-Hint. Hub-Repo `github.com/hydrahive/hydrahive2-plugins` (privat) gepusht. **Self-Bootstrap verifiziert**: lokaler Agent hat eigenständig `git-stats`-, `code-metrics`- und `file-search`-Plugins gebaut, in den Hub gepusht und über die UI installiert. |
 | **Service-Restart-Knopf** | `POST /api/system/restart` mit Trigger-File-Pattern (analog Self-Update). Production-Units `hydrahive2-restart.{path,service}` im Installer + update.sh-Self-Heal. Dev: Watch-Loop in dev-start.sh. Frontend `RestartModal` + `useRestart`-Hook mit /health-Polling. Knöpfe auf Plugins- und System-Page. |
+| **Communication-Foundation** | Neuer Core-Layer `core/src/hydrahive/communication/` für Messenger/Mail/etc. (fest im Core, nicht als Plugin — Messenger sind in SPEC verankert). Channel-Protocol + Registry + Session-Lookup pro `(agent, channel, external_id)` + Agent-Glue der eingehende Events durch den Master-Agent jagt + Router. DB-Migration 002 erweitert sessions um `channel` + `external_user_id`. Noch kein konkreter Channel — WhatsApp folgt mit Baileys. |
 
 ## Was offen ist
 
 ### Größere Initiativen (jeweils ein halber bis ganzer Build-Tag)
 
-1. **WhatsApp-Bridge** als erstes echtes Nutz-Plugin (Whatsmeow + QR-Login, in SPEC.md drin).
+1. **WhatsApp als erster Channel** im Communication-Layer. Architektur entschieden: fest im Core unter `communication/whatsapp/` (NICHT als Plugin — Messenger sind Core-Layer in SPEC). Baileys (`@whiskeysockets/baileys`) als Node-Bridge auf 127.0.0.1:8767, Python-Wrapper. Eingehende Webhook → `communication.handle_incoming()` (Foundation steht). Frontend `/communication` mit WhatsApp-Karte (Connect/QR/Status). Loop-Schutz: unsichtbarer `​`-Marker aus altem HydraHive übernehmen.
 2. **AgentLink** als externer Service — `ask_agent` ist Stub. Multi-Agent-Workflows fehlen, Redis Pub/Sub.
 3. **MMX-CLI / MiniMax Multimodal**: Audio/Video/Bild-Generierung als Plugin.
 4. **`PluginContext.register_compaction_hook()`** — Mechanismus ist schon da (`compaction/hooks.py`), Plugin-API-Erweiterung fehlt damit Plugins eigene Compaction-Hooks anmelden können.
