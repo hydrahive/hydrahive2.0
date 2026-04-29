@@ -102,12 +102,39 @@ sudo journalctl -u hydrahive2 | grep -A 3 'Admin-User angelegt'
 5. **Tetris-Test** hat die Token/Tool-Limits eindrucksvoll demonstriert —
    Default `max_tokens=8192` reicht für längere Code-Generation, 4096 nicht.
 
+## Update 2026-04-29 — was im Verlauf des Tages dazukam
+
+- **i18n Phase 2 ✓ erledigt** — alle Feature-Folder migriert (auth, chat,
+  projects, agents, llm, mcp, system).
+- **Userverwaltung ✓** — Admin-UI `/users` (Liste + CRUD + Passwort-Reset),
+  Profile-Page `/profile` (eigenes Passwort + Sprache), Sidebar User-Footer
+  klickbar. NavItem hat optional `roles?: ["admin"|"user"]` zur
+  Sichtbarkeits-Kontrolle.
+- **bcrypt-Migration ✓** — SHA256-Hashes werden beim nächsten Login
+  transparent rehashed. Cost-Factor 12.
+- **Versions-Footer + Self-Update-Knopf ✓** — Sidebar zeigt
+  `vX.Y.Z · <commit>`, plus amber `↑`-Tag wenn ls-remote neuere Commits
+  meldet. Admin klickt → Backend schreibt Trigger-File →
+  systemd-Path-Watcher triggert update.sh als root → Service neu, Frontend
+  pollt /health bis neuer Commit da ist. Setup im Installer
+  (`50-systemd.sh`) + Self-Heal in `update.sh` für bestehende Installationen.
+- **Quick Wins**: NVIDIA NIM in KNOWN_PROVIDERS, Swagger UI nur mit
+  `HH_ENABLE_DOCS=1` (Production: aus), MiniMax-Test-Connection-Bug
+  (ThinkingBlock) gefixt, LLM-Provider lassen sich jetzt editieren
+  (vorher nur löschen+neu).
+- **Sicherheits-Audit** durch lokalen Agent gegen 216 — Backend-Auth solide,
+  HTTPS und Security-Headers fehlen noch (Roadmap).
+
 ## Nächster Build-Tag — empfohlene Reihenfolge
 
 1. **Lokal verifizieren** dass alles noch läuft (`./dev-start.sh`)
-2. **i18n Phase 2** angreifen (UI-Migration komplett, eine Page nach der anderen)
-3. **i18n Phase 4** (Handbuch-Seite) gleich danach — passt thematisch
-4. Erst danach an AgentLink oder Plugin-System
+2. **Backend-Error-Codes** statt deutscher Strings (Roadmap #2) — macht
+   i18n endgültig rund, Backend-HealthBar/Compact-Reasons schlagen sonst
+   immer noch deutsch durch.
+3. **Failed-Login-Lockout** + **nginx Security-Headers** + **HTTPS** (alle
+   drei Audit-Findings).
+4. **i18n Phase 4** (Handbuch-Seite) — Lückenfüller falls nichts dringend.
+5. AgentLink, Plugin-System, MMX, Doku — größere Initiativen.
 
 ## Git-Stand
 
