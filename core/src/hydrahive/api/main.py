@@ -129,14 +129,15 @@ def _check_update_behind() -> int | None:
         return None
 
 
-_GIT_COMMIT = _detect_git_commit()
+_GIT_COMMIT: str | None = _detect_git_commit()
 _UPDATE_BEHIND: int | None = None
 
 
 async def _update_check_loop() -> None:
-    global _UPDATE_BEHIND
+    global _UPDATE_BEHIND, _GIT_COMMIT
     while True:
         try:
+            _GIT_COMMIT = await asyncio.to_thread(_detect_git_commit)
             _UPDATE_BEHIND = await asyncio.to_thread(_check_update_behind)
         except Exception as e:
             logger.debug("Update-Check fehlgeschlagen: %s", e)
