@@ -86,6 +86,7 @@ def to_anthropic_messages(history: list[Message]) -> list[dict]:
 
 _ANTHROPIC_ALLOWED = {
     "text": {"type", "text"},
+    "image": {"type", "source"},
     "tool_use": {"type", "id", "name", "input"},
     "thinking": {"type", "thinking", "signature"},
     "tool_result": {"type", "tool_use_id", "content", "is_error"},

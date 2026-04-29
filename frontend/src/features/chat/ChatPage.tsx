@@ -62,8 +62,8 @@ export function ChatPage() {
 
   const [tokenRefresh, setTokenRefresh] = useState(0)
 
-  async function handleSend(text: string) {
-    await chat.send(text)
+  async function handleSend(text: string, files: File[] = []) {
+    await chat.send(text, files)
     loadAll()
     setTokenRefresh((n) => n + 1)
   }

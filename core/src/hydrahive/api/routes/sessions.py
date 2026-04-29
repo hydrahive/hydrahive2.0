@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from hydrahive.agents import config as agent_config
+from hydrahive.agents._paths import ensure_workspace
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._files import process_upload
 from hydrahive.api.routes._sse import to_sse
 from hydrahive.compaction import compact_session, total_tokens
 from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
@@ -29,10 +31,6 @@ class SessionCreate(BaseModel):
 class SessionUpdate(BaseModel):
     title: str | None = None
     status: str | None = None
-
-
-class MessageCreate(BaseModel):
-    text: str = Field(..., min_length=1)
 
 
 def _check_owner(session, username: str, role: str) -> None:
@@ -183,15 +181,28 @@ async def manual_compact(
 @router.post("/{session_id}/messages")
 async def post_message(
     session_id: str,
-    req: MessageCreate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
+    text: Annotated[str, Form(min_length=1)],
+    files: Annotated[list[UploadFile] | None, File()] = None,
 ) -> StreamingResponse:
     s = sessions_db.get(session_id)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
 
-    events = runner_run(session_id, req.text)
+    file_list = files or []
+    if file_list:
+        agent = agent_config.get(s.agent_id)
+        workspace = ensure_workspace(agent) if agent else None
+        blocks: list[dict] = []
+        for f in file_list:
+            blocks.extend(await process_upload(f, workspace))
+        blocks.append({"type": "text", "text": text})
+        user_content: str | list = blocks
+    else:
+        user_content = text
+
+    events = runner_run(session_id, user_content)
     return StreamingResponse(
         to_sse(events),
         media_type="text/event-stream",

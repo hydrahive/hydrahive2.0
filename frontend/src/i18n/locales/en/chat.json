@@ -38,6 +38,9 @@
     "hint": "Enter to send · Shift+Enter for new line",
     "stop_title": "Stop — cancel response"
   },
+  "upload": {
+    "button_title": "Attach file"
+  },
   "messages": {
     "empty": "Write a message to start…",
     "iteration": "Iteration {{n}}…"
