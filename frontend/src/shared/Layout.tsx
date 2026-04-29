@@ -6,6 +6,7 @@ import { cn } from "./cn"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 import { api } from "@/shared/api-client"
+import { UpdateModal, type UpdateState } from "@/shared/UpdateModal"
 
 interface NavItem {
   path: string
@@ -88,8 +89,9 @@ export function Layout() {
   const [version, setVersion] = useState<string | null>(null)
   const [commit, setCommit] = useState<string | null>(null)
   const [updateBehind, setUpdateBehind] = useState<number | null>(null)
-  const [updateState, setUpdateState] = useState<"idle" | "starting" | "running" | "done" | "failed">("idle")
+  const [updateState, setUpdateState] = useState<"idle" | UpdateState>("idle")
   const [updateError, setUpdateError] = useState<string | null>(null)
+  const [newCommit, setNewCommit] = useState<string | null>(null)
 
   useEffect(() => {
     function loadHealth() {
@@ -102,8 +104,17 @@ export function Layout() {
     return () => clearInterval(t)
   }, [])
 
-  async function triggerUpdate() {
-    if (!confirm(t("nav:update.confirm"))) return
+  function openUpdateModal() {
+    setUpdateState("confirm")
+    setUpdateError(null)
+    setNewCommit(null)
+  }
+
+  function closeUpdateModal() {
+    setUpdateState("idle")
+  }
+
+  async function confirmUpdate() {
     setUpdateState("starting")
     setUpdateError(null)
     try {
@@ -124,8 +135,8 @@ export function Layout() {
         if (h.commit && h.commit !== oldCommit) {
           setCommit(h.commit)
           setUpdateBehind(h.update_behind)
+          setNewCommit(h.commit)
           setUpdateState("done")
-          setTimeout(() => setUpdateState("idle"), 5000)
           return
         }
       } catch { /* server still down, keep polling */ }
@@ -213,11 +224,11 @@ export function Layout() {
         {version && (
           <div className="px-4 pb-2 text-[10px] text-zinc-600 font-mono tabular-nums text-right flex items-center justify-end gap-1.5">
             <span>v{version}{commit && <> · <span className="text-zinc-700">{commit}</span></>}</span>
-            {updateState === "idle" && updateBehind !== null && updateBehind > 0 && (
+            {updateBehind !== null && updateBehind > 0 && (
               role === "admin" ? (
                 <button
                   type="button"
-                  onClick={triggerUpdate}
+                  onClick={openUpdateModal}
                   title={t("nav:update.available")}
                   className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 hover:border-amber-500/50 transition-colors cursor-pointer"
                 >
@@ -231,20 +242,6 @@ export function Layout() {
                   ↑
                 </span>
               )
-            )}
-            {updateState === "starting" && (
-              <span className="text-amber-300">{t("nav:update.starting")}</span>
-            )}
-            {updateState === "running" && (
-              <span className="text-amber-300 animate-pulse">{t("nav:update.in_progress")}</span>
-            )}
-            {updateState === "done" && (
-              <span className="text-emerald-400">✓ {t("nav:update.done", { commit })}</span>
-            )}
-            {updateState === "failed" && (
-              <span className="text-rose-400" title={updateError ?? ""}>
-                {t("nav:update.failed", { error: updateError ?? "" })}
-              </span>
             )}
           </div>
         )}
@@ -263,6 +260,16 @@ export function Layout() {
           <BottomNavItem key={item.path} {...item} />
         ))}
       </nav>
+
+      {updateState !== "idle" && (
+        <UpdateModal
+          state={updateState}
+          newCommit={newCommit}
+          errorMessage={updateError}
+          onConfirm={confirmUpdate}
+          onClose={closeUpdateModal}
+        />
+      )}
     </div>
   )
 }
