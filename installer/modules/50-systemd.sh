@@ -5,6 +5,8 @@ set -euo pipefail
 log() { printf "  · %s\n" "$*"; }
 
 SERVICE_FILE=/etc/systemd/system/hydrahive2.service
+UPDATE_SERVICE=/etc/systemd/system/hydrahive2-update.service
+UPDATE_PATH=/etc/systemd/system/hydrahive2-update.path
 
 # JWT-Secret generieren falls nicht da
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -48,12 +50,45 @@ ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR
 WantedBy=multi-user.target
 EOF
 
+log "Schreibe $UPDATE_SERVICE (Self-Update Runner)"
+cat > "$UPDATE_SERVICE" <<EOF
+[Unit]
+Description=HydraHive2 Self-Update Runner
+ConditionPathExists=$HH_DATA_DIR/.update_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.update_request
+ExecStart=$HH_REPO_DIR/installer/update.sh
+StandardOutput=append:/var/log/hydrahive2-update.log
+StandardError=append:/var/log/hydrahive2-update.log
+EOF
+
+log "Schreibe $UPDATE_PATH (Trigger-Watcher)"
+cat > "$UPDATE_PATH" <<EOF
+[Unit]
+Description=HydraHive2 Update-Trigger Watcher
+
+[Path]
+PathExists=$HH_DATA_DIR/.update_request
+Unit=hydrahive2-update.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Log-File mit korrekten Permissions vorbereiten
+touch /var/log/hydrahive2-update.log
+chmod 644 /var/log/hydrahive2-update.log
+
 log "systemd reload + enable"
 systemctl daemon-reload
 systemctl enable hydrahive2.service >/dev/null 2>&1
+systemctl enable hydrahive2-update.path >/dev/null 2>&1
 
-log "Starte Service"
+log "Starte Service + Update-Watcher"
 systemctl restart hydrahive2.service
+systemctl restart hydrahive2-update.path
 
 sleep 2
 if systemctl is-active --quiet hydrahive2.service; then
