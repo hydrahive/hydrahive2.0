@@ -15,6 +15,14 @@ cd "$HH_REPO_DIR"
 log "git pull"
 sudo -u hydrahive git pull --ff-only
 
+log "Node.js prüfen"
+if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ]; then
+  log "Node.js 20 fehlt — installiere via NodeSource"
+  export DEBIAN_FRONTEND=noninteractive
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null
+  apt-get install -y nodejs >/dev/null
+fi
+
 log "Backend-Dependencies aktualisieren"
 "$HH_REPO_DIR/.venv/bin/pip" install --quiet -e "$HH_REPO_DIR/core"
 
