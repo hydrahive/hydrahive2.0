@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 export HH_DATA_DIR="${HH_DATA_DIR:-$HOME/.hh2-dev/data}"
 export HH_CONFIG_DIR="${HH_CONFIG_DIR:-$HOME/.hh2-dev/config}"
 export HH_SECRET_KEY="${HH_SECRET_KEY:-devsecret123}"
+export HH_ENABLE_DOCS="${HH_ENABLE_DOCS:-1}"
 
 mkdir -p "$HH_DATA_DIR" "$HH_CONFIG_DIR"
 

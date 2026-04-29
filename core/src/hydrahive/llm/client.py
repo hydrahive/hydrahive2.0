@@ -20,6 +20,7 @@ _ENV_MAP = {
     "groq": "GROQ_API_KEY",
     "mistral": "MISTRAL_API_KEY",
     "gemini": "GEMINI_API_KEY",
+    "nvidia": "NVIDIA_NIM_API_KEY",
 }
 
 # Anthropic requires these headers for OAuth token requests (sk-ant-oat01-...).
@@ -96,6 +97,17 @@ def _strip_provider_prefix(model: str) -> str:
     return model
 
 
+def _extract_text(content) -> str:
+    """Join all text blocks from an Anthropic-SDK response.
+
+    MiniMax (and Anthropic with extended thinking) can return ThinkingBlock
+    items in content[]. Those have no .text attribute. We iterate and pick
+    only the actual text blocks.
+    """
+    parts = [getattr(b, "text", "") for b in content if getattr(b, "type", None) == "text"]
+    return "".join(parts)
+
+
 def is_minimax_model(model: str) -> bool:
     """MiniMax-Modelle erkennen — entweder 'minimax/'-Prefix oder 'MiniMax-' im Namen."""
     if model.startswith("minimax/"):
@@ -125,7 +137,7 @@ async def _anthropic_oauth_complete(
         temperature=temperature,
         max_tokens=max_tokens,
     )
-    return resp.content[0].text
+    return _extract_text(resp.content)
 
 
 async def _minimax_complete(
@@ -148,7 +160,7 @@ async def _minimax_complete(
         temperature=temperature,
         max_tokens=max_tokens,
     )
-    return resp.content[0].text
+    return _extract_text(resp.content)
 
 
 async def _anthropic_oauth_stream(
