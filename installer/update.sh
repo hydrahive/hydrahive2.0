@@ -23,6 +23,40 @@ cd "$HH_REPO_DIR/frontend"
 sudo -u hydrahive npm install --silent
 sudo -u hydrahive npm run build --silent
 
+log "Systemd-Units prüfen"
+HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
+if [ ! -f /etc/systemd/system/hydrahive2-update.path ] || [ ! -f /etc/systemd/system/hydrahive2-update.service ]; then
+  log "Self-Update-Units fehlen — werden angelegt"
+  cat > /etc/systemd/system/hydrahive2-update.service <<EOF
+[Unit]
+Description=HydraHive2 Self-Update Runner
+ConditionPathExists=$HH_DATA_DIR/.update_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.update_request
+ExecStart=$HH_REPO_DIR/installer/update.sh
+StandardOutput=append:/var/log/hydrahive2-update.log
+StandardError=append:/var/log/hydrahive2-update.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-update.path <<EOF
+[Unit]
+Description=HydraHive2 Update-Trigger Watcher
+
+[Path]
+PathExists=$HH_DATA_DIR/.update_request
+Unit=hydrahive2-update.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  touch /var/log/hydrahive2-update.log
+  chmod 644 /var/log/hydrahive2-update.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-update.path >/dev/null 2>&1
+  systemctl restart hydrahive2-update.path
+fi
+
 log "Service neu starten"
 systemctl restart hydrahive2.service
 
