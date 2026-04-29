@@ -170,10 +170,10 @@ if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "hydrahive2-stt"; the
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
 fi
 
-log "nginx Security-Headers prüfen"
+log "nginx HTTPS prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
-if [ -f "$NGINX_CONF" ] && ! grep -q "X-Frame-Options" "$NGINX_CONF"; then
-  log "Security-Headers fehlen — nginx-Config neu schreiben"
+if [ -f "$NGINX_CONF" ] && ! grep -q "ssl_certificate" "$NGINX_CONF"; then
+  log "nginx: kein HTTPS gefunden — Config auf HTTPS upgraden"
   HH_HOST="${HH_HOST:-127.0.0.1}"
   HH_PORT="${HH_PORT:-8001}"
   HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
