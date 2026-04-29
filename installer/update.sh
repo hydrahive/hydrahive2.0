@@ -57,6 +57,16 @@ EOF
   systemctl restart hydrahive2-update.path
 fi
 
+log "nginx Security-Headers prüfen"
+NGINX_CONF=/etc/nginx/sites-available/hydrahive2
+if [ -f "$NGINX_CONF" ] && ! grep -q "X-Frame-Options" "$NGINX_CONF"; then
+  log "Security-Headers fehlen — nginx-Config neu schreiben"
+  HH_HOST="${HH_HOST:-127.0.0.1}"
+  HH_PORT="${HH_PORT:-8001}"
+  HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
+    bash "$HH_REPO_DIR/installer/modules/60-nginx.sh"
+fi
+
 log "Service neu starten"
 systemctl restart hydrahive2.service
 
