@@ -8,6 +8,7 @@ import { MessageList } from "./MessageList"
 import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
 import { TokenMeter } from "./TokenMeter"
+import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
 import type { AgentBrief, Session } from "./types"
 import { useChat } from "./useChat"
 
@@ -182,7 +183,7 @@ export function ChatPage() {
         )}
       </main>
 
-      <aside className="w-72 border-l border-white/[6%] bg-white/[2%] flex-shrink-0">
+      <CollapsibleSidebar>
         <SessionList
           sessions={sessions}
           activeId={activeId}
@@ -192,7 +193,7 @@ export function ChatPage() {
           onDelete={handleDelete}
           onNew={() => setShowNew(true)}
         />
-      </aside>
+      </CollapsibleSidebar>
 
       {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
     </div>

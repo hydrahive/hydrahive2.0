@@ -4,6 +4,7 @@ import { projectsApi } from "./api"
 import { NewProjectDialog } from "./NewProjectDialog"
 import { ProjectForm } from "./ProjectForm"
 import { ProjectList } from "./ProjectList"
+import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
 import type { Project } from "./types"
 
 export function ProjectsPage() {
@@ -50,12 +51,12 @@ export function ProjectsPage() {
         )}
       </main>
 
-      <aside className="w-72 border-l border-white/[6%] bg-white/[2%] flex-shrink-0">
+      <CollapsibleSidebar>
         <ProjectList
           projects={projects} activeId={activeId}
           onSelect={setActiveId} onNew={() => setShowNew(true)}
         />
-      </aside>
+      </CollapsibleSidebar>
 
       {showNew && (
         <NewProjectDialog onClose={() => setShowNew(false)} onCreated={handleCreated} />

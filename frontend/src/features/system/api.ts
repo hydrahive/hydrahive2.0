@@ -38,4 +38,6 @@ export const systemApi = {
   info: () => api.get<SystemInfo>("/system/info"),
   stats: () => api.get<SystemStats>("/system/stats"),
   health: () => api.get<{ checks: HealthCheck[] }>("/system/health"),
+  installVoice: () => api.post<{ started: boolean }>("/system/install-voice", {}),
+  voiceLog: (tail = 300) => api.get<{ lines: string[]; exists: boolean }>(`/system/install-voice/log?tail=${tail}`),
 }

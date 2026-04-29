@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Dev-Datenpfade — im User-Home, überlebt Reboot.
 # Production-Default ist /var/lib/hydrahive2 + /etc/hydrahive2 (sudo nötig).
+export HH_BASE_DIR="${HH_BASE_DIR:-$SCRIPT_DIR}"
 export HH_DATA_DIR="${HH_DATA_DIR:-$HOME/.hh2-dev/data}"
 export HH_CONFIG_DIR="${HH_CONFIG_DIR:-$HOME/.hh2-dev/config}"
 export HH_SECRET_KEY="${HH_SECRET_KEY:-devsecret123}"

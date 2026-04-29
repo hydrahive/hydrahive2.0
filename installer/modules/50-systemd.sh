@@ -9,6 +9,8 @@ UPDATE_SERVICE=/etc/systemd/system/hydrahive2-update.service
 UPDATE_TIMER=/etc/systemd/system/hydrahive2-update.timer
 RESTART_SERVICE=/etc/systemd/system/hydrahive2-restart.service
 RESTART_TIMER=/etc/systemd/system/hydrahive2-restart.timer
+VOICE_SERVICE=/etc/systemd/system/hydrahive2-voice.service
+VOICE_TIMER=/etc/systemd/system/hydrahive2-voice.timer
 
 # JWT-Secret generieren falls nicht da
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -108,24 +110,57 @@ Unit=hydrahive2-restart.service
 WantedBy=timers.target
 EOF
 
+log "Schreibe $VOICE_SERVICE (Voice-Install Runner)"
+cat > "$VOICE_SERVICE" <<EOF
+[Unit]
+Description=HydraHive2 Voice-Install Runner
+ConditionPathExists=$HH_DATA_DIR/.voice_install_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.voice_install_request
+ExecStart=$HH_REPO_DIR/installer/modules/55-voice.sh
+StandardOutput=append:/var/log/hydrahive2-voice.log
+StandardError=append:/var/log/hydrahive2-voice.log
+EOF
+
+log "Schreibe $VOICE_TIMER (Voice-Install Trigger-Poller)"
+cat > "$VOICE_TIMER" <<EOF
+[Unit]
+Description=HydraHive2 Voice-Install Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-voice.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # Alte Path-Units entfernen falls vorhanden
 rm -f /etc/systemd/system/hydrahive2-update.path
 rm -f /etc/systemd/system/hydrahive2-restart.path
 
-# Log-File mit korrekten Permissions vorbereiten
+# Log-Files mit korrekten Permissions vorbereiten
 touch /var/log/hydrahive2-update.log
 chmod 644 /var/log/hydrahive2-update.log
+touch /var/log/hydrahive2-voice.log
+chmod 644 /var/log/hydrahive2-voice.log
 
 log "systemd reload + enable"
 systemctl daemon-reload
 systemctl enable hydrahive2.service >/dev/null 2>&1
 systemctl enable hydrahive2-update.timer >/dev/null 2>&1
 systemctl enable hydrahive2-restart.timer >/dev/null 2>&1
+systemctl enable hydrahive2-voice.timer >/dev/null 2>&1
 
-log "Starte Service + Update-Timer + Restart-Timer"
+log "Starte Service + Update-Timer + Restart-Timer + Voice-Timer"
 systemctl restart hydrahive2.service
 systemctl restart hydrahive2-update.timer
 systemctl restart hydrahive2-restart.timer
+systemctl restart hydrahive2-voice.timer
 
 sleep 2
 if systemctl is-active --quiet hydrahive2.service; then
