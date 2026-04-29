@@ -60,10 +60,15 @@ export function MessageBubble({ message }: { message: Message }) {
         {fullText && (
           <button
             onClick={() => tts.speaking ? tts.stop() : tts.speak(fullText)}
-            className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-colors ${
+              tts.speaking
+                ? "text-rose-300 bg-rose-500/15 border-rose-500/30 hover:bg-rose-500/25"
+                : "text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-zinc-200 hover:bg-white/[6%]"
+            }`}
             title={tts.speaking ? "Stop" : "Vorlesen"}
           >
-            {tts.speaking ? <VolumeX size={11} /> : <Volume2 size={11} />}
+            {tts.speaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
+            <span>{tts.speaking ? "Stop" : "Vorlesen"}</span>
           </button>
         )}
       </div>
