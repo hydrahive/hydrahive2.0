@@ -20,6 +20,15 @@ server {
     root $HH_REPO_DIR/frontend/dist;
     index index.html;
 
+    # Security-Headers — gelten für alle Responses (auch Errors)
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()" always;
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
+    # HSTS: aktivieren sobald HTTPS konfiguriert ist (sonst no-op)
+    # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
     # SPA-Fallback: jeder unbekannte Pfad → index.html
     location / {
         try_files \$uri \$uri/ /index.html;
