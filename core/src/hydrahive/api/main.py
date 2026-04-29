@@ -59,15 +59,18 @@ async def lifespan(app: FastAPI):
     logger.info("HydraHive2 beendet")
 
 
+import os
+_DOCS_ENABLED = os.environ.get("HH_ENABLE_DOCS", "").lower() in ("1", "true", "yes")
+
 app = FastAPI(
     title="HydraHive2",
     version="2.0.0",
     lifespan=lifespan,
-    docs_url="/api/docs",
+    docs_url="/api/docs" if _DOCS_ENABLED else None,
     redoc_url=None,
+    openapi_url="/api/openapi.json" if _DOCS_ENABLED else None,
 )
 
-import os
 _cors_origins_env = os.environ.get("HH_CORS_ORIGINS", "").strip()
 _cors_origins = (
     [o.strip() for o in _cors_origins_env.split(",") if o.strip()]

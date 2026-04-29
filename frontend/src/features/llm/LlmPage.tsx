@@ -33,6 +33,16 @@ const KNOWN_PROVIDERS = [
     id: "minimax", name: "MiniMax", placeholder: "eyJ...",
     models: ["MiniMax-M2", "MiniMax-M2.7", "abab6.5s-chat"],
   },
+  {
+    id: "nvidia", name: "NVIDIA NIM", placeholder: "nvapi-...",
+    models: [
+      "nvidia_nim/meta/llama-3.3-70b-instruct",
+      "nvidia_nim/meta/llama-3.1-405b-instruct",
+      "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct",
+      "nvidia_nim/deepseek-ai/deepseek-r1",
+      "nvidia_nim/mistralai/mistral-large-2-instruct",
+    ],
+  },
 ]
 
 const EMPTY_PROVIDER: LlmProvider = { id: "", name: "", api_key: "", models: [] }
