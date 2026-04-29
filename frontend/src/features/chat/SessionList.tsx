@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function SessionList({ sessions, activeId, knownAgentIds, projects, onSelect, onDelete, onNew }: Props) {
-  const { t, i18n } = useTranslation("chat")
+  const { t } = useTranslation("chat")
   const { t: tCommon } = useTranslation("common")
   const [tab, setTab] = useState<Tab>("direct")
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
