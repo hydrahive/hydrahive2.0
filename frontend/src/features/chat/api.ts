@@ -40,16 +40,17 @@ export const chatApi = {
 export async function* sendMessage(
   sessionId: string,
   text: string,
+  files: File[] = [],
   signal?: AbortSignal,
 ): AsyncIterable<RunnerEvent> {
   const token = useAuthStore.getState().token
+  const body = new FormData()
+  body.append("text", text)
+  for (const file of files) body.append("files", file, file.name)
   const res = await fetch(`/api/sessions/${sessionId}/messages`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ text }),
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body,
     signal,
   })
 

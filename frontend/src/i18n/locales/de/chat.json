@@ -41,6 +41,9 @@
     "hint": "Enter zum Senden · Shift+Enter für neue Zeile",
     "stop_title": "Stop — Antwort abbrechen"
   },
+  "upload": {
+    "button_title": "Datei anhängen"
+  },
   "messages": {
     "empty": "Schreibe eine Nachricht um zu starten…",
     "iteration": "Iteration {{n}}…"

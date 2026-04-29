@@ -13,22 +13,26 @@ export function MessageBubble({ message }: { message: Message }) {
 
   if (message.role === "user") {
     const text = blocks.find((b) => b.type === "text")?.text ?? ""
+    const images = blocks.filter((b) => b.type === "image")
     const tool_results = blocks.filter((b) => b.type === "tool_result")
 
     if (tool_results.length > 0) {
       return (
         <div className="space-y-1.5">
-          {tool_results.map((tr, i) => (
-            <ToolResultCard key={i} block={tr} />
-          ))}
+          {tool_results.map((tr, i) => <ToolResultCard key={i} block={tr as ContentBlock & { type: "tool_result" }} />)}
         </div>
       )
     }
 
     return (
       <div className="flex items-start gap-3 justify-end">
-        <div className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-md bg-gradient-to-br from-indigo-600 to-violet-600 text-white text-sm whitespace-pre-wrap shadow-lg shadow-violet-900/20">
-          {text}
+        <div className="max-w-[80%] space-y-2">
+          {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
+          {text && (
+            <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-gradient-to-br from-indigo-600 to-violet-600 text-white text-sm whitespace-pre-wrap shadow-lg shadow-violet-900/20">
+              {text}
+            </div>
+          )}
         </div>
         <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0">
           <User size={14} className="text-zinc-400" />
@@ -78,6 +82,15 @@ function ToolResultCard({ block }: { block: ContentBlock & { type: "tool_result"
         {block.content}
       </pre>
     </div>
+  )
+}
+
+function ImageBlock({ block }: { block: ContentBlock & { type: "image" } }) {
+  const src = block.source.type === "base64"
+    ? `data:${block.source.media_type};base64,${block.source.data}`
+    : block.source.url
+  return (
+    <img src={src} alt="" className="max-w-xs max-h-64 rounded-xl object-contain border border-white/10 shadow-md" />
   )
 }
 

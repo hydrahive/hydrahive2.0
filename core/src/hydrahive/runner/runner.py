@@ -34,7 +34,7 @@ MAX_ITERATIONS = 30
 LOOP_DETECTION_WINDOW = 3  # 3× identisches Tool-Use → Abbruch
 
 
-async def run(session_id: str, user_input: str, *, tool_config: dict | None = None) -> AsyncIterator[Event]:
+async def run(session_id: str, user_input: str | list, *, tool_config: dict | None = None) -> AsyncIterator[Event]:
     """Run one user turn against the agent. Yields events; persists state.
 
     Caller is responsible for SSE-encoding the events for HTTP. Errors are

@@ -44,12 +44,17 @@ export function useChat(sessionId: string | null) {
   }, [sessionId])
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, files: File[] = []) => {
       if (!sessionId) return
+      const imageBlocks = files
+        .filter((f) => f.type.startsWith("image/"))
+        .map((f) => ({ type: "image" as const, source: { type: "url" as const, url: URL.createObjectURL(f) } }))
       const userMsg: Message = {
         id: `local-${Date.now()}`,
         role: "user",
-        content: text,
+        content: imageBlocks.length > 0
+          ? [...imageBlocks, { type: "text" as const, text }]
+          : text,
         created_at: new Date().toISOString(),
         token_count: null,
         metadata: {},
@@ -74,7 +79,7 @@ export function useChat(sessionId: string | null) {
       const controller = new AbortController()
       abortRef.current = controller
       try {
-        for await (const ev of sendMessage(sessionId, text, controller.signal)) {
+        for await (const ev of sendMessage(sessionId, text, files, controller.signal)) {
           if (ev.type === "iteration_start") {
             setState((s) => ({ ...s, iteration: ev.iteration }))
           } else if (ev.type === "message_start") {

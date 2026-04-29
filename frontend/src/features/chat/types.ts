@@ -10,15 +10,15 @@ export interface Session {
   metadata: Record<string, unknown>
 }
 
+export type ImageSource =
+  | { type: "base64"; media_type: string; data: string }
+  | { type: "url"; url: string }
+
 export type ContentBlock =
   | { type: "text"; text: string }
+  | { type: "image"; source: ImageSource }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | {
-      type: "tool_result"
-      tool_use_id: string
-      content: string
-      is_error?: boolean
-    }
+  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean }
 
 export interface Message {
   id: string
