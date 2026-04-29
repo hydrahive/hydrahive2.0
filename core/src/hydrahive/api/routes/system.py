@@ -26,10 +26,22 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
-UPDATE_SCRIPT = Path("/opt/hydrahive2/installer/update.sh")
+def _installer_path(rel: str) -> Path:
+    """Resolves an installer script path: base_dir first, then repo root via __file__."""
+    p = settings.base_dir / rel
+    if p.exists():
+        return p
+    # dev fallback: __file__ = core/src/hydrahive/api/routes/system.py → 5 levels up = repo root
+    return Path(__file__).resolve().parents[5] / rel
+
+
+UPDATE_SCRIPT = _installer_path("installer/update.sh")
 UPDATE_TRIGGER = settings.data_dir / ".update_request"
 UPDATE_LOG = Path("/var/log/hydrahive2-update.log")
 RESTART_TRIGGER = settings.data_dir / ".restart_request"
+VOICE_SCRIPT = _installer_path("installer/modules/55-voice.sh")
+VOICE_TRIGGER = settings.data_dir / ".voice_install_request"
+VOICE_LOG = Path("/var/log/hydrahive2-voice.log")
 
 _start_time: float = 0.0
 
@@ -143,6 +155,38 @@ def trigger_restart() -> dict:
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "restart_trigger_failed", message=str(e))
     logger.warning("Restart-Trigger geschrieben (%s)", RESTART_TRIGGER)
     return {"started": True}
+
+
+@router.post("/install-voice", dependencies=[Depends(require_admin)])
+def trigger_voice_install() -> dict:
+    """Writes a trigger file that the hydrahive2-voice.timer watches.
+
+    The service runs 55-voice.sh as root — installs Docker if needed,
+    pulls Wyoming containers, starts STT (port 10300) + TTS (port 10200).
+    """
+    if not VOICE_SCRIPT.exists():
+        raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "voice_script_missing")
+    try:
+        VOICE_TRIGGER.write_text(str(int(time.time())))
+    except OSError as e:
+        logger.exception("Voice-Trigger-File konnte nicht geschrieben werden")
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "voice_trigger_failed", message=str(e))
+    logger.info("Voice-Install-Trigger geschrieben (%s)", VOICE_TRIGGER)
+    return {"started": True}
+
+
+@router.get("/install-voice/log", dependencies=[Depends(require_admin)])
+def voice_log(tail: int = 200) -> dict:
+    """Reads the last N lines from the voice install log."""
+    if not VOICE_LOG.exists():
+        return {"lines": [], "exists": False}
+    try:
+        with VOICE_LOG.open("r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except (PermissionError, OSError) as e:
+        return {"lines": [], "exists": True, "error": str(e)}
+    capped = max(1, min(tail, 1000))
+    return {"lines": lines[-capped:], "exists": True}
 
 
 @router.get("/update/log", dependencies=[Depends(require_admin)])

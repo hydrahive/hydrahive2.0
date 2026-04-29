@@ -29,16 +29,22 @@ export function useRestart() {
     const startedAt = Date.now()
     const maxWaitMs = 60_000
     let backendDown = false
+    let healthyStreak = 0
     while (Date.now() - startedAt < maxWaitMs) {
       await new Promise((r) => setTimeout(r, 1500))
+      const elapsed = Date.now() - startedAt
       try {
         await fetch("/api/health", { signal: AbortSignal.timeout(3000) })
-        if (backendDown) {
+        healthyStreak++
+        // either we saw it go down, or it's been healthy for 3+ polls after 8s
+        // (handles fast restarts where the down window is <1500ms)
+        if (backendDown || (elapsed > 8000 && healthyStreak >= 3)) {
           setState("done")
           return
         }
       } catch {
         backendDown = true
+        healthyStreak = 0
       }
     }
     setState("failed")

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import {
-  Activity, Bot, Database, Folder, MessageSquare, RotateCw, Server, Wrench, Zap,
+  Activity, Bot, Database, Folder, MessageSquare, Mic, RotateCw, Server, Wrench, Zap,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
@@ -10,6 +10,7 @@ import { useRestart } from "@/shared/useRestart"
 import { systemApi, type HealthCheck, type SystemInfo, type SystemStats } from "./api"
 import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
+import { VoiceInstallModal, type VoiceInstallState } from "./VoiceInstallModal"
 
 const REFRESH_MS = 10_000
 
@@ -19,6 +20,8 @@ export function SystemPage() {
   const { t: tNav } = useTranslation("nav")
   const role = useAuthStore((s) => s.role)
   const restart = useRestart()
+  const [voiceState, setVoiceState] = useState<"idle" | VoiceInstallState>("idle")
+  const [voiceError, setVoiceError] = useState<string | null>(null)
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [checks, setChecks] = useState<HealthCheck[]>([])
@@ -51,13 +54,22 @@ export function SystemPage() {
         </div>
         <div className="flex items-center gap-2">
           {role === "admin" && (
-            <button
-              onClick={restart.open}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
-            >
-              <RotateCw size={12} />
-              {tNav("restart.button")}
-            </button>
+            <>
+              <button
+                onClick={() => { setVoiceState("confirm"); setVoiceError(null) }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
+              >
+                <Mic size={12} />
+                Voice installieren
+              </button>
+              <button
+                onClick={restart.open}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
+              >
+                <RotateCw size={12} />
+                {tNav("restart.button")}
+              </button>
+            </>
           )}
           <HelpButton topic="system" />
         </div>
@@ -69,6 +81,39 @@ export function SystemPage() {
           errorMessage={restart.error}
           onConfirm={restart.confirm}
           onClose={restart.close}
+        />
+      )}
+
+      {voiceState !== "idle" && (
+        <VoiceInstallModal
+          state={voiceState}
+          errorMessage={voiceError}
+          onConfirm={async () => {
+            setVoiceState("starting")
+            setVoiceError(null)
+            try {
+              await systemApi.installVoice()
+              setVoiceState("running")
+              // Poll log until "bereit" appears or 5 minutes pass
+              const startedAt = Date.now()
+              while (Date.now() - startedAt < 300_000) {
+                await new Promise((r) => setTimeout(r, 3000))
+                try {
+                  const log = await systemApi.voiceLog(50)
+                  const text = log.lines.join("")
+                  if (text.includes("Voice Interface bereit")) {
+                    setVoiceState("done")
+                    return
+                  }
+                } catch { /* ignore */ }
+              }
+              setVoiceState("done")
+            } catch (e) {
+              setVoiceState("failed")
+              setVoiceError(e instanceof Error ? e.message : String(e))
+            }
+          }}
+          onClose={() => setVoiceState("idle")}
         />
       )}
 

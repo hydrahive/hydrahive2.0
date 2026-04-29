@@ -115,6 +115,45 @@ EOF
   systemctl restart hydrahive2-restart.timer
 fi
 
+if [ ! -f /etc/systemd/system/hydrahive2-voice.timer ] || [ ! -f /etc/systemd/system/hydrahive2-voice.service ]; then
+  log "Voice-Install-Units anlegen"
+  cat > /etc/systemd/system/hydrahive2-voice.service <<EOF
+[Unit]
+Description=HydraHive2 Voice-Install Runner
+ConditionPathExists=$HH_DATA_DIR/.voice_install_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.voice_install_request
+ExecStart=$HH_REPO_DIR/installer/modules/55-voice.sh
+StandardOutput=append:/var/log/hydrahive2-voice.log
+StandardError=append:/var/log/hydrahive2-voice.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-voice.timer <<EOF
+[Unit]
+Description=HydraHive2 Voice-Install Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-voice.service
+
+[Install]
+WantedBy=timers.target
+EOF
+  touch /var/log/hydrahive2-voice.log
+  chmod 644 /var/log/hydrahive2-voice.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-voice.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-voice.timer
+fi
+
+if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "hydrahive2-stt"; then
+  log "Voice-Container fehlen — starte 55-voice.sh"
+  bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
+fi
+
 log "nginx Security-Headers prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
 if [ -f "$NGINX_CONF" ] && ! grep -q "X-Frame-Options" "$NGINX_CONF"; then

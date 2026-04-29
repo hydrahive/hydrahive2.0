@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { AgentForm } from "./AgentForm"
 import { AgentList } from "./AgentList"
 import { NewAgentDialog } from "./NewAgentDialog"
+import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
 import { agentsApi, llmInfoApi } from "./api"
 import type { Agent, ToolMeta } from "./types"
 
@@ -67,14 +68,14 @@ export function AgentsPage() {
         )}
       </main>
 
-      <aside className="w-72 border-l border-white/[6%] bg-white/[2%] flex-shrink-0">
+      <CollapsibleSidebar>
         <AgentList
           agents={agents}
           activeId={activeId}
           onSelect={setActiveId}
           onNew={() => setShowNew(true)}
         />
-      </aside>
+      </CollapsibleSidebar>
 
       {showNew && (
         <NewAgentDialog

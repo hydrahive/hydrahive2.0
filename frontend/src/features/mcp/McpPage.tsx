@@ -4,6 +4,7 @@ import { McpServerForm } from "./McpServerForm"
 import { McpServerList } from "./McpServerList"
 import { NewMcpServerDialog } from "./NewMcpServerDialog"
 import { QuickAddPanel } from "./QuickAddPanel"
+import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
 import type { McpServer } from "./types"
 
 export function McpPage() {
@@ -52,14 +53,14 @@ export function McpPage() {
         )}
       </main>
 
-      <aside className="w-72 border-l border-white/[6%] bg-white/[2%] flex-shrink-0">
+      <CollapsibleSidebar>
         <McpServerList
           servers={servers} activeId={activeId}
           onSelect={setActiveId}
           onNew={() => setShowNew(true)}
           onQuickAdd={() => setActiveId(null)}
         />
-      </aside>
+      </CollapsibleSidebar>
 
       {showNew && <NewMcpServerDialog onClose={() => setShowNew(false)} onCreated={handleCreated} />}
     </div>
