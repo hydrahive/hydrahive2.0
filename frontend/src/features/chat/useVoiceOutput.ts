@@ -62,7 +62,7 @@ async function speakGlobal(text: string, lang = "de-DE") {
         },
         body: JSON.stringify({ text, voice: getTTSVoice() }),
       })
-      if (myId !== speakRequestId) return  // user hat zwischenzeitlich abgebrochen
+      if (myId !== speakRequestId) return
       if (!res.ok) throw new Error(`TTS ${res.status}`)
       const blob = await res.blob()
       if (myId !== speakRequestId) return
@@ -86,21 +86,21 @@ async function speakGlobal(text: string, lang = "de-DE") {
       activeAudioUrl = url
       setSpeakingGlobal(true)
       await audio.play()
-      return
     } catch (e) {
-      console.error("MiniMax TTS fehlgeschlagen, Fallback Browser:", e)
-      if (myId !== speakRequestId) return
+      console.error("MiniMax TTS fehlgeschlagen:", e)
+      setSpeakingGlobal(false)
     }
+    // KEIN Fallback auf Browser-TTS — entweder/oder, nie beides
+    return
   }
 
-  // Browser-TTS-Pfad
-  if (myId !== speakRequestId) return
+  // provider === "browser"
   const utt = new SpeechSynthesisUtterance(text)
   utt.lang = lang
   utt.rate = 1.0
-  utt.onstart = () => setSpeakingGlobal(true)
-  utt.onend = () => setSpeakingGlobal(false)
-  utt.onerror = () => setSpeakingGlobal(false)
+  utt.onstart = () => { if (myId === speakRequestId) setSpeakingGlobal(true) }
+  utt.onend = () => { if (myId === speakRequestId) setSpeakingGlobal(false) }
+  utt.onerror = () => { if (myId === speakRequestId) setSpeakingGlobal(false) }
   window.speechSynthesis.speak(utt)
 }
 
