@@ -42,6 +42,33 @@ _ANTHROPIC_OAUTH_IDENTITY = [
 MINIMAX_BASE_URL = "https://api.minimax.io/anthropic"
 
 
+def convert_images_for_minimax(messages: list[dict]) -> list[dict]:
+    """Anthropic image blocks → OpenAI image_url blocks für MiniMax.
+
+    MiniMax's /anthropic Endpoint übergibt Anthropic-Image-Blöcke nicht ans Modell.
+    Das Modell erwartet intern OpenAI-Format: {"type":"image_url","image_url":{"url":"data:..."}}.
+    """
+    result = []
+    for m in messages:
+        if m.get("role") == "user" and isinstance(m.get("content"), list):
+            new_content = []
+            for b in m["content"]:
+                if isinstance(b, dict) and b.get("type") == "image":
+                    source = b.get("source") or {}
+                    data = source.get("data", "")
+                    mime = source.get("media_type") or "image/png"
+                    new_content.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime};base64,{data}"},
+                    })
+                else:
+                    new_content.append(b)
+            result.append({**m, "content": new_content})
+        else:
+            result.append(m)
+    return result
+
+
 _config_cache: tuple[float, dict] | None = None
 
 
@@ -154,6 +181,7 @@ async def _minimax_complete(
         timeout=60.0,
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
+    messages = convert_images_for_minimax(messages)
     resp = await client.messages.create(
         model=_strip_provider_prefix(model),
         messages=messages,

@@ -157,6 +157,7 @@ async def _minimax_stream(
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
 
+    messages = llm_client.convert_images_for_minimax(messages)
     kwargs: dict[str, Any] = {
         "model": model,
         "messages": messages,
