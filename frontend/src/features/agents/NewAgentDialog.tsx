@@ -31,7 +31,7 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
       const created = await agentsApi.create({
         type, name: name.trim(), llm_model: model, tools,
         description: "", temperature: 0.7, max_tokens: 4096,
-        thinking_budget: 0, mcp_servers: [],
+        thinking_budget: 0, mcp_servers: [], fallback_models: [],
       })
       onCreated(created.id)
     } catch (e) {

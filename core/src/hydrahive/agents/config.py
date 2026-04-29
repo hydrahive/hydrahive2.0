@@ -42,6 +42,7 @@ def create(
     max_tokens: int = DEFAULT_MAX_TOKENS,
     thinking_budget: int = DEFAULT_THINKING_BUDGET,
     mcp_servers: list[str] | None = None,
+    fallback_models: list[str] | None = None,
     project_id: str | None = None,
     domain: str | None = None,
     system_prompt: str | None = None,
@@ -53,6 +54,8 @@ def create(
     _validation.validate_tools(tools)
     _validation.validate_temperature(temperature)
     _validation.validate_max_tokens(max_tokens)
+    if fallback_models:
+        _validation.validate_fallback_models(fallback_models)
 
     agent_id = str(uuid.uuid4())
     cfg: dict[str, Any] = {
@@ -62,6 +65,7 @@ def create(
         "owner": owner,
         "created_by": created_by or owner,
         "llm_model": llm_model,
+        "fallback_models": list(fallback_models or []),
         "tools": list(tools),
         "mcp_servers": list(mcp_servers or []),
         "description": description,
@@ -97,6 +101,7 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("max_tokens", DEFAULT_MAX_TOKENS)
     cfg.setdefault("thinking_budget", DEFAULT_THINKING_BUDGET)
     cfg.setdefault("mcp_servers", [])
+    cfg.setdefault("fallback_models", [])
     cfg.setdefault("updated_at", cfg.get("created_at", ""))
     cfg.setdefault("created_by", cfg.get("owner"))
     cfg.setdefault("tools", [])
@@ -140,6 +145,8 @@ def update(agent_id: str, **changes: Any) -> dict:
         _validation.validate_tools(changes["tools"])
     if "llm_model" in changes:
         _validation.validate_model(changes["llm_model"])
+    if "fallback_models" in changes:
+        _validation.validate_fallback_models(changes["fallback_models"])
     if "temperature" in changes:
         _validation.validate_temperature(changes["temperature"])
     if "max_tokens" in changes:

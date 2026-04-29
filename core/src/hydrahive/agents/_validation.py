@@ -59,6 +59,15 @@ def validate_model(model: str) -> None:
         )
 
 
+def validate_fallback_models(models: list[str]) -> None:
+    if not isinstance(models, list):
+        raise AgentValidationError("fallback_models muss eine Liste sein")
+    for m in models:
+        if not isinstance(m, str) or not m:
+            raise AgentValidationError("fallback_models darf keine leeren Einträge enthalten")
+        validate_model(m)
+
+
 def validate_temperature(temp: float) -> None:
     if not isinstance(temp, (int, float)):
         raise AgentValidationError("temperature muss eine Zahl sein")

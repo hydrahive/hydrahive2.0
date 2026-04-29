@@ -108,8 +108,9 @@ async def run(session_id: str, user_input: str, *, tool_config: dict | None = No
         iter_input_tokens = 0
         iter_output_tokens = 0
         try:
+            models = [agent["llm_model"]] + list(agent.get("fallback_models", []) or [])
             async for item in call_with_stream_or_fallback(
-                model=agent["llm_model"],
+                models=models,
                 system_prompt=system_prompt,
                 messages=anth_messages,
                 tools=tool_schemas,

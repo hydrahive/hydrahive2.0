@@ -5,6 +5,7 @@ export interface Agent {
   owner: string | null
   created_by: string | null
   llm_model: string
+  fallback_models: string[]
   tools: string[]
   mcp_servers: string[]
   description: string
@@ -38,6 +39,7 @@ export interface AgentCreate {
   max_tokens: number
   thinking_budget: number
   mcp_servers: string[]
+  fallback_models: string[]
   owner?: string | null
   domain?: string | null
   system_prompt?: string | null

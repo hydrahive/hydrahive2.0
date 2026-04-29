@@ -19,7 +19,9 @@
     "mcp_servers": "MCP-Server",
     "mcp_count": "MCP-Server ({{selected}}/{{total}})",
     "system_prompt": "System-Prompt",
-    "model_not_in_config": "{{model}} (nicht in LLM-Config)"
+    "model_not_in_config": "{{model}} (nicht in LLM-Config)",
+    "fallback_models": "Fallback-Modelle",
+    "fallback_hint": "Bei Quota/Overload/Auth-Fehler des primären Modells werden diese der Reihe nach probiert. Mit ↑ kann die Reihenfolge geändert werden."
   },
   "errors": {
     "save_failed": "Speichern fehlgeschlagen",
