@@ -1,6 +1,7 @@
-import { FileText, Paperclip, Send, Square, X } from "lucide-react"
+import { FileText, Mic, MicOff, Paperclip, Send, Square, X } from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useVoiceInput } from "./useVoiceInput"
 
 const MAX_FILES = 5
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -16,6 +17,9 @@ interface Props {
 export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
   const { t } = useTranslation("chat")
   const [text, setText] = useState("")
+  const voice = useVoiceInput((transcript) => {
+    setText((prev) => prev ? prev + " " + transcript : transcript)
+  })
   const [files, setFiles] = useState<File[]>([])
   const [dragOver, setDragOver] = useState(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
@@ -80,6 +84,23 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
         </button>
         <input ref={fileRef} type="file" multiple className="hidden"
           onChange={(e) => { addFiles(e.target.files); e.target.value = "" }} />
+        <button
+          type="button"
+          disabled={disabled || busy}
+          onMouseDown={voice.start}
+          onMouseUp={voice.stop}
+          onTouchStart={voice.start}
+          onTouchEnd={voice.stop}
+          title={voice.state === "recording" ? "Loslassen zum Beenden" : "Halten zum Sprechen"}
+          className={`flex-shrink-0 p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed
+            ${voice.state === "recording"
+              ? "text-rose-400 bg-rose-500/20 animate-pulse"
+              : voice.state === "transcribing"
+              ? "text-amber-400 bg-amber-500/10"
+              : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"}`}
+        >
+          {voice.state === "recording" ? <MicOff size={15} /> : <Mic size={15} />}
+        </button>
         <textarea
           ref={textRef}
           value={text}
