@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from hydrahive.agents import config as agent_config
+from hydrahive.agents import bootstrap as agent_bootstrap, config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.users import (
     create,
@@ -38,7 +38,7 @@ def create_user(req: CreateUserRequest) -> dict:
         create(req.username, req.password, req.role)
     except ValueError as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e))
-    agent_config.ensure_master(req.username)
+    agent_bootstrap.ensure_master(req.username)
     return {"username": req.username, "role": req.role}
 
 
@@ -50,8 +50,12 @@ def delete_user(username: str) -> None:
     delete(username)
 
 
-@router.patch("/{username}/password", dependencies=[Depends(require_admin)])
-def change_password(username: str, req: ChangePasswordRequest) -> dict:
+@router.patch("/me/password")
+def change_own_password(
+    req: ChangePasswordRequest,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    username, _ = auth
     try:
         update_password(username, req.new_password)
     except ValueError as e:
@@ -59,12 +63,8 @@ def change_password(username: str, req: ChangePasswordRequest) -> dict:
     return {"ok": True}
 
 
-@router.patch("/me/password")
-def change_own_password(
-    req: ChangePasswordRequest,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-) -> dict:
-    username, _ = auth
+@router.patch("/{username}/password", dependencies=[Depends(require_admin)])
+def change_password(username: str, req: ChangePasswordRequest) -> dict:
     try:
         update_password(username, req.new_password)
     except ValueError as e:

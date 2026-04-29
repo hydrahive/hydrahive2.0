@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import logging
+import subprocess
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,8 +52,10 @@ async def lifespan(app: FastAPI):
         )
     agent_bootstrap.ensure_master("admin")
     set_start_time()
+    update_task = asyncio.create_task(_update_check_loop())
     logger.info("HydraHive2 gestartet — Port %s", settings.port)
     yield
+    update_task.cancel()
     logger.info("HydraHive2 beendet")
 
 
@@ -87,6 +92,62 @@ app.include_router(sessions_router)
 app.include_router(system_router)
 
 
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
+def _detect_git_commit() -> str | None:
+    if not (_REPO_ROOT / ".git").exists():
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(_REPO_ROOT), "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=2, check=False,
+        )
+        return result.stdout.strip() or None
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+
+def _check_update_behind() -> int | None:
+    if not (_REPO_ROOT / ".git").exists():
+        return None
+    try:
+        fetch = subprocess.run(
+            ["git", "-C", str(_REPO_ROOT), "fetch", "--quiet", "origin", "main"],
+            capture_output=True, timeout=15, check=False,
+        )
+        if fetch.returncode != 0:
+            return None
+        result = subprocess.run(
+            ["git", "-C", str(_REPO_ROOT), "rev-list", "--count", "HEAD..origin/main"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        if result.returncode != 0:
+            return None
+        return int(result.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        return None
+
+
+_GIT_COMMIT = _detect_git_commit()
+_UPDATE_BEHIND: int | None = None
+
+
+async def _update_check_loop() -> None:
+    global _UPDATE_BEHIND
+    while True:
+        try:
+            _UPDATE_BEHIND = await asyncio.to_thread(_check_update_behind)
+        except Exception as e:
+            logger.debug("Update-Check fehlgeschlagen: %s", e)
+        await asyncio.sleep(1800)
+
+
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "version": "2.0.0"}
+    return {
+        "status": "ok",
+        "version": "2.0.0",
+        "commit": _GIT_COMMIT,
+        "update_behind": _UPDATE_BEHIND,
+    }

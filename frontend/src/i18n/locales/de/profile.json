@@ -1,0 +1,21 @@
+{
+  "title": "Mein Profil",
+  "subtitle": "Eigene Konto-Einstellungen",
+  "fields": {
+    "username": "Benutzername",
+    "role": "Rolle"
+  },
+  "password": {
+    "title": "Passwort",
+    "description": "Aus Sicherheitsgründen regelmäßig ändern.",
+    "button": "Passwort ändern",
+    "current_label": "Aktuelles Passwort",
+    "new_label": "Neues Passwort",
+    "min_length_hint": "Mindestens 8 Zeichen",
+    "success": "Passwort gespeichert."
+  },
+  "language": {
+    "title": "Sprache",
+    "description": "Sprache der Oberfläche."
+  }
+}

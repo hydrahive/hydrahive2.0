@@ -1,0 +1,21 @@
+{
+  "title": "My profile",
+  "subtitle": "Your account settings",
+  "fields": {
+    "username": "Username",
+    "role": "Role"
+  },
+  "password": {
+    "title": "Password",
+    "description": "Change regularly for security.",
+    "button": "Change password",
+    "current_label": "Current password",
+    "new_label": "New password",
+    "min_length_hint": "At least 8 characters",
+    "success": "Password saved."
+  },
+  "language": {
+    "title": "Language",
+    "description": "Interface language."
+  }
+}

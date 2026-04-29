@@ -1,0 +1,35 @@
+{
+  "title": "Benutzer",
+  "list_title": "Benutzer",
+  "subtitle": "Wer kann sich anmelden — Admins verwalten Konten und Rollen",
+  "no_users": "Keine Benutzer",
+  "you_marker": "(du)",
+  "role": {
+    "admin": "Admin",
+    "user": "Benutzer"
+  },
+  "fields": {
+    "username": "Benutzername",
+    "password": "Passwort",
+    "role": "Rolle"
+  },
+  "actions": {
+    "new": "Neuer Benutzer",
+    "change_password": "Passwort ändern",
+    "delete": "Löschen",
+    "delete_confirm": "Benutzer \"{{name}}\" wirklich löschen?\n\nInkl. aller zugewiesenen Agents."
+  },
+  "errors": {
+    "self_delete": "Du kannst dich nicht selbst löschen.",
+    "username_exists": "Benutzername existiert bereits."
+  },
+  "new_dialog": {
+    "title": "Neuen Benutzer anlegen",
+    "username_placeholder": "z.B. alice"
+  },
+  "password_dialog": {
+    "title": "Passwort ändern: {{name}}",
+    "new_password_label": "Neues Passwort",
+    "min_length_hint": "Mindestens 8 Zeichen"
+  }
+}

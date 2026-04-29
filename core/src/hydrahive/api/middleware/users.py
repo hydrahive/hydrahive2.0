@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from pathlib import Path
+
+import bcrypt
 
 from hydrahive.settings import settings
 
@@ -10,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 # User-Struktur:
 # {"username": {"password_hash": "...", "role": "admin|user"}}
+# password_hash kann bcrypt ($2b$...) oder Legacy-SHA256 (64 hex chars) sein.
+# Legacy-Hashes werden beim nächsten erfolgreichen Login transparent auf bcrypt
+# migriert (lazy re-hash).
 
 
 def _load() -> dict:
@@ -25,18 +31,38 @@ def _save(users: dict) -> None:
 
 
 def _hash(password: str) -> str:
-    import hashlib
-    return hashlib.sha256(password.encode()).hexdigest()
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("ascii")
+
+
+def _is_bcrypt(stored: str) -> bool:
+    return stored.startswith(("$2a$", "$2b$", "$2y$"))
+
+
+def _verify_hash(password: str, stored: str) -> bool:
+    if _is_bcrypt(stored):
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), stored.encode("ascii"))
+        except ValueError:
+            return False
+    return hashlib.sha256(password.encode("utf-8")).hexdigest() == stored
 
 
 def verify(username: str, password: str) -> dict | None:
-    """Returns user dict {username, role} or None if invalid."""
+    """Returns user dict {username, role} or None if invalid.
+
+    Migrates legacy SHA256 hashes to bcrypt on successful login.
+    """
     users = _load()
     user = users.get(username)
     if not user:
         return None
-    if user["password_hash"] != _hash(password):
+    stored = user["password_hash"]
+    if not _verify_hash(password, stored):
         return None
+    if not _is_bcrypt(stored):
+        users[username]["password_hash"] = _hash(password)
+        _save(users)
+        logger.info("User '%s' Hash auf bcrypt migriert", username)
     return {"username": username, "role": user["role"]}
 
 

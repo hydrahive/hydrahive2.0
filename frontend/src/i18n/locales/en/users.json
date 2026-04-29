@@ -1,0 +1,35 @@
+{
+  "title": "Users",
+  "list_title": "Users",
+  "subtitle": "Who can sign in — admins manage accounts and roles",
+  "no_users": "No users",
+  "you_marker": "(you)",
+  "role": {
+    "admin": "Admin",
+    "user": "User"
+  },
+  "fields": {
+    "username": "Username",
+    "password": "Password",
+    "role": "Role"
+  },
+  "actions": {
+    "new": "New user",
+    "change_password": "Change password",
+    "delete": "Delete",
+    "delete_confirm": "Really delete user \"{{name}}\"?\n\nIncluding all assigned agents."
+  },
+  "errors": {
+    "self_delete": "You cannot delete yourself.",
+    "username_exists": "Username already exists."
+  },
+  "new_dialog": {
+    "title": "Create new user",
+    "username_placeholder": "e.g. alice"
+  },
+  "password_dialog": {
+    "title": "Change password: {{name}}",
+    "new_password_label": "New password",
+    "min_length_hint": "At least 8 characters"
+  }
+}
