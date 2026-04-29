@@ -1,7 +1,8 @@
-import { Wrench, User, Bot, AlertCircle, CheckCircle2, Archive, ChevronDown, ChevronRight } from "lucide-react"
+import { Wrench, User, Bot, AlertCircle, CheckCircle2, Archive, ChevronDown, ChevronRight, Volume2, VolumeX } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Markdown } from "./Markdown"
+import { useVoiceOutput } from "./useVoiceOutput"
 import type { ContentBlock, Message } from "./types"
 
 export function MessageBubble({ message }: { message: Message }) {
@@ -41,6 +42,9 @@ export function MessageBubble({ message }: { message: Message }) {
     )
   }
 
+  const tts = useVoiceOutput()
+  const fullText = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join(" ")
+
   return (
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-violet-900/30">
@@ -53,6 +57,15 @@ export function MessageBubble({ message }: { message: Message }) {
           if (b.type === "tool_use") return <ToolUseCard key={i} block={b} />
           return null
         })}
+        {fullText && (
+          <button
+            onClick={() => tts.speaking ? tts.stop() : tts.speak(fullText)}
+            className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+            title={tts.speaking ? "Stop" : "Vorlesen"}
+          >
+            {tts.speaking ? <VolumeX size={11} /> : <Volume2 size={11} />}
+          </button>
+        )}
       </div>
     </div>
   )
