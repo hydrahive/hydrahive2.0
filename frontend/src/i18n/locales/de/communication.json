@@ -1,0 +1,37 @@
+{
+  "title": "Kommunikation",
+  "subtitle": "Messenger und Kanäle die deinen Master-Agent erreichen",
+  "whatsapp": {
+    "label": "WhatsApp",
+    "description": "Eingehende Nachrichten gehen direkt an deinen Master-Agent. Nur 1:1-Chats, kein Medien-Empfang.",
+    "connect": "Verbinden",
+    "disconnect": "Trennen",
+    "qr_hint": "WhatsApp öffnen → Geräte verknüpfen → diesen Code scannen",
+    "bridge_unavailable": "Bridge nicht verfügbar — Node.js installieren und im Bridge-Verzeichnis 'npm install' ausführen.",
+    "bridge_error": "Bridge-Fehler: {{detail}}",
+    "states": {
+      "disconnected": "Nicht verbunden",
+      "connecting": "Verbindet …",
+      "waiting_qr": "Warte auf QR-Scan",
+      "connected": "Verbunden",
+      "error": "Fehler"
+    },
+    "filter": {
+      "title": "Filter & Berechtigungen",
+      "intro": "Diese Einstellungen gelten für deine WhatsApp-Verbindung. Owner umgehen alle Filter.",
+      "loading": "Filter wird geladen …",
+      "private_chats": "Private Nachrichten",
+      "group_chats": "Gruppen-Nachrichten",
+      "keyword_label": "Aktivierungs-Keyword (leer = immer antworten)",
+      "keyword_placeholder": "z.B. !bot",
+      "owner": "Eigene Nummern (Owner-Bypass)",
+      "owner_hint": "Owner sehen alles, auch ohne Keyword/Whitelist.",
+      "allowed": "Whitelist (leer = alle erlauben)",
+      "allowed_hint": "Wenn gesetzt: nur diese Nummern dürfen.",
+      "blocked": "Blacklist",
+      "blocked_hint": "Diese Nummern werden immer ignoriert.",
+      "save": "Speichern",
+      "saved": "Gespeichert"
+    }
+  }
+}

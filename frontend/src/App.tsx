@@ -12,6 +12,7 @@ import { SystemPage } from "@/features/system/SystemPage"
 import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
+import { CommunicationPage } from "@/features/communication/CommunicationPage"
 
 function Guard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="chat" element={<ChatPage />} />
           <Route path="agents" element={<AgentsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="communication" element={<CommunicationPage />} />
           <Route path="llm" element={<LlmPage />} />
           <Route path="mcp" element={<McpPage />} />
           <Route path="system" element={<SystemPage />} />

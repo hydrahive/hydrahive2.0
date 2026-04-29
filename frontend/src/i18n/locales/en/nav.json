@@ -8,6 +8,7 @@
     "chat": "Chat",
     "agents": "Agents",
     "projects": "Projects",
+    "communication": "Communication",
     "llm": "LLM",
     "mcp": "MCP",
     "system": "System",
