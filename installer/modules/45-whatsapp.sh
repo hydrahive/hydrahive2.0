@@ -15,6 +15,7 @@ fi
 cd "$BRIDGE_DIR"
 
 log "WhatsApp-Bridge: npm install"
-sudo -u "$HH_USER" npm install --silent --no-audit --no-fund
+npm install --cache /tmp/npm-cache-hh --no-audit --no-fund --silent
+chown -R "$HH_USER:$HH_USER" node_modules
 
 log "WhatsApp-Bridge bereit ($BRIDGE_DIR)"
