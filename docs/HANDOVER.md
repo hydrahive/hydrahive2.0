@@ -34,6 +34,7 @@ verifiziert.
 | Help-Drawer | pro Seite ?-Button, 7 Topics × 2 Sprachen |
 | Installer | 6-Phasen-Setup + systemd + nginx mit Security-Headers (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy) |
 | **Plugin-System** | MVP + **Hub-UI**: Loader/Manifest/Registry/Context/Tool-Bridge + Hub-Client (git clone/pull) + Installer (cp aus Cache). Frontend `/plugins`-Page (AdminGuard) mit Tabs Hub/Installiert, Install/Update/Uninstall, Restart-Hint. Hub-Repo `github.com/hydrahive/hydrahive2-plugins` (privat) gepusht. **Self-Bootstrap verifiziert**: lokaler Agent hat eigenständig `git-stats`-, `code-metrics`- und `file-search`-Plugins gebaut, in den Hub gepusht und über die UI installiert. |
+| **Service-Restart-Knopf** | `POST /api/system/restart` mit Trigger-File-Pattern (analog Self-Update). Production-Units `hydrahive2-restart.{path,service}` im Installer + update.sh-Self-Heal. Dev: Watch-Loop in dev-start.sh. Frontend `RestartModal` + `useRestart`-Hook mit /health-Polling. Knöpfe auf Plugins- und System-Page. |
 
 ## Was offen ist
 

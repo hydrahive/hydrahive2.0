@@ -30,11 +30,26 @@ cd "$SCRIPT_DIR/frontend"
 npm run dev &
 FRONTEND_PID=$!
 
+# Restart-Trigger-Watcher: schaut periodisch nach $HH_DATA_DIR/.restart_request
+# (geschrieben von der API beim Restart-Knopf) und triggert systemctl --user restart.
+(
+  while true; do
+    if [ -f "$HH_DATA_DIR/.restart_request" ]; then
+      rm -f "$HH_DATA_DIR/.restart_request"
+      echo "==> Restart-Trigger erkannt — Service wird neu gestartet"
+      systemctl --user restart hydrahive2-dev.service 2>&1 || true
+      exit 0
+    fi
+    sleep 1
+  done
+) &
+WATCHER_PID=$!
+
 echo ""
 echo "Backend:  http://127.0.0.1:8001"
 echo "Frontend: http://localhost:5173 (oder 5174)"
 echo ""
 echo "Beenden mit Ctrl+C"
 
-trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
+trap "kill $BACKEND_PID $FRONTEND_PID $WATCHER_PID 2>/dev/null" EXIT
 wait

@@ -31,5 +31,18 @@
     "log_empty": "Noch keine Ausgabe…",
     "log_disconnected": "Server unerreichbar — warte auf Neustart…",
     "close": "Schließen"
+  },
+  "restart": {
+    "button": "Service neu starten",
+    "modal_title": "Service-Neustart",
+    "confirm_question": "Backend jetzt neu starten?",
+    "confirm_hint": "Nach dem Neustart sind frisch installierte/entfernte Plugins voll wirksam. Backend ist für ~5-10 Sekunden nicht erreichbar.",
+    "confirm_button": "Neustarten",
+    "starting": "Restart wird gestartet…",
+    "in_progress": "Backend startet neu…",
+    "done": "Service läuft wieder.",
+    "failed": "Restart fehlgeschlagen: {{error}}",
+    "close": "Schließen",
+    "now": "Jetzt neu starten"
   }
 }

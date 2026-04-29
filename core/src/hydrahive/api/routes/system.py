@@ -29,6 +29,7 @@ router = APIRouter(prefix="/api/system", tags=["system"])
 UPDATE_SCRIPT = Path("/opt/hydrahive2/installer/update.sh")
 UPDATE_TRIGGER = settings.data_dir / ".update_request"
 UPDATE_LOG = Path("/var/log/hydrahive2-update.log")
+RESTART_TRIGGER = settings.data_dir / ".restart_request"
 
 _start_time: float = 0.0
 
@@ -123,6 +124,24 @@ def trigger_update() -> dict:
         logger.exception("Trigger-File konnte nicht geschrieben werden")
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "update_trigger_failed", message=str(e))
     logger.warning("Update-Trigger geschrieben (%s) — systemd-Path-Watcher übernimmt", UPDATE_TRIGGER)
+    return {"started": True}
+
+
+@router.post("/restart", dependencies=[Depends(require_admin)])
+def trigger_restart() -> dict:
+    """Schreibt eine Trigger-Datei, die ein systemd-Path-Watcher beobachtet.
+
+    Production: hydrahive2-restart.path/.service starten den Service neu (root).
+    Dev: dev-start.sh hat einen Watch-Loop der `systemctl --user restart`
+    aufruft. Backend-Antwort kommt zurück bevor der Restart greift —
+    Frontend pollt /health bis der Service wieder antwortet.
+    """
+    try:
+        RESTART_TRIGGER.write_text(str(int(time.time())))
+    except OSError as e:
+        logger.exception("Restart-Trigger-File konnte nicht geschrieben werden")
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "restart_trigger_failed", message=str(e))
+    logger.warning("Restart-Trigger geschrieben (%s)", RESTART_TRIGGER)
     return {"started": True}
 
 

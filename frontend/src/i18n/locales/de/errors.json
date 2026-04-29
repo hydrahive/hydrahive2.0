@@ -27,6 +27,7 @@
 
   "update_script_missing": "Update-Script nicht gefunden — nur in Production-Setup verfügbar",
   "update_trigger_failed": "Update-Trigger fehlgeschlagen: {{message}}",
+  "restart_trigger_failed": "Restart-Trigger fehlgeschlagen: {{message}}",
 
   "plugin_hub_unreachable": "Plugin-Hub nicht erreichbar: {{message}}",
   "plugin_install_failed": "Plugin-Installation fehlgeschlagen: {{message}}",
