@@ -18,7 +18,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
   const { t } = useTranslation("chat")
   const [text, setText] = useState("")
   const voice = useVoiceInput((transcript) => {
-    setText((prev) => prev ? prev + " " + transcript : transcript)
+    setText((prev) => (prev ? prev + " " + transcript : transcript))
   })
   const [files, setFiles] = useState<File[]>([])
   const [dragOver, setDragOver] = useState(false)
@@ -86,12 +86,9 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
           onChange={(e) => { addFiles(e.target.files); e.target.value = "" }} />
         <button
           type="button"
-          disabled={disabled || busy}
-          onMouseDown={voice.start}
-          onMouseUp={voice.stop}
-          onTouchStart={voice.start}
-          onTouchEnd={voice.stop}
-          title={voice.state === "recording" ? "Loslassen zum Beenden" : "Halten zum Sprechen"}
+          disabled={disabled || busy || voice.state === "transcribing"}
+          onClick={voice.toggle}
+          title={voice.state === "recording" ? "Klicken zum Beenden" : "Klicken zum Sprechen"}
           className={`flex-shrink-0 p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed
             ${voice.state === "recording"
               ? "text-rose-400 bg-rose-500/20 animate-pulse"
