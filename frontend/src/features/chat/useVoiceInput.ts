@@ -1,4 +1,5 @@
 import { useRef, useState } from "react"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 
 type State = "idle" | "recording" | "transcribing" | "error"
 
@@ -42,13 +43,16 @@ export function useVoiceInput(onResult: (text: string) => void) {
     const form = new FormData()
     form.append("audio", blob, "audio.webm")
     try {
-      const token = localStorage.getItem("hh_token") ?? ""
+      const token = useAuthStore.getState().token ?? ""
       const res = await fetch("/api/stt", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
       })
-      if (!res.ok) throw new Error(`${res.status}`)
+      if (!res.ok) {
+        console.error("STT request failed:", res.status, await res.text().catch(() => ""))
+        throw new Error(`STT ${res.status}`)
+      }
       const { text } = await res.json() as { text: string }
       if (text) onResult(text)
       set("idle")
