@@ -4,12 +4,15 @@ Per-User-Owner: Liste/Detail nur eigene VMs (außer Admin), Create=eigener Owner
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+import shutil
 from dataclasses import asdict
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -17,8 +20,11 @@ from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.vms import db as vmdb
 from hydrahive.vms import disk as vmdisk
+from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import iso as vmiso
 from hydrahive.vms import lifecycle
+from hydrahive.vms import snapshots as vmsnap
+from hydrahive.settings import settings
 from hydrahive.vms.models import (
     MAX_CPU, MAX_DISK_GB, MAX_RAM_MB, MIN_CPU, MIN_DISK_GB, MIN_RAM_MB, NAME_RE,
 )
@@ -160,6 +166,68 @@ def vnc_info(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]
     }
 
 
+class SnapshotCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+    description: str | None = Field(default=None, max_length=500)
+
+
+@router.get("/{vm_id}/snapshots")
+def list_snapshots(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    _vm_or_404(vm_id, *auth)
+    return vmsnap.db_list(vm_id)
+
+
+@router.post("/{vm_id}/snapshots", status_code=201)
+async def create_snapshot(
+    vm_id: str, body: SnapshotCreate,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    vm = _vm_or_404(vm_id, *auth)
+    if vm.actual_state != "stopped":
+        raise coded(status.HTTP_409_CONFLICT, "snapshot_vm_not_stopped")
+    try:
+        size = await vmsnap.create(Path(vm.qcow2_path), body.name)
+    except vmsnap.SnapshotError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
+    sid = vmsnap.db_create(vm_id, body.name, size, body.description)
+    return vmsnap.db_get(sid) or {}
+
+
+@router.post("/{vm_id}/snapshots/{snapshot_id}/restore", status_code=204)
+async def restore_snapshot(
+    vm_id: str, snapshot_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    vm = _vm_or_404(vm_id, *auth)
+    if vm.actual_state != "stopped":
+        raise coded(status.HTTP_409_CONFLICT, "snapshot_vm_not_stopped")
+    snap = vmsnap.db_get(snapshot_id)
+    if not snap or snap["vm_id"] != vm_id:
+        raise coded(status.HTTP_404_NOT_FOUND, "snapshot_not_found")
+    try:
+        await vmsnap.restore(Path(vm.qcow2_path), snap["name"])
+    except vmsnap.SnapshotError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
+
+
+@router.delete("/{vm_id}/snapshots/{snapshot_id}", status_code=204)
+async def delete_snapshot(
+    vm_id: str, snapshot_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    vm = _vm_or_404(vm_id, *auth)
+    snap = vmsnap.db_get(snapshot_id)
+    if not snap or snap["vm_id"] != vm_id:
+        raise coded(status.HTTP_404_NOT_FOUND, "snapshot_not_found")
+    if vm.actual_state != "stopped":
+        raise coded(status.HTTP_409_CONFLICT, "snapshot_vm_not_stopped")
+    try:
+        await vmsnap.delete(Path(vm.qcow2_path), snap["name"])
+    except vmsnap.SnapshotError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
+    vmsnap.db_delete(snapshot_id)
+
+
 @router.get("/isos/list")
 def list_isos(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     return [asdict(i) for i in vmiso.list_isos(with_hash=False)]
@@ -177,6 +245,98 @@ async def upload_iso(
     except vmiso.ISOError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
     return asdict(result)
+
+
+class ImportFromPath(BaseModel):
+    source_path: str = Field(min_length=1, max_length=500)
+
+
+@router.get("/import-jobs")
+def list_import_jobs(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    user, role = auth
+    return vmimport.db_list(owner=None if _is_admin(role) else user)
+
+
+@router.post("/import-jobs/upload", status_code=202)
+async def import_upload(
+    background: BackgroundTasks,
+    disk: Annotated[UploadFile, File()],
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Streamt Upload nach vms_dir/imports-tmp/<jobid>.<ext>, startet Convert."""
+    user, _ = auth
+    settings.vms_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = settings.vms_dir / "imports-tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    job_id = "import-" + str(int(asyncio.get_event_loop().time() * 1000))
+    src_name = (disk.filename or "upload.bin").replace("/", "_").replace("\\", "_")
+    src_path = tmp_dir / f"{job_id}_{src_name}"
+    target = settings.vms_disks_dir / f"{job_id}.qcow2"
+
+    total = 0
+    try:
+        with src_path.open("wb") as f:
+            while True:
+                buf = await disk.read(1024 * 1024)
+                if not buf:
+                    break
+                total += len(buf)
+                f.write(buf)
+    except OSError as e:
+        src_path.unlink(missing_ok=True)
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "import_upload_failed",
+                    error=str(e))
+
+    job_id_db = vmimport.db_create_job(user, str(src_path), str(target), bytes_total=total)
+    background.add_task(vmimport.execute_job, job_id_db)
+    return {"job_id": job_id_db}
+
+
+@router.post("/import-jobs/from-path", status_code=202)
+async def import_from_path(
+    body: ImportFromPath, background: BackgroundTasks,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    user, role = auth
+    if not _is_admin(role):
+        raise coded(status.HTTP_403_FORBIDDEN, "vm_no_access")
+    src = Path(body.source_path)
+    if not src.exists() or not src.is_file():
+        raise coded(status.HTTP_400_BAD_REQUEST, "import_source_missing")
+    job_id_str = "import-" + str(int(asyncio.get_event_loop().time() * 1000))
+    target = settings.vms_disks_dir / f"{job_id_str}.qcow2"
+    job_id_db = vmimport.db_create_job(user, str(src), str(target),
+                                       bytes_total=src.stat().st_size)
+    # cleanup_source=False — bei from-path nicht löschen (User-Datei bleibt)
+    async def _run():
+        await vmimport.execute_job(job_id_db, cleanup_source=False)
+    background.add_task(_run)
+    return {"job_id": job_id_db}
+
+
+@router.delete("/import-jobs/{job_id}", status_code=204)
+def delete_import_job(
+    job_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    user, role = auth
+    job = vmimport.db_get(job_id)
+    if not job:
+        raise coded(status.HTTP_404_NOT_FOUND, "import_job_not_found")
+    if job["owner"] != user and not _is_admin(role):
+        raise coded(status.HTTP_403_FORBIDDEN, "vm_no_access")
+    if job["status"] == "done":
+        # qcow2 wegräumen wenn nicht in einer VM verwendet
+        target = Path(job["target_qcow2"])
+        from hydrahive.db.connection import db as _db
+        with _db() as conn:
+            in_use = conn.execute(
+                "SELECT 1 FROM vms WHERE qcow2_path = ?", (str(target),),
+            ).fetchone()
+        if not in_use:
+            target.unlink(missing_ok=True)
+    vmimport.db_delete(job_id)
 
 
 @router.delete("/isos/{filename}", status_code=204)
