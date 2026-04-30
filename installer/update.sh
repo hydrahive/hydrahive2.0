@@ -167,9 +167,16 @@ EOF
 fi
 
 if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "hydrahive2-stt" \
-   || ! command -v mmx >/dev/null 2>&1; then
-  log "Voice-Setup unvollständig (Container oder mmx-cli) — starte 55-voice.sh"
+   || ! command -v mmx >/dev/null 2>&1 \
+   || ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
+  log "Voice-Setup unvollständig (Container/mmx/Port 10300) — starte 55-voice.sh"
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
+  # STT-Container im falschen NetworkMode? Hard-Recreate erzwingen
+  if ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
+    log "STT-Port 10300 nicht offen — STT-Container neu anlegen"
+    docker rm -f hydrahive2-stt >/dev/null 2>&1 || true
+    (cd /opt/hydrahive2-voice && docker compose up -d stt) >/dev/null 2>&1 || true
+  fi
 fi
 
 if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
