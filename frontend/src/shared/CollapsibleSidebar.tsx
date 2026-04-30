@@ -6,7 +6,10 @@ interface CollapsibleSidebarProps {
 }
 
 export function CollapsibleSidebar({ children }: CollapsibleSidebarProps) {
-  const [open, setOpen] = useState(true)
+  // Default: auf Mobile (<lg, 1024px) eingeklappt, auf Desktop ausgeklappt.
+  const [open, setOpen] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth >= 1024 : true
+  )
 
   return (
     <>
