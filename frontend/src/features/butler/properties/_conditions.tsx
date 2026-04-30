@@ -115,7 +115,7 @@ export function GitActionIsForm({ params, onChange }: FormProps) {
   )
 }
 
-export function EmailContainsForm({ params, onChange, subtype }: FormProps & { subtype: string }) {
+export function EmailContainsForm({ params, onChange, subtype }: FormProps & { subtype?: string }) {
   const { t } = useTranslation("butler")
   const label = subtype === "email_from_contains" ? t("labelSenderContains")
     : subtype === "email_subject_contains" ? t("labelSubjectContains")
