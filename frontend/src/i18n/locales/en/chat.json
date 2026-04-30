@@ -71,9 +71,17 @@
     "files_modified": "Files modified",
     "summary": "Summary"
   },
+  "bubble": {
+    "copy": "Copy",
+    "raw": "Raw JSON",
+    "persisted": "Sent",
+    "pending": "Sending…"
+  },
   "bubble_footer": {
     "tokens": "{{in}} ↑ · {{out}} ↓",
-    "cache": "cache {{read}}r / {{create}}c"
+    "cache": "cache {{read}}r / {{create}}c",
+    "iterations": "{{n}} iterations",
+    "stop_reason": "stop: {{reason}}"
   },
   "tool_result": {
     "collapsed": "Output ({{chars}} chars, {{lines}} lines) — show"

@@ -1,11 +1,5 @@
 import { useTranslation } from "react-i18next"
 
-/**
- * Meta-Sub-Components für MessageBubble:
- * - BubbleHeader: Datum/Uhrzeit über jeder Bubble (smart formatiert)
- * - AssistantFooter: tokens / cache / model unter Assistant-Bubbles
- */
-
 function formatBubbleTime(iso: string, locale: string): string {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return ""
@@ -40,6 +34,8 @@ interface AssistantMeta {
   cache_creation_tokens?: number
   cache_read_tokens?: number
   model?: string
+  iteration?: number
+  stop_reason?: string
 }
 
 export function AssistantFooter({ metadata }: { metadata?: Record<string, unknown> }) {
@@ -49,6 +45,8 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
   const hasTokens = meta.input_tokens || meta.output_tokens
   const hasCache = meta.cache_creation_tokens || meta.cache_read_tokens
   const hasModel = !!meta.model
+  const showIterations = meta.iteration != null && meta.iteration > 1
+  const showStopReason = !!meta.stop_reason && meta.stop_reason !== "end_turn"
   if (!hasTokens && !hasModel) return null
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500/70 font-mono tabular-nums">
@@ -60,6 +58,12 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
       )}
       {hasModel && (
         <span className="text-zinc-500/90">· {meta.model}</span>
+      )}
+      {showIterations && (
+        <span>· {t("bubble_footer.iterations", { n: meta.iteration })}</span>
+      )}
+      {showStopReason && (
+        <span className="text-amber-400/70">· {t("bubble_footer.stop_reason", { reason: meta.stop_reason })}</span>
       )}
     </div>
   )

@@ -9,19 +9,32 @@ export function formatDuration(ms: number): string {
   return `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`
 }
 
-export function ToolUseCard({ block }: { block: ContentBlock & { type: "tool_use" } }) {
+export function ToolUseCard({
+  block,
+  defaultOpen = false,
+}: {
+  block: ContentBlock & { type: "tool_use" }
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <div className="rounded-lg border border-violet-500/20 bg-violet-500/[6%] px-3 py-2">
-      <div className="flex items-center gap-2 text-xs text-violet-300 font-mono">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 text-xs text-violet-300 font-mono text-left"
+      >
         <Wrench size={12} />
         <span className="flex-1">{block.name}</span>
         {block.duration_ms !== undefined && (
           <span className="text-[10.5px] text-violet-400/60 tabular-nums">{formatDuration(block.duration_ms)}</span>
         )}
-      </div>
-      <pre className="mt-1.5 text-xs text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">
-        {JSON.stringify(block.input, null, 2)}
-      </pre>
+        {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+      </button>
+      {open && (
+        <pre className="mt-1.5 text-xs text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap">
+          {JSON.stringify(block.input, null, 2)}
+        </pre>
+      )}
     </div>
   )
 }

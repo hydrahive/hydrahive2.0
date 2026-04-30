@@ -74,9 +74,17 @@
     "files_modified": "Geänderte Dateien",
     "summary": "Zusammenfassung"
   },
+  "bubble": {
+    "copy": "Kopieren",
+    "raw": "Raw JSON",
+    "persisted": "Gesendet",
+    "pending": "Wird gesendet…"
+  },
   "bubble_footer": {
     "tokens": "{{in}} ↑ · {{out}} ↓",
-    "cache": "Cache {{read}}r / {{create}}c"
+    "cache": "Cache {{read}}r / {{create}}c",
+    "iterations": "{{n}} Iterationen",
+    "stop_reason": "Stop: {{reason}}"
   },
   "tool_result": {
     "collapsed": "Output ({{chars}} Z., {{lines}} Zeilen) — anzeigen"
