@@ -21,6 +21,8 @@ export interface WhatsAppConfig {
   owner_numbers: string[]
   allowed_numbers: string[]
   blocked_numbers: string[]
+  respond_as_voice: boolean
+  voice_name: string
 }
 
 export const communicationApi = {

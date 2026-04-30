@@ -57,6 +57,14 @@ class WhatsAppAdapter:
         )
         r.raise_for_status()
 
+    async def send_audio(self, username: str, to: str, audio_b64: str) -> None:
+        """Sendet Sprachnachricht (ptt) — audio als base64 OGG/Opus."""
+        r = await (await self._http()).post(
+            f"{self._base}/send/{username}",
+            json={"to": to, "audio_base64": audio_b64},
+        )
+        r.raise_for_status()
+
     async def aclose(self) -> None:
         if self._client and not self._client.is_closed:
             await self._client.aclose()
