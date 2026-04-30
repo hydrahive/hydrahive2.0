@@ -178,14 +178,20 @@ if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
     bash "$HH_REPO_DIR/installer/modules/65-vms.sh"
 fi
 
-log "nginx HTTPS prüfen"
+log "nginx-Config prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
-if [ -f "$NGINX_CONF" ] && ! grep -q "ssl_certificate" "$NGINX_CONF"; then
-  log "nginx: kein HTTPS gefunden — Config auf HTTPS upgraden"
-  HH_HOST="${HH_HOST:-127.0.0.1}"
-  HH_PORT="${HH_PORT:-8001}"
-  HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
-    bash "$HH_REPO_DIR/installer/modules/60-nginx.sh"
+if [ -f "$NGINX_CONF" ]; then
+  NEEDS_REWRITE=0
+  grep -q "ssl_certificate"      "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "/vnc-ws/"             "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "client_max_body_size 8G" "$NGINX_CONF" || NEEDS_REWRITE=1
+  if [ "$NEEDS_REWRITE" = "1" ]; then
+    log "nginx: Config braucht Update (HTTPS / VNC-Proxy / ISO-Upload-Limit) — neu schreiben"
+    HH_HOST="${HH_HOST:-127.0.0.1}"
+    HH_PORT="${HH_PORT:-8001}"
+    HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
+      bash "$HH_REPO_DIR/installer/modules/60-nginx.sh"
+  fi
 fi
 
 log "Service neu starten"
