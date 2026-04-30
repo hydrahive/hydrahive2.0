@@ -57,6 +57,12 @@ class ActionSpec:
 class ActionResult:
     ok: bool
     detail: str | None = None
+    # Channel-Routing-Hinweise — werden vom Channel-Router (handle_incoming)
+    # ausgewertet. Action-Executor selbst sendet KEINE Channel-Replies.
+    reply_text: str | None = None        # `reply_fixed` setzt das
+    reply_via_agent: str | None = None   # `agent_reply` / agent_reply_with_prefix
+    reply_prefix: str | None = None      # Butler-Vorgabe für agent_reply_with_prefix
+    stop_default: bool = False           # True ⇒ Channel-Router skipped Master
 
 
 TRIGGERS: dict[str, TriggerSpec] = {}

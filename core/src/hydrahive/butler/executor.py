@@ -96,14 +96,20 @@ async def _run_action(flow, node, event, trace, actions_executed, dry_run, depth
     else:
         try:
             res = await spec.execute(node.params, event)
-            actions_executed.append({"node_id": node.id, "subtype": node.subtype,
-                                     "ok": res.ok, "detail": res.detail})
+            actions_executed.append({
+                "node_id": node.id, "subtype": node.subtype,
+                "ok": res.ok, "detail": res.detail,
+                "reply_text": res.reply_text,
+                "reply_via_agent": res.reply_via_agent,
+                "reply_prefix": res.reply_prefix,
+                "stop_default": res.stop_default,
+            })
             trace.append(_trace_node(node, decision="executed",
                                      ok=res.ok, detail=res.detail))
         except Exception as e:
             logger.warning("Action %s crashed: %s", node.subtype, e)
             trace.append(_trace_node(node, decision="error", detail=str(e)))
-    if node.subtype != "ignore":
+    if node.subtype not in ("ignore", "queue"):
         await _traverse(flow, node.id, "output", event, trace,
                         actions_executed, dry_run, depth + 1)
 
