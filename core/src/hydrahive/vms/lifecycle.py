@@ -9,6 +9,7 @@ import signal
 from pathlib import Path
 
 from hydrahive.settings import settings
+from hydrahive.vms import vnc
 from hydrahive.vms.db import get_vm, update_vm_state
 from hydrahive.vms.ports import allocate_vnc_port
 from hydrahive.vms.qemu_args import build_qemu_args, ensure_dirs
@@ -74,6 +75,13 @@ async def start(vm_id: str) -> None:
                         error_code="qemu_died_after_start", error_params={})
         raise VMLifecycleError("qemu_died_after_start")
 
+    # Token-File für websockify schreiben — erst NACHDEM QEMU als running
+    # bestätigt ist. Vorher würde websockify auf einen toten Port routen.
+    try:
+        vnc.write_token(token, port)
+    except (OSError, ValueError) as e:
+        logger.warning("VNC-Token konnte nicht geschrieben werden: %s", e)
+
     update_vm_state(vm_id, actual="running", pid=pid)
 
 
@@ -83,6 +91,7 @@ async def shutdown(vm_id: str, *, hard: bool = False) -> None:
     if not vm:
         raise VMLifecycleError("vm_not_found", vm_id=vm_id)
     if vm.pid is None or not _pid_alive(vm.pid):
+        vnc.remove_token(vm.vnc_token)
         update_vm_state(vm_id, desired="stopped", actual="stopped", pid=None,
                         vnc_port=None, vnc_token=None)
         return
@@ -96,6 +105,7 @@ async def shutdown(vm_id: str, *, hard: bool = False) -> None:
         await asyncio.sleep(0.5)
         if not _pid_alive(vm.pid):
             break
+    vnc.remove_token(vm.vnc_token)
     update_vm_state(vm_id, actual="stopped", pid=None,
                     vnc_port=None, vnc_token=None)
 

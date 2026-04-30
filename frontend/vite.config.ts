@@ -15,6 +15,11 @@ export default defineConfig({
         target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
+      "/vnc-ws": {
+        target: "ws://127.0.0.1:6080",
+        ws: true,
+        rewrite: (p) => p.replace(/^\/vnc-ws/, ""),
+      },
     },
   },
 })

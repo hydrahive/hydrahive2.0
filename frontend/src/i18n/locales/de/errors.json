@@ -59,6 +59,7 @@
   "qcow2_exists": "qcow2-Datei existiert bereits: {{path}}",
   "qcow2_missing": "qcow2-Datei fehlt: {{path}}",
   "vnc_ports_exhausted": "Alle VNC-Ports (5900–5999) belegt",
+  "vm_not_running": "VM läuft nicht — Konsole erst nach Start verfügbar",
 
   "validation_error": "{{message}}"
 }

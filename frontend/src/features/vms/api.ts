@@ -10,6 +10,7 @@ export const vmsApi = {
   start: (id: string) => api.post<VM>(`/vms/${id}/start`, {}),
   stop: (id: string) => api.post<VM>(`/vms/${id}/stop`, {}),
   poweroff: (id: string) => api.post<VM>(`/vms/${id}/poweroff`, {}),
+  vncInfo: (id: string) => api.get<{ token: string; ws_path: string }>(`/vms/${id}/vnc`),
   isos: () => api.get<ISO[]>("/vms/isos/list"),
   isoDelete: (filename: string) => api.delete<void>(`/vms/isos/${encodeURIComponent(filename)}`),
 }
