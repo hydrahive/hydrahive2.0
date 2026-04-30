@@ -29,27 +29,36 @@ def _find_master(username: str) -> dict | None:
 
 
 async def run_master_for_event(event: IncomingEvent) -> str:
-    """Verarbeitet ein eingehendes Channel-Event durch den Master-Agent.
-
-    Gibt den finalen Assistant-Text zurück (was der Channel als Antwort
-    sendet). Werft NoMasterError, wenn der User keinen Master hat.
-    """
+    """Verarbeitet ein eingehendes Channel-Event durch den Master-Agent."""
     master = _find_master(event.target_username)
     if not master:
         raise NoMasterError(f"kein Master-Agent für '{event.target_username}'")
+    return await _run_agent(master["id"], event, prefix=None)
 
+
+async def run_agent_for_event(
+    agent_id: str, event: IncomingEvent, *, prefix: str | None = None,
+) -> str:
+    """Wie run_master_for_event, aber mit explizitem Agent (z.B. aus
+    Butler `agent_reply`/`agent_reply_with_prefix`)."""
+    return await _run_agent(agent_id, event, prefix=prefix)
+
+
+async def _run_agent(agent_id: str, event: IncomingEvent, *, prefix: str | None) -> str:
     session = _session_lookup.find_or_create(
-        agent_id=master["id"],
+        agent_id=agent_id,
         user_id=event.target_username,
         channel=event.channel,
         external_user_id=event.external_user_id,
         title_hint=f"{event.channel}: {event.sender_name or event.external_user_id}",
     )
+    user_text = event.text
+    if prefix:
+        user_text = f"[BUTLER-VORGABE: {prefix}]\n\n{event.text}"
 
-    # Runner-Events sammeln, finalen Assistant-Text aggregieren
     answer_parts: list[str] = []
     current_text: list[str] = []
-    async for ev in runner_run(session.id, event.text):
+    async for ev in runner_run(session.id, user_text):
         if isinstance(ev, MessageStart):
             current_text = []
         elif isinstance(ev, TextDelta):
