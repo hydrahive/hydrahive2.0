@@ -22,9 +22,16 @@ logger = logging.getLogger(__name__)
 
 
 async def handle_incoming(event: IncomingEvent) -> str | None:
-    """Verarbeitet ein eingehendes Event. Returnt die Antwort (oder None)."""
+    """Verarbeitet ein eingehendes Event. Returnt die Antwort (oder None).
+
+    `event.metadata['voice_mode']` (bool) wird durchgereicht damit der
+    Master-/Butler-Agent-Run einen Voice-Mode-System-Hinweis bekommt
+    (verhindert dass der Agent eigene mmx/Audio-Datei-Calls macht).
+    """
     if not event.text and not event.media_type:
         return None
+
+    voice_reply = bool(event.metadata.get("voice_mode", False))
 
     # 1. Butler-Pass
     try:
@@ -48,6 +55,7 @@ async def handle_incoming(event: IncomingEvent) -> str | None:
                 return await run_agent_for_event(
                     decision.reply_via_agent, event,
                     prefix=decision.reply_prefix,
+                    voice_reply=voice_reply,
                 )
             except Exception as e:
                 logger.exception(
@@ -60,7 +68,7 @@ async def handle_incoming(event: IncomingEvent) -> str | None:
 
     # 2. Default: Master-Agent
     try:
-        answer = await run_master_for_event(event)
+        answer = await run_master_for_event(event, voice_reply=voice_reply)
     except NoMasterError as e:
         logger.warning("%s — Event '%s' verworfen", e, event.channel)
         return None

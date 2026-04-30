@@ -34,11 +34,22 @@ MAX_ITERATIONS = 30
 LOOP_DETECTION_WINDOW = 3  # 3× identisches Tool-Use → Abbruch
 
 
-async def run(session_id: str, user_input: str | list, *, tool_config: dict | None = None) -> AsyncIterator[Event]:
+async def run(
+    session_id: str,
+    user_input: str | list,
+    *,
+    tool_config: dict | None = None,
+    extra_system: str | None = None,
+) -> AsyncIterator[Event]:
     """Run one user turn against the agent. Yields events; persists state.
 
     Caller is responsible for SSE-encoding the events for HTTP. Errors are
     yielded as Error-events (not raised) so the stream stays well-formed.
+
+    `extra_system` wird als zusätzlicher Kontext-Block VOR dem agent-eigenen
+    system_prompt eingefügt (call-spezifisch, nicht persistiert). Aktueller
+    Use-Case: WhatsApp-Voice-Mode-Hinweis damit der Master weiß dass das
+    Backend TTS automatisch macht — kein eigenmächtiger mmx-Aufruf.
     """
     session = sessions_db.get(session_id)
     if not session:
@@ -99,6 +110,8 @@ async def run(session_id: str, user_input: str | list, *, tool_config: dict | No
             f"[Bisherige Zusammenfassung]\n{summary}\n\n{base_system_prompt}"
             if summary else base_system_prompt
         )
+        if extra_system:
+            system_prompt = f"{extra_system}\n\n{system_prompt}"
 
         healed_history = heal_orphan_tool_uses(history)
         anth_messages = to_anthropic_messages(healed_history)
