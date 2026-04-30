@@ -166,19 +166,6 @@ EOF
   systemctl restart hydrahive2-voice.timer
 fi
 
-if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "hydrahive2-stt" \
-   || ! command -v mmx >/dev/null 2>&1 \
-   || ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
-  log "Voice-Setup unvollständig (Container/mmx/Port 10300) — starte 55-voice.sh"
-  bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
-  # STT-Container im falschen NetworkMode? Hard-Recreate erzwingen
-  if ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
-    log "STT-Port 10300 nicht offen — STT-Container neu anlegen"
-    docker rm -f hydrahive2-stt >/dev/null 2>&1 || true
-    (cd /opt/hydrahive2-voice && docker compose up -d stt) >/dev/null 2>&1 || true
-  fi
-fi
-
 if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
    || ! systemctl is-active --quiet hydrahive2-websockify.service; then
   log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"
@@ -187,12 +174,22 @@ if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
     bash "$HH_REPO_DIR/installer/modules/65-vms.sh"
 fi
 
+# incus-Setup muss VOR dem Voice-Check laufen — 55-voice.sh nutzt incus
+# als STT-Container-Runtime (kein Docker mehr).
 if ! command -v incus >/dev/null 2>&1 \
    || ! incus storage list 2>/dev/null | grep -q "default" \
    || [ ! -d "/home/$HH_USER/.config/incus" ]; then
   log "Container-Manager-Setup fehlt — starte 70-containers.sh"
   HH_USER="$HH_USER" \
     bash "$HH_REPO_DIR/installer/modules/70-containers.sh"
+fi
+
+# Voice-Setup nach incus — STT läuft jetzt in einem incus-LXC (kein Docker).
+if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "hydrahive2-stt,RUNNING" \
+   || ! command -v mmx >/dev/null 2>&1 \
+   || ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
+  log "Voice-Setup unvollständig (STT-Container/mmx/Port 10300) — starte 55-voice.sh"
+  bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
 fi
 
 # Service-File auf HOME-Env + ReadWritePaths-Erweiterung migrieren
