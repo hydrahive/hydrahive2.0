@@ -276,7 +276,6 @@ Dev-Sandboxes) die von einem Specialist-Agent administriert werden.
 - Multi-Host-Cluster (immer einzelner Host)
 - Live-Migration zwischen Hosts
 - HA / Auto-Failover
-- Container-Workloads (siehe Plugin/MCP für Docker)
 - Externes Backup (Snapshots only — Off-host-Backup ist Sache des Hosts)
 
 ### Architektur
@@ -284,6 +283,39 @@ Dev-Sandboxes) die von einem Specialist-Agent administriert werden.
 `/api/vms/*`, Per-User-Isolation via `owner` wie bei Agents. Frontend `/vms`.
 Alle Module max ~150 Zeilen pro Datei, aufgeteilt in models/db/qemu_args/lifecycle/
 reconciler/iso/import_job/snapshots/vnc/events/errors.
+
+---
+
+## Container-Management (Core-Komponente, Schwester von VMs)
+
+HydraHive2 kann LXC-Container über **incus** direkt managen. Sweet-Spot zwischen
+Docker (zu eng, Layer-FS-Overhead) und VMs (zu schwer, langsamer Boot): kleine
+Dauer-Dienste wie SearXNG, Linkding, Vaultwarden, Eigene Tools.
+
+### Funktionsumfang
+- Container-Lifecycle: erstellen, starten, stoppen, neu starten, löschen — Per-User-Owner
+- Image: aus offiziellem `images:`-Remote (Ubuntu/Debian/Alpine/Arch) oder lokaler Image-Cache
+- Konsole: xterm.js im Browser über `incus exec` WebSocket
+- Snapshots: live-fähig via `incus snapshot create` (im Gegensatz zu VM-Snapshots offline)
+- Networking: gleiche `br0` wie VMs — Container bekommen DHCP-IP aus dem LAN
+- Reconciliation: actual_state wird gegen `incus list` abgeglichen
+- Storage: dir-Backend (kein BTRFS/ZFS — Loop-Devices sind in nested-LXC nicht verfügbar)
+
+### Nicht-Ziele
+- Eigene Container-Image-Erstellung (User installiert in einem laufenden Container und macht Snapshot)
+- Multi-Host-Cluster
+- Container-zu-Container-Networking abseits br0 (alle teilen sich die Bridge)
+
+### Voraussetzungen
+- incus aus Ubuntu-24.04-Standard-Repo (kein Snap, kein PPA)
+- Wenn HydraHive2 selbst in einem LXC-Container läuft: Host-LXC braucht
+  `security.nesting=1`, AppArmor-Profile darf nicht confined sein. Sonst
+  schlägt der Sub-Container-Start mit "Operation not permitted" fehl.
+- Storage-Driver: `dir` (kein /dev/loop nötig)
+
+### Architektur
+`core/src/hydrahive/containers/` als Core-Modul. Routen unter `/api/containers/*`.
+Frontend `/containers` mit eigener Page. Sidebar-Item neben `/vms`.
 
 ---
 

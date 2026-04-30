@@ -69,6 +69,9 @@ fi
 log "Phase 9: VM-Manager (QEMU/KVM + websockify)"
 bash "$INSTALLER_DIR/modules/65-vms.sh"
 
+log "Phase 10: Container-Manager (incus + dir-Storage)"
+bash "$INSTALLER_DIR/modules/70-containers.sh"
+
 log "Fertig. Backend läuft als systemd-Service 'hydrahive2'."
 log "Erste Anmeldung: Admin-Passwort steht im journal:"
 log "  journalctl -u hydrahive2 | grep -A 3 'Admin-User angelegt'"
