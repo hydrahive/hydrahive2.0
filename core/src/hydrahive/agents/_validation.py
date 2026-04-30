@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from hydrahive.llm import client as llm_client
 from hydrahive.plugins import tool_bridge as plugin_bridge
-from hydrahive.tools import REGISTRY as TOOL_REGISTRY
+from hydrahive.tools import OPTIONAL_TOOLS, REGISTRY as TOOL_REGISTRY
 
 
 class AgentValidationError(ValueError):
@@ -33,7 +33,7 @@ def validate_tools(tools: list[str]) -> None:
     plugin_names = {t["name"] for t in plugin_bridge.all_tool_meta()}
     unknown = [
         t for t in tools
-        if t not in TOOL_REGISTRY and t not in plugin_names
+        if t not in TOOL_REGISTRY and t not in plugin_names and t not in OPTIONAL_TOOLS
     ]
     if unknown:
         available = sorted(set(TOOL_REGISTRY.keys()) | plugin_names)

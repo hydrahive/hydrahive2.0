@@ -56,6 +56,12 @@ def _build_registry() -> dict[str, Tool]:
 
 REGISTRY: dict[str, Tool] = _build_registry()
 
+# Tools die je nach Setup conditional registriert werden. Auf der Validation-
+# Ebene werden sie toleriert — der Runner filtert sie über schemas_for() ohnehin
+# raus wenn nicht in REGISTRY. Verhindert Validation-Fail bei bestehenden
+# Agent-Configs nachdem AgentLink z.B. aus HH_AGENTLINK_URL entfernt wird (#78).
+OPTIONAL_TOOLS: frozenset[str] = frozenset({"ask_agent"})
+
 
 def list_tools() -> list[Tool]:
     return list(REGISTRY.values())
