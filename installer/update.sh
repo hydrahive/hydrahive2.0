@@ -253,6 +253,15 @@ if [ -f "$NGINX_CONF" ]; then
   fi
 fi
 
+log "HydraLink (AgentLink) Update"
+if [ -d "/opt/hydralink/.git" ]; then
+  git -C /opt/hydralink -c safe.directory=/opt/hydralink pull --ff-only || log "hydralink-pull failed — weiter"
+  bash /opt/hydralink/installer/install.sh || log "hydralink-install failed — weiter"
+elif [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
+  log "hydralink fehlt — wird jetzt installiert"
+  bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh" || log "hydralink-install failed — weiter"
+fi
+
 log "Service neu starten"
 systemctl restart hydrahive2.service
 
