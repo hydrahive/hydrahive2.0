@@ -18,10 +18,15 @@ STT_HOST = "127.0.0.1"
 STT_PORT = 10300
 
 _MIME_EXT = {
-    "audio/webm": ".webm", "audio/ogg": ".ogg", "audio/ogg; codecs=opus": ".ogg",
+    "audio/webm": ".webm", "audio/ogg": ".ogg",
     "audio/mpeg": ".mp3", "audio/mp4": ".m4a",
     "audio/wav": ".wav", "audio/x-wav": ".wav",
 }
+
+
+def _normalize_mime(m: str) -> str:
+    """`audio/ogg; codecs=opus` ⇒ `audio/ogg`. Toleriert Whitespace + Casing."""
+    return m.split(";")[0].strip().lower()
 
 
 async def _send(writer, etype: str, data: dict | None = None, payload: bytes = b"") -> None:
@@ -85,7 +90,7 @@ async def _wyoming_transcribe(pcm: bytes, language: str | None = None) -> str:
 
 
 async def _to_pcm(audio: bytes, mime: str) -> bytes:
-    suffix = _MIME_EXT.get(mime.lower().strip(), ".bin")
+    suffix = _MIME_EXT.get(_normalize_mime(mime), ".bin")
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as src:
         src.write(audio)
         src_path = Path(src.name)
