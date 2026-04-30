@@ -61,8 +61,8 @@ export function MessageBubble({ message }: { message: Message }) {
                   {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
                 </button>
                 {isPersisted
-                  ? <Check size={11} className="text-emerald-400/60" title={t("bubble.persisted")} />
-                  : <Clock size={11} className="text-zinc-600" title={t("bubble.pending")} />
+                  ? <span title={t("bubble.persisted")}><Check size={11} className="text-emerald-400/60" /></span>
+                  : <span title={t("bubble.pending")}><Clock size={11} className="text-zinc-600" /></span>
                 }
               </div>
             </>
