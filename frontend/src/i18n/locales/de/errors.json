@@ -77,6 +77,19 @@
   "import_job_not_done": "Import-Job ist noch nicht fertig (Status: {{status_}})",
   "import_qcow2_missing": "qcow2 zum Import-Job fehlt — vermutlich gelöscht",
   "import_move_failed": "Import-qcow2 verschieben fehlgeschlagen: {{error}}",
+  "container_not_found": "Container nicht gefunden",
+  "container_no_access": "Keine Berechtigung für diesen Container",
+  "container_name_invalid": "Container-Name ungültig (1-63 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -)",
+  "container_name_taken": "Ein Container mit diesem Namen existiert bereits",
+  "container_network_mode_invalid": "Unbekannter Netzwerk-Modus",
+  "container_not_running": "Container läuft nicht (vom Reconciler erkannt)",
+  "incus_missing": "incus nicht installiert — Installer Phase 10 ausstehend",
+  "incus_timeout": "incus-Befehl Timeout",
+  "incus_launch_failed": "incus launch fehlgeschlagen: {{stderr}}",
+  "incus_start_failed": "incus start fehlgeschlagen: {{stderr}}",
+  "incus_stop_failed": "incus stop fehlgeschlagen: {{stderr}}",
+  "incus_restart_failed": "incus restart fehlgeschlagen: {{stderr}}",
+  "incus_delete_failed": "incus delete fehlgeschlagen: {{stderr}}",
 
   "validation_error": "{{message}}"
 }

@@ -178,6 +178,13 @@ if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
     bash "$HH_REPO_DIR/installer/modules/65-vms.sh"
 fi
 
+if ! command -v incus >/dev/null 2>&1 \
+   || ! incus storage list 2>/dev/null | grep -q "default"; then
+  log "Container-Manager-Setup fehlt — starte 70-containers.sh"
+  HH_USER="$HH_USER" \
+    bash "$HH_REPO_DIR/installer/modules/70-containers.sh"
+fi
+
 log "nginx-Config prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
 if [ -f "$NGINX_CONF" ]; then

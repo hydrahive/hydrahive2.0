@@ -77,6 +77,19 @@
   "import_job_not_done": "Import job not finished yet (status: {{status_}})",
   "import_qcow2_missing": "qcow2 for import job missing — probably deleted",
   "import_move_failed": "Could not move import qcow2: {{error}}",
+  "container_not_found": "Container not found",
+  "container_no_access": "No permission for this container",
+  "container_name_invalid": "Invalid container name (1-63 chars, must start with letter, only a-z A-Z 0-9 -)",
+  "container_name_taken": "A container with this name already exists",
+  "container_network_mode_invalid": "Unknown network mode",
+  "container_not_running": "Container not running (detected by reconciler)",
+  "incus_missing": "incus not installed — installer phase 10 pending",
+  "incus_timeout": "incus command timeout",
+  "incus_launch_failed": "incus launch failed: {{stderr}}",
+  "incus_start_failed": "incus start failed: {{stderr}}",
+  "incus_stop_failed": "incus stop failed: {{stderr}}",
+  "incus_restart_failed": "incus restart failed: {{stderr}}",
+  "incus_delete_failed": "incus delete failed: {{stderr}}",
 
   "validation_error": "{{message}}"
 }

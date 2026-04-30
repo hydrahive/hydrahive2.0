@@ -10,6 +10,7 @@
     "projects": "Projects",
     "communication": "Communication",
     "vms": "VMs",
+    "containers": "Containers",
     "llm": "LLM",
     "mcp": "MCP",
     "system": "System",
