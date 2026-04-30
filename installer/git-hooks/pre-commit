@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# HydraHive2 — pre-commit-Guard für SPEC.md + CLAUDE.md.
+#
+# Regel: SPEC.md und CLAUDE.md werden NUR in standalone-Commits geändert
+# (kein Mix mit Code in derselben Commit). Begründung in Issue #34 und
+# CLAUDE.md selbst.
+#
+# Bypass für Notfälle: BYPASS_SPEC_GUARD=1 git commit ...
+
+set -euo pipefail
+
+if [ "${BYPASS_SPEC_GUARD:-0}" = "1" ]; then
+  echo "[pre-commit] SPEC-Guard via BYPASS_SPEC_GUARD=1 umgangen — bewusste Entscheidung."
+  exit 0
+fi
+
+# Liste der staged Files
+staged="$(git diff --cached --name-only)"
+
+# Prüfen ob SPEC.md oder CLAUDE.md staged sind
+spec_or_claude="$(printf '%s\n' "$staged" | grep -E '^(SPEC\.md|CLAUDE\.md)$' || true)"
+if [ -z "$spec_or_claude" ]; then
+  exit 0
+fi
+
+# Andere Files daneben?
+others="$(printf '%s\n' "$staged" | grep -vE '^(SPEC\.md|CLAUDE\.md)$' || true)"
+if [ -z "$others" ]; then
+  # Nur SPEC.md und/oder CLAUDE.md → standalone, OK
+  exit 0
+fi
+
+cat >&2 <<EOF
+
+╔══════════════════════════════════════════════════════════════════╗
+║  SPEC-/CLAUDE-Guard: Mixed-Commit blockiert                       ║
+╠══════════════════════════════════════════════════════════════════╣
+║  SPEC.md / CLAUDE.md dürfen NUR in standalone-Commits geändert    ║
+║  werden — siehe Issue #34, CLAUDE.md "SPEC-Workflow".             ║
+║                                                                   ║
+║  Geänderte Doku-Files in diesem Commit:                           ║
+EOF
+printf '%s\n' "$spec_or_claude" | sed 's/^/║    · /' >&2
+echo "║" >&2
+echo "║  Code-Files daneben:" >&2
+printf '%s\n' "$others" | head -10 | sed 's/^/║    · /' >&2
+[ "$(printf '%s\n' "$others" | wc -l)" -gt 10 ] && echo "║    · …" >&2
+cat >&2 <<EOF
+║                                                                   ║
+║  Lösung:                                                          ║
+║    1. SPEC/CLAUDE-Änderung unstaged: git restore --staged SPEC.md ║
+║    2. Code committen wie geplant                                  ║
+║    3. SPEC/CLAUDE separat committen (mit explizit dokumentierter  ║
+║       Freigabe vom User)                                          ║
+║                                                                   ║
+║  Notfall-Bypass: BYPASS_SPEC_GUARD=1 git commit ...               ║
+╚══════════════════════════════════════════════════════════════════╝
+
+EOF
+exit 1

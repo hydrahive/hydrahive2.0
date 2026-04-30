@@ -1,0 +1,55 @@
+name: SPEC/CLAUDE-Guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  spec-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check no mixed SPEC.md/CLAUDE.md commits
+        run: |
+          set -e
+          # Bei push: alle Commits zwischen before und after.
+          # Bei pull_request: alle Commits im PR.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+            range="$base..$head"
+          else
+            range="${{ github.event.before }}..${{ github.event.after }}"
+            # Erster Push auf neuem Branch: before ist 000…000
+            if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+              echo "Initial push — überspringe Mixed-Check."
+              exit 0
+            fi
+          fi
+
+          echo "Prüfe Commits in $range"
+          fail=0
+          for commit in $(git rev-list "$range"); do
+            files="$(git show --name-only --format= "$commit")"
+            spec="$(echo "$files" | grep -E '^(SPEC\.md|CLAUDE\.md)$' || true)"
+            others="$(echo "$files" | grep -vE '^(SPEC\.md|CLAUDE\.md)$' | grep -v '^$' || true)"
+            if [ -n "$spec" ] && [ -n "$others" ]; then
+              echo "::error ::Commit $commit mixt SPEC/CLAUDE mit Code-Änderungen."
+              echo "  Doku-Files:"
+              echo "$spec" | sed 's/^/    /'
+              echo "  Code-Files:"
+              echo "$others" | head -10 | sed 's/^/    /'
+              fail=1
+            fi
+          done
+          if [ "$fail" = "1" ]; then
+            echo ""
+            echo "Regel: SPEC.md/CLAUDE.md werden NUR in standalone-Commits geändert."
+            echo "Siehe CLAUDE.md \"SPEC-Workflow\" und Issue #34."
+            exit 1
+          fi
+          echo "Alle Commits in der Range sind sauber."
