@@ -94,7 +94,9 @@ class Settings:
 
     @cached_property
     def agentlink_url(self) -> str:
-        return os.environ.get("HH_AGENTLINK_URL", "http://127.0.0.1:7700")
+        """AgentLink-Service-URL. Leer ⇒ AgentLink nicht angebunden,
+        ask_agent-Tool wird nicht registriert."""
+        return os.environ.get("HH_AGENTLINK_URL", "").strip()
 
     # ------------------------------------------------------------------ communication
 
