@@ -43,6 +43,19 @@ Backup vor jeder destruktiven Aktion. Immer.
 **7. Fehler sofort melden, nicht verstecken.**
 Wenn etwas nicht funktioniert oder ich unsicher bin — sofort sagen, nicht weitermachen.
 
+**8. SPEC.md und CLAUDE.md sind Tills Domäne.**
+Beide Dateien werden **nie** ohne ausdrückliche Zustimmung von Till geändert.
+Auch nicht "trivial", nicht zur "Sync mit Code", nicht "weil ein Issue es vorschlägt".
+Wenn der Code von der SPEC abweicht: erste Frage ist warum der Code abweicht,
+nicht wie man die SPEC daran anpasst.
+
+Workflow für Änderungen an SPEC.md / CLAUDE.md:
+1. Vorschlag formulieren mit konkretem Diff und Begründung
+2. Auf Tills explizites OK warten — kein "ich nehme an du meintest"
+3. Änderung als **standalone-Commit** (nur SPEC.md oder nur CLAUDE.md, kein
+   Code daneben). Pre-Commit-Hook + GitHub-Action erzwingen das technisch
+   (siehe `installer/git-hooks/pre-commit`, Issue #34).
+
 ---
 
 ## Technische Regeln
