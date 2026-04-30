@@ -123,6 +123,20 @@ async def wa_incoming(
     if not text and media_type not in ("audio", "audio_failed"):
         raise HTTPException(status_code=400, detail="missing_fields")
 
+    # Pre-Filter VOR STT: Sender-Check ohne Keyword. Spart STT-Ressourcen für
+    # geblockte Sender und vermeidet Info-Leak (geblockter User kriegt sonst
+    # die "Voice-download-failed"-Antwort und weiß: System ist da).
+    cfg = wa_config.load(target_username)
+    sender_for_filter = participant if (is_group and participant) else external_user_id
+    pre_decision = wa_filter.evaluate(
+        cfg=cfg, sender_jid=sender_for_filter, is_group=is_group,
+        text="", skip_keyword=True,
+    )
+    if not pre_decision.accepted:
+        logger.info("WhatsApp pre-filter (%s): user=%s sender=%s",
+                    pre_decision.reason, target_username, sender_for_filter)
+        return {"ok": True, "filtered": pre_decision.reason}
+
     # Voice-Failure-Pfad: Bridge konnte nicht downloaden ODER STT crasht.
     # Wir antworten direkt mit Text — Master-Agent NICHT belasten.
     voice_error_msg: str | None = None
@@ -171,10 +185,10 @@ async def wa_incoming(
                 logger.warning("Voice-Error-Reply konnte nicht gesendet werden: %s", e)
         return {"ok": True, "voice_error": True}
 
-    cfg = wa_config.load(target_username)
-    sender_for_filter = participant if (is_group and participant) else external_user_id
+    # Post-Filter: jetzt mit (ggf. transkribiertem) Text — der Keyword-Check
+    # läuft jetzt erst, alle Sender-Checks sind oben schon durchgelaufen.
     decision = wa_filter.evaluate(
-        cfg=cfg, sender_jid=sender_for_filter, is_group=is_group, text=text
+        cfg=cfg, sender_jid=sender_for_filter, is_group=is_group, text=text,
     )
     if not decision.accepted:
         logger.info(
