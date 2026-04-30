@@ -319,13 +319,143 @@ Frontend `/containers` mit eigener Page. Sidebar-Item neben `/vms`.
 
 ---
 
+## Butler — Flow-Builder (Core-Komponente)
+
+Der **Butler** ist ein visueller Flow-Builder für Trigger → Condition → Action-Regeln.
+Er war im alten HydraHive eines der besten Features und kommt im Neubau wieder rein —
+aber sauberer aufgeteilt (Registry-Pattern, kleine Files, echte Validierung).
+
+Ein „Flow" ist ein gerichteter azyklischer Graph aus drei Node-Typen:
+- **Trigger** (genau einer am Anfang) — was den Flow auslöst
+- **Condition** (beliebig viele, optional) — Verzweigung mit `true`/`false`-Output
+- **Action** (eine oder mehrere am Ende) — was passieren soll
+
+Beispiel-Flow: *„Wenn WhatsApp-Nachricht ankommt UND Sender ist in Whitelist UND
+es ist Werktag zwischen 9-17 Uhr, dann leite an Master-Agent mit Instruction
+`Antworte freundlich und kurz` weiter — sonst antworte fix mit `Bin gerade nicht erreichbar`."*
+
+### Funktionsumfang
+
+**Trigger** (in Phase 2 implementiert, weitere als Plugin nachrüstbar):
+- `message_received` — eingehende Channel-Nachricht (whatsapp / telegram / discord / matrix / all)
+- `webhook_received` — eingehender HTTP-POST an `/api/webhooks/butler/<hook_id>` (Pro-Hook-Secret als HMAC)
+- `email_received` — IMAP-Polling oder externer Webhook
+- `git_event_received` — GitHub/Gitea-Webhook (push / pull_request / issues)
+- `cron_fired` — zeitgesteuert (cron-Expression)
+
+**Condition** (in Phase 2):
+- `time_window` — lokale Systemzeit zwischen `from`/`to` (Mitternacht-Crossing supported)
+- `day_of_week` — Wochentage als Toggle-Liste (Mo-So)
+- `contact_in_list` — Sender-ID/E-Mail in einer Liste
+- `message_contains` — Substring (case-insensitive) im Nachrichten-Text
+- `payload_field_equals` / `payload_field_contains` — Punkt-Notation für JSON-Pfade (`pull_request.state`)
+- `regex_match` — Regex auf einem Feld
+
+**Action** (in Phase 2):
+- `agent_reply` — Nachricht 1:1 an einen Agent weiterreichen
+- `agent_reply_with_prefix` — wie oben, aber mit prepended Instruction (`[BUTLER: …]`)
+- `reply_fixed` — feste Antwort über den Channel zurückschicken
+- `http_post` — HTTP-Call mit Jinja2-Template-Body
+- `send_email` — Email senden (nutzt bestehendes `send_mail`-Tool)
+- `discord_post` — Discord-Channel-Message
+- `git_create_issue` / `git_add_comment` — GitHub/Gitea
+- `ignore` — Flow stoppen (Bypass für default-Verhalten)
+
+**Template-Engine**: Jinja2 in allen Action-Params. Filter wie `{{ msg | truncate(50) }}`,
+`{{ event.timestamp | strftime("%H:%M") }}`. Sandbox-Mode (kein Code-Eval).
+
+**Persistenz**: pro Flow eine JSON-File unter `$HH_CONFIG_DIR/butler/<owner>/<flow_id>.json`.
+Pro-User-Isolation. Optional `scope: "project"` mit `scope_id` für Projekt-Flows.
+
+**Validierung** (vor jedem Save): Pydantic-Models. Genau ein Trigger pro Flow. Keine
+zyklischen Edges. Jeder Node mit gültigen Subtype-Params. Keine Orphan-Nodes
+(unverbundene Action ohne Pfad zum Trigger).
+
+**Dry-Run**: `POST /api/butler/<flow_id>/dry_run` mit Mock-Event-JSON. Liefert
+Trace-Liste der durchlaufenen Nodes + die *would-execute*-Actions zurück, ohne
+echte Side-Effects auszuführen.
+
+**Audit**: jeder Flow hat `created_at`, `modified_at`, `modified_by`. Letzte 10
+Executions pro Flow im SQLite-Log mit Trigger-Event + erreichten Actions.
+
+### Frontend: ReactFlow-Canvas mit Drag&Drop
+
+Der Editor läuft auf **`@xyflow/react`** — einer ausgereiften React-Library für
+Node-Graph-Editoren. Layout:
+
+- **Linke Sidebar** — Node-Palette mit drei Gruppen (Trigger / Condition / Action),
+  Items per Drag&Drop ins Canvas ziehbar. Such-Feld zum Filtern.
+- **Center Canvas** — ReactFlow-Viewport mit Snap-Grid (15px), Pan/Zoom,
+  MiniMap unten rechts, Controls oben rechts. Nodes farbcodiert: Trigger grün,
+  Condition blau (zwei Output-Handles), Action orange.
+- **Rechte Sidebar (Inspector)** — Subtype-spezifische Param-Maske wenn ein Node
+  selektiert ist. Live-Validierung mit Inline-Errors. „Dry Run"-Knopf öffnet
+  Test-Event-Dialog.
+- **Top-Bar** — Flow-Auswahl-Dropdown, Name-Input, Enabled-Toggle (grün=aktiv),
+  Speichern + Löschen.
+
+Der Editor ist kein Spielzeug — der User soll wirklich grafisch Flows bauen,
+ziehen, verbinden, verzweigen. Kein YAML-Editor als Fallback.
+
+### Nicht-Ziele
+
+- Schleifen / Recursion zwischen Nodes (Cycle-Guard verhindert)
+- Parallele Async-Execution mit Join-Knoten
+- Versions-Historie pro Flow (nur `modified_at`/`modified_by`, kein Diff)
+- Code-Action (User-Code im Browser ausführen)
+- Inline-Skripte in Conditions
+
+### Voraussetzungen
+
+- Trigger-Hooks in den Channel-Adaptern (WhatsApp ruft `butler.dispatch(event)`
+  bevor die normale Master-Agent-Route)
+- Webhook-Endpoint mit Pro-Hook-Secret-Verwaltung
+- Cron-Daemon für `cron_fired` (kann APScheduler im Backend-Prozess sein)
+- Jinja2 als Backend-Dependency (Sandbox-Mode aktivieren)
+
+### Architektur
+
+**Backend** (`core/src/hydrahive/butler/`):
+- `models.py` — Pydantic-Models (Flow, Node, Edge, TriggerEvent)
+- `persistence.py` — Load/Save JSON-Files mit Validation
+- `registry/` — drei Registries (triggers/, conditions/, actions/), jede Subtype-Implementation eine eigene Datei <50 Zeilen
+- `executor.py` — DFS-Traversal, Cycle-Guard, Trace-Logger
+- `template.py` — Jinja2-Sandbox-Wrapper
+- `dispatch.py` — Public API: `butler.dispatch(event)` von Channel-Adaptern aufgerufen
+- `audit.py` — Execution-Log in SQLite
+
+**API-Routen** (`api/routes/butler.py` + `api/routes/butler_webhooks.py`):
+- `GET/POST/PUT/DELETE /api/butler/flows` — CRUD
+- `POST /api/butler/flows/<id>/dry_run` — Test-Lauf
+- `GET /api/butler/registry` — Liste aller verfügbaren Trigger/Condition/Action-Subtypes mit Param-Schemas (für Inspector-UI)
+- `POST /api/webhooks/butler/<hook_id>` — Generischer Webhook-Eingang
+- `POST /api/webhooks/git/<provider>/<hook_id>` — Git-Provider-spezifisch (GitHub/Gitea)
+
+**Frontend** (`frontend/src/features/butler/`, jede Datei <150 Zeilen):
+- `ButlerPage.tsx` — Haupt-Container mit Flow-Liste in Top-Bar
+- `Canvas/Canvas.tsx` — ReactFlow-Viewport, Custom-Node-Renderer
+- `Canvas/TriggerNode.tsx` / `ConditionNode.tsx` / `ActionNode.tsx` — Custom-Node-Components
+- `Palette/NodePalette.tsx` — Drag-Source-Liste, getrennte Files für PaletteGroup, PaletteItem
+- `Inspector/Inspector.tsx` — Switch auf Subtype, lädt entsprechendes Form-Component
+- `Inspector/forms/*.tsx` — pro Subtype eine Form-File (TimeWindowForm, MessageContainsForm, …)
+- `useFlowState.ts` — Zustand-Hook für Nodes/Edges/Selection
+- `api.ts` + `types.ts`
+
+**Phasenplan**:
+- **Phase 1** (~½ Tag): Datenmodell, Persistenz, Validierung, Registry-Skelett, REST-CRUD ohne UI
+- **Phase 2** (~1 Tag): Executor + 3 Trigger / 5 Conditions / 5 Actions, Dry-Run-Endpoint, Unit-Tests
+- **Phase 3** (~1 Tag): ReactFlow-Frontend (Canvas, Palette, Inspector), Save/Load/Toggle
+- **Phase 4** (~½ Tag): Trigger-Hooks in WhatsApp-Adapter und Webhook-Endpoint, Audit-Log, Dry-Run-UI
+- **Phase 5** (optional): zusätzliche Trigger/Conditions/Actions als Plugin-Pakete
+
+---
+
 ## Was explizit NICHT gebaut wird (ohne separate Entscheidung)
 
 - DREAM-System
 - Widget-Dashboard mit Drag&Drop
 - Collaborative Composer (Yjs)
 - Blueprint/Workflow-Editor
-- Butler-Regeln
 - Vaultwarden
 - Xiaozhi Voice-Server
 - SearXNG
