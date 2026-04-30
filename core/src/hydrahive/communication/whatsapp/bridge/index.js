@@ -49,7 +49,10 @@ const server = http.createServer(async (req, res) => {
       const user = decodeURIComponent(mSend[1]);
       if (body.audio_base64) {
         const buf = Buffer.from(body.audio_base64, "base64");
-        await sendAudio(user, body.to, buf);
+        const opts = {};
+        if (typeof body.seconds === "number") opts.seconds = body.seconds;
+        if (body.waveform_base64) opts.waveform = Buffer.from(body.waveform_base64, "base64");
+        await sendAudio(user, body.to, buf, opts);
         return sendJson(res, 200, { ok: true, audio: true });
       }
       if (!body.text) return sendJson(res, 400, { error: "text oder audio_base64 erforderlich" });
