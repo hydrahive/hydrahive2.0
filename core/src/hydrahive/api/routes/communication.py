@@ -136,6 +136,11 @@ async def wa_incoming(
                   "participant": participant},
     )
     answer = await handle_incoming(event)
+    logger.info(
+        "WA incoming user=%s sender=%s text=%r → answer=%r",
+        target_username, sender_for_filter, text[:60],
+        (answer[:100] if answer else None),
+    )
     if answer:
         ch = get("whatsapp")
         if ch:
