@@ -5,7 +5,7 @@
  * Update sieht damit z.B. so aus:
  *   <TextInput label={t("labelKeyword")} field="keyword" params={p} onChange={onChange} />
  */
-import { ReactNode } from "react"
+import type { ReactNode } from "react"
 
 export type Params = Record<string, unknown>
 
