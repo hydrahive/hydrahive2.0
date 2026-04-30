@@ -221,7 +221,7 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Spezialisten** — anlegen, Domäne, Skills zuweisen
 - **LLM** — Provider, API-Keys, Modelle
 - **MCP** — Server verwalten, pro Agent zuweisen
-- **System** — Logs, Health, Services, System-Backup/Restore (Admin)
+- **System** — Logs, Health, Services, System-Backup/Restore, Tailscale (Admin)
 - **Profil** — eigene Daten exportieren/importieren
 
 ---
@@ -260,6 +260,36 @@ Zwei getrennte Mechanismen für unterschiedliche Use-Cases.
 - Backup-Verschlüsselung im Code (User soll die Datei selbst encrypted ablegen)
 - Cross-User-Restore (Admin kann nicht mit User-Backup einen anderen User wiederherstellen)
 - Selektives Restore (alles oder nichts pro Backup-Typ)
+
+---
+
+## Tailscale-Integration
+
+**Zweck:**
+- Sicherer Zugang zu HydraHive2 von mobilen Geräten — kein Router-Port-Forwarding nötig
+- Verbindung mehrerer HydraHive2-Server untereinander via HydraLink über Tailscale-IPs
+
+**Was HydraHive2 macht:**
+- Tailscale auf dem Host installieren (Installer-Phase oder nachträglich per UI)
+- Tailscale-Status anzeigen (verbunden / getrennt, Tailscale-IP, Hostname)
+- Login per Auth-Key über die UI — kein SSH nötig
+- Invite-Link für weitere Geräte/Server generieren (Clipboard-Copy)
+- Tailscale-IP automatisch als HydraLink-Endpoint vorschlagen wenn aktiv
+
+**Frontend (System-Page, Admin):**
+- Tailscale-Card: Status (verbunden/getrennt), Tailscale-IP, Hostname
+- Login-Button → Auth-Key eingeben → verbinden
+- Invite-Link generieren → Clipboard-Copy
+- Logout-Button
+
+**Installer:**
+- Optionale Phase (wie WhatsApp-Bridge)
+- Bei `HH_TAILSCALE_AUTHKEY` in der Installer-Config: automatisch einrichten
+
+**Nicht-Ziele:**
+- Tailscale in VMs/Containern installieren (bleibt manuell oder über Butler-Flows)
+- Eigenes DERP/Control-Plane-Setup
+- ACL-Verwaltung aus HydraHive heraus
 
 ---
 
