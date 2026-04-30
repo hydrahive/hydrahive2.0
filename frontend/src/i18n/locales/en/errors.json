@@ -61,6 +61,19 @@
   "qcow2_missing": "qcow2 file missing: {{path}}",
   "vnc_ports_exhausted": "All VNC ports (5900–5999) in use",
   "vm_not_running": "VM not running — console available only after start",
+  "snapshot_not_found": "Snapshot not found",
+  "snapshot_name_invalid": "Invalid snapshot name (1-64 chars, only a-z A-Z 0-9 _ . -)",
+  "snapshot_vm_not_stopped": "VM must be stopped for snapshot operations",
+  "snapshot_create_failed": "Snapshot creation failed (rc={{rc}})",
+  "snapshot_restore_failed": "Snapshot restore failed (rc={{rc}})",
+  "snapshot_delete_failed": "Snapshot delete failed (rc={{rc}})",
+  "import_source_missing": "Source file missing or unreadable",
+  "import_format_unknown": "Disk format could not be detected",
+  "import_format_unsupported": "Format '{{format}}' is not supported (qcow2/raw/vmdk/vdi/vhd/vhdx)",
+  "import_convert_failed": "qemu-img convert failed (rc={{rc}})",
+  "import_upload_failed": "Upload failed: {{error}}",
+  "import_internal_error": "Internal import error",
+  "import_job_not_found": "Import job not found",
 
   "validation_error": "{{message}}"
 }

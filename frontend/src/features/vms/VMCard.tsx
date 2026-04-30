@@ -1,4 +1,4 @@
-import { Cpu, HardDrive, MemoryStick, Monitor, Network, Play, Power, Square, Trash2 } from "lucide-react"
+import { Camera, Cpu, HardDrive, MemoryStick, Monitor, Network, Play, Power, Square, Trash2 } from "lucide-react"
 import { useState } from "react"
 import type { VM } from "./types"
 import { StatusBadge } from "./StatusBadge"
@@ -11,9 +11,10 @@ interface Props {
   onPoweroff: () => Promise<void>
   onDelete: () => Promise<void>
   onConsole: () => void
+  onSnapshots: () => void
 }
 
-export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole }: Props) {
+export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole, onSnapshots }: Props) {
   const [busy, setBusy] = useState(false)
 
   async function withBusy(fn: () => Promise<void>) {
@@ -93,6 +94,13 @@ export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole }:
           </>
         )}
         <div className="flex-1" />
+        <button
+          onClick={onSnapshots}
+          className="flex items-center gap-1.5 p-1.5 rounded-lg text-xs text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors"
+          title="Snapshots"
+        >
+          <Camera size={12} />
+        </button>
         {!running && !transitioning && (
           <button
             disabled={busy}
@@ -101,7 +109,7 @@ export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole }:
                 withBusy(onDelete)
               }
             }}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-zinc-500 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
+            className="flex items-center gap-1.5 p-1.5 rounded-lg text-xs text-zinc-500 hover:text-rose-300 hover:bg-rose-500/10 transition-colors"
             title="Löschen"
           >
             <Trash2 size={12} />

@@ -31,6 +31,29 @@ export interface ISO {
   uploaded_at: string
 }
 
+export interface Snapshot {
+  snapshot_id: string
+  vm_id: string
+  name: string
+  description: string | null
+  size_bytes: number | null
+  created_at: string
+}
+
+export interface ImportJob {
+  job_id: string
+  owner: string
+  source_path: string
+  target_qcow2: string
+  status: "queued" | "running" | "done" | "failed"
+  progress_pct: number
+  bytes_done: number
+  bytes_total: number
+  error_code: string | null
+  created_at: string
+  finished_at: string | null
+}
+
 export interface VMCreateInput {
   name: string
   description?: string | null

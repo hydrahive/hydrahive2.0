@@ -1,0 +1,162 @@
+"""Disk-Image-Import: qcow2/raw/vmdk/vdi → qcow2 in vms_disks_dir.
+
+Workflow:
+1. Quelle (Upload-File ODER Pfad) wird in vms_imports_tmp/ bereitgelegt
+2. `qemu-img info` erkennt Format
+3. Wenn schon qcow2: copy/move. Sonst: `qemu-img convert -p -f <fmt> -O qcow2 src dst`
+4. Progress wird aus stderr von qemu-img convert gelesen ('-p' liefert "(XX.XX/100%)")
+5. Erfolg: Job-Status 'done', Disk liegt unter vms_disks_dir/<job_id>.qcow2
+6. Fehler: Job-Status 'failed' mit error_code
+
+Background-Tasks via asyncio.create_task — kein eigener Worker-Daemon.
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+import re
+import shutil
+from pathlib import Path
+
+from hydrahive.db._utils import now_iso, uuid7
+from hydrahive.db.connection import db
+from hydrahive.settings import settings
+
+logger = logging.getLogger(__name__)
+
+SUPPORTED_FORMATS = {"qcow2", "raw", "vmdk", "vdi", "vhd", "vhdx", "vpc"}
+PROGRESS_RE = re.compile(r"\(([\d.]+)/100%\)")
+
+
+class ImportError_(RuntimeError):
+    def __init__(self, code: str, **params):
+        super().__init__(f"{code}: {params}")
+        self.code = code
+        self.params = params
+
+
+def _imports_tmp() -> Path:
+    return settings.vms_dir / "imports-tmp"
+
+
+def db_create_job(owner: str, source_path: str, target_qcow2: str,
+                  bytes_total: int = 0) -> str:
+    job_id = uuid7()
+    with db() as conn:
+        conn.execute(
+            """INSERT INTO vm_import_jobs (job_id, owner, source_path, target_qcow2,
+                                            status, bytes_total, created_at)
+               VALUES (?, ?, ?, ?, 'queued', ?, ?)""",
+            (job_id, owner, source_path, target_qcow2, bytes_total, now_iso()),
+        )
+    return job_id
+
+
+def db_update(job_id: str, **fields) -> None:
+    if not fields:
+        return
+    sets = ", ".join(f"{k} = ?" for k in fields)
+    vals = list(fields.values()) + [job_id]
+    with db() as conn:
+        conn.execute(f"UPDATE vm_import_jobs SET {sets} WHERE job_id = ?", vals)
+
+
+def db_list(owner: str | None) -> list[dict]:
+    with db() as conn:
+        if owner is None:
+            rows = conn.execute("SELECT * FROM vm_import_jobs ORDER BY created_at DESC").fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM vm_import_jobs WHERE owner = ? ORDER BY created_at DESC",
+                (owner,),
+            ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def db_get(job_id: str) -> dict | None:
+    with db() as conn:
+        row = conn.execute("SELECT * FROM vm_import_jobs WHERE job_id = ?", (job_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def db_delete(job_id: str) -> None:
+    with db() as conn:
+        conn.execute("DELETE FROM vm_import_jobs WHERE job_id = ?", (job_id,))
+
+
+async def detect_format(src: Path) -> str:
+    """`qemu-img info --output=json` parst Format. Wirft ImportError bei unsupported."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "qemu-img", "info", "--output=json", str(src),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        raise ImportError_("qemu_img_missing")
+    out, err = await asyncio.wait_for(proc.communicate(), timeout=30.0)
+    if proc.returncode != 0:
+        raise ImportError_("import_format_unknown", stderr=err.decode(errors="replace")[:200])
+    import json
+    info = json.loads(out)
+    fmt = info.get("format", "")
+    if fmt not in SUPPORTED_FORMATS:
+        raise ImportError_("import_format_unsupported", format=fmt)
+    return fmt
+
+
+async def run_convert(src: Path, dst: Path, src_format: str, job_id: str) -> None:
+    """qemu-img convert mit Progress-Parsing aus stderr."""
+    args = ["qemu-img", "convert", "-p", "-f", src_format, "-O", "qcow2",
+            str(src), str(dst)]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+        )
+    except FileNotFoundError:
+        raise ImportError_("qemu_img_missing")
+    assert proc.stdout is not None
+    buf = b""
+    while True:
+        chunk = await proc.stdout.read(64)
+        if not chunk:
+            break
+        buf += chunk
+        # qemu-img progress kommt als " (XX.XX/100%)\r" — wir matchen unabhängig
+        for m in PROGRESS_RE.finditer(buf.decode("ascii", "replace")):
+            pct = int(float(m.group(1)))
+            db_update(job_id, progress_pct=pct)
+        if len(buf) > 4096:
+            buf = buf[-1024:]
+    rc = await proc.wait()
+    if rc != 0:
+        raise ImportError_("import_convert_failed", rc=rc)
+
+
+async def execute_job(job_id: str, *, cleanup_source: bool = True) -> None:
+    """Hintergrund-Task: macht detect_format → convert → DB-Update."""
+    job = db_get(job_id)
+    if not job:
+        return
+    src = Path(job["source_path"])
+    dst = Path(job["target_qcow2"])
+    db_update(job_id, status="running")
+    try:
+        if not src.exists():
+            raise ImportError_("import_source_missing")
+        fmt = await detect_format(src)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        await run_convert(src, dst, fmt, job_id)
+        db_update(job_id, status="done", progress_pct=100, finished_at=now_iso())
+    except ImportError_ as e:
+        logger.warning("Import-Job %s fehlgeschlagen: %s", job_id, e.code)
+        db_update(job_id, status="failed", error_code=e.code, finished_at=now_iso())
+        dst.unlink(missing_ok=True)
+    except Exception as e:
+        logger.exception("Import-Job %s unerwarteter Fehler", job_id)
+        db_update(job_id, status="failed", error_code="import_internal_error",
+                  finished_at=now_iso())
+        dst.unlink(missing_ok=True)
+    finally:
+        if cleanup_source:
+            src.unlink(missing_ok=True)

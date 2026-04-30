@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Disc, Plus, RefreshCw } from "lucide-react"
+import { Disc, Download, Plus, RefreshCw } from "lucide-react"
 import type { VM } from "./types"
 import { vmsApi } from "./api"
 import { VMCard } from "./VMCard"
 import { CreateVMDialog } from "./CreateVMDialog"
 import { ISOLibraryPanel } from "./ISOLibraryPanel"
 import { VMConsoleModal } from "./VMConsoleModal"
+import { SnapshotsPanel } from "./SnapshotsPanel"
+import { ImportJobsPanel } from "./ImportJobsPanel"
 
 const POLL_MS = 4000
 
@@ -16,6 +18,8 @@ export function VMsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [showISOs, setShowISOs] = useState(false)
   const [consoleVm, setConsoleVm] = useState<VM | null>(null)
+  const [snapshotVm, setSnapshotVm] = useState<VM | null>(null)
+  const [showImports, setShowImports] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -50,6 +54,10 @@ export function VMsPage() {
           <p className="text-zinc-500 text-sm mt-0.5">QEMU/KVM direkt — bridged Networking, VNC im Browser, Snapshots.</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowImports(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%]">
+            <Download size={12} /> Disk-Import
+          </button>
           <button onClick={() => setShowISOs(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%]">
             <Disc size={12} /> ISO-Library
@@ -92,6 +100,7 @@ export function VMsPage() {
               onPoweroff={async () => { await vmsApi.poweroff(vm.vm_id); await refresh() }}
               onDelete={async () => { await vmsApi.remove(vm.vm_id); await refresh() }}
               onConsole={() => setConsoleVm(vm)}
+              onSnapshots={() => setSnapshotVm(vm)}
             />
           ))}
         </div>
@@ -100,6 +109,8 @@ export function VMsPage() {
       {showCreate && <CreateVMDialog onClose={() => setShowCreate(false)} onCreated={refresh} />}
       {showISOs && <ISOLibraryPanel onClose={() => setShowISOs(false)} />}
       {consoleVm && <VMConsoleModal vm={consoleVm} onClose={() => setConsoleVm(null)} />}
+      {snapshotVm && <SnapshotsPanel vm={snapshotVm} onClose={() => setSnapshotVm(null)} />}
+      {showImports && <ImportJobsPanel onClose={() => setShowImports(false)} />}
     </div>
   )
 }
