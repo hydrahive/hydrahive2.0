@@ -14,8 +14,9 @@ from pydantic import BaseModel, ValidationError
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.butler import executor as bex
 from hydrahive.butler import persistence as bp
-from hydrahive.butler.models import Edge, Flow, Node
+from hydrahive.butler.models import Edge, Flow, Node, TriggerEvent
 from hydrahive.butler.registry import all_specs
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,21 @@ def update_flow(
                     errors=str(e))
     bp.save_flow(flow, modified_by=user)
     return flow.model_dump()
+
+
+class DryRunInput(BaseModel):
+    event: TriggerEvent
+
+
+@router.post("/flows/{flow_id}/dry_run")
+async def dry_run(
+    flow_id: str,
+    body: DryRunInput,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    user, role = auth
+    flow = _flow_or_404(user, flow_id, user, role)
+    return await bex.dispatch(flow, body.event, dry_run=True)
 
 
 @router.delete("/flows/{flow_id}", status_code=204)
