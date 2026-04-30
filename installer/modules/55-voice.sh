@@ -78,16 +78,37 @@ mkdir -p /var/lib/wyoming
 systemctl daemon-reload
 systemctl enable --now wyoming-whisper.service'
 
-  log "incus-proxy-device: Container:$STT_PORT → Host:127.0.0.1:$STT_PORT"
-  incus config device add "$CT_NAME" stt-port proxy \
-    listen=tcp:127.0.0.1:$STT_PORT \
-    connect=tcp:127.0.0.1:$STT_PORT >/dev/null
 else
   log "STT-Container '$CT_NAME' existiert bereits"
-  # Falls nicht running: starten
   if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "$CT_NAME,RUNNING"; then
     log "Container '$CT_NAME' nicht running — starte"
     incus start "$CT_NAME" 2>&1 | tail -3 || true
+  fi
+fi
+
+# ── Migrations-Reihenfolge: alter Docker-Container muss Port freigeben ──
+# Sonst kann incus-proxy-device nicht binden (Port already in use).
+# Voice-Downtime ist die Phase zwischen "docker stop" und "Wyoming-LXC ready".
+old_docker_running=0
+if command -v docker >/dev/null 2>&1 \
+   && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$CT_NAME"; then
+  old_docker_running=1
+  log "Docker-STT-Container läuft — stoppen für Port-Übergabe (kurzer Voice-Downtime)"
+  docker stop "$CT_NAME" >/dev/null 2>&1 || true
+fi
+
+# ── incus-proxy-device adden falls noch nicht da ─────────────────────────
+if ! incus config device show "$CT_NAME" 2>/dev/null | grep -q "^stt-port:"; then
+  log "incus-proxy-device anlegen: Container:$STT_PORT → Host:127.0.0.1:$STT_PORT"
+  if ! incus config device add "$CT_NAME" stt-port proxy \
+        listen=tcp:127.0.0.1:$STT_PORT \
+        connect=tcp:127.0.0.1:$STT_PORT 2>&1 | tail -3; then
+    log "FEHLER: proxy-device-Add fehlgeschlagen"
+    if [ "$old_docker_running" = "1" ]; then
+      log "Rollback: alten Docker-Container wieder starten"
+      docker start "$CT_NAME" >/dev/null 2>&1 || true
+    fi
+    exit 1
   fi
 fi
 
@@ -104,12 +125,16 @@ for i in $(seq 1 60); do
 done
 
 if [ "$ready" = "0" ]; then
-  log "STT noch nicht erreichbar — Container läuft im Hintergrund weiter"
-  log "Diagnose: 'incus exec $CT_NAME -- journalctl -u wyoming-whisper -n 30'"
+  log "STT noch nicht erreichbar nach 180s — Diagnose:"
+  log "  incus exec $CT_NAME -- journalctl -u wyoming-whisper -n 30"
+  if [ "$old_docker_running" = "1" ]; then
+    log "Rollback: alten Docker-Container wieder starten (Voice-Recovery)"
+    incus config device remove "$CT_NAME" stt-port >/dev/null 2>&1 || true
+    docker start "$CT_NAME" >/dev/null 2>&1 || true
+  fi
 fi
 
-# ── Migration: alten Docker-STT-Container entfernen wenn neuer läuft ─────
-# Nur ausführen wenn neuer Container healthy ist — sonst Voice-Downtime.
+# ── Migration: alten Docker-STT-Container entfernen wenn neuer healthy ──
 if [ "$ready" = "1" ] && command -v docker >/dev/null 2>&1; then
   if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx "$CT_NAME"; then
     log "Entferne alten Docker-STT-Container (Migration zu incus)"
