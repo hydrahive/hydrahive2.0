@@ -45,13 +45,13 @@ async def call_with_tools(
 
     anthropic_key = llm_client._get_anthropic_key(cfg)
     is_claude = llm_client._strip_provider_prefix(target).startswith("claude-")
-    if not (is_claude and anthropic_key.startswith("sk-ant-oat")):
+    if not is_claude or not anthropic_key:
         raise NotImplementedError(
-            "Nur Anthropic-OAuth- und MiniMax-Pfad implementiert."
+            "Nur Anthropic- und MiniMax-Pfad implementiert."
         )
 
-    return await _anthropic_oauth_call(
-        token=anthropic_key,
+    return await _anthropic_call(
+        key=anthropic_key,
         model=llm_client._strip_provider_prefix(target),
         system_prompt=system_prompt,
         messages=messages,
@@ -61,9 +61,9 @@ async def call_with_tools(
     )
 
 
-async def _anthropic_oauth_call(
+async def _anthropic_call(
     *,
-    token: str,
+    key: str,
     model: str,
     system_prompt: str,
     messages: list[dict],
@@ -72,27 +72,29 @@ async def _anthropic_oauth_call(
     max_tokens: int,
 ) -> list[dict]:
     import anthropic as _anthropic
-    client = _anthropic.AsyncAnthropic(
-        api_key="",
-        auth_token=token,
-        timeout=300.0,
-        default_headers=llm_client._ANTHROPIC_OAUTH_HEADERS,
-    )
+    is_oauth = key.startswith("sk-ant-oat")
+    if is_oauth:
+        client = _anthropic.AsyncAnthropic(
+            api_key="", auth_token=key, timeout=300.0,
+            default_headers=llm_client._ANTHROPIC_OAUTH_HEADERS,
+        )
+    else:
+        client = _anthropic.AsyncAnthropic(api_key=key, timeout=300.0)
 
-    # System: Identity-Block (Pflicht für OAuth) + agent's system_prompt
-    system_blocks = [
-        {"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]},
-    ]
+    system_blocks: list[dict[str, Any]] = []
+    if is_oauth:
+        system_blocks.append({"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]})
     if system_prompt:
         system_blocks.append({"type": "text", "text": system_prompt})
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "system": system_blocks,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    if system_blocks:
+        kwargs["system"] = system_blocks
     if tools:
         kwargs["tools"] = tools
 

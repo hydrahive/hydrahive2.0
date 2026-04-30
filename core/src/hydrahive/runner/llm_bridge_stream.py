@@ -63,11 +63,11 @@ async def stream_with_tools(
 
     anthropic_key = llm_client._get_anthropic_key(cfg)
     is_claude = llm_client._strip_provider_prefix(target).startswith("claude-")
-    if not (is_claude and anthropic_key.startswith("sk-ant-oat")):
-        raise StreamingNotSupported("Streaming nur für Anthropic-OAuth + MiniMax implementiert")
+    if not is_claude or not anthropic_key:
+        raise StreamingNotSupported("Streaming nur für Anthropic + MiniMax implementiert")
 
-    async for ev in _anthropic_oauth_stream(
-        token=anthropic_key,
+    async for ev in _anthropic_stream(
+        key=anthropic_key,
         model=llm_client._strip_provider_prefix(target),
         system_prompt=system_prompt,
         messages=messages,
@@ -78,9 +78,9 @@ async def stream_with_tools(
         yield ev
 
 
-async def _anthropic_oauth_stream(
+async def _anthropic_stream(
     *,
-    token: str,
+    key: str,
     model: str,
     system_prompt: str,
     messages: list[dict],
@@ -89,34 +89,37 @@ async def _anthropic_oauth_stream(
     max_tokens: int,
 ) -> AsyncIterator[dict]:
     import anthropic as _anthropic
-    client = _anthropic.AsyncAnthropic(
-        api_key="",
-        auth_token=token,
-        timeout=300.0,
-        default_headers=llm_client._ANTHROPIC_OAUTH_HEADERS,
-    )
+    is_oauth = key.startswith("sk-ant-oat")
+    if is_oauth:
+        client = _anthropic.AsyncAnthropic(
+            api_key="", auth_token=key, timeout=300.0,
+            default_headers=llm_client._ANTHROPIC_OAUTH_HEADERS,
+        )
+    else:
+        client = _anthropic.AsyncAnthropic(api_key=key, timeout=300.0)
 
-    # Identity + system_prompt mit cache_control — Anthropic-Prompt-Caching:
-    # nach dem ersten Call werden diese Tokens als cache_read abgerechnet (10%).
-    system_blocks = [
-        {"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]},
-    ]
+    # System-Block mit Prompt-Caching — bei OAuth zusätzlich Identity-Header.
+    # Cache-Read kostet 10% nach dem ersten Call.
+    system_blocks: list[dict[str, Any]] = []
+    if is_oauth:
+        system_blocks.append({"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]})
     if system_prompt:
         system_blocks.append({
             "type": "text",
             "text": system_prompt,
             "cache_control": {"type": "ephemeral"},
         })
-    else:
+    elif system_blocks:
         system_blocks[0]["cache_control"] = {"type": "ephemeral"}
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "system": system_blocks,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    if system_blocks:
+        kwargs["system"] = system_blocks
     if tools:
         kwargs["tools"] = tools
 
