@@ -23,6 +23,7 @@ from hydrahive.api.routes.sessions import router as sessions_router
 from hydrahive.api.routes.stt import router as stt_router
 from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.vms import router as vms_router
+from hydrahive.vms import reconciler as vm_reconciler
 from hydrahive.api.routes.system import router as system_router, set_start_time
 from hydrahive.api.routes.users import router as users_router
 from hydrahive.communication import register as register_channel
@@ -66,6 +67,8 @@ async def lifespan(app: FastAPI):
     plugin_system.load_all()
     set_start_time()
     update_task = asyncio.create_task(_update_check_loop())
+    vm_reconciler_stop = asyncio.Event()
+    vm_reconciler_task = asyncio.create_task(vm_reconciler.run_loop(vm_reconciler_stop))
 
     wa_bridge: BridgeProcess | None = None
     wa_adapter: WhatsAppAdapter | None = None
@@ -90,6 +93,11 @@ async def lifespan(app: FastAPI):
     if wa_bridge:
         await wa_bridge.stop()
     update_task.cancel()
+    vm_reconciler_stop.set()
+    try:
+        await asyncio.wait_for(vm_reconciler_task, timeout=5.0)
+    except (asyncio.TimeoutError, asyncio.CancelledError):
+        vm_reconciler_task.cancel()
     logger.info("HydraHive2 beendet")
 
 

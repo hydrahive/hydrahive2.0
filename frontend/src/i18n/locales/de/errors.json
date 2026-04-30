@@ -55,6 +55,7 @@
   "qemu_start_failed": "QEMU-Start fehlgeschlagen (rc={{rc}})",
   "qemu_daemonize_timeout": "QEMU-Daemon-Start Timeout",
   "qemu_died_after_start": "QEMU-Prozess nach Start nicht mehr aktiv",
+  "qemu_process_died": "QEMU-Prozess unerwartet beendet (vom Reconciler erkannt)",
   "qcow2_create_failed": "qcow2-Erzeugung fehlgeschlagen (rc={{rc}})",
   "qcow2_exists": "qcow2-Datei existiert bereits: {{path}}",
   "qcow2_missing": "qcow2-Datei fehlt: {{path}}",
