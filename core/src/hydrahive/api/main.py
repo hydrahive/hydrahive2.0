@@ -25,6 +25,8 @@ from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.routes.containers import router as containers_router
 from hydrahive.api.routes.container_console import router as container_console_router
+from hydrahive.api.routes.butler import router as butler_router
+from hydrahive.butler.registry import load_builtins as load_butler_builtins
 from hydrahive.vms import reconciler as vm_reconciler
 from hydrahive.containers import reconciler as container_reconciler
 from hydrahive.api.routes.system import router as system_router, set_start_time
@@ -68,6 +70,7 @@ async def lifespan(app: FastAPI):
         )
     agent_bootstrap.ensure_master("admin")
     plugin_system.load_all()
+    load_butler_builtins()
     set_start_time()
     update_task = asyncio.create_task(_update_check_loop())
     vm_reconciler_stop = asyncio.Event()
@@ -148,6 +151,7 @@ app.include_router(tts_router)
 app.include_router(vms_router)
 app.include_router(containers_router)
 app.include_router(container_console_router)
+app.include_router(butler_router)
 app.include_router(system_router)
 
 
