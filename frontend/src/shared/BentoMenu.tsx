@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Grip } from "lucide-react"
 import { visibleItems } from "./nav-config"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { DOMAIN_TW, colorFor } from "./colors"
 
 interface Props {
   open: boolean
@@ -48,24 +49,23 @@ export function BentoMenu({ open, onClose }: Props) {
         <div className="grid grid-cols-3 gap-2">
           {items.map(({ path, icon: Icon, labelKey }) => {
             const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
+            const c = DOMAIN_TW[colorFor(path)]
             return (
               <Link
                 key={path}
                 to={path}
                 onClick={onClose}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-colors ${
-                  active
-                    ? "bg-violet-500/15 border border-violet-500/30"
-                    : "border border-transparent hover:bg-white/[5%]"
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-colors ${
+                  active ? `${c.bgActive} ${c.border}` : "border-transparent hover:bg-white/[5%]"
                 }`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  active ? "bg-violet-500/20 text-violet-200" : "bg-white/[5%] text-zinc-300"
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                  active ? `${c.iconBgActive} ${c.iconTextActive}` : `${c.iconBg} ${c.iconText}`
                 }`}>
                   <Icon size={18} />
                 </div>
                 <span className={`text-[11px] text-center leading-tight ${
-                  active ? "text-violet-200 font-medium" : "text-zinc-400"
+                  active ? `${c.textActive} font-medium` : "text-zinc-400"
                 }`}>
                   {t(`items.${labelKey}`)}
                 </span>
