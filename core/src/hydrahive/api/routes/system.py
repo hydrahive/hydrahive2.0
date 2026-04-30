@@ -116,6 +116,14 @@ def health(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     }
 
 
+@router.get("/check-update", dependencies=[Depends(require_admin)])
+async def check_update() -> dict:
+    """On-Demand-Refresh des Update-Status (statt 30min auf den Loop warten)."""
+    from hydrahive.api.main import refresh_update_status
+    commit, behind = await refresh_update_status()
+    return {"commit": commit, "update_behind": behind}
+
+
 @router.post("/update", dependencies=[Depends(require_admin)])
 def trigger_update() -> dict:
     """Writes a trigger file that systemd-path watches.
@@ -139,6 +147,10 @@ def trigger_update() -> dict:
     return {"started": True}
 
 
+_RESTART_COOLDOWN_SEC = 60
+_last_restart_trigger: float = 0.0
+
+
 @router.post("/restart", dependencies=[Depends(require_admin)])
 def trigger_restart() -> dict:
     """Schreibt eine Trigger-Datei, die ein systemd-Path-Watcher beobachtet.
@@ -147,12 +159,27 @@ def trigger_restart() -> dict:
     Dev: dev-start.sh hat einen Watch-Loop der `systemctl --user restart`
     aufruft. Backend-Antwort kommt zurück bevor der Restart greift —
     Frontend pollt /health bis der Service wieder antwortet.
+
+    Cooldown: max 1 Restart pro 60s — verhindert Restart-Loops bei
+    Click-Spam oder ungelöschtem Trigger-File (Crash-Loop wäre
+    ConditionPathExists=...request → service crashed → File bleibt).
     """
+    global _last_restart_trigger
+    now = time.time()
+    elapsed = now - _last_restart_trigger
+    if elapsed < _RESTART_COOLDOWN_SEC:
+        wait = int(_RESTART_COOLDOWN_SEC - elapsed)
+        raise coded(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "restart_cooldown_active",
+            message=f"Bitte {wait}s warten — letzter Restart-Trigger ist zu kurz her.",
+        )
     try:
-        RESTART_TRIGGER.write_text(str(int(time.time())))
+        RESTART_TRIGGER.write_text(str(int(now)))
     except OSError as e:
         logger.exception("Restart-Trigger-File konnte nicht geschrieben werden")
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "restart_trigger_failed", message=str(e))
+    _last_restart_trigger = now
     logger.warning("Restart-Trigger geschrieben (%s)", RESTART_TRIGGER)
     return {"started": True}
 
