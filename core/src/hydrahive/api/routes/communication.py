@@ -1,6 +1,8 @@
 """Communication-API — Channel-Liste, WhatsApp-Endpunkte, Bridge-Push."""
 from __future__ import annotations
 
+import asyncio
+import base64
 import logging
 from typing import Annotated
 
@@ -133,8 +135,6 @@ async def wa_incoming(
                        target_username, media_error)
     elif media_type == "audio" and media_data:
         try:
-            import asyncio as _asyncio
-            import base64
             from hydrahive.voice.stt import transcribe_bytes
             audio_bytes = base64.b64decode(media_data)
             transcript = await transcribe_bytes(
@@ -149,7 +149,7 @@ async def wa_incoming(
                 text = transcript
                 logger.info("WA voice transcribed user=%s len=%d → %r",
                             target_username, len(audio_bytes), text[:80])
-        except (ConnectionRefusedError, OSError, _asyncio.TimeoutError) as e:
+        except (ConnectionRefusedError, OSError, asyncio.TimeoutError) as e:
             logger.warning("WA voice STT unreachable: %s", e)
             voice_error_msg = (
                 "Der Sprache-zu-Text-Service ist gerade nicht erreichbar. "
@@ -203,7 +203,6 @@ async def wa_incoming(
         if ch:
             try:
                 if cfg.respond_as_voice:
-                    import base64
                     from hydrahive.voice.tts import synthesize_to_ogg
                     audio = await synthesize_to_ogg(answer, voice=cfg.voice_name)
                     await ch.send_audio(

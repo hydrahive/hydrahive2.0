@@ -76,65 +76,74 @@ export async function connect(user) {
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;
-    for (const m of messages) {
-      if (m.key.fromMe) continue;
-      const rawJid = m.key.remoteJid || "";
-      if (!rawJid || rawJid === "status@broadcast" || rawJid.endsWith("@broadcast")) continue;
-      if (m.messageStubType) continue;
-      const text = m.message?.conversation || m.message?.extendedTextMessage?.text || "";
-      const audioMsg = m.message?.audioMessage;
-      const msgKeys = Object.keys(m.message || {}).join(",");
-      console.log(`[bridge] msg user=${user} from=${rawJid} keys=${msgKeys} text-len=${text.length} audio=${!!audioMsg}`);
-      if (!text && !audioMsg) continue;
-      if (text && text.includes(LOOP_MARKER)) continue;
-      const isGroup = rawJid.endsWith("@g.us");
-      const jid = !isGroup && rawJid.endsWith("@lid") && m.key.senderPn
-        ? m.key.senderPn
-        : rawJid;
-      const participant = isGroup
-        ? ((m.key.participant?.endsWith("@lid") && m.key.participantPn)
-            ? m.key.participantPn
-            : (m.key.participant || null))
-        : null;
-
-      let media_type = null;
-      let media_mime = null;
-      let media_data = null;
-      let media_error = null;
-      if (audioMsg) {
-        try {
-          console.log(`[bridge] audio download start mime=${audioMsg.mimetype} bytes-expected=${audioMsg.fileLength || "?"}`);
-          const buf = await downloadMediaMessage(m, "buffer", {}, { logger });
-          media_type = "audio";
-          media_mime = audioMsg.mimetype || "audio/ogg; codecs=opus";
-          media_data = buf.toString("base64");
-          console.log(`[bridge] audio downloaded ${buf.length} bytes (${media_data.length} b64-chars)`);
-        } catch (e) {
-          console.error(`[bridge] audio download FAILED: ${e?.message || e}`);
-          // Bridge meldet das Failure ans Backend — User bekommt mindestens
-          // eine Fehlermeldung statt stiller Drop.
-          media_type = "audio_failed";
-          media_error = String(e?.message || e).slice(0, 200);
-        }
-      }
-
-      await pushIncoming({
-        target_username: user,
-        external_user_id: jid,
-        participant,
-        is_group: isGroup,
-        sender_name: m.pushName || null,
-        text: text || "",
-        media_type,
-        media_mime,
-        media_data,
-        media_error,
-      });
-    }
+    // Parallel verarbeiten — eine kaputte Voice darf nicht alle anderen
+    // Messages des Batches blockieren oder den Stream stallen.
+    await Promise.all(
+      messages.map((m) =>
+        handleMessage(user, m).catch((e) =>
+          console.error(`[bridge] handleMessage failed: ${e?.message || e}`)
+        )
+      )
+    );
   });
 
   return getStatus(user);
 }
+
+async function handleMessage(user, m) {
+  if (m.key.fromMe) return;
+  const rawJid = m.key.remoteJid || "";
+  if (!rawJid || rawJid === "status@broadcast" || rawJid.endsWith("@broadcast")) return;
+  if (m.messageStubType) return;
+  const text = m.message?.conversation || m.message?.extendedTextMessage?.text || "";
+  const audioMsg = m.message?.audioMessage;
+  const msgKeys = Object.keys(m.message || {}).join(",");
+  console.log(`[bridge] msg user=${user} from=${rawJid} keys=${msgKeys} text-len=${text.length} audio=${!!audioMsg}`);
+  if (!text && !audioMsg) return;
+  if (text && text.includes(LOOP_MARKER)) return;
+  const isGroup = rawJid.endsWith("@g.us");
+  const jid = !isGroup && rawJid.endsWith("@lid") && m.key.senderPn
+    ? m.key.senderPn
+    : rawJid;
+  const participant = isGroup
+    ? ((m.key.participant?.endsWith("@lid") && m.key.participantPn)
+        ? m.key.participantPn
+        : (m.key.participant || null))
+    : null;
+
+  let media_type = null;
+  let media_mime = null;
+  let media_data = null;
+  let media_error = null;
+  if (audioMsg) {
+    try {
+      console.log(`[bridge] audio download start mime=${audioMsg.mimetype} bytes-expected=${audioMsg.fileLength || "?"}`);
+      const buf = await downloadMediaMessage(m, "buffer", {}, { logger });
+      media_type = "audio";
+      media_mime = audioMsg.mimetype || "audio/ogg; codecs=opus";
+      media_data = buf.toString("base64");
+      console.log(`[bridge] audio downloaded ${buf.length} bytes (${media_data.length} b64-chars)`);
+    } catch (e) {
+      console.error(`[bridge] audio download FAILED: ${e?.message || e}`);
+      media_type = "audio_failed";
+      media_error = String(e?.message || e).slice(0, 200);
+    }
+  }
+
+  await pushIncoming({
+    target_username: user,
+    external_user_id: jid,
+    participant,
+    is_group: isGroup,
+    sender_name: m.pushName || null,
+    text: text || "",
+    media_type,
+    media_mime,
+    media_data,
+    media_error,
+  });
+}
+
 
 export async function disconnect(user) {
   explicitlyDisconnected.add(user);
