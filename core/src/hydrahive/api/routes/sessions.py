@@ -2,94 +2,28 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, status
 
 from hydrahive.agents import config as agent_config
-from hydrahive.agents._paths import ensure_workspace
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._files import process_upload
-from hydrahive.api.routes._sse import to_sse
-from hydrahive.compaction import compact_session, total_tokens
-from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
-from hydrahive.compaction.tokens import context_window_for
-from hydrahive.db import messages as messages_db
+from hydrahive.api.routes._sessions_helpers import (
+    SessionCreate,
+    SessionUpdate,
+    check_owner,
+    serialize_session,
+)
+from hydrahive.api.routes.sessions_messages import messages_router
 from hydrahive.db import sessions as sessions_db
-from hydrahive.db import tools as tools_db
-from hydrahive.runner import run as runner_run
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
-
-
-class SessionCreate(BaseModel):
-    agent_id: str
-    title: str | None = None
-    project_id: str | None = None
-
-
-class SessionUpdate(BaseModel):
-    title: str | None = None
-    status: str | None = None
-
-
-def _check_owner(session, username: str, role: str) -> None:
-    if role != "admin" and session.user_id != username:
-        raise coded(status.HTTP_403_FORBIDDEN, "session_no_access")
-
-
-def _serialize_session(s) -> dict:
-    return {
-        "id": s.id,
-        "agent_id": s.agent_id,
-        "user_id": s.user_id,
-        "project_id": s.project_id,
-        "title": s.title,
-        "status": s.status,
-        "created_at": s.created_at,
-        "updated_at": s.updated_at,
-        "metadata": s.metadata,
-    }
-
-
-def _serialize_message(m, tool_durations: dict[str, int] | None = None) -> dict:
-    """tool_durations: {tool_use_id → duration_ms} damit Frontend die Tool-Dauer
-    pro tool_use bzw. tool_result-Block anzeigen kann."""
-    content = m.content
-    if tool_durations and isinstance(content, list):
-        content = [_attach_duration(b, tool_durations) for b in content]
-    return {
-        "id": m.id,
-        "role": m.role,
-        "content": content,
-        "created_at": m.created_at,
-        "token_count": m.token_count,
-        "metadata": m.metadata,
-    }
-
-
-def _attach_duration(block, tool_durations: dict[str, int]) -> dict:
-    """Hängt duration_ms an tool_use- und tool_result-Blocks. Bleibt für die
-    Anthropic-API-Sicht unauffällig — wird nur im Read-Path eingespielt."""
-    if not isinstance(block, dict):
-        return block
-    btype = block.get("type")
-    if btype == "tool_use":
-        d = tool_durations.get(block.get("id", ""))
-        if d is not None:
-            return {**block, "duration_ms": d}
-    elif btype == "tool_result":
-        d = tool_durations.get(block.get("tool_use_id", ""))
-        if d is not None:
-            return {**block, "duration_ms": d}
-    return block
+router.include_router(messages_router)
 
 
 @router.get("")
 def list_sessions(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     username, _ = auth
-    return [_serialize_session(s) for s in sessions_db.list_for_user(username)]
+    return [serialize_session(s) for s in sessions_db.list_for_user(username)]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -107,7 +41,7 @@ def create_session(
         project_id=req.project_id,
         title=req.title or f"Chat mit {agent['name']}",
     )
-    return _serialize_session(s)
+    return serialize_session(s)
 
 
 @router.get("/{session_id}")
@@ -118,8 +52,8 @@ def get_session(
     s = sessions_db.get(session_id)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
-    _check_owner(s, *auth)
-    return _serialize_session(s)
+    check_owner(s, *auth)
+    return serialize_session(s)
 
 
 @router.patch("/{session_id}")
@@ -131,9 +65,9 @@ def update_session(
     s = sessions_db.get(session_id)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
-    _check_owner(s, *auth)
+    check_owner(s, *auth)
     sessions_db.update(session_id, title=req.title, status=req.status)
-    return _serialize_session(sessions_db.get(session_id))
+    return serialize_session(sessions_db.get(session_id))
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -144,114 +78,5 @@ def delete_session(
     s = sessions_db.get(session_id)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
-    _check_owner(s, *auth)
+    check_owner(s, *auth)
     sessions_db.delete(session_id)
-
-
-@router.get("/{session_id}/messages")
-def list_messages(
-    session_id: str,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-) -> list[dict]:
-    s = sessions_db.get(session_id)
-    if not s:
-        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
-    _check_owner(s, *auth)
-    msgs = messages_db.list_for_session(session_id)
-    # tool_calls.duration_ms in tool_use- und tool_result-Blocks einspielen.
-    # tool_calls.id ≠ tool_use.id (verschiedene Namespaces) — wir mappen über
-    # die Reihenfolge: tools_db.list_for_message liefert in created_at-ASC,
-    # gleicher Order wie tool_use-Blocks in der Assistant-Message.
-    durations: dict[str, int] = {}
-    for m in msgs:
-        if m.role != "assistant" or not isinstance(m.content, list):
-            continue
-        tool_uses = [b for b in m.content if isinstance(b, dict) and b.get("type") == "tool_use"]
-        tcs = tools_db.list_for_message(m.id)
-        for tu, tc in zip(tool_uses, tcs):
-            if tc.duration_ms is not None and tu.get("id"):
-                durations[tu["id"]] = tc.duration_ms
-    return [_serialize_message(m, durations) for m in msgs]
-
-
-@router.get("/{session_id}/tokens")
-def get_tokens(
-    session_id: str,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-) -> dict:
-    s = sessions_db.get(session_id)
-    if not s:
-        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
-    _check_owner(s, *auth)
-    agent = agent_config.get(s.agent_id)
-    history = messages_db.list_for_llm(session_id) if agent else []
-    used = total_tokens(history)
-    window = context_window_for(agent["llm_model"]) if agent else 0
-    threshold = max(0, window - DEFAULT_RESERVE_TOKENS)
-    return {
-        "used": used,
-        "context_window": window,
-        "compact_threshold": threshold,
-        "model": agent["llm_model"] if agent else None,
-    }
-
-
-@router.post("/{session_id}/compact")
-async def manual_compact(
-    session_id: str,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-    instructions: str | None = None,
-) -> dict:
-    s = sessions_db.get(session_id)
-    if not s:
-        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
-    _check_owner(s, *auth)
-    agent = agent_config.get(s.agent_id)
-    if not agent:
-        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
-    # Per-Agent Compact-Settings (#82) — Override-Modell und Tool-Result-Limit
-    compact_model = agent.get("compact_model") or agent["llm_model"]
-    compact_kwargs: dict = {"instructions": instructions}
-    tool_limit = agent.get("compact_tool_result_limit")
-    if tool_limit is not None:
-        compact_kwargs["tool_result_limit"] = tool_limit
-    try:
-        return await compact_session(session_id, model=compact_model, **compact_kwargs)
-    except Exception as e:
-        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "validation_error", message=str(e))
-
-
-@router.post("/{session_id}/messages")
-async def post_message(
-    session_id: str,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-    text: Annotated[str, Form(min_length=1)],
-    files: Annotated[list[UploadFile] | None, File()] = None,
-) -> StreamingResponse:
-    s = sessions_db.get(session_id)
-    if not s:
-        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
-    _check_owner(s, *auth)
-
-    file_list = files or []
-    if file_list:
-        agent = agent_config.get(s.agent_id)
-        workspace = ensure_workspace(agent) if agent else None
-        blocks: list[dict] = []
-        for f in file_list:
-            blocks.extend(await process_upload(f, workspace))
-        blocks.append({"type": "text", "text": text})
-        user_content: str | list = blocks
-    else:
-        user_content = text
-
-    events = runner_run(session_id, user_content)
-    return StreamingResponse(
-        to_sse(events),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
