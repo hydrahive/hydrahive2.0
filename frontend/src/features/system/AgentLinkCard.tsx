@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link2, Link2Off } from "lucide-react"
+import { ExternalLink, Link2, Link2Off } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 
@@ -12,6 +12,7 @@ interface Status {
   agent_id?: string
   handoff_timeout_s?: number
   known_agents?: string[]
+  dashboard_url?: string
 }
 
 const REFRESH_MS = 10_000
@@ -91,6 +92,15 @@ export function AgentLinkCard() {
             ))}
           </div>
         </div>
+      )}
+
+      {status.dashboard_url && (
+        <a href={status.dashboard_url} target="_blank" rel="noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-200 text-xs font-medium hover:bg-violet-500/20 transition-colors w-fit"
+        >
+          <ExternalLink size={12} />
+          {t("agentlink.open_dashboard")}
+        </a>
       )}
     </div>
   )

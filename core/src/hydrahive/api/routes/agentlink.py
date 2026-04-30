@@ -38,4 +38,5 @@ async def status(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
         "agent_id": settings.agentlink_agent_id,
         "handoff_timeout_s": settings.agentlink_handoff_timeout,
         "known_agents": specs,
+        "dashboard_url": settings.agentlink_dashboard_url,
     }

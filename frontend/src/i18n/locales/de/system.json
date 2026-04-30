@@ -54,7 +54,8 @@
     "ws": "WebSocket",
     "agent_id": "Agent-ID",
     "timeout": "Handoff-Timeout",
-    "known_agents": "Bekannte Agents ({{count}})"
+    "known_agents": "Bekannte Agents ({{count}})",
+    "open_dashboard": "Dashboard öffnen"
   },
   "backup": {
     "title": "System-Backup",
