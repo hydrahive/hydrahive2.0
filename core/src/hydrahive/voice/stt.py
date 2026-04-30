@@ -61,32 +61,40 @@ async def _recv(reader) -> tuple[str, dict, bytes]:
 
 
 async def _wyoming_transcribe(pcm: bytes, language: str | None = None) -> str:
-    reader, writer = await asyncio.wait_for(
-        asyncio.open_connection(STT_HOST, STT_PORT), timeout=10.0
-    )
-    try:
-        fmt = {"rate": 16000, "width": 2, "channels": 1}
-        # language=None ⇒ Whisper macht Auto-Detect (Container muss ohne --language gestartet sein)
-        transcribe_data = {"language": language} if language else {}
-        await _send(writer, "transcribe", transcribe_data)
-        await _send(writer, "audio-start", fmt)
-        chunk = 16000 * 2  # 1s pro Chunk
-        for i in range(0, len(pcm), chunk):
-            await _send(writer, "audio-chunk", fmt, pcm[i:i + chunk])
-        await _send(writer, "audio-stop")
-        while True:
-            etype, data, _ = await _recv(reader)
-            if etype == "transcript":
-                return data.get("text", "").strip()
-            if etype == "error":
-                raise RuntimeError(data.get("text", "STT-Fehler"))
-    finally:
-        writer.close()
+    """Transkribiert PCM via Wyoming. Connect-Timeout 15s (cold start),
+    Total-Timeout 120s (sehr lange Audios)."""
+    async def _do() -> str:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(STT_HOST, STT_PORT), timeout=15.0,
+        )
         try:
-            await writer.wait_closed()
-        except Exception:
-            pass
-    return ""
+            fmt = {"rate": 16000, "width": 2, "channels": 1}
+            # language=None ⇒ Whisper macht Auto-Detect
+            transcribe_data = {"language": language} if language else {}
+            await _send(writer, "transcribe", transcribe_data)
+            await _send(writer, "audio-start", fmt)
+            chunk = 16000 * 2  # 1s pro Chunk
+            for i in range(0, len(pcm), chunk):
+                await _send(writer, "audio-chunk", fmt, pcm[i:i + chunk])
+            await _send(writer, "audio-stop")
+            while True:
+                etype, data, _ = await _recv(reader)
+                if etype == "transcript":
+                    return data.get("text", "").strip()
+                if etype == "error":
+                    raise RuntimeError(data.get("text", "STT-Fehler"))
+        finally:
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except Exception:
+                pass
+        return ""
+
+    try:
+        return await asyncio.wait_for(_do(), timeout=120.0)
+    except asyncio.TimeoutError:
+        raise RuntimeError("Wyoming-Transcribe-Total-Timeout (120s)")
 
 
 async def _to_pcm(audio: bytes, mime: str) -> bytes:
