@@ -1,190 +1,184 @@
-# HydraHive2 — Übergabe (Stand 2026-04-29 spät, WhatsApp + Filter + LLM-Failover)
+# HydraHive2 — Übergabe (Stand 2026-04-30 spät, Voice E2E + Butler + Issue-Wellen)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## TL;DR
 
-Diese Session durchgezogen: **WhatsApp-Channel ist E2E live** —
-Baileys-Bridge als Node-Subprocess, Python-Adapter, Frontend
-`/communication`-Page mit Connect/QR-Scan/Status/Filter-Panel,
-Pro-User-Filter-Config (Owner, Whitelist, Blacklist, Keyword,
-Private/Group-Toggles) inklusive LID→Telefonnummer-Resolve. Eingehende
-Nachrichten landen automatisch als Sessions in der Chat-History.
-Installer um Phase 6 erweitert (`45-whatsapp.sh`) damit `npm install`
-auch auf 216 läuft. Plus **LLM-Failover** ist live: pro Agent eine
-Fallback-Modell-Kette die bei Quota/Overload/Auth-Fehlern automatisch
-durchprobiert wird. NVIDIA-NIM-Quick-Add-Liste auf Coding-Modelle
-fokussiert (qwen2.5-coder, codestral, starcoder2, qwq).
+Heute durchgezogen, alles live auf 218 (`192.168.178.218`):
 
-Nächster großer Build-Tag wäre der **Butler** als kanal-übergreifender
-Flow-Builder (im alten HydraHive ein 2200-Zeilen Feature mit
-ReactFlow). Vom User priorisiert, braucht SPEC-Erweiterung.
+1. **LXC-Container Phase 1+2+3** komplett — Lifecycle (incus), Browser-Console
+   (xterm.js + WebSocket gegen `incus exec`), Detail-Page mit Tabs
+   (Console/Logs/Stats/Konfig).
+2. **Butler-Flow-Builder** in 4 Phasen (Datenmodell+Persistenz, Executor+Subtypes,
+   ReactFlow-UI vom alten octopos 1:1 übernommen mit Adapter-Schicht,
+   WhatsApp-Hook). Master-Agent kann jetzt durch Butler-Regeln umgeleitet werden,
+   `respond_as_voice` + `agent_reply_with_prefix` funktionieren.
+3. **Google-Style-Layout** statt Sidebar — Top-Bar (Logo + Page-Title + Bento +
+   Avatar) und Footer schmal, Hauptbereich nimmt alles, mobile-tauglich.
+4. **Hilfe-Seite** `/help` mit Topics-Sidebar und Markdown-Inhalt aus den
+   bestehenden i18n-Help-Files.
+5. **WhatsApp-Auto-Reconnect** — gepairte User bleiben nach Backend-Restart
+   automatisch verbunden.
+6. **Voice E2E** — Eingang (STT via Wyoming-faster-whisper als incus-LXC) und
+   Ausgang (TTS via mmx-CLI mit Voice-Note inkl. Welle und Sekunden). Voice-
+   Mode-System-Hinweis schützt den Master vor Eigen-mmx-Calls,
+   `_looks_like_metadata`-Heuristik fängt Datei-Meta-Antworten ab.
+7. **Issue-Wellen** P0+P1+P2+P3 komplett durchgearbeitet (~25 Issues),
+   inklusive SPEC-Workflow-Guard (#34) als Pre-Commit-Hook + GitHub-Action.
+8. **Anthropic-Bypass-Konsolidierung** (#16): Claude-Modelle gehen jetzt komplett
+   via anthropic-SDK direkt (OAuth + Bearer einheitlich), LiteLLM bleibt für die
+   anderen 6 Provider. Volle Anthropic-Features (Prompt-Caching, Extended
+   Thinking, Tool-Streaming) sind dadurch überall verfügbar.
 
-**Korrektur an alter Roadmap**: AgentLink existiert bereits extern als
-Service — es geht nur noch um den Hookup unseres `ask_agent`-Stubs an
-die existierende API.
-
-## Was steht (alles getestet)
+## Was steht (alles getestet, live auf 218)
 
 | Bereich | Stand |
 |---|---|
-| Backend Runner | Tool-Loop, Streaming, Loop-Detection, Heal-Helper für orphan tool_uses |
-| DB-Layer | sessions/messages/tool_calls/state, append-only Compaction; Migration 002 für Channel-Sessions |
-| 14 Core-Tools | shell, file_*, dir_list, web_search, http_request, read/write/search_memory, todo, ask_agent (Stub), send_mail |
-| Agents | 3 Typen (master/project/specialist), CRUD, system_prompt-Datei, Pro-User-Isolation |
-| Projekte | mit Members, gekoppeltem Project-Agent, Workspace, optional `git init` |
-| Compaction | append-only, Token-Budget-Walk, Plugin-Hooks, Skip-Reasons als Codes |
-| Chat | SSE-Streaming, Markdown + GFM + Highlighter, Cancel via AbortController, Token-Anzeige |
-| LLM-Provider | Anthropic (OAuth + Bearer), MiniMax, OpenAI/OpenRouter/Groq/Mistral/Gemini/NVIDIA NIM |
-| MCP | 3 Transports (stdio/http/sse), 8 Quick-Add-Templates, Pool mit Health-Check |
-| System-Page | HealthBar lokalisiert via name_code/detail_code, Stats, Pfade, Restart-Knopf |
-| Userverwaltung | JWT + bcrypt mit Lazy-Migration, Failed-Login-Lockout, Admin-UI `/users`, Profile `/profile` |
-| Self-Update | Versions-Footer mit `↑`-Tag, Modal mit Live-Log, systemd-Path-Watcher, Trigger-File |
-| Service-Restart-Knopf | Trigger-File-Pattern + Modal mit /health-Polling |
-| i18n | DE/EN, **15 Namespaces** (mit `communication`), alle Feature-Folder migriert, Backend-Errors als Codes |
-| Help-Drawer | pro Seite ?-Button, 7 Topics × 2 Sprachen |
-| Installer | 6-Phasen-Setup + systemd + nginx mit Security-Headers |
-| Plugin-System | MVP + Hub-UI, Self-Bootstrap-Loop verifiziert, Hub-Repo `github.com/hydrahive/hydrahive2-plugins` |
-| Communication-Foundation | Channel-Protocol + Registry + Session-Lookup + Master-Agent-Glue + Router |
-| **WhatsApp-Channel** | Baileys-Node-Bridge (HTTP loopback 8767, multi-file Auth in `$HH_DATA_DIR/whatsapp/<user>/auth/`, Stream-515-Auto-Reconnect, Loop-Marker, LID-Resolve via `senderPn`/`participantPn`). Python-Adapter implementiert Channel-Protocol. Frontend `/communication` mit `WhatsAppCard` (Status, QR, Connect/Disconnect) und `WhatsAppFilterPanel` (Owner/Whitelist/Blacklist/Keyword/Private+Group, sichtbar wenn connected). Filter-Reihenfolge im Backend: Owner → Blacklist → Group/Private → Whitelist → Keyword. Eingehende Nachrichten persistieren als Sessions pro `(master, channel, external_user_id)`. |
-| **LLM-Failover** | Pro Agent `fallback_models: list[str]` (UI: Pills mit ↑-Reorder + ×). `runner/_failover.py` mit Signal-Liste (401/402/429/529/quota/rate_limit/overloaded/credit/billing/expired). `runner/_call.py` versucht Stream nur auf primary, fällt dann auf Non-Stream-Loop über alle Modelle zurück und wechselt bei should_failover-Fehlern zum nächsten. Bewusst NICHT gebaut: 429-Cooldown pro Provider, Exponential-Backoff-Retry — nachreichbar wenn nötig. |
-| **Installer (Production)** | Phase 6 `45-whatsapp.sh` ergänzt: `npm install --no-audit --no-fund` im Bridge-Verzeichnis, idempotent, übersprungen wenn keine `package.json` da. update.sh macht den gleichen Schritt nach git pull. NodeSource Node 20 ist bereits in 00-deps.sh seit Tagen drin. Production-Deployment auf 216 ist damit ready. |
+| Backend-Runner | Tool-Loop, Streaming, Loop-Detection, Heal für orphan tool_uses, LLM-Failover, runner.run() mit `extra_system`-Param |
+| DB-Layer | sessions/messages/tool_calls/state/vms/vm_snapshots/vm_import_jobs/containers, append-only-Compaction |
+| Core-Tools (13) | shell, file_*, dir_list, web_search, http_request, *_memory, todo, send_mail; ask_agent NUR wenn AgentLink konfiguriert (#13) |
+| Agents | 3 Typen, CRUD, Pro-User-Isolation, fallback_models, _LazyDefaultTools filtert ask_agent |
+| Projekte | Members, Project-Agent, isolierter Workspace |
+| Compaction | append-only, Token-Budget-Walk, Plugin-Hooks |
+| Chat | SSE-Streaming, Markdown+GFM, Cancel, Bild-/Datei-Upload mit safe_path-Sanitization (#10) |
+| LLM-Provider | **Anthropic + MiniMax direkt via anthropic-SDK** (OAuth + Bearer); LiteLLM für OpenAI/OpenRouter/Groq/Mistral/Gemini/NVIDIA |
+| MCP | 3 Transports + Pool + 8 Quick-Add |
+| **Voice (komplett)** | STT: incus-LXC `hydrahive2-stt` mit Wyoming-Whisper, proxy-device 10300, Auto-Detect-Sprache. TTS: mmx-CLI als hydrahive-User, Auth aus llm.json, Output OGG/Opus mit waveform+seconds. Voice-Mode-System-Hinweis verhindert Eigen-mmx-Calls. Belt-and-Braces _looks_like_metadata-Heuristik. ffmpeg am Host, mmx-Voices-Dropdown im UI mit allen Sprachen. |
+| **WhatsApp** | Bridge mit Promise.all-Parallelisierung, Voice-Eingang (audio_failed-Event statt Silent-Drop), Voice-Ausgang als ptt mit Welle, Filter zweistufig (Sender vor STT), Auto-Reconnect, pino-Logging mit Level-Forwarding |
+| **Butler** | Datenmodell+Persistenz+Registry, Executor mit Trace+Cycle-Guard+Dry-Run, 5T/7C/9A registriert, ReactFlow-UI mit Adapter, WhatsApp-Hook in handle_incoming, Reply-Actions (reply_fixed/agent_reply/agent_reply_with_prefix/forward/ignore/queue) |
+| **Container** | Phase 1+2+3 — Lifecycle, Browser-Console, Detail-Page mit Tabs |
+| **VM-Manager** | Phase 1-5 (QEMU+KVM, Browser-VNC, Snapshots, Import, Live-Stats) |
+| Layout | Google-Style — Top-Bar + Bento + Avatar-Menu + Footer, identisch Mobile/Desktop, CollapsibleSidebar default zu |
+| Hilfe-Seite | `/help` mit Topics-Sidebar, lädt Markdown-Files aus i18n/help/{de,en}/ |
+| Plugin-System | MVP + Hub-UI, minimax-creator-Plugin |
+| **SPEC-Guard** | pre-commit-Hook + GitHub-Action blocken Mixed-Commits (SPEC.md/CLAUDE.md + Code im selben Commit). CLAUDE.md Punkt 8 dokumentiert die Regel. Bypass via `BYPASS_SPEC_GUARD=1`. |
+| Installer | 9 Phasen, ffmpeg in 00-deps, mmx-CLI in 00-deps, mmx-Auth als $HH_USER in 55-voice.sh, ReadWritePaths-Migration via update.sh, git-hook-Bootstrap via `installer/git-hooks/install-hooks.sh` |
 
 ## Was offen ist
 
-### Größere Initiativen (jeweils ein halber bis ganzer Build-Tag)
+### Größere Initiativen (P1, je halber bis ganzer Build-Tag)
 
-1. **Butler** als kanal-übergreifender Flow-Builder. Im alten HydraHive
-   (`/home/till/octopos/`) war das ein 2200-Zeilen Feature mit ReactFlow:
-   `ButlerPage.tsx` (1402 Z., Trigger/Condition/Action-Palette, Drag&Drop,
-   Node-Inspector), `butler_executor.py` (496 Z., Backend-Engine die Flows
-   ausführt), `router_butler.py` (197 Z., CRUD-API), `butler_rule.py`
-   (143 Z., nodes/edges-Datenmodell). Pro-User-Flows in
-   `$HH_CONFIG_DIR/butler/<owner>/<flow_id>.json`. Trigger u.a.
-   `message_received`, `webhook_received`, `email_received`,
-   `git_event_received`, `heartbeat_fired`, `discord_event_received`.
-   Conditions: `time_window`, `day_of_week`, `contact_known`,
-   `message_contains`, `keyword`, `git_branch_is`/`author_is`.
-   Actions: `agent_reply`, `agent_reply_guided`, `reply_fixed`, `queue`,
-   `ignore`, `forward`, `http_post`, `send_email`, `git_create_issue`,
-   `discord_post`. **Nicht in SPEC.md** — braucht SPEC-Erweiterung.
-   Vom User explizit als „wichtig" priorisiert.
-2. **AgentLink-Hookup** (extern bereits verfügbar als Service, User-Korrektur 2026-04-29).
-   Bei uns: `ask_agent`-Tool ist Stub, anbinden an existierende API. Dann
-   funktionieren Multi-Agent-Workflows, Redis Pub/Sub-Konsum.
-3. **WhatsApp Production-Deployment** (216): Installer-Module für Node 20 +
-   `npm install` im Bridge-Verzeichnis. Bridge startet sonst nicht
-   (Adapter logged Warning, Channel registriert sich nicht — Frontend zeigt
-   „Bridge nicht verfügbar").
-4. **MMX-CLI / MiniMax Multimodal**: Audio/Video/Bild-Generierung als Plugin.
-5. **`PluginContext.register_compaction_hook()`** — Mechanismus ist da
-   (`compaction/hooks.py`), Plugin-API-Erweiterung fehlt damit Plugins
-   eigene Compaction-Hooks anmelden können.
-6. **Production-Hub-Auth** — auf 216 hat User `hydrahive` keinen
-   GitHub-SSH-Key, Hub-Plugin-Install scheitert. Optionen: Public-Hub-Repo,
-   Deploy-Key, oder Token-basierter HTTPS-Clone via Settings.
-7. **Web → WhatsApp-Send**: Eingehende WhatsApp-Sessions tauchen als
-   Chat-Sessions auf (cool!), aber Web-Antworten gehen NICHT zurück über
-   WhatsApp. Wäre ein Channel-Send-Hook im normalen Chat-Flow.
+1. **Container-Phase 3 (optional)**: System-Container (Voice/STT) im
+   `/containers`-Frontend als „system-managed" sichtbar machen — analog zu
+   User-Containern. UX-Konsistenz, kein Funktionsdefizit.
+2. **VM-Phase 6 (optional)**: VM-Detail-Page mit Tabs analog zu Container.
+3. **AgentLink-Hookup** (#13 Polish): `ask_agent` ist jetzt nur registriert wenn
+   `HH_AGENTLINK_URL` gesetzt — bei Hookup an die echte AgentLink-API ist das
+   Tool sofort live ohne weitere Code-Änderung.
+4. **Web → WhatsApp-Send** — Antworten aus Web-UI gehen nicht zurück über WA.
+5. **Butler-Subtypes nachziehen** — einige UI-Subtypes haben noch keinen
+   Backend-Match (`heartbeat_fired`, `discord_event_received`, `contact_known`,
+   `git_branch_is`/`author_is`/`action_is`, `email_*_contains`, `discord_*_is`).
+   Save geht durch, Match feuert nicht.
+6. **Butler-Stub-Actions verkabeln** — `http_post` läuft echt, aber `send_email`/
+   `discord_post`/`git_create_issue`/`git_add_comment` sind noch Stubs.
+
+### Dokumentation-Issues offen (#15, #22, #32 — SPEC ist Tills Domäne)
+
+- **#15 ZH-Locale**: SPEC sagt DE/EN/ZH, Code hat DE/EN — Till entscheidet ob
+  ZH gebaut wird oder SPEC angepasst.
+- **#22 CSP `unsafe-inline`**: 16 Inline-Style-Stellen identifiziert, sauberer
+  Fix wäre Nonce-System (>1 Tag Arbeit). P3, dokumentiert offen.
+- **#32 PostgreSQL-Zeile**: SPEC erwähnt PostgreSQL für AgentLink (extern), Code
+  referenziert es nicht — Till entscheidet ob SPEC umformuliert wird.
 
 ### Kleinere Themen
 
-- **i18n Phase 4** — zentrale `/help`-Handbuch-Seite mit Sub-Sidebar, FAQ, Glossar.
-- **MCP Phase 4** (optional) — Resources + Prompts.
-- **HTTPS** — verschoben auf Tailscale-Integration (LAN-only Test-Server).
-- **Backup/Restore** — kein Mechanismus für DB + Configs.
+- i18n Phase 4 — zentrale Glossar/FAQ-Sektion in der Hilfe-Seite.
+- MCP Phase 4 — Resources + Prompts.
+- LLM-Failover-Polish — 429-Cooldown + Exponential-Backoff.
 
-### Aufräumen (5-15 Min)
+## Live-Server (218)
 
-- `.gitkeep`-Dateien (5+) entfernen
-- `console/`-Ordner ist leer — vermutlich Skelett-Rest (`git rm -r console/`)
-- Bestehende Agents haben das `search_memory`-Tool nicht in ihrer `tools`-Liste
-
-### Wunsch-Features (Plugin-Material)
-
-- `project_stats`-Tool für Projekt-Metriken
-- Auto-Doku aus OpenAPI als statisch gerenderte HTML im Repo
-
-### Chat-UI-Erweiterungen (Notizen, später)
-
-- **Bild-Upload im Chat** — Drag&Drop oder Paperclip-Button. Anthropic + LiteLLM unterstützen Image-Content-Blocks. Backend muss Multipart-Endpoint + base64-Encoding zum LLM-Call durchschleusen.
-- **Datei-Upload im Chat** — Text-Files direkt als Inline-Content, Binär als Workspace-Datei mit auto-`file_read`-Hint. Größenlimit nötig.
-- **Voice-Eingabe** — Browser-Mic-Aufnahme → Whisper/lokale STT → Text in Chat-Input.
-- **Voice-Ausgabe (TTS)** — Antwort des Agents als Audio. Bevorzugt MiniMax TTS (haben wir eh als LLM-Provider, mmx-CLI kann Audio).
-- Hängt mit der Communication-Architektur zusammen: WhatsApp-Sprachnachrichten brauchen STT, eine WhatsApp-Voice-Antwort braucht TTS — gleicher Code-Pfad wie für Chat-Voice.
-
-## Bekannte Schwächen / Tech-Debt
-
-- Token-Schätzung char-basiert (~3.5 chars/token) — Anthropic `count_tokens`-API wäre genauer
-- MCP-Pool ohne Timeout-basierte Eviction nach Inaktivität
-- Frontend-Bundle 1.2 MB (gzip 400 KB) — Vite warnt vor 500 KB-Schwelle
-- CORS-Default nur localhost — auf Produktiv via `HH_CORS_ORIGINS`
-- Plugin-Code läuft im Backend-Prozess ohne OS-Sandbox — kommt mit Agent-OS-Isolation-Refactor
-- WhatsApp-Bridge: kein Auto-Reconnect bei Netzwerk-Hickups (nur bei Stream-515 nach Pairing). User klickt Connect erneut, Auth bleibt erhalten.
-- WhatsApp-Filter ohne `/me/chats`-API: Owner-Bypass-Test braucht zweites Telefon (oder WhatsApp Web mit zweitem Account)
-
-## Test-Server-Deployment
-
-- **Host**: `192.168.178.216` (Hostname `Hydrahive20-dev`, Ubuntu 24.04)
-- **SSH-Alias**: `hh2-216`
-- **Setup-User**: `chucky` mit Passwort, sudo-fähig
+- **Host**: `192.168.178.218` (vorher .216, hat sich beim setup-bridge.sh geändert)
+- **SSH-Alias**: `hh2-216` und `hh2-218` (beide → `.218`)
+- **Setup-User**: `chucky` (Passwort `lummerland123`, sudo-fähig)
 - **Service-User**: `hydrahive` (no-login)
-- **Repo**: `/opt/hydrahive2/`, **Daten**: `/var/lib/hydrahive2/`, **Config**: `/etc/hydrahive2/`
-- **Frontend**: http://192.168.178.216/
-- **Service-Units**: `hydrahive2.service` + `hydrahive2-update.path/.service` + `hydrahive2-restart.path/.service`
-- **Update**: aus der UI klicken (Admin) ODER `cd /opt/hydrahive2/installer && sudo ./update.sh`
-- **WhatsApp auf 216 noch nicht funktionsfähig**: Node + `npm install` im Bridge-Verzeichnis fehlen → Installer-Erweiterung nötig (siehe Roadmap #3)
+- **Repo**: `/opt/hydrahive2/` auf main
+- **Daten**: `/var/lib/hydrahive2/` (inkl. `vms/`, `whatsapp/`, `wyoming-Modell-Cache im STT-Container`)
+- **Config**: `/etc/hydrahive2/` (TLS, butler/, whatsapp/, llm.json)
+- **mmx-Auth**: `/home/hydrahive/.mmx/config.json`
+- **Frontend-URL**: `https://192.168.178.218/` (Self-Signed-Cert, Browser-Warnung einmal akzeptieren)
+- **Self-Update**: aus UI klicken (Admin) ODER `sudo bash /opt/hydrahive2/installer/update.sh`
+- **Admin-Passwort** auf 218: `lummerland123`
 
-## Lokale Dev-Umgebung
-
-- **Repo**: `/home/till/claudeneu/`
-- **Hub-Repo (separat)**: `/home/till/hydrahive2-plugins/` → `github.com/hydrahive/hydrahive2-plugins` (privat)
-- **Daten**: `~/.hh2-dev/data/`, **Config**: `~/.hh2-dev/config/`
-- **Plugin-Cache**: `~/.hh2-dev/data/.plugin-cache/hub/`, **Plugins**: `~/.hh2-dev/data/plugins/<name>/`
-- **WhatsApp-Auth**: `~/.hh2-dev/data/whatsapp/<user>/auth/` (multi-file)
-- **WhatsApp-Filter-Config**: `~/.hh2-dev/config/whatsapp/<username>.json`
-- **WhatsApp-Bridge-Secret**: `~/.hh2-dev/config/whatsapp_bridge.secret`
-- **Start**: `systemctl --user start hydrahive2-dev` (Autostart eingerichtet) ODER `./dev-start.sh`
-- **Backend**: `:8001`, **Frontend**: `:5173`, **WhatsApp-Bridge**: `:8767` (loopback)
-- **Login**: `admin` / `admin123` (Default)
-- **Aktuell installierte Plugins (Dev)**: hello-world, git-stats, code-metrics, file-search
-
-## Architektur-Highlights / Erkenntnisse
-
-1. **Anthropic-OAuth-Tokens** gehen NUR direkt über das Anthropic-SDK mit `auth_token=` + Identity-System-Block.
-2. **Compaction-Modell**: append-only mit Pointer (OpenClaw-Style) statt destruktivem Replace.
-3. **Heal-Helper für orphan tool_uses** ist essentiell — `max_tokens`-Aborts hinterlassen sonst kaputte Histories die Anthropic mit 400 ablehnt.
-4. **Loop-Detection (3× identisches Tool)** verhindert Token-Massaker.
-5. **Trigger-File-Pattern**: API-Prozess hat `NoNewPrivileges=true`, kann kein sudo. API schreibt Datei in `$HH_DATA_DIR`, ein systemd-Path-Watcher (root) führt das Script aus. Genutzt für **Self-Update** und **Service-Restart**.
-6. **Backend-Error-Codes statt Strings**: alle HTTPException-Stellen liefern `{detail: {code, params}}`. Frontend übersetzt, API-Konsumenten parsen direkt.
-7. **bcrypt mit Lazy-Migration**: alte SHA256-Hashes werden beim nächsten erfolgreichen Login transparent rehashed.
-8. **Plugin-System Self-Bootstrap-Loop**: lokaler Master-Agent kann via shell_exec Plugins schreiben → in Hub committen+pushen → über UI installieren → selbst nutzen. Verifiziert mit 4 Plugins.
-9. **Communication-Architektur**: Messenger sind **kein Plugin**, sondern Core-Layer. Begründung: in SPEC explizit als Komponente genannt, enge Kopplung zum Master-Agent (programmatischer Session-Trigger ohne UI-Klick).
-10. **WhatsApp-Tech-Wahl: Baileys statt whatsapp-web.js**. Alter HydraHive (octopos) nutzte Puppeteer + Chromium → 500 MB Disk, Browser-Crashes. Wir nutzen Baileys (`@whiskeysockets/baileys` 6.7) → direktes WebSocket-Protokoll, ~50 MB, stabil. Hinweis im alten HANDOVER „OpenClaw nutzt Baileys" stimmt nicht — `.openclaw` enthält keinen WhatsApp-Code; wir sind die ersten Baileys-Konsumenten.
-11. **WhatsApp LID-Resolve**: Baileys liefert manche Sender als `xxx@lid` (interne ID statt Nummer). Wir mappen via `m.key.senderPn` (1:1) bzw. `participantPn` (Group) zur echten Telefonnummer — sonst matchen Owner-/Whitelist-Filter nicht und Sessions hätten LID-Titel.
-12. **WhatsApp Stream-515 nach Pairing**: Baileys-Standard-Verhalten — nach erstem QR-Scan kommt sofort `stream:error code 515` als „restart required". Die Bridge reconnected automatisch mit den frischen Creds (kein neuer QR), Auto-Reconnect-Logik in `sock.js`.
-13. **Filter-Reihenfolge** im WhatsApp-Filter ist bewusst: Owner schlägt vor allem (auch Blacklist), dann Blacklist, dann Group/Private-Toggles, dann Whitelist, dann Keyword. Owner-Bypass garantiert dass der Besitzer nie ausgesperrt werden kann.
-
-## Empfohlene Reihenfolge nächster Build-Tag
-
-1. **WhatsApp-Production-Deployment auf 216** (Self-Update aus der UI klicken — Installer ist ready, müsste durchlaufen). 5-15 Min reine Test-Aktion.
-2. **Web → WhatsApp-Send**: Web-Antworten in einer WhatsApp-Session zurück über den Channel schicken. ~30 Min Channel-Send-Hook im Chat-Endpoint.
-3. **Butler** als kanal-übergreifender Flow-Builder — großes Feature, vom User priorisiert. SPEC-Erweiterung zuerst.
-4. **AgentLink-Hookup** — kleiner als gedacht, weil AgentLink schon existiert.
-5. **Aufräumen** (`.gitkeep`, leerer `console/`-Ordner) — 5 Min.
-
-## Git-Stand
-
-Branch `main` ist auf `origin/main`. Diese Session: 6 Commits gepusht.
+## Voice-Stack — wie es funktioniert
 
 ```
-b08af60 feat(llm): NVIDIA-NIM Quick-Add-Liste um Coding-Modelle erweitert
-6cfffe7 feat(runner): LLM-Failover bei Quota/Overload/Auth-Fehlern
-966cb81 feat(installer): WhatsApp-Bridge — npm install in Phase 6
-91c5f7e docs: HANDOVER konsolidiert — WhatsApp + Filter + Roadmap-Update
-0dd5b1a feat(communication/whatsapp): Channel über Baileys-Bridge mit Filter-Config
-c21ad5f fix(communication): TextDelta — ev.text statt ev.delta
+WhatsApp-Voice-Nachricht
+  → Bridge (Node, Baileys) downloadMediaMessage → base64
+  → POST /api/communication/whatsapp/incoming mit media_type=audio
+  → Backend: ffmpeg mp4/m4a/webm → 16kHz mono PCM
+  → TCP zu 127.0.0.1:10300 (incus proxy-device)
+  → incus-LXC hydrahive2-stt: Wyoming-Faster-Whisper
+  → Transkript zurück
+  → handle_incoming(event mit voice_mode=true)
+  → Master-Agent mit _VOICE_MODE_SYSTEM_HINT als extra_system
+  → Master antwortet als Text (kein Eigen-mmx)
+  → _looks_like_metadata-Check (Belt-and-Braces)
+  → mmx-CLI synthesize_mp3 (env=MINIMAX_API_KEY aus llm.json)
+  → ffmpeg MP3→OGG/Opus 16kHz mono
+  → ffprobe für Sekunden, ffmpeg+RMS für 64-Byte-Waveform
+  → VoiceClip via send_audio an Bridge
+  → Baileys sock.sendMessage({ audio, ptt:true, seconds, waveform })
+  → User hört echte Voice-Note mit Welle
 ```
 
-Working-Tree wird nach diesem HANDOVER-Update clean.
+## Heute identifizierte Fallstricke (Memory: feedback_voice_stack_lessons.md)
+
+Die Voice-Migration hat 7 Bugs nacheinander aufgedeckt:
+
+1. **mmx --output statt --out** in `voice/tts.py` — Web-TTS-Endpoint hatte's
+   richtig, Voice-Pfad nicht.
+2. **OCI-Pull funktioniert nicht in incus 6.0** (Ubuntu 24.04 Default) — Fallback:
+   Custom Ubuntu-LXC mit `pip install wyoming-faster-whisper`.
+3. **Migrations-Reihenfolge**: alter Docker-Container muss VOR proxy-device-Add
+   stoppen, sonst Port-Konflikt → kurzer Voice-Downtime + Health-Wait + Rollback.
+4. **Healthcheck false-positive**: incus-Container `RUNNING` + Port `10300` offen
+   schien OK — Port gehörte aber dem alten Docker. Healthcheck verschärfen auf
+   proxy-device-Existenz.
+5. **ffmpeg fehlt am Host**: war im Docker-Container drin, beim Migrations-LXC
+   muss am Host nachinstalliert werden — in `00-deps.sh` als REQUIRED_PACKAGES.
+6. **mmx-Auth als root**: Token landete in `/root/.mmx/`, hydrahive-Service liest
+   `/home/hydrahive/.mmx/`. Lösung: `sudo -u hydrahive HOME=/home/hydrahive mmx auth login`.
+7. **ProtectHome=read-only blockiert mmx-Cache**: `/home/$USER/.mmx` muss in
+   `ReadWritePaths` der systemd-Service-Unit. Plus mkdir+chown VOR Service-Restart.
+
+Plus auf der UI-Seite:
+
+8. **PUT-Endpoint und Response-DTO synchron erweitern**: neue Felder im
+   `WhatsAppConfig` brauchen sowohl Constructor-Read als auch `_config_dict`-Write.
+9. **LLM-Agent macht Eigen-Tool-Calls** wenn er denkt er muss Audio erzeugen.
+   Lösung: System-Hint in `extra_system` der explizit "kein eigenes mmx, kein
+   Markdown, keine Pfade, max ~80 Wörter" sagt + `_looks_like_metadata` als
+   Belt-and-Braces.
+
+## Git-Stand am Ende der Session
+
+```
+d4b573e fix(whatsapp/voice): Dropdown-Lesbarkeit + alle MiniMax-Sprachen
+aae0687 fix(whatsapp/voice): PUT-Config persistiert respond_as_voice/voice_name/stt_language + Dropdown
+ea4494a fix(voice): Voice-Mode-System-Hinweis als separater Block + Metadata-Sanity
+a5a42ce fix(voice): mmx-Cache-Pfad + Auth als hydrahive-User
+de527c9 fix(voice): MINIMAX_API_KEY für mmx-Subprocess aus llm.json setzen
+6286846 fix(voice): ffmpeg am Host als Dependency
+0174a44 fix(voice): Healthcheck zusätzlich auf proxy-device-Existenz prüfen
+8d5bcbf fix(voice): Migration-Reihenfolge — Docker-STT vor proxy-device-Add stoppen
+08e1514 feat(voice): STT von Docker auf incus-LXC umgestellt (#25)
+… (vorher: SPEC-Guard, Issue-Wellen P0/P1/P2/P3, ButlerPage-Refactor, …)
+```
+
+Working-Tree ist clean. Alle Commits gepusht. 218 läuft auf `d4b573e`.
+
+## Empfohlener nächster Build-Tag
+
+1. **Frauchen testen lassen** — Voice ist End-to-End live, hübsche UI, Butler-
+   Regeln können rein.
+2. **Butler-Subtypes nachziehen** wenn jemand sie wirklich nutzt (heartbeat_fired,
+   discord_*, …) — bisher Stubs auf der Backend-Seite.
+3. **Stub-Actions verkabeln** (send_email, discord_post, git_*) wenn Bedarf.
+4. **AgentLink-Hookup** als nächster großer Punkt — sobald die externe API steht,
+   ist's nur HH_AGENTLINK_URL setzen.
+
+Sonst stable. Heute war ein langer Tag.
