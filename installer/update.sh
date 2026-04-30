@@ -185,10 +185,23 @@ if ! command -v incus >/dev/null 2>&1 \
 fi
 
 # Voice-Setup nach incus — STT läuft jetzt in einem incus-LXC (kein Docker).
-if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "hydrahive2-stt,RUNNING" \
-   || ! command -v mmx >/dev/null 2>&1 \
-   || ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
-  log "Voice-Setup unvollständig (STT-Container/mmx/Port 10300) — starte 55-voice.sh"
+# Vier Bedingungen — alle müssen erfüllt sein:
+# 1. incus-Container 'hydrahive2-stt' läuft
+# 2. proxy-device 'stt-port' am Container existiert (Port-Forward zum Host)
+# 3. mmx-CLI (TTS) installiert
+# 4. Port 10300 am Host hört (End-to-End-Bestätigung)
+voice_ok=1
+if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "hydrahive2-stt,RUNNING"; then
+  voice_ok=0
+elif ! incus config device show hydrahive2-stt 2>/dev/null | grep -q "^stt-port:"; then
+  voice_ok=0
+elif ! command -v mmx >/dev/null 2>&1; then
+  voice_ok=0
+elif ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
+  voice_ok=0
+fi
+if [ "$voice_ok" = "0" ]; then
+  log "Voice-Setup unvollständig (Container/proxy-device/mmx/Port 10300) — starte 55-voice.sh"
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
 fi
 
