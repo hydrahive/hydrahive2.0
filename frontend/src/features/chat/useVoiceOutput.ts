@@ -95,6 +95,25 @@ async function speakGlobal(text: string, lang = "de-DE") {
   }
 
   // provider === "browser"
+  // Voices-Loading-Race: nach Page-Reload sind Voices oft noch nicht da.
+  // getVoices() returnt leeres Array und speak() failed silent. Einmal auf
+  // voiceschanged warten falls leer.
+  if (typeof window !== "undefined" && window.speechSynthesis) {
+    const sx = window.speechSynthesis
+    if (sx.getVoices().length === 0) {
+      await new Promise<void>((resolve) => {
+        const onChange = () => {
+          sx.removeEventListener("voiceschanged", onChange)
+          resolve()
+        }
+        sx.addEventListener("voiceschanged", onChange)
+        // Fallback-Timeout damit wir nicht ewig hängen wenn der Browser
+        // voiceschanged nicht feuert.
+        setTimeout(() => { sx.removeEventListener("voiceschanged", onChange); resolve() }, 500)
+      })
+      if (myId !== speakRequestId) return
+    }
+  }
   const utt = new SpeechSynthesisUtterance(text)
   utt.lang = lang
   utt.rate = 1.0
