@@ -3,14 +3,13 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
   downloadMediaMessage,
 } from "@whiskeysockets/baileys";
-import pino from "pino";
 import { authStateFor, clearAuth } from "./auth.js";
 import { qrToDataUrl } from "./qr.js";
 import { pushIncoming } from "./push.js";
+import { logger, baileysLogger } from "./log.js";
 
 const sockets = new Map();
 const explicitlyDisconnected = new Set();
-const logger = pino({ level: "warn" });
 const LOOP_MARKER = "​";
 
 export function getStatus(user) {
@@ -39,7 +38,7 @@ export async function connect(user) {
   const sock = makeWASocket({
     version,
     auth: authState,
-    logger,
+    logger: baileysLogger,
     printQRInTerminal: false,
     browser: ["HydraHive2", "Chrome", "1.0"],
   });
@@ -81,7 +80,7 @@ export async function connect(user) {
     await Promise.all(
       messages.map((m) =>
         handleMessage(user, m).catch((e) =>
-          console.error(`[bridge] handleMessage failed: ${e?.message || e}`)
+          logger.error({ err: e?.message || String(e) }, "handleMessage failed")
         )
       )
     );
@@ -98,7 +97,8 @@ async function handleMessage(user, m) {
   const text = m.message?.conversation || m.message?.extendedTextMessage?.text || "";
   const audioMsg = m.message?.audioMessage;
   const msgKeys = Object.keys(m.message || {}).join(",");
-  console.log(`[bridge] msg user=${user} from=${rawJid} keys=${msgKeys} text-len=${text.length} audio=${!!audioMsg}`);
+  logger.debug({ user, from: rawJid, keys: msgKeys, textLen: text.length, audio: !!audioMsg },
+               "incoming message");
   if (!text && !audioMsg) return;
   if (text && text.includes(LOOP_MARKER)) return;
   const isGroup = rawJid.endsWith("@g.us");
@@ -117,14 +117,15 @@ async function handleMessage(user, m) {
   let media_error = null;
   if (audioMsg) {
     try {
-      console.log(`[bridge] audio download start mime=${audioMsg.mimetype} bytes-expected=${audioMsg.fileLength || "?"}`);
-      const buf = await downloadMediaMessage(m, "buffer", {}, { logger });
+      logger.debug({ mime: audioMsg.mimetype, expected: audioMsg.fileLength || null },
+                   "audio download start");
+      const buf = await downloadMediaMessage(m, "buffer", {}, { logger: baileysLogger });
       media_type = "audio";
       media_mime = audioMsg.mimetype || "audio/ogg; codecs=opus";
       media_data = buf.toString("base64");
-      console.log(`[bridge] audio downloaded ${buf.length} bytes (${media_data.length} b64-chars)`);
+      logger.info({ bytes: buf.length, b64Chars: media_data.length }, "audio downloaded");
     } catch (e) {
-      console.error(`[bridge] audio download FAILED: ${e?.message || e}`);
+      logger.error({ err: e?.message || String(e) }, "audio download FAILED");
       media_type = "audio_failed";
       media_error = String(e?.message || e).slice(0, 200);
     }

@@ -30,12 +30,36 @@ def ensure_secret(secret_file: Path) -> str:
     return token
 
 
-async def _pump(stream: asyncio.StreamReader, level: int) -> None:
+_PINO_TO_PY = {10: 10, 20: 10, 30: 20, 40: 30, 50: 40, 60: 50}
+
+
+async def _pump(stream: asyncio.StreamReader, default_level: int) -> None:
+    """Bridge-stdout/stderr → Python-Logger.
+
+    Wenn die Zeile pino-NDJSON ist (`{"level":30,"msg":"...","time":"..."}`),
+    nutzen wir den dort gesetzten Level + msg. Sonst Plain-Text mit
+    default_level (Legacy-Output, sollte nach #31 keiner mehr sein).
+    """
+    import json as _json
     while True:
         line = await stream.readline()
         if not line:
             return
-        logger.log(level, "[wa-bridge] %s", line.decode(errors="replace").rstrip())
+        decoded = line.decode(errors="replace").rstrip()
+        level = default_level
+        msg = decoded
+        if decoded.startswith("{"):
+            try:
+                obj = _json.loads(decoded)
+                py_level = _PINO_TO_PY.get(int(obj.get("level", 30)), default_level)
+                level = py_level
+                core = obj.get("msg") or ""
+                extras = {k: v for k, v in obj.items()
+                          if k not in ("level", "time", "msg", "component", "pid", "hostname")}
+                msg = f"{core}" + (f" {extras}" if extras else "")
+            except (ValueError, TypeError):
+                pass
+        logger.log(level, "[wa-bridge] %s", msg)
 
 
 class BridgeProcess:
