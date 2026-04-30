@@ -5,6 +5,13 @@ set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
 
+# mmx-cli — npm-globales Node-Tool, von Profile-Page als TTS-Provider nutzbar
+if ! command -v mmx >/dev/null 2>&1; then
+  log "Installiere mmx-cli (npm-global)"
+  npm install -g mmx-cli --silent 2>&1 | tail -3 || \
+    log "mmx-cli-Install fehlgeschlagen — TTS via MiniMax nicht verfügbar"
+fi
+
 # Docker installieren falls nötig
 if ! command -v docker >/dev/null 2>&1; then
   log "Installiere Docker"

@@ -166,8 +166,9 @@ EOF
   systemctl restart hydrahive2-voice.timer
 fi
 
-if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "hydrahive2-stt"; then
-  log "Voice-Container fehlen — starte 55-voice.sh"
+if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "hydrahive2-stt" \
+   || ! command -v mmx >/dev/null 2>&1; then
+  log "Voice-Setup unvollständig (Container oder mmx-cli) — starte 55-voice.sh"
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
 fi
 
