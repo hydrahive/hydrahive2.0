@@ -55,7 +55,7 @@ export function ContainerDetailPage() {
   const running = container.actual_state === "running"
 
   return (
-    <div className="space-y-4 max-w-7xl flex flex-col" style={{ height: "calc(100vh - 8rem)" }}>
+    <div className="space-y-4 max-w-7xl flex flex-col" style={{ height: "calc(100dvh - 8rem)" }}>
       <div className="flex items-center gap-3 flex-shrink-0">
         <button onClick={() => navigate("/containers")}
           className="p-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-400 hover:text-zinc-200">
