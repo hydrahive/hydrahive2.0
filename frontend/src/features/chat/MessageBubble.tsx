@@ -6,6 +6,13 @@ import { useVoiceOutput } from "./useVoiceOutput"
 import type { ContentBlock, Message } from "./types"
 
 export function MessageBubble({ message }: { message: Message }) {
+  // Hook IMMER an Top-Level aufrufen — keine conditional Hooks (Rules of Hooks).
+  // Bisher war useVoiceOutput nach zwei early-returns positioniert, was bei
+  // React-Reconciliation zwischen unterschiedlichen Message-Roles in derselben
+  // Component-Slot zu Hook-Reihenfolge-Mismatch führte und den TTS-Listener
+  // killte — Vorlesen-Button funktionierte nicht mehr (#76).
+  const tts = useVoiceOutput()
+
   if (message.role === "compaction") {
     return <CompactionBlock message={message} />
   }
@@ -42,7 +49,6 @@ export function MessageBubble({ message }: { message: Message }) {
     )
   }
 
-  const tts = useVoiceOutput()
   const fullText = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join(" ")
 
   return (
