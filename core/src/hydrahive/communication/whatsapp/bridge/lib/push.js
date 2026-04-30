@@ -1,3 +1,5 @@
+import { logger } from "./log.js";
+
 const BACKEND_URL = process.env.HH_WA_BACKEND_URL || "http://127.0.0.1:8001";
 const SECRET = process.env.HH_WA_BRIDGE_SECRET || "";
 
@@ -13,9 +15,9 @@ export async function pushIncoming(payload) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      console.error(`[push] Backend antwortet ${res.status}`);
+      logger.error({ status: res.status }, "Backend-Push abgelehnt");
     }
   } catch (err) {
-    console.error(`[push] Fehler: ${err.message}`);
+    logger.error({ err: err.message }, "Backend-Push Fehler");
   }
 }

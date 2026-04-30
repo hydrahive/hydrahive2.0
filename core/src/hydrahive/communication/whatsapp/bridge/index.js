@@ -1,5 +1,6 @@
 import http from "node:http";
 import { connect, disconnect, send, sendAudio, getStatus } from "./lib/sock.js";
+import { logger } from "./lib/log.js";
 
 const PORT = parseInt(process.env.HH_WA_BRIDGE_PORT || "8767", 10);
 const HOST = "127.0.0.1";
@@ -61,18 +62,18 @@ const server = http.createServer(async (req, res) => {
     }
     sendJson(res, 404, { error: "not_found" });
   } catch (err) {
-    console.error("[bridge]", err);
+    logger.error({ err: err.message, stack: err.stack }, "Bridge-Request Fehler");
     sendJson(res, 500, { error: err.message });
   }
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`[bridge] WhatsApp-Bridge läuft auf ${HOST}:${PORT}`);
+  logger.info({ host: HOST, port: PORT }, "WhatsApp-Bridge läuft");
 });
 
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => {
-    console.log(`[bridge] ${sig} empfangen, Shutdown`);
+    logger.info({ signal: sig }, "Shutdown");
     server.close(() => process.exit(0));
   });
 }
