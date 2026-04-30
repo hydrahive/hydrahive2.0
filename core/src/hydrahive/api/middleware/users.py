@@ -26,8 +26,12 @@ def _load() -> dict:
 
 
 def _save(users: dict) -> None:
+    """Atomic write — verhindert truncated users.json bei parallelem
+    Login + Hash-Migration (Race-Condition vor Fix war beobachtbar)."""
     settings.users_config.parent.mkdir(parents=True, exist_ok=True)
-    settings.users_config.write_text(json.dumps(users, indent=2))
+    tmp = settings.users_config.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(users, indent=2))
+    tmp.replace(settings.users_config)
 
 
 def _hash(password: str) -> str:
