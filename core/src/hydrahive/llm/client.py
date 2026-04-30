@@ -143,27 +143,36 @@ def is_minimax_model(model: str) -> bool:
     return bare.lower().startswith("minimax-")
 
 
-async def _anthropic_oauth_complete(
-    token: str,
+def _anthropic_client(key: str):
+    """Anthropic-SDK-Client. OAuth-Tokens (sk-ant-oat...) brauchen
+    auth_token + Identity-Header, Plain-API-Keys (sk-ant-api...)
+    brauchen api_key. Beide gehen über das gleiche SDK."""
+    import anthropic as _anthropic
+    if key.startswith("sk-ant-oat"):
+        return _anthropic.AsyncAnthropic(
+            api_key="", auth_token=key, timeout=300.0,
+            default_headers=_ANTHROPIC_OAUTH_HEADERS,
+        ), True
+    return _anthropic.AsyncAnthropic(api_key=key, timeout=300.0), False
+
+
+async def _anthropic_complete(
+    key: str,
     messages: list[dict],
     model: str,
     temperature: float,
     max_tokens: int,
 ) -> str:
-    import anthropic as _anthropic
-    client = _anthropic.AsyncAnthropic(
-        api_key="",
-        auth_token=token,
-        timeout=300.0,
-        default_headers=_ANTHROPIC_OAUTH_HEADERS,
-    )
-    resp = await client.messages.create(
-        model=_strip_provider_prefix(model),
-        system=_ANTHROPIC_OAUTH_IDENTITY,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    client, is_oauth = _anthropic_client(key)
+    kwargs: dict = {
+        "model": _strip_provider_prefix(model),
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if is_oauth:
+        kwargs["system"] = _ANTHROPIC_OAUTH_IDENTITY
+    resp = await client.messages.create(**kwargs)
     return _extract_text(resp.content)
 
 
@@ -190,27 +199,23 @@ async def _minimax_complete(
     return _extract_text(resp.content)
 
 
-async def _anthropic_oauth_stream(
-    token: str,
+async def _anthropic_stream(
+    key: str,
     messages: list[dict],
     model: str,
     temperature: float,
     max_tokens: int,
 ) -> AsyncIterator[str]:
-    import anthropic as _anthropic
-    client = _anthropic.AsyncAnthropic(
-        api_key="",
-        auth_token=token,
-        timeout=300.0,
-        default_headers=_ANTHROPIC_OAUTH_HEADERS,
-    )
-    async with client.messages.stream(
-        model=_strip_provider_prefix(model),
-        system=_ANTHROPIC_OAUTH_IDENTITY,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    ) as stream:
+    client, is_oauth = _anthropic_client(key)
+    kwargs: dict = {
+        "model": _strip_provider_prefix(model),
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if is_oauth:
+        kwargs["system"] = _ANTHROPIC_OAUTH_IDENTITY
+    async with client.messages.stream(**kwargs) as stream:
         async for text in stream.text_stream:
             yield text
 
@@ -236,11 +241,18 @@ async def complete(
             raise ValueError("MiniMax-API-Key fehlt — Provider 'minimax' in der LLM-Config setzen")
         return await _minimax_complete(minimax_key, messages, target, temperature, max_tokens)
 
-    anthropic_key = _get_anthropic_key(cfg)
-    is_claude = _strip_provider_prefix(target).startswith("claude-")
-    if is_claude and anthropic_key.startswith("sk-ant-oat"):
-        return await _anthropic_oauth_complete(anthropic_key, messages, target, temperature, max_tokens)
+    # Anthropic Claude → direkt via anthropic-SDK (sowohl OAuth als auch Plain-Bearer).
+    # Vorteile gegenüber LiteLLM: volle Anthropic-Features (Prompt-Caching,
+    # Extended Thinking, Image-Blocks, Citations, Tool-Streaming) ohne
+    # LiteLLM-Übersetzungsverlust + ein konsistenter Pfad statt zwei.
+    if _strip_provider_prefix(target).startswith("claude-"):
+        anthropic_key = _get_anthropic_key(cfg)
+        if not anthropic_key:
+            raise ValueError("Anthropic-API-Key fehlt — Provider 'anthropic' in der LLM-Config setzen")
+        return await _anthropic_complete(anthropic_key, messages, target, temperature, max_tokens)
 
+    # Alle anderen Provider (OpenAI, OpenRouter, Groq, Mistral, Gemini, NVIDIA-NIM)
+    # über LiteLLM — da macht es seinen Job als echte Provider-Abstraktion.
     _apply_keys(cfg)
     resp = await litellm.acompletion(
         model=target,
@@ -262,10 +274,12 @@ async def stream(
     if not target:
         raise ValueError("Kein LLM-Modell konfiguriert")
 
-    anthropic_key = _get_anthropic_key(cfg)
-    is_claude = _strip_provider_prefix(target).startswith("claude-")
-    if is_claude and anthropic_key.startswith("sk-ant-oat"):
-        async for chunk in _anthropic_oauth_stream(anthropic_key, messages, target, temperature, max_tokens):
+    # Anthropic Claude → direktes anthropic-SDK (siehe complete() für Begründung).
+    if _strip_provider_prefix(target).startswith("claude-"):
+        anthropic_key = _get_anthropic_key(cfg)
+        if not anthropic_key:
+            raise ValueError("Anthropic-API-Key fehlt")
+        async for chunk in _anthropic_stream(anthropic_key, messages, target, temperature, max_tokens):
             yield chunk
         return
 
