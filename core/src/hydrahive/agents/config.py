@@ -146,6 +146,12 @@ def update(agent_id: str, **changes: Any) -> dict:
     if not cfg:
         raise KeyError(f"Agent '{agent_id}' nicht gefunden")
 
+    # Debug-Hilfe für #82: zeigt welche Felder das Frontend wirklich sendet
+    compact_keys = [k for k in changes if k.startswith("compact_")]
+    logger.info("Agent-Update %s: %d Felder gesamt, davon compact_*: %s",
+                agent_id[:8], len(changes),
+                {k: changes[k] for k in compact_keys})
+
     for protected in ("id", "type", "created_at", "created_by"):
         changes.pop(protected, None)
 
