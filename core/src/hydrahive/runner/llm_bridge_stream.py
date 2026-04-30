@@ -123,7 +123,17 @@ async def _anthropic_stream(
     if tools:
         kwargs["tools"] = tools
 
-    async with client.messages.stream(**kwargs) as stream:
+    # opus-4-7 etc. akzeptieren kein temperature — bei "deprecated"-Fehler
+    # einmal ohne temperature retry.
+    try:
+        cm = client.messages.stream(**kwargs)
+    except _anthropic.BadRequestError as e:
+        if "temperature" in str(e).lower() and "deprecated" in str(e).lower():
+            kwargs.pop("temperature", None)
+            cm = client.messages.stream(**kwargs)
+        else:
+            raise
+    async with cm as stream:
         async for ev in stream:
             mapped = _map_event(ev)
             if mapped is not None:

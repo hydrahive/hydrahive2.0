@@ -98,7 +98,17 @@ async def _anthropic_call(
     if tools:
         kwargs["tools"] = tools
 
-    resp = await client.messages.create(**kwargs)
+    # Manche neueren Claude-Modelle (z.B. opus-4-7) akzeptieren kein temperature
+    # mehr — Anthropic returnt dann 400 "temperature is deprecated for this
+    # model". Wenn das passiert: einmal ohne temperature retry.
+    try:
+        resp = await client.messages.create(**kwargs)
+    except _anthropic.BadRequestError as e:
+        if "temperature" in str(e).lower() and "deprecated" in str(e).lower():
+            kwargs.pop("temperature", None)
+            resp = await client.messages.create(**kwargs)
+        else:
+            raise
     blocks = [_block_to_dict(b) for b in resp.content]
     stop_reason = getattr(resp, "stop_reason", "") or ""
     return blocks, stop_reason
