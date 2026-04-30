@@ -47,6 +47,26 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def _whatsapp_auto_reconnect(adapter) -> None:
+    """Reconnect alle User die bereits gepaart waren (auth/creds.json existiert)
+    automatisch nach Backend-Restart. Bridge wartet kurz bis sie HTTP-ready ist."""
+    await asyncio.sleep(2)
+    wa_dir = settings.whatsapp_data_dir
+    if not wa_dir.exists():
+        return
+    for user_dir in wa_dir.iterdir():
+        if not user_dir.is_dir():
+            continue
+        if not (user_dir / "auth" / "creds.json").exists():
+            continue
+        username = user_dir.name
+        try:
+            await adapter.connect(username)
+            logger.info("WhatsApp: Auto-Reconnect für '%s' getriggert", username)
+        except Exception as e:
+            logger.warning("WhatsApp Auto-Reconnect für '%s' fehlgeschlagen: %s", username, e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import os
@@ -91,6 +111,7 @@ async def lifespan(app: FastAPI):
         if await wa_bridge.start():
             wa_adapter = WhatsAppAdapter(settings.whatsapp_bridge_url)
             register_channel(wa_adapter)
+            asyncio.create_task(_whatsapp_auto_reconnect(wa_adapter))
         else:
             wa_bridge = None
 
