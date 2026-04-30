@@ -67,7 +67,7 @@ export function Layout() {
   )
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#020617]">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#020617]">
       {/* Ambient background glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-32 left-1/4 w-[500px] h-[500px] bg-violet-600/[13%] rounded-full blur-3xl" />
