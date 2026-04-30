@@ -17,6 +17,7 @@ import { VMsPage } from "@/features/vms/VMsPage"
 import { ContainersPage } from "@/features/containers/ContainersPage"
 import { ContainerDetailPage } from "@/features/containers/ContainerDetailPage"
 import { ButlerPage } from "@/features/butler/ButlerPage"
+import { HelpPage } from "@/features/help/HelpPage"
 
 function Guard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="help" element={<HelpPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
