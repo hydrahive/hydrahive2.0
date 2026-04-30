@@ -161,14 +161,30 @@ def update(agent_id: str, **changes: Any) -> dict:
         _validation.validate_max_tokens(changes["max_tokens"])
     if "status" in changes:
         _validation.validate_status(changes["status"])
+    # Compaction-Felder: None/leerer-String → Default (kein Validation-Crash beim
+    # Frontend-Save wenn ein Feld undefined ist).
     if "compact_model" in changes:
+        if changes["compact_model"] is None:
+            changes["compact_model"] = ""
         _validation.validate_compact_model(changes["compact_model"])
     if "compact_tool_result_limit" in changes:
-        _validation.validate_compact_tool_result_limit(changes["compact_tool_result_limit"])
+        if changes["compact_tool_result_limit"] in (None, ""):
+            changes.pop("compact_tool_result_limit")
+        else:
+            _validation.validate_compact_tool_result_limit(int(changes["compact_tool_result_limit"]))
+            changes["compact_tool_result_limit"] = int(changes["compact_tool_result_limit"])
     if "compact_reserve_tokens" in changes:
-        _validation.validate_compact_reserve_tokens(changes["compact_reserve_tokens"])
+        if changes["compact_reserve_tokens"] in (None, ""):
+            changes.pop("compact_reserve_tokens")
+        else:
+            _validation.validate_compact_reserve_tokens(int(changes["compact_reserve_tokens"]))
+            changes["compact_reserve_tokens"] = int(changes["compact_reserve_tokens"])
     if "compact_threshold_pct" in changes:
-        _validation.validate_compact_threshold_pct(changes["compact_threshold_pct"])
+        if changes["compact_threshold_pct"] in (None, ""):
+            changes.pop("compact_threshold_pct")
+        else:
+            _validation.validate_compact_threshold_pct(int(changes["compact_threshold_pct"]))
+            changes["compact_threshold_pct"] = int(changes["compact_threshold_pct"])
 
     cfg.update(changes)
     cfg["updated_at"] = now_iso()

@@ -49,4 +49,8 @@ export interface AgentCreate {
   owner?: string | null
   domain?: string | null
   system_prompt?: string | null
+  compact_model?: string
+  compact_tool_result_limit?: number
+  compact_reserve_tokens?: number
+  compact_threshold_pct?: number
 }
