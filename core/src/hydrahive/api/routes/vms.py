@@ -24,6 +24,7 @@ from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import iso as vmiso
 from hydrahive.vms import lifecycle
 from hydrahive.vms import snapshots as vmsnap
+from hydrahive.vms import stats as vmstats
 from hydrahive.settings import settings
 from hydrahive.vms.models import (
     MAX_CPU, MAX_DISK_GB, MAX_RAM_MB, MIN_CPU, MIN_DISK_GB, MIN_RAM_MB, NAME_RE,
@@ -41,6 +42,9 @@ class VMCreate(BaseModel):
     disk_gb: int = Field(ge=MIN_DISK_GB, le=MAX_DISK_GB)
     iso_filename: str | None = None
     network_mode: str = "bridged"
+    # Wenn gesetzt: importiertes qcow2 wird übernommen statt neu erzeugt.
+    # disk_gb wird dann ignoriert. Der Job-Eintrag wird beim Konsumieren gelöscht.
+    import_job_id: str | None = None
 
 
 def _is_admin(role: str) -> bool:
@@ -92,7 +96,22 @@ async def create_vm(
     else:
         iso_safe = None
 
-    # 1. Disk anlegen, 2. dann DB-Eintrag — sonst hängen Orphan-DB-Zeilen
+    # Pfad zur Disk: entweder aus Import-Job übernehmen oder neu anlegen
+    import_qcow2: Path | None = None
+    if body.import_job_id:
+        job = vmimport.db_get(body.import_job_id)
+        if not job:
+            raise coded(status.HTTP_404_NOT_FOUND, "import_job_not_found")
+        if job["owner"] != user and not _is_admin(role := auth[1]):
+            raise coded(status.HTTP_403_FORBIDDEN, "vm_no_access")
+        if job["status"] != "done":
+            raise coded(status.HTTP_409_CONFLICT, "import_job_not_done",
+                        status_=job["status"])
+        import_qcow2 = Path(job["target_qcow2"])
+        if not import_qcow2.exists():
+            raise coded(status.HTTP_410_GONE, "import_qcow2_missing",
+                        path=str(import_qcow2))
+
     vm = vmdb.create_vm(
         owner=user, name=body.name, description=body.description,
         cpu=body.cpu, ram_mb=body.ram_mb, disk_gb=body.disk_gb,
@@ -100,11 +119,21 @@ async def create_vm(
         qcow2_path="",  # wird gleich gesetzt
     )
     try:
-        path = await vmdisk.create_qcow2(vm.vm_id, body.disk_gb)
+        if import_qcow2:
+            target = vmdisk.disk_path_for(vm.vm_id)
+            settings.vms_disks_dir.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(import_qcow2), str(target))
+            vmimport.db_delete(body.import_job_id)
+            path = target
+        else:
+            path = await vmdisk.create_qcow2(vm.vm_id, body.disk_gb)
     except vmdisk.DiskError as e:
         vmdb.delete_vm(vm.vm_id)
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, e.code, **e.params)
-    # qcow2_path nachträglich setzen
+    except OSError as e:
+        vmdb.delete_vm(vm.vm_id)
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "import_move_failed",
+                    error=str(e))
     from hydrahive.db.connection import db as _db
     with _db() as conn:
         conn.execute("UPDATE vms SET qcow2_path = ? WHERE vm_id = ?",
@@ -149,6 +178,30 @@ async def poweroff_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(requi
     _vm_or_404(vm_id, *auth)
     await lifecycle.shutdown(vm_id, hard=True)
     return _serialize(vmdb.get_vm(vm_id))
+
+
+@router.get("/{vm_id}/stats")
+def vm_stats(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    vm = _vm_or_404(vm_id, *auth)
+    return vmstats.read_stats(vm.vm_id, vm.pid)
+
+
+@router.get("/{vm_id}/log")
+def vm_log(
+    vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)],
+    tail: int = 200,
+) -> dict:
+    vm = _vm_or_404(vm_id, *auth)
+    log_path = settings.vms_logs_dir / f"{vm.vm_id}.log"
+    if not log_path.exists():
+        return {"lines": [], "exists": False}
+    try:
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        return {"lines": [], "exists": True, "error": str(e)}
+    lines = text.splitlines()
+    capped = max(1, min(tail, 2000))
+    return {"lines": lines[-capped:], "exists": True}
 
 
 @router.get("/{vm_id}/vnc")

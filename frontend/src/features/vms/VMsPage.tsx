@@ -8,6 +8,7 @@ import { ISOLibraryPanel } from "./ISOLibraryPanel"
 import { VMConsoleModal } from "./VMConsoleModal"
 import { SnapshotsPanel } from "./SnapshotsPanel"
 import { ImportJobsPanel } from "./ImportJobsPanel"
+import { VMLogsPanel } from "./VMLogsPanel"
 
 const POLL_MS = 4000
 
@@ -20,6 +21,7 @@ export function VMsPage() {
   const [consoleVm, setConsoleVm] = useState<VM | null>(null)
   const [snapshotVm, setSnapshotVm] = useState<VM | null>(null)
   const [showImports, setShowImports] = useState(false)
+  const [logsVm, setLogsVm] = useState<VM | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -101,6 +103,7 @@ export function VMsPage() {
               onDelete={async () => { await vmsApi.remove(vm.vm_id); await refresh() }}
               onConsole={() => setConsoleVm(vm)}
               onSnapshots={() => setSnapshotVm(vm)}
+              onLogs={() => setLogsVm(vm)}
             />
           ))}
         </div>
@@ -111,6 +114,7 @@ export function VMsPage() {
       {consoleVm && <VMConsoleModal vm={consoleVm} onClose={() => setConsoleVm(null)} />}
       {snapshotVm && <SnapshotsPanel vm={snapshotVm} onClose={() => setSnapshotVm(null)} />}
       {showImports && <ImportJobsPanel onClose={() => setShowImports(false)} />}
+      {logsVm && <VMLogsPanel vm={logsVm} onClose={() => setLogsVm(null)} />}
     </div>
   )
 }

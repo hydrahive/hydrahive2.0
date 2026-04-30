@@ -74,6 +74,9 @@
   "import_upload_failed": "Upload fehlgeschlagen: {{error}}",
   "import_internal_error": "Interner Import-Fehler",
   "import_job_not_found": "Import-Job nicht gefunden",
+  "import_job_not_done": "Import-Job ist noch nicht fertig (Status: {{status_}})",
+  "import_qcow2_missing": "qcow2 zum Import-Job fehlt — vermutlich gelöscht",
+  "import_move_failed": "Import-qcow2 verschieben fehlgeschlagen: {{error}}",
 
   "validation_error": "{{message}}"
 }
