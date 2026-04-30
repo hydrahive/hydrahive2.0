@@ -60,12 +60,29 @@ export function WhatsAppFilterPanel() {
     if (!cfg.respond_as_voice) return
     if (voices.length > 0) return
     const token = useAuthStore.getState().token ?? ""
-    fetch("/api/tts/voices?language=german", {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    const headers = token ? { Authorization: `Bearer ${token}` } : undefined
+    // mmx liefert Voices pro Sprache — wir laden alle gängigen parallel und mergen
+    const langs = ["german", "english", "french", "spanish", "italian",
+                   "chinese", "japanese", "russian", "portuguese", "arabic"]
+    Promise.all(langs.map((lang) =>
+      fetch(`/api/tts/voices?language=${lang}`, { headers })
+        .then((r) => r.ok ? r.json() : { voices: [] })
+        .then((d: { voices: MmxVoice[] }) =>
+          (d.voices ?? []).map((v) => ({ ...v, lang }))
+        )
+        .catch(() => [])
+    )).then((results) => {
+      const all: (MmxVoice & { lang: string })[] = results.flat()
+      // Dedupe nach voice_id
+      const seen = new Set<string>()
+      const unique = all.filter((v) => {
+        if (seen.has(v.voice_id)) return false
+        seen.add(v.voice_id)
+        return true
+      })
+      setVoices(unique)
+      if (unique.length === 0) setVoicesErr("Keine Voices vom mmx-CLI geladen")
     })
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
-      .then((d: { voices: MmxVoice[] }) => setVoices(d.voices ?? []))
-      .catch((e) => setVoicesErr(e instanceof Error ? e.message : String(e)))
   }, [cfg.respond_as_voice, voices.length])
 
   async function save() {
@@ -141,7 +158,7 @@ export function WhatsAppFilterPanel() {
           <label className="text-[11px] text-zinc-500">Sprache der eingehenden Sprachnachrichten</label>
           <select value={cfg.stt_language || ""}
             onChange={(e) => setCfg({ ...cfg, stt_language: e.target.value })}
-            className="mt-1 w-full rounded-lg bg-white/[3%] border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50">
+            className="mt-1 w-full rounded-lg bg-zinc-900 border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50 [&>option]:bg-zinc-900 [&>option]:text-zinc-100">
             <option value="">Auto-Erkennung</option>
             <option value="de">Deutsch</option>
             <option value="en">English</option>
@@ -165,15 +182,15 @@ export function WhatsAppFilterPanel() {
             <label className="text-[11px] text-zinc-500">Stimme (MiniMax)</label>
             <select value={cfg.voice_name}
               onChange={(e) => setCfg({ ...cfg, voice_name: e.target.value })}
-              className="mt-1 w-full rounded-lg bg-white/[3%] border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50">
+              className="mt-1 w-full rounded-lg bg-zinc-900 border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50 [&>option]:bg-zinc-900 [&>option]:text-zinc-100">
               {/* Aktuell gespeicherte Stimme als Fallback-Option falls
                   voices-Liste noch lädt oder mmx nicht erreichbar */}
               {!voices.find((v) => v.voice_id === cfg.voice_name) && (
                 <option value={cfg.voice_name}>{cfg.voice_name}</option>
               )}
-              {voices.map((v) => (
+              {[...voices].sort((a, b) => a.voice_id.localeCompare(b.voice_id)).map((v) => (
                 <option key={v.voice_id} value={v.voice_id}>
-                  {v.voice_name || v.voice_id}
+                  {v.voice_id}{v.voice_name && v.voice_name !== v.voice_id ? ` — ${v.voice_name}` : ""}
                 </option>
               ))}
             </select>
