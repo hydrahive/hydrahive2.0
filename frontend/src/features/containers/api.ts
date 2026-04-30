@@ -11,4 +11,6 @@ export const containersApi = {
   stop: (id: string) => api.post<Container>(`/containers/${id}/stop`, {}),
   restart: (id: string) => api.post<Container>(`/containers/${id}/restart`, {}),
   quickImages: () => api.get<string[]>("/containers/quick-images"),
+  log: (id: string) => api.get<{ text: string }>(`/containers/${id}/log`),
+  config: (id: string) => api.get<{ text: string }>(`/containers/${id}/config`),
 }

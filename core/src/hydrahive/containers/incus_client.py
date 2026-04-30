@@ -148,6 +148,22 @@ async def list_running_names() -> set[str]:
     return {i["name"] for i in data if i.get("status", "").lower() == "running"}
 
 
+async def show_log(name: str) -> str:
+    """Container-Lifecycle-Log via `incus info <name> --show-log`."""
+    rc, out, err = await _run("info", name, "--show-log", timeout=15.0)
+    if rc != 0:
+        return err or "incus info failed"
+    return out
+
+
+async def show_config(name: str) -> str:
+    """Container-Konfiguration als YAML via `incus config show <name>`."""
+    rc, out, err = await _run("config", "show", name, timeout=15.0)
+    if rc != 0:
+        return err or "incus config show failed"
+    return out
+
+
 async def list_images(remote: str = "images") -> list[dict]:
     """Image-Catalog vom Remote."""
     rc, out, _ = await _run("image", "list", f"{remote}:", "--format=json", timeout=30.0)
