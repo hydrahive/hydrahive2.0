@@ -161,12 +161,15 @@ export async function send(user, to, text) {
   await s.sock.sendMessage(to, { text: text + LOOP_MARKER });
 }
 
-export async function sendAudio(user, to, audioBuffer) {
+export async function sendAudio(user, to, audioBuffer, { seconds, waveform } = {}) {
   const s = sockets.get(user);
   if (!s || !s.connected) throw new Error("nicht verbunden");
-  await s.sock.sendMessage(to, {
+  const msg = {
     audio: audioBuffer,
     ptt: true,
     mimetype: "audio/ogg; codecs=opus",
-  });
+  };
+  if (typeof seconds === "number" && seconds > 0) msg.seconds = seconds;
+  if (waveform && Buffer.isBuffer(waveform) && waveform.length > 0) msg.waveform = waveform;
+  await s.sock.sendMessage(to, msg);
 }

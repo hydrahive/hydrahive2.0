@@ -57,11 +57,20 @@ class WhatsAppAdapter:
         )
         r.raise_for_status()
 
-    async def send_audio(self, username: str, to: str, audio_b64: str) -> None:
-        """Sendet Sprachnachricht (ptt) — audio als base64 OGG/Opus."""
+    async def send_audio(
+        self, username: str, to: str, audio_b64: str,
+        *, seconds: int | None = None, waveform_b64: str | None = None,
+    ) -> None:
+        """Sendet Sprachnachricht (ptt). seconds + waveform sorgen dafür dass
+        WhatsApp es als echte Voice-Note rendert (Welle + Sekunden), nicht
+        als Audio-Datei mit Download-Icon."""
+        body: dict = {"to": to, "audio_base64": audio_b64}
+        if seconds is not None:
+            body["seconds"] = seconds
+        if waveform_b64 is not None:
+            body["waveform_base64"] = waveform_b64
         r = await (await self._http()).post(
-            f"{self._base}/send/{username}",
-            json={"to": to, "audio_base64": audio_b64},
+            f"{self._base}/send/{username}", json=body,
         )
         r.raise_for_status()
 

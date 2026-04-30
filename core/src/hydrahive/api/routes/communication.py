@@ -204,10 +204,12 @@ async def wa_incoming(
             try:
                 if cfg.respond_as_voice:
                     from hydrahive.voice.tts import synthesize_to_ogg
-                    audio = await synthesize_to_ogg(answer, voice=cfg.voice_name)
+                    clip = await synthesize_to_ogg(answer, voice=cfg.voice_name)
                     await ch.send_audio(
                         target_username, external_user_id,
-                        base64.b64encode(audio).decode(),
+                        base64.b64encode(clip.ogg_bytes).decode(),
+                        seconds=clip.seconds,
+                        waveform_b64=base64.b64encode(clip.waveform).decode(),
                     )
                 else:
                     await ch.send(target_username, external_user_id, answer)
