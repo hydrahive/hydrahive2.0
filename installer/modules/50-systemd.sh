@@ -38,17 +38,18 @@ Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
 Environment=HH_HOST=$HH_HOST
 Environment=HH_PORT=$HH_PORT
 Environment=HH_SECRET_KEY=$SECRET_KEY
+Environment=HOME=/home/$HH_USER
 Environment=PATH=$HH_REPO_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST --port $HH_PORT
 Restart=on-failure
 RestartSec=5
 
-# Sicherheit
+# Sicherheit — HOME-Dir braucht Read-Access (incus config.yml), Write nur via ReadWritePaths
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR
+ProtectHome=read-only
+ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR /home/$HH_USER/.config
 
 [Install]
 WantedBy=multi-user.target
