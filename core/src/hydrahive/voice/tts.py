@@ -1,16 +1,18 @@
 """Text-to-Speech via mmx-CLI (MiniMax).
 
-`synthesize_to_ogg(text, voice)` ist die Public-API. Liefert ein
-`VoiceClip`-Tuple mit OGG/Opus-Bytes, Dauer in Sekunden und
-Waveform-Bytes (64 Buckets, 0-100) fertig für WhatsApp-Voice-Notes
-(push-to-talk Format mit Welle).
+Public API:
+- `synthesize_mp3(text, voice)` — rohes MP3 wie mmx liefert (für Web-TTS)
+- `synthesize_to_ogg(text, voice)` — VoiceClip mit OGG/Opus + Sekunden +
+  Waveform für WhatsApp-Voice-Notes
+- `list_voices(language)` — verfügbare Stimmen vom mmx CLI
 
-mmx liefert MP3 — wir konvertieren via ffmpeg zu OGG/Opus + ffprobe
-für die Dauer + raw-PCM-RMS für die Waveform.
+`voice/tts.py` ist die einzige Stelle die `mmx` als Subprocess startet —
+api/routes/tts.py ist nur ein dünner HTTP-Wrapper.
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import math
 import shutil
@@ -33,24 +35,19 @@ def is_available() -> bool:
     return shutil.which("mmx") is not None and shutil.which("ffmpeg") is not None
 
 
-async def synthesize_to_ogg(text: str, voice: str = "German_FriendlyMan") -> VoiceClip:
-    """Text → VoiceClip(ogg_bytes, seconds, waveform). Wirft RuntimeError bei Fehler."""
+async def synthesize_mp3(text: str, voice: str = "German_FriendlyMan") -> bytes:
+    """Roh-MP3-Bytes von mmx — für /api/tts ohne weitere Konvertierung."""
     if not text.strip():
         raise RuntimeError("leerer Text")
     if shutil.which("mmx") is None:
         raise RuntimeError("mmx-CLI fehlt — npm install -g mmx-cli")
-    if shutil.which("ffmpeg") is None:
-        raise RuntimeError("ffmpeg fehlt")
-
     with tempfile.TemporaryDirectory() as tmp:
-        mp3 = Path(tmp) / "out.mp3"
-        ogg = Path(tmp) / "out.ogg"
-
+        out = Path(tmp) / "out.mp3"
         proc = await asyncio.create_subprocess_exec(
             "mmx", "speech", "synthesize",
             "--text", text, "--voice", voice,
-            "--out", str(mp3), "--quiet",
-            stdout=asyncio.subprocess.PIPE,
+            "--out", str(out), "--quiet",
+            stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.PIPE,
         )
         try:
@@ -58,8 +55,44 @@ async def synthesize_to_ogg(text: str, voice: str = "German_FriendlyMan") -> Voi
         except asyncio.TimeoutError:
             proc.kill()
             raise RuntimeError("mmx-Timeout")
-        if proc.returncode != 0 or not mp3.exists():
-            raise RuntimeError(f"mmx fehlgeschlagen: {err.decode()[:200]}")
+        if proc.returncode != 0 or not out.exists():
+            raise RuntimeError(f"mmx fehlgeschlagen: {err.decode(errors='replace')[:200]}")
+        return out.read_bytes()
+
+
+async def list_voices(language: str = "german") -> list[dict]:
+    """Verfügbare Voices vom mmx-CLI als JSON-Liste."""
+    if shutil.which("mmx") is None:
+        raise RuntimeError("mmx-CLI fehlt")
+    proc = await asyncio.create_subprocess_exec(
+        "mmx", "speech", "voices",
+        "--language", language, "--output", "json", "--quiet",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        out, err = await asyncio.wait_for(proc.communicate(), timeout=15.0)
+    except asyncio.TimeoutError:
+        proc.kill()
+        raise RuntimeError("mmx Voices-Abruf Timeout")
+    if proc.returncode != 0:
+        raise RuntimeError(f"mmx voices fehlgeschlagen: {err.decode(errors='replace')[:200]}")
+    try:
+        return json.loads(out.decode())
+    except json.JSONDecodeError:
+        return []
+
+
+async def synthesize_to_ogg(text: str, voice: str = "German_FriendlyMan") -> VoiceClip:
+    """Text → VoiceClip(ogg_bytes, seconds, waveform) für WhatsApp-Voice-Notes."""
+    if shutil.which("ffmpeg") is None:
+        raise RuntimeError("ffmpeg fehlt")
+    mp3_bytes = await synthesize_mp3(text, voice)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        mp3 = Path(tmp) / "out.mp3"
+        ogg = Path(tmp) / "out.ogg"
+        mp3.write_bytes(mp3_bytes)
 
         # MP3 → OGG/Opus 16kHz mono — Standard für WhatsApp ptt
         proc2 = await asyncio.create_subprocess_exec(
