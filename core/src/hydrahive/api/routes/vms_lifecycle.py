@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._vms_helpers import (
-    resolve_import_job, resolve_iso, serialize, vm_or_404,
+    is_admin, resolve_import_job, resolve_iso, serialize, vm_or_404,
 )
 from hydrahive.settings import settings
 from hydrahive.vms import db as vmdb
