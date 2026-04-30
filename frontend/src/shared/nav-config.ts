@@ -1,5 +1,5 @@
 import {
-  Bot, Box, Cpu, FolderKanban, HardDrive, LayoutDashboard, MessageCircle,
+  BookOpen, Bot, Box, Cpu, FolderKanban, HardDrive, LayoutDashboard, MessageCircle,
   MessageSquare, Puzzle, Server, Settings, Users, Workflow,
 } from "lucide-react"
 
@@ -26,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/users", icon: Users, labelKey: "users", roles: ["admin"] },
   { path: "/plugins", icon: Puzzle, labelKey: "plugins", roles: ["admin"] },
   { path: "/system", icon: Settings, labelKey: "system" },
+  { path: "/help", icon: BookOpen, labelKey: "help" },
 ]
 
 // Quick-Links direkt in der Top-Bar — die wichtigsten Apps.
