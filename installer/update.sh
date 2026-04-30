@@ -5,6 +5,7 @@ set -euo pipefail
 HH_REPO_DIR="${HH_REPO_DIR:-/opt/hydrahive2}"
 HH_USER="${HH_USER:-hydrahive}"
 HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
+HH_CONFIG_DIR="${HH_CONFIG_DIR:-/etc/hydrahive2}"
 
 log() { printf "\033[1;36m[hh2-update]\033[0m %s\n" "$*"; }
 err() { printf "\033[1;31m[hh2-update]\033[0m %s\n" "$*" >&2; exit 1; }
