@@ -8,6 +8,7 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { RestartModal } from "@/shared/RestartModal"
 import { useRestart } from "@/shared/useRestart"
 import { systemApi, type HealthCheck, type SystemInfo, type SystemStats } from "./api"
+import { AgentLinkCard } from "./AgentLinkCard"
 import { BackupCard } from "./BackupCard"
 import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
@@ -153,6 +154,8 @@ export function SystemPage() {
           <PathRow label={t("paths.db")} value={info.db_path} />
         </div>
       )}
+
+      <AgentLinkCard />
 
       {role === "admin" && <BackupCard />}
     </div>

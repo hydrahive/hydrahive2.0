@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from hydrahive.agents import bootstrap as agent_bootstrap
+from hydrahive.agentlink import client as agentlink_client
 from hydrahive.api.middleware.users import ensure_admin
 from hydrahive.api.routes.system import set_start_time
 from hydrahive.api.version import update_check_loop
@@ -82,6 +83,34 @@ async def lifespan(app: FastAPI):
         container_reconciler.run_loop(container_reconciler_stop)
     )
 
+    # AgentLink-WS-Listener: persistent connection, subscribed auf agent:{my_id},
+    # routet handoff_received-Events via Future-Map an wartende ask_agent-Calls.
+    agentlink_stop = asyncio.Event()
+    agentlink_task: asyncio.Task | None = None
+    if settings.agentlink_url:
+        async def _on_event(event):
+            # handoff_received → schau ob jemand auf den Antwort-State wartet.
+            # AgentLink schickt state_id im Event; wir laden den State und prüfen
+            # ob die handoff.reason ein "reply_to:<id>" enthält.
+            if event.type != "handoff_received" or not event.state_id:
+                return
+            try:
+                state = await agentlink_client.get_state(event.state_id)
+            except Exception as e:
+                logger.warning("AgentLink: get_state(%s) fehlgeschlagen: %s", event.state_id, e)
+                return
+            if not state or not state.handoff:
+                return
+            reason = state.handoff.reason or ""
+            if reason.startswith("reply_to:"):
+                reply_to = reason.split(":", 1)[1].strip()
+                if agentlink_client.resolve_pending(reply_to, state):
+                    logger.info("AgentLink: Antwort-State auf %s eingetroffen", reply_to)
+
+        agentlink_task = asyncio.create_task(
+            agentlink_client.listen_loop(_on_event, agentlink_stop)
+        )
+
     wa_bridge: BridgeProcess | None = None
     wa_adapter: WhatsAppAdapter | None = None
     if settings.whatsapp_enabled:
@@ -109,6 +138,12 @@ async def lifespan(app: FastAPI):
     update_task.cancel()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
+    agentlink_stop.set()
+    if agentlink_task:
+        try:
+            await asyncio.wait_for(agentlink_task, timeout=5.0)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            agentlink_task.cancel()
     for task in (vm_reconciler_task, container_reconciler_task):
         try:
             await asyncio.wait_for(task, timeout=5.0)

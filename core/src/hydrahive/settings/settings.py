@@ -94,9 +94,33 @@ class Settings:
 
     @cached_property
     def agentlink_url(self) -> str:
-        """AgentLink-Service-URL. Leer ⇒ AgentLink nicht angebunden,
+        """AgentLink-REST-URL. Leer ⇒ AgentLink nicht angebunden,
         ask_agent-Tool wird nicht registriert."""
         return os.environ.get("HH_AGENTLINK_URL", "").strip()
+
+    @cached_property
+    def agentlink_ws_url(self) -> str:
+        """AgentLink-WebSocket-URL. Wenn leer aber agentlink_url gesetzt:
+        wird automatisch aus REST-URL abgeleitet (http→ws, https→wss + /ws)."""
+        explicit = os.environ.get("HH_AGENTLINK_WS_URL", "").strip()
+        if explicit:
+            return explicit
+        rest = self.agentlink_url
+        if not rest:
+            return ""
+        ws = rest.replace("http://", "ws://").replace("https://", "wss://")
+        return ws.rstrip("/") + "/ws"
+
+    @cached_property
+    def agentlink_agent_id(self) -> str:
+        """Eindeutige Agent-ID dieser HydraHive-Instanz im AgentLink-Netz.
+        Default: 'hydrahive'. Bei mehreren Instanzen pro User unterscheidbar setzen."""
+        return os.environ.get("HH_AGENTLINK_AGENT_ID", "hydrahive").strip()
+
+    @cached_property
+    def agentlink_handoff_timeout(self) -> int:
+        """Wie lange ein ask_agent-Aufruf max. auf eine Antwort wartet (Sekunden)."""
+        return int(os.environ.get("HH_AGENTLINK_HANDOFF_TIMEOUT", "600"))
 
     # ------------------------------------------------------------------ communication
 
