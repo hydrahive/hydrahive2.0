@@ -114,27 +114,62 @@ async def wa_incoming(
     media_type = payload.get("media_type")
     media_mime = payload.get("media_mime")
     media_data = payload.get("media_data")  # base64
+    media_error = payload.get("media_error")
 
     if not target_username or not external_user_id:
         raise HTTPException(status_code=400, detail="missing_fields")
-    if not text and media_type != "audio":
+    if not text and media_type not in ("audio", "audio_failed"):
         raise HTTPException(status_code=400, detail="missing_fields")
 
-    # Sprachnachricht → vor Filter zu Text transkribieren
-    if media_type == "audio" and media_data:
+    # Voice-Failure-Pfad: Bridge konnte nicht downloaden ODER STT crasht.
+    # Wir antworten direkt mit Text — Master-Agent NICHT belasten.
+    voice_error_msg: str | None = None
+    if media_type == "audio_failed":
+        voice_error_msg = (
+            "Deine Sprachnachricht konnte nicht heruntergeladen werden. "
+            "Bitte schick sie nochmal oder als Text. 🙏"
+        )
+        logger.warning("WA voice download failed user=%s: %s",
+                       target_username, media_error)
+    elif media_type == "audio" and media_data:
         try:
+            import asyncio as _asyncio
             import base64
             from hydrahive.voice.stt import transcribe_bytes
             audio_bytes = base64.b64decode(media_data)
             transcript = await transcribe_bytes(
                 audio_bytes, mime=media_mime or "audio/ogg",
             )
-            text = transcript or "[Sprachnachricht ohne erkennbaren Text]"
-            logger.info("WA voice transcribed user=%s len=%d → %r",
-                        target_username, len(audio_bytes), text[:80])
+            if not transcript:
+                voice_error_msg = (
+                    "Ich konnte in deiner Sprachnachricht nichts verstehen. "
+                    "Bitte nochmal aufnehmen oder als Text. 🙏"
+                )
+            else:
+                text = transcript
+                logger.info("WA voice transcribed user=%s len=%d → %r",
+                            target_username, len(audio_bytes), text[:80])
+        except (ConnectionRefusedError, OSError, _asyncio.TimeoutError) as e:
+            logger.warning("WA voice STT unreachable: %s", e)
+            voice_error_msg = (
+                "Der Sprache-zu-Text-Service ist gerade nicht erreichbar. "
+                "Bitte schick mir die Frage als Text."
+            )
         except Exception as e:
             logger.exception("WA voice STT fehlgeschlagen: %s", e)
-            text = "[Sprachnachricht — Transkription fehlgeschlagen]"
+            voice_error_msg = (
+                "Beim Transkribieren deiner Sprachnachricht ist ein Fehler "
+                "aufgetreten. Bitte nochmal versuchen oder als Text schicken."
+            )
+
+    if voice_error_msg:
+        ch = get("whatsapp")
+        if ch:
+            try:
+                await ch.send(target_username, external_user_id, voice_error_msg)
+            except Exception as e:
+                logger.warning("Voice-Error-Reply konnte nicht gesendet werden: %s", e)
+        return {"ok": True, "voice_error": True}
 
     cfg = wa_config.load(target_username)
     sender_for_filter = participant if (is_group and participant) else external_user_id

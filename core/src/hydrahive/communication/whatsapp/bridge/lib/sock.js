@@ -100,6 +100,7 @@ export async function connect(user) {
       let media_type = null;
       let media_mime = null;
       let media_data = null;
+      let media_error = null;
       if (audioMsg) {
         try {
           console.log(`[bridge] audio download start mime=${audioMsg.mimetype} bytes-expected=${audioMsg.fileLength || "?"}`);
@@ -110,7 +111,10 @@ export async function connect(user) {
           console.log(`[bridge] audio downloaded ${buf.length} bytes (${media_data.length} b64-chars)`);
         } catch (e) {
           console.error(`[bridge] audio download FAILED: ${e?.message || e}`);
-          continue;
+          // Bridge meldet das Failure ans Backend — User bekommt mindestens
+          // eine Fehlermeldung statt stiller Drop.
+          media_type = "audio_failed";
+          media_error = String(e?.message || e).slice(0, 200);
         }
       }
 
@@ -124,6 +128,7 @@ export async function connect(user) {
         media_type,
         media_mime,
         media_data,
+        media_error,
       });
     }
   });
