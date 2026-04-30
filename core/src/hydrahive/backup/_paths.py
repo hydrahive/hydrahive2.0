@@ -55,11 +55,13 @@ EXCLUDE_DIRS: tuple[str, ...] = (
 
 
 def is_excluded(path: Path) -> bool:
-    name = path.name
-    for pat in EXCLUDE_PATTERNS:
-        if pat in name:
-            return True
     parts = path.parts
+    # Pattern-Match auf JEDEM Path-Teil — fängt sowohl die Top-Level-Datei
+    # ".update_request" als auch eine Datei UNTER ".plugin-cache/" ab.
+    for part in parts:
+        for pat in EXCLUDE_PATTERNS:
+            if pat in part:
+                return True
     for d in EXCLUDE_DIRS:
         if d in parts:
             return True
