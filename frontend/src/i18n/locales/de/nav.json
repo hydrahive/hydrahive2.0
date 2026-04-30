@@ -11,6 +11,7 @@
     "communication": "Kommunikation",
     "vms": "VMs",
     "containers": "Container",
+    "butler": "Butler",
     "llm": "LLM",
     "mcp": "MCP",
     "system": "System",
