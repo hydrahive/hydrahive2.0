@@ -1,5 +1,5 @@
 import http from "node:http";
-import { connect, disconnect, send, getStatus } from "./lib/sock.js";
+import { connect, disconnect, send, sendAudio, getStatus } from "./lib/sock.js";
 
 const PORT = parseInt(process.env.HH_WA_BRIDGE_PORT || "8767", 10);
 const HOST = "127.0.0.1";
@@ -45,8 +45,15 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && mSend) {
       const body = await readBody(req);
-      if (!body.to || !body.text) return sendJson(res, 400, { error: "to+text erforderlich" });
-      await send(decodeURIComponent(mSend[1]), body.to, body.text);
+      if (!body.to) return sendJson(res, 400, { error: "to erforderlich" });
+      const user = decodeURIComponent(mSend[1]);
+      if (body.audio_base64) {
+        const buf = Buffer.from(body.audio_base64, "base64");
+        await sendAudio(user, body.to, buf);
+        return sendJson(res, 200, { ok: true, audio: true });
+      }
+      if (!body.text) return sendJson(res, 400, { error: "text oder audio_base64 erforderlich" });
+      await send(user, body.to, body.text);
       return sendJson(res, 200, { ok: true });
     }
     sendJson(res, 404, { error: "not_found" });

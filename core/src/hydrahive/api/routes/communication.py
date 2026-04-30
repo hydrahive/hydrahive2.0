@@ -108,11 +108,33 @@ async def wa_incoming(
 
     target_username = payload.get("target_username")
     external_user_id = payload.get("external_user_id")
-    text = payload.get("text", "")
+    text = payload.get("text", "") or ""
     is_group = bool(payload.get("is_group", False))
     participant = payload.get("participant")
-    if not target_username or not external_user_id or not text:
+    media_type = payload.get("media_type")
+    media_mime = payload.get("media_mime")
+    media_data = payload.get("media_data")  # base64
+
+    if not target_username or not external_user_id:
         raise HTTPException(status_code=400, detail="missing_fields")
+    if not text and media_type != "audio":
+        raise HTTPException(status_code=400, detail="missing_fields")
+
+    # Sprachnachricht → vor Filter zu Text transkribieren
+    if media_type == "audio" and media_data:
+        try:
+            import base64
+            from hydrahive.voice.stt import transcribe_bytes
+            audio_bytes = base64.b64decode(media_data)
+            transcript = await transcribe_bytes(
+                audio_bytes, mime=media_mime or "audio/ogg",
+            )
+            text = transcript or "[Sprachnachricht ohne erkennbaren Text]"
+            logger.info("WA voice transcribed user=%s len=%d → %r",
+                        target_username, len(audio_bytes), text[:80])
+        except Exception as e:
+            logger.exception("WA voice STT fehlgeschlagen: %s", e)
+            text = "[Sprachnachricht — Transkription fehlgeschlagen]"
 
     cfg = wa_config.load(target_username)
     sender_for_filter = participant if (is_group and participant) else external_user_id
@@ -145,7 +167,22 @@ async def wa_incoming(
         ch = get("whatsapp")
         if ch:
             try:
-                await ch.send(target_username, external_user_id, answer)
+                if cfg.respond_as_voice:
+                    import base64
+                    from hydrahive.voice.tts import synthesize_to_ogg
+                    audio = await synthesize_to_ogg(answer, voice=cfg.voice_name)
+                    await ch.send_audio(
+                        target_username, external_user_id,
+                        base64.b64encode(audio).decode(),
+                    )
+                else:
+                    await ch.send(target_username, external_user_id, answer)
             except Exception as e:
                 logger.exception("WhatsApp-Antwort konnte nicht gesendet werden: %s", e)
+                # Fallback: als Text senden falls Voice scheitert
+                if cfg.respond_as_voice:
+                    try:
+                        await ch.send(target_username, external_user_id, answer)
+                    except Exception:
+                        pass
     return {"ok": True}

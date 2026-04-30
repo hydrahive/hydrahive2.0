@@ -10,6 +10,8 @@ const EMPTY: WhatsAppConfig = {
   owner_numbers: [],
   allowed_numbers: [],
   blocked_numbers: [],
+  respond_as_voice: false,
+  voice_name: "German_FriendlyMan",
 }
 
 function toLines(arr: string[]): string {
@@ -110,6 +112,28 @@ export function WhatsAppFilterPanel() {
           hint={t("whatsapp.filter.allowed_hint")} />
         <NumberList label={t("whatsapp.filter.blocked")} value={blockedText} onChange={setBlockedText}
           hint={t("whatsapp.filter.blocked_hint")} />
+      </div>
+
+      <div className="border-t border-white/[6%] pt-3 space-y-2">
+        <label className="flex items-center gap-1.5 text-xs cursor-pointer text-zinc-300">
+          <input type="checkbox" checked={cfg.respond_as_voice}
+            onChange={(e) => setCfg({ ...cfg, respond_as_voice: e.target.checked })}
+            className="h-3 w-3 rounded" />
+          Antworten als Sprachnachricht senden
+        </label>
+        {cfg.respond_as_voice && (
+          <div>
+            <label className="text-[11px] text-zinc-500">Stimme (MiniMax)</label>
+            <input type="text" value={cfg.voice_name}
+              onChange={(e) => setCfg({ ...cfg, voice_name: e.target.value })}
+              placeholder="German_FriendlyMan"
+              className="mt-1 w-full rounded-lg bg-white/[3%] border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50" />
+            <p className="text-[10px] text-zinc-600 mt-1">
+              Voices anzeigen: Profil → TTS-Card. Beispiele: German_FriendlyMan,
+              German_PlayfulGirl, German_SweetLady.
+            </p>
+          </div>
+        )}
       </div>
 
       {err && (

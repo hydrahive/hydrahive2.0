@@ -24,6 +24,9 @@ class WhatsAppConfig:
     owner_numbers: list[str] = field(default_factory=list)
     allowed_numbers: list[str] = field(default_factory=list)
     blocked_numbers: list[str] = field(default_factory=list)
+    # Phase: Voice-Antwort
+    respond_as_voice: bool = False
+    voice_name: str = "German_FriendlyMan"
 
 
 def _config_dir() -> Path:
@@ -53,6 +56,8 @@ def load(username: str) -> WhatsAppConfig:
         owner_numbers=_normalize_numbers(data.get("owner_numbers", [])),
         allowed_numbers=_normalize_numbers(data.get("allowed_numbers", [])),
         blocked_numbers=_normalize_numbers(data.get("blocked_numbers", [])),
+        respond_as_voice=bool(data.get("respond_as_voice", False)),
+        voice_name=str(data.get("voice_name", "German_FriendlyMan") or "German_FriendlyMan"),
     )
 
 

@@ -1,6 +1,7 @@
 import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
+  downloadMediaMessage,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
 import { authStateFor, clearAuth } from "./auth.js";
@@ -81,8 +82,9 @@ export async function connect(user) {
       if (!rawJid || rawJid === "status@broadcast" || rawJid.endsWith("@broadcast")) continue;
       if (m.messageStubType) continue;
       const text = m.message?.conversation || m.message?.extendedTextMessage?.text || "";
-      if (!text) continue;
-      if (text.includes(LOOP_MARKER)) continue;
+      const audioMsg = m.message?.audioMessage;
+      if (!text && !audioMsg) continue;
+      if (text && text.includes(LOOP_MARKER)) continue;
       const isGroup = rawJid.endsWith("@g.us");
       const jid = !isGroup && rawJid.endsWith("@lid") && m.key.senderPn
         ? m.key.senderPn
@@ -92,13 +94,32 @@ export async function connect(user) {
             ? m.key.participantPn
             : (m.key.participant || null))
         : null;
+
+      let media_type = null;
+      let media_mime = null;
+      let media_data = null;
+      if (audioMsg) {
+        try {
+          const buf = await downloadMediaMessage(m, "buffer", {}, { logger });
+          media_type = "audio";
+          media_mime = audioMsg.mimetype || "audio/ogg; codecs=opus";
+          media_data = buf.toString("base64");
+        } catch (e) {
+          logger.warn({ err: e }, "Audio-Download fehlgeschlagen");
+          continue;
+        }
+      }
+
       await pushIncoming({
         target_username: user,
         external_user_id: jid,
         participant,
         is_group: isGroup,
         sender_name: m.pushName || null,
-        text,
+        text: text || "",
+        media_type,
+        media_mime,
+        media_data,
       });
     }
   });
@@ -120,4 +141,14 @@ export async function send(user, to, text) {
   const s = sockets.get(user);
   if (!s || !s.connected) throw new Error("nicht verbunden");
   await s.sock.sendMessage(to, { text: text + LOOP_MARKER });
+}
+
+export async function sendAudio(user, to, audioBuffer) {
+  const s = sockets.get(user);
+  if (!s || !s.connected) throw new Error("nicht verbunden");
+  await s.sock.sendMessage(to, {
+    audio: audioBuffer,
+    ptt: true,
+    mimetype: "audio/ogg; codecs=opus",
+  });
 }
