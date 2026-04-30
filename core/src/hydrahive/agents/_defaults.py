@@ -43,6 +43,10 @@ class _LazyDefaultTools(dict):
         return _filtered().values()
     def __iter__(self):
         return iter(_BASE_TOOLS.keys())
+    def __contains__(self, key):
+        return key in _BASE_TOOLS
+    def __len__(self):
+        return len(_BASE_TOOLS)
 
 
 DEFAULT_TOOLS = _LazyDefaultTools()
