@@ -18,6 +18,7 @@ import deProfile from "./locales/de/profile.json"
 import deErrors from "./locales/de/errors.json"
 import dePlugins from "./locales/de/plugins.json"
 import deCommunication from "./locales/de/communication.json"
+import deButler from "./locales/de/butler.json"
 
 import enCommon from "./locales/en/common.json"
 import enAuth from "./locales/en/auth.json"
@@ -35,6 +36,7 @@ import enProfile from "./locales/en/profile.json"
 import enErrors from "./locales/en/errors.json"
 import enPlugins from "./locales/en/plugins.json"
 import enCommunication from "./locales/en/communication.json"
+import enButler from "./locales/en/butler.json"
 
 export const resources = {
   de: {
@@ -42,14 +44,14 @@ export const resources = {
     agents: deAgents, projects: deProjects, llm: deLlm, mcp: deMcp,
     system: deSystem, dashboard: deDashboard, help: deHelp, users: deUsers,
     profile: deProfile, errors: deErrors, plugins: dePlugins,
-    communication: deCommunication,
+    communication: deCommunication, butler: deButler,
   },
   en: {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
     agents: enAgents, projects: enProjects, llm: enLlm, mcp: enMcp,
     system: enSystem, dashboard: enDashboard, help: enHelp, users: enUsers,
     profile: enProfile, errors: enErrors, plugins: enPlugins,
-    communication: enCommunication,
+    communication: enCommunication, butler: enButler,
   },
 } as const
 
@@ -65,7 +67,7 @@ i18n
     resources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
