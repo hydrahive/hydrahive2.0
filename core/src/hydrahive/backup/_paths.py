@@ -46,10 +46,21 @@ EXCLUDE_PATTERNS: tuple[str, ...] = (
     ".backup-rollback-",
 )
 
+# Verzeichnis-Namen die komplett ausgeklammert werden (vergleicht gegen Path-Parts).
+# - tls/: Private-Key ist nur für root lesbar; Cert ist Server-spezifisch (IP/Hostname),
+#   beim Migrate macht es mehr Sinn neu zu generieren als alten Cert mitzunehmen.
+EXCLUDE_DIRS: tuple[str, ...] = (
+    "tls",
+)
+
 
 def is_excluded(path: Path) -> bool:
     name = path.name
     for pat in EXCLUDE_PATTERNS:
         if pat in name:
+            return True
+    parts = path.parts
+    for d in EXCLUDE_DIRS:
+        if d in parts:
             return True
     return False
