@@ -2,6 +2,7 @@ import { Save, Trash2, Loader2, Crown, User, Wrench } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { agentsApi, mcpInfoApi, type McpServerBrief } from "./api"
+import { CompactionSection } from "./CompactionSection"
 import { McpSelector } from "./McpSelector"
 import { ToolsSelector } from "./ToolsSelector"
 import type { Agent, ToolMeta } from "./types"
@@ -164,6 +165,9 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={10}
             className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
         </Field>
+
+        <CompactionSection agent={draft} models={models}
+          onChange={(patch) => setDraft({ ...draft, ...patch })} />
       </div>
     </div>
   )

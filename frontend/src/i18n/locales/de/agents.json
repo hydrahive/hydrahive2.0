@@ -36,5 +36,17 @@
     "name_label": "Name",
     "name_placeholder": "z.B. Research-Bot",
     "defaults_hint": "Default-Tools für {{type}}: {{count}}"
+  },
+  "compaction": {
+    "section_title": "Compaction",
+    "section_hint": "Wann und wie der Verlauf zusammengefasst wird",
+    "model": "Compact-Modell",
+    "model_main": "Wie Hauptmodell ({{model}})",
+    "tool_result_limit": "Tool-Result-Limit (Zeichen)",
+    "aggressive": "aggressiv",
+    "default": "Standard",
+    "reserve_tokens": "Reserve-Tokens",
+    "threshold_pct": "Trigger bei {{pct}}% des Context-Windows",
+    "help": "Bei riesen Sessions hilft ein billigeres Compact-Modell (z.B. claude-haiku) und ein niedrigeres Tool-Result-Limit (500). Threshold < 100% triggert frühzeitig — schützt vor Context-Window-Crashes."
   }
 }

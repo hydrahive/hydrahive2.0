@@ -36,5 +36,17 @@
     "name_label": "Name",
     "name_placeholder": "e.g. Research-Bot",
     "defaults_hint": "Default tools for {{type}}: {{count}}"
+  },
+  "compaction": {
+    "section_title": "Compaction",
+    "section_hint": "When and how the conversation gets summarized",
+    "model": "Compact model",
+    "model_main": "Same as main model ({{model}})",
+    "tool_result_limit": "Tool result limit (chars)",
+    "aggressive": "aggressive",
+    "default": "default",
+    "reserve_tokens": "Reserve tokens",
+    "threshold_pct": "Trigger at {{pct}}% of context window",
+    "help": "For huge sessions a cheaper compact model (e.g. claude-haiku) and lower tool-result limit (500) helps. Threshold < 100% triggers early — protects against context-window crashes."
   }
 }

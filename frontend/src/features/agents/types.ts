@@ -17,6 +17,12 @@ export interface Agent {
   updated_at: string
   project_id?: string | null
   domain?: string | null
+  // Per-Agent Compaction-Settings (#82). Alle optional, Backend backfillt
+  // Defaults bei alten Agents.
+  compact_model?: string         // "" = main llm_model
+  compact_tool_result_limit?: number
+  compact_reserve_tokens?: number
+  compact_threshold_pct?: number
 }
 
 export interface ToolMeta {

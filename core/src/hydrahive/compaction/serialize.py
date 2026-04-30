@@ -6,28 +6,37 @@ from typing import Any
 from hydrahive.compaction.redact import redact
 from hydrahive.db.messages import Message
 
-_TOOL_RESULT_LIMIT = 2000
+DEFAULT_TOOL_RESULT_LIMIT = 2000
 
 
-def serialize_for_summary(messages: list[Message]) -> str:
+def serialize_for_summary(
+    messages: list[Message],
+    *,
+    tool_result_limit: int = DEFAULT_TOOL_RESULT_LIMIT,
+) -> str:
     """Convert messages to flat text format for the summarizer LLM.
 
     Plain text — NOT chat format — so the model treats it as input to summarize
     instead of trying to continue the conversation. Tool results are truncated
-    to 2000 chars to keep the request size bounded. Secrets get redacted.
+    to `tool_result_limit` chars to keep the request size bounded. Secrets get
+    redacted.
+
+    Per-Agent override (#82): bei riesen Sessions kann der Agent-Owner das
+    Limit auf 500 setzen, dann passt der Dump auch bei sehr aktiven Tool-Loops
+    noch ins Modell-Window.
     """
     lines: list[str] = []
     for m in messages:
-        lines.extend(_render_message(m))
+        lines.extend(_render_message(m, tool_result_limit))
     return redact("\n".join(lines))
 
 
-def _render_message(m: Message) -> list[str]:
+def _render_message(m: Message, tool_result_limit: int) -> list[str]:
     role = m.role
     content = m.content
 
     if role == "user":
-        return _render_user(content)
+        return _render_user(content, tool_result_limit)
     if role == "assistant":
         return _render_assistant(content)
     if role == "system":
@@ -37,7 +46,7 @@ def _render_message(m: Message) -> list[str]:
     return [f"[{role.title()}]: {_text_or_dump(content)}"]
 
 
-def _render_user(content: Any) -> list[str]:
+def _render_user(content: Any, tool_result_limit: int) -> list[str]:
     if isinstance(content, str):
         return [f"[User]: {content}"]
     if isinstance(content, list):
@@ -49,7 +58,7 @@ def _render_user(content: Any) -> list[str]:
                 continue
             btype = block.get("type")
             if btype == "tool_result":
-                txt = _truncate(_text_or_dump(block.get("content", "")), _TOOL_RESULT_LIMIT)
+                txt = _truncate(_text_or_dump(block.get("content", "")), tool_result_limit)
                 tag = block.get("tool_use_id", "")[-8:]
                 marker = " (error)" if block.get("is_error") else ""
                 out.append(f"[Tool result {tag}{marker}]: {txt}")

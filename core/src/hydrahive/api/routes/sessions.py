@@ -209,8 +209,14 @@ async def manual_compact(
     agent = agent_config.get(s.agent_id)
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    # Per-Agent Compact-Settings (#82) — Override-Modell und Tool-Result-Limit
+    compact_model = agent.get("compact_model") or agent["llm_model"]
+    compact_kwargs: dict = {"instructions": instructions}
+    tool_limit = agent.get("compact_tool_result_limit")
+    if tool_limit is not None:
+        compact_kwargs["tool_result_limit"] = tool_limit
     try:
-        return await compact_session(session_id, model=agent["llm_model"], instructions=instructions)
+        return await compact_session(session_id, model=compact_model, **compact_kwargs)
     except Exception as e:
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "validation_error", message=str(e))
 

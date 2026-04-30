@@ -42,8 +42,14 @@ async def compact_session(
     model: str,
     keep_recent_tokens: int = DEFAULT_KEEP_RECENT_TOKENS,
     instructions: str | None = None,
+    tool_result_limit: int | None = None,
 ) -> dict:
-    """Run one compaction pass. Returns metadata for logging/UI."""
+    """Run one compaction pass. Returns metadata for logging/UI.
+
+    `tool_result_limit` (#82): wenn gesetzt überschreibt es den serialize.py-
+    Default. Bei riesen Sessions hilfreich (z.B. 500 statt 2000) damit der
+    Dump ins Modell-Window passt.
+    """
     session = sessions_db.get(session_id)
     if not session:
         raise ValueError(f"Session '{session_id}' nicht gefunden")
@@ -94,17 +100,22 @@ async def compact_session(
     # Hooks: structured facts
     facts = await collect_facts(ctx)
 
+    # tool_result_limit-Param durchreichen — fallback auf serialize.py-Default
+    serialize_kwargs = {}
+    if tool_result_limit is not None:
+        serialize_kwargs["tool_result_limit"] = tool_result_limit
+
     # Hooks: custom summarizer
     summary_text: str | None = None
     for h in all_hooks():
         if h.custom_summarize:
-            summary_text = await h.custom_summarize(ctx, serialize_for_summary(to_summarize))
+            summary_text = await h.custom_summarize(ctx, serialize_for_summary(to_summarize, **serialize_kwargs))
             if summary_text:
                 break
 
     # Default summarizer
     if summary_text is None:
-        history_text = serialize_for_summary(to_summarize)
+        history_text = serialize_for_summary(to_summarize, **serialize_kwargs)
         if instructions:
             history_text = f"BENUTZER-FOKUS: {instructions}\n\n{history_text}"
         summary_text = await summarize(
