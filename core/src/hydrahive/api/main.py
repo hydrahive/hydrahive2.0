@@ -232,8 +232,17 @@ async def _update_check_loop() -> None:
             _GIT_COMMIT = await asyncio.to_thread(_detect_git_commit)
             _UPDATE_BEHIND = await asyncio.to_thread(_check_update_behind)
         except Exception as e:
-            logger.debug("Update-Check fehlgeschlagen: %s", e)
-        await asyncio.sleep(300)
+            logger.warning("Update-Check fehlgeschlagen: %s", e)
+        await asyncio.sleep(1800)  # 30 Min — Self-Update ist nicht zeitkritisch
+
+
+async def refresh_update_status() -> tuple[str | None, int | None]:
+    """On-Demand-Refresh — System-Page kann via /api/system/check-update
+    sofort einen frischen Stand holen ohne den 30-Min-Loop zu warten."""
+    global _UPDATE_BEHIND, _GIT_COMMIT
+    _GIT_COMMIT = await asyncio.to_thread(_detect_git_commit)
+    _UPDATE_BEHIND = await asyncio.to_thread(_check_update_behind)
+    return _GIT_COMMIT, _UPDATE_BEHIND
 
 
 @app.get("/api/health")
