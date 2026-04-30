@@ -142,6 +142,20 @@ class Settings:
     def vms_bridge(self) -> str:
         return os.environ.get("HH_VMS_BRIDGE", "br0")
 
+    # ------------------------------------------------------------------ logs
+
+    @cached_property
+    def log_dir(self) -> Path:
+        return Path(os.environ.get("HH_LOG_DIR", "/var/log"))
+
+    @cached_property
+    def update_log(self) -> Path:
+        return self.log_dir / "hydrahive2-update.log"
+
+    @cached_property
+    def voice_log(self) -> Path:
+        return self.log_dir / "hydrahive2-voice.log"
+
     # ------------------------------------------------------------------ butler
 
     @cached_property

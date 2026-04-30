@@ -37,11 +37,11 @@ def _installer_path(rel: str) -> Path:
 
 UPDATE_SCRIPT = _installer_path("installer/update.sh")
 UPDATE_TRIGGER = settings.data_dir / ".update_request"
-UPDATE_LOG = Path("/var/log/hydrahive2-update.log")
+UPDATE_LOG = settings.update_log
 RESTART_TRIGGER = settings.data_dir / ".restart_request"
 VOICE_SCRIPT = _installer_path("installer/modules/55-voice.sh")
 VOICE_TRIGGER = settings.data_dir / ".voice_install_request"
-VOICE_LOG = Path("/var/log/hydrahive2-voice.log")
+VOICE_LOG = settings.voice_log
 
 _start_time: float = 0.0
 
