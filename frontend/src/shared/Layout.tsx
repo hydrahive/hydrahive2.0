@@ -1,102 +1,27 @@
 import { useEffect, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { BookOpen, Bot, Box, Cpu, FolderKanban, HardDrive, LayoutDashboard, LogOut, MessageCircle, MessageSquare, Puzzle, Server, Settings, Users as UsersIcon, Workflow } from "lucide-react"
-import { cn } from "./cn"
+import { Grip } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
-import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 import { api } from "@/shared/api-client"
 import { UpdateModal, type UpdateState } from "@/shared/UpdateModal"
-
-interface NavItem {
-  path: string
-  icon: typeof Bot
-  labelKey: string
-  roles?: ("admin" | "user")[]
-}
-
-const NAV_GROUPS: { groupKey: string; items: NavItem[] }[] = [
-  {
-    groupKey: "main",
-    items: [
-      { path: "/", icon: LayoutDashboard, labelKey: "dashboard" },
-      { path: "/chat", icon: MessageSquare, labelKey: "chat" },
-      { path: "/agents", icon: Bot, labelKey: "agents" },
-      { path: "/projects", icon: FolderKanban, labelKey: "projects" },
-      { path: "/communication", icon: MessageCircle, labelKey: "communication" },
-      { path: "/vms", icon: HardDrive, labelKey: "vms" },
-      { path: "/containers", icon: Box, labelKey: "containers" },
-      { path: "/butler", icon: Workflow, labelKey: "butler" },
-    ],
-  },
-  {
-    groupKey: "config",
-    items: [
-      { path: "/llm", icon: Cpu, labelKey: "llm" },
-      { path: "/mcp", icon: Server, labelKey: "mcp" },
-      { path: "/users", icon: UsersIcon, labelKey: "users", roles: ["admin"] },
-      { path: "/plugins", icon: Puzzle, labelKey: "plugins", roles: ["admin"] },
-      { path: "/system", icon: Settings, labelKey: "system" },
-      { path: "/help", icon: BookOpen, labelKey: "help" },
-    ],
-  },
-]
-
-function isVisible(item: NavItem, role: string | null): boolean {
-  if (!item.roles) return true
-  return role !== null && item.roles.includes(role as "admin" | "user")
-}
-
-function useActive(path: string) {
-  const { pathname } = useLocation()
-  return path === "/" ? pathname === "/" : pathname.startsWith(path)
-}
-
-function SideNavItem({ path, icon: Icon, labelKey }: NavItem) {
-  const active = useActive(path)
-  const { t } = useTranslation("nav")
-  return (
-    <Link
-      to={path}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150",
-        active
-          ? "bg-gradient-to-r from-indigo-600/20 to-violet-600/10 text-white border-l-2 border-violet-500 pl-[10px] shadow-[0_0_14px_rgba(139,92,246,0.22)]"
-          : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border-l-2 border-transparent pl-[10px]"
-      )}
-    >
-      <Icon size={16} className={active ? "text-violet-400" : ""} />
-      <span>{t(`items.${labelKey}`)}</span>
-    </Link>
-  )
-}
-
-function BottomNavItem({ path, icon: Icon, labelKey }: NavItem) {
-  const active = useActive(path)
-  const { t } = useTranslation("nav")
-  return (
-    <Link
-      to={path}
-      className={cn(
-        "flex-1 flex flex-col items-center gap-1 py-2.5 text-xs transition-colors",
-        active ? "text-violet-400" : "text-zinc-500 hover:text-zinc-300"
-      )}
-    >
-      <Icon size={20} />
-      <span>{t(`items.${labelKey}`)}</span>
-    </Link>
-  )
-}
+import { AppFooter } from "./AppFooter"
+import { AvatarMenu } from "./AvatarMenu"
+import { BentoMenu } from "./BentoMenu"
+import { NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
 
 export function Layout() {
-  const { username, role, logout } = useAuthStore()
-  const { t } = useTranslation(["nav", "auth"])
+  const { role } = useAuthStore()
+  const { t } = useTranslation("nav")
+  const { pathname } = useLocation()
+
   const [version, setVersion] = useState<string | null>(null)
   const [commit, setCommit] = useState<string | null>(null)
   const [updateBehind, setUpdateBehind] = useState<number | null>(null)
   const [updateState, setUpdateState] = useState<"idle" | UpdateState>("idle")
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [newCommit, setNewCommit] = useState<string | null>(null)
+  const [bentoOpen, setBentoOpen] = useState(false)
 
   useEffect(() => {
     function loadHealth() {
@@ -109,170 +34,111 @@ export function Layout() {
     return () => clearInterval(t)
   }, [])
 
-  function openUpdateModal() {
-    setUpdateState("confirm")
-    setUpdateError(null)
-    setNewCommit(null)
-  }
-
-  function closeUpdateModal() {
-    setUpdateState("idle")
-  }
-
   async function confirmUpdate() {
-    setUpdateState("starting")
-    setUpdateError(null)
+    setUpdateState("starting"); setUpdateError(null)
     try {
       await api.post<{ started: boolean }>("/system/update", {})
     } catch (e) {
-      setUpdateState("failed")
-      setUpdateError(e instanceof Error ? e.message : "")
-      return
+      setUpdateState("failed"); setUpdateError(e instanceof Error ? e.message : ""); return
     }
     setUpdateState("running")
     const oldCommit = commit
     const startedAt = Date.now()
-    const maxWaitMs = 5 * 60 * 1000
-    while (Date.now() - startedAt < maxWaitMs) {
+    while (Date.now() - startedAt < 5 * 60 * 1000) {
       await new Promise((r) => setTimeout(r, 3000))
       try {
         const h = await api.get<{ commit: string | null; update_behind: number | null }>("/health")
         if (h.commit && h.commit !== oldCommit) {
-          setCommit(h.commit)
-          setUpdateBehind(h.update_behind)
-          setNewCommit(h.commit)
-          setUpdateState("done")
-          return
+          setCommit(h.commit); setUpdateBehind(h.update_behind)
+          setNewCommit(h.commit); setUpdateState("done"); return
         }
-      } catch { /* server still down, keep polling */ }
+      } catch { /* server still down */ }
     }
-    setUpdateState("failed")
-    setUpdateError("timeout")
+    setUpdateState("failed"); setUpdateError("timeout")
   }
 
+  const visible = visibleItems(role)
+  const quickLinks = QUICK_LINK_PATHS
+    .map((p) => visible.find((i) => i.path === p))
+    .filter(Boolean) as typeof NAV_ITEMS
+  const currentPage = visible.find((i) =>
+    i.path === "/" ? pathname === "/" : pathname.startsWith(i.path)
+  )
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#020617]">
+    <div className="flex flex-col h-screen overflow-hidden bg-[#020617]">
       {/* Ambient background glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-32 left-1/4 w-[500px] h-[500px] bg-violet-600/[13%] rounded-full blur-3xl" />
         <div className="absolute top-1/2 -right-20 w-96 h-96 bg-indigo-600/[10%] rounded-full blur-3xl" />
         <div className="absolute -bottom-20 left-1/3 w-80 h-80 bg-purple-700/[10%] rounded-full blur-3xl" />
-        <div className="absolute top-1/3 left-0 w-64 h-64 bg-violet-800/[7%] rounded-full blur-2xl" />
       </div>
 
-      {/* Sidebar — Desktop */}
-      <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-white/[6%] bg-zinc-950/80 relative z-10">
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-4 h-14 border-b border-white/[6%]">
-          <div className="relative">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 flex items-center justify-center text-sm shadow-lg shadow-violet-900/50">
-              🐝
-            </div>
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 blur-md opacity-50 -z-10 scale-110" />
+      {/* Top-Bar */}
+      <header className="relative z-30 flex items-center gap-2 px-3 sm:px-4 h-12 border-b border-white/[6%] bg-zinc-950/80 backdrop-blur">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 flex items-center justify-center text-xs shadow-md shadow-violet-900/40">
+            🐝
           </div>
-          <span className="font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-300 bg-clip-text text-transparent tracking-tight">
+          <span className="hidden sm:inline font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-300 bg-clip-text text-transparent tracking-tight">
             HydraHive
           </span>
-        </div>
+        </Link>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
-          {NAV_GROUPS.map((group) => {
-            const visible = group.items.filter((i) => isVisible(i, role))
-            if (visible.length === 0) return null
+        {currentPage && (
+          <span className="text-[11px] sm:text-sm text-zinc-400 ml-1 sm:ml-2 truncate">
+            <span className="text-zinc-600 mx-1">/</span>
+            {t(`items.${currentPage.labelKey}`)}
+          </span>
+        )}
+
+        <div className="flex-1" />
+
+        <nav className="hidden md:flex items-center gap-1">
+          {quickLinks.map(({ path, icon: Icon, labelKey }) => {
+            const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
             return (
-              <div key={group.groupKey}>
-                <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-                  {t(`groups.${group.groupKey}`)}
-                </p>
-                <div className="space-y-0.5">
-                  {visible.map((item) => (
-                    <SideNavItem key={item.path} {...item} />
-                  ))}
-                </div>
-              </div>
+              <Link
+                key={path}
+                to={path}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs ${
+                  active ? "bg-violet-500/15 text-violet-200" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+                }`}
+              >
+                <Icon size={13} /> {t(`items.${labelKey}`)}
+              </Link>
             )
           })}
         </nav>
 
-        {/* Sprach-Switcher */}
-        <div className="mx-2 mb-2">
-          <LanguageSwitcher />
-        </div>
+        <button
+          onClick={() => setBentoOpen((o) => !o)}
+          className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+          title="Apps"
+        >
+          <Grip size={16} />
+        </button>
 
-        {/* User Footer */}
-        <div className="mx-2 mb-3 rounded-xl bg-white/[3%] border border-white/[6%] p-1 flex items-center gap-1">
-          <Link
-            to="/profile"
-            className="flex-1 flex items-center gap-2.5 p-2 rounded-lg hover:bg-white/[4%] transition-colors min-w-0"
-          >
-            <div className="relative shrink-0">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-700 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-violet-900/30">
-                {username?.[0]?.toUpperCase() ?? "?"}
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-zinc-950 shadow-[0_0_7px_rgba(52,211,153,0.65)]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-zinc-200 truncate">{username}</p>
-              <p className="text-xs text-zinc-500">{role}</p>
-            </div>
-          </Link>
-          <button
-            onClick={logout}
-            className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/10 transition-colors flex-shrink-0"
-            title={t("auth:logout")}
-          >
-            <LogOut size={14} />
-          </button>
-        </div>
+        <AvatarMenu />
+      </header>
 
-        {version && (
-          <div className="px-4 pb-2 text-[10px] text-zinc-600 font-mono tabular-nums text-right flex items-center justify-end gap-1.5">
-            <span>v{version}{commit && <> · <span className="text-zinc-700">{commit}</span></>}</span>
-            {updateBehind !== null && updateBehind > 0 && (
-              role === "admin" ? (
-                <button
-                  type="button"
-                  onClick={openUpdateModal}
-                  title={t("nav:update.available")}
-                  className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 hover:border-amber-500/50 transition-colors cursor-pointer"
-                >
-                  ↑
-                </button>
-              ) : (
-                <span
-                  title={t("nav:update.available")}
-                  className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300"
-                >
-                  ↑
-                </span>
-              )
-            )}
-          </div>
-        )}
-      </aside>
+      <BentoMenu open={bentoOpen} onClose={() => setBentoOpen(false)} />
 
       {/* Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
-          <Outlet />
-        </main>
-      </div>
+      <main className="flex-1 overflow-y-auto relative z-10 p-4 md:p-6">
+        <Outlet />
+      </main>
 
-      {/* Bottom Nav — Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-zinc-950/95 backdrop-blur border-t border-white/[6%] flex">
-        {NAV_GROUPS.flatMap((g) => g.items).filter((i) => isVisible(i, role)).slice(0, 5).map((item) => (
-          <BottomNavItem key={item.path} {...item} />
-        ))}
-      </nav>
+      <AppFooter
+        version={version} commit={commit} updateBehind={updateBehind}
+        isAdmin={role === "admin"}
+        onUpdateClick={() => { setUpdateState("confirm"); setUpdateError(null); setNewCommit(null) }}
+      />
 
       {updateState !== "idle" && (
         <UpdateModal
-          state={updateState}
-          newCommit={newCommit}
-          errorMessage={updateError}
-          onConfirm={confirmUpdate}
-          onClose={closeUpdateModal}
+          state={updateState} newCommit={newCommit} errorMessage={updateError}
+          onConfirm={confirmUpdate} onClose={() => setUpdateState("idle")}
         />
       )}
     </div>
