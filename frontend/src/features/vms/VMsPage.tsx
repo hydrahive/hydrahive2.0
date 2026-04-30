@@ -5,6 +5,7 @@ import { vmsApi } from "./api"
 import { VMCard } from "./VMCard"
 import { CreateVMDialog } from "./CreateVMDialog"
 import { ISOLibraryPanel } from "./ISOLibraryPanel"
+import { VMConsoleModal } from "./VMConsoleModal"
 
 const POLL_MS = 4000
 
@@ -14,6 +15,7 @@ export function VMsPage() {
   const [error, setError] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [showISOs, setShowISOs] = useState(false)
+  const [consoleVm, setConsoleVm] = useState<VM | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -89,6 +91,7 @@ export function VMsPage() {
               onStop={async () => { await vmsApi.stop(vm.vm_id); await refresh() }}
               onPoweroff={async () => { await vmsApi.poweroff(vm.vm_id); await refresh() }}
               onDelete={async () => { await vmsApi.remove(vm.vm_id); await refresh() }}
+              onConsole={() => setConsoleVm(vm)}
             />
           ))}
         </div>
@@ -96,6 +99,7 @@ export function VMsPage() {
 
       {showCreate && <CreateVMDialog onClose={() => setShowCreate(false)} onCreated={refresh} />}
       {showISOs && <ISOLibraryPanel onClose={() => setShowISOs(false)} />}
+      {consoleVm && <VMConsoleModal vm={consoleVm} onClose={() => setConsoleVm(null)} />}
     </div>
   )
 }

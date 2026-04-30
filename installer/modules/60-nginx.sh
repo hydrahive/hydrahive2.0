@@ -75,7 +75,18 @@ server {
         proxy_buffering off;
         proxy_cache off;
         proxy_read_timeout 600s;
-        client_max_body_size 50M;
+        client_max_body_size 8G;  # ISO-Uploads können groß sein
+    }
+
+    # VNC WebSocket-Proxy (websockify auf 127.0.0.1:6080)
+    location /vnc-ws/ {
+        proxy_pass http://127.0.0.1:6080/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host \$host;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
     }
 }
 EOF

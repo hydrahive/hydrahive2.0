@@ -1,4 +1,4 @@
-import { Cpu, HardDrive, MemoryStick, Network, Play, Power, Square, Trash2 } from "lucide-react"
+import { Cpu, HardDrive, MemoryStick, Monitor, Network, Play, Power, Square, Trash2 } from "lucide-react"
 import { useState } from "react"
 import type { VM } from "./types"
 import { StatusBadge } from "./StatusBadge"
@@ -10,9 +10,10 @@ interface Props {
   onStop: () => Promise<void>
   onPoweroff: () => Promise<void>
   onDelete: () => Promise<void>
+  onConsole: () => void
 }
 
-export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete }: Props) {
+export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole }: Props) {
   const [busy, setBusy] = useState(false)
 
   async function withBusy(fn: () => Promise<void>) {
@@ -66,6 +67,13 @@ export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete }: Props) {
         )}
         {running && (
           <>
+            <button
+              onClick={onConsole}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/30 text-violet-200 transition-colors"
+              title="VNC-Konsole im Browser öffnen"
+            >
+              <Monitor size={12} /> Konsole
+            </button>
             <button
               disabled={busy || transitioning}
               onClick={() => withBusy(onStop)}

@@ -59,6 +59,7 @@
   "qcow2_exists": "qcow2 file already exists: {{path}}",
   "qcow2_missing": "qcow2 file missing: {{path}}",
   "vnc_ports_exhausted": "All VNC ports (5900–5999) in use",
+  "vm_not_running": "VM not running — console available only after start",
 
   "validation_error": "{{message}}"
 }
