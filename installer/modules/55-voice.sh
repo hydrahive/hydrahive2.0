@@ -47,23 +47,21 @@ services:
     volumes:
       - stt-data:/data
 
-  tts:
-    image: rhasspy/wyoming-piper
-    container_name: hydrahive2-tts
-    restart: unless-stopped
-    network_mode: host
-    command: >
-      --voice de_DE-thorsten-high
-      --uri tcp://127.0.0.1:10200
-    volumes:
-      - tts-data:/data
+# Piper-TTS-Container historisch hier — nicht mehr genutzt seit mmx-CLI als
+# einziger TTS-Provider live ist (siehe voice/tts.py). docker rm -f
+# hydrahive2-tts auf bestehenden Installs falls noch da.
 
 volumes:
   stt-data:
-  tts-data:
 COMPOSE
 
-log "Starte Wyoming STT + TTS Container"
+# Alten Piper-TTS-Container wegräumen falls noch da (Migration auf mmx-CLI)
+if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -q '^hydrahive2-tts$'; then
+  log "Entferne alten hydrahive2-tts (Piper) — TTS läuft jetzt via mmx-CLI"
+  docker rm -f hydrahive2-tts >/dev/null 2>&1 || true
+fi
+
+log "Starte Wyoming STT Container"
 cd "${VOICE_DIR}"
 docker compose pull -q 2>/dev/null || true
 docker compose up -d
@@ -77,4 +75,4 @@ for i in $(seq 1 40); do
   sleep 3
 done
 
-log "Voice Interface bereit (STT: Port 10300 | TTS: Port 10200)"
+log "Voice Interface bereit (STT: Port 10300, TTS via mmx-CLI)"
