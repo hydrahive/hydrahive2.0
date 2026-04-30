@@ -182,6 +182,8 @@ async def run(
                 "cache_creation_tokens": iter_cache_creation,
                 "cache_read_tokens": iter_cache_read,
                 "model": used_model,
+                "stop_reason": stop_reason,
+                "iteration": iteration + 1,
             },
         )
         last_assistant_id = assistant_msg.id
