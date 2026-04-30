@@ -28,8 +28,8 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/system", icon: Settings, labelKey: "system" },
 ]
 
-// Quick-Links direkt in der Top-Bar — die zwei wichtigsten Apps.
-export const QUICK_LINK_PATHS = ["/chat", "/agents"]
+// Quick-Links direkt in der Top-Bar — die wichtigsten Apps.
+export const QUICK_LINK_PATHS = ["/chat", "/agents", "/projects"]
 
 export function visibleItems(role: string | null): NavItem[] {
   return NAV_ITEMS.filter((i) =>
