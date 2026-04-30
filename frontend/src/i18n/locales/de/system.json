@@ -43,5 +43,20 @@
     "minutes": "{{m}}m {{s}}s",
     "hours": "{{h}}h {{m}}m",
     "days": "{{d}}d {{h}}h"
+  },
+  "backup": {
+    "title": "System-Backup",
+    "description": "Komplettes Backup von Datenbank, Configs und User-Workspaces. Für Catastrophe-Recovery und Server-Migration.",
+    "download": "Backup herunterladen",
+    "restore": "Backup wiederherstellen",
+    "restore_title": "System wiederherstellen?",
+    "restore_warning": "Datei: {{file}}. Aktueller Stand wird automatisch als Rollback gesichert. Service startet nach dem Restore neu.",
+    "uploading": "Lade Backup hoch und prüfe Integrität…",
+    "waiting_restart": "Restore eingespielt — warte auf Service-Neustart…",
+    "restore_done": "Restore abgeschlossen. Bitte neu einloggen.",
+    "restore_failed": "Restore fehlgeschlagen.",
+    "cancel": "Abbrechen",
+    "confirm_restore": "Wiederherstellen",
+    "close": "Schließen"
   }
 }

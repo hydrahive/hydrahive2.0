@@ -1,6 +1,19 @@
 {
   "_fallback": "An error occurred",
 
+  "backup_archive_missing": "Backup file not found",
+  "backup_manifest_missing": "Backup has no manifest",
+  "backup_manifest_unreadable": "Manifest unreadable",
+  "backup_manifest_invalid": "Manifest format invalid",
+  "backup_version_unsupported": "Backup version {{version}} not supported",
+  "backup_kind_mismatch": "Wrong backup kind: {{kind}}",
+  "backup_tar_corrupt": "Tar archive corrupted: {{error}}",
+  "backup_db_unreadable": "Database in backup unreadable",
+  "backup_db_corrupt": "Database in backup corrupted: {{detail}}",
+  "backup_filename_missing": "Filename missing",
+  "backup_create_failed": "Backup creation failed: {{error}}",
+  "backup_restore_failed": "Restore failed: {{error}}",
+
   "invalid_credentials": "Invalid credentials",
   "too_many_login_attempts": "Too many failed login attempts, please try again later.",
   "not_authenticated": "Not authenticated",

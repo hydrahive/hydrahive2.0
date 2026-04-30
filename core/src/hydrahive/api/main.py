@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from hydrahive.api.lifespan import lifespan
 from hydrahive.api.routes.agents import router as agents_router
 from hydrahive.api.routes.auth import router as auth_router
+from hydrahive.api.routes.backup import router as backup_router
 from hydrahive.api.routes.butler import router as butler_router
 from hydrahive.api.routes.communication import router as communication_router
 from hydrahive.api.routes.container_console import router as container_console_router
@@ -57,6 +58,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(backup_router)
 app.include_router(users_router)
 app.include_router(agents_router)
 app.include_router(communication_router)
