@@ -46,7 +46,16 @@ def evaluate(
     sender_jid: str,
     is_group: bool,
     text: str,
+    skip_keyword: bool = False,
 ) -> FilterResult:
+    """Pre-Filter: alle Checks ohne text. Post-Filter: zusätzlich keyword.
+
+    skip_keyword=True wird bei eingehenden Voice-Nachrichten genutzt um
+    den Sender zu prüfen BEVOR STT läuft (spart Ressourcen für
+    geblockte Sender, kein Info-Leak). Nach STT wird der Filter ein
+    zweites Mal mit dem Transkript gerufen — owner/block sind dann
+    schon ok, einzig der keyword-Check darf jetzt feuern.
+    """
     sender_digits = _digits_only(sender_jid)
 
     if cfg.owner_numbers and _matches_any(sender_digits, cfg.owner_numbers):
@@ -65,7 +74,7 @@ def evaluate(
     if cfg.allowed_numbers and not _matches_any(sender_digits, cfg.allowed_numbers):
         return FilterResult(accepted=False, reason="not_in_allowlist")
 
-    if cfg.require_keyword:
+    if not skip_keyword and cfg.require_keyword:
         if cfg.require_keyword.lower() not in text.lower():
             return FilterResult(accepted=False, reason="no_keyword")
 
