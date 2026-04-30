@@ -119,7 +119,7 @@ def health(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
 @router.get("/check-update", dependencies=[Depends(require_admin)])
 async def check_update() -> dict:
     """On-Demand-Refresh des Update-Status (statt 30min auf den Loop warten)."""
-    from hydrahive.api.main import refresh_update_status
+    from hydrahive.api.version import refresh_update_status
     commit, behind = await refresh_update_status()
     return {"commit": commit, "update_behind": behind}
 
