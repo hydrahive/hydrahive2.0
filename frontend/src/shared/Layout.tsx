@@ -94,7 +94,7 @@ export function Layout() {
 
         <div className="flex-1" />
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {quickLinks.map(({ path, icon: Icon, labelKey }) => {
             const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
             return (
