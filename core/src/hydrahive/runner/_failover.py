@@ -1,25 +1,28 @@
 """LLM-Failover-Erkennung — bei Quota/Overload/Auth-Fehlern Modell wechseln.
 
-Signal-Liste aus altem HydraHive (`orchestrator_llm.py`). Pragmatischer
-Substring-Match auf `str(exc).lower()` — Provider-Fehlertexte sind
-relativ stabil, exotische Edge-Cases nehmen wir in Kauf.
+Patterns mit Wort-Grenzen statt nackter Substring-Matches: '402' im
+Stack-Trace einer Zeile (z.B. `line 402, in foo`) oder 'credit' in
+'credentials' wäre sonst False-Positive.
 """
 from __future__ import annotations
 
-_FAILOVER_SIGNALS = [
-    "401", "authentication_error", "expired", "oauth token has expired",
-    "invalid api key", "invalid x-api-key", "unauthorized",
-    "402", "payment", "credit", "quota", "insufficient",
-    "429", "rate_limit", "rate limit",
-    "529", "overloaded", "capacity", "credit_balance",
-    "your credit balance is too low",
-    "exceeded your current quota",
-    "this request would exceed",
-    "billing",
+import re
+
+_FAILOVER_PATTERNS = [
+    re.compile(r"\b(?:401|402|429|529)\b"),
+    re.compile(r"\bauthentication[ _]error\b"),
+    re.compile(r"\binvalid (?:api )?(?:key|x-api-key)\b"),
+    re.compile(r"\b(?:unauthorized|expired)\b"),
+    # rate_limit_exceeded / rate-limited etc. ⇒ Suffix-Wort erlaubt, kein \b am Ende
+    re.compile(r"\brate.?limit"),
+    re.compile(r"\b(?:overloaded|quota|insufficient|capacity)\b"),
+    re.compile(r"\bcredit_balance\b"),  # NICHT "credit" — matcht "credentials"
+    re.compile(r"\b(?:billing|payment)\b"),
+    re.compile(r"\boauth token has expired\b"),
 ]
 
 
 def should_failover(exc: Exception) -> bool:
     """True wenn der Fehler einen Modellwechsel rechtfertigt."""
     err = str(exc).lower()
-    return any(s in err for s in _FAILOVER_SIGNALS)
+    return any(p.search(err) for p in _FAILOVER_PATTERNS)
