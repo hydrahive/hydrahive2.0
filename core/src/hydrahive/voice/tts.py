@@ -35,7 +35,7 @@ async def synthesize_to_ogg(text: str, voice: str = "German_FriendlyMan") -> byt
         proc = await asyncio.create_subprocess_exec(
             "mmx", "speech", "synthesize",
             "--text", text, "--voice", voice,
-            "--output", str(mp3), "--quiet",
+            "--out", str(mp3), "--quiet",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
