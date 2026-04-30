@@ -140,6 +140,16 @@ class Settings:
     def vms_bridge(self) -> str:
         return os.environ.get("HH_VMS_BRIDGE", "br0")
 
+    # ------------------------------------------------------------------ butler
+
+    @cached_property
+    def butler_dir(self) -> Path:
+        return self.config_dir / "butler"
+
+    @cached_property
+    def butler_secrets_file(self) -> Path:
+        return self.config_dir / "butler_hook_secrets.json"
+
     @cached_property
     def whatsapp_bridge_port(self) -> int:
         return int(os.environ.get("HH_WA_BRIDGE_PORT", "8767"))
