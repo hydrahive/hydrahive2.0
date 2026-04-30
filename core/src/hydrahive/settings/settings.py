@@ -122,6 +122,11 @@ class Settings:
         """Wie lange ein ask_agent-Aufruf max. auf eine Antwort wartet (Sekunden)."""
         return int(os.environ.get("HH_AGENTLINK_HANDOFF_TIMEOUT", "600"))
 
+    @cached_property
+    def agentlink_dashboard_url(self) -> str:
+        """URL des AgentLink-Frontends (separates statisches SPA, default 9001)."""
+        return os.environ.get("HH_AGENTLINK_DASHBOARD_URL", "").strip()
+
     # ------------------------------------------------------------------ communication
 
     @cached_property

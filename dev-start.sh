@@ -13,6 +13,11 @@ export HH_SECRET_KEY="${HH_SECRET_KEY:-devsecret123}"
 export HH_ENABLE_DOCS="${HH_ENABLE_DOCS:-1}"
 export HH_PORT="${HH_PORT:-8001}"
 export HH_INTERNAL_URL="${HH_INTERNAL_URL:-http://127.0.0.1:8001}"
+# AgentLink (siehe github.com/hydrahive/hydralink) — wenn lokal installiert
+# auf 9000, automatisch verbinden. Sonst auskommentieren.
+export HH_AGENTLINK_URL="${HH_AGENTLINK_URL:-http://127.0.0.1:9000}"
+export HH_AGENTLINK_AGENT_ID="${HH_AGENTLINK_AGENT_ID:-hydrahive-dev}"
+export HH_AGENTLINK_DASHBOARD_URL="${HH_AGENTLINK_DASHBOARD_URL:-http://127.0.0.1:9001}"
 
 mkdir -p "$HH_DATA_DIR" "$HH_CONFIG_DIR"
 
