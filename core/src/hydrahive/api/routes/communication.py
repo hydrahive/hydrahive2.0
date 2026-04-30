@@ -199,14 +199,27 @@ async def wa_incoming(
         )
         return {"ok": True, "filtered": decision.reason}
 
+    # Wenn Voice-Modus aktiv: Master bekommt einen System-Hinweis-Prefix damit
+    # er nicht selber `mmx speech synthesize` aufruft (würde sonst File-Metadata
+    # statt der Inhalt rauskommen). Backend macht TTS automatisch nach handle_incoming.
+    user_text = text
+    if cfg.respond_as_voice:
+        user_text = (
+            "[SYSTEM-HINWEIS: User hat WhatsApp-Voice-Antworten aktiviert. "
+            "Antworte als normaler Text — das Backend wandelt deine Antwort "
+            "automatisch in Sprache um. Erzeuge KEINE Audio-Dateien selbst, "
+            "rufe KEINE TTS-Tools auf, schreibe NICHT über Datei-Metadaten.]\n\n"
+            f"{text}"
+        )
+
     event = IncomingEvent(
         channel="whatsapp",
         external_user_id=external_user_id,
         target_username=target_username,
-        text=text,
+        text=user_text,
         sender_name=payload.get("sender_name"),
         metadata={"is_group": is_group, "is_owner": decision.is_owner,
-                  "participant": participant},
+                  "participant": participant, "voice_mode": cfg.respond_as_voice},
     )
     answer = await handle_incoming(event)
     logger.info(
