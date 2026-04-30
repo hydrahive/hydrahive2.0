@@ -66,6 +66,16 @@ if getent group incus-admin >/dev/null; then
   fi
 fi
 
+# incus liest $HOME/.config/incus/config.yml beim ersten Aufruf — wenn das
+# Verzeichnis nicht da oder nicht lesbar ist, schlägt jeder Befehl fehl.
+HH_HOME="/home/$HH_USER"
+if [ -d "$HH_HOME" ]; then
+  mkdir -p "$HH_HOME/.config/incus"
+  chown -R "$HH_USER:$HH_USER" "$HH_HOME/.config"
+  chmod 755 "$HH_HOME/.config"
+  chmod 700 "$HH_HOME/.config/incus"
+fi
+
 # Service-File patchen: SupplementaryGroups=incus-admin
 SERVICE_FILE=/etc/systemd/system/hydrahive2.service
 if [ -f "$SERVICE_FILE" ]; then

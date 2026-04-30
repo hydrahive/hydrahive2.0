@@ -179,10 +179,26 @@ if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
 fi
 
 if ! command -v incus >/dev/null 2>&1 \
-   || ! incus storage list 2>/dev/null | grep -q "default"; then
+   || ! incus storage list 2>/dev/null | grep -q "default" \
+   || [ ! -d "/home/$HH_USER/.config/incus" ]; then
   log "Container-Manager-Setup fehlt — starte 70-containers.sh"
   HH_USER="$HH_USER" \
     bash "$HH_REPO_DIR/installer/modules/70-containers.sh"
+fi
+
+# Service-File auf HOME-Env + ReadWritePaths-Erweiterung migrieren
+SERVICE_FILE=/etc/systemd/system/hydrahive2.service
+if [ -f "$SERVICE_FILE" ]; then
+  NEEDS_REWRITE=0
+  grep -q "^Environment=HOME=" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "ReadWritePaths=.*\.config" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  if [ "$NEEDS_REWRITE" = "1" ]; then
+    log "Service-File braucht Update (HOME-Env / .config-RW) — neu schreiben"
+    HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+      HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
+      HH_REPO_DIR="$HH_REPO_DIR" \
+      bash "$HH_REPO_DIR/installer/modules/50-systemd.sh"
+  fi
 fi
 
 log "nginx-Config prüfen"
