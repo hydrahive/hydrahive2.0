@@ -11,6 +11,8 @@ export const vmsApi = {
   stop: (id: string) => api.post<VM>(`/vms/${id}/stop`, {}),
   poweroff: (id: string) => api.post<VM>(`/vms/${id}/poweroff`, {}),
   vncInfo: (id: string) => api.get<{ token: string; ws_path: string }>(`/vms/${id}/vnc`),
+  stats: (id: string) => api.get<{ alive: boolean; cpu_pct: number; rss_mb: number; uptime_s: number }>(`/vms/${id}/stats`),
+  log: (id: string, tail = 200) => api.get<{ lines: string[]; exists: boolean }>(`/vms/${id}/log?tail=${tail}`),
   listSnapshots: (id: string) => api.get<Snapshot[]>(`/vms/${id}/snapshots`),
   createSnapshot: (id: string, name: string, description?: string) =>
     api.post<Snapshot>(`/vms/${id}/snapshots`, { name, description }),
