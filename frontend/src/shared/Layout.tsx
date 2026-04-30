@@ -8,7 +8,7 @@ import { UpdateModal, type UpdateState } from "@/shared/UpdateModal"
 import { AppFooter } from "./AppFooter"
 import { AvatarMenu } from "./AvatarMenu"
 import { BentoMenu } from "./BentoMenu"
-import { visibleItems } from "./nav-config"
+import { NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
 
 export function Layout() {
   const { role } = useAuthStore()
@@ -58,6 +58,9 @@ export function Layout() {
   }
 
   const visible = visibleItems(role)
+  const quickLinks = QUICK_LINK_PATHS
+    .map((p) => visible.find((i) => i.path === p))
+    .filter(Boolean) as typeof NAV_ITEMS
   const currentPage = visible.find((i) =>
     i.path === "/" ? pathname === "/" : pathname.startsWith(i.path)
   )
@@ -90,6 +93,23 @@ export function Layout() {
         )}
 
         <div className="flex-1" />
+
+        <nav className="hidden lg:flex items-center gap-1">
+          {quickLinks.map(({ path, icon: Icon, labelKey }) => {
+            const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
+            return (
+              <Link
+                key={path}
+                to={path}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs ${
+                  active ? "bg-violet-500/15 text-violet-200" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+                }`}
+              >
+                <Icon size={13} /> {t(`items.${labelKey}`)}
+              </Link>
+            )
+          })}
+        </nav>
 
         <button
           onClick={() => setBentoOpen((o) => !o)}
