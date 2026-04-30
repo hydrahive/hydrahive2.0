@@ -8,6 +8,10 @@ from typing import Any, Literal
 
 from hydrahive.agents import _prompt, _validation
 from hydrahive.agents._defaults import (
+    DEFAULT_COMPACT_MODEL,
+    DEFAULT_COMPACT_RESERVE_TOKENS,
+    DEFAULT_COMPACT_THRESHOLD_PCT,
+    DEFAULT_COMPACT_TOOL_RESULT_LIMIT,
     DEFAULT_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
     DEFAULT_THINKING_BUDGET,
@@ -105,6 +109,10 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("updated_at", cfg.get("created_at", ""))
     cfg.setdefault("created_by", cfg.get("owner"))
     cfg.setdefault("tools", [])
+    cfg.setdefault("compact_model", DEFAULT_COMPACT_MODEL)
+    cfg.setdefault("compact_tool_result_limit", DEFAULT_COMPACT_TOOL_RESULT_LIMIT)
+    cfg.setdefault("compact_reserve_tokens", DEFAULT_COMPACT_RESERVE_TOKENS)
+    cfg.setdefault("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT)
     return cfg
 
 
@@ -153,6 +161,14 @@ def update(agent_id: str, **changes: Any) -> dict:
         _validation.validate_max_tokens(changes["max_tokens"])
     if "status" in changes:
         _validation.validate_status(changes["status"])
+    if "compact_model" in changes:
+        _validation.validate_compact_model(changes["compact_model"])
+    if "compact_tool_result_limit" in changes:
+        _validation.validate_compact_tool_result_limit(changes["compact_tool_result_limit"])
+    if "compact_reserve_tokens" in changes:
+        _validation.validate_compact_reserve_tokens(changes["compact_reserve_tokens"])
+    if "compact_threshold_pct" in changes:
+        _validation.validate_compact_threshold_pct(changes["compact_threshold_pct"])
 
     cfg.update(changes)
     cfg["updated_at"] = now_iso()

@@ -80,3 +80,30 @@ def validate_max_tokens(max_tokens: int) -> None:
         raise AgentValidationError("max_tokens muss eine positive Ganzzahl sein")
     if max_tokens > 200_000:
         raise AgentValidationError("max_tokens > 200000 ist zu viel")
+
+
+def validate_compact_model(model: str) -> None:
+    """Compact-Modell darf leer sein (= nutze main llm_model). Wenn gesetzt
+    muss es ein bekanntes Modell sein."""
+    if not model:
+        return
+    validate_model(model)
+
+
+def validate_compact_tool_result_limit(limit: int) -> None:
+    if not isinstance(limit, int) or limit < 100:
+        raise AgentValidationError("compact_tool_result_limit muss ≥ 100 sein")
+    if limit > 50_000:
+        raise AgentValidationError("compact_tool_result_limit > 50000 ist zu viel")
+
+
+def validate_compact_reserve_tokens(reserve: int) -> None:
+    if not isinstance(reserve, int) or reserve < 1000:
+        raise AgentValidationError("compact_reserve_tokens muss ≥ 1000 sein")
+    if reserve > 100_000:
+        raise AgentValidationError("compact_reserve_tokens > 100000 ist zu viel")
+
+
+def validate_compact_threshold_pct(pct: int) -> None:
+    if not isinstance(pct, int) or pct < 30 or pct > 100:
+        raise AgentValidationError("compact_threshold_pct muss zwischen 30 und 100 liegen")

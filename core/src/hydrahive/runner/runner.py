@@ -93,14 +93,34 @@ async def run(
     total_cache_creation = 0
     total_cache_read = 0
 
+    # Per-Agent Compact-Konfiguration (#82) — alle Felder haben sinnvolle Defaults
+    # in agents/_normalize, sind also auch bei alten Agents gesetzt.
+    compact_model = agent.get("compact_model") or agent["llm_model"]
+    compact_tool_limit = agent.get("compact_tool_result_limit")
+    compact_reserve = agent.get("compact_reserve_tokens")
+    compact_threshold_pct = int(agent.get("compact_threshold_pct", 100))
+
     for iteration in range(MAX_ITERATIONS):
         yield IterationStart(iteration=iteration + 1)
 
         # Build LLM history (resolves through latest compaction)
         history = messages_db.list_for_llm(session_id)
-        if should_compact(history, agent["llm_model"]):
+        # Threshold-pct skaliert die Reserve nach oben — niedrigeres pct
+        # bedeutet "frühzeitig compactieren". Bei pct=100 entspricht das dem
+        # OpenClaw-Verhalten: triggern wenn used > window-reserve.
+        effective_reserve = compact_reserve
+        if effective_reserve is not None and compact_threshold_pct < 100:
+            from hydrahive.compaction.tokens import context_window_for as _cwf
+            window = _cwf(agent["llm_model"])
+            # equivalent: triggern bei used > window × pct/100
+            effective_reserve = max(effective_reserve, window - int(window * compact_threshold_pct / 100))
+        should_kwargs = {"reserve_tokens": effective_reserve} if effective_reserve is not None else {}
+        if should_compact(history, agent["llm_model"], **should_kwargs):
             try:
-                await compact_session(session_id, model=agent["llm_model"])
+                compact_kwargs = {}
+                if compact_tool_limit is not None:
+                    compact_kwargs["tool_result_limit"] = compact_tool_limit
+                await compact_session(session_id, model=compact_model, **compact_kwargs)
                 history = messages_db.list_for_llm(session_id)
             except Exception as e:
                 logger.warning("Compaction fehlgeschlagen: %s — fahre mit voller History fort", e)

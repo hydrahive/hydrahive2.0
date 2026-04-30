@@ -56,3 +56,18 @@ DEFAULT_TEMPERATURE = 0.7
 # Ein Tool-Use mit 5000-Zeichen-content braucht ~1500-2000 Tokens nur fürs Input-JSON.
 DEFAULT_MAX_TOKENS = 8192
 DEFAULT_THINKING_BUDGET = 0
+
+# --- Compaction-Defaults (per-Agent overridebar) ----------------------------
+# compact_model: "" = nutze llm_model des Agents, sonst Override (z.B. claude-haiku
+#   für günstigere Compaction)
+DEFAULT_COMPACT_MODEL = ""
+# Tool-Results in der serialisierten History werden auf dieses Limit gekürzt.
+# 2000 ist OpenClaw-Original. Bei riesen Sessions (Anthropic 400 \"input too long\")
+# kann der User auf 500 runtergehen.
+DEFAULT_COMPACT_TOOL_RESULT_LIMIT = 2000
+# Reserve-Tokens für die Summary-Antwort. Wenn used > (window - reserve) wird
+# auto-compactet.
+DEFAULT_COMPACT_RESERVE_TOKENS = 16_384
+# Wann triggert auto-compact als % vom (Context-Window − Reserve). 100 = bei
+# Limit-Erreichung. Niedriger = häufiger compactieren (defensiver).
+DEFAULT_COMPACT_THRESHOLD_PCT = 100
