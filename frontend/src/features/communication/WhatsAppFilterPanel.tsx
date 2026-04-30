@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2, Save, Shield, Check } from "lucide-react"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { communicationApi, type WhatsAppConfig } from "./api"
+
+interface MmxVoice {
+  voice_id: string
+  voice_name: string
+}
 
 const EMPTY: WhatsAppConfig = {
   private_chats_enabled: true,
@@ -34,6 +40,8 @@ export function WhatsAppFilterPanel() {
   const [ownerText, setOwnerText] = useState("")
   const [allowedText, setAllowedText] = useState("")
   const [blockedText, setBlockedText] = useState("")
+  const [voices, setVoices] = useState<MmxVoice[]>([])
+  const [voicesErr, setVoicesErr] = useState<string | null>(null)
 
   useEffect(() => {
     communicationApi.whatsapp.getConfig()
@@ -46,6 +54,19 @@ export function WhatsAppFilterPanel() {
       })
       .catch((e) => setErr(e instanceof Error ? e.message : String(e)))
   }, [])
+
+  // Voices laden wenn Voice-Antwort aktiv ist (sonst sparen wir mmx-Call)
+  useEffect(() => {
+    if (!cfg.respond_as_voice) return
+    if (voices.length > 0) return
+    const token = useAuthStore.getState().token ?? ""
+    fetch("/api/tts/voices?language=german", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
+      .then((d: { voices: MmxVoice[] }) => setVoices(d.voices ?? []))
+      .catch((e) => setVoicesErr(e instanceof Error ? e.message : String(e)))
+  }, [cfg.respond_as_voice, voices.length])
 
   async function save() {
     setSaving(true); setErr(null)
@@ -142,14 +163,28 @@ export function WhatsAppFilterPanel() {
         {cfg.respond_as_voice && (
           <div>
             <label className="text-[11px] text-zinc-500">Stimme (MiniMax)</label>
-            <input type="text" value={cfg.voice_name}
+            <select value={cfg.voice_name}
               onChange={(e) => setCfg({ ...cfg, voice_name: e.target.value })}
-              placeholder="German_FriendlyMan"
-              className="mt-1 w-full rounded-lg bg-white/[3%] border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50" />
-            <p className="text-[10px] text-zinc-600 mt-1">
-              Voices anzeigen: Profil → TTS-Card. Beispiele: German_FriendlyMan,
-              German_PlayfulGirl, German_SweetLady.
-            </p>
+              className="mt-1 w-full rounded-lg bg-white/[3%] border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50">
+              {/* Aktuell gespeicherte Stimme als Fallback-Option falls
+                  voices-Liste noch lädt oder mmx nicht erreichbar */}
+              {!voices.find((v) => v.voice_id === cfg.voice_name) && (
+                <option value={cfg.voice_name}>{cfg.voice_name}</option>
+              )}
+              {voices.map((v) => (
+                <option key={v.voice_id} value={v.voice_id}>
+                  {v.voice_name || v.voice_id}
+                </option>
+              ))}
+            </select>
+            {voicesErr && (
+              <p className="text-[10px] text-rose-400 mt-1">
+                Voices-Liste nicht ladbar: {voicesErr}
+              </p>
+            )}
+            {!voicesErr && voices.length === 0 && (
+              <p className="text-[10px] text-zinc-600 mt-1">Lade Stimmen…</p>
+            )}
           </div>
         )}
       </div>

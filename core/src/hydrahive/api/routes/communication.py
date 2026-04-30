@@ -105,6 +105,10 @@ async def wa_put_config(payload: dict, auth=Depends(require_auth)) -> dict:
         owner_numbers=list(payload.get("owner_numbers", []) or []),
         allowed_numbers=list(payload.get("allowed_numbers", []) or []),
         blocked_numbers=list(payload.get("blocked_numbers", []) or []),
+        respond_as_voice=bool(payload.get("respond_as_voice", False)),
+        voice_name=str(payload.get("voice_name", "German_FriendlyMan")
+                       or "German_FriendlyMan"),
+        stt_language=str(payload.get("stt_language", "") or "").strip().lower(),
     )
     saved = wa_config.save(username, cfg)
     return _config_dict(saved)
@@ -118,6 +122,9 @@ def _config_dict(cfg: wa_config.WhatsAppConfig) -> dict:
         "owner_numbers": cfg.owner_numbers,
         "allowed_numbers": cfg.allowed_numbers,
         "blocked_numbers": cfg.blocked_numbers,
+        "respond_as_voice": cfg.respond_as_voice,
+        "voice_name": cfg.voice_name,
+        "stt_language": cfg.stt_language,
     }
 
 
