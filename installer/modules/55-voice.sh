@@ -39,9 +39,10 @@ services:
     container_name: hydrahive2-stt
     restart: unless-stopped
     network_mode: host
+    # Kein --language: per-Request via Wyoming-Protokoll, oder Auto-Detect
+    # wenn der Caller nichts setzt. Sprache ist pro WhatsApp-User konfigurierbar.
     command: >
       --model small
-      --language de
       --uri tcp://127.0.0.1:10300
     volumes:
       - stt-data:/data

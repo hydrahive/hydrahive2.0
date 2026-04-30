@@ -151,8 +151,10 @@ async def wa_incoming(
         try:
             from hydrahive.voice.stt import transcribe_bytes
             audio_bytes = base64.b64decode(media_data)
+            stt_lang = cfg.stt_language if cfg.stt_language and cfg.stt_language != "auto" else None
             transcript = await transcribe_bytes(
                 audio_bytes, mime=media_mime or "audio/ogg",
+                language=stt_lang,
             )
             if not transcript:
                 voice_error_msg = (
