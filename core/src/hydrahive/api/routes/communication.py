@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -19,6 +20,30 @@ from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/communication", tags=["communication"])
+
+
+# Belt-and-Braces für Voice-Mode: wenn der Master den System-Hint ignoriert
+# und doch Datei-Metadaten zurückliefert, wollen wir das nicht TTSen.
+_METADATA_HINTS = re.compile(
+    r"(\.mp3|\.wav|\.ogg|\.m4a|"           # Audio-File-Extensions
+    r"\bdauer\b|\bduration\b|"             # Dauer-Wörter
+    r"\bgr(ö|oe)ße\b|\bsize\b|"            # Größe
+    r"\bgespeichert\b|\bstored at\b|"      # Speicherort
+    r"\b\d+(?:\.\d+)?\s*(?:kb|mb|gb)\b|"   # Größen-Einheiten
+    r"\b\d+(?:[.,]\d+)?\s*(?:sec|sek|min|hour|stund|second|minut)\w*\b)",  # Zeit-Einheiten
+    re.IGNORECASE,
+)
+
+
+def _looks_like_metadata(answer: str) -> bool:
+    """Heuristik: enthält die Antwort Datei-Metadaten-Strings? Mehrere Treffer
+    deuten darauf hin dass der Master 'Datei erstellt: X kb, Y sec' erzählt
+    statt den eigentlichen Inhalt geliefert hat. False positives möglich,
+    aber bei aktivem Voice-Mode ist die Toleranz niedrig."""
+    if not answer:
+        return False
+    hits = len(_METADATA_HINTS.findall(answer))
+    return hits >= 2
 
 
 def _status_dict(s: ChannelStatus) -> dict:
@@ -199,24 +224,11 @@ async def wa_incoming(
         )
         return {"ok": True, "filtered": decision.reason}
 
-    # Wenn Voice-Modus aktiv: Master bekommt einen System-Hinweis-Prefix damit
-    # er nicht selber `mmx speech synthesize` aufruft (würde sonst File-Metadata
-    # statt der Inhalt rauskommen). Backend macht TTS automatisch nach handle_incoming.
-    user_text = text
-    if cfg.respond_as_voice:
-        user_text = (
-            "[SYSTEM-HINWEIS: User hat WhatsApp-Voice-Antworten aktiviert. "
-            "Antworte als normaler Text — das Backend wandelt deine Antwort "
-            "automatisch in Sprache um. Erzeuge KEINE Audio-Dateien selbst, "
-            "rufe KEINE TTS-Tools auf, schreibe NICHT über Datei-Metadaten.]\n\n"
-            f"{text}"
-        )
-
     event = IncomingEvent(
         channel="whatsapp",
         external_user_id=external_user_id,
         target_username=target_username,
-        text=user_text,
+        text=text,
         sender_name=payload.get("sender_name"),
         metadata={"is_group": is_group, "is_owner": decision.is_owner,
                   "participant": participant, "voice_mode": cfg.respond_as_voice},
@@ -230,6 +242,21 @@ async def wa_incoming(
     if answer:
         ch = get("whatsapp")
         if ch:
+            # Sanity-Check: bei aktivem Voice-Mode prüfen ob die Antwort wie
+            # Datei-Metadaten aussieht (Master hat den Hint ignoriert und
+            # eigenmächtig mmx-Output zurückgegeben). In dem Fall nicht
+            # TTSen — sonst hört der User '425 kb mp3 Dauer 12 Sekunden'.
+            if cfg.respond_as_voice and _looks_like_metadata(answer):
+                logger.warning(
+                    "WA voice-mode: Antwort sieht wie Datei-Metadaten aus, "
+                    "fallback auf Text. Antwort: %r", answer[:200],
+                )
+                try:
+                    await ch.send(target_username, external_user_id, answer)
+                except Exception as e:
+                    logger.warning("Voice-Fallback-Text-Send fehlgeschlagen: %s", e)
+                return {"ok": True, "voice_metadata_fallback": True}
+
             try:
                 if cfg.respond_as_voice:
                     from hydrahive.voice.tts import synthesize_to_ogg
