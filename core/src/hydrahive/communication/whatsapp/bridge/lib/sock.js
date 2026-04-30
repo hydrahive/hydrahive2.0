@@ -83,6 +83,8 @@ export async function connect(user) {
       if (m.messageStubType) continue;
       const text = m.message?.conversation || m.message?.extendedTextMessage?.text || "";
       const audioMsg = m.message?.audioMessage;
+      const msgKeys = Object.keys(m.message || {}).join(",");
+      console.log(`[bridge] msg user=${user} from=${rawJid} keys=${msgKeys} text-len=${text.length} audio=${!!audioMsg}`);
       if (!text && !audioMsg) continue;
       if (text && text.includes(LOOP_MARKER)) continue;
       const isGroup = rawJid.endsWith("@g.us");
@@ -100,12 +102,14 @@ export async function connect(user) {
       let media_data = null;
       if (audioMsg) {
         try {
+          console.log(`[bridge] audio download start mime=${audioMsg.mimetype} bytes-expected=${audioMsg.fileLength || "?"}`);
           const buf = await downloadMediaMessage(m, "buffer", {}, { logger });
           media_type = "audio";
           media_mime = audioMsg.mimetype || "audio/ogg; codecs=opus";
           media_data = buf.toString("base64");
+          console.log(`[bridge] audio downloaded ${buf.length} bytes (${media_data.length} b64-chars)`);
         } catch (e) {
-          logger.warn({ err: e }, "Audio-Download fehlgeschlagen");
+          console.error(`[bridge] audio download FAILED: ${e?.message || e}`);
           continue;
         }
       }
