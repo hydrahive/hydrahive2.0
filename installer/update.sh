@@ -209,6 +209,7 @@ if [ -f "$NGINX_CONF" ]; then
   grep -q "ssl_certificate"      "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "/vnc-ws/"             "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "client_max_body_size 8G" "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "connection_upgrade"   "$NGINX_CONF" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "nginx: Config braucht Update (HTTPS / VNC-Proxy / ISO-Upload-Limit) — neu schreiben"
     HH_HOST="${HH_HOST:-127.0.0.1}"
