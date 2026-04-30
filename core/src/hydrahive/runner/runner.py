@@ -120,6 +120,9 @@ async def run(
         stop_reason = ""
         iter_input_tokens = 0
         iter_output_tokens = 0
+        iter_cache_creation = 0
+        iter_cache_read = 0
+        used_model = agent["llm_model"]
         try:
             models = [agent["llm_model"]] + list(agent.get("fallback_models", []) or [])
             async for item in call_with_stream_or_fallback(
@@ -135,6 +138,9 @@ async def run(
                     stop_reason = item.stop_reason
                     iter_input_tokens = item.input_tokens
                     iter_output_tokens = item.output_tokens
+                    iter_cache_creation = item.cache_creation_tokens
+                    iter_cache_read = item.cache_read_tokens
+                    used_model = item.model or agent["llm_model"]
                     total_cache_creation += item.cache_creation_tokens
                     total_cache_read += item.cache_read_tokens
                 else:
@@ -150,7 +156,13 @@ async def run(
         assistant_msg = messages_db.append(
             session_id, "assistant", blocks,
             token_count=iter_output_tokens or None,
-            metadata={"input_tokens": iter_input_tokens, "output_tokens": iter_output_tokens},
+            metadata={
+                "input_tokens": iter_input_tokens,
+                "output_tokens": iter_output_tokens,
+                "cache_creation_tokens": iter_cache_creation,
+                "cache_read_tokens": iter_cache_read,
+                "model": used_model,
+            },
         )
         last_assistant_id = assistant_msg.id
         history.append(assistant_msg)

@@ -70,5 +70,16 @@
     "files_read": "Files read",
     "files_modified": "Files modified",
     "summary": "Summary"
+  },
+  "bubble_footer": {
+    "tokens": "{{in}} ↑ · {{out}} ↓",
+    "cache": "cache {{read}}r / {{create}}c"
+  },
+  "tool_result": {
+    "collapsed": "Output ({{chars}} chars, {{lines}} lines) — show"
+  },
+  "voice": {
+    "speak": "Read aloud",
+    "stop": "Stop"
   }
 }
