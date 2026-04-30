@@ -16,6 +16,7 @@ dependencies = [
     "mcp>=1.0",
     "httpx>=0.27",
     "python-multipart>=0.0.9",
+    "websockets>=13",
 ]
 
 [project.scripts]

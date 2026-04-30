@@ -44,6 +44,18 @@
     "hours": "{{h}}h {{m}}m",
     "days": "{{d}}d {{h}}h"
   },
+  "agentlink": {
+    "title": "AgentLink",
+    "not_configured": "AgentLink nicht konfiguriert",
+    "not_configured_hint": "HH_AGENTLINK_URL setzen damit ask_agent zwischen Agenten vermitteln kann.",
+    "connected": "verbunden",
+    "disconnected": "getrennt",
+    "url": "REST",
+    "ws": "WebSocket",
+    "agent_id": "Agent-ID",
+    "timeout": "Handoff-Timeout",
+    "known_agents": "Bekannte Agents ({{count}})"
+  },
   "backup": {
     "title": "System-Backup",
     "description": "Komplettes Backup von Datenbank, Configs und User-Workspaces. Für Catastrophe-Recovery und Server-Migration.",
