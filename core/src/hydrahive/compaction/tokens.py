@@ -9,9 +9,23 @@ from typing import Any
 # blowing through the context window.
 _CHARS_PER_TOKEN = 3.5
 
+# Bei serialisierten History-Dumps (viel JSON, tool_use mit dichten Argumenten,
+# strukturierter Text) ist 1 Token oft nur 1-1.5 Zeichen. Anthropic-Tokenizer
+# rechnet bei einem 2.1MB-Dump 1.83M Tokens (≈ 1.15 chars/token). Wir nutzen
+# 1.2 als sehr konservatives Estimate für Compaction-Decisions damit Chunking
+# zuverlässig greift bevor das Modell 400 wirft.
+_CHARS_PER_TOKEN_DENSE = 1.2
+
 
 def estimate_text(text: str) -> int:
     return max(1, int(len(text) / _CHARS_PER_TOKEN))
+
+
+def estimate_dense_text(text: str) -> int:
+    """Konservatives Estimate für serialisierte/strukturierte Dumps. Liefert
+    deutlich höhere Token-Counts als estimate_text — geeignet für Pre-Flight-
+    Checks die das echte Modell-Limit nicht überschreiten dürfen."""
+    return max(1, int(len(text) / _CHARS_PER_TOKEN_DENSE))
 
 
 def estimate_message_content(content: Any) -> int:
@@ -44,6 +58,9 @@ def estimate_message(message: Any) -> int:
 def context_window_for(model: str) -> int:
     """Approximate context window in tokens for known models."""
     m = model.lower()
+    # Spezielle Versionen mit größerem Window — vor den generischen Patterns prüfen
+    if "claude-opus-4-7" in m:
+        return 1_000_000  # Opus 4-7 hat 1M Window (verifiziert via Fehlermeldung)
     if "claude-sonnet-4" in m or "claude-opus-4" in m:
         return 200_000
     if "claude-haiku-4" in m:
@@ -55,7 +72,7 @@ def context_window_for(model: str) -> int:
     if "gemini" in m:
         return 1_000_000
     if "minimax" in m:
-        return 256_000  # M2 / M2.7 / abab6.5: 245-256k Context
+        return 256_000
     if "deepseek" in m:
         return 128_000
     if "llama" in m or "mistral" in m or "mixtral" in m:
