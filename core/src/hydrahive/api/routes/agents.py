@@ -68,7 +68,9 @@ def list_available_tools(_: Annotated[tuple[str, str], Depends(require_auth)]) -
 
 @router.get("/_meta/defaults")
 def list_defaults(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    return {"tools_per_type": DEFAULT_TOOLS, "types": list(DEFAULT_TOOLS.keys())}
+    # dict(DEFAULT_TOOLS) entpackt den LazyDefaultTools-Wrapper für die
+    # JSON-Serialisierung (siehe agents/_defaults.py).
+    return {"tools_per_type": dict(DEFAULT_TOOLS), "types": list(DEFAULT_TOOLS.keys())}
 
 
 @router.get("")

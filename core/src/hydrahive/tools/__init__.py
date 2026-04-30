@@ -26,12 +26,15 @@ from hydrahive.tools import (
     web_search,
     write_memory,
 )
+from hydrahive.settings import settings
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
-REGISTRY: dict[str, Tool] = {
-    t.name: t
-    for t in [
+def _build_registry() -> dict[str, Tool]:
+    """Liste der aktiven Tools. ask_agent nur wenn AgentLink konfiguriert ist —
+    sonst sieht der Master ein Tool das immer mit einem Stub-Fehler antwortet,
+    was Loop-Detection triggern und Iterationen verschwenden kann (#13)."""
+    tools: list[Tool] = [
         shell.TOOL,
         file_read.TOOL,
         file_write.TOOL,
@@ -44,10 +47,14 @@ REGISTRY: dict[str, Tool] = {
         write_memory.TOOL,
         search_memory.TOOL,
         todo.TOOL,
-        ask_agent.TOOL,
         send_mail.TOOL,
     ]
-}
+    if settings.agentlink_url:
+        tools.append(ask_agent.TOOL)
+    return {t.name: t for t in tools}
+
+
+REGISTRY: dict[str, Tool] = _build_registry()
 
 
 def list_tools() -> list[Tool]:
