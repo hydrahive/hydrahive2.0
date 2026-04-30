@@ -221,8 +221,45 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Spezialisten** — anlegen, Domäne, Skills zuweisen
 - **LLM** — Provider, API-Keys, Modelle
 - **MCP** — Server verwalten, pro Agent zuweisen
-- **System** — Logs, Health, Services
-- **Backup/Restore**
+- **System** — Logs, Health, Services, System-Backup/Restore (Admin)
+- **Profil** — eigene Daten exportieren/importieren
+
+---
+
+## Backup / Restore
+
+Zwei getrennte Mechanismen für unterschiedliche Use-Cases.
+
+### System-Backup (Admin, Catastrophe-Recovery)
+
+- **Endpoint**: `POST /api/admin/backup` (Admin) → Stream-Download eines `.tar.gz`
+- **Restore**: `POST /api/admin/restore` (Admin) → Multipart-Upload + Service-Restart
+- **Inhalt**: SQLite-DB (`sessions.db`), `$HH_CONFIG_DIR` (TLS, llm.json, butler/, whatsapp/, mcp/, plugins/), Workspace-Verzeichnisse aller User
+- **Format**: `.tar.gz`, unverschlüsselt (Operator legt Backup-Datei selbst sicher ab)
+- **UI**: Card auf System-Page (Admin) — Download-Button + Upload-Restore-Button mit Bestätigungs-Dialog
+- **Use-Case**: Server-Migration, Disaster-Recovery, vor riskanten Updates
+
+### User-Backup (Self-Service, DSGVO Art. 20 — Datenportabilität)
+
+- **Endpoint**: `POST /api/me/backup` (User) → Stream-Download eines `.tar.gz`
+- **Restore**: `POST /api/me/restore` (User) → Multipart-Upload, kein Service-Restart
+- **Inhalt** (restlos, alle eigenen Daten):
+  - eigene Agents (Config + system_prompt.md + Memory + Workspace-Files)
+  - eigene Projekte (Config + Members-Liste + Project-Agent + Workspace-Files inkl. .git/ wenn vorhanden)
+  - eigene Sessions inkl. aller Messages, Tool-Calls, Compactions (kein Toggle — DSGVO verlangt restlos)
+  - eigene WhatsApp-Filter-Config (`whatsapp/<username>.json`) + WhatsApp-Auth (`whatsapp/<user>/auth/`) wenn vorhanden
+  - eigene Butler-Flows
+  - eigene MCP-Server-Configs
+- **Format**: `.tar.gz`, unverschlüsselt
+- **UI**: Card auf Profile-Page (Self-Service) — Download-Button + Upload-Restore-Button
+- **Use-Case**: User wechselt Server, will eigene Daten archivieren, DSGVO-Auskunft
+
+### Nicht-Ziele
+
+- Inkrementelle Backups, Backup-Scheduling, externes Off-Host-Backup (Operator-Sache)
+- Backup-Verschlüsselung im Code (User soll die Datei selbst encrypted ablegen)
+- Cross-User-Restore (Admin kann nicht mit User-Backup einen anderen User wiederherstellen)
+- Selektives Restore (alles oder nichts pro Backup-Typ)
 
 ---
 
