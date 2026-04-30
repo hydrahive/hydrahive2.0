@@ -1,7 +1,8 @@
-import { Box, Cpu, MemoryStick, Network, Play, RotateCw, Square, Trash2 } from "lucide-react"
+import { Box, Cpu, MemoryStick, Network, Play, RotateCw, Square, Terminal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import type { Container, ContainerInfo } from "./types"
 import { ContainerStatusBadge } from "./StatusBadge"
+import { ContainerConsoleModal } from "./ContainerConsoleModal"
 import { containersApi } from "./api"
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 export function ContainerCard({ container: c, onStart, onStop, onRestart, onDelete }: Props) {
   const [busy, setBusy] = useState(false)
   const [info, setInfo] = useState<ContainerInfo | null>(null)
+  const [showConsole, setShowConsole] = useState(false)
 
   async function withBusy(fn: () => Promise<void>) {
     if (busy) return
@@ -89,6 +91,10 @@ export function ContainerCard({ container: c, onStart, onStop, onRestart, onDele
         )}
         {running && (
           <>
+            <button disabled={busy} onClick={() => setShowConsole(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-200 disabled:opacity-40">
+              <Terminal size={12} /> Console
+            </button>
             <button disabled={busy || transitioning} onClick={() => withBusy(onRestart)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/30 text-violet-200 disabled:opacity-40">
               <RotateCw size={12} /> Restart
@@ -109,6 +115,10 @@ export function ContainerCard({ container: c, onStart, onStop, onRestart, onDele
           </button>
         )}
       </div>
+
+      {showConsole && (
+        <ContainerConsoleModal container={c} onClose={() => setShowConsole(false)} />
+      )}
     </div>
   )
 }

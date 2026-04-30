@@ -24,6 +24,7 @@ from hydrahive.api.routes.stt import router as stt_router
 from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.routes.containers import router as containers_router
+from hydrahive.api.routes.container_console import router as container_console_router
 from hydrahive.vms import reconciler as vm_reconciler
 from hydrahive.containers import reconciler as container_reconciler
 from hydrahive.api.routes.system import router as system_router, set_start_time
@@ -146,6 +147,7 @@ app.include_router(stt_router)
 app.include_router(tts_router)
 app.include_router(vms_router)
 app.include_router(containers_router)
+app.include_router(container_console_router)
 app.include_router(system_router)
 
 

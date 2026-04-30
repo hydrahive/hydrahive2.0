@@ -14,6 +14,7 @@ export default defineConfig({
       "/api": {
         target: "http://127.0.0.1:8001",
         changeOrigin: true,
+        ws: true,
       },
       "/vnc-ws": {
         target: "ws://127.0.0.1:6080",

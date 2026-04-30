@@ -32,6 +32,13 @@ fi
 CONF_FILE=/etc/nginx/sites-available/hydrahive2
 log "Schreibe $CONF_FILE (HTTPS)"
 cat > "$CONF_FILE" <<EOF
+# WebSocket-Upgrade-Helper: connection_upgrade ist 'upgrade' wenn Upgrade-Header
+# gesetzt, sonst 'close' — sonst zerstört der proxy_set_header normale Requests.
+map \$http_upgrade \$connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
 # HTTP → HTTPS redirect
 server {
     listen 80 default_server;
@@ -72,9 +79,13 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        # WebSocket-Upgrade (Container-Console)
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \$connection_upgrade;
         proxy_buffering off;
         proxy_cache off;
-        proxy_read_timeout 600s;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
         client_max_body_size 8G;  # ISO-Uploads können groß sein
     }
 
