@@ -213,14 +213,22 @@ if [ "$voice_ok" = "0" ]; then
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
 fi
 
+# mmx-Cache-Verzeichnis muss als hydrahive existieren BEVOR die Service-Unit
+# es als ReadWritePaths einträgt — sonst wirft systemd "missing path".
+HH_HOME_DIR="/home/$HH_USER"
+if id "$HH_USER" >/dev/null 2>&1 && [ ! -d "$HH_HOME_DIR/.mmx" ]; then
+  install -d -o "$HH_USER" -g "$HH_USER" -m 0700 "$HH_HOME_DIR/.mmx"
+fi
+
 # Service-File auf HOME-Env + ReadWritePaths-Erweiterung migrieren
 SERVICE_FILE=/etc/systemd/system/hydrahive2.service
 if [ -f "$SERVICE_FILE" ]; then
   NEEDS_REWRITE=0
   grep -q "^Environment=HOME=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.config" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "ReadWritePaths=.*\.mmx" "$SERVICE_FILE" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
-    log "Service-File braucht Update (HOME-Env / .config-RW) — neu schreiben"
+    log "Service-File braucht Update (HOME-Env / .config-RW / .mmx-RW) — neu schreiben"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
       HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
       HH_REPO_DIR="$HH_REPO_DIR" \
