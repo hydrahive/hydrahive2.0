@@ -88,16 +88,25 @@ _ANTHROPIC_ALLOWED = {
     "text": {"type", "text"},
     "image": {"type", "source"},
     "tool_use": {"type", "id", "name", "input"},
-    "thinking": {"type", "thinking", "signature"},
     "tool_result": {"type", "tool_use_id", "content", "is_error"},
 }
 
+# Block-Typen die NIE zurück an die LLM-API geschickt werden dürfen.
+# - thinking: Extended-Thinking-Blöcke kommen von Anthropic (oder MiniMax als
+#   internal thinking) mit einer Signature. Wenn wir die zurückschicken ohne
+#   den Extended-Thinking-Mode im aktuellen Call zu aktivieren, weist die API
+#   das mit "Invalid signature in thinking block" (400) ab. Wir nutzen Extended-
+#   Thinking nicht aktiv → komplett strippen aus der History (#79).
+_BLOCKS_TO_STRIP: frozenset[str] = frozenset({"thinking"})
 
-def _sanitize_block(b: Any) -> Any:
-    """Strip SDK-only fields (parsed_output, caller, citations) the API rejects."""
+
+def _sanitize_block(b: Any) -> Any | None:
+    """Strip SDK-only fields die API rejects. Returns None für strip-Blöcke."""
     if not isinstance(b, dict):
         return b
     btype = b.get("type", "")
+    if btype in _BLOCKS_TO_STRIP:
+        return None
     allowed = _ANTHROPIC_ALLOWED.get(btype)
     if allowed is None:
         return b
@@ -105,13 +114,15 @@ def _sanitize_block(b: Any) -> Any:
 
 
 def _normalize_content(content: Any) -> Any:
-    """Pass through strings; sanitize Anthropic-shaped content lists."""
+    """Pass through strings; sanitize Anthropic-shaped content lists.
+    None-Werte aus _sanitize_block werden rausgefiltert."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
-        return [_sanitize_block(b) for b in content]
+        return [b for b in (_sanitize_block(x) for x in content) if b is not None]
     if isinstance(content, dict):
-        return [_sanitize_block(content)]
+        sanitized = _sanitize_block(content)
+        return [sanitized] if sanitized is not None else []
     return str(content)
 
 
