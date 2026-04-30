@@ -197,11 +197,19 @@ elif ! incus config device show hydrahive2-stt 2>/dev/null | grep -q "^stt-port:
   voice_ok=0
 elif ! command -v mmx >/dev/null 2>&1; then
   voice_ok=0
+elif ! command -v ffmpeg >/dev/null 2>&1; then
+  voice_ok=0
 elif ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
   voice_ok=0
 fi
 if [ "$voice_ok" = "0" ]; then
-  log "Voice-Setup unvollständig (Container/proxy-device/mmx/Port 10300) — starte 55-voice.sh"
+  log "Voice-Setup unvollständig — starte 55-voice.sh"
+  # ffmpeg am Host: Voice-Stack braucht das für mp4→pcm und ogg-Konvertierung.
+  # Falls 00-deps.sh das nicht installiert hat (alte Installs vor Migration):
+  if ! command -v ffmpeg >/dev/null 2>&1; then
+    log "ffmpeg fehlt am Host — installieren"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null 2>&1 || true
+  fi
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
 fi
 

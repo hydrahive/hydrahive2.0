@@ -14,6 +14,10 @@ REQUIRED_PACKAGES=(
   nodejs
   git
   curl
+  # ffmpeg + ffprobe: Voice-Stack — am Host für STT-Pre-Processing (mp4→pcm)
+  # und TTS-Post-Processing (mp3→ogg/opus + Waveform-RMS für WhatsApp ptt).
+  # Im STT-LXC-Container nochmal separat installiert (siehe 55-voice.sh).
+  ffmpeg
 )
 
 log() { printf "  · %s\n" "$*"; }
