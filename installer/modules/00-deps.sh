@@ -53,16 +53,13 @@ if ! command -v uvx >/dev/null 2>&1; then
   fi
 fi
 
-# mmx CLI (MiniMax official CLI für Bild/Video/Musik-Generierung und Vision)
+# mmx CLI (MiniMax official CLI für Bild/Video/Musik-Generierung + TTS)
 if ! command -v mmx >/dev/null 2>&1; then
   log "Installiere mmx-cli (MiniMax CLI)"
   npm install -g mmx-cli --silent
 fi
-if [ -n "${MINIMAX_API_KEY:-}" ]; then
-  mmx auth login --api-key "${MINIMAX_API_KEY}" --non-interactive >/dev/null 2>&1 \
-    && log "mmx auth OK" || log "mmx auth fehlgeschlagen (Key prüfen)"
-else
-  log "MINIMAX_API_KEY nicht gesetzt — mmx auth login später manuell ausführen"
-fi
+# `mmx auth login` läuft NICHT hier — als root würde der Token in /root/.mmx/
+# landen, der Backend-Service liest aber /home/$HH_USER/.mmx/. 55-voice.sh
+# führt das als $HH_USER aus (nach 10-user.sh existiert der User).
 
 log "Dependencies bereit."

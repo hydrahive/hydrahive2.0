@@ -19,10 +19,41 @@ CT_NAME="hydrahive2-stt"
 STT_PORT=10300
 
 # ── mmx-CLI (TTS) ─────────────────────────────────────────────────────────
+HH_USER_VOICE="${HH_USER:-hydrahive}"
+HH_HOME_VOICE="/home/$HH_USER_VOICE"
+
 if ! command -v mmx >/dev/null 2>&1; then
   log "Installiere mmx-cli (npm-global)"
   npm install -g mmx-cli --silent 2>&1 | tail -3 || \
     log "mmx-cli-Install fehlgeschlagen — TTS via MiniMax nicht verfügbar"
+fi
+
+# mmx-Auth als $HH_USER (nicht als root — Backend liest $HH_HOME/.mmx).
+# Key aus /etc/hydrahive2/llm.json (Provider-ID 'minimax') statt zweite Config-Quelle.
+if [ ! -d "$HH_HOME_VOICE/.mmx" ] \
+   && [ -f /etc/hydrahive2/llm.json ] \
+   && id "$HH_USER_VOICE" >/dev/null 2>&1; then
+  MMX_KEY=$(python3 -c '
+import json, sys
+try:
+    d = json.load(open("/etc/hydrahive2/llm.json"))
+    for p in d.get("providers", []):
+        if p.get("id") == "minimax":
+            print(p.get("api_key", ""))
+            break
+except Exception:
+    pass
+' 2>/dev/null)
+  if [ -n "$MMX_KEY" ]; then
+    log "mmx auth login als $HH_USER_VOICE"
+    install -d -o "$HH_USER_VOICE" -g "$HH_USER_VOICE" -m 0700 "$HH_HOME_VOICE/.mmx"
+    sudo -u "$HH_USER_VOICE" HOME="$HH_HOME_VOICE" \
+      mmx auth login --api-key "$MMX_KEY" --non-interactive >/dev/null 2>&1 \
+      && log "mmx auth OK" \
+      || log "mmx auth fehlgeschlagen (Key in llm.json prüfen)"
+  else
+    log "MiniMax-Key fehlt in llm.json — mmx-Auth übersprungen"
+  fi
 fi
 
 # ── Voraussetzung: incus muss laufen ──────────────────────────────────────
