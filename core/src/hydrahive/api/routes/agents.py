@@ -31,6 +31,11 @@ class AgentCreate(BaseModel):
     project_id: str | None = None
     domain: str | None = None
     system_prompt: str | None = None
+    # Per-Agent Compaction-Settings (#82)
+    compact_model: str | None = None
+    compact_tool_result_limit: int | None = None
+    compact_reserve_tokens: int | None = None
+    compact_threshold_pct: int | None = None
 
 
 class AgentUpdate(BaseModel):
@@ -46,6 +51,11 @@ class AgentUpdate(BaseModel):
     fallback_models: list[str] | None = None
     domain: str | None = None
     status: str | None = None
+    # Per-Agent Compaction-Settings (#82)
+    compact_model: str | None = None
+    compact_tool_result_limit: int | None = None
+    compact_reserve_tokens: int | None = None
+    compact_threshold_pct: int | None = None
 
 
 class SystemPromptUpdate(BaseModel):
