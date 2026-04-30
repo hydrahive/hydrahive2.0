@@ -55,13 +55,15 @@ async def _recv(reader) -> tuple[str, dict, bytes]:
     return header.get("type", ""), data, payload
 
 
-async def _wyoming_transcribe(pcm: bytes, language: str = "de") -> str:
+async def _wyoming_transcribe(pcm: bytes, language: str | None = None) -> str:
     reader, writer = await asyncio.wait_for(
         asyncio.open_connection(STT_HOST, STT_PORT), timeout=10.0
     )
     try:
         fmt = {"rate": 16000, "width": 2, "channels": 1}
-        await _send(writer, "transcribe", {"language": language})
+        # language=None ⇒ Whisper macht Auto-Detect (Container muss ohne --language gestartet sein)
+        transcribe_data = {"language": language} if language else {}
+        await _send(writer, "transcribe", transcribe_data)
         await _send(writer, "audio-start", fmt)
         chunk = 16000 * 2  # 1s pro Chunk
         for i in range(0, len(pcm), chunk):
@@ -105,7 +107,12 @@ async def _to_pcm(audio: bytes, mime: str) -> bytes:
 
 
 async def transcribe_bytes(audio: bytes, mime: str = "audio/ogg",
-                           language: str = "de") -> str:
-    """Public API: Audio-Bytes → Transkript."""
+                           language: str | None = None) -> str:
+    """Public API: Audio-Bytes → Transkript.
+
+    language=None (default) ⇒ Whisper-Auto-Detect. Sonst expliziter
+    ISO-Code wie 'de', 'en', 'fr'. Auto-Detect ist robust ab ~3s Audio,
+    bei sehr kurzen Clips lieber explizit setzen.
+    """
     pcm = await _to_pcm(audio, mime)
     return await _wyoming_transcribe(pcm, language=language)

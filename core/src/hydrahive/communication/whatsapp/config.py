@@ -27,6 +27,8 @@ class WhatsAppConfig:
     # Phase: Voice-Antwort
     respond_as_voice: bool = False
     voice_name: str = "German_FriendlyMan"
+    # Phase: Voice-Eingang — STT-Sprache. "" oder "auto" ⇒ Whisper-Auto-Detect.
+    stt_language: str = ""
 
 
 def _config_dir() -> Path:
@@ -58,6 +60,7 @@ def load(username: str) -> WhatsAppConfig:
         blocked_numbers=_normalize_numbers(data.get("blocked_numbers", [])),
         respond_as_voice=bool(data.get("respond_as_voice", False)),
         voice_name=str(data.get("voice_name", "German_FriendlyMan") or "German_FriendlyMan"),
+        stt_language=str(data.get("stt_language", "") or "").strip().lower(),
     )
 
 

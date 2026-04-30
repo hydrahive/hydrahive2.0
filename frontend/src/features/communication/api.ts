@@ -23,6 +23,7 @@ export interface WhatsAppConfig {
   blocked_numbers: string[]
   respond_as_voice: boolean
   voice_name: string
+  stt_language: string  // "" oder "auto" = Whisper-Auto-Detect, sonst ISO ("de","en",...)
 }
 
 export const communicationApi = {

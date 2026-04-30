@@ -12,6 +12,7 @@ const EMPTY: WhatsAppConfig = {
   blocked_numbers: [],
   respond_as_voice: false,
   voice_name: "German_FriendlyMan",
+  stt_language: "",
 }
 
 function toLines(arr: string[]): string {
@@ -115,6 +116,23 @@ export function WhatsAppFilterPanel() {
       </div>
 
       <div className="border-t border-white/[6%] pt-3 space-y-2">
+        <div>
+          <label className="text-[11px] text-zinc-500">Sprache der eingehenden Sprachnachrichten</label>
+          <select value={cfg.stt_language || ""}
+            onChange={(e) => setCfg({ ...cfg, stt_language: e.target.value })}
+            className="mt-1 w-full rounded-lg bg-white/[3%] border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-violet-500/50">
+            <option value="">Auto-Erkennung</option>
+            <option value="de">Deutsch</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="it">Italiano</option>
+          </select>
+          <p className="text-[10px] text-zinc-600 mt-1">
+            Auto-Erkennung ist robust ab ~3s Audio. Bei sehr kurzen Voices lieber explizit setzen.
+          </p>
+        </div>
+
         <label className="flex items-center gap-1.5 text-xs cursor-pointer text-zinc-300">
           <input type="checkbox" checked={cfg.respond_as_voice}
             onChange={(e) => setCfg({ ...cfg, respond_as_voice: e.target.checked })}
