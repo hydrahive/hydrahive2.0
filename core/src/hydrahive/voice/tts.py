@@ -67,15 +67,17 @@ async def synthesize_to_ogg(text: str, voice: str = "German_FriendlyMan") -> Voi
             "-c:a", "libopus", "-ar", "16000", "-ac", "1",
             "-b:a", "32k", str(ogg),
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
         )
         try:
-            await asyncio.wait_for(proc2.wait(), timeout=30.0)
+            _, err2 = await asyncio.wait_for(proc2.communicate(), timeout=30.0)
         except asyncio.TimeoutError:
             proc2.kill()
             raise RuntimeError("ffmpeg-Timeout bei MP3→OGG")
         if proc2.returncode != 0 or not ogg.exists():
-            raise RuntimeError("ffmpeg-Konvertierung fehlgeschlagen")
+            tail = err2.decode(errors="replace")[-500:] if err2 else ""
+            logger.warning("ffmpeg MP3→OGG fehlgeschlagen: %s", tail)
+            raise RuntimeError(f"ffmpeg-Konvertierung fehlgeschlagen: {tail[:200]}")
 
         ogg_bytes = ogg.read_bytes()
         seconds = await _probe_seconds(ogg)
@@ -109,10 +111,12 @@ async def _waveform_from_audio(path: Path) -> bytes:
             "ffmpeg", "-y", "-i", str(path),
             "-ar", "8000", "-ac", "1", "-f", "s16le", str(pcm_path),
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
         )
-        await asyncio.wait_for(proc.wait(), timeout=10.0)
+        _, err = await asyncio.wait_for(proc.communicate(), timeout=10.0)
         if proc.returncode != 0:
+            logger.debug("waveform-ffmpeg fehlgeschlagen: %s",
+                         err.decode(errors="replace")[-500:])
             return bytes(64)
         raw = pcm_path.read_bytes()
         if not raw:

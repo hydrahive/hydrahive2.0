@@ -100,11 +100,13 @@ async def _to_pcm(audio: bytes, mime: str) -> bytes:
             "ffmpeg", "-y", "-i", str(src_path),
             "-ar", "16000", "-ac", "1", "-f", "s16le", str(pcm_path),
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
         )
-        await asyncio.wait_for(proc.wait(), timeout=30.0)
+        _, err = await asyncio.wait_for(proc.communicate(), timeout=30.0)
         if proc.returncode != 0:
-            raise RuntimeError("ffmpeg fehlgeschlagen")
+            tail = err.decode(errors="replace")[-500:]
+            logger.warning("ffmpeg-Fehler: %s", tail)
+            raise RuntimeError(f"ffmpeg fehlgeschlagen: {tail[:200]}")
         return pcm_path.read_bytes()
     finally:
         src_path.unlink(missing_ok=True)
