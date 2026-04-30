@@ -1,5 +1,6 @@
 import { Box, Cpu, MemoryStick, Network, Play, RotateCw, Square, Terminal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import type { Container, ContainerInfo } from "./types"
 import { ContainerStatusBadge } from "./StatusBadge"
 import { ContainerConsoleModal } from "./ContainerConsoleModal"
@@ -48,7 +49,10 @@ export function ContainerCard({ container: c, onStart, onStop, onRestart, onDele
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <Box size={14} className="text-violet-400 flex-shrink-0" />
-            <p className="text-sm font-semibold text-zinc-100 truncate">{c.name}</p>
+            <Link to={`/containers/${c.container_id}`}
+              className="text-sm font-semibold text-zinc-100 truncate hover:text-violet-200 hover:underline">
+              {c.name}
+            </Link>
           </div>
           {c.description && <p className="text-xs text-zinc-500 truncate mt-0.5 ml-5">{c.description}</p>}
           <p className="text-[11px] text-zinc-500 font-mono ml-5 mt-0.5">{c.image}</p>

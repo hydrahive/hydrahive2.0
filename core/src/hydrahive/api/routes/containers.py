@@ -144,6 +144,24 @@ async def restart_container(
     return asdict(cdb.get(container_id))  # type: ignore[arg-type]
 
 
+@router.get("/{container_id}/log")
+async def container_log(
+    container_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    c = _container_or_404(container_id, *auth)
+    return {"text": await incus.show_log(c.name)}
+
+
+@router.get("/{container_id}/config")
+async def container_config(
+    container_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    c = _container_or_404(container_id, *auth)
+    return {"text": await incus.show_config(c.name)}
+
+
 @router.get("/{container_id}/info")
 async def container_info(
     container_id: str,
