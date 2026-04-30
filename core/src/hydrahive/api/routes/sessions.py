@@ -17,6 +17,7 @@ from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
 from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
+from hydrahive.db import tools as tools_db
 from hydrahive.runner import run as runner_run
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -52,15 +53,37 @@ def _serialize_session(s) -> dict:
     }
 
 
-def _serialize_message(m) -> dict:
+def _serialize_message(m, tool_durations: dict[str, int] | None = None) -> dict:
+    """tool_durations: {tool_use_id → duration_ms} damit Frontend die Tool-Dauer
+    pro tool_use bzw. tool_result-Block anzeigen kann."""
+    content = m.content
+    if tool_durations and isinstance(content, list):
+        content = [_attach_duration(b, tool_durations) for b in content]
     return {
         "id": m.id,
         "role": m.role,
-        "content": m.content,
+        "content": content,
         "created_at": m.created_at,
         "token_count": m.token_count,
         "metadata": m.metadata,
     }
+
+
+def _attach_duration(block, tool_durations: dict[str, int]) -> dict:
+    """Hängt duration_ms an tool_use- und tool_result-Blocks. Bleibt für die
+    Anthropic-API-Sicht unauffällig — wird nur im Read-Path eingespielt."""
+    if not isinstance(block, dict):
+        return block
+    btype = block.get("type")
+    if btype == "tool_use":
+        d = tool_durations.get(block.get("id", ""))
+        if d is not None:
+            return {**block, "duration_ms": d}
+    elif btype == "tool_result":
+        d = tool_durations.get(block.get("tool_use_id", ""))
+        if d is not None:
+            return {**block, "duration_ms": d}
+    return block
 
 
 @router.get("")
@@ -134,7 +157,21 @@ def list_messages(
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     _check_owner(s, *auth)
-    return [_serialize_message(m) for m in messages_db.list_for_session(session_id)]
+    msgs = messages_db.list_for_session(session_id)
+    # tool_calls.duration_ms in tool_use- und tool_result-Blocks einspielen.
+    # tool_calls.id ≠ tool_use.id (verschiedene Namespaces) — wir mappen über
+    # die Reihenfolge: tools_db.list_for_message liefert in created_at-ASC,
+    # gleicher Order wie tool_use-Blocks in der Assistant-Message.
+    durations: dict[str, int] = {}
+    for m in msgs:
+        if m.role != "assistant" or not isinstance(m.content, list):
+            continue
+        tool_uses = [b for b in m.content if isinstance(b, dict) and b.get("type") == "tool_use"]
+        tcs = tools_db.list_for_message(m.id)
+        for tu, tc in zip(tool_uses, tcs):
+            if tc.duration_ms is not None and tu.get("id"):
+                durations[tu["id"]] = tc.duration_ms
+    return [_serialize_message(m, durations) for m in msgs]
 
 
 @router.get("/{session_id}/tokens")

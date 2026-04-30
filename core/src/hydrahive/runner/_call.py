@@ -34,6 +34,9 @@ class CallResult:
     output_tokens: int = 0
     cache_creation_tokens: int = 0
     cache_read_tokens: int = 0
+    # Welches Modell tatsächlich genutzt wurde — bei Failover ist primary !=
+    # ausgeführtes. Frontend zeigt das im Bubble-Footer.
+    model: str = ""
 
 
 _ALLOWED_FIELDS = {
@@ -104,6 +107,7 @@ async def call_with_stream_or_fallback(
             blocks=_sanitize_blocks(blocks), stop_reason=stop_reason,
             input_tokens=input_tokens, output_tokens=output_tokens,
             cache_creation_tokens=cache_creation, cache_read_tokens=cache_read,
+            model=primary,
         )
         return
 
@@ -125,7 +129,10 @@ async def call_with_stream_or_fallback(
         text = "".join(b.get("text", "") for b in fallback_blocks if b.get("type") == "text")
         if text:
             yield TextBlock(text=text)
-        yield CallResult(blocks=_sanitize_blocks(fallback_blocks), stop_reason=fallback_stop)
+        yield CallResult(
+            blocks=_sanitize_blocks(fallback_blocks), stop_reason=fallback_stop,
+            model=model,
+        )
         return
 
     raise last_exc or RuntimeError("Alle Modelle fehlgeschlagen")
