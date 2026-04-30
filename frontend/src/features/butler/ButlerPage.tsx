@@ -1206,13 +1206,13 @@ function ButlerPageInner() {
       .then(setFlows)
       .catch(e => console.error("Failed to load butler flows", e));
 
-    api.get<Array<{ agent_id: string; name?: string; config?: { identity?: string } }>>("/agents")
+    api.get<Array<{ id: string; name?: string; config?: { identity?: string } }>>("/agents")
       .then(res => {
         const list = (res || []).map((a) => ({
-          id: a.agent_id,
+          id: a.id,
           name: a.config?.identity
-            ? `${a.agent_id} — ${String(a.config.identity).slice(0, 30)}`
-            : (a.name || a.agent_id),
+            ? `${a.id} — ${String(a.config.identity).slice(0, 30)}`
+            : (a.name || a.id),
         }));
         setAgents(list);
       })

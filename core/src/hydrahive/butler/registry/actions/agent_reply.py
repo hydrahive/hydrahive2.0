@@ -17,18 +17,24 @@ from hydrahive.butler.template import render
 
 async def _exec_plain(params: dict, _: TriggerEvent) -> ActionResult:
     agent_id = (params.get("agent_id") or "").strip()
+    if not agent_id:
+        # Kein Agent gewählt → Action ist nicht actionable, also den Master
+        # NICHT überschreiben — sonst stille Failure für den User.
+        return ActionResult(ok=False, detail="agent_id_missing", stop_default=False)
     return ActionResult(
-        ok=bool(agent_id), detail="agent_reply",
-        reply_via_agent=agent_id or None, stop_default=True,
+        ok=True, detail="agent_reply",
+        reply_via_agent=agent_id, stop_default=True,
     )
 
 
 async def _exec_prefix(params: dict, event: TriggerEvent) -> ActionResult:
     agent_id = (params.get("agent_id") or "").strip()
+    if not agent_id:
+        return ActionResult(ok=False, detail="agent_id_missing", stop_default=False)
     prefix = render(params.get("instruction") or "", event)
     return ActionResult(
-        ok=bool(agent_id), detail="agent_reply_with_prefix",
-        reply_via_agent=agent_id or None,
+        ok=True, detail="agent_reply_with_prefix",
+        reply_via_agent=agent_id,
         reply_prefix=prefix or None,
         stop_default=True,
     )
