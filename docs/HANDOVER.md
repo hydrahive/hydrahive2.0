@@ -1,184 +1,178 @@
-# HydraHive2 — Übergabe (Stand 2026-04-30 spät, Voice E2E + Butler + Issue-Wellen)
+# HydraHive2 — Übergabe (Stand 2026-05-01 nachts, AgentLink-Hookup + Compliance-Sprint)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## TL;DR
 
-Heute durchgezogen, alles live auf 218 (`192.168.178.218`):
+Heute zwei große Stücke + viele Polish-Fixes:
 
-1. **LXC-Container Phase 1+2+3** komplett — Lifecycle (incus), Browser-Console
-   (xterm.js + WebSocket gegen `incus exec`), Detail-Page mit Tabs
-   (Console/Logs/Stats/Konfig).
-2. **Butler-Flow-Builder** in 4 Phasen (Datenmodell+Persistenz, Executor+Subtypes,
-   ReactFlow-UI vom alten octopos 1:1 übernommen mit Adapter-Schicht,
-   WhatsApp-Hook). Master-Agent kann jetzt durch Butler-Regeln umgeleitet werden,
-   `respond_as_voice` + `agent_reply_with_prefix` funktionieren.
-3. **Google-Style-Layout** statt Sidebar — Top-Bar (Logo + Page-Title + Bento +
-   Avatar) und Footer schmal, Hauptbereich nimmt alles, mobile-tauglich.
-4. **Hilfe-Seite** `/help` mit Topics-Sidebar und Markdown-Inhalt aus den
-   bestehenden i18n-Help-Files.
-5. **WhatsApp-Auto-Reconnect** — gepairte User bleiben nach Backend-Restart
-   automatisch verbunden.
-6. **Voice E2E** — Eingang (STT via Wyoming-faster-whisper als incus-LXC) und
-   Ausgang (TTS via mmx-CLI mit Voice-Note inkl. Welle und Sekunden). Voice-
-   Mode-System-Hinweis schützt den Master vor Eigen-mmx-Calls,
-   `_looks_like_metadata`-Heuristik fängt Datei-Meta-Antworten ab.
-7. **Issue-Wellen** P0+P1+P2+P3 komplett durchgearbeitet (~25 Issues),
-   inklusive SPEC-Workflow-Guard (#34) als Pre-Commit-Hook + GitHub-Action.
-8. **Anthropic-Bypass-Konsolidierung** (#16): Claude-Modelle gehen jetzt komplett
-   via anthropic-SDK direkt (OAuth + Bearer einheitlich), LiteLLM bleibt für die
-   anderen 6 Provider. Volle Anthropic-Features (Prompt-Caching, Extended
-   Thinking, Tool-Streaming) sind dadurch überall verfügbar.
+1. **AgentLink full integration** (#83) — neues Repo `hydrahive/hydralink`
+   als Wrapper für `tilleulenspiegel/agentlink`. Native Installation
+   (kein Docker, ChromaDB raus). HydraHive verbindet sich via
+   WebSocket-Client mit Future-Map für synchrones await im Tool-Loop.
+   `ask_agent` ist nicht mehr Stub. Service-Drop-In macht 218 beim
+   Self-Update automatisch scharf. Frontend (Vite/React-SPA) wird auf
+   Port 9001 als statischer http.server-Service ausgeliefert; Link
+   zum Dashboard ist in der HydraHive-System-Page.
 
-## Was steht (alles getestet, live auf 218)
+2. **CLAUDE.md-Compliance-Sprint** (Refactor in 4 Häppchen):
+   - `routes/vms.py` 406 → 22 Z. Aggregator + 5 Sub-Router
+   - `llm/client.py` 297 → 116 Z. + `_config.py` + `_anthropic.py`
+   - `PropertiesPanel.tsx` 623 → 43 Z. + 5 Subtype-Form-Files via Registry
+   - `api/main.py` 255 → 85 Z. + `lifespan.py` + `version.py`
+
+Plus B1.a System-Backup, Per-Agent Compaction-Settings, Chunked
+Compaction für riesen Sessions, Bento-Menü-Farben, iOS-Layout-Fix,
+Chat-Bubble-Polish.
+
+## Was steht (alles getestet, live auf 218 + lokal)
 
 | Bereich | Stand |
 |---|---|
-| Backend-Runner | Tool-Loop, Streaming, Loop-Detection, Heal für orphan tool_uses, LLM-Failover, runner.run() mit `extra_system`-Param |
+| **AgentLink (#83)** | hydralink-Repo + native Installer + WebSocket-Client + ask_agent echte Implementation + System-Card + Dashboard-Link |
+| **Compaction Chunking (#81)** | Variante B — bei zu großem Verlauf splitten, hierarchisch mergen, verlustfrei |
+| **Per-Agent Compact-Settings (#82)** | compact_model / compact_tool_result_limit / compact_reserve_tokens / compact_threshold_pct in AgentForm |
+| **Chat-Bubble-Polish (#39)** | Header (Datum/Uhrzeit) + Footer (Tokens/Cache/Modell) + Tool-Dauer + Collapse |
+| **Bunte UI (#77)** | Bento-Menü + Top-Bar Quick-Links + PageTitle-Punkt + 3 Action-Buttons in Domain-Farben |
+| **System-Backup B1.a** | /api/admin/backup + /restore mit Pre-Validate + Auto-Rollback + tls/-Exclude |
+| **iOS-Layout (#80)** | 100vh → 100dvh — Chat-Page rastet beim Initial-Load ein |
+| **Compliance-Refactor** | 4 Files >150 Z. gesplittet, alle <150 (mit ~ Toleranz für 161er) |
+| Backend-Runner | Tool-Loop, Streaming, Loop-Detection, Heal, Failover, runner.run() |
 | DB-Layer | sessions/messages/tool_calls/state/vms/vm_snapshots/vm_import_jobs/containers, append-only-Compaction |
-| Core-Tools (13) | shell, file_*, dir_list, web_search, http_request, *_memory, todo, send_mail; ask_agent NUR wenn AgentLink konfiguriert (#13) |
-| Agents | 3 Typen, CRUD, Pro-User-Isolation, fallback_models, _LazyDefaultTools filtert ask_agent |
-| Projekte | Members, Project-Agent, isolierter Workspace |
-| Compaction | append-only, Token-Budget-Walk, Plugin-Hooks |
-| Chat | SSE-Streaming, Markdown+GFM, Cancel, Bild-/Datei-Upload mit safe_path-Sanitization (#10) |
-| LLM-Provider | **Anthropic + MiniMax direkt via anthropic-SDK** (OAuth + Bearer); LiteLLM für OpenAI/OpenRouter/Groq/Mistral/Gemini/NVIDIA |
-| MCP | 3 Transports + Pool + 8 Quick-Add |
-| **Voice (komplett)** | STT: incus-LXC `hydrahive2-stt` mit Wyoming-Whisper, proxy-device 10300, Auto-Detect-Sprache. TTS: mmx-CLI als hydrahive-User, Auth aus llm.json, Output OGG/Opus mit waveform+seconds. Voice-Mode-System-Hinweis verhindert Eigen-mmx-Calls. Belt-and-Braces _looks_like_metadata-Heuristik. ffmpeg am Host, mmx-Voices-Dropdown im UI mit allen Sprachen. |
-| **WhatsApp** | Bridge mit Promise.all-Parallelisierung, Voice-Eingang (audio_failed-Event statt Silent-Drop), Voice-Ausgang als ptt mit Welle, Filter zweistufig (Sender vor STT), Auto-Reconnect, pino-Logging mit Level-Forwarding |
-| **Butler** | Datenmodell+Persistenz+Registry, Executor mit Trace+Cycle-Guard+Dry-Run, 5T/7C/9A registriert, ReactFlow-UI mit Adapter, WhatsApp-Hook in handle_incoming, Reply-Actions (reply_fixed/agent_reply/agent_reply_with_prefix/forward/ignore/queue) |
-| **Container** | Phase 1+2+3 — Lifecycle, Browser-Console, Detail-Page mit Tabs |
-| **VM-Manager** | Phase 1-5 (QEMU+KVM, Browser-VNC, Snapshots, Import, Live-Stats) |
-| Layout | Google-Style — Top-Bar + Bento + Avatar-Menu + Footer, identisch Mobile/Desktop, CollapsibleSidebar default zu |
-| Hilfe-Seite | `/help` mit Topics-Sidebar, lädt Markdown-Files aus i18n/help/{de,en}/ |
-| Plugin-System | MVP + Hub-UI, minimax-creator-Plugin |
-| **SPEC-Guard** | pre-commit-Hook + GitHub-Action blocken Mixed-Commits (SPEC.md/CLAUDE.md + Code im selben Commit). CLAUDE.md Punkt 8 dokumentiert die Regel. Bypass via `BYPASS_SPEC_GUARD=1`. |
-| Installer | 9 Phasen, ffmpeg in 00-deps, mmx-CLI in 00-deps, mmx-Auth als $HH_USER in 55-voice.sh, ReadWritePaths-Migration via update.sh, git-hook-Bootstrap via `installer/git-hooks/install-hooks.sh` |
+| Voice (komplett) | STT incus-LXC + TTS mmx-CLI + Voice-Mode-Hint |
+| WhatsApp | Bridge mit Promise.all, Voice-Eingang/Ausgang, Auto-Reconnect |
+| Butler | 4 Phasen — Datenmodell + Executor + ReactFlow-UI + WhatsApp-Hook |
+| Container | LXC Phase 1+2+3 — Lifecycle + Browser-Console + Detail-Page |
+| VM-Manager | Phase 1-5 — QEMU+KVM, Browser-VNC, Snapshots, Import, Live-Stats |
 
-## Was offen ist
+## Heute gepusht (Reihenfolge chronologisch, Auswahl)
 
-### Größere Initiativen (P1, je halber bis ganzer Build-Tag)
-
-1. **Container-Phase 3 (optional)**: System-Container (Voice/STT) im
-   `/containers`-Frontend als „system-managed" sichtbar machen — analog zu
-   User-Containern. UX-Konsistenz, kein Funktionsdefizit.
-2. **VM-Phase 6 (optional)**: VM-Detail-Page mit Tabs analog zu Container.
-3. **AgentLink-Hookup** (#13 Polish): `ask_agent` ist jetzt nur registriert wenn
-   `HH_AGENTLINK_URL` gesetzt — bei Hookup an die echte AgentLink-API ist das
-   Tool sofort live ohne weitere Code-Änderung.
-4. **Web → WhatsApp-Send** — Antworten aus Web-UI gehen nicht zurück über WA.
-5. **Butler-Subtypes nachziehen** — einige UI-Subtypes haben noch keinen
-   Backend-Match (`heartbeat_fired`, `discord_event_received`, `contact_known`,
-   `git_branch_is`/`author_is`/`action_is`, `email_*_contains`, `discord_*_is`).
-   Save geht durch, Match feuert nicht.
-6. **Butler-Stub-Actions verkabeln** — `http_post` läuft echt, aber `send_email`/
-   `discord_post`/`git_create_issue`/`git_add_comment` sind noch Stubs.
-
-### Dokumentation-Issues offen (#15, #22, #32 — SPEC ist Tills Domäne)
-
-- **#15 ZH-Locale**: SPEC sagt DE/EN/ZH, Code hat DE/EN — Till entscheidet ob
-  ZH gebaut wird oder SPEC angepasst.
-- **#22 CSP `unsafe-inline`**: 16 Inline-Style-Stellen identifiziert, sauberer
-  Fix wäre Nonce-System (>1 Tag Arbeit). P3, dokumentiert offen.
-- **#32 PostgreSQL-Zeile**: SPEC erwähnt PostgreSQL für AgentLink (extern), Code
-  referenziert es nicht — Till entscheidet ob SPEC umformuliert wird.
-
-### Kleinere Themen
-
-- i18n Phase 4 — zentrale Glossar/FAQ-Sektion in der Hilfe-Seite.
-- MCP Phase 4 — Resources + Prompts.
-- LLM-Failover-Polish — 429-Cooldown + Exponential-Backoff.
+```
+4755135 fix(installer): hydralink-Phase tatsächlich in install.sh + update.sh
+5d88ac2 feat(installer): hydralink als Phase 11 ins HydraHive2-Setup (#83-#19)
+33030a7 feat(agentlink): Dashboard-Link in System-Card + dev-start ENV
+db02b1c feat(agentlink): WebSocket-Client für AgentLink — ask_agent live (#83)
+281f793 fix(ui): 100vh → 100dvh — iOS-Layout rastet ein (#80)
+131a893 feat(ui): Domain-Farben überall (#77 Phase 2)
+b4c3c61 feat(ui): Bento-Menü farbig (#77 Phase 1)
+36e972e feat(compaction): Variante B — Chunking für riesen Sessions (#81)
+d0aafe4 fix(runner): temperature-Retry bei Anthropic 'deprecated'
+2552a69 fix(agents): Pydantic-Models um compact_*-Felder erweitert (#82-Followup)
+da54762 fix(agents): Compact-Settings-Save tolerant gegen None/leere Werte
+28f7a6d feat(agents): Per-Agent Compaction-Settings (#82)
+1e8d355 feat(chat): Bubble-Polish (#39)
+9f90a61 fix(runner): Thinking-Blocks aus History strippen — \"Invalid signature\" (#79)
+421c1a6 fix(chat): Vorlesen-Button — Hook-Order + Voices-Race (#76)
+59c6035 fix(agents): ask_agent in Tool-Liste tolerieren wenn AgentLink fehlt (#78)
+b6f3f55 docs(spec): Backup/Restore-Sektion ergänzt
+cdcb8f5 feat(backup): System-Backup für Admin (B1.a)
++ Compliance-Refactor (98298d3, 0557044, 3da2ff6, 3fef573)
++ hydralink-Repo (d72da97, d9c8695)
+```
 
 ## Live-Server (218)
 
-- **Host**: `192.168.178.218` (vorher .216, hat sich beim setup-bridge.sh geändert)
-- **SSH-Alias**: `hh2-216` und `hh2-218` (beide → `.218`)
-- **Setup-User**: `chucky` (Passwort `lummerland123`, sudo-fähig)
-- **Service-User**: `hydrahive` (no-login)
-- **Repo**: `/opt/hydrahive2/` auf main
-- **Daten**: `/var/lib/hydrahive2/` (inkl. `vms/`, `whatsapp/`, `wyoming-Modell-Cache im STT-Container`)
-- **Config**: `/etc/hydrahive2/` (TLS, butler/, whatsapp/, llm.json)
-- **mmx-Auth**: `/home/hydrahive/.mmx/config.json`
-- **Frontend-URL**: `https://192.168.178.218/` (Self-Signed-Cert, Browser-Warnung einmal akzeptieren)
-- **Self-Update**: aus UI klicken (Admin) ODER `sudo bash /opt/hydrahive2/installer/update.sh`
-- **Admin-Passwort** auf 218: `lummerland123`
+- **Host**: 192.168.178.218, SSH-Alias `hh2-218`
+- **Setup-User**: chucky (Passwort lummerland123, sudo-fähig)
+- **Service-User**: hydrahive (no-login)
+- **Repo**: /opt/hydrahive2 auf main (Stand 4755135)
+- **Daten**: /var/lib/hydrahive2/
+- **Config**: /etc/hydrahive2/
+- **Frontend-URL**: https://192.168.178.218/
+- **Admin-Passwort** auf 218: lummerland123
+- **HydraLink-Stack** (jetzt auch live):
+  - postgresql.service (apt) ✓
+  - redis-server.service (apt, 127.0.0.1:6379) ✓
+  - agentlink.service (systemd venv, 127.0.0.1:9000) ✓
+  - agentlink-frontend.service (systemd python http.server, 127.0.0.1:9001) ✓
+  - HydraHive verbindet via /etc/systemd/system/hydrahive2.service.d/agentlink.conf
 
-## Voice-Stack — wie es funktioniert
+## Lokales Dev-Setup (auf Tills Workstation)
 
-```
-WhatsApp-Voice-Nachricht
-  → Bridge (Node, Baileys) downloadMediaMessage → base64
-  → POST /api/communication/whatsapp/incoming mit media_type=audio
-  → Backend: ffmpeg mp4/m4a/webm → 16kHz mono PCM
-  → TCP zu 127.0.0.1:10300 (incus proxy-device)
-  → incus-LXC hydrahive2-stt: Wyoming-Faster-Whisper
-  → Transkript zurück
-  → handle_incoming(event mit voice_mode=true)
-  → Master-Agent mit _VOICE_MODE_SYSTEM_HINT als extra_system
-  → Master antwortet als Text (kein Eigen-mmx)
-  → _looks_like_metadata-Check (Belt-and-Braces)
-  → mmx-CLI synthesize_mp3 (env=MINIMAX_API_KEY aus llm.json)
-  → ffmpeg MP3→OGG/Opus 16kHz mono
-  → ffprobe für Sekunden, ffmpeg+RMS für 64-Byte-Waveform
-  → VoiceClip via send_audio an Bridge
-  → Baileys sock.sendMessage({ audio, ptt:true, seconds, waveform })
-  → User hört echte Voice-Note mit Welle
-```
+- Repo: /home/till/claudeneu/ (HydraHive2)
+- Repo: /home/till/hydralink/ (HydraLink)
+- Dev-Service: hydrahive2-dev.service (user-systemd)
+- Dev-URLs: Backend 8001, Frontend 5173, AgentLink 9000, AgentLink-Dashboard 9001
+- dev-start.sh setzt HH_AGENTLINK_URL automatisch auf 127.0.0.1:9000
 
-## Heute identifizierte Fallstricke (Memory: feedback_voice_stack_lessons.md)
-
-Die Voice-Migration hat 7 Bugs nacheinander aufgedeckt:
-
-1. **mmx --output statt --out** in `voice/tts.py` — Web-TTS-Endpoint hatte's
-   richtig, Voice-Pfad nicht.
-2. **OCI-Pull funktioniert nicht in incus 6.0** (Ubuntu 24.04 Default) — Fallback:
-   Custom Ubuntu-LXC mit `pip install wyoming-faster-whisper`.
-3. **Migrations-Reihenfolge**: alter Docker-Container muss VOR proxy-device-Add
-   stoppen, sonst Port-Konflikt → kurzer Voice-Downtime + Health-Wait + Rollback.
-4. **Healthcheck false-positive**: incus-Container `RUNNING` + Port `10300` offen
-   schien OK — Port gehörte aber dem alten Docker. Healthcheck verschärfen auf
-   proxy-device-Existenz.
-5. **ffmpeg fehlt am Host**: war im Docker-Container drin, beim Migrations-LXC
-   muss am Host nachinstalliert werden — in `00-deps.sh` als REQUIRED_PACKAGES.
-6. **mmx-Auth als root**: Token landete in `/root/.mmx/`, hydrahive-Service liest
-   `/home/hydrahive/.mmx/`. Lösung: `sudo -u hydrahive HOME=/home/hydrahive mmx auth login`.
-7. **ProtectHome=read-only blockiert mmx-Cache**: `/home/$USER/.mmx` muss in
-   `ReadWritePaths` der systemd-Service-Unit. Plus mkdir+chown VOR Service-Restart.
-
-Plus auf der UI-Seite:
-
-8. **PUT-Endpoint und Response-DTO synchron erweitern**: neue Felder im
-   `WhatsAppConfig` brauchen sowohl Constructor-Read als auch `_config_dict`-Write.
-9. **LLM-Agent macht Eigen-Tool-Calls** wenn er denkt er muss Audio erzeugen.
-   Lösung: System-Hint in `extra_system` der explizit "kein eigenes mmx, kein
-   Markdown, keine Pfade, max ~80 Wörter" sagt + `_looks_like_metadata` als
-   Belt-and-Braces.
-
-## Git-Stand am Ende der Session
+## AgentLink — Architektur
 
 ```
-d4b573e fix(whatsapp/voice): Dropdown-Lesbarkeit + alle MiniMax-Sprachen
-aae0687 fix(whatsapp/voice): PUT-Config persistiert respond_as_voice/voice_name/stt_language + Dropdown
-ea4494a fix(voice): Voice-Mode-System-Hinweis als separater Block + Metadata-Sanity
-a5a42ce fix(voice): mmx-Cache-Pfad + Auth als hydrahive-User
-de527c9 fix(voice): MINIMAX_API_KEY für mmx-Subprocess aus llm.json setzen
-6286846 fix(voice): ffmpeg am Host als Dependency
-0174a44 fix(voice): Healthcheck zusätzlich auf proxy-device-Existenz prüfen
-8d5bcbf fix(voice): Migration-Reihenfolge — Docker-STT vor proxy-device-Add stoppen
-08e1514 feat(voice): STT von Docker auf incus-LXC umgestellt (#25)
-… (vorher: SPEC-Guard, Issue-Wellen P0/P1/P2/P3, ButlerPage-Refactor, …)
+HydraHive Master Agent
+       │
+       │ ask_agent({agent_id:'specialist', task:'...'})
+       ▼
+hydrahive/agentlink/client.post_state(...)  ──► POST http://127.0.0.1:9000/states
+       │                                            │
+       │ register_pending(state.id) → Future        │
+       │                                            ▼
+       │                                    Postgres + Redis Pub/Sub
+       │                                            │
+       │                                            ▼
+       │                              Specialist-Agent empfängt via WS
+       │                                            │
+       │ on_event handler im HydraHive-Lifespan ◄───┤
+       │ resolve_pending(reply_to)                  │
+       ▼
+ask_agent return ToolResult mit Antwort-Inhalt
 ```
 
-Working-Tree ist clean. Alle Commits gepusht. 218 läuft auf `d4b573e`.
+WS-Channel-Pattern: HydraHive subscribed `agent:hydrahive` (oder agent_id-Override).
+Antwort-State referenziert Original via `handoff.reason = "reply_to:<state-id>"`.
+
+## Was offen ist
+
+### P1-Issues (groß, halber bis ganzer Build-Tag)
+
+- **#38 User-Backup Self-Service** (DSGVO Art. 20) — komplementär zu System-Backup
+- **#43 Edit + Resend** im Chat — User-Bubble klicken, ändern, Verlauf ab dort regenerieren
+- **#55 ToolsSelector-Akkordeon** — Single-Expand pro Quelle (Core/Plugin/MCP)
+- **#56 AgentForm Tabs + Sticky Save-Bar**
+- **#57-#62 Projekt-Sektionen** — Tab-Layout + Statistiken + Sessions-Tab + Git-Status + Server-Tab
+- **#26 Skills-System** — SPEC verspricht Markdown-Skills
+
+### P2-Issues (häufig genutzt)
+
+- **#40 Stop-Reason-Pill** im Chat
+- **#42 Estimierte Kosten pro Bubble** (€/$)
+- **#45 Copy-Button** + **#46 Retry-Button** im Chat
+- **#50 Tool-Calls collapse-by-default**
+- **#53 Drag-Drop Bilder** in Chat
+- **#35 Discord-Channel-Adapter**
+- **#63 Specialists-Tab** (jetzt mit AgentLink wirklich nutzbar!)
+- **#67 Lifecycle (active/paused/archived)** für Projekte
+- **#66 Notes/Briefing** pro Projekt
+
+### P3 (~30 Issues, nice-to-have)
+
+Tags, Audit, Member-Rechte, Webhooks, MCP/Plugin/LLM-Override pro Projekt,
+Branching, Suche, Read-Receipts, Streaming-Animation, Pre-Compaction-Hint,
+ZH-Locale, etc.
+
+### Doku-Issues offen
+
+- #15 ZH-Locale (SPEC sagt DE/EN/ZH, Code DE/EN)
+- #22 CSP unsafe-inline (16 Inline-Styles)
+- #32 PostgreSQL-Zeile in SPEC
 
 ## Empfohlener nächster Build-Tag
 
-1. **Frauchen testen lassen** — Voice ist End-to-End live, hübsche UI, Butler-
-   Regeln können rein.
-2. **Butler-Subtypes nachziehen** wenn jemand sie wirklich nutzt (heartbeat_fired,
-   discord_*, …) — bisher Stubs auf der Backend-Seite.
-3. **Stub-Actions verkabeln** (send_email, discord_post, git_*) wenn Bedarf.
-4. **AgentLink-Hookup** als nächster großer Punkt — sobald die externe API steht,
-   ist's nur HH_AGENTLINK_URL setzen.
+1. **Frauchen / echter User testet AgentLink** — die Specialists-Disclosure
+   und Master→Specialist-Handoff am echten Use-Case durchspielen
+2. **#43 Edit + Resend** — kleines aber sehr sichtbares UX-Feature
+3. **#56 AgentForm Tabs** — die Compaction-Section wandert in einen
+   `Erweitert`-Tab, sticky save-bar
+4. **#57-#62 Projekt-Sektionen Phase 1** — Tabs + Sessions + Statistiken
 
-Sonst stable. Heute war ein langer Tag.
+## Nicht-vergessen-Liste
+
+- AgentLink-Dashboard auf 218: https://hh2-218 → System-Page → \"Dashboard öffnen\"
+  öffnet http://192.168.178.218:9001 — falls Browser CORS warnt: ist
+  Mixed-Content (HTTPS-Page → HTTP-Frontend), evtl. nginx-Reverse-Proxy
+  für AgentLink-Frontend wenn HTTPS überall werden soll.
+- 218 IP-Wechsel-Problem (DHCP-Lease) bleibt — DHCP-Reservation auf
+  Fritzbox wäre stabiler.
+- Self-Update-Falle: bash hält update.sh-Inhalt im Speicher beim Start.
+  Nach git pull läuft Rest mit altem Code. Bei größeren Änderungen
+  zweites Mal aufrufen.
