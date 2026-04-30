@@ -58,14 +58,14 @@ export function SystemPage() {
             <>
               <button
                 onClick={() => { setVoiceState("confirm"); setVoiceError(null) }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
               >
                 <Mic size={12} />
                 Voice installieren
               </button>
               <button
                 onClick={restart.open}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-200 text-xs font-medium hover:bg-rose-500/20 transition-colors"
               >
                 <RotateCw size={12} />
                 {tNav("restart.button")}

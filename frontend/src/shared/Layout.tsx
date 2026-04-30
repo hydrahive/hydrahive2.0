@@ -8,6 +8,7 @@ import { UpdateModal, type UpdateState } from "@/shared/UpdateModal"
 import { AppFooter } from "./AppFooter"
 import { AvatarMenu } from "./AvatarMenu"
 import { BentoMenu } from "./BentoMenu"
+import { DOMAIN_TW, colorFor } from "./colors"
 import { NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
 
 export function Layout() {
@@ -86,8 +87,9 @@ export function Layout() {
         </Link>
 
         {currentPage && (
-          <span className="text-[11px] sm:text-sm text-zinc-400 ml-1 sm:ml-2 truncate">
+          <span className="flex items-center gap-1.5 text-[11px] sm:text-sm text-zinc-400 ml-1 sm:ml-2 truncate">
             <span className="text-zinc-600 mx-1">/</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${DOMAIN_TW[colorFor(currentPage.path)].iconBgActive}`} />
             {t(`items.${currentPage.labelKey}`)}
           </span>
         )}
@@ -97,12 +99,15 @@ export function Layout() {
         <nav className="hidden lg:flex items-center gap-1">
           {quickLinks.map(({ path, icon: Icon, labelKey }) => {
             const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
+            const c = DOMAIN_TW[colorFor(path)]
             return (
               <Link
                 key={path}
                 to={path}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs ${
-                  active ? "bg-violet-500/15 text-violet-200" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${
+                  active
+                    ? `${c.bgActive} ${c.textActive}`
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
                 }`}
               >
                 <Icon size={13} /> {t(`items.${labelKey}`)}

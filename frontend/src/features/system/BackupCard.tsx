@@ -73,13 +73,13 @@ export function BackupCard() {
       </div>
       <div className="flex flex-wrap gap-2">
         <button onClick={handleDownload} disabled={downloading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] disabled:opacity-50 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs font-medium hover:bg-amber-500/20 disabled:opacity-50 transition-colors"
         >
           {downloading ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
           {t("backup.download")}
         </button>
         <button onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs font-medium hover:bg-amber-500/20 transition-colors"
         >
           <Upload size={12} />
           {t("backup.restore")}
