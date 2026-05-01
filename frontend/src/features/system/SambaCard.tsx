@@ -47,7 +47,7 @@ export function SambaCard() {
     try { await systemApi.sambaSetup() }
     catch (e) { setPhase("failed"); setError(e instanceof Error ? e.message : ""); return }
     const startedAt = Date.now()
-    while (Date.now() - startedAt < 90_000) {
+    while (Date.now() - startedAt < 300_000) {
       await new Promise((r) => setTimeout(r, 2000))
       try {
         const s = await systemApi.sambaStatus()
