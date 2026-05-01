@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+import { estimateCostUsd, formatCost } from "./pricing"
 
 function formatBubbleTime(iso: string, locale: string): string {
   const d = new Date(iso)
@@ -47,6 +48,12 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
   const hasModel = !!meta.model
   const showIterations = meta.iteration != null && meta.iteration > 1
   const showStopReason = !!meta.stop_reason && meta.stop_reason !== "end_turn"
+  const costUsd = estimateCostUsd(meta.model, {
+    input: meta.input_tokens,
+    output: meta.output_tokens,
+    cache_read: meta.cache_read_tokens,
+    cache_creation: meta.cache_creation_tokens,
+  })
   if (!hasTokens && !hasModel) return null
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500/70 font-mono tabular-nums">
@@ -55,6 +62,11 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
       )}
       {hasCache && (
         <span>· {t("bubble_footer.cache", { read: fmt(meta.cache_read_tokens), create: fmt(meta.cache_creation_tokens) })}</span>
+      )}
+      {costUsd != null && (
+        <span className="text-emerald-400/70" title={t("bubble_footer.cost_tooltip")}>
+          · {formatCost(costUsd, i18n.language)}
+        </span>
       )}
       {hasModel && (
         <span className="text-zinc-500/90">· {meta.model}</span>

@@ -93,7 +93,8 @@
     "tokens": "{{in}} ↑ · {{out}} ↓",
     "cache": "Cache {{read}}r / {{create}}c",
     "iterations": "{{n}} Iterationen",
-    "stop_reason": "Stop: {{reason}}"
+    "stop_reason": "Stop: {{reason}}",
+    "cost_tooltip": "Geschätzte Kosten basierend auf öffentlichen Provider-Preisen pro 1M Tokens. Cache-Read und Cache-Write werden mitgerechnet."
   },
   "tool_result": {
     "collapsed": "Output ({{chars}} Z., {{lines}} Zeilen) — anzeigen"
