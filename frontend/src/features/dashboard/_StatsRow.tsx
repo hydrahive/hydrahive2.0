@@ -43,28 +43,26 @@ export function StatsRow({ stats }: Props) {
     },
   ]
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
       {cards.map((c) => (
         <div key={c.label}
           className={cn(
-            "group relative rounded-xl border border-white/[8%] bg-white/[3%] p-4 flex items-center gap-3",
-            "hover:border-white/20 hover:bg-white/[6%] hover:-translate-y-0.5 transition-all duration-200",
-            "hover:shadow-2xl", c.glow,
+            "group relative rounded-lg border border-white/[8%] bg-white/[3%] px-3 py-2 flex items-center gap-2.5",
+            "hover:border-white/20 hover:bg-white/[6%] transition-all duration-200",
+            c.glow,
           )}>
           <div className={cn(
-            "relative w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br shrink-0",
+            "relative w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br shrink-0",
             c.from, c.to,
           )}>
-            <c.icon size={18} className="text-white" />
-            <div className={cn(
-              "absolute inset-0 rounded-full bg-gradient-to-br blur-md opacity-50 -z-10 scale-125",
-              c.from, c.to,
-            )} />
+            <c.icon size={13} className="text-white" />
           </div>
-          <div className="min-w-0">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-wide truncate">{c.label}</p>
-            <p className="text-xl font-bold text-white mt-0.5 leading-tight">{c.value}</p>
-            {c.detail && <p className="text-[10px] text-zinc-600 mt-0.5">{c.detail}</p>}
+          <div className="min-w-0 flex-1">
+            <p className="text-zinc-500 text-[9px] uppercase tracking-wide truncate">{c.label}</p>
+            <p className="text-base font-bold text-white leading-tight">
+              {c.value}
+              {c.detail && <span className="text-[10px] font-normal text-zinc-600 ml-1.5">{c.detail}</span>}
+            </p>
           </div>
         </div>
       ))}
