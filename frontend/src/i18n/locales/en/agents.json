@@ -23,6 +23,13 @@
     "fallback_models": "Fallback models",
     "fallback_hint": "On quota/overload/auth errors of the primary model these are tried in order. Use ↑ to reorder."
   },
+  "tabs": {
+    "overview": "Overview",
+    "model": "Model",
+    "tools": "Tools & MCP",
+    "prompt": "System prompt",
+    "advanced": "Advanced"
+  },
   "tool_categories": {
     "all": "All ({{count}})",
     "files": "Files",

@@ -23,6 +23,13 @@
     "fallback_models": "Fallback-Modelle",
     "fallback_hint": "Bei Quota/Overload/Auth-Fehler des primären Modells werden diese der Reihe nach probiert. Mit ↑ kann die Reihenfolge geändert werden."
   },
+  "tabs": {
+    "overview": "Übersicht",
+    "model": "Modell",
+    "tools": "Tools & MCP",
+    "prompt": "System-Prompt",
+    "advanced": "Erweitert"
+  },
   "tool_categories": {
     "all": "Alle ({{count}})",
     "files": "Dateien",
