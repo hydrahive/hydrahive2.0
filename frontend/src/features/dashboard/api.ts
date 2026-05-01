@@ -36,7 +36,15 @@ export interface DashboardAgent {
   status: string
 }
 
+export interface DashboardHealth {
+  backend: { ok: boolean }
+  agentlink: { ok: boolean; configured: boolean }
+  bridge: { ok: boolean }
+  tailscale: { ok: boolean; configured: boolean }
+}
+
 export interface DashboardSummary {
+  health: DashboardHealth
   stats: DashboardStats
   recent_sessions: DashboardSession[]
   servers: DashboardServer[]

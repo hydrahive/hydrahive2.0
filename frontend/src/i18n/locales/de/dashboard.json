@@ -28,5 +28,10 @@
   "hours_ago_other": "vor {{count}} Stunden",
   "days_ago_one": "vor 1 Tag",
   "days_ago_other": "vor {{count}} Tagen",
-  "just_now": "gerade eben"
+  "just_now": "gerade eben",
+  "update_banner": {
+    "text_one": "Ein Update verfügbar.",
+    "text_other": "{{count}} Updates verfügbar.",
+    "go": "Zum System →"
+  }
 }

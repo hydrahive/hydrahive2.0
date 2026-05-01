@@ -28,5 +28,10 @@
   "hours_ago_other": "{{count}} hours ago",
   "days_ago_one": "1 day ago",
   "days_ago_other": "{{count}} days ago",
-  "just_now": "just now"
+  "just_now": "just now",
+  "update_banner": {
+    "text_one": "One update available.",
+    "text_other": "{{count}} updates available.",
+    "go": "Go to system →"
+  }
 }
