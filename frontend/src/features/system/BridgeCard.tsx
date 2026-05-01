@@ -48,7 +48,7 @@ export function BridgeCard() {
       setPhase("failed"); setError(e instanceof Error ? e.message : ""); return
     }
     const startedAt = Date.now()
-    while (Date.now() - startedAt < 90_000) {
+    while (Date.now() - startedAt < 180_000) {
       await new Promise((r) => setTimeout(r, 2000))
       try {
         const s = await systemApi.bridgeStatus()
