@@ -81,7 +81,7 @@ export function GitRepoCard({ projectId, repo, onChanged }: Props) {
       </div>
 
       {showSettings && (
-        <div className="border-t border-white/[6%] p-3 space-y-2 bg-zinc-950/30">
+        <div className="border-t border-white/[6%] p-3 space-y-3 bg-zinc-950/30">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-0.5">
               <label className="block text-[10px] text-zinc-500">{t("git.remote_url")}</label>
@@ -114,6 +114,17 @@ export function GitRepoCard({ projectId, repo, onChanged }: Props) {
               {busy === "config" ? <Loader2 size={11} className="animate-spin" /> : t("git.save_settings")}
             </button>
           </div>
+
+          {!isRoot && (
+            <div className="pt-3 border-t border-rose-500/20 flex items-center justify-between">
+              <p className="text-[11px] text-rose-300/80">{t("git.danger_zone_hint")}</p>
+              <button onClick={deleteRepo} disabled={busy !== ""}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-medium disabled:opacity-30">
+                {busy === "delete" ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                {t("git.delete_repo")}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

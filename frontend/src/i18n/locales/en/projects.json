@@ -50,6 +50,8 @@
     "init_empty": "Init empty",
     "clone": "Clone",
     "delete_confirm": "Remove repo \"{{name}}\" from this project? Including all local changes.",
+    "delete_repo": "Remove repo",
+    "danger_zone_hint": "This permanently deletes the local workspace contents.",
     "ahead": "ahead",
     "behind": "behind",
     "commit_message_placeholder": "Commit message…",
