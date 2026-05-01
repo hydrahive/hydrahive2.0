@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectCreate, ProjectGitStatus, ProjectStats, ProjectSession } from "./types"
+import type { Project, ProjectCreate, ProjectGitRepo, ProjectStats, ProjectSession } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -14,17 +14,22 @@ export const projectsApi = {
     api.delete<Project>(`/projects/${id}/members/${username}`),
   getAgent: (id: string) => api.get<{ id: string; name: string; llm_model: string }>(`/projects/${id}/agent`),
   getSessions: (id: string) => api.get<ProjectSession[]>(`/projects/${id}/sessions`),
-  getGit: (id: string) => api.get<ProjectGitStatus>(`/projects/${id}/git`),
   getStats: (id: string) => api.get<ProjectStats>(`/projects/${id}/stats`),
-  putGitConfig: (id: string, body: { remote_url?: string; git_token?: string }) =>
-    api.put<{ ok: boolean }>(`/projects/${id}/git/config`, body),
-  gitInit: (id: string) => api.post<{ ok: boolean }>(`/projects/${id}/git/init`, {}),
-  gitClone: (id: string, body: { url: string; branch?: string; token?: string }) =>
-    api.post<{ ok: boolean }>(`/projects/${id}/git/clone`, body),
-  gitCommit: (id: string, message: string) =>
-    api.post<{ ok: boolean }>(`/projects/${id}/git/commit`, { message }),
-  gitPush: (id: string) => api.post<{ ok: boolean }>(`/projects/${id}/git/push`, {}),
-  gitPull: (id: string) => api.post<{ ok: boolean }>(`/projects/${id}/git/pull`, {}),
+  getRepos: (id: string) => api.get<ProjectGitRepo[]>(`/projects/${id}/git/repos`),
+  cloneRepo: (id: string, body: { name: string; url: string; branch?: string; token?: string }) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/repos/clone`, body),
+  initRepo: (id: string, name: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/repos/init`, { name }),
+  putRepoConfig: (id: string, name: string, body: { remote_url?: string; git_token?: string }) =>
+    api.put<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/config`, body),
+  commitRepo: (id: string, name: string, message: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/commit`, { message }),
+  pushRepo: (id: string, name: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/push`, {}),
+  pullRepo: (id: string, name: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/pull`, {}),
+  deleteRepo: (id: string, name: string) =>
+    api.delete<void>(`/projects/${id}/git/repos/${encodeURIComponent(name)}`),
 }
 
 export const usersApi = {

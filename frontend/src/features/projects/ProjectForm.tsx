@@ -96,7 +96,7 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
         )}
         {tab === "overview" && <OverviewTab project={project} draft={draft} agentName={agentName} onChange={onSaved} onDraftChange={setDraft} />}
         {tab === "sessions" && <SessionsTab projectId={project.id} />}
-        {tab === "git" && <GitTab projectId={project.id} gitInitialized={project.git_initialized} onChanged={() => projectsApi.get(project.id).then(onSaved)} />}
+        {tab === "git" && <GitTab projectId={project.id} onChanged={() => projectsApi.get(project.id).then(onSaved)} />}
         {tab === "stats" && <StatsTab projectId={project.id} />}
         {tab === "settings" && <SettingsTab project={project} draft={draft} onDraftChange={setDraft} onDeleted={onDeleted} />}
       </div>
