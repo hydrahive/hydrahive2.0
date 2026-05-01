@@ -23,6 +23,60 @@
     --destructive: 0 63% 58%;
     --destructive-foreground: 0 0% 100%;
     --radius: 0.75rem;
+
+    /* Theme-Akzentfarben — default Violet (Standard) */
+    --hh-accent-from: rgb(79 70 229);    /* indigo-600 */
+    --hh-accent-to:   rgb(124 58 237);   /* violet-600 */
+    --hh-accent:      rgb(139 92 246);   /* violet-500 */
+    --hh-accent-text: rgb(196 181 253);  /* violet-300 */
+    --hh-accent-soft: rgba(139, 92, 246, 0.10);
+    --hh-accent-border: rgba(139, 92, 246, 0.30);
+    --hh-scrollbar-thumb: rgba(139, 92, 246, 0.18);
+    --hh-scrollbar-thumb-hover: rgba(139, 92, 246, 0.35);
+  }
+
+  [data-theme="cool"] {
+    --hh-accent-from: rgb(2 132 199);    /* sky-600 */
+    --hh-accent-to:   rgb(8 145 178);    /* cyan-600 */
+    --hh-accent:      rgb(6 182 212);    /* cyan-500 */
+    --hh-accent-text: rgb(103 232 249);  /* cyan-300 */
+    --hh-accent-soft: rgba(6, 182, 212, 0.10);
+    --hh-accent-border: rgba(6, 182, 212, 0.30);
+    --hh-scrollbar-thumb: rgba(6, 182, 212, 0.18);
+    --hh-scrollbar-thumb-hover: rgba(6, 182, 212, 0.35);
+  }
+
+  [data-theme="warm"] {
+    --hh-accent-from: rgb(234 88 12);    /* orange-600 */
+    --hh-accent-to:   rgb(217 119 6);    /* amber-600 */
+    --hh-accent:      rgb(245 158 11);   /* amber-500 */
+    --hh-accent-text: rgb(252 211 77);   /* amber-300 */
+    --hh-accent-soft: rgba(245, 158, 11, 0.10);
+    --hh-accent-border: rgba(245, 158, 11, 0.30);
+    --hh-scrollbar-thumb: rgba(245, 158, 11, 0.18);
+    --hh-scrollbar-thumb-hover: rgba(245, 158, 11, 0.35);
+  }
+
+  [data-theme="forest"] {
+    --hh-accent-from: rgb(5 150 105);    /* emerald-600 */
+    --hh-accent-to:   rgb(13 148 136);   /* teal-600 */
+    --hh-accent:      rgb(16 185 129);   /* emerald-500 */
+    --hh-accent-text: rgb(110 231 183);  /* emerald-300 */
+    --hh-accent-soft: rgba(16, 185, 129, 0.10);
+    --hh-accent-border: rgba(16, 185, 129, 0.30);
+    --hh-scrollbar-thumb: rgba(16, 185, 129, 0.18);
+    --hh-scrollbar-thumb-hover: rgba(16, 185, 129, 0.35);
+  }
+
+  [data-theme="mono"] {
+    --hh-accent-from: rgb(63 63 70);     /* zinc-700 */
+    --hh-accent-to:   rgb(82 82 91);     /* zinc-600 */
+    --hh-accent:      rgb(161 161 170);  /* zinc-400 */
+    --hh-accent-text: rgb(212 212 216);  /* zinc-300 */
+    --hh-accent-soft: rgba(161, 161, 170, 0.10);
+    --hh-accent-border: rgba(161, 161, 170, 0.30);
+    --hh-scrollbar-thumb: rgba(161, 161, 170, 0.18);
+    --hh-scrollbar-thumb-hover: rgba(161, 161, 170, 0.35);
   }
 
   .light {
@@ -54,14 +108,14 @@
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.18);
+    background: var(--hh-scrollbar-thumb);
     border-radius: 8px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.35); background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--hh-scrollbar-thumb-hover); background-clip: padding-box; }
   ::-webkit-scrollbar-corner { background: transparent; }
 
   /* Firefox */
-  * { scrollbar-width: thin; scrollbar-color: rgba(139, 92, 246, 0.25) transparent; }
+  * { scrollbar-width: thin; scrollbar-color: var(--hh-scrollbar-thumb) transparent; }
 }

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 import { ChangeOwnPasswordCard } from "./ChangeOwnPasswordCard"
+import { ThemeSwitcher } from "./ThemeSwitcher"
 import { TTSSettings } from "./TTSSettings"
 
 export function ProfilePage() {
@@ -43,6 +44,8 @@ export function ProfilePage() {
           <LanguageSwitcher />
         </div>
       </div>
+
+      <ThemeSwitcher />
 
       <TTSSettings />
     </div>

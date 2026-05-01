@@ -145,8 +145,8 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
       </div>
 
       {dirty && (
-        <div className="px-5 py-2.5 border-t border-violet-500/20 bg-gradient-to-r from-violet-950/40 to-indigo-950/40 backdrop-blur flex items-center gap-3">
-          <span className="text-xs text-violet-200 flex-1">
+        <div className="px-5 py-2.5 border-t border-[var(--hh-accent-border)] bg-[var(--hh-accent-soft)] backdrop-blur flex items-center gap-3">
+          <span className="text-xs text-[var(--hh-accent-text)] flex-1">
             {t("unsaved_hint")}
           </span>
           <button
@@ -158,7 +158,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           </button>
           <button
             onClick={save} disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-30 transition-all shadow shadow-violet-900/30"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white text-xs font-medium disabled:opacity-30 transition-all shadow shadow-black/30"
           >
             {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
             {tCommon("actions.save")}

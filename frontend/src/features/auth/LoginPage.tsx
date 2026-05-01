@@ -47,7 +47,7 @@ export function LoginPage() {
         <div className="rounded-2xl border border-white/[8%] bg-white/[3%] backdrop-blur-sm p-8 shadow-2xl shadow-black/40">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 mb-4 shadow-lg shadow-violet-900/50">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] mb-4 shadow-lg shadow-black/30">
               <span className="text-2xl">🐝</span>
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-300 bg-clip-text text-transparent">
@@ -94,7 +94,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-900/30 mt-2"
+              className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white font-medium text-sm focus:outline-none focus:ring-2 focus:ring-[var(--hh-accent-border)] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-black/30 mt-2"
             >
               {loading ? t("login.submitting") : t("login.submit")}
             </button>

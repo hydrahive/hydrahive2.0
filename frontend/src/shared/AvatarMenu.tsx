@@ -24,7 +24,7 @@ export function AvatarMenu() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-700 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-violet-900/30 hover:scale-105 transition-transform"
+        className="relative w-8 h-8 rounded-full bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] flex items-center justify-center text-white text-xs font-bold shadow-md shadow-black/30 hover:scale-105 transition-transform"
         title={username ?? ""}
       >
         {username?.[0]?.toUpperCase() ?? "?"}

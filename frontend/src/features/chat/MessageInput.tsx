@@ -115,7 +115,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
           </button>
         ) : (
           <button onClick={submit} disabled={busy || (!text.trim() && files.length === 0) || disabled}
-            className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-violet-900/20">
+            className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-black/30">
             <Send size={15} />
           </button>
         )}

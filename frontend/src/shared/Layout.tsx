@@ -78,10 +78,10 @@ export function Layout() {
       {/* Top-Bar */}
       <header className="relative z-30 flex items-center gap-2 px-3 sm:px-4 h-12 border-b border-white/[6%] bg-zinc-950/80 backdrop-blur">
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 via-violet-600 to-purple-700 flex items-center justify-center text-xs shadow-md shadow-violet-900/40">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] flex items-center justify-center text-xs shadow-md shadow-black/40">
             🐝
           </div>
-          <span className="hidden sm:inline font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-300 bg-clip-text text-transparent tracking-tight">
+          <span className="hidden sm:inline font-bold text-[var(--hh-accent-text)] tracking-tight">
             HydraHive
           </span>
         </Link>
