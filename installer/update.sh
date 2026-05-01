@@ -238,7 +238,12 @@ fi
 
 log "nginx-Config prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
-if [ -f "$NGINX_CONF" ]; then
+if ! command -v nginx >/dev/null 2>&1 || [ ! -f "$NGINX_CONF" ]; then
+  log "nginx fehlt oder nicht konfiguriert — starte 60-nginx.sh"
+  HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
+    HH_REPO_DIR="$HH_REPO_DIR" \
+    bash "$HH_REPO_DIR/installer/modules/60-nginx.sh"
+else
   NEEDS_REWRITE=0
   grep -q "ssl_certificate"      "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "/vnc-ws/"             "$NGINX_CONF" || NEEDS_REWRITE=1

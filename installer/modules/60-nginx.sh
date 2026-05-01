@@ -19,11 +19,16 @@ TLS_DIR=/etc/hydrahive2/tls
 if [ ! -f "$TLS_DIR/hydrahive.crt" ]; then
   log "Erzeuge Self-Signed-TLS-Zertifikat"
   mkdir -p "$TLS_DIR"
+  # Server-IP für SAN ermitteln — sonst schlägt Zertifikatsprüfung beim LAN-Zugriff fehl
+  SERVER_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/{print $7; exit}' || hostname -I 2>/dev/null | awk '{print $1}')
+  SAN="IP:127.0.0.1"
+  [ -n "$SERVER_IP" ] && [ "$SERVER_IP" != "127.0.0.1" ] && SAN="IP:127.0.0.1,IP:$SERVER_IP"
+  log "TLS SAN: $SAN"
   openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
     -keyout "$TLS_DIR/hydrahive.key" \
     -out    "$TLS_DIR/hydrahive.crt" \
     -subj   "/CN=hydrahive2/O=HydraHive/C=DE" \
-    -addext "subjectAltName=IP:127.0.0.1" \
+    -addext "subjectAltName=$SAN" \
     2>/dev/null
   chmod 600 "$TLS_DIR/hydrahive.key"
   chmod 644 "$TLS_DIR/hydrahive.crt"
@@ -108,5 +113,10 @@ rm -f /etc/nginx/sites-enabled/default
 log "Teste nginx-Config"
 nginx -t
 
-log "Reload nginx"
-systemctl reload nginx
+log "nginx aktivieren und starten"
+systemctl enable nginx >/dev/null 2>&1
+if systemctl is-active --quiet nginx; then
+  systemctl reload nginx
+else
+  systemctl start nginx
+fi
