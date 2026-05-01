@@ -17,6 +17,8 @@ def add(project_id: str, username: str) -> dict:
     cfg["members"].append(username)
     cfg["updated_at"] = now_iso()
     _save_atomic(config_path(project_id), cfg)
+    from hydrahive.agents._workspace_links import sync_links_for_user
+    sync_links_for_user(username)
     return cfg
 
 
@@ -29,4 +31,6 @@ def remove(project_id: str, username: str) -> dict:
     cfg["members"].remove(username)
     cfg["updated_at"] = now_iso()
     _save_atomic(config_path(project_id), cfg)
+    from hydrahive.agents._workspace_links import sync_links_for_user
+    sync_links_for_user(username)
     return cfg

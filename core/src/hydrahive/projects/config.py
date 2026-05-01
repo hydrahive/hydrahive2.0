@@ -86,6 +86,8 @@ def create(
     )
     cfg["agent_id"] = agent["id"]
     _save_atomic(config_path(project_id), cfg)
+    from hydrahive.agents._workspace_links import sync_links_for_project
+    sync_links_for_project(project_id)
     logger.info("Projekt '%s' angelegt (id=%s, agent=%s)", name, project_id, agent["id"])
     return cfg
 
@@ -130,6 +132,9 @@ def update(project_id: str, **changes: Any) -> dict:
     cfg.update(changes)
     cfg["updated_at"] = now_iso()
     _save_atomic(config_path(project_id), cfg)
+    if "members" in changes or "name" in changes:
+        from hydrahive.agents._workspace_links import sync_links_for_project
+        sync_links_for_project(project_id)
     return cfg
 
 
@@ -144,6 +149,10 @@ def delete(project_id: str) -> bool:
     from hydrahive.vms import db as vms_db
     from hydrahive.containers import db as containers_db
     from hydrahive.samba import disable_share as samba_disable
+    from hydrahive.agents._workspace_links import sync_links_for_user
+    affected_users = set(cfg.get("members", []))
+    if cfg.get("created_by"):
+        affected_users.add(cfg["created_by"])
     vms_db.clear_project_assignments(project_id)
     containers_db.clear_project_assignments(project_id)
     samba_disable(project_id)
@@ -153,5 +162,7 @@ def delete(project_id: str) -> bool:
     pd = project_dir(project_id)
     if pd.exists():
         shutil.rmtree(pd)
+    for user in affected_users:
+        sync_links_for_user(user)
     logger.info("Projekt gelöscht: %s", project_id)
     return True

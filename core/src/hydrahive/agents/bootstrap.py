@@ -40,6 +40,8 @@ def ensure_master(username: str, llm_model: str = "claude-sonnet-4-6") -> dict:
             created_by=username,
         )
         _write_startup(agent)
+        from hydrahive.agents._workspace_links import sync_links_for_user
+        sync_links_for_user(username)
         return agent
     except _validation.AgentValidationError as e:
         logger.warning(

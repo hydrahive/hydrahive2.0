@@ -40,10 +40,24 @@ _SCHEMA = {
 }
 
 
+def _first_token_in(project: dict) -> str | None:
+    repos = project.get("git_repos", {}) or {}
+    for r in repos.values():
+        if isinstance(r, dict) and r.get("git_token"):
+            return r["git_token"]
+    return project.get("git_token") or None
+
+
 def _resolve_gh_token(ctx: ToolContext) -> str | None:
-    """Findet den GitHub-Token für den aktuellen Project-Agent. Wenn das Projekt
-    mehrere Repos mit unterschiedlichen Tokens hat, wird der erste genommen —
-    Common-Case ist ein User mit einem Account."""
+    """Findet den GitHub-Token für die aktuelle Tool-Invocation.
+
+    Master-Agent: kein eigenes project_id — wir suchen alle Projekte des
+    Owners und nehmen den ersten Token. Reicht wenn der User einen GitHub-
+    Account hat. Edge-Case Multi-Account-User: später per cwd-basiertem
+    Lookup ergänzen.
+
+    Project-Agent: project_id ist gesetzt → direkt der Projekt-Token.
+    """
     try:
         from hydrahive.agents import config as agent_config
         from hydrahive.projects import config as project_config
@@ -53,16 +67,18 @@ def _resolve_gh_token(ctx: ToolContext) -> str | None:
     if not agent:
         return None
     project_id = agent.get("project_id")
-    if not project_id:
+    if project_id:
+        project = project_config.get(project_id)
+        if project:
+            return _first_token_in(project)
+    owner = agent.get("owner") or ""
+    if not owner:
         return None
-    project = project_config.get(project_id)
-    if not project:
-        return None
-    repos = project.get("git_repos", {}) or {}
-    for r in repos.values():
-        if isinstance(r, dict) and r.get("git_token"):
-            return r["git_token"]
-    return project.get("git_token") or None
+    for p in project_config.list_for_user(owner):
+        token = _first_token_in(p)
+        if token:
+            return token
+    return None
 
 
 def _build_env(ctx: ToolContext) -> dict:
