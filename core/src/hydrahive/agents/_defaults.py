@@ -6,20 +6,20 @@ from __future__ import annotations
 _BASE_TOOLS: dict[str, list[str]] = {
     "master": [
         "shell_exec", "file_read", "file_write", "file_patch", "file_search",
-        "dir_list", "web_search", "http_request",
+        "dir_list", "web_search", "http_request", "fetch_url",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "send_mail", "list_projects",
         "list_skills", "load_skill",
     ],
     "project": [
         "shell_exec", "file_read", "file_write", "file_patch", "file_search",
-        "dir_list",
+        "dir_list", "fetch_url",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "list_projects",
         "list_skills", "load_skill",
     ],
     "specialist": [
-        "list_skills", "load_skill",
+        "fetch_url", "list_skills", "load_skill",
     ],
 }
 

@@ -284,7 +284,10 @@ def _build_skills_block(agent: dict) -> str:
     if not skills:
         return ""
     lines = ["## Verfügbare Skills",
-             "Mit `load_skill(name)` lädst du den vollen Body in den Kontext."]
+             "Mit `load_skill(name)` lädst du den vollen Body in den Kontext.",
+             "Skills können externe Quellen (URLs) deklarieren — diese rufst du mit "
+             "`fetch_url(url)` ab; Auth wird automatisch via Credential-Profil-Match "
+             "eingehängt (Token landet NICHT im Tool-Result)."]
     for s in skills:
         when = f" — when: {s.when_to_use}" if s.when_to_use else ""
         desc = f": {s.description}" if s.description else ""
