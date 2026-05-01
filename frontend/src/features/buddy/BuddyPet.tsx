@@ -10,7 +10,7 @@ export function BuddyPet() {
   })
 
   return (
-    <div className="w-64 h-64">
+    <div className="w-64 h-64 [&_canvas]:!bg-transparent">
       <RiveComponent />
     </div>
   )
