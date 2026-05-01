@@ -87,6 +87,9 @@
     "title": "SMB Share",
     "enable": "Enabled",
     "hint": "Login info: see System page → SMB Shares. Samba must be set up on the system.",
+    "hint_inline": "Login is the same for all enabled projects. Samba must be set up on the system (see System page).",
+    "user_label": "User",
+    "password_label": "Password",
     "copy": "Copy",
     "copied": "Copied!"
   },
