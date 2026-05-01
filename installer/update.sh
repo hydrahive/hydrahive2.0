@@ -309,12 +309,10 @@ else
   fi
 fi
 
-log "HydraLink (AgentLink) Update"
-if [ -d "/opt/hydralink/.git" ]; then
-  git -C /opt/hydralink -c safe.directory=/opt/hydralink pull --ff-only || log "hydralink-pull failed — weiter"
-  bash /opt/hydralink/installer/install.sh || log "hydralink-install failed — weiter"
-elif [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
-  log "hydralink fehlt — wird jetzt installiert"
+if [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
+  log "HydraLink (AgentLink) Update über 75-agentlink.sh"
+  # Wrapper rufen statt /opt/hydralink/installer/install.sh direkt — sonst
+  # wird HL_BACKEND_PORT=9000 nicht gesetzt und hydralink fällt auf 8000 zurück.
   bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh" || log "hydralink-install failed — weiter"
 fi
 
