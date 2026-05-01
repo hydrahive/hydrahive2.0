@@ -57,8 +57,11 @@ if ! id "$SAMBA_USER" >/dev/null 2>&1; then
   useradd -r -M -s /usr/sbin/nologin "$SAMBA_USER"
 fi
 
-# hydrahive-User in Samba-User-Gruppe damit der Backend-Service Workspaces
-# anlegen kann die der Samba-User auch lesen kann
+# Samba-User in hydrahive-Gruppe damit er durch /var/lib/hydrahive2 kommt
+# (das Top-Level hat 750 hydrahive:hydrahive, ohne diese Membership wird
+# jeder Share-Zugriff mit ACCESS_DENIED beim Path-Traversal blockiert).
+usermod -a -G "$HH_USER" "$SAMBA_USER" 2>/dev/null || true
+# Plus auch andersrum für Backend-Schreibzugriff auf /etc/samba/hh-projects.d
 usermod -a -G "$SAMBA_USER" "$HH_USER" 2>/dev/null || true
 
 # Passwort generieren falls nicht da
