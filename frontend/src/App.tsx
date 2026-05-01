@@ -19,6 +19,7 @@ import { VMsPage } from "@/features/vms/VMsPage"
 import { ContainersPage } from "@/features/containers/ContainersPage"
 import { ContainerDetailPage } from "@/features/containers/ContainerDetailPage"
 import { ButlerPage } from "@/features/butler/ButlerPage"
+import { BuddyPage } from "@/features/buddy/BuddyPage"
 import { HelpPage } from "@/features/help/HelpPage"
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -46,8 +47,10 @@ export default function App() {
             </Guard>
           }
         >
-          <Route index element={<DashboardPage />} />
-          <Route path="chat" element={<ChatPage />} />
+          <Route index element={<BuddyPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="devchat" element={<ChatPage />} />
+          <Route path="chat" element={<Navigate to="/devchat" replace />} />
           <Route path="agents" element={<AgentsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="communication" element={<CommunicationPage />} />
