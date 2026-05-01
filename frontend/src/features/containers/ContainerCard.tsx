@@ -1,4 +1,4 @@
-import { Box, Cpu, MemoryStick, Network, Play, RotateCw, Square, Terminal, Trash2 } from "lucide-react"
+import { Box, Cpu, MemoryStick, Network, Pencil, Play, RotateCw, Square, Terminal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import type { Container, ContainerInfo } from "./types"
@@ -12,9 +12,10 @@ interface Props {
   onStop: () => Promise<void>
   onRestart: () => Promise<void>
   onDelete: () => Promise<void>
+  onEdit: () => void
 }
 
-export function ContainerCard({ container: c, onStart, onStop, onRestart, onDelete }: Props) {
+export function ContainerCard({ container: c, onStart, onStop, onRestart, onDelete, onEdit }: Props) {
   const [busy, setBusy] = useState(false)
   const [info, setInfo] = useState<ContainerInfo | null>(null)
   const [showConsole, setShowConsole] = useState(false)
@@ -110,6 +111,12 @@ export function ContainerCard({ container: c, onStart, onStop, onRestart, onDele
           </>
         )}
         <div className="flex-1" />
+        {!running && !transitioning && (
+          <button onClick={onEdit}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-violet-300 hover:bg-violet-500/10" title="Bearbeiten">
+            <Pencil size={12} />
+          </button>
+        )}
         {!running && !transitioning && (
           <button disabled={busy} onClick={() => {
             if (confirm(`Container "${c.name}" wirklich löschen? Daten sind weg.`)) withBusy(onDelete)

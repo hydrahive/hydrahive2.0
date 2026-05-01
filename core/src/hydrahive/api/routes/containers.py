@@ -96,6 +96,41 @@ def get_container(
     return asdict(_container_or_404(container_id, *auth))
 
 
+class ContainerUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=63)
+    description: str | None = Field(default=None, max_length=500)
+    cpu: int | None = Field(default=None, ge=MIN_CPU, le=MAX_CPU)
+    ram_mb: int | None = Field(default=None, ge=MIN_RAM_MB, le=MAX_RAM_MB)
+    clear_cpu: bool = False  # explizit unbegrenzt
+    clear_ram: bool = False
+
+
+@router.patch("/{container_id}")
+def update_container(
+    container_id: str,
+    req: ContainerUpdate,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    c = _container_or_404(container_id, *auth)
+    if c.actual_state not in ("stopped", "created", "error"):
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_must_be_stopped",
+                    state=c.actual_state)
+    if req.name and req.name != c.name and not re.match(NAME_RE, req.name):
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_name_invalid", name=req.name)
+    if req.name and req.name != c.name and cdb.name_taken(req.name, exclude_id=container_id):
+        raise coded(status.HTTP_409_CONFLICT, "container_name_taken", name=req.name)
+    cdb.update_container_config(
+        container_id,
+        name=req.name,
+        description=req.description if req.description is not None else ...,
+        cpu=None if req.clear_cpu else (req.cpu if req.cpu is not None else ...),
+        ram_mb=None if req.clear_ram else (req.ram_mb if req.ram_mb is not None else ...),
+    )
+    # Live-Limits dem incus-Container nachschieben (nur stopped — sind beim
+    # Start eh frisch gesetzt, hier just-in-case wenn er gleich starten soll)
+    return asdict(cdb.get(container_id))  # type: ignore[arg-type]
+
+
 @router.delete("/{container_id}", status_code=204)
 async def delete_container(
     container_id: str,
