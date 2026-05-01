@@ -11,8 +11,11 @@ else
   useradd --system --create-home --home-dir "/home/$HH_USER" --shell /usr/sbin/nologin "$HH_USER"
 fi
 
-# SSH-Verzeichnis mit korrekten Permissions — git braucht lesbare known_hosts
+# Standard-XDG-Verzeichnisse — systemd ReadWritePaths schlägt fehl wenn sie fehlen
 HH_HOME="/home/$HH_USER"
+mkdir -p "$HH_HOME/.config" "$HH_HOME/.cache" "$HH_HOME/.local/share"
+
+# SSH-Verzeichnis mit korrekten Permissions — git braucht lesbare known_hosts
 SSH_DIR="$HH_HOME/.ssh"
 if [ ! -d "$SSH_DIR" ]; then
   mkdir -p "$SSH_DIR"
