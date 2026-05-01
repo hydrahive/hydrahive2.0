@@ -73,4 +73,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     )
 
 
-TOOL = Tool(name="file_search", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="file_search", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="files")

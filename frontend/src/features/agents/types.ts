@@ -28,6 +28,7 @@ export interface Agent {
 export interface ToolMeta {
   name: string
   description: string
+  category?: string
 }
 
 export interface AgentDefaults {

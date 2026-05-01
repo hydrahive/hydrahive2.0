@@ -56,4 +56,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok({"entries": entries, "count": len(entries), "truncated": truncated})
 
 
-TOOL = Tool(name="dir_list", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="dir_list", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="files")

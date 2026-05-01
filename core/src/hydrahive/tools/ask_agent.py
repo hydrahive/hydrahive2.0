@@ -131,4 +131,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok(output)
 
 
-TOOL = Tool(name="ask_agent", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="ask_agent", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="agents")

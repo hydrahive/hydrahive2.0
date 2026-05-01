@@ -71,4 +71,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok(f"Mail an {to} gesendet", to=to, subject=subject)
 
 
-TOOL = Tool(name="send_mail", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="send_mail", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="mail")

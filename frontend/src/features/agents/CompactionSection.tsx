@@ -1,3 +1,4 @@
+import { Info } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { Agent } from "./types"
 
@@ -8,9 +9,7 @@ interface Props {
 }
 
 /**
- * Per-Agent Compaction-Settings (#82) — Compact-Modell, Tool-Result-Limit,
- * Reserve-Tokens, Threshold-Prozent. Alle optional; leere/Default-Werte
- * bedeuten: nutze System-Default.
+ * Per-Agent Compaction-Settings (#82) — alle optional, leer = System-Default.
  */
 export function CompactionSection({ agent, models, onChange }: Props) {
   const { t } = useTranslation("agents")
@@ -20,21 +19,21 @@ export function CompactionSection({ agent, models, onChange }: Props) {
   const thresholdPct = agent.compact_threshold_pct ?? 100
 
   return (
-    <div className="space-y-3 rounded-lg border border-white/[6%] bg-white/[2%] p-4">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-          {t("compaction.section_title")}
-        </p>
-        <p className="text-[11px] text-zinc-500 mt-0.5">{t("compaction.section_hint")}</p>
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <p className="text-xs font-medium text-zinc-400">{t("compaction.section_title")}</p>
+        <span title={t("compaction.help")} className="text-zinc-600 hover:text-zinc-400 cursor-help">
+          <Info size={11} />
+        </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className="block text-[11px] text-zinc-500">{t("compaction.model")}</label>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="space-y-0.5">
+          <label className="block text-[10px] text-zinc-500">{t("compaction.model")}</label>
           <select
             value={compactModel}
             onChange={(e) => onChange({ compact_model: e.target.value })}
-            className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200"
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
           >
             <option value="">{t("compaction.model_main", { model: agent.llm_model })}</option>
             {models.filter(m => m !== agent.llm_model).map((m) => (
@@ -43,12 +42,12 @@ export function CompactionSection({ agent, models, onChange }: Props) {
           </select>
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-[11px] text-zinc-500">{t("compaction.tool_result_limit")}</label>
+        <div className="space-y-0.5">
+          <label className="block text-[10px] text-zinc-500">{t("compaction.tool_result_limit")}</label>
           <select
             value={toolLimit}
             onChange={(e) => onChange({ compact_tool_result_limit: parseInt(e.target.value) })}
-            className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200"
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
           >
             <option value={500}>500 ({t("compaction.aggressive")})</option>
             <option value={1000}>1000</option>
@@ -58,10 +57,8 @@ export function CompactionSection({ agent, models, onChange }: Props) {
           </select>
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-[11px] text-zinc-500">
-            {t("compaction.reserve_tokens")}
-          </label>
+        <div className="space-y-0.5">
+          <label className="block text-[10px] text-zinc-500">{t("compaction.reserve_tokens")}</label>
           <input
             type="number"
             min={1000}
@@ -69,12 +66,12 @@ export function CompactionSection({ agent, models, onChange }: Props) {
             step={1000}
             value={reserve}
             onChange={(e) => onChange({ compact_reserve_tokens: parseInt(e.target.value) })}
-            className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200"
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="block text-[11px] text-zinc-500">
+        <div className="space-y-0.5">
+          <label className="block text-[10px] text-zinc-500">
             {t("compaction.threshold_pct", { pct: thresholdPct })}
           </label>
           <input
@@ -88,10 +85,6 @@ export function CompactionSection({ agent, models, onChange }: Props) {
           />
         </div>
       </div>
-
-      <p className="text-[11px] text-zinc-500/70 leading-relaxed">
-        {t("compaction.help")}
-      </p>
     </div>
   )
 }

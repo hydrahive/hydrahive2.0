@@ -59,4 +59,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok(output, exit_code=res.exit_code)
 
 
-TOOL = Tool(name="shell_exec", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="shell_exec", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="shell")

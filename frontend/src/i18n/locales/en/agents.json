@@ -23,6 +23,18 @@
     "fallback_models": "Fallback models",
     "fallback_hint": "On quota/overload/auth errors of the primary model these are tried in order. Use ↑ to reorder."
   },
+  "tool_categories": {
+    "all": "All ({{count}})",
+    "files": "Files",
+    "shell": "Shell",
+    "memory": "Memory",
+    "web": "Web",
+    "tasks": "Tasks",
+    "mail": "Mail",
+    "agents": "Agents",
+    "other": "Other",
+    "plugin": "Plugin: {{name}}"
+  },
   "errors": {
     "save_failed": "Save failed",
     "delete_confirm": "Really delete agent \"{{name}}\"? Includes memory + workspace.",

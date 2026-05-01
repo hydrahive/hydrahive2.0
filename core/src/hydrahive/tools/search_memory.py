@@ -73,4 +73,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok({"query": query, "hits": hits, "count": len(hits), "total_keys": len(data)})
 
 
-TOOL = Tool(name="search_memory", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="search_memory", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="memory")

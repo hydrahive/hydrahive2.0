@@ -54,4 +54,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok({"query": query, "results": results, "count": len(results)})
 
 
-TOOL = Tool(name="web_search", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="web_search", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="web")

@@ -40,6 +40,7 @@ def all_tool_meta() -> list[dict]:
             out.append({
                 "name": make_tool_name(plugin.name, tool.name),
                 "description": tool.description,
+                "category": f"plugin:{plugin.name}",
             })
     return out
 
