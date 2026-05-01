@@ -53,10 +53,15 @@ def render_share(project_id: str, project_name: str) -> str:
 
 def _reload_smbd() -> bool:
     """smbd config reloaden. Failt leise wenn smbd nicht installiert."""
-    if not shutil.which("smbcontrol"):
+    smbcontrol = shutil.which("smbcontrol")
+    if not smbcontrol:
+        for cand in ("/usr/bin/smbcontrol", "/usr/sbin/smbcontrol"):
+            if Path(cand).exists():
+                smbcontrol = cand; break
+    if not smbcontrol:
         return False
     try:
-        subprocess.run(["smbcontrol", "all", "reload-config"],
+        subprocess.run([smbcontrol, "all", "reload-config"],
                        capture_output=True, timeout=10, check=False)
         return True
     except Exception as e:
@@ -96,8 +101,20 @@ def share_name_for(project_id: str, project_name: str) -> str:
     return _safe_share_name(project_name, project_id)
 
 
+def _find_smbd() -> str | None:
+    """Finde smbd-Binary. Service-PATH hat oft kein /usr/sbin — also auch
+    explizit dort nachschauen."""
+    found = shutil.which("smbd") or shutil.which("samba")
+    if found:
+        return found
+    for candidate in ("/usr/sbin/smbd", "/usr/local/sbin/smbd", "/sbin/smbd"):
+        if Path(candidate).exists():
+            return candidate
+    return None
+
+
 def samba_status() -> dict:
-    smbd_bin = shutil.which("smbd") or shutil.which("samba")
+    smbd_bin = _find_smbd()
     installed = bool(smbd_bin)
     running = False
     if installed:
