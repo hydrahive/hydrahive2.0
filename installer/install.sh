@@ -58,6 +58,9 @@ bash "$INSTALLER_DIR/modules/40-frontend.sh"
 log "Phase 6: WhatsApp-Bridge"
 bash "$INSTALLER_DIR/modules/45-whatsapp.sh"
 
+log "Phase 7a: Samba (Projekt-Workspace-Shares)"
+bash "$INSTALLER_DIR/modules/47-samba.sh"
+
 log "Phase 7: systemd-Service"
 bash "$INSTALLER_DIR/modules/50-systemd.sh"
 

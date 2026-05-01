@@ -45,6 +45,14 @@ export const systemApi = {
   bridgeSetup: () => api.post<{ started: boolean }>("/system/bridge/setup", {}),
   bridgeLog: (tail = 200) =>
     api.get<{ lines: string[]; exists: boolean }>(`/system/bridge/log?tail=${tail}`),
+  sambaStatus: () => api.get<{
+    installed: boolean; running: boolean; user: string;
+    password_set: boolean; password: string;
+    includes_dir: string; includes_dir_exists: boolean;
+  }>("/system/samba/status"),
+  sambaSetup: () => api.post<{ started: boolean }>("/system/samba/setup", {}),
+  sambaLog: (tail = 200) =>
+    api.get<{ lines: string[]; exists: boolean }>(`/system/samba/log?tail=${tail}`),
   downloadBackup: async () => {
     const token = useAuthStore.getState().token || ""
     const r = await fetch("/api/admin/backup", {

@@ -10,6 +10,7 @@ import { useRestart } from "@/shared/useRestart"
 import { systemApi, type HealthCheck, type SystemInfo, type SystemStats } from "./api"
 import { AgentLinkCard } from "./AgentLinkCard"
 import { BridgeCard } from "./BridgeCard"
+import { SambaCard } from "./SambaCard"
 import { TailscaleCard } from "./TailscaleCard"
 import { BackupCard } from "./BackupCard"
 import { HealthBar } from "./HealthBar"
@@ -160,6 +161,7 @@ export function SystemPage() {
       <AgentLinkCard />
       {role === "admin" && <TailscaleCard />}
       {role === "admin" && <BridgeCard />}
+      {role === "admin" && <SambaCard />}
 
       {role === "admin" && <BackupCard />}
     </div>

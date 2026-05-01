@@ -33,6 +33,7 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("git_initialized", False)
     cfg.setdefault("git_token", "")
     cfg.setdefault("git_repos", {})
+    cfg.setdefault("samba_enabled", False)
     cfg.setdefault("metadata", {})
     cfg.setdefault("updated_at", cfg.get("created_at", ""))
     return cfg
@@ -142,8 +143,10 @@ def delete(project_id: str) -> bool:
         agent_config.delete(cfg["agent_id"])
     from hydrahive.vms import db as vms_db
     from hydrahive.containers import db as containers_db
+    from hydrahive.samba import disable_share as samba_disable
     vms_db.clear_project_assignments(project_id)
     containers_db.clear_project_assignments(project_id)
+    samba_disable(project_id)
     ws = settings.data_dir / "workspaces" / "projects" / project_id
     if ws.exists():
         shutil.rmtree(ws)

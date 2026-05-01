@@ -83,6 +83,13 @@
     "danger_zone": "Gefahrenzone — diese Aktionen können nicht rückgängig gemacht werden.",
     "delete_project": "Projekt löschen"
   },
+  "samba": {
+    "title": "SMB-Share",
+    "enable": "Aktiviert",
+    "hint": "Login-Daten siehe System-Page → SMB-Shares. Samba muss am System eingerichtet sein.",
+    "copy": "Kopieren",
+    "copied": "Kopiert!"
+  },
   "new_dialog": {
     "title": "Neues Projekt",
     "name_placeholder": "z.B. Website Relaunch",

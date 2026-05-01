@@ -132,6 +132,43 @@ EOF
   systemctl restart hydrahive2-restart.timer
 fi
 
+if [ ! -f /etc/systemd/system/hydrahive2-samba.timer ] || [ ! -f /etc/systemd/system/hydrahive2-samba.service ]; then
+  log "Samba-Setup-Units anlegen"
+  cat > /etc/systemd/system/hydrahive2-samba.service <<EOF
+[Unit]
+Description=HydraHive2 Samba-Setup Runner
+ConditionPathExists=$HH_DATA_DIR/.samba_setup_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.samba_setup_request
+Environment=HH_USER=$HH_USER
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+ExecStart=$HH_REPO_DIR/installer/modules/47-samba.sh
+StandardOutput=append:/var/log/hydrahive2-samba.log
+StandardError=append:/var/log/hydrahive2-samba.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-samba.timer <<EOF
+[Unit]
+Description=HydraHive2 Samba-Setup Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-samba.service
+
+[Install]
+WantedBy=timers.target
+EOF
+  touch /var/log/hydrahive2-samba.log
+  chmod 644 /var/log/hydrahive2-samba.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-samba.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-samba.timer
+fi
+
 if [ ! -f /etc/systemd/system/hydrahive2-bridge.timer ] || [ ! -f /etc/systemd/system/hydrahive2-bridge.service ]; then
   log "Bridge-Setup-Units anlegen"
   cat > /etc/systemd/system/hydrahive2-bridge.service <<EOF

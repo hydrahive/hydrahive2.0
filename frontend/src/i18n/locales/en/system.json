@@ -90,6 +90,21 @@
     "error_connect": "Connection failed",
     "error_logout": "Logout failed"
   },
+  "samba": {
+    "title": "SMB Shares (Samba)",
+    "subtitle": "Project workspaces as network shares — mountable from Windows/Mac/Linux.",
+    "not_installed": "not set up",
+    "running": "running",
+    "setup": "Set up Samba",
+    "running_setup": "Setting up Samba…",
+    "done": "Samba running. Enable per-project via the project's settings tab.",
+    "failed": "Samba setup failed",
+    "timeout": "Setup timed out — check log",
+    "user": "Login",
+    "password": "Password",
+    "copy": "Copy",
+    "copied": "Copied!"
+  },
   "bridge": {
     "title": "Network bridge (br0)",
     "subtitle": "Bridged networking for VMs and containers — same IP range as the host.",

@@ -1,4 +1,5 @@
-import { Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { CheckCircle2, Copy, FolderOpen, Loader2, Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
 import type { Project } from "./types"
@@ -13,6 +14,33 @@ interface Props {
 export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props) {
   const { t } = useTranslation("projects")
   const { t: tCommon } = useTranslation("common")
+  const [samba, setSamba] = useState<{ enabled: boolean; share_name: string } | null>(null)
+  const [sambaBusy, setSambaBusy] = useState(false)
+  const [sambaError, setSambaError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    projectsApi.getSamba(project.id).then(setSamba).catch(() => setSamba(null))
+  }, [project.id])
+
+  async function toggleSamba() {
+    if (!samba) return
+    setSambaBusy(true); setSambaError(null)
+    try {
+      await projectsApi.putSamba(project.id, !samba.enabled)
+      const fresh = await projectsApi.getSamba(project.id)
+      setSamba(fresh)
+    } catch (e) {
+      setSambaError(e instanceof Error ? e.message : tCommon("status.error"))
+    } finally { setSambaBusy(false) }
+  }
+
+  async function copyShareUrl() {
+    if (!samba?.share_name) return
+    const url = `\\\\${window.location.hostname}\\${samba.share_name}`
+    await navigator.clipboard.writeText(url)
+    setCopied(true); setTimeout(() => setCopied(false), 1500)
+  }
 
   async function remove() {
     if (!confirm(t("delete_confirm", { name: project.name }))) return
@@ -35,6 +63,38 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
           <option value="archived">{tCommon("status.archived")}</option>
         </select>
       </div>
+
+      {samba && (
+        <div className="rounded-lg border border-white/[6%] bg-white/[2%] p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <FolderOpen size={14} className="text-amber-300" />
+            <p className="text-sm font-medium text-zinc-200 flex-1">{t("samba.title")}</p>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={samba.enabled} disabled={sambaBusy}
+                onChange={toggleSamba}
+                className="w-4 h-4 accent-amber-500" />
+              <span className="text-xs text-zinc-400">{t("samba.enable")}</span>
+              {sambaBusy && <Loader2 size={11} className="animate-spin text-amber-400" />}
+            </label>
+          </div>
+          {samba.enabled && (
+            <div className="flex items-center gap-2 pt-1">
+              <code className="text-xs text-amber-300 bg-amber-500/[6%] border border-amber-500/20 rounded px-2 py-1 font-mono flex-1 truncate">
+                {`\\\\${window.location.hostname}\\${samba.share_name}`}
+              </code>
+              <button onClick={copyShareUrl}
+                className="p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
+                title={copied ? t("samba.copied") : t("samba.copy")}>
+                {copied ? <CheckCircle2 size={12} className="text-emerald-400" /> : <Copy size={12} />}
+              </button>
+            </div>
+          )}
+          <p className="text-[10px] text-zinc-600">{t("samba.hint")}</p>
+          {sambaError && (
+            <p className="text-xs text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-md px-2 py-1">{sambaError}</p>
+          )}
+        </div>
+      )}
 
       <div className="pt-4 border-t border-white/[6%]">
         <p className="text-xs text-zinc-600 mb-3">{t("settings.danger_zone")}</p>

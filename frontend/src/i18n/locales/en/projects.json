@@ -83,6 +83,13 @@
     "danger_zone": "Danger zone — these actions cannot be undone.",
     "delete_project": "Delete project"
   },
+  "samba": {
+    "title": "SMB Share",
+    "enable": "Enabled",
+    "hint": "Login info: see System page → SMB Shares. Samba must be set up on the system.",
+    "copy": "Copy",
+    "copied": "Copied!"
+  },
   "new_dialog": {
     "title": "New project",
     "name_placeholder": "e.g. Website Relaunch",
