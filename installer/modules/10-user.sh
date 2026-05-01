@@ -11,9 +11,14 @@ else
   useradd --system --create-home --home-dir "/home/$HH_USER" --shell /usr/sbin/nologin "$HH_USER"
 fi
 
-# Standard-XDG-Verzeichnisse — systemd ReadWritePaths schlägt fehl wenn sie fehlen
+# Alle Verzeichnisse die in ReadWritePaths der Service-Unit stehen — fehlende
+# lassen systemd mit status=226/NAMESPACE scheitern, auch wenn nicht genutzt.
 HH_HOME="/home/$HH_USER"
-mkdir -p "$HH_HOME/.config" "$HH_HOME/.cache" "$HH_HOME/.local/share"
+mkdir -p \
+  "$HH_HOME/.config" \
+  "$HH_HOME/.cache" \
+  "$HH_HOME/.local/share" \
+  "$HH_HOME/.mmx"
 
 # SSH-Verzeichnis mit korrekten Permissions — git braucht lesbare known_hosts
 SSH_DIR="$HH_HOME/.ssh"
