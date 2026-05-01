@@ -48,7 +48,8 @@ sessions.db-shm
 *.pem
 *.p12
 secrets/
-credentials/
+# user-credential-files (im Datenverzeichnis), aber NICHT das Python-Modul
+/credentials/
 data/
 
 # Local dev overrides
