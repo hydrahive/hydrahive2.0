@@ -25,6 +25,7 @@ export interface Agent {
   compact_threshold_pct?: number
   workspace?: string
   disabled_skills?: string[]
+  require_tool_confirm?: boolean
 }
 
 export interface ToolMeta {

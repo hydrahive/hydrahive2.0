@@ -34,6 +34,8 @@ export const chatApi = {
     compact_threshold: number
     model: string | null
   }>(`/sessions/${id}/tokens`),
+  toolConfirm: (sessionId: string, callId: string, decision: "approve" | "deny") =>
+    api.post<{ resolved: boolean }>(`/sessions/${sessionId}/tool-confirm/${callId}`, { decision }),
 }
 
 /** Stream a user message through SSE and yield runner events as they arrive. */

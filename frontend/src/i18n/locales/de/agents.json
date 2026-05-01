@@ -25,7 +25,9 @@
     "domain": "Domäne",
     "domain_placeholder": "z.B. Datenbank, Security, Infrastruktur",
     "thinking_budget": "Extended Thinking Budget: {{tokens}} Tokens",
-    "thinking_hint": "Nur bei Anthropic Extended-Thinking-Modellen relevant. 0 = aus."
+    "thinking_hint": "Nur bei Anthropic Extended-Thinking-Modellen relevant. 0 = aus.",
+    "require_tool_confirm": "Tool-Bestätigung vor Ausführung",
+    "require_tool_confirm_hint": "Wenn aktiv: vor jedem Tool-Call erscheint im Chat ein Banner mit Erlauben/Verweigern. Auto-Deny nach 5 Minuten."
   },
   "info": {
     "title": "Info",

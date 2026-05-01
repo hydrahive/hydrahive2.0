@@ -99,5 +99,10 @@
   "voice": {
     "speak": "Read aloud",
     "stop": "Stop"
+  },
+  "tool_confirm": {
+    "message": "Agent wants to execute the following tool:",
+    "approve": "Allow",
+    "deny": "Deny"
   }
 }

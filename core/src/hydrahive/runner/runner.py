@@ -23,9 +23,11 @@ from hydrahive.runner.events import (
     Error,
     Event,
     IterationStart,
+    ToolConfirmRequired,
     ToolUseResult,
     ToolUseStart,
 )
+from hydrahive.runner import tool_confirmation
 from hydrahive.tools import ToolContext, schemas_for
 
 logger = logging.getLogger(__name__)
@@ -233,12 +235,28 @@ async def run(
             return
 
         result_blocks: list[dict] = []
+        require_confirm = bool(agent.get("require_tool_confirm", False))
         for tu in tool_uses:
-            yield ToolUseStart(
-                call_id=tu.get("id", ""),
-                tool_name=tu.get("name", ""),
-                arguments=tu.get("input", {}) or {},
-            )
+            tu_id = tu.get("id", "")
+            tu_name = tu.get("name", "")
+            tu_args = tu.get("input", {}) or {}
+            yield ToolUseStart(call_id=tu_id, tool_name=tu_name, arguments=tu_args)
+
+            if require_confirm:
+                fut = tool_confirmation.register(tu_id)
+                yield ToolConfirmRequired(call_id=tu_id, tool_name=tu_name, arguments=tu_args)
+                decision = await tool_confirmation.wait(tu_id)
+                _ = fut  # halte Referenz — fut wird in resolve() gesetzt
+                if decision == "deny":
+                    from hydrahive.tools import ToolResult
+                    result, duration_ms = ToolResult.fail("Vom Benutzer abgelehnt"), 0
+                    yield ToolUseResult(
+                        call_id=tu_id, tool_name=tu_name, success=False,
+                        output=None, error=result.error, duration_ms=0,
+                    )
+                    result_blocks.append(to_tool_result_block(tu_id, result))
+                    continue
+
             result, _record_id, duration_ms = await execute_tool(
                 tool_use=tu,
                 allowed_tools=allowed_tools,
@@ -246,14 +264,14 @@ async def run(
                 parent_message_id=assistant_msg.id,
             )
             yield ToolUseResult(
-                call_id=tu.get("id", ""),
-                tool_name=tu.get("name", ""),
+                call_id=tu_id,
+                tool_name=tu_name,
                 success=result.success,
                 output=result.output,
                 error=result.error,
                 duration_ms=duration_ms,
             )
-            result_blocks.append(to_tool_result_block(tu.get("id", ""), result))
+            result_blocks.append(to_tool_result_block(tu_id, result))
 
         tool_msg = messages_db.append(session_id, "user", result_blocks)
         history.append(tool_msg)

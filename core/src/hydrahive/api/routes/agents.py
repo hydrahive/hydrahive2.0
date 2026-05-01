@@ -56,6 +56,7 @@ class AgentUpdate(BaseModel):
     compact_tool_result_limit: int | None = None
     compact_reserve_tokens: int | None = None
     compact_threshold_pct: int | None = None
+    require_tool_confirm: bool | None = None
 
 
 class SystemPromptUpdate(BaseModel):
