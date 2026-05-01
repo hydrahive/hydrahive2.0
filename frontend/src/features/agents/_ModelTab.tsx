@@ -48,6 +48,21 @@ export function ModelTab({ draft, models, onChange }: Props) {
           onChange={(fb) => onChange({ fallback_models: fb })}
         />
       </Field>
+
+      <Field
+        label={t("fields.thinking_budget", { tokens: draft.thinking_budget })}
+        hint={t("fields.thinking_hint")}
+      >
+        <input
+          type="range"
+          min={0}
+          max={32000}
+          step={1024}
+          value={draft.thinking_budget}
+          onChange={(e) => onChange({ thinking_budget: parseInt(e.target.value) })}
+          className="w-full"
+        />
+      </Field>
     </div>
   )
 }
