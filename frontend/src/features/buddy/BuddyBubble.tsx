@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Markdown } from "@/features/chat/Markdown"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
 import { CompactionBlock } from "@/features/chat/CompactionBlock"
-import { ImageBlock, ToolResultCard, ToolUseCard } from "@/features/chat/ToolCards"
+import { ImageBlock } from "@/features/chat/ToolCards"
 import type { ContentBlock, Message } from "@/features/chat/types"
 
 interface Props {
@@ -42,14 +42,9 @@ export function BuddyBubble({ message, onResend, onRetry, busy }: Props) {
   if (message.role === "user") {
     const text = blocks.find((b) => b.type === "text")?.text ?? ""
     const images = blocks.filter((b) => b.type === "image")
-    const tool_results = blocks.filter((b) => b.type === "tool_result")
-    if (tool_results.length > 0) {
-      return (
-        <div className="space-y-1.5">
-          {tool_results.map((tr, i) => <ToolResultCard key={i} block={tr as ContentBlock & { type: "tool_result" }} />)}
-        </div>
-      )
-    }
+    const has_tool_results = blocks.some((b) => b.type === "tool_result")
+    // Tool-Result-Messages sind technisches Backend-Geplauder — im Buddy ausblenden
+    if (has_tool_results && !text && images.length === 0) return null
     return (
       <div className="flex items-start gap-3 justify-end">
         <div className="max-w-[80%] space-y-1 group">
@@ -103,12 +98,16 @@ export function BuddyBubble({ message, onResend, onRetry, busy }: Props) {
   }
 
   const fullText = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join(" ")
+  const visibleBlocks = blocks.filter((b) => b.type === "text" || b.type === "image")
+  // Wenn die ganze Bubble nur tool_use ist (während Buddy arbeitet), ausblenden.
+  // Live-Bubbles zeigen wir trotzdem damit Loader sichtbar bleibt.
+  if (visibleBlocks.length === 0 && !isLive) return null
 
   return (
     <div className="flex items-start gap-3 group">
       <div className={`text-2xl flex-shrink-0 mt-0.5 ${isLive ? "animate-pulse" : ""}`}>🐝</div>
       <div className="flex-1 min-w-0 space-y-2 max-w-[85%]">
-        {blocks.map((b, i) => {
+        {visibleBlocks.map((b, i) => {
           if (b.type === "text" && b.text) {
             return (
               <div key={i} className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-emerald-500/[8%] border border-emerald-500/30 text-emerald-50">
@@ -116,7 +115,9 @@ export function BuddyBubble({ message, onResend, onRetry, busy }: Props) {
               </div>
             )
           }
-          if (b.type === "tool_use") return <ToolUseCard key={i} block={b} defaultOpen={false} />
+          if (b.type === "image") {
+            return <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />
+          }
           return null
         })}
         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
