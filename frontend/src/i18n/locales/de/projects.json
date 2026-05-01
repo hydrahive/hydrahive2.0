@@ -50,6 +50,8 @@
     "init_empty": "Leer initialisieren",
     "clone": "Clonen",
     "delete_confirm": "Repo \"{{name}}\" aus diesem Projekt entfernen? Inklusive aller lokalen Änderungen.",
+    "delete_repo": "Repo entfernen",
+    "danger_zone_hint": "Dieser Schritt löscht den lokalen Workspace-Inhalt unwiderruflich.",
     "ahead": "ahead",
     "behind": "behind",
     "commit_message_placeholder": "Commit-Nachricht…",
