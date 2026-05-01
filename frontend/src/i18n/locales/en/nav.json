@@ -4,7 +4,9 @@
     "config": "Configuration"
   },
   "items": {
+    "buddy": "Buddy",
     "dashboard": "Dashboard",
+    "devchat": "DevChat",
     "chat": "Chat",
     "agents": "Agents",
     "projects": "Projects",

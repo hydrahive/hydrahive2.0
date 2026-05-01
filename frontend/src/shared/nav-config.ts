@@ -1,5 +1,5 @@
 import {
-  BookOpen, Bot, Box, Cpu, FolderKanban, HardDrive, Key, LayoutDashboard, MessageCircle,
+  BookOpen, Bot, Box, Cpu, FolderKanban, HardDrive, Heart, Key, LayoutDashboard, MessageCircle,
   MessageSquare, Puzzle, Server, Settings, Sparkles, Users, Workflow,
 } from "lucide-react"
 
@@ -13,8 +13,9 @@ export interface NavItem {
 // Alle Apps — werden im Bento-Menü angezeigt.
 // Quick-Links in der Top-Bar wählen wir aus dieser Liste.
 export const NAV_ITEMS: NavItem[] = [
-  { path: "/", icon: LayoutDashboard, labelKey: "dashboard" },
-  { path: "/chat", icon: MessageSquare, labelKey: "chat" },
+  { path: "/", icon: Heart, labelKey: "buddy" },
+  { path: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
+  { path: "/devchat", icon: MessageSquare, labelKey: "devchat" },
   { path: "/agents", icon: Bot, labelKey: "agents" },
   { path: "/projects", icon: FolderKanban, labelKey: "projects" },
   { path: "/communication", icon: MessageCircle, labelKey: "communication" },
@@ -32,7 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
 ]
 
 // Quick-Links direkt in der Top-Bar — die wichtigsten Apps.
-export const QUICK_LINK_PATHS = ["/chat", "/agents", "/projects"]
+export const QUICK_LINK_PATHS = ["/dashboard", "/devchat", "/agents", "/projects"]
 
 export function visibleItems(role: string | null): NavItem[] {
   return NAV_ITEMS.filter((i) =>
