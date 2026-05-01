@@ -15,6 +15,7 @@
     "llm": "LLM",
     "mcp": "MCP",
     "skills": "Skills",
+    "credentials": "Credentials",
     "system": "System",
     "users": "Users",
     "plugins": "Plugins",
