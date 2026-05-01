@@ -7,8 +7,11 @@ from fastapi import APIRouter, Depends, status
 from hydrahive.api.middleware.errors import coded
 from pydantic import BaseModel
 
-from hydrahive.api.middleware.auth import require_admin
+from typing import Annotated
+
+from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.llm import client as llm_client
+from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
@@ -64,3 +67,9 @@ async def test_connection(req: TestRequest) -> dict:
         return {"ok": True, "response": result.strip()}
     except Exception as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "llm_test_failed", message=str(e))
+
+
+@router.get("/minimax/usage")
+async def minimax_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """MiniMax token_plan/remains pro Modell. Auch für non-admin sichtbar — nur Quota-Info."""
+    return await fetch_minimax_usage()
