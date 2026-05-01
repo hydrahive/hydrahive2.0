@@ -44,3 +44,25 @@ async def create_qcow2(vm_id: str, size_gb: int) -> Path:
 def remove_qcow2(vm_id: str) -> None:
     target = disk_path_for(vm_id)
     target.unlink(missing_ok=True)
+
+
+async def grow_qcow2(vm_id: str, new_size_gb: int) -> None:
+    """Vergrößert die qcow2-Disk auf new_size_gb. Funktioniert nur OFFLINE
+    (VM muss gestoppt sein). Daten bleiben erhalten — der Gast muss das
+    Filesystem nach dem Boot manuell vergrößern (growpart + resize2fs)."""
+    target = disk_path_for(vm_id)
+    if not target.exists():
+        raise DiskError("qcow2_missing", path=str(target))
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "qemu-img", "resize", str(target), f"{new_size_gb}G",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        raise DiskError("qemu_img_missing")
+    _, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
+    if proc.returncode != 0:
+        raise DiskError("qcow2_resize_failed",
+                        rc=proc.returncode,
+                        stderr=stderr.decode(errors="replace")[:300])

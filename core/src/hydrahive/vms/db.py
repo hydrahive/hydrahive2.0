@@ -95,9 +95,10 @@ def delete_vm(vm_id: str) -> None:
 
 def update_vm_config(vm_id: str, *, name: str | None = None, description: str | None = ...,
                       cpu: int | None = None, ram_mb: int | None = None,
+                      disk_gb: int | None = None,
                       iso_filename: str | None = ...) -> None:
-    """Konfig-Update für eine VM (Name, CPU, RAM, ISO). Nur im stopped-State
-    erlaubt — der Caller validiert. Sentinels (...) für optionale clear-zu-NULL."""
+    """Konfig-Update für eine VM (Name, CPU, RAM, Disk, ISO). Nur im stopped-
+    State erlaubt — der Caller validiert. Sentinels (...) für optionale clear-zu-NULL."""
     sets: list[str] = ["updated_at = ?"]
     vals: list = [now_iso()]
     if name is not None:
@@ -108,6 +109,8 @@ def update_vm_config(vm_id: str, *, name: str | None = None, description: str | 
         sets.append("cpu = ?"); vals.append(cpu)
     if ram_mb is not None:
         sets.append("ram_mb = ?"); vals.append(ram_mb)
+    if disk_gb is not None:
+        sets.append("disk_gb = ?"); vals.append(disk_gb)
     if iso_filename is not ...:
         sets.append("iso_filename = ?"); vals.append(iso_filename)
     vals.append(vm_id)

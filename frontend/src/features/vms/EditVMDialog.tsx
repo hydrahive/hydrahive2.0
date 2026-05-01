@@ -16,6 +16,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
   const [description, setDescription] = useState(vm.description ?? "")
   const [cpu, setCpu] = useState(vm.cpu)
   const [ramMb, setRamMb] = useState(vm.ram_mb)
+  const [diskGb, setDiskGb] = useState(vm.disk_gb)
   const [iso, setIso] = useState<string>(vm.iso_filename ?? "")
   const [isos, setIsos] = useState<ISO[]>([])
   const [busy, setBusy] = useState(false)
@@ -31,10 +32,15 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
     description !== (vm.description ?? "") ||
     cpu !== vm.cpu ||
     ramMb !== vm.ram_mb ||
+    diskGb !== vm.disk_gb ||
     iso !== (vm.iso_filename ?? "")
 
   async function submit() {
     if (!validName) { setError("Name: 1-32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"); return }
+    if (diskGb < vm.disk_gb) {
+      setError(`Disk-Verkleinerung nicht unterstützt (aktuell ${vm.disk_gb} GB).`)
+      return
+    }
     setBusy(true); setError(null)
     try {
       const patch: Parameters<typeof vmsApi.update>[1] = {}
@@ -42,6 +48,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
       if (description !== (vm.description ?? "")) patch.description = description.trim() || null
       if (cpu !== vm.cpu) patch.cpu = cpu
       if (ramMb !== vm.ram_mb) patch.ram_mb = ramMb
+      if (diskGb !== vm.disk_gb) patch.disk_gb = diskGb
       if (iso !== (vm.iso_filename ?? "")) {
         if (iso === "") patch.clear_iso = true
         else patch.iso_filename = iso
@@ -91,6 +98,15 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
                 className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
             </Field>
           </div>
+          <Field label={`Disk (GB) — nur vergrößern, aktuell ${vm.disk_gb} GB`}>
+            <input type="number" min={vm.disk_gb} max={4096} step={1} value={diskGb}
+              onChange={(e) => setDiskGb(parseInt(e.target.value) || vm.disk_gb)} disabled={!editable}
+              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
+            <p className="text-[10px] text-zinc-600 mt-0.5">
+              Erweitert nur die qcow2-Disk. Im Gast danach Filesystem ausbauen
+              (<code className="font-mono">growpart /dev/sda 1 && resize2fs /dev/sda1</code>).
+            </p>
+          </Field>
           <Field label="Boot-ISO (leer = keine ISO eingelegt)">
             <select value={iso} onChange={(e) => setIso(e.target.value)} disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50">
