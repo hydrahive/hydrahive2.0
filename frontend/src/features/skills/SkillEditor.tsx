@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { Loader2, Save, Trash2, X } from "lucide-react"
+import { Loader2, Plus, Save, Trash2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { skillsApi } from "./api"
-import type { Skill, SkillScope } from "./types"
+import type { Skill, SkillScope, SkillSource } from "./types"
 
 interface Props {
   skill: Skill | null  // null = neu
@@ -23,6 +23,7 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
   const [description, setDescription] = useState(skill?.description ?? "")
   const [whenToUse, setWhenToUse] = useState(skill?.when_to_use ?? "")
   const [toolsRequired, setToolsRequired] = useState((skill?.tools_required ?? []).join(", "))
+  const [sources, setSources] = useState<SkillSource[]>(skill?.sources ?? [])
   const [body, setBody] = useState(skill?.body ?? "")
   const [scope] = useState<SkillScope>(skill?.scope ?? defaultScope)
   const [busy, setBusy] = useState(false)
@@ -38,7 +39,9 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
       const owner = scope === "agent" ? ownerForSave : skill?.owner
       await skillsApi.save(scope, {
         name, description, when_to_use: whenToUse,
-        tools_required: tools, body,
+        tools_required: tools,
+        sources: sources.filter((s) => s.url.trim()),
+        body,
       }, owner)
       onSaved()
     } catch (e) {
@@ -98,6 +101,40 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
           <input value={whenToUse} onChange={(e) => setWhenToUse(e.target.value)}
             placeholder={t("when_to_use_placeholder")}
             className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200" />
+        </Field>
+
+        <Field label={t("sources")} hint={t("sources_hint")}>
+          <div className="space-y-1">
+            {sources.map((src, i) => (
+              <div key={i} className="grid grid-cols-[1fr_auto_auto] gap-1 items-start">
+                <div className="space-y-0.5">
+                  <input value={src.url}
+                    onChange={(e) => setSources(sources.map((s, j) => j === i ? { ...s, url: e.target.value } : s))}
+                    placeholder="https://forum.metin2.de/api/threads"
+                    className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
+                  <input value={src.description}
+                    onChange={(e) => setSources(sources.map((s, j) => j === i ? { ...s, description: e.target.value } : s))}
+                    placeholder={t("source_description_placeholder")}
+                    className="w-full px-2 py-1 rounded-md bg-zinc-950/50 border border-white/[6%] text-[11px] text-zinc-400" />
+                </div>
+                <input value={src.auth}
+                  onChange={(e) => setSources(sources.map((s, j) => j === i ? { ...s, auth: e.target.value } : s))}
+                  placeholder={t("source_auth_placeholder")}
+                  title={t("source_auth_hint")}
+                  className="w-32 px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono self-start" />
+                <button type="button"
+                  onClick={() => setSources(sources.filter((_, j) => j !== i))}
+                  className="p-1.5 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 self-start">
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            ))}
+            <button type="button"
+              onClick={() => setSources([...sources, { url: "", auth: "", description: "" }])}
+              className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-white/[8%] border-dashed">
+              <Plus size={11} /> {t("source_add")}
+            </button>
+          </div>
         </Field>
 
         <Field label={t("body")}>

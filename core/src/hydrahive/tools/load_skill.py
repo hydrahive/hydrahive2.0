@@ -39,6 +39,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         "description": skill.description,
         "when_to_use": skill.when_to_use,
         "tools_required": list(skill.tools_required),
+        "sources": [{"url": s.url, "auth": s.auth, "description": s.description}
+                    for s in skill.sources],
         "body": skill.body,
         "scope": skill.scope,
     })

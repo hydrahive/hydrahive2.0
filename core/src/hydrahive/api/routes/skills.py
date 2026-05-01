@@ -20,9 +20,15 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.skills import delete_skill, get_skill, list_for_agent, save_skill
 from hydrahive.skills.loader import _list_dir
 from hydrahive.skills._paths import system_dir, user_dir
-from hydrahive.skills.models import Skill, SkillScope, is_valid_name
+from hydrahive.skills.models import Skill, SkillScope, SkillSource, is_valid_name
 
 router = APIRouter(prefix="/api/skills", tags=["skills"])
+
+
+class SkillSourceBody(BaseModel):
+    url: str
+    auth: str = ""
+    description: str = ""
 
 
 class SkillBody(BaseModel):
@@ -30,14 +36,16 @@ class SkillBody(BaseModel):
     description: str = ""
     when_to_use: str = ""
     tools_required: list[str] = []
+    sources: list[SkillSourceBody] = []
     body: str = ""
 
 
 def _serialize(s: Skill) -> dict:
     return {
         "name": s.name, "description": s.description, "when_to_use": s.when_to_use,
-        "tools_required": list(s.tools_required), "body": s.body,
-        "scope": s.scope, "owner": s.owner,
+        "tools_required": list(s.tools_required),
+        "sources": [{"url": x.url, "auth": x.auth, "description": x.description} for x in s.sources],
+        "body": s.body, "scope": s.scope, "owner": s.owner,
     }
 
 
@@ -118,6 +126,8 @@ def create_or_update(
     skill = Skill(
         name=req.name, description=req.description, when_to_use=req.when_to_use,
         tools_required=list(req.tools_required), body=req.body,
+        sources=[SkillSource(url=s.url, auth=s.auth, description=s.description)
+                 for s in req.sources if s.url],
         scope=scope, owner=owner or "",
     )
     ok, err = save_skill(skill)
