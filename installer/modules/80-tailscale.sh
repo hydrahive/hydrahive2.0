@@ -18,20 +18,21 @@ log "tailscaled aktivieren"
 systemctl enable tailscaled
 systemctl start tailscaled || true
 
-log "sudoers-Regel für ${HH_USER} einrichten"
-TS_BIN=$(command -v tailscale 2>/dev/null || echo "/usr/bin/tailscale")
-log "tailscale-Pfad: $TS_BIN"
-cat > /etc/sudoers.d/hydrahive-tailscale << EOF
-${HH_USER} ALL=(ALL) NOPASSWD: ${TS_BIN} status *
-${HH_USER} ALL=(ALL) NOPASSWD: ${TS_BIN} up *
-${HH_USER} ALL=(ALL) NOPASSWD: ${TS_BIN} logout
-EOF
-chmod 440 /etc/sudoers.d/hydrahive-tailscale
-visudo -c -f /etc/sudoers.d/hydrahive-tailscale || err "sudoers-Syntax ungültig"
+# Operator setzen statt sudoers — hydrahive kann tailscale up/logout/status
+# dann direkt via /run/tailscale/tailscaled.sock aufrufen, ohne sudo.
+# Funktioniert auch wenn der Service mit NoNewPrivileges=true läuft.
+log "Tailscale-Operator auf ${HH_USER} setzen"
+tailscale set --operator="${HH_USER}" 2>/dev/null \
+  || log "tailscale set --operator fehlgeschlagen (alte tailscale-Version?) — bitte manuell prüfen"
+
+# Alte sudoers-Regel aufräumen falls sie aus früheren Installs vorhanden ist
+[ -f /etc/sudoers.d/hydrahive-tailscale ] && rm -f /etc/sudoers.d/hydrahive-tailscale
 
 if [ -n "$HH_TAILSCALE_AUTHKEY" ]; then
   log "Tailscale verbinden mit Auth-Key"
-  tailscale up --authkey="$HH_TAILSCALE_AUTHKEY" --accept-routes || log "tailscale up fehlgeschlagen — manuell verbinden"
+  tailscale up --authkey="$HH_TAILSCALE_AUTHKEY" --accept-routes \
+    --operator="${HH_USER}" \
+    || log "tailscale up fehlgeschlagen — manuell verbinden"
 fi
 
 log "Fertig. Tailscale $(tailscale status --json 2>/dev/null | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d.get(\"BackendState\",\"?\"))' 2>/dev/null || echo '?')"

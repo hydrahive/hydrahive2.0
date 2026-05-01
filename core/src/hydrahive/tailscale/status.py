@@ -3,11 +3,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import shutil
 
 logger = logging.getLogger(__name__)
 
-
-import shutil
 
 def _tailscale_bin() -> str:
     return shutil.which("tailscale") or "/usr/bin/tailscale"
@@ -15,7 +14,7 @@ def _tailscale_bin() -> str:
 
 async def _run(*args: str, timeout: float = 5) -> tuple[int, str, str]:
     proc = await asyncio.create_subprocess_exec(
-        "sudo", "-n", _tailscale_bin(), *args,
+        _tailscale_bin(), *args,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
