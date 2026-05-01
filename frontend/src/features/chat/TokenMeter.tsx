@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { AlertTriangle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { chatApi } from "./api"
 
@@ -36,6 +37,8 @@ export function TokenMeter({ sessionId, refresh }: Props) {
 
   const fmt = (n: number) => n.toLocaleString(i18n.language)
 
+  const warning = pct >= 90
+
   return (
     <div className="flex items-center gap-2" title={t("tokens.limit_tooltip", { limit: fmt(info.compact_threshold) })}>
       <div className="w-20 h-1 bg-white/[6%] rounded-full overflow-hidden">
@@ -44,6 +47,14 @@ export function TokenMeter({ sessionId, refresh }: Props) {
       <span className={`text-[11px] font-mono tabular-nums ${tone}`}>
         {fmt(info.used)} / {fmt(info.compact_threshold)}
       </span>
+      {warning && (
+        <span
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/[10%] border border-amber-500/30 text-[10px] text-amber-300"
+          title={t("tokens.compact_imminent_tooltip")}
+        >
+          <AlertTriangle size={10} /> {t("tokens.compact_imminent")}
+        </span>
+      )}
     </div>
   )
 }
