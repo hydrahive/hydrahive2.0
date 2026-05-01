@@ -15,6 +15,7 @@
   },
   "actions": {
     "new": "New user",
+    "edit": "Edit",
     "change_password": "Change password",
     "delete": "Delete",
     "delete_confirm": "Really delete user \"{{name}}\"?\n\nIncluding all assigned agents."
@@ -31,5 +32,8 @@
     "title": "Change password: {{name}}",
     "new_password_label": "New password",
     "min_length_hint": "At least 8 characters"
+  },
+  "edit_dialog": {
+    "title": "Edit user: {{name}}"
   }
 }

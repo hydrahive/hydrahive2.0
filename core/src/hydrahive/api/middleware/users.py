@@ -88,6 +88,21 @@ def update_password(username: str, new_password: str) -> None:
     _save(users)
 
 
+def update_role(username: str, role: str) -> None:
+    if role not in ("admin", "user"):
+        raise ValueError(f"Ungültige Rolle: {role}")
+    users = _load()
+    if username not in users:
+        raise ValueError(f"User '{username}' nicht gefunden")
+    if users[username]["role"] == "admin" and role != "admin":
+        admins = [u for u, v in users.items() if v["role"] == "admin"]
+        if len(admins) <= 1:
+            raise ValueError("last_admin")
+    users[username]["role"] = role
+    _save(users)
+    logger.info("User '%s' Rolle auf '%s' geändert", username, role)
+
+
 def delete(username: str) -> None:
     users = _load()
     users.pop(username, None)

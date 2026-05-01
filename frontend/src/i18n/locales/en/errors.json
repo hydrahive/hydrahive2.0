@@ -49,6 +49,8 @@
 
   "username_exists": "Username already exists",
   "user_not_found": "User not found",
+  "last_admin_cannot_demote": "Cannot demote the last admin",
+  "invalid_role": "Invalid role: {{role}}",
 
   "channel_unavailable": "Channel '{{channel}}' unavailable",
 
