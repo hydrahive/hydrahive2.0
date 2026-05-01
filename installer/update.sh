@@ -200,6 +200,18 @@ EOF
   systemctl restart hydrahive2-voice.timer
 fi
 
+if ! command -v gh >/dev/null 2>&1; then
+  log "gh-CLI fehlt — installiere"
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  chmod 644 /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list
+  apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get install -y gh >/dev/null
+fi
+
 if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
    || ! systemctl is-active --quiet hydrahive2-websockify.service; then
   log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"
