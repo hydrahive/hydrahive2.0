@@ -264,6 +264,11 @@ EOF
   systemctl restart hydrahive2-voice.timer
 fi
 
+if ! command -v sshpass >/dev/null 2>&1; then
+  log "sshpass fehlt — installiere"
+  DEBIAN_FRONTEND=noninteractive apt-get install -y sshpass >/dev/null
+fi
+
 if ! command -v gh >/dev/null 2>&1; then
   log "gh-CLI fehlt — installiere"
   install -m 0755 -d /etc/apt/keyrings
