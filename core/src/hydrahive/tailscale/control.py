@@ -10,7 +10,7 @@ def _tailscale_bin() -> str:
 
 async def _run(*args: str, timeout: float = 30) -> str:
     proc = await asyncio.create_subprocess_exec(
-        "sudo", "-n", _tailscale_bin(), *args,
+        _tailscale_bin(), *args,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )

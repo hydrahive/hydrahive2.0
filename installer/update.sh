@@ -227,9 +227,11 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "^Environment=HOME=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.config" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.mmx" "$SERVICE_FILE" || NEEDS_REWRITE=1
-  grep -q "ReadWritePaths=.*/run/sudo" "$SERVICE_FILE" || NEEDS_REWRITE=1
-  grep -q "ExecStartPre.*mkdir.*run/sudo" "$SERVICE_FILE" || NEEDS_REWRITE=1
-  grep -q "^NoNewPrivileges=true" "$SERVICE_FILE" && NEEDS_REWRITE=1
+  # Migration: alte sudo-Workarounds (ExecStartPre /run/sudo, RW=/run/sudo)
+  # raus — wir nutzen jetzt tailscale --operator statt sudo
+  grep -q "ReadWritePaths=.*/run/sudo" "$SERVICE_FILE" && NEEDS_REWRITE=1
+  grep -q "ExecStartPre.*mkdir.*run/sudo" "$SERVICE_FILE" && NEEDS_REWRITE=1
+  grep -q "^NoNewPrivileges=true" "$SERVICE_FILE" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "Service-File braucht Update — neu schreiben"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
@@ -270,8 +272,8 @@ elif [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
   bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh" || log "hydralink-install failed — weiter"
 fi
 
-if [ -f /etc/sudoers.d/hydrahive-tailscale ] && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
-  log "Tailscale sudoers-Regel prüfen"
+if command -v tailscale >/dev/null 2>&1 && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
+  log "Tailscale-Setup prüfen (Operator + Cleanup alte sudoers-Regel)"
   bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || log "tailscale-update failed — weiter"
 fi
 
