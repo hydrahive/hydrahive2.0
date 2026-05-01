@@ -28,13 +28,37 @@ def _detect_git_commit() -> str | None:
         return None
 
 
+def _remote_url_https() -> str | None:
+    """Gibt die Remote-URL zurück, SSH-URLs werden auf HTTPS umgebogen.
+
+    git@github.com:org/repo.git → https://github.com/org/repo.git
+    Der hydrahive-User hat keine SSH-Keys — HTTPS funktioniert für public Repos immer.
+    """
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(_REPO_ROOT), "remote", "get-url", "origin"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        url = r.stdout.strip()
+        if not url:
+            return None
+        if url.startswith("git@github.com:"):
+            url = "https://github.com/" + url[len("git@github.com:"):]
+        return url
+    except Exception:
+        return None
+
+
 def _check_update_behind() -> int | None:
     """0 wenn HEAD == origin/main, 1 wenn behind, None wenn nicht detectierbar."""
     if not (_REPO_ROOT / ".git").exists():
         return None
     try:
+        remote_url = _remote_url_https()
+        if not remote_url:
+            return None
         ls = subprocess.run(
-            ["git", "-C", str(_REPO_ROOT), "ls-remote", "origin", "main"],
+            ["git", "ls-remote", remote_url, "refs/heads/main"],
             capture_output=True, text=True, timeout=15, check=False,
         )
         if ls.returncode != 0 or not ls.stdout.strip():
