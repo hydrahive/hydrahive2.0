@@ -18,6 +18,8 @@ REQUIRED_PACKAGES=(
   # und TTS-Post-Processing (mp3→ogg/opus + Waveform-RMS für WhatsApp ptt).
   # Im STT-LXC-Container nochmal separat installiert (siehe 55-voice.sh).
   ffmpeg
+  # sshpass: für Master-Agent-Server-Operations mit Passwort-SSH ohne pexpect-Bauten
+  sshpass
 )
 
 log() { printf "  · %s\n" "$*"; }
