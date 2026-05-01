@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react"
-import { Folder, Loader2, Save, Trash2, ExternalLink, GitBranch } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Folder, Loader2, Save } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
-import { MemberManager } from "./MemberManager"
+import { OverviewTab } from "./_OverviewTab"
+import { SessionsTab } from "./_SessionsTab"
+import { GitTab } from "./_GitTab"
+import { StatsTab } from "./_StatsTab"
+import { SettingsTab } from "./_SettingsTab"
 import type { Project } from "./types"
 
 interface Props {
@@ -12,23 +15,24 @@ interface Props {
   onDeleted: () => void
 }
 
+type Tab = "overview" | "sessions" | "git" | "stats" | "settings"
+
 export function ProjectForm({ project, onSaved, onDeleted }: Props) {
-  const { t, i18n } = useTranslation("projects")
+  const { t } = useTranslation("projects")
   const { t: tCommon } = useTranslation("common")
   const [draft, setDraft] = useState(project)
   const [agentName, setAgentName] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>("overview")
 
   useEffect(() => {
     setDraft(project)
+    setTab("overview")
     projectsApi.getAgent(project.id).then((a) => setAgentName(a.name)).catch(() => setAgentName(""))
   }, [project.id])
 
-  const dirty =
-    draft.name !== project.name ||
-    draft.description !== project.description ||
-    draft.status !== project.status
+  const dirty = draft.name !== project.name || draft.description !== project.description || draft.status !== project.status
 
   async function save() {
     setSaving(true); setError(null)
@@ -42,11 +46,13 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
     } finally { setSaving(false) }
   }
 
-  async function remove() {
-    if (!confirm(t("delete_confirm", { name: project.name }))) return
-    await projectsApi.delete(project.id)
-    onDeleted()
-  }
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "overview", label: t("tabs.overview") },
+    { id: "sessions", label: t("tabs.sessions") },
+    { id: "git", label: t("tabs.git") },
+    { id: "stats", label: t("tabs.stats") },
+    { id: "settings", label: t("tabs.settings") },
+  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -55,84 +61,45 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
         <input
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          className="flex-1 bg-transparent text-lg font-bold text-white focus:outline-none"
+          className="flex-1 bg-transparent text-lg font-bold text-white focus:outline-none min-w-0"
         />
-        <select
-          value={draft.status}
-          onChange={(e) => setDraft({ ...draft, status: e.target.value as Project["status"] })}
-          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
-        >
-          <option value="active">{tCommon("status.active")}</option>
-          <option value="archived">{tCommon("status.archived")}</option>
-        </select>
-        <button
-          onClick={save} disabled={!dirty || saving}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-violet-900/20"
-        >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          {tCommon("actions.save")}
-        </button>
-        <button
-          onClick={remove}
-          className="p-2 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-        >
-          <Trash2 size={15} />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-        {error && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
+        {dirty && (
+          <button
+            onClick={save} disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-30 transition-all shadow-md shadow-violet-900/20"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {tCommon("actions.save")}
+          </button>
         )}
-
-        <Field label={tCommon("labels.description")}>
-          <textarea
-            value={draft.description} rows={3}
-            onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 leading-relaxed"
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={t("fields.agent")}>
-            <Link
-              to="/agents"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/[6%] border border-violet-500/20 text-sm text-violet-200 hover:bg-violet-500/[10%] transition-colors"
-            >
-              <span className="flex-1 truncate">{agentName || t("fields.agent_loading")}</span>
-              <ExternalLink size={12} />
-            </Link>
-          </Field>
-          <Field label={t("fields.workspace")}>
-            <p className="px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-400 font-mono flex items-center gap-2">
-              {project.git_initialized && <GitBranch size={12} className="text-violet-400" />}
-              data/workspaces/projects/{project.id.slice(0, 8)}…
-            </p>
-          </Field>
-        </div>
-
-        <Field label={t("fields.members_label", { count: project.members.length })}>
-          <MemberManager project={project} onChange={onSaved} />
-        </Field>
-
-        <Field label={tCommon("labels.created_at")}>
-          <p className="text-xs text-zinc-500">
-            {t("fields.created_by", {
-              date: new Date(project.created_at).toLocaleString(i18n.language),
-              user: project.created_by,
-            })}
-          </p>
-        </Field>
       </div>
-    </div>
-  )
-}
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</label>
-      {children}
+      <div className="flex gap-1 px-6 pt-3 pb-0 border-b border-white/[6%]">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px ${
+              tab === t.id
+                ? "text-violet-300 border-violet-500"
+                : "text-zinc-500 border-transparent hover:text-zinc-300"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-5">
+        {error && (
+          <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
+        )}
+        {tab === "overview" && <OverviewTab project={project} draft={draft} agentName={agentName} onChange={onSaved} onDraftChange={setDraft} />}
+        {tab === "sessions" && <SessionsTab projectId={project.id} />}
+        {tab === "git" && <GitTab projectId={project.id} gitInitialized={project.git_initialized} />}
+        {tab === "stats" && <StatsTab projectId={project.id} />}
+        {tab === "settings" && <SettingsTab project={project} draft={draft} onDraftChange={setDraft} onDeleted={onDeleted} />}
+      </div>
     </div>
   )
 }
