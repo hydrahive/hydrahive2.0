@@ -59,6 +59,8 @@ def clone_repo(workspace: Path, url: str, branch: str | None = None, token: str 
 
 
 def set_remote(workspace: Path, url: str) -> tuple[bool, str]:
+    if not (workspace / ".git").exists():
+        return False, "no_repo"
     existing_ok, _, _ = _runx(workspace, "remote", "get-url", "origin")
     if existing_ok:
         ok, _, err = _runx(workspace, "remote", "set-url", "origin", url)

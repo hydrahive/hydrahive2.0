@@ -51,6 +51,13 @@
   "user_not_found": "Benutzer nicht gefunden",
   "last_admin_cannot_demote": "Der letzte Admin kann nicht degradiert werden",
   "invalid_role": "Ungültige Rolle: {{role}}",
+  "git_failed": "Git-Operation fehlgeschlagen: {{detail}}",
+  "git_no_repo": "Kein Git-Repository in diesem Workspace — bitte erst clonen oder leer initialisieren.",
+  "git_no_remote": "Kein Remote konfiguriert.",
+  "git_no_changes": "Keine Änderungen zu committen.",
+  "git_workspace_not_empty": "Workspace ist nicht leer — clonen geht nur in leere Workspaces.",
+  "git_empty_message": "Commit-Nachricht darf nicht leer sein.",
+  "git_timeout": "Git-Operation hat zu lange gebraucht (Timeout).",
 
   "channel_unavailable": "Channel '{{channel}}' nicht verfügbar",
 

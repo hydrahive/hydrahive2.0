@@ -55,44 +55,47 @@ export function GitTab({ projectId, gitInitialized, onChanged }: Props) {
     </div>
   )
 
+  const repoExists = gitInitialized && !!status?.initialized
+
   return (
     <div className="space-y-4">
       {error && <ErrorBox text={error} />}
 
-      <SettingsRow
-        token={token} setToken={setToken}
-        showToken={showToken} setShowToken={setShowToken}
-        remoteUrl={remoteUrl} setRemoteUrl={setRemoteUrl}
-        savedRemote={status?.remote_url ?? null}
-        busy={busy === "remote"}
-        onSave={() => run("remote", () =>
-          projectsApi.putGitConfig(projectId, {
-            remote_url: remoteUrl || undefined,
-            git_token: token || undefined,
-          })
-        )}
-        t={t}
-      />
-
-      {!gitInitialized || !status?.initialized ? (
+      {!repoExists ? (
         <CloneOrInit
           cloneUrl={cloneUrl} setCloneUrl={setCloneUrl}
           cloneBranch={cloneBranch} setCloneBranch={setCloneBranch}
+          token={token} setToken={setToken}
+          showToken={showToken} setShowToken={setShowToken}
           busy={busy}
           onClone={() => run("clone", () => projectsApi.gitClone(projectId, {
-            url: cloneUrl, branch: cloneBranch || undefined,
+            url: cloneUrl, branch: cloneBranch || undefined, token: token || undefined,
           }))}
           onInit={() => run("init", () => projectsApi.gitInit(projectId))}
           t={t}
         />
       ) : (
         <>
-          <StatusPills status={status} t={t} />
+          <SettingsRow
+            token={token} setToken={setToken}
+            showToken={showToken} setShowToken={setShowToken}
+            remoteUrl={remoteUrl} setRemoteUrl={setRemoteUrl}
+            savedRemote={status?.remote_url ?? null}
+            busy={busy === "remote"}
+            onSave={() => run("remote", () =>
+              projectsApi.putGitConfig(projectId, {
+                remote_url: remoteUrl || undefined,
+                git_token: token || undefined,
+              })
+            )}
+            t={t}
+          />
+          <StatusPills status={status!} t={t} />
           <CommitPushPull
             commitMsg={commitMsg} setCommitMsg={setCommitMsg}
             busy={busy}
-            ahead={status.ahead ?? 0}
-            hasRemote={!!status.remote_url}
+            ahead={status!.ahead ?? 0}
+            hasRemote={!!status!.remote_url}
             onCommit={() => run("commit", () => projectsApi.gitCommit(projectId, commitMsg), async () => {
               setCommitMsg(""); await reload(); onChanged?.()
             })}
@@ -100,7 +103,7 @@ export function GitTab({ projectId, gitInitialized, onChanged }: Props) {
             onPull={() => run("pull", () => projectsApi.gitPull(projectId))}
             t={t}
           />
-          <CommitsList commits={status.commits ?? []} t={t} />
+          <CommitsList commits={status!.commits ?? []} t={t} />
         </>
       )}
     </div>
@@ -153,9 +156,11 @@ function SettingsRow({ token, setToken, showToken, setShowToken, remoteUrl, setR
   )
 }
 
-function CloneOrInit({ cloneUrl, setCloneUrl, cloneBranch, setCloneBranch, busy, onClone, onInit, t }: {
+function CloneOrInit({ cloneUrl, setCloneUrl, cloneBranch, setCloneBranch, token, setToken, showToken, setShowToken, busy, onClone, onInit, t }: {
   cloneUrl: string; setCloneUrl: (v: string) => void
   cloneBranch: string; setCloneBranch: (v: string) => void
+  token: string; setToken: (v: string) => void
+  showToken: boolean; setShowToken: (v: boolean) => void
   busy: Busy
   onClone: () => void; onInit: () => void
   t: (k: string) => string
@@ -176,6 +181,19 @@ function CloneOrInit({ cloneUrl, setCloneUrl, cloneBranch, setCloneBranch, busy,
             placeholder="main"
             className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 font-mono" />
         </div>
+      </div>
+      <div className="space-y-0.5">
+        <label className="block text-[10px] text-zinc-500">{t("git.token")}</label>
+        <div className="flex gap-1">
+          <input type={showToken ? "text" : "password"} value={token} onChange={(e) => setToken(e.target.value)}
+            placeholder="ghp_…"
+            className="flex-1 px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 font-mono" />
+          <button type="button" onClick={() => setShowToken(!showToken)}
+            className="px-2 py-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
+            {showToken ? <EyeOff size={12} /> : <Eye size={12} />}
+          </button>
+        </div>
+        <p className="text-[10px] text-zinc-600">{t("git.token_hint_clone")}</p>
       </div>
       <div className="flex justify-end gap-2">
         <button onClick={onInit} disabled={busy !== ""}

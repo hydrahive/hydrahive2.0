@@ -19,7 +19,7 @@ export const projectsApi = {
   putGitConfig: (id: string, body: { remote_url?: string; git_token?: string }) =>
     api.put<{ ok: boolean }>(`/projects/${id}/git/config`, body),
   gitInit: (id: string) => api.post<{ ok: boolean }>(`/projects/${id}/git/init`, {}),
-  gitClone: (id: string, body: { url: string; branch?: string }) =>
+  gitClone: (id: string, body: { url: string; branch?: string; token?: string }) =>
     api.post<{ ok: boolean }>(`/projects/${id}/git/clone`, body),
   gitCommit: (id: string, message: string) =>
     api.post<{ ok: boolean }>(`/projects/${id}/git/commit`, { message }),
