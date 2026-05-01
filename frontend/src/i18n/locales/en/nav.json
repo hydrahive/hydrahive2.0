@@ -23,9 +23,12 @@
   "help_button": "Open page help",
   "update": {
     "available": "Update available — click to update",
+    "force": "Force update / rebuild",
     "modal_title": "System update",
     "confirm_question": "Update now?",
+    "confirm_question_force": "Force update?",
     "confirm_hint": "The server will restart and be unreachable for 1-2 minutes.",
+    "confirm_hint_force": "You are already on the latest version. Rebuild + restart anyway? Server unreachable for 1-2 minutes.",
     "confirm_button": "Start update",
     "starting": "Starting update…",
     "in_progress": "Update running…",

@@ -23,9 +23,12 @@
   "help_button": "Seiten-Hilfe öffnen",
   "update": {
     "available": "Update verfügbar — klicken zum Aktualisieren",
+    "force": "Update erzwingen / Rebuild",
     "modal_title": "System-Update",
     "confirm_question": "Jetzt aktualisieren?",
+    "confirm_question_force": "Update erzwingen?",
     "confirm_hint": "Der Server wird neu starten und ist für 1-2 Minuten nicht erreichbar.",
+    "confirm_hint_force": "Du bist bereits auf dem aktuellen Stand. Trotzdem rebuild + restart? Server ist für 1-2 Minuten nicht erreichbar.",
     "confirm_button": "Update starten",
     "starting": "Update wird gestartet…",
     "in_progress": "Update läuft…",

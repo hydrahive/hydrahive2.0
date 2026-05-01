@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Settings } from "lucide-react"
+import { RefreshCw, Settings } from "lucide-react"
 
 interface Props {
   version: string | null
@@ -28,23 +28,36 @@ export function AppFooter({ version, commit, updateBehind, isAdmin, onUpdateClic
         {version && (
           <span>v{version}{commit && <> · <span className="text-zinc-600">{commit}</span></>}</span>
         )}
-        {updateBehind !== null && updateBehind > 0 && (
-          isAdmin ? (
-            <button
-              type="button"
-              onClick={onUpdateClick}
-              title={t("update.available")}
-              className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
-            >
-              ↑
-            </button>
+        {updateBehind !== null && (
+          updateBehind > 0 ? (
+            isAdmin ? (
+              <button
+                type="button"
+                onClick={onUpdateClick}
+                title={t("update.available")}
+                className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
+              >
+                ↑
+              </button>
+            ) : (
+              <span
+                title={t("update.available")}
+                className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300"
+              >
+                ↑
+              </span>
+            )
           ) : (
-            <span
-              title={t("update.available")}
-              className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300"
-            >
-              ↑
-            </span>
+            isAdmin && (
+              <button
+                type="button"
+                onClick={onUpdateClick}
+                title={t("update.force")}
+                className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
+              >
+                <RefreshCw size={11} />
+              </button>
+            )
           )
         )}
       </div>
