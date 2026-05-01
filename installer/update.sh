@@ -132,6 +132,40 @@ EOF
   systemctl restart hydrahive2-restart.timer
 fi
 
+if [ ! -f /etc/systemd/system/hydrahive2-bridge.timer ] || [ ! -f /etc/systemd/system/hydrahive2-bridge.service ]; then
+  log "Bridge-Setup-Units anlegen"
+  cat > /etc/systemd/system/hydrahive2-bridge.service <<EOF
+[Unit]
+Description=HydraHive2 Bridge-Setup Runner
+ConditionPathExists=$HH_DATA_DIR/.bridge_setup_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.bridge_setup_request
+ExecStart=$HH_REPO_DIR/installer/setup-bridge.sh
+StandardOutput=append:/var/log/hydrahive2-bridge.log
+StandardError=append:/var/log/hydrahive2-bridge.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-bridge.timer <<EOF
+[Unit]
+Description=HydraHive2 Bridge-Setup Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-bridge.service
+
+[Install]
+WantedBy=timers.target
+EOF
+  touch /var/log/hydrahive2-bridge.log
+  chmod 644 /var/log/hydrahive2-bridge.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-bridge.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-bridge.timer
+fi
+
 if [ ! -f /etc/systemd/system/hydrahive2-voice.timer ] || [ ! -f /etc/systemd/system/hydrahive2-voice.service ]; then
   log "Voice-Install-Units anlegen"
   cat > /etc/systemd/system/hydrahive2-voice.service <<EOF

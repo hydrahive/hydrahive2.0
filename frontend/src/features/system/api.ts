@@ -41,6 +41,10 @@ export const systemApi = {
   health: () => api.get<{ checks: HealthCheck[] }>("/system/health"),
   installVoice: () => api.post<{ started: boolean }>("/system/install-voice", {}),
   voiceLog: (tail = 300) => api.get<{ lines: string[]; exists: boolean }>(`/system/install-voice/log?tail=${tail}`),
+  bridgeStatus: () => api.get<{ installed: boolean; state?: string; ip?: string }>("/system/bridge/status"),
+  bridgeSetup: () => api.post<{ started: boolean }>("/system/bridge/setup", {}),
+  bridgeLog: (tail = 200) =>
+    api.get<{ lines: string[]; exists: boolean }>(`/system/bridge/log?tail=${tail}`),
   downloadBackup: async () => {
     const token = useAuthStore.getState().token || ""
     const r = await fetch("/api/admin/backup", {

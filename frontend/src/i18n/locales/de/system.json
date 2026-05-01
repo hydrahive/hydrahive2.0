@@ -88,5 +88,19 @@
     "authkey_placeholder": "tskey-auth-...",
     "error_connect": "Verbindung fehlgeschlagen",
     "error_logout": "Abmeldung fehlgeschlagen"
+  },
+  "bridge": {
+    "title": "Netzwerk-Bridge (br0)",
+    "subtitle": "Bridged Networking für VMs und Container — gleiche IP-Range wie der Host.",
+    "not_installed": "nicht eingerichtet",
+    "setup": "Bridge einrichten",
+    "confirm_question": "Bridge jetzt einrichten?",
+    "confirm_hint": "Setup ändert die netplan-Konfiguration und ruft `netplan apply` — die Netzwerk-Verbindung kann ~10 Sekunden unterbrochen sein. SSH-Sitzungen können kurz hängen, kommen aber wieder.",
+    "confirm_button": "Jetzt einrichten",
+    "running": "Bridge wird eingerichtet…",
+    "done": "Bridge eingerichtet — VMs/Container haben jetzt LAN-Zugriff.",
+    "failed": "Bridge-Setup fehlgeschlagen",
+    "timeout": "Setup hat zu lange gebraucht — siehe Log",
+    "log_empty": "Noch keine Ausgabe…"
   }
 }
