@@ -9,6 +9,7 @@ import { RestartModal } from "@/shared/RestartModal"
 import { useRestart } from "@/shared/useRestart"
 import { systemApi, type HealthCheck, type SystemInfo, type SystemStats } from "./api"
 import { AgentLinkCard } from "./AgentLinkCard"
+import { TailscaleCard } from "./TailscaleCard"
 import { BackupCard } from "./BackupCard"
 import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
@@ -156,6 +157,7 @@ export function SystemPage() {
       )}
 
       <AgentLinkCard />
+      {role === "admin" && <TailscaleCard />}
 
       {role === "admin" && <BackupCard />}
     </div>

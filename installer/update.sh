@@ -262,6 +262,11 @@ elif [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
   bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh" || log "hydralink-install failed — weiter"
 fi
 
+if [ -f /etc/sudoers.d/hydrahive-tailscale ] && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
+  log "Tailscale sudoers-Regel prüfen"
+  bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || log "tailscale-update failed — weiter"
+fi
+
 log "Service neu starten"
 systemctl restart hydrahive2.service
 
