@@ -84,6 +84,32 @@ else
   log "Tailscale übersprungen (HH_INSTALL_TAILSCALE=1 oder HH_TAILSCALE_AUTHKEY setzen)"
 fi
 
-log "Fertig. Backend läuft als systemd-Service 'hydrahive2'."
-log "Erste Anmeldung: Admin-Passwort steht im journal:"
-log "  journalctl -u hydrahive2 | grep -A 3 'Admin-User angelegt'"
+# ----------------------------------------------------------------- Zusammenfassung
+SERVER_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/{print $7; exit}' || hostname -I 2>/dev/null | awk '{print $1}')
+SERVER_URL="https://${SERVER_IP:-<server-ip>}"
+
+# Admin-Passwort aus Journal lesen — Service läuft bereits seit Phase 7
+ADMIN_PW=""
+for _ in 1 2 3 4 5; do
+  ADMIN_PW=$(journalctl -u hydrahive2 --no-pager -n 100 2>/dev/null \
+    | grep "Passwort:" | tail -1 | awk '{print $NF}')
+  [ -n "$ADMIN_PW" ] && break
+  sleep 2
+done
+
+printf "\n"
+printf "\033[1;32m╔══════════════════════════════════════════════╗\033[0m\n"
+printf "\033[1;32m║        HydraHive2 — Installation fertig      ║\033[0m\n"
+printf "\033[1;32m╠══════════════════════════════════════════════╣\033[0m\n"
+printf "\033[1;32m║\033[0m  URL:       \033[1;37m%-33s\033[0m\033[1;32m║\033[0m\n" "$SERVER_URL"
+printf "\033[1;32m║\033[0m  Benutzer:  \033[1;37m%-33s\033[0m\033[1;32m║\033[0m\n" "admin"
+if [ -n "$ADMIN_PW" ]; then
+  printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "$ADMIN_PW"
+else
+  printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "(siehe: journalctl -u hydrahive2)"
+fi
+printf "\033[1;32m╠══════════════════════════════════════════════╣\033[0m\n"
+printf "\033[1;32m║\033[0m  Browser: Zertifikatswarnung mit 'Weiter'     \033[1;32m║\033[0m\n"
+printf "\033[1;32m║\033[0m  Passwort nach erstem Login ändern!           \033[1;32m║\033[0m\n"
+printf "\033[1;32m╚══════════════════════════════════════════════╝\033[0m\n"
+printf "\n"
