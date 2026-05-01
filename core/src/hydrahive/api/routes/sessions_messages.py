@@ -95,6 +95,54 @@ async def manual_compact(
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "validation_error", message=str(e))
 
 
+@messages_router.post("/{session_id}/messages/{message_id}/resend")
+async def resend_message(
+    session_id: str,
+    message_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    text: Annotated[str, Form(min_length=1)],
+    files: Annotated[list[UploadFile] | None, File()] = None,
+) -> StreamingResponse:
+    """Edit + Resend: Schneidet die History ab `message_id` (inklusive) ab
+    und schreibt eine neue User-Message mit `text`. Triggered den Runner
+    wie bei einer normalen post_message."""
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+
+    target = messages_db.get(message_id)
+    if not target or target.session_id != session_id:
+        raise coded(status.HTTP_404_NOT_FOUND, "message_not_found")
+    if target.role != "user":
+        raise coded(status.HTTP_400_BAD_REQUEST, "message_not_editable")
+
+    messages_db.delete_from(session_id, message_id)
+
+    file_list = files or []
+    if file_list:
+        agent = agent_config.get(s.agent_id)
+        workspace = ensure_workspace(agent) if agent else None
+        blocks: list[dict] = []
+        for f in file_list:
+            blocks.extend(await process_upload(f, workspace))
+        blocks.append({"type": "text", "text": text})
+        user_content: str | list = blocks
+    else:
+        user_content = text
+
+    events = runner_run(session_id, user_content)
+    return StreamingResponse(
+        to_sse(events),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @messages_router.post("/{session_id}/messages")
 async def post_message(
     session_id: str,

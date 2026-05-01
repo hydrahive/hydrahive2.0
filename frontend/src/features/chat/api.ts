@@ -42,12 +42,16 @@ export async function* sendMessage(
   text: string,
   files: File[] = [],
   signal?: AbortSignal,
+  resendMessageId?: string,
 ): AsyncIterable<RunnerEvent> {
   const token = useAuthStore.getState().token
   const body = new FormData()
   body.append("text", text)
   for (const file of files) body.append("files", file, file.name)
-  const res = await fetch(`/api/sessions/${sessionId}/messages`, {
+  const url = resendMessageId
+    ? `/api/sessions/${sessionId}/messages/${encodeURIComponent(resendMessageId)}/resend`
+    : `/api/sessions/${sessionId}/messages`
+  const res = await fetch(url, {
     method: "POST",
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body,

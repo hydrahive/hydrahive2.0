@@ -9,9 +9,10 @@ interface Props {
   busy: boolean
   iteration: number
   error: string | null
+  onResend?: (messageId: string, newText: string) => void
 }
 
-export function MessageList({ messages, busy, iteration, error }: Props) {
+export function MessageList({ messages, busy, iteration, error, onResend }: Props) {
   const { t } = useTranslation("chat")
   const ref = useRef<HTMLDivElement>(null)
 
@@ -27,7 +28,7 @@ export function MessageList({ messages, busy, iteration, error }: Props) {
         </div>
       )}
       {messages.map((m) => (
-        <MessageBubble key={m.id} message={m} />
+        <MessageBubble key={m.id} message={m} onResend={onResend} busy={busy} />
       ))}
       {busy && (
         <div className="flex items-center gap-2 text-xs text-zinc-500 pl-11">

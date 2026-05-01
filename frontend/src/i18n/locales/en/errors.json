@@ -54,6 +54,8 @@
   "agentlink_not_configured": "AgentLink is not configured (HH_AGENTLINK_URL missing)",
   "agentlink_listener_never_started": "Listener was never started — service restart required",
   "agentlink_failed": "AgentLink reconnect failed: {{detail}}",
+  "message_not_found": "Message not found",
+  "message_not_editable": "Only user messages can be edited",
   "git_failed": "Git operation failed: {{detail}}",
   "git_no_repo": "No git repository in this workspace — please clone or init empty first.",
   "git_no_remote": "No remote configured.",

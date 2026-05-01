@@ -44,7 +44,7 @@ export function useChat(sessionId: string | null) {
   }, [sessionId])
 
   const send = useCallback(
-    async (text: string, files: File[] = []) => {
+    async (text: string, files: File[] = [], resendMessageId?: string) => {
       if (!sessionId) return
       const imageBlocks = files
         .filter((f) => f.type.startsWith("image/"))
@@ -67,19 +67,26 @@ export function useChat(sessionId: string | null) {
         token_count: null,
         metadata: {},
       }
-      setState((s) => ({
-        ...s,
-        messages: [...s.messages, userMsg, liveAssistant],
-        busy: true,
-        iteration: 1,
-        error: null,
-      }))
+      setState((s) => {
+        // Bei Resend: alle Messages ab der editieren entfernen, dann neue
+        // User-Message + Live-Assistant anhängen.
+        const trimmed = resendMessageId
+          ? s.messages.slice(0, s.messages.findIndex((m) => m.id === resendMessageId))
+          : s.messages
+        return {
+          ...s,
+          messages: [...trimmed, userMsg, liveAssistant],
+          busy: true,
+          iteration: 1,
+          error: null,
+        }
+      })
 
       const blocks: ContentBlock[] = []
       const controller = new AbortController()
       abortRef.current = controller
       try {
-        for await (const ev of sendMessage(sessionId, text, files, controller.signal)) {
+        for await (const ev of sendMessage(sessionId, text, files, controller.signal, resendMessageId)) {
           if (ev.type === "iteration_start") {
             setState((s) => ({ ...s, iteration: ev.iteration }))
           } else if (ev.type === "message_start") {
