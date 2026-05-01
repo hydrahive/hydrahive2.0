@@ -15,6 +15,15 @@ err() { printf "\033[1;31m[hh2-update]\033[0m %s\n" "$*" >&2; exit 1; }
 
 cd "$HH_REPO_DIR"
 
+# Re-exec-Schutz: nach git pull prüfen wir ob update.sh sich selbst geändert
+# hat. Falls ja, exec mit der neuen Version damit neuer Migrations-/Self-Heal-
+# Code direkt im AKTUELLEN Lauf greift (nicht erst beim nächsten — siehe #89).
+SELF_PATH="$HH_REPO_DIR/installer/update.sh"
+SELF_HASH_BEFORE=""
+if [ -f "$SELF_PATH" ]; then
+  SELF_HASH_BEFORE="$(sha256sum "$SELF_PATH" 2>/dev/null | cut -d' ' -f1 || echo)"
+fi
+
 log "SSH-Verzeichnis für $HH_USER prüfen"
 HH_HOME="/home/$HH_USER"
 SSH_DIR="$HH_HOME/.ssh"
@@ -31,6 +40,16 @@ fi
 
 log "git pull"
 sudo -u hydrahive git pull --ff-only
+
+# Wenn update.sh selbst durch den Pull verändert wurde: einmalig re-exec mit
+# der neuen Version. HH_UPDATE_REEXECED schützt vor Endlos-Loop.
+if [ -z "${HH_UPDATE_REEXECED:-}" ] && [ -n "$SELF_HASH_BEFORE" ]; then
+  SELF_HASH_AFTER="$(sha256sum "$SELF_PATH" 2>/dev/null | cut -d' ' -f1 || echo)"
+  if [ -n "$SELF_HASH_AFTER" ] && [ "$SELF_HASH_BEFORE" != "$SELF_HASH_AFTER" ]; then
+    log "update.sh wurde durch git pull aktualisiert — re-exec mit neuer Version"
+    HH_UPDATE_REEXECED=1 exec bash "$SELF_PATH" "$@"
+  fi
+fi
 
 log "Node.js prüfen"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ]; then
