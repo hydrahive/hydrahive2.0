@@ -7,11 +7,15 @@ from hydrahive.agentlink.client import (
     cancel_pending,
     get_state,
     is_connected,
+    last_error,
     list_specialists,
     listen_loop,
     post_state,
     register_pending,
     resolve_pending,
+    restart_listener,
+    start_listener,
+    stop_listener,
 )
 from hydrahive.agentlink.protocol import (
     ContextBlock,
@@ -23,7 +27,8 @@ from hydrahive.agentlink.protocol import (
 )
 
 __all__ = [
-    "cancel_pending", "get_state", "is_connected", "list_specialists",
-    "listen_loop", "post_state", "register_pending", "resolve_pending",
+    "cancel_pending", "get_state", "is_connected", "last_error",
+    "list_specialists", "listen_loop", "post_state", "register_pending",
+    "resolve_pending", "restart_listener", "start_listener", "stop_listener",
     "ContextBlock", "Handoff", "State", "TaskBlock", "WorkingMemory", "WSEvent",
 ]

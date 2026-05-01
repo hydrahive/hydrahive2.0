@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react"
-import { ExternalLink, Link2, Link2Off } from "lucide-react"
+import { ExternalLink, Link2, Link2Off, Loader2, RefreshCw } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 
 interface Status {
   configured: boolean
   connected: boolean
   ws_connected?: boolean
+  backend_reachable?: boolean
+  last_error?: string | null
   url?: string
   ws_url?: string
   agent_id?: string
@@ -19,20 +22,35 @@ const REFRESH_MS = 10_000
 
 export function AgentLinkCard() {
   const { t } = useTranslation("system")
+  const { t: tCommon } = useTranslation("common")
+  const role = useAuthStore((s) => s.role)
   const [status, setStatus] = useState<Status | null>(null)
+  const [reconnecting, setReconnecting] = useState(false)
+  const [reconnectError, setReconnectError] = useState<string | null>(null)
+
+  async function load() {
+    try { setStatus(await api.get<Status>("/agentlink/status")) }
+    catch { /* leise */ }
+  }
 
   useEffect(() => {
     let alive = true
-    async function load() {
-      try {
-        const s = await api.get<Status>("/agentlink/status")
-        if (alive) setStatus(s)
-      } catch { /* leise */ }
-    }
-    load()
-    const t = setInterval(load, REFRESH_MS)
+    async function tick() { if (alive) await load() }
+    tick()
+    const t = setInterval(tick, REFRESH_MS)
     return () => { alive = false; clearInterval(t) }
   }, [])
+
+  async function reconnect() {
+    setReconnecting(true); setReconnectError(null)
+    try {
+      await api.post("/agentlink/reconnect", {})
+      await new Promise((r) => setTimeout(r, 1500))
+      await load()
+    } catch (e) {
+      setReconnectError(e instanceof Error ? e.message : tCommon("status.error"))
+    } finally { setReconnecting(false) }
+  }
 
   if (!status) return null
   if (!status.configured) {
@@ -94,14 +112,35 @@ export function AgentLinkCard() {
         </div>
       )}
 
-      {status.dashboard_url && (
-        <a href={status.dashboard_url} target="_blank" rel="noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-200 text-xs font-medium hover:bg-violet-500/20 transition-colors w-fit"
-        >
-          <ExternalLink size={12} />
-          {t("agentlink.open_dashboard")}
-        </a>
+      {!status.connected && status.last_error && (
+        <p className="text-[11px] text-rose-300/80 bg-rose-500/[5%] border border-rose-500/15 rounded-md px-2 py-1 font-mono break-all">
+          {status.last_error}
+        </p>
       )}
+
+      {reconnectError && (
+        <p className="text-[11px] text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-md px-2 py-1">
+          {reconnectError}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {role === "admin" && !status.connected && (
+          <button onClick={reconnect} disabled={reconnecting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs font-medium hover:bg-emerald-500/20 transition-colors disabled:opacity-40">
+            {reconnecting ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+            {t("agentlink.reconnect")}
+          </button>
+        )}
+        {status.dashboard_url && (
+          <a href={status.dashboard_url} target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-200 text-xs font-medium hover:bg-violet-500/20 transition-colors"
+          >
+            <ExternalLink size={12} />
+            {t("agentlink.open_dashboard")}
+          </a>
+        )}
+      </div>
     </div>
   )
 }

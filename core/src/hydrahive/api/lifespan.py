@@ -85,8 +85,6 @@ async def lifespan(app: FastAPI):
 
     # AgentLink-WS-Listener: persistent connection, subscribed auf agent:{my_id},
     # routet handoff_received-Events via Future-Map an wartende ask_agent-Calls.
-    agentlink_stop = asyncio.Event()
-    agentlink_task: asyncio.Task | None = None
     if settings.agentlink_url:
         async def _on_event(event):
             # handoff_received → schau ob jemand auf den Antwort-State wartet.
@@ -107,9 +105,7 @@ async def lifespan(app: FastAPI):
                 if agentlink_client.resolve_pending(reply_to, state):
                     logger.info("AgentLink: Antwort-State auf %s eingetroffen", reply_to)
 
-        agentlink_task = asyncio.create_task(
-            agentlink_client.listen_loop(_on_event, agentlink_stop)
-        )
+        agentlink_client.start_listener(_on_event)
 
     wa_bridge: BridgeProcess | None = None
     wa_adapter: WhatsAppAdapter | None = None
@@ -138,12 +134,7 @@ async def lifespan(app: FastAPI):
     update_task.cancel()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
-    agentlink_stop.set()
-    if agentlink_task:
-        try:
-            await asyncio.wait_for(agentlink_task, timeout=5.0)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            agentlink_task.cancel()
+    await agentlink_client.stop_listener()
     for task in (vm_reconciler_task, container_reconciler_task):
         try:
             await asyncio.wait_for(task, timeout=5.0)

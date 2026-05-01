@@ -82,6 +82,52 @@ async def list_specialists() -> list[str]:
 
 OnEvent = Callable[[WSEvent], Awaitable[None]]
 
+_listener_state: dict = {"task": None, "stop": None, "on_event": None, "last_error": None}
+
+
+def _set_last_error(msg: str | None) -> None:
+    _listener_state["last_error"] = msg
+
+
+def last_error() -> str | None:
+    return _listener_state.get("last_error")
+
+
+def start_listener(on_event: OnEvent) -> None:
+    """Startet den persistent WS-Listener als asyncio-Task. Idempotent — wenn
+    bereits läuft, no-op."""
+    if _listener_state["task"] and not _listener_state["task"].done():
+        return
+    stop = asyncio.Event()
+    _listener_state["stop"] = stop
+    _listener_state["on_event"] = on_event
+    _listener_state["task"] = asyncio.create_task(listen_loop(on_event, stop))
+
+
+async def stop_listener() -> None:
+    stop = _listener_state.get("stop")
+    task = _listener_state.get("task")
+    if stop:
+        stop.set()
+    if task:
+        try:
+            await asyncio.wait_for(task, timeout=5.0)
+        except asyncio.TimeoutError:
+            task.cancel()
+    _listener_state["task"] = None
+    _listener_state["stop"] = None
+
+
+async def restart_listener() -> None:
+    """Stoppt den aktuellen Listener und startet einen neuen mit dem gleichen
+    on_event-Handler. Bei Manual-Reconnect via UI."""
+    on_event = _listener_state.get("on_event")
+    if not on_event:
+        raise RuntimeError("listener_never_started")
+    await stop_listener()
+    _set_last_error(None)
+    start_listener(on_event)
+
 
 async def listen_loop(on_event: OnEvent, stop: asyncio.Event) -> None:
     """Persistent WS-Listener: connect → subscribe agent:{my_id} → forward events.
@@ -136,6 +182,7 @@ async def listen_loop(on_event: OnEvent, stop: asyncio.Event) -> None:
                     return
         except (websockets.ConnectionClosed, OSError, asyncio.TimeoutError) as e:
             _set_connected(False)
+            _set_last_error(f"{type(e).__name__}: {e}")
             logger.warning("AgentLink-WS-Disconnect: %s — Reconnect in %.1fs", e, backoff)
             try:
                 await asyncio.wait_for(stop.wait(), timeout=backoff)
@@ -145,6 +192,7 @@ async def listen_loop(on_event: OnEvent, stop: asyncio.Event) -> None:
             backoff = min(backoff * 2, 60.0)
         except Exception as e:
             _set_connected(False)
+            _set_last_error(f"{type(e).__name__}: {e}")
             logger.exception("AgentLink-WS unerwarteter Fehler: %s", e)
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 60.0)
