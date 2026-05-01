@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2 } from "lucide-react"
 import { MessageInput } from "@/features/chat/MessageInput"
-import { MessageList } from "@/features/chat/MessageList"
-import { TokenMeter } from "@/features/chat/TokenMeter"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
+import { BuddyMessageList } from "./BuddyMessageList"
 import { buddyApi, type BuddyState } from "./api"
 
 export function BuddyPage() {
@@ -14,7 +13,6 @@ export function BuddyPage() {
   const [error, setError] = useState<string | null>(null)
   const initRef = useRef(false)
   const chat = useChat(state?.session_id ?? null)
-  const [tokenRefresh, setTokenRefresh] = useState(0)
 
   useEffect(() => {
     if (initRef.current) return
@@ -30,7 +28,6 @@ export function BuddyPage() {
 
   async function handleSend(text: string, files: File[] = []) {
     await chat.send(text, files)
-    setTokenRefresh((n) => n + 1)
   }
 
   if (error) {
@@ -69,21 +66,16 @@ export function BuddyPage() {
             </div>
           )}
 
-          {/* Header / TV-Top-Bezel */}
+          {/* Header / TV-Top-Bezel — clean, kein Modell, keine Token */}
           <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3 bg-black/30">
             <div className="text-2xl">🐝</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-zinc-100 truncate">{state.agent_name}</p>
-              <p className="text-[10px] text-zinc-500 font-mono truncate">{state.model}</p>
-            </div>
-            <TokenMeter sessionId={state.session_id} refresh={tokenRefresh} />
+            <p className="text-sm font-medium text-zinc-100 truncate flex-1">{state.agent_name}</p>
           </div>
 
           {/* Display / Chat */}
-          <MessageList
+          <BuddyMessageList
             messages={chat.messages}
             busy={chat.busy}
-            iteration={chat.iteration}
             error={chat.error}
             onResend={(id, text) => chat.send(text, [], id)}
           />
