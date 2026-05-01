@@ -2,8 +2,31 @@
   "title": "Dashboard",
   "subtitle": "Übersicht über dein HydraHive2-System",
   "stats": {
-    "agents": "Agents",
-    "users": "User",
-    "online": "Online"
-  }
+    "active_sessions": "Aktive Sessions",
+    "tokens_today": "Tokens heute",
+    "tool_calls_today": "Tool-Calls heute",
+    "servers_running": "Server laufen",
+    "servers_total_suffix": "von {{total}}"
+  },
+  "sections": {
+    "recent_sessions": "Letzte Sessions",
+    "recent_sessions_empty": "Noch keine Sessions",
+    "servers": "Server",
+    "servers_empty": "Keine Server",
+    "agents": "Agenten",
+    "agents_empty": "Keine Agenten"
+  },
+  "agent_types": {
+    "master": "Master",
+    "project": "Projekt",
+    "specialist": "Spezialist"
+  },
+  "open_chat": "Öffnen",
+  "minutes_ago_one": "vor 1 Minute",
+  "minutes_ago_other": "vor {{count}} Minuten",
+  "hours_ago_one": "vor 1 Stunde",
+  "hours_ago_other": "vor {{count}} Stunden",
+  "days_ago_one": "vor 1 Tag",
+  "days_ago_other": "vor {{count}} Tagen",
+  "just_now": "gerade eben"
 }

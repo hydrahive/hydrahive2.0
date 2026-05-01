@@ -15,6 +15,7 @@ from hydrahive.api.routes.butler import router as butler_router
 from hydrahive.api.routes.communication import router as communication_router
 from hydrahive.api.routes.container_console import router as container_console_router
 from hydrahive.api.routes.containers import router as containers_router
+from hydrahive.api.routes.dashboard import router as dashboard_router
 from hydrahive.api.routes.llm import router as llm_router
 from hydrahive.api.routes.mcp import router as mcp_router
 from hydrahive.api.routes.plugins import router as plugins_router
@@ -79,6 +80,7 @@ app.include_router(stt_router)
 app.include_router(tts_router)
 app.include_router(vms_router)
 app.include_router(containers_router)
+app.include_router(dashboard_router)
 app.include_router(container_console_router)
 app.include_router(butler_router)
 app.include_router(system_router)
