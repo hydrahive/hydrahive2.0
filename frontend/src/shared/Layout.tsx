@@ -143,6 +143,7 @@ export function Layout() {
       {updateState !== "idle" && (
         <UpdateModal
           state={updateState} newCommit={newCommit} errorMessage={updateError}
+          forceMode={updateBehind === 0}
           onConfirm={confirmUpdate} onClose={() => setUpdateState("idle")}
         />
       )}

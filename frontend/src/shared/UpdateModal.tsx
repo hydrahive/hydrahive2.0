@@ -9,11 +9,12 @@ interface Props {
   state: UpdateState
   newCommit?: string | null
   errorMessage?: string | null
+  forceMode?: boolean
   onConfirm: () => void
   onClose: () => void
 }
 
-export function UpdateModal({ state, newCommit, errorMessage, onConfirm, onClose }: Props) {
+export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfirm, onClose }: Props) {
   const { t } = useTranslation("nav")
   const [logLines, setLogLines] = useState<string[]>([])
   const [logDisconnected, setLogDisconnected] = useState(false)
@@ -67,8 +68,12 @@ export function UpdateModal({ state, newCommit, errorMessage, onConfirm, onClose
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {state === "confirm" && (
             <>
-              <p className="text-sm text-zinc-200">{t("update.confirm_question")}</p>
-              <p className="text-xs text-zinc-500 leading-relaxed">{t("update.confirm_hint")}</p>
+              <p className="text-sm text-zinc-200">
+                {t(forceMode ? "update.confirm_question_force" : "update.confirm_question")}
+              </p>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                {t(forceMode ? "update.confirm_hint_force" : "update.confirm_hint")}
+              </p>
             </>
           )}
 
