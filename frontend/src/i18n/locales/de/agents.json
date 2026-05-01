@@ -23,6 +23,18 @@
     "fallback_models": "Fallback-Modelle",
     "fallback_hint": "Bei Quota/Overload/Auth-Fehler des primären Modells werden diese der Reihe nach probiert. Mit ↑ kann die Reihenfolge geändert werden."
   },
+  "tool_categories": {
+    "all": "Alle ({{count}})",
+    "files": "Dateien",
+    "shell": "Shell",
+    "memory": "Speicher",
+    "web": "Web",
+    "tasks": "Aufgaben",
+    "mail": "Mail",
+    "agents": "Agenten",
+    "other": "Sonstige",
+    "plugin": "Plugin: {{name}}"
+  },
   "errors": {
     "save_failed": "Speichern fehlgeschlagen",
     "delete_confirm": "Agent \"{{name}}\" wirklich löschen? Inkl. Memory + Workspace.",

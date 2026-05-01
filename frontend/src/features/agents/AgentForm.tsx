@@ -70,17 +70,17 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-white/[6%] flex items-center gap-4">
-        <Icon size={18} className="text-violet-300 flex-shrink-0" />
+      <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3">
+        <Icon size={16} className="text-violet-300 flex-shrink-0" />
         <input
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          className="flex-1 bg-transparent text-lg font-bold text-white focus:outline-none"
+          className="flex-1 bg-transparent text-base font-bold text-white focus:outline-none"
         />
         <select
           value={draft.status}
           onChange={(e) => setDraft({ ...draft, status: e.target.value as Agent["status"] })}
-          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
+          className="px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
         >
           <option value="active">{tCommon("status.active")}</option>
           <option value="disabled">{tCommon("status.disabled")}</option>
@@ -88,35 +88,35 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
         <button
           onClick={save}
           disabled={!dirty || saving}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-violet-900/20"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow shadow-violet-900/20"
         >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
           {tCommon("actions.save")}
         </button>
         <button
           onClick={remove}
-          className="p-2 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+          className="p-1.5 rounded-md text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
         >
-          <Trash2 size={15} />
+          <Trash2 size={14} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
         {error && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">
+          <div className="rounded-md border border-rose-500/30 bg-rose-500/[6%] px-3 py-1.5 text-xs text-rose-300">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Field label={t("fields.type")}>
-            <p className="text-sm text-zinc-300 font-mono">{t(`type.${draft.type}`)}</p>
+            <p className="px-2 py-1 text-xs text-zinc-300 font-mono">{t(`type.${draft.type}`)}</p>
           </Field>
           <Field label={t("fields.model")}>
             <select
               value={draft.llm_model}
               onChange={(e) => setDraft({ ...draft, llm_model: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200"
+              className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
             >
               {!models.includes(draft.llm_model) && (
                 <option value={draft.llm_model}>{t("fields.model_not_in_config", { model: draft.llm_model })}</option>
@@ -127,28 +127,27 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           <Field label={t("fields.temperature")}>
             <input type="number" step="0.1" min="0" max="2" value={draft.temperature}
               onChange={(e) => setDraft({ ...draft, temperature: parseFloat(e.target.value) })}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
+              className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200" />
           </Field>
           <Field label={t("fields.max_tokens")}>
             <input type="number" value={draft.max_tokens}
               onChange={(e) => setDraft({ ...draft, max_tokens: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
+              className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200" />
           </Field>
         </div>
 
-        <Field label={t("fields.fallback_models")}>
+        <Field label={t("fields.fallback_models")} hint={t("fields.fallback_hint")}>
           <FallbackModelsSelector
             primary={draft.llm_model}
             available={models}
             selected={draft.fallback_models ?? []}
             onChange={(fb) => setDraft({ ...draft, fallback_models: fb })}
           />
-          <p className="text-[11px] text-zinc-500 mt-1.5">{t("fields.fallback_hint")}</p>
         </Field>
 
         <Field label={t("fields.description")}>
           <input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200" />
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200" />
         </Field>
 
         <Field label={t("fields.tools_count", { selected: draft.tools.length, total: tools.length })}>
@@ -162,8 +161,8 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
         </Field>
 
         <Field label={t("fields.system_prompt")}>
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={10}
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={8}
+            className="w-full px-2 py-1.5 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
         </Field>
 
         <CompactionSection agent={draft} models={models}
@@ -173,11 +172,12 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</label>
+    <div className="space-y-0.5">
+      <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
       {children}
+      {hint && <p className="text-[10px] text-zinc-600 mt-0.5">{hint}</p>}
     </div>
   )
 }

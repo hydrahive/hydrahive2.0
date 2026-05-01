@@ -57,4 +57,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok({"items": cleaned, "count": len(cleaned), "by_status": counts})
 
 
-TOOL = Tool(name="todo_write", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="todo_write", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="tasks")

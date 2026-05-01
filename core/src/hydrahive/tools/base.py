@@ -51,3 +51,4 @@ class Tool:
     description: str
     schema: dict
     execute: ExecuteFn
+    category: str = "other"

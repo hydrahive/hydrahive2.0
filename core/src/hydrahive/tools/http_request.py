@@ -65,4 +65,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     })
 
 
-TOOL = Tool(name="http_request", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="http_request", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="web")

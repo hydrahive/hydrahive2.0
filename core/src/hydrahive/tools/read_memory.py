@@ -29,4 +29,4 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok({"key": key, "content": content})
 
 
-TOOL = Tool(name="read_memory", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute)
+TOOL = Tool(name="read_memory", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="memory")
