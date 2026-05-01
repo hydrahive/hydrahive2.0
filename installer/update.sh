@@ -228,8 +228,9 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "ReadWritePaths=.*\.config" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.mmx" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*/run/sudo" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "ExecStartPre.*mkdir.*run/sudo" "$SERVICE_FILE" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
-    log "Service-File braucht Update (HOME-Env / .config-RW / .mmx-RW / /run/sudo-RW) — neu schreiben"
+    log "Service-File braucht Update — neu schreiben"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
       HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
       HH_REPO_DIR="$HH_REPO_DIR" \
