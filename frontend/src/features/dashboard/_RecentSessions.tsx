@@ -32,18 +32,18 @@ export function RecentSessions({ sessions }: Props) {
   }
   return (
     <SectionShell title={t("sections.recent_sessions")}>
-      <div className="space-y-1">
+      <div className="space-y-0.5 max-h-[180px] overflow-y-auto pr-1">
         {sessions.map((s) => {
           const Icon = (s.agent_type && TYPE_ICON[s.agent_type as keyof typeof TYPE_ICON]) || MessageSquare
           return (
             <Link key={s.id} to={`/chat?session=${s.id}`}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/[4%] transition-colors">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500/30 to-violet-600/30 flex items-center justify-center flex-shrink-0">
-                <Icon size={12} className="text-violet-300" />
+              className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-white/[4%] transition-colors">
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500/30 to-violet-600/30 flex items-center justify-center flex-shrink-0">
+                <Icon size={10} className="text-violet-300" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-zinc-200 truncate">{s.title || `Session ${s.id.slice(0, 8)}`}</p>
-                <p className="text-[10px] text-zinc-600 truncate">{s.agent_name}</p>
+                <p className="text-[11px] text-zinc-200 truncate leading-tight">{s.title || `Session ${s.id.slice(0, 8)}`}</p>
+                <p className="text-[10px] text-zinc-600 truncate leading-tight">{s.agent_name}</p>
               </div>
               <span className="text-[10px] text-zinc-600 flex-shrink-0">{relativeTime(s.updated_at)}</span>
             </Link>
