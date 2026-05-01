@@ -71,5 +71,22 @@
     "cancel": "Abbrechen",
     "confirm_restore": "Wiederherstellen",
     "close": "Schließen"
+  },
+  "tailscale": {
+    "title": "Tailscale",
+    "not_installed": "Tailscale ist nicht installiert.",
+    "connected": "Verbunden",
+    "disconnected": "Nicht verbunden",
+    "hostname": "Hostname",
+    "dns": "DNS-Name",
+    "connect": "Verbinden",
+    "logout": "Abmelden",
+    "copy_ip": "IP kopieren",
+    "copied": "Kopiert!",
+    "admin_console": "Admin-Konsole",
+    "authkey_hint": "Auth-Key aus dem Tailscale Admin-Panel erstellen:",
+    "authkey_placeholder": "tskey-auth-...",
+    "error_connect": "Verbindung fehlgeschlagen",
+    "error_logout": "Abmeldung fehlgeschlagen"
   }
 }

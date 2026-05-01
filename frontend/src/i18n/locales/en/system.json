@@ -71,5 +71,22 @@
     "cancel": "Cancel",
     "confirm_restore": "Restore",
     "close": "Close"
+  },
+  "tailscale": {
+    "title": "Tailscale",
+    "not_installed": "Tailscale is not installed.",
+    "connected": "Connected",
+    "disconnected": "Not connected",
+    "hostname": "Hostname",
+    "dns": "DNS name",
+    "connect": "Connect",
+    "logout": "Log out",
+    "copy_ip": "Copy IP",
+    "copied": "Copied!",
+    "admin_console": "Admin console",
+    "authkey_hint": "Create an auth key in the Tailscale admin panel:",
+    "authkey_placeholder": "tskey-auth-...",
+    "error_connect": "Connection failed",
+    "error_logout": "Logout failed"
   }
 }
