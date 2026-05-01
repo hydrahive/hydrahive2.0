@@ -130,6 +130,9 @@ async def run(
             f"[Bisherige Zusammenfassung]\n{summary}\n\n{base_system_prompt}"
             if summary else base_system_prompt
         )
+        skills_block = _build_skills_block(agent)
+        if skills_block:
+            system_prompt = f"{system_prompt}\n\n{skills_block}"
         if extra_system:
             system_prompt = f"{extra_system}\n\n{system_prompt}"
 
@@ -259,6 +262,34 @@ async def run(
         f"Max-Iterationen ({MAX_ITERATIONS}) erreicht ohne Abschluss",
         metadata={"last_assistant_message": last_assistant_id},
     )
+
+
+def _build_skills_block(agent: dict) -> str:
+    """Kompakte Liste aller verfügbaren Skills für den Prompt-Header. Sagt dem
+    Agent welche Skills es gibt und wann er sie laden soll. Body wird nur via
+    `load_skill(name)` in den Kontext gezogen — Auto-Inject von Bodies wäre
+    Token-Spam."""
+    try:
+        from hydrahive.skills import list_for_agent
+    except Exception:
+        return ""
+    owner = agent.get("owner") or ""
+    if not owner:
+        return ""
+    try:
+        skills = list_for_agent(agent["id"], owner, disabled=list(agent.get("disabled_skills", [])))
+    except Exception as e:
+        logger.warning("Skills laden fehlgeschlagen: %s", e)
+        return ""
+    if not skills:
+        return ""
+    lines = ["## Verfügbare Skills",
+             "Mit `load_skill(name)` lädst du den vollen Body in den Kontext."]
+    for s in skills:
+        when = f" — when: {s.when_to_use}" if s.when_to_use else ""
+        desc = f": {s.description}" if s.description else ""
+        lines.append(f"- **{s.name}**{desc}{when}")
+    return "\n".join(lines)
 
 
 def _close_open_tool_uses(session_id: str, tool_uses: list[dict], reason: str) -> None:

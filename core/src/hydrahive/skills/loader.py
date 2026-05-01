@@ -3,12 +3,30 @@ an dieselbe Datei wären unwahrscheinlich (User-Editor)."""
 from __future__ import annotations
 
 import logging
+import shutil
 from pathlib import Path
 
 from hydrahive.skills._paths import agent_dir, dir_for, file_for, system_dir, user_dir
 from hydrahive.skills.models import Skill, SkillScope, is_valid_name, parse, serialize
 
 logger = logging.getLogger(__name__)
+
+_DEFAULTS_SRC = Path(__file__).parent / "system_defaults"
+
+
+def install_system_defaults() -> None:
+    """Kopiert die ausgelieferten Default-Skills nach $HH_DATA_DIR/skills/system/
+    falls dort noch keine sind. Existierende werden nicht überschrieben —
+    Admin-Edits bleiben erhalten."""
+    target = system_dir()
+    target.mkdir(parents=True, exist_ok=True)
+    if not _DEFAULTS_SRC.exists():
+        return
+    for src in sorted(_DEFAULTS_SRC.glob("*.md")):
+        dst = target / src.name
+        if not dst.exists():
+            shutil.copy2(src, dst)
+            logger.info("System-Skill installiert: %s", src.name)
 
 
 def _list_dir(d: Path, scope: SkillScope, owner: str) -> list[Skill]:
