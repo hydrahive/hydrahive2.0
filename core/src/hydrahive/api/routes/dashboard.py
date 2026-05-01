@@ -2,17 +2,22 @@
 einem Call zusammen. Vermeidet 5+ Round-Trips beim Page-Load."""
 from __future__ import annotations
 
+import shutil
+import subprocess
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from hydrahive.agentlink import is_connected as agentlink_connected
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.version import current_status
 from hydrahive.containers import db as containers_db
 from hydrahive.db import sessions as sessions_db
 from hydrahive.db.connection import db
+from hydrahive.settings import settings
 from hydrahive.vms import db as vms_db
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -22,6 +27,40 @@ def _today_start_iso() -> str:
     now = datetime.now(timezone.utc)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return start.isoformat()
+
+
+def _health() -> dict:
+    backend = {"ok": True}
+    agentlink = {"ok": agentlink_connected(), "configured": bool(settings.agentlink_url)}
+    if not agentlink["configured"]:
+        agentlink = {"ok": True, "configured": False}
+
+    ip_bin = shutil.which("ip") or "/sbin/ip"
+    bridge_ok = False
+    try:
+        r = subprocess.run([ip_bin, "-br", "link", "show", "br0"],
+                           capture_output=True, text=True, timeout=2)
+        bridge_ok = r.returncode == 0
+    except Exception:
+        pass
+
+    ts_bin = shutil.which("tailscale")
+    tailscale_ok = False
+    tailscale_present = bool(ts_bin)
+    if tailscale_present:
+        try:
+            r = subprocess.run([ts_bin, "status", "--json", "--peers=false"],
+                               capture_output=True, text=True, timeout=2)
+            tailscale_ok = r.returncode == 0 and '"BackendState":"Running"' in r.stdout
+        except Exception:
+            pass
+
+    return {
+        "backend": backend,
+        "agentlink": agentlink,
+        "bridge": {"ok": bridge_ok},
+        "tailscale": {"ok": tailscale_ok, "configured": tailscale_present},
+    }
 
 
 @router.get("")
@@ -112,6 +151,7 @@ def summary(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     commit, behind = current_status()
 
     return {
+        "health": _health(),
         "stats": {
             "active_sessions": active_sessions,
             "tokens_today": tokens_today,

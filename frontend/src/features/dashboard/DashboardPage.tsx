@@ -6,6 +6,8 @@ import { StatsRow } from "./_StatsRow"
 import { RecentSessions } from "./_RecentSessions"
 import { ServersOverview } from "./_ServersOverview"
 import { AgentsList } from "./_AgentsList"
+import { HealthStrip } from "./_HealthStrip"
+import { UpdateBanner } from "./_UpdateBanner"
 
 const REFRESH_MS = 30_000
 
@@ -38,6 +40,12 @@ export function DashboardPage() {
 
       {data && (
         <>
+          {(data.version.update_behind ?? 0) > 0 && (
+            <UpdateBanner behind={data.version.update_behind!} />
+          )}
+
+          <HealthStrip health={data.health} />
+
           <StatsRow stats={data.stats} />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
