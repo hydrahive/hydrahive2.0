@@ -26,7 +26,7 @@ HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
 HH_CONFIG_DIR="${HH_CONFIG_DIR:-/etc/hydrahive2}"
 HH_HOST="${HH_HOST:-127.0.0.1}"
 HH_PORT="${HH_PORT:-8001}"
-HH_INSTALL_NGINX="${HH_INSTALL_NGINX:-no}"
+HH_INSTALL_NGINX="${HH_INSTALL_NGINX:-yes}"
 
 # --------------------------------------------------------------- Helfer
 log() { printf "\033[1;36m[hh2-install]\033[0m %s\n" "$*"; }
@@ -61,9 +61,11 @@ bash "$INSTALLER_DIR/modules/45-whatsapp.sh"
 log "Phase 7: systemd-Service"
 bash "$INSTALLER_DIR/modules/50-systemd.sh"
 
-if [ "$HH_INSTALL_NGINX" = "yes" ]; then
-  log "Phase 8: nginx (optional)"
+if [ "${HH_INSTALL_NGINX}" != "no" ]; then
+  log "Phase 8: nginx"
   bash "$INSTALLER_DIR/modules/60-nginx.sh"
+else
+  log "Phase 8: nginx übersprungen (HH_INSTALL_NGINX=no)"
 fi
 
 log "Phase 9: VM-Manager (QEMU/KVM + websockify)"
