@@ -85,7 +85,9 @@
     "edit": "Bearbeiten",
     "cancel": "Abbrechen",
     "resend": "Neu senden",
-    "resend_hint": "Strg+Enter zum Senden, Esc zum Abbrechen. Verlauf ab dieser Nachricht wird verworfen."
+    "resend_hint": "Strg+Enter zum Senden, Esc zum Abbrechen. Verlauf ab dieser Nachricht wird verworfen.",
+    "retry": "Neu generieren",
+    "retry_hint": "Antwort verwerfen und Frage neu beantworten lassen."
   },
   "bubble_footer": {
     "tokens": "{{in}} ↑ · {{out}} ↓",

@@ -82,7 +82,9 @@
     "edit": "Edit",
     "cancel": "Cancel",
     "resend": "Resend",
-    "resend_hint": "Ctrl+Enter to send, Esc to cancel. History from this message onwards will be discarded."
+    "resend_hint": "Ctrl+Enter to send, Esc to cancel. History from this message onwards will be discarded.",
+    "retry": "Regenerate",
+    "retry_hint": "Discard this answer and let the agent answer again."
   },
   "bubble_footer": {
     "tokens": "{{in}} ↑ · {{out}} ↓",

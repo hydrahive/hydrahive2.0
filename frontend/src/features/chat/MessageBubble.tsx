@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { User, Bot, Volume2, VolumeX, Copy, Check, Clock, Code, Pencil, Send, X } from "lucide-react"
+import { User, Bot, Volume2, VolumeX, Copy, Check, Clock, Code, Pencil, Send, X, RotateCw } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Markdown } from "./Markdown"
 import { useVoiceOutput } from "./useVoiceOutput"
@@ -11,10 +11,11 @@ import type { ContentBlock, Message } from "./types"
 interface Props {
   message: Message
   onResend?: (messageId: string, newText: string) => void
+  onRetry?: (assistantMessageId: string) => void
   busy?: boolean
 }
 
-export function MessageBubble({ message, onResend, busy }: Props) {
+export function MessageBubble({ message, onResend, onRetry, busy }: Props) {
   const tts = useVoiceOutput()
   const { t } = useTranslation("chat")
   const [copied, setCopied] = useState(false)
@@ -180,6 +181,15 @@ export function MessageBubble({ message, onResend, busy }: Props) {
               className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-zinc-200 hover:bg-white/[6%] transition-colors"
             >
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+            </button>
+          )}
+          {onRetry && isPersisted && !busy && (
+            <button
+              onClick={() => onRetry(message.id)}
+              title={t("bubble.retry_hint")}
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-violet-300 hover:bg-violet-500/10 hover:border-violet-500/30 transition-colors"
+            >
+              <RotateCw size={12} /> {t("bubble.retry")}
             </button>
           )}
           <button
