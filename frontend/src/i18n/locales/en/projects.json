@@ -19,6 +19,34 @@
     "remove_confirm": "Remove '{{username}}' from project?",
     "select_user": "Select user…"
   },
+  "tabs": {
+    "overview": "Overview",
+    "sessions": "Sessions",
+    "git": "Git",
+    "stats": "Stats",
+    "settings": "Settings"
+  },
+  "sessions": {
+    "empty": "No sessions in this project yet.",
+    "untitled": "(untitled)"
+  },
+  "git": {
+    "not_initialized": "No git repository in this workspace.",
+    "recent_commits": "Recent commits",
+    "no_remote": "No remote configured."
+  },
+  "stats": {
+    "unavailable": "Stats unavailable.",
+    "sessions": "Sessions",
+    "sessions_active": "{{count}} active",
+    "messages": "Messages",
+    "tokens": "Tokens",
+    "last_activity": "Last activity"
+  },
+  "settings": {
+    "danger_zone": "Danger zone — these actions cannot be undone.",
+    "delete_project": "Delete project"
+  },
   "new_dialog": {
     "title": "New project",
     "name_placeholder": "e.g. Website Relaunch",

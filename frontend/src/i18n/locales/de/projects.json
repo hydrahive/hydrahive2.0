@@ -19,6 +19,34 @@
     "remove_confirm": "'{{username}}' aus Projekt entfernen?",
     "select_user": "User auswählen…"
   },
+  "tabs": {
+    "overview": "Übersicht",
+    "sessions": "Sessions",
+    "git": "Git",
+    "stats": "Statistiken",
+    "settings": "Einstellungen"
+  },
+  "sessions": {
+    "empty": "Noch keine Sessions in diesem Projekt.",
+    "untitled": "(ohne Titel)"
+  },
+  "git": {
+    "not_initialized": "Kein Git-Repository in diesem Workspace.",
+    "recent_commits": "Letzte Commits",
+    "no_remote": "Kein Remote konfiguriert."
+  },
+  "stats": {
+    "unavailable": "Statistiken nicht verfügbar.",
+    "sessions": "Sessions",
+    "sessions_active": "{{count}} aktiv",
+    "messages": "Nachrichten",
+    "tokens": "Tokens",
+    "last_activity": "Letzte Aktivität"
+  },
+  "settings": {
+    "danger_zone": "Gefahrenzone — diese Aktionen können nicht rückgängig gemacht werden.",
+    "delete_project": "Projekt löschen"
+  },
   "new_dialog": {
     "title": "Neues Projekt",
     "name_placeholder": "z.B. Website Relaunch",

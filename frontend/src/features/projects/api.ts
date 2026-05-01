@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectCreate } from "./types"
+import type { Project, ProjectCreate, ProjectGitStatus, ProjectStats, ProjectSession } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -13,6 +13,9 @@ export const projectsApi = {
   removeMember: (id: string, username: string) =>
     api.delete<Project>(`/projects/${id}/members/${username}`),
   getAgent: (id: string) => api.get<{ id: string; name: string; llm_model: string }>(`/projects/${id}/agent`),
+  getSessions: (id: string) => api.get<ProjectSession[]>(`/projects/${id}/sessions`),
+  getGit: (id: string) => api.get<ProjectGitStatus>(`/projects/${id}/git`),
+  getStats: (id: string) => api.get<ProjectStats>(`/projects/${id}/stats`),
 }
 
 export const usersApi = {

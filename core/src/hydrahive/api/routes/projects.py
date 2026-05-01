@@ -8,9 +8,13 @@ from pydantic import BaseModel, Field
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
+from hydrahive.db.connection import db
 from hydrahive.projects import ProjectValidationError, config as project_config
 from hydrahive.projects import members as project_members
+from hydrahive.projects._git import git_status
+from hydrahive.projects._paths import workspace_path
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -135,6 +139,54 @@ def list_project_sessions(
                 "created_at": s.created_at, "updated_at": s.updated_at,
             })
     return out
+
+
+@router.get("/{project_id}/git")
+def get_project_git(
+    project_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    p = project_config.get(project_id)
+    if not p:
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+    _check_access(p, *auth)
+    ws = workspace_path(project_id)
+    return git_status(ws)
+
+
+@router.get("/{project_id}/stats")
+def get_project_stats(
+    project_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    p = project_config.get(project_id)
+    if not p:
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+    _check_access(p, *auth)
+    agent_id = p.get("agent_id", "")
+    all_sessions = sessions_db.list_for_agent(agent_id, limit=500)
+    project_sessions = [s for s in all_sessions if s.project_id == project_id]
+    active = sum(1 for s in project_sessions if s.status == "active")
+    last_activity = max((s.updated_at for s in project_sessions), default=None)
+    with db() as conn:
+        session_ids = [s.id for s in project_sessions]
+        msg_count = token_total = 0
+        if session_ids:
+            placeholders = ",".join("?" * len(session_ids))
+            row = conn.execute(
+                f"SELECT COUNT(*) as cnt, COALESCE(SUM(token_count),0) as tok "
+                f"FROM messages WHERE session_id IN ({placeholders}) AND role='assistant'",
+                session_ids,
+            ).fetchone()
+            if row:
+                msg_count, token_total = row["cnt"], row["tok"]
+    return {
+        "total_sessions": len(project_sessions),
+        "active_sessions": active,
+        "total_messages": msg_count,
+        "total_tokens": token_total,
+        "last_activity": last_activity,
+    }
 
 
 @router.get("/{project_id}/agent")
