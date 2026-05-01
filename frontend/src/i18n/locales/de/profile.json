@@ -17,5 +17,9 @@
   "language": {
     "title": "Sprache",
     "description": "Sprache der Oberfläche."
+  },
+  "theme": {
+    "title": "Farbschema",
+    "description": "Akzentfarbe der Oberfläche. Wirkt sofort, wird im Browser gespeichert."
   }
 }

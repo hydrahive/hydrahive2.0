@@ -103,7 +103,7 @@ export function NewSessionDialog({ onClose, onCreate }: Props) {
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">{tCommon("actions.cancel")}</button>
           <button type="submit"
             disabled={mode === "direct" ? !agentId : !projectId}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20">
+            className="px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-black/30">
             {t("new_dialog.start")}
           </button>
         </div>

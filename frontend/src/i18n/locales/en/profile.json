@@ -17,5 +17,9 @@
   "language": {
     "title": "Language",
     "description": "Interface language."
+  },
+  "theme": {
+    "title": "Color theme",
+    "description": "Accent color of the interface. Applies immediately, saved in your browser."
   }
 }

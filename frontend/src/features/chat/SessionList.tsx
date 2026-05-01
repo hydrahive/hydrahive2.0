@@ -105,7 +105,7 @@ function SessionRow({ session, active, orphaned, onSelect, onDelete }: {
     <div
       className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
         active
-          ? "bg-gradient-to-r from-indigo-600/20 to-violet-600/10 border-l-2 border-violet-500"
+          ? "bg-[var(--hh-accent-soft)] border-l-2 border-[var(--hh-accent)]"
           : "hover:bg-white/[3%] border-l-2 border-transparent"
       } ${orphaned ? "opacity-50" : ""}`}
       onClick={() => onSelect(session.id)}

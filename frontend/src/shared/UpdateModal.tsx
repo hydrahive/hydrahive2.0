@@ -127,7 +127,7 @@ export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfi
               </button>
               <button
                 onClick={onConfirm}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium shadow-md shadow-violet-900/20"
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white text-sm font-medium shadow-md shadow-black/30"
               >
                 {t("update.confirm_button")}
               </button>
@@ -136,7 +136,7 @@ export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfi
           {(state === "done" || state === "failed") && (
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium shadow-md shadow-violet-900/20"
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white text-sm font-medium shadow-md shadow-black/30"
             >
               {t("update.close")}
             </button>

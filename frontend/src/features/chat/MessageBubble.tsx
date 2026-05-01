@@ -70,7 +70,7 @@ export function MessageBubble({ message, onResend, onRetry, busy }: Props) {
           {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
           {text && !editing && (
             <>
-              <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-gradient-to-br from-indigo-600 to-violet-600 text-white text-sm whitespace-pre-wrap shadow-lg shadow-violet-900/20">
+              <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] text-white text-sm whitespace-pre-wrap shadow-lg shadow-black/30">
                 {text}
               </div>
               <div className="flex items-center justify-end gap-1.5">
@@ -122,7 +122,7 @@ export function MessageBubble({ message, onResend, onRetry, busy }: Props) {
                   onClick={submitEdit}
                   disabled={!editText.trim() || editText.trim() === text}
                   title={t("bubble.resend")}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium disabled:opacity-40"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white font-medium disabled:opacity-40"
                 >
                   <Send size={11} /> {t("bubble.resend")}
                 </button>
@@ -142,7 +142,7 @@ export function MessageBubble({ message, onResend, onRetry, busy }: Props) {
 
   return (
     <div className="flex items-start gap-3">
-      <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-violet-900/30 ${isLive ? "animate-pulse" : ""}`}>
+      <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] flex items-center justify-center flex-shrink-0 shadow-md shadow-black/30 ${isLive ? "animate-pulse" : ""}`}>
         <Bot size={14} className="text-white" />
       </div>
       <div className="flex-1 min-w-0 space-y-2">
