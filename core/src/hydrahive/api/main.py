@@ -24,6 +24,7 @@ from hydrahive.api.routes.projects_git import router as projects_git_router
 from hydrahive.api.routes.projects_samba import router as projects_samba_router
 from hydrahive.api.routes.projects_servers import router as projects_servers_router
 from hydrahive.api.routes.sessions import router as sessions_router
+from hydrahive.api.routes.skills import router as skills_router
 from hydrahive.api.routes.stt import router as stt_router
 from hydrahive.api.routes.system import router as system_router
 from hydrahive.api.routes.system_bridge import router as system_bridge_router
@@ -79,6 +80,7 @@ app.include_router(projects_git_router)
 app.include_router(projects_samba_router)
 app.include_router(projects_servers_router)
 app.include_router(sessions_router)
+app.include_router(skills_router)
 app.include_router(stt_router)
 app.include_router(tts_router)
 app.include_router(vms_router)

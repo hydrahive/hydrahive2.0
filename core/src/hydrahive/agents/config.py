@@ -109,6 +109,7 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("updated_at", cfg.get("created_at", ""))
     cfg.setdefault("created_by", cfg.get("owner"))
     cfg.setdefault("tools", [])
+    cfg.setdefault("disabled_skills", [])
     cfg.setdefault("compact_model", DEFAULT_COMPACT_MODEL)
     cfg.setdefault("compact_tool_result_limit", DEFAULT_COMPACT_TOOL_RESULT_LIMIT)
     cfg.setdefault("compact_reserve_tokens", DEFAULT_COMPACT_RESERVE_TOKENS)
