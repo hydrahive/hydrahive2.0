@@ -3,6 +3,7 @@ import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { ChangePasswordDialog } from "./ChangePasswordDialog"
+import { EditUserDialog } from "./EditUserDialog"
 import { NewUserDialog } from "./NewUserDialog"
 import { UserList } from "./UserList"
 import { usersApi } from "./api"
@@ -14,6 +15,7 @@ export function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [showNew, setShowNew] = useState(false)
   const [pwTarget, setPwTarget] = useState<string | null>(null)
+  const [editTarget, setEditTarget] = useState<User | null>(null)
 
   async function load() {
     try { setUsers(await usersApi.list()) } catch { /* leise */ }
@@ -53,6 +55,7 @@ export function UsersPage() {
       <UserList
         users={users}
         currentUsername={currentUsername}
+        onEdit={setEditTarget}
         onChangePassword={setPwTarget}
         onDelete={handleDelete}
       />
@@ -69,6 +72,14 @@ export function UsersPage() {
           username={pwTarget}
           onClose={() => setPwTarget(null)}
           onChanged={() => setPwTarget(null)}
+        />
+      )}
+
+      {editTarget && (
+        <EditUserDialog
+          user={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={() => { setEditTarget(null); load() }}
         />
       )}
     </div>

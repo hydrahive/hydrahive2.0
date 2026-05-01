@@ -15,6 +15,7 @@
   },
   "actions": {
     "new": "Neuer Benutzer",
+    "edit": "Bearbeiten",
     "change_password": "Passwort ändern",
     "delete": "Löschen",
     "delete_confirm": "Benutzer \"{{name}}\" wirklich löschen?\n\nInkl. aller zugewiesenen Agents."
@@ -31,5 +32,8 @@
     "title": "Passwort ändern: {{name}}",
     "new_password_label": "Neues Passwort",
     "min_length_hint": "Mindestens 8 Zeichen"
+  },
+  "edit_dialog": {
+    "title": "Benutzer bearbeiten: {{name}}"
   }
 }

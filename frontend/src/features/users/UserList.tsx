@@ -1,15 +1,16 @@
-import { Crown, KeyRound, Trash2, User as UserIcon } from "lucide-react"
+import { Crown, KeyRound, Pencil, Trash2, User as UserIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { User } from "./types"
 
 interface Props {
   users: User[]
   currentUsername: string
+  onEdit: (user: User) => void
   onChangePassword: (username: string) => void
   onDelete: (username: string) => void
 }
 
-export function UserList({ users, currentUsername, onChangePassword, onDelete }: Props) {
+export function UserList({ users, currentUsername, onEdit, onChangePassword, onDelete }: Props) {
   const { t } = useTranslation("users")
 
   if (users.length === 0) {
@@ -39,6 +40,13 @@ export function UserList({ users, currentUsername, onChangePassword, onDelete }:
                 {t(`role.${u.role}`)}
               </p>
             </div>
+            <button
+              onClick={() => onEdit(u)}
+              title={t("actions.edit")}
+              className="p-2 rounded-lg text-zinc-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+            >
+              <Pencil size={14} />
+            </button>
             <button
               onClick={() => onChangePassword(u.username)}
               title={t("actions.change_password")}
