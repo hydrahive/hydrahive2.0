@@ -19,6 +19,8 @@ from hydrahive.tools import (
     file_write,
     http_request,
     list_projects,
+    list_skills,
+    load_skill,
     read_memory,
     search_memory,
     send_mail,
@@ -50,6 +52,8 @@ def _build_registry() -> dict[str, Tool]:
         todo.TOOL,
         send_mail.TOOL,
         list_projects.TOOL,
+        list_skills.TOOL,
+        load_skill.TOOL,
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)

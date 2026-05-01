@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from hydrahive.agents import config as agent_config
-from hydrahive.projects import config as project_config
-from hydrahive.projects._paths import workspace_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
@@ -22,6 +19,9 @@ _SCHEMA = {
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
+    from hydrahive.agents import config as agent_config
+    from hydrahive.projects import config as project_config
+    from hydrahive.projects._paths import workspace_path
     agent = agent_config.get(ctx.agent_id)
     if not agent:
         return ToolResult.fail("Agent nicht gefunden")

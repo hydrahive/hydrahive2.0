@@ -9,14 +9,18 @@ _BASE_TOOLS: dict[str, list[str]] = {
         "dir_list", "web_search", "http_request",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "send_mail", "list_projects",
+        "list_skills", "load_skill",
     ],
     "project": [
         "shell_exec", "file_read", "file_write", "file_patch", "file_search",
         "dir_list",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "list_projects",
+        "list_skills", "load_skill",
     ],
-    "specialist": [],
+    "specialist": [
+        "list_skills", "load_skill",
+    ],
 }
 
 
