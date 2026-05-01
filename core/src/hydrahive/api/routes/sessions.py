@@ -15,6 +15,12 @@ from hydrahive.api.routes._sessions_helpers import (
 )
 from hydrahive.api.routes.sessions_messages import messages_router
 from hydrahive.db import sessions as sessions_db
+from hydrahive.runner import tool_confirmation
+from pydantic import BaseModel
+
+
+class ToolConfirmDecision(BaseModel):
+    decision: str  # "approve" | "deny"
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 router.include_router(messages_router)
@@ -80,3 +86,22 @@ def delete_session(
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     check_owner(s, *auth)
     sessions_db.delete(session_id)
+
+
+@router.post("/{session_id}/tool-confirm/{call_id}")
+def tool_confirm(
+    session_id: str,
+    call_id: str,
+    body: ToolConfirmDecision,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+    if body.decision not in ("approve", "deny"):
+        raise coded(status.HTTP_400_BAD_REQUEST, "invalid_decision")
+    ok = tool_confirmation.resolve(call_id, body.decision)  # type: ignore[arg-type]
+    if not ok:
+        raise coded(status.HTTP_404_NOT_FOUND, "no_pending_confirmation")
+    return {"resolved": True, "decision": body.decision}

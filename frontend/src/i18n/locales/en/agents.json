@@ -25,7 +25,9 @@
     "domain": "Domain",
     "domain_placeholder": "e.g. Database, Security, Infrastructure",
     "thinking_budget": "Extended Thinking budget: {{tokens}} tokens",
-    "thinking_hint": "Only relevant for Anthropic Extended-Thinking models. 0 = off."
+    "thinking_hint": "Only relevant for Anthropic Extended-Thinking models. 0 = off.",
+    "require_tool_confirm": "Confirm tools before execution",
+    "require_tool_confirm_hint": "When active: a banner appears in chat before each tool call with Allow/Deny. Auto-deny after 5 minutes."
   },
   "info": {
     "title": "Info",

@@ -102,5 +102,10 @@
   "voice": {
     "speak": "Vorlesen",
     "stop": "Stop"
+  },
+  "tool_confirm": {
+    "message": "Agent möchte folgendes Tool ausführen:",
+    "approve": "Erlauben",
+    "deny": "Verweigern"
   }
 }

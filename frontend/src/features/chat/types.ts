@@ -49,6 +49,12 @@ export type RunnerEvent =
       arguments: Record<string, unknown>
     }
   | {
+      type: "tool_confirm_required"
+      call_id: string
+      tool_name: string
+      arguments: Record<string, unknown>
+    }
+  | {
       type: "tool_use_result"
       call_id: string
       tool_name: string

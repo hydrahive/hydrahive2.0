@@ -9,6 +9,7 @@ import { MessageList } from "./MessageList"
 import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
 import { TokenMeter } from "./TokenMeter"
+import { ToolConfirmBanner } from "./ToolConfirmBanner"
 import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
 import type { AgentBrief, Session } from "./types"
 import { useChat } from "./useChat"
@@ -190,6 +191,13 @@ export function ChatPage() {
               error={chat.error}
               onResend={(id, text) => chat.send(text, [], id)}
             />
+            {chat.pendingConfirm && (
+              <ToolConfirmBanner
+                pending={chat.pendingConfirm}
+                onApprove={() => chat.confirmTool("approve")}
+                onDeny={() => chat.confirmTool("deny")}
+              />
+            )}
             <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} disabled={activeOrphaned} />
           </>
         ) : (

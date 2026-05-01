@@ -37,6 +37,19 @@ export function OverviewTab({ draft, onChange }: Props) {
         />
       </Field>
 
+      <label className="flex items-start gap-2 px-2 py-2 rounded-md border border-white/[6%] bg-white/[2%] cursor-pointer hover:bg-white/[4%] transition-colors">
+        <input
+          type="checkbox"
+          checked={!!draft.require_tool_confirm}
+          onChange={(e) => onChange({ require_tool_confirm: e.target.checked })}
+          className="mt-0.5 accent-violet-500"
+        />
+        <span className="text-xs">
+          <span className="text-zinc-200 font-medium">{t("fields.require_tool_confirm")}</span>
+          <span className="block text-[10px] text-zinc-500 mt-0.5">{t("fields.require_tool_confirm_hint")}</span>
+        </span>
+      </label>
+
       <InfoBlock agent={draft} />
     </div>
   )

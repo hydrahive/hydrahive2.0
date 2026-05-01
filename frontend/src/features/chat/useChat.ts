@@ -2,11 +2,18 @@ import { useCallback, useRef, useState } from "react"
 import { chatApi, sendMessage } from "./api"
 import type { ContentBlock, Message } from "./types"
 
+export interface PendingConfirm {
+  call_id: string
+  tool_name: string
+  arguments: Record<string, unknown>
+}
+
 export interface ChatState {
   messages: Message[]
   busy: boolean
   iteration: number
   error: string | null
+  pendingConfirm: PendingConfirm | null
   lastTurnTokens: {
     input: number
     output: number
@@ -21,6 +28,7 @@ export function useChat(sessionId: string | null) {
     busy: false,
     iteration: 0,
     error: null,
+    pendingConfirm: null,
     lastTurnTokens: null,
   })
   const abortRef = useRef<AbortController | null>(null)
@@ -32,7 +40,7 @@ export function useChat(sessionId: string | null) {
 
   const reload = useCallback(async () => {
     if (!sessionId) {
-      setState({ messages: [], busy: false, iteration: 0, error: null, lastTurnTokens: null })
+      setState({ messages: [], busy: false, iteration: 0, error: null, pendingConfirm: null, lastTurnTokens: null })
       return
     }
     try {
@@ -113,7 +121,20 @@ export function useChat(sessionId: string | null) {
               input: ev.arguments,
             })
             updateLive(setState, blocks)
+          } else if (ev.type === "tool_confirm_required") {
+            setState((s) => ({
+              ...s,
+              pendingConfirm: {
+                call_id: ev.call_id,
+                tool_name: ev.tool_name,
+                arguments: ev.arguments,
+              },
+            }))
           } else if (ev.type === "tool_use_result") {
+            // Result kam zurück → kein Pending mehr für diesen call_id
+            setState((s) => s.pendingConfirm?.call_id === ev.call_id
+              ? { ...s, pendingConfirm: null }
+              : s)
             blocks.push({
               type: "tool_result",
               tool_use_id: ev.call_id,
@@ -155,7 +176,21 @@ export function useChat(sessionId: string | null) {
     [sessionId, reload],
   )
 
-  return { ...state, send, cancel, reload }
+  const confirmTool = useCallback(
+    async (decision: "approve" | "deny") => {
+      if (!sessionId || !state.pendingConfirm) return
+      try {
+        await chatApi.toolConfirm(sessionId, state.pendingConfirm.call_id, decision)
+      } catch (e) {
+        setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Fehler" }))
+      } finally {
+        setState((s) => ({ ...s, pendingConfirm: null }))
+      }
+    },
+    [sessionId, state.pendingConfirm],
+  )
+
+  return { ...state, send, cancel, reload, confirmTool }
 }
 
 function updateLive(

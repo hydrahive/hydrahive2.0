@@ -41,6 +41,15 @@ class ToolUseStart:
 
 
 @dataclass
+class ToolConfirmRequired:
+    """Tool-Confirm-Modus aktiv — Runner wartet auf User-Entscheidung."""
+    call_id: str
+    tool_name: str
+    arguments: dict
+    type: Literal["tool_confirm_required"] = "tool_confirm_required"
+
+
+@dataclass
 class ToolUseResult:
     """A tool finished executing."""
     call_id: str
@@ -75,5 +84,5 @@ class Error:
 
 Event = (
     IterationStart | MessageStart | TextDelta | TextBlock |
-    ToolUseStart | ToolUseResult | Done | Error
+    ToolUseStart | ToolConfirmRequired | ToolUseResult | Done | Error
 )
