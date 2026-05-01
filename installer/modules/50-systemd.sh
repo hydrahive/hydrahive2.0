@@ -48,6 +48,10 @@ ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST 
 Restart=on-failure
 RestartSec=5
 
+# WICHTIG: nur den Backend-Prozess beim Stop/Restart killen, NICHT die qemu/incus-
+# Children. Default control-group würde laufende VMs/Container beim Update killen.
+KillMode=process
+
 # Sicherheit — HOME-Dir braucht Read-Access (incus config.yml), Write nur via ReadWritePaths
 NoNewPrivileges=true
 PrivateTmp=true
