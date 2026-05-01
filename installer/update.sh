@@ -188,6 +188,14 @@ EOF
   systemctl restart hydrahive2-samba.timer
 fi
 
+# Self-Heal: alter smb.conf-Patch (Verzeichnis-Include statt _index.conf-Datei)
+if [ -f /etc/samba/smb.conf ] && \
+   grep -qE "^(config file|include) = /etc/samba/hh-projects\.d(\$|/%u\.conf)" /etc/samba/smb.conf 2>/dev/null; then
+  log "smb.conf hat falschen hh-projects.d-Patch — 47-samba.sh re-runnen"
+  HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+    bash "$HH_REPO_DIR/installer/modules/47-samba.sh" || log "samba-rerun failed — weiter"
+fi
+
 if [ ! -f /etc/systemd/system/hydrahive2-bridge.timer ] || [ ! -f /etc/systemd/system/hydrahive2-bridge.service ]; then
   log "Bridge-Setup-Units anlegen"
   cat > /etc/systemd/system/hydrahive2-bridge.service <<EOF

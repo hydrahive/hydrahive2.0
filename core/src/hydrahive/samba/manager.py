@@ -33,6 +33,18 @@ def _config_path(project_id: str) -> Path:
     return settings.samba_includes_dir / f"{project_id}.conf"
 
 
+def _regenerate_index() -> None:
+    """Erstellt _index.conf das alle Per-Projekt-Configs inkludiert. smb.conf
+    inkludiert nur _index.conf — Samba kann keine Verzeichnis-Includes."""
+    d = settings.samba_includes_dir
+    if not d.exists():
+        return
+    files = sorted(p for p in d.glob("*.conf") if p.name != "_index.conf")
+    lines = [f"include = {p}" for p in files]
+    index = d / "_index.conf"
+    index.write_text("\n".join(lines) + "\n" if lines else "")
+
+
 def render_share(project_id: str, project_name: str) -> str:
     """Render einen Share-Block. Bei späterem Per-User-Refactor wird hier
     valid users statt = $samba_user dynamisch je nach Projekt-Members gesetzt."""
@@ -76,6 +88,7 @@ def enable_share(project_id: str, project_name: str) -> tuple[bool, str]:
     cfg.parent.mkdir(parents=True, exist_ok=True)
     try:
         cfg.write_text(render_share(project_id, project_name))
+        _regenerate_index()
     except PermissionError:
         return False, "samba_no_write_access"
     _reload_smbd()
@@ -87,6 +100,7 @@ def disable_share(project_id: str) -> tuple[bool, str]:
     if cfg.exists():
         try:
             cfg.unlink()
+            _regenerate_index()
         except PermissionError:
             return False, "samba_no_write_access"
         _reload_smbd()
