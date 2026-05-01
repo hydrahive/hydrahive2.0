@@ -38,6 +38,7 @@
     "remote_url": "Remote URL",
     "token": "Access token",
     "token_hint": "GitHub PAT (ghp_… or github_pat_…). Stored in backend, never in remote URL.",
+    "token_hint_clone": "Optional — for private repos. Used during clone and saved to the project.",
     "save_settings": "Save",
     "clone_url": "Repository URL",
     "branch_optional": "Branch (optional)",

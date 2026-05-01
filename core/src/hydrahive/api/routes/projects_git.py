@@ -34,6 +34,7 @@ class GitConfigUpdate(BaseModel):
 class GitClone(BaseModel):
     url: str
     branch: str | None = None
+    token: str | None = None
 
 
 class GitCommit(BaseModel):
@@ -56,6 +57,8 @@ def _err_to_code(err: str) -> tuple[int, str]:
         return 400, "git_no_changes"
     if err == "no_remote":
         return 400, "git_no_remote"
+    if err == "no_repo":
+        return 400, "git_no_repo"
     if err == "empty_message":
         return 400, "git_empty_message"
     if err == "timeout":
@@ -73,14 +76,19 @@ def put_git_config(
     changes: dict = {}
     if req.git_token is not None:
         changes["git_token"] = req.git_token
+    remote_pending = False
     if req.remote_url is not None:
-        ok, err = set_remote(workspace_path(project_id), req.remote_url)
-        if not ok:
-            sc, code = _err_to_code(err)
-            raise coded(sc, code, detail=err)
+        ws = workspace_path(project_id)
+        if not (ws / ".git").exists():
+            remote_pending = True
+        else:
+            ok, err = set_remote(ws, req.remote_url)
+            if not ok:
+                sc, code = _err_to_code(err)
+                raise coded(sc, code, detail=err)
     if changes:
         project_config.update(project_id, **changes)
-    return {"ok": True}
+    return {"ok": True, "remote_pending": remote_pending}
 
 
 @router.post("/{project_id}/git/init")
@@ -104,11 +112,15 @@ def post_git_clone(
 ) -> dict:
     p = _project_or_404(project_id, *auth)
     ws = workspace_path(project_id)
-    ok, err = clone_repo(ws, req.url, req.branch, p.get("git_token") or None)
+    token = req.token or p.get("git_token") or None
+    ok, err = clone_repo(ws, req.url, req.branch, token)
     if not ok:
         sc, code = _err_to_code(err)
         raise coded(sc, code, detail=err)
-    project_config.update(project_id, git_initialized=True)
+    changes: dict = {"git_initialized": True}
+    if req.token is not None:
+        changes["git_token"] = req.token
+    project_config.update(project_id, **changes)
     return {"ok": True}
 
 

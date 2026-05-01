@@ -51,6 +51,13 @@
   "user_not_found": "User not found",
   "last_admin_cannot_demote": "Cannot demote the last admin",
   "invalid_role": "Invalid role: {{role}}",
+  "git_failed": "Git operation failed: {{detail}}",
+  "git_no_repo": "No git repository in this workspace — please clone or init empty first.",
+  "git_no_remote": "No remote configured.",
+  "git_no_changes": "No changes to commit.",
+  "git_workspace_not_empty": "Workspace not empty — clone only works in empty workspaces.",
+  "git_empty_message": "Commit message must not be empty.",
+  "git_timeout": "Git operation timed out.",
 
   "channel_unavailable": "Channel '{{channel}}' unavailable",
 
