@@ -31,6 +31,7 @@ class VM:
     vnc_token: str | None = None
     last_error_code: str | None = None
     last_error_params: dict | None = None
+    project_id: str | None = None
 
 
 @dataclass

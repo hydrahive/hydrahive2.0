@@ -12,6 +12,7 @@ from hydrahive.vms.models import VM, ImportJob, Snapshot
 
 def _row_to_vm(r: sqlite3.Row) -> VM:
     params = json.loads(r["last_error_params"]) if r["last_error_params"] else None
+    keys = r.keys() if hasattr(r, "keys") else []
     return VM(
         vm_id=r["vm_id"], owner=r["owner"], name=r["name"], description=r["description"],
         cpu=r["cpu"], ram_mb=r["ram_mb"], disk_gb=r["disk_gb"],
@@ -21,6 +22,7 @@ def _row_to_vm(r: sqlite3.Row) -> VM:
         pid=r["pid"], vnc_port=r["vnc_port"], vnc_token=r["vnc_token"],
         last_error_code=r["last_error_code"], last_error_params=params,
         created_at=r["created_at"], updated_at=r["updated_at"],
+        project_id=r["project_id"] if "project_id" in keys else None,
     )
 
 
@@ -89,6 +91,30 @@ def update_vm_state(vm_id: str, *, desired: str | None = None, actual: str | Non
 def delete_vm(vm_id: str) -> None:
     with db() as conn:
         conn.execute("DELETE FROM vms WHERE vm_id = ?", (vm_id,))
+
+
+def set_project(vm_id: str, project_id: str | None) -> None:
+    with db() as conn:
+        conn.execute(
+            "UPDATE vms SET project_id = ?, updated_at = ? WHERE vm_id = ?",
+            (project_id, now_iso(), vm_id),
+        )
+
+
+def list_for_project(project_id: str) -> list[VM]:
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM vms WHERE project_id = ? ORDER BY created_at DESC",
+            (project_id,),
+        ).fetchall()
+    return [_row_to_vm(r) for r in rows]
+
+
+def clear_project_assignments(project_id: str) -> None:
+    with db() as conn:
+        conn.execute(
+            "UPDATE vms SET project_id = NULL WHERE project_id = ?", (project_id,),
+        )
 
 
 def name_taken(owner: str, name: str, exclude_id: str | None = None) -> bool:

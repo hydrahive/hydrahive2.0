@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectCreate, ProjectGitRepo, ProjectStats, ProjectSession } from "./types"
+import type { Project, ProjectCreate, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -30,6 +30,13 @@ export const projectsApi = {
     api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/pull`, {}),
   deleteRepo: (id: string, name: string) =>
     api.delete<void>(`/projects/${id}/git/repos/${encodeURIComponent(name)}`),
+  getServers: (id: string) => api.get<ProjectServer[]>(`/projects/${id}/servers`),
+  getAvailableServers: (id: string) =>
+    api.get<ProjectServer[]>(`/projects/${id}/servers/available`),
+  assignServer: (id: string, kind: ServerKind, serverId: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/servers/assign`, { kind, id: serverId }),
+  unassignServer: (id: string, kind: ServerKind, serverId: string) =>
+    api.delete<void>(`/projects/${id}/servers/${kind}/${encodeURIComponent(serverId)}`),
 }
 
 export const usersApi = {
