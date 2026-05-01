@@ -4,6 +4,7 @@ import type { Container } from "./types"
 import { containersApi } from "./api"
 import { ContainerCard } from "./ContainerCard"
 import { CreateContainerDialog } from "./CreateContainerDialog"
+import { EditContainerDialog } from "./EditContainerDialog"
 
 const POLL_MS = 4000
 
@@ -12,6 +13,7 @@ export function ContainersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [editC, setEditC] = useState<Container | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -79,12 +81,18 @@ export function ContainersPage() {
               onStop={async () => { await containersApi.stop(c.container_id); await refresh() }}
               onRestart={async () => { await containersApi.restart(c.container_id); await refresh() }}
               onDelete={async () => { await containersApi.remove(c.container_id); await refresh() }}
+              onEdit={() => setEditC(c)}
             />
           ))}
         </div>
       )}
 
       {showCreate && <CreateContainerDialog onClose={() => setShowCreate(false)} onCreated={refresh} />}
+      {editC && (
+        <EditContainerDialog container={editC}
+          onClose={() => setEditC(null)}
+          onSaved={async () => { setEditC(null); await refresh() }} />
+      )}
     </div>
   )
 }

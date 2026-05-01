@@ -99,6 +99,26 @@ def delete(container_id: str) -> None:
         conn.execute("DELETE FROM containers WHERE container_id = ?", (container_id,))
 
 
+def update_container_config(container_id: str, *, name: str | None = None,
+                             description: str | None = ...,
+                             cpu: int | None = ..., ram_mb: int | None = ...) -> None:
+    """Konfig-Update (Name, Description, CPU, RAM). cpu/ram_mb können explizit
+    auf None gesetzt werden für 'unbegrenzt' (Sentinel ... = nicht ändern)."""
+    sets: list[str] = ["updated_at = ?"]
+    vals: list = [now_iso()]
+    if name is not None:
+        sets.append("name = ?"); vals.append(name)
+    if description is not ...:
+        sets.append("description = ?"); vals.append(description)
+    if cpu is not ...:
+        sets.append("cpu = ?"); vals.append(cpu)
+    if ram_mb is not ...:
+        sets.append("ram_mb = ?"); vals.append(ram_mb)
+    vals.append(container_id)
+    with db() as conn:
+        conn.execute(f"UPDATE containers SET {', '.join(sets)} WHERE container_id = ?", vals)
+
+
 def set_project(container_id: str, project_id: str | None) -> None:
     with db() as conn:
         conn.execute(
