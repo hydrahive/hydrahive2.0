@@ -1,5 +1,5 @@
 import {
-  BookOpen, Bot, Box, Cpu, FolderKanban, HardDrive, LayoutDashboard, MessageCircle,
+  BookOpen, Bot, Box, Cpu, FolderKanban, HardDrive, Key, LayoutDashboard, MessageCircle,
   MessageSquare, Puzzle, Server, Settings, Sparkles, Users, Workflow,
 } from "lucide-react"
 
@@ -24,6 +24,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/llm", icon: Cpu, labelKey: "llm" },
   { path: "/mcp", icon: Server, labelKey: "mcp" },
   { path: "/skills", icon: Sparkles, labelKey: "skills" },
+  { path: "/credentials", icon: Key, labelKey: "credentials" },
   { path: "/users", icon: Users, labelKey: "users", roles: ["admin"] },
   { path: "/plugins", icon: Puzzle, labelKey: "plugins", roles: ["admin"] },
   { path: "/system", icon: Settings, labelKey: "system" },
