@@ -46,7 +46,9 @@ Restart=on-failure
 RestartSec=5
 
 # Sicherheit — HOME-Dir braucht Read-Access (incus config.yml), Write nur via ReadWritePaths
-NoNewPrivileges=true
+# NoNewPrivileges bewusst weggelassen: sudo ist setuid — NoNewPrivileges=true
+# würde sudo komplett blockieren (kein tailscale up/logout mehr möglich).
+# ProtectSystem=strict + ProtectHome + ReadWritePaths schützen ausreichend.
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only

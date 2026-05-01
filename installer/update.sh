@@ -229,6 +229,7 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "ReadWritePaths=.*\.mmx" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*/run/sudo" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ExecStartPre.*mkdir.*run/sudo" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "^NoNewPrivileges=true" "$SERVICE_FILE" && NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "Service-File braucht Update — neu schreiben"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
