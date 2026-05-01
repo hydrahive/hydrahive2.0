@@ -55,7 +55,8 @@
     "agent_id": "Agent ID",
     "timeout": "Handoff timeout",
     "known_agents": "Known agents ({{count}})",
-    "open_dashboard": "Open dashboard"
+    "open_dashboard": "Open dashboard",
+    "reconnect": "Connect"
   },
   "backup": {
     "title": "System Backup",
