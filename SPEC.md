@@ -112,34 +112,46 @@ Wird vom Installer mitinstalliert. Ermöglicht auch Federation zwischen zwei Hyd
 
 ---
 
-## Agent-Isolation (Ausführungsebene)
+## Agent-Tool-Kontrolle (Sicherheits-Modell)
 
-**Entscheidung:** Agenten werden bei der Code-Ausführung auf OS-Ebene isoliert — nicht durch
-eigenen Python-Code, sondern durch Linux-Mechanismen. Die API-Schicht (User-Verwaltung, JWT)
-bleibt davon unberührt und braucht keine Root-Rechte.
+**Entscheidung:** Agents arbeiten mit voller Tool-Macht — wie Claude Code oder OpenClaw.
+Keine OS-Sandbox, kein User-pro-Agent, keine sudoers-Whitelist, kein cgroup-Limit pro Agent.
+Sicherheit kommt aus zwei Schichten:
 
-**Warum nicht "alles ist ein Linux-User":**
-- `useradd` aus der API heraus würde root im API-Prozess erfordern → inakzeptables Risiko
-- Linux-Usernamen (max 32 Zeichen, ASCII) passen nicht zu beliebigen HydraHive-Usernamen
-- Zwei parallele Auth-Systeme (Linux-PAM + JWT) erhöhen Komplexität ohne Nutzen
+1. **HydraHive-User-Auth + Per-User-Owner-Pattern** (users.json + JWT) — entscheidet
+   wer welchen Agent starten darf
+2. **Per-Agent Tool-Bestätigung** (`require_tool_confirm: bool`) — wenn aktiv,
+   muss der User vor jedem Tool-Call im Chat per Banner bestätigen (Allow / Deny),
+   sonst läuft das Tool direkt durch. Auto-Deny nach 5 Minuten ohne Antwort.
 
-**Was stattdessen:**
+**Warum nicht systemd-User-Isolation pro Agent:**
+- "Darf ich nicht"-Pattern killt den Workflow — User muss ständig manuell ran
+- Sandbox bricht VM/Container/Tailscale-Tools (kein /dev/kvm, keine Network-Namespaces)
+- Privilegierte Operationen (apt install, systemctl, samba) wären über separate
+  Backend-API-Endpoints mit Code-Pflege-Aufwand → keine Funktionsparität zum
+  freien shell_exec
+- HydraHive 1 hat genau diese Sandbox-Strenge gehabt und wurde dadurch unbrauchbar
+
+**Sicherheits-Eckpunkte trotzdem:**
 
 | Ebene | Mechanismus |
 |---|---|
-| HydraHive-User + Auth | bleibt eigene Schicht (users.json + JWT) |
-| Agent-Ausführung (`shell_exec` etc.) | systemd-Unit mit `User=hh-agent`, `PrivateTmp=yes`, `ProtectSystem=strict`, `ReadWritePaths=<workspace>` |
-| Projekt-Workspaces | Linux-Gruppe `hh-proj-{id}` — alle Agents im Projekt teilen Zugriff per ACL |
-| Ressource-Limits | cgroup via systemd (`MemoryMax=`, `CPUQuota=`) |
+| HydraHive-User + Auth | eigene Schicht (users.json + JWT) |
+| Agent-Ausführung | im hydrahive-Service-User, voller Tool-Zugriff inkl. sudo |
+| Pro-Agent-Filterung | `tools[]`-Liste am Agent — nur erlaubte Tools werden registriert |
+| Pro-Tool-Permission | `require_tool_confirm` → Banner-Prompt vor Ausführung |
+| Pro-Plugin-Permission | Plugins müssen am Agent explizit aktiviert sein |
+| Service-Isolation | `ProtectSystem=strict` + `ReadWritePaths` am hydrahive-Service selbst |
 
 **Konsequenz für den Installer:**
-- Installer legt einen unprivilegierten System-User `hydrahive` für den API-Prozess an
-- Installer legt einen System-User `hh-agent` an unter dem alle Agenten-Prozesse laufen
-- Projekte bekommen beim Anlegen eine Linux-Gruppe + `setgid` auf dem Workspace-Verzeichnis
-- Die API selbst läuft nie als root
+- Installer legt System-User `hydrahive` an, unter dem API + alle Agent-Subprocesses laufen
+- API läuft nie als root, Subprocess-Privilegien = Service-Privilegien
+- Kein zweiter System-User pro Agent, keine Linux-Gruppe pro Projekt
+- Projekte werden über DB + workspace-Pfade getrennt, nicht über Filesystem-ACLs
 
-**Wann umsetzen:** Beim Bau des Agent-Runners (`agents/master/runner.py`), nicht in der
-Grundstruktur. Die Config-Schicht (was jetzt steht) ist davon unabhängig.
+**Implementierung:** `core/src/hydrahive/runner/tool_confirmation.py` (Pending-Store mit
+asyncio-Future), `frontend/src/features/chat/ToolConfirmBanner.tsx` (UI), Toggle im
+AgentForm-Overview-Tab.
 
 ---
 
