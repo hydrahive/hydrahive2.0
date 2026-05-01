@@ -16,6 +16,12 @@ const TYPE_ICON = {
   specialist: Wrench,
 }
 
+const TYPE_PILL: Record<string, string> = {
+  master: "bg-amber-500/[8%] border-amber-500/25 text-amber-300",
+  project: "bg-violet-500/[8%] border-violet-500/25 text-violet-300",
+  specialist: "bg-sky-500/[8%] border-sky-500/25 text-sky-300",
+}
+
 export function AgentList({ agents, activeId, onSelect, onNew }: Props) {
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
@@ -52,16 +58,19 @@ export function AgentList({ agents, activeId, onSelect, onNew }: Props) {
               } ${dim ? "opacity-50" : ""}`}
               onClick={() => onSelect(a.id)}
             >
-              <Icon
-                size={14}
-                className={active ? "text-violet-300" : "text-zinc-500"}
-              />
+              <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] flex-shrink-0 ${TYPE_PILL[a.type] ?? TYPE_PILL.specialist}`}>
+                <Icon size={9} />
+                {t(`type.${a.type}`)}
+              </span>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm truncate ${active ? "text-white" : "text-zinc-300"}`}>{a.name}</p>
-                <p className="text-xs text-zinc-600 mt-0.5 truncate">
-                  {t(`type.${a.type}`)} · {a.llm_model}
-                </p>
+                <p className="text-[10px] text-zinc-600 mt-0.5 truncate font-mono">{a.llm_model}</p>
               </div>
+              {dim && (
+                <span className="px-1.5 py-0.5 rounded-full bg-zinc-500/[8%] border border-zinc-500/20 text-[10px] text-zinc-500 flex-shrink-0">
+                  off
+                </span>
+              )}
             </div>
           )
         })}

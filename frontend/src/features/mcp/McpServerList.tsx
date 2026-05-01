@@ -41,9 +41,11 @@ export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }
         )}
         {servers.map((s) => {
           const active = s.id === activeId
-          const StatusIcon = s.connected ? PlugZap : Plug
-          const statusTone = s.connected ? "text-emerald-400" : "text-zinc-600"
           const dim = !s.enabled
+          const statusCls = s.connected
+            ? "bg-emerald-500/[8%] border-emerald-500/25 text-emerald-300"
+            : "bg-zinc-500/[8%] border-zinc-500/20 text-zinc-500"
+          const StatusIcon = s.connected ? PlugZap : Plug
           return (
             <div
               key={s.id}
@@ -59,11 +61,14 @@ export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }
                 <p className={`text-sm truncate ${active ? "text-white" : "text-zinc-300"}`}>
                   {s.name}
                 </p>
-                <p className="text-xs text-zinc-600 mt-0.5 truncate">
+                <p className="text-[10px] text-zinc-600 mt-0.5 truncate font-mono">
                   {s.transport} · {s.id}
                 </p>
               </div>
-              <StatusIcon size={12} className={statusTone} />
+              <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] flex-shrink-0 ${statusCls}`}>
+                <StatusIcon size={9} />
+                {s.connected ? "live" : "off"}
+              </span>
             </div>
           )
         })}
