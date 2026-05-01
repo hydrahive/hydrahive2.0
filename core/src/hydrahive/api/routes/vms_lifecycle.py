@@ -109,12 +109,13 @@ class VMUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=500)
     cpu: int | None = Field(default=None, ge=MIN_CPU, le=MAX_CPU)
     ram_mb: int | None = Field(default=None, ge=MIN_RAM_MB, le=MAX_RAM_MB)
+    disk_gb: int | None = Field(default=None, ge=MIN_DISK_GB, le=MAX_DISK_GB)
     iso_filename: str | None = None  # leerer String → ISO entfernen
     clear_iso: bool = False           # explizites Flag damit "" nicht mit "ISO unverändert" kollidiert
 
 
 @router.patch("/{vm_id}")
-def update_vm(
+async def update_vm(
     vm_id: str,
     req: VMUpdate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
@@ -127,15 +128,24 @@ def update_vm(
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_name_invalid", name=req.name)
     if req.name and req.name != vm.name and vmdb.name_taken(vm.owner, req.name, exclude_id=vm_id):
         raise coded(status.HTTP_409_CONFLICT, "vm_name_taken", name=req.name)
+    if req.disk_gb is not None and req.disk_gb < vm.disk_gb:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_shrink_not_supported",
+                    current=vm.disk_gb, requested=req.disk_gb)
 
     iso_kw: dict = {}
     if req.clear_iso:
         iso_kw["iso_filename"] = None
     elif req.iso_filename is not None:
-        # validiere dass die ISO existiert
         if not resolve_iso(req.iso_filename):
             raise coded(status.HTTP_404_NOT_FOUND, "vm_iso_not_found", filename=req.iso_filename)
         iso_kw["iso_filename"] = req.iso_filename
+
+    # Disk-Resize physisch BEVOR DB-Update — wenn das fehlschlägt soll DB konsistent bleiben
+    if req.disk_gb is not None and req.disk_gb != vm.disk_gb:
+        try:
+            await vmdisk.grow_qcow2(vm_id, req.disk_gb)
+        except vmdisk.DiskError as e:
+            raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, e.code, **e.params)
 
     vmdb.update_vm_config(
         vm_id,
@@ -143,6 +153,7 @@ def update_vm(
         description=req.description if req.description is not None else ...,
         cpu=req.cpu,
         ram_mb=req.ram_mb,
+        disk_gb=req.disk_gb,
         **iso_kw,
     )
     return serialize(vmdb.get_vm(vm_id))

@@ -11,6 +11,7 @@ export const vmsApi = {
     description?: string | null
     cpu?: number
     ram_mb?: number
+    disk_gb?: number
     iso_filename?: string
     clear_iso?: boolean
   }) => api.patch<VM>(`/vms/${id}`, patch),
