@@ -12,7 +12,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
-from hydrahive.llm._config import get_provider_key, load
+from hydrahive.llm._config import get_provider_key, load_config
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ async def fetch_usage() -> dict:
     if _cache["data"] is not None and (time.time() - _cache["fetched_at"]) < _CACHE_TTL:
         return _cache["data"]
 
-    key = get_provider_key(load(), "minimax")
+    key = get_provider_key(load_config(), "minimax")
     if not key:
         return _set_cache({"available": False, "reason": "no_api_key", "fetched_at": _iso_now()})
 
