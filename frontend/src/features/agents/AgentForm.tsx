@@ -103,15 +103,6 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           <option value="active">{tCommon("status.active")}</option>
           <option value="disabled">{tCommon("status.disabled")}</option>
         </select>
-        {dirty && (
-          <button
-            onClick={save} disabled={saving}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-30 transition-all shadow shadow-violet-900/20"
-          >
-            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-            {tCommon("actions.save")}
-          </button>
-        )}
         <button
           onClick={remove}
           className="p-1.5 rounded-md text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
@@ -152,6 +143,28 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           <CompactionSection agent={draft} models={models} onChange={patch} />
         )}
       </div>
+
+      {dirty && (
+        <div className="px-5 py-2.5 border-t border-violet-500/20 bg-gradient-to-r from-violet-950/40 to-indigo-950/40 backdrop-blur flex items-center gap-3">
+          <span className="text-xs text-violet-200 flex-1">
+            {t("unsaved_hint")}
+          </span>
+          <button
+            onClick={() => { setDraft(agent); setPrompt(originalPrompt) }}
+            disabled={saving}
+            className="px-3 py-1.5 rounded-md text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%] transition-colors disabled:opacity-30"
+          >
+            {tCommon("actions.cancel")}
+          </button>
+          <button
+            onClick={save} disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-30 transition-all shadow shadow-violet-900/30"
+          >
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            {tCommon("actions.save")}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

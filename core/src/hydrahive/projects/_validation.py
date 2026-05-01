@@ -7,7 +7,7 @@ class ProjectValidationError(ValueError):
     pass
 
 
-_VALID_STATUS = {"active", "archived"}
+_VALID_STATUS = {"active", "paused", "archived"}
 
 
 def validate_name(name: str) -> None:

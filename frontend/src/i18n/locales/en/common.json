@@ -22,6 +22,7 @@
   "status": {
     "active": "active",
     "disabled": "disabled",
+    "paused": "paused",
     "archived": "archived",
     "connected": "connected",
     "disconnected": "not connected",
