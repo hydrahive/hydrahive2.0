@@ -42,12 +42,12 @@ export function AgentsList({ agents }: Props) {
             <p className={`flex items-center gap-1.5 text-[10px] font-medium ${TYPE_TONE[g.type]}`}>
               <Icon size={11} /> {t(`agent_types.${g.type}`)} ({g.items.length})
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            <div className="space-y-0.5">
               {g.items.map((a) => (
                 <Link key={a.id} to="/agents"
                   className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/[4%] transition-colors">
-                  <span className="text-xs text-zinc-200 truncate">{a.name}</span>
-                  {a.owner && <span className="text-[10px] text-zinc-600 ml-auto">{a.owner}</span>}
+                  <span className="text-xs text-zinc-200 truncate flex-1 min-w-0">{a.name}</span>
+                  {a.owner && <span className="text-[10px] text-zinc-600 whitespace-nowrap">{a.owner}</span>}
                 </Link>
               ))}
             </div>

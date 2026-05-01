@@ -8,6 +8,8 @@ import { ServersOverview } from "./_ServersOverview"
 import { AgentsList } from "./_AgentsList"
 import { HealthStrip } from "./_HealthStrip"
 import { UpdateBanner } from "./_UpdateBanner"
+import { TailscaleCard } from "@/features/system/TailscaleCard"
+import { AgentLinkCard } from "@/features/system/AgentLinkCard"
 
 const REFRESH_MS = 30_000
 
@@ -29,7 +31,7 @@ export function DashboardPage() {
   }, [])
 
   return (
-    <div className="space-y-5 max-w-6xl">
+    <div className="space-y-3 max-w-7xl">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-white">{t("title")}</h1>
@@ -49,11 +51,16 @@ export function DashboardPage() {
           <StatsRow stats={data.stats} />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <RecentSessions sessions={data.recent_sessions} />
-            <ServersOverview servers={data.servers} />
+            <TailscaleCard />
+            <AgentLinkCard />
           </div>
 
-          <AgentsList agents={data.agents} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <RecentSessions sessions={data.recent_sessions} />
+            <AgentsList agents={data.agents} />
+          </div>
+
+          <ServersOverview servers={data.servers} />
         </>
       )}
     </div>
