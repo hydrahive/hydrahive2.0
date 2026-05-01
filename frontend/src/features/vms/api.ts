@@ -6,6 +6,14 @@ export const vmsApi = {
   list: () => api.get<VM[]>("/vms"),
   get: (id: string) => api.get<VM>(`/vms/${id}`),
   create: (input: VMCreateInput) => api.post<VM>("/vms", input),
+  update: (id: string, patch: {
+    name?: string
+    description?: string | null
+    cpu?: number
+    ram_mb?: number
+    iso_filename?: string
+    clear_iso?: boolean
+  }) => api.patch<VM>(`/vms/${id}`, patch),
   remove: (id: string) => api.delete<void>(`/vms/${id}`),
   start: (id: string) => api.post<VM>(`/vms/${id}/start`, {}),
   stop: (id: string) => api.post<VM>(`/vms/${id}/stop`, {}),
