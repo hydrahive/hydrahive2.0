@@ -7,6 +7,7 @@ import { OverviewTab } from "./_OverviewTab"
 import { ModelTab } from "./_ModelTab"
 import { ToolsTab } from "./_ToolsTab"
 import { PromptTab } from "./_PromptTab"
+import { SkillsTab } from "./_SkillsTab"
 import type { Agent, ToolMeta } from "./types"
 
 interface Props {
@@ -19,7 +20,7 @@ interface Props {
 
 const TYPE_ICON = { master: Crown, project: User, specialist: Wrench }
 
-type TabId = "overview" | "model" | "tools" | "prompt" | "advanced"
+type TabId = "overview" | "model" | "tools" | "skills" | "prompt" | "advanced"
 
 export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("agents")
@@ -80,6 +81,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
     { id: "overview", label: t("tabs.overview") },
     { id: "model", label: t("tabs.model") },
     { id: "tools", label: t("tabs.tools") },
+    { id: "skills", label: t("tabs.skills") },
     { id: "prompt", label: t("tabs.prompt") },
     { id: "advanced", label: t("tabs.advanced") },
   ]
@@ -144,6 +146,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
         {tab === "overview" && <OverviewTab draft={draft} onChange={patch} />}
         {tab === "model" && <ModelTab draft={draft} models={models} onChange={patch} />}
         {tab === "tools" && <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
+        {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
         {tab === "prompt" && <PromptTab prompt={prompt} onChange={setPrompt} />}
         {tab === "advanced" && (
           <CompactionSection agent={draft} models={models} onChange={patch} />

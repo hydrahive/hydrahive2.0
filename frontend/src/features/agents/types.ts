@@ -24,6 +24,7 @@ export interface Agent {
   compact_reserve_tokens?: number
   compact_threshold_pct?: number
   workspace?: string
+  disabled_skills?: string[]
 }
 
 export interface ToolMeta {
