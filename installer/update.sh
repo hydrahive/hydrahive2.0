@@ -329,6 +329,7 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "^Environment=HOME=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.config" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.mmx" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "ReadWritePaths=.*hh-projects\.d" "$SERVICE_FILE" || NEEDS_REWRITE=1
   # Migration: alte sudo-Workarounds (ExecStartPre /run/sudo, RW=/run/sudo)
   # raus — wir nutzen jetzt tailscale --operator statt sudo
   grep -q "ReadWritePaths=.*/run/sudo" "$SERVICE_FILE" && NEEDS_REWRITE=1
