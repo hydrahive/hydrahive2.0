@@ -8,6 +8,7 @@ import { AgentsPage } from "@/features/agents/AgentsPage"
 import { ProjectsPage } from "@/features/projects/ProjectsPage"
 import { LlmPage } from "@/features/llm/LlmPage"
 import { McpPage } from "@/features/mcp/McpPage"
+import { SkillsPage } from "@/features/skills/SkillsPage"
 import { SystemPage } from "@/features/system/SystemPage"
 import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="butler" element={<ButlerPage />} />
           <Route path="llm" element={<LlmPage />} />
           <Route path="mcp" element={<McpPage />} />
+          <Route path="skills" element={<SkillsPage />} />
           <Route path="system" element={<SystemPage />} />
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />

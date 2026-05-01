@@ -19,6 +19,7 @@ import deErrors from "./locales/de/errors.json"
 import dePlugins from "./locales/de/plugins.json"
 import deCommunication from "./locales/de/communication.json"
 import deButler from "./locales/de/butler.json"
+import deSkills from "./locales/de/skills.json"
 
 import enCommon from "./locales/en/common.json"
 import enAuth from "./locales/en/auth.json"
@@ -37,6 +38,7 @@ import enErrors from "./locales/en/errors.json"
 import enPlugins from "./locales/en/plugins.json"
 import enCommunication from "./locales/en/communication.json"
 import enButler from "./locales/en/butler.json"
+import enSkills from "./locales/en/skills.json"
 
 export const resources = {
   de: {
@@ -44,14 +46,14 @@ export const resources = {
     agents: deAgents, projects: deProjects, llm: deLlm, mcp: deMcp,
     system: deSystem, dashboard: deDashboard, help: deHelp, users: deUsers,
     profile: deProfile, errors: deErrors, plugins: dePlugins,
-    communication: deCommunication, butler: deButler,
+    communication: deCommunication, butler: deButler, skills: deSkills,
   },
   en: {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
     agents: enAgents, projects: enProjects, llm: enLlm, mcp: enMcp,
     system: enSystem, dashboard: enDashboard, help: enHelp, users: enUsers,
     profile: enProfile, errors: enErrors, plugins: enPlugins,
-    communication: enCommunication, butler: enButler,
+    communication: enCommunication, butler: enButler, skills: enSkills,
   },
 } as const
 
@@ -67,7 +69,7 @@ i18n
     resources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

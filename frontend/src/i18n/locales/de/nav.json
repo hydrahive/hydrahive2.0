@@ -14,6 +14,7 @@
     "butler": "Butler",
     "llm": "LLM",
     "mcp": "MCP",
+    "skills": "Skills",
     "system": "System",
     "users": "Benutzer",
     "plugins": "Plugins",
