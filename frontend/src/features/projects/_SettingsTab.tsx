@@ -59,6 +59,7 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
           className="px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-300 w-full"
         >
           <option value="active">{tCommon("status.active")}</option>
+          <option value="paused">{tCommon("status.paused")}</option>
           <option value="archived">{tCommon("status.archived")}</option>
         </select>
       </div>

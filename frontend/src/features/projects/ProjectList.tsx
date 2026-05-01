@@ -57,7 +57,12 @@ export function ProjectList({ projects, activeId, onSelect, onNew }: Props) {
                       <GitBranch size={9} /> git
                     </span>
                   )}
-                  {dim && (
+                  {p.status === "paused" && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/[8%] border border-amber-500/20 text-[10px] text-amber-400">
+                      paused
+                    </span>
+                  )}
+                  {p.status === "archived" && (
                     <span className="px-1.5 py-0.5 rounded-full bg-zinc-500/[8%] border border-zinc-500/20 text-[10px] text-zinc-500">
                       archived
                     </span>

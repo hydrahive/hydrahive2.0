@@ -36,6 +36,7 @@
     "workspace": "Workspace",
     "project": "Project ID"
   },
+  "unsaved_hint": "You have unsaved changes.",
   "tabs": {
     "overview": "Overview",
     "model": "Model",

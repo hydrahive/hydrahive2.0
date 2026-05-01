@@ -4,7 +4,7 @@ export interface Project {
   description: string
   members: string[]
   agent_id: string
-  status: "active" | "archived"
+  status: "active" | "paused" | "archived"
   created_at: string
   updated_at: string
   created_by: string
