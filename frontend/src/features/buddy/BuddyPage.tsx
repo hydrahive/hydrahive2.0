@@ -5,7 +5,6 @@ import { MessageInput } from "@/features/chat/MessageInput"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
 import { BuddyMessageList } from "./BuddyMessageList"
-import { BuddyPet } from "./BuddyPet"
 import { buddyApi, type BuddyState } from "./api"
 
 export function BuddyPage() {
@@ -51,12 +50,7 @@ export function BuddyPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100dvh-3rem-2.5rem)] py-6 gap-6">
-      {/* Pet-Sidebar links — nur auf größeren Screens */}
-      <aside className="hidden xl:flex flex-col gap-3 sticky top-6 self-start">
-        <BuddyPet />
-      </aside>
-
+    <div className="flex items-center justify-center min-h-[calc(100dvh-3rem-2.5rem)] py-6">
       <div className="w-full max-w-3xl flex flex-col">
         {/* TV-Frame */}
         <div
