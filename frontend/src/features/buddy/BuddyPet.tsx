@@ -10,11 +10,8 @@ export function BuddyPet() {
   })
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-900/50 backdrop-blur p-3 shadow-lg shadow-black/30 flex flex-col items-center gap-2">
-      <div className="w-40 h-40">
-        <RiveComponent />
-      </div>
-      <p className="text-[10px] text-zinc-500 font-mono tracking-wide">SASQUATCH</p>
+    <div className="w-64 h-64">
+      <RiveComponent />
     </div>
   )
 }
