@@ -77,11 +77,11 @@ bash "$INSTALLER_DIR/modules/70-containers.sh"
 log "Phase 11: HydraLink (AgentLink)"
 bash "$INSTALLER_DIR/modules/75-agentlink.sh"
 
-log "Phase 12: Tailscale (optional)"
-if [ -n "${HH_TAILSCALE_AUTHKEY:-}" ] || [ "${HH_INSTALL_TAILSCALE:-}" = "1" ]; then
+log "Phase 12: Tailscale"
+if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ]; then
   bash "$INSTALLER_DIR/modules/80-tailscale.sh"
 else
-  log "Tailscale übersprungen (HH_INSTALL_TAILSCALE=1 oder HH_TAILSCALE_AUTHKEY setzen)"
+  log "Tailscale übersprungen (HH_INSTALL_TAILSCALE=no)"
 fi
 
 # ----------------------------------------------------------------- Zusammenfassung

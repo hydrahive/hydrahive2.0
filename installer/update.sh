@@ -272,8 +272,8 @@ elif [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
   bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh" || log "hydralink-install failed — weiter"
 fi
 
-if command -v tailscale >/dev/null 2>&1 && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
-  log "Tailscale-Setup prüfen (Operator + Cleanup alte sudoers-Regel)"
+if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ] && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
+  log "Tailscale-Setup (installieren falls nicht da, Operator setzen)"
   bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || log "tailscale-update failed — weiter"
 fi
 
