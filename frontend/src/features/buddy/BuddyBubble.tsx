@@ -51,7 +51,7 @@ export function BuddyBubble({ message, onResend, onRetry, busy }: Props) {
           {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
           {text && !editing && (
             <>
-              <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] text-white text-sm whitespace-pre-wrap shadow-md shadow-black/30">
+              <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-amber-500/[8%] border border-amber-500/30 text-amber-50 text-sm whitespace-pre-wrap">
                 {text}
               </div>
               <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
