@@ -104,6 +104,50 @@ def get_vm_detail(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_a
     return serialize(vm)
 
 
+class VMUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=32)
+    description: str | None = Field(default=None, max_length=500)
+    cpu: int | None = Field(default=None, ge=MIN_CPU, le=MAX_CPU)
+    ram_mb: int | None = Field(default=None, ge=MIN_RAM_MB, le=MAX_RAM_MB)
+    iso_filename: str | None = None  # leerer String → ISO entfernen
+    clear_iso: bool = False           # explizites Flag damit "" nicht mit "ISO unverändert" kollidiert
+
+
+@router.patch("/{vm_id}")
+def update_vm(
+    vm_id: str,
+    req: VMUpdate,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    vm = vm_or_404(vm_id, *auth)
+    if vm.actual_state not in ("stopped", "created", "error"):
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_must_be_stopped",
+                    state=vm.actual_state)
+    if req.name and req.name != vm.name and not re.match(NAME_RE, req.name):
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_name_invalid", name=req.name)
+    if req.name and req.name != vm.name and vmdb.name_taken(vm.owner, req.name, exclude_id=vm_id):
+        raise coded(status.HTTP_409_CONFLICT, "vm_name_taken", name=req.name)
+
+    iso_kw: dict = {}
+    if req.clear_iso:
+        iso_kw["iso_filename"] = None
+    elif req.iso_filename is not None:
+        # validiere dass die ISO existiert
+        if not resolve_iso(req.iso_filename):
+            raise coded(status.HTTP_404_NOT_FOUND, "vm_iso_not_found", filename=req.iso_filename)
+        iso_kw["iso_filename"] = req.iso_filename
+
+    vmdb.update_vm_config(
+        vm_id,
+        name=req.name,
+        description=req.description if req.description is not None else ...,
+        cpu=req.cpu,
+        ram_mb=req.ram_mb,
+        **iso_kw,
+    )
+    return serialize(vmdb.get_vm(vm_id))
+
+
 @router.delete("/{vm_id}", status_code=204)
 async def delete_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> None:
     vm = vm_or_404(vm_id, *auth)

@@ -4,6 +4,7 @@ import type { VM } from "./types"
 import { vmsApi } from "./api"
 import { VMCard } from "./VMCard"
 import { CreateVMDialog } from "./CreateVMDialog"
+import { EditVMDialog } from "./EditVMDialog"
 import { ISOLibraryPanel } from "./ISOLibraryPanel"
 import { VMConsoleModal } from "./VMConsoleModal"
 import { SnapshotsPanel } from "./SnapshotsPanel"
@@ -22,6 +23,7 @@ export function VMsPage() {
   const [snapshotVm, setSnapshotVm] = useState<VM | null>(null)
   const [showImports, setShowImports] = useState(false)
   const [logsVm, setLogsVm] = useState<VM | null>(null)
+  const [editVm, setEditVm] = useState<VM | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -104,12 +106,18 @@ export function VMsPage() {
               onConsole={() => setConsoleVm(vm)}
               onSnapshots={() => setSnapshotVm(vm)}
               onLogs={() => setLogsVm(vm)}
+              onEdit={() => setEditVm(vm)}
             />
           ))}
         </div>
       )}
 
       {showCreate && <CreateVMDialog onClose={() => setShowCreate(false)} onCreated={refresh} />}
+      {editVm && (
+        <EditVMDialog vm={editVm}
+          onClose={() => setEditVm(null)}
+          onSaved={async () => { setEditVm(null); await refresh() }} />
+      )}
       {showISOs && <ISOLibraryPanel onClose={() => setShowISOs(false)} />}
       {consoleVm && <VMConsoleModal vm={consoleVm} onClose={() => setConsoleVm(null)} />}
       {snapshotVm && <SnapshotsPanel vm={snapshotVm} onClose={() => setSnapshotVm(null)} />}

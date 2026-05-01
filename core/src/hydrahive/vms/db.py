@@ -93,6 +93,28 @@ def delete_vm(vm_id: str) -> None:
         conn.execute("DELETE FROM vms WHERE vm_id = ?", (vm_id,))
 
 
+def update_vm_config(vm_id: str, *, name: str | None = None, description: str | None = ...,
+                      cpu: int | None = None, ram_mb: int | None = None,
+                      iso_filename: str | None = ...) -> None:
+    """Konfig-Update für eine VM (Name, CPU, RAM, ISO). Nur im stopped-State
+    erlaubt — der Caller validiert. Sentinels (...) für optionale clear-zu-NULL."""
+    sets: list[str] = ["updated_at = ?"]
+    vals: list = [now_iso()]
+    if name is not None:
+        sets.append("name = ?"); vals.append(name)
+    if description is not ...:
+        sets.append("description = ?"); vals.append(description)
+    if cpu is not None:
+        sets.append("cpu = ?"); vals.append(cpu)
+    if ram_mb is not None:
+        sets.append("ram_mb = ?"); vals.append(ram_mb)
+    if iso_filename is not ...:
+        sets.append("iso_filename = ?"); vals.append(iso_filename)
+    vals.append(vm_id)
+    with db() as conn:
+        conn.execute(f"UPDATE vms SET {', '.join(sets)} WHERE vm_id = ?", vals)
+
+
 def set_project(vm_id: str, project_id: str | None) -> None:
     with db() as conn:
         conn.execute(

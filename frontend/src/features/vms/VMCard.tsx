@@ -1,4 +1,4 @@
-import { Camera, Cpu, FileText, HardDrive, MemoryStick, Monitor, Network, Play, Power, Square, Trash2 } from "lucide-react"
+import { Camera, Cpu, FileText, HardDrive, MemoryStick, Monitor, Network, Pencil, Play, Power, Square, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import type { VM } from "./types"
 import { StatusBadge } from "./StatusBadge"
@@ -14,9 +14,10 @@ interface Props {
   onConsole: () => void
   onSnapshots: () => void
   onLogs: () => void
+  onEdit: () => void
 }
 
-export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole, onSnapshots, onLogs }: Props) {
+export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole, onSnapshots, onLogs, onEdit }: Props) {
   const [busy, setBusy] = useState(false)
   const [stats, setStats] = useState<{ cpu_pct: number; rss_mb: number } | null>(null)
 
@@ -130,6 +131,13 @@ export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole, o
         >
           <Camera size={12} />
         </button>
+        {!running && !transitioning && (
+          <button onClick={onEdit}
+            className="flex items-center gap-1.5 p-1.5 rounded-lg text-xs text-zinc-500 hover:text-violet-300 hover:bg-violet-500/10 transition-colors"
+            title="VM bearbeiten">
+            <Pencil size={12} />
+          </button>
+        )}
         {!running && !transitioning && (
           <button
             disabled={busy}
