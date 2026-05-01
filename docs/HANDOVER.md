@@ -1,178 +1,109 @@
-# HydraHive2 — Übergabe (Stand 2026-05-01 nachts, AgentLink-Hookup + Compliance-Sprint)
+# HydraHive2 — Übergabe (Stand 2026-05-01 spät, Tailscale + Projekt-Tabs + Installer-Härtung)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
-## TL;DR
+## TL;DR der heutigen Session
 
-Heute zwei große Stücke + viele Polish-Fixes:
+Drei Themen + Installer-Saga:
 
-1. **AgentLink full integration** (#83) — neues Repo `hydrahive/hydralink`
-   als Wrapper für `tilleulenspiegel/agentlink`. Native Installation
-   (kein Docker, ChromaDB raus). HydraHive verbindet sich via
-   WebSocket-Client mit Future-Map für synchrones await im Tool-Loop.
-   `ask_agent` ist nicht mehr Stub. Service-Drop-In macht 218 beim
-   Self-Update automatisch scharf. Frontend (Vite/React-SPA) wird auf
-   Port 9001 als statischer http.server-Service ausgeliefert; Link
-   zum Dashboard ist in der HydraHive-System-Page.
+1. **Projekt-Seite Tab-Layout** (#57 #58 #59 #60) — ProjectForm bekommt
+   Übersicht/Sessions/Git/Statistiken/Einstellungen. Backend: neue
+   Endpoints `/api/projects/{id}/git` (Branch/Remote/ahead-behind/Commits)
+   und `/api/projects/{id}/stats` (Sessions/Tokens/Aktivität).
+   Sub-Komponenten als `_OverviewTab.tsx`, `_SessionsTab.tsx`, etc.
+   Save-Button erscheint nur dirty.
 
-2. **CLAUDE.md-Compliance-Sprint** (Refactor in 4 Häppchen):
-   - `routes/vms.py` 406 → 22 Z. Aggregator + 5 Sub-Router
-   - `llm/client.py` 297 → 116 Z. + `_config.py` + `_anthropic.py`
-   - `PropertiesPanel.tsx` 623 → 43 Z. + 5 Subtype-Form-Files via Registry
-   - `api/main.py` 255 → 85 Z. + `lifespan.py` + `version.py`
+2. **Marvin-Onboarding für Master-Agent** — Bei `ensure_master` wird
+   `startup.md` (Marvin-Stil, 6 Fragen) in den Workspace geschrieben.
+   System-Prompt enthält Trigger: "wenn `startup.md` existiert, lies
+   und arbeite ab, dann lösche". Selbstzerstörend nach erstem Onboarding.
+   Pattern aus `octopos/skills/catalog/onboard-agent.md` übernommen.
 
-Plus B1.a System-Backup, Per-Agent Compaction-Settings, Chunked
-Compaction für riesen Sessions, Bento-Menü-Farben, iOS-Layout-Fix,
-Chat-Bubble-Polish.
+3. **Tailscale-Saga** — fünf Iterationen durch sudo-Sandboxing-Hölle,
+   am Ende: `/run/tailscale/tailscaled.sock` ist `srw-rw-rw-`, sudo
+   war NIE nötig. Lösung: `tailscale set --operator=hydrahive` in
+   80-tailscale.sh, kein sudo mehr im Python-Code, Service-Unit hat
+   `NoNewPrivileges=true` zurück. Tailscale wird jetzt **default
+   installiert** (opt-out via `HH_INSTALL_TAILSCALE=no`).
 
-## Was steht (alles getestet, live auf 218 + lokal)
+4. **Installer-Härtung** durch frisches Setup auf Produktiv-LXC:
+   - `.config`/`.cache`/`.local/share`/`.mmx` für hydrahive-User
+     vorlegen (ReadWritePaths-226-Errors)
+   - nginx default-yes (war opt-in — Server war ohne nicht erreichbar)
+   - TLS-Cert-SAN mit detektierter Server-IP statt nur 127.0.0.1
+   - Update-Check via HTTPS-Remote (SSH-URL wird automatisch umgebogen
+     — der hydrahive-User hat keine SSH-Keys)
+   - nginx `enable + start` statt nur `reload`
+   - Install-Zusammenfassung mit URL + Admin-Login am Ende
 
-| Bereich | Stand |
-|---|---|
-| **AgentLink (#83)** | hydralink-Repo + native Installer + WebSocket-Client + ask_agent echte Implementation + System-Card + Dashboard-Link |
-| **Compaction Chunking (#81)** | Variante B — bei zu großem Verlauf splitten, hierarchisch mergen, verlustfrei |
-| **Per-Agent Compact-Settings (#82)** | compact_model / compact_tool_result_limit / compact_reserve_tokens / compact_threshold_pct in AgentForm |
-| **Chat-Bubble-Polish (#39)** | Header (Datum/Uhrzeit) + Footer (Tokens/Cache/Modell) + Tool-Dauer + Collapse |
-| **Bunte UI (#77)** | Bento-Menü + Top-Bar Quick-Links + PageTitle-Punkt + 3 Action-Buttons in Domain-Farben |
-| **System-Backup B1.a** | /api/admin/backup + /restore mit Pre-Validate + Auto-Rollback + tls/-Exclude |
-| **iOS-Layout (#80)** | 100vh → 100dvh — Chat-Page rastet beim Initial-Load ein |
-| **Compliance-Refactor** | 4 Files >150 Z. gesplittet, alle <150 (mit ~ Toleranz für 161er) |
-| Backend-Runner | Tool-Loop, Streaming, Loop-Detection, Heal, Failover, runner.run() |
-| DB-Layer | sessions/messages/tool_calls/state/vms/vm_snapshots/vm_import_jobs/containers, append-only-Compaction |
-| Voice (komplett) | STT incus-LXC + TTS mmx-CLI + Voice-Mode-Hint |
-| WhatsApp | Bridge mit Promise.all, Voice-Eingang/Ausgang, Auto-Reconnect |
-| Butler | 4 Phasen — Datenmodell + Executor + ReactFlow-UI + WhatsApp-Hook |
-| Container | LXC Phase 1+2+3 — Lifecycle + Browser-Console + Detail-Page |
-| VM-Manager | Phase 1-5 — QEMU+KVM, Browser-VNC, Snapshots, Import, Live-Stats |
+## Was läuft auf 218 + neuer Produktiv-Server
 
-## Heute gepusht (Reihenfolge chronologisch, Auswahl)
+Gleicher Stand. Tailscale connected via Frontend-Login auf beiden.
+Neuer Server: gleiche Setup-Pfade wie 218 — Setup-User chucky / Service-User
+hydrahive (Passwort siehe Install-Output bzw. Journal).
+
+## Frische Code-Änderungen heute (commits)
 
 ```
-4755135 fix(installer): hydralink-Phase tatsächlich in install.sh + update.sh
-5d88ac2 feat(installer): hydralink als Phase 11 ins HydraHive2-Setup (#83-#19)
-33030a7 feat(agentlink): Dashboard-Link in System-Card + dev-start ENV
-db02b1c feat(agentlink): WebSocket-Client für AgentLink — ask_agent live (#83)
-281f793 fix(ui): 100vh → 100dvh — iOS-Layout rastet ein (#80)
-131a893 feat(ui): Domain-Farben überall (#77 Phase 2)
-b4c3c61 feat(ui): Bento-Menü farbig (#77 Phase 1)
-36e972e feat(compaction): Variante B — Chunking für riesen Sessions (#81)
-d0aafe4 fix(runner): temperature-Retry bei Anthropic 'deprecated'
-2552a69 fix(agents): Pydantic-Models um compact_*-Felder erweitert (#82-Followup)
-da54762 fix(agents): Compact-Settings-Save tolerant gegen None/leere Werte
-28f7a6d feat(agents): Per-Agent Compaction-Settings (#82)
-1e8d355 feat(chat): Bubble-Polish (#39)
-9f90a61 fix(runner): Thinking-Blocks aus History strippen — \"Invalid signature\" (#79)
-421c1a6 fix(chat): Vorlesen-Button — Hook-Order + Voices-Race (#76)
-59c6035 fix(agents): ask_agent in Tool-Liste tolerieren wenn AgentLink fehlt (#78)
-b6f3f55 docs(spec): Backup/Restore-Sektion ergänzt
-cdcb8f5 feat(backup): System-Backup für Admin (B1.a)
-+ Compliance-Refactor (98298d3, 0557044, 3da2ff6, 3fef573)
-+ hydralink-Repo (d72da97, d9c8695)
+c666f12 Tailscale default installieren
+285679a Tailscale ohne sudo — operator-Flag + Socket
+8bace05 NoNewPrivileges raus (zwischenzeitlich, später wieder rein)
+25fb8d0 Tailscale-Pfad via shutil.which (zwischenzeitlich)
+23dfb3f update.sh NEEDS_REWRITE-Check für /run/sudo (zwischenzeitlich)
+522a26a ExecStartPre /run/sudo (zwischenzeitlich)
+cd0038b version-Check via HTTPS-Remote
+d79dc20 /run/sudo in ReadWritePaths (zwischenzeitlich)
+b5e76fd Projekt-Tabs: Übersicht/Sessions/Git/Stats/Einstellungen
+8f68e80 Marvin-Onboarding via startup.md
+53f8bb3 Install-Zusammenfassung URL + Login
+da5d353 nginx default + TLS-SAN mit Server-IP
+d98c1ab .mmx-Verzeichnis für hydrahive
+5448242 .config/.cache/.local/share für hydrahive
 ```
 
-## Live-Server (218)
-
-- **Host**: 192.168.178.218, SSH-Alias `hh2-218`
-- **Setup-User**: chucky (Passwort lummerland123, sudo-fähig)
-- **Service-User**: hydrahive (no-login)
-- **Repo**: /opt/hydrahive2 auf main (Stand 4755135)
-- **Daten**: /var/lib/hydrahive2/
-- **Config**: /etc/hydrahive2/
-- **Frontend-URL**: https://192.168.178.218/
-- **Admin-Passwort** auf 218: lummerland123
-- **HydraLink-Stack** (jetzt auch live):
-  - postgresql.service (apt) ✓
-  - redis-server.service (apt, 127.0.0.1:6379) ✓
-  - agentlink.service (systemd venv, 127.0.0.1:9000) ✓
-  - agentlink-frontend.service (systemd python http.server, 127.0.0.1:9001) ✓
-  - HydraHive verbindet via /etc/systemd/system/hydrahive2.service.d/agentlink.conf
-
-## Lokales Dev-Setup (auf Tills Workstation)
-
-- Repo: /home/till/claudeneu/ (HydraHive2)
-- Repo: /home/till/hydralink/ (HydraLink)
-- Dev-Service: hydrahive2-dev.service (user-systemd)
-- Dev-URLs: Backend 8001, Frontend 5173, AgentLink 9000, AgentLink-Dashboard 9001
-- dev-start.sh setzt HH_AGENTLINK_URL automatisch auf 127.0.0.1:9000
-
-## AgentLink — Architektur
-
-```
-HydraHive Master Agent
-       │
-       │ ask_agent({agent_id:'specialist', task:'...'})
-       ▼
-hydrahive/agentlink/client.post_state(...)  ──► POST http://127.0.0.1:9000/states
-       │                                            │
-       │ register_pending(state.id) → Future        │
-       │                                            ▼
-       │                                    Postgres + Redis Pub/Sub
-       │                                            │
-       │                                            ▼
-       │                              Specialist-Agent empfängt via WS
-       │                                            │
-       │ on_event handler im HydraHive-Lifespan ◄───┤
-       │ resolve_pending(reply_to)                  │
-       ▼
-ask_agent return ToolResult mit Antwort-Inhalt
-```
-
-WS-Channel-Pattern: HydraHive subscribed `agent:hydrahive` (oder agent_id-Override).
-Antwort-State referenziert Original via `handoff.reason = "reply_to:<state-id>"`.
+Die "zwischenzeitlich"-Marker: NoNewPrivileges, /run/sudo, ExecStartPre
+sind alle wieder zurückgerollt — `285679a` ist der saubere Endstand.
+update.sh hat Migration die alte Service-Units mit dem Workaround
+auf die saubere Form bringt.
 
 ## Was offen ist
 
-### P1-Issues (groß, halber bis ganzer Build-Tag)
+### P1 (groß)
 
-- **#38 User-Backup Self-Service** (DSGVO Art. 20) — komplementär zu System-Backup
-- **#43 Edit + Resend** im Chat — User-Bubble klicken, ändern, Verlauf ab dort regenerieren
-- **#55 ToolsSelector-Akkordeon** — Single-Expand pro Quelle (Core/Plugin/MCP)
-- **#56 AgentForm Tabs + Sticky Save-Bar**
-- **#57-#62 Projekt-Sektionen** — Tab-Layout + Statistiken + Sessions-Tab + Git-Status + Server-Tab
-- **#26 Skills-System** — SPEC verspricht Markdown-Skills
+1. **#38 User-Backup Self-Service** — komplementär zu Admin-Backup, DSGVO Art. 20
+2. **#43 Edit + Resend** Chat-Bubble
+3. **#55 ToolsSelector-Akkordeon** + **#56 AgentForm Tabs**
+4. **#62 Server-Tab im Projekt** (VMs+Container assignen) — bei den
+   Projekt-Tabs heute bewusst ausgelassen, braucht eigene VM/Container-Logik
+5. **#26 Skills-System** (SPEC-Lücke) — Marvin-Onboarding heute ist
+   ein Vorläufer, aber ohne richtiges Skills-System
 
-### P2-Issues (häufig genutzt)
+### P2 / P3
 
-- **#40 Stop-Reason-Pill** im Chat
-- **#42 Estimierte Kosten pro Bubble** (€/$)
-- **#45 Copy-Button** + **#46 Retry-Button** im Chat
-- **#50 Tool-Calls collapse-by-default**
-- **#53 Drag-Drop Bilder** in Chat
-- **#35 Discord-Channel-Adapter**
-- **#63 Specialists-Tab** (jetzt mit AgentLink wirklich nutzbar!)
-- **#67 Lifecycle (active/paused/archived)** für Projekte
-- **#66 Notes/Briefing** pro Projekt
+Wie gehabt — Chat-Polish-Reste, Discord/Telegram/Matrix, Projekt-Sektionen
+Phase 2, ~30 Tags-Audit-Member-Webhooks-Issues.
 
-### P3 (~30 Issues, nice-to-have)
+## Lessons Learned heute (in Memory persistiert)
 
-Tags, Audit, Member-Rechte, Webhooks, MCP/Plugin/LLM-Override pro Projekt,
-Branching, Suche, Read-Receipts, Streaming-Animation, Pre-Compaction-Hint,
-ZH-Locale, etc.
+- **Erst Ist-Zustand checken, dann Hypothesen** — Tailscale-Saga lief
+  zwei Stunden weil ich Code-Hypothesen iteriert habe statt am Live-218
+  per SSH zu checken was tatsächlich anders ist. Bei Server-Bugs immer
+  zuerst `cat`/`ls`/`groups`/`systemctl` auf dem funktionierenden
+  Server, dann Code-Änderung. Memory-Eintrag: `feedback_check_actual_state_first.md`
 
-### Doku-Issues offen
+- **update.sh Self-Update-Bug** — wenn update.sh sich selbst aktualisiert,
+  greifen neue Checks erst beim NÄCHSTEN Lauf, weil bash das Skript schon
+  geladen hat. Bei wichtigen Migration-Checks: zwei update.sh-Läufe
+  einplanen, oder re-exec nach git pull einbauen. Bisher nicht umgesetzt.
 
-- #15 ZH-Locale (SPEC sagt DE/EN/ZH, Code DE/EN)
-- #22 CSP unsafe-inline (16 Inline-Styles)
-- #32 PostgreSQL-Zeile in SPEC
+## Test-Plan beim Reopen
 
-## Empfohlener nächster Build-Tag
-
-1. **Frauchen / echter User testet AgentLink** — die Specialists-Disclosure
-   und Master→Specialist-Handoff am echten Use-Case durchspielen
-2. **#43 Edit + Resend** — kleines aber sehr sichtbares UX-Feature
-3. **#56 AgentForm Tabs** — die Compaction-Section wandert in einen
-   `Erweitert`-Tab, sticky save-bar
-4. **#57-#62 Projekt-Sektionen Phase 1** — Tabs + Sessions + Statistiken
-
-## Nicht-vergessen-Liste
-
-- AgentLink-Dashboard auf 218: https://hh2-218 → System-Page → \"Dashboard öffnen\"
-  öffnet http://192.168.178.218:9001 — falls Browser CORS warnt: ist
-  Mixed-Content (HTTPS-Page → HTTP-Frontend), evtl. nginx-Reverse-Proxy
-  für AgentLink-Frontend wenn HTTPS überall werden soll.
-- 218 IP-Wechsel-Problem (DHCP-Lease) bleibt — DHCP-Reservation auf
-  Fritzbox wäre stabiler.
-- Self-Update-Falle: bash hält update.sh-Inhalt im Speicher beim Start.
-  Nach git pull läuft Rest mit altem Code. Bei größeren Änderungen
-  zweites Mal aufrufen.
+1. Projekt-Tabs auf https://192.168.178.218/ (oder neuer Server) — alle
+   5 Tabs öffnen: Übersicht/Sessions/Git/Statistiken/Einstellungen
+2. Tailscale-Card: Status zeigt connected mit IP/Hostname
+3. Neuer Master-Agent (z.B. zweiten User anlegen): kommt Marvin-Onboarding
+   in der ersten Konversation? Stellt er die 6 Fragen? Löscht er
+   `startup.md` am Ende?
+4. Update-Knopf: ist er sichtbar wenn Server hinter `main`? Triggert er
+   das Update?
