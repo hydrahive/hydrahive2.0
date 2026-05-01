@@ -10,6 +10,7 @@ import { HealthStrip } from "./_HealthStrip"
 import { UpdateBanner } from "./_UpdateBanner"
 import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { AgentLinkCard } from "@/features/system/AgentLinkCard"
+import { MinimaxUsageCard } from "@/features/system/MinimaxUsageCard"
 
 const REFRESH_MS = 30_000
 
@@ -54,6 +55,8 @@ export function DashboardPage() {
             <TailscaleCard />
             <AgentLinkCard />
           </div>
+
+          <MinimaxUsageCard />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <RecentSessions sessions={data.recent_sessions} />

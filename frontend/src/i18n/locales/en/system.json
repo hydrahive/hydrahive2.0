@@ -62,6 +62,16 @@
     "open_dashboard": "Open dashboard",
     "reconnect": "Connect"
   },
+  "minimax": {
+    "title": "MiniMax token quota",
+    "no_data": "No quota data available.",
+    "reset_in": "reset in {{time}}",
+    "weekly": "weekly: {{used}} / {{total}} ({{pct}}%)",
+    "error_invalid_api_key": "API key invalid",
+    "error_network_error": "Network error",
+    "error_invalid_json": "Could not parse response",
+    "error_upstream_error": "MiniMax server error"
+  },
   "backup": {
     "title": "System Backup",
     "description": "Full backup of database, configs and user workspaces. For catastrophe recovery and server migration.",
