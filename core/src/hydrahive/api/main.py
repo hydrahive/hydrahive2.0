@@ -24,6 +24,7 @@ from hydrahive.api.routes.projects_servers import router as projects_servers_rou
 from hydrahive.api.routes.sessions import router as sessions_router
 from hydrahive.api.routes.stt import router as stt_router
 from hydrahive.api.routes.system import router as system_router
+from hydrahive.api.routes.system_bridge import router as system_bridge_router
 from hydrahive.api.routes.tailscale import router as tailscale_router
 from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.users import router as users_router
@@ -81,6 +82,7 @@ app.include_router(containers_router)
 app.include_router(container_console_router)
 app.include_router(butler_router)
 app.include_router(system_router)
+app.include_router(system_bridge_router)
 app.include_router(tailscale_router)
 
 
