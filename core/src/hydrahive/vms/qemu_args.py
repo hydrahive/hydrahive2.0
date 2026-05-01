@@ -16,11 +16,17 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
     pid_file = settings.vms_pids_dir / f"{vm.vm_id}.pid"
     qmp_socket = settings.vms_pids_dir / f"{vm.vm_id}.qmp"
 
+    # KVM nur wenn /dev/kvm existiert. Bei TCG kein "-cpu max" — emuliert AES-NI/SHA-NI
+    # buggy → FreeBSD libcrypto crash. qemu64 ist konservativ und stabil.
+    has_kvm = Path("/dev/kvm").exists()
+    cpu_model = "host" if has_kvm else "qemu64"
+    machine = "q35,accel=kvm" if has_kvm else "q35,accel=tcg"
+
     args: list[str] = [
         "qemu-system-x86_64",
         "-name", f"hh2-{vm.name}",
-        "-machine", "q35,accel=kvm:tcg",  # KVM bevorzugt, TCG als Fallback
-        "-cpu", "max",  # Beste Features die der Accel-Mode anbietet (KVM=host, TCG=max)
+        "-machine", machine,
+        "-cpu", cpu_model,
         "-smp", str(vm.cpu),
         "-m", str(vm.ram_mb),
         "-drive", f"file={vm.qcow2_path},format=qcow2,if=virtio,cache=writeback,discard=unmap",
