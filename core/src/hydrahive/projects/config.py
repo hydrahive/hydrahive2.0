@@ -31,6 +31,7 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("description", "")
     cfg.setdefault("members", [])
     cfg.setdefault("git_initialized", False)
+    cfg.setdefault("git_token", "")
     cfg.setdefault("metadata", {})
     cfg.setdefault("updated_at", cfg.get("created_at", ""))
     return cfg

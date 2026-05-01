@@ -16,6 +16,15 @@ export const projectsApi = {
   getSessions: (id: string) => api.get<ProjectSession[]>(`/projects/${id}/sessions`),
   getGit: (id: string) => api.get<ProjectGitStatus>(`/projects/${id}/git`),
   getStats: (id: string) => api.get<ProjectStats>(`/projects/${id}/stats`),
+  putGitConfig: (id: string, body: { remote_url?: string; git_token?: string }) =>
+    api.put<{ ok: boolean }>(`/projects/${id}/git/config`, body),
+  gitInit: (id: string) => api.post<{ ok: boolean }>(`/projects/${id}/git/init`, {}),
+  gitClone: (id: string, body: { url: string; branch?: string }) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/clone`, body),
+  gitCommit: (id: string, message: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/commit`, { message }),
+  gitPush: (id: string) => api.post<{ ok: boolean }>(`/projects/${id}/git/push`, {}),
+  gitPull: (id: string) => api.post<{ ok: boolean }>(`/projects/${id}/git/pull`, {}),
 }
 
 export const usersApi = {

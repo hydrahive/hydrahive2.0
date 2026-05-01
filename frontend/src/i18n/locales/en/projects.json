@@ -33,7 +33,22 @@
   "git": {
     "not_initialized": "No git repository in this workspace.",
     "recent_commits": "Recent commits",
-    "no_remote": "No remote configured."
+    "no_remote": "No remote configured.",
+    "no_repo_yet": "No repo in this workspace yet — clone or init empty.",
+    "remote_url": "Remote URL",
+    "token": "Access token",
+    "token_hint": "GitHub PAT (ghp_… or github_pat_…). Stored in backend, never in remote URL.",
+    "save_settings": "Save",
+    "clone_url": "Repository URL",
+    "branch_optional": "Branch (optional)",
+    "init_empty": "Init empty",
+    "clone": "Clone",
+    "ahead": "ahead",
+    "behind": "behind",
+    "commit_message_placeholder": "Commit message…",
+    "commit": "Commit",
+    "push": "Push",
+    "pull": "Pull"
   },
   "stats": {
     "unavailable": "Stats unavailable.",
