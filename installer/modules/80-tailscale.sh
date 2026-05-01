@@ -19,10 +19,12 @@ systemctl enable tailscaled
 systemctl start tailscaled || true
 
 log "sudoers-Regel für ${HH_USER} einrichten"
+TS_BIN=$(command -v tailscale 2>/dev/null || echo "/usr/bin/tailscale")
+log "tailscale-Pfad: $TS_BIN"
 cat > /etc/sudoers.d/hydrahive-tailscale << EOF
-${HH_USER} ALL=(ALL) NOPASSWD: /usr/bin/tailscale status *
-${HH_USER} ALL=(ALL) NOPASSWD: /usr/bin/tailscale up *
-${HH_USER} ALL=(ALL) NOPASSWD: /usr/bin/tailscale logout
+${HH_USER} ALL=(ALL) NOPASSWD: ${TS_BIN} status *
+${HH_USER} ALL=(ALL) NOPASSWD: ${TS_BIN} up *
+${HH_USER} ALL=(ALL) NOPASSWD: ${TS_BIN} logout
 EOF
 chmod 440 /etc/sudoers.d/hydrahive-tailscale
 visudo -c -f /etc/sudoers.d/hydrahive-tailscale || err "sudoers-Syntax ungültig"

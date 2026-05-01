@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
+
+
+def _tailscale_bin() -> str:
+    return shutil.which("tailscale") or "/usr/bin/tailscale"
 
 
 async def _run(*args: str, timeout: float = 30) -> str:
     proc = await asyncio.create_subprocess_exec(
-        "sudo", "-n", "tailscale", *args,
+        "sudo", "-n", _tailscale_bin(), *args,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
