@@ -22,6 +22,21 @@ async def _run(*args: str, timeout: float = 5) -> tuple[int, str, str]:
     return proc.returncode, stdout.decode(), stderr.decode()
 
 
+def _peer_dict(p: dict) -> dict:
+    ips = p.get("TailscaleIPs", [])
+    ipv4 = next((ip for ip in ips if ":" not in ip), None)
+    return {
+        "hostname": p.get("HostName", ""),
+        "dns_name": p.get("DNSName", "").rstrip("."),
+        "ip": ipv4,
+        "online": bool(p.get("Online", False)),
+        "os": p.get("OS", ""),
+        "exit_node": bool(p.get("ExitNode", False)),
+        "exit_node_option": bool(p.get("ExitNodeOption", False)),
+        "last_seen": p.get("LastSeen", ""),
+    }
+
+
 async def get_status() -> dict:
     try:
         rc, out, err = await _run("status", "--json")
@@ -35,6 +50,9 @@ async def get_status() -> dict:
         dns_name = self_info.get("DNSName", "").rstrip(".")
         tailnet = dns_name[len(hostname) + 1:] if hostname and dns_name.startswith(hostname) else ""
         backend_state = data.get("BackendState", "")
+        peers = [_peer_dict(p) for p in (data.get("Peer") or {}).values()]
+        peers.sort(key=lambda x: (not x["online"], x["hostname"]))
+        active_exit = next((p["hostname"] for p in peers if p["exit_node"]), None)
         return {
             "installed": True,
             "connected": backend_state == "Running",
@@ -43,7 +61,11 @@ async def get_status() -> dict:
             "hostname": hostname,
             "dns_name": dns_name,
             "tailnet": tailnet,
+            "version": data.get("Version", ""),
+            "magic_dns": bool(data.get("MagicDNSSuffix")),
             "auth_url": data.get("AuthURL", "") or None,
+            "peers": peers,
+            "exit_node_active": active_exit,
         }
     except FileNotFoundError:
         return {"installed": False, "connected": False}

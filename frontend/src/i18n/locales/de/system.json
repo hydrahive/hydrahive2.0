@@ -55,6 +55,10 @@
     "agent_id": "Agent-ID",
     "timeout": "Handoff-Timeout",
     "known_agents": "Bekannte Agents ({{count}})",
+    "states": "States",
+    "last_connect": "Letzter Connect",
+    "reconnects": "Reconnects",
+    "pending": "Offene Handoffs",
     "open_dashboard": "Dashboard öffnen",
     "reconnect": "Verbinden"
   },
@@ -88,7 +92,10 @@
     "authkey_hint": "Auth-Key aus dem Tailscale Admin-Panel erstellen:",
     "authkey_placeholder": "tskey-auth-...",
     "error_connect": "Verbindung fehlgeschlagen",
-    "error_logout": "Abmeldung fehlgeschlagen"
+    "error_logout": "Abmeldung fehlgeschlagen",
+    "version": "Version",
+    "exit_node": "Exit-Node",
+    "peers": "Peers im Tailnet ({{count}})"
   },
   "samba": {
     "title": "SMB-Shares (Samba)",
