@@ -39,6 +39,12 @@ export interface ProjectGitStatus {
   commits?: { hash: string; subject: string; author: string; date: string }[]
 }
 
+export interface ProjectGitRepo {
+  name: string
+  status: ProjectGitStatus
+  has_token: boolean
+}
+
 export interface ProjectStats {
   total_sessions: number
   active_sessions: number

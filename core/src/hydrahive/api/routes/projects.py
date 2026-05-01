@@ -13,9 +13,6 @@ from hydrahive.db import sessions as sessions_db
 from hydrahive.db.connection import db
 from hydrahive.projects import ProjectValidationError, config as project_config
 from hydrahive.projects import members as project_members
-from hydrahive.projects._git import git_status
-from hydrahive.projects._paths import workspace_path
-
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
@@ -139,19 +136,6 @@ def list_project_sessions(
                 "created_at": s.created_at, "updated_at": s.updated_at,
             })
     return out
-
-
-@router.get("/{project_id}/git")
-def get_project_git(
-    project_id: str,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-) -> dict:
-    p = project_config.get(project_id)
-    if not p:
-        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    _check_access(p, *auth)
-    ws = workspace_path(project_id)
-    return git_status(ws)
 
 
 @router.get("/{project_id}/stats")
