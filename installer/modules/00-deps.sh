@@ -53,6 +53,20 @@ if ! command -v uvx >/dev/null 2>&1; then
   fi
 fi
 
+# gh CLI (GitHub) — Agent kann darüber Issues, PRs etc. anlegen wenn ein
+# Project-Repo-Token konfiguriert ist (GH_TOKEN-ENV setzt der shell_exec-Tool).
+if ! command -v gh >/dev/null 2>&1; then
+  log "Installiere gh-cli (GitHub) via offizielles Repo"
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  chmod 644 /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list
+  apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get install -y gh >/dev/null
+fi
+
 # mmx CLI (MiniMax official CLI für Bild/Video/Musik-Generierung + TTS)
 if ! command -v mmx >/dev/null 2>&1; then
   log "Installiere mmx-cli (MiniMax CLI)"
