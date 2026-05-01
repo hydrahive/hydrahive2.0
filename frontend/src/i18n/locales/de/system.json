@@ -90,6 +90,21 @@
     "error_connect": "Verbindung fehlgeschlagen",
     "error_logout": "Abmeldung fehlgeschlagen"
   },
+  "samba": {
+    "title": "SMB-Shares (Samba)",
+    "subtitle": "Projekt-Workspaces als Netzwerk-Share — von Windows/Mac/Linux mountbar.",
+    "not_installed": "nicht eingerichtet",
+    "running": "läuft",
+    "setup": "Samba einrichten",
+    "running_setup": "Samba wird eingerichtet…",
+    "done": "Samba läuft. Aktiviere pro Projekt in den Settings den Toggle.",
+    "failed": "Samba-Setup fehlgeschlagen",
+    "timeout": "Setup hat zu lange gebraucht — siehe Log",
+    "user": "Login",
+    "password": "Passwort",
+    "copy": "Kopieren",
+    "copied": "Kopiert!"
+  },
   "bridge": {
     "title": "Netzwerk-Bridge (br0)",
     "subtitle": "Bridged Networking für VMs und Container — gleiche IP-Range wie der Host.",

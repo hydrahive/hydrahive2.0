@@ -141,6 +141,25 @@ class Settings:
     def whatsapp_data_dir(self) -> Path:
         return self.data_dir / "whatsapp"
 
+    # ------------------------------------------------------------------ samba
+
+    @cached_property
+    def samba_includes_dir(self) -> Path:
+        """Verzeichnis in dem die per-Projekt-Smb-Configs liegen.
+        smb.conf hat ein `include = .../*.conf`."""
+        return Path(os.environ.get("HH_SAMBA_INCLUDES_DIR", "/etc/samba/hh-projects.d"))
+
+    @cached_property
+    def samba_user(self) -> str:
+        """Gemeinsamer Samba-User für Projekt-Shares. Später (Issue: Per-User-
+        Auth) wird das durch Mapping auf HH-User abgelöst."""
+        return os.environ.get("HH_SAMBA_USER", "hh").strip() or "hh"
+
+    @cached_property
+    def samba_password_file(self) -> Path:
+        return Path(os.environ.get("HH_SAMBA_PASSWORD_FILE",
+                                    str(self.config_dir / "samba.password")))
+
     # ------------------------------------------------------------------ vms
 
     @cached_property

@@ -13,6 +13,8 @@ VOICE_SERVICE=/etc/systemd/system/hydrahive2-voice.service
 VOICE_TIMER=/etc/systemd/system/hydrahive2-voice.timer
 BRIDGE_SERVICE=/etc/systemd/system/hydrahive2-bridge.service
 BRIDGE_TIMER=/etc/systemd/system/hydrahive2-bridge.timer
+SAMBA_SERVICE=/etc/systemd/system/hydrahive2-samba.service
+SAMBA_TIMER=/etc/systemd/system/hydrahive2-samba.timer
 
 # JWT-Secret generieren falls nicht da
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -156,6 +158,38 @@ StandardOutput=append:/var/log/hydrahive2-bridge.log
 StandardError=append:/var/log/hydrahive2-bridge.log
 EOF
 
+log "Schreibe $SAMBA_SERVICE (Samba-Setup Runner)"
+cat > "$SAMBA_SERVICE" <<EOF
+[Unit]
+Description=HydraHive2 Samba-Setup Runner
+ConditionPathExists=$HH_DATA_DIR/.samba_setup_request
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.samba_setup_request
+Environment=HH_USER=$HH_USER
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+ExecStart=$HH_REPO_DIR/installer/modules/47-samba.sh
+StandardOutput=append:/var/log/hydrahive2-samba.log
+StandardError=append:/var/log/hydrahive2-samba.log
+EOF
+
+log "Schreibe $SAMBA_TIMER (Samba-Setup Trigger-Poller)"
+cat > "$SAMBA_TIMER" <<EOF
+[Unit]
+Description=HydraHive2 Samba-Setup Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-samba.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 log "Schreibe $BRIDGE_TIMER (Bridge-Setup Trigger-Poller)"
 cat > "$BRIDGE_TIMER" <<EOF
 [Unit]
@@ -182,6 +216,8 @@ touch /var/log/hydrahive2-voice.log
 chmod 644 /var/log/hydrahive2-voice.log
 touch /var/log/hydrahive2-bridge.log
 chmod 644 /var/log/hydrahive2-bridge.log
+touch /var/log/hydrahive2-samba.log
+chmod 644 /var/log/hydrahive2-samba.log
 
 log "systemd reload + enable"
 systemctl daemon-reload
@@ -190,13 +226,15 @@ systemctl enable hydrahive2-update.timer >/dev/null 2>&1
 systemctl enable hydrahive2-restart.timer >/dev/null 2>&1
 systemctl enable hydrahive2-voice.timer >/dev/null 2>&1
 systemctl enable hydrahive2-bridge.timer >/dev/null 2>&1
+systemctl enable hydrahive2-samba.timer >/dev/null 2>&1
 
-log "Starte Service + Update-/Restart-/Voice-/Bridge-Timer"
+log "Starte Service + Update-/Restart-/Voice-/Bridge-/Samba-Timer"
 systemctl restart hydrahive2.service
 systemctl restart hydrahive2-update.timer
 systemctl restart hydrahive2-restart.timer
 systemctl restart hydrahive2-voice.timer
 systemctl restart hydrahive2-bridge.timer
+systemctl restart hydrahive2-samba.timer
 
 sleep 2
 if systemctl is-active --quiet hydrahive2.service; then
