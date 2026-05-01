@@ -91,7 +91,7 @@ export function GitTab({ projectId, gitInitialized, onChanged }: Props) {
           <CommitPushPull
             commitMsg={commitMsg} setCommitMsg={setCommitMsg}
             busy={busy}
-            ahead={status.ahead ?? 0} behind={status.behind ?? 0}
+            ahead={status.ahead ?? 0}
             hasRemote={!!status.remote_url}
             onCommit={() => run("commit", () => projectsApi.gitCommit(projectId, commitMsg), async () => {
               setCommitMsg(""); await reload(); onChanged?.()
@@ -211,10 +211,10 @@ function StatusPills({ status, t }: { status: ProjectGitStatus; t: (k: string) =
   )
 }
 
-function CommitPushPull({ commitMsg, setCommitMsg, busy, ahead, behind, hasRemote, onCommit, onPush, onPull, t }: {
+function CommitPushPull({ commitMsg, setCommitMsg, busy, ahead, hasRemote, onCommit, onPush, onPull, t }: {
   commitMsg: string; setCommitMsg: (v: string) => void
   busy: Busy
-  ahead: number; behind: number
+  ahead: number
   hasRemote: boolean
   onCommit: () => void; onPush: () => void; onPull: () => void
   t: (k: string) => string
