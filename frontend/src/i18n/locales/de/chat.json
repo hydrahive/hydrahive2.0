@@ -13,6 +13,7 @@
     "select_or_new": "Wähle rechts eine Session oder starte eine neue.",
     "without_title": "Ohne Titel",
     "id_short": "Session-ID",
+    "system_prompt_label": "System-Prompt:",
     "orphaned": "verwaist",
     "orphaned_banner": "Diese Session ist verwaist — der zugehörige Agent wurde gelöscht.",
     "delete_session": "Session löschen",
@@ -51,7 +52,9 @@
   "tokens": {
     "last_turn": "letzter Turn",
     "tooltip": "Input ↑ · Output ↓ · Cache-Read ⚡ · Cache-Write 💾",
-    "limit_tooltip": "Compact-Schwelle bei {{limit}} Tokens"
+    "limit_tooltip": "Compact-Schwelle bei {{limit}} Tokens",
+    "compact_imminent": "Compact bald",
+    "compact_imminent_tooltip": "Auto-Compaction wird beim nächsten Turn ausgelöst — vorher manuell compactieren möglich."
   },
   "compact": {
     "button": "Compact",

@@ -10,6 +10,7 @@
     "select_or_new": "Select a session on the right or start a new one.",
     "without_title": "Untitled",
     "id_short": "Session ID",
+    "system_prompt_label": "System prompt:",
     "orphaned": "orphaned",
     "orphaned_banner": "This session is orphaned — its agent was deleted.",
     "delete_session": "Delete session",
@@ -48,7 +49,9 @@
   "tokens": {
     "last_turn": "last turn",
     "tooltip": "Input ↑ · Output ↓ · Cache-Read ⚡ · Cache-Write 💾",
-    "limit_tooltip": "Compaction threshold at {{limit}} tokens"
+    "limit_tooltip": "Compaction threshold at {{limit}} tokens",
+    "compact_imminent": "Compact soon",
+    "compact_imminent_tooltip": "Auto-compaction will trigger on the next turn — manually compact now if you want."
   },
   "compact": {
     "button": "Compact",

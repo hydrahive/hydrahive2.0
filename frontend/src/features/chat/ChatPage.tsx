@@ -3,6 +3,7 @@ import { AlertTriangle, Archive, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { chatApi, type ProjectBrief } from "./api"
+import { agentsApi } from "@/features/agents/api"
 import { MessageInput } from "./MessageInput"
 import { MessageList } from "./MessageList"
 import { NewSessionDialog } from "./NewSessionDialog"
@@ -72,6 +73,17 @@ export function ChatPage() {
   const activeSession = sessions.find((s) => s.id === activeId) ?? null
   const activeOrphaned = activeSession ? !knownAgentIds.has(activeSession.agent_id) : false
   const activeAgent = activeSession ? agents.find((a) => a.id === activeSession.agent_id) : null
+
+  const [systemPrompt, setSystemPrompt] = useState<string>("")
+  useEffect(() => {
+    setSystemPrompt("")
+    if (!activeAgent) return
+    let alive = true
+    agentsApi.getSystemPrompt(activeAgent.id)
+      .then((r) => { if (alive) setSystemPrompt(r.prompt) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [activeAgent?.id])
   const [compacting, setCompacting] = useState(false)
   const [compactNote, setCompactNote] = useState<string | null>(null)
 
@@ -117,7 +129,10 @@ export function ChatPage() {
           <>
             <div className="px-6 py-3 border-b border-white/[6%] flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <h2 className="text-sm font-medium text-zinc-200 truncate flex items-center gap-2">
+                <h2
+                  className="text-sm font-medium text-zinc-200 truncate flex items-center gap-2"
+                  title={systemPrompt ? `${t("session.system_prompt_label")}\n\n${systemPrompt.slice(0, 1500)}${systemPrompt.length > 1500 ? "…" : ""}` : undefined}
+                >
                   {activeOrphaned && <AlertTriangle size={14} className="text-amber-400" />}
                   {activeSession.title}
                 </h2>
