@@ -136,9 +136,14 @@ def delete(project_id: str) -> bool:
     cfg = get(project_id)
     if not cfg:
         return False
-    # Cascade: Project-Agent + Workspace + Project-Verzeichnis
+    # Cascade: Project-Agent + Workspace + Project-Verzeichnis +
+    # Server-Assignments (VMs/Container bleiben, project_id wird NULL).
     if cfg.get("agent_id"):
         agent_config.delete(cfg["agent_id"])
+    from hydrahive.vms import db as vms_db
+    from hydrahive.containers import db as containers_db
+    vms_db.clear_project_assignments(project_id)
+    containers_db.clear_project_assignments(project_id)
     ws = settings.data_dir / "workspaces" / "projects" / project_id
     if ws.exists():
         shutil.rmtree(ws)

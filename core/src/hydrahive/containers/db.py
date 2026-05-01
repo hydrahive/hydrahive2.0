@@ -11,6 +11,7 @@ from hydrahive.containers.models import Container
 
 def _row_to_container(r: sqlite3.Row) -> Container:
     params = json.loads(r["last_error_params"]) if r["last_error_params"] else None
+    keys = r.keys() if hasattr(r, "keys") else []
     return Container(
         container_id=r["container_id"], owner=r["owner"], name=r["name"],
         description=r["description"], image=r["image"],
@@ -18,6 +19,7 @@ def _row_to_container(r: sqlite3.Row) -> Container:
         desired_state=r["desired_state"], actual_state=r["actual_state"],
         last_error_code=r["last_error_code"], last_error_params=params,
         created_at=r["created_at"], updated_at=r["updated_at"],
+        project_id=r["project_id"] if "project_id" in keys else None,
     )
 
 
@@ -95,3 +97,27 @@ def update_state(container_id: str, *, desired: str | None = None,
 def delete(container_id: str) -> None:
     with db() as conn:
         conn.execute("DELETE FROM containers WHERE container_id = ?", (container_id,))
+
+
+def set_project(container_id: str, project_id: str | None) -> None:
+    with db() as conn:
+        conn.execute(
+            "UPDATE containers SET project_id = ?, updated_at = ? WHERE container_id = ?",
+            (project_id, now_iso(), container_id),
+        )
+
+
+def list_for_project(project_id: str) -> list[Container]:
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM containers WHERE project_id = ? ORDER BY created_at DESC",
+            (project_id,),
+        ).fetchall()
+    return [_row_to_container(r) for r in rows]
+
+
+def clear_project_assignments(project_id: str) -> None:
+    with db() as conn:
+        conn.execute(
+            "UPDATE containers SET project_id = NULL WHERE project_id = ?", (project_id,),
+        )

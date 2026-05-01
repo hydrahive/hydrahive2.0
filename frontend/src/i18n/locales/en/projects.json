@@ -23,8 +23,20 @@
     "overview": "Overview",
     "sessions": "Sessions",
     "git": "Git",
+    "servers": "Servers",
     "stats": "Stats",
     "settings": "Settings"
+  },
+  "servers": {
+    "empty": "No servers assigned yet.",
+    "count_one": "{{count}} server",
+    "count_other": "{{count}} servers",
+    "add": "Assign server",
+    "add_title": "Assign a VM or container",
+    "none_available": "No free VMs / containers — create some under /vms or /containers first.",
+    "unassign": "Remove from project",
+    "unassign_confirm": "Remove server from project? (the server itself stays)",
+    "open_detail": "Open details"
   },
   "sessions": {
     "empty": "No sessions in this project yet.",

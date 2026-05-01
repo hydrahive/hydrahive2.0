@@ -45,6 +45,25 @@ export interface ProjectGitRepo {
   has_token: boolean
 }
 
+export type ServerKind = "vm" | "container"
+
+export interface ProjectServer {
+  kind: ServerKind
+  id: string
+  name: string
+  owner: string
+  desired_state: string
+  actual_state: string
+  cpu: number | null
+  ram_mb: number | null
+  network_mode: string
+  project_id: string | null
+  // VM-only
+  disk_gb?: number
+  // Container-only
+  image?: string
+}
+
 export interface ProjectStats {
   total_sessions: number
   active_sessions: number

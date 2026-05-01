@@ -23,8 +23,20 @@
     "overview": "Übersicht",
     "sessions": "Sessions",
     "git": "Git",
+    "servers": "Server",
     "stats": "Statistiken",
     "settings": "Einstellungen"
+  },
+  "servers": {
+    "empty": "Noch keine Server zugewiesen.",
+    "count_one": "{{count}} Server",
+    "count_other": "{{count}} Server",
+    "add": "Server zuweisen",
+    "add_title": "VM oder Container zuweisen",
+    "none_available": "Keine freien VMs / Container — leg vorher welche unter /vms oder /containers an.",
+    "unassign": "Aus Projekt entfernen",
+    "unassign_confirm": "Server aus Projekt entfernen? (Server selbst bleibt erhalten)",
+    "open_detail": "Detail öffnen"
   },
   "sessions": {
     "empty": "Noch keine Sessions in diesem Projekt.",
