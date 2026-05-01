@@ -1,4 +1,4 @@
-import { Folder, Plus } from "lucide-react"
+import { Folder, GitBranch, Plus, Users } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { Project } from "./types"
@@ -45,12 +45,24 @@ export function ProjectList({ projects, activeId, onSelect, onNew }: Props) {
               } ${dim ? "opacity-50" : ""}`}
               onClick={() => onSelect(p.id)}
             >
-              <Folder size={14} className={active ? "text-violet-300" : "text-zinc-500"} />
+              <Folder size={14} className={active ? "text-amber-300" : "text-zinc-500"} />
               <div className="flex-1 min-w-0">
                 <p className={`text-sm truncate ${active ? "text-white" : "text-zinc-300"}`}>{p.name}</p>
-                <p className="text-xs text-zinc-600 mt-0.5 truncate">
-                  {t("fields.members_count", { count: p.members.length })} · {p.git_initialized ? t("fields.git_init") : t("fields.git_init_no")}
-                </p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-violet-500/[8%] border border-violet-500/20 text-[10px] text-violet-300">
+                    <Users size={9} /> {p.members.length}
+                  </span>
+                  {p.git_initialized && (
+                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/[8%] border border-emerald-500/20 text-[10px] text-emerald-300">
+                      <GitBranch size={9} /> git
+                    </span>
+                  )}
+                  {dim && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-zinc-500/[8%] border border-zinc-500/20 text-[10px] text-zinc-500">
+                      archived
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )
