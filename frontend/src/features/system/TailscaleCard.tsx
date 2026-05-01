@@ -3,6 +3,17 @@ import { Check, ClipboardCopy, ExternalLink, LogOut, Network, WifiOff } from "lu
 import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 
+interface TailscalePeer {
+  hostname: string
+  dns_name: string
+  ip?: string
+  online: boolean
+  os?: string
+  exit_node: boolean
+  exit_node_option: boolean
+  last_seen: string
+}
+
 interface TailscaleStatus {
   installed: boolean
   connected: boolean
@@ -11,7 +22,11 @@ interface TailscaleStatus {
   hostname?: string
   dns_name?: string
   tailnet?: string
+  version?: string
+  magic_dns?: boolean
   auth_url?: string
+  peers?: TailscalePeer[]
+  exit_node_active?: string
   error?: string
 }
 
@@ -103,18 +118,53 @@ export function TailscaleCard() {
       </div>
 
       {connected && (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-          <span className="text-zinc-500">IP</span>
-          <span className="text-emerald-300 font-mono">{status.ip ?? "—"}</span>
-          <span className="text-zinc-500">{t("tailscale.hostname")}</span>
-          <span className="text-zinc-300 font-mono">{status.hostname ?? "—"}</span>
-          <span className="text-zinc-500">{t("tailscale.dns")}</span>
-          <span className="text-zinc-300 font-mono truncate">{status.dns_name ?? "—"}</span>
-          {status.tailnet && <>
-            <span className="text-zinc-500">Tailnet</span>
-            <span className="text-zinc-300 font-mono">{status.tailnet}</span>
-          </>}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <span className="text-zinc-500">IP</span>
+            <span className="text-emerald-300 font-mono">{status.ip ?? "—"}</span>
+            <span className="text-zinc-500">{t("tailscale.hostname")}</span>
+            <span className="text-zinc-300 font-mono">{status.hostname ?? "—"}</span>
+            <span className="text-zinc-500">{t("tailscale.dns")}</span>
+            <span className="text-zinc-300 font-mono truncate">{status.dns_name ?? "—"}</span>
+            {status.tailnet && <>
+              <span className="text-zinc-500">Tailnet</span>
+              <span className="text-zinc-300 font-mono">{status.tailnet}</span>
+            </>}
+            {status.version && <>
+              <span className="text-zinc-500">{t("tailscale.version")}</span>
+              <span className="text-zinc-500 font-mono text-[11px]">{status.version}</span>
+            </>}
+            {status.exit_node_active && <>
+              <span className="text-zinc-500">{t("tailscale.exit_node")}</span>
+              <span className="text-amber-300 font-mono">→ {status.exit_node_active}</span>
+            </>}
+          </div>
+
+          {status.peers && status.peers.length > 0 && (
+            <div className="pt-1 border-t border-white/[6%]">
+              <p className="text-[10.5px] uppercase tracking-wider text-zinc-500 mb-1.5">
+                {t("tailscale.peers", { count: status.peers.length })}
+              </p>
+              <div className="space-y-1">
+                {status.peers.map((p) => (
+                  <div key={p.dns_name || p.hostname} className="flex items-center gap-2 text-[11px]">
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${p.online ? "bg-emerald-400" : "bg-zinc-600"}`} />
+                    <span className={`font-mono truncate flex-1 min-w-0 ${p.online ? "text-zinc-200" : "text-zinc-500"}`}>
+                      {p.hostname}
+                    </span>
+                    <span className="text-zinc-500 font-mono">{p.ip ?? "—"}</span>
+                    {p.exit_node && (
+                      <span className="px-1 rounded bg-amber-500/15 border border-amber-500/30 text-[9px] text-amber-300">EXIT</span>
+                    )}
+                    {p.exit_node_option && !p.exit_node && (
+                      <span className="px-1 rounded bg-zinc-500/15 border border-zinc-500/30 text-[9px] text-zinc-500">exit?</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {error && <p className="text-xs text-rose-400">{error}</p>}

@@ -69,13 +69,28 @@ async def get_state(state_id: str) -> State | None:
 async def list_specialists() -> list[str]:
     """Liefert alle bekannten Agent-IDs aus AgentLink. Nutzt /states-Liste mit
     distinct agent_id. Wenn AgentLink mal einen /agents-Endpoint hat, hier wechseln."""
+    metas = await list_specialists_with_meta()
+    return [m["agent_id"] for m in metas]
+
+
+async def list_specialists_with_meta() -> list[dict]:
+    """Liefert Agent-IDs mit Last-Seen + State-Counter aus den letzten 200 States."""
     url = settings.agentlink_url.rstrip("/") + "/states"
     async with httpx.AsyncClient(timeout=15.0) as client:
         r = await client.get(url, params={"limit": 200})
         r.raise_for_status()
         data = r.json()
-    ids = sorted({s.get("agent_id", "") for s in data if s.get("agent_id")})
-    return [i for i in ids if i]
+    by_agent: dict[str, dict] = {}
+    for s in data:
+        aid = s.get("agent_id") or ""
+        if not aid:
+            continue
+        ts = s.get("created_at") or ""
+        cur = by_agent.setdefault(aid, {"agent_id": aid, "last_seen": "", "states": 0})
+        cur["states"] += 1
+        if ts > cur["last_seen"]:
+            cur["last_seen"] = ts
+    return sorted(by_agent.values(), key=lambda x: x["last_seen"], reverse=True)
 
 
 # WebSocket-Listener-Loop -----------------------------------------------------
@@ -182,6 +197,7 @@ async def listen_loop(on_event: OnEvent, stop: asyncio.Event) -> None:
                     return
         except (websockets.ConnectionClosed, OSError, asyncio.TimeoutError) as e:
             _set_connected(False)
+            _bump_reconnect()
             _set_last_error(f"{type(e).__name__}: {e}")
             logger.warning("AgentLink-WS-Disconnect: %s — Reconnect in %.1fs", e, backoff)
             try:
@@ -192,6 +208,7 @@ async def listen_loop(on_event: OnEvent, stop: asyncio.Event) -> None:
             backoff = min(backoff * 2, 60.0)
         except Exception as e:
             _set_connected(False)
+            _bump_reconnect()
             _set_last_error(f"{type(e).__name__}: {e}")
             logger.exception("AgentLink-WS unerwarteter Fehler: %s", e)
             await asyncio.sleep(backoff)
@@ -202,6 +219,8 @@ async def listen_loop(on_event: OnEvent, stop: asyncio.Event) -> None:
 # Connection-Health -----------------------------------------------------------
 
 _connected: bool = False
+_reconnect_attempts: int = 0
+_last_connect_at: str | None = None
 
 
 def is_connected() -> bool:
@@ -209,5 +228,25 @@ def is_connected() -> bool:
 
 
 def _set_connected(v: bool) -> None:
-    global _connected
+    global _connected, _last_connect_at
+    if v and not _connected:
+        from datetime import datetime, timezone
+        _last_connect_at = datetime.now(timezone.utc).isoformat()
     _connected = v
+
+
+def _bump_reconnect() -> None:
+    global _reconnect_attempts
+    _reconnect_attempts += 1
+
+
+def reconnect_attempts() -> int:
+    return _reconnect_attempts
+
+
+def last_connect_at() -> str | None:
+    return _last_connect_at
+
+
+def pending_handoffs_count() -> int:
+    return len(_PENDING_FUTURES)

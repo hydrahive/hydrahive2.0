@@ -6,7 +6,15 @@ from typing import Annotated
 import httpx
 from fastapi import APIRouter, Depends
 
-from hydrahive.agentlink import is_connected, last_error, list_specialists, restart_listener
+from hydrahive.agentlink import (
+    is_connected,
+    last_connect_at,
+    last_error,
+    list_specialists_with_meta,
+    pending_handoffs_count,
+    reconnect_attempts,
+    restart_listener,
+)
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.settings import settings
@@ -20,13 +28,13 @@ async def status(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
         return {"configured": False, "connected": False}
 
     backend_reachable = False
-    specs: list[str] = []
+    specs: list[dict] = []
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             r = await client.get(settings.agentlink_url.rstrip("/") + "/docs")
             backend_reachable = r.status_code == 200
         if backend_reachable:
-            specs = await list_specialists()
+            specs = await list_specialists_with_meta()
     except Exception:
         pass
 
@@ -41,6 +49,9 @@ async def status(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
         "agent_id": settings.agentlink_agent_id,
         "handoff_timeout_s": settings.agentlink_handoff_timeout,
         "known_agents": specs,
+        "reconnect_attempts": reconnect_attempts(),
+        "last_connect_at": last_connect_at(),
+        "pending_handoffs": pending_handoffs_count(),
         "dashboard_url": settings.agentlink_dashboard_url,
     }
 

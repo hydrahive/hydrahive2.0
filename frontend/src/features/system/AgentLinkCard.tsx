@@ -4,6 +4,12 @@ import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 
+interface KnownAgent {
+  agent_id: string
+  last_seen: string
+  states: number
+}
+
 interface Status {
   configured: boolean
   connected: boolean
@@ -14,14 +20,29 @@ interface Status {
   ws_url?: string
   agent_id?: string
   handoff_timeout_s?: number
-  known_agents?: string[]
+  known_agents?: KnownAgent[]
+  reconnect_attempts?: number
+  last_connect_at?: string | null
+  pending_handoffs?: number
   dashboard_url?: string
+}
+
+function relTime(iso: string, locale: string): string {
+  if (!iso) return "—"
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return "—"
+  const diffMs = Date.now() - d.getTime()
+  const s = Math.round(diffMs / 1000)
+  if (s < 60) return `${s}s`
+  if (s < 3600) return `${Math.round(s / 60)}m`
+  if (s < 86400) return `${Math.round(s / 3600)}h`
+  return d.toLocaleDateString(locale)
 }
 
 const REFRESH_MS = 10_000
 
 export function AgentLinkCard() {
-  const { t } = useTranslation("system")
+  const { t, i18n } = useTranslation("system")
   const { t: tCommon } = useTranslation("common")
   const role = useAuthStore((s) => s.role)
   const [status, setStatus] = useState<Status | null>(null)
@@ -95,6 +116,22 @@ export function AgentLinkCard() {
         <span className="text-zinc-300 font-mono">{status.agent_id ?? "—"}</span>
         <span className="text-zinc-500">{t("agentlink.timeout")}</span>
         <span className="text-zinc-300 font-mono">{status.handoff_timeout_s ?? "—"}s</span>
+        {status.last_connect_at && <>
+          <span className="text-zinc-500">{t("agentlink.last_connect")}</span>
+          <span className="text-zinc-400 font-mono" title={status.last_connect_at}>
+            vor {relTime(status.last_connect_at, i18n.language)}
+          </span>
+        </>}
+        {(status.reconnect_attempts ?? 0) > 0 && <>
+          <span className="text-zinc-500">{t("agentlink.reconnects")}</span>
+          <span className={`font-mono ${(status.reconnect_attempts ?? 0) > 5 ? "text-amber-400" : "text-zinc-400"}`}>
+            {status.reconnect_attempts}
+          </span>
+        </>}
+        {(status.pending_handoffs ?? 0) > 0 && <>
+          <span className="text-zinc-500">{t("agentlink.pending")}</span>
+          <span className="text-amber-300 font-mono">{status.pending_handoffs}</span>
+        </>}
       </div>
 
       {status.known_agents && status.known_agents.length > 0 && (
@@ -102,11 +139,19 @@ export function AgentLinkCard() {
           <p className="text-[10.5px] uppercase tracking-wider text-zinc-500 mb-1.5">
             {t("agentlink.known_agents", { count: status.known_agents.length })}
           </p>
-          <div className="flex flex-wrap gap-1">
+          <div className="space-y-1">
             {status.known_agents.map(a => (
-              <span key={a} className="px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-[11px] text-violet-200 font-mono">
-                {a}
-              </span>
+              <div key={a.agent_id} className="flex items-center gap-2 text-[11px]">
+                <span className="px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-violet-200 font-mono truncate flex-1 min-w-0">
+                  {a.agent_id}
+                </span>
+                <span className="text-zinc-500 font-mono whitespace-nowrap" title={a.last_seen}>
+                  vor {relTime(a.last_seen, i18n.language)}
+                </span>
+                <span className="text-zinc-600 font-mono whitespace-nowrap text-[10px]">
+                  {a.states} {t("agentlink.states")}
+                </span>
+              </div>
             ))}
           </div>
         </div>
