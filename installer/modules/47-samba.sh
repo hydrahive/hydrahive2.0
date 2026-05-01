@@ -30,10 +30,25 @@ mkdir -p "$INCLUDES_DIR"
 chgrp "$HH_USER" "$INCLUDES_DIR" 2>/dev/null || true
 chmod 2775 "$INCLUDES_DIR"
 
-# smb.conf-Patch — include = $INCLUDES_DIR/*.conf eintragen wenn fehlend
-if ! grep -q "$INCLUDES_DIR" /etc/samba/smb.conf 2>/dev/null; then
-  log "Patch /etc/samba/smb.conf — include = $INCLUDES_DIR"
-  printf "\n# HydraHive2 — projektgenerierte Shares\nconfig file = $INCLUDES_DIR/%%u.conf\ninclude = $INCLUDES_DIR\n" >> /etc/samba/smb.conf
+# smb.conf-Patch: ein Aggregator-File _index.conf includen, das vom Backend
+# bei jedem enable/disable_share neu geschrieben wird (samba kann keine
+# Verzeichnis-Includes, daher dieser Umweg).
+INDEX_LINE="include = $INCLUDES_DIR/_index.conf"
+ESCAPED="${INCLUDES_DIR//\//\\/}"
+# Alte falsche Patches bereinigen: 'include = $DIR' (Verzeichnis), 'config file = $DIR/%u.conf'
+if grep -qE "^(config file|include) = ${ESCAPED}(\$|/%u\.conf)" /etc/samba/smb.conf 2>/dev/null; then
+  log "Alte hh-projects.d-Patches in smb.conf bereinigen"
+  sed -i.bak -E "/^(config file|include) = ${ESCAPED}(\$|\/%u\.conf)/d" /etc/samba/smb.conf
+fi
+if ! grep -qF "$INDEX_LINE" /etc/samba/smb.conf 2>/dev/null; then
+  log "Patch /etc/samba/smb.conf — $INDEX_LINE"
+  printf "\n# HydraHive2 — projektgenerierte Shares (Aggregator-Index)\n%s\n" "$INDEX_LINE" >> /etc/samba/smb.conf
+fi
+# leere _index.conf anlegen falls fehlend
+if [ ! -f "$INCLUDES_DIR/_index.conf" ]; then
+  touch "$INCLUDES_DIR/_index.conf"
+  chgrp "$HH_USER" "$INCLUDES_DIR/_index.conf" 2>/dev/null || true
+  chmod 664 "$INCLUDES_DIR/_index.conf"
 fi
 
 # Linux-System-User für Samba (force user) — minimal, kein Login-Shell
