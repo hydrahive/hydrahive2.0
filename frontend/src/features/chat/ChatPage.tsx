@@ -173,6 +173,7 @@ export function ChatPage() {
               busy={chat.busy}
               iteration={chat.iteration}
               error={chat.error}
+              onResend={(id, text) => chat.send(text, [], id)}
             />
             <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} disabled={activeOrphaned} />
           </>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { User, Bot, Volume2, VolumeX, Copy, Check, Clock, Code } from "lucide-react"
+import { User, Bot, Volume2, VolumeX, Copy, Check, Clock, Code, Pencil, Send, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Markdown } from "./Markdown"
 import { useVoiceOutput } from "./useVoiceOutput"
@@ -8,7 +8,13 @@ import { CompactionBlock } from "./CompactionBlock"
 import { ImageBlock, ToolResultCard, ToolUseCard } from "./ToolCards"
 import type { ContentBlock, Message } from "./types"
 
-export function MessageBubble({ message }: { message: Message }) {
+interface Props {
+  message: Message
+  onResend?: (messageId: string, newText: string) => void
+  busy?: boolean
+}
+
+export function MessageBubble({ message, onResend, busy }: Props) {
   const tts = useVoiceOutput()
   const { t } = useTranslation("chat")
   const [copied, setCopied] = useState(false)
@@ -16,6 +22,20 @@ export function MessageBubble({ message }: { message: Message }) {
 
   const isLive = message.id.startsWith("live-")
   const isPersisted = !message.id.startsWith("local-") && !isLive
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState("")
+  const canEdit = message.role === "user" && isPersisted && !!onResend && !busy
+
+  function startEdit(currentText: string) {
+    setEditText(currentText)
+    setEditing(true)
+  }
+
+  function submitEdit() {
+    if (!onResend || !editText.trim()) return
+    onResend(message.id, editText.trim())
+    setEditing(false)
+  }
 
   function copyText(text: string) {
     navigator.clipboard.writeText(text)
@@ -47,12 +67,21 @@ export function MessageBubble({ message }: { message: Message }) {
         <div className="max-w-[80%] space-y-1">
           <BubbleHeader createdAt={message.created_at} align="right" />
           {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
-          {text && (
+          {text && !editing && (
             <>
               <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-gradient-to-br from-indigo-600 to-violet-600 text-white text-sm whitespace-pre-wrap shadow-lg shadow-violet-900/20">
                 {text}
               </div>
               <div className="flex items-center justify-end gap-1.5">
+                {canEdit && (
+                  <button
+                    onClick={() => startEdit(text)}
+                    title={t("bubble.edit")}
+                    className="p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors"
+                  >
+                    <Pencil size={11} />
+                  </button>
+                )}
                 <button
                   onClick={() => copyText(text)}
                   title={t("bubble.copy")}
@@ -66,6 +95,39 @@ export function MessageBubble({ message }: { message: Message }) {
                 }
               </div>
             </>
+          )}
+          {editing && (
+            <div className="space-y-1.5">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submitEdit()
+                  if (e.key === "Escape") setEditing(false)
+                }}
+                autoFocus
+                rows={Math.min(8, Math.max(2, editText.split("\n").length))}
+                className="w-full px-3 py-2 rounded-2xl rounded-tr-md bg-zinc-900 border border-violet-500/40 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-violet-500/60"
+              />
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  onClick={() => setEditing(false)}
+                  title={t("bubble.cancel")}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                >
+                  <X size={11} /> {t("bubble.cancel")}
+                </button>
+                <button
+                  onClick={submitEdit}
+                  disabled={!editText.trim() || editText.trim() === text}
+                  title={t("bubble.resend")}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium disabled:opacity-40"
+                >
+                  <Send size={11} /> {t("bubble.resend")}
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-600 text-right">{t("bubble.resend_hint")}</p>
+            </div>
           )}
         </div>
         <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0">

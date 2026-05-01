@@ -75,7 +75,11 @@
     "copy": "Copy",
     "raw": "Raw JSON",
     "persisted": "Sent",
-    "pending": "Sending…"
+    "pending": "Sending…",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "resend": "Resend",
+    "resend_hint": "Ctrl+Enter to send, Esc to cancel. History from this message onwards will be discarded."
   },
   "bubble_footer": {
     "tokens": "{{in}} ↑ · {{out}} ↓",

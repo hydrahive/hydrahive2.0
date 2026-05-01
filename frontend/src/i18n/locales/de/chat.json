@@ -78,7 +78,11 @@
     "copy": "Kopieren",
     "raw": "Raw JSON",
     "persisted": "Gesendet",
-    "pending": "Wird gesendet…"
+    "pending": "Wird gesendet…",
+    "edit": "Bearbeiten",
+    "cancel": "Abbrechen",
+    "resend": "Neu senden",
+    "resend_hint": "Strg+Enter zum Senden, Esc zum Abbrechen. Verlauf ab dieser Nachricht wird verworfen."
   },
   "bubble_footer": {
     "tokens": "{{in}} ↑ · {{out}} ↓",

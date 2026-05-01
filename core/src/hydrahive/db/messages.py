@@ -164,3 +164,20 @@ def update_tokens(message_id: str, token_count: int) -> None:
 def delete(message_id: str) -> None:
     with db() as conn:
         conn.execute("DELETE FROM messages WHERE id = ?", (message_id,))
+
+
+def delete_from(session_id: str, message_id: str) -> int:
+    """Löscht die targeted message + alle Folgenden (created_at >=). Wird für
+    Edit+Resend genutzt — die alte User-Message wird durch die neue ersetzt."""
+    with db() as conn:
+        row = conn.execute(
+            "SELECT created_at FROM messages WHERE id = ? AND session_id = ?",
+            (message_id, session_id),
+        ).fetchone()
+        if not row:
+            return 0
+        cur = conn.execute(
+            "DELETE FROM messages WHERE session_id = ? AND created_at >= ?",
+            (session_id, row["created_at"]),
+        )
+        return cur.rowcount or 0
