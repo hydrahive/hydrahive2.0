@@ -11,6 +11,7 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.projects import config as project_config
 from hydrahive.samba import disable_share, enable_share, is_share_enabled
 from hydrahive.samba.manager import share_name_for
+from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -35,9 +36,17 @@ def get_samba(
 ) -> dict:
     p = _project_or_404(project_id, *auth)
     enabled = bool(p.get("samba_enabled")) and is_share_enabled(project_id)
+    password = ""
+    if settings.samba_password_file.exists():
+        try:
+            password = settings.samba_password_file.read_text().strip()
+        except Exception:
+            password = ""
     return {
         "enabled": enabled,
         "share_name": share_name_for(project_id, p["name"]),
+        "user": settings.samba_user,
+        "password": password,
     }
 
 
