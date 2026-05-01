@@ -23,6 +23,7 @@ export interface Agent {
   compact_tool_result_limit?: number
   compact_reserve_tokens?: number
   compact_threshold_pct?: number
+  workspace?: string
 }
 
 export interface ToolMeta {

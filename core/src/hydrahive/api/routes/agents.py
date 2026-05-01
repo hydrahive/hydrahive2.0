@@ -100,7 +100,8 @@ def get_agent(
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     _check_access(agent, *auth)
-    return agent
+    from hydrahive.agents._paths import workspace_for
+    return {**agent, "workspace": str(workspace_for(agent))}
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

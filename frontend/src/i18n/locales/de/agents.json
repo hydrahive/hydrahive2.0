@@ -21,7 +21,20 @@
     "system_prompt": "System-Prompt",
     "model_not_in_config": "{{model}} (nicht in LLM-Config)",
     "fallback_models": "Fallback-Modelle",
-    "fallback_hint": "Bei Quota/Overload/Auth-Fehler des primären Modells werden diese der Reihe nach probiert. Mit ↑ kann die Reihenfolge geändert werden."
+    "fallback_hint": "Bei Quota/Overload/Auth-Fehler des primären Modells werden diese der Reihe nach probiert. Mit ↑ kann die Reihenfolge geändert werden.",
+    "domain": "Domäne",
+    "domain_placeholder": "z.B. Datenbank, Security, Infrastruktur",
+    "thinking_budget": "Extended Thinking Budget: {{tokens}} Tokens",
+    "thinking_hint": "Nur bei Anthropic Extended-Thinking-Modellen relevant. 0 = aus."
+  },
+  "info": {
+    "title": "Info",
+    "id": "ID",
+    "owner": "Owner",
+    "created_by": "Erstellt von",
+    "created_at": "Erstellt am",
+    "workspace": "Workspace",
+    "project": "Projekt-ID"
   },
   "tabs": {
     "overview": "Übersicht",
