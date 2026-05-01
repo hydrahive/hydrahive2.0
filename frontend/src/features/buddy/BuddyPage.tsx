@@ -53,39 +53,65 @@ export function BuddyPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-3rem-2.5rem)] -m-4 md:-m-6 max-w-3xl mx-auto w-full">
-      {state.created && (
-        <div className="px-6 pt-3 pb-1 text-[11px] text-[var(--hh-accent-text)]">
-          {t("just_woken_up")}
-        </div>
-      )}
+    <div className="flex items-center justify-center min-h-[calc(100dvh-3rem-2.5rem)] py-6">
+      <div className="w-full max-w-3xl flex flex-col">
+        {/* TV-Frame */}
+        <div
+          className="relative flex flex-col rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur"
+          style={{ height: "calc(100dvh - 3rem - 2.5rem - 4rem)" }}
+        >
+          {/* Inner-Glow / Display-Bezel */}
+          <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-white/[3%]" />
 
-      <div className="px-6 py-2 border-b border-white/[6%] flex items-center gap-3">
-        <div className="text-2xl">🐝</div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-zinc-100 truncate">{state.agent_name}</p>
-          <p className="text-[10px] text-zinc-500 font-mono truncate">{state.model}</p>
+          {state.created && (
+            <div className="px-5 pt-3 pb-1 text-[11px] text-[var(--hh-accent-text)] text-center">
+              {t("just_woken_up")}
+            </div>
+          )}
+
+          {/* Header / TV-Top-Bezel */}
+          <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3 bg-black/30">
+            <div className="text-2xl">🐝</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-zinc-100 truncate">{state.agent_name}</p>
+              <p className="text-[10px] text-zinc-500 font-mono truncate">{state.model}</p>
+            </div>
+            <TokenMeter sessionId={state.session_id} refresh={tokenRefresh} />
+          </div>
+
+          {/* Display / Chat */}
+          <MessageList
+            messages={chat.messages}
+            busy={chat.busy}
+            iteration={chat.iteration}
+            error={chat.error}
+            onResend={(id, text) => chat.send(text, [], id)}
+          />
+
+          {chat.pendingConfirm && (
+            <ToolConfirmBanner
+              pending={chat.pendingConfirm}
+              onApprove={() => chat.confirmTool("approve")}
+              onDeny={() => chat.confirmTool("deny")}
+            />
+          )}
+
+          {/* Input / TV-Bottom-Bezel */}
+          <div className="border-t border-white/[6%] bg-black/30">
+            <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} />
+          </div>
+
+          {/* Power-LED */}
+          <div className="absolute bottom-2 right-4 flex items-center gap-1.5 text-[9px] text-zinc-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
+            <span className="font-mono">ON</span>
+          </div>
         </div>
-        <TokenMeter sessionId={state.session_id} refresh={tokenRefresh} />
+
+        {/* TV-Stand */}
+        <div className="mx-auto -mt-px w-1/3 h-3 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-b-md border border-t-0 border-white/[6%]" />
+        <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
       </div>
-
-      <MessageList
-        messages={chat.messages}
-        busy={chat.busy}
-        iteration={chat.iteration}
-        error={chat.error}
-        onResend={(id, text) => chat.send(text, [], id)}
-      />
-
-      {chat.pendingConfirm && (
-        <ToolConfirmBanner
-          pending={chat.pendingConfirm}
-          onApprove={() => chat.confirmTool("approve")}
-          onDeny={() => chat.confirmTool("deny")}
-        />
-      )}
-
-      <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} />
     </div>
   )
 }
