@@ -122,6 +122,27 @@ async def minimax_complete(
     return extract_text(resp.content)
 
 
+async def minimax_stream(
+    api_key: str, messages: list[dict], model: str,
+    temperature: float, max_tokens: int,
+) -> AsyncIterator[str]:
+    import anthropic as _anthropic
+    client = _anthropic.AsyncAnthropic(
+        base_url=MINIMAX_BASE_URL,
+        api_key=api_key,
+        timeout=60.0,
+        default_headers={"Authorization": f"Bearer {api_key}"},
+    )
+    async with client.messages.stream(
+        model=strip_provider_prefix(model),
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    ) as s:
+        async for text in s.text_stream:
+            yield text
+
+
 async def anthropic_stream(
     key: str, messages: list[dict], model: str,
     temperature: float, max_tokens: int,
