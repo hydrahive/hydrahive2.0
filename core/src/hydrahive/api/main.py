@@ -16,6 +16,7 @@ from hydrahive.api.routes.butler import router as butler_router
 from hydrahive.api.routes.files import router as files_router
 from hydrahive.api.routes.communication import router as communication_router
 from hydrahive.api.routes.communication_whatsapp import router as communication_whatsapp_router
+from hydrahive.api.routes.communication_discord import router as communication_discord_router
 from hydrahive.api.routes.container_console import router as container_console_router
 from hydrahive.api.routes.containers import router as containers_router
 from hydrahive.api.routes.credentials import router as credentials_router
@@ -80,6 +81,7 @@ app.include_router(users_router)
 app.include_router(agents_router)
 app.include_router(communication_router)
 app.include_router(communication_whatsapp_router)
+app.include_router(communication_discord_router)
 app.include_router(llm_router)
 app.include_router(mcp_router)
 app.include_router(plugins_router)

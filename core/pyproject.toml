@@ -17,6 +17,7 @@ dependencies = [
     "httpx>=0.27",
     "python-multipart>=0.0.9",
     "websockets>=13",
+    "discord.py>=2.3",
 ]
 
 [project.scripts]

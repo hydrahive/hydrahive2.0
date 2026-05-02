@@ -33,5 +33,40 @@
       "save": "Speichern",
       "saved": "Gespeichert"
     }
+  },
+  "discord": {
+    "label": "Discord",
+    "description": "DMs und @Mentions gehen direkt an deinen Master-Agent.",
+    "unavailable": "Discord nicht verfügbar.",
+    "connect": "Verbinden",
+    "disconnect": "Trennen",
+    "states": {
+      "disconnected": "Nicht verbunden",
+      "connecting": "Verbindet …",
+      "waiting_qr": "Verbindet …",
+      "connected": "Verbunden",
+      "error": "Fehler"
+    },
+    "filter": {
+      "title": "Filter & Einstellungen",
+      "intro": "Token, Filter und Verhalten für deinen Discord-Bot.",
+      "loading": "Einstellungen werden geladen …",
+      "token_label": "Bot-Token",
+      "token_placeholder": "Discord Bot Token einfügen …",
+      "token_hint": "Im Discord Developer Portal unter Bot → Token. 'Message Content Intent' muss aktiviert sein.",
+      "dm_enabled": "DMs empfangen",
+      "mention_enabled": "@Mentions empfangen",
+      "keyword_label": "Aktivierungs-Keyword (leer = immer antworten)",
+      "keyword_placeholder": "z.B. !bot",
+      "allowed_users": "Whitelist User-IDs (leer = alle erlauben)",
+      "allowed_users_hint": "Wenn gesetzt: nur diese Discord-User-IDs dürfen.",
+      "blocked_users": "Blacklist User-IDs",
+      "blocked_users_hint": "Diese User-IDs werden immer ignoriert.",
+      "allowed_channels": "Whitelist Channel-IDs (leer = alle)",
+      "allowed_channels_hint": "Wenn gesetzt: nur in diesen Channels antworten.",
+      "voice_label": "Als Sprachnachricht antworten",
+      "save": "Speichern",
+      "saved": "Gespeichert"
+    }
   }
 }
