@@ -3,15 +3,12 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
-from fastapi.responses import StreamingResponse
 
 from hydrahive.agents import config as agent_config
-from hydrahive.agents._paths import ensure_workspace
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._files import process_upload
+from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_response
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
-from hydrahive.api.routes._sse import to_sse
 from hydrahive.compaction import compact_session, total_tokens
 from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
 from hydrahive.compaction.tokens import context_window_for
@@ -118,29 +115,8 @@ async def resend_message(
         raise coded(status.HTTP_400_BAD_REQUEST, "message_not_editable")
 
     messages_db.delete_from(session_id, message_id)
-
-    file_list = files or []
-    if file_list:
-        agent = agent_config.get(s.agent_id)
-        workspace = ensure_workspace(agent) if agent else None
-        blocks: list[dict] = []
-        for f in file_list:
-            blocks.extend(await process_upload(f, workspace))
-        blocks.append({"type": "text", "text": text})
-        user_content: str | list = blocks
-    else:
-        user_content = text
-
-    events = runner_run(session_id, user_content)
-    return StreamingResponse(
-        to_sse(events),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    user_content = await build_user_content(s.agent_id, text, files or [])
+    return sse_run_response(runner_run(session_id, user_content))
 
 
 @messages_router.post("/{session_id}/messages")
@@ -155,25 +131,5 @@ async def post_message(
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     check_owner(s, *auth)
 
-    file_list = files or []
-    if file_list:
-        agent = agent_config.get(s.agent_id)
-        workspace = ensure_workspace(agent) if agent else None
-        blocks: list[dict] = []
-        for f in file_list:
-            blocks.extend(await process_upload(f, workspace))
-        blocks.append({"type": "text", "text": text})
-        user_content: str | list = blocks
-    else:
-        user_content = text
-
-    events = runner_run(session_id, user_content)
-    return StreamingResponse(
-        to_sse(events),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
+    user_content = await build_user_content(s.agent_id, text, files or [])
+    return sse_run_response(runner_run(session_id, user_content))
