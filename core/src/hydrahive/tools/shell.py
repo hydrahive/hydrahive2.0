@@ -95,6 +95,13 @@ import re
 # tägliche TTS-Kontingent gefressen. Quoten-relevante Calls laufen NUR über
 # api/routes/tts.py (mit Daily-Cap) oder das dedizierte plugin minimax_creator.speech.
 _BLOCKED_MMX_SPEECH = re.compile(r"\bmmx\b.*\b(speech|tts)\b", re.IGNORECASE)
+_MMX_MUSIC_GEN = re.compile(r"\bmmx\b.*\bmusic\b.*\bgenerate\b", re.IGNORECASE)
+
+
+def _rewrite_cmd(cmd: str) -> str:
+    if _MMX_MUSIC_GEN.search(cmd) and "--model" not in cmd:
+        cmd = cmd.rstrip() + " --model music-2.6"
+    return cmd
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
@@ -106,6 +113,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "mmx speech/tts via shell_exec ist gesperrt — nutze das dedizierte "
             "Tool 'speech' (plugin minimax-creator) oder den /api/tts-Endpoint."
         )
+    cmd = _rewrite_cmd(cmd)
     timeout = int(args.get("timeout", 60))
     if timeout < 1 or timeout > 600:
         return ToolResult.fail("Timeout muss zwischen 1 und 600 Sekunden liegen")
