@@ -51,8 +51,8 @@ Analysiere den folgenden Text und antworte NUR mit einem JSON-Objekt, kein Markd
 JSON-Schema:
 {{
   "title": "Kurzer präziser Titel (max 80 Zeichen)",
-  "summary": "Zusammenfassung in 3-5 Sätzen",
-  "tags": ["tag1", "tag2"],
+  "summary": "Ausführliche Zusammenfassung mit allen wichtigen Informationen, Konzepten, Befehlen und Details aus dem Text. Nutze Markdown: Absätze, ## Überschriften, - Listen, `Code`. Mindestens 500 Wörter wenn der Inhalt es hergibt.",
+  "tags": ["tag1", "tag2", "tag3"],
   "entities": ["Entität1", "Entität2"],
   "links_to": ["bestehende-wiki-seite-slug"]
 }}
@@ -60,7 +60,7 @@ JSON-Schema:
 Bekannte Wiki-Seiten (nur diese als links_to verwenden falls relevant):
 {known_slugs}
 
-Text (max 4000 Zeichen):
+Text:
 {text}
 """
 
@@ -68,11 +68,11 @@ Text (max 4000 Zeichen):
 async def _extract(text: str, known_slugs: list[str]) -> dict:
     prompt = _EXTRACT_PROMPT.format(
         known_slugs=", ".join(known_slugs) if known_slugs else "(keine)",
-        text=text[:4000],
+        text=text[:12000],
     )
     raw = await llm_client.complete(
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=512,
+        max_tokens=4096,
         temperature=0.2,
     )
     raw = raw.strip()
