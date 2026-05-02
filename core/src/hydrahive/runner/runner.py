@@ -254,7 +254,7 @@ async def run(
                         call_id=tu_id, tool_name=tu_name, success=False,
                         output=None, error=result.error, duration_ms=0,
                     )
-                    result_blocks.append(to_tool_result_block(tu_id, result, ctx))
+                    result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name))
                     continue
 
             result, _record_id, duration_ms = await execute_tool(
@@ -271,7 +271,7 @@ async def run(
                 error=result.error,
                 duration_ms=duration_ms,
             )
-            result_blocks.append(to_tool_result_block(tu_id, result, ctx))
+            result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name))
 
         tool_msg = messages_db.append(session_id, "user", result_blocks)
         history.append(tool_msg)

@@ -27,6 +27,7 @@ export type ContentBlock =
       is_error?: boolean
       duration_ms?: number
       media?: ToolMedia[]
+      tool_name?: string
     }
 
 export interface Message {
