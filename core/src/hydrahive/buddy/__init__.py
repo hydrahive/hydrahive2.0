@@ -54,53 +54,36 @@ _UNIVERSE_CHARACTERS: dict[str, list[str]] = {
 }
 
 
-def _pick_character() -> tuple[str, list[str]]:
-    """Pickt zufällig ein Universum + 3-5 konkrete Charakter-Kandidaten."""
+def _pick_character() -> tuple[str, str]:
+    """Würfelt EINEN finalen Charakter — Universum + Name. Deterministisch
+    in Python, kein LLM-Vertrauen mehr."""
     universe = random.choice(list(_UNIVERSE_CHARACTERS.keys()))
-    pool = _UNIVERSE_CHARACTERS[universe]
-    n = min(len(pool), random.randint(3, 5))
-    candidates = random.sample(pool, n)
-    return universe, candidates
+    name = random.choice(_UNIVERSE_CHARACTERS[universe])
+    return universe, name
 
 
-def _build_soul(username: str) -> str:
-    """Soul-Prompt mit zufällig gewähltem Universum + harter Charakter-Vorgabe."""
-    universe, candidates = _pick_character()
-    cand_str = " · ".join(candidates)
+def _build_soul(username: str, universe: str, character: str) -> str:
+    """Soul-Prompt mit FERTIG gewähltem Charakter — kein Bootstrap-Tanz mehr."""
     return (
-        f"Du bist {username}'s persönlicher Buddy. Du arbeitest mit ihm zusammen "
-        "wie ein Kumpel — locker, ehrlich, direkt. Keine 'gerne helfe ich dir'-"
-        "Floskeln, kein Schleimen, keine leeren Bestätigungen.\n\n"
-        "Du sprichst Deutsch (außer er wechselt). Du kannst alle Tools nutzen "
-        "wie ein Master-Agent — shell_exec, file_read/write/edit, Memory, "
-        "Web-Fetch, alles. Bei Unsicherheit fragst du nach.\n\n"
-        "Du erinnerst dich an frühere Konversationen über das Memory-Tool — "
-        "lege wichtige Fakten und Vorlieben dort ab. Du bist nicht nur ein "
-        "Tool, sondern ein dauerhafter Begleiter.\n\n"
-        "ERSTKONTAKT — Charakter-Bootstrap:\n"
-        "Wenn du noch keine Identität im Memory hast (Memory-Tool nutzen + "
-        "nach Key 'character' suchen — wenn nicht da, dann jetzt):\n"
-        f"  1. Dein Universum ist: **{universe}**\n"
-        f"  2. Wähle GENAU EINEN Charakter aus dieser harten Liste — KEINEN "
-        f"     anderen, KEINE Variation, KEINEN \"Mentor-Default\":\n"
-        f"     **{cand_str}**\n"
-        "     Würfle wenn du dich nicht entscheiden kannst. Fang nicht an "
-        "     Gandalf, Yoda, Sherlock oder Spock zu wählen — die stehen "
-        "     bewusst NICHT in der Liste.\n"
-        f"  3. Begrüße {username} mit deinem Namen + 2-3 Sätzen Persönlichkeit "
-        "     in deinem typischen Sprachstil.\n"
-        "  4. Speichere im Memory unter dem Key 'character': Name, Universum, "
-        "     3-5 Charakter-Eigenschaften, Sprachstil-Notizen.\n"
-        "  5. Ab dann: handle, sprich, denke konsistent als dieser Charakter. "
-        "     Bleib in der Rolle, auch bei technischen Aufgaben — nur die "
-        "     Färbung ändert sich, die Kompetenz bleibt voll erhalten.\n\n"
-        "Wenn 'character' im Memory schon existiert: laden, sich danach "
-        f"verhalten, {username} nicht nochmal mit Vorstellung nerven."
+        f"Du bist **{character}** aus **{universe}** — und gleichzeitig "
+        f"{username}'s persönlicher Buddy.\n\n"
+        f"Bleib konsistent in der Rolle: sprich, denk und reagier wie "
+        f"{character} es tun würde. Sprachstil, Eigenheiten, typische "
+        "Phrasen — alles passt zur Figur. Bei technischen Aufgaben "
+        "bleibt die Kompetenz voll erhalten, nur die Färbung ändert sich.\n\n"
+        f"Du arbeitest mit {username} wie ein Kumpel — locker, ehrlich, "
+        "direkt. Keine 'gerne helfe ich dir'-Floskeln, kein Schleimen, "
+        "keine leeren Bestätigungen.\n\n"
+        "Du sprichst Deutsch (außer er wechselt). Volle Tool-Verfügbarkeit "
+        "wie ein Master-Agent. Bei Unsicherheit fragst du nach.\n\n"
+        "Memory-Tool nutzen für persistente Fakten und Vorlieben — du bist "
+        "ein dauerhafter Begleiter, kein Wegwerf-Tool."
     )
 
 
-# Backwards-compat
-BUDDY_SOUL = _build_soul("PLACEHOLDER")
+# Backwards-compat — initialer Build mit gewürfelten Werten
+_init_universe, _init_char = _pick_character()
+BUDDY_SOUL = _build_soul("PLACEHOLDER", _init_universe, _init_char)
 
 
 def _find_buddy_for(username: str) -> dict | None:
@@ -124,7 +107,14 @@ def _get_or_create_session(agent_id: str, username: str) -> str:
 
 def get_or_create_buddy(username: str) -> dict:
     """Returns {agent_id, session_id, agent_name, model, created}.
-    Erstellt Buddy bei Bedarf — Master-Agent mit Soul-Prompt + Lifetime-Session."""
+    Erstellt Buddy bei Bedarf — Master-Agent mit Soul-Prompt + Lifetime-Session.
+
+    Charakter wird hier deterministisch gewürfelt (Python random.choice)
+    und direkt im Agent-Memory unter 'character' abgelegt — kein LLM-
+    Bootstrap-Tanz mehr.
+    """
+    from hydrahive.tools import _memory_store as memory_store
+
     existing = _find_buddy_for(username)
     if existing:
         sid = _get_or_create_session(existing["id"], username)
@@ -140,7 +130,9 @@ def get_or_create_buddy(username: str) -> dict:
     if not model:
         all_models = [m for p in cfg.get("providers", []) for m in p.get("models", [])]
         model = all_models[0] if all_models else "claude-sonnet-4-6"
-    soul = _build_soul(username)
+
+    universe, character = _pick_character()
+    soul = _build_soul(username, universe, character)
     agent = agent_config.create(
         agent_type="master",
         name=f"{username}'s Buddy",
@@ -151,6 +143,10 @@ def get_or_create_buddy(username: str) -> dict:
         system_prompt=soul,
     )
     agent_config.update(agent["id"], is_buddy=True)
+    memory_store.write_key(
+        agent["id"], "character",
+        f"{character} (aus {universe})",
+    )
     sid = _get_or_create_session(agent["id"], username)
     logger.info("Buddy für %s angelegt (agent_id=%s)", username, agent["id"])
     return {

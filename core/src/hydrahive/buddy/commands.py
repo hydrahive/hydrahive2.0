@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 from hydrahive.agents import config as agent_config
-from hydrahive.buddy import _build_soul, _find_buddy_for
+from hydrahive.buddy import _build_soul, _find_buddy_for, _pick_character
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._config import load_config
@@ -144,11 +144,13 @@ def set_model(username: str, model: str) -> dict:
 
 
 def reroll_character(username: str) -> dict:
-    """Würfelt einen neuen Charakter: löscht 'character'-Memory + neue Soul +
-    neue Session. Beim nächsten Hi stellt sich der Buddy neu vor."""
+    """Würfelt deterministisch einen neuen Charakter (Python random.choice),
+    schreibt ihn in Memory + System-Prompt + neue Lifetime-Session.
+    Beim nächsten Hi reagiert der Buddy als die neue Figur."""
     buddy = _require_buddy(username)
-    memory.delete_key(buddy["id"], "character")
-    new_soul = _build_soul(username)
+    universe, character = _pick_character()
+    memory.write_key(buddy["id"], "character", f"{character} (aus {universe})")
+    new_soul = _build_soul(username, universe, character)
     agent_config.set_system_prompt(buddy["id"], new_soul)
     new_session = sessions_db.create(
         agent_id=buddy["id"], user_id=username,
@@ -157,5 +159,5 @@ def reroll_character(username: str) -> dict:
     return {
         "ok": True,
         "session_id": new_session.id,
-        "message": "Neuer Charakter gewürfelt — sag Hallo.",
+        "message": f"Neuer Charakter: {character} ({universe}). Sag Hallo.",
     }
