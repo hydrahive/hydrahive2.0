@@ -5,7 +5,7 @@ import { Markdown } from "@/features/chat/Markdown"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
 import { CompactionBlock } from "@/features/chat/CompactionBlock"
 import { ImageBlock } from "@/features/chat/ToolCards"
-import { extractMedia, hasMedia, MediaPreview } from "@/features/chat/MediaPreview"
+import { extractMedia, hasMedia, MediaPreview, mediaFromBlocks } from "@/features/chat/MediaPreview"
 import type { ContentBlock, Message } from "@/features/chat/types"
 
 interface Props {
@@ -43,11 +43,19 @@ export function BuddyBubble({ message, onResend, onRetry, busy }: Props) {
   if (message.role === "user") {
     const text = blocks.find((b) => b.type === "text")?.text ?? ""
     const images = blocks.filter((b) => b.type === "image")
-    // Tool-Results: nur durchlassen wenn sie Media (Bild/Audio/Video) enthalten,
-    // der Rest ist technisches Backend-Geplauder
+    // Tool-Results: bevorzugt das strukturierte `media`-Feld (Backend extrahiert
+    // Datei-Pfade aus dem Tool-Output, KEIN LLM-Parsing). Fallback: Regex über
+    // content-String für ältere Sessions ohne media-Feld.
     const tool_result_media = blocks
       .filter((b) => b.type === "tool_result")
-      .map((b) => extractMedia((b as ContentBlock & { type: "tool_result" }).content || ""))
+      .map((b) => {
+        const tr = b as ContentBlock & { type: "tool_result" }
+        const fromBackend = mediaFromBlocks(tr.media)
+        if (fromBackend.images.length + fromBackend.audio.length + fromBackend.videos.length > 0) {
+          return fromBackend
+        }
+        return extractMedia(tr.content || "")
+      })
       .filter((m) => m.images.length + m.audio.length + m.videos.length > 0)
     const has_text_only_tool_results =
       blocks.some((b) => b.type === "tool_result") && tool_result_media.length === 0

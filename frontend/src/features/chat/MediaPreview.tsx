@@ -1,7 +1,12 @@
 /**
  * Erkennt Bild/Audio/Video-URLs in beliebigem Text und rendert sie als
  * Player. Genutzt in ToolResultCard (DevChat) und BuddyBubble.
+ *
+ * Bevorzugter Pfad: Backend liefert `tool_result.media` als strukturiertes
+ * Feld (siehe runner/_media.py). Die Regex-basierte Extraktion ist nur noch
+ * Fallback für freien Text (LLM-Antworten, ältere Sessions ohne media-Feld).
  */
+import type { ToolMedia } from "./types"
 
 // HTTP(S)-URLs
 const IMG_RE = /(https?:\/\/[^\s)]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))(?:\?[^\s)]*)?/gi
@@ -55,6 +60,19 @@ export function extractMedia(text: string): ExtractedMedia {
 export function hasMedia(text: string): boolean {
   const m = extractMedia(text)
   return m.images.length + m.audio.length + m.videos.length > 0
+}
+
+export function mediaFromBlocks(media: ToolMedia[] | undefined): ExtractedMedia {
+  const empty: ExtractedMedia = { images: [], audio: [], videos: [] }
+  if (!media || media.length === 0) return empty
+  const out: ExtractedMedia = { images: [], audio: [], videos: [] }
+  for (const m of media) {
+    const url = toApiUrl(m.path)
+    if (m.kind === "image") out.images.push(url)
+    else if (m.kind === "audio") out.audio.push(url)
+    else if (m.kind === "video") out.videos.push(url)
+  }
+  return out
 }
 
 export function MediaPreview({ media }: { media: ExtractedMedia }) {
