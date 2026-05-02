@@ -1,4 +1,4 @@
-"""VM-Lifecycle: list, create, delete, start, stop, poweroff, stats, log, get-detail.
+"""VM-Lifecycle: list, create, get, update, delete.
 
 Per-User-Owner: Liste/Detail nur eigene VMs (außer Admin).
 """
@@ -7,43 +7,24 @@ from __future__ import annotations
 import logging
 import re
 import shutil
-from dataclasses import asdict
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._vm_lifecycle_schemas import VMCreate, VMUpdate
 from hydrahive.api.routes._vms_helpers import (
     is_admin, resolve_import_job, resolve_iso, serialize, vm_or_404,
 )
-from hydrahive.settings import settings
 from hydrahive.vms import db as vmdb
 from hydrahive.vms import disk as vmdisk
 from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import lifecycle
-from hydrahive.vms import stats as vmstats
-from hydrahive.vms.models import (
-    MAX_CPU, MAX_DISK_GB, MAX_RAM_MB, MIN_CPU, MIN_DISK_GB, MIN_RAM_MB, NAME_RE,
-)
+from hydrahive.vms.models import NAME_RE
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/vms", tags=["vms"])
-
-
-class VMCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=32)
-    description: str | None = Field(default=None, max_length=500)
-    cpu: int = Field(ge=MIN_CPU, le=MAX_CPU)
-    ram_mb: int = Field(ge=MIN_RAM_MB, le=MAX_RAM_MB)
-    disk_gb: int = Field(ge=MIN_DISK_GB, le=MAX_DISK_GB)
-    iso_filename: str | None = None
-    network_mode: str = "bridged"
-    # Wenn gesetzt: importiertes qcow2 wird übernommen statt neu erzeugt.
-    # disk_gb wird dann ignoriert. Der Job-Eintrag wird beim Konsumieren gelöscht.
-    import_job_id: str | None = None
 
 
 @router.get("")
@@ -104,16 +85,6 @@ def get_vm_detail(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_a
     return serialize(vm)
 
 
-class VMUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=32)
-    description: str | None = Field(default=None, max_length=500)
-    cpu: int | None = Field(default=None, ge=MIN_CPU, le=MAX_CPU)
-    ram_mb: int | None = Field(default=None, ge=MIN_RAM_MB, le=MAX_RAM_MB)
-    disk_gb: int | None = Field(default=None, ge=MIN_DISK_GB, le=MAX_DISK_GB)
-    iso_filename: str | None = None  # leerer String → ISO entfernen
-    clear_iso: bool = False           # explizites Flag damit "" nicht mit "ISO unverändert" kollidiert
-
-
 @router.patch("/{vm_id}")
 async def update_vm(
     vm_id: str,
@@ -168,49 +139,3 @@ async def delete_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require
     vmdb.delete_vm(vm_id)
 
 
-@router.post("/{vm_id}/start")
-async def start_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    vm_or_404(vm_id, *auth)
-    try:
-        await lifecycle.start(vm_id)
-    except lifecycle.VMLifecycleError as e:
-        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
-    return serialize(vmdb.get_vm(vm_id))
-
-
-@router.post("/{vm_id}/stop")
-async def stop_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    vm_or_404(vm_id, *auth)
-    await lifecycle.shutdown(vm_id, hard=False)
-    return serialize(vmdb.get_vm(vm_id))
-
-
-@router.post("/{vm_id}/poweroff")
-async def poweroff_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    vm_or_404(vm_id, *auth)
-    await lifecycle.shutdown(vm_id, hard=True)
-    return serialize(vmdb.get_vm(vm_id))
-
-
-@router.get("/{vm_id}/stats")
-def vm_stats(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    vm = vm_or_404(vm_id, *auth)
-    return vmstats.read_stats(vm.vm_id, vm.pid)
-
-
-@router.get("/{vm_id}/log")
-def vm_log(
-    vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)],
-    tail: int = 200,
-) -> dict:
-    vm = vm_or_404(vm_id, *auth)
-    log_path = settings.vms_logs_dir / f"{vm.vm_id}.log"
-    if not log_path.exists():
-        return {"lines": [], "exists": False}
-    try:
-        text = log_path.read_text(encoding="utf-8", errors="replace")
-    except OSError as e:
-        return {"lines": [], "exists": True, "error": str(e)}
-    lines = text.splitlines()
-    capped = max(1, min(tail, 2000))
-    return {"lines": lines[-capped:], "exists": True}
