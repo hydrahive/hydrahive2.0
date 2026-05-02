@@ -1,8 +1,28 @@
 import { useState } from "react"
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Wrench } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { extractMedia, MediaPreview } from "./MediaPreview"
+import { extractMedia, mediaFromBlocks, MediaPreview } from "./MediaPreview"
+import { ShellExecCard } from "./tool_cards/ShellExecCard"
+import { WebSearchCard } from "./tool_cards/WebSearchCard"
+import { FileSearchCard } from "./tool_cards/FileSearchCard"
+import { GitDiffCard } from "./tool_cards/GitDiffCard"
 import type { ContentBlock } from "./types"
+
+/** Plugin-Prefix abstreifen: 'plugin__git-stats__git_diff' → 'git_diff'. */
+function strip(name: string | undefined): string {
+  if (!name) return ""
+  const m = name.match(/^plugin__[^_]+(?:[^_]*_)*__(.+)$/)
+  return (m ? m[1] : name).toLowerCase()
+}
+
+function specializedCard(toolName: string | undefined, content: string, isError?: boolean) {
+  const n = strip(toolName)
+  if (n === "shell_exec") return <ShellExecCard content={content} isError={isError} />
+  if (n === "web_search") return <WebSearchCard content={content} />
+  if (n === "file_search") return <FileSearchCard content={content} />
+  if (n === "git_diff") return <GitDiffCard content={content} />
+  return null
+}
 
 export function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
@@ -46,7 +66,26 @@ const COLLAPSE_THRESHOLD_LINES = 8
 export function ToolResultCard({ block }: { block: ContentBlock & { type: "tool_result" } }) {
   const { t } = useTranslation("chat")
   const content = block.content || ""
-  const media = extractMedia(content)
+  const media = block.media && block.media.length > 0
+    ? mediaFromBlocks(block.media) : extractMedia(content)
+  const special = specializedCard(block.tool_name, content, block.is_error)
+
+  // Spezialisierte Card-Renderer für bekannte Tools (shell_exec, web_search, …).
+  // Fallback: generisches Pre-Block.
+  if (special) {
+    return (
+      <div className="ml-11 space-y-2">
+        {special}
+        <MediaPreview media={media} />
+        {block.duration_ms !== undefined && (
+          <div className="text-[10.5px] text-zinc-500 tabular-nums px-1">
+            {formatDuration(block.duration_ms)}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const lineCount = content.split("\n").length
   const isLong = content.length > COLLAPSE_THRESHOLD_CHARS || lineCount > COLLAPSE_THRESHOLD_LINES
   const [open, setOpen] = useState(!isLong)

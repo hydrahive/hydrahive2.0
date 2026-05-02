@@ -78,14 +78,16 @@ async def execute_tool(
 
 
 def to_tool_result_block(
-    tool_use_id: str, result: ToolResult, ctx: ToolContext | None = None
+    tool_use_id: str, result: ToolResult, ctx: ToolContext | None = None,
+    tool_name: str | None = None,
 ) -> dict:
     """Build the Anthropic `tool_result` content block from a ToolResult.
 
     Hängt zusätzlich `media: [{kind, path}]` an wenn der Tool-Output
-    Bild/Audio/Video-Pfade enthält. Das Frontend rendert daraus direkt —
-    KEIN LLM-Antworttext-Parsing mehr. Das `media`-Feld wird beim API-Call
-    automatisch von `_ANTHROPIC_ALLOWED` weggefiltert (in context.py).
+    Bild/Audio/Video-Pfade enthält, und `tool_name` damit das Frontend
+    spezialisierte Cards (ShellExec, WebSearch, …) rendern kann.
+    Beide Felder werden beim API-Call automatisch von `_ANTHROPIC_ALLOWED`
+    weggefiltert (in context.py).
     """
     block: dict = {
         "type": "tool_result",
@@ -93,6 +95,8 @@ def to_tool_result_block(
         "content": result.to_llm(),
         "is_error": not result.success,
     }
+    if tool_name:
+        block["tool_name"] = tool_name
     workspace = ctx.workspace if ctx else None
     media = extract_media(result, workspace)
     if media:
