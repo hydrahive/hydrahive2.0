@@ -18,4 +18,6 @@ export const wikiApi = {
     fetch(`/api/wiki/${slug}`, { method: "PUT", headers: headers(), body: JSON.stringify(data) }).then((r) => r.json()),
   delete: (slug: string): Promise<void> =>
     fetch(`/api/wiki/${slug}`, { method: "DELETE", headers: headers() }).then(() => undefined),
+  ingest: (data: { url?: string; text?: string; title?: string }): Promise<WikiPage> =>
+    fetch("/api/wiki/ingest", { method: "POST", headers: headers(), body: JSON.stringify(data) }).then((r) => r.json()),
 }

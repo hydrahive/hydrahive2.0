@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Plus, Search } from "lucide-react"
+import { Download, Plus, Search } from "lucide-react"
 import type { WikiPage } from "./types"
 
 interface Props {
@@ -7,10 +7,11 @@ interface Props {
   selected: string | null
   onSelect: (slug: string) => void
   onNew: () => void
+  onIngest: () => void
   onSearch: (q: string) => void
 }
 
-export function PageList({ pages, selected, onSelect, onNew, onSearch }: Props) {
+export function PageList({ pages, selected, onSelect, onNew, onIngest, onSearch }: Props) {
   const [q, setQ] = useState("")
 
   function handleSearch(val: string) {
@@ -30,6 +31,13 @@ export function PageList({ pages, selected, onSelect, onNew, onSearch }: Props) 
             className="w-full bg-white/[4%] border border-white/[8%] rounded-md pl-8 pr-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-violet-500/50"
           />
         </div>
+        <button
+          onClick={onIngest}
+          className="p-1.5 rounded-md bg-zinc-700/60 text-zinc-300 hover:bg-zinc-600/60 transition-colors"
+          title="URL / Text aufnehmen"
+        >
+          <Download size={14} />
+        </button>
         <button
           onClick={onNew}
           className="p-1.5 rounded-md bg-violet-600/20 text-violet-300 hover:bg-violet-600/40 transition-colors"

@@ -3,9 +3,10 @@ import { wikiApi } from "./api"
 import { PageList } from "./PageList"
 import { PageDetail } from "./PageDetail"
 import { PageEditor } from "./PageEditor"
+import { IngestForm } from "./IngestForm"
 import type { WikiPage as TWikiPage } from "./types"
 
-type Mode = "view" | "edit" | "new"
+type Mode = "view" | "edit" | "new" | "ingest"
 
 export function WikiPage() {
   const [pages, setPages] = useState<TWikiPage[]>([])
@@ -60,6 +61,7 @@ export function WikiPage() {
             selected={selected?.slug ?? null}
             onSelect={selectSlug}
             onNew={() => { setSelected(null); setMode("new") }}
+            onIngest={() => { setSelected(null); setMode("ingest") }}
             onSearch={(q) => load(q || undefined)}
           />
         )}
@@ -67,6 +69,12 @@ export function WikiPage() {
 
       {/* Main */}
       <div className="flex-1 overflow-hidden">
+        {mode === "ingest" && (
+          <IngestForm
+            onDone={(page) => { setSelected(page); setMode("view"); load() }}
+            onCancel={() => setMode("view")}
+          />
+        )}
         {mode === "new" && (
           <PageEditor
             page={null}

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.wiki import index as wiki_index
+from hydrahive.wiki import ingest as wiki_ingest
 from hydrahive.wiki import storage as wiki_storage
 from hydrahive.wiki.models import WikiPage, make_slug
 
@@ -102,6 +103,29 @@ def update_page(
     page.source_url = req.source_url
     page = wiki_storage.save(page)
     wiki_index.upsert(page)
+    return _serialize(page)
+
+
+class IngestIn(BaseModel):
+    url: str | None = None
+    text: str | None = None
+    title: str | None = None
+
+
+@router.post("/ingest", status_code=status.HTTP_201_CREATED)
+async def ingest_page(
+    req: IngestIn,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    if not req.url and not req.text:
+        raise coded(status.HTTP_400_BAD_REQUEST, "wiki_ingest_missing_input")
+    try:
+        page = await wiki_ingest.ingest(
+            url=req.url, text=req.text,
+            title_hint=req.title, author=auth[0],
+        )
+    except Exception as e:
+        raise coded(status.HTTP_502_BAD_GATEWAY, "wiki_ingest_failed", message=str(e))
     return _serialize(page)
 
 
