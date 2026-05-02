@@ -107,3 +107,23 @@ def validate_compact_reserve_tokens(reserve: int) -> None:
 def validate_compact_threshold_pct(pct: int) -> None:
     if not isinstance(pct, int) or pct < 30 or pct > 100:
         raise AgentValidationError("compact_threshold_pct muss zwischen 30 und 100 liegen")
+
+
+def normalize_compact_changes(changes: dict) -> None:
+    """Normalizes compaction fields in-place: None/empty → remove or default."""
+    if "compact_model" in changes:
+        if changes["compact_model"] is None:
+            changes["compact_model"] = ""
+        validate_compact_model(changes["compact_model"])
+    for field, validator in (
+        ("compact_tool_result_limit", validate_compact_tool_result_limit),
+        ("compact_reserve_tokens", validate_compact_reserve_tokens),
+        ("compact_threshold_pct", validate_compact_threshold_pct),
+    ):
+        if field not in changes:
+            continue
+        if changes[field] in (None, ""):
+            changes.pop(field)
+        else:
+            changes[field] = int(changes[field])
+            validator(changes[field])
