@@ -5,8 +5,14 @@ export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
   get: (id: string) => api.get<Project>(`/projects/${id}`),
   create: (req: ProjectCreate) => api.post<Project>("/projects", req),
-  update: (id: string, fields: Partial<ProjectCreate & { status: string; notes: string; tags: string[] }>) =>
+  update: (id: string, fields: Partial<ProjectCreate & { status: string; notes: string; tags: string[]; mcp_server_ids: string[]; allowed_plugins: string[]; llm_api_key: string }>) =>
     api.patch<Project>(`/projects/${id}`, fields),
+  listFiles: (id: string, path = "") =>
+    api.get<{ path: string; entries: { name: string; type: "file" | "dir"; size: number | null; modified: number }[] }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
+  readFile: (id: string, path: string) =>
+    fetch(`/api/projects/${id}/files/read?path=${encodeURIComponent(path)}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` }
+    }).then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))),
   delete: (id: string) => api.delete<void>(`/projects/${id}`),
   addMember: (id: string, username: string) =>
     api.post<Project>(`/projects/${id}/members/${username}`, {}),

@@ -36,6 +36,9 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("samba_enabled", False)
     cfg.setdefault("notes", "")
     cfg.setdefault("tags", [])
+    cfg.setdefault("mcp_server_ids", [])
+    cfg.setdefault("allowed_plugins", [])
+    cfg.setdefault("llm_api_key", "")
     cfg.setdefault("metadata", {})
     cfg.setdefault("updated_at", cfg.get("created_at", ""))
     return cfg

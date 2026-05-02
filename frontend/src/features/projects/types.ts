@@ -4,6 +4,9 @@ export interface Project {
   description: string
   notes: string
   tags: string[]
+  mcp_server_ids: string[]
+  allowed_plugins: string[]
+  llm_api_key: string
   members: string[]
   agent_id: string
   status: "active" | "paused" | "archived"
