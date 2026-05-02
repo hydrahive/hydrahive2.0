@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { chatApi, sendMessage } from "./api"
+import { applyStreamEvent, updateLive } from "./_chatStream"
 import type { ContentBlock, Message } from "./types"
 
 export interface PendingConfirm {
@@ -22,27 +23,20 @@ export interface ChatState {
   } | null
 }
 
+const EMPTY_STATE: ChatState = {
+  messages: [], busy: false, iteration: 0, error: null, pendingConfirm: null, lastTurnTokens: null,
+}
+
 export function useChat(sessionId: string | null) {
-  const [state, setState] = useState<ChatState>({
-    messages: [],
-    busy: false,
-    iteration: 0,
-    error: null,
-    pendingConfirm: null,
-    lastTurnTokens: null,
-  })
+  const [state, setState] = useState<ChatState>(EMPTY_STATE)
   const abortRef = useRef<AbortController | null>(null)
 
   const cancel = useCallback(() => {
-    abortRef.current?.abort()
-    abortRef.current = null
+    abortRef.current?.abort(); abortRef.current = null
   }, [])
 
   const reload = useCallback(async () => {
-    if (!sessionId) {
-      setState({ messages: [], busy: false, iteration: 0, error: null, pendingConfirm: null, lastTurnTokens: null })
-      return
-    }
+    if (!sessionId) { setState(EMPTY_STATE); return }
     try {
       const msgs = await chatApi.listMessages(sessionId)
       setState((s) => ({ ...s, messages: msgs, busy: false, iteration: 0, error: null }))
@@ -54,40 +48,22 @@ export function useChat(sessionId: string | null) {
   const send = useCallback(
     async (text: string, files: File[] = [], resendMessageId?: string) => {
       if (!sessionId) return
-      const imageBlocks = files
-        .filter((f) => f.type.startsWith("image/"))
+      const imageBlocks = files.filter((f) => f.type.startsWith("image/"))
         .map((f) => ({ type: "image" as const, source: { type: "url" as const, url: URL.createObjectURL(f) } }))
       const userMsg: Message = {
-        id: `local-${Date.now()}`,
-        role: "user",
-        content: imageBlocks.length > 0
-          ? [...imageBlocks, { type: "text" as const, text }]
-          : text,
-        created_at: new Date().toISOString(),
-        token_count: null,
-        metadata: {},
+        id: `local-${Date.now()}`, role: "user",
+        content: imageBlocks.length > 0 ? [...imageBlocks, { type: "text" as const, text }] : text,
+        created_at: new Date().toISOString(), token_count: null, metadata: {},
       }
       const liveAssistant: Message = {
-        id: `live-${Date.now()}`,
-        role: "assistant",
-        content: [],
-        created_at: new Date().toISOString(),
-        token_count: null,
-        metadata: {},
+        id: `live-${Date.now()}`, role: "assistant", content: [],
+        created_at: new Date().toISOString(), token_count: null, metadata: {},
       }
       setState((s) => {
-        // Bei Resend: alle Messages ab der editieren entfernen, dann neue
-        // User-Message + Live-Assistant anhängen.
         const trimmed = resendMessageId
           ? s.messages.slice(0, s.messages.findIndex((m) => m.id === resendMessageId))
           : s.messages
-        return {
-          ...s,
-          messages: [...trimmed, userMsg, liveAssistant],
-          busy: true,
-          iteration: 1,
-          error: null,
-        }
+        return { ...s, messages: [...trimmed, userMsg, liveAssistant], busy: true, iteration: 1, error: null }
       })
 
       const blocks: ContentBlock[] = []
@@ -95,71 +71,9 @@ export function useChat(sessionId: string | null) {
       abortRef.current = controller
       try {
         for await (const ev of sendMessage(sessionId, text, files, controller.signal, resendMessageId)) {
-          if (ev.type === "iteration_start") {
-            setState((s) => ({ ...s, iteration: ev.iteration }))
-          } else if (ev.type === "message_start") {
-            // neue Assistant-Bubble vorbereiten — leerer Text-Block
-            blocks.push({ type: "text", text: "" })
-            updateLive(setState, blocks)
-          } else if (ev.type === "text_delta") {
-            // an letzten Text-Block anhängen, oder neuen anlegen
-            const last = blocks[blocks.length - 1]
-            if (last && last.type === "text") {
-              last.text += ev.text
-            } else {
-              blocks.push({ type: "text", text: ev.text })
-            }
-            updateLive(setState, blocks)
-          } else if (ev.type === "text") {
-            blocks.push({ type: "text", text: ev.text })
-            updateLive(setState, blocks)
-          } else if (ev.type === "tool_use_start") {
-            blocks.push({
-              type: "tool_use",
-              id: ev.call_id,
-              name: ev.tool_name,
-              input: ev.arguments,
-            })
-            updateLive(setState, blocks)
-          } else if (ev.type === "tool_confirm_required") {
-            setState((s) => ({
-              ...s,
-              pendingConfirm: {
-                call_id: ev.call_id,
-                tool_name: ev.tool_name,
-                arguments: ev.arguments,
-              },
-            }))
-          } else if (ev.type === "tool_use_result") {
-            // Result kam zurück → kein Pending mehr für diesen call_id
-            setState((s) => s.pendingConfirm?.call_id === ev.call_id
-              ? { ...s, pendingConfirm: null }
-              : s)
-            blocks.push({
-              type: "tool_result",
-              tool_use_id: ev.call_id,
-              content: typeof ev.output === "string" ? ev.output : JSON.stringify(ev.output, null, 2),
-              is_error: !ev.success,
-            })
-            updateLive(setState, blocks)
-          } else if (ev.type === "error") {
-            setState((s) => ({ ...s, error: ev.message, busy: false }))
-            return
-          } else if (ev.type === "done") {
-            setState((s) => ({
-              ...s,
-              busy: false,
-              lastTurnTokens: {
-                input: ev.input_tokens,
-                output: ev.output_tokens,
-                cache_creation: ev.cache_creation_tokens,
-                cache_read: ev.cache_read_tokens,
-              },
-            }))
-            // Re-load from server to get canonical state with proper IDs
-            await reload()
-            return
-          }
+          const result = applyStreamEvent(ev as Record<string, unknown>, blocks, setState)
+          if (result === "error") return
+          if (result === "done") { await reload(); return }
         }
       } catch (e) {
         const aborted = (e as DOMException)?.name === "AbortError"
@@ -169,9 +83,7 @@ export function useChat(sessionId: string | null) {
           busy: false,
         }))
         if (aborted) await reload()
-      } finally {
-        abortRef.current = null
-      }
+      } finally { abortRef.current = null }
     },
     [sessionId, reload],
   )
@@ -191,18 +103,4 @@ export function useChat(sessionId: string | null) {
   )
 
   return { ...state, send, cancel, reload, confirmTool }
-}
-
-function updateLive(
-  setState: React.Dispatch<React.SetStateAction<ChatState>>,
-  blocks: ContentBlock[],
-) {
-  setState((s) => {
-    const msgs = [...s.messages]
-    const last = msgs[msgs.length - 1]
-    if (last && last.id.startsWith("live-")) {
-      msgs[msgs.length - 1] = { ...last, content: [...blocks] }
-    }
-    return { ...s, messages: msgs }
-  })
 }
