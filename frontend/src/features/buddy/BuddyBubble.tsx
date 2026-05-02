@@ -5,6 +5,7 @@ import { Markdown } from "@/features/chat/Markdown"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
 import { CompactionBlock } from "@/features/chat/CompactionBlock"
 import { ImageBlock } from "@/features/chat/ToolCards"
+import { extractMedia, hasMedia, MediaPreview } from "@/features/chat/MediaPreview"
 import type { ContentBlock, Message } from "@/features/chat/types"
 
 interface Props {
@@ -42,9 +43,27 @@ export function BuddyBubble({ message, onResend, onRetry, busy }: Props) {
   if (message.role === "user") {
     const text = blocks.find((b) => b.type === "text")?.text ?? ""
     const images = blocks.filter((b) => b.type === "image")
-    const has_tool_results = blocks.some((b) => b.type === "tool_result")
-    // Tool-Result-Messages sind technisches Backend-Geplauder — im Buddy ausblenden
-    if (has_tool_results && !text && images.length === 0) return null
+    // Tool-Results: nur durchlassen wenn sie Media (Bild/Audio/Video) enthalten,
+    // der Rest ist technisches Backend-Geplauder
+    const tool_result_media = blocks
+      .filter((b) => b.type === "tool_result")
+      .map((b) => extractMedia((b as ContentBlock & { type: "tool_result" }).content || ""))
+      .filter((m) => m.images.length + m.audio.length + m.videos.length > 0)
+    const has_text_only_tool_results =
+      blocks.some((b) => b.type === "tool_result") && tool_result_media.length === 0
+    if (has_text_only_tool_results && !text && images.length === 0) return null
+
+    // Reine Tool-Result-Media-Message → links als generierte-Datei-Card
+    if (tool_result_media.length > 0 && !text && images.length === 0) {
+      return (
+        <div className="flex items-start gap-3">
+          <div className="text-2xl flex-shrink-0 mt-0.5">🐝</div>
+          <div className="flex-1 min-w-0 max-w-[85%] space-y-2">
+            {tool_result_media.map((m, i) => <MediaPreview key={i} media={m} />)}
+          </div>
+        </div>
+      )
+    }
     return (
       <div className="flex items-start gap-3 justify-end">
         <div className="max-w-[80%] space-y-1 group">
@@ -109,9 +128,13 @@ export function BuddyBubble({ message, onResend, onRetry, busy }: Props) {
       <div className="flex-1 min-w-0 space-y-2 max-w-[85%]">
         {visibleBlocks.map((b, i) => {
           if (b.type === "text" && b.text) {
+            const media = extractMedia(b.text)
             return (
-              <div key={i} className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-emerald-500/[8%] border border-emerald-500/30 text-emerald-50">
-                <Markdown text={b.text} />
+              <div key={i} className="space-y-2">
+                <div className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-emerald-500/[8%] border border-emerald-500/30 text-emerald-50">
+                  <Markdown text={b.text} />
+                </div>
+                {hasMedia(b.text) && <MediaPreview media={media} />}
               </div>
             )
           }

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Wrench } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { extractMedia, MediaPreview } from "./MediaPreview"
 import type { ContentBlock } from "./types"
 
 export function formatDuration(ms: number): string {
@@ -45,6 +46,7 @@ const COLLAPSE_THRESHOLD_LINES = 8
 export function ToolResultCard({ block }: { block: ContentBlock & { type: "tool_result" } }) {
   const { t } = useTranslation("chat")
   const content = block.content || ""
+  const media = extractMedia(content)
   const lineCount = content.split("\n").length
   const isLong = content.length > COLLAPSE_THRESHOLD_CHARS || lineCount > COLLAPSE_THRESHOLD_LINES
   const [open, setOpen] = useState(!isLong)
@@ -52,7 +54,7 @@ export function ToolResultCard({ block }: { block: ContentBlock & { type: "tool_
   const color = block.is_error ? "rose" : "emerald"
 
   return (
-    <div className={`rounded-lg border border-${color}-500/15 bg-${color}-500/[4%] px-3 py-2 ml-11`}>
+    <div className={`rounded-lg border border-${color}-500/15 bg-${color}-500/[4%] px-3 py-2 ml-11 space-y-2`}>
       <div className="flex items-center gap-2">
         <Icon size={13} className={`text-${color}-400 flex-shrink-0`} />
         {isLong ? (
@@ -66,8 +68,9 @@ export function ToolResultCard({ block }: { block: ContentBlock & { type: "tool_
           <span className={`text-[10.5px] text-${color}-400/60 tabular-nums`}>{formatDuration(block.duration_ms)}</span>
         )}
       </div>
+      <MediaPreview media={media} />
       {open && (
-        <pre className="mt-1.5 text-xs text-zinc-300 font-mono overflow-x-auto whitespace-pre-wrap">
+        <pre className="text-xs text-zinc-300 font-mono overflow-x-auto whitespace-pre-wrap">
           {content}
         </pre>
       )}
