@@ -2,6 +2,7 @@ export interface Project {
   id: string
   name: string
   description: string
+  notes: string
   members: string[]
   agent_id: string
   status: "active" | "paused" | "archived"

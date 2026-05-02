@@ -5,6 +5,7 @@ import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 import { ChangeOwnPasswordCard } from "./ChangeOwnPasswordCard"
 import { ThemeSwitcher } from "./ThemeSwitcher"
 import { TTSSettings } from "./TTSSettings"
+import { LandingSwitcher } from "./LandingSwitcher"
 
 export function ProfilePage() {
   const { t } = useTranslation("profile")
@@ -46,6 +47,8 @@ export function ProfilePage() {
       </div>
 
       <ThemeSwitcher />
+
+      <LandingSwitcher />
 
       <TTSSettings />
     </div>

@@ -9,6 +9,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/react-router")) return "vendor-react"
+          if (id.includes("node_modules/lucide-react") || id.includes("node_modules/clsx") || id.includes("node_modules/tailwind-merge")) return "vendor-ui"
+          if (id.includes("node_modules/d3") || id.includes("node_modules/d3-")) return "vendor-charts"
+          if (id.includes("node_modules/@xyflow")) return "vendor-flow"
+          if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next")) return "vendor-i18n"
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       "/api": {

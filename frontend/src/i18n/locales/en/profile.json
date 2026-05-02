@@ -21,5 +21,11 @@
   "theme": {
     "title": "Color theme",
     "description": "Accent color of the interface. Applies immediately, saved in your browser."
+  },
+  "landing": {
+    "title": "Start page",
+    "description": "Which page is shown first after login.",
+    "buddy": "Buddy",
+    "dashboard": "Dashboard"
   }
 }

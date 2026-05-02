@@ -5,7 +5,7 @@ export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
   get: (id: string) => api.get<Project>(`/projects/${id}`),
   create: (req: ProjectCreate) => api.post<Project>("/projects", req),
-  update: (id: string, fields: Partial<ProjectCreate & { status: string }>) =>
+  update: (id: string, fields: Partial<ProjectCreate & { status: string; notes: string }>) =>
     api.patch<Project>(`/projects/${id}`, fields),
   delete: (id: string) => api.delete<void>(`/projects/${id}`),
   addMember: (id: string, username: string) =>
