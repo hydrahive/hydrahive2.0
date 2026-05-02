@@ -1,53 +1,24 @@
-"""Butler — REST-Routen für Flow-CRUD und Registry-Meta.
-
-Phase 1: nur CRUD + Registry-Listing. Dry-Run und Trigger-Hooks
-kommen in Phase 2/4.
-"""
+"""Butler — REST-Routen für Flow-CRUD und Registry-Meta."""
 from __future__ import annotations
 
 import logging
-import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._butler_route_helpers import (
+    DryRunInput, FlowInput, flow_or_404, is_admin,
+)
 from hydrahive.butler import executor as bex
 from hydrahive.butler import persistence as bp
-from hydrahive.butler.models import Edge, Flow, Node, TriggerEvent
+from hydrahive.butler.models import Flow, TriggerEvent
 from hydrahive.butler.registry import all_specs
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/butler", tags=["butler"])
-
-_ID_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
-
-
-def _is_admin(role: str) -> bool:
-    return role == "admin"
-
-
-def _flow_or_404(owner_query: str, flow_id: str, user: str, role: str) -> Flow:
-    if not _ID_RE.match(flow_id):
-        raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_invalid")
-    flow = bp.get_flow(owner_query, flow_id)
-    if not flow:
-        raise coded(status.HTTP_404_NOT_FOUND, "butler_flow_not_found")
-    if flow.owner != user and not _is_admin(role):
-        raise coded(status.HTTP_403_FORBIDDEN, "butler_no_access")
-    return flow
-
-
-class FlowInput(BaseModel):
-    flow_id: str
-    name: str
-    enabled: bool = False
-    nodes: list[Node]
-    edges: list[Edge]
-    scope: str = "user"
-    scope_id: str | None = None
 
 
 @router.get("/registry")
@@ -58,7 +29,7 @@ def get_registry(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
 @router.get("/flows")
 def list_flows(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     user, role = auth
-    if _is_admin(role):
+    if is_admin(role):
         flows = bp.list_flows(owner=None)
     else:
         flows = bp.list_flows(owner=user)
@@ -71,7 +42,7 @@ def get_flow(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     user, role = auth
-    return _flow_or_404(user, flow_id, user, role).model_dump()
+    return flow_or_404(user, flow_id, user, role).model_dump()
 
 
 @router.post("/flows", status_code=201)
@@ -104,7 +75,7 @@ def update_flow(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     user, role = auth
-    existing = _flow_or_404(user, flow_id, user, role)
+    existing = flow_or_404(user, flow_id, user, role)
     if body.flow_id != flow_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_mismatch")
     try:
@@ -121,10 +92,6 @@ def update_flow(
     return flow.model_dump()
 
 
-class DryRunInput(BaseModel):
-    event: TriggerEvent
-
-
 @router.post("/flows/{flow_id}/dry_run")
 async def dry_run(
     flow_id: str,
@@ -132,7 +99,7 @@ async def dry_run(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     user, role = auth
-    flow = _flow_or_404(user, flow_id, user, role)
+    flow = flow_or_404(user, flow_id, user, role)
     return await bex.dispatch(flow, body.event, dry_run=True)
 
 
@@ -142,7 +109,7 @@ def delete_flow(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
     user, role = auth
-    flow = _flow_or_404(user, flow_id, user, role)
+    flow = flow_or_404(user, flow_id, user, role)
     bp.delete_flow(flow.owner, flow_id)
 
 
