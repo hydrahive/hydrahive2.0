@@ -1,7 +1,7 @@
 import React from "react"
 import {
   ReactFlow, Background, Controls, MiniMap, BackgroundVariant, Panel,
-  type Connection, type Edge,
+  type Connection, type Edge, type OnNodesChange, type OnEdgesChange,
 } from "@xyflow/react"
 import { useTranslation } from "react-i18next"
 import type { BNode } from "./types"
@@ -11,8 +11,8 @@ interface Props {
   nodes: BNode[]
   edges: Edge[]
   isDark: boolean
-  onNodesChange: (changes: unknown) => void
-  onEdgesChange: (changes: unknown) => void
+  onNodesChange: OnNodesChange<BNode>
+  onEdgesChange: OnEdgesChange
   onConnect: (c: Connection) => void
   onNodeClick: (e: React.MouseEvent, node: BNode) => void
   onPaneClick: () => void
@@ -32,8 +32,8 @@ export function ButlerCanvas({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange as never}
-        onEdgesChange={onEdgesChange as never}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick as never}
         onPaneClick={onPaneClick}

@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { chatApi, sendMessage } from "./api"
-import { applyStreamEvent, updateLive } from "./_chatStream"
+import { applyStreamEvent } from "./_chatStream"
 import type { ContentBlock, Message } from "./types"
 
 export interface PendingConfirm {

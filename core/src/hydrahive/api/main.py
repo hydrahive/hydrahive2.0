@@ -38,6 +38,7 @@ from hydrahive.api.routes.system_bridge import router as system_bridge_router
 from hydrahive.api.routes.system_samba import router as system_samba_router
 from hydrahive.api.routes.tailscale import router as tailscale_router
 from hydrahive.api.routes.tts import router as tts_router
+from hydrahive.api.routes.wiki import router as wiki_router
 from hydrahive.api.routes.users import router as users_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
@@ -106,6 +107,7 @@ app.include_router(system_admin_router)
 app.include_router(system_bridge_router)
 app.include_router(system_samba_router)
 app.include_router(tailscale_router)
+app.include_router(wiki_router)
 
 
 @app.get("/api/health")

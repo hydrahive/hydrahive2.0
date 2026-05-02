@@ -57,6 +57,8 @@ async def _whatsapp_auto_reconnect(adapter: WhatsAppAdapter) -> None:
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
     init_db()
+    from hydrahive.wiki.index import init_db as wiki_init_db
+    wiki_init_db()
     from hydrahive.skills.loader import install_system_defaults
     install_system_defaults()
     initial_pw = os.environ.get("HH_INITIAL_ADMIN_PASSWORD") or secrets.token_urlsafe(16)

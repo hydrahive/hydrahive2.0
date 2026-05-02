@@ -62,7 +62,7 @@ export function ChatPage() {
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null
   const activeOrphaned = activeSession ? !knownAgentIds.has(activeSession.agent_id) : false
-  const activeAgent = activeSession ? agents.find((a) => a.id === activeSession.agent_id) : null
+  const activeAgent = activeSession ? (agents.find((a) => a.id === activeSession.agent_id) ?? null) : null
 
   const [systemPrompt, setSystemPrompt] = useState<string>("")
   useEffect(() => {
