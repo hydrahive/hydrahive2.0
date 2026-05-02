@@ -2,62 +2,13 @@ from __future__ import annotations
 
 import logging
 
+from hydrahive.compaction._chunking import split_at_message_boundaries
+from hydrahive.compaction._prompts import MERGE_INSTRUCTIONS as _MERGE_INSTRUCTIONS
+from hydrahive.compaction._prompts import SUMMARY_INSTRUCTIONS as _SUMMARY_INSTRUCTIONS
 from hydrahive.compaction.tokens import context_window_for, estimate_dense_text, estimate_text
 
 logger = logging.getLogger(__name__)
 
-
-_SUMMARY_INSTRUCTIONS = """\
-Du erstellst eine strukturierte Zusammenfassung der bisherigen Konversation
-in genau dem unten angegebenen Markdown-Format. Halluzinieren ist verboten —
-nur Fakten aus dem Input. Schreibe knapp und konkret.
-
-Format (genau diese Headings, in dieser Reihenfolge):
-
-## Goal
-[Was der User erreichen möchte]
-
-## Constraints & Preferences
-- [Anforderungen, Wünsche, technische Vorgaben]
-
-## Progress
-### Done
-- [x] [Erledigte Aufgaben]
-
-### In Progress
-- [ ] [Aktuell laufende Arbeit]
-
-### Blocked
-- [Blocker, falls vorhanden]
-
-## Key Decisions
-- **[Entscheidung]**: [Begründung]
-
-## Next Steps
-1. [Was als nächstes gemacht werden sollte]
-
-## Critical Context
-- [Daten/Variablen/Pfade die zum Weiterarbeiten nötig sind]
-
-<read-files>
-[ein Pfad pro Zeile, gelesene Dateien]
-</read-files>
-
-<modified-files>
-[ein Pfad pro Zeile, geänderte Dateien]
-</modified-files>
-"""
-
-_MERGE_INSTRUCTIONS = """\
-Mehrere Teil-Zusammenfassungen einer langen Konversation liegen vor. Merge
-sie zu einer einzigen kohärenten Zusammenfassung im selben Markdown-Format
-wie die Eingaben. Kombiniere Goals/Constraints/Decisions ohne Duplikate.
-Progress chronologisch — späteres überschreibt frühere Statements (Done aus
-Chunk 5 hat Vorrang vor In Progress aus Chunk 2 wenn dasselbe Item).
-Halluzinieren verboten — nur Fakten aus den Inputs.
-"""
-
-# Sicherheitsmarge: nur 80% des Modell-Windows nutzen, Rest für Output + Headers
 _USABLE_FRACTION = 0.80
 
 
@@ -95,7 +46,7 @@ async def summarize(
         "Compaction-Chunking: %d Tokens > %d nutzbar — splitte in Chunks",
         history_tokens, usable_for_history,
     )
-    chunks = _split_at_message_boundaries(serialized_history, usable_for_history)
+    chunks = split_at_message_boundaries(serialized_history, usable_for_history)
     chunk_summaries: list[str] = []
     for i, chunk in enumerate(chunks, 1):
         logger.info("Chunk %d/%d (%d chars) → summarize", i, len(chunks), len(chunk))
@@ -181,24 +132,3 @@ async def _merge_summaries(
     return await _merge_summaries(model, merged_groups, max_tokens, usable_per_call)
 
 
-def _split_at_message_boundaries(text: str, max_tokens_per_chunk: int) -> list[str]:
-    """Splittet den serialisierten History-Dump an Message-Grenzen
-    (Zeilen die mit `[User]`, `[Assistant`, `[Tool result` etc. beginnen).
-    Jeder Chunk hat ~max_tokens_per_chunk Tokens, geht aber nie mitten durch
-    eine Message."""
-    lines = text.split("\n")
-    chunks: list[str] = []
-    current: list[str] = []
-    current_tokens = 0
-    for line in lines:
-        line_tokens = estimate_dense_text(line) + 1  # +1 für \n
-        is_msg_boundary = line.startswith("[") and "]:" in line
-        if current and is_msg_boundary and current_tokens + line_tokens > max_tokens_per_chunk:
-            chunks.append("\n".join(current))
-            current = []
-            current_tokens = 0
-        current.append(line)
-        current_tokens += line_tokens
-    if current:
-        chunks.append("\n".join(current))
-    return chunks

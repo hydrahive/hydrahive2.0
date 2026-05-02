@@ -14,13 +14,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import math
 import os
 import shutil
-import struct
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+from hydrahive.voice._audio_utils import probe_seconds, waveform_from_audio
 
 logger = logging.getLogger(__name__)
 
@@ -138,57 +138,8 @@ async def synthesize_to_ogg(text: str, voice: str = "German_FriendlyMan") -> Voi
             raise RuntimeError(f"ffmpeg-Konvertierung fehlgeschlagen: {tail[:200]}")
 
         ogg_bytes = ogg.read_bytes()
-        seconds = await _probe_seconds(ogg)
-        waveform = await _waveform_from_audio(ogg)
+        seconds = await probe_seconds(ogg)
+        waveform = await waveform_from_audio(ogg)
         return VoiceClip(ogg_bytes=ogg_bytes, seconds=seconds, waveform=waveform)
 
 
-async def _probe_seconds(path: Path) -> int:
-    """Dauer in Sekunden via ffprobe — gerundet auf int, mindestens 1."""
-    if shutil.which("ffprobe") is None:
-        return 1
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", str(path),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        out, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
-        return max(1, round(float(out.decode().strip())))
-    except Exception:
-        return 1
-
-
-async def _waveform_from_audio(path: Path) -> bytes:
-    """64 Bytes Waveform (RMS pro Bucket, 0-100). Nutzt PCM-Decode via ffmpeg."""
-    with tempfile.NamedTemporaryFile(suffix=".pcm", delete=False) as tmp:
-        pcm_path = Path(tmp.name)
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-y", "-i", str(path),
-            "-ar", "8000", "-ac", "1", "-f", "s16le", str(pcm_path),
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        _, err = await asyncio.wait_for(proc.communicate(), timeout=10.0)
-        if proc.returncode != 0:
-            logger.debug("waveform-ffmpeg fehlgeschlagen: %s",
-                         err.decode(errors="replace")[-500:])
-            return bytes(64)
-        raw = pcm_path.read_bytes()
-        if not raw:
-            return bytes(64)
-        sample_count = len(raw) // 2
-        samples = struct.unpack(f"<{sample_count}h", raw[:sample_count * 2])
-        bucket = max(1, sample_count // 64)
-        out = bytearray(64)
-        for i in range(64):
-            seg = samples[i * bucket: (i + 1) * bucket] if i < 63 else samples[i * bucket:]
-            if not seg:
-                continue
-            rms = math.sqrt(sum(s * s for s in seg) / len(seg))
-            out[i] = min(100, int(rms / 327.67))   # 32767 / 100
-        return bytes(out)
-    finally:
-        pcm_path.unlink(missing_ok=True)
