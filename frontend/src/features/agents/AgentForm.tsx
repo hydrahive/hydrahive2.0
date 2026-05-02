@@ -6,7 +6,7 @@ import { CompactionSection } from "./CompactionSection"
 import { OverviewTab } from "./_OverviewTab"
 import { ModelTab } from "./_ModelTab"
 import { ToolsTab } from "./_ToolsTab"
-import { PromptTab } from "./_PromptTab"
+import { SoulTab } from "./_SoulTab"
 import { SkillsTab } from "./_SkillsTab"
 import { AgentFormHeader } from "./_AgentFormHeader"
 import { AgentTabBar } from "./_AgentTabBar"
@@ -20,14 +20,12 @@ interface Props {
   onDeleted: () => void
 }
 
-type TabId = "overview" | "model" | "tools" | "skills" | "prompt" | "advanced"
+type TabId = "overview" | "model" | "tools" | "skills" | "soul" | "advanced"
 
 export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
   const [draft, setDraft] = useState(agent)
-  const [prompt, setPrompt] = useState("")
-  const [originalPrompt, setOriginalPrompt] = useState("")
   const [mcpServers, setMcpServers] = useState<McpServerBrief[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,9 +33,6 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
 
   useEffect(() => {
     setDraft(agent); setError(null); setTab("overview")
-    agentsApi.getSystemPrompt(agent.id).then((r) => {
-      setPrompt(r.prompt); setOriginalPrompt(r.prompt)
-    })
   }, [agent.id])
 
   useEffect(() => {
@@ -45,8 +40,8 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
   }, [])
 
   const dirty = useMemo(
-    () => JSON.stringify(draft) !== JSON.stringify(agent) || prompt !== originalPrompt,
-    [draft, agent, prompt, originalPrompt],
+    () => JSON.stringify(draft) !== JSON.stringify(agent),
+    [draft, agent],
   )
 
   function patch(p: Partial<Agent>) { setDraft((d) => ({ ...d, ...p })) }
@@ -57,10 +52,6 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
       const { id: _id, type: _type, created_at: _ca, updated_at: _ua, created_by: _cb, ...rest } = draft
       void _id; void _type; void _ca; void _ua; void _cb
       const updated = await agentsApi.update(agent.id, rest)
-      if (prompt !== originalPrompt) {
-        await agentsApi.setSystemPrompt(agent.id, prompt)
-        setOriginalPrompt(prompt)
-      }
       onSaved(updated)
     } catch (e) {
       setError(e instanceof Error ? e.message : t("errors.save_failed"))
@@ -78,7 +69,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
     { id: "model", label: t("tabs.model") },
     { id: "tools", label: t("tabs.tools") },
     { id: "skills", label: t("tabs.skills") },
-    { id: "prompt", label: t("tabs.prompt") },
+    { id: "soul", label: t("tabs.soul") },
     { id: "advanced", label: t("tabs.advanced") },
   ]
 
@@ -102,7 +93,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
         {tab === "model" && <ModelTab draft={draft} models={models} onChange={patch} />}
         {tab === "tools" && <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
         {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
-        {tab === "prompt" && <PromptTab prompt={prompt} onChange={setPrompt} />}
+        {tab === "soul" && <SoulTab agent={agent} />}
         {tab === "advanced" && <CompactionSection agent={draft} models={models} onChange={patch} />}
       </div>
 
@@ -110,7 +101,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
         <div className="px-5 py-2.5 border-t border-[var(--hh-accent-border)] bg-[var(--hh-accent-soft)] backdrop-blur flex items-center gap-3">
           <span className="text-xs text-[var(--hh-accent-text)] flex-1">{t("unsaved_hint")}</span>
           <button
-            onClick={() => { setDraft(agent); setPrompt(originalPrompt) }}
+            onClick={() => { setDraft(agent) }}
             disabled={saving}
             className="px-3 py-1.5 rounded-md text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%] transition-colors disabled:opacity-30"
           >

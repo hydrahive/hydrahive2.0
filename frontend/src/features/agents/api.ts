@@ -12,6 +12,14 @@ export const agentsApi = {
     api.get<{ prompt: string }>(`/agents/${id}/system_prompt`),
   setSystemPrompt: (id: string, prompt: string) =>
     api.put<{ prompt: string }>(`/agents/${id}/system_prompt`, { prompt }),
+  getSoul: (id: string) =>
+    api.get<{ components: Record<string, string> }>(`/agents/${id}/soul`),
+  setSoulComponent: (id: string, component: string, content: string) =>
+    api.put<{ component: string; saved: boolean }>(`/agents/${id}/soul/${component}`, { content }),
+  getSoulTemplates: (id: string) =>
+    api.get<{ templates: Record<string, string>; agent_type: string }>(`/agents/${id}/soul/templates`),
+  applySoulTemplate: (id: string) =>
+    api.post<{ applied: string[] }>(`/agents/${id}/soul/apply-template`, {}),
   listTools: () => api.get<ToolMeta[]>("/agents/_meta/tools"),
   getDefaults: () => api.get<AgentDefaults>("/agents/_meta/defaults"),
 }
