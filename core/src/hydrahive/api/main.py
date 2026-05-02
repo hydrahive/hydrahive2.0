@@ -15,6 +15,7 @@ from hydrahive.api.routes.buddy import router as buddy_router
 from hydrahive.api.routes.butler import router as butler_router
 from hydrahive.api.routes.files import router as files_router
 from hydrahive.api.routes.communication import router as communication_router
+from hydrahive.api.routes.communication_whatsapp import router as communication_whatsapp_router
 from hydrahive.api.routes.container_console import router as container_console_router
 from hydrahive.api.routes.containers import router as containers_router
 from hydrahive.api.routes.credentials import router as credentials_router
@@ -31,6 +32,7 @@ from hydrahive.api.routes.sessions import router as sessions_router
 from hydrahive.api.routes.skills import router as skills_router
 from hydrahive.api.routes.stt import router as stt_router
 from hydrahive.api.routes.system import router as system_router
+from hydrahive.api.routes.system_admin import router as system_admin_router
 from hydrahive.api.routes.system_bridge import router as system_bridge_router
 from hydrahive.api.routes.system_samba import router as system_samba_router
 from hydrahive.api.routes.tailscale import router as tailscale_router
@@ -76,6 +78,7 @@ app.include_router(backup_router)
 app.include_router(users_router)
 app.include_router(agents_router)
 app.include_router(communication_router)
+app.include_router(communication_whatsapp_router)
 app.include_router(llm_router)
 app.include_router(mcp_router)
 app.include_router(plugins_router)
@@ -97,6 +100,7 @@ app.include_router(butler_router)
 app.include_router(buddy_router)
 app.include_router(files_router)
 app.include_router(system_router)
+app.include_router(system_admin_router)
 app.include_router(system_bridge_router)
 app.include_router(system_samba_router)
 app.include_router(tailscale_router)

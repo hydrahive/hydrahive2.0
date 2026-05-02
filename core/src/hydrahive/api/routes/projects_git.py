@@ -8,91 +8,19 @@ import shutil
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._git_helpers import (
+    GitCommit, GitRepoClone, GitRepoConfig, GitRepoInit,
+    err_to_code, project_or_404, repo_path_or_404, token_for,
+)
 from hydrahive.projects import config as project_config
-from hydrahive.projects._git import (
-    ROOT_REPO,
-    init_repo,
-    is_valid_name,
-    list_repos,
-    repo_path_for,
-)
-from hydrahive.projects._git_ops import (
-    clone_into,
-    commit_all,
-    pull,
-    push,
-    set_remote,
-)
+from hydrahive.projects._git import ROOT_REPO, init_repo, is_valid_name, list_repos
+from hydrahive.projects._git_ops import clone_into, commit_all, pull, push, set_remote
 from hydrahive.projects._paths import workspace_path
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
-
-
-class GitRepoConfig(BaseModel):
-    remote_url: str | None = None
-    git_token: str | None = None
-
-
-class GitRepoClone(BaseModel):
-    name: str
-    url: str
-    branch: str | None = None
-    token: str | None = None
-
-
-class GitRepoInit(BaseModel):
-    name: str
-
-
-class GitCommit(BaseModel):
-    message: str
-
-
-def _project_or_404(project_id: str, username: str, role: str) -> dict:
-    p = project_config.get(project_id)
-    if not p:
-        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    if role != "admin" and username not in p.get("members", []) and p.get("created_by") != username:
-        raise coded(status.HTTP_403_FORBIDDEN, "project_no_access")
-    return p
-
-
-def _repo_path_or_404(project_id: str, repo_name: str):
-    if not is_valid_name(repo_name):
-        raise coded(status.HTTP_400_BAD_REQUEST, "git_invalid_repo_name", name=repo_name)
-    rp = repo_path_for(workspace_path(project_id), repo_name)
-    if rp is None or not (rp / ".git").exists():
-        raise coded(status.HTTP_404_NOT_FOUND, "git_repo_not_found", name=repo_name)
-    return rp
-
-
-def _err_to_code(err: str) -> tuple[int, str]:
-    if err == "repo_exists":
-        return 409, "git_repo_exists"
-    if err == "no_changes":
-        return 400, "git_no_changes"
-    if err == "no_remote":
-        return 400, "git_no_remote"
-    if err == "no_repo":
-        return 400, "git_no_repo"
-    if err == "empty_message":
-        return 400, "git_empty_message"
-    if err == "timeout":
-        return 504, "git_timeout"
-    return 500, "git_failed"
-
-
-def _token_for(project: dict, repo_name: str) -> str | None:
-    repo_cfg = project.get("git_repos", {}).get(repo_name) or {}
-    if repo_cfg.get("git_token"):
-        return repo_cfg["git_token"]
-    if repo_name == ROOT_REPO and project.get("git_token"):
-        return project["git_token"]
-    return None
 
 
 @router.get("/{project_id}/git/repos")
@@ -100,7 +28,7 @@ def get_repos(
     project_id: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> list[dict]:
-    p = _project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth)
     ws = workspace_path(project_id)
     repos = list_repos(ws)
     cfg_repos = p.get("git_repos", {})
@@ -116,12 +44,12 @@ def post_clone(
     req: GitRepoClone,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = _project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth)
     if not is_valid_name(req.name) or req.name == ROOT_REPO:
         raise coded(400, "git_invalid_repo_name", name=req.name)
     ok, err = clone_into(workspace_path(project_id), req.name, req.url, req.branch, req.token)
     if not ok:
-        sc, code = _err_to_code(err)
+        sc, code = err_to_code(err)
         raise coded(sc, code, detail=err)
     repos = dict(p.get("git_repos", {}))
     if req.token:
@@ -138,7 +66,7 @@ def post_init(
     req: GitRepoInit,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = _project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth)
     if not is_valid_name(req.name) or req.name == ROOT_REPO:
         raise coded(400, "git_invalid_repo_name", name=req.name)
     target = workspace_path(project_id) / req.name
@@ -159,12 +87,12 @@ def put_repo_config(
     req: GitRepoConfig,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = _project_or_404(project_id, *auth)
-    rp = _repo_path_or_404(project_id, repo_name)
+    p = project_or_404(project_id, *auth)
+    rp = repo_path_or_404(project_id, repo_name)
     if req.remote_url is not None:
         ok, err = set_remote(rp, req.remote_url)
         if not ok:
-            sc, code = _err_to_code(err)
+            sc, code = err_to_code(err)
             raise coded(sc, code, detail=err)
     if req.git_token is not None:
         repos = dict(p.get("git_repos", {}))
@@ -183,12 +111,12 @@ def post_commit(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     username, _ = auth
-    _project_or_404(project_id, *auth)
-    rp = _repo_path_or_404(project_id, repo_name)
+    project_or_404(project_id, *auth)
+    rp = repo_path_or_404(project_id, repo_name)
     ok, err = commit_all(rp, req.message,
                          author_name=username, author_email=f"{username}@hydrahive.local")
     if not ok:
-        sc, code = _err_to_code(err)
+        sc, code = err_to_code(err)
         raise coded(sc, code, detail=err)
     return {"ok": True}
 
@@ -199,11 +127,11 @@ def post_push(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = _project_or_404(project_id, *auth)
-    rp = _repo_path_or_404(project_id, repo_name)
-    ok, err = push(rp, token=_token_for(p, repo_name))
+    p = project_or_404(project_id, *auth)
+    rp = repo_path_or_404(project_id, repo_name)
+    ok, err = push(rp, token=token_for(p, repo_name))
     if not ok:
-        sc, code = _err_to_code(err)
+        sc, code = err_to_code(err)
         raise coded(sc, code, detail=err)
     return {"ok": True}
 
@@ -214,11 +142,11 @@ def post_pull(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = _project_or_404(project_id, *auth)
-    rp = _repo_path_or_404(project_id, repo_name)
-    ok, err = pull(rp, token=_token_for(p, repo_name))
+    p = project_or_404(project_id, *auth)
+    rp = repo_path_or_404(project_id, repo_name)
+    ok, err = pull(rp, token=token_for(p, repo_name))
     if not ok:
-        sc, code = _err_to_code(err)
+        sc, code = err_to_code(err)
         raise coded(sc, code, detail=err)
     return {"ok": True}
 
@@ -229,10 +157,10 @@ def delete_repo(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
-    p = _project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth)
     if repo_name == ROOT_REPO:
         raise coded(400, "git_cannot_delete_root")
-    rp = _repo_path_or_404(project_id, repo_name)
+    rp = repo_path_or_404(project_id, repo_name)
     shutil.rmtree(rp, ignore_errors=True)
     repos = dict(p.get("git_repos", {}))
     repos.pop(repo_name, None)
