@@ -13,6 +13,7 @@ export interface ButlerFlow {
   id: string
   name: string
   enabled: boolean
+  scope_id: string | null
   nodes: Node<ButlerNodeData>[]
   edges: Edge[]
 }

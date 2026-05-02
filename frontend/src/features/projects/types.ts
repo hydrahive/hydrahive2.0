@@ -3,6 +3,7 @@ export interface Project {
   name: string
   description: string
   notes: string
+  tags: string[]
   members: string[]
   agent_id: string
   status: "active" | "paused" | "archived"

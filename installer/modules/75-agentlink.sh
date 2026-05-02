@@ -39,7 +39,7 @@ mkdir -p /etc/systemd/system/hydrahive2.service.d
 cat > /etc/systemd/system/hydrahive2.service.d/agentlink.conf <<EOF
 [Service]
 Environment=HH_AGENTLINK_URL=http://${HL_BIND_HOST}:${HL_BACKEND_PORT}
-Environment=HH_AGENTLINK_DASHBOARD_URL=http://${HL_BIND_HOST}:${HL_FRONTEND_PORT}
+Environment=HH_AGENTLINK_DASHBOARD_URL=/agentlink/
 Environment=HH_AGENTLINK_AGENT_ID=hydrahive
 EOF
 

@@ -144,3 +144,35 @@ def delete_flow(
     user, role = auth
     flow = _flow_or_404(user, flow_id, user, role)
     bp.delete_flow(flow.owner, flow_id)
+
+
+@router.post("/webhooks/project/{project_id}", status_code=202)
+async def project_webhook(
+    project_id: str,
+    request_body: dict = {},
+) -> dict:
+    """Öffentlicher Webhook-Endpoint pro Projekt.
+
+    Feuert alle Butler-Flows aller User die einen webhook_received-Trigger
+    mit hook_id 'project:<project_id>' haben. Kein Auth — der project_id
+    selbst ist das Secret (UUID7, nicht ratebar).
+    """
+    from hydrahive.projects import config as project_config
+    project = project_config.get(project_id)
+    if not project:
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+
+    event = TriggerEvent(
+        event_type="webhook",
+        channel=f"project:{project_id}",
+        payload=request_body,
+    )
+    fired = 0
+    for flow in bp.list_flows():
+        try:
+            result = await bex.dispatch(flow, event)
+            if result:
+                fired += 1
+        except Exception:
+            pass
+    return {"ok": True, "flows_fired": fired, "project_id": project_id}

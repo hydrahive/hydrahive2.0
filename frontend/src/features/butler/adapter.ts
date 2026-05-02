@@ -11,6 +11,7 @@ export function backendToFrontend(f: BackendFlow): ButlerFlow {
     id: f.flow_id,
     name: f.name,
     enabled: f.enabled,
+    scope_id: f.scope_id ?? null,
     nodes: f.nodes.map((n) => ({
       id: n.id,
       type: `${n.type}Node`,
@@ -31,11 +32,12 @@ export function backendToFrontend(f: BackendFlow): ButlerFlow {
 export function frontendToBackend(flowId: string, p: {
   name: string; enabled: boolean
   nodes: Node<ButlerNodeData>[]; edges: Edge[]
+  scope?: "user" | "project"; scope_id?: string | null
 }): Omit<BackendFlow, "owner"> {
   return {
     flow_id: flowId,
     name: p.name, enabled: p.enabled,
-    scope: "user", scope_id: null,
+    scope: p.scope ?? "user", scope_id: p.scope_id ?? null,
     nodes: p.nodes.map((n) => ({
       id: n.id,
       type: (n.type ?? "actionNode").replace("Node", "") as BackendNode["type"],
@@ -58,6 +60,7 @@ function slugify(name: string): string {
 type SaveInput = {
   name: string; enabled: boolean
   nodes: Node<ButlerNodeData>[]; edges: Edge[]
+  scope?: "user" | "project"; scope_id?: string | null
 }
 
 export const butlerLegacyApi = {

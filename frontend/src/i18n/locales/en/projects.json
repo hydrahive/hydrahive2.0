@@ -3,6 +3,14 @@
   "list_title": "Projects",
   "no_projects": "No projects yet",
   "select_or_new": "Select a project on the right or create a new one.",
+  "search_placeholder": "Search or tag…",
+  "webhook": {
+    "label": "Webhook URL"
+  },
+  "tags": {
+    "label": "Tags",
+    "add_placeholder": "Add tag…"
+  },
   "fields": {
     "members_count": "{{count}} members",
     "members_label": "Members ({{count}})",

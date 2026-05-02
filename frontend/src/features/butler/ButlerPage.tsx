@@ -111,7 +111,9 @@ function ButlerPageInner() {
   const saveFlow = async () => {
     setSaving(true);
     try {
-      const payload = { name: flowName, enabled: flowEnabled, nodes, edges };
+      const scope = (projectId && !activeFlowId) ? "project" as const : "user" as const
+      const scope_id = (projectId && !activeFlowId) ? projectId : null
+      const payload = { name: flowName, enabled: flowEnabled, nodes, edges, scope, scope_id };
       if (activeFlowId) {
         const updated = await butlerLegacyApi.update(activeFlowId, payload);
         setFlows(fs => fs.map(f => f.id === activeFlowId ? updated : f));
@@ -217,7 +219,7 @@ function ButlerPageInner() {
           </span>
         )}
 
-        {/* Flow selector */}
+        {/* Flow selector — when projectId in URL, only show flows for that project */}
         <select
           value={activeFlowId || ""}
           onChange={e => {
@@ -227,9 +229,11 @@ function ButlerPageInner() {
           className="rounded-lg bg-zinc-900 border border-white/15 px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500/50"
         >
           <option value="">{t("newFlowOption")}</option>
-          {flows.map(f => (
-            <option key={f.id} value={f.id}>{f.name}{f.enabled ? "" : ` ${t("inactive")}`}</option>
-          ))}
+          {flows
+            .filter(f => !projectId || f.scope_id === projectId || !f.scope_id)
+            .map(f => (
+              <option key={f.id} value={f.id}>{f.name}{f.enabled ? "" : ` ${t("inactive")}`}</option>
+            ))}
         </select>
 
         {/* Name */}
