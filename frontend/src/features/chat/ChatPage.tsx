@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
 import { useChatCompact } from "./useChatCompact"
 import { MessageInput } from "./MessageInput"
-import { MessageList } from "./MessageList"
 import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
 import { ToolConfirmBanner } from "./ToolConfirmBanner"
 import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
 import { ChatHeader } from "./_ChatHeader"
+import { HydraThread } from "./_Thread"
+import { useHydraRuntime } from "./_assistantRuntime"
 import type { AgentBrief, Session } from "./types"
 import type { ProjectBrief } from "./api"
 import { useChat } from "./useChat"
@@ -22,6 +24,7 @@ export function ChatPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
   const chat = useChat(activeId)
+  const runtime = useHydraRuntime(chat.messages, chat.busy, chat.send, chat.cancel)
 
   const knownAgentIds = new Set(agents.map((a) => a.id))
 
@@ -76,49 +79,50 @@ export function ChatPage() {
   }, [activeAgent?.id])
 
   return (
-    <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6">
-      <main className="flex-1 flex flex-col min-w-0">
-        {activeSession ? (
-          <>
-            <ChatHeader
-              session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
-              compacting={compacting} compactNote={compactNote}
-              lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
-              systemPrompt={systemPrompt} onCompact={handleCompact}
-              onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
-            />
-            <MessageList
-              messages={chat.messages}
-              busy={chat.busy}
-              iteration={chat.iteration}
-              error={chat.error}
-              onResend={(id, text) => chat.send(text, [], id)}
-            />
-            {chat.pendingConfirm && (
-              <ToolConfirmBanner
-                pending={chat.pendingConfirm}
-                onApprove={() => chat.confirmTool("approve")}
-                onDeny={() => chat.confirmTool("deny")}
+    <AssistantRuntimeProvider runtime={runtime}>
+      <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6">
+        <main className="flex-1 flex flex-col min-w-0">
+          {activeSession ? (
+            <>
+              <ChatHeader
+                session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
+                compacting={compacting} compactNote={compactNote}
+                lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
+                systemPrompt={systemPrompt} onCompact={handleCompact}
+                onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
               />
-            )}
-            <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} disabled={activeOrphaned} />
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
-            {t("session.select_or_new")}
-          </div>
-        )}
-      </main>
+              <HydraThread />
+              {chat.error && (
+                <div className="px-4 py-2 text-xs text-rose-400 bg-rose-500/10 border-t border-rose-500/20">
+                  {chat.error}
+                </div>
+              )}
+              {chat.pendingConfirm && (
+                <ToolConfirmBanner
+                  pending={chat.pendingConfirm}
+                  onApprove={() => chat.confirmTool("approve")}
+                  onDeny={() => chat.confirmTool("deny")}
+                />
+              )}
+              <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} disabled={activeOrphaned} />
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
+              {t("session.select_or_new")}
+            </div>
+          )}
+        </main>
 
-      <CollapsibleSidebar>
-        <SessionList
-          sessions={sessions} activeId={activeId}
-          knownAgentIds={knownAgentIds} projects={projects}
-          onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
-        />
-      </CollapsibleSidebar>
+        <CollapsibleSidebar>
+          <SessionList
+            sessions={sessions} activeId={activeId}
+            knownAgentIds={knownAgentIds} projects={projects}
+            onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
+          />
+        </CollapsibleSidebar>
 
-      {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
-    </div>
+        {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
+      </div>
+    </AssistantRuntimeProvider>
   )
 }
