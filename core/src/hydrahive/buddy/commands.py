@@ -6,13 +6,12 @@ Anzeige zurück.
 """
 from __future__ import annotations
 
-import re
 import time
 from datetime import datetime
 
 from hydrahive.agents import config as agent_config
 from hydrahive.buddy import _build_soul, _find_buddy_for, _pick_character
-from hydrahive.db import messages as messages_db
+from hydrahive.buddy._commands_helpers import slug as _slug, snapshot_active_session as _snapshot_active_session
 from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._config import load_config
 from hydrahive.tools import _memory_store as memory
@@ -37,49 +36,6 @@ def clear_session(username: str) -> dict:
         "session_id": new_session.id,
         "message": "Frischer Chat — neue Session, alte ist im Verlauf gespeichert.",
     }
-
-
-_SLUG_RE = re.compile(r"[^a-z0-9_-]+")
-
-
-def _slug(s: str) -> str:
-    return _SLUG_RE.sub("-", s.strip().lower()).strip("-") or "note"
-
-
-def _extract_text_from_content(content) -> str:
-    """Aus DB-Message-content (str oder list[ContentBlock]) den Text-Anteil
-    konkatenieren. Tool-Use/Tool-Result werden ausgelassen."""
-    if isinstance(content, str):
-        return content.strip()
-    if isinstance(content, list):
-        parts: list[str] = []
-        for b in content:
-            if isinstance(b, dict) and b.get("type") == "text":
-                t = b.get("text", "")
-                if t:
-                    parts.append(t)
-        return " ".join(parts).strip()
-    return ""
-
-
-def _snapshot_active_session(buddy: dict, username: str, last_n: int = 30) -> str:
-    """Markdown-Dump der letzten N user/assistant-Messages aus der aktiven
-    Lifetime-Session des Buddys."""
-    sessions = [s for s in sessions_db.list_for_user(username)
-                if s.agent_id == buddy["id"]]
-    if not sessions:
-        return ""
-    sessions.sort(key=lambda s: s.created_at, reverse=True)
-    msgs = messages_db.list_for_session(sessions[0].id)
-    msgs = [m for m in msgs if m.role in ("user", "assistant")][-last_n:]
-    lines: list[str] = []
-    for m in msgs:
-        text = _extract_text_from_content(m.content)
-        if not text:
-            continue
-        who = "User" if m.role == "user" else buddy.get("name", "Buddy")
-        lines.append(f"**{who}:** {text}")
-    return "\n\n".join(lines)
 
 
 def remember(username: str, text: str | None = None, name: str | None = None) -> dict:
