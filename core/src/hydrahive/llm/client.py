@@ -20,6 +20,7 @@ from hydrahive.llm._anthropic import (
     convert_images_for_minimax,
     is_minimax_model,
     minimax_complete,
+    minimax_stream,
     strip_provider_prefix,
 )
 from hydrahive.llm._config import apply_keys, get_provider_key, load_config
@@ -96,6 +97,14 @@ async def stream(
     target = model or cfg.get("default_model", "")
     if not target:
         raise ValueError("Kein LLM-Modell konfiguriert")
+
+    if is_minimax_model(target):
+        key = get_provider_key(cfg, "minimax")
+        if not key:
+            raise ValueError("MiniMax-API-Key fehlt — Provider 'minimax' in der LLM-Config setzen")
+        async for chunk in minimax_stream(key, messages, target, temperature, max_tokens):
+            yield chunk
+        return
 
     if strip_provider_prefix(target).startswith("claude-"):
         key = get_provider_key(cfg, "anthropic")
