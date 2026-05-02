@@ -3,11 +3,27 @@
  * Player. Genutzt in ToolResultCard (DevChat) und BuddyBubble.
  */
 
+// HTTP(S)-URLs
 const IMG_RE = /(https?:\/\/[^\s)]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))(?:\?[^\s)]*)?/gi
 const AUD_RE = /(https?:\/\/[^\s)]+\.(?:mp3|ogg|wav|m4a|opus|flac))(?:\?[^\s)]*)?/gi
 const VID_RE = /(https?:\/\/[^\s)]+\.(?:mp4|webm|mov|m3u8))(?:\?[^\s)]*)?/gi
-const FILE_IMG_RE = /(file:\/\/[^\s)]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))/gi
-const FILE_AUD_RE = /(file:\/\/[^\s)]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
+// Absolute Filesystem-Pfade (z.B. /tmp/foo.png aus generierten Tool-Results) —
+// werden via /api/files?path= an das Backend delegiert
+const ABS_IMG_RE = /(?:^|\s|`)(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))/gi
+const ABS_AUD_RE = /(?:^|\s|`)(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
+const ABS_VID_RE = /(?:^|\s|`)(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)]+\.(?:mp4|webm|mov|m3u8))/gi
+
+function toApiUrl(path: string): string {
+  return `/api/files?path=${encodeURIComponent(path)}`
+}
+
+function matchAll(text: string, re: RegExp): string[] {
+  const out: string[] = []
+  let m: RegExpExecArray | null
+  re.lastIndex = 0
+  while ((m = re.exec(text)) !== null) out.push(m[1] || m[0])
+  return out
+}
 
 export interface ExtractedMedia {
   images: string[]
@@ -18,11 +34,19 @@ export interface ExtractedMedia {
 export function extractMedia(text: string): ExtractedMedia {
   if (!text) return { images: [], audio: [], videos: [] }
   const dedupe = (xs: string[]) => Array.from(new Set(xs))
-  return {
-    images: dedupe([...(text.match(IMG_RE) || []), ...(text.match(FILE_IMG_RE) || [])]),
-    audio:  dedupe([...(text.match(AUD_RE) || []), ...(text.match(FILE_AUD_RE) || [])]),
-    videos: dedupe(text.match(VID_RE) || []),
-  }
+  const images = [
+    ...(text.match(IMG_RE) || []),
+    ...matchAll(text, ABS_IMG_RE).map(toApiUrl),
+  ]
+  const audio = [
+    ...(text.match(AUD_RE) || []),
+    ...matchAll(text, ABS_AUD_RE).map(toApiUrl),
+  ]
+  const videos = [
+    ...(text.match(VID_RE) || []),
+    ...matchAll(text, ABS_VID_RE).map(toApiUrl),
+  ]
+  return { images: dedupe(images), audio: dedupe(audio), videos: dedupe(videos) }
 }
 
 export function hasMedia(text: string): boolean {
