@@ -15,7 +15,9 @@ import { TailscaleCard } from "./TailscaleCard"
 import { BackupCard } from "./BackupCard"
 import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
-import { VoiceInstallModal, type VoiceInstallState } from "./VoiceInstallModal"
+import { VoiceInstallModal } from "./VoiceInstallModal"
+import { useVoiceInstall } from "./useVoiceInstall"
+import { PathRow, formatBytes, formatUptime } from "./_systemHelpers"
 
 const REFRESH_MS = 10_000
 
@@ -25,8 +27,7 @@ export function SystemPage() {
   const { t: tNav } = useTranslation("nav")
   const role = useAuthStore((s) => s.role)
   const restart = useRestart()
-  const [voiceState, setVoiceState] = useState<"idle" | VoiceInstallState>("idle")
-  const [voiceError, setVoiceError] = useState<string | null>(null)
+  const voice = useVoiceInstall()
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [checks, setChecks] = useState<HealthCheck[]>([])
@@ -42,8 +43,8 @@ export function SystemPage() {
 
   useEffect(() => {
     loadAll()
-    const t = setInterval(loadAll, REFRESH_MS)
-    return () => clearInterval(t)
+    const id = setInterval(loadAll, REFRESH_MS)
+    return () => clearInterval(id)
   }, [])
 
   return (
@@ -60,15 +61,13 @@ export function SystemPage() {
         <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
-              <button
-                onClick={() => { setVoiceState("confirm"); setVoiceError(null) }}
+              <button onClick={voice.begin}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
               >
                 <Mic size={12} />
                 Voice installieren
               </button>
-              <button
-                onClick={restart.open}
+              <button onClick={restart.open}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/25 text-rose-200 text-xs font-medium hover:bg-rose-500/20 transition-colors"
               >
                 <RotateCw size={12} />
@@ -89,36 +88,12 @@ export function SystemPage() {
         />
       )}
 
-      {voiceState !== "idle" && (
+      {voice.state !== "idle" && (
         <VoiceInstallModal
-          state={voiceState}
-          errorMessage={voiceError}
-          onConfirm={async () => {
-            setVoiceState("starting")
-            setVoiceError(null)
-            try {
-              await systemApi.installVoice()
-              setVoiceState("running")
-              // Poll log until "bereit" appears or 5 minutes pass
-              const startedAt = Date.now()
-              while (Date.now() - startedAt < 300_000) {
-                await new Promise((r) => setTimeout(r, 3000))
-                try {
-                  const log = await systemApi.voiceLog(50)
-                  const text = log.lines.join("")
-                  if (text.includes("Voice Interface bereit")) {
-                    setVoiceState("done")
-                    return
-                  }
-                } catch { /* ignore */ }
-              }
-              setVoiceState("done")
-            } catch (e) {
-              setVoiceState("failed")
-              setVoiceError(e instanceof Error ? e.message : String(e))
-            }
-          }}
-          onClose={() => setVoiceState("idle")}
+          state={voice.state}
+          errorMessage={voice.error}
+          onConfirm={voice.confirm}
+          onClose={voice.close}
         />
       )}
 
@@ -162,31 +137,7 @@ export function SystemPage() {
       {role === "admin" && <TailscaleCard />}
       {role === "admin" && <BridgeCard />}
       {role === "admin" && <SambaCard />}
-
       {role === "admin" && <BackupCard />}
     </div>
   )
-}
-
-function PathRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline gap-3 text-xs">
-      <span className="w-16 text-zinc-500 flex-shrink-0">{label}</span>
-      <span className="text-zinc-300 font-mono truncate">{value}</span>
-    </div>
-  )
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  if (n < 1024 ** 3) return `${(n / 1024 / 1024).toFixed(1)} MB`
-  return `${(n / 1024 ** 3).toFixed(2)} GB`
-}
-
-function formatUptime(seconds: number, t: (key: string, opts?: Record<string, unknown>) => string): string {
-  if (seconds < 60) return t("uptime.seconds", { n: Math.floor(seconds) })
-  if (seconds < 3600) return t("uptime.minutes", { m: Math.floor(seconds / 60), s: Math.floor(seconds % 60) })
-  if (seconds < 86400) return t("uptime.hours", { h: Math.floor(seconds / 3600), m: Math.floor((seconds % 3600) / 60) })
-  return t("uptime.days", { d: Math.floor(seconds / 86400), h: Math.floor((seconds % 86400) / 3600) })
 }

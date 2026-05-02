@@ -3,41 +3,8 @@ import { ExternalLink, Link2, Link2Off, Loader2, RefreshCw } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "@/features/auth/useAuthStore"
-
-interface KnownAgent {
-  agent_id: string
-  last_seen: string
-  states: number
-}
-
-interface Status {
-  configured: boolean
-  connected: boolean
-  ws_connected?: boolean
-  backend_reachable?: boolean
-  last_error?: string | null
-  url?: string
-  ws_url?: string
-  agent_id?: string
-  handoff_timeout_s?: number
-  known_agents?: KnownAgent[]
-  reconnect_attempts?: number
-  last_connect_at?: string | null
-  pending_handoffs?: number
-  dashboard_url?: string
-}
-
-function relTime(iso: string, locale: string): string {
-  if (!iso) return "—"
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return "—"
-  const diffMs = Date.now() - d.getTime()
-  const s = Math.round(diffMs / 1000)
-  if (s < 60) return `${s}s`
-  if (s < 3600) return `${Math.round(s / 60)}m`
-  if (s < 86400) return `${Math.round(s / 3600)}h`
-  return d.toLocaleDateString(locale)
-}
+import { relTime, type AgentLinkStatus } from "./_agentLinkHelpers"
+import { AgentLinkKnownAgents } from "./_AgentLinkKnownAgents"
 
 const REFRESH_MS = 10_000
 
@@ -45,12 +12,12 @@ export function AgentLinkCard() {
   const { t, i18n } = useTranslation("system")
   const { t: tCommon } = useTranslation("common")
   const role = useAuthStore((s) => s.role)
-  const [status, setStatus] = useState<Status | null>(null)
+  const [status, setStatus] = useState<AgentLinkStatus | null>(null)
   const [reconnecting, setReconnecting] = useState(false)
   const [reconnectError, setReconnectError] = useState<string | null>(null)
 
   async function load() {
-    try { setStatus(await api.get<Status>("/agentlink/status")) }
+    try { setStatus(await api.get<AgentLinkStatus>("/agentlink/status")) }
     catch { /* leise */ }
   }
 
@@ -58,8 +25,8 @@ export function AgentLinkCard() {
     let alive = true
     async function tick() { if (alive) await load() }
     tick()
-    const t = setInterval(tick, REFRESH_MS)
-    return () => { alive = false; clearInterval(t) }
+    const id = setInterval(tick, REFRESH_MS)
+    return () => { alive = false; clearInterval(id) }
   }, [])
 
   async function reconnect() {
@@ -135,26 +102,7 @@ export function AgentLinkCard() {
       </div>
 
       {status.known_agents && status.known_agents.length > 0 && (
-        <div className="pt-1 border-t border-white/[6%]">
-          <p className="text-[10.5px] uppercase tracking-wider text-zinc-500 mb-1.5">
-            {t("agentlink.known_agents", { count: status.known_agents.length })}
-          </p>
-          <div className="space-y-1">
-            {status.known_agents.map(a => (
-              <div key={a.agent_id} className="flex items-center gap-2 text-[11px]">
-                <span className="px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-violet-200 font-mono truncate flex-1 min-w-0">
-                  {a.agent_id}
-                </span>
-                <span className="text-zinc-500 font-mono whitespace-nowrap" title={a.last_seen}>
-                  vor {relTime(a.last_seen, i18n.language)}
-                </span>
-                <span className="text-zinc-600 font-mono whitespace-nowrap text-[10px]">
-                  {a.states} {t("agentlink.states")}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <AgentLinkKnownAgents agents={status.known_agents} locale={i18n.language} />
       )}
 
       {!status.connected && status.last_error && (
