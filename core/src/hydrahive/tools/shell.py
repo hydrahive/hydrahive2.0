@@ -88,10 +88,24 @@ def _build_env(ctx: ToolContext) -> dict:
     return env
 
 
+import re
+
+# Hard-Block: mmx speech-Synthese via shell_exec. LLM rief das früher gerne auf
+# wenn der User "lies vor"/"sende mir was als audio" sagte und hat damit das
+# tägliche TTS-Kontingent gefressen. Quoten-relevante Calls laufen NUR über
+# api/routes/tts.py (mit Daily-Cap) oder das dedizierte plugin minimax_creator.speech.
+_BLOCKED_MMX_SPEECH = re.compile(r"\bmmx\b.*\b(speech|tts)\b", re.IGNORECASE)
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     cmd = args.get("cmd", "").strip()
     if not cmd:
         return ToolResult.fail("Leerer Befehl")
+    if _BLOCKED_MMX_SPEECH.search(cmd):
+        return ToolResult.fail(
+            "mmx speech/tts via shell_exec ist gesperrt — nutze das dedizierte "
+            "Tool 'speech' (plugin minimax-creator) oder den /api/tts-Endpoint."
+        )
     timeout = int(args.get("timeout", 60))
     if timeout < 1 or timeout > 600:
         return ToolResult.fail("Timeout muss zwischen 1 und 600 Sekunden liegen")
