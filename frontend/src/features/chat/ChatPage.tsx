@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react"
-import { AlertTriangle, Archive, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { HelpButton } from "@/i18n/HelpButton"
-import { chatApi, type ProjectBrief } from "./api"
+import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
 import { MessageInput } from "./MessageInput"
 import { MessageList } from "./MessageList"
 import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
-import { TokenMeter } from "./TokenMeter"
 import { ToolConfirmBanner } from "./ToolConfirmBanner"
 import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
+import { ChatHeader } from "./_ChatHeader"
 import type { AgentBrief, Session } from "./types"
+import type { ProjectBrief } from "./api"
 import { useChat } from "./useChat"
 
 export function ChatPage() {
@@ -33,28 +32,17 @@ export function ChatPage() {
         chatApi.listAgents(),
         chatApi.listProjects(),
       ])
-      setSessions(s)
-      setAgents(a)
-      setProjects(p)
+      setSessions(s); setAgents(a); setProjects(p)
       if (!activeId && s.length > 0) setActiveId(s[0].id)
-    } catch {
-      /* leer lassen */
-    }
+    } catch { /* ignore */ }
   }
 
-  useEffect(() => {
-    loadAll()
-  }, [])
-
-  useEffect(() => {
-    chat.reload()
-  }, [activeId, chat.reload])
+  useEffect(() => { loadAll() }, [])
+  useEffect(() => { chat.reload() }, [activeId, chat.reload])
 
   async function handleNew(agentId: string, title: string, projectId?: string) {
     const s = await chatApi.createSession(agentId, title || undefined, projectId)
-    setShowNew(false)
-    setSessions((cur) => [s, ...cur])
-    setActiveId(s.id)
+    setShowNew(false); setSessions((cur) => [s, ...cur]); setActiveId(s.id)
   }
 
   async function handleDelete(id: string) {
@@ -66,9 +54,7 @@ export function ChatPage() {
   const [tokenRefresh, setTokenRefresh] = useState(0)
 
   async function handleSend(text: string, files: File[] = []) {
-    await chat.send(text, files)
-    loadAll()
-    setTokenRefresh((n) => n + 1)
+    await chat.send(text, files); loadAll(); setTokenRefresh((n) => n + 1)
   }
 
   const activeSession = sessions.find((s) => s.id === activeId) ?? null
@@ -85,13 +71,13 @@ export function ChatPage() {
       .catch(() => {})
     return () => { alive = false }
   }, [activeAgent?.id])
+
   const [compacting, setCompacting] = useState(false)
   const [compactNote, setCompactNote] = useState<string | null>(null)
 
   async function handleCompact() {
     if (!activeId) return
-    setCompacting(true)
-    setCompactNote(null)
+    setCompacting(true); setCompactNote(null)
     try {
       const r = await chatApi.compact(activeId)
       if (r.skipped) {
@@ -107,19 +93,14 @@ export function ChatPage() {
                 kept: r.kept_count,
                 tokens: r.tokens_before.toLocaleString(i18n.language),
               })
-            : t("compact.result", {
-                summarized: r.summarized_count,
-                kept: r.kept_count,
-              }),
+            : t("compact.result", { summarized: r.summarized_count, kept: r.kept_count }),
         )
       }
-      await chat.reload()
-      setTokenRefresh((n) => n + 1)
+      await chat.reload(); setTokenRefresh((n) => n + 1)
     } catch (e) {
       setCompactNote(e instanceof Error ? e.message : tCommon("status.error"))
     } finally {
-      setCompacting(false)
-      setTimeout(() => setCompactNote(null), 5000)
+      setCompacting(false); setTimeout(() => setCompactNote(null), 5000)
     }
   }
 
@@ -128,62 +109,13 @@ export function ChatPage() {
       <main className="flex-1 flex flex-col min-w-0">
         {activeSession ? (
           <>
-            <div className="px-6 py-3 border-b border-white/[6%] flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <h2
-                  className="text-sm font-medium text-zinc-200 truncate flex items-center gap-2"
-                  title={systemPrompt ? `${t("session.system_prompt_label")}\n\n${systemPrompt.slice(0, 1500)}${systemPrompt.length > 1500 ? "…" : ""}` : undefined}
-                >
-                  {activeOrphaned && <AlertTriangle size={14} className="text-amber-400" />}
-                  {activeSession.title}
-                </h2>
-                <p className="text-xs text-zinc-600 mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>{t("session.id_short")}: {activeSession.id.slice(0, 8)}…</span>
-                  {activeAgent && (
-                    <span className="text-zinc-500">
-                      · <span className="text-violet-300/80 font-mono">{activeAgent.llm_model}</span>
-                    </span>
-                  )}
-                  {chat.lastTurnTokens && !chat.busy && (
-                    <span className="text-zinc-500" title={t("tokens.tooltip")}>
-                      · {t("tokens.last_turn")}: <span className="tabular-nums">
-                        <span className="text-emerald-400/80">↑{chat.lastTurnTokens.input.toLocaleString(i18n.language)}</span>
-                        {" "}<span className="text-emerald-400/80">↓{chat.lastTurnTokens.output.toLocaleString(i18n.language)}</span>
-                        {chat.lastTurnTokens.cache_read > 0 && (
-                          <> {" "}<span className="text-cyan-400/80">⚡{chat.lastTurnTokens.cache_read.toLocaleString(i18n.language)}</span></>
-                        )}
-                        {chat.lastTurnTokens.cache_creation > 0 && (
-                          <> {" "}<span className="text-amber-400/80">💾{chat.lastTurnTokens.cache_creation.toLocaleString(i18n.language)}</span></>
-                        )}
-                      </span>
-                    </span>
-                  )}
-                  {compactNote && <span className="text-amber-400">· {compactNote}</span>}
-                </p>
-              </div>
-              <TokenMeter sessionId={activeSession.id} refresh={tokenRefresh} />
-              <HelpButton topic="chat" />
-              <button
-                onClick={handleCompact}
-                disabled={compacting || activeOrphaned}
-                title={t("compact.tooltip")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                {compacting ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
-                {t("compact.button")}
-              </button>
-            </div>
-            {activeOrphaned && (
-              <div className="mx-6 mt-4 px-4 py-3 rounded-lg border border-amber-500/30 bg-amber-500/[6%] text-sm text-amber-200 flex items-center justify-between gap-4">
-                <span>{t("session.orphaned_banner")}</span>
-                <button
-                  onClick={() => handleDelete(activeSession.id)}
-                  className="px-3 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-100 text-xs whitespace-nowrap"
-                >
-                  {t("session.delete_session")}
-                </button>
-              </div>
-            )}
+            <ChatHeader
+              session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
+              compacting={compacting} compactNote={compactNote}
+              lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
+              systemPrompt={systemPrompt} onCompact={handleCompact}
+              onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
+            />
             <MessageList
               messages={chat.messages}
               busy={chat.busy}
@@ -209,13 +141,9 @@ export function ChatPage() {
 
       <CollapsibleSidebar>
         <SessionList
-          sessions={sessions}
-          activeId={activeId}
-          knownAgentIds={knownAgentIds}
-          projects={projects}
-          onSelect={setActiveId}
-          onDelete={handleDelete}
-          onNew={() => setShowNew(true)}
+          sessions={sessions} activeId={activeId}
+          knownAgentIds={knownAgentIds} projects={projects}
+          onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
         />
       </CollapsibleSidebar>
 

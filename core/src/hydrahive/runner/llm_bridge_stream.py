@@ -1,15 +1,14 @@
 """Streaming-Variant des LLM-Calls.
 
 Yields rohe Anthropic-Stream-Events. Caller (runner) macht das Mapping auf
-unsere Event-Klassen + Block-Akkumulation. Tools-Support-Pfad nur Anthropic-OAuth
-wie der non-streaming Bridge — LiteLLM/MiniMax kommt mit Provider-Ausbau.
-"""
+unsere Event-Klassen + Block-Akkumulation."""
 from __future__ import annotations
 
 import logging
-from typing import Any, AsyncIterator
+from typing import AsyncIterator
 
 from hydrahive.llm import client as llm_client
+from hydrahive.runner._stream_providers import anthropic_stream, minimax_stream
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ async def stream_with_tools(
         minimax_key = llm_client._get_minimax_key(cfg)
         if not minimax_key:
             raise StreamingNotSupported("MiniMax-API-Key fehlt")
-        async for ev in _minimax_stream(
+        async for ev in minimax_stream(
             api_key=minimax_key,
             model=llm_client._strip_provider_prefix(target),
             system_prompt=system_prompt,
@@ -66,7 +65,7 @@ async def stream_with_tools(
     if not is_claude or not anthropic_key:
         raise StreamingNotSupported("Streaming nur für Anthropic + MiniMax implementiert")
 
-    async for ev in _anthropic_stream(
+    async for ev in anthropic_stream(
         key=anthropic_key,
         model=llm_client._strip_provider_prefix(target),
         system_prompt=system_prompt,
@@ -76,164 +75,3 @@ async def stream_with_tools(
         max_tokens=max_tokens,
     ):
         yield ev
-
-
-async def _anthropic_stream(
-    *,
-    key: str,
-    model: str,
-    system_prompt: str,
-    messages: list[dict],
-    tools: list[dict],
-    temperature: float,
-    max_tokens: int,
-) -> AsyncIterator[dict]:
-    import anthropic as _anthropic
-    is_oauth = key.startswith("sk-ant-oat")
-    if is_oauth:
-        client = _anthropic.AsyncAnthropic(
-            api_key="", auth_token=key, timeout=300.0,
-            default_headers=llm_client._ANTHROPIC_OAUTH_HEADERS,
-        )
-    else:
-        client = _anthropic.AsyncAnthropic(api_key=key, timeout=300.0)
-
-    # System-Block mit Prompt-Caching — bei OAuth zusätzlich Identity-Header.
-    # Cache-Read kostet 10% nach dem ersten Call.
-    system_blocks: list[dict[str, Any]] = []
-    if is_oauth:
-        system_blocks.append({"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]})
-    if system_prompt:
-        system_blocks.append({
-            "type": "text",
-            "text": system_prompt,
-            "cache_control": {"type": "ephemeral"},
-        })
-    elif system_blocks:
-        system_blocks[0]["cache_control"] = {"type": "ephemeral"}
-
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if system_blocks:
-        kwargs["system"] = system_blocks
-    if tools:
-        kwargs["tools"] = tools
-
-    # opus-4-7 etc. akzeptieren kein temperature — bei "deprecated"-Fehler
-    # einmal ohne temperature retry.
-    try:
-        cm = client.messages.stream(**kwargs)
-    except _anthropic.BadRequestError as e:
-        if "temperature" in str(e).lower() and "deprecated" in str(e).lower():
-            kwargs.pop("temperature", None)
-            cm = client.messages.stream(**kwargs)
-        else:
-            raise
-    async with cm as stream:
-        async for ev in stream:
-            mapped = _map_event(ev)
-            if mapped is not None:
-                yield mapped
-        # Nach dem Stream: finale Message holen für stop_reason + Blocks + Usage
-        final = await stream.get_final_message()
-        usage = getattr(final, "usage", None)
-        yield {
-            "type": "message_stop",
-            "stop_reason": getattr(final, "stop_reason", "") or "",
-            "blocks": [_block_to_dict(b) for b in (final.content or [])],
-            "input_tokens": getattr(usage, "input_tokens", 0) if usage else 0,
-            "output_tokens": getattr(usage, "output_tokens", 0) if usage else 0,
-            "cache_creation_tokens": getattr(usage, "cache_creation_input_tokens", 0) if usage else 0,
-            "cache_read_tokens": getattr(usage, "cache_read_input_tokens", 0) if usage else 0,
-        }
-
-
-async def _minimax_stream(
-    *,
-    api_key: str,
-    model: str,
-    system_prompt: str,
-    messages: list[dict],
-    tools: list[dict],
-    temperature: float,
-    max_tokens: int,
-) -> AsyncIterator[dict]:
-    import anthropic as _anthropic
-    client = _anthropic.AsyncAnthropic(
-        base_url=llm_client.MINIMAX_BASE_URL,
-        api_key=api_key,
-        timeout=300.0,
-        default_headers={"Authorization": f"Bearer {api_key}"},
-    )
-
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if system_prompt:
-        kwargs["system"] = [{
-            "type": "text",
-            "text": system_prompt,
-            "cache_control": {"type": "ephemeral"},
-        }]
-    if tools:
-        kwargs["tools"] = tools
-
-    async with client.messages.stream(**kwargs) as stream:
-        async for ev in stream:
-            mapped = _map_event(ev)
-            if mapped is not None:
-                yield mapped
-        final = await stream.get_final_message()
-        usage = getattr(final, "usage", None)
-        yield {
-            "type": "message_stop",
-            "stop_reason": getattr(final, "stop_reason", "") or "",
-            "blocks": [_block_to_dict(b) for b in (final.content or [])],
-            "input_tokens": getattr(usage, "input_tokens", 0) if usage else 0,
-            "output_tokens": getattr(usage, "output_tokens", 0) if usage else 0,
-            "cache_creation_tokens": getattr(usage, "cache_creation_input_tokens", 0) if usage else 0,
-            "cache_read_tokens": getattr(usage, "cache_read_input_tokens", 0) if usage else 0,
-        }
-
-
-def _map_event(ev: Any) -> dict | None:
-    """Anthropic-SDK-Event → flat dict. None für Events die wir ignorieren."""
-    et = getattr(ev, "type", "")
-    if et == "message_start":
-        return {"type": "message_start"}
-    if et == "content_block_start":
-        idx = getattr(ev, "index", 0)
-        block = getattr(ev, "content_block", None)
-        btype = getattr(block, "type", "") if block else ""
-        out = {"type": "block_start", "index": idx, "block_type": btype}
-        if btype == "tool_use":
-            out["id"] = getattr(block, "id", "")
-            out["name"] = getattr(block, "name", "")
-        return out
-    if et == "content_block_delta":
-        idx = getattr(ev, "index", 0)
-        delta = getattr(ev, "delta", None)
-        dtype = getattr(delta, "type", "") if delta else ""
-        if dtype == "text_delta":
-            return {"type": "text_delta", "index": idx, "text": getattr(delta, "text", "")}
-        if dtype == "input_json_delta":
-            return {"type": "input_delta", "index": idx, "json_partial": getattr(delta, "partial_json", "")}
-        return None
-    if et == "content_block_stop":
-        return {"type": "block_stop", "index": getattr(ev, "index", 0)}
-    return None
-
-
-def _block_to_dict(block: Any) -> dict:
-    if hasattr(block, "model_dump"):
-        return block.model_dump()
-    if isinstance(block, dict):
-        return block
-    return {"type": getattr(block, "type", "unknown")}
