@@ -104,6 +104,18 @@ server {
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
+
+    # AgentLink-Frontend-Proxy — verhindert Mixed-Content wenn HydraHive auf HTTPS läuft.
+    # Statt http://127.0.0.1:9001 direkt im Browser öffnen, läuft der Traffic über
+    # denselben HTTPS-Origin → kein Mixed-Content-Block.
+    location /agentlink/ {
+        proxy_pass http://127.0.0.1:${HL_FRONTEND_PORT:-9001}/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
 }
 EOF
 
