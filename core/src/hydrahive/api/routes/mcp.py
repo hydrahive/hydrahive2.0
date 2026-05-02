@@ -4,58 +4,21 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from hydrahive.api.middleware.errors import coded
-from pydantic import BaseModel
-
 from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._mcp_schemas import (
+    McpServerCreate, McpServerUpdate, QuickAddRequest, annotate_status as _annotate_status,
+)
 from hydrahive.mcp import McpValidationError, config as mcp_config, manager as mcp_manager
 from hydrahive.mcp import defaults as mcp_defaults
 
 router = APIRouter(prefix="/api/mcp", tags=["mcp"])
 
 
-class McpServerCreate(BaseModel):
-    id: str
-    name: str
-    transport: str
-    description: str = ""
-    enabled: bool = True
-    command: str | None = None
-    args: list[str] | None = None
-    env: dict[str, str] | None = None
-    url: str | None = None
-    headers: dict[str, str] | None = None
-
-
-class McpServerUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    enabled: bool | None = None
-    command: str | None = None
-    args: list[str] | None = None
-    env: dict[str, str] | None = None
-    url: str | None = None
-    headers: dict[str, str] | None = None
-
-
-def _annotate_status(server: dict) -> dict:
-    """Connect-Status aus Manager pro Server beimischen."""
-    out = dict(server)
-    pool = {s["id"]: s["connected"] for s in mcp_manager.status()}
-    out["connected"] = bool(pool.get(server["id"], False))
-    return out
-
-
 @router.get("/quick-add")
 def quick_add_templates(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     """Template-Liste für die Quick-Add-Buttons im Frontend."""
     return mcp_defaults.TEMPLATES
-
-
-class QuickAddRequest(BaseModel):
-    template_id: str
-    server_id: str
-    inputs: dict[str, str] = {}
 
 
 @router.post("/quick-add", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
