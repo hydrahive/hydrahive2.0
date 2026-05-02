@@ -21,6 +21,7 @@ import { ContainerDetailPage } from "@/features/containers/ContainerDetailPage"
 import { ButlerPage } from "@/features/butler/ButlerPage"
 import { BuddyPage } from "@/features/buddy/BuddyPage"
 import { HelpPage } from "@/features/help/HelpPage"
+import { WikiPage } from "@/features/wiki/WikiPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="wiki" element={<WikiPage />} />
           <Route path="help" element={<HelpPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

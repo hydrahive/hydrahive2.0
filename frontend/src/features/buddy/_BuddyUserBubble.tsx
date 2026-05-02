@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Check, Copy, Pencil, Send, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { ImageBlock } from "@/features/chat/ToolCards"
-import { extractMedia, hasMedia, MediaPreview, mediaFromBlocks } from "@/features/chat/MediaPreview"
+import { extractMedia, MediaPreview, mediaFromBlocks } from "@/features/chat/MediaPreview"
 import type { ContentBlock, Message } from "@/features/chat/types"
 
 interface Props {
