@@ -15,6 +15,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+import jwt
 from hydrahive.api.middleware.auth import _decode
 from hydrahive.containers import db as cdb
 from hydrahive.containers.console import ConsoleSession
@@ -28,7 +29,7 @@ def _authenticate(token: str | None) -> tuple[str, str] | None:
         return None
     try:
         payload = _decode(token)
-    except Exception:
+    except (ValueError, KeyError, jwt.InvalidTokenError):
         return None
     return payload["sub"], payload["role"]
 
@@ -55,13 +56,13 @@ async def container_console(ws: WebSocket, container_id: str, token: str | None 
     async def on_output(data: bytes) -> None:
         try:
             await ws.send_bytes(data)
-        except Exception:
+        except Exception:  # WebSocket disconnected — all errors are expected here
             pass
 
     async def on_exit() -> None:
         try:
             await ws.close()
-        except Exception:
+        except Exception:  # WebSocket may already be closed
             pass
 
     try:

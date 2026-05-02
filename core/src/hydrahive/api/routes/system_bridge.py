@@ -32,7 +32,7 @@ def bridge_status(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
                            capture_output=True, text=True, timeout=5)
         if r.returncode != 0:
             return {"installed": False}
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return {"installed": False}
     parts = r.stdout.split()
     state = parts[1] if len(parts) > 1 else "?"
@@ -42,7 +42,7 @@ def bridge_status(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
                                 capture_output=True, text=True, timeout=5)
         addr_parts = addr_r.stdout.split()
         addr = addr_parts[2] if len(addr_parts) > 2 else ""
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         pass
     return {"installed": True, "state": state, "ip": addr}
 

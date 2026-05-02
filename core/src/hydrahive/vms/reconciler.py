@@ -37,8 +37,8 @@ async def reconcile_once() -> None:
     """Ein Durchlauf — wird vom Loop und auf Wunsch direkt aufgerufen."""
     try:
         vms = list_vms(owner=None)
-    except Exception:
-        logger.exception("Reconciler: list_vms fehlgeschlagen")
+    except Exception as e:
+        logger.exception("Reconciler: list_vms fehlgeschlagen: %s", e)
         return
 
     active_tokens: set[str] = set()

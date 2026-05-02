@@ -49,7 +49,7 @@ def read_stats(vm_id: str, pid: int | None) -> dict:
     try:
         uptime_total = float((Path("/proc") / "uptime").read_text().split()[0])
         proc_uptime = uptime_total - starttime / _CLK_TCK
-    except Exception:
+    except (OSError, ValueError, IndexError):
         proc_uptime = 0.0
 
     # RSS aus status (kB)

@@ -21,7 +21,7 @@ def _run(cwd: Path, *args: str) -> str:
             capture_output=True, text=True, timeout=10,
         )
         return r.stdout.strip() if r.returncode == 0 else ""
-    except Exception:
+    except (OSError, subprocess.TimeoutExpired):
         return ""
 
 

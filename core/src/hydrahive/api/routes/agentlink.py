@@ -1,9 +1,12 @@
 """AgentLink-Status + manueller Reconnect-Trigger."""
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 import httpx
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends
 
 from hydrahive.agentlink import (
@@ -35,8 +38,8 @@ async def status(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
             backend_reachable = r.status_code == 200
         if backend_reachable:
             specs = await list_specialists_with_meta()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("AgentLink-Status-Check fehlgeschlagen: %s", e)
 
     return {
         "configured": True,

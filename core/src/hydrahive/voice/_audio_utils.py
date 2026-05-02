@@ -25,7 +25,7 @@ async def probe_seconds(path: Path) -> int:
         )
         out, _ = await asyncio.wait_for(proc.communicate(), timeout=10.0)
         return max(1, round(float(out.decode().strip())))
-    except Exception:
+    except (OSError, asyncio.TimeoutError, ValueError):
         return 1
 
 

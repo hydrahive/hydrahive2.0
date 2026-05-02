@@ -12,7 +12,7 @@ def build_skills_block(agent: dict) -> str:
     """Kompakte Liste aller verfügbaren Skills für den Prompt-Header."""
     try:
         from hydrahive.skills import list_for_agent
-    except Exception:
+    except ImportError:
         return ""
     owner = agent.get("owner") or ""
     if not owner:

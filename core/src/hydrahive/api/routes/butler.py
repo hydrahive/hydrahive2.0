@@ -140,6 +140,6 @@ async def project_webhook(
             result = await bex.dispatch(flow, event)
             if result:
                 fired += 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Butler-Flow '%s' dispatch fehlgeschlagen: %s", flow.flow_id, e)
     return {"ok": True, "flows_fired": fired, "project_id": project_id}

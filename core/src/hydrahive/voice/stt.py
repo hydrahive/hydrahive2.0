@@ -87,7 +87,7 @@ async def _wyoming_transcribe(pcm: bytes, language: str | None = None) -> str:
             writer.close()
             try:
                 await writer.wait_closed()
-            except Exception:
+            except OSError:
                 pass
         return ""
 

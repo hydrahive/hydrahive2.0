@@ -136,7 +136,7 @@ def samba_status() -> dict:
             r = subprocess.run(["systemctl", "is-active", "smbd"],
                                capture_output=True, text=True, timeout=5)
             running = r.stdout.strip() == "active"
-        except Exception:
+        except (OSError, subprocess.SubprocessError):
             pass
     return {
         "installed": installed,
