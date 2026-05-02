@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Grip } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
-import { api } from "@/shared/api-client"
-import { UpdateModal, type UpdateState } from "@/shared/UpdateModal"
+import { UpdateModal } from "@/shared/UpdateModal"
+import { useLayoutUpdate } from "./useLayoutUpdate"
 import { AppFooter } from "./AppFooter"
 import { AvatarMenu } from "./AvatarMenu"
 import { BentoMenu } from "./BentoMenu"
@@ -16,47 +16,12 @@ export function Layout() {
   const { t } = useTranslation("nav")
   const { pathname } = useLocation()
 
-  const [version, setVersion] = useState<string | null>(null)
-  const [commit, setCommit] = useState<string | null>(null)
-  const [updateBehind, setUpdateBehind] = useState<number | null>(null)
-  const [updateState, setUpdateState] = useState<"idle" | UpdateState>("idle")
-  const [updateError, setUpdateError] = useState<string | null>(null)
-  const [newCommit, setNewCommit] = useState<string | null>(null)
+  const {
+    version, commit, updateBehind,
+    updateState, updateError, newCommit,
+    confirmUpdate, openUpdateModal, closeUpdateModal,
+  } = useLayoutUpdate()
   const [bentoOpen, setBentoOpen] = useState(false)
-
-  useEffect(() => {
-    function loadHealth() {
-      api.get<{ version: string; commit: string | null; update_behind: number | null }>("/health")
-        .then((r) => { setVersion(r.version); setCommit(r.commit); setUpdateBehind(r.update_behind) })
-        .catch(() => {})
-    }
-    loadHealth()
-    const t = setInterval(loadHealth, 5 * 60 * 1000)
-    return () => clearInterval(t)
-  }, [])
-
-  async function confirmUpdate() {
-    setUpdateState("starting"); setUpdateError(null)
-    try {
-      await api.post<{ started: boolean }>("/system/update", {})
-    } catch (e) {
-      setUpdateState("failed"); setUpdateError(e instanceof Error ? e.message : ""); return
-    }
-    setUpdateState("running")
-    const oldCommit = commit
-    const startedAt = Date.now()
-    while (Date.now() - startedAt < 5 * 60 * 1000) {
-      await new Promise((r) => setTimeout(r, 3000))
-      try {
-        const h = await api.get<{ commit: string | null; update_behind: number | null }>("/health")
-        if (h.commit && h.commit !== oldCommit) {
-          setCommit(h.commit); setUpdateBehind(h.update_behind)
-          setNewCommit(h.commit); setUpdateState("done"); return
-        }
-      } catch { /* server still down */ }
-    }
-    setUpdateState("failed"); setUpdateError("timeout")
-  }
 
   const visible = visibleItems(role)
   const quickLinks = QUICK_LINK_PATHS
@@ -137,14 +102,14 @@ export function Layout() {
       <AppFooter
         version={version} commit={commit} updateBehind={updateBehind}
         isAdmin={role === "admin"}
-        onUpdateClick={() => { setUpdateState("confirm"); setUpdateError(null); setNewCommit(null) }}
+        onUpdateClick={openUpdateModal}
       />
 
       {updateState !== "idle" && (
         <UpdateModal
           state={updateState} newCommit={newCommit} errorMessage={updateError}
           forceMode={updateBehind === 0}
-          onConfirm={confirmUpdate} onClose={() => setUpdateState("idle")}
+          onConfirm={confirmUpdate} onClose={closeUpdateModal}
         />
       )}
     </div>
