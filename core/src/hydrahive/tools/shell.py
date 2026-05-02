@@ -13,14 +13,8 @@ _DESCRIPTION = (
     "Führt einen Shell-Befehl im Workspace aus. Gibt stdout, stderr und "
     "Exit-Code zurück. Default-Timeout: 60s. "
     "Wenn das Projekt git_repos mit Token konfiguriert hat, sind GH_TOKEN + "
-    "GITHUB_TOKEN automatisch gesetzt — `gh issue create` etc. funktionieren ohne "
-    "extra Auth. "
-    "WICHTIG: Für Multimedia-Generierung (Bild, Musik, Video, Sprache, "
-    "Bild-Beschreibung) RUFE NIE `mmx ...` via shell_exec auf. Nutze "
-    "stattdessen IMMER die dedizierten Tools `image`, `music`, `video`, "
-    "`speech`, `vision` — die liefern absolute Pfade zurück, die im Chat "
-    "automatisch als Bild/Audio/Video gerendert werden. shell_exec mit "
-    "mmx liefert nur relative Pfade im Workspace, die der User nicht sieht."
+    "GITHUB_TOKEN automatisch gesetzt — `gh issue create` etc. funktionieren "
+    "ohne extra Auth."
 )
 
 _SCHEMA = {
