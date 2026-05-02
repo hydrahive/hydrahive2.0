@@ -24,10 +24,12 @@ function HydraUserMessage() {
   const msg = useMessage()
   const originals = getExternalStoreMessages<Message>(msg)
   const original = originals[0]
-  const blocks: ContentBlock[] = original
-    ? Array.isArray(original.content) ? original.content : []
+  const blocks: ContentBlock[] = original && Array.isArray(original.content)
+    ? original.content
     : []
-  const text = blocks.find((b) => b.type === "text")?.text ?? ""
+  const text = typeof original?.content === "string"
+    ? original.content
+    : blocks.find((b) => b.type === "text")?.text ?? ""
   const images = blocks.filter((b) => b.type === "image")
   const toolResults = blocks.filter((b) => b.type === "tool_result")
   const [copied, setCopied] = useState(false)
