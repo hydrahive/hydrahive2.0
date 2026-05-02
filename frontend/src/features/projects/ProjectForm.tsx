@@ -8,6 +8,7 @@ import { GitTab } from "./_GitTab"
 import { ServersTab } from "./_ServersTab"
 import { StatsTab } from "./_StatsTab"
 import { SettingsTab } from "./_SettingsTab"
+import { SpecialistsTab } from "./_SpecialistsTab"
 import { NotesTab } from "./_NotesTab"
 import { FilesTab } from "./_FilesTab"
 import type { Project } from "./types"
@@ -18,7 +19,7 @@ interface Props {
   onDeleted: () => void
 }
 
-type Tab = "overview" | "notes" | "files" | "sessions" | "git" | "servers" | "stats" | "settings"
+type Tab = "overview" | "notes" | "files" | "sessions" | "git" | "servers" | "stats" | "settings" | "specialists"
 
 export function ProjectForm({ project, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("projects")
@@ -58,6 +59,7 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
     { id: "servers", label: t("tabs.servers") },
     { id: "stats", label: t("tabs.stats") },
     { id: "settings", label: t("tabs.settings") },
+    { id: "specialists", label: t("tabs.specialists") },
   ]
 
   return (
@@ -108,6 +110,7 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
         {tab === "servers" && <ServersTab projectId={project.id} />}
         {tab === "stats" && <StatsTab projectId={project.id} />}
         {tab === "settings" && <SettingsTab project={project} draft={draft} onDraftChange={setDraft} onDeleted={onDeleted} />}
+        {tab === "specialists" && <SpecialistsTab project={project} onSaved={onSaved} />}
       </div>
     </div>
   )

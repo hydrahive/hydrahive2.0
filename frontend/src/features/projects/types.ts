@@ -6,6 +6,7 @@ export interface Project {
   tags: string[]
   mcp_server_ids: string[]
   allowed_plugins: string[]
+  allowed_specialists: string[]
   llm_api_key: string
   members: string[]
   agent_id: string

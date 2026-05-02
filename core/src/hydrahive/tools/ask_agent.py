@@ -74,6 +74,24 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not task:
         return ToolResult.fail("task fehlt")
 
+    # Project-Agents dürfen nur freigegebene Specialists beauftragen
+    try:
+        from hydrahive.agents import config as agent_config
+        from hydrahive.projects import config as project_config
+        calling = agent_config.get(ctx.agent_id)
+        if calling and calling.get("type") == "project":
+            project_id = calling.get("project_id")
+            if project_id:
+                proj = project_config.get(project_id)
+                allowed = proj.get("allowed_specialists", []) if proj else []
+                if allowed and target not in allowed:
+                    return ToolResult.fail(
+                        f"Specialist '{target}' ist für dieses Projekt nicht freigegeben. "
+                        f"Freigegeben: {allowed}"
+                    )
+    except Exception:
+        pass  # Fehler beim Check blockieren den Call nicht
+
     task_type = args.get("task_type") or "feature"
     raw_context = args.get("context") or {}
     required_skills = args.get("required_skills") or []

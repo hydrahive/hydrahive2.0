@@ -19,6 +19,7 @@ class ProjectUpdate(BaseModel):
     description: str | None = None
     status: str | None = None
     members: list[str] | None = None
+    allowed_specialists: list[str] | None = None
 
 
 def check_project_access(project: dict, username: str, role: str) -> None:
