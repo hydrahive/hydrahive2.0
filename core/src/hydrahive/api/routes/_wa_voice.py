@@ -98,6 +98,6 @@ async def send_voice_or_text(
         if respond_as_voice:
             try:
                 await ch.send(target_username, external_user_id, answer)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Text-Fallback-Send fehlgeschlagen: %s", e)
     return False

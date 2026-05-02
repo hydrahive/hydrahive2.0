@@ -89,8 +89,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
                         f"Specialist '{target}' ist für dieses Projekt nicht freigegeben. "
                         f"Freigegeben: {allowed}"
                     )
-    except Exception:
-        pass  # Fehler beim Check blockieren den Call nicht
+    except Exception as e:
+        logger.debug("Specialists-Check übersprungen: %s", e)
 
     task_type = args.get("task_type") or "feature"
     raw_context = args.get("context") or {}

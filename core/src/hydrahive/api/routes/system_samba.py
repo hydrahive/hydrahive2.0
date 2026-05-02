@@ -31,7 +31,7 @@ def status() -> dict:
     if s["password_set"]:
         try:
             pwd = settings.samba_password_file.read_text().strip()
-        except Exception:
+        except OSError:
             pwd = ""
     return {**s, "password": pwd}
 

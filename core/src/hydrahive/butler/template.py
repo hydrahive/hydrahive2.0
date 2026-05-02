@@ -5,9 +5,12 @@ Verfügbare Variablen pro Render: `event` (TriggerEvent als dict).
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from jinja2.sandbox import SandboxedEnvironment
+
+logger = logging.getLogger(__name__)
 
 from hydrahive.butler.models import TriggerEvent
 
@@ -22,7 +25,8 @@ def render(template: str, event: TriggerEvent) -> str:
     try:
         tmpl = _ENV.from_string(template)
         return tmpl.render(event=event.model_dump())
-    except Exception:
+    except Exception as e:
+        logger.debug("Butler-Template render fehlgeschlagen: %s", e)
         return template
 
 

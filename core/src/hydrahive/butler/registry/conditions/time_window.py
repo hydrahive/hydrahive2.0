@@ -10,7 +10,7 @@ def _parse(s: str) -> tuple[int, int] | None:
     try:
         h, m = s.split(":")
         return int(h), int(m)
-    except Exception:
+    except (ValueError, AttributeError):
         return None
 
 

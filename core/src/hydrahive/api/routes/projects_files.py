@@ -34,7 +34,7 @@ def _safe_resolve(workspace: Path, rel: str) -> Path:
     Path-Traversal außerhalb des Workspaces möglich ist."""
     try:
         resolved = (workspace / rel).resolve()
-    except Exception:
+    except (OSError, ValueError):
         raise coded(status.HTTP_400_BAD_REQUEST, "invalid_path")
     if not str(resolved).startswith(str(workspace.resolve())):
         raise coded(status.HTTP_400_BAD_REQUEST, "path_traversal")

@@ -27,7 +27,7 @@ def health_check() -> dict:
         r = subprocess.run([ip_bin, "-br", "link", "show", "br0"],
                            capture_output=True, text=True, timeout=2)
         bridge_ok = r.returncode == 0
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         pass
 
     ts_bin = shutil.which("tailscale")
@@ -38,7 +38,7 @@ def health_check() -> dict:
             r = subprocess.run([ts_bin, "status", "--json", "--peers=false"],
                                capture_output=True, text=True, timeout=2)
             tailscale_ok = r.returncode == 0 and '"BackendState":"Running"' in r.stdout
-        except Exception:
+        except (OSError, subprocess.SubprocessError):
             pass
 
     return {

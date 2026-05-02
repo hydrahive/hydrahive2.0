@@ -13,8 +13,11 @@ Sechs Extension-Points:
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -77,6 +80,6 @@ async def collect_facts(ctx: CompactionContext) -> dict:
             data = await h.extract_facts(ctx)
             for k, v in (data or {}).items():
                 facts[f"{h.name}.{k}"] = v
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("extract_facts Hook '%s' fehlgeschlagen: %s", h.name, e)
     return facts

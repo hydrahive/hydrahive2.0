@@ -97,7 +97,7 @@ async def fetch_usage() -> dict:
 
     try:
         raw = resp.json()
-    except Exception:
+    except ValueError:
         return _set_cache({"available": False, "reason": "invalid_json", "fetched_at": _iso_now()})
 
     model_list = raw.get("model_remains") if isinstance(raw, dict) else []

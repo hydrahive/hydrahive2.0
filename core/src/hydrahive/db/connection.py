@@ -37,8 +37,8 @@ def db() -> Iterator[sqlite3.Connection]:
     try:
         yield conn
         conn.commit()
-    except Exception:
+    except Exception as e:
         conn.rollback()
-        raise
+        raise e
     finally:
         conn.close()

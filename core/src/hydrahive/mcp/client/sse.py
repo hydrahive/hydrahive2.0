@@ -36,9 +36,9 @@ class SseMcpClient:
             )
             session = await stack.enter_async_context(ClientSession(read, write))
             await session.initialize()
-        except Exception:
+        except Exception as e:
             await stack.aclose()
-            raise
+            raise e
         self._stack = stack
         self._session = session
         logger.info("MCP %s verbunden (sse: %s)", self.server_id, self._url)

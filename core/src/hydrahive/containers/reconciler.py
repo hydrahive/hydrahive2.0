@@ -19,8 +19,8 @@ async def reconcile_once() -> None:
     try:
         running = await incus.list_running_names()
         local = cdb.list_(owner=None)
-    except Exception:
-        logger.exception("Container-Reconciler: list fehlgeschlagen")
+    except Exception as e:
+        logger.exception("Container-Reconciler: list fehlgeschlagen: %s", e)
         return
 
     for c in local:

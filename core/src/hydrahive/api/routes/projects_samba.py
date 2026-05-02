@@ -40,7 +40,7 @@ def get_samba(
     if settings.samba_password_file.exists():
         try:
             password = settings.samba_password_file.read_text().strip()
-        except Exception:
+        except OSError:
             password = ""
     return {
         "enabled": enabled,

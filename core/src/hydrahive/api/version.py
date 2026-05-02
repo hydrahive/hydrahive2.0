@@ -45,7 +45,7 @@ def _remote_url_https() -> str | None:
         if url.startswith("git@github.com:"):
             url = "https://github.com/" + url[len("git@github.com:"):]
         return url
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return None
 
 

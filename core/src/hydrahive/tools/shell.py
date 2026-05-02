@@ -59,7 +59,7 @@ def _resolve_gh_token(ctx: ToolContext) -> str | None:
     try:
         from hydrahive.agents import config as agent_config
         from hydrahive.projects import config as project_config
-    except Exception:
+    except ImportError:
         return None
     agent = agent_config.get(ctx.agent_id)
     if not agent:
