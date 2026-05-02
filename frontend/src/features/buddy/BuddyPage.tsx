@@ -128,7 +128,7 @@ export function BuddyPage() {
                   <CmdPill icon={<RotateCcw size={11} />} label="clear"
                     color="amber" onClick={() => handleSend("/clear")} />
                   <CmdPill icon={<Save size={11} />} label="remember"
-                    color="emerald" onClick={() => insert("/remember")} />
+                    color="emerald" onClick={() => handleSend("/remember")} />
                   <CmdPill icon={<Cpu size={11} />} label="model"
                     color="violet" onClick={() => insert("/model")} />
                   <CmdPill icon={<Dice5 size={11} />} label="character"

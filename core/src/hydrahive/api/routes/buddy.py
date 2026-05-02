@@ -36,7 +36,8 @@ def buddy_clear(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict
 
 
 class RememberBody(BaseModel):
-    text: str = Field(min_length=1, max_length=4000)
+    text: str | None = Field(default=None, max_length=4000)
+    name: str | None = Field(default=None, max_length=80)
 
 
 @router.post("/remember")
@@ -45,7 +46,7 @@ def buddy_remember(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     try:
-        return commands.remember(_user(auth), body.text)
+        return commands.remember(_user(auth), body.text, body.name)
     except LookupError as e:
         raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
     except ValueError as e:

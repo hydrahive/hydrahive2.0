@@ -15,7 +15,8 @@ const HELP_TEXT = [
   "  /help — diese Liste",
   "  /clear — frischer Chat (alte Session bleibt im Verlauf)",
   "  /reset — alias für /clear",
-  "  /remember <text> — Notiz ins Buddy-Memory schreiben",
+  "  /remember — speichert den aktuellen Verlauf als 'session_<datum>'",
+  "  /remember <name> — speichert Verlauf unter eigenem Namen",
   "  /model — verfügbare Modelle anzeigen",
   "  /model <name> — Buddy-Modell wechseln",
   "  /character — neuen Charakter würfeln",
@@ -56,8 +57,8 @@ export async function runCommand(text: string): Promise<CommandResult> {
         return { message: r.message, newSessionId: r.session_id }
       }
       case "/remember": {
-        if (!arg.trim()) return { message: "Was soll ich mir merken? `/remember <text>`" }
-        const r = await buddyApi.remember(arg)
+        // Ohne Args: Verlauf-Snapshot. Mit Args: als Name für den Snapshot.
+        const r = await buddyApi.remember(arg.trim() ? { name: arg.trim() } : {})
         return { message: r.message }
       }
       case "/model":

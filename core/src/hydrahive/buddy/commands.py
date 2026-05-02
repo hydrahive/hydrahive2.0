@@ -6,10 +6,13 @@ Anzeige zurück.
 """
 from __future__ import annotations
 
+import re
 import time
+from datetime import datetime
 
 from hydrahive.agents import config as agent_config
-from hydrahive.buddy import _build_soul, _find_buddy_for, _get_or_create_session
+from hydrahive.buddy import _build_soul, _find_buddy_for
+from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._config import load_config
 from hydrahive.tools import _memory_store as memory
@@ -36,15 +39,83 @@ def clear_session(username: str) -> dict:
     }
 
 
-def remember(username: str, text: str) -> dict:
-    """Schreibt einen Memory-Eintrag direkt — ohne LLM."""
-    text = text.strip()
-    if not text:
-        raise ValueError("remember braucht einen Text")
+_SLUG_RE = re.compile(r"[^a-z0-9_-]+")
+
+
+def _slug(s: str) -> str:
+    return _SLUG_RE.sub("-", s.strip().lower()).strip("-") or "note"
+
+
+def _extract_text_from_content(content) -> str:
+    """Aus DB-Message-content (str oder list[ContentBlock]) den Text-Anteil
+    konkatenieren. Tool-Use/Tool-Result werden ausgelassen."""
+    if isinstance(content, str):
+        return content.strip()
+    if isinstance(content, list):
+        parts: list[str] = []
+        for b in content:
+            if isinstance(b, dict) and b.get("type") == "text":
+                t = b.get("text", "")
+                if t:
+                    parts.append(t)
+        return " ".join(parts).strip()
+    return ""
+
+
+def _snapshot_active_session(buddy: dict, username: str, last_n: int = 30) -> str:
+    """Markdown-Dump der letzten N user/assistant-Messages aus der aktiven
+    Lifetime-Session des Buddys."""
+    sessions = [s for s in sessions_db.list_for_user(username)
+                if s.agent_id == buddy["id"]]
+    if not sessions:
+        return ""
+    sessions.sort(key=lambda s: s.created_at, reverse=True)
+    msgs = messages_db.list_for_session(sessions[0].id)
+    msgs = [m for m in msgs if m.role in ("user", "assistant")][-last_n:]
+    lines: list[str] = []
+    for m in msgs:
+        text = _extract_text_from_content(m.content)
+        if not text:
+            continue
+        who = "User" if m.role == "user" else buddy.get("name", "Buddy")
+        lines.append(f"**{who}:** {text}")
+    return "\n\n".join(lines)
+
+
+def remember(username: str, text: str | None = None, name: str | None = None) -> dict:
+    """Schreibt einen Memory-Eintrag — ohne LLM.
+
+    - text leer + name leer → Snapshot der aktiven Session unter
+      key = `session_<YYYY-MM-DD>` (timestamp-suffix bei Kollision).
+    - text gegeben → freie Notiz unter key = `note_<unix>` (oder `<slug(name)>`).
+    - name gegeben (egal ob mit text) → key = `<slug(name)>`.
+    """
     buddy = _require_buddy(username)
-    key = f"note_{int(time.time())}"
+    text = (text or "").strip()
+    name = (name or "").strip()
+
+    if not text:
+        snapshot = _snapshot_active_session(buddy, username)
+        if not snapshot:
+            return {"ok": False, "message": "Kein Verlauf zum Speichern."}
+        date = datetime.now().strftime("%Y-%m-%d")
+        base_key = _slug(name) if name else f"session_{date}"
+        key = base_key
+        if memory.read_key(buddy["id"], key) is not None:
+            key = f"{base_key}_{datetime.now().strftime('%H%M%S')}"
+        content = (
+            f"# Session {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n{snapshot}"
+        )
+        memory.write_key(buddy["id"], key, content)
+        return {
+            "ok": True, "key": key,
+            "message": f"Verlauf gespeichert als '{key}' "
+                       f"({content.count(chr(10) + chr(10)) + 1} Einträge).",
+        }
+
+    key = _slug(name) if name else f"note_{int(time.time())}"
     memory.write_key(buddy["id"], key, text)
-    return {"ok": True, "key": key, "message": f"Gespeichert unter {key}."}
+    return {"ok": True, "key": key, "message": f"Gespeichert unter '{key}'."}
 
 
 def list_models(username: str) -> dict:
