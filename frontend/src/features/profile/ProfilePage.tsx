@@ -2,10 +2,11 @@ import { Crown, User as UserIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
+import { BackupRestoreCard } from "./BackupRestoreCard"
 import { ChangeOwnPasswordCard } from "./ChangeOwnPasswordCard"
+import { LandingSwitcher } from "./LandingSwitcher"
 import { ThemeSwitcher } from "./ThemeSwitcher"
 import { TTSSettings } from "./TTSSettings"
-import { LandingSwitcher } from "./LandingSwitcher"
 
 export function ProfilePage() {
   const { t } = useTranslation("profile")
@@ -51,6 +52,8 @@ export function ProfilePage() {
       <LandingSwitcher />
 
       <TTSSettings />
+
+      <BackupRestoreCard />
     </div>
   )
 }
