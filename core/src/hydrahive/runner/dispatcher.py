@@ -7,6 +7,7 @@ from dataclasses import asdict
 from hydrahive.db import tools as tools_db
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
+from hydrahive.runner._media import extract_media
 from hydrahive.tools import REGISTRY, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -76,11 +77,24 @@ async def execute_tool(
     return result, record.id, duration_ms
 
 
-def to_tool_result_block(tool_use_id: str, result: ToolResult) -> dict:
-    """Build the Anthropic `tool_result` content block from a ToolResult."""
-    return {
+def to_tool_result_block(
+    tool_use_id: str, result: ToolResult, ctx: ToolContext | None = None
+) -> dict:
+    """Build the Anthropic `tool_result` content block from a ToolResult.
+
+    Hängt zusätzlich `media: [{kind, path}]` an wenn der Tool-Output
+    Bild/Audio/Video-Pfade enthält. Das Frontend rendert daraus direkt —
+    KEIN LLM-Antworttext-Parsing mehr. Das `media`-Feld wird beim API-Call
+    automatisch von `_ANTHROPIC_ALLOWED` weggefiltert (in context.py).
+    """
+    block: dict = {
         "type": "tool_result",
         "tool_use_id": tool_use_id,
         "content": result.to_llm(),
         "is_error": not result.success,
     }
+    workspace = ctx.workspace if ctx else None
+    media = extract_media(result, workspace)
+    if media:
+        block["media"] = media
+    return block

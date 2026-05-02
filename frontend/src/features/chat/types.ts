@@ -14,11 +14,20 @@ export type ImageSource =
   | { type: "base64"; media_type: string; data: string }
   | { type: "url"; url: string }
 
+export type ToolMedia = { kind: "image" | "audio" | "video"; path: string }
+
 export type ContentBlock =
   | { type: "text"; text: string }
   | { type: "image"; source: ImageSource }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown>; duration_ms?: number }
-  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean; duration_ms?: number }
+  | {
+      type: "tool_result"
+      tool_use_id: string
+      content: string
+      is_error?: boolean
+      duration_ms?: number
+      media?: ToolMedia[]
+    }
 
 export interface Message {
   id: string
