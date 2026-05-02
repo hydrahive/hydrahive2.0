@@ -30,6 +30,7 @@
   "tabs": {
     "overview": "Overview",
     "notes": "Notes",
+    "files": "Files",
     "sessions": "Sessions",
     "git": "Git",
     "servers": "Servers",
@@ -39,6 +40,19 @@
   "notes": {
     "hint": "Markdown notes, briefing or context for this project.",
     "placeholder": "# Project Briefing\n\nGoal, context, decisions…"
+  },
+  "files": {
+    "empty": "Workspace is empty.",
+    "close": "Close"
+  },
+  "overrides": {
+    "title": "Project Overrides",
+    "mcp_label": "MCP Servers (Override)",
+    "mcp_hint": "Empty = agent default MCPs. Comma-separated server IDs.",
+    "plugins_label": "Plugins (Whitelist)",
+    "plugins_hint": "Empty = all active plugins. Comma-separated plugin names.",
+    "api_key_label": "API Key (Override)",
+    "api_key_hint": "Overrides the global LLM provider key for this project."
   },
   "servers": {
     "empty": "No servers assigned yet.",

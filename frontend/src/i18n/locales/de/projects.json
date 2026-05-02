@@ -30,6 +30,7 @@
   "tabs": {
     "overview": "Übersicht",
     "notes": "Notizen",
+    "files": "Dateien",
     "sessions": "Sessions",
     "git": "Git",
     "servers": "Server",
@@ -39,6 +40,19 @@
   "notes": {
     "hint": "Markdown-Notizen, Briefing oder Kontext für dieses Projekt.",
     "placeholder": "# Projekt-Briefing\n\nZiel, Kontext, Entscheidungen…"
+  },
+  "files": {
+    "empty": "Workspace ist leer.",
+    "close": "Schließen"
+  },
+  "overrides": {
+    "title": "Projekt-Overrides",
+    "mcp_label": "MCP-Server (Override)",
+    "mcp_hint": "Leer = Standard-MCPs des Agents. Komma-getrennte Server-IDs.",
+    "plugins_label": "Plugins (Whitelist)",
+    "plugins_hint": "Leer = alle aktiven Plugins. Komma-getrennte Plugin-Namen.",
+    "api_key_label": "API-Key (Override)",
+    "api_key_hint": "Überschreibt den globalen LLM-Provider-Key für dieses Projekt."
   },
   "servers": {
     "empty": "Noch keine Server zugewiesen.",
