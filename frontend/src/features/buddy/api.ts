@@ -17,7 +17,8 @@ export interface CharacterResult { ok: boolean; session_id: string; message: str
 export const buddyApi = {
   state: () => api.get<BuddyState>("/buddy/state"),
   clear: () => api.post<ClearResult>("/buddy/clear", {}),
-  remember: (text: string) => api.post<RememberResult>("/buddy/remember", { text }),
+  remember: (body: { text?: string; name?: string }) =>
+    api.post<RememberResult>("/buddy/remember", body),
   models: () => api.get<ModelsResult>("/buddy/models"),
   setModel: (model: string) => api.post<SetModelResult>("/buddy/model", { model }),
   character: () => api.post<CharacterResult>("/buddy/character", {}),
