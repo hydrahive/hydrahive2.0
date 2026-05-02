@@ -35,7 +35,15 @@
     "git": "Git",
     "servers": "Servers",
     "stats": "Stats",
-    "settings": "Settings"
+    "settings": "Settings",
+    "specialists": "Specialists"
+  },
+  "specialists": {
+    "description": "Which specialists can the project agent call via ask_agent?",
+    "no_agentlink": "AgentLink is not configured — specialists cannot be called.",
+    "none": "No specialists created yet.",
+    "save": "Save",
+    "saved": "Saved"
   },
   "notes": {
     "hint": "Markdown notes, briefing or context for this project.",

@@ -5,7 +5,7 @@ export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
   get: (id: string) => api.get<Project>(`/projects/${id}`),
   create: (req: ProjectCreate) => api.post<Project>("/projects", req),
-  update: (id: string, fields: Partial<ProjectCreate & { status: string; notes: string; tags: string[]; mcp_server_ids: string[]; allowed_plugins: string[]; llm_api_key: string }>) =>
+  update: (id: string, fields: Partial<ProjectCreate & { status: string; notes: string; tags: string[]; mcp_server_ids: string[]; allowed_plugins: string[]; allowed_specialists: string[]; llm_api_key: string }>) =>
     api.patch<Project>(`/projects/${id}`, fields),
   listFiles: (id: string, path = "") =>
     api.get<{ path: string; entries: { name: string; type: "file" | "dir"; size: number | null; modified: number }[] }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
