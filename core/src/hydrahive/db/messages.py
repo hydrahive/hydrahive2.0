@@ -1,40 +1,12 @@
 from __future__ import annotations
 
 import json
-import sqlite3
-from dataclasses import dataclass, field
 from typing import Any
 
+from hydrahive.db._message_model import Message
+from hydrahive.db._messages_llm import list_for_llm
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
-
-
-@dataclass
-class Message:
-    id: str
-    session_id: str
-    role: str
-    content: Any
-    created_at: str = ""
-    token_count: int | None = None
-    metadata: dict = field(default_factory=dict)
-
-    @classmethod
-    def from_row(cls, row: sqlite3.Row) -> "Message":
-        raw = row["content"]
-        try:
-            content = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            content = raw
-        return cls(
-            id=row["id"],
-            session_id=row["session_id"],
-            role=row["role"],
-            content=content,
-            created_at=row["created_at"],
-            token_count=row["token_count"],
-            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
-        )
 
 
 def append(
@@ -59,11 +31,9 @@ def append(
             """INSERT INTO messages
                (id, session_id, role, content, created_at, token_count, metadata)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (
-                m.id, m.session_id, m.role, content_str, m.created_at,
-                m.token_count,
-                json.dumps(m.metadata) if m.metadata else None,
-            ),
+            (m.id, m.session_id, m.role, content_str, m.created_at,
+             m.token_count,
+             json.dumps(m.metadata) if m.metadata else None),
         )
         conn.execute(
             "UPDATE sessions SET updated_at = ? WHERE id = ?",
@@ -89,60 +59,8 @@ def list_for_session(session_id: str, limit: int | None = None) -> list[Message]
     return [Message.from_row(r) for r in rows]
 
 
-def list_for_llm(session_id: str) -> list[Message]:
-    """Wie list_for_session, aber resolved durch die neueste Compaction.
-
-    Gibt nur die kept-Portion zurück (ab firstKeptEntryId), ohne
-    Compaction-Rows. Caller muss `get_latest_summary()` separat laden.
-
-    SQL-optimiert: zwei gezielte Queries statt komplette History-Liste —
-    bei großen Sessions massiver Unterschied.
-    """
-    with db() as conn:
-        cmp_row = conn.execute(
-            """SELECT id, created_at, metadata FROM messages
-               WHERE session_id = ? AND role = 'compaction'
-               ORDER BY created_at DESC LIMIT 1""",
-            (session_id,),
-        ).fetchone()
-
-        if cmp_row is None:
-            rows = conn.execute(
-                "SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC",
-                (session_id,),
-            ).fetchall()
-            return [Message.from_row(r) for r in rows]
-
-        meta = json.loads(cmp_row["metadata"]) if cmp_row["metadata"] else {}
-        first_kept = meta.get("firstKeptEntryId")
-        if not first_kept:
-            rows = conn.execute(
-                "SELECT * FROM messages WHERE session_id = ? AND role != 'compaction' ORDER BY created_at ASC",
-                (session_id,),
-            ).fetchall()
-            return [Message.from_row(r) for r in rows]
-
-        ts_row = conn.execute(
-            "SELECT created_at FROM messages WHERE id = ?", (first_kept,),
-        ).fetchone()
-        if not ts_row:
-            rows = conn.execute(
-                "SELECT * FROM messages WHERE session_id = ? AND role != 'compaction' ORDER BY created_at ASC",
-                (session_id,),
-            ).fetchall()
-            return [Message.from_row(r) for r in rows]
-
-        rows = conn.execute(
-            """SELECT * FROM messages
-               WHERE session_id = ? AND role != 'compaction' AND created_at >= ?
-               ORDER BY created_at ASC""",
-            (session_id, ts_row["created_at"]),
-        ).fetchall()
-    return [Message.from_row(r) for r in rows]
-
-
 def get_latest_summary(session_id: str) -> str | None:
-    """Return the most recent compaction summary text, or None if no compaction yet."""
+    """Return the most recent compaction summary text, or None."""
     with db() as conn:
         row = conn.execute(
             """SELECT content FROM messages
@@ -167,8 +85,7 @@ def delete(message_id: str) -> None:
 
 
 def delete_from(session_id: str, message_id: str) -> int:
-    """Löscht die targeted message + alle Folgenden (created_at >=). Wird für
-    Edit+Resend genutzt — die alte User-Message wird durch die neue ersetzt."""
+    """Delete target message + all following messages (for edit+resend)."""
     with db() as conn:
         row = conn.execute(
             "SELECT created_at FROM messages WHERE id = ? AND session_id = ?",
