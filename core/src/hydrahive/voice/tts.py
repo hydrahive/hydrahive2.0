@@ -14,7 +14,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -36,26 +35,15 @@ def is_available() -> bool:
     return shutil.which("mmx") is not None and shutil.which("ffmpeg") is not None
 
 
-def _mmx_env() -> dict[str, str]:
-    """ENV für mmx-Subprocess inkl. MINIMAX_API_KEY aus llm.json.
-
-    mmx-CLI fragt nach env MINIMAX_API_KEY. Wir nutzen denselben Key der
-    bereits für die LLM-Calls in llm.json konfiguriert ist (Provider-ID
-    'minimax') — keine zweite Config-Quelle nötig.
-    """
-    env = os.environ.copy()
-    if env.get("MINIMAX_API_KEY"):
-        return env
-    # Lazy-Import um Zyklen zu vermeiden
+def _mmx_key() -> str:
+    """MiniMax-API-Key aus llm.json — einzige Key-Quelle."""
     try:
         from hydrahive.llm import client as llm_client
         cfg = llm_client._load_config()
-        key = llm_client._get_minimax_key(cfg)
-        if key:
-            env["MINIMAX_API_KEY"] = key
+        return llm_client._get_minimax_key(cfg)
     except Exception as e:
         logger.debug("MiniMax-Key aus llm.json nicht lesbar: %s", e)
-    return env
+    return ""
 
 
 async def synthesize_mp3(text: str, voice: str = "German_FriendlyMan") -> bytes:
@@ -64,15 +52,18 @@ async def synthesize_mp3(text: str, voice: str = "German_FriendlyMan") -> bytes:
         raise RuntimeError("leerer Text")
     if shutil.which("mmx") is None:
         raise RuntimeError("mmx-CLI fehlt — npm install -g mmx-cli")
+    key = _mmx_key()
+    if not key:
+        raise RuntimeError("MiniMax-API-Key fehlt — Provider 'minimax' in der LLM-Config setzen")
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "out.mp3"
         proc = await asyncio.create_subprocess_exec(
             "mmx", "speech", "synthesize",
+            "--api-key", key,
             "--text", text, "--voice", voice,
             "--out", str(out), "--quiet",
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.PIPE,
-            env=_mmx_env(),
         )
         try:
             _, err = await asyncio.wait_for(proc.communicate(), timeout=60.0)
@@ -88,12 +79,15 @@ async def list_voices(language: str = "german") -> list[dict]:
     """Verfügbare Voices vom mmx-CLI als JSON-Liste."""
     if shutil.which("mmx") is None:
         raise RuntimeError("mmx-CLI fehlt")
+    key = _mmx_key()
+    if not key:
+        raise RuntimeError("MiniMax-API-Key fehlt")
     proc = await asyncio.create_subprocess_exec(
         "mmx", "speech", "voices",
+        "--api-key", key,
         "--language", language, "--output", "json", "--quiet",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        env=_mmx_env(),
     )
     try:
         out, err = await asyncio.wait_for(proc.communicate(), timeout=15.0)
