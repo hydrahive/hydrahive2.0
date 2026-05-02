@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.voice import tts as voice_tts
+from hydrahive.voice import _quota as tts_quota
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/tts", tags=["tts"])
@@ -55,8 +56,17 @@ async def synthesize(
     if not voice_tts.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "validation_error",
                     message="mmx CLI nicht installiert")
+    username, _ = auth
+    allowed, used, cap = tts_quota.check_and_increment(username)
+    if not allowed:
+        raise coded(
+            status.HTTP_429_TOO_MANY_REQUESTS, "quota_exceeded",
+            message=f"Tägliches TTS-Limit erreicht ({used}/{cap}). "
+                    f"Reset um Mitternacht UTC. Override via ENV TTS_DAILY_CAP.",
+        )
     try:
         mp3 = await voice_tts.synthesize_mp3(body.text, body.voice)
     except RuntimeError as e:
         raise _runtime_to_coded(e)
+    logger.info("TTS-Quota %s: %d/%d", username, used, cap)
     return Response(content=mp3, media_type="audio/mpeg")
