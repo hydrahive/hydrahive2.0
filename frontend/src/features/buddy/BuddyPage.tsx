@@ -8,6 +8,7 @@ import type { Message } from "@/features/chat/types"
 import { BuddyMessageList } from "./BuddyMessageList"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
+import { CmdPill } from "./_BuddyCmdPill"
 
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
@@ -32,14 +33,8 @@ export function BuddyPage() {
   function appendLocal(role: "user" | "assistant", text: string) {
     setLocalMsgs((prev) => [
       ...prev,
-      {
-        id: `local-cmd-${Date.now()}-${prev.length}`,
-        role,
-        content: text,
-        created_at: new Date().toISOString(),
-        token_count: null,
-        metadata: {},
-      },
+      { id: `local-cmd-${Date.now()}-${prev.length}`, role, content: text,
+        created_at: new Date().toISOString(), token_count: null, metadata: {} },
     ])
   }
 
@@ -79,34 +74,26 @@ export function BuddyPage() {
   return (
     <div className="flex items-center justify-center min-h-[calc(100dvh-3rem-2.5rem)] py-6">
       <div className="w-full max-w-3xl flex flex-col">
-        {/* TV-Frame */}
         <div
           className="relative flex flex-col rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur"
           style={{ height: "calc(100dvh - 3rem - 2.5rem - 4rem)" }}
         >
-          {/* Inner-Glow / Display-Bezel */}
           <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-white/[3%]" />
-
           {state.created && (
             <div className="px-5 pt-3 pb-1 text-[11px] text-[var(--hh-accent-text)] text-center">
               {t("just_woken_up")}
             </div>
           )}
-
-          {/* Header / TV-Top-Bezel — clean, kein Modell, keine Token */}
           <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3 bg-black/30">
             <div className="text-2xl">🐝</div>
             <p className="text-sm font-medium text-zinc-100 truncate flex-1">{state.agent_name}</p>
           </div>
-
-          {/* Display / Chat */}
           <BuddyMessageList
             messages={[...chat.messages, ...localMsgs]}
             busy={chat.busy}
             error={chat.error}
             onResend={(id, text) => chat.send(text, [], id)}
           />
-
           {chat.pendingConfirm && (
             <ToolConfirmBanner
               pending={chat.pendingConfirm}
@@ -114,8 +101,6 @@ export function BuddyPage() {
               onDeny={() => chat.confirmTool("deny")}
             />
           )}
-
-          {/* Input / TV-Bottom-Bezel */}
           <div className="border-t border-white/[6%] bg-black/30">
             <MessageInput
               onSend={handleSend}
@@ -123,56 +108,23 @@ export function BuddyPage() {
               busy={chat.busy}
               quickActions={(insert) => (
                 <>
-                  <CmdPill icon={<HelpCircle size={11} />} label="help"
-                    color="sky" onClick={() => handleSend("/help")} />
-                  <CmdPill icon={<RotateCcw size={11} />} label="clear"
-                    color="amber" onClick={() => handleSend("/clear")} />
-                  <CmdPill icon={<Save size={11} />} label="remember"
-                    color="emerald" onClick={() => handleSend("/remember")} />
-                  <CmdPill icon={<Cpu size={11} />} label="model"
-                    color="violet" onClick={() => insert("/model")} />
-                  <CmdPill icon={<Dice5 size={11} />} label="character"
-                    color="pink" onClick={() => handleSend("/character")} />
+                  <CmdPill icon={<HelpCircle size={11} />} label="help" color="sky" onClick={() => handleSend("/help")} />
+                  <CmdPill icon={<RotateCcw size={11} />} label="clear" color="amber" onClick={() => handleSend("/clear")} />
+                  <CmdPill icon={<Save size={11} />} label="remember" color="emerald" onClick={() => handleSend("/remember")} />
+                  <CmdPill icon={<Cpu size={11} />} label="model" color="violet" onClick={() => insert("/model")} />
+                  <CmdPill icon={<Dice5 size={11} />} label="character" color="pink" onClick={() => handleSend("/character")} />
                 </>
               )}
             />
           </div>
-
-          {/* Power-LED */}
           <div className="absolute bottom-2 right-4 flex items-center gap-1.5 text-[9px] text-zinc-600">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
             <span className="font-mono">ON</span>
           </div>
         </div>
-
-        {/* TV-Stand */}
         <div className="mx-auto -mt-px w-1/3 h-3 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-b-md border border-t-0 border-white/[6%]" />
         <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
       </div>
     </div>
-  )
-}
-
-const PILL_COLORS: Record<string, string> = {
-  sky: "text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/30",
-  amber: "text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30",
-  emerald: "text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30",
-  violet: "text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 border-violet-500/30",
-  pink: "text-pink-300 bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/30",
-}
-
-function CmdPill({
-  icon, label, color, onClick,
-}: { icon: React.ReactNode; label: string; color: keyof typeof PILL_COLORS; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={`/${label}`}
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors ${PILL_COLORS[color]}`}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
   )
 }
