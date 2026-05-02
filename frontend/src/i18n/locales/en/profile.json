@@ -27,5 +27,16 @@
     "description": "Which page is shown first after login.",
     "buddy": "Buddy",
     "dashboard": "Dashboard"
+  },
+  "backup": {
+    "title": "My data",
+    "description": "Export or restore all your data (GDPR Art. 20).",
+    "download": "Export data",
+    "downloading": "Creating…",
+    "restore": "Restore",
+    "restoring": "Restoring…",
+    "restore_confirm": "Restore your data from this backup?\n\nExisting sessions and files are kept — new data is added.",
+    "restore_done": "Restored.",
+    "error": "Error: {{msg}}"
   }
 }

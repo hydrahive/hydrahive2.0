@@ -27,5 +27,16 @@
     "description": "Welche Seite nach dem Login zuerst angezeigt wird.",
     "buddy": "Buddy",
     "dashboard": "Dashboard"
+  },
+  "backup": {
+    "title": "Eigene Daten",
+    "description": "Export oder Restore aller eigenen Daten (DSGVO Art. 20).",
+    "download": "Daten exportieren",
+    "downloading": "Wird erstellt…",
+    "restore": "Wiederherstellen",
+    "restoring": "Wird wiederhergestellt…",
+    "restore_confirm": "Eigene Daten aus diesem Backup wiederherstellen?\n\nBestehende Sessions und Dateien bleiben erhalten — neue Daten werden ergänzt.",
+    "restore_done": "Wiederhergestellt.",
+    "error": "Fehler: {{msg}}"
   }
 }
