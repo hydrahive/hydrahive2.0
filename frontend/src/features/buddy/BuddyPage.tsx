@@ -4,13 +4,16 @@ import { Loader2 } from "lucide-react"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
+import type { Message } from "@/features/chat/types"
 import { BuddyMessageList } from "./BuddyMessageList"
 import { buddyApi, type BuddyState } from "./api"
+import { isCommand, runCommand } from "./commands"
 
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
   const [state, setState] = useState<BuddyState | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const initRef = useRef(false)
   const chat = useChat(state?.session_id ?? null)
 
@@ -26,7 +29,31 @@ export function BuddyPage() {
     if (state?.session_id) chat.reload()
   }, [state?.session_id, chat.reload])
 
+  function appendLocal(role: "user" | "assistant", text: string) {
+    setLocalMsgs((prev) => [
+      ...prev,
+      {
+        id: `local-cmd-${Date.now()}-${prev.length}`,
+        role,
+        content: text,
+        created_at: new Date().toISOString(),
+        token_count: null,
+        metadata: {},
+      },
+    ])
+  }
+
   async function handleSend(text: string, files: File[] = []) {
+    if (isCommand(text)) {
+      appendLocal("user", text)
+      const result = await runCommand(text)
+      appendLocal("assistant", result.message)
+      if (result.newSessionId) {
+        setLocalMsgs([])
+        setState((s) => (s ? { ...s, session_id: result.newSessionId! } : s))
+      }
+      return
+    }
     await chat.send(text, files)
   }
 
@@ -74,7 +101,7 @@ export function BuddyPage() {
 
           {/* Display / Chat */}
           <BuddyMessageList
-            messages={chat.messages}
+            messages={[...chat.messages, ...localMsgs]}
             busy={chat.busy}
             error={chat.error}
             onResend={(id, text) => chat.send(text, [], id)}
