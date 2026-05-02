@@ -21,11 +21,16 @@
   },
   "tabs": {
     "overview": "Übersicht",
+    "notes": "Notizen",
     "sessions": "Sessions",
     "git": "Git",
     "servers": "Server",
     "stats": "Statistiken",
     "settings": "Einstellungen"
+  },
+  "notes": {
+    "hint": "Markdown-Notizen, Briefing oder Kontext für dieses Projekt.",
+    "placeholder": "# Projekt-Briefing\n\nZiel, Kontext, Entscheidungen…"
   },
   "servers": {
     "empty": "Noch keine Server zugewiesen.",

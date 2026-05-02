@@ -21,6 +21,7 @@ import { ContainerDetailPage } from "@/features/containers/ContainerDetailPage"
 import { ButlerPage } from "@/features/butler/ButlerPage"
 import { BuddyPage } from "@/features/buddy/BuddyPage"
 import { HelpPage } from "@/features/help/HelpPage"
+import { getLanding } from "@/features/profile/LandingSwitcher"
 
 function Guard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -47,7 +48,7 @@ export default function App() {
             </Guard>
           }
         >
-          <Route index element={<BuddyPage />} />
+          <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <BuddyPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="devchat" element={<ChatPage />} />
           <Route path="chat" element={<Navigate to="/devchat" replace />} />

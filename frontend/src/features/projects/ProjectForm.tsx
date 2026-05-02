@@ -8,6 +8,7 @@ import { GitTab } from "./_GitTab"
 import { ServersTab } from "./_ServersTab"
 import { StatsTab } from "./_StatsTab"
 import { SettingsTab } from "./_SettingsTab"
+import { NotesTab } from "./_NotesTab"
 import type { Project } from "./types"
 
 interface Props {
@@ -16,7 +17,7 @@ interface Props {
   onDeleted: () => void
 }
 
-type Tab = "overview" | "sessions" | "git" | "servers" | "stats" | "settings"
+type Tab = "overview" | "notes" | "sessions" | "git" | "servers" | "stats" | "settings"
 
 export function ProjectForm({ project, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("projects")
@@ -49,6 +50,7 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "overview", label: t("tabs.overview") },
+    { id: "notes", label: t("tabs.notes") },
     { id: "sessions", label: t("tabs.sessions") },
     { id: "git", label: t("tabs.git") },
     { id: "servers", label: t("tabs.servers") },
@@ -97,6 +99,7 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
           <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
         )}
         {tab === "overview" && <OverviewTab project={project} draft={draft} agentName={agentName} onChange={onSaved} onDraftChange={setDraft} />}
+        {tab === "notes" && <NotesTab project={project} onSaved={onSaved} />}
         {tab === "sessions" && <SessionsTab projectId={project.id} />}
         {tab === "git" && <GitTab projectId={project.id} onChanged={() => projectsApi.get(project.id).then(onSaved)} />}
         {tab === "servers" && <ServersTab projectId={project.id} />}
