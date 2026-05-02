@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Loader2 } from "lucide-react"
+import { Cpu, Dice5, HelpCircle, Loader2, RotateCcw, Save } from "lucide-react"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
@@ -117,7 +117,25 @@ export function BuddyPage() {
 
           {/* Input / TV-Bottom-Bezel */}
           <div className="border-t border-white/[6%] bg-black/30">
-            <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} />
+            <MessageInput
+              onSend={handleSend}
+              onCancel={chat.cancel}
+              busy={chat.busy}
+              quickActions={(insert) => (
+                <>
+                  <CmdPill icon={<HelpCircle size={11} />} label="help"
+                    color="sky" onClick={() => handleSend("/help")} />
+                  <CmdPill icon={<RotateCcw size={11} />} label="clear"
+                    color="amber" onClick={() => handleSend("/clear")} />
+                  <CmdPill icon={<Save size={11} />} label="remember"
+                    color="emerald" onClick={() => insert("/remember")} />
+                  <CmdPill icon={<Cpu size={11} />} label="model"
+                    color="violet" onClick={() => insert("/model")} />
+                  <CmdPill icon={<Dice5 size={11} />} label="character"
+                    color="pink" onClick={() => handleSend("/character")} />
+                </>
+              )}
+            />
           </div>
 
           {/* Power-LED */}
@@ -132,5 +150,29 @@ export function BuddyPage() {
         <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
       </div>
     </div>
+  )
+}
+
+const PILL_COLORS: Record<string, string> = {
+  sky: "text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border-sky-500/30",
+  amber: "text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30",
+  emerald: "text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30",
+  violet: "text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 border-violet-500/30",
+  pink: "text-pink-300 bg-pink-500/10 hover:bg-pink-500/20 border-pink-500/30",
+}
+
+function CmdPill({
+  icon, label, color, onClick,
+}: { icon: React.ReactNode; label: string; color: keyof typeof PILL_COLORS; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`/${label}`}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors ${PILL_COLORS[color]}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   )
 }

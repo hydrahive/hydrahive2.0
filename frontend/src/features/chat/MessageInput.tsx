@@ -12,9 +12,13 @@ interface Props {
   onCancel?: () => void
   busy: boolean
   disabled?: boolean
+  /** Optionaler Slot für Quick-Buttons rechts neben dem Hint.
+   * Bekommt eine `insert(prefix)`-Funktion, die Text ins Eingabefeld
+   * setzt und den Fokus dorthin legt. */
+  quickActions?: (insert: (prefix: string) => void) => React.ReactNode
 }
 
-export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
+export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }: Props) {
   const { t } = useTranslation("chat")
   const [text, setText] = useState("")
   const voice = useVoiceInput((transcript) => {
@@ -120,7 +124,17 @@ export function MessageInput({ onSend, onCancel, busy, disabled }: Props) {
           </button>
         )}
       </div>
-      <p className="text-[10px] text-zinc-600 mt-1.5 px-1">{t("input.hint")}</p>
+      <div className="flex items-center justify-between gap-2 mt-1.5 px-1">
+        <p className="text-[10px] text-zinc-600">{t("input.hint")}</p>
+        {quickActions && (
+          <div className="flex items-center gap-1">
+            {quickActions((prefix) => {
+              setText(prefix.endsWith(" ") ? prefix : prefix + " ")
+              textRef.current?.focus()
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
