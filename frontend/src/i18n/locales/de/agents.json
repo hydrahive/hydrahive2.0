@@ -44,8 +44,22 @@
     "model": "Modell",
     "tools": "Tools & MCP",
     "skills": "Skills",
-    "prompt": "System-Prompt",
+    "soul": "Soul",
     "advanced": "Erweitert"
+  },
+  "soul": {
+    "description": "Identität, Verhalten und Hintergrund des Agents als Markdown-Dateien.",
+    "load_template": "Template laden",
+    "save_component": "Speichern",
+    "saved": "Gespeichert",
+    "loading": "Lade Soul...",
+    "empty_hint": "Leer lassen = nicht aktiv",
+    "identity": "Identität",
+    "identity_hint": "Wer bin ich? Name, Charakter, Vibe.",
+    "behavior": "Verhalten",
+    "behavior_hint": "Wie arbeite ich? Prinzipien, Grenzen.",
+    "background": "Hintergrund",
+    "background_hint": "Optional: Kontext, Spezialwissen."
   },
   "tool_categories": {
     "all": "Alle ({{count}})",

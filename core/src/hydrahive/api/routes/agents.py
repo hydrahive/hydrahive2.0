@@ -1,18 +1,24 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Body, Depends, status
 
 from hydrahive.api.middleware.errors import coded
 from hydrahive.agents import AgentValidationError, config as agent_config
 from hydrahive.agents._defaults import DEFAULT_TOOLS
+from hydrahive.agents._prompt import (
+    SOUL_COMPONENTS, get_soul_components, save_soul_component,
+)
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.routes._agent_schemas import (
     AgentCreate, AgentUpdate, SystemPromptUpdate, check_agent_access,
 )
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import REGISTRY as TOOL_REGISTRY
+
+_TEMPLATE_DIR = Path(__file__).parent.parent.parent / "agents" / "soul_templates"
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
@@ -127,3 +133,54 @@ def set_system_prompt(agent_id: str, req: SystemPromptUpdate) -> dict:
     except KeyError:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     return {"prompt": req.prompt}
+
+
+@router.get("/{agent_id}/soul", dependencies=[Depends(require_admin)])
+def get_soul(agent_id: str) -> dict:
+    if not agent_config.get(agent_id):
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    return {"components": get_soul_components(agent_id)}
+
+
+@router.put("/{agent_id}/soul/{component}", dependencies=[Depends(require_admin)])
+def set_soul_component(
+    agent_id: str,
+    component: str,
+    content: str = Body(..., embed=True),
+) -> dict:
+    if not agent_config.get(agent_id):
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    if component not in SOUL_COMPONENTS:
+        raise coded(status.HTTP_400_BAD_REQUEST, "invalid_component",
+                    message=f"Erlaubte Komponenten: {SOUL_COMPONENTS}")
+    save_soul_component(agent_id, component, content)
+    return {"component": component, "saved": True}
+
+
+@router.get("/{agent_id}/soul/templates", dependencies=[Depends(require_admin)])
+def get_soul_templates(agent_id: str) -> dict:
+    agent = agent_config.get(agent_id)
+    if not agent:
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    agent_type = agent.get("type", "specialist")
+    templates: dict[str, dict[str, str]] = {}
+    for c in SOUL_COMPONENTS:
+        tf = _TEMPLATE_DIR / f"{agent_type}_{c}.md"
+        if tf.exists():
+            templates[c] = tf.read_text(encoding="utf-8")
+    return {"templates": templates, "agent_type": agent_type}
+
+
+@router.post("/{agent_id}/soul/apply-template", dependencies=[Depends(require_admin)])
+def apply_soul_template(agent_id: str) -> dict:
+    agent = agent_config.get(agent_id)
+    if not agent:
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    agent_type = agent.get("type", "specialist")
+    applied: list[str] = []
+    for c in SOUL_COMPONENTS:
+        tf = _TEMPLATE_DIR / f"{agent_type}_{c}.md"
+        if tf.exists():
+            save_soul_component(agent_id, c, tf.read_text(encoding="utf-8"))
+            applied.append(c)
+    return {"applied": applied}

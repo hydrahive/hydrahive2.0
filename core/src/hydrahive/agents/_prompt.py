@@ -1,6 +1,43 @@
 from __future__ import annotations
 
-from hydrahive.agents._paths import system_prompt_path
+from pathlib import Path
+
+from hydrahive.agents._paths import soul_dir, soul_file, system_prompt_path
+
+SOUL_COMPONENTS = ["identity", "behavior", "background"]
+
+
+def load_soul(agent_id: str) -> str | None:
+    """Merge all soul/*.md files alphabetically. Returns None if soul/ is absent or empty."""
+    d = soul_dir(agent_id)
+    if not d.exists():
+        return None
+    parts = [
+        f.read_text(encoding="utf-8").strip()
+        for f in sorted(d.glob("*.md"))
+        if f.read_text(encoding="utf-8").strip()
+    ]
+    return "\n\n---\n\n".join(parts) if parts else None
+
+
+def get_soul_components(agent_id: str) -> dict[str, str]:
+    """Return {component: content} for all known soul components (empty string if absent)."""
+    return {
+        c: (soul_file(agent_id, c).read_text(encoding="utf-8") if soul_file(agent_id, c).exists() else "")
+        for c in SOUL_COMPONENTS
+    }
+
+
+def save_soul_component(agent_id: str, component: str, text: str) -> None:
+    """Atomic write of a single soul component. Empty text deletes the file."""
+    path = soul_file(agent_id, component)
+    if not text.strip():
+        path.unlink(missing_ok=True)
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".md.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
 
 DEFAULT_PROMPTS: dict[str, str] = {
     "master": (
@@ -45,6 +82,9 @@ DEFAULT_PROMPTS: dict[str, str] = {
 
 
 def load(agent_id: str, fallback_type: str = "specialist") -> str:
+    soul = load_soul(agent_id)
+    if soul:
+        return soul
     path = system_prompt_path(agent_id)
     if path.exists():
         return path.read_text(encoding="utf-8")

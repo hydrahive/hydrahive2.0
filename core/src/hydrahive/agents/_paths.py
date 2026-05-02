@@ -40,3 +40,11 @@ def config_path(agent_id: str) -> Path:
 
 def agent_dir(agent_id: str) -> Path:
     return settings.agents_dir / agent_id
+
+
+def soul_dir(agent_id: str) -> Path:
+    return settings.agents_dir / agent_id / "soul"
+
+
+def soul_file(agent_id: str, component: str) -> Path:
+    return soul_dir(agent_id) / f"{component}.md"
