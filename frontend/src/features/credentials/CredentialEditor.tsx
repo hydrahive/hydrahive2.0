@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react"
-import { Eye, EyeOff, Loader2, Save, Trash2, X } from "lucide-react"
+import { useState } from "react"
+import { Loader2, Save, Trash2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { credentialsApi } from "./api"
+import { Field, CredentialValueInput } from "./_credentialHelpers"
 import type { Credential, CredentialType } from "./types"
 
 interface Props {
-  credential: Credential | null  // null = neu
+  credential: Credential | null
   onClose: () => void
   onSaved: () => void
   onDeleted?: () => void
@@ -21,23 +22,12 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
   const [name, setName] = useState(credential?.name ?? "")
   const [type, setType] = useState<CredentialType>(credential?.type ?? "bearer")
   const [value, setValue] = useState("")
-  const [showValue, setShowValue] = useState(false)
   const [urlPattern, setUrlPattern] = useState(credential?.url_pattern ?? "*")
   const [description, setDescription] = useState(credential?.description ?? "")
   const [headerName, setHeaderName] = useState(credential?.header_name ?? "")
   const [queryParam, setQueryParam] = useState(credential?.query_param ?? "")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    // Bei Edit: Token nachladen on demand wenn User es enthüllt
-    if (credential && !showValue) return
-    if (credential && showValue && !value) {
-      credentialsApi.get(credential.name, true)
-        .then((c) => setValue(c.value))
-        .catch(() => {})
-    }
-  }, [credential, showValue])
 
   const validName = NAME_RE.test(name)
   const needsHeader = type === "header"
@@ -98,15 +88,7 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
         </div>
 
         <Field label={t("value")} hint={t(`value_hint_${type}`)}>
-          <div className="flex gap-1">
-            <input type={showValue ? "text" : "password"} value={value} onChange={(e) => setValue(e.target.value)}
-              placeholder={credential?.value_set ? "••••••••" : ""}
-              className="flex-1 px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
-            <button type="button" onClick={() => setShowValue(!showValue)}
-              className="px-2 py-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
-              {showValue ? <EyeOff size={11} /> : <Eye size={11} />}
-            </button>
-          </div>
+          <CredentialValueInput credential={credential} value={value} onChange={setValue} />
         </Field>
 
         {needsHeader && (
@@ -158,16 +140,6 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-0.5">
-      <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
-      {children}
-      {hint && <p className="text-[10px] text-zinc-600 mt-0.5">{hint}</p>}
     </div>
   )
 }
