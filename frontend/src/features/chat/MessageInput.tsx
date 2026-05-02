@@ -1,7 +1,8 @@
-import { FileText, Mic, MicOff, Paperclip, Send, Square, X } from "lucide-react"
+import { Mic, MicOff, Paperclip, Send, Square } from "lucide-react"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useVoiceInput } from "./useVoiceInput"
+import { MessageFileChip } from "./_MessageFileChip"
 
 const MAX_FILES = 5
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -72,7 +73,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
     >
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
-          {files.map((f, i) => <FileChip key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />)}
+          {files.map((f, i) => <MessageFileChip key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />)}
         </div>
       )}
       <div className={`flex items-end gap-2 rounded-2xl border bg-white/[3%] px-3 py-2 transition-all
@@ -139,20 +140,3 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
   )
 }
 
-function FileChip({ file, onRemove }: { file: File; onRemove: () => void }) {
-  const isImage = file.type.startsWith("image/")
-  return (
-    <div className="relative group flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[4%] px-2 py-1 text-xs text-zinc-300 max-w-[160px]">
-      {isImage ? (
-        <img src={URL.createObjectURL(file)} className="w-6 h-6 rounded object-cover flex-shrink-0" alt="" />
-      ) : (
-        <FileText size={14} className="flex-shrink-0 text-zinc-400" />
-      )}
-      <span className="truncate">{file.name}</span>
-      <button onClick={onRemove}
-        className="flex-shrink-0 p-0.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/10">
-        <X size={11} />
-      </button>
-    </div>
-  )
-}

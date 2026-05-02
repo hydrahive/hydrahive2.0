@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
+import { useChatCompact } from "./useChatCompact"
 import { MessageInput } from "./MessageInput"
 import { MessageList } from "./MessageList"
 import { NewSessionDialog } from "./NewSessionDialog"
@@ -14,8 +15,7 @@ import type { ProjectBrief } from "./api"
 import { useChat } from "./useChat"
 
 export function ChatPage() {
-  const { t, i18n } = useTranslation("chat")
-  const { t: tCommon } = useTranslation("common")
+  const { t } = useTranslation("chat")
   const [sessions, setSessions] = useState<Session[]>([])
   const [agents, setAgents] = useState<AgentBrief[]>([])
   const [projects, setProjects] = useState<ProjectBrief[]>([])
@@ -52,6 +52,9 @@ export function ChatPage() {
   }
 
   const [tokenRefresh, setTokenRefresh] = useState(0)
+  const { compacting, compactNote, handleCompact } = useChatCompact(
+    activeId, chat.reload, () => setTokenRefresh((n) => n + 1),
+  )
 
   async function handleSend(text: string, files: File[] = []) {
     await chat.send(text, files); loadAll(); setTokenRefresh((n) => n + 1)
@@ -71,38 +74,6 @@ export function ChatPage() {
       .catch(() => {})
     return () => { alive = false }
   }, [activeAgent?.id])
-
-  const [compacting, setCompacting] = useState(false)
-  const [compactNote, setCompactNote] = useState<string | null>(null)
-
-  async function handleCompact() {
-    if (!activeId) return
-    setCompacting(true); setCompactNote(null)
-    try {
-      const r = await chatApi.compact(activeId)
-      if (r.skipped) {
-        const reason = r.reason_code
-          ? t(`compact.reasons.${r.reason_code}`, r.reason_params ?? {})
-          : "?"
-        setCompactNote(t("compact.skipped", { reason }))
-      } else {
-        setCompactNote(
-          r.tokens_before
-            ? t("compact.result_with_tokens", {
-                summarized: r.summarized_count,
-                kept: r.kept_count,
-                tokens: r.tokens_before.toLocaleString(i18n.language),
-              })
-            : t("compact.result", { summarized: r.summarized_count, kept: r.kept_count }),
-        )
-      }
-      await chat.reload(); setTokenRefresh((n) => n + 1)
-    } catch (e) {
-      setCompactNote(e instanceof Error ? e.message : tCommon("status.error"))
-    } finally {
-      setCompacting(false); setTimeout(() => setCompactNote(null), 5000)
-    }
-  }
 
   return (
     <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6">
