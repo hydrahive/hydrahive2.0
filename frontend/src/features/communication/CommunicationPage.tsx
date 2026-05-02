@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { MessageCircle } from "lucide-react"
 import { communicationApi } from "./api"
 import { WhatsAppCard } from "./WhatsAppCard"
+import { DiscordCard } from "./DiscordCard"
 
 export function CommunicationPage() {
   const { t } = useTranslation("communication")
@@ -13,6 +14,7 @@ export function CommunicationPage() {
   }, [])
 
   const hasWhatsApp = channels?.some((c) => c.name === "whatsapp") ?? false
+  const hasDiscord = channels?.some((c) => c.name === "discord") ?? false
 
   return (
     <div className="space-y-4">
@@ -36,6 +38,22 @@ export function CommunicationPage() {
               <div>
                 <h3 className="text-zinc-100 font-semibold">{t("whatsapp.label")}</h3>
                 <p className="text-xs text-amber-300 mt-1">{t("whatsapp.bridge_unavailable")}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasDiscord ? (
+          <DiscordCard />
+        ) : channels === null ? null : (
+          <div className="rounded-xl bg-white/[3%] border border-white/[6%] p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
+                <MessageCircle className="text-white" size={20} />
+              </div>
+              <div>
+                <h3 className="text-zinc-100 font-semibold">{t("discord.label")}</h3>
+                <p className="text-xs text-amber-300 mt-1">{t("discord.unavailable")}</p>
               </div>
             </div>
           </div>

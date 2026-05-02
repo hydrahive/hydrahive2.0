@@ -33,5 +33,40 @@
       "save": "Save",
       "saved": "Saved"
     }
+  },
+  "discord": {
+    "label": "Discord",
+    "description": "DMs and @mentions go straight to your master agent.",
+    "unavailable": "Discord unavailable.",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "states": {
+      "disconnected": "Not connected",
+      "connecting": "Connecting …",
+      "waiting_qr": "Connecting …",
+      "connected": "Connected",
+      "error": "Error"
+    },
+    "filter": {
+      "title": "Filter & settings",
+      "intro": "Token, filters and behavior for your Discord bot.",
+      "loading": "Loading settings …",
+      "token_label": "Bot token",
+      "token_placeholder": "Paste Discord bot token …",
+      "token_hint": "Discord Developer Portal → Bot → Token. 'Message Content Intent' must be enabled.",
+      "dm_enabled": "Receive DMs",
+      "mention_enabled": "Receive @mentions",
+      "keyword_label": "Activation keyword (empty = always reply)",
+      "keyword_placeholder": "e.g. !bot",
+      "allowed_users": "User ID whitelist (empty = allow all)",
+      "allowed_users_hint": "If set: only these Discord user IDs may write.",
+      "blocked_users": "User ID blacklist",
+      "blocked_users_hint": "These user IDs are always ignored.",
+      "allowed_channels": "Channel ID whitelist (empty = all)",
+      "allowed_channels_hint": "If set: only reply in these channels.",
+      "voice_label": "Reply as voice message",
+      "save": "Save",
+      "saved": "Saved"
+    }
   }
 }

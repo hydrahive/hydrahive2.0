@@ -19,6 +19,7 @@ from hydrahive.api.routes.system import set_start_time
 from hydrahive.api.version import update_check_loop
 from hydrahive.butler.registry import load_builtins as load_butler_builtins
 from hydrahive.communication import register as register_channel
+from hydrahive.communication.discord import DiscordAdapter
 from hydrahive.communication.whatsapp import (
     BridgeProcess,
     WhatsAppAdapter,
@@ -109,6 +110,12 @@ async def lifespan(app: FastAPI):
 
         agentlink_client.start_listener(_on_event)
 
+    discord_adapter: DiscordAdapter | None = None
+    if settings.discord_enabled:
+        discord_adapter = DiscordAdapter()
+        register_channel(discord_adapter)
+        asyncio.create_task(discord_adapter.auto_reconnect_all())
+
     wa_bridge: BridgeProcess | None = None
     wa_adapter: WhatsAppAdapter | None = None
     if settings.whatsapp_enabled:
@@ -129,6 +136,8 @@ async def lifespan(app: FastAPI):
     logger.info("HydraHive2 gestartet — Port %s", settings.port)
     yield
 
+    if discord_adapter:
+        await discord_adapter.aclose()
     if wa_adapter:
         await wa_adapter.aclose()
     if wa_bridge:
