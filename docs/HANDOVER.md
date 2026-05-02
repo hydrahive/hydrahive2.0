@@ -1,109 +1,121 @@
-# HydraHive2 — Übergabe (Stand 2026-05-01 spät, Tailscale + Projekt-Tabs + Installer-Härtung)
+# HydraHive2 — Übergabe (Stand 2026-05-02 früh)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
-## TL;DR der heutigen Session
+## Heute geschafft (~30 Commits)
 
-Drei Themen + Installer-Saga:
+### Audit + Issues geschlossen (17 Stück)
 
-1. **Projekt-Seite Tab-Layout** (#57 #58 #59 #60) — ProjectForm bekommt
-   Übersicht/Sessions/Git/Statistiken/Einstellungen. Backend: neue
-   Endpoints `/api/projects/{id}/git` (Branch/Remote/ahead-behind/Commits)
-   und `/api/projects/{id}/stats` (Sessions/Tokens/Aktivität).
-   Sub-Komponenten als `_OverviewTab.tsx`, `_SessionsTab.tsx`, etc.
-   Save-Button erscheint nur dirty.
+Großes Aufräumen — viele Features waren schon umgesetzt aber Issues offen:
+- **#42** Kosten pro Bubble (USD), **#43** Edit+Resend, **#46** Retry-Button,
+  **#49** System-Prompt-Tooltip, **#53** Drag-Drop Bilder, **#54** Compact-
+  Imminent-Warning, **#61** Git Commit/Push/Pull aus UI, **#67** paused-Lifecycle,
+  **#85** AgentForm Sticky-Save-Bar, **#86** Tailscale-Card mit Peers,
+  **#87** AgentLink-Card mit Telemetry, **#88** 5 Theme-Farben, **#92** MiniMax
+  via Anthropic-SDK, **#93** MiniMax-Creator-Plugin, **#94** Console-Cleanup,
+  **#97** Bridge-Setup-Knopf, **#98** Beliebiger Repo-Pfad
+- **#12** DevLauncher → Tool-Confirm-System (SPEC umgeschrieben mit Tills OK)
+- **#33** Process-Meta — sequenziell-arbeiten ist Praxis
 
-2. **Marvin-Onboarding für Master-Agent** — Bei `ensure_master` wird
-   `startup.md` (Marvin-Stil, 6 Fragen) in den Workspace geschrieben.
-   System-Prompt enthält Trigger: "wenn `startup.md` existiert, lies
-   und arbeite ab, dann lösche". Selbstzerstörend nach erstem Onboarding.
-   Pattern aus `octopos/skills/catalog/onboard-agent.md` übernommen.
+### Bugfixes
+- **`fix(vms): cpu=qemu64 statt cpu=max`** — FreeBSD-VMs crashten in TCG-
+  Containern bei AES-NI-Emulation. 218 ist LXC-Container ohne /dev/kvm,
+  jetzt fällt qemu sauber auf qemu64 zurück.
+- **`fix(systemd): KillMode=process`** — VMs überleben jetzt Backend-Updates.
+- **`fix(installer): sshpass-Check in update.sh`** — alte Installs ziehen
+  sshpass nach.
+- **`fix(_minimax_usage)`**: `load` → `load_config` — Backend-Crash-Loop
+  nach Push, manuell mit `sudo -u hydrahive git pull && systemctl restart`
+  rausgeholt. **Lesson:** vor Push immer Backend-Imports smoke-testen.
 
-3. **Tailscale-Saga** — fünf Iterationen durch sudo-Sandboxing-Hölle,
-   am Ende: `/run/tailscale/tailscaled.sock` ist `srw-rw-rw-`, sudo
-   war NIE nötig. Lösung: `tailscale set --operator=hydrahive` in
-   80-tailscale.sh, kein sudo mehr im Python-Code, Service-Unit hat
-   `NoNewPrivileges=true` zurück. Tailscale wird jetzt **default
-   installiert** (opt-out via `HH_INSTALL_TAILSCALE=no`).
+### Tool-Confirm-System (#12 alternativ)
+Statt OS-Sandbox: per-Agent-Toggle `require_tool_confirm`. Wenn an, sieht
+User vor jedem Tool-Call ein Banner mit Erlauben/Verweigern. Auto-deny
+nach 5 Min Timeout.
+- `core/src/hydrahive/runner/tool_confirmation.py` — Pending-Store mit
+  asyncio.Future
+- Frontend: `chat/ToolConfirmBanner.tsx` über Input
+- SPEC.md angepasst (mit Tills explizitem OK) — keine OS-User-Isolation
+  mehr, Sicherheit via User-Auth + Tool-Permission-Prompts
 
-4. **Installer-Härtung** durch frisches Setup auf Produktiv-LXC:
-   - `.config`/`.cache`/`.local/share`/`.mmx` für hydrahive-User
-     vorlegen (ReadWritePaths-226-Errors)
-   - nginx default-yes (war opt-in — Server war ohne nicht erreichbar)
-   - TLS-Cert-SAN mit detektierter Server-IP statt nur 127.0.0.1
-   - Update-Check via HTTPS-Remote (SSH-URL wird automatisch umgebogen
-     — der hydrahive-User hat keine SSH-Keys)
-   - nginx `enable + start` statt nur `reload`
-   - Install-Zusammenfassung mit URL + Admin-Login am Ende
+**Memory-Eintrag:** `feedback_agents_full_tool_access.md` —
+"HydraHive-Agents arbeiten wie Claude Code + OpenClaw" — voller Tool-
+Zugriff, keine Sandbox-Whitelists, kein "darf ich nicht"-Pattern.
 
-## Was läuft auf 218 + neuer Produktiv-Server
+### Buddy-Page (neu)
+**Kompletter neuer Bereich** unter `frontend/src/features/buddy/` +
+`core/src/hydrahive/buddy/`:
 
-Gleicher Stand. Tailscale connected via Frontend-Login auf beiden.
-Neuer Server: gleiche Setup-Pfade wie 218 — Setup-User chucky / Service-User
-hydrahive (Passwort siehe Install-Output bzw. Journal).
+- `/` zeigt jetzt eine **Buddy-Page** statt Dashboard. Dashboard ist auf
+  `/dashboard`, alter Chat auf `/devchat` (Bookmarks redirected).
+- **Auto-Buddy-Create**: pro User ein Master-Agent mit `is_buddy=True`,
+  Lifetime-Session, gewürfelter Charakter aus 31 Universen × 5-10
+  konkreten Charakter-Namen.
+- **TV-Look-UI**: zentrale Box mit Top-Bezel + Bottom-Bezel + Power-LED + Stand
+- **Eigene Bubble-Komponenten** (`BuddyBubble.tsx`, `BuddyMessageList.tsx`)
+  ohne Tokens/Iteration/Stop-Reason. User-Bubble in amber-Pill-Style
+  (wie Bridge-Card im Dashboard), Buddy-Bubble in emerald-Pill-Style.
+- **Tool-Aufrufe komplett ausgeblendet** — nur Text + Bilder + Audio
+- **Charakter-Bootstrap**: bei erstem Kontakt würfelt Backend Universum
+  + 3-5 konkrete Charakter-Kandidaten. LLM wählt einen aus, speichert
+  im Memory unter Key 'character', bleibt in der Rolle.
+- **Anti-Gandalf-Bias**: Pool ohne Mainstream-Default-Charaktere — keine
+  Gandalfs/Yodas/Sherlocks mehr, sondern z.B. Kapitän Haddock,
+  Marvin der depressive Roboter, Granny Weatherwax.
 
-## Frische Code-Änderungen heute (commits)
+### Media-Player für Chat
+- `MediaPreview.tsx` — extrahiert Bild/Audio/Video-URLs aus Text
+- HTTP(S)-URLs + absolute Paths (`/tmp/foo.png`, `/var/lib/hydrahive2/...`)
+- Backend `GET /api/files?path=...` mit Pfad-Allowlist + Path-Traversal-
+  Schutz liefert `/tmp` und `/var/lib/hydrahive2` aus
+- Frontend rewriten absolute Paths zu `/api/files?path=<encoded>`
+- Funktioniert in DevChat (ToolResultCard) + Buddy (BuddyBubble)
 
-```
-c666f12 Tailscale default installieren
-285679a Tailscale ohne sudo — operator-Flag + Socket
-8bace05 NoNewPrivileges raus (zwischenzeitlich, später wieder rein)
-25fb8d0 Tailscale-Pfad via shutil.which (zwischenzeitlich)
-23dfb3f update.sh NEEDS_REWRITE-Check für /run/sudo (zwischenzeitlich)
-522a26a ExecStartPre /run/sudo (zwischenzeitlich)
-cd0038b version-Check via HTTPS-Remote
-d79dc20 /run/sudo in ReadWritePaths (zwischenzeitlich)
-b5e76fd Projekt-Tabs: Übersicht/Sessions/Git/Stats/Einstellungen
-8f68e80 Marvin-Onboarding via startup.md
-53f8bb3 Install-Zusammenfassung URL + Login
-da5d353 nginx default + TLS-SAN mit Server-IP
-d98c1ab .mmx-Verzeichnis für hydrahive
-5448242 .config/.cache/.local/share für hydrahive
-```
+### Theme-System (#88)
+- 5 Themes (violet/cool/warm/forest/mono) via CSS-Variablen am `<html>`
+- ThemeSwitcher in ProfilePage, localStorage-persistent
+- Brand-Stellen migriert: Logo, Login, Avatar, Modals, AgentForm, Chat,
+  Scrollbars
 
-Die "zwischenzeitlich"-Marker: NoNewPrivileges, /run/sudo, ExecStartPre
-sind alle wieder zurückgerollt — `285679a` ist der saubere Endstand.
-update.sh hat Migration die alte Service-Units mit dem Workaround
-auf die saubere Form bringt.
+### Dashboard-Cockpit
+- HealthStrip (1-Liner)
+- Stats kompakter (4 Tiles, kleinerer Padding)
+- Tailscale | AgentLink (beide ausführlich mit Peers/Specialists)
+- Recent Sessions | Active Agents (50:50, Agents nicht mehr full-width)
+- Servers als Grid 2-4 Spalten, kein 8-Cap
+- MiniMax-Quota-Card (token_plan/remains aus altem HH portiert)
 
-## Was offen ist
+## Offene Themen
 
-### P1 (groß)
+- **Buddy-Spielereien**: Tamagotchi-Charakter (Rive/Live2D/VRM —
+  Beholder/Sasquatch waren beide nichts, asset-Suche muss weiter), Online-
+  Radio im Header, Achievement-Toasts, Wetter-Pille, Pomodoro-Timer
+- **Profil-Toggle**: chat-quick vs dashboard als Default-Landing-Page
+- **#28** Datei-Größen >150: 24 Backend + 20 Frontend Files noch über
+- **Andere Provider-Quotas**: Anthropic-Rate-Limit-Header für Quota-Anzeige
+- **Bestehende Buddies** (vor Charakter-Bootstrap): haben eigenen
+  system_prompt.md, der neue Soul-Code wirkt nur bei NEU erstellten —
+  alte können manuell überschrieben oder gelöscht und neu angelegt werden
 
-1. **#38 User-Backup Self-Service** — komplementär zu Admin-Backup, DSGVO Art. 20
-2. **#43 Edit + Resend** Chat-Bubble
-3. **#55 ToolsSelector-Akkordeon** + **#56 AgentForm Tabs**
-4. **#62 Server-Tab im Projekt** (VMs+Container assignen) — bei den
-   Projekt-Tabs heute bewusst ausgelassen, braucht eigene VM/Container-Logik
-5. **#26 Skills-System** (SPEC-Lücke) — Marvin-Onboarding heute ist
-   ein Vorläufer, aber ohne richtiges Skills-System
+## Test-Server-Stände
 
-### P2 / P3
+- **218** (chucky@hh2-218 / lummerland123) — LXC-Container auf TrueNAS,
+  kein /dev/kvm. Stand: nicht aktuell, braucht Update-Trigger
+- **Tills Produktiv** (separater Server, nicht 218) — Update-Trigger
+  via `sudo touch /var/lib/hydrahive2/.update_request`
 
-Wie gehabt — Chat-Polish-Reste, Discord/Telegram/Matrix, Projekt-Sektionen
-Phase 2, ~30 Tags-Audit-Member-Webhooks-Issues.
+## Lessons Learned heute
 
-## Lessons Learned heute (in Memory persistiert)
-
-- **Erst Ist-Zustand checken, dann Hypothesen** — Tailscale-Saga lief
-  zwei Stunden weil ich Code-Hypothesen iteriert habe statt am Live-218
-  per SSH zu checken was tatsächlich anders ist. Bei Server-Bugs immer
-  zuerst `cat`/`ls`/`groups`/`systemctl` auf dem funktionierenden
-  Server, dann Code-Änderung. Memory-Eintrag: `feedback_check_actual_state_first.md`
-
-- **update.sh Self-Update-Bug** — wenn update.sh sich selbst aktualisiert,
-  greifen neue Checks erst beim NÄCHSTEN Lauf, weil bash das Skript schon
-  geladen hat. Bei wichtigen Migration-Checks: zwei update.sh-Läufe
-  einplanen, oder re-exec nach git pull einbauen. Bisher nicht umgesetzt.
-
-## Test-Plan beim Reopen
-
-1. Projekt-Tabs auf https://192.168.178.218/ (oder neuer Server) — alle
-   5 Tabs öffnen: Übersicht/Sessions/Git/Statistiken/Einstellungen
-2. Tailscale-Card: Status zeigt connected mit IP/Hostname
-3. Neuer Master-Agent (z.B. zweiten User anlegen): kommt Marvin-Onboarding
-   in der ersten Konversation? Stellt er die 6 Fragen? Löscht er
-   `startup.md` am Ende?
-4. Update-Knopf: ist er sichtbar wenn Server hinter `main`? Triggert er
-   das Update?
+- **Vor Push: Backend-Imports smoke-testen** — `_minimax_usage`-Import
+  hieß `load` statt `load_config`, ganzer Service crash-loop. Seitdem:
+  `.venv/bin/python -c "from hydrahive.api.main import app"` als
+  Quick-Check vor jedem Push.
+- **`git add -A` ist riskant** — heute mal versehentlich `image_001.jpg`
+  mit committed. Cleanup-Commit. Sollte expliziter werden.
+- **LLM-Bias auf Default-Charaktere** ist hart — Soft-Avoid-Constraints
+  reichen nicht (Gandalf trotz "Vermeide: Gandalf"). Lösung: Backend
+  würfelt KONKRETE Kandidaten vor, LLM wählt nur aus Allowlist.
+- **Asset-Pipeline für Tamagotchi**: Rive ist nicht plug-and-play —
+  Beholder hatte zu wenig States, Sasquatch lief gar nicht. Live2D
+  oder VRM wären robuster, brauchen aber eigene Lib + Modelle.
