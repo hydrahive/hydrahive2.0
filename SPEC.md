@@ -233,6 +233,7 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Spezialisten** — anlegen, Domäne, Skills zuweisen
 - **LLM** — Provider, API-Keys, Modelle
 - **MCP** — Server verwalten, pro Agent zuweisen
+- **Wiki** — HydraWiki: Seiten, Graph View, Ingestion, Dataview-Abfragen
 - **System** — Logs, Health, Services, System-Backup/Restore, Tailscale (Admin)
 - **Profil** — eigene Daten exportieren/importieren
 
@@ -526,6 +527,97 @@ ziehen, verbinden, verzweigen. Kein YAML-Editor als Fallback.
 - **Phase 3** (~1 Tag): ReactFlow-Frontend (Canvas, Palette, Inspector), Save/Load/Toggle
 - **Phase 4** (~½ Tag): Trigger-Hooks in WhatsApp-Adapter und Webhook-Endpoint, Audit-Log, Dry-Run-UI
 - **Phase 5** (optional): zusätzliche Trigger/Conditions/Actions als Plugin-Pakete
+
+---
+
+## HydraWiki — Globale Wissensdatenbank (Core-Komponente)
+
+HydraWiki ist eine server-native, KI-gestützte Wissensdatenbank — das was
+Obsidian + claude-obsidian zusammen tun, aber vollständig self-hosted ohne
+externe Apps oder API-Abhängigkeiten. Alle authentifizierten User und Agents
+können lesen und schreiben.
+
+### Dateiformat
+
+Plain-Text Markdown mit YAML Frontmatter unter `$HH_DATA_DIR/wiki/`:
+
+```
+---
+title: Quantencomputing
+slug: quantencomputing
+tags: [informatik, physik]
+entities: [Qubit, Superposition, IBM]
+source_url: https://...
+created_at: 2026-05-02T10:00Z
+updated_at: 2026-05-02T10:00Z
+---
+```
+
+Files sind die einzige Source of Truth. SQLite dient nur als regenerierbarer
+Index (Volltextsuche FTS5 + Backlinks). WikiLinks: `[[Seitenname]]` im Text,
+werden beim Speichern zu bidirektionalen Backlinks aufgelöst.
+
+### Ingestion-Flow
+
+1. User oder Agent gibt URL, Text oder Datei ein
+2. Backend fetcht + extrahiert Plaintext (readability-py für URLs)
+3. Einmaliger LLM-Call mit strukturiertem Output:
+   `{title, summary, entities, tags, links_to: [...existierende slugs...]}`
+4. Seite als `<slug>.md` gespeichert, Backlink-Index aktualisiert
+5. Widersprüche zu bestehenden Seiten werden als `⚠️ Widerspruch`-Block
+   markiert und lösen eine Benachrichtigung an den Ersteller aus
+6. Autoresearch: nach Ingestion startet ein Agent automatisch weitere
+   Web-Recherche und ergänzt die Seite mit zusätzlichen Quellen
+
+### Features
+
+- **Seiten-Liste**: Suche, Filter nach Tags / Entities / Autor
+- **Seiten-Detail**: Markdown-Rendering, Backlinks-Panel, Quell-URL
+- **Graph View**: D3.js force-directed — Knoten = Seiten, Kanten = WikiLinks,
+  Knotengröße nach Backlink-Anzahl
+- **Volltextsuche**: SQLite FTS5 über Titel + Inhalt + Entities
+- **Dataview-Abfragen**: `GET /api/wiki/query?tag=projekt&sort=updated_at`
+  mit Filter + Sort über alle Frontmatter-Felder
+- **Lint-Lauf**: findet verwaiste Seiten, tote WikiLinks, widersprüchliche
+  Aussagen, veraltete Quell-URLs
+- **Agent-Tools**: `wiki_search`, `wiki_ingest`, `wiki_read`, `wiki_write`
+
+### Nicht-Ziele
+
+- Kein WYSIWYG-Editor (Markdown im Editor)
+- Kein Versionsverlauf pro Seite (Git auf dem Dateisystem ist Sache des Admins)
+- Keine Vektor-Embeddings / semantische Suche (FTS5 reicht)
+- Kein User-spezifisches Wiki (ein globaler Namespace)
+
+### Architektur
+
+Backend `core/src/hydrahive/wiki/`:
+- `models.py` — Pydantic-Models (WikiPage, IngestRequest, QueryParams)
+- `storage.py` — Markdown-File I/O + Frontmatter-Parsing
+- `index.py` — SQLite FTS5 + Backlink-Index aufbauen / aktualisieren
+- `ingest.py` — URL-Fetch + LLM-Strukturierung + Speichern + Widerspruch-Check
+- `autoresearch.py` — Agent startet nach Ingestion autonome Weiterrecherche
+- `graph.py` — Graph-Daten für Frontend aufbereiten
+- `query.py` — Dataview-ähnliche Filter/Sort-API
+- `lint.py` — Vault-Health-Check
+
+API-Routen `api/routes/wiki.py`:
+- `GET/POST/PUT/DELETE /api/wiki/pages`
+- `POST /api/wiki/ingest`
+- `GET /api/wiki/graph`
+- `GET /api/wiki/query`
+- `POST /api/wiki/lint`
+
+Frontend `frontend/src/features/wiki/` (je Datei < 150 Zeilen):
+- `WikiPage.tsx` — Haupt-Container, Sidebar-Navigation
+- `PageList.tsx` — Liste + Suche + Filter
+- `PageDetail.tsx` — Rendering + Backlinks-Panel
+- `GraphView.tsx` — D3.js-Canvas
+- `IngestForm.tsx` — URL / Text / Datei eingeben
+- `QueryView.tsx` — Dataview-Abfragen
+- `api.ts` + `types.ts`
+
+Web-Konsole: neues Sidebar-Item `Wiki`.
 
 ---
 
