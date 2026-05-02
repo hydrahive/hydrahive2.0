@@ -18,14 +18,19 @@ import re
 import shutil
 from pathlib import Path
 
-from hydrahive.db._utils import now_iso, uuid7
-from hydrahive.db.connection import db
+from hydrahive.db._utils import now_iso
 from hydrahive.settings import settings
+from hydrahive.vms._import_job_db import db_create_job, db_delete, db_get, db_list, db_update
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_FORMATS = {"qcow2", "raw", "vmdk", "vdi", "vhd", "vhdx", "vpc"}
 PROGRESS_RE = re.compile(r"\(([\d.]+)/100%\)")
+
+__all__ = [
+    "db_create_job", "db_delete", "db_get", "db_list", "db_update",
+    "detect_format", "run_convert", "execute_job", "ImportError_",
+]
 
 
 class ImportError_(RuntimeError):
@@ -37,51 +42,6 @@ class ImportError_(RuntimeError):
 
 def _imports_tmp() -> Path:
     return settings.vms_dir / "imports-tmp"
-
-
-def db_create_job(owner: str, source_path: str, target_qcow2: str,
-                  bytes_total: int = 0) -> str:
-    job_id = uuid7()
-    with db() as conn:
-        conn.execute(
-            """INSERT INTO vm_import_jobs (job_id, owner, source_path, target_qcow2,
-                                            status, bytes_total, created_at)
-               VALUES (?, ?, ?, ?, 'queued', ?, ?)""",
-            (job_id, owner, source_path, target_qcow2, bytes_total, now_iso()),
-        )
-    return job_id
-
-
-def db_update(job_id: str, **fields) -> None:
-    if not fields:
-        return
-    sets = ", ".join(f"{k} = ?" for k in fields)
-    vals = list(fields.values()) + [job_id]
-    with db() as conn:
-        conn.execute(f"UPDATE vm_import_jobs SET {sets} WHERE job_id = ?", vals)
-
-
-def db_list(owner: str | None) -> list[dict]:
-    with db() as conn:
-        if owner is None:
-            rows = conn.execute("SELECT * FROM vm_import_jobs ORDER BY created_at DESC").fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM vm_import_jobs WHERE owner = ? ORDER BY created_at DESC",
-                (owner,),
-            ).fetchall()
-    return [dict(r) for r in rows]
-
-
-def db_get(job_id: str) -> dict | None:
-    with db() as conn:
-        row = conn.execute("SELECT * FROM vm_import_jobs WHERE job_id = ?", (job_id,)).fetchone()
-    return dict(row) if row else None
-
-
-def db_delete(job_id: str) -> None:
-    with db() as conn:
-        conn.execute("DELETE FROM vm_import_jobs WHERE job_id = ?", (job_id,))
 
 
 async def detect_format(src: Path) -> str:
