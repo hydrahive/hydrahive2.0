@@ -8,10 +8,13 @@ const IMG_RE = /(https?:\/\/[^\s)]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))(?:\?[^
 const AUD_RE = /(https?:\/\/[^\s)]+\.(?:mp3|ogg|wav|m4a|opus|flac))(?:\?[^\s)]*)?/gi
 const VID_RE = /(https?:\/\/[^\s)]+\.(?:mp4|webm|mov|m3u8))(?:\?[^\s)]*)?/gi
 // Absolute Filesystem-Pfade (z.B. /tmp/foo.png aus generierten Tool-Results) —
-// werden via /api/files?path= an das Backend delegiert
-const ABS_IMG_RE = /(?:^|\s|`)(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))/gi
-const ABS_AUD_RE = /(?:^|\s|`)(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
-const ABS_VID_RE = /(?:^|\s|`)(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)]+\.(?:mp4|webm|mov|m3u8))/gi
+// werden via /api/files?path= an das Backend delegiert.
+// Kein Pre-Anker — Pfade sollen auch in JSON-Strings (Tool-Results) gefunden
+// werden, wo " direkt vorm / steht: `"output_file": "/tmp/foo.jpg"`.
+// Stopp-Zeichen am Ende: Whitespace, `, ), ", ', ], }, ,
+const ABS_IMG_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))/gi
+const ABS_AUD_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
+const ABS_VID_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp4|webm|mov|m3u8))/gi
 
 function toApiUrl(path: string): string {
   return `/api/files?path=${encodeURIComponent(path)}`
