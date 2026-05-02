@@ -61,7 +61,7 @@ Workflow für Änderungen an SPEC.md / CLAUDE.md:
 ## Technische Regeln
 
 **Datei-Größe — eiserne Regel:**
-- Max ~150 Zeilen pro Datei
+- Max ~200 Zeilen pro Datei
 - Eine Datei = eine Verantwortung
 - Lieber 1000 kleine Dateien als 30 Monster-Dateien
 - Wenn eine Datei größer wird: aufteilen, nicht weiterschreiben
