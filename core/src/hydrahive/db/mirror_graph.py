@@ -32,8 +32,8 @@ async def build_graph(
     try:
         rows = await _load_rows(pool, event_type, agent_name, username, limit)
     except Exception as e:
-        logger.warning("Graph: DB-Abfrage fehlgeschlagen: %s", e)
-        return {"active": False, "nodes": [], "edges": []}
+        logger.warning("Graph: DB-Abfrage fehlgeschlagen: %r", e)
+        return {"active": True, "nodes": [], "edges": [], "error": str(e) or repr(e)}
 
     if len(rows) < 10:
         return {"active": True, "nodes": [], "edges": [], "error": "Zu wenige eingebettete Events"}
@@ -64,11 +64,11 @@ async def _load_rows(pool, event_type, agent_name, username, limit) -> list[dict
     where = " AND ".join(conditions)
 
     async with pool.acquire() as conn:
+        await conn.execute("SET LOCAL enable_seqscan = on")
         rows = await conn.fetch(f"""
             SELECT id, event_type, agent_name, username,
                    coalesce(nullif(text,''), nullif(tool_output,''), '') AS label,
-                   embedding::text AS emb_str,
-                   created_at
+                   embedding::float4[] AS emb_arr
             FROM events
             WHERE {where}
             ORDER BY random()
@@ -77,17 +77,16 @@ async def _load_rows(pool, event_type, agent_name, username, limit) -> list[dict
 
     result = []
     for r in rows:
-        emb_str = r["emb_str"]
-        if not emb_str:
+        emb = r["emb_arr"]
+        if not emb:
             continue
-        vec = [float(x) for x in emb_str.strip("[]").split(",")]
         result.append({
             "id": r["id"],
             "event_type": r["event_type"] or "",
             "agent_name": r["agent_name"] or "",
             "username": r["username"] or "",
             "label": (r["label"] or "")[:80],
-            "vec": vec,
+            "vec": list(emb),
         })
     return result
 
