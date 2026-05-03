@@ -42,8 +42,8 @@ export function GraphTab() {
     setTooltip(null)
     try {
       const data = await dataminingApi.graph({ limit }) as GraphData
-      if (!data.active) { setError("Mirror nicht aktiv"); return }
       if (data.error) { setError(data.error); return }
+      if (!data.active) { setError("Mirror nicht aktiv"); return }
       setNodeCount(data.nodes.length)
       renderGraph(data)
     } catch (e) {
