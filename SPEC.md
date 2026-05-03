@@ -96,7 +96,7 @@ Wird vom Installer mitinstalliert. Ermöglicht auch Federation zwischen zwei Hyd
 | Backend | Python 3.12 + FastAPI | bewährt, async, schnell |
 | LLM-Abstraktion | LiteLLM | Provider-unabhängig |
 | Frontend | React + TypeScript + Vite | bewährt |
-| Datenbank | SQLite (Sessions) + PostgreSQL (AgentLink) | SQLite = zero-config für Core |
+| Datenbank | SQLite (Sessions) + PostgreSQL (AgentLink, Datamining-Mirror optional) | SQLite = zero-config für Core |
 | Messaging | Redis (AgentLink Pub/Sub) | niedrige Latenz |
 | Agent-Kommunikation | AgentLink (externer Service) | eigenständig, autark |
 | Reverse Proxy | nginx | TLS-Termination |
@@ -273,6 +273,49 @@ Zwei getrennte Mechanismen für unterschiedliche Use-Cases.
 - Backup-Verschlüsselung im Code (User soll die Datei selbst encrypted ablegen)
 - Cross-User-Restore (Admin kann nicht mit User-Backup einen anderen User wiederherstellen)
 - Selektives Restore (alles oder nichts pro Backup-Typ)
+
+---
+
+## PostgreSQL Datamining-Mirror (optional)
+
+Alle Chat-Events werden zusätzlich zu SQLite in PostgreSQL gespiegelt — roh, ungekürzt,
+blockweise aufgeteilt. Grundstein für Datamining, Analyse und semantische Suche.
+Aktiviert durch Setzen von `HH_PG_MIRROR_DSN`. Wenn nicht gesetzt: inaktiv, kein Fehler.
+
+### Was gespiegelt wird
+
+Jede Message aus dem Chat-Kontext wird in einzelne Events aufgeteilt:
+
+| event_type | Bedeutung |
+|---|---|
+| `user_input` | Texteingabe des Users |
+| `assistant_text` | Textantwort des Agents |
+| `tool_call` | Tool-Aufruf (Name + vollständiger Input als JSONB) |
+| `tool_result` | Tool-Ausgabe (gechukt bei > 8.000 Zeichen) |
+| `thinking` | Extended-Thinking-Blöcke |
+| `compaction` | Compaction-Summary |
+
+Jedes Event trägt: `username`, `agent_id`, `agent_name`, `project_id`, `session_id`,
+`created_at` (sekundengenau) sowie eine Chunk-ID im Format `{message_id}:{block}:{chunk}`
+die das Zusammensetzen zerstückelter Tool-Outputs ermöglicht.
+
+### Embedding-Spalte
+
+`embedding vector(4096)` — kompatibel mit `nvidia/nv-embed-v2` (NVIDIA NIM).
+Bleibt NULL bis ein separater Embedding-Worker läuft. Der HNSW-Index (pgvector)
+wird nur über non-NULL Rows gebaut.
+
+### Schema angelegt durch
+
+`db/mirror.py` beim Start — `CREATE TABLE IF NOT EXISTS` + Indizes, idempotent.
+`CREATE EXTENSION IF NOT EXISTS vector` muss vorab einmalig auf dem PG-Server ausgeführt werden.
+
+### Nicht-Ziele
+
+- Kein Retry bei PG-Ausfall (fire-and-forget, Datamining-Verlust akzeptabel)
+- Keine Rück-Synchronisation von SQLite → PG (Mirror startet ab Aktivierung)
+- Kein Embedding-Worker im Core (separater Service, kommt später)
+- Keine Abfrage-API im Backend (direkter DB-Zugriff durch Datamining-Tools)
 
 ---
 
