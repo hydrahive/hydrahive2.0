@@ -2,9 +2,21 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _dt(s: str) -> datetime:
+    """Parst ISO-Datum/-Datetime zu timezone-aware datetime für asyncpg."""
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        dt = datetime.fromisoformat(s + "T00:00:00")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 async def embed_status() -> dict:
@@ -81,9 +93,9 @@ async def _text_search(conn, q, event_type, agent_name, username, from_date, to_
     if username:
         where.append(f"username = ${idx}"); params.append(username); idx += 1
     if from_date:
-        where.append(f"created_at >= ${idx}::timestamptz"); params.append(from_date); idx += 1
+        where.append(f"created_at >= ${idx}"); params.append(_dt(from_date)); idx += 1
     if to_date:
-        where.append(f"created_at <= ${idx}::timestamptz"); params.append(to_date); idx += 1
+        where.append(f"created_at <= ${idx}"); params.append(_dt(to_date)); idx += 1
     params.append(limit)
 
     rows = await conn.fetch(f"""
@@ -121,9 +133,9 @@ async def _semantic_search(conn, q, event_type, agent_name, username, from_date,
     if username:
         where.append(f"username = ${idx}"); params.append(username); idx += 1
     if from_date:
-        where.append(f"created_at >= ${idx}::timestamptz"); params.append(from_date); idx += 1
+        where.append(f"created_at >= ${idx}"); params.append(_dt(from_date)); idx += 1
     if to_date:
-        where.append(f"created_at <= ${idx}::timestamptz"); params.append(to_date); idx += 1
+        where.append(f"created_at <= ${idx}"); params.append(_dt(to_date)); idx += 1
     params.append(limit)
 
     rows = await conn.fetch(f"""
