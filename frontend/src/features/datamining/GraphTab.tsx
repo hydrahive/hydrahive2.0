@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import * as d3 from "d3"
 import { dataminingApi } from "./api"
 
