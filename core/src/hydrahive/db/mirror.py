@@ -290,12 +290,13 @@ async def _embed_event(event_id: str, text: str, model: str) -> None:
     vec = await aembed(text, model)
     if vec is None or not _pool:
         return
+    vec_str = "[" + ",".join(str(x) for x in vec) + "]"
     try:
         async with _pool.acquire() as conn:
             await conn.execute("""
-                UPDATE events SET embedding=$1, embedding_model=$2, embedded_at=now()
+                UPDATE events SET embedding=$1::vector, embedding_model=$2, embedded_at=now()
                 WHERE id=$3 AND embedding IS NULL
-            """, vec, model, event_id)
+            """, vec_str, model, event_id)
     except Exception as e:
         logger.warning("Embedding-Speichern fehlgeschlagen (%s): %s", event_id, e)
 
