@@ -81,9 +81,9 @@ async def _text_search(conn, q, event_type, agent_name, username, from_date, to_
     if username:
         where.append(f"username = ${idx}"); params.append(username); idx += 1
     if from_date:
-        where.append(f"created_at >= ${idx}"); params.append(from_date); idx += 1
+        where.append(f"created_at >= ${idx}::timestamptz"); params.append(from_date); idx += 1
     if to_date:
-        where.append(f"created_at <= ${idx}"); params.append(to_date); idx += 1
+        where.append(f"created_at <= ${idx}::timestamptz"); params.append(to_date); idx += 1
     params.append(limit)
 
     rows = await conn.fetch(f"""
@@ -121,9 +121,9 @@ async def _semantic_search(conn, q, event_type, agent_name, username, from_date,
     if username:
         where.append(f"username = ${idx}"); params.append(username); idx += 1
     if from_date:
-        where.append(f"created_at >= ${idx}"); params.append(from_date); idx += 1
+        where.append(f"created_at >= ${idx}::timestamptz"); params.append(from_date); idx += 1
     if to_date:
-        where.append(f"created_at <= ${idx}"); params.append(to_date); idx += 1
+        where.append(f"created_at <= ${idx}::timestamptz"); params.append(to_date); idx += 1
     params.append(limit)
 
     rows = await conn.fetch(f"""
