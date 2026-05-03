@@ -5,6 +5,7 @@ Provider mit api_base nutzen den openai-Client direkt (NVIDIA, MiniMax).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -135,7 +136,10 @@ async def aembed_batch(texts: list[str], model: str) -> list[list[float] | None]
         else:
             import litellm
             apply_keys(config)
-            resp = await litellm.aembedding(model=litellm_model(model), input=texts, timeout=30)
+            resp = await asyncio.wait_for(
+                litellm.aembedding(model=litellm_model(model), input=texts),
+                timeout=30,
+            )
             return [d["embedding"] for d in resp.data]
     except Exception as e:
         logger.warning("Batch-Embedding fehlgeschlagen (model=%s, n=%d): %s", model, len(texts), e)
