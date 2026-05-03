@@ -76,27 +76,28 @@ def available_for_config(config: dict) -> list[dict]:
 
 
 async def aembed(text: str, model: str) -> list[float] | None:
-    """Erzeugt einen Embedding-Vektor via LiteLLM. Gibt None bei Fehler zurück."""
+    """Erzeugt einen Embedding-Vektor. Gibt None bei Fehler zurück.
+
+    Provider mit api_base (z.B. NVIDIA NIM) nutzen den openai-Client direkt —
+    LiteLLM konstruiert URLs für custom-base-URL-Provider nicht korrekt.
+    """
     from hydrahive.llm._config import apply_keys, get_provider_key, load_config
     try:
-        import litellm
-        config = load_config()
-        apply_keys(config)
-
         entry = _BY_MODEL.get(model, {})
-        kwargs: dict[str, Any] = {
-            "model": litellm_model(model),
-            "input": [text],
-        }
+        config = load_config()
+
         if entry.get("api_base"):
-            kwargs["api_base"] = entry["api_base"]
+            import openai
             provider = _PROVIDER_BY_MODEL.get(model, "")
             key = get_provider_key(config, provider)
-            if key:
-                kwargs["api_key"] = key
-
-        resp = await litellm.aembedding(**kwargs)
-        return resp.data[0]["embedding"]
+            client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
+            resp = await client.embeddings.create(model=model, input=[text])
+            return list(resp.data[0].embedding)
+        else:
+            import litellm
+            apply_keys(config)
+            resp = await litellm.aembedding(model=litellm_model(model), input=[text])
+            return resp.data[0]["embedding"]
     except Exception as e:
         logger.warning("Embedding fehlgeschlagen (model=%s): %s", model, e)
         return None
