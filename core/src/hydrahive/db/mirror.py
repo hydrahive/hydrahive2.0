@@ -159,7 +159,7 @@ async def reset_embeddings(event_type: str | None = None) -> int:
     return count
 
 
-async def _backfill_task(model: str, batch_size: int = 50) -> None:
+async def _backfill_task(model: str, batch_size: int = 200) -> None:
     global _backfill_running
     if _backfill_running:
         logger.info("Backfill läuft bereits — übersprungen")
@@ -167,6 +167,7 @@ async def _backfill_task(model: str, batch_size: int = 50) -> None:
     _backfill_running = True
     total = 0
     try:
+        from hydrahive.llm.embed import aembed_batch
         while True:
             if not _pool:
                 break
@@ -182,18 +183,27 @@ async def _backfill_task(model: str, batch_size: int = 50) -> None:
                 """, batch_size)
             if not rows:
                 break
-            await asyncio.gather(
-                *[_embed_event(
-                    r["id"],
-                    f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"],
-                    model,
-                ) for r in rows],
-                return_exceptions=True,
-            )
+            texts = [
+                f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"]
+                for r in rows
+            ]
+            vectors = await aembed_batch(texts, model)
+            vec_str = lambda v: "[" + ",".join(str(x) for x in v) + "]" if v else None
+            updates = [
+                (vec_str(vectors[i]), model, rows[i]["id"])
+                for i in range(len(rows))
+                if vectors[i] is not None
+            ]
+            if updates:
+                async with _pool.acquire() as conn:
+                    await conn.executemany("""
+                        UPDATE events SET embedding=$1::vector, embedding_model=$2, embedded_at=now()
+                        WHERE id=$3 AND embedding IS NULL
+                    """, updates)
             total += len(rows)
             if len(rows) < batch_size:
                 break
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.05)
         logger.info("Backfill abgeschlossen: %d Events eingebettet", total)
     except Exception as e:
         logger.warning("Backfill fehlgeschlagen nach %d Events: %s", total, e)
