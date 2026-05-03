@@ -191,8 +191,8 @@ async def _backfill_task(model: str, batch_size: int = 32) -> None:
                 (f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"]) or ""
                 for r in rows
             ]
-            # Leere Texte überspringen — nvidia NIM lehnt den ganzen Batch ab
-            valid = [(i, t) for i, t in enumerate(texts) if t.strip()]
+            # Leere Texte überspringen und auf 3000 Zeichen kürzen (nv-embed-v1: max 4096 Tokens)
+            valid = [(i, t[:3000]) for i, t in enumerate(texts) if t.strip()]
             if not valid:
                 logger.warning("Backfill: Batch nur leere Texte — überspringe %d Events", len(rows))
                 await asyncio.sleep(1)
