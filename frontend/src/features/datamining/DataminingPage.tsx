@@ -121,13 +121,12 @@ export function DataminingPage() {
           {exportState === "running" ? "exportiert…" : "DB Export"}
         </button>
         {exportState === "done" && exportFile && (
-          <a
-            href="/api/datamining/export/download"
+          <button
+            onClick={() => dataminingApi.downloadExport(exportFile).catch(() => {})}
             className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
-            download
           >
             ↓ {exportFile} ({exportSizeMb} MB)
-          </a>
+          </button>
         )}
         <button
           onClick={() => importRef.current?.click()}
