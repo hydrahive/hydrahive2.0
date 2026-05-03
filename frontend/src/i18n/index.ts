@@ -22,6 +22,7 @@ import deButler from "./locales/de/butler.json"
 import deSkills from "./locales/de/skills.json"
 import deCredentials from "./locales/de/credentials.json"
 import deBuddy from "./locales/de/buddy.json"
+import deDatamining from "./locales/de/datamining.json"
 
 import enCommon from "./locales/en/common.json"
 import enAuth from "./locales/en/auth.json"
@@ -43,6 +44,7 @@ import enButler from "./locales/en/butler.json"
 import enSkills from "./locales/en/skills.json"
 import enCredentials from "./locales/en/credentials.json"
 import enBuddy from "./locales/en/buddy.json"
+import enDatamining from "./locales/en/datamining.json"
 
 export const resources = {
   de: {
@@ -51,7 +53,7 @@ export const resources = {
     system: deSystem, dashboard: deDashboard, help: deHelp, users: deUsers,
     profile: deProfile, errors: deErrors, plugins: dePlugins,
     communication: deCommunication, butler: deButler, skills: deSkills,
-    credentials: deCredentials, buddy: deBuddy,
+    credentials: deCredentials, buddy: deBuddy, datamining: deDatamining,
   },
   en: {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
@@ -59,7 +61,7 @@ export const resources = {
     system: enSystem, dashboard: enDashboard, help: enHelp, users: enUsers,
     profile: enProfile, errors: enErrors, plugins: enPlugins,
     communication: enCommunication, butler: enButler, skills: enSkills,
-    credentials: enCredentials, buddy: enBuddy,
+    credentials: enCredentials, buddy: enBuddy, datamining: enDatamining,
   },
 } as const
 
@@ -75,7 +77,7 @@ i18n
     resources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
