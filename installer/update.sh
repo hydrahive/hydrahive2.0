@@ -394,6 +394,17 @@ if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ] && [ -x "$HH_REPO_DIR/installer/mo
   bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || log "tailscale-update failed — weiter"
 fi
 
+if [ "${HH_INSTALL_POSTGRES:-yes}" != "no" ]; then
+  DROPIN_FILE="/etc/systemd/system/hydrahive2.service.d/pg-mirror.conf"
+  if ! command -v psql >/dev/null 2>&1 \
+     || [ ! -f "${HH_CONFIG_DIR}/pg_mirror.dsn" ] \
+     || [ ! -f "$DROPIN_FILE" ]; then
+    log "PostgreSQL-Mirror fehlt oder unvollständig — starte 48-postgres.sh"
+    HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+      bash "$HH_REPO_DIR/installer/modules/48-postgres.sh" || log "postgres-setup failed — weiter"
+  fi
+fi
+
 log "Service neu starten"
 systemctl restart hydrahive2.service
 
