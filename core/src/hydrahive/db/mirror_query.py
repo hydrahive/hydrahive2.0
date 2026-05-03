@@ -70,7 +70,7 @@ async def search_events(
 
 async def _text_search(conn, q, event_type, agent_name, username, from_date, to_date, limit):
     pat = f"%{q}%"
-    where = ["(text ILIKE $1 OR tool_output ILIKE $1 OR tool_input::text ILIKE $1)"]
+    where = ["(text ILIKE $1 OR tool_output ILIKE $1 OR tool_input::text ILIKE $1 OR tool_name ILIKE $1)"]
     params: list = [pat]
     idx = 2
 

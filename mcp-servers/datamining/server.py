@@ -70,8 +70,8 @@ def search(
     event_type: user_input | assistant_text | tool_call | tool_result | compaction | thinking
     """
     pat = f"%{query}%"
-    where = ["(text ILIKE %s OR tool_output ILIKE %s OR tool_input::text ILIKE %s)"]
-    params: list = [pat, pat, pat]
+    where = ["(text ILIKE %s OR tool_output ILIKE %s OR tool_input::text ILIKE %s OR tool_name ILIKE %s)"]
+    params: list = [pat, pat, pat, pat]
 
     if event_type:
         where.append("event_type = %s"); params.append(event_type)

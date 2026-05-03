@@ -141,6 +141,24 @@ async def on_embed_model_change(new_model: str) -> None:
             pass
 
 
+async def reset_embeddings(event_type: str | None = None) -> int:
+    """Setzt Embeddings zurück damit der Backfill sie neu einbettet."""
+    if not _pool:
+        return 0
+    async with _pool.acquire() as conn:
+        if event_type:
+            r = await conn.execute(
+                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL WHERE event_type=$1",
+                event_type,
+            )
+        else:
+            r = await conn.execute(
+                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL"
+            )
+    count = int(r.split()[-1])
+    return count
+
+
 async def _backfill_task(model: str, batch_size: int = 50) -> None:
     global _backfill_running
     if _backfill_running:
@@ -154,7 +172,8 @@ async def _backfill_task(model: str, batch_size: int = 50) -> None:
                 break
             async with _pool.acquire() as conn:
                 rows = await conn.fetch("""
-                    SELECT id, coalesce(text, tool_output, tool_input::text) AS content
+                    SELECT id, tool_name,
+                           coalesce(text, tool_output, tool_input::text) AS content
                     FROM events
                     WHERE embedding IS NULL
                       AND (text IS NOT NULL OR tool_output IS NOT NULL OR tool_input IS NOT NULL)
@@ -164,7 +183,11 @@ async def _backfill_task(model: str, batch_size: int = 50) -> None:
             if not rows:
                 break
             await asyncio.gather(
-                *[_embed_event(r["id"], r["content"], model) for r in rows],
+                *[_embed_event(
+                    r["id"],
+                    f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"],
+                    model,
+                ) for r in rows],
                 return_exceptions=True,
             )
             total += len(rows)
@@ -278,13 +301,25 @@ def _queue_embed(events: list[dict]) -> None:
     if not model:
         return
     for e in events:
-        ti = e.get("tool_input")
-        text = e.get("text") or e.get("tool_output") or (_json.dumps(ti, ensure_ascii=False) if ti else None)
+        text = _embed_text(e)
         if text:
             try:
                 asyncio.get_running_loop().create_task(_embed_event(e["id"], text, model))
             except RuntimeError:
                 pass
+
+
+def _embed_text(e: dict) -> str | None:
+    """Baut den Text der eingebettet wird — tool_name immer voranstellen."""
+    import json as _json
+    ti = e.get("tool_input")
+    tool_name = e.get("tool_name", "")
+    base = e.get("text") or e.get("tool_output") or (_json.dumps(ti, ensure_ascii=False) if ti else None)
+    if not base:
+        return None
+    if tool_name:
+        return f"{tool_name}: {base}"
+    return base
 
 
 async def _embed_event(event_id: str, text: str, model: str) -> None:
