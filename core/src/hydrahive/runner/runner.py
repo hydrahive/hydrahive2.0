@@ -60,12 +60,18 @@ async def run(
             tool_schemas.append({"name": _t.name, "description": _t.description, "input_schema": _t.schema})
             allowed_tools.append(_t.name)
         base_system_prompt += (
-            "\n\n## Langzeitgedächtnis\n"
-            "Du hast Zugriff auf das HydraHive-Datamining — alle vergangenen Sessions und Gespräche.\n"
-            "Nutze diese Tools proaktiv wenn du Kontext zu vergangenen Aufgaben, Fehlern oder Ideen brauchst:\n"
+            "\n\n## Langzeitgedächtnis — PFLICHT\n"
+            "Du hast Zugriff auf eine Datenbank mit ALLEN vergangenen Sessions, Gesprächen und Tool-Calls.\n"
+            "**Regel: Wenn du etwas nicht weißt oder eine Frage auf vergangene Ereignisse/Personen/Dinge verweist, "
+            "rufe ZUERST datamining_search auf — bevor du antwortest oder spekulierst.**\n"
+            "Beispiele wann du suchen musst:\n"
+            "- Fragen wie 'wie geht es X?', 'was haben wir mit Y gemacht?', 'weißt du noch...?'\n"
+            "- Unbekannte Namen, Begriffe oder Referenzen die aus früheren Gesprächen kommen könnten\n"
+            "- Aufgaben die du fortsetzen sollst ohne klaren Kontext\n"
+            "Tools:\n"
             "- `datamining_search(query)` — Volltextsuche\n"
-            "- `datamining_semantic(query)` — semantische Ähnlichkeitssuche (ohne exakte Worte)\n"
-            "- `datamining_today()` — Übersicht was heute passiert ist\n"
+            "- `datamining_semantic(query)` — semantische Suche wenn Volltext nichts findet\n"
+            "- `datamining_today()` — was heute passiert ist\n"
         )
 
     messages_db.append(session_id, "user", user_input)
