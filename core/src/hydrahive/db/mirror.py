@@ -24,7 +24,7 @@ except ImportError:
 
 _pool: "asyncpg.Pool | None" = None
 _backfill_running: bool = False
-CHUNK_CHARS = 8000
+CHUNK_CHARS = 3000
 
 _DDL_BASE = """
 CREATE TABLE IF NOT EXISTS sessions (
