@@ -60,6 +60,20 @@ export const dataminingApi = {
   startExport: () =>
     api.post<{ ok: boolean; reason?: string }>("/datamining/export", {}),
 
+  downloadExport: async (filename: string) => {
+    const { useAuthStore } = await import("@/features/auth/useAuthStore")
+    const token = useAuthStore.getState().token
+    const res = await fetch("/api/datamining/export/download", {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error("Download fehlgeschlagen")
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
+  },
+
   exportStatus: () =>
     api.get<{ running: boolean; done: boolean; filename: string | null; size_mb: number; error: string | null }>(
       "/datamining/export/status"
