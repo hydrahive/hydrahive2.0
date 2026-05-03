@@ -113,12 +113,23 @@ async def _ensure_embed_col(conn: "asyncpg.Connection") -> None:
     await conn.execute(f"ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding vector({dim})")
     await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding_model TEXT")
     await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ")
-    await conn.execute(f"""
-        CREATE INDEX IF NOT EXISTS events_embedding_hnsw
-        ON events USING hnsw (embedding vector_cosine_ops)
-        WITH (m = 16, ef_construction = 64)
-    """)
-    logger.info("Embedding-Spalte vector(%d) + HNSW-Index bereit", dim)
+    try:
+        await conn.execute(f"""
+            CREATE INDEX IF NOT EXISTS events_embedding_hnsw
+            ON events USING hnsw (embedding vector_cosine_ops)
+            WITH (m = 16, ef_construction = 64)
+        """)
+        logger.info("Embedding-Spalte vector(%d) + HNSW-Index bereit", dim)
+    except Exception:
+        try:
+            await conn.execute(f"""
+                CREATE INDEX IF NOT EXISTS events_embedding_ivfflat
+                ON events USING ivfflat (embedding vector_cosine_ops)
+                WITH (lists = 100)
+            """)
+            logger.info("Embedding-Spalte vector(%d) + IVFFlat-Index bereit (HNSW nicht unterstützt)", dim)
+        except Exception as e:
+            logger.warning("Kein Vektor-Index angelegt (pgvector zu alt?): %s — Suche läuft per Seq-Scan", e)
 
 
 async def close() -> None:
