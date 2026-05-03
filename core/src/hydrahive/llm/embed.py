@@ -1,7 +1,7 @@
 """Embedding-Modelle: Lookup-Table + LiteLLM-Wrapper.
 
 Nur explizit bekannte Modelle werden angeboten — Dimension ist dadurch immer bekannt.
-NVIDIA NIM Cloud nutzt OpenAI-kompatiblen Endpoint (integrate.api.nvidia.com).
+Provider mit api_base nutzen den openai-Client direkt (NVIDIA, MiniMax).
 """
 from __future__ import annotations
 
@@ -30,6 +30,14 @@ EMBED_MODELS: dict[str, list[dict[str, Any]]] = {
             "litellm": "openai/nvidia/nv-embedqa-e5-v5",
             "api_base": "https://integrate.api.nvidia.com/v1",
             "dim": 1024,
+        },
+    ],
+    "minimax": [
+        {
+            "model": "minimax/embo-01",
+            "litellm": "openai/embo-01",
+            "api_base": "https://api.minimax.io/v1",
+            "dim": 1536,
         },
     ],
     "mistral": [
@@ -105,7 +113,9 @@ async def aembed_batch(texts: list[str], model: str) -> list[list[float] | None]
             provider = _PROVIDER_BY_MODEL.get(model, "")
             key = get_provider_key(config, provider)
             client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
-            resp = await client.embeddings.create(model=model, input=texts)
+            # Provider-Prefix (z.B. "minimax/") für den API-Call entfernen
+            api_model = model.split("/", 1)[-1] if "/" in model else model
+            resp = await client.embeddings.create(model=api_model, input=texts)
             ordered = sorted(resp.data, key=lambda d: d.index)
             return [list(d.embedding) for d in ordered]
         else:
