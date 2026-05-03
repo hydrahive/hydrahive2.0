@@ -1,121 +1,124 @@
-# HydraHive2 — Übergabe (Stand 2026-05-02 früh)
+# HydraHive2 — Übergabe (Stand 2026-05-03 abend)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
-## Heute geschafft (~30 Commits)
+---
 
-### Audit + Issues geschlossen (17 Stück)
+## Was heute erledigt wurde
 
-Großes Aufräumen — viele Features waren schon umgesetzt aber Issues offen:
-- **#42** Kosten pro Bubble (USD), **#43** Edit+Resend, **#46** Retry-Button,
-  **#49** System-Prompt-Tooltip, **#53** Drag-Drop Bilder, **#54** Compact-
-  Imminent-Warning, **#61** Git Commit/Push/Pull aus UI, **#67** paused-Lifecycle,
-  **#85** AgentForm Sticky-Save-Bar, **#86** Tailscale-Card mit Peers,
-  **#87** AgentLink-Card mit Telemetry, **#88** 5 Theme-Farben, **#92** MiniMax
-  via Anthropic-SDK, **#93** MiniMax-Creator-Plugin, **#94** Console-Cleanup,
-  **#97** Bridge-Setup-Knopf, **#98** Beliebiger Repo-Pfad
-- **#12** DevLauncher → Tool-Confirm-System (SPEC umgeschrieben mit Tills OK)
-- **#33** Process-Meta — sequenziell-arbeiten ist Praxis
+### Discord-Adapter (Issue #35) — fertig
+- `core/src/hydrahive/communication/discord/` — adapter.py, config.py, filter.py
+- `api/routes/communication_discord.py` + `communication_discord_routes.py`
+- Frontend: `DiscordCard.tsx`, `DiscordFilterPanel.tsx`, `CommunicationPage.tsx` +discord
+- discord.py direkt im asyncio-Loop, kein Subprocess
 
-### Bugfixes
-- **`fix(vms): cpu=qemu64 statt cpu=max`** — FreeBSD-VMs crashten in TCG-
-  Containern bei AES-NI-Emulation. 218 ist LXC-Container ohne /dev/kvm,
-  jetzt fällt qemu sauber auf qemu64 zurück.
-- **`fix(systemd): KillMode=process`** — VMs überleben jetzt Backend-Updates.
-- **`fix(installer): sshpass-Check in update.sh`** — alte Installs ziehen
-  sshpass nach.
-- **`fix(_minimax_usage)`**: `load` → `load_config` — Backend-Crash-Loop
-  nach Push, manuell mit `sudo -u hydrahive git pull && systemctl restart`
-  rausgeholt. **Lesson:** vor Push immer Backend-Imports smoke-testen.
+### PostgreSQL Datamining-Mirror — fertig + deployed
+- `core/src/hydrahive/db/mirror.py` — fire-and-forget Mirror aller Chat-Events nach PostgreSQL
+- Schema: `sessions` + `events` Tabellen, blockweise Zerlegung mit Chunk-IDs
+- `installer/modules/48-postgres.sh` — PostgreSQL + pgvector Installer (idempotent)
+- `installer/update.sh` — Self-Heal für Postgres-Setup; **Bug gefixt**: `tr | head` Broken-Pipe
+  unter `set -euo pipefail` → jetzt `openssl rand -hex 16`. Alle Sub-Skripte mit `|| log` abgesichert.
+- `api/routes/datamining.py` — `GET /api/datamining/events?limit=N`
+- `frontend/src/features/datamining/DataminingPage.tsx` — Live-Feed (Zeit | User | Agent | Typ | Tool | Snippet)
+- `mcp-servers/datamining/server.py` — FastMCP, 3 Tools: search / get_session / list_sessions
+- **218 läuft**, DSN gesetzt, Events loggen, Agent-Name sichtbar
 
-### Tool-Confirm-System (#12 alternativ)
-Statt OS-Sandbox: per-Agent-Toggle `require_tool_confirm`. Wenn an, sieht
-User vor jedem Tool-Call ein Banner mit Erlauben/Verweigern. Auto-deny
-nach 5 Min Timeout.
-- `core/src/hydrahive/runner/tool_confirmation.py` — Pending-Store mit
-  asyncio.Future
-- Frontend: `chat/ToolConfirmBanner.tsx` über Input
-- SPEC.md angepasst (mit Tills explizitem OK) — keine OS-User-Isolation
-  mehr, Sicherheit via User-Auth + Tool-Permission-Prompts
+### Embedding-Modell-Auswahl — fertig
+- `core/src/hydrahive/llm/embed.py` — Lookup-Table bekannter Modelle (OpenAI/nvidia/mistral/gemini/cohere)
+  mit Dimension + LiteLLM-Modell-String; nur Provider mit API-Key werden angezeigt
+- `GET /api/llm/embed-models` — gibt verfügbare Modelle zurück
+- `embed_model` Feld in `LlmConfig` gespeichert
+- `mirror.py` überarbeitet: DDL ohne hardcoded `vector(4096)`, `_ensure_embed_col()` legt
+  Spalte dynamisch an und passt sie bei Modellwechsel an (DROP + ADD)
+- Nach jedem Event-Write: fire-and-forget `_embed_event()`-Task
+- LLM-Seite: Dropdown "Embedding-Modell" zeigt nur passende Modelle mit Dimension `(Nd)`
 
-**Memory-Eintrag:** `feedback_agents_full_tool_access.md` —
-"HydraHive-Agents arbeiten wie Claude Code + OpenClaw" — voller Tool-
-Zugriff, keine Sandbox-Whitelists, kein "darf ich nicht"-Pattern.
+---
 
-### Buddy-Page (neu)
-**Kompletter neuer Bereich** unter `frontend/src/features/buddy/` +
-`core/src/hydrahive/buddy/`:
+## Aktuell offen / nächste Schritte
 
-- `/` zeigt jetzt eine **Buddy-Page** statt Dashboard. Dashboard ist auf
-  `/dashboard`, alter Chat auf `/devchat` (Bookmarks redirected).
-- **Auto-Buddy-Create**: pro User ein Master-Agent mit `is_buddy=True`,
-  Lifetime-Session, gewürfelter Charakter aus 31 Universen × 5-10
-  konkreten Charakter-Namen.
-- **TV-Look-UI**: zentrale Box mit Top-Bezel + Bottom-Bezel + Power-LED + Stand
-- **Eigene Bubble-Komponenten** (`BuddyBubble.tsx`, `BuddyMessageList.tsx`)
-  ohne Tokens/Iteration/Stop-Reason. User-Bubble in amber-Pill-Style
-  (wie Bridge-Card im Dashboard), Buddy-Bubble in emerald-Pill-Style.
-- **Tool-Aufrufe komplett ausgeblendet** — nur Text + Bilder + Audio
-- **Charakter-Bootstrap**: bei erstem Kontakt würfelt Backend Universum
-  + 3-5 konkrete Charakter-Kandidaten. LLM wählt einen aus, speichert
-  im Memory unter Key 'character', bleibt in der Rolle.
-- **Anti-Gandalf-Bias**: Pool ohne Mainstream-Default-Charaktere — keine
-  Gandalfs/Yodas/Sherlocks mehr, sondern z.B. Kapitän Haddock,
-  Marvin der depressive Roboter, Granny Weatherwax.
+### Datamining — Semantic Search (nächste Phase)
+- Embedding läuft, Vektoren werden geschrieben
+- **Fehlt noch**: Such-UI auf der Datamining-Seite (Suchfeld + Ergebnisse)
+- MCP-Server (`mcp-servers/datamining/server.py`) hat noch kein semantisches Search-Tool —
+  nur ILIKE. Wenn Embeddings befüllt: `search` Tool um `query_vector` erweitern
 
-### Media-Player für Chat
-- `MediaPreview.tsx` — extrahiert Bild/Audio/Video-URLs aus Text
-- HTTP(S)-URLs + absolute Paths (`/tmp/foo.png`, `/var/lib/hydrahive2/...`)
-- Backend `GET /api/files?path=...` mit Pfad-Allowlist + Path-Traversal-
-  Schutz liefert `/tmp` und `/var/lib/hydrahive2` aus
-- Frontend rewriten absolute Paths zu `/api/files?path=<encoded>`
-- Funktioniert in DevChat (ToolResultCard) + Buddy (BuddyBubble)
+### Backlog (keine Reihenfolge)
+- Discord / Telegram / Matrix-Adapter Telegram+Matrix noch offen
+- Branching/Tree-View in Chat
+- Bundle-Splitting (#95) — chunks > 500 KB Warnung bleibt
+- DB-Indizes (#96)
+- AgentLink HTTPS Mixed-Content (#90)
+- Buddy-Spielereien (Tamagotchi-Animation, Online-Radio, Achievements)
+- MCP-Datamining-Server deployen + als Tool einbinden
 
-### Theme-System (#88)
-- 5 Themes (violet/cool/warm/forest/mono) via CSS-Variablen am `<html>`
-- ThemeSwitcher in ProfilePage, localStorage-persistent
-- Brand-Stellen migriert: Logo, Login, Avatar, Modals, AgentForm, Chat,
-  Scrollbars
+---
 
-### Dashboard-Cockpit
-- HealthStrip (1-Liner)
-- Stats kompakter (4 Tiles, kleinerer Padding)
-- Tailscale | AgentLink (beide ausführlich mit Peers/Specialists)
-- Recent Sessions | Active Agents (50:50, Agents nicht mehr full-width)
-- Servers als Grid 2-4 Spalten, kein 8-Cap
-- MiniMax-Quota-Card (token_plan/remains aus altem HH portiert)
+## Installer / Server
 
-## Offene Themen
+### 218 (chucky@hh2-218 / 192.168.178.218, Passwort lummerland123)
+- LXC-Container auf TrueNAS, kein /dev/kvm
+- Repo: `/opt/hydrahive2`, Service-User: `hydrahive`
+- **Stand**: aktuell (2026-05-03 abend)
+- Update-Trigger: `sudo touch /var/lib/hydrahive2/.update_request`
+- PostgreSQL läuft, DSN in `/etc/hydrahive2/pg_mirror.dsn` + systemd Drop-in
 
-- **Buddy-Spielereien**: Tamagotchi-Charakter (Rive/Live2D/VRM —
-  Beholder/Sasquatch waren beide nichts, asset-Suche muss weiter), Online-
-  Radio im Header, Achievement-Toasts, Wetter-Pille, Pomodoro-Timer
-- **Profil-Toggle**: chat-quick vs dashboard als Default-Landing-Page
-- **#28** Datei-Größen >150: 24 Backend + 20 Frontend Files noch über
-- **Andere Provider-Quotas**: Anthropic-Rate-Limit-Header für Quota-Anzeige
-- **Bestehende Buddies** (vor Charakter-Bootstrap): haben eigenen
-  system_prompt.md, der neue Soul-Code wirkt nur bei NEU erstellten —
-  alte können manuell überschrieben oder gelöscht und neu angelegt werden
+### Installer-Reihenfolge (module/)
+```
+00-deps  10-user  20-paths  30-python  40-frontend
+47-samba  48-postgres  50-systemd  55-voice
+60-nginx  65-vms  70-containers  75-agentlink  80-tailscale
+```
 
-## Test-Server-Stände
+---
 
-- **218** (chucky@hh2-218 / lummerland123) — LXC-Container auf TrueNAS,
-  kein /dev/kvm. Stand: nicht aktuell, braucht Update-Trigger
-- **Tills Produktiv** (separater Server, nicht 218) — Update-Trigger
-  via `sudo touch /var/lib/hydrahive2/.update_request`
+## Wichtige Lektionen aus dieser Session
 
-## Lessons Learned heute
+- **`tr | head -c 32` unter `set -euo pipefail`** = Broken Pipe → Script-Abbruch.
+  Immer `openssl rand -hex 16` für Passwort-Generierung.
+- **Sub-Skripte in update.sh** brauchen `|| log "... failed — weiter"` sonst bricht
+  `set -euo pipefail` das gesamte Script ab bevor spätere Self-Heal-Blöcke greifen.
+- **Embedding-Dimension nicht hardcoden** — verschiedene Modelle haben verschiedene Dims.
+  Lookup-Table im Code, Spalte dynamisch per ALTER TABLE anlegen.
+- **layer violation db→llm**: `mirror.py` importiert `llm.embed` und `llm._config`.
+  Das ist bewusst akzeptiert — Embedding ist DB-nahe Post-Processing.
 
-- **Vor Push: Backend-Imports smoke-testen** — `_minimax_usage`-Import
-  hieß `load` statt `load_config`, ganzer Service crash-loop. Seitdem:
-  `.venv/bin/python -c "from hydrahive.api.main import app"` als
-  Quick-Check vor jedem Push.
-- **`git add -A` ist riskant** — heute mal versehentlich `image_001.jpg`
-  mit committed. Cleanup-Commit. Sollte expliziter werden.
-- **LLM-Bias auf Default-Charaktere** ist hart — Soft-Avoid-Constraints
-  reichen nicht (Gandalf trotz "Vermeide: Gandalf"). Lösung: Backend
-  würfelt KONKRETE Kandidaten vor, LLM wählt nur aus Allowlist.
-- **Asset-Pipeline für Tamagotchi**: Rive ist nicht plug-and-play —
-  Beholder hatte zu wenig States, Sasquatch lief gar nicht. Live2D
-  oder VRM wären robuster, brauchen aber eigene Lib + Modelle.
+---
+
+## Code-Änderungen seit letzter Übergabe (neue/geänderte Dateien)
+
+```
+core/src/hydrahive/communication/discord/__init__.py   NEU
+core/src/hydrahive/communication/discord/adapter.py    NEU
+core/src/hydrahive/communication/discord/config.py     NEU
+core/src/hydrahive/communication/discord/filter.py     NEU
+core/src/hydrahive/api/routes/communication_discord.py NEU
+core/src/hydrahive/api/routes/communication_discord_routes.py NEU
+core/src/hydrahive/api/lifespan.py                     +Discord-Startup
+core/src/hydrahive/api/main.py                         +discord_router
+core/src/hydrahive/db/mirror.py                        NEU (komplett)
+core/src/hydrahive/db/messages.py                      +mirror.schedule_message
+core/src/hydrahive/db/sessions.py                      +mirror.schedule_session
+core/src/hydrahive/api/routes/datamining.py            NEU
+core/src/hydrahive/api/main.py                         +datamining_router
+core/src/hydrahive/settings/settings.py                +pg_mirror_dsn, +discord_*
+core/src/hydrahive/llm/embed.py                        NEU
+core/src/hydrahive/api/routes/llm.py                   +embed_model, +embed-models endpoint
+core/pyproject.toml                                    +asyncpg>=0.29
+installer/modules/48-postgres.sh                       NEU
+installer/install.sh                                   +Phase 7b postgres
+installer/update.sh                                    +postgres self-heal, alle || log fixes
+mcp-servers/datamining/server.py                       NEU
+mcp-servers/datamining/pyproject.toml                  NEU
+frontend/src/features/communication/DiscordCard.tsx    NEU
+frontend/src/features/communication/DiscordFilterPanel.tsx NEU
+frontend/src/features/communication/CommunicationPage.tsx  +DiscordCard
+frontend/src/features/datamining/DataminingPage.tsx    NEU
+frontend/src/features/llm/LlmPage.tsx                  +embed_model Dropdown
+frontend/src/features/llm/api.ts                       +EmbedModel, embed_model
+frontend/src/i18n/index.ts                             +datamining namespace
+frontend/src/i18n/locales/{de,en}/communication.json   +discord.*
+frontend/src/i18n/locales/{de,en}/datamining.json      NEU
+frontend/src/i18n/locales/{de,en}/llm.json             +embed_model*
+```
