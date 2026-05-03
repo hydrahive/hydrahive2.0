@@ -26,6 +26,7 @@ export interface Agent {
   workspace?: string
   disabled_skills?: string[]
   require_tool_confirm?: boolean
+  longterm_memory?: boolean
 }
 
 export interface ToolMeta {

@@ -54,6 +54,20 @@ async def run(
     tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
     allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
 
+    if agent.get("longterm_memory"):
+        from hydrahive.tools.datamining import TOOL_SEARCH, TOOL_SEMANTIC, TOOL_TODAY
+        for _t in (TOOL_SEARCH, TOOL_SEMANTIC, TOOL_TODAY):
+            tool_schemas.append({"name": _t.name, "description": _t.description, "input_schema": _t.schema})
+            allowed_tools.append(_t.name)
+        base_system_prompt += (
+            "\n\n## Langzeitgedächtnis\n"
+            "Du hast Zugriff auf das HydraHive-Datamining — alle vergangenen Sessions und Gespräche.\n"
+            "Nutze diese Tools proaktiv wenn du Kontext zu vergangenen Aufgaben, Fehlern oder Ideen brauchst:\n"
+            "- `datamining_search(query)` — Volltextsuche\n"
+            "- `datamining_semantic(query)` — semantische Ähnlichkeitssuche (ohne exakte Worte)\n"
+            "- `datamining_today()` — Übersicht was heute passiert ist\n"
+        )
+
     messages_db.append(session_id, "user", user_input)
 
     last_assistant_id: str | None = None
