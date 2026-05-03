@@ -95,4 +95,13 @@ export const dataminingApi = {
     api.get<{ running: boolean; sessions: number; messages: number; events: number; total_sessions: number }>(
       "/datamining/import/sqlite/status"
     ),
+
+  graph: (params?: { event_type?: string; agent_name?: string; username?: string; limit?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.event_type) qs.set("event_type", params.event_type)
+    if (params?.agent_name) qs.set("agent_name", params.agent_name)
+    if (params?.username) qs.set("username", params.username)
+    if (params?.limit) qs.set("limit", String(params.limit))
+    return api.get<unknown>(`/datamining/graph?${qs}`)
+  },
 }
