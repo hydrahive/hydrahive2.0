@@ -154,10 +154,10 @@ async def _backfill_task(model: str, batch_size: int = 50) -> None:
                 break
             async with _pool.acquire() as conn:
                 rows = await conn.fetch("""
-                    SELECT id, coalesce(text, tool_output) AS content
+                    SELECT id, coalesce(text, tool_output, tool_input::text) AS content
                     FROM events
                     WHERE embedding IS NULL
-                      AND (text IS NOT NULL OR tool_output IS NOT NULL)
+                      AND (text IS NOT NULL OR tool_output IS NOT NULL OR tool_input IS NOT NULL)
                     ORDER BY created_at
                     LIMIT $1
                 """, batch_size)
@@ -273,11 +273,13 @@ async def _write_message(m: Message, s: Session) -> None:
 
 def _queue_embed(events: list[dict]) -> None:
     from hydrahive.llm._config import load_config
+    import json as _json
     model = load_config().get("embed_model", "")
     if not model:
         return
     for e in events:
-        text = e.get("text") or e.get("tool_output")
+        ti = e.get("tool_input")
+        text = e.get("text") or e.get("tool_output") or (_json.dumps(ti, ensure_ascii=False) if ti else None)
         if text:
             try:
                 asyncio.get_running_loop().create_task(_embed_event(e["id"], text, model))
