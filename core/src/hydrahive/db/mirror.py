@@ -171,7 +171,7 @@ async def reset_embeddings(event_type: str | None = None) -> int:
     return count
 
 
-async def _backfill_task(model: str, batch_size: int = 20) -> None:
+async def _backfill_task(model: str, batch_size: int = 100) -> None:
     global _backfill_running
     if _backfill_running:
         logger.info("Backfill läuft bereits — übersprungen")
@@ -205,7 +205,7 @@ async def _backfill_task(model: str, batch_size: int = 20) -> None:
             total += len(rows)
             if len(rows) < batch_size:
                 break
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(2.0)
         logger.info("Backfill abgeschlossen: %d Events eingebettet", total)
     except Exception as e:
         logger.warning("Backfill fehlgeschlagen nach %d Events: %s", total, e)
