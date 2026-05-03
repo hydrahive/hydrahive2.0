@@ -10,6 +10,13 @@ export interface LlmProvider {
 export interface LlmConfig {
   providers: LlmProvider[]
   default_model: string
+  embed_model: string
+}
+
+export interface EmbedModel {
+  model: string
+  dim: number
+  provider: string
 }
 
 export const llmApi = {
@@ -17,4 +24,5 @@ export const llmApi = {
   updateConfig: (cfg: LlmConfig) => api.put<LlmConfig>("/llm", cfg),
   testConnection: (model?: string) =>
     api.post<{ ok: boolean; response: string }>("/llm/test", { model: model ?? null }),
+  getEmbedModels: () => api.get<EmbedModel[]>("/llm/embed-models"),
 }
