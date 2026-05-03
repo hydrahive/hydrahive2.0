@@ -205,7 +205,7 @@ async def _backfill_task(model: str, batch_size: int = 50) -> None:
             total += len(rows)
             if len(rows) < batch_size:
                 break
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(1.5)
         logger.info("Backfill abgeschlossen: %d Events eingebettet", total)
     except Exception as e:
         logger.warning("Backfill fehlgeschlagen nach %d Events: %s", total, e)
@@ -335,6 +335,8 @@ def _embed_text(e: dict) -> str | None:
 
 
 async def _embed_event(event_id: str, text: str, model: str) -> None:
+    if not text or not text.strip():
+        return
     from hydrahive.llm.embed import aembed
     vec = await aembed(text, model)
     if vec is None or not _pool:
