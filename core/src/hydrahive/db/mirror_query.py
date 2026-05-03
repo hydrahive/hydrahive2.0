@@ -170,19 +170,35 @@ async def list_sessions(
         where.append(f"s.username = ${idx}"); params.append(username); idx += 1
     params.append(min(limit, 200))
 
+    # Filter für Events-Query neu aufbauen (gleiche Parameter, andere Spaltennamen)
+    where_e = ["1=1"]
+    params_e: list = []
+    idx_e = 1
+    if agent_name:
+        where_e.append(f"agent_name = ${idx_e}"); params_e.append(agent_name); idx_e += 1
+    if username:
+        where_e.append(f"username = ${idx_e}"); params_e.append(username); idx_e += 1
+    params_e.append(min(limit, 200))
+
     try:
         async with pool.acquire() as conn:
             rows = await conn.fetch(f"""
-                SELECT s.id, s.username, s.agent_name, s.project_id, s.title, s.status,
-                       s.started_at, s.updated_at,
-                       COUNT(e.id)::int AS event_count
-                FROM sessions s
-                LEFT JOIN events e ON e.session_id = s.id
-                WHERE {' AND '.join(where)}
-                GROUP BY s.id
-                ORDER BY s.updated_at DESC NULLS LAST
-                LIMIT ${idx}
-            """, *params)
+                SELECT
+                    session_id                 AS id,
+                    MAX(username)              AS username,
+                    MAX(agent_name)            AS agent_name,
+                    MAX(project_id)            AS project_id,
+                    NULL::text                 AS title,
+                    'active'                   AS status,
+                    MIN(created_at)            AS started_at,
+                    MAX(created_at)            AS updated_at,
+                    COUNT(*)::int              AS event_count
+                FROM events
+                WHERE {' AND '.join(where_e)}
+                GROUP BY session_id
+                ORDER BY MAX(created_at) DESC
+                LIMIT ${idx_e}
+            """, *params_e)
             return [dict(r) for r in rows]
     except Exception as e:
         logger.warning("list_sessions fehlgeschlagen: %s", e)
