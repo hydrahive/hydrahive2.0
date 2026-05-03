@@ -178,6 +178,7 @@ async def _backfill_task(model: str, batch_size: int = 100) -> None:
         return
     _backfill_running = True
     total = 0
+    logger.info("Backfill gestartet (model=%s)", model)
     try:
         while True:
             if not _pool:
