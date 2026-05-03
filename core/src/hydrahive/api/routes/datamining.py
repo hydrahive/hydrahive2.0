@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Annotated
+import json
+from datetime import datetime, timezone
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
-from hydrahive.api.middleware.auth import require_auth
+from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.db import mirror, mirror_query
 
 router = APIRouter(prefix="/api/datamining", tags=["datamining"])
@@ -99,3 +102,58 @@ async def trigger_backfill(_auth: Auth) -> dict:
     import asyncio
     asyncio.get_running_loop().create_task(mirror._backfill_task(model))
     return {"ok": True, "model": model}
+
+
+class _IngestEvent(BaseModel):
+    id: str
+    message_id: str
+    session_id: str
+    block_index: int = 0
+    event_type: str
+    created_at: str
+    username: str | None = None
+    agent_name: str | None = None
+    text: str | None = None
+    tool_name: str | None = None
+    tool_use_id: str | None = None
+    tool_input: dict[str, Any] | None = None
+    tool_output: str | None = None
+    is_error: bool = False
+
+
+class _IngestRequest(BaseModel):
+    events: list[_IngestEvent]
+
+
+def _dt(s: str) -> datetime:
+    dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+@router.post("/ingest", dependencies=[Depends(require_admin)])
+async def ingest_transcript(body: _IngestRequest) -> dict:
+    """Nimmt geparste Claude-Code-Session-Events und schreibt sie in die Mirror-DB."""
+    if mirror._pool is None:
+        raise HTTPException(503, "Mirror nicht aktiv")
+    if not body.events:
+        return {"ok": True, "inserted": 0}
+
+    rows = [
+        (e.id, e.message_id, e.session_id, e.block_index, 0, 1,
+         e.event_type, _dt(e.created_at), e.username, e.agent_name,
+         e.text, e.tool_name, e.tool_use_id,
+         json.dumps(e.tool_input) if e.tool_input else None,
+         e.tool_output, e.is_error)
+        for e in body.events
+    ]
+    async with mirror._pool.acquire() as conn:
+        await conn.executemany("""
+            INSERT INTO events (id, message_id, session_id, block_index, chunk_index, chunk_total,
+                               event_type, created_at, username, agent_name, text,
+                               tool_name, tool_use_id, tool_input, tool_output, is_error)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16)
+            ON CONFLICT (id) DO NOTHING
+        """, rows)
+    return {"ok": True, "inserted": len(rows)}

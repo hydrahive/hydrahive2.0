@@ -3,5 +3,47 @@
     "allow": [
       "Bash(gh api *)"
     ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/till/.claude/hooks/hh_context.py",
+            "timeout": 6
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/till/.claude/hooks/hh_ingest.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "mcpServers": {
+    "datamining-218": {
+      "command": "python3",
+      "args": ["/home/till/claudeneu/mcp-servers/datamining/server.py"],
+      "env": {
+        "HH_BASE_URL": "https://192.168.178.218",
+        "HH_TOKEN": "hhk_VS9bjelsFhl_AY7FhohXFA2HYcKzOGu50IxOSTls7ys"
+      }
+    },
+    "datamining-103": {
+      "command": "python3",
+      "args": ["/home/till/claudeneu/mcp-servers/datamining/server.py"],
+      "env": {
+        "HH_BASE_URL": "https://192.168.178.103",
+        "HH_TOKEN": "hhk_59RoS8DrHGYj78iYy6hrl-BvVc08R8PszlsPc8dDkXM"
+      }
+    }
   }
 }
