@@ -48,9 +48,14 @@ def get_config() -> dict:
 
 
 @router.put("", dependencies=[Depends(require_admin)])
-def update_config(cfg: LlmConfig) -> dict:
+async def update_config(cfg: LlmConfig) -> dict:
+    old_model = _load().get("embed_model", "")
     data = cfg.model_dump()
     _save(data)
+    new_model = data.get("embed_model", "")
+    if new_model != old_model:
+        from hydrahive.db import mirror
+        await mirror.on_embed_model_change(new_model)
     return data
 
 

@@ -3,6 +3,7 @@
 
 Sucht in der PostgreSQL-Events-Tabelle — kein Core-Code, kein Prompt.
 DSN via Env-Var PG_MIRROR_DSN oder HH_PG_MIRROR_DSN.
+Semantic Search: HH_EMBED_MODEL + Provider-API-Key (z.B. NVIDIA_NIM_API_KEY).
 """
 import json
 import os
@@ -13,6 +14,7 @@ import psycopg2.extras
 from mcp.server.fastmcp import FastMCP
 
 DSN = os.environ.get("PG_MIRROR_DSN") or os.environ.get("HH_PG_MIRROR_DSN", "")
+EMBED_MODEL = os.environ.get("HH_EMBED_MODEL", "")
 
 mcp = FastMCP("datamining")
 _conn: "psycopg2.extensions.connection | None" = None
@@ -233,6 +235,85 @@ def list_sessions(
         "count": len(rows),
         "sessions": [dict(r) for r in rows],
     }, ensure_ascii=False, indent=2, default=str)
+
+
+@mcp.tool()
+def semantic_search(
+    query: str,
+    event_type: Optional[str] = None,
+    username: Optional[str] = None,
+    agent_name: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 20,
+) -> str:
+    """Semantische Ähnlichkeitssuche über alle Chat-Events via pgvector.
+
+    Findet Events die inhaltlich ähnlich zur Query sind — auch ohne exakte Wortübereinstimmung.
+    Erfordert konfiguriertes Embedding-Modell (HH_EMBED_MODEL) und befüllte Embeddings.
+    Gibt Ergebnisse sortiert nach Ähnlichkeit zurück (höchste zuerst).
+    event_type: user_input | assistant_text | tool_call | tool_result | compaction | thinking
+    """
+    if not EMBED_MODEL:
+        return json.dumps({"error": "HH_EMBED_MODEL nicht gesetzt"})
+
+    try:
+        import litellm
+        resp = litellm.embedding(model=EMBED_MODEL, input=[query])
+        vec: list[float] = resp.data[0]["embedding"]
+    except Exception as e:
+        return json.dumps({"error": f"Embedding fehlgeschlagen: {e}"})
+
+    vec_str = "[" + ",".join(str(x) for x in vec) + "]"
+
+    where = ["embedding IS NOT NULL"]
+    filter_params: list = []
+
+    if event_type:
+        where.append("event_type = %s"); filter_params.append(event_type)
+    if username:
+        where.append("username = %s"); filter_params.append(username)
+    if agent_name:
+        where.append("agent_name = %s"); filter_params.append(agent_name)
+    if from_date:
+        where.append("created_at >= %s"); filter_params.append(from_date)
+    if to_date:
+        where.append("created_at <= %s"); filter_params.append(to_date)
+
+    sql = f"""
+        SELECT id, session_id, username, agent_name, event_type, created_at,
+               tool_name, is_error,
+               left(coalesce(text, tool_output, ''), 300) AS snippet,
+               round((1 - (embedding <=> %s::vector))::numeric, 3) AS similarity
+        FROM events
+        WHERE {' AND '.join(where)}
+        ORDER BY embedding <=> %s::vector
+        LIMIT %s
+    """
+    # vec_str zweimal: für similarity-Berechnung und ORDER BY
+    all_params = tuple([vec_str] + filter_params + [vec_str, limit])
+
+    rows = _rows(sql, all_params)
+
+    results = []
+    for r in rows:
+        hit: dict = {
+            "id": r["id"],
+            "session_id": r["session_id"],
+            "event_type": r["event_type"],
+            "created_at": str(r["created_at"]),
+            "username": r["username"],
+            "agent_name": r["agent_name"],
+            "similarity": float(r["similarity"]) if r["similarity"] else None,
+            "snippet": r["snippet"],
+        }
+        if r["tool_name"]:
+            hit["tool_name"] = r["tool_name"]
+        if r["is_error"]:
+            hit["is_error"] = True
+        results.append(hit)
+
+    return json.dumps({"count": len(results), "results": results}, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
