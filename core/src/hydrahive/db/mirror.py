@@ -159,7 +159,7 @@ async def reset_embeddings(event_type: str | None = None) -> int:
     return count
 
 
-async def _backfill_task(model: str, batch_size: int = 200) -> None:
+async def _backfill_task(model: str, batch_size: int = 32) -> None:
     global _backfill_running
     if _backfill_running:
         logger.info("Backfill läuft bereits — übersprungen")
@@ -188,19 +188,26 @@ async def _backfill_task(model: str, batch_size: int = 200) -> None:
                 for r in rows
             ]
             vectors = await aembed_batch(texts, model)
+            embedded = sum(1 for v in vectors if v is not None)
+            if embedded == 0:
+                logger.warning("Backfill: Batch komplett fehlgeschlagen (model=%s, n=%d) — überspringe", model, len(rows))
+                # Verhindert Endlosschleife: Events als "versucht" markieren nicht möglich,
+                # deshalb kurze Pause und dann nächster Versuch
+                await asyncio.sleep(5)
+                continue
             vec_str = lambda v: "[" + ",".join(str(x) for x in v) + "]" if v else None
             updates = [
                 (vec_str(vectors[i]), model, rows[i]["id"])
                 for i in range(len(rows))
                 if vectors[i] is not None
             ]
-            if updates:
-                async with _pool.acquire() as conn:
-                    await conn.executemany("""
-                        UPDATE events SET embedding=$1::vector, embedding_model=$2, embedded_at=now()
-                        WHERE id=$3 AND embedding IS NULL
-                    """, updates)
-            total += len(rows)
+            async with _pool.acquire() as conn:
+                await conn.executemany("""
+                    UPDATE events SET embedding=$1::vector, embedding_model=$2, embedded_at=now()
+                    WHERE id=$3 AND embedding IS NULL
+                """, updates)
+            total += embedded
+            logger.info("Backfill: %d eingebettet (gesamt %d)", embedded, total)
             if len(rows) < batch_size:
                 break
             await asyncio.sleep(0.05)
