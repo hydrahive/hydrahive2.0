@@ -27,6 +27,7 @@ export function DataminingPage() {
   const [exportSizeMb, setExportSizeMb] = useState<number>(0)
   const [importState, setImportState] = useState<"idle" | "running" | "done" | "error">("idle")
   const importRef = useRef<HTMLInputElement>(null)
+  const [sqliteImport, setSqliteImport] = useState<{ running: boolean; sessions: number; total: number } | null>(null)
 
   useEffect(() => {
     dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {})
@@ -38,6 +39,9 @@ export function DataminingPage() {
     }).catch(() => {})
     dataminingApi.importStatus().then((s) => {
       if (s.running) setImportState("running")
+    }).catch(() => {})
+    dataminingApi.sqliteImportStatus().then((s) => {
+      if (s.running) setSqliteImport({ running: true, sessions: s.sessions, total: s.total_sessions })
     }).catch(() => {})
     return () => clearInterval(iv)
   }, [])
@@ -66,6 +70,17 @@ export function DataminingPage() {
       if (!s) return
       if (s.done) { setImportState("done"); clearInterval(poll) }
       else if (s.error) { setImportState("error"); clearInterval(poll) }
+    }, 2000)
+  }
+
+  async function startSqliteImport() {
+    await dataminingApi.startSqliteImport().catch(() => {})
+    setSqliteImport({ running: true, sessions: 0, total: 0 })
+    const poll = setInterval(async () => {
+      const s = await dataminingApi.sqliteImportStatus().catch(() => null)
+      if (!s) return
+      setSqliteImport({ running: s.running, sessions: s.sessions, total: s.total_sessions })
+      if (!s.running) clearInterval(poll)
     }, 2000)
   }
 
@@ -137,6 +152,18 @@ export function DataminingPage() {
           {importState === "running" ? "importiert…" : importState === "done" ? "importiert ✓" : "DB Import"}
         </button>
         <input ref={importRef} type="file" accept=".dump,.dump.gz" className="hidden" onChange={handleImport} />
+        <button
+          onClick={startSqliteImport}
+          disabled={sqliteImport?.running ?? false}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/[4%] hover:bg-white/[8%] text-zinc-400 hover:text-zinc-200 disabled:opacity-40 transition-colors"
+        >
+          <Upload size={12} />
+          {sqliteImport?.running
+            ? `SQLite… ${sqliteImport.sessions}/${sqliteImport.total}`
+            : sqliteImport && !sqliteImport.running && sqliteImport.sessions > 0
+            ? "SQLite ✓"
+            : "SQLite Import"}
+        </button>
       </div>
 
       {tab === "feed" && <LiveFeedTab active={tab === "feed"} />}

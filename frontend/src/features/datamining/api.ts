@@ -87,4 +87,12 @@ export const dataminingApi = {
 
   importStatus: () =>
     api.get<{ running: boolean; done: boolean; error: string | null }>("/datamining/import/status"),
+
+  startSqliteImport: () =>
+    api.post<{ ok: boolean; reason?: string }>("/datamining/import/sqlite", {}),
+
+  sqliteImportStatus: () =>
+    api.get<{ running: boolean; sessions: number; messages: number; events: number; total_sessions: number }>(
+      "/datamining/import/sqlite/status"
+    ),
 }

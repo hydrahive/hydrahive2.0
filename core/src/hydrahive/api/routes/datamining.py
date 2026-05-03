@@ -229,3 +229,20 @@ async def ingest_transcript(body: _IngestRequest) -> dict:
             ON CONFLICT (id) DO NOTHING
         """, rows)
     return {"ok": True, "inserted": len(rows)}
+
+
+@router.post("/import/sqlite")
+async def start_sqlite_import(_auth: Auth) -> dict:
+    from hydrahive.db.mirror_import_sqlite import run_sqlite_import, sqlite_import_status
+    s = sqlite_import_status()
+    if s["running"]:
+        return {"ok": False, "reason": "Import läuft bereits"}
+    import asyncio
+    asyncio.get_running_loop().create_task(run_sqlite_import())
+    return {"ok": True}
+
+
+@router.get("/import/sqlite/status")
+async def get_sqlite_import_status(_auth: Auth) -> dict:
+    from hydrahive.db.mirror_import_sqlite import sqlite_import_status
+    return sqlite_import_status()
