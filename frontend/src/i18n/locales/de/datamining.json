@@ -7,5 +7,34 @@
   "entries": "Einträge",
   "loading": "Lade…",
   "empty": "Noch keine Daten",
-  "not_configured": "HH_PG_MIRROR_DSN nicht gesetzt"
+  "not_configured": "HH_PG_MIRROR_DSN nicht gesetzt",
+  "tabs": {
+    "feed": "Live-Feed",
+    "search": "Suche",
+    "sessions": "Sessions"
+  },
+  "search": {
+    "placeholder": "Suchbegriff…",
+    "filter_type_all": "Alle Typen",
+    "toggle_semantic": "Semantisch",
+    "submit": "Suchen",
+    "no_results": "Keine Treffer",
+    "results_count": "{{count}} Treffer",
+    "error": "Fehler: {{message}}"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "col_date": "Datum",
+    "col_agent": "Agent",
+    "col_user": "Benutzer",
+    "col_title": "Titel",
+    "col_events": "Events",
+    "col_status": "Status",
+    "no_sessions": "Keine Sessions vorhanden"
+  },
+  "session_detail": {
+    "back": "Zurück",
+    "events": "Events",
+    "untitled": "(ohne Titel)"
+  }
 }

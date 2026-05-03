@@ -7,5 +7,34 @@
   "entries": "entries",
   "loading": "Loading…",
   "empty": "No data yet",
-  "not_configured": "HH_PG_MIRROR_DSN not set"
+  "not_configured": "HH_PG_MIRROR_DSN not set",
+  "tabs": {
+    "feed": "Live Feed",
+    "search": "Search",
+    "sessions": "Sessions"
+  },
+  "search": {
+    "placeholder": "Search term…",
+    "filter_type_all": "All types",
+    "toggle_semantic": "Semantic",
+    "submit": "Search",
+    "no_results": "No results",
+    "results_count": "{{count}} results",
+    "error": "Error: {{message}}"
+  },
+  "sessions": {
+    "title": "Sessions",
+    "col_date": "Date",
+    "col_agent": "Agent",
+    "col_user": "User",
+    "col_title": "Title",
+    "col_events": "Events",
+    "col_status": "Status",
+    "no_sessions": "No sessions found"
+  },
+  "session_detail": {
+    "back": "Back",
+    "events": "events",
+    "untitled": "(untitled)"
+  }
 }
