@@ -286,7 +286,7 @@ if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
   log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" \
     INSTALLER_DIR="$HH_REPO_DIR/installer" \
-    bash "$HH_REPO_DIR/installer/modules/65-vms.sh"
+    bash "$HH_REPO_DIR/installer/modules/65-vms.sh" || log "vms-setup failed — weiter"
 fi
 
 # incus-Setup muss VOR dem Voice-Check laufen — 55-voice.sh nutzt incus
@@ -296,7 +296,7 @@ if ! command -v incus >/dev/null 2>&1 \
    || [ ! -d "/home/$HH_USER/.config/incus" ]; then
   log "Container-Manager-Setup fehlt — starte 70-containers.sh"
   HH_USER="$HH_USER" \
-    bash "$HH_REPO_DIR/installer/modules/70-containers.sh"
+    bash "$HH_REPO_DIR/installer/modules/70-containers.sh" || log "containers-setup failed — weiter"
 fi
 
 # Voice-Setup nach incus — STT läuft jetzt in einem incus-LXC (kein Docker).
@@ -325,7 +325,7 @@ if [ "$voice_ok" = "0" ]; then
     log "ffmpeg fehlt am Host — installieren"
     DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null 2>&1 || true
   fi
-  bash "$HH_REPO_DIR/installer/modules/55-voice.sh"
+  bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || log "voice-setup failed — weiter"
 fi
 
 # mmx-Cache-Verzeichnis muss als hydrahive existieren BEVOR die Service-Unit
@@ -356,7 +356,7 @@ if [ -f "$SERVICE_FILE" ]; then
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
       HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
       HH_REPO_DIR="$HH_REPO_DIR" \
-      bash "$HH_REPO_DIR/installer/modules/50-systemd.sh"
+      bash "$HH_REPO_DIR/installer/modules/50-systemd.sh" || log "systemd-rewrite failed — weiter"
   fi
 fi
 
@@ -366,7 +366,7 @@ if ! command -v nginx >/dev/null 2>&1 || [ ! -f "$NGINX_CONF" ]; then
   log "nginx fehlt oder nicht konfiguriert — starte 60-nginx.sh"
   HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
     HH_REPO_DIR="$HH_REPO_DIR" \
-    bash "$HH_REPO_DIR/installer/modules/60-nginx.sh"
+    bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || log "nginx-setup failed — weiter"
 else
   NEEDS_REWRITE=0
   grep -q "ssl_certificate"      "$NGINX_CONF" || NEEDS_REWRITE=1
@@ -378,7 +378,7 @@ else
     HH_HOST="${HH_HOST:-127.0.0.1}"
     HH_PORT="${HH_PORT:-8001}"
     HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
-      bash "$HH_REPO_DIR/installer/modules/60-nginx.sh"
+      bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || log "nginx-rewrite failed — weiter"
   fi
 fi
 
