@@ -16,10 +16,15 @@ if ! brew list postgresql@16 &>/dev/null; then
   brew install postgresql@16 --quiet
 fi
 
-# pgvector via brew
-if ! brew list pgvector &>/dev/null; then
-  log "Installiere pgvector"
-  brew install pgvector --quiet
+# pgvector aus Source für postgresql@16 (brew pgvector linkt gegen neuere PG-Version)
+PG_EXT_DIR="$(brew --prefix postgresql@16)/share/postgresql@16/extension"
+if [ ! -f "$PG_EXT_DIR/vector.control" ]; then
+  log "Baue pgvector aus Source für postgresql@16"
+  TMP=$(mktemp -d)
+  git clone --quiet --depth 1 https://github.com/pgvector/pgvector.git "$TMP/pgvector"
+  PG_CONFIG="$(brew --prefix postgresql@16)/bin/pg_config" make -C "$TMP/pgvector" >/dev/null
+  PG_CONFIG="$(brew --prefix postgresql@16)/bin/pg_config" make -C "$TMP/pgvector" install >/dev/null
+  rm -rf "$TMP"
 fi
 
 # PostgreSQL starten
