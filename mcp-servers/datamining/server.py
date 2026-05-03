@@ -10,6 +10,7 @@ Konfiguration via Umgebungsvariablen:
 """
 import json
 import os
+from collections import defaultdict
 from typing import Optional
 
 import httpx
@@ -48,6 +49,18 @@ def _get(path: str, params: dict | None = None) -> dict:
         r = httpx.get(url, params=params, headers=_headers(), timeout=15, verify=VERIFY_SSL)
     r.raise_for_status()
     return r.json()
+
+
+def _search_all(event_type: str, from_date: str, to_date: str, limit: int = 500) -> list[dict]:
+    """Hilfsfunktion: alle Events eines Typs in einem Zeitraum holen."""
+    data = _get("/api/datamining/search", {
+        "q": "",
+        "event_type": event_type,
+        "from_date": from_date,
+        "to_date": to_date,
+        "limit": limit,
+    })
+    return data.get("results", [])
 
 
 @mcp.tool()
@@ -173,6 +186,170 @@ def list_sessions(
     sessions = data.get("sessions", [])
     return json.dumps({"count": len(sessions), "sessions": sessions},
                       ensure_ascii=False, indent=2, default=str)
+
+
+@mcp.tool()
+def daily_summary(date: str) -> str:
+    """Tagesübersicht: was wurde an einem Tag erledigt, von wem, in welchen Sessions.
+
+    date: ISO-Datum, z.B. "2026-05-03"
+    Gibt pro Agent und Session aus: was der User gefragt hat + welche Tools aufgerufen wurden.
+    Rein deterministisch, kein LLM.
+    """
+    to_date = date + "T23:59:59"
+
+    try:
+        user_inputs = _search_all("user_input", date, to_date)
+        tool_calls  = _search_all("tool_call",  date, to_date)
+        errors      = _get("/api/datamining/search", {
+            "q": "", "from_date": date, "to_date": to_date,
+            "event_type": "tool_result", "limit": 500,
+        }).get("results", [])
+        errors = [e for e in errors if e.get("is_error")]
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+    # Nach Session gruppieren
+    sessions: dict[str, dict] = {}
+
+    def _session(sid: str, agent: str, user: str) -> dict:
+        if sid not in sessions:
+            sessions[sid] = {"session_id": sid, "agent": agent, "user": user,
+                             "requests": [], "tools": defaultdict(int), "errors": 0}
+        return sessions[sid]
+
+    for e in user_inputs:
+        s = _session(e["session_id"], e.get("agent_name", "?"), e.get("username", "?"))
+        text = (e.get("snippet") or "").strip()
+        if text:
+            s["requests"].append({"time": e["created_at"][:19].replace("T", " "), "text": text[:200]})
+
+    for e in tool_calls:
+        s = _session(e["session_id"], e.get("agent_name", "?"), e.get("username", "?"))
+        tool = e.get("tool_name") or "unknown"
+        s["tools"][tool] += 1
+
+    for e in errors:
+        sid = e["session_id"]
+        if sid in sessions:
+            sessions[sid]["errors"] += 1
+
+    # defaultdict → dict für JSON
+    result = []
+    for s in sorted(sessions.values(), key=lambda x: x["requests"][0]["time"] if x["requests"] else ""):
+        result.append({
+            "session_id": s["session_id"],
+            "agent": s["agent"],
+            "user": s["user"],
+            "requests": s["requests"],
+            "tool_calls": dict(s["tools"]),
+            "errors": s["errors"],
+        })
+
+    total_tools = sum(sum(s["tool_calls"].values()) for s in result)
+    total_errors = sum(s["errors"] for s in result)
+
+    return json.dumps({
+        "date": date,
+        "sessions": len(result),
+        "total_tool_calls": total_tools,
+        "total_errors": total_errors,
+        "by_session": result,
+    }, ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def error_report(
+    from_date: str,
+    to_date: Optional[str] = None,
+) -> str:
+    """Fehler-Report: alle fehlgeschlagenen Tool-Calls in einem Zeitraum.
+
+    from_date: ISO-Datum z.B. "2026-05-03"
+    to_date: optional, default = gleicher Tag wie from_date
+    Gruppiert nach Agent und Tool-Name.
+    """
+    if not to_date:
+        to_date = from_date + "T23:59:59"
+
+    try:
+        data = _get("/api/datamining/search", {
+            "q": "", "event_type": "tool_result",
+            "from_date": from_date, "to_date": to_date, "limit": 500,
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+    all_results = data.get("results", [])
+    errors = [e for e in all_results if e.get("is_error")]
+
+    if not errors:
+        return json.dumps({"from_date": from_date, "to_date": to_date, "errors": 0, "details": []})
+
+    # Nach Agent + session gruppieren
+    by_agent: dict[str, list] = defaultdict(list)
+    for e in errors:
+        agent = e.get("agent_name", "?")
+        by_agent[agent].append({
+            "time": e["created_at"][:19].replace("T", " "),
+            "session_id": e["session_id"],
+            "snippet": (e.get("snippet") or "")[:300],
+        })
+
+    return json.dumps({
+        "from_date": from_date,
+        "to_date": to_date,
+        "errors": len(errors),
+        "by_agent": {k: v for k, v in sorted(by_agent.items())},
+    }, ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
+def tool_stats(
+    from_date: str,
+    to_date: Optional[str] = None,
+    agent_name: Optional[str] = None,
+) -> str:
+    """Tool-Nutzungsstatistik: wie oft wurde welches Tool in einem Zeitraum aufgerufen.
+
+    from_date: ISO-Datum z.B. "2026-05-03"
+    to_date: optional, default = gleicher Tag wie from_date
+    Zeigt Aufrufe pro Tool und pro Agent, sortiert nach Häufigkeit.
+    """
+    if not to_date:
+        to_date = from_date + "T23:59:59"
+
+    params: dict = {"q": "", "event_type": "tool_call",
+                    "from_date": from_date, "to_date": to_date, "limit": 500}
+    if agent_name:
+        params["agent_name"] = agent_name
+
+    try:
+        data = _get("/api/datamining/search", params)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+    events = data.get("results", [])
+
+    by_tool: dict[str, int] = defaultdict(int)
+    by_agent: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+
+    for e in events:
+        tool = e.get("tool_name") or "unknown"
+        agent = e.get("agent_name", "?")
+        by_tool[tool] += 1
+        by_agent[agent][tool] += 1
+
+    return json.dumps({
+        "from_date": from_date,
+        "to_date": to_date,
+        "total_calls": len(events),
+        "by_tool": dict(sorted(by_tool.items(), key=lambda x: -x[1])),
+        "by_agent": {
+            agent: dict(sorted(tools.items(), key=lambda x: -x[1]))
+            for agent, tools in sorted(by_agent.items())
+        },
+    }, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
