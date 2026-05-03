@@ -80,6 +80,12 @@ async def get_embed_status(_auth: Auth) -> dict:
     return await mirror_query.embed_status()
 
 
+@router.post("/embed/reset")
+async def reset_embeddings(_auth: Auth, event_type: str | None = None) -> dict:
+    count = await mirror.reset_embeddings(event_type)
+    return {"ok": True, "reset": count}
+
+
 @router.post("/embed/backfill")
 async def trigger_backfill(_auth: Auth) -> dict:
     from hydrahive.llm._config import load_config
