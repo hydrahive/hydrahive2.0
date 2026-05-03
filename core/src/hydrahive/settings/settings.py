@@ -65,6 +65,10 @@ class Settings:
     def users_config(self) -> Path:
         return self.config_dir / "users.json"
 
+    @cached_property
+    def api_keys_config(self) -> Path:
+        return self.config_dir / "api_keys.json"
+
     # ------------------------------------------------------------------ server
 
     @cached_property

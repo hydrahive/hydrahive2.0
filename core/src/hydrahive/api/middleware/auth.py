@@ -37,7 +37,14 @@ def require_auth(
     """Returns (username, role). Raises 401 if not authenticated."""
     if not creds:
         raise coded(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
-    payload = _decode(creds.credentials)
+    token = creds.credentials
+    if token.startswith("hhk_"):
+        from hydrahive.api.middleware.api_keys import verify as verify_key
+        user = verify_key(token)
+        if not user:
+            raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
+        return user["username"], user["role"]
+    payload = _decode(token)
     return payload["sub"], payload["role"]
 
 
