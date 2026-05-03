@@ -47,7 +47,7 @@ function BuddyUserMessage() {
         {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
         {text && (
           <>
-            <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-amber-500/[8%] border border-amber-500/30 text-amber-50 text-sm whitespace-pre-wrap">
+            <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-amber-500/15 border border-amber-500/40 text-amber-50 text-sm whitespace-pre-wrap">
               {text}
             </div>
             <div className="flex items-center justify-end gap-1.5">
@@ -83,7 +83,11 @@ function BuddyAssistantMessage() {
       <div className="flex-1 min-w-0 space-y-2">
         {original && <BubbleHeader createdAt={original.created_at} align="left" />}
         {blocks.map((b, i) => {
-          if (b.type === "text" && b.text) return <Markdown key={i} text={b.text} />
+          if (b.type === "text" && b.text) return (
+            <div key={i} className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-50">
+              <Markdown text={b.text} />
+            </div>
+          )
           if (b.type === "image") return <ImageBlock key={i} block={b} />
           if (b.type === "tool_use") return <ToolUseCard key={i} block={b} defaultOpen={isLive} />
           if (b.type === "tool_result") return <ToolResultCard key={i} block={b} />
