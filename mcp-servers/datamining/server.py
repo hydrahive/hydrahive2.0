@@ -352,6 +352,70 @@ def tool_stats(
     }, ensure_ascii=False, indent=2)
 
 
+@mcp.tool()
+def inject_message(session_id: str, text: str) -> str:
+    """Schickt eine Nachricht als Supervisor in eine laufende Session.
+
+    Erfordert Admin-Token. Kein Owner-Check — funktioniert für jede Session auf diesem Server.
+    Der Agent antwortet wie auf einen normalen User-Input.
+    Gibt die Antwort des Agenten zurück (gesammelt aus dem SSE-Stream).
+    Gedacht für externe Supervision: Hinweise geben, Korrekturen einschleusen, Status erfragen.
+    """
+    url = f"{BASE_URL}/api/sessions/{session_id}/inject"
+    try:
+        text_parts: list[str] = []
+        with httpx.stream(
+            "POST", url,
+            data={"text": text},
+            headers=_headers(),
+            timeout=120,
+            verify=VERIFY_SSL,
+        ) as r:
+            if r.status_code == 401 and (HH_USER or HH_PASS):
+                _login()
+                r.close()
+                with httpx.stream(
+                    "POST", url,
+                    data={"text": text},
+                    headers=_headers(),
+                    timeout=120,
+                    verify=VERIFY_SSL,
+                ) as r2:
+                    r2.raise_for_status()
+                    for line in r2.iter_lines():
+                        _collect_sse(line, text_parts)
+            else:
+                r.raise_for_status()
+                for line in r.iter_lines():
+                    _collect_sse(line, text_parts)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+    response_text = "".join(text_parts).strip()
+    return json.dumps({
+        "session_id": session_id,
+        "injected": text,
+        "response": response_text or "(keine Textantwort)",
+    }, ensure_ascii=False, indent=2)
+
+
+def _collect_sse(line: str, parts: list[str]) -> None:
+    """Extrahiert Textfragmente aus SSE-Zeilen."""
+    if not line.startswith("data:"):
+        return
+    raw = line[5:].strip()
+    if not raw or raw == "[DONE]":
+        return
+    try:
+        ev = json.loads(raw)
+        if ev.get("type") == "text_delta":
+            parts.append(ev.get("text", ""))
+        elif ev.get("type") == "assistant_text":
+            parts.append(ev.get("text", ""))
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
     if not _token and (HH_USER or HH_PASS):
         _login()

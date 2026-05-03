@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from hydrahive.agents import config as agent_config
-from hydrahive.api.middleware.auth import require_auth
+from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_response
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
@@ -132,4 +132,21 @@ async def post_message(
     check_owner(s, *auth)
 
     user_content = await build_user_content(s.agent_id, text, files or [])
+    return sse_run_response(runner_run(session_id, user_content))
+
+
+@messages_router.post("/{session_id}/inject", dependencies=[Depends(require_admin)])
+async def inject_message(
+    session_id: str,
+    text: Annotated[str, Form(min_length=1)],
+) -> StreamingResponse:
+    """Supervisor-Inject: Admin schickt eine Nachricht in eine fremde Session.
+
+    Kein Owner-Check — nur Admins. Läuft den Runner wie ein normaler User-Input.
+    Gedacht für externe Supervision (MCP, Monitoring-Agents).
+    """
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    user_content = await build_user_content(s.agent_id, text, [])
     return sse_run_response(runner_run(session_id, user_content))
