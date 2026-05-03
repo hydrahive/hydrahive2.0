@@ -100,6 +100,7 @@ export function DataminingPage() {
               <div key={e.id} className="flex items-start gap-2 px-3 py-0.5 hover:bg-white/[3%] border-b border-white/[3%]">
                 <span className="text-zinc-600 shrink-0 w-20">{fmtTime(e.created_at)}</span>
                 <span className="text-zinc-500 shrink-0 w-20 truncate">{e.username ?? "—"}</span>
+                <span className="text-zinc-400 shrink-0 w-24 truncate">{e.agent_name ?? "—"}</span>
                 <span className={`shrink-0 px-1 rounded text-[10px] font-medium ${TYPE_COLORS[e.event_type] ?? "text-zinc-400 bg-zinc-500/10"}`}>
                   {e.event_type}
                 </span>
