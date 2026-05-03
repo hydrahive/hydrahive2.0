@@ -340,6 +340,7 @@ async def _embed_event(event_id: str, text: str, model: str) -> None:
     from hydrahive.llm.embed import aembed
     vec = await aembed(text, model)
     if vec is None or not _pool:
+        logger.warning("Embedding None für Event %s (model=%s, text_len=%d)", event_id, model, len(text))
         return
     vec_str = "[" + ",".join(str(x) for x in vec) + "]"
     try:
