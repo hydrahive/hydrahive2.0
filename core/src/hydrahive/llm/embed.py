@@ -109,12 +109,26 @@ async def aembed_batch(texts: list[str], model: str) -> list[list[float] | None]
         config = load_config()
 
         if entry.get("api_base"):
-            import openai
             provider = _PROVIDER_BY_MODEL.get(model, "")
             key = get_provider_key(config, provider)
-            client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
-            # Provider-Prefix (z.B. "minimax/") für den API-Call entfernen
             api_model = model.split("/", 1)[-1] if "/" in model else model
+
+            if provider == "minimax":
+                import httpx
+                async with httpx.AsyncClient(timeout=60) as hc:
+                    r = await hc.post(
+                        f"{entry['api_base']}/embeddings",
+                        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                        json={"model": api_model, "texts": texts, "type": "db"},
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    if data.get("base_resp", {}).get("status_code", 0) != 0:
+                        raise RuntimeError(data["base_resp"].get("status_msg", "MiniMax Fehler"))
+                    return [list(v) for v in data["vectors"]]
+
+            import openai
+            client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
             resp = await client.embeddings.create(model=api_model, input=texts)
             ordered = sorted(resp.data, key=lambda d: d.index)
             return [list(d.embedding) for d in ordered]
