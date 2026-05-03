@@ -125,6 +125,8 @@ async def _compute(rows: list[dict]) -> dict:
 
 
 def _umap_hdbscan(vecs):
+    import os
+    os.environ.setdefault("NUMBA_CACHE_DIR", "/tmp/numba_hh")
     import numpy as np
     import umap
     import hdbscan
