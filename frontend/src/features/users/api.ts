@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { User, UserRole } from "./types"
+import type { ApiKey, User, UserRole } from "./types"
 
 export interface UserPatch {
   role?: UserRole
@@ -14,4 +14,10 @@ export const usersApi = {
   delete: (username: string) => api.delete<void>(`/users/${encodeURIComponent(username)}`),
   changePassword: (username: string, new_password: string) =>
     api.patch<{ ok: boolean }>(`/users/${encodeURIComponent(username)}/password`, { new_password }),
+}
+
+export const apiKeysApi = {
+  list: () => api.get<ApiKey[]>("/auth/apikeys"),
+  create: (name: string) => api.post<{ key: string; name: string; username: string }>("/auth/apikeys", { name }),
+  delete: (id: string) => api.delete<void>(`/auth/apikeys/${encodeURIComponent(id)}`),
 }

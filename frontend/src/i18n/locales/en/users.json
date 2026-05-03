@@ -35,5 +35,17 @@
   },
   "edit_dialog": {
     "title": "Edit user: {{name}}"
+  },
+  "apikeys": {
+    "title": "API Keys",
+    "subtitle": "Long-lived tokens for external access (MCP, scripts) — no login required",
+    "name_placeholder": "e.g. claude-code-local",
+    "create": "Create key",
+    "save_now": "Save this key now — it will only be shown once:",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "dismiss": "Dismiss",
+    "delete_confirm": "Really revoke this API key?",
+    "empty": "No API keys yet."
   }
 }

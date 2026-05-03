@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { ApiKeysSection } from "./ApiKeysSection"
 import { ChangePasswordDialog } from "./ChangePasswordDialog"
 import { EditUserDialog } from "./EditUserDialog"
 import { NewUserDialog } from "./NewUserDialog"
@@ -59,6 +60,9 @@ export function UsersPage() {
         onChangePassword={setPwTarget}
         onDelete={handleDelete}
       />
+
+      <hr className="border-white/[6%]" />
+      <ApiKeysSection />
 
       {showNew && (
         <NewUserDialog
