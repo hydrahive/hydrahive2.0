@@ -149,11 +149,12 @@ async def reset_embeddings(event_type: str | None = None) -> int:
         if event_type:
             r = await conn.execute(
                 "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL WHERE event_type=$1",
-                event_type,
+                event_type, timeout=300,
             )
         else:
             r = await conn.execute(
-                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL"
+                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL",
+                timeout=300,
             )
     count = int(r.split()[-1])
     return count
