@@ -23,6 +23,7 @@ except ImportError:
     _HAS_ASYNCPG = False
 
 _pool: "asyncpg.Pool | None" = None
+_backfill_running: bool = False
 CHUNK_CHARS = 8000
 
 _DDL_BASE = """
@@ -112,7 +113,12 @@ async def _ensure_embed_col(conn: "asyncpg.Connection") -> None:
     await conn.execute(f"ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding vector({dim})")
     await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding_model TEXT")
     await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ")
-    logger.info("Embedding-Spalte vector(%d) bereit", dim)
+    await conn.execute(f"""
+        CREATE INDEX IF NOT EXISTS events_embedding_hnsw
+        ON events USING hnsw (embedding vector_cosine_ops)
+        WITH (m = 16, ef_construction = 64)
+    """)
+    logger.info("Embedding-Spalte vector(%d) + HNSW-Index bereit", dim)
 
 
 async def close() -> None:
@@ -120,6 +126,56 @@ async def close() -> None:
     if _pool:
         await _pool.close()
         _pool = None
+
+
+async def on_embed_model_change(new_model: str) -> None:
+    """Spalte anpassen + Backfill starten. Wird vom LLM-Save-Endpoint aufgerufen."""
+    if not _pool:
+        return
+    async with _pool.acquire() as conn:
+        await _ensure_embed_col(conn)
+    if new_model:
+        try:
+            asyncio.get_running_loop().create_task(_backfill_task(new_model))
+        except RuntimeError:
+            pass
+
+
+async def _backfill_task(model: str, batch_size: int = 50) -> None:
+    global _backfill_running
+    if _backfill_running:
+        logger.info("Backfill läuft bereits — übersprungen")
+        return
+    _backfill_running = True
+    total = 0
+    try:
+        while True:
+            if not _pool:
+                break
+            async with _pool.acquire() as conn:
+                rows = await conn.fetch("""
+                    SELECT id, coalesce(text, tool_output) AS content
+                    FROM events
+                    WHERE embedding IS NULL
+                      AND (text IS NOT NULL OR tool_output IS NOT NULL)
+                    ORDER BY created_at
+                    LIMIT $1
+                """, batch_size)
+            if not rows:
+                break
+            await asyncio.gather(
+                *[_embed_event(r["id"], r["content"], model) for r in rows],
+                return_exceptions=True,
+            )
+            total += len(rows)
+            if len(rows) < batch_size:
+                break
+            await asyncio.sleep(0.3)
+        logger.info("Backfill abgeschlossen: %d Events eingebettet", total)
+    except Exception as e:
+        logger.warning("Backfill fehlgeschlagen nach %d Events: %s", total, e)
+    finally:
+        _backfill_running = False
 
 
 # ---------------------------------------------------------------- public query

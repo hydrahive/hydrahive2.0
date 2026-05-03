@@ -7,6 +7,38 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+async def embed_status() -> dict:
+    from hydrahive.db import mirror
+    from hydrahive.llm._config import load_config
+    pool = mirror._pool
+    if not pool:
+        return {"active": False, "total": 0, "embedded": 0, "pending": 0, "model": "", "backfill_running": False}
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT
+                    COUNT(*)::int AS total,
+                    COUNT(embedding)::int AS embedded,
+                    COUNT(*) FILTER (
+                        WHERE embedding IS NULL
+                          AND (text IS NOT NULL OR tool_output IS NOT NULL)
+                    )::int AS pending
+                FROM events
+            """)
+        model = load_config().get("embed_model", "")
+        return {
+            "active": True,
+            "total": row["total"],
+            "embedded": row["embedded"],
+            "pending": row["pending"],
+            "model": model,
+            "backfill_running": mirror._backfill_running,
+        }
+    except Exception as e:
+        logger.warning("embed_status fehlgeschlagen: %s", e)
+        return {"active": False, "total": 0, "embedded": 0, "pending": 0, "model": "", "backfill_running": False}
+
+
 def _pool():
     from hydrahive.db import mirror
     return mirror._pool

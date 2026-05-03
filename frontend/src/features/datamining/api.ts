@@ -38,4 +38,17 @@ export const dataminingApi = {
 
   sessionDetail: (id: string) =>
     api.get<DmSessionDetail>(`/datamining/sessions/${id}`),
+
+  embedStatus: () =>
+    api.get<{
+      active: boolean
+      total: number
+      embedded: number
+      pending: number
+      model: string
+      backfill_running: boolean
+    }>("/datamining/embed/status"),
+
+  triggerBackfill: () =>
+    api.post<{ ok: boolean; reason?: string; model?: string }>("/datamining/embed/backfill", {}),
 }

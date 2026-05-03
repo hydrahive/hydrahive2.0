@@ -73,3 +73,23 @@ async def get_session(session_id: str, _auth: Auth) -> dict:
     if detail is None:
         raise HTTPException(404, "Session nicht gefunden")
     return detail
+
+
+@router.get("/embed/status")
+async def get_embed_status(_auth: Auth) -> dict:
+    return await mirror_query.embed_status()
+
+
+@router.post("/embed/backfill")
+async def trigger_backfill(_auth: Auth) -> dict:
+    from hydrahive.llm._config import load_config
+    if mirror._pool is None:
+        return {"ok": False, "reason": "Mirror nicht aktiv"}
+    if mirror._backfill_running:
+        return {"ok": False, "reason": "Backfill läuft bereits"}
+    model = load_config().get("embed_model", "")
+    if not model:
+        return {"ok": False, "reason": "Kein Embedding-Modell konfiguriert"}
+    import asyncio
+    asyncio.get_running_loop().create_task(mirror._backfill_task(model))
+    return {"ok": True, "model": model}
