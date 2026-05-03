@@ -7,6 +7,7 @@ from hydrahive.db._message_model import Message
 from hydrahive.db._messages_llm import list_for_llm
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
+from hydrahive.db import mirror
 
 
 def append(
@@ -39,6 +40,10 @@ def append(
             "UPDATE sessions SET updated_at = ? WHERE id = ?",
             (m.created_at, session_id),
         )
+    from hydrahive.db import sessions as sessions_db
+    s = sessions_db.get(session_id)
+    if s:
+        mirror.schedule_message(m, s)
     return m
 
 

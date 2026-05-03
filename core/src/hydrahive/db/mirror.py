@@ -1,0 +1,254 @@
+"""PostgreSQL Datamining-Mirror.
+
+Spiegelt alle Messages blockweise in PG — fire-and-forget, kein Retry.
+Aktiviert wenn settings.pg_mirror_dsn gesetzt ist, sonst kompletter No-op.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from typing import Any
+
+from hydrahive.db._message_model import Message
+from hydrahive.db.sessions import Session
+from hydrahive.settings import settings
+
+logger = logging.getLogger(__name__)
+
+try:
+    import asyncpg
+    _HAS_ASYNCPG = True
+except ImportError:
+    _HAS_ASYNCPG = False
+
+_pool: "asyncpg.Pool | None" = None
+CHUNK_CHARS = 8000
+
+_DDL = """
+CREATE TABLE IF NOT EXISTS sessions (
+  id          TEXT PRIMARY KEY,
+  username    TEXT,
+  agent_id    TEXT,
+  agent_name  TEXT,
+  project_id  TEXT,
+  title       TEXT,
+  status      TEXT,
+  started_at  TIMESTAMPTZ,
+  updated_at  TIMESTAMPTZ,
+  mirrored_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS events (
+  id              TEXT PRIMARY KEY,
+  message_id      TEXT NOT NULL,
+  session_id      TEXT NOT NULL,
+  block_index     INTEGER NOT NULL,
+  chunk_index     INTEGER NOT NULL DEFAULT 0,
+  chunk_total     INTEGER NOT NULL DEFAULT 1,
+  username        TEXT,
+  agent_id        TEXT,
+  agent_name      TEXT,
+  project_id      TEXT,
+  event_type      TEXT NOT NULL,
+  text            TEXT,
+  tool_name       TEXT,
+  tool_use_id     TEXT,
+  tool_input      JSONB,
+  tool_output     TEXT,
+  is_error        BOOLEAN,
+  embedding       vector(4096),
+  embedding_model TEXT,
+  embedded_at     TIMESTAMPTZ,
+  token_count     INTEGER,
+  created_at      TIMESTAMPTZ NOT NULL,
+  mirrored_at     TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS events_session ON events (session_id);
+CREATE INDEX IF NOT EXISTS events_message ON events (message_id, block_index, chunk_index);
+CREATE INDEX IF NOT EXISTS events_user    ON events (username, created_at);
+CREATE INDEX IF NOT EXISTS events_type   ON events (event_type, created_at);
+CREATE INDEX IF NOT EXISTS events_tool   ON events (tool_name) WHERE tool_name IS NOT NULL;
+"""
+
+
+async def init() -> None:
+    global _pool
+    if not _HAS_ASYNCPG:
+        logger.warning("Mirror: asyncpg nicht installiert — Mirror deaktiviert")
+        return
+    dsn = settings.pg_mirror_dsn
+    if not dsn:
+        return
+    try:
+        _pool = await asyncpg.create_pool(dsn, min_size=1, max_size=4, command_timeout=10)
+        async with _pool.acquire() as conn:
+            # pgvector extension muss vorher per 48-postgres.sh angelegt sein
+            await conn.execute(_DDL)
+        logger.info("PG-Mirror bereit")
+    except Exception as e:
+        logger.warning("PG-Mirror init fehlgeschlagen — Mirror deaktiviert: %s", e)
+        _pool = None
+
+
+async def close() -> None:
+    global _pool
+    if _pool:
+        await _pool.close()
+        _pool = None
+
+
+# ---------------------------------------------------------------- public hooks
+
+def schedule_message(m: Message, s: Session) -> None:
+    """Von messages.append() aufgerufen — sync, fire-and-forget."""
+    if not _pool:
+        return
+    try:
+        asyncio.get_running_loop().create_task(_write_message(m, s))
+    except RuntimeError:
+        pass
+
+
+def schedule_session(s: Session) -> None:
+    """Von sessions.create() / sessions.update() aufgerufen — sync, fire-and-forget."""
+    if not _pool:
+        return
+    try:
+        asyncio.get_running_loop().create_task(_write_session(s))
+    except RuntimeError:
+        pass
+
+
+# ---------------------------------------------------------------- internals
+
+async def _write_session(s: Session) -> None:
+    try:
+        async with _pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO sessions (id, username, agent_id, agent_name, project_id,
+                                      title, status, started_at, updated_at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                ON CONFLICT (id) DO UPDATE SET
+                  title=EXCLUDED.title, status=EXCLUDED.status,
+                  updated_at=EXCLUDED.updated_at
+            """, s.id, s.user_id, s.agent_id, _agent_name(s.agent_id),
+                s.project_id, s.title, s.status,
+                _parse_ts(s.created_at), _parse_ts(s.updated_at))
+    except Exception as e:
+        logger.warning("PG-Mirror session %s fehlgeschlagen: %s", s.id, e)
+
+
+async def _write_message(m: Message, s: Session) -> None:
+    events = _explode(m, s)
+    if not events:
+        return
+    try:
+        async with _pool.acquire() as conn:
+            await conn.executemany("""
+                INSERT INTO events (id, message_id, session_id, block_index,
+                  chunk_index, chunk_total, username, agent_id, agent_name,
+                  project_id, event_type, text, tool_name, tool_use_id,
+                  tool_input, tool_output, is_error, token_count, created_at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+                ON CONFLICT (id) DO NOTHING
+            """, [
+                (
+                    e["id"], e["message_id"], e["session_id"], e["block_index"],
+                    e["chunk_index"], e["chunk_total"], e["username"], e["agent_id"],
+                    e["agent_name"], e["project_id"], e["event_type"], e.get("text"),
+                    e.get("tool_name"), e.get("tool_use_id"),
+                    json.dumps(e["tool_input"]) if e.get("tool_input") is not None else None,
+                    e.get("tool_output"), e.get("is_error"), e.get("token_count"),
+                    _parse_ts(e["created_at"]),
+                )
+                for e in events
+            ])
+    except Exception as e:
+        logger.warning("PG-Mirror message %s fehlgeschlagen: %s", m.id, e)
+
+
+def _explode(m: Message, s: Session) -> list[dict]:
+    base: dict[str, Any] = {
+        "message_id": m.id, "session_id": m.session_id,
+        "username": s.user_id, "agent_id": s.agent_id,
+        "agent_name": _agent_name(s.agent_id), "project_id": s.project_id,
+        "token_count": m.token_count, "created_at": m.created_at,
+    }
+
+    content = m.content
+
+    if m.role == "compaction":
+        text = content if isinstance(content, str) else str(content)
+        return [{**base, "id": f"{m.id}:0:0", "block_index": 0,
+                 "chunk_index": 0, "chunk_total": 1, "event_type": "compaction", "text": text}]
+
+    blocks: list = ([{"type": "text", "text": content}] if isinstance(content, str)
+                    else content if isinstance(content, list) else [])
+
+    events: list[dict] = []
+    for bi, block in enumerate(blocks):
+        if not isinstance(block, dict):
+            continue
+        btype = block.get("type", "")
+
+        if btype == "text":
+            etype = "user_input" if m.role == "user" else "assistant_text"
+            events.append({**base, "id": f"{m.id}:{bi}:0", "block_index": bi,
+                           "chunk_index": 0, "chunk_total": 1,
+                           "event_type": etype, "text": block.get("text", "")})
+
+        elif btype == "thinking":
+            events.append({**base, "id": f"{m.id}:{bi}:0", "block_index": bi,
+                           "chunk_index": 0, "chunk_total": 1,
+                           "event_type": "thinking",
+                           "text": block.get("thinking") or block.get("text", "")})
+
+        elif btype == "tool_use":
+            events.append({**base, "id": f"{m.id}:{bi}:0", "block_index": bi,
+                           "chunk_index": 0, "chunk_total": 1,
+                           "event_type": "tool_call",
+                           "tool_name": block.get("name"),
+                           "tool_use_id": block.get("id"),
+                           "tool_input": block.get("input")})
+
+        elif btype == "tool_result":
+            raw = block.get("content", "")
+            if isinstance(raw, list):
+                raw = "\n".join(p.get("text", "") for p in raw
+                                if isinstance(p, dict) and p.get("type") == "text")
+            elif not isinstance(raw, str):
+                raw = str(raw)
+            chunks = _chunks(raw, CHUNK_CHARS)
+            for ci, chunk in enumerate(chunks):
+                events.append({**base, "id": f"{m.id}:{bi}:{ci}", "block_index": bi,
+                                "chunk_index": ci, "chunk_total": len(chunks),
+                                "event_type": "tool_result",
+                                "tool_use_id": block.get("tool_use_id"),
+                                "tool_output": chunk,
+                                "is_error": block.get("is_error", False)})
+
+    return events
+
+
+def _chunks(text: str, size: int) -> list[str]:
+    if not text or len(text) <= size:
+        return [text] if text else [""]
+    return [text[i:i + size] for i in range(0, len(text), size)]
+
+
+def _agent_name(agent_id: str) -> str:
+    try:
+        p = settings.agents_dir / agent_id / "config.json"
+        return json.loads(p.read_text()).get("name", agent_id)
+    except Exception:
+        return agent_id
+
+
+def _parse_ts(ts: str | None):
+    if not ts:
+        return None
+    from datetime import datetime, timezone
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
