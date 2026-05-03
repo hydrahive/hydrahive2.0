@@ -61,6 +61,13 @@ bash "$INSTALLER_DIR/modules/45-whatsapp.sh"
 log "Phase 7a: Samba (Projekt-Workspace-Shares)"
 bash "$INSTALLER_DIR/modules/47-samba.sh"
 
+log "Phase 7b: PostgreSQL Datamining-Mirror"
+if [ "${HH_INSTALL_POSTGRES:-yes}" != "no" ]; then
+  bash "$INSTALLER_DIR/modules/48-postgres.sh"
+else
+  log "PostgreSQL übersprungen (HH_INSTALL_POSTGRES=no)"
+fi
+
 log "Phase 7: systemd-Service"
 bash "$INSTALLER_DIR/modules/50-systemd.sh"
 
