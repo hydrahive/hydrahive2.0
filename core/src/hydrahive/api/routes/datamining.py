@@ -78,6 +78,23 @@ async def get_session(session_id: str, _auth: Auth) -> dict:
     return detail
 
 
+@router.get("/graph")
+async def get_graph(
+    _auth: Auth,
+    event_type: str | None = None,
+    agent_name: str | None = None,
+    username: str | None = None,
+    limit: int = 2000,
+) -> dict:
+    from hydrahive.db.mirror_graph import build_graph
+    return await build_graph(
+        event_type=event_type or None,
+        agent_name=agent_name or None,
+        username=username or None,
+        limit=min(limit, 3000),
+    )
+
+
 @router.get("/embed/status")
 async def get_embed_status(_auth: Auth) -> dict:
     return await mirror_query.embed_status()

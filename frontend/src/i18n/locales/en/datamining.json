@@ -11,7 +11,8 @@
   "tabs": {
     "feed": "Live Feed",
     "search": "Search",
-    "sessions": "Sessions"
+    "sessions": "Sessions",
+    "graph": "Graph"
   },
   "search": {
     "placeholder": "Search term…",
