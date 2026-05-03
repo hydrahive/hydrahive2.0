@@ -97,6 +97,28 @@ async def close() -> None:
         _pool = None
 
 
+# ---------------------------------------------------------------- public query
+
+async def recent_events(limit: int = 100) -> list[dict]:
+    """Letzte N Events für die Datamining-Seite."""
+    if not _pool:
+        return []
+    try:
+        async with _pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT id, session_id, username, agent_name, event_type,
+                       created_at, tool_name, is_error,
+                       left(coalesce(text, tool_output, tool_input::text, ''), 200) AS snippet
+                FROM events
+                ORDER BY created_at DESC
+                LIMIT $1
+            """, limit)
+            return [dict(r) for r in rows]
+    except Exception as e:
+        logger.warning("PG-Mirror recent_events fehlgeschlagen: %s", e)
+        return []
+
+
 # ---------------------------------------------------------------- public hooks
 
 def schedule_message(m: Message, s: Session) -> None:

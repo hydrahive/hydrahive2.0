@@ -1,10 +1,11 @@
 {
   "title": "Datamining",
   "subtitle": "Suche und Analyse aller Agent-Konversationen",
-  "coming_soon": "In Arbeit",
-  "mcp_hint": "MCP-Server bereits verfügbar — UI folgt wenn Daten gesammelt sind.",
-  "feature_search": "Volltextsuche über alle Events",
-  "feature_sessions": "Session-Rekonstruktion",
-  "feature_semantic": "Semantische Suche (NVIDIA NIM)",
-  "feature_stats": "Tool-Statistiken & Analysen"
+  "status_active": "Mirror aktiv",
+  "status_inactive": "Mirror inaktiv",
+  "live_feed": "Live-Feed",
+  "entries": "Einträge",
+  "loading": "Lade…",
+  "empty": "Noch keine Daten",
+  "not_configured": "HH_PG_MIRROR_DSN nicht gesetzt"
 }
