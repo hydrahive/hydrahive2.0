@@ -66,6 +66,9 @@ def create(
         created_by=created_by,
         description=f"Auto-erstellt für Projekt '{name}'",
         project_id=project_id,
+        temperature=1.0,
+        max_tokens=16000,
+        thinking_budget=0,
     )
     cfg["agent_id"] = agent["id"]
     _save_atomic(config_path(project_id), cfg)
