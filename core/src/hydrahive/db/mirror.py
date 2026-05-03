@@ -174,20 +174,34 @@ async def _backfill_task(model: str, batch_size: int = 32) -> None:
             async with _pool.acquire() as conn:
                 rows = await conn.fetch("""
                     SELECT id, tool_name,
-                           coalesce(text, tool_output, tool_input::text) AS content
+                           coalesce(nullif(text,''), nullif(tool_output,''), tool_input::text) AS content
                     FROM events
                     WHERE embedding IS NULL
-                      AND (text IS NOT NULL OR tool_output IS NOT NULL OR tool_input IS NOT NULL)
+                      AND (
+                        (text IS NOT NULL AND text <> '')
+                        OR (tool_output IS NOT NULL AND tool_output <> '')
+                        OR tool_input IS NOT NULL
+                      )
                     ORDER BY created_at
                     LIMIT $1
                 """, batch_size)
             if not rows:
                 break
             texts = [
-                f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"]
+                (f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"]) or ""
                 for r in rows
             ]
-            vectors = await aembed_batch(texts, model)
+            # Leere Texte überspringen — nvidia NIM lehnt den ganzen Batch ab
+            valid = [(i, t) for i, t in enumerate(texts) if t.strip()]
+            if not valid:
+                logger.warning("Backfill: Batch nur leere Texte — überspringe %d Events", len(rows))
+                await asyncio.sleep(1)
+                continue
+            valid_idx, valid_texts = zip(*valid)
+            raw_vectors = await aembed_batch(list(valid_texts), model)
+            vectors: list = [None] * len(rows)
+            for pos, vi in enumerate(valid_idx):
+                vectors[vi] = raw_vectors[pos]
             embedded = sum(1 for v in vectors if v is not None)
             if embedded == 0:
                 logger.warning("Backfill: Batch komplett fehlgeschlagen (model=%s, n=%d) — überspringe", model, len(rows))
