@@ -58,11 +58,19 @@ export function DataminingPage() {
       </div>
 
       {embedStatus?.active && (
-        <EmbedStatusBar status={embedStatus} onBackfill={() =>
-          dataminingApi.triggerBackfill()
-            .then(() => dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {}))
-            .catch(() => {})
-        } />
+        <EmbedStatusBar
+          status={embedStatus}
+          onBackfill={() =>
+            dataminingApi.triggerBackfill()
+              .then(() => dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {}))
+              .catch(() => {})
+          }
+          onReset={() =>
+            dataminingApi.resetEmbeddings()
+              .then(() => dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {}))
+              .catch(() => {})
+          }
+        />
       )}
 
       {tab === "feed" && <LiveFeedTab active={tab === "feed"} />}
@@ -72,7 +80,11 @@ export function DataminingPage() {
   )
 }
 
-function EmbedStatusBar({ status, onBackfill }: { status: EmbedStatus; onBackfill: () => void }) {
+function EmbedStatusBar({ status, onBackfill, onReset }: {
+  status: EmbedStatus
+  onBackfill: () => void
+  onReset: () => void
+}) {
   const pct = status.total > 0 ? Math.round((status.embedded / status.total) * 100) : 0
   const allDone = status.pending === 0 && status.total > 0
 
@@ -91,13 +103,13 @@ function EmbedStatusBar({ status, onBackfill }: { status: EmbedStatus; onBackfil
       {status.backfill_running ? (
         <span className="text-violet-400 shrink-0 animate-pulse">einbettend…</span>
       ) : status.pending > 0 ? (
-        <button
-          onClick={onBackfill}
-          className="text-violet-400 hover:text-violet-300 shrink-0 transition-colors"
-        >
+        <button onClick={onBackfill} className="text-violet-400 hover:text-violet-300 shrink-0 transition-colors">
           backfill
         </button>
       ) : null}
+      <button onClick={onReset} className="text-zinc-600 hover:text-zinc-400 shrink-0 transition-colors" title="Alle Embeddings zurücksetzen">
+        ↺
+      </button>
     </div>
   )
 }
