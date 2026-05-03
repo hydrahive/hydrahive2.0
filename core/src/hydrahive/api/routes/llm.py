@@ -12,6 +12,7 @@ from typing import Annotated
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.llm import client as llm_client
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
+from hydrahive.llm import embed as llm_embed
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
@@ -27,6 +28,7 @@ class LlmProvider(BaseModel):
 class LlmConfig(BaseModel):
     providers: list[LlmProvider] = []
     default_model: str = ""
+    embed_model: str = ""
 
 
 def _load() -> dict:
@@ -67,6 +69,12 @@ async def test_connection(req: TestRequest) -> dict:
         return {"ok": True, "response": result.strip()}
     except Exception as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "llm_test_failed", message=str(e))
+
+
+@router.get("/embed-models", dependencies=[Depends(require_admin)])
+def get_embed_models() -> list[dict]:
+    """Gibt Embedding-Modelle zurück für die ein API-Key konfiguriert ist."""
+    return llm_embed.available_for_config(_load())
 
 
 @router.get("/minimax/usage")

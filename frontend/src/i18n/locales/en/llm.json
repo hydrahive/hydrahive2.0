@@ -16,6 +16,8 @@
     "custom_model": "or enter custom model…"
   },
   "default_model": "Default model",
+  "embed_model": "Embedding model",
+  "embed_model_hint": "Vector dimension: {{dim}} — new events are embedded automatically",
   "test": {
     "button": "Test connection",
     "saving": "Saving…",

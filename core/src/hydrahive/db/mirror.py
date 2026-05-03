@@ -25,7 +25,7 @@ except ImportError:
 _pool: "asyncpg.Pool | None" = None
 CHUNK_CHARS = 8000
 
-_DDL = """
+_DDL_BASE = """
 CREATE TABLE IF NOT EXISTS sessions (
   id          TEXT PRIMARY KEY,
   username    TEXT,
@@ -56,9 +56,6 @@ CREATE TABLE IF NOT EXISTS events (
   tool_input      JSONB,
   tool_output     TEXT,
   is_error        BOOLEAN,
-  embedding       vector(4096),
-  embedding_model TEXT,
-  embedded_at     TIMESTAMPTZ,
   token_count     INTEGER,
   created_at      TIMESTAMPTZ NOT NULL,
   mirrored_at     TIMESTAMPTZ DEFAULT now()
@@ -82,12 +79,40 @@ async def init() -> None:
     try:
         _pool = await asyncpg.create_pool(dsn, min_size=1, max_size=4, command_timeout=10)
         async with _pool.acquire() as conn:
-            # pgvector extension muss vorher per 48-postgres.sh angelegt sein
-            await conn.execute(_DDL)
+            await conn.execute(_DDL_BASE)
+            await _ensure_embed_col(conn)
         logger.info("PG-Mirror bereit")
     except Exception as e:
         logger.warning("PG-Mirror init fehlgeschlagen — Mirror deaktiviert: %s", e)
         _pool = None
+
+
+async def _ensure_embed_col(conn: "asyncpg.Connection") -> None:
+    """Legt embedding-Spalte mit der richtigen Dimension an oder passt sie an."""
+    from hydrahive.llm._config import load_config
+    from hydrahive.llm.embed import dim_for_model
+    model = load_config().get("embed_model", "")
+    dim = dim_for_model(model) if model else 0
+    if not dim:
+        return
+
+    row = await conn.fetchrow("""
+        SELECT format_type(atttypid, atttypmod) AS coltype
+        FROM pg_attribute
+        WHERE attrelid = 'events'::regclass AND attname = 'embedding' AND attnum > 0
+    """)
+    if row:
+        if row["coltype"] == f"vector({dim})":
+            return
+        logger.info("Embedding-Dimension geändert (%s → vector(%d)) — Spalte neu anlegen", row["coltype"], dim)
+        await conn.execute("ALTER TABLE events DROP COLUMN IF EXISTS embedding")
+        await conn.execute("ALTER TABLE events DROP COLUMN IF EXISTS embedding_model")
+        await conn.execute("ALTER TABLE events DROP COLUMN IF EXISTS embedded_at")
+
+    await conn.execute(f"ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding vector({dim})")
+    await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding_model TEXT")
+    await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ")
+    logger.info("Embedding-Spalte vector(%d) bereit", dim)
 
 
 async def close() -> None:
@@ -185,8 +210,38 @@ async def _write_message(m: Message, s: Session) -> None:
                 )
                 for e in events
             ])
+        _queue_embed(events)
     except Exception as e:
         logger.warning("PG-Mirror message %s fehlgeschlagen: %s", m.id, e)
+
+
+def _queue_embed(events: list[dict]) -> None:
+    from hydrahive.llm._config import load_config
+    model = load_config().get("embed_model", "")
+    if not model:
+        return
+    for e in events:
+        text = e.get("text") or e.get("tool_output")
+        if text:
+            try:
+                asyncio.get_running_loop().create_task(_embed_event(e["id"], text, model))
+            except RuntimeError:
+                pass
+
+
+async def _embed_event(event_id: str, text: str, model: str) -> None:
+    from hydrahive.llm.embed import aembed
+    vec = await aembed(text, model)
+    if vec is None or not _pool:
+        return
+    try:
+        async with _pool.acquire() as conn:
+            await conn.execute("""
+                UPDATE events SET embedding=$1, embedding_model=$2, embedded_at=now()
+                WHERE id=$3 AND embedding IS NULL
+            """, vec, model, event_id)
+    except Exception as e:
+        logger.warning("Embedding-Speichern fehlgeschlagen (%s): %s", event_id, e)
 
 
 def _explode(m: Message, s: Session) -> list[dict]:

@@ -16,6 +16,8 @@
     "custom_model": "oder Custom-Modell eingeben…"
   },
   "default_model": "Standard-Modell",
+  "embed_model": "Embedding-Modell",
+  "embed_model_hint": "Vektor-Dimension: {{dim}} — neue Events werden automatisch eingebettet",
   "test": {
     "button": "Verbindung testen",
     "saving": "Speichern…",

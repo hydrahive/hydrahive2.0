@@ -1,0 +1,74 @@
+"""Embedding-Modelle: Lookup-Table + LiteLLM-Wrapper.
+
+Nur explizit bekannte Modelle werden angeboten — Dimension ist dadurch immer bekannt.
+"""
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+# provider_id → bekannte Embedding-Modelle mit Dimension und LiteLLM-Modell-String
+EMBED_MODELS: dict[str, list[dict[str, Any]]] = {
+    "openai": [
+        {"model": "text-embedding-3-small", "litellm": "text-embedding-3-small", "dim": 1536},
+        {"model": "text-embedding-3-large", "litellm": "text-embedding-3-large", "dim": 3072},
+        {"model": "text-embedding-ada-002",  "litellm": "text-embedding-ada-002",  "dim": 1536},
+    ],
+    "nvidia": [
+        {"model": "nvidia/nv-embed-v2", "litellm": "nvidia_nim/nvidia/nv-embed-v2", "dim": 4096},
+    ],
+    "mistral": [
+        {"model": "mistral-embed", "litellm": "mistral/mistral-embed", "dim": 1024},
+    ],
+    "gemini": [
+        {"model": "text-embedding-004", "litellm": "gemini/text-embedding-004", "dim": 768},
+    ],
+    "cohere": [
+        {"model": "embed-multilingual-v3.0", "litellm": "cohere/embed-multilingual-v3.0", "dim": 1024},
+        {"model": "embed-english-v3.0",      "litellm": "cohere/embed-english-v3.0",      "dim": 1024},
+    ],
+}
+
+_BY_MODEL: dict[str, dict[str, Any]] = {
+    e["model"]: e
+    for entries in EMBED_MODELS.values()
+    for e in entries
+}
+
+
+def dim_for_model(model: str) -> int:
+    return _BY_MODEL[model]["dim"] if model in _BY_MODEL else 0
+
+
+def litellm_model(model: str) -> str:
+    return _BY_MODEL[model]["litellm"] if model in _BY_MODEL else model
+
+
+def available_for_config(config: dict) -> list[dict]:
+    """Gibt Embedding-Modelle zurück für die ein API-Key konfiguriert ist."""
+    result = []
+    for p in config.get("providers", []):
+        pid = p.get("id", "")
+        if p.get("api_key") and pid in EMBED_MODELS:
+            for entry in EMBED_MODELS[pid]:
+                result.append({
+                    "model": entry["model"],
+                    "dim": entry["dim"],
+                    "provider": pid,
+                })
+    return result
+
+
+async def aembed(text: str, model: str) -> list[float] | None:
+    """Erzeugt einen Embedding-Vektor via LiteLLM. Gibt None bei Fehler zurück."""
+    from hydrahive.llm._config import apply_keys, load_config
+    try:
+        import litellm
+        apply_keys(load_config())
+        resp = await litellm.aembedding(model=litellm_model(model), input=[text])
+        return resp.data[0]["embedding"]
+    except Exception as e:
+        logger.warning("Embedding fehlgeschlagen (model=%s): %s", model, e)
+        return None
