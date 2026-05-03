@@ -95,6 +95,9 @@ def get_or_create_buddy(username: str) -> dict:
         created_by=username,
         description="Persönlicher Buddy — auto-erstellt für die Buddy-Page.",
         system_prompt=soul,
+        temperature=1.0,
+        max_tokens=16000,
+        thinking_budget=0,
     )
     agent_config.update(agent["id"], is_buddy=True)
     memory_store.write_key(
