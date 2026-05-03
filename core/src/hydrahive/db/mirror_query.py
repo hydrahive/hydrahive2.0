@@ -218,7 +218,16 @@ async def get_session_detail(session_id: str) -> dict[str, Any] | None:
                 FROM sessions WHERE id = $1
             """, session_id)
             if not meta:
-                return None
+                meta = await conn.fetchrow("""
+                    SELECT session_id AS id, MAX(username) AS username,
+                           MAX(agent_name) AS agent_name, MAX(project_id) AS project_id,
+                           NULL::text AS title, 'active' AS status,
+                           MIN(created_at) AS started_at, MAX(created_at) AS updated_at
+                    FROM events WHERE session_id = $1
+                    GROUP BY session_id
+                """, session_id)
+                if not meta:
+                    return None
 
             rows = await conn.fetch("""
                 SELECT message_id, block_index, chunk_index, chunk_total,
