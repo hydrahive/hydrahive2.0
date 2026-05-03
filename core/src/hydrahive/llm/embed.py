@@ -82,12 +82,20 @@ def available_for_config(config: dict) -> list[dict]:
 
 
 async def aembed(text: str, model: str) -> list[float] | None:
-    """Erzeugt einen Embedding-Vektor. Gibt None bei Fehler zurück.
+    """Erzeugt einen Embedding-Vektor. Gibt None bei Fehler zurück."""
+    results = await aembed_batch([text], model)
+    return results[0] if results else None
+
+
+async def aembed_batch(texts: list[str], model: str) -> list[list[float] | None]:
+    """Bettet mehrere Texte in einem einzigen API-Call ein.
 
     Provider mit api_base (z.B. NVIDIA NIM) nutzen den openai-Client direkt —
     LiteLLM konstruiert URLs für custom-base-URL-Provider nicht korrekt.
     """
     from hydrahive.llm._config import apply_keys, get_provider_key, load_config
+    if not texts:
+        return []
     try:
         entry = _BY_MODEL.get(model, {})
         config = load_config()
@@ -97,13 +105,14 @@ async def aembed(text: str, model: str) -> list[float] | None:
             provider = _PROVIDER_BY_MODEL.get(model, "")
             key = get_provider_key(config, provider)
             client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
-            resp = await client.embeddings.create(model=model, input=[text])
-            return list(resp.data[0].embedding)
+            resp = await client.embeddings.create(model=model, input=texts)
+            ordered = sorted(resp.data, key=lambda d: d.index)
+            return [list(d.embedding) for d in ordered]
         else:
             import litellm
             apply_keys(config)
-            resp = await litellm.aembedding(model=litellm_model(model), input=[text])
-            return resp.data[0]["embedding"]
+            resp = await litellm.aembedding(model=litellm_model(model), input=texts)
+            return [d["embedding"] for d in resp.data]
     except Exception as e:
-        logger.warning("Embedding fehlgeschlagen (model=%s): %s", model, e)
-        return None
+        logger.warning("Batch-Embedding fehlgeschlagen (model=%s, n=%d): %s", model, len(texts), e)
+        return [None] * len(texts)
