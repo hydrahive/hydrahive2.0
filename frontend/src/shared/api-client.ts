@@ -53,4 +53,12 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  postForm: <T>(path: string, form: FormData) => {
+    const token = useAuthStore.getState().token
+    return fetch(`/api${path}`, {
+      method: "POST",
+      body: form,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }).then((r) => r.json() as Promise<T>)
+  },
 }
