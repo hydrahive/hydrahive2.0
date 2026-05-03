@@ -51,4 +51,9 @@ export const dataminingApi = {
 
   triggerBackfill: () =>
     api.post<{ ok: boolean; reason?: string; model?: string }>("/datamining/embed/backfill", {}),
+
+  resetEmbeddings: (event_type?: string) => {
+    const qs = event_type ? `?event_type=${event_type}` : ""
+    return api.post<{ ok: boolean; reset: number }>(`/datamining/embed/reset${qs}`, {})
+  },
 }
