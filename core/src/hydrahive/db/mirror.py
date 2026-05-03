@@ -186,10 +186,10 @@ async def _backfill_task(model: str, batch_size: int = 100) -> None:
             async with _pool.acquire() as conn:
                 rows = await conn.fetch("""
                     SELECT id, tool_name,
-                           coalesce(text, tool_output, tool_input::text) AS content
+                           coalesce(nullif(text,''), nullif(tool_output,''), nullif(tool_input::text,'')) AS content
                     FROM events
                     WHERE embedding IS NULL
-                      AND (text IS NOT NULL OR tool_output IS NOT NULL OR tool_input IS NOT NULL)
+                      AND (nullif(text,'') IS NOT NULL OR nullif(tool_output,'') IS NOT NULL OR nullif(tool_input::text,'') IS NOT NULL)
                     ORDER BY created_at
                     LIMIT $1
                 """, batch_size)

@@ -33,7 +33,7 @@ async def embed_status() -> dict:
                     COUNT(embedding)::int AS embedded,
                     COUNT(*) FILTER (
                         WHERE embedding IS NULL
-                          AND (text IS NOT NULL OR tool_output IS NOT NULL OR tool_input IS NOT NULL)
+                          AND (nullif(text,'') IS NOT NULL OR nullif(tool_output,'') IS NOT NULL OR nullif(tool_input::text,'') IS NOT NULL)
                     )::int AS pending
                 FROM events
             """)
