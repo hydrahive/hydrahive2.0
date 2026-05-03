@@ -20,6 +20,7 @@ import { ContainersPage } from "@/features/containers/ContainersPage"
 import { ContainerDetailPage } from "@/features/containers/ContainerDetailPage"
 import { ButlerPage } from "@/features/butler/ButlerPage"
 import { BuddyPage } from "@/features/buddy/BuddyPage"
+import { DataminingPage } from "@/features/datamining/DataminingPage"
 import { HelpPage } from "@/features/help/HelpPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="containers" element={<ContainersPage />} />
           <Route path="containers/:id" element={<ContainerDetailPage />} />
           <Route path="butler" element={<ButlerPage />} />
+          <Route path="datamining" element={<DataminingPage />} />
           <Route path="llm" element={<LlmPage />} />
           <Route path="mcp" element={<McpPage />} />
           <Route path="skills" element={<SkillsPage />} />
