@@ -34,7 +34,7 @@ if [ -f "$DSN_FILE" ]; then
   PG_DSN=$(cat "$DSN_FILE")
 else
   log "Lege Datenbankuser + Datenbank an"
-  PG_PASS=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32)
+  PG_PASS=$(openssl rand -hex 16)
 
   sudo -u postgres psql -v ON_ERROR_STOP=0 <<SQL 2>/dev/null || true
 DO \$\$
