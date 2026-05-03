@@ -27,6 +27,7 @@ export const DOMAIN_COLORS: Record<string, DomainColor> = {
   "/credentials": "yellow",
   "/users": "indigo",
   "/plugins": "yellow",
+  "/datamining": "amber",
   "/system": "zinc",
   "/help": "cyan",
   "/profile": "violet",
