@@ -5,6 +5,17 @@ from datetime import datetime, timezone
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
+
+def _serialize(obj):
+    """Konvertiert datetime-Objekte in ISO-Strings für JSON-Serialisierung."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, dict):
+        return {k: _serialize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_serialize(i) for i in obj]
+    return obj
+
 _SEARCH_SCHEMA = {
     "type": "object",
     "properties": {
@@ -50,7 +61,7 @@ async def _search(args: dict, ctx: ToolContext) -> ToolResult:
             semantic=False,
             limit=min(int(args.get("limit", 20)), 50),
         )
-        return ToolResult.ok({"count": len(results), "results": results})
+        return ToolResult.ok(_serialize({"count": len(results), "results": results}))
     except Exception as e:
         return ToolResult.fail(f"Datamining-Suche fehlgeschlagen: {e}")
 
@@ -66,7 +77,7 @@ async def _semantic(args: dict, ctx: ToolContext) -> ToolResult:
             semantic=True,
             limit=min(int(args.get("limit", 10)), 30),
         )
-        return ToolResult.ok({"count": len(results), "results": results})
+        return ToolResult.ok(_serialize({"count": len(results), "results": results}))
     except Exception as e:
         return ToolResult.fail(f"Semantische Suche fehlgeschlagen: {e}")
 
@@ -77,7 +88,7 @@ async def _today(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         sessions = await mirror_query.list_sessions(limit=100)
         today = [s for s in sessions if str(s.get("updated_at", ""))[:10] == date]
-        return ToolResult.ok({"date": date, "sessions": today, "count": len(today)})
+        return ToolResult.ok(_serialize({"date": date, "sessions": today, "count": len(today)}))
     except Exception as e:
         return ToolResult.fail(f"Today-Abfrage fehlgeschlagen: {e}")
 
