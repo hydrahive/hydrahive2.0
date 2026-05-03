@@ -11,7 +11,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 MAX_NODES = 3000
-MIN_CLUSTER_SIZE = 10
+MIN_CLUSTER_SIZE = 50
 EDGE_THRESHOLD = 0.82
 TOP_K_EDGES = 3
 

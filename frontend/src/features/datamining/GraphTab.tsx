@@ -33,6 +33,7 @@ export function GraphTab() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nodeCount, setNodeCount] = useState(0)
+  const [clusterCount, setClusterCount] = useState(0)
   const [tooltip, setTooltip] = useState<{ x: number; y: number; node: GraphNode } | null>(null)
   const [limit, setLimit] = useState(1000)
 
@@ -45,6 +46,8 @@ export function GraphTab() {
       if (data.error) { setError(data.error); return }
       if (!data.active) { setError("Mirror nicht aktiv"); return }
       setNodeCount(data.nodes.length)
+      const clusters = new Set(data.nodes.map((n) => n.cluster).filter((c) => c >= 0))
+      setClusterCount(clusters.size)
       renderGraph(data)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Fehler")
@@ -101,10 +104,11 @@ export function GraphTab() {
       .join("circle")
       .attr("cx", (n) => xs(n.x))
       .attr("cy", (n) => ys(n.y))
-      .attr("r", 4)
+      .attr("r", (n) => n.cluster < 0 ? 2 : 4)
       .attr("fill", (n) => n.cluster < 0
-        ? "rgba(255,255,255,0.15)"
+        ? "rgba(255,255,255,0.08)"
         : CLUSTER_COLORS[n.cluster % CLUSTER_COLORS.length])
+      .attr("opacity", (n) => n.cluster < 0 ? 0.4 : 0.85)
       .attr("stroke", "none")
       .style("cursor", "pointer")
       .on("mouseenter", (event: MouseEvent, n: GraphNode) => {
@@ -137,7 +141,7 @@ export function GraphTab() {
           {loading ? "berechne…" : "Graph laden"}
         </button>
         {nodeCount > 0 && !loading && (
-          <span className="text-xs text-zinc-500">{nodeCount} Nodes</span>
+          <span className="text-xs text-zinc-500">{nodeCount} Nodes · {clusterCount} Cluster</span>
         )}
         {error && <span className="text-xs text-rose-400">{error}</span>}
       </div>
