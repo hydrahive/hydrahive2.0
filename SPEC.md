@@ -317,6 +317,24 @@ wird nur über non-NULL Rows gebaut.
 - Kein Embedding-Worker im Core (separater Service, kommt später)
 - Keine Abfrage-API im Backend (direkter DB-Zugriff durch Datamining-Tools)
 
+### Knowledge Graph (Wissensgraph)
+
+Visuelle Wissenskarte aller Datamining-Events — Grundlage sind die Embedding-Vektoren.
+
+**Technischer Ansatz:**
+- UMAP: reduziert Embedding-Vektoren auf 2D-Koordinaten (on-demand, serverseitig)
+- HDBSCAN: clustert Events automatisch zu semantischen Themengruppen
+- Cosine-Similarity via pgvector: Kanten zwischen ähnlichen Events (Schwellwert konfigurierbar)
+- D3.js Force-Graph: interaktive Visualisierung im Frontend (Zoom, Filter, Click-to-Detail)
+
+**Frontend — neuer Tab "Graph" auf der Datamining-Seite:**
+- Nodes = Events/Cluster, eingefärbt nach Thema
+- Edges = semantische Ähnlichkeit über Cosine-Similarity-Schwellwert
+- Klick auf Node → Event-Detail
+- Filter nach Agent, User, Zeitraum
+
+Keine externe Graph-Datenbank — alles on-demand aus pgvector berechnet.
+
 ---
 
 ## Tailscale-Integration
