@@ -33,6 +33,12 @@ export function DataminingPage() {
     const iv = setInterval(() => {
       dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {})
     }, 8000)
+    dataminingApi.exportStatus().then((s) => {
+      if (s.done && s.filename) { setExportState("done"); setExportFile(s.filename); setExportSizeMb(s.size_mb) }
+    }).catch(() => {})
+    dataminingApi.importStatus().then((s) => {
+      if (s.running) setImportState("running")
+    }).catch(() => {})
     return () => clearInterval(iv)
   }, [])
 
