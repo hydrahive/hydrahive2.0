@@ -159,7 +159,7 @@ async def reset_embeddings(event_type: str | None = None) -> int:
     return count
 
 
-async def _backfill_task(model: str, batch_size: int = 32) -> None:
+async def _backfill_task(model: str, batch_size: int = 50) -> None:
     global _backfill_running
     if _backfill_running:
         logger.info("Backfill läuft bereits — übersprungen")
@@ -167,64 +167,33 @@ async def _backfill_task(model: str, batch_size: int = 32) -> None:
     _backfill_running = True
     total = 0
     try:
-        from hydrahive.llm.embed import aembed_batch
         while True:
             if not _pool:
                 break
             async with _pool.acquire() as conn:
                 rows = await conn.fetch("""
                     SELECT id, tool_name,
-                           coalesce(nullif(text,''), nullif(tool_output,''), tool_input::text) AS content
+                           coalesce(text, tool_output, tool_input::text) AS content
                     FROM events
                     WHERE embedding IS NULL
-                      AND (
-                        (text IS NOT NULL AND text <> '')
-                        OR (tool_output IS NOT NULL AND tool_output <> '')
-                        OR tool_input IS NOT NULL
-                      )
+                      AND (text IS NOT NULL OR tool_output IS NOT NULL OR tool_input IS NOT NULL)
                     ORDER BY created_at
                     LIMIT $1
                 """, batch_size)
             if not rows:
                 break
-            texts = [
-                (f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"]) or ""
-                for r in rows
-            ]
-            # Leere Texte überspringen und auf 3000 Zeichen kürzen (nv-embed-v1: max 4096 Tokens)
-            valid = [(i, t[:3000]) for i, t in enumerate(texts) if t.strip()]
-            if not valid:
-                logger.warning("Backfill: Batch nur leere Texte — überspringe %d Events", len(rows))
-                await asyncio.sleep(1)
-                continue
-            valid_idx, valid_texts = zip(*valid)
-            raw_vectors = await aembed_batch(list(valid_texts), model)
-            vectors: list = [None] * len(rows)
-            for pos, vi in enumerate(valid_idx):
-                vectors[vi] = raw_vectors[pos]
-            embedded = sum(1 for v in vectors if v is not None)
-            if embedded == 0:
-                logger.warning("Backfill: Batch komplett fehlgeschlagen (model=%s, n=%d) — überspringe", model, len(rows))
-                # Verhindert Endlosschleife: Events als "versucht" markieren nicht möglich,
-                # deshalb kurze Pause und dann nächster Versuch
-                await asyncio.sleep(5)
-                continue
-            vec_str = lambda v: "[" + ",".join(str(x) for x in v) + "]" if v else None
-            updates = [
-                (vec_str(vectors[i]), model, rows[i]["id"])
-                for i in range(len(rows))
-                if vectors[i] is not None
-            ]
-            async with _pool.acquire() as conn:
-                await conn.executemany("""
-                    UPDATE events SET embedding=$1::vector, embedding_model=$2, embedded_at=now()
-                    WHERE id=$3 AND embedding IS NULL
-                """, updates)
-            total += embedded
-            logger.info("Backfill: %d eingebettet (gesamt %d)", embedded, total)
+            await asyncio.gather(
+                *[_embed_event(
+                    r["id"],
+                    f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"],
+                    model,
+                ) for r in rows],
+                return_exceptions=True,
+            )
+            total += len(rows)
             if len(rows) < batch_size:
                 break
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.3)
         logger.info("Backfill abgeschlossen: %d Events eingebettet", total)
     except Exception as e:
         logger.warning("Backfill fehlgeschlagen nach %d Events: %s", total, e)
