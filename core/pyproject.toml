@@ -18,6 +18,7 @@ dependencies = [
     "python-multipart>=0.0.9",
     "websockets>=13",
     "discord.py>=2.3",
+    "asyncpg>=0.29",
 ]
 
 [project.scripts]

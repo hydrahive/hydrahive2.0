@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
+from hydrahive.db import mirror
 
 
 @dataclass
@@ -64,6 +65,7 @@ def create(
                 json.dumps(s.metadata) if s.metadata else None,
             ),
         )
+    mirror.schedule_session(s)
     return s
 
 
@@ -116,6 +118,9 @@ def update(
     values.append(session_id)
     with db() as conn:
         conn.execute(f"UPDATE sessions SET {', '.join(fields)} WHERE id = ?", values)
+    s = get(session_id)
+    if s:
+        mirror.schedule_session(s)
 
 
 def touch(session_id: str) -> None:

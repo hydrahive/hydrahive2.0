@@ -127,6 +127,12 @@ class Settings:
         """URL des AgentLink-Frontends (separates statisches SPA, default 9001)."""
         return os.environ.get("HH_AGENTLINK_DASHBOARD_URL", "").strip()
 
+    # ------------------------------------------------------------------ datamining
+
+    @cached_property
+    def pg_mirror_dsn(self) -> str:
+        return os.environ.get("HH_PG_MIRROR_DSN", "").strip()
+
     # ------------------------------------------------------------------ communication
 
     @cached_property

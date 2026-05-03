@@ -27,6 +27,7 @@ from hydrahive.communication.whatsapp import (
 )
 from hydrahive.containers import reconciler as container_reconciler
 from hydrahive.db import init_db
+from hydrahive.db import mirror as pg_mirror
 from hydrahive import plugins as plugin_system
 from hydrahive.settings import settings
 from hydrahive.vms import reconciler as vm_reconciler
@@ -58,6 +59,8 @@ async def _whatsapp_auto_reconnect(adapter: WhatsAppAdapter) -> None:
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
     init_db()
+    if settings.pg_mirror_dsn:
+        await pg_mirror.init()
     from hydrahive.skills.loader import install_system_defaults
     install_system_defaults()
     initial_pw = os.environ.get("HH_INITIAL_ADMIN_PASSWORD") or secrets.token_urlsafe(16)
@@ -136,6 +139,7 @@ async def lifespan(app: FastAPI):
     logger.info("HydraHive2 gestartet — Port %s", settings.port)
     yield
 
+    await pg_mirror.close()
     if discord_adapter:
         await discord_adapter.aclose()
     if wa_adapter:
