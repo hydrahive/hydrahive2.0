@@ -38,6 +38,9 @@ def ensure_master(username: str, llm_model: str = "claude-sonnet-4-6") -> dict:
             llm_model=llm_model,
             owner=username,
             created_by=username,
+            temperature=1.0,
+            max_tokens=16000,
+            thinking_budget=0,
         )
         _write_startup(agent)
         from hydrahive.agents._workspace_links import sync_links_for_user
