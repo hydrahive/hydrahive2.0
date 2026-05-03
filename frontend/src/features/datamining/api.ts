@@ -56,4 +56,21 @@ export const dataminingApi = {
     const qs = event_type ? `?event_type=${event_type}` : ""
     return api.post<{ ok: boolean; reset: number }>(`/datamining/embed/reset${qs}`, {})
   },
+
+  startExport: () =>
+    api.post<{ ok: boolean; reason?: string }>("/datamining/export", {}),
+
+  exportStatus: () =>
+    api.get<{ running: boolean; done: boolean; filename: string | null; size_mb: number; error: string | null }>(
+      "/datamining/export/status"
+    ),
+
+  startImport: (file: File) => {
+    const form = new FormData()
+    form.append("file", file)
+    return api.postForm<{ ok: boolean; reason?: string }>("/datamining/import", form)
+  },
+
+  importStatus: () =>
+    api.get<{ running: boolean; done: boolean; error: string | null }>("/datamining/import/status"),
 }

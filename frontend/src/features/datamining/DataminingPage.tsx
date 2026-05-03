@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Pickaxe } from "lucide-react"
+import { Download, Pickaxe, Upload } from "lucide-react"
 import { LiveFeedTab } from "./LiveFeedTab"
 import { SearchTab } from "./SearchTab"
 import { SessionsTab } from "./SessionsTab"
@@ -22,6 +22,11 @@ export function DataminingPage() {
   const { t } = useTranslation("datamining")
   const [tab, setTab] = useState<Tab>("feed")
   const [embedStatus, setEmbedStatus] = useState<EmbedStatus | null>(null)
+  const [exportState, setExportState] = useState<"idle" | "running" | "done" | "error">("idle")
+  const [exportFile, setExportFile] = useState<string | null>(null)
+  const [exportSizeMb, setExportSizeMb] = useState<number>(0)
+  const [importState, setImportState] = useState<"idle" | "running" | "done" | "error">("idle")
+  const importRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {})
@@ -30,6 +35,33 @@ export function DataminingPage() {
     }, 8000)
     return () => clearInterval(iv)
   }, [])
+
+  async function startExport() {
+    setExportState("running"); setExportFile(null)
+    await dataminingApi.startExport().catch(() => {})
+    const poll = setInterval(async () => {
+      const s = await dataminingApi.exportStatus().catch(() => null)
+      if (!s) return
+      if (s.done) {
+        setExportState("done"); setExportFile(s.filename); setExportSizeMb(s.size_mb)
+        clearInterval(poll)
+      } else if (s.error) {
+        setExportState("error"); clearInterval(poll)
+      }
+    }, 2000)
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    setImportState("running")
+    await dataminingApi.startImport(file).catch(() => { setImportState("error"); return })
+    const poll = setInterval(async () => {
+      const s = await dataminingApi.importStatus().catch(() => null)
+      if (!s) return
+      if (s.done) { setImportState("done"); clearInterval(poll) }
+      else if (s.error) { setImportState("error"); clearInterval(poll) }
+    }, 2000)
+  }
 
   return (
     <div className="space-y-4 max-w-4xl">
@@ -72,6 +104,35 @@ export function DataminingPage() {
           }
         />
       )}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={startExport}
+          disabled={exportState === "running"}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/[4%] hover:bg-white/[8%] text-zinc-400 hover:text-zinc-200 disabled:opacity-40 transition-colors"
+        >
+          <Download size={12} />
+          {exportState === "running" ? "exportiert…" : "DB Export"}
+        </button>
+        {exportState === "done" && exportFile && (
+          <a
+            href="/api/datamining/export/download"
+            className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+            download
+          >
+            ↓ {exportFile} ({exportSizeMb} MB)
+          </a>
+        )}
+        <button
+          onClick={() => importRef.current?.click()}
+          disabled={importState === "running"}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs bg-white/[4%] hover:bg-white/[8%] text-zinc-400 hover:text-zinc-200 disabled:opacity-40 transition-colors"
+        >
+          <Upload size={12} />
+          {importState === "running" ? "importiert…" : importState === "done" ? "importiert ✓" : "DB Import"}
+        </button>
+        <input ref={importRef} type="file" accept=".dump,.dump.gz" className="hidden" onChange={handleImport} />
+      </div>
 
       {tab === "feed" && <LiveFeedTab active={tab === "feed"} />}
       {tab === "search" && <SearchTab />}
