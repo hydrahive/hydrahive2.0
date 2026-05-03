@@ -52,6 +52,9 @@ fi
 log "Phase 6: launchd-Service"
 bash "$INSTALLER_DIR/modules-mac/50-launchd.sh"
 
+log "Phase 6b: Update- und Restart-Trigger"
+bash "$INSTALLER_DIR/modules-mac/55-launchd-triggers.sh"
+
 if [ "${HH_INSTALL_NGINX}" != "no" ]; then
   log "Phase 7: nginx"
   bash "$INSTALLER_DIR/modules-mac/60-nginx.sh"
