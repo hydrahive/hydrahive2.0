@@ -20,10 +20,16 @@ EMBED_MODELS: dict[str, list[dict[str, Any]]] = {
     ],
     "nvidia": [
         {
-            "model": "nvidia/nv-embed-v2",
-            "litellm": "openai/nvidia/nv-embed-v2",
+            "model": "nvidia/nv-embed-v1",
+            "litellm": "openai/nvidia/nv-embed-v1",
             "api_base": "https://integrate.api.nvidia.com/v1",
             "dim": 4096,
+        },
+        {
+            "model": "nvidia/nv-embedqa-e5-v5",
+            "litellm": "openai/nvidia/nv-embedqa-e5-v5",
+            "api_base": "https://integrate.api.nvidia.com/v1",
+            "dim": 1024,
         },
     ],
     "mistral": [
