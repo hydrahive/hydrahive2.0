@@ -26,8 +26,11 @@ export function LlmPage() {
 
   async function save(next: LlmConfig) {
     setSaving(true)
-    try { const saved = await llmApi.updateConfig(next); setConfig(saved) }
-    finally { setSaving(false) }
+    try {
+      const saved = await llmApi.updateConfig(next)
+      setConfig(saved)
+      llmApi.getEmbedModels().then(setEmbedModels).catch(() => {})
+    } finally { setSaving(false) }
   }
 
   async function testConnection() {
