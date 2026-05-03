@@ -69,8 +69,9 @@ async def run(
             "- Unbekannte Namen, Begriffe oder Referenzen die aus früheren Gesprächen kommen könnten\n"
             "- Aufgaben die du fortsetzen sollst ohne klaren Kontext\n"
             "Tools:\n"
-            "- `datamining_search(query)` — Volltextsuche\n"
-            "- `datamining_semantic(query)` — semantische Suche wenn Volltext nichts findet\n"
+            "- `datamining_search(query, from_date, to_date)` — Volltextsuche; WICHTIG: gibt nur neueste Events zurück, "
+            "für alte/historische Events immer from_date setzen (z.B. from_date='2026-01-01')!\n"
+            "- `datamining_semantic(query)` — semantische Suche, findet auch ohne exakte Worte, kein Datumsproblem\n"
             "- `datamining_today()` — was heute passiert ist\n"
         )
 
