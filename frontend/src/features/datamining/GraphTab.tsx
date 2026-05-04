@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import { dataminingApi } from "./api"
 
 const ForceGraph3D = React.lazy(() => import("react-force-graph-3d"))
