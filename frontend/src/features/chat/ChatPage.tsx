@@ -27,6 +27,7 @@ export function ChatPage() {
   const runtime = useHydraRuntime(chat.messages, chat.busy, chat.send, chat.cancel)
 
   const knownAgentIds = new Set(agents.map((a) => a.id))
+  const buddyAgentIds = new Set(agents.filter((a) => a.is_buddy).map((a) => a.id))
 
   async function loadAll() {
     try {
@@ -116,7 +117,7 @@ export function ChatPage() {
         <CollapsibleSidebar>
           <SessionList
             sessions={sessions} activeId={activeId}
-            knownAgentIds={knownAgentIds} projects={projects}
+            knownAgentIds={knownAgentIds} buddyAgentIds={buddyAgentIds} projects={projects}
             onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
           />
         </CollapsibleSidebar>
