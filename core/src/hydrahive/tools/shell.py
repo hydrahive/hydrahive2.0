@@ -79,8 +79,24 @@ def _resolve_gh_token(ctx: ToolContext) -> str | None:
     return None
 
 
+# Sensitive ENV-Variablen die NICHT an shell_exec weitergegeben werden:
+# JWT-Signing-Key (= jeder mit dem Key kann beliebige User-Tokens fälschen),
+# DSN-Passwörter, Provider-API-Keys aus Service-Config.
+_ENV_DENYLIST = {
+    "HH_SECRET_KEY",
+    "HH_JWT_SECRET",
+    "HH_PG_MIRROR_DSN",
+    "HH_DATABASE_URL",
+    "HH_AGENTLINK_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "MINIMAX_API_KEY",
+    "DISCORD_BOT_TOKEN",
+}
+
+
 def _build_env(ctx: ToolContext) -> dict:
-    env = os.environ.copy()
+    env = {k: v for k, v in os.environ.items() if k not in _ENV_DENYLIST}
     token = _resolve_gh_token(ctx)
     if token:
         env["GH_TOKEN"] = token

@@ -58,6 +58,11 @@ def safe_workspace_path(workspace: Path, rel: str) -> Path:
         resolved = (workspace / rel).resolve()
     except (OSError, ValueError):
         raise coded(status.HTTP_400_BAD_REQUEST, "invalid_path")
-    if not str(resolved).startswith(str(workspace.resolve())):
+    workspace_resolved = workspace.resolve()
+    if resolved == workspace_resolved:
+        return resolved
+    try:
+        resolved.relative_to(workspace_resolved)
+    except ValueError:
         raise coded(status.HTTP_400_BAD_REQUEST, "path_traversal")
     return resolved
