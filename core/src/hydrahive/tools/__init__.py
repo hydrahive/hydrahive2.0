@@ -42,6 +42,7 @@ def _build_registry() -> dict[str, Tool]:
     tools: list[Tool] = [
         datamining.TOOL_SEARCH,
         datamining.TOOL_SEMANTIC,
+        datamining.TOOL_TIMELINE,
         datamining.TOOL_TODAY,
         shell.TOOL,
         file_read.TOOL,
