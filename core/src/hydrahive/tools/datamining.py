@@ -47,6 +47,17 @@ _TODAY_SCHEMA = {
     },
 }
 
+_TIMELINE_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "from_date":   {"type": "string", "description": "ISO-Datum z.B. '2025-11-01'"},
+        "to_date":     {"type": "string", "description": "ISO-Datum (default: heute)"},
+        "agent_name":  {"type": "string", "description": "Optional: nur Sessions dieses Agents"},
+        "limit":       {"type": "integer", "default": 200, "description": "Max. Sessions"},
+    },
+    "required": ["from_date"],
+}
+
 
 async def _search(args: dict, ctx: ToolContext) -> ToolResult:
     from hydrahive.db import mirror_query
@@ -82,6 +93,41 @@ async def _semantic(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail(f"Semantische Suche fehlgeschlagen: {e}")
 
 
+async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
+    from hydrahive.db import mirror_query
+    from datetime import date as _date
+    from_date = (args.get("from_date") or "").strip()
+    to_date = (args.get("to_date") or "").strip() or _date.today().isoformat()
+    limit = min(int(args.get("limit", 200)), 500)
+    try:
+        sessions = await mirror_query.list_sessions(
+            agent_name=args.get("agent_name") or None,
+            from_date=from_date,
+            to_date=to_date + "T23:59:59",
+            limit=limit,
+        )
+        # Nach Tag gruppieren
+        from collections import defaultdict
+        by_day: dict = defaultdict(list)
+        for s in sessions:
+            day = str(s.get("started_at") or s.get("updated_at") or "")[:10]
+            by_day[day].append({
+                "session_id": s["id"],
+                "agent": s.get("agent_name", "?"),
+                "user": s.get("username", "?"),
+                "events": s.get("event_count", 0),
+                "started": str(s.get("started_at") or "")[:16].replace("T", " "),
+            })
+        days = [{"date": d, "sessions": len(v), "details": v}
+                for d, v in sorted(by_day.items(), reverse=True)]
+        return ToolResult.ok(_serialize({
+            "from_date": from_date, "to_date": to_date,
+            "total_sessions": len(sessions), "days": days,
+        }))
+    except Exception as e:
+        return ToolResult.fail(f"Timeline-Abfrage fehlgeschlagen: {e}")
+
+
 async def _today(args: dict, ctx: ToolContext) -> ToolResult:
     from hydrahive.db import mirror_query
     date = (args.get("date") or "").strip() or datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -113,6 +159,18 @@ TOOL_SEMANTIC = Tool(
     ),
     schema=_SEMANTIC_SCHEMA,
     execute=_semantic,
+    category="memory",
+)
+
+TOOL_TIMELINE = Tool(
+    name="datamining_timeline",
+    description=(
+        "Zeitstrahl aller Sessions in einem Zeitraum, gruppiert nach Tag. "
+        "Ideal für Langzeit-Analyse ohne Keyword — z.B. 'was habe ich im November gemacht', "
+        "'welche Sessions gab es letzte Woche'. Gibt Themen/Gesprächspartner pro Tag."
+    ),
+    schema=_TIMELINE_SCHEMA,
+    execute=_timeline,
     category="memory",
 )
 

@@ -55,10 +55,13 @@ async def run(
     allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
 
     if agent.get("longterm_memory"):
-        from hydrahive.tools.datamining import TOOL_SEARCH, TOOL_SEMANTIC, TOOL_TODAY
-        for _t in (TOOL_SEARCH, TOOL_SEMANTIC, TOOL_TODAY):
-            tool_schemas.append({"name": _t.name, "description": _t.description, "input_schema": _t.schema})
-            allowed_tools.append(_t.name)
+        from hydrahive.tools.datamining import TOOL_SEARCH, TOOL_SEMANTIC, TOOL_TODAY, TOOL_TIMELINE
+        existing_tool_names = {s["name"] for s in tool_schemas}
+        for _t in (TOOL_SEARCH, TOOL_SEMANTIC, TOOL_TODAY, TOOL_TIMELINE):
+            if _t.name not in existing_tool_names:
+                tool_schemas.append({"name": _t.name, "description": _t.description, "input_schema": _t.schema})
+            if _t.name not in allowed_tools:
+                allowed_tools.append(_t.name)
         base_system_prompt += (
             "\n\n## Langzeitgedächtnis — PFLICHT\n"
             "Du hast Zugriff auf eine Datenbank mit ALLEN vergangenen Sessions, Gesprächen und Tool-Calls.\n"
@@ -69,9 +72,11 @@ async def run(
             "- Unbekannte Namen, Begriffe oder Referenzen die aus früheren Gesprächen kommen könnten\n"
             "- Aufgaben die du fortsetzen sollst ohne klaren Kontext\n"
             "Tools:\n"
-            "- `datamining_search(query, from_date, to_date)` — Volltextsuche; WICHTIG: gibt nur neueste Events zurück, "
-            "für alte/historische Events immer from_date setzen (z.B. from_date='2026-01-01')!\n"
-            "- `datamining_semantic(query)` — semantische Suche, findet auch ohne exakte Worte, kein Datumsproblem\n"
+            "- `datamining_search(query, from_date, to_date)` — Volltextsuche; gibt nur neueste Events zurück, "
+            "für historische Events immer from_date setzen (z.B. from_date='2026-01-01')!\n"
+            "- `datamining_semantic(query)` — semantische Suche, findet auch ohne exakte Worte\n"
+            "- `datamining_timeline(from_date, to_date)` — Zeitstrahl aller Sessions in einem Zeitraum, "
+            "gruppiert nach Tag mit Gesprächsthemen — ideal für Langzeit-Analyse ohne Keyword\n"
             "- `datamining_today()` — was heute passiert ist\n"
         )
 
