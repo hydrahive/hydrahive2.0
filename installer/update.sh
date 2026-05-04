@@ -64,7 +64,9 @@ log "Backend-Dependencies aktualisieren"
 
 log "Frontend neu bauen"
 cd "$HH_REPO_DIR/frontend"
-chown -R "$HH_USER:$HH_USER" node_modules dist 2>/dev/null || true
+# Self-Heal: falls jemand manuell als root gepullt hat, gehören Source-Files
+# (inkl. package-lock.json) root — npm install als hydrahive kriegt EACCES.
+chown -R "$HH_USER:$HH_USER" "$HH_REPO_DIR" 2>/dev/null || true
 sudo -u hydrahive npm install --silent
 sudo -u hydrahive npm run build --silent
 
