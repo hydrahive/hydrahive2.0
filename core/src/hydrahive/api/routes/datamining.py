@@ -57,6 +57,8 @@ async def list_sessions(
     _auth: Auth,
     agent_name: str | None = None,
     username: str | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
     limit: int = 50,
 ) -> dict:
     active = mirror._pool is not None
@@ -65,7 +67,9 @@ async def list_sessions(
     sessions = await mirror_query.list_sessions(
         agent_name=agent_name or None,
         username=username or None,
-        limit=min(limit, 200),
+        from_date=from_date or None,
+        to_date=to_date or None,
+        limit=min(limit, 500),
     )
     return {"active": True, "sessions": sessions}
 
