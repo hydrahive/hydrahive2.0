@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Literal
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 SkillScope = Literal["system", "user", "agent"]
 
@@ -67,7 +70,8 @@ def parse(text: str, *, scope: SkillScope, owner: str, fallback_name: str = "") 
     front_raw, body = m.group(1), m.group(2)
     try:
         front = yaml.safe_load(front_raw) or {}
-    except yaml.YAMLError:
+    except yaml.YAMLError as e:
+        logger.warning("Skill-Frontmatter ungültig (%s) — fallback auf Defaults: %s", fallback_name, e)
         front = {}
     return Skill(
         name=str(front.get("name") or fallback_name),
