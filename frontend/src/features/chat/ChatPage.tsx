@@ -64,7 +64,7 @@ export function ChatPage() {
   const [cmdFeedback, setCmdFeedback] = useState<string | null>(null)
 
   async function handleSend(text: string, files: File[] = []) {
-    if (activeSession && buddyAgentIds.has(activeSession.agent_id) && isCommand(text)) {
+    if (isCommand(text)) {
       const result = await runCommand(text)
       setCmdFeedback(result.message)
       setTimeout(() => setCmdFeedback(null), 6000)
