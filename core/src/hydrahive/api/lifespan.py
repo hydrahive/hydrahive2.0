@@ -66,6 +66,16 @@ async def lifespan(app: FastAPI):
     initial_pw = os.environ.get("HH_INITIAL_ADMIN_PASSWORD") or secrets.token_urlsafe(16)
     user_was_new = ensure_admin("admin", initial_pw)
     if user_was_new:
+        # Schreibe in Datei damit install.sh es robust auslesen kann (kein
+        # journalctl-Race, kein Log-Rotation-Verlust). Datei wird vom Installer
+        # gelesen und gelöscht. Mode 0600 — nur root liest.
+        try:
+            pw_file = settings.config_dir / ".admin_initial_password"
+            settings.config_dir.mkdir(parents=True, exist_ok=True)
+            pw_file.write_text(initial_pw + "\n")
+            os.chmod(pw_file, 0o600)
+        except OSError as e:
+            logger.warning("Konnte initial password file nicht schreiben: %s", e)
         logger.warning(
             "============================================================\n"
             "  Erster Start — Admin-User angelegt:\n"
