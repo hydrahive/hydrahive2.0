@@ -64,10 +64,10 @@ async def _load_rows(pool, event_type, agent_name, username, limit) -> list[dict
     where = " AND ".join(conditions)
 
     async with pool.acquire() as conn:
-        await conn.execute("SET LOCAL enable_seqscan = on")
         rows = await conn.fetch(f"""
-            SELECT id, event_type, agent_name, username,
-                   coalesce(nullif(text,''), nullif(tool_output,''), '') AS label,
+            SELECT id, event_type, agent_name, username, tool_name,
+                   left(nullif(text,''), 120) AS text_excerpt,
+                   created_at,
                    embedding::float4[] AS emb_arr
             FROM events
             WHERE {where}
@@ -85,7 +85,9 @@ async def _load_rows(pool, event_type, agent_name, username, limit) -> list[dict
             "event_type": r["event_type"] or "",
             "agent_name": r["agent_name"] or "",
             "username": r["username"] or "",
-            "label": (r["label"] or "")[:80],
+            "tool_name": r["tool_name"] or "",
+            "text_excerpt": (r["text_excerpt"] or ""),
+            "created_at": r["created_at"].isoformat() if r["created_at"] else "",
             "vec": list(emb),
         })
     return result
@@ -113,7 +115,9 @@ async def _compute(rows: list[dict]) -> dict:
             "event_type": r["event_type"],
             "agent_name": r["agent_name"],
             "username": r["username"],
-            "label": r["label"],
+            "tool_name": r["tool_name"],
+            "text_excerpt": r["text_excerpt"],
+            "created_at": r["created_at"],
         })
 
     # Edges via Cosine-Similarity (normalisierte Vektoren → Dot-Product)
