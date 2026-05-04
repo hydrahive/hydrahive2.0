@@ -95,7 +95,15 @@ else
 fi
 
 # ----------------------------------------------------------------- Zusammenfassung
-SERVER_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/{print $7; exit}' || hostname -I 2>/dev/null | awk '{print $1}')
+# LAN-IP ermitteln — explizit Tailscale-Range (100.64.0.0/10 CGNAT) und
+# Loopback ausschließen. `ip route get 1.1.1.1` greift sonst nach Tailscale-
+# Interface wenn das Tailnet Subnet-Routes advertised hat.
+SERVER_IP=$(hostname -I 2>/dev/null | tr ' ' '\n' \
+  | grep -vE '^(127\.|169\.254\.|::1|fe80:|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.)' \
+  | head -1)
+if [ -z "$SERVER_IP" ]; then
+  SERVER_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/{print $7; exit}')
+fi
 SERVER_URL="https://${SERVER_IP:-<server-ip>}"
 
 # Admin-Passwort: erst aus File (zuverlässig), Fallback journalctl seit Service-Start.
