@@ -14,9 +14,9 @@ HH_USER="${HH_USER:-hydrahive}"
 INSTALLER_DIR="${INSTALLER_DIR:-/opt/hydrahive2/installer}"
 
 log "QEMU + KVM-Pakete installieren"
-DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
     qemu-system-x86 qemu-utils bridge-utils \
-    websockify novnc 2>&1 | grep -v "^Reading\|^Building\|already" || true
+    websockify novnc
 
 # qemu-bridge-helper setuid — sonst kann der Service ohne CAP_NET_ADMIN keine
 # Bridge benutzen. Auf Ubuntu liegt das Binary unter /usr/lib/qemu/.

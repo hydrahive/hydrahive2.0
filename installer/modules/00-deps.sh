@@ -33,20 +33,20 @@ fi
 # Python 3.12 falls nicht da: über deadsnakes-PPA für Ubuntu < 24.04
 if ! command -v python3.12 >/dev/null 2>&1; then
   log "Installiere Python 3.12 via deadsnakes-PPA"
-  apt-get install -y software-properties-common >/dev/null
-  add-apt-repository -y ppa:deadsnakes/ppa >/dev/null
+  apt-get install -y software-properties-common
+  add-apt-repository -y ppa:deadsnakes/ppa
 fi
 
 log "apt update"
-apt-get update -qq
+apt-get update
 
 log "apt install: ${REQUIRED_PACKAGES[*]}"
-DEBIAN_FRONTEND=noninteractive apt-get install -y "${REQUIRED_PACKAGES[@]}" >/dev/null
+DEBIAN_FRONTEND=noninteractive apt-get install -y "${REQUIRED_PACKAGES[@]}"
 
 # uv für Python-MCP-Server (uvx)
 if ! command -v uvx >/dev/null 2>&1; then
   log "Installiere uv (für uvx-MCP-Server)"
-  curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null
+  curl -LsSf https://astral.sh/uv/install.sh | sh
   # uv landet in /root/.local/bin oder /home/.../.local/bin — ist nicht im Service-PATH
   # → auch global verfügbar machen
   if [ -f /root/.local/bin/uvx ]; then
@@ -65,14 +65,14 @@ if ! command -v gh >/dev/null 2>&1; then
   chmod 644 /etc/apt/keyrings/githubcli-archive-keyring.gpg
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
     > /etc/apt/sources.list.d/github-cli.list
-  apt-get update -qq
-  DEBIAN_FRONTEND=noninteractive apt-get install -y gh >/dev/null
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y gh
 fi
 
 # mmx CLI (MiniMax official CLI für Bild/Video/Musik-Generierung + TTS)
 if ! command -v mmx >/dev/null 2>&1; then
   log "Installiere mmx-cli (MiniMax CLI)"
-  npm install -g mmx-cli --silent
+  npm install -g mmx-cli --no-fund --no-audit
 fi
 # `mmx auth login` läuft NICHT hier — als root würde der Token in /root/.mmx/
 # landen, der Backend-Service liest aber /home/$HH_USER/.mmx/. 55-voice.sh

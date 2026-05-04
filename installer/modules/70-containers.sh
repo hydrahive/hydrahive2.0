@@ -12,8 +12,7 @@ log() { printf "  · %s\n" "$*"; }
 HH_USER="${HH_USER:-hydrahive}"
 
 log "incus-Paket installieren"
-DEBIAN_FRONTEND=noninteractive apt-get install -y -qq incus 2>&1 \
-  | grep -v "^Reading\|^Building\|already" || true
+DEBIAN_FRONTEND=noninteractive apt-get install -y incus
 
 # incus admin init mit dir-Storage falls noch nicht initialisiert
 if ! incus storage list 2>/dev/null | grep -q "default.*dir"; then

@@ -22,7 +22,7 @@ log() { printf "  · %s\n" "$*"; }
 # samba installieren falls nicht da
 if ! command -v smbd >/dev/null 2>&1; then
   log "Installiere samba"
-  DEBIAN_FRONTEND=noninteractive apt-get install -y samba >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y samba
 fi
 
 # includes-dir anlegen, dem hydrahive-User schreibend zugänglich
