@@ -38,7 +38,8 @@ export function BuddyPage() {
   function appendLocal(role: "user" | "assistant", text: string) {
     setLocalMsgs((prev) => [
       ...prev,
-      { id: `local-cmd-${Date.now()}-${prev.length}`, role, content: text,
+      { id: `local-cmd-${Date.now()}-${prev.length}`, role,
+        content: [{ type: "text", text }],
         created_at: new Date().toISOString(), token_count: null, metadata: {} },
     ])
   }
