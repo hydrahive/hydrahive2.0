@@ -51,7 +51,12 @@
   },
   "files": {
     "empty": "Workspace ist leer.",
-    "close": "Schließen"
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "save": "Speichern",
+    "upload": "Upload",
+    "delete": "Löschen",
+    "delete_confirm": "\"{{name}}\" wirklich löschen?"
   },
   "overrides": {
     "title": "Projekt-Overrides",

@@ -13,6 +13,16 @@ export const projectsApi = {
     fetch(`/api/projects/${id}/files/read?path=${encodeURIComponent(path)}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` }
     }).then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))),
+  writeFile: (id: string, path: string, content: string) =>
+    api.post<{ ok: boolean; size: number }>(`/projects/${id}/files/write`, { path, content }),
+  uploadFile: (id: string, file: File, path = "") => {
+    const form = new FormData()
+    form.append("file", file)
+    const qs = path ? `?path=${encodeURIComponent(path)}` : ""
+    return api.postForm<{ ok: boolean; name: string; size: number }>(`/projects/${id}/files/upload${qs}`, form)
+  },
+  deleteFile: (id: string, path: string) =>
+    api.delete<{ ok: boolean }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
   delete: (id: string) => api.delete<void>(`/projects/${id}`),
   addMember: (id: string, username: string) =>
     api.post<Project>(`/projects/${id}/members/${username}`, {}),
