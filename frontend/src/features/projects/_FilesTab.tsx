@@ -1,8 +1,7 @@
-import { ChevronRight, File, Folder, Loader2, Trash2, Upload } from "lucide-react"
+import { ChevronRight, File, Folder, Loader2, Pencil, Save, Trash2, Upload, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
-import { FileViewer } from "./_FileViewer"
 
 interface Entry { name: string; type: "file" | "dir"; size: number | null; modified: number }
 
@@ -13,15 +12,20 @@ export function FilesTab({ projectId }: Props) {
   const [path, setPath] = useState("")
   const [entries, setEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(false)
-  const [fileContent, setFileContent] = useState<string | null>(null)
   const [openFile, setOpenFile] = useState<string | null>(null)
+  const [savedContent, setSavedContent] = useState<string>("")
+  const [editContent, setEditContent] = useState<string>("")
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const uploadRef = useRef<HTMLInputElement>(null)
 
+  const dirty = editing && editContent !== savedContent
+
   async function loadDir(p: string) {
-    setLoading(true); setError(null); setFileContent(null); setOpenFile(null)
+    setLoading(true); setError(null); setOpenFile(null); setEditing(false)
     try {
       const res = await projectsApi.listFiles(projectId, p)
       setPath(res.path); setEntries(res.entries)
@@ -32,23 +36,30 @@ export function FilesTab({ projectId }: Props) {
 
   async function openFileEntry(name: string) {
     const filePath = path ? `${path}/${name}` : name
-    setLoading(true); setError(null)
+    setLoading(true); setError(null); setEditing(false)
     try {
       const content = await projectsApi.readFile(projectId, filePath)
-      setFileContent(content); setOpenFile(name)
+      setSavedContent(content); setEditContent(content); setOpenFile(name)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Fehler")
     } finally { setLoading(false) }
   }
 
-  async function saveFile(content: string) {
+  async function saveFile() {
     if (!openFile) return
     const filePath = path ? `${path}/${openFile}` : openFile
-    await projectsApi.writeFile(projectId, filePath, content)
-    setFileContent(content)
+    setSaving(true); setError(null)
+    try {
+      await projectsApi.writeFile(projectId, filePath, editContent)
+      setSavedContent(editContent); setEditing(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Speichern fehlgeschlagen")
+    } finally { setSaving(false) }
   }
 
-  async function handleUpload(file: File) {
+  function closeFile() { setOpenFile(null); setEditing(false) }
+
+  async function handleUpload(file: globalThis.File) {
     setUploading(true); setError(null)
     try {
       await projectsApi.uploadFile(projectId, file, path)
@@ -121,13 +132,43 @@ export function FilesTab({ projectId }: Props) {
         <div className="rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-xs text-rose-300">{error}</div>
       )}
 
-      {fileContent !== null && openFile ? (
-        <FileViewer
-          filename={openFile}
-          initialContent={fileContent}
-          onClose={() => { setFileContent(null); setOpenFile(null) }}
-          onSave={saveFile}
-        />
+      {openFile ? (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-zinc-400 font-mono truncate">
+              {openFile}{dirty && <span className="text-amber-400 ml-1">●</span>}
+            </span>
+            <div className="flex items-center gap-1">
+              {!editing ? (
+                <button onClick={() => setEditing(true)}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] border border-white/[8%] bg-white/[3%] text-zinc-300 hover:text-zinc-100 hover:bg-white/[6%]">
+                  <Pencil size={11} /> {t("files.edit")}
+                </button>
+              ) : (
+                <button onClick={saveFile} disabled={!dirty || saving}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[11px] border border-emerald-500/30 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed">
+                  {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                  {t("files.save")}
+                </button>
+              )}
+              <button onClick={closeFile} className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] text-zinc-500 hover:text-zinc-200">
+                <X size={11} /> {t("files.close")}
+              </button>
+            </div>
+          </div>
+          {editing ? (
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              spellCheck={false}
+              className="w-full h-[500px] rounded-lg border border-white/[8%] bg-zinc-900 p-3 text-xs text-zinc-200 font-mono resize-none focus:outline-none focus:border-amber-500/40"
+            />
+          ) : (
+            <pre className="rounded-lg border border-white/[8%] bg-zinc-900 p-3 text-xs text-zinc-300 font-mono overflow-auto max-h-[500px] whitespace-pre-wrap break-words">
+              {savedContent}
+            </pre>
+          )}
+        </div>
       ) : (
         <div className="rounded-lg border border-white/[8%] overflow-hidden">
           {path && (
