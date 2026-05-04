@@ -24,7 +24,7 @@ HH_HOME_VOICE="/home/$HH_USER_VOICE"
 
 if ! command -v mmx >/dev/null 2>&1; then
   log "Installiere mmx-cli (npm-global)"
-  npm install -g mmx-cli --silent 2>&1 | tail -3 || \
+  npm install -g mmx-cli --no-fund --no-audit || \
     log "mmx-cli-Install fehlgeschlagen — TTS via MiniMax nicht verfügbar"
 fi
 
@@ -80,11 +80,11 @@ if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_NAME"; then
   incus exec "$CT_NAME" -- bash -c "
     set -e
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update -qq
-    apt-get install -y -qq python3-venv ffmpeg
+    apt-get update
+    apt-get install -y python3-venv ffmpeg
     python3 -m venv /opt/wyoming
-    /opt/wyoming/bin/pip install --quiet --upgrade pip
-    /opt/wyoming/bin/pip install --quiet wyoming-faster-whisper
+    /opt/wyoming/bin/pip install --upgrade pip
+    /opt/wyoming/bin/pip install wyoming-faster-whisper
   "
 
   log "systemd-Unit im Container schreiben"

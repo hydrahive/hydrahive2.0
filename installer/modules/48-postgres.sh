@@ -14,14 +14,14 @@ PG_USER="hydrahive_mirror"
 # ---------------------------------------------------------------- PostgreSQL apt
 if ! command -v psql >/dev/null 2>&1; then
   log "Installiere postgresql + postgresql-contrib"
-  DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql postgresql-contrib >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql postgresql-contrib
 fi
 
 # pgvector — Paketname hängt von der PG-Version ab (postgresql-16-pgvector auf 24.04)
 PG_VER=$(pg_lsclusters --no-header 2>/dev/null | awk '{print $1; exit}' || echo "16")
 if ! dpkg -l "postgresql-${PG_VER}-pgvector" >/dev/null 2>&1; then
   log "Installiere postgresql-${PG_VER}-pgvector"
-  DEBIAN_FRONTEND=noninteractive apt-get install -y "postgresql-${PG_VER}-pgvector" >/dev/null \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y "postgresql-${PG_VER}-pgvector" \
     || log "pgvector-Paket nicht via apt verfügbar — Extension manuell einrichten"
 fi
 

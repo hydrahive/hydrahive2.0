@@ -7,10 +7,10 @@ log() { printf "  · %s\n" "$*"; }
 cd "$HH_REPO_DIR/frontend"
 
 log "npm install (kann ein paar Minuten dauern)"
-npm install --silent
+npm install --no-fund --no-audit
 
 log "npm run build → dist/"
-npm run build --silent
+npm run build
 
 log "Frontend gebaut: $HH_REPO_DIR/frontend/dist/"
 

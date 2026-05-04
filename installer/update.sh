@@ -55,26 +55,26 @@ log "Node.js prüfen"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ]; then
   log "Node.js 20 fehlt — installiere via NodeSource"
   export DEBIAN_FRONTEND=noninteractive
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null
-  apt-get install -y nodejs >/dev/null
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
 fi
 
 log "Backend-Dependencies aktualisieren"
-"$HH_REPO_DIR/.venv/bin/pip" install --quiet -e "$HH_REPO_DIR/core"
+"$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core"
 
 log "Frontend neu bauen"
 cd "$HH_REPO_DIR/frontend"
 # Self-Heal: falls jemand manuell als root gepullt hat, gehören Source-Files
 # (inkl. package-lock.json) root — npm install als hydrahive kriegt EACCES.
 chown -R "$HH_USER:$HH_USER" "$HH_REPO_DIR" 2>/dev/null || true
-sudo -u hydrahive npm install --silent
-sudo -u hydrahive npm run build --silent
+sudo -u hydrahive npm install --no-fund --no-audit
+sudo -u hydrahive npm run build
 
 WA_BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
 if [ -f "$WA_BRIDGE_DIR/package.json" ]; then
   log "WhatsApp-Bridge: npm install"
   cd "$WA_BRIDGE_DIR"
-  npm install --cache /tmp/npm-cache-hh --no-audit --no-fund --silent
+  npm install --cache /tmp/npm-cache-hh --no-audit --no-fund
   chown -R hydrahive:hydrahive "$WA_BRIDGE_DIR/node_modules"
 fi
 
@@ -269,7 +269,7 @@ fi
 
 if ! command -v sshpass >/dev/null 2>&1; then
   log "sshpass fehlt — installiere"
-  DEBIAN_FRONTEND=noninteractive apt-get install -y sshpass >/dev/null
+  DEBIAN_FRONTEND=noninteractive apt-get install -y sshpass
 fi
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -280,8 +280,8 @@ if ! command -v gh >/dev/null 2>&1; then
   chmod 644 /etc/apt/keyrings/githubcli-archive-keyring.gpg
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
     > /etc/apt/sources.list.d/github-cli.list
-  apt-get update -qq
-  DEBIAN_FRONTEND=noninteractive apt-get install -y gh >/dev/null
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y gh
 fi
 
 if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
@@ -326,7 +326,7 @@ if [ "$voice_ok" = "0" ]; then
   # Falls 00-deps.sh das nicht installiert hat (alte Installs vor Migration):
   if ! command -v ffmpeg >/dev/null 2>&1; then
     log "ffmpeg fehlt am Host — installieren"
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null 2>&1 || true
+    DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg || true
   fi
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || log "voice-setup failed — weiter"
 fi

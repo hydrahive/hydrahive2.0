@@ -12,15 +12,15 @@ if [ ! -d "$VENV" ]; then
 fi
 
 log "Aktualisiere pip"
-"$VENV/bin/pip" install --quiet --upgrade pip
+"$VENV/bin/pip" install --upgrade pip
 
 log "Installiere hydrahive-core (editable + Dependencies)"
-"$VENV/bin/pip" install --quiet -e "$HH_REPO_DIR/core"
+"$VENV/bin/pip" install -e "$HH_REPO_DIR/core"
 
 # Mac/uv installieren falls fehlt — manche MCP-Server brauchen uvx
 if ! "$VENV/bin/pip" show anthropic >/dev/null 2>&1; then
   log "anthropic-SDK fehlt — installiere"
-  "$VENV/bin/pip" install --quiet anthropic mcp
+  "$VENV/bin/pip" install anthropic mcp
 fi
 
 # Permissions: venv muss vom Service-User lesbar sein

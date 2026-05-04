@@ -7,11 +7,11 @@ log() { printf "  · %s\n" "$*"; }
 
 if ! command -v nginx >/dev/null 2>&1; then
   log "Installiere nginx"
-  apt-get install -y nginx >/dev/null
+  apt-get install -y nginx
 fi
 
 if ! command -v openssl >/dev/null 2>&1; then
-  apt-get install -y openssl >/dev/null
+  apt-get install -y openssl
 fi
 
 # Self-Signed-Cert anlegen falls noch nicht vorhanden
