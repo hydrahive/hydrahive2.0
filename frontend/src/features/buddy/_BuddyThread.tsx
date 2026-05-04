@@ -73,6 +73,7 @@ function BuddyAssistantMessage() {
   const original = originals[0]
   const blocks: ContentBlock[] = original ? Array.isArray(original.content) ? original.content : [] : []
   const isLive = msg.status?.type === "running"
+  const isLocalCmd = original?.id?.startsWith("local-cmd-") ?? false
   const fullText = blocks.filter((b) => b.type === "text").map((b) => (b as any).text ?? "").join(" ")
   const [copied, setCopied] = useState(false)
   const tts = useVoiceOutput()
@@ -85,7 +86,9 @@ function BuddyAssistantMessage() {
         {blocks.map((b, i) => {
           if (b.type === "text" && b.text) return (
             <div key={i} className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-50">
-              <Markdown text={b.text} />
+              {isLocalCmd
+                ? <pre className="font-mono text-xs whitespace-pre-wrap break-words m-0">{b.text}</pre>
+                : <Markdown text={b.text} />}
             </div>
           )
           if (b.type === "image") return <ImageBlock key={i} block={b} />
