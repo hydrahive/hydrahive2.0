@@ -154,31 +154,27 @@ async def _semantic_search(conn, q, event_type, agent_name, username, from_date,
 async def list_sessions(
     agent_name: str | None = None,
     username: str | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
     pool = _pool()
     if not pool:
         return []
 
-    where = ["1=1"]
-    params: list = []
-    idx = 1
-
-    if agent_name:
-        where.append(f"s.agent_name = ${idx}"); params.append(agent_name); idx += 1
-    if username:
-        where.append(f"s.username = ${idx}"); params.append(username); idx += 1
-    params.append(min(limit, 200))
-
-    # Filter für Events-Query neu aufbauen (gleiche Parameter, andere Spaltennamen)
     where_e = ["1=1"]
     params_e: list = []
     idx_e = 1
+
     if agent_name:
         where_e.append(f"agent_name = ${idx_e}"); params_e.append(agent_name); idx_e += 1
     if username:
         where_e.append(f"username = ${idx_e}"); params_e.append(username); idx_e += 1
-    params_e.append(min(limit, 200))
+    if from_date:
+        where_e.append(f"created_at >= ${idx_e}"); params_e.append(_dt(from_date)); idx_e += 1
+    if to_date:
+        where_e.append(f"created_at <= ${idx_e}"); params_e.append(_dt(to_date)); idx_e += 1
+    params_e.append(min(limit, 500))
 
     try:
         async with pool.acquire() as conn:

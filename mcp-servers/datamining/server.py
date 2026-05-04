@@ -353,6 +353,95 @@ def tool_stats(
 
 
 @mcp.tool()
+def timeline(
+    from_date: str,
+    to_date: Optional[str] = None,
+    username: Optional[str] = None,
+    agent_name: Optional[str] = None,
+    limit: int = 200,
+) -> str:
+    """Zeitstrahl: alle Sessions in einem Zeitraum, gruppiert nach Tag.
+
+    Gibt pro Tag eine Liste von Sessions zurück mit: Agent, User, Event-Anzahl,
+    erstem User-Input als Gesprächsthema.
+    Ideal für Überblick über einen längeren Zeitraum ohne Keyword-Filter.
+
+    from_date: ISO-Datum z.B. "2025-11-01"
+    to_date:   optional, default = heute
+    limit:     max Sessions gesamt (default 200)
+    """
+    if not to_date:
+        from datetime import date
+        to_date = date.today().isoformat()
+
+    params: dict = {
+        "from_date": from_date,
+        "to_date": to_date + "T23:59:59",
+        "limit": limit,
+    }
+    if username:
+        params["username"] = username
+    if agent_name:
+        params["agent_name"] = agent_name
+
+    try:
+        data = _get("/api/datamining/sessions", params)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+    sessions = data.get("sessions", [])
+
+    # Ersten User-Input pro Session holen (batch: bis zu 5 gleichzeitig, um API nicht zu fluten)
+    # Wir nehmen nur started_at + session_id + agent, kein extra Fetch — zu teuer
+    # Stattdessen: search nach user_input im Zeitraum für Themenübersicht
+    try:
+        inputs = _get("/api/datamining/search", {
+            "q": "", "event_type": "user_input",
+            "from_date": from_date, "to_date": to_date + "T23:59:59",
+            "limit": 500,
+        }).get("results", [])
+    except Exception:
+        inputs = []
+
+    # Ersten Input pro Session indexieren
+    first_input: dict[str, str] = {}
+    for e in sorted(inputs, key=lambda x: x.get("created_at", "")):
+        sid = e.get("session_id", "")
+        if sid and sid not in first_input:
+            text = (e.get("snippet") or "").strip()
+            if text:
+                first_input[sid] = text[:150]
+
+    # Nach Tag gruppieren
+    by_day: dict[str, list] = defaultdict(list)
+    for s in sessions:
+        day = (s.get("started_at") or s.get("updated_at") or "")[:10]
+        by_day[day].append({
+            "session_id": s["id"],
+            "agent": s.get("agent_name", "?"),
+            "user": s.get("username", "?"),
+            "events": s.get("event_count", 0),
+            "started": (s.get("started_at") or "")[:16].replace("T", " "),
+            "topic": first_input.get(s["id"], ""),
+        })
+
+    days = []
+    for day in sorted(by_day.keys(), reverse=True):
+        days.append({
+            "date": day,
+            "sessions": len(by_day[day]),
+            "details": by_day[day],
+        })
+
+    return json.dumps({
+        "from_date": from_date,
+        "to_date": to_date,
+        "total_sessions": len(sessions),
+        "days": days,
+    }, ensure_ascii=False, indent=2)
+
+
+@mcp.tool()
 def inject_message(session_id: str, text: str) -> str:
     """Schickt eine Nachricht als Supervisor in eine laufende Session.
 
