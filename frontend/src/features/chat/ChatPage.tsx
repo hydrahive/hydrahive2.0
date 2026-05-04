@@ -15,6 +15,7 @@ import { useHydraRuntime } from "./_assistantRuntime"
 import type { AgentBrief, Session } from "./types"
 import type { ProjectBrief } from "./api"
 import { useChat } from "./useChat"
+import { isCommand, runCommand } from "@/features/buddy/commands"
 
 export function ChatPage() {
   const { t } = useTranslation("chat")
@@ -60,7 +61,15 @@ export function ChatPage() {
     activeId, chat.reload, () => setTokenRefresh((n) => n + 1),
   )
 
+  const [cmdFeedback, setCmdFeedback] = useState<string | null>(null)
+
   async function handleSend(text: string, files: File[] = []) {
+    if (activeSession && buddyAgentIds.has(activeSession.agent_id) && isCommand(text)) {
+      const result = await runCommand(text)
+      setCmdFeedback(result.message)
+      setTimeout(() => setCmdFeedback(null), 6000)
+      return
+    }
     await chat.send(text, files); loadAll(); setTokenRefresh((n) => n + 1)
   }
 
@@ -104,6 +113,11 @@ export function ChatPage() {
                   onApprove={() => chat.confirmTool("approve")}
                   onDeny={() => chat.confirmTool("deny")}
                 />
+              )}
+              {cmdFeedback && (
+                <div className="px-4 py-2 text-xs text-emerald-300 bg-emerald-500/10 border-t border-emerald-500/20 whitespace-pre-wrap">
+                  {cmdFeedback}
+                </div>
               )}
               <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} disabled={activeOrphaned} />
             </>
