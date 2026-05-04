@@ -143,7 +143,7 @@ export function GraphTab() {
               nodeLabel="label"
               nodeColor={nodeColor}
               nodeVal={nodeVal}
-              linkColor={() => "rgba(255,255,255,0.12)"}
+              linkColor={() => "rgba(255,255,255,0.35)"}
               linkWidth={(l: unknown) => Math.log(((l as GraphLink).value ?? 1) + 1) * 0.4}
               backgroundColor="#09090b"
               onNodeClick={handleNodeClick}
