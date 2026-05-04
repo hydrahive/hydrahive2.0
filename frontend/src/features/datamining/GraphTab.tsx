@@ -43,12 +43,6 @@ function eventColor(et: string) {
   return EVENT_TYPE_COLORS[et] ?? "#94a3b8"
 }
 
-function nodeLabel(n: GraphNode): string {
-  if (n.event_type === "tool_use" || n.event_type === "tool_result") {
-    return n.tool_name ? `${n.event_type} · ${n.tool_name}` : n.event_type
-  }
-  return n.text_excerpt ? n.text_excerpt.slice(0, 80) : n.event_type
-}
 
 export function GraphTab() {
   const svgRef = useRef<SVGSVGElement>(null)
