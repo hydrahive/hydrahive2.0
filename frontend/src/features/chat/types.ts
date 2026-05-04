@@ -45,6 +45,7 @@ export interface AgentBrief {
   type: string
   llm_model: string
   status: string
+  is_buddy?: boolean
 }
 
 export type RunnerEvent =

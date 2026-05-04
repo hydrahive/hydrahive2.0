@@ -1,28 +1,30 @@
-import { AlertTriangle, Folder, MessageCircle, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, Folder, Heart, MessageCircle, Plus, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ProjectBrief } from "./api"
 import type { Session } from "./types"
 
-type Tab = "direct" | "projects"
+type Tab = "direct" | "projects" | "buddy"
 
 interface Props {
   sessions: Session[]
   activeId: string | null
   knownAgentIds: Set<string>
+  buddyAgentIds: Set<string>
   projects: ProjectBrief[]
   onSelect: (id: string) => void
   onDelete: (id: string) => void
   onNew: () => void
 }
 
-export function SessionList({ sessions, activeId, knownAgentIds, projects, onSelect, onDelete, onNew }: Props) {
+export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, projects, onSelect, onDelete, onNew }: Props) {
   const { t } = useTranslation("chat")
   const { t: tCommon } = useTranslation("common")
   const [tab, setTab] = useState<Tab>("direct")
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
 
-  const direct = sessions.filter((s) => !s.project_id)
+  const buddy = sessions.filter((s) => buddyAgentIds.has(s.agent_id))
+  const direct = sessions.filter((s) => !s.project_id && !buddyAgentIds.has(s.agent_id))
   const projectSessions = sessions.filter((s) => !!s.project_id)
 
   const grouped = useMemo(() => {
@@ -35,8 +37,6 @@ export function SessionList({ sessions, activeId, knownAgentIds, projects, onSel
     }
     return m
   }, [projectSessions])
-
-  const visible = tab === "direct" ? direct : projectSessions
 
   return (
     <div className="flex flex-col h-full">
@@ -53,17 +53,29 @@ export function SessionList({ sessions, activeId, knownAgentIds, projects, onSel
       <div className="flex border-b border-white/[6%] text-xs">
         <TabButton active={tab === "direct"} onClick={() => setTab("direct")} icon={MessageCircle} label={t("tabs.direct")} count={direct.length} />
         <TabButton active={tab === "projects"} onClick={() => setTab("projects")} icon={Folder} label={t("tabs.projects")} count={projectSessions.length} />
+        {buddy.length > 0 && (
+          <TabButton active={tab === "buddy"} onClick={() => setTab("buddy")} icon={Heart} label="Buddy" count={buddy.length} />
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {visible.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">
-            {tab === "direct" ? t("session.no_direct") : t("session.no_project")}
-          </p>
+        {tab === "direct" && direct.length === 0 && (
+          <p className="text-xs text-zinc-600 text-center py-6">{t("session.no_direct")}</p>
+        )}
+        {tab === "projects" && projectSessions.length === 0 && (
+          <p className="text-xs text-zinc-600 text-center py-6">{t("session.no_project")}</p>
+        )}
+        {tab === "buddy" && buddy.length === 0 && (
+          <p className="text-xs text-zinc-600 text-center py-6">Keine Buddy-Sessions</p>
         )}
         {tab === "direct" && direct.map((s) => (
           <SessionRow key={s.id} session={s} active={s.id === activeId}
             orphaned={!knownAgentIds.has(s.agent_id)}
+            onSelect={onSelect} onDelete={onDelete} />
+        ))}
+        {tab === "buddy" && buddy.map((s) => (
+          <SessionRow key={s.id} session={s} active={s.id === activeId}
+            orphaned={false}
             onSelect={onSelect} onDelete={onDelete} />
         ))}
         {tab === "projects" && Array.from(grouped.entries()).map(([pid, items]) => (
