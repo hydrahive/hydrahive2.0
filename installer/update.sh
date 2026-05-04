@@ -60,12 +60,13 @@ if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 |
 fi
 
 log "Backend-Dependencies aktualisieren"
+find "$HH_REPO_DIR/.venv/lib" -maxdepth 3 -name "~ydrahive*" -exec rm -rf {} + 2>/dev/null || true
 "$HH_REPO_DIR/.venv/bin/pip" install --quiet -e "$HH_REPO_DIR/core"
 
 log "Frontend neu bauen"
 cd "$HH_REPO_DIR/frontend"
-sudo -u hydrahive npm install --silent
-sudo -u hydrahive npm run build --silent
+npm install --silent --unsafe-perm
+npm run build --silent
 
 WA_BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
 if [ -f "$WA_BRIDGE_DIR/package.json" ]; then
