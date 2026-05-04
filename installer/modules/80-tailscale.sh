@@ -29,9 +29,15 @@ tailscale set --operator="${HH_USER}" 2>/dev/null \
 [ -f /etc/sudoers.d/hydrahive-tailscale ] && rm -f /etc/sudoers.d/hydrahive-tailscale
 
 if [ -n "$HH_TAILSCALE_AUTHKEY" ]; then
-  log "Tailscale verbinden mit Auth-Key"
-  tailscale up --authkey="$HH_TAILSCALE_AUTHKEY" --accept-routes \
-    --operator="${HH_USER}" \
+  # --accept-routes default OFF: sonst werden Tailnet-Subnet/Exit-Routes
+  # auf den Host gepusht und das LAN-Default-Interface verschwindet aus
+  # `ip route get`. Opt-in via HH_TAILSCALE_ACCEPT_ROUTES=yes.
+  TS_FLAGS="--operator=${HH_USER}"
+  if [ "${HH_TAILSCALE_ACCEPT_ROUTES:-no}" = "yes" ]; then
+    TS_FLAGS="$TS_FLAGS --accept-routes"
+  fi
+  log "Tailscale verbinden mit Auth-Key (Flags: $TS_FLAGS)"
+  tailscale up --authkey="$HH_TAILSCALE_AUTHKEY" $TS_FLAGS \
     || log "tailscale up fehlgeschlagen — manuell verbinden"
 fi
 
