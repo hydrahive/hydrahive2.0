@@ -34,7 +34,7 @@ async def build_topology() -> dict:
             tools = await conn.fetch("""
                 SELECT tool_name, COUNT(*) AS use_count
                 FROM events
-                WHERE event_type = 'tool_use'
+                WHERE event_type = 'tool_call'
                   AND tool_name IS NOT NULL AND tool_name != ''
                 GROUP BY tool_name
                 ORDER BY use_count DESC
@@ -50,7 +50,7 @@ async def build_topology() -> dict:
             agent_tool = await conn.fetch("""
                 SELECT agent_name, tool_name, COUNT(*) AS use_count
                 FROM events
-                WHERE event_type = 'tool_use'
+                WHERE event_type = 'tool_call'
                   AND agent_name IS NOT NULL AND agent_name != ''
                   AND tool_name IS NOT NULL AND tool_name != ''
                 GROUP BY agent_name, tool_name
