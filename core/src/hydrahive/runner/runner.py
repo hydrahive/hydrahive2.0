@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import AsyncIterator
 
 from hydrahive.agents import config as agent_config
@@ -117,6 +118,11 @@ async def run(
             system_prompt = f"{system_prompt}\n\n{skills_block}"
         if extra_system:
             system_prompt = f"{extra_system}\n\n{system_prompt}"
+        now = datetime.now().astimezone()
+        date_block = (f"Aktuelles Datum/Uhrzeit (Server): "
+                      f"{now.strftime('%Y-%m-%d %H:%M %Z')} ({now.strftime('%A')}). "
+                      f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff.")
+        system_prompt = f"{date_block}\n\n{system_prompt}"
 
         healed_history = heal_orphan_tool_uses(history)
         anth_messages = to_anthropic_messages(healed_history)
