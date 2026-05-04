@@ -9,10 +9,15 @@ export const projectsApi = {
     api.patch<Project>(`/projects/${id}`, fields),
   listFiles: (id: string, path = "") =>
     api.get<{ path: string; entries: { name: string; type: "file" | "dir"; size: number | null; modified: number }[] }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
-  readFile: (id: string, path: string) =>
-    fetch(`/api/projects/${id}/files/read?path=${encodeURIComponent(path)}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` }
-    }).then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))),
+  readFile: async (id: string, path: string) => {
+    const { useAuthStore } = await import("@/features/auth/useAuthStore")
+    const token = useAuthStore.getState().token
+    const res = await fetch(`/api/projects/${id}/files/read?path=${encodeURIComponent(path)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.text()
+  },
   writeFile: (id: string, path: string, content: string) =>
     api.post<{ ok: boolean; size: number }>(`/projects/${id}/files/write`, { path, content }),
   uploadFile: (id: string, file: File, path = "") => {
