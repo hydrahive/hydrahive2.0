@@ -1,16 +1,18 @@
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { CheckCircle, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { LlmProvider } from "./api"
 import { EMPTY_PROVIDER, KNOWN_PROVIDERS } from "./_llm_providers"
+import { OAuthFlow } from "./OAuthFlow"
 
 export interface ProviderFormProps {
   existing?: LlmProvider
   onSave: (p: LlmProvider) => void
   onCancel?: () => void
+  onOAuthConnected?: () => void
 }
 
-export function ProviderForm({ existing, onSave, onCancel }: ProviderFormProps) {
+export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: ProviderFormProps) {
   const { t } = useTranslation("llm")
   const { t: tCommon } = useTranslation("common")
   const isEdit = !!existing
@@ -23,6 +25,8 @@ export function ProviderForm({ existing, onSave, onCancel }: ProviderFormProps) 
   const [selectedModels, setSelectedModels] = useState<string[]>(initialSelected)
   const [customModel, setCustomModel] = useState(initialCustom)
   const known = KNOWN_PROVIDERS.find((p) => p.id === form.id)
+  const isOAuth = (known as { auth?: string } | undefined)?.auth === "oauth"
+  const hasToken = !!form.oauth?.access
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -58,11 +62,25 @@ export function ProviderForm({ existing, onSave, onCancel }: ProviderFormProps) 
         </div>
         <div>
           <label className="block text-xs text-zinc-500 mb-1">{t("form.api_key")}</label>
-          <input type="password" value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })}
-            placeholder={known?.placeholder ?? t("form.api_key")}
-            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+          {isOAuth ? (
+            <div className="px-3 py-2 rounded-lg bg-white/[3%] border border-white/[6%] text-xs text-zinc-500 italic">
+              {hasToken
+                ? <span className="flex items-center gap-1.5 text-emerald-400 not-italic"><CheckCircle size={12} /> Verbunden</span>
+                : known?.placeholder ?? "OAuth — kein Key"}
+            </div>
+          ) : (
+            <input type="password" value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })}
+              placeholder={known?.placeholder ?? t("form.api_key")}
+              className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+          )}
         </div>
       </div>
+      {isOAuth && !hasToken && (
+        <OAuthFlow
+          providerId={form.id}
+          onConnected={() => onOAuthConnected?.()}
+        />
+      )}
       {known && (
         <div>
           <label className="block text-xs text-zinc-500 mb-1.5">{t("form.models_label", { selected: selectedModels.length })}</label>
@@ -84,7 +102,9 @@ export function ProviderForm({ existing, onSave, onCancel }: ProviderFormProps) 
         </div>
       )}
       <div className="flex items-center gap-2">
-        <button type="submit" disabled={!form.id || !form.api_key || (selectedModels.length === 0 && !customModel.trim())}
+        <button type="submit"
+          disabled={!form.id || (!isOAuth && !form.api_key) || (isOAuth && !hasToken)
+                    || (selectedModels.length === 0 && !customModel.trim())}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all">
           <Plus size={14} /> {isEdit ? tCommon("actions.save") : tCommon("actions.add")}
         </button>

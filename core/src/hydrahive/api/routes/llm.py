@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, status
 
 from hydrahive.api.middleware.errors import coded
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from typing import Annotated
 
@@ -19,6 +19,9 @@ router = APIRouter(prefix="/api/llm", tags=["llm"])
 
 
 class LlmProvider(BaseModel):
+    # extra="allow": OAuth-Block (oauth.access etc.) wird durchgereicht.
+    # Ohne das würde model_dump() den OAuth-Block stillschweigend droppen.
+    model_config = ConfigDict(extra="allow")
     id: str
     name: str
     api_key: str

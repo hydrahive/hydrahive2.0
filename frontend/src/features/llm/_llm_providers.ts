@@ -11,6 +11,13 @@ export const KNOWN_PROVIDERS = [
     models: ["openai/gpt-4o", "openai/gpt-4o-mini", "openai/gpt-4-turbo", "openai/gpt-4", "openai/gpt-3.5-turbo", "openai/o1-preview", "openai/o1-mini"],
   },
   {
+    // OAuth-Provider: ChatGPT Plus/Pro via Codex-Backend (chatgpt.com).
+    // Kein API-Key — Login per OAuth, Token landet als oauth-Block in llm.json.
+    id: "openai-codex", name: "ChatGPT Plus/Pro (Codex)", placeholder: "OAuth — kein Key nötig",
+    auth: "oauth" as const,
+    models: ["openai-codex/gpt-5.2", "openai-codex/gpt-5.1-codex-max", "openai-codex/gpt-5-codex"],
+  },
+  {
     id: "openrouter", name: "OpenRouter", placeholder: "sk-or-...",
     models: ["openrouter/anthropic/claude-sonnet-4-6", "openrouter/openai/gpt-4o", "openrouter/google/gemini-2.0-flash-exp", "openrouter/deepseek/deepseek-r1", "openrouter/meta-llama/llama-3.3-70b-instruct"],
   },

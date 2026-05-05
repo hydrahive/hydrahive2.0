@@ -91,12 +91,18 @@ export function LlmPage() {
           editingIdx === i
             ? <ProviderForm key={i} existing={p}
                 onSave={(updated) => updateProvider(i, updated)}
-                onCancel={() => setEditingIdx(null)} />
+                onCancel={() => setEditingIdx(null)}
+                onOAuthConnected={async () => {
+                  const fresh = await llmApi.getConfig(); setConfig(fresh); setEditingIdx(null)
+                }} />
             : <ProviderCard key={i} provider={p}
                 onEdit={() => setEditingIdx(i)}
                 onDelete={() => deleteProvider(i)} />
         ))}
-        {showAdd && <ProviderForm onSave={addProvider} onCancel={() => setShowAdd(false)} />}
+        {showAdd && <ProviderForm onSave={addProvider} onCancel={() => setShowAdd(false)}
+          onOAuthConnected={async () => {
+            const fresh = await llmApi.getConfig(); setConfig(fresh); setShowAdd(false)
+          }} />}
       </div>
 
       {allModels.length > 0 && (

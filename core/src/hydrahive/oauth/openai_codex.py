@@ -181,8 +181,11 @@ def _normalize_token_response(data: dict) -> dict[str, Any]:
 _REFRESH_THRESHOLD_S = 300
 
 
+CODEX_PROVIDER_ID = "openai-codex"
+
+
 async def resolve_openai_codex_token() -> dict[str, str]:
-    """Gibt aktuellen OAuth-Block für openai-Provider zurück, refresht bei Bedarf.
+    """Gibt aktuellen OAuth-Block für openai-codex-Provider zurück, refresht bei Bedarf.
 
     Returns: {access, account_id} — beides nicht-leer wenn OAuth aktiv ist.
     Sonst {} (kein OAuth oder beides leer).
@@ -193,7 +196,7 @@ async def resolve_openai_codex_token() -> dict[str, str]:
     if not path.exists():
         return {}
     data = json.loads(path.read_text())
-    provider = next((p for p in data.get("providers", []) if p.get("id") == "openai"), None)
+    provider = next((p for p in data.get("providers", []) if p.get("id") == CODEX_PROVIDER_ID), None)
     if not provider:
         return {}
 
@@ -221,7 +224,7 @@ async def resolve_openai_codex_token() -> dict[str, str]:
     # Re-read llm.json um Race mit GUI zu vermeiden
     data = json.loads(path.read_text())
     for p in data.get("providers", []):
-        if p.get("id") == "openai":
+        if p.get("id") == CODEX_PROVIDER_ID:
             p["oauth"] = new_block
             break
     path.write_text(json.dumps(data, indent=2))
