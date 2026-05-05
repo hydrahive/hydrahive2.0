@@ -61,21 +61,22 @@ async def call_with_tools(
             max_tokens=max_tokens,
         )
 
-    # OpenAI-Provider mit OAuth-Block → Codex-Backend (chatgpt.com), nicht LiteLLM.
-    # Nur wenn das Modell zu OpenAI gehört (openai/-Prefix) UND ein OAuth-Token
-    # da ist. Ansonsten Fall-through zu LiteLLM (api_key-Pfad).
-    if target.startswith("openai/"):
+    # ChatGPT Plus/Pro via Codex-OAuth → chatgpt.com/backend-api/codex/responses.
+    # Marker: model-Prefix `openai-codex/`. OAuth-Block wird im Provider mit
+    # id="openai-codex" gespeichert.
+    if target.startswith("openai-codex/"):
         from hydrahive.oauth.openai_codex import resolve_openai_codex_token
         codex_token = await resolve_openai_codex_token()
-        if codex_token.get("access"):
-            return await codex_call(
-                access_token=codex_token["access"],
-                account_id=codex_token.get("account_id", ""),
-                model=target[len("openai/"):],
-                system_prompt=system_prompt,
-                messages=messages,
-                tools=tools,
-            )
+        if not codex_token.get("access"):
+            raise ValueError("ChatGPT Plus/Pro OAuth fehlt — bitte auf der LLM-Seite verbinden")
+        return await codex_call(
+            access_token=codex_token["access"],
+            account_id=codex_token.get("account_id", ""),
+            model=target[len("openai-codex/"):],
+            system_prompt=system_prompt,
+            messages=messages,
+            tools=tools,
+        )
 
     # Alle anderen Provider (OpenAI mit API-Key, NVIDIA, Groq, Mistral, Gemini,
     # OpenRouter, …) gehen über LiteLLM. apply_keys setzt die ENV-Variablen aus

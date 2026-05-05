@@ -63,20 +63,21 @@ async def stream_with_tools(
             yield ev
         return
 
-    if target.startswith("openai/"):
+    if target.startswith("openai-codex/"):
         from hydrahive.oauth.openai_codex import resolve_openai_codex_token
         codex_token = await resolve_openai_codex_token()
-        if codex_token.get("access"):
-            async for ev in codex_stream(
-                access_token=codex_token["access"],
-                account_id=codex_token.get("account_id", ""),
-                model=target[len("openai/"):],
-                system_prompt=system_prompt,
-                messages=messages,
-                tools=tools,
-            ):
-                yield ev
-            return
+        if not codex_token.get("access"):
+            raise StreamingNotSupported("ChatGPT Plus/Pro OAuth fehlt")
+        async for ev in codex_stream(
+            access_token=codex_token["access"],
+            account_id=codex_token.get("account_id", ""),
+            model=target[len("openai-codex/"):],
+            system_prompt=system_prompt,
+            messages=messages,
+            tools=tools,
+        ):
+            yield ev
+        return
 
     is_claude = llm_client._strip_provider_prefix(target).startswith("claude-")
     if not is_claude:

@@ -198,19 +198,24 @@ def _serve_until_code(timeout_s: float) -> None:
         server.server_close()
 
 
+CODEX_DEFAULT_MODELS = [
+    "openai-codex/gpt-5.2",
+    "openai-codex/gpt-5.1-codex-max",
+    "openai-codex/gpt-5-codex",
+]
+
+
 def save_to_llm_config(path: Path, oauth_block: dict) -> None:
-    """Schreibt oauth-Block in den openai-Provider von llm.json."""
+    """Schreibt oauth-Block in den openai-codex-Provider von llm.json."""
     if path.exists():
         data = json.loads(path.read_text())
     else:
         data = {"providers": [], "default_model": "", "embed_model": ""}
     providers = data.setdefault("providers", [])
-    found = next((p for p in providers if p.get("id") == "openai"), None)
+    found = next((p for p in providers if p.get("id") == "openai-codex"), None)
     if found is None:
-        # Default-Modelle: gpt-5 etc. (codex routing erfordert openai-codex/-Prefix
-        # oder Variantenname — hier basics)
-        found = {"id": "openai", "name": "OpenAI", "api_key": "",
-                 "models": ["openai/gpt-5", "openai/gpt-5-mini", "openai/gpt-4o"]}
+        found = {"id": "openai-codex", "name": "ChatGPT Plus/Pro (Codex)",
+                 "api_key": "", "models": list(CODEX_DEFAULT_MODELS)}
         providers.append(found)
     found["oauth"] = oauth_block
     if not data.get("default_model") and found["models"]:

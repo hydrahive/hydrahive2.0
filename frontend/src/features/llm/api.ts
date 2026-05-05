@@ -1,10 +1,19 @@
 import { api } from "@/shared/api-client"
 
+export interface OAuthBlock {
+  access?: string
+  refresh?: string
+  expires_at?: number
+  account_id?: string
+  scope?: string
+}
+
 export interface LlmProvider {
   id: string
   name: string
   api_key: string
   models: string[]
+  oauth?: OAuthBlock
 }
 
 export interface LlmConfig {
@@ -25,6 +34,13 @@ export const llmApi = {
   testConnection: (model?: string) =>
     api.post<{ ok: boolean; response: string }>("/llm/test", { model: model ?? null }),
   getEmbedModels: () => api.get<EmbedModel[]>("/llm/embed-models"),
+  oauthStart: (provider: string) =>
+    api.post<{ authorize_url: string; state: string }>("/llm/oauth/start", { provider }),
+  oauthExchange: (provider: string, code_or_url: string) =>
+    api.post<{ ok: boolean; account_id: string }>("/llm/oauth/exchange",
+      { provider, code_or_url }),
+  oauthRevoke: (provider: string) =>
+    api.delete<{ ok: boolean }>(`/llm/oauth/${provider}`),
 }
 
 export interface CatalogModel {
