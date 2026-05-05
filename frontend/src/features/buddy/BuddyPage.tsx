@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Cpu, Dice5, HelpCircle, Loader2, RotateCcw, Save } from "lucide-react"
+import { Coins, Cpu, Dice5, Download, FileText, GitMerge, Hammer, HelpCircle, Loader2, Pencil, RotateCcw, Save, Sparkles, Wand2 } from "lucide-react"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
@@ -48,9 +48,10 @@ export function BuddyPage() {
 
   async function handleSend(text: string, files: File[] = []) {
     if (isCommand(text)) {
+      if (!state) return
       // 1) Sofort lokal anzeigen (kein Spinner-Wartezeit für User)
       appendLocal("user", text)
-      const result = await runCommand(text)
+      const result = await runCommand(text, state)
       appendLocal("assistant", result.message)
       if (result.newSessionId) {
         // /character + /clear: Session wechselt → localMsgs leer (sind eh
@@ -143,6 +144,14 @@ export function BuddyPage() {
                     <CmdPill icon={<Save size={11} />} label="remember" color="emerald" onClick={() => handleSend("/remember")} />
                     <CmdPill icon={<Cpu size={11} />} label="model" color="violet" onClick={() => insert("/model")} />
                     <CmdPill icon={<Dice5 size={11} />} label="character" color="pink" onClick={() => handleSend("/character")} />
+                    <CmdPill icon={<GitMerge size={11} />} label="compact" color="emerald" onClick={() => handleSend("/compact")} />
+                    <CmdPill icon={<Coins size={11} />} label="tokens" color="amber" onClick={() => handleSend("/tokens")} />
+                    <CmdPill icon={<Pencil size={11} />} label="title" color="pink" onClick={() => insert("/title ")} />
+                    <CmdPill icon={<Wand2 size={11} />} label="system" color="violet" onClick={() => handleSend("/system")} />
+                    <CmdPill icon={<Hammer size={11} />} label="tools" color="sky" onClick={() => handleSend("/tools")} />
+                    <CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} />
+                    <CmdPill icon={<Sparkles size={11} />} label="soul" color="violet" onClick={() => handleSend("/soul")} />
+                    <CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} />
                   </>
                 )}
               />
