@@ -175,6 +175,7 @@ async def litellm_call(
         "messages": oai_messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "timeout": 120,  # manche NVIDIA-NIM-Modelle hängen mit tools-Schema, hard-cap
     }
     if oai_tools:
         kwargs["tools"] = oai_tools
