@@ -263,6 +263,21 @@ else
   log "Tailscale übersprungen (HH_INSTALL_TAILSCALE=no)"
 fi
 
+# --------------------------------------------------------------- LLM-Provider-Wizard
+# Fragt Provider-Keys ab und schreibt $HH_CONFIG_DIR/llm.json — damit der User
+# nach dem ersten Login direkt chatten kann ohne unter /llm rumzuklicken.
+# Skippt automatisch bei kein-TTY oder wenn llm.json schon Provider hat.
+# shellcheck source=lib/llm-wizard.sh
+source "$INSTALLER_DIR/lib/llm-wizard.sh"
+llm_wizard
+
+# Backend-Service neu starten damit der Mtime-Cache der LLM-Config neu lädt.
+# (load_config() in core/llm/_config.py cached über mtime — wenn Datei schon
+# vor Service-Start existiert hat, ist der Cache evtl. veraltet.)
+if [ -f "$HH_CONFIG_DIR/llm.json" ]; then
+  systemctl restart hydrahive2.service 2>/dev/null || true
+fi
+
 # ----------------------------------------------------------------- Zusammenfassung
 # LAN-IP ermitteln — explizit Tailscale-Range (100.64.0.0/10 CGNAT) und
 # Loopback ausschließen. `ip route get 1.1.1.1` greift sonst nach Tailscale-
