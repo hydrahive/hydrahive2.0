@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 
 from hydrahive.llm import client as llm_client
-from hydrahive.runner._llm_bridge_backends import anthropic_call, minimax_anthropic_call
+from hydrahive.llm._config import apply_keys
+from hydrahive.runner._llm_bridge_backends import anthropic_call, litellm_call, minimax_anthropic_call
 
 logger = logging.getLogger(__name__)
 
@@ -42,14 +43,28 @@ async def call_with_tools(
             max_tokens=max_tokens,
         )
 
-    anthropic_key = llm_client._get_anthropic_key(cfg)
     is_claude = llm_client._strip_provider_prefix(target).startswith("claude-")
-    if not is_claude or not anthropic_key:
-        raise NotImplementedError("Nur Anthropic- und MiniMax-Pfad implementiert.")
+    if is_claude:
+        # OAuth-fähig: erst frischen Token holen (refresht automatisch wenn nötig)
+        from hydrahive.oauth.anthropic import resolve_anthropic_token
+        anthropic_key = await resolve_anthropic_token()
+        if not anthropic_key:
+            raise ValueError("Anthropic-Auth fehlt — API-Key oder OAuth-Login auf der LLM-Seite")
+        return await anthropic_call(
+            key=anthropic_key,
+            model=llm_client._strip_provider_prefix(target),
+            system_prompt=system_prompt,
+            messages=messages,
+            tools=tools,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
 
-    return await anthropic_call(
-        key=anthropic_key,
-        model=llm_client._strip_provider_prefix(target),
+    # Alle anderen Provider (OpenAI, NVIDIA, Groq, Mistral, Gemini, OpenRouter, …)
+    # gehen über LiteLLM. apply_keys setzt die ENV-Variablen aus llm.json.
+    apply_keys(cfg)
+    return await litellm_call(
+        model=target,
         system_prompt=system_prompt,
         messages=messages,
         tools=tools,
