@@ -208,7 +208,9 @@ with open(sys.argv[1], "w") as f:
     return 0
   fi
 
+  # Datei muss vom Backend (HH_USER) überschrieben werden können — sonst
+  # ignoriert die Web-UI Speicherungen still.
+  chown "${HH_USER:-hydrahive}:${HH_USER:-hydrahive}" "$llm_json" 2>/dev/null || true
   chmod 640 "$llm_json" 2>/dev/null || true
-  chown "root:${HH_USER:-hydrahive}" "$llm_json" 2>/dev/null || true
   log "LLM-Config geschrieben: $llm_json (Default: $default_model)"
 }

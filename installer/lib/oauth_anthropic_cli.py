@@ -208,6 +208,15 @@ def save_to_llm_config(path: Path, oauth_block: dict) -> None:
         data["default_model"] = found["models"][0]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2))
+    # Backend (hydrahive) muss schreiben können — sonst überschreibt die Web-UI nichts.
+    import pwd, os as _os
+    try:
+        uid = pwd.getpwnam("hydrahive").pw_uid
+        gid = pwd.getpwnam("hydrahive").pw_gid
+        _os.chown(path, uid, gid)
+        _os.chmod(path, 0o640)
+    except (KeyError, PermissionError):
+        pass
 
 
 def main() -> int:
