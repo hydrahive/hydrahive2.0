@@ -76,9 +76,10 @@ async def complete(
         return await minimax_complete(key, messages, target, temperature, max_tokens)
 
     if strip_provider_prefix(target).startswith("claude-"):
-        key = get_provider_key(cfg, "anthropic")
+        from hydrahive.oauth.anthropic import resolve_anthropic_token
+        key = await resolve_anthropic_token()
         if not key:
-            raise ValueError("Anthropic-API-Key fehlt — Provider 'anthropic' in der LLM-Config setzen")
+            raise ValueError("Anthropic-Auth fehlt — API-Key oder OAuth-Login auf der LLM-Seite")
         return await anthropic_complete(key, messages, target, temperature, max_tokens)
 
     apply_keys(cfg)
@@ -107,9 +108,10 @@ async def stream(
         return
 
     if strip_provider_prefix(target).startswith("claude-"):
-        key = get_provider_key(cfg, "anthropic")
+        from hydrahive.oauth.anthropic import resolve_anthropic_token
+        key = await resolve_anthropic_token()
         if not key:
-            raise ValueError("Anthropic-API-Key fehlt")
+            raise ValueError("Anthropic-Auth fehlt — API-Key oder OAuth-Login auf der LLM-Seite")
         async for chunk in anthropic_stream(key, messages, target, temperature, max_tokens):
             yield chunk
         return

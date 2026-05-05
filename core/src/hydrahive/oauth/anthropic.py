@@ -156,3 +156,63 @@ def _normalize_token_response(data: dict) -> dict[str, Any]:
         "expires_at": int(time.time()) + expires_in,
         "scope": data.get("scope") or SCOPES,
     }
+
+
+# Refresh-Schwelle: wenn Token in <5 min abläuft, vorher refreshen
+_REFRESH_THRESHOLD_S = 300
+
+
+async def resolve_anthropic_token() -> str:
+    """Gibt den aktuellen Anthropic-Token zurück — OAuth bevorzugt vor API-Key.
+
+    Bei OAuth + nahem Ablauf: refresht und schreibt neuen Block zurück in
+    llm.json. Bei Refresh-Fehler: fällt auf alten Access-Token zurück, der
+    noch ein paar Sekunden funktionieren kann.
+
+    Reihenfolge:
+      1. OAuth-Block vorhanden + nicht abgelaufen → access-Token
+      2. OAuth-Block vorhanden + abgelaufen → refresh, dann access-Token
+      3. Kein OAuth-Block → api_key (Plain-API-Key)
+      4. Beides leer → ""
+    """
+    import json
+    from hydrahive.settings import settings
+
+    path = settings.llm_config
+    if not path.exists():
+        return ""
+    data = json.loads(path.read_text())
+    provider = next((p for p in data.get("providers", []) if p.get("id") == "anthropic"), None)
+    if not provider:
+        return ""
+
+    oauth = provider.get("oauth") or {}
+    api_key = provider.get("api_key", "") or ""
+    access = oauth.get("access", "")
+    refresh = oauth.get("refresh", "")
+    expires_at = int(oauth.get("expires_at") or 0)
+
+    # Kein OAuth → API-Key zurück
+    if not access:
+        return api_key
+
+    # OAuth gültig
+    if expires_at - time.time() > _REFRESH_THRESHOLD_S:
+        return access
+
+    # OAuth läuft ab → refreshen
+    if not refresh:
+        return access  # kein Refresh möglich, hoffen dass access noch gültig ist
+    try:
+        new_block = await refresh_access_token(refresh_token=refresh)
+    except Exception:
+        return access  # Refresh schiefgelaufen, alten Token zurück
+
+    # Speichern in llm.json (Re-Read um Race mit Web-UI zu vermeiden)
+    data = json.loads(path.read_text())
+    for p in data.get("providers", []):
+        if p.get("id") == "anthropic":
+            p["oauth"] = new_block
+            break
+    path.write_text(json.dumps(data, indent=2))
+    return new_block["access"]
