@@ -228,6 +228,10 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Login** — JWT
 - **Dashboard** — Systemstatus, laufende Agents
 - **Chat** — mit jedem Agenten chatten (SSE-Streaming)
+  - Header-Switcher: aktuelles Modell und Reasoning-Effort (low/medium/high)
+    pro Session umschaltbar. Effort mappt auf OpenAI `reasoning_effort`
+    (GPT-5) bzw. Anthropic `extended_thinking.budget_tokens`. Bei Providern
+    ohne Reasoning-Support ist der Effort-Switch deaktiviert/unsichtbar.
 - **Agenten** — anlegen, bearbeiten, Soul/Skills/Tools konfigurieren
 - **Projekte** — anlegen, Workspace, Projektagent konfigurieren
 - **Spezialisten** — anlegen, Domäne, Skills zuweisen
