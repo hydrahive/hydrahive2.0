@@ -4,6 +4,7 @@ import logging
 
 from hydrahive.llm import client as llm_client
 from hydrahive.llm._config import apply_keys
+from hydrahive.runner._codex_provider import codex_call
 from hydrahive.runner._llm_bridge_backends import anthropic_call, litellm_call, minimax_anthropic_call
 
 logger = logging.getLogger(__name__)
@@ -60,8 +61,25 @@ async def call_with_tools(
             max_tokens=max_tokens,
         )
 
-    # Alle anderen Provider (OpenAI, NVIDIA, Groq, Mistral, Gemini, OpenRouter, …)
-    # gehen über LiteLLM. apply_keys setzt die ENV-Variablen aus llm.json.
+    # OpenAI-Provider mit OAuth-Block → Codex-Backend (chatgpt.com), nicht LiteLLM.
+    # Nur wenn das Modell zu OpenAI gehört (openai/-Prefix) UND ein OAuth-Token
+    # da ist. Ansonsten Fall-through zu LiteLLM (api_key-Pfad).
+    if target.startswith("openai/"):
+        from hydrahive.oauth.openai_codex import resolve_openai_codex_token
+        codex_token = await resolve_openai_codex_token()
+        if codex_token.get("access"):
+            return await codex_call(
+                access_token=codex_token["access"],
+                account_id=codex_token.get("account_id", ""),
+                model=target[len("openai/"):],
+                system_prompt=system_prompt,
+                messages=messages,
+                tools=tools,
+            )
+
+    # Alle anderen Provider (OpenAI mit API-Key, NVIDIA, Groq, Mistral, Gemini,
+    # OpenRouter, …) gehen über LiteLLM. apply_keys setzt die ENV-Variablen aus
+    # llm.json.
     apply_keys(cfg)
     return await litellm_call(
         model=target,
