@@ -199,6 +199,7 @@ def _serve_until_code(timeout_s: float) -> None:
 
 
 CODEX_DEFAULT_MODELS = [
+    "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.4",
     "openai-codex/gpt-5.3-codex",
     "openai-codex/gpt-5.3-codex-spark",
