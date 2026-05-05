@@ -103,6 +103,9 @@ export function ChatPage() {
                 onSessionChanged={(updated) =>
                   setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
                 }
+                onAgentChanged={(updated) =>
+                  setAgents((cur) => cur.map((a) => a.id === updated.id ? updated : a))
+                }
               />
               <HydraThread />
               {chat.error && (
