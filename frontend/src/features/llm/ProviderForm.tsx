@@ -23,6 +23,7 @@ export function ProviderForm({ existing, onSave, onCancel }: ProviderFormProps) 
   const [selectedModels, setSelectedModels] = useState<string[]>(initialSelected)
   const [customModel, setCustomModel] = useState(initialCustom)
   const known = KNOWN_PROVIDERS.find((p) => p.id === form.id)
+  const hasOAuth = !!existing?.oauth?.access
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -83,8 +84,13 @@ export function ProviderForm({ existing, onSave, onCancel }: ProviderFormProps) 
             className="mt-2 w-full px-3 py-1.5 rounded-lg bg-white/[3%] border border-white/[6%] text-zinc-300 text-xs font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/40" />
         </div>
       )}
+      {hasOAuth && (
+        <p className="text-[11px] text-violet-300/80">
+          OAuth-Login aktiv — API-Key-Eingabe optional. OAuth bleibt erhalten.
+        </p>
+      )}
       <div className="flex items-center gap-2">
-        <button type="submit" disabled={!form.id || !form.api_key || (selectedModels.length === 0 && !customModel.trim())}
+        <button type="submit" disabled={!form.id || (!form.api_key && !hasOAuth) || (selectedModels.length === 0 && !customModel.trim())}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all">
           <Plus size={14} /> {isEdit ? tCommon("actions.save") : tCommon("actions.add")}
         </button>

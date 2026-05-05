@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { CheckCircle, Loader2, Plus, XCircle, Zap } from "lucide-react"
+import { CheckCircle, KeyRound, Loader2, Plus, XCircle, Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { llmApi, type EmbedModel, type LlmConfig, type LlmProvider } from "./api"
 import { ProviderCard } from "./ProviderCard"
 import { ProviderForm } from "./ProviderForm"
+import { AnthropicOAuthLogin } from "./OAuthLoginForm"
 
 export function LlmPage() {
   const { t } = useTranslation("llm")
@@ -16,6 +17,7 @@ export function LlmPage() {
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [showOAuth, setShowOAuth] = useState(false)
 
   const allModels = config.providers.flatMap((p) => p.models)
 
@@ -72,11 +74,26 @@ export function LlmPage() {
       <div className="space-y-2">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("providers.title")}</p>
-          <button onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors">
-            <Plus size={13} /> {tCommon("actions.add")}
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setShowOAuth(!showOAuth)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-violet-300 hover:text-violet-200 hover:bg-violet-500/10 transition-colors">
+              <KeyRound size={13} /> OAuth (Anthropic)
+            </button>
+            <button onClick={() => setShowAdd(!showAdd)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors">
+              <Plus size={13} /> {tCommon("actions.add")}
+            </button>
+          </div>
         </div>
+        {showOAuth && (
+          <AnthropicOAuthLogin
+            onConnected={(_expires) => {
+              setShowOAuth(false)
+              llmApi.getConfig().then(setConfig).catch(() => {})
+            }}
+            onCancel={() => setShowOAuth(false)}
+          />
+        )}
         {config.providers.length === 0 && !showAdd && (
           <p className="text-sm text-zinc-600 py-4 text-center">{t("providers.none")}</p>
         )}
