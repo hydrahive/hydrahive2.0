@@ -86,6 +86,7 @@ sys.exit(0 if d.get('providers') else 1)
 
   # Pro ausgewählten Provider Key abfragen
   local sel_entries=()  # je Eintrag: pid|name|key|models
+  local oauth_done=()   # provider-IDs für die OAuth schon llm.json geschrieben hat
   printf "\n" >/dev/tty
   for pid in "${sel_ids[@]}"; do
     local info name rest models url
@@ -94,7 +95,24 @@ sys.exit(0 if d.get('providers') else 1)
     rest="${info#*|}"
     models="${rest%|*}"
     url="${rest##*|}"
-    printf "  \033[1;37m%s\033[0m  Key holen: %s\n" "$name" "$url" >/dev/tty
+    printf "  \033[1;37m%s\033[0m\n" "$name" >/dev/tty
+
+    # OAuth-Pfad — aktuell nur Anthropic
+    if [ "$pid" = "anthropic" ]; then
+      if ask_yn "  OAuth-Login (Pro/Max-Account, kein API-Key nötig)?" "y"; then
+        if python3 "$INSTALLER_DIR/lib/oauth_anthropic_cli.py" "$llm_json"; then
+          oauth_done+=("anthropic")
+          # Modelle für Default-Auswahl trotzdem registrieren — kein Key nötig
+          sel_entries+=("$pid|$name|<oauth>|$models")
+          continue
+        else
+          log "  OAuth fehlgeschlagen — fallback auf API-Key"
+        fi
+      fi
+    fi
+
+    # API-Key-Pfad
+    printf "  Key holen: %s\n" "$url" >/dev/tty
     printf "  API-Key (Eingabe versteckt, Enter = skip): " >/dev/tty
     local key
     read -rs key </dev/tty || key=""
@@ -142,6 +160,13 @@ sys.exit(0 if d.get('providers') else 1)
     done
   } | python3 -c '
 import json, sys
+# Existing llm.json laden — OAuth-Block + embed_model erhalten
+try:
+    existing = json.load(open(sys.argv[1]))
+except Exception:
+    existing = {}
+old_by_id = {p.get("id"): p for p in existing.get("providers", [])}
+
 lines = sys.stdin.read().splitlines()
 if not lines:
     sys.exit("no input")
@@ -151,13 +176,22 @@ for line in lines[1:]:
     if not line:
         continue
     pid, name, key, models = line.split("|", 3)
-    providers.append({
+    p = {
         "id": pid,
         "name": name,
-        "api_key": key,
+        "api_key": "" if key == "<oauth>" else key,
         "models": [m for m in models.split(",") if m],
-    })
-out = {"providers": providers, "default_model": default_model, "embed_model": ""}
+    }
+    # OAuth-Block aus vorigem Schreibvorgang (oauth_anthropic_cli.py) übernehmen
+    old = old_by_id.get(pid) or {}
+    if old.get("oauth"):
+        p["oauth"] = old["oauth"]
+    providers.append(p)
+out = {
+    "providers": providers,
+    "default_model": default_model,
+    "embed_model": existing.get("embed_model", ""),
+}
 with open(sys.argv[1], "w") as f:
     json.dump(out, f, indent=2)
 ' "$llm_json" 2>&1; then
