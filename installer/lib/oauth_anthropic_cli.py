@@ -227,14 +227,41 @@ def main() -> int:
     except Exception:
         opened = False
 
-    if not opened:
-        print("  Auto-Open ging nicht — bitte diese URL manuell im Browser öffnen:")
-        print(f"  {url}")
-        print()
+    print("  URL (öffne im Browser, falls nicht automatisch geöffnet):")
+    print(f"  {url}")
+    print()
+    print("  Anthropic erlaubt nur localhost:53692 als Redirect-URI. Zwei Wege:")
+    print()
+    print("  A) Browser läuft auf DIESEM Server (oder per SSH-Tunnel:")
+    print("     ssh -L 53692:localhost:53692 …): Callback kommt automatisch.")
+    print("  B) Browser läuft anderswo (Remote-SSH ohne Tunnel):")
+    print("     Browser zeigt 'Verbindung verweigert' bei localhost:53692.")
+    print("     Kopiere die ganze Adressleisten-URL hier rein und Enter.")
+    print()
+    print("  Eingabe (oder warten auf Auto-Callback, Timeout 5 min):")
 
-    print("  Warte auf Login (Timeout 5 min)...")
-    while server_thread.is_alive() and "code" not in _RESULT:
-        server_thread.join(timeout=0.5)
+    # Parallel auf Server-Result UND stdin warten
+    import select
+    deadline = time.time() + 300.0
+    manual_value = None
+    while time.time() < deadline and "code" not in _RESULT and manual_value is None:
+        try:
+            r, _, _ = select.select([sys.stdin], [], [], 0.5)
+        except (ValueError, OSError):
+            r = []  # stdin nicht selectable (z.B. unter test)
+            time.sleep(0.5)
+        if r:
+            line = sys.stdin.readline()
+            if line:
+                manual_value = line.strip()
+
+    if manual_value:
+        parsed = parse_callback(manual_value)
+        if not parsed.get("code"):
+            print("  Kein Code erkannt in der Eingabe — abgebrochen.", file=sys.stderr)
+            return 1
+        _RESULT["code"] = parsed["code"]
+        _RESULT["state"] = parsed.get("state") or state
 
     if "code" not in _RESULT:
         print("\033[1;31m  Timeout — kein Callback in 5 Minuten\033[0m", file=sys.stderr)
