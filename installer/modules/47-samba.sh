@@ -8,8 +8,8 @@
 # HH_SKIP_SAMBA=yes überspringt diesen Schritt.
 set -euo pipefail
 
-if [ "${HH_SKIP_SAMBA:-no}" = "yes" ]; then
-  echo "Samba übersprungen (HH_SKIP_SAMBA=yes)"
+if [ "${HH_SKIP_SAMBA:-no}" = "yes" ] || [ "${HH_INSTALL_SAMBA:-yes}" = "no" ]; then
+  echo "Samba übersprungen (HH_INSTALL_SAMBA=no)"
   exit 0
 fi
 

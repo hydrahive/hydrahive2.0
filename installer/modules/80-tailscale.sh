@@ -7,6 +7,11 @@ err()  { printf "\033[1;31m[tailscale-install]\033[0m %s\n" "$*" >&2; exit 1; }
 HH_USER="${HH_USER:-hydrahive}"
 HH_TAILSCALE_AUTHKEY="${HH_TAILSCALE_AUTHKEY:-}"
 
+if [ "${HH_INSTALL_TAILSCALE:-yes}" = "no" ]; then
+  log "Tailscale übersprungen (HH_INSTALL_TAILSCALE=no)"
+  exit 0
+fi
+
 log "Tailscale installieren"
 if ! command -v tailscale &>/dev/null; then
   curl -fsSL https://tailscale.com/install.sh | sh

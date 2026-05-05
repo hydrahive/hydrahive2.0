@@ -15,6 +15,11 @@ set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
 
+if [ "${HH_INSTALL_VOICE:-yes}" = "no" ]; then
+  log "Voice-Stack übersprungen (HH_INSTALL_VOICE=no)"
+  exit 0
+fi
+
 CT_NAME="hydrahive2-stt"
 STT_PORT=10300
 

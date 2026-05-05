@@ -3,6 +3,11 @@
 set -euo pipefail
 
 log()  { printf "  · %s\n" "$*"; }
+
+if [ "${HH_INSTALL_POSTGRES:-yes}" = "no" ]; then
+  log "PostgreSQL übersprungen (HH_INSTALL_POSTGRES=no)"
+  exit 0
+fi
 skip() { printf "  · (bereits vorhanden) %s\n" "$*"; }
 
 DSN_FILE="${HH_CONFIG_DIR}/pg_mirror.dsn"
