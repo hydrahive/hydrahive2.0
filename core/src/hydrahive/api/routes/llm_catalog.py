@@ -58,12 +58,62 @@ class UseInAgentRequest(BaseModel):
     model: str
 
 
+def _ensure_model_in_providers(model: str) -> None:
+    """Trägt das Modell in den passenden Provider von llm.json ein wenn nicht da.
+
+    Provider-Zuordnung über das Prefix (nvidia_nim/, openai/, gemini/, …) bzw.
+    bekannte Patterns (claude-* → anthropic, MiniMax-/abab → minimax).
+    """
+    from hydrahive.settings import settings
+    if not settings.llm_config.exists():
+        return
+    data = json.loads(settings.llm_config.read_text())
+    providers = data.get("providers", [])
+
+    pid = None
+    if model.startswith("nvidia_nim/"):
+        pid = "nvidia"
+    elif model.startswith("openai/"):
+        pid = "openai"
+    elif model.startswith("groq/"):
+        pid = "groq"
+    elif model.startswith("mistral/"):
+        pid = "mistral"
+    elif model.startswith("gemini/"):
+        pid = "gemini"
+    elif model.startswith("openrouter/"):
+        pid = "openrouter"
+    elif model.startswith("claude-"):
+        pid = "anthropic"
+    elif model.startswith("MiniMax") or model.startswith("abab") or model.startswith("embo-"):
+        pid = "minimax"
+    if not pid:
+        return  # unbekannt → validate_model wird's eh durchwinken weil "available" leer ist
+
+    p = next((x for x in providers if x.get("id") == pid), None)
+    if not p:
+        return  # Provider gar nicht konfiguriert — der Agent-Call wird sowieso scheitern, lieber dort
+    if model in p.get("models", []):
+        return
+    p.setdefault("models", []).append(model)
+    settings.llm_config.write_text(json.dumps(data, indent=2))
+
+
 @router.post("/use-in-agent", dependencies=[Depends(require_admin)])
 async def use_in_agent(req: UseInAgentRequest) -> dict:
-    """Setzt agent.llm_model auf das gewählte Modell."""
+    """Setzt agent.llm_model auf das gewählte Modell.
+
+    Trägt das Modell automatisch in die Provider-Modellliste ein wenn nicht
+    drin (sonst würde agent-validate_model rumblocken).
+    """
     from hydrahive.agents import config as agent_config
+    from hydrahive.agents._validation import AgentValidationError
     agent = agent_config.get(req.agent_id)
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
-    agent_config.update(req.agent_id, llm_model=req.model)
+    _ensure_model_in_providers(req.model)
+    try:
+        agent_config.update(req.agent_id, llm_model=req.model)
+    except AgentValidationError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, "agent_invalid", message=str(e))
     return {"ok": True, "agent_id": req.agent_id, "llm_model": req.model}
