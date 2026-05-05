@@ -24,6 +24,14 @@ REQUIRED_PACKAGES=(
 
 log() { printf "  · %s\n" "$*"; }
 
+# Bootstrap: curl + ca-certificates müssen VOR NodeSource/uv da sein.
+# Auf wirklich frischem Ubuntu/Debian fehlt curl noch.
+if ! command -v curl >/dev/null 2>&1; then
+  log "Bootstrap: apt update + curl + ca-certificates (für NodeSource/uv-Setup)"
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates gnupg
+fi
+
 # NodeSource-Repo für aktuelles Node.js (Ubuntu liefert oft veraltete Version)
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ]; then
   log "Installiere Node.js 20 LTS via NodeSource"
