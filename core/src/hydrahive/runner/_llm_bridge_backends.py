@@ -1,10 +1,16 @@
-"""Anthropic + MiniMax backend calls for llm_bridge."""
+"""Anthropic + MiniMax + LiteLLM backend calls for llm_bridge."""
 from __future__ import annotations
 
 import json
 from typing import Any
 
 from hydrahive.llm import client as llm_client
+from hydrahive.runner._litellm_convert import (
+    messages_to_openai,
+    openai_response_to_anthropic_blocks,
+    openai_stop_to_anthropic,
+    tools_to_openai,
+)
 
 
 def _block_to_dict(block: Any) -> dict:
@@ -115,4 +121,46 @@ async def minimax_anthropic_call(
     resp = await client.messages.create(**kwargs)
     blocks = [_block_to_dict(b) for b in resp.content]
     stop_reason = getattr(resp, "stop_reason", "") or ""
+    return blocks, stop_reason
+
+
+async def litellm_call(
+    *,
+    model: str,
+    system_prompt: str,
+    messages: list[dict],
+    tools: list[dict],
+    temperature: float,
+    max_tokens: int,
+) -> tuple[list[dict], str]:
+    """Tool-Loop-fähiger Call für alle non-Anthropic/non-MiniMax Provider via LiteLLM.
+
+    Unterstützt Provider die OpenAI-kompatibles Function-Calling können:
+    OpenAI selbst, NVIDIA NIM, Groq, Mistral, Gemini, OpenRouter usw.
+
+    Konvertiert HH2-internes Anthropic-Format in OpenAI-Format, ruft LiteLLM,
+    konvertiert Antwort zurück.
+
+    LiteLLM liest Provider-API-Keys aus den ENV-Variablen die _config.apply_keys()
+    setzt — der Aufrufer muss apply_keys vor dem Call ausgeführt haben.
+    """
+    import litellm
+
+    oai_messages = messages_to_openai(messages, system_prompt)
+    oai_tools = tools_to_openai(tools)
+
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": oai_messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if oai_tools:
+        kwargs["tools"] = oai_tools
+        kwargs["tool_choice"] = "auto"
+
+    resp = await litellm.acompletion(**kwargs)
+    choice = resp.choices[0]
+    blocks = openai_response_to_anthropic_blocks(choice.message)
+    stop_reason = openai_stop_to_anthropic(getattr(choice, "finish_reason", "") or "")
     return blocks, stop_reason
