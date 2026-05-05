@@ -11,7 +11,7 @@
 # sie später unter https://server/llm anpassen.
 provider_info() {
   case "$1" in
-    anthropic)  echo "Anthropic|claude-opus-4-7,claude-sonnet-4-6,claude-haiku-4-5|https://console.anthropic.com/" ;;
+    anthropic)  echo "Anthropic|claude-sonnet-4-6,claude-opus-4-7,claude-haiku-4-5|https://console.anthropic.com/" ;;
     openai)     echo "OpenAI|gpt-5,gpt-5-mini,gpt-4o|https://platform.openai.com/api-keys" ;;
     minimax)    echo "MiniMax|MiniMax-Text-01,MiniMax-M1|https://intl.minimaxi.com/" ;;
     openrouter) echo "OpenRouter|openrouter/auto,anthropic/claude-sonnet-4-6,openai/gpt-5|https://openrouter.ai/keys" ;;
