@@ -299,23 +299,149 @@ if [ -z "$ADMIN_PW" ] && [ -f "$HH_DATA_DIR/sessions.db" ]; then
   RE_INSTALL_HINT="(Re-Install: admin existiert bereits. Passwort-Reset: HH_INITIAL_ADMIN_PASSWORD=neuesPw, dann sessions.db löschen + Service-Restart)"
 fi
 
-printf "\n"
-printf "\033[1;32m╔══════════════════════════════════════════════╗\033[0m\n"
+section() {
+  printf "\n\033[1;32m── %s ──\033[0m\n" "$1"
+}
+kv()      { printf "  \033[1;37m%-22s\033[0m %s\n" "$1" "$2"; }
+kv_pw()   { printf "  \033[1;37m%-22s\033[0m \033[1;33m%s\033[0m\n" "$1" "$2"; }
+kv_hint() { printf "  \033[2;37m%-22s\033[0m \033[2;37m%s\033[0m\n" "$1" "$2"; }
+
+is_yes() { [ "${1:-yes}" != "no" ]; }
+
+printf "\n\033[1;32m╔══════════════════════════════════════════════╗\033[0m\n"
 printf "\033[1;32m║        HydraHive2 — Installation fertig      ║\033[0m\n"
-printf "\033[1;32m╠══════════════════════════════════════════════╣\033[0m\n"
-printf "\033[1;32m║\033[0m  URL:       \033[1;37m%-33s\033[0m\033[1;32m║\033[0m\n" "$SERVER_URL"
-printf "\033[1;32m║\033[0m  Benutzer:  \033[1;37m%-33s\033[0m\033[1;32m║\033[0m\n" "admin"
-if [ -n "$ADMIN_PW" ]; then
-  printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "$ADMIN_PW"
-elif [ -n "$RE_INSTALL_HINT" ]; then
-  printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "(Re-Install — siehe unten)"
-else
-  printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "(siehe: journalctl -u hydrahive2 -b)"
-fi
-printf "\033[1;32m╠══════════════════════════════════════════════╣\033[0m\n"
-printf "\033[1;32m║\033[0m  Browser: Zertifikatswarnung mit 'Weiter'     \033[1;32m║\033[0m\n"
-printf "\033[1;32m║\033[0m  Passwort nach erstem Login ändern!           \033[1;32m║\033[0m\n"
 printf "\033[1;32m╚══════════════════════════════════════════════╝\033[0m\n"
+
+section "Login"
+kv "URL:" "$SERVER_URL"
+kv "Benutzer:" "admin"
+if [ -n "$ADMIN_PW" ]; then
+  kv_pw "Passwort:" "$ADMIN_PW"
+elif [ -n "$RE_INSTALL_HINT" ]; then
+  kv "Passwort:" "(Re-Install — siehe unten)"
+else
+  kv "Passwort:" "(siehe: journalctl -u hydrahive2 -b)"
+fi
+kv_hint "Browser:" "Zertifikatswarnung mit 'Weiter'"
+kv_hint "Wichtig:" "Passwort nach erstem Login ändern!"
+
+section "System"
+kv "Service:" "systemctl status hydrahive2"
+kv "Logs:" "journalctl -u hydrahive2 -f"
+kv "Datenpfad:" "$HH_DATA_DIR"
+kv "Configpfad:" "$HH_CONFIG_DIR"
+kv "Update-Trigger:" "sudo touch $HH_DATA_DIR/.update_request"
+kv "Reconfigure:" "sudo bash $INSTALLER_DIR/install.sh --reconfigure"
+
+INSTALLED=()
+SKIPPED=()
+
+if is_yes "${HH_INSTALL_POSTGRES:-yes}"; then
+  section "PostgreSQL (Datamining-Mirror)"
+  kv "DSN-Datei:" "$HH_CONFIG_DIR/pg_mirror.dsn"
+  kv "Hinweis:" "Passwort steht in der DSN-Datei (chmod 600)"
+  INSTALLED+=("postgres")
+else
+  SKIPPED+=("postgres")
+fi
+
+if is_yes "${HH_INSTALL_TAILSCALE:-yes}"; then
+  section "Tailscale"
+  if command -v tailscale >/dev/null 2>&1; then
+    TS_STATE=$(tailscale status --json 2>/dev/null \
+      | python3 -c 'import sys,json
+try:
+    d=json.load(sys.stdin); print(d.get("BackendState","?"))
+except Exception:
+    print("?")' 2>/dev/null || echo "?")
+    TS_IP=$(tailscale ip -4 2>/dev/null | head -1 || echo "(noch nicht verbunden)")
+    kv "Status:" "$TS_STATE"
+    kv "Tailnet-IP:" "${TS_IP:-(noch nicht verbunden)}"
+    kv "Verbinden:" "sudo tailscale up"
+  else
+    kv "Status:" "(tailscale-Binary fehlt)"
+  fi
+  INSTALLED+=("tailscale")
+else
+  SKIPPED+=("tailscale")
+fi
+
+if is_yes "${HH_INSTALL_VOICE:-yes}"; then
+  section "Voice-Stack"
+  kv "STT-Container:" "hydrahive2-stt (incus)"
+  kv "STT-Port:" "127.0.0.1:10300 (Wyoming-Faster-Whisper)"
+  kv "TTS:" "mmx-CLI (MiniMax) — als hydrahive-User"
+  kv "STT-Logs:" "incus exec hydrahive2-stt -- journalctl -u wyoming-whisper -f"
+  INSTALLED+=("voice")
+else
+  SKIPPED+=("voice")
+fi
+
+if is_yes "${HH_INSTALL_VMS:-yes}"; then
+  section "VM-Manager"
+  kv "VNC-Proxy:" "127.0.0.1:6080 (websockify)"
+  kv "Service:" "systemctl status hydrahive2-websockify"
+  kv "VM-Disks:" "$HH_DATA_DIR/vms/disks"
+  if ! ip link show br0 >/dev/null 2>&1; then
+    kv_hint "Achtung:" "br0 fehlt — bash $INSTALLER_DIR/setup-bridge.sh"
+  fi
+  INSTALLED+=("vms")
+else
+  SKIPPED+=("vms")
+fi
+
+if is_yes "${HH_INSTALL_CONTAINERS:-yes}"; then
+  section "Container-Manager (incus)"
+  kv "Status:" "incus list"
+  kv "Storage:" "default (dir-Storage)"
+  INSTALLED+=("containers")
+else
+  SKIPPED+=("containers")
+fi
+
+if is_yes "${HH_INSTALL_AGENTLINK:-yes}"; then
+  section "HydraLink (AgentLink)"
+  kv "Backend:" "http://127.0.0.1:9000"
+  kv "Repo:" "/opt/hydralink"
+  INSTALLED+=("agentlink")
+else
+  SKIPPED+=("agentlink")
+fi
+
+if is_yes "${HH_INSTALL_NGINX:-yes}"; then
+  section "nginx"
+  kv "Status:" "systemctl status nginx"
+  kv "Config:" "/etc/nginx/sites-enabled/hydrahive2"
+  INSTALLED+=("nginx")
+else
+  SKIPPED+=("nginx")
+fi
+
+if is_yes "${HH_INSTALL_SAMBA:-yes}"; then
+  section "Samba (Projekt-Workspace-Shares)"
+  kv "Config-Verzeichnis:" "/etc/samba/hh-projects.d/"
+  kv "Status:" "systemctl status smbd"
+  kv "Hinweis:" "Pro Projekt automatisch per API angelegt"
+  INSTALLED+=("samba")
+else
+  SKIPPED+=("samba")
+fi
+
+if is_yes "${HH_INSTALL_WHATSAPP:-yes}"; then
+  section "WhatsApp-Bridge"
+  kv "Pfad:" "$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
+  kv "Hinweis:" "Pairing über die Web-UI (Settings → WhatsApp)"
+  INSTALLED+=("whatsapp")
+else
+  SKIPPED+=("whatsapp")
+fi
+
+if [ ${#SKIPPED[@]} -gt 0 ]; then
+  section "Übersprungen"
+  printf "  \033[2;37m%s\033[0m\n" "${SKIPPED[*]}"
+  kv_hint "Nachinstallieren:" "sudo bash $INSTALLER_DIR/install.sh --reconfigure"
+fi
+
 if [ -n "$RE_INSTALL_HINT" ]; then
   printf "\n\033[1;33m  %s\033[0m\n" "$RE_INSTALL_HINT"
 fi
