@@ -21,6 +21,7 @@ from typing import AsyncIterator
 from hydrahive.runner._failover import should_failover
 from hydrahive.runner.events import Event, MessageStart, TextBlock, TextDelta
 from hydrahive.runner.llm_bridge import call_with_tools
+from hydrahive.runner._codex_provider import CodexModelNotAllowed
 from hydrahive.runner.llm_bridge_stream import StreamingNotSupported, stream_with_tools
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,10 @@ async def call_with_stream_or_fallback(
                 break
     except StreamingNotSupported as e:
         logger.info("Streaming nicht unterstützt: %s — Fallback", e)
+    except CodexModelNotAllowed:
+        # Account-spezifische Modell-Sperre — kein Fallback, direkt eskalieren
+        # damit der User die Klartext-Meldung sieht.
+        raise
     except Exception as e:
         logger.warning("Stream-Fehler — Fallback auf non-streaming: %s", e)
 
