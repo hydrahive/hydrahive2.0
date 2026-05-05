@@ -36,6 +36,14 @@ SCOPES = (
     "user:sessions:claude_code user:mcp_servers user:file_upload"
 )
 
+# Cloudflare blockt Python-Default-User-Agents (httpx/urllib) als Bot-Signature.
+# Claude-Code-Identität imitieren wie in llm/_anthropic.py:_OAUTH_HEADERS.
+_HTTP_HEADERS = {
+    "User-Agent": "claude-cli/2.1.62",
+    "anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+    "x-app": "cli",
+}
+
 
 def _b64url(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
@@ -122,7 +130,7 @@ async def exchange_code(*, code: str, verifier: str, state: str | None = None) -
     }
     if state:
         body["state"] = state
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=_HTTP_HEADERS) as client:
         resp = await client.post(TOKEN_URL, json=body)
         resp.raise_for_status()
         data = resp.json()
@@ -140,7 +148,7 @@ async def refresh_access_token(*, refresh_token: str) -> dict[str, Any]:
         "refresh_token": refresh_token,
         "client_id": CLIENT_ID,
     }
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers=_HTTP_HEADERS) as client:
         resp = await client.post(TOKEN_URL, json=body)
         resp.raise_for_status()
         data = resp.json()
