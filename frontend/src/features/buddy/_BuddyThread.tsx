@@ -1,4 +1,4 @@
-import { Bot, Check, Copy, RotateCw, Volume2, VolumeX } from "lucide-react"
+import { Bot, Check, Code, Copy, RotateCw, Volume2, VolumeX } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
@@ -9,7 +9,7 @@ import {
   getExternalStoreMessages,
   useMessage,
 } from "@assistant-ui/react"
-import { BubbleHeader } from "@/features/chat/BubbleMeta"
+import { AssistantFooter, BubbleHeader } from "@/features/chat/BubbleMeta"
 import { CompactionBlock } from "@/features/chat/CompactionBlock"
 import { Markdown } from "@/features/chat/Markdown"
 import { ImageBlock, ToolResultCard, ToolUseCard } from "@/features/chat/ToolCards"
@@ -51,6 +51,9 @@ function BuddyUserMessage() {
               {text}
             </div>
             <div className="flex items-center justify-end gap-1.5">
+              <ActionBarPrimitive.Edit asChild>
+                <button title={t("bubble.edit")} className="p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors">✎</button>
+              </ActionBarPrimitive.Edit>
               <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
                 title={t("bubble.copy")} className="p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors">
                 {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
@@ -74,19 +77,26 @@ function BuddyAssistantMessage() {
   const blocks: ContentBlock[] = original ? Array.isArray(original.content) ? original.content : [] : []
   const isLive = msg.status?.type === "running"
   const isLocalCmd = original?.id?.startsWith("local-cmd-") ?? false
-  const fullText = blocks.filter((b) => b.type === "text").map((b) => (b as any).text ?? "").join(" ")
+  const isSlashCmd = original?.metadata?.source === "slash_command"
+  const fullText = blocks.filter((b) => b.type === "text").map((b) => (b as { type: "text"; text: string }).text ?? "").join(" ")
   const [copied, setCopied] = useState(false)
+  const [showRaw, setShowRaw] = useState(false)
   const tts = useVoiceOutput()
+  const monoMode = isLocalCmd || isSlashCmd
 
   return (
     <MessagePrimitive.Root className="flex items-start gap-3 py-1">
       <div className={`text-2xl flex-shrink-0 mt-0.5 ${isLive ? "animate-pulse" : ""}`}>🐝</div>
       <div className="flex-1 min-w-0 space-y-2">
         {original && <BubbleHeader createdAt={original.created_at} align="left" />}
-        {blocks.map((b, i) => {
+        {showRaw ? (
+          <pre className="text-xs text-zinc-400 font-mono overflow-x-auto whitespace-pre-wrap bg-white/[3%] border border-white/[6%] rounded-lg p-3">
+            {JSON.stringify(original?.content ?? blocks, null, 2)}
+          </pre>
+        ) : blocks.map((b, i) => {
           if (b.type === "text" && b.text) return (
             <div key={i} className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-50">
-              {isLocalCmd
+              {monoMode
                 ? <pre className="font-mono text-xs whitespace-pre-wrap break-words m-0">{b.text}</pre>
                 : <Markdown text={b.text} />}
             </div>
@@ -97,6 +107,7 @@ function BuddyAssistantMessage() {
           return null
         })}
         {original && <MediaPreview media={extractMedia(fullText)} />}
+        {original && !monoMode && <AssistantFooter metadata={original.metadata} />}
         {msg.branchCount > 1 && (
           <div className="flex items-center gap-1 text-[11px] text-zinc-500">
             <BranchPickerPrimitive.Previous asChild>
@@ -121,13 +132,17 @@ function BuddyAssistantMessage() {
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
             </button>
           )}
-          {!isLive && (
+          {!isLive && !isSlashCmd && (
             <ActionBarPrimitive.Reload asChild>
               <button className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-violet-300 hover:bg-violet-500/10 hover:border-violet-500/30 transition-colors">
                 <RotateCw size={12} /> {t("bubble.retry")}
               </button>
             </ActionBarPrimitive.Reload>
           )}
+          <button onClick={() => setShowRaw((r) => !r)} title="Raw JSON"
+            className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-colors ${showRaw ? "text-amber-300 bg-amber-500/15 border-amber-500/30" : "text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-zinc-200 hover:bg-white/[6%]"}`}>
+            <Code size={12} />
+          </button>
         </div>
       </div>
     </MessagePrimitive.Root>
