@@ -23,6 +23,13 @@ CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
 _TIMEOUT = 300.0
 
 
+class CodexModelNotAllowed(Exception):
+    """Codex hat das Modell mit 'not supported when using Codex with a ChatGPT account'
+    abgelehnt. Bedeutet: ChatGPT-Plus-Account hat keinen Zugriff auf dieses Modell
+    (z.B. -codex-Suffix-Varianten erfordern oft ChatGPT-Pro). Tipp an User: anderes
+    Modell wählen — gpt-5.2, gpt-5.4, gpt-5.5 funktionieren bei den meisten Accounts."""
+
+
 _DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
 
 
@@ -95,6 +102,12 @@ async def codex_stream(
         ) as resp:
             if resp.status_code != 200:
                 body = (await resp.aread()).decode(errors="replace")[:500]
+                if resp.status_code == 400 and "not supported" in body and "ChatGPT account" in body:
+                    raise CodexModelNotAllowed(
+                        f"Modell '{model}' ist mit deinem ChatGPT-Account nicht "
+                        f"verfügbar (vermutlich brauchst du ChatGPT Pro). "
+                        f"Wähle ein anderes Codex-Modell — gpt-5.2, gpt-5.4 oder gpt-5.5."
+                    )
                 raise RuntimeError(f"Codex API {resp.status_code}: {body}")
 
             async for line in resp.aiter_lines():
