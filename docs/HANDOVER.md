@@ -1,11 +1,61 @@
-# HydraHive2 — Übergabe (Stand 2026-05-05 abend)
+# HydraHive2 — Übergabe (Stand 2026-05-05 spätabend)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
-## Was heute (5. Mai 2026) erledigt wurde
+## Nachschub vom Abend (nach 20:00 Uhr) — alles live auf 218
+
+### OpenAI Codex OAuth — Häppchen 2 + 3 + GUI komplett
+- **Backend-Provider** `runner/_codex_provider.py` (codex_stream + codex_call)
+  gegen `chatgpt.com/backend-api/codex/responses`. SSE, OAuth-Bearer +
+  `chatgpt-account-id`-Header, `originator: hydrahive`. codex_call ist
+  Wrapper über codex_stream (DRY, ein Code-Pfad).
+- **Konverter** `runner/_codex_convert.py`: Anthropic-Messages →
+  Responses-API-Items. tool_use → function_call (top-level), tool_result →
+  function_call_output. System-Prompt landet in `instructions`.
+- **Routing umgestellt** von Modell-Prefix `openai/` (mit OAuth-Lookup) auf
+  `openai-codex/` (eigener Provider). Sauberer und matcht alte HH-Konvention.
+  In `llm_bridge.py`, `llm_bridge_stream.py`, `client.complete/stream`.
+- **GUI-OAuth-Flow** (für Server ohne SSH): Provider "ChatGPT Plus/Pro
+  (Codex)" jetzt im KNOWN_PROVIDERS-Dropdown auswählbar. Klick auf "Login
+  öffnen" → neuer Tab mit auth.openai.com → User pasted Redirect-URL aus
+  Browser-Adressfeld zurück → Backend tauscht Code gegen Token.
+  - Routes: POST `/api/llm/oauth/start`, POST `/api/llm/oauth/exchange`,
+    DELETE `/api/llm/oauth/{provider}` — alle in `routes/llm_oauth.py`.
+  - Pending-State in `/var/lib/hydrahive2/oauth_pending.json` (TTL 10 min).
+  - Frontend: `OAuthFlow.tsx` als 2-Step-Component, `ProviderForm` rendert
+    je nach `auth: "oauth"`-Marker entweder Key-Feld oder OAuth-Flow,
+    `ProviderCard` zeigt OAuth-Status statt Key-Maske.
+- **9 Codex-Modelle** aus alter HH + OpenClaw übernommen:
+  gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2, gpt-5.2-codex,
+  gpt-5.1, gpt-5.1-codex-max, gpt-5.1-codex-mini.
+- **Catalog**: openai-codex als statischer Provider eingehängt
+  (kein public /v1/models). Metadata: tool_use=True, family="gpt-codex",
+  context_window 200k–400k je nach Variante.
+
+### Bugfixes auf dem Weg
+- **`Instructions are required`** (Codex-API 400) — `instructions` jetzt
+  immer gesetzt (Default `"You are a helpful assistant."` bei leerem
+  System-Prompt), nicht mehr nur wenn vorhanden.
+- **OAuth-Block ging verloren beim PUT /llm** — `LlmProvider`-Pydantic
+  hat jetzt `model_config = ConfigDict(extra="allow")`, sonst dropt
+  `model_dump()` das `oauth`-Feld stillschweigend.
+- **Provider-id Migration**: OAuth-Block lebt jetzt unter Provider-id
+  `openai-codex`, nicht mehr unter `openai`. Installer-CLI
+  (`oauth_codex_cli.py`) und `resolve_openai_codex_token()` mit umgestellt.
+
+### Live-verifiziert auf 218
+- Catalog-Test (`POST /api/llm/catalog/test`) → 200, jedes der 9 Modelle.
+- Direct-Stream (`stream_with_tools`) → text_delta + message_stop, sauber.
+- Tool-Use Streaming → tool_use-Block korrekt, mit echter `call_…`-ID.
+- Tool-Roundtrip (tool_result zurück) → "Hydrahive20-dev" als Antwort.
+- **Buddy-Chat funktioniert** (Tills Test gegen Ende der Session).
+
+---
+
+## Was heute (5. Mai 2026, früher Tag) erledigt wurde
 
 ### Installer-Umbau — Pre-Flight-Wizard
 - 9 Komponenten optional auswählbar (Tailscale, Postgres, Voice, Containers,
@@ -112,12 +162,8 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 ## Aktuell offen / nächste Schritte
 
 ### Direkt anschließend
-1. **OpenAI Codex OAuth Häppchen 2** — Backend-Provider `_openai_codex_call`
-   gegen chatgpt.com/backend-api/codex/responses (Streaming, Tool-Use,
-   Responses-API). Vorlage in `octopos/orchestrator_llm.py:1489+`.
-2. **OpenAI Codex OAuth Häppchen 3** — Routing in `runner/llm_bridge.py`
-   und `client.py`: wenn openai-Provider OAuth-Block hat, codex_call statt
-   litellm.
+- **Codex-Häppchen 2 + 3 + GUI sind durch** (siehe Block oben). Kein
+  offener Codex-Task.
 
 ### Effort-Pill im Chat-Header (pausiert)
 - Backend-Mapping fertig, Frontend fehlt:
