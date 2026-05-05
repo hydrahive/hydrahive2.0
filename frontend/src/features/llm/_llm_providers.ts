@@ -15,7 +15,16 @@ export const KNOWN_PROVIDERS = [
     // Kein API-Key — Login per OAuth, Token landet als oauth-Block in llm.json.
     id: "openai-codex", name: "ChatGPT Plus/Pro (Codex)", placeholder: "OAuth — kein Key nötig",
     auth: "oauth" as const,
-    models: ["openai-codex/gpt-5.2", "openai-codex/gpt-5.1-codex-max", "openai-codex/gpt-5-codex"],
+    models: [
+      "openai-codex/gpt-5.4",
+      "openai-codex/gpt-5.3-codex",
+      "openai-codex/gpt-5.3-codex-spark",
+      "openai-codex/gpt-5.2",
+      "openai-codex/gpt-5.2-codex",
+      "openai-codex/gpt-5.1",
+      "openai-codex/gpt-5.1-codex-max",
+      "openai-codex/gpt-5.1-codex-mini",
+    ],
   },
   {
     id: "openrouter", name: "OpenRouter", placeholder: "sk-or-...",
