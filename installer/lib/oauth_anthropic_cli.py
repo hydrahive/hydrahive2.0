@@ -134,18 +134,31 @@ def main() -> int:
     }
     url = f"{AUTHORIZE_URL}?{urlencode(params)}"
 
+    # URL zusätzlich in Datei schreiben — robust gegen Terminal-Wrap-beim-Copy
+    url_file = Path("/tmp/hh2-anthropic-oauth-url.txt")
+    try:
+        url_file.write_text(url + "\n")
+    except Exception:
+        url_file = None
+
     print()
     print("\033[1;36m── Anthropic OAuth ──\033[0m")
     print()
-    print("  1. Öffne diese URL in deinem Browser (Pro/Max-Account):")
+    print("  1. Öffne diese URL im Browser (Pro/Max-Account erforderlich):")
     print()
-    print(f"     \033[4;37m{url}\033[0m")
+    # KEINE Indentation, KEINE ANSI-Codes — saubere copybare Zeile.
+    # Terminals wrappen lange URLs visuell, aber Copy bleibt logisch eine Zeile.
+    print(url)
     print()
+    if url_file:
+        print(f"  (URL ist auch in {url_file} gespeichert — falls Copy aus dem")
+        print(f"   Terminal Probleme macht, lies sie da raus.)")
+        print()
     print("  2. Autorisiere — du wirst zu http://localhost:53692/callback?code=...")
     print("     weitergeleitet. Der Browser zeigt 'Verbindung verweigert' — egal,")
     print("     die URL in der Adressleiste enthält den Code.")
     print()
-    print("  3. Kopiere die KOMPLETTE URL (oder nur den code-Param) hierher:")
+    print("  3. Kopiere die KOMPLETTE Callback-URL (oder nur den code-Param) hierher:")
     print()
     try:
         raw = input("  Callback-URL/Code: ").strip()
