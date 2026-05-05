@@ -236,6 +236,12 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Projekte** — anlegen, Workspace, Projektagent konfigurieren
 - **Spezialisten** — anlegen, Domäne, Skills zuweisen
 - **LLM** — Provider, API-Keys, Modelle
+  - Modell-Catalog: pro konfiguriertem Provider eine Tabelle mit allen
+    verfügbaren Modellen. Live aus dem Provider-Endpoint (z.B.
+    /v1/models bei OpenAI/NVIDIA/etc.) gejoint mit interner Metadata
+    (Context-Window, Tool-Use-Support, Kategorie, Größe). Suche + Filter.
+    "Test"-Button macht einen Mini-Call (1 API-Credit) zum Verifizieren.
+    "Im Agent nutzen"-Button setzt das Modell als Agent-Default.
   - OAuth-Login pro Provider in der Web-UI: Anthropic (Browser-Redirect),
     MiniMax (Device-Code-Flow), OpenAI Codex (Authorization-Code-Callback).
     Backend hält Access- und Refresh-Token in llm.json, refresht automatisch
