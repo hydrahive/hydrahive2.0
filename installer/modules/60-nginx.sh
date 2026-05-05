@@ -76,7 +76,10 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     # microphone=(self) erlaubt Mikrofon-Zugriff vom gleichen Origin
     add_header Permissions-Policy "geolocation=(), microphone=(self), camera=(), payment=()" always;
-    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' wss:; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
+    # script-src braucht 'unsafe-eval' wegen three.js Shader-Compile + d3 Path-Builder
+    # (beide verwenden new Function()). 'wasm-unsafe-eval' für künftiges WASM
+    # (xterm/novnc bauen mit WebAssembly).
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' wss:; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
 
     location / {
         try_files \$uri \$uri/ /index.html;
