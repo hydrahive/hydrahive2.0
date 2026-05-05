@@ -100,6 +100,9 @@ export function ChatPage() {
                 lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
                 systemPrompt={systemPrompt} onCompact={handleCompact}
                 onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
+                onSessionChanged={(updated) =>
+                  setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
+                }
               />
               <HydraThread />
               {chat.error && (
