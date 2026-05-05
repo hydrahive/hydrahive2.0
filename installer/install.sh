@@ -269,7 +269,9 @@ fi
 # Skippt automatisch bei kein-TTY oder wenn llm.json schon Provider hat.
 # shellcheck source=lib/llm-wizard.sh
 source "$INSTALLER_DIR/lib/llm-wizard.sh"
-llm_wizard
+# Wizard-Fehler dürfen den Installer nicht crashen — Provider sind später
+# unter /llm nachtragbar.
+llm_wizard || log "LLM-Wizard mit Fehler beendet — bitte Provider unter https://<server>/llm eintragen"
 
 # Backend-Service neu starten damit der Mtime-Cache der LLM-Config neu lädt.
 # (load_config() in core/llm/_config.py cached über mtime — wenn Datei schon

@@ -32,7 +32,7 @@ is_tty() { [ -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; }
 # shellcheck source=lib/llm-wizard.sh
 source "$INSTALLER_DIR/lib/llm-wizard.sh"
 
-llm_wizard
+llm_wizard || log "LLM-Wizard mit Fehler beendet"
 
 # Service neu starten damit der mtime-Cache greift
 if [ -f "$HH_CONFIG_DIR/llm.json" ]; then
