@@ -1,11 +1,21 @@
-# HydraHive2
+# 🐝 HydraHive2
 
-Selbst gehostetes KI-Agenten-System: ein Backend (FastAPI + SQLite) mit
-Tool-Loop, Streaming-Chat, Compaction und MCP-Integration, plus eine
-React-Web-Konsole zum Verwalten von Agenten, Projekten und Sessions.
+### Dein selbstgehostetes KI-Agenten-System — für Familie, Team und Privatsphäre
 
-Status: **Alpha** — läuft Ende-zu-Ende auf einem Test-Server, aber noch
-nicht für mehrere Produktiv-User getestet. Alleinstellungsmerkmale:
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Alpha-orange?style=flat-square" alt="Status">
+  <img src="https://img.shields.io/badge/Python-3.12+-blue?style=flat-square" alt="Python">
+  <img src="https://img.shields.io/badge/FastAPI-0.150+-green?style=flat-square" alt="FastAPI">
+  <img src="https://img.shields.io/badge/React-19-red?style=flat-square" alt="React">
+</p>
+
+---
+
+## Was ist HydraHive?
+
+HydraHive ist ein **selbstgehostetes KI-Agenten-System** — kein Cloud-Abo, keine Daten die woanders landen. Es läuft auf deinem eigenen Server, deine Familie oder dein Team greifen über den Browser darauf zu.
+
+Die Idee dahinter: Wir nutzen täglich KI-Tools, aber die meisten sind entweder nicht personalisierbar, nicht dauerhaft (jede Session ist neu), oder schicken alles an einen Konzern. HydraHive gibt dir:
 
 - **Drei Agent-Typen** (Master / Project / Specialist) mit isolierten
   Workspaces und eigenen Memory-Notizen.
