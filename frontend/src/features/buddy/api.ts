@@ -22,4 +22,6 @@ export const buddyApi = {
   models: () => api.get<ModelsResult>("/buddy/models"),
   setModel: (model: string) => api.post<SetModelResult>("/buddy/model", { model }),
   character: () => api.post<CharacterResult>("/buddy/character", {}),
+  logCmd: (user_text: string, assistant_text: string) =>
+    api.post<{ ok: boolean }>("/buddy/log-cmd", { user_text, assistant_text }),
 }

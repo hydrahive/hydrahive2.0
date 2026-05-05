@@ -48,12 +48,26 @@ export function BuddyPage() {
 
   async function handleSend(text: string, files: File[] = []) {
     if (isCommand(text)) {
+      // 1) Sofort lokal anzeigen (kein Spinner-Wartezeit für User)
       appendLocal("user", text)
       const result = await runCommand(text)
       appendLocal("assistant", result.message)
       if (result.newSessionId) {
+        // /character + /clear: Session wechselt → localMsgs leer (sind eh
+        // an die alte Session gebunden), state.session_id triggert reload.
         setLocalMsgs([])
         setState((s) => (s ? { ...s, session_id: result.newSessionId! } : s))
+        return
+      }
+      // 2) Slash-Output dauerhaft in DB persistieren, danach localMsgs leeren
+      //    und chat reload — sonst ploppt der Output nach dem nächsten reload weg.
+      try {
+        await buddyApi.logCmd(text, result.message)
+        await chat.reload()
+        setLocalMsgs([])
+      } catch {
+        // Persistenz failt? localMsgs bleibt — User sieht Output zumindest
+        // bis zum nächsten reload.
       }
       return
     }

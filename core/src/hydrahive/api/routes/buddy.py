@@ -84,3 +84,32 @@ def buddy_character(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> 
         return commands.reroll_character(_user(auth))
     except LookupError as e:
         raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
+
+
+class LogCmdBody(BaseModel):
+    user_text: str = Field(min_length=1, max_length=2000)
+    assistant_text: str = Field(min_length=1, max_length=8000)
+
+
+@router.post("/log-cmd")
+def buddy_log_cmd(
+    body: LogCmdBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Slash-Command-Output dauerhaft in die aktive Session schreiben.
+
+    Slash-Commands (z.B. `/model`) werden lokal im Frontend ausgeführt und
+    sollten als sichtbare User-/Assistant-Bubble im Chat persistiert werden,
+    damit sie nach reload() erhalten bleiben.
+    """
+    from hydrahive.db import messages as messages_db
+    state = get_or_create_buddy(_user(auth))
+    sid = state.get("session_id") or ""
+    if not sid:
+        raise coded(status.HTTP_404_NOT_FOUND, "buddy_no_session")
+    user_msg = messages_db.append(sid, "user", body.user_text)
+    asst_msg = messages_db.append(
+        sid, "assistant", [{"type": "text", "text": body.assistant_text}],
+        metadata={"source": "slash_command"},
+    )
+    return {"ok": True, "user_id": user_msg.id, "assistant_id": asst_msg.id}
