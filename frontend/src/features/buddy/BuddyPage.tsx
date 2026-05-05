@@ -102,11 +102,15 @@ export function BuddyPage() {
             <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3 bg-black/30">
               <div className="text-2xl">🐝</div>
               <p className="text-sm font-medium text-zinc-100 truncate">{state.agent_name}</p>
-              {session && state.model && (
+              {state.model && (
                 <ModelPicker
-                  session={session}
-                  agentDefaultModel={state.model}
-                  onChanged={setSession}
+                  current={state.model}
+                  hint="Buddy-Modell wechseln"
+                  onPick={async (m) => {
+                    await buddyApi.setModel(m)
+                    const fresh = await buddyApi.state()
+                    setState(fresh)
+                  }}
                 />
               )}
               <div className="flex-1" />

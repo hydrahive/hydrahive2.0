@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { ModelPicker } from "./ModelPicker"
 import { TokenMeter } from "./TokenMeter"
+import { chatApi } from "./api"
 import type { ChatState } from "./useChat"
 import type { AgentBrief, Session } from "./types"
 
@@ -43,9 +44,19 @@ export function ChatHeader({
               <span className="text-zinc-500 inline-flex items-center gap-1">
                 ·{" "}
                 <ModelPicker
-                  session={session}
-                  agentDefaultModel={agent.llm_model}
-                  onChanged={onSessionChanged}
+                  current={(session.metadata as { model_override?: string })?.model_override || agent.llm_model}
+                  hint={(session.metadata as { model_override?: string })?.model_override
+                    ? `Override aktiv (Default: ${agent.llm_model})`
+                    : "Modell für diese Session wählen"}
+                  showReset={!!(session.metadata as { model_override?: string })?.model_override}
+                  onPick={async (m) => {
+                    const updated = await chatApi.updateSession(session.id, { model_override: m })
+                    onSessionChanged(updated)
+                  }}
+                  onReset={async () => {
+                    const updated = await chatApi.updateSession(session.id, { model_override: "" })
+                    onSessionChanged(updated)
+                  }}
                 />
               </span>
             )}
