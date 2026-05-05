@@ -1,27 +1,34 @@
 #!/usr/bin/env python3
-"""Anthropic OAuth-Login im Bash-Installer (analog zu OpenClaw onboard).
+"""Anthropic OAuth-Login im Bash-Installer (analog zu OpenClaw / pi-mono).
 
-Wird vom llm-wizard.sh aufgerufen wenn der User OAuth statt API-Key wählt.
-Macht den ganzen Flow inkl. Token-Exchange + Schreiben in llm.json.
+Flow:
+  1. Lokalen HTTP-Server auf 127.0.0.1:53692 starten
+  2. Browser automatisch mit Authorize-URL öffnen
+     (geht nicht automatisch → URL ausgeben, User öffnet manuell IM gleichen
+      Browser; der Callback landet trotzdem am laufenden Server)
+  3. claude.ai redirected zu http://localhost:53692/callback?code=...
+  4. Server fängt das ab → Token-Exchange → llm.json
 
 Usage:
   python3 oauth_anthropic_cli.py /etc/hydrahive2/llm.json
 
 Exit-Codes:
-  0 = OAuth erfolgreich, llm.json geschrieben
-  1 = User hat abgebrochen oder Eingabe ungültig
+  0 = OK
+  1 = Timeout / Bind-Fehler
   2 = Anthropic-Server hat den Code abgelehnt
-
-Benutzt nur stdlib — keine venv-Abhängigkeit.
 """
 from __future__ import annotations
 
 import base64
 import hashlib
+import http.server
 import json
 import secrets
+import socketserver
 import sys
+import threading
 import time
+import webbrowser
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
@@ -30,11 +37,15 @@ from urllib.error import HTTPError, URLError
 CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 AUTHORIZE_URL = "https://claude.ai/oauth/authorize"
 TOKEN_URL = "https://platform.claude.com/v1/oauth/token"
-REDIRECT_URI = "http://localhost:53692/callback"
+CALLBACK_HOST = "127.0.0.1"
+CALLBACK_PORT = 53692
+REDIRECT_URI = f"http://localhost:{CALLBACK_PORT}/callback"
 SCOPES = (
     "org:create_api_key user:profile user:inference "
     "user:sessions:claude_code user:mcp_servers user:file_upload"
 )
+
+ANTHROPIC_DEFAULT_MODELS = ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5"]
 
 
 def _b64url(raw: bytes) -> str:
@@ -46,6 +57,19 @@ def make_pkce() -> tuple[str, str, str]:
     challenge = _b64url(hashlib.sha256(verifier.encode()).digest())
     state = _b64url(secrets.token_bytes(16))
     return verifier, challenge, state
+
+
+def make_authorize_url(challenge: str, state: str) -> str:
+    params = {
+        "client_id": CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": REDIRECT_URI,
+        "scope": SCOPES,
+        "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+    }
+    return f"{AUTHORIZE_URL}?{urlencode(params)}"
 
 
 def parse_callback(value: str) -> dict:
@@ -77,6 +101,62 @@ def parse_callback(value: str) -> dict:
     return {"code": value}
 
 
+_RESULT: dict = {}
+_EXPECTED_STATE = ""
+
+
+class _Handler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802
+        parsed = urlparse(self.path)
+        if parsed.path != "/callback":
+            self.send_response(404)
+            self.end_headers()
+            return
+        qs = parse_qs(parsed.query)
+        code = qs.get("code", [""])[0]
+        state = qs.get("state", [""])[0]
+        if not code:
+            self._html(400, "Kein Code im Callback")
+            return
+        if _EXPECTED_STATE and state != _EXPECTED_STATE:
+            self._html(400, "State stimmt nicht — Flow neu starten")
+            return
+        _RESULT["code"] = code
+        _RESULT["state"] = state
+        self._html(200, "Erfolgreich verbunden — du kannst dieses Tab schließen.")
+
+    def _html(self, status: int, msg: str):
+        body = f"""<!DOCTYPE html><html><head>
+<meta charset='utf-8'><title>HydraHive2 OAuth</title></head>
+<body style='font-family:system-ui;max-width:480px;margin:6em auto;text-align:center;color:#222'>
+<h2>{'✓ Verbunden' if status == 200 else '⚠ Fehler'}</h2>
+<p>{msg}</p></body></html>""".encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args, **kwargs):  # silence
+        pass
+
+
+def _serve_until_code(timeout_s: float) -> None:
+    """Startet HTTP-Server, läuft bis _RESULT['code'] gesetzt oder Timeout."""
+    server = socketserver.TCPServer((CALLBACK_HOST, CALLBACK_PORT), _Handler,
+                                    bind_and_activate=False)
+    server.allow_reuse_address = True
+    server.server_bind()
+    server.server_activate()
+    server.timeout = 0.5
+    deadline = time.time() + timeout_s
+    try:
+        while "code" not in _RESULT and time.time() < deadline:
+            server.handle_request()
+    finally:
+        server.server_close()
+
+
 def exchange_code(*, code: str, verifier: str, state: str) -> dict:
     body = json.dumps({
         "grant_type": "authorization_code",
@@ -99,9 +179,6 @@ def exchange_code(*, code: str, verifier: str, state: str) -> dict:
     }
 
 
-ANTHROPIC_DEFAULT_MODELS = ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5"]
-
-
 def save_to_llm_config(path: Path, oauth_block: dict) -> None:
     if path.exists():
         data = json.loads(path.read_text())
@@ -121,67 +198,55 @@ def save_to_llm_config(path: Path, oauth_block: dict) -> None:
 
 
 def main() -> int:
+    global _EXPECTED_STATE
     if len(sys.argv) != 2:
         print("Usage: oauth_anthropic_cli.py <llm-json-path>", file=sys.stderr)
         return 1
     llm_path = Path(sys.argv[1])
 
     verifier, challenge, state = make_pkce()
-    params = {
-        "client_id": CLIENT_ID, "response_type": "code", "redirect_uri": REDIRECT_URI,
-        "scope": SCOPES, "state": state,
-        "code_challenge": challenge, "code_challenge_method": "S256",
-    }
-    url = f"{AUTHORIZE_URL}?{urlencode(params)}"
-
-    # URL zusätzlich in Datei schreiben — robust gegen Terminal-Wrap-beim-Copy
-    url_file = Path("/tmp/hh2-anthropic-oauth-url.txt")
-    try:
-        url_file.write_text(url + "\n")
-    except Exception:
-        url_file = None
+    _EXPECTED_STATE = state
+    url = make_authorize_url(challenge, state)
 
     print()
     print("\033[1;36m── Anthropic OAuth ──\033[0m")
     print()
-    print("  1. Öffne diese URL im Browser (Pro/Max-Account erforderlich):")
+    print(f"  Lokaler Callback-Server lauscht auf {REDIRECT_URI}")
+    print("  Browser wird automatisch geöffnet — falls nicht, manuell öffnen.")
     print()
-    # KEINE Indentation, KEINE ANSI-Codes — saubere copybare Zeile.
-    # Terminals wrappen lange URLs visuell, aber Copy bleibt logisch eine Zeile.
-    print(url)
-    print()
-    if url_file:
-        print(f"  (URL ist auch in {url_file} gespeichert — falls Copy aus dem")
-        print(f"   Terminal Probleme macht, lies sie da raus.)")
+
+    # HTTP-Server in eigenem Thread starten
+    server_thread = threading.Thread(target=_serve_until_code, args=(300.0,), daemon=True)
+    server_thread.start()
+    time.sleep(0.3)  # bind-race vermeiden
+
+    # Browser öffnen
+    opened = False
+    try:
+        opened = webbrowser.open(url)
+    except Exception:
+        opened = False
+
+    if not opened:
+        print("  Auto-Open ging nicht — bitte diese URL manuell im Browser öffnen:")
+        print(f"  {url}")
         print()
-    print("  2. Autorisiere — du wirst zu http://localhost:53692/callback?code=...")
-    print("     weitergeleitet. Der Browser zeigt 'Verbindung verweigert' — egal,")
-    print("     die URL in der Adressleiste enthält den Code.")
-    print()
-    print("  3. Kopiere die KOMPLETTE Callback-URL (oder nur den code-Param) hierher:")
-    print()
-    try:
-        raw = input("  Callback-URL/Code: ").strip()
-    except (EOFError, KeyboardInterrupt):
-        print("\n  Abgebrochen.", file=sys.stderr)
-        return 1
-    if not raw:
-        print("  Keine Eingabe — abgebrochen.", file=sys.stderr)
+
+    print("  Warte auf Login (Timeout 5 min)...")
+    while server_thread.is_alive() and "code" not in _RESULT:
+        server_thread.join(timeout=0.5)
+
+    if "code" not in _RESULT:
+        print("\033[1;31m  Timeout — kein Callback in 5 Minuten\033[0m", file=sys.stderr)
         return 1
 
-    parsed = parse_callback(raw)
-    code = parsed.get("code", "")
-    if not code:
-        print(f"\033[1;31m  Kein Code erkannt in: {raw[:80]}\033[0m", file=sys.stderr)
-        return 1
-    callback_state = parsed.get("state") or state
-
+    code = _RESULT["code"]
+    cb_state = _RESULT.get("state") or state
     try:
-        token = exchange_code(code=code, verifier=verifier, state=callback_state)
+        token = exchange_code(code=code, verifier=verifier, state=cb_state)
     except HTTPError as e:
         body = e.read().decode("utf-8", "replace")[:400]
-        print(f"\033[1;31m  Anthropic hat den Code abgelehnt ({e.code}): {body}\033[0m",
-              file=sys.stderr)
+        print(f"\033[1;31m  Anthropic-Fehler ({e.code}): {body}\033[0m", file=sys.stderr)
         return 2
     except URLError as e:
         print(f"\033[1;31m  Verbindung zu {TOKEN_URL} fehlgeschlagen: {e}\033[0m",
@@ -190,7 +255,7 @@ def main() -> int:
 
     save_to_llm_config(llm_path, token)
     expires_h = int((token["expires_at"] - time.time()) / 3600)
-    print(f"\033[1;32m  ✓ Anthropic OAuth gespeichert ({llm_path}, läuft in ~{expires_h}h ab)\033[0m")
+    print(f"\033[1;32m  ✓ Anthropic OAuth gespeichert (läuft in ~{expires_h}h ab)\033[0m")
     return 0
 
 
