@@ -236,6 +236,11 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Projekte** — anlegen, Workspace, Projektagent konfigurieren
 - **Spezialisten** — anlegen, Domäne, Skills zuweisen
 - **LLM** — Provider, API-Keys, Modelle
+  - OAuth-Login pro Provider in der Web-UI: Anthropic (Browser-Redirect),
+    MiniMax (Device-Code-Flow), OpenAI Codex (Authorization-Code-Callback).
+    Backend hält Access- und Refresh-Token in llm.json, refresht automatisch
+    vor Ablauf. Pro Provider entweder API-Key ODER OAuth-Token (UI zeigt was
+    gerade aktiv ist).
 - **MCP** — Server verwalten, pro Agent zuweisen
 - **Wiki** — HydraWiki: Seiten, Graph View, Ingestion, Dataview-Abfragen
 - **System** — Logs, Health, Services, System-Backup/Restore, Tailscale (Admin)
