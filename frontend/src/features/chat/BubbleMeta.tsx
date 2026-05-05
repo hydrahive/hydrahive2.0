@@ -9,13 +9,20 @@ function formatBubbleTime(iso: string, locale: string): string {
   const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1)
   const isYesterday = d.toDateString() === yesterday.toDateString()
   const time = d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
-  if (sameDay) return time
-  if (isYesterday) return `${i18nYesterday(locale)} · ${time}`
-  return `${d.toLocaleDateString(locale)} · ${time}`
+  const dayLabel = sameDay
+    ? i18nToday(locale)
+    : isYesterday
+      ? i18nYesterday(locale)
+      : d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" })
+  return `${dayLabel} · ${time}`
 }
 
 function i18nYesterday(locale: string): string {
   return locale.startsWith("de") ? "Gestern" : "Yesterday"
+}
+
+function i18nToday(locale: string): string {
+  return locale.startsWith("de") ? "Heute" : "Today"
 }
 
 export function BubbleHeader({ createdAt, align }: { createdAt: string; align: "left" | "right" }) {
