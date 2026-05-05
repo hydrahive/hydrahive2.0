@@ -1,7 +1,73 @@
-# HydraHive2 — Übergabe (Stand 2026-05-05 spätabend)
+# HydraHive2 — Übergabe (Stand 2026-05-06 nach Mitternacht)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
+
+---
+
+## Nachschub Nacht 05→06 Mai — alles live auf 218
+
+### Codex-Modelle Live-Validierung
+- 9 Codex-Modelle gepflegt (Frontend + Catalog + Installer):
+  gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2,
+  gpt-5.2-codex, gpt-5.1, gpt-5.1-codex-max, gpt-5.1-codex-mini.
+- Empirisch geprüft (Tills ChatGPT-Plus-Account): nur 4 davon
+  funktionieren — gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.2.
+  Die `-codex`-Suffix-Varianten brauchen meist ChatGPT Pro.
+- Sprechende Fehlermeldung dafür: `CodexModelNotAllowed` in
+  `_codex_provider.py` — Catch im `_call.py` reicht ohne Fallback
+  durch zur UI: "Modell 'X' ist mit deinem ChatGPT-Account nicht
+  verfügbar — wähle gpt-5.2, gpt-5.4 oder gpt-5.5".
+- Codex-API verlangt `instructions` als Pflichtfeld → Default
+  "You are a helpful assistant." wenn kein System-Prompt.
+
+### LlmProvider Pydantic-Hotfix
+- `extra="allow"` auf LlmProvider — sonst dropt model_dump() den
+  OAuth-Block beim PUT /llm. Test-Roundtrip grün.
+
+### ModelPicker Re-Architecture
+- Custom Dropdown war in mehrere Sackgassen gelaufen (z-index, mousedown-
+  Handler, type=submit-Bug). Jetzt nativer `<select>` mit Inline-SVG-
+  Pfeil — Browser regelt Open/Close, Klick triggert garantiert change.
+- **Picker schreibt jetzt `agent.llm_model` (sowohl Buddy als auch
+  Projekt-Chat)**, nicht mehr session.metadata.model_override. Damit
+  sind Picker und `/model`-Slash-Output immer synchron.
+- onAgentChanged-Callback in ChatPage propagiert die Änderung lokal,
+  ohne Page-Reload.
+- Stale model_override-Einträge werden beim Pick automatisch geräumt.
+
+### CSP-Fix in nginx
+- `script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'` — three.js +
+  d3 brauchen `new Function()` für Shader/Path-Builder. Ohne unsafe-eval
+  schluckte der Browser das beim Page-Load und ließ UI-Komponenten
+  halb-tot zurück. Live auf 218 schon gepatcht (nginx reload), Installer
+  60-nginx.sh updated.
+
+### Slash-Commands & Persistenz (Buddy + Projekt-Chat)
+- Neuer Endpoint `POST /api/sessions/{id}/log-cmd` (analog /buddy/log-cmd)
+  — schreibt Slash-Output als persistente Messages mit
+  metadata.source='slash_command'. Outputs überleben jetzt jeden reload().
+- Volle Befehlsliste in beiden Pages:
+  - `/help /clear /reset /model /compact /tokens /title /system /tools
+    /agent /export`
+  - Buddy zusätzlich: `/character /remember /soul`
+- CmdPills im MessageInput: 10 (Chat) bzw. 13 (Buddy) bunte Pills mit
+  passenden Icons (HelpCircle, RotateCcw, Cpu, GitMerge, Coins, Pencil,
+  Wand2, Hammer, FileText, Download, Sparkles, Save, Dice5).
+
+### Chat-Layout = Buddy-Card-Look
+- `ChatBubbleThread` (kopiert von BuddyThread, generischer Bot/User-
+  Avatar statt 🐝).
+- ChatPage: rounded-Card mit Gradient + voller Breite (w-full statt
+  max-w-3xl), Sidebar bleibt rechts.
+- Volle Bubble-Ausstattung in beiden Threads:
+  - **Tags-Markierung** ("Heute · HH:MM" / "Gestern · HH:MM" / DD.MM.YYYY)
+    immer im Bubble-Header.
+  - AssistantFooter: input/output Tokens, cache_read, $-Kosten, Modell,
+    Iteration, stop_reason — ausgeblendet bei Slash-Outputs.
+  - Edit-Button (✎) am User-Bubble — über ActionBar.Edit, sendet als Resend.
+  - Raw-JSON-Toggle (Code-Icon) am Assistant-Bubble.
+  - Voice/Copy/Retry wie gehabt.
 
 ---
 
