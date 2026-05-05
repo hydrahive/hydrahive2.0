@@ -124,6 +124,21 @@ async def minimax_anthropic_call(
     return blocks, stop_reason
 
 
+def _is_tool_use_unsupported(exc: Exception) -> bool:
+    """Erkennt Provider-Fehler 'dieses Modell unterstützt kein Tool-Use'.
+
+    Beispiel NVIDIA NIM:
+      400 - {'error': 'Tool use has not been enabled, because it is unsupported by ...'}
+    OpenRouter / andere können andere Wortwahl haben — wir matchen tolerant.
+    """
+    msg = str(exc).lower()
+    if "tool use" in msg or "tool_use" in msg or "function calling" in msg or "tools" in msg:
+        if any(k in msg for k in ("unsupported", "not enabled", "not supported",
+                                   "doesn't support", "does not support", "unavailable")):
+            return True
+    return False
+
+
 async def litellm_call(
     *,
     model: str,
@@ -141,10 +156,16 @@ async def litellm_call(
     Konvertiert HH2-internes Anthropic-Format in OpenAI-Format, ruft LiteLLM,
     konvertiert Antwort zurück.
 
+    Bei Modellen ohne Tool-Use-Support (z.B. qwen2.5-coder auf NVIDIA): erneut
+    OHNE tools versuchen — das Modell antwortet dann als reiner Chat.
+
     LiteLLM liest Provider-API-Keys aus den ENV-Variablen die _config.apply_keys()
     setzt — der Aufrufer muss apply_keys vor dem Call ausgeführt haben.
     """
+    import logging
     import litellm
+
+    logger = logging.getLogger(__name__)
 
     oai_messages = messages_to_openai(messages, system_prompt)
     oai_tools = tools_to_openai(tools)
@@ -159,7 +180,18 @@ async def litellm_call(
         kwargs["tools"] = oai_tools
         kwargs["tool_choice"] = "auto"
 
-    resp = await litellm.acompletion(**kwargs)
+    try:
+        resp = await litellm.acompletion(**kwargs)
+    except Exception as e:
+        if oai_tools and _is_tool_use_unsupported(e):
+            logger.warning("Modell %s unterstützt kein Tool-Use — retry ohne tools (Agent kann keine "
+                           "Tools aufrufen, antwortet nur als Chat)", model)
+            kwargs.pop("tools", None)
+            kwargs.pop("tool_choice", None)
+            resp = await litellm.acompletion(**kwargs)
+        else:
+            raise
+
     choice = resp.choices[0]
     blocks = openai_response_to_anthropic_blocks(choice.message)
     stop_reason = openai_stop_to_anthropic(getattr(choice, "finish_reason", "") or "")
