@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from pydantic import BaseModel, Field
 
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
@@ -133,6 +134,36 @@ async def post_message(
 
     user_content = await build_user_content(s.agent_id, text, files or [])
     return sse_run_response(runner_run(session_id, user_content))
+
+
+class LogCmdBody(BaseModel):
+    user_text: str = Field(min_length=1, max_length=2000)
+    assistant_text: str = Field(min_length=1, max_length=8000)
+
+
+@messages_router.post("/{session_id}/log-cmd")
+def log_slash_cmd(
+    session_id: str,
+    body: LogCmdBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Slash-Command-Output dauerhaft als Messages in die Session schreiben.
+
+    Spiegelt /api/buddy/log-cmd, aber für beliebige Sessions. Kein LLM-Roundtrip,
+    nur DB-Append: User-Text als user-msg, deterministischer Output als
+    assistant-msg mit metadata.source='slash_command'.
+    """
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+    user_msg = messages_db.append(session_id, "user", body.user_text)
+    asst_msg = messages_db.append(
+        session_id, "assistant",
+        [{"type": "text", "text": body.assistant_text}],
+        metadata={"source": "slash_command"},
+    )
+    return {"ok": True, "user_id": user_msg.id, "assistant_id": asst_msg.id}
 
 
 @messages_router.post("/{session_id}/inject", dependencies=[Depends(require_admin)])

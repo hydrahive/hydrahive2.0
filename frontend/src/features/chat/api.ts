@@ -18,6 +18,8 @@ export const chatApi = {
   updateSession: (id: string, fields: { title?: string; status?: string; model_override?: string | null }) =>
     api.patch<Session>(`/sessions/${id}`, fields),
   listMessages: (id: string) => api.get<Message[]>(`/sessions/${id}/messages`),
+  logCmd: (id: string, user_text: string, assistant_text: string) =>
+    api.post<{ ok: boolean }>(`/sessions/${id}/log-cmd`, { user_text, assistant_text }),
   listAgents: () => api.get<AgentBrief[]>("/agents"),
   listProjects: () => api.get<ProjectBrief[]>("/projects"),
   compact: (id: string) => api.post<{
