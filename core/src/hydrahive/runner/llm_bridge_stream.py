@@ -62,10 +62,14 @@ async def stream_with_tools(
             yield ev
         return
 
-    anthropic_key = llm_client._get_anthropic_key(cfg)
     is_claude = llm_client._strip_provider_prefix(target).startswith("claude-")
-    if not is_claude or not anthropic_key:
+    if not is_claude:
         raise StreamingNotSupported("Streaming nur für Anthropic + MiniMax implementiert")
+    # OAuth-fähig: erst frischen Token holen (refresht automatisch wenn nötig)
+    from hydrahive.oauth.anthropic import resolve_anthropic_token
+    anthropic_key = await resolve_anthropic_token()
+    if not anthropic_key:
+        raise StreamingNotSupported("Anthropic-Auth fehlt — API-Key oder OAuth-Login auf /llm")
 
     async for ev in anthropic_stream(
         key=anthropic_key,
