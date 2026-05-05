@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
 import { Loader2, RefreshCw, ArrowLeft, Search, Zap, CheckCircle, XCircle, HelpCircle } from "lucide-react"
 import { Link } from "react-router-dom"
+import { chatApi } from "@/features/chat/api"
+import type { AgentBrief } from "@/features/chat/types"
 import { catalogApi, type CatalogModel, type CatalogProvider, type CatalogTestResult } from "./api"
-
-interface AgentBrief { id: string; name: string; llm_model: string; type: string }
 
 export function CatalogPage() {
   const [providers, setProviders] = useState<CatalogProvider[]>([])
@@ -28,8 +28,7 @@ export function CatalogPage() {
   useEffect(() => { load() }, [])
 
   useEffect(() => {
-    fetch("/api/agents", { credentials: "include" })
-      .then((r) => r.json()).then(setAgents).catch(() => {})
+    chatApi.listAgents().then(setAgents).catch(() => {})
   }, [])
 
   const active = providers.find((p) => p.provider_id === activePid)
@@ -61,8 +60,8 @@ export function CatalogPage() {
       await catalogApi.useInAgent(agentId, model)
       setUseDialogModel(null)
       // Agent-Liste neu laden für UI
-      const r = await fetch("/api/agents", { credentials: "include" }).then((x) => x.json())
-      setAgents(r)
+      const fresh = await chatApi.listAgents()
+      setAgents(fresh)
     } catch (e) {
       setUseError(e instanceof Error ? e.message : String(e))
     }

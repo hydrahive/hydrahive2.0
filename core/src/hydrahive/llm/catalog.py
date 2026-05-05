@@ -38,7 +38,11 @@ _STATIC_MODELS = {
         "claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5",
         "claude-sonnet-4-5", "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022",
     ],
-    "minimax": ["MiniMax-M2", "MiniMax-M2.7", "abab6.5s-chat"],
+    "minimax": [
+        "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.7", "MiniMax-M1",
+        "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat",
+        "embo-01",
+    ],
 }
 
 # Modell-Prefix für LiteLLM bei Provider die das brauchen.
@@ -58,9 +62,15 @@ _METADATA: dict[str, dict[str, Any]] = {
     "claude-3-7-sonnet-20250219": {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-3-5-haiku-20241022":  {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     # MiniMax
-    "MiniMax-M2":   {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "MiniMax-M2.7": {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
-    "abab6.5s-chat":{"context_window": 245_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-Text-01": {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-M1":      {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-M2":      {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-M2.7":    {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "abab6.5s-chat":   {"context_window": 245_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "abab6.5-chat":    {"context_window": 8_192, "tool_use": True, "category": "chat", "family": "minimax"},
+    "abab5.5-chat":    {"context_window": 16_384, "tool_use": False, "category": "chat", "family": "minimax"},
+    "abab5.5s-chat":   {"context_window": 8_192, "tool_use": False, "category": "chat", "family": "minimax"},
+    "embo-01":         {"context_window": 4_096, "tool_use": False, "category": "embed", "family": "minimax"},
     # NVIDIA NIM — empirisch verifiziert wo möglich
     "nvidia_nim/qwen/qwen2.5-coder-32b-instruct": {"context_window": 32_000, "tool_use": False, "category": "code", "family": "qwen", "params": "32B"},
     "nvidia_nim/qwen/qwen3-next-80b-a3b-instruct": {"context_window": 262_144, "tool_use": True, "category": "chat", "family": "qwen", "params": "80B"},
