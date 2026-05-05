@@ -23,6 +23,9 @@ CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
 _TIMEOUT = 300.0
 
 
+_DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
+
+
 def _build_payload(
     *, model: str, system_prompt: str, messages: list[dict], tools: list[dict],
 ) -> dict:
@@ -35,13 +38,12 @@ def _build_payload(
         "text": {"verbosity": "medium"},
         "include": ["reasoning.encrypted_content"],
         "parallel_tool_calls": True,
+        "instructions": instructions or _DEFAULT_INSTRUCTIONS,
     }
     codex_tools = tools_to_codex(tools)
     if codex_tools:
         payload["tools"] = codex_tools
         payload["tool_choice"] = "auto"
-    if instructions:
-        payload["instructions"] = instructions
     return payload
 
 
