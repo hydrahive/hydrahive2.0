@@ -1,6 +1,7 @@
 import { Archive, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
+import { ModelPicker } from "./ModelPicker"
 import { TokenMeter } from "./TokenMeter"
 import type { ChatState } from "./useChat"
 import type { AgentBrief, Session } from "./types"
@@ -16,12 +17,13 @@ interface Props {
   systemPrompt: string
   onCompact: () => void
   onDelete: () => void
+  onSessionChanged: (session: Session) => void
   tokenRefresh: number
 }
 
 export function ChatHeader({
   session, agent, orphaned, compacting, compactNote,
-  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, tokenRefresh,
+  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onSessionChanged, tokenRefresh,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
 
@@ -38,8 +40,13 @@ export function ChatHeader({
           <p className="text-xs text-zinc-600 mt-0.5 flex items-center gap-2 flex-wrap">
             <span>{t("session.id_short")}: {session.id.slice(0, 8)}…</span>
             {agent && (
-              <span className="text-zinc-500">
-                · <span className="text-violet-300/80 font-mono">{agent.llm_model}</span>
+              <span className="text-zinc-500 inline-flex items-center gap-1">
+                ·{" "}
+                <ModelPicker
+                  session={session}
+                  agentDefaultModel={agent.llm_model}
+                  onChanged={onSessionChanged}
+                />
               </span>
             )}
             {lastTurnTokens && !busy && (
