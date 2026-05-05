@@ -7,8 +7,7 @@ import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
 import { useHydraRuntime } from "@/features/chat/_assistantRuntime"
 import { ModelPicker } from "@/features/chat/ModelPicker"
-import { chatApi } from "@/features/chat/api"
-import type { Message, Session } from "@/features/chat/types"
+import type { Message } from "@/features/chat/types"
 import { BuddyThread } from "./_BuddyThread"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
@@ -17,7 +16,6 @@ import { CmdPill } from "./_BuddyCmdPill"
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
   const [state, setState] = useState<BuddyState | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const initRef = useRef(false)
@@ -38,10 +36,6 @@ export function BuddyPage() {
     if (state?.session_id) chat.reload()
   }, [state?.session_id, chat.reload])
 
-  useEffect(() => {
-    if (!state?.session_id) { setSession(null); return }
-    chatApi.getSession(state.session_id).then(setSession).catch(() => setSession(null))
-  }, [state?.session_id])
 
   function appendLocal(role: "user" | "assistant", text: string) {
     setLocalMsgs((prev) => [
