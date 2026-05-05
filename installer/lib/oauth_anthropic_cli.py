@@ -52,22 +52,25 @@ def _b64url(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
 
 
-def make_pkce() -> tuple[str, str, str]:
+def make_pkce() -> tuple[str, str]:
+    """Anthropic-OAuth: state ist der verifier (siehe pi-mono anthropic.ts).
+    Daher kein separater state, nur (verifier, challenge)."""
     verifier = _b64url(secrets.token_bytes(32))
     challenge = _b64url(hashlib.sha256(verifier.encode()).digest())
-    state = _b64url(secrets.token_bytes(16))
-    return verifier, challenge, state
+    return verifier, challenge
 
 
-def make_authorize_url(challenge: str, state: str) -> str:
+def make_authorize_url(challenge: str, verifier: str) -> str:
+    """Anthropic verlangt zusätzlich code=true und state=verifier (pi-mono)."""
     params = {
+        "code": "true",
         "client_id": CLIENT_ID,
         "response_type": "code",
         "redirect_uri": REDIRECT_URI,
         "scope": SCOPES,
-        "state": state,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
+        "state": verifier,
     }
     return f"{AUTHORIZE_URL}?{urlencode(params)}"
 
@@ -204,9 +207,10 @@ def main() -> int:
         return 1
     llm_path = Path(sys.argv[1])
 
-    verifier, challenge, state = make_pkce()
-    _EXPECTED_STATE = state
-    url = make_authorize_url(challenge, state)
+    verifier, challenge = make_pkce()
+    # Bei Anthropic: state == verifier (pi-mono Pattern)
+    _EXPECTED_STATE = verifier
+    url = make_authorize_url(challenge, verifier)
 
     print()
     print("\033[1;36m── Anthropic OAuth ──\033[0m")
@@ -261,14 +265,14 @@ def main() -> int:
             print("  Kein Code erkannt in der Eingabe — abgebrochen.", file=sys.stderr)
             return 1
         _RESULT["code"] = parsed["code"]
-        _RESULT["state"] = parsed.get("state") or state
+        _RESULT["state"] = parsed.get("state") or verifier
 
     if "code" not in _RESULT:
         print("\033[1;31m  Timeout — kein Callback in 5 Minuten\033[0m", file=sys.stderr)
         return 1
 
     code = _RESULT["code"]
-    cb_state = _RESULT.get("state") or state
+    cb_state = _RESULT.get("state") or verifier
     try:
         token = exchange_code(code=code, verifier=verifier, state=cb_state)
     except HTTPError as e:
