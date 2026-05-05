@@ -25,6 +25,7 @@ async def stream_with_tools(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
+    reasoning_effort: str | None = None,
 ) -> AsyncIterator[dict]:
     """Yields normalized stream events as dicts.
 
@@ -56,6 +57,7 @@ async def stream_with_tools(
             tools=tools,
             temperature=temperature,
             max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
         ):
             yield ev
         return
@@ -73,5 +75,6 @@ async def stream_with_tools(
         tools=tools,
         temperature=temperature,
         max_tokens=max_tokens,
+        reasoning_effort=reasoning_effort,
     ):
         yield ev
