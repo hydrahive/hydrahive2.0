@@ -131,16 +131,20 @@ sys.exit(0 if d.get('providers') else 1)
   [ "$def_idx" -gt "${#all_models[@]}" ] && def_idx=1
   default_model="${all_models[$((def_idx-1))]}"
 
-  # llm.json schreiben — Daten via stdin an Python (Keys nicht in ps sichtbar)
+  # llm.json schreiben — Daten via stdin an Python (Keys nicht in ps sichtbar).
+  # `python3 -c '...'` statt heredoc, weil Heredoc-Stdin sonst die Pipe-Stdin
+  # überschreibt → Python würde leere Daten lesen.
   mkdir -p "$HH_CONFIG_DIR"
-  {
+  if ! {
     printf "%s\n" "$default_model"
     for entry in "${sel_entries[@]}"; do
       printf "%s\n" "$entry"
     done
-  } | python3 - "$llm_json" <<'PY'
+  } | python3 -c '
 import json, sys
 lines = sys.stdin.read().splitlines()
+if not lines:
+    sys.exit("no input")
 default_model = lines[0]
 providers = []
 for line in lines[1:]:
@@ -156,9 +160,12 @@ for line in lines[1:]:
 out = {"providers": providers, "default_model": default_model, "embed_model": ""}
 with open(sys.argv[1], "w") as f:
     json.dump(out, f, indent=2)
-PY
+' "$llm_json" 2>&1; then
+    log "FEHLER: llm.json schreiben fehlgeschlagen — Provider später unter https://<server>/llm eintragen"
+    return 0
+  fi
 
-  chmod 640 "$llm_json"
+  chmod 640 "$llm_json" 2>/dev/null || true
   chown "root:${HH_USER:-hydrahive}" "$llm_json" 2>/dev/null || true
   log "LLM-Config geschrieben: $llm_json (Default: $default_model)"
 }
