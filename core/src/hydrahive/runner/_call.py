@@ -67,6 +67,7 @@ async def call_with_stream_or_fallback(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
+    reasoning_effort: str | None = None,
 ) -> AsyncIterator[Event | CallResult]:
     """Tries streaming on primary; falls back to non-streaming with model failover."""
     if not models:
@@ -82,6 +83,7 @@ async def call_with_stream_or_fallback(
         async for raw_ev in stream_with_tools(
             model=primary, system_prompt=system_prompt, messages=messages,
             tools=tools, temperature=temperature, max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
         ):
             t = raw_ev.get("type")
             if t == "message_start":

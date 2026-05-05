@@ -24,6 +24,30 @@ _OAUTH_IDENTITY = [
 # api.minimax.io = Global Platform; api.minimaxi.com = China — nicht kreuzkompatibel.
 MINIMAX_BASE_URL = "https://api.minimax.io/anthropic"
 
+# Reasoning-Effort → Anthropic extended_thinking budget_tokens.
+# Auswahl bewusst niedrig: high = 16k Tokens reicht für die meisten Tool-Loops,
+# bei Bedarf später erweitern. low/medium sind Schnellschuss-Optionen.
+EFFORT_TO_BUDGET = {"low": 1024, "medium": 4096, "high": 16384}
+
+
+def apply_thinking_budget(kwargs: dict, effort: str | None) -> None:
+    """Wenn effort gesetzt: aktiviert Anthropic Extended Thinking.
+
+    - thinking-Block mit budget_tokens
+    - max_tokens automatisch hochgezogen (Anthropic verlangt max > budget)
+    - temperature auf 1.0 (Anthropic erlaubt nur 1.0 mit thinking)
+    Bei effort=None: kein-op.
+    """
+    if not effort:
+        return
+    budget = EFFORT_TO_BUDGET.get(effort)
+    if budget is None:
+        return
+    kwargs["thinking"] = {"type": "enabled", "budget_tokens": budget}
+    if kwargs.get("max_tokens", 0) <= budget:
+        kwargs["max_tokens"] = budget + 4096
+    kwargs["temperature"] = 1.0
+
 
 def strip_provider_prefix(model: str) -> str:
     """Removes 'anthropic/' or 'minimax/' prefix for direct SDK calls."""
