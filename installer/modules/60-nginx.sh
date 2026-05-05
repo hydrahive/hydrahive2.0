@@ -5,6 +5,11 @@ set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
 
+if [ "${HH_INSTALL_NGINX:-yes}" = "no" ]; then
+  log "nginx übersprungen (HH_INSTALL_NGINX=no)"
+  exit 0
+fi
+
 if ! command -v nginx >/dev/null 2>&1; then
   log "Installiere nginx"
   apt-get install -y nginx

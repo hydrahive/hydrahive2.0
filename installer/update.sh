@@ -13,6 +13,19 @@ err() { printf "\033[1;31m[hh2-update]\033[0m %s\n" "$*" >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || err "Bitte mit sudo / als root ausführen."
 [ -d "$HH_REPO_DIR/.git" ] || err "$HH_REPO_DIR ist kein Git-Repo."
 
+# install.conf laden (Komponenten-Auswahl aus install.sh) — ENV gewinnt darüber.
+INSTALL_CONF="$HH_CONFIG_DIR/install.conf"
+if [ -f "$INSTALL_CONF" ]; then
+  while IFS='=' read -r key value; do
+    case "$key" in ''|\#*) continue ;; esac
+    value="${value#\"}"; value="${value%\"}"
+    value="${value#\'}"; value="${value%\'}"
+    if [ -z "${!key:-}" ]; then
+      export "$key=$value"
+    fi
+  done < "$INSTALL_CONF"
+fi
+
 cd "$HH_REPO_DIR"
 
 # Re-exec-Schutz: nach git pull prüfen wir ob update.sh sich selbst geändert

@@ -9,8 +9,8 @@
 # Wenn HH_SKIP_AGENTLINK=yes gesetzt ist, wird übersprungen.
 set -euo pipefail
 
-if [ "${HH_SKIP_AGENTLINK:-no}" = "yes" ]; then
-  echo "AgentLink übersprungen (HH_SKIP_AGENTLINK=yes)"
+if [ "${HH_SKIP_AGENTLINK:-no}" = "yes" ] || [ "${HH_INSTALL_AGENTLINK:-yes}" = "no" ]; then
+  echo "AgentLink übersprungen (HH_INSTALL_AGENTLINK=no)"
   exit 0
 fi
 

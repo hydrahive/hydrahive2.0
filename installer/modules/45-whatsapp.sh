@@ -5,6 +5,11 @@ set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
 
+if [ "${HH_INSTALL_WHATSAPP:-yes}" = "no" ]; then
+  log "WhatsApp-Bridge übersprungen (HH_INSTALL_WHATSAPP=no)"
+  exit 0
+fi
+
 BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
 
 if [ ! -f "$BRIDGE_DIR/package.json" ]; then

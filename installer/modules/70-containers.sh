@@ -9,6 +9,12 @@
 set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
+
+if [ "${HH_INSTALL_CONTAINERS:-yes}" = "no" ]; then
+  log "Container-Manager übersprungen (HH_INSTALL_CONTAINERS=no)"
+  exit 0
+fi
+
 HH_USER="${HH_USER:-hydrahive}"
 
 log "incus-Paket installieren"

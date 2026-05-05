@@ -10,6 +10,12 @@
 set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
+
+if [ "${HH_INSTALL_VMS:-yes}" = "no" ]; then
+  log "VM-Manager übersprungen (HH_INSTALL_VMS=no)"
+  exit 0
+fi
+
 HH_USER="${HH_USER:-hydrahive}"
 INSTALLER_DIR="${INSTALLER_DIR:-/opt/hydrahive2/installer}"
 
