@@ -27,9 +27,10 @@ _PROVIDER_ENDPOINTS = {
     "openrouter": {"url": "https://openrouter.ai/api/v1/models", "auth": "bearer"},
     "gemini":     {"url": "https://generativelanguage.googleapis.com/v1beta/models",
                    "auth": "query", "query_param": "key"},
-    # Anthropic + MiniMax haben kein public /v1/models-Endpoint → static
-    "anthropic":  {"url": None, "auth": None},
-    "minimax":    {"url": None, "auth": None},
+    # Anthropic + MiniMax + OpenAI-Codex haben kein public /v1/models-Endpoint → static
+    "anthropic":    {"url": None, "auth": None},
+    "minimax":      {"url": None, "auth": None},
+    "openai-codex": {"url": None, "auth": None},
 }
 
 # Static-Listen für Provider ohne /v1/models-Endpoint.
@@ -42,6 +43,17 @@ _STATIC_MODELS = {
         "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.7", "MiniMax-M1",
         "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat",
         "embo-01",
+    ],
+    "openai-codex": [
+        "openai-codex/gpt-5.5",
+        "openai-codex/gpt-5.4",
+        "openai-codex/gpt-5.3-codex",
+        "openai-codex/gpt-5.3-codex-spark",
+        "openai-codex/gpt-5.2",
+        "openai-codex/gpt-5.2-codex",
+        "openai-codex/gpt-5.1",
+        "openai-codex/gpt-5.1-codex-max",
+        "openai-codex/gpt-5.1-codex-mini",
     ],
 }
 
@@ -104,6 +116,18 @@ _METADATA: dict[str, dict[str, Any]] = {
     "openai/gpt-4o-mini":{"context_window": 128_000, "tool_use": True, "category": "chat", "family": "gpt"},
     "openai/o1-preview": {"context_window": 128_000, "tool_use": False, "category": "reasoning", "family": "gpt"},
     "openai/o1-mini":    {"context_window": 128_000, "tool_use": False, "category": "reasoning", "family": "gpt"},
+    # OpenAI Codex (ChatGPT Plus/Pro via OAuth — Responses-API).
+    # Context-Windows: gpt-5-Klasse hat ~272k bei OpenAI dokumentiert; codex-Varianten
+    # geben ~400k im Codex-Backend frei. Tool-Use bei allen Codex-Modellen.
+    "openai-codex/gpt-5.5":              {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.4":              {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.3-codex":        {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.3-codex-spark":  {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.2":              {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.2-codex":        {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.1":              {"context_window": 272_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.1-codex-max":    {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.1-codex-mini":   {"context_window": 200_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
 }
 
 
