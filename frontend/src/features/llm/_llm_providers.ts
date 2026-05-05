@@ -6,24 +6,25 @@ export const KNOWN_PROVIDERS = [
     models: ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022"],
   },
   {
+    // LiteLLM-Routing: alle non-Anthropic/non-MiniMax Modelle MÜSSEN den Provider-Prefix haben.
     id: "openai", name: "OpenAI", placeholder: "sk-...",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo", "o1-preview", "o1-mini"],
+    models: ["openai/gpt-4o", "openai/gpt-4o-mini", "openai/gpt-4-turbo", "openai/gpt-4", "openai/gpt-3.5-turbo", "openai/o1-preview", "openai/o1-mini"],
   },
   {
     id: "openrouter", name: "OpenRouter", placeholder: "sk-or-...",
-    models: ["anthropic/claude-sonnet-4-6", "openai/gpt-4o", "google/gemini-2.0-flash-exp", "deepseek/deepseek-r1", "meta-llama/llama-3.3-70b-instruct"],
+    models: ["openrouter/anthropic/claude-sonnet-4-6", "openrouter/openai/gpt-4o", "openrouter/google/gemini-2.0-flash-exp", "openrouter/deepseek/deepseek-r1", "openrouter/meta-llama/llama-3.3-70b-instruct"],
   },
   {
     id: "groq", name: "Groq", placeholder: "gsk_...",
-    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "deepseek-r1-distill-llama-70b"],
+    models: ["groq/llama-3.3-70b-versatile", "groq/llama-3.1-8b-instant", "groq/mixtral-8x7b-32768", "groq/deepseek-r1-distill-llama-70b"],
   },
   {
     id: "mistral", name: "Mistral", placeholder: "...",
-    models: ["mistral-large-latest", "mistral-small-latest", "codestral-latest", "open-mistral-nemo"],
+    models: ["mistral/mistral-large-latest", "mistral/mistral-small-latest", "mistral/codestral-latest", "mistral/open-mistral-nemo"],
   },
   {
     id: "gemini", name: "Google Gemini", placeholder: "AIza...",
-    models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"],
+    models: ["gemini/gemini-2.0-flash-exp", "gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash", "gemini/gemini-1.5-flash-8b"],
   },
   {
     id: "minimax", name: "MiniMax", placeholder: "eyJ...",

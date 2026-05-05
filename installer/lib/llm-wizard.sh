@@ -10,15 +10,17 @@
 # Die Modell-Listen sind als sinnvolle Defaults gemeint — der User kann
 # sie später unter https://server/llm anpassen.
 provider_info() {
+  # Modell-IDs mit LiteLLM-Provider-Prefix wo nötig (außer Anthropic + MiniMax,
+  # die laufen direkt über das anthropic-SDK und brauchen den Prefix nicht).
   case "$1" in
     anthropic)  echo "Anthropic|claude-sonnet-4-6,claude-opus-4-7,claude-haiku-4-5|https://console.anthropic.com/" ;;
-    openai)     echo "OpenAI|gpt-5,gpt-5-mini,gpt-4o|https://platform.openai.com/api-keys" ;;
+    openai)     echo "OpenAI|openai/gpt-5,openai/gpt-5-mini,openai/gpt-4o|https://platform.openai.com/api-keys" ;;
     minimax)    echo "MiniMax|MiniMax-Text-01,MiniMax-M1|https://intl.minimaxi.com/" ;;
-    openrouter) echo "OpenRouter|openrouter/auto,anthropic/claude-sonnet-4-6,openai/gpt-5|https://openrouter.ai/keys" ;;
-    groq)       echo "Groq|llama-3.3-70b-versatile,llama-3.1-8b-instant|https://console.groq.com/keys" ;;
-    mistral)    echo "Mistral|mistral-large-latest,mistral-medium|https://console.mistral.ai/api-keys/" ;;
-    gemini)     echo "Google Gemini|gemini-2.0-flash,gemini-2.0-pro|https://aistudio.google.com/apikey" ;;
-    nvidia)     echo "NVIDIA NIM|meta/llama-3.3-70b-instruct|https://build.nvidia.com/" ;;
+    openrouter) echo "OpenRouter|openrouter/auto,openrouter/anthropic/claude-sonnet-4-6,openrouter/openai/gpt-5|https://openrouter.ai/keys" ;;
+    groq)       echo "Groq|groq/llama-3.3-70b-versatile,groq/llama-3.1-8b-instant|https://console.groq.com/keys" ;;
+    mistral)    echo "Mistral|mistral/mistral-large-latest,mistral/mistral-medium|https://console.mistral.ai/api-keys/" ;;
+    gemini)     echo "Google Gemini|gemini/gemini-2.0-flash,gemini/gemini-2.0-pro|https://aistudio.google.com/apikey" ;;
+    nvidia)     echo "NVIDIA NIM|nvidia_nim/meta/llama-3.3-70b-instruct,nvidia_nim/meta/llama-3.1-405b-instruct|https://build.nvidia.com/" ;;
   esac
 }
 
