@@ -16,6 +16,7 @@ export const KNOWN_PROVIDERS = [
     id: "openai-codex", name: "ChatGPT Plus/Pro (Codex)", placeholder: "OAuth — kein Key nötig",
     auth: "oauth" as const,
     models: [
+      "openai-codex/gpt-5.5",
       "openai-codex/gpt-5.4",
       "openai-codex/gpt-5.3-codex",
       "openai-codex/gpt-5.3-codex-spark",
