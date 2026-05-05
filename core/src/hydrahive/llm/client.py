@@ -82,6 +82,21 @@ async def complete(
             raise ValueError("Anthropic-Auth fehlt — API-Key oder OAuth-Login auf der LLM-Seite")
         return await anthropic_complete(key, messages, target, temperature, max_tokens)
 
+    if target.startswith("openai/"):
+        from hydrahive.oauth.openai_codex import resolve_openai_codex_token
+        codex_token = await resolve_openai_codex_token()
+        if codex_token.get("access"):
+            from hydrahive.runner._codex_provider import codex_call
+            blocks, _ = await codex_call(
+                access_token=codex_token["access"],
+                account_id=codex_token.get("account_id", ""),
+                model=target[len("openai/"):],
+                system_prompt="",
+                messages=messages,
+                tools=[],
+            )
+            return "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+
     apply_keys(cfg)
     resp = await litellm.acompletion(
         model=target, messages=messages,
@@ -115,6 +130,23 @@ async def stream(
         async for chunk in anthropic_stream(key, messages, target, temperature, max_tokens):
             yield chunk
         return
+
+    if target.startswith("openai/"):
+        from hydrahive.oauth.openai_codex import resolve_openai_codex_token
+        codex_token = await resolve_openai_codex_token()
+        if codex_token.get("access"):
+            from hydrahive.runner._codex_provider import codex_stream
+            async for ev in codex_stream(
+                access_token=codex_token["access"],
+                account_id=codex_token.get("account_id", ""),
+                model=target[len("openai/"):],
+                system_prompt="",
+                messages=messages,
+                tools=[],
+            ):
+                if ev.get("type") == "text_delta":
+                    yield ev.get("text", "")
+            return
 
     apply_keys(cfg)
     resp = await litellm.acompletion(

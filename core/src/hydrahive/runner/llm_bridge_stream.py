@@ -8,6 +8,7 @@ import logging
 from typing import AsyncIterator
 
 from hydrahive.llm import client as llm_client
+from hydrahive.runner._codex_provider import codex_stream
 from hydrahive.runner._stream_providers import anthropic_stream, minimax_stream
 
 logger = logging.getLogger(__name__)
@@ -62,9 +63,24 @@ async def stream_with_tools(
             yield ev
         return
 
+    if target.startswith("openai/"):
+        from hydrahive.oauth.openai_codex import resolve_openai_codex_token
+        codex_token = await resolve_openai_codex_token()
+        if codex_token.get("access"):
+            async for ev in codex_stream(
+                access_token=codex_token["access"],
+                account_id=codex_token.get("account_id", ""),
+                model=target[len("openai/"):],
+                system_prompt=system_prompt,
+                messages=messages,
+                tools=tools,
+            ):
+                yield ev
+            return
+
     is_claude = llm_client._strip_provider_prefix(target).startswith("claude-")
     if not is_claude:
-        raise StreamingNotSupported("Streaming nur für Anthropic + MiniMax implementiert")
+        raise StreamingNotSupported("Streaming nur für Anthropic + MiniMax + OpenAI-Codex implementiert")
     # OAuth-fähig: erst frischen Token holen (refresht automatisch wenn nötig)
     from hydrahive.oauth.anthropic import resolve_anthropic_token
     anthropic_key = await resolve_anthropic_token()
