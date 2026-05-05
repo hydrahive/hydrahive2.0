@@ -15,7 +15,7 @@ provider_info() {
   case "$1" in
     anthropic)  echo "Anthropic|claude-sonnet-4-6,claude-opus-4-7,claude-haiku-4-5|https://console.anthropic.com/" ;;
     openai)     echo "OpenAI|openai/gpt-5,openai/gpt-5-mini,openai/gpt-4o|https://platform.openai.com/api-keys" ;;
-    minimax)    echo "MiniMax|MiniMax-Text-01,MiniMax-M1|https://intl.minimaxi.com/" ;;
+    minimax)    echo "MiniMax|MiniMax-Text-01,MiniMax-M2|https://intl.minimaxi.com/" ;;
     openrouter) echo "OpenRouter|openrouter/auto,openrouter/anthropic/claude-sonnet-4-6,openrouter/openai/gpt-5|https://openrouter.ai/keys" ;;
     groq)       echo "Groq|groq/llama-3.3-70b-versatile,groq/llama-3.1-8b-instant|https://console.groq.com/keys" ;;
     mistral)    echo "Mistral|mistral/mistral-large-latest,mistral/mistral-medium|https://console.mistral.ai/api-keys/" ;;
