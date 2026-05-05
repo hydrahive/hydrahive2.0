@@ -7,6 +7,7 @@ import { ChatPage } from "@/features/chat/ChatPage"
 import { AgentsPage } from "@/features/agents/AgentsPage"
 import { ProjectsPage } from "@/features/projects/ProjectsPage"
 import { LlmPage } from "@/features/llm/LlmPage"
+import { CatalogPage } from "@/features/llm/CatalogPage"
 import { McpPage } from "@/features/mcp/McpPage"
 import { SkillsPage } from "@/features/skills/SkillsPage"
 import { CredentialsPage } from "@/features/credentials/CredentialsPage"
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="butler" element={<ButlerPage />} />
           <Route path="datamining" element={<DataminingPage />} />
           <Route path="llm" element={<LlmPage />} />
+          <Route path="llm/catalog" element={<CatalogPage />} />
           <Route path="mcp" element={<McpPage />} />
           <Route path="skills" element={<SkillsPage />} />
           <Route path="credentials" element={<CredentialsPage />} />

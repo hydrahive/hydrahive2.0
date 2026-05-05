@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { CheckCircle, Loader2, Plus, XCircle, Zap } from "lucide-react"
+import { BookOpen, CheckCircle, Loader2, Plus, XCircle, Zap } from "lucide-react"
+import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { llmApi, type EmbedModel, type LlmConfig, type LlmProvider } from "./api"
@@ -66,7 +67,13 @@ export function LlmPage() {
           <h1 className="text-xl font-bold text-white">{t("title")}</h1>
           <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
         </div>
-        <HelpButton topic="llm" />
+        <div className="flex items-center gap-2">
+          <Link to="/llm/catalog"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-violet-300 hover:text-violet-200 hover:bg-violet-500/10 border border-violet-500/30">
+            <BookOpen size={13} /> Modell-Catalog
+          </Link>
+          <HelpButton topic="llm" />
+        </div>
       </div>
 
       <div className="space-y-2">
