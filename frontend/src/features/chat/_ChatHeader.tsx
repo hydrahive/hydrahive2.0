@@ -4,6 +4,7 @@ import { HelpButton } from "@/i18n/HelpButton"
 import { ModelPicker } from "./ModelPicker"
 import { TokenMeter } from "./TokenMeter"
 import { chatApi } from "./api"
+import { agentsApi } from "@/features/agents/api"
 import type { ChatState } from "./useChat"
 import type { AgentBrief, Session } from "./types"
 
@@ -19,12 +20,13 @@ interface Props {
   onCompact: () => void
   onDelete: () => void
   onSessionChanged: (session: Session) => void
+  onAgentChanged?: (agent: AgentBrief) => void
   tokenRefresh: number
 }
 
 export function ChatHeader({
   session, agent, orphaned, compacting, compactNote,
-  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onSessionChanged, tokenRefresh,
+  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onSessionChanged, onAgentChanged, tokenRefresh,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
 
@@ -44,18 +46,17 @@ export function ChatHeader({
               <span className="text-zinc-500 inline-flex items-center gap-1">
                 ·{" "}
                 <ModelPicker
-                  current={(session.metadata as { model_override?: string })?.model_override || agent.llm_model}
-                  hint={(session.metadata as { model_override?: string })?.model_override
-                    ? `Override aktiv (Default: ${agent.llm_model})`
-                    : "Modell für diese Session wählen"}
-                  showReset={!!(session.metadata as { model_override?: string })?.model_override}
+                  current={agent.llm_model}
+                  hint="Modell für diesen Agenten wechseln (gilt für alle Sessions)"
                   onPick={async (m) => {
-                    const updated = await chatApi.updateSession(session.id, { model_override: m })
-                    onSessionChanged(updated)
-                  }}
-                  onReset={async () => {
-                    const updated = await chatApi.updateSession(session.id, { model_override: "" })
-                    onSessionChanged(updated)
+                    // Agent-Default ändern (greift sofort + im /model-Output) UND
+                    // alten Session-Override räumen damit nichts kollidiert.
+                    const updatedAgent = await agentsApi.update(agent.id, { llm_model: m })
+                    onAgentChanged?.({ ...agent, llm_model: updatedAgent.llm_model })
+                    if ((session.metadata as { model_override?: string })?.model_override) {
+                      const updated = await chatApi.updateSession(session.id, { model_override: "" })
+                      onSessionChanged(updated)
+                    }
                   }}
                 />
               </span>
