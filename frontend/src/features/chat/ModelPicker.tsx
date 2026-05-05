@@ -68,6 +68,7 @@ export function ModelPicker({ session, agentDefaultModel, onChanged }: Props) {
   return (
     <div className="relative inline-block" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         disabled={saving}
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-xs transition-colors ${
@@ -89,6 +90,7 @@ export function ModelPicker({ session, agentDefaultModel, onChanged }: Props) {
           <div className="max-h-72 overflow-y-auto">
             {override && (
               <button
+                type="button"
                 onClick={() => pick(null)}
                 className="w-full text-left px-3 py-1.5 text-xs text-zinc-400 hover:bg-white/5 flex items-center gap-2 border-b border-white/5"
               >
@@ -103,6 +105,7 @@ export function ModelPicker({ session, agentDefaultModel, onChanged }: Props) {
             {models.map((m) => (
               <button
                 key={m}
+                type="button"
                 onClick={() => pick(m)}
                 className={`w-full text-left px-3 py-1.5 text-xs font-mono transition-colors ${
                   m === active
