@@ -160,18 +160,20 @@ sys.exit(0 if d.get('providers') else 1)
     done
   } | python3 -c '
 import json, sys
-# Existing llm.json laden — OAuth-Block + embed_model erhalten
+# Existing llm.json laden — OAuth-Block + embed_model + nicht angefasste Provider erhalten
 try:
     existing = json.load(open(sys.argv[1]))
 except Exception:
     existing = {}
-old_by_id = {p.get("id"): p for p in existing.get("providers", [])}
+existing_providers = existing.get("providers", [])
+old_by_id = {p.get("id"): p for p in existing_providers}
 
 lines = sys.stdin.read().splitlines()
 if not lines:
     sys.exit("no input")
 default_model = lines[0]
-providers = []
+new_providers = []
+new_pids = set()
 for line in lines[1:]:
     if not line:
         continue
@@ -186,10 +188,15 @@ for line in lines[1:]:
     old = old_by_id.get(pid) or {}
     if old.get("oauth"):
         p["oauth"] = old["oauth"]
-    providers.append(p)
+    new_providers.append(p)
+    new_pids.add(pid)
+# Provider die im aktuellen Wizard NICHT ausgewählt wurden bleiben unverändert.
+for p in existing_providers:
+    if p.get("id") not in new_pids:
+        new_providers.append(p)
 out = {
-    "providers": providers,
-    "default_model": default_model,
+    "providers": new_providers,
+    "default_model": default_model or existing.get("default_model", ""),
     "embed_model": existing.get("embed_model", ""),
 }
 with open(sys.argv[1], "w") as f:
