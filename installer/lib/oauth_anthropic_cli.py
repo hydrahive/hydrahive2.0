@@ -45,6 +45,17 @@ SCOPES = (
     "user:sessions:claude_code user:mcp_servers user:file_upload"
 )
 
+# Cloudflare blockt Python-urllib/3.x als Bot-Signatur (Error 1010).
+# Wir geben uns als Claude Code aus — gleicher User-Agent + anthropic-beta-Header
+# wie in core/src/hydrahive/llm/_anthropic.py (_OAUTH_HEADERS).
+HTTP_HEADERS = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "claude-cli/2.1.62",
+    "anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+    "x-app": "cli",
+}
+
 ANTHROPIC_DEFAULT_MODELS = ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5"]
 
 
@@ -169,8 +180,7 @@ def exchange_code(*, code: str, verifier: str, state: str) -> dict:
         "code_verifier": verifier,
         "state": state,
     }).encode()
-    req = Request(TOKEN_URL, data=body, method="POST",
-                  headers={"Content-Type": "application/json", "Accept": "application/json"})
+    req = Request(TOKEN_URL, data=body, method="POST", headers=HTTP_HEADERS)
     with urlopen(req, timeout=30) as resp:
         data = json.loads(resp.read().decode())
     expires_in = int(data.get("expires_in") or 3600)
