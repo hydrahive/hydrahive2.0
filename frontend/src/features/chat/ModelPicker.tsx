@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown, RotateCcw } from "lucide-react"
 import { llmApi } from "@/features/llm/api"
+import { KNOWN_PROVIDERS } from "@/features/llm/_llm_providers"
 import { chatApi } from "./api"
 import type { Session } from "./types"
 
@@ -24,7 +25,23 @@ export function ModelPicker({ session, agentDefaultModel, onChanged }: Props) {
   useEffect(() => {
     if (!open) return
     llmApi.getConfig()
-      .then((cfg) => setModels(cfg.providers.flatMap((p) => p.models)))
+      .then((cfg) => {
+        // Gespeicherte Modelle in llm.json
+        const stored = new Set(cfg.providers.flatMap((p) => p.models))
+        // Zusätzlich: alle KNOWN-Modelle der konfigurierten Provider
+        // (Provider gilt als konfiguriert wenn api_key oder oauth-Block vorhanden)
+        const configuredIds = new Set(
+          cfg.providers
+            .filter((p) => !!p.api_key || !!(p as { oauth?: { access?: string } }).oauth?.access)
+            .map((p) => p.id),
+        )
+        for (const known of KNOWN_PROVIDERS) {
+          if (configuredIds.has(known.id)) {
+            for (const m of known.models) stored.add(m)
+          }
+        }
+        setModels(Array.from(stored).sort())
+      })
       .catch(() => {})
   }, [open])
 
