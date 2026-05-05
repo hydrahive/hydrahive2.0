@@ -99,12 +99,22 @@ sys.exit(0 if d.get('providers') else 1)
     url="${rest##*|}"
     printf "  \033[1;37m%s\033[0m\n" "$name" >/dev/tty
 
-    # OAuth-Pfad — aktuell nur Anthropic
+    # OAuth-Pfad — Anthropic (Claude Pro/Max) + OpenAI Codex (ChatGPT Plus/Pro)
     if [ "$pid" = "anthropic" ]; then
       if ask_yn "  OAuth-Login (Pro/Max-Account, kein API-Key nötig)?" "y"; then
         if python3 "$INSTALLER_DIR/lib/oauth_anthropic_cli.py" "$llm_json"; then
           oauth_done+=("anthropic")
-          # Modelle für Default-Auswahl trotzdem registrieren — kein Key nötig
+          sel_entries+=("$pid|$name|<oauth>|$models")
+          continue
+        else
+          log "  OAuth fehlgeschlagen — fallback auf API-Key"
+        fi
+      fi
+    fi
+    if [ "$pid" = "openai" ]; then
+      if ask_yn "  OAuth-Login (ChatGPT Plus/Pro via Codex, kein API-Key nötig)?" "y"; then
+        if python3 "$INSTALLER_DIR/lib/oauth_codex_cli.py" "$llm_json"; then
+          oauth_done+=("openai")
           sel_entries+=("$pid|$name|<oauth>|$models")
           continue
         else
