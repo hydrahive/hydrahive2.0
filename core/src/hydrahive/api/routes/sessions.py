@@ -73,6 +73,9 @@ def update_session(
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     check_owner(s, *auth)
     sessions_db.update(session_id, title=req.title, status=req.status)
+    # model_override getrennt — unter metadata, read-modify-write
+    if req.model_override is not None:
+        sessions_db.set_model_override(session_id, req.model_override or None)
     return serialize_session(sessions_db.get(session_id))
 
 

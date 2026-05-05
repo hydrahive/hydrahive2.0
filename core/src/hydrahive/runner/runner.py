@@ -129,10 +129,15 @@ async def run(
 
         blocks: list[dict] = []
         stop_reason = iter_input_tokens = iter_output_tokens = iter_cache_creation = iter_cache_read = 0
-        used_model = agent["llm_model"]
+        # Pro-Session-Override (Chat-Header-Switcher) gewinnt vor Agent-Default.
+        # Re-Read aus DB damit ein Switch ohne Server-Restart sofort greift.
+        _fresh_session = sessions_db.get(session_id)
+        model_override = (_fresh_session.metadata or {}).get("model_override") if _fresh_session else None
+        primary_model = model_override or agent["llm_model"]
+        used_model = primary_model
         stop_reason = ""
         try:
-            models = [agent["llm_model"]] + list(agent.get("fallback_models", []) or [])
+            models = [primary_model] + list(agent.get("fallback_models", []) or [])
             async for item in call_with_stream_or_fallback(
                 models=models, system_prompt=system_prompt, messages=anth_messages, tools=tool_schemas,
                 temperature=agent.get("temperature", 0.7), max_tokens=agent.get("max_tokens", 4096),

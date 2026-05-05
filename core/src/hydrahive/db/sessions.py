@@ -123,6 +123,20 @@ def update(
         mirror.schedule_session(s)
 
 
+def set_model_override(session_id: str, model: str | None) -> None:
+    """Setzt session.metadata['model_override']. None entfernt den Override.
+    Read-modify-write: andere metadata-Felder bleiben erhalten."""
+    s = get(session_id)
+    if not s:
+        return
+    md = dict(s.metadata or {})
+    if model:
+        md["model_override"] = model
+    else:
+        md.pop("model_override", None)
+    update(session_id, metadata=md)
+
+
 def touch(session_id: str) -> None:
     with db() as conn:
         conn.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now_iso(), session_id))
