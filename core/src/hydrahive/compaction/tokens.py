@@ -77,6 +77,13 @@ def context_window_for(model: str) -> int:
         return 128_000
     if "llama" in m or "mistral" in m or "mixtral" in m:
         return 128_000
+    # qwen ist nicht uniform — manche Varianten haben nur 32k, andere 256k
     if "qwen" in m:
-        return 262_144
+        # qwen2.5-coder (32b/7b/14b) hat 32k, qwen2.5 generisch 32k
+        if "qwen2.5-coder" in m or "qwen2.5" in m:
+            return 32_000
+        # qwen3, qwen3-next, qwen3-coder, qwen3.5 haben 256k
+        if "qwen3" in m:
+            return 262_144
+        return 32_000  # unbekannte qwen-Variante: konservativ
     return 32_000  # safe default
