@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react"
-import { ChevronDown, RotateCcw } from "lucide-react"
+import { useEffect, useState } from "react"
 import { llmApi } from "@/features/llm/api"
 import { KNOWN_PROVIDERS } from "@/features/llm/_llm_providers"
 import { chatApi } from "./api"
@@ -11,25 +10,23 @@ interface Props {
   onChanged: (session: Session) => void
 }
 
-/** Pill im Chat-Header: zeigt das aktive Modell, Klick = Dropdown.
- *  Override pro Session, Reset stellt zurück auf Agent-Default. */
+const RESET_VALUE = "__RESET__"
+
+/** Native <select> für Modellwahl pro Session.
+ *  Override pro Session, "Zurück zum Agent-Default" als erste Option. */
 export function ModelPicker({ session, agentDefaultModel, onChanged }: Props) {
-  const [open, setOpen] = useState(false)
   const [models, setModels] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
 
   const override = (session.metadata as { model_override?: string })?.model_override || ""
   const active = override || agentDefaultModel
 
   useEffect(() => {
-    if (!open) return
+    let alive = true
     llmApi.getConfig()
       .then((cfg) => {
-        // Gespeicherte Modelle in llm.json
+        if (!alive) return
         const stored = new Set(cfg.providers.flatMap((p) => p.models))
-        // Zusätzlich: alle KNOWN-Modelle der konfigurierten Provider
-        // (Provider gilt als konfiguriert wenn api_key oder oauth-Block vorhanden)
         const configuredIds = new Set(
           cfg.providers
             .filter((p) => !!p.api_key || !!(p as { oauth?: { access?: string } }).oauth?.access)
@@ -43,82 +40,49 @@ export function ModelPicker({ session, agentDefaultModel, onChanged }: Props) {
         setModels(Array.from(stored).sort())
       })
       .catch(() => {})
-  }, [open])
+    return () => { alive = false }
+  }, [])
 
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [open])
-
-  async function pick(model: string | null) {
+  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const value = e.target.value
     setSaving(true)
     try {
       const updated = await chatApi.updateSession(session.id, {
-        model_override: model ?? "",  // "" → Backend entfernt den Override
+        model_override: value === RESET_VALUE ? "" : value,
       })
       onChanged(updated)
-      setOpen(false)
     } finally { setSaving(false) }
   }
 
   return (
-    <div className="relative inline-block" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        disabled={saving}
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-xs transition-colors ${
-          override
-            ? "bg-violet-500/15 text-violet-200 border border-violet-500/30 hover:bg-violet-500/20"
-            : "text-violet-300/80 hover:bg-violet-500/10"
+    <select
+      value={active}
+      onChange={handleChange}
+      disabled={saving}
+      title={override ? `Override aktiv (Default: ${agentDefaultModel})` : "Modell wechseln"}
+      className={`appearance-none cursor-pointer px-2 py-0.5 pr-6 rounded font-mono text-xs transition-colors
+        bg-no-repeat bg-[length:10px] bg-[position:right_4px_center]
+        bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23a78bfa%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%226 9 12 15 18 9%22/></svg>')]
+        ${override
+          ? "bg-violet-500/15 text-violet-200 border border-violet-500/30 hover:bg-violet-500/20"
+          : "text-violet-300/80 hover:bg-violet-500/10 border border-transparent"
         }`}
-        title={override ? `Override aktiv (Default: ${agentDefaultModel})` : "Modell wechseln"}
-      >
-        {active}
-        <ChevronDown size={10} />
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 mt-1 w-72 rounded-lg bg-zinc-950 border border-white/10 shadow-2xl z-50 overflow-hidden">
-          <div className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5">
-            Modell für diese Session
-          </div>
-          <div className="max-h-72 overflow-y-auto">
-            {override && (
-              <button
-                type="button"
-                onClick={() => pick(null)}
-                className="w-full text-left px-3 py-1.5 text-xs text-zinc-400 hover:bg-white/5 flex items-center gap-2 border-b border-white/5"
-              >
-                <RotateCcw size={11} /> Zurück zum Agent-Default ({agentDefaultModel})
-              </button>
-            )}
-            {models.length === 0 && (
-              <p className="px-3 py-3 text-xs text-zinc-600">
-                Keine Modelle konfiguriert — siehe /llm
-              </p>
-            )}
-            {models.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => pick(m)}
-                className={`w-full text-left px-3 py-1.5 text-xs font-mono transition-colors ${
-                  m === active
-                    ? "bg-violet-500/15 text-violet-200"
-                    : "text-zinc-300 hover:bg-white/5"
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-        </div>
+    >
+      {override && (
+        <option value={RESET_VALUE} className="bg-zinc-900 text-zinc-300">
+          ↺ Zurück zum Agent-Default ({agentDefaultModel})
+        </option>
       )}
-    </div>
+      {/* Falls active nicht in models steht (z.B. agent-default mit Custom-Model),
+          trotzdem als Option anbieten damit value richtig matcht */}
+      {!models.includes(active) && (
+        <option value={active} className="bg-zinc-900 text-zinc-300">{active}</option>
+      )}
+      {models.map((m) => (
+        <option key={m} value={m} className="bg-zinc-900 text-zinc-300">
+          {m}
+        </option>
+      ))}
+    </select>
   )
 }
