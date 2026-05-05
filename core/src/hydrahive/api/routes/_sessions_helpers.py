@@ -15,6 +15,9 @@ class SessionCreate(BaseModel):
 class SessionUpdate(BaseModel):
     title: str | None = None
     status: str | None = None
+    # Pro-Session-Modell-Override (Chat-Header-Switcher). Leer-String oder None
+    # entfernt den Override → fallback auf Agent-Default.
+    model_override: str | None = None
 
 
 def check_owner(session, username: str, role: str) -> None:
