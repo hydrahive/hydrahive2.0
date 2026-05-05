@@ -25,4 +25,11 @@ fi
 
 # Permissions: venv muss vom Service-User lesbar sein
 chown -R "$HH_USER:$HH_USER" "$HH_REPO_DIR"
+
+# git safe.directory — sonst bricht `sudo git pull` und `sudo -u hydrahive git pull`
+# mit "dubious ownership" ab, weil nach dem chown das Repo nicht mehr dem
+# git-aufrufenden User gehört. Für beide Nutzer eintragen.
+git config --global --add safe.directory "$HH_REPO_DIR" 2>/dev/null || true
+sudo -u "$HH_USER" git config --global --add safe.directory "$HH_REPO_DIR" 2>/dev/null || true
+
 log "Backend bereit"

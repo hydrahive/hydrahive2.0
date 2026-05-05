@@ -52,7 +52,7 @@ if ! grep -q "github.com" "$SSH_DIR/known_hosts" 2>/dev/null; then
 fi
 
 log "git pull"
-sudo -u hydrahive git pull --ff-only
+sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" pull --ff-only
 
 # Wenn update.sh selbst durch den Pull verändert wurde: einmalig re-exec mit
 # der neuen Version. HH_UPDATE_REEXECED schützt vor Endlos-Loop.
