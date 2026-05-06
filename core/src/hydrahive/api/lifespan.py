@@ -14,6 +14,7 @@ from fastapi import FastAPI
 
 from hydrahive.agents import bootstrap as agent_bootstrap
 from hydrahive.agentlink import client as agentlink_client
+from hydrahive.agentlink import handoff_receiver
 from hydrahive.api.middleware.users import ensure_admin
 from hydrahive.api.routes.system import set_start_time
 from hydrahive.api.version import update_check_loop
@@ -120,6 +121,8 @@ async def lifespan(app: FastAPI):
                 reply_to = reason.split(":", 1)[1].strip()
                 if agentlink_client.resolve_pending(reply_to, state):
                     logger.info("AgentLink: Antwort-State auf %s eingetroffen", reply_to)
+            else:
+                asyncio.create_task(handoff_receiver.handle(event), name=f"handoff-{event.state_id}")
 
         agentlink_client.start_listener(_on_event)
 

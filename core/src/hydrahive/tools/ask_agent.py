@@ -140,9 +140,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if description:
         summary_parts.append(description)
     for f in findings:
-        what = f.get("what") if isinstance(f, dict) else None
-        if what:
-            summary_parts.append(f"- {what}")
+        if isinstance(f, str) and f:
+            summary_parts.append(f"- {f}")
     output = "\n".join(summary_parts) if summary_parts else \
         f"Antwort-State {response.id} ohne lesbaren Inhalt."
 

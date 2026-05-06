@@ -23,9 +23,9 @@ class ContextBlock(BaseModel):
 
 
 class WorkingMemory(BaseModel):
-    hypotheses: list[dict] = Field(default_factory=list)
-    decisions: list[dict] = Field(default_factory=list)
-    findings: list[dict] = Field(default_factory=list)
+    hypotheses: list[str] = Field(default_factory=list)
+    decisions: list[str] = Field(default_factory=list)
+    findings: list[str] = Field(default_factory=list)
 
 
 class Handoff(BaseModel):
