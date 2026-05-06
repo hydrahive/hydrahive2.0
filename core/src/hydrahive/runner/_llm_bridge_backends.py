@@ -72,7 +72,8 @@ async def anthropic_call(
     if system_blocks:
         kwargs["system"] = system_blocks
     if tools:
-        kwargs["tools"] = tools
+        cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
+        kwargs["tools"] = cached_tools
 
     # Manche neueren Claude-Modelle (z.B. opus-4-7) akzeptieren kein temperature
     # mehr — Anthropic returnt dann 400 "temperature is deprecated for this
@@ -132,7 +133,8 @@ async def minimax_anthropic_call(
             blocks.append({"type": "text", "text": volatile_system})
         kwargs["system"] = blocks
     if tools:
-        kwargs["tools"] = tools
+        cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
+        kwargs["tools"] = cached_tools
 
     resp = await client.messages.create(**kwargs)
     blocks = [_block_to_dict(b) for b in resp.content]

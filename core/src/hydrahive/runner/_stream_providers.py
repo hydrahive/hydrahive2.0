@@ -96,7 +96,8 @@ async def anthropic_stream(
     if system_blocks:
         kwargs["system"] = system_blocks
     if tools:
-        kwargs["tools"] = tools
+        cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
+        kwargs["tools"] = cached_tools
     apply_thinking_budget(kwargs, reasoning_effort)
 
     try:
@@ -148,7 +149,8 @@ async def minimax_stream(
             blocks.append({"type": "text", "text": volatile_system})
         kwargs["system"] = blocks
     if tools:
-        kwargs["tools"] = tools
+        cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
+        kwargs["tools"] = cached_tools
 
     async with client.messages.stream(**kwargs) as stream:
         async for ev in stream:
