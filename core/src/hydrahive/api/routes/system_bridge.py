@@ -21,7 +21,7 @@ from hydrahive.settings import settings
 router = APIRouter(prefix="/api/system/bridge", tags=["system"])
 
 TRIGGER = settings.data_dir / ".bridge_setup_request"
-LOG_PATH = Path("/var/log/hydrahive2-bridge.log")
+LOG_PATH = settings.bridge_log_path
 
 
 @router.get("/status")

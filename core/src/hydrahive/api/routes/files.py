@@ -35,7 +35,7 @@ def _allowed_roots() -> list[Path]:
     config.json (Agent-Konfiguration, soll nicht über GET-File zugänglich sein).
     """
     return [
-        Path("/tmp").resolve(),
+        settings.tmp_dir.resolve(),
         (settings.data_dir / "workspaces").resolve(),
     ]
 
