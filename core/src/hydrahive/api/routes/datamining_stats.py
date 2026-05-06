@@ -17,6 +17,12 @@ router = APIRouter(prefix="/api/datamining/stats", tags=["datamining"])
 Auth = Annotated[tuple[str, str], Depends(require_auth)]
 
 
+@router.get("/latest")
+def get_latest_sessions(_auth: Auth, count: int = 5) -> dict:
+    sessions = token_stats.latest_sessions(count=min(count, 50))
+    return {"sessions": sessions}
+
+
 @router.get("/session/{session_id}")
 def get_session_stats(session_id: str, _auth: Auth) -> dict:
     result = token_stats.session_stats(session_id)
