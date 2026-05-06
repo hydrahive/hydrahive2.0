@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, status
 from pydantic import ValidationError
 
 from hydrahive.api.middleware.auth import require_auth
@@ -117,17 +118,25 @@ def delete_flow(
 async def project_webhook(
     project_id: str,
     request_body: dict = {},
+    x_webhook_secret: str | None = Header(None, alias="X-Webhook-Secret"),
 ) -> dict:
-    """Öffentlicher Webhook-Endpoint pro Projekt.
+    """Webhook-Endpoint pro Projekt mit Secret-Auth.
 
-    Feuert alle Butler-Flows aller User die einen webhook_received-Trigger
-    mit hook_id 'project:<project_id>' haben. Kein Auth — der project_id
-    selbst ist das Secret (UUID7, nicht ratebar).
+    Auth via X-Webhook-Secret Header. Ohne Secret-Header wird der alte
+    (insecure) Modus verwendet (Deprecation-Phase, wird entfernt).
     """
     from hydrahive.projects import config as project_config
     project = project_config.get(project_id)
     if not project:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+
+    # Security: Validate webhook secret
+    expected_secret = project.get("webhook_secret")
+    if expected_secret:
+        if not x_webhook_secret:
+            raise coded(status.HTTP_401_UNAUTHORIZED, "webhook_secret_required")
+        if not secrets.compare_digest(expected_secret, x_webhook_secret):
+            raise coded(status.HTTP_403_FORBIDDEN, "webhook_secret_invalid")
 
     event = TriggerEvent(
         event_type="webhook",
