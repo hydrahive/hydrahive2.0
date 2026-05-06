@@ -43,6 +43,15 @@ def is_valid_name(name: str) -> bool:
     return bool(NAME_RE.match(name))
 
 
+def _parse_tools(raw) -> list[str]:
+    if not raw:
+        return []
+    if isinstance(raw, str):
+        # Claude Code format: "Read, Grep, Bash"
+        return [t.strip() for t in raw.split(",") if t.strip()]
+    return [str(t) for t in raw if t]
+
+
 def _parse_sources(raw) -> list[SkillSource]:
     if not raw:
         return []
@@ -77,7 +86,7 @@ def parse(text: str, *, scope: SkillScope, owner: str, fallback_name: str = "") 
         name=str(front.get("name") or fallback_name),
         description=str(front.get("description") or ""),
         when_to_use=str(front.get("when_to_use") or ""),
-        tools_required=list(front.get("tools_required") or []),
+        tools_required=_parse_tools(front.get("tools_required") or front.get("allowed-tools")),
         sources=_parse_sources(front.get("sources")),
         body=body.strip(),
         scope=scope,
