@@ -20,6 +20,7 @@ dependencies = [
     "websockets>=13",
     "discord.py>=2.3",
     "asyncpg>=0.29",
+    "pytest>=9.0",
 ]
 
 [project.scripts]
