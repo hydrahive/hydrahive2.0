@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import ipaddress
+import urllib.parse
+
 import httpx
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
@@ -26,6 +29,28 @@ _SCHEMA = {
 
 _MAX_BODY = 100_000
 
+# SSRF-Protection: Block private/internal IP ranges
+_BLOCKED_RANGES = [
+    ipaddress.ip_network("127.0.0.0/8"),      # localhost
+    ipaddress.ip_network("10.0.0.0/8"),       # private
+    ipaddress.ip_network("172.16.0.0/12"),    # private
+    ipaddress.ip_network("192.168.0.0/16"),   # private
+    ipaddress.ip_network("169.254.0.0/16"),   # link-local (AWS/GCP metadata)
+    ipaddress.ip_network("::1/128"),          # IPv6 localhost
+    ipaddress.ip_network("fc00::/7"),         # IPv6 private (ULA)
+    ipaddress.ip_network("fe80::/10"),        # IPv6 link-local
+]
+
+
+def _is_blocked_ip(hostname: str) -> bool:
+    """Check if hostname resolves to a blocked IP range."""
+    try:
+        ip = ipaddress.ip_address(hostname)
+        return any(ip in net for net in _BLOCKED_RANGES)
+    except ValueError:
+        # Not a valid IP address, will be resolved by httpx
+        return False
+
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     url = (args.get("url") or "").strip()
@@ -33,6 +58,15 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("Leere URL")
     if not (url.startswith("http://") or url.startswith("https://")):
         return ToolResult.fail("Nur http:// oder https://")
+
+    # SSRF-Protection: Check if URL points to blocked IP range
+    try:
+        parsed = urllib.parse.urlparse(url)
+        hostname = parsed.hostname
+        if hostname and _is_blocked_ip(hostname):
+            return ToolResult.fail(f"Zugriff auf interne IPs gesperrt: {hostname}")
+    except Exception:
+        return ToolResult.fail("Ungültige URL")
 
     method = (args.get("method") or "GET").upper()
     if method not in _ALLOWED_METHODS:
