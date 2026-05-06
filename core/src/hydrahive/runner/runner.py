@@ -111,19 +111,22 @@ async def run(
             except Exception as e:
                 logger.warning("Compaction fehlgeschlagen: %s — fahre mit voller History fort", e)
 
-        summary = messages_db.get_latest_summary(session_id)
-        system_prompt = (f"[Bisherige Zusammenfassung]\n{summary}\n\n{base_system_prompt}"
-                         if summary else base_system_prompt)
         skills_block = build_skills_block(agent)
+        stable_system = base_system_prompt
         if skills_block:
-            system_prompt = f"{system_prompt}\n\n{skills_block}"
+            stable_system = f"{stable_system}\n\n{skills_block}"
         if extra_system:
-            system_prompt = f"{extra_system}\n\n{system_prompt}"
+            stable_system = f"{extra_system}\n\n{stable_system}"
+
         now = datetime.now().astimezone()
-        date_block = (f"Aktuelles Datum/Uhrzeit (Server): "
-                      f"{now.strftime('%Y-%m-%d %H:%M %Z')} ({now.strftime('%A')}). "
-                      f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff.")
-        system_prompt = f"{date_block}\n\n{system_prompt}"
+        date_line = (f"Aktuelles Datum/Uhrzeit (Server): "
+                     f"{now.strftime('%Y-%m-%d %H:%M %Z')} ({now.strftime('%A')}). "
+                     f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff.")
+        summary = messages_db.get_latest_summary(session_id)
+        volatile_parts = [date_line]
+        if summary:
+            volatile_parts.append(f"[Bisherige Zusammenfassung]\n{summary}")
+        volatile_system = "\n\n".join(volatile_parts)
 
         healed_history = heal_orphan_tool_uses(history)
         anth_messages = to_anthropic_messages(healed_history)
@@ -140,7 +143,8 @@ async def run(
         try:
             models = [primary_model] + list(agent.get("fallback_models", []) or [])
             async for item in call_with_stream_or_fallback(
-                models=models, system_prompt=system_prompt, messages=anth_messages, tools=tool_schemas,
+                models=models, system_prompt=stable_system, volatile_system=volatile_system,
+                messages=anth_messages, tools=tool_schemas,
                 temperature=agent.get("temperature", 0.7), max_tokens=agent.get("max_tokens", 4096),
             ):
                 if isinstance(item, CallResult):

@@ -55,6 +55,7 @@ async def anthropic_stream(
     key: str,
     model: str,
     system_prompt: str,
+    volatile_system: str | None = None,
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -79,6 +80,8 @@ async def anthropic_stream(
         system_blocks.append({"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}})
     elif system_blocks:
         system_blocks[0]["cache_control"] = {"type": "ephemeral"}
+    if volatile_system:
+        system_blocks.append({"type": "text", "text": volatile_system})
 
     kwargs: dict[str, Any] = {"model": model, "messages": messages,
                               "temperature": temperature, "max_tokens": max_tokens}
@@ -113,6 +116,7 @@ async def minimax_stream(
     api_key: str,
     model: str,
     system_prompt: str,
+    volatile_system: str | None = None,
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -127,8 +131,13 @@ async def minimax_stream(
 
     kwargs: dict[str, Any] = {"model": model, "messages": messages,
                               "temperature": temperature, "max_tokens": max_tokens}
-    if system_prompt:
-        kwargs["system"] = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
+    if system_prompt or volatile_system:
+        blocks: list[dict[str, Any]] = []
+        if system_prompt:
+            blocks.append({"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}})
+        if volatile_system:
+            blocks.append({"type": "text", "text": volatile_system})
+        kwargs["system"] = blocks
     if tools:
         kwargs["tools"] = tools
 
