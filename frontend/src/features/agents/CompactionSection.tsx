@@ -18,6 +18,7 @@ export function CompactionSection({ agent, models, onChange }: Props) {
   const reserve = agent.compact_reserve_tokens ?? 16384
   const thresholdPct = agent.compact_threshold_pct ?? 100
   const liveMax = agent.tool_result_max_chars ?? 12000
+  const cacheTtl = agent.cache_ttl ?? "1h"
 
   return (
     <div className="space-y-2">
@@ -101,6 +102,20 @@ export function CompactionSection({ agent, models, onChange }: Props) {
             <option value={12000}>12 000 ({t("compaction.default")})</option>
             <option value={20000}>20 000</option>
             <option value={50000}>50 000</option>
+          </select>
+        </div>
+
+        <div className="space-y-0.5">
+          <label className="block text-[10px] text-zinc-500" title={t("compaction.cache_ttl_help")}>
+            {t("compaction.cache_ttl")}
+          </label>
+          <select
+            value={cacheTtl}
+            onChange={(e) => onChange({ cache_ttl: e.target.value })}
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
+          >
+            <option value="1h">1h ({t("compaction.default")})</option>
+            <option value="5m">5m</option>
           </select>
         </div>
       </div>

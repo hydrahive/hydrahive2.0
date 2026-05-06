@@ -33,6 +33,13 @@ def _map_event(ev: Any) -> dict | None:
     return None
 
 
+def _cache_control(ttl: str) -> dict:
+    ctrl: dict[str, Any] = {"type": "ephemeral"}
+    if ttl and ttl != "5m":
+        ctrl["ttl"] = ttl
+    return ctrl
+
+
 def _block_to_dict(block: Any) -> dict:
     if hasattr(block, "model_dump"):
         return block.model_dump()
@@ -56,6 +63,7 @@ async def anthropic_stream(
     model: str,
     system_prompt: str,
     volatile_system: str | None = None,
+    cache_ttl: str = "1h",
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -77,9 +85,9 @@ async def anthropic_stream(
     if is_oauth:
         system_blocks.append({"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]})
     if system_prompt:
-        system_blocks.append({"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}})
+        system_blocks.append({"type": "text", "text": system_prompt, "cache_control": _cache_control(cache_ttl)})
     elif system_blocks:
-        system_blocks[0]["cache_control"] = {"type": "ephemeral"}
+        system_blocks[0]["cache_control"] = _cache_control(cache_ttl)
     if volatile_system:
         system_blocks.append({"type": "text", "text": volatile_system})
 
@@ -117,6 +125,7 @@ async def minimax_stream(
     model: str,
     system_prompt: str,
     volatile_system: str | None = None,
+    cache_ttl: str = "1h",
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -134,7 +143,7 @@ async def minimax_stream(
     if system_prompt or volatile_system:
         blocks: list[dict[str, Any]] = []
         if system_prompt:
-            blocks.append({"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}})
+            blocks.append({"type": "text", "text": system_prompt, "cache_control": _cache_control(cache_ttl)})
         if volatile_system:
             blocks.append({"type": "text", "text": volatile_system})
         kwargs["system"] = blocks

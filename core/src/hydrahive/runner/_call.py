@@ -65,6 +65,7 @@ async def call_with_stream_or_fallback(
     models: list[str],
     system_prompt: str,
     volatile_system: str | None = None,
+    cache_ttl: str = "1h",
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -84,8 +85,8 @@ async def call_with_stream_or_fallback(
     try:
         async for raw_ev in stream_with_tools(
             model=primary, system_prompt=system_prompt, volatile_system=volatile_system,
-            messages=messages, tools=tools, temperature=temperature, max_tokens=max_tokens,
-            reasoning_effort=reasoning_effort,
+            cache_ttl=cache_ttl, messages=messages, tools=tools, temperature=temperature,
+            max_tokens=max_tokens, reasoning_effort=reasoning_effort,
         ):
             t = raw_ev.get("type")
             if t == "message_start":
@@ -125,7 +126,8 @@ async def call_with_stream_or_fallback(
         try:
             fallback_blocks, fallback_stop = await call_with_tools(
                 model=model, system_prompt=system_prompt, volatile_system=volatile_system,
-                messages=messages, tools=tools, temperature=temperature, max_tokens=max_tokens,
+                cache_ttl=cache_ttl, messages=messages, tools=tools,
+                temperature=temperature, max_tokens=max_tokens,
             )
         except Exception as e:
             if should_failover(e) and not is_last:

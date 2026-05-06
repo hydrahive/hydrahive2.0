@@ -100,6 +100,8 @@
     "help": "For huge sessions a cheaper compact model (e.g. claude-haiku) and lower tool-result limit (500) helps. Threshold < 100% triggers early — protects against context-window crashes.",
     "live_truncation": "Live truncation (chars)",
     "live_truncation_disabled": "No limit",
-    "live_truncation_help": "Truncates individual tool results to X chars before they enter the LLM context. 0 = no limit. Recommended: 12000."
+    "live_truncation_help": "Truncates individual tool results to X chars before they enter the LLM context. 0 = no limit. Recommended: 12000.",
+    "cache_ttl": "Prompt cache TTL",
+    "cache_ttl_help": "How long Anthropic caches the system prompt. 1h = cache persists across sessions (2× write cost). 5m = Anthropic default (cheaper writes, but cache expires sooner)."
   }
 }

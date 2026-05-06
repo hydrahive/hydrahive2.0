@@ -24,6 +24,7 @@ export interface Agent {
   compact_reserve_tokens?: number
   compact_threshold_pct?: number
   tool_result_max_chars?: number  // 0 = kein Limit; live-truncation vor LLM-Call
+  cache_ttl?: string              // "5m" | "1h" — Anthropic Prompt-Cache-TTL
   workspace?: string
   disabled_skills?: string[]
   require_tool_confirm?: boolean

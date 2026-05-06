@@ -92,6 +92,7 @@ async def run(
     compact_reserve = agent.get("compact_reserve_tokens")
     compact_threshold_pct = int(agent.get("compact_threshold_pct", 100))
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
+    cache_ttl: str = agent.get("cache_ttl") or "1h"
 
     for iteration in range(MAX_ITERATIONS):
         yield IterationStart(iteration=iteration + 1)
@@ -144,7 +145,7 @@ async def run(
             models = [primary_model] + list(agent.get("fallback_models", []) or [])
             async for item in call_with_stream_or_fallback(
                 models=models, system_prompt=stable_system, volatile_system=volatile_system,
-                messages=anth_messages, tools=tool_schemas,
+                cache_ttl=cache_ttl, messages=anth_messages, tools=tool_schemas,
                 temperature=agent.get("temperature", 0.7), max_tokens=agent.get("max_tokens", 4096),
             ):
                 if isinstance(item, CallResult):
