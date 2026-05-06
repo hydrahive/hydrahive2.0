@@ -48,7 +48,7 @@ hydrahive2.0/
 
 ## Regeln
 
-- **Max ~150 Zeilen pro Datei** — Eine Datei, eine Verantwortung
+- **Max ~200 Zeilen pro Datei** — Eine Datei, eine Verantwortung
 - **Co-location** — Alles was zusammengehört liegt zusammen (Feature-Folder)
 - **Permissions** — Nur in `features/auth/permissions.ts` (Frontend) bzw. `api/middleware/auth.py` (Backend)
 - **Config** — Nur über Settings-Singleton, nie hardcoded
