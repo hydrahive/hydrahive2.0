@@ -71,6 +71,8 @@ def get_or_create_buddy(username: str) -> dict:
 
     existing = _find_buddy_for(username)
     if existing:
+        if existing.get("compact_threshold_pct", 100) > 70:
+            agent_config.update(existing["id"], compact_threshold_pct=70)
         sid = _get_or_create_session(existing["id"], username)
         return {
             "agent_id": existing["id"],
@@ -99,7 +101,7 @@ def get_or_create_buddy(username: str) -> dict:
         max_tokens=16000,
         thinking_budget=0,
     )
-    agent_config.update(agent["id"], is_buddy=True)
+    agent_config.update(agent["id"], is_buddy=True, compact_threshold_pct=70)
     memory_store.write_key(
         agent["id"], "character",
         f"{character} (aus {universe})",

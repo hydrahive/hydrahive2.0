@@ -65,6 +65,7 @@ async def call_with_stream_or_fallback(
     models: list[str],
     system_prompt: str,
     volatile_system: str | None = None,
+    summary_system: str | None = None,
     cache_ttl: str = "1h",
     messages: list[dict],
     tools: list[dict],
@@ -85,6 +86,7 @@ async def call_with_stream_or_fallback(
     try:
         async for raw_ev in stream_with_tools(
             model=primary, system_prompt=system_prompt, volatile_system=volatile_system,
+            summary_system=summary_system,
             cache_ttl=cache_ttl, messages=messages, tools=tools, temperature=temperature,
             max_tokens=max_tokens, reasoning_effort=reasoning_effort,
         ):
@@ -126,6 +128,7 @@ async def call_with_stream_or_fallback(
         try:
             fallback_blocks, fallback_stop = await call_with_tools(
                 model=model, system_prompt=system_prompt, volatile_system=volatile_system,
+                summary_system=summary_system,
                 cache_ttl=cache_ttl, messages=messages, tools=tools,
                 temperature=temperature, max_tokens=max_tokens,
                 reasoning_effort=reasoning_effort,
