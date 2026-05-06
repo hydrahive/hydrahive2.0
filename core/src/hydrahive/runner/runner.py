@@ -123,8 +123,9 @@ async def run(
         date_line = (f"Aktuelles Datum/Uhrzeit (Server): "
                      f"{now.strftime('%Y-%m-%d %H:%M %Z')} ({now.strftime('%A')}). "
                      f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff.")
+        workspace_line = f"Workspace: {workspace}"
         summary = messages_db.get_latest_summary(session_id)
-        volatile_parts = [date_line]
+        volatile_parts = [date_line, workspace_line]
         if summary:
             volatile_parts.append(f"[Bisherige Zusammenfassung]\n{summary}")
         volatile_system = "\n\n".join(volatile_parts)
