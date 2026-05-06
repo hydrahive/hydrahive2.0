@@ -26,8 +26,13 @@ fi
 PG_VER=$(pg_lsclusters --no-header 2>/dev/null | awk '{print $1; exit}' || echo "16")
 if ! dpkg -l "postgresql-${PG_VER}-pgvector" >/dev/null 2>&1; then
   log "Installiere postgresql-${PG_VER}-pgvector"
-  DEBIAN_FRONTEND=noninteractive apt-get install -y "postgresql-${PG_VER}-pgvector" \
-    || log "pgvector-Paket nicht via apt verfügbar — Extension manuell einrichten"
+  if ! apt-cache show "postgresql-${PG_VER}-pgvector" >/dev/null 2>&1; then
+    log "WARNUNG: postgresql-${PG_VER}-pgvector nicht im apt-Repo gefunden."
+    log "         Semantic Search wird nicht funktionieren."
+    log "         Manuelle Installation: https://github.com/pgvector/pgvector#installation"
+  else
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "postgresql-${PG_VER}-pgvector"
+  fi
 fi
 
 systemctl enable postgresql --quiet
@@ -54,9 +59,13 @@ SQL
   sudo -u postgres psql -v ON_ERROR_STOP=0 -c \
     "CREATE DATABASE $PG_DB OWNER $PG_USER;" 2>/dev/null || true
 
-  sudo -u postgres psql -d "$PG_DB" -v ON_ERROR_STOP=0 -c \
-    "CREATE EXTENSION IF NOT EXISTS vector;" 2>/dev/null \
-    || log "pgvector-Extension nicht installiert — nach manuellem apt-Install nochmal ausführen"
+  if sudo -u postgres psql -d "$PG_DB" -c "CREATE EXTENSION IF NOT EXISTS vector;" 2>/dev/null; then
+    log "pgvector-Extension aktiviert"
+  else
+    log "WARNUNG: pgvector-Extension konnte nicht aktiviert werden."
+    log "         Text-Suche funktioniert, Semantic Search (Embeddings) nicht."
+    log "         Fix: apt install postgresql-${PG_VER}-pgvector && psql -d $PG_DB -c 'CREATE EXTENSION vector;'"
+  fi
 
   PG_DSN="postgresql://${PG_USER}:${PG_PASS}@127.0.0.1:5432/${PG_DB}"
   echo "$PG_DSN" > "$DSN_FILE"
