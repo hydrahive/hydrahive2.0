@@ -17,6 +17,16 @@ router = APIRouter(prefix="/api/datamining/stats", tags=["datamining"])
 Auth = Annotated[tuple[str, str], Depends(require_auth)]
 
 
+@router.get("/daily")
+def get_daily_stats(
+    _auth: Auth,
+    agent_id: str | None = None,
+    days: int = 14,
+) -> dict:
+    rows = token_stats.daily_stats(agent_id=agent_id or None, days=min(days, 90))
+    return {"days": rows}
+
+
 @router.get("/latest")
 def get_latest_sessions(_auth: Auth, count: int = 5) -> dict:
     sessions = token_stats.latest_sessions(count=min(count, 50))
