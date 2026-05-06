@@ -1,6 +1,7 @@
 import { Archive, Loader2, SquarePen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
+import { NewChatHint } from "./NewChatHint"
 import { ModelPicker } from "./ModelPicker"
 import { ReasoningEffortPill } from "./ReasoningEffortPill"
 import { TokenMeter } from "./TokenMeter"
@@ -114,6 +115,8 @@ export function ChatHeader({
           {t("compact.button")}
         </button>
       </div>
+
+      <NewChatHint inputTokens={lastTurnTokens?.input ?? null} onNewChat={onNewSession} />
 
       {orphaned && (
         <div className="mx-6 mt-4 px-4 py-3 rounded-lg border border-amber-500/30 bg-amber-500/[6%] text-sm text-amber-200 flex items-center justify-between gap-4">

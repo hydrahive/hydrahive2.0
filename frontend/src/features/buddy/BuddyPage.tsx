@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Coins, Cpu, Dice5, Download, FileText, GitMerge, Hammer, HelpCircle, Loader2, Pencil, RotateCcw, Save, Sparkles, Wand2 } from "lucide-react"
+import { Coins, Cpu, Dice5, Download, FileText, GitMerge, Hammer, HelpCircle, Loader2, Pencil, RotateCcw, Save, Sparkles, SquarePen, Wand2 } from "lucide-react"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
@@ -9,6 +9,7 @@ import { useHydraRuntime } from "@/features/chat/_assistantRuntime"
 import { ModelPicker } from "@/features/chat/ModelPicker"
 import type { Message } from "@/features/chat/types"
 import { BuddyThread } from "./_BuddyThread"
+import { NewChatHint } from "@/features/chat/NewChatHint"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
@@ -123,7 +124,28 @@ export function BuddyPage() {
                 />
               )}
               <div className="flex-1" />
+              <button
+                onClick={async () => {
+                  const r = await buddyApi.clear()
+                  setLocalMsgs([])
+                  setState((s) => (s ? { ...s, session_id: r.session_id } : s))
+                }}
+                disabled={chat.busy}
+                title={t("new_chat")}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/[6%] border border-white/[8%] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <SquarePen size={11} />
+                {t("new_chat")}
+              </button>
             </div>
+            <NewChatHint
+              inputTokens={chat.lastTurnTokens?.input ?? null}
+              onNewChat={async () => {
+                const r = await buddyApi.clear()
+                setLocalMsgs([])
+                setState((s) => (s ? { ...s, session_id: r.session_id } : s))
+              }}
+            />
             <BuddyThread />
             {chat.pendingConfirm && (
               <ToolConfirmBanner
