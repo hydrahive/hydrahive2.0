@@ -29,6 +29,7 @@ async def anthropic_call(
     key: str,
     model: str,
     system_prompt: str,
+    volatile_system: str | None = None,
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -48,7 +49,11 @@ async def anthropic_call(
     if is_oauth:
         system_blocks.append({"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]})
     if system_prompt:
-        system_blocks.append({"type": "text", "text": system_prompt})
+        system_blocks.append({"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}})
+    elif system_blocks:
+        system_blocks[0]["cache_control"] = {"type": "ephemeral"}
+    if volatile_system:
+        system_blocks.append({"type": "text", "text": volatile_system})
 
     kwargs: dict[str, Any] = {
         "model": model,
@@ -82,6 +87,7 @@ async def minimax_anthropic_call(
     api_key: str,
     model: str,
     system_prompt: str,
+    volatile_system: str | None = None,
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -109,12 +115,13 @@ async def minimax_anthropic_call(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    if system_prompt:
-        kwargs["system"] = [{
-            "type": "text",
-            "text": system_prompt,
-            "cache_control": {"type": "ephemeral"},
-        }]
+    if system_prompt or volatile_system:
+        blocks: list[dict[str, Any]] = []
+        if system_prompt:
+            blocks.append({"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}})
+        if volatile_system:
+            blocks.append({"type": "text", "text": volatile_system})
+        kwargs["system"] = blocks
     if tools:
         kwargs["tools"] = tools
 

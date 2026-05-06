@@ -14,6 +14,7 @@ async def call_with_tools(
     *,
     model: str,
     system_prompt: str,
+    volatile_system: str | None = None,
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -38,6 +39,7 @@ async def call_with_tools(
             api_key=minimax_key,
             model=llm_client._strip_provider_prefix(target),
             system_prompt=system_prompt,
+            volatile_system=volatile_system,
             messages=messages,
             tools=tools,
             temperature=temperature,
@@ -55,6 +57,7 @@ async def call_with_tools(
             key=anthropic_key,
             model=llm_client._strip_provider_prefix(target),
             system_prompt=system_prompt,
+            volatile_system=volatile_system,
             messages=messages,
             tools=tools,
             temperature=temperature,
@@ -82,9 +85,10 @@ async def call_with_tools(
     # OpenRouter, …) gehen über LiteLLM. apply_keys setzt die ENV-Variablen aus
     # llm.json.
     apply_keys(cfg)
+    full_system = f"{system_prompt}\n\n{volatile_system}" if volatile_system else system_prompt
     return await litellm_call(
         model=target,
-        system_prompt=system_prompt,
+        system_prompt=full_system,
         messages=messages,
         tools=tools,
         temperature=temperature,
