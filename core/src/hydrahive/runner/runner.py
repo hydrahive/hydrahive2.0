@@ -91,6 +91,7 @@ async def run(
     compact_tool_limit = agent.get("compact_tool_result_limit")
     compact_reserve = agent.get("compact_reserve_tokens")
     compact_threshold_pct = int(agent.get("compact_threshold_pct", 100))
+    tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
 
     for iteration in range(MAX_ITERATIONS):
         yield IterationStart(iteration=iteration + 1)
@@ -216,7 +217,7 @@ async def run(
                 tool_use=tu, allowed_tools=allowed_tools, ctx=ctx, parent_message_id=assistant_msg.id)
             yield ToolUseResult(call_id=tu_id, tool_name=tu_name, success=result.success,
                                 output=result.output, error=result.error, duration_ms=duration_ms)
-            result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name))
+            result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name, max_chars=tool_result_max_chars))
 
         tool_msg = messages_db.append(session_id, "user", result_blocks)
         history.append(tool_msg)

@@ -97,6 +97,9 @@
     "default": "default",
     "reserve_tokens": "Reserve tokens",
     "threshold_pct": "Trigger at {{pct}}% of context window",
-    "help": "For huge sessions a cheaper compact model (e.g. claude-haiku) and lower tool-result limit (500) helps. Threshold < 100% triggers early — protects against context-window crashes."
+    "help": "For huge sessions a cheaper compact model (e.g. claude-haiku) and lower tool-result limit (500) helps. Threshold < 100% triggers early — protects against context-window crashes.",
+    "live_truncation": "Live truncation (chars)",
+    "live_truncation_disabled": "No limit",
+    "live_truncation_help": "Truncates individual tool results to X chars before they enter the LLM context. 0 = no limit. Recommended: 12000."
   }
 }
