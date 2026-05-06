@@ -78,8 +78,13 @@ export function ChatPage() {
   async function handleSend(text: string, files: File[] = []) {
     if (!activeSession || !activeAgent) return
     if (isCommand(text)) {
-      appendLocal("user", text)
       const result = await runChatCommand(text, activeSession, activeAgent, chat.messages)
+      if (result.sendToAgent) {
+        await chat.send(result.sendToAgent, files)
+        loadAll(); setTokenRefresh((n) => n + 1)
+        return
+      }
+      appendLocal("user", text)
       appendLocal("assistant", result.message)
       if (result.agentChanged) {
         setAgents((cur) => cur.map((a) => a.id === result.agentChanged!.id ? result.agentChanged! : a))

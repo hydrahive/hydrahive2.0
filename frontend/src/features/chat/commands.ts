@@ -14,6 +14,8 @@ export interface ChatCommandResult {
   newSessionId?: string
   agentChanged?: AgentBrief
   sessionChanged?: Session
+  /** Wenn gesetzt: wird an den Agent geschickt statt lokal angezeigt. */
+  sendToAgent?: string
 }
 
 const HELP_TEXT = [
@@ -156,7 +158,18 @@ export async function runChatCommand(
       case "/agent": return await agentCmd(agent, session)
       case "/skills": case "/skillkatalog": return await skillsCmd(agent)
       case "/export": return exportCmd(messages)
-      default: return { message: `Unbekannter Befehl ${cmd}. Tippe /help.` }
+      default: {
+        const skillName = cmd.slice(1)
+        const skills = await skillsApi.list({ agentId: agent.id })
+        const skill = skills.find((s) => s.name === skillName)
+        if (skill) {
+          return {
+            message: "",
+            sendToAgent: `Führe den Skill "${skill.name}" aus.\n\n${skill.body}${arg ? `\n\nKontext: ${arg}` : ""}`,
+          }
+        }
+        return { message: `Unbekannter Befehl ${cmd}. Tippe /help oder /skills für den Skill-Katalog.` }
+      }
     }
   } catch (e) {
     return { message: `Fehler: ${e instanceof Error ? e.message : String(e)}` }
