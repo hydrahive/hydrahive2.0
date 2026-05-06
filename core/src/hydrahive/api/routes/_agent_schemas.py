@@ -26,6 +26,7 @@ class AgentCreate(BaseModel):
     compact_reserve_tokens: int | None = None
     compact_threshold_pct: int | None = None
     tool_result_max_chars: int | None = None
+    cache_ttl: str | None = None
 
 
 class AgentUpdate(BaseModel):
@@ -46,6 +47,7 @@ class AgentUpdate(BaseModel):
     compact_reserve_tokens: int | None = None
     compact_threshold_pct: int | None = None
     tool_result_max_chars: int | None = None
+    cache_ttl: str | None = None
     require_tool_confirm: bool | None = None
     longterm_memory: bool | None = None
 

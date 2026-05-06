@@ -73,6 +73,10 @@ DEFAULT_COMPACT_TOOL_RESULT_LIMIT = 2000
 # gekürzt. Verhindert dass ein einzelner Tool-Call (z.B. 52k-JSON, riesiger dir_list)
 # den gesamten Context frisst. 0 = kein Limit.
 DEFAULT_TOOL_RESULT_MAX_CHARS = 12_000
+# Prompt-Cache-TTL für den stabilen System-Prompt-Block.
+# "1h" = 1 Stunde (2x Write-Kosten, aber Cache-Hits über Sessions hinweg).
+# "5m" = 5 Minuten (Anthropic-Default, günstigere Write-Kosten).
+DEFAULT_CACHE_TTL = "1h"
 # Reserve-Tokens für die Summary-Antwort. Wenn used > (window - reserve) wird
 # auto-compactet.
 DEFAULT_COMPACT_RESERVE_TOKENS = 16_384

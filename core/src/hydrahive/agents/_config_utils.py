@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from hydrahive.agents._defaults import (
+    DEFAULT_CACHE_TTL,
     DEFAULT_COMPACT_MODEL,
     DEFAULT_COMPACT_RESERVE_TOKENS,
     DEFAULT_COMPACT_THRESHOLD_PCT,
@@ -47,6 +48,7 @@ def normalize(cfg: dict) -> dict:
     cfg.setdefault("compact_reserve_tokens", DEFAULT_COMPACT_RESERVE_TOKENS)
     cfg.setdefault("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT)
     cfg.setdefault("tool_result_max_chars", DEFAULT_TOOL_RESULT_MAX_CHARS)
+    cfg.setdefault("cache_ttl", DEFAULT_CACHE_TTL)
     return cfg
 
 
