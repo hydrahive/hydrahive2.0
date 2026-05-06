@@ -17,6 +17,7 @@ import type { AgentBrief, Message, Session } from "./types"
 import type { ProjectBrief } from "./api"
 import { useChat } from "./useChat"
 import { CmdPill } from "@/features/buddy/_BuddyCmdPill"
+import { SkillCatalogPill } from "./_SkillCatalogPill"
 import { isCommand, runChatCommand } from "./commands"
 
 export function ChatPage() {
@@ -173,6 +174,7 @@ export function ChatPage() {
                       <CmdPill icon={<Hammer size={11} />} label="tools" color="sky" onClick={() => handleSend("/tools")} />
                       <CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} />
                       <CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} />
+                      <SkillCatalogPill agentId={activeAgent?.id ?? null} insert={insert} />
                     </>
                   )}
                 />
