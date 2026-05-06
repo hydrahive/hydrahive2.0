@@ -124,11 +124,9 @@ async def run(
                      f"{now.strftime('%Y-%m-%d %H:%M %Z')} ({now.strftime('%A')}). "
                      f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff.")
         workspace_line = f"Workspace: {workspace}"
+        volatile_system = f"{date_line}\n\n{workspace_line}"
         summary = messages_db.get_latest_summary(session_id)
-        volatile_parts = [date_line, workspace_line]
-        if summary:
-            volatile_parts.append(f"[Bisherige Zusammenfassung]\n{summary}")
-        volatile_system = "\n\n".join(volatile_parts)
+        summary_system = f"[Bisherige Zusammenfassung]\n{summary}" if summary else None
 
         healed_history = heal_orphan_tool_uses(history)
         anth_messages = to_anthropic_messages(healed_history)
@@ -147,6 +145,7 @@ async def run(
             models = [primary_model] + list(agent.get("fallback_models", []) or [])
             async for item in call_with_stream_or_fallback(
                 models=models, system_prompt=stable_system, volatile_system=volatile_system,
+                summary_system=summary_system,
                 cache_ttl=cache_ttl, messages=anth_messages, tools=tool_schemas,
                 temperature=agent.get("temperature", 0.7), max_tokens=agent.get("max_tokens", 4096),
                 reasoning_effort=reasoning_effort,

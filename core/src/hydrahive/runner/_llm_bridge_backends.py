@@ -13,6 +13,24 @@ from hydrahive.runner._litellm_convert import (
 )
 
 
+def _with_cache_breakpoint(messages: list[dict]) -> list[dict]:
+    """Marks the last content block of messages[-2] as a cache breakpoint."""
+    if len(messages) < 2:
+        return messages
+    msgs = list(messages)
+    target = msgs[-2]
+    content = target.get("content", [])
+    if not isinstance(content, list) or not content:
+        return msgs
+    last_block = content[-1]
+    if not isinstance(last_block, dict):
+        return msgs
+    new_content = list(content)
+    new_content[-1] = {**last_block, "cache_control": {"type": "ephemeral"}}
+    msgs[-2] = {**target, "content": new_content}
+    return msgs
+
+
 def _cache_control(ttl: str) -> dict:
     ctrl: dict[str, Any] = {"type": "ephemeral"}
     if ttl and ttl != "5m":
@@ -37,6 +55,7 @@ async def anthropic_call(
     model: str,
     system_prompt: str,
     volatile_system: str | None = None,
+    summary_system: str | None = None,
     cache_ttl: str = "1h",
     messages: list[dict],
     tools: list[dict],
@@ -63,12 +82,14 @@ async def anthropic_call(
         system_blocks.append({"type": "text", "text": system_prompt, "cache_control": _cache_control(cache_ttl)})
     elif system_blocks:
         system_blocks[0]["cache_control"] = _cache_control(cache_ttl)
+    if summary_system:
+        system_blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control("5m")})
     if volatile_system:
         system_blocks.append({"type": "text", "text": volatile_system})
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": messages,
+        "messages": _with_cache_breakpoint(messages),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -77,7 +98,7 @@ async def anthropic_call(
     if tools:
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
-    
+
     apply_thinking_budget(kwargs, reasoning_effort)
 
     # Manche neueren Claude-Modelle (z.B. opus-4-7) akzeptieren kein temperature
@@ -102,6 +123,7 @@ async def minimax_anthropic_call(
     model: str,
     system_prompt: str,
     volatile_system: str | None = None,
+    summary_system: str | None = None,
     cache_ttl: str = "1h",
     messages: list[dict],
     tools: list[dict],
@@ -126,14 +148,16 @@ async def minimax_anthropic_call(
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": messages,
+        "messages": _with_cache_breakpoint(messages),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    if system_prompt or volatile_system:
+    if system_prompt or summary_system or volatile_system:
         blocks: list[dict[str, Any]] = []
         if system_prompt:
             blocks.append({"type": "text", "text": system_prompt, "cache_control": _cache_control(cache_ttl)})
+        if summary_system:
+            blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control("5m")})
         if volatile_system:
             blocks.append({"type": "text", "text": volatile_system})
         kwargs["system"] = blocks

@@ -15,6 +15,7 @@ async def call_with_tools(
     model: str,
     system_prompt: str,
     volatile_system: str | None = None,
+    summary_system: str | None = None,
     cache_ttl: str = "1h",
     messages: list[dict],
     tools: list[dict],
@@ -42,6 +43,7 @@ async def call_with_tools(
             model=llm_client._strip_provider_prefix(target),
             system_prompt=system_prompt,
             volatile_system=volatile_system,
+            summary_system=summary_system,
             cache_ttl=cache_ttl,
             messages=messages,
             tools=tools,
@@ -61,6 +63,7 @@ async def call_with_tools(
             model=llm_client._strip_provider_prefix(target),
             system_prompt=system_prompt,
             volatile_system=volatile_system,
+            summary_system=summary_system,
             cache_ttl=cache_ttl,
             messages=messages,
             tools=tools,
@@ -90,7 +93,8 @@ async def call_with_tools(
     # OpenRouter, …) gehen über LiteLLM. apply_keys setzt die ENV-Variablen aus
     # llm.json.
     apply_keys(cfg)
-    full_system = f"{system_prompt}\n\n{volatile_system}" if volatile_system else system_prompt
+    parts = [p for p in [system_prompt, summary_system, volatile_system] if p]
+    full_system = "\n\n".join(parts)
     return await litellm_call(
         model=target,
         system_prompt=full_system,
