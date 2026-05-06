@@ -14,6 +14,7 @@ import {
 import { AssistantFooter, BubbleHeader } from "./BubbleMeta"
 import { CompactionBlock } from "./CompactionBlock"
 import { Markdown } from "./Markdown"
+import { ThinkingBlock } from "./ThinkingBlock"
 import { ImageBlock, ToolResultCard, ToolUseCard } from "./ToolCards"
 import { extractMedia, MediaPreview } from "./MediaPreview"
 import { useVoiceOutput } from "./useVoiceOutput"
@@ -107,6 +108,7 @@ function ChatAssistantMessage() {
                 : <Markdown text={b.text} />}
             </div>
           )
+          if (b.type === "thinking" && b.thinking) return <ThinkingBlock key={i} text={b.thinking} />
           if (b.type === "image") return <ImageBlock key={i} block={b} />
           if (b.type === "tool_use") return <ToolUseCard key={i} block={b} defaultOpen={isLive} />
           if (b.type === "tool_result") return <ToolResultCard key={i} block={b} />
