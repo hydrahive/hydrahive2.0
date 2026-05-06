@@ -9,6 +9,7 @@ import httpx
 logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends
 
+from hydrahive.db import agent_handoffs as db_agent_handoffs
 from hydrahive.agentlink import (
     is_connected,
     last_connect_at,
@@ -55,6 +56,7 @@ async def status(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
         "reconnect_attempts": reconnect_attempts(),
         "last_connect_at": last_connect_at(),
         "pending_handoffs": pending_handoffs_count(),
+        "active_handoffs": db_agent_handoffs.list_active(),
         "dashboard_url": settings.agentlink_dashboard_url,
     }
 
