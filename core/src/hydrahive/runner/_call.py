@@ -128,6 +128,7 @@ async def call_with_stream_or_fallback(
                 model=model, system_prompt=system_prompt, volatile_system=volatile_system,
                 cache_ttl=cache_ttl, messages=messages, tools=tools,
                 temperature=temperature, max_tokens=max_tokens,
+                reasoning_effort=reasoning_effort,
             )
         except Exception as e:
             if should_failover(e) and not is_last:

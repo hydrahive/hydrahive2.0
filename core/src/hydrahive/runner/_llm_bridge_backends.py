@@ -42,8 +42,11 @@ async def anthropic_call(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
+    reasoning_effort: str | None = None,
 ) -> tuple[list[dict], str]:
     import anthropic as _anthropic
+    from hydrahive.llm._anthropic import apply_thinking_budget
+    
     is_oauth = key.startswith("sk-ant-oat")
     if is_oauth:
         client = _anthropic.AsyncAnthropic(
@@ -74,6 +77,8 @@ async def anthropic_call(
     if tools:
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
+    
+    apply_thinking_budget(kwargs, reasoning_effort)
 
     # Manche neueren Claude-Modelle (z.B. opus-4-7) akzeptieren kein temperature
     # mehr — Anthropic returnt dann 400 "temperature is deprecated for this

@@ -20,6 +20,7 @@ async def call_with_tools(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
+    reasoning_effort: str | None = None,
 ) -> tuple[list[dict], str]:
     """One non-streaming LLM call with tool support.
 
@@ -65,6 +66,7 @@ async def call_with_tools(
             tools=tools,
             temperature=temperature,
             max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
         )
 
     # ChatGPT Plus/Pro via Codex-OAuth → chatgpt.com/backend-api/codex/responses.

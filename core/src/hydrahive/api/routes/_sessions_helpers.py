@@ -18,6 +18,9 @@ class SessionUpdate(BaseModel):
     # Pro-Session-Modell-Override (Chat-Header-Switcher). Leer-String oder None
     # entfernt den Override → fallback auf Agent-Default.
     model_override: str | None = None
+    # Pro-Session Reasoning-Effort-Override für Anthropic Extended Thinking.
+    # "low" | "medium" | "high" | None (= aus)
+    reasoning_effort: str | None = None
 
 
 def check_owner(session, username: str, role: str) -> None:
