@@ -29,19 +29,48 @@ def install_system_defaults() -> None:
             logger.info("System-Skill installiert: %s", src.name)
 
 
+def _collect_skill_files(d: Path) -> list[tuple[Path, str]]:
+    """Liefert (path, fallback_name) für alle Skills im Verzeichnis.
+
+    Unterstützte Layouts (werden kombiniert, Duplikate werden entfernt):
+      skillname.md                         — flach (bisheriges Format)
+      skillname/SKILL.md                   — einstufig (benithors/skills-Style)
+      category/skillname/SKILL.md          — zweistufig (Orchestra Research-Style)
+
+    Der fallback_name kommt aus dem direkten Elternverzeichnis der SKILL.md
+    bzw. dem Stem der flachen .md-Datei.
+    """
+    seen: set[Path] = set()
+    result: list[tuple[Path, str]] = []
+
+    def _add(f: Path, name: str) -> None:
+        if f not in seen:
+            seen.add(f)
+            result.append((f, name))
+
+    for f in sorted(d.glob("*.md")):
+        _add(f, f.stem)
+
+    for pattern in ("*/SKILL.md", "*/skill.md", "*/*/SKILL.md", "*/*/skill.md"):
+        for f in sorted(d.glob(pattern)):
+            _add(f, f.parent.name)
+
+    return result
+
+
 def _list_dir(d: Path, scope: SkillScope, owner: str) -> list[Skill]:
     if not d.exists():
         return []
     out: list[Skill] = []
-    for f in sorted(d.glob("*.md")):
+    for f, fallback in _collect_skill_files(d):
         try:
             text = f.read_text(encoding="utf-8")
         except OSError as e:
             logger.warning("skill nicht lesbar %s: %s", f, e)
             continue
-        skill = parse(text, scope=scope, owner=owner, fallback_name=f.stem)
+        skill = parse(text, scope=scope, owner=owner, fallback_name=fallback)
         if not skill.name:
-            skill.name = f.stem
+            skill.name = fallback
         out.append(skill)
     return out
 
