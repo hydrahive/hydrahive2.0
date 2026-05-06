@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 import shutil
 from typing import Any
 
@@ -49,6 +50,7 @@ def create(
         "created_by": created_by,
         "git_initialized": False,
         "metadata": metadata or {},
+        "webhook_secret": secrets.token_urlsafe(32),  # For secure webhook auth
     }
     project_dir(project_id).mkdir(parents=True, exist_ok=True)
 

@@ -11,6 +11,7 @@ Validierungs-Regeln (in `Flow.validate_graph`):
 from __future__ import annotations
 
 import re
+import secrets
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -55,6 +56,7 @@ class Flow(BaseModel):
     created_at: str | None = None
     modified_at: str | None = None
     modified_by: str | None = None
+    webhook_secret: str = Field(default_factory=lambda: secrets.token_urlsafe(32))
 
     @field_validator("name")
     @classmethod
