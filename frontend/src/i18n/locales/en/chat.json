@@ -14,6 +14,7 @@
     "orphaned": "orphaned",
     "orphaned_banner": "This session is orphaned — its agent was deleted.",
     "new_chat": "New Chat",
+    "context_large": "Context: ~{{tokens}} tokens. New chat saves ~{{savings}} tokens.",
     "delete_session": "Delete session",
     "delete_confirm": "Really delete this session?",
     "unknown_project": "(unknown project)",
