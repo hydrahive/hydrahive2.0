@@ -137,6 +137,20 @@ def set_model_override(session_id: str, model: str | None) -> None:
     update(session_id, metadata=md)
 
 
+def set_reasoning_effort(session_id: str, effort: str | None) -> None:
+    """Setzt session.metadata['reasoning_effort']. None entfernt den Override.
+    Read-modify-write: andere metadata-Felder bleiben erhalten."""
+    s = get(session_id)
+    if not s:
+        return
+    md = dict(s.metadata or {})
+    if effort:
+        md["reasoning_effort"] = effort
+    else:
+        md.pop("reasoning_effort", None)
+    update(session_id, metadata=md)
+
+
 def touch(session_id: str) -> None:
     with db() as conn:
         conn.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now_iso(), session_id))

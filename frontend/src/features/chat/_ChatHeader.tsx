@@ -2,6 +2,7 @@ import { Archive, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { ModelPicker } from "./ModelPicker"
+import { ReasoningEffortPill } from "./ReasoningEffortPill"
 import { TokenMeter } from "./TokenMeter"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
@@ -29,6 +30,10 @@ export function ChatHeader({
   lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onSessionChanged, onAgentChanged, tokenRefresh,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
+
+  // Aktives Modell (mit Session-Override) bestimmen
+  const activeModel = (session.metadata as { model_override?: string })?.model_override || agent?.llm_model || ""
+  const isClaudeModel = activeModel.replace(/^anthropic\//, "").startsWith("claude-")
 
   return (
     <>
@@ -79,6 +84,15 @@ export function ChatHeader({
           </p>
         </div>
         <TokenMeter sessionId={session.id} refresh={tokenRefresh} />
+        {isClaudeModel && (
+          <ReasoningEffortPill
+            current={(session.metadata as { reasoning_effort?: string })?.reasoning_effort}
+            onSelect={async (effort) => {
+              const updated = await chatApi.updateSession(session.id, { reasoning_effort: effort })
+              onSessionChanged(updated)
+            }}
+          />
+        )}
         <HelpButton topic="chat" />
         <button
           onClick={onCompact}

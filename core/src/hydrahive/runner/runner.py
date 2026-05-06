@@ -138,6 +138,7 @@ async def run(
         # Re-Read aus DB damit ein Switch ohne Server-Restart sofort greift.
         _fresh_session = sessions_db.get(session_id)
         model_override = (_fresh_session.metadata or {}).get("model_override") if _fresh_session else None
+        reasoning_effort = (_fresh_session.metadata or {}).get("reasoning_effort") if _fresh_session else None
         primary_model = model_override or agent["llm_model"]
         used_model = primary_model
         stop_reason = ""
@@ -147,6 +148,7 @@ async def run(
                 models=models, system_prompt=stable_system, volatile_system=volatile_system,
                 cache_ttl=cache_ttl, messages=anth_messages, tools=tool_schemas,
                 temperature=agent.get("temperature", 0.7), max_tokens=agent.get("max_tokens", 4096),
+                reasoning_effort=reasoning_effort,
             ):
                 if isinstance(item, CallResult):
                     blocks = item.blocks; stop_reason = item.stop_reason

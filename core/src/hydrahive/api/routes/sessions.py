@@ -76,6 +76,9 @@ def update_session(
     # model_override getrennt — unter metadata, read-modify-write
     if req.model_override is not None:
         sessions_db.set_model_override(session_id, req.model_override or None)
+    # reasoning_effort getrennt — unter metadata, read-modify-write
+    if req.reasoning_effort is not None:
+        sessions_db.set_reasoning_effort(session_id, req.reasoning_effort or None)
     return serialize_session(sessions_db.get(session_id))
 
 
