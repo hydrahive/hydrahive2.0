@@ -97,4 +97,73 @@ export const dataminingApi = {
     ),
 
   graph: () => api.get<unknown>("/datamining/graph"),
+
+  statsLatest: (count = 10) =>
+    api.get<{ sessions: StatsSession[] }>(`/datamining/stats/latest?count=${count}`),
+
+  statsDaily: (agent_id?: string, days = 14) => {
+    const qs = new URLSearchParams({ days: String(days) })
+    if (agent_id) qs.set("agent_id", agent_id)
+    return api.get<{ days: StatsDay[] }>(`/datamining/stats/daily?${qs}`)
+  },
+
+  statsSession: (session_id: string) =>
+    api.get<StatsSessionDetail>(`/datamining/stats/session/${session_id}`),
+
+  statsAgent: (agent_id: string, days = 7) =>
+    api.get<StatsAgent>(`/datamining/stats/agent/${agent_id}?days=${days}`),
+}
+
+export interface StatsSession {
+  session_id: string
+  agent_id: string
+  user_id: string
+  title: string | null
+  status: string
+  updated_at: string
+  message_count: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
+  cache_hit_pct: number
+}
+
+export interface StatsDay {
+  date: string
+  session_count: number
+  input_tokens: number
+  output_tokens: number
+  cache_creation_tokens: number
+  cache_read_tokens: number
+  cache_hit_pct: number
+}
+
+export interface StatsSessionDetail {
+  session_id: string
+  title: string | null
+  agent_id: string
+  status: string
+  created_at: string
+  updated_at: string
+  message_count: number
+  input_tokens: number
+  output_tokens: number
+  cache_creation_tokens: number
+  cache_read_tokens: number
+  cache_hit_pct: number
+  tool_call_count: number
+  compaction_count: number
+}
+
+export interface StatsAgent {
+  agent_id: string
+  days: number
+  session_count: number
+  total_input_tokens: number
+  total_output_tokens: number
+  total_cache_creation_tokens: number
+  total_cache_read_tokens: number
+  avg_input_tokens_per_session: number
+  cache_hit_pct: number
+  top_tools: { tool: string; count: number }[]
 }
