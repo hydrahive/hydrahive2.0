@@ -17,6 +17,7 @@ export function CompactionSection({ agent, models, onChange }: Props) {
   const toolLimit = agent.compact_tool_result_limit ?? 2000
   const reserve = agent.compact_reserve_tokens ?? 16384
   const thresholdPct = agent.compact_threshold_pct ?? 100
+  const liveMax = agent.tool_result_max_chars ?? 12000
 
   return (
     <div className="space-y-2">
@@ -83,6 +84,24 @@ export function CompactionSection({ agent, models, onChange }: Props) {
             onChange={(e) => onChange({ compact_threshold_pct: parseInt(e.target.value) })}
             className="w-full"
           />
+        </div>
+
+        <div className="space-y-0.5">
+          <label className="block text-[10px] text-zinc-500" title={t("compaction.live_truncation_help")}>
+            {t("compaction.live_truncation")}
+          </label>
+          <select
+            value={liveMax}
+            onChange={(e) => onChange({ tool_result_max_chars: parseInt(e.target.value) })}
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
+          >
+            <option value={0}>{t("compaction.live_truncation_disabled")}</option>
+            <option value={4000}>4 000</option>
+            <option value={8000}>8 000</option>
+            <option value={12000}>12 000 ({t("compaction.default")})</option>
+            <option value={20000}>20 000</option>
+            <option value={50000}>50 000</option>
+          </select>
         </div>
       </div>
     </div>

@@ -79,7 +79,7 @@ async def execute_tool(
 
 def to_tool_result_block(
     tool_use_id: str, result: ToolResult, ctx: ToolContext | None = None,
-    tool_name: str | None = None,
+    tool_name: str | None = None, max_chars: int = 0,
 ) -> dict:
     """Build the Anthropic `tool_result` content block from a ToolResult.
 
@@ -89,10 +89,14 @@ def to_tool_result_block(
     Beide Felder werden beim API-Call automatisch von `_ANTHROPIC_ALLOWED`
     weggefiltert (in context.py).
     """
+    content = result.to_llm()
+    if max_chars and len(content) > max_chars:
+        original_len = len(content)
+        content = content[:max_chars] + f"\n\n[... {original_len - max_chars} Zeichen abgeschnitten — tool_result_max_chars={max_chars}]"
     block: dict = {
         "type": "tool_result",
         "tool_use_id": tool_use_id,
-        "content": result.to_llm(),
+        "content": content,
         "is_error": not result.success,
     }
     if tool_name:

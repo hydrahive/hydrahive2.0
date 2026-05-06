@@ -12,6 +12,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
     DEFAULT_THINKING_BUDGET,
+    DEFAULT_TOOL_RESULT_MAX_CHARS,
 )
 from hydrahive.agents._paths import config_path
 from hydrahive.settings import settings
@@ -45,6 +46,7 @@ def normalize(cfg: dict) -> dict:
     cfg.setdefault("compact_tool_result_limit", DEFAULT_COMPACT_TOOL_RESULT_LIMIT)
     cfg.setdefault("compact_reserve_tokens", DEFAULT_COMPACT_RESERVE_TOKENS)
     cfg.setdefault("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT)
+    cfg.setdefault("tool_result_max_chars", DEFAULT_TOOL_RESULT_MAX_CHARS)
     return cfg
 
 

@@ -69,6 +69,10 @@ DEFAULT_COMPACT_MODEL = ""
 # 2000 ist OpenClaw-Original. Bei riesen Sessions (Anthropic 400 \"input too long\")
 # kann der User auf 500 runtergehen.
 DEFAULT_COMPACT_TOOL_RESULT_LIMIT = 2000
+# Live-Truncation: Tool-Results werden vor dem LLM-Call auf dieses Zeichenlimit
+# gekürzt. Verhindert dass ein einzelner Tool-Call (z.B. 52k-JSON, riesiger dir_list)
+# den gesamten Context frisst. 0 = kein Limit.
+DEFAULT_TOOL_RESULT_MAX_CHARS = 12_000
 # Reserve-Tokens für die Summary-Antwort. Wenn used > (window - reserve) wird
 # auto-compactet.
 DEFAULT_COMPACT_RESERVE_TOKENS = 16_384
