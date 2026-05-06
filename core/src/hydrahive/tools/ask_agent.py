@@ -48,7 +48,19 @@ _SCHEMA = {
         },
         "context": {
             "type": "object",
-            "description": "Optionale Zusatz-Daten (files, git, errors).",
+            "description": (
+                "Optionale Zusatz-Daten für den Ziel-Agenten. Unterstützte Keys: "
+                "error_log (str), code_snippet (str), related_files (list[str]), "
+                "files (list[dict]), errors (list[str]), git (dict)."
+            ),
+            "properties": {
+                "error_log":      {"type": "string"},
+                "code_snippet":   {"type": "string"},
+                "related_files":  {"type": "array", "items": {"type": "string"}},
+                "files":          {"type": "array",  "items": {"type": "object"}},
+                "errors":         {"type": "array",  "items": {"type": "string"}},
+                "git":            {"type": "object"},
+            },
         },
         "required_skills": {
             "type": "array",
@@ -96,13 +108,26 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     raw_context = args.get("context") or {}
     required_skills = args.get("required_skills") or []
 
+    # Friendly-Key-Mapping: error_log / code_snippet / related_files
+    errors = list(raw_context.get("errors") or [])
+    if raw_context.get("error_log"):
+        errors.append(raw_context["error_log"])
+
+    files = list(raw_context.get("files") or [])
+    for p in raw_context.get("related_files") or []:
+        files.append({"path": str(p)})
+
+    task_description = task
+    if raw_context.get("code_snippet"):
+        task_description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
+
     state = State(
         agent_id=settings.agentlink_agent_id,
-        task=TaskBlock(type=task_type, description=task, status="in_progress"),
+        task=TaskBlock(type=task_type, description=task_description, status="in_progress"),
         context=ContextBlock(
-            files=raw_context.get("files", []),
+            files=files,
             git=raw_context.get("git"),
-            errors=raw_context.get("errors", []),
+            errors=errors,
         ),
         handoff=Handoff(
             to_agent=target,
