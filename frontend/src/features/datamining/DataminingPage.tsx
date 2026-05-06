@@ -5,9 +5,10 @@ import { LiveFeedTab } from "./LiveFeedTab"
 import { SearchTab } from "./SearchTab"
 import { SessionsTab } from "./SessionsTab"
 import { GraphTab } from "./GraphTab"
+import { StatsTab } from "./StatsTab"
 import { dataminingApi } from "./api"
 
-const TABS = ["feed", "search", "sessions", "graph"] as const
+const TABS = ["feed", "search", "sessions", "stats", "graph"] as const
 type Tab = typeof TABS[number]
 
 interface EmbedStatus {
@@ -170,6 +171,7 @@ export function DataminingPage() {
       {tab === "feed" && <LiveFeedTab active={tab === "feed"} />}
       {tab === "search" && <SearchTab />}
       {tab === "sessions" && <SessionsTab active={tab === "sessions"} />}
+      {tab === "stats" && <StatsTab active={tab === "stats"} />}
       {tab === "graph" && <GraphTab />}
     </div>
   )
