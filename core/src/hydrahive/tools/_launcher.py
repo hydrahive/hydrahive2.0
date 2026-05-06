@@ -30,11 +30,11 @@ class Launcher(Protocol):
 
 
 class DevLauncher:
-    """Runs as the current user inside `cwd`. No isolation — for local dev only.
+    """Spawns subprocesses as the service user inside `cwd`.
 
-    Production uses `HhAgentLauncher` which drops privileges via systemd-run
-    to a dedicated `hh-agent-<id>` user. The Tool code never knows the
-    difference — only the launcher gets swapped.
+    This is the production launcher. Privilege-separation per Agent (systemd-run
+    + dedicated users) is out of scope for Tills threat-model (home-lab, trusted
+    agents with intentional full tool access — see CLAUDE.md).
     """
 
     async def run(
