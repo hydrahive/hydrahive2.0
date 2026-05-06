@@ -1,255 +1,147 @@
-# HydraHive2 — Übergabe (Stand 2026-05-06 nach Mitternacht)
+# HydraHive2 — Übergabe (Stand 2026-05-06 nach 04:30 Uhr)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
-## Nachschub Nacht 05→06 Mai — alles live auf 218
+## ⚠️ DRINGEND: Exorbitanter Token-Verbrauch beim Projekt-Agenten
+
+**Was passiert:** Der Projekt-Chat-Agent (Sonnet 4-5) hat in einer ~20-minütigen
+Session 31% des 5-Stunden-Rate-Limits verbraucht. Normalerweise wäre das 1–2%.
+
+**Ursachen die identifiziert wurden:**
+- Tool-Results hatten keinerlei Größenbeschränkung. Ein einziger `shell_exec`
+  (gh issue list) hat 52.244 Zeichen rohes JSON zurückgegeben — allein das
+  sind ~13k Token. Eine `dir_list` hat 63.384 Zeichen (2506 Zeilen) geliefert.
+- Jedes Tool-Result geht ungefiltert in den LLM-Context und bleibt dort für
+  alle folgenden Iterationen (kumulativ!).
+
+**Erster Fix diese Session:**
+`tool_result_max_chars` (Default: 12.000 Zeichen) in dispatcher.py eingebaut.
+Jedes Tool-Result wird jetzt live auf 12k Zeichen gekürzt bevor es in den
+Context geht. Per-Agent konfigurierbar in den Compaction-Settings im Frontend.
+
+**Commit:** `6d1ff0e feat(runner): live Tool-Result-Truncation — tool_result_max_chars`
+
+**Was NOCH NICHT geklärt ist:**
+Das Problem könnte tiefer liegen. Der Projekt-Agent hatte Zugriff auf
+Datamining-Tools (Langzeit-Gedächtnis) und hat diese exzessiv genutzt.
+Mögliche weitere Ursachen die noch nicht untersucht wurden:
+- Ist der System-Prompt des Projekt-Agenten deutlich größer als der Buddy-Prompt?
+  (Datamining-Block im Longterm-Memory-Modus hängt ~500 Zeichen an)
+- Wird die Cache-Nutzung korrekt ausgenutzt? Bei 96k Input-Tokens sollte der
+  Großteil gecacht sein — war das der Fall?
+- Hat der Projekt-Agent `longterm_memory=true`? Falls ja, werden bei jedem Turn
+  automatisch Datamining-Calls gemacht die den Context vergrößern.
+
+**Nächste Schritte:**
+1. Projekt-Agenten-Config prüfen: `longterm_memory`-Flag und aktuelle Toolset-Größe
+2. Nach dem nächsten Test: Token-Breakdown ansehen (wie viel davon cached?)
+3. Falls immer noch zu hoch: `tool_result_max_chars` auf 8.000 oder 6.000 senken
+4. Erwägen ob Projekt-Agent `longterm_memory` überhaupt braucht
+
+---
+
+## Diese Session (2026-05-06, Nacht)
+
+### 3 Security-Fixes (alle committed & auf hydratest deployed)
+
+**#104 — SSRF-Schutz in http_request Tool**
+- `tools/http_request.py`: IP-Blocking für alle privaten/link-local Ranges
+  (127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16,
+  IPv6 loopback/private). Öffentliche IPs + Hostnamen laufen durch.
+- Commit: `b1efd45`
+
+**#102 — /api/files Auth-Header**
+- `api/routes/files.py`: Cookie-based Fallback-Auth (`hh_file_token`) für
+  Browser-img-src die kein Bearer-Header schicken können.
+- `api/middleware/auth.py`: `get_current_user_optional()` Hilfsfunktion ergänzt.
+- Commits: `265513f`, `69ca0f7`
+
+**#100 — Butler-Webhook-Secret**
+- `projects/config.py`: `webhook_secret` (secrets.token_urlsafe(32)) bei jedem
+  neuen Projekt automatisch generiert.
+- `api/routes/butler.py`: Webhook-Endpoint prüft `X-Webhook-Secret`-Header,
+  constant-time compare mit `hmac.compare_digest`.
+- `butler/models.py`: `webhook_secret`-Feld ergänzt.
+- Commit: `c961c9e`
+
+### hydratest — neue Dev-Instanz
+
+**IP:** 192.168.3.23 (Incus-Container `hydratest` auf dem lokalen Host)
+**Zugriff:** `incus exec hydratest -- <command>` (als root)
+**URL:** https://192.168.3.23/ (Self-Signed Cert → Browser-Warning normal)
+**Login:** admin / u1BdpQJPMKGyy6py5413HA
+
+Installiert per `./install.sh` — kein einziger manueller Schritt notwendig,
+Installer hat alles in ~4 Minuten aufgesetzt. 0 Bugs beim Frisch-Install.
+
+Specs: Ubuntu 24.04 LTS, 31 GB RAM, 12 CPU, 1.8 TB Disk.
+
+**Zweck:** Saubere Test-Instanz für Security-Fixes und neue Features.
+Die 218er-Instanz bleibt Produktiv-Test (Tills Daily-Driver).
+
+### tool_result_max_chars (Live-Truncation)
+
+Neues per-Agent-Feld. Geänderte Dateien:
+```
+core/src/hydrahive/agents/_defaults.py          DEFAULT_TOOL_RESULT_MAX_CHARS = 12_000
+core/src/hydrahive/agents/_config_utils.py      normalize() backfill + Import
+core/src/hydrahive/runner/dispatcher.py         to_tool_result_block() kürzt
+core/src/hydrahive/runner/runner.py             liest max_chars, reicht weiter
+core/src/hydrahive/api/routes/_agent_schemas.py API-Schema AgentCreate + AgentUpdate
+frontend/src/features/agents/CompactionSection.tsx  neues Dropdown (0/4k/8k/12k/20k/50k)
+frontend/src/features/agents/types.ts           tool_result_max_chars?: number
+frontend/src/i18n/locales/de/agents.json        live_truncation i18n-Keys
+frontend/src/i18n/locales/en/agents.json        live_truncation i18n-Keys
+```
+
+---
+
+## Offene Issues (Stand nach dieser Session)
+
+| # | Titel | Labels | Status |
+|---|-------|--------|--------|
+| 75 | Member-Rechte: Read/Write/Admin pro Member | p3, enhancement | offen |
+| 74 | Audit-Log pro Projekt | p3, enhancement | offen |
+| 65 | Files-Tab: Edit + Save + Upload + Delete | p3, enhancement | offen |
+| 47 | Chat-Suche (Strg+F) | p3, enhancement | offen |
+| 44 | Branching/Tree-View | p3, enhancement | offen |
+| 37 | Matrix-Channel-Adapter | p3, enhancement | offen |
+| 36 | Telegram-Channel-Adapter | p3, enhancement | offen |
+| 32 | PostgreSQL: SPEC vs. Code | p3, architecture | offen — Doku-Task |
+| 15 | ZH-Locale fehlt | p3, architecture | offen — Nice-to-have |
+
+Alle geschlossen: #104, #102, #101 (pgvector-Fix ist noch offen), #100, und
+alle früheren Issues.
+
+**Achtung #101 (pgvector silent failure):** Noch nicht gefixt — nur besseres
+Error-Logging vorgeschlagen, aber nicht implementiert.
+
+---
+
+## Bisheriger Stand (aus vorheriger Übergabe, unverändert)
 
 ### Codex-Modelle Live-Validierung
-- 9 Codex-Modelle gepflegt (Frontend + Catalog + Installer):
-  gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2,
-  gpt-5.2-codex, gpt-5.1, gpt-5.1-codex-max, gpt-5.1-codex-mini.
-- Empirisch geprüft (Tills ChatGPT-Plus-Account): nur 4 davon
-  funktionieren — gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.2.
-  Die `-codex`-Suffix-Varianten brauchen meist ChatGPT Pro.
-- Sprechende Fehlermeldung dafür: `CodexModelNotAllowed` in
-  `_codex_provider.py` — Catch im `_call.py` reicht ohne Fallback
-  durch zur UI: "Modell 'X' ist mit deinem ChatGPT-Account nicht
-  verfügbar — wähle gpt-5.2, gpt-5.4 oder gpt-5.5".
-- Codex-API verlangt `instructions` als Pflichtfeld → Default
-  "You are a helpful assistant." wenn kein System-Prompt.
-
-### LlmProvider Pydantic-Hotfix
-- `extra="allow"` auf LlmProvider — sonst dropt model_dump() den
-  OAuth-Block beim PUT /llm. Test-Roundtrip grün.
-
-### ModelPicker Re-Architecture
-- Custom Dropdown war in mehrere Sackgassen gelaufen (z-index, mousedown-
-  Handler, type=submit-Bug). Jetzt nativer `<select>` mit Inline-SVG-
-  Pfeil — Browser regelt Open/Close, Klick triggert garantiert change.
-- **Picker schreibt jetzt `agent.llm_model` (sowohl Buddy als auch
-  Projekt-Chat)**, nicht mehr session.metadata.model_override. Damit
-  sind Picker und `/model`-Slash-Output immer synchron.
-- onAgentChanged-Callback in ChatPage propagiert die Änderung lokal,
-  ohne Page-Reload.
-- Stale model_override-Einträge werden beim Pick automatisch geräumt.
-
-### CSP-Fix in nginx
-- `script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'` — three.js +
-  d3 brauchen `new Function()` für Shader/Path-Builder. Ohne unsafe-eval
-  schluckte der Browser das beim Page-Load und ließ UI-Komponenten
-  halb-tot zurück. Live auf 218 schon gepatcht (nginx reload), Installer
-  60-nginx.sh updated.
-
-### Slash-Commands & Persistenz (Buddy + Projekt-Chat)
-- Neuer Endpoint `POST /api/sessions/{id}/log-cmd` (analog /buddy/log-cmd)
-  — schreibt Slash-Output als persistente Messages mit
-  metadata.source='slash_command'. Outputs überleben jetzt jeden reload().
-- Volle Befehlsliste in beiden Pages:
-  - `/help /clear /reset /model /compact /tokens /title /system /tools
-    /agent /export`
-  - Buddy zusätzlich: `/character /remember /soul`
-- CmdPills im MessageInput: 10 (Chat) bzw. 13 (Buddy) bunte Pills mit
-  passenden Icons (HelpCircle, RotateCcw, Cpu, GitMerge, Coins, Pencil,
-  Wand2, Hammer, FileText, Download, Sparkles, Save, Dice5).
-
-### Chat-Layout = Buddy-Card-Look
-- `ChatBubbleThread` (kopiert von BuddyThread, generischer Bot/User-
-  Avatar statt 🐝).
-- ChatPage: rounded-Card mit Gradient + voller Breite (w-full statt
-  max-w-3xl), Sidebar bleibt rechts.
-- Volle Bubble-Ausstattung in beiden Threads:
-  - **Tags-Markierung** ("Heute · HH:MM" / "Gestern · HH:MM" / DD.MM.YYYY)
-    immer im Bubble-Header.
-  - AssistantFooter: input/output Tokens, cache_read, $-Kosten, Modell,
-    Iteration, stop_reason — ausgeblendet bei Slash-Outputs.
-  - Edit-Button (✎) am User-Bubble — über ActionBar.Edit, sendet als Resend.
-  - Raw-JSON-Toggle (Code-Icon) am Assistant-Bubble.
-  - Voice/Copy/Retry wie gehabt.
-
----
-
-## Nachschub vom Abend (nach 20:00 Uhr) — alles live auf 218
-
-### OpenAI Codex OAuth — Häppchen 2 + 3 + GUI komplett
-- **Backend-Provider** `runner/_codex_provider.py` (codex_stream + codex_call)
-  gegen `chatgpt.com/backend-api/codex/responses`. SSE, OAuth-Bearer +
-  `chatgpt-account-id`-Header, `originator: hydrahive`. codex_call ist
-  Wrapper über codex_stream (DRY, ein Code-Pfad).
-- **Konverter** `runner/_codex_convert.py`: Anthropic-Messages →
-  Responses-API-Items. tool_use → function_call (top-level), tool_result →
-  function_call_output. System-Prompt landet in `instructions`.
-- **Routing umgestellt** von Modell-Prefix `openai/` (mit OAuth-Lookup) auf
-  `openai-codex/` (eigener Provider). Sauberer und matcht alte HH-Konvention.
-  In `llm_bridge.py`, `llm_bridge_stream.py`, `client.complete/stream`.
-- **GUI-OAuth-Flow** (für Server ohne SSH): Provider "ChatGPT Plus/Pro
-  (Codex)" jetzt im KNOWN_PROVIDERS-Dropdown auswählbar. Klick auf "Login
-  öffnen" → neuer Tab mit auth.openai.com → User pasted Redirect-URL aus
-  Browser-Adressfeld zurück → Backend tauscht Code gegen Token.
-  - Routes: POST `/api/llm/oauth/start`, POST `/api/llm/oauth/exchange`,
-    DELETE `/api/llm/oauth/{provider}` — alle in `routes/llm_oauth.py`.
-  - Pending-State in `/var/lib/hydrahive2/oauth_pending.json` (TTL 10 min).
-  - Frontend: `OAuthFlow.tsx` als 2-Step-Component, `ProviderForm` rendert
-    je nach `auth: "oauth"`-Marker entweder Key-Feld oder OAuth-Flow,
-    `ProviderCard` zeigt OAuth-Status statt Key-Maske.
-- **9 Codex-Modelle** aus alter HH + OpenClaw übernommen:
-  gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.3-codex-spark, gpt-5.2, gpt-5.2-codex,
-  gpt-5.1, gpt-5.1-codex-max, gpt-5.1-codex-mini.
-- **Catalog**: openai-codex als statischer Provider eingehängt
-  (kein public /v1/models). Metadata: tool_use=True, family="gpt-codex",
-  context_window 200k–400k je nach Variante.
-
-### Bugfixes auf dem Weg
-- **`Instructions are required`** (Codex-API 400) — `instructions` jetzt
-  immer gesetzt (Default `"You are a helpful assistant."` bei leerem
-  System-Prompt), nicht mehr nur wenn vorhanden.
-- **OAuth-Block ging verloren beim PUT /llm** — `LlmProvider`-Pydantic
-  hat jetzt `model_config = ConfigDict(extra="allow")`, sonst dropt
-  `model_dump()` das `oauth`-Feld stillschweigend.
-- **Provider-id Migration**: OAuth-Block lebt jetzt unter Provider-id
-  `openai-codex`, nicht mehr unter `openai`. Installer-CLI
-  (`oauth_codex_cli.py`) und `resolve_openai_codex_token()` mit umgestellt.
-
-### Live-verifiziert auf 218
-- Catalog-Test (`POST /api/llm/catalog/test`) → 200, jedes der 9 Modelle.
-- Direct-Stream (`stream_with_tools`) → text_delta + message_stop, sauber.
-- Tool-Use Streaming → tool_use-Block korrekt, mit echter `call_…`-ID.
-- Tool-Roundtrip (tool_result zurück) → "Hydrahive20-dev" als Antwort.
-- **Buddy-Chat funktioniert** (Tills Test gegen Ende der Session).
-
----
-
-## Was heute (5. Mai 2026, früher Tag) erledigt wurde
-
-### Installer-Umbau — Pre-Flight-Wizard
-- 9 Komponenten optional auswählbar (Tailscale, Postgres, Voice, Containers,
-  VMs, AgentLink, Nginx, Samba, WhatsApp). Auswahl wird in
-  `/etc/hydrahive2/install.conf` gespeichert. Re-Run überspringt Fragen.
-- Phase 10b ergänzt: 55-voice.sh wird jetzt vom install.sh aufgerufen
-  (vorher fehlte das im Frisch-Install).
-- Module-Header-Skip-Checks bei allen 9 optionalen Modulen + update.sh lädt
-  install.conf.
-- Tag `milestone-installer-pre-wizard` (1fe3558) zum Zurückrollen.
-- curl-Bootstrap: frische Ubuntu-VMs haben kein curl, Installer holt's vor
-  NodeSource/uv-Setup.
-- git safe.directory + chown hydrahive auf llm.json/install.conf — sonst
-  killen Web-UI-Saves still und sudo git pull bricht ab.
-- Installer-Übersicht am Ende: drei Blöcke (Login / System / Komponenten),
-  übersprungene kompakt unten mit `--reconfigure`-Hinweis.
-
-### LLM-Provider-Wizard im Installer (analog OpenClaw)
-- `installer/lib/llm-wizard.sh` fragt nach allen 8 Providern, schreibt
-  `llm.json` mit chmod 640 hydrahive:hydrahive (Backend muss schreiben können).
-- Sonnet als Default-Modell statt Opus.
-- LLM-Modell-Strings mit Provider-Prefix für LiteLLM-Routing
-  (`openai/`, `nvidia_nim/`, `groq/`, `mistral/`, `gemini/`, `openrouter/`).
-- Anthropic + MiniMax laufen direkt über Anthropic-SDK, brauchen keinen Prefix.
-- Wizard löscht keine bestehenden Provider beim --reconfigure mehr.
-- Pipe/Heredoc-Bug gefixt (Python liest jetzt korrekt von stdin).
-
-### Anthropic OAuth (vollständig fertig)
-- PKCE-Flow mit `code=true` + `state=verifier` (pi-mono-Quirk).
-- Lokaler HTTP-Server auf 127.0.0.1:53692 + manueller Code-Paste-Fallback
-  (für Remote-SSH ohne Tunnel).
-- Cloudflare-UA-Header gesetzt damit platform.claude.com nicht 403 wirft.
-- `oauth/anthropic.py:resolve_anthropic_token()` refresht Token automatisch
-  vor Ablauf, Backend-LLM-Pfade nutzen das.
-- Funktioniert komplett: Wizard fragt "OAuth ja/nein", User klickt URL,
-  Callback kommt automatisch, Token + Auto-Refresh laufen.
-
-### Tool-Loop für LiteLLM-Provider (NVIDIA, OpenAI, Groq, Mistral, Gemini, OpenRouter)
-- `runner/_litellm_convert.py`: Konverter Anthropic ↔ OpenAI-Format
-  (Messages, Tools, Response, stop_reason).
-- `runner/_llm_bridge_backends.litellm_call()`: ruft `litellm.acompletion`
-  mit `tools=[...]`, konvertiert Antwort. 120s-Timeout.
-- `call_with_tools` wirft kein NotImplementedError mehr — alle Provider
-  durchgereicht.
-- Auto-Retry ohne Tools wenn das Modell Tool-Use nicht unterstützt
-  (z.B. qwen2.5-coder, abab5.5).
-- Streaming bleibt für non-Anthropic/MiniMax als StreamingNotSupported,
-  fallback auf litellm_call (non-streaming).
-
-### Modell-Picker im Chat- und Buddy-Header
-- `frontend/src/features/chat/ModelPicker.tsx`: klickbare Pill mit Dropdown.
-  Zeigt alle in llm.json gespeicherten + alle bekannten KNOWN_PROVIDERS-
-  Modelle der konfigurierten Provider.
-- Auswahl setzt `session.metadata.model_override`, runner liest das frisch
-  vor jedem LLM-Call. Switch greift mid-session ohne Restart.
-- Buddy-Header zeigt denselben Picker.
-- Override pro Session, Reset stellt zurück auf Agent-Default.
-
-### LLM-Modell-Catalog (`/llm/catalog`)
-- Backend `llm/catalog.py`: holt `/v1/models` live von 6 Providern,
-  joint mit interner Metadata-Tabelle (~50 Modelle gepflegt:
-  context_window, tool_use, category, family, params).
-  Anthropic + MiniMax als Static-Liste.
-- API-Routes: GET /api/llm/catalog, POST /api/llm/catalog/test (1 Mini-Call,
-  zeigt Latenz + Error), POST /api/llm/catalog/use-in-agent (setzt
-  agent.llm_model und ergänzt das Modell automatisch in
-  providers[].models, sonst würde validate_model blocken).
-- Frontend `CatalogPage.tsx`: Tabs pro Provider, Tabelle (Suche, Filter
-  Tools/Ohne/Unbekannt), Test-Button, Use-in-Agent-Dialog.
-
-### NVIDIA NIM
-- Frontend `_llm_providers.ts` jetzt mit allen 121 Chat-Modellen vom
-  Live-Katalog.
-- Context-Window-Lookup: qwen2.5* → 32k, qwen3* → 262k, andere konservativ.
-- Buddy mit qwen2.5-coder hat ContextWindowExceeded geschmissen weil
-  Lookup falsch war → fixed.
-
-### OpenAI Codex OAuth (Häppchen 1 von 3)
-- `oauth/openai_codex.py`: PKCE, authorize_url, exchange_code (form-encoded),
-  refresh_access_token, JWT-decode für `chatgpt_account_id`.
-- `installer/lib/oauth_codex_cli.py`: Browser-Login + lokaler HTTP-Server
-  auf 127.0.0.1:1455 + Manual-Paste-Fallback.
-- Wizard fragt bei OpenAI: "OAuth-Login (ChatGPT Plus/Pro via Codex)?".
-- **Login funktioniert** — Token landet in llm.json mit account_id.
-- **Backend-Call zu chatgpt.com/backend-api/codex/responses fehlt noch**
-  (Häppchen 2). LLM-Calls mit OAuth-Token laufen aktuell noch durch
-  LiteLLM → 401 weil OAuth-Token nicht für api.openai.com gültig.
-
-### SPEC-Erweiterungen (alle als standalone-Commits)
-- `381f7c1`: Chat-Header bekommt Modell- und Effort-Switcher
-- `f291b2b`: OAuth-Login für Anthropic / MiniMax / OpenAI Codex
-- `42e55d8`: LLM-Modell-Catalog mit Live-Listing + Metadata
-
-### Reasoning-Effort low/medium/high (Backend-Mapping fertig, Frontend pausiert)
-- `apply_thinking_budget()` in `_anthropic.py`: low=1k, medium=4k, high=16k
-  Tokens. max_tokens automatisch hochgezogen, temperature=1.0 erzwungen.
-- Parameter `reasoning_effort` durchgereicht: stream_with_tools →
-  call_with_stream_or_fallback → anthropic_stream / minimax_stream.
-- 5 Unit-Tests grün.
-- **Frontend Effort-Pill pausiert** auf Tills Wunsch — kommt nach OAuth.
-
----
-
-## Aktuell offen / nächste Schritte
-
-### Direkt anschließend
-- **Codex-Häppchen 2 + 3 + GUI sind durch** (siehe Block oben). Kein
-  offener Codex-Task.
+- 9 Codex-Modelle gepflegt (Frontend + Catalog + Installer)
+- Empirisch geprüft: nur gpt-5.5, gpt-5.4, gpt-5.3-codex, gpt-5.2 funktionieren
+- `CodexModelNotAllowed` in `_codex_provider.py`, sprechende Fehlermeldung in UI
 
 ### Effort-Pill im Chat-Header (pausiert)
-- Backend-Mapping fertig, Frontend fehlt:
-  - ModelPicker-ähnliche Pill für low/medium/high
-  - Persistenz in session.metadata.reasoning_effort
-  - runner.run() Signatur erweitern + API-Schema-Erweiterung
+- Backend-Mapping fertig (low=1k, medium=4k, high=16k Tokens)
+- Frontend fehlt noch: Pill, Persistenz in session.metadata, API-Schema
 
-### MiniMax OAuth (Device-Code-Flow) — pausiert
-- API-Key reicht aktuell, OAuth nicht prio.
+### MiniMax OAuth (pausiert)
+- API-Key reicht aktuell
 
-### Backlog (keine Reihenfolge)
+### Backlog
 - Telegram + Matrix-Adapter
 - Branching/Tree-View in Chat
 - Bundle-Splitting (#95)
 - DB-Indizes (#96)
-- AgentLink HTTPS Mixed-Content (#90)
 - MCP-Datamining-Server deployen + als Tool einbinden
-- Buddy-Spielereien (Tamagotchi-Animation, Online-Radio)
-- Mehr NVIDIA-Modelle in der Metadata-Tabelle pflegen (aktuell ~25 von 121
-  bekannt, Rest als "unbekannt" mit ?-Badge)
+- Mehr NVIDIA-Modelle in Metadata-Tabelle (aktuell ~25 von 121)
 
 ---
 
@@ -258,100 +150,21 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 ### Test-Server 218 (chucky@hh2-218 / 192.168.178.218)
 - LXC-Container auf TrueNAS, kein /dev/kvm
 - Repo: `/opt/hydrahive2`, Service-User: `hydrahive`
-- **Stand**: aktuell, Tag `014f7c9`
 - Update-Trigger: `sudo touch /var/lib/hydrahive2/.update_request`
-- PostgreSQL läuft, DSN in `/etc/hydrahive2/pg_mirror.dsn`
-- Buddy-Agent läuft mit nvidia_nim/qwen3-coder-480b-a35b-instruct
+- **Wichtig:** Security-Fixes noch nicht auf 218 deployed (nur auf hydratest)
 
-### Frischer Test-Server (192.168.178.179, till@till-b450nh)
-- Mehrfach heute neu installiert, läuft jetzt sauber
-- Kunde will nachher selber installieren — keine bekannten Issues mehr
-
-### Installer-Reihenfolge (modules/) — aktuell
-```
-00-deps  (curl-bootstrap, NodeSource, uv, gh, mmx)
-10-user  20-paths
-30-python  40-frontend
-45-whatsapp  47-samba  48-postgres
-50-systemd  60-nginx
-65-vms  70-containers  55-voice  75-agentlink  80-tailscale
-+ LLM-Provider-Wizard (lib/llm-wizard.sh)
-```
+### hydratest (192.168.3.23)
+- Incus-Container, root-Zugang via `incus exec hydratest -- ...`
+- Fresh-Install vom heutigen Stand
+- Security-Fixes #104, #102, #100 drauf, getestet
 
 ---
 
-## Wichtige Lektionen aus dieser Session
+## Wichtige Lektionen (neu diese Session)
 
-- **Quick-Fix-first ist verboten** (siehe Memory `feedback_no_quick_fixes.md`):
-  Tills neue Hauptregel — immer saubere Lösung, Quick-Fix nur in echten
-  Notfällen die Till explizit benennt.
-- **llm.json-Permissions** sind kritisch: muss hydrahive:hydrahive 640 sein,
-  sonst sieht Web-UI-Save success aus, persistiert aber nicht.
-- **Provider-Prefix für LiteLLM**: alle Modelle außer Anthropic/MiniMax
-  brauchen den Provider-Prefix (nvidia_nim/, openai/, etc.) sonst routet
-  LiteLLM falsch.
-- **Tool-Use ist nicht universal**: NVIDIA NIM hat einige Modelle die
-  kein Function-Calling können (qwen2.5-coder, codestral) — Auto-Retry
-  ohne tools fängt das ab.
-- **Cloudflare blockt Default-Python-User-Agent** an Anthropic/OpenAI:
-  Claude-Code-/Codex-UA setzen damit nicht als Bot erkannt wird.
-- **Browser-Cache**: bei Frontend-Änderungen oft Strg+Shift+R nötig,
-  Strg+F5 reicht nicht immer.
-- **OpenAI Codex JWT-Decode**: account_id muss aus dem access_token
-  extrahiert werden (Custom-Claim `https://api.openai.com/auth.chatgpt_account_id`)
-  — das ist kein Standard-OAuth.
-- **HH2-Tool-Loop unterstützte vorher nur Anthropic + MiniMax**
-  (NotImplementedError für alle anderen). Heute auf alle LiteLLM-Provider
-  erweitert.
-
----
-
-## Code-Map (neue/geänderte Dateien heute)
-
-### Installer
-```
-installer/install.sh                          erweitert (Wizard, Übersicht)
-installer/update.sh                           install.conf laden + safe.directory
-installer/onboard.sh                          NEU (standalone wizard-Aufruf)
-installer/lib/llm-wizard.sh                   NEU (Provider-Wizard)
-installer/lib/oauth_anthropic_cli.py          NEU (OAuth-Flow Anthropic)
-installer/lib/oauth_codex_cli.py              NEU (OAuth-Flow OpenAI Codex)
-installer/modules/00-deps.sh                  curl-bootstrap, gh-cli
-installer/modules/30-python.sh                git safe.directory
-installer/modules/45..80-*.sh                 Header-Skip-Checks
-```
-
-### Backend
-```
-core/src/hydrahive/oauth/anthropic.py         NEU
-core/src/hydrahive/oauth/openai_codex.py      NEU
-core/src/hydrahive/llm/_anthropic.py          + extended_thinking budget
-core/src/hydrahive/llm/client.py              resolve_anthropic_token-Pfad
-core/src/hydrahive/llm/catalog.py             NEU (Live-Listing + Metadata)
-core/src/hydrahive/runner/_litellm_convert.py NEU (Anthropic↔OpenAI Konverter)
-core/src/hydrahive/runner/_llm_bridge_backends.py +litellm_call
-core/src/hydrahive/runner/llm_bridge.py       LiteLLM-Routing für non-Claude
-core/src/hydrahive/runner/llm_bridge_stream.py  reasoning_effort durchreichen
-core/src/hydrahive/runner/_stream_providers.py  reasoning_effort durchreichen
-core/src/hydrahive/runner/_call.py            reasoning_effort durchreichen
-core/src/hydrahive/runner/runner.py           model_override aus session.metadata
-core/src/hydrahive/db/sessions.py             set_model_override()
-core/src/hydrahive/api/routes/sessions.py     model_override-Update
-core/src/hydrahive/api/routes/_sessions_helpers.py  SessionUpdate +model_override
-core/src/hydrahive/api/routes/llm_catalog.py  NEU
-core/src/hydrahive/compaction/tokens.py       qwen-Window differenzieren
-```
-
-### Frontend
-```
-frontend/src/features/chat/ModelPicker.tsx    NEU
-frontend/src/features/chat/_ChatHeader.tsx    Pill statt static
-frontend/src/features/chat/ChatPage.tsx       onSessionChanged
-frontend/src/features/chat/api.ts             updateSession +model_override
-frontend/src/features/buddy/BuddyPage.tsx     ModelPicker im Buddy-Header
-frontend/src/features/llm/CatalogPage.tsx     NEU
-frontend/src/features/llm/_llm_providers.ts   121 NVIDIA-Modelle, Prefix für alle
-frontend/src/features/llm/api.ts              catalogApi
-frontend/src/features/llm/LlmPage.tsx         Catalog-Link
-frontend/src/App.tsx                          /llm/catalog Route
-```
+- **Tool-Results ohne Limit = Token-Bombe**: Ein einziger `gh issue list` mit
+  100+ Issues als JSON frisst ~13k Token. Ab jetzt: tool_result_max_chars.
+- **Projekt-Agent mit Longterm-Memory ist teuer**: Datamining-Calls am
+  Session-Start plus große Tool-Outputs summieren sich brutal schnell.
+- **Token-Verbrauch immer im Auge behalten**: Nach dem Fix auf hydratest testen
+  ob 12k Limit ausreicht oder weiter gesenkt werden muss.
