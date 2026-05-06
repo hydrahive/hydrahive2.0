@@ -56,3 +56,23 @@ def require_admin(
     if role != "admin":
         raise coded(status.HTTP_403_FORBIDDEN, "admin_only")
     return username, role
+
+
+def get_current_user_optional(
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> tuple[str, str] | None:
+    """Returns (username, role) or None if not authenticated. No 401 exception."""
+    if not creds:
+        return None
+    try:
+        token = creds.credentials
+        if token.startswith("hhk_"):
+            from hydrahive.api.middleware.api_keys import verify as verify_key
+            user = verify_key(token)
+            if not user:
+                return None
+            return user["username"], user["role"]
+        payload = _decode(token)
+        return payload["sub"], payload["role"]
+    except Exception:
+        return None
