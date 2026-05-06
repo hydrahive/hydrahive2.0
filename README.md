@@ -4,6 +4,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Alpha-orange?style=flat-square" alt="Status">
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12+-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/FastAPI-0.150+-green?style=flat-square" alt="FastAPI">
   <img src="https://img.shields.io/badge/React-19-red?style=flat-square" alt="React">
@@ -114,5 +115,6 @@ Was noch fehlt: HTTPS (geplant über Tailscale-Integration mit Auto-Certs).
 
 ## Lizenz
 
-Noch nicht festgelegt — Repo ist privat. Bei Veröffentlichung wird die
-Lizenz hier ergänzt.
+MIT License — siehe [LICENSE](LICENSE) für Details.
+
+Kurz gesagt: Du darfst HydraHive frei nutzen, ändern, verteilen — auch kommerziell. Die einzige Bedingung ist, dass du die Copyright-Notiz und Lizenzbedingungen in Kopien des Projekts beibehältst.
