@@ -1,4 +1,4 @@
-import { Archive, Loader2 } from "lucide-react"
+import { Archive, Loader2, SquarePen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { ModelPicker } from "./ModelPicker"
@@ -20,6 +20,7 @@ interface Props {
   systemPrompt: string
   onCompact: () => void
   onDelete: () => void
+  onNewSession: () => void
   onSessionChanged: (session: Session) => void
   onAgentChanged?: (agent: AgentBrief) => void
   tokenRefresh: number
@@ -27,7 +28,7 @@ interface Props {
 
 export function ChatHeader({
   session, agent, orphaned, compacting, compactNote,
-  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onSessionChanged, onAgentChanged, tokenRefresh,
+  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onNewSession, onSessionChanged, onAgentChanged, tokenRefresh,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
 
@@ -94,6 +95,15 @@ export function ChatHeader({
           />
         )}
         <HelpButton topic="chat" />
+        <button
+          onClick={onNewSession}
+          disabled={busy}
+          title={t("session.new_chat")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/[6%] border border-white/[8%] hover:border-white/[14%] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <SquarePen size={12} />
+          {t("session.new_chat")}
+        </button>
         <button
           onClick={onCompact}
           disabled={compacting || orphaned}

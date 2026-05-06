@@ -132,6 +132,11 @@ export function ChatPage() {
                 lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
                 systemPrompt={systemPrompt} onCompact={handleCompact}
                 onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
+                onNewSession={async () => {
+                  if (!activeAgent) return
+                  const s = await chatApi.createSession(activeAgent.id)
+                  setSessions((cur) => [s, ...cur]); setActiveId(s.id)
+                }}
                 onSessionChanged={(updated) =>
                   setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
                 }

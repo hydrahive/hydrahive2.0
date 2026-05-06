@@ -13,6 +13,7 @@
     "system_prompt_label": "System prompt:",
     "orphaned": "orphaned",
     "orphaned_banner": "This session is orphaned — its agent was deleted.",
+    "new_chat": "New Chat",
     "delete_session": "Delete session",
     "delete_confirm": "Really delete this session?",
     "unknown_project": "(unknown project)",
