@@ -21,8 +21,7 @@ IMG_EXT = {"png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"}
 AUD_EXT = {"mp3", "ogg", "wav", "m4a", "opus", "flac"}
 VID_EXT = {"mp4", "webm", "mov", "m3u8"}
 
-# Whitelist der Verzeichnisse die /api/files ausliefert.
-SERVABLE_PREFIXES = ("/tmp/", "/var/lib/hydrahive2/")
+from hydrahive.settings import settings
 
 # Absoluter Pfad mit Endung, in beliebigem Text.
 ABS_PATH_RE = re.compile(
@@ -52,7 +51,7 @@ def _resolve(path: str, workspace: Path | None) -> str | None:
             return None
         p = (workspace / p).resolve()
     s = str(p)
-    if not s.startswith(SERVABLE_PREFIXES):
+    if not s.startswith(settings.servable_prefixes):
         return None
     return s
 

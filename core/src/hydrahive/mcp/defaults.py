@@ -6,6 +6,8 @@ Platzhalter im args-Array bzw. env-Dict mit `{name}` werden ersetzt.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 
 TEMPLATES: list[dict] = [
     {
@@ -17,7 +19,7 @@ TEMPLATES: list[dict] = [
         "args": ["-y", "@modelcontextprotocol/server-filesystem", "{path}"],
         "env": {},
         "user_inputs": [
-            {"key": "path", "label": "Wurzel-Verzeichnis", "default": "/home/till", "required": True},
+            {"key": "path", "label": "Wurzel-Verzeichnis", "default": str(Path.home()), "required": True},
         ],
     },
     {
@@ -69,7 +71,7 @@ TEMPLATES: list[dict] = [
         "args": ["mcp-server-git", "--repository", "{repo_path}"],
         "env": {},
         "user_inputs": [
-            {"key": "repo_path", "label": "Repository-Pfad", "default": "/home/till/claudeneu", "required": True},
+            {"key": "repo_path", "label": "Repository-Pfad", "default": str(Path.home()), "required": True},
         ],
     },
     {

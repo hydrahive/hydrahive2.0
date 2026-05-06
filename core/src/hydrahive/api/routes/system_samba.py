@@ -21,7 +21,7 @@ from hydrahive.settings import settings
 router = APIRouter(prefix="/api/system/samba", tags=["system"])
 
 TRIGGER = settings.data_dir / ".samba_setup_request"
-LOG_PATH = Path("/var/log/hydrahive2-samba.log")
+LOG_PATH = settings.samba_log_path
 
 
 @router.get("/status", dependencies=[Depends(require_admin)])

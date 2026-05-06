@@ -24,7 +24,7 @@ from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm/oauth", tags=["llm-oauth"])
 
-PENDING_PATH = Path("/var/lib/hydrahive2/oauth_pending.json")
+PENDING_PATH = settings.oauth_pending_path
 PENDING_TTL_SECONDS = 600  # 10 min — nach Login muss User in dem Zeitraum exchange aufrufen
 
 CODEX_DEFAULT_MODELS = [

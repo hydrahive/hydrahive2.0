@@ -50,6 +50,31 @@ class Settings:
         )
 
     @cached_property
+    def tmp_dir(self) -> Path:
+        import tempfile
+        return Path(os.environ.get("HH_TMP_DIR", tempfile.gettempdir()))
+
+    @cached_property
+    def oauth_pending_path(self) -> Path:
+        return self.data_dir / "oauth_pending.json"
+
+    @cached_property
+    def samba_log_path(self) -> Path:
+        return Path(os.environ.get("HH_SAMBA_LOG", "/var/log/hydrahive2-samba.log"))
+
+    @cached_property
+    def bridge_log_path(self) -> Path:
+        return Path(os.environ.get("HH_BRIDGE_LOG", "/var/log/hydrahive2-bridge.log"))
+
+    @cached_property
+    def numba_cache_dir(self) -> Path:
+        return Path(os.environ.get("HH_NUMBA_CACHE", str(self.data_dir / ".numba-cache")))
+
+    @property
+    def servable_prefixes(self) -> tuple[str, ...]:
+        return (str(self.tmp_dir) + "/", str(self.data_dir) + "/")
+
+    @cached_property
     def sessions_db(self) -> Path:
         return self.data_dir / "sessions.db"
 
