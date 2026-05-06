@@ -16,6 +16,7 @@
     "system_prompt_label": "System-Prompt:",
     "orphaned": "verwaist",
     "orphaned_banner": "Diese Session ist verwaist — der zugehörige Agent wurde gelöscht.",
+    "new_chat": "Neuer Chat",
     "delete_session": "Session löschen",
     "delete_confirm": "Session wirklich löschen?",
     "unknown_project": "(unbekanntes Projekt)",
