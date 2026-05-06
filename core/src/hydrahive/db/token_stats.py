@@ -62,6 +62,52 @@ def session_stats(session_id: str) -> dict[str, Any] | None:
     }
 
 
+def latest_sessions(count: int = 5) -> list[dict[str, Any]]:
+    """Letzte N Sessions mit Token-Kurzstats — für den Daily-Stand."""
+    with db() as conn:
+        sessions = conn.execute(
+            """
+            SELECT s.id, s.agent_id, s.user_id, s.title, s.status,
+                   s.created_at, s.updated_at,
+                   COUNT(m.id) AS message_count,
+                   COALESCE(SUM(m.token_count), 0) AS output_tokens_sum
+            FROM sessions s
+            LEFT JOIN messages m ON m.session_id = s.id
+            GROUP BY s.id
+            ORDER BY s.updated_at DESC
+            LIMIT ?
+            """,
+            (min(count, 100),),
+        ).fetchall()
+
+        result = []
+        for s in sessions:
+            meta_rows = conn.execute(
+                "SELECT metadata FROM messages WHERE session_id = ?", (s["id"],)
+            ).fetchall()
+            input_t = cache_c = cache_r = 0
+            for r in meta_rows:
+                meta = json.loads(r["metadata"]) if r["metadata"] else {}
+                input_t  += meta.get("input_tokens", 0)
+                cache_c  += meta.get("cache_creation_tokens", 0)
+                cache_r  += meta.get("cache_read_tokens", 0)
+            total_prompt = input_t + cache_c + cache_r
+            result.append({
+                "session_id": s["id"],
+                "agent_id": s["agent_id"],
+                "user_id": s["user_id"],
+                "title": s["title"],
+                "status": s["status"],
+                "updated_at": s["updated_at"],
+                "message_count": s["message_count"],
+                "input_tokens": input_t,
+                "output_tokens": s["output_tokens_sum"],
+                "cache_read_tokens": cache_r,
+                "cache_hit_pct": round(cache_r / total_prompt * 100, 1) if total_prompt else 0.0,
+            })
+    return result
+
+
 def agent_stats(agent_id: str, days: int = 7) -> dict[str, Any]:
     with db() as conn:
         sessions = conn.execute(
