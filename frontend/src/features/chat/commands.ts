@@ -5,6 +5,7 @@
  */
 import { llmApi } from "@/features/llm/api"
 import { agentsApi } from "@/features/agents/api"
+import { skillsApi } from "@/features/skills/api"
 import { chatApi } from "./api"
 import type { AgentBrief, Message, Session } from "./types"
 
@@ -25,6 +26,7 @@ const HELP_TEXT = [
   "  /title <text>       — Session umbenennen",
   "  /system             — System-Prompt anzeigen",
   "  /tools              — verfügbare Tools im Backend",
+  "  /skills             — Skill-Katalog anzeigen",
   "  /agent              — Agent dieser Session anzeigen",
   "  /export             — Verlauf als Markdown ausgeben",
 ].join("\n")
@@ -95,6 +97,25 @@ async function agentCmd(agent: AgentBrief, session: Session): Promise<ChatComman
   ].join("\n") }
 }
 
+async function skillsCmd(agent: AgentBrief): Promise<ChatCommandResult> {
+  const skills = await skillsApi.list({ agentId: agent.id })
+  if (skills.length === 0) return { message: "Keine Skills verfügbar." }
+  const rows = skills.map((s) =>
+    `| \`${s.name}\` | ${s.description || "—"} |`
+  )
+  return {
+    message: [
+      `## Skills (${skills.length})`,
+      "",
+      "| Name | Beschreibung |",
+      "|------|-------------|",
+      ...rows,
+      "",
+      "Skill nutzen: _Nutze den Skill \"name\"_",
+    ].join("\n"),
+  }
+}
+
 function exportCmd(messages: Message[]): ChatCommandResult {
   const lines: string[] = ["# Chat-Export", ""]
   for (const m of messages) {
@@ -133,6 +154,7 @@ export async function runChatCommand(
       case "/system": case "/sys": return await systemCmd(agent)
       case "/tools": return await toolsCmd()
       case "/agent": return await agentCmd(agent, session)
+      case "/skills": case "/skillkatalog": return await skillsCmd(agent)
       case "/export": return exportCmd(messages)
       default: return { message: `Unbekannter Befehl ${cmd}. Tippe /help.` }
     }

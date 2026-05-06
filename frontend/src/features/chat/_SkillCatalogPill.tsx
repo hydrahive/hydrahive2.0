@@ -54,7 +54,7 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
       </button>
 
       {open && (
-        <div className="absolute bottom-full mb-2 left-0 z-50 w-72 rounded-xl border border-white/[8%] bg-zinc-900/98 shadow-2xl backdrop-blur-sm">
+        <div className="absolute bottom-full mb-2 right-0 z-50 w-72 rounded-xl border border-white/[8%] bg-zinc-900/98 shadow-2xl backdrop-blur-sm">
           <div className="flex items-center justify-between px-3 pt-3 pb-2 border-b border-white/[6%]">
             <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Skill-Katalog</span>
             <button onClick={() => setOpen(false)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
