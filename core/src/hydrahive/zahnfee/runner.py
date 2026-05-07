@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 
 from hydrahive.zahnfee import config as cfg_mod
@@ -80,12 +81,18 @@ async def run() -> storage.Briefing:
             temperature=0.3,
             max_tokens=2048,
         )
-        # JSON aus dem Response extrahieren
+        # JSON aus dem Response extrahieren — robust gegen Markdown/Prosa davor/danach
+        logger.info("zahnfee: LLM-Antwort (%d Zeichen): %.200s", len(raw), raw)
         raw = raw.strip()
-        if raw.startswith("```"):
+        # Versuche JSON-Block via regex zu finden
+        m = re.search(r'\{[^{}]*"open"[^{}]*\}', raw, re.DOTALL)
+        if m:
+            raw = m.group(0)
+        elif raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
+            raw = raw.strip()
         parsed = json.loads(raw)
         briefing = storage.Briefing(
             generated_at=storage.now_iso(),
