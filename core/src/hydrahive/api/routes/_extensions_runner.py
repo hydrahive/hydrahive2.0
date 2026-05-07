@@ -169,8 +169,20 @@ async def extension_status(manifest: dict) -> dict:
         healthy = False
         install_mode = None
 
+    # url_file: dynamische URL (z.B. macvlan-IP nach Install) überschreibt open_url
+    open_url = manifest.get("open_url", "")
+    url_file = manifest.get("url_file", "")
+    if url_file:
+        try:
+            p = Path(url_file)
+            if p.exists():
+                open_url = p.read_text().strip()
+        except Exception:
+            pass
+
     return {
         **manifest,
+        "open_url": open_url,
         "installed": docker_running or docker_marker or native_mode,
         "install_mode": install_mode,
         "active": active,
