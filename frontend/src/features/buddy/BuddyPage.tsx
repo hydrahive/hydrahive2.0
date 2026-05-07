@@ -10,6 +10,8 @@ import { ModelPicker } from "@/features/chat/ModelPicker"
 import type { Message } from "@/features/chat/types"
 import { BuddyThread } from "./_BuddyThread"
 import { NewChatHint } from "@/features/chat/NewChatHint"
+import { BuddyLeftPanel } from "./_BuddyLeftPanel"
+import { BuddyExtensionsPanel } from "./_BuddyExtensionsPanel"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
@@ -97,8 +99,11 @@ export function BuddyPage() {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <div className="flex items-center justify-center min-h-[calc(100dvh-3rem-2.5rem)] py-6">
-        <div className="w-full max-w-3xl flex flex-col">
+      <div className="flex items-start justify-center min-h-[calc(100dvh-3rem-2.5rem)] py-6 gap-4 px-4">
+        <div className="hidden xl:block pt-0 shrink-0">
+          <BuddyLeftPanel />
+        </div>
+        <div className="w-full max-w-3xl flex flex-col min-w-0">
           <div
             className="relative flex flex-col rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur"
             style={{ height: "calc(100dvh - 3rem - 2.5rem - 4rem)" }}
@@ -185,6 +190,9 @@ export function BuddyPage() {
           </div>
           <div className="mx-auto -mt-px w-1/3 h-3 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-b-md border border-t-0 border-white/[6%]" />
           <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
+        </div>
+        <div className="hidden xl:block pt-0 shrink-0">
+          <BuddyExtensionsPanel />
         </div>
       </div>
     </AssistantRuntimeProvider>
