@@ -42,7 +42,7 @@
   "docker": {
     "compose_file": "docker/hyos.compose.yml",
     "service_name": "hyos-manager",
-    "health_url": "http://127.0.0.1:3000/api/health",
-    "open_url": ":3000"
+    "health_url": "http://127.0.0.1:3002/api/health",
+    "open_url": ":3002"
   }
 }
