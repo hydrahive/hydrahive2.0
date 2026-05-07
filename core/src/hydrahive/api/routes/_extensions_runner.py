@@ -140,13 +140,22 @@ async def _check_health(manifest: dict, mode: str = "native") -> bool:
         return False
 
 
+def _docker_marker_path(manifest: dict) -> Path:
+    return Path("/var/lib/hydrahive2/extensions") / f".{manifest['id']}.docker_installed"
+
+
+def _check_docker_marker(manifest: dict) -> bool:
+    return _docker_marker_path(manifest).exists()
+
+
 async def extension_status(manifest: dict) -> dict:
-    docker_mode = _check_docker_running(manifest)
+    docker_running = _check_docker_running(manifest)
+    docker_marker = _check_docker_marker(manifest)
     native_mode = _check_installed(manifest)
 
-    if docker_mode:
-        active = True
-        healthy = await _check_health(manifest, "docker")
+    if docker_running or docker_marker:
+        active = docker_running
+        healthy = await _check_health(manifest, "docker") if docker_running else False
         install_mode = "docker"
     elif native_mode:
         active = _check_service_active(manifest)
