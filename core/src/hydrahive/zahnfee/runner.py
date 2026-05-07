@@ -37,7 +37,8 @@ def _format_events(events: list[dict]) -> str:
 
     lines: list[str] = []
     for ev in events:
-        ts = ev.get("created_at", "")[:16]
+        ts_raw = ev.get("created_at", "")
+        ts = (ts_raw.isoformat() if hasattr(ts_raw, "isoformat") else str(ts_raw))[:16]
         agent = ev.get("agent_name", "?")
         etype = ev.get("event_type", "?")
         text = (ev.get("text") or ev.get("tool_name") or ev.get("tool_output") or "")[:300]
