@@ -191,7 +191,7 @@ cat > "/etc/hydrahive2/extensions/gitea.credentials.json" << CREDFILE
   "id": "gitea",
   "name": "Git-Server (Gitea)",
   "fields": [
-    {"label": "URL", "value": "http://127.0.0.1:${GITEA_PORT}", "secret": false},
+    {"label": "URL", "value": "http://$(hostname -I | awk '{print $1}'):3001", "secret": false},
     {"label": "Admin-User", "value": "${GITEA_ADMIN}", "secret": false},
     {"label": "Admin-Passwort", "value": "${GITEA_ADMIN_PASS}", "secret": true},
     {"label": "API-Token", "value": "${GITEA_TOKEN}", "secret": true}
