@@ -99,13 +99,16 @@ cd "${MONICA_DIR}"
 [ -f .env.example ] && sudo -u "${MONICA_USER}" cp .env.example .env || touch .env
 chown "${MONICA_USER}:${MONICA_USER}" .env
 
+_SERVER_IP="$(hostname -I | awk '{print $1}')"
+
 cat > "${MONICA_DIR}/.env" << ENVEOF
 APP_NAME=Monica
 APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
-APP_URL=http://localhost:${MONICA_PORT}
-APP_TRUSTED_PROXIES=*
+APP_URL=http://${_SERVER_IP}:${MONICA_PORT}
+APP_FORCE_HTTPS=false
+APP_TRUSTED_PROXIES=
 
 LOG_CHANNEL=daily
 
