@@ -13,6 +13,7 @@ systemctl daemon-reload
 
 rm -f /usr/local/bin/gitea
 rm -rf /opt/gitea /etc/gitea /etc/hydrahive2/gitea_config.json
+rm -f /etc/hydrahive2/extensions/gitea.credentials.json
 userdel -r git 2>/dev/null || true
 
 rm -f /etc/nginx/sites-enabled/gitea /etc/nginx/sites-available/gitea
