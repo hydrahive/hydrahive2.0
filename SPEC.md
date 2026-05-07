@@ -16,7 +16,8 @@ Spezialisten.
 ## Nicht-Ziele
 
 - Kein SaaS, kein Abo, keine Cloud-Abhängigkeit
-- Kein Docker, kein Kubernetes — läuft direkt auf dem Host (systemd-Services)
+- Kein Docker für den Core — HydraHive selbst läuft direkt auf dem Host (systemd-Services).
+  Docker ist als optionaler Installations-Kanal für Extensions erlaubt.
 - Kein Vendor-Lock-in — LLM-Provider wechseln = eine Zeile Config
 - Keine eingebauten Features die nicht in dieser Spec stehen — alles andere wird Plugin
 - Kein "ich darf das nicht" — Agenten arbeiten wie Claude Code, nicht wie ein gesperrter Chatbot
@@ -700,8 +701,10 @@ Web-Konsole: neues Sidebar-Item `Wiki`.
 ## Extensions — App Manager (Core-Komponente)
 
 HydraHive2 kann externe Software-Pakete nachträglich über die Web-UI installieren, verwalten
-und deinstallieren. Das System ist deklarativ: jede Extension ist ein JSON-Manifest + zwei
-Bash-Scripts. Kein Code-Änderung im Core nötig.
+und deinstallieren. Das System ist deklarativ: jede Extension ist ein JSON-Manifest + Bash-Scripts.
+Extensions unterstützen zwei Installations-Kanäle: **nativ** (systemd-Service) und **Docker**
+(docker-compose). Docker ist optional — nur verfügbar wenn Docker auf dem Host installiert ist
+und nur für Extensions, nie für HydraHive selbst.
 
 ### Manifest-Format
 
@@ -722,6 +725,26 @@ Bash-Scripts. Kein Code-Änderung im Core nötig.
 }
 ```
 
+### Docker-Erweiterung im Manifest
+
+Extensions können optional einen `docker`-Block haben. Ist Docker auf dem Host verfügbar,
+zeigt die UI eine Auswahl: Nativ oder Docker. Ohne Docker-Block: nur nativer Install.
+
+```json
+{
+  "id": "paperless-ngx",
+  "name": "Paperless-ngx",
+  "install_script": "extensions/install/paperless-ngx.sh",
+  "installed_check": "/opt/paperless-ngx/manage.py",
+  "docker": {
+    "compose_file": "extensions/docker/paperless-ngx.compose.yml",
+    "service_name": "paperless-ngx",
+    "health_url": "http://127.0.0.1:8010/",
+    "open_url": ":8010/"
+  }
+}
+```
+
 ### Erster Catalog (aus HydraHive 1 portiert)
 
 | Kategorie | Extensions |
@@ -737,16 +760,23 @@ Bash-Scripts. Kein Code-Änderung im Core nötig.
 
 ### Installations-Mechanismus
 
-- Backend führt `sudo -n /bin/bash install.sh` aus
+- **Nativ**: Backend führt `sudo -n /bin/bash install.sh` aus, Service läuft als systemd-Unit
+- **Docker**: Backend führt `docker compose -f compose.yml up -d` aus, kein systemd-Service nötig
+- Backend prüft beim Start ob Docker verfügbar ist (`docker info`) — Flag in der Extensions-Liste
+- Frontend zeigt bei Extensions mit `docker`-Block eine Toggle-Auswahl (Nativ / Docker),
+  sonst nur den nativen Install-Button
 - Output wird per SSE live ans Frontend gestreamt
-- Status: `installed_check`-Pfad existiert + systemd-Service aktiv + `health_url` antwortet
+- Status bei Docker: Container läuft (`docker ps`) + `health_url` antwortet
+- Status nativ: `installed_check`-Pfad existiert + systemd-Service aktiv + `health_url` antwortet
 - Optional: `install_params` → Parameter-Dialog vor Installation (z.B. DNS-IP)
 - Validierung vor Ausführung: Pflichtfelder, Script existiert, keine destruktiven Pattern
   (`rm -rf /`, `curl|bash`, `mkfs`)
 
 ### Nicht-Ziele
 
-- Kein Docker / Compose (native systemd-Services)
+- Kein Docker für HydraHive selbst — nur für Extensions auf eigener Hardware
+- Kein automatisches Docker-Fallback wenn nativ fehlschlägt (User wählt explizit)
+- Keine Docker-Netzwerke zwischen Extensions (jede Extension ist isoliert)
 - Keine automatischen Updates (manuell über Uninstall + Reinstall)
 - Kein Extension-Hub / Online-Catalog (nur lokale Manifests)
 - Kein Rollback bei fehlgeschlagener Installation
