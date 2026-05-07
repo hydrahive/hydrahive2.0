@@ -12,7 +12,7 @@ interface Props {
 
 export function InstallModal({ ext, action, mode, onClose }: Props) {
   const [params, setParams] = useState<Record<string, string>>({})
-  const visibleParams = ext.install_params.filter((p) => !p.auto_generate || p.required)
+  const visibleParams = (ext.install_params ?? []).filter((p) => !p.auto_generate || p.required)
   const [phase, setPhase] = useState<"params" | "running" | "done">(
     action === "install" && visibleParams.length > 0 ? "params" : "running"
   )

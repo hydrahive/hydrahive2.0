@@ -27,7 +27,7 @@ export interface Extension {
   health_url?: string | null
   open_url?: string | null
   installed_check: string
-  install_params: InstallParam[]
+  install_params?: InstallParam[]
   docker?: DockerConfig
   preferred_mode?: InstallMode
   installed: boolean
