@@ -16,6 +16,7 @@ from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
 import hydrahive.api.routes._extensions_runner as _runner
 from hydrahive.api.routes._extensions_runner import (
+    _docker_marker_path,
     extension_status,
     load_manifests,
     stream_docker,
@@ -231,6 +232,12 @@ async def install_extension(ext_id: str, request: Request) -> StreamingResponse:
                     success = True
             if success:
                 try:
+                    marker = _docker_marker_path(manifest)
+                    marker.parent.mkdir(parents=True, exist_ok=True)
+                    marker.touch()
+                except Exception as e:
+                    logger.error("Marker schreiben fehlgeschlagen: %s", e)
+                try:
                     _write_docker_credentials(manifest, params)
                 except Exception as e:
                     logger.error("Credentials schreiben fehlgeschlagen: %s", e)
@@ -270,10 +277,12 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
         async def _generate_docker_down():
             async for line in stream_docker(compose_file, "down"):
                 yield f"data: {json.dumps({'line': line})}\n\n"
-            cred_file = settings.config_dir / "extensions" / f"{manifest['id']}.credentials.json"
-            if cred_file.exists():
+            for cleanup in [
+                settings.config_dir / "extensions" / f"{manifest['id']}.credentials.json",
+                _docker_marker_path(manifest),
+            ]:
                 try:
-                    cred_file.unlink()
+                    cleanup.unlink(missing_ok=True)
                 except Exception:
                     pass
             yield "data: {\"done\": true}\n\n"
