@@ -30,21 +30,34 @@ fi
 # ── Netzwerk-Interface automatisch erkennen ──────────────────────────────────
 IFACE=$(ip route | awk '/^default/ {print $5; exit}')
 GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
+
+# Wenn IFACE eine Bridge ist: macvlan braucht das physische NIC darunter
+if [ -d "/sys/class/net/${IFACE}/brif" ]; then
+    MACVLAN_PARENT=$(ls "/sys/class/net/${IFACE}/brif/" | head -1)
+    if [ -z "${MACVLAN_PARENT}" ]; then
+        die "Bridge ${IFACE} hat keine Member-Interfaces — macvlan nicht möglich"
+    fi
+    info "Bridge erkannt: ${IFACE} → physisches NIC: ${MACVLAN_PARENT}"
+else
+    MACVLAN_PARENT="${IFACE}"
+fi
+
 HOST_IP=$(ip -o -f inet addr show "${IFACE}" | awk 'NR==1{split($4,a,"/"); print a[1]}')
 IFS='.' read -r _o1 _o2 _o3 _o4 <<< "${HOST_IP}"
 SUBNET="${_o1}.${_o2}.${_o3}.0/24"
-info "Netzwerk: Interface=${IFACE}, Gateway=${GATEWAY}, Subnet=${SUBNET}"
+info "Netzwerk: Interface=${IFACE}, macvlan-Parent=${MACVLAN_PARENT}, Gateway=${GATEWAY}, Subnet=${SUBNET}"
 
-# Freie IP im Bereich .200–.250 suchen (außerhalb typischer DHCP-Pools)
+# Freie IP im Bereich .200–.250 suchen.
+# Nur ARP-Tabelle prüfen — kein ping (ping erzeugt selbst "incomplete" ARP-Einträge
+# die dann alle IPs als belegt markieren würden).
+USED_IPS=$(arp -n 2>/dev/null | awk '/ether/ {print $1}')
 MAILCOW_IP=""
 for last in $(seq 200 250); do
     candidate="${_o1}.${_o2}.${_o3}.${last}"
     [ "${candidate}" = "${HOST_IP}" ] && continue
-    if ! ping -c1 -W1 -q "${candidate}" &>/dev/null 2>&1; then
-        if ! arp -n 2>/dev/null | grep -q "^${candidate}[[:space:]]"; then
-            MAILCOW_IP="${candidate}"
-            break
-        fi
+    if ! echo "${USED_IPS}" | grep -qx "${candidate}"; then
+        MAILCOW_IP="${candidate}"
+        break
     fi
 done
 [ -z "${MAILCOW_IP}" ] && die "Keine freie IP im Bereich ${_o1}.${_o2}.${_o3}.200-250 gefunden"
@@ -82,7 +95,7 @@ if ! docker network inspect "${MACVLAN_NET}" &>/dev/null 2>&1; then
         --driver macvlan \
         --subnet="${SUBNET}" \
         --gateway="${GATEWAY}" \
-        --opt parent="${IFACE}" \
+        --opt parent="${MACVLAN_PARENT}" \
         "${MACVLAN_NET}"
     success "macvlan-Netzwerk ${MACVLAN_NET} erstellt"
 else
