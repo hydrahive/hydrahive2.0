@@ -25,6 +25,11 @@ fi
 if ! docker compose version &>/dev/null 2>&1; then
     die "Docker Compose (Plugin) ist nicht verfügbar."
 fi
+if ! command -v jq &>/dev/null; then
+    info "Installiere jq..."
+    apt-get install -y -qq jq
+    success "jq installiert"
+fi
 
 # ── Mailcow klonen ───────────────────────────────────────────────────────────
 if [ -d "${MAILCOW_DIR}/.git" ]; then
