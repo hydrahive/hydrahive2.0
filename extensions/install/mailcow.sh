@@ -96,6 +96,20 @@ else
     success "mailcow.conf generiert"
 fi
 
+# HTTP_BIND/HTTPS_BIND auf Mailcow-IP setzen — nginx bindet nur an diese IP,
+# kein Konflikt mit HydraHive auf der Haupt-IP.
+if grep -q "^HTTP_BIND=" "${MAILCOW_CONF}"; then
+    sed -i "s/^HTTP_BIND=.*/HTTP_BIND=${MAILCOW_IP}/" "${MAILCOW_CONF}"
+else
+    echo "HTTP_BIND=${MAILCOW_IP}" >> "${MAILCOW_CONF}"
+fi
+if grep -q "^HTTPS_BIND=" "${MAILCOW_CONF}"; then
+    sed -i "s/^HTTPS_BIND=.*/HTTPS_BIND=${MAILCOW_IP}/" "${MAILCOW_CONF}"
+else
+    echo "HTTPS_BIND=${MAILCOW_IP}" >> "${MAILCOW_CONF}"
+fi
+success "mailcow.conf: HTTP/HTTPS gebunden an ${MAILCOW_IP}"
+
 # ── Docker-Compose-Override ──────────────────────────────────────────────────
 # nginx-mailcow bindet Port 80/443 exklusiv an MAILCOW_IP.
 # Alle Services mit sysctls bekommen sysctls:[] (LXC/VM-Kompatibilität).
@@ -111,20 +125,13 @@ PYEOF
 info "Services mit sysctls: ${SYSCTL_SERVICES}"
 
 {
-    cat << HEADER
-services:
-  nginx-mailcow:
-    ports:
-      - "${MAILCOW_IP}:80:80"
-      - "${MAILCOW_IP}:443:443"
-HEADER
+    echo "services:"
     for svc in ${SYSCTL_SERVICES}; do
-        [ "${svc}" = "nginx-mailcow" ] && continue
         printf "  %s:\n    sysctls: []\n" "${svc}"
     done
 } > "${MAILCOW_DIR}/docker-compose.override.yml"
 
-success "docker-compose.override.yml: nginx auf ${MAILCOW_IP}:80/443"
+success "docker-compose.override.yml: sysctls deaktiviert für: ${SYSCTL_SERVICES}"
 
 # ── Kernel-Sysctl (best-effort, kein Fehler wenn nicht möglich) ──────────────
 if sysctl -w net.ipv4.ip_unprivileged_port_start=0 &>/dev/null 2>&1; then
