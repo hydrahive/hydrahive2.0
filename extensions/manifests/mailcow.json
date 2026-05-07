@@ -1,0 +1,38 @@
+{
+  "id": "mailcow",
+  "name": "Mailcow (Mail-Server)",
+  "description": "Vollständiger Mail-Server mit Webmail, Spam-Filter, Multi-Domain und Fetchmail für externe Konten (Gmail, GMX, …).",
+  "icon": "Mail",
+  "category": "productivity",
+  "install_script": "install/mailcow.sh",
+  "uninstall_script": "uninstall/mailcow.sh",
+  "health_url": "http://127.0.0.1:8080/",
+  "open_url": ":8080/",
+  "installed_check": "/opt/mailcow-dockerized/mailcow.conf",
+  "install_params": [
+    {
+      "key": "MAILCOW_HOSTNAME",
+      "label": "Mail-Hostname",
+      "type": "string",
+      "placeholder": "mail.meinedomain.de",
+      "required": true,
+      "description": "FQDN des Mailservers — wird für DKIM, TLS und Autodiscover verwendet"
+    },
+    {
+      "key": "MAILCOW_TZ",
+      "label": "Zeitzone",
+      "type": "string",
+      "placeholder": "Europe/Berlin",
+      "required": false,
+      "description": "Zeitzone des Servers (leer lassen für Europe/Berlin)"
+    },
+    {
+      "key": "MAILCOW_DBPASS",
+      "label": "Datenbank-Passwort",
+      "type": "password",
+      "required": false,
+      "auto_generate": "hex:32",
+      "description": "Wird automatisch generiert wenn leer gelassen"
+    }
+  ]
+}
