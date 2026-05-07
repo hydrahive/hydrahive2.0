@@ -1,0 +1,14 @@
+{
+  "id": "ollama",
+  "name": "Ollama (Lokale KI)",
+  "description": "Lokale LLM-Inferenz — Llama, Mistral, Phi und viele weitere Modelle ohne Cloud-Abhängigkeit.",
+  "icon": "Brain",
+  "category": "ai",
+  "install_script": "install/ollama.sh",
+  "uninstall_script": "uninstall/ollama.sh",
+  "service": "ollama",
+  "health_url": "http://127.0.0.1:11434/api/version",
+  "open_url": null,
+  "installed_check": "/usr/local/bin/ollama",
+  "install_params": []
+}

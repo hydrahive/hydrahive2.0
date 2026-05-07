@@ -15,6 +15,7 @@ import { SystemPage } from "@/features/system/SystemPage"
 import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
+import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
 import { VMsPage } from "@/features/vms/VMsPage"
 import { ContainersPage } from "@/features/containers/ContainersPage"
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="system" element={<SystemPage />} />
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
+          <Route path="extensions" element={<AdminGuard><ExtensionsPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
         </Route>
