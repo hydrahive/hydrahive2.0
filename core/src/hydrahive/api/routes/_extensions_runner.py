@@ -151,7 +151,10 @@ def _check_docker_marker(manifest: dict) -> bool:
 async def extension_status(manifest: dict) -> dict:
     docker_running = _check_docker_running(manifest)
     docker_marker = _check_docker_marker(manifest)
-    native_mode = _check_installed(manifest)
+    # Für docker-only Extensions (preferred_mode=docker) zählt installed_check
+    # nicht — das Data-Verzeichnis bleibt nach docker compose down erhalten.
+    is_docker_only = manifest.get("preferred_mode") == "docker"
+    native_mode = _check_installed(manifest) and not is_docker_only
 
     if docker_running or docker_marker:
         active = docker_running
