@@ -24,6 +24,7 @@ import { ButlerPage } from "@/features/butler/ButlerPage"
 import { BuddyPage } from "@/features/buddy/BuddyPage"
 import { DataminingPage } from "@/features/datamining/DataminingPage"
 import { HelpPage } from "@/features/help/HelpPage"
+import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="extensions" element={<AdminGuard><ExtensionsPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
+          <Route path="zahnfee" element={<AdminGuard><ZahnfeePage /></AdminGuard>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
