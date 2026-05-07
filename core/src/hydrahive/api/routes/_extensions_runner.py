@@ -168,7 +168,7 @@ async def extension_status(manifest: dict) -> dict:
 
     return {
         **manifest,
-        "installed": docker_mode or native_mode,
+        "installed": docker_running or docker_marker or native_mode,
         "install_mode": install_mode,
         "active": active,
         "healthy": healthy,
