@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
-import { Package, RefreshCw } from "lucide-react"
-import { fetchExtensions } from "./api"
+import { Package, RefreshCw, Container, Terminal } from "lucide-react"
+import { fetchExtensions, authHeaders } from "./api"
 import { ExtensionCard } from "./ExtensionCard"
 import { InstallModal } from "./InstallModal"
 import { CATEGORIES, type Extension, type InstallMode } from "./types"
@@ -16,6 +16,8 @@ export function ExtensionsPage() {
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState("all")
   const [modal, setModal] = useState<ModalState | null>(null)
+  const [dockerInstallLog, setDockerInstallLog] = useState<string[] | null>(null)
+  const [dockerInstalling, setDockerInstalling] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -35,6 +37,46 @@ export function ExtensionsPage() {
       ? extensions.length
       : extensions.filter((e) => e.category === c.id).length,
   })).filter((c) => c.count > 0 || c.id === "all")
+
+  const dockerAvailable = extensions.some((e) => e.docker_available)
+
+  async function installDocker() {
+    setDockerInstalling(true)
+    setDockerInstallLog(["Starte Docker-Installation…"])
+    try {
+      const res = await fetch("/api/admin/extensions/install-docker", {
+        method: "POST",
+        headers: authHeaders(),
+      })
+      if (!res.ok || !res.body) {
+        setDockerInstallLog((l) => [...(l ?? []), `[FEHLER] HTTP ${res.status}`])
+        setDockerInstalling(false)
+        return
+      }
+      const reader = res.body.getReader()
+      const dec = new TextDecoder()
+      let buf = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        const parts = buf.split("\n\n")
+        buf = parts.pop() ?? ""
+        for (const part of parts) {
+          const dataLine = part.split("\n").find((l) => l.startsWith("data:"))
+          if (!dataLine) continue
+          try {
+            const obj = JSON.parse(dataLine.slice(5).trim())
+            if (obj.line !== undefined) setDockerInstallLog((l) => [...(l ?? []), obj.line])
+            if (obj.done) { load(); break }
+          } catch {}
+        }
+      }
+    } catch (e) {
+      setDockerInstallLog((l) => [...(l ?? []), `[FEHLER] ${String(e)}`])
+    }
+    setDockerInstalling(false)
+  }
 
   return (
     <div className="space-y-4">
@@ -82,7 +124,50 @@ export function ExtensionsPage() {
         </div>
 
         {/* Grid */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-4">
+          {/* Docker-Banner im Docker-Tools-Tab */}
+          {category === "dockertools" && (
+            <div className={`flex items-start gap-3 p-4 rounded-xl border ${
+              dockerAvailable
+                ? "bg-emerald-500/5 border-emerald-500/20"
+                : "bg-blue-500/5 border-blue-500/20"
+            }`}>
+              <Container size={18} className={dockerAvailable ? "text-emerald-400 mt-0.5" : "text-blue-400 mt-0.5"} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${dockerAvailable ? "text-emerald-300" : "text-blue-300"}`}>
+                  {dockerAvailable ? "Docker ist verfügbar" : "Docker ist nicht installiert"}
+                </p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {dockerAvailable
+                    ? "Docker-Extensions können installiert werden."
+                    : "Docker wird für diese Extensions benötigt. Klicke auf Installieren um Docker einzurichten."}
+                </p>
+              </div>
+              {!dockerAvailable && (
+                <button
+                  onClick={installDocker}
+                  disabled={dockerInstalling}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium transition-colors shrink-0">
+                  <Terminal size={12} />
+                  {dockerInstalling ? "Installiert…" : "Docker installieren"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Docker-Install-Log */}
+          {category === "dockertools" && dockerInstallLog && (
+            <div className="rounded-xl border border-white/[6%] bg-zinc-950/50 p-4 font-mono text-xs leading-relaxed max-h-48 overflow-y-auto">
+              {dockerInstallLog.map((l, i) => (
+                <div key={i} className={
+                  l.startsWith("[OK]") ? "text-emerald-400" :
+                  l.startsWith("[FEHLER]") ? "text-rose-400" :
+                  "text-zinc-300"
+                }>{l}</div>
+              ))}
+            </div>
+          )}
+
           {loading && extensions.length === 0 ? (
             <p className="text-zinc-500 text-sm">Lade Extensions…</p>
           ) : visible.length === 0 ? (

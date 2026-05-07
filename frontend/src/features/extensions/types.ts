@@ -47,4 +47,5 @@ export const CATEGORIES: { id: string; label: string }[] = [
   { id: "productivity", label: "Produktivität" },
   { id: "media", label: "Media" },
   { id: "gaming", label: "Gaming" },
+  { id: "dockertools", label: "Docker-Tools" },
 ]

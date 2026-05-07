@@ -8,7 +8,7 @@ export async function fetchExtensions(): Promise<Extension[]> {
   return api.get<Extension[]>(BASE)
 }
 
-function authHeaders(): Record<string, string> {
+export function authHeaders(): Record<string, string> {
   const token = useAuthStore.getState().token
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
