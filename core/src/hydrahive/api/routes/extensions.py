@@ -161,7 +161,8 @@ async def install_docker_engine() -> StreamingResponse:
         except Exception:
             pass
 
-        _runner._docker_available = None  # Cache zurücksetzen
+        _runner._docker_available = None
+        _runner._docker_binary = None
         yield f"data: {json.dumps({'line': '[OK] Docker ist bereit'})}\n\n"
         yield "data: {\"done\": true}\n\n"
 
