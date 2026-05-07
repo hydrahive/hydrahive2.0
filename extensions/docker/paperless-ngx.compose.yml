@@ -3,6 +3,7 @@ services:
     image: docker.io/library/redis:7
     restart: unless-stopped
     network_mode: host
+    command: redis-server --port 6380
     volumes:
       - /var/lib/hydrahive2/extensions/paperless-ngx/redis:/data
 
@@ -18,7 +19,7 @@ services:
       - /var/lib/hydrahive2/extensions/paperless-ngx/export:/usr/src/paperless/export
       - /var/lib/hydrahive2/extensions/paperless-ngx/consume:/usr/src/paperless/consume
     environment:
-      PAPERLESS_REDIS: redis://localhost:6379
+      PAPERLESS_REDIS: redis://localhost:6380
       PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
       PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
       PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
