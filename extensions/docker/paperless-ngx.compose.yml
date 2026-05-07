@@ -2,6 +2,9 @@ services:
   broker:
     image: docker.io/library/redis:7
     restart: unless-stopped
+    security_opt:
+      - apparmor:unconfined
+      - seccomp:unconfined
     volumes:
       - /var/lib/hydrahive2/extensions/paperless-ngx/redis:/data
 
