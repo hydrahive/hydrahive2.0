@@ -233,6 +233,8 @@ async def stream_docker(
         cmd = ["docker", "compose", "-f", str(compose_file), "up", "-d", "--pull", "always"]
     else:
         cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes"]
+    if os.getuid() != 0:
+        cmd = ["sudo", "-n"] + cmd
     full_env = {**os.environ, **(env or {})}
     proc = await asyncio.create_subprocess_exec(
         *cmd,
