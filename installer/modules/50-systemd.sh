@@ -74,7 +74,6 @@ $HH_USER ALL=(ALL) NOPASSWD: /bin/bash
 $HH_USER ALL=(ALL) NOPASSWD: /usr/bin/bash
 $HH_USER ALL=(ALL) NOPASSWD: $DOCKER_BIN
 $HH_USER ALL=(ALL) NOPASSWD: $SYSCTL_BIN
-$HH_USER ALL=(ALL) NOPASSWD: /bin/rm
 Defaults:$HH_USER !requiretty
 SUDOEOF
 chmod 440 /etc/sudoers.d/hydrahive2-extensions

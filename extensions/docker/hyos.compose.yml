@@ -52,9 +52,8 @@ services:
       NO_COLOR: "false"
 
     volumes:
-      - /var/lib/hydrahive2/extensions/hyos:/data:rw
-      # Auth-Token des hytale-Users persistieren — sonst nach Restart weg
-      - /var/lib/hydrahive2/extensions/hyos-home:/home/hytale:rw
+      - hyos-data:/data:rw
+      - hyos-home:/home/hytale:rw
 
     healthcheck:
       test: ["CMD", "/opt/scripts/healthcheck.sh"]
@@ -98,7 +97,7 @@ services:
       PORT: "3002"
 
     volumes:
-      - /var/lib/hydrahive2/extensions/hyos:/data:rw
+      - hyos-data:/data:rw
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
     healthcheck:
@@ -116,3 +115,7 @@ services:
 
     security_opt:
       - no-new-privileges:true
+
+volumes:
+  hyos-data:
+  hyos-home:
