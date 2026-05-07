@@ -173,7 +173,7 @@ GITEA_TOKEN=$(_gitea_admin admin user generate-access-token \
     --scopes "write:repository,read:repository,write:user,read:user,write:issue,read:issue" \
     --raw 2>/dev/null | tr -d '[:space:]') || GITEA_TOKEN=""
 
-mkdir -p /etc/hydrahive2
+mkdir -p /etc/hydrahive2 /etc/hydrahive2/extensions
 cat > "${GITEA_CONFIG_FILE}" << GITCFG
 {
   "url": "http://127.0.0.1:${GITEA_PORT}",
@@ -184,6 +184,21 @@ cat > "${GITEA_CONFIG_FILE}" << GITCFG
 GITCFG
 chmod 600 "${GITEA_CONFIG_FILE}"
 success "Gitea-Config: ${GITEA_CONFIG_FILE}"
+
+# Standardisierte Credentials für den Credentials-Tab
+cat > "/etc/hydrahive2/extensions/gitea.credentials.json" << CREDFILE
+{
+  "id": "gitea",
+  "name": "Git-Server (Gitea)",
+  "fields": [
+    {"label": "URL", "value": "http://127.0.0.1:${GITEA_PORT}", "secret": false},
+    {"label": "Admin-User", "value": "${GITEA_ADMIN}", "secret": false},
+    {"label": "Admin-Passwort", "value": "${GITEA_ADMIN_PASS}", "secret": true},
+    {"label": "API-Token", "value": "${GITEA_TOKEN}", "secret": true}
+  ]
+}
+CREDFILE
+chmod 600 /etc/hydrahive2/extensions/gitea.credentials.json
 
 # ── nginx-Proxy ──────────────────────────────────────────────────────────────
 if command -v nginx &>/dev/null; then

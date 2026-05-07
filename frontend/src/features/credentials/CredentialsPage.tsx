@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react"
 import { Key, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { credentialsApi } from "./api"
 import { CredentialEditor } from "./CredentialEditor"
+import { ExtensionCredentials } from "./ExtensionCredentials"
 import type { Credential } from "./types"
+
+type Tab = "http" | "extensions"
 
 export function CredentialsPage() {
   const { t } = useTranslation("credentials")
+  const role = useAuthStore((s) => s.role)
+  const [tab, setTab] = useState<Tab>("http")
   const [creds, setCreds] = useState<Credential[]>([])
   const [loading, setLoading] = useState(true)
   const [editor, setEditor] = useState<Credential | "new" | null>(null)
@@ -27,17 +33,38 @@ export function CredentialsPage() {
           <h1 className="text-xl font-bold text-white">{t("title")}</h1>
           <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
         </div>
-        <button onClick={() => setEditor("new")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium">
-          <Plus size={12} /> {t("new")}
-        </button>
+        {tab === "http" && (
+          <button onClick={() => setEditor("new")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium">
+            <Plus size={12} /> {t("new")}
+          </button>
+        )}
       </div>
 
-      <p className="text-[11px] text-zinc-500 bg-amber-500/[5%] border border-amber-500/15 rounded-md px-3 py-2">
-        {t("security_note")}
-      </p>
+      <div className="flex gap-2 border-b border-white/[6%]">
+        <button onClick={() => setTab("http")}
+          className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            tab === "http" ? "border-violet-500 text-violet-300" : "border-transparent text-zinc-500 hover:text-zinc-300"
+          }`}>
+          <Key size={13} /> HTTP-Credentials
+        </button>
+        {role === "admin" && (
+          <button onClick={() => setTab("extensions")}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              tab === "extensions" ? "border-violet-500 text-violet-300" : "border-transparent text-zinc-500 hover:text-zinc-300"
+            }`}>
+            Extensions
+          </button>
+        )}
+      </div>
 
-      {loading ? (
+      {tab === "extensions" && <ExtensionCredentials />}
+
+      {tab === "http" && <p className="text-[11px] text-zinc-500 bg-amber-500/[5%] border border-amber-500/15 rounded-md px-3 py-2">
+        {t("security_note")}
+      </p>}
+
+      {tab === "http" && loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={20} className="animate-spin text-zinc-500" />
         </div>
@@ -62,7 +89,7 @@ export function CredentialsPage() {
         </div>
       )}
 
-      {editor && (
+      {tab === "http" && editor && (
         <CredentialEditor
           credential={editor === "new" ? null : editor}
           onClose={() => setEditor(null)}
