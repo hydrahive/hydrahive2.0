@@ -1,11 +1,16 @@
+import { useAuthStore } from "@/features/auth/useAuthStore"
+import { api } from "@/shared/api-client"
 import type { Extension } from "./types"
 
-const BASE = "/api/admin/extensions"
+const BASE = "/admin/extensions"
 
 export async function fetchExtensions(): Promise<Extension[]> {
-  const r = await fetch(BASE, { credentials: "include" })
-  if (!r.ok) throw new Error(`HTTP ${r.status}`)
-  return r.json()
+  return api.get<Extension[]>(BASE)
+}
+
+function authHeaders(): Record<string, string> {
+  const token = useAuthStore.getState().token
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 export function streamAction(
@@ -19,10 +24,9 @@ export function streamAction(
   let closed = false
   const ctrl = new AbortController()
 
-  fetch(`${BASE}/${id}/${action}`, {
+  fetch(`/api${BASE}/${id}/${action}`, {
     method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ params }),
     signal: ctrl.signal,
   }).then(async (r) => {
