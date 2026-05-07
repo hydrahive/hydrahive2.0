@@ -10,7 +10,7 @@ x-api-config: &api-config
 services:
   hyos-init:
     image: busybox
-    command: ["sh", "-c", "chown -R 568:568 /data /home/hytale"]
+    command: ["sh", "-c", "mkdir -p /data/.state && chmod 777 /data/.state && chown -R 568:568 /data /home/hytale"]
     user: "0:0"
     volumes:
       - hyos-data:/data
