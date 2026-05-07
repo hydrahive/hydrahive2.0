@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react"
 import { X, Terminal } from "lucide-react"
-import type { Extension, InstallParam } from "./types"
+import type { Extension, InstallMode, InstallParam } from "./types"
 import { streamAction } from "./api"
 
 interface Props {
   ext: Extension
   action: "install" | "uninstall"
+  mode: InstallMode
   onClose: (refreshNeeded: boolean) => void
 }
 
-export function InstallModal({ ext, action, onClose }: Props) {
+export function InstallModal({ ext, action, mode, onClose }: Props) {
   const [params, setParams] = useState<Record<string, string>>({})
   const [phase, setPhase] = useState<"params" | "running" | "done">(
-    action === "install" && ext.install_params.length > 0 ? "params" : "running"
+    action === "install" && mode === "native" && ext.install_params.length > 0 ? "params" : "running"
   )
   const [lines, setLines] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
@@ -26,6 +27,7 @@ export function InstallModal({ ext, action, onClose }: Props) {
       (line) => setLines((l) => [...l.slice(-500), line]),
       () => setPhase("done"),
       (msg) => { setLines((l) => [...l, `[FEHLER] ${msg}`]); setFailed(true); setPhase("done") },
+      mode,
     )
     return () => stopRef.current?.()
   }, [phase])

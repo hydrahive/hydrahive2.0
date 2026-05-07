@@ -20,6 +20,7 @@ export function streamAction(
   onLine: (line: string) => void,
   onDone: () => void,
   onError: (msg: string) => void,
+  mode: "native" | "docker" = "native",
 ): () => void {
   let closed = false
   const ctrl = new AbortController()
@@ -27,7 +28,7 @@ export function streamAction(
   fetch(`/api${BASE}/${id}/${action}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify({ params }),
+    body: JSON.stringify({ params, mode }),
     signal: ctrl.signal,
   }).then(async (r) => {
     if (!r.ok || !r.body) { onError(`HTTP ${r.status}`); return }

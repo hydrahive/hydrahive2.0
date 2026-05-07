@@ -7,6 +7,13 @@ export interface InstallParam {
   description?: string
 }
 
+export interface DockerConfig {
+  compose_file: string
+  service_name: string
+  health_url?: string
+  open_url?: string
+}
+
 export interface Extension {
   id: string
   name: string
@@ -20,10 +27,15 @@ export interface Extension {
   open_url?: string | null
   installed_check: string
   install_params: InstallParam[]
+  docker?: DockerConfig
   installed: boolean
+  install_mode: "native" | "docker" | null
   active: boolean
   healthy: boolean
+  docker_available: boolean
 }
+
+export type InstallMode = "native" | "docker"
 
 export const CATEGORIES: { id: string; label: string }[] = [
   { id: "all", label: "Alle" },

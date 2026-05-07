@@ -3,11 +3,12 @@ import { Package, RefreshCw } from "lucide-react"
 import { fetchExtensions } from "./api"
 import { ExtensionCard } from "./ExtensionCard"
 import { InstallModal } from "./InstallModal"
-import { CATEGORIES, type Extension } from "./types"
+import { CATEGORIES, type Extension, type InstallMode } from "./types"
 
 interface ModalState {
   ext: Extension
   action: "install" | "uninstall"
+  mode: InstallMode
 }
 
 export function ExtensionsPage() {
@@ -92,8 +93,8 @@ export function ExtensionsPage() {
                 <ExtensionCard
                   key={ext.id}
                   ext={ext}
-                  onInstall={() => setModal({ ext, action: "install" })}
-                  onUninstall={() => setModal({ ext, action: "uninstall" })}
+                  onInstall={(mode) => setModal({ ext, action: "install", mode })}
+                  onUninstall={(mode) => setModal({ ext, action: "uninstall", mode })}
                 />
               ))}
             </div>
@@ -105,6 +106,7 @@ export function ExtensionsPage() {
         <InstallModal
           ext={modal.ext}
           action={modal.action}
+          mode={modal.mode}
           onClose={(refresh) => {
             setModal(null)
             if (refresh) load()
