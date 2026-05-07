@@ -15,6 +15,8 @@ export function convertMessage(msg: Message, _idx: number): ThreadMessageLike {
   let content: ThreadMessageLike["content"]
   if (typeof msg.content === "string") {
     content = msg.content || " "
+  } else if (!Array.isArray(msg.content)) {
+    content = " "
   } else {
     const toolResults = new Map<string, ContentBlock & { type: "tool_result" }>()
     for (const b of msg.content) {
