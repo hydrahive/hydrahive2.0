@@ -1,6 +1,6 @@
 # HyOS — Hytale Dedicated Server + Manager
-# Ports: 30380/udp (Spiel), 30381/tcp (API), 3000/tcp (Web-Dashboard)
-# Benötigt mind. 8 GB RAM auf dem Host.
+# Ports: 30380/udp (Spiel), 30381/tcp (API), 3002/tcp (Web-Dashboard)
+# Benötigt mind. 8 GB RAM auf dem Host. JAVA_XMX immer mit Einheit: 4G, 8G, 12G
 # network_mode: host — wegen TrueNAS/Linux-Kernel sysctl-Einschränkungen in Bridge-Netzwerken.
 
 x-api-config: &api-config
@@ -53,6 +53,8 @@ services:
 
     volumes:
       - /var/lib/hydrahive2/extensions/hyos:/data:rw
+      # Auth-Token des hytale-Users persistieren — sonst nach Restart weg
+      - /var/lib/hydrahive2/extensions/hyos-home:/home/hytale:rw
 
     healthcheck:
       test: ["CMD", "/opt/scripts/healthcheck.sh"]
