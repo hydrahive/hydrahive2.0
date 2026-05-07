@@ -8,6 +8,15 @@ x-api-config: &api-config
   API_CLIENT_ID: hyos-manager
 
 services:
+  hyos-init:
+    image: busybox
+    command: ["sh", "-c", "chown -R 568:568 /data /home/hytale"]
+    user: "0:0"
+    volumes:
+      - hyos-data:/data
+      - hyos-home:/home/hytale
+    restart: "no"
+
   hyos-server:
     image: ghcr.io/editmysave/hyos/server:latest
     pull_policy: always
@@ -15,6 +24,9 @@ services:
     network_mode: host
     restart: unless-stopped
     stdin_open: true
+    depends_on:
+      hyos-init:
+        condition: service_completed_successfully
 
     environment:
       <<: *api-config
@@ -80,7 +92,11 @@ services:
     network_mode: host
     restart: unless-stopped
     depends_on:
-      - hyos-server
+      hyos-init:
+        condition: service_completed_successfully
+      hyos-server:
+        condition: service_started
+
 
     environment:
       <<: *api-config
