@@ -34,9 +34,9 @@
       "key": "JAVA_XMX",
       "label": "Max. RAM (Java Heap)",
       "type": "string",
-      "placeholder": "3G",
+      "placeholder": "12G",
       "required": false,
-      "description": "Maximaler Java-Heap, z.B. 3G oder 8G — Hytale empfiehlt mind. 3G, Server-Total mind. 8G"
+      "description": "Maximaler Java-Heap — IMMER mit Einheit: 4G, 8G, 12G. Ohne G startet Java nicht. Hytale empfiehlt mind. 3G."
     }
   ],
   "docker": {
