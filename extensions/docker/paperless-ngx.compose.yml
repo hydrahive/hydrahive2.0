@@ -2,27 +2,27 @@ services:
   broker:
     image: docker.io/library/redis:7
     restart: unless-stopped
-    privileged: true
+    network_mode: host
     volumes:
       - /var/lib/hydrahive2/extensions/paperless-ngx/redis:/data
 
   paperless-ngx:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     restart: unless-stopped
+    network_mode: host
     depends_on:
       - broker
-    ports:
-      - "127.0.0.1:8010:8000"
     volumes:
       - /var/lib/hydrahive2/extensions/paperless-ngx/data:/usr/src/paperless/data
       - /var/lib/hydrahive2/extensions/paperless-ngx/media:/usr/src/paperless/media
       - /var/lib/hydrahive2/extensions/paperless-ngx/export:/usr/src/paperless/export
       - /var/lib/hydrahive2/extensions/paperless-ngx/consume:/usr/src/paperless/consume
     environment:
-      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_REDIS: redis://localhost:6379
       PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
       PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
       PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
       PAPERLESS_TIME_ZONE: Europe/Berlin
       PAPERLESS_OCR_LANGUAGE: deu+eng
       PAPERLESS_URL: http://localhost:8010
+      PAPERLESS_PORT: 8010
