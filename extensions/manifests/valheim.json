@@ -1,0 +1,38 @@
+{
+  "id": "valheim",
+  "name": "Valheim Dedicated Server",
+  "description": "Valheim Dedicated Server via SteamCMD. Automatisches Update beim Start, konfigurierbare Welt und Passwort.",
+  "icon": "Sword",
+  "category": "gaming",
+  "install_script": "install/valheim.sh",
+  "uninstall_script": "uninstall/valheim.sh",
+  "service": "valheim",
+  "health_url": null,
+  "open_url": null,
+  "installed_check": "/opt/valheim/valheim_server.x86_64",
+  "install_params": [
+    {
+      "key": "SERVER_NAME",
+      "label": "Server-Name",
+      "type": "string",
+      "placeholder": "Mein Valheim Server",
+      "required": false,
+      "description": "Name des Servers in der Serverliste"
+    },
+    {
+      "key": "WORLD_NAME",
+      "label": "Welt-Name",
+      "type": "string",
+      "placeholder": "MeineWelt",
+      "required": false,
+      "description": "Name der Spielwelt (Dateiname ohne .db/.fwl)"
+    },
+    {
+      "key": "SERVER_PASS",
+      "label": "Server-Passwort",
+      "type": "password",
+      "required": false,
+      "description": "Passwort für den Server — wird automatisch generiert wenn leer"
+    }
+  ]
+}
