@@ -363,7 +363,8 @@ if [ -f "$SERVICE_FILE" ]; then
   # raus — wir nutzen jetzt tailscale --operator statt sudo
   grep -q "ReadWritePaths=.*/run/sudo" "$SERVICE_FILE" && NEEDS_REWRITE=1
   grep -q "ExecStartPre.*mkdir.*run/sudo" "$SERVICE_FILE" && NEEDS_REWRITE=1
-  grep -q "^NoNewPrivileges=true" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  # NoNewPrivileges bewusst entfernt (Extensions brauchen sudo -n)
+  grep -q "^NoNewPrivileges=true" "$SERVICE_FILE" && NEEDS_REWRITE=1
   # KillMode=process verhindert dass qemu-VMs + incus-Container beim service-restart
   # mitgekillt werden (Default control-group kappt alle Children der cgroup)
   grep -q "^KillMode=process" "$SERVICE_FILE" || NEEDS_REWRITE=1

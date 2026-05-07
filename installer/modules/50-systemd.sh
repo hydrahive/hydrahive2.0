@@ -52,16 +52,28 @@ RestartSec=5
 # Children. Default control-group würde laufende VMs/Container beim Update killen.
 KillMode=process
 
-# Sicherheit — HOME-Dir braucht Read-Access (incus config.yml), Write nur via ReadWritePaths
-NoNewPrivileges=true
+# PrivateTmp isoliert /tmp — schadet nicht.
+# NoNewPrivileges + ProtectSystem=strict sind bewusst NICHT gesetzt:
+# Extensions brauchen sudo -n /bin/bash → apt-get, systemctl etc. als root.
+# Sicherheit kommt aus dem Admin-only API-Endpoint + NOPASSWD-sudoers auf /bin/bash.
 PrivateTmp=true
-ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR /home/$HH_USER/.config /home/$HH_USER/.mmx /etc/samba/hh-projects.d
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+log "Schreibe sudoers-Eintrag für Extensions (NOPASSWD /bin/bash)"
+cat > /etc/sudoers.d/hydrahive2-extensions <<SUDOEOF
+# Extensions-Manager: hydrahive darf bash als root ausführen (apt-get, systemctl etc.)
+# Sicherheit kommt aus Admin-only API-Endpoint — kein direkter Shell-Zugang.
+$HH_USER ALL=(ALL) NOPASSWD: /bin/bash
+$HH_USER ALL=(ALL) NOPASSWD: /usr/bin/bash
+Defaults:$HH_USER !requiretty
+SUDOEOF
+chmod 440 /etc/sudoers.d/hydrahive2-extensions
+visudo -c -f /etc/sudoers.d/hydrahive2-extensions && log "sudoers OK"
 
 log "Schreibe $UPDATE_SERVICE (Self-Update Runner)"
 cat > "$UPDATE_SERVICE" <<EOF
