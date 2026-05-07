@@ -697,15 +697,86 @@ Web-Konsole: neues Sidebar-Item `Wiki`.
 
 ---
 
+## Extensions — App Manager (Core-Komponente)
+
+HydraHive2 kann externe Software-Pakete nachträglich über die Web-UI installieren, verwalten
+und deinstallieren. Das System ist deklarativ: jede Extension ist ein JSON-Manifest + zwei
+Bash-Scripts. Kein Code-Änderung im Core nötig.
+
+### Manifest-Format
+
+```json
+{
+  "id": "gitea",
+  "name": "Git-Server (Gitea)",
+  "description": "Self-hosted Git-Hosting — Repositories, Issues, CI.",
+  "icon": "GitBranch",
+  "category": "tools",
+  "install_script": "extensions/install/gitea.sh",
+  "uninstall_script": "extensions/uninstall/gitea.sh",
+  "service": "gitea",
+  "health_url": "http://127.0.0.1:3001/api/v1/version",
+  "open_url": ":3001/",
+  "installed_check": "/usr/local/bin/gitea",
+  "install_params": []
+}
+```
+
+### Erster Catalog (aus HydraHive 1 portiert)
+
+| Kategorie | Extensions |
+|---|---|
+| Tools | Gitea, Code-Server, Heimdall |
+| KI | Ollama |
+| Netzwerk | Headscale, Pi-hole, AdGuard Home |
+| Sicherheit | Vaultwarden |
+| Produktivität | Bookstack, Paperless-ngx, Vikunja, Monica CRM, Radicale |
+| Media | Plex, Sabnzbd, Sonarr, Radarr |
+| Gaming | Minecraft, Valheim |
+| Sonstiges | SearXNG |
+
+### Installations-Mechanismus
+
+- Backend führt `sudo -n /bin/bash install.sh` aus
+- Output wird per SSE live ans Frontend gestreamt
+- Status: `installed_check`-Pfad existiert + systemd-Service aktiv + `health_url` antwortet
+- Optional: `install_params` → Parameter-Dialog vor Installation (z.B. DNS-IP)
+- Validierung vor Ausführung: Pflichtfelder, Script existiert, keine destruktiven Pattern
+  (`rm -rf /`, `curl|bash`, `mkfs`)
+
+### Nicht-Ziele
+
+- Kein Docker / Compose (native systemd-Services)
+- Keine automatischen Updates (manuell über Uninstall + Reinstall)
+- Kein Extension-Hub / Online-Catalog (nur lokale Manifests)
+- Kein Rollback bei fehlgeschlagener Installation
+
+### Architektur
+
+**Backend** `api/routes/extensions.py`:
+- `GET /api/admin/extensions` — alle Manifests + Status
+- `POST /api/admin/extensions/{id}/install` — SSE-Stream
+- `POST /api/admin/extensions/{id}/uninstall` — SSE-Stream
+
+**Daten** `extensions/`:
+- `manifests/*.json` — Deklarationen
+- `install/*.sh` — Installer (idempotent)
+- `uninstall/*.sh` — Deinstaller
+
+**Frontend** `features/extensions/`:
+- Kategorie-Sidebar + Extension-Cards (Name, Icon, Status-Badge)
+- Install-Modal mit Live-Log (SSE)
+- Parameter-Dialog wenn `install_params` gesetzt
+
+---
+
 ## Was explizit NICHT gebaut wird (ohne separate Entscheidung)
 
 - DREAM-System
 - Widget-Dashboard mit Drag&Drop
 - Collaborative Composer (Yjs)
 - Blueprint/Workflow-Editor
-- Vaultwarden
 - Xiaozhi Voice-Server
-- SearXNG
 - AutoDream
 - HydraBrain
 - Frustrations-Erkennung
