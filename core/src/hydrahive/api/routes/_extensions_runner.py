@@ -44,10 +44,24 @@ def _scripts_base() -> Path:
 
 # ── Docker-Detection ─────────────────────────────────────────────────────────
 
+_docker_binary: bool | None = None
 _docker_available: bool | None = None
 
 
+def docker_binary_exists() -> bool:
+    """Prüft nur ob das docker-Binary installiert ist."""
+    global _docker_binary
+    if _docker_binary is None:
+        try:
+            r = subprocess.run(["which", "docker"], capture_output=True, timeout=3)
+            _docker_binary = r.returncode == 0
+        except Exception:
+            _docker_binary = False
+    return _docker_binary
+
+
 def docker_available() -> bool:
+    """Prüft ob Docker-Daemon läuft und erreichbar ist."""
     global _docker_available
     if _docker_available is None:
         try:
@@ -149,7 +163,7 @@ async def extension_status(manifest: dict) -> dict:
         "install_mode": install_mode,
         "active": active,
         "healthy": healthy,
-        "docker_available": docker_available(),
+        "docker_available": docker_binary_exists(),
     }
 
 
@@ -165,8 +179,8 @@ def validate_manifest(manifest: dict, mode: str = "native") -> list[str]:
         compose = _scripts_base() / docker.get("compose_file", "")
         if not compose.exists():
             errors.append(f"Compose-Datei nicht gefunden: {compose}")
-        if not docker_available():
-            errors.append("Docker ist auf diesem Host nicht verfügbar")
+        if not docker_binary_exists():
+            errors.append("Docker ist nicht installiert")
         return errors
 
     for field in ("id", "name", "install_script", "installed_check"):
