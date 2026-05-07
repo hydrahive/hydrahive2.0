@@ -27,6 +27,34 @@ if ! command -v jq &>/dev/null; then
     success "jq installiert"
 fi
 
+# ── Umgebungs-Prüfung: Docker-Sysctl-Fähigkeit ──────────────────────────────
+# Docker schreibt net.ipv4.ip_unprivileged_port_start in jeden Container-Namespace.
+# In LXC-Containern (Proxmox etc.) ist das ohne Host-Konfiguration geblockt.
+info "Prüfe Docker-Sysctl-Kompatibilität..."
+SYSCTL_ERR=$(docker run --rm --sysctl net.ipv4.ip_unprivileged_port_start=0 \
+    alpine:latest true 2>&1 || true)
+if echo "${SYSCTL_ERR}" | grep -q "ip_unprivileged_port_start"; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════╗"
+    echo "║  FEHLER: LXC-Umgebung blockiert Docker-Sysctls                 ║"
+    echo "╠══════════════════════════════════════════════════════════════════╣"
+    echo "║  Mailcow kann in dieser Umgebung nicht starten.                 ║"
+    echo "║                                                                  ║"
+    echo "║  Fix auf dem Proxmox-HOST (nicht in diesem Container):          ║"
+    echo "║                                                                  ║"
+    echo "║  1. LXC-Container-ID herausfinden:  pct list                   ║"
+    echo "║  2. In Konfigurationsdatei eintragen:                           ║"
+    echo "║     echo 'lxc.sysctl.net.ipv4.ip_unprivileged_port_start = 0'  ║"
+    echo "║          >> /etc/pve/lxc/<CTID>.conf                            ║"
+    echo "║  3. Container neu starten:  pct reboot <CTID>                   ║"
+    echo "║                                                                  ║"
+    echo "║  Alternativ: Mailcow auf einem dedizierten Host installieren.   ║"
+    echo "╚══════════════════════════════════════════════════════════════════╝"
+    echo ""
+    exit 1
+fi
+success "Docker-Sysctl-Kompatibilität OK"
+
 # ── Netzwerk automatisch erkennen ────────────────────────────────────────────
 IFACE=$(ip route | awk '/^default/ {print $5; exit}')
 GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
