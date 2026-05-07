@@ -269,15 +269,20 @@ async def stream_docker(
                 subprocess.run(sysctl_cmd, capture_output=True, timeout=5)
             except Exception:
                 pass
-        else:
-            cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes",
-                   "--remove-orphans"]
+        elif action == "down":
             # Leere .env damit compose keine Warnings über fehlende Variablen wirft
             tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False, dir="/tmp")
             tmp.close()
             env_file = Path(tmp.name)
             cmd = ["docker", "compose", "-f", str(compose_file),
                    "--env-file", str(env_file), "down", "--volumes", "--remove-orphans"]
+        else:
+            # start | stop | restart — kein volumes-Flag, kein env nötig
+            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False, dir="/tmp")
+            tmp.close()
+            env_file = Path(tmp.name)
+            cmd = ["docker", "compose", "-f", str(compose_file),
+                   "--env-file", str(env_file), action]
 
         if os.getuid() != 0:
             cmd = ["sudo", "-n"] + cmd

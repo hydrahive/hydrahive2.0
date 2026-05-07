@@ -304,3 +304,23 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
 
     return StreamingResponse(_generate_native(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/{ext_id}/docker/{action}", dependencies=[Depends(require_admin)])
+async def docker_action(ext_id: str, action: str) -> StreamingResponse:
+    """start | stop | restart für laufende Docker-Extensions."""
+    if action not in ("start", "stop", "restart"):
+        raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid_action")
+    manifest = _find_manifest(ext_id)
+    docker = manifest.get("docker")
+    if not docker:
+        raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "no_docker_config")
+    compose_file = _scripts_base() / docker["compose_file"]
+
+    async def _generate():
+        async for line in stream_docker(compose_file, action):
+            yield f"data: {json.dumps({'line': line})}\n\n"
+        yield "data: {\"done\": true}\n\n"
+
+    return StreamingResponse(_generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
