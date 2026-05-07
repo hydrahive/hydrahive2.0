@@ -114,14 +114,20 @@ async def anthropic_complete(
     temperature: float, max_tokens: int,
 ) -> str:
     client, is_oauth = _client(key)
+    # Anthropic-API erlaubt keine role="system" in messages — als top-level system extrahieren
+    system_texts = [m["content"] for m in messages if m.get("role") == "system"]
+    user_messages = [m for m in messages if m.get("role") != "system"]
+    system: str | list | None = "\n\n".join(system_texts) if system_texts else None
+    if is_oauth:
+        system = _OAUTH_IDENTITY  # OAuth-Identity überschreibt (ist eine Liste)
     kwargs: dict = {
         "model": strip_provider_prefix(model),
-        "messages": messages,
+        "messages": user_messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    if is_oauth:
-        kwargs["system"] = _OAUTH_IDENTITY
+    if system:
+        kwargs["system"] = system
     resp = await client.messages.create(**kwargs)
     return extract_text(resp.content)
 
