@@ -441,6 +441,15 @@ mkdir -p "$CRED_DIR"
 chown root:"$HH_USER" "$CRED_DIR"
 chmod 775 "$CRED_DIR"
 
+# HyOS: /home/hytale-Volume muss vor erstem Start existieren + richtige Ownership haben
+# (Docker würde es als root anlegen, dann kann der hytale-User uid=568 nicht schreiben)
+HYOS_HOME="$HH_DATA_DIR/extensions/hyos-home"
+if [ ! -d "$HYOS_HOME" ]; then
+  mkdir -p "$HYOS_HOME"
+  chown 568:568 "$HYOS_HOME"
+  chmod 755 "$HYOS_HOME"
+fi
+
 log "Service neu starten"
 systemctl restart hydrahive2.service
 
