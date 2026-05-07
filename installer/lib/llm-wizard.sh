@@ -114,7 +114,7 @@ sys.exit(0 if d.get('providers') else 1)
     if [ "$pid" = "openai" ]; then
       if ask_yn "  OAuth-Login (ChatGPT Plus/Pro via Codex, kein API-Key nötig)?" "y"; then
         if python3 "$INSTALLER_DIR/lib/oauth_codex_cli.py" "$llm_json"; then
-          oauth_done+=("openai")
+          oauth_done+=("openai-codex")
           sel_entries+=("$pid|$name|<oauth>|$models")
           continue
         else
