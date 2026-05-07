@@ -55,11 +55,12 @@ export function ExtensionCard({ ext, onInstall, onUninstall, onRefresh }: Props 
   }
 
   const openUrl = (() => {
-    if (ext.install_mode === "docker" && ext.docker?.open_url)
-      return `http://${window.location.hostname}${ext.docker.open_url}`
-    if (ext.open_url)
-      return `http://${window.location.hostname}${ext.open_url}`
-    return null
+    const raw = (ext.install_mode === "docker" && ext.docker?.open_url)
+      ? ext.docker.open_url
+      : (ext.open_url ?? "")
+    if (!raw) return null
+    if (raw.startsWith("http")) return raw
+    return `http://${window.location.hostname}${raw}`
   })()
 
   return (
