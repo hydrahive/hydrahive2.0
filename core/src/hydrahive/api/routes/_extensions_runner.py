@@ -229,27 +229,56 @@ async def stream_docker(
     env: dict[str, str] | None = None,
 ) -> AsyncIterator[str]:
     """action: 'up' oder 'down'"""
-    if action == "up":
-        cmd = ["docker", "compose", "-f", str(compose_file), "up", "-d", "--pull", "always"]
-    else:
-        cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes"]
-    if os.getuid() != 0:
-        cmd = ["sudo", "-n"] + cmd
-    full_env = {**os.environ, **(env or {})}
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.STDOUT,
-        env=full_env,
-    )
-    assert proc.stdout is not None
-    while True:
-        line = await proc.stdout.readline()
-        if not line:
-            break
-        yield line.decode("utf-8", errors="replace").rstrip("\n")
-    await proc.wait()
-    if proc.returncode != 0:
-        yield f"[FEHLER] Docker beendet mit Code {proc.returncode}"
-    else:
-        yield "[OK] Abgeschlossen"
+    import tempfile
+
+    env_file: Path | None = None
+    try:
+        if action == "up":
+            # Env-Variablen in temp .env-Datei schreiben — sudo strippt subprocess-env
+            if env:
+                tmp = tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".env", delete=False, dir="/tmp"
+                )
+                for k, v in env.items():
+                    tmp.write(f"{k}={v}\n")
+                tmp.close()
+                env_file = Path(tmp.name)
+                os.chmod(env_file, 0o600)
+                cmd = ["docker", "compose", "-f", str(compose_file),
+                       "--env-file", str(env_file), "up", "-d", "--pull", "always"]
+            else:
+                cmd = ["docker", "compose", "-f", str(compose_file), "up", "-d", "--pull", "always"]
+
+            # sysctl für unprivilegierte Container-Ports setzen
+            try:
+                subprocess.run(
+                    ["sysctl", "-w", "net.ipv4.ip_unprivileged_port_start=0"],
+                    capture_output=True, timeout=3,
+                )
+            except Exception:
+                pass
+        else:
+            cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes"]
+
+        if os.getuid() != 0:
+            cmd = ["sudo", "-n"] + cmd
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        assert proc.stdout is not None
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            yield line.decode("utf-8", errors="replace").rstrip("\n")
+        await proc.wait()
+        if proc.returncode != 0:
+            yield f"[FEHLER] Docker beendet mit Code {proc.returncode}"
+        else:
+            yield "[OK] Abgeschlossen"
+    finally:
+        if env_file and env_file.exists():
+            env_file.unlink(missing_ok=True)
