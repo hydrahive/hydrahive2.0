@@ -31,6 +31,66 @@ async def _fetch_events(lookback_hours: int) -> list[dict]:
         return []
 
 
+def _extract_json(raw: str) -> dict:
+    """Versucht JSON aus der LLM-Antwort zu extrahieren — auch wenn Markdown drumherum ist."""
+    raw = raw.strip()
+
+    # 1. Direkt als JSON
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+
+    # 2. JSON-Block in ```...``` oder ```json...```
+    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # 3. Erstes {...} das alle vier Keys enthält
+    m = re.search(r"\{[^{}]*\"open\"[^{}]*\}", raw, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    # 4. Fallback: Markdown-Abschnitte parsen (## Offen, ## Gut, ...)
+    sections: dict[str, str] = {}
+    mapping = {
+        "offen": "open", "open": "open",
+        "gut gelaufen": "went_well", "went_well": "went_well", "gut": "went_well",
+        "schlecht gelaufen": "went_badly", "went_badly": "went_badly", "schlecht": "went_badly",
+        "heute": "today", "today": "today", "heute relevant": "today",
+    }
+    current_key: str | None = None
+    buf: list[str] = []
+    for line in raw.splitlines():
+        header = re.match(r"^#{1,3}\s+(.+)", line)
+        if header:
+            if current_key and buf:
+                sections[current_key] = "\n".join(buf).strip()
+            buf = []
+            current_key = mapping.get(header.group(1).strip().lower())
+        elif current_key:
+            buf.append(line)
+    if current_key and buf:
+        sections[current_key] = "\n".join(buf).strip()
+
+    if sections:
+        return {
+            "open": sections.get("open", ""),
+            "went_well": sections.get("went_well", ""),
+            "went_badly": sections.get("went_badly", ""),
+            "today": sections.get("today", ""),
+        }
+
+    # 5. Letzter Ausweg: gesamten Text in "open" packen
+    return {"open": raw[:2000], "went_well": "", "went_badly": "", "today": ""}
+
+
 def _format_events(events: list[dict]) -> str:
     """Formatiert Events als kompakten Text für den LLM-Kontext."""
     if not events:
@@ -66,7 +126,9 @@ async def run() -> storage.Briefing:
     user_msg = (
         f"Hier sind die Aktivitäten der letzten {cfg.lookback_hours} Stunden "
         f"({event_count} Events):\n\n{context}\n\n"
-        "Erstelle das Morgen-Briefing im vorgegebenen JSON-Format."
+        "Erstelle jetzt das Morgen-Briefing. "
+        "Antworte AUSSCHLIESSLICH mit einem JSON-Objekt — kein Markdown, keine Erklärungen, kein Text davor oder danach:\n"
+        '{"open": "...", "went_well": "...", "went_badly": "...", "today": "..."}'
     )
 
     try:
@@ -81,19 +143,8 @@ async def run() -> storage.Briefing:
             temperature=0.3,
             max_tokens=2048,
         )
-        # JSON aus dem Response extrahieren — robust gegen Markdown/Prosa davor/danach
         logger.info("zahnfee: LLM-Antwort (%d Zeichen): %.200s", len(raw), raw)
-        raw = raw.strip()
-        # Versuche JSON-Block via regex zu finden
-        m = re.search(r'\{[^{}]*"open"[^{}]*\}', raw, re.DOTALL)
-        if m:
-            raw = m.group(0)
-        elif raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
-        parsed = json.loads(raw)
+        parsed = _extract_json(raw)
         briefing = storage.Briefing(
             generated_at=storage.now_iso(),
             date=storage.today_str(),
