@@ -27,6 +27,7 @@ from hydrahive.communication.whatsapp import (
     ensure_secret,
 )
 from hydrahive.containers import reconciler as container_reconciler
+from hydrahive.zahnfee import scheduler as zahnfee_scheduler
 from hydrahive.db import init_db
 from hydrahive.db import mirror as pg_mirror
 from hydrahive import plugins as plugin_system
@@ -93,6 +94,8 @@ async def lifespan(app: FastAPI):
     set_start_time()
 
     update_task = asyncio.create_task(update_check_loop())
+    zahnfee_stop = asyncio.Event()
+    zahnfee_task = asyncio.create_task(zahnfee_scheduler.run_loop(zahnfee_stop))
     vm_reconciler_stop = asyncio.Event()
     vm_reconciler_task = asyncio.create_task(vm_reconciler.run_loop(vm_reconciler_stop))
     container_reconciler_stop = asyncio.Event()
@@ -160,10 +163,11 @@ async def lifespan(app: FastAPI):
     if wa_bridge:
         await wa_bridge.stop()
     update_task.cancel()
+    zahnfee_stop.set()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
     await agentlink_client.stop_listener()
-    for task in (vm_reconciler_task, container_reconciler_task):
+    for task in (zahnfee_task, vm_reconciler_task, container_reconciler_task):
         try:
             await asyncio.wait_for(task, timeout=5.0)
         except (asyncio.TimeoutError, asyncio.CancelledError):

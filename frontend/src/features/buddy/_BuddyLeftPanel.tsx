@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { Activity, Loader2 } from "lucide-react"
 import { dashboardApi, type DashboardSummary } from "@/features/dashboard/api"
+import { zahnfeeApi, type Briefing } from "@/features/zahnfee/api"
+import { Link } from "react-router-dom"
 
 function PanelBox({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -23,20 +25,62 @@ function StatRow({ label, value, accent }: { label: string; value: React.ReactNo
   )
 }
 
+function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
+  if (briefing === undefined) {
+    return (
+      <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
+        <Loader2 size={14} className="text-zinc-600 animate-spin" />
+      </PanelBox>
+    )
+  }
+  if (!briefing) {
+    return (
+      <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
+        <p className="text-xs text-zinc-500 italic leading-relaxed">Noch kein Briefing für heute.</p>
+        <Link to="/zahnfee" className="mt-2 block text-xs text-violet-400 hover:text-violet-300 transition-colors">Einrichten →</Link>
+      </PanelBox>
+    )
+  }
+  const sections = [
+    { label: "Offen", value: briefing.open_items, color: "text-amber-400" },
+    { label: "Gut", value: briefing.went_well, color: "text-emerald-400" },
+    { label: "Schlecht", value: briefing.went_badly, color: "text-rose-400" },
+    { label: "Heute", value: briefing.today, color: "text-violet-400" },
+  ].filter((s) => s.value)
+
+  return (
+    <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
+      {briefing.error ? (
+        <p className="text-xs text-rose-400 italic">{briefing.error}</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {sections.map((s) => (
+            <div key={s.label}>
+              <p className={`text-[10px] font-semibold uppercase tracking-wider ${s.color} mb-0.5`}>{s.label}</p>
+              <p className="text-xs text-zinc-400 leading-snug line-clamp-3">{s.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <Link to="/zahnfee" className="mt-3 block text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+        {briefing.date} · Details →
+      </Link>
+    </PanelBox>
+  )
+}
+
 export function BuddyLeftPanel() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [briefing, setBriefing] = useState<Briefing | null | undefined>(undefined)
 
   useEffect(() => {
     dashboardApi.summary().then(setSummary).catch(() => {})
+    zahnfeeApi.briefing().then((r) => setBriefing(r.briefing)).catch(() => setBriefing(null))
   }, [])
 
   return (
     <div className="flex flex-col gap-4 w-60">
-      <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
-        <p className="text-xs text-zinc-500 italic leading-relaxed">
-          Noch kein Briefing für heute.
-        </p>
-      </PanelBox>
+      <ZahnfeeBox briefing={briefing} />
 
       <PanelBox title="System" icon={<Activity size={13} className="text-zinc-400" />}>
         {!summary ? (
