@@ -13,8 +13,8 @@ MAILCOW_TZ="${MAILCOW_TZ:-Europe/Berlin}"
 MAILCOW_DBPASS="${MAILCOW_DBPASS:-$(openssl rand -hex 32)}"
 
 # HTTP/HTTPS auf nicht-standard Ports damit kein Konflikt mit bestehendem nginx
-HTTP_PORT=8080
-HTTPS_PORT=8443
+HTTP_PORT="${HTTP_PORT:-8180}"
+HTTPS_PORT="${HTTPS_PORT:-8543}"
 
 info "Installiere Mailcow — Hostname: ${MAILCOW_HOSTNAME}"
 
