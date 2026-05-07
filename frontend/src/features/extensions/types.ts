@@ -29,6 +29,7 @@ export interface Extension {
   installed_check: string
   install_params: InstallParam[]
   docker?: DockerConfig
+  preferred_mode?: InstallMode
   installed: boolean
   install_mode: "native" | "docker" | null
   active: boolean
