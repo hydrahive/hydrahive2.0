@@ -274,6 +274,8 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
             raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "no_docker_config")
         compose_file = _scripts_base() / docker["compose_file"]
 
+        cleanup_dirs = docker.get("cleanup_dirs", [])
+
         async def _generate_docker_down():
             async for line in stream_docker(compose_file, "down"):
                 yield f"data: {json.dumps({'line': line})}\n\n"
@@ -285,6 +287,13 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
                     cleanup.unlink(missing_ok=True)
                 except Exception:
                     pass
+            for d in cleanup_dirs:
+                try:
+                    import shutil
+                    shutil.rmtree(d, ignore_errors=True)
+                    yield f"data: {json.dumps({'line': f'Gelöscht: {d}'})}\n\n"
+                except Exception as e:
+                    logger.warning("cleanup_dir %s fehlgeschlagen: %s", d, e)
             yield "data: {\"done\": true}\n\n"
 
         return StreamingResponse(_generate_docker_down(), media_type="text/event-stream",
