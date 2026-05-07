@@ -76,6 +76,21 @@ done
 [ -z "${MAILCOW_IP}" ] && die "Keine freie IP im Bereich ${_o1}.${_o2}.${_o3}.200-250"
 info "Mailcow-IP (Alias): ${MAILCOW_IP}"
 
+# ── HydraHive-nginx auf primäre IP beschränken ───────────────────────────────
+# nginx lauscht standardmäßig auf 0.0.0.0:80/443 (alle IPs).
+# Damit die Alias-IP für Mailcow frei ist, nginx auf HOST_IP + 127.0.0.1 beschränken.
+NGINX_CONF="/etc/nginx/sites-available/hydrahive2"
+if [ -f "${NGINX_CONF}" ]; then
+    sed -i "s|listen 80 default_server;|listen ${HOST_IP}:80 default_server;\n    listen 127.0.0.1:80;|g" "${NGINX_CONF}"
+    sed -i "s|listen \[::\]:80 default_server;|# listen [::]:80 (durch mailcow-install deaktiviert)|g" "${NGINX_CONF}"
+    sed -i "s|listen 443 ssl default_server;|listen ${HOST_IP}:443 ssl default_server;\n    listen 127.0.0.1:443 ssl;|g" "${NGINX_CONF}"
+    sed -i "s|listen \[::\]:443 ssl default_server;|# listen [::]:443 (durch mailcow-install deaktiviert)|g" "${NGINX_CONF}"
+    nginx -t && systemctl reload nginx
+    success "HydraHive-nginx auf ${HOST_IP} beschränkt — ${MAILCOW_IP} ist frei"
+else
+    warn "HydraHive-nginx-Config nicht gefunden — Port-Konflikt möglich"
+fi
+
 # ── IP-Alias anlegen ─────────────────────────────────────────────────────────
 # Mailcow bindet seine Ports exklusiv an diese IP — kein Konflikt mit HydraHive.
 # Sofort aktivieren:
