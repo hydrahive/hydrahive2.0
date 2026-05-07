@@ -102,6 +102,7 @@ async function exportCmd(state: BuddyState): Promise<CommandResult> {
     const role = m.role === "user" ? "User" : m.role === "assistant" ? "Assistant" : m.role
     lines.push(`## ${role} — ${m.created_at}`)
     if (typeof m.content === "string") lines.push(m.content)
+    else if (!Array.isArray(m.content)) { /* null — skip */ }
     else for (const b of m.content) {
       if (b.type === "text") lines.push(b.text)
       else if (b.type === "tool_use") lines.push(`\`tool_use: ${b.name}\` ${JSON.stringify(b.input)}`)
