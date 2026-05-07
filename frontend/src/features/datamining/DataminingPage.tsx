@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Download, Pickaxe, Upload } from "lucide-react"
+import { Download, GitPullRequest, Pickaxe, Upload } from "lucide-react"
 import { LiveFeedTab } from "./LiveFeedTab"
 import { SearchTab } from "./SearchTab"
 import { SessionsTab } from "./SessionsTab"
@@ -30,6 +30,13 @@ export function DataminingPage() {
   const [importState, setImportState] = useState<"idle" | "running" | "done" | "error">("idle")
   const importRef = useRef<HTMLInputElement>(null)
   const [sqliteImport, setSqliteImport] = useState<{ running: boolean; sessions: number; total: number } | null>(null)
+  const [issueForm, setIssueForm] = useState<"github" | "gitea" | null>(null)
+  const [issueOwner, setIssueOwner] = useState("")
+  const [issueRepo, setIssueRepo] = useState("")
+  const [issueToken, setIssueToken] = useState("")
+  const [issueBaseUrl, setIssueBaseUrl] = useState("http://192.168.3.22:3001")
+  const [issueState, setIssueState] = useState<"idle" | "running" | "done" | "error">("idle")
+  const [issueResult, setIssueResult] = useState<string | null>(null)
 
   useEffect(() => {
     dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {})
@@ -73,6 +80,20 @@ export function DataminingPage() {
       if (s.done) { setImportState("done"); clearInterval(poll) }
       else if (s.error) { setImportState("error"); clearInterval(poll) }
     }, 2000)
+  }
+
+  async function runIssueImport() {
+    if (!issueOwner || !issueRepo) return
+    setIssueState("running"); setIssueResult(null)
+    try {
+      const res = issueForm === "github"
+        ? await dataminingApi.importGithub(issueOwner, issueRepo, issueToken)
+        : await dataminingApi.importGitea(issueOwner, issueRepo, issueBaseUrl, issueToken)
+      setIssueState("done")
+      setIssueResult(`${res.inserted} Events importiert`)
+    } catch {
+      setIssueState("error"); setIssueResult("Import fehlgeschlagen")
+    }
   }
 
   async function startSqliteImport() {
@@ -166,7 +187,71 @@ export function DataminingPage() {
             ? "SQLite ✓"
             : "SQLite Import"}
         </button>
+        <button
+          onClick={() => setIssueForm(f => f === "github" ? null : "github")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${issueForm === "github" ? "bg-zinc-700 text-zinc-200" : "bg-white/[4%] hover:bg-white/[8%] text-zinc-400 hover:text-zinc-200"}`}
+        >
+          <GitPullRequest size={12} />
+          GitHub Issues
+        </button>
+        <button
+          onClick={() => setIssueForm(f => f === "gitea" ? null : "gitea")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${issueForm === "gitea" ? "bg-zinc-700 text-zinc-200" : "bg-white/[4%] hover:bg-white/[8%] text-zinc-400 hover:text-zinc-200"}`}
+        >
+          <GitPullRequest size={12} />
+          Gitea Issues
+        </button>
       </div>
+
+      {issueForm && (
+        <div className="flex flex-wrap items-end gap-2 p-3 rounded-lg bg-white/[3%] border border-white/[6%]">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-zinc-500">Owner</label>
+            <input
+              value={issueOwner} onChange={e => setIssueOwner(e.target.value)}
+              placeholder="z.B. hydrahive"
+              className="px-2 py-1 rounded text-xs bg-zinc-800 text-zinc-200 border border-white/[8%] focus:outline-none focus:border-amber-400/50 w-32"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-zinc-500">Repo</label>
+            <input
+              value={issueRepo} onChange={e => setIssueRepo(e.target.value)}
+              placeholder="z.B. hydrahive2.0"
+              className="px-2 py-1 rounded text-xs bg-zinc-800 text-zinc-200 border border-white/[8%] focus:outline-none focus:border-amber-400/50 w-36"
+            />
+          </div>
+          {issueForm === "gitea" && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-zinc-500">Base-URL</label>
+              <input
+                value={issueBaseUrl} onChange={e => setIssueBaseUrl(e.target.value)}
+                className="px-2 py-1 rounded text-xs bg-zinc-800 text-zinc-200 border border-white/[8%] focus:outline-none focus:border-amber-400/50 w-52"
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-zinc-500">Token (optional)</label>
+            <input
+              type="password" value={issueToken} onChange={e => setIssueToken(e.target.value)}
+              placeholder="token…"
+              className="px-2 py-1 rounded text-xs bg-zinc-800 text-zinc-200 border border-white/[8%] focus:outline-none focus:border-amber-400/50 w-36"
+            />
+          </div>
+          <button
+            onClick={runIssueImport}
+            disabled={issueState === "running" || !issueOwner || !issueRepo}
+            className="px-3 py-1.5 rounded text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 disabled:opacity-40 transition-colors"
+          >
+            {issueState === "running" ? "lädt…" : "Importieren"}
+          </button>
+          {issueResult && (
+            <span className={`text-xs ${issueState === "done" ? "text-emerald-400" : "text-red-400"}`}>
+              {issueResult}
+            </span>
+          )}
+        </div>
+      )}
 
       {tab === "feed" && <LiveFeedTab active={tab === "feed"} />}
       {tab === "search" && <SearchTab />}

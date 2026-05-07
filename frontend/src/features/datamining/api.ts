@@ -96,6 +96,12 @@ export const dataminingApi = {
       "/datamining/import/sqlite/status"
     ),
 
+  importGithub: (owner: string, repo: string, token: string) =>
+    api.post<{ ok: boolean; inserted: number; source: string }>("/datamining/import/github", { owner, repo, token }),
+
+  importGitea: (owner: string, repo: string, base_url: string, token: string) =>
+    api.post<{ ok: boolean; inserted: number; source: string }>("/datamining/import/gitea", { owner, repo, base_url, token }),
+
   graph: () => api.get<unknown>("/datamining/graph"),
 
   statsLatest: (count = 10) =>
