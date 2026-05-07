@@ -16,11 +16,13 @@ warn "Fahre Mailcow-Stack herunter..."
 cd "${MAILCOW_DIR}"
 docker compose down --volumes 2>/dev/null || true
 
-# macvlan-Netzwerk entfernen (nur wenn keine anderen Container es nutzen)
-if docker network inspect mailcow-macvlan &>/dev/null 2>&1; then
-    docker network rm mailcow-macvlan 2>/dev/null || \
-        warn "macvlan-Netzwerk konnte nicht entfernt werden (noch in Verwendung?)"
+# IP-Alias-Service entfernen
+if systemctl is-enabled mailcow-ip.service &>/dev/null 2>&1; then
+    systemctl stop mailcow-ip.service 2>/dev/null || true
+    systemctl disable mailcow-ip.service 2>/dev/null || true
 fi
+rm -f /etc/systemd/system/mailcow-ip.service
+systemctl daemon-reload 2>/dev/null || true
 
 info "Lösche Mailcow-Verzeichnis..."
 rm -rf "${MAILCOW_DIR}"

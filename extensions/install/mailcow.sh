@@ -27,29 +27,14 @@ if ! command -v jq &>/dev/null; then
     success "jq installiert"
 fi
 
-# ── Netzwerk-Interface automatisch erkennen ──────────────────────────────────
+# ── Netzwerk automatisch erkennen ────────────────────────────────────────────
 IFACE=$(ip route | awk '/^default/ {print $5; exit}')
 GATEWAY=$(ip route | awk '/^default/ {print $3; exit}')
-
-# Wenn IFACE eine Bridge ist: macvlan braucht das physische NIC darunter
-if [ -d "/sys/class/net/${IFACE}/brif" ]; then
-    MACVLAN_PARENT=$(ls "/sys/class/net/${IFACE}/brif/" | head -1)
-    if [ -z "${MACVLAN_PARENT}" ]; then
-        die "Bridge ${IFACE} hat keine Member-Interfaces — macvlan nicht möglich"
-    fi
-    info "Bridge erkannt: ${IFACE} → physisches NIC: ${MACVLAN_PARENT}"
-else
-    MACVLAN_PARENT="${IFACE}"
-fi
-
 HOST_IP=$(ip -o -f inet addr show "${IFACE}" | awk 'NR==1{split($4,a,"/"); print a[1]}')
 IFS='.' read -r _o1 _o2 _o3 _o4 <<< "${HOST_IP}"
-SUBNET="${_o1}.${_o2}.${_o3}.0/24"
-info "Netzwerk: Interface=${IFACE}, macvlan-Parent=${MACVLAN_PARENT}, Gateway=${GATEWAY}, Subnet=${SUBNET}"
+info "Netzwerk: Interface=${IFACE}, Host-IP=${HOST_IP}, Gateway=${GATEWAY}"
 
-# Freie IP im Bereich .200–.250 suchen.
-# Nur ARP-Tabelle prüfen — kein ping (ping erzeugt selbst "incomplete" ARP-Einträge
-# die dann alle IPs als belegt markieren würden).
+# Freie IP im Bereich .200–.250 suchen (nur ARP, kein ping)
 USED_IPS=$(arp -n 2>/dev/null | awk '/ether/ {print $1}')
 MAILCOW_IP=""
 for last in $(seq 200 250); do
@@ -60,8 +45,32 @@ for last in $(seq 200 250); do
         break
     fi
 done
-[ -z "${MAILCOW_IP}" ] && die "Keine freie IP im Bereich ${_o1}.${_o2}.${_o3}.200-250 gefunden"
-info "Mailcow-IP: ${MAILCOW_IP}"
+[ -z "${MAILCOW_IP}" ] && die "Keine freie IP im Bereich ${_o1}.${_o2}.${_o3}.200-250"
+info "Mailcow-IP (Alias): ${MAILCOW_IP}"
+
+# ── IP-Alias anlegen ─────────────────────────────────────────────────────────
+# Mailcow bindet seine Ports exklusiv an diese IP — kein Konflikt mit HydraHive.
+# Sofort aktivieren:
+ip addr add "${MAILCOW_IP}/24" dev "${IFACE}" 2>/dev/null || true
+
+# Persistent via systemd (funktioniert unabhängig von netplan/ifupdown):
+cat > /etc/systemd/system/mailcow-ip.service << UNIT
+[Unit]
+Description=Mailcow IP-Alias (${MAILCOW_IP} on ${IFACE})
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/ip addr add ${MAILCOW_IP}/24 dev ${IFACE}
+ExecStop=/sbin/ip addr del ${MAILCOW_IP}/24 dev ${IFACE}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable mailcow-ip.service 2>/dev/null || true
+success "IP-Alias ${MAILCOW_IP} gesetzt und persistent eingetragen"
 
 # ── Mailcow klonen ───────────────────────────────────────────────────────────
 if [ -d "${MAILCOW_DIR}/.git" ]; then
@@ -87,25 +96,9 @@ else
     success "mailcow.conf generiert"
 fi
 
-# ── Macvlan-Netzwerk anlegen ─────────────────────────────────────────────────
-# Mailcow bekommt eine eigene LAN-IP — kein Port-Conflict, kein Redirect-Problem.
-MACVLAN_NET="mailcow-macvlan"
-if ! docker network inspect "${MACVLAN_NET}" &>/dev/null 2>&1; then
-    docker network create \
-        --driver macvlan \
-        --subnet="${SUBNET}" \
-        --gateway="${GATEWAY}" \
-        --opt parent="${MACVLAN_PARENT}" \
-        "${MACVLAN_NET}"
-    success "macvlan-Netzwerk ${MACVLAN_NET} erstellt"
-else
-    info "macvlan-Netzwerk ${MACVLAN_NET} bereits vorhanden"
-fi
-
 # ── Docker-Compose-Override ──────────────────────────────────────────────────
-# nginx-mailcow bekommt die dedizierte LAN-IP über macvlan.
-# Alle Services mit sysctls: bekommen sysctls:[] — Fix für LXC/VM ohne Kernel-Rechte.
-# Dynamisch geparst damit künftige Mailcow-Versionen automatisch abgedeckt sind.
+# nginx-mailcow bindet Port 80/443 exklusiv an MAILCOW_IP.
+# Alle Services mit sysctls bekommen sysctls:[] (LXC/VM-Kompatibilität).
 SYSCTL_SERVICES=$(python3 - "${MAILCOW_DIR}/docker-compose.yml" 2>/dev/null <<'PYEOF' \
   || echo "netfilter-mailcow watchdog-mailcow"
 import yaml, sys
@@ -119,17 +112,11 @@ info "Services mit sysctls: ${SYSCTL_SERVICES}"
 
 {
     cat << HEADER
-networks:
-  mailcow-macvlan:
-    external: true
-    name: ${MACVLAN_NET}
-
 services:
   nginx-mailcow:
-    networks:
-      mailcow-network: {}
-      mailcow-macvlan:
-        ipv4_address: "${MAILCOW_IP}"
+    ports:
+      - "${MAILCOW_IP}:80:80"
+      - "${MAILCOW_IP}:443:443"
 HEADER
     for svc in ${SYSCTL_SERVICES}; do
         [ "${svc}" = "nginx-mailcow" ] && continue
@@ -137,9 +124,9 @@ HEADER
     done
 } > "${MAILCOW_DIR}/docker-compose.override.yml"
 
-success "docker-compose.override.yml erstellt (IP: ${MAILCOW_IP}, sysctls deaktiviert: ${SYSCTL_SERVICES})"
+success "docker-compose.override.yml: nginx auf ${MAILCOW_IP}:80/443"
 
-# ── Kernel-Sysctl (Host-seitig, best-effort) ─────────────────────────────────
+# ── Kernel-Sysctl (best-effort, kein Fehler wenn nicht möglich) ──────────────
 if sysctl -w net.ipv4.ip_unprivileged_port_start=0 &>/dev/null 2>&1; then
     grep -q "ip_unprivileged_port_start" /etc/sysctl.conf || \
         echo "net.ipv4.ip_unprivileged_port_start=0" >> /etc/sysctl.conf
@@ -153,7 +140,7 @@ docker compose up -d
 success "Mailcow-Stack gestartet"
 
 # ── Warten bis UI erreichbar ─────────────────────────────────────────────────
-info "Warte auf Mailcow-UI (${MAILCOW_IP})..."
+info "Warte auf Mailcow-UI (http://${MAILCOW_IP})..."
 for i in $(seq 1 30); do
     if curl -sf --max-time 5 "http://${MAILCOW_IP}/" &>/dev/null; then
         success "Mailcow erreichbar auf http://${MAILCOW_IP}"
@@ -165,8 +152,6 @@ done
 
 # ── URL + Credentials speichern ───────────────────────────────────────────────
 mkdir -p /etc/hydrahive2/extensions
-
-# URL-Datei — wird vom Extension-Status als open_url verwendet
 echo "http://${MAILCOW_IP}" > /etc/hydrahive2/extensions/mailcow.url
 
 cat > /etc/hydrahive2/extensions/mailcow.credentials.json << CREDFILE
