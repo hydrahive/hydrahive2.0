@@ -6,9 +6,13 @@
   "category": "productivity",
   "install_script": "install/mailcow.sh",
   "uninstall_script": "uninstall/mailcow.sh",
-  "health_url": "http://127.0.0.1:80/",
+  "health_url": "http://127.0.0.1:8080/",
   "url_file": "/etc/hydrahive2/extensions/mailcow.url",
   "installed_check": "/opt/mailcow-dockerized/mailcow.conf",
+  "docker": {
+    "service_name": "mailcowdockerized-nginx-mailcow",
+    "compose_file": "/opt/mailcow-dockerized/docker-compose.yml"
+  },
   "install_params": [
     {
       "key": "MAILCOW_HOSTNAME",
