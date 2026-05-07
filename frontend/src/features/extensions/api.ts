@@ -15,7 +15,7 @@ export function authHeaders(): Record<string, string> {
 
 export function streamAction(
   id: string,
-  action: "install" | "uninstall",
+  action: "install" | "uninstall" | "docker/start" | "docker/stop" | "docker/restart",
   params: Record<string, string>,
   onLine: (line: string) => void,
   onDone: () => void,

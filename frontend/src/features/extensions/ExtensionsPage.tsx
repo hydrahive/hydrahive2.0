@@ -180,6 +180,7 @@ export function ExtensionsPage() {
                   ext={ext}
                   onInstall={(mode) => setModal({ ext, action: "install", mode })}
                   onUninstall={(mode) => setModal({ ext, action: "uninstall", mode })}
+                  onRefresh={load}
                 />
               ))}
             </div>

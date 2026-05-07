@@ -1,9 +1,10 @@
 import {
   Brain, Code2, ExternalLink, FileText, GitBranch, Gamepad2, Lock,
-  Network, Search, ShieldOff, Package, Container,
+  Network, Search, ShieldOff, Package, Container, Play, Square, RotateCcw,
 } from "lucide-react"
 import { useState } from "react"
 import type { Extension, InstallMode } from "./types"
+import { streamAction } from "./api"
 
 const ICON_MAP: Record<string, React.ElementType> = {
   GitBranch, Brain, Code2, FileText, Search, Network, Lock, ShieldOff, Gamepad2,
@@ -43,9 +44,15 @@ interface Props {
   onUninstall: (mode: InstallMode) => void
 }
 
-export function ExtensionCard({ ext, onInstall, onUninstall }: Props) {
+export function ExtensionCard({ ext, onInstall, onUninstall, onRefresh }: Props & { onRefresh?: () => void }) {
   const hasDocker = !!ext.docker && ext.docker_available
   const [mode, setMode] = useState<InstallMode>(ext.preferred_mode ?? "native")
+  const [dockerBusy, setDockerBusy] = useState<string | null>(null)
+
+  function dockerAction(action: "docker/start" | "docker/stop" | "docker/restart") {
+    setDockerBusy(action)
+    streamAction(ext.id, action, {}, () => {}, () => { setDockerBusy(null); onRefresh?.() }, () => setDockerBusy(null))
+  }
 
   const openUrl = (() => {
     if (ext.install_mode === "docker" && ext.docker?.open_url)
@@ -91,7 +98,7 @@ export function ExtensionCard({ ext, onInstall, onUninstall }: Props) {
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {!ext.installed ? (
           <button onClick={() => onInstall(mode)}
             className="flex-1 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium transition-colors">
@@ -104,6 +111,28 @@ export function ExtensionCard({ ext, onInstall, onUninstall }: Props) {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs hover:bg-white/[8%] transition-colors">
                 <ExternalLink size={11} /> Öffnen
               </a>
+            )}
+            {ext.install_mode === "docker" && (
+              <>
+                {!ext.active ? (
+                  <button onClick={() => dockerAction("docker/start")}
+                    disabled={!!dockerBusy}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-xs font-medium disabled:opacity-40 transition-colors">
+                    <Play size={10} /> {dockerBusy === "docker/start" ? "…" : "Start"}
+                  </button>
+                ) : (
+                  <button onClick={() => dockerAction("docker/stop")}
+                    disabled={!!dockerBusy}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 text-xs font-medium disabled:opacity-40 transition-colors">
+                    <Square size={10} /> {dockerBusy === "docker/stop" ? "…" : "Stop"}
+                  </button>
+                )}
+                <button onClick={() => dockerAction("docker/restart")}
+                  disabled={!!dockerBusy}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-medium disabled:opacity-40 transition-colors">
+                  <RotateCcw size={10} /> {dockerBusy === "docker/restart" ? "…" : "Restart"}
+                </button>
+              </>
             )}
             <button onClick={() => onUninstall(ext.install_mode ?? "native")}
               className="flex-1 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-xs font-medium transition-colors">
