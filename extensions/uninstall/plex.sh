@@ -16,6 +16,7 @@ if dpkg -l plexmediaserver &>/dev/null 2>&1; then
 fi
 
 rm -f /etc/apt/sources.list.d/plexmediaserver.list
+rm -f /usr/share/keyrings/plexmediaserver.gpg
 rm -f /etc/apt/trusted.gpg.d/plexmediaserver.asc
 apt-get update -qq 2>/dev/null || true
 success "Plex apt-Repository entfernt"
