@@ -6,8 +6,8 @@
   "category": "productivity",
   "install_script": "install/mailcow.sh",
   "uninstall_script": "uninstall/mailcow.sh",
-  "health_url": "http://127.0.0.1:8080/",
-  "open_url": ":8080/",
+  "health_url": "http://127.0.0.1:8180/",
+  "open_url": ":8180/",
   "installed_check": "/opt/mailcow-dockerized/mailcow.conf",
   "install_params": [
     {
@@ -17,6 +17,14 @@
       "placeholder": "mail.meinedomain.de",
       "required": true,
       "description": "FQDN des Mailservers — wird für DKIM, TLS und Autodiscover verwendet"
+    },
+    {
+      "key": "HTTP_PORT",
+      "label": "HTTP-Port",
+      "type": "number",
+      "placeholder": "8180",
+      "required": false,
+      "description": "Port für die Mailcow-Admin-UI (Standard: 8180)"
     },
     {
       "key": "MAILCOW_TZ",
