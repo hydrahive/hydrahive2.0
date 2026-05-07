@@ -117,8 +117,13 @@ def validate_manifest(manifest: dict) -> list[str]:
 async def stream_script(script_path: Path, env: dict[str, str] | None = None) -> AsyncIterator[str]:
     import os
     full_env = {**os.environ, **(env or {})}
+    # Root → direkt ausführen. Sonst sudo -n (braucht NOPASSWD-sudoers-Eintrag).
+    if os.getuid() == 0:
+        cmd = ["/bin/bash", str(script_path)]
+    else:
+        cmd = ["sudo", "-n", "/bin/bash", str(script_path)]
     proc = await asyncio.create_subprocess_exec(
-        "sudo", "-n", "/bin/bash", str(script_path),
+        *cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
         env=full_env,
