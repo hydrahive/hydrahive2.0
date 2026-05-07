@@ -45,7 +45,7 @@ interface Props {
 
 export function ExtensionCard({ ext, onInstall, onUninstall }: Props) {
   const hasDocker = !!ext.docker && ext.docker_available
-  const [mode, setMode] = useState<InstallMode>("native")
+  const [mode, setMode] = useState<InstallMode>(ext.preferred_mode ?? "native")
 
   const openUrl = (() => {
     if (ext.install_mode === "docker" && ext.docker?.open_url)

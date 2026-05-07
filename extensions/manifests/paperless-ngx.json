@@ -4,6 +4,7 @@
   "description": "Self-hosted Dokumenten-Management — scannt, OCR, organisiert Dokumente automatisch.",
   "icon": "FileText",
   "category": "dockertools",
+  "preferred_mode": "docker",
   "install_script": "install/paperless-ngx.sh",
   "uninstall_script": "uninstall/paperless-ngx.sh",
   "installed_check": "/var/lib/hydrahive2/extensions/paperless-ngx/data",
