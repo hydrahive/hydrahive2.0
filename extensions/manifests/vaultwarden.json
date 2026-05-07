@@ -1,0 +1,14 @@
+{
+  "id": "vaultwarden",
+  "name": "Vaultwarden (Passwort-Manager)",
+  "description": "Self-hosted Bitwarden-kompatibler Passwort-Manager — alle Bitwarden-Apps funktionieren damit.",
+  "icon": "Lock",
+  "category": "security",
+  "install_script": "install/vaultwarden.sh",
+  "uninstall_script": "uninstall/vaultwarden.sh",
+  "service": "vaultwarden",
+  "health_url": "http://127.0.0.1:8222/",
+  "open_url": ":8222/",
+  "installed_check": "/opt/vaultwarden/vaultwarden",
+  "install_params": []
+}

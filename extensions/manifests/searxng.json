@@ -1,0 +1,14 @@
+{
+  "id": "searxng",
+  "name": "SearXNG (Metasuchmaschine)",
+  "description": "Privacy-first Metasuchmaschine — aggregiert Ergebnisse von 70+ Quellen ohne Tracking.",
+  "icon": "Search",
+  "category": "tools",
+  "install_script": "install/searxng.sh",
+  "uninstall_script": "uninstall/searxng.sh",
+  "service": "searxng",
+  "health_url": "http://127.0.0.1:8888/",
+  "open_url": ":8888/",
+  "installed_check": "/opt/searxng/venv/bin/python",
+  "install_params": []
+}

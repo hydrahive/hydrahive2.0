@@ -1,0 +1,14 @@
+{
+  "id": "codeserver",
+  "name": "Code-Server (VS Code im Browser)",
+  "description": "VS Code im Browser — vollständige IDE direkt auf dem Server, zugänglich über den Browser.",
+  "icon": "Code2",
+  "category": "tools",
+  "install_script": "install/codeserver.sh",
+  "uninstall_script": "uninstall/codeserver.sh",
+  "service": "code-server",
+  "health_url": "http://127.0.0.1:8080/",
+  "open_url": ":8080/",
+  "installed_check": "/usr/bin/code-server",
+  "install_params": []
+}

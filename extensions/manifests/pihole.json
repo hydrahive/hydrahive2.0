@@ -1,0 +1,23 @@
+{
+  "id": "pihole",
+  "name": "Pi-hole (DNS-Blocker)",
+  "description": "Netzwerk-weiter Werbeblocker über DNS — blockiert Ads und Tracker für alle Geräte im LAN.",
+  "icon": "ShieldOff",
+  "category": "network",
+  "install_script": "install/pihole.sh",
+  "uninstall_script": "uninstall/pihole.sh",
+  "service": "pihole-FTL",
+  "health_url": "http://127.0.0.1:8053/admin/",
+  "open_url": ":8053/admin/",
+  "installed_check": "/usr/local/bin/pihole",
+  "install_params": [
+    {
+      "key": "PIHOLE_PASSWORD",
+      "label": "Admin-Passwort",
+      "type": "password",
+      "placeholder": "Sicheres Passwort",
+      "required": true,
+      "description": "Passwort für das Pi-hole Admin-Interface."
+    }
+  ]
+}

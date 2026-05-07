@@ -1,0 +1,14 @@
+{
+  "id": "headscale",
+  "name": "Headscale (Self-hosted VPN)",
+  "description": "Self-hosted Tailscale-Control-Server — eigenes Tailnet ohne Tailscale-Cloud, volle Kontrolle.",
+  "icon": "Network",
+  "category": "network",
+  "install_script": "install/headscale.sh",
+  "uninstall_script": "uninstall/headscale.sh",
+  "service": "headscale",
+  "health_url": "http://127.0.0.1:8085/health",
+  "open_url": null,
+  "installed_check": "/usr/local/bin/headscale",
+  "install_params": []
+}

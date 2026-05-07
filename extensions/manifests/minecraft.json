@@ -1,0 +1,14 @@
+{
+  "id": "minecraft",
+  "name": "Minecraft Server",
+  "description": "Vanilla Minecraft Java Edition Server — bereit zum Spielen, mit RCON-Konsole.",
+  "icon": "Gamepad2",
+  "category": "gaming",
+  "install_script": "install/minecraft.sh",
+  "uninstall_script": "uninstall/minecraft.sh",
+  "service": "minecraft",
+  "health_url": null,
+  "open_url": null,
+  "installed_check": "/opt/minecraft/server.jar",
+  "install_params": []
+}

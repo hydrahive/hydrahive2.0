@@ -247,6 +247,20 @@ class Settings:
     def voice_log(self) -> Path:
         return self.log_dir / "hydrahive2-voice.log"
 
+    # ------------------------------------------------------------------ extensions
+
+    @cached_property
+    def extensions_manifests_dir(self) -> Path:
+        return self.base_dir / "extensions" / "manifests"
+
+    @cached_property
+    def extensions_install_dir(self) -> Path:
+        return self.base_dir / "extensions" / "install"
+
+    @cached_property
+    def extensions_uninstall_dir(self) -> Path:
+        return self.base_dir / "extensions" / "uninstall"
+
     # ------------------------------------------------------------------ butler
 
     @cached_property

@@ -20,6 +20,7 @@ from hydrahive.api.routes.communication_discord import router as communication_d
 from hydrahive.api.routes.container_console import router as container_console_router
 from hydrahive.api.routes.containers import router as containers_router
 from hydrahive.api.routes.credentials import router as credentials_router
+from hydrahive.api.routes.extensions import router as extensions_router
 from hydrahive.api.routes.dashboard import router as dashboard_router
 from hydrahive.api.routes.datamining import router as datamining_router
 from hydrahive.api.routes.datamining_stats import router as datamining_stats_router
@@ -107,6 +108,7 @@ app.include_router(tts_router)
 app.include_router(vms_router)
 app.include_router(containers_router)
 app.include_router(credentials_router)
+app.include_router(extensions_router)
 app.include_router(dashboard_router)
 app.include_router(datamining_router)
 app.include_router(datamining_stats_router)
