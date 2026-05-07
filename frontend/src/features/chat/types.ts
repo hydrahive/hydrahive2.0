@@ -34,7 +34,7 @@ export type ContentBlock =
 export interface Message {
   id: string
   role: "user" | "assistant" | "tool" | "system" | "compaction"
-  content: string | ContentBlock[]
+  content: string | ContentBlock[] | null
   created_at: string
   token_count: number | null
   metadata: Record<string, unknown>

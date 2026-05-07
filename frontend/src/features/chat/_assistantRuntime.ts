@@ -90,10 +90,12 @@ export function useHydraRuntime(
       const text =
         typeof parent.content === "string"
           ? parent.content
-          : parent.content
+          : Array.isArray(parent.content)
+          ? parent.content
               .filter((b) => b.type === "text")
               .map((b) => (b as { type: "text"; text: string }).text)
               .join("")
+          : ""
       await send(text, [], parent.id)
     },
     onCancel: async () => cancel(),
