@@ -42,6 +42,22 @@ async def list_extensions() -> list[dict]:
     return [await extension_status(m) for m in manifests]
 
 
+@router.get("/credentials", dependencies=[Depends(require_admin)])
+def list_credentials() -> list[dict]:
+    """Alle gespeicherten Extension-Zugangsdaten aus /etc/hydrahive2/extensions/*.credentials.json."""
+    cred_dir = settings.config_dir / "extensions"
+    if not cred_dir.exists():
+        return []
+    results = []
+    for f in sorted(cred_dir.glob("*.credentials.json")):
+        try:
+            data = json.loads(f.read_text())
+            results.append(data)
+        except Exception:
+            logger.warning("Credentials-Datei %s konnte nicht gelesen werden", f)
+    return results
+
+
 @router.get("/{ext_id}/validate", dependencies=[Depends(require_admin)])
 def validate_extension(ext_id: str) -> dict:
     manifest = _find_manifest(ext_id)
