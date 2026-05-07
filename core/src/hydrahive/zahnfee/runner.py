@@ -41,7 +41,7 @@ def _format_events(events: list[dict]) -> str:
         ts = (ts_raw.isoformat() if hasattr(ts_raw, "isoformat") else str(ts_raw))[:16]
         agent = ev.get("agent_name", "?")
         etype = ev.get("event_type", "?")
-        text = (ev.get("text") or ev.get("tool_name") or ev.get("tool_output") or "")[:300]
+        text = (ev.get("snippet") or ev.get("text") or ev.get("tool_name") or "")[:300]
         if text:
             lines.append(f"[{ts}] {agent} ({etype}): {text}")
 
