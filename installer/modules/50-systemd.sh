@@ -66,12 +66,14 @@ EOF
 
 log "Schreibe sudoers-Eintrag für Extensions (NOPASSWD /bin/bash + docker)"
 DOCKER_BIN="$(command -v docker 2>/dev/null || echo /usr/bin/docker)"
+SYSCTL_BIN="$(command -v sysctl 2>/dev/null || echo /sbin/sysctl)"
 cat > /etc/sudoers.d/hydrahive2-extensions <<SUDOEOF
-# Extensions-Manager: hydrahive darf bash + docker als root ausführen.
+# Extensions-Manager: hydrahive darf bash + docker + sysctl als root ausführen.
 # Sicherheit kommt aus Admin-only API-Endpoint — kein direkter Shell-Zugang.
 $HH_USER ALL=(ALL) NOPASSWD: /bin/bash
 $HH_USER ALL=(ALL) NOPASSWD: /usr/bin/bash
 $HH_USER ALL=(ALL) NOPASSWD: $DOCKER_BIN
+$HH_USER ALL=(ALL) NOPASSWD: $SYSCTL_BIN
 Defaults:$HH_USER !requiretty
 SUDOEOF
 chmod 440 /etc/sudoers.d/hydrahive2-extensions
