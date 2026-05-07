@@ -370,6 +370,14 @@ if [ -f "$SERVICE_FILE" ]; then
      ! grep -q "sysctl" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null; then
     NEEDS_REWRITE=1
   fi
+  # Schnell-Patch: sysctl direkt nachtragen ohne vollen Rewrite abzuwarten
+  if [ -f /etc/sudoers.d/hydrahive2-extensions ] && \
+     ! grep -q "sysctl" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null; then
+    SYSCTL_BIN="$(command -v sysctl 2>/dev/null || echo /sbin/sysctl)"
+    echo "$HH_USER ALL=(ALL) NOPASSWD: $SYSCTL_BIN" >> /etc/sudoers.d/hydrahive2-extensions
+    chmod 440 /etc/sudoers.d/hydrahive2-extensions
+    log "sysctl zu sudoers nachgetragen"
+  fi
   # KillMode=process verhindert dass qemu-VMs + incus-Container beim service-restart
   # mitgekillt werden (Default control-group kappt alle Children der cgroup)
   grep -q "^KillMode=process" "$SERVICE_FILE" || NEEDS_REWRITE=1
