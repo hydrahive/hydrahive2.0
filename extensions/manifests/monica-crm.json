@@ -1,0 +1,13 @@
+{
+  "id": "monica-crm",
+  "name": "Monica CRM",
+  "description": "Persönliches Kontakt- und Beziehungsmanagement — Kontakte, Aktivitäten, Erinnerungen und Notizen.",
+  "icon": "Users",
+  "category": "productivity",
+  "install_script": "install/monica-crm.sh",
+  "uninstall_script": "uninstall/monica-crm.sh",
+  "service": "monica",
+  "health_url": "http://127.0.0.1:8180/",
+  "open_url": ":8180/",
+  "installed_check": "/opt/monica"
+}

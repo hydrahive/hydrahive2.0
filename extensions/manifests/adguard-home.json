@@ -1,0 +1,23 @@
+{
+  "id": "adguard-home",
+  "name": "AdGuard Home (DNS-Blocker)",
+  "description": "Netzwerkweiter DNS-Sinkhole — blockiert Werbung, Tracker und Malware-Domains auf DNS-Ebene für alle Geräte im Netzwerk.",
+  "icon": "ShieldCheck",
+  "category": "network",
+  "install_script": "install/adguard-home.sh",
+  "uninstall_script": "uninstall/adguard-home.sh",
+  "service": "adguardhome",
+  "health_url": "http://127.0.0.1:8300/",
+  "open_url": ":8300/",
+  "installed_check": "/opt/adguard-home/AdGuardHome",
+  "install_params": [
+    {
+      "key": "ADGUARD_DNS_IP",
+      "label": "Dedizierte DNS-IP",
+      "type": "string",
+      "placeholder": "z.B. 192.168.1.53",
+      "required": false,
+      "description": "Freie IP aus deinem Netz — AdGuard lauscht dann auf Port 53 dieser IP. Router-DNS auf diese IP zeigen lassen. Leer lassen für Standard-Modus (Port 3053)."
+    }
+  ]
+}

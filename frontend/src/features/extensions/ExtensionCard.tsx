@@ -1,13 +1,18 @@
 import {
-  Brain, Code2, ExternalLink, FileText, GitBranch, Gamepad2, Lock,
-  Network, Search, ShieldOff, Package, Container, Play, Square, RotateCcw,
+  BookOpen, Brain, CalendarDays, CheckSquare, Code2, Download, ExternalLink,
+  FileText, Film, GitBranch, Gamepad2, LayoutGrid, Lock,
+  Mail, MonitorPlay, Network, Search, ShieldCheck, ShieldOff, Sword, Swords,
+  Tv, Users, Package, Container, Play, Square, RotateCcw,
 } from "lucide-react"
 import { useState } from "react"
 import type { Extension, InstallMode } from "./types"
 import { streamAction } from "./api"
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  GitBranch, Brain, Code2, FileText, Search, Network, Lock, ShieldOff, Gamepad2,
+  BookOpen, Brain, CalendarDays, CheckSquare, Code2, Download,
+  FileText, Film, GitBranch, Gamepad2, LayoutGrid, Lock,
+  Mail, MonitorPlay, Network, Search, ShieldCheck, ShieldOff, Sword, Swords,
+  Tv, Users,
 }
 
 function ExtIcon({ name }: { name: string }) {
