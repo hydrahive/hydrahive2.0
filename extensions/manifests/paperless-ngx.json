@@ -1,0 +1,42 @@
+{
+  "id": "paperless-ngx",
+  "name": "Paperless-ngx",
+  "description": "Self-hosted Dokumenten-Management — scannt, OCR, organisiert Dokumente automatisch.",
+  "icon": "FileText",
+  "category": "productivity",
+  "install_script": "install/paperless-ngx.sh",
+  "uninstall_script": "uninstall/paperless-ngx.sh",
+  "installed_check": "/var/lib/hydrahive2/extensions/paperless-ngx/data",
+  "install_params": [
+    {
+      "key": "PAPERLESS_ADMIN_USER",
+      "label": "Admin-Username",
+      "type": "string",
+      "placeholder": "admin",
+      "required": true,
+      "description": "Benutzername für den Paperless-Administrator"
+    },
+    {
+      "key": "PAPERLESS_ADMIN_PASSWORD",
+      "label": "Admin-Passwort",
+      "type": "password",
+      "placeholder": "Sicheres Passwort",
+      "required": true,
+      "description": "Mindestens 8 Zeichen"
+    },
+    {
+      "key": "PAPERLESS_SECRET_KEY",
+      "label": "Secret Key",
+      "type": "password",
+      "required": false,
+      "auto_generate": "hex:50",
+      "description": "Wird automatisch generiert wenn leer gelassen"
+    }
+  ],
+  "docker": {
+    "compose_file": "extensions/docker/paperless-ngx.compose.yml",
+    "service_name": "paperless-ngx",
+    "health_url": "http://127.0.0.1:8010/",
+    "open_url": ":8010/"
+  }
+}

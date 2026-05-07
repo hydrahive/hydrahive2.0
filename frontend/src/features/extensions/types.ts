@@ -5,6 +5,7 @@ export interface InstallParam {
   placeholder?: string
   required: boolean
   description?: string
+  auto_generate?: string
 }
 
 export interface DockerConfig {

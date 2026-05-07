@@ -1,12 +1,12 @@
 import {
-  Brain, Code2, ExternalLink, GitBranch, Gamepad2, Lock,
+  Brain, Code2, ExternalLink, FileText, GitBranch, Gamepad2, Lock,
   Network, Search, ShieldOff, Package, Container,
 } from "lucide-react"
 import { useState } from "react"
 import type { Extension, InstallMode } from "./types"
 
 const ICON_MAP: Record<string, React.ElementType> = {
-  GitBranch, Brain, Code2, Search, Network, Lock, ShieldOff, Gamepad2,
+  GitBranch, Brain, Code2, FileText, Search, Network, Lock, ShieldOff, Gamepad2,
 }
 
 function ExtIcon({ name }: { name: string }) {

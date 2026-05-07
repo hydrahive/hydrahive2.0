@@ -12,8 +12,9 @@ interface Props {
 
 export function InstallModal({ ext, action, mode, onClose }: Props) {
   const [params, setParams] = useState<Record<string, string>>({})
+  const visibleParams = ext.install_params.filter((p) => !p.auto_generate || p.required)
   const [phase, setPhase] = useState<"params" | "running" | "done">(
-    action === "install" && mode === "native" && ext.install_params.length > 0 ? "params" : "running"
+    action === "install" && visibleParams.length > 0 ? "params" : "running"
   )
   const [lines, setLines] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
@@ -36,7 +37,7 @@ export function InstallModal({ ext, action, mode, onClose }: Props) {
     logRef.current?.scrollTo(0, logRef.current.scrollHeight)
   }, [lines])
 
-  const requiredMissing = ext.install_params
+  const requiredMissing = visibleParams
     .filter((p: InstallParam) => p.required && !params[p.key]?.trim())
 
   return (
@@ -63,7 +64,7 @@ export function InstallModal({ ext, action, mode, onClose }: Props) {
         {/* Params */}
         {phase === "params" && (
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {ext.install_params.map((p: InstallParam) => (
+            {visibleParams.map((p: InstallParam) => (
               <div key={p.key}>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
                   {p.label}{p.required && <span className="text-rose-400 ml-1">*</span>}

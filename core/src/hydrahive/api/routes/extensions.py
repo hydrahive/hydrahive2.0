@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import secrets
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +39,62 @@ def _find_manifest(ext_id: str) -> dict:
     raise coded(status.HTTP_404_NOT_FOUND, "extension_not_found")
 
 
+def _resolve_params(manifest: dict, user_params: dict[str, str]) -> dict[str, str]:
+    """Füllt auto_generate-Felder auf wenn leer."""
+    result = dict(user_params)
+    for p in manifest.get("install_params", []):
+        key = p["key"]
+        auto = p.get("auto_generate", "")
+        if auto and not result.get(key, "").strip():
+            if auto.startswith("hex:"):
+                length = int(auto.split(":")[1])
+                result[key] = secrets.token_hex(length)
+    return result
+
+
+def _write_docker_credentials(manifest: dict, params: dict[str, str]) -> None:
+    cred_dir = settings.config_dir / "extensions"
+    cred_dir.mkdir(parents=True, exist_ok=True)
+    cred_file = cred_dir / f"{manifest['id']}.credentials.json"
+
+    fields = []
+    docker = manifest.get("docker", {})
+    open_url = docker.get("open_url", "")
+    if open_url:
+        import socket
+        try:
+            ip = socket.gethostbyname(socket.gethostname())
+        except Exception:
+            ip = "127.0.0.1"
+        fields.append({"key": "url", "label": "URL",
+                       "value": f"http://{ip}{open_url}", "secret": False})
+
+    for p in manifest.get("install_params", []):
+        if p.get("auto_generate") and p.get("required") is False:
+            continue  # kein Secret-Key im Credentials-Display
+        val = params.get(p["key"], "")
+        if not val:
+            continue
+        fields.append({
+            "key": p["key"],
+            "label": p["label"],
+            "value": val,
+            "secret": p.get("type") == "password",
+        })
+
+    payload = {
+        "extension_id": manifest["id"],
+        "extension_name": manifest["name"],
+        "install_mode": "docker",
+        "fields": fields,
+    }
+    cred_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+    try:
+        os.chmod(cred_file, 0o640)
+    except Exception:
+        pass
+
+
 @router.get("", dependencies=[Depends(require_admin)])
 async def list_extensions() -> list[dict]:
     manifests = load_manifests()
@@ -69,11 +127,11 @@ def validate_extension(ext_id: str, mode: str = "native") -> dict:
 async def install_extension(ext_id: str, request: Request) -> StreamingResponse:
     manifest = _find_manifest(ext_id)
 
-    params: dict[str, Any] = {}
+    user_params: dict[str, Any] = {}
     mode = "native"
     try:
         body = await request.json()
-        params = body.get("params", {})
+        user_params = body.get("params", {})
         mode = body.get("mode", "native")
     except Exception:
         pass
@@ -83,23 +141,33 @@ async def install_extension(ext_id: str, request: Request) -> StreamingResponse:
         raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid_manifest",
                     message="; ".join(errors))
 
+    params = _resolve_params(manifest, {str(k): str(v) for k, v in user_params.items() if v})
+
     if mode == "docker":
         compose_rel = manifest["docker"]["compose_file"]
         compose_file = _scripts_base() / compose_rel
+        success = False
 
         async def _generate_docker():
-            async for line in stream_docker(compose_file, "up"):
+            nonlocal success
+            async for line in stream_docker(compose_file, "up", env=params):
                 yield f"data: {json.dumps({'line': line})}\n\n"
+                if line.startswith("[OK]"):
+                    success = True
+            if success:
+                try:
+                    _write_docker_credentials(manifest, params)
+                except Exception as e:
+                    logger.error("Credentials schreiben fehlgeschlagen: %s", e)
             yield "data: {\"done\": true}\n\n"
 
         return StreamingResponse(_generate_docker(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     script = _scripts_base() / manifest["install_script"]
-    env = {str(k): str(v) for k, v in params.items() if v is not None}
 
     async def _generate_native():
-        async for line in stream_script(script, env):
+        async for line in stream_script(script, params):
             yield f"data: {json.dumps({'line': line})}\n\n"
         yield "data: {\"done\": true}\n\n"
 
@@ -127,6 +195,12 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
         async def _generate_docker_down():
             async for line in stream_docker(compose_file, "down"):
                 yield f"data: {json.dumps({'line': line})}\n\n"
+            cred_file = settings.config_dir / "extensions" / f"{manifest['id']}.credentials.json"
+            if cred_file.exists():
+                try:
+                    cred_file.unlink()
+                except Exception:
+                    pass
             yield "data: {\"done\": true}\n\n"
 
         return StreamingResponse(_generate_docker_down(), media_type="text/event-stream",

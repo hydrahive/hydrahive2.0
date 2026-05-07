@@ -26,7 +26,7 @@ _DANGEROUS_PATTERNS = [
 
 _MANIFEST_ORDER = [
     "gitea", "ollama", "codeserver", "searxng",
-    "headscale", "vaultwarden", "pihole",
+    "headscale", "vaultwarden", "pihole", "minecraft", "paperless-ngx",
 ]
 
 
@@ -209,16 +209,22 @@ async def stream_script(script_path: Path, env: dict[str, str] | None = None) ->
         yield "[OK] Abgeschlossen"
 
 
-async def stream_docker(compose_file: Path, action: str) -> AsyncIterator[str]:
+async def stream_docker(
+    compose_file: Path,
+    action: str,
+    env: dict[str, str] | None = None,
+) -> AsyncIterator[str]:
     """action: 'up' oder 'down'"""
     if action == "up":
         cmd = ["docker", "compose", "-f", str(compose_file), "up", "-d", "--pull", "always"]
     else:
         cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes"]
+    full_env = {**os.environ, **(env or {})}
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
+        env=full_env,
     )
     assert proc.stdout is not None
     while True:
