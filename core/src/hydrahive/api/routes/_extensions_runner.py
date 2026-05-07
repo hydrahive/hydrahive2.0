@@ -251,10 +251,10 @@ async def stream_docker(
 
             # sysctl für unprivilegierte Container-Ports setzen
             try:
-                subprocess.run(
-                    ["sysctl", "-w", "net.ipv4.ip_unprivileged_port_start=0"],
-                    capture_output=True, timeout=3,
-                )
+                sysctl_cmd = ["sysctl", "-w", "net.ipv4.ip_unprivileged_port_start=0"]
+                if os.getuid() != 0:
+                    sysctl_cmd = ["sudo", "-n"] + sysctl_cmd
+                subprocess.run(sysctl_cmd, capture_output=True, timeout=5)
             except Exception:
                 pass
         else:
