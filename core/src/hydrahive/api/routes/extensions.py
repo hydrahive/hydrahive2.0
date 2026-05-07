@@ -1,6 +1,7 @@
 """Extensions — App Manager: Liste, Install, Uninstall (nativ + Docker)."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -13,6 +14,7 @@ from fastapi.responses import StreamingResponse
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
+import hydrahive.api.routes._extensions_runner as _runner
 from hydrahive.api.routes._extensions_runner import (
     extension_status,
     load_manifests,
@@ -93,6 +95,36 @@ def _write_docker_credentials(manifest: dict, params: dict[str, str]) -> None:
         os.chmod(cred_file, 0o640)
     except Exception:
         pass
+
+
+@router.post("/install-docker", dependencies=[Depends(require_admin)])
+async def install_docker_engine() -> StreamingResponse:
+    """Installiert Docker Engine via offizielles Install-Script."""
+    async def _generate():
+        cmd = ["/bin/bash", "-c",
+               "curl -fsSL https://get.docker.com | sh && "
+               "systemctl enable --now docker && "
+               "echo '[OK] Docker installiert'"]
+        if os.getuid() != 0:
+            cmd = ["sudo", "-n"] + cmd
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        assert proc.stdout is not None
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            yield f"data: {json.dumps({'line': line.decode('utf-8', errors='replace').rstrip()})}\n\n"
+        await proc.wait()
+        if proc.returncode == 0:
+            _runner._docker_available = None  # Cache zurücksetzen
+        yield "data: {\"done\": true}\n\n"
+
+    return StreamingResponse(_generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.get("", dependencies=[Depends(require_admin)])
