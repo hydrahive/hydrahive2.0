@@ -365,6 +365,10 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "ExecStartPre.*mkdir.*run/sudo" "$SERVICE_FILE" && NEEDS_REWRITE=1
   # NoNewPrivileges bewusst entfernt (Extensions brauchen sudo -n)
   grep -q "^NoNewPrivileges=true" "$SERVICE_FILE" && NEEDS_REWRITE=1
+  # Docker in sudoers nachtragen wenn noch nicht vorhanden
+  if ! grep -q "docker" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null; then
+    NEEDS_REWRITE=1
+  fi
   # KillMode=process verhindert dass qemu-VMs + incus-Container beim service-restart
   # mitgekillt werden (Default control-group kappt alle Children der cgroup)
   grep -q "^KillMode=process" "$SERVICE_FILE" || NEEDS_REWRITE=1

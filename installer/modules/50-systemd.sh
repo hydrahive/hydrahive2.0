@@ -64,12 +64,14 @@ ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR /home/$HH_USER/.config /home/$HH_USER
 WantedBy=multi-user.target
 EOF
 
-log "Schreibe sudoers-Eintrag für Extensions (NOPASSWD /bin/bash)"
+log "Schreibe sudoers-Eintrag für Extensions (NOPASSWD /bin/bash + docker)"
+DOCKER_BIN="$(command -v docker 2>/dev/null || echo /usr/bin/docker)"
 cat > /etc/sudoers.d/hydrahive2-extensions <<SUDOEOF
-# Extensions-Manager: hydrahive darf bash als root ausführen (apt-get, systemctl etc.)
+# Extensions-Manager: hydrahive darf bash + docker als root ausführen.
 # Sicherheit kommt aus Admin-only API-Endpoint — kein direkter Shell-Zugang.
 $HH_USER ALL=(ALL) NOPASSWD: /bin/bash
 $HH_USER ALL=(ALL) NOPASSWD: /usr/bin/bash
+$HH_USER ALL=(ALL) NOPASSWD: $DOCKER_BIN
 Defaults:$HH_USER !requiretty
 SUDOEOF
 chmod 440 /etc/sudoers.d/hydrahive2-extensions
