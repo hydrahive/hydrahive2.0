@@ -7,20 +7,18 @@ warn()    { echo "[WARN] $*"; }
 die()     { echo "[ERROR] $*" >&2; exit 1; }
 
 PLEX_REPO_FILE="/etc/apt/sources.list.d/plexmediaserver.list"
-PLEX_GPG_FILE="/etc/apt/trusted.gpg.d/plexmediaserver.asc"
+PLEX_GPG_FILE="/usr/share/keyrings/plexmediaserver.gpg"
 PLEX_PORT="32400"
 
 info "Installiere Plex Media Server..."
 
-# --- GPG-Schlüssel ---
-if [ ! -f "${PLEX_GPG_FILE}" ]; then
-    info "Füge Plex GPG-Schlüssel hinzu..."
-    curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x97203C7B3ADCA79D" \
-        | gpg --batch --yes --dearmor -o "${PLEX_GPG_FILE}" 2>/dev/null \
-        || die "Plex GPG-Schlüssel konnte nicht importiert werden"
-    chmod 644 "${PLEX_GPG_FILE}"
-    success "GPG-Schlüssel importiert"
-fi
+# --- GPG-Schlüssel direkt von Plex ---
+info "Füge Plex GPG-Schlüssel hinzu..."
+curl -fsSL "https://downloads.plex.tv/plex-keys/PlexSign.key" \
+    | gpg --batch --yes --dearmor -o "${PLEX_GPG_FILE}" \
+    || die "Plex GPG-Schlüssel konnte nicht importiert werden"
+chmod 644 "${PLEX_GPG_FILE}"
+success "GPG-Schlüssel importiert"
 
 # --- Apt-Repository ---
 info "Konfiguriere Plex apt-Repository..."
