@@ -1,4 +1,4 @@
-"""Extensions — App Manager: Liste, Install, Uninstall."""
+"""Extensions — App Manager: Liste, Install, Uninstall (nativ + Docker)."""
 from __future__ import annotations
 
 import json
@@ -14,6 +14,7 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._extensions_runner import (
     extension_status,
     load_manifests,
+    stream_docker,
     stream_script,
     validate_manifest,
 )
@@ -44,7 +45,6 @@ async def list_extensions() -> list[dict]:
 
 @router.get("/credentials", dependencies=[Depends(require_admin)])
 def list_credentials() -> list[dict]:
-    """Alle gespeicherten Extension-Zugangsdaten aus /etc/hydrahive2/extensions/*.credentials.json."""
     cred_dir = settings.config_dir / "extensions"
     if not cred_dir.exists():
         return []
@@ -59,54 +59,90 @@ def list_credentials() -> list[dict]:
 
 
 @router.get("/{ext_id}/validate", dependencies=[Depends(require_admin)])
-def validate_extension(ext_id: str) -> dict:
+def validate_extension(ext_id: str, mode: str = "native") -> dict:
     manifest = _find_manifest(ext_id)
-    errors = validate_manifest(manifest)
+    errors = validate_manifest(manifest, mode)
     return {"valid": len(errors) == 0, "errors": errors}
 
 
 @router.post("/{ext_id}/install", dependencies=[Depends(require_admin)])
 async def install_extension(ext_id: str, request: Request) -> StreamingResponse:
     manifest = _find_manifest(ext_id)
-    errors = validate_manifest(manifest)
+
+    params: dict[str, Any] = {}
+    mode = "native"
+    try:
+        body = await request.json()
+        params = body.get("params", {})
+        mode = body.get("mode", "native")
+    except Exception:
+        pass
+
+    errors = validate_manifest(manifest, mode)
     if errors:
         raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid_manifest",
                     message="; ".join(errors))
 
-    params: dict[str, Any] = {}
-    try:
-        body = await request.json()
-        params = body.get("params", {})
-    except Exception:
-        pass
+    if mode == "docker":
+        compose_rel = manifest["docker"]["compose_file"]
+        compose_file = _scripts_base() / compose_rel
+
+        async def _generate_docker():
+            async for line in stream_docker(compose_file, "up"):
+                yield f"data: {json.dumps({'line': line})}\n\n"
+            yield "data: {\"done\": true}\n\n"
+
+        return StreamingResponse(_generate_docker(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     script = _scripts_base() / manifest["install_script"]
     env = {str(k): str(v) for k, v in params.items() if v is not None}
 
-    async def _generate():
+    async def _generate_native():
         async for line in stream_script(script, env):
             yield f"data: {json.dumps({'line': line})}\n\n"
         yield "data: {\"done\": true}\n\n"
 
-    return StreamingResponse(_generate(), media_type="text/event-stream",
+    return StreamingResponse(_generate_native(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.post("/{ext_id}/uninstall", dependencies=[Depends(require_admin)])
-async def uninstall_extension(ext_id: str) -> StreamingResponse:
+async def uninstall_extension(ext_id: str, request: Request) -> StreamingResponse:
     manifest = _find_manifest(ext_id)
+
+    mode = "native"
+    try:
+        body = await request.json()
+        mode = body.get("mode", "native")
+    except Exception:
+        pass
+
+    if mode == "docker":
+        docker = manifest.get("docker")
+        if not docker:
+            raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "no_docker_config")
+        compose_file = _scripts_base() / docker["compose_file"]
+
+        async def _generate_docker_down():
+            async for line in stream_docker(compose_file, "down"):
+                yield f"data: {json.dumps({'line': line})}\n\n"
+            yield "data: {\"done\": true}\n\n"
+
+        return StreamingResponse(_generate_docker_down(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
     uninstall_rel = manifest.get("uninstall_script", "")
     if not uninstall_rel:
         raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "no_uninstall_script")
-
     script = _scripts_base() / uninstall_rel
     if not script.exists():
         raise coded(status.HTTP_404_NOT_FOUND, "uninstall_script_missing")
 
-    async def _generate():
+    async def _generate_native():
         async for line in stream_script(script):
             yield f"data: {json.dumps({'line': line})}\n\n"
         yield "data: {\"done\": true}\n\n"
 
-    return StreamingResponse(_generate(), media_type="text/event-stream",
+    return StreamingResponse(_generate_native(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

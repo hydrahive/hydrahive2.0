@@ -1,9 +1,10 @@
-"""Extensions — Manifest-Laden, Status-Checks, Script-Ausführung."""
+"""Extensions — Manifest-Laden, Status-Checks, Script- und Docker-Ausführung."""
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -30,7 +31,6 @@ _MANIFEST_ORDER = [
 
 
 def _manifests_dir() -> Path:
-    """Dev-Fallback: Projekt-Verzeichnis, Prod: settings.extensions_manifests_dir."""
     if settings.extensions_manifests_dir.exists():
         return settings.extensions_manifests_dir
     return Path(__file__).resolve().parents[5] / "extensions" / "manifests"
@@ -41,6 +41,26 @@ def _scripts_base() -> Path:
         return settings.extensions_install_dir.parent
     return Path(__file__).resolve().parents[5] / "extensions"
 
+
+# ── Docker-Detection ─────────────────────────────────────────────────────────
+
+_docker_available: bool | None = None
+
+
+def docker_available() -> bool:
+    global _docker_available
+    if _docker_available is None:
+        try:
+            r = subprocess.run(
+                ["docker", "info"], capture_output=True, timeout=5,
+            )
+            _docker_available = r.returncode == 0
+        except Exception:
+            _docker_available = False
+    return _docker_available
+
+
+# ── Manifest-Laden ────────────────────────────────────────────────────────────
 
 def load_manifests() -> list[dict]:
     d = _manifests_dir()
@@ -58,9 +78,25 @@ def load_manifests() -> list[dict]:
     return ordered
 
 
+# ── Status-Checks ─────────────────────────────────────────────────────────────
+
 def _check_installed(manifest: dict) -> bool:
     check = manifest.get("installed_check", "")
     return bool(check and Path(check).exists())
+
+
+def _check_docker_running(manifest: dict) -> bool:
+    name = manifest.get("docker", {}).get("service_name", "")
+    if not name:
+        return False
+    try:
+        r = subprocess.run(
+            ["docker", "ps", "--filter", f"name={name}", "--format", "{{.Names}}"],
+            capture_output=True, text=True, timeout=5,
+        )
+        return name in r.stdout
+    except Exception:
+        return False
 
 
 def _check_service_active(manifest: dict) -> bool:
@@ -77,8 +113,9 @@ def _check_service_active(manifest: dict) -> bool:
         return False
 
 
-async def _check_health(manifest: dict) -> bool:
-    url = manifest.get("health_url", "")
+async def _check_health(manifest: dict, mode: str = "native") -> bool:
+    docker = manifest.get("docker", {})
+    url = (docker.get("health_url") if mode == "docker" else None) or manifest.get("health_url", "")
     if not url:
         return True
     try:
@@ -90,14 +127,48 @@ async def _check_health(manifest: dict) -> bool:
 
 
 async def extension_status(manifest: dict) -> dict:
-    installed = _check_installed(manifest)
-    active = _check_service_active(manifest) if installed else False
-    healthy = await _check_health(manifest) if active else False
-    return {**manifest, "installed": installed, "active": active, "healthy": healthy}
+    docker_mode = _check_docker_running(manifest)
+    native_mode = _check_installed(manifest)
+
+    if docker_mode:
+        active = True
+        healthy = await _check_health(manifest, "docker")
+        install_mode = "docker"
+    elif native_mode:
+        active = _check_service_active(manifest)
+        healthy = await _check_health(manifest, "native") if active else False
+        install_mode = "native"
+    else:
+        active = False
+        healthy = False
+        install_mode = None
+
+    return {
+        **manifest,
+        "installed": docker_mode or native_mode,
+        "install_mode": install_mode,
+        "active": active,
+        "healthy": healthy,
+        "docker_available": docker_available(),
+    }
 
 
-def validate_manifest(manifest: dict) -> list[str]:
+# ── Validierung ───────────────────────────────────────────────────────────────
+
+def validate_manifest(manifest: dict, mode: str = "native") -> list[str]:
     errors: list[str] = []
+    if mode == "docker":
+        docker = manifest.get("docker")
+        if not docker:
+            errors.append("Kein docker-Block im Manifest")
+            return errors
+        compose = _scripts_base() / docker.get("compose_file", "")
+        if not compose.exists():
+            errors.append(f"Compose-Datei nicht gefunden: {compose}")
+        if not docker_available():
+            errors.append("Docker ist auf diesem Host nicht verfügbar")
+        return errors
+
     for field in ("id", "name", "install_script", "installed_check"):
         if not manifest.get(field):
             errors.append(f"Pflichtfeld fehlt: {field}")
@@ -114,14 +185,11 @@ def validate_manifest(manifest: dict) -> list[str]:
     return errors
 
 
+# ── Ausführung ────────────────────────────────────────────────────────────────
+
 async def stream_script(script_path: Path, env: dict[str, str] | None = None) -> AsyncIterator[str]:
-    import os
     full_env = {**os.environ, **(env or {})}
-    # Root → direkt ausführen. Sonst sudo -n (braucht NOPASSWD-sudoers-Eintrag).
-    if os.getuid() == 0:
-        cmd = ["/bin/bash", str(script_path)]
-    else:
-        cmd = ["sudo", "-n", "/bin/bash", str(script_path)]
+    cmd = ["/bin/bash", str(script_path)] if os.getuid() == 0 else ["sudo", "-n", "/bin/bash", str(script_path)]
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.PIPE,
@@ -137,5 +205,29 @@ async def stream_script(script_path: Path, env: dict[str, str] | None = None) ->
     await proc.wait()
     if proc.returncode != 0:
         yield f"[FEHLER] Script beendet mit Code {proc.returncode}"
+    else:
+        yield "[OK] Abgeschlossen"
+
+
+async def stream_docker(compose_file: Path, action: str) -> AsyncIterator[str]:
+    """action: 'up' oder 'down'"""
+    if action == "up":
+        cmd = ["docker", "compose", "-f", str(compose_file), "up", "-d", "--pull", "always"]
+    else:
+        cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes"]
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+    )
+    assert proc.stdout is not None
+    while True:
+        line = await proc.stdout.readline()
+        if not line:
+            break
+        yield line.decode("utf-8", errors="replace").rstrip("\n")
+    await proc.wait()
+    if proc.returncode != 0:
+        yield f"[FEHLER] Docker beendet mit Code {proc.returncode}"
     else:
         yield "[OK] Abgeschlossen"
