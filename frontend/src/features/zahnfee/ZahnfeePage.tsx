@@ -174,7 +174,7 @@ export function ZahnfeePage() {
             <input
               type="number"
               min={1}
-              max={168}
+              max={720}
               value={cfg.lookback_hours}
               onChange={(e) => setCfg({ ...cfg, lookback_hours: Number(e.target.value) })}
               className="bg-zinc-800 border border-white/[8%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"

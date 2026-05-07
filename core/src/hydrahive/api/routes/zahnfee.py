@@ -35,7 +35,7 @@ class ConfigBody(BaseModel):
     enabled: bool | None = None
     model: str | None = Field(default=None, max_length=200)
     run_hour: int | None = Field(default=None, ge=0, le=23)
-    lookback_hours: int | None = Field(default=None, ge=1, le=168)
+    lookback_hours: int | None = Field(default=None, ge=1, le=720)
     source_datamining: bool | None = None
     source_mail: bool | None = None
     soul: str | None = Field(default=None, max_length=8000)
