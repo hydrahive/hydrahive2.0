@@ -24,5 +24,5 @@ export const zahnfeeApi = {
   briefing: () => api.get<{ briefing: Briefing | null }>("/zahnfee/briefing"),
   config: () => api.get<ZahnfeeConfig>("/zahnfee/config"),
   updateConfig: (body: Partial<ZahnfeeConfig>) => api.put<ZahnfeeConfig>("/zahnfee/config", body),
-  run: () => api.post<{ ok: boolean; message: string }>("/zahnfee/run", {}),
+  run: () => api.post<{ ok: boolean; briefing: Briefing }>("/zahnfee/run", {}),
 }
