@@ -77,14 +77,9 @@ export function ZahnfeePage() {
   async function runNow() {
     setRunning(true)
     try {
-      await zahnfeeApi.run()
-      // kurz warten dann Briefing neu laden
-      setTimeout(async () => {
-        const r = await zahnfeeApi.briefing()
-        setBriefing(r.briefing)
-        setRunning(false)
-      }, 5000)
-    } catch {
+      const r = await zahnfeeApi.run()
+      setBriefing(r.briefing)
+    } finally {
       setRunning(false)
     }
   }

@@ -52,8 +52,8 @@ def update_config(body: ConfigBody, _: Admin) -> dict:
 
 @router.post("/run")
 async def manual_run(_: Admin) -> dict:
-    """Zahnfee manuell triggern — für Tests und manuelle Briefings."""
-    import asyncio
+    """Zahnfee manuell triggern — wartet bis der Runner fertig ist."""
+    from dataclasses import asdict
     from hydrahive.zahnfee import runner
-    asyncio.create_task(runner.run(), name="zahnfee-manual")
-    return {"ok": True, "message": "Zahnfee läuft — Briefing in Kürze verfügbar"}
+    briefing = await runner.run()
+    return {"ok": True, "briefing": asdict(briefing)}
