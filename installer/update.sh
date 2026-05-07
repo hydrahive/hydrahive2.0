@@ -437,11 +437,9 @@ fi
 
 log "Extensions-Credentials-Verzeichnis prüfen"
 CRED_DIR="$HH_CONFIG_DIR/extensions"
-if [ -d "$CRED_DIR" ] && [ "$(stat -c '%U:%G' "$CRED_DIR")" != "root:$HH_USER" ]; then
-  chown root:"$HH_USER" "$CRED_DIR"
-  chmod 775 "$CRED_DIR"
-  log "Credentials-Dir auf root:$HH_USER 775 gesetzt"
-fi
+mkdir -p "$CRED_DIR"
+chown root:"$HH_USER" "$CRED_DIR"
+chmod 775 "$CRED_DIR"
 
 log "Service neu starten"
 systemctl restart hydrahive2.service

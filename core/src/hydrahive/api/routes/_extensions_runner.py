@@ -141,7 +141,7 @@ async def _check_health(manifest: dict, mode: str = "native") -> bool:
 
 
 def _docker_marker_path(manifest: dict) -> Path:
-    return Path("/var/lib/hydrahive2/extensions") / f".{manifest['id']}.docker_installed"
+    return settings.config_dir / "extensions" / f".{manifest['id']}.docker_installed"
 
 
 def _check_docker_marker(manifest: dict) -> bool:
@@ -267,7 +267,14 @@ async def stream_docker(
             except Exception:
                 pass
         else:
-            cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes"]
+            cmd = ["docker", "compose", "-f", str(compose_file), "down", "--volumes",
+                   "--remove-orphans"]
+            # Leere .env damit compose keine Warnings über fehlende Variablen wirft
+            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False, dir="/tmp")
+            tmp.close()
+            env_file = Path(tmp.name)
+            cmd = ["docker", "compose", "-f", str(compose_file),
+                   "--env-file", str(env_file), "down", "--volumes", "--remove-orphans"]
 
         if os.getuid() != 0:
             cmd = ["sudo", "-n"] + cmd
