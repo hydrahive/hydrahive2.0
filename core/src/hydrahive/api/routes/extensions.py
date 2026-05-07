@@ -274,8 +274,6 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
             raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "no_docker_config")
         compose_file = _scripts_base() / docker["compose_file"]
 
-        cleanup_dirs = docker.get("cleanup_dirs", [])
-
         async def _generate_docker_down():
             async for line in stream_docker(compose_file, "down"):
                 yield f"data: {json.dumps({'line': line})}\n\n"
@@ -287,26 +285,6 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
                     cleanup.unlink(missing_ok=True)
                 except Exception:
                     pass
-            import shlex
-            import subprocess as _sp
-            for d in cleanup_dirs:
-                try:
-                    # /bin/bash ist bereits in sudoers (NOPASSWD) — kein separater rm-Eintrag nötig
-                    rm_expr = f"rm -rf {shlex.quote(d)}"
-                    if os.getuid() != 0:
-                        cmd = ["sudo", "-n", "/bin/bash", "-c", rm_expr]
-                    else:
-                        cmd = ["/bin/bash", "-c", rm_expr]
-                    r = _sp.run(cmd, capture_output=True, timeout=30)
-                    if r.returncode == 0:
-                        yield f"data: {json.dumps({'line': f'Gelöscht: {d}'})}\n\n"
-                    else:
-                        err = r.stderr.decode(errors="replace").strip()
-                        yield f"data: {json.dumps({'line': f'[WARN] Löschen fehlgeschlagen: {d} — {err}'})}\n\n"
-                        logger.error("cleanup_dir %s: rc=%s stderr=%s", d, r.returncode, err)
-                except Exception as e:
-                    logger.error("cleanup_dir %s fehlgeschlagen: %s", d, e)
-                    yield f"data: {json.dumps({'line': f'[WARN] Exception: {d} — {e}'})}\n\n"
             yield "data: {\"done\": true}\n\n"
 
         return StreamingResponse(_generate_docker_down(), media_type="text/event-stream",

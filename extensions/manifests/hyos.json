@@ -43,10 +43,6 @@
     "compose_file": "docker/hyos.compose.yml",
     "service_name": "hyos-manager",
     "health_url": "http://127.0.0.1:3002/api/health",
-    "open_url": ":3002",
-    "cleanup_dirs": [
-      "/var/lib/hydrahive2/extensions/hyos",
-      "/var/lib/hydrahive2/extensions/hyos-home"
-    ]
+    "open_url": ":3002"
   }
 }
