@@ -104,10 +104,10 @@ def _check_docker_running(manifest: dict) -> bool:
     if not name:
         return False
     try:
-        r = subprocess.run(
-            ["docker", "ps", "--filter", f"name={name}", "--format", "{{.Names}}"],
-            capture_output=True, text=True, timeout=5,
-        )
+        cmd = ["docker", "ps", "--filter", f"name={name}", "--format", "{{.Names}}"]
+        if os.getuid() != 0:
+            cmd = ["sudo", "-n"] + cmd
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
         return name in r.stdout
     except Exception:
         return False
