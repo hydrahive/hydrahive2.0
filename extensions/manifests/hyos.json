@@ -1,0 +1,48 @@
+{
+  "id": "hyos",
+  "name": "HyOS — Hytale Server Manager",
+  "description": "Hytale Dedicated Server mit Web-Dashboard, Mod-Support (CurseForge/NexusMods), Live-Konsole und Auto-Updates.",
+  "icon": "Gamepad2",
+  "category": "gaming",
+  "preferred_mode": "docker",
+  "install_params": [
+    {
+      "key": "API_CLIENT_SECRET",
+      "label": "API-Passwort",
+      "type": "password",
+      "required": true,
+      "auto_generate": "hex:16",
+      "description": "Passwort für die HyOS Management-API (min. 8 Zeichen). Wird automatisch generiert."
+    },
+    {
+      "key": "SERVER_NAME",
+      "label": "Server-Name",
+      "type": "string",
+      "placeholder": "Hytale Server",
+      "required": false,
+      "description": "Anzeigename des Hytale-Servers"
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "label": "Max. Spieler",
+      "type": "string",
+      "placeholder": "20",
+      "required": false,
+      "description": "Maximale Spieleranzahl (default: 20)"
+    },
+    {
+      "key": "JAVA_XMX",
+      "label": "Max. RAM (Java Heap)",
+      "type": "string",
+      "placeholder": "3G",
+      "required": false,
+      "description": "Maximaler Java-Heap, z.B. 3G oder 8G — Hytale empfiehlt mind. 3G, Server-Total mind. 8G"
+    }
+  ],
+  "docker": {
+    "compose_file": "docker/hyos.compose.yml",
+    "service_name": "hyos-manager",
+    "health_url": "http://127.0.0.1:3000/api/health",
+    "open_url": ":3000"
+  }
+}

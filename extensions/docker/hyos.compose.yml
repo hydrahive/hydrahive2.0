@@ -1,0 +1,115 @@
+# HyOS — Hytale Dedicated Server + Manager
+# Ports: 30380/udp (Spiel), 30381/tcp (API), 3000/tcp (Web-Dashboard)
+# Benötigt mind. 8 GB RAM auf dem Host.
+# network_mode: host — wegen TrueNAS/Linux-Kernel sysctl-Einschränkungen in Bridge-Netzwerken.
+
+x-api-config: &api-config
+  API_CLIENT_SECRET: ${API_CLIENT_SECRET}
+  API_CLIENT_ID: hyos-manager
+
+services:
+  hyos-server:
+    image: ghcr.io/editmysave/hyos/server:latest
+    pull_policy: always
+    container_name: hyos-server
+    network_mode: host
+    restart: unless-stopped
+    stdin_open: true
+
+    environment:
+      <<: *api-config
+      TZ: Europe/Berlin
+      JAVA_XMS: 1G
+      JAVA_XMX: ${JAVA_XMX:-3G}
+      USE_ZGC: "false"
+      G1_MAX_PAUSE: "200"
+      # Ports — direkt auf dem Host da network_mode: host
+      SERVER_PORT: "30380"
+      API_PORT: "30381"
+      API_ENABLED: "true"
+      API_WEBSOCKET_ENABLED: "true"
+      API_WEBSOCKET_STATUS_INTERVAL: "1"
+      API_REGENERATE_CONFIG: "true"
+      PATCHLINE: release
+      ENABLE_AOT: "true"
+      AUTO_UPDATE: "false"
+      VERSION_CHECK_ENABLED: "true"
+      VERSION_CHECK_INTERVAL: "3600"
+      SKIP_CONFIG_GENERATION: "false"
+      SERVER_NAME: ${SERVER_NAME:-Hytale Server}
+      SERVER_MOTD: ""
+      SERVER_PASSWORD: ""
+      MAX_PLAYERS: ${MAX_PLAYERS:-20}
+      MAX_VIEW_RADIUS: "32"
+      DEFAULT_WORLD: default
+      DEFAULT_GAMEMODE: Adventure
+      LOCAL_COMPRESSION: "false"
+      WHITELIST_ENABLED: "false"
+      HYTALE_BACKUP: "true"
+      HYTALE_BACKUP_FREQUENCY: "30"
+      HYTALE_DISABLE_SENTRY: "false"
+      DEBUG: "false"
+      NO_COLOR: "false"
+
+    volumes:
+      - /var/lib/hydrahive2/extensions/hyos:/data:rw
+
+    healthcheck:
+      test: ["CMD", "/opt/scripts/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    stop_grace_period: 30s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+    security_opt:
+      - no-new-privileges:true
+
+  hyos-manager:
+    image: ghcr.io/editmysave/hyos/manager:latest
+    pull_policy: always
+    container_name: hyos-manager
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - hyos-server
+
+    environment:
+      <<: *api-config
+      REST_API_CLIENT_SECRET: ${API_CLIENT_SECRET}
+      REST_API_CLIENT_ID: hyos-manager
+      ADAPTER_TYPE: rest
+      HYTALE_CONTAINER_NAME: hyos-server
+      HYTALE_STATE_DIR: /data/.state
+      # localhost statt Container-Name — bei network_mode: host kein Docker-DNS
+      HYTALE_SERVER_HOST: localhost
+      HYTALE_SERVER_PORT: "30381"
+      NODE_ENV: production
+      COOKIE_SECURE: "false"
+
+    volumes:
+      - /var/lib/hydrahive2/extensions/hyos:/data:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    security_opt:
+      - no-new-privileges:true
