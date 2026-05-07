@@ -198,7 +198,8 @@ cat > "/etc/hydrahive2/extensions/gitea.credentials.json" << CREDFILE
   ]
 }
 CREDFILE
-chmod 600 /etc/hydrahive2/extensions/gitea.credentials.json
+chown root:hydrahive /etc/hydrahive2/extensions/gitea.credentials.json
+chmod 640 /etc/hydrahive2/extensions/gitea.credentials.json
 
 # ── nginx-Proxy ──────────────────────────────────────────────────────────────
 if command -v nginx &>/dev/null; then
