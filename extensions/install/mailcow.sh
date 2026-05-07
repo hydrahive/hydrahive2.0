@@ -63,6 +63,27 @@ else
     success "mailcow.conf generiert (HTTP: ${HTTP_PORT}, HTTPS: ${HTTPS_PORT})"
 fi
 
+# ── Kernel-Sysctl für Mailcow-Watchdog ───────────────────────────────────────
+# Mailcow's watchdog-Container setzt net.ipv4.ip_unprivileged_port_start=0.
+# In LXC/VM-Umgebungen schlägt das ohne Host-Sysctl fehl.
+if sysctl -w net.ipv4.ip_unprivileged_port_start=0 &>/dev/null 2>&1; then
+    # Persistent für nächsten Reboot
+    if ! grep -q "ip_unprivileged_port_start" /etc/sysctl.conf; then
+        echo "net.ipv4.ip_unprivileged_port_start=0" >> /etc/sysctl.conf
+    fi
+    success "sysctl net.ipv4.ip_unprivileged_port_start=0 gesetzt"
+else
+    warn "sysctl konnte nicht gesetzt werden (eingeschränkte Umgebung) — erstelle docker-compose.override.yml"
+    # Watchdog-Container braucht den sysctl nur für Port-Binding < 1024.
+    # Override entfernt sysctls — Port-Binding < 1024 bleibt über Host-Routing möglich.
+    cat > "${MAILCOW_DIR}/docker-compose.override.yml" << 'OVERRIDE'
+services:
+  watchdog-mailcow:
+    sysctls: []
+OVERRIDE
+    success "docker-compose.override.yml erstellt (sysctls deaktiviert)"
+fi
+
 # ── Starten ──────────────────────────────────────────────────────────────────
 info "Starte Mailcow-Stack (kann einige Minuten dauern)..."
 cd "${MAILCOW_DIR}"
