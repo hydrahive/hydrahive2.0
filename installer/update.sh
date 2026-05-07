@@ -367,7 +367,8 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "^NoNewPrivileges=true" "$SERVICE_FILE" && NEEDS_REWRITE=1
   # Docker + sysctl in sudoers nachtragen wenn noch nicht vorhanden
   if ! grep -q "docker" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null || \
-     ! grep -q "sysctl" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null; then
+     ! grep -q "sysctl" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null || \
+     ! grep -q "/bin/rm" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null; then
     NEEDS_REWRITE=1
   fi
   # Schnell-Patch: sysctl direkt nachtragen ohne vollen Rewrite abzuwarten
@@ -377,6 +378,13 @@ if [ -f "$SERVICE_FILE" ]; then
     echo "$HH_USER ALL=(ALL) NOPASSWD: $SYSCTL_BIN" >> /etc/sudoers.d/hydrahive2-extensions
     chmod 440 /etc/sudoers.d/hydrahive2-extensions
     log "sysctl zu sudoers nachgetragen"
+  fi
+  # Schnell-Patch: /bin/rm für cleanup_dirs (Extension-Deinstallation)
+  if [ -f /etc/sudoers.d/hydrahive2-extensions ] && \
+     ! grep -q "/bin/rm" /etc/sudoers.d/hydrahive2-extensions 2>/dev/null; then
+    echo "$HH_USER ALL=(ALL) NOPASSWD: /bin/rm" >> /etc/sudoers.d/hydrahive2-extensions
+    chmod 440 /etc/sudoers.d/hydrahive2-extensions
+    log "/bin/rm zu sudoers nachgetragen (Extension-Cleanup)"
   fi
   # KillMode=process verhindert dass qemu-VMs + incus-Container beim service-restart
   # mitgekillt werden (Default control-group kappt alle Children der cgroup)
