@@ -104,8 +104,21 @@ fi
 
 # ── Docker-Compose-Override ──────────────────────────────────────────────────
 # nginx-mailcow bekommt die dedizierte LAN-IP über macvlan.
-# watchdog bekommt sysctls:[] — Fix für LXC/VM-Umgebungen.
-cat > "${MAILCOW_DIR}/docker-compose.override.yml" << OVERRIDE
+# Alle Services mit sysctls: bekommen sysctls:[] — Fix für LXC/VM ohne Kernel-Rechte.
+# Dynamisch geparst damit künftige Mailcow-Versionen automatisch abgedeckt sind.
+SYSCTL_SERVICES=$(python3 - "${MAILCOW_DIR}/docker-compose.yml" 2>/dev/null <<'PYEOF' \
+  || echo "netfilter-mailcow watchdog-mailcow"
+import yaml, sys
+with open(sys.argv[1]) as f:
+    c = yaml.safe_load(f)
+svcs = [n for n, s in (c.get("services") or {}).items() if s and s.get("sysctls")]
+print(" ".join(svcs))
+PYEOF
+)
+info "Services mit sysctls: ${SYSCTL_SERVICES}"
+
+{
+    cat << HEADER
 networks:
   mailcow-macvlan:
     external: true
@@ -117,10 +130,14 @@ services:
       mailcow-network: {}
       mailcow-macvlan:
         ipv4_address: "${MAILCOW_IP}"
-  watchdog-mailcow:
-    sysctls: []
-OVERRIDE
-success "docker-compose.override.yml erstellt (IP: ${MAILCOW_IP})"
+HEADER
+    for svc in ${SYSCTL_SERVICES}; do
+        [ "${svc}" = "nginx-mailcow" ] && continue
+        printf "  %s:\n    sysctls: []\n" "${svc}"
+    done
+} > "${MAILCOW_DIR}/docker-compose.override.yml"
+
+success "docker-compose.override.yml erstellt (IP: ${MAILCOW_IP}, sysctls deaktiviert: ${SYSCTL_SERVICES})"
 
 # ── Kernel-Sysctl (Host-seitig, best-effort) ─────────────────────────────────
 if sysctl -w net.ipv4.ip_unprivileged_port_start=0 &>/dev/null 2>&1; then
