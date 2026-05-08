@@ -46,8 +46,11 @@ chown -R "${SEARXNG_USER}:${SEARXNG_USER}" "${SEARXNG_DIR}"
 # --- Virtualenv + Dependencies ---
 info "Erstelle Python-Virtualenv und installiere Abhängigkeiten..."
 sudo -u "${SEARXNG_USER}" python3 -m venv "${SEARXNG_DIR}/venv"
-sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -q --upgrade pip
-sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -q -e "${SEARXNG_DIR}" \
+sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -q --upgrade pip setuptools wheel
+# requirements.txt statt editable install — pip install -e schlägt fehl wenn
+# Build-Deps (msgspec) im venv noch nicht vorhanden sind
+sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -q \
+    -r "${SEARXNG_DIR}/requirements.txt" \
     || die "pip install fehlgeschlagen"
 success "Python-Abhängigkeiten installiert"
 
