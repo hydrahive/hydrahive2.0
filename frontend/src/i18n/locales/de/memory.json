@@ -1,0 +1,53 @@
+{
+  "title": "Agent-Memory",
+  "no_agent_selected": "Kein Agent ausgewählt",
+  "select_agent": "Wähle rechts einen Agenten aus.",
+  "loading": "Lädt…",
+  "delete": "Löschen",
+
+  "tabs": {
+    "memory": "Memory",
+    "crystals": "Kristalle",
+    "sessions": "Sessions"
+  },
+
+  "sidebar": {
+    "agents": "Agenten"
+  },
+
+  "filter": {
+    "search": "Suche",
+    "search_placeholder": "Schlüssel oder Inhalt…",
+    "project": "Projekt",
+    "project_placeholder": "Projekt-ID…",
+    "include_expired": "Abgelaufene anzeigen",
+    "apply": "Suchen"
+  },
+
+  "entry_count": "{{count}} Einträge",
+  "no_entries": "Keine Memory-Einträge gefunden.",
+
+  "col": {
+    "key": "Schlüssel",
+    "content": "Inhalt",
+    "confidence": "Konfidenz",
+    "project": "Projekt",
+    "updated": "Aktualisiert"
+  },
+
+  "crystal_count": "{{count}} Kristalle",
+  "no_crystals": "Keine Kristalle vorhanden.",
+  "observations": "{{count}} Obs.",
+
+  "crystal": {
+    "key_outcomes": "Key Outcomes",
+    "lessons": "Lessons Learned",
+    "files": "Betroffene Dateien"
+  },
+
+  "session_count": "{{count}} Sessions",
+  "no_sessions": "Keine Sessions vorhanden.",
+  "no_prompt": "(kein Prompt)",
+  "no_observations": "Keine Observations.",
+  "importance": "Wichtigkeit"
+}
