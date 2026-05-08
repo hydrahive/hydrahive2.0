@@ -7,7 +7,8 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 _DESCRIPTION = (
     "Speichert eine Memory-Notiz unter dem angegebenen Schlüssel. "
     "Mit `delete=true` wird der Eintrag entfernt. "
-    "Mit `expires_at` verfällt der Eintrag automatisch (+2h, +1d, +7d, +4w oder ISO-Timestamp)."
+    "Mit `expires_at` verfällt der Eintrag automatisch (+2h, +1d, +7d, +4w oder ISO-Timestamp). "
+    "Beim wiederholten Schreiben auf denselben Key wird die Confidence automatisch erhöht (Reinforcement)."
 )
 
 _SCHEMA = {
@@ -30,8 +31,15 @@ _SCHEMA = {
             "type": "string",
             "description": (
                 "Ablaufzeit: relative Angabe (+2h, +1d, +7d, +4w) oder ISO-Timestamp. "
-                "Nach Ablauf wird der Eintrag bei Lesezugriffen ignoriert. "
-                "Nützlich für temporäre Informationen (Status, laufende Deploys, WIP-Branches)."
+                "Nach Ablauf wird der Eintrag bei Lesezugriffen ignoriert."
+            ),
+        },
+        "confidence": {
+            "type": "number",
+            "description": (
+                "Initiale Verlässlichkeit des Eintrags (0.0–1.0, default 0.5). "
+                "Nur für neue Einträge relevant — bei bestehenden wird confidence "
+                "automatisch per Reinforcement erhöht und dieser Wert ignoriert."
             ),
         },
     },
@@ -56,10 +64,22 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not isinstance(content, str):
         return ToolResult.fail("content muss ein String sein")
 
-    expires_at = args.get("expires_at")
-    entry = write_key(ctx.agent_id, key, content, expires_at=expires_at or None)
+    confidence = args.get("confidence")
+    if confidence is not None:
+        try:
+            confidence = float(confidence)
+        except (TypeError, ValueError):
+            return ToolResult.fail("confidence muss eine Zahl zwischen 0.0 und 1.0 sein")
+        if not (0.0 <= confidence <= 1.0):
+            return ToolResult.fail("confidence muss zwischen 0.0 und 1.0 liegen")
 
-    extra = {}
+    expires_at = args.get("expires_at")
+    entry = write_key(ctx.agent_id, key, content, expires_at=expires_at or None, confidence=confidence)
+
+    extra = {
+        "confidence": entry["confidence"],
+        "reinforcements": entry["reinforcements"],
+    }
     if entry.get("expires_at"):
         extra["expires_at"] = entry["expires_at"]
 
