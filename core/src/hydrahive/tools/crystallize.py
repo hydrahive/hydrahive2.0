@@ -31,13 +31,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     session_id = args.get("session_id") or ctx.session_id
     if not session_id:
-        return ToolResult(success=False, output="", error="Keine session_id bekannt.")
+        return ToolResult.fail("Keine session_id bekannt.")
 
     # Modell aus Agent-Config holen
     from hydrahive.settings import settings
     agents = settings.load_agents()
     agent = next((a for a in agents if a["id"] == ctx.agent_id), None)
-    model = agent.get("llm_model", "claude-opus-4-5") if agent else "claude-opus-4-5"
+    model = (agent.get("llm_model") if agent else None) or "claude-sonnet-4-6"
 
     project = ctx.project_id
 
@@ -50,11 +50,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     )
 
     if crystal is None:
-        return ToolResult(
-            success=False,
-            output="",
-            error=f"Keine CompressedObservations für Session {session_id} gefunden.",
-        )
+        return ToolResult.fail(f"Keine CompressedObservations für Session {session_id} gefunden.")
 
     lessons = crystal.get("lessons") or []
     outcomes = crystal.get("key_outcomes") or []
