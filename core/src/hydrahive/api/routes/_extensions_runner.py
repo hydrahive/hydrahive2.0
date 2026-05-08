@@ -227,7 +227,12 @@ def validate_manifest(manifest: dict, mode: str = "native") -> list[str]:
 
 async def stream_script(script_path: Path, env: dict[str, str] | None = None) -> AsyncIterator[str]:
     full_env = {**os.environ, **(env or {})}
-    cmd = ["/bin/bash", str(script_path)] if os.getuid() == 0 else ["sudo", "-n", "/bin/bash", str(script_path)]
+    if os.getuid() == 0:
+        cmd = ["/bin/bash", str(script_path)]
+    else:
+        # sudo strippt env-Vars — via 'env KEY=val' inline übergeben
+        env_pairs = [f"{k}={v}" for k, v in (env or {}).items()]
+        cmd = ["sudo", "-n", "env"] + env_pairs + ["/bin/bash", str(script_path)]
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         stdout=asyncio.subprocess.PIPE,
