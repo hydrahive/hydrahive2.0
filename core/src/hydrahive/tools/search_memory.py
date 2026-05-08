@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from hydrahive.tools._memory_store import _is_expired, load
+from hydrahive.tools._memory_store import load_active
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
@@ -53,15 +53,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     except re.error as e:
         return ToolResult.fail(f"Ungültiger Regex: {e}")
 
-    data = load(ctx.agent_id)
+    data = load_active(ctx.agent_id)
     hits: list[dict] = []
 
     for key in sorted(data.keys()):
         entry = data[key]
 
-        # Abgelaufene Einträge überspringen
-        if _is_expired(entry):
-            continue
 
         content = entry.get("content", "")
         key_match = pattern.search(key)
