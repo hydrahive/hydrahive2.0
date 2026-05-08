@@ -16,6 +16,9 @@ from hydrahive.settings import settings
 MemoryEntry = dict[str, Any]
 MemoryStore = dict[str, MemoryEntry]
 
+_CONFIDENCE_DEFAULT = 0.5
+_CONFIDENCE_STEP = 0.1  # Reinforcement-Schritt: neue_conf = old + STEP * (1 - old)
+
 
 # ---------------------------------------------------------------------------
 # Internes
@@ -30,17 +33,25 @@ def _now_iso() -> str:
 
 
 def _migrate_entry(value: Any) -> MemoryEntry:
-    """Migriert alte String-Werte zum neuen Objekt-Schema. Rückwärtskompatibel."""
+    """Migriert alte String-Werte und #50-Einträge (ohne Confidence) zum aktuellen Schema."""
     if isinstance(value, str):
         return {
             "content": value,
             "created_at": None,
             "updated_at": None,
             "expires_at": None,
+            "confidence": _CONFIDENCE_DEFAULT,
+            "reinforcements": 0,
+            "last_reinforced_at": None,
         }
     if isinstance(value, dict):
-        return value
-    return {"content": str(value), "created_at": None, "updated_at": None, "expires_at": None}
+        # #50-Einträge: Confidence-Felder ergänzen falls nicht vorhanden
+        entry = value.copy()
+        entry.setdefault("confidence", _CONFIDENCE_DEFAULT)
+        entry.setdefault("reinforcements", 0)
+        entry.setdefault("last_reinforced_at", None)
+        return entry
+    return _migrate_entry(str(value))
 
 
 def _is_expired(entry: MemoryEntry) -> bool:
@@ -71,12 +82,17 @@ def _parse_expiry(value: str) -> str:
     return value
 
 
+def _reinforce_confidence(current: float) -> float:
+    """Konvergierende Confidence-Erhöhung: new = old + STEP * (1 - old). Max 1.0."""
+    return round(min(1.0, current + _CONFIDENCE_STEP * (1.0 - current)), 4)
+
+
 # ---------------------------------------------------------------------------
 # Öffentliche API
 # ---------------------------------------------------------------------------
 
 def load(agent_id: str) -> MemoryStore:
-    """Lädt die Memory-Datei und migriert alte String-Einträge automatisch."""
+    """Lädt die Memory-Datei und migriert alte Einträge automatisch."""
     path = _memory_file(agent_id)
     if not path.exists():
         return {}
@@ -89,6 +105,12 @@ def load(agent_id: str) -> MemoryStore:
     return {k: _migrate_entry(v) for k, v in raw.items()}
 
 
+def load_active(agent_id: str) -> MemoryStore:
+    """Wie load(), aber ohne abgelaufene Einträge. Für Iteration ohne _is_expired-Import."""
+    data = load(agent_id)
+    return {k: v for k, v in data.items() if not _is_expired(v)}
+
+
 def save(agent_id: str, data: MemoryStore) -> None:
     path = _memory_file(agent_id)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,7 +120,7 @@ def save(agent_id: str, data: MemoryStore) -> None:
 def read_entry(agent_id: str, key: str) -> MemoryEntry | None:
     """
     Gibt den vollständigen MemoryEntry zurück, oder None wenn nicht vorhanden / abgelaufen.
-    Für Aufrufer die Metadaten (created_at, expires_at, ...) benötigen.
+    Für Aufrufer die Metadaten (created_at, confidence, expires_at, ...) benötigen.
     """
     entry = load(agent_id).get(key)
     if entry is None:
@@ -119,18 +141,21 @@ def write_key(
     key: str,
     content: str,
     expires_at: str | None = None,
+    confidence: float | None = None,
 ) -> MemoryEntry:
     """
     Schreibt einen Memory-Eintrag. Gibt den gespeicherten Entry zurück.
 
     expires_at: ISO-Timestamp oder relative Angabe (+2h, +1d, +7d, +4w).
+    confidence: Initiale Confidence für neue Einträge (0.0–1.0, default 0.5).
+                Bei bestehenden Einträgen wird confidence per Reinforcement erhöht
+                und dieser Parameter ignoriert.
 
     Update-Verhalten bei bestehendem Eintrag:
     - content und updated_at werden immer überschrieben.
-    - expires_at wird NUR aktualisiert wenn explizit übergeben.
-      Kein expires_at-Argument → bestehender Ablaufzeitpunkt bleibt erhalten.
-      Das ist bewusstes Verhalten: ein Update soll nicht versehentlich ein TTL entfernen.
-      Um ein TTL explizit zu entfernen, muss expires_at="" übergeben werden (TODO: #50 followup).
+    - confidence wird per Reinforcement-Formel erhöht (konvergiert gegen 1.0).
+    - expires_at wird NUR aktualisiert wenn explizit übergeben —
+      bestehender Ablaufzeitpunkt bleibt sonst erhalten.
     """
     data = load(agent_id)
     now = _now_iso()
@@ -138,18 +163,25 @@ def write_key(
 
     existing = data.get(key)
     if existing and isinstance(existing, dict):
+        old_conf = existing.get("confidence", _CONFIDENCE_DEFAULT)
         existing["content"] = content
         existing["updated_at"] = now
-        # Nur setzen wenn explizit übergeben — bestehender Ablaufzeitpunkt bleibt sonst erhalten
+        existing["confidence"] = _reinforce_confidence(old_conf)
+        existing["reinforcements"] = existing.get("reinforcements", 0) + 1
+        existing["last_reinforced_at"] = now
         if parsed_expiry is not None:
             existing["expires_at"] = parsed_expiry
         data[key] = existing
     else:
+        init_confidence = confidence if confidence is not None else _CONFIDENCE_DEFAULT
         data[key] = {
             "content": content,
             "created_at": now,
             "updated_at": now,
             "expires_at": parsed_expiry,
+            "confidence": round(max(0.0, min(1.0, init_confidence)), 4),
+            "reinforcements": 0,
+            "last_reinforced_at": None,
         }
 
     save(agent_id, data)
@@ -184,9 +216,3 @@ def cleanup_expired(agent_id: str) -> int:
         del data[k]
     save(agent_id, data)
     return len(expired_keys)
-
-
-def load_active(agent_id: str) -> MemoryStore:
-    """Wie load(), aber ohne abgelaufene Einträge. Für Iteration ohne _is_expired-Import."""
-    data = load(agent_id)
-    return {k: v for k, v in data.items() if not _is_expired(v)}

@@ -9,7 +9,8 @@ _DESCRIPTION = (
     "Sucht in den eigenen Memory-Notizen nach einer Phrase (case-insensitiv, "
     "über Schlüssel UND Inhalt). Liefert pro Treffer den Schlüssel und ein "
     "Snippet rund um den Match. Mit `regex=true` wird die Query als regulärer "
-    "Ausdruck interpretiert. Abgelaufene Einträge werden automatisch ausgeblendet."
+    "Ausdruck interpretiert. Ergebnisse werden nach Relevanz × Confidence sortiert. "
+    "Abgelaufene Einträge werden automatisch ausgeblendet."
 )
 
 _SCHEMA = {
@@ -34,6 +35,14 @@ _SCHEMA = {
             "default": 120,
             "description": "Zeichen um den Match (20-500).",
         },
+        "min_confidence": {
+            "type": "number",
+            "default": 0.0,
+            "description": (
+                "Nur Einträge mit confidence >= diesem Wert zurückgeben (0.0–1.0). "
+                "Nützlich um nur gut bestätigte Fakten zu suchen, z.B. min_confidence=0.7."
+            ),
+        },
     },
     "required": ["query"],
 }
@@ -47,6 +56,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     use_regex = bool(args.get("regex", False))
     max_results = max(1, min(int(args.get("max_results", 20)), 100))
     snippet_chars = max(20, min(int(args.get("snippet_chars", 120)), 500))
+    min_confidence = max(0.0, min(float(args.get("min_confidence", 0.0)), 1.0))
 
     try:
         pattern = re.compile(query if use_regex else re.escape(query), re.IGNORECASE)
@@ -58,6 +68,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     for key in sorted(data.keys()):
         entry = data[key]
+        confidence = entry.get("confidence", 0.5)
+
+        if confidence < min_confidence:
+            continue
+
         content = entry.get("content", "")
         key_match = pattern.search(key)
         content_matches = list(pattern.finditer(content))
@@ -65,6 +80,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         if not key_match and not content_matches:
             continue
 
+        # Snippet um ersten Match
         if content_matches:
             first = content_matches[0]
             half = snippet_chars // 2
@@ -78,20 +94,37 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         else:
             snippet = content[:snippet_chars] + ("…" if len(content) > snippet_chars else "")
 
+        # Score: Treffer im Key gewichtet höher als im Content
+        match_score = len(content_matches) + (2 if key_match else 0)
+
         hit: dict = {
             "key": key,
             "snippet": snippet,
+            "confidence": confidence,
+            "reinforcements": entry.get("reinforcements", 0),
             "matches_in_content": len(content_matches),
             "match_in_key": bool(key_match),
+            "_sort_score": match_score * confidence,
         }
         if entry.get("expires_at"):
             hit["expires_at"] = entry["expires_at"]
 
         hits.append(hit)
-        if len(hits) >= max_results:
-            break
 
-    return ToolResult.ok({"query": query, "hits": hits, "count": len(hits), "total_keys": len(data)})
+    # Nach Relevanz × Confidence sortieren, dann _sort_score-Hilfsfeld entfernen
+    hits.sort(key=lambda h: h["_sort_score"], reverse=True)
+    for h in hits:
+        del h["_sort_score"]
+
+    truncated = hits[:max_results]
+
+    return ToolResult.ok({
+        "query": query,
+        "hits": truncated,
+        "count": len(truncated),
+        "total_matches": len(hits),
+        "total_keys": len(data),
+    })
 
 
 TOOL = Tool(name="search_memory", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="memory")
