@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import re
 
-from hydrahive.tools._memory_store import load, load_active
+from hydrahive.tools._memory_store import load_filtered
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
     "Sucht in den eigenen Memory-Notizen nach einer Phrase (case-insensitiv, "
     "über Schlüssel UND Inhalt). Liefert pro Treffer den Schlüssel und ein "
-    "Snippet rund um den Match. Mit `regex=true` wird die Query als regulärer "
-    "Ausdruck interpretiert. Ergebnisse werden nach Relevanz × Confidence sortiert. "
-    "Abgelaufene und veraltete Einträge werden standardmäßig ausgeblendet."
+    "Snippet rund um den Match. Ergebnisse werden nach Relevanz × Confidence sortiert. "
+    "Standardmäßig nur aktives Projekt + globale Einträge, ohne Abgelaufene/Veraltete."
 )
 
 _SCHEMA = {
@@ -38,18 +37,19 @@ _SCHEMA = {
         "min_confidence": {
             "type": "number",
             "default": 0.0,
+            "description": "Nur Einträge mit confidence >= diesem Wert (0.0–1.0).",
+        },
+        "project": {
+            "type": "string",
             "description": (
-                "Nur Einträge mit confidence >= diesem Wert zurückgeben (0.0–1.0). "
-                "Nützlich um nur gut bestätigte Fakten zu suchen, z.B. min_confidence=0.7."
+                "Projekt-Filter. '*' für alle Projekte. "
+                "Default: aktives Projekt aus Session-Kontext + globale Einträge."
             ),
         },
         "include_superseded": {
             "type": "boolean",
             "default": False,
-            "description": (
-                "Auch veraltete/überschriebene Einträge (is_latest=False) einschließen. "
-                "Nützlich um die History zu einem Thema zu sehen."
-            ),
+            "description": "Auch veraltete/überschriebene Einträge einschließen.",
         },
     },
     "required": ["query"],
@@ -66,13 +66,20 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     snippet_chars = max(20, min(int(args.get("snippet_chars", 120)), 500))
     min_confidence = max(0.0, min(float(args.get("min_confidence", 0.0)), 1.0))
     include_superseded = bool(args.get("include_superseded", False))
+    filter_project = args.get("project") or None
 
     try:
         pattern = re.compile(query if use_regex else re.escape(query), re.IGNORECASE)
     except re.error as e:
         return ToolResult.fail(f"Ungültiger Regex: {e}")
 
-    data = load(ctx.agent_id) if include_superseded else load_active(ctx.agent_id)
+    data = load_filtered(
+        ctx.agent_id,
+        filter_project=filter_project,
+        active_project=ctx.project_id,
+        include_superseded=include_superseded,
+    )
+
     hits: list[dict] = []
 
     for key in sorted(data.keys()):
@@ -114,6 +121,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "match_in_key": bool(key_match),
             "_sort_score": match_score * confidence,
         }
+        if entry.get("project"):
+            hit["project"] = entry["project"]
         if entry.get("expires_at"):
             hit["expires_at"] = entry["expires_at"]
         if not entry.get("is_latest", True) and entry.get("superseded_by"):

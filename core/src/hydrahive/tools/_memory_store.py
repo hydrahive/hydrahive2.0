@@ -34,7 +34,7 @@ def _now_iso() -> str:
 
 
 def _migrate_entry(value: Any) -> MemoryEntry:
-    """Migriert alte String-Werte und frühere Schema-Versionen zum aktuellen Stand."""
+    """Migriert alle früheren Schema-Versionen zum aktuellen Stand. Rückwärtskompatibel."""
     if isinstance(value, str):
         return {
             "content": value,
@@ -48,6 +48,7 @@ def _migrate_entry(value: Any) -> MemoryEntry:
             "superseded_by": None,
             "superseded_at": None,
             "supersedes": [],
+            "project": None,  # None = global, in allen Projekten sichtbar
         }
     if isinstance(value, dict):
         entry = value.copy()
@@ -58,6 +59,7 @@ def _migrate_entry(value: Any) -> MemoryEntry:
         entry.setdefault("superseded_by", None)
         entry.setdefault("superseded_at", None)
         entry.setdefault("supersedes", [])
+        entry.setdefault("project", None)  # Bestehende Einträge → global
         return entry
     return _migrate_entry(str(value))
 
@@ -108,12 +110,35 @@ def _jaccard_similarity(text_a: str, text_b: str) -> float:
     return intersection / (len(tokens_a) + len(tokens_b) - intersection)
 
 
+def _project_matches(entry: MemoryEntry, filter_project: str | None, active_project: str | None) -> bool:
+    """
+    Prüft ob ein Eintrag im gegebenen Projekt-Kontext sichtbar ist.
+
+    Regeln:
+    - filter_project="*"  → immer True (alle Projekte)
+    - filter_project=X    → nur Einträge mit project=X oder project=None (global)
+    - active_project=X    → wie filter_project=X, aber aus Session-Kontext
+    - Kein Kontext        → nur globale Einträge (project=None)
+    """
+    entry_project = entry.get("project")  # None = global
+
+    if filter_project == "*":
+        return True
+
+    if filter_project:
+        return entry_project is None or entry_project == filter_project
+
+    if active_project:
+        return entry_project is None or entry_project == active_project
+
+    return entry_project is None
+
+
 def find_contradictions(data: MemoryStore, new_key: str, new_content: str) -> list[str]:
     """
     Prüft alle aktiven Einträge auf Ähnlichkeit mit dem neuen Content.
     Gibt Keys zurück deren Jaccard-Similarity >= _CONTRADICTION_THRESHOLD ist.
-    Ignoriert: den neuen Key selbst, bereits als veraltet markierte Einträge,
-    abgelaufene Einträge.
+    Ignoriert: den neuen Key selbst, bereits veraltete Einträge, abgelaufene Einträge.
     """
     candidates = []
     for key, entry in data.items():
@@ -123,8 +148,7 @@ def find_contradictions(data: MemoryStore, new_key: str, new_content: str) -> li
             continue
         if _is_expired(entry):
             continue
-        existing_content = entry.get("content", "")
-        sim = _jaccard_similarity(new_content, existing_content)
+        sim = _jaccard_similarity(new_content, entry.get("content", ""))
         if sim >= _CONTRADICTION_THRESHOLD:
             candidates.append(key)
     return candidates
@@ -133,7 +157,6 @@ def find_contradictions(data: MemoryStore, new_key: str, new_content: str) -> li
 def mark_superseded(data: MemoryStore, superseded_keys: list[str], by_key: str) -> None:
     """
     Markiert Einträge als veraltet (is_latest=False) in-place.
-    Trägt superseded_by + superseded_at ein.
     Mutiert data direkt — Aufrufer ist für save() verantwortlich.
     """
     now = _now_iso()
@@ -162,15 +185,26 @@ def load(agent_id: str) -> MemoryStore:
     return {k: _migrate_entry(v) for k, v in raw.items()}
 
 
-def load_active(agent_id: str) -> MemoryStore:
+def load_active(
+    agent_id: str,
+    filter_project: str | None = None,
+    active_project: str | None = None,
+) -> MemoryStore:
     """
-    Wie load(), aber ohne abgelaufene und veraltete (is_latest=False) Einträge.
-    Standard-View für search und normale Lesezugriffe.
+    Lädt aktive Einträge — ohne abgelaufene und veraltete (is_latest=False).
+    Wendet optional Projekt-Filter an.
+
+    filter_project="*" → alle Projekte
+    filter_project=X   → nur Projekt X + globale
+    active_project=X   → wie filter_project=X (aus Session-Kontext)
+    Kein Kontext       → nur globale Einträge
     """
     data = load(agent_id)
     return {
         k: v for k, v in data.items()
-        if not _is_expired(v) and v.get("is_latest", True)
+        if not _is_expired(v)
+        and v.get("is_latest", True)
+        and _project_matches(v, filter_project, active_project)
     }
 
 
@@ -183,7 +217,7 @@ def save(agent_id: str, data: MemoryStore) -> None:
 def read_entry(agent_id: str, key: str) -> MemoryEntry | None:
     """
     Gibt den vollständigen MemoryEntry zurück, oder None wenn nicht vorhanden / abgelaufen.
-    Gibt auch veraltete (is_latest=False) Einträge zurück — für explizite Schlüssel-Lookups.
+    Kein Projekt-Filter — expliziter Schlüssel-Lookup ignoriert Projekt-Grenzen.
     """
     entry = load(agent_id).get(key)
     if entry is None:
@@ -205,26 +239,20 @@ def write_key(
     content: str,
     expires_at: str | None = None,
     confidence: float | None = None,
+    project: str | None = None,
     check_contradictions: bool = True,
 ) -> tuple[MemoryEntry, list[str]]:
     """
     Schreibt einen Memory-Eintrag. Gibt (entry, superseded_keys) zurück.
 
-    expires_at: ISO-Timestamp oder relative Angabe (+2h, +1d, +7d, +4w).
-    confidence: Initiale Confidence für neue Einträge (0.0–1.0, default 0.5).
-                Bei bestehenden Einträgen ignoriert — Reinforcement greift.
-    check_contradictions: Wenn True, werden ähnliche Einträge als veraltet markiert.
-
-    Update-Verhalten bei bestehendem Eintrag:
-    - content und updated_at werden immer überschrieben.
-    - confidence wird per Reinforcement-Formel erhöht.
-    - expires_at wird NUR aktualisiert wenn explizit übergeben.
+    project: Projekt-Zuordnung. None = global (in allen Projekten sichtbar).
+             Bei Updates: project wird NUR aktualisiert wenn explizit übergeben —
+             bestehende Projekt-Zuordnung bleibt sonst erhalten.
     """
     data = load(agent_id)
     now = _now_iso()
     parsed_expiry = _parse_expiry(expires_at) if expires_at else None
 
-    # Contradiction-Check vor dem Schreiben
     superseded_keys: list[str] = []
     if check_contradictions:
         superseded_keys = find_contradictions(data, key, content)
@@ -239,10 +267,12 @@ def write_key(
         existing["confidence"] = _reinforce_confidence(old_conf)
         existing["reinforcements"] = existing.get("reinforcements", 0) + 1
         existing["last_reinforced_at"] = now
-        existing["is_latest"] = True  # Reaktivierung falls zuvor als veraltet markiert
+        existing["is_latest"] = True
         existing["supersedes"] = existing.get("supersedes", []) + superseded_keys
         if parsed_expiry is not None:
             existing["expires_at"] = parsed_expiry
+        if project is not None:
+            existing["project"] = project
         data[key] = existing
     else:
         init_confidence = confidence if confidence is not None else _CONFIDENCE_DEFAULT
@@ -258,6 +288,7 @@ def write_key(
             "superseded_by": None,
             "superseded_at": None,
             "supersedes": superseded_keys,
+            "project": project,
         }
 
     save(agent_id, data)
@@ -273,12 +304,18 @@ def delete_key(agent_id: str, key: str) -> bool:
     return True
 
 
-def list_keys(agent_id: str) -> list[str]:
-    """Gibt alle aktiven (nicht abgelaufen, nicht veraltet) Keys zurück."""
+def list_keys(
+    agent_id: str,
+    filter_project: str | None = None,
+    active_project: str | None = None,
+) -> list[str]:
+    """Gibt alle aktiven Keys zurück, optional Projekt-gefiltert."""
     data = load(agent_id)
     return sorted(
         k for k, v in data.items()
-        if not _is_expired(v) and v.get("is_latest", True)
+        if not _is_expired(v)
+        and v.get("is_latest", True)
+        and _project_matches(v, filter_project, active_project)
     )
 
 
@@ -295,3 +332,24 @@ def cleanup_expired(agent_id: str) -> int:
         del data[k]
     save(agent_id, data)
     return len(expired_keys)
+
+
+def load_filtered(
+    agent_id: str,
+    filter_project: str | None = None,
+    active_project: str | None = None,
+    include_superseded: bool = False,
+) -> MemoryStore:
+    """
+    Zentraler Filter-Einstieg für search_memory und ähnliche Aufrufer.
+    Kombiniert Expired-, Superseded- und Projekt-Filter in einem Aufruf.
+
+    include_superseded=True → is_latest=False Einträge werden eingeschlossen.
+    """
+    data = load(agent_id)
+    return {
+        k: v for k, v in data.items()
+        if not _is_expired(v)
+        and (include_superseded or v.get("is_latest", True))
+        and _project_matches(v, filter_project, active_project)
+    }

@@ -13,6 +13,7 @@ class ToolContext:
     user_id: str
     workspace: Path
     config: dict = field(default_factory=dict)
+    project_id: str | None = None  # Aktives Projekt — Memory-Tools nutzen dies als Default-Filter
 
 
 @dataclass
