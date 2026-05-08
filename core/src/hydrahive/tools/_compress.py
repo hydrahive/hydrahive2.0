@@ -80,15 +80,17 @@ def load_compressed(
 # ---------------------------------------------------------------------------
 
 _COMPRESS_SYSTEM = """\
-You are compressing an agent tool-call record into a structured observation.
-The input is a single tool-call with its name, arguments, and output.
+You are compressing agent tool-call records into structured observations.
+The input is a numbered list of tool-calls. Return a JSON ARRAY with one object
+per tool-call, in the same order — no markdown, no explanation.
 
-Extract the following and respond with valid JSON only — no markdown, no explanation:
+Each object must have:
 {
+  "id": "<the id value from the input>",
   "type": "<file_read|file_write|command_run|decision|discovery|error|other>",
   "title": "<short description, max 80 chars>",
-  "facts": ["<atomic fact 1>", "<atomic fact 2>"],
-  "concepts": ["<keyword1>", "<keyword2>"],
+  "facts": ["<atomic fact>"],
+  "concepts": ["<keyword>"],
   "files": ["<file path if any>"],
   "importance": <integer 1-10>,
   "narrative": "<1-2 sentences what happened and why it matters>"
@@ -99,48 +101,85 @@ Rules:
 - concepts: max 8, lowercase keywords
 - files: only real file paths, empty list if none
 - importance: 10=critical decision, 7=significant change, 4=routine read, 1=trivial
-- Return ONLY the JSON object, nothing else
+- Return ONLY the JSON array, nothing else
 """
 
+_COMPRESS_BATCH_SIZE = 30  # max Observations pro LLM-Call
 
-def _build_compress_prompt(raw: RawObservation) -> str:
-    tool_input = raw.get("tool_input")
-    tool_output = raw.get("tool_output")
-    hook_type = raw.get("hook_type", "post_tool_use")
 
-    input_str = (
-        json.dumps(tool_input, ensure_ascii=False)
-        if not isinstance(tool_input, str)
-        else tool_input
-    ) or "(none)"
+def _build_batch_prompt(raws: list[RawObservation]) -> str:
+    parts: list[str] = []
+    for i, raw in enumerate(raws, 1):
+        tool_input = raw.get("tool_input")
+        tool_output = raw.get("tool_output")
+        hook_type = raw.get("hook_type", "post_tool_use")
+        input_str = (
+            json.dumps(tool_input, ensure_ascii=False)
+            if not isinstance(tool_input, str)
+            else tool_input
+        ) or "(none)"
+        output_str = str(tool_output) if tool_output is not None else "(none)"
+        parts.append(
+            f"## {i}. id={raw.get('id', '')} tool={raw.get('tool_name', 'unknown')} "
+            f"status={'failure' if hook_type == 'post_tool_failure' else 'success'}\n"
+            f"Input: {input_str}\nOutput: {output_str}"
+        )
+    return "\n\n".join(parts)
 
-    output_str = str(tool_output) if tool_output is not None else "(none)"
 
-    return (
-        f"Tool: {raw.get('tool_name', 'unknown')}\n"
-        f"Status: {'failure' if hook_type == 'post_tool_failure' else 'success'}\n"
-        f"Input:\n{input_str}\n\n"
-        f"Output:\n{output_str}"
-    )
+def _parse_batch_response(text: str, raws: list[RawObservation]) -> list[dict[str, Any]]:
+    """Parst JSON-Array aus Batch-Antwort. Fällt pro Eintrag auf Fallback zurück."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = "\n".join(l for l in text.splitlines() if not l.strip().startswith("```")).strip()
+    try:
+        parsed = json.loads(text)
+        if not isinstance(parsed, list):
+            raise ValueError("expected list")
+    except (json.JSONDecodeError, ValueError):
+        logger.warning("LLM-Compress batch: ungültiges JSON — Fallback für alle %d obs", len(raws))
+        return [_fallback_compressed(r) for r in raws]
+
+    results: list[dict[str, Any]] = []
+    raw_by_id = {r.get("id"): r for r in raws}
+
+    for item, raw in zip(parsed, raws):
+        if not isinstance(item, dict):
+            results.append(_fallback_compressed(raw))
+            continue
+        obs_id = item.get("id") or raw.get("id", "")
+        matched_raw = raw_by_id.get(obs_id, raw)
+        obs_type = item.get("type", "other")
+        if obs_type not in OBS_TYPES:
+            obs_type = "other"
+        results.append({
+            "type": obs_type,
+            "title": str(item.get("title", matched_raw.get("tool_name", "unknown")))[:80],
+            "facts": [str(f) for f in item.get("facts", [])[:5]],
+            "concepts": [str(c).lower() for c in item.get("concepts", [])[:8]],
+            "files": [str(f) for f in item.get("files", [])],
+            "importance": max(1, min(10, int(item.get("importance", 5)))),
+            "narrative": str(item.get("narrative", ""))[:500],
+        })
+
+    # Wenn LLM weniger Einträge zurückgibt als erwartet, Rest auffüllen
+    while len(results) < len(raws):
+        results.append(_fallback_compressed(raws[len(results)]))
+
+    return results
 
 
 def _parse_llm_response(text: str, raw: RawObservation) -> dict[str, Any]:
-    """Parst die LLM-Antwort. Fällt auf sicheren Default zurück wenn ungültig."""
+    """Einzelner Parse für compress_observation (manueller Aufruf). Batch-Pfad nutzt _parse_batch_response."""
     text = text.strip()
-    # Manchmal wrapped das LLM in ```json ... ```
     if text.startswith("```"):
-        lines = text.splitlines()
-        text = "\n".join(
-            l for l in lines
-            if not l.strip().startswith("```")
-        ).strip()
+        text = "\n".join(l for l in text.splitlines() if not l.strip().startswith("```")).strip()
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
         logger.warning("LLM-Compress: ungültiges JSON für obs %s — nutze Fallback", raw.get("id"))
         return _fallback_compressed(raw)
 
-    # Normalisieren + validieren
     obs_type = parsed.get("type", "other")
     if obs_type not in OBS_TYPES:
         obs_type = "other"
@@ -223,6 +262,49 @@ async def compress_observation(
     return cobs
 
 
+async def _compress_batch(
+    raws: list[RawObservation],
+    *,
+    model: str,
+    agent_id: str,
+    session_id: str,
+) -> list[CompressedObservation]:
+    """Komprimiert eine Gruppe von RawObservations in einem einzigen LLM-Call."""
+    from hydrahive.runner.llm_bridge import call_with_tools
+
+    prompt = _build_batch_prompt(raws)
+    max_tokens = min(8192, len(raws) * 220 + 256)
+    try:
+        blocks, _ = await call_with_tools(
+            model=model,
+            system_prompt=_COMPRESS_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+            tools=[],
+            temperature=0.0,
+            max_tokens=max_tokens,
+        )
+        text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+        parsed_list = _parse_batch_response(text, raws)
+    except Exception as e:
+        logger.warning("compress batch LLM-Fehler (%d obs): %s — Fallback", len(raws), e)
+        parsed_list = [_fallback_compressed(r) for r in raws]
+
+    results: list[CompressedObservation] = []
+    for raw, parsed in zip(raws, parsed_list):
+        cobs: CompressedObservation = {
+            "id": _generate_cobs_id(),
+            "session_id": raw.get("session_id"),
+            "agent_id": raw.get("agent_id"),
+            "raw_observation_id": raw.get("id"),
+            "timestamp": _now_iso(),
+            **parsed,
+        }
+        _save_compressed(agent_id, session_id, cobs)
+        mark_compressed(agent_id, session_id, raw["id"], cobs["id"])
+        results.append(cobs)
+    return results
+
+
 async def compress_session(
     agent_id: str,
     session_id: str,
@@ -231,27 +313,23 @@ async def compress_session(
 ) -> list[CompressedObservation]:
     """
     Komprimiert alle noch unkomprimierten Observations einer Session.
-    Speichert CompressedObservations in JSONL.
-    Markiert RawObservations als compressed.
-    Gibt die neu erstellten CompressedObservations zurück.
-
-    Wird vom Runner am Session-Ende aufgerufen (aus session_end-Hook).
-    Kann auch manuell aufgerufen werden.
+    Nutzt Batch-Compression: ceil(N/30) LLM-Calls statt N einzelne.
+    Speichert CompressedObservations in JSONL und markiert Raws als compressed.
     """
     raws = list_raw_observations(agent_id, session_id, uncompressed_only=True)
     if not raws:
         return []
 
     results: list[CompressedObservation] = []
-    for raw in raws:
-        cobs = await compress_observation(raw, model=model)
-        _save_compressed(agent_id, session_id, cobs)
-        mark_compressed(agent_id, session_id, raw["id"], cobs["id"])
-        results.append(cobs)
-        logger.debug("compress_session: %s → %s", raw["id"], cobs["id"])
+    for i in range(0, len(raws), _COMPRESS_BATCH_SIZE):
+        batch = raws[i:i + _COMPRESS_BATCH_SIZE]
+        batch_results = await _compress_batch(batch, model=model, agent_id=agent_id, session_id=session_id)
+        results.extend(batch_results)
+        logger.debug("compress_session batch %d-%d: %d komprimiert", i, i + len(batch), len(batch_results))
 
     logger.info(
-        "compress_session %s: %d Observations komprimiert", session_id, len(results)
+        "compress_session %s: %d Observations in %d Batch(es) komprimiert",
+        session_id, len(results), max(1, (len(raws) + _COMPRESS_BATCH_SIZE - 1) // _COMPRESS_BATCH_SIZE),
     )
 
     # Auto-Crystallize wenn genug Observations vorhanden
