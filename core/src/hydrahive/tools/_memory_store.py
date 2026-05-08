@@ -190,22 +190,8 @@ def load_active(
     filter_project: str | None = None,
     active_project: str | None = None,
 ) -> MemoryStore:
-    """
-    Lädt aktive Einträge — ohne abgelaufene und veraltete (is_latest=False).
-    Wendet optional Projekt-Filter an.
-
-    filter_project="*" → alle Projekte
-    filter_project=X   → nur Projekt X + globale
-    active_project=X   → wie filter_project=X (aus Session-Kontext)
-    Kein Kontext       → nur globale Einträge
-    """
-    data = load(agent_id)
-    return {
-        k: v for k, v in data.items()
-        if not _is_expired(v)
-        and v.get("is_latest", True)
-        and _project_matches(v, filter_project, active_project)
-    }
+    """Alias für load_filtered(include_superseded=False). Für Abwärtskompatibilität."""
+    return load_filtered(agent_id, filter_project=filter_project, active_project=active_project)
 
 
 def save(agent_id: str, data: MemoryStore) -> None:

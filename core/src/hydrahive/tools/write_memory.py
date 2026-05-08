@@ -82,7 +82,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             return ToolResult.fail("confidence muss zwischen 0.0 und 1.0 liegen")
 
     # project: explizit übergeben > aktives Projekt aus Kontext > None (global)
-    project = args.get("project") or ctx.project_id or None
+    project = args.get("project") or None
 
     expires_at = args.get("expires_at")
     entry, superseded = write_key(
