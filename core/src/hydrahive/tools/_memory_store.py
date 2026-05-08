@@ -95,14 +95,23 @@ def save(agent_id: str, data: MemoryStore) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def read_key(agent_id: str, key: str) -> str | None:
-    """Gibt den content-Wert zurück, oder None wenn nicht vorhanden / abgelaufen."""
+def read_entry(agent_id: str, key: str) -> MemoryEntry | None:
+    """
+    Gibt den vollständigen MemoryEntry zurück, oder None wenn nicht vorhanden / abgelaufen.
+    Für Aufrufer die Metadaten (created_at, expires_at, ...) benötigen.
+    """
     entry = load(agent_id).get(key)
     if entry is None:
         return None
     if _is_expired(entry):
         return None
-    return entry.get("content")
+    return entry
+
+
+def read_key(agent_id: str, key: str) -> str | None:
+    """Gibt nur den content-Wert zurück, oder None wenn nicht vorhanden / abgelaufen."""
+    entry = read_entry(agent_id, key)
+    return entry.get("content") if entry is not None else None
 
 
 def write_key(
@@ -113,7 +122,15 @@ def write_key(
 ) -> MemoryEntry:
     """
     Schreibt einen Memory-Eintrag. Gibt den gespeicherten Entry zurück.
+
     expires_at: ISO-Timestamp oder relative Angabe (+2h, +1d, +7d, +4w).
+
+    Update-Verhalten bei bestehendem Eintrag:
+    - content und updated_at werden immer überschrieben.
+    - expires_at wird NUR aktualisiert wenn explizit übergeben.
+      Kein expires_at-Argument → bestehender Ablaufzeitpunkt bleibt erhalten.
+      Das ist bewusstes Verhalten: ein Update soll nicht versehentlich ein TTL entfernen.
+      Um ein TTL explizit zu entfernen, muss expires_at="" übergeben werden (TODO: #50 followup).
     """
     data = load(agent_id)
     now = _now_iso()
@@ -123,6 +140,7 @@ def write_key(
     if existing and isinstance(existing, dict):
         existing["content"] = content
         existing["updated_at"] = now
+        # Nur setzen wenn explizit übergeben — bestehender Ablaufzeitpunkt bleibt sonst erhalten
         if parsed_expiry is not None:
             existing["expires_at"] = parsed_expiry
         data[key] = existing
@@ -166,3 +184,9 @@ def cleanup_expired(agent_id: str) -> int:
         del data[k]
     save(agent_id, data)
     return len(expired_keys)
+
+
+def load_active(agent_id: str) -> MemoryStore:
+    """Wie load(), aber ohne abgelaufene Einträge. Für Iteration ohne _is_expired-Import."""
+    data = load(agent_id)
+    return {k: v for k, v in data.items() if not _is_expired(v)}
