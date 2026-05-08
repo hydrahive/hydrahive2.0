@@ -20,6 +20,7 @@ from hydrahive.runner.events import Done, Error, Event, IterationStart, ToolConf
 from hydrahive.runner import tool_confirmation
 from hydrahive.tools import ToolContext, schemas_for
 from hydrahive.tools._sessions import session_start, session_end
+from hydrahive.tools._observations import record_observation, HOOK_POST_TOOL_USE, HOOK_POST_TOOL_FAILURE
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +238,11 @@ async def run(
 
             result, _record_id, duration_ms = await execute_tool(
                 tool_use=tu, allowed_tools=allowed_tools, ctx=ctx, parent_message_id=assistant_msg.id)
+            record_observation(
+                agent_id=ctx.agent_id, session_id=ctx.session_id,
+                tool_name=tu_name, tool_input=tu_args, tool_output=result.output,
+                hook_type=HOOK_POST_TOOL_USE if result.success else HOOK_POST_TOOL_FAILURE,
+            )
             yield ToolUseResult(call_id=tu_id, tool_name=tu_name, success=result.success,
                                 output=result.output, error=result.error, duration_ms=duration_ms)
             result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name, max_chars=tool_result_max_chars))
