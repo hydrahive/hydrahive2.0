@@ -17,7 +17,8 @@ MemoryEntry = dict[str, Any]
 MemoryStore = dict[str, MemoryEntry]
 
 _CONFIDENCE_DEFAULT = 0.5
-_CONFIDENCE_STEP = 0.1  # Reinforcement-Schritt: neue_conf = old + STEP * (1 - old)
+_CONFIDENCE_STEP = 0.1  # Reinforcement: new = old + STEP * (1 - old)
+_CONTRADICTION_THRESHOLD = 0.7  # Jaccard-Similarity ab der ein Widerspruch vermutet wird
 
 
 # ---------------------------------------------------------------------------
@@ -33,7 +34,7 @@ def _now_iso() -> str:
 
 
 def _migrate_entry(value: Any) -> MemoryEntry:
-    """Migriert alte String-Werte und #50-Einträge (ohne Confidence) zum aktuellen Schema."""
+    """Migriert alte String-Werte und frühere Schema-Versionen zum aktuellen Stand."""
     if isinstance(value, str):
         return {
             "content": value,
@@ -43,13 +44,20 @@ def _migrate_entry(value: Any) -> MemoryEntry:
             "confidence": _CONFIDENCE_DEFAULT,
             "reinforcements": 0,
             "last_reinforced_at": None,
+            "is_latest": True,
+            "superseded_by": None,
+            "superseded_at": None,
+            "supersedes": [],
         }
     if isinstance(value, dict):
-        # #50-Einträge: Confidence-Felder ergänzen falls nicht vorhanden
         entry = value.copy()
         entry.setdefault("confidence", _CONFIDENCE_DEFAULT)
         entry.setdefault("reinforcements", 0)
         entry.setdefault("last_reinforced_at", None)
+        entry.setdefault("is_latest", True)
+        entry.setdefault("superseded_by", None)
+        entry.setdefault("superseded_at", None)
+        entry.setdefault("supersedes", [])
         return entry
     return _migrate_entry(str(value))
 
@@ -87,6 +95,55 @@ def _reinforce_confidence(current: float) -> float:
     return round(min(1.0, current + _CONFIDENCE_STEP * (1.0 - current)), 4)
 
 
+def _jaccard_similarity(text_a: str, text_b: str) -> float:
+    """
+    Token-basierte Jaccard-Similarity. Stopwörter (len <= 2) werden gefiltert.
+    Gibt 0.0 zurück wenn eines der Texte nach dem Filter leer ist.
+    """
+    tokens_a = {t for t in text_a.lower().split() if len(t) > 2}
+    tokens_b = {t for t in text_b.lower().split() if len(t) > 2}
+    if not tokens_a or not tokens_b:
+        return 0.0
+    intersection = len(tokens_a & tokens_b)
+    return intersection / (len(tokens_a) + len(tokens_b) - intersection)
+
+
+def find_contradictions(data: MemoryStore, new_key: str, new_content: str) -> list[str]:
+    """
+    Prüft alle aktiven Einträge auf Ähnlichkeit mit dem neuen Content.
+    Gibt Keys zurück deren Jaccard-Similarity >= _CONTRADICTION_THRESHOLD ist.
+    Ignoriert: den neuen Key selbst, bereits als veraltet markierte Einträge,
+    abgelaufene Einträge.
+    """
+    candidates = []
+    for key, entry in data.items():
+        if key == new_key:
+            continue
+        if not entry.get("is_latest", True):
+            continue
+        if _is_expired(entry):
+            continue
+        existing_content = entry.get("content", "")
+        sim = _jaccard_similarity(new_content, existing_content)
+        if sim >= _CONTRADICTION_THRESHOLD:
+            candidates.append(key)
+    return candidates
+
+
+def mark_superseded(data: MemoryStore, superseded_keys: list[str], by_key: str) -> None:
+    """
+    Markiert Einträge als veraltet (is_latest=False) in-place.
+    Trägt superseded_by + superseded_at ein.
+    Mutiert data direkt — Aufrufer ist für save() verantwortlich.
+    """
+    now = _now_iso()
+    for key in superseded_keys:
+        if key in data:
+            data[key]["is_latest"] = False
+            data[key]["superseded_by"] = by_key
+            data[key]["superseded_at"] = now
+
+
 # ---------------------------------------------------------------------------
 # Öffentliche API
 # ---------------------------------------------------------------------------
@@ -106,9 +163,15 @@ def load(agent_id: str) -> MemoryStore:
 
 
 def load_active(agent_id: str) -> MemoryStore:
-    """Wie load(), aber ohne abgelaufene Einträge. Für Iteration ohne _is_expired-Import."""
+    """
+    Wie load(), aber ohne abgelaufene und veraltete (is_latest=False) Einträge.
+    Standard-View für search und normale Lesezugriffe.
+    """
     data = load(agent_id)
-    return {k: v for k, v in data.items() if not _is_expired(v)}
+    return {
+        k: v for k, v in data.items()
+        if not _is_expired(v) and v.get("is_latest", True)
+    }
 
 
 def save(agent_id: str, data: MemoryStore) -> None:
@@ -120,7 +183,7 @@ def save(agent_id: str, data: MemoryStore) -> None:
 def read_entry(agent_id: str, key: str) -> MemoryEntry | None:
     """
     Gibt den vollständigen MemoryEntry zurück, oder None wenn nicht vorhanden / abgelaufen.
-    Für Aufrufer die Metadaten (created_at, confidence, expires_at, ...) benötigen.
+    Gibt auch veraltete (is_latest=False) Einträge zurück — für explizite Schlüssel-Lookups.
     """
     entry = load(agent_id).get(key)
     if entry is None:
@@ -142,24 +205,31 @@ def write_key(
     content: str,
     expires_at: str | None = None,
     confidence: float | None = None,
-) -> MemoryEntry:
+    check_contradictions: bool = True,
+) -> tuple[MemoryEntry, list[str]]:
     """
-    Schreibt einen Memory-Eintrag. Gibt den gespeicherten Entry zurück.
+    Schreibt einen Memory-Eintrag. Gibt (entry, superseded_keys) zurück.
 
     expires_at: ISO-Timestamp oder relative Angabe (+2h, +1d, +7d, +4w).
     confidence: Initiale Confidence für neue Einträge (0.0–1.0, default 0.5).
-                Bei bestehenden Einträgen wird confidence per Reinforcement erhöht
-                und dieser Parameter ignoriert.
+                Bei bestehenden Einträgen ignoriert — Reinforcement greift.
+    check_contradictions: Wenn True, werden ähnliche Einträge als veraltet markiert.
 
     Update-Verhalten bei bestehendem Eintrag:
     - content und updated_at werden immer überschrieben.
-    - confidence wird per Reinforcement-Formel erhöht (konvergiert gegen 1.0).
-    - expires_at wird NUR aktualisiert wenn explizit übergeben —
-      bestehender Ablaufzeitpunkt bleibt sonst erhalten.
+    - confidence wird per Reinforcement-Formel erhöht.
+    - expires_at wird NUR aktualisiert wenn explizit übergeben.
     """
     data = load(agent_id)
     now = _now_iso()
     parsed_expiry = _parse_expiry(expires_at) if expires_at else None
+
+    # Contradiction-Check vor dem Schreiben
+    superseded_keys: list[str] = []
+    if check_contradictions:
+        superseded_keys = find_contradictions(data, key, content)
+        if superseded_keys:
+            mark_superseded(data, superseded_keys, by_key=key)
 
     existing = data.get(key)
     if existing and isinstance(existing, dict):
@@ -169,6 +239,7 @@ def write_key(
         existing["confidence"] = _reinforce_confidence(old_conf)
         existing["reinforcements"] = existing.get("reinforcements", 0) + 1
         existing["last_reinforced_at"] = now
+        existing["is_latest"] = True  # Reaktivierung falls zuvor als veraltet markiert
         if parsed_expiry is not None:
             existing["expires_at"] = parsed_expiry
         data[key] = existing
@@ -182,10 +253,14 @@ def write_key(
             "confidence": round(max(0.0, min(1.0, init_confidence)), 4),
             "reinforcements": 0,
             "last_reinforced_at": None,
+            "is_latest": True,
+            "superseded_by": None,
+            "superseded_at": None,
+            "supersedes": superseded_keys,
         }
 
     save(agent_id, data)
-    return data[key]
+    return data[key], superseded_keys
 
 
 def delete_key(agent_id: str, key: str) -> bool:
@@ -198,15 +273,18 @@ def delete_key(agent_id: str, key: str) -> bool:
 
 
 def list_keys(agent_id: str) -> list[str]:
-    """Gibt alle nicht-abgelaufenen Keys zurück."""
+    """Gibt alle aktiven (nicht abgelaufen, nicht veraltet) Keys zurück."""
     data = load(agent_id)
-    return sorted(k for k, v in data.items() if not _is_expired(v))
+    return sorted(
+        k for k, v in data.items()
+        if not _is_expired(v) and v.get("is_latest", True)
+    )
 
 
 def cleanup_expired(agent_id: str) -> int:
     """
-    Löscht alle abgelaufenen Einträge aus der Memory-Datei.
-    Gibt die Anzahl der gelöschten Einträge zurück.
+    Löscht alle abgelaufenen Einträge. Gibt Anzahl gelöschter Einträge zurück.
+    Veraltete (is_latest=False) Einträge bleiben erhalten — sie sind History.
     """
     data = load(agent_id)
     expired_keys = [k for k, v in data.items() if _is_expired(v)]

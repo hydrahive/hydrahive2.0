@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from hydrahive.tools._memory_store import load_active
+from hydrahive.tools._memory_store import load, load_active
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
@@ -10,7 +10,7 @@ _DESCRIPTION = (
     "über Schlüssel UND Inhalt). Liefert pro Treffer den Schlüssel und ein "
     "Snippet rund um den Match. Mit `regex=true` wird die Query als regulärer "
     "Ausdruck interpretiert. Ergebnisse werden nach Relevanz × Confidence sortiert. "
-    "Abgelaufene Einträge werden automatisch ausgeblendet."
+    "Abgelaufene und veraltete Einträge werden standardmäßig ausgeblendet."
 )
 
 _SCHEMA = {
@@ -43,6 +43,14 @@ _SCHEMA = {
                 "Nützlich um nur gut bestätigte Fakten zu suchen, z.B. min_confidence=0.7."
             ),
         },
+        "include_superseded": {
+            "type": "boolean",
+            "default": False,
+            "description": (
+                "Auch veraltete/überschriebene Einträge (is_latest=False) einschließen. "
+                "Nützlich um die History zu einem Thema zu sehen."
+            ),
+        },
     },
     "required": ["query"],
 }
@@ -57,13 +65,14 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     max_results = max(1, min(int(args.get("max_results", 20)), 100))
     snippet_chars = max(20, min(int(args.get("snippet_chars", 120)), 500))
     min_confidence = max(0.0, min(float(args.get("min_confidence", 0.0)), 1.0))
+    include_superseded = bool(args.get("include_superseded", False))
 
     try:
         pattern = re.compile(query if use_regex else re.escape(query), re.IGNORECASE)
     except re.error as e:
         return ToolResult.fail(f"Ungültiger Regex: {e}")
 
-    data = load_active(ctx.agent_id)
+    data = load(ctx.agent_id) if include_superseded else load_active(ctx.agent_id)
     hits: list[dict] = []
 
     for key in sorted(data.keys()):
@@ -80,7 +89,6 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         if not key_match and not content_matches:
             continue
 
-        # Snippet um ersten Match
         if content_matches:
             first = content_matches[0]
             half = snippet_chars // 2
@@ -94,7 +102,6 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         else:
             snippet = content[:snippet_chars] + ("…" if len(content) > snippet_chars else "")
 
-        # Score: Treffer im Key gewichtet höher als im Content
         match_score = len(content_matches) + (2 if key_match else 0)
 
         hit: dict = {
@@ -102,16 +109,18 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "snippet": snippet,
             "confidence": confidence,
             "reinforcements": entry.get("reinforcements", 0),
+            "is_latest": entry.get("is_latest", True),
             "matches_in_content": len(content_matches),
             "match_in_key": bool(key_match),
             "_sort_score": match_score * confidence,
         }
         if entry.get("expires_at"):
             hit["expires_at"] = entry["expires_at"]
+        if not entry.get("is_latest", True) and entry.get("superseded_by"):
+            hit["superseded_by"] = entry["superseded_by"]
 
         hits.append(hit)
 
-    # Nach Relevanz × Confidence sortieren, dann _sort_score-Hilfsfeld entfernen
     hits.sort(key=lambda h: h["_sort_score"], reverse=True)
     for h in hits:
         del h["_sort_score"]
