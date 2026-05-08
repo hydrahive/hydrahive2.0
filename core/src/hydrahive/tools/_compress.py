@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 import secrets
 import time
 from datetime import datetime, timezone
@@ -40,8 +41,7 @@ OBS_TYPES = frozenset({
 # Storage
 # ---------------------------------------------------------------------------
 
-def _compressed_file(agent_id: str, session_id: str) -> "Path":
-    from pathlib import Path
+def _compressed_file(agent_id: str, session_id: str) -> Path:
     return settings.agents_dir / agent_id / "compressed" / f"{session_id}.jsonl"
 
 

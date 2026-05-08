@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -204,11 +205,10 @@ async def run(
 
         if not tool_uses:
             session_end(agent["id"], session_id, status="completed")
-            # Compress-Pipeline: alle unkomprimierten Observations destillieren
-            try:
-                await compress_session(agent["id"], session_id, model=agent["llm_model"])
-            except Exception as _ce:
-                logger.warning("compress_session fehlgeschlagen (nicht fatal): %s", _ce)
+            # Compress-Pipeline: fire-and-forget — Done nicht blockieren
+            asyncio.create_task(
+                compress_session(agent["id"], session_id, model=agent["llm_model"])
+            )
             yield Done(message_id=assistant_msg.id, iterations=iteration + 1,
                        input_tokens=total_input_tokens, output_tokens=total_output_tokens,
                        cache_creation_tokens=total_cache_creation, cache_read_tokens=total_cache_read)

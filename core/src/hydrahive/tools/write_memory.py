@@ -81,7 +81,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         if not (0.0 <= confidence <= 1.0):
             return ToolResult.fail("confidence muss zwischen 0.0 und 1.0 liegen")
 
-    # project: explizit übergeben > aktives Projekt aus Kontext > None (global)
+    # project: explizit übergeben > None (global) — kein Kontext-Fallback
     project = args.get("project") or None
 
     expires_at = args.get("expires_at")
