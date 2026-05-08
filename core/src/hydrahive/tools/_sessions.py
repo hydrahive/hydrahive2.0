@@ -99,6 +99,8 @@ def session_end(
     session = _load_session_file(path)
     if session is None:
         return None
+    if session.get("status") != _STATUS_ACTIVE:
+        return session  # bereits beendet — nicht überschreiben
 
     session["ended_at"] = _now_iso()
     session["status"] = status if status in (_STATUS_COMPLETED, _STATUS_ABANDONED) else _STATUS_COMPLETED
@@ -134,6 +136,10 @@ def session_list(
     """
     Listet Sessions eines Agents. Optional nach project und status gefiltert.
     Sortiert nach started_at descending (neueste zuerst).
+
+    Known Limitation: glob() lädt alle Session-Dateien bevor limit greift.
+    Bei sehr vielen Sessions (10k+) steigt der Speicherbedarf linear.
+    Für den aktuellen Scope (< 1000 Sessions pro Agent) kein Problem.
     """
     sessions_dir = _sessions_dir(agent_id)
     if not sessions_dir.exists():
