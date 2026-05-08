@@ -67,7 +67,9 @@ REGISTRY: dict[str, Tool] = _build_registry()
 # Ebene werden sie toleriert — der Runner filtert sie über schemas_for() ohnehin
 # raus wenn nicht in REGISTRY. Verhindert Validation-Fail bei bestehenden
 # Agent-Configs nachdem AgentLink z.B. aus HH_AGENTLINK_URL entfernt wird (#78).
-OPTIONAL_TOOLS: frozenset[str] = frozenset({"ask_agent"})
+# ask_agent: nur aktiv wenn AgentLink konfiguriert
+# file_search, dir_list, http_request: entfernte Tools — in alten Configs tolerieren
+OPTIONAL_TOOLS: frozenset[str] = frozenset({"ask_agent", "file_search", "dir_list", "http_request"})
 
 
 def list_tools() -> list[Tool]:
