@@ -58,8 +58,6 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     for key in sorted(data.keys()):
         entry = data[key]
-
-
         content = entry.get("content", "")
         key_match = pattern.search(key)
         content_matches = list(pattern.finditer(content))
