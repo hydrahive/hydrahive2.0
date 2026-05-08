@@ -8,8 +8,9 @@ _DESCRIPTION = (
     "Speichert eine Memory-Notiz unter dem angegebenen Schlüssel. "
     "Mit `delete=true` wird der Eintrag entfernt. "
     "Mit `expires_at` verfällt der Eintrag automatisch (+2h, +1d, +7d, +4w oder ISO-Timestamp). "
-    "Beim wiederholten Schreiben auf denselben Key wird die Confidence automatisch erhöht (Reinforcement). "
-    "Ähnliche bestehende Einträge werden automatisch als veraltet markiert (Contradiction Detection)."
+    "Beim wiederholten Schreiben auf denselben Key wird die Confidence erhöht (Reinforcement). "
+    "Ähnliche Einträge werden automatisch als veraltet markiert (Contradiction Detection). "
+    "Mit `project` wird der Eintrag einem Projekt zugeordnet — ohne Angabe ist er global sichtbar."
 )
 
 _SCHEMA = {
@@ -31,15 +32,22 @@ _SCHEMA = {
         "expires_at": {
             "type": "string",
             "description": (
-                "Ablaufzeit: relative Angabe (+2h, +1d, +7d, +4w) oder ISO-Timestamp. "
-                "Nach Ablauf wird der Eintrag bei Lesezugriffen ignoriert."
+                "Ablaufzeit: relative Angabe (+2h, +1d, +7d, +4w) oder ISO-Timestamp."
             ),
         },
         "confidence": {
             "type": "number",
             "description": (
-                "Initiale Verlässlichkeit des Eintrags (0.0–1.0, default 0.5). "
-                "Nur für neue Einträge relevant — bei bestehenden greift Reinforcement."
+                "Initiale Verlässlichkeit (0.0–1.0, default 0.5). "
+                "Nur für neue Einträge relevant."
+            ),
+        },
+        "project": {
+            "type": "string",
+            "description": (
+                "Projekt-Kontext für diesen Eintrag. "
+                "Ohne Angabe: global (in allen Projekten sichtbar). "
+                "Beispiel: 'hydrahive2', 'minecraft-server'."
             ),
         },
     },
@@ -73,17 +81,23 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         if not (0.0 <= confidence <= 1.0):
             return ToolResult.fail("confidence muss zwischen 0.0 und 1.0 liegen")
 
+    # project: explizit übergeben > aktives Projekt aus Kontext > None (global)
+    project = args.get("project") or ctx.project_id or None
+
     expires_at = args.get("expires_at")
     entry, superseded = write_key(
         ctx.agent_id, key, content,
         expires_at=expires_at or None,
         confidence=confidence,
+        project=project,
     )
 
     extra: dict = {
         "confidence": entry["confidence"],
         "reinforcements": entry["reinforcements"],
     }
+    if entry.get("project"):
+        extra["project"] = entry["project"]
     if entry.get("expires_at"):
         extra["expires_at"] = entry["expires_at"]
     if superseded:

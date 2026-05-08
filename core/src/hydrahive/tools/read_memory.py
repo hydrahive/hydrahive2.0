@@ -6,9 +6,10 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
     "Liest die eigenen Memory-Notizen des Agenten. Ohne `key` wird die Liste "
-    "aller Schlüssel zurückgegeben. Mit `key` der Inhalt dieses Eintrags inkl. "
-    "Metadaten (confidence, reinforcements, timestamps). "
-    "Abgelaufene Einträge werden automatisch ausgeblendet."
+    "aller Schlüssel zurückgegeben — gefiltert nach aktivem Projekt + globalen Einträgen. "
+    "Mit `key` wird der Eintrag direkt gelesen (kein Projekt-Filter). "
+    "Mit `project='*'` werden alle Projekte aufgelistet. "
+    "Abgelaufene und veraltete Einträge werden ausgeblendet."
 )
 
 _SCHEMA = {
@@ -18,6 +19,13 @@ _SCHEMA = {
             "type": "string",
             "description": "Memory-Schlüssel (optional).",
         },
+        "project": {
+            "type": "string",
+            "description": (
+                "Projekt-Filter für die Key-Liste (nur ohne `key`). "
+                "'*' für alle Projekte. Default: aktives Projekt + globale."
+            ),
+        },
     },
 }
 
@@ -26,7 +34,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     key = args.get("key")
 
     if not key:
-        keys = list_keys(ctx.agent_id)
+        filter_project = args.get("project") or None
+        keys = list_keys(
+            ctx.agent_id,
+            filter_project=filter_project,
+            active_project=ctx.project_id,
+        )
         return ToolResult.ok({"keys": keys, "count": len(keys)})
 
     entry = read_entry(ctx.agent_id, key)
@@ -39,7 +52,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         "content": entry.get("content"),
         "confidence": entry.get("confidence", 0.5),
         "reinforcements": entry.get("reinforcements", 0),
+        "is_latest": entry.get("is_latest", True),
     }
+    if entry.get("project"):
+        result["project"] = entry["project"]
     if entry.get("expires_at"):
         result["expires_at"] = entry["expires_at"]
     if entry.get("last_reinforced_at"):
@@ -48,6 +64,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         result["created_at"] = entry["created_at"]
     if entry.get("updated_at"):
         result["updated_at"] = entry["updated_at"]
+    if not entry.get("is_latest", True) and entry.get("superseded_by"):
+        result["superseded_by"] = entry["superseded_by"]
 
     return ToolResult.ok(result)
 
