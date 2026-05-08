@@ -39,6 +39,9 @@ PHP_VERSION="$(detect_php)"
 [ -n "${PHP_VERSION}" ] || die "Keine PHP-Version gefunden nach Installation"
 success "PHP ${PHP_VERSION} erkannt"
 
+export COMPOSER_HOME=/tmp/composer-home
+mkdir -p "$COMPOSER_HOME"
+
 if ! command -v composer &>/dev/null; then
     info "Installiere Composer..."
     curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
@@ -68,7 +71,7 @@ if [ -d "${BS_DIR}/.git" ]; then
     git -C "${BS_DIR}" reset --hard origin/release --quiet 2>/dev/null \
         || git -C "${BS_DIR}" reset --hard origin/main --quiet
     chown -R "${BS_USER}:${BS_USER}" "${BS_DIR}"
-    sudo -u "${BS_USER}" composer install \
+    sudo -u "${BS_USER}" COMPOSER_HOME=/tmp/composer-home composer install \
         --no-dev --no-interaction --quiet \
         --working-dir="${BS_DIR}" 2>/dev/null || true
     sudo -u "${BS_USER}" php "${BS_DIR}/artisan" migrate --force --quiet 2>/dev/null || true
@@ -123,7 +126,7 @@ chmod 640 "${BS_DIR}/.env"
 # --- Composer ---
 info "Installiere PHP-Abhängigkeiten via Composer..."
 chown -R "${BS_USER}:${BS_USER}" "${BS_DIR}"
-sudo -u "${BS_USER}" composer install \
+sudo -u "${BS_USER}" COMPOSER_HOME=/tmp/composer-home composer install \
     --no-dev --no-interaction --quiet \
     --working-dir="${BS_DIR}" 2>/dev/null \
     || warn "composer install hatte Fehler — BookStack läuft ggf. trotzdem"
