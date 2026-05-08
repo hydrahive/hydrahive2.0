@@ -2,23 +2,38 @@ from __future__ import annotations
 
 import re
 
-from hydrahive.tools._memory_store import load
+from hydrahive.tools._memory_store import _is_expired, load
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
     "Sucht in den eigenen Memory-Notizen nach einer Phrase (case-insensitiv, "
     "über Schlüssel UND Inhalt). Liefert pro Treffer den Schlüssel und ein "
     "Snippet rund um den Match. Mit `regex=true` wird die Query als regulärer "
-    "Ausdruck interpretiert."
+    "Ausdruck interpretiert. Abgelaufene Einträge werden automatisch ausgeblendet."
 )
 
 _SCHEMA = {
     "type": "object",
     "properties": {
-        "query": {"type": "string", "description": "Suchphrase oder Regex-Pattern."},
-        "regex": {"type": "boolean", "default": False, "description": "Query als Regex statt Substring."},
-        "max_results": {"type": "integer", "default": 20, "description": "Max. Treffer (1-100)."},
-        "snippet_chars": {"type": "integer", "default": 120, "description": "Zeichen um den Match (20-500)."},
+        "query": {
+            "type": "string",
+            "description": "Suchphrase oder Regex-Pattern.",
+        },
+        "regex": {
+            "type": "boolean",
+            "default": False,
+            "description": "Query als Regex statt Substring.",
+        },
+        "max_results": {
+            "type": "integer",
+            "default": 20,
+            "description": "Max. Treffer (1-100).",
+        },
+        "snippet_chars": {
+            "type": "integer",
+            "default": 120,
+            "description": "Zeichen um den Match (20-500).",
+        },
     },
     "required": ["query"],
 }
@@ -42,9 +57,16 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     hits: list[dict] = []
 
     for key in sorted(data.keys()):
-        content = data[key]
+        entry = data[key]
+
+        # Abgelaufene Einträge überspringen
+        if _is_expired(entry):
+            continue
+
+        content = entry.get("content", "")
         key_match = pattern.search(key)
         content_matches = list(pattern.finditer(content))
+
         if not key_match and not content_matches:
             continue
 
@@ -61,12 +83,16 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         else:
             snippet = content[:snippet_chars] + ("…" if len(content) > snippet_chars else "")
 
-        hits.append({
+        hit: dict = {
             "key": key,
             "snippet": snippet,
             "matches_in_content": len(content_matches),
             "match_in_key": bool(key_match),
-        })
+        }
+        if entry.get("expires_at"):
+            hit["expires_at"] = entry["expires_at"]
+
+        hits.append(hit)
         if len(hits) >= max_results:
             break
 
