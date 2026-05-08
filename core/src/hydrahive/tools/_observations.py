@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,7 +43,6 @@ def _now_iso() -> str:
 def _generate_obs_id() -> str:
     """Einfache ID: obs_{timestamp_ms}_{random}"""
     ts = int(time.time() * 1000)
-    import secrets
     rand = secrets.token_hex(4)
     return f"obs_{ts}_{rand}"
 
@@ -194,5 +194,8 @@ def mark_compressed(
         return False
 
     if found:
-        path.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+        # Atomisches Write: temp file + rename — verhindert korrupte JSONL bei OS-Crash
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+        tmp.replace(path)
     return found
