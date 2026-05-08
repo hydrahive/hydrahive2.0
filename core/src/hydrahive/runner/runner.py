@@ -62,6 +62,13 @@ async def run(
     )
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])
+
+    # Crystal-Injection: vergangene Sessions + Lessons in den Kontext einweben
+    from hydrahive.agents._context_injection import build_memory_context
+    _mem_ctx = build_memory_context(agent["id"], project_id=ctx.project_id)
+    if _mem_ctx:
+        base_system_prompt += "\n\n" + _mem_ctx
+
     local_tools: list[str] = agent.get("tools", [])
     mcp_servers: list[str] = agent.get("mcp_servers", [])
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
