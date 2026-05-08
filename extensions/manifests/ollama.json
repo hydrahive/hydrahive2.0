@@ -8,7 +8,7 @@
   "uninstall_script": "uninstall/ollama.sh",
   "service": "ollama",
   "health_url": "http://127.0.0.1:11434/api/version",
-  "open_url": null,
+  "open_url": ":11434/",
   "installed_check": "/usr/local/bin/ollama",
   "install_params": []
 }
