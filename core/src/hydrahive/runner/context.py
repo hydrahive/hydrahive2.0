@@ -62,7 +62,33 @@ def heal_orphan_tool_uses(history: list[Message]) -> list[Message]:
                     out.append(synthetic)
         i += 1
 
-    return _strip_orphan_tool_results(out)
+    return _deduplicate_tool_results(_strip_orphan_tool_results(out))
+
+
+def _deduplicate_tool_results(history: list[Message]) -> list[Message]:
+    """Entfernt doppelte tool_result-Blöcke innerhalb derselben User-Message.
+    Gleiche tool_use_id → erster Block bleibt, alle weiteren werden entfernt.
+    Verhindert API-Fehler 'multiple tool_result blocks with id X'."""
+    out: list[Message] = []
+    for msg in history:
+        if msg.role == "user" and isinstance(msg.content, list):
+            seen: set[str] = set()
+            clean: list = []
+            for b in msg.content:
+                if isinstance(b, dict) and b.get("type") == "tool_result":
+                    tid = b.get("tool_use_id", "")
+                    if tid in seen:
+                        continue
+                    seen.add(tid)
+                clean.append(b)
+            if len(clean) != len(msg.content):
+                msg = Message(
+                    id=msg.id, session_id=msg.session_id, role="user",
+                    content=clean, created_at=msg.created_at,
+                    token_count=msg.token_count, metadata=msg.metadata,
+                )
+        out.append(msg)
+    return out
 
 
 def _strip_orphan_tool_results(history: list[Message]) -> list[Message]:
