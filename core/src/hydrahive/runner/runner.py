@@ -19,6 +19,7 @@ from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Done, Error, Event, IterationStart, ToolConfirmRequired, ToolUseResult, ToolUseStart
 from hydrahive.runner import tool_confirmation
 from hydrahive.tools import ToolContext, schemas_for
+from hydrahive.tools._sessions import session_start, session_end
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,17 @@ async def run(
 
     workspace = ensure_workspace(agent)
     ctx = ToolContext(session_id=session_id, agent_id=agent["id"], user_id=session.user_id,
-                     workspace=workspace, config=tool_config or {})
+                     workspace=workspace, config=tool_config or {},
+                     project_id=(tool_config or {}).get("project_id"))
+
+    # Session-Lifecycle: start
+    _first_prompt = user_input if isinstance(user_input, str) else None
+    session_start(
+        agent["id"], session_id,
+        project=(tool_config or {}).get("project_id"),
+        model=agent.get("llm_model"),
+        first_prompt=_first_prompt,
+    )
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])
     local_tools: list[str] = agent.get("tools", [])
@@ -188,6 +199,7 @@ async def run(
             ); return
 
         if not tool_uses:
+            session_end(agent["id"], session_id, status="completed")
             yield Done(message_id=assistant_msg.id, iterations=iteration + 1,
                        input_tokens=total_input_tokens, output_tokens=total_output_tokens,
                        cache_creation_tokens=total_cache_creation, cache_read_tokens=total_cache_read)
@@ -229,5 +241,6 @@ async def run(
         tool_msg = messages_db.append(session_id, "user", result_blocks)
         history.append(tool_msg)
 
+    session_end(agent["id"], session_id, status="abandoned")
     yield Error(f"Max-Iterationen ({MAX_ITERATIONS}) erreicht ohne Abschluss",
                 metadata={"last_assistant_message": last_assistant_id})
