@@ -31,6 +31,9 @@ apt-get install -y --quiet \
     nginx git curl sqlite3 \
     2>/dev/null | grep -E "^(Get|Entpacken|Einrichten)" || true
 
+export COMPOSER_HOME=/tmp/composer-home
+mkdir -p "$COMPOSER_HOME"
+
 if ! command -v composer &>/dev/null; then
     info "Installiere Composer..."
     curl -fsSL https://getcomposer.org/installer -o /tmp/composer-setup.php
@@ -61,7 +64,7 @@ if [ -d "${HEIMDALL_DIR}/.git" ]; then
     git -C "${HEIMDALL_DIR}" fetch --quiet origin
     git -C "${HEIMDALL_DIR}" reset --hard origin/master --quiet 2>/dev/null \
         || git -C "${HEIMDALL_DIR}" reset --hard origin/main --quiet
-    sudo -u "${HEIMDALL_USER}" composer install \
+    sudo -u "${HEIMDALL_USER}" COMPOSER_HOME=/tmp/composer-home composer install \
         --no-dev --no-interaction --quiet \
         --working-dir="${HEIMDALL_DIR}" 2>/dev/null || true
     success "Heimdall aktualisiert"
@@ -72,7 +75,7 @@ else
         || die "git clone fehlgeschlagen"
     success "Heimdall geklont"
     info "Installiere PHP-Abhängigkeiten..."
-    composer install \
+    COMPOSER_HOME=/tmp/composer-home composer install \
         --no-dev --no-interaction --quiet \
         --working-dir="${HEIMDALL_DIR}" 2>/dev/null \
         || warn "composer install hatte Fehler"
