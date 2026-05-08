@@ -74,6 +74,11 @@ def _is_expired(entry: MemoryEntry) -> bool:
         return False
 
 
+def is_expired(entry: MemoryEntry) -> bool:
+    """Public alias für _is_expired — für externe Aufrufer."""
+    return _is_expired(entry)
+
+
 def _parse_expiry(value: str) -> str:
     """
     Parst relative Zeitangaben (+2h, +1d, +7d, +4w) oder gibt ISO-String zurück.
