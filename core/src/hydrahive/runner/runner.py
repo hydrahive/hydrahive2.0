@@ -234,13 +234,16 @@ async def run(
                     result, duration_ms = ToolResult.fail("Vom Benutzer abgelehnt"), 0
                     yield ToolUseResult(call_id=tu_id, tool_name=tu_name, success=False,
                                         output=None, error=result.error, duration_ms=0)
+                    # Kein record_observation — User-Ablehnung ist kein Tool-Ergebnis,
+                    # sondern ein Kontroll-Ereignis. Nicht in Observation Pipeline.
                     result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name)); continue
 
             result, _record_id, duration_ms = await execute_tool(
                 tool_use=tu, allowed_tools=allowed_tools, ctx=ctx, parent_message_id=assistant_msg.id)
             record_observation(
                 agent_id=ctx.agent_id, session_id=ctx.session_id,
-                tool_name=tu_name, tool_input=tu_args, tool_output=result.output,
+                tool_name=tu_name, tool_input=tu_args,
+                tool_output=result.output if result.success else result.error,
                 hook_type=HOOK_POST_TOOL_USE if result.success else HOOK_POST_TOOL_FAILURE,
             )
             yield ToolUseResult(call_id=tu_id, tool_name=tu_name, success=result.success,
