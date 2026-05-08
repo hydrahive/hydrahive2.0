@@ -20,6 +20,7 @@ from hydrahive.runner.events import Done, Error, Event, IterationStart, ToolConf
 from hydrahive.runner import tool_confirmation
 from hydrahive.tools import ToolContext, schemas_for
 from hydrahive.tools._sessions import session_start, session_end
+from hydrahive.tools._compress import compress_session
 from hydrahive.tools._observations import record_observation, HOOK_POST_TOOL_USE, HOOK_POST_TOOL_FAILURE
 
 logger = logging.getLogger(__name__)
@@ -203,6 +204,11 @@ async def run(
 
         if not tool_uses:
             session_end(agent["id"], session_id, status="completed")
+            # Compress-Pipeline: alle unkomprimierten Observations destillieren
+            try:
+                await compress_session(agent["id"], session_id, model=agent["llm_model"])
+            except Exception as _ce:
+                logger.warning("compress_session fehlgeschlagen (nicht fatal): %s", _ce)
             yield Done(message_id=assistant_msg.id, iterations=iteration + 1,
                        input_tokens=total_input_tokens, output_tokens=total_output_tokens,
                        cache_creation_tokens=total_cache_creation, cache_read_tokens=total_cache_read)
