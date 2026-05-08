@@ -172,6 +172,7 @@ async def run(
                     yield item
         except Exception as e:
             logger.exception("LLM-Call fehlgeschlagen")
+            session_end(agent["id"], session_id, status="abandoned")
             yield Error(f"LLM-Call fehlgeschlagen: {e}"); return
 
         total_input_tokens += iter_input_tokens
@@ -192,6 +193,7 @@ async def run(
         if stop_reason == "max_tokens":
             if tool_uses:
                 close_open_tool_uses(session_id, tool_uses, "Abgebrochen: max_tokens-Limit überschritten")
+            session_end(agent["id"], session_id, status="abandoned")
             yield Error(
                 f"max_tokens ({agent.get('max_tokens', 4096)}) erreicht — Antwort abgeschnitten. "
                 "Tool-Argumente sind unvollständig. Erhöhe max_tokens oder formuliere die Aufgabe kürzer.",
@@ -210,6 +212,7 @@ async def run(
         recent_tool_calls = recent_tool_calls[-LOOP_DETECTION_WINDOW:]
         if len(recent_tool_calls) == LOOP_DETECTION_WINDOW and len(set(recent_tool_calls)) == 1:
             close_open_tool_uses(session_id, tool_uses, "Abgebrochen: Loop erkannt, Agent wiederholt sich")
+            session_end(agent["id"], session_id, status="abandoned")
             yield Error(f"Loop erkannt — Agent ruft seit {LOOP_DETECTION_WINDOW} Iterationen die exakt gleichen Tools auf.",
                         metadata={"signature": signature[:200], "message_id": assistant_msg.id})
             return
