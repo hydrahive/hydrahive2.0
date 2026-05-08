@@ -39,6 +39,7 @@ PHP_VERSION="$(detect_php)"
 [ -n "${PHP_VERSION}" ] || die "Keine PHP-Version gefunden nach Installation"
 success "PHP ${PHP_VERSION} erkannt"
 
+export HOME=/tmp
 export COMPOSER_HOME=/tmp/composer-home
 mkdir -p "$COMPOSER_HOME"
 

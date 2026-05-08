@@ -10,4 +10,6 @@
   "health_url": "http://127.0.0.1:7878/",
   "open_url": ":7878/",
   "installed_check": "/opt/radarr"
+,
+  "install_params": []
 }

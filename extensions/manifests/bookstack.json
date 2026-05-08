@@ -10,4 +10,6 @@
   "health_url": "http://127.0.0.1:8500/",
   "open_url": ":8500/",
   "installed_check": "/opt/bookstack"
+,
+  "install_params": []
 }

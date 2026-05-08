@@ -10,4 +10,6 @@
   "health_url": "http://127.0.0.1:32400/web",
   "open_url": ":32400/web",
   "installed_check": "/usr/lib/plexmediaserver"
+,
+  "install_params": []
 }

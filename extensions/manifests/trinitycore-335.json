@@ -10,4 +10,6 @@
   "health_url": null,
   "open_url": null,
   "installed_check": "/opt/trinitycore-335/server/bin/worldserver"
+,
+  "install_params": []
 }

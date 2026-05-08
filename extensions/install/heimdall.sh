@@ -31,6 +31,7 @@ apt-get install -y --quiet \
     nginx git curl sqlite3 \
     2>/dev/null | grep -E "^(Get|Entpacken|Einrichten)" || true
 
+export HOME=/tmp
 export COMPOSER_HOME=/tmp/composer-home
 mkdir -p "$COMPOSER_HOME"
 

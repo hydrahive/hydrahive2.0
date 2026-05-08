@@ -9,5 +9,6 @@
   "service": "vikunja",
   "health_url": "http://127.0.0.1:3456/api/v1/info",
   "open_url": ":3456/",
-  "installed_check": "/opt/vikunja"
+  "installed_check": "/opt/vikunja",
+  "install_params": []
 }
