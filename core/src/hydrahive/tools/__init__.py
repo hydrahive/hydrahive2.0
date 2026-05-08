@@ -12,15 +12,11 @@ Public API:
 
 from hydrahive.tools import (
     ask_agent,
-    crystallize,
     datamining,
-    dir_list,
     file_patch,
     file_read,
-    file_search,
     file_write,
     fetch_url,
-    http_request,
     list_projects,
     list_skills,
     load_skill,
@@ -41,28 +37,24 @@ def _build_registry() -> dict[str, Tool]:
     sonst sieht der Master ein Tool das immer mit einem Stub-Fehler antwortet,
     was Loop-Detection triggern und Iterationen verschwenden kann (#13)."""
     tools: list[Tool] = [
-        datamining.TOOL_SEARCH,
-        datamining.TOOL_SEMANTIC,
-        datamining.TOOL_TIMELINE,
-        datamining.TOOL_TODAY,
         shell.TOOL,
         file_read.TOOL,
         file_write.TOOL,
         file_patch.TOOL,
-        file_search.TOOL,
-        dir_list.TOOL,
         web_search.TOOL,
-        http_request.TOOL,
         fetch_url.TOOL,
         read_memory.TOOL,
         write_memory.TOOL,
         search_memory.TOOL,
-        crystallize.TOOL,
         todo.TOOL,
         send_mail.TOOL,
         list_projects.TOOL,
         list_skills.TOOL,
         load_skill.TOOL,
+        datamining.TOOL_SEARCH,
+        datamining.TOOL_SEMANTIC,
+        datamining.TOOL_TIMELINE,
+        datamining.TOOL_TODAY,
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)
