@@ -6,7 +6,7 @@ success() { echo "[OK] $*"; }
 warn()    { echo "[WARN] $*"; }
 die()     { echo "[ERROR] $*" >&2; exit 1; }
 
-CS_PORT="8080"
+CS_PORT="8484"
 CS_USER="hydrahive"
 CS_PASS="$(head -c 16 /dev/urandom | base64 | tr -dc 'a-zA-Z0-9' | head -c 20)"
 

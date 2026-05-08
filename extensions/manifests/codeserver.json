@@ -7,8 +7,8 @@
   "install_script": "install/codeserver.sh",
   "uninstall_script": "uninstall/codeserver.sh",
   "service": "code-server",
-  "health_url": "http://127.0.0.1:8080/",
-  "open_url": ":8080/",
+  "health_url": "http://127.0.0.1:8484/",
+  "open_url": ":8484/",
   "installed_check": "/usr/bin/code-server",
   "install_params": []
 }
