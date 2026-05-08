@@ -240,6 +240,7 @@ def write_key(
         existing["reinforcements"] = existing.get("reinforcements", 0) + 1
         existing["last_reinforced_at"] = now
         existing["is_latest"] = True  # Reaktivierung falls zuvor als veraltet markiert
+        existing["supersedes"] = existing.get("supersedes", []) + superseded_keys
         if parsed_expiry is not None:
             existing["expires_at"] = parsed_expiry
         data[key] = existing
