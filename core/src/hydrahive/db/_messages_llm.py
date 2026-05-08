@@ -47,10 +47,12 @@ def list_for_llm(session_id: str) -> list[Message]:
             ).fetchall()
             return [Message.from_row(r) for r in rows]
 
+        # UUID v7 sorts chronologically as a string — use id >= first_kept to avoid
+        # including messages with equal created_at that were inserted before firstKeptEntryId.
         rows = conn.execute(
             """SELECT * FROM messages
-               WHERE session_id = ? AND role != 'compaction' AND created_at >= ?
-               ORDER BY created_at ASC""",
-            (session_id, ts_row["created_at"]),
+               WHERE session_id = ? AND role != 'compaction' AND id >= ?
+               ORDER BY id ASC""",
+            (session_id, first_kept),
         ).fetchall()
     return [Message.from_row(r) for r in rows]
