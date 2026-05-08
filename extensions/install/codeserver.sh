@@ -89,7 +89,23 @@ WantedBy=multi-user.target
 SVCEOF
 
 systemctl daemon-reload
-systemctl enable --now code-server
+systemctl enable code-server
+
+# Port-Konflikt prüfen
+if ss -tlnp 2>/dev/null | grep -q ":${CS_PORT} "; then
+    PORTOWNER="$(ss -tlnp | grep ":${CS_PORT} " | grep -oP '(?<=users:\(\(")[^"]+' | head -1 || echo "unbekannt")"
+    warn "Port ${CS_PORT} bereits belegt von: ${PORTOWNER}"
+    warn "Code-Server kann nicht starten — anderen Port wählen oder Konflikt lösen"
+    exit 1
+fi
+
+systemctl start code-server
+sleep 1
+if ! systemctl is-active --quiet code-server; then
+    warn "Service-Start fehlgeschlagen — letzte Logs:"
+    journalctl -u code-server -n 20 --no-pager 2>/dev/null || true
+    exit 1
+fi
 success "Service 'code-server' gestartet auf Port ${CS_PORT}"
 
 # --- Warten ---
@@ -98,9 +114,10 @@ for i in $(seq 1 10); do
     sleep 2
     curl -sf "http://127.0.0.1:${CS_PORT}/" &>/dev/null && break || true
 done
-curl -sf "http://127.0.0.1:${CS_PORT}/" &>/dev/null \
-    && success "Code-Server erreichbar" \
-    || warn "Code-Server noch nicht erreichbar — prüfe: journalctl -u code-server"
+if ! curl -sf "http://127.0.0.1:${CS_PORT}/" &>/dev/null; then
+    warn "Code-Server antwortet nicht — Logs:"
+    journalctl -u code-server -n 30 --no-pager 2>/dev/null || true
+fi
 
 # --- Credentials ---
 SERVER_IP=$(hostname -I | awk '{print $1}')
