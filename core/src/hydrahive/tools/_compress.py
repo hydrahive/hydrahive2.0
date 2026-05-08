@@ -253,4 +253,19 @@ async def compress_session(
     logger.info(
         "compress_session %s: %d Observations komprimiert", session_id, len(results)
     )
+
+    # Auto-Crystallize wenn genug Observations vorhanden
+    try:
+        from hydrahive.tools._crystallize import crystallize_session, MIN_OBSERVATIONS
+        total_compressed = results  # nur neu komprimierte — laden wir nochmal alle
+        from hydrahive.tools._compress import load_compressed
+        all_obs = load_compressed(agent_id, session_id)
+        if len(all_obs) >= MIN_OBSERVATIONS:
+            import asyncio as _asyncio
+            _asyncio.create_task(
+                crystallize_session(agent_id, session_id, model=model)
+            )
+    except Exception as _ce:
+        logger.warning("auto-crystallize fehlgeschlagen (nicht fatal): %s", _ce)
+
     return results
