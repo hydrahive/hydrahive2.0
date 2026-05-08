@@ -46,7 +46,7 @@ def get_agent_memory(
     agent = _get_agent_or_404(agent_id)
     check_agent_access(agent, username, role)
 
-    from hydrahive.tools._memory_store import load, _is_expired
+    from hydrahive.tools._memory_store import load, is_expired
 
     # Memory-Browser zeigt alle Einträge — load() statt load_filtered()
     # (load_filtered hat Agent-Semantik: ohne aktives Projekt nur globale Einträge)
@@ -54,7 +54,7 @@ def get_agent_memory(
     data = {
         k: v for k, v in raw.items()
         if v.get("is_latest", True)
-        and (include_expired or not _is_expired(v))
+        and (include_expired or not is_expired(v))
         and _project_matches_simple(v, project)
     }
 
@@ -175,16 +175,17 @@ def get_agent_memory_sessions(
     check_agent_access(agent, username, role)
 
     from hydrahive.tools._sessions import session_list
-    from hydrahive.tools._compress import load_compressed
-    from hydrahive.tools._crystallize import get_crystal
+    from hydrahive.tools._crystallize import list_crystals
 
     sessions = session_list(agent_id, project=project, limit=limit)
 
+    # N+1-Vermeidung: alle Crystals einmal laden, dann als Set
+    all_crystals = list_crystals(agent_id, limit=1000)
+    crystallized = {c.get("session_id") for c in all_crystals}
+
     result = []
     for s in sessions:
-        sid = s.get("session_id") or s.get("id", "")
-        compressed = load_compressed(agent_id, sid)
-        crystal = get_crystal(agent_id, sid)
+        sid = s.get("id", "")
         result.append({
             "session_id": sid,
             "project": s.get("project"),
@@ -193,8 +194,8 @@ def get_agent_memory_sessions(
             "started_at": s.get("started_at"),
             "ended_at": s.get("ended_at"),
             "first_prompt": s.get("first_prompt"),
-            "observation_count": len(compressed),
-            "has_crystal": crystal is not None,
+            "observation_count": s.get("observation_count", 0),
+            "has_crystal": sid in crystallized,
         })
 
     return {
