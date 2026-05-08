@@ -11,6 +11,11 @@ def heal_orphan_tool_uses(history: list[Message]) -> list[Message]:
     If history is broken (e.g. previous turn aborted on max_tokens before
     persisting tool_results), inject synthetic results for the LLM call.
 
+    Also strips orphaned tool_results — tool_result blocks whose tool_use_id
+    has no matching tool_use in the preceding assistant message. This can happen
+    when compaction cuts history at a boundary where two messages share the same
+    created_at timestamp and the wrong one is included.
+
     Returns a (potentially new) list. Does NOT mutate the DB.
     """
     out: list[Message] = []
@@ -56,6 +61,43 @@ def heal_orphan_tool_uses(history: list[Message]) -> list[Message]:
                     )
                     out.append(synthetic)
         i += 1
+
+    return _strip_orphan_tool_results(out)
+
+
+def _strip_orphan_tool_results(history: list[Message]) -> list[Message]:
+    """Remove tool_result blocks that have no matching tool_use in the preceding
+    assistant message. Defensive safety net for compaction boundary edge-cases."""
+    out: list[Message] = []
+    for msg in history:
+        if msg.role == "user" and isinstance(msg.content, list):
+            tool_result_ids = {
+                b.get("tool_use_id") for b in msg.content
+                if isinstance(b, dict) and b.get("type") == "tool_result"
+            }
+            if tool_result_ids:
+                prev_assistant = next(
+                    (m for m in reversed(out) if m.role == "assistant"), None
+                )
+                known_ids: set[str] = set()
+                if prev_assistant and isinstance(prev_assistant.content, list):
+                    known_ids = {
+                        b.get("id") for b in prev_assistant.content
+                        if isinstance(b, dict) and b.get("type") == "tool_use"
+                    }
+                orphaned = tool_result_ids - known_ids
+                if orphaned:
+                    clean = [
+                        b for b in msg.content
+                        if not (isinstance(b, dict) and b.get("type") == "tool_result"
+                                and b.get("tool_use_id") in orphaned)
+                    ]
+                    msg = Message(
+                        id=msg.id, session_id=msg.session_id, role="user",
+                        content=clean, created_at=msg.created_at,
+                        token_count=msg.token_count, metadata=msg.metadata,
+                    )
+        out.append(msg)
     return out
 
 
