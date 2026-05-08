@@ -10,4 +10,6 @@
   "health_url": "http://127.0.0.1:8989/",
   "open_url": ":8989/",
   "installed_check": "/opt/sonarr"
+,
+  "install_params": []
 }

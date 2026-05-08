@@ -10,4 +10,6 @@
   "health_url": "http://127.0.0.1:8180/",
   "open_url": ":8180/",
   "installed_check": "/opt/monica"
+,
+  "install_params": []
 }

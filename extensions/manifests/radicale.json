@@ -10,4 +10,6 @@
   "health_url": "http://127.0.0.1:5232/",
   "open_url": ":5232/",
   "installed_check": "/usr/bin/radicale"
+,
+  "install_params": []
 }
