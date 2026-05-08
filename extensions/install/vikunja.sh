@@ -66,9 +66,10 @@ else
 fi
 
 info "Entpacke ZIP..."
-rm -rf /tmp/vikunja-extract
-mkdir -p /tmp/vikunja-extract
-unzip -o -q /tmp/vikunja.zip -d /tmp/vikunja-extract
+VIKUNJA_EXTRACT=/tmp/vikunja-extract
+rm -rf "${VIKUNJA_EXTRACT}"
+mkdir -p "${VIKUNJA_EXTRACT}"
+unzip -o -q /tmp/vikunja.zip -d "${VIKUNJA_EXTRACT}"
 rm -f /tmp/vikunja.zip
 
 # Binary finden
@@ -80,7 +81,7 @@ fi
 file "${FOUND_BIN}" | grep -q "ELF" || die "Gefundene Datei ist keine Binary"
 mv "${FOUND_BIN}" "${VIKUNJA_BINARY}"
 chmod 755 "${VIKUNJA_BINARY}"
-rm -rf /tmp/vikunja-extract
+rm -rf "${VIKUNJA_EXTRACT}"
 success "Vikunja ${LATEST_VERSION} installiert"
 
 # --- System-User ---
