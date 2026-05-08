@@ -12,6 +12,7 @@ Public API:
 
 from hydrahive.tools import (
     ask_agent,
+    crystallize,
     datamining,
     dir_list,
     file_patch,
@@ -56,6 +57,7 @@ def _build_registry() -> dict[str, Tool]:
         read_memory.TOOL,
         write_memory.TOOL,
         search_memory.TOOL,
+        crystallize.TOOL,
         todo.TOOL,
         send_mail.TOOL,
         list_projects.TOOL,
