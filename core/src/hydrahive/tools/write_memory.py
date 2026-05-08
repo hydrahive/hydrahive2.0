@@ -8,7 +8,8 @@ _DESCRIPTION = (
     "Speichert eine Memory-Notiz unter dem angegebenen Schlüssel. "
     "Mit `delete=true` wird der Eintrag entfernt. "
     "Mit `expires_at` verfällt der Eintrag automatisch (+2h, +1d, +7d, +4w oder ISO-Timestamp). "
-    "Beim wiederholten Schreiben auf denselben Key wird die Confidence automatisch erhöht (Reinforcement)."
+    "Beim wiederholten Schreiben auf denselben Key wird die Confidence automatisch erhöht (Reinforcement). "
+    "Ähnliche bestehende Einträge werden automatisch als veraltet markiert (Contradiction Detection)."
 )
 
 _SCHEMA = {
@@ -38,8 +39,7 @@ _SCHEMA = {
             "type": "number",
             "description": (
                 "Initiale Verlässlichkeit des Eintrags (0.0–1.0, default 0.5). "
-                "Nur für neue Einträge relevant — bei bestehenden wird confidence "
-                "automatisch per Reinforcement erhöht und dieser Wert ignoriert."
+                "Nur für neue Einträge relevant — bei bestehenden greift Reinforcement."
             ),
         },
     },
@@ -74,14 +74,24 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             return ToolResult.fail("confidence muss zwischen 0.0 und 1.0 liegen")
 
     expires_at = args.get("expires_at")
-    entry = write_key(ctx.agent_id, key, content, expires_at=expires_at or None, confidence=confidence)
+    entry, superseded = write_key(
+        ctx.agent_id, key, content,
+        expires_at=expires_at or None,
+        confidence=confidence,
+    )
 
-    extra = {
+    extra: dict = {
         "confidence": entry["confidence"],
         "reinforcements": entry["reinforcements"],
     }
     if entry.get("expires_at"):
         extra["expires_at"] = entry["expires_at"]
+    if superseded:
+        extra["superseded"] = superseded
+        extra["warning"] = (
+            f"{len(superseded)} potenziell widersprüchliche(r) Eintrag/Einträge "
+            f"als veraltet markiert: {', '.join(superseded)}"
+        )
 
     return ToolResult.ok(
         f"Memory '{key}' gespeichert",
