@@ -121,7 +121,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return ToolResult.ok({
         "query": query,
         "hits": truncated,
-        "count": len(truncated),
+        "returned": len(truncated),
         "total_matches": len(hits),
         "total_keys": len(data),
     })
