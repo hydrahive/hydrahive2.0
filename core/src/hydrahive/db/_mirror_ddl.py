@@ -75,7 +75,7 @@ async def ensure_embed_col(conn) -> None:
     await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding_model TEXT")
     await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ")
     try:
-        await conn.execute(f"""
+        await conn.execute("""
             CREATE INDEX IF NOT EXISTS events_embedding_hnsw
             ON events USING hnsw (embedding vector_cosine_ops)
             WITH (m = 16, ef_construction = 64)
@@ -83,7 +83,7 @@ async def ensure_embed_col(conn) -> None:
         logger.info("Embedding-Spalte vector(%d) + HNSW-Index bereit", dim)
     except Exception:
         try:
-            await conn.execute(f"""
+            await conn.execute("""
                 CREATE INDEX IF NOT EXISTS events_embedding_ivfflat
                 ON events USING ivfflat (embedding vector_cosine_ops)
                 WITH (lists = 100)

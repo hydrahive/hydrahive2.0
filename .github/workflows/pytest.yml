@@ -1,4 +1,4 @@
-name: Pytest
+name: CI
 
 on:
   push:
@@ -6,7 +6,8 @@ on:
   pull_request:
 
 jobs:
-  test:
+  backend:
+    name: Backend (pytest + ruff)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,8 +21,33 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e core/
+          pip install ruff
+
+      - name: Ruff lint
+        run: ruff check core/
 
       - name: Run pytest
         run: |
           cd core
           PYTHONPATH=src pytest tests/ -v --tb=short
+
+  frontend:
+    name: Frontend (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type-check
+        working-directory: frontend
+        run: npx tsc --noEmit
