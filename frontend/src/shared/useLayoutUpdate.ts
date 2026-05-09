@@ -23,6 +23,18 @@ export function useLayoutUpdate() {
 
   async function confirmUpdate() {
     setUpdateState("starting"); setUpdateError(null)
+
+    const wasBehind = updateBehind !== 0
+    if (wasBehind) {
+      try {
+        const fresh = await api.get<{ commit: string | null; update_behind: number | null }>("/system/check-update")
+        if (fresh.update_behind === 0) {
+          setCommit(fresh.commit); setUpdateBehind(0)
+          setNewCommit(fresh.commit); setUpdateState("done"); return
+        }
+      } catch { /* ignore — POST trotzdem versuchen */ }
+    }
+
     try {
       await api.post<{ started: boolean }>("/system/update", {})
     } catch (e) {
@@ -31,6 +43,7 @@ export function useLayoutUpdate() {
     setUpdateState("running")
     const oldCommit = commit
     const startedAt = Date.now()
+    let serverStableSince: number | null = null
     while (Date.now() - startedAt < 5 * 60 * 1000) {
       await new Promise((r) => setTimeout(r, 3000))
       try {
@@ -39,7 +52,17 @@ export function useLayoutUpdate() {
           setCommit(h.commit); setUpdateBehind(h.update_behind)
           setNewCommit(h.commit); setUpdateState("done"); return
         }
-      } catch { /* server still restarting */ }
+        // Server antwortet, Commit unverändert (Force-Rebuild oder no-op-Pull):
+        // Wenn Server lange genug stabil unverändert bleibt, gilt das Update als fertig.
+        if (serverStableSince === null) {
+          serverStableSince = Date.now()
+        } else if (Date.now() - serverStableSince >= 15000) {
+          setUpdateBehind(h.update_behind)
+          setNewCommit(h.commit ?? oldCommit); setUpdateState("done"); return
+        }
+      } catch {
+        serverStableSince = null
+      }
     }
     setUpdateState("failed"); setUpdateError("timeout")
   }
