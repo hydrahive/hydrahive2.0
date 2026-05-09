@@ -2,7 +2,7 @@
 name: code-review
 description: Strukturierter Code-Review mit fokussierter Reihenfolge
 when_to_use: Wenn der User um ein Code-Review oder Bug-Suche bittet
-tools_required: [file_read, file_search, dir_list]
+tools_required: [file_read, shell_exec]
 ---
 
 Beim Code-Review checkst du in dieser Reihenfolge:

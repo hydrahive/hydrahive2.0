@@ -34,7 +34,7 @@ HydraHive2 has three agent types:
 1. Click **+ New**
 2. Type **Specialist**, model `claude-sonnet-4-6`, name `Code-Reviewer`
 3. **Create** — default tools are empty for specialists
-4. In the detail form: enable `file_read`, `file_search`, `dir_list`, `read_memory`
+4. In the detail form: enable `file_read`, `shell_exec`, `read_memory`
 5. System-prompt editor: write exactly what to do, e.g.:
    *"You analyze code for security issues, performance problems, and code smells. Read the file first, then provide structured Markdown feedback."*
 6. **Save**

@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next"
 import { extractMedia, mediaFromBlocks, MediaPreview } from "./MediaPreview"
 import { ShellExecCard } from "./tool_cards/ShellExecCard"
 import { WebSearchCard } from "./tool_cards/WebSearchCard"
-import { FileSearchCard } from "./tool_cards/FileSearchCard"
 import { GitDiffCard } from "./tool_cards/GitDiffCard"
 import type { ContentBlock } from "./types"
 
@@ -19,7 +18,6 @@ function specializedCard(toolName: string | undefined, content: string, isError?
   const n = strip(toolName)
   if (n === "shell_exec") return <ShellExecCard content={content} isError={isError} />
   if (n === "web_search") return <WebSearchCard content={content} />
-  if (n === "file_search") return <FileSearchCard content={content} />
   if (n === "git_diff") return <GitDiffCard content={content} />
   return null
 }

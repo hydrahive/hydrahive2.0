@@ -2,7 +2,7 @@
 name: debugging
 description: Strukturierter Bug-Hunt — erst Ist-Zustand, dann Hypothesen
 when_to_use: Wenn ein Bug gefunden werden soll oder etwas nicht funktioniert
-tools_required: [shell_exec, file_read, file_search]
+tools_required: [shell_exec, file_read]
 ---
 
 Reihenfolge wenn etwas nicht geht:
