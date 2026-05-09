@@ -52,7 +52,7 @@ async def _compress_batch(
     prompt = build_batch_prompt(raws)
     max_tokens = min(8192, len(raws) * 220 + 256)
     try:
-        blocks, _ = await call_with_tools(
+        blocks, _, _ = await call_with_tools(
             model=model,
             system_prompt=COMPRESS_SYSTEM,
             messages=[{"role": "user", "content": prompt}],

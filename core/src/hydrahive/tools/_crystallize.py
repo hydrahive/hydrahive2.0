@@ -125,7 +125,7 @@ async def crystallize_session(
     chain_text = build_chain_text(observations)
 
     try:
-        blocks, _ = await call_with_tools(
+        blocks, _, _ = await call_with_tools(
             model=model,
             system_prompt=CRYSTALLIZE_SYSTEM,
             messages=[{"role": "user", "content": chain_text}],

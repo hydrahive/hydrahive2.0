@@ -126,7 +126,7 @@ async def call_with_stream_or_fallback(
     for i, model in enumerate(models):
         is_last = i == len(models) - 1
         try:
-            fallback_blocks, fallback_stop = await call_with_tools(
+            fallback_blocks, fallback_stop, fallback_usage = await call_with_tools(
                 model=model, system_prompt=system_prompt, volatile_system=volatile_system,
                 summary_system=summary_system,
                 cache_ttl=cache_ttl, messages=messages, tools=tools,
@@ -145,6 +145,10 @@ async def call_with_stream_or_fallback(
             yield TextBlock(text=text)
         yield CallResult(
             blocks=_sanitize_blocks(fallback_blocks), stop_reason=fallback_stop,
+            input_tokens=fallback_usage.get("input_tokens", 0),
+            output_tokens=fallback_usage.get("output_tokens", 0),
+            cache_creation_tokens=fallback_usage.get("cache_creation_tokens", 0),
+            cache_read_tokens=fallback_usage.get("cache_read_tokens", 0),
             model=model,
         )
         return
