@@ -381,6 +381,9 @@ if [ -f "$SERVICE_FILE" ]; then
   # KillMode=process verhindert dass qemu-VMs + incus-Container beim service-restart
   # mitgekillt werden (Default control-group kappt alle Children der cgroup)
   grep -q "^KillMode=process" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  # UMask=0002: Backend-Files mit g+w damit Samba-User (in hydrahive-Gruppe)
+  # sie via Group-Membership ändern kann (Workspace-Schreibzugriff über Samba).
+  grep -q "^UMask=0002" "$SERVICE_FILE" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "Service-File braucht Update — neu schreiben"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \

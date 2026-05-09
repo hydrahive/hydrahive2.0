@@ -60,6 +60,12 @@ PrivateTmp=true
 ProtectHome=read-only
 ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR /home/$HH_USER/.config /home/$HH_USER/.mmx /etc/samba/hh-projects.d
 
+# Files vom Backend werden mit g+w angelegt (664 statt 644). Damit der
+# Samba-User (in der hydrahive-Gruppe) Backend-erstellte Files via Group-
+# Membership ändern kann. Für Workspaces relevant — siehe ensure_workspace
+# und 47-samba.sh.
+UMask=0002
+
 [Install]
 WantedBy=multi-user.target
 EOF
