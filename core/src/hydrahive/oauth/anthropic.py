@@ -216,11 +216,7 @@ async def resolve_anthropic_token() -> str:
     except Exception:
         return access  # Refresh schiefgelaufen, alten Token zurück
 
-    # Speichern in llm.json (Re-Read um Race mit Web-UI zu vermeiden)
-    data = json.loads(path.read_text())
-    for p in data.get("providers", []):
-        if p.get("id") == "anthropic":
-            p["oauth"] = new_block
-            break
-    path.write_text(json.dumps(data, indent=2))
+    # Atomic RMW mit flock — verhindert Race wenn mehrere Prozesse refreshen
+    from hydrahive.oauth._llm_config_rmw import update_provider_oauth
+    update_provider_oauth(path, "anthropic", new_block)
     return new_block["access"]
