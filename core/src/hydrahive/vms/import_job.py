@@ -112,7 +112,7 @@ async def execute_job(job_id: str, *, cleanup_source: bool = True) -> None:
         logger.warning("Import-Job %s fehlgeschlagen: %s", job_id, e.code)
         db_update(job_id, status="failed", error_code=e.code, finished_at=now_iso())
         dst.unlink(missing_ok=True)
-    except Exception as e:
+    except Exception:
         logger.exception("Import-Job %s unerwarteter Fehler", job_id)
         db_update(job_id, status="failed", error_code="import_internal_error",
                   finished_at=now_iso())

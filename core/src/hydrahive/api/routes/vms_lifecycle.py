@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, status
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.settings import settings
 from hydrahive.api.routes._vm_lifecycle_schemas import VMCreate, VMUpdate
 from hydrahive.api.routes._vms_helpers import (
     is_admin, resolve_import_job, resolve_iso, serialize, vm_or_404,

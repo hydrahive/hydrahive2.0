@@ -167,7 +167,7 @@ async def run(
             yield Error(
                 f"max_tokens ({agent.get('max_tokens', 4096)}) erreicht — Antwort abgeschnitten. "
                 "Tool-Argumente sind unvollständig. Erhöhe max_tokens oder formuliere die Aufgabe kürzer.",
-                metadata={"stop_reason": stop_reason, "message_id": assistant_msg.id},
+                metadata={"stop_reason": result.stop_reason, "message_id": assistant_msg.id},
             ); return
 
         if not tool_uses:

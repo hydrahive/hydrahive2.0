@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._butler_route_helpers import (
-    DryRunInput, FlowInput, flow_or_404, is_admin,
+    _ID_RE, DryRunInput, FlowInput, flow_or_404, is_admin,
 )
 from hydrahive.butler import executor as bex
 from hydrahive.butler import persistence as bp

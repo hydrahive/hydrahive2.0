@@ -28,3 +28,13 @@ hydrahive = "hydrahive.api.main:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/hydrahive"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# Pyflakes-Regeln: echte Bugs (undefined names, unused vars, doppelte Defs).
+# F401 (unused import) ist deaktiviert — Facade-Module re-exportieren bewusst.
+select = ["F"]
+ignore = ["F401"]
