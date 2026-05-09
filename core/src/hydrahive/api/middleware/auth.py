@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -10,6 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from hydrahive.api.middleware.errors import coded
 from hydrahive.settings import settings
 
+logger = logging.getLogger(__name__)
 _bearer = HTTPBearer(auto_error=False)
 
 
@@ -74,5 +76,6 @@ def get_current_user_optional(
             return user["username"], user["role"]
         payload = _decode(token)
         return payload["sub"], payload["role"]
-    except Exception:
+    except Exception as e:
+        logger.debug("optional auth: token-decode fehlgeschlagen: %s", e)
         return None
