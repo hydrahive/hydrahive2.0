@@ -1,7 +1,12 @@
 # ✅ Test Implementation Checklist
 
-> Tracking-Dokument für Test-Implementierung HydraHive2  
-> **Ziel:** 40% Coverage in 1 Woche, 80% in 3 Monaten
+> ⚠️ **HISTORISCHES TRACKING-DOKUMENT.** Stand-Wahrheit für Tests ist
+> `TESTING_STATUS.md`. Diese Checkliste war das Tracking während des
+> Test-Aufbaus (Phase 0/D); die meisten Items sind erledigt
+> (243 Tests Stand 2026-05-09). Nicht mehr aktiv gepflegt.
+
+> Tracking-Dokument für Test-Implementierung HydraHive2
+> **Original-Ziel:** 40% Coverage in 1 Woche, 80% in 3 Monaten
 
 ---
 

@@ -2,6 +2,8 @@
 
 > **Last Updated:** 2026-05-09 — Snapshot, kein Designdokument.
 > Quelle der Wahrheit ist der Code, nicht diese Datei.
+> Backend: 343 .py-Files, 243 Tests in 17 Test-Dateien.
+> Frontend: 262 .ts/.tsx-Files, 23 Feature-Folders.
 
 ## Übersicht
 
@@ -15,7 +17,7 @@ hydrahive2.0/
 ├── docs/                      ← HANDOVER, STRUCTURE, TESTING_STATUS, …
 ├── core/                      ← Python Backend (FastAPI)
 │   ├── pyproject.toml
-│   ├── tests/                 ← 6 Dateien, 60 Tests (Auth, Lockout, Cache, …)
+│   ├── tests/                 ← 17 Dateien, 243 Tests (siehe TESTING_STATUS.md)
 │   └── src/hydrahive/
 │       ├── api/               ← FastAPI-Entry + Routen + Middleware
 │       │   ├── main.py
