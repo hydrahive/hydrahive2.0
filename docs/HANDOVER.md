@@ -7,7 +7,7 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## Aktueller Stand (2026-05-09, Phase-0-Cleanup)
 
-- **Tests:** 229/229 grün lokal + CI (`.github/workflows/pytest.yml` mit Ruff+TSC)
+- **Tests:** 243/243 grün lokal + CI (`.github/workflows/pytest.yml` mit Ruff+TSC)
 - **Tool-Cleanup vervollständigt** (#112): verwaiste `dir_list/file_search/http_request`
   -Dateien gelöscht, Skills/Frontend/i18n-Help nachgezogen, `e034e07` (verloren
   durch Force-Push) als Pflaster zurückgeholt — Commits `adbb30b` + `01c02b1`.
@@ -18,6 +18,9 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
   (#113–#116, siehe Memory-Smells-Sektion unten).
 - **Token-Verbrauch beim longterm_memory-Agent halbiert** — Live-gemessen
   und bestätigt, siehe Token-Sektion.
+- **Phase-E Architektur-Audit:** 4 parallele Audit-Agents (Backend Core /
+  Backend Data / API+Auth / Frontend) durchgekämmt. 3 echte Bugs sofort
+  gefixt (S5, S3, B5), 7 Backlog-Issues angelegt (#117–#123).
 
 ---
 
@@ -127,6 +130,52 @@ strikte Isolation will, schaltet auf `project_only`.
 ### Aggregat dieser Session
 4 Commits (`b6afef6`, `9ee6631`, `372b01f` + `66f2336` HANDOVER-Update),
 Tests von 197 → 229 (+32), ruff clean, tsc clean.
+
+---
+
+## ✅ Phase-E Architektur-Audit (2026-05-09)
+
+Vollständiger Sweep mit 4 parallelen Explore-Agents über Backend-Core
+(Runner/Tools/LLM), Backend-Data (DB/Settings/Communication), API+Auth+Agents,
+und Frontend.
+
+### Re-Bewertung der Audit-Findings
+
+Audits sind grobes Sieb — von 11 gemeldeten Sicherheits-/Bug-Findings waren
+nach Code-Review **3 echte Bugs**, **2 sind by-design** (Admin-only Endpoints
+sollen Admin-only sein), und **6 sind Hardening- oder Smell-Themen** für
+später.
+
+### Sofort gefixt (3 Commits, gepusht)
+
+| # | Commit | Fix |
+|---|---|---|
+| **S5** | `0156cad` | `get_current_user_optional()` schluckte alle Exceptions stumm — jetzt `logger.debug` mit Fehler-Repr. Verhalten unverändert, nur Diagnose-Pfad ergänzt. |
+| **S3** | `b62108a` | OAuth-Token-Refresh war read-modify-write auf `llm.json` ohne Lock. Race zwischen API-Server + Web-UI konnte einen Refresh überschreiben → Logout. Neuer `oauth/_llm_config_rmw.py` mit `fcntl.flock` + atomic write (temp+rename). 6 neue Tests inkl. multiprocessing-Concurrency-Test. |
+| **B5** | `a655deb` | Non-Streaming-Fallback in `_call.py` verlor Token-Counts (alle 4 = 0 in metadata). Streaming-Pfad war OK. Neuer Helper `runner/_token_usage.py`, alle 3 LLM-Backends + `codex_call` + `call_with_tools` returnen jetzt `(blocks, stop_reason, usage)`. 8 neue Tests. |
+
+### Als Issues angelegt
+
+| # | Schwere | Was |
+|---|---|---|
+| **#117** | Hardening | Encrypted-at-Rest für Credentials (AES-GCM + Master-Key-Konzept) |
+| **#118** | Hardening | API-Key linear-bcrypt-Loop ersetzen durch key_id-Lookup |
+| **#119** | Bug (klein) | `db/state.py` `json.loads` ohne Fallback bei korrupter Row |
+| **#120** | Bug (klein) | Race in `db/sessions.set_model_override` (RMW ohne Tx) |
+| **#121** | Bug (klein) | `tools/_observations` JSONL-Append ohne fcntl-Lock |
+| **#122** | Smell | Fire-and-forget `asyncio.create_task` in compress-Trigger ohne Exception-Handler |
+| **#123** | Bundle | A1-A5: Files nahe 250er-Limit, OAuth-Dedup, N+1, tool_confirmation, API-Konsistenz |
+
+### Audit-Methodik (für nächstes Mal)
+
+- 4 parallele Agents nach Subsystem trennt sauber
+- Findings nicht blind übernehmen — kritisch hinterfragen vor Fix
+- Test-Coverage für Race-Conditions: `multiprocessing.Process` × N für echte Concurrency (das was `flock` testen muss)
+
+### Aggregat
+3 Commits (`0156cad`, `b62108a`, `a655deb`), Tests von 229 → 243 (+14).
+Frontend war sauber — Spot-Check der heutigen MemorySection bestätigte
+i18n-Konsistenz und Feature-Folder-Pattern.
 
 ---
 
