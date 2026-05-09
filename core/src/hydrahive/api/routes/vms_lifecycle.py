@@ -22,7 +22,7 @@ from hydrahive.vms import db as vmdb
 from hydrahive.vms import disk as vmdisk
 from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import lifecycle
-from hydrahive.vms.models import NAME_RE
+from hydrahive.vms.models import DISK_INTERFACES, NAME_RE
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/vms", tags=["vms"])
@@ -45,6 +45,9 @@ async def create_vm(
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_name_invalid")
     if body.network_mode not in ("bridged", "isolated"):
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_mode_invalid")
+    if body.disk_interface not in DISK_INTERFACES:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid",
+                    value=body.disk_interface)
     if vmdb.name_taken(user, body.name):
         raise coded(status.HTTP_409_CONFLICT, "vm_name_taken")
 
@@ -55,7 +58,7 @@ async def create_vm(
         owner=user, name=body.name, description=body.description,
         cpu=body.cpu, ram_mb=body.ram_mb, disk_gb=body.disk_gb,
         iso_filename=iso_safe, network_mode=body.network_mode,
-        qcow2_path="",
+        qcow2_path="", disk_interface=body.disk_interface,
     )
     try:
         if import_qcow2:
@@ -103,6 +106,9 @@ async def update_vm(
     if req.disk_gb is not None and req.disk_gb < vm.disk_gb:
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_shrink_not_supported",
                     current=vm.disk_gb, requested=req.disk_gb)
+    if req.disk_interface is not None and req.disk_interface not in DISK_INTERFACES:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid",
+                    value=req.disk_interface)
 
     iso_kw: dict = {}
     if req.clear_iso:
@@ -126,6 +132,7 @@ async def update_vm(
         cpu=req.cpu,
         ram_mb=req.ram_mb,
         disk_gb=req.disk_gb,
+        disk_interface=req.disk_interface,
         **iso_kw,
     )
     return serialize(vmdb.get_vm(vm_id))

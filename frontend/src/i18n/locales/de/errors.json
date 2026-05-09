@@ -82,6 +82,7 @@
   "vm_name_invalid": "VM-Name ungültig (1–32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -)",
   "vm_name_taken": "Eine VM mit diesem Namen existiert bereits",
   "vm_network_mode_invalid": "Unbekannter Netzwerk-Modus",
+  "vm_disk_interface_invalid": "Ungültiges Disk-Interface '{{value}}' — erlaubt: virtio, sata, ide",
   "iso_not_found": "ISO '{{filename}}' nicht gefunden",
   "iso_invalid_name": "Ungültiger ISO-Dateiname",
   "iso_invalid_format": "Datei ist keine gültige ISO-9660 (Magic '{{magic}}')",

@@ -29,7 +29,6 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
         "-cpu", cpu_model,
         "-smp", str(vm.cpu),
         "-m", str(vm.ram_mb),
-        "-drive", f"file={vm.qcow2_path},format=qcow2,if=virtio,cache=writeback,discard=unmap",
         "-pidfile", str(pid_file),
         "-qmp", f"unix:{qmp_socket},server=on,wait=off",
         "-display", f"vnc=127.0.0.1:{vnc_port - 5900}",
@@ -38,6 +37,7 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
         "-device", "virtio-rng-pci",
         "-daemonize",
     ]
+    args += _disk_args(vm)
 
     # Boot-Reihenfolge: ISO > Disk wenn ISO vorhanden, sonst nur Disk
     if iso_path and iso_path.exists():
@@ -61,6 +61,35 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
         ]
 
     return args
+
+
+def _disk_args(vm: VM) -> list[str]:
+    """Disk-Args je nach gewähltem Interface.
+
+    virtio: Default, schnellste Performance — nur für Gäste mit virtio-Treibern
+            (moderne Linux mit virtio-blk-Modul).
+    sata:   AHCI/IDE-HD — für importierte Images aus VirtualBox/HH1/etc.
+            wo der Bootloader keinen virtio-Treiber hat.
+    ide:    klassisches IDE — Notnagel für sehr alte Images.
+    """
+    iface = vm.disk_interface
+    if iface == "sata":
+        return [
+            "-drive", f"file={vm.qcow2_path},format=qcow2,if=none,id=disk0,"
+                      "cache=writeback,discard=unmap",
+            "-device", "ahci,id=ahci",
+            "-device", "ide-hd,bus=ahci.0,drive=disk0",
+        ]
+    if iface == "ide":
+        return [
+            "-drive", f"file={vm.qcow2_path},format=qcow2,if=ide,"
+                      "cache=writeback,discard=unmap",
+        ]
+    # default: virtio
+    return [
+        "-drive", f"file={vm.qcow2_path},format=qcow2,if=virtio,"
+                  "cache=writeback,discard=unmap",
+    ]
 
 
 def _mac_for(vm_id: str) -> str:

@@ -1,6 +1,7 @@
 export type DesiredState = "running" | "stopped"
 export type ActualState = "created" | "starting" | "running" | "stopping" | "stopped" | "error"
 export type NetworkMode = "bridged" | "isolated"
+export type DiskInterface = "virtio" | "sata" | "ide"
 
 export interface VM {
   vm_id: string
@@ -13,6 +14,7 @@ export interface VM {
   iso_filename: string | null
   network_mode: NetworkMode
   qcow2_path: string
+  disk_interface: DiskInterface
   desired_state: DesiredState
   actual_state: ActualState
   pid: number | null
@@ -62,4 +64,5 @@ export interface VMCreateInput {
   disk_gb: number
   iso_filename?: string | null
   network_mode: NetworkMode
+  disk_interface?: DiskInterface
 }

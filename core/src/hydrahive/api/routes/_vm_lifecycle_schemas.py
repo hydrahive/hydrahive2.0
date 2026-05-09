@@ -16,6 +16,7 @@ class VMCreate(BaseModel):
     iso_filename: str | None = None
     network_mode: str = "bridged"
     import_job_id: str | None = None
+    disk_interface: str = "virtio"
 
 
 class VMUpdate(BaseModel):
@@ -26,3 +27,4 @@ class VMUpdate(BaseModel):
     disk_gb: int | None = Field(default=None, ge=MIN_DISK_GB, le=MAX_DISK_GB)
     iso_filename: str | None = None
     clear_iso: bool = False
+    disk_interface: str | None = None
