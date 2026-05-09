@@ -93,23 +93,21 @@ def read_key(agent_id: str, key: str) -> str | None:
     return entry.get("content") if entry is not None else None
 
 
-def write_key(
-    agent_id: str,
+def _apply_write(
+    data: MemoryStore,
     key: str,
     content: str,
+    *,
     expires_at: str | None = None,
     confidence: float | None = None,
     project: str | None = None,
     check_contradictions: bool = True,
 ) -> tuple[MemoryEntry, list[str]]:
-    """
-    Schreibt einen Memory-Eintrag. Gibt (entry, superseded_keys) zurück.
+    """Mutiert `data` in-place: schreibt einen Eintrag, gibt (entry, superseded) zurück.
 
-    project: Projekt-Zuordnung. None = global (in allen Projekten sichtbar).
-             Bei Updates: project wird NUR aktualisiert wenn explizit übergeben —
-             bestehende Projekt-Zuordnung bleibt sonst erhalten.
+    Pure Mutation ohne File-IO — wird von write_key (Single) und
+    write_keys_bulk (Batch) genutzt um N Read+Write zu vermeiden.
     """
-    data = load(agent_id)
     now = _now_iso()
     parsed_expiry = _parse_expiry(expires_at) if expires_at else None
 
@@ -150,9 +148,65 @@ def write_key(
             "supersedes": superseded_keys,
             "project": project,
         }
-
-    save(agent_id, data)
     return data[key], superseded_keys
+
+
+def write_key(
+    agent_id: str,
+    key: str,
+    content: str,
+    expires_at: str | None = None,
+    confidence: float | None = None,
+    project: str | None = None,
+    check_contradictions: bool = True,
+) -> tuple[MemoryEntry, list[str]]:
+    """
+    Schreibt einen Memory-Eintrag. Gibt (entry, superseded_keys) zurück.
+
+    project: Projekt-Zuordnung. None = global (in allen Projekten sichtbar).
+             Bei Updates: project wird NUR aktualisiert wenn explizit übergeben —
+             bestehende Projekt-Zuordnung bleibt sonst erhalten.
+    """
+    data = load(agent_id)
+    entry, superseded_keys = _apply_write(
+        data, key, content,
+        expires_at=expires_at,
+        confidence=confidence,
+        project=project,
+        check_contradictions=check_contradictions,
+    )
+    save(agent_id, data)
+    return entry, superseded_keys
+
+
+def write_keys_bulk(
+    agent_id: str,
+    entries: list[dict],
+) -> list[tuple[MemoryEntry, list[str]]]:
+    """Schreibt mehrere Memory-Einträge mit einem File-Read+Write-Pass.
+
+    entries: Liste von Dicts mit Keys `key`, `content` (Pflicht) und
+    optional `expires_at`, `confidence`, `project`, `check_contradictions`.
+
+    Returns: Liste von (entry, superseded_keys), Reihenfolge wie entries.
+    Bei leerer Liste: kein File-Write, leere Liste zurück.
+    """
+    if not entries:
+        return []
+    data = load(agent_id)
+    results: list[tuple[MemoryEntry, list[str]]] = []
+    for e in entries:
+        results.append(_apply_write(
+            data,
+            e["key"],
+            e["content"],
+            expires_at=e.get("expires_at"),
+            confidence=e.get("confidence"),
+            project=e.get("project"),
+            check_contradictions=e.get("check_contradictions", True),
+        ))
+    save(agent_id, data)
+    return results
 
 
 def delete_key(agent_id: str, key: str) -> bool:

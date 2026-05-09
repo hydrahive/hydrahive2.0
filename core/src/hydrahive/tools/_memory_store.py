@@ -17,6 +17,7 @@ from hydrahive.tools._memory_io import (
     read_key,
     save,
     write_key,
+    write_keys_bulk,
     _memory_file,
 )
 from hydrahive.tools._memory_model import (
@@ -52,6 +53,7 @@ __all__ = [
     "read_key",
     "save",
     "write_key",
+    "write_keys_bulk",
     # Pure Logic (public)
     "find_contradictions",
     "is_expired",

@@ -55,28 +55,30 @@ def _save_lessons(
 ) -> list[str]:
     """
     Speichert Lessons als Memory-Einträge (confidence=0.6, key=lesson.<fp>).
+    Ein File-Read+Write für die ganze Batch (vs. N Rewrites pro Lesson).
     Gibt Liste der gespeicherten Keys zurück.
     """
-    from hydrahive.tools._memory_store import write_key
+    from hydrahive.tools._memory_store import write_keys_bulk
 
-    saved: list[str] = []
+    entries: list[dict] = []
     for lesson in lessons:
         if not lesson.strip():
             continue
-        key = f"lesson.{fingerprint(lesson)}"
-        try:
-            write_key(
-                agent_id,
-                key,
-                lesson,
-                confidence=0.6,
-                project=project,
-                check_contradictions=False,  # Lessons nicht gegen sich selbst prüfen
-            )
-            saved.append(key)
-        except Exception as e:
-            logger.warning("_save_lessons: Fehler bei '%s': %s", key, e)
-    return saved
+        entries.append({
+            "key": f"lesson.{fingerprint(lesson)}",
+            "content": lesson,
+            "confidence": 0.6,
+            "project": project,
+            "check_contradictions": False,
+        })
+    if not entries:
+        return []
+    try:
+        write_keys_bulk(agent_id, entries)
+    except Exception as e:
+        logger.warning("_save_lessons: Bulk-Write fehlgeschlagen: %s", e)
+        return []
+    return [e["key"] for e in entries]
 
 
 async def crystallize_session(
