@@ -422,6 +422,8 @@ Dev-Sandboxes) die von einem Specialist-Agent administriert werden.
 ### Funktionsumfang
 - VM-Lifecycle: erstellen, starten, stoppen (graceful + hard), löschen — Per-User-Owner
 - Disk: qcow2-Erzeugung, ISO-Boot, qcow2/raw/vmdk-Import bestehender Images
+- Disk-Interface pro VM wählbar: `virtio` (Default, schnellste, für Neu-Installationen),
+  `sata` (kompatibel, für importierte Images aus VirtualBox/HH1/etc.), `ide` (Notnagel)
 - Konsole: VNC im Browser via websockify+noVNC, Token pro VM
 - Snapshots: erstellen + offline restore
 - Networking: Bridged via `br0` (Default, VMs bekommen DHCP-IPs aus dem LAN), Isoliert optional
