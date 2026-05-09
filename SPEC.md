@@ -689,6 +689,49 @@ Whisper-Container auf.
 
 ---
 
+## Home Assistant — Conversation Agent (Core-Komponente)
+
+HydraHive antwortet als externer Conversation-Agent in Home Assistant — die
+HA-Voice-Pipeline schickt Text an unseren Endpoint, ein konfigurierter
+HydraHive-Agent antwortet, HA spricht's per TTS aus. Damit lassen sich
+Voice-PE-Pucks (oder beliebige HA-Voice-Geräte) gegen einen HydraHive-Agent
+betreiben — Alexa-Style ohne Cloud.
+
+Eigenständiges Feature, **kein** Bezug zum internen Voice-Stack
+(Whisper-Container, mmx). HA macht STT/TTS selbst, wir sehen nur Text rein/raus.
+
+### Funktionsumfang
+- HTTP-Endpoint `/api/voice/chat` — POST mit
+  `{ text, conversation_id, language?, agent_id }`, returns flacher Reply-String
+- Auth via API-Key (`hhk_*` — bestehendes System)
+- Mapping HA-`conversation_id` → HydraHive-Session, persistiert
+  (Folge-Turns greifen auf gleichen Session-Verlauf zu)
+- Tool-Calls werden serverseitig abgearbeitet, nur finaler Text geht raus
+- HA-Custom-Component (`integrations/homeassistant/custom_components/hydrahive/`)
+  mit moderner `ConversationEntity`-API, Config-Flow für Endpoint + API-Key
+  + Agent-Auswahl
+
+### Nicht-Ziele
+- HydraHive steuert HA-Geräte (Smart-Home-LLM-Pattern mit Tool-Use auf
+  HA-Entities) — eigenes Feature, separate Entscheidung
+- Streaming-Replies (HA's `chat_log`-API) — erst nach MVP, blockierender
+  Round-Trip reicht zunächst
+- HACS-Listing — Component lebt initial im HydraHive-Repo, Copy-Paste-Install
+
+### Voraussetzungen
+- API-Key-System aktiv (Profile-Settings → Key generieren)
+- Home Assistant ≥ 2024.10 (für `ConversationEntity`-API)
+
+### Architektur
+Backend `core/src/hydrahive/api/routes/voice.py` (Endpoint) +
+`core/src/hydrahive/voice/_ha_conversation.py` (Conversation-ID-Mapping in
+`voice_conversations.json`). Custom-Component
+`integrations/homeassistant/custom_components/hydrahive/` (manifest, config_flow,
+conversation, translations). Install per Copy-Paste in
+`<HA-config>/custom_components/`.
+
+---
+
 ## Extensions — App Manager (Core-Komponente)
 
 HydraHive2 kann externe Software-Pakete nachträglich über die Web-UI installieren, verwalten
