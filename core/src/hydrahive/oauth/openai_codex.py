@@ -221,11 +221,7 @@ async def resolve_openai_codex_token() -> dict[str, str]:
     except Exception:
         return {"access": access, "account_id": account_id}
 
-    # Re-read llm.json um Race mit GUI zu vermeiden
-    data = json.loads(path.read_text())
-    for p in data.get("providers", []):
-        if p.get("id") == CODEX_PROVIDER_ID:
-            p["oauth"] = new_block
-            break
-    path.write_text(json.dumps(data, indent=2))
+    # Atomic RMW mit flock — verhindert Race wenn mehrere Prozesse refreshen
+    from hydrahive.oauth._llm_config_rmw import update_provider_oauth
+    update_provider_oauth(path, CODEX_PROVIDER_ID, new_block)
     return {"access": new_block["access"], "account_id": new_block["account_id"]}
