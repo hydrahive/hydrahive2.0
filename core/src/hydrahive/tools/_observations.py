@@ -163,17 +163,37 @@ def mark_compressed(
     obs_id: str,
     compressed_id: str,
 ) -> bool:
+    """Markiert eine einzelne Observation als komprimiert.
+
+    Convenience-Wrapper um `mark_compressed_bulk`. Für Schleifen über viele
+    Observations IMMER bulk verwenden — Single-Calls rewriten die ganze JSONL
+    pro Aufruf.
     """
-    Markiert eine Observation als komprimiert (compressed=True, compressed_id gesetzt).
-    Rewritet die komplette JSONL-Datei — nur für #61 Compress-Pipeline aufrufen,
-    nicht nach jedem Tool-Call.
-    Gibt True zurück wenn die Observation gefunden und aktualisiert wurde.
+    return mark_compressed_bulk(agent_id, session_id, {obs_id: compressed_id}) > 0
+
+
+def mark_compressed_bulk(
+    agent_id: str,
+    session_id: str,
+    mappings: dict[str, str],
+) -> int:
     """
+    Markiert mehrere Observations gleichzeitig als komprimiert.
+
+    `mappings`: {raw_observation_id: compressed_id}
+
+    Liest die JSONL einmal, aktualisiert alle Treffer in-memory, schreibt
+    einmal atomisch (temp + rename). Bei N Observations und M Aufrufern
+    spart das O(N×M) → O(N) IO-Operations gegenüber dem Single-Pattern.
+    Gibt Anzahl der tatsächlich gefundenen + aktualisierten Observations zurück.
+    """
+    if not mappings:
+        return 0
     path = _obs_file(agent_id, session_id)
     if not path.exists():
-        return False
+        return 0
 
-    found = False
+    found = 0
     updated_lines: list[str] = []
 
     try:
@@ -183,15 +203,16 @@ def mark_compressed(
                 continue
             try:
                 obs = json.loads(line)
-                if obs.get("id") == obs_id:
+                obs_id = obs.get("id")
+                if obs_id in mappings:
                     obs["compressed"] = True
-                    obs["compressed_id"] = compressed_id
-                    found = True
+                    obs["compressed_id"] = mappings[obs_id]
+                    found += 1
                 updated_lines.append(json.dumps(obs, ensure_ascii=False))
             except json.JSONDecodeError:
                 updated_lines.append(line)  # Kaputte Zeile unverändert lassen
     except OSError:
-        return False
+        return 0
 
     if found:
         # Atomisches Write: temp file + rename — verhindert korrupte JSONL bei OS-Crash

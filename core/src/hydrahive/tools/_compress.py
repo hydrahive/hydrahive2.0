@@ -30,7 +30,7 @@ from hydrahive.tools._compress_storage import (
 from hydrahive.tools._observations import (
     RawObservation,
     list_raw_observations,
-    mark_compressed,
+    mark_compressed_bulk,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,7 @@ async def _compress_batch(
         parsed_list = [fallback_compressed(r) for r in raws]
 
     results: list[CompressedObservation] = []
+    mappings: dict[str, str] = {}
     for raw, parsed in zip(raws, parsed_list):
         cobs: CompressedObservation = {
             "id": generate_cobs_id(),
@@ -77,8 +78,10 @@ async def _compress_batch(
             **parsed,
         }
         save_compressed(agent_id, session_id, cobs)
-        mark_compressed(agent_id, session_id, raw["id"], cobs["id"])
+        mappings[raw["id"]] = cobs["id"]
         results.append(cobs)
+    # Ein File-Read+Write für die ganze Batch (vs. N Rewrites pro Observation)
+    mark_compressed_bulk(agent_id, session_id, mappings)
     return results
 
 
