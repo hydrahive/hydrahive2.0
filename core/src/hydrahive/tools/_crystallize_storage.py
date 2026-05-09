@@ -27,53 +27,57 @@ def save_crystal(agent_id: str, crystal: Crystal) -> None:
         f.write(json.dumps(crystal, ensure_ascii=False) + "\n")
 
 
+def _iter_entries(agent_id: str):
+    """Yields parsed JSONL entries in file-order, skipping broken lines."""
+    path = _crystals_file(agent_id)
+    if not path.exists():
+        return
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            yield json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+
 def list_crystals(
     agent_id: str,
     project: str | None = None,
     limit: int = 20,
 ) -> list[Crystal]:
-    """Lädt Crystals eines Agents. Optional nach project gefiltert, neueste zuerst."""
-    path = _crystals_file(agent_id)
-    if not path.exists():
-        return []
+    """Lädt Crystals eines Agents. Optional nach project gefiltert, neueste zuerst.
 
-    results: list[Crystal] = []
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if project is not None and entry.get("project") != project:
-                continue
-            results.append(entry)
-    except OSError:
-        return []
+    Bei mehreren Crystals derselben Session (Re-Crystallize) wird nur die
+    neueste Version zurückgegeben — die jsonl ist append-only versioniert.
+    """
+    by_session: dict[str, Crystal] = {}
+    for entry in _iter_entries(agent_id):
+        if project is not None and entry.get("project") != project:
+            continue
+        sid = entry.get("session_id")
+        if sid is None:
+            continue
+        by_session[sid] = entry  # last write wins (jsonl is append-order = chrono)
 
-    # Neueste zuerst, dann limit anwenden
-    results.reverse()
+    results = list(by_session.values())
+    results.reverse()  # newest first
     return results[:limit]
 
 
 def get_crystal(agent_id: str, session_id: str) -> Crystal | None:
-    """Gibt den Crystal einer bestimmten Session zurück (oder None)."""
-    path = _crystals_file(agent_id)
-    if not path.exists():
-        return None
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                entry = json.loads(line)
-                if entry.get("session_id") == session_id:
-                    return entry
-            except json.JSONDecodeError:
-                continue
-    except OSError:
-        return None
-    return None
+    """Gibt den neuesten Crystal einer Session zurück (oder None).
+
+    Append-only versioniert: bei mehreren Einträgen mit gleicher session_id
+    gewinnt der zuletzt geschriebene.
+    """
+    latest: Crystal | None = None
+    for entry in _iter_entries(agent_id):
+        if entry.get("session_id") == session_id:
+            latest = entry
+    return latest

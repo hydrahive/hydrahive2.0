@@ -96,16 +96,17 @@ async def crystallize_session(
     - Speichert Lessons als Memory-Einträge (confidence=0.6)
     - Gibt Crystal zurück, oder None wenn zu wenig Observations (außer force=True)
 
-    force=True: auch bei < MIN_OBSERVATIONS kristallisieren (für manuellen Aufruf).
+    force=True: auch bei < MIN_OBSERVATIONS kristallisieren UND einen
+    bestehenden Crystal überschreiben (append-only versioniert in jsonl).
     """
     from hydrahive.runner.llm_bridge import call_with_tools
     from hydrahive.tools._compress import load_compressed
 
-    # Bereits kristallisiert?
-    existing = get_crystal(agent_id, session_id)
-    if existing is not None:
-        logger.info("crystallize_session %s: bereits kristallisiert — skip", session_id)
-        return existing
+    if not force:
+        existing = get_crystal(agent_id, session_id)
+        if existing is not None:
+            logger.info("crystallize_session %s: bereits kristallisiert — skip", session_id)
+            return existing
 
     observations = load_compressed(agent_id, session_id)
     if not observations:
