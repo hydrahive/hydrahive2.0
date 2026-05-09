@@ -1,5 +1,13 @@
 """Gemeinsame Test-Fixtures und Hilfsfunktionen für alle HydraHive2-Tests."""
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+
 import pytest
+from fastapi.testclient import TestClient
 from httpx import Response
 
 
@@ -25,4 +33,111 @@ def error_params(response: Response) -> dict:
 
 def bearer(token: str) -> dict:
     """Gibt einen Authorization-Header zurück."""
+    return {"Authorization": f"Bearer {token}"}
+
+
+# ---------------------------------------------------------------------------
+# API-Integration-Test-Setup
+# Session-scoped autouse: legt einmalig Tmp-Dir + Test-User + Test-Agent an,
+# setzt HH_*-Env-Vars. Andere Tests (memory/crystallize/etc.) nutzen eigene
+# tmp_path + monkeypatch — die Env-Vars stören dort nicht weil das Modul
+# settings cached_property nutzt und seine Pfade selbst per monkeypatch
+# überschrieben werden.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_env():
+    """Setup test environment with temporary directories."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+
+        os.environ["HH_DATA_DIR"] = str(tmp_path / "data")
+        os.environ["HH_CONFIG_DIR"] = str(tmp_path / "config")
+        os.environ["HH_SECRET_KEY"] = "test-secret-key-for-jwt-signing"
+        os.environ["HH_DISCORD_ENABLED"] = "0"
+        os.environ["HH_WA_ENABLED"] = "0"
+        os.environ["HH_AGENTLINK_URL"] = ""
+        os.environ["HH_PG_MIRROR_DSN"] = ""
+
+        (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "data" / "agents").mkdir(parents=True, exist_ok=True)
+
+        users_file = tmp_path / "config" / "users.json"
+        import bcrypt
+        password_hash = bcrypt.hashpw(b"testpass123", bcrypt.gensalt()).decode("ascii")
+        users = {
+            "testuser": {"password_hash": password_hash, "role": "user"},
+            "admin": {"password_hash": password_hash, "role": "admin"},
+        }
+        users_file.write_text(json.dumps(users, indent=2))
+
+        agent_id = "test-agent-001"
+        agent_dir = tmp_path / "data" / "agents" / agent_id
+        agent_dir.mkdir(parents=True, exist_ok=True)
+        agent_config = {
+            "id": agent_id,
+            "name": "Test Agent",
+            "type": "master",
+            "owner": "admin",
+            "llm_model": "claude-3-7-sonnet-20250219",
+            "tools": [],
+            "temperature": 0.7,
+            "max_tokens": 4096,
+            "thinking_budget": 10000,
+            "created_at": "2026-01-01T00:00:00Z",
+        }
+        (agent_dir / "config.json").write_text(json.dumps(agent_config, indent=2))
+
+        yield tmp_path
+
+
+@pytest.fixture
+def client(setup_test_env):
+    """FastAPI TestClient with mocked lifespan to avoid full startup."""
+    from contextlib import asynccontextmanager
+
+    from fastapi import FastAPI
+
+    from hydrahive.db import init_db
+
+    init_db()
+
+    @asynccontextmanager
+    async def minimal_lifespan(app: FastAPI):
+        from hydrahive.settings import settings
+        settings.ensure_dirs()
+        yield
+
+    from hydrahive.api import main
+    original_lifespan = main.app.router.lifespan_context
+    main.app.router.lifespan_context = minimal_lifespan
+
+    with TestClient(main.app) as test_client:
+        yield test_client
+
+    main.app.router.lifespan_context = original_lifespan
+
+
+@pytest.fixture
+def auth_headers(client):
+    """Returns valid auth headers with JWT token for testuser."""
+    response = client.post("/api/auth/login", json={
+        "username": "testuser",
+        "password": "testpass123",
+    })
+    assert response.status_code == 200
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def admin_headers(client):
+    """Returns valid auth headers with JWT token for admin."""
+    response = client.post("/api/auth/login", json={
+        "username": "admin",
+        "password": "testpass123",
+    })
+    assert response.status_code == 200
+    token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
