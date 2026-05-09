@@ -1,19 +1,16 @@
-# HydraHive2 — Übergabe (Stand 2026-05-09)
+# HydraHive2 — Übergabe (Stand 2026-05-10)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
-## Aktueller Stand (2026-05-09, Phase-0-Cleanup)
+## Aktueller Stand (2026-05-10, Tag 2 nach 05-09-Pause)
 
-- **Tests:** 243/243 grün lokal + CI (`.github/workflows/pytest.yml` mit Ruff+TSC)
-- **Tool-Cleanup vervollständigt** (#112): verwaiste `dir_list/file_search/http_request`
-  -Dateien gelöscht, Skills/Frontend/i18n-Help nachgezogen, `e034e07` (verloren
-  durch Force-Push) als Pflaster zurückgeholt — Commits `adbb30b` + `01c02b1`.
-- **#101 pgvector** seit `9a940ce` (2026-05-07) gefixt.
-- **Phase-A Schliff abgeschlossen:** settings/mirror_query/runner/datamining-route
-  in <250-Zeilen-Module aufgeteilt (Mixin- + Facade-Pattern).
+- **Tests:** 264/264 grün (+21 vs. gestern: +8 Voice, +3 vms-route-order, +10 disk_interface).
+- **Tag-2-Sweep** (2026-05-10): Update-Modal-Fix, HA Voice Phase 1 Backend,
+  zwei Kunden-Bugs gefunden + behoben (vms-Routing 404, qcow2-Boot-Mismatch).
+  Siehe Sektion unten.
 - **Phase-D Memory-Diagnose abgeschlossen:** alle Smells S1–S4 jetzt geschlossen
   (#113–#116, siehe Memory-Smells-Sektion unten).
 - **Token-Verbrauch beim longterm_memory-Agent halbiert** — Live-gemessen
@@ -226,6 +223,116 @@ ohne dass man 343 .py-Files lesen muss.
 3 Commits (`be3967d`, `8ecee01`, `433bd86`), 884 Zeilen Doku-Delta
 (622 neu in `architecture/` + 200 refresht + 57 README/Index + 5 STRUCTURE).
 Code unverändert, alle Tests grün.
+
+---
+
+## ✅ Tag-2-Sweep (2026-05-10)
+
+Sechs Commits in einer Session — Update-Hänger gefixt, Voice-Phase-1
+gebaut, zwei Kunden-Bugs unter Druck gefunden und sauber behoben (mit
+SPEC + Tests, nicht als Hand-Patch).
+
+### Update-Modal-Hänger (`2818a6d`)
+
+Problem: bei einem Klick auf "Update" wenn der Server schon auf neuestem
+Stand ist (`git pull` → "Bereits aktuell"), blieb das Modal 5 Min auf
+"Update läuft…". Frontend wartete in `useLayoutUpdate.ts` aussschließlich
+auf einen **commit-change** in `/api/health` — der nie kommt.
+
+Fix in `frontend/src/shared/useLayoutUpdate.ts`:
+1. **Pre-Check**: vor dem POST-Trigger frischer `/api/system/check-update`,
+   wenn Server schon "behind=0" sagt → direkt "done", kein Update-Trigger.
+2. **Server-Stable-Fallback**: im Polling-Loop einen Counter — wenn
+   `/api/health` 15s lang stabil mit unverändertem Commit antwortet
+   (Server ist nach Restart wieder erreichbar, kein neuer Commit in
+   Sicht), gilt das Update als done. Counter resettet bei Errors damit
+   der Service-Restart-Zeit nicht falsch positiv wertet.
+
+### HA Voice Phase 1 (`d00d7fc` + `37110ad`)
+
+**SPEC** als Standalone-Commit zuerst (`d00d7fc`): neue Sektion "Home
+Assistant — Conversation Agent" nach Voice. HydraHive antwortet als
+Conversation-Agent in HA's Voice-Pipeline (Voice-PE-Pucks etc.) — kein
+Bezug zum internen Whisper-Stack, HA macht STT/TTS selbst.
+
+**Code** (`37110ad`):
+- `core/src/hydrahive/api/routes/voice.py` — `POST /api/voice/chat`,
+  Auth via API-Key (`hhk_*`) oder JWT, Owner-Check auf den Agent
+- `core/src/hydrahive/voice/_ha_conversation.py` — Mapping
+  HA-`conversation_id` → HydraHive-Session in `voice_conversations.json`,
+  atomic write, FIFO-Cleanup bei >1000 Einträgen
+- Runner-Loop mit 25s-Timeout, Tool-Calls werden serverseitig
+  abgearbeitet, nur finaler Text-Block geht an HA zurück
+- 8 Tests in `test_voice_chat.py`, plus shared TestClient-Fixtures aus
+  `test_api_integration.py` nach `conftest.py` verschoben
+
+**Phase 2 (HA Custom Component)** und **Phase 3 (Doku)** stehen aus.
+Phase 2 ist der nächste logische Schritt — der Endpoint nützt nichts
+ohne HA-Bridge. Geschätzt 200-300 Zeilen Python für `manifest.json`,
+`config_flow.py`, `conversation.py` mit der modernen `ConversationEntity`-
+API plus de/en Translations.
+
+### Kunden-Bug 1: VMs-Routing 404 (`1d921c6`)
+
+**Symptom (Kunde, Server `192.168.178.86`)**: Import-Jobs-Panel zeigt nie
+einen Job, kurz erscheint "VM nicht gefunden". Frontend pollt
+`/api/vms/import-jobs` → 404 `vm_not_found`. Backend ist auf neuestem
+Stand, Route ist registriert.
+
+**Cause**: in `vms.py` wird `_lifecycle_router` (mit `GET /{vm_id}`) VOR
+`_imports_router` (mit `GET /import-jobs`) eingebunden. FastAPI matcht
+in Definitions-Reihenfolge → `/api/vms/import-jobs` läuft auf
+`/{vm_id}` mit `vm_id="import-jobs"`, `vm_or_404` schlägt fehl → 404.
+Gleiches Risiko für `/api/vms/isos/list` etc.
+
+**Fix**: Sub-Router mit literalen Pfaden (`imports`, `isos`) VOR den
+`/{vm_id}`-Subs einbinden. 3 Regression-Tests in
+`test_vms_route_order.py` prüfen Reihenfolge in `app.routes` plus
+End-to-End dass GET `/api/vms/import-jobs` und `/api/vms/isos/list`
+200 statt 404 liefern.
+
+### Kunden-Bug 2: qcow2-Boot bricht mit virtio (`8c72bd6` + `2342a06`)
+
+**Symptom (selber Kunde)**: Importierte qcow2 vom alten HydraHive 1
+(Gast-OS: BSD/macOS/altes), VM startet, BIOS POSTet, Boot-Menü zeigt
+die Disk — sobald Bootloader übernimmt, "no bootable device".
+
+**Cause**: `qemu_args.py` hängte die Disk hart als `if=virtio` an. Der
+Bootloader im Image hat keinen virtio-Treiber — SeaBIOS sieht die Disk
+zwar (deshalb Boot-Menü-Eintrag) aber sobald der MBR/UEFI-Bootloader
+geladen ist, ist die Disk für ihn unsichtbar.
+
+**Spec-Update standalone** (`8c72bd6`): VM-Sektion erweitert um
+"Disk-Interface pro VM wählbar: virtio (Default), sata (kompatibel,
+für importierte Images), ide (Notnagel)".
+
+**Code** (`2342a06`):
+- Migration `008_vm_disk_interface.sql` — `ALTER TABLE vms ADD COLUMN
+  disk_interface TEXT NOT NULL DEFAULT 'virtio'`. Bestehende VMs
+  behalten Verhalten.
+- `vms/models.py` — neuer Literal `DiskInterface = "virtio"|"sata"|"ide"`,
+  Default `virtio` (musste hinter alle non-default-Felder verschoben
+  werden — Dataclass-Reihenfolge)
+- `vms/qemu_args.py` — neue `_disk_args(vm)`-Funktion, branched auf
+  `vm.disk_interface`. sata baut `-drive if=none,id=disk0` + `-device
+  ahci` + `-device ide-hd,bus=ahci.0,drive=disk0`. ide ist klassisches
+  `-drive if=ide`.
+- `_vm_lifecycle_schemas.py` + `vms_lifecycle.py` — VMCreate/VMUpdate
+  akzeptieren `disk_interface`, Validation gegen `DISK_INTERFACES`,
+  400 `vm_disk_interface_invalid` bei unbekanntem Wert.
+- Frontend: `types.ts` neue `DiskInterface`, `CreateVMDialog` mit
+  3-Wege-RadioCard plus kontextuellem Hinweis bei Boot-Source "Import",
+  `EditVMDialog` mit Select + Hinweis "VM stoppen → ändern → starten".
+- 10 Tests in `test_vm_disk_interface.py`: Migration-Spalte, Default,
+  qemu_args-Branches für alle drei Werte, Create/Patch mit gültigen
+  und ungültigen Werten.
+
+### Aggregat Tag 2
+
+6 Commits (`2818a6d`, `d00d7fc`, `1d921c6`, `37110ad`, `8c72bd6`,
+`2342a06`), Tests **243 → 264** (+21), alle grün, frontend tsc + ruff
+clean. SPEC zwei standalone-Commits (HA-Voice + disk_interface), beide
+mit Pre-Commit-Hook-Compliance.
 
 ---
 
