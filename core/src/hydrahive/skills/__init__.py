@@ -16,7 +16,7 @@ Format einer Skill-Datei:
     name: code-review
     description: Strukturierte Code-Review-Anweisungen
     when_to_use: Wenn der User um Code-Review bittet
-    tools_required: [file_read, file_search]
+    tools_required: [file_read, shell_exec]
     ---
 
     Markdown-Body mit Anweisungen…

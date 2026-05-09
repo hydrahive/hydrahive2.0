@@ -5,15 +5,15 @@ from __future__ import annotations
 # der Master ein Tool sehen das nur Stub-Fehler zurückgibt.
 _BASE_TOOLS: dict[str, list[str]] = {
     "master": [
-        "shell_exec", "file_read", "file_write", "file_patch", "file_search",
-        "dir_list", "web_search", "http_request", "fetch_url",
+        "shell_exec", "file_read", "file_write", "file_patch",
+        "web_search", "fetch_url",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "send_mail", "list_projects",
         "list_skills", "load_skill",
     ],
     "project": [
-        "shell_exec", "file_read", "file_write", "file_patch", "file_search",
-        "dir_list", "fetch_url",
+        "shell_exec", "file_read", "file_write", "file_patch",
+        "fetch_url",
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "list_projects",
         "list_skills", "load_skill",
@@ -70,8 +70,8 @@ DEFAULT_COMPACT_MODEL = ""
 # kann der User auf 500 runtergehen.
 DEFAULT_COMPACT_TOOL_RESULT_LIMIT = 2000
 # Live-Truncation: Tool-Results werden vor dem LLM-Call auf dieses Zeichenlimit
-# gekürzt. Verhindert dass ein einzelner Tool-Call (z.B. 52k-JSON, riesiger dir_list)
-# den gesamten Context frisst. 0 = kein Limit.
+# gekürzt. Verhindert dass ein einzelner Tool-Call (z.B. 52k-JSON-Antwort eines
+# fetch_url) den gesamten Context frisst. 0 = kein Limit.
 DEFAULT_TOOL_RESULT_MAX_CHARS = 12_000
 # Prompt-Cache-TTL für den stabilen System-Prompt-Block.
 # "1h" = 1 Stunde (2x Write-Kosten, aber Cache-Hits über Sessions hinweg).
