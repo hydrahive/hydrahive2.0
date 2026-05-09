@@ -1,4 +1,11 @@
 # 🧪 Test Deep Dive — HydraHive2 Projekt
+
+> ⚠️ **HISTORISCHES DOKUMENT.** Stand-Wahrheit für Tests ist `TESTING_STATUS.md`.
+> Diese Analyse stammt vom **2026-05-06** und beschreibt den Zustand
+> *vor* dem Test-Aufbau (damals 0 Tests). Bewusst aufbewahrt als Audit-Trail
+> für die Cleanup-Entscheidungen — die "kritischen Befunde" sind inzwischen
+> alle adressiert (243 Tests Stand 2026-05-09).
+
 **Datum:** 2026-05-06
 **Analysierte Repos:** hydrahive20server, hydrahive20plugins, hydralink29apilink
 
