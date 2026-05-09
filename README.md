@@ -75,9 +75,18 @@ in einer SQLite-Datenbank ebendort. nginx terminiert HTTP und proxied
 systemd-Path-Watcher, der `update.sh` als root startet — der API-Prozess
 selbst braucht kein sudo.
 
-Volltext-Spec: [SPEC.md](SPEC.md). Detail-Übergabe für nächsten Build-Tag:
-[docs/HANDOVER.md](docs/HANDOVER.md). Arbeitsregeln für Beiträge:
-[CLAUDE.md](CLAUDE.md).
+## Dokumentation
+
+| Du willst… | Lies… |
+|---|---|
+| das System nutzen | dieses README, [installer/README.md](installer/README.md) |
+| beitragen / Code ändern | [CLAUDE.md](CLAUDE.md) → [CONTRIBUTING.md](CONTRIBUTING.md) → [docs/STRUCTURE.md](docs/STRUCTURE.md) |
+| verstehen wie ein Subsystem funktioniert | [docs/architecture/](docs/architecture/) — Memory, Runner, Compaction, Auth |
+| die Produkt-Spec lesen | [SPEC.md](SPEC.md) |
+| die letzte Session aufgreifen | [docs/HANDOVER.md](docs/HANDOVER.md) |
+| den Test-Status prüfen | [docs/TESTING_STATUS.md](docs/TESTING_STATUS.md) |
+
+Vollständiger Doku-Index: [docs/README.md](docs/README.md).
 
 ## Konfiguration
 
