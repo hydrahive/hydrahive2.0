@@ -7,17 +7,17 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## Aktueller Stand (2026-05-09, Phase-0-Cleanup)
 
-- **Tests:** 197/197 grün lokal + CI (`.github/workflows/pytest.yml` mit Ruff+TSC)
+- **Tests:** 229/229 grün lokal + CI (`.github/workflows/pytest.yml` mit Ruff+TSC)
 - **Tool-Cleanup vervollständigt** (#112): verwaiste `dir_list/file_search/http_request`
   -Dateien gelöscht, Skills/Frontend/i18n-Help nachgezogen, `e034e07` (verloren
   durch Force-Push) als Pflaster zurückgeholt — Commits `adbb30b` + `01c02b1`.
 - **#101 pgvector** seit `9a940ce` (2026-05-07) gefixt.
 - **Phase-A Schliff abgeschlossen:** settings/mirror_query/runner/datamining-route
   in <250-Zeilen-Module aufgeteilt (Mixin- + Facade-Pattern).
-- **Phase-D Memory-Diagnose abgeschlossen:** B1 (mark_compressed N-Rewrite) +
-  B2 (dead crystallize tool) gefixt. Issues #113-116 für Smells S1–S4 angelegt.
+- **Phase-D Memory-Diagnose abgeschlossen:** alle Smells S1–S4 jetzt geschlossen
+  (#113–#116, siehe Memory-Smells-Sektion unten).
 - **Token-Verbrauch beim longterm_memory-Agent halbiert** — Live-gemessen
-  und bestätigt, siehe nächste Sektion.
+  und bestätigt, siehe Token-Sektion.
 
 ---
 
@@ -70,6 +70,63 @@ statt search-Brute-Force, Iter 5 trifft 2× count=0, Iter 6 stoppt mit
 `tool_result_max_chars` (Default 12 000 Zeichen) in dispatcher.py kürzt jedes
 Tool-Result bevor es in den Context geht. Per-Agent konfigurierbar in den
 Compaction-Settings. Commit: `6d1ff0e`.
+
+---
+
+## ✅ Memory-Smells aus Phase-D (#113–#116, alle behoben)
+
+Alle vier in einer Session 2026-05-09 abgeräumt — UI-Section live auf hh2-218
+verifiziert.
+
+### #114 — Re-Crystallize einer Session unmöglich (`b6afef6`)
+`crystals.jsonl` ist jetzt **append-only versioniert**:
+- `crystallize_session(force=True)` springt am `existing`-Check vorbei und
+  schreibt einen neuen Crystal. Alter Eintrag bleibt im File.
+- `get_crystal()` liefert den neuesten Match per `session_id`.
+- `list_crystals()` dedupliziert per `session_id` (last-write-wins).
+- `_iter_entries()` Helper konsolidiert das JSONL-Lesen.
+- 11 neue Tests (`test_crystallize_storage.py`).
+
+### #116 — `_save_lessons` N×Memory-Rewrite (`9ee6631`)
+Analog zu `mark_compressed_bulk` aus Phase D (`6fcd6fb`):
+- `_apply_write()` extrahiert die pure Mutation auf `MemoryStore`-Dict ohne IO.
+- `write_keys_bulk(entries)` macht ein File-Read+Write für die ganze Batch.
+- `write_key()` unverändert; `_save_lessons()` nutzt jetzt Bulk.
+- 9 neue Tests (`test_memory_bulk.py`).
+
+### #115 + #113 — Per-Agent Memory-Settings + Crystal-Scope (`372b01f`)
+Bündel-PR weil beide am `build_memory_context()`-Code-Pfad hängen.
+
+**5 neue Agent-Config-Felder** (Defaults wie bisher, alle backfillen via
+`normalize()`):
+- `memory_max_crystals: int = 5`
+- `memory_max_lessons: int = 10`
+- `memory_min_lesson_confidence: float = 0.6`
+- `memory_max_chars: int = 4000`
+- `memory_crystal_scope: "project_and_global" | "project_only"` ← #113
+
+**Designentscheidung #113:** Default ist **`project_and_global`** — ein
+Project-Agent sieht jetzt sowohl seine eigenen Crystals als auch globale
+(`project=None`) vom Master-Buddy. Konsistent mit Lessons-Verhalten. Wer
+strikte Isolation will, schaltet auf `project_only`.
+
+**Frontend:** neue `MemorySection.tsx` auf dem Advanced-Tab unter
+`CompactionSection`. 5 Felder + i18n DE/EN.
+
+**Backend-Änderungen:**
+- `_defaults.py`: 5 `DEFAULT_MEMORY_*`-Konstanten
+- `_config_utils.normalize`: Backfill für bestehende Agents
+- `_agent_schemas.py`: 5 neue Felder in `AgentCreate` + `AgentUpdate`
+- `_context_injection.build_memory_context(*, agent_config=None)`
+- `_crystallize_storage.list_crystals(include_global=False)` Param
+- `runner.py`: agent-Dict an `build_memory_context` durchreichen
+
+**Tests:** 12 neue (`test_memory_context_injection.py`) für Defaults, alle
+4 Threshold-Overrides, alle 3 Scope-Modi.
+
+### Aggregat dieser Session
+4 Commits (`b6afef6`, `9ee6631`, `372b01f` + `66f2336` HANDOVER-Update),
+Tests von 197 → 229 (+32), ruff clean, tsc clean.
 
 ---
 
