@@ -29,6 +29,12 @@ export interface Agent {
   disabled_skills?: string[]
   require_tool_confirm?: boolean
   longterm_memory?: boolean
+  // Memory-Injection-Settings (#115/#113). Alle optional, Backend backfillt.
+  memory_max_crystals?: number
+  memory_max_lessons?: number
+  memory_min_lesson_confidence?: number
+  memory_max_chars?: number
+  memory_crystal_scope?: "project_and_global" | "project_only"
 }
 
 export interface ToolMeta {

@@ -103,5 +103,23 @@
     "live_truncation_help": "Kürzt einzelne Tool-Results live auf X Zeichen bevor sie in den LLM-Context gehen. 0 = kein Limit. Empfohlen: 12000.",
     "cache_ttl": "Prompt-Cache TTL",
     "cache_ttl_help": "Wie lange Anthropic den System-Prompt cached. 1h = Cache gilt über mehrere Sessions (2× Write-Kosten). 5m = Anthropic-Default (günstigere Writes, aber Cache verfällt schneller)."
+  },
+  "memory": {
+    "section_title": "Memory-Injection",
+    "default": "Standard",
+    "help": "Steuert wie viele vergangene Sessions (Crystals) und Lektionen (Lessons) beim Session-Start in den System-Prompt geschrieben werden. Wer wenig Memory-Kontext braucht (Specialist) kann alle Limits auf 0 setzen.",
+    "max_crystals": "Max Crystals",
+    "max_crystals_help": "Wie viele letzte Session-Digests injiziert werden. 0 = aus.",
+    "max_lessons": "Max Lessons",
+    "max_lessons_help": "Wie viele Lessons (sortiert nach Confidence) injiziert werden. 0 = aus.",
+    "min_confidence": "Min Lesson-Confidence ({{value}})",
+    "min_confidence_help": "Lessons unter diesem Wert werden ignoriert. Defaults: 0.6.",
+    "max_chars": "Max Block-Größe (Zeichen)",
+    "max_chars_unlimited": "Kein Limit",
+    "max_chars_help": "Soft-Cap für den gesamten Memory-Block. 0 = kein Limit.",
+    "crystal_scope": "Crystal-Sichtbarkeit",
+    "crystal_scope_help": "Welche Crystals ein Project-Agent sieht: nur eigene oder zusätzlich auch globale (project=None, z.B. vom Master-Buddy).",
+    "scope_project_and_global": "Eigene + globale (Standard)",
+    "scope_project_only": "Nur eigene"
   }
 }

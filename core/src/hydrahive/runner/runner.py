@@ -67,7 +67,9 @@ async def run(
 
     # Crystal-Injection: vergangene Sessions + Lessons in den Kontext einweben
     from hydrahive.agents._context_injection import build_memory_context
-    _mem_ctx = build_memory_context(agent["id"], project_id=ctx.project_id)
+    _mem_ctx = build_memory_context(
+        agent["id"], project_id=ctx.project_id, agent_config=agent,
+    )
     if _mem_ctx:
         base_system_prompt += "\n\n" + _mem_ctx
 
