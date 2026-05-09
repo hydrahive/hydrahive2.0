@@ -21,6 +21,9 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 - **Phase-E Architektur-Audit:** 4 parallele Audit-Agents (Backend Core /
   Backend Data / API+Auth / Frontend) durchgekämmt. 3 echte Bugs sofort
   gefixt (S5, S3, B5), 7 Backlog-Issues angelegt (#117–#123).
+- **Phase-F Doku-Pyramide:** Stale-Content aufgefrischt, 4 Architektur-
+  Subsystem-Docs angelegt, README/docs-Lesepfad aufgebaut. Siehe Doku-
+  Sektion unten.
 
 ---
 
@@ -176,6 +179,53 @@ später.
 3 Commits (`0156cad`, `b62108a`, `a655deb`), Tests von 229 → 243 (+14).
 Frontend war sauber — Spot-Check der heutigen MemorySection bestätigte
 i18n-Konsistenz und Feature-Folder-Pattern.
+
+---
+
+## ✅ Phase-F Doku-Pyramide (2026-05-09)
+
+Drei-Phasen-Sweep um die Doku auf den aktuellen Stand zu bringen und
+einen klaren Lesepfad pro Audience aufzubauen.
+
+### Phase 1 — Stale-Content (`be3967d`)
+
+- **TESTING_STATUS.md** komplett umgeschrieben: 60 → **243 Tests**,
+  Coverage-Matrix pro Subsystem (alle Kern-Subsysteme jetzt 🟢), CI-Job-
+  Beschreibung mit ruff+tsc, offene Lücken klar (MCP-Mock, AgentLink, E2E).
+- **STRUCTURE.md** Header-Stats aktualisiert (343 .py, 262 .ts/.tsx, 17
+  Test-Files).
+- **TEST_DEEP_DIVE.md** + **TEST_CHECKLIST.md** als historisch markiert mit
+  Banner — "0 Tests"-Schock-Doku vom 2026-05-06 sollte niemand mehr für den
+  aktuellen Stand halten.
+- **CONTRIBUTING.md** erweitert: Commit-Konventionen mit Beispielen,
+  Test-Naming + Race-Tests via multiprocessing, Code-Konventionen
+  (Atomic Writes mit flock, Lazy-Import, File-Größen).
+
+### Phase 2 — Architektur-Subsystem-Docs (`8ecee01`)
+
+Neuer Ordner `docs/architecture/` mit 4 Deep-Dives + Index. Ziel: Onboarding
+ohne dass man 343 .py-Files lesen muss.
+
+| Doc | Zeilen | Was |
+|---|---|---|
+| `memory.md` | 128 | Pipeline Observation→Compress→Crystallize→Lessons→Injection. Per-Agent-Settings, Crystal-Scope (#113), Append-Only-Versioning (#114), Bulk-Writes (#116/B1), Empty-Search-Budget. |
+| `runner.md` | 149 | Tool-Loop pro Iter, Streaming vs Fallback, 4 Provider-Backends, Token-Counts in beiden Pfaden (B5), Stop-Reason-Behandlung. |
+| `compaction.md` | 134 | OpenClaw-Pattern firstKeptEntryId-Pointer, hierarchisches Merging bei multi-window Historie, Secret-Redaction, Plugin-Hooks. |
+| `auth.md` | 187 | JWT vs API-Key, Roles, Login-Lockout, OAuth-Flow für Anthropic + ChatGPT Plus/Pro, atomic Refresh via flock (S3-Fix). |
+| `README.md` | 24 | Index + Pflege-Hinweise. |
+
+### Phase 3 — Onboarding-Pfad (`433bd86`)
+
+- **`docs/README.md`** als Doku-Index sortiert nach Audience: nutzen /
+  beitragen / verstehen / Tests / KI-Session aufgreifen. Gibt jedem
+  Einsteiger die Lese-Reihenfolge vor.
+- **`README.md`** neue Sektion "Dokumentation" mit Tabelle "Du willst X →
+  lies Y". Vorher waren 3 Links unten ohne Pfad — jetzt klare Hierarchie.
+
+### Aggregat
+3 Commits (`be3967d`, `8ecee01`, `433bd86`), 884 Zeilen Doku-Delta
+(622 neu in `architecture/` + 200 refresht + 57 README/Index + 5 STRUCTURE).
+Code unverändert, alle Tests grün.
 
 ---
 
