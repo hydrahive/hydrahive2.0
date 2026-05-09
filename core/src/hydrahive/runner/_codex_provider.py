@@ -202,9 +202,9 @@ async def codex_stream(
 async def codex_call(
     *, access_token: str, account_id: str, model: str,
     system_prompt: str, messages: list[dict], tools: list[dict],
-) -> tuple[list[dict], str]:
+) -> tuple[list[dict], str, dict[str, int]]:
     """Non-streaming Wrapper. Verbraucht codex_stream und gibt das finale
-    message_stop-Event als (blocks, stop_reason) zurück."""
+    message_stop-Event als (blocks, stop_reason, usage) zurück."""
     final: dict | None = None
     async for ev in codex_stream(
         access_token=access_token, account_id=account_id, model=model,
@@ -214,4 +214,10 @@ async def codex_call(
             final = ev
     if not final:
         raise RuntimeError("Codex-Stream ohne message_stop beendet")
-    return final.get("blocks", []), final.get("stop_reason", "end_turn")
+    usage = {
+        "input_tokens": final.get("input_tokens", 0),
+        "output_tokens": final.get("output_tokens", 0),
+        "cache_creation_tokens": final.get("cache_creation_tokens", 0),
+        "cache_read_tokens": final.get("cache_read_tokens", 0),
+    }
+    return final.get("blocks", []), final.get("stop_reason", "end_turn"), usage

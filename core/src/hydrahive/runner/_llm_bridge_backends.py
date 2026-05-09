@@ -62,10 +62,11 @@ async def anthropic_call(
     temperature: float,
     max_tokens: int,
     reasoning_effort: str | None = None,
-) -> tuple[list[dict], str]:
+) -> tuple[list[dict], str, dict[str, int]]:
     import anthropic as _anthropic
     from hydrahive.llm._anthropic import apply_thinking_budget
-    
+    from hydrahive.runner._token_usage import usage_dict
+
     is_oauth = key.startswith("sk-ant-oat")
     if is_oauth:
         client = _anthropic.AsyncAnthropic(
@@ -114,7 +115,7 @@ async def anthropic_call(
             raise
     blocks = [_block_to_dict(b) for b in resp.content]
     stop_reason = getattr(resp, "stop_reason", "") or ""
-    return blocks, stop_reason
+    return blocks, stop_reason, usage_dict(getattr(resp, "usage", None))
 
 
 async def minimax_anthropic_call(
@@ -129,7 +130,7 @@ async def minimax_anthropic_call(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
-) -> tuple[list[dict], str]:
+) -> tuple[list[dict], str, dict[str, int]]:
     """Direkter Anthropic-SDK-Call gegen api.minimax.io/anthropic.
 
     Unterschiede zu OAuth:
@@ -165,10 +166,12 @@ async def minimax_anthropic_call(
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
 
+    from hydrahive.runner._token_usage import usage_dict
+
     resp = await client.messages.create(**kwargs)
     blocks = [_block_to_dict(b) for b in resp.content]
     stop_reason = getattr(resp, "stop_reason", "") or ""
-    return blocks, stop_reason
+    return blocks, stop_reason, usage_dict(getattr(resp, "usage", None))
 
 
 def _is_tool_use_unsupported(exc: Exception) -> bool:
@@ -194,7 +197,7 @@ async def litellm_call(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
-) -> tuple[list[dict], str]:
+) -> tuple[list[dict], str, dict[str, int]]:
     """Tool-Loop-fähiger Call für alle non-Anthropic/non-MiniMax Provider via LiteLLM.
 
     Unterstützt Provider die OpenAI-kompatibles Function-Calling können:
@@ -240,7 +243,9 @@ async def litellm_call(
         else:
             raise
 
+    from hydrahive.runner._token_usage import usage_from_litellm
+
     choice = resp.choices[0]
     blocks = openai_response_to_anthropic_blocks(choice.message)
     stop_reason = openai_stop_to_anthropic(getattr(choice, "finish_reason", "") or "")
-    return blocks, stop_reason
+    return blocks, stop_reason, usage_from_litellm(resp)

@@ -89,7 +89,7 @@ async def _single_summarize(
     user_parts.append(history_text)
 
     from hydrahive.runner.llm_bridge import call_with_tools
-    blocks, _ = await call_with_tools(
+    blocks, _, _ = await call_with_tools(
         model=model,
         system_prompt=system_prompt,
         messages=[{"role": "user", "content": "\n".join(user_parts)}],
@@ -112,7 +112,7 @@ async def _merge_summaries(
     )
     if estimate_dense_text(combined) <= usable_per_call:
         from hydrahive.runner.llm_bridge import call_with_tools
-        blocks, _ = await call_with_tools(
+        blocks, _, _ = await call_with_tools(
             model=model,
             system_prompt=_MERGE_INSTRUCTIONS,
             messages=[{"role": "user", "content": combined}],

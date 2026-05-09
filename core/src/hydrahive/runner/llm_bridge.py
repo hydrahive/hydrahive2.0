@@ -22,12 +22,13 @@ async def call_with_tools(
     temperature: float,
     max_tokens: int,
     reasoning_effort: str | None = None,
-) -> tuple[list[dict], str]:
+) -> tuple[list[dict], str, dict[str, int]]:
     """One non-streaming LLM call with tool support.
 
-    Returns (content_blocks, stop_reason). Stop-reason values from Anthropic:
-    'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' — the runner
-    needs this to detect truncation (= broken tool_use inputs).
+    Returns (content_blocks, stop_reason, usage_dict). Stop-reason values from
+    Anthropic: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use'. usage_dict
+    has keys input_tokens/output_tokens/cache_creation_tokens/cache_read_tokens
+    (alle 0 wenn der Provider keine Counts liefert).
     """
     cfg = llm_client._load_config()
     target = model or cfg.get("default_model", "")
