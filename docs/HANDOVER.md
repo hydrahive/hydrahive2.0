@@ -1,11 +1,23 @@
-# HydraHive2 — Übergabe (Stand 2026-05-06 nach 04:30 Uhr)
+# HydraHive2 — Übergabe (Stand 2026-05-09)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
-## ⚠️ DRINGEND: Exorbitanter Token-Verbrauch beim Projekt-Agenten
+## Aktueller Stand (2026-05-09, Phase-0-Cleanup)
+
+- **Tests:** 60/60 grün lokal + CI (`.github/workflows/pytest.yml`)
+- **Tool-Cleanup vervollständigt** (#112): verwaiste `dir_list/file_search/http_request`
+  -Dateien gelöscht, Skills/Frontend/i18n-Help nachgezogen, `e034e07` (verloren
+  durch Force-Push) als Pflaster zurückgeholt — Commits `adbb30b` + `01c02b1`.
+- **#101 pgvector** seit `9a940ce` (2026-05-07) gefixt.
+- **Weiter Phase-0-offen:** Token-Verbrauch live messen mit/ohne `longterm_memory`
+  (Code-Mitigation steht — siehe unten —, Live-Diagnose braucht echte Session).
+
+---
+
+## ⚠️ Token-Verbrauch beim Projekt-Agenten (Status: Code-Fix steht, Live-Test offen)
 
 **Was passiert:** Der Projekt-Chat-Agent (Sonnet 4-5) hat in einer ~20-minütigen
 Session 31% des 5-Stunden-Rate-Limits verbraucht. Normalerweise wäre das 1–2%.
@@ -113,11 +125,12 @@ frontend/src/i18n/locales/en/agents.json        live_truncation i18n-Keys
 | 32 | PostgreSQL: SPEC vs. Code | p3, architecture | offen — Doku-Task |
 | 15 | ZH-Locale fehlt | p3, architecture | offen — Nice-to-have |
 
-Alle geschlossen: #104, #102, #101 (pgvector-Fix ist noch offen), #100, und
-alle früheren Issues.
+Alle geschlossen: #104, #102, #101, #100, und alle früheren Issues.
 
-**Achtung #101 (pgvector silent failure):** Noch nicht gefixt — nur besseres
-Error-Logging vorgeschlagen, aber nicht implementiert.
+**#101 (pgvector silent failure):** Gefixt am 2026-05-07 in `9a940ce` —
+apt-cache check vor Install, klare WARNUNG mit Fix-Hinweis statt stillem `||`,
+Extension-Health-Check am Ende mit konkretem psql-Befehl. Bewusst tolerant
+(nicht fail-fast), damit Installer ohne pgvector durchläuft.
 
 ---
 
