@@ -50,16 +50,23 @@ def list_crystals(
     agent_id: str,
     project: str | None = None,
     limit: int = 20,
+    include_global: bool = False,
 ) -> list[Crystal]:
     """Lädt Crystals eines Agents. Optional nach project gefiltert, neueste zuerst.
 
     Bei mehreren Crystals derselben Session (Re-Crystallize) wird nur die
     neueste Version zurückgegeben — die jsonl ist append-only versioniert.
+
+    project=None: kein Filter (alle Crystals sichtbar).
+    project=<id>, include_global=False: nur Crystals dieses Projekts.
+    project=<id>, include_global=True: Crystals dieses Projekts + globale (project=None).
     """
     by_session: dict[str, Crystal] = {}
     for entry in _iter_entries(agent_id):
-        if project is not None and entry.get("project") != project:
-            continue
+        if project is not None:
+            entry_project = entry.get("project")
+            if entry_project != project and not (include_global and entry_project is None):
+                continue
         sid = entry.get("session_id")
         if sid is None:
             continue

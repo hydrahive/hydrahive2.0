@@ -83,3 +83,18 @@ DEFAULT_COMPACT_RESERVE_TOKENS = 16_384
 # Wann triggert auto-compact als % vom (Context-Window − Reserve). 100 = bei
 # Limit-Erreichung. Niedriger = häufiger compactieren (defensiver).
 DEFAULT_COMPACT_THRESHOLD_PCT = 100
+
+# --- Memory-Injection-Defaults (per-Agent overridebar) -----------------------
+# Wieviele Crystals (Session-Digests) maximal in den System-Prompt injizieren.
+DEFAULT_MEMORY_MAX_CRYSTALS = 5
+# Wieviele Lessons maximal injizieren (sortiert nach confidence).
+DEFAULT_MEMORY_MAX_LESSONS = 10
+# Lessons unter dieser Confidence werden nicht injiziert.
+DEFAULT_MEMORY_MIN_LESSON_CONFIDENCE = 0.6
+# Soft-Limit für den gesamten Memory-Injection-Block (Zeichen).
+DEFAULT_MEMORY_MAX_CHARS = 4000
+# Crystal-Sichtbarkeit für Project-Agents:
+#   "project_and_global" — eigene + globale (project=None) sichtbar (Default,
+#       analog zu Lessons). Master-Buddy-Crystals sind im Project-Kontext nutzbar.
+#   "project_only" — strikt nur eigene Project-Crystals (Privacy/Isolation).
+DEFAULT_MEMORY_CRYSTAL_SCOPE = "project_and_global"
