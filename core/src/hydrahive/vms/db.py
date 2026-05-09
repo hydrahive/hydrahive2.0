@@ -25,6 +25,7 @@ def _row_to_vm(r: sqlite3.Row) -> VM:
         cpu=r["cpu"], ram_mb=r["ram_mb"], disk_gb=r["disk_gb"],
         iso_filename=r["iso_filename"], network_mode=r["network_mode"],
         qcow2_path=r["qcow2_path"],
+        disk_interface=r["disk_interface"] if "disk_interface" in keys else "virtio",
         desired_state=r["desired_state"], actual_state=r["actual_state"],
         pid=r["pid"], vnc_port=r["vnc_port"], vnc_token=r["vnc_token"],
         last_error_code=r["last_error_code"], last_error_params=params,
@@ -35,17 +36,18 @@ def _row_to_vm(r: sqlite3.Row) -> VM:
 
 def create_vm(owner: str, name: str, cpu: int, ram_mb: int, disk_gb: int,
               qcow2_path: str, network_mode: str = "bridged",
-              description: str | None = None, iso_filename: str | None = None) -> VM:
+              description: str | None = None, iso_filename: str | None = None,
+              disk_interface: str = "virtio") -> VM:
     vm_id = uuid7()
     ts = now_iso()
     with db() as conn:
         conn.execute(
             """INSERT INTO vms (vm_id, owner, name, description, cpu, ram_mb, disk_gb,
-                                iso_filename, network_mode, qcow2_path, desired_state,
-                                actual_state, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
+                                iso_filename, network_mode, qcow2_path, disk_interface,
+                                desired_state, actual_state, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
             (vm_id, owner, name, description, cpu, ram_mb, disk_gb,
-             iso_filename, network_mode, qcow2_path, ts, ts),
+             iso_filename, network_mode, qcow2_path, disk_interface, ts, ts),
         )
     return get_vm(vm_id)  # type: ignore[return-value]
 

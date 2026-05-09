@@ -8,6 +8,8 @@ DesiredState = Literal["running", "stopped"]
 ActualState = Literal["created", "starting", "running", "stopping", "stopped", "error"]
 NetworkMode = Literal["bridged", "isolated"]
 ImportStatus = Literal["queued", "running", "done", "failed"]
+DiskInterface = Literal["virtio", "sata", "ide"]
+DISK_INTERFACES: tuple[str, ...] = ("virtio", "sata", "ide")
 
 
 @dataclass
@@ -24,6 +26,7 @@ class VM:
     actual_state: ActualState
     created_at: str
     updated_at: str
+    disk_interface: DiskInterface = "virtio"
     description: str | None = None
     iso_filename: str | None = None
     pid: int | None = None

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
-import type { ImportJob, ISO, NetworkMode, VMCreateInput } from "./types"
+import type { DiskInterface, ImportJob, ISO, NetworkMode, VMCreateInput } from "./types"
 import { vmsApi } from "./api"
 import { formatBytes } from "./format"
 import { Field, Slider, RadioCard } from "./_vmDialogHelpers"
@@ -22,6 +22,7 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
   const [iso, setIso] = useState<string>("")
   const [importJobId, setImportJobId] = useState<string>("")
   const [network, setNetwork] = useState<NetworkMode>("bridged")
+  const [diskInterface, setDiskInterface] = useState<DiskInterface>("virtio")
   const [isos, setIsos] = useState<ISO[]>([])
   const [imports, setImports] = useState<ImportJob[]>([])
   const [busy, setBusy] = useState(false)
@@ -44,6 +45,7 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
         cpu, ram_mb: ramMb, disk_gb: diskGb,
         iso_filename: bootSrc === "iso" && iso ? iso : null,
         network_mode: network,
+        disk_interface: diskInterface,
       }
       if (bootSrc === "import") (input as any).import_job_id = importJobId
       await vmsApi.create(input)
@@ -118,6 +120,20 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
                 title="Bridged (br0)" desc="VM bekommt DHCP-IP aus dem LAN" />
               <RadioCard active={network === "isolated"} onClick={() => setNetwork("isolated")}
                 title="Isoliert" desc="Kein Netzwerk-Zugang" />
+            </div>
+          </Field>
+          <Field
+            label="Disk-Interface"
+            hint={bootSrc === "import"
+              ? "Bei importierten qcow2 aus VirtualBox/HH1/etc. meist 'sata' nötig — Bootloader haben oft keine virtio-Treiber."
+              : "virtio = schnellste Performance unter KVM. sata wenn das Gast-OS keine virtio-Treiber hat (z.B. Windows ohne virtio-win)."}>
+            <div className="grid grid-cols-3 gap-2">
+              <RadioCard active={diskInterface === "virtio"} onClick={() => setDiskInterface("virtio")}
+                title="virtio" desc="Schnell, Default" />
+              <RadioCard active={diskInterface === "sata"} onClick={() => setDiskInterface("sata")}
+                title="sata" desc="Kompatibel, importiert" />
+              <RadioCard active={diskInterface === "ide"} onClick={() => setDiskInterface("ide")}
+                title="ide" desc="Legacy, Notnagel" />
             </div>
           </Field>
           {error && <div className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">{error}</div>}

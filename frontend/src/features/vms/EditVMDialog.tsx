@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Loader2, Save, X } from "lucide-react"
-import type { ISO, VM } from "./types"
+import type { DiskInterface, ISO, VM } from "./types"
 import { vmsApi } from "./api"
 
 interface Props {
@@ -18,6 +18,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
   const [ramMb, setRamMb] = useState(vm.ram_mb)
   const [diskGb, setDiskGb] = useState(vm.disk_gb)
   const [iso, setIso] = useState<string>(vm.iso_filename ?? "")
+  const [diskInterface, setDiskInterface] = useState<DiskInterface>(vm.disk_interface)
   const [isos, setIsos] = useState<ISO[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +34,8 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
     cpu !== vm.cpu ||
     ramMb !== vm.ram_mb ||
     diskGb !== vm.disk_gb ||
-    iso !== (vm.iso_filename ?? "")
+    iso !== (vm.iso_filename ?? "") ||
+    diskInterface !== vm.disk_interface
 
   async function submit() {
     if (!validName) { setError("Name: 1-32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"); return }
@@ -53,6 +55,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
         if (iso === "") patch.clear_iso = true
         else patch.iso_filename = iso
       }
+      if (diskInterface !== vm.disk_interface) patch.disk_interface = diskInterface
       await vmsApi.update(vm.vm_id, patch)
       onSaved()
     } catch (e) {
@@ -116,6 +119,19 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
                 <option value={iso}>{iso} (nicht in Library)</option>
               )}
             </select>
+          </Field>
+          <Field label="Disk-Interface">
+            <select value={diskInterface}
+              onChange={(e) => setDiskInterface(e.target.value as DiskInterface)}
+              disabled={!editable}
+              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50">
+              <option value="virtio">virtio (schnell, Default)</option>
+              <option value="sata">sata (kompatibel, für importierte Images)</option>
+              <option value="ide">ide (Legacy)</option>
+            </select>
+            <p className="text-[10px] text-zinc-600 mt-0.5">
+              Bei Boot-Problemen mit importierten qcow2 (HH1/VirtualBox/etc.) auf <code className="font-mono">sata</code> umstellen — VM stoppen, hier ändern, wieder starten.
+            </p>
           </Field>
         </div>
 
