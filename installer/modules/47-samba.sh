@@ -78,9 +78,20 @@ log "Setze Samba-Passwort für '$SAMBA_USER'"
 (echo "$SMB_PWD"; echo "$SMB_PWD") | smbpasswd -a -s "$SAMBA_USER" >/dev/null
 smbpasswd -e "$SAMBA_USER" >/dev/null 2>&1 || true
 
-# Workspace-Root als hydrahive-User schreibbar + samba-User lesbar
-chown -R "$HH_USER:$SAMBA_USER" "$HH_DATA_DIR/workspaces" 2>/dev/null || true
-chmod -R g+rwX "$HH_DATA_DIR/workspaces" 2>/dev/null || true
+# Workspace-Root: hydrahive ownt, Group=hydrahive (Samba-User ist Mitglied).
+# Setgid-Bit auf alle Dirs damit neue Sub-Dirs die hydrahive-Gruppe erben.
+# Group-rwx auf Dirs (2775), Group-rw auf Files (664) damit der Samba-User
+# (in hydrahive-Gruppe) sowohl bestehende als auch Backend-erstellte Files
+# über Samba modifizieren kann.
+WORKSPACES="$HH_DATA_DIR/workspaces"
+if [ -d "$WORKSPACES" ]; then
+  log "Workspaces-Permissions nachziehen ($WORKSPACES)"
+  chown -R "$HH_USER:$HH_USER" "$WORKSPACES" 2>/dev/null || true
+  find "$WORKSPACES" -type d -exec chmod 2775 {} \; 2>/dev/null || true
+  find "$WORKSPACES" -type f -exec chmod 664 {} \; 2>/dev/null || true
+else
+  install -d -o "$HH_USER" -g "$HH_USER" -m 2775 "$WORKSPACES"
+fi
 
 systemctl enable smbd >/dev/null 2>&1 || true
 systemctl restart smbd >/dev/null 2>&1 || true
