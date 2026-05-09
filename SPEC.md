@@ -249,7 +249,6 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
     vor Ablauf. Pro Provider entweder API-Key ODER OAuth-Token (UI zeigt was
     gerade aktiv ist).
 - **MCP** — Server verwalten, pro Agent zuweisen
-- **Wiki** — HydraWiki: Seiten, Graph View, Ingestion, Dataview-Abfragen
 - **System** — Logs, Health, Services, System-Backup/Restore, Tailscale (Admin)
 - **Profil** — eigene Daten exportieren/importieren
 
@@ -607,94 +606,86 @@ ziehen, verbinden, verzweigen. Kein YAML-Editor als Fallback.
 
 ---
 
-## HydraWiki — Globale Wissensdatenbank (Core-Komponente)
+## Buddy — Persönlicher User-Agent (Core-Komponente)
 
-HydraWiki ist eine server-native, KI-gestützte Wissensdatenbank — das was
-Obsidian + claude-obsidian zusammen tun, aber vollständig self-hosted ohne
-externe Apps oder API-Abhängigkeiten. Alle authentifizierten User und Agents
-können lesen und schreiben.
+Pro User ein eigener „Buddy"-Agent. Auto-erstellt beim ersten Aufruf der
+Buddy-Page, fortlaufende Lifetime-Session (Auto-Compaction kümmert sich
+ums Context-Window). Soul-Prompt ist Charakter-basiert — der Buddy ist
+keine sterile Assistenz, sondern eine Persönlichkeit.
 
-### Dateiformat
-
-Plain-Text Markdown mit YAML Frontmatter unter `$HH_DATA_DIR/wiki/`:
-
-```
----
-title: Quantencomputing
-slug: quantencomputing
-tags: [informatik, physik]
-entities: [Qubit, Superposition, IBM]
-source_url: https://...
-created_at: 2026-05-02T10:00Z
-updated_at: 2026-05-02T10:00Z
----
-```
-
-Files sind die einzige Source of Truth. SQLite dient nur als regenerierbarer
-Index (Volltextsuche FTS5 + Backlinks). WikiLinks: `[[Seitenname]]` im Text,
-werden beim Speichern zu bidirektionalen Backlinks aufgelöst.
-
-### Ingestion-Flow
-
-1. User oder Agent gibt URL, Text oder Datei ein
-2. Backend fetcht + extrahiert Plaintext (readability-py für URLs)
-3. Einmaliger LLM-Call mit strukturiertem Output:
-   `{title, summary, entities, tags, links_to: [...existierende slugs...]}`
-4. Seite als `<slug>.md` gespeichert, Backlink-Index aktualisiert
-5. Widersprüche zu bestehenden Seiten werden als `⚠️ Widerspruch`-Block
-   markiert und lösen eine Benachrichtigung an den Ersteller aus
-6. Autoresearch: nach Ingestion startet ein Agent automatisch weitere
-   Web-Recherche und ergänzt die Seite mit zusätzlichen Quellen
-
-### Features
-
-- **Seiten-Liste**: Suche, Filter nach Tags / Entities / Autor
-- **Seiten-Detail**: Markdown-Rendering, Backlinks-Panel, Quell-URL
-- **Graph View**: D3.js force-directed — Knoten = Seiten, Kanten = WikiLinks,
-  Knotengröße nach Backlink-Anzahl
-- **Volltextsuche**: SQLite FTS5 über Titel + Inhalt + Entities
-- **Dataview-Abfragen**: `GET /api/wiki/query?tag=projekt&sort=updated_at`
-  mit Filter + Sort über alle Frontmatter-Felder
-- **Lint-Lauf**: findet verwaiste Seiten, tote WikiLinks, widersprüchliche
-  Aussagen, veraltete Quell-URLs
-- **Agent-Tools**: `wiki_search`, `wiki_ingest`, `wiki_read`, `wiki_write`
+### Funktionsumfang
+- Lifetime-Session pro User, keine Session-Wechsel
+- Charakter-Auswahl beim Erst-Setup
+- Marker `is_buddy=True` im Agent-Config — sonst normaler Master-Agent
+- Slash-Commands für häufige Aktionen (`/extensions`, eigenes Pill-UI)
+- Volle Tool-Suite des Master-Agenten
 
 ### Nicht-Ziele
-
-- Kein WYSIWYG-Editor (Markdown im Editor)
-- Kein Versionsverlauf pro Seite (Git auf dem Dateisystem ist Sache des Admins)
-- Keine Vektor-Embeddings / semantische Suche (FTS5 reicht)
-- Kein User-spezifisches Wiki (ein globaler Namespace)
+- Mehrere Buddies pro User
+- Wechselnde Charaktere (Charakter wird einmal beim Setup gewählt)
 
 ### Architektur
+Backend `core/src/hydrahive/buddy/`. API `/api/buddy/*`.
+Frontend `frontend/src/features/buddy/` (BuddyPage + Thread + Panels).
+Sidebar-Item neben den anderen Agent-Tabs.
 
-Backend `core/src/hydrahive/wiki/`:
-- `models.py` — Pydantic-Models (WikiPage, IngestRequest, QueryParams)
-- `storage.py` — Markdown-File I/O + Frontmatter-Parsing
-- `index.py` — SQLite FTS5 + Backlink-Index aufbauen / aktualisieren
-- `ingest.py` — URL-Fetch + LLM-Strukturierung + Speichern + Widerspruch-Check
-- `autoresearch.py` — Agent startet nach Ingestion autonome Weiterrecherche
-- `graph.py` — Graph-Daten für Frontend aufbereiten
-- `query.py` — Dataview-ähnliche Filter/Sort-API
-- `lint.py` — Vault-Health-Check
+---
 
-API-Routen `api/routes/wiki.py`:
-- `GET/POST/PUT/DELETE /api/wiki/pages`
-- `POST /api/wiki/ingest`
-- `GET /api/wiki/graph`
-- `GET /api/wiki/query`
-- `POST /api/wiki/lint`
+## Zahnfee — Nächtliche Datamining-Briefings (Core-Komponente)
 
-Frontend `frontend/src/features/wiki/` (je Datei < 150 Zeilen):
-- `WikiPage.tsx` — Haupt-Container, Sidebar-Navigation
-- `PageList.tsx` — Liste + Suche + Filter
-- `PageDetail.tsx` — Rendering + Backlinks-Panel
-- `GraphView.tsx` — D3.js-Canvas
-- `IngestForm.tsx` — URL / Text / Datei eingeben
-- `QueryView.tsx` — Dataview-Abfragen
-- `api.ts` + `types.ts`
+Asyncio-Hintergrundtask der einmal pro Tag (konfigurierbare Stunde) aus
+Datamining-Events der letzten N Stunden ein Morgen-Briefing erstellt.
+Strukturierter LLM-Output — keine Roman-Texte.
 
-Web-Konsole: neues Sidebar-Item `Wiki`.
+### Funktionsumfang
+- Scheduler läuft im Backend-Lifespan, prüft stündlich ob Zahnfee-Zeit ist
+- 1x pro Tag aktiv (konfigurierbare `run_hour`, `lookback_hours`)
+- LLM bekommt Datamining-Events, antwortet im JSON-Schema
+  `{open, went_well, went_badly, today}` — je max. 5 Punkte
+- Briefing wird persistiert; Frontend zeigt das aktuelle Briefing
+- Per-User-Toggle (`enabled`)
+
+### Nicht-Ziele
+- Mehrere Briefings pro Tag
+- Push-Benachrichtigungen (User holt sich's auf der Page ab)
+- Multi-User-Briefings (eines pro Instanz)
+
+### Voraussetzungen
+- Datamining-Mirror muss aktiv sein (sonst leeres Briefing)
+
+### Architektur
+Backend `core/src/hydrahive/zahnfee/` (config, scheduler, runner, storage).
+Briefing in `$HH_DATA_DIR/zahnfee/`. API `/api/zahnfee/*`.
+Frontend `frontend/src/features/zahnfee/`.
+
+---
+
+## Voice — STT/TTS für Sprache-Eingang/Ausgang (Core-Komponente)
+
+Wyoming-Whisper als lokaler STT-Server (Container, Port 10300) plus
+TTS-Helpers. Wird sowohl von `/api/stt` + `/api/tts` als auch vom
+WhatsApp-Adapter genutzt — Sprachnachrichten verstehen + senden.
+
+### Funktionsumfang
+- STT via Wyoming-Whisper (faster-whisper Backend)
+- Audio-Konvertierung zu 16kHz Mono raw-PCM via ffmpeg
+  (akzeptiert mp3/ogg/wav/m4a/…)
+- TTS-Wrapper mit Quota-Tracking (`_quota.py`)
+- WhatsApp-Voice-Eingang: `_wa_voice.py` ruft direkt `transcribe_bytes()`
+
+### Nicht-Ziele
+- Eigene Voice-Modelle trainieren
+- Streaming-STT mit Partial-Results (Single-Shot reicht)
+- Voice-Cloning
+
+### Voraussetzungen
+- Container-Subsystem aktiv (Voice-Whisper läuft als incus-Container)
+- ffmpeg im Backend-Pfad
+
+### Architektur
+Backend `core/src/hydrahive/voice/` (stt, tts, _audio_utils, _quota).
+Installer-Modul `installer/modules/55-voice.sh` setzt den
+Whisper-Container auf.
 
 ---
 
@@ -806,7 +797,6 @@ zeigt die UI eine Auswahl: Nativ oder Docker. Ohne Docker-Block: nur nativer Ins
 - Widget-Dashboard mit Drag&Drop
 - Collaborative Composer (Yjs)
 - Blueprint/Workflow-Editor
-- Xiaozhi Voice-Server
 - AutoDream
 - HydraBrain
 - Frustrations-Erkennung
