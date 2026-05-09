@@ -7,51 +7,69 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## Aktueller Stand (2026-05-09, Phase-0-Cleanup)
 
-- **Tests:** 60/60 grün lokal + CI (`.github/workflows/pytest.yml`)
+- **Tests:** 197/197 grün lokal + CI (`.github/workflows/pytest.yml` mit Ruff+TSC)
 - **Tool-Cleanup vervollständigt** (#112): verwaiste `dir_list/file_search/http_request`
   -Dateien gelöscht, Skills/Frontend/i18n-Help nachgezogen, `e034e07` (verloren
   durch Force-Push) als Pflaster zurückgeholt — Commits `adbb30b` + `01c02b1`.
 - **#101 pgvector** seit `9a940ce` (2026-05-07) gefixt.
-- **Weiter Phase-0-offen:** Token-Verbrauch live messen mit/ohne `longterm_memory`
-  (Code-Mitigation steht — siehe unten —, Live-Diagnose braucht echte Session).
+- **Phase-A Schliff abgeschlossen:** settings/mirror_query/runner/datamining-route
+  in <250-Zeilen-Module aufgeteilt (Mixin- + Facade-Pattern).
+- **Phase-D Memory-Diagnose abgeschlossen:** B1 (mark_compressed N-Rewrite) +
+  B2 (dead crystallize tool) gefixt. Issues #113-116 für Smells S1–S4 angelegt.
+- **Token-Verbrauch beim longterm_memory-Agent halbiert** — Live-gemessen
+  und bestätigt, siehe nächste Sektion.
 
 ---
 
-## ⚠️ Token-Verbrauch beim Projekt-Agenten (Status: Code-Fix steht, Live-Test offen)
+## ✅ Token-Verbrauch beim Projekt-Agenten (Status: behoben + verifiziert)
 
-**Was passiert:** Der Projekt-Chat-Agent (Sonnet 4-5) hat in einer ~20-minütigen
-Session 31% des 5-Stunden-Rate-Limits verbraucht. Normalerweise wäre das 1–2%.
+**Vorgeschichte:** Sonnet-4-6-Agent mit `longterm_memory=true` hat für eine
+einzelne User-Frage 11 Iterationen + 16 `datamining_search`-Calls (14× count=0)
+abgefeuert — Brute-Force durch Query-Synonyme.
 
-**Ursachen die identifiziert wurden:**
-- Tool-Results hatten keinerlei Größenbeschränkung. Ein einziger `shell_exec`
-  (gh issue list) hat 52.244 Zeichen rohes JSON zurückgegeben — allein das
-  sind ~13k Token. Eine `dir_list` hat 63.384 Zeichen (2506 Zeilen) geliefert.
-- Jedes Tool-Result geht ungefiltert in den LLM-Context und bleibt dort für
-  alle folgenden Iterationen (kumulativ!).
+### Drei Root-Causes (Live-Test Session `019e0d9a`, Sonnet 4-6, 2026-05-09)
 
-**Erster Fix diese Session:**
-`tool_result_max_chars` (Default: 12.000 Zeichen) in dispatcher.py eingebaut.
-Jedes Tool-Result wird jetzt live auf 12k Zeichen gekürzt bevor es in den
-Context geht. Per-Agent konfigurierbar in den Compaction-Settings im Frontend.
+1. **Pflicht-Prompt zu aggressiv** — `_LONGTERM_MEMORY_PROMPT` befahl "rufe
+   ZUERST datamining_search bei jeder Frage" → Agent hat auch bei generischen
+   Fragen gesucht.
+2. **Loop-Detection blind für Query-Variationen** — Agent variiert Synonyme
+   (`"admin Buddy"` → `"admin Buddy session Thema"` → `"Bookstack Mailcow"`),
+   keine zwei Calls sind identisch. Loop-Schutz greift nicht.
+3. **datamining_semantic verschwendet** — wird unkonditional registriert auch
+   wenn `embed_model` leer ist → Tool-Call schlägt mit "Embedding fehlgeschlagen"
+   fehl, kostet Tokens für nichts.
 
-**Commit:** `6d1ff0e feat(runner): live Tool-Result-Truncation — tool_result_max_chars`
+### Drei Fixes (Commit `71dc30f`, `core/src/hydrahive/runner/_runner_setup.py`)
 
-**Was NOCH NICHT geklärt ist:**
-Das Problem könnte tiefer liegen. Der Projekt-Agent hatte Zugriff auf
-Datamining-Tools (Langzeit-Gedächtnis) und hat diese exzessiv genutzt.
-Mögliche weitere Ursachen die noch nicht untersucht wurden:
-- Ist der System-Prompt des Projekt-Agenten deutlich größer als der Buddy-Prompt?
-  (Datamining-Block im Longterm-Memory-Modus hängt ~500 Zeichen an)
-- Wird die Cache-Nutzung korrekt ausgenutzt? Bei 96k Input-Tokens sollte der
-  Großteil gecacht sein — war das der Fall?
-- Hat der Projekt-Agent `longterm_memory=true`? Falls ja, werden bei jedem Turn
-  automatisch Datamining-Calls gemacht die den Context vergrößern.
+- **A:** Prompt entschärft: "Nutze sie wenn die Frage konkret auf etwas
+  Vergangenes verweist" statt "rufe ZUERST".
+- **B:** Empty-Search-Budget eingeführt: "wenn zwei aufeinanderfolgende
+  `datamining_search`-Calls `count: 0` zurückgeben, hör auf weitere
+  Query-Variationen zu probieren."
+- **C:** `inject_longterm_memory` registriert `TOOL_SEMANTIC` nur wenn
+  `embed_model` in der LLM-Config gesetzt ist.
 
-**Nächste Schritte:**
-1. Projekt-Agenten-Config prüfen: `longterm_memory`-Flag und aktuelle Toolset-Größe
-2. Nach dem nächsten Test: Token-Breakdown ansehen (wie viel davon cached?)
-3. Falls immer noch zu hoch: `tool_result_max_chars` auf 8.000 oder 6.000 senken
-4. Erwägen ob Projekt-Agent `longterm_memory` überhaupt braucht
+### Live-Vergleich (gleiche Frage, gleicher Agent, hh2-218)
+
+| Metrik | Baseline (vor Fix) | Nach Fix | Δ |
+|---|---|---|---|
+| Iterationen | 11 | **6** | −45% |
+| Tool-Calls | 16 (14× leer) | **7** (4× leer) | −56% |
+| Input-Tokens | 9 591 | 8 388 | −13% |
+| Output-Tokens | 2 701 | 1 384 | −49% |
+| Cache-Create | 48 004 | 18 750 | −61% |
+| Cache-Read | 132 558 | 69 560 | −48% |
+| **Total** | **192 854** | **98 082** | **−49%** |
+
+Verhalten verifiziert: Iter 1 startet jetzt mit `datamining_timeline`
+statt search-Brute-Force, Iter 5 trifft 2× count=0, Iter 6 stoppt mit
+"Okay, ich stopp mit dem Suchen". Empty-Search-Budget greift.
+
+### Frühere Mitigation (bleibt aktiv)
+
+`tool_result_max_chars` (Default 12 000 Zeichen) in dispatcher.py kürzt jedes
+Tool-Result bevor es in den Context geht. Per-Agent konfigurierbar in den
+Compaction-Settings. Commit: `6d1ff0e`.
 
 ---
 
