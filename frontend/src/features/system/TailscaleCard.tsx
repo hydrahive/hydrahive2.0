@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 import type { TailscaleStatus } from "./_tailscaleTypes"
 import { TailscaleConnectedView } from "./_TailscaleConnectedView"
+import { TailscaleInviteSection } from "./_TailscaleInviteSection"
 import { TailscaleLoginForm } from "./_TailscaleLoginForm"
 
 const REFRESH_MS = 15_000
@@ -116,7 +117,10 @@ export function TailscaleCard() {
       </div>
 
       {connected && (
-        <TailscaleConnectedView status={status} loggingOut={loggingOut} onLogout={handleLogout} />
+        <>
+          <TailscaleConnectedView status={status} loggingOut={loggingOut} onLogout={handleLogout} />
+          <TailscaleInviteSection />
+        </>
       )}
 
       {error && !showLogin && <p className="text-xs text-rose-400">{error}</p>}
