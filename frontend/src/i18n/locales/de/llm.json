@@ -22,5 +22,14 @@
     "button": "Verbindung testen",
     "saving": "Speichern…",
     "ok": "OK · \"{{response}}\""
+  },
+  "usage": {
+    "loading": "Lade Rate-Limits…",
+    "anthropic_title": "Anthropic OAuth Rate-Limits",
+    "window_5h": "5-Stunden-Fenster",
+    "window_7d": "7-Tage-Fenster",
+    "resets_at": "Reset",
+    "threshold_warning": "Schwellenwert überschritten",
+    "threshold_explanation": "Die Nutzung hat den Schwellenwert überschritten. Anfragen könnten gedrosselt werden."
   }
 }

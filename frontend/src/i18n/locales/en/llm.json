@@ -22,5 +22,14 @@
     "button": "Test connection",
     "saving": "Saving…",
     "ok": "OK · \"{{response}}\""
+  },
+  "usage": {
+    "loading": "Loading rate limits…",
+    "anthropic_title": "Anthropic OAuth Rate Limits",
+    "window_5h": "5-Hour Window",
+    "window_7d": "7-Day Window",
+    "resets_at": "Resets",
+    "threshold_warning": "Threshold exceeded",
+    "threshold_explanation": "Usage has exceeded the threshold. Requests might be throttled."
   }
 }

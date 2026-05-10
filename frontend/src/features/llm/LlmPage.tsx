@@ -6,6 +6,7 @@ import { HelpButton } from "@/i18n/HelpButton"
 import { llmApi, type EmbedModel, type LlmConfig, type LlmProvider } from "./api"
 import { ProviderCard } from "./ProviderCard"
 import { ProviderForm } from "./ProviderForm"
+import { AnthropicUsageCard } from "./AnthropicUsageCard"
 
 export function LlmPage() {
   const { t } = useTranslation("llm")
@@ -75,6 +76,9 @@ export function LlmPage() {
           <HelpButton topic="llm" />
         </div>
       </div>
+
+      {/* Anthropic Rate-Limits Card */}
+      <AnthropicUsageCard />
 
       <div className="space-y-2">
         <div className="flex items-center justify-between mb-3">
