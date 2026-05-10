@@ -39,15 +39,32 @@ async def check_update() -> dict:
     return {"commit": commit, "update_behind": behind}
 
 
+_UPDATE_COOLDOWN_SEC = 300  # 5min — typische Update-Dauer
+_last_update_trigger: float = 0.0
+
+
 @router.post("/update", dependencies=[Depends(require_admin)])
 def trigger_update() -> dict:
+    """Cooldown 5min: ohne das löst Click-Spam mehrere parallele update.sh-Runs
+    aus (systemd-Path-Watcher triggert bei jedem write von .update_request)."""
+    global _last_update_trigger
     if not UPDATE_SCRIPT.exists():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "update_script_missing")
+    now = time.time()
+    elapsed = now - _last_update_trigger
+    if elapsed < _UPDATE_COOLDOWN_SEC:
+        wait = int(_UPDATE_COOLDOWN_SEC - elapsed)
+        raise coded(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "update_cooldown_active",
+            message=f"Update läuft bereits — bitte {wait}s warten bis Cooldown abläuft.",
+        )
     try:
-        UPDATE_TRIGGER.write_text(str(int(time.time())))
+        UPDATE_TRIGGER.write_text(str(int(now)))
     except OSError as e:
         logger.exception("Trigger-File konnte nicht geschrieben werden")
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "update_trigger_failed", message=str(e))
+    _last_update_trigger = now
     logger.warning("Update-Trigger geschrieben (%s) — systemd-Path-Watcher übernimmt", UPDATE_TRIGGER)
     return {"started": True}
 

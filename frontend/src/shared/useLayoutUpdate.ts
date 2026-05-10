@@ -43,8 +43,12 @@ export function useLayoutUpdate() {
     setUpdateState("running")
     const oldCommit = commit
     const startedAt = Date.now()
-    let serverStableSince: number | null = null
-    while (Date.now() - startedAt < 5 * 60 * 1000) {
+    // Update braucht typisch 3-8min (git pull, deps, frontend build, agentlink,
+    // service restart). Wir warten auf commit-change, max 10min.
+    // Kein "15s-stable = done"-Fallback — der hat #zzz verursacht: Modal sagte
+    // nach 15s "fertig" obwohl Update gerade erst angefangen hatte. Pre-Check
+    // oben fängt schon den no-op-Fall (lokal bereits == remote) ab.
+    while (Date.now() - startedAt < 10 * 60 * 1000) {
       await new Promise((r) => setTimeout(r, 3000))
       try {
         const h = await api.get<{ commit: string | null; update_behind: number | null }>("/health")
@@ -52,17 +56,7 @@ export function useLayoutUpdate() {
           setCommit(h.commit); setUpdateBehind(h.update_behind)
           setNewCommit(h.commit); setUpdateState("done"); return
         }
-        // Server antwortet, Commit unverändert (Force-Rebuild oder no-op-Pull):
-        // Wenn Server lange genug stabil unverändert bleibt, gilt das Update als fertig.
-        if (serverStableSince === null) {
-          serverStableSince = Date.now()
-        } else if (Date.now() - serverStableSince >= 15000) {
-          setUpdateBehind(h.update_behind)
-          setNewCommit(h.commit ?? oldCommit); setUpdateState("done"); return
-        }
-      } catch {
-        serverStableSince = null
-      }
+      } catch { /* Service restartet gerade — weiter pollen */ }
     }
     setUpdateState("failed"); setUpdateError("timeout")
   }
