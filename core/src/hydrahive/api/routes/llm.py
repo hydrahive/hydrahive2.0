@@ -12,6 +12,7 @@ from typing import Annotated
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.llm import client as llm_client
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
+from hydrahive.llm._oauth_usage import get_oauth_rate_limits
 from hydrahive.llm import embed as llm_embed
 from hydrahive.settings import settings
 
@@ -89,3 +90,9 @@ def get_embed_models() -> list[dict]:
 async def minimax_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """MiniMax token_plan/remains pro Modell. Auch für non-admin sichtbar — nur Quota-Info."""
     return await fetch_minimax_usage()
+
+
+@router.get("/anthropic/rate-limits")
+def anthropic_rate_limits(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Anthropic OAuth Rate-Limits. Für alle User sichtbar — zeigt 5h/7d Utilization."""
+    return get_oauth_rate_limits()

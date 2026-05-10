@@ -128,7 +128,10 @@ async def anthropic_complete(
     }
     if system:
         kwargs["system"] = system
-    resp = await client.messages.create(**kwargs)
+    from hydrahive.llm._oauth_usage import extract_rate_limit_headers
+    raw_resp = await client.messages.with_raw_response.create(**kwargs)
+    extract_rate_limit_headers(raw_resp.headers)
+    resp = raw_resp.parse()
     return extract_text(resp.content)
 
 
