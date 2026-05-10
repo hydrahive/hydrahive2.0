@@ -7,10 +7,15 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## Aktueller Stand (2026-05-10, Tag 2 nach 05-09-Pause)
 
-- **Tests:** 264/264 grün (+21 vs. gestern: +8 Voice, +3 vms-route-order, +10 disk_interface).
+- **Tests:** 278/278 grün (+35 vs. gestern: +8 Voice, +3 vms-route-order,
+  +10 disk_interface, +3 workspace-permissions, +11 machine_type/network_device).
 - **Tag-2-Sweep** (2026-05-10): Update-Modal-Fix, HA Voice Phase 1 Backend,
-  zwei Kunden-Bugs gefunden + behoben (vms-Routing 404, qcow2-Boot-Mismatch).
-  Siehe Sektion unten.
+  vier Kunden-Bug-Stränge — vms-Routing-404, qcow2-virtio-Boot, Samba-Workspace-
+  Permissions, FreeBSD-Compat (machine_type pc, network_device e1000). Siehe
+  Sektion unten.
+- **Offen für morgen:** FreeBSD-VM auf Kunden-Server bootet trotz aller Code-
+  Fixes nicht — "no bootable disks". Diagnose vertagt, siehe "Offen"-Sektion
+  ganz unten.
 - **Phase-D Memory-Diagnose abgeschlossen:** alle Smells S1–S4 jetzt geschlossen
   (#113–#116, siehe Memory-Smells-Sektion unten).
 - **Token-Verbrauch beim longterm_memory-Agent halbiert** — Live-gemessen
@@ -327,12 +332,116 @@ für importierte Images), ide (Notnagel)".
   qemu_args-Branches für alle drei Werte, Create/Patch mit gültigen
   und ungültigen Werten.
 
+### Kunden-Bug 3: Samba-Schreibzugriff broken (`e6f6635`)
+
+**Symptom (selber Kunde, anderer Sub-Bug)**: Samba-User `hh` kann den
+Projekt-Workspace lesen aber nicht schreiben. Save-Operationen vom
+Windows-Client schlagen mit Read-only fehl.
+
+**Cause**: drei aufeinander aufbauende Permission-Probleme:
+
+1. `ensure_workspace()` in `projects/_paths.py` machte nur `mkdir` ohne
+   Mode-Setting → neue Workspaces sind `hydrahive:hydrahive 0755`. Der
+   Samba-User ist via `usermod` Mitglied der hydrahive-Gruppe, hat aber
+   damit nur `r-x` über Group, nicht `w`.
+2. Backend-systemd-Service hatte Default-UMask `0022` → Files werden
+   `0644`. Selbst bei `g+w` Dirs könnte Samba-User Backend-erstellte
+   Files nicht modifizieren.
+3. `47-samba.sh` setzte beim Install zwar einmalig chown+chmod, aber
+   ohne Setgid — neue Sub-Dirs erbten die hydrahive-Group nicht.
+
+**Fix**:
+- `ensure_workspace()` chmodt frisch + repariert auf `0o2775` (Setgid +
+  rwxrwxr-x), idempotent
+- `50-systemd.sh`: `UMask=0002` in der Service-Unit
+- `update.sh` erkennt fehlendes UMask=0002 und triggert Service-Rewrite
+- `47-samba.sh`: bestehende Workspaces nachziehen via find+chmod
+
+3 Tests in `test_workspace_permissions.py`: Mode bei frischem Workspace,
+Repair von kaputten existierenden Dirs, Idempotenz.
+
+### Kunden-Bug 4: FreeBSD-VM-Boot nach qcow2-Import (`04298a9`+`c701352`+`aaac77c`)
+
+**Symptom (selber Kunde, neuer Sub-Bug)**: FreeBSD-VM aus HH1-qcow2
+bootet nicht. Erst MOS-Fehler, nach disk_interface-Fix dann ZFS-I/O-
+Error, dann nach sauberem Re-Export "no bootable disks".
+
+**Recherche**: `~/octopos/core/src/hydrahive_core/vm_manager.py:459`
+hatte den Bug-Schlüssel im Klartext-Kommentar:
+
+> `pc (i440FX/PIIX) ist kompatibler mit importierten VMs (VirtualBox-`
+> `Standard-Chipsatz). q35 (ICH9) ist moderner aber bricht FreeBSD/`
+> `ältere Gäste beim Import.`
+
+Plus: `e1000 statt virtio: VDI-Imports aus VirtualBox/VMware erwarten
+em0 — vtnet0 (virtio) würde im Guest nicht greifen`.
+
+HH2 hardcoded `q35` + `virtio-net-pci`. HH1 hatte beide Switches als
+Default auf der kompatiblen Variante.
+
+**Fix als per-VM-Switch** (gleicher Pattern wie disk_interface):
+- `machine_type`: `q35` (Default) | `pc` (i440FX, kompatibel)
+- `network_device`: `virtio-net-pci` (Default) | `e1000` (Legacy/Imports)
+
+Migration 009 fügt beide Spalten an mit Default `q35`/`virtio-net-pci`.
+Plus: `discard=unmap` aus IDE-Variante entfernt (`aaac77c`) — IDE hat
+kein TRIM, kann in einigen FreeBSD-`gptzfsboot`-Versionen mit IRQ-Race
+zu I/O-Errors führen.
+
+11 Tests in `test_vm_machine_network.py`: qemu-args-Branches für q35/pc
+und virtio-net/e1000 in beiden Network-Modes, Migration-Spalten,
+Default-Verhalten, Create/Patch mit gültigen + ungültigen Werten.
+
 ### Aggregat Tag 2
 
-6 Commits (`2818a6d`, `d00d7fc`, `1d921c6`, `37110ad`, `8c72bd6`,
-`2342a06`), Tests **243 → 264** (+21), alle grün, frontend tsc + ruff
-clean. SPEC zwei standalone-Commits (HA-Voice + disk_interface), beide
-mit Pre-Commit-Hook-Compliance.
+10 Commits (`2818a6d`, `d00d7fc`, `1d921c6`, `37110ad`, `8c72bd6`,
+`2342a06`, `e6f6635`, `04298a9`, `c701352`, `aaac77c`), Tests
+**243 → 278** (+35), alle grün, frontend tsc + ruff clean. SPEC drei
+standalone-Commits (HA-Voice + disk_interface + machine_type/network_device),
+alle mit Pre-Commit-Hook-Compliance.
+
+---
+
+## ⏳ Offen — FreeBSD-VM bootet trotz aller Settings nicht
+
+**Kunde, 2026-05-10 spät**: nach den vier Code-Fixes (machine_type=pc,
+disk_interface=ide/sata/virtio durch alle Kombis) bootet die FreeBSD-
+qcow2 nicht. SeaBIOS sagt `boot failed: no bootable disks`. Log ist
+leer. Kunde hat Disk **nach** sauberem HH1-Shutdown via scp transferiert,
+File ist 12 GB groß.
+
+**Stand der Diagnose**: Kunde kommt heute Abend nicht mehr drauf.
+Morgen ist die Aufgabe entweder
+(a) Kunden-Server zu erreichen und die drei Diagnose-Befehle laufen zu
+lassen, oder
+(b) lokal nachzubauen mit einer FreeBSD-qcow2.
+
+**Diagnose-Befehle (read-only, sicher)** wenn Kunden-Server erreichbar:
+
+```bash
+# VM stoppen vorher!
+sudo qemu-img info  /var/lib/hydrahive2/vms/disks/<vm_id>.qcow2
+sudo qemu-img check /var/lib/hydrahive2/vms/disks/<vm_id>.qcow2
+sudo qemu-img dd if=/var/lib/hydrahive2/vms/disks/<vm_id>.qcow2 \
+                 of=/tmp/sector0 bs=512 count=1
+sudo xxd /tmp/sector0 | tail -3      # Letzte 2 Bytes müssen 55 aa sein
+sudo tail -100 /var/lib/hydrahive2/vms/logs/<vm_id>.log
+sudo -u hydrahive sqlite3 /var/lib/hydrahive2/sessions.db \
+  "SELECT vm_id, name, qcow2_path, machine_type, disk_interface FROM vms;"
+```
+
+**Drei mögliche Ursachen** die wir noch nicht ausgeschlossen haben:
+
+1. File ist gar kein qcow2 sondern raw/vmdk umbenannt — `qemu-img info`
+   sagt's sofort
+2. Erster Sektor hat kein `55 aa` Boot-Magic — Image wurde irgendwie
+   ohne MBR/GPT-Header transferiert (sehr untypisch bei `cp`)
+3. VM in der DB referenziert eine andere qcow2 als gedacht (mehrere
+   Import-Versuche → 5 qcow2-Files im disks/ Verzeichnis)
+
+**Andere offene Threads**:
+- HA Voice Phase 2 (HA Custom Component) — siehe oben
+- HA Voice Phase 3 (Doku) — siehe oben
 
 ---
 
