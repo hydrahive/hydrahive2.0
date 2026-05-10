@@ -3,10 +3,17 @@
 Workflow:
 1. Quelle (Upload-File ODER Pfad) wird in vms_imports_tmp/ bereitgelegt
 2. `qemu-img info` erkennt Format
-3. Wenn schon qcow2: copy/move. Sonst: `qemu-img convert -p -f <fmt> -O qcow2 src dst`
+3. Wenn schon qcow2: 1:1-Copy ohne Reformatierung. Sonst:
+   `qemu-img convert -p -f <fmt> -O qcow2 src dst`
 4. Progress wird aus stderr von qemu-img convert gelesen ('-p' liefert "(XX.XX/100%)")
 5. Erfolg: Job-Status 'done', Disk liegt unter vms_disks_dir/<job_id>.qcow2
 6. Fehler: Job-Status 'failed' mit error_code
+
+Wichtig: bei qcow2-Quelle KEIN qemu-img convert. Convert würde
+cluster_size auf 64K-Default und Subformat auf qcow2-v3 umstellen —
+FreeBSDs gptzfsboot ist gegen solche Layout-Wechsel empfindlich und
+liefert "ZFS I/O error" / "no bootable disks" beim Boot. 1:1-Copy
+behält das Original-Layout bit-für-bit bei.
 
 Background-Tasks via asyncio.create_task — kein eigener Worker-Daemon.
 """
@@ -94,7 +101,12 @@ async def run_convert(src: Path, dst: Path, src_format: str, job_id: str) -> Non
 
 
 async def execute_job(job_id: str, *, cleanup_source: bool = True) -> None:
-    """Hintergrund-Task: macht detect_format → convert → DB-Update."""
+    """Hintergrund-Task: macht detect_format → convert ODER copy → DB-Update.
+
+    Bei qcow2-Source: 1:1-shutil.copy2 (Original-Layout bleibt bit-genau
+    erhalten). Bei anderen Formaten (raw/vmdk/vdi/etc.): qemu-img convert
+    nach qcow2 mit Default-Settings.
+    """
     job = db_get(job_id)
     if not job:
         return
@@ -106,7 +118,13 @@ async def execute_job(job_id: str, *, cleanup_source: bool = True) -> None:
             raise ImportError_("import_source_missing")
         fmt = await detect_format(src)
         dst.parent.mkdir(parents=True, exist_ok=True)
-        await run_convert(src, dst, fmt, job_id)
+        if fmt == "qcow2":
+            # 1:1-Copy — kein qemu-img convert weil das cluster_size + subformat
+            # neu setzen würde, was FreeBSD-gptzfsboot beim Boot zerstört.
+            await asyncio.to_thread(shutil.copy2, str(src), str(dst))
+            db_update(job_id, progress_pct=100)
+        else:
+            await run_convert(src, dst, fmt, job_id)
         db_update(job_id, status="done", progress_pct=100, finished_at=now_iso())
     except ImportError_ as e:
         logger.warning("Import-Job %s fehlgeschlagen: %s", job_id, e.code)
