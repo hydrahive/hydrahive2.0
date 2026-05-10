@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.tailscale.control import logout, up
+from hydrahive.tailscale.install import install_tailscale
 from hydrahive.tailscale.status import get_status
 
 router = APIRouter(prefix="/api/tailscale", tags=["tailscale"])
@@ -35,3 +36,14 @@ async def tailscale_logout(_=Depends(require_admin)) -> dict:
         return await get_status()
     except RuntimeError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/install")
+async def tailscale_install(_=Depends(require_admin)) -> dict:
+    """Installiert Tailscale-Binary via Installer-Modul (idempotent).
+
+    Returnt {ok, rc, output, status} — Frontend kann output bei rc != 0 anzeigen.
+    """
+    result = await install_tailscale()
+    result["status"] = await get_status()
+    return result

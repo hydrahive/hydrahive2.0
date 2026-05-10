@@ -20,8 +20,14 @@ async def _run(*args: str, timeout: float = 30) -> str:
     return stdout.decode().strip()
 
 
-async def up(authkey: str) -> None:
-    await _run("up", f"--authkey={authkey}", "--accept-routes")
+async def up(authkey: str, accept_routes: bool = False) -> None:
+    # accept_routes default OFF: sonst werden Tailnet-Subnet/Exit-Routes auf
+    # den Host gepusht und das LAN-Default-Interface verschwindet aus
+    # `ip route get` — Server LAN-seitig unerreichbar. Opt-in only.
+    args = ["up", f"--authkey={authkey}"]
+    if accept_routes:
+        args.append("--accept-routes")
+    await _run(*args)
 
 
 async def logout() -> None:
