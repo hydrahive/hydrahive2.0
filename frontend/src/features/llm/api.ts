@@ -28,6 +28,22 @@ export interface EmbedModel {
   provider: string
 }
 
+export interface AnthropicRateLimits {
+  updated_at?: string
+  status?: string
+  representative_claim?: string
+  fallback?: string
+  "5h_utilization"?: number
+  "5h_reset"?: string
+  "5h_surpassed_threshold"?: string
+  "7d_utilization"?: number
+  "7d_reset"?: string
+  "7d_surpassed_threshold"?: string
+  overage_status?: string
+  overage_utilization?: number
+  overage_reset?: string
+}
+
 export const llmApi = {
   getConfig: () => api.get<LlmConfig>("/llm"),
   updateConfig: (cfg: LlmConfig) => api.put<LlmConfig>("/llm", cfg),
@@ -41,6 +57,7 @@ export const llmApi = {
       { provider, code_or_url }),
   oauthRevoke: (provider: string) =>
     api.delete<{ ok: boolean }>(`/llm/oauth/${provider}`),
+  getAnthropicRateLimits: () => api.get<AnthropicRateLimits>("/llm/anthropic/rate-limits"),
 }
 
 export interface CatalogModel {
