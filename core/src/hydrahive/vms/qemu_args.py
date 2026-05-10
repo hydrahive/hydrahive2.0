@@ -20,7 +20,8 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
     # buggy → FreeBSD libcrypto crash. qemu64 ist konservativ und stabil.
     has_kvm = Path("/dev/kvm").exists()
     cpu_model = "host" if has_kvm else "qemu64"
-    machine = "q35,accel=kvm" if has_kvm else "q35,accel=tcg"
+    # vm.machine_type ist 'q35' oder 'pc' — accel-Suffix abhängig von /dev/kvm.
+    machine = f"{vm.machine_type},accel={'kvm' if has_kvm else 'tcg'}"
 
     args: list[str] = [
         "qemu-system-x86_64",
@@ -48,16 +49,17 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
     else:
         args += ["-boot", "order=c,menu=on"]
 
-    # Networking
+    # Networking — vm.network_device ist 'virtio-net-pci' oder 'e1000'.
+    nic = vm.network_device
     if vm.network_mode == "bridged":
         args += [
             "-netdev", f"bridge,id=net0,br={settings.vms_bridge}",
-            "-device", f"virtio-net-pci,netdev=net0,mac={_mac_for(vm.vm_id)}",
+            "-device", f"{nic},netdev=net0,mac={_mac_for(vm.vm_id)}",
         ]
     elif vm.network_mode == "isolated":
         args += [
             "-netdev", "user,id=net0,restrict=yes",  # restrict=yes blockt Internet
-            "-device", f"virtio-net-pci,netdev=net0,mac={_mac_for(vm.vm_id)}",
+            "-device", f"{nic},netdev=net0,mac={_mac_for(vm.vm_id)}",
         ]
 
     return args

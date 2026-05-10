@@ -38,7 +38,9 @@ def update_vm_config(vm_id: str, *, name: str | None = None, description: str | 
                      cpu: int | None = None, ram_mb: int | None = None,
                      disk_gb: int | None = None,
                      iso_filename: str | None = ...,
-                     disk_interface: str | None = None) -> None:
+                     disk_interface: str | None = None,
+                     machine_type: str | None = None,
+                     network_device: str | None = None) -> None:
     """Konfig-Update für eine VM. Nur im stopped-State erlaubt — der Caller validiert.
     Sentinels (...) für optionale clear-zu-NULL."""
     sets: list[str] = ["updated_at = ?"]
@@ -57,6 +59,10 @@ def update_vm_config(vm_id: str, *, name: str | None = None, description: str | 
         sets.append("iso_filename = ?"); vals.append(iso_filename)
     if disk_interface is not None:
         sets.append("disk_interface = ?"); vals.append(disk_interface)
+    if machine_type is not None:
+        sets.append("machine_type = ?"); vals.append(machine_type)
+    if network_device is not None:
+        sets.append("network_device = ?"); vals.append(network_device)
     vals.append(vm_id)
     with db() as conn:
         conn.execute(f"UPDATE vms SET {', '.join(sets)} WHERE vm_id = ?", vals)

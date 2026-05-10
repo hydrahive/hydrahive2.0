@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Loader2, Save, X } from "lucide-react"
-import type { DiskInterface, ISO, VM } from "./types"
+import type { DiskInterface, ISO, MachineType, NetworkDevice, VM } from "./types"
 import { vmsApi } from "./api"
 
 interface Props {
@@ -19,6 +19,8 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
   const [diskGb, setDiskGb] = useState(vm.disk_gb)
   const [iso, setIso] = useState<string>(vm.iso_filename ?? "")
   const [diskInterface, setDiskInterface] = useState<DiskInterface>(vm.disk_interface)
+  const [machineType, setMachineType] = useState<MachineType>(vm.machine_type)
+  const [networkDevice, setNetworkDevice] = useState<NetworkDevice>(vm.network_device)
   const [isos, setIsos] = useState<ISO[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +37,9 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
     ramMb !== vm.ram_mb ||
     diskGb !== vm.disk_gb ||
     iso !== (vm.iso_filename ?? "") ||
-    diskInterface !== vm.disk_interface
+    diskInterface !== vm.disk_interface ||
+    machineType !== vm.machine_type ||
+    networkDevice !== vm.network_device
 
   async function submit() {
     if (!validName) { setError("Name: 1-32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"); return }
@@ -56,6 +60,8 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
         else patch.iso_filename = iso
       }
       if (diskInterface !== vm.disk_interface) patch.disk_interface = diskInterface
+      if (machineType !== vm.machine_type) patch.machine_type = machineType
+      if (networkDevice !== vm.network_device) patch.network_device = networkDevice
       await vmsApi.update(vm.vm_id, patch)
       onSaved()
     } catch (e) {
@@ -131,6 +137,30 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
             </select>
             <p className="text-[10px] text-zinc-600 mt-0.5">
               Bei Boot-Problemen mit importierten qcow2 (HH1/VirtualBox/etc.) auf <code className="font-mono">sata</code> umstellen — VM stoppen, hier ändern, wieder starten.
+            </p>
+          </Field>
+          <Field label="Machine-Type">
+            <select value={machineType}
+              onChange={(e) => setMachineType(e.target.value as MachineType)}
+              disabled={!editable}
+              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50">
+              <option value="q35">q35 (modern, ICH9, Default)</option>
+              <option value="pc">pc (i440FX — FreeBSD/Windows-XP/VBox-Imports)</option>
+            </select>
+            <p className="text-[10px] text-zinc-600 mt-0.5">
+              Bei <code className="font-mono">cannot read MOS</code> (FreeBSD-ZFS) oder Boot-Hängern alter Gäste auf <code className="font-mono">pc</code> umstellen.
+            </p>
+          </Field>
+          <Field label="Network-Device">
+            <select value={networkDevice}
+              onChange={(e) => setNetworkDevice(e.target.value as NetworkDevice)}
+              disabled={!editable}
+              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50">
+              <option value="virtio-net-pci">virtio-net-pci (schnell, Default)</option>
+              <option value="e1000">e1000 (Intel-NIC, in jedem Gast-OS)</option>
+            </select>
+            <p className="text-[10px] text-zinc-600 mt-0.5">
+              Wenn die VM kein Netz hat (kein DHCP-IP, kein Ping), <code className="font-mono">e1000</code> versuchen — fast jedes OS hat den Treiber drin.
             </p>
           </Field>
         </div>

@@ -10,6 +10,10 @@ NetworkMode = Literal["bridged", "isolated"]
 ImportStatus = Literal["queued", "running", "done", "failed"]
 DiskInterface = Literal["virtio", "sata", "ide"]
 DISK_INTERFACES: tuple[str, ...] = ("virtio", "sata", "ide")
+MachineType = Literal["q35", "pc"]
+MACHINE_TYPES: tuple[str, ...] = ("q35", "pc")
+NetworkDevice = Literal["virtio-net-pci", "e1000"]
+NETWORK_DEVICES: tuple[str, ...] = ("virtio-net-pci", "e1000")
 
 
 @dataclass
@@ -27,6 +31,8 @@ class VM:
     created_at: str
     updated_at: str
     disk_interface: DiskInterface = "virtio"
+    machine_type: MachineType = "q35"
+    network_device: NetworkDevice = "virtio-net-pci"
     description: str | None = None
     iso_filename: str | None = None
     pid: int | None = None

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
-import type { DiskInterface, ImportJob, ISO, NetworkMode, VMCreateInput } from "./types"
+import type { DiskInterface, ImportJob, ISO, MachineType, NetworkDevice, NetworkMode, VMCreateInput } from "./types"
 import { vmsApi } from "./api"
 import { formatBytes } from "./format"
 import { Field, Slider, RadioCard } from "./_vmDialogHelpers"
@@ -23,6 +23,8 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
   const [importJobId, setImportJobId] = useState<string>("")
   const [network, setNetwork] = useState<NetworkMode>("bridged")
   const [diskInterface, setDiskInterface] = useState<DiskInterface>("virtio")
+  const [machineType, setMachineType] = useState<MachineType>("q35")
+  const [networkDevice, setNetworkDevice] = useState<NetworkDevice>("virtio-net-pci")
   const [isos, setIsos] = useState<ISO[]>([])
   const [imports, setImports] = useState<ImportJob[]>([])
   const [busy, setBusy] = useState(false)
@@ -46,6 +48,8 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
         iso_filename: bootSrc === "iso" && iso ? iso : null,
         network_mode: network,
         disk_interface: diskInterface,
+        machine_type: machineType,
+        network_device: networkDevice,
       }
       if (bootSrc === "import") (input as any).import_job_id = importJobId
       await vmsApi.create(input)
@@ -134,6 +138,26 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
                 title="sata" desc="Kompatibel, importiert" />
               <RadioCard active={diskInterface === "ide"} onClick={() => setDiskInterface("ide")}
                 title="ide" desc="Legacy, Notnagel" />
+            </div>
+          </Field>
+          <Field
+            label="Machine-Type"
+            hint="q35 = modernes ICH9-Chipset (Default). pc = i440FX, kompatibel mit FreeBSD-ZFS-Boot, Windows XP, alte Linux, VirtualBox-Imports.">
+            <div className="grid grid-cols-2 gap-2">
+              <RadioCard active={machineType === "q35"} onClick={() => setMachineType("q35")}
+                title="q35" desc="Modern, Default" />
+              <RadioCard active={machineType === "pc"} onClick={() => setMachineType("pc")}
+                title="pc (i440FX)" desc="Kompatibel, FreeBSD/XP/alt" />
+            </div>
+          </Field>
+          <Field
+            label="Network-Device"
+            hint="virtio-net-pci = schnell (Default). e1000 = Intel-NIC, in fast jedem Gast-OS unterstützt — für Imports ohne virtio-Treiber.">
+            <div className="grid grid-cols-2 gap-2">
+              <RadioCard active={networkDevice === "virtio-net-pci"} onClick={() => setNetworkDevice("virtio-net-pci")}
+                title="virtio-net-pci" desc="Schnell, Default" />
+              <RadioCard active={networkDevice === "e1000"} onClick={() => setNetworkDevice("e1000")}
+                title="e1000" desc="Intel-Treiber, kompatibel" />
             </div>
           </Field>
           {error && <div className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">{error}</div>}
