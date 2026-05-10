@@ -7,15 +7,18 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## Aktueller Stand (2026-05-10, Tag 2 nach 05-09-Pause)
 
-- **Tests:** 278/278 grün (+35 vs. gestern: +8 Voice, +3 vms-route-order,
-  +10 disk_interface, +3 workspace-permissions, +11 machine_type/network_device).
+- **Tests:** 280/280 grün (+37 vs. gestern: +8 Voice, +3 vms-route-order,
+  +10 disk_interface, +3 workspace-permissions, +11 machine_type/network_device,
+  +2 qcow2-passthrough).
 - **Tag-2-Sweep** (2026-05-10): Update-Modal-Fix, HA Voice Phase 1 Backend,
-  vier Kunden-Bug-Stränge — vms-Routing-404, qcow2-virtio-Boot, Samba-Workspace-
-  Permissions, FreeBSD-Compat (machine_type pc, network_device e1000). Siehe
-  Sektion unten.
-- **Offen für morgen:** FreeBSD-VM auf Kunden-Server bootet trotz aller Code-
-  Fixes nicht — "no bootable disks". Diagnose vertagt, siehe "Offen"-Sektion
-  ganz unten.
+  fünf Kunden-Bug-Stränge — vms-Routing-404, qcow2-virtio-Boot, Samba-Workspace-
+  Permissions, FreeBSD-Compat (machine_type pc, network_device e1000), und
+  zum Schluss der Hauptbug: Import reformatiert qcow2 mit qemu-img convert,
+  was das Layout zerstört. Siehe Sektion unten.
+- **Wahrscheinliches Fix für FreeBSD-Boot ist drin** (`f2cd617`) — qcow2-
+  Source wird jetzt 1:1 kopiert statt durch `qemu-img convert` reformatiert.
+  Live-Verifikation steht noch aus (Kunde hatte heute keinen Server-Zugang
+  mehr).
 - **Phase-D Memory-Diagnose abgeschlossen:** alle Smells S1–S4 jetzt geschlossen
   (#113–#116, siehe Memory-Smells-Sektion unten).
 - **Token-Verbrauch beim longterm_memory-Agent halbiert** — Live-gemessen
@@ -392,56 +395,73 @@ zu I/O-Errors führen.
 und virtio-net/e1000 in beiden Network-Modes, Migration-Spalten,
 Default-Verhalten, Create/Patch mit gültigen + ungültigen Werten.
 
+### Kunden-Bug 5 (Hauptbug): qcow2-Import reformatiert das Image (`f2cd617`)
+
+**Symptom**: nach Re-Export und allen Settings-Kombinationen bootet die
+FreeBSD-qcow2 immer noch nicht — "no bootable disks". Frische FreeBSD-
+Installation in HH2 mit gleichen QEMU-Args (machine=pc, disk=ide)
+funktioniert dagegen sauber. Der A/B-Test schließt HH2-Args als Ursache
+aus → der Import-Pfad selbst zerstört das Image.
+
+**Cause**: `import_job.execute_job()` rief unconditional
+`run_convert()` (`qemu-img convert -O qcow2 src dst`) auf, auch wenn
+die Source bereits qcow2 war. `qemu-img convert` ändert dabei
+`cluster_size` auf 64K-Default und Subformat auf `qcow2-v3`. FreeBSDs
+`gptzfsboot`-Stage-2 ist gegen solche Layout-Wechsel empfindlich und
+liefert ZFS-I/O-Errors weil die Block-Allocation-Map nicht mehr zur
+erwarteten Pool-Struktur passt. Der Module-Docstring sagte sogar
+explizit "Wenn schon qcow2: copy/move. Sonst: qemu-img convert" — der
+Code hat das aber nie umgesetzt. Doku-Bug und Funktional-Bug in einem.
+
+**Fix**: `detect_format()` vor `run_convert()`. Bei `fmt=qcow2` →
+`shutil.copy2` in einem Thread (1:1, behält Layout bit-genau). Bei
+raw/vmdk/vdi/etc. → weiterhin `qemu-img convert`.
+
+2 Tests in `test_import_qcow2_passthrough.py`: qcow2-Source ist nach
+`execute_job` SHA256-identisch zur Source und `run_convert` wurde NICHT
+gerufen. Plus Gegenprobe: nicht-qcow2-Source ruft `run_convert` weiter.
+
 ### Aggregat Tag 2
 
-10 Commits (`2818a6d`, `d00d7fc`, `1d921c6`, `37110ad`, `8c72bd6`,
-`2342a06`, `e6f6635`, `04298a9`, `c701352`, `aaac77c`), Tests
-**243 → 278** (+35), alle grün, frontend tsc + ruff clean. SPEC drei
-standalone-Commits (HA-Voice + disk_interface + machine_type/network_device),
-alle mit Pre-Commit-Hook-Compliance.
+11 Commits (`2818a6d`, `d00d7fc`, `1d921c6`, `37110ad`, `8c72bd6`,
+`2342a06`, `e6f6635`, `04298a9`, `c701352`, `aaac77c`, `f2cd617`),
+Tests **243 → 280** (+37), alle grün, frontend tsc + ruff clean. SPEC
+drei standalone-Commits (HA-Voice + disk_interface +
+machine_type/network_device), alle mit Pre-Commit-Hook-Compliance.
 
 ---
 
-## ⏳ Offen — FreeBSD-VM bootet trotz aller Settings nicht
+## ⏳ Offen — FreeBSD-Fix Live-Verifikation
 
-**Kunde, 2026-05-10 spät**: nach den vier Code-Fixes (machine_type=pc,
-disk_interface=ide/sata/virtio durch alle Kombis) bootet die FreeBSD-
-qcow2 nicht. SeaBIOS sagt `boot failed: no bootable disks`. Log ist
-leer. Kunde hat Disk **nach** sauberem HH1-Shutdown via scp transferiert,
-File ist 12 GB groß.
+**Stand 2026-05-10 Nacht**: der vermutliche Hauptfix (`f2cd617` qcow2-
+Passthrough) ist gepusht und Code-getestet (sha256-Identität bestätigt).
+**Aber Live-Test beim Kunden steht aus** — Till hatte heute keinen
+Server-Zugang mehr.
 
-**Stand der Diagnose**: Kunde kommt heute Abend nicht mehr drauf.
-Morgen ist die Aufgabe entweder
-(a) Kunden-Server zu erreichen und die drei Diagnose-Befehle laufen zu
-lassen, oder
-(b) lokal nachzubauen mit einer FreeBSD-qcow2.
+**Verifikations-Pfad für morgen**:
 
-**Diagnose-Befehle (read-only, sicher)** wenn Kunden-Server erreichbar:
+1. Kunde macht `sudo /opt/hydrahive2/installer/update.sh` — zieht den
+   qcow2-Passthrough-Fix
+2. **Frischen Re-Import** der qcow2 (alte Imports sind durch das alte
+   convert kaputt — können nicht repariert werden)
+3. VM neu erstellen mit machine=`pc` + disk=`ide` (HH1-exakte Combo)
+4. Booten
 
-```bash
-# VM stoppen vorher!
-sudo qemu-img info  /var/lib/hydrahive2/vms/disks/<vm_id>.qcow2
-sudo qemu-img check /var/lib/hydrahive2/vms/disks/<vm_id>.qcow2
-sudo qemu-img dd if=/var/lib/hydrahive2/vms/disks/<vm_id>.qcow2 \
-                 of=/tmp/sector0 bs=512 count=1
-sudo xxd /tmp/sector0 | tail -3      # Letzte 2 Bytes müssen 55 aa sein
-sudo tail -100 /var/lib/hydrahive2/vms/logs/<vm_id>.log
-sudo -u hydrahive sqlite3 /var/lib/hydrahive2/sessions.db \
-  "SELECT vm_id, name, qcow2_path, machine_type, disk_interface FROM vms;"
-```
+Wenn FreeBSD damit hochkommt: alle 11 Tag-2-Commits validiert, Story
+abgeschlossen.
 
-**Drei mögliche Ursachen** die wir noch nicht ausgeschlossen haben:
+**Falls es doch nicht reicht** (unwahrscheinlich, aber Plan B):
 
-1. File ist gar kein qcow2 sondern raw/vmdk umbenannt — `qemu-img info`
-   sagt's sofort
-2. Erster Sektor hat kein `55 aa` Boot-Magic — Image wurde irgendwie
-   ohne MBR/GPT-Header transferiert (sehr untypisch bei `cp`)
-3. VM in der DB referenziert eine andere qcow2 als gedacht (mehrere
-   Import-Versuche → 5 qcow2-Files im disks/ Verzeichnis)
+Lokal eine FreeBSD-qcow2 bauen (FreeBSD-Install-ISO + frische
+HH2-VM → installieren → herunterfahren → die qcow2 als "external
+import" wieder einlesen). Wenn das **lokal** auch bricht, ist's ein
+weiterer Bug; wenn lokal das geht, ist's was Kunden-Server-spezifisches
+(Filesystem? Storage-Backend? Cross-FS-Move?).
 
-**Andere offene Threads**:
-- HA Voice Phase 2 (HA Custom Component) — siehe oben
-- HA Voice Phase 3 (Doku) — siehe oben
+**Andere offene Threads** (nicht dringend):
+- HA Voice Phase 2 (HA Custom Component, `custom_components/hydrahive/`)
+- HA Voice Phase 3 (Doku + Install-Anleitung)
+- 7 Backlog-Issues #117-#123 aus Phase-E-Audit
 
 ---
 
