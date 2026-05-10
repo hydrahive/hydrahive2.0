@@ -22,7 +22,9 @@ from hydrahive.vms import db as vmdb
 from hydrahive.vms import disk as vmdisk
 from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import lifecycle
-from hydrahive.vms.models import DISK_INTERFACES, NAME_RE
+from hydrahive.vms.models import (
+    DISK_INTERFACES, MACHINE_TYPES, NAME_RE, NETWORK_DEVICES,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/vms", tags=["vms"])
@@ -48,6 +50,12 @@ async def create_vm(
     if body.disk_interface not in DISK_INTERFACES:
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid",
                     value=body.disk_interface)
+    if body.machine_type not in MACHINE_TYPES:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_machine_type_invalid",
+                    value=body.machine_type)
+    if body.network_device not in NETWORK_DEVICES:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_device_invalid",
+                    value=body.network_device)
     if vmdb.name_taken(user, body.name):
         raise coded(status.HTTP_409_CONFLICT, "vm_name_taken")
 
@@ -59,6 +67,7 @@ async def create_vm(
         cpu=body.cpu, ram_mb=body.ram_mb, disk_gb=body.disk_gb,
         iso_filename=iso_safe, network_mode=body.network_mode,
         qcow2_path="", disk_interface=body.disk_interface,
+        machine_type=body.machine_type, network_device=body.network_device,
     )
     try:
         if import_qcow2:
@@ -109,6 +118,12 @@ async def update_vm(
     if req.disk_interface is not None and req.disk_interface not in DISK_INTERFACES:
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid",
                     value=req.disk_interface)
+    if req.machine_type is not None and req.machine_type not in MACHINE_TYPES:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_machine_type_invalid",
+                    value=req.machine_type)
+    if req.network_device is not None and req.network_device not in NETWORK_DEVICES:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_device_invalid",
+                    value=req.network_device)
 
     iso_kw: dict = {}
     if req.clear_iso:
@@ -133,6 +148,8 @@ async def update_vm(
         ram_mb=req.ram_mb,
         disk_gb=req.disk_gb,
         disk_interface=req.disk_interface,
+        machine_type=req.machine_type,
+        network_device=req.network_device,
         **iso_kw,
     )
     return serialize(vmdb.get_vm(vm_id))

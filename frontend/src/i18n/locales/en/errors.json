@@ -83,6 +83,8 @@
   "vm_name_taken": "A VM with this name already exists",
   "vm_network_mode_invalid": "Unknown network mode",
   "vm_disk_interface_invalid": "Invalid disk interface '{{value}}' — allowed: virtio, sata, ide",
+  "vm_machine_type_invalid": "Invalid machine type '{{value}}' — allowed: q35, pc",
+  "vm_network_device_invalid": "Invalid network device '{{value}}' — allowed: virtio-net-pci, e1000",
   "iso_not_found": "ISO '{{filename}}' not found",
   "iso_invalid_name": "Invalid ISO filename",
   "iso_invalid_format": "File is not valid ISO-9660 (magic '{{magic}}')",

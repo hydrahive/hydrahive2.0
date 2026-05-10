@@ -1,6 +1,6 @@
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "@/features/auth/useAuthStore"
-import type { DiskInterface, ImportJob, ISO, Snapshot, VM, VMCreateInput } from "./types"
+import type { DiskInterface, ImportJob, ISO, MachineType, NetworkDevice, Snapshot, VM, VMCreateInput } from "./types"
 
 export const vmsApi = {
   list: () => api.get<VM[]>("/vms"),
@@ -15,6 +15,8 @@ export const vmsApi = {
     iso_filename?: string
     clear_iso?: boolean
     disk_interface?: DiskInterface
+    machine_type?: MachineType
+    network_device?: NetworkDevice
   }) => api.patch<VM>(`/vms/${id}`, patch),
   remove: (id: string) => api.delete<void>(`/vms/${id}`),
   start: (id: string) => api.post<VM>(`/vms/${id}/start`, {}),

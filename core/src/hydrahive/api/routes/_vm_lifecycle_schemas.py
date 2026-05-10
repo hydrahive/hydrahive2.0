@@ -17,6 +17,8 @@ class VMCreate(BaseModel):
     network_mode: str = "bridged"
     import_job_id: str | None = None
     disk_interface: str = "virtio"
+    machine_type: str = "q35"
+    network_device: str = "virtio-net-pci"
 
 
 class VMUpdate(BaseModel):
@@ -28,3 +30,5 @@ class VMUpdate(BaseModel):
     iso_filename: str | None = None
     clear_iso: bool = False
     disk_interface: str | None = None
+    machine_type: str | None = None
+    network_device: str | None = None
