@@ -83,9 +83,10 @@ def _disk_args(vm: VM) -> list[str]:
             "-device", "ide-hd,bus=ahci.0,drive=disk0",
         ]
     if iface == "ide":
+        # discard=unmap absichtlich NICHT — IDE hat kein TRIM, und in einigen
+        # FreeBSD-Boot-Loadern (gptzfsboot) führt das bei IRQ-Race zu I/O-Errors.
         return [
-            "-drive", f"file={vm.qcow2_path},format=qcow2,if=ide,"
-                      "cache=writeback,discard=unmap",
+            "-drive", f"file={vm.qcow2_path},format=qcow2,if=ide,cache=writeback",
         ]
     # default: virtio
     return [
