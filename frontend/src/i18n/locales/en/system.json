@@ -90,6 +90,11 @@
   "tailscale": {
     "title": "Tailscale",
     "not_installed": "Tailscale is not installed.",
+    "install_hint": "Installs the Tailscale binary and enables tailscaled. Connect here afterwards with an auth key.",
+    "install_button": "Install Tailscale",
+    "installing": "Installing…",
+    "install_failed": "Installation failed",
+    "install_success": "Tailscale installed.",
     "connected": "Connected",
     "disconnected": "Not connected",
     "hostname": "Hostname",
