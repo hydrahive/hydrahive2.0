@@ -424,6 +424,10 @@ Dev-Sandboxes) die von einem Specialist-Agent administriert werden.
 - Disk: qcow2-Erzeugung, ISO-Boot, qcow2/raw/vmdk-Import bestehender Images
 - Disk-Interface pro VM wählbar: `virtio` (Default, schnellste, für Neu-Installationen),
   `sata` (kompatibel, für importierte Images aus VirtualBox/HH1/etc.), `ide` (Notnagel)
+- Machine-Type pro VM wählbar: `q35` (Default, ICH9, modern), `pc` (i440FX, kompatibel —
+  für FreeBSD-ZFS-Boot, Windows XP, sehr alte Linux, VirtualBox-Imports)
+- Network-Device pro VM wählbar: `virtio-net-pci` (Default, schnell), `e1000` (Intel-NIC,
+  von Haus aus in fast jedem Gast-OS unterstützt — für Imports ohne virtio-net-Treiber)
 - Konsole: VNC im Browser via websockify+noVNC, Token pro VM
 - Snapshots: erstellen + offline restore
 - Networking: Bridged via `br0` (Default, VMs bekommen DHCP-IPs aus dem LAN), Isoliert optional
