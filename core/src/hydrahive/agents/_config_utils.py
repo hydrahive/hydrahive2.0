@@ -10,6 +10,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_COMPACT_RESERVE_TOKENS,
     DEFAULT_COMPACT_THRESHOLD_PCT,
     DEFAULT_COMPACT_TOOL_RESULT_LIMIT,
+    DEFAULT_MAX_ITERATIONS,
     DEFAULT_MAX_TOKENS,
     DEFAULT_MEMORY_CRYSTAL_SCOPE,
     DEFAULT_MEMORY_MAX_CHARS,
@@ -52,6 +53,7 @@ def normalize(cfg: dict) -> dict:
     cfg.setdefault("compact_tool_result_limit", DEFAULT_COMPACT_TOOL_RESULT_LIMIT)
     cfg.setdefault("compact_reserve_tokens", DEFAULT_COMPACT_RESERVE_TOKENS)
     cfg.setdefault("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT)
+    cfg.setdefault("max_iterations", DEFAULT_MAX_ITERATIONS)
     cfg.setdefault("tool_result_max_chars", DEFAULT_TOOL_RESULT_MAX_CHARS)
     cfg.setdefault("cache_ttl", DEFAULT_CACHE_TTL)
     cfg.setdefault("memory_max_crystals", DEFAULT_MEMORY_MAX_CRYSTALS)

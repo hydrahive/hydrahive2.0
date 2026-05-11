@@ -7,7 +7,7 @@ import time
 from typing import AsyncIterator
 
 from hydrahive.agents import config as agent_config
-from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT
+from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT, DEFAULT_MAX_ITERATIONS
 from hydrahive.agents._paths import ensure_workspace
 from hydrahive.db import errors_log
 from hydrahive.db import llm_calls as llm_calls_db
@@ -33,7 +33,9 @@ from hydrahive.tools._sessions import session_end, session_start
 
 logger = logging.getLogger(__name__)
 
-MAX_ITERATIONS = 30
+# Modul-Default für Backwards-Compat. Per-Agent-Override (siehe `run()`)
+# gewinnt — Agent-Configs können `max_iterations` setzen.
+MAX_ITERATIONS = DEFAULT_MAX_ITERATIONS
 LOOP_DETECTION_WINDOW = 3
 
 
@@ -100,8 +102,9 @@ async def run(
     compact_threshold_pct = int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT))
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
+    max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
 
-    for iteration in range(MAX_ITERATIONS):
+    for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
 
         history = await prepare_history(
@@ -264,5 +267,5 @@ async def run(
         history.append(tool_msg)
 
     session_end(agent["id"], session_id, status="abandoned")
-    yield Error(f"Max-Iterationen ({MAX_ITERATIONS}) erreicht ohne Abschluss",
+    yield Error(f"Max-Iterationen ({max_iterations}) erreicht ohne Abschluss",
                 metadata={"last_assistant_message": last_assistant_id})
