@@ -10,6 +10,7 @@ from hydrahive.api.lifespan import lifespan
 from hydrahive.api.routes.agentlink import router as agentlink_router
 from hydrahive.api.routes.agents import router as agents_router
 from hydrahive.api.routes.agent_memory import router as agent_memory_router
+from hydrahive.api.routes.analytics import router as analytics_router
 from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.backup import router as backup_router
 from hydrahive.api.routes.buddy import router as buddy_router
@@ -91,6 +92,7 @@ app.include_router(backup_router)
 app.include_router(users_router)
 app.include_router(agents_router)
 app.include_router(agent_memory_router)
+app.include_router(analytics_router)
 app.include_router(communication_router)
 app.include_router(communication_whatsapp_router)
 app.include_router(communication_discord_router)
