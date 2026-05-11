@@ -138,11 +138,14 @@ def session_detail(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     """Telemetrie-Detail einer Session — alle Aggregate + Listen der Events."""
+    from dataclasses import asdict
     from hydrahive.db import errors_log
     from hydrahive.db import llm_calls as llm_calls_db
     from hydrahive.db import compaction_events as compaction_events_db
     from hydrahive.db import session_metrics
     from hydrahive.db import sessions as sessions_db
+    from hydrahive.db import tools as tools_db
+    from hydrahive.agents import config as agent_config
 
     username, role = auth
     s = sessions_db.get(session_id)
@@ -154,9 +157,38 @@ def session_detail(
         raise HTTPException(status_code=403, detail="forbidden")
 
     metrics = session_metrics.for_session(session_id)
+    agent = agent_config.get(s.agent_id) if s.agent_id else None
+
+    tool_calls_raw = tools_db.list_for_session(session_id)
+    tool_calls = []
+    for tc in tool_calls_raw:
+        d = asdict(tc)
+        # arguments + result sind potenziell groß — kürzen damit Response klein bleibt
+        if d.get("arguments"):
+            arg_str = str(d["arguments"])
+            d["arguments_preview"] = arg_str[:500] + ("…" if len(arg_str) > 500 else "")
+            d.pop("arguments", None)
+        if d.get("result"):
+            res_str = str(d["result"])
+            d["result_preview"] = res_str[:500] + ("…" if len(res_str) > 500 else "")
+            d.pop("result", None)
+        tool_calls.append(d)
+
     return {
+        "session": {
+            "id": s.id,
+            "title": s.title,
+            "agent_id": s.agent_id,
+            "agent_name": agent["name"] if agent else None,
+            "user_id": s.user_id,
+            "project_id": s.project_id,
+            "status": s.status,
+            "created_at": s.created_at,
+            "updated_at": s.updated_at,
+        },
         "metrics": metrics,
         "llm_calls": llm_calls_db.for_session(session_id),
+        "tool_calls": tool_calls,
         "compactions": compaction_events_db.for_session(session_id),
         "errors": errors_log.for_session(session_id),
     }
