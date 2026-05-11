@@ -27,6 +27,7 @@ async def process_tool_uses(
     parent_message_id: str,
     require_confirm: bool,
     tool_result_max_chars: int,
+    iteration: int | None = None,
 ) -> AsyncIterator[Event | list[dict]]:
     """Führt alle tool_uses einer Iteration aus, yields Events.
     Letzter yield ist die fertige `result_blocks: list[dict]`.
@@ -54,9 +55,9 @@ async def process_tool_uses(
                 result_blocks.append(to_tool_result_block(tu_id, result, ctx, tu_name))
                 continue
 
-        result, _record_id, duration_ms = await execute_tool(
+        result, record_id, duration_ms = await execute_tool(
             tool_use=tu, allowed_tools=allowed_tools, ctx=ctx,
-            parent_message_id=parent_message_id,
+            parent_message_id=parent_message_id, iteration=iteration,
         )
         record_observation(
             agent_id=ctx.agent_id, session_id=ctx.session_id,
@@ -69,7 +70,10 @@ async def process_tool_uses(
             output=result.output, error=result.error, duration_ms=duration_ms,
         )
         result_blocks.append(
-            to_tool_result_block(tu_id, result, ctx, tu_name, max_chars=tool_result_max_chars)
+            to_tool_result_block(
+                tu_id, result, ctx, tu_name,
+                max_chars=tool_result_max_chars, record_id=record_id,
+            )
         )
 
     yield result_blocks

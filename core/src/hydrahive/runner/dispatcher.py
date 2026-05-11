@@ -13,11 +13,28 @@ from hydrahive.tools import REGISTRY, ToolContext, ToolResult
 logger = logging.getLogger(__name__)
 
 
+_ERROR_TYPE_PREFIXES = ("Tool-Crash: ", "MCP-Crash: ")
+
+
+def _extract_error_type(error: str | None) -> str | None:
+    """Heuristik: 'Tool-Crash: ValueError: ...' → 'ValueError'."""
+    if not error:
+        return None
+    for prefix in _ERROR_TYPE_PREFIXES:
+        if error.startswith(prefix):
+            rest = error[len(prefix):]
+            etype, _, _ = rest.partition(":")
+            return etype.strip() or None
+    return None
+
+
 async def execute_tool(
     tool_use: dict,
     allowed_tools: list[str],
     ctx: ToolContext,
     parent_message_id: str,
+    *,
+    iteration: int | None = None,
 ) -> tuple[ToolResult, str, int]:
     """Execute a single tool_use block. Returns (result, db_call_id, duration_ms).
 
@@ -26,9 +43,14 @@ async def execute_tool(
     """
     tool_name = tool_use.get("name", "")
     args = tool_use.get("input", {}) or {}
+    tool_use_id = tool_use.get("id") or None
 
     # Always persist the call attempt — even if it fails validation.
-    record = tools_db.create(parent_message_id, tool_name, args)
+    record = tools_db.create(
+        parent_message_id, tool_name, args,
+        session_id=ctx.session_id, agent_id=ctx.agent_id, user_id=ctx.user_id,
+        tool_use_id=tool_use_id, iteration=iteration,
+    )
     start = time.monotonic()
 
     if tool_name not in allowed_tools:
@@ -73,6 +95,8 @@ async def execute_tool(
         result=asdict(result),
         status="success" if result.success else "error",
         duration_ms=duration_ms,
+        error_type=None if result.success else _extract_error_type(result.error),
+        error_message=None if result.success else result.error,
     )
     return result, record.id, duration_ms
 
@@ -80,6 +104,7 @@ async def execute_tool(
 def to_tool_result_block(
     tool_use_id: str, result: ToolResult, ctx: ToolContext | None = None,
     tool_name: str | None = None, max_chars: int = 0,
+    *, record_id: str | None = None,
 ) -> dict:
     """Build the Anthropic `tool_result` content block from a ToolResult.
 
@@ -88,11 +113,19 @@ def to_tool_result_block(
     spezialisierte Cards (ShellExec, WebSearch, …) rendern kann.
     Beide Felder werden beim API-Call automatisch von `_ANTHROPIC_ALLOWED`
     weggefiltert (in context.py).
+
+    `record_id` (Token-Audit #129): wenn gesetzt und der Output wurde
+    abgeschnitten, wird der zugehörige tool_calls-Record markiert.
     """
     content = result.to_llm()
     if max_chars and len(content) > max_chars:
         original_len = len(content)
         content = content[:max_chars] + f"\n\n[... {original_len - max_chars} Zeichen abgeschnitten — tool_result_max_chars={max_chars}]"
+        if record_id:
+            try:
+                tools_db.mark_truncated(record_id, max_chars)
+            except Exception:
+                logger.exception("mark_truncated fehlgeschlagen — Telemetrie verloren")
     block: dict = {
         "type": "tool_result",
         "tool_use_id": tool_use_id,
