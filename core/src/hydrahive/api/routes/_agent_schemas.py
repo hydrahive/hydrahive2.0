@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import status
 from pydantic import BaseModel, Field
 
+from hydrahive.agents._defaults import DEFAULT_MAX_TOKENS
 from hydrahive.api.middleware.errors import coded
 
 
@@ -14,7 +15,7 @@ class AgentCreate(BaseModel):
     owner: str | None = None
     description: str = ""
     temperature: float = 0.7
-    max_tokens: int = 4096
+    max_tokens: int = DEFAULT_MAX_TOKENS
     thinking_budget: int = 0
     mcp_servers: list[str] = []
     fallback_models: list[str] = []

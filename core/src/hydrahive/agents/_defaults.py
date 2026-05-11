@@ -56,9 +56,11 @@ class _LazyDefaultTools(dict):
 DEFAULT_TOOLS = _LazyDefaultTools()
 
 DEFAULT_TEMPERATURE = 0.7
-# Höher als üblich, damit Code-Generation (Tetris, längere Files) durchläuft.
-# Ein Tool-Use mit 5000-Zeichen-content braucht ~1500-2000 Tokens nur fürs Input-JSON.
-DEFAULT_MAX_TOKENS = 8192
+# Hoch genug, damit ein Review-Agent ein 16kB-Markdown via file_write schreiben
+# kann — allein das Input-JSON des Tool-Use frisst ~4-5k Tokens, plus Thinking-
+# Budget, plus Text-Output drumrum. 8192 war zu knapp (siehe Issue #142,
+# test_10 verlor 20% der Session-Kosten an stop_reason=max_tokens-Restarts).
+DEFAULT_MAX_TOKENS = 16384
 DEFAULT_THINKING_BUDGET = 0
 
 # --- Compaction-Defaults (per-Agent overridebar) ----------------------------

@@ -7,7 +7,11 @@ import time
 from typing import AsyncIterator
 
 from hydrahive.agents import config as agent_config
-from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT, DEFAULT_MAX_ITERATIONS
+from hydrahive.agents._defaults import (
+    DEFAULT_COMPACT_THRESHOLD_PCT,
+    DEFAULT_MAX_ITERATIONS,
+    DEFAULT_MAX_TOKENS,
+)
 from hydrahive.agents._paths import ensure_workspace
 from hydrahive.compaction import compact_session, should_compact
 from hydrahive.compaction.tokens import context_window_for
@@ -132,7 +136,7 @@ async def run(
                 anth_messages=to_anthropic_messages(heal_orphan_tool_uses(history)),
                 tool_schemas=tool_schemas,
                 temperature=agent.get("temperature", 0.7),
-                max_tokens=agent.get("max_tokens", 4096),
+                max_tokens=agent.get("max_tokens", DEFAULT_MAX_TOKENS),
                 reasoning_effort=reasoning_effort,
             ):
                 if isinstance(item, IterationResult):
@@ -167,7 +171,7 @@ async def run(
                 provider=_provider,
                 model=result.used_model,
                 temperature=agent.get("temperature", 0.7),
-                max_tokens=agent.get("max_tokens", 4096),
+                max_tokens=agent.get("max_tokens", DEFAULT_MAX_TOKENS),
                 reasoning_effort=reasoning_effort,
                 prompt_tokens=result.input_tokens,
                 completion_tokens=result.output_tokens,
@@ -207,7 +211,7 @@ async def run(
                 close_open_tool_uses(session_id, tool_uses, "Abgebrochen: max_tokens-Limit überschritten")
             session_end(agent["id"], session_id, status="abandoned")
             yield Error(
-                f"max_tokens ({agent.get('max_tokens', 4096)}) erreicht — Antwort abgeschnitten. "
+                f"max_tokens ({agent.get('max_tokens', DEFAULT_MAX_TOKENS)}) erreicht — Antwort abgeschnitten. "
                 "Tool-Argumente sind unvollständig. Erhöhe max_tokens oder formuliere die Aufgabe kürzer.",
                 metadata={"stop_reason": result.stop_reason, "message_id": assistant_msg.id},
             ); return

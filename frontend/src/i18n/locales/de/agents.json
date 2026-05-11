@@ -13,6 +13,7 @@
     "model": "Modell",
     "temperature": "Temperatur",
     "max_tokens": "Max Tokens",
+    "max_tokens_thinking_warning": "⚠ Bei aktivem Thinking kann max_tokens < 8000 zu \"max_tokens erreicht\"-Abbrüchen führen. Empfohlen: ≥ 16384.",
     "description": "Beschreibung",
     "tools": "Tools",
     "tools_count": "Tools ({{selected}}/{{total}})",
