@@ -6,6 +6,7 @@
  * Feld (siehe runner/_media.py). Die Regex-basierte Extraktion ist nur noch
  * Fallback für freien Text (LLM-Antworten, ältere Sessions ohne media-Feld).
  */
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import type { ToolMedia } from "./types"
 
 // HTTP(S)-URLs
@@ -22,7 +23,11 @@ const ABS_AUD_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp3|ogg|
 const ABS_VID_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp4|webm|mov|m3u8))/gi
 
 function toApiUrl(path: string): string {
-  return `/api/files?path=${encodeURIComponent(path)}`
+  // <img>/<audio>/<video> können keinen Authorization-Header schicken — Token
+  // als Query-Param mitgeben (Backend akzeptiert Bearer ODER ?token=).
+  const token = useAuthStore.getState().token
+  const tokenParam = token ? `&token=${encodeURIComponent(token)}` : ""
+  return `/api/files?path=${encodeURIComponent(path)}${tokenParam}`
 }
 
 function matchAll(text: string, re: RegExp): string[] {
