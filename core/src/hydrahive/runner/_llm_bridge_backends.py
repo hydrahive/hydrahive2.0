@@ -13,8 +13,13 @@ from hydrahive.runner._litellm_convert import (
 )
 
 
-def _with_cache_breakpoint(messages: list[dict]) -> list[dict]:
-    """Marks the last content block of messages[-2] as a cache breakpoint."""
+def _with_cache_breakpoint(messages: list[dict], ttl: str = "1h") -> list[dict]:
+    """Marks the last content block of messages[-2] as a cache breakpoint.
+
+    Default-TTL ist `1h` (Token-Audit-Fix): vorher implicit 5m, was bei
+    Sessions >5min zu wiederholten Cache-Resets von ~€1+ pro Re-Create
+    führte. 1h hält die Messages-Cache während der gesamten Session.
+    """
     if len(messages) < 2:
         return messages
     msgs = list(messages)
@@ -26,7 +31,7 @@ def _with_cache_breakpoint(messages: list[dict]) -> list[dict]:
     if not isinstance(last_block, dict):
         return msgs
     new_content = list(content)
-    new_content[-1] = {**last_block, "cache_control": {"type": "ephemeral"}}
+    new_content[-1] = {**last_block, "cache_control": _cache_control(ttl)}
     msgs[-2] = {**target, "content": new_content}
     return msgs
 
@@ -90,7 +95,7 @@ async def anthropic_call(
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": _with_cache_breakpoint(messages),
+        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -149,7 +154,7 @@ async def minimax_anthropic_call(
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": _with_cache_breakpoint(messages),
+        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
