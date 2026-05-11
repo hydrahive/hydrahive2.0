@@ -28,11 +28,6 @@ class AgentCreate(BaseModel):
     max_iterations: int | None = None
     tool_result_max_chars: int | None = None
     cache_ttl: str | None = None
-    memory_max_crystals: int | None = None
-    memory_max_lessons: int | None = None
-    memory_min_lesson_confidence: float | None = None
-    memory_max_chars: int | None = None
-    memory_crystal_scope: str | None = None
 
 
 class AgentUpdate(BaseModel):
@@ -57,11 +52,6 @@ class AgentUpdate(BaseModel):
     cache_ttl: str | None = None
     require_tool_confirm: bool | None = None
     longterm_memory: bool | None = None
-    memory_max_crystals: int | None = None
-    memory_max_lessons: int | None = None
-    memory_min_lesson_confidence: float | None = None
-    memory_max_chars: int | None = None
-    memory_crystal_scope: str | None = None
 
 
 class SystemPromptUpdate(BaseModel):

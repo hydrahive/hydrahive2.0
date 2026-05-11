@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { agentsApi, mcpInfoApi, type McpServerBrief } from "./api"
 import { CompactionSection } from "./CompactionSection"
-import { MemorySection } from "./MemorySection"
 import { OverviewTab } from "./_OverviewTab"
 import { ModelTab } from "./_ModelTab"
 import { ToolsTab } from "./_ToolsTab"
@@ -98,7 +97,6 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
         {tab === "advanced" && (
           <div className="space-y-6">
             <CompactionSection agent={draft} models={models} onChange={patch} />
-            <MemorySection agent={draft} onChange={patch} />
           </div>
         )}
       </div>

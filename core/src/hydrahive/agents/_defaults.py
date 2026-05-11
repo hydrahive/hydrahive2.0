@@ -99,20 +99,3 @@ DEFAULT_COMPACT_THRESHOLD_PCT = 75
 # Komplexe Reviews können den Wert per-Agent über `max_iterations` erhöhen.
 DEFAULT_MAX_ITERATIONS = 16
 
-# --- Memory-Injection-Defaults (per-Agent overridebar) -----------------------
-# Wieviele Crystals (Session-Digests) maximal in den System-Prompt injizieren.
-# Token-Audit (#129): 5 → 3 reduziert ~800 Zeichen Baseline pro Call.
-DEFAULT_MEMORY_MAX_CRYSTALS = 3
-# Wieviele Lessons maximal injizieren (sortiert nach confidence).
-# Token-Audit: 10 → 6 reduziert ~800 Zeichen Baseline pro Call.
-DEFAULT_MEMORY_MAX_LESSONS = 6
-# Lessons unter dieser Confidence werden nicht injiziert.
-DEFAULT_MEMORY_MIN_LESSON_CONFIDENCE = 0.6
-# Soft-Limit für den gesamten Memory-Injection-Block (Zeichen).
-# Token-Audit: 4000 → 2500 — bei Trivial-Tasks ist Memory-Context oft irrelevant.
-DEFAULT_MEMORY_MAX_CHARS = 2500
-# Crystal-Sichtbarkeit für Project-Agents:
-#   "project_and_global" — eigene + globale (project=None) sichtbar (Default,
-#       analog zu Lessons). Master-Buddy-Crystals sind im Project-Kontext nutzbar.
-#   "project_only" — strikt nur eigene Project-Crystals (Privacy/Isolation).
-DEFAULT_MEMORY_CRYSTAL_SCOPE = "project_and_global"

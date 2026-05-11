@@ -16,7 +16,7 @@ from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._pricing import cost_micros, provider_from_model
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
-from hydrahive.runner._runner_helpers import build_skills_block, close_open_tool_uses
+from hydrahive.runner._runner_helpers import close_open_tool_uses
 from hydrahive.runner._runner_iter import (
     IterationResult,
     build_system_prompts,
@@ -72,14 +72,6 @@ async def run(
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])
 
-    # Crystal-Injection: vergangene Sessions + Lessons in den Kontext einweben
-    from hydrahive.agents._context_injection import build_memory_context
-    _mem_ctx = build_memory_context(
-        agent["id"], project_id=ctx.project_id, agent_config=agent,
-    )
-    if _mem_ctx:
-        base_system_prompt += "\n\n" + _mem_ctx
-
     local_tools: list[str] = agent.get("tools", [])
     mcp_servers: list[str] = agent.get("mcp_servers", [])
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
@@ -115,7 +107,6 @@ async def run(
 
         stable_system, volatile_system, summary_system = build_system_prompts(
             base_system_prompt,
-            skills_block=build_skills_block(agent),
             extra_system=extra_system,
             workspace=workspace,
             summary=messages_db.get_latest_summary(session_id),
