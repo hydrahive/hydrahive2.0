@@ -64,6 +64,49 @@ def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
     return msgs
 
 
+def _add_cache_reference_to_tool_results(messages: list[dict]) -> list[dict]:
+    """Setzt `cache_reference: tool_use_id` auf alle tool_result-Blocks die
+    VOR dem letzten cache_control marker stehen.
+
+    Quelle: claude-code-source-code/src/services/api/claude.ts:3164-3207
+    Siehe _llm_bridge_backends.py:_add_cache_reference_to_tool_results für
+    die volle Begründung.
+    """
+    last_cc_idx = -1
+    for i, msg in enumerate(messages):
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if isinstance(block, dict) and "cache_control" in block:
+                last_cc_idx = i
+
+    if last_cc_idx < 0:
+        return messages
+
+    result = list(messages)
+    for i in range(last_cc_idx):
+        msg = result[i]
+        if msg.get("role") != "user":
+            continue
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        new_content = list(content)
+        modified = False
+        for j, block in enumerate(new_content):
+            if not isinstance(block, dict) or block.get("type") != "tool_result":
+                continue
+            tool_use_id = block.get("tool_use_id")
+            if not tool_use_id:
+                continue
+            new_content[j] = {**block, "cache_reference": tool_use_id}
+            modified = True
+        if modified:
+            result[i] = {**msg, "content": new_content}
+    return result
+
+
 def _cache_control(ttl: str) -> dict:
     ctrl: dict[str, Any] = {"type": "ephemeral"}
     if ttl and ttl != "5m":
@@ -125,7 +168,7 @@ async def anthropic_stream(
     if volatile_system:
         system_blocks.append({"type": "text", "text": volatile_system})
 
-    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
+    kwargs: dict[str, Any] = {"model": model, "messages": _add_cache_reference_to_tool_results(_with_cache_breakpoint(messages, ttl=cache_ttl)),
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_blocks:
         kwargs["system"] = system_blocks
@@ -174,7 +217,7 @@ async def minimax_stream(
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
 
-    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
+    kwargs: dict[str, Any] = {"model": model, "messages": _add_cache_reference_to_tool_results(_with_cache_breakpoint(messages, ttl=cache_ttl)),
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_prompt or summary_system or volatile_system:
         blocks: list[dict[str, Any]] = []
