@@ -4,30 +4,6 @@
       "Bash(gh api *)"
     ]
   },
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 /home/till/.claude/hooks/hh_context.py",
-            "timeout": 6
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 /home/till/.claude/hooks/hh_ingest.py",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
-  },
   "mcpServers": {
     "datamining-218": {
       "command": "python3",
