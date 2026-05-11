@@ -7,9 +7,20 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ## Aktueller Stand (2026-05-12, #143 Auto-Compaction vor max_iterations)
 
-**Tests:** 371/371 grün (+4 vs. gestern). Frontend tsc clean. Ruff clean.
+**Tests:** 380/380 grün (+13 vs. gestern). Frontend tsc clean. Ruff clean.
 
 **Heute erledigt:**
+- **#142** max_tokens-Default 8192 → 16384. Bei Opus+Thinking frisst das
+  Thinking-Budget einen Teil von max_tokens; plus tool_use-Inputs mit
+  großen content-Strings können einen 16kB-file_write allein ~4-5k Tokens
+  fürs Input-JSON kosten. test_10 verlor an zwei stop_reason=max_tokens-
+  Restarts 20% der Session-Kosten (€1.47 von €7.58). Bestehende Agents
+  mit eigenem Wert bleiben unverändert (setdefault in normalize). Plus
+  hardcoded `agent.get("max_tokens", 4096)`-Fallbacks in runner.py und
+  `max_tokens=4096` in AgentCreate-Schema auf DEFAULT_MAX_TOKENS gezogen.
+  Frontend zeigt im ModelTab eine Amber-Warnung wenn `max_tokens<8000` UND
+  `thinking_budget>0`. 9 neue Tests in test_max_tokens_default.py inkl.
+  Regression-Guard "kein hardcoded 4096 in runner.py".
 - **#143** Auto-Compaction vor max_iterations-Abbruch. In `runner.py` direkt
   vor `session_end(paused)`: wenn `compact_threshold_pct<100` UND `total_tokens
   > window/2`, läuft `compact_session(triggered_by="max_iterations_resume",

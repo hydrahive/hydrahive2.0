@@ -31,7 +31,17 @@ export function ModelTab({ draft, models, onChange }: Props) {
             className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
           />
         </Field>
-        <Field label={t("fields.max_tokens")}>
+        <Field
+          label={t("fields.max_tokens")}
+          hint={
+            draft.max_tokens < 8000 && draft.thinking_budget > 0
+              ? t("fields.max_tokens_thinking_warning")
+              : undefined
+          }
+          hintTone={
+            draft.max_tokens < 8000 && draft.thinking_budget > 0 ? "warn" : undefined
+          }
+        >
           <input
             type="number" value={draft.max_tokens}
             onChange={(e) => onChange({ max_tokens: parseInt(e.target.value) })}
@@ -67,12 +77,15 @@ export function ModelTab({ draft, models, onChange }: Props) {
   )
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, hintTone, children }: {
+  label: string; hint?: string; hintTone?: "warn"; children: React.ReactNode
+}) {
+  const hintClass = hintTone === "warn" ? "text-amber-400" : "text-zinc-600"
   return (
     <div className="space-y-0.5">
       <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
       {children}
-      {hint && <p className="text-[10px] text-zinc-600 mt-0.5">{hint}</p>}
+      {hint && <p className={`text-[10px] ${hintClass} mt-0.5`}>{hint}</p>}
     </div>
   )
 }
