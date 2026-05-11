@@ -72,6 +72,26 @@ def test_session_detail_404_bei_unbekannter_session(client, admin_headers):
     assert r.status_code == 404
 
 
+def test_overview_last_7d_enthaelt_cache_creation_tokens(client, admin_headers):
+    """Cache-Hit-Berechnung im Frontend braucht cache_creation_tokens — sonst
+    explodiert die Ratio (Bug aus erster #130-Iteration, 14249%)."""
+    s = sessions_db.create(agent_id="test-agent-001", user_id="admin", title="cache-7d").id
+    llm_calls_db.insert(llm_calls_db.LlmCall(
+        session_id=s, agent_id="test-agent-001", user_id="admin",
+        provider="anthropic", model="claude-sonnet-4-7",
+        temperature=0.7, max_tokens=4096, reasoning_effort=None,
+        prompt_tokens=1000, completion_tokens=200,
+        cache_read_tokens=50_000, cache_creation_tokens=2000,
+        stop_reason="end_turn", ttft_ms=None, total_ms=300,
+        cost_micros=300, turn_in_session=1,
+    ))
+    r = client.get("/api/analytics/overview", headers=admin_headers)
+    assert r.status_code == 200
+    last_7d = r.json()["last_7d"]
+    assert "cache_creation_tokens" in last_7d
+    assert last_7d["cache_creation_tokens"] >= 2000
+
+
 def test_overview_by_model_aufgeschluesselt(client, admin_headers):
     s = sessions_db.create(agent_id="test-agent-001", user_id="admin", title="model-test").id
     # Zwei verschiedene Modelle
