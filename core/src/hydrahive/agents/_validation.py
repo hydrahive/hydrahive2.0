@@ -109,6 +109,13 @@ def validate_compact_threshold_pct(pct: int) -> None:
         raise AgentValidationError("compact_threshold_pct muss zwischen 30 und 100 liegen")
 
 
+def validate_max_iterations(n: int) -> None:
+    if not isinstance(n, int) or n < 1:
+        raise AgentValidationError("max_iterations muss ≥ 1 sein")
+    if n > 100:
+        raise AgentValidationError("max_iterations > 100 ist exzessiv — wahrscheinlich Konfig-Fehler")
+
+
 def normalize_compact_changes(changes: dict) -> None:
     """Normalizes compaction fields in-place: None/empty → remove or default."""
     if "compact_model" in changes:
@@ -119,6 +126,7 @@ def normalize_compact_changes(changes: dict) -> None:
         ("compact_tool_result_limit", validate_compact_tool_result_limit),
         ("compact_reserve_tokens", validate_compact_reserve_tokens),
         ("compact_threshold_pct", validate_compact_threshold_pct),
+        ("max_iterations", validate_max_iterations),
     ):
         if field not in changes:
             continue

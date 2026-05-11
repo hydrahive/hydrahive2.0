@@ -85,6 +85,15 @@ DEFAULT_COMPACT_RESERVE_TOKENS = 16_384
 # Mit 200k Window: compactet bei 150k statt bei 184k, spart ~20-30% per Turn vor Compact.
 DEFAULT_COMPACT_THRESHOLD_PCT = 75
 
+# --- Runner-Defaults (per-Agent overridebar) ---------------------------------
+# Maximale Tool-Loop-Iterationen pro Session-Run. Wenn überschritten endet
+# der Run mit Error "Max-Iterationen erreicht". Aus Token-Audit (#129/#125):
+# 30 ist zu hoch — bei komplexen Aufgaben triggert das nicht das Aufgeben
+# sondern einen Restart durch User (49-Call-Repo-Review-Pattern). 16 zwingt
+# den Agent zu fokussierterem Vorgehen, spart durchschnittlich 30-50% Tokens.
+# Komplexe Reviews können den Wert per-Agent über `max_iterations` erhöhen.
+DEFAULT_MAX_ITERATIONS = 16
+
 # --- Memory-Injection-Defaults (per-Agent overridebar) -----------------------
 # Wieviele Crystals (Session-Digests) maximal in den System-Prompt injizieren.
 # Token-Audit (#129): 5 → 3 reduziert ~800 Zeichen Baseline pro Call.
