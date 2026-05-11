@@ -33,12 +33,16 @@ def _map_event(ev: Any) -> dict | None:
     return None
 
 
-def _with_cache_breakpoint(messages: list[dict]) -> list[dict]:
+def _with_cache_breakpoint(messages: list[dict], ttl: str = "1h") -> list[dict]:
     """Marks the last content block of messages[-2] as a cache breakpoint.
 
     Everything up to that point is stable history that Anthropic can cache.
     messages[-1] is always the fresh current user turn (no caching).
     Returns a new list — does not mutate the original.
+
+    Default-TTL ist `1h` (Token-Audit-Fix): vorher implicit 5m, was bei
+    Sessions >5min zu wiederholten Cache-Resets von ~€1+ pro Re-Create
+    führte. 1h hält die Messages-Cache während der gesamten Session.
     """
     if len(messages) < 2:
         return messages
@@ -51,7 +55,7 @@ def _with_cache_breakpoint(messages: list[dict]) -> list[dict]:
     if not isinstance(last_block, dict):
         return msgs
     new_content = list(content)
-    new_content[-1] = {**last_block, "cache_control": {"type": "ephemeral"}}
+    new_content[-1] = {**last_block, "cache_control": _cache_control(ttl)}
     msgs[-2] = {**target, "content": new_content}
     return msgs
 
@@ -117,7 +121,7 @@ async def anthropic_stream(
     if volatile_system:
         system_blocks.append({"type": "text", "text": volatile_system})
 
-    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages),
+    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_blocks:
         kwargs["system"] = system_blocks
@@ -166,7 +170,7 @@ async def minimax_stream(
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
 
-    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages),
+    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_prompt or summary_system or volatile_system:
         blocks: list[dict[str, Any]] = []
