@@ -111,6 +111,25 @@ CREATE INDEX IF NOT EXISTS compaction_events_session ON compaction_events (sessi
 CREATE INDEX IF NOT EXISTS compaction_events_created ON compaction_events (created_at);
 CREATE INDEX IF NOT EXISTS compaction_events_agent   ON compaction_events (agent_id, created_at);
 CREATE INDEX IF NOT EXISTS compaction_events_skipped ON compaction_events (skipped) WHERE skipped = true;
+CREATE TABLE IF NOT EXISTS errors_log (
+  id              TEXT PRIMARY KEY,
+  created_at      TIMESTAMPTZ NOT NULL,
+  session_id      TEXT,
+  agent_id        TEXT,
+  user_id         TEXT,
+  source          TEXT NOT NULL,
+  severity        TEXT NOT NULL DEFAULT 'error',
+  error_type      TEXT,
+  error_message   TEXT,
+  traceback       TEXT,
+  context         JSONB,
+  mirrored_at     TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS errors_log_session  ON errors_log (session_id);
+CREATE INDEX IF NOT EXISTS errors_log_source   ON errors_log (source, created_at);
+CREATE INDEX IF NOT EXISTS errors_log_severity ON errors_log (severity, created_at);
+CREATE INDEX IF NOT EXISTS errors_log_created  ON errors_log (created_at);
+CREATE INDEX IF NOT EXISTS errors_log_type     ON errors_log (error_type, created_at);
 """
 
 
