@@ -13,12 +13,15 @@ from hydrahive.runner._litellm_convert import (
 )
 
 
-def _with_cache_breakpoint(messages: list[dict], ttl: str = "1h") -> list[dict]:
+def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
     """Marks the last content block of messages[-2] as a cache breakpoint.
 
-    Default-TTL ist `1h` (Token-Audit-Fix): vorher implicit 5m, was bei
-    Sessions >5min zu wiederholten Cache-Resets von ~€1+ pro Re-Create
-    führte. 1h hält die Messages-Cache während der gesamten Session.
+    Default-TTL = "5m". 1h-TTL via extended-cache-ttl-Beta-Header wurde
+    getestet (commit 0a648b3) und verworfen: bei dem Repo-Review-Pattern
+    von HH2 evictet Anthropic den Cache aus eigenen Gründen mehrmals,
+    1h-cache_creation kostete 2× mehr beim Initial-Write OHNE den Nutzen
+    längerer Cache-Hits. Resultat war Verdopplung der cache_creation-
+    Tokens (179k → 383k) und Verdopplung der Session-Kosten.
     """
     if len(messages) < 2:
         return messages

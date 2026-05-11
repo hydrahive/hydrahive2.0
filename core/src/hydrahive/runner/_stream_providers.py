@@ -33,16 +33,14 @@ def _map_event(ev: Any) -> dict | None:
     return None
 
 
-def _with_cache_breakpoint(messages: list[dict], ttl: str = "1h") -> list[dict]:
+def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
     """Marks the last content block of messages[-2] as a cache breakpoint.
 
     Everything up to that point is stable history that Anthropic can cache.
     messages[-1] is always the fresh current user turn (no caching).
     Returns a new list — does not mutate the original.
 
-    Default-TTL ist `1h` (Token-Audit-Fix): vorher implicit 5m, was bei
-    Sessions >5min zu wiederholten Cache-Resets von ~€1+ pro Re-Create
-    führte. 1h hält die Messages-Cache während der gesamten Session.
+    Default-TTL = "5m". 1h-TTL Test verworfen (siehe _llm_bridge_backends.py).
     """
     if len(messages) < 2:
         return messages

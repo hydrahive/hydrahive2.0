@@ -14,14 +14,13 @@ def test_anthropic_beta_enthaelt_prompt_caching():
     assert "prompt-caching-2024-07-31" in beta
 
 
-def test_anthropic_beta_enthaelt_extended_cache_ttl():
-    """extended-cache-ttl-2025-04-11: aktiviert ttl:"1h" — sonst nur 5m Default.
-
-    Token-Audit-Fix: ohne diesen Header wurde unser _with_cache_breakpoint-Fix
-    (ttl="1h") komplett ignoriert.
+def test_anthropic_beta_enthaelt_KEIN_extended_cache_ttl():
+    """extended-cache-ttl wurde getestet (commit 0a648b3) und revertiert:
+    Anthropic-Server-side Cache-Eviction passierte auch <5min, der 2×-
+    Aufpreis für 1h-cache_creation wurde NICHT amortisiert.
     """
     beta = _OAUTH_HEADERS["anthropic-beta"]
-    assert "extended-cache-ttl-2025-04-11" in beta
+    assert "extended-cache-ttl-2025-04-11" not in beta
 
 
 def test_anthropic_beta_enthaelt_oauth_token_support():
