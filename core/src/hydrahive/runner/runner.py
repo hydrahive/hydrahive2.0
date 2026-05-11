@@ -7,6 +7,7 @@ import time
 from typing import AsyncIterator
 
 from hydrahive.agents import config as agent_config
+from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT
 from hydrahive.agents._paths import ensure_workspace
 from hydrahive.db import errors_log
 from hydrahive.db import llm_calls as llm_calls_db
@@ -96,7 +97,7 @@ async def run(
     compact_model = agent.get("compact_model") or agent["llm_model"]
     compact_tool_limit = agent.get("compact_tool_result_limit")
     compact_reserve = agent.get("compact_reserve_tokens")
-    compact_threshold_pct = int(agent.get("compact_threshold_pct", 100))
+    compact_threshold_pct = int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT))
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
 
