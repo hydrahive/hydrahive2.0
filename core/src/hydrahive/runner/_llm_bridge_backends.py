@@ -51,6 +51,57 @@ def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
     return msgs
 
 
+def _add_cache_reference_to_tool_results(messages: list[dict]) -> list[dict]:
+    """Setzt `cache_reference: tool_use_id` auf alle tool_result-Blocks die
+    VOR dem letzten cache_control marker stehen.
+
+    Quelle: claude-code-source-code/src/services/api/claude.ts:3164-3207
+        "Add cache_reference to tool_result blocks that are strictly before
+         the last cache_control marker."
+
+    Hält die Cache-Linie auch wenn Anthropic die KV-pages von tool_results
+    intern evictet — der `cache_reference: tool_use_id` ist der Stable-Key
+    den Anthropic für die Cache-Wiederherstellung braucht.
+
+    MUSS NACH _with_cache_breakpoint aufgerufen werden — die Funktion
+    sucht den letzten cache_control marker.
+    """
+    # Finde den Index der letzten Message mit cache_control
+    last_cc_idx = -1
+    for i, msg in enumerate(messages):
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if isinstance(block, dict) and "cache_control" in block:
+                last_cc_idx = i  # last-write-wins — nur der letzte zählt
+
+    if last_cc_idx < 0:
+        return messages
+
+    result = list(messages)
+    for i in range(last_cc_idx):
+        msg = result[i]
+        if msg.get("role") != "user":
+            continue
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+        new_content = list(content)
+        modified = False
+        for j, block in enumerate(new_content):
+            if not isinstance(block, dict) or block.get("type") != "tool_result":
+                continue
+            tool_use_id = block.get("tool_use_id")
+            if not tool_use_id:
+                continue
+            new_content[j] = {**block, "cache_reference": tool_use_id}
+            modified = True
+        if modified:
+            result[i] = {**msg, "content": new_content}
+    return result
+
+
 def _cache_control(ttl: str) -> dict:
     ctrl: dict[str, Any] = {"type": "ephemeral"}
     if ttl and ttl != "5m":
@@ -110,7 +161,9 @@ async def anthropic_call(
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
+        "messages": _add_cache_reference_to_tool_results(
+            _with_cache_breakpoint(messages, ttl=cache_ttl)
+        ),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -169,7 +222,9 @@ async def minimax_anthropic_call(
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
+        "messages": _add_cache_reference_to_tool_results(
+            _with_cache_breakpoint(messages, ttl=cache_ttl)
+        ),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
