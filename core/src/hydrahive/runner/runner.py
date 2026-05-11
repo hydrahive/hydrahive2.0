@@ -236,6 +236,7 @@ async def run(
             parent_message_id=assistant_msg.id,
             require_confirm=bool(agent.get("require_tool_confirm", False)),
             tool_result_max_chars=tool_result_max_chars,
+            iteration=iteration + 1,
         ):
             if isinstance(item, list):
                 result_blocks = item
