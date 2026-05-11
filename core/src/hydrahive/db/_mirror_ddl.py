@@ -130,6 +130,46 @@ CREATE INDEX IF NOT EXISTS errors_log_source   ON errors_log (source, created_at
 CREATE INDEX IF NOT EXISTS errors_log_severity ON errors_log (severity, created_at);
 CREATE INDEX IF NOT EXISTS errors_log_created  ON errors_log (created_at);
 CREATE INDEX IF NOT EXISTS errors_log_type     ON errors_log (error_type, created_at);
+-- session_metrics: aggregierter Read-View. tool_calls existiert im Mirror nicht
+-- (siehe events-Tabelle für Tool-Telemetrie) — daher fehlt tool_calls/successes/
+-- errors/truncates im PG-View. Reine SQLite-Quelle ist authoritative für Tools.
+CREATE OR REPLACE VIEW session_metrics AS
+SELECT
+    s.id                                       AS session_id,
+    s.agent_id, s.username AS user_id, s.project_id,
+    s.started_at AS created_at, s.updated_at, s.status,
+    COALESCE(llm.calls, 0)                     AS llm_calls,
+    COALESCE(llm.input_tokens, 0)              AS input_tokens,
+    COALESCE(llm.output_tokens, 0)             AS output_tokens,
+    COALESCE(llm.cache_read_tokens, 0)         AS cache_read_tokens,
+    COALESCE(llm.cache_creation_tokens, 0)     AS cache_creation_tokens,
+    COALESCE(llm.cost_micros, 0)               AS cost_micros,
+    COALESCE(llm.total_llm_ms, 0)              AS total_llm_ms,
+    COALESCE(cmp.events, 0)                    AS compactions,
+    COALESCE(cmp.skipped, 0)                   AS compactions_skipped,
+    COALESCE(err.events, 0)                    AS errors
+FROM sessions s
+LEFT JOIN (
+    SELECT session_id,
+           COUNT(*)                            AS calls,
+           SUM(prompt_tokens)                  AS input_tokens,
+           SUM(completion_tokens)              AS output_tokens,
+           SUM(cache_read_tokens)              AS cache_read_tokens,
+           SUM(cache_creation_tokens)          AS cache_creation_tokens,
+           SUM(cost_micros)                    AS cost_micros,
+           SUM(total_ms)                       AS total_llm_ms
+    FROM llm_calls GROUP BY session_id
+) llm ON llm.session_id = s.id
+LEFT JOIN (
+    SELECT session_id,
+           COUNT(*)                                                AS events,
+           SUM(CASE WHEN skipped THEN 1 ELSE 0 END)                AS skipped
+    FROM compaction_events GROUP BY session_id
+) cmp ON cmp.session_id = s.id
+LEFT JOIN (
+    SELECT session_id, COUNT(*) AS events
+    FROM errors_log WHERE session_id IS NOT NULL GROUP BY session_id
+) err ON err.session_id = s.id;
 """
 
 
