@@ -7,6 +7,7 @@ import { RecentSessions } from "./_RecentSessions"
 import { ServersOverview } from "./_ServersOverview"
 import { AgentsList } from "./_AgentsList"
 import { HealthStrip } from "./_HealthStrip"
+import { TokenAuditCard } from "./_TokenAuditCard"
 import { UpdateBanner } from "./_UpdateBanner"
 import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { AgentLinkCard } from "@/features/system/AgentLinkCard"
@@ -50,6 +51,8 @@ export function DashboardPage() {
           <HealthStrip health={data.health} />
 
           <StatsRow stats={data.stats} />
+
+          <TokenAuditCard />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <TailscaleCard />
