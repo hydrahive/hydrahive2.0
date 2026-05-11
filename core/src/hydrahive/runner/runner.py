@@ -8,6 +8,7 @@ from typing import AsyncIterator
 
 from hydrahive.agents import config as agent_config
 from hydrahive.agents._paths import ensure_workspace
+from hydrahive.db import errors_log
 from hydrahive.db import llm_calls as llm_calls_db
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
@@ -143,6 +144,12 @@ async def run(
                     yield item
         except Exception as e:
             logger.exception("LLM-Call fehlgeschlagen")
+            errors_log.record(
+                source="runner.llm_call", exc=e,
+                session_id=session_id, agent_id=agent["id"], user_id=ctx.user_id,
+                context={"model": primary_model, "iteration": iteration + 1,
+                         "reasoning_effort": reasoning_effort},
+            )
             session_end(agent["id"], session_id, status="abandoned")
             yield Error(f"LLM-Call fehlgeschlagen: {e}"); return
 
@@ -210,9 +217,18 @@ async def run(
 
         if not tool_uses:
             session_end(agent["id"], session_id, status="completed")
-            # Compress-Pipeline: fire-and-forget — Done nicht blockieren
+            # Compress-Pipeline: fire-and-forget — Done nicht blockieren.
+            # Wrap mit errors_log.capture damit Crashes nicht still verschwinden.
+            async def _safe_compress(_aid: str, _sid: str, _model: str) -> None:
+                with errors_log.capture(
+                    source="runner.compress_bg",
+                    session_id=_sid, agent_id=_aid,
+                    context={"model": _model},
+                    reraise=False,
+                ):
+                    await compress_session(_aid, _sid, model=_model)
             asyncio.create_task(
-                compress_session(agent["id"], session_id, model=agent["llm_model"])
+                _safe_compress(agent["id"], session_id, agent["llm_model"])
             )
             yield Done(message_id=assistant_msg.id, iterations=iteration + 1,
                        input_tokens=total_input_tokens, output_tokens=total_output_tokens,
