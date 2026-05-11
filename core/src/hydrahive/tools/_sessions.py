@@ -16,6 +16,11 @@ Session = dict[str, Any]
 _STATUS_ACTIVE = "active"
 _STATUS_COMPLETED = "completed"
 _STATUS_ABANDONED = "abandoned"
+# "paused" = Runner-Abbruch durch max_iterations. Resumable per User-Klick auf
+# "Weitermachen" — Backend startet runner.run mit derselben session_id, History
+# bleibt erhalten. Im Gegensatz zu "abandoned" (echter Error wie max_tokens,
+# Loop, LLM-API-Fehler) ist das kein Endzustand.
+_STATUS_PAUSED = "paused"
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +108,7 @@ def session_end(
         return session  # bereits beendet — nicht überschreiben
 
     session["ended_at"] = _now_iso()
-    session["status"] = status if status in (_STATUS_COMPLETED, _STATUS_ABANDONED) else _STATUS_COMPLETED
+    session["status"] = status if status in (_STATUS_COMPLETED, _STATUS_ABANDONED, _STATUS_PAUSED) else _STATUS_COMPLETED
     if summary is not None:
         session["summary"] = summary
 

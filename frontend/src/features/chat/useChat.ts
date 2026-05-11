@@ -14,6 +14,7 @@ export interface ChatState {
   busy: boolean
   iteration: number
   error: string | null
+  errorKind: string | null
   pendingConfirm: PendingConfirm | null
   lastTurnTokens: {
     input: number
@@ -24,7 +25,8 @@ export interface ChatState {
 }
 
 const EMPTY_STATE: ChatState = {
-  messages: [], busy: false, iteration: 0, error: null, pendingConfirm: null, lastTurnTokens: null,
+  messages: [], busy: false, iteration: 0, error: null, errorKind: null,
+  pendingConfirm: null, lastTurnTokens: null,
 }
 
 export function useChat(sessionId: string | null) {
@@ -39,7 +41,7 @@ export function useChat(sessionId: string | null) {
     if (!sessionId) { setState(EMPTY_STATE); return }
     try {
       const msgs = await chatApi.listMessages(sessionId)
-      setState((s) => ({ ...s, messages: msgs, busy: false, iteration: 0, error: null }))
+      setState((s) => ({ ...s, messages: msgs, busy: false, iteration: 0, error: null, errorKind: null }))
     } catch (e) {
       setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Fehler" }))
     }
@@ -63,7 +65,7 @@ export function useChat(sessionId: string | null) {
         const trimmed = resendMessageId
           ? s.messages.slice(0, s.messages.findIndex((m) => m.id === resendMessageId))
           : s.messages
-        return { ...s, messages: [...trimmed, userMsg, liveAssistant], busy: true, iteration: 1, error: null }
+        return { ...s, messages: [...trimmed, userMsg, liveAssistant], busy: true, iteration: 1, error: null, errorKind: null }
       })
 
       const blocks: ContentBlock[] = []

@@ -67,7 +67,13 @@ export function applyStreamEvent(
     })
     updateLive(setState, blocks)
   } else if (ev.type === "error") {
-    setState((s) => ({ ...s, error: ev.message as string, busy: false }))
+    const meta = ev.metadata as { kind?: string } | undefined
+    setState((s) => ({
+      ...s,
+      error: ev.message as string,
+      errorKind: meta?.kind ?? null,
+      busy: false,
+    }))
     return "error"
   } else if (ev.type === "done") {
     setState((s) => ({

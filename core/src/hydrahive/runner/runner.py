@@ -257,6 +257,7 @@ async def run(
         tool_msg = messages_db.append(session_id, "user", result_blocks)
         history.append(tool_msg)
 
-    session_end(agent["id"], session_id, status="abandoned")
+    session_end(agent["id"], session_id, status="paused")
     yield Error(f"Max-Iterationen ({max_iterations}) erreicht ohne Abschluss",
-                metadata={"last_assistant_message": last_assistant_id})
+                metadata={"kind": "max_iterations",
+                          "last_assistant_message": last_assistant_id})
