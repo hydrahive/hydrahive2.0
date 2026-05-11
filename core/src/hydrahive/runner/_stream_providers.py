@@ -138,7 +138,7 @@ async def anthropic_stream(
     system_prompt: str,
     volatile_system: str | None = None,
     summary_system: str | None = None,
-    cache_ttl: str = "1h",
+    cache_ttl: str = "5m",
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -164,7 +164,7 @@ async def anthropic_stream(
     elif system_blocks:
         system_blocks[0]["cache_control"] = _cache_control(cache_ttl)
     if summary_system:
-        system_blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control("5m")})
+        system_blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control(cache_ttl)})
     if volatile_system:
         system_blocks.append({"type": "text", "text": volatile_system})
 
@@ -204,7 +204,7 @@ async def minimax_stream(
     system_prompt: str,
     volatile_system: str | None = None,
     summary_system: str | None = None,
-    cache_ttl: str = "1h",
+    cache_ttl: str = "5m",
     messages: list[dict],
     tools: list[dict],
     temperature: float,
@@ -224,7 +224,7 @@ async def minimax_stream(
         if system_prompt:
             blocks.append({"type": "text", "text": system_prompt, "cache_control": _cache_control(cache_ttl)})
         if summary_system:
-            blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control("5m")})
+            blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control(cache_ttl)})
         if volatile_system:
             blocks.append({"type": "text", "text": volatile_system})
         kwargs["system"] = blocks

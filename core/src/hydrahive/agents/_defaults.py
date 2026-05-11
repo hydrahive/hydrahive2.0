@@ -76,7 +76,12 @@ DEFAULT_TOOL_RESULT_MAX_CHARS = 12_000
 # Prompt-Cache-TTL für den stabilen System-Prompt-Block.
 # "1h" = 1 Stunde (2x Write-Kosten, aber Cache-Hits über Sessions hinweg).
 # "5m" = 5 Minuten (Anthropic-Default, günstigere Write-Kosten).
-DEFAULT_CACHE_TTL = "1h"
+# Quelle: claude-code-source-code/src/bootstrap/state.ts:251
+#   "cache TTL is ~5min"
+# Claude Code-Default ist 5min (Anthropic-Default ohne extended-cache-ttl-Beta).
+# Längere TTL = teurer beim Initial Write — vorher "1h" hat die Kosten verdoppelt
+# ohne wirksamen Nutzen (server-side Eviction passierte trotzdem <5min).
+DEFAULT_CACHE_TTL = "5m"
 # Reserve-Tokens für die Summary-Antwort. Wenn used > (window - reserve) wird
 # auto-compactet.
 DEFAULT_COMPACT_RESERVE_TOKENS = 16_384
