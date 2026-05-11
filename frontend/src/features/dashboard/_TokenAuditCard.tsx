@@ -82,7 +82,7 @@ export function TokenAuditCard() {
           </h4>
           <div className="space-y-0.5">
             {data.top_cost_sessions.map((s) => (
-              <Link key={s.session_id} to={`/chat?session=${s.session_id}`}
+              <Link key={s.session_id} to={`/analytics/session/${s.session_id}`}
                 className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-white/[4%] transition-colors">
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] text-zinc-200 truncate leading-tight">

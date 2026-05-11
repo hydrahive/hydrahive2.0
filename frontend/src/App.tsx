@@ -3,6 +3,7 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { Layout } from "@/shared/Layout"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
+import { SessionDetailPage } from "@/features/analytics/SessionDetailPage"
 import { ChatPage } from "@/features/chat/ChatPage"
 import { AgentsPage } from "@/features/agents/AgentsPage"
 import { ProjectsPage } from "@/features/projects/ProjectsPage"
@@ -55,6 +56,7 @@ export default function App() {
         >
           <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <BuddyPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="devchat" element={<ChatPage />} />
           <Route path="chat" element={<Navigate to="/devchat" replace />} />
           <Route path="agents" element={<AgentsPage />} />
