@@ -66,7 +66,7 @@ def main() -> int:
     if args.apply:
         print(f"\nFertig. {len(candidates)} Config(s) aktualisiert.")
     else:
-        print(f"\nKein Schreibzugriff. --apply um tatsächlich zu schreiben.")
+        print("\nKein Schreibzugriff. --apply um tatsächlich zu schreiben.")
     return 0
 
 

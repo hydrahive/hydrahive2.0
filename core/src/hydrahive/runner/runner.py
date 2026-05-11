@@ -9,6 +9,8 @@ from typing import AsyncIterator
 from hydrahive.agents import config as agent_config
 from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT, DEFAULT_MAX_ITERATIONS
 from hydrahive.agents._paths import ensure_workspace
+from hydrahive.compaction import compact_session, should_compact
+from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import errors_log
 from hydrahive.db import llm_calls as llm_calls_db
 from hydrahive.db import messages as messages_db
@@ -256,6 +258,25 @@ async def run(
 
         tool_msg = messages_db.append(session_id, "user", result_blocks)
         history.append(tool_msg)
+
+    # Pre-Resume-Compaction (#143): Wenn die History bei max_iterations noch
+    # groß ist, einmal compactes bevor wir pausieren. Damit der "Weitermachen"-
+    # Resume nicht direkt wieder nach 16 Iter knallt. Reserve = window/2
+    # ⇒ Trigger bei History > 50% Window.
+    if compact_threshold_pct < 100:
+        try:
+            _history = messages_db.list_for_llm(session_id)
+            _window = context_window_for(agent["llm_model"])
+            if should_compact(_history, agent["llm_model"], reserve_tokens=_window // 2):
+                _kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
+                await compact_session(
+                    session_id, model=compact_model,
+                    triggered_by="max_iterations_resume",
+                    trigger_threshold_pct=50,
+                    **_kwargs,
+                )
+        except Exception:
+            logger.exception("Pre-resume Compaction fehlgeschlagen — Resume startet mit voller History")
 
     session_end(agent["id"], session_id, status="paused")
     yield Error(f"Max-Iterationen ({max_iterations}) erreicht ohne Abschluss",
