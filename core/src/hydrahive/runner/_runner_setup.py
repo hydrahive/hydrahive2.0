@@ -3,27 +3,10 @@ from __future__ import annotations
 
 
 _LONGTERM_MEMORY_PROMPT = (
-    "\n\n## Langzeitgedächtnis\n"
-    "Du hast Zugriff auf eine Datenbank mit vergangenen Sessions, Gesprächen und Tool-Calls "
-    "über die `datamining_*`-Tools. Nutze sie wenn die Frage konkret auf etwas Vergangenes "
-    "verweist — z.B. \"wie ging es mit X weiter\", \"was haben wir damals zu Y entschieden\", "
-    "unbekannte Namen aus früheren Sessions. Bei generischen Fragen ohne klaren Vergangenheits-"
-    "Bezug ist eine Suche nicht nötig — antworte dann direkt aus dem Kontext.\n"
-    "\n"
-    "**Empty-Search-Budget**: wenn zwei aufeinanderfolgende `datamining_search`-Calls "
-    "`count: 0` zurückgeben, hör auf weitere Query-Variationen zu probieren. Sag dem User "
-    "ehrlich, dass nichts gefunden wurde, und antworte mit dem was du sonst weißt. "
-    "Brute-Force durch Synonyme verschwendet nur Tokens.\n"
-    "\n"
-    "Tools:\n"
-    "- `datamining_timeline(from_date, to_date)` — **erste Wahl** wenn der User nach einem "
-    "Zeitraum fragt (\"letzte Woche\", \"gestern\"). Zeigt Sessions gruppiert nach Tag mit "
-    "Themen, ohne dass du raten musst nach welchen Begriffen zu suchen ist.\n"
-    "- `datamining_search(query, from_date, to_date)` — Volltextsuche. Für historische "
-    "Events immer `from_date` setzen.\n"
-    "- `datamining_today()` — was heute passiert ist\n"
-    "- `datamining_semantic(query)` — semantische Suche (nur wenn Embedding-Modell "
-    "konfiguriert; sonst nicht im Tool-Set sichtbar)\n"
+    "\n\nLangzeitgedächtnis: für Fragen die konkret auf Vergangenes verweisen, "
+    "stehen `datamining_*`-Tools zur Verfügung. Bei generischen Fragen ohne "
+    "klaren Vergangenheits-Bezug direkt aus dem Kontext antworten — keine "
+    "spekulativen Suchen."
 )
 
 

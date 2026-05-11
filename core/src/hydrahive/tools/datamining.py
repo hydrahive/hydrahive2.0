@@ -142,9 +142,9 @@ async def _today(args: dict, ctx: ToolContext) -> ToolResult:
 TOOL_SEARCH = Tool(
     name="datamining_search",
     description=(
-        "Volltextsuche im Langzeitgedächtnis — alle vergangenen HydraHive-Sessions, "
-        "Tool-Calls, Gespräche. Nutze dies um vergangene Entscheidungen, Fehler, "
-        "Lösungen oder Ideen wiederzufinden."
+        "Volltextsuche im Langzeitgedächtnis — vergangene Sessions, Tool-Calls, Gespräche. "
+        "Bei historischen Events `from_date` setzen, sonst wird die Suche zu breit. "
+        "Stop nach zwei aufeinanderfolgenden `count: 0`-Treffern — keine Synonym-Brute-Force."
     ),
     schema=_SEARCH_SCHEMA,
     execute=_search,
@@ -166,8 +166,8 @@ TOOL_TIMELINE = Tool(
     name="datamining_timeline",
     description=(
         "Zeitstrahl aller Sessions in einem Zeitraum, gruppiert nach Tag. "
-        "Ideal für Langzeit-Analyse ohne Keyword — z.B. 'was habe ich im November gemacht', "
-        "'welche Sessions gab es letzte Woche'. Gibt Themen/Gesprächspartner pro Tag."
+        "**Erste Wahl** wenn der User nach einem Zeitraum fragt ('letzte Woche', 'gestern', "
+        "'im November') — vermeidet raten nach Suchbegriffen."
     ),
     schema=_TIMELINE_SCHEMA,
     execute=_timeline,
