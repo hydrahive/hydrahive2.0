@@ -46,6 +46,33 @@ CREATE INDEX IF NOT EXISTS events_message ON events (message_id, block_index, ch
 CREATE INDEX IF NOT EXISTS events_user    ON events (username, created_at);
 CREATE INDEX IF NOT EXISTS events_type   ON events (event_type, created_at);
 CREATE INDEX IF NOT EXISTS events_tool   ON events (tool_name) WHERE tool_name IS NOT NULL;
+CREATE TABLE IF NOT EXISTS llm_calls (
+  id                      TEXT PRIMARY KEY,
+  session_id              TEXT NOT NULL,
+  created_at              TIMESTAMPTZ NOT NULL,
+  agent_id                TEXT,
+  user_id                 TEXT,
+  provider                TEXT NOT NULL,
+  model                   TEXT NOT NULL,
+  temperature             REAL,
+  max_tokens              INTEGER,
+  reasoning_effort        TEXT,
+  prompt_tokens           INTEGER,
+  completion_tokens       INTEGER,
+  cache_read_tokens       INTEGER,
+  cache_creation_tokens   INTEGER,
+  stop_reason             TEXT,
+  ttft_ms                 INTEGER,
+  total_ms                INTEGER,
+  cost_micros             BIGINT,
+  turn_in_session         INTEGER,
+  mirrored_at             TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS llm_calls_session ON llm_calls (session_id);
+CREATE INDEX IF NOT EXISTS llm_calls_created ON llm_calls (created_at);
+CREATE INDEX IF NOT EXISTS llm_calls_agent   ON llm_calls (agent_id, created_at);
+CREATE INDEX IF NOT EXISTS llm_calls_user    ON llm_calls (user_id, created_at);
+CREATE INDEX IF NOT EXISTS llm_calls_model   ON llm_calls (model, created_at);
 """
 
 

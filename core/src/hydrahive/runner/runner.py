@@ -3,12 +3,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from typing import AsyncIterator
 
 from hydrahive.agents import config as agent_config
 from hydrahive.agents._paths import ensure_workspace
+from hydrahive.db import llm_calls as llm_calls_db
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
+from hydrahive.llm._pricing import cost_micros, provider_from_model
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._runner_helpers import build_skills_block, close_open_tool_uses
@@ -121,6 +124,7 @@ async def run(
         primary_model = model_override or agent["llm_model"]
 
         result: IterationResult | None = None
+        t0 = time.monotonic()
         try:
             async for item in stream_llm_call(
                 primary_model=primary_model,
@@ -143,10 +147,42 @@ async def run(
             yield Error(f"LLM-Call fehlgeschlagen: {e}"); return
 
         assert result is not None
+        total_ms = int((time.monotonic() - t0) * 1000)
         total_input_tokens += result.input_tokens
         total_output_tokens += result.output_tokens
         total_cache_creation += result.cache_creation_tokens
         total_cache_read += result.cache_read_tokens
+
+        # Token-Audit (#129): pro LLM-Call eine Zeile in llm_calls
+        try:
+            _provider = provider_from_model(result.used_model)
+            llm_calls_db.insert(llm_calls_db.LlmCall(
+                session_id=session_id,
+                agent_id=agent["id"],
+                user_id=ctx.user_id,
+                provider=_provider,
+                model=result.used_model,
+                temperature=agent.get("temperature", 0.7),
+                max_tokens=agent.get("max_tokens", 4096),
+                reasoning_effort=reasoning_effort,
+                prompt_tokens=result.input_tokens,
+                completion_tokens=result.output_tokens,
+                cache_read_tokens=result.cache_read_tokens,
+                cache_creation_tokens=result.cache_creation_tokens,
+                stop_reason=result.stop_reason,
+                ttft_ms=None,
+                total_ms=total_ms,
+                cost_micros=cost_micros(
+                    _provider, result.used_model,
+                    prompt_tokens=result.input_tokens,
+                    completion_tokens=result.output_tokens,
+                    cache_read_tokens=result.cache_read_tokens,
+                    cache_creation_tokens=result.cache_creation_tokens,
+                ),
+                turn_in_session=iteration + 1,
+            ))
+        except Exception:
+            logger.exception("llm_calls-Insert fehlgeschlagen — Telemetrie verloren, Lauf läuft weiter")
 
         assistant_msg = messages_db.append(
             session_id, "assistant", result.blocks,
