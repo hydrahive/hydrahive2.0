@@ -22,6 +22,7 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._agent_schemas import check_agent_access
 from hydrahive.db import messages as messages_db
 from hydrahive.runner import run as runner_run
+from hydrahive.runner.concurrency import SessionAlreadyRunning, session_run_guard
 from hydrahive.runner.events import Done, Error
 from hydrahive.voice._ha_conversation import get_or_create_session
 
@@ -87,13 +88,17 @@ async def voice_chat(
 
     async def _drive() -> None:
         nonlocal final_message_id, error_msg
-        async for ev in runner_run(session_id, body.text, extra_system=extra_system):
-            if isinstance(ev, Done):
-                final_message_id = ev.message_id
-                return
-            if isinstance(ev, Error):
-                error_msg = ev.message
-                return
+        try:
+            async with session_run_guard(session_id):
+                async for ev in runner_run(session_id, body.text, extra_system=extra_system):
+                    if isinstance(ev, Done):
+                        final_message_id = ev.message_id
+                        return
+                    if isinstance(ev, Error):
+                        error_msg = ev.message
+                        return
+        except SessionAlreadyRunning:
+            error_msg = "Session läuft bereits — bitte warten"
 
     try:
         await asyncio.wait_for(_drive(), timeout=VOICE_TIMEOUT_S)

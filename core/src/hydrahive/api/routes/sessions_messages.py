@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_response
+from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_with_guard
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
 from hydrahive.compaction import compact_session, total_tokens
 from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
@@ -17,7 +17,6 @@ from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
 from hydrahive.db import tools as tools_db
-from hydrahive.runner import run as runner_run
 
 messages_router = APIRouter()
 
@@ -121,7 +120,7 @@ async def resend_message(
 
     messages_db.delete_from(session_id, message_id)
     user_content = await build_user_content(s.agent_id, text, files or [])
-    return sse_run_response(runner_run(session_id, user_content))
+    return await sse_run_with_guard(session_id, user_content)
 
 
 @messages_router.post("/{session_id}/messages")
@@ -137,7 +136,7 @@ async def post_message(
     check_owner(s, *auth)
 
     user_content = await build_user_content(s.agent_id, text, files or [])
-    return sse_run_response(runner_run(session_id, user_content))
+    return await sse_run_with_guard(session_id, user_content)
 
 
 class LogCmdBody(BaseModel):
@@ -184,4 +183,4 @@ async def inject_message(
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     user_content = await build_user_content(s.agent_id, text, [])
-    return sse_run_response(runner_run(session_id, user_content))
+    return await sse_run_with_guard(session_id, user_content)

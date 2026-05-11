@@ -89,6 +89,7 @@ def _build_user_input(state: State) -> str:
 
 async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> None:
     from hydrahive.runner import runner
+    from hydrahive.runner.concurrency import SessionAlreadyRunning, session_run_guard
     from hydrahive.runner.events import Error
 
     user_input = _build_user_input(state)
@@ -96,12 +97,16 @@ async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> N
     error_msg: str | None = None
 
     try:
-        async for ev in runner.run(session_id, user_input):
-            if hasattr(ev, "text"):
-                output_parts.append(ev.text)
-            elif isinstance(ev, Error):
-                error_msg = ev.message
-                break
+        async with session_run_guard(session_id):
+            async for ev in runner.run(session_id, user_input):
+                if hasattr(ev, "text"):
+                    output_parts.append(ev.text)
+                elif isinstance(ev, Error):
+                    error_msg = ev.message
+                    break
+    except SessionAlreadyRunning:
+        error_msg = "Session läuft bereits — handoff ignoriert"
+        logger.warning("handoff_receiver: Session %s läuft bereits — skip", session_id)
     except Exception as e:
         error_msg = str(e)
         logger.exception("handoff_receiver: Runner-Fehler für Session %s", session_id)

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from fastapi import UploadFile
+from fastapi import UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from hydrahive.agents import config as agent_config
 from hydrahive.agents._paths import ensure_workspace
+from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._files import process_upload
 from hydrahive.api.routes._sse import to_sse
+from hydrahive.runner import run as runner_run
+from hydrahive.runner.concurrency import SessionAlreadyRunning, session_run_guard
 
 
 async def build_user_content(agent_id: str, text: str, files: list[UploadFile]) -> str | list:
@@ -31,3 +34,31 @@ def sse_run_response(events) -> StreamingResponse:
             "X-Accel-Buffering": "no",
         },
     )
+
+
+async def sse_run_with_guard(session_id: str, user_content, *, extra_system: str | None = None) -> StreamingResponse:
+    """SSE-Response für runner_run MIT Session-Concurrency-Guard.
+
+    409 wenn für die Session bereits ein Run läuft. Verhindert dass
+    bei abgerissenem SSE-Stream (Browser-Refresh, Modell-Switch, Network-Hiccup)
+    ein zweiter Run parallel angestoßen wird — siehe runner.concurrency
+    für den Hintergrund.
+    """
+    guard = session_run_guard(session_id)
+    try:
+        await guard.__aenter__()
+    except SessionAlreadyRunning:
+        raise coded(status.HTTP_409_CONFLICT, "session_already_running")
+
+    async def _guarded_stream():
+        try:
+            if extra_system is not None:
+                gen = runner_run(session_id, user_content, extra_system=extra_system)
+            else:
+                gen = runner_run(session_id, user_content)
+            async for ev in gen:
+                yield ev
+        finally:
+            await guard.__aexit__(None, None, None)
+
+    return sse_run_response(_guarded_stream())
