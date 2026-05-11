@@ -89,7 +89,10 @@ async def manual_compact(
     if tool_limit is not None:
         compact_kwargs["tool_result_limit"] = tool_limit
     try:
-        return await compact_session(session_id, model=compact_model, **compact_kwargs)
+        return await compact_session(
+            session_id, model=compact_model,
+            triggered_by="manual", **compact_kwargs,
+        )
     except Exception as e:
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "validation_error", message=str(e))
 

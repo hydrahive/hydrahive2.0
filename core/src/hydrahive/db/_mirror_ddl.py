@@ -73,6 +73,44 @@ CREATE INDEX IF NOT EXISTS llm_calls_created ON llm_calls (created_at);
 CREATE INDEX IF NOT EXISTS llm_calls_agent   ON llm_calls (agent_id, created_at);
 CREATE INDEX IF NOT EXISTS llm_calls_user    ON llm_calls (user_id, created_at);
 CREATE INDEX IF NOT EXISTS llm_calls_model   ON llm_calls (model, created_at);
+CREATE TABLE IF NOT EXISTS compaction_events (
+  id                          TEXT PRIMARY KEY,
+  session_id                  TEXT NOT NULL,
+  created_at                  TIMESTAMPTZ NOT NULL,
+  agent_id                    TEXT,
+  user_id                     TEXT,
+  triggered_by                TEXT,
+  trigger_threshold_pct       INTEGER,
+  model                       TEXT,
+  source                      TEXT,
+  instructions                TEXT,
+  tool_result_limit           INTEGER,
+  skipped                     BOOLEAN NOT NULL DEFAULT false,
+  skip_reason                 TEXT,
+  skip_reason_params          JSONB,
+  messages_total              INTEGER,
+  messages_visible_before     INTEGER,
+  messages_to_summarize       INTEGER,
+  messages_kept               INTEGER,
+  tokens_before               INTEGER,
+  tokens_after_estimate       INTEGER,
+  cut_kept_from_index         INTEGER,
+  cut_is_split_turn           BOOLEAN,
+  cut_turn_prefix_count       INTEGER,
+  summary_chars               INTEGER,
+  summary_tokens_estimate     INTEGER,
+  facts_count                 INTEGER,
+  files_extracted_count       INTEGER,
+  compaction_message_id       TEXT,
+  had_previous_summary        BOOLEAN,
+  duration_ms                 INTEGER,
+  error                       TEXT,
+  mirrored_at                 TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS compaction_events_session ON compaction_events (session_id);
+CREATE INDEX IF NOT EXISTS compaction_events_created ON compaction_events (created_at);
+CREATE INDEX IF NOT EXISTS compaction_events_agent   ON compaction_events (agent_id, created_at);
+CREATE INDEX IF NOT EXISTS compaction_events_skipped ON compaction_events (skipped) WHERE skipped = true;
 """
 
 
