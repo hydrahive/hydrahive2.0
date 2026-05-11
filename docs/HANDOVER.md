@@ -1,7 +1,47 @@
-# HydraHive2 — Übergabe (Stand 2026-05-10)
+# HydraHive2 — Übergabe (Stand 2026-05-11)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
+
+---
+
+## Aktueller Stand (2026-05-11, Token-Audit Phase 3 / System-Prompt-Diet)
+
+**Tests:** 367/367 grün. Frontend tsc clean.
+
+**Heute erledigt (4 Commits, Reihenfolge):**
+- `c2a4bbd` — Memory/Skills-Auto-Injection raus aus dem System-Prompt (#133 Schritt 1+2). Inkl. Cleanup toter Konfig-Felder + Frontend-UI (MemorySection.tsx gelöscht).
+- `30492ad` — Longterm-Memory-Prompt auf 232 chars geschrumpft (#134). Empty-Search-Budget + from_date-Hinweis wandern in tool_schemas.
+- `d1c701d` — **Kern-Fix:** Uhrzeit (`%H:%M`) aus `volatile_system` raus. War der Cache-Killer — Anthropic prüft den ganzen System-Block für Cache-Hits, nicht nur cache_control-Bereiche. Bei Minutenwechsel fiel der Messages-Cache komplett aus. Belegt durch test_9 vs test_10:
+  - Cache-Hit-Rate: 87% → **97%**
+  - Cache-Creation total: 264k → **82k** (-69%)
+  - Token/Call: 71.8k → **42.5k** (-40%)
+- `a8177ed` — "Weitermachen"-Button bei max_iterations (#140 Schritt 1+2). Neuer Status `paused` im Lifecycle, Frontend-Button schickt automatische Continue-Message. Resume war technisch schon möglich (`session_start` ist idempotent + überschreibend), nur UX fehlte.
+
+**Wichtige neue Erkenntnis (in Memory):** Anthropic prüft den **gesamten** System-Block beim Cache-Hit-Lookup, nicht nur die `cache_control`-markierten Sub-Blöcke. Volatile-Inhalte (Datum, Uhrzeit, jeder Counter) müssen für die Session-Dauer stabil sein, sonst bricht der Cache. Siehe `~/.claude/projects/-home-till-claudeneu/memory/feedback_anthropic_cache_semantics.md`.
+
+**GitHub-Issues:**
+- #133 Umbrella System-Prompt-Diet (offen — Schritt 3+4+5+6 noch da: #134✓ #135 #136 #137)
+- #138 cache_ttl-Fallback in runner.py (offen, klein)
+- #139 Sonnet-Default für Review-Agents (offen, **größter € Hebel: 3× Modellpreis-Differenz**)
+- #140 Restart-Pattern (Schritt 1+2 erledigt durch a8177ed, Schritt 3 = #143)
+- #141 Cache-Creation-Spikes (geschlossen durch d1c701d mit test_9/10-Belegen)
+- #142 max_tokens-Default zu klein für Opus+Thinking (offen — kostet pro Spike ~74¢)
+- #143 Auto-Compaction vor max_iterations (offen — eliminiert Folge-Klicks beim Resume)
+
+**Test-Backlog für morgen** (Till hat ein vergleichbares Opus-Review parat, "test_11"):
+- Verifizieren ob "Weitermachen"-Button erscheint und sauber resumed
+- Sanity-Check: Cache läuft jetzt komplett durch (≥97% Hit-Rate über die ganze Session)
+
+**Prioritäten für Folge-Arbeit:**
+1. **#139** Sonnet-Default — größter Hebel (€-Faktor 3 für identische Arbeit). Kleiner Backend-Eingriff in DEFAULT_LLM_MODEL pro Agent-Type + Migration.
+2. **#143** Auto-Compaction vor max_iter — eliminiert Folge-Klicks beim Resume (heute 4 Klicks bei test_10 → mit #143 wahrscheinlich 1).
+3. **#142** max_tokens-Default — eliminiert die 74¢-Spikes bei langen Outputs.
+4. **#138** cache_ttl-Fallback — trivialer 1-Zeilen-Fix.
+5. Rest der Diet: #135/#136/#137 — Hebel jetzt klein, eher Code-Hygiene.
+
+**Was NICHT vergessen:**
+- Heute Abend gab's ein **Force-Push-Drama** auf origin/main durch den DEV-Agent (push aus rebased Clone hat 12 Commits zerstört). Recovered via `git push --force-with-lease`. **Offene Frage:** Agent darf nicht ungebremst auf main pushen — soll als separates Issue gefilet werden falls das nochmal passiert.
 
 ---
 
