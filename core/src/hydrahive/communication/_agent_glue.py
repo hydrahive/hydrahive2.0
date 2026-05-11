@@ -12,6 +12,7 @@ from hydrahive.agents import config as agent_config
 from hydrahive.communication import _session_lookup
 from hydrahive.communication.base import IncomingEvent
 from hydrahive.runner import run as runner_run
+from hydrahive.runner.concurrency import SessionAlreadyRunning, session_run_guard
 from hydrahive.runner.events import Done, Error, MessageStart, TextBlock, TextDelta
 
 logger = logging.getLogger(__name__)
@@ -90,21 +91,26 @@ async def _run_agent(
 
     answer_parts: list[str] = []
     current_text: list[str] = []
-    async for ev in runner_run(session.id, user_text, extra_system=extra_system):
-        if isinstance(ev, MessageStart):
-            current_text = []
-        elif isinstance(ev, TextDelta):
-            current_text.append(ev.text)
-        elif isinstance(ev, TextBlock):
-            if current_text:
-                answer_parts.append("".join(current_text))
-                current_text = []
-        elif isinstance(ev, Done):
-            if current_text:
-                answer_parts.append("".join(current_text))
-            break
-        elif isinstance(ev, Error):
-            logger.error("Runner-Fehler im Channel-Run: %s", ev.message)
-            raise RuntimeError(ev.message)
+    try:
+        async with session_run_guard(session.id):
+            async for ev in runner_run(session.id, user_text, extra_system=extra_system):
+                if isinstance(ev, MessageStart):
+                    current_text = []
+                elif isinstance(ev, TextDelta):
+                    current_text.append(ev.text)
+                elif isinstance(ev, TextBlock):
+                    if current_text:
+                        answer_parts.append("".join(current_text))
+                        current_text = []
+                elif isinstance(ev, Done):
+                    if current_text:
+                        answer_parts.append("".join(current_text))
+                    break
+                elif isinstance(ev, Error):
+                    logger.error("Runner-Fehler im Channel-Run: %s", ev.message)
+                    raise RuntimeError(ev.message)
+    except SessionAlreadyRunning:
+        logger.warning("Channel-Run skipped: Session %s läuft bereits", session.id)
+        raise RuntimeError("Session läuft bereits — Nachricht ignoriert")
 
     return "\n\n".join(p for p in answer_parts if p.strip())
