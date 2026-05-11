@@ -5,32 +5,78 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
-## Aktueller Stand (2026-05-12, #143 Auto-Compaction vor max_iterations)
+## Aktueller Stand (2026-05-12, #142 + #143 erledigt — Verifikation steht aus)
 
 **Tests:** 380/380 grün (+13 vs. gestern). Frontend tsc clean. Ruff clean.
+Beide heutigen Commits gepusht auf `origin/main`.
 
 **Heute erledigt:**
-- **#142** max_tokens-Default 8192 → 16384. Bei Opus+Thinking frisst das
-  Thinking-Budget einen Teil von max_tokens; plus tool_use-Inputs mit
-  großen content-Strings können einen 16kB-file_write allein ~4-5k Tokens
-  fürs Input-JSON kosten. test_10 verlor an zwei stop_reason=max_tokens-
-  Restarts 20% der Session-Kosten (€1.47 von €7.58). Bestehende Agents
-  mit eigenem Wert bleiben unverändert (setdefault in normalize). Plus
-  hardcoded `agent.get("max_tokens", 4096)`-Fallbacks in runner.py und
-  `max_tokens=4096` in AgentCreate-Schema auf DEFAULT_MAX_TOKENS gezogen.
-  Frontend zeigt im ModelTab eine Amber-Warnung wenn `max_tokens<8000` UND
-  `thinking_budget>0`. 9 neue Tests in test_max_tokens_default.py inkl.
-  Regression-Guard "kein hardcoded 4096 in runner.py".
-- **#143** Auto-Compaction vor max_iterations-Abbruch. In `runner.py` direkt
-  vor `session_end(paused)`: wenn `compact_threshold_pct<100` UND `total_tokens
-  > window/2`, läuft `compact_session(triggered_by="max_iterations_resume",
-  trigger_threshold_pct=50)`. Exceptions werden gefangen — der max_iterations-
-  Error kommt immer raus, kein Datenverlust bei Compaction-Crash. Eliminiert
-  die Folge-Klicks beim "Weitermachen"-Button: heute 4× klicken bei test_10,
-  ab jetzt erwartet 1×. 4 neue Tests in `test_max_iter_compaction.py` (große
-  History → compact, kleine → kein Call, threshold=100 → kein Call, Compact-
-  Exception → Error trotzdem geyielded). Zusätzlich pre-existierender ruff
-  F541 in `scripts/migrate_compact_threshold.py:69` mitgefixt.
+- **#143** Auto-Compaction vor max_iterations-Abbruch (`b265b76`).
+  In `runner.py` direkt vor `session_end(paused)`: wenn `compact_threshold_pct
+  <100` UND `total_tokens > window/2`, läuft `compact_session(triggered_by=
+  "max_iterations_resume", trigger_threshold_pct=50)`. Exceptions werden
+  gefangen — der max_iterations-Error kommt immer raus, kein Datenverlust
+  bei Compaction-Crash. Eliminiert die Folge-Klicks beim "Weitermachen"-
+  Button: gestern 4× klicken bei test_10, ab jetzt erwartet 1×. 4 neue
+  Tests in `test_max_iter_compaction.py` (große History → compact, kleine
+  → kein Call, threshold=100 → kein Call, Compact-Exception → Error
+  trotzdem geyielded). Pre-existierender ruff F541 in
+  `scripts/migrate_compact_threshold.py:69` mitgefixt.
+- **#142** max_tokens-Default 8192 → 16384 + UI-Warnung (`2233311`).
+  Bei Opus+Thinking frisst das Thinking-Budget einen Teil von max_tokens;
+  plus tool_use-Inputs mit großen content-Strings (16kB-file_write
+  ~4-5k Tokens fürs Input-JSON allein). test_10 verlor an zwei
+  stop_reason=max_tokens-Restarts 20% der Session-Kosten (€1.47 von €7.58).
+  Bestehende Agents mit eigenem Wert bleiben unverändert (setdefault in
+  normalize). Plus hardcoded `agent.get("max_tokens", 4096)`-Fallbacks in
+  runner.py und `max_tokens=4096` in AgentCreate-Schema auf
+  DEFAULT_MAX_TOKENS gezogen. Frontend zeigt im ModelTab eine Amber-
+  Warnung wenn `max_tokens<8000` UND `thinking_budget>0`. 9 neue Tests
+  in `test_max_tokens_default.py` inkl. Regression-Guard "kein hardcoded
+  4096 in runner.py".
+
+**Test-Backlog für morgen** (Till hat ein vergleichbares Opus-Review, "test_11"):
+- "Weitermachen"-Button erscheint und resumed sauber (kommt vom 2026-05-11)
+- Cache-Hit-Rate ≥97% über die ganze Session (kommt vom 2026-05-11)
+- **Neu:** Bei max_iterations-Treffer mit großer History sollte vor dem
+  Pause-Status genau **eine** Compaction laufen (sichtbar in
+  `compaction_events` mit `triggered_by="max_iterations_resume"`).
+  Resume danach sollte nicht direkt wieder in max_iter knallen.
+- **Neu:** Mit neuem max_tokens-Default 16384 sollten die ~74¢-Spikes durch
+  `stop_reason=max_tokens` nicht mehr auftauchen. Falls doch: per-Agent
+  noch höher setzen (Schema akzeptiert bis 200000) ODER content-Größe
+  des Tool-Use prüfen.
+
+**Was an aktiven Issues bleibt:**
+- **#139** Sonnet-Default für Review-Agents — Till hat angedeutet er hat
+  das schon erledigt; im `origin/main`-Log ist kein passender Commit
+  zu sehen, also vermutlich lokal/parallel. Bei nächster Session checken.
+- **#133-Umbrella System-Prompt-Diet:** Schritt 1+2 (`c2a4bbd`), 3 (`30492ad`)
+  fertig — bleiben #135 / #136 / #137 (Hebel jetzt klein, eher Hygiene).
+- **#138** cache_ttl-Fallback in runner.py:96 — vom 2026-05-12 als skip
+  markiert (rein kosmetisch, normalize() setzt den Wert eh; jeder Agent
+  hat 5m/1h im Advanced-Tab pro Agent gesetzt).
+
+**Geschlossen / fertig im 2-Tage-Sprint:**
+- #140 Restart-Pattern komplett: Schritt 1+2 (`a8177ed`) + Schritt 3 = #143 (`b265b76`)
+- #141 Cache-Creation-Spikes durch Uhrzeit-Fix (`d1c701d`)
+- #142 max_tokens (`2233311`)
+- #143 Auto-Compaction (`b265b76`)
+- #134 Longterm-Memory-Prompt schrumpfen (`30492ad`)
+
+**Was NICHT vergessen:**
+- **Force-Push-Drama** vom 2026-05-11 Abend (DEV-Agent push aus rebased
+  Clone hat 12 Commits zerstört, recovered via `--force-with-lease`).
+  Heute keine erneute Wiederholung — beide Pushes waren saubere Fast-
+  Forwards. Trotzdem: noch kein Issue gefilet, das den DEV-Agent
+  unbremsbar auf main pushen verhindert.
+- Die hardcoded `4096`-Fallbacks in `runner.py` waren nach dem
+  DEFAULT_MAX_TOKENS-Bump auf 8192 (in `8aa7fad`) liegen geblieben —
+  Hinweis dass beim nächsten Default-Bump nach allen Aufrufstellen
+  gegrept werden sollte. Test `test_runner_kein_hardcoded_4096_fallback`
+  schützt jetzt vor Regression der Konstante.
+
+---
 
 ## Stand zuvor (2026-05-11, Token-Audit Phase 3 / System-Prompt-Diet)
 
