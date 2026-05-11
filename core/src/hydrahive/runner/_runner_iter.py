@@ -70,8 +70,14 @@ def build_system_prompts(
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
     - stable: base + extra (cache-fähig über Sessions hinweg)
-    - volatile: Datum/Uhrzeit + Workspace (ändert sich pro Call)
+    - volatile: Datum (Tag) + Workspace — pro Tag stabil, Cache bricht nur um Mitternacht
     - summary: bisherige Zusammenfassung als separater System-Block
+
+    WARUM Tages-Granularität statt HH:MM: byte-exakter Cache-Hash bricht jede
+    Minute, wenn die Uhrzeit im volatile-Block steht. Auch wenn der Block kein
+    cache_control hat, prüft Anthropic den gesamten System-Block — Resets bei
+    Minutenwechsel sind empirisch belegt (Issue #141, Test_9 2026-05-11).
+    Für Uhrzeit-Bedarf nutzt der Agent shell_exec "date".
     """
     stable_system = base_system_prompt
     if extra_system:
@@ -79,8 +85,7 @@ def build_system_prompts(
 
     now = datetime.now().astimezone()
     date_line = (
-        f"Aktuelles Datum/Uhrzeit (Server): "
-        f"{now.strftime('%Y-%m-%d %H:%M %Z')} ({now.strftime('%A')}). "
+        f"Datum (Server): {now.strftime('%Y-%m-%d')} ({now.strftime('%A')}). "
         f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff."
     )
     workspace_line = f"Workspace: {workspace}"
