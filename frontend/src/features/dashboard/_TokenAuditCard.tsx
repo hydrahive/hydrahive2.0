@@ -43,9 +43,15 @@ export function TokenAuditCard() {
   const today = data.today
   const last7 = data.last_7d
   const todayTokens = (today.input_tokens || 0) + (today.output_tokens || 0)
-  const last7Tokens = (last7.input_tokens || 0) + (last7.output_tokens || 0)
-  const cacheRatio7d = last7Tokens > 0
-    ? Math.round(100 * (last7.cache_read_tokens || 0) / last7Tokens)
+  // Cache-Hit = wie viel vom INPUT kam aus dem Cache. Anthropic zählt input
+  // (=neue Tokens), cache_read und cache_creation getrennt — alle drei sind
+  // der Gesamt-Input. Cache-Hit-Ratio = cache_read / (input + cache_read +
+  // cache_creation). Output zählt nicht (das ist Generation, nicht Input).
+  const totalInput7d = (last7.input_tokens || 0)
+    + (last7.cache_read_tokens || 0)
+    + (last7.cache_creation_tokens || 0)
+  const cacheRatio7d = totalInput7d > 0
+    ? Math.round(100 * (last7.cache_read_tokens || 0) / totalInput7d)
     : 0
 
   return (
@@ -61,7 +67,7 @@ export function TokenAuditCard() {
           from="from-emerald-500" to="to-teal-600" />
         <Tile icon={Cpu} label="Cache-Hit (7d)"
           value={`${cacheRatio7d}%`}
-          sub={`${formatNumber(last7.cache_read_tokens || 0)} cached`}
+          sub={`${formatNumber(last7.cache_read_tokens || 0)} cache_read`}
           from="from-sky-500" to="to-cyan-600" />
         <Tile icon={AlertTriangle} label="Heute Fehler"
           value={String((today.errors || 0) + (today.tool_errors || 0))}

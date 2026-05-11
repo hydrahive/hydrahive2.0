@@ -69,6 +69,7 @@ def overview(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
                   COALESCE(SUM(input_tokens), 0)               AS input_tokens,
                   COALESCE(SUM(output_tokens), 0)              AS output_tokens,
                   COALESCE(SUM(cache_read_tokens), 0)          AS cache_read_tokens,
+                  COALESCE(SUM(cache_creation_tokens), 0)      AS cache_creation_tokens,
                   COALESCE(SUM(cost_micros), 0)                AS cost_micros,
                   COALESCE(SUM(llm_calls), 0)                  AS llm_calls,
                   COALESCE(SUM(errors), 0)                     AS errors,
