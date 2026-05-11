@@ -103,23 +103,5 @@
     "live_truncation_help": "Truncates individual tool results to X chars before they enter the LLM context. 0 = no limit. Recommended: 12000.",
     "cache_ttl": "Prompt cache TTL",
     "cache_ttl_help": "How long Anthropic caches the system prompt. 1h = cache persists across sessions (2× write cost). 5m = Anthropic default (cheaper writes, but cache expires sooner)."
-  },
-  "memory": {
-    "section_title": "Memory injection",
-    "default": "default",
-    "help": "Controls how many past sessions (crystals) and lessons get woven into the system prompt at session start. Specialist agents that don't need memory context can set all limits to 0.",
-    "max_crystals": "Max crystals",
-    "max_crystals_help": "How many recent session digests to inject. 0 = off.",
-    "max_lessons": "Max lessons",
-    "max_lessons_help": "How many lessons (sorted by confidence) to inject. 0 = off.",
-    "min_confidence": "Min lesson confidence ({{value}})",
-    "min_confidence_help": "Lessons below this value are ignored. Default: 0.6.",
-    "max_chars": "Max block size (chars)",
-    "max_chars_unlimited": "No limit",
-    "max_chars_help": "Soft cap for the whole memory block. 0 = no limit.",
-    "crystal_scope": "Crystal visibility",
-    "crystal_scope_help": "Which crystals a project agent sees: only its own, or also global ones (project=None, e.g. from the master buddy).",
-    "scope_project_and_global": "Own + global (default)",
-    "scope_project_only": "Own only"
   }
 }

@@ -63,20 +63,17 @@ async def prepare_history(
 def build_system_prompts(
     base_system_prompt: str,
     *,
-    skills_block: str,
     extra_system: str | None,
     workspace: Path,
     summary: str | None,
 ) -> tuple[str, str, str | None]:
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
-    - stable: base + skills + extra (cache-fähig über Sessions hinweg)
+    - stable: base + extra (cache-fähig über Sessions hinweg)
     - volatile: Datum/Uhrzeit + Workspace (ändert sich pro Call)
     - summary: bisherige Zusammenfassung als separater System-Block
     """
     stable_system = base_system_prompt
-    if skills_block:
-        stable_system = f"{stable_system}\n\n{skills_block}"
     if extra_system:
         stable_system = f"{extra_system}\n\n{stable_system}"
 
