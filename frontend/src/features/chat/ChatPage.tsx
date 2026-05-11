@@ -124,7 +124,7 @@ export function ChatPage() {
   }, [activeAgent?.id])
 
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
+    <AssistantRuntimeProvider runtime={runtime} key={activeId ?? "empty"}>
       <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6">
         <main className="flex-1 flex flex-col min-w-0 p-3 md:p-4">
           {activeSession ? (
