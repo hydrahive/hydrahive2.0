@@ -66,7 +66,7 @@ DEFAULT_THINKING_BUDGET = 0
 #   für günstigere Compaction)
 DEFAULT_COMPACT_MODEL = ""
 # Tool-Results in der serialisierten History werden auf dieses Limit gekürzt.
-# 2000 ist OpenClaw-Original. Bei riesen Sessions (Anthropic 400 \"input too long\")
+# 2000 ist OpenClaw-Original. Bei riesen Sessions (Anthropic 400 "input too long")
 # kann der User auf 500 runtergehen.
 DEFAULT_COMPACT_TOOL_RESULT_LIMIT = 2000
 # Live-Truncation: Tool-Results werden vor dem LLM-Call auf dieses Zeichenlimit
@@ -80,9 +80,10 @@ DEFAULT_CACHE_TTL = "1h"
 # Reserve-Tokens für die Summary-Antwort. Wenn used > (window - reserve) wird
 # auto-compactet.
 DEFAULT_COMPACT_RESERVE_TOKENS = 16_384
-# Wann triggert auto-compact als % vom (Context-Window − Reserve). 100 = bei
-# Limit-Erreichung. Niedriger = häufiger compactieren (defensiver).
-DEFAULT_COMPACT_THRESHOLD_PCT = 100
+# Wann triggert auto-compact als % vom (Context-Window − Reserve). 75 = bei 75% Fülle.
+# Senken auf 75% (von 100%) reduziert Token-Verbrauch durch häufigere Compaction.
+# Mit 200k Window: compactet bei 150k statt bei 184k, spart ~20-30% per Turn vor Compact.
+DEFAULT_COMPACT_THRESHOLD_PCT = 75
 
 # --- Memory-Injection-Defaults (per-Agent overridebar) -----------------------
 # Wieviele Crystals (Session-Digests) maximal in den System-Prompt injizieren.
