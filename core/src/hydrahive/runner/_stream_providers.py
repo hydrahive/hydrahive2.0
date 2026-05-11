@@ -34,27 +34,33 @@ def _map_event(ev: Any) -> dict | None:
 
 
 def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
-    """Marks the last content block of messages[-2] as a cache breakpoint.
+    """Marks the last content block of the LAST message as a cache breakpoint.
 
-    Everything up to that point is stable history that Anthropic can cache.
-    messages[-1] is always the fresh current user turn (no caching).
-    Returns a new list — does not mutate the original.
+    Quelle: claude-code-source-code/src/services/api/claude.ts:3089
+        `const markerIndex = skipCacheWrite ? messages.length - 2 : messages.length - 1`
 
-    Default-TTL = "5m". 1h-TTL Test verworfen (siehe _llm_bridge_backends.py).
+    Siehe _llm_bridge_backends.py:_with_cache_breakpoint für die volle
+    Begründung (Mycro turn-to-turn eviction + KV-page-refcounting).
+
+    Default-TTL = "5m" (Anthropic-Default).
     """
-    if len(messages) < 2:
+    if not messages:
         return messages
     msgs = list(messages)
-    target = msgs[-2]
+    target = msgs[-1]
     content = target.get("content", [])
     if not isinstance(content, list) or not content:
+        if isinstance(content, str) and content:
+            return [*msgs[:-1], {**target, "content": [
+                {"type": "text", "text": content, "cache_control": _cache_control(ttl)},
+            ]}]
         return msgs
     last_block = content[-1]
     if not isinstance(last_block, dict):
         return msgs
     new_content = list(content)
     new_content[-1] = {**last_block, "cache_control": _cache_control(ttl)}
-    msgs[-2] = {**target, "content": new_content}
+    msgs[-1] = {**target, "content": new_content}
     return msgs
 
 

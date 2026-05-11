@@ -22,40 +22,55 @@ def _make_messages() -> list[dict]:
     ]
 
 
-def test_backend_default_ttl_ist_5m():
+def test_marker_auf_letzter_message():
+    """Quelle: claude.ts:3089 — default markerIndex = messages.length - 1."""
     msgs = backend_breakpoint(_make_messages())
-    cache_ctl = msgs[-2]["content"][-1].get("cache_control")
+    # messages[-1] (letzte user-message "Next") hat cache_control
+    cache_ctl = msgs[-1]["content"][-1].get("cache_control")
     assert cache_ctl is not None
     assert cache_ctl["type"] == "ephemeral"
     # 5m ist Anthropic-Default — kein ttl-Feld
     assert "ttl" not in cache_ctl
+    # messages[-2] hat KEIN cache_control
+    assert "cache_control" not in msgs[-2]["content"][-1]
 
 
-def test_stream_default_ttl_ist_5m():
+def test_stream_marker_auf_letzter_message():
     msgs = stream_breakpoint(_make_messages())
-    cache_ctl = msgs[-2]["content"][-1].get("cache_control")
+    cache_ctl = msgs[-1]["content"][-1].get("cache_control")
     assert cache_ctl is not None
     assert cache_ctl["type"] == "ephemeral"
     assert "ttl" not in cache_ctl
 
 
 def test_explicit_1h_setzt_ttl_feld():
-    """Per-Call kann immer noch 1h gesetzt werden — aber nur wenn nötig
-    (z.B. für Tools-Cache der wirklich lange stabil ist)."""
     msgs = backend_breakpoint(_make_messages(), ttl="1h")
-    cache_ctl = msgs[-2]["content"][-1].get("cache_control")
+    cache_ctl = msgs[-1]["content"][-1].get("cache_control")
     assert cache_ctl["type"] == "ephemeral"
     assert cache_ctl["ttl"] == "1h"
 
 
-def test_kurze_messages_ohne_breakpoint():
+def test_leere_messages():
+    out = backend_breakpoint([])
+    assert out == []
+
+
+def test_einzelne_message_bekommt_marker():
+    """Anders als vorher: auch eine einzelne Message kann den marker bekommen."""
     one = [{"role": "user", "content": [{"type": "text", "text": "Hi"}]}]
     out = backend_breakpoint(one)
-    assert out == one
-    assert "cache_control" not in out[0]["content"][0]
+    assert out[-1]["content"][-1].get("cache_control") == {"type": "ephemeral"}
+
+
+def test_string_content_wird_zu_block_liste():
+    """Falls eine Message content als String hat (alte API-Form), wird's ge-blockt."""
+    msgs = [{"role": "user", "content": "plain text"}]
+    out = backend_breakpoint(msgs)
+    assert isinstance(out[-1]["content"], list)
+    assert out[-1]["content"][-1].get("cache_control") == {"type": "ephemeral"}
 
 
 def test_ttl_durchgereicht_an_alle_provider():
-    backend_ctl = backend_breakpoint(_make_messages())[-2]["content"][-1]["cache_control"]
-    stream_ctl = stream_breakpoint(_make_messages())[-2]["content"][-1]["cache_control"]
+    backend_ctl = backend_breakpoint(_make_messages())[-1]["content"][-1]["cache_control"]
+    stream_ctl = stream_breakpoint(_make_messages())[-1]["content"][-1]["cache_control"]
     assert backend_ctl == stream_ctl

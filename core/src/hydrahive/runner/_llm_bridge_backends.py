@@ -14,28 +14,40 @@ from hydrahive.runner._litellm_convert import (
 
 
 def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
-    """Marks the last content block of messages[-2] as a cache breakpoint.
+    """Marks the last content block of the LAST message as a cache breakpoint.
 
-    Default-TTL = "5m". 1h-TTL via extended-cache-ttl-Beta-Header wurde
-    getestet (commit 0a648b3) und verworfen: bei dem Repo-Review-Pattern
-    von HH2 evictet Anthropic den Cache aus eigenen Gründen mehrmals,
-    1h-cache_creation kostete 2× mehr beim Initial-Write OHNE den Nutzen
-    längerer Cache-Hits. Resultat war Verdopplung der cache_creation-
-    Tokens (179k → 383k) und Verdopplung der Session-Kosten.
+    Quelle: claude-code-source-code/src/services/api/claude.ts:3089
+        `const markerIndex = skipCacheWrite ? messages.length - 2 : messages.length - 1`
+
+    Default-Pfad ist `messages.length - 1` (last message). HH2 hatte vorher
+    messages[-2] (zweitletzte) — das stammt aus einer alten Annahme dass
+    der frische user-turn "nicht gecached werden soll". Claude Code's
+    Anthropic-Insider-Logik widerspricht: bei marker auf [-2] werden die
+    local-attention KV-pages der letzten Position SOFORT freigegeben
+    (Mycro turn-to-turn eviction). Mit marker auf [-1] sind sie
+    refcount-geschützt — der Cache überlebt einen Turn länger.
+
+    Default-TTL = "5m" (Anthropic-Default — Claude Code geht in
+    bootstrap/state.ts:251 auch von ~5min aus).
     """
-    if len(messages) < 2:
+    if not messages:
         return messages
     msgs = list(messages)
-    target = msgs[-2]
+    target = msgs[-1]
     content = target.get("content", [])
     if not isinstance(content, list) or not content:
+        # Wenn content ein String ist (alte API-Form), in list konvertieren
+        if isinstance(content, str) and content:
+            return [*msgs[:-1], {**target, "content": [
+                {"type": "text", "text": content, "cache_control": _cache_control(ttl)},
+            ]}]
         return msgs
     last_block = content[-1]
     if not isinstance(last_block, dict):
         return msgs
     new_content = list(content)
     new_content[-1] = {**last_block, "cache_control": _cache_control(ttl)}
-    msgs[-2] = {**target, "content": new_content}
+    msgs[-1] = {**target, "content": new_content}
     return msgs
 
 
