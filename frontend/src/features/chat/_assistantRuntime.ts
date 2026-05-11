@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react"
 import { useExternalStoreRuntime } from "@assistant-ui/react"
 import type { AppendMessage, ThreadMessageLike } from "@assistant-ui/react"
 import type { Message, ContentBlock, ImageSource } from "./types"
@@ -65,39 +66,49 @@ export function useHydraRuntime(
   send: (text: string, files: File[], resendId?: string) => Promise<void>,
   cancel: () => void,
 ) {
-  return useExternalStoreRuntime<Message>({
+  const onNew = useCallback(async (msg: AppendMessage) => {
+    const text = msg.content
+      .filter((p) => p.type === "text")
+      .map((p) => (p as { type: "text"; text: string }).text)
+      .join("")
+    await send(text, [])
+  }, [send])
+
+  const onEdit = useCallback(async (msg: AppendMessage) => {
+    const text = msg.content
+      .filter((p) => p.type === "text")
+      .map((p) => (p as { type: "text"; text: string }).text)
+      .join("")
+    await send(text, [], msg.parentId ?? undefined)
+  }, [send])
+
+  const onReload = useCallback(async (parentId: string | null) => {
+    const idx = parentId ? messages.findIndex((m) => m.id === parentId) : -1
+    const parent = idx >= 0 ? messages[idx] : [...messages].reverse().find((m) => m.role === "user")
+    if (!parent) return
+    const text =
+      typeof parent.content === "string"
+        ? parent.content
+        : Array.isArray(parent.content)
+        ? parent.content
+            .filter((b) => b.type === "text")
+            .map((b) => (b as { type: "text"; text: string }).text)
+            .join("")
+        : ""
+    await send(text, [], parent.id)
+  }, [send, messages])
+
+  const onCancel = useCallback(async () => cancel(), [cancel])
+
+  const store = useMemo(() => ({
     messages,
     isRunning: busy,
     convertMessage,
-    onNew: async (msg: AppendMessage) => {
-      const text = msg.content
-        .filter((p) => p.type === "text")
-        .map((p) => (p as { type: "text"; text: string }).text)
-        .join("")
-      await send(text, [])
-    },
-    onEdit: async (msg: AppendMessage) => {
-      const text = msg.content
-        .filter((p) => p.type === "text")
-        .map((p) => (p as { type: "text"; text: string }).text)
-        .join("")
-      await send(text, [], msg.parentId ?? undefined)
-    },
-    onReload: async (parentId: string | null) => {
-      const idx = parentId ? messages.findIndex((m) => m.id === parentId) : -1
-      const parent = idx >= 0 ? messages[idx] : [...messages].reverse().find((m) => m.role === "user")
-      if (!parent) return
-      const text =
-        typeof parent.content === "string"
-          ? parent.content
-          : Array.isArray(parent.content)
-          ? parent.content
-              .filter((b) => b.type === "text")
-              .map((b) => (b as { type: "text"; text: string }).text)
-              .join("")
-          : ""
-      await send(text, [], parent.id)
-    },
-    onCancel: async () => cancel(),
-  })
+    onNew,
+    onEdit,
+    onReload,
+    onCancel,
+  }), [messages, busy, onNew, onEdit, onReload, onCancel])
+
+  return useExternalStoreRuntime<Message>(store)
 }

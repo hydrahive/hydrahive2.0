@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Coins, Cpu, Download, FileText, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
@@ -29,7 +29,7 @@ export function ChatPage() {
   const [showNew, setShowNew] = useState(false)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const chat = useChat(activeId)
-  const allMessages = [...chat.messages, ...localMsgs]
+  const allMessages = useMemo(() => [...chat.messages, ...localMsgs], [chat.messages, localMsgs])
   const runtime = useHydraRuntime(allMessages, chat.busy, chat.send, chat.cancel)
 
   const knownAgentIds = new Set(agents.map((a) => a.id))
