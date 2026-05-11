@@ -66,6 +66,11 @@ export function ToolResultCard({ block }: { block: ContentBlock & { type: "tool_
   const content = block.content || ""
   const media = block.media && block.media.length > 0
     ? mediaFromBlocks(block.media) : extractMedia(content)
+  const lineCount = content.split("\n").length
+  const isLong = content.length > COLLAPSE_THRESHOLD_CHARS || lineCount > COLLAPSE_THRESHOLD_LINES
+  // useState MUSS vor jedem early-return aufgerufen werden, sonst React #310
+  // (Hook-Count wechselt zwischen Renders je nach specializedCard-Result).
+  const [open, setOpen] = useState(!isLong)
   const special = specializedCard(block.tool_name, content, block.is_error)
 
   // Spezialisierte Card-Renderer für bekannte Tools (shell_exec, web_search, …).
@@ -84,9 +89,6 @@ export function ToolResultCard({ block }: { block: ContentBlock & { type: "tool_
     )
   }
 
-  const lineCount = content.split("\n").length
-  const isLong = content.length > COLLAPSE_THRESHOLD_CHARS || lineCount > COLLAPSE_THRESHOLD_LINES
-  const [open, setOpen] = useState(!isLong)
   const Icon = block.is_error ? AlertCircle : CheckCircle2
   const color = block.is_error ? "rose" : "emerald"
 
