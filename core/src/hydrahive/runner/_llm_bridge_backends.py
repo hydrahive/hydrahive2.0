@@ -52,19 +52,19 @@ def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
 
 
 def _add_cache_reference_to_tool_results(messages: list[dict]) -> list[dict]:
-    """Setzt `cache_reference: tool_use_id` auf alle tool_result-Blocks die
-    VOR dem letzten cache_control marker stehen.
+    """DEAKTIVIERT — cache_reference ist Anthropic-Beta (cache-editing).
 
-    Quelle: claude-code-source-code/src/services/api/claude.ts:3164-3207
-        "Add cache_reference to tool_result blocks that are strictly before
-         the last cache_control marker."
+    Erste Implementation portiert von Claude Code (claude.ts:3164-3207)
+    OHNE den dafür nötigen Beta-Header. Resultat: API-Error 400
+    "tool_result.cache_reference: Extra inputs are not permitted".
 
-    Hält die Cache-Linie auch wenn Anthropic die KV-pages von tool_results
-    intern evictet — der `cache_reference: tool_use_id` ist der Stable-Key
-    den Anthropic für die Cache-Wiederherstellung braucht.
+    Claude Code aktiviert cache-editing nur wenn `cacheEditingHeaderLatched`
+    gesetzt ist (siehe state.ts:234-237) — das gibt einen extra anthropic-beta
+    Header der bei uns NICHT gesetzt ist und vermutlich nicht öffentlich
+    verfügbar ist (vermutlich Pro/Subscriber-only Feature).
 
-    MUSS NACH _with_cache_breakpoint aufgerufen werden — die Funktion
-    sucht den letzten cache_control marker.
+    Die Funktion bleibt für die Zukunft hier, wird aber aktuell NICHT mehr
+    aufgerufen. Die Logik wäre korrekt, wenn der Beta-Header verfügbar wäre.
     """
     # Finde den Index der letzten Message mit cache_control
     last_cc_idx = -1
@@ -161,9 +161,7 @@ async def anthropic_call(
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": _add_cache_reference_to_tool_results(
-            _with_cache_breakpoint(messages, ttl=cache_ttl)
-        ),
+        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -222,9 +220,7 @@ async def minimax_anthropic_call(
 
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": _add_cache_reference_to_tool_results(
-            _with_cache_breakpoint(messages, ttl=cache_ttl)
-        ),
+        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }

@@ -65,12 +65,8 @@ def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
 
 
 def _add_cache_reference_to_tool_results(messages: list[dict]) -> list[dict]:
-    """Setzt `cache_reference: tool_use_id` auf alle tool_result-Blocks die
-    VOR dem letzten cache_control marker stehen.
-
-    Quelle: claude-code-source-code/src/services/api/claude.ts:3164-3207
-    Siehe _llm_bridge_backends.py:_add_cache_reference_to_tool_results für
-    die volle Begründung.
+    """DEAKTIVIERT — siehe _llm_bridge_backends.py für die volle Begründung.
+    cache_reference braucht den cache-editing Beta-Header, den wir nicht haben.
     """
     last_cc_idx = -1
     for i, msg in enumerate(messages):
@@ -168,7 +164,7 @@ async def anthropic_stream(
     if volatile_system:
         system_blocks.append({"type": "text", "text": volatile_system})
 
-    kwargs: dict[str, Any] = {"model": model, "messages": _add_cache_reference_to_tool_results(_with_cache_breakpoint(messages, ttl=cache_ttl)),
+    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_blocks:
         kwargs["system"] = system_blocks
@@ -217,7 +213,7 @@ async def minimax_stream(
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
 
-    kwargs: dict[str, Any] = {"model": model, "messages": _add_cache_reference_to_tool_results(_with_cache_breakpoint(messages, ttl=cache_ttl)),
+    kwargs: dict[str, Any] = {"model": model, "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_prompt or summary_system or volatile_system:
         blocks: list[dict[str, Any]] = []
