@@ -93,7 +93,11 @@ async def lifespan(app: FastAPI):
     load_butler_builtins()
     set_start_time()
 
-    update_task = asyncio.create_task(update_check_loop())
+    if settings.update_check_enabled:
+        update_task: asyncio.Task[None] | None = asyncio.create_task(update_check_loop())
+    else:
+        update_task = None
+        logger.info("Update-Check deaktiviert (HH_UPDATE_CHECK_ENABLED=false)")
     zahnfee_stop = asyncio.Event()
     zahnfee_task = asyncio.create_task(zahnfee_scheduler.run_loop(zahnfee_stop))
     vm_reconciler_stop = asyncio.Event()
@@ -162,7 +166,8 @@ async def lifespan(app: FastAPI):
         await wa_adapter.aclose()
     if wa_bridge:
         await wa_bridge.stop()
-    update_task.cancel()
+    if update_task is not None:
+        update_task.cancel()
     zahnfee_stop.set()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
