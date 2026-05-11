@@ -49,7 +49,11 @@ async def prepare_history(
     if should_compact(history, model, **should_kwargs):
         try:
             compact_kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
-            await compact_session(session_id, model=compact_model, **compact_kwargs)
+            await compact_session(
+                session_id, model=compact_model,
+                triggered_by="auto", trigger_threshold_pct=compact_threshold_pct,
+                **compact_kwargs,
+            )
             history = messages_db.list_for_llm(session_id)
         except Exception as e:
             logger.warning("Compaction fehlgeschlagen: %s — fahre mit voller History fort", e)
