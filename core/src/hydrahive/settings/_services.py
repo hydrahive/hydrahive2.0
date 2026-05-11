@@ -30,6 +30,17 @@ class _ServerMixin:
     def jwt_expire_minutes(self) -> int:
         return int(os.environ.get("HH_JWT_EXPIRE_MINUTES", "1440"))
 
+    @cached_property
+    def update_check_enabled(self) -> bool:
+        """Background-Update-Check via `git ls-remote` an das Origin-Repo.
+
+        Default ON. Auf ``false`` setzen für strikt offline-only Betrieb —
+        dann wird auch der Health-Endpoint kein ``update_behind`` mehr liefern.
+        Sendet sonst keine Daten außer dem Standard-Git-Protocol-Request.
+        """
+        val = os.environ.get("HH_UPDATE_CHECK_ENABLED", "true").strip().lower()
+        return val not in {"0", "false", "no", "off"}
+
 
 class _AgentLinkMixin:
     @cached_property
