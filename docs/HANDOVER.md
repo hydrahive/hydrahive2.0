@@ -1,13 +1,27 @@
-# HydraHive2 — Übergabe (Stand 2026-05-11)
+# HydraHive2 — Übergabe (Stand 2026-05-12)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
-## Aktueller Stand (2026-05-11, Token-Audit Phase 3 / System-Prompt-Diet)
+## Aktueller Stand (2026-05-12, #143 Auto-Compaction vor max_iterations)
 
-**Tests:** 367/367 grün. Frontend tsc clean.
+**Tests:** 371/371 grün (+4 vs. gestern). Frontend tsc clean. Ruff clean.
+
+**Heute erledigt:**
+- **#143** Auto-Compaction vor max_iterations-Abbruch. In `runner.py` direkt
+  vor `session_end(paused)`: wenn `compact_threshold_pct<100` UND `total_tokens
+  > window/2`, läuft `compact_session(triggered_by="max_iterations_resume",
+  trigger_threshold_pct=50)`. Exceptions werden gefangen — der max_iterations-
+  Error kommt immer raus, kein Datenverlust bei Compaction-Crash. Eliminiert
+  die Folge-Klicks beim "Weitermachen"-Button: heute 4× klicken bei test_10,
+  ab jetzt erwartet 1×. 4 neue Tests in `test_max_iter_compaction.py` (große
+  History → compact, kleine → kein Call, threshold=100 → kein Call, Compact-
+  Exception → Error trotzdem geyielded). Zusätzlich pre-existierender ruff
+  F541 in `scripts/migrate_compact_threshold.py:69` mitgefixt.
+
+## Stand zuvor (2026-05-11, Token-Audit Phase 3 / System-Prompt-Diet)
 
 **Heute erledigt (4 Commits, Reihenfolge):**
 - `c2a4bbd` — Memory/Skills-Auto-Injection raus aus dem System-Prompt (#133 Schritt 1+2). Inkl. Cleanup toter Konfig-Felder + Frontend-UI (MemorySection.tsx gelöscht).
