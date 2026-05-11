@@ -9,15 +9,8 @@ from __future__ import annotations
 
 from typing import AsyncIterator
 
-# Anthropic OAuth-Token-Calls (sk-ant-oat...) brauchen diese Headers + Identity-Block.
-# LiteLLM würde Bearer-Headers fälschlich auf oat-Tokens schicken.
-#
-# extended-cache-ttl-2025-04-11 (Token-Audit-Fix): aktiviert 1h-Cache-TTL.
-# Ohne diesen Header wird `cache_control.ttl: "1h"` von Anthropic ignoriert
-# und auf 5min Default zurückgesetzt — die _with_cache_breakpoint-1h-Optim
-# wäre wirkungslos.
 _OAUTH_HEADERS = {
-    "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,fine-grained-tool-streaming-2025-05-14,prompt-caching-2024-07-31,extended-cache-ttl-2025-04-11",
+    "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,fine-grained-tool-streaming-2025-05-14,prompt-caching-2024-07-31",
     "user-agent": "claude-cli/2.1.62",
     "x-app": "cli",
 }

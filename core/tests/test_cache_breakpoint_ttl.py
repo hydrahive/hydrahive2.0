@@ -1,8 +1,8 @@
-"""Tests für _with_cache_breakpoint — TTL muss 1h sein (Token-Audit-Fix).
+"""Tests für _with_cache_breakpoint — TTL-Verhalten.
 
-Vorher: hardcoded {"type": "ephemeral"} ohne ttl → Anthropic-Default 5m
-→ alle 5 Minuten Cache-Reset, ~€1+ pro Re-Create bei großen Sessions.
-Aus der "analyse claude code"-Session: 4 Cache-Resets in 9 Minuten = ~€5.
+Geschichte: 1h-TTL wurde getestet (commit b8ca92a + 0a648b3) und verworfen.
+Anthropic-Cache wird auch innerhalb der 5min server-side evictet (LRU bei
+Storage-Druck), 1h-cache_creation kostet aber 2× — netto teurer.
 """
 from __future__ import annotations
 
@@ -22,33 +22,33 @@ def _make_messages() -> list[dict]:
     ]
 
 
-def test_backend_default_ttl_ist_1h():
+def test_backend_default_ttl_ist_5m():
     msgs = backend_breakpoint(_make_messages())
-    # messages[-2] (assistant) hat cache_control mit ttl=1h
     cache_ctl = msgs[-2]["content"][-1].get("cache_control")
     assert cache_ctl is not None
     assert cache_ctl["type"] == "ephemeral"
-    assert cache_ctl.get("ttl") == "1h"
+    # 5m ist Anthropic-Default — kein ttl-Feld
+    assert "ttl" not in cache_ctl
 
 
-def test_stream_default_ttl_ist_1h():
+def test_stream_default_ttl_ist_5m():
     msgs = stream_breakpoint(_make_messages())
     cache_ctl = msgs[-2]["content"][-1].get("cache_control")
     assert cache_ctl is not None
     assert cache_ctl["type"] == "ephemeral"
-    assert cache_ctl.get("ttl") == "1h"
-
-
-def test_explicit_5m_setzt_kein_ttl_feld():
-    """5m ist Anthropic-Default — wir setzen explizit kein 'ttl' Feld."""
-    msgs = backend_breakpoint(_make_messages(), ttl="5m")
-    cache_ctl = msgs[-2]["content"][-1].get("cache_control")
-    assert cache_ctl["type"] == "ephemeral"
     assert "ttl" not in cache_ctl
 
 
+def test_explicit_1h_setzt_ttl_feld():
+    """Per-Call kann immer noch 1h gesetzt werden — aber nur wenn nötig
+    (z.B. für Tools-Cache der wirklich lange stabil ist)."""
+    msgs = backend_breakpoint(_make_messages(), ttl="1h")
+    cache_ctl = msgs[-2]["content"][-1].get("cache_control")
+    assert cache_ctl["type"] == "ephemeral"
+    assert cache_ctl["ttl"] == "1h"
+
+
 def test_kurze_messages_ohne_breakpoint():
-    # < 2 Messages → unverändert zurück
     one = [{"role": "user", "content": [{"type": "text", "text": "Hi"}]}]
     out = backend_breakpoint(one)
     assert out == one
@@ -56,7 +56,6 @@ def test_kurze_messages_ohne_breakpoint():
 
 
 def test_ttl_durchgereicht_an_alle_provider():
-    """Sicherheits-Check dass beide Bridge-Module die gleiche Default-TTL haben."""
     backend_ctl = backend_breakpoint(_make_messages())[-2]["content"][-1]["cache_control"]
     stream_ctl = stream_breakpoint(_make_messages())[-2]["content"][-1]["cache_control"]
     assert backend_ctl == stream_ctl
