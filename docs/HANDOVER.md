@@ -5,6 +5,47 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
+## Update 2026-05-12 Mittag — #135 erledigt + Test-Helper-Fix
+
+**Hintergrund:** Beim Vorbereiten von #135 fiel auf dass
+`core/tests/test_runner_cache.py` die Runner-Logik mit einem **lokal
+nachgebauten Helper** prüfte, der **out-of-sync** zum echten Code war
+(Helper hatte noch Uhrzeit `%H:%M` und summary in volatile — beides
+schon gestern bei `d1c701d` (#141) korrigiert worden im echten Code).
+Tests waren grün, aber prüften die falsche Wahrheit — toter Wächter.
+
+**Stufe A (`305bc76`):** Lokalen `_build_stable_volatile`-Helper raus,
+direkt gegen `build_system_prompts` testen. +3 neue Regression-Guards:
+- volatile enthält **keine** Uhrzeit (#141-Pin)
+- summary kommt als **eigener** 3. Rückgabewert (nicht in volatile)
+- extra_system sitzt **vor** base (Voice-API-Sprach-Hinweis-Position)
+
+**Stufe B (`afb6f82`, #135):** Workspace aus `volatile_system` ins
+`stable_system` verschoben (am Ende, nach dem base-Prompt). Volatile
+enthält jetzt **nur** noch das Datum. +3 Tests für Workspace-Position.
+
+| | Vorher | Nachher |
+|---|---|---|
+| `stable_system` | `extra + base` | `extra + base + Workspace` |
+| `volatile_system` | `Datum + Workspace` | nur `Datum` |
+| Tests `test_runner_cache.py` | 11 | 18 |
+| Gesamt-Suite | 386 | 389 |
+
+**Cache-Effekt nach Deployment:** einmaliger Cache-Write pro Agent
+(neuer stable-Hash) → ~5–20¢ pro Agent, danach gleiches Verhalten wie
+zuvor. **Token-direkter Gewinn:** mini (~30 tok pro Call). **Eigentlicher
+Gewinn:** Cache-Stabilität bei seltenem Workspace-Override via tool_config.
+
+**Test-Backlog ergänzt:** bei #135-Verifikation sicherstellen dass
+Cache-Hit-Rate ≥97% bleibt (sollte gleich oder leicht besser sein —
+einmaliger Initial-Write ausgenommen).
+
+**Issue-Stand jetzt:**
+- #133 Umbrella System-Prompt-Diet: Schritt 1+2+3+4 fertig (von ursprünglich 6) — bleiben **#136** (Master-Default schrumpfen) + **#137** (Refactor in eigenes Modul)
+- #135 erledigt durch `afb6f82` (kann auf GitHub closed werden)
+
+---
+
 ## Update 2026-05-12 Vormittag — Gitea-Push-Mirror-Drama recovered
 
 **Vorfall:** Heute morgen 09:21 zeigte `hh2-update` auf 3.22 plötzlich
