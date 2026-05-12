@@ -91,7 +91,7 @@ function PdfViewer({ url }: { url: string }) {
   const [open, setOpen] = useState(false)
   const name = decodeURIComponent(url.split("path=")[1]?.split("&")[0] ?? "").split("/").pop() || "PDF"
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-4/5">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors w-full text-left"
