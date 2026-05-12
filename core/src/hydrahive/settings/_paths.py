@@ -52,6 +52,16 @@ class _PathsMixin:
         return Path(os.environ.get("HH_TMP_DIR", tempfile.gettempdir()))
 
     @cached_property
+    def media_dirs(self) -> list[Path]:
+        """Zusätzliche Verzeichnisse die über /api/files ausgeliefert werden dürfen.
+
+        HH_MEDIA_DIRS: Doppelpunkt-getrennte Liste absoluter Pfade.
+        Beispiel: HH_MEDIA_DIRS=/home/till/security bücherei:/mnt/ebooks
+        """
+        raw = os.environ.get("HH_MEDIA_DIRS", "")
+        return [Path(p) for p in raw.split(":") if p.strip()]
+
+    @cached_property
     def oauth_pending_path(self) -> Path:
         return self.data_dir / "oauth_pending.json"
 

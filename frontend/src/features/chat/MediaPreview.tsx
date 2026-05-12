@@ -21,6 +21,8 @@ const VID_RE = /(https?:\/\/[^\s)]+\.(?:mp4|webm|mov|m3u8))(?:\?[^\s)]*)?/gi
 const ABS_IMG_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))/gi
 const ABS_AUD_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
 const ABS_VID_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp4|webm|mov|m3u8))/gi
+// PDF/EPUB — jeder absolute Pfad (inkl. HH_MEDIA_DIRS wie /home/…/security bücherei)
+const ABS_PDF_RE = /(\/[^\s`)"'\],}]+\.(?:pdf|epub))/gi
 
 function toApiUrl(path: string): string {
   // <img>/<audio>/<video> können keinen Authorization-Header schicken — Token
@@ -42,10 +44,11 @@ export interface ExtractedMedia {
   images: string[]
   audio: string[]
   videos: string[]
+  pdfs: string[]
 }
 
 export function extractMedia(text: string): ExtractedMedia {
-  if (!text) return { images: [], audio: [], videos: [] }
+  if (!text) return { images: [], audio: [], videos: [], pdfs: [] }
   const dedupe = (xs: string[]) => Array.from(new Set(xs))
   const images = [
     ...(text.match(IMG_RE) || []),
@@ -59,29 +62,31 @@ export function extractMedia(text: string): ExtractedMedia {
     ...(text.match(VID_RE) || []),
     ...matchAll(text, ABS_VID_RE).map(toApiUrl),
   ]
-  return { images: dedupe(images), audio: dedupe(audio), videos: dedupe(videos) }
+  const pdfs = matchAll(text, ABS_PDF_RE).map(toApiUrl)
+  return { images: dedupe(images), audio: dedupe(audio), videos: dedupe(videos), pdfs: dedupe(pdfs) }
 }
 
 export function hasMedia(text: string): boolean {
   const m = extractMedia(text)
-  return m.images.length + m.audio.length + m.videos.length > 0
+  return m.images.length + m.audio.length + m.videos.length + m.pdfs.length > 0
 }
 
 export function mediaFromBlocks(media: ToolMedia[] | undefined): ExtractedMedia {
-  const empty: ExtractedMedia = { images: [], audio: [], videos: [] }
+  const empty: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [] }
   if (!media || media.length === 0) return empty
-  const out: ExtractedMedia = { images: [], audio: [], videos: [] }
+  const out: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [] }
   for (const m of media) {
     const url = toApiUrl(m.path)
     if (m.kind === "image") out.images.push(url)
     else if (m.kind === "audio") out.audio.push(url)
     else if (m.kind === "video") out.videos.push(url)
+    else if (m.kind === "pdf") out.pdfs.push(url)
   }
   return out
 }
 
 export function MediaPreview({ media }: { media: ExtractedMedia }) {
-  if (media.images.length + media.audio.length + media.videos.length === 0) return null
+  if (media.images.length + media.audio.length + media.videos.length + media.pdfs.length === 0) return null
   return (
     <div className="space-y-2">
       {media.images.map((url) => (
@@ -92,6 +97,9 @@ export function MediaPreview({ media }: { media: ExtractedMedia }) {
       ))}
       {media.audio.map((url) => (
         <audio key={url} src={url} controls className="w-full max-w-md" preload="none" />
+      ))}
+      {media.pdfs.map((url) => (
+        <embed key={url} src={url} type="application/pdf" className="w-full rounded-xl border border-white/10 shadow-md" style={{ height: "80vh" }} />
       ))}
     </div>
   )
