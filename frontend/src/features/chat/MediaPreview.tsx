@@ -8,6 +8,7 @@
  */
 import { useState } from "react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { EpubViewer } from "./EpubViewer"
 import type { ToolMedia } from "./types"
 
 // HTTP(S)-URLs
@@ -23,8 +24,9 @@ const ABS_IMG_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:png|jpe?
 const ABS_AUD_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
 const ABS_VID_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp4|webm|mov|m3u8))/gi
 // PDF/EPUB — absolute Pfade unter /tmp oder /var/lib/hydrahive2.
-// Leerzeichen in Dateinamen erlaubt; Stopp an Newline, Pipe, Backtick, Quotes, Klammern.
-const ABS_PDF_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\n\r|`"'\]{}]+\.(?:pdf|epub))/gi
+// Leerzeichen in Dateinamen erlaubt; Stopp an Newline, Pipe, Backtick, Quotes.
+const ABS_PDF_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\n\r|`"'\]{}]+\.pdf)/gi
+const ABS_EPUB_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\n\r|`"'\]{}]+\.epub)/gi
 
 function toApiUrl(path: string): string {
   // <img>/<audio>/<video> können keinen Authorization-Header schicken — Token
@@ -47,10 +49,11 @@ export interface ExtractedMedia {
   audio: string[]
   videos: string[]
   pdfs: string[]
+  epubs: string[]
 }
 
 export function extractMedia(text: string): ExtractedMedia {
-  if (!text) return { images: [], audio: [], videos: [], pdfs: [] }
+  if (!text) return { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
   const dedupe = (xs: string[]) => Array.from(new Set(xs))
   const images = [
     ...(text.match(IMG_RE) || []),
@@ -65,24 +68,26 @@ export function extractMedia(text: string): ExtractedMedia {
     ...matchAll(text, ABS_VID_RE).map(toApiUrl),
   ]
   const pdfs = matchAll(text, ABS_PDF_RE).map(toApiUrl)
-  return { images: dedupe(images), audio: dedupe(audio), videos: dedupe(videos), pdfs: dedupe(pdfs) }
+  const epubs = matchAll(text, ABS_EPUB_RE).map(toApiUrl)
+  return { images: dedupe(images), audio: dedupe(audio), videos: dedupe(videos), pdfs: dedupe(pdfs), epubs: dedupe(epubs) }
 }
 
 export function hasMedia(text: string): boolean {
   const m = extractMedia(text)
-  return m.images.length + m.audio.length + m.videos.length + m.pdfs.length > 0
+  return m.images.length + m.audio.length + m.videos.length + m.pdfs.length + m.epubs.length > 0
 }
 
 export function mediaFromBlocks(media: ToolMedia[] | undefined): ExtractedMedia {
-  const empty: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [] }
+  const empty: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
   if (!media || media.length === 0) return empty
-  const out: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [] }
+  const out: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
   for (const m of media) {
     const url = toApiUrl(m.path)
     if (m.kind === "image") out.images.push(url)
     else if (m.kind === "audio") out.audio.push(url)
     else if (m.kind === "video") out.videos.push(url)
     else if (m.kind === "pdf") out.pdfs.push(url)
+    else if (m.kind === "epub") out.epubs.push(url)
   }
   return out
 }
@@ -113,7 +118,7 @@ function PdfViewer({ url }: { url: string }) {
 }
 
 export function MediaPreview({ media }: { media: ExtractedMedia }) {
-  if (media.images.length + media.audio.length + media.videos.length + media.pdfs.length === 0) return null
+  if (media.images.length + media.audio.length + media.videos.length + media.pdfs.length + media.epubs.length === 0) return null
   return (
     <div className="space-y-2">
       {media.images.map((url) => (
@@ -128,6 +133,10 @@ export function MediaPreview({ media }: { media: ExtractedMedia }) {
       {media.pdfs.map((url) => (
         <PdfViewer key={url} url={url} />
       ))}
+      {media.epubs.map((url) => {
+        const name = decodeURIComponent(url.split("path=")[1]?.split("&")[0] ?? "").split("/").pop() || "EPUB"
+        return <EpubViewer key={url} url={url} name={name} />
+      })}
     </div>
   )
 }
