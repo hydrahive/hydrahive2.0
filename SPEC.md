@@ -233,6 +233,16 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
     pro Session umschaltbar. Effort mappt auf OpenAI `reasoning_effort`
     (GPT-5) bzw. Anthropic `extended_thinking.budget_tokens`. Bei Providern
     ohne Reasoning-Support ist der Effort-Switch deaktiviert/unsichtbar.
+  - **Media-Rendering** — Chat rendert Anhänge inline:
+    - Bilder: `<img>` Tag
+    - Audio: `<audio>` Player
+    - Video: `<video>` Player
+    - PDF / EPUB: nativer Browser-Embed (`<embed>` / `<iframe>`)
+    - Backend serviert lokale Dateien über `/api/files/serve?path=...`
+      mit Path-Sanitizing (kein Directory-Traversal), Whitelist auf
+      erlaubte Verzeichnisse per Config
+    - Agent gibt gefundene Dateien als `[media:<pfad>]`-Marker zurück —
+      Frontend erkennt den Marker und rendert den passenden Player
 - **Agenten** — anlegen, bearbeiten, Soul/Skills/Tools konfigurieren
 - **Projekte** — anlegen, Workspace, Projektagent konfigurieren
 - **Spezialisten** — anlegen, Domäne, Skills zuweisen
