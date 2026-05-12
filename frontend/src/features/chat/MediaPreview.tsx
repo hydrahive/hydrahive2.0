@@ -21,8 +21,8 @@ const VID_RE = /(https?:\/\/[^\s)]+\.(?:mp4|webm|mov|m3u8))(?:\?[^\s)]*)?/gi
 const ABS_IMG_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))/gi
 const ABS_AUD_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
 const ABS_VID_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp4|webm|mov|m3u8))/gi
-// PDF/EPUB — jeder absolute Pfad (inkl. HH_MEDIA_DIRS wie /home/…/security bücherei)
-const ABS_PDF_RE = /(\/[^\s`)"'\],}]+\.(?:pdf|epub))/gi
+// PDF/EPUB — nur absolute Pfade unter /tmp oder /var/lib/hydrahive2
+const ABS_PDF_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:pdf|epub))/gi
 
 function toApiUrl(path: string): string {
   // <img>/<audio>/<video> können keinen Authorization-Header schicken — Token
@@ -107,7 +107,7 @@ export function MediaPreview({ media }: { media: ExtractedMedia }) {
           className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors w-fit max-w-sm"
         >
           <span className="text-2xl">📄</span>
-          <span className="text-sm truncate">{decodeURIComponent(url.split("path=")[1]?.split("&")[0] ?? url)}</span>
+          <span className="text-sm truncate">{decodeURIComponent(url.split("path=")[1]?.split("&")[0] ?? "").split("/").pop() || "PDF öffnen"}</span>
         </a>
       ))}
     </div>
