@@ -21,8 +21,9 @@ const VID_RE = /(https?:\/\/[^\s)]+\.(?:mp4|webm|mov|m3u8))(?:\?[^\s)]*)?/gi
 const ABS_IMG_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:png|jpe?g|gif|webp|svg|bmp|avif))/gi
 const ABS_AUD_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp3|ogg|wav|m4a|opus|flac))/gi
 const ABS_VID_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:mp4|webm|mov|m3u8))/gi
-// PDF/EPUB — nur absolute Pfade unter /tmp oder /var/lib/hydrahive2
-const ABS_PDF_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\s`)"'\],}]+\.(?:pdf|epub))/gi
+// PDF/EPUB — absolute Pfade unter /tmp oder /var/lib/hydrahive2.
+// Leerzeichen in Dateinamen erlaubt; Stopp an Newline, Pipe, Backtick, Quotes, Klammern.
+const ABS_PDF_RE = /(\/(?:tmp|var\/lib\/hydrahive2)\/[^\n\r|`"'\]{}]+\.(?:pdf|epub))/gi
 
 function toApiUrl(path: string): string {
   // <img>/<audio>/<video> können keinen Authorization-Header schicken — Token
