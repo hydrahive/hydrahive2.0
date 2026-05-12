@@ -69,9 +69,13 @@ def build_system_prompts(
 ) -> tuple[str, str, str | None]:
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
-    - stable: base + extra (cache-fähig über Sessions hinweg)
-    - volatile: Datum (Tag) + Workspace — pro Tag stabil, Cache bricht nur um Mitternacht
+    - stable: extra + base + Workspace (cache-fähig über Sessions hinweg)
+    - volatile: Datum (Tag) — pro Tag stabil, Cache bricht nur um Mitternacht
     - summary: bisherige Zusammenfassung als separater System-Block
+
+    WARUM Workspace im stable: er ist pro Agent konstant. Im volatile wäre
+    er konzeptionell falsch und würde den Cache bei seltenem Workspace-
+    Override (tool_config) zusätzlich brechen (Issue #135).
 
     WARUM Tages-Granularität statt HH:MM: byte-exakter Cache-Hash bricht jede
     Minute, wenn die Uhrzeit im volatile-Block steht. Auch wenn der Block kein
@@ -82,14 +86,13 @@ def build_system_prompts(
     stable_system = base_system_prompt
     if extra_system:
         stable_system = f"{extra_system}\n\n{stable_system}"
+    stable_system = f"{stable_system}\n\nWorkspace: {workspace}"
 
     now = datetime.now().astimezone()
-    date_line = (
+    volatile_system = (
         f"Datum (Server): {now.strftime('%Y-%m-%d')} ({now.strftime('%A')}). "
         f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff."
     )
-    workspace_line = f"Workspace: {workspace}"
-    volatile_system = f"{date_line}\n\n{workspace_line}"
     summary_system = f"[Bisherige Zusammenfassung]\n{summary}" if summary else None
 
     return stable_system, volatile_system, summary_system
