@@ -5,6 +5,66 @@ dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 ---
 
+## Update 2026-05-12 Vormittag — Gitea-Push-Mirror-Drama recovered
+
+**Vorfall:** Heute morgen 09:21 zeigte `hh2-update` auf 3.22 plötzlich
+`+ b265b76...f2ee1e1 main -> origin/main (Aktualisierung erzwungen)` →
+`fatal: Vorspulen nicht möglich`. GitHub `origin/main` war auf den
+gestern-Nachmittag-Stand `f2ee1e1` (18:19) zurückgerollt — meine 11
+Abend-Commits (Cache-Fixes + Prompt-Diet + #140 + #142 + #143 +
+HANDOVER) **temporär unsichtbar**.
+
+**Ursache (verifiziert):** Gitea auf 3.22:3001 hatte einen Push-Mirror
+zu GitHub konfiguriert mit `sync_on_commit=1` und `interval=8h`. Gitea
+schiebt mit `--force`. Gestern abends pushte ich nur zu GitHub (von
+claudeneu aus), nicht zu Gitea — Gitea-main blieb auf `f2ee1e1`.
+Heute 09:21 feuerte das 8h-Intervall, Gitea force-pushte den eigenen
+veralteten Stand zu GitHub. **Buddy auf 3.22 war unschuldig** (Reflog
+zeigt nur `fetch`, kein `push`) — der Mirror in der Gitea-DB war der
+Auslöser.
+
+**Recovery (alles erledigt, alles verifiziert):**
+1. `DELETE FROM push_mirror WHERE id=1` in `/opt/gitea/data/gitea.db`
+   → die tickende Bombe entschärft.
+2. Lokal `eb720e6` (#17 HH_UPDATE_CHECK_ENABLED Privacy-Feature) per
+   cherry-pick aufgenommen — war nur auf Gitea, nie nach GitHub
+   gemerged. Ergibt neuen HEAD `d0c5ebd` mit `test_no_telemetry.py`
+   (3 Tests gegen Sentry/PostHog/Mixpanel-Imports + litellm-Telemetrie).
+3. `git push origin main --force-with-lease` → GitHub auf `d0c5ebd`.
+4. Gitea synchronisiert (über temporären Recovery-Remote, danach
+   wieder entfernt) → Gitea-main = `d0c5ebd`.
+5. Buddys Workspace auf 3.22 umkonfiguriert: `origin = github only`
+   (Gitea-Remote entfernt, github-Remote in origin umbenannt),
+   `git reset --hard origin/main`, `push.default = nothing` als
+   weiche Bremse gegen versehentliche Pushes.
+6. Annotated Tag `recovery-2026-05-12` auf `d0c5ebd` als Anker.
+7. Till hat das Gitea-Repo `hydrahive/hydrahive2.0` aus dem HydraHive2-
+   Projekt entfernt — keine zweite Anlaufstelle mehr.
+
+**Nach Recovery: `hh2-update` auf 3.22 lief sauber durch.** `Fast-forward`
+von `b265b76..d0c5ebd`. Backend + Frontend gebaut, Service läuft.
+
+**Tests:** 383/383 grün (vorher 380, +3 aus Privacy-Recovery).
+
+**Lessons learned:**
+- Push-Mirror mit `sync_on_commit + interval` ist effektiv ein
+  unbremsbarer `git push --force`-Daemon. Wenn Gitea und GitHub
+  unterschiedliche Stände haben, gewinnt **immer** Gitea, **egal**
+  wie veraltet. Niemals einen Push-Mirror einrichten, wenn die
+  gespiegelte Seite nicht immer aktiv beschrieben wird.
+- Force-Push auf `origin/main` braucht eine Klingel — ein GitHub-
+  Branch-Protection-Rule auf `main` wäre die Hose-mit-Gürtel-Lösung
+  (Force-Push deny + zumindest 1 Status-Check). Aktuell hat das Repo
+  keine. → Issue-Kandidat.
+- `git cherry`/`git cherry-pick` ist Gold für Recovery: zeigt
+  patch-id-Äquivalenz, sodass Hash-Drift durch Rebase nicht zu
+  doppelten Commits führt.
+
+**Künftiger Stand:** **GitHub ist die einzige Quelle der Wahrheit.**
+Server pullen direkt von github.com, kein Gitea-Mittelweg mehr.
+
+---
+
 ## Aktueller Stand (2026-05-12, #142 + #143 erledigt — Verifikation steht aus)
 
 **Tests:** 380/380 grün (+13 vs. gestern). Frontend tsc clean. Ruff clean.
