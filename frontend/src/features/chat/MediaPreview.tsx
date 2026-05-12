@@ -6,6 +6,7 @@
  * Feld (siehe runner/_media.py). Die Regex-basierte Extraktion ist nur noch
  * Fallback für freien Text (LLM-Antworten, ältere Sessions ohne media-Feld).
  */
+import { useState } from "react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import type { ToolMedia } from "./types"
 
@@ -86,6 +87,31 @@ export function mediaFromBlocks(media: ToolMedia[] | undefined): ExtractedMedia 
   return out
 }
 
+function PdfViewer({ url }: { url: string }) {
+  const [open, setOpen] = useState(false)
+  const name = decodeURIComponent(url.split("path=")[1]?.split("&")[0] ?? "").split("/").pop() || "PDF"
+  return (
+    <div className="w-full max-w-2xl">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors w-full text-left"
+      >
+        <span className="text-2xl">📄</span>
+        <span className="text-sm flex-1 truncate">{name}</span>
+        <span className="text-xs text-white/40">{open ? "▲ schließen" : "▼ lesen"}</span>
+      </button>
+      {open && (
+        <iframe
+          src={url}
+          className="w-full rounded-b-xl border border-t-0 border-white/10"
+          style={{ height: "80vh" }}
+          title={name}
+        />
+      )}
+    </div>
+  )
+}
+
 export function MediaPreview({ media }: { media: ExtractedMedia }) {
   if (media.images.length + media.audio.length + media.videos.length + media.pdfs.length === 0) return null
   return (
@@ -100,16 +126,7 @@ export function MediaPreview({ media }: { media: ExtractedMedia }) {
         <audio key={url} src={url} controls className="w-full max-w-md" preload="none" />
       ))}
       {media.pdfs.map((url) => (
-        <a
-          key={url}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors w-fit max-w-sm"
-        >
-          <span className="text-2xl">📄</span>
-          <span className="text-sm truncate">{decodeURIComponent(url.split("path=")[1]?.split("&")[0] ?? "").split("/").pop() || "PDF öffnen"}</span>
-        </a>
+        <PdfViewer key={url} url={url} />
       ))}
     </div>
   )
