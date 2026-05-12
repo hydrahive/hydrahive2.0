@@ -6,10 +6,9 @@ Commit e743841 hatte das Datum in den stabilen System-Prompt eingefügt →
 Cache-Miss jede Minute → 31% Rate-Limit in 20 Minuten.
 """
 import re
-from datetime import datetime
-from unittest.mock import patch
+from pathlib import Path
 
-import pytest
+from hydrahive.runner._runner_iter import build_system_prompts
 
 
 # ---------------------------------------------------------------------------
@@ -78,62 +77,77 @@ def test_einzel_tool_bekommt_cache_control():
 
 # ---------------------------------------------------------------------------
 # 3. Stable vs. Volatile System-Prompt — der Kern-Regressionstest
+#
+# Diese Tests prüfen direkt die echte build_system_prompts-Funktion,
+# nicht eine nachgebaute Helper-Logik. Damit ist ausgeschlossen dass
+# der Test grün bleibt obwohl der echte Code abweicht.
 # ---------------------------------------------------------------------------
 
 DATUM_REGEX = re.compile(r"\d{4}-\d{2}-\d{2}")
 UHRZEIT_REGEX = re.compile(r"\d{2}:\d{2}")
 
 
-def _build_stable_volatile(base_prompt: str, summary: str | None = None):
-    """
-    Nachbau der Runner-Logik (runner.py, Iteration-Loop).
-    Wenn diese Logik im echten Code geändert wird, muss dieser Test
-    angepasst werden — das ist Absicht: er pinnt das Verhalten fest.
-    """
-    stable = base_prompt
-
-    now = datetime.now().astimezone()
-    date_line = (
-        f"Aktuelles Datum/Uhrzeit (Server): "
-        f"{now.strftime('%Y-%m-%d %H:%M %Z')} ({now.strftime('%A')}). "
-        f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff."
+def _build(base: str = "Du bist ein Agent.", *, summary: str | None = None, extra: str | None = None):
+    return build_system_prompts(
+        base, extra_system=extra, workspace=Path("/var/lib/hydrahive2/workspaces/test"), summary=summary,
     )
-    volatile_parts = [date_line]
-    if summary:
-        volatile_parts.append(f"[Bisherige Zusammenfassung]\n{summary}")
-    volatile = "\n\n".join(volatile_parts)
-
-    return stable, volatile
 
 
 def test_stable_enthaelt_kein_datum():
     """Datum im stable_system = Cache-Miss jede Minute — der Bug vom 2026-05-06."""
-    stable, _ = _build_stable_volatile("Du bist ein hilfreicher Agent.")
+    stable, _, _ = _build()
     assert not DATUM_REGEX.search(stable), (
-        "stable_system enthält ein Datum! Das verhindert Prompt-Caching. "
-        "Datum muss in volatile_system."
+        "stable_system enthält ein Datum! Das verhindert Prompt-Caching."
     )
 
 
 def test_stable_enthaelt_keine_uhrzeit():
-    stable, _ = _build_stable_volatile("Du bist ein hilfreicher Agent.")
+    stable, _, _ = _build()
     assert not UHRZEIT_REGEX.search(stable), (
         "stable_system enthält eine Uhrzeit! Das verhindert Prompt-Caching."
     )
 
 
 def test_volatile_enthaelt_datum():
-    _, volatile = _build_stable_volatile("Du bist ein Agent.")
+    _, volatile, _ = _build()
     assert DATUM_REGEX.search(volatile), "volatile_system muss das aktuelle Datum enthalten."
 
 
-def test_volatile_enthaelt_zusammenfassung():
-    _, volatile = _build_stable_volatile("Prompt.", summary="Wir haben über X gesprochen.")
-    assert "Bisherige Zusammenfassung" in volatile
-    assert "Wir haben über X gesprochen." in volatile
+def test_volatile_enthaelt_keine_uhrzeit():
+    """Issue #141: Uhrzeit im volatile_system bricht den Cache jede Minute."""
+    _, volatile, _ = _build()
+    assert not UHRZEIT_REGEX.search(volatile), (
+        "volatile_system enthält eine Uhrzeit! Anthropic prüft den ganzen "
+        "System-Block — Minuten-Wechsel resetten den Cache (Issue #141)."
+    )
 
 
-def test_stable_unveraendert_ohne_zusammenfassung():
+def test_summary_als_eigener_system_block():
+    """summary kommt aus build_system_prompts als separater 3. Rückgabewert,
+    nicht in volatile_system eingewoben — sonst entweicht der Cache-Hit
+    durch sich ändernde Zusammenfassungen."""
+    _, volatile, summary_system = _build(summary="Wir haben über X gesprochen.")
+    assert summary_system is not None
+    assert "Bisherige Zusammenfassung" in summary_system
+    assert "Wir haben über X gesprochen." in summary_system
+    assert "Bisherige Zusammenfassung" not in volatile
+
+
+def test_summary_none_wenn_kein_summary():
+    _, _, summary_system = _build()
+    assert summary_system is None
+
+
+def test_stable_unveraendert_ohne_extra_system():
     base = "Mein fester System-Prompt ohne Datum."
-    stable, _ = _build_stable_volatile(base)
-    assert stable == base
+    stable, _, _ = _build(base)
+    # base muss im stable enthalten sein — Reihenfolge (z.B. mit Workspace
+    # darunter, Stufe B #135) wird nicht getestet, nur die Anwesenheit.
+    assert base in stable
+
+
+def test_extra_system_wird_vorangestellt():
+    """extra_system (z.B. Sprach-Hinweis von Voice-API) sitzt vor base."""
+    stable, _, _ = _build("BASE_PROMPT", extra="Antworte auf Deutsch.")
+    assert stable.startswith("Antworte auf Deutsch.")
+    assert "BASE_PROMPT" in stable
