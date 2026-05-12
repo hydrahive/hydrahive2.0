@@ -31,16 +31,23 @@ def _allowed_roots() -> list[Path]:
     """Read-only Roots für Inline-Media:
     - /tmp: ephemere LLM-Generierungen (z.B. mmx-Outputs)
     - data_dir/workspaces: Agent-Workspaces (Project + Specialist + Master)
+    - settings.media_dirs: zusätzliche Verzeichnisse via HH_MEDIA_DIRS
 
     NICHT settings.data_dir direkt — das enthält sessions.db, wiki.db,
     whatsapp/Auth-State.
     NICHT settings.agents_dir — das enthält Soul-Files / system_prompt.md /
     config.json (Agent-Konfiguration, soll nicht über GET-File zugänglich sein).
     """
-    return [
+    roots = [
         settings.tmp_dir.resolve(),
         (settings.data_dir / "workspaces").resolve(),
     ]
+    for d in settings.media_dirs:
+        try:
+            roots.append(d.resolve())
+        except OSError:
+            logger.warning("HH_MEDIA_DIRS: Pfad nicht auflösbar: %s", d)
+    return roots
 
 
 def _is_allowed(p: Path) -> bool:
