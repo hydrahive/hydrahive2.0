@@ -151,3 +151,34 @@ def test_extra_system_wird_vorangestellt():
     stable, _, _ = _build("BASE_PROMPT", extra="Antworte auf Deutsch.")
     assert stable.startswith("Antworte auf Deutsch.")
     assert "BASE_PROMPT" in stable
+
+
+# ---------------------------------------------------------------------------
+# 4. Workspace im stable (Issue #135) — Cache-Stabilität
+# ---------------------------------------------------------------------------
+
+
+def test_workspace_im_stable_system():
+    """Issue #135: Workspace gehört in den stable-Block (pro Agent konstant),
+    nicht in volatile. Sonst bricht der Cache bei tool_config-Override."""
+    stable, _, _ = _build()
+    assert "/var/lib/hydrahive2/workspaces/test" in stable
+    assert "Workspace:" in stable
+
+
+def test_workspace_NICHT_im_volatile_system():
+    """Regression-Guard: wenn jemand Workspace zurück in volatile schiebt,
+    soll dieser Test scheitern."""
+    _, volatile, _ = _build()
+    assert "Workspace:" not in volatile, (
+        "Workspace darf nicht in volatile_system — gehört in stable (#135)."
+    )
+
+
+def test_workspace_unter_base_prompt_in_stable():
+    """Ordnung im stable: [extra_system\\n\\n]base\\n\\nWorkspace.
+    Workspace sitzt am Ende, nach dem base-Prompt."""
+    stable, _, _ = _build("BASE_HIER")
+    base_idx = stable.index("BASE_HIER")
+    workspace_idx = stable.index("Workspace:")
+    assert workspace_idx > base_idx, "Workspace muss NACH base_system_prompt stehen."
