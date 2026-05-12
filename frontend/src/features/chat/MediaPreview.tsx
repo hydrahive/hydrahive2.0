@@ -99,7 +99,16 @@ export function MediaPreview({ media }: { media: ExtractedMedia }) {
         <audio key={url} src={url} controls className="w-full max-w-md" preload="none" />
       ))}
       {media.pdfs.map((url) => (
-        <embed key={url} src={url} type="application/pdf" className="w-full rounded-xl border border-white/10 shadow-md" style={{ height: "80vh" }} />
+        <a
+          key={url}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors w-fit max-w-sm"
+        >
+          <span className="text-2xl">📄</span>
+          <span className="text-sm truncate">{decodeURIComponent(url.split("path=")[1]?.split("&")[0] ?? url)}</span>
+        </a>
       ))}
     </div>
   )
