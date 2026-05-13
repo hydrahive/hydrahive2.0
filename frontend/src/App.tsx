@@ -23,6 +23,7 @@ import { ContainersPage } from "@/features/containers/ContainersPage"
 import { ContainerDetailPage } from "@/features/containers/ContainerDetailPage"
 import { ButlerPage } from "@/features/butler/ButlerPage"
 import { BuddyPage } from "@/features/buddy/BuddyPage"
+import { BuddySettingsPage } from "@/features/buddy/BuddySettingsPage"
 import { DataminingPage } from "@/features/datamining/DataminingPage"
 import { MemoryPage } from "@/features/memory/MemoryPage"
 import { HelpPage } from "@/features/help/HelpPage"
@@ -55,6 +56,7 @@ export default function App() {
           }
         >
           <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <BuddyPage />} />
+          <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="devchat" element={<ChatPage />} />

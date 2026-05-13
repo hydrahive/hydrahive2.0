@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Cpu, Dice5, Download, FileText, GitMerge, HelpCircle, Loader2, RotateCcw, Save, Sparkles, SquarePen, Wand2 } from "lucide-react"
+import { Cpu, Dice5, Download, FileText, GitMerge, HelpCircle, Loader2, RotateCcw, Save, Settings, Sparkles, SquarePen, Wand2 } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
@@ -18,6 +19,7 @@ import { CmdPill } from "./_BuddyCmdPill"
 
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
+  const navigate = useNavigate()
   const [state, setState] = useState<BuddyState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
@@ -129,6 +131,13 @@ export function BuddyPage() {
                 />
               )}
               <div className="flex-1" />
+              <button
+                onClick={() => navigate("/buddy/settings")}
+                title="Buddy-Einstellungen"
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[6%] border border-white/[8%] transition-all"
+              >
+                <Settings size={13} />
+              </button>
               <button
                 onClick={async () => {
                   const r = await buddyApi.clear()
