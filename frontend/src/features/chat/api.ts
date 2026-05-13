@@ -52,8 +52,10 @@ export async function* sendMessage(
   const body = new FormData()
   body.append("text", text)
   for (const file of files) body.append("files", file, file.name)
-  const url = resendMessageId
-    ? `/api/sessions/${sessionId}/messages/${encodeURIComponent(resendMessageId)}/resend`
+  // local-* IDs existieren nur im Frontend-State, nie in der DB → als neue Nachricht senden
+  const effectiveResendId = resendMessageId?.startsWith("local-") ? undefined : resendMessageId
+  const url = effectiveResendId
+    ? `/api/sessions/${sessionId}/messages/${encodeURIComponent(effectiveResendId)}/resend`
     : `/api/sessions/${sessionId}/messages`
   const res = await fetch(url, {
     method: "POST",
@@ -64,7 +66,11 @@ export async function* sendMessage(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.detail ?? `HTTP ${res.status}`)
+    const detail = body.detail
+    const msg = res.status === 409
+      ? "Agent läuft noch – bitte kurz warten"
+      : typeof detail === "string" ? detail : (detail?.code ?? `HTTP ${res.status}`)
+    throw new Error(msg)
   }
   if (!res.body) throw new Error("Kein Response-Body")
 
