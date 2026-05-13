@@ -1,6 +1,0 @@
-DOMAIN = "hydrahive"
-CONF_ENDPOINT = "endpoint"
-CONF_API_KEY = "api_key"
-CONF_AGENT_ID = "agent_id"
-CONF_AGENT_NAME = "agent_name"
-CONF_VERIFY_SSL = "verify_ssl"
