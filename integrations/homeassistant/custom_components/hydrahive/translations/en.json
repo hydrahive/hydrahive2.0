@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect HydraHive",
+        "data": {
+          "endpoint": "Server URL (e.g. https://192.168.178.218)",
+          "api_key": "API Key (hhk_...)",
+          "verify_ssl": "Verify SSL certificate"
+        }
+      },
+      "agent": {
+        "title": "Select Agent",
+        "data": {
+          "agent_id": "Agent"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Connection failed — server unreachable or wrong port",
+      "invalid_auth": "Invalid API key",
+      "unknown": "Unknown error"
+    },
+    "abort": {
+      "already_configured": "This agent is already configured"
+    }
+  }
+}

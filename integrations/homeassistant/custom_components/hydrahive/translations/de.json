@@ -1,0 +1,28 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HydraHive verbinden",
+        "data": {
+          "endpoint": "Server-Adresse (z.B. https://192.168.178.218)",
+          "api_key": "API-Schlüssel (hhk_...)",
+          "verify_ssl": "SSL-Zertifikat prüfen"
+        }
+      },
+      "agent": {
+        "title": "Agent auswählen",
+        "data": {
+          "agent_id": "Agent"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen — Server nicht erreichbar oder falscher Port",
+      "invalid_auth": "Ungültiger API-Schlüssel",
+      "unknown": "Unbekannter Fehler"
+    },
+    "abort": {
+      "already_configured": "Dieser Agent ist bereits konfiguriert"
+    }
+  }
+}
