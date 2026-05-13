@@ -1,0 +1,12 @@
+{
+  "domain": "hydrahive",
+  "name": "HydraHive",
+  "version": "1.0.0",
+  "documentation": "",
+  "requirements": [],
+  "dependencies": ["conversation"],
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "service"
+}
