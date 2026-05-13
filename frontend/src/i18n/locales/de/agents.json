@@ -86,7 +86,10 @@
     "no_model": "(kein Modell)",
     "name_label": "Name",
     "name_placeholder": "z.B. Research-Bot",
-    "defaults_hint": "Default-Tools für {{type}}: {{count}}"
+    "defaults_hint": "Default-Tools für {{type}}: {{count}}",
+    "template_label": "Vorlage (optional)",
+    "template_none": "— Ohne Vorlage —",
+    "template_hint": "Vorlage vorausgewählt: {{count}} Tools, System-Prompt übernommen"
   },
   "compaction": {
     "section_title": "Compaction",

@@ -2,7 +2,7 @@ import { X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { agentsApi } from "./api"
-import type { AgentDefaults } from "./types"
+import type { AgentDefaults, AgentTemplate } from "./types"
 
 interface Props {
   models: string[]
@@ -18,20 +18,45 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
   const [name, setName] = useState("")
   const [model, setModel] = useState(defaultModel || models[0] || "")
   const [defaults, setDefaults] = useState<AgentDefaults | null>(null)
+  const [templates, setTemplates] = useState<AgentTemplate[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState<AgentTemplate | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => { agentsApi.getDefaults().then(setDefaults).catch(() => {}) }, [])
+  useEffect(() => {
+    agentsApi.getDefaults().then(setDefaults).catch(() => {})
+    agentsApi.listTemplates().then(setTemplates).catch(() => {})
+  }, [])
+
+  function applyTemplate(templateId: string) {
+    if (!templateId) {
+      setSelectedTemplate(null)
+      return
+    }
+    const tpl = templates.find((t) => t.id === templateId)
+    if (!tpl) return
+    setSelectedTemplate(tpl)
+    setName(tpl.name)
+    setType("specialist")
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true); setError(null)
     try {
-      const tools = defaults?.tools_per_type[type] ?? []
+      const tools = selectedTemplate?.tools ?? defaults?.tools_per_type[type] ?? []
       const created = await agentsApi.create({
-        type, name: name.trim(), llm_model: model, tools,
-        description: "", temperature: 0.7, max_tokens: 4096,
-        thinking_budget: 0, mcp_servers: [], fallback_models: [],
+        type,
+        name: name.trim(),
+        llm_model: model,
+        tools,
+        description: selectedTemplate?.description ?? "",
+        temperature: selectedTemplate?.temperature ?? 0.7,
+        max_tokens: selectedTemplate?.max_tokens ?? 4096,
+        thinking_budget: selectedTemplate?.thinking_budget ?? 0,
+        mcp_servers: [],
+        fallback_models: [],
+        system_prompt: selectedTemplate?.system_prompt ?? null,
       })
       onCreated(created.id)
     } catch (e) {
@@ -51,6 +76,25 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
             <X size={16} />
           </button>
         </div>
+
+        {templates.length > 0 && (
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.template_label")}</label>
+            <select
+              value={selectedTemplate?.id ?? ""}
+              onChange={(e) => applyTemplate(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm"
+            >
+              <option value="">{t("new_dialog.template_none")}</option>
+              {templates.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+              ))}
+            </select>
+            {selectedTemplate && (
+              <p className="text-xs text-zinc-500">{selectedTemplate.description}</p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -79,9 +123,15 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
             className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600" />
         </div>
 
-        {defaults && (
+        {!selectedTemplate && defaults && (
           <p className="text-xs text-zinc-500">
             {t("new_dialog.defaults_hint", { type: t(`type.${type}`), count: (defaults.tools_per_type[type] ?? []).length })}
+          </p>
+        )}
+
+        {selectedTemplate && (
+          <p className="text-xs text-zinc-500">
+            {t("new_dialog.template_hint", { count: selectedTemplate.tools.length })}
           </p>
         )}
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -19,6 +20,7 @@ from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import REGISTRY as TOOL_REGISTRY
 
 _TEMPLATE_DIR = Path(__file__).parent.parent.parent / "agents" / "soul_templates"
+_EXAMPLE_AGENT_DIR = Path(__file__).parents[5] / "examples" / "agents"
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
@@ -33,6 +35,19 @@ def list_available_tools(_: Annotated[tuple[str, str], Depends(require_auth)]) -
         for t in TOOL_REGISTRY.values()
     ]
     return core + plugin_bridge.all_tool_meta()
+
+
+@router.get("/_meta/templates")
+def list_agent_templates(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    if not _EXAMPLE_AGENT_DIR.is_dir():
+        return []
+    result = []
+    for f in sorted(_EXAMPLE_AGENT_DIR.glob("*.json")):
+        try:
+            result.append(json.loads(f.read_text()))
+        except Exception:
+            pass
+    return result
 
 
 @router.get("/_meta/defaults")
