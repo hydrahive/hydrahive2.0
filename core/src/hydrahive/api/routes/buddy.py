@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.buddy import commands, get_or_create_buddy
+from hydrahive.buddy import _config as buddy_config
 
 router = APIRouter(prefix="/api/buddy", tags=["buddy"])
 
@@ -113,3 +114,36 @@ def buddy_log_cmd(
         metadata={"source": "slash_command"},
     )
     return {"ok": True, "user_id": user_msg.id, "assistant_id": asst_msg.id}
+
+
+# ── Config-Page Endpoints ──────────────────────────────────────────────────
+
+@router.get("/config")
+def get_buddy_config(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    try:
+        return buddy_config.get_config(_user(auth))
+    except LookupError as e:
+        raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
+
+
+class BuddyConfigPatch(BaseModel):
+    name: str | None = Field(default=None, max_length=120)
+    tools: list[str] | None = None
+    compact_threshold_pct: int | None = Field(default=None, ge=20, le=100)
+    compact_model: str | None = Field(default=None, max_length=200)
+    tool_result_max_chars: int | None = Field(default=None, ge=0)
+    language: str | None = Field(default=None, pattern="^(de|en|auto)$")
+    tone: str | None = Field(default=None, pattern="^(locker|professionell|knapp)$")
+    context: str | None = Field(default=None, max_length=8000)
+
+
+@router.patch("/config")
+def patch_buddy_config(
+    body: BuddyConfigPatch,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    changes = body.model_dump(exclude_none=True)
+    try:
+        return buddy_config.patch_config(_user(auth), changes)
+    except LookupError as e:
+        raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
