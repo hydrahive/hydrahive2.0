@@ -42,6 +42,19 @@ export interface AgentDefaults {
   types: string[]
 }
 
+export interface AgentTemplate {
+  id: string
+  type: string
+  name: string
+  description: string
+  llm_model: string
+  tools: string[]
+  temperature: number
+  max_tokens: number
+  thinking_budget: number
+  system_prompt: string
+}
+
 export interface AgentCreate {
   type: string
   name: string

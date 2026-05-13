@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Agent, AgentCreate, AgentDefaults, ToolMeta } from "./types"
+import type { Agent, AgentCreate, AgentDefaults, AgentTemplate, ToolMeta } from "./types"
 
 export const agentsApi = {
   list: () => api.get<Agent[]>("/agents"),
@@ -22,6 +22,7 @@ export const agentsApi = {
     api.post<{ applied: string[] }>(`/agents/${id}/soul/apply-template`, {}),
   listTools: () => api.get<ToolMeta[]>("/agents/_meta/tools"),
   getDefaults: () => api.get<AgentDefaults>("/agents/_meta/defaults"),
+  listTemplates: () => api.get<AgentTemplate[]>("/agents/_meta/templates"),
 }
 
 export interface LlmProviderInfo {
