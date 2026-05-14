@@ -62,6 +62,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_buffering off;
         proxy_cache off;
+        client_max_body_size 64M;
     }
 
     location / {
