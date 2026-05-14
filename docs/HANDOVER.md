@@ -149,9 +149,7 @@ Beide heutigen Commits gepusht auf `origin/main`.
   des Tool-Use prüfen.
 
 **Was an aktiven Issues bleibt:**
-- **#139** Sonnet-Default für Review-Agents — Till hat angedeutet er hat
-  das schon erledigt; im `origin/main`-Log ist kein passender Commit
-  zu sehen, also vermutlich lokal/parallel. Bei nächster Session checken.
+- **#139** Sonnet-Default — ✅ manuell in der GUI erledigt (2026-05-15), Issue geschlossen.
 - **#133-Umbrella System-Prompt-Diet:** Schritt 1+2 (`c2a4bbd`), 3 (`30492ad`)
   fertig — bleiben #135 / #136 / #137 (Hebel jetzt klein, eher Hygiene).
 - **#138** cache_ttl-Fallback in runner.py:96 — vom 2026-05-12 als skip
@@ -643,21 +641,10 @@ machine_type/network_device), alle mit Pre-Commit-Hook-Compliance.
 
 ---
 
-## ⏳ Offen — FreeBSD-Fix Live-Verifikation
+## ✅ FreeBSD-Fix Live-Verifikation — abgeschlossen (2026-05-15)
 
-**Stand 2026-05-10 Nacht**: der vermutliche Hauptfix (`f2cd617` qcow2-
-Passthrough) ist gepusht und Code-getestet (sha256-Identität bestätigt).
-**Aber Live-Test beim Kunden steht aus** — Till hatte heute keinen
-Server-Zugang mehr.
-
-**Verifikations-Pfad für morgen**:
-
-1. Kunde macht `sudo /opt/hydrahive2/installer/update.sh` — zieht den
-   qcow2-Passthrough-Fix
-2. **Frischen Re-Import** der qcow2 (alte Imports sind durch das alte
-   convert kaputt — können nicht repariert werden)
-3. VM neu erstellen mit machine=`pc` + disk=`ide` (HH1-exakte Combo)
-4. Booten
+Live-Test beim Kunden bestätigt. Alle 11 Tag-2-Commits validiert.
+qcow2-Passthrough (`f2cd617`), machine=`pc`, disk=`ide` — FreeBSD bootet.
 
 Wenn FreeBSD damit hochkommt: alle 11 Tag-2-Commits validiert, Story
 abgeschlossen.
