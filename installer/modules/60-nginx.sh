@@ -49,12 +49,24 @@ map \$http_upgrade \$connection_upgrade {
     '' close;
 }
 
-# HTTP → HTTPS redirect
+# HTTP: nur Health-Ingest durchlassen, alles andere → HTTPS
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
-    return 301 https://\$host\$request_uri;
+
+    location /api/health-data/ {
+        proxy_pass http://$HH_HOST:$HH_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_buffering off;
+        proxy_cache off;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
 }
 
 server {
