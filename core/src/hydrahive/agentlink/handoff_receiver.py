@@ -35,11 +35,14 @@ async def handle(event: WSEvent) -> None:
     if not state or not state.task:
         return
 
-    # Interne Handoffs kodieren die echte Ziel-Agent-ID in state.extra,
-    # weil to_agent für das AgentLink-Routing auf unsere eigene ID gesetzt ist.
-    to_agent_id = (state.extra or {}).get("hh_target_agent_id") or (
-        state.handoff.to_agent if state.handoff else None
-    )
+    # Interne Handoffs kodieren die echte Ziel-Agent-ID im reason-Präfix:
+    # "hh-target:<uuid>|hh-task: ..." — extra{} wird von post_state nicht gesendet.
+    reason = (state.handoff.reason or "") if state.handoff else ""
+    to_agent_id: str | None = None
+    if reason.startswith("hh-target:"):
+        to_agent_id = reason.split("|", 1)[0].removeprefix("hh-target:")
+    elif state.handoff:
+        to_agent_id = state.handoff.to_agent
     target = _find_target_agent(to_agent_id)
     if not target:
         logger.error(
