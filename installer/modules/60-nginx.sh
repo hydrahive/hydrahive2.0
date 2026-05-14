@@ -112,9 +112,7 @@ server {
         proxy_send_timeout 86400s;
     }
 
-    # AgentLink-Frontend-Proxy — verhindert Mixed-Content wenn HydraHive auf HTTPS läuft.
-    # Statt http://127.0.0.1:9001 direkt im Browser öffnen, läuft der Traffic über
-    # denselben HTTPS-Origin → kein Mixed-Content-Block.
+    # AgentLink-Frontend — SPA über denselben HTTPS-Origin, kein Mixed-Content.
     location /agentlink/ {
         proxy_pass http://127.0.0.1:${HL_FRONTEND_PORT:-9001}/;
         proxy_http_version 1.1;
@@ -122,6 +120,29 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    # AgentLink-Backend-API — REST-Calls des Dashboards über denselben Origin.
+    location /agentlink/api/ {
+        proxy_pass http://127.0.0.1:${HL_BACKEND_PORT:-9000}/;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_cache off;
+    }
+
+    # AgentLink-WebSocket — Dashboard live-updates.
+    location /agentlink/ws {
+        proxy_pass http://127.0.0.1:${HL_BACKEND_PORT:-9000}/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host \$host;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
     }
 }
 EOF
