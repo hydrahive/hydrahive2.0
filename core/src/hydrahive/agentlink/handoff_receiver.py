@@ -2,7 +2,7 @@
 
 Wenn ein anderer Agent einen Task via AgentLink an uns schickt, muss HH2:
   1. Den eingehenden State laden
-  2. Den Admin-Master-Agent als Empfänger bestimmen
+  2. Den adressierten Agenten bestimmen (state.handoff.to_agent → lokal suchen)
   3. Eine neue Session erstellen
   4. Den Runner als Background-Task starten
   5. Output akkumulieren und als Antwort-State zurückposten
@@ -35,15 +35,24 @@ async def handle(event: WSEvent) -> None:
     if not state or not state.task:
         return
 
-    master = _find_admin_master()
-    if not master:
-        logger.error("handoff_receiver: kein Master-Agent für 'admin' — Handoff abgelehnt")
-        await _post_error_reply(state, "Kein Master-Agent konfiguriert")
+    # Interne Handoffs kodieren die echte Ziel-Agent-ID in state.extra,
+    # weil to_agent für das AgentLink-Routing auf unsere eigene ID gesetzt ist.
+    to_agent_id = (state.extra or {}).get("hh_target_agent_id") or (
+        state.handoff.to_agent if state.handoff else None
+    )
+    target = _find_target_agent(to_agent_id)
+    if not target:
+        logger.error(
+            "handoff_receiver: kein Agent für to_agent=%r und kein Admin-Master — Handoff abgelehnt",
+            to_agent_id,
+        )
+        await _post_error_reply(state, "Kein Ziel-Agent konfiguriert")
         return
 
+    owner = target.get("owner_id") or "admin"
     session = sessions_db.create(
-        agent_id=master["id"],
-        user_id="admin",
+        agent_id=target["id"],
+        user_id=owner,
         title=(state.task.description or "AgentLink-Task")[:80],
         metadata={"source": "agentlink", "incoming_state_id": state.id},
     )
@@ -51,7 +60,7 @@ async def handle(event: WSEvent) -> None:
     handoff_record = db_agent_handoffs.create(
         incoming_state_id=state.id or "",
         from_agent=state.agent_id,
-        agent_id=master["id"],
+        agent_id=target["id"],
         session_id=session.id,
     )
 
@@ -60,15 +69,25 @@ async def handle(event: WSEvent) -> None:
         name=f"handoff-{state.id}",
     )
     logger.info(
-        "handoff_receiver: eingehender Task von '%s' → Session %s gestartet",
-        state.agent_id, session.id,
+        "handoff_receiver: eingehender Task von '%s' → Agent '%s' (Session %s)",
+        state.agent_id, target["id"], session.id,
     )
 
 
-def _find_admin_master() -> dict | None:
+def _find_target_agent(to_agent_id: str | None) -> dict | None:
+    """Gibt den adressierten Agenten zurück, Fallback: Admin-Master."""
     from hydrahive.agents import config as agent_config
-    agents = agent_config.list_by_owner("admin")
-    return next((a for a in agents if a.get("type") == "master" and a.get("status") == "active"), None)
+    if to_agent_id:
+        agent = agent_config.get(to_agent_id)
+        if agent and agent.get("status") == "active":
+            logger.debug("handoff_receiver: Ziel-Agent '%s' lokal gefunden", to_agent_id)
+            return agent
+        logger.warning(
+            "handoff_receiver: to_agent='%s' nicht gefunden oder inaktiv — Fallback auf Admin-Master",
+            to_agent_id,
+        )
+    all_agents = agent_config.list_by_owner("admin")
+    return next((a for a in all_agents if a.get("type") == "master" and a.get("status") == "active"), None)
 
 
 def _build_user_input(state: State) -> str:
