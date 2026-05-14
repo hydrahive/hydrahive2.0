@@ -115,3 +115,8 @@ class _CommunicationMixin:
     @cached_property
     def whatsapp_bridge_secret_file(self) -> Path:
         return self.config_dir / "whatsapp_bridge.secret"
+
+    @cached_property
+    def health_api_key(self) -> str:
+        """API-Key für Health Auto Export Ingest. Leer ⇒ Endpoint antwortet mit 403."""
+        return os.environ.get("HH_HEALTH_API_KEY", "").strip()
