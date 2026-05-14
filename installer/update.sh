@@ -408,6 +408,7 @@ else
   grep -q "connection_upgrade"      "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "agentlink/api/"          "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "health-data"             "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "client_max_body_size 64M" "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "Strict-Transport-Security" "$NGINX_CONF" && NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "nginx: Config braucht Update (HTTPS / VNC-Proxy / ISO-Upload-Limit) — neu schreiben"
