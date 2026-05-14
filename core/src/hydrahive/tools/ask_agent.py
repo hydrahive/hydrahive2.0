@@ -121,6 +121,17 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if raw_context.get("code_snippet"):
         task_description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
 
+    # Interner Agent: to_agent muss auf unsere AgentLink-ID zeigen damit AgentLink
+    # die Nachricht zurückrouten kann. Die echte Ziel-ID geht in state.extra.
+    try:
+        from hydrahive.agents import config as _ac
+        _is_internal = bool(_ac.get(target))
+    except Exception:
+        _is_internal = False
+
+    routing_target = settings.agentlink_agent_id if _is_internal else target
+    extra: dict = {"hh_target_agent_id": target} if _is_internal else {}
+
     state = State(
         agent_id=settings.agentlink_agent_id,
         task=TaskBlock(type=task_type, description=task_description, status="in_progress"),
@@ -130,10 +141,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             errors=errors,
         ),
         handoff=Handoff(
-            to_agent=target,
+            to_agent=routing_target,
             reason=f"hh-task: {task[:120]}",
             required_skills=required_skills,
         ),
+        extra=extra,
     )
 
     try:
