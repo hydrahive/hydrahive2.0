@@ -384,6 +384,7 @@ if [ -f "$SERVICE_FILE" ]; then
   # UMask=0002: Backend-Files mit g+w damit Samba-User (in hydrahive-Gruppe)
   # sie via Group-Membership ändern kann (Workspace-Schreibzugriff über Samba).
   grep -q "^UMask=0002" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "^EnvironmentFile=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "Service-File braucht Update — neu schreiben"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
