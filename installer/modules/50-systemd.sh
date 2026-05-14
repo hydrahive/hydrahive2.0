@@ -26,6 +26,23 @@ if [ ! -f "$SECRET_FILE" ]; then
 fi
 SECRET_KEY="$(cat "$SECRET_FILE")"
 
+# Optionale Nutzer-Konfig-Datei anlegen falls nicht vorhanden
+ENV_EXTRA="$HH_CONFIG_DIR/env"
+if [ ! -f "$ENV_EXTRA" ]; then
+  log "Lege $ENV_EXTRA an (optionale Env-Variablen)"
+  cat > "$ENV_EXTRA" <<'ENVEOF'
+# Zusätzliche Umgebungsvariablen für HydraHive2.
+# Eine Variable pro Zeile: KEY=value
+# Änderungen werden nach "systemctl restart hydrahive2" wirksam.
+#
+# Beispiele:
+#   HH_HEALTH_API_KEY=meingeheimerschluessel
+#   HH_AGENTLINK_URL=http://127.0.0.1:9000
+ENVEOF
+  chmod 640 "$ENV_EXTRA"
+  chown "root:$HH_USER" "$ENV_EXTRA"
+fi
+
 log "Schreibe $SERVICE_FILE"
 cat > "$SERVICE_FILE" <<EOF
 [Unit]
@@ -44,6 +61,7 @@ Environment=HH_PORT=$HH_PORT
 Environment=HH_SECRET_KEY=$SECRET_KEY
 Environment=HOME=/home/$HH_USER
 Environment=PATH=$HH_REPO_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=-$ENV_EXTRA
 ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST --port $HH_PORT
 Restart=on-failure
 RestartSec=5
