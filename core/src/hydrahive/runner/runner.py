@@ -99,7 +99,7 @@ async def run(
     compact_reserve = agent.get("compact_reserve_tokens")
     compact_threshold_pct = int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT))
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
-    cache_ttl: str = agent.get("cache_ttl") or "1h"
+    cache_ttl: str = agent.get("cache_ttl") or "5m"
     max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
 
     for iteration in range(max_iterations):
