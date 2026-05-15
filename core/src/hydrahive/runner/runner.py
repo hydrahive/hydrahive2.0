@@ -25,11 +25,10 @@ from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._runner_helpers import close_open_tool_uses
 from hydrahive.runner._runner_iter import (
     IterationResult,
-    build_system_prompts,
     prepare_history,
     stream_llm_call,
 )
-from hydrahive.runner._runner_setup import inject_longterm_memory
+from hydrahive.runner.system_prompt import compose as compose_system_prompts
 from hydrahive.runner._runner_tools import process_tool_uses
 from hydrahive.runner.context import extract_tool_uses, heal_orphan_tool_uses, to_anthropic_messages
 from hydrahive.runner.events import Done, Error, Event, IterationStart
@@ -86,9 +85,6 @@ async def run(
     tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
     allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
 
-    if agent.get("longterm_memory"):
-        base_system_prompt = inject_longterm_memory(base_system_prompt, tool_schemas, allowed_tools)
-
     messages_db.append(session_id, "user", user_input)
 
     last_assistant_id: str | None = None
@@ -113,12 +109,15 @@ async def run(
             compact_threshold_pct=compact_threshold_pct,
         )
 
-        stable_system, volatile_system, summary_system = build_system_prompts(
+        stable_system, volatile_system, summary_system = compose_system_prompts(
             base_system_prompt,
             extra_system=extra_system,
             workspace=workspace,
             summary=messages_db.get_latest_summary(session_id),
             skills=agent_skills,
+            longterm_memory=bool(agent.get("longterm_memory")),
+            tool_schemas=tool_schemas,
+            allowed_tools=allowed_tools,
         )
 
         # Pro-Session-Override (Chat-Header-Switcher) gewinnt vor Agent-Default.
