@@ -33,6 +33,18 @@ class RestClient:
             r.raise_for_status()
             return r.json() if r.content else {}
 
+    async def post_form_sse(self, path: str, data: dict) -> dict:
+        """POST form data to an SSE endpoint. Reads only the HTTP status, then closes."""
+        await self.auth.ensure_token()
+        url = self.auth.base_url + path
+        async with self._client() as c:
+            async with c.stream("POST", url, data=data, headers=self.auth.headers()) as r:
+                if r.status_code == 401:
+                    await self.auth.refresh()
+                if r.status_code not in (200, 201, 204):
+                    r.raise_for_status()
+                return {"accepted": True, "status": r.status_code}
+
     async def patch(self, path: str, body: dict) -> Any:
         await self.auth.ensure_token()
         url = self.auth.base_url + path

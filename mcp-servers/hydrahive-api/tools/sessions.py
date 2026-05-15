@@ -39,9 +39,9 @@ async def send_message(
     client: RestClient, session_id: str, message: str
 ) -> dict[str, Any]:
     try:
-        return await client.post(
-            f"/api/sessions/{session_id}/messages",
-            body={"content": message, "role": "user"},
+        return await client.post_form_sse(
+            f"/api/sessions/{session_id}/inject",
+            data={"text": message},
         )
     except Exception as e:
         return {"error": str(e), "code": "send_failed"}
