@@ -10,7 +10,7 @@ async def al_status(rest: RestClient, al: AgentLinkClient) -> dict[str, Any]:
             **info,
             "ws_connected": al.is_connected(),
             "ws_last_error": al.last_error(),
-            "inbox_count": al._queue.qsize(),
+            "inbox_count": al.inbox_size,
             "our_agent_id": al.agent_id,
         }
     except Exception as e:
@@ -34,7 +34,10 @@ async def al_send(
         return {"error": str(e), "code": "al_send_failed"}
 
 def al_check_inbox(al: AgentLinkClient) -> list[dict]:
-    return al.drain_inbox()
+    try:
+        return al.drain_inbox()
+    except Exception as e:
+        return [{"error": str(e), "code": "al_inbox_failed"}]
 
 async def al_reply(
     al: AgentLinkClient, state_id: str, result: str
