@@ -25,13 +25,26 @@ class Auth:
         if not self.user:
             raise RuntimeError("Kein HH_API_KEY und kein HH_USER/HH_PASS gesetzt")
         async with httpx.AsyncClient(verify=self.verify_ssl) as client:
-            r = await client.post(
-                f"{self.base_url}/api/auth/login",
-                json={"username": self.user, "password": self.password},
-                timeout=10,
-            )
-            r.raise_for_status()
-            self.token = r.json()["access_token"]
+            try:
+                r = await client.post(
+                    f"{self.base_url}/api/auth/login",
+                    json={"username": self.user, "password": self.password},
+                    timeout=10,
+                )
+                r.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise RuntimeError(
+                    f"Login fehlgeschlagen: HTTP {exc.response.status_code}"
+                ) from None
+            except httpx.TransportError as exc:
+                raise RuntimeError(f"Login Netzwerkfehler: {type(exc).__name__}") from exc
+            data = r.json()
+            if "access_token" not in data:
+                raise RuntimeError(
+                    f"Login-Antwort enthält kein 'access_token'; Keys: {list(data.keys())}"
+                )
+            self.token = data["access_token"]
+            self.password = ""  # Credential nach Login nicht mehr benötigt
 
     async def refresh(self) -> None:
         self.token = ""
