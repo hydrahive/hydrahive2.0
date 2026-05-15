@@ -1,7 +1,9 @@
-"""Token-Verbrauchs-Auswertung aus der SQLite-Sessions-DB.
+"""Token-Verbrauchs-Auswertung auf Session-Ebene.
 
 Liest messages.metadata (JSON) das der Runner pro Turn befüllt:
   {"input_tokens": N, "output_tokens": N, "cache_creation_tokens": N, "cache_read_tokens": N}
+
+Aggregierte Auswertungen (Zeitreihen, Agent-Übersichten) → token_stats_agg.py
 """
 from __future__ import annotations
 
@@ -9,11 +11,11 @@ import json
 from typing import Any
 
 from hydrahive.db.connection import db
+from hydrahive.db.token_stats_agg import agent_stats, daily_stats  # noqa: F401
 
 
 def session_stats(session_id: str) -> dict[str, Any] | None:
     with db() as conn:
-        # Session existiert?
         sess = conn.execute(
             "SELECT id, agent_id, user_id, title, created_at, updated_at, status FROM sessions WHERE id = ?",
             (session_id,),
@@ -65,12 +67,14 @@ def session_stats(session_id: str) -> dict[str, Any] | None:
 def latest_sessions(count: int = 5) -> list[dict[str, Any]]:
     """Letzte N Sessions mit Token-Kurzstats — für den Daily-Stand."""
     with db() as conn:
-        sessions = conn.execute(
+        rows = conn.execute(
             """
-            SELECT s.id, s.agent_id, s.user_id, s.title, s.status,
-                   s.created_at, s.updated_at,
+            SELECT s.id, s.agent_id, s.user_id, s.title, s.status, s.updated_at,
                    COUNT(m.id) AS message_count,
-                   COALESCE(SUM(m.token_count), 0) AS output_tokens_sum
+                   COALESCE(SUM(m.token_count), 0) AS output_tokens,
+                   COALESCE(SUM(CAST(json_extract(m.metadata, '$.input_tokens') AS INTEGER)), 0) AS input_tokens,
+                   COALESCE(SUM(CAST(json_extract(m.metadata, '$.cache_creation_tokens') AS INTEGER)), 0) AS cache_creation,
+                   COALESCE(SUM(CAST(json_extract(m.metadata, '$.cache_read_tokens') AS INTEGER)), 0) AS cache_read
             FROM sessions s
             LEFT JOIN messages m ON m.session_id = s.id
             GROUP BY s.id
@@ -80,159 +84,20 @@ def latest_sessions(count: int = 5) -> list[dict[str, Any]]:
             (min(count, 100),),
         ).fetchall()
 
-        result = []
-        for s in sessions:
-            meta_rows = conn.execute(
-                "SELECT metadata FROM messages WHERE session_id = ?", (s["id"],)
-            ).fetchall()
-            input_t = cache_c = cache_r = 0
-            for r in meta_rows:
-                meta = json.loads(r["metadata"]) if r["metadata"] else {}
-                input_t  += meta.get("input_tokens", 0)
-                cache_c  += meta.get("cache_creation_tokens", 0)
-                cache_r  += meta.get("cache_read_tokens", 0)
-            total_prompt = input_t + cache_c + cache_r
-            result.append({
-                "session_id": s["id"],
-                "agent_id": s["agent_id"],
-                "user_id": s["user_id"],
-                "title": s["title"],
-                "status": s["status"],
-                "updated_at": s["updated_at"],
-                "message_count": s["message_count"],
-                "input_tokens": input_t,
-                "output_tokens": s["output_tokens_sum"],
-                "cache_read_tokens": cache_r,
-                "cache_hit_pct": round(cache_r / total_prompt * 100, 1) if total_prompt else 0.0,
-            })
-    return result
-
-
-def daily_stats(agent_id: str | None = None, days: int = 14) -> list[dict[str, Any]]:
-    """Token-Zeitreihe: pro Tag aggregierte Werte für Vorher/Nachher-Vergleich.
-
-    Gibt eine Liste von Tages-Einträgen zurück (älteste zuerst), je mit:
-    sessions, input_tokens, output_tokens, cache_read_tokens, cache_hit_pct.
-    """
-    with db() as conn:
-        if agent_id:
-            session_rows = conn.execute(
-                """
-                SELECT id, date(updated_at) AS day
-                FROM sessions
-                WHERE agent_id = ?
-                  AND updated_at >= datetime('now', ?)
-                """,
-                (agent_id, f"-{days} days"),
-            ).fetchall()
-        else:
-            session_rows = conn.execute(
-                """
-                SELECT id, date(updated_at) AS day
-                FROM sessions
-                WHERE updated_at >= datetime('now', ?)
-                """,
-                (f"-{days} days",),
-            ).fetchall()
-
-        if not session_rows:
-            return []
-
-        # Group session IDs by day
-        by_day: dict[str, list[str]] = {}
-        for r in session_rows:
-            by_day.setdefault(r["day"], []).append(r["id"])
-
-        result = []
-        for day in sorted(by_day):
-            sids = by_day[day]
-            placeholders = ",".join("?" * len(sids))
-            meta_rows = conn.execute(
-                f"SELECT metadata FROM messages WHERE session_id IN ({placeholders})",
-                sids,
-            ).fetchall()
-
-            input_t = output_t = cache_c = cache_r = 0
-            for mr in meta_rows:
-                meta = json.loads(mr["metadata"]) if mr["metadata"] else {}
-                input_t  += meta.get("input_tokens", 0)
-                output_t += meta.get("output_tokens", 0)
-                cache_c  += meta.get("cache_creation_tokens", 0)
-                cache_r  += meta.get("cache_read_tokens", 0)
-
-            total_prompt = input_t + cache_c + cache_r
-            result.append({
-                "date": day,
-                "session_count": len(sids),
-                "input_tokens": input_t,
-                "output_tokens": output_t,
-                "cache_creation_tokens": cache_c,
-                "cache_read_tokens": cache_r,
-                "cache_hit_pct": round(cache_r / total_prompt * 100, 1) if total_prompt else 0.0,
-            })
-    return result
-
-
-def agent_stats(agent_id: str, days: int = 7) -> dict[str, Any]:
-    with db() as conn:
-        sessions = conn.execute(
-            """
-            SELECT id FROM sessions
-            WHERE agent_id = ?
-              AND updated_at >= datetime('now', ?)
-            ORDER BY updated_at DESC
-            """,
-            (agent_id, f"-{days} days"),
-        ).fetchall()
-
-        if not sessions:
-            return {
-                "agent_id": agent_id, "days": days, "session_count": 0,
-                "total_input_tokens": 0, "total_output_tokens": 0,
-                "total_cache_creation_tokens": 0, "total_cache_read_tokens": 0,
-                "avg_input_tokens_per_session": 0, "cache_hit_pct": 0.0,
-                "top_tools": [],
-            }
-
-        sid_list = [s["id"] for s in sessions]
-        placeholders = ",".join("?" * len(sid_list))
-
-        rows = conn.execute(
-            f"SELECT metadata FROM messages WHERE session_id IN ({placeholders})",
-            sid_list,
-        ).fetchall()
-
-        tool_rows = conn.execute(
-            f"""
-            SELECT tool_name, COUNT(*) AS cnt
-            FROM tool_calls
-            WHERE message_id IN (
-                SELECT id FROM messages WHERE session_id IN ({placeholders})
-            )
-            GROUP BY tool_name ORDER BY cnt DESC LIMIT 10
-            """,
-            sid_list,
-        ).fetchall()
-
-    input_t = output_t = cache_c = cache_r = 0
+    result = []
     for r in rows:
-        meta = json.loads(r["metadata"]) if r["metadata"] else {}
-        input_t  += meta.get("input_tokens", 0)
-        output_t += meta.get("output_tokens", 0)
-        cache_c  += meta.get("cache_creation_tokens", 0)
-        cache_r  += meta.get("cache_read_tokens", 0)
-
-    n = len(sid_list)
-    total_prompt = input_t + cache_c + cache_r
-    return {
-        "agent_id": agent_id,
-        "days": days,
-        "session_count": n,
-        "total_input_tokens": input_t,
-        "total_output_tokens": output_t,
-        "total_cache_creation_tokens": cache_c,
-        "total_cache_read_tokens": cache_r,
-        "avg_input_tokens_per_session": round(input_t / n) if n else 0,
-        "cache_hit_pct": round(cache_r / total_prompt * 100, 1) if total_prompt else 0.0,
-        "top_tools": [{"tool": r["tool_name"], "count": r["cnt"]} for r in tool_rows],
-    }
+        total_prompt = r["input_tokens"] + r["cache_creation"] + r["cache_read"]
+        result.append({
+            "session_id": r["id"],
+            "agent_id": r["agent_id"],
+            "user_id": r["user_id"],
+            "title": r["title"],
+            "status": r["status"],
+            "updated_at": r["updated_at"],
+            "message_count": r["message_count"],
+            "input_tokens": r["input_tokens"],
+            "output_tokens": r["output_tokens"],
+            "cache_read_tokens": r["cache_read"],
+            "cache_hit_pct": round(r["cache_read"] / total_prompt * 100, 1) if total_prompt else 0.0,
+        })
+    return result

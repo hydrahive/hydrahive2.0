@@ -46,7 +46,7 @@ def get_flow(
     return flow_or_404(user, flow_id, user, role).model_dump()
 
 
-@router.post("/flows", status_code=201)
+@router.post("/flows", status_code=status.HTTP_201_CREATED)
 def create_flow(
     body: FlowInput,
     auth: Annotated[tuple[str, str], Depends(require_auth)],

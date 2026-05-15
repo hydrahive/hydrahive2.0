@@ -34,7 +34,7 @@ def quick_images(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[s
     return list(QUICK_IMAGES)
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_container(
     body: ContainerCreate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],

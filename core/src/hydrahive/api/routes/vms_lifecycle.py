@@ -37,7 +37,7 @@ def list_vms(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[di
     return [serialize(v) for v in vms]
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_vm(
     body: VMCreate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],

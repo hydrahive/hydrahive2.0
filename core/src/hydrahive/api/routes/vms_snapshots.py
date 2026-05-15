@@ -26,7 +26,7 @@ def list_snapshots(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_
     return vmsnap.db_list(vm_id)
 
 
-@router.post("/{vm_id}/snapshots", status_code=201)
+@router.post("/{vm_id}/snapshots", status_code=status.HTTP_201_CREATED)
 async def create_snapshot(
     vm_id: str, body: SnapshotCreate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],

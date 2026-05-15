@@ -17,14 +17,13 @@ Code-Paste-Pfad reicht für headless / remote Installations.
 """
 from __future__ import annotations
 
-import base64
-import hashlib
-import secrets
 import time
 from typing import Any
 from urllib.parse import urlencode, urlparse, parse_qs
 
 import httpx
+
+from hydrahive.oauth._base import REFRESH_THRESHOLD_S, b64url, make_pkce, make_state  # noqa: F401
 
 # Constants — passend zur Claude-Code-Identität
 CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
@@ -44,20 +43,6 @@ _HTTP_HEADERS = {
     "x-app": "cli",
 }
 
-
-def _b64url(raw: bytes) -> str:
-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
-
-
-def make_pkce() -> tuple[str, str]:
-    """PKCE: liefert (verifier, challenge) — challenge ist S256(verifier)."""
-    verifier = _b64url(secrets.token_bytes(32))
-    challenge = _b64url(hashlib.sha256(verifier.encode()).digest())
-    return verifier, challenge
-
-
-def make_state() -> str:
-    return _b64url(secrets.token_bytes(16))
 
 
 def authorize_url(*, challenge: str, state: str) -> str:
@@ -166,8 +151,6 @@ def _normalize_token_response(data: dict) -> dict[str, Any]:
     }
 
 
-# Refresh-Schwelle: wenn Token in <5 min abläuft, vorher refreshen
-_REFRESH_THRESHOLD_S = 300
 
 
 async def resolve_anthropic_token() -> str:
@@ -205,7 +188,7 @@ async def resolve_anthropic_token() -> str:
         return api_key
 
     # OAuth gültig
-    if expires_at - time.time() > _REFRESH_THRESHOLD_S:
+    if expires_at - time.time() > REFRESH_THRESHOLD_S:
         return access
 
     # OAuth läuft ab → refreshen
