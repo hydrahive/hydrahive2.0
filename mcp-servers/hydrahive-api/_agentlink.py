@@ -49,7 +49,7 @@ class AgentLinkClient:
                 "required_skills": [],
             },
         }
-        if context:
+        if context is not None:
             body["context"] = context
         return await self.rest.post("/agentlink/api/states", body=body)
 
@@ -72,12 +72,15 @@ class AgentLinkClient:
 
     def drain_inbox(self) -> list[dict]:
         items = []
-        while not self._queue.empty():
+        while True:
             try:
                 items.append(self._queue.get_nowait())
             except asyncio.QueueEmpty:
-                break
-        return items
+                return items
+
+    @property
+    def inbox_size(self) -> int:
+        return self._queue.qsize()
 
     def is_connected(self) -> bool:
         return self._connected
@@ -93,22 +96,32 @@ class AgentLinkClient:
             self._ws_task.cancel()
             try:
                 await self._ws_task
-            except asyncio.CancelledError:
+            except (asyncio.CancelledError, Exception):
                 pass
+            self._ws_task = None
+
+    def _ssl_ctx(self) -> "ssl.SSLContext | bool":
+        if self.rest.auth.verify_ssl:
+            return True
+        import ssl as _ssl
+        ctx = _ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        return ctx
 
     async def _listen_loop(self) -> None:
         retry_delay = 1.0
+        attempt = 0
         while True:
             try:
                 await self.rest.auth.ensure_token()
                 headers = self.rest.auth.headers()
                 ws_url = f"{self.al_ws_url}?agent_id={self.agent_id}"
-                async with websockets.connect(
-                    ws_url, additional_headers=headers, ssl=None
-                ) as ws:
+                async with websockets.connect(ws_url, additional_headers=headers, ssl=self._ssl_ctx()) as ws:
                     self._connected = True
                     self._last_error = None
                     retry_delay = 1.0
+                    attempt = 0
                     logger.info("AgentLink WS verbunden: %s", ws_url)
                     async for raw in ws:
                         await self._handle_message(str(raw))
@@ -118,17 +131,25 @@ class AgentLinkClient:
             except Exception as e:
                 self._connected = False
                 self._last_error = str(e)
-                logger.warning("AgentLink WS Fehler: %s — retry in %ss", e, retry_delay)
+                attempt += 1
+                if attempt >= 5:
+                    logger.error("AgentLink WS: max Versuche erreicht (%d). Verbindung aufgegeben.", attempt)
+                    return
+                logger.warning("AgentLink WS Fehler: %s — retry in %ss (Versuch %d/5)", e, retry_delay, attempt)
                 await asyncio.sleep(retry_delay)
                 retry_delay = min(retry_delay * 2, 30.0)
 
     async def _handle_message(self, raw: str) -> None:
         try:
             event = json.loads(raw)
-            if event.get("type") == "handoff_received":
-                state_id = event.get("state_id")
-                if state_id:
+        except json.JSONDecodeError as e:
+            logger.debug("WS-Message not JSON: %s", e)
+            return
+        if event.get("type") == "handoff_received":
+            state_id = event.get("state_id")
+            if state_id:
+                try:
                     state = await self.rest.get(f"/agentlink/api/states/{state_id}")
                     await self._queue.put(state)
-        except Exception as e:
-            logger.debug("WS-Message parse error: %s", e)
+                except Exception as e:
+                    logger.warning("Handoff-State abrufen fehlgeschlagen (%s): %s", state_id, e)
