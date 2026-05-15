@@ -13,22 +13,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/health-data", tags=["health"])
 
 
-def _check_key(x_hh_health_key: str | None, authorization: str | None) -> None:
+def _check_key(
+    x_hh_health_key: str | None,
+    authorization: str | None,
+    query_key: str | None = None,
+) -> None:
     expected = settings.health_api_key
     if not expected:
         raise HTTPException(status_code=403, detail="health_ingest_disabled")
-    # Bearer-Token aus Authorization-Header extrahieren (Health Auto Export sendet so)
     bearer = None
     if authorization and authorization.lower().startswith("bearer "):
         bearer = authorization[7:].strip()
-    logger.warning(
-        "health_auth_debug: x_hh_health_key=%s authorization=%s bearer=%s expected=%s",
-        repr(x_hh_health_key[:4] + "…") if x_hh_health_key else None,
-        repr(authorization[:20] + "…") if authorization else None,
-        repr(bearer[:4] + "…") if bearer else None,
-        repr(expected[:4] + "…") if expected else None,
-    )
-    if x_hh_health_key != expected and bearer != expected:
+    if x_hh_health_key != expected and bearer != expected and query_key != expected:
         raise HTTPException(status_code=401, detail="bad_key")
 
 
@@ -37,13 +33,14 @@ async def ingest(
     payload: dict,
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
     authorization: Annotated[str | None, Header()] = None,
+    key: str | None = Query(default=None),
     x_automation_name: Annotated[str | None, Header(alias="automation-name")] = None,
     x_automation_id: Annotated[str | None, Header(alias="automation-id")] = None,
     x_session_id: Annotated[str | None, Header(alias="session-id")] = None,
     x_period: Annotated[str | None, Header(alias="automation-period")] = None,
     x_aggregation: Annotated[str | None, Header(alias="automation-aggregation")] = None,
 ) -> dict:
-    _check_key(x_hh_health_key, authorization)
+    _check_key(x_hh_health_key, authorization, key)
 
     data = payload.get("data", payload)
     metrics = data.get("metrics", []) if isinstance(data, dict) else []
