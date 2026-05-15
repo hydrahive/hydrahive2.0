@@ -7,8 +7,12 @@ from hydrahive.db import init_db
 
 @pytest.fixture(autouse=True)
 def _ensure_db(setup_test_env):
-    """Ensure DB schema is initialized before each test."""
+    """Ensure DB schema is initialized and cleaned before each test."""
+    from hydrahive.db.connection import db
     init_db()
+    yield
+    with db() as conn:
+        conn.execute("DELETE FROM health_ingest")
 
 
 def _insert_payload(metrics: list[dict], days_ago: int = 0) -> str:
@@ -69,7 +73,13 @@ def test_get_metrics_summary_herzfrequenz_gemittelt():
     assert hr["unit"] == "bpm"
 
 
-def test_get_metrics_summary_metric_filter():
+def test_get_metrics_summary_metric_filter(setup_test_env):
+    _insert_payload([
+        {"name": "step_count", "units": "count",
+         "data": [{"date": "2026-05-15 08:00:00 +0200", "qty": 1000}]},
+        {"name": "heart_rate", "units": "bpm",
+         "data": [{"date": "2026-05-15 08:00:00 +0200", "qty": 70}]},
+    ], days_ago=0)
     result = health_db.get_metrics_summary(days=7, metric="step_count")
-    for key in result["metrics"]:
-        assert key == "step_count"
+    assert "step_count" in result["metrics"]
+    assert "heart_rate" not in result["metrics"]
