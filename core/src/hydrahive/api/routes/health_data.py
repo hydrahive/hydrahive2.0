@@ -21,6 +21,13 @@ def _check_key(x_hh_health_key: str | None, authorization: str | None) -> None:
     bearer = None
     if authorization and authorization.lower().startswith("bearer "):
         bearer = authorization[7:].strip()
+    logger.warning(
+        "health_auth_debug: x_hh_health_key=%s authorization=%s bearer=%s expected=%s",
+        repr(x_hh_health_key[:4] + "…") if x_hh_health_key else None,
+        repr(authorization[:20] + "…") if authorization else None,
+        repr(bearer[:4] + "…") if bearer else None,
+        repr(expected[:4] + "…") if expected else None,
+    )
     if x_hh_health_key != expected and bearer != expected:
         raise HTTPException(status_code=401, detail="bad_key")
 
