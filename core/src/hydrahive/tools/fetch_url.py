@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import ipaddress
+import socket
 import urllib.parse
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
@@ -37,13 +38,44 @@ _BLOCKED_RANGES = [
     ipaddress.ip_network("fe80::/10"),
 ]
 
+# Hostnames die direkt geblockt werden (ohne DNS-Lookup)
+_BLOCKED_HOSTNAMES = {
+    "localhost",
+    "metadata.google.internal",
+    "metadata.internal",
+    "169.254.169.254",  # AWS/GCP/Azure Metadaten-IP als String
+}
 
-def _is_blocked_ip(hostname: str) -> bool:
+
+def _is_blocked(hostname: str) -> bool:
+    """Prüft ob ein Hostname auf eine interne/gesperrte Adresse zeigt.
+
+    Drei Stufen: Hostname-Denylist → direktes IP-Parse → DNS-Auflösung.
+    """
+    if not hostname:
+        return True
+    normalized = hostname.lower().strip(".")
+    if normalized in _BLOCKED_HOSTNAMES:
+        return True
+    # Direkt als IP parsen
     try:
         ip = ipaddress.ip_address(hostname)
         return any(ip in net for net in _BLOCKED_RANGES)
     except ValueError:
-        return False
+        pass
+    # Hostname per DNS auflösen und alle resultierenden IPs prüfen
+    try:
+        infos = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+        for info in infos:
+            addr = info[4][0]
+            try:
+                if any(ipaddress.ip_address(addr) in net for net in _BLOCKED_RANGES):
+                    return True
+            except ValueError:
+                pass
+    except OSError:
+        pass
+    return False
 
 
 _SCHEMA = {
@@ -96,8 +128,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     try:
         parsed = urllib.parse.urlparse(url)
-        if parsed.hostname and _is_blocked_ip(parsed.hostname):
-            return ToolResult.fail(f"Zugriff auf interne IPs gesperrt: {parsed.hostname}")
+        if not parsed.hostname:
+            return ToolResult.fail("Ungültige URL — kein Hostname")
+        if _is_blocked(parsed.hostname):
+            return ToolResult.fail(f"Zugriff auf interne/private Adressen gesperrt: {parsed.hostname}")
     except Exception:
         return ToolResult.fail("Ungültige URL")
 
@@ -123,7 +157,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         headers["Content-Type"] = content_type
 
     try:
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
             r = await client.request(
                 method, url, headers=headers, params=params or None,
                 content=body.encode("utf-8") if body else None,
