@@ -1,4 +1,4 @@
-import type { MetricsSummary } from "./api"
+import type { MetricDay, MetricsSummary } from "./api"
 
 const METRIC_META: Record<string, { icon: string; label: string }> = {
   step_count:               { icon: "🦶", label: "Schritte" },
@@ -26,6 +26,25 @@ function formatValue(name: string, value: number, unit: string): string {
   if (unit === "%" || unit === "percent") return `${value.toFixed(1)}%`
   if (value >= 1000) return value.toLocaleString("de-DE", { maximumFractionDigits: 0 })
   return value.toLocaleString("de-DE", { maximumFractionDigits: 1 })
+}
+
+function Sparkline({ days }: { days: MetricDay[] }) {
+  if (days.length < 2) return null
+  const values = days.map((d) => d.value)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const W = 80, H = 24
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * W
+    const y = H - ((v - min) / range) * H
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(" ")
+  return (
+    <svg width={W} height={H} className="opacity-40">
+      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  )
 }
 
 interface Props {
@@ -59,8 +78,13 @@ export function MetricCards({ summary }: Props) {
             <div className="text-xl font-semibold text-zinc-100 leading-tight">
               {formatValue(name, m.latest, m.unit)}
             </div>
-            <div className={`text-xs font-mono ${trendColor(m.trend)}`}>
-              {m.trend}
+            <div className="flex items-end justify-between gap-2">
+              <div className={`text-xs font-mono ${trendColor(m.trend)}`}>
+                {m.trend}
+              </div>
+              <div className={trendColor(m.trend)}>
+                <Sparkline days={m.days} />
+              </div>
             </div>
           </div>
         )
