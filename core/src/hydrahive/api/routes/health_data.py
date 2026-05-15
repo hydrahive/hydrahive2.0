@@ -65,10 +65,11 @@ async def ingest(
 def list_data(
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
     authorization: Annotated[str | None, Header()] = None,
+    key: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
     automation_id: str | None = Query(default=None),
 ) -> dict:
-    _check_key(x_hh_health_key, authorization)
+    _check_key(x_hh_health_key, authorization, key)
     rows = health_db.list_recent(limit=limit, automation_id=automation_id)
     return {"records": rows, "count": len(rows)}
 
@@ -78,8 +79,9 @@ def get_record(
     record_id: str,
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
     authorization: Annotated[str | None, Header()] = None,
+    key: str | None = Query(default=None),
 ) -> dict:
-    _check_key(x_hh_health_key, authorization)
+    _check_key(x_hh_health_key, authorization, key)
     payload = health_db.get_payload(record_id)
     if payload is None:
         raise HTTPException(status_code=404, detail="not_found")
