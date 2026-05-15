@@ -19,6 +19,7 @@ from hydrahive.settings import settings
 logger = logging.getLogger(__name__)
 
 PREFIX = "hhk_"
+_PREFIX_LEN = 12  # chars stored for fast candidate filtering, not a secret
 
 
 def _path() -> Path:
@@ -49,6 +50,7 @@ def create(name: str, username: str, role: str) -> str:
     data[key_id] = {
         "name": name,
         "key_hash": key_hash,
+        "key_prefix": plain[:_PREFIX_LEN],
         "username": username,
         "role": role,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -62,8 +64,12 @@ def verify(plain: str) -> dict | None:
     """Prüft einen API-Key. Gibt {username, role} zurück oder None."""
     if not plain.startswith(PREFIX):
         return None
+    prefix = plain[:_PREFIX_LEN]
     encoded = plain.encode()
     for entry in _load().values():
+        # skip without bcrypt for all non-matching prefixes (O(1) in practice)
+        if entry.get("key_prefix") != prefix:
+            continue
         try:
             if bcrypt.checkpw(encoded, entry["key_hash"].encode()):
                 return {"username": entry["username"], "role": entry["role"]}
