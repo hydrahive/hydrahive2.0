@@ -4,8 +4,9 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
+from hydrahive.api.middleware.auth import require_auth
 from hydrahive.db import health as health_db
 from hydrahive.settings import settings
 
@@ -61,39 +62,25 @@ async def ingest(
     return {"id": record_id, "metrics": len(metrics), "workouts": len(workouts)}
 
 
-@router.get("/data")
+@router.get("/data", dependencies=[Depends(require_auth)])
 def list_data(
-    x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
-    authorization: Annotated[str | None, Header()] = None,
-    key: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
     automation_id: str | None = Query(default=None),
 ) -> dict:
-    _check_key(x_hh_health_key, authorization, key)
     rows = health_db.list_recent(limit=limit, automation_id=automation_id)
     return {"records": rows, "count": len(rows)}
 
 
-@router.get("/metrics")
+@router.get("/metrics", dependencies=[Depends(require_auth)])
 def get_metrics(
-    x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
-    authorization: Annotated[str | None, Header()] = None,
-    key: str | None = Query(default=None),
     days: int = Query(default=7, ge=1, le=365),
     metric: str | None = Query(default=None),
 ) -> dict:
-    _check_key(x_hh_health_key, authorization, key)
     return health_db.get_metrics_summary(days=days, metric=metric)
 
 
-@router.get("/data/{record_id}")
-def get_record(
-    record_id: str,
-    x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
-    authorization: Annotated[str | None, Header()] = None,
-    key: str | None = Query(default=None),
-) -> dict:
-    _check_key(x_hh_health_key, authorization, key)
+@router.get("/data/{record_id}", dependencies=[Depends(require_auth)])
+def get_record(record_id: str) -> dict:
     payload = health_db.get_payload(record_id)
     if payload is None:
         raise HTTPException(status_code=404, detail="not_found")
