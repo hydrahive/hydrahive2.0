@@ -24,7 +24,7 @@ _rest = RestClient(_auth)
 _al = AgentLinkClient(
     rest=_rest,
     agent_id=os.environ.get("HH_AGENT_ID", "claude-code"),
-    base_url=_auth.base_url or "http://localhost",
+    base_url=_auth.base_url,
 )
 
 
@@ -57,25 +57,25 @@ async def hh_token_stats() -> dict[str, Any]:
 
 @mcp.tool()
 async def hh_list_sessions(agent_id: str | None = None, limit: int = 20) -> list[dict]:
-    """Alle Sessions auflisten, optional gefiltert nach agent_id."""
+    """Laufende und letzte Sessions auflisten, optional nach Agent gefiltert."""
     return await list_sessions(_rest, agent_id=agent_id, limit=limit)
 
 
 @mcp.tool()
 async def hh_get_session(session_id: str) -> dict[str, Any]:
-    """Eine Session anhand ihrer ID abrufen."""
+    """Details und Token-Verbrauch einer Session abrufen."""
     return await get_session(_rest, session_id=session_id)
 
 
 @mcp.tool()
 async def hh_get_messages(session_id: str, limit: int = 50) -> list[dict]:
-    """Nachrichten einer Session abrufen."""
+    """Nachrichten-Verlauf einer Session abrufen."""
     return await get_messages(_rest, session_id=session_id, limit=limit)
 
 
 @mcp.tool()
 async def hh_send_message(session_id: str, message: str) -> dict[str, Any]:
-    """Eine Nachricht in eine Session senden."""
+    """Eine Nachricht in eine laufende Session injizieren."""
     return await send_message(_rest, session_id=session_id, message=message)
 
 
@@ -83,19 +83,19 @@ async def hh_send_message(session_id: str, message: str) -> dict[str, Any]:
 
 @mcp.tool()
 async def hh_list_agents() -> list[dict]:
-    """Alle registrierten Agenten auflisten."""
+    """Alle Agenten mit Kurzinfo auflisten."""
     return await list_agents(_rest)
 
 
 @mcp.tool()
 async def hh_get_agent(agent_id: str) -> dict[str, Any]:
-    """Einen Agenten anhand seiner ID abrufen."""
+    """Vollständige Konfiguration eines Agenten abrufen."""
     return await get_agent(_rest, agent_id=agent_id)
 
 
 @mcp.tool()
 async def hh_update_agent(agent_id: str, field: str, value: Any) -> dict[str, Any]:
-    """Ein Feld eines Agenten aktualisieren."""
+    """Ein Konfigurationsfeld eines Agenten setzen."""
     return await update_agent(_rest, agent_id=agent_id, field=field, value=value)
 
 
@@ -103,19 +103,19 @@ async def hh_update_agent(agent_id: str, field: str, value: Any) -> dict[str, An
 
 @mcp.tool()
 async def hh_list_projects() -> list[dict]:
-    """Alle Projekte im Workspace auflisten."""
+    """Alle Workspace-Projekte auflisten."""
     return await list_projects(_rest)
 
 
 @mcp.tool()
 async def hh_list_files(project_id: str, path: str = "") -> dict[str, Any]:
-    """Dateien in einem Projektverzeichnis auflisten."""
+    """Verzeichnis-Listing eines Projekts abrufen."""
     return await list_files(_rest, project_id=project_id, path=path)
 
 
 @mcp.tool()
 async def hh_read_file(project_id: str, path: str) -> dict[str, Any]:
-    """Eine Datei aus einem Projekt lesen."""
+    """Dateiinhalt aus einem Projekt lesen (read-only)."""
     return await read_file(_rest, project_id=project_id, path=path)
 
 
@@ -129,7 +129,7 @@ async def hh_dm_search(
     to_date: str | None = None,
     limit: int = 50,
 ) -> dict[str, Any]:
-    """Events im Datamining-Index suchen."""
+    """Events im Datamining-Index per Volltextsuche finden."""
     return await dm_search(
         _rest, q=q, event_type=event_type,
         from_date=from_date, to_date=to_date, limit=limit,
@@ -138,19 +138,19 @@ async def hh_dm_search(
 
 @mcp.tool()
 async def hh_dm_get_session(session_id: str) -> dict[str, Any]:
-    """Eine Datamining-Session abrufen."""
+    """Eine Datamining-Session als zusammengesetzte Chunks abrufen."""
     return await dm_get_session(_rest, session_id=session_id)
 
 
 @mcp.tool()
 async def hh_dm_list_sessions(limit: int = 20) -> list[dict]:
-    """Datamining-Sessions auflisten."""
+    """Letzte Datamining-Sessions mit Event-Anzahl auflisten."""
     return await dm_list_sessions(_rest, limit=limit)
 
 
 @mcp.tool()
 async def hh_dm_stats() -> dict[str, Any]:
-    """Aktuelle Datamining-Statistiken abrufen."""
+    """Token- und Kostenstatistiken aus dem Datamining abrufen."""
     return await dm_stats(_rest)
 
 
@@ -158,7 +158,7 @@ async def hh_dm_stats() -> dict[str, Any]:
 
 @mcp.tool()
 async def hh_al_status() -> dict[str, Any]:
-    """AgentLink-Status und WebSocket-Verbindungsinfo."""
+    """AgentLink-Verbindungsstatus und bekannte Agenten anzeigen."""
     return await al_status(_rest, _al)
 
 
@@ -169,20 +169,20 @@ async def hh_al_send(
     description: str,
     context: dict | None = None,
 ) -> dict[str, Any]:
-    """Eine Aufgabe per AgentLink an einen anderen Agenten senden."""
+    """Einen Handoff per AgentLink an einen anderen Agenten abschicken."""
     return await al_send(_al, to_agent=to_agent, task_type=task_type,
                          description=description, context=context)
 
 
 @mcp.tool()
 async def hh_al_check_inbox() -> list[dict]:
-    """Eingehende AgentLink-Handoffs aus der Inbox lesen."""
-    return al_check_inbox(_al)
+    """Eingegangene AgentLink-Handoffs aus der Inbox lesen."""
+    return await al_check_inbox(_al)
 
 
 @mcp.tool()
 async def hh_al_reply(state_id: str, result: str) -> dict[str, Any]:
-    """Auf einen AgentLink-Handoff antworten."""
+    """Auf einen empfangenen AgentLink-Handoff antworten."""
     return await al_reply(_al, state_id=state_id, result=result)
 
 

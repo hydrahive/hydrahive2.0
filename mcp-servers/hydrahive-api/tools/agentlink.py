@@ -33,7 +33,7 @@ async def al_send(
     except Exception as e:
         return {"error": str(e), "code": "al_send_failed"}
 
-def al_check_inbox(al: AgentLinkClient) -> list[dict]:
+async def al_check_inbox(al: AgentLinkClient) -> list[dict]:
     try:
         return al.drain_inbox()
     except Exception as e:
