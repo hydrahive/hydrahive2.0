@@ -108,7 +108,7 @@ def create_agent(
 
 @router.patch("/{agent_id}", dependencies=[Depends(require_admin)])
 def update_agent(agent_id: str, req: AgentUpdate) -> dict:
-    changes = {k: v for k, v in req.model_dump().items() if v is not None}
+    changes = req.model_dump(exclude_unset=True)
     if not changes:
         agent = agent_config.get(agent_id)
         if not agent:
