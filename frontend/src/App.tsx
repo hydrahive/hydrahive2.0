@@ -28,6 +28,7 @@ import { DataminingPage } from "@/features/datamining/DataminingPage"
 import { MemoryPage } from "@/features/memory/MemoryPage"
 import { HelpPage } from "@/features/help/HelpPage"
 import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
+import { HealthPage } from "@/features/health/HealthPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -58,6 +59,7 @@ export default function App() {
           <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <BuddyPage />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="health" element={<HealthPage />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="devchat" element={<ChatPage />} />
           <Route path="chat" element={<Navigate to="/devchat" replace />} />

@@ -6,6 +6,7 @@
   "items": {
     "buddy": "Buddy",
     "dashboard": "Dashboard",
+    "health": "Health",
     "devchat": "DevChat",
     "chat": "Chat",
     "agents": "Agents",
