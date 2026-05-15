@@ -1,4 +1,4 @@
-import { AlertTriangle, Folder, Heart, MessageCircle, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, Folder, Heart, MessageCircle, Play, Plus, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ProjectBrief } from "./api"
@@ -23,8 +23,11 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
   const [tab, setTab] = useState<Tab>("direct")
   const projectMap = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
 
+  const pausedFirst = (a: Session, b: Session) =>
+    (a.status === "paused" ? 0 : 1) - (b.status === "paused" ? 0 : 1)
+
   const buddy = sessions.filter((s) => buddyAgentIds.has(s.agent_id))
-  const direct = sessions.filter((s) => !s.project_id && !buddyAgentIds.has(s.agent_id))
+  const direct = sessions.filter((s) => !s.project_id && !buddyAgentIds.has(s.agent_id)).sort(pausedFirst)
   const projectSessions = sessions.filter((s) => !!s.project_id)
 
   const grouped = useMemo(() => {
@@ -125,10 +128,16 @@ function SessionRow({ session, active, orphaned, onSelect, onDelete }: {
       <div className="flex-1 min-w-0">
         <p className={`text-sm truncate flex items-center gap-1.5 ${active ? "text-white" : "text-zinc-300"}`}>
           {orphaned && <AlertTriangle size={11} className="text-amber-400 flex-shrink-0" />}
+          {session.status === "paused" && (
+            <span title="Max-Iterationen erreicht — hier weitermachen statt neue Session">
+              <Play size={11} className="text-amber-400 flex-shrink-0" />
+            </span>
+          )}
           <span className="truncate">{session.title || t("session.without_title")}</span>
         </p>
         <p className="text-xs text-zinc-600 mt-0.5">
           {orphaned ? `${t("session.orphaned")} · ` : ""}
+          {session.status === "paused" ? "⏸ pausiert · " : ""}
           {new Date(session.updated_at).toLocaleString(i18n.language, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
         </p>
       </div>
