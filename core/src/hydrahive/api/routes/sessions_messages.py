@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, status
+
+logger = logging.getLogger(__name__)
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -196,7 +199,9 @@ async def inject_message(
                 async for _ in runner_run(session_id, user_content):
                     pass
         except SessionAlreadyRunning:
-            pass
+            logger.info("inject %s: session already running, skipped", session_id)
+        except Exception:
+            logger.exception("inject %s: runner error", session_id)
 
     background_tasks.add_task(_run)
     return {"accepted": True, "session_id": session_id}
