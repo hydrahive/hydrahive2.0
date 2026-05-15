@@ -1,4 +1,4 @@
-import { BrainCircuit,
+import { Activity, BrainCircuit,
   BookOpen, Bot, Box, Cpu, FolderKanban, HardDrive, Heart, Key, LayoutDashboard,
   MessageCircle, MessageSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, Users, Workflow,
 } from "lucide-react"
@@ -15,6 +15,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { path: "/", icon: Heart, labelKey: "buddy" },
   { path: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
+  { path: "/health", icon: Activity, labelKey: "health" },
   { path: "/devchat", icon: MessageSquare, labelKey: "devchat" },
   { path: "/agents", icon: Bot, labelKey: "agents" },
   { path: "/projects", icon: FolderKanban, labelKey: "projects" },
