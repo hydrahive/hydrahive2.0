@@ -13,11 +13,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/health-data", tags=["health"])
 
 
-def _check_key(x_hh_health_key: str | None) -> None:
+def _check_key(x_hh_health_key: str | None, authorization: str | None) -> None:
     expected = settings.health_api_key
     if not expected:
         raise HTTPException(status_code=403, detail="health_ingest_disabled")
-    if x_hh_health_key != expected:
+    # Bearer-Token aus Authorization-Header extrahieren (Health Auto Export sendet so)
+    bearer = None
+    if authorization and authorization.lower().startswith("bearer "):
+        bearer = authorization[7:].strip()
+    if x_hh_health_key != expected and bearer != expected:
         raise HTTPException(status_code=401, detail="bad_key")
 
 
@@ -25,13 +29,14 @@ def _check_key(x_hh_health_key: str | None) -> None:
 async def ingest(
     payload: dict,
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
+    authorization: Annotated[str | None, Header()] = None,
     x_automation_name: Annotated[str | None, Header(alias="automation-name")] = None,
     x_automation_id: Annotated[str | None, Header(alias="automation-id")] = None,
     x_session_id: Annotated[str | None, Header(alias="session-id")] = None,
     x_period: Annotated[str | None, Header(alias="automation-period")] = None,
     x_aggregation: Annotated[str | None, Header(alias="automation-aggregation")] = None,
 ) -> dict:
-    _check_key(x_hh_health_key)
+    _check_key(x_hh_health_key, authorization)
 
     data = payload.get("data", payload)
     metrics = data.get("metrics", []) if isinstance(data, dict) else []
@@ -55,10 +60,11 @@ async def ingest(
 @router.get("/data")
 def list_data(
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
+    authorization: Annotated[str | None, Header()] = None,
     limit: int = Query(default=50, ge=1, le=500),
     automation_id: str | None = Query(default=None),
 ) -> dict:
-    _check_key(x_hh_health_key)
+    _check_key(x_hh_health_key, authorization)
     rows = health_db.list_recent(limit=limit, automation_id=automation_id)
     return {"records": rows, "count": len(rows)}
 
@@ -67,8 +73,9 @@ def list_data(
 def get_record(
     record_id: str,
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
+    authorization: Annotated[str | None, Header()] = None,
 ) -> dict:
-    _check_key(x_hh_health_key)
+    _check_key(x_hh_health_key, authorization)
     payload = health_db.get_payload(record_id)
     if payload is None:
         raise HTTPException(status_code=404, detail="not_found")
