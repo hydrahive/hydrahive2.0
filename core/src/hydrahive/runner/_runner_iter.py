@@ -66,10 +66,11 @@ def build_system_prompts(
     extra_system: str | None,
     workspace: Path,
     summary: str | None,
+    skills: list | None = None,
 ) -> tuple[str, str, str | None]:
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
-    - stable: extra + base + Workspace (cache-fähig über Sessions hinweg)
+    - stable: extra + base + Workspace + Skills-Katalog (cache-fähig)
     - volatile: Datum (Tag) — pro Tag stabil, Cache bricht nur um Mitternacht
     - summary: bisherige Zusammenfassung als separater System-Block
 
@@ -87,6 +88,20 @@ def build_system_prompts(
     if extra_system:
         stable_system = f"{extra_system}\n\n{stable_system}"
     stable_system = f"{stable_system}\n\nWorkspace: {workspace}"
+
+    if skills:
+        rows = "\n".join(
+            f"| `{s.name}` | {s.when_to_use or s.description} |"
+            for s in skills
+        )
+        stable_system += (
+            "\n\n## Skills\n"
+            "Lade einen Skill mit `load_skill(name)` **bevor** du mit einer Aufgabe beginnst. "
+            "Wenn auch nur 1% Chance besteht dass ein Skill passt — lade ihn zuerst.\n\n"
+            "| Skill | Wann nutzen |\n"
+            "|-------|-------------|\n"
+            f"{rows}"
+        )
 
     now = datetime.now().astimezone()
     volatile_system = (
