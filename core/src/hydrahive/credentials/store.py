@@ -1,6 +1,7 @@
 """File-Storage für Credentials. Pro User eine JSON-Datei.
 
 Atomic write via temp+rename. chmod 600 sofort beim ersten Anlegen.
+Value-Felder werden AES-GCM-verschlüsselt gespeichert (enc:v1: Präfix).
 """
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ import logging
 import os
 from pathlib import Path
 
+from hydrahive.credentials._crypto import decrypt, encrypt
 from hydrahive.credentials.models import (
     ALL_TYPES, Credential, CredentialType, is_valid_name, matches_url,
 )
@@ -26,17 +28,26 @@ def _load_raw(username: str) -> dict:
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text())
+        raw = json.loads(path.read_text())
     except json.JSONDecodeError:
         logger.warning("Defekter Credentials-File: %s", path)
         return {}
+    for row in raw.values():
+        if isinstance(row, dict) and "value" in row:
+            row["value"] = decrypt(row["value"], settings.data_dir)
+    return raw
 
 
 def _save_raw(username: str, data: dict) -> None:
     path = _file_for(username)
     path.parent.mkdir(parents=True, exist_ok=True)
+    encrypted = {
+        name: {**row, "value": encrypt(row["value"], settings.data_dir)}
+        if isinstance(row, dict) and "value" in row else row
+        for name, row in data.items()
+    }
     tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    tmp.write_text(json.dumps(encrypted, indent=2, ensure_ascii=False))
     tmp.replace(path)
     try:
         os.chmod(path, 0o600)
