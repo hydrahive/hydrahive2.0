@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -10,6 +10,8 @@ from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_with_guard
+from hydrahive.runner import run as runner_run
+from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
 from hydrahive.compaction import compact_session, total_tokens
 from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
@@ -173,14 +175,28 @@ def log_slash_cmd(
 async def inject_message(
     session_id: str,
     text: Annotated[str, Form(min_length=1)],
-) -> StreamingResponse:
+    background_tasks: BackgroundTasks,
+) -> dict:
     """Supervisor-Inject: Admin schickt eine Nachricht in eine fremde Session.
 
-    Kein Owner-Check — nur Admins. Läuft den Runner wie ein normaler User-Input.
-    Gedacht für externe Supervision (MCP, Monitoring-Agents).
+    Kein Owner-Check — nur Admins. Startet den Runner als Background-Task und
+    gibt sofort {"accepted": true} zurück, damit der Client nicht auf den
+    SSE-Stream warten muss (fire-and-forget für MCP/Monitoring-Agents).
     """
     s = sessions_db.get(session_id)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    if is_running(session_id):
+        raise coded(status.HTTP_409_CONFLICT, "session_already_running")
     user_content = await build_user_content(s.agent_id, text, [])
-    return await sse_run_with_guard(session_id, user_content)
+
+    async def _run() -> None:
+        try:
+            async with session_run_guard(session_id):
+                async for _ in runner_run(session_id, user_content):
+                    pass
+        except SessionAlreadyRunning:
+            pass
+
+    background_tasks.add_task(_run)
+    return {"accepted": True, "session_id": session_id}
