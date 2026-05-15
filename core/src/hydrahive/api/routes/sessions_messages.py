@@ -15,6 +15,7 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_with_guard
 from hydrahive.runner import run as runner_run
 from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
+from hydrahive.runner.events import Error as RunnerError
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
 from hydrahive.compaction import compact_session, total_tokens
 from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
@@ -194,14 +195,17 @@ async def inject_message(
     user_content = await build_user_content(s.agent_id, text, [])
 
     async def _run() -> None:
+        logger.info("inject %s: background task starting", session_id)
         try:
             async with session_run_guard(session_id):
-                async for _ in runner_run(session_id, user_content):
-                    pass
+                async for event in runner_run(session_id, user_content):
+                    if isinstance(event, RunnerError):
+                        logger.error("inject %s: runner yielded error: %s", session_id, event)
         except SessionAlreadyRunning:
             logger.info("inject %s: session already running, skipped", session_id)
         except Exception:
             logger.exception("inject %s: runner error", session_id)
+        logger.info("inject %s: background task done", session_id)
 
     background_tasks.add_task(_run)
     return {"accepted": True, "session_id": session_id}
