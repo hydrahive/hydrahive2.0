@@ -16,6 +16,7 @@ import { BuddyExtensionsPanel } from "./_BuddyExtensionsPanel"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
+import { HealthBuddyBox } from "@/features/health/_HealthBuddyBox"
 
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
@@ -199,6 +200,9 @@ export function BuddyPage() {
         </div>
         <div className="hidden xl:block pt-0 shrink-0">
           <BuddyExtensionsPanel />
+        </div>
+        <div className="hidden xl:block pt-0 shrink-0">
+          <HealthBuddyBox onPrompt={(text) => handleSend(text)} />
         </div>
       </div>
     </AssistantRuntimeProvider>
