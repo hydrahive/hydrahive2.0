@@ -27,13 +27,14 @@ export function TrendChart({ summary }: Props) {
   const metricNames = Object.keys(summary.metrics).filter(
     (k) => k !== "sleep_analysis"
   )
-  const [selected, setSelected] = useState<string>(metricNames[0] ?? "")
+  const [selected, setSelected] = useState<string>("")
+  const effectiveSelected = metricNames.includes(selected) ? selected : (metricNames[0] ?? "")
 
   if (metricNames.length === 0) {
     return <p className="text-zinc-600 text-sm text-center py-8">Keine Daten.</p>
   }
 
-  const metric = summary.metrics[selected]
+  const metric = summary.metrics[effectiveSelected]
   const data = (metric?.days ?? []).map((d) => ({
     date: formatDate(d.date),
     value: d.value,
@@ -42,13 +43,14 @@ export function TrendChart({ summary }: Props) {
   return (
     <div className="space-y-4">
       {/* Metrik-Picker */}
-      <div className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label="Metrik auswählen" className="flex flex-wrap gap-1.5">
         {metricNames.map((name) => (
           <button
             key={name}
             onClick={() => setSelected(name)}
+            aria-pressed={effectiveSelected === name}
             className={`px-2.5 py-1 rounded-lg text-xs transition-colors border ${
-              selected === name
+              effectiveSelected === name
                 ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
                 : "text-zinc-500 hover:text-zinc-300 border-white/[6%] hover:bg-white/[4%]"
             }`}
@@ -77,7 +79,7 @@ export function TrendChart({ summary }: Props) {
                 tick={{ fill: "#71717a", fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
-                width={48}
+                width={48} /* px: enough for 4–5 digit values */
               />
               <Tooltip
                 contentStyle={{
