@@ -85,21 +85,15 @@ def test_get_metrics_summary_metric_filter(setup_test_env):
     assert "heart_rate" not in result["metrics"]
 
 
-def test_metrics_endpoint_ohne_key(client, monkeypatch):
-    """Ohne Key muss 401 kommen (wenn Key konfiguriert ist)."""
-    from hydrahive.settings import settings
-    monkeypatch.setenv("HH_HEALTH_API_KEY", "testkey123")
-    monkeypatch.delattr(settings, "health_api_key", raising=False)
+def test_metrics_endpoint_ohne_auth(client):
+    """Ohne Session-Token muss 401 kommen."""
     r = client.get("/api/health-data/metrics")
     assert r.status_code == 401
 
 
-def test_metrics_endpoint_mit_key(client, monkeypatch):
-    """Mit Key muss 200 + metrics-Struktur kommen."""
-    from hydrahive.settings import settings
-    monkeypatch.setenv("HH_HEALTH_API_KEY", "testkey123")
-    monkeypatch.delattr(settings, "health_api_key", raising=False)
-    r = client.get("/api/health-data/metrics?key=testkey123")
+def test_metrics_endpoint_mit_auth(client, auth_headers):
+    """Mit gültigem JWT muss 200 + metrics-Struktur kommen."""
+    r = client.get("/api/health-data/metrics", headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
     assert "metrics" in body
