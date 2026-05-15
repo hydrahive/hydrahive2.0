@@ -27,11 +27,16 @@ class LoginResponse(BaseModel):
     role: str
 
 
+_TRUSTED_PROXIES = frozenset({"127.0.0.1", "::1"})
+
+
 def _client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "?"
+    direct = request.client.host if request.client else "?"
+    if direct in _TRUSTED_PROXIES:
+        fwd = request.headers.get("x-forwarded-for")
+        if fwd:
+            return fwd.split(",")[0].strip()
+    return direct
 
 
 @router.post("/login", response_model=LoginResponse)
