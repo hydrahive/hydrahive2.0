@@ -33,6 +33,7 @@ from hydrahive.runner._runner_setup import inject_longterm_memory
 from hydrahive.runner._runner_tools import process_tool_uses
 from hydrahive.runner.context import extract_tool_uses, heal_orphan_tool_uses, to_anthropic_messages
 from hydrahive.runner.events import Done, Error, Event, IterationStart
+from hydrahive.skills.loader import list_for_agent as load_agent_skills
 from hydrahive.tools import ToolContext, schemas_for
 from hydrahive.tools._compress import compress_session
 from hydrahive.tools._sessions import session_end, session_start
@@ -101,6 +102,7 @@ async def run(
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
     max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
+    agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [])
 
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
@@ -116,6 +118,7 @@ async def run(
             extra_system=extra_system,
             workspace=workspace,
             summary=messages_db.get_latest_summary(session_id),
+            skills=agent_skills,
         )
 
         # Pro-Session-Override (Chat-Header-Switcher) gewinnt vor Agent-Default.
