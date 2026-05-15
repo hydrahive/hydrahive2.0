@@ -1,10 +1,8 @@
-"""Runner — Pre-Iteration Helpers (Compaction-Trigger, System-Prompt-Bau, LLM-Call)."""
+"""Runner — Pre-Iteration Helpers (Compaction-Trigger, LLM-Call)."""
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
 from typing import AsyncIterator
 
 from hydrahive.compaction import compact_session, should_compact
@@ -59,58 +57,6 @@ async def prepare_history(
             logger.warning("Compaction fehlgeschlagen: %s — fahre mit voller History fort", e)
     return history
 
-
-def build_system_prompts(
-    base_system_prompt: str,
-    *,
-    extra_system: str | None,
-    workspace: Path,
-    summary: str | None,
-    skills: list | None = None,
-) -> tuple[str, str, str | None]:
-    """Setzt stable-, volatile- und summary-System-Prompts zusammen.
-
-    - stable: extra + base + Workspace + Skills-Katalog (cache-fähig)
-    - volatile: Datum (Tag) — pro Tag stabil, Cache bricht nur um Mitternacht
-    - summary: bisherige Zusammenfassung als separater System-Block
-
-    WARUM Workspace im stable: er ist pro Agent konstant. Im volatile wäre
-    er konzeptionell falsch und würde den Cache bei seltenem Workspace-
-    Override (tool_config) zusätzlich brechen (Issue #135).
-
-    WARUM Tages-Granularität statt HH:MM: byte-exakter Cache-Hash bricht jede
-    Minute, wenn die Uhrzeit im volatile-Block steht. Auch wenn der Block kein
-    cache_control hat, prüft Anthropic den gesamten System-Block — Resets bei
-    Minutenwechsel sind empirisch belegt (Issue #141, Test_9 2026-05-11).
-    Für Uhrzeit-Bedarf nutzt der Agent shell_exec "date".
-    """
-    stable_system = base_system_prompt
-    if extra_system:
-        stable_system = f"{extra_system}\n\n{stable_system}"
-    stable_system = f"{stable_system}\n\nWorkspace: {workspace}"
-
-    if skills:
-        rows = "\n".join(
-            f"| `{s.name}` | {s.when_to_use or s.description} |"
-            for s in skills
-        )
-        stable_system += (
-            "\n\n## Skills\n"
-            "Lade einen Skill mit `load_skill(name)` **bevor** du mit einer Aufgabe beginnst. "
-            "Wenn auch nur 1% Chance besteht dass ein Skill passt — lade ihn zuerst.\n\n"
-            "| Skill | Wann nutzen |\n"
-            "|-------|-------------|\n"
-            f"{rows}"
-        )
-
-    now = datetime.now().astimezone()
-    volatile_system = (
-        f"Datum (Server): {now.strftime('%Y-%m-%d')} ({now.strftime('%A')}). "
-        f"Verwende dieses Datum als Referenz, NICHT dein Trainings-Cutoff."
-    )
-    summary_system = f"[Bisherige Zusammenfassung]\n{summary}" if summary else None
-
-    return stable_system, volatile_system, summary_system
 
 
 async def stream_llm_call(
