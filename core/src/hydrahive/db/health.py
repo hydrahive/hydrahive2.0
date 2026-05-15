@@ -112,7 +112,9 @@ def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, A
             units[name] = m.get("units", "")
             for sample in m.get("data", []):
                 sample_date_raw = sample.get("date", "")
-                sample_date = sample_date_raw[:10] if sample_date_raw else last_ingest[:10]
+                if not sample_date_raw:
+                    continue
+                sample_date = sample_date_raw[:10]
                 by_metric[name][sample_date].append(sample)
 
     result: dict[str, dict] = {}
