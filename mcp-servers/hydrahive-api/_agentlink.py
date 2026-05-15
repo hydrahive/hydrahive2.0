@@ -26,7 +26,7 @@ class AgentLinkClient:
     @property
     def al_ws_url(self) -> str:
         ws_base = self.base_url.replace("https://", "wss://").replace("http://", "ws://")
-        return ws_base + "/agentlink/ws/"
+        return ws_base + "/agentlink/ws"
 
     async def send_state(
         self,
@@ -114,15 +114,13 @@ class AgentLinkClient:
         attempt = 0
         while True:
             try:
-                await self.rest.auth.ensure_token()
-                headers = self.rest.auth.headers()
-                ws_url = f"{self.al_ws_url}?agent_id={self.agent_id}"
-                async with websockets.connect(ws_url, additional_headers=headers, ssl=self._ssl_ctx()) as ws:
+                async with websockets.connect(self.al_ws_url, ssl=self._ssl_ctx()) as ws:
                     self._connected = True
                     self._last_error = None
                     retry_delay = 1.0
                     attempt = 0
-                    logger.info("AgentLink WS verbunden: %s", ws_url)
+                    logger.info("AgentLink WS verbunden: %s", self.al_ws_url)
+                    await ws.send(json.dumps({"action": "subscribe", "channel": f"agent:{self.agent_id}"}))
                     async for raw in ws:
                         await self._handle_message(str(raw))
             except asyncio.CancelledError:
@@ -145,7 +143,11 @@ class AgentLinkClient:
         except json.JSONDecodeError as e:
             logger.debug("WS-Message not JSON: %s", e)
             return
-        if event.get("type") == "handoff_received":
+        msg_type = event.get("type", "")
+        if msg_type in ("connected", "subscribed"):
+            logger.debug("AgentLink WS: %s", msg_type)
+            return
+        if msg_type == "handoff_received":
             state_id = event.get("state_id")
             if state_id:
                 try:
