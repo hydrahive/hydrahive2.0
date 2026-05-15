@@ -19,7 +19,7 @@ def list_isos(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict
     return [asdict(i) for i in vmiso.list_isos(with_hash=False)]
 
 
-@router.post("/isos/upload", status_code=201)
+@router.post("/isos/upload", status_code=status.HTTP_201_CREATED)
 async def upload_iso(
     iso: Annotated[UploadFile, File()],
     auth: Annotated[tuple[str, str], Depends(require_auth)],

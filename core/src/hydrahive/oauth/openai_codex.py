@@ -20,15 +20,14 @@ Spezifika gegenüber Anthropic:
 """
 from __future__ import annotations
 
-import base64
-import hashlib
 import json
-import secrets
 import time
 from typing import Any
 from urllib.parse import urlencode, urlparse, parse_qs
 
 import httpx
+
+from hydrahive.oauth._base import REFRESH_THRESHOLD_S, b64url, make_pkce, make_state  # noqa: F401
 
 CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 AUTHORIZE_URL = "https://auth.openai.com/oauth/authorize"
@@ -43,20 +42,6 @@ _HTTP_HEADERS = {
     "User-Agent": "codex_cli_rs/0.55.0",
 }
 
-
-def _b64url(raw: bytes) -> str:
-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
-
-
-def make_pkce() -> tuple[str, str]:
-    """PKCE: liefert (verifier, challenge) — challenge ist S256(verifier)."""
-    verifier = _b64url(secrets.token_bytes(32))
-    challenge = _b64url(hashlib.sha256(verifier.encode()).digest())
-    return verifier, challenge
-
-
-def make_state() -> str:
-    return _b64url(secrets.token_bytes(16))
 
 
 def authorize_url(*, challenge: str, state: str) -> str:
@@ -177,10 +162,6 @@ def _normalize_token_response(data: dict) -> dict[str, Any]:
     }
 
 
-# Refresh-Schwelle: wenn Token in <5 min abläuft, vorher refreshen
-_REFRESH_THRESHOLD_S = 300
-
-
 CODEX_PROVIDER_ID = "openai-codex"
 
 
@@ -210,7 +191,7 @@ async def resolve_openai_codex_token() -> dict[str, str]:
         return {}
 
     # Gültig?
-    if expires_at - time.time() > _REFRESH_THRESHOLD_S:
+    if expires_at - time.time() > REFRESH_THRESHOLD_S:
         return {"access": access, "account_id": account_id}
 
     # Refresh
