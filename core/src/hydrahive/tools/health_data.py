@@ -1,6 +1,8 @@
 """query_health_data — Buddy-Tool für Apple Health Auswertung."""
 from __future__ import annotations
 
+from hydrahive.db import health as health_db
+from hydrahive.settings import settings
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
@@ -28,16 +30,16 @@ _SCHEMA = {
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
-    from hydrahive.db import health as health_db
-    from hydrahive.settings import settings
-
     if not settings.health_api_key:
         return ToolResult.fail("Health-Daten nicht konfiguriert (HH_HEALTH_API_KEY fehlt).")
 
     days = max(1, min(365, int(args.get("days", 7))))
     metric = (args.get("metric") or "").strip() or None
 
-    summary = health_db.get_metrics_summary(days=days, metric=metric)
+    try:
+        summary = health_db.get_metrics_summary(days=days, metric=metric)
+    except Exception as exc:
+        return ToolResult.fail(f"Health-DB-Fehler: {exc}")
 
     if not summary["metrics"]:
         return ToolResult.ok({
