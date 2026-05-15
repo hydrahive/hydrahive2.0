@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from hydrahive.db._utils import now_iso, uuid7
@@ -79,9 +81,6 @@ def _aggregate_samples(name: str, samples: list[dict]) -> float:
 
 def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, Any]:
     """Aggregiert Metriken aus den letzten `days` Tagen."""
-    from collections import defaultdict
-    from datetime import datetime, timezone, timedelta
-
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
     with db() as conn:
@@ -111,8 +110,10 @@ def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, A
             if metric and name != metric:
                 continue
             units[name] = m.get("units", "")
-            date = last_ingest[:10]  # YYYY-MM-DD aus received_at
-            by_metric[name][date].extend(m.get("data", []))
+            for sample in m.get("data", []):
+                sample_date_raw = sample.get("date", "")
+                sample_date = sample_date_raw[:10] if sample_date_raw else last_ingest[:10]
+                by_metric[name][sample_date].append(sample)
 
     result: dict[str, dict] = {}
     for name, day_samples in by_metric.items():
