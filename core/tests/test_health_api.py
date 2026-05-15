@@ -85,34 +85,23 @@ def test_get_metrics_summary_metric_filter(setup_test_env):
     assert "heart_rate" not in result["metrics"]
 
 
-def test_metrics_endpoint_ohne_key(client):
+def test_metrics_endpoint_ohne_key(client, monkeypatch):
     """Ohne Key muss 401 kommen (wenn Key konfiguriert ist)."""
-    import os
-    os.environ["HH_HEALTH_API_KEY"] = "testkey123"
-    # cached_property zurücksetzen
     from hydrahive.settings import settings
-    if "health_api_key" in settings.__dict__:
-        del settings.__dict__["health_api_key"]
+    monkeypatch.setenv("HH_HEALTH_API_KEY", "testkey123")
+    monkeypatch.delattr(settings, "health_api_key", raising=False)
     r = client.get("/api/health-data/metrics")
     assert r.status_code == 401
-    os.environ.pop("HH_HEALTH_API_KEY", None)
-    if "health_api_key" in settings.__dict__:
-        del settings.__dict__["health_api_key"]
 
 
-def test_metrics_endpoint_mit_key(client):
+def test_metrics_endpoint_mit_key(client, monkeypatch):
     """Mit Key muss 200 + metrics-Struktur kommen."""
-    import os
-    os.environ["HH_HEALTH_API_KEY"] = "testkey123"
     from hydrahive.settings import settings
-    if "health_api_key" in settings.__dict__:
-        del settings.__dict__["health_api_key"]
+    monkeypatch.setenv("HH_HEALTH_API_KEY", "testkey123")
+    monkeypatch.delattr(settings, "health_api_key", raising=False)
     r = client.get("/api/health-data/metrics?key=testkey123")
     assert r.status_code == 200
     body = r.json()
     assert "metrics" in body
     assert "last_ingest" in body
     assert "period_days" in body
-    os.environ.pop("HH_HEALTH_API_KEY", None)
-    if "health_api_key" in settings.__dict__:
-        del settings.__dict__["health_api_key"]
