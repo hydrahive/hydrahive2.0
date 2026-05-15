@@ -9,7 +9,7 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._files import process_upload
 from hydrahive.api.routes._sse import to_sse
 from hydrahive.runner import run as runner_run
-from hydrahive.runner.concurrency import SessionAlreadyRunning, session_run_guard
+from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
 
 
 async def build_user_content(agent_id: str, text: str, files: list[UploadFile]) -> str | list:
@@ -44,21 +44,19 @@ async def sse_run_with_guard(session_id: str, user_content, *, extra_system: str
     ein zweiter Run parallel angestoßen wird — siehe runner.concurrency
     für den Hintergrund.
     """
-    guard = session_run_guard(session_id)
-    try:
-        await guard.__aenter__()
-    except SessionAlreadyRunning:
+    if is_running(session_id):
         raise coded(status.HTTP_409_CONFLICT, "session_already_running")
 
     async def _guarded_stream():
         try:
-            if extra_system is not None:
-                gen = runner_run(session_id, user_content, extra_system=extra_system)
-            else:
-                gen = runner_run(session_id, user_content)
-            async for ev in gen:
-                yield ev
-        finally:
-            await guard.__aexit__(None, None, None)
+            async with session_run_guard(session_id):
+                if extra_system is not None:
+                    gen = runner_run(session_id, user_content, extra_system=extra_system)
+                else:
+                    gen = runner_run(session_id, user_content)
+                async for ev in gen:
+                    yield ev
+        except SessionAlreadyRunning:
+            return  # lost the race between is_running() check and acquire
 
     return sse_run_response(_guarded_stream())
