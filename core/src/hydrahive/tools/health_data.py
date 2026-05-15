@@ -16,6 +16,8 @@ _SCHEMA = {
             "type": "integer",
             "description": "Zeitraum in Tagen (default 7, max 365).",
             "default": 7,
+            "minimum": 1,
+            "maximum": 365,
         },
         "metric": {
             "type": "string",
