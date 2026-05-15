@@ -55,3 +55,84 @@ def get_payload(record_id: str) -> dict[str, Any] | None:
     if not row:
         return None
     return json.loads(row["payload"])
+
+
+# Kumulative Metriken: Summe pro Tag
+_CUMULATIVE = {
+    "step_count", "active_energy_burned", "basal_energy_burned",
+    "dietary_energy", "distance_walking_running", "flights_climbed",
+    "push_count", "swimming_stroke_count",
+}
+# Zeitbasierte Metriken: Summe in Minuten
+_TIME_BASED = {"sleep_analysis", "mindful_session", "stand_time"}
+
+
+def _aggregate_samples(name: str, samples: list[dict]) -> float:
+    """Aggregiert Messwerte zu einem Tageswert."""
+    values = [s.get("qty", 0) for s in samples if s.get("qty") is not None]
+    if not values:
+        return 0.0
+    if name in _CUMULATIVE or name in _TIME_BASED:
+        return sum(values)
+    return sum(values) / len(values)
+
+
+def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, Any]:
+    """Aggregiert Metriken aus den letzten `days` Tagen."""
+    from collections import defaultdict
+    from datetime import datetime, timezone, timedelta
+
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT received_at, payload FROM health_ingest WHERE received_at >= ? ORDER BY received_at ASC",
+            (since,),
+        ).fetchall()
+
+    if not rows:
+        return {"metrics": {}, "last_ingest": None, "period_days": days}
+
+    by_metric: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
+    units: dict[str, str] = {}
+    last_ingest: str | None = None
+
+    for row in rows:
+        last_ingest = row["received_at"]
+        try:
+            data = json.loads(row["payload"])
+            metrics_list = data.get("data", data).get("metrics", [])
+        except (json.JSONDecodeError, AttributeError):
+            continue
+        for m in metrics_list:
+            name = m.get("name", "")
+            if not name:
+                continue
+            if metric and name != metric:
+                continue
+            units[name] = m.get("units", "")
+            date = last_ingest[:10]  # YYYY-MM-DD aus received_at
+            by_metric[name][date].extend(m.get("data", []))
+
+    result: dict[str, dict] = {}
+    for name, day_samples in by_metric.items():
+        dates = sorted(day_samples.keys())
+        day_values = [_aggregate_samples(name, day_samples[d]) for d in dates]
+        latest = day_values[-1] if day_values else 0.0
+        if len(day_values) > 1:
+            prev_avg = sum(day_values[:-1]) / len(day_values[:-1])
+            if prev_avg > 0:
+                pct = ((latest - prev_avg) / prev_avg) * 100
+                trend = f"+{pct:.0f}%" if pct >= 0 else f"{pct:.0f}%"
+            else:
+                trend = "0%"
+        else:
+            trend = "0%"
+        result[name] = {
+            "latest": round(latest, 1),
+            "trend": trend,
+            "unit": units.get(name, ""),
+            "days": [{"date": d, "value": round(v, 1)} for d, v in zip(dates, day_values)],
+        }
+
+    return {"metrics": result, "last_ingest": last_ingest, "period_days": days}
