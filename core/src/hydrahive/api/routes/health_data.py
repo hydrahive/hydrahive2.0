@@ -74,6 +74,18 @@ def list_data(
     return {"records": rows, "count": len(rows)}
 
 
+@router.get("/metrics")
+def get_metrics(
+    x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
+    authorization: Annotated[str | None, Header()] = None,
+    key: str | None = Query(default=None),
+    days: int = Query(default=7, ge=1, le=365),
+    metric: str | None = Query(default=None),
+) -> dict:
+    _check_key(x_hh_health_key, authorization, key)
+    return health_db.get_metrics_summary(days=days, metric=metric)
+
+
 @router.get("/data/{record_id}")
 def get_record(
     record_id: str,
