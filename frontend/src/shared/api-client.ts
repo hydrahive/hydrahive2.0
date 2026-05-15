@@ -23,10 +23,11 @@ function buildErrorMessage(body: { detail?: unknown }, status: number): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().token
+  const isFormData = init?.body instanceof FormData
   const res = await fetch(`/api${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
@@ -53,12 +54,6 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
-  postForm: <T>(path: string, form: FormData) => {
-    const token = useAuthStore.getState().token
-    return fetch(`/api${path}`, {
-      method: "POST",
-      body: form,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }).then((r) => r.json() as Promise<T>)
-  },
+  postForm: <T>(path: string, form: FormData) =>
+    request<T>(path, { method: "POST", body: form }),
 }
