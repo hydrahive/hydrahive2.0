@@ -23,6 +23,10 @@ class Session:
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Session":
+        try:
+            metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+        except (json.JSONDecodeError, TypeError):
+            metadata = {}
         return cls(
             id=row["id"],
             agent_id=row["agent_id"],
@@ -32,7 +36,7 @@ class Session:
             status=row["status"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
-            metadata=json.loads(row["metadata"]) if row["metadata"] else {},
+            metadata=metadata,
         )
 
 
@@ -125,30 +129,50 @@ def update(
 
 def set_model_override(session_id: str, model: str | None) -> None:
     """Setzt session.metadata['model_override']. None entfernt den Override.
-    Read-modify-write: andere metadata-Felder bleiben erhalten."""
+    BEGIN IMMEDIATE hält den Write-Lock während des gesamten Read-Modify-Write."""
+    with db(immediate=True) as conn:
+        row = conn.execute("SELECT metadata FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not row:
+            return
+        try:
+            md = json.loads(row["metadata"]) if row["metadata"] else {}
+        except (json.JSONDecodeError, TypeError):
+            md = {}
+        if model:
+            md["model_override"] = model
+        else:
+            md.pop("model_override", None)
+        conn.execute(
+            "UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(md), now_iso(), session_id),
+        )
     s = get(session_id)
-    if not s:
-        return
-    md = dict(s.metadata or {})
-    if model:
-        md["model_override"] = model
-    else:
-        md.pop("model_override", None)
-    update(session_id, metadata=md)
+    if s:
+        mirror.schedule_session(s)
 
 
 def set_reasoning_effort(session_id: str, effort: str | None) -> None:
     """Setzt session.metadata['reasoning_effort']. None entfernt den Override.
-    Read-modify-write: andere metadata-Felder bleiben erhalten."""
+    BEGIN IMMEDIATE hält den Write-Lock während des gesamten Read-Modify-Write."""
+    with db(immediate=True) as conn:
+        row = conn.execute("SELECT metadata FROM sessions WHERE id = ?", (session_id,)).fetchone()
+        if not row:
+            return
+        try:
+            md = json.loads(row["metadata"]) if row["metadata"] else {}
+        except (json.JSONDecodeError, TypeError):
+            md = {}
+        if effort:
+            md["reasoning_effort"] = effort
+        else:
+            md.pop("reasoning_effort", None)
+        conn.execute(
+            "UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(md), now_iso(), session_id),
+        )
     s = get(session_id)
-    if not s:
-        return
-    md = dict(s.metadata or {})
-    if effort:
-        md["reasoning_effort"] = effort
-    else:
-        md.pop("reasoning_effort", None)
-    update(session_id, metadata=md)
+    if s:
+        mirror.schedule_session(s)
 
 
 def touch(session_id: str) -> None:

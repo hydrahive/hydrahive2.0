@@ -39,7 +39,10 @@ def get(session_id: str, key: str, default: Any = None) -> Any:
         ).fetchone()
     if not row:
         return default
-    return json.loads(row["value"])
+    try:
+        return json.loads(row["value"])
+    except (json.JSONDecodeError, TypeError):
+        return default
 
 
 def delete(session_id: str, key: str) -> None:

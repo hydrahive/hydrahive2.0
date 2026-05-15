@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import secrets
 import time
@@ -34,6 +36,18 @@ _INPUT_TRUNCATE_CHARS = 2000
 def _obs_file(agent_id: str, session_id: str) -> Path:
     """JSONL-Datei pro Session — append-only, kein Re-Write bei jedem Tool-Call."""
     return settings.agents_dir / agent_id / "observations" / f"{session_id}.jsonl"
+
+
+@contextlib.contextmanager
+def _exclusive_lock(path: Path):
+    """Exclusive flock auf eine Lock-Datei neben `path`."""
+    lock_path = path.with_suffix(".lock")
+    with lock_path.open("a") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
 
 
 def _now_iso() -> str:
@@ -101,8 +115,9 @@ def record_observation(
 
     path = _obs_file(agent_id, session_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(obs, ensure_ascii=False) + "\n")
+    with _exclusive_lock(path):
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(obs, ensure_ascii=False) + "\n")
 
     session_increment_observations(agent_id, session_id)
     return obs
@@ -196,27 +211,27 @@ def mark_compressed_bulk(
     found = 0
     updated_lines: list[str] = []
 
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                obs = json.loads(line)
-                obs_id = obs.get("id")
-                if obs_id in mappings:
-                    obs["compressed"] = True
-                    obs["compressed_id"] = mappings[obs_id]
-                    found += 1
-                updated_lines.append(json.dumps(obs, ensure_ascii=False))
-            except json.JSONDecodeError:
-                updated_lines.append(line)  # Kaputte Zeile unverändert lassen
-    except OSError:
-        return 0
+    with _exclusive_lock(path):
+        try:
+            for line in path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obs = json.loads(line)
+                    obs_id = obs.get("id")
+                    if obs_id in mappings:
+                        obs["compressed"] = True
+                        obs["compressed_id"] = mappings[obs_id]
+                        found += 1
+                    updated_lines.append(json.dumps(obs, ensure_ascii=False))
+                except json.JSONDecodeError:
+                    updated_lines.append(line)
+        except OSError:
+            return 0
 
-    if found:
-        # Atomisches Write: temp file + rename — verhindert korrupte JSONL bei OS-Crash
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
-        tmp.replace(path)
+        if found:
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+            tmp.replace(path)
     return found
