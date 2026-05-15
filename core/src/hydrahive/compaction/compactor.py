@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RESERVE_TOKENS = 16_384
 DEFAULT_KEEP_RECENT_TOKENS = 20_000
+DEFAULT_MAX_TURNS_BEFORE_COMPACT = 24
 
 
 def total_tokens(messages: list) -> int:
@@ -33,8 +34,11 @@ def should_compact(
     model: str,
     *,
     reserve_tokens: int = DEFAULT_RESERVE_TOKENS,
+    max_turns: int = DEFAULT_MAX_TURNS_BEFORE_COMPACT,
 ) -> bool:
-    """OpenClaw rule: contextTokens > contextWindow - reserveTokens."""
+    """Token-based OR turn-based — was zuerst hits."""
+    if len(messages) >= max_turns:
+        return True
     return total_tokens(messages) > (context_window_for(model) - reserve_tokens)
 
 

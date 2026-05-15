@@ -95,6 +95,7 @@ async def run(
     compact_tool_limit = agent.get("compact_tool_result_limit")
     compact_reserve = agent.get("compact_reserve_tokens")
     compact_threshold_pct = int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT))
+    compact_max_turns: int | None = agent.get("compact_max_turns")
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
     max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
@@ -107,6 +108,7 @@ async def run(
             session_id, model=agent["llm_model"], compact_model=compact_model,
             compact_tool_limit=compact_tool_limit, compact_reserve=compact_reserve,
             compact_threshold_pct=compact_threshold_pct,
+            compact_max_turns=compact_max_turns,
         )
 
         stable_system, volatile_system, summary_system = compose_system_prompts(

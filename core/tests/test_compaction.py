@@ -7,6 +7,7 @@ Deckt tokens.py (Estimates + context_window_for), cut_point.py
 from __future__ import annotations
 
 from hydrahive.compaction.compactor import (
+    DEFAULT_MAX_TURNS_BEFORE_COMPACT,
     DEFAULT_RESERVE_TOKENS,
     should_compact,
     total_tokens,
@@ -147,6 +148,38 @@ def test_should_compact_default_reserve_ist_16k():
     # 980k tokens → 980k < 984k → False
     msgs = [_msg("user", "x", token_count=980_000)]
     assert should_compact(msgs, "claude-opus-4-7") is False
+
+
+# --- turn-based trigger --------------------------------------------------
+
+def test_should_compact_turn_trigger_bei_max_turns():
+    """len(messages) >= max_turns → True, auch ohne Token-Druck."""
+    msgs = [_msg("user", "x", f"m{i}", token_count=1) for i in range(DEFAULT_MAX_TURNS_BEFORE_COMPACT)]
+    assert should_compact(msgs, "claude-sonnet-4-6") is True
+
+
+def test_should_compact_unter_max_turns_kein_trigger():
+    """len(messages) < max_turns, Token-Druck auch nicht → False."""
+    msgs = [_msg("user", "x", f"m{i}", token_count=1) for i in range(DEFAULT_MAX_TURNS_BEFORE_COMPACT - 1)]
+    assert should_compact(msgs, "claude-sonnet-4-6") is False
+
+
+def test_should_compact_custom_max_turns_override():
+    """Explizites max_turns=5 triggert bei 5 Messages."""
+    msgs = [_msg("user", "x", f"m{i}", token_count=1) for i in range(5)]
+    assert should_compact(msgs, "claude-sonnet-4-6", max_turns=5) is True
+    # 4 Messages < 5 → kein Turn-Trigger
+    assert should_compact(msgs[:4], "claude-sonnet-4-6", max_turns=5) is False
+
+
+def test_should_compact_token_trigger_unabhaengig_von_turns():
+    """Token-Trigger feuert auch wenn Turn-Count weit unter max_turns."""
+    msgs = [_msg("user", "x", token_count=200_000)]  # 1 Message, weit unter 24
+    assert should_compact(msgs, "claude-sonnet-4-6") is True  # 200k > 200k-16k=184k
+
+
+def test_should_compact_default_max_turns_ist_24():
+    assert DEFAULT_MAX_TURNS_BEFORE_COMPACT == 24
 
 
 # --- cut_point.find_cut_point --------------------------------------------

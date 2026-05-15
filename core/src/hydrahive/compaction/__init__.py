@@ -12,6 +12,7 @@ Public API:
 
 from hydrahive.compaction.compactor import (
     DEFAULT_KEEP_RECENT_TOKENS,
+    DEFAULT_MAX_TURNS_BEFORE_COMPACT,
     DEFAULT_RESERVE_TOKENS,
     compact_session,
     should_compact,
@@ -30,6 +31,7 @@ __all__ = [
     "total_tokens",
     "DEFAULT_RESERVE_TOKENS",
     "DEFAULT_KEEP_RECENT_TOKENS",
+    "DEFAULT_MAX_TURNS_BEFORE_COMPACT",
     "CompactionContext",
     "CompactionHooks",
     "CompactionResult",

@@ -33,6 +33,7 @@ async def prepare_history(
     compact_tool_limit: int | None,
     compact_reserve: int | None,
     compact_threshold_pct: int,
+    compact_max_turns: int | None,
 ) -> list:
     """Holt aktuelle History und triggert Compaction wenn nötig."""
     history = messages_db.list_for_llm(session_id)
@@ -43,7 +44,11 @@ async def prepare_history(
             effective_reserve,
             window - int(window * compact_threshold_pct / 100),
         )
-    should_kwargs = {"reserve_tokens": effective_reserve} if effective_reserve is not None else {}
+    should_kwargs: dict = {}
+    if effective_reserve is not None:
+        should_kwargs["reserve_tokens"] = effective_reserve
+    if compact_max_turns is not None:
+        should_kwargs["max_turns"] = compact_max_turns
     if should_compact(history, model, **should_kwargs):
         try:
             compact_kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
