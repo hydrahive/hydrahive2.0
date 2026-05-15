@@ -96,6 +96,7 @@ def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, A
     units: dict[str, str] = {}
     last_ingest: str | None = None
 
+    since_date = (datetime.now(timezone.utc) - timedelta(days=days)).date().isoformat()
     for row in rows:
         last_ingest = row["received_at"]
         try:
@@ -115,6 +116,8 @@ def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, A
                 if not sample_date_raw:
                     continue
                 sample_date = sample_date_raw[:10]
+                if sample_date < since_date:
+                    continue
                 by_metric[name][sample_date].append(sample)
 
     result: dict[str, dict] = {}
