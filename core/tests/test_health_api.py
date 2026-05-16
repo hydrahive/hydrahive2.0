@@ -13,12 +13,14 @@ def _ensure_db(setup_test_env):
     yield
     with db() as conn:
         conn.execute("DELETE FROM health_ingest")
+        conn.execute("DELETE FROM health_daily")
 
 
 def _insert_payload(metrics: list[dict], days_ago: int = 0) -> str:
     from datetime import datetime, timezone, timedelta
     from hydrahive.db._utils import uuid7
     from hydrahive.db.connection import db
+    from hydrahive.db.health import _process_payload_to_daily
     import json as _json
 
     received = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
@@ -32,6 +34,7 @@ def _insert_payload(metrics: list[dict], days_ago: int = 0) -> str:
             (record_id, received, "Test", "test-id", "sess", "Default", "Default",
              _json.dumps(payload)),
         )
+    _process_payload_to_daily(payload)
     return record_id
 
 
