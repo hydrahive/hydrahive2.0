@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VENV="${HH_VENV:-/opt/hydrahive2/.venv}"
+
+echo "==> Deinstalliere minimax-mcp"
+"$VENV/bin/pip" uninstall -y minimax-mcp hydrahive-minimax-mcp 2>/dev/null || true
+echo "==> Fertig"
