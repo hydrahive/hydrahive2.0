@@ -201,6 +201,7 @@ async def minimax_anthropic_call(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
+    reasoning_effort: str | None = None,
 ) -> tuple[list[dict], str, dict[str, int]]:
     """Direkter Anthropic-SDK-Call gegen api.minimax.io/anthropic.
 
@@ -236,6 +237,9 @@ async def minimax_anthropic_call(
     if tools:
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
+
+    from hydrahive.llm._anthropic import apply_thinking_budget
+    apply_thinking_budget(kwargs, reasoning_effort)
 
     from hydrahive.runner._token_usage import usage_dict
 

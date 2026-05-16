@@ -50,6 +50,7 @@ async def call_with_tools(
             tools=tools,
             temperature=temperature,
             max_tokens=max_tokens,
+            reasoning_effort=reasoning_effort,
         )
 
     is_claude = llm_client._strip_provider_prefix(target).startswith("claude-")
