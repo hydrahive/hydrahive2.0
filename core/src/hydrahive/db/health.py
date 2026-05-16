@@ -26,6 +26,7 @@ def insert(
             (record_id, now_iso(), automation_name, automation_id,
              session_id, period, aggregation, json.dumps(payload)),
         )
+    _process_payload_to_daily(payload)
     return record_id
 
 
@@ -79,52 +80,115 @@ def _aggregate_samples(name: str, samples: list[dict]) -> float:
     return sum(values) / len(values)
 
 
-def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, Any]:
-    """Aggregiert Metriken aus den letzten `days` Tagen."""
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+def _process_payload_to_daily(payload: dict) -> None:
+    """Extrahiert Tageswerte aus einem Payload und schreibt sie in health_daily."""
+    try:
+        data = payload.get("data", payload)
+        metrics_list = data.get("metrics", [])
+    except AttributeError:
+        return
 
-    with db() as conn:
-        rows = conn.execute(
-            "SELECT received_at, payload FROM health_ingest WHERE received_at >= ? ORDER BY received_at ASC",
-            (since,),
-        ).fetchall()
-
-    if not rows:
-        return {"metrics": {}, "last_ingest": None, "period_days": days}
-
+    # Samples nach Metrik + Datum gruppieren
     by_metric: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
     units: dict[str, str] = {}
-    last_ingest: str | None = None
 
-    since_date = (datetime.now(timezone.utc) - timedelta(days=days)).date().isoformat()
-    for row in rows:
-        last_ingest = row["received_at"]
-        try:
-            data = json.loads(row["payload"])
-            metrics_list = data.get("data", data).get("metrics", [])
-        except (json.JSONDecodeError, AttributeError):
+    for m in metrics_list:
+        name = m.get("name", "")
+        if not name:
             continue
-        for m in metrics_list:
-            name = m.get("name", "")
-            if not name:
+        units[name] = m.get("units", "")
+        for sample in m.get("data", []):
+            sample_date = sample.get("date", "")[:10]
+            if not sample_date:
                 continue
-            if metric and name != metric:
-                continue
-            units[name] = m.get("units", "")
-            for sample in m.get("data", []):
-                sample_date_raw = sample.get("date", "")
-                if not sample_date_raw:
-                    continue
-                sample_date = sample_date_raw[:10]
-                if sample_date < since_date:
-                    continue
-                by_metric[name][sample_date].append(sample)
+            by_metric[name][sample_date].append(sample)
+
+    if not by_metric:
+        return
+
+    rows = []
+    for name, day_samples in by_metric.items():
+        unit = units.get(name, "")
+        for date, samples in day_samples.items():
+            value = round(_aggregate_samples(name, samples), 1)
+            rows.append((date, name, unit, value))
+
+    with db() as conn:
+        conn.executemany(
+            """INSERT INTO health_daily (date, metric_name, unit, value)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT (date, metric_name) DO UPDATE SET
+                 value = CASE
+                   WHEN metric_name IN (
+                     'step_count','active_energy_burned','basal_energy_burned',
+                     'dietary_energy','distance_walking_running','flights_climbed',
+                     'push_count','swimming_stroke_count',
+                     'sleep_analysis','mindful_session','stand_time'
+                   ) THEN health_daily.value + excluded.value
+                   ELSE (health_daily.value + excluded.value) / 2.0
+                 END,
+                 unit = excluded.unit""",
+            rows,
+        )
+
+
+def backfill_daily() -> int:
+    """Einmalig: verarbeitet alle health_ingest Records in health_daily.
+    Gibt die Anzahl verarbeiteter Records zurück."""
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT payload FROM health_ingest ORDER BY received_at ASC"
+        ).fetchall()
+
+    count = 0
+    for row in rows:
+        try:
+            payload = json.loads(row["payload"])
+            _process_payload_to_daily(payload)
+            count += 1
+        except (json.JSONDecodeError, Exception):
+            continue
+    return count
+
+
+def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, Any]:
+    """Liest aggregierte Tageswerte aus health_daily."""
+    since_date = (datetime.now(timezone.utc) - timedelta(days=days)).date().isoformat()
+
+    with db() as conn:
+        last_ingest = conn.execute(
+            "SELECT received_at FROM health_ingest ORDER BY received_at DESC LIMIT 1"
+        ).fetchone()
+
+        if metric:
+            rows = conn.execute(
+                """SELECT date, metric_name, unit, value FROM health_daily
+                   WHERE date >= ? AND metric_name = ?
+                   ORDER BY date ASC""",
+                (since_date, metric),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """SELECT date, metric_name, unit, value FROM health_daily
+                   WHERE date >= ?
+                   ORDER BY date ASC""",
+                (since_date,),
+            ).fetchall()
+
+    if not rows:
+        return {"metrics": {}, "last_ingest": last_ingest["received_at"] if last_ingest else None, "period_days": days}
+
+    by_metric: dict[str, list] = defaultdict(list)
+    units: dict[str, str] = {}
+    for row in rows:
+        by_metric[row["metric_name"]].append((row["date"], row["value"]))
+        units[row["metric_name"]] = row["unit"]
 
     result: dict[str, dict] = {}
-    for name, day_samples in by_metric.items():
-        dates = sorted(day_samples.keys())
-        day_values = [_aggregate_samples(name, day_samples[d]) for d in dates]
-        latest = day_values[-1] if day_values else 0.0
+    for name, day_values_raw in by_metric.items():
+        dates = [d for d, _ in day_values_raw]
+        day_values = [v for _, v in day_values_raw]
+        latest = day_values[-1]
         if len(day_values) > 1:
             prev_avg = sum(day_values[:-1]) / len(day_values[:-1])
             if prev_avg > 0:
@@ -137,8 +201,12 @@ def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, A
         result[name] = {
             "latest": round(latest, 1),
             "trend": trend,
-            "unit": units.get(name, ""),
+            "unit": units[name],
             "days": [{"date": d, "value": round(v, 1)} for d, v in zip(dates, day_values)],
         }
 
-    return {"metrics": result, "last_ingest": last_ingest, "period_days": days}
+    return {
+        "metrics": result,
+        "last_ingest": last_ingest["received_at"] if last_ingest else None,
+        "period_days": days,
+    }
