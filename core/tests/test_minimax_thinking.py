@@ -81,3 +81,20 @@ async def test_minimax_anthropic_call_kein_thinking_wenn_effort_none():
 
     assert "thinking" not in captured_kwargs
     assert captured_kwargs["temperature"] == 0.7
+
+
+def test_m21_ist_minimax_modell():
+    from hydrahive.llm._anthropic import is_minimax_model
+    assert is_minimax_model("MiniMax-M2.1") is True
+
+
+def test_m21_in_static_models():
+    from hydrahive.llm._catalog_data import STATIC_MODELS
+    assert "MiniMax-M2.1" in STATIC_MODELS["minimax"]
+
+
+def test_m21_metadata_vorhanden():
+    from hydrahive.llm._catalog_data import METADATA
+    assert "MiniMax-M2.1" in METADATA
+    assert METADATA["MiniMax-M2.1"]["tool_use"] is True
+    assert METADATA["MiniMax-M2.1"]["context_window"] == 205_000

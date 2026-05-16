@@ -31,7 +31,7 @@ STATIC_MODELS = {
         "claude-sonnet-4-5", "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022",
     ],
     "minimax": [
-        "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.7", "MiniMax-M1",
+        "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.1", "MiniMax-M2.7", "MiniMax-M1",
         "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat",
         "embo-01",
     ],
@@ -68,6 +68,7 @@ METADATA: dict[str, dict[str, Any]] = {
     "MiniMax-Text-01": {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax"},
     "MiniMax-M1":      {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "minimax"},
     "MiniMax-M2":      {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
+    "MiniMax-M2.1":    {"context_window": 205_000, "tool_use": True, "category": "chat", "family": "minimax"},
     "MiniMax-M2.7":    {"context_window": 256_000, "tool_use": True, "category": "chat", "family": "minimax"},
     "abab6.5s-chat":   {"context_window": 245_000, "tool_use": True, "category": "chat", "family": "minimax"},
     "abab6.5-chat":    {"context_window": 8_192, "tool_use": True, "category": "chat", "family": "minimax"},
