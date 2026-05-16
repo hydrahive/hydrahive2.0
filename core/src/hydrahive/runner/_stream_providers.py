@@ -27,6 +27,7 @@ def _map_event(ev: Any) -> dict | None:
             return {"type": "text_delta", "index": idx, "text": getattr(delta, "text", "")}
         if dtype == "input_json_delta":
             return {"type": "input_delta", "index": idx, "json_partial": getattr(delta, "partial_json", "")}
+        # thinking_delta und andere unbekannte Delta-Typen werden verworfen
         return None
     if et == "content_block_stop":
         return {"type": "block_stop", "index": getattr(ev, "index", 0)}

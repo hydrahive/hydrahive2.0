@@ -212,6 +212,9 @@ async def minimax_anthropic_call(
     - kein Identity-System-Block — MiniMax erwartet den nicht
     """
     import anthropic as _anthropic
+    from hydrahive.llm._anthropic import apply_thinking_budget
+    from hydrahive.runner._token_usage import usage_dict
+
     client = _anthropic.AsyncAnthropic(
         base_url=llm_client.MINIMAX_BASE_URL,
         api_key=api_key,
@@ -238,10 +241,7 @@ async def minimax_anthropic_call(
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
 
-    from hydrahive.llm._anthropic import apply_thinking_budget
     apply_thinking_budget(kwargs, reasoning_effort)
-
-    from hydrahive.runner._token_usage import usage_dict
 
     resp = await client.messages.create(**kwargs)
     blocks = [_block_to_dict(b) for b in resp.content]
