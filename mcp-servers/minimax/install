@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV="${HH_VENV:-/opt/hydrahive2/.venv}"
+
+echo "==> Installiere minimax-mcp in $VENV"
+"$VENV/bin/pip" install --quiet minimax-mcp
+
+echo "==> Installiere hydrahive-minimax-mcp"
+"$VENV/bin/pip" install --quiet -e "$SCRIPT_DIR"
+
+echo "==> minimax-mcp installiert"
+echo ""
+echo "Starten mit:"
+echo "  $VENV/bin/python $SCRIPT_DIR/server.py"
