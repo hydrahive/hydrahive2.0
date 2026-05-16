@@ -35,7 +35,9 @@ export function ChatHeader({
 
   // Aktives Modell (mit Session-Override) bestimmen
   const activeModel = (session.metadata as { model_override?: string })?.model_override || agent?.llm_model || ""
-  const isClaudeModel = activeModel.replace(/^anthropic\//, "").startsWith("claude-")
+  const strippedModel = activeModel.replace(/^anthropic\//, "")
+  const isClaudeModel = strippedModel.startsWith("claude-")
+  const supportsReasoningEffort = isClaudeModel || /^MiniMax-M2/.test(strippedModel)
 
   return (
     <>
@@ -86,7 +88,7 @@ export function ChatHeader({
           </p>
         </div>
         <TokenMeter sessionId={session.id} refresh={tokenRefresh} />
-        {isClaudeModel && (
+        {supportsReasoningEffort && (
           <ReasoningEffortPill
             current={(session.metadata as { reasoning_effort?: string })?.reasoning_effort}
             onSelect={async (effort) => {
