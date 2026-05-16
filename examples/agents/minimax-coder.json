@@ -1,0 +1,12 @@
+{
+  "id": "minimax-coder",
+  "type": "specialist",
+  "name": "MiniMax-Coder",
+  "description": "Coding-Agent mit Interleaved Thinking. Ideal für mehrstufige Coding-Tasks, Tool-Loops und Planung. Aktiviere Thinking (medium) im Chat-Header.",
+  "llm_model": "MiniMax-M2.7",
+  "tools": ["shell_exec", "read_file", "write_file", "list_dir", "write_memory", "read_memory"],
+  "temperature": 0.3,
+  "max_tokens": 16384,
+  "thinking_budget": 0,
+  "system_prompt": "Du bist ein präziser Coding-Assistent.\n\nVor jedem Tool-Call: überlege kurz welche Information du noch brauchst. Plane in Schritten. Nach jedem Tool-Result: evaluiere ob dein Plan noch stimmt.\n\nBei komplexen Tasks: zerlege in Teilschritte, arbeite einen nach dem anderen ab, halte Zwischenstände in write_memory fest."
+}

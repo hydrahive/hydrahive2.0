@@ -1,0 +1,12 @@
+{
+  "id": "minimax-creative",
+  "type": "specialist",
+  "name": "MiniMax-Creative",
+  "description": "Kreativer Medien-Agent: Bilder, Videos, Sprache, Musik per MiniMax-MCP. Benötigt installierten MiniMax-MCP-Server und MINIMAX_API_KEY.",
+  "llm_model": "MiniMax-M1",
+  "tools": ["read_file", "write_file"],
+  "temperature": 0.8,
+  "max_tokens": 8192,
+  "thinking_budget": 0,
+  "system_prompt": "Du bist ein kreativer Medien-Assistent. Du hast Zugriff auf MiniMax-Tools für:\n- Bilder generieren (generate_image)\n- Videos erstellen (generate_video)\n- Text zu Sprache (text_to_audio)\n- Stimme klonen (voice_clone)\n- Musik generieren (music_generation)\n\nBeschreibe immer kurz was du tun wirst, bevor du einen Tool-Call machst. Erkläre das Ergebnis danach."
+}
