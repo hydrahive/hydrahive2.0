@@ -1,0 +1,54 @@
+{
+  "id": "shadowbroker",
+  "name": "ShadowBroker (OSINT-Plattform)",
+  "description": "Open-Source OSINT-Plattform — Schiffs-Tracking (AIS), Flugverkehr (OpenSky), Finanzdaten (Finnhub), Netzwerk-Scanner (Shodan). Alle Quellen auch ohne API-Key nutzbar.",
+  "icon": "Radar",
+  "category": "tools",
+  "preferred_mode": "docker",
+  "install_script": "install/shadowbroker.sh",
+  "uninstall_script": "uninstall/shadowbroker.sh",
+  "installed_check": "/var/lib/hydrahive2/extensions/shadowbroker/data",
+  "install_params": [
+    {
+      "key": "AIS_API_KEY",
+      "label": "AIS API-Key",
+      "type": "password",
+      "required": false,
+      "description": "AISHub oder aisstream.io API-Key für Schiffs-Tracking (optional)"
+    },
+    {
+      "key": "OPENSKY_CLIENT_ID",
+      "label": "OpenSky Client-ID",
+      "type": "string",
+      "required": false,
+      "description": "OpenSky-Network Account für erweiterten Flugverkehr-Zugriff (optional)"
+    },
+    {
+      "key": "OPENSKY_CLIENT_SECRET",
+      "label": "OpenSky Client-Secret",
+      "type": "password",
+      "required": false,
+      "description": "OpenSky-Network Passwort (nur zusammen mit Client-ID)"
+    },
+    {
+      "key": "FINNHUB_API_KEY",
+      "label": "Finnhub API-Key",
+      "type": "password",
+      "required": false,
+      "description": "Finnhub.io API-Key für Echtzeit-Finanzdaten (optional, kostenlos erhältlich)"
+    },
+    {
+      "key": "SHODAN_API_KEY",
+      "label": "Shodan API-Key",
+      "type": "password",
+      "required": false,
+      "description": "Shodan.io API-Key für Netzwerk-/Geräte-Suche (optional)"
+    }
+  ],
+  "docker": {
+    "compose_file": "docker/shadowbroker.compose.yml",
+    "service_name": "shadowbroker-frontend",
+    "health_url": "http://127.0.0.1:3007/",
+    "open_url": ":3007/"
+  }
+}
