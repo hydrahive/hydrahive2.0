@@ -4,6 +4,8 @@ import {
 } from "recharts"
 import type { MetricsSummary } from "./api"
 
+const RECOMMENDED_SLEEP_MIN = 7 * 60
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" })
 }
@@ -14,9 +16,9 @@ function CustomTooltip({ active, payload, label }: {
   label?: string
 }) {
   if (!active || !payload?.length) return null
-  const minutes = payload[0].value
-  const h = Math.floor(minutes / 60)
-  const m = Math.round(minutes % 60)
+  const total = Math.round(payload[0].value)
+  const h = Math.floor(total / 60)
+  const m = total % 60
   return (
     <div className="bg-zinc-900 border border-white/[8%] rounded-lg px-3 py-2 text-xs">
       <p className="text-zinc-400">{label}</p>
@@ -53,7 +55,7 @@ export function SleepChart({ summary }: Props) {
         <span>
           Durchschnitt:{" "}
           <span className="text-zinc-300 font-medium">
-            {Math.floor(avg / 60)}h {Math.round(avg % 60)}m
+            {Math.floor(avg / 60)}h {Math.floor(avg % 60)}m
           </span>
         </span>
         <span className="text-zinc-700">|</span>
@@ -83,7 +85,7 @@ export function SleepChart({ summary }: Props) {
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine
-              y={420}
+              y={RECOMMENDED_SLEEP_MIN}
               stroke="rgba(52,211,153,0.3)"
               strokeDasharray="4 4"
               label={{ value: "7h", fill: "#34d399", fontSize: 10, position: "right" }}
