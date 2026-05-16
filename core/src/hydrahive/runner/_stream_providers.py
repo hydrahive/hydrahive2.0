@@ -205,9 +205,10 @@ async def minimax_stream(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
-    reasoning_effort: str | None = None,  # noqa: ARG001 (kein Reasoning-Support)
+    reasoning_effort: str | None = None,
 ) -> AsyncIterator[dict]:
     import anthropic as _anthropic
+    from hydrahive.llm._anthropic import apply_thinking_budget
     client = _anthropic.AsyncAnthropic(
         base_url=llm_client.MINIMAX_BASE_URL, api_key=api_key, timeout=300.0,
         default_headers={"Authorization": f"Bearer {api_key}"},
@@ -227,6 +228,8 @@ async def minimax_stream(
     if tools:
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
+
+    apply_thinking_budget(kwargs, reasoning_effort)
 
     async with client.messages.stream(**kwargs) as stream:
         async for ev in stream:
