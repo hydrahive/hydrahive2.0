@@ -198,10 +198,8 @@ export function BuddyPage() {
           <div className="mx-auto -mt-px w-1/3 h-3 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-b-md border border-t-0 border-white/[6%]" />
           <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
         </div>
-        <div className="hidden xl:block pt-0 shrink-0">
+        <div className="hidden xl:flex flex-col gap-4 pt-0 shrink-0">
           <BuddyExtensionsPanel />
-        </div>
-        <div className="hidden xl:block pt-0 shrink-0">
           <HealthBuddyBox onPrompt={(text) => handleSend(text)} />
         </div>
       </div>
