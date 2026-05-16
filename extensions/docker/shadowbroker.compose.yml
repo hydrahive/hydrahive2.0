@@ -1,0 +1,58 @@
+# ShadowBroker — OSINT Intelligence Platform
+# Frontend (Next.js) auf Port 3007, Backend (FastAPI) auf Port 8091
+# Optionale API-Keys für AIS, OpenSky, Finnhub, Shodan — alle ohne Key nutzbar
+
+services:
+  shadowbroker-backend:
+    image: ghcr.io/bigbodycobain/shadowbroker-backend:latest
+    pull_policy: always
+    container_name: shadowbroker-backend
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      PORT: "8091"
+      AIS_API_KEY: ${AIS_API_KEY:-}
+      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID:-}
+      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET:-}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
+      SHODAN_API_KEY: ${SHODAN_API_KEY:-}
+    volumes:
+      - /var/lib/hydrahive2/extensions/shadowbroker/data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  shadowbroker-frontend:
+    image: ghcr.io/bigbodycobain/shadowbroker-frontend:latest
+    pull_policy: always
+    container_name: shadowbroker-frontend
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - shadowbroker-backend
+    environment:
+      PORT: "3007"
+      NEXT_PUBLIC_API_URL: "http://localhost:8091"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3007/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
