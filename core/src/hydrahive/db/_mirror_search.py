@@ -29,31 +29,39 @@ async def embed_status() -> dict:
     from hydrahive.llm._config import load_config
     pool = mirror._pool
     if not pool:
-        return {"active": False, "total": 0, "embedded": 0, "pending": 0, "model": "", "backfill_running": False}
+        return {"active": False, "sessions": 0, "total": 0, "embedded": 0, "pending": 0, "model": "", "backfill_running": False}
     try:
         async with pool.acquire() as conn:
-            row = await conn.fetchrow("""
-                SELECT
-                    COUNT(*)::int AS total,
-                    COUNT(embedding)::int AS embedded,
-                    COUNT(*) FILTER (
-                        WHERE embedding IS NULL
-                          AND (nullif(text,'') IS NOT NULL OR nullif(tool_output,'') IS NOT NULL OR nullif(tool_input::text,'') IS NOT NULL)
-                    )::int AS pending
-                FROM events
-            """)
+            sessions_cnt: int = (await conn.fetchval("SELECT COUNT(*)::int FROM sessions")) or 0
+            try:
+                row = await conn.fetchrow("""
+                    SELECT
+                        COUNT(*)::int AS total,
+                        COUNT(embedding)::int AS embedded,
+                        COUNT(*) FILTER (
+                            WHERE embedding IS NULL
+                              AND (nullif(text,'') IS NOT NULL OR nullif(tool_output,'') IS NOT NULL OR nullif(tool_input::text,'') IS NOT NULL)
+                        )::int AS pending
+                    FROM events
+                """)
+                total, embedded, pending = row["total"], row["embedded"], row["pending"]
+            except Exception:
+                # embedding-Spalte fehlt (noch kein Embed-Model konfiguriert)
+                total = (await conn.fetchval("SELECT COUNT(*)::int FROM events")) or 0
+                embedded, pending = 0, 0
         model = load_config().get("embed_model", "")
         return {
             "active": True,
-            "total": row["total"],
-            "embedded": row["embedded"],
-            "pending": row["pending"],
+            "sessions": sessions_cnt,
+            "total": total,
+            "embedded": embedded,
+            "pending": pending,
             "model": model,
             "backfill_running": mirror._backfill_running,
         }
     except Exception as e:
         logger.warning("embed_status fehlgeschlagen: %s", e)
-        return {"active": False, "total": 0, "embedded": 0, "pending": 0, "model": "", "backfill_running": False}
+        return {"active": False, "sessions": 0, "total": 0, "embedded": 0, "pending": 0, "model": "", "backfill_running": False}
 
 
 async def search_events(

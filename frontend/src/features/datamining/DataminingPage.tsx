@@ -129,7 +129,7 @@ export function DataminingPage() {
         ))}
       </div>
 
-      {embedStatus?.active && (
+      {embedStatus?.active && embedStatus && (
         <EmbedStatusBar
           status={embedStatus}
           onBackfill={() =>

@@ -42,6 +42,7 @@ export const dataminingApi = {
   embedStatus: () =>
     api.get<{
       active: boolean
+      sessions: number
       total: number
       embedded: number
       pending: number
