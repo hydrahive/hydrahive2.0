@@ -1,0 +1,40 @@
+{
+  "id": "skill-seekers",
+  "name": "Skill Seekers (MCP-Server)",
+  "description": "Wandelt Docs, GitHub-Repos und PDFs automatisch in Claude Skills um — 35 MCP-Tools direkt nutzbar für HydraHive-Agenten. Unterstützt Websites, GitHub, PDFs, Videos, Wikis und mehr.",
+  "icon": "BookOpen",
+  "category": "ai",
+  "preferred_mode": "docker",
+  "install_script": "install/skill-seekers.sh",
+  "uninstall_script": "uninstall/skill-seekers.sh",
+  "installed_check": "/var/lib/hydrahive2/extensions/skill-seekers/output",
+  "install_params": [
+    {
+      "key": "ANTHROPIC_API_KEY",
+      "label": "Anthropic API-Key",
+      "type": "password",
+      "required": true,
+      "description": "Anthropic API-Key für KI-gestützte Skill-Generierung (console.anthropic.com)"
+    },
+    {
+      "key": "GITHUB_TOKEN",
+      "label": "GitHub Token",
+      "type": "password",
+      "required": false,
+      "description": "GitHub Personal Access Token — erhöht Rate-Limit von 60 auf 5000 Anfragen/h (empfohlen)"
+    },
+    {
+      "key": "OPENAI_API_KEY",
+      "label": "OpenAI API-Key",
+      "type": "password",
+      "required": false,
+      "description": "OpenAI API-Key falls OpenAI-Modelle für Skill-Generierung genutzt werden sollen (optional)"
+    }
+  ],
+  "docker": {
+    "compose_file": "docker/skill-seekers.compose.yml",
+    "service_name": "skill-seekers-mcp",
+    "health_url": "http://127.0.0.1:8765/health",
+    "open_url": null
+  }
+}
