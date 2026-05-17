@@ -222,24 +222,24 @@ async def minimax_anthropic_call(
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
 
+    # MiniMax unterstützt Anthropic-Prompt-Caching nicht — cache_control in Messages,
+    # System-Blöcken und Tools verursacht Go SyntaxError{Pos:0, Src:""} → HTTP 500.
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
+        "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
     if system_prompt or summary_system or volatile_system:
         blocks: list[dict[str, Any]] = []
         if system_prompt:
-            blocks.append({"type": "text", "text": system_prompt, "cache_control": _cache_control(cache_ttl)})
+            blocks.append({"type": "text", "text": system_prompt})
         if summary_system:
-            blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control(cache_ttl)})
+            blocks.append({"type": "text", "text": summary_system})
         if volatile_system:
             blocks.append({"type": "text", "text": volatile_system})
         kwargs["system"] = blocks
     if tools:
-        # MiniMax verarbeitet cache_control in Tool-Definitionen nicht korrekt
-        # (M2.7 wirft Go SyntaxError{Pos:0, Src:""} → 500). Nur raw tools senden.
         kwargs["tools"] = tools
 
     apply_thinking_budget(kwargs, reasoning_effort)
