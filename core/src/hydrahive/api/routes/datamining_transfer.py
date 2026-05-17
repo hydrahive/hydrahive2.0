@@ -152,16 +152,27 @@ def _cleanup_old_exports(keep: str) -> None:
 _COPY_RE = re.compile(r"COPY (\S+) \(([^)]+)\) FROM stdin;")
 
 
-def _copy_to_inserts(src: Path, dst: Path, target_cols: dict[str, set[str]] | None = None) -> None:
-    """Konvertiert COPY-Blöcke aus einem pg_restore-SQL-Dump zu INSERT ON CONFLICT DO NOTHING.
+def _copy_via_temp_table(src: Path, dst: Path, target_cols: dict[str, set[str]] | None = None) -> None:
+    """Wandelt COPY-Blöcke in Temp-Table-Routing um: COPY → temp → INSERT ON CONFLICT DO NOTHING.
 
-    target_cols: {tabellenname → Menge existierender Spalten} — filtert Quellspalten
-    die in der Zieltabelle nicht vorhanden sind (z.B. embedding-Spalten).
+    Behält das native COPY-Format (schnell, kein Quoting nötig).
+    Filtert Quellspalten auf tatsächlich existierende Zielspalten.
+
+    Pro Tabelle wird erzeugt:
+        BEGIN;
+        CREATE TEMP TABLE _mg_<tbl> AS SELECT <cols> FROM <tbl> LIMIT 0;
+        COPY _mg_<tbl> (<cols>) FROM stdin;
+        <Daten, ggf. Spalten gefiltert>
+        \\.
+        INSERT INTO <tbl> (<cols>) SELECT <cols> FROM _mg_<tbl> ON CONFLICT DO NOTHING;
+        DROP TABLE _mg_<tbl>;
+        COMMIT;
     """
     in_copy = False
     table_expr = ""
+    tbl_name = ""
     cols_str = ""
-    col_indices: list[int] | None = None  # welche Quellspalten-Indizes behalten werden
+    col_indices: list[int] | None = None
 
     with src.open("r", encoding="utf-8", errors="replace") as fin, \
          dst.open("w", encoding="utf-8") as fout:
@@ -172,45 +183,40 @@ def _copy_to_inserts(src: Path, dst: Path, target_cols: dict[str, set[str]] | No
                 if m:
                     table_expr = m.group(1)
                     src_cols = [c.strip() for c in m.group(2).split(",")]
-                    tbl_name = table_expr.split(".")[-1]  # schema.tabelle → tabelle
+                    tbl_name = table_expr.split(".")[-1]
                     if target_cols and tbl_name in target_cols:
                         tgt = target_cols[tbl_name]
                         keep = [(i, c) for i, c in enumerate(src_cols) if c in tgt]
                         col_indices = [i for i, _ in keep]
                         cols_str = ", ".join(c for _, c in keep)
-                        logger.debug("Merge %s: %d/%d Spalten übernommen", tbl_name, len(keep), len(src_cols))
+                        logger.info("Merge %s: %d/%d Spalten", tbl_name, len(keep), len(src_cols))
                     else:
                         col_indices = None
-                        cols_str = m.group(2)
+                        cols_str = ", ".join(src_cols)
+                    tmp = f"_mg_{tbl_name}"
+                    fout.write(f"BEGIN;\n")
+                    fout.write(f"CREATE TEMP TABLE {tmp} AS SELECT {cols_str} FROM {table_expr} LIMIT 0;\n")
+                    fout.write(f"COPY {tmp} ({cols_str}) FROM stdin;\n")
                     in_copy = True
                 elif not stripped.startswith("\\"):
-                    # psql-Metacommands (\restrict etc.) überspringen
                     fout.write(line)
             elif stripped == "\\.":
                 in_copy = False
+                tmp = f"_mg_{tbl_name}"
+                fout.write("\\.\n")
+                fout.write(f"INSERT INTO {table_expr} ({cols_str})\n")
+                fout.write(f"  SELECT {cols_str} FROM {tmp} ON CONFLICT DO NOTHING;\n")
+                fout.write(f"DROP TABLE {tmp};\n")
+                fout.write("COMMIT;\n")
                 col_indices = None
             else:
-                fields = stripped.split("\t")
                 if col_indices is not None:
-                    fields = [fields[i] for i in col_indices if i < len(fields)]
-                quoted = []
-                for f in fields:
-                    if f == "\\N":
-                        quoted.append("NULL")
-                    else:
-                        val = (
-                            f.replace("\\\\", "\x00")
-                             .replace("\\t", "\t")
-                             .replace("\\n", "\n")
-                             .replace("\\r", "\r")
-                             .replace("\x00", "\\")
-                        )
-                        val = val.replace("'", "''")
-                        quoted.append(f"'{val}'")
-                fout.write(
-                    f"INSERT INTO {table_expr} ({cols_str})"
-                    f" VALUES ({', '.join(quoted)}) ON CONFLICT DO NOTHING;\n"
-                )
+                    fields = stripped.split("\t")
+                    fout.write("\t".join(
+                        fields[i] if i < len(fields) else "\\N" for i in col_indices
+                    ) + "\n")
+                else:
+                    fout.write(line)
 
 
 async def _query_target_cols(dsn: str) -> dict[str, set[str]]:
@@ -259,9 +265,9 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
         if p.returncode not in (0, 1):
             raise RuntimeError(pg_restore_stderr)
 
-        # COPY-Blöcke → INSERT ON CONFLICT DO NOTHING, nur Spalten die in Ziel existieren
+        # COPY-Blöcke → Temp-Table-Routing (COPY bleibt COPY, kein INSERT-pro-Row)
         await asyncio.get_running_loop().run_in_executor(
-            None, _copy_to_inserts, sql_raw, sql_patched, target_cols
+            None, _copy_via_temp_table, sql_raw, sql_patched, target_cols
         )
         patched_size = sql_patched.stat().st_size if sql_patched.exists() else 0
         logger.info("DB-Merge COPY→INSERT: patched_sql=%d bytes", patched_size)
