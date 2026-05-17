@@ -12,6 +12,15 @@ logger = logging.getLogger(__name__)
 _USABLE_FRACTION = 0.80
 
 
+def _compaction_model(model: str) -> str:
+    """MiniMax-M2.7 aktiviert bei tools=[] automatisch Web-Search → HTTP 500.
+    Compaction sendet tools=[] — M2.1 hat dieses Auto-Search-Verhalten nicht."""
+    from hydrahive.llm._anthropic import is_minimax_model, strip_provider_prefix
+    if is_minimax_model(model) and strip_provider_prefix(model) == "MiniMax-M2.7":
+        return "MiniMax-M2.1"
+    return model
+
+
 async def summarize(
     *,
     model: str,
@@ -24,6 +33,7 @@ async def summarize(
     chunked: History wird in passende Stücke gesplittet, jeder einzeln
     zusammengefasst, dann hierarchisch gemergt (#81 Variante B).
     """
+    model = _compaction_model(model)
     window = context_window_for(model)
     instructions_tokens = estimate_text(_SUMMARY_INSTRUCTIONS)
     facts_str = _facts_string(facts) if facts else ""
