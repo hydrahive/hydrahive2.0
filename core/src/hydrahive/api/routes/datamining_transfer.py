@@ -202,15 +202,14 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
     sql_patched = _EXPORTS_DIR / f"merge_{ts}.sql"
 
     try:
-        # pg_restore --data-only ohne --dbname generiert COPY-SQL ohne DB-Verbindung
-        with sql_raw.open("wb") as fh:
-            p = await asyncio.create_subprocess_exec(
-                "pg_restore", "--data-only", "--no-privileges", str(dump_file),
-                stdout=fh, stderr=asyncio.subprocess.PIPE,
-            )
-            _, err = await p.communicate()
-            if p.returncode not in (0, 1):
-                raise RuntimeError(err.decode().strip())
+        # pg_restore --data-only → COPY-SQL (ohne DB-Verbindung, --file= nötig)
+        p = await asyncio.create_subprocess_exec(
+            "pg_restore", "--data-only", "--no-privileges", f"--file={sql_raw}", str(dump_file),
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        _, err = await p.communicate()
+        if p.returncode not in (0, 1):
+            raise RuntimeError(err.decode().strip())
 
         # COPY-Blöcke → INSERT ON CONFLICT DO NOTHING (streaming, speichereffizient)
         await asyncio.get_running_loop().run_in_executor(None, _copy_to_inserts, sql_raw, sql_patched)
