@@ -208,11 +208,17 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )
         _, err = await p.communicate()
+        pg_restore_stderr = err.decode().strip()
+        raw_size = sql_raw.stat().st_size if sql_raw.exists() else 0
+        logger.info("DB-Merge pg_restore: rc=%d, raw_sql=%d bytes, stderr=%s",
+                    p.returncode, raw_size, pg_restore_stderr[:200] or "(leer)")
         if p.returncode not in (0, 1):
-            raise RuntimeError(err.decode().strip())
+            raise RuntimeError(pg_restore_stderr)
 
         # COPY-Blöcke → INSERT ON CONFLICT DO NOTHING (streaming, speichereffizient)
         await asyncio.get_running_loop().run_in_executor(None, _copy_to_inserts, sql_raw, sql_patched)
+        patched_size = sql_patched.stat().st_size if sql_patched.exists() else 0
+        logger.info("DB-Merge COPY→INSERT: patched_sql=%d bytes", patched_size)
 
         with sql_patched.open("rb") as fh:
             p = await asyncio.create_subprocess_exec(
@@ -220,8 +226,10 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
                 stdin=fh, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             )
             _, err = await p.communicate()
+            psql_stderr = err.decode().strip()
+            logger.info("DB-Merge psql: rc=%d, stderr=%s", p.returncode, psql_stderr[:300] or "(leer)")
             if p.returncode != 0:
-                raise RuntimeError(err.decode().strip())
+                raise RuntimeError(psql_stderr)
 
         _merge_import_state.update(running=False, done=True)
         logger.info("DB-Merge-Import abgeschlossen: %s", dump_file.name)
