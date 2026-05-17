@@ -23,6 +23,7 @@ export function DataminingPage() {
   const [importState, setImportState] = useState<"idle" | "running" | "done" | "error">("idle")
   const importRef = useRef<HTMLInputElement>(null)
   const [mergeImportState, setMergeImportState] = useState<"idle" | "running" | "done" | "error">("idle")
+  const [mergeImportError, setMergeImportError] = useState<string | null>(null)
   const mergeImportRef = useRef<HTMLInputElement>(null)
   const [sqliteImport, setSqliteImport] = useState<{ running: boolean; sessions: number; total: number } | null>(null)
   const [issueForm, setIssueForm] = useState<"github" | "gitea" | null>(null)
@@ -76,13 +77,16 @@ export function DataminingPage() {
 
   async function handleMergeImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
-    setMergeImportState("running")
-    await dataminingApi.startMergeImport(file).catch(() => { setMergeImportState("error"); return })
+    setMergeImportState("running"); setMergeImportError(null)
+    const started = await dataminingApi.startMergeImport(file).catch((err: Error) => {
+      setMergeImportState("error"); setMergeImportError(err.message); return null
+    })
+    if (!started) return
     const poll = setInterval(async () => {
       const s = await dataminingApi.mergeImportStatus().catch(() => null)
       if (!s) return
       if (s.done) { setMergeImportState("done"); clearInterval(poll) }
-      else if (s.error) { setMergeImportState("error"); clearInterval(poll) }
+      else if (s.error) { setMergeImportState("error"); setMergeImportError(s.error); clearInterval(poll) }
     }, 2000)
   }
 
@@ -159,7 +163,12 @@ export function DataminingPage() {
           {importState === "running" ? "importiert…" : importState === "done" ? "importiert ✓" : "DB Import"}
         </button>
         <input ref={importRef} type="file" accept=".dump,.dump.gz" className="hidden" onChange={handleImport} />
-        <button onClick={() => mergeImportRef.current?.click()} disabled={mergeImportState === "running"} className={actionBtn}>
+        <button
+          onClick={() => mergeImportRef.current?.click()}
+          disabled={mergeImportState === "running"}
+          className={actionBtn}
+          title={mergeImportState === "error" && mergeImportError ? mergeImportError : undefined}
+        >
           <Upload size={12} />
           {mergeImportState === "running" ? "merge…" : mergeImportState === "done" ? "merge ✓" : mergeImportState === "error" ? "merge ✗" : "DB Merge"}
         </button>
