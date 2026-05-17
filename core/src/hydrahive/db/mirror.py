@@ -41,6 +41,7 @@ except ImportError:
 
 _pool: "asyncpg.Pool | None" = None
 _backfill_running: bool = False
+_backfill_task: "asyncio.Task | None" = None
 
 
 # ---------------------------------------------------------------- lifecycle
@@ -82,15 +83,29 @@ async def close() -> None:
         _pool = None
 
 
+async def _cancel_backfill() -> None:
+    """Bricht laufenden Backfill ab und wartet bis er wirklich beendet ist."""
+    global _backfill_task
+    if _backfill_task and not _backfill_task.done():
+        _backfill_task.cancel()
+        try:
+            await _backfill_task
+        except (asyncio.CancelledError, Exception):
+            pass
+    _backfill_task = None
+
+
 async def on_embed_model_change(new_model: str) -> None:
     """Spalte anpassen + Backfill starten. Wird vom LLM-Save-Endpoint aufgerufen."""
+    global _backfill_task
     if not _pool:
         return
+    await _cancel_backfill()
     async with _pool.acquire() as conn:
         await ensure_embed_col(conn)
     if new_model:
         try:
-            asyncio.get_running_loop().create_task(_backfill_task(new_model))
+            _backfill_task = asyncio.get_running_loop().create_task(_run_backfill(new_model))
         except RuntimeError:
             pass
 
@@ -99,6 +114,7 @@ async def reset_embeddings(event_type: str | None = None) -> int:
     """Setzt Embeddings zurück damit der Backfill sie neu einbettet."""
     if not _pool:
         return 0
+    await _cancel_backfill()
     async with _pool.acquire() as conn:
         if event_type:
             r = await conn.execute(
@@ -114,14 +130,13 @@ async def reset_embeddings(event_type: str | None = None) -> int:
     return count
 
 
-async def _backfill_task(model: str, batch_size: int = 100) -> None:
+async def _run_backfill(model: str, batch_size: int = 100) -> None:
     global _backfill_running
-    if _backfill_running:
-        logger.info("Backfill läuft bereits — übersprungen")
-        return
     _backfill_running = True
     try:
         await backfill_loop(_pool, model, batch_size)
+    except asyncio.CancelledError:
+        logger.info("Backfill abgebrochen (model=%s)", model)
     finally:
         _backfill_running = False
 
