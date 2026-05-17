@@ -122,11 +122,16 @@ async def aembed_batch(texts: list[str], model: str, embed_type: str = "db", _re
                 key = get_provider_key(config, provider)
 
                 if provider == "minimax":
+                    from hydrahive.llm._config import get_provider_group_id
                     api_model = model.split("/", 1)[-1] if "/" in model else model
+                    group_id = get_provider_group_id(config, "minimax")
+                    url = f"{entry['api_base']}/embeddings"
+                    if group_id:
+                        url += f"?GroupId={group_id}"
                     import httpx
                     async with httpx.AsyncClient(timeout=60) as hc:
                         r = await hc.post(
-                            f"{entry['api_base']}/embeddings",
+                            url,
                             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
                             json={"model": api_model, "texts": texts, "type": embed_type},
                         )

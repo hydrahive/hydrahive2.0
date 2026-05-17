@@ -12,6 +12,7 @@ export interface LlmProvider {
   id: string
   name: string
   api_key: string
+  group_id?: string
   models: string[]
   oauth?: OAuthBlock
 }

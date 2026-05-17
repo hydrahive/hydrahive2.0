@@ -75,6 +75,14 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
           )}
         </div>
       </div>
+      {form.id === "minimax" && (
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1">Group ID <span className="text-zinc-600">(MiniMax)</span></label>
+          <input type="text" value={form.group_id ?? ""} onChange={(e) => setForm({ ...form, group_id: e.target.value || undefined })}
+            placeholder="z.B. 123456789"
+            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+        </div>
+      )}
       {isOAuth && !hasToken && (
         <OAuthFlow
           providerId={form.id}

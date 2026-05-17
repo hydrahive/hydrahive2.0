@@ -52,3 +52,10 @@ def get_provider_key(config: dict, provider_id: str) -> str:
         if p.get("id") == provider_id:
             return p.get("api_key", "")
     return ""
+
+
+def get_provider_group_id(config: dict, provider_id: str) -> str:
+    for p in config.get("providers", []):
+        if p.get("id") == provider_id:
+            return p.get("group_id", "")
+    return ""
