@@ -7,7 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-_EMBED_BATCH = 32  # Texte pro API-Call — reduziert Requests drastisch
+_EMBED_BATCH = 8  # Texte pro API-Call — konservativ für enge RPM-Limits
 
 
 def queue_embed(pool, events: list[dict]) -> None:
@@ -75,7 +75,7 @@ async def _store_batch(pool, ids: list[str], vecs: list, model: str) -> int:
     return stored
 
 
-async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: float = 1.0) -> int:
+async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: float = 12.0) -> int:
     """Iteriert über noch nicht eingebettete Events und embedded sie batchweise.
 
     Sendet _EMBED_BATCH Texte pro API-Call statt einen — gleiche Anzahl Requests,
