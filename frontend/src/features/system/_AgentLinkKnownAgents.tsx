@@ -16,14 +16,15 @@ export function AgentLinkKnownAgents({ agents, locale }: Props) {
       <div className="space-y-1">
         {agents.map(a => (
           <div key={a.agent_id} className="flex items-center gap-2 text-[11px]">
-            <span className="px-2 py-0.5 rounded bg-violet-500/10 border border-violet-500/20 text-violet-200 font-mono truncate flex-1 min-w-0">
-              {a.agent_id}
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${a.online ? "bg-emerald-400" : "bg-zinc-600"}`} title={a.online ? "Online" : "Offline"} />
+            <span className="text-zinc-200 truncate flex-1 min-w-0">
+              {a.name || a.agent_id}
             </span>
+            {a.type && (
+              <span className="text-zinc-600 text-[10px] whitespace-nowrap">{a.type}</span>
+            )}
             <span className="text-zinc-500 font-mono whitespace-nowrap" title={a.last_seen}>
-              vor {relTime(a.last_seen, locale)}
-            </span>
-            <span className="text-zinc-600 font-mono whitespace-nowrap text-[10px]">
-              {a.states} {t("agentlink.states")}
+              {relTime(a.last_seen, locale)}
             </span>
           </div>
         ))}

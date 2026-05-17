@@ -1,6 +1,10 @@
 export interface KnownAgent {
   agent_id: string
+  name?: string
+  type?: string | null
+  owner?: string | null
   last_seen: string
+  online?: boolean
   states: number
 }
 

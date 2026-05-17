@@ -108,19 +108,20 @@ async def heartbeat_agent(agent_id: str) -> None:
 
 
 async def list_specialists_with_meta() -> list[dict]:
-    url = settings.agentlink_url.rstrip("/") + "/states"
+    url = settings.agentlink_url.rstrip("/") + "/agents"
     async with httpx.AsyncClient(timeout=15.0) as client:
-        r = await client.get(url, params={"limit": 200})
+        r = await client.get(url)
         r.raise_for_status()
         data = r.json()
-    by_agent: dict[str, dict] = {}
-    for s in data:
-        aid = s.get("agent_id") or ""
-        if not aid:
-            continue
-        ts = s.get("created_at") or ""
-        cur = by_agent.setdefault(aid, {"agent_id": aid, "last_seen": "", "states": 0})
-        cur["states"] += 1
-        if ts > cur["last_seen"]:
-            cur["last_seen"] = ts
-    return sorted(by_agent.values(), key=lambda x: x["last_seen"], reverse=True)
+    return [
+        {
+            "agent_id": a.get("id", ""),
+            "name": a.get("name", ""),
+            "type": a.get("type"),
+            "owner": a.get("owner"),
+            "last_seen": a.get("last_seen", ""),
+            "online": a.get("online", False),
+            "states": 0,
+        }
+        for a in data
+    ]
