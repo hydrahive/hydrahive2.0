@@ -88,6 +88,15 @@ export const dataminingApi = {
   importStatus: () =>
     api.get<{ running: boolean; done: boolean; error: string | null }>("/datamining/import/status"),
 
+  startMergeImport: (file: File) => {
+    const form = new FormData()
+    form.append("file", file)
+    return api.postForm<{ ok: boolean; reason?: string }>("/datamining/import-merge", form)
+  },
+
+  mergeImportStatus: () =>
+    api.get<{ running: boolean; done: boolean; error: string | null }>("/datamining/import-merge/status"),
+
   startSqliteImport: () =>
     api.post<{ ok: boolean; reason?: string }>("/datamining/import/sqlite", {}),
 

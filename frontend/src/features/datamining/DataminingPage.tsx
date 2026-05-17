@@ -22,6 +22,8 @@ export function DataminingPage() {
   const [exportSizeMb, setExportSizeMb] = useState<number>(0)
   const [importState, setImportState] = useState<"idle" | "running" | "done" | "error">("idle")
   const importRef = useRef<HTMLInputElement>(null)
+  const [mergeImportState, setMergeImportState] = useState<"idle" | "running" | "done" | "error">("idle")
+  const mergeImportRef = useRef<HTMLInputElement>(null)
   const [sqliteImport, setSqliteImport] = useState<{ running: boolean; sessions: number; total: number } | null>(null)
   const [issueForm, setIssueForm] = useState<"github" | "gitea" | null>(null)
 
@@ -35,6 +37,9 @@ export function DataminingPage() {
     }).catch(() => {})
     dataminingApi.importStatus().then((s) => {
       if (s.running) setImportState("running")
+    }).catch(() => {})
+    dataminingApi.mergeImportStatus().then((s) => {
+      if (s.running) setMergeImportState("running")
     }).catch(() => {})
     dataminingApi.sqliteImportStatus().then((s) => {
       if (s.running) setSqliteImport({ running: true, sessions: s.sessions, total: s.total_sessions })
@@ -66,6 +71,18 @@ export function DataminingPage() {
       if (!s) return
       if (s.done) { setImportState("done"); clearInterval(poll) }
       else if (s.error) { setImportState("error"); clearInterval(poll) }
+    }, 2000)
+  }
+
+  async function handleMergeImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    setMergeImportState("running")
+    await dataminingApi.startMergeImport(file).catch(() => { setMergeImportState("error"); return })
+    const poll = setInterval(async () => {
+      const s = await dataminingApi.mergeImportStatus().catch(() => null)
+      if (!s) return
+      if (s.done) { setMergeImportState("done"); clearInterval(poll) }
+      else if (s.error) { setMergeImportState("error"); clearInterval(poll) }
     }, 2000)
   }
 
@@ -142,6 +159,11 @@ export function DataminingPage() {
           {importState === "running" ? "importiert…" : importState === "done" ? "importiert ✓" : "DB Import"}
         </button>
         <input ref={importRef} type="file" accept=".dump,.dump.gz" className="hidden" onChange={handleImport} />
+        <button onClick={() => mergeImportRef.current?.click()} disabled={mergeImportState === "running"} className={actionBtn}>
+          <Upload size={12} />
+          {mergeImportState === "running" ? "merge…" : mergeImportState === "done" ? "merge ✓" : "DB Merge"}
+        </button>
+        <input ref={mergeImportRef} type="file" accept=".dump,.dump.gz" className="hidden" onChange={handleMergeImport} />
         <button onClick={startSqliteImport} disabled={sqliteImport?.running ?? false} className={actionBtn}>
           <Upload size={12} />
           {sqliteImport?.running
