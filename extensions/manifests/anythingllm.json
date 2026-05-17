@@ -1,0 +1,18 @@
+{
+  "id": "anythingllm",
+  "name": "AnythingLLM (RAG & Agents)",
+  "description": "All-in-One RAG-Plattform — Chat über eigene Dokumente, Workspaces, Agents mit Tools und MCP-Support. Konfiguration nach der Installation über die AnythingLLM-UI.",
+  "icon": "Brain",
+  "category": "ai",
+  "preferred_mode": "docker",
+  "install_script": "install/anythingllm.sh",
+  "uninstall_script": "uninstall/anythingllm.sh",
+  "installed_check": "/var/lib/hydrahive2/extensions/anythingllm/storage",
+  "install_params": [],
+  "docker": {
+    "compose_file": "docker/anythingllm.compose.yml",
+    "service_name": "anythingllm",
+    "health_url": "http://127.0.0.1:3001/",
+    "open_url": ":3001/"
+  }
+}
