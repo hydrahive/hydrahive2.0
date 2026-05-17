@@ -125,7 +125,7 @@ async def trigger_backfill(_auth: Auth) -> dict:
     if not model:
         return {"ok": False, "reason": "Kein Embedding-Modell konfiguriert"}
     import asyncio
-    asyncio.get_running_loop().create_task(mirror._backfill_task(model))
+    mirror._backfill_task = asyncio.get_running_loop().create_task(mirror._run_backfill(model))
     return {"ok": True, "model": model}
 
 
