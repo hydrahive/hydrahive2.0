@@ -238,8 +238,9 @@ async def minimax_anthropic_call(
             blocks.append({"type": "text", "text": volatile_system})
         kwargs["system"] = blocks
     if tools:
-        cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
-        kwargs["tools"] = cached_tools
+        # MiniMax verarbeitet cache_control in Tool-Definitionen nicht korrekt
+        # (M2.7 wirft Go SyntaxError{Pos:0, Src:""} → 500). Nur raw tools senden.
+        kwargs["tools"] = tools
 
     apply_thinking_budget(kwargs, reasoning_effort)
 
