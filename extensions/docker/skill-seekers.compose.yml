@@ -1,0 +1,42 @@
+# Skill Seekers — MCP-Server für Skill-Generierung aus Docs/Repos/PDFs
+# MCP-Endpoint auf Port 8765 — direkt einbindbar in HydraHive-Agenten
+# Daten unter /var/lib/hydrahive2/extensions/skill-seekers/
+
+services:
+  skill-seekers-mcp:
+    image: python:3.12-slim
+    pull_policy: always
+    container_name: skill-seekers-mcp
+    network_mode: host
+    restart: unless-stopped
+    command: >
+      bash -c "
+        apt-get update -qq && apt-get install -y -qq git curl &&
+        pip install --quiet --no-cache-dir 'skill-seekers[all-llms]' mcp &&
+        python -m skill_seekers.mcp.server_fastmcp --http --host 127.0.0.1 --port 8765
+      "
+    environment:
+      ANTHROPIC_API_KEY: ${SKILL_SEEKERS_ANTHROPIC_API_KEY}
+      GITHUB_TOKEN: ${SKILL_SEEKERS_GITHUB_TOKEN:-}
+      OPENAI_API_KEY: ${SKILL_SEEKERS_OPENAI_API_KEY:-}
+      MCP_TRANSPORT: "http"
+      MCP_PORT: "8765"
+      SKILL_SEEKERS_HOME: "/data"
+      SKILL_SEEKERS_OUTPUT: "/output"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - /var/lib/hydrahive2/extensions/skill-seekers/data:/data
+      - /var/lib/hydrahive2/extensions/skill-seekers/output:/output
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:8765/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
