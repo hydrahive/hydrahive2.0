@@ -150,10 +150,10 @@ async def _semantic_search(conn, q, event_type, agent_name, username, from_date,
         SELECT id, session_id, username, agent_name, event_type, created_at,
                tool_name, is_error,
                left(coalesce(text, tool_output, ''), 300) AS snippet,
-               round((1 - (embedding <=> $1::vector))::numeric, 3)::float8 AS similarity
+               round((1 - (embedding <=> $1::text::vector))::numeric, 3)::float8 AS similarity
         FROM events
         WHERE {' AND '.join(where)}
-        ORDER BY embedding <=> $1::vector
+        ORDER BY embedding <=> $1::text::vector
         LIMIT ${idx}
     """, *params)
     return [dict(r) for r in rows]
