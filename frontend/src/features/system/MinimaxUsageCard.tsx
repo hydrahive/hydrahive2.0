@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 
 interface ModelUsage {
-  name: string
   label: string
+  category: string
+  interval_type: string
+  unit: string
   interval_total: number
   interval_used: number
   interval_pct: number
@@ -76,7 +78,10 @@ export function MinimaxUsageCard() {
           {usage.models.map((m) => (
             <div key={m.label} className="space-y-0.5">
               <div className="flex items-center gap-2 text-[11px]">
-                <span className="font-mono text-zinc-300 truncate flex-1 min-w-0" title={m.label}>{m.label}</span>
+                <span className="text-zinc-300 truncate flex-1 min-w-0" title={m.label}>{m.label}</span>
+                <span className="text-zinc-600 text-[9px] whitespace-nowrap">
+                  {m.interval_type === "5h" ? "5h" : "tägl."} · {m.unit}
+                </span>
                 <span className="text-zinc-500 tabular-nums whitespace-nowrap">
                   {m.interval_used.toLocaleString()} / {m.interval_total.toLocaleString()}
                 </span>
@@ -88,9 +93,9 @@ export function MinimaxUsageCard() {
                 <div className={`h-full transition-all ${pctTone(m.interval_pct)}`} style={{ width: `${m.interval_pct}%` }} />
               </div>
               <p className="text-[9.5px] text-zinc-600">
-                {t("minimax.reset_in", { time: fmtResetIn(m.interval_reset_in_s) })}
+                {m.interval_type === "5h" ? "Rolling Reset" : "Reset"} {fmtResetIn(m.interval_reset_in_s)}
                 {m.weekly_total > 0 && (
-                  <> · {t("minimax.weekly", { used: m.weekly_used.toLocaleString(), total: m.weekly_total.toLocaleString(), pct: m.weekly_pct })}</>
+                  <> · Woche: {m.weekly_used.toLocaleString()} / {m.weekly_total.toLocaleString()} ({m.weekly_pct}%)</>
                 )}
               </p>
             </div>

@@ -21,21 +21,24 @@ _cache: dict[str, Any] = {"data": None, "fetched_at": 0.0}
 _CACHE_TTL = 30.0
 
 
-_MODEL_CATEGORIES: list[tuple[str, str]] = [
-    ("MiniMax-M",      "text"),
-    ("MiniMax-Hailuo", "video"),
-    ("Hailuo",         "video"),
-    ("speech",         "tts"),
-    ("music",          "music"),
-    ("image",          "image"),
+# (model_name_fragment_lower, category, interval_type, unit)
+# interval_type: "5h" = 5h rolling window (request-count), "daily" = daily quota
+_MODEL_CATEGORIES: list[tuple[str, str, str, str]] = [
+    ("m2",      "text",  "5h",    "Requests"),
+    ("hailuo",  "video", "daily", "Videos"),
+    ("speech",  "tts",   "daily", "Zeichen"),
+    ("music",   "music", "daily", "Songs"),
+    ("image",   "image", "daily", "Bilder"),
 ]
 
 
-def _short_name(model_name: str) -> str:
-    for prefix, short in _MODEL_CATEGORIES:
-        if model_name.startswith(prefix):
-            return short
-    return "misc"
+def _classify(model_name: str) -> tuple[str, str, str]:
+    """Gibt (category, interval_type, unit) zurück."""
+    low = model_name.lower()
+    for fragment, cat, iv, unit in _MODEL_CATEGORIES:
+        if fragment in low:
+            return cat, iv, unit
+    return "misc", "daily", "Einheiten"
 
 
 def _iso_now() -> str:
@@ -50,9 +53,13 @@ def _normalize_model(raw: dict) -> dict:
     weekly_used = int(raw.get("current_weekly_usage_count", 0))
     end_time = raw.get("end_time")
     reset_in_s = max(0, int((int(end_time) - now_ms) / 1000)) if end_time else 0
+    label = str(raw.get("model_name", ""))
+    category, interval_type, unit = _classify(label)
     return {
-        "name": _short_name(str(raw.get("model_name", ""))),
-        "label": str(raw.get("model_name", "")),
+        "label": label,
+        "category": category,
+        "interval_type": interval_type,
+        "unit": unit,
         "interval_total": interval_total,
         "interval_used": interval_used,
         "interval_pct": min(round(interval_used / interval_total * 100, 1), 100) if interval_total else 0,
