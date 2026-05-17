@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import shutil
 import time
 from pathlib import Path
@@ -148,6 +149,52 @@ def _cleanup_old_exports(keep: str) -> None:
             f.unlink(missing_ok=True)
 
 
+_COPY_RE = re.compile(r"COPY (\S+) \(([^)]+)\) FROM stdin;")
+
+
+def _copy_to_inserts(src: Path, dst: Path) -> None:
+    """Konvertiert COPY-Blöcke aus einem pg_restore-SQL-Dump zu INSERT ON CONFLICT DO NOTHING."""
+    in_copy = False
+    table_expr = ""
+    cols_str = ""
+
+    with src.open("r", encoding="utf-8", errors="replace") as fin, \
+         dst.open("w", encoding="utf-8") as fout:
+        for line in fin:
+            stripped = line.rstrip("\n")
+            if not in_copy:
+                m = _COPY_RE.match(stripped)
+                if m:
+                    table_expr = m.group(1)
+                    cols_str = m.group(2)
+                    in_copy = True
+                else:
+                    fout.write(line)
+            elif stripped == "\\.":
+                in_copy = False
+            else:
+                fields = stripped.split("\t")
+                quoted = []
+                for f in fields:
+                    if f == "\\N":
+                        quoted.append("NULL")
+                    else:
+                        # COPY-Escape-Sequenzen auflösen
+                        val = (
+                            f.replace("\\\\", "\x00")
+                             .replace("\\t", "\t")
+                             .replace("\\n", "\n")
+                             .replace("\\r", "\r")
+                             .replace("\x00", "\\")
+                        )
+                        val = val.replace("'", "''")
+                        quoted.append(f"'{val}'")
+                fout.write(
+                    f"INSERT INTO {table_expr} ({cols_str})"
+                    f" VALUES ({', '.join(quoted)}) ON CONFLICT DO NOTHING;\n"
+                )
+
+
 async def _run_import_merge(dsn: str, dump_file: Path) -> None:
     _merge_import_state.update(running=True, done=False, error=None)
     ts = int(time.time())
@@ -155,24 +202,18 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
     sql_patched = _EXPORTS_DIR / f"merge_{ts}.sql"
 
     try:
-        # pg_restore --inserts braucht keine DB-Verbindung — nur Konvertierung in Text
+        # pg_restore --data-only ohne --dbname generiert COPY-SQL ohne DB-Verbindung
         with sql_raw.open("wb") as fh:
             p = await asyncio.create_subprocess_exec(
-                "pg_restore", "--data-only", "--inserts", str(dump_file),
+                "pg_restore", "--data-only", "--no-privileges", str(dump_file),
                 stdout=fh, stderr=asyncio.subprocess.PIPE,
             )
             _, err = await p.communicate()
             if p.returncode not in (0, 1):
                 raise RuntimeError(err.decode().strip())
 
-        # ON CONFLICT DO NOTHING an jede INSERT-Zeile anhängen
-        with sql_raw.open("r", encoding="utf-8", errors="replace") as src, \
-             sql_patched.open("w", encoding="utf-8") as dst:
-            for line in src:
-                stripped = line.rstrip("\n")
-                if stripped.lstrip().upper().startswith("INSERT INTO") and stripped.endswith(";"):
-                    line = stripped[:-1] + " ON CONFLICT DO NOTHING;\n"
-                dst.write(line)
+        # COPY-Blöcke → INSERT ON CONFLICT DO NOTHING (streaming, speichereffizient)
+        await asyncio.get_running_loop().run_in_executor(None, _copy_to_inserts, sql_raw, sql_patched)
 
         with sql_patched.open("rb") as fh:
             p = await asyncio.create_subprocess_exec(
