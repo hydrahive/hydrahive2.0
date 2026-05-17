@@ -15,7 +15,7 @@ import asyncio
 import logging
 
 from hydrahive.db._message_model import Message
-from hydrahive.db._mirror_ddl import DDL_BASE, ensure_embed_col
+from hydrahive.db._mirror_ddl import DDL_TABLES, DDL_VIEW, ensure_embed_col
 from hydrahive.db._mirror_embed import (
     backfill_loop,
     embed_event as _embed_event_impl,
@@ -56,8 +56,19 @@ async def init() -> None:
     try:
         _pool = await asyncpg.create_pool(dsn, min_size=1, max_size=4, command_timeout=10)
         async with _pool.acquire() as conn:
-            await conn.execute(DDL_BASE)
-            await ensure_embed_col(conn)
+            # Tabellen + Indexes zuerst — in eigenem Statement, damit sie auch
+            # dann angelegt werden, wenn die View-Erstellung scheitert.
+            await conn.execute(DDL_TABLES)
+            try:
+                await conn.execute(DDL_VIEW)
+            except Exception as ve:
+                # CREATE OR REPLACE VIEW scheitert wenn die View bereits existiert
+                # und einem anderen DB-User gehört. Mirror läuft trotzdem weiter.
+                logger.warning("PG-Mirror: session_metrics-View konnte nicht erstellt/ersetzt werden (Rechte?): %s", ve)
+            try:
+                await ensure_embed_col(conn)
+            except Exception as ee:
+                logger.warning("PG-Mirror: Embedding-Spalte konnte nicht angepasst werden (Rechte?): %s", ee)
         logger.info("PG-Mirror bereit")
     except Exception as e:
         logger.warning("PG-Mirror init fehlgeschlagen — Mirror deaktiviert: %s", e)

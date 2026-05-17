@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-DDL_BASE = """
+DDL_TABLES = """
 CREATE TABLE IF NOT EXISTS sessions (
   id          TEXT PRIMARY KEY,
   username    TEXT,
@@ -130,6 +130,12 @@ CREATE INDEX IF NOT EXISTS errors_log_source   ON errors_log (source, created_at
 CREATE INDEX IF NOT EXISTS errors_log_severity ON errors_log (severity, created_at);
 CREATE INDEX IF NOT EXISTS errors_log_created  ON errors_log (created_at);
 CREATE INDEX IF NOT EXISTS errors_log_type     ON errors_log (error_type, created_at);
+"""
+
+# Separat, weil CREATE OR REPLACE VIEW Ownership der View erfordert.
+# Wird in mirror.init() in eigenem try-except ausgeführt, damit Tabellen-DDL
+# auch dann committed wird wenn der User die View nicht ersetzen darf.
+DDL_VIEW = """
 -- session_metrics: aggregierter Read-View. tool_calls existiert im Mirror nicht
 -- (siehe events-Tabelle für Tool-Telemetrie) — daher fehlt tool_calls/successes/
 -- errors/truncates im PG-View. Reine SQLite-Quelle ist authoritative für Tools.
@@ -171,6 +177,8 @@ LEFT JOIN (
     FROM errors_log WHERE session_id IS NOT NULL GROUP BY session_id
 ) err ON err.session_id = s.id;
 """
+
+DDL_BASE = DDL_TABLES + DDL_VIEW
 
 
 async def ensure_embed_col(conn) -> None:
