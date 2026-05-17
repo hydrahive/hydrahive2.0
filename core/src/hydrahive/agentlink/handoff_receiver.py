@@ -152,7 +152,7 @@ async def _post_reply(incoming: State, output: str, status: str) -> None:
         context=ContextBlock(),
         working_memory=WorkingMemory(findings=[output[:2000]]),
         handoff=Handoff(
-            to_agent=incoming.agent_id,
+            to_agent=settings.agentlink_agent_id,
             reason=f"reply_to:{incoming.id}",
         ),
     )
