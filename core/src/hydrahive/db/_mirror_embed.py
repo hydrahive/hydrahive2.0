@@ -56,8 +56,9 @@ async def embed_event(pool, event_id: str, text: str, model: str) -> None:
         logger.warning("Embedding-Speichern fehlgeschlagen (%s): %s", event_id, e)
 
 
-async def _store_batch(pool, ids: list[str], vecs: list, model: str) -> None:
-    """Speichert eine Batch von Embeddings in einem DB-Acquire."""
+async def _store_batch(pool, ids: list[str], vecs: list, model: str) -> int:
+    """Speichert eine Batch von Embeddings. Gibt Anzahl tatsächlich gespeicherter zurück."""
+    stored = 0
     async with pool.acquire() as conn:
         for event_id, vec in zip(ids, vecs):
             if vec is None:
@@ -68,8 +69,10 @@ async def _store_batch(pool, ids: list[str], vecs: list, model: str) -> None:
                     UPDATE events SET embedding=$1::text::vector, embedding_model=$2, embedded_at=now()
                     WHERE id=$3 AND embedding IS NULL
                 """, vec_str, model, event_id)
+                stored += 1
             except Exception as e:
                 logger.warning("Embedding-Speichern fehlgeschlagen (%s): %s", event_id, e)
+    return stored
 
 
 async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: float = 1.0) -> int:
@@ -106,6 +109,7 @@ async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: 
                 for r in rows
             ]
 
+            batch_stored = 0
             # Pro Sub-Batch: ein API-Call statt N einzelne Calls
             for i in range(0, len(items), _EMBED_BATCH):
                 sub = items[i:i + _EMBED_BATCH]
@@ -114,12 +118,12 @@ async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: 
                 vecs = await aembed_batch(texts, model)
                 if pool is None:
                     break
-                await _store_batch(pool, ids, vecs, model)
+                batch_stored += await _store_batch(pool, ids, vecs, model)
                 if i + _EMBED_BATCH < len(items):
                     await asyncio.sleep(sleep_between)
 
-            total += len(rows)
-            logger.info("Backfill: %d eingebettet", total)
+            total += batch_stored
+            logger.info("Backfill: %d eingebettet (Batch: %d/%d erfolgreich)", total, batch_stored, len(rows))
             if len(rows) < batch_size:
                 break
             await asyncio.sleep(sleep_between)
