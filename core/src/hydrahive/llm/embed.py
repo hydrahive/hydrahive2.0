@@ -90,9 +90,9 @@ def available_for_config(config: dict) -> list[dict]:
     return result
 
 
-async def aembed(text: str, model: str) -> list[float] | None:
-    """Erzeugt einen Embedding-Vektor. Gibt None bei Fehler zurück."""
-    results = await aembed_batch([text], model)
+async def aembed(text: str, model: str, embed_type: str = "db") -> list[float] | None:
+    """Erzeugt einen Embedding-Vektor. embed_type: 'db' für Dokumente, 'query' für Suchanfragen."""
+    results = await aembed_batch([text], model, embed_type=embed_type)
     return results[0] if results else None
 
 
@@ -101,11 +101,12 @@ def _is_rate_limit(e: Exception) -> bool:
     return "rate limit" in msg or "ratelimit" in msg or "429" in msg or "too many" in msg
 
 
-async def aembed_batch(texts: list[str], model: str, _retry: int = 3) -> list[list[float] | None]:
+async def aembed_batch(texts: list[str], model: str, embed_type: str = "db", _retry: int = 3) -> list[list[float] | None]:
     """Bettet mehrere Texte in einem einzigen API-Call ein.
 
-    Provider mit api_base (z.B. NVIDIA NIM) nutzen den openai-Client direkt —
-    LiteLLM konstruiert URLs für custom-base-URL-Provider nicht korrekt.
+    embed_type: 'db' für Dokumente (Backfill), 'query' für Suchanfragen.
+    MiniMax und NVIDIA nutzen asymmetrische Embeddings — falscher Typ senkt Suchqualität.
+    Provider mit api_base nutzen den openai-Client direkt.
     Bei Rate-Limit-Fehlern: bis zu _retry Versuche mit 60s Pause.
     """
     from hydrahive.llm._config import apply_keys, get_provider_key, load_config
@@ -127,7 +128,7 @@ async def aembed_batch(texts: list[str], model: str, _retry: int = 3) -> list[li
                         r = await hc.post(
                             f"{entry['api_base']}/embeddings",
                             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                            json={"model": api_model, "texts": texts, "type": "db"},
+                            json={"model": api_model, "texts": texts, "type": embed_type},
                         )
                         r.raise_for_status()
                         data = r.json()
@@ -137,8 +138,10 @@ async def aembed_batch(texts: list[str], model: str, _retry: int = 3) -> list[li
 
                 import openai
                 client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
+                # NVIDIA NIM: input_type "passage"/"query" für asymmetrische Embeddings
+                extra = {"input_type": "query" if embed_type == "query" else "passage"} if provider == "nvidia" else {}
                 resp = await asyncio.wait_for(
-                    client.embeddings.create(model=model, input=texts),
+                    client.embeddings.create(model=model, input=texts, extra_body=extra or None),
                     timeout=30,
                 )
                 ordered = sorted(resp.data, key=lambda d: d.index)
