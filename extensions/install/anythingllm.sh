@@ -14,8 +14,9 @@ info "Installiere AnythingLLM..."
 command -v docker &>/dev/null || die "Docker nicht gefunden — bitte zuerst Docker installieren"
 docker compose version &>/dev/null || die "Docker Compose (Plugin) nicht gefunden"
 
-# --- Storage anlegen ---
+# --- Storage anlegen (UID 1000 = Container-User) ---
 mkdir -p "${ANYTHINGLLM_STORAGE}"
+chown -R 1000:1000 "${ANYTHINGLLM_STORAGE}"
 success "Storage ${ANYTHINGLLM_STORAGE} bereit"
 
 # --- Secrets generieren (einmalig, idempotent) ---
