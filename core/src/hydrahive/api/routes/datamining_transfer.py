@@ -272,16 +272,37 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
         patched_size = sql_patched.stat().st_size if sql_patched.exists() else 0
         logger.info("DB-Merge COPY→INSERT: patched_sql=%d bytes", patched_size)
 
+        # Zeilen vor dem Import zählen
+        import asyncpg as _asyncpg  # noqa: PLC0415
+        _conn = await _asyncpg.connect(dsn, command_timeout=30)
+        try:
+            before = {t: await _conn.fetchval(f"SELECT COUNT(*)::int FROM {t}")
+                      for t in ("sessions", "events", "llm_calls", "compaction_events", "errors_log")}
+        finally:
+            await _conn.close()
+        logger.info("DB-Merge vor Import: %s", before)
+
         with sql_patched.open("rb") as fh:
             p = await asyncio.create_subprocess_exec(
-                "psql", "--set=ON_ERROR_STOP=0", dsn,
+                # ON_ERROR_STOP=1: bei echtem Fehler sofort abbrechen und rc!=0 liefern
+                "psql", "--set=ON_ERROR_STOP=1", dsn,
                 stdin=fh, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             )
             _, err = await p.communicate()
             psql_stderr = err.decode().strip()
-            logger.info("DB-Merge psql: rc=%d, stderr=%s", p.returncode, psql_stderr[:500] or "(leer)")
+            logger.info("DB-Merge psql: rc=%d, stderr=%s", p.returncode, psql_stderr[:2000] or "(leer)")
             if p.returncode != 0:
-                raise RuntimeError(psql_stderr)
+                raise RuntimeError(psql_stderr[:1000])
+
+        # Zeilen nach dem Import zählen
+        _conn = await _asyncpg.connect(dsn, command_timeout=30)
+        try:
+            after = {t: await _conn.fetchval(f"SELECT COUNT(*)::int FROM {t}")
+                     for t in ("sessions", "events", "llm_calls", "compaction_events", "errors_log")}
+        finally:
+            await _conn.close()
+        inserted = {t: after[t] - before.get(t, 0) for t in after}
+        logger.info("DB-Merge nach Import: %s | neu: %s", after, inserted)
 
         _merge_import_state.update(running=False, done=True)
         logger.info("DB-Merge-Import abgeschlossen: %s", dump_file.name)
