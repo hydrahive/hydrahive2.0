@@ -125,7 +125,7 @@ async def _semantic_search(conn, q, event_type, agent_name, username, from_date,
     model = load_config().get("embed_model", "")
     if not model:
         raise ValueError("Kein Embedding-Modell konfiguriert")
-    vec = await aembed(q, model)
+    vec = await aembed(q, model, embed_type="query")
     if vec is None:
         raise ValueError("Embedding fehlgeschlagen")
 
