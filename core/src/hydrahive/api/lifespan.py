@@ -57,6 +57,32 @@ async def _whatsapp_auto_reconnect(adapter: WhatsAppAdapter) -> None:
             logger.warning("WhatsApp Auto-Reconnect für '%s' fehlgeschlagen: %s", username, e)
 
 
+async def _agentlink_heartbeat_loop(stop: asyncio.Event) -> None:
+    """Register all active HydraHive agents with AgentLink and send heartbeats every 60s."""
+    from hydrahive.agents._config_utils import list_all as list_all_agents
+
+    while not stop.is_set():
+        try:
+            for agent in list_all_agents():
+                if agent.get("status") != "active":
+                    continue
+                try:
+                    await agentlink_client.register_agent(
+                        agent_id=agent["id"],
+                        name=agent.get("name", agent["id"]),
+                        agent_type=agent.get("type"),
+                        owner=agent.get("owner"),
+                    )
+                except Exception as e:
+                    logger.debug("AgentLink register für %s fehlgeschlagen: %s", agent.get("name"), e)
+        except Exception as e:
+            logger.warning("AgentLink heartbeat-loop Fehler: %s", e)
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=60.0)
+        except asyncio.TimeoutError:
+            pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
@@ -132,6 +158,13 @@ async def lifespan(app: FastAPI):
                 asyncio.create_task(handoff_receiver.handle(event), name=f"handoff-{event.state_id}")
 
         agentlink_client.start_listener(_on_event)
+        agentlink_stop = asyncio.Event()
+        agentlink_heartbeat_task: asyncio.Task[None] | None = asyncio.create_task(
+            _agentlink_heartbeat_loop(agentlink_stop)
+        )
+    else:
+        agentlink_stop = None
+        agentlink_heartbeat_task = None
 
     discord_adapter: DiscordAdapter | None = None
     if settings.discord_enabled:
@@ -168,6 +201,13 @@ async def lifespan(app: FastAPI):
         await wa_bridge.stop()
     if update_task is not None:
         update_task.cancel()
+    if agentlink_stop is not None:
+        agentlink_stop.set()
+    if agentlink_heartbeat_task is not None:
+        try:
+            await asyncio.wait_for(agentlink_heartbeat_task, timeout=3.0)
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            agentlink_heartbeat_task.cancel()
     zahnfee_stop.set()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()

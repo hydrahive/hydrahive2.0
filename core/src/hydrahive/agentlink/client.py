@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "register_pending", "cancel_pending", "resolve_pending",
     "post_state", "get_state", "list_specialists", "list_specialists_with_meta",
+    "register_agent", "heartbeat_agent",
     "start_listener", "stop_listener", "restart_listener", "listen_loop",
     "is_connected", "last_error", "reconnect_attempts", "last_connect_at",
     "OnEvent",
@@ -78,6 +79,32 @@ async def get_state(state_id: str) -> State | None:
 async def list_specialists() -> list[str]:
     metas = await list_specialists_with_meta()
     return [m["agent_id"] for m in metas]
+
+
+async def register_agent(
+    agent_id: str,
+    name: str,
+    agent_type: str | None = None,
+    owner: str | None = None,
+    meta: dict | None = None,
+) -> None:
+    url = settings.agentlink_url.rstrip("/") + "/agents"
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        r = await client.post(url, json={
+            "id": agent_id,
+            "name": name,
+            "type": agent_type,
+            "owner": owner,
+            "meta": meta,
+        })
+        r.raise_for_status()
+
+
+async def heartbeat_agent(agent_id: str) -> None:
+    url = settings.agentlink_url.rstrip("/") + f"/agents/{agent_id}/heartbeat"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.post(url)
+        r.raise_for_status()
 
 
 async def list_specialists_with_meta() -> list[dict]:
