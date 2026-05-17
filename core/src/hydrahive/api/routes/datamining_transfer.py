@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 import shutil
 import time
 from pathlib import Path
@@ -149,57 +148,40 @@ def _cleanup_old_exports(keep: str) -> None:
             f.unlink(missing_ok=True)
 
 
-def _swap_dbname(dsn: str, new_db: str) -> str:
-    if "://" in dsn:
-        from urllib.parse import urlparse, urlunparse
-        p = urlparse(dsn)
-        return urlunparse(p._replace(path=f"/{new_db}"))
-    if "dbname=" in dsn:
-        return re.sub(r"dbname=\S+", f"dbname={new_db}", dsn)
-    return dsn + f" dbname={new_db}"
-
-
 async def _run_import_merge(dsn: str, dump_file: Path) -> None:
     _merge_import_state.update(running=True, done=False, error=None)
     ts = int(time.time())
-    tmp_db = f"datamining_tmp_{ts}"
-    admin_dsn = _swap_dbname(dsn, "postgres")
-    tmp_dsn = _swap_dbname(dsn, tmp_db)
-    sql_file = _EXPORTS_DIR / f"merge_{ts}.sql"
-
-    async def _exec(*cmd: str, ok_codes: tuple = (0,)) -> None:
-        p = await asyncio.create_subprocess_exec(
-            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-        )
-        _, err = await p.communicate()
-        if p.returncode not in ok_codes:
-            raise RuntimeError(err.decode().strip())
+    sql_raw = _EXPORTS_DIR / f"merge_{ts}_raw.sql"
+    sql_patched = _EXPORTS_DIR / f"merge_{ts}.sql"
 
     try:
-        await _exec("psql", admin_dsn, "-c", f"CREATE DATABASE {tmp_db}")
-        try:
-            await _exec("pg_restore", f"--dbname={tmp_dsn}", str(dump_file), ok_codes=(0, 1))
+        # pg_restore --inserts braucht keine DB-Verbindung — nur Konvertierung in Text
+        with sql_raw.open("wb") as fh:
+            p = await asyncio.create_subprocess_exec(
+                "pg_restore", "--data-only", "--inserts", str(dump_file),
+                stdout=fh, stderr=asyncio.subprocess.PIPE,
+            )
+            _, err = await p.communicate()
+            if p.returncode not in (0, 1):
+                raise RuntimeError(err.decode().strip())
 
-            with sql_file.open("wb") as fh:
-                p = await asyncio.create_subprocess_exec(
-                    "pg_dump", "--data-only", "--inserts", "--on-conflict-do-nothing", tmp_dsn,
-                    stdout=fh, stderr=asyncio.subprocess.PIPE,
-                )
-                _, err = await p.communicate()
-                if p.returncode != 0:
-                    raise RuntimeError(err.decode().strip())
+        # ON CONFLICT DO NOTHING an jede INSERT-Zeile anhängen
+        with sql_raw.open("r", encoding="utf-8", errors="replace") as src, \
+             sql_patched.open("w", encoding="utf-8") as dst:
+            for line in src:
+                stripped = line.rstrip("\n")
+                if stripped.lstrip().upper().startswith("INSERT INTO") and stripped.endswith(";"):
+                    line = stripped[:-1] + " ON CONFLICT DO NOTHING;\n"
+                dst.write(line)
 
-            with sql_file.open("rb") as fh:
-                p = await asyncio.create_subprocess_exec(
-                    "psql", dsn,
-                    stdin=fh, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                )
-                _, err = await p.communicate()
-                if p.returncode != 0:
-                    raise RuntimeError(err.decode().strip())
-        finally:
-            await _exec("psql", admin_dsn, "-c", f"DROP DATABASE IF EXISTS {tmp_db}", ok_codes=(0,))
-            sql_file.unlink(missing_ok=True)
+        with sql_patched.open("rb") as fh:
+            p = await asyncio.create_subprocess_exec(
+                "psql", dsn,
+                stdin=fh, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
+            _, err = await p.communicate()
+            if p.returncode != 0:
+                raise RuntimeError(err.decode().strip())
 
         _merge_import_state.update(running=False, done=True)
         logger.info("DB-Merge-Import abgeschlossen: %s", dump_file.name)
@@ -207,5 +189,7 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
         _merge_import_state.update(running=False, done=False, error=str(e))
         logger.warning("DB-Merge-Import fehlgeschlagen: %s", e)
     finally:
+        sql_raw.unlink(missing_ok=True)
+        sql_patched.unlink(missing_ok=True)
         if dump_file.exists():
             dump_file.unlink()

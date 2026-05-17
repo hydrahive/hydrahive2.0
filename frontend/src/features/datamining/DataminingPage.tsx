@@ -161,7 +161,7 @@ export function DataminingPage() {
         <input ref={importRef} type="file" accept=".dump,.dump.gz" className="hidden" onChange={handleImport} />
         <button onClick={() => mergeImportRef.current?.click()} disabled={mergeImportState === "running"} className={actionBtn}>
           <Upload size={12} />
-          {mergeImportState === "running" ? "merge…" : mergeImportState === "done" ? "merge ✓" : "DB Merge"}
+          {mergeImportState === "running" ? "merge…" : mergeImportState === "done" ? "merge ✓" : mergeImportState === "error" ? "merge ✗" : "DB Merge"}
         </button>
         <input ref={mergeImportRef} type="file" accept=".dump,.dump.gz" className="hidden" onChange={handleMergeImport} />
         <button onClick={startSqliteImport} disabled={sqliteImport?.running ?? false} className={actionBtn}>
