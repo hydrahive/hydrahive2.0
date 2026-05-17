@@ -7,6 +7,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+_EMBED_BATCH = 32  # Texte pro API-Call — reduziert Requests drastisch
+
 
 def queue_embed(pool, events: list[dict]) -> None:
     """Plant Embedding-Berechnung für alle Events mit Inhalt im aktuellen Loop."""
@@ -47,21 +49,41 @@ async def embed_event(pool, event_id: str, text: str, model: str) -> None:
     try:
         async with pool.acquire() as conn:
             await conn.execute("""
-                UPDATE events SET embedding=$1::vector, embedding_model=$2, embedded_at=now()
+                UPDATE events SET embedding=$1::text::vector, embedding_model=$2, embedded_at=now()
                 WHERE id=$3 AND embedding IS NULL
             """, vec_str, model, event_id)
     except Exception as e:
         logger.warning("Embedding-Speichern fehlgeschlagen (%s): %s", event_id, e)
 
 
-async def backfill_loop(pool, model: str, batch_size: int = 100) -> int:
+async def _store_batch(pool, ids: list[str], vecs: list, model: str) -> None:
+    """Speichert eine Batch von Embeddings in einem DB-Acquire."""
+    async with pool.acquire() as conn:
+        for event_id, vec in zip(ids, vecs):
+            if vec is None:
+                continue
+            vec_str = "[" + ",".join(str(x) for x in vec) + "]"
+            try:
+                await conn.execute("""
+                    UPDATE events SET embedding=$1::text::vector, embedding_model=$2, embedded_at=now()
+                    WHERE id=$3 AND embedding IS NULL
+                """, vec_str, model, event_id)
+            except Exception as e:
+                logger.warning("Embedding-Speichern fehlgeschlagen (%s): %s", event_id, e)
+
+
+async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: float = 1.0) -> int:
     """Iteriert über noch nicht eingebettete Events und embedded sie batchweise.
 
+    Sendet _EMBED_BATCH Texte pro API-Call statt einen — gleiche Anzahl Requests,
+    deutlich mehr Durchsatz. Bei Rate-Limits: sleep_between erhöhen.
+
     Returns: Gesamtzahl der eingebetteten Events.
-    Caller verwaltet das `_backfill_running`-Flag.
     """
+    from hydrahive.llm.embed import aembed_batch
+
     total = 0
-    logger.info("Backfill gestartet (model=%s)", model)
+    logger.info("Backfill gestartet (model=%s, batch=%d, embed_batch=%d)", model, batch_size, _EMBED_BATCH)
     try:
         while True:
             if pool is None:
@@ -78,19 +100,30 @@ async def backfill_loop(pool, model: str, batch_size: int = 100) -> int:
                 """, batch_size)
             if not rows:
                 break
-            sem = asyncio.Semaphore(5)
 
-            async def _limited(r) -> None:
-                async with sem:
-                    text = f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"]
-                    await embed_event(pool, r["id"], text, model)
+            items = [
+                (r["id"], f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"])
+                for r in rows
+            ]
 
-            await asyncio.gather(*[_limited(r) for r in rows], return_exceptions=True)
+            # Pro Sub-Batch: ein API-Call statt N einzelne Calls
+            for i in range(0, len(items), _EMBED_BATCH):
+                sub = items[i:i + _EMBED_BATCH]
+                ids = [s[0] for s in sub]
+                texts = [s[1] for s in sub]
+                vecs = await aembed_batch(texts, model)
+                if pool is None:
+                    break
+                await _store_batch(pool, ids, vecs, model)
+                if i + _EMBED_BATCH < len(items):
+                    await asyncio.sleep(sleep_between)
+
             total += len(rows)
             logger.info("Backfill: %d eingebettet", total)
             if len(rows) < batch_size:
                 break
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(sleep_between)
+
         logger.info("Backfill abgeschlossen: %d Events eingebettet", total)
     except Exception as e:
         logger.warning("Backfill fehlgeschlagen nach %d Events: %s", total, e)
