@@ -122,13 +122,29 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         task_description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
 
     # Interner Agent: to_agent muss auf unsere AgentLink-ID zeigen damit AgentLink
-    # die Nachricht zurückrouten kann. Die echte Ziel-ID wird im reason-Feld
-    # als Präfix kodiert — extra{} wird von post_state nicht mitgeschickt.
+    # die Nachricht zurückrouten kann. Die echte Ziel-UUID wird im reason-Feld
+    # als Präfix kodiert. Lookup unterstützt UUID und Agent-Name (case-insensitiv).
     try:
         from hydrahive.agents import config as _ac
-        _is_internal = bool(_ac.get(target))
+        target_agent = _ac.get(target) or next(
+            (a for a in _ac.list_all() if a.get("name", "").lower() == target.lower()),
+            None,
+        )
+        _is_internal = bool(target_agent)
+        if _is_internal:
+            target = target_agent["id"]  # auf UUID normalisieren
     except Exception:
         _is_internal = False
+
+    # Caller-Name für AgentLink-Sichtbarkeit: "hydrahive/Agent Name" statt nur "hydrahive"
+    caller_al_id = settings.agentlink_agent_id
+    try:
+        from hydrahive.agents import config as _ac2
+        caller = _ac2.get(ctx.agent_id)
+        if caller and caller.get("name"):
+            caller_al_id = f"{settings.agentlink_agent_id}/{caller['name']}"
+    except Exception:
+        pass
 
     routing_target = settings.agentlink_agent_id if _is_internal else target
     task_reason = f"hh-task: {task[:120]}"
@@ -136,7 +152,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         task_reason = f"hh-target:{target}|{task_reason}"
 
     state = State(
-        agent_id=settings.agentlink_agent_id,
+        agent_id=caller_al_id,
         task=TaskBlock(type=task_type, description=task_description, status="in_progress"),
         context=ContextBlock(
             files=files,
