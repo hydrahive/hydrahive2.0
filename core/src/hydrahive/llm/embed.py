@@ -96,54 +96,67 @@ async def aembed(text: str, model: str) -> list[float] | None:
     return results[0] if results else None
 
 
-async def aembed_batch(texts: list[str], model: str) -> list[list[float] | None]:
+def _is_rate_limit(e: Exception) -> bool:
+    msg = str(e).lower()
+    return "rate limit" in msg or "ratelimit" in msg or "429" in msg or "too many" in msg
+
+
+async def aembed_batch(texts: list[str], model: str, _retry: int = 3) -> list[list[float] | None]:
     """Bettet mehrere Texte in einem einzigen API-Call ein.
 
     Provider mit api_base (z.B. NVIDIA NIM) nutzen den openai-Client direkt —
     LiteLLM konstruiert URLs für custom-base-URL-Provider nicht korrekt.
+    Bei Rate-Limit-Fehlern: bis zu _retry Versuche mit 60s Pause.
     """
     from hydrahive.llm._config import apply_keys, get_provider_key, load_config
     if not texts:
         return []
-    try:
-        entry = _BY_MODEL.get(model, {})
-        config = load_config()
+    for attempt in range(1, _retry + 1):
+        try:
+            entry = _BY_MODEL.get(model, {})
+            config = load_config()
 
-        if entry.get("api_base"):
-            provider = _PROVIDER_BY_MODEL.get(model, "")
-            key = get_provider_key(config, provider)
+            if entry.get("api_base"):
+                provider = _PROVIDER_BY_MODEL.get(model, "")
+                key = get_provider_key(config, provider)
 
-            if provider == "minimax":
-                api_model = model.split("/", 1)[-1] if "/" in model else model
-                import httpx
-                async with httpx.AsyncClient(timeout=60) as hc:
-                    r = await hc.post(
-                        f"{entry['api_base']}/embeddings",
-                        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                        json={"model": api_model, "texts": texts, "type": "db"},
-                    )
-                    r.raise_for_status()
-                    data = r.json()
-                    if data.get("base_resp", {}).get("status_code", 0) != 0:
-                        raise RuntimeError(data["base_resp"].get("status_msg", "MiniMax Fehler"))
-                    return [list(v) for v in data["vectors"]]
+                if provider == "minimax":
+                    api_model = model.split("/", 1)[-1] if "/" in model else model
+                    import httpx
+                    async with httpx.AsyncClient(timeout=60) as hc:
+                        r = await hc.post(
+                            f"{entry['api_base']}/embeddings",
+                            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                            json={"model": api_model, "texts": texts, "type": "db"},
+                        )
+                        r.raise_for_status()
+                        data = r.json()
+                        if data.get("base_resp", {}).get("status_code", 0) != 0:
+                            raise RuntimeError(data["base_resp"].get("status_msg", "MiniMax Fehler"))
+                        return [list(v) for v in data["vectors"]]
 
-            import openai
-            client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
-            resp = await asyncio.wait_for(
-                client.embeddings.create(model=model, input=texts),
-                timeout=30,
-            )
-            ordered = sorted(resp.data, key=lambda d: d.index)
-            return [list(d.embedding) for d in ordered]
-        else:
-            import litellm
-            apply_keys(config)
-            resp = await asyncio.wait_for(
-                litellm.aembedding(model=litellm_model(model), input=texts),
-                timeout=30,
-            )
-            return [d["embedding"] for d in resp.data]
-    except Exception as e:
-        logger.warning("Batch-Embedding fehlgeschlagen (model=%s, n=%d): %s", model, len(texts), e)
-        return [None] * len(texts)
+                import openai
+                client = openai.AsyncOpenAI(api_key=key, base_url=entry["api_base"])
+                resp = await asyncio.wait_for(
+                    client.embeddings.create(model=model, input=texts),
+                    timeout=30,
+                )
+                ordered = sorted(resp.data, key=lambda d: d.index)
+                return [list(d.embedding) for d in ordered]
+            else:
+                import litellm
+                apply_keys(config)
+                resp = await asyncio.wait_for(
+                    litellm.aembedding(model=litellm_model(model), input=texts),
+                    timeout=30,
+                )
+                return [d["embedding"] for d in resp.data]
+        except Exception as e:
+            if _is_rate_limit(e) and attempt < _retry:
+                wait = 60 * attempt
+                logger.warning("Rate-Limit (model=%s, n=%d, Versuch %d/%d) — warte %ds", model, len(texts), attempt, _retry, wait)
+                await asyncio.sleep(wait)
+                continue
+            logger.warning("Batch-Embedding fehlgeschlagen (model=%s, n=%d): %s", model, len(texts), e)
+            return [None] * len(texts)
+    return [None] * len(texts)
