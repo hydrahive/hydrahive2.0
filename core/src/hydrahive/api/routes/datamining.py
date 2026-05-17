@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Annotated, Any
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -48,7 +51,8 @@ async def search_events(
             limit=min(limit, 100),
         )
         return {"active": True, "results": results, "error": None}
-    except ValueError as e:
+    except Exception as e:
+        logger.warning("search_events fehlgeschlagen: %s", e)
         return {"active": True, "results": [], "error": str(e)}
 
 
