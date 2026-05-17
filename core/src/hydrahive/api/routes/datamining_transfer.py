@@ -152,11 +152,16 @@ def _cleanup_old_exports(keep: str) -> None:
 _COPY_RE = re.compile(r"COPY (\S+) \(([^)]+)\) FROM stdin;")
 
 
-def _copy_to_inserts(src: Path, dst: Path) -> None:
-    """Konvertiert COPY-Blöcke aus einem pg_restore-SQL-Dump zu INSERT ON CONFLICT DO NOTHING."""
+def _copy_to_inserts(src: Path, dst: Path, target_cols: dict[str, set[str]] | None = None) -> None:
+    """Konvertiert COPY-Blöcke aus einem pg_restore-SQL-Dump zu INSERT ON CONFLICT DO NOTHING.
+
+    target_cols: {tabellenname → Menge existierender Spalten} — filtert Quellspalten
+    die in der Zieltabelle nicht vorhanden sind (z.B. embedding-Spalten).
+    """
     in_copy = False
     table_expr = ""
     cols_str = ""
+    col_indices: list[int] | None = None  # welche Quellspalten-Indizes behalten werden
 
     with src.open("r", encoding="utf-8", errors="replace") as fin, \
          dst.open("w", encoding="utf-8") as fout:
@@ -166,20 +171,33 @@ def _copy_to_inserts(src: Path, dst: Path) -> None:
                 m = _COPY_RE.match(stripped)
                 if m:
                     table_expr = m.group(1)
-                    cols_str = m.group(2)
+                    src_cols = [c.strip() for c in m.group(2).split(",")]
+                    tbl_name = table_expr.split(".")[-1]  # schema.tabelle → tabelle
+                    if target_cols and tbl_name in target_cols:
+                        tgt = target_cols[tbl_name]
+                        keep = [(i, c) for i, c in enumerate(src_cols) if c in tgt]
+                        col_indices = [i for i, _ in keep]
+                        cols_str = ", ".join(c for _, c in keep)
+                        logger.debug("Merge %s: %d/%d Spalten übernommen", tbl_name, len(keep), len(src_cols))
+                    else:
+                        col_indices = None
+                        cols_str = m.group(2)
                     in_copy = True
-                else:
+                elif not stripped.startswith("\\"):
+                    # psql-Metacommands (\restrict etc.) überspringen
                     fout.write(line)
             elif stripped == "\\.":
                 in_copy = False
+                col_indices = None
             else:
                 fields = stripped.split("\t")
+                if col_indices is not None:
+                    fields = [fields[i] for i in col_indices if i < len(fields)]
                 quoted = []
                 for f in fields:
                     if f == "\\N":
                         quoted.append("NULL")
                     else:
-                        # COPY-Escape-Sequenzen auflösen
                         val = (
                             f.replace("\\\\", "\x00")
                              .replace("\\t", "\t")
@@ -195,6 +213,28 @@ def _copy_to_inserts(src: Path, dst: Path) -> None:
                 )
 
 
+async def _query_target_cols(dsn: str) -> dict[str, set[str]]:
+    """Fragt die tatsächlich vorhandenen Spalten aller Datamining-Tabellen ab."""
+    try:
+        import asyncpg  # noqa: PLC0415
+        conn = await asyncpg.connect(dsn, command_timeout=10)
+        try:
+            result: dict[str, set[str]] = {}
+            for tbl in ("sessions", "events", "llm_calls", "compaction_events", "errors_log"):
+                rows = await conn.fetch(
+                    "SELECT attname FROM pg_attribute "
+                    "WHERE attrelid = $1::regclass AND attnum > 0 AND NOT attisdropped",
+                    tbl,
+                )
+                result[tbl] = {r["attname"] for r in rows}
+            return result
+        finally:
+            await conn.close()
+    except Exception as e:
+        logger.warning("DB-Merge: Zielspalten-Abfrage fehlgeschlagen: %s", e)
+        return {}
+
+
 async def _run_import_merge(dsn: str, dump_file: Path) -> None:
     _merge_import_state.update(running=True, done=False, error=None)
     ts = int(time.time())
@@ -202,6 +242,10 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
     sql_patched = _EXPORTS_DIR / f"merge_{ts}.sql"
 
     try:
+        # Zielspalten abfragen — Quellspalten die nicht existieren (z.B. embedding) werden gefiltert
+        target_cols = await _query_target_cols(dsn)
+        logger.info("DB-Merge Zielspalten: %s", {t: len(c) for t, c in target_cols.items()})
+
         # pg_restore --data-only → COPY-SQL (ohne DB-Verbindung, --file= nötig)
         p = await asyncio.create_subprocess_exec(
             "pg_restore", "--data-only", "--no-privileges", f"--file={sql_raw}", str(dump_file),
@@ -215,19 +259,21 @@ async def _run_import_merge(dsn: str, dump_file: Path) -> None:
         if p.returncode not in (0, 1):
             raise RuntimeError(pg_restore_stderr)
 
-        # COPY-Blöcke → INSERT ON CONFLICT DO NOTHING (streaming, speichereffizient)
-        await asyncio.get_running_loop().run_in_executor(None, _copy_to_inserts, sql_raw, sql_patched)
+        # COPY-Blöcke → INSERT ON CONFLICT DO NOTHING, nur Spalten die in Ziel existieren
+        await asyncio.get_running_loop().run_in_executor(
+            None, _copy_to_inserts, sql_raw, sql_patched, target_cols
+        )
         patched_size = sql_patched.stat().st_size if sql_patched.exists() else 0
         logger.info("DB-Merge COPY→INSERT: patched_sql=%d bytes", patched_size)
 
         with sql_patched.open("rb") as fh:
             p = await asyncio.create_subprocess_exec(
-                "psql", dsn,
+                "psql", "--set=ON_ERROR_STOP=0", dsn,
                 stdin=fh, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
             )
             _, err = await p.communicate()
             psql_stderr = err.decode().strip()
-            logger.info("DB-Merge psql: rc=%d, stderr=%s", p.returncode, psql_stderr[:300] or "(leer)")
+            logger.info("DB-Merge psql: rc=%d, stderr=%s", p.returncode, psql_stderr[:500] or "(leer)")
             if p.returncode != 0:
                 raise RuntimeError(psql_stderr)
 
