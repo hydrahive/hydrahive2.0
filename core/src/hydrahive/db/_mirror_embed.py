@@ -8,6 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 _EMBED_BATCH = 32  # Texte pro API-Call — reduziert Requests drastisch
+_MAX_TEXT_CHARS = 24_000  # ~6000 Tokens — sicher unter dem 8192-Token-Limit von OpenAI
 
 
 def queue_embed(pool, events: list[dict]) -> None:
@@ -32,9 +33,8 @@ def embed_text(e: dict) -> str | None:
     base = e.get("text") or e.get("tool_output") or (_json.dumps(ti, ensure_ascii=False) if ti else None)
     if not base:
         return None
-    if tool_name:
-        return f"{tool_name}: {base}"
-    return base
+    text = f"{tool_name}: {base}" if tool_name else base
+    return text[:_MAX_TEXT_CHARS]
 
 
 async def embed_event(pool, event_id: str, text: str, model: str) -> None:
@@ -105,7 +105,10 @@ async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: 
                 break
 
             items = [
-                (r["id"], f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"])
+                (
+                    r["id"],
+                    (f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"])[:_MAX_TEXT_CHARS],
+                )
                 for r in rows
             ]
 
@@ -124,6 +127,9 @@ async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: 
 
             total += batch_stored
             logger.info("Backfill: %d eingebettet (Batch: %d/%d erfolgreich)", total, batch_stored, len(rows))
+            if batch_stored == 0:
+                logger.error("Backfill abgebrochen: kein einziges Event gespeichert — API-Fehler oder alle Texte ungültig")
+                break
             if len(rows) < batch_size:
                 break
             await asyncio.sleep(sleep_between)
