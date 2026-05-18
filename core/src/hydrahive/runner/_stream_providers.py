@@ -121,10 +121,10 @@ def _block_to_dict(block: Any) -> dict:
 
 def _usage_dict(usage: Any) -> dict:
     return {
-        "input_tokens": getattr(usage, "input_tokens", 0) if usage else 0,
-        "output_tokens": getattr(usage, "output_tokens", 0) if usage else 0,
-        "cache_creation_tokens": getattr(usage, "cache_creation_input_tokens", 0) if usage else 0,
-        "cache_read_tokens": getattr(usage, "cache_read_input_tokens", 0) if usage else 0,
+        "input_tokens": (getattr(usage, "input_tokens", 0) or 0) if usage else 0,
+        "output_tokens": (getattr(usage, "output_tokens", 0) or 0) if usage else 0,
+        "cache_creation_tokens": (getattr(usage, "cache_creation_input_tokens", 0) or 0) if usage else 0,
+        "cache_read_tokens": (getattr(usage, "cache_read_input_tokens", 0) or 0) if usage else 0,
     }
 
 
