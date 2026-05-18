@@ -231,19 +231,22 @@ async def minimax_anthropic_call(
         "max_tokens": max_tokens,
     }
     if system_prompt or summary_system or volatile_system:
-        blocks: list[dict[str, Any]] = []
-        if system_prompt:
-            blocks.append({"type": "text", "text": system_prompt})
-        if summary_system:
-            blocks.append({"type": "text", "text": summary_system})
-        if volatile_system:
-            blocks.append({"type": "text", "text": volatile_system})
-        kwargs["system"] = blocks
+        # MiniMax: system als einzelner Text-Block — Array mit mehreren Blöcken
+        # führt nach Compaction (3 Blöcke: stable+summary+volatile) zu HTTP 500.
+        parts = [p for p in [system_prompt, summary_system, volatile_system] if p]
+        kwargs["system"] = "\n\n".join(parts)
     if tools:
         kwargs["tools"] = tools
 
     apply_thinking_budget(kwargs, reasoning_effort)
 
+    logger.debug(
+        "MiniMax non-stream: model=%s msgs=%d sys_len=%d tools=%d thinking=%s",
+        model, len(messages),
+        len(kwargs.get("system", "") or ""),
+        len(tools),
+        "thinking" in kwargs,
+    )
     resp = await client.messages.create(**kwargs)
     blocks = [_block_to_dict(b) for b in resp.content]
     stop_reason = getattr(resp, "stop_reason", "") or ""

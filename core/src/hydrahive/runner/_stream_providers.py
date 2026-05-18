@@ -233,14 +233,10 @@ async def minimax_stream(
     kwargs: dict[str, Any] = {"model": model, "messages": messages,
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_prompt or summary_system or volatile_system:
-        blocks: list[dict[str, Any]] = []
-        if system_prompt:
-            blocks.append({"type": "text", "text": system_prompt})
-        if summary_system:
-            blocks.append({"type": "text", "text": summary_system})
-        if volatile_system:
-            blocks.append({"type": "text", "text": volatile_system})
-        kwargs["system"] = blocks
+        # MiniMax: system als einzelner String — Array mit mehreren Blöcken
+        # führt nach Compaction (3 Blöcke) zu HTTP 500 "input json is empty".
+        parts = [p for p in [system_prompt, summary_system, volatile_system] if p]
+        kwargs["system"] = "\n\n".join(parts)
     if tools:
         kwargs["tools"] = tools
 
