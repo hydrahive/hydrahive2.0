@@ -222,8 +222,8 @@ async def minimax_anthropic_call(
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
 
-    # MiniMax unterstützt Anthropic-Prompt-Caching nicht — cache_control in Messages,
-    # System-Blöcken und Tools verursacht Go SyntaxError{Pos:0, Src:""} → HTTP 500.
+    from hydrahive.runner._stream_providers import _strip_minimax_cache_control
+    messages, tools = _strip_minimax_cache_control(messages, tools)
     kwargs: dict[str, Any] = {
         "model": model,
         "messages": messages,

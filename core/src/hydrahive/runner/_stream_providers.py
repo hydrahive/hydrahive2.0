@@ -119,6 +119,20 @@ def _block_to_dict(block: Any) -> dict:
     return {"type": getattr(block, "type", "unknown")}
 
 
+def _strip_minimax_cache_control(messages: list[dict], tools: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Entfernt cache_control aus Messages und Tools — MiniMax wirft sonst HTTP 500."""
+    clean: list[dict] = []
+    for msg in messages:
+        content = msg.get("content")
+        if isinstance(content, list):
+            stripped = [{k: v for k, v in b.items() if k != "cache_control"} for b in content]
+            clean.append({**msg, "content": stripped})
+        else:
+            clean.append(msg)
+    clean_tools = [{k: v for k, v in t.items() if k != "cache_control"} for t in tools]
+    return clean, clean_tools
+
+
 def _usage_dict(usage: Any) -> dict:
     return {
         "input_tokens": (getattr(usage, "input_tokens", 0) or 0) if usage else 0,
@@ -215,8 +229,7 @@ async def minimax_stream(
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
 
-    # MiniMax unterstützt Anthropic-Prompt-Caching nicht — cache_control in Messages,
-    # System-Blöcken und Tools verursacht Go SyntaxError{Pos:0, Src:""} → HTTP 500.
+    messages, tools = _strip_minimax_cache_control(messages, tools)
     kwargs: dict[str, Any] = {"model": model, "messages": messages,
                               "temperature": temperature, "max_tokens": max_tokens}
     if system_prompt or summary_system or volatile_system:
