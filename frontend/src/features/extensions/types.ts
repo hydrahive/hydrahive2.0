@@ -42,6 +42,7 @@ export type InstallMode = "native" | "docker"
 export const CATEGORIES: { id: string; label: string }[] = [
   { id: "all", label: "Alle" },
   { id: "tools", label: "Tools" },
+  { id: "dev", label: "Entwicklung" },
   { id: "ai", label: "KI" },
   { id: "network", label: "Netzwerk" },
   { id: "security", label: "Sicherheit" },

@@ -1,0 +1,11 @@
+{
+  "id": "nodejs",
+  "name": "Node.js + npm (LTS)",
+  "description": "Node.js LTS inkl. npm — JavaScript/TypeScript-Runtime für Agents, Scripting und Build-Tools.",
+  "icon": "Code2",
+  "category": "dev",
+  "install_script": "install/nodejs.sh",
+  "uninstall_script": "uninstall/nodejs.sh",
+  "installed_check": "/usr/bin/node",
+  "install_params": []
+}

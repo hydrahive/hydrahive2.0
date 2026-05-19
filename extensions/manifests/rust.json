@@ -1,0 +1,11 @@
+{
+  "id": "rust",
+  "name": "Rust + Cargo",
+  "description": "Rust-Toolchain via rustup — Compiler, Cargo Package-Manager, rustfmt. Für systemnahes Coding.",
+  "icon": "Code2",
+  "category": "dev",
+  "install_script": "install/rust.sh",
+  "uninstall_script": "uninstall/rust.sh",
+  "installed_check": "/usr/local/bin/cargo",
+  "install_params": []
+}
