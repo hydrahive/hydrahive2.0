@@ -65,17 +65,37 @@ export function ChatPage() {
   const [tokenRefresh, setTokenRefresh] = useState(0)
   const [showPixelMonitor, setShowPixelMonitor] = useState(false)
 
-  const currentTool = useMemo(() => {
-    if (!chat.busy) return null
-    for (let i = allMessages.length - 1; i >= 0; i--) {
-      const content = allMessages[i].content
-      if (!Array.isArray(content)) continue
-      for (let j = content.length - 1; j >= 0; j--) {
-        if (content[j].type === "tool_use") return (content[j] as { type: "tool_use"; name: string }).name
+  const pixelData = useMemo(() => {
+    if (!activeAgent) return { agentTools: {}, activeAgents: [], doneAgents: [] }
+    type ToolUse = { type: "tool_use"; name: string; input: Record<string, unknown> }
+    const toolsByAgent: Record<string, string[]> = { [activeAgent.name]: [] }
+
+    for (const msg of allMessages) {
+      if (!Array.isArray(msg.content)) continue
+      for (const block of msg.content) {
+        if (block.type !== "tool_use") continue
+        const b = block as ToolUse
+        toolsByAgent[activeAgent.name].push(b.name)
+        if (b.name === "ask_agent") {
+          const targetId = (b.input?.agent_id ?? "") as string
+          if (targetId) {
+            const found = agents.find(
+              a => a.id === targetId || a.name.toLowerCase().includes(targetId.toLowerCase())
+            )
+            const targetName = found?.name ?? targetId
+            if (!toolsByAgent[targetName]) toolsByAgent[targetName] = []
+          }
+        }
       }
     }
-    return null
-  }, [allMessages, chat.busy])
+
+    const hasActivity = Object.values(toolsByAgent).some(t => t.length > 0)
+    return {
+      agentTools: toolsByAgent,
+      activeAgents: chat.busy ? [activeAgent.name] : [],
+      doneAgents: !chat.busy && hasActivity ? Object.keys(toolsByAgent) : [],
+    }
+  }, [allMessages, activeAgent, agents, chat.busy])
   const { compacting, compactNote, handleCompact } = useChatCompact(
     activeId, chat.reload, () => setTokenRefresh((n) => n + 1),
   )
@@ -165,11 +185,11 @@ export function ChatPage() {
                 }
               />
               <ChatBubbleThread />
-              {showPixelMonitor && activeAgent && (
+              {showPixelMonitor && (
                 <AgentPixelMonitor
-                  agentName={activeAgent.name}
-                  currentTool={currentTool}
-                  busy={chat.busy}
+                  agentTools={pixelData.agentTools}
+                  activeAgents={pixelData.activeAgents}
+                  doneAgents={pixelData.doneAgents}
                 />
               )}
               {chat.error && (
