@@ -39,6 +39,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
                 "remote_url": (cfg or {}).get("remote_url") or "",
                 "has_token": bool((cfg or {}).get("git_token")),
             })
+
+        # Freigegebene Specialists mit ID + Name auflösen
+        specialists = []
+        for sid in (p.get("allowed_specialists") or []):
+            s = agent_config.get(sid)
+            specialists.append({"id": sid, "name": s.get("name", sid) if s else sid})
+
         out.append({
             "id": p["id"],
             "name": p["name"],
@@ -47,6 +54,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "workspace": str(workspace_path(p["id"])),
             "repos": repos,
             "members": p.get("members", []),
+            "allowed_specialists": specialists,
             "samba_enabled": bool(p.get("samba_enabled")),
         })
     return ToolResult.ok({"projects": out, "count": len(out)})
