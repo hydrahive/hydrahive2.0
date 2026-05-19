@@ -1,0 +1,11 @@
+{
+  "id": "golang",
+  "name": "Go (Programmiersprache)",
+  "description": "Go-Toolchain — Compiler, go-Tool, gofmt. Agents können Go-Projekte bauen, testen und deployen.",
+  "icon": "Code2",
+  "category": "dev",
+  "install_script": "install/golang.sh",
+  "uninstall_script": "uninstall/golang.sh",
+  "installed_check": "/usr/local/bin/go",
+  "install_params": []
+}

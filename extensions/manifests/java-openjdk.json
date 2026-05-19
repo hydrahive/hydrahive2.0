@@ -1,0 +1,11 @@
+{
+  "id": "java-openjdk",
+  "name": "Java 21 (OpenJDK)",
+  "description": "OpenJDK 21 LTS + Maven — Java-Laufzeitumgebung und Build-Tool für Java/Kotlin-Projekte.",
+  "icon": "Code2",
+  "category": "dev",
+  "install_script": "install/java-openjdk.sh",
+  "uninstall_script": "uninstall/java-openjdk.sh",
+  "installed_check": "/usr/bin/java",
+  "install_params": []
+}
