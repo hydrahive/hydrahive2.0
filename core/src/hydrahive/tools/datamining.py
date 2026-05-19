@@ -50,12 +50,14 @@ _TODAY_SCHEMA = {
 _TIMELINE_SCHEMA = {
     "type": "object",
     "properties": {
-        "from_date":   {"type": "string", "description": "ISO-Datum z.B. '2025-11-01'"},
+        "from_date":   {"type": "string", "description": "ISO-Datum z.B. '2025-11-01' (default: letzte 7 Tage)"},
         "to_date":     {"type": "string", "description": "ISO-Datum (default: heute)"},
         "agent_name":  {"type": "string", "description": "Optional: nur Sessions dieses Agents"},
+        "sort":        {"type": "string", "enum": ["date", "activity"],
+                        "description": "Sortierung: 'date' = neueste zuerst (default), 'activity' = meiste Events zuerst"},
         "limit":       {"type": "integer", "default": 200, "description": "Max. Sessions"},
     },
-    "required": ["from_date"],
+    "required": [],
 }
 
 
@@ -95,10 +97,16 @@ async def _semantic(args: dict, ctx: ToolContext) -> ToolResult:
 
 async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
     from hydrahive.db import mirror_query
-    from datetime import date as _date
-    from_date = (args.get("from_date") or "").strip()
-    to_date = (args.get("to_date") or "").strip() or _date.today().isoformat()
+    from datetime import date as _date, timedelta
+    from collections import defaultdict
+
+    today = _date.today().isoformat()
+    default_from = (_date.today() - timedelta(days=7)).isoformat()
+    from_date = (args.get("from_date") or "").strip() or default_from
+    to_date = (args.get("to_date") or "").strip() or today
+    sort = (args.get("sort") or "date").strip()
     limit = min(int(args.get("limit", 200)), 500)
+
     try:
         sessions = await mirror_query.list_sessions(
             agent_name=args.get("agent_name") or None,
@@ -106,8 +114,7 @@ async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
             to_date=to_date + "T23:59:59",
             limit=limit,
         )
-        # Nach Tag gruppieren
-        from collections import defaultdict
+
         by_day: dict = defaultdict(list)
         for s in sessions:
             day = str(s.get("started_at") or s.get("updated_at") or "")[:10]
@@ -118,8 +125,24 @@ async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
                 "events": s.get("event_count", 0),
                 "started": str(s.get("started_at") or "")[:16].replace("T", " "),
             })
-        days = [{"date": d, "sessions": len(v), "details": v}
-                for d, v in sorted(by_day.items(), reverse=True)]
+
+        days = []
+        for d, details in by_day.items():
+            total_events = sum(s["events"] for s in details)
+            agents = sorted({s["agent"] for s in details if s["agent"] != "?"})
+            days.append({
+                "date": d,
+                "sessions": len(details),
+                "events": total_events,
+                "agents": agents,
+                "details": details,
+            })
+
+        if sort == "activity":
+            days.sort(key=lambda x: x["events"], reverse=True)
+        else:
+            days.sort(key=lambda x: x["date"], reverse=True)
+
         return ToolResult.ok(_serialize({
             "from_date": from_date, "to_date": to_date,
             "total_sessions": len(sessions), "days": days,
@@ -165,9 +188,11 @@ TOOL_SEMANTIC = Tool(
 TOOL_TIMELINE = Tool(
     name="datamining_timeline",
     description=(
-        "Zeitstrahl aller Sessions in einem Zeitraum, gruppiert nach Tag. "
+        "Zeitstrahl aller Sessions, gruppiert nach Tag. Default: letzte 7 Tage. "
+        "Jeder Tag enthält Anzahl Sessions, Gesamtevents und beteiligte Agents. "
         "**Erste Wahl** wenn der User nach einem Zeitraum fragt ('letzte Woche', 'gestern', "
-        "'im November') — vermeidet raten nach Suchbegriffen."
+        "'im November') — vermeidet raten nach Suchbegriffen. "
+        "sort='activity' liefert die aktivsten Tage zuerst."
     ),
     schema=_TIMELINE_SCHEMA,
     execute=_timeline,
