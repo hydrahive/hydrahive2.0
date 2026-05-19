@@ -4,7 +4,7 @@
   "name": "MiniMax-Researcher",
   "description": "Recherche-Agent mit tiefem Nachdenken. Durchsucht Quellen systematisch, verifiziert Fakten. Aktiviere Thinking (high) im Chat-Header für beste Ergebnisse.",
   "llm_model": "MiniMax-M2.7",
-  "tools": ["web_search", "fetch_url", "read_file", "write_file", "write_memory", "read_memory", "search_memory"],
+  "tools": ["web_search", "fetch_url", "file_read", "file_write", "write_memory", "read_memory", "search_memory"],
   "temperature": 0.4,
   "max_tokens": 16384,
   "thinking_budget": 0,

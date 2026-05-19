@@ -4,7 +4,7 @@
   "name": "MiniMax-Coder",
   "description": "Coding-Agent mit Interleaved Thinking. Ideal für mehrstufige Coding-Tasks, Tool-Loops und Planung. Aktiviere Thinking (medium) im Chat-Header.",
   "llm_model": "MiniMax-M2.7",
-  "tools": ["shell_exec", "read_file", "write_file", "list_dir", "write_memory", "read_memory"],
+  "tools": ["shell_exec", "file_read", "file_write", "file_patch", "plugin__file-search__tree", "write_memory", "read_memory"],
   "temperature": 0.3,
   "max_tokens": 16384,
   "thinking_budget": 0,
