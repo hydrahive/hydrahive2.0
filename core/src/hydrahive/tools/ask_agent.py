@@ -93,9 +93,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     # UUID-Normalisierung zuerst: Name → UUID, damit der Auth-Check UUIDs vergleicht
     try:
         from hydrahive.agents import config as _ac
-        target_agent = _ac.get(target) or next(
-            (a for a in _ac.list_all() if a.get("name", "").lower() == target.lower()),
-            None,
+        all_agents = _ac.list_all()
+        target_agent = (
+            _ac.get(target)
+            or next((a for a in all_agents if a.get("name", "").lower() == target.lower()), None)
+            or next((a for a in all_agents if target.lower() in a.get("name", "").lower()), None)
         )
         _is_internal = bool(target_agent)
         if _is_internal:
