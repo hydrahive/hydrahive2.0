@@ -86,7 +86,24 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not task:
         return ToolResult.fail("task fehlt")
 
-    # Project-Agents dürfen nur freigegebene Specialists beauftragen
+    task_type = args.get("task_type") or "feature"
+    raw_context = args.get("context") or {}
+    required_skills = args.get("required_skills") or []
+
+    # UUID-Normalisierung zuerst: Name → UUID, damit der Auth-Check UUIDs vergleicht
+    try:
+        from hydrahive.agents import config as _ac
+        target_agent = _ac.get(target) or next(
+            (a for a in _ac.list_all() if a.get("name", "").lower() == target.lower()),
+            None,
+        )
+        _is_internal = bool(target_agent)
+        if _is_internal:
+            target = target_agent["id"]  # auf UUID normalisieren
+    except Exception:
+        _is_internal = False
+
+    # Project-Agents dürfen nur freigegebene Specialists beauftragen (nach UUID-Normalisierung)
     try:
         from hydrahive.agents import config as agent_config
         from hydrahive.projects import config as project_config
@@ -104,10 +121,6 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     except Exception as e:
         logger.debug("Specialists-Check übersprungen: %s", e)
 
-    task_type = args.get("task_type") or "feature"
-    raw_context = args.get("context") or {}
-    required_skills = args.get("required_skills") or []
-
     # Friendly-Key-Mapping: error_log / code_snippet / related_files
     errors = list(raw_context.get("errors") or [])
     if raw_context.get("error_log"):
@@ -120,21 +133,6 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     task_description = task
     if raw_context.get("code_snippet"):
         task_description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
-
-    # Interner Agent: to_agent muss auf unsere AgentLink-ID zeigen damit AgentLink
-    # die Nachricht zurückrouten kann. Die echte Ziel-UUID wird im reason-Feld
-    # als Präfix kodiert. Lookup unterstützt UUID und Agent-Name (case-insensitiv).
-    try:
-        from hydrahive.agents import config as _ac
-        target_agent = _ac.get(target) or next(
-            (a for a in _ac.list_all() if a.get("name", "").lower() == target.lower()),
-            None,
-        )
-        _is_internal = bool(target_agent)
-        if _is_internal:
-            target = target_agent["id"]  # auf UUID normalisieren
-    except Exception:
-        _is_internal = False
 
     # Caller-Name für AgentLink-Sichtbarkeit: "hydrahive/Agent Name" statt nur "hydrahive"
     caller_al_id = settings.agentlink_agent_id
