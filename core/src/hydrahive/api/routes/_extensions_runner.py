@@ -29,7 +29,8 @@ from hydrahive.settings import settings
 logger = logging.getLogger(__name__)
 
 _DANGEROUS_PATTERNS = [
-    r"rm\s+-rf\s+/[^/]",
+    # rm -rf / oder rm -rf /toplevel (ein Level — kein /a/b/c-Pfad)
+    r"rm\s+-rf\s+/[^/\s]*(?:\s|$)",
     r"curl\s+.*\|\s*bash",
     r"wget\s+.*\|\s*bash",
     r"\bmkfs\b",
