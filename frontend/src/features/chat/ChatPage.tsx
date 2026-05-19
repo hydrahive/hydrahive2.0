@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Coins, Cpu, Download, FileText, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
+import { Coins, Cpu, Download, FileText, GamepadIcon, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
+import { AgentPixelMonitor } from "./AgentPixelMonitor"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
@@ -62,6 +63,19 @@ export function ChatPage() {
   }
 
   const [tokenRefresh, setTokenRefresh] = useState(0)
+  const [showPixelMonitor, setShowPixelMonitor] = useState(false)
+
+  const currentTool = useMemo(() => {
+    if (!chat.busy) return null
+    for (let i = allMessages.length - 1; i >= 0; i--) {
+      const content = allMessages[i].content
+      if (!Array.isArray(content)) continue
+      for (let j = content.length - 1; j >= 0; j--) {
+        if (content[j].type === "tool_use") return (content[j] as { type: "tool_use"; name: string }).name
+      }
+    }
+    return null
+  }, [allMessages, chat.busy])
   const { compacting, compactNote, handleCompact } = useChatCompact(
     activeId, chat.reload, () => setTokenRefresh((n) => n + 1),
   )
@@ -151,6 +165,13 @@ export function ChatPage() {
                 }
               />
               <ChatBubbleThread />
+              {showPixelMonitor && activeAgent && (
+                <AgentPixelMonitor
+                  agentName={activeAgent.name}
+                  currentTool={currentTool}
+                  busy={chat.busy}
+                />
+              )}
               {chat.error && (
                 <div className="px-4 py-2 text-xs text-rose-400 bg-rose-500/10 border-t border-rose-500/20 flex items-center justify-between gap-3">
                   <span>{chat.error}</span>
@@ -188,6 +209,7 @@ export function ChatPage() {
                       <CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} />
                       <CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} />
                       <SkillCatalogPill agentId={activeAgent?.id ?? null} insert={insert} />
+                      <CmdPill icon={<GamepadIcon size={11} />} label="pixel" color={showPixelMonitor ? "violet" : "sky"} onClick={() => setShowPixelMonitor(v => !v)} />
                     </>
                   )}
                 />
