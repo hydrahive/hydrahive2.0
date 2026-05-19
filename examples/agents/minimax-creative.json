@@ -4,7 +4,7 @@
   "name": "MiniMax-Creative",
   "description": "Kreativer Medien-Agent: Bilder, Videos, Sprache, Musik per MiniMax-MCP. Benötigt installierten MiniMax-MCP-Server und MINIMAX_API_KEY.",
   "llm_model": "MiniMax-M1",
-  "tools": ["read_file", "write_file"],
+  "tools": ["file_read", "file_write"],
   "temperature": 0.8,
   "max_tokens": 8192,
   "thinking_budget": 0,
