@@ -57,17 +57,53 @@ if [ ! -f "$SEARXNG_SETTINGS" ]; then
   cp "$SEARXNG_DIR/searx/settings_loader.py" "$SEARXNG_SETTINGS" 2>/dev/null || true
 fi
 
-# Secret-Key setzen (einmalig generieren)
-if [ -f "$SEARXNG_SETTINGS" ]; then
-  if grep -q "ultrasecretkey\|change_this" "$SEARXNG_SETTINGS" 2>/dev/null; then
-    SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-    log "Secret-Key generieren"
-    sed -i "s|ultrasecretkey|$SECRET|g; s|change_this.*|$SECRET|g" "$SEARXNG_SETTINGS"
-  fi
-  # Bind-Adresse auf 0.0.0.0 setzen damit HydraHive erreichbar ist
-  sed -i "s|bind_address:.*|bind_address: \"0.0.0.0\"|g" "$SEARXNG_SETTINGS" || true
-  sed -i "s|port:.*|port: $SEARXNG_PORT|g" "$SEARXNG_SETTINGS" || true
+# Konfiguration schreiben (immer neu — stellt sicher dass alle Flags korrekt sind)
+log "SearXNG konfigurieren"
+SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+# Bestehenden Secret-Key beibehalten falls schon gesetzt
+if [ -f "$SEARXNG_SETTINGS" ] && grep -q "secret_key:" "$SEARXNG_SETTINGS" 2>/dev/null; then
+  EXISTING_SECRET=$(grep "secret_key:" "$SEARXNG_SETTINGS" | awk '{print $2}' | tr -d '"')
+  [ -n "$EXISTING_SECRET" ] && SECRET="$EXISTING_SECRET"
 fi
+
+cat > "$SEARXNG_SETTINGS" <<EOFSETTINGS
+# HydraHive SearXNG — automatisch generiert von 76-searxng.sh
+use_default_settings: true
+
+server:
+  secret_key: "$SECRET"
+  bind_address: "0.0.0.0"
+  port: $SEARXNG_PORT
+  # Kein Rate-Limiting — nur internes HydraHive-Netz
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  formats:
+    - html
+    - json
+
+engines:
+  - name: google
+    engine: google
+    disabled: false
+  - name: bing
+    engine: bing
+    disabled: false
+  - name: duckduckgo
+    engine: duckduckgo
+    disabled: false
+  - name: wikipedia
+    engine: wikipedia
+    disabled: false
+
+ui:
+  default_theme: simple
+  default_locale: de
+EOFSETTINGS
 
 # Berechtigungen setzen
 chown -R "$SEARXNG_USER:$SEARXNG_USER" "$SEARXNG_DIR"
