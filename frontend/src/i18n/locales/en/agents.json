@@ -28,7 +28,9 @@
     "thinking_budget": "Extended Thinking budget: {{tokens}} tokens",
     "thinking_hint": "Only relevant for Anthropic Extended-Thinking models. 0 = off.",
     "require_tool_confirm": "Confirm tools before execution",
-    "require_tool_confirm_hint": "When active: a banner appears in chat before each tool call with Allow/Deny. Auto-deny after 5 minutes."
+    "require_tool_confirm_hint": "When active: a banner appears in chat before each tool call with Allow/Deny. Auto-deny after 5 minutes.",
+    "max_iterations": "Max iterations: {{count}}",
+    "max_iterations_hint": "Maximum tool calls per response (default: 30). Increase for complex autonomous tasks."
   },
   "info": {
     "title": "Info",
