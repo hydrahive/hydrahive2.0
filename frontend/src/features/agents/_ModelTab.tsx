@@ -49,6 +49,15 @@ export function ModelTab({ draft, models, onChange }: Props) {
           />
         </Field>
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <Field label={t("fields.max_iterations", { count: draft.max_iterations ?? 30 })} hint={t("fields.max_iterations_hint")}>
+          <input
+            type="number" min="1" max="200" value={draft.max_iterations ?? 30}
+            onChange={(e) => onChange({ max_iterations: parseInt(e.target.value) })}
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
+          />
+        </Field>
+      </div>
 
       <Field label={t("fields.fallback_models")} hint={t("fields.fallback_hint")}>
         <FallbackModelsSelector
