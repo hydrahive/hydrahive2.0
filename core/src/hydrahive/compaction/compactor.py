@@ -22,7 +22,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RESERVE_TOKENS = 16_384
 DEFAULT_KEEP_RECENT_TOKENS = 20_000
-DEFAULT_MAX_TURNS_BEFORE_COMPACT = 24
+# Token-based threshold is the correct trigger. The turn threshold is only a
+# last-resort safety net — tool-heavy sessions easily pack 200+ short messages
+# into 20K kept tokens, causing compaction to fire on every single turn if this
+# value is low (e.g. 24 caused infinite compaction loops).
+DEFAULT_MAX_TURNS_BEFORE_COMPACT = 1000
 
 
 def total_tokens(messages: list) -> int:
