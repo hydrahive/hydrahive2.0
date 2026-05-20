@@ -13,11 +13,23 @@ _USABLE_FRACTION = 0.80
 
 
 def _compaction_model(model: str) -> str:
-    """MiniMax-M2.7 aktiviert bei tools=[] automatisch Web-Search → HTTP 500.
-    Compaction sendet tools=[] — M2.1 hat dieses Auto-Search-Verhalten nicht."""
-    from hydrahive.llm._anthropic import is_minimax_model, strip_provider_prefix
-    if is_minimax_model(model) and strip_provider_prefix(model) == "MiniMax-M2.7":
-        return "MiniMax-M2.1"
+    """MiniMax-Modelle aktivieren bei bestimmten Prompts intern Web-Search → HTTP 500.
+    Für Compaction auf den ersten non-MiniMax-Provider ausweichen."""
+    from hydrahive.llm._anthropic import is_minimax_model
+    if not is_minimax_model(model):
+        return model
+    from hydrahive.llm._config import load_config
+    cfg = load_config()
+    default = cfg.get("default_model", "")
+    if default and not is_minimax_model(default):
+        logger.info("Compaction: MiniMax → Fallback auf %s", default)
+        return default
+    for p in cfg.get("providers", []):
+        if p.get("id") == "anthropic" and (p.get("api_key") or p.get("oauth")):
+            fallback = "claude-haiku-4-5-20251001"
+            logger.info("Compaction: MiniMax → Fallback auf %s (Anthropic-Provider)", fallback)
+            return fallback
+    logger.warning("Compaction: MiniMax-Modell %s, kein non-MiniMax-Fallback — wird scheitern", model)
     return model
 
 
