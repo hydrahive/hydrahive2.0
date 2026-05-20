@@ -24,9 +24,12 @@ export function applyStreamEvent(
   blocks: ContentBlock[],
   setState: React.Dispatch<React.SetStateAction<ChatState>>,
 ): "continue" | "done" | "error" {
-  if (ev.type === "iteration_start") {
+  if (ev.type === "compaction_start") {
+    setState((s) => ({ ...s, compacting: true }))
+  } else if (ev.type === "iteration_start") {
     setState((s) => ({ ...s, iteration: ev.iteration as number }))
   } else if (ev.type === "message_start") {
+    setState((s) => ({ ...s, compacting: false }))
     blocks.push({ type: "text", text: "" })
     updateLive(setState, blocks)
   } else if (ev.type === "text_delta") {

@@ -50,6 +50,7 @@ export interface AgentBrief {
 }
 
 export type RunnerEvent =
+  | { type: "compaction_start" }
   | { type: "iteration_start"; iteration: number }
   | { type: "message_start" }
   | { type: "text_delta"; text: string }

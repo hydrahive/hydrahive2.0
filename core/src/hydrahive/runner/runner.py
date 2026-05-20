@@ -104,12 +104,17 @@ async def run(
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
 
-        history = await prepare_history(
+        history = []
+        async for _item in prepare_history(
             session_id, model=agent["llm_model"], compact_model=compact_model,
             compact_tool_limit=compact_tool_limit, compact_reserve=compact_reserve,
             compact_threshold_pct=compact_threshold_pct,
             compact_max_turns=compact_max_turns,
-        )
+        ):
+            if isinstance(_item, list):
+                history = _item
+            else:
+                yield _item
 
         stable_system, volatile_system, summary_system = compose_system_prompts(
             base_system_prompt,

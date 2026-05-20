@@ -12,6 +12,7 @@ export interface PendingConfirm {
 export interface ChatState {
   messages: Message[]
   busy: boolean
+  compacting: boolean
   iteration: number
   error: string | null
   errorKind: string | null
@@ -25,8 +26,8 @@ export interface ChatState {
 }
 
 const EMPTY_STATE: ChatState = {
-  messages: [], busy: false, iteration: 0, error: null, errorKind: null,
-  pendingConfirm: null, lastTurnTokens: null,
+  messages: [], busy: false, compacting: false, iteration: 0,
+  error: null, errorKind: null, pendingConfirm: null, lastTurnTokens: null,
 }
 
 export function useChat(sessionId: string | null) {
@@ -65,7 +66,7 @@ export function useChat(sessionId: string | null) {
         const trimmed = resendMessageId
           ? s.messages.slice(0, s.messages.findIndex((m) => m.id === resendMessageId))
           : s.messages
-        return { ...s, messages: [...trimmed, userMsg, liveAssistant], busy: true, iteration: 1, error: null, errorKind: null }
+        return { ...s, messages: [...trimmed, userMsg, liveAssistant], busy: true, compacting: false, iteration: 1, error: null, errorKind: null }
       })
 
       const blocks: ContentBlock[] = []
