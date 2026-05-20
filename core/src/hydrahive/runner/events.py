@@ -5,6 +5,12 @@ from typing import Any, Literal
 
 
 @dataclass
+class CompactionStart:
+    """Context compaction is running — UI can show a progress indicator."""
+    type: Literal["compaction_start"] = "compaction_start"
+
+
+@dataclass
 class IterationStart:
     """A new iteration of the tool-loop is starting."""
     iteration: int
@@ -83,6 +89,6 @@ class Error:
 
 
 Event = (
-    IterationStart | MessageStart | TextDelta | TextBlock |
+    CompactionStart | IterationStart | MessageStart | TextDelta | TextBlock |
     ToolUseStart | ToolConfirmRequired | ToolUseResult | Done | Error
 )

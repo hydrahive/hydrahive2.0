@@ -9,7 +9,7 @@ from hydrahive.compaction import compact_session, should_compact
 from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import messages as messages_db
 from hydrahive.runner._call import CallResult, call_with_stream_or_fallback
-from hydrahive.runner.events import Event
+from hydrahive.runner.events import CompactionStart, Event
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,12 @@ async def prepare_history(
     compact_reserve: int | None,
     compact_threshold_pct: int,
     compact_max_turns: int | None,
-) -> list:
-    """Holt aktuelle History und triggert Compaction wenn nötig."""
+):
+    """Holt aktuelle History und triggert Compaction wenn nötig.
+
+    AsyncGenerator: yieldet zuerst optionale Events (CompactionStart),
+    letzter yield ist immer die History-Liste.
+    """
     history = messages_db.list_for_llm(session_id)
     effective_reserve = compact_reserve
     if effective_reserve is not None and compact_threshold_pct < 100:
@@ -50,6 +54,7 @@ async def prepare_history(
     if compact_max_turns is not None:
         should_kwargs["max_turns"] = compact_max_turns
     if should_compact(history, model, **should_kwargs):
+        yield CompactionStart()
         try:
             compact_kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
             await compact_session(
@@ -60,7 +65,7 @@ async def prepare_history(
             history = messages_db.list_for_llm(session_id)
         except Exception as e:
             logger.warning("Compaction fehlgeschlagen: %s — fahre mit voller History fort", e)
-    return history
+    yield history
 
 
 

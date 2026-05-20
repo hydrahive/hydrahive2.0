@@ -70,19 +70,13 @@ async def connect(server_id: str) -> McpClient:
 async def get_or_connect(server_id: str) -> McpClient:
     """Lazy: liefert verbundenen Client, verbindet falls nötig.
 
-    Wenn der bestehende Client zwar als verbunden markiert ist, aber unter der
-    Haube kaputt ist (Subprocess gecrasht, HTTP-Endpoint unerreichbar), würde
-    der nächste call_tool fehlschlagen — list_tools() dient als Health-Probe.
-    Bei Fehler: evicten und neu verbinden.
+    Keine aktive Health-Probe — jeder list_tools/call_tool-Aufruf macht
+    das selbst und reconnectet bei Fehler. So entfällt der doppelte
+    list_tools-Round-Trip pro Nachricht.
     """
     existing = _clients.get(server_id)
     if existing and existing.is_connected:
-        try:
-            await existing.list_tools()
-            return existing
-        except Exception as e:
-            logger.warning("MCP %s wirkt verbunden ist aber kaputt (%s) — neu verbinden", server_id, e)
-            await disconnect(server_id)
+        return existing
     return await connect(server_id)
 
 
@@ -112,9 +106,19 @@ def status() -> list[dict]:
 
 async def list_tools(server_id: str) -> list[McpTool]:
     client = await get_or_connect(server_id)
-    return await client.list_tools()
+    try:
+        return await client.list_tools()
+    except Exception as e:
+        logger.warning("MCP %s list_tools fehlgeschlagen (%s) — reconnect", server_id, e)
+        await disconnect(server_id)
+        return await (await connect(server_id)).list_tools()
 
 
 async def call_tool(server_id: str, tool_name: str, arguments: dict) -> McpToolResult:
     client = await get_or_connect(server_id)
-    return await client.call_tool(tool_name, arguments)
+    try:
+        return await client.call_tool(tool_name, arguments)
+    except Exception as e:
+        logger.warning("MCP %s call_tool fehlgeschlagen (%s) — reconnect", server_id, e)
+        await disconnect(server_id)
+        return await (await connect(server_id)).call_tool(tool_name, arguments)

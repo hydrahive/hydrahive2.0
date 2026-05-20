@@ -211,6 +211,12 @@ export function ChatPage() {
                   onDeny={() => chat.confirmTool("deny")}
                 />
               )}
+              {chat.compacting && (
+                <div className="px-4 py-1.5 text-xs text-amber-400/80 bg-amber-500/5 border-t border-amber-500/15 flex items-center gap-2">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse" />
+                  Kontext wird komprimiert…
+                </div>
+              )}
               <div className="border-t border-white/[6%] bg-black/30">
                 <MessageInput
                   onSend={handleSend} onCancel={chat.cancel}
