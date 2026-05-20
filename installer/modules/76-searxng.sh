@@ -42,8 +42,12 @@ if [ ! -f "$SEARXNG_VENV/bin/python" ]; then
 fi
 
 log "Python-Abhängigkeiten installieren"
-"$SEARXNG_VENV/bin/pip" install -q --upgrade pip
-"$SEARXNG_VENV/bin/pip" install -q -e "$SEARXNG_DIR"
+"$SEARXNG_VENV/bin/pip" install -q --upgrade pip setuptools wheel
+# requirements.txt zuerst — enthält msgspec und andere Build-Deps
+if [ -f "$SEARXNG_DIR/requirements.txt" ]; then
+  "$SEARXNG_VENV/bin/pip" install -q -r "$SEARXNG_DIR/requirements.txt"
+fi
+"$SEARXNG_VENV/bin/pip" install -q --no-build-isolation "$SEARXNG_DIR"
 
 # Konfiguration erstellen (falls nicht vorhanden)
 SEARXNG_SETTINGS="$SEARXNG_DIR/searx/settings.yml"
