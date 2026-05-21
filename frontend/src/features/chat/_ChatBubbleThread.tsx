@@ -1,7 +1,7 @@
 /* Bubble-Thread für Card-Layout (Buddy-Look) — volle Ausstattung:
    AssistantFooter (Tokens/Cost/Modell), Edit am User, Raw-JSON-Toggle. */
 import { Bot, Check, Code, Copy, RotateCw, User, Volume2, VolumeX } from "lucide-react"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import {
   ActionBarPrimitive,
@@ -18,7 +18,19 @@ import { ThinkingBlock } from "./ThinkingBlock"
 import { ImageBlock, ToolResultCard, ToolUseCard } from "./ToolCards"
 import { extractMedia, MediaPreview } from "./MediaPreview"
 import { useVoiceOutput } from "./useVoiceOutput"
+import { useChatSearch } from "./ChatSearchContext"
 import type { ContentBlock, Message } from "./types"
+
+function hl(text: string, query: string): ReactNode {
+  if (!query.trim()) return text
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"))
+  return parts.map((p, i) =>
+    p.toLowerCase() === query.toLowerCase()
+      ? <mark key={i} className="bg-amber-400/40 text-amber-100 rounded-sm px-0.5">{p}</mark>
+      : p
+  )
+}
 
 function ChatUserMessage() {
   const { t } = useTranslation("chat")
@@ -32,10 +44,12 @@ function ChatUserMessage() {
   const images = blocks.filter((b) => b.type === "image")
   const toolResults = blocks.filter((b) => b.type === "tool_result")
   const [copied, setCopied] = useState(false)
+  const { query, activeMessageId } = useChatSearch()
+  const isActive = original?.id === activeMessageId
 
   if (toolResults.length > 0) {
     return (
-      <MessagePrimitive.Root className="space-y-1.5 py-1">
+      <MessagePrimitive.Root data-msg-id={original?.id} className="space-y-1.5 py-1">
         {toolResults.map((tr, i) => (
           <ToolResultCard key={i} block={tr as ContentBlock & { type: "tool_result" }} />
         ))}
@@ -44,14 +58,14 @@ function ChatUserMessage() {
   }
 
   return (
-    <MessagePrimitive.Root className="flex items-start gap-3 justify-end py-1">
+    <MessagePrimitive.Root data-msg-id={original?.id} className="flex items-start gap-3 justify-end py-1">
       <div className="max-w-[80%] space-y-1">
         {original && <BubbleHeader createdAt={original.created_at} align="right" />}
         {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
         {text && (
           <>
-            <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-violet-500/15 border border-violet-500/40 text-violet-50 text-sm whitespace-pre-wrap">
-              {text}
+            <div className={`px-4 py-2.5 rounded-2xl rounded-tr-md bg-violet-500/15 border text-violet-50 text-sm whitespace-pre-wrap transition-colors ${isActive ? "border-amber-400/60 shadow-[0_0_0_2px_theme(colors.amber.400/20)]" : "border-violet-500/40"}`}>
+              {query ? hl(text, query) : text}
             </div>
             <div className="flex items-center justify-end gap-1.5">
               <ActionBarPrimitive.Edit asChild>
@@ -88,9 +102,11 @@ function ChatAssistantMessage() {
   const [showRaw, setShowRaw] = useState(false)
   const tts = useVoiceOutput()
   const monoMode = isLocalCmd || isSlashCmd
+  const { query, activeMessageId } = useChatSearch()
+  const isActive = original?.id === activeMessageId
 
   return (
-    <MessagePrimitive.Root className="flex items-start gap-3 py-1">
+    <MessagePrimitive.Root data-msg-id={original?.id} className={`flex items-start gap-3 py-1 rounded-xl transition-colors ${isActive ? "ring-1 ring-amber-400/40 bg-amber-400/[3%]" : ""}`}>
       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 bg-zinc-800 ${isLive ? "animate-pulse" : ""}`}>
         <Bot size={14} className="text-emerald-400" />
       </div>
@@ -104,7 +120,7 @@ function ChatAssistantMessage() {
           if (b.type === "text" && b.text) return (
             <div key={i} className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-emerald-500/10 border border-emerald-500/25 text-emerald-50">
               {monoMode
-                ? <pre className="font-mono text-xs whitespace-pre-wrap break-words m-0">{b.text}</pre>
+                ? <pre className="font-mono text-xs whitespace-pre-wrap break-words m-0">{query ? hl(b.text, query) : b.text}</pre>
                 : <Markdown text={b.text} />}
             </div>
           )

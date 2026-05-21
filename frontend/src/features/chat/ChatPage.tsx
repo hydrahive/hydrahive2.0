@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { Coins, Cpu, Download, FileText, GamepadIcon, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
 import { AgentPixelMonitor } from "./AgentPixelMonitor"
@@ -20,6 +20,18 @@ import { useChat } from "./useChat"
 import { CmdPill } from "@/features/buddy/_BuddyCmdPill"
 import { SkillCatalogPill } from "./_SkillCatalogPill"
 import { isCommand, runChatCommand } from "./commands"
+import { ChatSearchProvider, useChatSearch } from "./ChatSearchContext"
+import { ChatSearchBar } from "./ChatSearchBar"
+
+function ChatSearchScrollEffect() {
+  const { activeMessageId } = useChatSearch()
+  useEffect(() => {
+    if (!activeMessageId) return
+    const el = document.querySelector(`[data-msg-id="${activeMessageId}"]`)
+    el?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [activeMessageId])
+  return null
+}
 
 export function ChatPage() {
   const { t } = useTranslation("chat")
@@ -64,6 +76,20 @@ export function ChatPage() {
 
   const [tokenRefresh, setTokenRefresh] = useState(0)
   const [showPixelMonitor, setShowPixelMonitor] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f" && activeId) {
+        const target = e.target as HTMLElement
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [activeId])
 
   const { compacting, compactNote, handleCompact } = useChatCompact(
     activeId, chat.reload, () => setTokenRefresh((n) => n + 1),
@@ -161,10 +187,13 @@ export function ChatPage() {
       <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6">
         <main className="flex-1 flex flex-col min-w-0 p-3 md:p-4">
           {activeSession ? (
+            <ChatSearchProvider messages={allMessages}>
+            <ChatSearchScrollEffect />
             <div
               className="relative flex flex-col rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur w-full h-full"
             >
               <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-white/[3%]" />
+              {searchOpen && <ChatSearchBar onClose={() => setSearchOpen(false)} />}
               <ChatHeader
                 session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
                 compacting={compacting} compactNote={compactNote}
@@ -240,6 +269,7 @@ export function ChatPage() {
                 />
               </div>
             </div>
+            </ChatSearchProvider>
           ) : (
             <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
               {t("session.select_or_new")}
