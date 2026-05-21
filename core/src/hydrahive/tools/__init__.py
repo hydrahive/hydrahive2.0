@@ -61,9 +61,7 @@ def _build_registry() -> dict[str, Tool]:
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)
-    import shutil
-    if shutil.which("dev-browser"):
-        tools.append(web_browser.TOOL)
+    tools.append(web_browser.TOOL)
     return {t.name: t for t in tools}
 
 
