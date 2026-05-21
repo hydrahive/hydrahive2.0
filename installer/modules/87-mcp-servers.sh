@@ -23,6 +23,16 @@ MCP_PACKAGES=(
   "@modelcontextprotocol/server-time"
 )
 
+# dev-browser: Browser-Automation für Agenten (QuickJS Sandbox + Playwright)
+if ! command -v dev-browser >/dev/null 2>&1; then
+  log "dev-browser installieren…"
+  npm install -g --silent dev-browser 2>&1 | grep -v "^npm warn" || true
+  dev-browser install --yes 2>/dev/null || true
+  log "dev-browser installiert"
+else
+  log "dev-browser bereits vorhanden — überspringe"
+fi
+
 log "MCP-Server: installiere ${#MCP_PACKAGES[@]} npm-Pakete…"
 npm install -g --silent "${MCP_PACKAGES[@]}" 2>&1 | grep -v "^npm warn" || true
 log "MCP-Server: Pakete installiert"

@@ -26,6 +26,7 @@ from hydrahive.tools import (
     send_mail,
     shell,
     todo,
+    web_browser,
     web_search,
     write_memory,
 )
@@ -60,6 +61,9 @@ def _build_registry() -> dict[str, Tool]:
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)
+    import shutil
+    if shutil.which("dev-browser"):
+        tools.append(web_browser.TOOL)
     return {t.name: t for t in tools}
 
 
@@ -71,7 +75,7 @@ REGISTRY: dict[str, Tool] = _build_registry()
 # Agent-Configs nachdem AgentLink z.B. aus HH_AGENTLINK_URL entfernt wird (#78).
 # ask_agent: nur aktiv wenn AgentLink konfiguriert
 # file_search, dir_list, http_request: entfernte Tools — in alten Configs tolerieren
-OPTIONAL_TOOLS: frozenset[str] = frozenset({"ask_agent", "file_search", "dir_list", "http_request"})
+OPTIONAL_TOOLS: frozenset[str] = frozenset({"ask_agent", "web_browser", "file_search", "dir_list", "http_request"})
 
 
 def list_tools() -> list[Tool]:
