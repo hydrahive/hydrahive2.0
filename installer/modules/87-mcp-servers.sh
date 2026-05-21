@@ -24,13 +24,24 @@ MCP_PACKAGES=(
 )
 
 # dev-browser: Browser-Automation für Agenten (QuickJS Sandbox + Playwright)
+# HOME muss beschreibbar sein für ~/.cache/ms-playwright/ (Chromium-Download)
+DEV_BROWSER_HOME="$(eval echo ~$HH_USER)/.config/hh-dev-browser-home"
+mkdir -p "$DEV_BROWSER_HOME"
+chown "$HH_USER:$HH_USER" "$DEV_BROWSER_HOME"
+
 if ! command -v dev-browser >/dev/null 2>&1; then
   log "dev-browser installieren…"
   npm install -g --silent dev-browser 2>&1 | grep -v "^npm warn" || true
-  dev-browser install --yes 2>/dev/null || true
-  log "dev-browser installiert"
+fi
+
+# Chromium im richtigen HOME installieren (überlebt Reboots)
+if [ ! -d "$DEV_BROWSER_HOME/.cache/ms-playwright" ]; then
+  log "dev-browser install (Chromium-Download nach $DEV_BROWSER_HOME)…"
+  HOME="$DEV_BROWSER_HOME" dev-browser install --yes 2>/dev/null || true
+  chown -R "$HH_USER:$HH_USER" "$DEV_BROWSER_HOME"
+  log "dev-browser Chromium installiert"
 else
-  log "dev-browser bereits vorhanden — überspringe"
+  log "dev-browser Chromium bereits vorhanden — überspringe"
 fi
 
 log "MCP-Server: installiere ${#MCP_PACKAGES[@]} npm-Pakete…"

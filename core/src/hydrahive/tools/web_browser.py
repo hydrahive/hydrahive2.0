@@ -87,12 +87,22 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not script.strip():
         return ToolResult.fail("Kein Script angegeben")
 
+    # dev-browser braucht ein beschreibbares HOME für ~/.dev-browser/ und
+    # ~/.cache/ms-playwright/. /home/hydrahive ist read-only gemountet,
+    # aber .config/ ist beschreibbar.
+    import os
+    dev_home = os.path.expanduser("~/.config/hh-dev-browser-home")
+    os.makedirs(dev_home, exist_ok=True)
+    env = os.environ.copy()
+    env["HOME"] = dev_home
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "dev-browser", "--headless",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=env,
         )
         try:
             stdout_b, stderr_b = await asyncio.wait_for(
