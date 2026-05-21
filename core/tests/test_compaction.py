@@ -178,8 +178,8 @@ def test_should_compact_token_trigger_unabhaengig_von_turns():
     assert should_compact(msgs, "claude-sonnet-4-6") is True  # 200k > 200k-16k=184k
 
 
-def test_should_compact_default_max_turns_ist_24():
-    assert DEFAULT_MAX_TURNS_BEFORE_COMPACT == 24
+def test_should_compact_default_max_turns_ist_1000():
+    assert DEFAULT_MAX_TURNS_BEFORE_COMPACT == 1000
 
 
 # --- cut_point.find_cut_point --------------------------------------------

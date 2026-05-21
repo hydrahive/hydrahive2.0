@@ -8,7 +8,7 @@ Cache-Miss jede Minute → 31% Rate-Limit in 20 Minuten.
 import re
 from pathlib import Path
 
-from hydrahive.runner._runner_iter import build_system_prompts
+from hydrahive.runner.system_prompt import compose as build_system_prompts
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +89,8 @@ UHRZEIT_REGEX = re.compile(r"\d{2}:\d{2}")
 
 def _build(base: str = "Du bist ein Agent.", *, summary: str | None = None, extra: str | None = None):
     return build_system_prompts(
-        base, extra_system=extra, workspace=Path("/var/lib/hydrahive2/workspaces/test"), summary=summary,
+        base, extra_system=extra, workspace=Path("/var/lib/hydrahive2/workspaces/test"),
+        summary=summary, skills=None, longterm_memory=False, tool_schemas=[], allowed_tools=[],
     )
 
 
