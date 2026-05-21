@@ -199,3 +199,58 @@ async def start_sqlite_import(_auth: Auth) -> dict:
 async def get_sqlite_import_status(_auth: Auth) -> dict:
     from hydrahive.db.mirror_import_sqlite import sqlite_import_status
     return sqlite_import_status()
+
+
+@router.post("/import/git")
+async def start_git_import(_auth: Auth, repo_path: str = "") -> dict:
+    from hydrahive.db.mirror_import_git import run_git_import, git_import_status
+    from hydrahive.settings import settings
+    s = git_import_status()
+    if s["running"]:
+        return {"ok": False, "reason": "Import läuft bereits"}
+    path = repo_path or str(settings.repo_dir if hasattr(settings, "repo_dir") else settings.hh_repo_dir)
+    asyncio.get_running_loop().create_task(run_git_import(path))
+    return {"ok": True, "repo": path}
+
+
+@router.get("/import/git/status")
+async def get_git_import_status(_auth: Auth) -> dict:
+    from hydrahive.db.mirror_import_git import git_import_status
+    return git_import_status()
+
+
+@router.post("/import/jsonl")
+async def start_jsonl_import(_auth: Auth) -> dict:
+    from hydrahive.db.mirror_import_jsonl import run_jsonl_import, jsonl_import_status
+    s = jsonl_import_status()
+    if s["running"]:
+        return {"ok": False, "reason": "Import läuft bereits"}
+    asyncio.get_running_loop().create_task(run_jsonl_import())
+    return {"ok": True}
+
+
+@router.get("/import/jsonl/status")
+async def get_jsonl_import_status(_auth: Auth) -> dict:
+    from hydrahive.db.mirror_import_jsonl import jsonl_import_status
+    return jsonl_import_status()
+
+
+@router.post("/import/logs")
+async def start_logs_import(
+    _auth: Auth,
+    nginx_log: str = "/var/log/nginx/access.log",
+    journal_unit: str = "hydrahive2",
+    journal_lines: int = 5000,
+) -> dict:
+    from hydrahive.db.mirror_import_logs import run_logs_import, logs_import_status
+    s = logs_import_status()
+    if s["running"]:
+        return {"ok": False, "reason": "Import läuft bereits"}
+    asyncio.get_running_loop().create_task(run_logs_import(nginx_log, journal_unit, journal_lines))
+    return {"ok": True}
+
+
+@router.get("/import/logs/status")
+async def get_logs_import_status(_auth: Auth) -> dict:
+    from hydrahive.db.mirror_import_logs import logs_import_status
+    return logs_import_status()
