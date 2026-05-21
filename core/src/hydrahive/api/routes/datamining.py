@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
@@ -254,3 +254,18 @@ async def start_logs_import(
 async def get_logs_import_status(_auth: Auth) -> dict:
     from hydrahive.db.mirror_import_logs import logs_import_status
     return logs_import_status()
+
+
+@router.post("/import/shell-history")
+async def import_shell_history(
+    _auth: Auth,
+    file: UploadFile = File(...),
+    username: str = "unknown",
+) -> dict:
+    if mirror._pool is None:
+        return {"ok": False, "reason": "Mirror nicht aktiv"}
+    content = (await file.read()).decode("utf-8", errors="replace")
+    if not content.strip():
+        return {"ok": True, "inserted": 0}
+    from hydrahive.db.mirror_import_shell import run_shell_import
+    return await run_shell_import(content, username)

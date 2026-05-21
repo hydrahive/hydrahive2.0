@@ -26,6 +26,9 @@ export function DataminingPage() {
   const [mergeImportError, setMergeImportError] = useState<string | null>(null)
   const mergeImportRef = useRef<HTMLInputElement>(null)
   const [sqliteImport, setSqliteImport] = useState<{ running: boolean; sessions: number; total: number } | null>(null)
+  const [shellImport, setShellImport] = useState<"idle" | "running" | "done" | "error">("idle")
+  const [shellInserted, setShellInserted] = useState(0)
+  const shellImportRef = useRef<HTMLInputElement>(null)
   const [issueForm, setIssueForm] = useState<"github" | "gitea" | null>(null)
 
   useEffect(() => {
@@ -88,6 +91,20 @@ export function DataminingPage() {
       if (s.done) { setMergeImportState("done"); clearInterval(poll) }
       else if (s.error) { setMergeImportState("error"); setMergeImportError(s.error); clearInterval(poll) }
     }, 2000)
+  }
+
+  async function handleShellImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    e.target.value = ""
+    setShellImport("running")
+    try {
+      const username = window.prompt("Username für Shell-History:", "till") ?? "till"
+      const result = await dataminingApi.startShellImport(file, username)
+      setShellInserted(result.inserted ?? 0)
+      setShellImport("done")
+    } catch {
+      setShellImport("error")
+    }
   }
 
   async function startSqliteImport() {
@@ -181,6 +198,19 @@ export function DataminingPage() {
             ? "SQLite ✓"
             : "SQLite Import"}
         </button>
+        <button
+          onClick={() => shellImportRef.current?.click()}
+          disabled={shellImport === "running"}
+          className={actionBtn}
+          title="~/.bash_history oder ~/.zsh_history importieren"
+        >
+          <Upload size={12} />
+          {shellImport === "running" ? "Shell…"
+            : shellImport === "done" ? `Shell ✓ (${shellInserted})`
+            : shellImport === "error" ? "Shell ✗"
+            : "Shell-History"}
+        </button>
+        <input ref={shellImportRef} type="file" className="hidden" onChange={handleShellImport} />
         <IssueImportButtons
           active={issueForm}
           onToggle={(v) => setIssueForm(f => f === v ? null : v)}

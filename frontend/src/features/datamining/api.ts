@@ -106,6 +106,14 @@ export const dataminingApi = {
       "/datamining/import/sqlite/status"
     ),
 
+  startShellImport: (file: File, username: string) => {
+    const form = new FormData()
+    form.append("file", file)
+    return api.postForm<{ ok: boolean; inserted?: number; reason?: string }>(
+      `/datamining/import/shell-history?username=${encodeURIComponent(username)}`, form
+    )
+  },
+
   importGithub: (owner: string, repo: string, token: string) =>
     api.post<{ ok: boolean; inserted: number; source: string }>("/datamining/import/github", { owner, repo, token }),
 
