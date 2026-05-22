@@ -3,43 +3,86 @@ set -euo pipefail
 
 info()    { echo "[INFO] $*"; }
 success() { echo "[OK] $*"; }
-warn()    { echo "[WARN] $*"; }
 
 MCP_CONFIG="/etc/hydrahive2/mcp_servers.json"
 ENV_FILE="/etc/hydrahive2/extensions/composio.env"
+API_BASE="https://backend.composio.dev/api/v3.1"
 
 info "Installiere Composio MCP-Integration..."
 
-# --- API-Key prüfen ---
 if [ -z "${COMPOSIO_API_KEY:-}" ]; then
-    echo "[ERROR] COMPOSIO_API_KEY fehlt — bitte API-Key unter app.composio.dev → Settings → API Keys erstellen" >&2
+    echo "[ERROR] COMPOSIO_API_KEY fehlt" >&2
     exit 1
 fi
 
 # --- Alten lokalen Service aufräumen falls noch vorhanden ---
-if systemctl is-active --quiet hydrahive-composio 2>/dev/null; then
-    info "Stoppe alten lokalen Composio-Service..."
-    systemctl stop hydrahive-composio 2>/dev/null || true
-    systemctl disable hydrahive-composio 2>/dev/null || true
-fi
+systemctl stop hydrahive-composio 2>/dev/null || true
+systemctl disable hydrahive-composio 2>/dev/null || true
 rm -f /etc/systemd/system/hydrahive-composio.service
 systemctl daemon-reload 2>/dev/null || true
 
 # --- API-Key speichern ---
 mkdir -p /etc/hydrahive2/extensions
-cat > "${ENV_FILE}" <<EOF
-COMPOSIO_API_KEY=${COMPOSIO_API_KEY}
-EOF
+printf 'COMPOSIO_API_KEY=%s\n' "${COMPOSIO_API_KEY}" > "${ENV_FILE}"
 chmod 600 "${ENV_FILE}"
 success "API-Key gespeichert"
 
-# --- In HydraHive MCP-Registry eintragen ---
-MCP_URL="https://mcp.composio.dev/composio?api_key=${COMPOSIO_API_KEY}"
+# --- MCP-Server anlegen + URL abrufen ---
+info "Rufe Composio MCP-Server an..."
 
 python3 - <<PYEOF
-import json, pathlib, datetime
+import json, sys, urllib.request, urllib.error, pathlib, datetime
 
-cfg_path = pathlib.Path("${MCP_CONFIG}")
+API_KEY = "${COMPOSIO_API_KEY}"
+API_BASE = "${API_BASE}"
+MCP_CONFIG = "${MCP_CONFIG}"
+
+headers = {
+    "x-api-key": API_KEY,
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+}
+
+def api(method, path, body=None):
+    url = API_BASE + path
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        msg = e.read().decode()
+        print(f"[ERROR] {method} {path} → HTTP {e.code}: {msg}", file=sys.stderr)
+        sys.exit(1)
+
+# Bestehende Server abrufen
+servers = api("GET", "/mcp/servers").get("items", [])
+
+if servers:
+    server_id = servers[0]["id"]
+    print(f"[INFO] Existierender Composio MCP-Server gefunden: {server_id}")
+else:
+    # Neuen Server anlegen
+    result = api("POST", "/mcp/servers", {
+        "name": "HydraHive",
+        "auth_config_ids": [],
+        "no_auth_apps": [],
+    })
+    server_id = result["id"]
+    print(f"[OK] Composio MCP-Server angelegt: {server_id}")
+
+# URL generieren
+gen = api("POST", "/mcp/servers/generate", {"mcp_server_id": server_id})
+mcp_url = gen.get("mcp_url", "")
+if not mcp_url:
+    print("[ERROR] Keine MCP-URL in der Antwort", file=sys.stderr)
+    print(json.dumps(gen, indent=2), file=sys.stderr)
+    sys.exit(1)
+
+print(f"[OK] MCP-URL: {mcp_url}")
+
+# In HydraHive MCP-Registry eintragen
+cfg_path = pathlib.Path(MCP_CONFIG)
 cfg_path.parent.mkdir(parents=True, exist_ok=True)
 
 data = {"servers": []}
@@ -49,11 +92,11 @@ if cfg_path.exists():
     except json.JSONDecodeError:
         pass
 
-# Bereits vorhanden → aktualisieren (API-Key kann sich ändern)
 now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
 existing = next((s for s in data.get("servers", []) if s.get("id") == "composio"), None)
 if existing:
-    existing["url"] = "${MCP_URL}"
+    existing["url"] = mcp_url
+    existing["headers"] = {"x-api-key": API_KEY}
     existing["updated_at"] = now
     print("[INFO] Composio MCP-Eintrag aktualisiert")
 else:
@@ -61,9 +104,9 @@ else:
         "id": "composio",
         "name": "Composio (SaaS-Integrationen)",
         "transport": "sse",
-        "url": "${MCP_URL}",
-        "headers": {},
-        "description": "500+ SaaS-Integrationen: Gmail, Slack, GitHub, Notion, Jira u.v.m. — Cloud-hosted MCP",
+        "url": mcp_url,
+        "headers": {"x-api-key": API_KEY},
+        "description": "500+ SaaS-Integrationen via Composio — Gmail, Slack, GitHub, Notion u.v.m.",
         "enabled": True,
         "created_at": now,
         "updated_at": now,
@@ -81,8 +124,7 @@ cat > /etc/hydrahive2/extensions/composio.credentials.json <<CREDEOF
   "id": "composio",
   "name": "Composio (SaaS-Integrationen)",
   "fields": [
-    {"label": "MCP-Endpoint", "value": "https://mcp.composio.dev/composio", "secret": false},
-    {"label": "Dashboard", "value": "https://app.composio.dev", "secret": false}
+    {"label": "Dashboard", "value": "https://dashboard.composio.dev", "secret": false}
   ]
 }
 CREDEOF
@@ -90,5 +132,4 @@ chown root:hydrahive /etc/hydrahive2/extensions/composio.credentials.json 2>/dev
 chmod 640 /etc/hydrahive2/extensions/composio.credentials.json
 
 success "Composio MCP-Integration bereit"
-info "  Endpoint: https://mcp.composio.dev/composio"
-info "  Alle Agenten können jetzt 500+ Composio-Tools nutzen"
+info "  Apps verbinden: https://dashboard.composio.dev"
