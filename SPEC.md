@@ -807,6 +807,39 @@ zeigt die UI eine Auswahl: Nativ oder Docker. Ohne Docker-Block: nur nativer Ins
 
 ---
 
+## Streaming-Downloader
+
+Ermöglicht das Herunterladen von abonnierten Streaming-Inhalten für lokale
+Plex-Bibliotheken. Erster unterstützter Anbieter: **Ghostflix** (Bunny CDN basiert).
+
+**Seite:** `/streaming` — eigene Seite in der Web-Konsole, Zugriff für alle User
+
+### Ghostflix-Integration
+
+- User hinterlegt Ghostflix-Credentials einmalig in den eigenen Profileinstellungen
+- Serien-URL eingeben → HydraHive fetcht die Seite authentifiziert,
+  parst `episodes_data` aus dem HTML, zeigt Episodenliste
+- Episoden einzeln oder alle auswählen, Plex-Ausgabepfad konfigurieren
+- Download läuft im Hintergrund via `yt-dlp`, Fortschritt per SSE ans Frontend
+- Bereits heruntergeladene Folgen werden übersprungen
+- Output-Dateinamen Plex-kompatibel: `Serientitel - S01E01.mkv`
+
+### Technische Umsetzung
+
+- `core/src/hydrahive/streaming/` — scraper.py, downloader.py, api routes
+- `frontend/src/features/streaming/` — StreamingPage, EpisodeList, DownloadProgress
+- yt-dlp als Systemabhängigkeit (wird vom Installer geprüft/installiert)
+- Credentials verschlüsselt in DB (nie im Klartext in Logs oder Responses)
+- Gleichzeitige Downloads: max. 1 pro User (queue-based)
+
+### Nicht-Ziele dieses Moduls
+
+- Kein automatisches Monitoring (kein "neue Folge → auto-download")
+- Keine Metadaten-Enrichment (kein TMDB/TheTVDB-Lookup)
+- Keine anderen Streaming-Dienste in Phase 1 (nur Ghostflix)
+
+---
+
 ## Was explizit NICHT gebaut wird (ohne separate Entscheidung)
 
 - DREAM-System
