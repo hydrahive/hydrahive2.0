@@ -20,7 +20,8 @@ export function CredentialsForm({ creds, onSaved }: Props) {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
-    if (!username.trim() || !password.trim()) return
+    if (!username.trim()) return
+    if (!password.trim() && !creds?.has_password) return
     setSaving(true); setError(null)
     try {
       await streamingApi.saveCredentials(username.trim(), password, plexPath.trim())

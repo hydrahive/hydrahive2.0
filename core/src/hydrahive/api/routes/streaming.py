@@ -27,7 +27,7 @@ _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 class CredentialsIn(BaseModel):
     username: str
-    password: str
+    password: str = ""
     plex_path: str = "/media/plex"
 
 
@@ -53,7 +53,11 @@ def get_credentials(auth: Auth) -> CredentialsOut | None:
 @router.put("/credentials", status_code=status.HTTP_204_NO_CONTENT)
 def save_credentials(body: CredentialsIn, auth: Auth) -> None:
     user_id, _ = auth
-    enc = encrypt(body.password, settings.data_dir)
+    if body.password:
+        enc = encrypt(body.password, settings.data_dir)
+    else:
+        existing = db.get_credentials(user_id)
+        enc = existing["password_enc"] if existing else ""
     db.upsert_credentials(user_id, body.username, enc, body.plex_path)
 
 
