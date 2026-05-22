@@ -44,7 +44,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=${ENV_FILE}
-ExecStart=npx --yes @composio-dev/mcp@latest --transport streamable-http --port ${PORT}
+ExecStart=npx --yes @composio-dev/mcp@latest --transport streamable-http --port ${PORT} --host 0.0.0.0
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
