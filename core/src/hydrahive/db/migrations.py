@@ -42,7 +42,14 @@ def apply_migrations(conn: sqlite3.Connection) -> None:
         if version <= current:
             continue
         sql = f.read_text()
-        conn.executescript(sql)
+        try:
+            conn.executescript(sql)
+        except sqlite3.OperationalError as exc:
+            # "duplicate column name" means the migration was partially applied
+            # (script ran, but version entry was never committed). Mark as done.
+            if "duplicate column name" not in str(exc) and "already exists" not in str(exc):
+                raise
+            logger.warning("Migration %s bereits partiell angewendet (%s) — überspringe", f.name, exc)
         conn.execute(
             "INSERT INTO schema_version (version, applied_at) VALUES (?, ?)",
             (version, now_iso()),
