@@ -31,6 +31,12 @@ export interface Workstation {
   url: string
   has_token: boolean
   enabled: boolean
+  /**
+   * Per-workstation TLS-cert-verify flag. Set to false for self-
+   * signed peers (typical for LAN/Tailnet setups). Backend default
+   * is true (verify on).
+   */
+  verify_tls: boolean
   last_seen: string | null
   card: A2ACard | null
   created_at: string

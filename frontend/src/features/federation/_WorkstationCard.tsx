@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Activity, ChevronDown, ChevronUp, RefreshCw, Shield, ShieldOff, Terminal, Trash2 } from "lucide-react"
+import { Activity, ChevronDown, ChevronUp, Lock, RefreshCw, Shield, ShieldOff, Terminal, Trash2, Unlock } from "lucide-react"
 import type { Workstation } from "./types"
 import { federationApi } from "./api"
 
@@ -58,6 +58,11 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
             <span title="Token konfiguriert"><Shield size={13} className="text-emerald-400" /></span>
           ) : (
             <span title="Kein Token"><ShieldOff size={13} className="text-zinc-600" /></span>
+          )}
+          {ws.verify_tls ? (
+            <span title="TLS-Verify aktiv"><Lock size={12} className="text-emerald-400/70" /></span>
+          ) : (
+            <span title="TLS-Verify deaktiviert (self-signed OK)"><Unlock size={12} className="text-amber-400/70" /></span>
           )}
           <button
             onClick={handleRefresh}
@@ -132,6 +137,33 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
               Keine A2A-Card — bitte Token prüfen und «Refresh» klicken
             </div>
           )}
+
+          <div className="flex items-center justify-between rounded-lg bg-zinc-800/40 px-3 py-2">
+            <div className="text-xs">
+              <div className="text-zinc-300 flex items-center gap-1.5">
+                {ws.verify_tls ? <Lock size={12} /> : <Unlock size={12} className="text-amber-400" />}
+                TLS-Zertifikat verifizieren
+              </div>
+              <div className="text-[10px] text-zinc-600 mt-0.5">
+                Aus für self-signed (LAN/Tailnet, --tls-auto)
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await federationApi.update(ws.id, { verify_tls: !ws.verify_tls })
+                  onRefresh()
+                } catch { /* ignore */ }
+              }}
+              className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors ${
+                ws.verify_tls
+                  ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
+                  : "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+              }`}
+            >
+              {ws.verify_tls ? "AN" : "AUS"}
+            </button>
+          </div>
 
           {ws.has_token && (
             <div>

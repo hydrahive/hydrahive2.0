@@ -17,6 +17,17 @@ _card_cache: dict[str, tuple[dict, float]] = {}
 _CACHE_TTL = 60.0  # seconds
 
 
+def _verify_for(ws: dict) -> bool:
+    """Whether httpx should verify the TLS chain for this peer.
+
+    The DB column verify_tls=1 means 'do verify' (safe default). For
+    a workstation served behind --tls-auto self-signed cert on a
+    Tailscale IP, the operator can flip this to 0 in the UI so the
+    handshake succeeds. Outside the LAN/Tailnet you want verify=1.
+    """
+    return bool(ws.get("verify_tls", 1))
+
+
 async def fetch_card(ws_id: str, force: bool = False) -> dict | None:
     """Fetch A2A card from /.well-known/agent.json. Caches 60s."""
     ws = fed_db.get_workstation(ws_id)
@@ -30,7 +41,10 @@ async def fetch_card(ws_id: str, force: bool = False) -> dict | None:
 
     url = f"{ws['url']}/.well-known/agent.json"
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(
+            timeout=10.0,
+            verify=_verify_for(ws),
+        ) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             card = resp.json()
@@ -65,7 +79,10 @@ async def remote_chat(ws_id: str, input_text: str, persona_id: str = "", system:
         "Content-Type": "application/json",
     }
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    async with httpx.AsyncClient(
+        timeout=120.0,
+        verify=_verify_for(ws),
+    ) as client:
         resp = await client.post(url, json=payload, headers=headers)
         resp.raise_for_status()
         data = resp.json()

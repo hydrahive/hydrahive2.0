@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.db import federation as fed_db
@@ -21,6 +22,9 @@ class WorkstationCreate(BaseModel):
     url: str
     token: str = ""
     enabled: bool = True
+    # Default True (safe). Flip to False ONLY for self-signed LAN/
+    # Tailnet peers — the registry's httpx client honours it.
+    verify_tls: bool = True
 
 
 class WorkstationUpdate(BaseModel):
@@ -28,12 +32,15 @@ class WorkstationUpdate(BaseModel):
     url: str | None = None
     token: str | None = None
     enabled: bool | None = None
+    verify_tls: bool | None = None
 
 
 def _strip_token(ws: dict) -> dict:
     """Token nicht ans Frontend schicken — nur ob gesetzt."""
     out = {k: v for k, v in ws.items() if k not in ("token", "card_json")}
     out["has_token"] = bool(ws.get("token"))
+    # Ensure verify_tls is always present in the API response (bool).
+    out["verify_tls"] = bool(ws.get("verify_tls", 1))
     return out
 
 
@@ -50,7 +57,11 @@ def create_workstation(
     _: Annotated[tuple[str, str], Depends(_admin)],
 ) -> dict:
     ws = fed_db.create_workstation(
-        name=body.name, url=body.url, token=body.token, enabled=body.enabled
+        name=body.name,
+        url=body.url,
+        token=body.token,
+        enabled=body.enabled,
+        verify_tls=body.verify_tls,
     )
     return _strip_token(ws)
 
@@ -101,7 +112,6 @@ async def get_audit(
     _: Annotated[tuple[str, str], Depends(_auth)],
 ) -> list[dict]:
     """Holt Remote-Audit-Log von der Workstation."""
-    import httpx
     ws = fed_db.get_workstation(ws_id)
     if not ws:
         raise HTTPException(status_code=404, detail="Workstation nicht gefunden")
@@ -109,10 +119,16 @@ async def get_audit(
         raise HTTPException(status_code=400, detail="Kein Token konfiguriert")
     url = f"{ws['url']}/remote/audit"
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(
+            timeout=10.0,
+            verify=bool(ws.get("verify_tls", 1)),
+        ) as client:
             resp = await client.get(
                 url,
-                headers={"Authorization": f"Bearer {ws['token']}", "X-Caller": "hydrahive2"},
+                headers={
+                    "Authorization": f"Bearer {ws['token']}",
+                    "X-Caller": "hydrahive2",
+                },
             )
             resp.raise_for_status()
             return resp.json()
