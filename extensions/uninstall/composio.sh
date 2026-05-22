@@ -4,15 +4,15 @@ set -euo pipefail
 info()    { echo "[INFO] $*"; }
 success() { echo "[OK] $*"; }
 
-SERVICE="hydrahive-composio"
 MCP_CONFIG="/etc/hydrahive2/mcp_servers.json"
 
-info "Deinstalliere Composio MCP-Server..."
+info "Deinstalliere Composio MCP-Integration..."
 
-systemctl stop "${SERVICE}" 2>/dev/null || true
-systemctl disable "${SERVICE}" 2>/dev/null || true
-rm -f "/etc/systemd/system/${SERVICE}.service"
-systemctl daemon-reload
+# Lokalen Service aufräumen falls noch vorhanden
+systemctl stop hydrahive-composio 2>/dev/null || true
+systemctl disable hydrahive-composio 2>/dev/null || true
+rm -f /etc/systemd/system/hydrahive-composio.service
+systemctl daemon-reload 2>/dev/null || true
 
 rm -f /etc/hydrahive2/extensions/composio.env
 rm -f /etc/hydrahive2/extensions/composio.credentials.json

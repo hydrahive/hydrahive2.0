@@ -1,15 +1,12 @@
 {
   "id": "composio",
   "name": "Composio (SaaS-Integrationen)",
-  "description": "1000+ SaaS-Integrationen als MCP-Server — Gmail, Slack, GitHub, Notion, Jira, Linear u.v.m. Alle HydraHive-Agenten können diese Tools direkt nutzen. Benötigt einen kostenlosen Composio API-Key.",
+  "description": "500+ SaaS-Integrationen als cloud-hosted MCP-Server — Gmail, Slack, GitHub, Notion, Jira, Linear u.v.m. Alle HydraHive-Agenten können diese Tools direkt nutzen. Benötigt einen kostenlosen Composio API-Key.",
   "icon": "Plug",
   "category": "ai",
   "install_script": "install/composio.sh",
   "uninstall_script": "uninstall/composio.sh",
-  "service": "hydrahive-composio",
-  "health_url": "http://127.0.0.1:9200/health",
-  "open_url": null,
-  "installed_check": "/etc/systemd/system/hydrahive-composio.service",
+  "installed_check": "/etc/hydrahive2/extensions/composio.env",
   "install_params": [
     {
       "key": "COMPOSIO_API_KEY",
