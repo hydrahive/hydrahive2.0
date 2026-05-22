@@ -22,4 +22,7 @@ export const streamingApi = {
 
   listJobs: (): Promise<StreamingJob[]> =>
     api.get("/streaming/jobs"),
+
+  deleteJob: (job_id: string): Promise<void> =>
+    api.delete(`/streaming/jobs/${job_id}`),
 }

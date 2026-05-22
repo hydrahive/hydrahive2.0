@@ -1,8 +1,10 @@
-import { CheckCircle, Clock, Download, XCircle, SkipForward } from "lucide-react"
+import { CheckCircle, Clock, Download, Trash2, XCircle, SkipForward } from "lucide-react"
 import type { StreamingJob } from "./types"
+import { streamingApi } from "./api"
 
 interface Props {
   jobs: StreamingJob[]
+  onDeleted: () => void
 }
 
 const STATUS_ICON = {
@@ -13,13 +15,37 @@ const STATUS_ICON = {
   skipped:     <SkipForward size={13} className="text-zinc-500" />,
 } as const
 
-export function JobList({ jobs }: Props) {
+const DELETABLE = new Set(["done", "error", "skipped"])
+
+export function JobList({ jobs, onDeleted }: Props) {
   if (jobs.length === 0) return null
+
+  async function deleteJob(id: string) {
+    await streamingApi.deleteJob(id)
+    onDeleted()
+  }
+
+  async function deleteFinished() {
+    const finished = jobs.filter(j => DELETABLE.has(j.status))
+    await Promise.all(finished.map(j => streamingApi.deleteJob(j.id)))
+    onDeleted()
+  }
+
+  const hasFinished = jobs.some(j => DELETABLE.has(j.status))
 
   return (
     <div className="rounded-xl border border-white/10 bg-zinc-900/60 overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-white/5">
-        <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Downloads</span>
+      <div className="px-4 py-2.5 border-b border-white/5 flex items-center">
+        <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest flex-1">Downloads</span>
+        {hasFinished && (
+          <button
+            onClick={deleteFinished}
+            className="text-[10px] text-zinc-600 hover:text-rose-400 transition-colors flex items-center gap-1"
+          >
+            <Trash2 size={11} />
+            Fertige löschen
+          </button>
+        )}
       </div>
       <div className="divide-y divide-white/[4%]">
         {jobs.map(job => (
@@ -44,9 +70,20 @@ export function JobList({ jobs }: Props) {
                 <div className="text-[10px] text-rose-400 mt-0.5 truncate">{job.error}</div>
               )}
             </div>
-            <span className="text-[10px] text-zinc-600 flex-shrink-0">
-              {job.status === "downloading" ? `${job.progress}%` : job.status}
-            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-[10px] text-zinc-600">
+                {job.status === "downloading" ? `${job.progress}%` : job.status}
+              </span>
+              {DELETABLE.has(job.status) && (
+                <button
+                  onClick={() => deleteJob(job.id)}
+                  className="text-zinc-700 hover:text-rose-400 transition-colors"
+                  title="Löschen"
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

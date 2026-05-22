@@ -136,12 +136,19 @@ async def start_download(
     return {"job_ids": created_ids}
 
 
-# ── Jobs list ─────────────────────────────────────────────────────────────────
+# ── Jobs list + delete ────────────────────────────────────────────────────────
 
 @router.get("/jobs")
 def list_jobs(auth: Auth) -> list[dict]:
     user_id, _ = auth
     return db.list_jobs(user_id)
+
+
+@router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_job(job_id: str, auth: Auth) -> None:
+    user_id, _ = auth
+    if not db.delete_job(job_id, user_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job nicht gefunden")
 
 
 # ── SSE Progress ──────────────────────────────────────────────────────────────

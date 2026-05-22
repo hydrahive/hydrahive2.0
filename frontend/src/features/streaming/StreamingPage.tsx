@@ -136,7 +136,7 @@ export function StreamingPage() {
         />
       )}
 
-      <JobList jobs={jobs} />
+      <JobList jobs={jobs} onDeleted={loadJobs} />
     </div>
   )
 }

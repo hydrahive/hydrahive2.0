@@ -103,6 +103,15 @@ def update_job_status(
         )
 
 
+def delete_job(job_id: str, user_id: str) -> bool:
+    with db() as conn:
+        cur = conn.execute(
+            "DELETE FROM streaming_jobs WHERE id=? AND user_id=?",
+            (job_id, user_id),
+        )
+    return cur.rowcount > 0
+
+
 def count_active_jobs(user_id: str) -> int:
     with db() as conn:
         return conn.execute(
