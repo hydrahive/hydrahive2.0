@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import re
+import sys
 from pathlib import Path
 
 from hydrahive.db import streaming as db
@@ -13,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 _PROGRESS_RE = re.compile(r'(\d+\.?\d*)%')
 _EMBED_BASE = "https://iframe.mediadelivery.net/embed"
+# Binary im gleichen venv-bin wie der laufende Python-Interpreter
+_YTDLP_BIN = str(Path(sys.executable).parent / "yt-dlp")
 
 # Max 1 concurrent download process-wide (jobs queue naturally via asyncio tasks)
 _download_lock = asyncio.Lock()
@@ -51,7 +54,7 @@ async def _ytdlp(job_id: str, url: str, output: str) -> None:
     # create_subprocess_exec — keine Shell, kein Injection-Risiko.
     # url und output kommen aus der DB (UUID-Werte + sanitized Path).
     cmd = [
-        "yt-dlp",
+        _YTDLP_BIN,
         "--format", "bestvideo+bestaudio/best",
         "--merge-output-format", "mkv",
         "--output", output,
