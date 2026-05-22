@@ -17,7 +17,9 @@ info "Installiere Composio MCP-Server (Port ${PORT})..."
 if ! command -v node &>/dev/null; then
     info "Node.js nicht gefunden — installiere via NodeSource LTS..."
     apt-get install -y curl gnupg 2>/dev/null || true
-    curl -fsSL "https://deb.nodesource.com/setup_22.x" | bash -
+    curl -fsSL -o /tmp/nodesource_setup.sh "https://deb.nodesource.com/setup_22.x"
+    bash /tmp/nodesource_setup.sh
+    rm -f /tmp/nodesource_setup.sh
     apt-get install -y nodejs
     success "Node.js $(node --version) installiert"
 else
