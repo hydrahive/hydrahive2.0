@@ -1,5 +1,5 @@
 import { Activity, BrainCircuit,
-  BookOpen, Bot, Box, Cpu, FolderKanban, Globe, HardDrive, Heart, Key, LayoutDashboard,
+  BookOpen, Bot, Box, Cpu, Film, FolderKanban, Globe, HardDrive, Heart, Key, LayoutDashboard,
   MessageCircle, MessageSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, Users, Workflow,
 } from "lucide-react"
 
@@ -32,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/extensions", icon: Package, labelKey: "extensions", roles: ["admin"] },
   { path: "/zahnfee", icon: MoonStar, labelKey: "zahnfee", roles: ["admin"] },
   { path: "/federation", icon: Globe, labelKey: "federation" },
+  { path: "/streaming", icon: Film, labelKey: "streaming" },
   { path: "/datamining", icon: Pickaxe, labelKey: "datamining" },
   { path: "/memory", icon: BrainCircuit, labelKey: "memory" },
   { path: "/system", icon: Settings, labelKey: "system" },
