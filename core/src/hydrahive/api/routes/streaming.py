@@ -128,12 +128,11 @@ async def start_download(
         )
         created_ids.append(job["id"])
 
-    # Queue all jobs sequentially in background
     async def _run_all(ids: list[str]) -> None:
         for jid in ids:
             await downloader.run_job(jid)
 
-    bg.add_task(asyncio.ensure_future, _run_all(created_ids))
+    bg.add_task(_run_all, created_ids)
     return {"job_ids": created_ids}
 
 
