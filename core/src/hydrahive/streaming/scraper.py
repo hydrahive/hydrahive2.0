@@ -1,17 +1,13 @@
-"""Ghostflix-Scraper — Login + episodes_data parsen."""
+"""Ghostflix-Scraper — Playwright-basierter Login + episodes_data parsen."""
 from __future__ import annotations
 
 import json
 import logging
 import re
 
-import httpx
-
 logger = logging.getLogger(__name__)
 
-_LOGIN_URL = "https://ghostflix.tv/wp-login.php"
 _EPISODES_RE = re.compile(r'var\s+episodes_data\s*=\s*(\{.*?\});', re.DOTALL)
-# Fallback: window object assignment pattern
 _ASSIGN_RE = re.compile(
     r'episodes_data\["([^"]+)"\]\["bunny_video_id"\]\s*=\s*"([^"]+)"'
 )
@@ -34,48 +30,95 @@ async def scrape_series(url: str, username: str, password: str) -> dict:
                         "bunny_library_id": str, "bunny_video_type": str}]
         }
     """
-    async with httpx.AsyncClient(
-        follow_redirects=True, timeout=20.0
-    ) as client:
-        await _login(client, username, password)
-        resp = await client.get(url)
-        resp.raise_for_status()
-        html = resp.text
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        raise RuntimeError(
+            "Playwright nicht installiert. Auf dem Server ausführen: "
+            "pip install playwright && playwright install chromium"
+        )
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        try:
+            context = await browser.new_context(
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                )
+            )
+            page = await context.new_page()
+
+            await _login(page, username, password)
+
+            await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
+
+            current_url = page.url
+            if "kein-zugriff" in current_url or "restricted" in current_url:
+                raise ValueError(
+                    "Kein Zugriff auf diese Serie — Abo prüfen oder andere URL verwenden."
+                )
+
+            html = await page.content()
+        finally:
+            await browser.close()
 
     title = _parse_title(html, url)
     season = _parse_season(title, url)
     episodes = _parse_episodes(html)
 
+    logger.debug(
+        "Scrape %s: title=%r season=%d html_len=%d episodes=%d",
+        url, title, season, len(html), len(episodes),
+    )
+
     if not episodes:
+        logger.warning(
+            "Keine Episoden in HTML gefunden. URL nach Redirect: %s. "
+            "HTML-Snippet: %s",
+            current_url, html[:500],
+        )
         raise ValueError(
-            "Keine Episoden gefunden — Token korrekt? Ghostflix-Login prüfen."
+            "Keine Episoden gefunden — Seite geladen, aber kein episodes_data enthalten. "
+            "Bitte Serie im Browser öffnen und URL prüfen."
         )
 
     return {"title": title, "season": season, "episodes": episodes}
 
 
-async def _login(client: httpx.AsyncClient, username: str, password: str) -> None:
-    resp = await client.post(
-        _LOGIN_URL,
-        data={
-            "log": username,
-            "pwd": password,
-            "wp-submit": "Log In",
-            "redirect_to": "/",
-            "rememberme": "forever",
-        },
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
+async def _login(page, username: str, password: str) -> None:
+    await page.goto(
+        "https://ghostflix.tv/wp-login.php",
+        wait_until="domcontentloaded",
+        timeout=20_000,
     )
-    # WordPress redirects to / on success; check for login page in response
-    if "wp-login.php" in str(resp.url) and "incorrect" in resp.text.lower():
-        raise ValueError("Ghostflix-Login fehlgeschlagen — Benutzername oder Passwort falsch")
+    await page.fill("#user_login", username)
+    await page.fill("#user_pass", password)
+    await page.click("#wp-submit")
+
+    # Warten bis Redirect nach Login abgeschlossen
+    try:
+        await page.wait_for_url(
+            lambda u: "wp-login.php" not in u,
+            timeout=10_000,
+        )
+    except Exception:
+        pass  # Timeout ist OK — manchmal bleibt WP kurz auf login.php
+
+    if "wp-login.php" in page.url:
+        html = await page.content()
+        if any(w in html.lower() for w in ("incorrect", "error", "falsch", "ungültig")):
+            raise ValueError(
+                "Ghostflix-Login fehlgeschlagen — Benutzername oder Passwort falsch."
+            )
+    logger.debug("Login erfolgreich, aktuelle URL: %s", page.url)
 
 
 def _parse_title(html: str, url: str) -> str:
     m = _TITLE_RE.search(html)
     if m:
         return m.group(1).strip()
-    # Fallback: last segment of URL
     segment = url.rstrip("/").rsplit("/", 1)[-1]
     return segment.replace("-", " ").title()
 
@@ -89,7 +132,6 @@ def _parse_season(title: str, url: str) -> int:
 
 
 def _parse_episodes(html: str) -> list[dict]:
-    # Try window.episodes_data JSON first
     m = _EPISODES_RE.search(html)
     if m:
         try:
@@ -138,7 +180,6 @@ def _episodes_from_dict(data: dict) -> list[dict]:
 
 
 def _extract_ep_number(key: str) -> int:
-    # "Video-Season-1-Ep-3" → 3
     m = re.search(r'[Ee]p[-_]?(\d+)$', key)
     if m:
         return int(m.group(1))
