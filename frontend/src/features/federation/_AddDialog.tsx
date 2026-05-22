@@ -95,7 +95,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
                 type="checkbox"
                 checked={verifyTls}
                 onChange={e => setVerifyTls(e.target.checked)}
-                className="rounded border-white/20 bg-zinc-800"
+                className="w-4 h-4 accent-violet-500"
               />
               <span className="text-xs text-zinc-300">TLS-Zertifikat verifizieren</span>
             </label>

@@ -155,6 +155,11 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
                   onRefresh()
                 } catch { /* ignore */ }
               }}
+              title={
+                ws.verify_tls
+                  ? "Aktuell AN — TLS-Zertifikatskette wird validiert. Klick deaktiviert die Prüfung (nur für self-signed Peers in LAN/Tailnet sinnvoll)."
+                  : "Aktuell AUS — Zertifikat wird NICHT geprüft. Nur sicher in vertrauenswürdigen Netzwerken (LAN, Tailnet). Klick aktiviert die Prüfung wieder."
+              }
               className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors ${
                 ws.verify_tls
                   ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
