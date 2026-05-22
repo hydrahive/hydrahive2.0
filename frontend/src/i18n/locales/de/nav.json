@@ -24,6 +24,7 @@
     "plugins": "Plugins",
     "extensions": "Extensions",
     "zahnfee": "Zahnfee",
+    "federation": "Federation",
     "datamining": "Datamining",
     "memory": "Memory",
     "wiki": "Wiki",

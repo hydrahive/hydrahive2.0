@@ -52,6 +52,7 @@ from hydrahive.api.routes.tailscale import router as tailscale_router
 from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.zahnfee import router as zahnfee_router
 from hydrahive.api.routes.users import router as users_router
+from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.health_data import router as health_data_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
@@ -132,6 +133,7 @@ app.include_router(system_bridge_router)
 app.include_router(system_samba_router)
 app.include_router(tailscale_router)
 app.include_router(zahnfee_router)
+app.include_router(federation_router)
 app.include_router(health_data_router)
 
 

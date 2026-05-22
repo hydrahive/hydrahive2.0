@@ -29,6 +29,7 @@ import { MemoryPage } from "@/features/memory/MemoryPage"
 import { HelpPage } from "@/features/help/HelpPage"
 import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
 import { HealthPage } from "@/features/health/HealthPage"
+import { FederationPage } from "@/features/federation/FederationPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="containers" element={<ContainersPage />} />
           <Route path="containers/:id" element={<ContainerDetailPage />} />
           <Route path="butler" element={<ButlerPage />} />
+          <Route path="federation" element={<FederationPage />} />
           <Route path="datamining" element={<DataminingPage />} />
           <Route path="memory" element={<MemoryPage />} />
           <Route path="llm" element={<LlmPage />} />

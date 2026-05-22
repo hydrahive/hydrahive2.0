@@ -39,7 +39,13 @@ _DESCRIPTION = (
 _SCHEMA = {
     "type": "object",
     "properties": {
-        "agent_id": {"type": "string", "description": "ID des Ziel-Agenten."},
+        "agent_id": {
+            "type": "string",
+            "description": (
+                "ID oder Name des Ziel-Agenten. "
+                "Für Federation-Workstations: 'persona@workstation-name', z.B. 'geralt@projektx-till'."
+            ),
+        },
         "task": {"type": "string", "description": "Aufgabenbeschreibung für den Ziel-Agenten."},
         "task_type": {
             "type": "string",
@@ -73,18 +79,22 @@ _SCHEMA = {
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
-    if not settings.agentlink_url:
-        return ToolResult.fail(
-            "AgentLink ist nicht konfiguriert (HH_AGENTLINK_URL leer). "
-            "Tool ist aktuell nicht nutzbar."
-        )
-
     target = (args.get("agent_id") or "").strip()
     task = (args.get("task") or "").strip()
     if not target:
         return ToolResult.fail("agent_id fehlt")
     if not task:
         return ToolResult.fail("task fehlt")
+
+    # Federation-Routing: "persona@workstation" → remote /remote/chat
+    if "@" in target:
+        return await _execute_federated(target, task, args)
+
+    if not settings.agentlink_url:
+        return ToolResult.fail(
+            "AgentLink ist nicht konfiguriert (HH_AGENTLINK_URL leer). "
+            "Tool ist aktuell nicht nutzbar."
+        )
 
     task_type = args.get("task_type") or "feature"
     raw_context = args.get("context") or {}
@@ -201,6 +211,37 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         f"Antwort-State {response.id} ohne lesbaren Inhalt."
 
     return ToolResult.ok(output)
+
+
+async def _execute_federated(target: str, task: str, args: dict) -> ToolResult:
+    """Routing für 'persona@workstation' — sendet via /remote/chat."""
+    persona_id, _, ws_name = target.partition("@")
+    persona_id = persona_id.strip()
+    ws_name = ws_name.strip()
+
+    try:
+        from hydrahive.db import federation as fed_db
+        from hydrahive.federation.registry import remote_chat
+
+        # Workstation by name, ID, or URL-prefix
+        ws = (
+            fed_db.get_by_name(ws_name)
+            or fed_db.get_workstation(ws_name)
+        )
+        if not ws:
+            return ToolResult.fail(
+                f"Federation-Workstation '{ws_name}' nicht gefunden. "
+                "Bitte zuerst im Federation-Panel registrieren."
+            )
+        if not ws.get("enabled"):
+            return ToolResult.fail(f"Workstation '{ws['name']}' ist deaktiviert.")
+
+        result = await remote_chat(ws["id"], task, persona_id=persona_id)
+        label = f"{persona_id}@{ws['name']}" if persona_id else ws["name"]
+        return ToolResult.ok(f"[{label}]: {result}")
+    except Exception as e:
+        logger.exception("Federation remote_chat fehlgeschlagen: %s", e)
+        return ToolResult.fail(f"Federation-Fehler: {e}")
 
 
 TOOL = Tool(name="ask_agent", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="agents")
