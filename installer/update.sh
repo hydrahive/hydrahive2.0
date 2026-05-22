@@ -75,6 +75,23 @@ fi
 log "Backend-Dependencies aktualisieren"
 "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core"
 
+log "Playwright-Chromium prüfen"
+VENV_PLAYWRIGHT="$HH_REPO_DIR/.venv/bin/playwright"
+if [ -x "$VENV_PLAYWRIGHT" ]; then
+  PW_CACHE_DIR="/home/$HH_USER/.cache/ms-playwright"
+  if ! find "$PW_CACHE_DIR" -maxdepth 1 -name "chromium-*" 2>/dev/null | grep -q .; then
+    log "Playwright-Chromium fehlt — installiere (einmalig ~130 MB)"
+    mkdir -p "$PW_CACHE_DIR"
+    chown -R "$HH_USER:$HH_USER" "/home/$HH_USER/.cache" 2>/dev/null || true
+    HOME="/home/$HH_USER" sudo -u "$HH_USER" "$VENV_PLAYWRIGHT" install chromium \
+      || log "Playwright-Chromium-Install fehlgeschlagen — Streaming-Scraper nicht verfügbar"
+  else
+    log "Playwright-Chromium vorhanden — OK"
+  fi
+else
+  log "Playwright nicht im venv — überspringe (wird bei nächstem Update installiert)"
+fi
+
 log "Frontend neu bauen"
 cd "$HH_REPO_DIR/frontend"
 # Self-Heal: falls jemand manuell als root gepullt hat, gehören Source-Files
