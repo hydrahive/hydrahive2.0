@@ -14,6 +14,7 @@ Failover-Strategie:
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import AsyncIterator
@@ -83,35 +84,46 @@ async def call_with_stream_or_fallback(
     stop_reason = ""
     input_tokens = output_tokens = cache_creation = cache_read = 0
 
-    try:
-        async for raw_ev in stream_with_tools(
-            model=primary, system_prompt=system_prompt, volatile_system=volatile_system,
-            summary_system=summary_system,
-            cache_ttl=cache_ttl, messages=messages, tools=tools, temperature=temperature,
-            max_tokens=max_tokens, reasoning_effort=reasoning_effort,
-        ):
-            t = raw_ev.get("type")
-            if t == "message_start":
-                yield MessageStart()
-            elif t == "text_delta":
-                yield TextDelta(text=raw_ev.get("text", ""))
-            elif t == "message_stop":
-                blocks = raw_ev.get("blocks", [])
-                stop_reason = raw_ev.get("stop_reason", "")
-                input_tokens = raw_ev.get("input_tokens", 0)
-                output_tokens = raw_ev.get("output_tokens", 0)
-                cache_creation = raw_ev.get("cache_creation_tokens", 0)
-                cache_read = raw_ev.get("cache_read_tokens", 0)
-                streamed_ok = True
+    _stream_kwargs = dict(
+        model=primary, system_prompt=system_prompt, volatile_system=volatile_system,
+        summary_system=summary_system, cache_ttl=cache_ttl, messages=messages,
+        tools=tools, temperature=temperature, max_tokens=max_tokens,
+        reasoning_effort=reasoning_effort,
+    )
+    # Retry einmal bei transientem Connection-Fehler — aber nur solange noch
+    # kein Text ans Frontend geliefert wurde (sonst würde der User Text doppelt sehen).
+    for _attempt in range(2):
+        text_sent = False
+        try:
+            async for raw_ev in stream_with_tools(**_stream_kwargs):
+                t = raw_ev.get("type")
+                if t == "message_start":
+                    yield MessageStart()
+                elif t == "text_delta":
+                    yield TextDelta(text=raw_ev.get("text", ""))
+                    text_sent = True
+                elif t == "message_stop":
+                    blocks = raw_ev.get("blocks", [])
+                    stop_reason = raw_ev.get("stop_reason", "")
+                    input_tokens = raw_ev.get("input_tokens", 0)
+                    output_tokens = raw_ev.get("output_tokens", 0)
+                    cache_creation = raw_ev.get("cache_creation_tokens", 0)
+                    cache_read = raw_ev.get("cache_read_tokens", 0)
+                    streamed_ok = True
+                    break
+            break  # kein Fehler — Schleife verlassen
+        except StreamingNotSupported as e:
+            logger.info("Streaming nicht unterstützt: %s — Fallback", e)
+            break
+        except CodexModelNotAllowed:
+            raise
+        except Exception as e:
+            if _attempt == 0 and not text_sent:
+                logger.warning("Stream-Fehler (Versuch 1) — retry in 1.5s: %s", e)
+                await asyncio.sleep(1.5)
+            else:
+                logger.warning("Stream-Fehler — Fallback auf non-streaming: %s", e)
                 break
-    except StreamingNotSupported as e:
-        logger.info("Streaming nicht unterstützt: %s — Fallback", e)
-    except CodexModelNotAllowed:
-        # Account-spezifische Modell-Sperre — kein Fallback, direkt eskalieren
-        # damit der User die Klartext-Meldung sieht.
-        raise
-    except Exception as e:
-        logger.warning("Stream-Fehler — Fallback auf non-streaming: %s", e)
 
     if streamed_ok:
         yield CallResult(
