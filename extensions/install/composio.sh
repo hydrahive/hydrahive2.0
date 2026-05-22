@@ -63,14 +63,22 @@ if servers:
     server_id = servers[0]["id"]
     print(f"[INFO] Existierender Composio MCP-Server gefunden: {server_id}")
 else:
-    # Neuen Server anlegen
+    # Bestehende Auth-Configs holen (verbundene Apps wie Gmail, GitHub etc.)
+    auth_configs = api("GET", "/auth/configs").get("items", [])
+    auth_config_ids = [c["id"] for c in auth_configs]
+
+    # Fallback: ein paar no-auth Apps als Starter wenn noch nichts verbunden
+    no_auth_apps = [] if auth_config_ids else ["hackernews", "tavily", "exa"]
+
     result = api("POST", "/mcp/servers", {
         "name": "HydraHive",
-        "auth_config_ids": [],
-        "no_auth_apps": [],
+        "auth_config_ids": auth_config_ids,
+        "no_auth_apps": no_auth_apps,
     })
     server_id = result["id"]
     print(f"[OK] Composio MCP-Server angelegt: {server_id}")
+    if no_auth_apps:
+        print(f"[INFO] Starter-Apps: {', '.join(no_auth_apps)} — weitere Apps unter dashboard.composio.dev verbinden")
 
 # URL generieren
 gen = api("POST", "/mcp/servers/generate", {"mcp_server_id": server_id})
