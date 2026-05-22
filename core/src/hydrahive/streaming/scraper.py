@@ -52,7 +52,8 @@ async def scrape_series(url: str, username: str, password: str) -> dict:
 
             await _login(page, username, password)
 
-            await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
+            # "load" wartet bis alle Scripte ausgeführt sind (nicht nur DOM ready)
+            await page.goto(url, wait_until="load", timeout=30_000)
 
             current_url = page.url
             if "kein-zugriff" in current_url or "restricted" in current_url:
@@ -60,28 +61,36 @@ async def scrape_series(url: str, username: str, password: str) -> dict:
                     "Kein Zugriff auf diese Serie — Abo prüfen oder andere URL verwenden."
                 )
 
+            # Direkter Zugriff auf window.episodes_data aus dem JS-Kontext —
+            # zuverlässiger als Regex auf HTML wenn die Daten per Script gesetzt werden.
+            js_data = await page.evaluate(
+                "() => (typeof window.episodes_data !== 'undefined') "
+                "? window.episodes_data : null"
+            )
             html = await page.content()
         finally:
             await browser.close()
 
     title = _parse_title(html, url)
     season = _parse_season(title, url)
-    episodes = _parse_episodes(html)
+
+    if js_data:
+        episodes = _episodes_from_dict(js_data)
+    else:
+        episodes = _parse_episodes(html)
 
     logger.debug(
-        "Scrape %s: title=%r season=%d html_len=%d episodes=%d",
-        url, title, season, len(html), len(episodes),
+        "Scrape %s: title=%r season=%d js_data=%s html_len=%d episodes=%d",
+        url, title, season, bool(js_data), len(html), len(episodes),
     )
 
     if not episodes:
         logger.warning(
-            "Keine Episoden in HTML gefunden. URL nach Redirect: %s. "
-            "HTML-Snippet: %s",
-            current_url, html[:500],
+            "Keine Episoden gefunden. URL: %s. js_data=%s. HTML-Snippet: %s",
+            current_url, js_data, html[:500],
         )
         raise ValueError(
-            "Keine Episoden gefunden — Seite geladen, aber kein episodes_data enthalten. "
-            "Bitte Serie im Browser öffnen und URL prüfen."
+            "Keine Episoden gefunden — Serie hat keine Bunny-Videos oder Struktur unbekannt."
         )
 
     return {"title": title, "season": season, "episodes": episodes}
