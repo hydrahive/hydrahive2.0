@@ -97,7 +97,7 @@ if cfg_path.exists():
 if any(s.get("id") == "composio" for s in data.get("servers", [])):
     print("[INFO] Composio bereits in MCP-Registry — übersprungen")
 else:
-    now = datetime.datetime.utcnow().isoformat() + "Z"
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
     data.setdefault("servers", []).append({
         "id": "composio",
         "name": "Composio (SaaS-Integrationen)",
