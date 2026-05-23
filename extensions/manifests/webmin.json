@@ -1,0 +1,27 @@
+{
+  "id": "webmin",
+  "name": "Webmin",
+  "description": "System-Administration via Webmin — CPU, RAM, Disk, SMART und volle RPC-Bridge für alle Webmin-Module.",
+  "icon": "Server",
+  "category": "system",
+  "install_script": null,
+  "uninstall_script": null,
+  "service": null,
+  "health_url": null,
+  "open_url": null,
+  "installed_check": "/usr/share/webmin/miniserv.pl",
+  "install_params": [
+    {
+      "key": "HH_WEBMIN_URL",
+      "label": "Webmin-URL",
+      "placeholder": "https://192.168.3.22:10000",
+      "description": "Vollständige URL zum Webmin-Server (mit Port)."
+    },
+    {
+      "key": "HH_WEBMIN_CREDENTIAL",
+      "label": "Credential-Profil",
+      "placeholder": "webmin",
+      "description": "Name des Credential-Profils im HydraHive Credential-Store (type: basic, value: user:password)."
+    }
+  ]
+}

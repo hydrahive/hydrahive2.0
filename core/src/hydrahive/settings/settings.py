@@ -16,6 +16,7 @@ from hydrahive.settings._infra import (
     _ExtensionsMixin,
     _SambaMixin,
     _VmsMixin,
+    _WebminMixin,
 )
 from hydrahive.settings._paths import _PathsMixin
 from hydrahive.settings._services import (
@@ -33,6 +34,7 @@ class Settings(
     _SambaMixin,
     _VmsMixin,
     _ExtensionsMixin,
+    _WebminMixin,
     _ButlerMixin,
 ):
     """Aggregiert alle Settings-Mixins zu einem Singleton."""
