@@ -73,8 +73,22 @@ async def xmlrpc_call(
 
     try:
         result, _ = xmlrpc.client.loads(raw)
-        return True, result[0] if result else None
+        return True, _to_json_safe(result[0] if result else None)
     except xmlrpc.client.Fault as exc:
         return False, f"Webmin RPC-Fehler {exc.faultCode}: {exc.faultString}"
     except Exception as exc:
         return False, f"Webmin-Antwort nicht parsebar: {exc}"
+
+
+def _to_json_safe(obj: Any) -> Any:
+    """Recursively convert xmlrpc.client types to JSON-serializable equivalents."""
+    if isinstance(obj, xmlrpc.client.Binary):
+        try:
+            return obj.data.decode("utf-8", errors="replace")
+        except Exception:
+            return f"<binary {len(obj.data)} bytes>"
+    if isinstance(obj, dict):
+        return {k: _to_json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_json_safe(x) for x in obj]
+    return obj

@@ -81,7 +81,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         serialized = json.dumps(data, default=str)
         truncated = len(serialized) > _MAX_RESPONSE_CHARS
-        response = serialized[:_MAX_RESPONSE_CHARS] if truncated else data
+        response = serialized[:_MAX_RESPONSE_CHARS] if truncated else json.loads(serialized)
     except Exception:
         response = str(data)[:_MAX_RESPONSE_CHARS]
         truncated = False
