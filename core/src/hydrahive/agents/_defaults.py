@@ -10,6 +10,7 @@ _BASE_TOOLS: dict[str, list[str]] = {
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "send_mail", "list_projects",
         "list_skills", "load_skill",
+        "webmin_status", "webmin_call",
     ],
     "project": [
         "shell_exec", "file_read", "file_write", "file_patch",
