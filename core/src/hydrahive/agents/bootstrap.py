@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 
 from hydrahive.agents import _validation, config
+from hydrahive.agents._defaults import _BASE_TOOLS
 from hydrahive.agents._paths import ensure_workspace
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,32 @@ def _write_startup(agent: dict) -> None:
     if startup.exists():
         return
     startup.write_text(_STARTUP_TEMPLATE.read_text(encoding="utf-8"), encoding="utf-8")
+
+
+def migrate_tools() -> None:
+    """Stellt sicher dass alle bestehenden Agenten die Tools aus _BASE_TOOLS haben.
+
+    Läuft bei jedem Start — idempotent. Neue Tools in _BASE_TOOLS werden so
+    automatisch in bestehende Agent-Configs übernommen ohne manuellen Eingriff.
+    """
+    from hydrahive.agents._config_utils import list_all
+    for agent in list_all():
+        agent_type = agent.get("type", "")
+        if agent_type not in _BASE_TOOLS:
+            continue
+        current: list[str] = agent.get("tools", [])
+        canonical: list[str] = _BASE_TOOLS[agent_type]
+        missing = [t for t in canonical if t not in current]
+        if not missing:
+            continue
+        try:
+            config.update(agent["id"], tools=current + missing)
+            logger.info(
+                "Agent '%s' (%s): Tools ergänzt: %s",
+                agent.get("name"), agent["id"], missing,
+            )
+        except Exception as e:
+            logger.warning("Tool-Migration für Agent %s fehlgeschlagen: %s", agent["id"], e)
 
 
 def ensure_master(username: str, llm_model: str = "claude-sonnet-4-6") -> dict:

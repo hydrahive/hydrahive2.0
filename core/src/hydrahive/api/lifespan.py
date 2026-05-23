@@ -115,6 +115,7 @@ async def lifespan(app: FastAPI):
             initial_pw,
         )
     agent_bootstrap.ensure_master("admin")
+    agent_bootstrap.migrate_tools()
     plugin_system.load_all()
     load_butler_builtins()
     set_start_time()
