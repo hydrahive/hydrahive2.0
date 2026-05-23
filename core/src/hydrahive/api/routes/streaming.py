@@ -151,6 +151,15 @@ def delete_job(job_id: str, auth: Auth) -> None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Job nicht gefunden")
 
 
+@router.post("/jobs/{job_id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_job(job_id: str, auth: Auth) -> None:
+    user_id, _ = auth
+    job = db.get_job(job_id)
+    if not job or job["user_id"] != user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Job nicht gefunden")
+    downloader.cancel_job(job_id)
+
+
 # ── SSE Progress ──────────────────────────────────────────────────────────────
 
 @router.get("/jobs/{job_id}/progress")

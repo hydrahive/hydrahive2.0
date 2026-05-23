@@ -25,4 +25,7 @@ export const streamingApi = {
 
   deleteJob: (job_id: string): Promise<void> =>
     api.delete(`/streaming/jobs/${job_id}`),
+
+  cancelJob: (job_id: string): Promise<void> =>
+    api.post(`/streaming/jobs/${job_id}/cancel`, {}),
 }

@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, Download, Trash2, XCircle, SkipForward } from "lucide-react"
+import { CheckCircle, Clock, Download, Trash2, X, XCircle, SkipForward } from "lucide-react"
 import type { StreamingJob } from "./types"
 import { streamingApi } from "./api"
 
@@ -16,12 +16,18 @@ const STATUS_ICON = {
 } as const
 
 const DELETABLE = new Set(["done", "error", "skipped"])
+const CANCELLABLE = new Set(["pending", "downloading"])
 
 export function JobList({ jobs, onDeleted }: Props) {
   if (jobs.length === 0) return null
 
   async function deleteJob(id: string) {
     await streamingApi.deleteJob(id)
+    onDeleted()
+  }
+
+  async function cancelJob(id: string) {
+    await streamingApi.cancelJob(id)
     onDeleted()
   }
 
@@ -74,6 +80,15 @@ export function JobList({ jobs, onDeleted }: Props) {
               <span className="text-[10px] text-zinc-600">
                 {job.status === "downloading" ? `${job.progress}%` : job.status}
               </span>
+              {CANCELLABLE.has(job.status) && (
+                <button
+                  onClick={() => cancelJob(job.id)}
+                  className="text-zinc-700 hover:text-amber-400 transition-colors"
+                  title="Abbrechen"
+                >
+                  <X size={12} />
+                </button>
+              )}
               {DELETABLE.has(job.status) && (
                 <button
                   onClick={() => deleteJob(job.id)}

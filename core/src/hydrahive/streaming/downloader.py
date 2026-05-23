@@ -22,12 +22,24 @@ _YTDLP_BIN = str(Path(sys.executable).parent / "yt-dlp")
 
 # Max 1 concurrent download process-wide (jobs queue naturally via asyncio tasks)
 _download_lock = asyncio.Lock()
+_running_tasks: dict[str, asyncio.Task] = {}  # job_id → laufender Task
+
+
+def cancel_job(job_id: str) -> bool:
+    """Bricht einen laufenden oder wartenden Job ab. Gibt True zurück wenn gefunden."""
+    task = _running_tasks.get(job_id)
+    if task and not task.done():
+        task.cancel()
+    db.update_job_status(job_id, "error", error="Abgebrochen")
+    return True
 
 
 async def run_job(job_id: str) -> None:
     """Führt einen Download-Job aus. Blockiert bis fertig oder fehlgeschlagen."""
     job = db.get_job(job_id)
     if not job:
+        return
+    if job["status"] == "error":  # wurde bereits abgebrochen
         return
 
     out = Path(job["output_path"])
@@ -38,7 +50,14 @@ async def run_job(job_id: str) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     embed_url = f"{_EMBED_BASE}/{job['bunny_library_id']}/{job['bunny_video_id']}"
 
+    task = asyncio.current_task()
+    if task:
+        _running_tasks[job_id] = task
+
     async with _download_lock:
+        if db.get_job(job_id)["status"] == "error":  # abgebrochen während er wartete
+            _running_tasks.pop(job_id, None)
+            return
         db.update_job_status(job_id, "downloading", progress=0)
         try:
             await asyncio.wait_for(_ytdlp(job_id, embed_url, str(out)), timeout=_DOWNLOAD_TIMEOUT)
@@ -59,6 +78,8 @@ async def run_job(job_id: str) -> None:
                     out.unlink()
                 except OSError:
                     pass
+        finally:
+            _running_tasks.pop(job_id, None)
 
 
 async def _ytdlp(job_id: str, url: str, output: str) -> None:
