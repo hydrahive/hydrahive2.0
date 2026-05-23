@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { KeyRound, Save } from "lucide-react"
 import { streamingApi } from "./api"
 import type { StreamingCredentials } from "./types"
@@ -11,10 +11,16 @@ interface Props {
 const input = "w-full bg-zinc-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50"
 
 export function CredentialsForm({ creds, onSaved }: Props) {
-  const [open, setOpen] = useState(!creds)
-  const [username, setUsername] = useState(creds?.username ?? "")
+  const [open, setOpen] = useState(false)
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
-  const [plexPath, setPlexPath] = useState(creds?.plex_path ?? "/media/plex")
+  const [plexPath, setPlexPath] = useState("/media/plex")
+
+  useEffect(() => {
+    setOpen(!creds)
+    setUsername(creds?.username ?? "")
+    setPlexPath(creds?.plex_path ?? "/media/plex")
+  }, [creds])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -8,6 +8,9 @@ import re
 import sys
 from pathlib import Path
 
+# Maximale Download-Dauer pro Job: 2 Stunden
+_DOWNLOAD_TIMEOUT = 7200
+
 from hydrahive.db import streaming as db
 
 logger = logging.getLogger(__name__)
@@ -38,8 +41,16 @@ async def run_job(job_id: str) -> None:
     async with _download_lock:
         db.update_job_status(job_id, "downloading", progress=0)
         try:
-            await _ytdlp(job_id, embed_url, str(out))
+            await asyncio.wait_for(_ytdlp(job_id, embed_url, str(out)), timeout=_DOWNLOAD_TIMEOUT)
             db.update_job_status(job_id, "done", progress=100)
+        except asyncio.TimeoutError:
+            logger.error("Download-Timeout job=%s (>%ds)", job_id, _DOWNLOAD_TIMEOUT)
+            db.update_job_status(job_id, "error", error=f"Timeout nach {_DOWNLOAD_TIMEOUT // 3600}h")
+            if out.exists():
+                try:
+                    out.unlink()
+                except OSError:
+                    pass
         except Exception as exc:
             logger.error("Download fehlgeschlagen job=%s: %s", job_id, exc)
             db.update_job_status(job_id, "error", error=str(exc))
