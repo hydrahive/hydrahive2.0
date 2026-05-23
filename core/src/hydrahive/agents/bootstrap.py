@@ -29,8 +29,13 @@ def migrate_tools() -> None:
 
     Läuft bei jedem Start — idempotent. Neue Tools in _BASE_TOOLS werden so
     automatisch in bestehende Agent-Configs übernommen ohne manuellen Eingriff.
+
+    Nutzt direktes save_atomic statt config.update, damit Agenten mit Plugin-Tools
+    (plugin__*) nicht an der Validation scheitern — wir fügen nur hinzu, nie entfernen.
     """
-    from hydrahive.agents._config_utils import list_all
+    from hydrahive.agents._config_utils import list_all, save_atomic
+    from hydrahive.agents._paths import config_path
+    from hydrahive.db._utils import now_iso
     for agent in list_all():
         agent_type = agent.get("type", "")
         if agent_type not in _BASE_TOOLS:
@@ -41,7 +46,9 @@ def migrate_tools() -> None:
         if not missing:
             continue
         try:
-            config.update(agent["id"], tools=current + missing)
+            agent["tools"] = current + missing
+            agent["updated_at"] = now_iso()
+            save_atomic(config_path(agent["id"]), agent)
             logger.info(
                 "Agent '%s' (%s): Tools ergänzt: %s",
                 agent.get("name"), agent["id"], missing,
