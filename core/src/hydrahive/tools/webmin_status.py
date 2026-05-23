@@ -22,26 +22,35 @@ _SCHEMA = {
 }
 
 
+def _base_from_pattern(pattern: str) -> str:
+    """Leitet Webmin-Base-URL aus url_pattern ab: 'https://host:10000/*' → 'https://host:10000'."""
+    return pattern.rstrip("/*").rstrip("/")
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     import base64
     import httpx
     from hydrahive.credentials import get_credential
     from hydrahive.settings import settings
 
-    if not settings.webmin_url:
-        return ToolResult.fail("Webmin nicht konfiguriert (HH_WEBMIN_URL fehlt)")
-
     cred_name = settings.webmin_credential
     cred = get_credential(ctx.user_id, cred_name)
     if not cred:
         return ToolResult.fail(
             f"Kein Credential '{cred_name}' gefunden — "
-            "bitte in /credentials anlegen (type: basic, value: user:password)"
+            "in /credentials anlegen: type=basic, value=user:password, "
+            "url_pattern=https://WEBMIN-HOST:10000/*"
+        )
+
+    base = settings.webmin_url or _base_from_pattern(cred.url_pattern)
+    if not base or base == "*":
+        return ToolResult.fail(
+            "Webmin-URL unbekannt — entweder HH_WEBMIN_URL setzen oder "
+            "url_pattern im Credential auf https://HOST:10000/* setzen"
         )
 
     b64 = base64.b64encode(cred.value.encode()).decode()
     headers = {"Authorization": f"Basic {b64}"}
-    base = settings.webmin_url
 
     try:
         async with httpx.AsyncClient(verify=False, timeout=15) as client:

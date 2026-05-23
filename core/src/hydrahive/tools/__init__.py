@@ -64,9 +64,8 @@ def _build_registry() -> dict[str, Tool]:
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)
     tools.append(web_browser.TOOL)
-    if settings.webmin_url:
-        tools.append(webmin_status.TOOL)
-        tools.append(webmin_call.TOOL)
+    tools.append(webmin_status.TOOL)
+    tools.append(webmin_call.TOOL)
     return {t.name: t for t in tools}
 
 
