@@ -50,7 +50,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         )
 
     b64 = base64.b64encode(cred.value.encode()).decode()
-    headers = {"Authorization": f"Basic {b64}"}
+    headers = {
+        "Authorization": f"Basic {b64}",
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json, text/javascript, */*",
+    }
 
     try:
         async with httpx.AsyncClient(verify=False, timeout=15) as client:
@@ -67,11 +71,19 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if r.status_code != 200:
         return ToolResult.fail(f"Webmin antwortet mit HTTP {r.status_code}")
 
+    text = r.text
+    if text.lstrip().startswith("<"):
+        return ToolResult.fail(
+            "Webmin antwortet mit HTML statt JSON — wahrscheinlich hat der Webmin-User "
+            f"'{cred.value.split(':')[0]}' keinen Zugriff auf das system-status Modul. "
+            "In Webmin → Webmin Users → User → Modul-Berechtigungen prüfen."
+        )
+
     try:
         payload = r.json()
         data = payload.get("data", payload)
     except Exception:
-        return ToolResult.fail(f"Webmin-Antwort kein JSON: {r.text[:500]}")
+        return ToolResult.fail(f"Webmin-Antwort nicht parsebar: {text[:300]}")
 
     result: dict = {"source": base, "system": data}
 

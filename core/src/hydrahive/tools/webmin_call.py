@@ -81,7 +81,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     params: dict = args.get("params") or {}
 
     b64 = base64.b64encode(cred.value.encode()).decode()
-    headers = {"Authorization": f"Basic {b64}"}
+    headers = {
+        "Authorization": f"Basic {b64}",
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json, text/javascript, */*",
+    }
     url = f"{base}/{module}/{path}"
 
     try:
