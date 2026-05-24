@@ -11,6 +11,7 @@ from hydrahive.db.connection import db
 
 def insert(
     payload: dict,
+    user_id: str,
     automation_name: str | None = None,
     automation_id: str | None = None,
     session_id: str | None = None,
@@ -21,39 +22,47 @@ def insert(
     with db() as conn:
         conn.execute(
             """INSERT INTO health_ingest
-               (id, received_at, automation_name, automation_id, session_id, period, aggregation, payload)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (record_id, now_iso(), automation_name, automation_id,
+               (id, received_at, user_id, automation_name, automation_id,
+                session_id, period, aggregation, payload)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (record_id, now_iso(), user_id, automation_name, automation_id,
              session_id, period, aggregation, json.dumps(payload)),
         )
-    _process_payload_to_daily(payload)
+    _process_payload_to_daily(payload, user_id)
     return record_id
 
 
-def list_recent(limit: int = 50, automation_id: str | None = None) -> list[dict]:
+def list_recent(
+    user_id: str,
+    limit: int = 50,
+    automation_id: str | None = None,
+) -> list[dict]:
     with db() as conn:
         if automation_id:
             rows = conn.execute(
                 """SELECT id, received_at, automation_name, automation_id, session_id,
                           period, aggregation
-                   FROM health_ingest WHERE automation_id = ?
+                   FROM health_ingest
+                   WHERE user_id = ? AND automation_id = ?
                    ORDER BY received_at DESC LIMIT ?""",
-                (automation_id, limit),
+                (user_id, automation_id, limit),
             ).fetchall()
         else:
             rows = conn.execute(
                 """SELECT id, received_at, automation_name, automation_id, session_id,
                           period, aggregation
-                   FROM health_ingest ORDER BY received_at DESC LIMIT ?""",
-                (limit,),
+                   FROM health_ingest WHERE user_id = ?
+                   ORDER BY received_at DESC LIMIT ?""",
+                (user_id, limit),
             ).fetchall()
     return [dict(r) for r in rows]
 
 
-def get_payload(record_id: str) -> dict[str, Any] | None:
+def get_payload(record_id: str, user_id: str) -> dict[str, Any] | None:
     with db() as conn:
         row = conn.execute(
-            "SELECT payload FROM health_ingest WHERE id = ?", (record_id,)
+            "SELECT payload FROM health_ingest WHERE id = ? AND user_id = ?",
+            (record_id, user_id),
         ).fetchone()
     if not row:
         return None
@@ -71,7 +80,6 @@ _TIME_BASED = {"sleep_analysis", "mindful_session", "stand_time"}
 
 
 def _aggregate_samples(name: str, samples: list[dict]) -> float:
-    """Aggregiert Messwerte zu einem Tageswert."""
     values = [s.get("qty", 0) for s in samples if s.get("qty") is not None]
     if not values:
         return 0.0
@@ -80,15 +88,13 @@ def _aggregate_samples(name: str, samples: list[dict]) -> float:
     return sum(values) / len(values)
 
 
-def _process_payload_to_daily(payload: dict) -> None:
-    """Extrahiert Tageswerte aus einem Payload und schreibt sie in health_daily."""
+def _process_payload_to_daily(payload: dict, user_id: str) -> None:
     try:
         data = payload.get("data", payload)
         metrics_list = data.get("metrics", [])
     except AttributeError:
         return
 
-    # Samples nach Metrik + Datum gruppieren
     by_metric: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
     units: dict[str, str] = {}
 
@@ -111,13 +117,13 @@ def _process_payload_to_daily(payload: dict) -> None:
         unit = units.get(name, "")
         for date, samples in day_samples.items():
             value = round(_aggregate_samples(name, samples), 1)
-            rows.append((date, name, unit, value))
+            rows.append((date, name, user_id, unit, value))
 
     with db() as conn:
         conn.executemany(
-            """INSERT INTO health_daily (date, metric_name, unit, value)
-               VALUES (?, ?, ?, ?)
-               ON CONFLICT (date, metric_name) DO UPDATE SET
+            """INSERT INTO health_daily (date, metric_name, user_id, unit, value)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT (date, metric_name, user_id) DO UPDATE SET
                  value = CASE
                    WHEN metric_name IN (
                      'step_count','active_energy_burned','basal_energy_burned',
@@ -132,51 +138,59 @@ def _process_payload_to_daily(payload: dict) -> None:
         )
 
 
-def backfill_daily() -> int:
-    """Einmalig: verarbeitet alle health_ingest Records in health_daily.
-    Gibt die Anzahl verarbeiteter Records zurück."""
+def backfill_daily(user_id: str = "till") -> int:
+    """Verarbeitet alle health_ingest Records eines Users in health_daily."""
     with db() as conn:
         rows = conn.execute(
-            "SELECT payload FROM health_ingest ORDER BY received_at ASC"
+            "SELECT payload FROM health_ingest WHERE user_id = ? ORDER BY received_at ASC",
+            (user_id,),
         ).fetchall()
 
     count = 0
     for row in rows:
         try:
             payload = json.loads(row["payload"])
-            _process_payload_to_daily(payload)
+            _process_payload_to_daily(payload, user_id)
             count += 1
         except (json.JSONDecodeError, Exception):
             continue
     return count
 
 
-def get_metrics_summary(days: int = 7, metric: str | None = None) -> dict[str, Any]:
-    """Liest aggregierte Tageswerte aus health_daily."""
+def get_metrics_summary(
+    user_id: str,
+    days: int = 7,
+    metric: str | None = None,
+) -> dict[str, Any]:
     since_date = (datetime.now(timezone.utc) - timedelta(days=days)).date().isoformat()
 
     with db() as conn:
         last_ingest = conn.execute(
-            "SELECT received_at FROM health_ingest ORDER BY received_at DESC LIMIT 1"
+            "SELECT received_at FROM health_ingest WHERE user_id = ? ORDER BY received_at DESC LIMIT 1",
+            (user_id,),
         ).fetchone()
 
         if metric:
             rows = conn.execute(
                 """SELECT date, metric_name, unit, value FROM health_daily
-                   WHERE date >= ? AND metric_name = ?
+                   WHERE user_id = ? AND date >= ? AND metric_name = ?
                    ORDER BY date ASC""",
-                (since_date, metric),
+                (user_id, since_date, metric),
             ).fetchall()
         else:
             rows = conn.execute(
                 """SELECT date, metric_name, unit, value FROM health_daily
-                   WHERE date >= ?
+                   WHERE user_id = ? AND date >= ?
                    ORDER BY date ASC""",
-                (since_date,),
+                (user_id, since_date),
             ).fetchall()
 
     if not rows:
-        return {"metrics": {}, "last_ingest": last_ingest["received_at"] if last_ingest else None, "period_days": days}
+        return {
+            "metrics": {},
+            "last_ingest": last_ingest["received_at"] if last_ingest else None,
+            "period_days": days,
+        }
 
     by_metric: dict[str, list] = defaultdict(list)
     units: dict[str, str] = {}

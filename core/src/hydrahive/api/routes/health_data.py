@@ -32,6 +32,7 @@ def _check_key(
 @router.post("/ingest")
 async def ingest(
     payload: dict,
+    user: str = Query(default="till"),
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
     authorization: Annotated[str | None, Header()] = None,
     key: str | None = Query(default=None),
@@ -47,12 +48,13 @@ async def ingest(
     metrics = data.get("metrics", []) if isinstance(data, dict) else []
     workouts = data.get("workouts", []) if isinstance(data, dict) else []
     logger.info(
-        "health_ingest: %s metrics, %s workouts von automation='%s'",
-        len(metrics), len(workouts), x_automation_name,
+        "health_ingest: user=%s, %s metrics, %s workouts von automation='%s'",
+        user, len(metrics), len(workouts), x_automation_name,
     )
 
     record_id = health_db.insert(
         payload=payload,
+        user_id=user,
         automation_name=x_automation_name,
         automation_id=x_automation_id,
         session_id=x_session_id,
@@ -62,26 +64,34 @@ async def ingest(
     return {"id": record_id, "metrics": len(metrics), "workouts": len(workouts)}
 
 
-@router.get("/data", dependencies=[Depends(require_auth)])
+@router.get("/data")
 def list_data(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
     limit: int = Query(default=50, ge=1, le=500),
     automation_id: str | None = Query(default=None),
 ) -> dict:
-    rows = health_db.list_recent(limit=limit, automation_id=automation_id)
+    username, _ = auth
+    rows = health_db.list_recent(user_id=username, limit=limit, automation_id=automation_id)
     return {"records": rows, "count": len(rows)}
 
 
-@router.get("/metrics", dependencies=[Depends(require_auth)])
+@router.get("/metrics")
 def get_metrics(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
     days: int = Query(default=7, ge=1, le=365),
     metric: str | None = Query(default=None),
 ) -> dict:
-    return health_db.get_metrics_summary(days=days, metric=metric)
+    username, _ = auth
+    return health_db.get_metrics_summary(user_id=username, days=days, metric=metric)
 
 
-@router.get("/data/{record_id}", dependencies=[Depends(require_auth)])
-def get_record(record_id: str) -> dict:
-    payload = health_db.get_payload(record_id)
+@router.get("/data/{record_id}")
+def get_record(
+    record_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    username, _ = auth
+    payload = health_db.get_payload(record_id, user_id=username)
     if payload is None:
         raise HTTPException(status_code=404, detail="not_found")
     return {"id": record_id, "payload": payload}
