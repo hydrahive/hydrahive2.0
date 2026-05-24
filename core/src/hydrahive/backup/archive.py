@@ -39,15 +39,34 @@ def _checkpoint_db_to_tempfile(target: Path) -> None:
         src.close()
 
 
-def _add_dir(tar: tarfile.TarFile, arcname: str, source: Path) -> None:
-    """Verzeichnis rekursiv ins Tar hinzufügen mit Exclude-Filter."""
+def _add_dir(
+    tar: tarfile.TarFile,
+    arcname: str,
+    source: Path,
+    skipped: list[str],
+) -> None:
+    """Verzeichnis rekursiv ins Tar hinzufügen mit Exclude-Filter.
+
+    Unlesbare Dateien (I/O-Fehler, z.B. Festplattenschaden) werden
+    übersprungen und in `skipped` protokolliert statt den Backup abzubrechen.
+    """
     if not source.exists():
         return
-    for item in source.rglob("*"):
+    try:
+        items = list(source.rglob("*"))
+    except OSError as e:
+        logger.warning("rglob fehlgeschlagen für %s: %s", source, e)
+        skipped.append(str(source))
+        return
+    for item in items:
         if is_excluded(item):
             continue
         rel = item.relative_to(source)
-        tar.add(item, arcname=f"{arcname}/{rel}", recursive=False)
+        try:
+            tar.add(item, arcname=f"{arcname}/{rel}", recursive=False)
+        except OSError as e:
+            logger.warning("Datei übersprungen (I/O-Fehler): %s — %s", item, e)
+            skipped.append(str(item))
 
 
 def create_system_archive(target_dir: Path) -> Path:
@@ -60,9 +79,15 @@ def create_system_archive(target_dir: Path) -> Path:
     archive_path = target_dir / f"hydrahive2-system-{timestamp}.tar.gz"
     tmp_db = target_dir / f".db-snapshot-{timestamp}.sqlite"
 
+    skipped: list[str] = []
+
     try:
         if settings.sessions_db.exists():
-            _checkpoint_db_to_tempfile(tmp_db)
+            try:
+                _checkpoint_db_to_tempfile(tmp_db)
+            except OSError as e:
+                logger.warning("DB-Checkpoint fehlgeschlagen, wird übersprungen: %s", e)
+                skipped.append(str(settings.sessions_db))
 
         manifest = {
             "version": ARCHIVE_VERSION,
@@ -77,17 +102,37 @@ def create_system_archive(target_dir: Path) -> Path:
             _add_bytes(tar, MANIFEST_NAME, json.dumps(manifest, indent=2).encode())
 
             if tmp_db.exists():
-                arcname, _ = db_arcname()
-                tar.add(tmp_db, arcname=arcname)
+                arc, _ = db_arcname()
+                try:
+                    tar.add(tmp_db, arcname=arc)
+                except OSError as e:
+                    logger.warning("DB aus Tar ausgelassen: %s", e)
+                    skipped.append(str(tmp_db))
 
-            for arcname, source in data_subdirs():
-                _add_dir(tar, arcname, source)
+            for arc, source in data_subdirs():
+                _add_dir(tar, arc, source, skipped)
 
             cfg_arc, cfg_src = config_dir_arcname()
-            _add_dir(tar, cfg_arc, cfg_src)
+            _add_dir(tar, cfg_arc, cfg_src, skipped)
 
-        logger.info("System-Backup erstellt: %s (%.1f MB)",
-                    archive_path, archive_path.stat().st_size / (1024 * 1024))
+            # Übersprungene Dateien separat protokollieren
+            if skipped:
+                _add_bytes(
+                    tar,
+                    "skipped.json",
+                    json.dumps({"skipped_files": skipped}, indent=2).encode(),
+                )
+
+        if skipped:
+            logger.warning(
+                "Backup mit %d übersprungenen Dateien erstellt: %s",
+                len(skipped), archive_path,
+            )
+        else:
+            logger.info(
+                "System-Backup erstellt: %s (%.1f MB)",
+                archive_path, archive_path.stat().st_size / (1024 * 1024),
+            )
         return archive_path
     finally:
         tmp_db.unlink(missing_ok=True)
