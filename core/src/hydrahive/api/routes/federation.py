@@ -1,12 +1,14 @@
-"""Federation API — Workstation-Registry + A2A-Card-Refresh."""
+"""Federation API — Workstation-Registry + A2A-Card-Refresh + Client-Config-Generator."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from hydrahive.api.middleware import api_keys as ak
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.db import federation as fed_db
 from hydrahive.federation.registry import fetch_card
@@ -134,3 +136,80 @@ async def get_audit(
             return resp.json()
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+# ── Client-Config-Generator ──────────────────────────────────────────────────
+# Erzeugt Import-Configs für ProjektX-Clients: API-Key + Tailscale-Authkey +
+# AgentLink-Koordinaten in einer einzigen JSON-Datei.
+
+class ClientCreate(BaseModel):
+    name: str
+
+
+@router.get("/clients")
+def list_clients(
+    _: Annotated[tuple[str, str], Depends(_admin)],
+) -> list[dict]:
+    return [k for k in ak.list_keys() if k.get("role") == "projektx"]
+
+
+@router.post("/clients", status_code=status.HTTP_201_CREATED)
+async def create_client(
+    body: ClientCreate,
+    _: Annotated[tuple[str, str], Depends(_admin)],
+) -> dict:
+    from hydrahive.settings import settings
+    from hydrahive.tailscale.status import get_status
+    from hydrahive.tailscale.admin import create_invite
+
+    plain_key = ak.create(name=body.name, username="admin", role="projektx")
+    # Key-ID ist in den ersten 16 Hex-Zeichen nach "hhk_" kodiert
+    key_id = plain_key[len(ak.PREFIX): len(ak.PREFIX) + ak._KEY_ID_HEX_LEN]
+
+    ts = await get_status()
+    tailscale_section: dict | None = None
+    if ts.get("connected"):
+        authkey: str | None = None
+        try:
+            invite = await create_invite()
+            authkey = invite.get("auth_key") or None
+        except Exception:
+            pass
+        tailscale_section = {
+            "ip": ts.get("ip"),
+            "hostname": ts.get("hostname"),
+            "dns_name": ts.get("dns_name"),
+            "authkey": authkey,
+        }
+
+    port = settings.port
+    ts_ip = ts.get("ip")
+    ts_dns = ts.get("dns_name")
+
+    config: dict = {
+        "schema": "hh2_client_v1",
+        "name": body.name,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "hh2": {
+            "api_url": f"http://{ts_ip}:{port}" if ts_ip else None,
+            "api_url_dns": f"https://{ts_dns}:{port}" if ts_dns else None,
+            "api_key": plain_key,
+        },
+        "agentlink": {
+            "url": settings.agentlink_url or None,
+            "ws_url": settings.agentlink_ws_url or None,
+            "agent_id": settings.agentlink_agent_id,
+        } if settings.agentlink_url else None,
+        "tailscale": tailscale_section,
+    }
+
+    return {"key_id": key_id, "name": body.name, "config": config}
+
+
+@router.delete("/clients/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_client(
+    key_id: str,
+    _: Annotated[tuple[str, str], Depends(_admin)],
+) -> None:
+    if not ak.delete(key_id):
+        raise HTTPException(status_code=404, detail="Client nicht gefunden")

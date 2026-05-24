@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { A2ACard, Workstation } from "./types"
+import type { A2ACard, ClientConnection, CreateClientResult, Workstation } from "./types"
 
 // All optional fields a workstation can have. Keeping it as a type
 // alias means create() and update() share the exact same shape.
@@ -45,4 +45,15 @@ export const federationApi = {
 
   audit: (id: string): Promise<unknown[]> =>
     api.get(`/federation/workstations/${id}/audit`),
+}
+
+export const clientsApi = {
+  list: (): Promise<ClientConnection[]> =>
+    api.get("/federation/clients"),
+
+  create: (name: string): Promise<CreateClientResult> =>
+    api.post("/federation/clients", { name }),
+
+  delete: (keyId: string): Promise<void> =>
+    api.delete(`/federation/clients/${keyId}`),
 }

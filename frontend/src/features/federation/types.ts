@@ -25,6 +25,42 @@ export interface A2ACard {
   endpoints?: Record<string, string>
 }
 
+export interface ClientConnection {
+  id: string
+  name: string
+  username: string
+  role: string
+  created_at: string
+}
+
+export interface ClientConfig {
+  schema: string
+  name: string
+  generated_at: string
+  hh2: {
+    api_url: string | null
+    api_url_dns: string | null
+    api_key: string
+  }
+  agentlink: {
+    url: string | null
+    ws_url: string | null
+    agent_id: string
+  } | null
+  tailscale: {
+    ip: string | null
+    hostname: string | null
+    dns_name: string | null
+    authkey: string | null
+  } | null
+}
+
+export interface CreateClientResult {
+  key_id: string
+  name: string
+  config: ClientConfig
+}
+
 export interface Workstation {
   id: string
   name: string

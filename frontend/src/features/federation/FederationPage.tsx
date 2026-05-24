@@ -4,6 +4,7 @@ import { federationApi } from "./api"
 import type { Workstation } from "./types"
 import { WorkstationCard } from "./_WorkstationCard"
 import { AddWorkstationDialog } from "./_AddDialog"
+import { ClientConnectionsSection } from "./_ClientConnectionsSection"
 
 export function FederationPage() {
   const [workstations, setWorkstations] = useState<Workstation[]>([])
@@ -93,6 +94,10 @@ export function FederationPage() {
           onCreated={() => { setShowAdd(false); load() }}
         />
       )}
+
+      <div className="border-t border-white/[4%] pt-4">
+        <ClientConnectionsSection />
+      </div>
     </div>
   )
 }
