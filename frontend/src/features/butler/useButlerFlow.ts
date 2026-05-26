@@ -3,7 +3,7 @@ import { addEdge, useEdgesState, useNodesState, useReactFlow, type Connection, t
 import { api } from "@/shared/api-client"
 import { useTranslation } from "react-i18next"
 import { butlerLegacyApi } from "./adapter"
-import { defaultParams } from "./palette-data"
+import { defaultParams, UNWIRED_TRIGGERS } from "./palette-data"
 import type { BNode, ButlerFlow } from "./types"
 
 let _nSeq = 0
@@ -55,6 +55,13 @@ export function useButlerFlow() {
   }
 
   const saveFlow = async () => {
+    const unwiredNode = nodes.find(
+      (n) => n.type === "triggerNode" && UNWIRED_TRIGGERS.has((n.data as { subtype?: string }).subtype ?? "")
+    )
+    if (unwiredNode) {
+      showToast(`Trigger „${(unwiredNode.data as { subtype?: string }).subtype}" ist noch nicht aktiv — kein Backend-Event-Sender vorhanden.`)
+      return
+    }
     setSaving(true)
     try {
       const scope = (projectId && !activeFlowId) ? "project" as const : "user" as const

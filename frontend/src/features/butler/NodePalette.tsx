@@ -7,7 +7,7 @@
 import React, { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
-import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE } from "./palette-data"
+import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE, UNWIRED_TRIGGERS } from "./palette-data"
 
 const COLOR_MAP = {
   green:  "border-green-500/40 bg-green-950/30 hover:bg-green-950/60 text-green-300",
@@ -69,19 +69,27 @@ export function NodePalette() {
               <div className="flex flex-col gap-1.5 mt-1">
                 {group.items.map((item) => {
                   const Icon = item.icon
+                  const unwired = UNWIRED_TRIGGERS.has(item.subtype)
                   return (
                     <div
                       key={item.subtype}
+                      title={unwired ? "Noch nicht aktiv — kein Backend-Event-Sender vorhanden" : undefined}
                       className={cn(
-                        "flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs",
-                        "cursor-grab active:cursor-grabbing transition-colors",
-                        COLOR_MAP[group.color],
+                        "relative flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition-colors",
+                        unwired
+                          ? "cursor-not-allowed border-zinc-700/50 bg-zinc-900/50 text-zinc-500"
+                          : cn("cursor-grab active:cursor-grabbing", COLOR_MAP[group.color]),
                       )}
-                      draggable
-                      onDragStart={(e) => onDragStart(e, item)}
+                      draggable={!unwired}
+                      onDragStart={unwired ? undefined : (e) => onDragStart(e, item)}
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate leading-tight">{item.label}</span>
+                      {unwired && (
+                        <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold bg-amber-900/60 text-amber-400 border border-amber-700/40">
+                          bald
+                        </span>
+                      )}
                     </div>
                   )
                 })}

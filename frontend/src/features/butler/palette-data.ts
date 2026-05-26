@@ -81,6 +81,15 @@ export const PALETTE_LABEL_KEY: Record<string, string> = {
   discord_post:           "nodeDiscordPost",
 }
 
+/** Trigger-Typen ohne aktive Event-Quelle im Backend. Flows mit diesen Triggern
+ *  feuern nie — daher Badge in der Palette + Speichern blockiert. */
+export const UNWIRED_TRIGGERS = new Set([
+  "heartbeat_fired",
+  "git_event_received",
+  "discord_event_received",
+  "email_received",
+])
+
 export const PALETTE_STRUCTURE = [
   {
     groupKey: "groupTrigger",
