@@ -51,7 +51,7 @@ export function ProjectsPage() {
         )}
       </main>
 
-      <CollapsibleSidebar>
+      <CollapsibleSidebar defaultOpen>
         <ProjectList
           projects={projects} activeId={activeId}
           onSelect={setActiveId} onNew={() => setShowNew(true)}

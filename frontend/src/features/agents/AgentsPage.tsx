@@ -68,7 +68,7 @@ export function AgentsPage() {
         )}
       </main>
 
-      <CollapsibleSidebar>
+      <CollapsibleSidebar defaultOpen>
         <AgentList
           agents={agents}
           activeId={activeId}

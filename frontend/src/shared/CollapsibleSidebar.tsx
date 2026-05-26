@@ -3,11 +3,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface CollapsibleSidebarProps {
   children: React.ReactNode
+  defaultOpen?: boolean
 }
 
-export function CollapsibleSidebar({ children }: CollapsibleSidebarProps) {
-  // Default: immer eingeklappt — User klickt zum Aufklappen.
-  const [open, setOpen] = useState(false)
+export function CollapsibleSidebar({ children, defaultOpen = false }: CollapsibleSidebarProps) {
+  const [open, setOpen] = useState(defaultOpen)
 
   return (
     <>

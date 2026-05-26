@@ -288,7 +288,7 @@ export function ChatPage() {
           )}
         </main>
 
-        <CollapsibleSidebar>
+        <CollapsibleSidebar defaultOpen>
           <SessionList
             sessions={sessions} activeId={activeId}
             knownAgentIds={knownAgentIds} buddyAgentIds={buddyAgentIds} projects={projects}
