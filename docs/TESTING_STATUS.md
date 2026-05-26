@@ -1,6 +1,6 @@
 # Testing Status — HydraHive2
 
-> **Last Updated:** 2026-05-09
+> **Last Updated:** 2026-05-26
 > **Status:** 🟢 Foundation steht, Kern-Subsysteme abgedeckt
 
 ---
@@ -9,14 +9,14 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Test-Dateien:        17                                │
-│  Tests gesamt:        243                               │
-│  Pass:                243 (100%)                        │
-│  Laufzeit:            ~5s                               │
+│  Test-Dateien:        44                                │
+│  Tests gesamt:        442                               │
+│  Pass:                442 (100%)                        │
+│  Laufzeit:            ~18s                              │
 │  CI:                  ✅ Backend-pytest + ruff + Frontend-tsc │
 │                          (.github/workflows/pytest.yml) │
-│  Backend-Files:       343 (.py)                         │
-│  Frontend-Files:      262 (.ts/.tsx)                    │
+│  Backend-Files:       379 (.py)                         │
+│  Frontend-Files:      296 (.ts/.tsx)                    │
 └─────────────────────────────────────────────────────────┘
 ```
 
