@@ -14,7 +14,7 @@ export type DomainColor =
 
 export const DOMAIN_COLORS: Record<string, DomainColor> = {
   "/": "indigo",
-  "/chat": "blue",
+  "/werkstatt": "blue",
   "/agents": "violet",
   "/projects": "amber",
   "/communication": "lime",

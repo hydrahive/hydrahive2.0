@@ -38,7 +38,7 @@ export function SessionsTab({ projectId }: Props) {
       {sessions.map((s) => (
         <button
           key={s.id}
-          onClick={() => navigate(`/chat/${s.id}`)}
+          onClick={() => navigate(`/werkstatt/${s.id}`)}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[6%] hover:border-violet-500/30 hover:bg-violet-500/[4%] transition-all group text-left"
         >
           <MessageSquare size={14} className="text-zinc-500 group-hover:text-violet-400 flex-shrink-0" />

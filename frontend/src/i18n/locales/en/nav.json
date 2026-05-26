@@ -1,13 +1,18 @@
 {
   "groups": {
     "main": "Main",
-    "config": "Configuration"
+    "config": "Configuration",
+    "groupOverview": "Overview",
+    "groupWorking": "Work",
+    "groupAutomation": "Automation",
+    "groupInfrastructure": "Infrastructure",
+    "groupSettings": "Settings"
   },
   "items": {
     "buddy": "Buddy",
     "dashboard": "Dashboard",
     "health": "Health",
-    "devchat": "DevChat",
+    "werkstatt": "Workshop",
     "chat": "Chat",
     "agents": "Agents",
     "projects": "Projects",

@@ -63,8 +63,9 @@ export default function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="health" element={<HealthPage />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
-          <Route path="devchat" element={<ChatPage />} />
-          <Route path="chat" element={<Navigate to="/devchat" replace />} />
+          <Route path="werkstatt" element={<ChatPage />} />
+          <Route path="werkstatt/:sid" element={<ChatPage />} />
+          <Route path="devchat" element={<Navigate to="/werkstatt" replace />} />
           <Route path="agents" element={<AgentsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="communication" element={<CommunicationPage />} />

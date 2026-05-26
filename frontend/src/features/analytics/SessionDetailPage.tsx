@@ -36,7 +36,7 @@ export function SessionDetailPage() {
           </p>
         </div>
         <div className="ml-auto">
-          <Link to={`/devchat?session=${s.id}`}
+          <Link to={`/werkstatt?session=${s.id}`}
             className="text-xs px-3 py-1.5 rounded-md bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 flex items-center gap-1.5">
             <MessageSquare size={12} />
             Im Chat öffnen

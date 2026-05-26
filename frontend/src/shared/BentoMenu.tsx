@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Grip } from "lucide-react"
-import { visibleItems } from "./nav-config"
+import { NAV_GROUPS, visibleItems } from "./nav-config"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { DOMAIN_TW, colorFor } from "./colors"
 
@@ -40,39 +40,51 @@ export function BentoMenu({ open, onClose }: Props) {
     <div className="fixed inset-0 z-40 flex items-start justify-end pt-14 pr-3 sm:pr-4 pointer-events-none">
       <div
         ref={ref}
-        className="pointer-events-auto w-[min(95vw,360px)] max-h-[80vh] overflow-y-auto rounded-2xl border border-white/[10%] bg-zinc-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 p-3"
+        className="pointer-events-auto w-[min(95vw,380px)] max-h-[85vh] overflow-y-auto rounded-2xl border border-white/[10%] bg-zinc-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 p-3"
       >
         <div className="flex items-center gap-2 px-2 pb-2 mb-2 border-b border-white/[6%]">
           <Grip size={13} className="text-zinc-500" />
           <p className="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold">Apps</p>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {items.map(({ path, icon: Icon, labelKey }) => {
-            const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
-            const c = DOMAIN_TW[colorFor(path)]
-            return (
-              <Link
-                key={path}
-                to={path}
-                onClick={onClose}
-                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-colors ${
-                  active ? `${c.bgActive} ${c.border}` : "border-transparent hover:bg-white/[5%]"
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                  active ? `${c.iconBgActive} ${c.iconTextActive}` : `${c.iconBg} ${c.iconText}`
-                }`}>
-                  <Icon size={18} />
-                </div>
-                <span className={`text-[11px] text-center leading-tight ${
-                  active ? `${c.textActive} font-medium` : "text-zinc-400"
-                }`}>
-                  {t(`items.${labelKey}`)}
-                </span>
-              </Link>
-            )
-          })}
-        </div>
+
+        {NAV_GROUPS.map((group) => {
+          const groupItems = items.filter((i) => i.group === group.key)
+          if (!groupItems.length) return null
+          return (
+            <div key={group.key} className="mb-3 last:mb-0">
+              <p className="text-[9px] uppercase tracking-[0.18em] text-zinc-600 font-semibold px-1 mb-1.5">
+                {t(`groups.${group.labelKey}`)}
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {groupItems.map(({ path, icon: Icon, labelKey }) => {
+                  const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
+                  const c = DOMAIN_TW[colorFor(path)]
+                  return (
+                    <Link
+                      key={path}
+                      to={path}
+                      onClick={onClose}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-colors ${
+                        active ? `${c.bgActive} ${c.border}` : "border-transparent hover:bg-white/[5%]"
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        active ? `${c.iconBgActive} ${c.iconTextActive}` : `${c.iconBg} ${c.iconText}`
+                      }`}>
+                        <Icon size={15} />
+                      </div>
+                      <span className={`text-[10px] text-center leading-tight ${
+                        active ? `${c.textActive} font-medium` : "text-zinc-400"
+                      }`}>
+                        {t(`items.${labelKey}`)}
+                      </span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

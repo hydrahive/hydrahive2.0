@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useParams, useSearchParams } from "react-router-dom"
 import { Coins, Cpu, Download, FileText, GamepadIcon, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
 import { AgentPixelMonitor } from "./AgentPixelMonitor"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
@@ -35,6 +36,11 @@ function ChatSearchScrollEffect() {
 
 export function ChatPage() {
   const { t } = useTranslation("chat")
+  const { sid } = useParams<{ sid?: string }>()
+  const [searchParams] = useSearchParams()
+  const deepLinkSid = sid ?? searchParams.get("session") ?? null
+  const deepLinkApplied = useRef(false)
+
   const [sessions, setSessions] = useState<Session[]>([])
   const [agents, setAgents] = useState<AgentBrief[]>([])
   const [projects, setProjects] = useState<ProjectBrief[]>([])
@@ -56,7 +62,12 @@ export function ChatPage() {
         chatApi.listProjects(),
       ])
       setSessions(s); setAgents(a); setProjects(p)
-      if (!activeId && s.length > 0) setActiveId(s[0].id)
+      if (!deepLinkApplied.current && deepLinkSid) {
+        deepLinkApplied.current = true
+        setActiveId(deepLinkSid)
+      } else if (!activeId && !deepLinkSid && s.length > 0) {
+        setActiveId(s[0].id)
+      }
     } catch { /* ignore */ }
   }
 

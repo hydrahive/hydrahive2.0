@@ -3,44 +3,60 @@ import { Activity, BrainCircuit,
   MessageCircle, MessageSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, Users, Workflow,
 } from "lucide-react"
 
+export interface NavGroup {
+  key: string
+  labelKey: string
+}
+
 export interface NavItem {
   path: string
   icon: typeof Bot
   labelKey: string
+  group: string
   roles?: ("admin" | "user")[]
 }
 
-// Alle Apps — werden im Bento-Menü angezeigt.
-// Quick-Links in der Top-Bar wählen wir aus dieser Liste.
-export const NAV_ITEMS: NavItem[] = [
-  { path: "/", icon: Heart, labelKey: "buddy" },
-  { path: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
-  { path: "/health", icon: Activity, labelKey: "health" },
-  { path: "/devchat", icon: MessageSquare, labelKey: "devchat" },
-  { path: "/agents", icon: Bot, labelKey: "agents" },
-  { path: "/projects", icon: FolderKanban, labelKey: "projects" },
-  { path: "/communication", icon: MessageCircle, labelKey: "communication" },
-  { path: "/butler", icon: Workflow, labelKey: "butler" },
-  { path: "/vms", icon: HardDrive, labelKey: "vms" },
-  { path: "/containers", icon: Box, labelKey: "containers" },
-  { path: "/llm", icon: Cpu, labelKey: "llm" },
-  { path: "/mcp", icon: Server, labelKey: "mcp" },
-  { path: "/skills", icon: Sparkles, labelKey: "skills" },
-  { path: "/credentials", icon: Key, labelKey: "credentials" },
-  { path: "/users", icon: Users, labelKey: "users", roles: ["admin"] },
-  { path: "/plugins", icon: Puzzle, labelKey: "plugins", roles: ["admin"] },
-  { path: "/extensions", icon: Package, labelKey: "extensions", roles: ["admin"] },
-  { path: "/zahnfee", icon: MoonStar, labelKey: "zahnfee", roles: ["admin"] },
-  { path: "/federation", icon: Globe, labelKey: "federation" },
-  { path: "/streaming", icon: Film, labelKey: "streaming" },
-  { path: "/datamining", icon: Pickaxe, labelKey: "datamining" },
-  { path: "/memory", icon: BrainCircuit, labelKey: "memory" },
-  { path: "/system", icon: Settings, labelKey: "system" },
-  { path: "/help", icon: BookOpen, labelKey: "help" },
+export const NAV_GROUPS: NavGroup[] = [
+  { key: "overview",       labelKey: "groupOverview" },
+  { key: "working",        labelKey: "groupWorking" },
+  { key: "automation",     labelKey: "groupAutomation" },
+  { key: "infrastructure", labelKey: "groupInfrastructure" },
+  { key: "settings",       labelKey: "groupSettings" },
 ]
 
-// Quick-Links direkt in der Top-Bar — die wichtigsten Apps.
-export const QUICK_LINK_PATHS = ["/dashboard", "/devchat", "/agents", "/projects"]
+export const NAV_ITEMS: NavItem[] = [
+  // Überblick
+  { path: "/dashboard",   icon: LayoutDashboard, labelKey: "dashboard",   group: "overview" },
+  { path: "/health",      icon: Activity,        labelKey: "health",      group: "overview" },
+  // Arbeiten
+  { path: "/",            icon: Heart,           labelKey: "buddy",       group: "working" },
+  { path: "/werkstatt",   icon: MessageSquare,   labelKey: "werkstatt",   group: "working" },
+  { path: "/agents",      icon: Bot,             labelKey: "agents",      group: "working" },
+  { path: "/projects",    icon: FolderKanban,    labelKey: "projects",    group: "working" },
+  { path: "/communication", icon: MessageCircle, labelKey: "communication", group: "working" },
+  // Automatisierung
+  { path: "/butler",      icon: Workflow,        labelKey: "butler",      group: "automation" },
+  { path: "/zahnfee",     icon: MoonStar,        labelKey: "zahnfee",     group: "automation", roles: ["admin"] },
+  { path: "/skills",      icon: Sparkles,        labelKey: "skills",      group: "automation" },
+  { path: "/mcp",         icon: Server,          labelKey: "mcp",         group: "automation" },
+  { path: "/plugins",     icon: Puzzle,          labelKey: "plugins",     group: "automation", roles: ["admin"] },
+  // Infrastruktur
+  { path: "/vms",         icon: HardDrive,       labelKey: "vms",         group: "infrastructure" },
+  { path: "/containers",  icon: Box,             labelKey: "containers",  group: "infrastructure" },
+  { path: "/federation",  icon: Globe,           labelKey: "federation",  group: "infrastructure" },
+  { path: "/streaming",   icon: Film,            labelKey: "streaming",   group: "infrastructure" },
+  { path: "/datamining",  icon: Pickaxe,         labelKey: "datamining",  group: "infrastructure" },
+  // Einstellungen
+  { path: "/llm",         icon: Cpu,             labelKey: "llm",         group: "settings" },
+  { path: "/credentials", icon: Key,             labelKey: "credentials", group: "settings" },
+  { path: "/memory",      icon: BrainCircuit,    labelKey: "memory",      group: "settings" },
+  { path: "/extensions",  icon: Package,         labelKey: "extensions",  group: "settings", roles: ["admin"] },
+  { path: "/users",       icon: Users,           labelKey: "users",       group: "settings", roles: ["admin"] },
+  { path: "/system",      icon: Settings,        labelKey: "system",      group: "settings" },
+  { path: "/help",        icon: BookOpen,        labelKey: "help",        group: "settings" },
+]
+
+export const QUICK_LINK_PATHS = ["/dashboard", "/werkstatt", "/agents", "/projects"]
 
 export function visibleItems(role: string | null): NavItem[] {
   return NAV_ITEMS.filter((i) =>
