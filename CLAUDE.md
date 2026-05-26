@@ -102,8 +102,11 @@ api/routes/agents.py          # /agents Endpoints, nur das
 - Keine `print()` statements im Produktions-Code — nur `logging`
 
 **Architektur:**
-- AgentLink ist externer Service — kein AgentLink-Service-Code in HydraHive.
-  Ein schlanker Client-Wrapper (`core/src/hydrahive/agentlink/`) ist erlaubt.
+- AgentLink ist externer Service — kein AgentLink-Service-Code in HydraHive
+  (der State-Transfer-Daemon bleibt extern: hydralink). Erlaubt ist nur ein
+  Client in `core/src/hydrahive/agentlink/`, der Transport übernimmt — HTTP/WS,
+  Serialisierung, Connection-/Reconnect-Handling. Keine Orchestrierungs- oder
+  State-Logik, die in den Service gehört.
 - Agents kommunizieren NUR über AgentLink, nie direkt per HTTP/Chat
 - Plugin-System: Core wird nie für Plugins angefasst
 - SQLite für Sessions (Core), PostgreSQL nur für AgentLink
