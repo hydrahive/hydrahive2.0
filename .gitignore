@@ -59,3 +59,9 @@ DEADJOE
 
 # Claude Code harness
 .claude/
+
+# Runtime-Artefakte
+.superpowers/
+*.pid
+tmp_*
+.remember/tmp/
