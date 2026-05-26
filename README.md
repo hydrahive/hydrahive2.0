@@ -120,7 +120,9 @@ Production stellt diese via systemd-Service-Unit. Im Dev liest
   Permissions-Policy). HSTS-Eintrag liegt auskommentiert vor — sobald
   HTTPS aktiv ist, eine Zeile uncomment.
 
-Was noch fehlt: HTTPS (geplant über Tailscale-Integration mit Auto-Certs).
+HTTPS über Tailscale: Invite-Keys, Admin-API und Install-Automation sind
+implementiert (`core/src/hydrahive/tailscale/`). HSTS im nginx-Config liegt
+auskommentiert vor — aktivieren sobald der Node im Tailnet steht.
 
 ## Lizenz
 
