@@ -34,27 +34,30 @@ def _insert_payload(metrics: list[dict], days_ago: int = 0) -> str:
             (record_id, received, "Test", "test-id", "sess", "Default", "Default",
              _json.dumps(payload)),
         )
-    _process_payload_to_daily(payload)
+    _process_payload_to_daily(payload, "till")
     return record_id
 
 
 def test_get_metrics_summary_leer():
-    result = health_db.get_metrics_summary(days=7)
+    result = health_db.get_metrics_summary("till", days=7)
     assert "metrics" in result
     assert "last_ingest" in result
     assert result["metrics"] == {}
 
 
 def test_get_metrics_summary_schritte_summiert():
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d 00:00:00 +0000")
+    today2 = datetime.now(timezone.utc).strftime("%Y-%m-%d 12:00:00 +0000")
     _insert_payload([
         {"name": "step_count", "units": "count",
-         "data": [{"date": "2026-05-15 00:00:00 +0200", "qty": 5000}]}
+         "data": [{"date": today, "qty": 5000}]}
     ], days_ago=0)
     _insert_payload([
         {"name": "step_count", "units": "count",
-         "data": [{"date": "2026-05-15 12:00:00 +0200", "qty": 3000}]}
+         "data": [{"date": today2, "qty": 3000}]}
     ], days_ago=0)
-    result = health_db.get_metrics_summary(days=7)
+    result = health_db.get_metrics_summary("till", days=7)
     step = result["metrics"].get("step_count")
     assert step is not None
     assert step["latest"] == 8000  # summiert
@@ -62,14 +65,16 @@ def test_get_metrics_summary_schritte_summiert():
 
 
 def test_get_metrics_summary_herzfrequenz_gemittelt():
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     _insert_payload([
         {"name": "heart_rate", "units": "bpm",
          "data": [
-             {"date": "2026-05-15 08:00:00 +0200", "qty": 60},
-             {"date": "2026-05-15 12:00:00 +0200", "qty": 80},
+             {"date": f"{today} 08:00:00 +0000", "qty": 60},
+             {"date": f"{today} 12:00:00 +0000", "qty": 80},
          ]}
     ], days_ago=0)
-    result = health_db.get_metrics_summary(days=7)
+    result = health_db.get_metrics_summary("till", days=7)
     hr = result["metrics"].get("heart_rate")
     assert hr is not None
     assert hr["latest"] == 70  # Mittelwert
@@ -77,13 +82,15 @@ def test_get_metrics_summary_herzfrequenz_gemittelt():
 
 
 def test_get_metrics_summary_metric_filter(setup_test_env):
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d 08:00:00 +0000")
     _insert_payload([
         {"name": "step_count", "units": "count",
-         "data": [{"date": "2026-05-15 08:00:00 +0200", "qty": 1000}]},
+         "data": [{"date": today, "qty": 1000}]},
         {"name": "heart_rate", "units": "bpm",
-         "data": [{"date": "2026-05-15 08:00:00 +0200", "qty": 70}]},
+         "data": [{"date": today, "qty": 70}]},
     ], days_ago=0)
-    result = health_db.get_metrics_summary(days=7, metric="step_count")
+    result = health_db.get_metrics_summary("till", days=7, metric="step_count")
     assert "step_count" in result["metrics"]
     assert "heart_rate" not in result["metrics"]
 

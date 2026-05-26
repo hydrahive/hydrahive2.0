@@ -112,8 +112,8 @@ def validate_compact_threshold_pct(pct: int) -> None:
 def validate_max_iterations(n: int) -> None:
     if not isinstance(n, int) or n < 1:
         raise AgentValidationError("max_iterations muss ≥ 1 sein")
-    if n > 10_000:
-        raise AgentValidationError("max_iterations > 10000 ist exzessiv — wahrscheinlich Konfig-Fehler")
+    if n > 100:
+        raise AgentValidationError("max_iterations > 100 ist exzessiv — wahrscheinlich Konfig-Fehler")
 
 
 def normalize_compact_changes(changes: dict) -> None:
