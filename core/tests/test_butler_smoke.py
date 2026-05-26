@@ -1,12 +1,18 @@
 """Smoke-Tests für den Butler — Flow-Validierung und Executor-Dispatch."""
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from hydrahive.butler.models import Edge, Flow, Node, NodePosition, TriggerEvent
 from hydrahive.butler.registry import load_builtins
 
 load_builtins()
+
+
+def _run(coro):
+    return asyncio.run(coro)
 
 
 def _pos() -> NodePosition:
@@ -73,11 +79,10 @@ def test_flow_rejects_orphan_action():
 
 
 # ---------------------------------------------------------------------------
-# Executor — dry_run
+# Executor — dispatch (sync-Wrapper via asyncio.run, Projekt-Muster)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
-async def test_dispatch_dry_run_matches():
+def test_dispatch_dry_run_matches():
     from hydrahive.butler.executor import dispatch
 
     flow = Flow(**_minimal_flow())
@@ -85,25 +90,23 @@ async def test_dispatch_dry_run_matches():
         event_type="message", channel="whatsapp",
         message_text="hallo", owner="testuser",
     )
-    result = await dispatch(flow, event, dry_run=True)
+    result = _run(dispatch(flow, event, dry_run=True))
     assert result["matched"] is True
     nodes_visited = [t["node_id"] for t in result["trace"]]
     assert "t1" in nodes_visited
     assert "a1" in nodes_visited
 
 
-@pytest.mark.asyncio
-async def test_dispatch_no_match_wrong_event_type():
+def test_dispatch_no_match_wrong_event_type():
     from hydrahive.butler.executor import dispatch
 
     flow = Flow(**_minimal_flow())
     event = TriggerEvent(event_type="cron", owner="testuser")
-    result = await dispatch(flow, event, dry_run=True)
+    result = _run(dispatch(flow, event, dry_run=True))
     assert result["matched"] is False
 
 
-@pytest.mark.asyncio
-async def test_dispatch_executes_action():
+def test_dispatch_executes_action():
     from hydrahive.butler.executor import dispatch
 
     flow = Flow(**_minimal_flow())
@@ -111,7 +114,7 @@ async def test_dispatch_executes_action():
         event_type="message", channel="telegram",
         message_text="ping", owner="testuser",
     )
-    result = await dispatch(flow, event, dry_run=False)
+    result = _run(dispatch(flow, event, dry_run=False))
     assert result["matched"] is True
     replies = [a for a in result["actions_executed"] if a.get("reply_text")]
     assert replies, "reply_fixed action should set reply_text"
