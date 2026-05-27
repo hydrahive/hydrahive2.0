@@ -52,7 +52,11 @@ if ! grep -q "github.com" "$SSH_DIR/known_hosts" 2>/dev/null; then
 fi
 
 log "git pull"
-sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" pull --ff-only
+if ! sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" pull --ff-only 2>/dev/null; then
+  log "Fast-forward fehlgeschlagen — History wurde neu geschrieben, reset auf origin/main"
+  sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" fetch origin
+  sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" reset --hard origin/main
+fi
 
 # Wenn update.sh selbst durch den Pull verändert wurde: einmalig re-exec mit
 # der neuen Version. HH_UPDATE_REEXECED schützt vor Endlos-Loop.
