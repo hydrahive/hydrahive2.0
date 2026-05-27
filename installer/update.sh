@@ -52,10 +52,15 @@ if ! grep -q "github.com" "$SSH_DIR/known_hosts" 2>/dev/null; then
 fi
 
 log "git pull"
-if ! sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" pull --ff-only 2>/dev/null; then
-  log "Fast-forward fehlgeschlagen — History wurde neu geschrieben, reset auf origin/main"
-  sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" fetch origin
-  sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" reset --hard origin/main
+if ! sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" pull --ff-only 2>&1; then
+  DIVERGED=$(sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" status --porcelain=v1 2>/dev/null; \
+             sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" log --oneline origin/main..HEAD 2>/dev/null | wc -l)
+  if sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" fetch origin 2>&1; then
+    log "Fast-forward fehlgeschlagen — divergierte History erkannt, reset auf origin/main"
+    sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" reset --hard origin/main
+  else
+    err "git fetch fehlgeschlagen — Netzwerk oder Auth prüfen"
+  fi
 fi
 
 # Wenn update.sh selbst durch den Pull verändert wurde: einmalig re-exec mit
