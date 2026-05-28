@@ -188,24 +188,34 @@ async def anthropic_stream(
         kwargs["tools"] = cached_tools
     apply_effort(kwargs, model, reasoning_effort)
 
+    async def _consume(kw: dict[str, Any]) -> AsyncIterator[dict]:
+        # Das async with löst den eigentlichen HTTP-Request in __aenter__ aus —
+        # muss daher INNERHALB des try/except liegen, sonst greift der Retry nicht.
+        async with client.messages.stream(**kw) as stream:
+            async for ev in stream:
+                mapped = _map_event(ev)
+                if mapped is not None:
+                    yield mapped
+            final = await stream.get_final_message()
+            usage = getattr(final, "usage", None)
+            yield {"type": "message_stop", "stop_reason": getattr(final, "stop_reason", "") or "",
+                   "blocks": [_block_to_dict(b) for b in (final.content or [])], **_usage_dict(usage)}
+
+    yielded = False
     try:
-        cm = client.messages.stream(**kwargs)
+        async for ev in _consume(kwargs):
+            yielded = True
+            yield ev
     except _anthropic.BadRequestError as e:
-        if "temperature" in str(e).lower() and "deprecated" in str(e).lower():
+        # temperature ist bei manchen neueren Claude-Modellen (opus 4.7/4.8) deprecated.
+        # Der Fehler feuert beim Request-Start (__aenter__) vor dem ersten Event —
+        # nur dann ist ein Retry ohne temperature sicher (kein doppeltes Streaming).
+        if not yielded and "temperature" in str(e).lower() and "deprecated" in str(e).lower():
             kwargs.pop("temperature", None)
-            cm = client.messages.stream(**kwargs)
+            async for ev in _consume(kwargs):
+                yield ev
         else:
             raise
-
-    async with cm as stream:
-        async for ev in stream:
-            mapped = _map_event(ev)
-            if mapped is not None:
-                yield mapped
-        final = await stream.get_final_message()
-        usage = getattr(final, "usage", None)
-        yield {"type": "message_stop", "stop_reason": getattr(final, "stop_reason", "") or "",
-               "blocks": [_block_to_dict(b) for b in (final.content or [])], **_usage_dict(usage)}
 
 
 async def minimax_stream(
