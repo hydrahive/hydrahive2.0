@@ -13,6 +13,7 @@ Public API:
 from hydrahive.tools import (
     ask_agent,
     datamining,
+    fhir_data,
     file_patch,
     file_read,
     file_write,
@@ -47,6 +48,7 @@ def _build_registry() -> dict[str, Tool]:
         file_patch.TOOL,
         web_search.TOOL,
         fetch_url.TOOL,
+        fhir_data.TOOL,
         health_data.TOOL,
         read_memory.TOOL,
         write_memory.TOOL,
