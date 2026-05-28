@@ -705,6 +705,58 @@ Whisper-Container auf.
 
 ---
 
+## Home Assistant — Sprachsteuerung via Conversation Agent (Core-Komponente)
+
+HydraHive2 kann als Custom Conversation Agent in Home Assistant registriert werden.
+Sprachbefehle vom NABU-Home-Voice-Gerät (oder jedem anderen HA-Assist-Satellite)
+kommen über HA rein, werden von einem HydraHive-Agenten verarbeitet, und die Antwort
+geht zurück ans Gerät.
+
+Typische Beispiele:
+- "Hey Claude, schalte das Wohnzimmerlicht an" → HA-Service `light.turn_on`
+- "Hey Claude, spiele Herr der Ringe auf dem Wohnzimmer TV" → Plex + `media_player.play_media`
+
+### Funktionsumfang
+
+- **Conversation Agent Endpoint**: `POST /api/ha/conversation` — HA-kompatibel
+  (Home Assistant Custom Conversation Agent API). Nimmt `text` + optionalen `context`
+  entgegen, gibt `response.speech.plain.speech` zurück.
+- **HA-Tools für Agenten** (zwei neue Core-Tools):
+  - `ha_call_service(domain, service, data)` — ruft beliebigen HA-Service auf
+  - `ha_get_states(entity_ids?)` — liest aktuellen Zustand von Entitäten
+- **Plex-Tool**: `plex_play(title, target_player)` — sucht Film/Serie in Plex,
+  startet Wiedergabe über HA-Mediaplayer
+- **HA-Agent**: ein vorkonfigurierter Agent-Typ `ha_agent` mit diesen Tools;
+  User wählt in HA welchen Conversation Agent er nutzen will
+
+### Konfiguration
+
+- HA-URL und Long-Lived Access Token in HydraHive-Settings (`ha.json`)
+- Plex-URL und Plex-Token (optional, nur für Plex-Tool)
+- In HA: Conversation Agent auf Custom Agent → URL = `http://<hydrahive>:8000/api/ha/conversation`
+
+### Wake Word
+
+HydraHive ist am Wake Word nicht beteiligt — das läuft auf dem NABU-Gerät selbst
+via openWakeWord. Empfehlung: Custom-Modell für "Hey Claude" (separates Projekt,
+nicht Teil von HydraHive).
+
+### Nicht-Ziele
+
+- Kein eigener STT/TTS — nutzt HA's Whisper + Piper Pipeline
+- Kein direktes Wyoming-Protokoll (HydraHive spricht HTTP, nicht Wyoming)
+- Keine HA-Entity-Discovery aus HydraHive heraus
+- Kein Push von HydraHive zu HA ohne Agent-Request
+
+### Architektur
+
+`core/src/hydrahive/ha/` (client.py, tools.py, conversation.py, plex.py).
+Route `api/routes/ha.py` → `/api/ha/conversation`.
+Config `ha/config.py` — HA-URL + Token, Plex-URL + Token.
+Frontend: kleine Config-Card auf der Integrations-Seite.
+
+---
+
 ## Extensions — App Manager (Core-Komponente)
 
 HydraHive2 kann externe Software-Pakete nachträglich über die Web-UI installieren, verwalten
