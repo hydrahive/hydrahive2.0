@@ -51,3 +51,74 @@ export const healthApi = {
     )
   },
 }
+
+// ─── FHIR Patientenakte ────────────────────────────────────────────────────
+
+export interface FhirImportResult {
+  imported: number
+  updated: number
+  errors: number
+}
+
+export interface FhirResource {
+  resource: Record<string, unknown>
+  imported_at: string
+}
+
+export interface FhirResourcesResponse {
+  resource_type: string
+  count: number
+  resources: FhirResource[]
+}
+
+export interface FhirSummary {
+  [resourceType: string]: number
+}
+
+export interface FhirTimelineEntry {
+  resource_type: string
+  label: string
+  resource: Record<string, unknown>
+  imported_at: string
+}
+
+export const fhirApi = {
+  async importBundle(file: File): Promise<FhirImportResult> {
+    const text = await file.text()
+    const bundle = JSON.parse(text)
+    const res = await fetch("/api/fhir/import", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}`,
+      },
+      body: JSON.stringify(bundle),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+  },
+
+  async getResources(resourceType: string): Promise<FhirResourcesResponse> {
+    const res = await fetch(`/api/fhir/resources/${resourceType}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` },
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+  },
+
+  async getSummary(): Promise<FhirSummary> {
+    const res = await fetch("/api/fhir/summary", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` },
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+  },
+
+  async getTimeline(): Promise<{ count: number; entries: FhirTimelineEntry[] }> {
+    const res = await fetch("/api/fhir/timeline", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` },
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+  },
+}
