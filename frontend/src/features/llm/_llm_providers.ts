@@ -3,7 +3,7 @@ import type { LlmProvider } from "./api"
 export const KNOWN_PROVIDERS = [
   {
     id: "anthropic", name: "Anthropic", placeholder: "sk-ant-...",
-    models: ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022"],
+    models: ["claude-sonnet-4-6", "claude-opus-4-8", "claude-opus-4-7", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022"],
   },
   {
     // LiteLLM-Routing: alle non-Anthropic/non-MiniMax Modelle MÜSSEN den Provider-Prefix haben.
