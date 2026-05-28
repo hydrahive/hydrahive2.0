@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { fhirApi } from "../api"
 import { ResourceTable } from "../components/ResourceTable"
 
-interface MedRow { id: string; name: string; status: string; datum: string }
+interface MedRow extends Record<string, unknown> { id: string; name: string; status: string; datum: string }
 
 function parseMed(r: Record<string, unknown>): MedRow {
   const med = (r.medicationCodeableConcept ?? r.medicationReference ?? {}) as Record<string, unknown>

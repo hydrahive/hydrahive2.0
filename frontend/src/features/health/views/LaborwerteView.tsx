@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { fhirApi } from "../api"
 import { ResourceTable } from "../components/ResourceTable"
 
-interface LabRow { id: string; name: string; wert: string; datum: string }
+interface LabRow extends Record<string, unknown> { id: string; name: string; wert: string; datum: string }
 
 function parseLab(r: Record<string, unknown>): LabRow {
   const code = r.code as Record<string, unknown>

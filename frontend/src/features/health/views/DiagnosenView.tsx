@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { fhirApi } from "../api"
 import { ResourceTable } from "../components/ResourceTable"
 
-interface DiagnoseRow {
+interface DiagnoseRow extends Record<string, unknown> {
   id: string
   name: string
   icd: string
