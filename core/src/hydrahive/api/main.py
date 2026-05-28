@@ -16,6 +16,7 @@ from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.backup import router as backup_router
 from hydrahive.api.routes.buddy import router as buddy_router
 from hydrahive.api.routes.butler import router as butler_router
+from hydrahive.api.routes.fhir import router as fhir_router
 from hydrahive.api.routes.files import router as files_router
 from hydrahive.api.routes.communication import router as communication_router
 from hydrahive.api.routes.communication_whatsapp import router as communication_whatsapp_router
@@ -137,6 +138,7 @@ app.include_router(zahnfee_router)
 app.include_router(federation_router)
 app.include_router(streaming_router)
 app.include_router(health_data_router)
+app.include_router(fhir_router)
 
 
 @app.exception_handler(Exception)
