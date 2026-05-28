@@ -138,7 +138,7 @@ async def anthropic_call(
     reasoning_effort: str | None = None,
 ) -> tuple[list[dict], str, dict[str, int]]:
     import anthropic as _anthropic
-    from hydrahive.llm._anthropic import apply_thinking_budget
+    from hydrahive.llm._anthropic import apply_effort
     from hydrahive.runner._token_usage import usage_dict
 
     is_oauth = key.startswith("sk-ant-oat")
@@ -174,7 +174,7 @@ async def anthropic_call(
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
 
-    apply_thinking_budget(kwargs, reasoning_effort)
+    apply_effort(kwargs, model, reasoning_effort)
 
     # Manche neueren Claude-Modelle (z.B. opus-4-7) akzeptieren kein temperature
     # mehr — Anthropic returnt dann 400 "temperature is deprecated for this
@@ -215,7 +215,7 @@ async def minimax_anthropic_call(
     - kein Identity-System-Block — MiniMax erwartet den nicht
     """
     import anthropic as _anthropic
-    from hydrahive.llm._anthropic import apply_thinking_budget
+    from hydrahive.llm._anthropic import apply_effort
     from hydrahive.runner._token_usage import usage_dict
 
     client = _anthropic.AsyncAnthropic(
@@ -241,7 +241,7 @@ async def minimax_anthropic_call(
     if tools:
         kwargs["tools"] = tools
 
-    apply_thinking_budget(kwargs, reasoning_effort)
+    apply_effort(kwargs, model, reasoning_effort)
 
     logger.debug(
         "MiniMax non-stream: model=%s msgs=%d sys_len=%d tools=%d thinking=%s",

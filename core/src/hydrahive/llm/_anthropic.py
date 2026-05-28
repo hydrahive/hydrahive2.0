@@ -22,21 +22,45 @@ _OAUTH_IDENTITY = [
 # api.minimax.io = Global Platform; api.minimaxi.com = China — nicht kreuzkompatibel.
 MINIMAX_BASE_URL = "https://api.minimax.io/anthropic"
 
-# Reasoning-Effort → Anthropic extended_thinking budget_tokens.
-# Auswahl bewusst niedrig: high = 16k Tokens reicht für die meisten Tool-Loops,
-# bei Bedarf später erweitern. low/medium sind Schnellschuss-Optionen.
+# Gültige effort-Stufen für den neuen output_config.effort-Pfad (Claude 4.6+).
+EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
+
+# Claude-Modelle mit adaptive thinking + output_config.effort (4.6 und neuer).
+# Alle anderen (Claude 4.5/4.1/4.0/3.x, MiniMax) nutzen den Legacy-Pfad.
+EFFORT_PARAM_MODELS = (
+    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8", "claude-sonnet-4-6",
+)
+
+# Legacy: Reasoning-Effort → extended_thinking budget_tokens (Claude 4.5/älter, MiniMax).
+# Auswahl bewusst niedrig: high = 16k Tokens reicht für die meisten Tool-Loops.
 EFFORT_TO_BUDGET = {"low": 1024, "medium": 4096, "high": 16384}
 
 
-def apply_thinking_budget(kwargs: dict, effort: str | None) -> None:
-    """Wenn effort gesetzt: aktiviert Anthropic Extended Thinking.
+def _uses_effort_param(model: str) -> bool:
+    """True für Claude 4.6+ (adaptive thinking + output_config.effort)."""
+    bare = strip_provider_prefix(model)
+    return any(bare.startswith(p) for p in EFFORT_PARAM_MODELS)
 
-    - thinking-Block mit budget_tokens
-    - max_tokens automatisch hochgezogen (Anthropic verlangt max > budget)
-    - temperature auf 1.0 (Anthropic erlaubt nur 1.0 mit thinking)
-    Bei effort=None: kein-op.
+
+def apply_effort(kwargs: dict, model: str, effort: str | None) -> None:
+    """Setzt Reasoning-Effort modellabhängig (mutiert kwargs in-place).
+
+    Neuer Pfad (Claude 4.6+): output_config.effort (low..max) + thinking.adaptive.
+    temperature/max_tokens bleiben unangetastet — der deprecated-temperature-Retry
+    im Call-Layer kümmert sich darum.
+
+    Legacy-Pfad (Claude 4.5/älter, MiniMax): extended_thinking budget_tokens
+    (nur low/medium/high), temperature=1.0, max_tokens hochgezogen.
+
+    Bei effort=None/leer oder unbekanntem Wert: kein-op.
     """
     if not effort:
+        return
+    if _uses_effort_param(model):
+        if effort not in EFFORT_LEVELS:
+            return
+        kwargs["thinking"] = {"type": "adaptive"}
+        kwargs.setdefault("output_config", {})["effort"] = effort
         return
     budget = EFFORT_TO_BUDGET.get(effort)
     if budget is None:

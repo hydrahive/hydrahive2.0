@@ -157,7 +157,7 @@ async def anthropic_stream(
     reasoning_effort: str | None = None,
 ) -> AsyncIterator[dict]:
     import anthropic as _anthropic
-    from hydrahive.llm._anthropic import apply_thinking_budget
+    from hydrahive.llm._anthropic import apply_effort
     is_oauth = key.startswith("sk-ant-oat")
     if is_oauth:
         client = _anthropic.AsyncAnthropic(
@@ -186,7 +186,7 @@ async def anthropic_stream(
     if tools:
         cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
         kwargs["tools"] = cached_tools
-    apply_thinking_budget(kwargs, reasoning_effort)
+    apply_effort(kwargs, model, reasoning_effort)
 
     try:
         cm = client.messages.stream(**kwargs)
@@ -223,7 +223,7 @@ async def minimax_stream(
     reasoning_effort: str | None = None,
 ) -> AsyncIterator[dict]:
     import anthropic as _anthropic
-    from hydrahive.llm._anthropic import apply_thinking_budget
+    from hydrahive.llm._anthropic import apply_effort
     client = _anthropic.AsyncAnthropic(
         base_url=llm_client.MINIMAX_BASE_URL, api_key=api_key, timeout=300.0,
         default_headers={"Authorization": f"Bearer {api_key}"},
@@ -240,7 +240,7 @@ async def minimax_stream(
     if tools:
         kwargs["tools"] = tools
 
-    apply_thinking_budget(kwargs, reasoning_effort)
+    apply_effort(kwargs, model, reasoning_effort)
 
     async with client.messages.stream(**kwargs) as stream:
         async for ev in stream:
