@@ -1,9 +1,50 @@
+import { useEffect, useState } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 import { Activity } from "lucide-react"
 import { HealthSidebar } from "./HealthSidebar"
+import { KiFloatingButton } from "./KiFloatingButton"
+import { UebersichtView }  from "./views/UebersichtView"
+import { ZeitstrahlView }  from "./views/ZeitstrahlView"
+import { DiagnosenView }   from "./views/DiagnosenView"
+import { MedikamenteView } from "./views/MedikamenteView"
+import { LaborwerteView }  from "./views/LaborwerteView"
+import { SimpleListView }  from "./views/SimpleListView"
+import { KiAssistentView } from "./views/KiAssistentView"
+import { TrendChart }      from "./_TrendChart"
+import { SleepChart }      from "./_SleepChart"
+import { healthApi, type MetricsSummary } from "./api"
 
-// These components will be created in Tasks 9-11
-// Import them now so routing is wired up
+function AppleHealthView() {
+  const [summary, setSummary] = useState<MetricsSummary | null>(null)
+
+  useEffect(() => {
+    healthApi.metrics(30).then(setSummary).catch(() => {
+      setSummary({ metrics: {}, last_ingest: null, period_days: 30 })
+    })
+  }, [])
+
+  if (summary === null) {
+    return <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
+  }
+
+  return <TrendChart summary={summary} />
+}
+
+function SchlafView() {
+  const [summary, setSummary] = useState<MetricsSummary | null>(null)
+
+  useEffect(() => {
+    healthApi.metrics(30, "sleep_analysis").then(setSummary).catch(() => {
+      setSummary({ metrics: {}, last_ingest: null, period_days: 30 })
+    })
+  }, [])
+
+  if (summary === null) {
+    return <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
+  }
+
+  return <SleepChart summary={summary} />
+}
 
 export function HealthPage() {
   return (
@@ -23,9 +64,22 @@ export function HealthPage() {
         <div className="flex-1 min-w-0 relative">
           <Routes>
             <Route index element={<Navigate to="uebersicht" replace />} />
-            {/* Views will be added in Tasks 9-11 */}
-            <Route path="*" element={<div className="text-zinc-500 text-sm py-8 text-center">Wird geladen…</div>} />
+            <Route path="uebersicht"  element={<UebersichtView />} />
+            <Route path="zeitstrahl"  element={<ZeitstrahlView />} />
+            <Route path="diagnosen"   element={<DiagnosenView />} />
+            <Route path="medikamente" element={<MedikamenteView />} />
+            <Route path="laborwerte"  element={<LaborwerteView />} />
+            <Route path="allergien"   element={<SimpleListView resourceType="AllergyIntolerance" title="Allergien" icon="🤧" />} />
+            <Route path="impfungen"   element={<SimpleListView resourceType="Immunization" title="Impfungen" icon="💉" />} />
+            <Route path="eingriffe"   element={<SimpleListView resourceType="Procedure" title="Eingriffe" icon="🔪" />} />
+            <Route path="arztbesuche" element={<SimpleListView resourceType="Encounter" title="Arztbesuche" icon="🏥" />} />
+            <Route path="befunde"     element={<SimpleListView resourceType="DiagnosticReport" title="Befunde" icon="📋" />} />
+            <Route path="dokumente"   element={<SimpleListView resourceType="DocumentReference" title="Dokumente" icon="📄" />} />
+            <Route path="apple"       element={<AppleHealthView />} />
+            <Route path="schlaf"      element={<SchlafView />} />
+            <Route path="ki"          element={<KiAssistentView />} />
           </Routes>
+          <KiFloatingButton />
         </div>
       </div>
     </div>
