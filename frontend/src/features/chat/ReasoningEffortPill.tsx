@@ -1,26 +1,42 @@
 import { useState } from "react"
 import { Brain } from "lucide-react"
 
+export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max"
+
 interface Props {
   current: string | null | undefined
-  onSelect: (effort: "low" | "medium" | "high" | null) => Promise<void>
+  /** Claude 4.6+ unterstützt xhigh/max (output_config.effort). Legacy-Modelle nur low/med/high. */
+  extended?: boolean
+  onSelect: (effort: EffortLevel | null) => Promise<void>
 }
 
-const EFFORTS = [
-  { value: null, label: "Aus", title: "Kein Extended Thinking" },
-  { value: "low" as const, label: "Low", title: "1K Tokens Reasoning Budget" },
-  { value: "medium" as const, label: "Med", title: "4K Tokens Reasoning Budget" },
-  { value: "high" as const, label: "High", title: "16K Tokens Reasoning Budget" },
+interface EffortOption {
+  value: EffortLevel | null
+  label: string
+  title: string
+}
+
+const BASE_EFFORTS: EffortOption[] = [
+  { value: null, label: "Aus", title: "Kein Reasoning-Effort" },
+  { value: "low", label: "Low", title: "Schnell & günstig — einfache Aufgaben" },
+  { value: "medium", label: "Med", title: "Ausgewogen zwischen Tempo und Tiefe" },
+  { value: "high", label: "High", title: "Tiefes Reasoning (Standard auf Opus)" },
 ]
 
-/** Reasoning-Effort-Pill für Anthropic Extended Thinking. */
-export function ReasoningEffortPill({ current, onSelect }: Props) {
+const EXTENDED_EFFORTS: EffortOption[] = [
+  { value: "xhigh", label: "XHigh", title: "Long-Horizon — empfohlen für Agentic Coding" },
+  { value: "max", label: "Max", title: "Maximale Tiefe, keine Token-Grenze" },
+]
+
+/** Reasoning-Effort-Pill. Claude 4.6+ (extended) zeigt zusätzlich XHigh/Max. */
+export function ReasoningEffortPill({ current, extended = false, onSelect }: Props) {
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
 
-  const currentLabel = EFFORTS.find((e) => e.value === current)?.label || "Aus"
+  const efforts = extended ? [...BASE_EFFORTS, ...EXTENDED_EFFORTS] : BASE_EFFORTS
+  const currentLabel = efforts.find((e) => e.value === current)?.label || "Aus"
 
-  async function handleSelect(value: "low" | "medium" | "high" | null) {
+  async function handleSelect(value: EffortLevel | null) {
     setBusy(true)
     try {
       await onSelect(value)
@@ -35,7 +51,7 @@ export function ReasoningEffortPill({ current, onSelect }: Props) {
       <button
         onClick={() => setOpen(!open)}
         disabled={busy}
-        title="Reasoning Effort (Extended Thinking)"
+        title="Reasoning Effort"
         className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all
           bg-indigo-500/15 text-indigo-200 border border-indigo-500/30 hover:bg-indigo-500/20 hover:border-indigo-500/40
           disabled:opacity-50 disabled:cursor-not-allowed"
@@ -50,8 +66,8 @@ export function ReasoningEffortPill({ current, onSelect }: Props) {
             className="fixed inset-0 z-10"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute top-full right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 min-w-[140px] overflow-hidden">
-            {EFFORTS.map((effort) => (
+          <div className="absolute top-full right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 min-w-[160px] overflow-hidden">
+            {efforts.map((effort) => (
               <button
                 key={effort.label}
                 onClick={() => handleSelect(effort.value)}

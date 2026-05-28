@@ -8,7 +8,7 @@ import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
 import { useHydraRuntime } from "@/features/chat/_assistantRuntime"
 import { ModelPicker } from "@/features/chat/ModelPicker"
-import { ReasoningEffortPill } from "@/features/chat/ReasoningEffortPill"
+import { ReasoningEffortPill, type EffortLevel } from "@/features/chat/ReasoningEffortPill"
 import { chatApi } from "@/features/chat/api"
 import type { Message } from "@/features/chat/types"
 import { BuddyThread } from "./_BuddyThread"
@@ -25,7 +25,7 @@ export function BuddyPage() {
   const navigate = useNavigate()
   const [state, setState] = useState<BuddyState | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [reasoningEffort, setReasoningEffort] = useState<"low" | "medium" | "high" | null>(null)
+  const [reasoningEffort, setReasoningEffort] = useState<EffortLevel | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const initRef = useRef(false)
   const chat = useChat(state?.session_id ?? null)
@@ -139,6 +139,7 @@ export function BuddyPage() {
                 /^(claude-|anthropic\/claude-|MiniMax-M2)/.test(state.model) && (
                   <ReasoningEffortPill
                     current={reasoningEffort}
+                    extended={/^(anthropic\/)?claude-(opus-4-6|opus-4-7|opus-4-8|sonnet-4-6)/.test(state.model)}
                     onSelect={async (effort) => {
                       if (state.session_id) {
                         await chatApi.updateSession(state.session_id, { reasoning_effort: effort })

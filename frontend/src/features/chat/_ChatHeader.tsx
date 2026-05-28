@@ -38,6 +38,8 @@ export function ChatHeader({
   const strippedModel = activeModel.replace(/^anthropic\//, "")
   const isClaudeModel = strippedModel.startsWith("claude-")
   const supportsReasoningEffort = isClaudeModel || /^MiniMax-M2/.test(strippedModel)
+  // Claude 4.6+ bietet xhigh/max (output_config.effort) — Spiegel von EFFORT_PARAM_MODELS im Backend.
+  const supportsExtendedEffort = /^claude-(opus-4-6|opus-4-7|opus-4-8|sonnet-4-6)/.test(strippedModel)
 
   return (
     <>
@@ -91,6 +93,7 @@ export function ChatHeader({
         {supportsReasoningEffort && (
           <ReasoningEffortPill
             current={(session.metadata as { reasoning_effort?: string })?.reasoning_effort}
+            extended={supportsExtendedEffort}
             onSelect={async (effort) => {
               const updated = await chatApi.updateSession(session.id, { reasoning_effort: effort })
               onSessionChanged(updated)
