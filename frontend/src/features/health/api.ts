@@ -89,6 +89,12 @@ export const fhirApi = {
     return api.post<FhirImportResult>("/fhir/import", bundle)
   },
 
+  async importEgaZip(file: File): Promise<FhirImportResult> {
+    const form = new FormData()
+    form.append("file", file)
+    return api.postForm<FhirImportResult>("/fhir/import-ega", form)
+  },
+
   getResources: (resourceType: string) =>
     api.get<FhirResourcesResponse>(`/fhir/resources/${resourceType}`),
 

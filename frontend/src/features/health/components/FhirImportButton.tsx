@@ -15,11 +15,13 @@ export function FhirImportButton({ onImported }: Props) {
     setLoading(true)
     setMessage(null)
     try {
-      const result = await fhirApi.importBundle(file)
+      const result = file.name.endsWith(".zip")
+        ? await fhirApi.importEgaZip(file)
+        : await fhirApi.importBundle(file)
       setMessage(`${result.imported} importiert, ${result.updated} aktualisiert`)
       onImported?.(result)
     } catch {
-      setMessage("Fehler beim Import — ist das eine gültige FHIR-Datei?")
+      setMessage("Fehler beim Import")
     } finally {
       setLoading(false)
     }
@@ -30,7 +32,7 @@ export function FhirImportButton({ onImported }: Props) {
       <input
         ref={inputRef}
         type="file"
-        accept=".json"
+        accept=".json,.zip"
         className="hidden"
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
       />
