@@ -86,39 +86,15 @@ export const fhirApi = {
   async importBundle(file: File): Promise<FhirImportResult> {
     const text = await file.text()
     const bundle = JSON.parse(text)
-    const res = await fetch("/api/fhir/import", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}`,
-      },
-      body: JSON.stringify(bundle),
-    })
-    if (!res.ok) throw new Error(await res.text())
-    return res.json()
+    return api.post<FhirImportResult>("/fhir/import", bundle)
   },
 
-  async getResources(resourceType: string): Promise<FhirResourcesResponse> {
-    const res = await fetch(`/api/fhir/resources/${resourceType}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` },
-    })
-    if (!res.ok) throw new Error(await res.text())
-    return res.json()
-  },
+  getResources: (resourceType: string) =>
+    api.get<FhirResourcesResponse>(`/fhir/resources/${resourceType}`),
 
-  async getSummary(): Promise<FhirSummary> {
-    const res = await fetch("/api/fhir/summary", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` },
-    })
-    if (!res.ok) throw new Error(await res.text())
-    return res.json()
-  },
+  getSummary: () =>
+    api.get<FhirSummary>("/fhir/summary"),
 
-  async getTimeline(): Promise<{ count: number; entries: FhirTimelineEntry[] }> {
-    const res = await fetch("/api/fhir/timeline", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("hh_token") ?? ""}` },
-    })
-    if (!res.ok) throw new Error(await res.text())
-    return res.json()
-  },
+  getTimeline: () =>
+    api.get<{ count: number; entries: FhirTimelineEntry[] }>("/fhir/timeline"),
 }
