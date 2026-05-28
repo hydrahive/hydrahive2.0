@@ -77,6 +77,14 @@ def test_context_window_opus_4_7_ist_1m():
     assert context_window_for("claude-opus-4-7") == 1_000_000
 
 
+def test_context_window_opus_4_8_ist_1m():
+    assert context_window_for("claude-opus-4-8") == 1_000_000
+
+
+def test_context_window_opus_4_8_mit_prefix_ist_1m():
+    assert context_window_for("anthropic/claude-opus-4-8") == 1_000_000
+
+
 def test_context_window_sonnet_4_6_ist_200k():
     assert context_window_for("claude-sonnet-4-6") == 200_000
 

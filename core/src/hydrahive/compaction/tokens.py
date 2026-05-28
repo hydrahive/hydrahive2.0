@@ -59,8 +59,8 @@ def context_window_for(model: str) -> int:
     """Approximate context window in tokens for known models."""
     m = model.lower()
     # Spezielle Versionen mit größerem Window — vor den generischen Patterns prüfen
-    if "claude-opus-4-7" in m:
-        return 1_000_000  # Opus 4-7 hat 1M Window (verifiziert via Fehlermeldung)
+    if "claude-opus-4-8" in m or "claude-opus-4-7" in m:
+        return 1_000_000  # Opus 4-7 + 4-8 haben 1M Window (siehe _catalog_data.py)
     if "claude-sonnet-4" in m or "claude-opus-4" in m:
         return 200_000
     if "claude-haiku-4" in m:
