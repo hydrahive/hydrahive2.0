@@ -69,12 +69,13 @@ export function HealthPage() {
             <Route path="diagnosen"   element={<DiagnosenView />} />
             <Route path="medikamente" element={<MedikamenteView />} />
             <Route path="laborwerte"  element={<LaborwerteView />} />
-            <Route path="allergien"   element={<SimpleListView resourceType="AllergyIntolerance" title="Allergien" icon="🤧" />} />
-            <Route path="impfungen"   element={<SimpleListView resourceType="Immunization" title="Impfungen" icon="💉" />} />
-            <Route path="eingriffe"   element={<SimpleListView resourceType="Procedure" title="Eingriffe" icon="🔪" />} />
-            <Route path="arztbesuche" element={<SimpleListView resourceType="Encounter" title="Arztbesuche" icon="🏥" />} />
-            <Route path="befunde"     element={<SimpleListView resourceType="DiagnosticReport" title="Befunde" icon="📋" />} />
-            <Route path="dokumente"   element={<SimpleListView resourceType="DocumentReference" title="Dokumente" icon="📄" />} />
+            <Route path="allergien"   element={<SimpleListView dtoType="AllergyIntolerance" title="Allergien" icon="🤧" />} />
+            <Route path="impfungen"   element={<SimpleListView dtoType="Immunization" title="Impfungen" icon="💉" />} />
+            <Route path="eingriffe"   element={<SimpleListView dtoType="Procedure" title="Eingriffe" icon="🔪" />} />
+            <Route path="arztbesuche" element={<SimpleListView dtoType="Encounter" title="Arztbesuche" icon="🏥" />} />
+            <Route path="krankenhaus" element={<SimpleListView dtoType="HospitalStay" title="Krankenhaus" icon="🛏" />} />
+            <Route path="befunde"     element={<SimpleListView dtoType="DiagnosticReport" title="Befunde" icon="📋" />} />
+            <Route path="dokumente"   element={<SimpleListView dtoType="DocumentReference" title="Dokumente" icon="📄" />} />
             <Route path="apple"       element={<AppleHealthView />} />
             <Route path="schlaf"      element={<SchlafView />} />
             <Route path="ki"          element={<KiAssistentView />} />

@@ -1,20 +1,19 @@
 import { useEffect, useState } from "react"
-import { fhirApi, type FhirSummary } from "../api"
-import { FhirImportButton } from "../components/FhirImportButton"
+import { egaApi } from "../api"
+import { EgaImportButton } from "../components/EgaImportButton"
 
 const CATEGORIES = [
-  { type: "Condition", icon: "🔴", label: "Diagnosen" },
-  { type: "MedicationRequest", icon: "💊", label: "Medikamente" },
-  { type: "Observation", icon: "🧪", label: "Laborwerte" },
-  { type: "AllergyIntolerance", icon: "🤧", label: "Allergien" },
-  { type: "Immunization", icon: "💉", label: "Impfungen" },
-  { type: "Encounter", icon: "🏥", label: "Arztbesuche" },
+  { type: "Encounter",           icon: "🏥", label: "Arztbesuche" },
+  { type: "MedicationDispense",  icon: "💊", label: "Medikamente" },
+  { type: "HospitalStay",        icon: "🛏", label: "Krankenhaus" },
+  { type: "Procedure",           icon: "🔬", label: "Vorsorge" },
+  { type: "Condition",           icon: "📋", label: "Diagnosen" },
 ]
 
 export function UebersichtView() {
-  const [summary, setSummary] = useState<FhirSummary | null>(null)
+  const [summary, setSummary] = useState<Record<string, number> | null>(null)
 
-  const load = () => fhirApi.getSummary().then(setSummary).catch(() => setSummary({}))
+  const load = () => egaApi.getSummary().then(setSummary).catch(() => setSummary({}))
 
   useEffect(() => { load() }, [])
 
@@ -22,7 +21,7 @@ export function UebersichtView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-zinc-100">Übersicht</h2>
-        <FhirImportButton onImported={load} />
+        <EgaImportButton onImported={load} />
       </div>
 
       {summary === null ? (
@@ -45,8 +44,8 @@ export function UebersichtView() {
 
       {summary && Object.keys(summary).length === 0 && (
         <div className="rounded-xl border border-dashed border-white/10 p-8 text-center">
-          <p className="text-zinc-500 text-sm">Noch keine Patientendaten importiert.</p>
-          <p className="text-zinc-600 text-xs mt-1">Exportiere deine Akte aus der TK-App und lade die JSON-Datei hoch.</p>
+          <p className="text-zinc-500 text-sm">Noch keine Gesundheitsdaten importiert.</p>
+          <p className="text-zinc-600 text-xs mt-1">TK-Safe App öffnen → Akte exportieren → ZIP hier hochladen.</p>
         </div>
       )}
     </div>

@@ -52,6 +52,44 @@ export const healthApi = {
   },
 }
 
+// ─── TK eGA (nativ) ───────────────────────────────────────────────────────
+
+export interface EgaImportResult {
+  imported: number
+  updated: number
+  errors: number
+}
+
+export interface EgaRecord {
+  id: string
+  display: string
+  sort_date: string | null
+  record: Record<string, unknown>
+}
+
+export interface EgaTimelineEntry {
+  id: string
+  dto_type: string
+  display: string
+  sort_date: string | null
+}
+
+export const egaApi = {
+  async importZip(file: File): Promise<EgaImportResult> {
+    const form = new FormData()
+    form.append("file", file)
+    return api.postForm<EgaImportResult>("/ega/import", form)
+  },
+
+  getSummary: () => api.get<Record<string, number>>("/ega/summary"),
+
+  getRecords: (dtoType: string) =>
+    api.get<{ dto_type: string; count: number; records: EgaRecord[] }>(`/ega/records/${dtoType}`),
+
+  getTimeline: () =>
+    api.get<{ count: number; entries: EgaTimelineEntry[] }>("/ega/timeline"),
+}
+
 // ─── FHIR Patientenakte ────────────────────────────────────────────────────
 
 export interface FhirImportResult {

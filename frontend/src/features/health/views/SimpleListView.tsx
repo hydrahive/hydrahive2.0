@@ -1,40 +1,47 @@
 import { useEffect, useState } from "react"
-import { fhirApi } from "../api"
+import { egaApi, type EgaRecord } from "../api"
 
 interface Props {
-  resourceType: string
+  dtoType: string
   title: string
   icon: string
 }
 
-function summarize(r: Record<string, unknown>): string {
-  const tryPaths: (() => string | undefined)[] = [
-    () => (r.code as Record<string, unknown>)?.text as string,
-    () => ((r.code as Record<string, unknown>)?.coding as { display?: string }[])?.[0]?.display,
-    () => (r.vaccineCode as Record<string, unknown>)?.text as string,
-    () => (r.class as Record<string, unknown>)?.display as string,
-    () => (r.type as { text?: string }[])?.[0]?.text,
-    () => r.id as string,
-  ]
-  for (const fn of tryPaths) {
-    try {
-      const v = fn()
-      if (v) return v
-    } catch {
-      // skip
-    }
+function summarize(dtoType: string, r: EgaRecord): { primary: string; secondary: string; date: string } {
+  const rec = r.record
+
+  if (dtoType === "Encounter") {
+    const sp = (rec.serviceProvider ?? {}) as Record<string, unknown>
+    const types = (sp.type ?? []) as { text?: string }[]
+    const providerName = (sp.name as string) ?? ""
+    const providerType = types[0]?.text ?? ""
+    return { primary: providerName || providerType || "Arztbesuch", secondary: providerType || "", date: r.sort_date ?? "" }
   }
-  return JSON.stringify(r).slice(0, 80)
+
+  if (dtoType === "HospitalStay") {
+    const org = (rec.organization ?? {}) as Record<string, unknown>
+    const items = (rec.item ?? []) as { service?: { text?: string } }[]
+    const desc = items[0]?.service?.text ?? ""
+    return { primary: (org.name as string) ?? "Krankenhaus", secondary: desc.slice(0, 80), date: r.sort_date ?? "" }
+  }
+
+  if (dtoType === "Procedure") {
+    const code = (rec.code ?? {}) as Record<string, unknown>
+    const cat = (rec.category ?? {}) as Record<string, unknown>
+    return { primary: (code.text as string) ?? r.display, secondary: (cat.text as string) ?? "", date: r.sort_date ?? "" }
+  }
+
+  return { primary: r.display, secondary: "", date: r.sort_date ?? "" }
 }
 
-export function SimpleListView({ resourceType, title, icon }: Props) {
-  const [items, setItems] = useState<string[] | null>(null)
+export function SimpleListView({ dtoType, title, icon }: Props) {
+  const [items, setItems] = useState<ReturnType<typeof summarize>[] | null>(null)
 
   useEffect(() => {
-    fhirApi.getResources(resourceType)
-      .then((d) => setItems(d.resources.map((r) => summarize(r.resource as Record<string, unknown>))))
+    egaApi.getRecords(dtoType)
+      .then((d) => setItems(d.records.map((r) => summarize(dtoType, r))))
       .catch(() => setItems([]))
-  }, [resourceType])
+  }, [dtoType])
 
   return (
     <div className="space-y-4">
@@ -46,8 +53,12 @@ export function SimpleListView({ resourceType, title, icon }: Props) {
       ) : (
         <div className="rounded-xl border border-white/[6%] overflow-hidden">
           {items.map((item, i) => (
-            <div key={i} className="px-4 py-3 border-b border-white/[4%] last:border-0 text-sm text-zinc-300 hover:bg-white/[2%]">
-              {item}
+            <div key={i} className="px-4 py-3 border-b border-white/[4%] last:border-0 hover:bg-white/[2%]">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-200">{item.primary}</span>
+                <span className="text-xs text-zinc-600">{item.date}</span>
+              </div>
+              {item.secondary && <p className="text-xs text-zinc-500 mt-0.5 truncate">{item.secondary}</p>}
             </div>
           ))}
         </div>

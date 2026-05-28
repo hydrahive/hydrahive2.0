@@ -1,0 +1,382 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Navigationsleiste" [ref=e3]:
+      - generic [ref=e4]:
+        - link "Startseite" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6]
+        - link "Erkunden" [ref=e7] [cursor=pointer]:
+          - /url: /explore/repos
+        - link "Hilfe" [ref=e8] [cursor=pointer]:
+          - /url: https://docs.gitea.com
+      - link "Anmelden" [ref=e10] [cursor=pointer]:
+        - /url: /user/login?redirect_to=%2fhydrahive%2fProjektX%2fsrc%2fcommit%2f83ed236059
+        - img [ref=e11]
+        - text: Anmelden
+    - 'main "hydrahive/ProjektX: Autarkes Projekt" [ref=e13]':
+      - generic [ref=e14]:
+        - generic [ref=e16]:
+          - heading "hydrahive / ProjektX RSS Feed" [level=1] [ref=e18]:
+            - img [ref=e20]
+            - link "hydrahive" [ref=e22] [cursor=pointer]:
+              - /url: /hydrahive
+            - generic [ref=e23]: /
+            - link "ProjektX" [ref=e24] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX
+            - link "RSS Feed" [ref=e25] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX.rss
+              - img [ref=e26]
+          - generic [ref=e28]:
+            - generic "Melde dich an, um dieses Repository zu beobachten." [ref=e30] [cursor=pointer]:
+              - button "Beobachten" [disabled]:
+                - img
+                - text: Beobachten
+              - link "1" [ref=e31]:
+                - /url: /hydrahive/ProjektX/watchers
+            - generic "Bitte melde dich an, um dieses Repository zu favorisieren." [ref=e33] [cursor=pointer]:
+              - button "Favorisieren" [disabled]:
+                - img
+                - text: Favorisieren
+              - link "0" [ref=e34]:
+                - /url: /hydrahive/ProjektX/stars
+            - generic "Bitte melde dich an, um dieses Repository zu forken." [ref=e35]:
+              - generic:
+                - img
+                - text: Fork
+              - link "0" [ref=e36] [cursor=pointer]:
+                - /url: /hydrahive/ProjektX/forks
+        - generic [ref=e38]:
+          - link "Code" [ref=e39] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX
+            - img [ref=e40]
+            - text: Code
+          - link "Issues 9" [ref=e42] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/issues
+            - img [ref=e43]
+            - text: Issues
+            - generic [ref=e46]: "9"
+          - link "Pull-Requests" [ref=e47] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/pulls
+            - img [ref=e48]
+            - text: Pull-Requests
+          - link "Pakete" [ref=e50] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/packages
+            - img [ref=e51]
+            - text: Pakete
+          - link "Projekte" [ref=e53] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/projects
+            - img [ref=e54]
+            - text: Projekte
+          - link "Releases" [ref=e56] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/releases
+            - img [ref=e57]
+            - text: Releases
+          - link "Wiki" [ref=e59] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/wiki
+            - img [ref=e60]
+            - text: Wiki
+          - link "Aktivität" [ref=e62] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/activity
+            - img [ref=e63]
+            - text: Aktivität
+      - generic [ref=e66]:
+        - generic [ref=e68]:
+          - text: Autarkes Projekt
+          - link:
+            - /url: ""
+        - generic [ref=e69]:
+          - generic [ref=e70]:
+            - link "8 Commits" [ref=e71] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX/commits/commit/83ed236059
+              - img [ref=e72]
+              - generic [ref=e74]: "8"
+              - text: Commits
+            - link "1 Branch" [ref=e75] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX/branches
+              - img [ref=e76]
+              - generic [ref=e78]: "1"
+              - text: Branch
+            - link "0 Tags" [ref=e79] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX/tags
+              - img [ref=e80]
+              - generic [ref=e82]: "0"
+              - text: Tags
+            - 'generic "git: 11 MiB, lfs: 0 B" [ref=e83]':
+              - img [ref=e84]
+              - generic [ref=e86]: "11"
+              - text: MiB
+          - generic "Go" [ref=e88] [cursor=pointer]
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - button "83ed236059" [ref=e93] [cursor=pointer]:
+              - generic [ref=e94]:
+                - img [ref=e95]
+                - strong [ref=e97]: 83ed236059
+              - img [ref=e98]
+            - link "Datei suchen" [ref=e100] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX/find/commit/83ed236059
+          - generic [ref=e102]:
+            - button "HTTP" [ref=e103] [cursor=pointer]
+            - textbox [ref=e104]: http://192.168.3.22:3001/hydrahive/ProjektX.git
+            - button "URL kopieren" [ref=e105] [cursor=pointer]:
+              - img [ref=e106]
+            - menu "Weitere Operationen" [ref=e109] [cursor=pointer]:
+              - img [ref=e110]
+        - table [ref=e112]:
+          - rowgroup [ref=e113]:
+            - 'row "HydraHive Agent HydraHive Agent 83ed236059 feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus ... 2026-05-20 14:44:28 +02:00vor 3 Minuten" [ref=e114]':
+              - 'columnheader "HydraHive Agent HydraHive Agent 83ed236059 feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus ..." [ref=e115]':
+                - img "HydraHive Agent" [ref=e116]
+                - generic "HydraHive Agent" [ref=e117]:
+                  - strong [ref=e118]: HydraHive Agent
+                - link "83ed236059" [ref=e119] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/83ed2360594b2c009bb3a3f93787f23b44f02d02
+                  - generic [ref=e120]: 83ed236059
+                - 'generic "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e121]':
+                  - 'link "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e123] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/83ed2360594b2c009bb3a3f93787f23b44f02d02
+                  - button "..." [ref=e124] [cursor=pointer]
+              - columnheader "2026-05-20 14:44:28 +02:00vor 3 Minuten" [ref=e125]
+          - rowgroup [ref=e126]:
+            - 'row ".issues docs: add spec, rules, workflow and issue structure 2026-05-20 01:17:46 +02:00vor 13 Stunden" [ref=e127]':
+              - cell ".issues" [ref=e128]:
+                - generic [ref=e129]:
+                  - img [ref=e130]
+                  - link ".issues" [ref=e132] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/.issues
+              - 'cell "docs: add spec, rules, workflow and issue structure" [ref=e133]':
+                - 'link "docs: add spec, rules, workflow and issue structure" [ref=e135] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/c5ec12a63e03fd7d54cf7c7c714cd388b4c9bf3b
+              - cell "2026-05-20 01:17:46 +02:00vor 13 Stunden" [ref=e136]
+            - 'row "cmd fix: HTTP timeouts + shell injection + MCP system 2026-05-20 14:34:27 +02:00vor 13 Minuten" [ref=e137]':
+              - cell "cmd" [ref=e138]:
+                - generic [ref=e139]:
+                  - img [ref=e140]
+                  - link "cmd" [ref=e142] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/cmd
+              - 'cell "fix: HTTP timeouts + shell injection + MCP system" [ref=e143]':
+                - 'link "fix: HTTP timeouts + shell injection + MCP system" [ref=e145] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/dbe78749d8884b192f2dc5747ba917f23132d736
+              - cell "2026-05-20 14:34:27 +02:00vor 13 Minuten" [ref=e146]
+            - 'row "docs docs: add plan for shell integration 2026-05-20 01:19:47 +02:00vor 13 Stunden" [ref=e147]':
+              - cell "docs" [ref=e148]:
+                - generic [ref=e149]:
+                  - img [ref=e150]
+                  - link "docs" [ref=e152] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/docs
+              - 'cell "docs: add plan for shell integration" [ref=e153]':
+                - 'link "docs: add plan for shell integration" [ref=e155] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/503e13eb682147099093a6c22302dc67720bb3f4
+              - cell "2026-05-20 01:19:47 +02:00vor 13 Stunden" [ref=e156]
+            - 'row "internal feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus 2026-05-20 14:44:28 +02:00vor 3 Minuten" [ref=e157]':
+              - cell "internal" [ref=e158]:
+                - generic [ref=e159]:
+                  - img [ref=e160]
+                  - link "internal" [ref=e162] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/internal
+              - 'cell "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e163]':
+                - 'link "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e165] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/83ed2360594b2c009bb3a3f93787f23b44f02d02
+              - cell "2026-05-20 14:44:28 +02:00vor 3 Minuten" [ref=e166]
+            - 'row "README.md docs: initial project setup 2026-05-20 00:42:22 +02:00vor 14 Stunden" [ref=e167]':
+              - cell "README.md" [ref=e168]:
+                - generic [ref=e169]:
+                  - img [ref=e170]
+                  - link "README.md" [ref=e172] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/README.md
+              - 'cell "docs: initial project setup" [ref=e173]':
+                - 'link "docs: initial project setup" [ref=e175] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/39fbd40fba4dd8317ea0f55dac8b6255c88f3068
+              - cell "2026-05-20 00:42:22 +02:00vor 14 Stunden" [ref=e176]
+            - 'row "go.mod feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration 2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e177]':
+              - cell "go.mod" [ref=e178]:
+                - generic [ref=e179]:
+                  - img [ref=e180]
+                  - link "go.mod" [ref=e182] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/go.mod
+              - 'cell "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e183]':
+                - 'link "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e185] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/90d1eff863d15f1842b346d53fe5981ef8da5c60
+              - cell "2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e186]
+            - 'row "go.sum feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration 2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e187]':
+              - cell "go.sum" [ref=e188]:
+                - generic [ref=e189]:
+                  - img [ref=e190]
+                  - link "go.sum" [ref=e192] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/go.sum
+              - 'cell "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e193]':
+                - 'link "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e195] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/90d1eff863d15f1842b346d53fe5981ef8da5c60
+              - cell "2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e196]
+            - 'row "main.go feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration 2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e197]':
+              - cell "main.go" [ref=e198]:
+                - generic [ref=e199]:
+                  - img [ref=e200]
+                  - link "main.go" [ref=e202] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/main.go
+              - 'cell "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e203]':
+                - 'link "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e205] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/90d1eff863d15f1842b346d53fe5981ef8da5c60
+              - cell "2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e206]
+            - 'row "projektx feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus 2026-05-20 14:44:28 +02:00vor 3 Minuten" [ref=e207]':
+              - cell "projektx" [ref=e208]:
+                - generic [ref=e209]:
+                  - img [ref=e210]
+                  - link "projektx" [ref=e212] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/commit/83ed236059/projektx
+              - 'cell "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e213]':
+                - 'link "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e215] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/83ed2360594b2c009bb3a3f93787f23b44f02d02
+              - cell "2026-05-20 14:44:28 +02:00vor 3 Minuten" [ref=e216]
+        - generic [ref=e217]:
+          - heading "README.md" [level=4] [ref=e218]:
+            - generic [ref=e219]:
+              - img [ref=e220]
+              - strong [ref=e222]: README.md
+          - generic [ref=e224]:
+            - heading "ProjektX" [level=1] [ref=e225]:
+              - link [ref=e226] [cursor=pointer]:
+                - /url: "#projektx"
+              - text: ProjektX
+            - blockquote [ref=e227]:
+              - paragraph [ref=e228]: Lokaler, autarker CLI-Agent für Development-Aufgaben.
+            - heading "Was ist das?" [level=2] [ref=e229]:
+              - link [ref=e230] [cursor=pointer]:
+                - /url: "#was-ist-das"
+              - text: Was ist das?
+            - paragraph [ref=e231]: "ProjektX ist ein AI-Agent für die Kommandozeile — ähnlich wie OpenCode, aber eigenständig gebaut und ohne externe Abhängigkeiten. Er hilft bei:"
+            - list [ref=e232]:
+              - listitem [ref=e233]:
+                - strong [ref=e234]: Code schreiben & bearbeiten
+              - listitem [ref=e235]:
+                - strong [ref=e236]: Shell-Befehle ausführen
+              - listitem [ref=e237]:
+                - strong [ref=e238]: Git-Operationen
+              - listitem [ref=e239]:
+                - strong [ref=e240]: Dateien verwalten
+              - listitem [ref=e241]:
+                - strong [ref=e242]: MCP-Erweiterungen
+                - text: nutzen
+            - heading "Features" [level=2] [ref=e243]:
+              - link [ref=e244] [cursor=pointer]:
+                - /url: "#features"
+              - text: Features
+            - table [ref=e245]:
+              - rowgroup [ref=e246]:
+                - row "Feature Status" [ref=e247]:
+                  - columnheader "Feature" [ref=e248]
+                  - columnheader "Status" [ref=e249]
+              - rowgroup [ref=e250]:
+                - row "Multi-Provider LLM counterclockwise arrows button Phase 1" [ref=e251]:
+                  - cell "Multi-Provider LLM" [ref=e252]
+                  - cell "counterclockwise arrows button Phase 1" [ref=e253]: 🔄 Phase 1
+                - row "Shell-Integration counterclockwise arrows button Phase 1" [ref=e254]:
+                  - cell "Shell-Integration" [ref=e255]
+                  - cell "counterclockwise arrows button Phase 1" [ref=e256]: 🔄 Phase 1
+                - row "Git-Integration counterclockwise arrows button Phase 1" [ref=e257]:
+                  - cell "Git-Integration" [ref=e258]
+                  - cell "counterclockwise arrows button Phase 1" [ref=e259]: 🔄 Phase 1
+                - row "Datei-Management counterclockwise arrows button Phase 1" [ref=e260]:
+                  - cell "Datei-Management" [ref=e261]
+                  - cell "counterclockwise arrows button Phase 1" [ref=e262]: 🔄 Phase 1
+                - row "MCP-Support clipboard Phase 2" [ref=e263]:
+                  - cell "MCP-Support" [ref=e264]
+                  - cell "clipboard Phase 2" [ref=e265]: 📋 Phase 2
+                - row "Memory clipboard Phase 2" [ref=e266]:
+                  - cell "Memory" [ref=e267]
+                  - cell "clipboard Phase 2" [ref=e268]: 📋 Phase 2
+                - row "GUI clipboard Phase 2" [ref=e269]:
+                  - cell "GUI" [ref=e270]
+                  - cell "clipboard Phase 2" [ref=e271]: 📋 Phase 2
+            - heading "Installation" [level=2] [ref=e272]:
+              - link [ref=e273] [cursor=pointer]:
+                - /url: "#installation"
+              - text: Installation
+            - code [ref=e275]: "# Download Binary (Linux/macOS/Windows) # → Releases: http://192.168.3.21:3000/hydrahive/ProjektX/releases # Oder selbst bauen git clone http://192.168.3.21:3000/hydrahive/ProjektX.git cd ProjektX go build -o projektx ."
+            - heading "Konfiguration" [level=2] [ref=e276]:
+              - link [ref=e277] [cursor=pointer]:
+                - /url: "#konfiguration"
+              - text: Konfiguration
+            - code [ref=e279]:
+              - text: "# ~/.config/projektx/config.yaml"
+              - text: "active_provider: ollama"
+              - text: "model: llama3"
+              - text: "providers: ollama: endpoint: \"http://localhost:11434\" openai: api_key: \"${OPENAI_API_KEY}\" anthropic: api_key: \"${ANTHROPIC_API_KEY}\""
+            - heading "Nutzung" [level=2] [ref=e280]:
+              - link [ref=e281] [cursor=pointer]:
+                - /url: "#nutzung"
+              - text: Nutzung
+            - heading "Interaktive Shell" [level=3] [ref=e282]:
+              - link [ref=e283] [cursor=pointer]:
+                - /url: "#interaktive-shell"
+              - text: Interaktive Shell
+            - code [ref=e285]: projektx
+            - heading "Batch-Modus" [level=3] [ref=e286]:
+              - link [ref=e287] [cursor=pointer]:
+                - /url: "#batch-modus"
+              - text: Batch-Modus
+            - code [ref=e289]: projektx --task "Refaktoriere auth.go"
+            - heading "Config" [level=3] [ref=e290]:
+              - link [ref=e291] [cursor=pointer]:
+                - /url: "#config"
+              - text: Config
+            - code [ref=e293]: projektx config show projektx config edit
+            - heading "Technologie" [level=2] [ref=e294]:
+              - link [ref=e295] [cursor=pointer]:
+                - /url: "#technologie"
+              - text: Technologie
+            - list [ref=e296]:
+              - listitem [ref=e297]:
+                - strong [ref=e298]: "Sprache:"
+                - text: Go 1.21+
+              - listitem [ref=e299]:
+                - strong [ref=e300]: "Distribution:"
+                - text: Single Binary
+              - listitem [ref=e301]:
+                - strong [ref=e302]: "LLM:"
+                - text: OpenAI-kompatible API (Ollama, OpenAI, Anthropic, MiniMax, ...)
+            - heading "Dokumentation" [level=2] [ref=e303]:
+              - link [ref=e304] [cursor=pointer]:
+                - /url: "#dokumentation"
+              - text: Dokumentation
+            - list [ref=e305]:
+              - listitem [ref=e306]:
+                - link "Spec" [ref=e307] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/src/commit/83ed236059/docs/spec.md
+                - text: — Was genau soll gebaut werden?
+              - listitem [ref=e308]:
+                - link "Regeln" [ref=e309] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/src/commit/83ed236059/docs/rules.md
+                - text: — Code-Konventionen, Git-Flow
+              - listitem [ref=e310]:
+                - link "Workflow" [ref=e311] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/src/commit/83ed236059/docs/workflow.md
+                - text: — Wie wir arbeiten
+            - heading "Status" [level=2] [ref=e312]:
+              - link [ref=e313] [cursor=pointer]:
+                - /url: "#status"
+              - text: Status
+            - paragraph [ref=e314]:
+              - strong [ref=e315]: Phase 1 — MVP in Entwicklung
+            - heading "Lizenz" [level=2] [ref=e316]:
+              - link [ref=e317] [cursor=pointer]:
+                - /url: "#lizenz"
+              - text: Lizenz
+            - paragraph [ref=e318]: MIT
+  - group "Fußzeile" [ref=e319]:
+    - contentinfo "Über die Software" [ref=e320]:
+      - link "Powered by Gitea" [ref=e321] [cursor=pointer]:
+        - /url: https://about.gitea.com
+      - text: "Version: 1.21.11 Seite:"
+      - strong [ref=e322]: 27ms
+      - text: "Template:"
+      - strong [ref=e323]: 3ms
+    - group "Links" [ref=e324]:
+      - menu [ref=e325] [cursor=pointer]:
+        - generic [ref=e326]:
+          - img [ref=e327]
+          - text: Deutsch
+      - link "Lizenzen" [ref=e329] [cursor=pointer]:
+        - /url: /assets/licenses.txt
+      - link "API" [ref=e330] [cursor=pointer]:
+        - /url: /api/swagger

@@ -1,0 +1,150 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Navigationsleiste" [ref=e3]:
+      - generic [ref=e4]:
+        - link "Startseite" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6]
+        - link "Erkunden" [ref=e7] [cursor=pointer]:
+          - /url: /explore/repos
+        - link "Hilfe" [ref=e8] [cursor=pointer]:
+          - /url: https://docs.gitea.com
+      - link "Anmelden" [ref=e10] [cursor=pointer]:
+        - /url: /user/login?redirect_to=%2fhydrahive%2fProjektX%2fsrc%2fbranch%2fmain%2finternal%2fgit
+        - img [ref=e11]
+        - text: Anmelden
+    - main "ProjektX/git an main" [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e16]:
+          - heading "hydrahive / ProjektX RSS Feed" [level=1] [ref=e18]:
+            - img [ref=e20]
+            - link "hydrahive" [ref=e22] [cursor=pointer]:
+              - /url: /hydrahive
+            - generic [ref=e23]: /
+            - link "ProjektX" [ref=e24] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX
+            - link "RSS Feed" [ref=e25] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX.rss
+              - img [ref=e26]
+          - generic [ref=e28]:
+            - generic "Melde dich an, um dieses Repository zu beobachten." [ref=e30] [cursor=pointer]:
+              - button "Beobachten" [disabled]:
+                - img
+                - text: Beobachten
+              - link "1" [ref=e31]:
+                - /url: /hydrahive/ProjektX/watchers
+            - generic "Bitte melde dich an, um dieses Repository zu favorisieren." [ref=e33] [cursor=pointer]:
+              - button "Favorisieren" [disabled]:
+                - img
+                - text: Favorisieren
+              - link "0" [ref=e34]:
+                - /url: /hydrahive/ProjektX/stars
+            - generic "Bitte melde dich an, um dieses Repository zu forken." [ref=e35]:
+              - generic:
+                - img
+                - text: Fork
+              - link "0" [ref=e36] [cursor=pointer]:
+                - /url: /hydrahive/ProjektX/forks
+        - generic [ref=e38]:
+          - link "Code" [ref=e39] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX
+            - img [ref=e40]
+            - text: Code
+          - link "Issues" [ref=e42] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/issues
+            - img [ref=e43]
+            - text: Issues
+          - link "Pull-Requests" [ref=e46] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/pulls
+            - img [ref=e47]
+            - text: Pull-Requests
+          - link "Pakete" [ref=e49] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/packages
+            - img [ref=e50]
+            - text: Pakete
+          - link "Projekte" [ref=e52] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/projects
+            - img [ref=e53]
+            - text: Projekte
+          - link "Releases" [ref=e55] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/releases
+            - img [ref=e56]
+            - text: Releases
+          - link "Wiki" [ref=e58] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/wiki
+            - img [ref=e59]
+            - text: Wiki
+          - link "Aktivität" [ref=e61] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/activity
+            - img [ref=e62]
+            - text: Aktivität
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - button "main" [ref=e70] [cursor=pointer]:
+              - generic [ref=e71]:
+                - img [ref=e72]
+                - strong [ref=e74]: main
+              - img [ref=e75]
+            - button "Vergleichen" [ref=e77] [cursor=pointer]:
+              - img [ref=e78]
+            - generic [ref=e80]:
+              - link "ProjektX" [ref=e81] [cursor=pointer]:
+                - /url: /hydrahive/ProjektX/src/branch/main
+              - generic [ref=e82]: /
+              - link "internal" [ref=e84] [cursor=pointer]:
+                - /url: /hydrahive/ProjektX/src/branch/main/internal
+              - generic [ref=e85]: /
+              - generic "git" [ref=e86]
+          - link "Verlauf" [ref=e88] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/commits/branch/main/internal/git
+            - img [ref=e89]
+            - text: Verlauf
+        - table [ref=e91]:
+          - rowgroup [ref=e92]:
+            - 'row "HydraHive Agent HydraHive Agent 752fb44147 feat: Git integration ... 2026-05-20 15:01:16 +02:00vor 10 Minuten" [ref=e93]':
+              - 'columnheader "HydraHive Agent HydraHive Agent 752fb44147 feat: Git integration ..." [ref=e94]':
+                - img "HydraHive Agent" [ref=e95]
+                - generic "HydraHive Agent" [ref=e96]:
+                  - strong [ref=e97]: HydraHive Agent
+                - link "752fb44147" [ref=e98] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/752fb44147a13e73d4e922644ce1971735b3ff48
+                  - generic [ref=e99]: 752fb44147
+                - 'generic "feat: Git integration" [ref=e100]':
+                  - 'link "feat: Git integration" [ref=e102] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/752fb44147a13e73d4e922644ce1971735b3ff48
+                  - button "..." [ref=e103] [cursor=pointer]
+              - columnheader "2026-05-20 15:01:16 +02:00vor 10 Minuten" [ref=e104]
+          - rowgroup [ref=e105]:
+            - row ".." [ref=e106]:
+              - cell ".." [ref=e107]:
+                - img [ref=e108]
+                - link ".." [ref=e110] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/src/branch/main/internal
+            - 'row "git.go feat: Git integration 2026-05-20 15:01:16 +02:00vor 10 Minuten" [ref=e111]':
+              - cell "git.go" [ref=e112]:
+                - generic [ref=e113]:
+                  - img [ref=e114]
+                  - link "git.go" [ref=e116] [cursor=pointer]:
+                    - /url: /hydrahive/ProjektX/src/branch/main/internal/git/git.go
+              - 'cell "feat: Git integration" [ref=e117]':
+                - 'link "feat: Git integration" [ref=e119] [cursor=pointer]':
+                  - /url: /hydrahive/ProjektX/commit/752fb44147a13e73d4e922644ce1971735b3ff48
+              - cell "2026-05-20 15:01:16 +02:00vor 10 Minuten" [ref=e120]
+  - group "Fußzeile" [ref=e121]:
+    - contentinfo "Über die Software" [ref=e122]:
+      - link "Powered by Gitea" [ref=e123] [cursor=pointer]:
+        - /url: https://about.gitea.com
+      - text: "Version: 1.21.11 Seite:"
+      - strong [ref=e124]: 12ms
+      - text: "Template:"
+      - strong [ref=e125]: 1ms
+    - group "Links" [ref=e126]:
+      - menu [ref=e127] [cursor=pointer]:
+        - generic [ref=e128]:
+          - img [ref=e129]
+          - text: Deutsch
+      - link "Lizenzen" [ref=e131] [cursor=pointer]:
+        - /url: /assets/licenses.txt
+      - link "API" [ref=e132] [cursor=pointer]:
+        - /url: /api/swagger

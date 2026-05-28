@@ -1,0 +1,137 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - link "GHOSTflix … deine Plattform für Paranormales, Spiritualität und Mindfulness." [ref=e6] [cursor=pointer]:
+        - /url: https://ghostflix.tv/
+        - img "GHOSTflix … deine Plattform für Paranormales, Spiritualität und Mindfulness." [ref=e7]
+      - textbox "Nach Serie oder Special suchen ..." [ref=e11]:
+        - /placeholder: "Nach Serie oder Special suchen ... "
+      - text: 
+      - link "Login" [ref=e14] [cursor=pointer]:
+        - /url: javascript:void(0)
+      - text: 
+    - navigation [ref=e17]:
+      - generic:
+        - list:
+          - listitem [ref=e18]:
+            - link " Serien & Dokumentationen" [ref=e19] [cursor=pointer]:
+              - /url: https://ghostflix.tv/staffeln/
+              - generic [ref=e20]:
+                - generic [ref=e22]: 
+                - text: Serien &
+                - text: Dokumentationen
+    - generic [ref=e30]:
+      - heading "Du hast keinen Zugriff auf diese Seite" [level=2] [ref=e39]
+      - generic [ref=e42]:
+        - generic [ref=e45]:
+          - heading "Noch keinen Account?" [level=2] [ref=e48]
+          - paragraph [ref=e56]: Dann sichere dir hier deinen persönlichen Zugang zu Ghostflix.tv und erhalte Zugriff auf deine Lieblingsserien mit Gänsehaut-Garantie.
+          - button "Zugang jetzt sichern!" [ref=e60] [cursor=pointer]:
+            - generic [ref=e62]: Zugang jetzt sichern!
+        - generic [ref=e65]:
+          - heading "Nicht angemeldet?" [level=2] [ref=e68]
+          - paragraph [ref=e76]: Warst du evtl. länger nicht auf der Seite oder bist noch nicht anmeldet? Dann kannst du dich hier anmelden, um Zugriff auf deine Lieblingsserien zu bekommen.
+          - generic [ref=e78]:
+            - navigation [ref=e79]:
+              - list [ref=e80]:
+                - listitem [ref=e81]:
+                  - link "Einloggen" [ref=e82] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/einloggen/
+            - text:  
+    - contentinfo [ref=e86]:
+      - generic [ref=e88]:
+        - generic [ref=e91]:
+          - heading "GHOSTflix®" [level=4] [ref=e94]
+          - generic [ref=e96]:
+            - navigation [ref=e97]:
+              - list [ref=e98]:
+                - listitem [ref=e99]:
+                  - link "GHOSTflix® Events" [ref=e100] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/event-kalender/
+                - listitem [ref=e101]:
+                  - link "GHOSTflix® Shop" [ref=e102] [cursor=pointer]:
+                    - /url: https://shop.ghostflix.tv/
+                - listitem [ref=e103]:
+                  - link "GHOSTflix® Produkte" [ref=e104] [cursor=pointer]:
+                    - /url: https://ghostflix.myspreadshop.de/
+                - listitem [ref=e105]:
+                  - link "GHOSTflix® Gutschein" [ref=e106] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/gutschein-buchen/
+                - listitem [ref=e107]:
+                  - link "GHOSTflix Spirit Academy – Coaches" [ref=e108] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/spirit-academy/
+                - listitem [ref=e109]:
+                  - link "Ermittler-Teams auf GHOSTflix®" [ref=e110] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/team-vorstellung/
+                - listitem [ref=e111]:
+                  - link "GHOSTflix® Newsletter" [ref=e112] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/newsletter/
+                - listitem [ref=e113]:
+                  - link "Bei GHOSTflix® bewerben" [ref=e114] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/bewerbung/
+            - text:  
+        - generic [ref=e117]:
+          - heading "Rechtliches" [level=4] [ref=e120]
+          - generic [ref=e122]:
+            - navigation [ref=e123]:
+              - list [ref=e124]:
+                - listitem [ref=e125]:
+                  - link "Impressum" [ref=e126] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/impressum/
+                - listitem [ref=e127]:
+                  - link "Datenschutzerklärung" [ref=e128] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/datenschutz/
+                - listitem [ref=e129]:
+                  - link "Widerrufsrecht für Verbraucher" [ref=e130] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/widerrufsbelehrung/
+                - listitem [ref=e131]:
+                  - link "Verträge hier kündigen" [ref=e132] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/vertraege-hier-kuendigen/
+                - listitem [ref=e133]:
+                  - link "AGB" [ref=e134] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/agb/
+                - listitem [ref=e135]:
+                  - link "Cookie Deklaration" [ref=e136] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/cookie-deklaration/
+            - text:  
+        - generic [ref=e142]:
+          - heading "Support" [level=4] [ref=e145]
+          - generic [ref=e147]:
+            - navigation [ref=e148]:
+              - list [ref=e149]:
+                - listitem [ref=e150]:
+                  - link "FAQ & Support" [ref=e151] [cursor=pointer]:
+                    - /url: https://support.ghostflix.tv/
+                - listitem [ref=e152]:
+                  - link "Problemlösung" [ref=e153] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/problemloesung/
+            - text:  
+          - heading "Presse" [level=4] [ref=e156]
+          - generic [ref=e158]:
+            - navigation [ref=e159]:
+              - list [ref=e160]:
+                - listitem [ref=e161]:
+                  - link "Pressebereich" [ref=e162] [cursor=pointer]:
+                    - /url: https://ghostflix.tv/presse/
+            - text:  
+        - generic [ref=e165]:
+          - heading "Bleib in Verbindung" [level=4] [ref=e168]
+          - list [ref=e171]:
+            - listitem [ref=e172]:
+              - link "Facebook" [ref=e173] [cursor=pointer]:
+                - /url: https://www.facebook.com/GHOSTflixtv-106038151257554
+                - generic [ref=e175]: 
+                - generic [ref=e176]: Facebook
+            - listitem [ref=e177]:
+              - link "Instagram" [ref=e178] [cursor=pointer]:
+                - /url: https://www.instagram.com/ghostflix.tv/
+                - generic [ref=e180]: 
+                - generic [ref=e181]: Instagram
+          - heading "Geprüfter Bestellprozess" [level=4] [ref=e184]
+          - link "Händlerbund Käufersiegel" [ref=e187] [cursor=pointer]:
+            - /url: https://www.kaeufersiegel.de/zertifikat/?uuid=47bb46be-777c-11eb-a4fa-9c5c8e4fb375-1780237622
+            - img "Händlerbund Käufersiegel" [ref=e188]
+  - text: 
+  - generic [ref=e189]: desktop
+  - iframe [ref=e190]:
+    

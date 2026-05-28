@@ -1,31 +1,37 @@
 import { useEffect, useState } from "react"
-import { fhirApi } from "../api"
+import { egaApi, type EgaRecord } from "../api"
 import { ResourceTable } from "../components/ResourceTable"
 
-interface MedRow extends Record<string, unknown> { id: string; name: string; status: string; datum: string }
+interface MedRow extends Record<string, unknown> {
+  id: string
+  name: string
+  wirkstoff: string
+  atc: string
+  datum: string
+}
 
-function parseMed(r: Record<string, unknown>): MedRow {
-  const med = (r.medicationCodeableConcept ?? r.medicationReference ?? {}) as Record<string, unknown>
-  const name = (med.text ?? med.display ?? "Unbekannt") as string
-  return {
-    id: (r.id as string) ?? "",
-    name,
-    status: (r.status ?? "") as string,
-    datum: ((r.authoredOn ?? r.dateAsserted ?? "") as string).slice(0, 10),
-  }
+function parseMed(r: EgaRecord): MedRow {
+  const med = (r.record.medication ?? {}) as Record<string, unknown>
+  const code = (med.code ?? {}) as Record<string, unknown>
+  const name = (code.text as string) ?? r.display
+
+  const ingredients = (med.ingredient ?? []) as Record<string, unknown>[]
+  const ing0 = ingredients[0] ?? {}
+  const ic = (ing0.itemCodeableConcept ?? {}) as Record<string, unknown>
+  const wirkstoff = (ic.text as string) ?? ""
+  const ingCodings = (ic.coding ?? []) as { system?: string; code?: string }[]
+  const atcCode = ingCodings.find((c) => c.system?.includes("atc"))?.code ?? ""
+
+  return { id: r.id, name, wirkstoff, atc: atcCode, datum: r.sort_date ?? "" }
 }
 
 export function MedikamenteView() {
   const [rows, setRows] = useState<MedRow[] | null>(null)
 
   useEffect(() => {
-    Promise.all([
-      fhirApi.getResources("MedicationRequest"),
-      fhirApi.getResources("MedicationStatement"),
-    ]).then(([a, b]) => {
-      const all = [...a.resources, ...b.resources].map((r) => parseMed(r.resource as Record<string, unknown>))
-      setRows(all)
-    }).catch(() => setRows([]))
+    egaApi.getRecords("MedicationDispense")
+      .then((d) => setRows(d.records.map(parseMed)))
+      .catch(() => setRows([]))
   }, [])
 
   return (
@@ -36,7 +42,8 @@ export function MedikamenteView() {
           rows={rows}
           columns={[
             { key: "name", label: "Medikament" },
-            { key: "status", label: "Status" },
+            { key: "wirkstoff", label: "Wirkstoff" },
+            { key: "atc", label: "ATC" },
             { key: "datum", label: "Datum" },
           ]}
           emptyText="Keine Medikamente importiert"

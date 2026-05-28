@@ -10,6 +10,42 @@ from datetime import datetime, timezone
 from typing import Any
 
 
+def extract_ega_records(data: bytes) -> list[tuple[str, dict]]:
+    """Extrahiert alle TK-EGA-Records als (dto_type, record_dict) Tupel."""
+    dto_files = _load_zip(data)
+    out: list[tuple[str, dict]] = []
+
+    for item in (i for i in dto_files.get("EncounterDTO-encounter", []) if i):
+        out.append(("Encounter", item))
+
+    for item in (i for i in dto_files.get("HospitalClaimDTO-hospitalClaim", []) if i):
+        out.append(("HospitalStay", item))
+
+    for item in (i for i in dto_files.get("MedicationDispenseDTO-medicationDispense", []) if i):
+        out.append(("MedicationDispense", item))
+
+    for item in (i for i in dto_files.get("ProcedureDTO-procedure", []) if i):
+        out.append(("Procedure", item))
+
+    # Conditions: innere ICD-Diagnosen aus contained extrahieren
+    seen: set[str] = set()
+    for item in (i for i in dto_files.get("ConditionDTO-condition", []) if i):
+        for contained in item.get("contained", []):
+            if contained.get("resourceType") != "Condition":
+                continue
+            codings = contained.get("code", {}).get("coding", [])
+            icd = next((c for c in codings if "icd" in c.get("system", "").lower()), None)
+            if not icd:
+                continue
+            key = icd.get("code", "") + "|" + icd.get("display", "")
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(("Condition", contained))
+
+    return out
+
+
 def convert_ega_zip(data: bytes) -> dict:
     """Convert TK eGA export ZIP bytes to a FHIR R4 Bundle dict."""
     dto_files = _load_zip(data)

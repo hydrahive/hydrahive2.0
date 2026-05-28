@@ -1,0 +1,350 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "Navigationsleiste" [ref=e3]:
+      - generic [ref=e4]:
+        - link "Startseite" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6]
+        - link "Erkunden" [ref=e7] [cursor=pointer]:
+          - /url: /explore/repos
+        - link "Hilfe" [ref=e8] [cursor=pointer]:
+          - /url: https://docs.gitea.com
+      - link "Anmelden" [ref=e10] [cursor=pointer]:
+        - /url: /user/login?redirect_to=%2fhydrahive%2fProjektX%2fcommits%2fbranch%2fmain
+        - img [ref=e11]
+        - text: Anmelden
+    - main "hydrahive/ProjektX" [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e16]:
+          - heading "hydrahive / ProjektX RSS Feed" [level=1] [ref=e18]:
+            - img [ref=e20]
+            - link "hydrahive" [ref=e22] [cursor=pointer]:
+              - /url: /hydrahive
+            - generic [ref=e23]: /
+            - link "ProjektX" [ref=e24] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX
+            - link "RSS Feed" [ref=e25] [cursor=pointer]:
+              - /url: /hydrahive/ProjektX.rss
+              - img [ref=e26]
+          - generic [ref=e28]:
+            - generic "Melde dich an, um dieses Repository zu beobachten." [ref=e30] [cursor=pointer]:
+              - button "Beobachten" [disabled]:
+                - img
+                - text: Beobachten
+              - link "1" [ref=e31]:
+                - /url: /hydrahive/ProjektX/watchers
+            - generic "Bitte melde dich an, um dieses Repository zu favorisieren." [ref=e33] [cursor=pointer]:
+              - button "Favorisieren" [disabled]:
+                - img
+                - text: Favorisieren
+              - link "0" [ref=e34]:
+                - /url: /hydrahive/ProjektX/stars
+            - generic "Bitte melde dich an, um dieses Repository zu forken." [ref=e35]:
+              - generic:
+                - img
+                - text: Fork
+              - link "0" [ref=e36] [cursor=pointer]:
+                - /url: /hydrahive/ProjektX/forks
+        - generic [ref=e38]:
+          - link "Code" [ref=e39] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX
+            - img [ref=e40]
+            - text: Code
+          - link "Issues 6" [ref=e42] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/issues
+            - img [ref=e43]
+            - text: Issues
+            - generic [ref=e46]: "6"
+          - link "Pull-Requests" [ref=e47] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/pulls
+            - img [ref=e48]
+            - text: Pull-Requests
+          - link "Pakete" [ref=e50] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/packages
+            - img [ref=e51]
+            - text: Pakete
+          - link "Projekte" [ref=e53] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/projects
+            - img [ref=e54]
+            - text: Projekte
+          - link "Releases" [ref=e56] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/releases
+            - img [ref=e57]
+            - text: Releases
+          - link "Wiki" [ref=e59] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/wiki
+            - img [ref=e60]
+            - text: Wiki
+          - link "Aktivität" [ref=e62] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/activity
+            - img [ref=e63]
+            - text: Aktivität
+      - generic [ref=e66]:
+        - generic [ref=e68]:
+          - link "13 Commits" [ref=e69] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/commits/branch/main
+            - img [ref=e70]
+            - generic [ref=e72]: "13"
+            - text: Commits
+          - link "1 Branch" [ref=e73] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/branches
+            - img [ref=e74]
+            - generic [ref=e76]: "1"
+            - text: Branch
+          - link "0 Tags" [ref=e77] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/tags
+            - img [ref=e78]
+            - generic [ref=e80]: "0"
+            - text: Tags
+          - 'generic "git: 11 MiB, lfs: 0 B" [ref=e81]':
+            - img [ref=e82]
+            - generic [ref=e84]: "11"
+            - text: MiB
+        - generic [ref=e86]:
+          - button "main" [ref=e89] [cursor=pointer]:
+            - generic [ref=e90]:
+              - img [ref=e91]
+              - strong [ref=e93]: main
+            - img [ref=e94]
+          - link "Commit graph" [ref=e96] [cursor=pointer]:
+            - /url: /hydrahive/ProjektX/graph
+            - img [ref=e97]
+            - text: Commit graph
+        - heading "13 Commits Alle Branches Du kannst Suchbegriffen \"author:\", \" committer:\", \"after:\", oder \" before:\" voranstellen, z.B. \"revert author:Alice before:2019-04-01\"." [level=4] [ref=e99]:
+          - generic [ref=e100]: 13 Commits
+          - generic [ref=e102]:
+            - textbox "Commits durchsuchen…" [active] [ref=e104]
+            - generic [ref=e105]:
+              - checkbox "Alle Branches" [ref=e106] [cursor=pointer]
+              - generic [ref=e107] [cursor=pointer]: Alle Branches
+            - button "Du kannst Suchbegriffen \"author:\", \" committer:\", \"after:\", oder \" before:\" voranstellen, z.B. \"revert author:Alice before:2019-04-01\"." [ref=e108] [cursor=pointer]: Suchen
+        - table [ref=e110]:
+          - rowgroup [ref=e111]:
+            - row "Autor SHA1 Nachricht Datum" [ref=e112]:
+              - columnheader "Autor" [ref=e113]
+              - columnheader "SHA1" [ref=e114]
+              - columnheader "Nachricht" [ref=e115]
+              - columnheader "Datum" [ref=e116]
+          - rowgroup [ref=e117]:
+            - 'row "HydraHive Agent HydraHive Agent 66b6b33bf7 fix: compile errors in server.go ... 2026-05-20 14:57:04 +02:00vor 1 Minute" [ref=e118]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e119]:
+                - img "HydraHive Agent" [ref=e120]
+                - text: HydraHive Agent
+              - cell "66b6b33bf7" [ref=e121]:
+                - button [ref=e122] [cursor=pointer]:
+                  - img [ref=e123]
+                - link "66b6b33bf7" [ref=e126] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/66b6b33bf70ec13bbf5cfa338151a211d153ddc1
+                  - generic [ref=e127]: 66b6b33bf7
+              - 'cell "fix: compile errors in server.go ..." [ref=e128]':
+                - 'generic "fix: compile errors in server.go" [ref=e130]':
+                  - 'link "fix: compile errors in server.go" [ref=e131] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/66b6b33bf70ec13bbf5cfa338151a211d153ddc1
+                - button "..." [ref=e132] [cursor=pointer]
+              - cell "2026-05-20 14:57:04 +02:00vor 1 Minute" [ref=e133]
+            - 'row "HydraHive Agent HydraHive Agent 591e71d622 fix: ENV consistency + Claude multi-message support ... 2026-05-20 14:56:06 +02:00vor 2 Minuten" [ref=e134]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e135]:
+                - img "HydraHive Agent" [ref=e136]
+                - text: HydraHive Agent
+              - cell "591e71d622" [ref=e137]:
+                - button [ref=e138] [cursor=pointer]:
+                  - img [ref=e139]
+                - link "591e71d622" [ref=e142] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/591e71d622dbbfedae92cd71f3a4ab8d0317730f
+                  - generic [ref=e143]: 591e71d622
+              - 'cell "fix: ENV consistency + Claude multi-message support ..." [ref=e144]':
+                - 'generic "fix: ENV consistency + Claude multi-message support" [ref=e146]':
+                  - 'link "fix: ENV consistency + Claude multi-message support" [ref=e147] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/591e71d622dbbfedae92cd71f3a4ab8d0317730f
+                - button "..." [ref=e148] [cursor=pointer]
+              - cell "2026-05-20 14:56:06 +02:00vor 2 Minuten" [ref=e149]
+            - 'row "HydraHive Agent HydraHive Agent 171382226e fix: /events endpoint now streams all session events globally ... 2026-05-20 14:53:48 +02:00vor 4 Minuten" [ref=e150]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e151]:
+                - img "HydraHive Agent" [ref=e152]
+                - text: HydraHive Agent
+              - cell "171382226e" [ref=e153]:
+                - button [ref=e154] [cursor=pointer]:
+                  - img [ref=e155]
+                - link "171382226e" [ref=e158] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/171382226e7841e1a8945b561f16ec8c920769bf
+                  - generic [ref=e159]: 171382226e
+              - 'cell "fix: /events endpoint now streams all session events globally ..." [ref=e160]':
+                - 'generic "fix: /events endpoint now streams all session events globally" [ref=e162]':
+                  - 'link "fix: /events endpoint now streams all session events globally" [ref=e163] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/171382226e7841e1a8945b561f16ec8c920769bf
+                - button "..." [ref=e164] [cursor=pointer]
+              - cell "2026-05-20 14:53:48 +02:00vor 4 Minuten" [ref=e165]
+            - 'row "HydraHive Agent HydraHive Agent 510ff5307a fix: SSE race condition + session isolation ... 2026-05-20 14:50:57 +02:00vor 7 Minuten" [ref=e166]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e167]:
+                - img "HydraHive Agent" [ref=e168]
+                - text: HydraHive Agent
+              - cell "510ff5307a" [ref=e169]:
+                - button [ref=e170] [cursor=pointer]:
+                  - img [ref=e171]
+                - link "510ff5307a" [ref=e174] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/510ff5307a6396a7b3be56039c3308dd3a076b17
+                  - generic [ref=e175]: 510ff5307a
+              - 'cell "fix: SSE race condition + session isolation ..." [ref=e176]':
+                - 'generic "fix: SSE race condition + session isolation" [ref=e178]':
+                  - 'link "fix: SSE race condition + session isolation" [ref=e179] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/510ff5307a6396a7b3be56039c3308dd3a076b17
+                - button "..." [ref=e180] [cursor=pointer]
+              - cell "2026-05-20 14:50:57 +02:00vor 7 Minuten" [ref=e181]
+            - 'row "HydraHive Agent HydraHive Agent db98301106 fix: remove committed binary, add .gitignore ... 2026-05-20 14:46:02 +02:00vor 12 Minuten" [ref=e182]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e183]:
+                - img "HydraHive Agent" [ref=e184]
+                - text: HydraHive Agent
+              - cell "db98301106" [ref=e185]:
+                - button [ref=e186] [cursor=pointer]:
+                  - img [ref=e187]
+                - link "db98301106" [ref=e190] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/db98301106d40d07e674b97ffa915f37a69a2432
+                  - generic [ref=e191]: db98301106
+              - 'cell "fix: remove committed binary, add .gitignore ..." [ref=e192]':
+                - 'generic "fix: remove committed binary, add .gitignore" [ref=e194]':
+                  - 'link "fix: remove committed binary, add .gitignore" [ref=e195] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/db98301106d40d07e674b97ffa915f37a69a2432
+                - button "..." [ref=e196] [cursor=pointer]
+              - cell "2026-05-20 14:46:02 +02:00vor 12 Minuten" [ref=e197]
+            - 'row "HydraHive Agent HydraHive Agent 83ed236059 feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus ... 2026-05-20 14:44:28 +02:00vor 13 Minuten" [ref=e198]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e199]:
+                - img "HydraHive Agent" [ref=e200]
+                - text: HydraHive Agent
+              - cell "83ed236059" [ref=e201]:
+                - button [ref=e202] [cursor=pointer]:
+                  - img [ref=e203]
+                - link "83ed236059" [ref=e206] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/83ed2360594b2c009bb3a3f93787f23b44f02d02
+                  - generic [ref=e207]: 83ed236059
+              - 'cell "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus ..." [ref=e208]':
+                - 'generic "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e210]':
+                  - 'link "feat: Agent-Loop mit Tool-Use-Zyklus und Server-Modus" [ref=e211] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/83ed2360594b2c009bb3a3f93787f23b44f02d02
+                - button "..." [ref=e212] [cursor=pointer]
+              - cell "2026-05-20 14:44:28 +02:00vor 13 Minuten" [ref=e213]
+            - 'row "HydraHive Agent HydraHive Agent 2a78e86409 refactor: english comments + idiomatic Go patterns ... 2026-05-20 14:38:15 +02:00vor 19 Minuten" [ref=e214]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e215]:
+                - img "HydraHive Agent" [ref=e216]
+                - text: HydraHive Agent
+              - cell "2a78e86409" [ref=e217]:
+                - button [ref=e218] [cursor=pointer]:
+                  - img [ref=e219]
+                - link "2a78e86409" [ref=e222] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/2a78e86409b9969a2fe31da65dfa9b2ee6e6200f
+                  - generic [ref=e223]: 2a78e86409
+              - 'cell "refactor: english comments + idiomatic Go patterns ..." [ref=e224]':
+                - 'generic "refactor: english comments + idiomatic Go patterns" [ref=e226]':
+                  - 'link "refactor: english comments + idiomatic Go patterns" [ref=e227] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/2a78e86409b9969a2fe31da65dfa9b2ee6e6200f
+                - button "..." [ref=e228] [cursor=pointer]
+              - cell "2026-05-20 14:38:15 +02:00vor 19 Minuten" [ref=e229]
+            - 'row "HydraHive Agent HydraHive Agent dbe78749d8 fix: HTTP timeouts + shell injection + MCP system ... 2026-05-20 14:34:27 +02:00vor 23 Minuten" [ref=e230]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e231]:
+                - img "HydraHive Agent" [ref=e232]
+                - text: HydraHive Agent
+              - cell "dbe78749d8" [ref=e233]:
+                - button [ref=e234] [cursor=pointer]:
+                  - img [ref=e235]
+                - link "dbe78749d8" [ref=e238] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/dbe78749d8884b192f2dc5747ba917f23132d736
+                  - generic [ref=e239]: dbe78749d8
+              - 'cell "fix: HTTP timeouts + shell injection + MCP system ..." [ref=e240]':
+                - 'generic "fix: HTTP timeouts + shell injection + MCP system" [ref=e242]':
+                  - 'link "fix: HTTP timeouts + shell injection + MCP system" [ref=e243] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/dbe78749d8884b192f2dc5747ba917f23132d736
+                - button "..." [ref=e244] [cursor=pointer]
+              - cell "2026-05-20 14:34:27 +02:00vor 23 Minuten" [ref=e245]
+            - 'row "HydraHive Agent HydraHive Agent 90d1eff863 feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration ... 2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e246]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e247]:
+                - img "HydraHive Agent" [ref=e248]
+                - text: HydraHive Agent
+              - cell "90d1eff863" [ref=e249]:
+                - button [ref=e250] [cursor=pointer]:
+                  - img [ref=e251]
+                - link "90d1eff863" [ref=e254] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/90d1eff863d15f1842b346d53fe5981ef8da5c60
+                  - generic [ref=e255]: 90d1eff863
+              - 'cell "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration ..." [ref=e256]':
+                - 'generic "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e258]':
+                  - 'link "feat: add LLM providers (Ollama, OpenAI, Claude, MiniMax) + shell integration" [ref=e259] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/90d1eff863d15f1842b346d53fe5981ef8da5c60
+                - button "..." [ref=e260] [cursor=pointer]
+              - cell "2026-05-20 13:27:11 +02:00vor 1 Stunde" [ref=e261]
+            - 'row "HydraHive Agent HydraHive Agent 503e13eb68 docs: add plan for shell integration 2026-05-20 01:19:47 +02:00vor 13 Stunden" [ref=e262]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e263]:
+                - img "HydraHive Agent" [ref=e264]
+                - text: HydraHive Agent
+              - cell "503e13eb68" [ref=e265]:
+                - button [ref=e266] [cursor=pointer]:
+                  - img [ref=e267]
+                - link "503e13eb68" [ref=e270] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/503e13eb682147099093a6c22302dc67720bb3f4
+                  - generic [ref=e271]: 503e13eb68
+              - 'cell "docs: add plan for shell integration" [ref=e272]':
+                - 'generic "docs: add plan for shell integration" [ref=e274]':
+                  - 'link "docs: add plan for shell integration" [ref=e275] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/503e13eb682147099093a6c22302dc67720bb3f4
+              - cell "2026-05-20 01:19:47 +02:00vor 13 Stunden" [ref=e276]
+            - 'row "HydraHive Agent HydraHive Agent 5a91779812 docs: add detailed implementation plan for MVP Phase 1 2026-05-20 01:18:51 +02:00vor 13 Stunden" [ref=e277]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e278]:
+                - img "HydraHive Agent" [ref=e279]
+                - text: HydraHive Agent
+              - cell "5a91779812" [ref=e280]:
+                - button [ref=e281] [cursor=pointer]:
+                  - img [ref=e282]
+                - link "5a91779812" [ref=e285] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/5a917798123f07febc4fb16b7d663c1a8fdec38b
+                  - generic [ref=e286]: 5a91779812
+              - 'cell "docs: add detailed implementation plan for MVP Phase 1" [ref=e287]':
+                - 'generic "docs: add detailed implementation plan for MVP Phase 1" [ref=e289]':
+                  - 'link "docs: add detailed implementation plan for MVP Phase 1" [ref=e290] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/5a917798123f07febc4fb16b7d663c1a8fdec38b
+              - cell "2026-05-20 01:18:51 +02:00vor 13 Stunden" [ref=e291]
+            - 'row "HydraHive Agent HydraHive Agent c5ec12a63e docs: add spec, rules, workflow and issue structure 2026-05-20 01:17:46 +02:00vor 13 Stunden" [ref=e292]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e293]:
+                - img "HydraHive Agent" [ref=e294]
+                - text: HydraHive Agent
+              - cell "c5ec12a63e" [ref=e295]:
+                - button [ref=e296] [cursor=pointer]:
+                  - img [ref=e297]
+                - link "c5ec12a63e" [ref=e300] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/c5ec12a63e03fd7d54cf7c7c714cd388b4c9bf3b
+                  - generic [ref=e301]: c5ec12a63e
+              - 'cell "docs: add spec, rules, workflow and issue structure" [ref=e302]':
+                - 'generic "docs: add spec, rules, workflow and issue structure" [ref=e304]':
+                  - 'link "docs: add spec, rules, workflow and issue structure" [ref=e305] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/c5ec12a63e03fd7d54cf7c7c714cd388b4c9bf3b
+              - cell "2026-05-20 01:17:46 +02:00vor 13 Stunden" [ref=e306]
+            - 'row "HydraHive Agent HydraHive Agent 39fbd40fba docs: initial project setup ... 2026-05-20 00:42:22 +02:00vor 14 Stunden" [ref=e307]':
+              - cell "HydraHive Agent HydraHive Agent" [ref=e308]:
+                - img "HydraHive Agent" [ref=e309]
+                - text: HydraHive Agent
+              - cell "39fbd40fba" [ref=e310]:
+                - button [ref=e311] [cursor=pointer]:
+                  - img [ref=e312]
+                - link "39fbd40fba" [ref=e315] [cursor=pointer]:
+                  - /url: /hydrahive/ProjektX/commit/39fbd40fba4dd8317ea0f55dac8b6255c88f3068
+                  - generic [ref=e316]: 39fbd40fba
+              - 'cell "docs: initial project setup ..." [ref=e317]':
+                - 'generic "docs: initial project setup" [ref=e319]':
+                  - 'link "docs: initial project setup" [ref=e320] [cursor=pointer]':
+                    - /url: /hydrahive/ProjektX/commit/39fbd40fba4dd8317ea0f55dac8b6255c88f3068
+                - button "..." [ref=e321] [cursor=pointer]
+              - cell "2026-05-20 00:42:22 +02:00vor 14 Stunden" [ref=e322]
+  - group "Fußzeile" [ref=e323]:
+    - contentinfo "Über die Software" [ref=e324]:
+      - link "Powered by Gitea" [ref=e325] [cursor=pointer]:
+        - /url: https://about.gitea.com
+      - text: "Version: 1.21.11 Seite:"
+      - strong [ref=e326]: 15ms
+      - text: "Template:"
+      - strong [ref=e327]: 5ms
+    - group "Links" [ref=e328]:
+      - menu [ref=e329] [cursor=pointer]:
+        - generic [ref=e330]:
+          - img [ref=e331]
+          - text: Deutsch
+      - link "Lizenzen" [ref=e333] [cursor=pointer]:
+        - /url: /assets/licenses.txt
+      - link "API" [ref=e334] [cursor=pointer]:
+        - /url: /api/swagger

@@ -1,0 +1,64 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - generic [ref=e4]:
+      - heading "ProjektX" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Agent Dashboard
+      - generic [ref=e7]:
+        - generic [ref=e8]: Dark Mode
+        - button
+    - navigation [ref=e9]:
+      - generic [ref=e10]:
+        - img [ref=e11]
+        - text: Dashboard
+      - generic [ref=e13]:
+        - img [ref=e14]
+        - text: Configuration
+      - generic [ref=e17]:
+        - img [ref=e18]
+        - text: Providers
+      - generic [ref=e20]:
+        - img [ref=e21]
+        - text: Chat
+      - generic [ref=e23]:
+        - img [ref=e24]
+        - text: Event Log
+      - generic [ref=e26]:
+        - img [ref=e27]
+        - text: Memory
+      - generic [ref=e29]:
+        - img [ref=e30]
+        - text: Tools
+      - generic [ref=e33]:
+        - img [ref=e34]
+        - text: System
+    - generic [ref=e38]: Connected
+  - main [ref=e39]:
+    - generic [ref=e40]:
+      - heading "Dashboard" [level=2] [ref=e41]
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: Requests
+          - generic [ref=e45]: "0"
+          - generic [ref=e46]: 0 success
+        - generic [ref=e47]:
+          - generic [ref=e48]: Tokens Used
+          - generic [ref=e49]: "0"
+          - generic [ref=e50]: "In: 0 / Out: 0"
+        - generic [ref=e51]:
+          - generic [ref=e52]: Memory
+          - generic [ref=e53]: 2 MB
+          - generic [ref=e54]: 22 goroutines
+        - generic [ref=e55]:
+          - generic [ref=e56]: Uptime
+          - generic [ref=e57]: 14m
+          - generic [ref=e58]: v0.1.0
+      - generic [ref=e59]:
+        - generic [ref=e61]: ollama
+        - generic [ref=e63]: openai
+        - generic [ref=e65]: claude
+        - generic [ref=e67]: minimax
+        - generic [ref=e69]: nvidia
+        - generic [ref=e71]: codex
+      - generic [ref=e72]:
+        - heading "Recent Activity" [level=3] [ref=e73]
+        - generic [ref=e75]: No events yet
