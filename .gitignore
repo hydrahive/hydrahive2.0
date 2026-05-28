@@ -65,3 +65,5 @@ DEADJOE
 *.pid
 tmp_*
 .remember/tmp/
+.playwright-mcp/
+konami.png
