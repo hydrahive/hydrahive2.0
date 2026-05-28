@@ -33,11 +33,15 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not settings.health_api_key:
         return ToolResult.fail("Health-Daten nicht konfiguriert (HH_HEALTH_API_KEY fehlt).")
 
+    user_id = ctx.user_id
+    if not user_id:
+        return ToolResult.fail("Kein User-Kontext verfügbar.")
+
     days = max(1, min(365, int(args.get("days", 7))))
     metric = (args.get("metric") or "").strip() or None
 
     try:
-        summary = health_db.get_metrics_summary(days=days, metric=metric)
+        summary = health_db.get_metrics_summary(user_id=user_id, days=days, metric=metric)
     except Exception as exc:
         return ToolResult.fail(f"Health-DB-Fehler: {exc}")
 
