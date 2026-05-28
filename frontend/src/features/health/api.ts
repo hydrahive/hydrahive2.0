@@ -83,6 +83,9 @@ export const egaApi = {
 
   getSummary: () => api.get<Record<string, number>>("/ega/summary"),
 
+  getCosts: () =>
+    api.get<{ ambulant_eur: number; medikamente_eur: number; medikamente_zuzahlung_eur: number }>("/ega/costs"),
+
   getRecords: (dtoType: string) =>
     api.get<{ dto_type: string; count: number; records: EgaRecord[] }>(`/ega/records/${dtoType}`),
 

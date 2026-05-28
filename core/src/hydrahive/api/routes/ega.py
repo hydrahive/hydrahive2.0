@@ -50,6 +50,14 @@ async def get_records(
     return {"dto_type": dto_type, "count": len(records), "records": records}
 
 
+@router.get("/costs")
+async def get_costs(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    username, _ = auth
+    return ega_db.cost_summary(user_id=username)
+
+
 @router.get("/timeline")
 async def get_timeline(
     auth: Annotated[tuple[str, str], Depends(require_auth)],

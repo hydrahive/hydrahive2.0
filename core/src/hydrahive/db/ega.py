@@ -55,6 +55,10 @@ def _display(dto_type: str, record: dict) -> str:
         bp = record.get("billablePeriod", {})
         date = bp.get("start", "")[:7] if bp.get("start") else ""
         return f"{org} ({date})" if org and date else org or "Ambulante Abrechnung"
+    if dto_type == "MedicationClaim":
+        val = record.get("total", {}).get("value", "")
+        date = (_sort_date(record) or "")[:7]
+        return f"{date} — {val} EUR" if val else date or "Medikamentenabrechnung"
     return dto_type
 
 
@@ -102,6 +106,44 @@ def query_by_type(user_id: str, dto_type: str) -> list[dict]:
             (user_id, dto_type),
         ).fetchall()
     return [{"id": r[0], "display": r[1], "sort_date": r[2], "record": json.loads(r[3])} for r in rows]
+
+
+def cost_summary(user_id: str) -> dict:
+    """Kostenzusammenfassung aus AmbulantClaim + MedicationClaim."""
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT dto_type, record_json FROM ega_records WHERE user_id=? AND dto_type IN ('AmbulantClaim','MedicationClaim')",
+            (user_id,),
+        ).fetchall()
+
+    ambulant = 0.0
+    med_apothekenpreis = 0.0
+    med_zuzahlung = 0.0
+
+    for dto_type, record_json in rows:
+        record = json.loads(record_json)
+        try:
+            val = float(record.get("total", {}).get("value", 0) or 0)
+        except (ValueError, TypeError):
+            val = 0.0
+        if dto_type == "AmbulantClaim":
+            ambulant += val
+        elif dto_type == "MedicationClaim":
+            med_apothekenpreis += val
+            for item in record.get("item", []):
+                for detail in item.get("detail", []):
+                    codings = detail.get("service", {}).get("coding", [])
+                    if any(c.get("code") == "zuzahlung" for c in codings):
+                        try:
+                            med_zuzahlung += float(detail.get("net", {}).get("value", 0) or 0)
+                        except (ValueError, TypeError):
+                            pass
+
+    return {
+        "ambulant_eur": round(ambulant, 2),
+        "medikamente_eur": round(med_apothekenpreis, 2),
+        "medikamente_zuzahlung_eur": round(med_zuzahlung, 2),
+    }
 
 
 def timeline(user_id: str, limit: int = 200) -> list[dict]:
