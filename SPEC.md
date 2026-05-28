@@ -705,55 +705,103 @@ Whisper-Container auf.
 
 ---
 
-## Home Assistant — Sprachsteuerung via Conversation Agent (Core-Komponente)
+## Home Assistant — Integration via MCP-Server (Core-Komponente)
 
-HydraHive2 kann als Custom Conversation Agent in Home Assistant registriert werden.
-Sprachbefehle vom NABU-Home-Voice-Gerät (oder jedem anderen HA-Assist-Satellite)
-kommen über HA rein, werden von einem HydraHive-Agenten verarbeitet, und die Antwort
-geht zurück ans Gerät.
+HydraHive2 exposed seine eigenen Funktionen als **MCP-Server (Model Context Protocol)**
+den Home Assistant's MCP-Client-Integration konsumiert. Damit stehen HydraHive-Tools
+einem HA-Conversation-Agenten (Anthropic / OpenAI / Ollama) als zusätzliche
+Tool-Suite zur Verfügung — neben den HA-eigenen Tools für Smart Home und Mediaplayer.
 
-Typische Beispiele:
-- "Hey Claude, schalte das Wohnzimmerlicht an" → HA-Service `light.turn_on`
-- "Hey Claude, spiele Herr der Ringe auf dem Wohnzimmer TV" → Plex + `media_player.play_media`
+```
+[NABU Voice / HA Satellite]
+     ↓ Wake Word + STT (HA-Whisper)
+[HA Assist Pipeline]
+     ↓ Conversation Agent (z.B. Anthropic-Integration in HA, User-eigener Key)
+     ↓ Verfügbare Tools:
+        • HA-eigene Smart-Home-Tools (light.turn_on, media_player.play_media, ...)
+        • HA-Plex-Integration (nativ)
+        • HydraHive MCP-Server: hh_query_memory, hh_delegate_to_agent, ...
+     ↓ Claude wählt das richtige Tool je nach User-Anfrage
+[Antwort über HA-TTS zurück ans Gerät]
+```
+
+**Warum dieser Ansatz statt Custom Conversation Agent:**
+
+- Ein "Custom Conversation Agent" in HA wäre eine HA-Custom-Integration in Python —
+  separates Repository, HACS-Distribution, doppelter Pflegeaufwand
+- HA's eigene Conversation-Agenten sind bereits ausgereift; HA macht Smart Home,
+  Plex, Klima, Mediaplayer bereits nativ und gut
+- Mit der MCP-Integration in HA ab 2024 ist der Weg vorgezeichnet: HydraHive
+  bringt Tools rein, HA's LLM nutzt sie
 
 ### Funktionsumfang
 
-- **Conversation Agent Endpoint**: `POST /api/ha/conversation` — HA-kompatibel
-  (Home Assistant Custom Conversation Agent API). Nimmt `text` + optionalen `context`
-  entgegen, gibt `response.speech.plain.speech` zurück.
-- **HA-Tools für Agenten** (zwei neue Core-Tools):
-  - `ha_call_service(domain, service, data)` — ruft beliebigen HA-Service auf
-  - `ha_get_states(entity_ids?)` — liest aktuellen Zustand von Entitäten
-- **Plex-Tool**: `plex_play(title, target_player)` — sucht Film/Serie in Plex,
-  startet Wiedergabe über HA-Mediaplayer
-- **HA-Agent**: ein vorkonfigurierter Agent-Typ `ha_agent` mit diesen Tools;
-  User wählt in HA welchen Conversation Agent er nutzen will
+**MCP-Endpoint** (SSE, weil HA's MCP-Client SSE erwartet):
+- `GET /api/ha-mcp/sse` — SSE-Stream für MCP-Protokoll-Events
+- `POST /api/ha-mcp/messages` — JSON-RPC Requests
+- Bearer-Token-Auth über `Authorization`-Header; Token pro HydraHive-User
+
+**Erste Tool-Suite** (alle Tools laufen im Kontext eines HH-Users):
+
+| Tool | Wirkung |
+|---|---|
+| `hh_query_memory(query)` | Durchsucht Master-Agent-Memory semantisch |
+| `hh_list_agents()` | Listet User-eigene Agents und Spezialisten |
+| `hh_delegate_to_agent(agent_name, task)` | Delegiert Task an einen HH-Agent über AgentLink |
+| `hh_recent_messages(channel?, limit)` | Letzte Messenger-Nachrichten aus dem Datamining-Mirror |
+| `hh_query_messages(text, since?)` | Volltextsuche in eGA-Messages |
+| `hh_run_butler_flow(flow_id, payload?)` | Triggert einen Butler-Flow manuell |
+| `hh_agent_status(agent_id)` | Aktueller Zustand eines HH-Agenten |
+
+Weitere Tools per Plugin nachrüstbar (siehe Plugin-System).
 
 ### Konfiguration
 
-- HA-URL und Long-Lived Access Token in HydraHive-Settings (`ha.json`)
-- Plex-URL und Plex-Token (optional, nur für Plex-Tool)
-- In HA: Conversation Agent auf Custom Agent → URL = `http://<hydrahive>:8000/api/ha/conversation`
-
-### Wake Word
-
-HydraHive ist am Wake Word nicht beteiligt — das läuft auf dem NABU-Gerät selbst
-via openWakeWord. Empfehlung: Custom-Modell für "Hey Claude" (separates Projekt,
-nicht Teil von HydraHive).
+- HydraHive-seitig: MCP-Endpoint ist immer aktiv wenn die Integration installiert ist.
+  Token-Verwaltung pro User: Profile-Page → "MCP-Token erzeugen" → Token wird einmalig
+  angezeigt und in der DB gehasht gespeichert (wie API-Keys).
+- HA-seitig: Integration "Model Context Protocol" hinzufügen → URL =
+  `http://<hydrahive>:8000/api/ha-mcp/sse`, Bearer-Token aus HydraHive einfügen
+- Im HA-Conversation-Agent (Anthropic-Integration o.ä.) wird der MCP-Server unter
+  "Control Home Assistant" / "Available Tools" sichtbar und aktivierbar
 
 ### Nicht-Ziele
 
-- Kein eigener STT/TTS — nutzt HA's Whisper + Piper Pipeline
-- Kein direktes Wyoming-Protokoll (HydraHive spricht HTTP, nicht Wyoming)
-- Keine HA-Entity-Discovery aus HydraHive heraus
-- Kein Push von HydraHive zu HA ohne Agent-Request
+- Kein eigener Conversation Agent in HydraHive — HA bleibt der LLM-Gateway
+- Kein eigener STT/TTS — HA Whisper/Piper bleibt zuständig
+- Keine Wake-Word-Verarbeitung in HydraHive — läuft auf dem Satelliten
+- Keine Reimplementierung von HA-Smart-Home-Tools (light, media_player, …)
+- Keine Plex-Direktanbindung (HA's native Plex-Integration reicht)
+- Kein Push HydraHive → HA ohne Tool-Aufruf vom HA-LLM
+
+### Trade-offs (ehrlich)
+
+- Sprachbefehle laufen über den **HA-Conversation-Agent**, nicht den HydraHive-Master-Agent.
+  Soul, Skills und Lifetime-Session des Master-Agenten kommen nur indirekt über MCP-Tools rein.
+- User braucht in HA einen LLM-Provider (Anthropic / OpenAI / Ollama), getrennt vom
+  HydraHive-LLM-Stack.
+- Conversation-State (Dialog-Historie eines Sprachbefehls) lebt in HA, nicht in HydraHive.
 
 ### Architektur
 
-`core/src/hydrahive/ha/` (client.py, tools.py, conversation.py, plex.py).
-Route `api/routes/ha.py` → `/api/ha/conversation`.
-Config `ha/config.py` — HA-URL + Token, Plex-URL + Token.
-Frontend: kleine Config-Card auf der Integrations-Seite.
+`core/src/hydrahive/ha_mcp/`:
+- `server.py` — SSE-Transport + JSON-RPC-Loop
+- `auth.py` — Bearer-Token-Validierung gegen User-Tabelle
+- `registry.py` — Tool-Registry (Plugins können andocken)
+- `tools/memory.py`, `tools/agents.py`, `tools/messages.py`, `tools/butler.py` —
+  je Tool eine Datei <150 Zeilen
+
+`api/routes/ha_mcp.py` → `/api/ha-mcp/*`.
+
+Frontend `frontend/src/features/profile/HaMcpTokenCard.tsx` — Token-Erzeugung
+und -Widerruf auf der Profile-Page.
+
+### Nebenprojekt-Option
+
+Wenn die HA-MCP-Integration in der Praxis Lücken zeigt (z.B. fehlende Notifications,
+limitiertes Streaming), wird das Sprach-Routing als separates Projekt **`hh-voice-bridge`**
+ausgelagert: ein eigener kleiner Service der Wake Word + STT direkt entgegennimmt
+(Wyoming) und mit dem HydraHive-Master-Agenten redet. Kein Bestandteil von Core.
 
 ---
 
