@@ -7,8 +7,9 @@ import { UebersichtView }  from "./views/UebersichtView"
 import { ZeitstrahlView }  from "./views/ZeitstrahlView"
 import { DiagnosenView }   from "./views/DiagnosenView"
 import { MedikamenteView } from "./views/MedikamenteView"
-import { LaborwerteView }  from "./views/LaborwerteView"
-import { SimpleListView }  from "./views/SimpleListView"
+import { LaborwerteView }       from "./views/LaborwerteView"
+import { ArztabrechnungView }  from "./views/ArztabrechnungView"
+import { SimpleListView }       from "./views/SimpleListView"
 import { KiAssistentView } from "./views/KiAssistentView"
 import { TrendChart }      from "./_TrendChart"
 import { SleepChart }      from "./_SleepChart"
@@ -73,6 +74,7 @@ export function HealthPage() {
             <Route path="impfungen"   element={<SimpleListView dtoType="Immunization" title="Impfungen" icon="💉" />} />
             <Route path="eingriffe"   element={<SimpleListView dtoType="Procedure" title="Eingriffe" icon="🔪" />} />
             <Route path="arztbesuche" element={<SimpleListView dtoType="Encounter" title="Arztbesuche" icon="🏥" />} />
+            <Route path="abrechnung"  element={<ArztabrechnungView />} />
             <Route path="krankenhaus" element={<SimpleListView dtoType="HospitalStay" title="Krankenhaus" icon="🛏" />} />
             <Route path="befunde"     element={<SimpleListView dtoType="DiagnosticReport" title="Befunde" icon="📋" />} />
             <Route path="dokumente"   element={<SimpleListView dtoType="DocumentReference" title="Dokumente" icon="📄" />} />

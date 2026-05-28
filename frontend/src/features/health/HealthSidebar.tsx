@@ -33,9 +33,11 @@ const SECTIONS: Section[] = [
   {
     title: "Kontakte",
     items: [
-      { to: "/health/arztbesuche", icon: "🏥", label: "Arztbesuche" },
-      { to: "/health/befunde",     icon: "📋", label: "Befunde" },
-      { to: "/health/dokumente",   icon: "📄", label: "Dokumente" },
+      { to: "/health/arztbesuche",  icon: "🏥", label: "Arztbesuche" },
+      { to: "/health/abrechnung",   icon: "🧾", label: "Abrechnung" },
+      { to: "/health/krankenhaus",  icon: "🛏", label: "Krankenhaus" },
+      { to: "/health/befunde",      icon: "📋", label: "Befunde" },
+      { to: "/health/dokumente",    icon: "📄", label: "Dokumente" },
     ],
   },
   {

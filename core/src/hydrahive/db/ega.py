@@ -17,7 +17,9 @@ def _stable_id(dto_type: str, record: dict) -> str:
 
 
 def _sort_date(record: dict) -> str | None:
-    dt = record.get("metaInformation", {}).get("sortDate") or record.get("period", {}).get("start")
+    dt = (record.get("metaInformation", {}).get("sortDate")
+          or record.get("period", {}).get("start")
+          or record.get("billablePeriod", {}).get("start"))
     if not dt:
         return None
     return dt.split("T")[0] if "T" in dt else dt
@@ -48,6 +50,11 @@ def _display(dto_type: str, record: dict) -> str:
         items = record.get("item", [])
         desc = next((i.get("service", {}).get("text", "") for i in items if i.get("service", {}).get("text")), "")
         return org or desc[:80] or "Krankenhausaufenthalt"
+    if dto_type == "AmbulantClaim":
+        org = record.get("organization", {}).get("name", "")
+        bp = record.get("billablePeriod", {})
+        date = bp.get("start", "")[:7] if bp.get("start") else ""
+        return f"{org} ({date})" if org and date else org or "Ambulante Abrechnung"
     return dto_type
 
 

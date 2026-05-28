@@ -24,6 +24,9 @@ def extract_ega_records(data: bytes) -> list[tuple[str, dict]]:
     for item in (i for i in dto_files.get("MedicationDispenseDTO-medicationDispense", []) if i):
         out.append(("MedicationDispense", item))
 
+    for item in (i for i in dto_files.get("AmbulantClaimDTO-ambulantClaim", []) if i):
+        out.append(("AmbulantClaim", item))
+
     for item in (i for i in dto_files.get("ProcedureDTO-procedure", []) if i):
         out.append(("Procedure", item))
 

@@ -4,6 +4,7 @@ import { EgaImportButton } from "../components/EgaImportButton"
 
 const CATEGORIES = [
   { type: "Encounter",           icon: "🏥", label: "Arztbesuche" },
+  { type: "AmbulantClaim",       icon: "🧾", label: "Abrechnungen" },
   { type: "MedicationDispense",  icon: "💊", label: "Medikamente" },
   { type: "HospitalStay",        icon: "🛏", label: "Krankenhaus" },
   { type: "Procedure",           icon: "🔬", label: "Vorsorge" },
