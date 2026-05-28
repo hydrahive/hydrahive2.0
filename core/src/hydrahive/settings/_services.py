@@ -120,3 +120,10 @@ class _CommunicationMixin:
     def health_api_key(self) -> str:
         """API-Key für Health Auto Export Ingest. Leer ⇒ Endpoint antwortet mit 403."""
         return os.environ.get("HH_HEALTH_API_KEY", "").strip()
+
+    @cached_property
+    def health_ingest_user(self) -> str:
+        """User-ID unter der eingehende Health-Daten abgelegt werden.
+        Der Health-Key bindet an genau diesen einen User (Single-Device-Ingest).
+        Default 'till'."""
+        return os.environ.get("HH_HEALTH_INGEST_USER", "till").strip() or "till"

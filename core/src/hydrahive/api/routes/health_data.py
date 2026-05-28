@@ -32,7 +32,6 @@ def _check_key(
 @router.post("/ingest")
 async def ingest(
     payload: dict,
-    user: str = Query(default="till"),
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
     authorization: Annotated[str | None, Header()] = None,
     key: str | None = Query(default=None),
@@ -43,6 +42,10 @@ async def ingest(
     x_aggregation: Annotated[str | None, Header(alias="automation-aggregation")] = None,
 ) -> dict:
     _check_key(x_hh_health_key, authorization, key)
+
+    # user_id kommt NICHT aus dem Request — der Key bindet an genau einen
+    # konfigurierten User (Single-Device-Ingest). Verhindert Cross-User-PHI-Schreiben.
+    user = settings.health_ingest_user
 
     data = payload.get("data", payload)
     metrics = data.get("metrics", []) if isinstance(data, dict) else []
