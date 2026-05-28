@@ -61,7 +61,7 @@ export default function App() {
           <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <BuddyPage />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="health" element={<HealthPage />} />
+          <Route path="health/*" element={<HealthPage />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="werkstatt" element={<ChatPage />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
