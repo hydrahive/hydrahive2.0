@@ -11,7 +11,7 @@ import httpx
 class HiveClient:
     def __init__(self, base_url: str, api_key: str | None = None,
                  user: str | None = None, password: str | None = None,
-                 verify_ssl: bool = False, timeout: float = 10.0):
+                 verify_ssl: bool = True, timeout: float = 10.0):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.user = user

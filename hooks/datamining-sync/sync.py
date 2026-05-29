@@ -45,12 +45,19 @@ def main() -> None:
         payload = {}
     try:
         from client import HiveClient
+        # Secure-by-default: TLS-Verifikation an, außer explizit per HH_VERIFY_SSL=0
+        # abgewählt. Der Payload enthält die komplette Konversation inkl. Secrets.
+        verify_ssl = os.environ.get("HH_VERIFY_SSL", "1").lower() not in ("0", "false", "no")
+        if not verify_ssl:
+            sys.stderr.write(
+                "[datamining-sync] WARNUNG: TLS-Verifikation aus (HH_VERIFY_SSL=0) — "
+                "Konversation inkl. Secrets geht ungeprüft über die Leitung\n")
         hive = HiveClient(
             base_url=os.environ["HH_BASE_URL"],
             api_key=os.environ.get("HH_API_KEY"),
             user=os.environ.get("HH_USER"),
             password=os.environ.get("HH_PASS"),
-            verify_ssl=os.environ.get("HH_VERIFY_SSL", "0").lower() in ("1", "true", "yes"),
+            verify_ssl=verify_ssl,
         )
         state_dir = Path(os.environ.get(
             "HH_SYNC_STATE_DIR", str(Path.home() / ".claude" / "datamining-sync")))

@@ -28,7 +28,7 @@ Thinking) live ins HydraHive-Datamining — via `POST /api/sessions/{id}/log`.
 | `HH_API_KEY` | wenn kein User/Pass | `hhk_...` |
 | `HH_USER` / `HH_PASS` | wenn kein Key | `joshua` / `...` |
 | `HH_AGENT_ID` | nein (default `claude-code`) | `joshua` |
-| `HH_VERIFY_SSL` | nein (default `0`) | `0` |
+| `HH_VERIFY_SSL` | nein (default `1` = an) | `0` nur für self-signed LAN |
 | `HH_SYNC_STATE_DIR` | nein | `~/.claude/datamining-sync` |
 
 Da Hook-Commands die Umgebung des Claude-Code-Prozesses erben, die `HH_*`-Vars
@@ -43,6 +43,10 @@ beim Start setzen (Shell-Profil / Wrapper-Skript), das `sync.py` aufruft.
 Es wird **alles** gespiegelt — auch Passwörter/Keys, die in eine Session getippt
 werden. Optionale Redaction (z.B. `hhk_`/`Bearer`/`HH_PASS`-Muster maskieren)
 gehört clientseitig in `transcript.py` und ist hier bewusst noch nicht enthalten.
+
+TLS-Verifikation ist **standardmäßig an** (`HH_VERIFY_SSL=1`). Nur für eine
+HydraHive-Instanz mit self-signed Zertifikat auf `0` setzen — dann geht der
+gesamte (sensible) Payload ungeprüft über die Leitung; besser ein gültiges Cert.
 
 ## Tests
 
