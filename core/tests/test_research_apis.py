@@ -126,3 +126,52 @@ def test_medical_research_skill_parses():
                   fallback_name="medical-research")
     assert skill.name == "medical-research" and skill.description
     assert "fetch_url" in skill.description or "fetch_url" in p.read_text(encoding="utf-8")
+
+
+# --- Review-Findings: Precedence + Decrypt-Resilienz -------------------------
+
+def test_select_cred_precedence(monkeypatch):
+    from hydrahive.credentials.models import Credential
+    from hydrahive.tools import fetch_url as fu
+
+    user_cred = Credential(name="user", type="bearer", value="U", url_pattern="*")
+    reg_cred = Credential(name="research:x", type="query", value="R", url_pattern="*", query_param="api_key")
+    called = {"research": False}
+
+    def fake_research(url):
+        called["research"] = True
+        return reg_cred
+
+    monkeypatch.setattr("hydrahive.research.match_research_api", fake_research)
+
+    # per-User-Credential matcht → Registry NICHT konsultiert
+    monkeypatch.setattr("hydrahive.credentials.match_credential",
+                        lambda u, url, prefer_name=None: user_cred)
+    assert fu._select_cred("u", "https://api.fda.gov/x", None) is user_cred
+    assert called["research"] is False
+
+    # kein per-User-Credential + kein auth_name → Registry-Fallback
+    monkeypatch.setattr("hydrahive.credentials.match_credential",
+                        lambda u, url, prefer_name=None: None)
+    assert fu._select_cred("u", "https://api.fda.gov/x", None) is reg_cred
+
+    # explizites auth_name (das nicht auflöst) → KEIN Registry-Fallback
+    called["research"] = False
+    assert fu._select_cred("u", "https://api.fda.gov/x", "profilX") is None
+    assert called["research"] is False
+
+
+def test_load_overrides_tolerates_undecryptable_key(tmp_path, monkeypatch):
+    import json
+
+    import hydrahive.research.store as st
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "research_apis_config", tmp_path / "r.json", raising=False)
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
+    (tmp_path / "r.json").write_text(json.dumps(
+        {"core": {"key": "enc:v1:kaputt-kein-valides-ciphertext", "enabled": True}}))
+
+    apis = {a.id: a for a in st.list_apis()}    # darf NICHT crashen
+    assert apis["core"].enabled is True          # enabled-Override bleibt
+    assert apis["core"].key == ""                # kaputter Key gedroppt
+    assert apis["pubmed"].enabled is True        # Rest unberührt

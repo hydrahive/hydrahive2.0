@@ -1,9 +1,9 @@
 """Persistenz der Forschungs-API-Registry.
 
-Gespeichert werden nur die Admin-**Overrides** pro id (key/enabled/auth_param/
-polite_email) in `research_apis.json` — beim Laden über den Seed gemergt. So
-erscheinen neue Seed-Quellen automatisch, Admin-Edits bleiben erhalten. Keys
-werden AES-GCM-verschlüsselt (wie der Credential-Store).
+Gespeichert werden nur die Admin-**Overrides** pro id (key/enabled) in
+`research_apis.json` — beim Laden über den Seed gemergt. So erscheinen neue
+Seed-Quellen automatisch, Admin-Edits bleiben erhalten. Keys werden AES-GCM-
+verschlüsselt (wie der Credential-Store).
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
 
-_OVERRIDE_FIELDS = ("key", "enabled", "polite_email", "auth_param")
+_OVERRIDE_FIELDS = ("key", "enabled")
 
 
 def _load_overrides() -> dict:
@@ -30,9 +30,14 @@ def _load_overrides() -> dict:
     except json.JSONDecodeError:
         logger.warning("Defekte research_apis.json: %s", path)
         return {}
-    for ov in raw.values():
+    for rid, ov in raw.items():
         if isinstance(ov, dict) and ov.get("key"):
-            ov["key"] = decrypt(ov["key"], settings.data_dir)
+            try:
+                ov["key"] = decrypt(ov["key"], settings.data_dir)
+            except Exception as e:
+                logger.warning(
+                    "research_apis: Key für '%s' nicht entschlüsselbar (%s) — ignoriert", rid, e)
+                ov.pop("key", None)
     return raw
 
 
