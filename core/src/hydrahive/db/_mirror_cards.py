@@ -95,6 +95,15 @@ async def upsert_card(card: Card, embedding: list[float] | None = None) -> None:
         logger.warning("upsert_card(%s) fehlgeschlagen: %s", card.card_id, e)
 
 
+def _parse_row(row) -> dict[str, Any]:
+    """asyncpg-Row → dict mit geparsten JSONB-Feldern (topics/source/superseded)."""
+    d = dict(row)
+    for k in _JSONB_FIELDS:
+        if k in d:
+            d[k] = _loads(d.get(k))
+    return d
+
+
 async def get_card(card_id: str) -> dict[str, Any] | None:
     pool = _pool()
     if not pool:
@@ -104,12 +113,7 @@ async def get_card(card_id: str) -> dict[str, Any] | None:
             row = await conn.fetchrow(
                 f"SELECT {_READ_COLS} FROM cards WHERE card_id = $1", card_id
             )
-        if not row:
-            return None
-        d = dict(row)
-        for k in _JSONB_FIELDS:
-            d[k] = _loads(d.get(k))
-        return d
+        return _parse_row(row) if row else None
     except Exception as e:
         logger.warning("get_card(%s) fehlgeschlagen: %s", card_id, e)
         return None
@@ -129,3 +133,58 @@ async def wipe_cards() -> int:
     except Exception as e:
         logger.warning("wipe_cards fehlgeschlagen: %s", e)
         return 0
+
+
+async def top_cards_for(agent_id: str | None, limit: int = 8) -> list[dict[str, Any]]:
+    """Recall A: Top-N Cards eines Agents nach recency × salience (high zuerst,
+    dann jüngste). Ohne agent_id: über alle (Fallback)."""
+    pool = _pool()
+    if not pool:
+        return []
+    order = "(salience = 'high') DESC, created_at DESC NULLS LAST"
+    try:
+        async with pool.acquire() as conn:
+            if agent_id:
+                rows = await conn.fetch(
+                    f"SELECT {_READ_COLS} FROM cards WHERE agent_id = $1 "
+                    f"ORDER BY {order} LIMIT $2",
+                    agent_id, limit,
+                )
+            else:
+                rows = await conn.fetch(
+                    f"SELECT {_READ_COLS} FROM cards ORDER BY {order} LIMIT $1", limit
+                )
+        return [_parse_row(r) for r in rows]
+    except Exception as e:
+        logger.warning("top_cards_for(%s) fehlgeschlagen: %s", agent_id, e)
+        return []
+
+
+async def search_cards(query: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Recall C: cue-getriggerte pgvector-Cosine-Suche über cards.embedding —
+    selbes Muster wie _mirror_search._semantic_search, nur auf der cards-Tabelle."""
+    pool = _pool()
+    if not pool or not query.strip():
+        return []
+    from hydrahive.llm._config import load_config
+    from hydrahive.llm.embed import aembed
+    model = load_config().get("embed_model", "")
+    if not model:
+        return []
+    try:
+        vec = await aembed(query, model, embed_type="query")
+        if vec is None:
+            return []
+        vec_str = "[" + ",".join(str(x) for x in vec) + "]"
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                f"SELECT {_READ_COLS}, "
+                "round((1 - (embedding <=> $1::text::vector))::numeric, 3)::float8 AS similarity "
+                "FROM cards WHERE embedding IS NOT NULL "
+                "ORDER BY embedding <=> $1::text::vector LIMIT $2",
+                vec_str, limit,
+            )
+        return [_parse_row(r) for r in rows]
+    except Exception as e:
+        logger.warning("search_cards fehlgeschlagen: %s", e)
+        return []

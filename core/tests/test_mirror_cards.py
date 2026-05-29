@@ -43,3 +43,12 @@ def test_loads_parses_jsonb_text():
     assert _loads(None) is None                 # None bleibt None
     assert _loads(["already"]) == ["already"]   # schon geparst → unveraendert
     assert _loads("not json") == "not json"     # kaputt → Rohwert
+
+
+def test_recall_queries_callable():
+    import inspect
+    from hydrahive.db._mirror_cards import search_cards, top_cards_for
+    assert inspect.iscoroutinefunction(top_cards_for)
+    assert inspect.iscoroutinefunction(search_cards)
+    assert "agent_id" in inspect.signature(top_cards_for).parameters
+    assert "query" in inspect.signature(search_cards).parameters
