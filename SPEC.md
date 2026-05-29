@@ -335,12 +335,35 @@ wird nur über non-NULL Rows gebaut.
 `db/mirror.py` beim Start — `CREATE TABLE IF NOT EXISTS` + Indizes, idempotent.
 `CREATE EXTENSION IF NOT EXISTS vector` muss vorab einmalig auf dem PG-Server ausgeführt werden.
 
+### Externe Instanzen (Live-Ingest)
+
+Externe Clients — primär eigenständige Claude-Code-Instanzen — spiegeln ihre
+Konversation live in dasselbe Datamining, über den vorhandenen
+`messages.append() → Mirror`-Pfad. Eine externe Instanz wird im Modell wie ein
+normaler Agent behandelt: eigener registrierter `agent_id` + eigener Login-User,
+damit `agent_name` und `username` sauber zuordbar sind.
+
+**Endpoint:** `POST /api/sessions/{id}/log` (`require_auth`, Owner-Check) hängt
+eine Message an und löst den Mirror aus. **Kein** Agenten-Lauf (im Gegensatz zu
+`/inject`) — reines Mitschreiben.
+
+**Idempotenz:** Der Client liefert eine stabile Message-ID (z.B. die
+Transkript-Eintrags-UUID); der Insert ist `INSERT OR IGNORE`. Derselbe Eintrag
+landet nie doppelt, egal wie oft der Client erneut sendet.
+
+**Erfassung (Claude-Code-Seite):** Ein Stop-Hook in `~/.claude/` liest das
+Transkript und sendet neue Einträge. Der Hook lebt außerhalb des Core; der Core
+stellt nur den Endpoint bereit. Erfasst wird alles — Scope ist opt-in pro Instanz
+über deren Hook-Config.
+
 ### Nicht-Ziele
 
 - Kein Retry bei PG-Ausfall (fire-and-forget, Datamining-Verlust akzeptabel)
 - Keine Rück-Synchronisation von SQLite → PG (Mirror startet ab Aktivierung)
 - Kein Embedding-Worker im Core (separater Service, kommt später)
 - Keine Abfrage-API im Backend (direkter DB-Zugriff durch Datamining-Tools)
+- Kein Agenten-Lauf beim Ingest (`/log` schreibt nur, `/inject` führt aus)
+- Keine Redaction im Core — Secrets clientseitig im Hook filtern, falls nötig
 
 ### Knowledge Graph (Wissensgraph)
 
