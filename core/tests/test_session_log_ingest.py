@@ -23,7 +23,7 @@ def test_owner_can_log_text_message(client, auth_headers, session_id):
                     json={"role": "user", "content": "hallo welt", "message_id": "u-1"},
                     headers=auth_headers)
     assert r.status_code == 200, r.text
-    assert r.json() == {"ok": True, "message_id": "u-1"}
+    assert r.json() == {"ok": True, "message_id": "u-1", "inserted": True}
     msgs = client.get(f"/api/sessions/{session_id}/messages", headers=auth_headers).json()
     assert any(m["id"] == "u-1" and m["content"] == "hallo welt" for m in msgs)
 
@@ -70,6 +70,35 @@ def test_log_invalid_role_422(client, auth_headers, session_id):
     r = client.post(f"/api/sessions/{session_id}/log",
                     json={"role": "system", "content": "nope"}, headers=auth_headers)
     assert r.status_code == 422
+
+
+def test_log_reports_inserted_false_on_duplicate(client, auth_headers, session_id):
+    body = {"role": "user", "content": "x", "message_id": "ins-1"}
+    r1 = client.post(f"/api/sessions/{session_id}/log", json=body, headers=auth_headers)
+    r2 = client.post(f"/api/sessions/{session_id}/log", json=body, headers=auth_headers)
+    assert r1.json()["inserted"] is True
+    assert r2.json()["inserted"] is False
+
+
+def test_log_invalid_created_at_422(client, auth_headers, session_id):
+    r = client.post(f"/api/sessions/{session_id}/log",
+                    json={"role": "user", "content": "x", "created_at": "kaputt"},
+                    headers=auth_headers)
+    assert r.status_code == 422
+    assert error_code(r) == "invalid_timestamp"
+
+
+def test_log_accepts_valid_iso_created_at(client, auth_headers, session_id):
+    r = client.post(f"/api/sessions/{session_id}/log",
+                    json={"role": "user", "content": "x", "message_id": "ts-ok",
+                          "created_at": "2026-05-29T10:00:00Z"},
+                    headers=auth_headers)
+    assert r.status_code == 200, r.text
+
+
+def test_log_slash_cmd_is_async_for_mirror_loop():
+    """Gleicher Mirror-Loop-Grund wie log_ingest — log_slash_cmd ruft ebenfalls append."""
+    assert inspect.iscoroutinefunction(sessions_messages.log_slash_cmd)
 
 
 def test_log_ingest_is_async_for_mirror_loop():

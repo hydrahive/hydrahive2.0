@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, status
@@ -151,7 +152,7 @@ class LogCmdBody(BaseModel):
 
 
 @messages_router.post("/{session_id}/log-cmd")
-def log_slash_cmd(
+async def log_slash_cmd(
     session_id: str,
     body: LogCmdBody,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
@@ -240,6 +241,12 @@ async def log_ingest(
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     check_owner(s, *auth)
+    if body.created_at is not None:
+        try:
+            datetime.fromisoformat(body.created_at.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            raise coded(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid_timestamp")
+    existed = bool(body.message_id) and messages_db.get(body.message_id) is not None
     m = messages_db.append(
         session_id,
         body.role,
@@ -249,4 +256,4 @@ async def log_ingest(
         message_id=body.message_id,
         created_at=body.created_at,
     )
-    return {"ok": True, "message_id": m.id}
+    return {"ok": True, "message_id": m.id, "inserted": not existed}
