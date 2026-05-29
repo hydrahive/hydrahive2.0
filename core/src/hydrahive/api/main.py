@@ -31,6 +31,7 @@ from hydrahive.api.routes.datamining import router as datamining_router
 from hydrahive.api.routes.datamining_issues import router as datamining_issues_router
 from hydrahive.api.routes.datamining_stats import router as datamining_stats_router
 from hydrahive.api.routes.datamining_transfer import router as datamining_transfer_router
+from hydrahive.api.routes.external_instances import router as external_instances_router
 from hydrahive.api.routes.llm import router as llm_router
 from hydrahive.api.routes.llm_catalog import router as llm_catalog_router
 from hydrahive.api.routes.llm_oauth import router as llm_oauth_router
@@ -96,6 +97,7 @@ app.include_router(auth_router)
 app.include_router(backup_router)
 app.include_router(users_router)
 app.include_router(agents_router)
+app.include_router(external_instances_router)
 app.include_router(agent_memory_router)
 app.include_router(analytics_router)
 app.include_router(communication_router)
