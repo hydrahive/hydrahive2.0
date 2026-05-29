@@ -356,6 +356,30 @@ Transkript und sendet neue Einträge. Der Hook lebt außerhalb des Core; der Cor
 stellt nur den Endpoint bereit. Erfasst wird alles — Scope ist opt-in pro Instanz
 über deren Hook-Config.
 
+### Externe Instanzen — Verwaltung (GUI)
+
+Admin-Oberfläche zum Anlegen und Verwalten externer Instanzen. Eine Instanz =
+ein als `external` markierter Agent + dessen Owner-User + dessen API-Key — keine
+eigene Tabelle, der Agent-Marker ist die Einheit.
+
+**Endpoints (alle `require_admin`):**
+- `POST /api/external-instances` — orchestriert in einem Schritt: User (eigenes
+  Login, zufälliges Passwort), Agent (`external=true`, `owner`=User), API-Key
+  *für diesen User* (nötig, da `api_keys.create` den Key an den Owner bindet).
+  Gibt **einmalig** `username`, `agent_id` (uuid), `api_key` (Klartext) + den
+  fertigen Hook-Config-Block zurück.
+- `GET /api/external-instances` — Liste der `external`-Agenten mit Owner-User,
+  Key-Anzahl und Aktivität (Session-Count + Last-Activity aus `agent_stats`).
+- `DELETE /api/external-instances/{agent_id}` — entfernt Agent + Owner-User + Keys.
+- `POST /api/external-instances/{agent_id}/rotate-key` — alten Key widerrufen,
+  neuen einmalig ausgeben.
+
+**Agent-Config:** neues Feld `external: bool` (default false) markiert die Einheit.
+
+**Frontend:** eigene Seite (`features/external-servers/`, admin-only) mit Liste +
+Wizard. Der Wizard zeigt API-Key + Hook-Config (`HH_BASE_URL`/`HH_API_KEY`/
+`HH_AGENT_ID`=uuid + `settings.json`-Snippet) **einmalig** nach dem Anlegen.
+
 ### Nicht-Ziele
 
 - Kein Retry bei PG-Ausfall (fire-and-forget, Datamining-Verlust akzeptabel)
@@ -364,6 +388,7 @@ stellt nur den Endpoint bereit. Erfasst wird alles — Scope ist opt-in pro Inst
 - Keine Abfrage-API im Backend (direkter DB-Zugriff durch Datamining-Tools)
 - Kein Agenten-Lauf beim Ingest (`/log` schreibt nur, `/inject` führt aus)
 - Keine Redaction im Core — Secrets clientseitig im Hook filtern, falls nötig
+- Externe-Instanz-Verwaltung ohne eigene Registry-Tabelle (Agent-`external`-Marker + abgeleitete Sicht)
 
 ### Knowledge Graph (Wissensgraph)
 
