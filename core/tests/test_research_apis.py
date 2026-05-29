@@ -25,3 +25,34 @@ def test_keyless_pubmed_and_openalex_present():
     assert by_id["pubmed"].base_url.startswith("https://eutils.ncbi.nlm.nih.gov")
     assert by_id["openalex"].polite_email_param == "mailto"
     assert by_id["core"].needs_key and not by_id["core"].enabled  # Key-Quelle startet aus
+
+
+# --- Store (verschlüsselt, seed-merge) ---------------------------------------
+
+def test_store_roundtrip_and_seed_merge(tmp_path, monkeypatch):
+    import hydrahive.research.store as st
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "research_apis_config", tmp_path / "research_apis.json", raising=False)
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
+
+    apis = {a.id: a for a in st.list_apis()}
+    assert apis["pubmed"].enabled is True
+    assert apis["core"].enabled is False                 # Key-Quelle startet aus
+
+    st.set_key("core", "SECRET123")
+    st.set_enabled("core", True)
+    raw = (tmp_path / "research_apis.json").read_text()
+    assert "SECRET123" not in raw                         # Key NICHT im Klartext
+    reloaded = st.get_api("core")
+    assert reloaded.key == "SECRET123" and reloaded.enabled is True
+    assert st.get_api("pubmed").enabled is True           # andere unberührt (seed-merge)
+
+
+def test_public_list_masks_key(tmp_path, monkeypatch):
+    import hydrahive.research.store as st
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "research_apis_config", tmp_path / "r.json", raising=False)
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
+    st.set_key("core", "X")
+    pub = {a["id"]: a for a in st.list_public()}
+    assert pub["core"]["has_key"] is True and "key" not in pub["core"]
