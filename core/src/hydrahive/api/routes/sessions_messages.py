@@ -221,7 +221,7 @@ class LogIngestBody(BaseModel):
 
 
 @messages_router.post("/{session_id}/log")
-def log_ingest(
+async def log_ingest(
     session_id: str,
     body: LogIngestBody,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
@@ -231,6 +231,10 @@ def log_ingest(
     Reines Mitschreiben — kein Agenten-Lauf (vgl. /inject). Idempotent über
     body.message_id (INSERT OR IGNORE). Für externe Claude-Code-Instanzen, die
     ihre Konversation ins Datamining spiegeln.
+
+    MUSS async sein: mirror.schedule_message() nutzt asyncio.get_running_loop().
+    Als sync def liefe der Endpoint im Threadpool ohne Loop → der Mirror-Task
+    würde still verworfen und nur SQLite bekäme die Message (Datamining bliebe leer).
     """
     s = sessions_db.get(session_id)
     if not s:

@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import asyncio
+import inspect
+from unittest.mock import patch
+
 import pytest
 
+from hydrahive.db import messages as messages_db, mirror
+from hydrahive.api.routes import sessions_messages
 from tests.conftest import error_code
 
 
@@ -64,3 +70,29 @@ def test_log_invalid_role_422(client, auth_headers, session_id):
     r = client.post(f"/api/sessions/{session_id}/log",
                     json={"role": "system", "content": "nope"}, headers=auth_headers)
     assert r.status_code == 422
+
+
+def test_log_ingest_is_async_for_mirror_loop():
+    """Regression-Guard: schedule_message braucht einen laufenden Event-Loop.
+    Als sync def liefe der Endpoint im Threadpool ohne Loop → Mirror still
+    verworfen, Datamining bliebe leer (genau der Zweck des Endpoints)."""
+    assert inspect.iscoroutinefunction(sessions_messages.log_ingest)
+
+
+def test_append_schedules_mirror_write_when_pool_active(client, auth_headers, session_id):
+    """Deckt den in Prod relevanten Pfad ab (Mirror aktiv): append in einem
+    laufenden Loop mit gesetztem _pool MUSS write_message tatsächlich aufrufen.
+    Dieser Pfad war vorher ungetestet (Tests laufen sonst mit _pool=None)."""
+    seen: list[str] = []
+
+    async def fake_write(pool, m, s):
+        seen.append(m.id)
+
+    async def drive():
+        with patch.object(mirror, "_pool", object()), \
+             patch.object(mirror, "write_message", fake_write):
+            messages_db.append(session_id, "user", "x", message_id="mir-1")
+            await asyncio.sleep(0)  # dem fire-and-forget-Task einen Tick geben
+
+    asyncio.run(drive())
+    assert seen == ["mir-1"]
