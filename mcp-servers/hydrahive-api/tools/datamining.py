@@ -34,7 +34,8 @@ async def dm_get_session(client: RestClient, session_id: str) -> dict[str, Any]:
 async def dm_list_sessions(client: RestClient, limit: int = 20) -> list[dict]:
     try:
         result = await client.get("/api/datamining/sessions", params={"limit": limit})
-        return result if isinstance(result, list) else result.get("items", [])
+        # Endpoint liefert {"active": bool, "sessions": [...]} — NICHT "items".
+        return result if isinstance(result, list) else result.get("sessions", [])
     except Exception as e:
         return [{"error": str(e), "code": "dm_list_failed"}]
 

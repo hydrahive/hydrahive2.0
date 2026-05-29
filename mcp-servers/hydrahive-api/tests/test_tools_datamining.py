@@ -31,8 +31,12 @@ async def test_dm_get_session(base_url, token):
 @pytest.mark.asyncio
 async def test_dm_list_sessions(base_url, token):
     with respx.mock:
+        # Echte Endpoint-Form: dict mit "sessions" (NICHT eine Liste, NICHT "items")
         respx.get(f"{base_url}/api/datamining/sessions").mock(
-            return_value=httpx.Response(200, json=[{"session_id": "s1", "event_count": 42}])
+            return_value=httpx.Response(200, json={
+                "active": True,
+                "sessions": [{"session_id": "s1", "event_count": 42}],
+            })
         )
         auth = Auth(base_url=base_url, api_key=token)
         result = await dm_list_sessions(RestClient(auth))
