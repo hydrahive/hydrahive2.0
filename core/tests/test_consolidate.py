@@ -130,3 +130,14 @@ def test_consolidate_recent_contract_for_scheduler():
     assert inspect.iscoroutinefunction(consolidate_recent)
     p = inspect.signature(consolidate_recent).parameters
     assert "lookback_hours" in p and "model" in p
+
+
+def test_parse_card_robust_extraction():
+    # NIM-Varianz: JSON in Prosa / mit Trailing / gefenced / Klammern-in-Strings
+    from hydrahive.cards._consolidate_prompts import parse_card_response
+    prose = 'Here is the card:\n{"gist":"g","valence":"good","salience":"high","topics":["a"]}\nDone.'
+    assert parse_card_response(prose) == {"gist": "g", "valence": "good", "salience": "high", "topics": ["a"]}
+    fenced = '```json\n{"gist":"f","valence":"bad","salience":"low","topics":[]}\n```'
+    assert parse_card_response(fenced)["gist"] == "f"
+    nested = '{"gist":"has {brace} in str","valence":"neutral","salience":"low","topics":[]}'
+    assert parse_card_response(nested)["gist"] == "has {brace} in str"

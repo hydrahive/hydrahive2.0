@@ -60,19 +60,46 @@ def format_session_text(events: list[dict], *, char_budget: int = DEFAULT_CHAR_B
     return text[:head_n] + f"\n…[{elided} chars elided]…\n" + text[-tail_n:]
 
 
+def _extract_json_object(text: str) -> str | None:
+    """Erstes balanciertes {...}-Objekt aus einem Text ziehen — toleriert Prosa/
+    Markdown/Trailing um das JSON herum (NIM-Modelle liefern nicht immer reines
+    JSON). Klammern in Strings werden ignoriert."""
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        c = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return None
+
+
 def parse_card_response(text: str) -> dict:
-    """Robustes JSON-Parsing der LLM-Antwort → validierte Tags. Fallback bei Murks."""
-    text = (text or "").strip()
-    if text.startswith("```"):
-        text = "\n".join(
-            ln for ln in text.splitlines() if not ln.strip().startswith("```")
-        ).strip()
+    """Robustes JSON-Parsing der LLM-Antwort → validierte Tags. Fallback bei Murks.
+    Zieht das erste balancierte JSON-Objekt (toleriert Prosa/Markdown drumherum)."""
+    raw = _extract_json_object((text or "").strip())
     try:
-        p = json.loads(text)
+        p = json.loads(raw) if raw else None
         if not isinstance(p, dict):
-            raise ValueError("not an object")
+            raise ValueError("kein JSON-Objekt")
     except (json.JSONDecodeError, TypeError, ValueError):
-        logger.warning("parse_card_response: ungültiges JSON — leere Tags (Fallback)")
+        logger.warning("parse_card_response: kein gültiges JSON-Objekt — leere Tags (Fallback)")
         return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
     return {
         "gist": str(p.get("gist", ""))[:300],
