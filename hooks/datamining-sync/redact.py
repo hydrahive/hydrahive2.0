@@ -15,6 +15,7 @@ _REDACTED = "[redacted]"
 _FULL = [
     re.compile(r"hhk_[A-Za-z0-9_\-]{8,}"),
     re.compile(r"(?i)\bsk-[A-Za-z0-9]{8,}"),
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"),  # GitHub-Token (ghp_/gho_/ghu_/ghs_/ghr_)
 ]
 _PREFIXED = [
     re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._\-]+"),

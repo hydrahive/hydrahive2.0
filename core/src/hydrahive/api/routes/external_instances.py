@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
-from hydrahive.agents import external_instances as ei
+from hydrahive.agents import AgentValidationError, external_instances as ei
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
 
@@ -24,6 +24,8 @@ def list_external_instances() -> list[dict]:
 def create_external_instance(req: InstanceCreate) -> dict:
     try:
         return ei.create_instance(req.name.strip(), req.llm_model)
+    except AgentValidationError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
     except ValueError:
         raise coded(status.HTTP_409_CONFLICT, "username_exists")
 

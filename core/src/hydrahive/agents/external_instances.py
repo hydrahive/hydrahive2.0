@@ -83,6 +83,10 @@ def rotate_key(agent_id: str) -> str | None:
     owner = a.get("owner")
     if not owner:
         return None
-    for k in api_keys.list_keys(username=owner):
+    # Erst neuen Key erzeugen, DANN alte löschen — sonst stünde die Instanz bei
+    # einem Fehler nach dem Löschen ohne Key da (ausgesperrt).
+    old = api_keys.list_keys(username=owner)
+    new_key = api_keys.create(name=f"{a.get('name')}-hook", username=owner, role="user")
+    for k in old:
         api_keys.delete(k["id"])
-    return api_keys.create(name=f"{a.get('name')}-hook", username=owner, role="user")
+    return new_key

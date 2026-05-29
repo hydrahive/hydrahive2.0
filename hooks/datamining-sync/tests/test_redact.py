@@ -16,6 +16,11 @@ def test_passes_through_innocent_text():
     assert redact_text("ganz normaler text ohne secrets") == "ganz normaler text ohne secrets"
 
 
+def test_redacts_github_token():
+    out = redact_text("git remote: token ghp_" + "a" * 36)
+    assert "ghp_" not in out
+
+
 def test_redact_entries_walks_blocks_and_keeps_metadata():
     entries = [{"message_id": "a", "role": "assistant", "created_at": "t",
                 "content": [{"type": "text", "text": "token=hhk_zzzz11112222aaaa"}]}]

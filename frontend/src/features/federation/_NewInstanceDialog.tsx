@@ -14,7 +14,7 @@ function configBlock(r: CreateInstanceResult): string {
     `HH_BASE_URL=${base}`,
     `HH_API_KEY=${r.api_key}`,
     `HH_AGENT_ID=${r.agent_id}`,
-    `HH_VERIFY_SSL=0   # nur für self-signed LAN`,
+    `# HH_VERIFY_SSL=0   (nur einkommentieren für self-signed LAN-Cert; sonst bleibt TLS-Verify an)`,
   ].join("\n")
 }
 
