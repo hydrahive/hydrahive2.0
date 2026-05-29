@@ -209,3 +209,40 @@ async def inject_message(
 
     background_tasks.add_task(_run)
     return {"accepted": True, "session_id": session_id}
+
+
+class LogIngestBody(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str | list
+    message_id: str | None = None
+    token_count: int | None = None
+    created_at: str | None = None
+    metadata: dict | None = None
+
+
+@messages_router.post("/{session_id}/log")
+def log_ingest(
+    session_id: str,
+    body: LogIngestBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Externer Live-Ingest: hängt eine Message an und löst den Mirror aus.
+
+    Reines Mitschreiben — kein Agenten-Lauf (vgl. /inject). Idempotent über
+    body.message_id (INSERT OR IGNORE). Für externe Claude-Code-Instanzen, die
+    ihre Konversation ins Datamining spiegeln.
+    """
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+    m = messages_db.append(
+        session_id,
+        body.role,
+        body.content,
+        token_count=body.token_count,
+        metadata=body.metadata,
+        message_id=body.message_id,
+        created_at=body.created_at,
+    )
+    return {"ok": True, "message_id": m.id}
