@@ -35,6 +35,20 @@ def _vec_str(embedding: list[float] | None) -> str | None:
     return "[" + ",".join(str(x) for x in embedding) + "]"
 
 
+# asyncpg liefert JSONB als Text-String (kein Codec registriert) → beim Lesen
+# zurück nach Python-Objekt parsen. Schreiben passiert via json.dumps + $::jsonb.
+_JSONB_FIELDS = ("topics", "source", "superseded_by", "supersedes")
+
+
+def _loads(v: Any) -> Any:
+    if not isinstance(v, str):
+        return v
+    try:
+        return json.loads(v)
+    except (ValueError, TypeError):
+        return v
+
+
 async def upsert_card(card: Card, embedding: list[float] | None = None) -> None:
     """Schreibt/aktualisiert eine Card idempotent (ON CONFLICT card_id).
     recompute-safe: derselbe card_id → genau eine Zeile, überschrieben."""
@@ -90,7 +104,12 @@ async def get_card(card_id: str) -> dict[str, Any] | None:
             row = await conn.fetchrow(
                 f"SELECT {_READ_COLS} FROM cards WHERE card_id = $1", card_id
             )
-        return dict(row) if row else None
+        if not row:
+            return None
+        d = dict(row)
+        for k in _JSONB_FIELDS:
+            d[k] = _loads(d.get(k))
+        return d
     except Exception as e:
         logger.warning("get_card(%s) fehlgeschlagen: %s", card_id, e)
         return None

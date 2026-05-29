@@ -33,3 +33,13 @@ def test_vec_str_matches_mirror_embed_format():
     assert _vec_str(None) is None
     assert _vec_str([]) is None
     assert _vec_str([1.0, 2.5, -3.0]) == "[1.0,2.5,-3.0]"
+
+
+def test_loads_parses_jsonb_text():
+    # asyncpg liefert JSONB als Text → get_card muss zurueck nach Objekt parsen
+    from hydrahive.db._mirror_cards import _loads
+    assert _loads('["a","b"]') == ["a", "b"]
+    assert _loads('{"session_id":"s1"}') == {"session_id": "s1"}
+    assert _loads(None) is None                 # None bleibt None
+    assert _loads(["already"]) == ["already"]   # schon geparst → unveraendert
+    assert _loads("not json") == "not json"     # kaputt → Rohwert
