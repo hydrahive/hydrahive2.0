@@ -56,3 +56,29 @@ def test_public_list_masks_key(tmp_path, monkeypatch):
     st.set_key("core", "X")
     pub = {a["id"]: a for a in st.list_public()}
     assert pub["core"]["has_key"] is True and "key" not in pub["core"]
+
+
+# --- fetch_url-Injektion (match_research_api) --------------------------------
+
+def test_match_injects_bearer_and_query(tmp_path, monkeypatch):
+    import hydrahive.research.store as st
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "research_apis_config", tmp_path / "r.json", raising=False)
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
+
+    st.set_key("core", "K"); st.set_enabled("core", True)            # bearer, needs_key
+    bearer = st.match_research_api("https://api.core.ac.uk/v3/search/works?q=x")
+    assert bearer is not None and bearer.type == "bearer" and bearer.value == "K"
+
+    st.set_key("openfda", "QK")                                      # query, optionaler Key
+    q = st.match_research_api("https://api.fda.gov/drug/event.json?search=x")
+    assert q.type == "query" and q.query_param == "api_key" and q.value == "QK"
+
+
+def test_match_none_for_keyless_or_disabled(tmp_path, monkeypatch):
+    import hydrahive.research.store as st
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "research_apis_config", tmp_path / "r.json", raising=False)
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
+    assert st.match_research_api("https://api.openalex.org/works") is None   # keyless
+    assert st.match_research_api("https://api.core.ac.uk/v3/x") is None       # disabled, kein Key

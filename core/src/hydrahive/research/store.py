@@ -85,3 +85,23 @@ def set_key(rid: str, key: str) -> bool:
 
 def set_enabled(rid: str, enabled: bool) -> bool:
     return _set_override(rid, enabled=enabled)
+
+
+def match_research_api(url: str):
+    """Erst-passende aktivierte Registry-API mit gesetztem Key → Credential-
+    Äquivalent (oder None). Keyless/ohne Key → None (keine Injektion nötig).
+    Gibt ein hydrahive.credentials.models.Credential zurück, damit fetch_url's
+    _apply_auth es unverändert verarbeitet."""
+    from hydrahive.credentials.models import Credential, matches_url
+    for a in list_apis():
+        if not (a.enabled and a.key and a.auth_type in ("query", "header", "bearer")):
+            continue
+        if not matches_url(a.url_pattern, url):
+            continue
+        return Credential(
+            name=f"research:{a.id}", type=a.auth_type, value=a.key,
+            url_pattern=a.url_pattern,
+            header_name=a.auth_param if a.auth_type == "header" else "",
+            query_param=a.auth_param if a.auth_type == "query" else "",
+        )
+    return None

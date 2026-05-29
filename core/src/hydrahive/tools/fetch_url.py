@@ -150,6 +150,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     auth_used: str | None = None
 
     cred = match_credential(ctx.user_id, url, prefer_name=auth_name)
+    if not cred and not auth_name:
+        # Fallback: system-weite Forschungs-API-Registry (per-User-Credential hat Vorrang)
+        from hydrahive.research import match_research_api
+        cred = match_research_api(url)
     if cred:
         auth_used = _apply_auth(cred, headers, params)
 
