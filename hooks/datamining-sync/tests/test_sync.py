@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from sync import run_sync
+from state import load_state
 
 
 class FakeClient:
@@ -92,3 +93,31 @@ def test_redaction_applied_before_send(tmp_path):
 
     run_sync({"session_id": "cc-1", "transcript_path": str(tp)}, CapClient(), tmp_path / "state", agent_id="j")
     assert "hhk_abcd" not in captured[0]
+
+
+def test_session_id_persisted_immediately_survives_interruption(tmp_path):
+    """Abbruch direkt nach ensure_session: die hh_session_id muss schon im State
+    stehen, sonst legt der nächste Lauf eine zweite HH-Session an (Konvergenz-Bug)."""
+    tp = tmp_path / "t.jsonl"
+    state_dir = tmp_path / "state"
+    _write_ids(tp, ["u0", "u1", "u2"])
+    payload = {"session_id": "cc-1", "transcript_path": str(tp)}
+
+    class FailOnLog(FakeClient):
+        def log(self, *a):
+            raise RuntimeError("simulierter Abbruch nach ensure_session")
+
+    try:
+        run_sync(payload, FailOnLog(), state_dir, agent_id="j")
+    except RuntimeError:
+        pass
+
+    st = load_state(state_dir, "cc-1")
+    assert st["hh_session_id"] == "hh-session-1"  # Session sofort persistiert
+
+    # Resume: keine zweite Session, sendet die noch ungesendeten Einträge
+    client2 = FakeClient()
+    res = run_sync(payload, client2, state_dir, agent_id="j")
+    assert client2.created == []  # Session wiederverwendet, kein Duplikat
+    assert res["ok"] is True
+    assert [l[1] for l in client2.logged] == ["u0", "u1", "u2"]

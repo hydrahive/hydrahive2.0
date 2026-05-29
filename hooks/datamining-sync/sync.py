@@ -40,6 +40,9 @@ def _session_lock(state_dir: Path, cc_session_id: str):
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
+SAVE_EVERY = 100  # State-Checkpoint alle N gesendeten Einträge (Konvergenz großer Backfills)
+
+
 def run_sync(payload: dict, client, state_dir: Path, agent_id: str) -> dict:
     cc_session_id = payload.get("session_id")
     transcript_path = payload.get("transcript_path")
@@ -54,16 +57,23 @@ def run_sync(payload: dict, client, state_dir: Path, agent_id: str) -> dict:
         st = load_state(state_dir, cc_session_id)
 
         hh_session_id = st["hh_session_id"]
+        synced_ids = list(st["synced_ids"])
         if not hh_session_id:
             hh_session_id = client.ensure_session(
                 agent_id=agent_id, title=f"claude-code {cc_session_id}")
+            # Session-ID SOFORT persistieren — sonst legt ein unterbrochener
+            # Backfill beim nächsten Lauf eine zweite HH-Session an.
+            save_state(state_dir, cc_session_id, hh_session_id, synced_ids)
 
-        synced_ids = list(st["synced_ids"])
         seen = set(synced_ids)
         new = [e for e in entries if e["message_id"] not in seen]
-        for e in new:
+        for i, e in enumerate(new, 1):
             client.log(hh_session_id, e["message_id"], e["role"], e["content"], e["created_at"])
             synced_ids.append(e["message_id"])
+            if i % SAVE_EVERY == 0:
+                # Zwischen-Checkpoint: ein Abbruch verliert höchstens SAVE_EVERY
+                # Einträge, die beim nächsten Lauf idempotent re-gesendet werden.
+                save_state(state_dir, cc_session_id, hh_session_id, synced_ids)
 
         save_state(state_dir, cc_session_id, hh_session_id, synced_ids)
         return {"ok": True, "synced": len(new), "total": len(entries)}
