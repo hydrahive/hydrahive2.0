@@ -116,9 +116,20 @@ def _apply_auth(cred, headers: dict, params: dict) -> str:
     return ""
 
 
+def _select_cred(user_id: str, url: str, auth_name: str | None):
+    """Wählt das Auth-Credential. per-User-Credential hat Vorrang; nur wenn keins
+    matcht UND kein Profil erzwungen wurde, greift die system-weite Forschungs-API-
+    Registry."""
+    from hydrahive.credentials import match_credential
+    cred = match_credential(user_id, url, prefer_name=auth_name)
+    if not cred and not auth_name:
+        from hydrahive.research import match_research_api
+        cred = match_research_api(url)
+    return cred
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     import httpx
-    from hydrahive.credentials import match_credential
 
     url = (args.get("url") or "").strip()
     if not url:
@@ -149,7 +160,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     params: dict[str, str] = {}
     auth_used: str | None = None
 
-    cred = match_credential(ctx.user_id, url, prefer_name=auth_name)
+    cred = _select_cred(ctx.user_id, url, auth_name)
     if cred:
         auth_used = _apply_auth(cred, headers, params)
 
