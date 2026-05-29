@@ -82,3 +82,33 @@ def test_match_none_for_keyless_or_disabled(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
     assert st.match_research_api("https://api.openalex.org/works") is None   # keyless
     assert st.match_research_api("https://api.core.ac.uk/v3/x") is None       # disabled, kein Key
+
+
+# --- Admin-Route (Handler direkt; require_admin selbst in test_auth.py) -------
+
+def test_route_list_masks_and_update(tmp_path, monkeypatch):
+    import asyncio
+
+    import pytest
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "research_apis_config", tmp_path / "r.json", raising=False)
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
+    from hydrahive.api.routes import research_apis as rt
+
+    admin = ("test", "admin")
+    out = asyncio.run(rt.list_apis(_=admin))
+    assert "pubmed" in {a["id"] for a in out["apis"]}
+    assert all("key" not in a for a in out["apis"])             # Klartext-Key maskiert
+
+    res = asyncio.run(rt.update_api("core", rt.ApiUpdate(key="Z", enabled=True), _=admin))
+    assert res["has_key"] is True and res["enabled"] is True
+
+    with pytest.raises(Exception):                              # 404
+        asyncio.run(rt.update_api("nope", rt.ApiUpdate(enabled=True), _=admin))
+
+
+def test_route_registered():
+    from hydrahive.api.routes.research_apis import router
+    paths = {r.path for r in router.routes}
+    assert "/api/research-apis" in paths
+    assert "/api/research-apis/{rid}" in paths
