@@ -69,3 +69,59 @@ def test_no_prefill_for_non_claude(monkeypatch):
 
     assert tags["gist"] == "y"
     assert all(m["role"] != "assistant" for m in seen["messages"])  # kein Prefill
+
+
+def test_retry_then_success(monkeypatch):
+    import asyncio
+
+    import hydrahive.cards.consolidate as c
+    calls = {"n": 0}
+
+    async def fake_detail(sid):
+        return {"session": {}, "events": [{"event_type": "user_input", "text": "hi"}]}
+
+    async def fake_counts(sid):
+        return {"tool_result": 0, "assistant_text": 1}
+
+    captured = {}
+
+    async def fake_upsert(card, embedding=None):
+        captured["card"] = card
+
+    async def fake_llm(**kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return ([{"type": "text", "text": "Alles klar!"}], "", {})  # Mode-1-Prosa
+        return ([{"type": "text", "text": '{"gist":"ok","valence":"good","salience":"low","topics":[]}'}], "", {})
+
+    monkeypatch.setattr(c, "get_session_detail", fake_detail)
+    monkeypatch.setattr(c, "event_type_counts", fake_counts)
+    monkeypatch.setattr(c, "upsert_card", fake_upsert)
+    monkeypatch.setattr("hydrahive.runner.llm_bridge.call_with_tools", fake_llm)
+    monkeypatch.setattr("hydrahive.llm._config.load_config", lambda: {"embed_model": ""})
+
+    card = asyncio.run(c.consolidate_session("s1", "x-model"))
+    assert calls["n"] == 2 and card is not None and card.gist == "ok"
+
+
+def test_persistent_empty_returns_none_and_no_upsert(monkeypatch):
+    import asyncio
+
+    import hydrahive.cards.consolidate as c
+    upserts = {"n": 0}
+
+    async def fake_detail(sid):
+        return {"session": {}, "events": [{"event_type": "user_input", "text": "hi"}]}
+
+    async def fake_upsert(card, embedding=None):
+        upserts["n"] += 1
+
+    async def fake_llm(**kw):
+        return ([{"type": "text", "text": "Alles klar, ich antworte nur Prosa."}], "", {})
+
+    monkeypatch.setattr(c, "get_session_detail", fake_detail)
+    monkeypatch.setattr(c, "upsert_card", fake_upsert)
+    monkeypatch.setattr("hydrahive.runner.llm_bridge.call_with_tools", fake_llm)
+
+    card = asyncio.run(c.consolidate_session("s1", "x-model"))
+    assert card is None and upserts["n"] == 0  # nichts Leeres gespeichert
