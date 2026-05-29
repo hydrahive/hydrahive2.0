@@ -22,13 +22,17 @@ curl -sk -X POST "$HH/api/users" -H "Authorization: Bearer $ADMIN_JWT" \
   -H "Content-Type: application/json" \
   -d '{"username":"joshua","password":"<pw>","role":"user"}'
 
-# 2. Agent "joshua" (admin-only)
-curl -sk -X POST "$HH/api/agents" -H "Authorization: Bearer $ADMIN_JWT" \
+# 2. Agent anlegen (admin-only). KEIN frei wählbares agent_id — der Server
+#    vergibt eine uuid4. Die zurückgegebene "id" ist der agent_id, der in
+#    HH_AGENT_ID des Hooks gehört. Pflichtfelder: type, name, llm_model.
+AGENT_ID=$(curl -sk -X POST "$HH/api/agents" -H "Authorization: Bearer $ADMIN_JWT" \
   -H "Content-Type: application/json" \
-  -d '{"agent_id":"joshua","name":"Joshua (Claude Code)","type":"master","llm_model":"claude-opus-4-8","tools":[]}'
+  -d '{"type":"master","name":"Joshua (Claude Code)","llm_model":"claude-opus-4-8","owner":"joshua"}' \
+  | jq -r .id)
+echo "HH_AGENT_ID=$AGENT_ID"   # diese UUID in die Hook-Env eintragen
 ```
 
-> Der genaue Body von `POST /api/agents` ist beim Bau gegen `routes/agents.py` (`AgentCreate`-Model) zu prüfen — Felder können abweichen. Dieser Schritt ist **Voraussetzung**, kein Teil der getesteten Tasks.
+> Verifiziert gegen `routes/agents.py` + `agents/config.py`: `create_agent` ist admin-only, akzeptiert **kein** `agent_id` (Server vergibt `uuid4`), Pflichtfelder sind `type`/`name`/`llm_model`. In `agent_name(agent_id)` wird die UUID später auf den `name` aufgelöst → im Datamining erscheint „Joshua (Claude Code)". Dieser Schritt ist **Voraussetzung**, kein Teil der getesteten Tasks.
 
 ---
 
@@ -825,8 +829,9 @@ git commit -m "feat(hook): Orchestrator + Entry-Point + README für Datamining-S
 1. User+Agent „joshua" auf dem Testserver anlegen (Prerequisites).
 2. Hook in `~/.claude/settings.json` einer Test-Instanz verdrahten, `HH_*`-Env setzen.
 3. In der Instanz eine kurze Unterhaltung führen (inkl. einem Tool-Call).
-4. Im Datamining-Frontend prüfen: Session unter Agent `joshua` sichtbar, Events
-   `user_input` / `assistant_text` / `tool_call` / `tool_result` vorhanden.
+4. Im Datamining-Frontend prüfen: Session unter Agent „Joshua (Claude Code)"
+   (agent_name) sichtbar, Events `user_input` / `assistant_text` / `tool_call`
+   / `tool_result` vorhanden.
 5. Hook erneut feuern (zweite Runde) → keine Duplikate, nur neue Events.
 
 ---
