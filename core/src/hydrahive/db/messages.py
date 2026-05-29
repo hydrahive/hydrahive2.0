@@ -16,34 +16,39 @@ def append(
     content: Any,
     token_count: int | None = None,
     metadata: dict | None = None,
+    message_id: str | None = None,
+    created_at: str | None = None,
 ) -> Message:
     m = Message(
-        id=uuid7(),
+        id=message_id or uuid7(),
         session_id=session_id,
         role=role,
         content=content,
-        created_at=now_iso(),
+        created_at=created_at or now_iso(),
         token_count=token_count,
         metadata=metadata or {},
     )
     content_str = content if isinstance(content, str) else json.dumps(content)
     with db() as conn:
-        conn.execute(
-            """INSERT INTO messages
+        cur = conn.execute(
+            """INSERT OR IGNORE INTO messages
                (id, session_id, role, content, created_at, token_count, metadata)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (m.id, m.session_id, m.role, content_str, m.created_at,
              m.token_count,
              json.dumps(m.metadata) if m.metadata else None),
         )
-        conn.execute(
-            "UPDATE sessions SET updated_at = ? WHERE id = ?",
-            (m.created_at, session_id),
-        )
-    from hydrahive.db import sessions as sessions_db
-    s = sessions_db.get(session_id)
-    if s:
-        mirror.schedule_message(m, s)
+        inserted = cur.rowcount > 0
+        if inserted:
+            conn.execute(
+                "UPDATE sessions SET updated_at = ? WHERE id = ?",
+                (m.created_at, session_id),
+            )
+    if inserted:
+        from hydrahive.db import sessions as sessions_db
+        s = sessions_db.get(session_id)
+        if s:
+            mirror.schedule_message(m, s)
     return m
 
 
