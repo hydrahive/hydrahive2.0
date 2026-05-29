@@ -181,10 +181,11 @@ async def wipe_cards(pool) -> int: ...                     # für wipe-and-rebui
 
 **Vertrag:**
 ```python
-async def consolidate_session(pool, session_id: str, model: str | None) -> Card: ...
-async def consolidate_recent(pool, lookback_hours: int, model: str) -> int: ...   # Batch über Sessions, return Anzahl Karten
+async def consolidate_session(session_id: str, model: str | None) -> Card | None: ...  # _pool() intern (Modul-Konvention)
+async def consolidate_recent(lookback_hours: int, model: str) -> int: ...               # Batch über MIRROR-Sessions, return Anzahl Karten
 ```
-**Build-on:** `tools/_crystallize.py:crystallize_session` (Crystal = `gist`-Basis, nicht neu zusammenfassen); `db/_mirror_cards.event_type_counts` + `_mirror_cards_model.derive_groundedness` (Task 1/2) für `groundedness`; valence/salience/topics vom selben Crystallize-LLM (billiges Modell); Embedding über die vorhandene Mirror-Embedding-Pipeline.
+**Quelle = MIRROR (KORREKTUR — joshuas Task-4-Befund, verifiziert):** `consolidate_session` liest die Session-Events aus dem **Mirror** (`db/_mirror_sessions.get_session_detail`) und füttert sie in einen Verdichtungs-LLM-Call, der die **crystallize-Maschinerie wiederverwendet** (`runner.llm_bridge.call_with_tools` + Card-Prompt + `_crystallize_prompts`-Parse) — **NICHT** `crystallize_session` selbst. Grund: `crystallize_session` liest agent-lokale CompressedObservations (`settings.agents_dir/<id>/compressed/<sid>.jsonl`, `_compress_storage.py:16`) und gibt `None` zurück, wenn keine da sind → für die meisten Mirror-Sessions (joshua22/schmied/Importe) gäbe es keine Card. A ist SPEC-konsistent (Voraussetzungen: „Mirror = Quelle der Konsolidierung").
+**Build-on (Tags):** `db/_mirror_sessions.event_type_counts` + `_mirror_cards_model.derive_groundedness` (Task 1/2) für `groundedness`; valence/salience/topics vom selben billigen LLM; Embedding über die Mirror-Embedding-Pipeline. **Große Sessions** (7–8k Events) → Events chunken (joshuas geflaggte Sorge, hier scharf).
 **Akzeptanz:** Fixe Event-Fixtures → erwartete Tags (valence∈VALENCE, salience∈SALIENCE, groundedness aus Counts). Idempotenz: `consolidate_session` zweimal → eine Karte (via `upsert_card`). Billiges Modell, **kein** Widerspruchs-Reasoning (v2).
 
 ---
