@@ -27,12 +27,18 @@ Thinking) live ins HydraHive-Datamining — via `POST /api/sessions/{id}/log`.
 | `HH_BASE_URL` | ja | `https://<hydrahive-host>` |
 | `HH_API_KEY` | wenn kein User/Pass | `hhk_...` |
 | `HH_USER` / `HH_PASS` | wenn kein Key | `joshua` / `...` |
-| `HH_AGENT_ID` | nein (default `claude-code`) | `joshua` |
+| `HH_AGENT_ID` | **ja** | die Agent-**UUID** aus der `POST /api/agents`-Antwort |
 | `HH_VERIFY_SSL` | nein (default `1` = an) | `0` nur für self-signed LAN |
 | `HH_SYNC_STATE_DIR` | nein | `~/.claude/datamining-sync` |
 
 Da Hook-Commands die Umgebung des Claude-Code-Prozesses erben, die `HH_*`-Vars
 beim Start setzen (Shell-Profil / Wrapper-Skript), das `sync.py` aufruft.
+
+`HH_AGENT_ID` ist **kein frei wählbares Label**: HydraHive vergibt beim Anlegen
+eines Agenten eine `uuid4`. `create_session` verlangt einen existierenden Agenten
+— gib also die zurückgegebene UUID an, sonst antwortet die Session-Anlage mit 404
+und der Hook überspringt still (fail-safe). Im Datamining wird die UUID auf den
+Agent-`name` aufgelöst. (Die geplante „Externe Server"-GUI gibt diesen Block fertig aus.)
 
 ## Eigenschaften
 - **Idempotent:** stabile Transkript-UUID + `INSERT OR IGNORE` → keine Duplikate.
