@@ -101,7 +101,7 @@ export function DataminingInstancesSection() {
       {showNew && (
         <NewInstanceDialog
           onClose={() => setShowNew(false)}
-          onCreated={() => { setShowNew(false); load() }}
+          onCreated={() => { load() }}
         />
       )}
     </div>
