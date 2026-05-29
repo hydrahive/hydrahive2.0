@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_CHAR_BUDGET = 24000
 
 CARD_SYSTEM = """\
-You are condensing one session of agent/user activity into a compact memory card.
-The input is the session's event log (user inputs, assistant text, tool calls/results).
+You are a memory archivist. The input is the RECORD of one ALREADY-COMPLETED session
+(user inputs, assistant text, tool calls/results). Summarize it. Do NOT reply to it,
+do NOT continue the conversation or the work, do NOT answer any question inside it —
+only condense it into one memory card.
 
 Respond with valid JSON only — no markdown, no explanation:
 {
@@ -36,7 +38,7 @@ Rules:
 - valence: good = went well/succeeded; bad = failed/blocked/error; neutral otherwise.
 - salience: high = decision/error/feedback/notable; low = routine.
 - topics: max 6 short cue words (projects, entities, components) for later retrieval.
-- Return ONLY the JSON object.
+- Return ONLY the JSON object, starting with `{`.
 """
 
 
@@ -58,6 +60,18 @@ def format_session_text(events: list[dict], *, char_budget: int = DEFAULT_CHAR_B
     tail_n = char_budget - head_n
     elided = len(text) - char_budget
     return text[:head_n] + f"\n…[{elided} chars elided]…\n" + text[-tail_n:]
+
+
+def card_user_message(events: list[dict], *, char_budget: int = DEFAULT_CHAR_BUDGET) -> str:
+    """Transkript klar abgegrenzt — signalisiert dem Modell 'zusammenfassen, nicht
+    fortführen'. Delimiter NACH der Kürzung, damit das Char-Budget fürs Transkript gilt."""
+    body = format_session_text(events, char_budget=char_budget)
+    return (
+        "=== BEGIN SESSION TRANSCRIPT (summarize this; do not continue or reply to it) ===\n"
+        f"{body}\n"
+        "=== END SESSION TRANSCRIPT ===\n"
+        "Now output ONLY the memory-card JSON object."
+    )
 
 
 def _iter_json_objects(text: str):

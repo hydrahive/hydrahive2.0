@@ -23,3 +23,10 @@ def test_extraction_skips_echoed_object_and_finds_card():
     assert out["gist"].startswith("Analyzed ATLAS_OS")
     assert out["valence"] == "good" and out["salience"] == "high"
     assert "ATLAS_OS" in out["topics"]
+
+
+def test_card_user_message_frames_transcript():
+    from hydrahive.cards._consolidate_prompts import card_user_message
+    msg = card_user_message([{"event_type": "user_input", "text": "hi"}])
+    assert "BEGIN SESSION TRANSCRIPT" in msg and "END SESSION TRANSCRIPT" in msg
+    assert "[user_input] hi" in msg
