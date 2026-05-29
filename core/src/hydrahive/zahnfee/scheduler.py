@@ -32,6 +32,15 @@ async def run_loop(stop: asyncio.Event) -> None:
                         logger.info("zahnfee: tageszeit erreicht, starte runner")
                         last_run_date = today
                         asyncio.create_task(runner.run(), name="zahnfee-runner")
+                        # Proaktiver Recall (L2): Cards aus den Sessions des Tages
+                        # konsolidieren — Schlaf-Batch, reuse des Zahnfee-Tages-Ticks.
+                        # Nur mit konfiguriertem Modell (sonst kein LLM-Verdichten).
+                        if cfg.model:
+                            from hydrahive.cards.consolidate import consolidate_recent
+                            asyncio.create_task(
+                                consolidate_recent(cfg.lookback_hours, cfg.model),
+                                name="cards-consolidate",
+                            )
         except Exception as e:
             logger.warning("zahnfee scheduler fehler: %s", e)
 

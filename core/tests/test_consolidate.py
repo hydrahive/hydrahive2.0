@@ -115,3 +115,18 @@ def test_consolidate_session_missing_returns_none(monkeypatch):
 
     monkeypatch.setattr(c, "get_session_detail", fake_detail)
     assert asyncio.run(c.consolidate_session("nope", "m")) is None
+
+
+def test_scheduler_module_imports():
+    # faengt Syntaxfehler im Scheduler-Takt (consolidate_recent-Einhaengung)
+    import hydrahive.zahnfee.scheduler  # noqa: F401
+
+
+def test_consolidate_recent_contract_for_scheduler():
+    # der zahnfee-Scheduler ruft consolidate_recent(lookback_hours, model) beim Tages-Tick
+    import inspect
+
+    from hydrahive.cards.consolidate import consolidate_recent
+    assert inspect.iscoroutinefunction(consolidate_recent)
+    p = inspect.signature(consolidate_recent).parameters
+    assert "lookback_hours" in p and "model" in p
