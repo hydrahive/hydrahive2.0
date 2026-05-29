@@ -732,6 +732,46 @@ Frontend `frontend/src/features/zahnfee/`.
 
 ---
 
+## Proaktiver Recall — Gist-Cards & Gedächtnis-Abruf (Core-Komponente)
+
+Macht aus dem passiven Datamining-Archiv ein abrufbares Gedächtnis: ein
+Offline-Batch verdichtet Sessions zu getaggten Gist-Cards, die beim Recall
+billig in den Agenten-Kontext kommen — geprüfte Essenz statt Roh-Protokoll.
+Modell: capture → konsolidieren → mit Verifikation abrufen. Karten sind eine
+abgeleitete, recompute-safe Schicht über dem immutablen Datamining, getrennt
+vom handkuratierten Memory.
+
+### Funktionsumfang (v1)
+- Konsolidierung (Schlaf-Batch): automatisierter Offline-Lauf (nutzt die
+  Zahnfee-/Crystallize-Maschinerie) schreibt pro Session eine Gist-Card mit
+  gist, valence (good/bad/neutral), salience (high/low), groundedness
+  (observed/claimed/mixed, in v1 aus dem Event-Typ-Mix abgeleitet), topics,
+  source (session_id) und Embedding. Billiges Modell.
+- Derived Card-Store: eigener, recompute-safe Store (wipe-and-rebuild aus
+  Roh-Events), getrennt vom kuratierten Memory; nutzt Memory-v2-Primitive
+  (confidence/superseded) und die Embedding-Pipeline wieder.
+- Recall: A — Top-N Karten (recency × salience) beim Session-Start in den
+  gecachten System-Prompt. C — cue-getriggert verwandte Karten per pgvector.
+  Karten tragen source → Agent gräbt bei Bedarf via datamining_search.
+
+### Nicht-Ziele (v1 — bewusst später, eigene Entscheidung = Ausbaustufe „v2")
+- Kein Contradiction-Reasoning / Umklassifizieren
+- Kein Verify-before-trust-Gate beim Recall
+- Keine Modell-Eskalation
+- Keine blinde Suche pro Turn (nur A-Grundstock + C-Cue)
+
+### Voraussetzungen
+- Datamining-Mirror aktiv (Quelle der Konsolidierung)
+- Embedding/pgvector aktiv (für C-Recall)
+
+### Architektur
+Konsolidierung baut auf `tools/_crystallize.py` (Session→Digest+Lessons, LLM)
+und der Zahnfee-Batch-/Scheduler-Maschinerie auf; eigener abgeleiteter
+Card-Store; Recall über `runner/system_prompt.py` (Prompt-Weaving) + pgvector.
+Card-Schema ist der Vertrag (`docs/superpowers/specs/2026-05-29-proactive-recall-design.md`).
+
+---
+
 ## Voice — STT/TTS für Sprache-Eingang/Ausgang (Core-Komponente)
 
 Wyoming-Whisper als lokaler STT-Server (Container, Port 10300) plus
