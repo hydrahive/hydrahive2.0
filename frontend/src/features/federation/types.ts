@@ -77,3 +77,18 @@ export interface Workstation {
   card: A2ACard | null
   created_at: string
 }
+
+export interface ExternalInstance {
+  agent_id: string
+  name: string
+  username: string
+  key_count: number
+  session_count: number
+  last_activity: string | null
+}
+
+export interface CreateInstanceResult {
+  username: string
+  agent_id: string
+  api_key: string
+}

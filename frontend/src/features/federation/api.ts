@@ -1,5 +1,8 @@
 import { api } from "@/shared/api-client"
-import type { A2ACard, ClientConnection, CreateClientResult, Workstation } from "./types"
+import type {
+  A2ACard, ClientConnection, CreateClientResult, Workstation,
+  ExternalInstance, CreateInstanceResult,
+} from "./types"
 
 // All optional fields a workstation can have. Keeping it as a type
 // alias means create() and update() share the exact same shape.
@@ -56,4 +59,18 @@ export const clientsApi = {
 
   delete: (keyId: string): Promise<void> =>
     api.delete(`/federation/clients/${keyId}`),
+}
+
+export const externalInstancesApi = {
+  list: (): Promise<ExternalInstance[]> =>
+    api.get("/external-instances"),
+
+  create: (name: string, llm_model: string): Promise<CreateInstanceResult> =>
+    api.post("/external-instances", { name, llm_model }),
+
+  delete: (agentId: string): Promise<void> =>
+    api.delete(`/external-instances/${agentId}`),
+
+  rotateKey: (agentId: string): Promise<{ api_key: string }> =>
+    api.post(`/external-instances/${agentId}/rotate-key`, {}),
 }
