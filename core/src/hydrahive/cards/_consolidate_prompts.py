@@ -60,50 +60,68 @@ def format_session_text(events: list[dict], *, char_budget: int = DEFAULT_CHAR_B
     return text[:head_n] + f"\n…[{elided} chars elided]…\n" + text[-tail_n:]
 
 
-def _extract_json_object(text: str) -> str | None:
-    """Erstes balanciertes {...}-Objekt aus einem Text ziehen — toleriert Prosa/
-    Markdown/Trailing um das JSON herum (NIM-Modelle liefern nicht immer reines
-    JSON). Klammern in Strings werden ignoriert."""
-    start = text.find("{")
-    if start < 0:
-        return None
-    depth = 0
-    in_str = False
-    esc = False
-    for i in range(start, len(text)):
-        c = text[i]
-        if in_str:
-            if esc:
-                esc = False
-            elif c == "\\":
-                esc = True
+def _iter_json_objects(text: str):
+    """Yield jedes balancierte top-level {...} aus einem Text (String-/Escape-aware).
+
+    Modelle stellen der Card gelegentlich echoed Session-Content voran, der selbst
+    {...} enthält (Hook-Summaries, Code, JSON). Wir brauchen daher ALLE Kandidaten,
+    nicht nur den ersten — die Auswahl trifft parse_card_response per gist-Key.
+    Klammern in Strings werden ignoriert.
+    """
+    i, n = 0, len(text)
+    while i < n:
+        if text[i] != "{":
+            i += 1
+            continue
+        depth = 0
+        in_str = False
+        esc = False
+        for j in range(i, n):
+            c = text[j]
+            if in_str:
+                if esc:
+                    esc = False
+                elif c == "\\":
+                    esc = True
+                elif c == '"':
+                    in_str = False
             elif c == '"':
-                in_str = False
-        elif c == '"':
-            in_str = True
-        elif c == "{":
-            depth += 1
-        elif c == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start:i + 1]
-    return None
+                in_str = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    yield text[i:j + 1]
+                    i = j + 1
+                    break
+        else:
+            return  # unbalancierter Rest → Schluss
 
 
 def parse_card_response(text: str) -> dict:
     """Robustes JSON-Parsing der LLM-Antwort → validierte Tags. Fallback bei Murks.
-    Zieht das erste balancierte JSON-Objekt (toleriert Prosa/Markdown drumherum)."""
-    raw = _extract_json_object((text or "").strip())
-    try:
-        p = json.loads(raw) if raw else None
-        if not isinstance(p, dict):
-            raise ValueError("kein JSON-Objekt")
-    except (json.JSONDecodeError, TypeError, ValueError):
-        logger.warning("parse_card_response: kein gültiges JSON-Objekt — leere Tags (Fallback)")
+
+    Wählt das JSON-Objekt MIT "gist"-Key (nicht das erste beliebige {…}) — so wird
+    vorangestellter echoed Content (z.B. ein Hook-Summary-Objekt) übersprungen.
+    """
+    best = None
+    for raw in _iter_json_objects((text or "").strip()):
+        try:
+            p = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(p, dict) and "gist" in p:
+            best = p
+            break
+        if best is None and isinstance(p, dict):
+            best = p  # Fallback: erstes gültige Objekt, falls keines gist hat
+    if not isinstance(best, dict) or "gist" not in best:
+        logger.warning("parse_card_response: kein Card-JSON (gist-Key) gefunden — leere Tags (Fallback)")
         return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
     return {
-        "gist": str(p.get("gist", ""))[:300],
-        "valence": p.get("valence") if p.get("valence") in VALENCE else "neutral",
-        "salience": p.get("salience") if p.get("salience") in SALIENCE else "low",
-        "topics": [str(t)[:60] for t in (p.get("topics") or [])][:6],
+        "gist": str(best.get("gist", ""))[:300],
+        "valence": best.get("valence") if best.get("valence") in VALENCE else "neutral",
+        "salience": best.get("salience") if best.get("salience") in SALIENCE else "low",
+        "topics": [str(t)[:60] for t in (best.get("topics") or [])][:6],
     }

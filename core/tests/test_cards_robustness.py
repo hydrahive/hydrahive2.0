@@ -1,0 +1,25 @@
+"""Robustheit der Card-Konsolidierung gegen LLM-Output-Varianz.
+
+Fixtures sind echte Haiku-Rohantworten (raw.log 2026-05-29), die in der ersten
+Implementation lautlos leere Cards erzeugten:
+- Mode 2: echoed Hook-JSON VOR der echten Card → Extraktion griff das falsche {…}.
+"""
+from __future__ import annotations
+
+from hydrahive.cards._consolidate_prompts import parse_card_response
+
+# Mode 2 (raw.log, Session 2ecf6ba0): echoed [system_stop_hook_summary] {…} VOR
+# der korrekten Card. Die echte Card hat den "gist"-Key.
+MODE2 = (
+    'Läuft jetzt?\n[system_stop_hook_summary] {"parentUuid": "a8c8", '
+    '"hookInfos": [{"command": "x"}], "lastPrompt": "nein"}\n```\n\n```json\n'
+    '{"gist": "Analyzed ATLAS_OS & UI-TARS; debugged bubbletea TUI raw-mode.", '
+    '"valence": "good", "salience": "high", "topics": ["ATLAS_OS", "UI-TARS"]}\n```'
+)
+
+
+def test_extraction_skips_echoed_object_and_finds_card():
+    out = parse_card_response(MODE2)
+    assert out["gist"].startswith("Analyzed ATLAS_OS")
+    assert out["valence"] == "good" and out["salience"] == "high"
+    assert "ATLAS_OS" in out["topics"]
