@@ -59,6 +59,26 @@ async def list_sessions(
         return []
 
 
+async def event_type_counts(session_id: str) -> dict[str, int]:
+    """{event_type: count} für eine Session — Input für derive_groundedness
+    (Groundedness-Heuristik des proaktiven Recall: tool_result=belegt vs
+    assistant_text=Behauptung). Siehe db/_mirror_cards_model.derive_groundedness."""
+    pool = _pool()
+    if not pool:
+        return {}
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT event_type, COUNT(*)::int AS n FROM events "
+                "WHERE session_id = $1 GROUP BY event_type",
+                session_id,
+            )
+        return {r["event_type"]: r["n"] for r in rows}
+    except Exception as e:
+        logger.warning("event_type_counts fehlgeschlagen: %s", e)
+        return {}
+
+
 async def get_session_detail(session_id: str) -> dict[str, Any] | None:
     pool = _pool()
     if not pool:
