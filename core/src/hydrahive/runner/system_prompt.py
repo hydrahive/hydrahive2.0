@@ -26,6 +26,7 @@ def compose(
     tool_schemas: list[dict],
     allowed_tools: list[str],
     recall_cards: list[dict] | None = None,
+    recall_search: list[dict] | None = None,
 ) -> tuple[str, str, str | None]:
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
@@ -40,6 +41,8 @@ def compose(
     if recall_cards:
         stable += render_cards_block(recall_cards)
     volatile = _volatile_section()
+    if recall_search:
+        volatile += render_search_block(recall_search)
     summary_block = f"[Bisherige Zusammenfassung]\n{summary}" if summary else None
     return stable, volatile, summary_block
 
@@ -134,4 +137,26 @@ def render_cards_block(cards: list[dict]) -> str:
         "\n\n## Erinnerungen (automatisch verdichtet — keine kuratierten Notizen)\n"
         "Essenz früherer Sessions. Bei konkretem Bedarf via `datamining_*` tiefer graben.\n"
         + "\n".join(lines)
+    )
+
+
+def render_search_block(cards: list[dict]) -> str:
+    """Recall C: cue-getriggerte Treffer (zur aktuellen Eingabe), für den per-Turn/
+    volatile Block. Trägt die session-id mit → Agent kann via `datamining_*` graben.
+    Leerer String wenn keine brauchbaren Treffer."""
+    lines = []
+    for c in cards:
+        gist = (c.get("gist") or "").strip()
+        if not gist:
+            continue
+        src = c.get("source") if isinstance(c.get("source"), dict) else {}
+        sid = (src or {}).get("session_id")
+        ref = f"  [session {str(sid)[:8]}…]" if sid else ""
+        lines.append(f"- {gist}{ref}")
+    if not lines:
+        return ""
+    return (
+        "\n\nRelevante frühere Erinnerungen zu deiner aktuellen Eingabe (abgeleitet):\n"
+        + "\n".join(lines)
+        + "\nBei Bedarf via `datamining_*` mit der session-id tiefer graben."
     )

@@ -41,3 +41,28 @@ def test_compose_without_recall_cards_has_no_block():
         longterm_memory=False, tool_schemas=[], allowed_tools=[], recall_cards=None,
     )
     assert "Erinnerungen (automatisch" not in stable
+
+
+def test_render_search_block():
+    from hydrahive.runner.system_prompt import render_search_block
+    out = render_search_block([{"gist": "Thema Y besprochen", "source": {"session_id": "019eabcd1234"}}])
+    assert "Thema Y besprochen" in out and "019eabcd" in out
+    assert render_search_block([]) == ""
+    assert render_search_block([{"gist": ""}]) == ""
+
+
+def test_compose_recall_search_in_volatile_not_stable():
+    stable, volatile, _ = compose(
+        "BASE", extra_system=None, workspace=Path("/tmp"), summary=None, skills=None,
+        longterm_memory=False, tool_schemas=[], allowed_tools=[],
+        recall_search=[{"gist": "cue treffer Z", "source": {"session_id": "s1abc"}}],
+    )
+    assert "cue treffer Z" in volatile      # per-Turn → volatile
+    assert "cue treffer Z" not in stable     # NICHT im gecachten stable
+
+
+def test_user_text_extraction():
+    from hydrahive.runner.runner import _user_text
+    assert _user_text("hallo welt") == "hallo welt"
+    assert _user_text([{"type": "text", "text": "block a"}, {"type": "image"}, "raw"]) == "block a raw"
+    assert _user_text(None) == ""

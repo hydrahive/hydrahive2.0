@@ -45,6 +45,21 @@ MAX_ITERATIONS = DEFAULT_MAX_ITERATIONS
 LOOP_DETECTION_WINDOW = 3
 
 
+def _user_text(ui: "str | list") -> str:
+    """Text aus user_input ziehen (str oder Content-Block-Liste) — für Recall-C-Cue."""
+    if isinstance(ui, str):
+        return ui
+    if isinstance(ui, list):
+        out = []
+        for b in ui:
+            if isinstance(b, str):
+                out.append(b)
+            elif isinstance(b, dict) and b.get("type") == "text":
+                out.append(b.get("text", ""))
+        return " ".join(out)
+    return ""
+
+
 async def run(
     session_id: str,
     user_input: str | list,
@@ -105,12 +120,18 @@ async def run(
     # → in den gecachten Stable-Prompt gewebt. Ändert sich nur bei nächtlicher
     # Konsolidierung, also cache-stabil innerhalb der Session. Best-effort.
     recall_cards: list = []
+    recall_search: list = []
     if agent.get("longterm_memory"):
         try:
-            from hydrahive.db._mirror_cards import top_cards_for
+            from hydrahive.db._mirror_cards import search_cards, top_cards_for
             recall_cards = await top_cards_for(agent["id"], limit=8)
+            # Recall C: nur bei substanzieller Eingabe (≥3 Wörter) cue-getriggert
+            # suchen — kein Token-Brand bei „test"/Einzelwörtern.
+            _ut = _user_text(user_input).strip()
+            if len(_ut.split()) >= 3:
+                recall_search = await search_cards(_ut, limit=3)
         except Exception:
-            recall_cards = []
+            pass
 
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
@@ -137,6 +158,7 @@ async def run(
             tool_schemas=tool_schemas,
             allowed_tools=allowed_tools,
             recall_cards=recall_cards,
+            recall_search=recall_search,
         )
 
         # Pro-Session-Override (Chat-Header-Switcher) gewinnt vor Agent-Default.
