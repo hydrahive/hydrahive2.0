@@ -380,7 +380,8 @@ eigene Tabelle, der Agent-Marker ist die Einheit.
 Federation-Seite (`features/federation/`, admin-only) — neben „Workstations" und
 „Clients", kein eigener Menüpunkt. Liste + Wizard; der Wizard zeigt API-Key +
 Hook-Config (`HH_BASE_URL`/`HH_API_KEY`/`HH_AGENT_ID`=uuid + `settings.json`-Snippet)
-**einmalig** nach dem Anlegen.
+**einmalig** nach dem Anlegen. Die Liste zeigt je Instanz die Agent-ID
+(= `HH_AGENT_ID`) zum Nachschlagen/Kopieren — der API-Key bleibt einmalig.
 
 **Abgrenzung zu `/federation/clients`:** Jenes erzeugt admin-eigene Keys
 (`role=projektx`, AgentLink/Tailscale-Config) für ProjektX-Clients. Dieser Pfad
