@@ -112,3 +112,17 @@ def test_route_registered():
     paths = {r.path for r in router.routes}
     assert "/api/research-apis" in paths
     assert "/api/research-apis/{rid}" in paths
+
+
+# --- medical-research-Skill ---------------------------------------------------
+
+def test_medical_research_skill_parses():
+    from pathlib import Path
+
+    from hydrahive.skills.models import parse
+    p = Path(__file__).resolve().parent.parent / "src/hydrahive/skills/system_defaults/medical-research.md"
+    assert p.exists()
+    skill = parse(p.read_text(encoding="utf-8"), scope="system", owner="system",
+                  fallback_name="medical-research")
+    assert skill.name == "medical-research" and skill.description
+    assert "fetch_url" in skill.description or "fetch_url" in p.read_text(encoding="utf-8")
