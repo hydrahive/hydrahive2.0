@@ -96,6 +96,10 @@ class _PathsMixin:
         return self.config_dir / "api_keys.json"
 
     @cached_property
+    def research_apis_config(self) -> Path:
+        return self.config_dir / "research_apis.json"
+
+    @cached_property
     def voice_conversations_path(self) -> Path:
         return self.data_dir / "voice_conversations.json"
 
