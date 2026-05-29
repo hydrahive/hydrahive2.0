@@ -52,13 +52,24 @@ def list_instances() -> list[dict]:
     return out
 
 
+def _owner_is_dedicated(owner: str) -> bool:
+    """Owner-User nur dann mitlöschen, wenn er eine dedizierte Instanz-Identität
+    ist: Rolle 'user' UND besitzt keine weiteren Agenten. Schützt admin und
+    geteilte User davor, beim Löschen einer Instanz mitgelöscht zu werden.
+    Nach agent_config.delete() aufrufen — dann zählt der gelöschte Agent nicht mehr."""
+    role = next((u["role"] for u in users.list_users() if u["username"] == owner), None)
+    if role != "user":
+        return False
+    return not agent_config.list_by_owner(owner)
+
+
 def delete_instance(agent_id: str) -> bool:
     a = agent_config.get(agent_id)
     if not a or not a.get("external"):
         return False
     owner = a.get("owner")
     agent_config.delete(agent_id)
-    if owner:
+    if owner and _owner_is_dedicated(owner):
         for k in api_keys.list_keys(username=owner):
             api_keys.delete(k["id"])
         users.delete(owner)

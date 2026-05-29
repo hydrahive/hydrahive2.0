@@ -57,3 +57,16 @@ def test_create_duplicate_name_raises():
     ei.create_instance("dup", MODEL)
     with pytest.raises(ValueError):
         ei.create_instance("dup", MODEL)
+
+
+def test_delete_instance_keeps_shared_owner():
+    # external-Agent, dessen Owner ein bestehender (geteilter) User ist — wie er
+    # via generische Agent-Route mit owner=admin entstünde. delete_instance darf
+    # diesen User NICHT mitlöschen.
+    agent = agent_config.create(
+        agent_type="master", name="adm-ext", llm_model=MODEL, owner="admin",
+        external=True, temperature=0.7, max_tokens=4096, thinking_budget=0,
+    )
+    assert ei.delete_instance(agent["id"]) is True
+    assert agent_config.get(agent["id"]) is None
+    assert any(u["username"] == "admin" for u in users.list_users())  # admin überlebt
