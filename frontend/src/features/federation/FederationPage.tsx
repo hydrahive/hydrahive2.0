@@ -5,6 +5,7 @@ import type { Workstation } from "./types"
 import { WorkstationCard } from "./_WorkstationCard"
 import { AddWorkstationDialog } from "./_AddDialog"
 import { ClientConnectionsSection } from "./_ClientConnectionsSection"
+import { DataminingInstancesSection } from "./_DataminingInstancesSection"
 
 export function FederationPage() {
   const [workstations, setWorkstations] = useState<Workstation[]>([])
@@ -97,6 +98,10 @@ export function FederationPage() {
 
       <div className="border-t border-white/[4%] pt-4">
         <ClientConnectionsSection />
+      </div>
+
+      <div className="border-t border-white/[4%] pt-4">
+        <DataminingInstancesSection />
       </div>
     </div>
   )
