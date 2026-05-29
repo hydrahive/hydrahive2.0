@@ -87,13 +87,14 @@ async def get_session_detail(session_id: str) -> dict[str, Any] | None:
     try:
         async with pool.acquire() as conn:
             meta = await conn.fetchrow("""
-                SELECT id, username, agent_name, project_id, title, status,
+                SELECT id, username, agent_id, agent_name, project_id, title, status,
                        started_at, updated_at
                 FROM sessions WHERE id = $1
             """, session_id)
             if not meta:
                 meta = await conn.fetchrow("""
                     SELECT session_id AS id, MAX(username) AS username,
+                           MAX(agent_id) AS agent_id,
                            MAX(agent_name) AS agent_name, MAX(project_id) AS project_id,
                            NULL::text AS title, 'active' AS status,
                            MIN(created_at) AS started_at, MAX(created_at) AS updated_at
