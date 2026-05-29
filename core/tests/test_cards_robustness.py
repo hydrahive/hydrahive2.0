@@ -125,3 +125,43 @@ def test_persistent_empty_returns_none_and_no_upsert(monkeypatch):
 
     card = asyncio.run(c.consolidate_session("s1", "x-model"))
     assert card is None and upserts["n"] == 0  # nichts Leeres gespeichert
+
+
+# --- Review-Findings: Scanner-/Prefill-Robustheit --------------------------------
+
+def test_extraction_recovers_card_after_unbalanced_brace():
+    # echoed Content mit unbalanciertem { VOR der Card (z.B. abgeschnittener Code)
+    txt = 'echoed: def f() { incomplete...\n{"gist":"real","valence":"good","salience":"high","topics":["x"]}'
+    out = parse_card_response(txt)
+    assert out["gist"] == "real" and out["valence"] == "good"
+
+
+def test_prefill_double_brace_recovers():
+    # Modell gab trotz Prefill ein eigenes { aus → "{" + text = "{{...}"
+    out = parse_card_response("{" + '{"gist":"x","valence":"neutral","salience":"low","topics":[]}')
+    assert out["gist"] == "x"
+
+
+def test_extraction_picks_last_gist_object():
+    # echoed Objekt das selbst einen gist-Key trägt, VOR der echten Card → letztes gewinnt
+    txt = '{"gist":"WRONG","foo":1}\n{"gist":"RIGHT","valence":"good","salience":"low","topics":[]}'
+    out = parse_card_response(txt)
+    assert out["gist"] == "RIGHT"
+
+
+def test_prefill_rejection_falls_back_to_no_prefill(monkeypatch):
+    import asyncio
+
+    import hydrahive.cards.consolidate as c
+    seen = []
+
+    async def fake_llm(**kw):
+        seen.append(kw["messages"])
+        if kw["messages"][-1].get("role") == "assistant":  # Prefill-Versuch
+            raise RuntimeError("Prefilling assistant messages is not supported for this model")
+        return ([{"type": "text", "text": '{"gist":"recovered","valence":"good","salience":"low","topics":[]}'}], "", {})
+
+    monkeypatch.setattr("hydrahive.runner.llm_bridge.call_with_tools", fake_llm)
+    tags = asyncio.run(c._llm_tags([{"event_type": "user_input", "text": "hi"}], "claude-opus-4-7"))
+    assert tags["gist"] == "recovered"
+    assert len(seen) == 2  # erst Prefill (abgelehnt), dann ohne

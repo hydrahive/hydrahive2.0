@@ -36,22 +36,27 @@ async def _llm_tags(events: list[dict], model: str) -> dict:
     )
     from hydrahive.runner.llm_bridge import call_with_tools
 
-    messages: list[dict] = [{"role": "user", "content": card_user_message(events)}]
-    prefill = _is_claude(model)
-    if prefill:
-        messages.append({"role": "assistant", "content": "{"})
-    try:
-        blocks, _, _ = await call_with_tools(
-            model=model, system_prompt=CARD_SYSTEM, messages=messages,
-            tools=[], temperature=0.0, max_tokens=512,
-        )
-    except Exception as e:
-        logger.warning("consolidate: LLM-Fehler %s — leere Tags", e)
-        return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
-    text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
-    if prefill:
-        text = "{" + text
-    return parse_card_response(text)
+    user = card_user_message(events)
+    # Claude: erst MIT Assistant-Prefill '{' (erzwingt JSON). Schlägt der Call fehl
+    # (z.B. Modell lehnt Prefill ab → BadRequest), nochmal OHNE Prefill — statt
+    # lautlos leer zurückzugeben (sonst neuer silent-failure-Pfad).
+    for use_prefill in ([True, False] if _is_claude(model) else [False]):
+        messages: list[dict] = [{"role": "user", "content": user}]
+        if use_prefill:
+            messages.append({"role": "assistant", "content": "{"})
+        try:
+            blocks, _, _ = await call_with_tools(
+                model=model, system_prompt=CARD_SYSTEM, messages=messages,
+                tools=[], temperature=0.0, max_tokens=512,
+            )
+        except Exception as e:
+            logger.warning("consolidate: LLM-Fehler (prefill=%s) %s", use_prefill, e)
+            continue
+        text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+        if use_prefill:
+            text = "{" + text
+        return parse_card_response(text)
+    return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
 
 
 async def consolidate_session(session_id: str, model: str) -> Card | None:

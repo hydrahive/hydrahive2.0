@@ -110,7 +110,7 @@ def _iter_json_objects(text: str):
                     i = j + 1
                     break
         else:
-            return  # unbalancierter Rest → Schluss
+            i += 1  # unbalanciertes '{' überspringen — die Card kann danach folgen
 
 
 def parse_card_response(text: str) -> dict:
@@ -126,11 +126,8 @@ def parse_card_response(text: str) -> dict:
         except json.JSONDecodeError:
             continue
         if isinstance(p, dict) and "gist" in p:
-            best = p
-            break
-        if best is None and isinstance(p, dict):
-            best = p  # Fallback: erstes gültige Objekt, falls keines gist hat
-    if not isinstance(best, dict) or "gist" not in best:
+            best = p  # letztes Objekt mit gist-Key = die Card (echoed Content steht davor)
+    if not isinstance(best, dict):
         logger.warning("parse_card_response: kein Card-JSON (gist-Key) gefunden — leere Tags (Fallback)")
         return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
     return {
