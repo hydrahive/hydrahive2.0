@@ -130,6 +130,29 @@ CREATE INDEX IF NOT EXISTS errors_log_source   ON errors_log (source, created_at
 CREATE INDEX IF NOT EXISTS errors_log_severity ON errors_log (severity, created_at);
 CREATE INDEX IF NOT EXISTS errors_log_created  ON errors_log (created_at);
 CREATE INDEX IF NOT EXISTS errors_log_type     ON errors_log (error_type, created_at);
+CREATE TABLE IF NOT EXISTS cards (
+  card_id             TEXT PRIMARY KEY,
+  session_id          TEXT NOT NULL,
+  gist                TEXT,
+  valence             TEXT,
+  salience            TEXT,
+  groundedness        TEXT,
+  topics              JSONB,
+  agent_id            TEXT,
+  agent_name          TEXT,
+  username            TEXT,
+  created_at          TIMESTAMPTZ,
+  source              JSONB,
+  confidence          REAL NOT NULL DEFAULT 1.0,
+  superseded_by       JSONB,
+  supersedes          JSONB,
+  schema_version      INTEGER NOT NULL DEFAULT 1,
+  computed_at         TIMESTAMPTZ,
+  consolidation_model TEXT
+);
+CREATE INDEX IF NOT EXISTS cards_session          ON cards (session_id);
+CREATE INDEX IF NOT EXISTS cards_agent            ON cards (agent_id, created_at);
+CREATE INDEX IF NOT EXISTS cards_recency_salience ON cards (created_at DESC, salience);
 """
 
 # Separat, weil CREATE OR REPLACE VIEW Ownership der View erfordert.
@@ -181,8 +204,11 @@ LEFT JOIN (
 DDL_BASE = DDL_TABLES + DDL_VIEW
 
 
-async def ensure_embed_col(conn) -> None:
-    """Legt embedding-Spalte mit der richtigen Dimension an oder passt sie an."""
+async def ensure_embed_col(conn, table: str = "events") -> None:
+    """Legt die embedding-Spalte einer Tabelle mit der richtigen Dimension an
+    oder passt sie an. Generisch über `table` (events, cards) — dieselbe
+    Dim-Quelle (`embed_model`), damit beide im selben pgvector-Raum vergleichbar
+    sind. `table` ist intern/vertrauenswürdig (kein User-Input)."""
     from hydrahive.llm._config import load_config
     from hydrahive.llm.embed import dim_for_model
     model = load_config().get("embed_model", "")
@@ -190,36 +216,36 @@ async def ensure_embed_col(conn) -> None:
     if not dim:
         return
 
-    row = await conn.fetchrow("""
+    row = await conn.fetchrow(f"""
         SELECT format_type(atttypid, atttypmod) AS coltype
         FROM pg_attribute
-        WHERE attrelid = 'events'::regclass AND attname = 'embedding' AND attnum > 0
+        WHERE attrelid = '{table}'::regclass AND attname = 'embedding' AND attnum > 0
     """)
     if row:
         if row["coltype"] == f"vector({dim})":
             return
-        logger.info("Embedding-Dimension geändert (%s → vector(%d)) — Spalte neu anlegen", row["coltype"], dim)
-        await conn.execute("ALTER TABLE events DROP COLUMN IF EXISTS embedding")
-        await conn.execute("ALTER TABLE events DROP COLUMN IF EXISTS embedding_model")
-        await conn.execute("ALTER TABLE events DROP COLUMN IF EXISTS embedded_at")
+        logger.info("Embedding-Dimension geändert (%s → vector(%d)) auf %s — Spalte neu anlegen", row["coltype"], dim, table)
+        await conn.execute(f"ALTER TABLE {table} DROP COLUMN IF EXISTS embedding")
+        await conn.execute(f"ALTER TABLE {table} DROP COLUMN IF EXISTS embedding_model")
+        await conn.execute(f"ALTER TABLE {table} DROP COLUMN IF EXISTS embedded_at")
 
-    await conn.execute(f"ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding vector({dim})")
-    await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedding_model TEXT")
-    await conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ")
+    await conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS embedding vector({dim})")
+    await conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS embedding_model TEXT")
+    await conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ")
     try:
-        await conn.execute("""
-            CREATE INDEX IF NOT EXISTS events_embedding_hnsw
-            ON events USING hnsw (embedding vector_cosine_ops)
+        await conn.execute(f"""
+            CREATE INDEX IF NOT EXISTS {table}_embedding_hnsw
+            ON {table} USING hnsw (embedding vector_cosine_ops)
             WITH (m = 16, ef_construction = 64)
         """)
-        logger.info("Embedding-Spalte vector(%d) + HNSW-Index bereit", dim)
+        logger.info("Embedding-Spalte vector(%d) + HNSW-Index auf %s bereit", dim, table)
     except Exception:
         try:
-            await conn.execute("""
-                CREATE INDEX IF NOT EXISTS events_embedding_ivfflat
-                ON events USING ivfflat (embedding vector_cosine_ops)
+            await conn.execute(f"""
+                CREATE INDEX IF NOT EXISTS {table}_embedding_ivfflat
+                ON {table} USING ivfflat (embedding vector_cosine_ops)
                 WITH (lists = 100)
             """)
-            logger.info("Embedding-Spalte vector(%d) + IVFFlat-Index bereit (HNSW nicht unterstützt)", dim)
+            logger.info("Embedding-Spalte vector(%d) + IVFFlat-Index auf %s bereit (HNSW nicht unterstützt)", dim, table)
         except Exception as e:
-            logger.warning("Kein Vektor-Index angelegt (pgvector zu alt?): %s — Suche läuft per Seq-Scan", e)
+            logger.warning("Kein Vektor-Index auf %s angelegt (pgvector zu alt?): %s — Suche läuft per Seq-Scan", table, e)

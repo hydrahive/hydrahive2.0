@@ -70,6 +70,10 @@ async def init() -> None:
                 await ensure_embed_col(conn)
             except Exception as ee:
                 logger.warning("PG-Mirror: Embedding-Spalte konnte nicht angepasst werden (Rechte?): %s", ee)
+            try:
+                await ensure_embed_col(conn, table="cards")
+            except Exception as ce:
+                logger.warning("PG-Mirror: cards-Embedding-Spalte konnte nicht angepasst werden (Rechte?): %s", ce)
         logger.info("PG-Mirror bereit")
     except Exception as e:
         logger.warning("PG-Mirror init fehlgeschlagen — Mirror deaktiviert: %s", e)
