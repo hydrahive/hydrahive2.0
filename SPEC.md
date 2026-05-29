@@ -772,6 +772,53 @@ Card-Schema ist der Vertrag (`docs/superpowers/specs/2026-05-29-proactive-recall
 
 ---
 
+## Forschungs-APIs — Wissenschaftliche & medizinische Quellen für Agenten (Core-Komponente)
+
+Eine kuratierte Registry offener wissenschaftlicher/medizinischer APIs (Literatur,
+Medikamente, Krankheiten/Gene, klinische Studien), die Agenten für Recherche nutzen.
+Die meisten Quellen sind schlüssellos; für die wenigen mit Key/Token verwaltet die
+Registry diese verschlüsselt und injiziert sie transparent beim Aufruf. Kein eigenes
+Tool pro API — die Agenten rufen die Endpoints über das vorhandene `fetch_url`-Tool;
+ein Skill liefert das How-to (Endpoints + Query-Syntax).
+
+### Funktionsumfang
+- Registry (system-weit, Admin): vorbefüllte Liste von Forschungs-APIs, gruppiert nach
+  Kategorie (Literatur, Medikamente, Krankheiten/Gene, klinische Studien). Pro Eintrag:
+  Name, Kategorie, base_url/url_pattern, docs_url, needs_key, auth_type
+  (query/header/bearer) + auth_param, polite_email (z.B. OpenAlex), rate_limit, enabled.
+  Keyless-Quellen standardmäßig aktiv.
+- Key-Verwaltung: optionale API-Keys/Tokens verschlüsselt gespeichert (AES, wie der
+  Credential-Store); im UI nur bei needs_key sichtbar; Reveal/Test pro Eintrag.
+- Transparente Injektion: `fetch_url` injiziert den passenden Key/Token (per url_pattern)
+  aus der Registry zusätzlich zum per-User-Credential-Store — der Agent sieht den Key nie.
+- Agenten-Wissen: ein `medical-research`-Skill (Markdown, system_defaults) dokumentiert
+  die Quellen + Query-Syntax; der Agent lädt ihn bei Bedarf (load_skill), statt die Liste
+  dauerhaft in den Prompt zu weben.
+- UI: Konfigurationsseite im Health-Bereich (Toggle/Key/Test pro Quelle, nach Kategorie).
+
+### Nicht-Ziele
+- Kein eigenes Wrapper-Tool pro API (generisch über fetch_url + Skill)
+- Kein Caching/Speichern abgerufener Paper/Volltexte (Agent nutzt Treffer live)
+- Keine deutsche Arzneimittel-DB (keine gute offene API; Mapping über Wirkstoff/INN)
+- Kein Scraping/Nicht-API-Quellen, keine kommerziellen Lizenz-APIs (z.B. DrugBank kommerziell)
+- Keine automatische/geplante Recherche (nur agent-getriggert)
+
+### Voraussetzungen
+- `fetch_url`-Tool (für Calls + Key-Injektion)
+- Skills-System (für das How-to)
+- Internet-Zugang des Backends zu den Endpoints
+
+### Architektur
+Backend `core/src/hydrahive/research/` (Registry-Modell + verschlüsselte Persistenz in
+`/etc/hydrahive2/research_apis.json`, 0600) + `api/routes/research_apis.py` (Admin-CRUD,
+Test); Erweiterung der `fetch_url`-Key-Injektion um die Registry als zweite Quelle.
+Frontend: View in `features/health/` (Sidebar „Forschungs-APIs"). Skill:
+`skills/system_defaults/medical-research.md`. Vorbefüllte Quellen u.a.: PubMed/E-utilities,
+Europe PMC, OpenAlex, Semantic Scholar, Crossref, CORE, bioRxiv/medRxiv, openFDA, RxNorm,
+ICD-11 (WHO), MyGene/MyVariant, Open Targets, HPO, ClinicalTrials.gov v2.
+
+---
+
 ## Voice — STT/TTS für Sprache-Eingang/Ausgang (Core-Komponente)
 
 Wyoming-Whisper als lokaler STT-Server (Container, Port 10300) plus
