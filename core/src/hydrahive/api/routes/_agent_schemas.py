@@ -22,6 +22,7 @@ class AgentCreate(BaseModel):
     project_id: str | None = None
     domain: str | None = None
     system_prompt: str | None = None
+    external: bool = False
     compact_model: str | None = None
     compact_tool_result_limit: int | None = None
     compact_reserve_tokens: int | None = None

@@ -101,6 +101,7 @@ def create_agent(
             project_id=req.project_id,
             domain=req.domain,
             system_prompt=req.system_prompt,
+            external=req.external,
         )
     except AgentValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))

@@ -35,6 +35,7 @@ def create(
     project_id: str | None = None,
     domain: str | None = None,
     system_prompt: str | None = None,
+    external: bool = False,
 ) -> dict:
     _validation.validate_type(agent_type)
     _validation.validate_model(llm_model)
@@ -55,6 +56,7 @@ def create(
         "description": description, "temperature": float(temperature),
         "max_tokens": int(max_tokens), "thinking_budget": int(thinking_budget),
         "status": "active", "created_at": now_iso(), "updated_at": now_iso(),
+        "external": bool(external),
     }
     if project_id:
         cfg["project_id"] = project_id
