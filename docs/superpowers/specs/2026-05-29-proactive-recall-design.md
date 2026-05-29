@@ -31,7 +31,7 @@ Das **teure Denken passiert offline im „Schlaf"** (Batch, billiges Modell, ein
 |---|---|---|
 | **L1 Capture** | Roh-Events spiegeln (unbewusst) | Hook → Datamining (`db/mirror.py`) ✓ steht |
 | **L2 Konsolidierung** | Roh → getaggte Gist-Cards (Schlaf-Batch) | **Crystallize** (`tools/_crystallize.py`: Session→Crystal+Lessons) + **Zahnfee** (`zahnfee/runner.py`: Offline-Batch, datamining→LLM→gespeichert) + **Memory-v2-Primitive** (`tools/write_memory.py`: confidence/reinforcements/superseded) |
-| **L3 Recall** | Karten billig in den Kontext weben | Prompt-Weaving (`runner/system_prompt.py:_inject_longterm_memory`) + pgvector (`db/mirror_query.search_events`) |
+| **L3 Recall** | Karten billig in den Kontext weben | Prompt-Weaving (`runner/system_prompt.py:_inject_longterm_memory`) + pgvector-Suche: `db/_mirror_search.py:67 search_events(..., semantic=True)` (re-exportiert via `mirror_query`, genutzt von `tools/datamining.py`) |
 
 **Leitsatz:** L2 = das vorhandene Crystallize **automatisieren + taggen + recompute-safe ablegen**, nicht neu bauen. L3 = die vorhandene Weaving-Maschinerie nutzen, nicht duplizieren.
 
@@ -59,7 +59,7 @@ Gist-Cards sind eine **abgeleitete, versionierte, recompute-safe** Schicht über
   "source": { "session_id": "019e...", "event_count": 777 },  // für lazy reconstruction
 
   // --- abgeleitete Recall-Hilfe ---
-  "embedding": "vector(4096)",          // pgvector, Reuse der Mirror-Embedding-Pipeline
+  "embedding": "vector(<Mirror-Dim, dynamisch>)",  // MUSS Mirror-Dim + gleiches embed_model nutzen, sonst im gemeinsamen pgvector-Index nicht vergleichbar. Dim ist dynamisch (db/_mirror_ddl.py legt vector({dim}) an, Spalte bei Modell-Wechsel neu) — NICHT hartkodieren.
 
   // --- v2-ready (in v1 vorhanden aber UNGENUTZT) ---
   "confidence": 1.0,                    // v2: verify-before-trust
@@ -100,8 +100,12 @@ Gist-Cards sind eine **abgeleitete, versionierte, recompute-safe** Schicht über
 
 ## Offene Punkte — VOR dem Bau zu klären
 
-1. **Source-Filter im Recall (joshuas #3, real):** `search_memory`/`load_filtered` filtert nach `project`, ein expliziter `source`-Filter (kuratiert vs. auto) ist nicht erkennbar. Entweder *ein* Store-Backend mit `source`-Feld + zwei Sichten, oder getrennte Retrieval-Pfade fürs Weben beider Stores. Empfehlung: **getrennter Card-Store mit eigenem Retrieval** (recompute-safe), im Prompt neben dem kuratierten Memory **klar gelabelt** gewebt.
-2. **Crystallize-Reuse bestätigen:** Crystal-Output (Session-Digest) als `gist`-Basis übernehmen statt neue Zusammenfassung — Joshua bestätigt am Code.
+1. **Source-Filter im Recall (joshuas #3, real, OFFEN):** `search_memory`/`load_filtered` filtert nach `project`, ein expliziter `source`-Filter (kuratiert vs. auto) ist nicht erkennbar. Entweder *ein* Store-Backend mit `source`-Feld + zwei Sichten, oder getrennte Retrieval-Pfade fürs Weben beider Stores. Empfehlung: **getrennter Card-Store mit eigenem Retrieval** (recompute-safe), im Prompt neben dem kuratierten Memory **klar gelabelt** gewebt.
+
+### Review-Korrekturen (joshua, eingearbeitet)
+- **Crystallize-Reuse — bestätigt** (`tools/_crystallize.py:84 crystallize_session` → `call_with_tools(CRYSTALLIZE_SYSTEM)`): Crystal-Output als `gist`-Basis übernehmen, nicht neu zusammenfassen.
+- **Embedding-Dim — korrigiert:** nicht `vector(4096)`, sondern dynamisch = Mirror-Dim + gleiches embed_model (sonst kein gemeinsamer pgvector-Index). Quelle `db/_mirror_ddl.py`.
+- **pgvector-Such-Stelle — gepinnt + verifiziert:** `db/_mirror_search.py:67 search_events(semantic=True)`, re-exportiert via `mirror_query`. L3-C steht damit auf verifiziertem Boden.
 
 ## Aufteilung (Joshuas Regie, Tills Freigabe)
 
