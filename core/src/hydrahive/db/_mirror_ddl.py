@@ -209,6 +209,8 @@ async def ensure_embed_col(conn, table: str = "events") -> None:
     oder passt sie an. Generisch über `table` (events, cards) — dieselbe
     Dim-Quelle (`embed_model`), damit beide im selben pgvector-Raum vergleichbar
     sind. `table` ist intern/vertrauenswürdig (kein User-Input)."""
+    if table not in ("events", "cards"):
+        raise ValueError(f"ensure_embed_col: unzulässige Tabelle {table!r}")
     from hydrahive.llm._config import load_config
     from hydrahive.llm.embed import dim_for_model
     model = load_config().get("embed_model", "")

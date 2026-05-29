@@ -51,7 +51,11 @@ def _loads(v: Any) -> Any:
 
 async def upsert_card(card: Card, embedding: list[float] | None = None) -> None:
     """Schreibt/aktualisiert eine Card idempotent (ON CONFLICT card_id).
-    recompute-safe: derselbe card_id → genau eine Zeile, überschrieben."""
+    recompute-safe: derselbe card_id → genau eine Zeile, überschrieben.
+
+    `computed_at` wird serverseitig auf `now()` gesetzt = wann die Card berechnet/
+    geschrieben wurde — bewusst getrennt von `created_at` (= Session-Zeit, fürs
+    recency-Ranking in Recall A)."""
     pool = _pool()
     if not pool:
         return

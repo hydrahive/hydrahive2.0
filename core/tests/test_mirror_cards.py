@@ -52,3 +52,12 @@ def test_recall_queries_callable():
     assert inspect.iscoroutinefunction(search_cards)
     assert "agent_id" in inspect.signature(top_cards_for).parameters
     assert "query" in inspect.signature(search_cards).parameters
+
+
+def test_ensure_embed_col_rejects_unknown_table():
+    import asyncio
+
+    import pytest
+    from hydrahive.db._mirror_ddl import ensure_embed_col
+    with pytest.raises(ValueError):
+        asyncio.run(ensure_embed_col(None, table="events; DROP TABLE x"))
