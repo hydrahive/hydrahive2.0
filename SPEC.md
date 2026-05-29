@@ -376,9 +376,16 @@ eigene Tabelle, der Agent-Marker ist die Einheit.
 
 **Agent-Config:** neues Feld `external: bool` (default false) markiert die Einheit.
 
-**Frontend:** eigene Seite (`features/external-servers/`, admin-only) mit Liste +
-Wizard. Der Wizard zeigt API-Key + Hook-Config (`HH_BASE_URL`/`HH_API_KEY`/
-`HH_AGENT_ID`=uuid + `settings.json`-Snippet) **einmalig** nach dem Anlegen.
+**Frontend:** als dritter Abschnitt „Datamining-Instanzen" auf der bestehenden
+Federation-Seite (`features/federation/`, admin-only) — neben „Workstations" und
+„Clients", kein eigener Menüpunkt. Liste + Wizard; der Wizard zeigt API-Key +
+Hook-Config (`HH_BASE_URL`/`HH_API_KEY`/`HH_AGENT_ID`=uuid + `settings.json`-Snippet)
+**einmalig** nach dem Anlegen.
+
+**Abgrenzung zu `/federation/clients`:** Jenes erzeugt admin-eigene Keys
+(`role=projektx`, AgentLink/Tailscale-Config) für ProjektX-Clients. Dieser Pfad
+legt pro Instanz einen eigenen User + Agent an und zielt aufs Datamining-Mirroring
+— getrennte Endpoints, aber co-lokalisiert auf derselben Seite.
 
 ### Nicht-Ziele
 
