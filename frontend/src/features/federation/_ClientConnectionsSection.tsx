@@ -95,7 +95,7 @@ export function ClientConnectionsSection() {
       {showNew && (
         <NewClientDialog
           onClose={() => setShowNew(false)}
-          onCreated={() => { setShowNew(false); load() }}
+          onCreated={() => { load() }}
         />
       )}
     </div>

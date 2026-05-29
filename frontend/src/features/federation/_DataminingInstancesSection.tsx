@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Pickaxe, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { Copy, Pickaxe, Plus, RefreshCw, Trash2 } from "lucide-react"
 import { externalInstancesApi } from "./api"
 import type { ExternalInstance } from "./types"
 import { NewInstanceDialog } from "./_NewInstanceDialog"
@@ -81,6 +81,17 @@ export function DataminingInstancesSection() {
                   <span className="ml-2 text-xs text-zinc-600">
                     · {inst.session_count} Sessions · zuletzt {formatDate(inst.last_activity)}
                   </span>
+                  <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-zinc-600">
+                    <span className="text-zinc-500">HH_AGENT_ID</span>
+                    <span className="text-zinc-400 select-all">{inst.agent_id}</span>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(inst.agent_id)}
+                      className="text-zinc-600 hover:text-violet-400 transition-colors"
+                      title="Agent-ID kopieren"
+                    >
+                      <Copy size={11} />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
