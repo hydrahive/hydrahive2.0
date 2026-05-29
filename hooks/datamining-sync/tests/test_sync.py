@@ -56,3 +56,39 @@ def test_missing_payload_fields_noop(tmp_path):
     res = run_sync({}, client, tmp_path / "state", agent_id="joshua")
     assert res["ok"] is False
     assert client.logged == []
+
+
+def _write_ids(path: Path, ids):
+    path.write_text("\n".join(json.dumps(
+        {"type": "user", "uuid": u, "timestamp": "t", "message": {"role": "user", "content": u}}
+    ) for u in ids))
+
+
+def test_inserted_middle_entry_is_sent_not_skipped(tmp_path):
+    """ID-Set-Robustheit: ein mitten eingefügter Eintrag wird gesendet, ein
+    bereits gesehener nie erneut. Ein reiner Offset-Zähler hätte u1 übersprungen
+    und u2 fälschlich erneut gesendet."""
+    tp = tmp_path / "t.jsonl"
+    state_dir = tmp_path / "state"
+    _write_ids(tp, ["u0", "u2"])
+    run_sync({"session_id": "cc-1", "transcript_path": str(tp)}, FakeClient(), state_dir, agent_id="j")
+
+    _write_ids(tp, ["u0", "u1", "u2"])  # u1 nachträglich dazwischen
+    c = FakeClient()
+    run_sync({"session_id": "cc-1", "transcript_path": str(tp)}, c, state_dir, agent_id="j")
+    assert [l[1] for l in c.logged] == ["u1"]
+
+
+def test_redaction_applied_before_send(tmp_path):
+    tp = tmp_path / "t.jsonl"
+    tp.write_text(json.dumps({"type": "user", "uuid": "x", "timestamp": "t",
+                              "message": {"role": "user", "content": "token=hhk_abcd1234efgh5678"}}))
+    captured = []
+
+    class CapClient(FakeClient):
+        def log(self, session_id, message_id, role, content, created_at):
+            captured.append(content)
+            super().log(session_id, message_id, role, content, created_at)
+
+    run_sync({"session_id": "cc-1", "transcript_path": str(tp)}, CapClient(), tmp_path / "state", agent_id="j")
+    assert "hhk_abcd" not in captured[0]

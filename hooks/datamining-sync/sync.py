@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from transcript import parse_entries
+from redact import redact_entries
 from state import load_state, save_state
 
 
@@ -21,7 +22,7 @@ def run_sync(payload: dict, client, state_dir: Path, agent_id: str) -> dict:
     if not p.exists():
         return {"ok": False, "reason": "transcript not found"}
 
-    entries = parse_entries(p.read_text(errors="replace").splitlines())
+    entries = redact_entries(parse_entries(p.read_text(errors="replace").splitlines()))
     st = load_state(state_dir, cc_session_id)
 
     hh_session_id = st["hh_session_id"]
@@ -29,11 +30,14 @@ def run_sync(payload: dict, client, state_dir: Path, agent_id: str) -> dict:
         hh_session_id = client.ensure_session(
             agent_id=agent_id, title=f"claude-code {cc_session_id}")
 
-    new = entries[st["synced"]:]
+    synced_ids = list(st["synced_ids"])
+    seen = set(synced_ids)
+    new = [e for e in entries if e["message_id"] not in seen]
     for e in new:
         client.log(hh_session_id, e["message_id"], e["role"], e["content"], e["created_at"])
+        synced_ids.append(e["message_id"])
 
-    save_state(state_dir, cc_session_id, hh_session_id, len(entries))
+    save_state(state_dir, cc_session_id, hh_session_id, synced_ids)
     return {"ok": True, "synced": len(new), "total": len(entries)}
 
 
