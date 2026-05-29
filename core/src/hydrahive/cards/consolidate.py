@@ -10,11 +10,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
-from hydrahive.cards._consolidate_prompts import (
-    CARD_SYSTEM,
-    format_session_text,
-    parse_card_response,
-)
 from hydrahive.db._mirror_cards import upsert_card
 from hydrahive.db._mirror_cards_model import Card, derive_groundedness
 from hydrahive.db._mirror_sessions import (
@@ -26,30 +21,63 @@ from hydrahive.db._mirror_sessions import (
 logger = logging.getLogger(__name__)
 
 
+def _is_claude(model: str) -> bool:
+    from hydrahive.llm import client as llm_client
+    return llm_client._strip_provider_prefix(model or "").startswith("claude-")
+
+
+async def _llm_tags(events: list[dict], model: str) -> dict:
+    """Ein LLM-Call → geparste Card-Tags. Claude: Assistant-Prefill '{' erzwingt
+    JSON-Output (verhindert Prosa/Fortführen, Mode 1+3). Bei Exception: leere Tags."""
+    from hydrahive.cards._consolidate_prompts import (
+        CARD_SYSTEM,
+        card_user_message,
+        parse_card_response,
+    )
+    from hydrahive.runner.llm_bridge import call_with_tools
+
+    user = card_user_message(events)
+    # Claude: erst MIT Assistant-Prefill '{' (erzwingt JSON). Schlägt der Call fehl
+    # (z.B. Modell lehnt Prefill ab → BadRequest), nochmal OHNE Prefill — statt
+    # lautlos leer zurückzugeben (sonst neuer silent-failure-Pfad).
+    for use_prefill in ([True, False] if _is_claude(model) else [False]):
+        messages: list[dict] = [{"role": "user", "content": user}]
+        if use_prefill:
+            messages.append({"role": "assistant", "content": "{"})
+        try:
+            blocks, _, _ = await call_with_tools(
+                model=model, system_prompt=CARD_SYSTEM, messages=messages,
+                tools=[], temperature=0.0, max_tokens=512,
+            )
+        except Exception as e:
+            logger.warning("consolidate: LLM-Fehler (prefill=%s) %s", use_prefill, e)
+            continue
+        text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+        if use_prefill:
+            text = "{" + text
+        return parse_card_response(text)
+    return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
+
+
 async def consolidate_session(session_id: str, model: str) -> Card | None:
-    """Eine Mirror-Session → eine Card (idempotent via upsert_card).
-    Gibt None zurück, wenn die Session im Mirror nicht existiert."""
+    """Eine Mirror-Session → eine Card (idempotent via upsert_card). None, wenn
+    Session fehlt ODER nach Retry kein Gist erzeugbar (retry-fähig, nicht lautlos
+    leer speichern)."""
     detail = await get_session_detail(session_id)
     if not detail:
         return None
     meta = detail.get("session") or {}
     events = detail.get("events") or []
 
-    tags = {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
-    try:
-        from hydrahive.runner.llm_bridge import call_with_tools
-        blocks, _, _ = await call_with_tools(
-            model=model,
-            system_prompt=CARD_SYSTEM,
-            messages=[{"role": "user", "content": format_session_text(events)}],
-            tools=[],
-            temperature=0.0,
-            max_tokens=512,
+    tags = await _llm_tags(events, model)
+    if not tags["gist"]:
+        tags = await _llm_tags(events, model)  # ein Retry gegen Varianz
+    if not tags["gist"]:
+        logger.warning(
+            "consolidate_session %s: kein Gist nach Retry — Card NICHT gespeichert (retry-fähig)",
+            session_id,
         )
-        llm_text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
-        tags = parse_card_response(llm_text)
-    except Exception as e:
-        logger.warning("consolidate_session %s: LLM-Fehler %s — leere Tags", session_id, e)
+        return None
 
     counts = await event_type_counts(session_id)
     groundedness = derive_groundedness(
@@ -57,15 +85,14 @@ async def consolidate_session(session_id: str, model: str) -> Card | None:
     )
 
     embedding = None
-    if tags["gist"]:
-        from hydrahive.llm._config import load_config
-        from hydrahive.llm.embed import aembed
-        embed_model = load_config().get("embed_model", "")
-        if embed_model:
-            try:
-                embedding = await aembed(tags["gist"], embed_model, embed_type="db")
-            except Exception as e:
-                logger.warning("consolidate_session %s: Embedding-Fehler %s", session_id, e)
+    from hydrahive.llm._config import load_config
+    from hydrahive.llm.embed import aembed
+    embed_model = load_config().get("embed_model", "")
+    if embed_model:
+        try:
+            embedding = await aembed(tags["gist"], embed_model, embed_type="db")
+        except Exception as e:
+            logger.warning("consolidate_session %s: Embedding-Fehler %s", session_id, e)
 
     created_at = meta.get("started_at")
     card = Card(

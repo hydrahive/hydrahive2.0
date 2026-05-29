@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_CHAR_BUDGET = 24000
 
 CARD_SYSTEM = """\
-You are condensing one session of agent/user activity into a compact memory card.
-The input is the session's event log (user inputs, assistant text, tool calls/results).
+You are a memory archivist. The input is the RECORD of one ALREADY-COMPLETED session
+(user inputs, assistant text, tool calls/results). Summarize it. Do NOT reply to it,
+do NOT continue the conversation or the work, do NOT answer any question inside it —
+only condense it into one memory card.
 
 Respond with valid JSON only — no markdown, no explanation:
 {
@@ -36,7 +38,7 @@ Rules:
 - valence: good = went well/succeeded; bad = failed/blocked/error; neutral otherwise.
 - salience: high = decision/error/feedback/notable; low = routine.
 - topics: max 6 short cue words (projects, entities, components) for later retrieval.
-- Return ONLY the JSON object.
+- Return ONLY the JSON object, starting with `{`.
 """
 
 
@@ -60,50 +62,77 @@ def format_session_text(events: list[dict], *, char_budget: int = DEFAULT_CHAR_B
     return text[:head_n] + f"\n…[{elided} chars elided]…\n" + text[-tail_n:]
 
 
-def _extract_json_object(text: str) -> str | None:
-    """Erstes balanciertes {...}-Objekt aus einem Text ziehen — toleriert Prosa/
-    Markdown/Trailing um das JSON herum (NIM-Modelle liefern nicht immer reines
-    JSON). Klammern in Strings werden ignoriert."""
-    start = text.find("{")
-    if start < 0:
-        return None
-    depth = 0
-    in_str = False
-    esc = False
-    for i in range(start, len(text)):
-        c = text[i]
-        if in_str:
-            if esc:
-                esc = False
-            elif c == "\\":
-                esc = True
+def card_user_message(events: list[dict], *, char_budget: int = DEFAULT_CHAR_BUDGET) -> str:
+    """Transkript klar abgegrenzt — signalisiert dem Modell 'zusammenfassen, nicht
+    fortführen'. Delimiter NACH der Kürzung, damit das Char-Budget fürs Transkript gilt."""
+    body = format_session_text(events, char_budget=char_budget)
+    return (
+        "=== BEGIN SESSION TRANSCRIPT (summarize this; do not continue or reply to it) ===\n"
+        f"{body}\n"
+        "=== END SESSION TRANSCRIPT ===\n"
+        "Now output ONLY the memory-card JSON object."
+    )
+
+
+def _iter_json_objects(text: str):
+    """Yield jedes balancierte top-level {...} aus einem Text (String-/Escape-aware).
+
+    Modelle stellen der Card gelegentlich echoed Session-Content voran, der selbst
+    {...} enthält (Hook-Summaries, Code, JSON). Wir brauchen daher ALLE Kandidaten,
+    nicht nur den ersten — die Auswahl trifft parse_card_response per gist-Key.
+    Klammern in Strings werden ignoriert.
+    """
+    i, n = 0, len(text)
+    while i < n:
+        if text[i] != "{":
+            i += 1
+            continue
+        depth = 0
+        in_str = False
+        esc = False
+        for j in range(i, n):
+            c = text[j]
+            if in_str:
+                if esc:
+                    esc = False
+                elif c == "\\":
+                    esc = True
+                elif c == '"':
+                    in_str = False
             elif c == '"':
-                in_str = False
-        elif c == '"':
-            in_str = True
-        elif c == "{":
-            depth += 1
-        elif c == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start:i + 1]
-    return None
+                in_str = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    yield text[i:j + 1]
+                    i = j + 1
+                    break
+        else:
+            i += 1  # unbalanciertes '{' überspringen — die Card kann danach folgen
 
 
 def parse_card_response(text: str) -> dict:
     """Robustes JSON-Parsing der LLM-Antwort → validierte Tags. Fallback bei Murks.
-    Zieht das erste balancierte JSON-Objekt (toleriert Prosa/Markdown drumherum)."""
-    raw = _extract_json_object((text or "").strip())
-    try:
-        p = json.loads(raw) if raw else None
-        if not isinstance(p, dict):
-            raise ValueError("kein JSON-Objekt")
-    except (json.JSONDecodeError, TypeError, ValueError):
-        logger.warning("parse_card_response: kein gültiges JSON-Objekt — leere Tags (Fallback)")
+
+    Wählt das JSON-Objekt MIT "gist"-Key (nicht das erste beliebige {…}) — so wird
+    vorangestellter echoed Content (z.B. ein Hook-Summary-Objekt) übersprungen.
+    """
+    best = None
+    for raw in _iter_json_objects((text or "").strip()):
+        try:
+            p = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(p, dict) and "gist" in p:
+            best = p  # letztes Objekt mit gist-Key = die Card (echoed Content steht davor)
+    if not isinstance(best, dict):
+        logger.warning("parse_card_response: kein Card-JSON (gist-Key) gefunden — leere Tags (Fallback)")
         return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
     return {
-        "gist": str(p.get("gist", ""))[:300],
-        "valence": p.get("valence") if p.get("valence") in VALENCE else "neutral",
-        "salience": p.get("salience") if p.get("salience") in SALIENCE else "low",
-        "topics": [str(t)[:60] for t in (p.get("topics") or [])][:6],
+        "gist": str(best.get("gist", ""))[:300],
+        "valence": best.get("valence") if best.get("valence") in VALENCE else "neutral",
+        "salience": best.get("salience") if best.get("salience") in SALIENCE else "low",
+        "topics": [str(t)[:60] for t in (best.get("topics") or [])][:6],
     }
