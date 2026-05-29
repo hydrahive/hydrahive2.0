@@ -26,6 +26,39 @@ from hydrahive.db._mirror_sessions import (
 logger = logging.getLogger(__name__)
 
 
+def _is_claude(model: str) -> bool:
+    from hydrahive.llm import client as llm_client
+    return llm_client._strip_provider_prefix(model or "").startswith("claude-")
+
+
+async def _llm_tags(events: list[dict], model: str) -> dict:
+    """Ein LLM-Call → geparste Card-Tags. Claude: Assistant-Prefill '{' erzwingt
+    JSON-Output (verhindert Prosa/Fortführen, Mode 1+3). Bei Exception: leere Tags."""
+    from hydrahive.cards._consolidate_prompts import (
+        CARD_SYSTEM,
+        card_user_message,
+        parse_card_response,
+    )
+    from hydrahive.runner.llm_bridge import call_with_tools
+
+    messages: list[dict] = [{"role": "user", "content": card_user_message(events)}]
+    prefill = _is_claude(model)
+    if prefill:
+        messages.append({"role": "assistant", "content": "{"})
+    try:
+        blocks, _, _ = await call_with_tools(
+            model=model, system_prompt=CARD_SYSTEM, messages=messages,
+            tools=[], temperature=0.0, max_tokens=512,
+        )
+    except Exception as e:
+        logger.warning("consolidate: LLM-Fehler %s — leere Tags", e)
+        return {"gist": "", "valence": "neutral", "salience": "low", "topics": []}
+    text = "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
+    if prefill:
+        text = "{" + text
+    return parse_card_response(text)
+
+
 async def consolidate_session(session_id: str, model: str) -> Card | None:
     """Eine Mirror-Session → eine Card (idempotent via upsert_card).
     Gibt None zurück, wenn die Session im Mirror nicht existiert."""
