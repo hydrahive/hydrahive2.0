@@ -48,6 +48,12 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Forschung",
+    items: [
+      { to: "/health/forschungs-apis", icon: "🔬", label: "Forschungs-APIs" },
+    ],
+  },
+  {
     title: "KI",
     items: [
       { to: "/health/ki", icon: "💬", label: "KI-Assistent" },

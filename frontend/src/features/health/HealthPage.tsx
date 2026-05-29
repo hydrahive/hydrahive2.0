@@ -11,6 +11,7 @@ import { LaborwerteView }       from "./views/LaborwerteView"
 import { ArztabrechnungView }  from "./views/ArztabrechnungView"
 import { SimpleListView }       from "./views/SimpleListView"
 import { KiAssistentView } from "./views/KiAssistentView"
+import { ResearchApisView } from "./views/ResearchApisView"
 import { TrendChart }      from "./_TrendChart"
 import { SleepChart }      from "./_SleepChart"
 import { healthApi, type MetricsSummary } from "./api"
@@ -81,6 +82,7 @@ export function HealthPage() {
             <Route path="apple"       element={<AppleHealthView />} />
             <Route path="schlaf"      element={<SchlafView />} />
             <Route path="ki"          element={<KiAssistentView />} />
+            <Route path="forschungs-apis" element={<ResearchApisView />} />
           </Routes>
           <KiFloatingButton />
         </div>
