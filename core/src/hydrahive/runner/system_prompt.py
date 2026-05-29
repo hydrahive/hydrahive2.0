@@ -25,6 +25,7 @@ def compose(
     longterm_memory: bool,
     tool_schemas: list[dict],
     allowed_tools: list[str],
+    recall_cards: list[dict] | None = None,
 ) -> tuple[str, str, str | None]:
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
@@ -36,6 +37,8 @@ def compose(
     stable = _stable_section(base, extra_system=extra_system, workspace=workspace, skills=skills)
     if longterm_memory:
         stable = _inject_longterm_memory(stable, tool_schemas, allowed_tools)
+    if recall_cards:
+        stable += render_cards_block(recall_cards)
     volatile = _volatile_section()
     summary_block = f"[Bisherige Zusammenfassung]\n{summary}" if summary else None
     return stable, volatile, summary_block
@@ -111,3 +114,24 @@ def _inject_longterm_memory(
             allowed_tools.append(tool.name)
 
     return stable + _LONGTERM_MEMORY_HINT
+
+
+def render_cards_block(cards: list[dict]) -> str:
+    """Recall A: kompakter, klar als *abgeleitet* gelabelter Erinnerungs-Block für
+    den gecachten Stable-Prompt. Getrennt vom kuratierten Memory; leerer String
+    wenn keine brauchbaren Cards."""
+    lines = []
+    for c in cards:
+        gist = (c.get("gist") or "").strip()
+        if not gist:
+            continue
+        topics = c.get("topics") or []
+        suffix = f"  ({', '.join(str(t) for t in topics[:4])})" if topics else ""
+        lines.append(f"- [{c.get('valence') or 'neutral'}] {gist}{suffix}")
+    if not lines:
+        return ""
+    return (
+        "\n\n## Erinnerungen (automatisch verdichtet — keine kuratierten Notizen)\n"
+        "Essenz früherer Sessions. Bei konkretem Bedarf via `datamining_*` tiefer graben.\n"
+        + "\n".join(lines)
+    )

@@ -101,6 +101,17 @@ async def run(
     max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [])
 
+    # Proaktiver Recall A: Top-N Cards einmal pro Session laden (recency × salience)
+    # → in den gecachten Stable-Prompt gewebt. Ändert sich nur bei nächtlicher
+    # Konsolidierung, also cache-stabil innerhalb der Session. Best-effort.
+    recall_cards: list = []
+    if agent.get("longterm_memory"):
+        try:
+            from hydrahive.db._mirror_cards import top_cards_for
+            recall_cards = await top_cards_for(agent["id"], limit=8)
+        except Exception:
+            recall_cards = []
+
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
 
@@ -125,6 +136,7 @@ async def run(
             longterm_memory=bool(agent.get("longterm_memory")),
             tool_schemas=tool_schemas,
             allowed_tools=allowed_tools,
+            recall_cards=recall_cards,
         )
 
         # Pro-Session-Override (Chat-Header-Switcher) gewinnt vor Agent-Default.
