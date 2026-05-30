@@ -131,6 +131,29 @@ def auth_headers(client):
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture(autouse=True)
+def _akte_db(request, setup_test_env):
+    """Migrierte DB + leere akte_*-Tabellen für Patientenakte-Tests.
+
+    Diese Tests gehen direkt über db() (nicht über die client-Fixture) und
+    brauchen daher init_db() im Test-Env. Muster wie test_ega._ensure_db.
+    No-op für alle anderen Tests.
+    """
+    if "test_akte_" not in request.node.nodeid:
+        yield
+        return
+    from hydrahive.db import init_db
+    from hydrahive.db.connection import db
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    init_db()
+    with db() as conn:
+        for spec in ENTITIES.values():
+            conn.execute(f"DELETE FROM {spec.table}")
+        conn.execute("DELETE FROM akte_patient")
+    yield
+
+
 @pytest.fixture
 def admin_headers(client):
     """Returns valid auth headers with JWT token for admin."""
