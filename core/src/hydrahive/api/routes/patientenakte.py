@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.patientenakte import entities, patients, views
-from hydrahive.patientenakte.schema import ENTITIES
+from hydrahive.patientenakte.schema import ENTITIES, ui_schema
 
 router = APIRouter(prefix="/api/health/patientenakte", tags=["patientenakte"])
 Auth = Annotated[tuple[str, str], Depends(require_auth)]
@@ -73,6 +73,16 @@ async def update_my_akte(data: dict[str, Any], auth: Auth) -> dict[str, bool]:
 
 
 # ── Single-User: Literal Views ────────────────────────────────────────────────
+
+@router.get("/_schema")
+async def get_schema(auth: Auth) -> dict[str, Any]:
+    """Die UI-Registry (SSOT) — Frontend rendert Formulare/Spalten generisch.
+
+    Literale Route VOR /{entity}, sonst fängt der Catch-all "_schema" als
+    unbekannte Entität ab. Keine Akte nötig — reine Metadaten.
+    """
+    return ui_schema()
+
 
 @router.get("/timeline")
 async def my_timeline(auth: Auth) -> list[dict[str, Any]]:

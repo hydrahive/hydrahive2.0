@@ -12,6 +12,7 @@ Guard-Tests (test_akte_schema.py) erzwingen Konsistenz:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 # Erlaubte Frontend-Eingabetypen (gespiegelt in FieldType der UI).
 FieldType = str  # "text" | "number" | "date" | "textarea" | "select"
@@ -47,6 +48,38 @@ class EntitySpec:
 
 
 COMMON_FIELDS = ("external_id", "quelle", "confidence", "verifiziert")
+
+
+def ui_schema() -> dict[str, Any]:
+    """Serialisiert die Registry für das Frontend (GET .../_schema).
+
+    Das ist der Vertrag, den die UI generisch rendert — Formularfelder,
+    Label-Ableitung und Listen-Spalten. Eine Quelle, kein Handspiegel.
+    """
+    return {
+        "entities": {
+            key: {
+                "key": spec.key,
+                "label": spec.label,
+                "label_fields": list(spec.label_fields),
+                "list_columns": list(spec.list_columns),
+                "date_field": spec.date_field,
+                "numeric_fields": list(spec.numeric_fields),
+                "ui_fields": [
+                    {
+                        "key": f.key,
+                        "label": f.label,
+                        "type": f.type,
+                        "required": f.required,
+                        "options": list(f.options),
+                        "placeholder": f.placeholder,
+                    }
+                    for f in spec.ui_fields
+                ],
+            }
+            for key, spec in ENTITIES.items()
+        }
+    }
 
 
 def _f(key: str, label: str, type: str = "text", *, required: bool = False,
