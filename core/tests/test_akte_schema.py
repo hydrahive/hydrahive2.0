@@ -31,3 +31,23 @@ def test_entity_has_common_columns():
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(akte_condition)")}
     assert {"id", "patient_id", "external_id", "quelle", "confidence", "verifiziert",
             "sort_date", "extra_json", "created_at", "updated_at"} <= cols
+
+
+def test_registry_columns_subset_of_tables():
+    """Guard: jede Registry-Spalte existiert wirklich in der Tabelle (kein Drift)."""
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    with db() as conn:
+        for spec in ENTITIES.values():
+            actual = {r["name"] for r in conn.execute(f"PRAGMA table_info({spec.table})")}
+            missing = set(spec.fields) - actual
+            assert not missing, f"{spec.table}: registry fields not in table: {missing}"
+
+
+def test_registry_keys_match_lastenheft():
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    assert set(ENTITIES) == {
+        "conditions", "medications", "observations", "events", "imaging",
+        "allergies", "practitioners", "documents", "notes",
+    }
