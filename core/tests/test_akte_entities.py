@@ -83,3 +83,22 @@ def test_foreign_patient_blocked():
     pid2 = patients.create("u2", {"slug": "b"})
     with pytest.raises(PermissionError):
         entities.create("u1", pid2, "conditions", {"diagnose": "X"})
+
+
+def test_batch_same_external_id_dedupes(pid):
+    n = entities.batch_create("u1", pid, "observations", [
+        {"external_id": "h1", "parameter": "HbA1c", "wert": 7.8, "datum": "2025-03-01"},
+        {"external_id": "h1", "parameter": "HbA1c", "wert": 6.4, "datum": "2026-05-01"},
+    ])
+    assert n == 2
+    items = entities.list_for("u1", pid, "observations")
+    assert len(items) == 1            # upsert innerhalb des Batches, kein Duplikat
+    assert items[0]["wert"] == 6.4    # letzter gewinnt
+
+
+def test_verifiziert_normalized_to_int(pid):
+    entities.create("u1", pid, "conditions", {"diagnose": "A", "verifiziert": True})
+    entities.create("u1", pid, "conditions", {"diagnose": "B", "verifiziert": False})
+    by_diag = {c["diagnose"]: c["verifiziert"] for c in entities.list_for("u1", pid, "conditions")}
+    assert by_diag["A"] == 1
+    assert by_diag["B"] == 0

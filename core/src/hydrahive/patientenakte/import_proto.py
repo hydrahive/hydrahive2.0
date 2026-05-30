@@ -8,12 +8,16 @@ from __future__ import annotations
 
 import csv
 import glob
+import logging
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from hydrahive.patientenakte import entities, patients
+from hydrahive.patientenakte.schema import COMMON_FIELDS, ENTITIES
+
+logger = logging.getLogger(__name__)
 
 
 def _load_yaml(path: Path) -> Any:
@@ -89,6 +93,10 @@ def import_akte(user_id: str, slug: str, dir_path: str | Path) -> str:
         verlauf = [str(ee.pop(k)) for k in ("inhalt", "therapie", "befund", "bemerkung") if ee.get(k)]
         if verlauf:
             ee["verlauf"] = "\n\n".join(verlauf)
+        _allowed = set(ENTITIES["events"].fields) | set(ENTITIES["events"].array_fields) | set(COMMON_FIELDS)
+        _dropped = set(ee) - _allowed
+        if _dropped:
+            logger.warning("import_akte: ereignis %d — verworfene Felder: %s", i, sorted(_dropped))
         _add("events", str(i), ee)
     for key, val in (ev.items() if isinstance(ev, dict) else []):
         if key.startswith("entlassmedikation") and isinstance(val, list):
