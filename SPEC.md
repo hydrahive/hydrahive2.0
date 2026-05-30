@@ -819,6 +819,52 @@ ICD-11 (WHO), MyGene/MyVariant, Open Targets, HPO, ClinicalTrials.gov v2.
 
 ---
 
+## Patientenakte — Strukturierte elektronische Akte (Health-Extension, Core-Komponente)
+
+Strukturierte, persistente, multi-Patient-fähige elektronische Patientenakte (ePA-light)
+als schreibbarer Kern der Health-Extension. Abgegrenzt von der read-only eGA/FHIR-
+Importschicht (Kassendaten): die Patientenakte ist die von Agenten und Nutzer befüllbare
+Akte, in die aus Dokumenten/Daten extrahierte medizinische Informationen einfließen.
+
+### Funktionsumfang
+- Datenmodell: FHIR-R4-angelehnt, pragmatisch relational (eigene SQLite-Tabellen, kein
+  FHIR-Server). Entitäten: Patient, Diagnose (Condition), Medikament, Laborwert
+  (Observation), Ereignis/Prozedur (Encounter), Bildgebung (ImagingStudy), Allergie,
+  Arzt (Practitioner), Dokument (DocumentReference), Notiz. Jeder Datensatz trägt
+  quelle/confidence/verifiziert (manuell vs. KI-extrahiert) + external_id (Idempotenz).
+- Befüllung: Token-geschützte REST-API (JSON), damit Agenten Datensätze anlegen/
+  aktualisieren (CRUD + Batch für Laborwerte). Idempotenz über external_id.
+- Dokumente: Upload (PDF/Bild/DICOM-Verweis) + vom Agenten geliefertem OCR-Text;
+  Volltextsuche über Einträge + OCR.
+- UI: Eigener Health-Bereich „Patientenakte" — Patienten-Auswahl, Dashboard, Timeline,
+  Detail-Listen, Lab-Trend-Charts, Quellen-/Verifiziert-Markierung.
+- Datenschutz (Art. 9 DSGVO): Verschlüsselung-at-rest sensibler Felder, Zugriffskontrolle
+  pro Nutzer, Audit-Log, Export + vollständige Löschung pro Patient.
+- Migration: Import-Skript für den bestehenden YAML-Prototyp (akten/<patient>/*.yaml + CSV).
+
+### Nicht-Ziele (v1)
+- Kein vollwertiger FHIR-Server (nur FHIR-angelehntes relationales Schema)
+- Keine automatische medizinische Befundung/Diagnose durch das System
+- Keine KIM/TI-Anbindung an Praxis-Systeme
+- Keine DICOM-Bildanzeige im Browser (nur Verweis + Vorschau-JPG)
+- Keine server-seitige OCR-Engine (OCR-Text liefert der befüllende Agent mit)
+
+### Voraussetzungen
+- Auth-System (require_auth + hhk_-API-Keys für Agenten-Befüllung)
+- Skills-System (Befüll-How-to für Agenten)
+- credentials/_crypto (Verschlüsselung-at-rest), SQLite FTS5 (Volltextsuche)
+
+### Architektur
+Backend `core/src/hydrahive/patientenakte/` (eigene relationale SQLite-Domäne, Migration
+023+; registry-getriebener generischer Service-/Route-Layer über alle Entitäten) +
+`api/routes/patientenakte.py` (Token/JWT-CRUD + Batch + Timeline/Summary/Search/Export).
+Abgegrenzt vom read-only eGA/FHIR-Blob-Store (`db/fhir.py`), der unangetastet als
+Kassendaten-Import bestehen bleibt. Frontend: `features/health/` (Sidebar „Patientenakte"
+primär; bestehende eGA/FHIR-Views unter „Kassendaten / Import"). Skill:
+`skills/system_defaults/medical-akte.md`.
+
+---
+
 ## Voice — STT/TTS für Sprache-Eingang/Ausgang (Core-Komponente)
 
 Wyoming-Whisper als lokaler STT-Server (Container, Port 10300) plus
