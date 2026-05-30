@@ -59,6 +59,7 @@ from hydrahive.api.routes.users import router as users_router
 from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.health_data import router as health_data_router
+from hydrahive.api.routes.patientenakte import router as patientenakte_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
 
@@ -124,6 +125,7 @@ app.include_router(vms_router)
 app.include_router(containers_router)
 app.include_router(credentials_router)
 app.include_router(research_apis_router)
+app.include_router(patientenakte_router)
 app.include_router(extensions_router)
 app.include_router(dashboard_router)
 app.include_router(datamining_router)
