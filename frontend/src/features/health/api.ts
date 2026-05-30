@@ -218,6 +218,34 @@ export interface AkteTimelineEntry {
   verifiziert: number
 }
 
+// Das Backend liefert Entitäts-Records FLACH ({id, diagnose, icd_code, sort_date, …}).
+// Die UI erwartet {id, label, sort_date, verifiziert, record:{…}}. Dieser Adapter
+// übersetzt die flache Antwort und leitet ein sinnvolles Label je Entität ab.
+const LABEL_FIELDS: Record<AkteEntityKey, string[]> = {
+  conditions:    ['diagnose'],
+  medications:   ['name', 'wirkstoff'],
+  observations:  ['parameter'],
+  events:        ['typ', 'hauptdiagnose', 'einrichtung'],
+  imaging:       ['befund', 'modalitaet', 'region'],
+  allergies:     ['substanz'],
+  practitioners: ['name', 'einrichtung'],
+  documents:     ['titel'],
+  notes:         ['titel'],
+}
+
+function toAkteRecord(entity: AkteEntityKey, row: Record<string, unknown>): AkteRecord {
+  const labelField = LABEL_FIELDS[entity].find((f) => row[f])
+  const label = labelField ? String(row[labelField]) : '—'
+  return {
+    id: String(row.id ?? ''),
+    external_id: row.external_id ? String(row.external_id) : undefined,
+    label,
+    sort_date: (row.sort_date as string) ?? '',
+    verifiziert: Number(row.verifiziert ?? 0),
+    record: row,
+  }
+}
+
 export const akteApi = {
   // Own Akte
   getOwn: () => api.get<AktePatient>('/health/patientenakte'),
@@ -231,18 +259,25 @@ export const akteApi = {
   getSummary: () =>
     api.get<Record<string, number>>('/health/patientenakte/summary'),
 
-  getTimeline: () =>
-    api.get<AkteTimelineEntry[]>('/health/patientenakte/timeline'),
+  getTimeline: async (): Promise<AkteTimelineEntry[]> => {
+    const rows = await api.get<AkteTimelineEntry[]>('/health/patientenakte/timeline')
+    // Backend liefert verifiziert flach im record; UI liest es oben → nachziehen.
+    return rows.map((e) => ({
+      ...e,
+      verifiziert: Number(e.verifiziert ?? (e.record as Record<string, unknown>)?.verifiziert ?? 0),
+    }))
+  },
 
   // Entities
-  listEntity: (entity: AkteEntityKey, params?: { q?: string; status?: string }) => {
+  listEntity: async (entity: AkteEntityKey, params?: { q?: string; status?: string }): Promise<AkteRecord[]> => {
     const sp = new URLSearchParams()
     if (params?.q) sp.set('q', params.q)
     if (params?.status) sp.set('status', params.status)
     const qs = sp.toString()
-    return api.get<AkteRecord[]>(
+    const rows = await api.get<Record<string, unknown>[]>(
       `/health/patientenakte/${entity}${qs ? '?' + qs : ''}`
     )
+    return rows.map((row) => toAkteRecord(entity, row))
   },
 
   createEntity: (entity: AkteEntityKey, data: Record<string, unknown>) =>
