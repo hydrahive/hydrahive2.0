@@ -13,31 +13,25 @@ interface Section {
 
 const SECTIONS: Section[] = [
   {
-    title: "Patientenakte",
+    title: "Meine Akte",
     items: [
-      { to: "/health/uebersicht", icon: "🗂", label: "Übersicht" },
-      { to: "/health/zeitstrahl", icon: "📅", label: "Zeitstrahl" },
+      { to: "/health/uebersicht",     icon: "🗂", label: "Übersicht" },
+      { to: "/health/timeline",       icon: "📅", label: "Zeitstrahl" },
+      { to: "/health/conditions",    icon: "🔴", label: "Diagnosen" },
+      { to: "/health/medications",   icon: "💊", label: "Medikamente" },
+      { to: "/health/observations",   icon: "🧪", label: "Laborwerte" },
+      { to: "/health/allergies",     icon: "🤧", label: "Allergien" },
+      { to: "/health/events",        icon: "📋", label: "Ereignisse" },
+      { to: "/health/imaging",       icon: "🩻", label: "Bildgebung" },
+      { to: "/health/practitioners", icon: "👨‍⚕️", label: "Ärzte" },
+      { to: "/health/documents",     icon: "📄", label: "Dokumente" },
+      { to: "/health/notes",         icon: "📝", label: "Notizen" },
     ],
   },
   {
-    title: "Medizinisch",
+    title: "Import",
     items: [
-      { to: "/health/diagnosen",   icon: "🔴", label: "Diagnosen" },
-      { to: "/health/medikamente", icon: "💊", label: "Medikamente" },
-      { to: "/health/laborwerte",  icon: "🧪", label: "Laborwerte" },
-      { to: "/health/allergien",   icon: "🤧", label: "Allergien" },
-      { to: "/health/impfungen",   icon: "💉", label: "Impfungen" },
-      { to: "/health/eingriffe",   icon: "🔪", label: "Eingriffe" },
-    ],
-  },
-  {
-    title: "Kontakte",
-    items: [
-      { to: "/health/arztbesuche",  icon: "🏥", label: "Arztbesuche" },
-      { to: "/health/abrechnung",   icon: "🧾", label: "Abrechnung" },
-      { to: "/health/krankenhaus",  icon: "🛏", label: "Krankenhaus" },
-      { to: "/health/befunde",      icon: "📋", label: "Befunde" },
-      { to: "/health/dokumente",    icon: "📄", label: "Dokumente" },
+      { to: "/health/import", icon: "📥", label: "eGA / FHIR" },
     ],
   },
   {
@@ -45,12 +39,6 @@ const SECTIONS: Section[] = [
     items: [
       { to: "/health/apple",  icon: "🍎", label: "Apple Health" },
       { to: "/health/schlaf", icon: "😴", label: "Schlaf" },
-    ],
-  },
-  {
-    title: "Forschung",
-    items: [
-      { to: "/health/forschungs-apis", icon: "🔬", label: "Forschungs-APIs" },
     ],
   },
   {

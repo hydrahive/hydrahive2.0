@@ -56,6 +56,15 @@ def list_for(user_id: str) -> list[dict[str, Any]]:
     return [_row_to_patient(r) for r in rows]
 
 
+def get_own_id(user_id: str) -> str | None:
+    """Return the patient_id for this user's own akte, or None if not yet created."""
+    with db() as conn:
+        row = conn.execute(
+            "SELECT id FROM akte_patient WHERE owner_user_id=? LIMIT 1", (user_id,)
+        ).fetchone()
+    return row["id"] if row else None
+
+
 def update(user_id: str, pid: str, data: dict[str, Any]) -> bool:
     sets, vals = ["updated_at=?"], [now_iso()]
     for f in _SCALAR:

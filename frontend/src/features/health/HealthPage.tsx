@@ -3,17 +3,10 @@ import { Navigate, Route, Routes } from "react-router-dom"
 import { Activity } from "lucide-react"
 import { HealthSidebar } from "./HealthSidebar"
 import { KiFloatingButton } from "./KiFloatingButton"
-import { UebersichtView }  from "./views/UebersichtView"
-import { ZeitstrahlView }  from "./views/ZeitstrahlView"
-import { DiagnosenView }   from "./views/DiagnosenView"
-import { MedikamenteView } from "./views/MedikamenteView"
-import { LaborwerteView }       from "./views/LaborwerteView"
-import { ArztabrechnungView }  from "./views/ArztabrechnungView"
-import { SimpleListView }       from "./views/SimpleListView"
-import { KiAssistentView } from "./views/KiAssistentView"
-import { ResearchApisView } from "./views/ResearchApisView"
-import { TrendChart }      from "./_TrendChart"
-import { SleepChart }      from "./_SleepChart"
+import { AkteDashboard }  from "./views/AkteDashboard"
+import { AkteTimeline }  from "./views/AkteTimeline"
+import { AkteEntityList } from "./views/AkteEntityList"
+import { AkteLabCharts } from "./views/AkteLabCharts"
 import { healthApi, type MetricsSummary } from "./api"
 
 function AppleHealthView() {
@@ -29,23 +22,30 @@ function AppleHealthView() {
     return <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
   }
 
-  return <TrendChart summary={summary} />
+  return (
+    <div className="space-y-4">
+      <div className="text-sm text-zinc-500">
+        Apple Health Daten werden automatisch synchronisiert.
+      </div>
+      {/* Placeholder — AkteDashboard replaces UebersichtView as primary */}
+    </div>
+  )
 }
 
-function SchlafView() {
-  const [summary, setSummary] = useState<MetricsSummary | null>(null)
-
-  useEffect(() => {
-    healthApi.metrics(30, "sleep_analysis").then(setSummary).catch(() => {
-      setSummary({ metrics: {}, last_ingest: null, period_days: 30 })
-    })
-  }, [])
-
-  if (summary === null) {
-    return <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
-  }
-
-  return <SleepChart summary={summary} />
+function ImportView() {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-base font-semibold text-zinc-100">📥 eGA / FHIR Import</h2>
+      <p className="text-sm text-zinc-500">
+        Importiere Daten aus der elektronischen Gesundheitsakte (eGA) der Techniker Krankenkasse
+        oder aus beliebigen FHIR-Bundles. Importierte Daten sind read-only und bleiben
+        vom eigenen Akten-Bereich getrennt.
+      </p>
+      <div className="rounded-xl border border-white/[6%] bg-zinc-900/40 p-6 text-center text-sm text-zinc-500">
+        Import-Funktionen werden in Kürze verfügbar sein.
+      </div>
+    </div>
+  )
 }
 
 export function HealthPage() {
@@ -57,7 +57,7 @@ export function HealthPage() {
         </div>
         <div>
           <h1 className="text-lg font-semibold text-zinc-100">Gesundheit</h1>
-          <p className="text-xs text-zinc-500">Digitale Patientenakte</p>
+          <p className="text-xs text-zinc-500">Meine Patientenakte</p>
         </div>
       </div>
 
@@ -65,24 +65,29 @@ export function HealthPage() {
         <HealthSidebar />
         <div className="flex-1 min-w-0 relative">
           <Routes>
+            {/* Meine Akte */}
             <Route index element={<Navigate to="uebersicht" replace />} />
-            <Route path="uebersicht"  element={<UebersichtView />} />
-            <Route path="zeitstrahl"  element={<ZeitstrahlView />} />
-            <Route path="diagnosen"   element={<DiagnosenView />} />
-            <Route path="medikamente" element={<MedikamenteView />} />
-            <Route path="laborwerte"  element={<LaborwerteView />} />
-            <Route path="allergien"   element={<SimpleListView dtoType="AllergyIntolerance" title="Allergien" icon="🤧" />} />
-            <Route path="impfungen"   element={<SimpleListView dtoType="Immunization" title="Impfungen" icon="💉" />} />
-            <Route path="eingriffe"   element={<SimpleListView dtoType="Procedure" title="Eingriffe" icon="🔪" />} />
-            <Route path="arztbesuche" element={<SimpleListView dtoType="Encounter" title="Arztbesuche" icon="🏥" />} />
-            <Route path="abrechnung"  element={<ArztabrechnungView />} />
-            <Route path="krankenhaus" element={<SimpleListView dtoType="HospitalStay" title="Krankenhaus" icon="🛏" />} />
-            <Route path="befunde"     element={<SimpleListView dtoType="DiagnosticReport" title="Befunde" icon="📋" />} />
-            <Route path="dokumente"   element={<SimpleListView dtoType="DocumentReference" title="Dokumente" icon="📄" />} />
-            <Route path="apple"       element={<AppleHealthView />} />
-            <Route path="schlaf"      element={<SchlafView />} />
-            <Route path="ki"          element={<KiAssistentView />} />
-            <Route path="forschungs-apis" element={<ResearchApisView />} />
+            <Route path="uebersicht"     element={<AkteDashboard />} />
+            <Route path="timeline"       element={<AkteTimeline />} />
+            <Route path="conditions"    element={<AkteEntityList entity="conditions" />} />
+            <Route path="medications"   element={<AkteEntityList entity="medications" />} />
+            <Route path="observations"  element={<AkteLabCharts />} />
+            <Route path="allergies"     element={<AkteEntityList entity="allergies" />} />
+            <Route path="events"        element={<AkteEntityList entity="events" />} />
+            <Route path="imaging"       element={<AkteEntityList entity="imaging" />} />
+            <Route path="practitioners" element={<AkteEntityList entity="practitioners" />} />
+            <Route path="documents"     element={<AkteEntityList entity="documents" />} />
+            <Route path="notes"         element={<AkteEntityList entity="notes" />} />
+
+            {/* Import */}
+            <Route path="import"        element={<ImportView />} />
+
+            {/* Tracking */}
+            <Route path="apple"  element={<AppleHealthView />} />
+            <Route path="schlaf" element={<AppleHealthView />} />
+
+            {/* KI */}
+            <Route path="ki" element={<AppleHealthView />} />
           </Routes>
           <KiFloatingButton />
         </div>

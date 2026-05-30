@@ -180,3 +180,78 @@ export const researchApi = {
   test: (id: string) =>
     api.post<ResearchTestResult>(`/research-apis/${id}/test`, {}),
 }
+
+// ─── Patientenakte (Single-User) ──────────────────────────────────────────
+
+export type AkteEntityKey =
+  | 'conditions' | 'medications' | 'observations'
+  | 'events' | 'imaging' | 'allergies'
+  | 'practitioners' | 'documents' | 'notes'
+
+export interface AktePatient {
+  id: string
+  slug: string
+  name: string
+  vorname: string
+  geburtsdatum: string
+  geschlecht: string
+  versicherung?: Record<string, unknown>
+  counts?: Record<string, number>
+}
+
+export interface AkteRecord {
+  id: string
+  external_id?: string
+  label: string
+  sort_date: string
+  verifiziert: number
+  record: Record<string, unknown>
+}
+
+export interface AkteTimelineEntry {
+  entity: AkteEntityKey
+  label: string
+  sort_date: string
+  record: Record<string, unknown>
+  verifiziert: number
+}
+
+export const akteApi = {
+  // Own Akte
+  getOwn: () => api.get<AktePatient>('/health/patientenakte'),
+
+  createOwn: (data: Partial<AktePatient>) =>
+    api.post<{ id: string }>('/health/patientenakte', data),
+
+  updateOwn: (data: Partial<AktePatient>) =>
+    api.patch<{ ok: boolean }>('/health/patientenakte', data),
+
+  getSummary: () =>
+    api.get<Record<string, number>>('/health/patientenakte/summary'),
+
+  getTimeline: () =>
+    api.get<AkteTimelineEntry[]>('/health/patientenakte/timeline'),
+
+  // Entities
+  listEntity: (entity: AkteEntityKey, params?: { q?: string; status?: string }) => {
+    const sp = new URLSearchParams()
+    if (params?.q) sp.set('q', params.q)
+    if (params?.status) sp.set('status', params.status)
+    const qs = sp.toString()
+    return api.get<AkteRecord[]>(
+      `/health/patientenakte/${entity}${qs ? '?' + qs : ''}`
+    )
+  },
+
+  createEntity: (entity: AkteEntityKey, data: Record<string, unknown>) =>
+    api.post<{ id: string }>(`/health/patientenakte/${entity}`, data),
+
+  updateEntity: (entity: AkteEntityKey, eid: string, data: Record<string, unknown>) =>
+    api.patch<{ ok: boolean }>(`/health/patientenakte/${entity}/${eid}`, data),
+
+  deleteEntity: (entity: AkteEntityKey, eid: string) =>
+    api.delete<{ ok: boolean }>(`/health/patientenakte/${entity}/${eid}`),
+
+  verifyEntity: (entity: AkteEntityKey, eid: string) =>
+    api.patch<{ ok: boolean }>(`/health/patientenakte/${entity}/${eid}`, { verifiziert: 1 }),
+}
