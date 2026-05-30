@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { Navigate, Route, Routes } from "react-router-dom"
+import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { Activity } from "lucide-react"
 import { HealthSidebar } from "./HealthSidebar"
 import { KiFloatingButton } from "./KiFloatingButton"
+import { AkteErrorBoundary } from "./components/AkteErrorBoundary"
 import { AkteDashboard }  from "./views/AkteDashboard"
 import { AkteTimeline }  from "./views/AkteTimeline"
 import { AkteEntityList } from "./views/AkteEntityList"
@@ -49,6 +50,7 @@ function ImportView() {
 }
 
 export function HealthPage() {
+  const { pathname } = useLocation()
   return (
     <div className="max-w-6xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
@@ -64,6 +66,7 @@ export function HealthPage() {
       <div className="flex gap-6">
         <HealthSidebar />
         <div className="flex-1 min-w-0 relative">
+          <AkteErrorBoundary resetKey={pathname}>
           <Routes>
             {/* Meine Akte */}
             <Route index element={<Navigate to="uebersicht" replace />} />
@@ -89,6 +92,7 @@ export function HealthPage() {
             {/* KI */}
             <Route path="ki" element={<AppleHealthView />} />
           </Routes>
+          </AkteErrorBoundary>
           <KiFloatingButton />
         </div>
       </div>
