@@ -206,6 +206,8 @@ export interface AkteRecord {
   sort_date: string
   verifiziert: number
   record: Record<string, unknown>
+  // Index-Signatur: erfüllt die ResourceTable<T extends Record<string, unknown>>-Constraint
+  [key: string]: unknown
 }
 
 export interface AkteTimelineEntry {

@@ -49,7 +49,7 @@ export function AkteTimeline() {
       prev?.map((e) => eid === e.record?.id || e.record?.id === eid
         ? { ...e, verifiziert: 1 }
         : e
-      )
+      ) ?? null
     )
   }
 
