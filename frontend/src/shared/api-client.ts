@@ -40,7 +40,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(buildErrorMessage(body, res.status))
+    const err = new Error(buildErrorMessage(body, res.status)) as Error & { status?: number }
+    err.status = res.status
+    throw err
   }
   return res.json()
 }

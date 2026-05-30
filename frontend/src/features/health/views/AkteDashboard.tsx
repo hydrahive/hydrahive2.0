@@ -44,8 +44,8 @@ export function AkteDashboard({ onSaved }: Props) {
         return akteApi.getSummary()
       })
       .then(setSummary)
-      .catch((e: Error) => {
-        if (e.message.includes("404")) {
+      .catch((e: Error & { status?: number }) => {
+        if (e.status === 404 || e.message.includes("404") || e.message.includes("Keine Akte")) {
           setAkte(null)
         } else {
           setError(e.message)
