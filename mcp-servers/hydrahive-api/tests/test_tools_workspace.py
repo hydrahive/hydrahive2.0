@@ -31,9 +31,11 @@ async def test_list_files(base_url, token):
 @pytest.mark.asyncio
 async def test_read_file(base_url, token):
     with respx.mock:
+        # Die echte Route /files/read liefert PlainTextResponse (Roh-Text), KEIN JSON.
         respx.get(f"{base_url}/api/projects/p1/files/read").mock(
-            return_value=httpx.Response(200, json={"content": "# Hello", "path": "README.md"})
+            return_value=httpx.Response(200, text="# Hello")
         )
         auth = Auth(base_url=base_url, api_key=token)
         result = await read_file(RestClient(auth), "p1", "README.md")
         assert result["content"] == "# Hello"
+        assert result["path"] == "README.md"

@@ -22,6 +22,19 @@ class RestClient:
             r.raise_for_status()
             return r.json()
 
+    async def get_text(self, path: str, params: dict | None = None) -> str:
+        """Wie get(), aber liefert Roh-Text — für PlainTextResponse-Endpoints
+        (z.B. /files/read), die kein JSON zurückgeben."""
+        await self.auth.ensure_token()
+        url = self.auth.base_url + path
+        async with self._client() as c:
+            r = await c.get(url, params=params, headers=self.auth.headers())
+            if r.status_code == 401:
+                await self.auth.refresh()
+                r = await c.get(url, params=params, headers=self.auth.headers())
+            r.raise_for_status()
+            return r.text
+
     async def post(self, path: str, body: dict | None = None) -> Any:
         await self.auth.ensure_token()
         url = self.auth.base_url + path

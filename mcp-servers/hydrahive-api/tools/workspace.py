@@ -25,8 +25,9 @@ async def read_file(
     client: RestClient, project_id: str, path: str
 ) -> dict[str, Any]:
     try:
-        return await client.get(
+        content = await client.get_text(
             f"/api/projects/{project_id}/files/read", params={"path": path}
         )
+        return {"path": path, "content": content}
     except Exception as e:
         return {"error": str(e), "code": "read_failed"}
