@@ -331,6 +331,22 @@ if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
     bash "$HH_REPO_DIR/installer/modules/65-vms.sh" || log "vms-setup failed — weiter"
 fi
 
+# qemu-bridge-helper setuid IMMER sicherstellen — auch wenn 65-vms.sh oben
+# übersprungen wurde. Ein qemu-Upgrade beim Update liefert ein frisches Binary
+# OHNE setuid-Bit; ohne das schlägt bridged networking fehl mit
+# "failed to open /dev/net/tun: Operation not permitted" und VMs starten nicht.
+BRIDGE_HELPER=$(find /usr/lib /usr/libexec -name "qemu-bridge-helper" 2>/dev/null | head -1)
+if [ -n "$BRIDGE_HELPER" ] && [ ! -u "$BRIDGE_HELPER" ]; then
+  log "qemu-bridge-helper hat kein setuid (nach qemu-Upgrade?) — setze u+s"
+  chmod u+s "$BRIDGE_HELPER"
+fi
+if [ -n "$BRIDGE_HELPER" ] && ! grep -q "^allow br0" /etc/qemu/bridge.conf 2>/dev/null; then
+  log "br0 in /etc/qemu/bridge.conf erlauben"
+  mkdir -p /etc/qemu
+  echo "allow br0" >> /etc/qemu/bridge.conf
+  chmod 644 /etc/qemu/bridge.conf
+fi
+
 # incus-Setup muss VOR dem Voice-Check laufen — 55-voice.sh nutzt incus
 # als STT-Container-Runtime (kein Docker mehr).
 if ! command -v incus >/dev/null 2>&1 \
