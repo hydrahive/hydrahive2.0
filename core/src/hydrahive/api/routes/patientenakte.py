@@ -41,7 +41,7 @@ def _own_or_404(user_id: str, pid: str) -> None:
 
 # ── Single-User: Root ────────────────────────────────────────────────────────
 
-@router.get("/")
+@router.get("")
 async def get_my_akte(auth: Auth) -> dict[str, Any]:
     """Hole die eigene Akte des eingeloggten Users. 404 wenn noch keine existiert."""
     pid = patients.get_own_id(auth[0])
@@ -54,7 +54,7 @@ async def get_my_akte(auth: Auth) -> dict[str, Any]:
     return p
 
 
-@router.post("/")
+@router.post("")
 async def create_my_akte(data: dict[str, Any], auth: Auth) -> dict[str, str]:
     """Erstellt die eigene Akte. Scheitert wenn bereits eine existiert."""
     existing = patients.get_own_id(auth[0])
@@ -63,7 +63,7 @@ async def create_my_akte(data: dict[str, Any], auth: Auth) -> dict[str, str]:
     return {"id": patients.create(auth[0], data)}
 
 
-@router.patch("/")
+@router.patch("")
 async def update_my_akte(data: dict[str, Any], auth: Auth) -> dict[str, bool]:
     """Aktualisiert die eigenen Akte-Stammdaten."""
     pid = patients.get_own_id(auth[0])
