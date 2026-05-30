@@ -141,3 +141,31 @@ def admin_headers(client):
     assert response.status_code == 200
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(autouse=True)
+def _akte_isolated_db(request, tmp_path_factory):
+    """Patientenakte-Tests bekommen je eine frische, migrierte SQLite-DB.
+
+    Sie gehen direkt über db() (nicht über die client-Fixture) und würden sich
+    sonst den session-weiten DB-State teilen — bei zufälliger Test-Reihenfolge
+    (pytest-randomly) führt das zu Cross-Test-Pollution. No-op für andere Tests.
+    """
+    if "test_akte_" not in request.node.nodeid:
+        yield
+        return
+    from hydrahive.db.connection import init_db
+    from hydrahive.settings import settings
+
+    dbfile = tmp_path_factory.mktemp("akte_db") / "sessions.db"
+    sentinel = object()
+    old = settings.__dict__.get("sessions_db", sentinel)
+    settings.__dict__["sessions_db"] = dbfile
+    init_db()
+    try:
+        yield
+    finally:
+        if old is sentinel:
+            settings.__dict__.pop("sessions_db", None)
+        else:
+            settings.__dict__["sessions_db"] = old
