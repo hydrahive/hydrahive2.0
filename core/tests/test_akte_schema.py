@@ -51,3 +51,80 @@ def test_registry_keys_match_lastenheft():
         "conditions", "medications", "observations", "events", "imaging",
         "allergies", "practitioners", "documents", "notes",
     }
+
+
+# ── SSOT (Single Source of Truth) für die UI ─────────────────────────────────
+# Diese Guards verhindern Drift zwischen Backend-Registry und Frontend.
+# Früher lagen Feld-/Label-/Spalten-Definitionen handgespiegelt in akteFields.ts,
+# api.ts (LABEL_FIELDS) und AkteEntityList.tsx (ENTITY_COLUMNS) — und drifteten
+# (z.B. Spalte "sicherheit" statt "schweregrad" → still leere Zelle).
+
+VALID_FIELD_TYPES = {"text", "number", "date", "textarea", "select"}
+
+
+def test_fields_derived_from_ui_fields():
+    """fields ist abgeleitet aus ui_fields (eine Quelle, keine Doppelung)."""
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        assert spec.fields == tuple(f.key for f in spec.ui_fields), key
+
+
+def test_ui_field_keys_unique():
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        keys = [f.key for f in spec.ui_fields]
+        assert len(keys) == len(set(keys)), f"{key}: doppelte ui_field keys"
+
+
+def test_ui_field_types_are_valid():
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        for f in spec.ui_fields:
+            assert f.type in VALID_FIELD_TYPES, f"{key}.{f.key}: bad type {f.type!r}"
+
+
+def test_select_fields_have_options():
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        for f in spec.ui_fields:
+            if f.type == "select":
+                assert f.options, f"{key}.{f.key}: select ohne options"
+
+
+def test_each_entity_has_required_label_field():
+    """Mind. ein Pflichtfeld pro Entität — sonst leere Einträge ohne Label."""
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        required = [f.key for f in spec.ui_fields if f.required]
+        assert required, f"{key}: kein required-Feld"
+
+
+def test_label_fields_subset_of_fields():
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        assert spec.label_fields, f"{key}: keine label_fields"
+        unknown = set(spec.label_fields) - set(spec.fields)
+        assert not unknown, f"{key}: label_fields nicht in fields: {unknown}"
+
+
+def test_list_columns_subset_of_fields():
+    """Der Guard, der die toten Spalten (körperstelle/sicherheit/…) fängt."""
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        unknown = set(spec.list_columns) - set(spec.fields)
+        assert not unknown, f"{key}: list_columns nicht in fields: {unknown}"
+
+
+def test_numeric_fields_subset_of_fields():
+    from hydrahive.patientenakte.schema import ENTITIES
+
+    for key, spec in ENTITIES.items():
+        unknown = set(spec.numeric_fields) - set(spec.fields)
+        assert not unknown, f"{key}: numeric_fields nicht in fields: {unknown}"
