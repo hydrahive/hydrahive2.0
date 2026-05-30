@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { akteApi, type AkteEntityKey, type AkteRecord } from "../api"
 import { VerifyBadge } from "../components/VerifyBadge"
 import { ResourceTable } from "../components/ResourceTable"
+import { AkteEntryModal } from "../components/AkteEntryModal"
 
 interface Column<T> {
   key: string
@@ -96,6 +97,7 @@ export function AkteEntityList({ entity, statusFilter }: Props) {
   const [rows, setRows] = useState<AkteRecord[] | null>(null)
   const [search, setSearch] = useState("")
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [modal, setModal] = useState<{ existing?: AkteRecord } | null>(null)
 
   const load = () => {
     akteApi.listEntity(entity, { q: search || undefined, status: statusFilter })
@@ -149,6 +151,13 @@ export function AkteEntityList({ entity, statusFilter }: Props) {
       <div className="flex items-center gap-2">
         {handleVerifyBadge(r.verifiziert, r.id)}
         <button
+          onClick={() => setModal({ existing: r })}
+          className="text-zinc-600 hover:text-zinc-300 text-xs transition-colors"
+          title="Bearbeiten"
+        >
+          ✎
+        </button>
+        <button
           onClick={() => handleDelete(r.id)}
           disabled={deleting === r.id}
           className="text-zinc-600 hover:text-red-400 text-xs transition-colors disabled:opacity-50"
@@ -172,12 +181,27 @@ export function AkteEntityList({ entity, statusFilter }: Props) {
           onChange={(e) => setSearch(e.target.value)}
           className="ml-auto rounded-lg border border-white/[8%] bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 w-48"
         />
+        <button
+          onClick={() => setModal({})}
+          className="rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-300 px-3 py-1.5 text-sm font-medium hover:bg-rose-500/30 transition-colors whitespace-nowrap"
+        >
+          + Neu
+        </button>
       </div>
       <ResourceTable
         rows={rows}
         columns={[...columns.slice(0, -1), actionColumn]}
         emptyText={`Keine ${label} vorhanden`}
       />
+      {modal && (
+        <AkteEntryModal
+          entity={entity}
+          title={label}
+          existing={modal.existing}
+          onClose={() => setModal(null)}
+          onSaved={load}
+        />
+      )}
     </div>
   )
 }
