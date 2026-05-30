@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from "recharts"
 import { akteApi, type AkteRecord } from "../api"
+import { AkteEntryModal } from "../components/AkteEntryModal"
 
 interface Props {
   parameterFilter?: string  // show only this parameter
@@ -62,6 +63,8 @@ function getFlag(wert: number, refLow: number, refHigh: number): string {
 
 export function AkteLabCharts({ parameterFilter }: Props) {
   const [series, setSeries] = useState<LabSeries[] | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     akteApi.listEntity("observations")
@@ -109,22 +112,54 @@ export function AkteLabCharts({ parameterFilter }: Props) {
         setSeries(filtered.length > 0 ? filtered : null)
       })
       .catch(() => setSeries(null))
-  }, [parameterFilter])
+  }, [parameterFilter, reloadKey])
+
+  const modal = modalOpen && (
+    <AkteEntryModal
+      entity="observations"
+      title="Laborwerte"
+      onClose={() => setModalOpen(false)}
+      onSaved={() => setReloadKey((k) => k + 1)}
+    />
+  )
+
+  const header = (
+    <div className="flex items-center gap-3">
+      <h2 className="text-base font-semibold text-zinc-100">Laborwerte</h2>
+      <button
+        onClick={() => setModalOpen(true)}
+        className="ml-auto rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-300 px-3 py-1.5 text-sm font-medium hover:bg-rose-500/30 transition-colors whitespace-nowrap"
+      >
+        + Neu
+      </button>
+    </div>
+  )
 
   if (series === null) {
-    return <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
+    return (
+      <div className="space-y-4">
+        {header}
+        <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
+        {modal}
+      </div>
+    )
   }
 
   if (series.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 text-center py-8">
-        Keine Laborwerte mit Trends vorhanden (mindestens 2 Messungen nötig).
-      </p>
+      <div className="space-y-4">
+        {header}
+        <p className="text-sm text-zinc-500 text-center py-8">
+          Keine Laborwerte mit Trends vorhanden (mindestens 2 Messungen nötig).
+        </p>
+        {modal}
+      </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {header}
       {series.map((s) => (
         <div key={s.parameter} className="space-y-2">
           <div className="flex items-center gap-3 text-sm">
@@ -173,6 +208,7 @@ export function AkteLabCharts({ parameterFilter }: Props) {
           </div>
         </div>
       ))}
+      {modal}
     </div>
   )
 }
