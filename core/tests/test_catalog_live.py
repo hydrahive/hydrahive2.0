@@ -1,6 +1,17 @@
 from __future__ import annotations
 
+import pytest
+
 from hydrahive.llm import catalog
+
+
+@pytest.fixture(autouse=True)
+def _clear_catalog_cache():
+    """Isolation: der modulglobale catalog._cache darf nicht in andere Test-Module
+    leaken (sonst sieht validate_model dort eine nicht-leere Modell-Liste)."""
+    catalog._cache_clear()
+    yield
+    catalog._cache_clear()
 
 
 _OPENROUTER_RESPONSE = {
