@@ -54,4 +54,5 @@ dreamy synthwave, analog pads, nostalgic lead melody, steady 100 BPM, retro 80s 
 - Lyria 3 ist aktuell im **Preview kostenlos**.
 - Generierung dauert spürbar (Streaming, ~10–60s) — nicht doppelt abschicken.
 - Instrumental only, keine Vocals/Lyrics.
-- Bei "Audio output requires stream" o.ä. Fehlern: das ist ein API-Problem, nicht dein Prompt — dem User melden, nicht blind wiederholen.
+- Sagt das Tool **"bitte erneut versuchen"** (kein Track / Stream vorzeitig beendet): das ist seltene Provider-Flakiness, nicht dein Prompt. Ruf `generate_music` **einmal** unverändert erneut auf. Klappt es zweimal nicht in Folge: dem User melden, nicht endlos wiederholen.
+- Andere API-Fehler (z.B. ungültiges Modell, Key fehlt): nicht wiederholen, dem User melden.

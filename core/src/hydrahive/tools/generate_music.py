@@ -1,9 +1,19 @@
 """Musikgenerierung über OpenRouter (Lyria 3, synchron via gestreamtes chat/completions).
 
-Live verifiziert 2026-05-31 (3.23): Audio-Output erfordert `stream:true` +
-`modalities:["audio","text"]`. Das Audio kommt gestreamt in `delta.audio.data`
-(base64, ggf. mehrere Chunks), Default-Format MP3. Wird im Agent-Workspace
-gespeichert (von /api/files ausgeliefert), nur der Pfad geht ins LLM zurück.
+Format abgeglichen mit der kanonischen OpenClaw-Implementierung (PR #82789,
+gemergt 2026-05-17) und live verifiziert auf 3.23:
+
+  Pflicht-Parameter für Audio-Output:
+    modalities: ["text", "audio"]
+    audio:      {"format": "mp3"}   ← ohne das liefert Lyria nicht-deterministisch
+                                       mal Audio, mal nur Struktur-Marker
+    stream:     true
+
+Das Audio kommt gestreamt in `delta.audio.data` (base64) — der eigentliche
+Chunk ist EINE mehrere MB große SSE-Zeile. Deshalb wird über rohe Bytes
+gepuffert und selbst an Zeilen getrennt; httpx' aiter_lines() zerlegt diese
+Riesenzeile nicht-deterministisch. Der Stream gilt erst mit `[DONE]` als
+vollständig — sonst war es ein Abbruch, kein leeres Ergebnis.
 
 Modelle:
   google/lyria-3-pro-preview   — vollständige Stücke (default)
@@ -53,12 +63,19 @@ _SCHEMA = {
 }
 
 
+def _is_done_line(line: str) -> bool:
+    """True wenn die SSE-Zeile das Stream-Ende markiert (`data: [DONE]`)."""
+    if not line.startswith("data:"):
+        return False
+    return line[len("data:"):].strip() == "[DONE]"
+
+
 def _audio_chunk_from_sse_line(line: str) -> str | None:
     """Extrahiert delta.audio.data (base64) aus einer SSE-Zeile, sonst None."""
-    if not line.startswith("data: "):
+    if not line.startswith("data:"):
         return None
-    payload = line[6:]
-    if payload.strip() == "[DONE]":
+    payload = line[len("data:"):].strip()
+    if not payload or payload == "[DONE]":
         return None
     try:
         chunk = json.loads(payload)
@@ -69,6 +86,37 @@ def _audio_chunk_from_sse_line(line: str) -> str | None:
     if isinstance(audio, dict):
         return audio.get("data")
     return None
+
+
+async def _read_audio_stream(resp: httpx.Response) -> tuple[list[str], bool]:
+    """Liest den SSE-Stream über rohe Bytes, puffert und trennt selbst an `\\n`.
+
+    Gibt (audio_base64_teile, done_gesehen) zurück. Über Bytes statt aiter_lines,
+    weil der Audio-Chunk eine mehrere MB große Einzelzeile ist, die httpx
+    nicht-deterministisch zerlegt.
+    """
+    parts: list[str] = []
+    done = False
+    buf = b""
+
+    def consume(raw_line: bytes) -> None:
+        nonlocal done
+        text = raw_line.decode("utf-8", "replace").rstrip("\r")
+        if _is_done_line(text):
+            done = True
+            return
+        chunk = _audio_chunk_from_sse_line(text)
+        if chunk:
+            parts.append(chunk)
+
+    async for data in resp.aiter_bytes():
+        buf += data
+        while b"\n" in buf:
+            line, buf = buf.split(b"\n", 1)
+            consume(line)
+    if buf:
+        consume(buf)
+    return parts, done
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
@@ -86,11 +134,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "modalities": ["audio", "text"],
+        "modalities": ["text", "audio"],
+        "audio": {"format": "mp3"},
         "stream": True,
     }
 
-    b64_parts: list[str] = []
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             async with client.stream(
@@ -102,16 +150,24 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
                     body = (await resp.aread()).decode("utf-8", "replace")[:400]
                     logger.warning("generate_music HTTP %s: %s", resp.status_code, body)
                     return ToolResult.fail(f"OpenRouter API-Fehler {resp.status_code}: {body}")
-                async for line in resp.aiter_lines():
-                    chunk = _audio_chunk_from_sse_line(line)
-                    if chunk:
-                        b64_parts.append(chunk)
+                b64_parts, done = await _read_audio_stream(resp)
     except httpx.HTTPError as e:
         logger.warning("generate_music Netzwerk-Fehler: %s", e)
         return ToolResult.fail(f"Netzwerk-Fehler: {e}")
 
+    if not done and not b64_parts:
+        return ToolResult.fail(
+            "OpenRouter-Stream vorzeitig beendet (kein [DONE]) — keine Daten erhalten"
+        )
+    if b64_parts and not done:
+        return ToolResult.fail(
+            "OpenRouter-Stream vorzeitig beendet (kein [DONE]) — Audio unvollständig, bitte erneut versuchen"
+        )
     if not b64_parts:
-        return ToolResult.fail("Kein Audio in OpenRouter-Antwort erhalten")
+        return ToolResult.fail(
+            "Keine Audio-Daten in OpenRouter-Antwort (Provider lieferte nur Struktur, keinen Track) "
+            "— bitte erneut versuchen"
+        )
 
     try:
         raw = base64.b64decode("".join(b64_parts), validate=True)
