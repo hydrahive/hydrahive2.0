@@ -107,6 +107,7 @@ async def on_embed_model_change(new_model: str) -> None:
     await _cancel_backfill()
     async with _pool.acquire() as conn:
         await ensure_embed_col(conn)
+        await ensure_embed_col(conn, table="cards")
     if new_model:
         try:
             _backfill_task = asyncio.get_running_loop().create_task(_run_backfill(new_model))

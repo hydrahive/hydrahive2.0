@@ -61,3 +61,38 @@ def test_ensure_embed_col_rejects_unknown_table():
     from hydrahive.db._mirror_ddl import ensure_embed_col
     with pytest.raises(ValueError):
         asyncio.run(ensure_embed_col(None, table="events; DROP TABLE x"))
+
+
+def test_on_embed_model_change_ruft_ensure_embed_col_fuer_cards():
+    """on_embed_model_change muss ensure_embed_col für BEIDE Tabellen aufrufen.
+
+    Regression: nur 'events' wurde angepasst, 'cards' blieb bei alter dim → Suche kaputt.
+    """
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, call, patch
+
+    calls_made = []
+
+    async def fake_ensure(conn, table="events"):
+        calls_made.append(table)
+
+    fake_conn = AsyncMock()
+    fake_ctx = MagicMock()
+    fake_ctx.__aenter__ = AsyncMock(return_value=fake_conn)
+    fake_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    fake_pool = MagicMock()
+    fake_pool.acquire = MagicMock(return_value=fake_ctx)
+
+    with (
+        patch("hydrahive.db.mirror._pool", fake_pool),
+        patch("hydrahive.db.mirror.ensure_embed_col", side_effect=fake_ensure),
+        patch("hydrahive.db.mirror._run_backfill", new_callable=AsyncMock),
+    ):
+        asyncio.run(
+            __import__("hydrahive.db.mirror", fromlist=["on_embed_model_change"])
+            .on_embed_model_change("baai/bge-m3-20251117")
+        )
+
+    assert "events" in calls_made, "ensure_embed_col für 'events' wurde nicht aufgerufen"
+    assert "cards" in calls_made, "ensure_embed_col für 'cards' wurde nicht aufgerufen — Bug!"
