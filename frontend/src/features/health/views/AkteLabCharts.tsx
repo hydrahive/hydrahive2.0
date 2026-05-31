@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from "recharts"
 import { akteApi, type AkteRecord } from "../api"
+import { useAkteSchema } from "../useAkteSchema"
 import { AkteEntryModal } from "../components/AkteEntryModal"
 
 interface Props {
@@ -62,6 +63,7 @@ function getFlag(wert: number, refLow: number, refHigh: number): string {
 }
 
 export function AkteLabCharts({ parameterFilter }: Props) {
+  const schema = useAkteSchema()
   const [series, setSeries] = useState<LabSeries[] | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
@@ -114,10 +116,11 @@ export function AkteLabCharts({ parameterFilter }: Props) {
       .catch(() => setSeries(null))
   }, [parameterFilter, reloadKey])
 
-  const modal = modalOpen && (
+  const modal = modalOpen && schema && (
     <AkteEntryModal
       entity="observations"
-      title="Laborwerte"
+      title={schema.entities.observations.label}
+      fields={schema.entities.observations.ui_fields}
       onClose={() => setModalOpen(false)}
       onSaved={() => setReloadKey((k) => k + 1)}
     />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { akteApi, type AktePatient } from "../api"
+import { useAkteSchema } from "../useAkteSchema"
 
 function calcAge(geb: string): number {
   const birth = new Date(geb)
@@ -18,6 +19,7 @@ interface Props {
 
 export function AkteDashboard({ onSaved }: Props) {
   const navigate = useNavigate()
+  const schema = useAkteSchema()
   const [akte, setAkte] = useState<AktePatient | null | "loading">("loading")
   const [summary, setSummary] = useState<Record<string, number> | null>(null)
   const [conditions, setConditions] = useState<unknown[]>([])
@@ -57,11 +59,12 @@ export function AkteDashboard({ onSaved }: Props) {
 
   // Load critical entity data when akte exists
   useEffect(() => {
-    if (!akte || akte === "loading" || akte === null) return
-    akteApi.listEntity("conditions", { status: "aktuell" }).then(setConditions).catch(() => {})
-    akteApi.listEntity("allergies").then(setAllergies).catch(() => {})
-    akteApi.listEntity("medications", { status: "aktuell" }).then(setMedications).catch(() => {})
-  }, [akte])
+    if (!akte || akte === "loading" || akte === null || !schema) return
+    const lf = (e: "conditions" | "allergies" | "medications") => schema.entities[e].label_fields
+    akteApi.listEntity("conditions", { status: "aktuell" }, lf("conditions")).then(setConditions).catch(() => {})
+    akteApi.listEntity("allergies", undefined, lf("allergies")).then(setAllergies).catch(() => {})
+    akteApi.listEntity("medications", { status: "aktuell" }, lf("medications")).then(setMedications).catch(() => {})
+  }, [akte, schema])
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
