@@ -23,6 +23,7 @@ from hydrahive.tools import (
     list_skills,
     load_skill,
     read_memory,
+    read_scratchpad,
     search_memory,
     send_mail,
     shell,
@@ -32,6 +33,7 @@ from hydrahive.tools import (
     webmin_call,
     webmin_status,
     write_memory,
+    write_scratchpad,
 )
 from hydrahive.settings import settings
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
@@ -58,6 +60,8 @@ def _build_registry() -> dict[str, Tool]:
         list_projects.TOOL,
         list_skills.TOOL,
         load_skill.TOOL,
+        read_scratchpad.TOOL,
+        write_scratchpad.TOOL,
         datamining.TOOL_SEARCH,
         datamining.TOOL_SEMANTIC,
         datamining.TOOL_TIMELINE,
