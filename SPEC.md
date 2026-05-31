@@ -954,8 +954,10 @@ WhatsApp-Adapter genutzt — Sprachnachrichten verstehen + senden.
 - Audio-Konvertierung zu 16kHz Mono raw-PCM via ffmpeg
   (akzeptiert mp3/ogg/wav/m4a/…)
 - TTS-Wrapper mit Quota-Tracking (`_quota.py`)
-- TTS provider-wählbar: MiniMax (`mmx`-CLI) oder OpenRouter (`gpt-audio`),
-  Auswahl über `media_models.tts` (siehe Media-Generierung)
+- TTS provider-wählbar (pro User): **Browser** (Web Speech, clientseitig),
+  **Lokal** (Wyoming-Piper, incus-Container Port 10200 — ohne Cloud-Key),
+  **MiniMax** (`mmx`-CLI) oder **OpenRouter** (echtes TTS via `/audio/speech`,
+  Modell zentral über `media_models.tts`, siehe Media-Generierung)
 - WhatsApp-Voice-Eingang: `_wa_voice.py` ruft direkt `transcribe_bytes()`
 
 ### Nicht-Ziele
@@ -964,13 +966,14 @@ WhatsApp-Adapter genutzt — Sprachnachrichten verstehen + senden.
 - Voice-Cloning
 
 ### Voraussetzungen
-- Container-Subsystem aktiv (Voice-Whisper läuft als incus-Container)
+- Container-Subsystem aktiv (Whisper-STT + optional Piper-TTS als incus-Container)
 - ffmpeg im Backend-Pfad
 
 ### Architektur
 Backend `core/src/hydrahive/voice/` (stt, tts, _audio_utils, _quota).
-Installer-Modul `installer/modules/55-voice.sh` setzt den
-Whisper-Container auf.
+Installer-Modul `installer/modules/55-voice.sh` setzt die lokalen
+Wyoming-Container als incus-LXC auf: faster-whisper (STT, Port 10300) und
+Piper (TTS, Port 10200). Kein Docker (SPEC).
 
 ---
 
