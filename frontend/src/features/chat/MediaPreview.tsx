@@ -9,6 +9,7 @@
 import { useState } from "react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { EpubViewer } from "./EpubViewer"
+import { ImageLightbox } from "./ImageLightbox"
 import type { ToolMedia } from "./types"
 
 // HTTP(S)-URLs
@@ -124,7 +125,7 @@ export function MediaPreview({ media }: { media: ExtractedMedia }) {
   return (
     <div className="space-y-2">
       {media.images.map((url) => (
-        <img key={url} src={url} alt="" className="max-w-xs max-h-64 rounded-xl object-contain border border-white/10 shadow-md" />
+        <ImageLightbox key={url} url={url} />
       ))}
       {media.videos.map((url) => (
         <video key={url} src={url} controls className="max-w-md max-h-64 rounded-xl border border-white/10 shadow-md" />
