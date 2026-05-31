@@ -4,6 +4,7 @@ import logging
 import time
 from dataclasses import asdict
 
+from hydrahive.credentials import redaction
 from hydrahive.db import tools as tools_db
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
@@ -88,6 +89,11 @@ async def execute_tool(
         except Exception as e:
             logger.exception("Tool '%s' crashte", tool_name)
             result = ToolResult.fail(f"Tool-Crash: {type(e).__name__}: {e}")
+
+    # Engstelle: bekannte Secret-Werte aus dem Output schwärzen, BEVOR er in die
+    # tool_calls-DB (asdict unten) und ins Transcript/Stream (Rückgabewert) geht.
+    # Egal wie der Key in den Output kam — env-Dump, `echo $KEY`, `cat config`.
+    result = redaction.scrub_result(result)
 
     duration_ms = int((time.monotonic() - start) * 1000)
     tools_db.finish(
