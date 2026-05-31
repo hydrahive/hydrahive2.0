@@ -223,18 +223,25 @@ CT_TTS="hydrahive2-tts"
 TTS_PORT=10200
 PIPER_VOICE="${HH_PIPER_VOICE:-de_DE-thorsten-medium}"
 
+# 1. Container existieren lassen + laufen
 if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_TTS"; then
   log "TTS-Container '$CT_TTS' anlegen (Ubuntu 24.04 LXC)"
   incus launch images:ubuntu/24.04 "$CT_TTS"
+elif ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "$CT_TTS,RUNNING"; then
+  log "TTS-Container '$CT_TTS' starten"
+  incus start "$CT_TTS" 2>&1 | tail -3 || true
+else
+  log "TTS-Container '$CT_TTS' läuft"
+fi
 
-  log "Container-Netzwerk sicherstellen"
+# 2. wyoming-piper installieren FALLS es fehlt (idempotent — repariert auch einen
+#    bestehenden Container, in dem apt früher ohne Netz scheiterte).
+if ! incus exec "$CT_TTS" -- test -x /opt/piper/bin/wyoming-piper 2>/dev/null; then
+  log "Wyoming-Piper fehlt — Netz sicherstellen + installieren"
   if ! ensure_container_net "$CT_TTS"; then
-    log "FEHLER: TTS-Container '$CT_TTS' hat kein Netz — Setup abgebrochen (br0/Netz prüfen)"
-    incus delete -f "$CT_TTS" 2>/dev/null || true
+    log "FEHLER: TTS-Container '$CT_TTS' hat kein Netz — Piper-Install unmöglich (br0/Netz prüfen)"
     exit 1
   fi
-
-  log "Wyoming-Piper installieren (pip)"
   incus exec "$CT_TTS" -- bash -c "
     set -e
     export DEBIAN_FRONTEND=noninteractive
@@ -244,35 +251,35 @@ if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_TTS"; then
     /opt/piper/bin/pip install --upgrade pip
     /opt/piper/bin/pip install wyoming-piper
   "
-
-  log "systemd-Unit im Container schreiben (Voice: $PIPER_VOICE)"
-  incus exec "$CT_TTS" -- bash -c "cat > /etc/systemd/system/wyoming-piper.service <<EOF
-[Unit]
-Description=Wyoming Piper TTS
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-ExecStart=/opt/piper/bin/python -m wyoming_piper --voice $PIPER_VOICE --uri tcp://0.0.0.0:$TTS_PORT --data-dir /var/lib/piper --download-dir /var/lib/piper
-Restart=on-failure
-RestartSec=5
-WorkingDirectory=/var/lib/piper
-StateDirectory=piper
-
-[Install]
-WantedBy=multi-user.target
-EOF
-mkdir -p /var/lib/piper
-systemctl daemon-reload
-systemctl enable --now wyoming-piper.service"
 else
-  log "TTS-Container '$CT_TTS' existiert bereits"
-  if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "$CT_TTS,RUNNING"; then
-    log "Container '$CT_TTS' nicht running — starte"
-    incus start "$CT_TTS" 2>&1 | tail -3 || true
-  fi
+  log "Wyoming-Piper bereits installiert"
 fi
+
+# 3. systemd-Unit + Start sicherstellen (idempotent). Unit via tee schreiben —
+#    kein fragiles verschachteltes Heredoc in 'incus exec'.
+log "systemd-Unit sicherstellen (Voice: $PIPER_VOICE)"
+printf '%s\n' \
+  '[Unit]' \
+  'Description=Wyoming Piper TTS' \
+  'After=network-online.target' \
+  'Wants=network-online.target' \
+  '' \
+  '[Service]' \
+  'Type=simple' \
+  "ExecStart=/opt/piper/bin/python -m wyoming_piper --voice ${PIPER_VOICE} --uri tcp://0.0.0.0:${TTS_PORT} --data-dir /var/lib/piper --download-dir /var/lib/piper" \
+  'Restart=on-failure' \
+  'RestartSec=5' \
+  'WorkingDirectory=/var/lib/piper' \
+  'StateDirectory=piper' \
+  '' \
+  '[Install]' \
+  'WantedBy=multi-user.target' \
+  | incus exec "$CT_TTS" -- tee /etc/systemd/system/wyoming-piper.service >/dev/null
+# Voice braucht Netz zum Download beim ersten Start — sicherstellen.
+ensure_container_net "$CT_TTS" >/dev/null 2>&1 || true
+incus exec "$CT_TTS" -- bash -c \
+  "mkdir -p /var/lib/piper && systemctl daemon-reload && systemctl enable wyoming-piper.service >/dev/null 2>&1; systemctl restart wyoming-piper.service" \
+  2>&1 | tail -3 || true
 
 if ! incus config device show "$CT_TTS" 2>/dev/null | grep -q "^tts-port:"; then
   log "incus-proxy-device anlegen: Container:$TTS_PORT → Host:127.0.0.1:$TTS_PORT"
