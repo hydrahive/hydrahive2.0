@@ -1,6 +1,6 @@
 import { Activity, BrainCircuit,
   BookOpen, Bot, Box, Cpu, Film, FolderKanban, Globe, HardDrive, Heart, Key, LayoutDashboard,
-  MessageCircle, MessageSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, Users, Workflow,
+  MessageCircle, MessageSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, StickyNote, Users, Workflow,
 } from "lucide-react"
 
 export interface NavGroup {
@@ -30,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/health",      icon: Activity,        labelKey: "health",      group: "overview" },
   // Arbeiten
   { path: "/",            icon: Heart,           labelKey: "buddy",       group: "working" },
+  { path: "/scratchpad",  icon: StickyNote,      labelKey: "scratchpad",  group: "working" },
   { path: "/werkstatt",   icon: MessageSquare,   labelKey: "werkstatt",   group: "working" },
   { path: "/agents",      icon: Bot,             labelKey: "agents",      group: "working" },
   { path: "/projects",    icon: FolderKanban,    labelKey: "projects",    group: "working" },

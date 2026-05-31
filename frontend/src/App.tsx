@@ -29,6 +29,7 @@ import { MemoryPage } from "@/features/memory/MemoryPage"
 import { HelpPage } from "@/features/help/HelpPage"
 import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
 import { HealthPage } from "@/features/health/HealthPage"
+import { ScratchpadPage } from "@/features/scratchpad/ScratchpadPage"
 import { FederationPage } from "@/features/federation/FederationPage"
 import { StreamingPage } from "@/features/streaming/StreamingPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="werkstatt" element={<ChatPage />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
+          <Route path="scratchpad" element={<ScratchpadPage />} />
           <Route path="devchat" element={<Navigate to="/werkstatt" replace />} />
           <Route path="agents" element={<AgentsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
