@@ -68,37 +68,44 @@ if ! command -v incus >/dev/null 2>&1; then
 fi
 
 # ── Container-Outbound sicherstellen ──────────────────────────────────────
-# 70-containers.sh nutzt 'networks: []' (kein incus-Bridge) + Host-br0. Wo br0
-# / Default-Profil-NIC fehlt, hat ein frischer Container KEIN Netz → apt/pip
-# scheitert (Kunde schreit). Deshalb: eigenes NAT-Netz als Fallback, nur wenn
-# der Container sonst keinen Outbound hat. No-op wo br0 schon funktioniert.
+# 70-containers.sh nutzt 'networks: []' (kein incus-Bridge) + Host-br0. Wo der
+# Container keinen ECHTEN Outbound hat (DNS allein reicht nicht — NAT kann ohne
+# Host-Forwarding auflösen aber nicht rausrouten), wird er an br0 gehängt (echtes
+# LAN wie die VMs); nur wenn br0 fehlt, ein eigenes NAT-Netz als Fallback.
 VOICE_NET="hh-voice"
 
-ensure_container_net() {  # $1 = container-name; return 0 wenn Outbound da
-  local ct="$1" i
-  # Schon online (br0/Default-Profil)? Dann nichts tun.
-  for i in $(seq 1 20); do
-    if incus exec "$ct" -- getent hosts deb.debian.org >/dev/null 2>&1 \
-       || incus exec "$ct" -- ping -c1 -W1 1.1.1.1 >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 1
-  done
-  log "  Container '$ct' ohne Netz — NAT-Fallback '$VOICE_NET' anhängen"
+# Echter Outbound-Test: TCP nach draußen (DNS-Auflösung allein täuscht — prod-NAT
+# löst auf, routet aber nicht). 53 = DNS-over-TCP, fast überall offen.
+_net_ok() { incus exec "$1" -- timeout 5 bash -c 'exec 3<>/dev/tcp/1.1.1.1/53' >/dev/null 2>&1; }
+
+_net_wait() {  # $1=ct, $2=sekunden
+  local ct="$1" n="$2" i
+  for i in $(seq 1 "$n"); do _net_ok "$ct" && return 0; sleep 1; done
+  return 1
+}
+
+ensure_container_net() {  # $1 = container-name; return 0 wenn ECHTER Outbound da
+  local ct="$1"
+  _net_ok "$ct" && return 0
+  # evtl. vorhandene (tote) eth0 — z.B. NAT ohne Routing — sauber entfernen
+  incus config device remove "$ct" eth0 >/dev/null 2>&1 || true
+  # 1) Host-Bridge br0 bevorzugt — echtes LAN-Internet, genau wie die VMs nutzen
+  if ip link show br0 >/dev/null 2>&1; then
+    log "  '$ct' an Host-Bridge br0 hängen (LAN)"
+    incus config device add "$ct" eth0 nic nictype=bridged parent=br0 name=eth0 2>&1 | tail -2 || true
+    incus restart "$ct" 2>&1 | tail -2 || true
+    _net_wait "$ct" 25 && return 0
+    log "  br0 ohne Outbound — entferne wieder"
+    incus config device remove "$ct" eth0 >/dev/null 2>&1 || true
+  fi
+  # 2) NAT-Fallback (Boxen ohne br0, z.B. Minimal-Setups)
+  log "  NAT-Netz '$VOICE_NET' als Fallback"
   if ! incus network list --format=csv -c n 2>/dev/null | grep -qx "$VOICE_NET"; then
     incus network create "$VOICE_NET" ipv4.address=auto ipv4.nat=true ipv6.address=none 2>&1 | tail -2 || true
   fi
-  if ! incus config device show "$ct" 2>/dev/null | grep -q "^eth0:"; then
-    incus config device add "$ct" eth0 nic network="$VOICE_NET" name=eth0 2>&1 | tail -2 || true
-  fi
+  incus config device add "$ct" eth0 nic network="$VOICE_NET" name=eth0 2>&1 | tail -2 || true
   incus restart "$ct" 2>&1 | tail -2 || true
-  for i in $(seq 1 30); do
-    if incus exec "$ct" -- getent hosts deb.debian.org >/dev/null 2>&1 \
-       || incus exec "$ct" -- ping -c1 -W1 1.1.1.1 >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 1
-  done
+  _net_wait "$ct" 30 && return 0
   return 1
 }
 
@@ -118,8 +125,8 @@ if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_NAME"; then
   incus exec "$CT_NAME" -- bash -c "
     set -e
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y python3-venv ffmpeg
+    apt-get -o Acquire::ForceIPv4=true update
+    apt-get -o Acquire::ForceIPv4=true install -y python3-venv ffmpeg
     python3 -m venv /opt/wyoming
     /opt/wyoming/bin/pip install --upgrade pip
     /opt/wyoming/bin/pip install wyoming-faster-whisper
@@ -245,8 +252,8 @@ if ! incus exec "$CT_TTS" -- test -x /opt/piper/bin/wyoming-piper 2>/dev/null; t
   incus exec "$CT_TTS" -- bash -c "
     set -e
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y python3-venv
+    apt-get -o Acquire::ForceIPv4=true update
+    apt-get -o Acquire::ForceIPv4=true install -y python3-venv
     python3 -m venv /opt/piper
     /opt/piper/bin/pip install --upgrade pip
     /opt/piper/bin/pip install wyoming-piper
