@@ -1,7 +1,97 @@
-# HydraHive2 — Übergabe (Stand 2026-05-12)
+# HydraHive2 — Übergabe (Stand 2026-05-31)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
+
+> Hinweis: Die Sektionen unter „Update 2026-05-12" und älter sind historisch.
+> Der **aktuelle aktive Strang** steht direkt hier drunter.
+
+---
+
+## 🌙 Nacht-Session 2026-05-31 (~01:00–04:30) — was lief
+
+> ✅ **ERLEDIGT 2026-05-31 (Tag-Session):** Das Scratchpad-Feature ist gebaut +
+> browser-verifiziert (siehe Sektion direkt drunter). Diese Erinnerung ist abgehakt.
+
+**1. Kunden-Homeserver (unterm Dach, FreeBSD-VM) — GELÖST, am Kunden live.**
+Symptom: bridged VM startet nicht; „Bridge nach Stromausfall weg". Zwei echte
+Bugs, beide am Kunden gefixt + als Issue dokumentiert:
+- **Bridge `br0` war tot/leer** — Server läuft auf **NetworkManager**, nicht
+  networkd; HH-`setup-bridge.sh` schreibt aber blind networkd-YAML → leere Bridge.
+  Zudem war die yaml von einer früheren Instanz handzerschossen (`nameserver`-Tippfehler,
+  Dubletten). Fix: Bridge **NM-nativ via nmcli** neu gebaut (con `br0` fb543f5d +
+  Port `br0-port-enp4s1` aeb10b19, MAC der echten NIC, autoconnect umgestellt).
+  **Reboot-getestet → kommt sauber mit `.86` hoch.** → **Issue #174**.
+- **VM startete trotz Bridge nicht:** `failed to open /dev/net/tun: Operation not
+  permitted`. Ursache: `65-vms.sh:68` setzt `DeviceAllow=/dev/kvm` → systemd-
+  Whitelist sperrt `/dev/net/tun`. Fix: Drop-in
+  `/etc/systemd/system/hydrahive2.service.d/tun.conf` mit `DeviceAllow=/dev/net/tun rw`
+  + `/dev/vhost-net rw`. **VM läuft jetzt + ist im Netz.** → **Issue #176**.
+- Methodik-Lektion (Till hat mich zu Recht gestoppt): `nmcli con up br0` (Master)
+  scheitert immer mit „compatible device" — der **Port** ist der Hebel
+  (`up br0-port-enp4s1`). Und ich hatte 2× „sicher" gesagt + geraten → bei
+  Prod/Netz strikt erst lesen.
+
+**2. 7z-Passwort-Recovery (`~/Bilder/party2019/PrivateBildchen.7z`, von 2018) — AUFGEGEBEN.**
+hashcat 6.2.6 (in `~/crack`, wieder gelöscht) lief GPU (RTX 5060 Ti, CUDA 13.2),
+aber 7z-Mode 11600 = **20 H/s**. Till nutzt seit je Passwörter mit Sonderzeichen/
+Groß-klein/Zahlen → Brute-Force = ~10^11 Jahre. Chancenlos, bewusst beendet.
+Original unangetastet. Nur per Erinnerung an das PW öffenbar (`7z x ...`).
+
+**3. GitHub-Issues angelegt:** #174 + #176 (installer, beide belegt). Duplikat
+#175 wurde geschlossen (I/O-Verzögerung → doppelt abgefeuert).
+
+---
+
+## ✅ 2026-05-31 Tag-Session — Akte SSOT + Scratchpad, beide FERTIG auf main
+
+Zwei Features komplett durchgezogen, getestet, browser-verifiziert, auf `main`
+gepusht. Volle Core-Suite **672 grün**, tsc -b + vite build grün.
+
+### 1. Patientenakte SSOT-Umbau — FERTIG (Ursache der „Agenten drehen Schleifen")
+**Problem:** Die Form jeder der 9 Entitäten lag handgespiegelt an 5 Stellen (DDL,
+schema.py, akteFields.ts, api.ts LABEL_FIELDS, AkteEntityList ENTITY_COLUMNS). Die
+Frontend-Naht war ungeguardet + gedriftet → tote Spalten (imaging `körperstelle`,
+allergies `sicherheit`, practitioners `fachgebiet`/`kontakt`, notes `notiz`). Ein
+Agent fixt einen Spiegel, der nächste driftet → Endlosschleife.
+**Fix (SSOT):** `schema.py` ist die EINE Quelle; `_schema`-Endpoint; Frontend zieht
+sie per `useAkteSchema()` und rendert generisch. akteFields.ts + alle Spiegel gelöscht.
+Die 5 toten Spalten automatisch repariert (falsche Keys existieren nicht mehr).
+**Commits:** `d10eeb61` (Schema-SSOT) · `101c76f6` (_schema-Endpoint) · `623e62be`
+(Frontend) · `2fcd9663` (zwei übersehene Verbraucher: AkteLabCharts build-fix +
+AkteDashboard UUID-statt-Name-Regression). Branch `feat/akte-schema-ssot` ff-merged
++ gelöscht. Detail-Memory: `project_akte_schema_ssot.md`.
+
+### 2. Scratchpad — FERTIG (neue Core-Komponente, in SPEC.md)
+Globale Mensch→Agent-Ideenfläche pro User. Zwei physisch getrennte Zonen
+(`data_dir/scratchpad/<user_id>/{user,agent}.md`) → der Agent kann Tills Text
+technisch nicht überschreiben. Markdown (+ Mermaid v1 als Code-Block). Hybrid-Lesen:
+statischer Prompt-Hinweis (cache-sicher, nur wenn `read_scratchpad` zugewiesen) +
+Tools `read_scratchpad` (beide Zonen) / `write_scratchpad` (nur Agent-Zone). Eigener
+Menüpunkt „Scratchpad". **Brainstorming → Design-Doc (`a8a891f5`) → SPEC-Standalone
+(`47130d77`) → Plan (`fb6240b6`) → 5 TDD-Tasks (`36152012`..`2a12861e`), 20 Tests.**
+Till verifiziert: Menüpunkt da, Buddy liest + schreibt. **v1.1-Backlog:** Mermaid im
+Browser rendern (aktuell nur Code-Block). Doku: `docs/superpowers/{specs,plans}/2026-05-31-scratchpad-*.md`.
+
+### Lektion: Frontend-Typecheck (jetzt Memory `feedback_frontend_tsc_check`)
+`tsc --noEmit` im Frontend ist ein **toter Wächter** — root-`tsconfig.json` hat
+`files:[]` + nur references, also typecheckt es NICHTS und ist immer grün. ECHTER
+Check NUR mit **`tsc -b`** (oder `npm run build`). Konkret durchgerutscht: ein
+geändertes Prop-Interface (AkteEntryModal) brach Tills Server-Build, mein
+`tsc --noEmit` sah es nicht. Bei Signatur-Änderungen IMMER vorher alle Aufrufer greppen.
+
+### Danach offen: Phase 3a Dokumente (Akte, 10. Entität)
+`origin/feat/akte-dokumente` @ `8ecf92c6` hat schon `documents.py` (Datei-Storage,
+save/open/delete, size+ext-Guard 0600) + pypdf. Dank SSOT jetzt nur EIN
+schema.py-Registry-Eintrag statt 5-Datei-Eingriff. Issues #167/#168/#169 = 3a,
+#170–#173 = 3b FTS5, #164–#166 = Phase 2/3/4.
+
+### Test-/Tooling-Notizen
+- Core-Tests: `cd core && python3 -m pytest -q` (672) bzw. `tests/test_scratchpad_*.py`/`test_akte_*.py`
+- Frontend: `cd frontend && ./node_modules/.bin/tsc -b` (NIE `--noEmit`)
+- ruff liegt NICHT im PATH: `~/.cache/pipx/8b939eaf3702238/bin/ruff`
+- Pre-commit-Hook blockt SPEC.md/CLAUDE.md nur in Misch-Commits (BYPASS_SPEC_GUARD=1 als Notausgang).
+- Tills Server zieht beim Update NUR `main` (update.sh: `git pull --ff-only`, sonst `reset --hard origin/main`) — Feature-Branches sind dort nicht testbar ohne Merge.
 
 ---
 
