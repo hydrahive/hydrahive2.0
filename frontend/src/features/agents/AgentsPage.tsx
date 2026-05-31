@@ -6,6 +6,7 @@ import { NewAgentDialog } from "./NewAgentDialog"
 import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
 import { agentsApi, llmInfoApi } from "./api"
 import type { Agent, ToolMeta } from "./types"
+import type { CatalogModel } from "@/features/llm/api"
 
 export function AgentsPage() {
   const { t } = useTranslation("agents")
@@ -13,6 +14,7 @@ export function AgentsPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [tools, setTools] = useState<ToolMeta[]>([])
   const [models, setModels] = useState<string[]>([])
+  const [catalog, setCatalog] = useState<CatalogModel[]>([])
   const [defaultModel, setDefaultModel] = useState("")
   const [showNew, setShowNew] = useState(false)
 
@@ -28,6 +30,7 @@ export function AgentsPage() {
     agentsApi.listTools().then(setTools).catch(() => {})
     llmInfoApi.getModels().then((info) => {
       setModels(info.models)
+      setCatalog(info.catalog)
       setDefaultModel(info.default_model)
     }).catch(() => {})
   }, [])
@@ -57,6 +60,7 @@ export function AgentsPage() {
             key={active.id}
             agent={active}
             models={models}
+            catalog={catalog}
             tools={tools}
             onSaved={handleSaved}
             onDeleted={handleDeleted}

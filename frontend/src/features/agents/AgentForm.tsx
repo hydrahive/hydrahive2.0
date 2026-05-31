@@ -11,10 +11,12 @@ import { SkillsTab } from "./_SkillsTab"
 import { AgentFormHeader } from "./_AgentFormHeader"
 import { AgentTabBar } from "./_AgentTabBar"
 import type { Agent, ToolMeta } from "./types"
+import type { CatalogModel } from "@/features/llm/api"
 
 interface Props {
   agent: Agent
   models: string[]
+  catalog: CatalogModel[]
   tools: ToolMeta[]
   onSaved: (a: Agent) => void
   onDeleted: () => void
@@ -22,7 +24,7 @@ interface Props {
 
 type TabId = "overview" | "model" | "tools" | "skills" | "soul" | "advanced"
 
-export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
+export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
   const [draft, setDraft] = useState(agent)
@@ -90,7 +92,7 @@ export function AgentForm({ agent, models, tools, onSaved, onDeleted }: Props) {
           </div>
         )}
         {tab === "overview" && <OverviewTab draft={draft} onChange={patch} />}
-        {tab === "model" && <ModelTab draft={draft} models={models} onChange={patch} />}
+        {tab === "model" && <ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} />}
         {tab === "tools" && <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
         {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
         {tab === "soul" && <SoulTab agent={agent} />}
