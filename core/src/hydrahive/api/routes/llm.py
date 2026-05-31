@@ -33,6 +33,9 @@ class LlmConfig(BaseModel):
     providers: list[LlmProvider] = []
     default_model: str = ""
     embed_model: str = ""
+    # Aktives Modell pro Media-Kategorie (image/music/tts/transcribe/video).
+    # Resolver: hydrahive.llm.media_models.get_media_model
+    media_models: dict[str, str] = {}
 
 
 def _load() -> dict:

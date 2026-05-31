@@ -18,6 +18,14 @@
   "default_model": "Default model",
   "embed_model": "Embedding model",
   "embed_model_hint": "Vector dimension: {{dim}} — new events are embedded automatically",
+  "media_models": {
+    "title": "Media models",
+    "hint": "Live from the model catalog, filtered by modality",
+    "none": "No matching models — configure an OpenRouter key",
+    "image": "Image",
+    "music": "Music",
+    "tts": "Speech (TTS)"
+  },
   "test": {
     "button": "Test connection",
     "saving": "Saving…",

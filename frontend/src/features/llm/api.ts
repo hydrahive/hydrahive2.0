@@ -21,6 +21,7 @@ export interface LlmConfig {
   providers: LlmProvider[]
   default_model: string
   embed_model: string
+  media_models?: Record<string, string>
 }
 
 export interface EmbedModel {
@@ -72,6 +73,8 @@ export interface CatalogModel {
   is_free: boolean | null
   price_prompt: string | null
   price_completion: string | null
+  output_modalities?: string[]
+  input_modalities?: string[]
 }
 
 export interface CatalogProvider {

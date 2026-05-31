@@ -89,12 +89,15 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
             is_free = None
         else:
             is_free = (str(prompt) == "0" and str(completion) == "0")
+        arch = m.get("architecture") or {}
         out.append({
             "id": _normalize_id(provider_id, mid),
             "context_window": m.get("context_length"),
             "is_free": is_free,
             "price_prompt": prompt,
             "price_completion": completion,
+            "output_modalities": arch.get("output_modalities") or [],
+            "input_modalities": arch.get("input_modalities") or [],
         })
     return out
 
@@ -141,6 +144,8 @@ def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
         "is_free": entry.get("is_free"),
         "price_prompt": entry.get("price_prompt"),
         "price_completion": entry.get("price_completion"),
+        "output_modalities": entry.get("output_modalities") or [],
+        "input_modalities": entry.get("input_modalities") or [],
         "unknown": entry["id"] not in METADATA,
     }
 

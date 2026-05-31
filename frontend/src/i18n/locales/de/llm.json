@@ -18,6 +18,14 @@
   "default_model": "Standard-Modell",
   "embed_model": "Embedding-Modell",
   "embed_model_hint": "Vektor-Dimension: {{dim}} — neue Events werden automatisch eingebettet",
+  "media_models": {
+    "title": "Media-Modelle",
+    "hint": "Live aus dem Modell-Catalog, nach Modalität gefiltert",
+    "none": "Keine passenden Modelle — OpenRouter-Key konfigurieren",
+    "image": "Bild",
+    "music": "Musik",
+    "tts": "Sprache (TTS)"
+  },
   "test": {
     "button": "Verbindung testen",
     "saving": "Speichern…",

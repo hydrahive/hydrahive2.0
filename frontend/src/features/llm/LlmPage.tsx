@@ -7,11 +7,12 @@ import { llmApi, type EmbedModel, type LlmConfig, type LlmProvider } from "./api
 import { ProviderCard } from "./ProviderCard"
 import { ProviderForm } from "./ProviderForm"
 import { AnthropicUsageCard } from "./AnthropicUsageCard"
+import { MediaModelsSection } from "./MediaModelsSection"
 
 export function LlmPage() {
   const { t } = useTranslation("llm")
   const { t: tCommon } = useTranslation("common")
-  const [config, setConfig] = useState<LlmConfig>({ providers: [], default_model: "", embed_model: "" })
+  const [config, setConfig] = useState<LlmConfig>({ providers: [], default_model: "", embed_model: "", media_models: {} })
   const [embedModels, setEmbedModels] = useState<EmbedModel[]>([])
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -140,6 +141,19 @@ export function LlmPage() {
             </p>
           )}
         </div>
+      )}
+
+      {config.providers.length > 0 && (
+        <MediaModelsSection
+          mediaModels={config.media_models ?? {}}
+          onChange={(category, model) => {
+            const next = {
+              ...config,
+              media_models: { ...(config.media_models ?? {}), [category]: model },
+            }
+            setConfig(next); save(next)
+          }}
+        />
       )}
 
       <div className="flex items-center gap-3">

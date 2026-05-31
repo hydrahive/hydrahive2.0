@@ -28,6 +28,7 @@ import logging
 
 import httpx
 
+from hydrahive.llm.media_models import get_media_model
 from hydrahive.tools._openrouter_media import openrouter_key, save_bytes
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
@@ -130,7 +131,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "Kein OpenRouter API-Key konfiguriert — unter Einstellungen → Anbieter hinterlegen"
         )
 
-    model = (args.get("model") or _DEFAULT_MODEL).strip()
+    model = (args.get("model") or get_media_model("music")).strip()
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],

@@ -44,6 +44,40 @@ def test_parse_models_without_pricing_is_free_none():
     assert entries[0]["context_window"] is None
 
 
+_MODALITY_RESPONSE = {
+    "data": [
+        {"id": "openai/gpt-5-image-mini",
+         "architecture": {"input_modalities": ["text", "image"],
+                          "output_modalities": ["image", "text"]}},
+        {"id": "google/lyria-3-pro-preview",
+         "architecture": {"input_modalities": ["text"],
+                          "output_modalities": ["audio", "text"]}},
+        {"id": "anthropic/claude-sonnet-4-6"},  # ohne architecture
+    ]
+}
+
+
+def test_parse_models_captures_modalities():
+    entries = catalog._parse_models_response("openrouter", _MODALITY_RESPONSE)
+    by_id = {e["id"]: e for e in entries}
+    img = by_id["openrouter/openai/gpt-5-image-mini"]
+    music = by_id["openrouter/google/lyria-3-pro-preview"]
+    plain = by_id["openrouter/anthropic/claude-sonnet-4-6"]
+    assert img["output_modalities"] == ["image", "text"]
+    assert img["input_modalities"] == ["text", "image"]
+    assert music["output_modalities"] == ["audio", "text"]
+    assert plain["output_modalities"] == []  # kein architecture → leere Liste
+    assert plain["input_modalities"] == []
+
+
+def test_enrich_passes_modalities_through():
+    entry = {"id": "openrouter/openai/gpt-5-image-mini",
+             "output_modalities": ["image", "text"], "input_modalities": ["text"]}
+    enriched = catalog._enrich("openrouter", entry)
+    assert enriched["output_modalities"] == ["image", "text"]
+    assert enriched["input_modalities"] == ["text"]
+
+
 def test_anthropic_endpoint_uses_x_api_key():
     from hydrahive.llm._catalog_data import PROVIDER_ENDPOINTS
     ep = PROVIDER_ENDPOINTS["anthropic"]

@@ -127,6 +127,24 @@ async def test_payload_enthaelt_audio_format_und_stream(ctx):
 
 
 @pytest.mark.asyncio
+async def test_zentrales_modell_wird_genutzt(ctx):
+    """A3: ohne model-Param zieht das Tool den zentralen media_models-Default."""
+    from hydrahive.tools import generate_music
+
+    raw = b"ID3\x03x"
+    b64 = base64.b64encode(raw).decode()
+    client = _client_with(_FakeStream(_sse_body([b64])))
+    with (
+        patch("hydrahive.tools.generate_music.httpx.AsyncClient", return_value=client),
+        patch("hydrahive.tools.generate_music.openrouter_key", return_value="sk-or-v1-test"),
+        patch("hydrahive.tools.generate_music.get_media_model", return_value="google/lyria-3-clip-preview"),
+    ):
+        await generate_music._execute({"prompt": "x"}, ctx)
+
+    assert client.stream.call_args.kwargs["json"]["model"] == "google/lyria-3-clip-preview"
+
+
+@pytest.mark.asyncio
 async def test_execute_speichert_mp3_im_workspace(ctx, tmp_path):
     from hydrahive.tools import generate_music
 
