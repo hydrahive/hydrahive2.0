@@ -1,9 +1,14 @@
 """Bildgenerierung über OpenRouter (synchron via chat/completions).
 
-Unterstützte Modelle (Auswahl):
-  openrouter/black-forest-labs/flux-1.1-pro   — hochqualitativ, $0.04/Bild
-  openrouter/openai/dall-e-3                  — DALL-E 3, $0.04–0.08/Bild
-  openrouter/recraft-ai/recraft-v3            — Vektor-Style, $0.04/Bild
+Live-verifizierte Modelle mit output_modalities=["image"] (Stand 2026-05-31):
+  openai/gpt-5-image-mini          — günstig, schnell
+  openai/gpt-5-image               — Standard
+  openai/gpt-5.4-image-2           — hochqualitativ
+  google/gemini-2.5-flash-image    — Gemini, schnell
+  google/gemini-3-pro-image-preview — Gemini Pro
+  google/gemini-3.1-flash-image-preview
+
+Flux/DALL-E/Recraft sind auf OpenRouter NICHT über chat/completions verfügbar.
 """
 from __future__ import annotations
 
@@ -16,12 +21,14 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 logger = logging.getLogger(__name__)
 
 _OPENROUTER_BASE = "https://openrouter.ai/api/v1"
-_DEFAULT_MODEL = "openrouter/black-forest-labs/flux-1.1-pro"
+_DEFAULT_MODEL = "openai/gpt-5-image-mini"
 
 _DESCRIPTION = (
     "Generiert ein Bild auf Basis eines Text-Prompts über OpenRouter. "
     "Gibt eine direkte Bild-URL zurück die im Chat angezeigt wird. "
-    "Modell per Parameter wählbar (default: Flux 1.1 Pro). "
+    "Verfügbare Modelle: openai/gpt-5-image-mini (default, günstig), "
+    "openai/gpt-5-image, openai/gpt-5.4-image-2, "
+    "google/gemini-2.5-flash-image, google/gemini-3-pro-image-preview. "
     "Braucht einen konfigurierten OpenRouter API-Key."
 )
 
@@ -35,8 +42,9 @@ _SCHEMA = {
         "model": {
             "type": "string",
             "description": (
-                "OpenRouter-Modell-ID. Default: openrouter/black-forest-labs/flux-1.1-pro. "
-                "Weitere: openrouter/openai/dall-e-3, openrouter/recraft-ai/recraft-v3"
+                "OpenRouter-Modell-ID. Default: openai/gpt-5-image-mini. "
+                "Weitere: openai/gpt-5-image, openai/gpt-5.4-image-2, "
+                "google/gemini-2.5-flash-image, google/gemini-3-pro-image-preview"
             ),
             "default": _DEFAULT_MODEL,
         },
@@ -60,13 +68,6 @@ def _get_openrouter_key() -> str:
     return get_provider_key(load_config(), "openrouter")
 
 
-def _strip_provider_prefix(model: str) -> str:
-    """'openrouter/black-forest-labs/flux-1.1-pro' → 'black-forest-labs/flux-1.1-pro'."""
-    if model.startswith("openrouter/"):
-        return model[len("openrouter/"):]
-    return model
-
-
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     prompt = (args.get("prompt") or "").strip()
     if not prompt:
@@ -81,10 +82,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     model = (args.get("model") or _DEFAULT_MODEL).strip()
     width = int(args.get("width") or 1024)
     height = int(args.get("height") or 1024)
-    api_model = _strip_provider_prefix(model)
 
     payload = {
-        "model": api_model,
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "modalities": ["image"],
         "image": {"size": f"{width}x{height}"},
@@ -103,14 +103,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             resp.raise_for_status()
             data = resp.json()
     except httpx.HTTPStatusError as e:
-        body = e.response.text[:400] if hasattr(e, "response") else ""
+        body = e.response.text[:400]
         logger.warning("generate_image HTTP-Fehler %s: %s", e.response.status_code, body)
         return ToolResult.fail(f"OpenRouter API-Fehler {e.response.status_code}: {body}")
     except httpx.HTTPError as e:
         logger.warning("generate_image Netzwerk-Fehler: %s", e)
         return ToolResult.fail(f"Netzwerk-Fehler: {e}")
 
-    # Bild-URL aus Response extrahieren
     image_url = _extract_image_url(data)
     if not image_url:
         logger.warning("generate_image: keine Bild-URL in Response: %s", str(data)[:400])
@@ -137,7 +136,7 @@ def _extract_image_url(data: dict) -> str | None:
                 if url:
                     return str(url)
 
-    # Fallback: Content ist direkt ein URL-String
+    # Fallback: direkt URL-String
     if isinstance(content, str) and content.startswith("http"):
         return content
 
