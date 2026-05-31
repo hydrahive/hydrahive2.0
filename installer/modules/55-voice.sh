@@ -179,9 +179,84 @@ if [ "$ready" = "1" ] && command -v docker >/dev/null 2>&1; then
     log "  apt-get remove -y docker-ce docker-ce-cli containerd.io docker-compose-plugin"
   fi
   if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx hydrahive2-tts; then
-    log "Entferne auch alten Docker-TTS-Container (Piper) — TTS läuft via mmx-CLI"
+    log "Entferne alten Docker-TTS-Container (Piper) — wird durch incus-LXC ersetzt"
     docker rm -f hydrahive2-tts >/dev/null 2>&1 || true
   fi
 fi
 
-log "Voice Interface bereit (STT: incus-Container '$CT_NAME' Port $STT_PORT, TTS: mmx-CLI)"
+# ── TTS-Container (Wyoming-Piper) als incus-LXC ───────────────────────────
+# Lokales TTS ohne Cloud-Key. Spiegelbildlich zum STT-Container.
+CT_TTS="hydrahive2-tts"
+TTS_PORT=10200
+PIPER_VOICE="${HH_PIPER_VOICE:-de_DE-thorsten-medium}"
+
+if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_TTS"; then
+  log "TTS-Container '$CT_TTS' anlegen (Ubuntu 24.04 LXC)"
+  incus launch images:ubuntu/24.04 "$CT_TTS"
+
+  log "Warte auf Container-Netzwerk"
+  for i in $(seq 1 30); do
+    if incus exec "$CT_TTS" -- getent hosts huggingface.co >/dev/null 2>&1 \
+       || incus exec "$CT_TTS" -- ping -c1 -W1 1.1.1.1 >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+
+  log "Wyoming-Piper installieren (pip)"
+  incus exec "$CT_TTS" -- bash -c "
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y python3-venv
+    python3 -m venv /opt/piper
+    /opt/piper/bin/pip install --upgrade pip
+    /opt/piper/bin/pip install wyoming-piper
+  "
+
+  log "systemd-Unit im Container schreiben (Voice: $PIPER_VOICE)"
+  incus exec "$CT_TTS" -- bash -c "cat > /etc/systemd/system/wyoming-piper.service <<EOF
+[Unit]
+Description=Wyoming Piper TTS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/piper/bin/python -m wyoming_piper --voice $PIPER_VOICE --uri tcp://0.0.0.0:$TTS_PORT --data-dir /var/lib/piper --download-dir /var/lib/piper
+Restart=on-failure
+RestartSec=5
+WorkingDirectory=/var/lib/piper
+StateDirectory=piper
+
+[Install]
+WantedBy=multi-user.target
+EOF
+mkdir -p /var/lib/piper
+systemctl daemon-reload
+systemctl enable --now wyoming-piper.service"
+else
+  log "TTS-Container '$CT_TTS' existiert bereits"
+  if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "$CT_TTS,RUNNING"; then
+    log "Container '$CT_TTS' nicht running — starte"
+    incus start "$CT_TTS" 2>&1 | tail -3 || true
+  fi
+fi
+
+if ! incus config device show "$CT_TTS" 2>/dev/null | grep -q "^tts-port:"; then
+  log "incus-proxy-device anlegen: Container:$TTS_PORT → Host:127.0.0.1:$TTS_PORT"
+  incus config device add "$CT_TTS" tts-port proxy \
+    listen=tcp:127.0.0.1:$TTS_PORT \
+    connect=tcp:127.0.0.1:$TTS_PORT 2>&1 | tail -3 || true
+fi
+
+log "Warte auf TTS (Port $TTS_PORT)..."
+for i in $(seq 1 60); do
+  if (echo "" | timeout 1 nc -w1 127.0.0.1 $TTS_PORT) >/dev/null 2>&1; then
+    log "TTS (Piper) bereit"
+    break
+  fi
+  sleep 3
+done
+
+log "Voice Interface bereit (STT: incus '$CT_NAME' Port $STT_PORT, TTS: incus '$CT_TTS' Port $TTS_PORT (Piper); MiniMax/OpenRouter optional)"

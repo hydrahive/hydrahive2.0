@@ -25,7 +25,8 @@ export function TTSSettings() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (provider === "browser") return
+    // browser = clientseitig, local = feste Container-Stimme → kein Voice-Abruf
+    if (provider === "browser" || provider === "local") return
     setLoading(true)
     setError(null)
     const token = useAuthStore.getState().token ?? ""
@@ -79,6 +80,16 @@ export function TTSSettings() {
             MiniMax (Cloud, hochwertig)
           </button>
           <button
+            onClick={() => changeProvider("local")}
+            className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+              provider === "local"
+                ? "bg-violet-500/20 border-violet-500/40 text-violet-200"
+                : "bg-white/[3%] border-white/[8%] text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            Lokal (Piper)
+          </button>
+          <button
             onClick={() => changeProvider("openrouter")}
             className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
               provider === "openrouter"
@@ -91,7 +102,14 @@ export function TTSSettings() {
         </div>
       </div>
 
-      {provider !== "browser" && (
+      {provider === "local" && (
+        <p className="text-xs text-zinc-500">
+          Lokales Piper-TTS (incus-Container, Port 10200) — feste Container-Stimme, kein Cloud-Key nötig.
+          Falls nicht installiert: Voice-Interface über den Install-Button einrichten.
+        </p>
+      )}
+
+      {(provider === "minimax" || provider === "openrouter") && (
         <div className="space-y-2">
           <label className="block text-xs text-zinc-400">Stimme</label>
           {loading && <p className="text-xs text-zinc-500">Lade Stimmen…</p>}

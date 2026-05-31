@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from hydrahive.voice._audio_utils import probe_seconds, waveform_from_audio
+from hydrahive.voice._wyoming import recv_event as _recv, send_event as _send
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,62 @@ async def synthesize_mp3(text: str, voice: str = "German_FriendlyMan") -> bytes:
         if proc.returncode != 0 or not out.exists():
             raise RuntimeError(f"mmx fehlgeschlagen: {err.decode(errors='replace')[:200]}")
         return out.read_bytes()
+
+
+PIPER_HOST = "127.0.0.1"
+PIPER_PORT = 10200
+
+
+async def synthesize_local(text: str, voice: str = "") -> tuple[bytes, str]:
+    """Vorlesen über lokales Piper (Wyoming, Port 10200) — ohne Cloud-Key.
+
+    Spiegel von stt._wyoming_transcribe: synthesize{text} → audio-start →
+    audio-chunk* → audio-stop. PCM wird zu WAV gewrappt (Rate aus audio-start).
+    Gibt (wav_bytes, "audio/wav") zurück. Raises RuntimeError bei Fehler/Timeout.
+    """
+    if not text.strip():
+        raise RuntimeError("leerer Text")
+
+    async def _do() -> bytes:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(PIPER_HOST, PIPER_PORT), timeout=15.0,
+        )
+        try:
+            data: dict = {"text": text}
+            if voice:
+                data["voice"] = {"name": voice}
+            await _send(writer, "synthesize", data)
+            chunks: list[bytes] = []
+            rate, channels = 22050, 1
+            while True:
+                etype, d, payload = await _recv(reader)
+                if etype == "audio-start":
+                    rate = int(d.get("rate") or rate)
+                    channels = int(d.get("channels") or channels)
+                elif etype == "audio-chunk":
+                    if payload:
+                        chunks.append(payload)
+                elif etype == "audio-stop":
+                    break
+                elif etype == "error":
+                    raise RuntimeError(d.get("text", "Piper-Fehler"))
+            pcm = b"".join(chunks)
+            if not pcm:
+                raise RuntimeError("kein Audio von Piper erhalten")
+            from hydrahive.tools._openrouter_media import pcm16_to_wav
+            return pcm16_to_wav(pcm, sample_rate=rate, channels=channels)
+        finally:
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except OSError:
+                pass
+
+    try:
+        wav = await asyncio.wait_for(_do(), timeout=120.0)
+    except asyncio.TimeoutError:
+        raise RuntimeError("Piper-Timeout (120s)")
+    return wav, "audio/wav"
 
 
 async def synthesize_openrouter(text: str, voice: str = "") -> tuple[bytes, str]:

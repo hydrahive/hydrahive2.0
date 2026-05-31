@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 
-export type TTSProvider = "browser" | "minimax" | "openrouter"
+export type TTSProvider = "browser" | "local" | "minimax" | "openrouter"
 
 export const TTS_PROVIDER_KEY = "hh_tts_provider"
 export const TTS_VOICE_KEY = "hh_tts_voice"
@@ -9,7 +9,7 @@ export const DEFAULT_VOICE = "German_FriendlyMan"
 
 export function getTTSProvider(): TTSProvider {
   const v = localStorage.getItem(TTS_PROVIDER_KEY)
-  return v === "minimax" || v === "openrouter" ? v : "browser"
+  return v === "local" || v === "minimax" || v === "openrouter" ? v : "browser"
 }
 
 export function getTTSVoice(): string {
@@ -51,16 +51,18 @@ async function speakGlobal(text: string, lang = "de-DE") {
   const myId = ++speakRequestId
   const provider = getTTSProvider()
 
-  if (provider === "minimax" || provider === "openrouter") {
+  if (provider === "local" || provider === "minimax" || provider === "openrouter") {
     try {
       const token = useAuthStore.getState().token ?? ""
+      // local (Piper) nutzt die Container-Stimme — keine Voice mitschicken.
+      const voice = provider === "local" ? "" : getTTSVoice()
       const res = await fetch("/api/tts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ text, voice: getTTSVoice(), provider }),
+        body: JSON.stringify({ text, voice, provider }),
       })
       if (myId !== speakRequestId) return
       if (!res.ok) throw new Error(`TTS ${res.status}`)
@@ -87,7 +89,7 @@ async function speakGlobal(text: string, lang = "de-DE") {
       setSpeakingGlobal(true)
       await audio.play()
     } catch (e) {
-      console.error("MiniMax TTS fehlgeschlagen:", e)
+      console.error(`TTS (${provider}) fehlgeschlagen:`, e)
       setSpeakingGlobal(false)
     }
     // KEIN Fallback auf Browser-TTS — entweder/oder, nie beides

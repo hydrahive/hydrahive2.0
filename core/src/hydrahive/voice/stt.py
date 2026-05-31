@@ -7,10 +7,11 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import tempfile
 from pathlib import Path
+
+from hydrahive.voice._wyoming import recv_event as _recv, send_event as _send
 
 logger = logging.getLogger(__name__)
 
@@ -27,37 +28,6 @@ _MIME_EXT = {
 def _normalize_mime(m: str) -> str:
     """`audio/ogg; codecs=opus` ⇒ `audio/ogg`. Toleriert Whitespace + Casing."""
     return m.split(";")[0].strip().lower()
-
-
-async def _send(writer, etype: str, data: dict | None = None, payload: bytes = b"") -> None:
-    header: dict = {"type": etype}
-    data_bytes = b""
-    if data:
-        data_bytes = json.dumps(data, separators=(",", ":")).encode()
-        header["data_length"] = len(data_bytes)
-    if payload:
-        header["payload_length"] = len(payload)
-    writer.write(json.dumps(header, separators=(",", ":")).encode() + b"\n")
-    if data_bytes:
-        writer.write(data_bytes)
-    if payload:
-        writer.write(payload)
-    await writer.drain()
-
-
-async def _recv(reader) -> tuple[str, dict, bytes]:
-    line = await asyncio.wait_for(reader.readline(), timeout=60.0)
-    if not line:
-        raise ConnectionError("Wyoming-Verbindung unerwartet geschlossen")
-    header = json.loads(line.decode())
-    data: dict = {}
-    if header.get("data_length", 0) > 0:
-        raw = await asyncio.wait_for(reader.readexactly(header["data_length"]), timeout=10.0)
-        data = json.loads(raw)
-    payload = b""
-    if header.get("payload_length", 0) > 0:
-        payload = await asyncio.wait_for(reader.readexactly(header["payload_length"]), timeout=30.0)
-    return header.get("type", ""), data, payload
 
 
 async def _wyoming_transcribe(pcm: bytes, language: str | None = None) -> str:

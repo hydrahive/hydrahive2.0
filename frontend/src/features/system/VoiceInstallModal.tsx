@@ -62,12 +62,12 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
           {state === "confirm" && (
             <>
               <p className="text-sm text-zinc-200">
-                Wyoming STT (faster-whisper) + TTS (Piper) via Docker installieren?
+                Wyoming STT (faster-whisper) + TTS (Piper) als incus-Container installieren?
               </p>
               <ul className="text-xs text-zinc-400 space-y-1 list-disc list-inside">
-                <li>Docker wird installiert falls nicht vorhanden</li>
-                <li>Container-Images werden heruntergeladen (~1–2 GB)</li>
-                <li>STT läuft auf Port 10300, TTS auf Port 10200</li>
+                <li>Läuft als incus-LXC (kein Docker)</li>
+                <li>Modelle/Stimmen werden heruntergeladen (~0,5–1 GB)</li>
+                <li>STT läuft auf Port 10300, TTS (Piper) auf Port 10200</li>
                 <li>Container starten automatisch bei jedem System-Neustart</li>
               </ul>
             </>
@@ -79,7 +79,7 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
               <span>
                 {state === "starting"
                   ? "Installation wird gestartet…"
-                  : "Installation läuft — Docker-Images werden heruntergeladen…"}
+                  : "Installation läuft — incus-Container + Modelle werden eingerichtet…"}
               </span>
             </div>
           )}

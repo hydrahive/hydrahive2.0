@@ -61,8 +61,8 @@ async def synthesize(
     body: SpeakIn,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> Response:
-    # mmx-Gate nur für den MiniMax-Pfad — OpenRouter braucht kein mmx.
-    if body.provider != "openrouter" and not voice_tts.is_available():
+    # mmx-Gate NUR für MiniMax — local (Piper) und OpenRouter brauchen kein mmx.
+    if body.provider == "minimax" and not voice_tts.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "validation_error",
                     message="mmx CLI nicht installiert")
     username, _ = auth
@@ -74,7 +74,9 @@ async def synthesize(
                     f"Reset um Mitternacht UTC. Override via ENV TTS_DAILY_CAP.",
         )
     try:
-        if body.provider == "openrouter":
+        if body.provider == "local":
+            data, media_type = await voice_tts.synthesize_local(body.text, body.voice)
+        elif body.provider == "openrouter":
             data, media_type = await voice_tts.synthesize_openrouter(body.text, body.voice)
         else:
             data = await voice_tts.synthesize_mp3(body.text, body.voice)
