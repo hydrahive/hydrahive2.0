@@ -1,17 +1,17 @@
 import { useState } from "react"
-import { akteApi, type AkteEntityKey, type AkteRecord } from "../api"
-import { ENTITY_FIELDS, type FieldDef } from "../akteFields"
+import { akteApi, type AkteEntityKey, type AkteRecord, type AkteUiField } from "../api"
 
 interface Props {
   entity: AkteEntityKey
   title: string
+  fields: AkteUiField[]
   /** vorhandener Eintrag → Bearbeiten; undefined → Neu anlegen */
   existing?: AkteRecord
   onClose: () => void
   onSaved: () => void
 }
 
-function initialForm(fields: FieldDef[], existing?: AkteRecord): Record<string, string> {
+function initialForm(fields: AkteUiField[], existing?: AkteRecord): Record<string, string> {
   const f: Record<string, string> = {}
   for (const fd of fields) {
     const v = existing?.record?.[fd.key]
@@ -20,8 +20,7 @@ function initialForm(fields: FieldDef[], existing?: AkteRecord): Record<string, 
   return f
 }
 
-export function AkteEntryModal({ entity, title, existing, onClose, onSaved }: Props) {
-  const fields = ENTITY_FIELDS[entity]
+export function AkteEntryModal({ entity, title, fields, existing, onClose, onSaved }: Props) {
   const [form, setForm] = useState<Record<string, string>>(() => initialForm(fields, existing))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -94,27 +93,27 @@ export function AkteEntryModal({ entity, title, existing, onClose, onSaved }: Pr
                 {fd.label}{fd.required && <span className="text-rose-400"> *</span>}
                 {fd.type === "textarea" ? (
                   <textarea
-                    value={form[fd.key]}
+                    value={form[fd.key] ?? ""}
                     onChange={(e) => set(fd.key, e.target.value)}
                     rows={3}
                     className="rounded-lg border border-white/[8%] bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600"
                   />
                 ) : fd.type === "select" ? (
                   <select
-                    value={form[fd.key]}
+                    value={form[fd.key] ?? ""}
                     onChange={(e) => set(fd.key, e.target.value)}
                     className="rounded-lg border border-white/[8%] bg-zinc-800 px-3 py-2 text-sm text-zinc-100"
                   >
                     <option value="">—</option>
-                    {fd.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+                    {fd.options.map((o) => <option key={o} value={o}>{o}</option>)}
                   </select>
                 ) : (
                   <input
                     type={fd.type === "number" ? "number" : fd.type === "date" ? "date" : "text"}
                     step={fd.type === "number" ? "any" : undefined}
-                    value={form[fd.key]}
+                    value={form[fd.key] ?? ""}
                     onChange={(e) => set(fd.key, e.target.value)}
-                    placeholder={fd.placeholder}
+                    placeholder={fd.placeholder ?? undefined}
                     className="rounded-lg border border-white/[8%] bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600"
                   />
                 )}

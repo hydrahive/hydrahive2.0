@@ -188,6 +188,29 @@ export type AkteEntityKey =
   | 'events' | 'imaging' | 'allergies'
   | 'practitioners' | 'documents' | 'notes'
 
+export interface AkteUiField {
+  key: string
+  label: string
+  type: 'text' | 'number' | 'date' | 'textarea' | 'select'
+  required: boolean
+  options: string[]
+  placeholder: string | null
+}
+
+export interface AkteEntitySchema {
+  key: string
+  label: string
+  label_fields: string[]
+  list_columns: string[]
+  date_field: string | null
+  numeric_fields: string[]
+  ui_fields: AkteUiField[]
+}
+
+export interface AkteSchemaResponse {
+  entities: Record<AkteEntityKey, AkteEntitySchema>
+}
+
 export interface AktePatient {
   id: string
   slug: string
@@ -221,20 +244,9 @@ export interface AkteTimelineEntry {
 // Das Backend liefert Entitäts-Records FLACH ({id, diagnose, icd_code, sort_date, …}).
 // Die UI erwartet {id, label, sort_date, verifiziert, record:{…}}. Dieser Adapter
 // übersetzt die flache Antwort und leitet ein sinnvolles Label je Entität ab.
-const LABEL_FIELDS: Record<AkteEntityKey, string[]> = {
-  conditions:    ['diagnose'],
-  medications:   ['name', 'wirkstoff'],
-  observations:  ['parameter'],
-  events:        ['typ', 'hauptdiagnose', 'einrichtung'],
-  imaging:       ['befund', 'modalitaet', 'region'],
-  allergies:     ['substanz'],
-  practitioners: ['name', 'einrichtung'],
-  documents:     ['titel'],
-  notes:         ['titel'],
-}
-
-function toAkteRecord(entity: AkteEntityKey, row: Record<string, unknown>): AkteRecord {
-  const labelField = LABEL_FIELDS[entity].find((f) => row[f])
+// label_fields kommen aus dem Schema-Endpoint (SSOT).
+function toAkteRecord(row: Record<string, unknown>, labelFields: string[]): AkteRecord {
+  const labelField = labelFields.find((f) => row[f])
   const label = labelField ? String(row[labelField]) : '—'
   return {
     id: String(row.id ?? ''),
@@ -247,6 +259,8 @@ function toAkteRecord(entity: AkteEntityKey, row: Record<string, unknown>): Akte
 }
 
 export const akteApi = {
+  getSchema: () => api.get<AkteSchemaResponse>('/health/patientenakte/_schema'),
+
   // Own Akte
   getOwn: () => api.get<AktePatient>('/health/patientenakte'),
 
@@ -269,7 +283,7 @@ export const akteApi = {
   },
 
   // Entities
-  listEntity: async (entity: AkteEntityKey, params?: { q?: string; status?: string }): Promise<AkteRecord[]> => {
+  listEntity: async (entity: AkteEntityKey, params?: { q?: string; status?: string }, labelFields?: string[]): Promise<AkteRecord[]> => {
     const sp = new URLSearchParams()
     if (params?.q) sp.set('q', params.q)
     if (params?.status) sp.set('status', params.status)
@@ -277,7 +291,8 @@ export const akteApi = {
     const rows = await api.get<Record<string, unknown>[]>(
       `/health/patientenakte/${entity}${qs ? '?' + qs : ''}`
     )
-    return rows.map((row) => toAkteRecord(entity, row))
+    const lf = labelFields ?? ['id']
+    return rows.map((row) => toAkteRecord(row, lf))
   },
 
   createEntity: (entity: AkteEntityKey, data: Record<string, unknown>) =>

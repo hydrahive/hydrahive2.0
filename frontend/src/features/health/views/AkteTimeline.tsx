@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { akteApi, type AkteEntityKey, type AkteTimelineEntry } from "../api"
+import { useAkteSchema } from "../useAkteSchema"
 import { VerifyBadge } from "../components/VerifyBadge"
 
 const ENTITY_ICONS: Record<string, string> = {
@@ -14,21 +15,10 @@ const ENTITY_ICONS: Record<string, string> = {
   notes:         "📝",
 }
 
-const ENTITY_LABELS: Record<string, string> = {
-  conditions:    "Diagnose",
-  medications:   "Medikament",
-  observations: "Laborwert",
-  events:        "Ereignis",
-  imaging:       "Bildgebung",
-  allergies:     "Allergie",
-  practitioners: "Arzt",
-  documents:     "Dokument",
-  notes:         "Notiz",
-}
-
 type FilterEntity = AkteEntityKey | "all"
 
 export function AkteTimeline() {
+  const schema = useAkteSchema()
   const [entries, setEntries] = useState<AkteTimelineEntry[] | null>(null)
   const [filter, setFilter] = useState<FilterEntity>("all")
   const [loading, setLoading] = useState(true)
@@ -85,7 +75,7 @@ export function AkteTimeline() {
             }`}
           >
             <span>{ENTITY_ICONS[key]}</span>
-            <span>{ENTITY_LABELS[key]}</span>
+            <span>{schema?.entities[key]?.label ?? key}</span>
           </button>
         ))}
       </div>
@@ -120,7 +110,7 @@ export function AkteTimeline() {
                     {entry.sort_date ? new Date(entry.sort_date).toLocaleDateString("de-DE") : ""}
                   </span>
                 </div>
-                <span className="text-xs text-zinc-500">{ENTITY_ICONS[entry.entity]} {ENTITY_LABELS[entry.entity]}</span>
+                <span className="text-xs text-zinc-500">{ENTITY_ICONS[entry.entity]} {schema?.entities[entry.entity]?.label ?? entry.entity}</span>
               </div>
             </div>
           ))}
