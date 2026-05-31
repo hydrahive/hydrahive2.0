@@ -133,6 +133,9 @@ function HydraAssistantMessage() {
               {tts.speaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
             </button>
           )}
+          {tts.error && (
+            <span className="text-rose-400 text-[11px] max-w-full break-words" role="alert">{tts.error}</span>
+          )}
           {fullText && (
             <button onClick={() => { navigator.clipboard.writeText(fullText); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
               className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-zinc-200 hover:bg-white/[6%] transition-colors">

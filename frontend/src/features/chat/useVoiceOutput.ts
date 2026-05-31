@@ -22,9 +22,27 @@ let activeAudio: HTMLAudioElement | null = null
 let activeAudioUrl: string | null = null
 let speakRequestId = 0
 const listeners = new Set<(speaking: boolean) => void>()
+const errorListeners = new Set<(error: string | null) => void>()
+let errorTimer: ReturnType<typeof setTimeout> | null = null
 
 function setSpeakingGlobal(v: boolean) {
   listeners.forEach((l) => l(v))
+}
+
+function setErrorGlobal(msg: string | null) {
+  errorListeners.forEach((l) => l(msg))
+  if (errorTimer) { clearTimeout(errorTimer); errorTimer = null }
+  // Fehlermeldung nach 6s automatisch wieder ausblenden.
+  if (msg) errorTimer = setTimeout(() => errorListeners.forEach((l) => l(null)), 6000)
+}
+
+async function ttsErrorMessage(res: Response): Promise<string> {
+  try {
+    const body = await res.json()
+    const detail = body?.detail?.params?.message ?? body?.detail?.message ?? body?.detail
+    if (typeof detail === "string" && detail) return `Vorlesen fehlgeschlagen (${res.status}): ${detail}`
+  } catch { /* kein JSON-Body */ }
+  return `Vorlesen fehlgeschlagen (${res.status})`
 }
 
 function stopAll() {
@@ -48,6 +66,7 @@ function stopAll() {
 
 async function speakGlobal(text: string, lang = "de-DE") {
   stopAll()
+  setErrorGlobal(null)
   const myId = ++speakRequestId
   const provider = getTTSProvider()
 
@@ -65,7 +84,7 @@ async function speakGlobal(text: string, lang = "de-DE") {
         body: JSON.stringify({ text, voice, provider }),
       })
       if (myId !== speakRequestId) return
-      if (!res.ok) throw new Error(`TTS ${res.status}`)
+      if (!res.ok) throw new Error(await ttsErrorMessage(res))
       const blob = await res.blob()
       if (myId !== speakRequestId) return
       const url = URL.createObjectURL(blob)
@@ -90,6 +109,7 @@ async function speakGlobal(text: string, lang = "de-DE") {
       await audio.play()
     } catch (e) {
       console.error(`TTS (${provider}) fehlgeschlagen:`, e)
+      setErrorGlobal(e instanceof Error ? e.message : `Vorlesen (${provider}) fehlgeschlagen`)
       setSpeakingGlobal(false)
     }
     // KEIN Fallback auf Browser-TTS — entweder/oder, nie beides
@@ -127,14 +147,17 @@ async function speakGlobal(text: string, lang = "de-DE") {
 
 export function useVoiceOutput() {
   const [speaking, setSpeaking] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     listeners.add(setSpeaking)
-    return () => { listeners.delete(setSpeaking) }
+    errorListeners.add(setError)
+    return () => { listeners.delete(setSpeaking); errorListeners.delete(setError) }
   }, [])
 
   return {
     speaking,
+    error,
     speak: (text: string, lang?: string) => speakGlobal(text, lang),
     stop: stopAll,
   }
