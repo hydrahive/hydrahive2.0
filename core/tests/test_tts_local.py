@@ -71,6 +71,20 @@ async def test_synthesize_local_pcm_zu_wav():
 
 
 @pytest.mark.asyncio
+async def test_synthesize_local_connection_refused_wird_runtimeerror():
+    """Piper nicht erreichbar (ConnectionRefused) → RuntimeError statt OSError-Leak
+    (sonst HTTP 500 in der Route)."""
+    from hydrahive.voice import tts
+
+    async def _refuse(host, port):
+        raise ConnectionRefusedError("connection refused")
+
+    with patch("hydrahive.voice.tts.asyncio.open_connection", _refuse):
+        with pytest.raises(RuntimeError, match="nicht erreichbar"):
+            await tts.synthesize_local("Hallo")
+
+
+@pytest.mark.asyncio
 async def test_synthesize_local_leerer_text():
     from hydrahive.voice import tts
     with pytest.raises(RuntimeError):

@@ -141,6 +141,11 @@ async def synthesize_local(text: str, voice: str = "") -> tuple[bytes, str]:
         wav = await asyncio.wait_for(_do(), timeout=120.0)
     except asyncio.TimeoutError:
         raise RuntimeError("Piper-Timeout (120s)")
+    except OSError as e:
+        # ConnectionRefused/Reset etc. → sonst leakt OSError als HTTP 500.
+        raise RuntimeError(
+            f"Lokales TTS nicht erreichbar (Piper Port {PIPER_PORT}) — Voice-Container läuft? ({e})"
+        )
     return wav, "audio/wav"
 
 

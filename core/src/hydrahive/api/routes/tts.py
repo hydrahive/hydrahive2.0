@@ -83,5 +83,10 @@ async def synthesize(
             media_type = "audio/mpeg"
     except RuntimeError as e:
         raise _runtime_to_coded(e)
+    except Exception as e:
+        # TTS hängt an externen Diensten (Container/Subprozess) — unerwartete
+        # Fehler nie als rohes HTTP 500 leaken, sondern als 502 mit Meldung.
+        logger.warning("TTS unerwarteter Fehler (provider=%s): %s", body.provider, e)
+        raise coded(status.HTTP_502_BAD_GATEWAY, "validation_error", message=str(e) or type(e).__name__)
     logger.info("TTS-Quota %s: %d/%d (provider=%s)", username, used, cap, body.provider)
     return Response(content=data, media_type=media_type)
