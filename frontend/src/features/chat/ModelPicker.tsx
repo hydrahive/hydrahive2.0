@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
-import { llmApi } from "@/features/llm/api"
-import { KNOWN_PROVIDERS } from "@/features/llm/_llm_providers"
+import { llmInfoApi } from "@/features/agents/api"
 
 interface Props {
   /** Aktuelles Modell — wird im select selektiert dargestellt. */
@@ -25,22 +24,8 @@ export function ModelPicker({ current, hint, onPick, showReset, onReset }: Props
 
   useEffect(() => {
     let alive = true
-    llmApi.getConfig()
-      .then((cfg) => {
-        if (!alive) return
-        const stored = new Set(cfg.providers.flatMap((p) => p.models))
-        const configuredIds = new Set(
-          cfg.providers
-            .filter((p) => !!p.api_key || !!(p as { oauth?: { access?: string } }).oauth?.access)
-            .map((p) => p.id),
-        )
-        for (const known of KNOWN_PROVIDERS) {
-          if (configuredIds.has(known.id)) {
-            for (const m of known.models) stored.add(m)
-          }
-        }
-        setModels(Array.from(stored).sort())
-      })
+    llmInfoApi.getModels()
+      .then((info) => { if (alive) setModels([...info.models].sort()) })
       .catch(() => {})
     return () => { alive = false }
   }, [])

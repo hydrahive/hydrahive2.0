@@ -13,7 +13,6 @@ from hydrahive.agents import config as agent_config
 from hydrahive.buddy import _build_soul, _find_buddy_for, _pick_character
 from hydrahive.buddy._commands_helpers import slug as _slug, snapshot_active_session as _snapshot_active_session
 from hydrahive.db import sessions as sessions_db
-from hydrahive.llm._config import load_config
 from hydrahive.tools import _memory_store as memory
 
 
@@ -75,15 +74,10 @@ def remember(username: str, text: str | None = None, name: str | None = None) ->
 
 
 def list_models(username: str) -> dict:
-    """Liefert verfügbare Modelle (flat aus allen Providern) + aktuelles."""
+    """Liefert verfügbare Modelle (live aus dem Katalog-Cache) + aktuelles."""
     buddy = _require_buddy(username)
-    cfg = load_config()
-    models: list[str] = []
-    for p in cfg.get("providers", []):
-        for m in p.get("models", []):
-            if m and m not in models:
-                models.append(m)
-    return {"current": buddy.get("llm_model", ""), "available": models}
+    from hydrahive.agents._validation import _available_models
+    return {"current": buddy.get("llm_model", ""), "available": sorted(_available_models())}
 
 
 def set_model(username: str, model: str) -> dict:
@@ -91,9 +85,11 @@ def set_model(username: str, model: str) -> dict:
     model = model.strip()
     if not model:
         raise ValueError("set_model braucht einen Modell-Namen")
-    available = list_models(username)["available"]
-    if model not in available:
-        raise ValueError(f"Unbekanntes Modell '{model}'. Verfügbar: {', '.join(available)}")
+    from hydrahive.agents._validation import AgentValidationError, validate_model
+    try:
+        validate_model(model)
+    except AgentValidationError as e:
+        raise ValueError(str(e))
     buddy = _require_buddy(username)
     agent_config.update(buddy["id"], llm_model=model)
     return {"ok": True, "model": model, "message": f"Modell auf {model} gewechselt."}
