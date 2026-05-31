@@ -9,7 +9,7 @@ export function CatalogPage() {
   const [providers, setProviders] = useState<CatalogProvider[]>([])
   const [activePid, setActivePid] = useState<string>("")
   const [search, setSearch] = useState("")
-  const [filter, setFilter] = useState<"all" | "tool_use" | "no_tools" | "unknown">("all")
+  const [filter, setFilter] = useState<"all" | "tool_use" | "no_tools" | "unknown" | "free">("all")
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, CatalogTestResult>>({})
@@ -43,6 +43,7 @@ export function CatalogPage() {
     if (filter === "tool_use") xs = xs.filter((m) => m.tool_use === true)
     if (filter === "no_tools") xs = xs.filter((m) => m.tool_use === false)
     if (filter === "unknown") xs = xs.filter((m) => m.unknown)
+    if (filter === "free") xs = xs.filter((m) => m.is_free === true)
     return xs
   }, [active, search, filter])
 
@@ -111,14 +112,14 @@ export function CatalogPage() {
             className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[3%] border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
         </div>
         <div className="flex gap-1">
-          {(["all", "tool_use", "no_tools", "unknown"] as const).map((f) => (
+          {(["all", "tool_use", "no_tools", "unknown", "free"] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
                 filter === f
                   ? "bg-violet-500/15 text-violet-200 border border-violet-500/30"
                   : "text-zinc-400 hover:bg-white/5 border border-transparent"
               }`}>
-              {f === "all" ? "Alle" : f === "tool_use" ? "Mit Tools" : f === "no_tools" ? "Ohne Tools" : "Unbekannt"}
+              {f === "all" ? "Alle" : f === "tool_use" ? "Mit Tools" : f === "no_tools" ? "Ohne Tools" : f === "unknown" ? "Unbekannt" : "nur gratis"}
             </button>
           ))}
         </div>
@@ -163,7 +164,10 @@ function Row({
 }: { m: CatalogModel; testResult?: CatalogTestResult; testing: boolean; onTest: () => void; onUse: () => void }) {
   return (
     <tr className="border-t border-white/[5%] hover:bg-white/[2%]">
-      <td className="px-3 py-2 font-mono text-xs text-zinc-200 break-all">{m.id}</td>
+      <td className="px-3 py-2 font-mono text-xs text-zinc-200 break-all">
+        {m.id}
+        {m.is_free === true && <span className="text-[10px] text-emerald-400 ml-1">gratis</span>}
+      </td>
       <td className="px-3 py-2 text-right text-xs tabular-nums text-zinc-400">
         {m.context_window ? m.context_window.toLocaleString("de") : "—"}
       </td>
