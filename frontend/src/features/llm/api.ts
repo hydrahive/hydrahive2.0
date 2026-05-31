@@ -69,6 +69,9 @@ export interface CatalogModel {
   family: string
   params?: string
   unknown: boolean
+  is_free: boolean | null
+  price_prompt: string | null
+  price_completion: string | null
 }
 
 export interface CatalogProvider {

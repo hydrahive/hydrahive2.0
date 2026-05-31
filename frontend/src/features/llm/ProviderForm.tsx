@@ -17,7 +17,7 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
   const { t: tCommon } = useTranslation("common")
   const isEdit = !!existing
   const initialKnown = existing ? KNOWN_PROVIDERS.find((p) => p.id === existing.id) : null
-  const initialKnownModels = new Set(initialKnown?.models ?? [])
+  const initialKnownModels = new Set<string>(initialKnown?.models ?? [])
   const initialSelected = existing ? existing.models.filter((m) => initialKnownModels.has(m)) : []
   const initialCustom = existing ? existing.models.filter((m) => !initialKnownModels.has(m)).join(", ") : ""
 

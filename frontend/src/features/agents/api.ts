@@ -1,5 +1,6 @@
 import { api } from "@/shared/api-client"
 import type { Agent, AgentCreate, AgentDefaults, AgentTemplate, ToolMeta } from "./types"
+import type { CatalogModel } from "@/features/llm/api"
 
 export const agentsApi = {
   list: () => api.get<Agent[]>("/agents"),
@@ -26,18 +27,19 @@ export const agentsApi = {
 }
 
 export interface LlmProviderInfo {
-  models: string[]
+  models: string[]              // IDs (Abwärtskompat. für CompactionSection/Fallback)
+  catalog: CatalogModel[]       // strukturiert (für ModelTab-Combobox: free-Badge/Filter)
   default_model: string
 }
 
 export const llmInfoApi = {
   getModels: async (): Promise<LlmProviderInfo> => {
-    const cfg = await api.get<{
-      providers: { models: string[] }[]
-      default_model: string
-    }>("/llm")
-    const models = cfg.providers.flatMap((p) => p.models)
-    return { models, default_model: cfg.default_model }
+    const [cfg, cat] = await Promise.all([
+      api.get<{ default_model: string }>("/llm"),
+      api.get<{ providers: { models: CatalogModel[] }[] }>("/llm/catalog"),
+    ])
+    const catalog = cat.providers.flatMap((p) => p.models)
+    return { models: catalog.map((m) => m.id), catalog, default_model: cfg.default_model }
   },
 }
 
