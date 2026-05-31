@@ -87,6 +87,17 @@ async def test_synthesize_local_error_event():
 
 
 @pytest.mark.asyncio
+async def test_synthesize_local_channels_error_freundlich():
+    """Piper '# channels not specified' (kein Audio, z.B. nur Satzzeichen) →
+    verständliche Meldung statt kryptischem Piper-Text."""
+    from hydrahive.voice import tts
+    reader = await _piper_reply([("error", {"text": "# channels not specified"}, b"")])
+    with patch("hydrahive.voice.tts.asyncio.open_connection", _open_connection_returning(reader)):
+        with pytest.raises(RuntimeError, match="Vorlesbares"):
+            await tts.synthesize_local("...")
+
+
+@pytest.mark.asyncio
 async def test_synthesize_local_kein_audio():
     from hydrahive.voice import tts
     reader = await _piper_reply([

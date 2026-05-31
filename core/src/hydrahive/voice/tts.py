@@ -119,7 +119,12 @@ async def synthesize_local(text: str, voice: str = "") -> tuple[bytes, str]:
                 elif etype == "audio-stop":
                     break
                 elif etype == "error":
-                    raise RuntimeError(d.get("text", "Piper-Fehler"))
+                    msg = d.get("text", "Piper-Fehler")
+                    # Piper wirft "# channels not specified" wenn es kein Audio
+                    # erzeugt (Text ohne sprechbaren Inhalt, z.B. nur Satzzeichen).
+                    if "channel" in msg.lower():
+                        raise RuntimeError("Text enthält nichts Vorlesbares")
+                    raise RuntimeError(msg)
             pcm = b"".join(chunks)
             if not pcm:
                 raise RuntimeError("kein Audio von Piper erhalten")
