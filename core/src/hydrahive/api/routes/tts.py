@@ -22,6 +22,7 @@ DEFAULT_VOICE = "German_FriendlyMan"
 class SpeakIn(BaseModel):
     text: str = Field(min_length=1, max_length=10000)
     voice: str = Field(default=DEFAULT_VOICE, max_length=80)
+    provider: str = Field(default="minimax", max_length=20)
 
 
 def _runtime_to_coded(e: RuntimeError):
@@ -37,7 +38,14 @@ def _runtime_to_coded(e: RuntimeError):
 async def list_voices(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
     language: str = "german",
+    provider: str = "minimax",
 ) -> JSONResponse:
+    if provider == "openrouter":
+        from hydrahive.llm import media_models
+        model = media_models.get_media_model("tts")
+        voices = await media_models.voices_for(model)
+        return JSONResponse({"voices": [{"voice_id": v, "voice_name": v} for v in voices],
+                             "model": model})
     if not voice_tts.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "validation_error",
                     message="mmx CLI nicht installiert")
@@ -53,7 +61,8 @@ async def synthesize(
     body: SpeakIn,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> Response:
-    if not voice_tts.is_available():
+    # mmx-Gate nur für den MiniMax-Pfad — OpenRouter braucht kein mmx.
+    if body.provider != "openrouter" and not voice_tts.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "validation_error",
                     message="mmx CLI nicht installiert")
     username, _ = auth
@@ -65,8 +74,12 @@ async def synthesize(
                     f"Reset um Mitternacht UTC. Override via ENV TTS_DAILY_CAP.",
         )
     try:
-        mp3 = await voice_tts.synthesize_mp3(body.text, body.voice)
+        if body.provider == "openrouter":
+            data, media_type = await voice_tts.synthesize_openrouter(body.text, body.voice)
+        else:
+            data = await voice_tts.synthesize_mp3(body.text, body.voice)
+            media_type = "audio/mpeg"
     except RuntimeError as e:
         raise _runtime_to_coded(e)
-    logger.info("TTS-Quota %s: %d/%d", username, used, cap)
-    return Response(content=mp3, media_type="audio/mpeg")
+    logger.info("TTS-Quota %s: %d/%d (provider=%s)", username, used, cap, body.provider)
+    return Response(content=data, media_type=media_type)

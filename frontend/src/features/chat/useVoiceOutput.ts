@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 
-export type TTSProvider = "browser" | "minimax"
+export type TTSProvider = "browser" | "minimax" | "openrouter"
 
 export const TTS_PROVIDER_KEY = "hh_tts_provider"
 export const TTS_VOICE_KEY = "hh_tts_voice"
@@ -9,7 +9,7 @@ export const DEFAULT_VOICE = "German_FriendlyMan"
 
 export function getTTSProvider(): TTSProvider {
   const v = localStorage.getItem(TTS_PROVIDER_KEY)
-  return v === "minimax" ? "minimax" : "browser"
+  return v === "minimax" || v === "openrouter" ? v : "browser"
 }
 
 export function getTTSVoice(): string {
@@ -51,7 +51,7 @@ async function speakGlobal(text: string, lang = "de-DE") {
   const myId = ++speakRequestId
   const provider = getTTSProvider()
 
-  if (provider === "minimax") {
+  if (provider === "minimax" || provider === "openrouter") {
     try {
       const token = useAuthStore.getState().token ?? ""
       const res = await fetch("/api/tts", {
@@ -60,7 +60,7 @@ async function speakGlobal(text: string, lang = "de-DE") {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ text, voice: getTTSVoice() }),
+        body: JSON.stringify({ text, voice: getTTSVoice(), provider }),
       })
       if (myId !== speakRequestId) return
       if (!res.ok) throw new Error(`TTS ${res.status}`)

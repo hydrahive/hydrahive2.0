@@ -25,11 +25,12 @@ export function TTSSettings() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (provider !== "minimax") return
+    if (provider === "browser") return
     setLoading(true)
     setError(null)
     const token = useAuthStore.getState().token ?? ""
-    fetch("/api/tts/voices?language=german", {
+    const q = provider === "openrouter" ? "?provider=openrouter" : "?language=german"
+    fetch(`/api/tts/voices${q}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then((r) => r.ok ? r.json() : Promise.reject(new Error(`${r.status}`)))
@@ -77,10 +78,20 @@ export function TTSSettings() {
           >
             MiniMax (Cloud, hochwertig)
           </button>
+          <button
+            onClick={() => changeProvider("openrouter")}
+            className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+              provider === "openrouter"
+                ? "bg-violet-500/20 border-violet-500/40 text-violet-200"
+                : "bg-white/[3%] border-white/[8%] text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            OpenRouter (TTS-Modell)
+          </button>
         </div>
       </div>
 
-      {provider === "minimax" && (
+      {provider !== "browser" && (
         <div className="space-y-2">
           <label className="block text-xs text-zinc-400">Stimme</label>
           {loading && <p className="text-xs text-zinc-500">Lade Stimmen…</p>}
@@ -99,7 +110,11 @@ export function TTSSettings() {
             </select>
           )}
           {!loading && !error && voices.length === 0 && (
-            <p className="text-xs text-zinc-500">Keine Stimmen gefunden — mmx CLI installiert &amp; eingeloggt?</p>
+            <p className="text-xs text-zinc-500">
+              {provider === "openrouter"
+                ? "Keine Stimmen — TTS-Modell auf der LLM-Seite (Media-Modelle) wählen & OpenRouter-Key gesetzt?"
+                : "Keine Stimmen gefunden — mmx CLI installiert & eingeloggt?"}
+            </p>
           )}
         </div>
       )}

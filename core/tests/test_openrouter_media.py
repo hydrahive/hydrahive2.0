@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -115,3 +115,82 @@ def test_parse_pcm_content_type():
     # ohne Angaben → Defaults
     assert parse_pcm_content_type("audio/pcm") == (24000, 1)
     assert parse_pcm_content_type("") == (24000, 1)
+
+
+# ---------------------------------------------------------------- synthesize_speech (geteilt)
+
+def _speech_post_client(content=b"\x01\x02" * 50, status=200,
+                        content_type="audio/pcm;rate=24000;channels=1",
+                        text='{"error":{"message":"boom"}}'):
+    resp = MagicMock()
+    resp.status_code = status
+    resp.content = content
+    resp.text = text
+    resp.headers = {"content-type": content_type}
+    client = AsyncMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.post = AsyncMock(return_value=resp)
+    return client
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_pcm_zu_wav():
+    import wave, io
+    from hydrahive.tools import _openrouter_media as om
+    pcm = b"\x07\x08" * 100
+    client = _speech_post_client(content=pcm)
+    with (
+        patch("hydrahive.tools._openrouter_media.httpx.AsyncClient", return_value=client),
+        patch("hydrahive.llm.media_models.voices_for", AsyncMock(return_value=["af_bella", "am_adam"])),
+    ):
+        data, ext, voice, note = await om.synthesize_speech("Hallo", "af_bella", "hexgrad/kokoro-82m", key="k")
+    assert ext == "wav" and voice == "af_bella" and note is None
+    with wave.open(io.BytesIO(data), "rb") as w:
+        assert w.readframes(w.getnframes()) == pcm
+    assert client.post.call_args.kwargs["json"]["response_format"] == "pcm"
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_unbekannte_voice_fallback():
+    from hydrahive.tools import _openrouter_media as om
+    with (
+        patch("hydrahive.tools._openrouter_media.httpx.AsyncClient", return_value=_speech_post_client()),
+        patch("hydrahive.llm.media_models.voices_for", AsyncMock(return_value=["af_bella"])),
+    ):
+        _, _, voice, note = await om.synthesize_speech("x", "onyx", "hexgrad/kokoro-82m", key="k")
+    assert voice == "af_bella"
+    assert note and "onyx" in note
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_mp3_durchgereicht():
+    from hydrahive.tools import _openrouter_media as om
+    raw = b"\xff\xf3mp3"
+    with (
+        patch("hydrahive.tools._openrouter_media.httpx.AsyncClient",
+              return_value=_speech_post_client(content=raw, content_type="audio/mpeg")),
+        patch("hydrahive.llm.media_models.voices_for", AsyncMock(return_value=["alloy"])),
+    ):
+        data, ext, _, _ = await om.synthesize_speech("x", "alloy", "openai/gpt-4o-mini-tts", key="k")
+    assert ext == "mp3" and data == raw
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_http_fehler_raises():
+    from hydrahive.tools import _openrouter_media as om
+    with (
+        patch("hydrahive.tools._openrouter_media.httpx.AsyncClient",
+              return_value=_speech_post_client(status=400, text='{"error":"nope"}')),
+        patch("hydrahive.llm.media_models.voices_for", AsyncMock(return_value=["af_bella"])),
+    ):
+        with pytest.raises(RuntimeError):
+            await om.synthesize_speech("x", "af_bella", "hexgrad/kokoro-82m", key="k")
+
+
+@pytest.mark.asyncio
+async def test_synthesize_speech_keine_voice_raises():
+    from hydrahive.tools import _openrouter_media as om
+    with patch("hydrahive.llm.media_models.voices_for", AsyncMock(return_value=[])):
+        with pytest.raises(RuntimeError):
+            await om.synthesize_speech("x", "", "x/unknown", key="k")

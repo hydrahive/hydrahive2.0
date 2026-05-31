@@ -75,6 +75,26 @@ async def synthesize_mp3(text: str, voice: str = "German_FriendlyMan") -> bytes:
         return out.read_bytes()
 
 
+async def synthesize_openrouter(text: str, voice: str = "") -> tuple[bytes, str]:
+    """Vorlesen über OpenRouter-TTS (geteilte synthesize_speech). Modell = media_models.tts.
+
+    Gibt (audio_bytes, media_type) zurück — WAV oder MP3 je nach Modell.
+    Raises RuntimeError bei fehlendem Key / API-Fehler (Route mappt das auf HTTP).
+    """
+    if not text.strip():
+        raise RuntimeError("leerer Text")
+    from hydrahive.llm._config import openrouter_key
+    from hydrahive.llm.media_models import get_media_model
+    from hydrahive.tools._openrouter_media import synthesize_speech
+
+    key = openrouter_key()
+    if not key:
+        raise RuntimeError("OpenRouter-API-Key fehlt — Provider 'openrouter' in der LLM-Config setzen")
+    model = get_media_model("tts")
+    data, ext, _, _ = await synthesize_speech(text, voice, model, key=key)
+    return data, ("audio/wav" if ext == "wav" else "audio/mpeg")
+
+
 async def list_voices(language: str = "german") -> list[dict]:
     """Verfügbare Voices vom mmx-CLI als JSON-Liste."""
     if shutil.which("mmx") is None:

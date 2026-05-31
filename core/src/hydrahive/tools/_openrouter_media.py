@@ -8,10 +8,17 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import uuid
 import wave
 from pathlib import Path
 from typing import Any
+
+import httpx
+
+logger = logging.getLogger(__name__)
+
+_AUDIO_SPEECH_URL = "https://openrouter.ai/api/v1/audio/speech"
 
 
 def openrouter_key() -> str:
@@ -104,3 +111,54 @@ def parse_pcm_content_type(content_type: str) -> tuple[int, int]:
         elif part.startswith("channels=") and part[9:].isdigit():
             channels = int(part[9:])
     return rate, channels
+
+
+async def synthesize_speech(
+    text: str, voice: str, model: str, *, key: str
+) -> tuple[bytes, str, str, str | None]:
+    """Sprache über OpenRouter /audio/speech. Geteilt von generate_speech-Tool + Vorlese-TTS.
+
+    Löst die Voice gegen die Modell-Voices auf (unbekannt → Modell-Default + note;
+    leer → Default). `response_format:"pcm"` ist universell — die Sample-Rate steht
+    im content-type-Header → WAV-Wrap. Liefert ein Modell mp3, wird es durchgereicht.
+
+    Returns (data, ext, voice_used, note). Raises RuntimeError bei API-/Netzfehler
+    oder wenn keine Voice ermittelbar ist.
+    """
+    from hydrahive.llm.media_models import voices_for
+
+    voices = await voices_for(model)
+    note: str | None = None
+    requested = (voice or "").strip()
+    if requested:
+        if voices and requested not in voices:
+            used = voices[0]
+            note = f"Stimme '{requested}' gibt es bei {model} nicht — '{used}' verwendet"
+        else:
+            used = requested
+    else:
+        used = voices[0] if voices else ""
+    if not used:
+        raise RuntimeError(f"Keine Voice für '{model}' ermittelbar — voice angeben")
+
+    payload = {"model": model, "input": text, "voice": used, "response_format": "pcm"}
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(
+                _AUDIO_SPEECH_URL,
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json=payload,
+            )
+            if resp.status_code >= 400:
+                raise RuntimeError(f"OpenRouter API-Fehler {resp.status_code}: {resp.text[:400]}")
+            raw = resp.content
+            content_type = resp.headers.get("content-type", "")
+    except httpx.HTTPError as e:
+        raise RuntimeError(f"Netzwerk-Fehler: {e}") from e
+
+    if not raw:
+        raise RuntimeError("Keine Audio-Daten in OpenRouter-Antwort — bitte erneut versuchen")
+    if "mpeg" in content_type or "mp3" in content_type:
+        return raw, "mp3", used, note
+    rate, channels = parse_pcm_content_type(content_type)
+    return pcm16_to_wav(raw, sample_rate=rate, channels=channels), "wav", used, note
