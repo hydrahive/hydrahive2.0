@@ -1,7 +1,10 @@
-"""Geteilte OpenRouter-Media-Helfer (Key-Lookup + base64→Datei)."""
+"""Geteilte OpenRouter-Media-Helfer (Key-Lookup + base64→Datei + SSE-Audio-Stream)."""
 from __future__ import annotations
 
+import json
 from unittest.mock import patch
+
+import pytest
 
 
 def test_save_bytes_schreibt_datei_mit_endung(tmp_path):
@@ -39,3 +42,51 @@ def test_openrouter_key_leer_wenn_nicht_konfiguriert():
     from hydrahive.tools import _openrouter_media
     with patch("hydrahive.llm._config.load_config", return_value={"providers": []}):
         assert _openrouter_media.openrouter_key() == ""
+
+
+# ---------------------------------------------------------------- SSE-Parser (pur)
+
+def test_audio_chunk_und_done_line():
+    from hydrahive.tools._openrouter_media import audio_chunk_from_sse_line, is_done_line
+    line = 'data: {"choices":[{"delta":{"audio":{"data":"QUJD"}}}]}'
+    assert audio_chunk_from_sse_line(line) == "QUJD"
+    assert audio_chunk_from_sse_line("data: [DONE]") is None
+    assert audio_chunk_from_sse_line(": comment") is None
+    assert is_done_line("data: [DONE]") is True
+    assert is_done_line("data:[DONE]") is True
+    assert is_done_line('data: {"x":1}') is False
+
+
+# ---------------------------------------------------------------- read_audio_sse (Byte-Stream)
+
+class _Resp:
+    def __init__(self, body: bytes, chunk_size: int = 32):
+        self._body = body
+        self._cs = chunk_size
+
+    async def aiter_bytes(self):
+        for i in range(0, len(self._body), self._cs):
+            yield self._body[i:i + self._cs]
+
+
+def _sse(chunks: list[str], done: bool = True) -> bytes:
+    lines = ["data: " + json.dumps({"choices": [{"delta": {"audio": {"data": c}}}]}) for c in chunks]
+    if done:
+        lines.append("data: [DONE]")
+    return ("\n\n".join(lines) + "\n\n").encode()
+
+
+@pytest.mark.asyncio
+async def test_read_audio_sse_setzt_chunks_zusammen():
+    from hydrahive.tools._openrouter_media import read_audio_sse
+    parts, done = await read_audio_sse(_Resp(_sse(["QQ==", "Qg=="]), chunk_size=7))
+    assert parts == ["QQ==", "Qg=="]
+    assert done is True
+
+
+@pytest.mark.asyncio
+async def test_read_audio_sse_done_false_ohne_marker():
+    from hydrahive.tools._openrouter_media import read_audio_sse
+    parts, done = await read_audio_sse(_Resp(_sse(["QQ=="], done=False)))
+    assert parts == ["QQ=="]
+    assert done is False

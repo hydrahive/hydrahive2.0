@@ -23,14 +23,22 @@ from __future__ import annotations
 
 import base64
 import binascii
-import json
 import logging
 
 import httpx
 
 from hydrahive.llm.media_models import get_media_model
-from hydrahive.tools._openrouter_media import openrouter_key, save_bytes
+from hydrahive.tools._openrouter_media import (
+    audio_chunk_from_sse_line as _audio_chunk_from_sse_line,
+    is_done_line as _is_done_line,
+    openrouter_key,
+    read_audio_sse,
+    save_bytes,
+)
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+
+# Re-Export für Rückwärtskompatibilität (Tests referenzieren diese Namen).
+__all__ = ["TOOL", "_audio_chunk_from_sse_line", "_is_done_line"]
 
 logger = logging.getLogger(__name__)
 
@@ -64,62 +72,6 @@ _SCHEMA = {
 }
 
 
-def _is_done_line(line: str) -> bool:
-    """True wenn die SSE-Zeile das Stream-Ende markiert (`data: [DONE]`)."""
-    if not line.startswith("data:"):
-        return False
-    return line[len("data:"):].strip() == "[DONE]"
-
-
-def _audio_chunk_from_sse_line(line: str) -> str | None:
-    """Extrahiert delta.audio.data (base64) aus einer SSE-Zeile, sonst None."""
-    if not line.startswith("data:"):
-        return None
-    payload = line[len("data:"):].strip()
-    if not payload or payload == "[DONE]":
-        return None
-    try:
-        chunk = json.loads(payload)
-    except (json.JSONDecodeError, ValueError):
-        return None
-    delta = (chunk.get("choices") or [{}])[0].get("delta") or {}
-    audio = delta.get("audio")
-    if isinstance(audio, dict):
-        return audio.get("data")
-    return None
-
-
-async def _read_audio_stream(resp: httpx.Response) -> tuple[list[str], bool]:
-    """Liest den SSE-Stream über rohe Bytes, puffert und trennt selbst an `\\n`.
-
-    Gibt (audio_base64_teile, done_gesehen) zurück. Über Bytes statt aiter_lines,
-    weil der Audio-Chunk eine mehrere MB große Einzelzeile ist, die httpx
-    nicht-deterministisch zerlegt.
-    """
-    parts: list[str] = []
-    done = False
-    buf = b""
-
-    def consume(raw_line: bytes) -> None:
-        nonlocal done
-        text = raw_line.decode("utf-8", "replace").rstrip("\r")
-        if _is_done_line(text):
-            done = True
-            return
-        chunk = _audio_chunk_from_sse_line(text)
-        if chunk:
-            parts.append(chunk)
-
-    async for data in resp.aiter_bytes():
-        buf += data
-        while b"\n" in buf:
-            line, buf = buf.split(b"\n", 1)
-            consume(line)
-    if buf:
-        consume(buf)
-    return parts, done
-
-
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     prompt = (args.get("prompt") or "").strip()
     if not prompt:
@@ -151,7 +103,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
                     body = (await resp.aread()).decode("utf-8", "replace")[:400]
                     logger.warning("generate_music HTTP %s: %s", resp.status_code, body)
                     return ToolResult.fail(f"OpenRouter API-Fehler {resp.status_code}: {body}")
-                b64_parts, done = await _read_audio_stream(resp)
+                b64_parts, done = await read_audio_sse(resp)
     except httpx.HTTPError as e:
         logger.warning("generate_music Netzwerk-Fehler: %s", e)
         return ToolResult.fail(f"Netzwerk-Fehler: {e}")
