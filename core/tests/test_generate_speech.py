@@ -1,12 +1,15 @@
 """#150 B1 (rework): generate_speech via dediziertem /audio/speech-Endpoint.
 
 Live verifiziert 2026-05-31 (3.23): POST /api/v1/audio/speech mit
-{model, input, voice, response_format:"mp3"} liefert rohe MP3-Bytes (verbatim,
-kein Streaming, kein Konversations-Modell). voice ist Pflicht; Default =
-erste supported_voice des Modells. gpt-audio (chat) war der falsche Weg.
+{model, input, voice, response_format:"pcm"} liefert rohe PCM16-Bytes —
+universell unterstützt (Gemini-TTS will NUR pcm, andere können's auch). Die
+Sample-Rate steht im content-type-Header (audio/pcm;rate=24000;channels=1) →
+zuverlässig zu WAV gewrappt, kein Raten. voice Pflicht; Default = first_voice.
 """
 from __future__ import annotations
 
+import io
+import wave
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -19,11 +22,13 @@ def ctx(tmp_path):
     return ToolContext(session_id="s1", agent_id="a1", user_id="u1", workspace=tmp_path)
 
 
-def _client(content=b"\xff\xf3mp3-bytes", status=200, text='{"error":{"message":"boom"}}'):
+def _client(content=b"\x01\x02" * 100, status=200, text='{"error":{"message":"boom"}}',
+            content_type="audio/pcm;rate=24000;channels=1"):
     resp = MagicMock()
     resp.status_code = status
     resp.content = content
     resp.text = text
+    resp.headers = {"content-type": content_type}
     client = AsyncMock()
     client.__aenter__ = AsyncMock(return_value=client)
     client.__aexit__ = AsyncMock(return_value=False)
@@ -65,8 +70,8 @@ async def test_payload_audio_speech_format(ctx):
     assert body["model"] == "hexgrad/kokoro-82m"
     assert body["input"] == "Hallo"
     assert body["voice"] == "af_bella"
-    assert body["response_format"] == "mp3"
-    # KEIN chat-Streaming-Kram
+    # pcm: universell (auch Gemini), Rate kommt aus dem Header
+    assert body["response_format"] == "pcm"
     assert "modalities" not in body and "stream" not in body
 
 
@@ -112,16 +117,54 @@ async def test_zentrales_modell_aus_media_models(ctx):
 
 
 @pytest.mark.asyncio
-async def test_speichert_mp3(ctx, tmp_path):
+async def test_pcm_wird_als_wav_mit_header_rate_gespeichert(ctx, tmp_path):
     from hydrahive.tools import generate_speech
-    raw = b"\xff\xf3" + b"songbytes" * 10
-    client = _client(content=raw)
+    pcm = b"\x07\x08" * 500
+    client = _client(content=pcm, content_type="audio/pcm;rate=24000;channels=1")
     with (
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
         patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
     ):
         result = await generate_speech._execute({"text": "Hallo Till"}, ctx)
+    assert result.success
+    files = list((tmp_path / "generated").glob("*.wav"))
+    assert len(files) == 1
+    with wave.open(str(files[0]), "rb") as w:
+        assert w.getframerate() == 24000
+        assert w.getnchannels() == 1
+        assert w.getsampwidth() == 2
+        assert w.readframes(w.getnframes()) == pcm
+
+
+@pytest.mark.asyncio
+async def test_rate_aus_header_geparst(ctx, tmp_path):
+    from hydrahive.tools import generate_speech
+    pcm = b"\x01\x02" * 200
+    client = _client(content=pcm, content_type="audio/pcm;rate=48000;channels=1")
+    with (
+        patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
+        patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
+        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+    ):
+        await generate_speech._execute({"text": "x"}, ctx)
+    f = list((tmp_path / "generated").glob("*.wav"))[0]
+    with wave.open(str(f), "rb") as w:
+        assert w.getframerate() == 48000
+
+
+@pytest.mark.asyncio
+async def test_mp3_antwort_wird_als_mp3_gespeichert(ctx, tmp_path):
+    """Falls ein Modell doch mp3 liefert (content-type audio/mpeg) → direkt speichern."""
+    from hydrahive.tools import generate_speech
+    raw = b"\xff\xf3mp3"
+    client = _client(content=raw, content_type="audio/mpeg")
+    with (
+        patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
+        patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
+        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+    ):
+        result = await generate_speech._execute({"text": "x"}, ctx)
     assert result.success
     files = list((tmp_path / "generated").glob("*.mp3"))
     assert len(files) == 1

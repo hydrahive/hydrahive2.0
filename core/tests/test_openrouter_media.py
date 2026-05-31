@@ -90,3 +90,28 @@ async def test_read_audio_sse_done_false_ohne_marker():
     parts, done = await read_audio_sse(_Resp(_sse(["QQ=="], done=False)))
     assert parts == ["QQ=="]
     assert done is False
+
+
+# ---------------------------------------------------------------- PCM → WAV
+
+def test_pcm16_to_wav_round_trip():
+    import io
+    import wave
+    from hydrahive.tools._openrouter_media import pcm16_to_wav
+    pcm = b"\x01\x02" * 100
+    raw = pcm16_to_wav(pcm, sample_rate=24000, channels=1)
+    assert raw[:4] == b"RIFF" and raw[8:12] == b"WAVE"
+    with wave.open(io.BytesIO(raw), "rb") as w:
+        assert w.getframerate() == 24000
+        assert w.getnchannels() == 1
+        assert w.getsampwidth() == 2
+        assert w.readframes(w.getnframes()) == pcm
+
+
+def test_parse_pcm_content_type():
+    from hydrahive.tools._openrouter_media import parse_pcm_content_type
+    assert parse_pcm_content_type("audio/pcm;rate=24000;channels=1") == (24000, 1)
+    assert parse_pcm_content_type("audio/pcm;rate=48000;channels=2") == (48000, 2)
+    # ohne Angaben → Defaults
+    assert parse_pcm_content_type("audio/pcm") == (24000, 1)
+    assert parse_pcm_content_type("") == (24000, 1)

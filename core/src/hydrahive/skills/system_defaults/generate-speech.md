@@ -7,7 +7,7 @@ tools_required: [generate_speech]
 
 # Sprache generieren (TTS)
 
-Das Tool `generate_speech` liest Text **wortwörtlich** vor (echtes TTS über OpenRouters `/audio/speech`). Das Ergebnis erscheint im Chat als Audio-Player (MP3).
+Das Tool `generate_speech` liest Text **wortwörtlich** vor (echtes TTS über OpenRouters `/audio/speech`). Das Ergebnis erscheint im Chat als Audio-Player.
 
 Der `text` ist genau das, was gesprochen wird — **keine** Anweisung, **keine** Frage. Das Modell antwortet nicht, es liest vor.
 
@@ -33,4 +33,5 @@ Die meisten Modelle sind mehrsprachig — gib den Text einfach in der Zielsprach
 - Längere Texte = längere Audios; sehr langen Text in Stücke teilen.
 - „bitte erneut versuchen" (kein Audio): seltene Flakiness, **einmal** erneut. Zweimal erfolglos → dem User melden.
 - „Keine Standard-Stimme gefunden": eine `voice` explizit angeben.
+- **API-Fehler 404/500** (z.B. Gemini-TTS, Grok-Voice): das Modell ist providerseitig gerade nicht verfügbar — nicht dein Fehler. Ein anderes TTS-Modell wählen (kokoro-82m und gpt-4o-mini-tts laufen zuverlässig) oder dem User melden.
 - Andere API-Fehler (ungültiges Modell, Key fehlt): nicht wiederholen, dem User melden.

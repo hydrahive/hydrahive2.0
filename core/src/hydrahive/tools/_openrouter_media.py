@@ -6,8 +6,10 @@ einzelnen Tool-Module. Die Datei muss in einem servable-Verzeichnis landen
 """
 from __future__ import annotations
 
+import io
 import json
 import uuid
+import wave
 from pathlib import Path
 from typing import Any
 
@@ -79,3 +81,26 @@ def save_bytes(raw: bytes, dest_dir: Path, ext: str) -> Path:
     path = dest_dir / f"{uuid.uuid4().hex}.{ext.lstrip('.')}"
     path.write_bytes(raw)
     return path
+
+
+def pcm16_to_wav(pcm: bytes, sample_rate: int = 24000, channels: int = 1) -> bytes:
+    """Wrappt raw PCM16 (signed 16-bit LE) in einen WAV-Container."""
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(channels)
+        w.setsampwidth(2)
+        w.setframerate(sample_rate)
+        w.writeframes(pcm)
+    return buf.getvalue()
+
+
+def parse_pcm_content_type(content_type: str) -> tuple[int, int]:
+    """Liest rate/channels aus `audio/pcm;rate=24000;channels=1`. Defaults 24000/1."""
+    rate, channels = 24000, 1
+    for part in (content_type or "").split(";"):
+        part = part.strip()
+        if part.startswith("rate=") and part[5:].isdigit():
+            rate = int(part[5:])
+        elif part.startswith("channels=") and part[9:].isdigit():
+            channels = int(part[9:])
+    return rate, channels

@@ -1,9 +1,14 @@
 """Text-to-Speech über OpenRouter — dedizierter /audio/speech-Endpoint.
 
 Live verifiziert 2026-05-31 (3.23): POST /api/v1/audio/speech mit
-{model, input, voice, response_format:"mp3"} liefert rohe MP3-Bytes — verbatim,
+{model, input, voice, response_format:"pcm"} liefert rohe PCM16-Bytes — verbatim,
 kein Streaming, kein Konversations-Modell. (gpt-audio über chat/completions war
 der falsche Weg: das ist ein Chat-Modell und *antwortet* auf den Text.)
+
+`pcm` ist universell (Gemini-TTS will NUR pcm, andere können's auch). Die
+Sample-Rate steht im content-type-Header (audio/pcm;rate=24000;channels=1) →
+zuverlässig zu WAV gewrappt. Liefert ein Modell doch mp3, wird es direkt
+gespeichert.
 
 Speech-Modelle haben Modalität output:["speech"] und liegen NICHT im chat-/models
 — eigene Fläche (media_models.list_speech_models). voice ist Pflicht; ohne
@@ -19,7 +24,7 @@ import httpx
 
 from hydrahive.llm.media_models import first_voice, get_media_model
 from hydrahive.llm._config import openrouter_key
-from hydrahive.tools._openrouter_media import save_bytes
+from hydrahive.tools._openrouter_media import parse_pcm_content_type, pcm16_to_wav, save_bytes
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -73,7 +78,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "voice setzen (siehe Modell-Voices)"
         )
 
-    payload = {"model": model, "input": text, "voice": voice, "response_format": "mp3"}
+    # pcm = universell (auch Gemini), Rate kommt aus dem content-type-Header.
+    payload = {"model": model, "input": text, "voice": voice, "response_format": "pcm"}
 
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
@@ -87,6 +93,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
                 logger.warning("generate_speech HTTP %s: %s", resp.status_code, body)
                 return ToolResult.fail(f"OpenRouter API-Fehler {resp.status_code}: {body}")
             raw = resp.content
+            content_type = resp.headers.get("content-type", "")
     except httpx.HTTPError as e:
         logger.warning("generate_speech Netzwerk-Fehler: %s", e)
         return ToolResult.fail(f"Netzwerk-Fehler: {e}")
@@ -94,9 +101,15 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not raw:
         return ToolResult.fail("Keine Audio-Daten in OpenRouter-Antwort — bitte erneut versuchen")
 
-    path = save_bytes(raw, ctx.workspace / "generated", "mp3")
-    logger.info("generate_speech: gespeichert model=%s voice=%s path=%s bytes=%d",
-                model, voice, path, len(raw))
+    if "mpeg" in content_type or "mp3" in content_type:
+        data, ext = raw, "mp3"
+    else:
+        rate, channels = parse_pcm_content_type(content_type)
+        data, ext = pcm16_to_wav(raw, sample_rate=rate, channels=channels), "wav"
+
+    path = save_bytes(data, ctx.workspace / "generated", ext)
+    logger.info("generate_speech: gespeichert model=%s voice=%s ct=%s path=%s bytes=%d",
+                model, voice, content_type, path, len(data))
     return ToolResult.ok(f"Sprache generiert und gespeichert: {path}", model=model, voice=voice)
 
 
