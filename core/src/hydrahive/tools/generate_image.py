@@ -18,11 +18,11 @@ from __future__ import annotations
 import base64
 import binascii
 import logging
-import uuid
 from pathlib import Path
 
 import httpx
 
+from hydrahive.tools._openrouter_media import openrouter_key, save_bytes
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -72,8 +72,7 @@ _SCHEMA = {
 
 
 def _get_openrouter_key() -> str:
-    from hydrahive.llm._config import get_provider_key, load_config
-    return get_provider_key(load_config(), "openrouter")
+    return openrouter_key()
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
@@ -185,10 +184,7 @@ def _persist_data_uri(url: str, dest_dir: Path) -> tuple[Path | None, str | None
     except (ValueError, binascii.Error) as e:
         return None, f"Bild-Daten ungültig (data-URI nicht dekodierbar): {e}"
 
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    path = dest_dir / f"{uuid.uuid4().hex}.{ext}"
-    path.write_bytes(raw)
-    return path, None
+    return save_bytes(raw, dest_dir, ext), None
 
 
 TOOL = Tool(
