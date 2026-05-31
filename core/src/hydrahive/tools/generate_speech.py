@@ -22,7 +22,7 @@ import logging
 
 import httpx
 
-from hydrahive.llm.media_models import first_voice, get_media_model
+from hydrahive.llm.media_models import get_media_model, voices_for
 from hydrahive.llm._config import openrouter_key
 from hydrahive.tools._openrouter_media import parse_pcm_content_type, pcm16_to_wav, save_bytes
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
@@ -71,7 +71,18 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         )
 
     model = (args.get("model") or get_media_model("tts")).strip()
-    voice = (args.get("voice") or "").strip() or await first_voice(model)
+    requested = (args.get("voice") or "").strip()
+    voices = await voices_for(model)
+    note = None
+    if requested:
+        if voices and requested not in voices:
+            # z.B. onyx an kokoro → statt 400 die Standard-Stimme nehmen, transparent
+            voice = voices[0]
+            note = f"Stimme '{requested}' gibt es bei {model} nicht — '{voice}' verwendet"
+        else:
+            voice = requested  # gültig, oder Voice-Liste unbekannt → der API überlassen
+    else:
+        voice = voices[0] if voices else ""
     if not voice:
         return ToolResult.fail(
             f"Keine Voice angegeben und keine Standard-Stimme für '{model}' gefunden — "
@@ -110,7 +121,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     path = save_bytes(data, ctx.workspace / "generated", ext)
     logger.info("generate_speech: gespeichert model=%s voice=%s ct=%s path=%s bytes=%d",
                 model, voice, content_type, path, len(data))
-    return ToolResult.ok(f"Sprache generiert und gespeichert: {path}", model=model, voice=voice)
+    msg = f"Sprache generiert und gespeichert: {path}"
+    if note:
+        msg += f" ({note})"
+    return ToolResult.ok(msg, model=model, voice=voice)
 
 
 TOOL = Tool(

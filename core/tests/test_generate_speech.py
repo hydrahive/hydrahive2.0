@@ -75,27 +75,77 @@ async def test_payload_audio_speech_format(ctx):
     assert "modalities" not in body and "stream" not in body
 
 
+def _voices(*v):
+    return AsyncMock(return_value=list(v))
+
+
 @pytest.mark.asyncio
-async def test_voice_default_aus_first_voice(ctx):
+async def test_voice_default_erste_modell_voice(ctx):
     from hydrahive.tools import generate_speech
     client = _client()
     with (
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
         patch("hydrahive.tools.generate_speech.get_media_model", return_value="hexgrad/kokoro-82m"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella", "am_adam")),
     ):
         await generate_speech._execute({"text": "Hallo"}, ctx)
     assert client.post.call_args.kwargs["json"]["voice"] == "af_bella"
 
 
 @pytest.mark.asyncio
-async def test_fehlt_voice_und_keine_default(ctx):
+async def test_gueltige_voice_wird_genutzt(ctx):
+    from hydrahive.tools import generate_speech
+    client = _client()
+    with (
+        patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
+        patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
+        patch("hydrahive.tools.generate_speech.get_media_model", return_value="hexgrad/kokoro-82m"),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella", "am_adam")),
+    ):
+        await generate_speech._execute({"text": "x", "voice": "am_adam"}, ctx)
+    assert client.post.call_args.kwargs["json"]["voice"] == "am_adam"
+
+
+@pytest.mark.asyncio
+async def test_unbekannte_voice_faellt_auf_modell_default(ctx):
+    """onyx an kokoro → statt 400 die Standard-Stimme + Hinweis (kein Crash)."""
+    from hydrahive.tools import generate_speech
+    client = _client()
+    with (
+        patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
+        patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
+        patch("hydrahive.tools.generate_speech.get_media_model", return_value="hexgrad/kokoro-82m"),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella", "am_adam")),
+    ):
+        result = await generate_speech._execute({"text": "x", "voice": "onyx"}, ctx)
+    assert result.success
+    assert client.post.call_args.kwargs["json"]["voice"] == "af_bella"
+    assert "onyx" in result.output and "af_bella" in result.output  # Hinweis im Ergebnis
+
+
+@pytest.mark.asyncio
+async def test_voice_durchgereicht_wenn_modell_voices_unbekannt(ctx):
+    """Provider down → voices_for leer → angeforderte Voice wird durchgereicht (API entscheidet)."""
+    from hydrahive.tools import generate_speech
+    client = _client()
+    with (
+        patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
+        patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
+        patch("hydrahive.tools.generate_speech.get_media_model", return_value="x/unknown"),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices()),
+    ):
+        await generate_speech._execute({"text": "x", "voice": "onyx"}, ctx)
+    assert client.post.call_args.kwargs["json"]["voice"] == "onyx"
+
+
+@pytest.mark.asyncio
+async def test_keine_voice_und_keine_modell_voices(ctx):
     from hydrahive.tools import generate_speech
     with (
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_speech.get_media_model", return_value="hexgrad/kokoro-82m"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value=None)),
+        patch("hydrahive.tools.generate_speech.get_media_model", return_value="x/unknown"),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices()),
     ):
         result = await generate_speech._execute({"text": "Hallo"}, ctx)
     assert not result.success
@@ -110,7 +160,7 @@ async def test_zentrales_modell_aus_media_models(ctx):
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
         patch("hydrahive.tools.generate_speech.get_media_model", return_value="openai/gpt-4o-mini-tts-2025-12-15"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="alloy")),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("alloy")),
     ):
         await generate_speech._execute({"text": "x"}, ctx)
     assert client.post.call_args.kwargs["json"]["model"] == "openai/gpt-4o-mini-tts-2025-12-15"
@@ -124,7 +174,7 @@ async def test_pcm_wird_als_wav_mit_header_rate_gespeichert(ctx, tmp_path):
     with (
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella")),
     ):
         result = await generate_speech._execute({"text": "Hallo Till"}, ctx)
     assert result.success
@@ -145,7 +195,7 @@ async def test_rate_aus_header_geparst(ctx, tmp_path):
     with (
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella")),
     ):
         await generate_speech._execute({"text": "x"}, ctx)
     f = list((tmp_path / "generated").glob("*.wav"))[0]
@@ -162,7 +212,7 @@ async def test_mp3_antwort_wird_als_mp3_gespeichert(ctx, tmp_path):
     with (
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella")),
     ):
         result = await generate_speech._execute({"text": "x"}, ctx)
     assert result.success
@@ -195,7 +245,7 @@ async def test_http_fehler(ctx):
     with (
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella")),
     ):
         result = await generate_speech._execute({"text": "x"}, ctx)
     assert not result.success
@@ -208,7 +258,7 @@ async def test_leere_audio_antwort(ctx):
     with (
         patch("hydrahive.tools.generate_speech.httpx.AsyncClient", return_value=client),
         patch("hydrahive.tools.generate_speech.openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_speech.first_voice", AsyncMock(return_value="af_bella")),
+        patch("hydrahive.tools.generate_speech.voices_for", _voices("af_bella")),
     ):
         result = await generate_speech._execute({"text": "x"}, ctx)
     assert not result.success

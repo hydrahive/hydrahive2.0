@@ -99,9 +99,15 @@ async def list_speech_models(force: bool = False) -> list[dict]:
     return out
 
 
-async def first_voice(model: str) -> str | None:
-    """Erste unterstützte Voice eines Speech-Modells (für Tool-Default), sonst None."""
+async def voices_for(model: str) -> list[str]:
+    """Unterstützte Voices eines Speech-Modells (leer wenn unbekannt/Provider down)."""
     for m in await list_speech_models():
         if m["id"] == model:
-            return m["voices"][0] if m["voices"] else None
-    return None
+            return list(m["voices"])
+    return []
+
+
+async def first_voice(model: str) -> str | None:
+    """Erste unterstützte Voice eines Speech-Modells (für Tool-Default), sonst None."""
+    voices = await voices_for(model)
+    return voices[0] if voices else None

@@ -14,8 +14,8 @@ Der `text` ist genau das, was gesprochen wird — **keine** Anweisung, **keine**
 ## Modell & Stimme
 
 - Das **Modell** ist zentral konfiguriert (LLM-Seite → Media-Modelle → TTS). Du musst es normalerweise nicht angeben.
-- Die **Stimme** ist modellabhängig. Ohne `voice` nimmt das Tool die Standard-Stimme des Modells.
-- Wenn der User eine bestimmte Stimme will, gib sie als `voice` mit. Welche Stimmen ein Modell kann, steht auf der Modell-Seite bei OpenRouter — rate keine Namen, lass im Zweifel die Standard-Stimme.
+- Die **Stimme** ist modellabhängig (z.B. kokoro: `af_bella`/`am_adam`; OpenAI-TTS: `alloy`/`nova`/`onyx`/…). Ohne `voice` nimmt das Tool die Standard-Stimme des Modells.
+- Gibst du eine Stimme an, die das Modell nicht kennt, **korrigiert das Tool automatisch** auf die Standard-Stimme und sagt es im Ergebnis — kein Fehler. Trotzdem besser eine zum Modell passende Stimme wählen.
 
 ## Sprache
 

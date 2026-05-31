@@ -116,7 +116,7 @@ async def test_list_speech_models_leer_ohne_key():
 
 
 @pytest.mark.asyncio
-async def test_first_voice_gibt_erste_voice():
+async def test_first_voice_und_voices_for():
     mm._speech_cache_clear()
     with (
         patch("hydrahive.llm.media_models.httpx.AsyncClient", return_value=_speech_client()),
@@ -124,3 +124,5 @@ async def test_first_voice_gibt_erste_voice():
     ):
         assert await mm.first_voice("hexgrad/kokoro-82m") == "af_bella"
         assert await mm.first_voice("unbekannt/modell") is None
+        assert await mm.voices_for("hexgrad/kokoro-82m") == ["af_bella", "am_adam"]
+        assert await mm.voices_for("unbekannt/modell") == []
