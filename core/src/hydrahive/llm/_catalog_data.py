@@ -18,8 +18,8 @@ PROVIDER_ENDPOINTS = {
     "openrouter": {"url": "https://openrouter.ai/api/v1/models", "auth": "bearer"},
     "gemini":     {"url": "https://generativelanguage.googleapis.com/v1beta/models",
                    "auth": "query", "query_param": "key"},
-    # Anthropic + MiniMax + OpenAI-Codex haben kein public /v1/models-Endpoint → static
-    "anthropic":    {"url": None, "auth": None},
+    # MiniMax + OpenAI-Codex haben kein public /v1/models-Endpoint → static
+    "anthropic":    {"url": "https://api.anthropic.com/v1/models", "auth": "x-api-key"},
     "minimax":      {"url": None, "auth": None},
     "openai-codex": {"url": None, "auth": None},
 }

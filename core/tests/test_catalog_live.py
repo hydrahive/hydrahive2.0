@@ -31,3 +31,17 @@ def test_parse_models_without_pricing_is_free_none():
     assert entries[0]["id"] == "openai/gpt-4o"
     assert entries[0]["is_free"] is None
     assert entries[0]["context_window"] is None
+
+
+def test_anthropic_endpoint_uses_x_api_key():
+    from hydrahive.llm._catalog_data import PROVIDER_ENDPOINTS
+    ep = PROVIDER_ENDPOINTS["anthropic"]
+    assert ep["url"] == "https://api.anthropic.com/v1/models"
+    assert ep["auth"] == "x-api-key"
+
+
+def test_auth_for_x_api_key():
+    headers, params = catalog._auth_for({"auth": "x-api-key"}, "sk-ant-xxx")
+    assert headers["x-api-key"] == "sk-ant-xxx"
+    assert headers["anthropic-version"] == "2023-06-01"
+    assert params == {}
