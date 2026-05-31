@@ -106,7 +106,14 @@ async function speakGlobal(text: string, lang = "de-DE") {
       activeAudio = audio
       activeAudioUrl = url
       setSpeakingGlobal(true)
-      await audio.play()
+      try {
+        await audio.play()
+      } catch (playErr) {
+        // play() wird abgebrochen wenn die Quelle während des Starts entfernt
+        // wird (erneuter Klick / stop / Unmount) — kein echter Fehler.
+        if (playErr instanceof DOMException && playErr.name === "AbortError") return
+        throw playErr
+      }
     } catch (e) {
       console.error(`TTS (${provider}) fehlgeschlagen:`, e)
       setErrorGlobal(e instanceof Error ? e.message : `Vorlesen (${provider}) fehlgeschlagen`)
