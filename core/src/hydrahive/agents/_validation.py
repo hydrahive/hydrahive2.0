@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from hydrahive.llm import client as llm_client
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import OPTIONAL_TOOLS, REGISTRY as TOOL_REGISTRY
 
@@ -43,19 +42,31 @@ def validate_tools(tools: list[str]) -> None:
         )
 
 
+def _available_models() -> list[str]:
+    """Verfügbare Modell-IDs aus dem gecachten Live-Katalog (best effort).
+
+    Leere Liste = keine Info → validate_model winkt durch (kein Bruch bei
+    Fetch-Fehler oder Erst-Setup). Nutzt den Catalog-Cache; kein eigener Fetch.
+    """
+    try:
+        from hydrahive.llm.catalog import _cache
+    except Exception:
+        return []
+    out: list[str] = []
+    for _ts, entries in _cache.values():
+        out.extend(e["id"] for e in entries)
+    return out
+
+
 def validate_model(model: str) -> None:
-    """Check the model exists in the configured LLM providers — non-fatal if no LLM
-    config yet (during first-run setup)."""
+    """Modell darf nicht leer sein; wenn eine Live-Liste vorliegt, muss das Modell
+    drin sein — sonst (leere Liste) durchwinken (Erst-Setup / Fetch-Fehler)."""
     if not model:
         raise AgentValidationError("Modell darf nicht leer sein")
-    cfg = llm_client._load_config()
-    available: list[str] = []
-    for p in cfg.get("providers", []):
-        available.extend(p.get("models", []))
+    available = _available_models()
     if available and model not in available:
         raise AgentValidationError(
-            f"Modell '{model}' ist nicht in der LLM-Konfiguration. "
-            f"Verfügbar: {', '.join(available) or '(noch keine)'}"
+            f"Modell '{model}' ist nicht in der Live-Modell-Liste verfügbar."
         )
 
 
