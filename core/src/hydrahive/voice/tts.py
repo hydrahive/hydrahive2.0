@@ -98,7 +98,10 @@ async def synthesize_local(text: str, voice: str = "") -> tuple[bytes, str]:
             asyncio.open_connection(PIPER_HOST, PIPER_PORT), timeout=15.0,
         )
         try:
-            data: dict = {"text": text}
+            # Whitespace zusammenfassen: wyoming-piper splittet an Zeilenumbrüchen
+            # in Segmente; leere Segmente (Absatz-Leerzeilen) erzeugen 0 Audio →
+            # "# channels not specified". Mehrzeilige Nachrichten brachen so.
+            data: dict = {"text": " ".join(text.split())}
             # Voice nur weiterreichen wenn sie wie eine Piper-Voice aussieht
             # (locale-Muster z.B. de_DE-thorsten-medium). Sonst Container-Default —
             # verhindert 502 wenn eine Fremd-Voice (z.B. MiniMax 'German_FriendlyMan')

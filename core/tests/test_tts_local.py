@@ -85,6 +85,32 @@ async def test_synthesize_local_connection_refused_wird_runtimeerror():
 
 
 @pytest.mark.asyncio
+async def test_synthesize_local_kollabiert_newlines():
+    """Mehrzeiliger Text → an Piper als eine Zeile (keine \\n) — sonst leere
+    Segmente → '# channels not specified'."""
+    from hydrahive.voice import tts
+    captured = _FakeWriter()
+    reader = await _piper_reply([
+        ("audio-start", {"rate": 22050, "width": 2, "channels": 1}, b""),
+        ("audio-chunk", None, b"\x01\x02"),
+        ("audio-stop", None, b""),
+    ])
+
+    async def _fake(host, port):
+        return reader, captured
+
+    with patch("hydrahive.voice.tts.asyncio.open_connection", _fake):
+        await tts.synthesize_local("Halt!\n\nJedes dritte\nMal\n\nfertig.")
+    # der an Piper gesendete synthesize-Text darf keine Newlines enthalten
+    import json as _json
+    sent = bytes(captured.buf)
+    header_line, rest = sent.split(b"\n", 1)
+    payload = _json.loads(rest[: _json.loads(header_line)["data_length"]])
+    assert "\n" not in payload["text"]
+    assert payload["text"] == "Halt! Jedes dritte Mal fertig."
+
+
+@pytest.mark.asyncio
 async def test_synthesize_local_leerer_text():
     from hydrahive.voice import tts
     with pytest.raises(RuntimeError):
