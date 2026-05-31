@@ -158,3 +158,27 @@ def test_timeout_ergebnis_ist_fail_mit_flag(launcher, tmp_path):
     assert not res.success
     assert res.output["timed_out"] is True
     assert "Timeout nach 5s" in res.error
+
+
+def test_litellm_provider_keys_werden_aus_env_entfernt(launcher, tmp_path, monkeypatch):
+    """Regression: OpenRouter/Groq/Mistral/Gemini/NVIDIA-Keys legt _config.apply_keys()
+    ins Prozess-ENV (LiteLLM-Pfad). Sie dürfen NIE an shell_exec durchgereicht werden —
+    sonst exfiltriert ein Agent sie per `echo $OPENROUTER_API_KEY`."""
+    leak_vars = ("OPENROUTER_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY",
+                 "GEMINI_API_KEY", "NVIDIA_NIM_API_KEY")
+    for var in leak_vars:
+        monkeypatch.setenv(var, "secret-" + var)
+    monkeypatch.setenv("PATH", "/usr/bin")
+    _run({"cmd": "echo hi"}, _ctx(tmp_path))
+    env = launcher.calls[0]["env"]
+    for var in leak_vars:
+        assert var not in env, f"{var} ist in die shell_exec-Env durchgesickert"
+    assert env.get("PATH") == "/usr/bin"
+
+
+def test_denylist_deckt_alle_config_provider_ab():
+    """SSOT-Wächter: jeder Provider-Key aus _config._ENV_MAP muss in der Denylist
+    landen. Bricht, sobald jemand einen Provider hinzufügt ohne ihn zu schützen."""
+    from hydrahive.llm._config import provider_env_vars
+
+    assert provider_env_vars() <= shell._env_denylist()

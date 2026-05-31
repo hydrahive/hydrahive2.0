@@ -82,22 +82,31 @@ def _resolve_gh_token(ctx: ToolContext) -> str | None:
 
 # Sensitive ENV-Variablen die NICHT an shell_exec weitergegeben werden:
 # JWT-Signing-Key (= jeder mit dem Key kann beliebige User-Tokens fälschen),
-# DSN-Passwörter, Provider-API-Keys aus Service-Config.
-_ENV_DENYLIST = {
+# DSN-Passwörter, Service-Tokens.
+# Provider-API-Keys werden hier NICHT hartcodiert, sondern aus llm._config (SSOT)
+# gezogen: apply_keys() schreibt sie ins Prozess-ENV für LiteLLM, also müssen sie
+# wieder raus — sonst liest ein Agent sie per `echo $OPENROUTER_API_KEY`. Über
+# _ENV_MAP, damit ein neuer Provider nicht erneut durchrutscht (so wie OpenRouter).
+_STATIC_ENV_DENYLIST = {
     "HH_SECRET_KEY",
     "HH_JWT_SECRET",
     "HH_PG_MIRROR_DSN",
     "HH_DATABASE_URL",
     "HH_AGENTLINK_TOKEN",
-    "ANTHROPIC_API_KEY",
-    "OPENAI_API_KEY",
-    "MINIMAX_API_KEY",
     "DISCORD_BOT_TOKEN",
+    "MINIMAX_API_KEY",  # MiniMax: direktes SDK, nicht über _ENV_MAP/LiteLLM
 }
 
 
+def _env_denylist() -> set[str]:
+    from hydrahive.llm._config import provider_env_vars
+
+    return _STATIC_ENV_DENYLIST | provider_env_vars()
+
+
 def _build_env(ctx: ToolContext) -> dict:
-    env = {k: v for k, v in os.environ.items() if k not in _ENV_DENYLIST}
+    denylist = _env_denylist()
+    env = {k: v for k, v in os.environ.items() if k not in denylist}
     token = _resolve_gh_token(ctx)
     if token:
         env["GH_TOKEN"] = token

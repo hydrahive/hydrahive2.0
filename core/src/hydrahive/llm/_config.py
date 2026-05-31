@@ -16,6 +16,13 @@ _ENV_MAP = {
     "nvidia": "NVIDIA_NIM_API_KEY",
 }
 
+def provider_env_vars() -> set[str]:
+    """ENV-Variablennamen unter denen apply_keys() die Provider-API-Keys ablegt.
+    SSOT für jeden, der diese Keys schützen muss (z.B. die shell_exec-Denylist) —
+    ein neuer Provider in _ENV_MAP ist damit automatisch abgedeckt."""
+    return set(_ENV_MAP.values())
+
+
 _config_cache: tuple[float, dict] | None = None
 
 
