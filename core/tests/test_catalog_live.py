@@ -45,3 +45,22 @@ def test_auth_for_x_api_key():
     assert headers["x-api-key"] == "sk-ant-xxx"
     assert headers["anthropic-version"] == "2023-06-01"
     assert params == {}
+
+
+import asyncio
+
+
+def test_cache_hit_skips_second_fetch(monkeypatch):
+    calls = {"n": 0}
+
+    async def fake_fetch(pid, key):
+        calls["n"] += 1
+        return [{"id": "openrouter/x", "context_window": None, "is_free": True,
+                 "price_prompt": "0", "price_completion": "0"}]
+
+    monkeypatch.setattr(catalog, "_fetch_live_models", fake_fetch)
+    catalog._cache_clear()
+    providers = [{"id": "openrouter", "api_key": "k"}]
+    asyncio.run(catalog.catalog_for_providers(providers))
+    asyncio.run(catalog.catalog_for_providers(providers))
+    assert calls["n"] == 1  # zweiter Aufruf aus Cache

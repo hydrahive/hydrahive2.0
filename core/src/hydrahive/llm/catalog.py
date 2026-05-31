@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -26,6 +27,31 @@ from hydrahive.llm._catalog_data import (
 )
 
 logger = logging.getLogger(__name__)
+
+_CACHE_TTL = 300  # 5 Minuten (Hermes-Muster)
+_cache: dict[str, tuple[float, list[dict]]] = {}
+_cache_locks: dict[str, asyncio.Lock] = {}
+
+
+def _cache_clear() -> None:
+    _cache.clear()
+
+
+async def _cached_fetch(provider_id: str, api_key: str) -> list[dict]:
+    """Live-Fetch mit 5-Min-TTL-Cache + Lock gegen parallele Fetches."""
+    now = time.monotonic()
+    hit = _cache.get(provider_id)
+    if hit and now - hit[0] < _CACHE_TTL:
+        return hit[1]
+    lock = _cache_locks.setdefault(provider_id, asyncio.Lock())
+    async with lock:
+        hit = _cache.get(provider_id)  # zweiter Check nach Lock
+        if hit and time.monotonic() - hit[0] < _CACHE_TTL:
+            return hit[1]
+        entries = await _fetch_live_models(provider_id, api_key)
+        if entries:  # nur erfolgreiche Fetches cachen
+            _cache[provider_id] = (time.monotonic(), entries)
+        return entries
 
 
 def _normalize_id(provider_id: str, raw_id: str) -> str:
@@ -127,7 +153,7 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
     async def one(p: dict) -> dict:
         pid = p.get("id", "")
         key = p.get("api_key", "") or (p.get("oauth") or {}).get("access", "")
-        entries = await _fetch_live_models(pid, key)
+        entries = await _cached_fetch(pid, key)
         if not entries:
             entries = [{"id": _normalize_id(pid, m), "context_window": None,
                         "is_free": None, "price_prompt": None, "price_completion": None}
