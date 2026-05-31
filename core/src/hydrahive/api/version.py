@@ -14,16 +14,22 @@ logger = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 
+# Feste Hash-Länge für die Footer-Anzeige. `git rev-parse --short` lässt git die
+# Kürze selbst wählen — die hängt vom Clone ab (auf dem Server 7, anderswo 8), was
+# wie eine "fehlende Stelle" aussieht. Daher den vollen Hash holen und fix kürzen.
+_COMMIT_LEN = 8
+
 
 def _detect_git_commit() -> str | None:
     if not (_REPO_ROOT / ".git").exists():
         return None
     try:
         result = subprocess.run(
-            ["git", "-C", str(_REPO_ROOT), "rev-parse", "--short", "HEAD"],
+            ["git", "-C", str(_REPO_ROOT), "rev-parse", "HEAD"],
             capture_output=True, text=True, timeout=2, check=False,
         )
-        return result.stdout.strip() or None
+        full = result.stdout.strip()
+        return full[:_COMMIT_LEN] or None
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
 
