@@ -18,14 +18,16 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
   const isEdit = !!existing
 
   const [form, setForm] = useState<LlmProvider>(existing ? { ...existing } : { ...EMPTY_PROVIDER })
+  const [customModels, setCustomModels] = useState(existing ? existing.models.join(", ") : "")
   const known = KNOWN_PROVIDERS.find((p) => p.id === form.id)
   const isOAuth = (known as { auth?: string } | undefined)?.auth === "oauth"
   const hasToken = !!form.oauth?.access
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    onSave({ ...form, name: form.name || known?.name || form.id, models: [] })
-    if (!isEdit) setForm({ ...EMPTY_PROVIDER })
+    const models = customModels.split(",").map((s) => s.trim()).filter(Boolean)
+    onSave({ ...form, name: form.name || known?.name || form.id, models })
+    if (!isEdit) { setForm({ ...EMPTY_PROVIDER }); setCustomModels("") }
   }
 
   return (
@@ -74,9 +76,13 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
         />
       )}
       {known && (
-        <p className="text-[10px] text-zinc-500">
-          Modelle werden live vom Provider geladen und direkt im Agent ausgewählt.
-        </p>
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1">Eigene Modelle (optional, kommagetrennt)</label>
+          <input type="text" value={customModels} onChange={(e) => setCustomModels(e.target.value)}
+            placeholder="z.B. openrouter/deepseek/deepseek-v4-flash:free"
+            className="w-full px-3 py-2 rounded-lg bg-white/[3%] border border-white/[6%] text-zinc-300 text-xs font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/40" />
+          <p className="text-[10px] text-zinc-500 mt-1">Live-Modelle des Providers erscheinen automatisch. Hier nur Modelle ergänzen, die nicht in der Live-Liste sind.</p>
+        </div>
       )}
       <div className="flex items-center gap-2">
         <button type="submit"
