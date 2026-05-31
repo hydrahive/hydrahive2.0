@@ -43,10 +43,10 @@ Original unangetastet. Nur per Erinnerung an das PW öffenbar (`7z x ...`).
 
 ---
 
-## ✅ 2026-05-31 Tag-Session — Akte SSOT + Scratchpad, beide FERTIG auf main
+## ✅ 2026-05-31 Tag-Session — Akte SSOT + Scratchpad + Live-Modelle, alle FERTIG auf main
 
-Zwei Features komplett durchgezogen, getestet, browser-verifiziert, auf `main`
-gepusht. Volle Core-Suite **672 grün**, tsc -b + vite build grün.
+Drei Features komplett durchgezogen, getestet, browser-verifiziert, auf `main`
+gepusht. Volle Core-Suite **685 grün**, tsc -b + vite build grün.
 
 ### 1. Patientenakte SSOT-Umbau — FERTIG (Ursache der „Agenten drehen Schleifen")
 **Problem:** Die Form jeder der 9 Entitäten lag handgespiegelt an 5 Stellen (DDL,
@@ -72,6 +72,32 @@ Menüpunkt „Scratchpad". **Brainstorming → Design-Doc (`a8a891f5`) → SPEC-
 (`47130d77`) → Plan (`fb6240b6`) → 5 TDD-Tasks (`36152012`..`2a12861e`), 20 Tests.**
 Till verifiziert: Menüpunkt da, Buddy liest + schreibt. **v1.1-Backlog:** Mermaid im
 Browser rendern (aktuell nur Code-Block). Doku: `docs/superpowers/{specs,plans}/2026-05-31-scratchpad-*.md`.
+
+### 3. Live-Modell-SSOT — FERTIG (Provider-Modelle live statt hardcoded)
+**Problem (Till):** OpenRouter zeigte nur 5 Modelle (alle bezahlt), kostenlose nicht
+auswählbar. Root-Cause: Modell-Listen hardgespiegelt über 6+ Dateien (Frontend
+`KNOWN_PROVIDERS` ~250 Strings inkl. NVIDIA-171). Live-Fetch existierte, wurde aber
+nur im Admin-Katalog genutzt. **Gleiche Drift-Klasse wie die Akte.** SPEC.md:252-257
+forderte „Live aus dem Provider-Endpoint … Suche + Filter" BEREITS → Code wich ab,
+nicht SPEC → keine SPEC-Änderung nötig (Regel 8).
+**Fix (SSOT):** `catalog.py` ist die EINE Quelle — live von `/v1/models` (7 Provider
+inkl. Anthropic), pricing/free + context ausgelesen, 5-Min-TTL-Cache. `validate_model`
+gegen Live-Liste (winkt bei leer durch). Frontend: KNOWN_PROVIDERS-Modelllisten raus,
+Agent-Auswahl = Such-Combobox mit „nur gratis"-Filter + 🆓-Badge, custom-Eintrag bleibt.
+**Subagent-driven gebaut** (Sonnet-Worker + Opus-Review): 9 Bau-Commits
+`34d0da63`..`68744c37` + Nachzügler (`65556395`, `6989692c`, `27b0e04f`). 685 Tests grün.
+**Live verifiziert (Till):** alle Modelle erscheinen, Routing korrekt (OpenRouter-Call
+ging als `OpenrouterException` durch, nicht mehr DeepseekException).
+**Wichtige Lektion:** beim Umbau 5 Modell-Listen-Konsumenten übersehen (chat/ModelPicker
+= Buddy/Werkstatt/Zahnfee, buddy set_model, chat/commands.ts /model) → in 3 Runden
+nachgezogen. **Vor Datenquellen-Umstellung IMMER alle Konsumenten greppen.**
+**OpenRouter-Gratis-Tier-Erkenntnis:** `:free`-Modelle (z.B. deepseek-v4-flash:free)
+geben 429/404 „no endpoints" — das ist OpenRouters Data-Policy/Kapazität (Privacy-Setting
+https://openrouter.ai/settings/privacy verlangt Logging-Zustimmung für free), KEIN
+HH2-Bug. Bezahlte Variante + NVIDIA NIM laufen stabil. Detail-Memory:
+`project_live_models_ssot.md`. Doku: `docs/superpowers/{specs,plans}/2026-05-31-live-models-ssot*.md`.
+**v1.1-Backlog:** `_enrich` params-Passthrough, Live-Liste-Sortierung, chat/ModelPicker-Pill-Breite,
+ProviderCard/LlmPage models.length-Count (kosmetisch), validate_model STATIC-Fallback-Edge-Case.
 
 ### Lektion: Frontend-Typecheck (jetzt Memory `feedback_frontend_tsc_check`)
 `tsc --noEmit` im Frontend ist ein **toter Wächter** — root-`tsconfig.json` hat
