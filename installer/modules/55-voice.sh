@@ -67,19 +67,52 @@ if ! command -v incus >/dev/null 2>&1; then
   exit 1
 fi
 
+# ── Container-Outbound sicherstellen ──────────────────────────────────────
+# 70-containers.sh nutzt 'networks: []' (kein incus-Bridge) + Host-br0. Wo br0
+# / Default-Profil-NIC fehlt, hat ein frischer Container KEIN Netz → apt/pip
+# scheitert (Kunde schreit). Deshalb: eigenes NAT-Netz als Fallback, nur wenn
+# der Container sonst keinen Outbound hat. No-op wo br0 schon funktioniert.
+VOICE_NET="hh-voice"
+
+ensure_container_net() {  # $1 = container-name; return 0 wenn Outbound da
+  local ct="$1" i
+  # Schon online (br0/Default-Profil)? Dann nichts tun.
+  for i in $(seq 1 20); do
+    if incus exec "$ct" -- getent hosts deb.debian.org >/dev/null 2>&1 \
+       || incus exec "$ct" -- ping -c1 -W1 1.1.1.1 >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  log "  Container '$ct' ohne Netz — NAT-Fallback '$VOICE_NET' anhängen"
+  if ! incus network list --format=csv -c n 2>/dev/null | grep -qx "$VOICE_NET"; then
+    incus network create "$VOICE_NET" ipv4.address=auto ipv4.nat=true ipv6.address=none 2>&1 | tail -2 || true
+  fi
+  if ! incus config device show "$ct" 2>/dev/null | grep -q "^eth0:"; then
+    incus config device add "$ct" eth0 nic network="$VOICE_NET" name=eth0 2>&1 | tail -2 || true
+  fi
+  incus restart "$ct" 2>&1 | tail -2 || true
+  for i in $(seq 1 30); do
+    if incus exec "$ct" -- getent hosts deb.debian.org >/dev/null 2>&1 \
+       || incus exec "$ct" -- ping -c1 -W1 1.1.1.1 >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 # ── STT-Container anlegen falls noch nicht da ─────────────────────────────
 if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_NAME"; then
   log "STT-Container '$CT_NAME' anlegen (Ubuntu 24.04 LXC)"
   incus launch images:ubuntu/24.04 "$CT_NAME"
 
-  log "Warte auf Container-Netzwerk"
-  for i in $(seq 1 30); do
-    if incus exec "$CT_NAME" -- getent hosts deb.debian.org >/dev/null 2>&1 \
-       || incus exec "$CT_NAME" -- ping -c1 -W1 1.1.1.1 >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
+  log "Container-Netzwerk sicherstellen"
+  if ! ensure_container_net "$CT_NAME"; then
+    log "FEHLER: STT-Container '$CT_NAME' hat kein Netz — Setup abgebrochen (br0/Netz prüfen)"
+    incus delete -f "$CT_NAME" 2>/dev/null || true
+    exit 1
+  fi
 
   log "Wyoming-Faster-Whisper installieren (pip + ffmpeg)"
   incus exec "$CT_NAME" -- bash -c "
@@ -194,14 +227,12 @@ if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_TTS"; then
   log "TTS-Container '$CT_TTS' anlegen (Ubuntu 24.04 LXC)"
   incus launch images:ubuntu/24.04 "$CT_TTS"
 
-  log "Warte auf Container-Netzwerk"
-  for i in $(seq 1 30); do
-    if incus exec "$CT_TTS" -- getent hosts huggingface.co >/dev/null 2>&1 \
-       || incus exec "$CT_TTS" -- ping -c1 -W1 1.1.1.1 >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
+  log "Container-Netzwerk sicherstellen"
+  if ! ensure_container_net "$CT_TTS"; then
+    log "FEHLER: TTS-Container '$CT_TTS' hat kein Netz — Setup abgebrochen (br0/Netz prüfen)"
+    incus delete -f "$CT_TTS" 2>/dev/null || true
+    exit 1
+  fi
 
   log "Wyoming-Piper installieren (pip)"
   incus exec "$CT_TTS" -- bash -c "
@@ -251,12 +282,21 @@ if ! incus config device show "$CT_TTS" 2>/dev/null | grep -q "^tts-port:"; then
 fi
 
 log "Warte auf TTS (Port $TTS_PORT)..."
+tts_ready=0
 for i in $(seq 1 60); do
   if (echo "" | timeout 1 nc -w1 127.0.0.1 $TTS_PORT) >/dev/null 2>&1; then
     log "TTS (Piper) bereit"
+    tts_ready=1
     break
   fi
   sleep 3
 done
 
-log "Voice Interface bereit (STT: incus '$CT_NAME' Port $STT_PORT, TTS: incus '$CT_TTS' Port $TTS_PORT (Piper); MiniMax/OpenRouter optional)"
+if [ "$tts_ready" = "0" ]; then
+  log "WARNUNG: TTS (Piper) auf Port $TTS_PORT NICHT erreichbar — Diagnose:"
+  log "  incus exec $CT_TTS -- systemctl status wyoming-piper"
+  log "  incus exec $CT_TTS -- journalctl -u wyoming-piper -n 40"
+  log "Voice Interface TEILWEISE bereit (STT Port $STT_PORT ok, TTS Port $TTS_PORT FEHLT)"
+else
+  log "Voice Interface bereit (STT: incus '$CT_NAME' Port $STT_PORT, TTS: incus '$CT_TTS' Port $TTS_PORT (Piper); MiniMax/OpenRouter optional)"
+fi
