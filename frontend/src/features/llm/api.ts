@@ -35,6 +35,11 @@ export interface SpeechModel {
   voices: string[]
 }
 
+export interface VideoModel {
+  id: string
+  name: string
+}
+
 export interface AnthropicRateLimits {
   updated_at?: string
   status?: string
@@ -58,6 +63,7 @@ export const llmApi = {
     api.post<{ ok: boolean; response: string }>("/llm/test", { model: model ?? null }),
   getEmbedModels: () => api.get<EmbedModel[]>("/llm/embed-models"),
   getSpeechModels: () => api.get<SpeechModel[]>("/llm/speech-models"),
+  getVideoModels: () => api.get<VideoModel[]>("/llm/video-models"),
   oauthStart: (provider: string) =>
     api.post<{ authorize_url: string; state: string }>("/llm/oauth/start", { provider }),
   oauthExchange: (provider: string, code_or_url: string) =>

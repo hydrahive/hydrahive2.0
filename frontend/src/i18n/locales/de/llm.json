@@ -24,7 +24,8 @@
     "none": "Keine passenden Modelle — OpenRouter-Key konfigurieren",
     "image": "Bild",
     "music": "Musik",
-    "tts": "Sprache (TTS)"
+    "tts": "Sprache (TTS)",
+    "video": "Video"
   },
   "test": {
     "button": "Verbindung testen",

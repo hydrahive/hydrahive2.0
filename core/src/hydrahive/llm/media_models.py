@@ -20,13 +20,17 @@ from hydrahive.llm._config import openrouter_key
 _OPENROUTER_PREFIX = "openrouter/"
 _SPEECH_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=speech"
 _SPEECH_TTL = 300.0
+_VIDEO_MODELS_URL = "https://openrouter.ai/api/v1/videos/models"
+_VIDEO_TTL = 300.0
 
 # Fallback wenn llm.json keinen Eintrag hat.
 # tts = echtes Speech-Modell (/audio/speech), NICHT gpt-audio (Konversation).
+# video = Kling v2 (gutes Preis/Leistung-Verhältnis, schnell ~15-30s).
 DEFAULTS: dict[str, str] = {
     "image": "openai/gpt-5-image-mini",
     "music": "google/lyria-3-pro-preview",
     "tts": "hexgrad/kokoro-82m",
+    "video": "kling/kling-video-v2-master",
 }
 
 # Kategorie → (Modalitäts-Seite, geforderte Modalität) für candidates() gegen den
@@ -39,11 +43,17 @@ _CATEGORY_MODALITY: dict[str, tuple[str, str]] = {
 }
 
 _speech_cache: tuple[float, list[dict]] | None = None
+_video_cache: tuple[float, list[dict]] | None = None
 
 
 def _speech_cache_clear() -> None:
     global _speech_cache
     _speech_cache = None
+
+
+def _video_cache_clear() -> None:
+    global _video_cache
+    _video_cache = None
 
 
 def get_media_model(category: str, config: dict | None = None) -> str:
@@ -111,3 +121,31 @@ async def first_voice(model: str) -> str | None:
     """Erste unterstützte Voice eines Speech-Modells (für Tool-Default), sonst None."""
     voices = await voices_for(model)
     return voices[0] if voices else None
+
+
+async def list_video_models(force: bool = False) -> list[dict]:
+    """Live-Liste der Video-Generierungs-Modelle von OpenRouter.
+
+    Video-Modelle liegen auf einer eigenen Fläche (/api/v1/videos/models),
+    NICHT im chat-/models. 5-Min-Cache. Ohne Key → [].
+    Gibt [{"id": str, "name": str}] zurück.
+    """
+    global _video_cache
+    now = time.time()
+    if not force and _video_cache and now - _video_cache[0] < _VIDEO_TTL:
+        return _video_cache[1]
+    key = openrouter_key()
+    if not key:
+        return []
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(_VIDEO_MODELS_URL, headers={"Authorization": f"Bearer {key}"})
+        resp.raise_for_status()
+        data = resp.json()
+    # OpenRouter gibt entweder {"data": [...]} oder direkt eine Liste
+    items = data.get("data") or (data if isinstance(data, list) else [])
+    out = [
+        {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
+        for m in items if m.get("id")
+    ]
+    _video_cache = (now, out)
+    return out

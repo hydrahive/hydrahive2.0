@@ -24,7 +24,8 @@
     "none": "No matching models — configure an OpenRouter key",
     "image": "Image",
     "music": "Music",
-    "tts": "Speech (TTS)"
+    "tts": "Speech (TTS)",
+    "video": "Video"
   },
   "test": {
     "button": "Test connection",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { catalogApi, llmApi, type CatalogModel, type SpeechModel } from "./api"
+import { catalogApi, llmApi, type CatalogModel, type SpeechModel, type VideoModel } from "./api"
 
 interface Category {
   key: string
@@ -40,12 +40,14 @@ export function MediaModelsSection({ mediaModels, onChange }: MediaModelsSection
   const { t } = useTranslation("llm")
   const [catalog, setCatalog] = useState<CatalogModel[]>([])
   const [speech, setSpeech] = useState<SpeechModel[]>([])
+  const [video, setVideo] = useState<VideoModel[]>([])
 
   useEffect(() => {
     catalogApi.get()
       .then((res) => setCatalog(res.providers.flatMap((p) => p.models)))
       .catch(() => {})
     llmApi.getSpeechModels().then(setSpeech).catch(() => {})
+    llmApi.getVideoModels().then(setVideo).catch(() => {})
   }, [])
 
   const catalogOptions = (modality: string) =>
@@ -69,6 +71,11 @@ export function MediaModelsSection({ mediaModels, onChange }: MediaModelsSection
         <Select label={t("media_models.tts")} options={speech.map((s) => s.id)}
           value={mediaModels["tts"] ?? ""}
           onChange={(v) => onChange("tts", v)} />
+      )}
+      {video.length > 0 && (
+        <Select label={t("media_models.video")} options={video.map((v) => v.id)}
+          value={mediaModels["video"] ?? ""}
+          onChange={(v) => onChange("video", v)} />
       )}
       <p className="text-[11px] text-zinc-600">{t("media_models.hint")}</p>
     </div>

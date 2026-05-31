@@ -96,6 +96,13 @@ async def get_speech_models() -> list[dict]:
     return await media_models.list_speech_models()
 
 
+@router.get("/video-models", dependencies=[Depends(require_admin)])
+async def get_video_models() -> list[dict]:
+    """Live-Liste der Video-Generierungs-Modelle (/api/v1/videos/models)."""
+    from hydrahive.llm import media_models
+    return await media_models.list_video_models()
+
+
 @router.get("/minimax/usage")
 async def minimax_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """MiniMax token_plan/remains pro Modell. Auch für non-admin sichtbar — nur Quota-Info."""
