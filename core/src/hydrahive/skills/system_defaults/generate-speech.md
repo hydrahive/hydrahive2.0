@@ -1,40 +1,36 @@
 ---
 name: generate-speech
-description: Text in gesprochene Sprache umwandeln (TTS) mit gpt-audio über das generate_speech-Tool — Stimmenwahl, Sprachen, typische Fehler.
+description: Text in gesprochene Sprache umwandeln (TTS) über das generate_speech-Tool — Stimmenwahl, Sprachen, typische Fehler.
 when_to_use: Wenn der User Text vorgelesen haben will, eine Sprachausgabe, einen Voiceover, eine Audio-Ansage oder TTS möchte.
 tools_required: [generate_speech]
 ---
 
-# Sprache generieren mit gpt-audio
+# Sprache generieren (TTS)
 
-Das Tool `generate_speech` wandelt Text in gesprochene Sprache über OpenRouter (gpt-audio). Das Ergebnis erscheint direkt im Chat als Audio-Player (WAV).
+Das Tool `generate_speech` liest Text **wortwörtlich** vor (echtes TTS über OpenRouters `/audio/speech`). Das Ergebnis erscheint im Chat als Audio-Player (MP3).
 
-## Stimmen
+Der `text` ist genau das, was gesprochen wird — **keine** Anweisung, **keine** Frage. Das Modell antwortet nicht, es liest vor.
 
-| Stimme | Charakter |
-|--------|-----------|
-| `alloy` (default) | neutral, ausgewogen |
-| `echo` | ruhig, klar |
-| `fable` | warm, erzählend |
-| `onyx` | tief, markant |
-| `nova` | hell, freundlich |
-| `shimmer` | weich |
+## Modell & Stimme
 
-Wähl die Stimme nach Kontext — `onyx` für Ansagen, `fable` fürs Vorlesen, `alloy` wenn egal.
+- Das **Modell** ist zentral konfiguriert (LLM-Seite → Media-Modelle → TTS). Du musst es normalerweise nicht angeben.
+- Die **Stimme** ist modellabhängig. Ohne `voice` nimmt das Tool die Standard-Stimme des Modells.
+- Wenn der User eine bestimmte Stimme will, gib sie als `voice` mit. Welche Stimmen ein Modell kann, steht auf der Modell-Seite bei OpenRouter — rate keine Namen, lass im Zweifel die Standard-Stimme.
 
 ## Sprache
 
-gpt-audio spricht **mehrsprachig** — einfach den Text in der Zielsprache übergeben. Der Text **ist** das, was gesprochen wird (keine Anweisung, sondern der Inhalt). Für Deutsch deutschen Text geben, für Englisch englischen.
+Die meisten Modelle sind mehrsprachig — gib den Text einfach in der Zielsprache (deutscher Text → deutsche Aussprache).
 
 ## Ablauf
 
-1. Text in der gewünschten Sprache zusammenstellen (das wird 1:1 gesprochen).
-2. `generate_speech(text=..., voice=...)` aufrufen. `model` nur setzen wenn ein anderes als das zentral konfigurierte gewünscht ist.
+1. Den vorzulesenden Text in der gewünschten Sprache zusammenstellen.
+2. `generate_speech(text=...)` aufrufen — `voice` nur wenn gewünscht, `model` nur um den zentralen Default zu übergehen.
 3. Die Audiodatei wird gespeichert und im Chat angezeigt — kurz beschreiben was du erzeugt hast.
 
 ## Hinweise & Grenzen
 
-- Nur der **Text** wird gesprochen — keine Lautschrift, keine SSML-Tags nötig.
-- Längere Texte = längere Audios; bei sehr langem Text in sinnvolle Stücke teilen.
-- Sagt das Tool **"bitte erneut versuchen"** (kein Audio / Stream vorzeitig beendet): seltene Provider-Flakiness, **einmal** unverändert erneut aufrufen. Zweimal hintereinander erfolglos: dem User melden.
+- Nur der **Text** wird gesprochen — keine SSML-Tags nötig.
+- Längere Texte = längere Audios; sehr langen Text in Stücke teilen.
+- „bitte erneut versuchen" (kein Audio): seltene Flakiness, **einmal** erneut. Zweimal erfolglos → dem User melden.
+- „Keine Standard-Stimme gefunden": eine `voice` explizit angeben.
 - Andere API-Fehler (ungültiges Modell, Key fehlt): nicht wiederholen, dem User melden.

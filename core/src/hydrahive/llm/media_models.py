@@ -11,23 +11,39 @@ die Kategorie filtert nur auf audio-fähige Modelle, die Wahl trifft der Mensch.
 """
 from __future__ import annotations
 
-_OPENROUTER_PREFIX = "openrouter/"
+import time
 
-# Fallback wenn llm.json keinen Eintrag hat — die bisher in den Tools
-# hartcodierten Defaults (nackte OpenRouter-Slugs).
+import httpx
+
+from hydrahive.llm._config import openrouter_key
+
+_OPENROUTER_PREFIX = "openrouter/"
+_SPEECH_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=speech"
+_SPEECH_TTL = 300.0
+
+# Fallback wenn llm.json keinen Eintrag hat.
+# tts = echtes Speech-Modell (/audio/speech), NICHT gpt-audio (Konversation).
 DEFAULTS: dict[str, str] = {
     "image": "openai/gpt-5-image-mini",
     "music": "google/lyria-3-pro-preview",
-    "tts": "openai/gpt-audio",
+    "tts": "hexgrad/kokoro-82m",
 }
 
-# Kategorie → (Modalitäts-Seite, geforderte Modalität).
+# Kategorie → (Modalitäts-Seite, geforderte Modalität) für candidates() gegen den
+# Chat-Katalog. tts läuft NICHT hierüber — Speech-Modelle liegen auf einer eigenen
+# Fläche (list_speech_models), genau wie Video auf /videos.
 _CATEGORY_MODALITY: dict[str, tuple[str, str]] = {
     "image": ("output", "image"),
     "music": ("output", "audio"),
-    "tts": ("output", "audio"),
     "transcribe": ("input", "audio"),
 }
+
+_speech_cache: tuple[float, list[dict]] | None = None
+
+
+def _speech_cache_clear() -> None:
+    global _speech_cache
+    _speech_cache = None
 
 
 def get_media_model(category: str, config: dict | None = None) -> str:
@@ -55,3 +71,37 @@ def candidates(category: str, catalog_entries: list[dict]) -> list[dict]:
     side, modality = spec
     key = "output_modalities" if side == "output" else "input_modalities"
     return [e for e in catalog_entries if modality in (e.get(key) or [])]
+
+
+async def list_speech_models(force: bool = False) -> list[dict]:
+    """Live-Liste der TTS-Modelle (output_modalities=speech) mit ihren Voices.
+
+    OpenRouters Speech-Modelle stehen NICHT im chat-/models — eigene Fläche.
+    Jeder Eintrag trägt `supported_voices`. 5-Min-Cache. Ohne Key → [].
+    Gibt [{"id": str, "voices": list[str]}] zurück.
+    """
+    global _speech_cache
+    now = time.time()
+    if not force and _speech_cache and now - _speech_cache[0] < _SPEECH_TTL:
+        return _speech_cache[1]
+    key = openrouter_key()
+    if not key:
+        return []
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(_SPEECH_MODELS_URL, headers={"Authorization": f"Bearer {key}"})
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+    out = [
+        {"id": m.get("id", ""), "voices": m.get("supported_voices") or []}
+        for m in data if m.get("id")
+    ]
+    _speech_cache = (now, out)
+    return out
+
+
+async def first_voice(model: str) -> str | None:
+    """Erste unterstützte Voice eines Speech-Modells (für Tool-Default), sonst None."""
+    for m in await list_speech_models():
+        if m["id"] == model:
+            return m["voices"][0] if m["voices"] else None
+    return None

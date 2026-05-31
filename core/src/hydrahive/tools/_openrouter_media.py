@@ -13,8 +13,8 @@ from typing import Any
 
 
 def openrouter_key() -> str:
-    from hydrahive.llm._config import get_provider_key, load_config
-    return get_provider_key(load_config(), "openrouter")
+    from hydrahive.llm._config import openrouter_key as _key
+    return _key()
 
 
 def is_done_line(line: str) -> bool:

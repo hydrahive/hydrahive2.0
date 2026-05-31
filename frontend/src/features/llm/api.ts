@@ -30,6 +30,11 @@ export interface EmbedModel {
   provider: string
 }
 
+export interface SpeechModel {
+  id: string
+  voices: string[]
+}
+
 export interface AnthropicRateLimits {
   updated_at?: string
   status?: string
@@ -52,6 +57,7 @@ export const llmApi = {
   testConnection: (model?: string) =>
     api.post<{ ok: boolean; response: string }>("/llm/test", { model: model ?? null }),
   getEmbedModels: () => api.get<EmbedModel[]>("/llm/embed-models"),
+  getSpeechModels: () => api.get<SpeechModel[]>("/llm/speech-models"),
   oauthStart: (provider: string) =>
     api.post<{ authorize_url: string; state: string }>("/llm/oauth/start", { provider }),
   oauthExchange: (provider: string, code_or_url: string) =>

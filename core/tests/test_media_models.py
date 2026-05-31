@@ -6,6 +6,10 @@ Modalität (image→output image, music/tts→output audio, transcribe→input a
 """
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from hydrahive.llm import media_models as mm
 
 
@@ -14,7 +18,8 @@ from hydrahive.llm import media_models as mm
 def test_default_wenn_nicht_konfiguriert():
     assert mm.get_media_model("image", {}) == "openai/gpt-5-image-mini"
     assert mm.get_media_model("music", {}) == "google/lyria-3-pro-preview"
-    assert mm.get_media_model("tts", {}) == "openai/gpt-audio"
+    # TTS-Default ist ein ECHTES Speech-Modell (/audio/speech), nicht gpt-audio (Konversation)
+    assert mm.get_media_model("tts", {}) == "hexgrad/kokoro-82m"
 
 
 def test_config_wert_hat_vorrang():
@@ -56,18 +61,66 @@ def test_candidates_image_nur_output_image():
     assert ids == ["openrouter/openai/gpt-5-image-mini"]
 
 
-def test_candidates_music_und_tts_sind_audio_output():
+def test_candidates_music_nur_audio_output():
+    # Musik = output:audio (Lyria). gpt-audio ist auch audio-output, das ist ok —
+    # der Mensch waehlt. TTS laeuft NICHT ueber candidates (eigene Speech-Quelle).
     music = {e["id"] for e in mm.candidates("music", _CATALOG)}
-    tts = {e["id"] for e in mm.candidates("tts", _CATALOG)}
-    expected = {"openrouter/google/lyria-3-pro-preview", "openrouter/openai/gpt-audio"}
-    assert music == expected
-    assert tts == expected
-
-
-def test_candidates_transcribe_nach_input_audio():
-    ids = [e["id"] for e in mm.candidates("transcribe", _CATALOG)]
-    assert ids == ["openrouter/openai/gpt-audio"]
+    assert "openrouter/google/lyria-3-pro-preview" in music
+    assert "openrouter/anthropic/claude-sonnet-4-6" not in music
 
 
 def test_candidates_unbekannte_kategorie_leer():
     assert mm.candidates("voodoo", _CATALOG) == []
+
+
+# ---------------------------------------------------------------- Speech-Modelle (/audio/speech)
+
+_SPEECH_RESPONSE = {
+    "data": [
+        {"id": "hexgrad/kokoro-82m", "supported_voices": ["af_bella", "am_adam"]},
+        {"id": "openai/gpt-4o-mini-tts-2025-12-15", "supported_voices": ["alloy", "nova"]},
+        {"id": "", "supported_voices": ["x"]},  # ohne id → ignoriert
+    ]
+}
+
+
+def _speech_client():
+    resp = MagicMock()
+    resp.raise_for_status = MagicMock()
+    resp.json = MagicMock(return_value=_SPEECH_RESPONSE)
+    client = AsyncMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.get = AsyncMock(return_value=resp)
+    return client
+
+
+@pytest.mark.asyncio
+async def test_list_speech_models_parst_id_und_voices():
+    mm._speech_cache_clear()
+    with (
+        patch("hydrahive.llm.media_models.httpx.AsyncClient", return_value=_speech_client()),
+        patch("hydrahive.llm.media_models.openrouter_key", return_value="sk-or-v1-test"),
+    ):
+        models = await mm.list_speech_models(force=True)
+    by_id = {m["id"]: m for m in models}
+    assert by_id["hexgrad/kokoro-82m"]["voices"] == ["af_bella", "am_adam"]
+    assert "" not in by_id  # leere id raus
+
+
+@pytest.mark.asyncio
+async def test_list_speech_models_leer_ohne_key():
+    mm._speech_cache_clear()
+    with patch("hydrahive.llm.media_models.openrouter_key", return_value=""):
+        assert await mm.list_speech_models(force=True) == []
+
+
+@pytest.mark.asyncio
+async def test_first_voice_gibt_erste_voice():
+    mm._speech_cache_clear()
+    with (
+        patch("hydrahive.llm.media_models.httpx.AsyncClient", return_value=_speech_client()),
+        patch("hydrahive.llm.media_models.openrouter_key", return_value="sk-or-v1-test"),
+    ):
+        assert await mm.first_voice("hexgrad/kokoro-82m") == "af_bella"
+        assert await mm.first_voice("unbekannt/modell") is None

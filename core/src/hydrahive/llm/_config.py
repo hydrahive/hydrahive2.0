@@ -61,6 +61,11 @@ def get_provider_key(config: dict, provider_id: str) -> str:
     return ""
 
 
+def openrouter_key() -> str:
+    """OpenRouter-API-Key aus der Config (SSOT für alle Media-Tools)."""
+    return get_provider_key(load_config(), "openrouter")
+
+
 def get_provider_group_id(config: dict, provider_id: str) -> str:
     for p in config.get("providers", []):
         if p.get("id") == provider_id:

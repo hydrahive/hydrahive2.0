@@ -89,6 +89,13 @@ def get_embed_models() -> list[dict]:
     return llm_embed.available_for_config(_load())
 
 
+@router.get("/speech-models", dependencies=[Depends(require_admin)])
+async def get_speech_models() -> list[dict]:
+    """Live-Liste der TTS-Modelle (output_modalities=speech) mit ihren Voices."""
+    from hydrahive.llm import media_models
+    return await media_models.list_speech_models()
+
+
 @router.get("/minimax/usage")
 async def minimax_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """MiniMax token_plan/remains pro Modell. Auch für non-admin sichtbar — nur Quota-Info."""
