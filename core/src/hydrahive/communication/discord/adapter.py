@@ -156,6 +156,8 @@ class DiscordAdapter:
         self._status[username] = ChannelStatus(connected=False, state="disconnected")
 
     async def send(self, username: str, to: str, text: str) -> None:
+        from hydrahive.credentials import redaction
+        text = redaction.scrub(text)  # Egress-Draht-Grenze: nie Secrets nach extern
         client = self._clients.get(username)
         if not client or not client.is_ready():
             raise RuntimeError("Discord nicht verbunden")

@@ -10,6 +10,7 @@ import logging
 
 from hydrahive.agents import config as agent_config
 from hydrahive.communication import _session_lookup
+from hydrahive.credentials import redaction
 from hydrahive.communication.base import IncomingEvent
 from hydrahive.runner import run as runner_run
 from hydrahive.runner.concurrency import SessionAlreadyRunning, session_run_guard
@@ -113,4 +114,6 @@ async def _run_agent(
         logger.warning("Channel-Run skipped: Session %s läuft bereits", session.id)
         raise RuntimeError("Session läuft bereits — Nachricht ignoriert")
 
-    return "\n\n".join(p for p in answer_parts if p.strip())
+    # Egress-Engstelle: kein lebender Secret-Wert verlässt das System Richtung
+    # externer Kontakt (WhatsApp/Discord/Voice), egal wie das LLM an ihn kam.
+    return redaction.scrub("\n\n".join(p for p in answer_parts if p.strip()))
