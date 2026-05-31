@@ -14,14 +14,14 @@ export function ModelTab({ draft, models, catalog, onChange }: Props) {
   const { t } = useTranslation("agents")
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <Field label={t("fields.model")}>
-          <ModelPicker
-            value={draft.llm_model}
-            catalog={catalog}
-            onChange={(m) => onChange({ llm_model: m })}
-          />
-        </Field>
+      <Field label={t("fields.model")}>
+        <ModelPicker
+          value={draft.llm_model}
+          catalog={catalog}
+          onChange={(m) => onChange({ llm_model: m })}
+        />
+      </Field>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <Field label={t("fields.temperature")}>
           <input
             type="number" step="0.1" min="0" max="2" value={draft.temperature}
