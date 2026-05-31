@@ -187,6 +187,48 @@ Weitere MCP-Server: per Admin-UI hinzufügen, pro Agent zuweisen.
 
 ---
 
+## Media-Generierung (Core-Komponente)
+
+Agenten können Medien *erzeugen* — alles über OpenRouter (ein API-Key, ein
+Endpoint deckt den Cluster ab). Bild/Musik/Sprache/Transkription laufen synchron
+über `chat/completions` (gestreamtes Audio/Bild), Video über die asynchrone
+Jobs-API (`POST /api/v1/videos`).
+
+### Core-Tools
+
+| Tool | Beschreibung |
+|---|---|
+| `generate_image` | Bild aus Text-Prompt |
+| `generate_music` | Musik/Audio aus Text-Prompt (Lyria 3) |
+| `generate_speech` | Text-to-Speech (gpt-audio) |
+| `transcribe` | Audio → Text |
+| `generate_video` | Video aus Text/Bild (asynchroner Job) |
+
+Erzeugte Dateien landen im Agent-Workspace und erscheinen im Chat als
+Bild/Audio/Video. Base64-Daten gehen nie in den LLM-Kontext.
+
+### Zentrale Modellwahl pro Kategorie
+
+Das aktive Modell pro Media-Typ wird zentral in `llm.json` verwaltet
+(`media_models.{image,music,tts,transcribe,video}`) — erweitert das bestehende
+`default_model`/`embed_model`-Muster. Befüllt live aus `/models` nach
+Output-Modalität gefiltert (Video via `/api/v1/videos/models`), verwaltet auf
+der LLM-Seite der Web-Konsole. Provider/Modell wechseln = eine Zeile Config
+(siehe Nicht-Ziele Z. 21). Der Tool-Parameter `model` überschreibt den
+zentralen Default pro Aufruf.
+
+### Nicht-Ziele
+- Keine eigenen Media-Modelle trainieren oder hosten
+- Kein clientseitiges Multi-Provider-Fan-out — ein gewähltes Modell pro Kategorie
+
+### Architektur
+Backend `core/src/hydrahive/tools/generate_*.py` + geteilter Helfer
+`tools/_openrouter_media.py` (Key + Speicherung). Modell-Resolver
+`llm/media_models.py`. Frontend: Abschnitt „Media-Modelle" in
+`features/llm/LlmPage.tsx`.
+
+---
+
 ## Plugin-System
 
 Erweiterungen kommen als Plugins — **nicht** eingebaut, **nicht** im Core-Code.
@@ -912,6 +954,8 @@ WhatsApp-Adapter genutzt — Sprachnachrichten verstehen + senden.
 - Audio-Konvertierung zu 16kHz Mono raw-PCM via ffmpeg
   (akzeptiert mp3/ogg/wav/m4a/…)
 - TTS-Wrapper mit Quota-Tracking (`_quota.py`)
+- TTS provider-wählbar: MiniMax (`mmx`-CLI) oder OpenRouter (`gpt-audio`),
+  Auswahl über `media_models.tts` (siehe Media-Generierung)
 - WhatsApp-Voice-Eingang: `_wa_voice.py` ruft direkt `transcribe_bytes()`
 
 ### Nicht-Ziele
