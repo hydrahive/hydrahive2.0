@@ -132,3 +132,24 @@ async def test_synthesize_local_sendet_voice_wenn_gesetzt():
     first_line = bytes(captured.buf).split(b"\n", 1)[0]
     assert b"synthesize" in first_line
     assert b"de_DE-kerstin-low" in bytes(captured.buf)
+
+
+@pytest.mark.asyncio
+async def test_synthesize_local_ignoriert_fremd_voice():
+    """German_FriendlyMan (MiniMax) ist keine Piper-Voice → NICHT weiterreichen
+    (sonst Piper-502). Container-Default wird genutzt."""
+    from hydrahive.voice import tts
+    captured = _FakeWriter()
+    reader = await _piper_reply([
+        ("audio-start", {"rate": 22050, "width": 2, "channels": 1}, b""),
+        ("audio-chunk", None, b"\x01\x02"),
+        ("audio-stop", None, b""),
+    ])
+
+    async def _fake(host, port):
+        return reader, captured
+
+    with patch("hydrahive.voice.tts.asyncio.open_connection", _fake):
+        data, _ = await tts.synthesize_local("Hallo", voice="German_FriendlyMan")
+    assert b"German_FriendlyMan" not in bytes(captured.buf)
+    assert b"voice" not in bytes(captured.buf)  # gar keine voice gesetzt

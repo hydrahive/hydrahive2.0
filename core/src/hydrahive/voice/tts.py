@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -78,6 +79,8 @@ async def synthesize_mp3(text: str, voice: str = "German_FriendlyMan") -> bytes:
 
 PIPER_HOST = "127.0.0.1"
 PIPER_PORT = 10200
+# Piper-Voice-Namen sind locale-präfixiert, z.B. de_DE-thorsten-medium.
+_PIPER_VOICE_RE = re.compile(r"^[a-z]{2,3}_[A-Z]{2}-")
 
 
 async def synthesize_local(text: str, voice: str = "") -> tuple[bytes, str]:
@@ -96,7 +99,11 @@ async def synthesize_local(text: str, voice: str = "") -> tuple[bytes, str]:
         )
         try:
             data: dict = {"text": text}
-            if voice:
+            # Voice nur weiterreichen wenn sie wie eine Piper-Voice aussieht
+            # (locale-Muster z.B. de_DE-thorsten-medium). Sonst Container-Default —
+            # verhindert 502 wenn eine Fremd-Voice (z.B. MiniMax 'German_FriendlyMan')
+            # durchschlägt.
+            if voice and _PIPER_VOICE_RE.match(voice):
                 data["voice"] = {"name": voice}
             await _send(writer, "synthesize", data)
             chunks: list[bytes] = []
