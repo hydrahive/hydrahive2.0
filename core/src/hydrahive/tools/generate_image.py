@@ -9,9 +9,9 @@ Live-verifizierte Modelle mit output_modalities=["image"] (Stand 2026-05-31):
 
 OpenRouter liefert das Bild als data:-URI (base64, ~3 MB) in
 `message.images[].image_url.url`. Die data-URI darf NICHT ins LLM-Kontext —
-sie wird lokal gespeichert, nur der Pfad geht zurück (Frontend rendert via
-/api/files). Echte HTTP-URLs (falls ein Modell sie liefert) werden direkt
-als image_url-Result durchgereicht.
+sie wird im Agent-Workspace gespeichert (dort wo /api/files ausliefert), nur
+der Pfad geht zurück. Echte HTTP-URLs (falls ein Modell sie liefert) werden
+direkt als image_url-Result durchgereicht.
 """
 from __future__ import annotations
 
@@ -23,7 +23,6 @@ from pathlib import Path
 
 import httpx
 
-from hydrahive.settings import settings
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -77,11 +76,6 @@ def _get_openrouter_key() -> str:
     return get_provider_key(load_config(), "openrouter")
 
 
-def _generated_dir() -> Path:
-    """Zielverzeichnis für generierte Bilder — muss unter servable_prefixes liegen."""
-    return settings.data_dir / "generated"
-
-
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     prompt = (args.get("prompt") or "").strip()
     if not prompt:
@@ -129,8 +123,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         logger.warning("generate_image: keine Bild-URL in Response: %s", str(data)[:400])
         return ToolResult.fail("Keine Bild-URL in OpenRouter-Antwort gefunden")
 
-    # data:-URI → lokal speichern (base64 NIE ins LLM); echte URL → direkt nutzen
-    path, err = _persist_data_uri(url, _generated_dir())
+    # data:-URI → im Workspace speichern (base64 NIE ins LLM); echte URL → direkt nutzen.
+    # Workspace liegt unter data_dir/workspaces → von /api/files ausgeliefert.
+    path, err = _persist_data_uri(url, ctx.workspace / "generated")
     if err:
         return ToolResult.fail(err)
     if path is not None:

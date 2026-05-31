@@ -17,10 +17,10 @@ from hydrahive.tools.base import ToolContext
 
 
 @pytest.fixture
-def ctx():
+def ctx(tmp_path):
     return ToolContext(
         session_id="s1", agent_id="a1", user_id="u1",
-        workspace=Path("/tmp"),
+        workspace=tmp_path,
     )
 
 
@@ -127,7 +127,6 @@ async def test_execute_data_uri_speichert_und_gibt_pfad(ctx, tmp_path):
     with (
         patch("hydrahive.tools.generate_image.httpx.AsyncClient", return_value=mock_client),
         patch("hydrahive.tools.generate_image._get_openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_image._generated_dir", return_value=tmp_path),
     ):
         result = await generate_image._execute({"prompt": "ein Eisbär"}, ctx)
 
@@ -135,8 +134,8 @@ async def test_execute_data_uri_speichert_und_gibt_pfad(ctx, tmp_path):
     # Pfad im Output, KEIN base64 im LLM-Kontext
     assert str(tmp_path) in str(result.output)
     assert "base64" not in str(result.output)
-    # Datei existiert wirklich
-    files = list(tmp_path.glob("*.png"))
+    # Datei landet im Workspace (= /api/files-servierbar), nicht in data_dir/generated
+    files = list((tmp_path / "generated").glob("*.png"))
     assert len(files) == 1
 
 
@@ -153,7 +152,6 @@ async def test_execute_http_url_gibt_image_url_result(ctx, tmp_path):
     with (
         patch("hydrahive.tools.generate_image.httpx.AsyncClient", return_value=mock_client),
         patch("hydrahive.tools.generate_image._get_openrouter_key", return_value="sk-or-v1-test"),
-        patch("hydrahive.tools.generate_image._generated_dir", return_value=tmp_path),
     ):
         result = await generate_image._execute({"prompt": "test"}, ctx)
 
