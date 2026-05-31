@@ -173,6 +173,8 @@ AgentForm-Overview-Tab.
 | `read_memory` | Eigene Memory-Notizen lesen |
 | `write_memory` | Eigene Memory-Notizen schreiben |
 | `todo_write` | Todo-Liste pro Session führen |
+| `read_scratchpad` | Scratchpad lesen (Tills Ideen + eigene Agent-Notizen) |
+| `write_scratchpad` | In die eigene Agent-Zone des Scratchpads schreiben |
 | `ask_agent` | Anderen Agenten über AgentLink beauftragen |
 | `send_mail` | E-Mail senden (SMTP-Config nachträglich) |
 
@@ -769,6 +771,40 @@ Konsolidierung baut auf `tools/_crystallize.py` (Session→Digest+Lessons, LLM)
 und der Zahnfee-Batch-/Scheduler-Maschinerie auf; eigener abgeleiteter
 Card-Store; Recall über `runner/system_prompt.py` (Prompt-Weaving) + pgvector.
 Card-Schema ist der Vertrag (`docs/superpowers/specs/2026-05-29-proactive-recall-design.md`).
+
+---
+
+## Scratchpad — Mensch→Agent-Ideenfläche (Core-Komponente)
+
+Ein persistenter Ort pro User, an dem der Mensch Ideen notiert und veranschaulicht
+(Markdown inkl. abhakbarer Punkte und Mermaid-Diagramme), die sein Buddy/Masteragent
+auslesen und ergänzen kann. Bewusste Übergabefläche für unstrukturierte Gedanken —
+ergänzt das automatische Datamining-Gedächtnis (Proaktiver Recall) um expliziten,
+handgeschriebenen Input. Mensch- und Agent-Inhalt liegen in getrennten Zonen, sodass
+der Agent den Text des Menschen technisch nicht überschreiben kann.
+
+### Funktionsumfang
+- Global pro User (ein Scratchpad, nicht projektgebunden), persistent über Sessions
+- Markdown mit GitHub-Task-Checkboxen (`- [ ]`/`- [x]`) und Mermaid-Code-Blöcken
+- Zwei getrennte Zonen je User: `user.md` (nur Mensch, via Web-Konsole) und
+  `agent.md` (nur Agent, via Tool) — physisch getrennte Dateien
+- Hybrid-Anbindung: statischer Hinweis im System-Prompt (cache-stabil) plus Tools
+  `read_scratchpad` (liest beide Zonen) und `write_scratchpad` (schreibt nur Agent-Zone)
+- Web-Konsole: eigener Menüpunkt; Mensch-Zone editierbar, Agent-Zone read-only + leerbar
+
+### Nicht-Ziele (v1)
+- Mermaid-Rendering im Browser (v1: Code-Block; Rendering = Ausbaustufe v1.1)
+- Bild-/Foto-Upload oder freies Zeichen-Whiteboard (multimodal-abhängig)
+- Pro-Projekt- oder Pro-Agent-Scratchpads
+- Versionierung/History der Inhalte
+
+### Architektur
+Backend `core/src/hydrahive/scratchpad/` (service: get/save/clear, atomic write,
+Größenlimit pro Zone). API `/api/scratchpad` (GET beide Zonen, PUT nur Mensch-Zone,
+DELETE Agent-Zone). Core-Tools `read_scratchpad` + `write_scratchpad`. Speicher
+`$HH_DATA_DIR/scratchpad/<user_id>/{user,agent}.md`. Statischer Prompt-Hinweis im
+`stable_system`-Block (kein Cache-Bruch). Frontend `frontend/src/features/scratchpad/`.
+Design: `docs/superpowers/specs/2026-05-31-scratchpad-design.md`.
 
 ---
 
