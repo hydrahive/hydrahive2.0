@@ -51,6 +51,17 @@ EMBED_MODELS: dict[str, list[dict[str, Any]]] = {
         {"model": "embed-multilingual-v3.0", "litellm": "cohere/embed-multilingual-v3.0", "dim": 1024},
         {"model": "embed-english-v3.0",      "litellm": "cohere/embed-english-v3.0",      "dim": 1024},
     ],
+    # OpenRouter ist OpenAI-kompatibel → openai-Client-Pfad via api_base, Key
+    # wird über get_provider_key("openrouter") aufgelöst. Slug + dim gegen
+    # OpenRouters Embeddings-Katalog verifiziert. dim MUSS stimmen (pgvector-Spalte).
+    "openrouter": [
+        {
+            "model": "baai/bge-m3-20251117",
+            "litellm": "openai/baai/bge-m3-20251117",
+            "api_base": "https://openrouter.ai/api/v1",
+            "dim": 1024,
+        },
+    ],
 }
 
 # provider_id für jeden Modell-String — für Key-Lookup
