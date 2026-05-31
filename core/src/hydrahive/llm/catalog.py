@@ -36,49 +36,86 @@ def _normalize_id(provider_id: str, raw_id: str) -> str:
     return raw_id
 
 
-async def _fetch_live_models(provider_id: str, api_key: str) -> list[str]:
-    """Holt die Modell-Liste live vom Provider. Bei Fehler: leere Liste, Warning."""
+def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
+    """Extrahiert strukturierte Modell-Einträge aus der /v1/models-Antwort.
+
+    OpenRouter liefert pricing (Strings) + context_length; andere Provider oft nur id.
+    is_free = pricing.prompt und .completion sind beide '0'. Ohne pricing → None.
+    """
+    raw: list[dict]
+    if isinstance(data.get("data"), list):
+        raw = data["data"]
+    elif isinstance(data.get("models"), list):  # Gemini
+        raw = [{"id": m.get("name", "").replace("models/", "")} for m in data["models"] if m.get("name")]
+    else:
+        raw = []
+
+    out: list[dict] = []
+    for m in raw:
+        mid = m.get("id", "")
+        if not mid:
+            continue
+        pricing = m.get("pricing") or {}
+        prompt = pricing.get("prompt")
+        completion = pricing.get("completion")
+        is_free: bool | None
+        if prompt is None and completion is None:
+            is_free = None
+        else:
+            is_free = (str(prompt) == "0" and str(completion) == "0")
+        out.append({
+            "id": _normalize_id(provider_id, mid),
+            "context_window": m.get("context_length"),
+            "is_free": is_free,
+            "price_prompt": prompt,
+            "price_completion": completion,
+        })
+    return out
+
+
+def _auth_for(cfg: dict, api_key: str) -> tuple[dict, dict]:
+    """Gibt (headers, params) für den Provider-Auth-Modus zurück."""
+    kind = cfg.get("auth")
+    if kind == "bearer":
+        return {"Authorization": f"Bearer {api_key}"}, {}
+    if kind == "query":
+        return {}, {cfg.get("query_param", "key"): api_key}
+    if kind == "x-api-key":  # Anthropic
+        return {"x-api-key": api_key, "anthropic-version": "2023-06-01"}, {}
+    return {}, {}
+
+
+async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
+    """Holt strukturierte Modell-Einträge live. Bei Fehler: leere Liste."""
     cfg = PROVIDER_ENDPOINTS.get(provider_id, {})
     url = cfg.get("url")
     if not url or not api_key:
-        return list(STATIC_MODELS.get(provider_id, []))
+        return []
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            if cfg["auth"] == "bearer":
-                resp = await client.get(url, headers={"Authorization": f"Bearer {api_key}"})
-            else:  # query
-                param = cfg.get("query_param", "key")
-                resp = await client.get(url, params={param: api_key})
+            headers, params = _auth_for(cfg, api_key)
+            resp = await client.get(url, headers=headers, params=params)
             resp.raise_for_status()
             data = resp.json()
-        # OpenAI/NVIDIA/Mistral/Groq: {"data": [{"id": ...}]}
-        # Gemini: {"models": [{"name": "models/..."}]}
-        if isinstance(data.get("data"), list):
-            ids = [m.get("id", "") for m in data["data"] if m.get("id")]
-        elif isinstance(data.get("models"), list):
-            ids = [m.get("name", "").replace("models/", "") for m in data["models"] if m.get("name")]
-        else:
-            ids = []
-        # Provider-Prefix + dedup
-        normalized = sorted({_normalize_id(provider_id, i) for i in ids if i})
-        return normalized
+        return _parse_models_response(provider_id, data)
     except Exception as e:
         logger.warning("Catalog: live-fetch für %s fehlgeschlagen: %s", provider_id, e)
         return []
 
 
-def _enrich(provider_id: str, model_id: str) -> dict[str, Any]:
-    """Joint Modell-ID mit Metadata. Unbekannt → unknown:True."""
-    md = METADATA.get(model_id)
-    if md:
-        return {"id": model_id, **md, "unknown": False}
+def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
+    """Joint Live-Eintrag mit METADATA. Live-context_window hat Vorrang."""
+    md = METADATA.get(entry["id"], {})
     return {
-        "id": model_id,
-        "context_window": None,
-        "tool_use": None,
-        "category": "chat",
-        "family": "?",
-        "unknown": True,
+        "id": entry["id"],
+        "context_window": entry.get("context_window") or md.get("context_window"),
+        "tool_use": md.get("tool_use"),
+        "category": md.get("category", "chat"),
+        "family": md.get("family", "?"),
+        "is_free": entry.get("is_free"),
+        "price_prompt": entry.get("price_prompt"),
+        "price_completion": entry.get("price_completion"),
+        "unknown": entry["id"] not in METADATA,
     }
 
 
@@ -90,15 +127,17 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
     async def one(p: dict) -> dict:
         pid = p.get("id", "")
         key = p.get("api_key", "") or (p.get("oauth") or {}).get("access", "")
-        ids = await _fetch_live_models(pid, key)
-        if not ids:
-            ids = list(STATIC_MODELS.get(pid, []))
-        models = [_enrich(pid, mid) for mid in ids]
+        entries = await _fetch_live_models(pid, key)
+        if not entries:
+            entries = [{"id": _normalize_id(pid, m), "context_window": None,
+                        "is_free": None, "price_prompt": None, "price_completion": None}
+                       for m in STATIC_MODELS.get(pid, [])]
+        models = [_enrich(pid, e) for e in entries]
         return {
             "provider_id": pid,
             "provider_name": p.get("name", pid),
             "configured": bool(key),
             "models": models,
-            "live_count": len(ids),
+            "live_count": len(entries),
         }
     return await asyncio.gather(*[one(p) for p in providers])
