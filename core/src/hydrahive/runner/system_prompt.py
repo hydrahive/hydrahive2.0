@@ -38,6 +38,8 @@ def compose(
     stable = _stable_section(base, extra_system=extra_system, workspace=workspace, skills=skills)
     if longterm_memory:
         stable = _inject_longterm_memory(stable, tool_schemas, allowed_tools)
+    if "read_scratchpad" in allowed_tools:
+        stable += _SCRATCHPAD_HINT
     if recall_cards:
         stable += render_cards_block(recall_cards)
     volatile = _volatile_section()
@@ -90,6 +92,13 @@ _LONGTERM_MEMORY_HINT = (
     "stehen `datamining_*`-Tools zur Verfügung. Bei generischen Fragen ohne "
     "klaren Vergangenheits-Bezug direkt aus dem Kontext antworten — keine "
     "spekulativen Suchen."
+)
+
+
+_SCRATCHPAD_HINT = (
+    "\n\nScratchpad: Till hinterlegt hier Ideen und Notizen. Lies sie mit "
+    "`read_scratchpad`, wenn die Aufgabe darauf Bezug nimmt. Eigene Notizen "
+    "schreibst du mit `write_scratchpad` — nur in deinen Bereich; Tills Bereich ist tabu."
 )
 
 
