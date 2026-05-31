@@ -14,7 +14,7 @@ export type ImageSource =
   | { type: "base64"; media_type: string; data: string }
   | { type: "url"; url: string }
 
-export type ToolMedia = { kind: "image" | "audio" | "video" | "pdf" | "epub"; path: string }
+export type ToolMedia = { kind: "image" | "audio" | "video" | "pdf" | "epub"; path?: string; url?: string }
 
 export type ContentBlock =
   | { type: "text"; text: string }

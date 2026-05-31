@@ -140,8 +140,14 @@ def to_tool_result_block(
     }
     if tool_name:
         block["tool_name"] = tool_name
-    workspace = ctx.workspace if ctx else None
-    media = extract_media(result, workspace)
-    if media:
-        block["media"] = media
+    # URL-basierte Media-Results (image_url / audio_url / video_url) —
+    # keine lokale Datei, URL direkt weiterreichen
+    url_kind = {"image_url": "image", "audio_url": "audio", "video_url": "video"}.get(result.result_type)
+    if url_kind and result.output:
+        block["media"] = [{"kind": url_kind, "url": str(result.output)}]
+    else:
+        workspace = ctx.workspace if ctx else None
+        media = extract_media(result, workspace)
+        if media:
+            block["media"] = media
     return block

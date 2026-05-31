@@ -22,10 +22,11 @@ class ToolResult:
     output: Any = None
     error: str | None = None
     metadata: dict = field(default_factory=dict)
+    result_type: str = "text"  # "text" | "image_url" | "audio_url" | "video_url"
 
     @classmethod
-    def ok(cls, output: Any = None, **metadata: Any) -> "ToolResult":
-        return cls(success=True, output=output, metadata=metadata)
+    def ok(cls, output: Any = None, result_type: str = "text", **metadata: Any) -> "ToolResult":
+        return cls(success=True, output=output, result_type=result_type, metadata=metadata)
 
     @classmethod
     def fail(cls, error: str, **metadata: Any) -> "ToolResult":

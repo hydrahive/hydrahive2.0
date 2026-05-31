@@ -79,6 +79,8 @@ def provider_from_model(model: str) -> str:
         return "ollama"
     if "minimax" in m:
         return "minimax"
+    if m.startswith("openrouter/"):
+        return "openrouter"
     return "other"
 
 
@@ -103,6 +105,8 @@ def lookup(provider: str, model: str) -> Pricing | None:
         return _match(model, _DEEPSEEK)
     if p in {"gemini", "google"}:
         return _match(model, _GEMINI)
+    if p == "openrouter":
+        return None  # Option A: kein per-Modell-Pricing; Tokens werden gezählt, Kosten als NULL
     return None
 
 

@@ -82,12 +82,14 @@ export function mediaFromBlocks(media: ToolMedia[] | undefined): ExtractedMedia 
   if (!media || media.length === 0) return empty
   const out: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
   for (const m of media) {
-    const url = toApiUrl(m.path)
-    if (m.kind === "image") out.images.push(url)
-    else if (m.kind === "audio") out.audio.push(url)
-    else if (m.kind === "video") out.videos.push(url)
-    else if (m.kind === "pdf") out.pdfs.push(url)
-    else if (m.kind === "epub") out.epubs.push(url)
+    // url: direkter Link (z.B. von OpenRouter-API), path: lokale Datei via /api/files
+    const resolved = m.url ?? (m.path ? toApiUrl(m.path) : null)
+    if (!resolved) continue
+    if (m.kind === "image") out.images.push(resolved)
+    else if (m.kind === "audio") out.audio.push(resolved)
+    else if (m.kind === "video") out.videos.push(resolved)
+    else if (m.kind === "pdf") out.pdfs.push(resolved)
+    else if (m.kind === "epub") out.epubs.push(resolved)
   }
   return out
 }
