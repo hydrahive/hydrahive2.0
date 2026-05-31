@@ -107,6 +107,16 @@ SECRET_PATTERNS = (
 )
 
 
+# Zur Laufzeit registrierte Zusatz-Patterns (z.B. von Plugins). Liegen hier,
+# damit es EINE Pattern-Quelle gibt — nicht erneut eine zweite Liste pro Modul.
+_EXTRA_PATTERNS: list[re.Pattern[str]] = []
+
+
+def register_pattern(pattern: str) -> None:
+    """Registriert ein zusätzliches Secret-Pattern (compile-bar) zur SSOT."""
+    _EXTRA_PATTERNS.append(re.compile(pattern))
+
+
 def detect_secrets(text: str) -> list[str]:
     """Findet Secret-FÖRMIGE Substrings (für die Audit). Reihenfolge: spezifische
     Provider-Prefixe zuerst, generisches sk- zuletzt. Dedupliziert (Reihenfolge
@@ -114,7 +124,7 @@ def detect_secrets(text: str) -> list[str]:
     if not text:
         return []
     found: list[str] = []
-    for pattern in SECRET_PATTERNS:
+    for pattern in (*SECRET_PATTERNS, *_EXTRA_PATTERNS):
         found.extend(pattern.findall(text))
     return list(dict.fromkeys(found))
 
