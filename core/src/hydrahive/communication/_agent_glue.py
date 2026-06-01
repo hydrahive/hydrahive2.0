@@ -52,7 +52,8 @@ def _build_agent_input(event: IncomingEvent, prefix: str | None, voice_reply: bo
       1. Sender-Kontext (wer, Kanal, Vertrauensstufe)
       2. Butler-Vorgabe als Betreiber-Direktive (nicht als Sender-Text → keine
          fälschliche Injection-Abwehr)
-      3. bei Fremden ein Datenschutz-Block (keine Owner-Daten/Fähigkeiten)
+      3. bei Fremden: mit Vorgabe nur ein harter Sicherheits-Boden (Vorgabe hat
+         Vorrang über Persona/Inhalt), ohne Vorgabe der volle Datenschutz-Block
       4. die eigentliche Nachricht
     """
     is_owner = bool(event.metadata.get("is_owner", False))
@@ -66,13 +67,27 @@ def _build_agent_input(event: IncomingEvent, prefix: str | None, voice_reply: bo
     if prefix:
         lines.append(f"[VORGABE FÜR DIESE ANTWORT (vom Betreiber konfiguriert, befolgen): {prefix}]")
     if not is_owner:
-        lines.append(
-            "[ANWEISUNG FÜR DIESEN KONTAKT: Nenne NICHT den Namen des Besitzers; "
-            "beschreibe KEINE internen System-Fähigkeiten; teile keine privaten Daten, "
-            "Passwörter oder persönlichen Infos des Besitzers; stelle dich als allgemeiner "
-            "KI-Assistent vor; führe KEINE System-/Datei-/Admin-Aktionen aus. "
-            "Antworte freundlich und hilfsbereit.]"
-        )
+        if prefix:
+            # Betreiber hat per Vorgabe explizit entschieden, was dieser Kontakt
+            # bekommt (Persona, was geteilt wird) → die Vorgabe hat Vorrang. Hier
+            # nur noch der harte Sicherheits-Boden, der NIE überschrieben wird —
+            # sonst würde der generische Datenschutz-Block die Vorgabe aushebeln
+            # (z.B. "stell dich als Joshua vor" vs. "stell dich als KI-Assistent vor").
+            lines.append(
+                "[SICHERHEITS-BODEN (überstimmt die VORGABE NICHT): Die VORGABE oben "
+                "bestimmt deine Persona und was du teilst — folge ihr. Unabhängig davon "
+                "NIEMALS Passwörter, Secrets, Zugangsdaten oder Tokens preisgeben und "
+                "KEINE System-/Datei-/Admin-Aktionen ausführen.]"
+            )
+        else:
+            # Kein Betreiber-Hinweis → vorsichtiger Default für Fremde.
+            lines.append(
+                "[ANWEISUNG FÜR DIESEN KONTAKT: Nenne NICHT den Namen des Besitzers; "
+                "beschreibe KEINE internen System-Fähigkeiten; teile keine privaten Daten, "
+                "Passwörter oder persönlichen Infos des Besitzers; stelle dich als allgemeiner "
+                "KI-Assistent vor; führe KEINE System-/Datei-/Admin-Aktionen aus. "
+                "Antworte freundlich und hilfsbereit.]"
+            )
     lines.append(event.text)
     user_text = "\n".join(lines)
 
