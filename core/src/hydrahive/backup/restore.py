@@ -35,7 +35,10 @@ def restore_system_archive(archive_path: Path) -> dict:
     with tempfile.TemporaryDirectory(prefix="hh2-restore-") as tdir:
         extract_root = Path(tdir)
         with tarfile.open(archive_path, "r:gz") as tar:
-            tar.extractall(extract_root, filter="tar")
+            # filter="data" (nicht "tar") lehnt absolute/eskapierende Symlinks,
+            # Hardlinks, Device-Nodes und setuid-Bits ab — Pflicht beim Restore
+            # aus fremder Quelle (Issue #182, analog zu user_restore.py).
+            tar.extractall(extract_root, filter="data")
 
         for arcname, dst in data_subdirs():
             rel = arcname.split("/", 1)[1]
