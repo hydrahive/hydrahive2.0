@@ -109,6 +109,14 @@ export const dataminingApi = {
       "/datamining/import/sqlite/status"
     ),
 
+  // Weitere Quellen — Ein-Klick mit Backend-Defaults (#190)
+  startGitImport: () =>
+    api.post<{ ok: boolean; repo: string }>("/datamining/import/git", {}),
+  startJsonlImport: () =>
+    api.post<{ ok: boolean }>("/datamining/import/jsonl", {}),
+  startLogsImport: () =>
+    api.post<{ ok: boolean }>("/datamining/import/logs", {}),
+
   startShellImport: (file: File, username: string) => {
     const form = new FormData()
     form.append("file", file)

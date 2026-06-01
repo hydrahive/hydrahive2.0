@@ -9,6 +9,7 @@ import { StatsTab } from "./StatsTab"
 import { dataminingApi } from "./api"
 import { EmbedStatusBar, type EmbedStatus } from "./_EmbedStatusBar"
 import { IssueImportButtons, IssueImportForm } from "./_IssueImportForm"
+import { SourceImportButtons } from "./_SourceImportButtons"
 
 const TABS = ["feed", "search", "sessions", "stats", "graph"] as const
 type Tab = typeof TABS[number]
@@ -220,6 +221,7 @@ export function DataminingPage() {
           active={issueForm}
           onToggle={(v) => setIssueForm(f => f === v ? null : v)}
         />
+        <SourceImportButtons />
       </div>
 
       {issueForm && <IssueImportForm variant={issueForm} />}
