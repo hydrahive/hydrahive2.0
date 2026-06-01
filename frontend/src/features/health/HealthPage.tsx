@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { Activity } from "lucide-react"
 import { HealthSidebar } from "./HealthSidebar"
@@ -8,30 +7,8 @@ import { AkteDashboard }  from "./views/AkteDashboard"
 import { AkteTimeline }  from "./views/AkteTimeline"
 import { AkteEntityList } from "./views/AkteEntityList"
 import { AkteLabCharts } from "./views/AkteLabCharts"
-import { healthApi, type MetricsSummary } from "./api"
-
-function AppleHealthView() {
-  const [summary, setSummary] = useState<MetricsSummary | null>(null)
-
-  useEffect(() => {
-    healthApi.metrics(30).then(setSummary).catch(() => {
-      setSummary({ metrics: {}, last_ingest: null, period_days: 30 })
-    })
-  }, [])
-
-  if (summary === null) {
-    return <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="text-sm text-zinc-500">
-        Apple Health Daten werden automatisch synchronisiert.
-      </div>
-      {/* Placeholder — AkteDashboard replaces UebersichtView as primary */}
-    </div>
-  )
-}
+import { AppleHealthView } from "./_AppleHealthView"
+import { SchlafView } from "./_SchlafView"
 
 function ImportView() {
   return (
@@ -87,7 +64,7 @@ export function HealthPage() {
 
             {/* Tracking */}
             <Route path="apple"  element={<AppleHealthView />} />
-            <Route path="schlaf" element={<AppleHealthView />} />
+            <Route path="schlaf" element={<SchlafView />} />
 
             {/* KI */}
             <Route path="ki" element={<AppleHealthView />} />
