@@ -88,7 +88,8 @@ async def complete(
         if not codex_token.get("access"):
             raise ValueError("ChatGPT Plus/Pro OAuth fehlt — bitte auf /llm verbinden")
         from hydrahive.runner._codex_provider import codex_call
-        blocks, _ = await codex_call(
+        # codex_call liefert (blocks, stop_reason, usage) — 3-Tupel (#200, adjacent)
+        blocks, _, _ = await codex_call(
             access_token=codex_token["access"],
             account_id=codex_token.get("account_id", ""),
             model=target[len("openai-codex/"):],
