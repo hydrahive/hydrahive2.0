@@ -42,6 +42,27 @@ den User per WhatsApp-Voice-Note geschickt. Halte dich an folgende Regeln:
 [/VOICE-MODE-CALL]"""
 
 
+def _build_agent_input(event_text: str, prefix: str | None, voice_reply: bool) -> tuple[str, str | None]:
+    """Baut (user_text, extra_system) für einen Channel-Agent-Run.
+
+    Die Butler-Vorgabe (prefix) ist eine vom Betreiber konfigurierte, VERTRAUENS-
+    WÜRDIGE Anweisung und gehört in den System-Kontext — NICHT in den User-Turn.
+    Früher wurde sie als `[BUTLER-VORGABE: ...]` vor die Sender-Nachricht geklebt;
+    der Agent behandelte sie dann (korrekt) als Prompt-Injection des Senders und
+    lehnte ab. Im System-Block folgt der Agent ihr, während echte Injection-
+    Versuche im Sender-Text weiter abgewehrt werden.
+    """
+    system_parts: list[str] = []
+    if prefix:
+        system_parts.append(
+            "[BUTLER-VORGABE — vom Betreiber konfiguriert, vertrauenswürdig, "
+            "befolge sie für diese Antwort]\n" + prefix
+        )
+    if voice_reply:
+        system_parts.append(_VOICE_MODE_SYSTEM_HINT)
+    return event_text, ("\n\n".join(system_parts) or None)
+
+
 class NoMasterError(RuntimeError):
     """User hat keinen Master-Agent (z.B. LLM noch nicht konfiguriert)."""
 
@@ -84,11 +105,7 @@ async def _run_agent(
         external_user_id=event.external_user_id,
         title_hint=f"{event.channel}: {event.sender_name or event.external_user_id}",
     )
-    user_text = event.text
-    if prefix:
-        user_text = f"[BUTLER-VORGABE: {prefix}]\n\n{event.text}"
-
-    extra_system = _VOICE_MODE_SYSTEM_HINT if voice_reply else None
+    user_text, extra_system = _build_agent_input(event.text, prefix, voice_reply)
 
     answer_parts: list[str] = []
     current_text: list[str] = []
