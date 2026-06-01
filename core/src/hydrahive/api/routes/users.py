@@ -20,6 +20,7 @@ from hydrahive.api.middleware.users import (
     update_password,
     update_role,
 )
+from hydrahive.backup._limits import RestoreTooLarge, stream_upload_capped
 from hydrahive.backup.user_archive import create_user_archive
 from hydrahive.backup.user_restore import UserRestoreError, restore_user_archive
 
@@ -120,14 +121,11 @@ async def restore_own_data(
     tmp_dir = Path(tempfile.mkdtemp(prefix="hh2-user-restore-"))
     upload_path = tmp_dir / "upload.tar.gz"
     try:
-        with upload_path.open("wb") as f:
-            while True:
-                chunk = await archive.read(1024 * 1024)
-                if not chunk:
-                    break
-                f.write(chunk)
         try:
+            await stream_upload_capped(archive, upload_path)
             restore_user_archive(upload_path, username)
+        except RestoreTooLarge as e:
+            raise coded(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, e.code, **e.params)
         except UserRestoreError as e:
             raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
         except OSError as e:

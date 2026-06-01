@@ -13,6 +13,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+from hydrahive.backup._limits import enforce_archive_limits
 from hydrahive.db.connection import db
 from hydrahive.projects._paths import project_dir, workspace_path
 from hydrahive.settings import settings
@@ -37,6 +38,7 @@ def restore_user_archive(archive_path: Path, username: str) -> None:
         if manifest.get("username") != username:
             raise UserRestoreError("backup_wrong_owner")
 
+        enforce_archive_limits(tar)  # Dekompressionsbomben-Schutz (#189)
         with tempfile.TemporaryDirectory(prefix="hh2-user-restore-") as tmp:
             tmp_path = Path(tmp)
             tar.extractall(tmp_path, filter="data")

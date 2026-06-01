@@ -19,6 +19,7 @@ import tempfile
 import time
 from pathlib import Path
 
+from hydrahive.backup._limits import enforce_archive_limits
 from hydrahive.backup._paths import config_dir_arcname, data_subdirs, db_arcname
 from hydrahive.backup.archive import create_system_archive
 from hydrahive.backup.validate import RestoreError, validate_archive
@@ -35,6 +36,7 @@ def restore_system_archive(archive_path: Path) -> dict:
     with tempfile.TemporaryDirectory(prefix="hh2-restore-") as tdir:
         extract_root = Path(tdir)
         with tarfile.open(archive_path, "r:gz") as tar:
+            enforce_archive_limits(tar)  # Dekompressionsbomben-Schutz (#189)
             # filter="data" (nicht "tar") lehnt absolute/eskapierende Symlinks,
             # Hardlinks, Device-Nodes und setuid-Bits ab — Pflicht beim Restore
             # aus fremder Quelle (Issue #182, analog zu user_restore.py).

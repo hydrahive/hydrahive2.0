@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
+from hydrahive.backup._limits import RestoreTooLarge, stream_upload_capped
 from hydrahive.backup.archive import create_system_archive
 from hydrahive.backup.restore import restore_system_archive
 from hydrahive.backup.validate import RestoreError
@@ -65,15 +66,11 @@ async def restore_backup(
     tmp_dir = Path(tempfile.mkdtemp(prefix="hh2-restore-"))
     upload_path = tmp_dir / "upload.tar.gz"
     try:
-        with upload_path.open("wb") as f:
-            while True:
-                chunk = await archive.read(1024 * 1024)
-                if not chunk:
-                    break
-                f.write(chunk)
-
         try:
+            await stream_upload_capped(archive, upload_path)
             result = restore_system_archive(upload_path)
+        except RestoreTooLarge as e:
+            raise coded(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, e.code, **e.params)
         except RestoreError as e:
             raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
         except OSError as e:
