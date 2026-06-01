@@ -65,8 +65,14 @@ def status(root: Path) -> dict:
     return {"is_repo": True, "branch": branch, "files": files}
 
 
+MAX_DIFF_BYTES = 512 * 1024  # 512 KB — gegen OOM bei riesigen/Binär-Diffs
+
+
 def diff(root: Path, file: str) -> str:
-    return _git(root, "diff", "HEAD", "--", file)
+    out = _git(root, "diff", "HEAD", "--", file)
+    if len(out) > MAX_DIFF_BYTES:
+        return out[:MAX_DIFF_BYTES] + "\n[diff truncated]"
+    return out
 
 
 def stage(root: Path, file: str, staged: bool) -> None:

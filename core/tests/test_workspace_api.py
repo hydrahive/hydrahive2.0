@@ -66,6 +66,14 @@ def test_git_status_unknown_repo_404(client, admin_headers):
     assert res.status_code == 404
 
 
+def test_write_rejects_oversized_file(client, admin_headers):
+    agent = _agent(client, admin_headers)
+    big = "x" * (2 * 1024 * 1024 + 1)  # > 2 MB
+    res = client.put("/api/workspace/file", headers=admin_headers,
+                     json={"agent_id": agent["id"], "path": "big.txt", "content": big})
+    assert res.status_code == 413
+
+
 def test_git_commit_empty_message_rejected(client, admin_headers):
     agent = _agent(client, admin_headers)
     res = client.post("/api/workspace/git/commit", headers=admin_headers,

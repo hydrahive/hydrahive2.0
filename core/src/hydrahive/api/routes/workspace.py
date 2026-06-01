@@ -78,7 +78,10 @@ def put_file(
         abs_path = resolve_in_workspace(root, body.path)
     except WorkspacePathError:
         raise HTTPException(status_code=403, detail="path_outside_workspace")
-    write_file(abs_path, body.content)
+    try:
+        write_file(abs_path, body.content)
+    except ValueError:
+        raise HTTPException(status_code=413, detail="file_too_large")
     return {"ok": True}
 
 
