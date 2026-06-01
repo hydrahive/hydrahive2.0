@@ -6,13 +6,39 @@ import {
 import type { MetricsSummary } from "./api"
 
 const METRIC_LABELS: Record<string, string> = {
-  step_count: "Schritte",
-  heart_rate: "Herzfrequenz",
-  active_energy_burned: "Aktiv kcal",
-  basal_energy_burned: "Basis kcal",
-  respiratory_rate: "Atemfrequenz",
-  blood_oxygen_saturation: "SpO₂",
-  distance_walking_running: "Distanz",
+  // Aktivität
+  step_count:                        "Schritte",
+  distance_walking_running:          "Distanz (Gehen/Laufen)",
+  active_energy_burned:              "Aktive Kalorien",
+  active_energy:                     "Aktive Kalorien",
+  basal_energy_burned:               "Ruhe-Kalorien",
+  apple_exercise_time:               "Trainingszeit",
+  flights_climbed:                   "Treppen",
+  apple_stand_hour:                  "Steh-Stunden",
+  apple_stand_time:                  "Stehzeit",
+  physical_effort:                   "Körperanstrengung",
+  six_minute_walking_test_distance:  "6-Minuten-Gehtest",
+  // Herzkreislauf
+  heart_rate:                        "Herzfrequenz",
+  resting_heart_rate:                "Ruheherzfrequenz",
+  walking_heart_rate_average:        "Herzfrequenz (Gehen)",
+  heart_rate_variability:            "Herzfrequenzvariabilität",
+  blood_oxygen_saturation:           "SpO₂",
+  // Atmung
+  respiratory_rate:                  "Atemfrequenz",
+  breathing_disturbances:            "Atemstörungen",
+  // Gang & Mobilität
+  walking_speed:                     "Gehgeschwindigkeit",
+  walking_step_length:               "Schrittlänge",
+  walking_asymmetry_percentage:      "Gangsymmetrie",
+  walking_double_support_percentage: "Doppelstandphase",
+  stair_speed_up:                    "Treppengeschw. (rauf)",
+  stair_speed_down:                  "Treppengeschw. (runter)",
+  // Umwelt & Sonstiges
+  headphone_audio_exposure:          "Kopfhörer-Lautstärke",
+  environmental_audio_exposure:      "Umgebungslärm",
+  time_in_daylight:                  "Tageslicht",
+  apple_sleeping_wrist_temperature:  "Handgelenktemp. (Schlaf)",
 }
 
 function formatDate(iso: string): string {
