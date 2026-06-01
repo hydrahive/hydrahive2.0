@@ -1,0 +1,43 @@
+{
+  "title": "Extensions",
+  "installed_count": "{{installed}} von {{total}} installiert",
+  "loading": "Lade Extensions…",
+  "empty_category": "Keine Extensions in dieser Kategorie.",
+  "status": {
+    "not_installed": "Nicht installiert",
+    "active": "Aktiv",
+    "running_unreachable": "Läuft (nicht erreichbar)",
+    "stopped": "Gestoppt"
+  },
+  "mode": {
+    "native": "Nativ",
+    "docker": "Docker"
+  },
+  "actions": {
+    "install": "Installieren",
+    "uninstall": "Deinstallieren",
+    "open": "Öffnen",
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart"
+  },
+  "docker": {
+    "available": "Docker ist verfügbar",
+    "not_installed": "Docker ist nicht installiert",
+    "available_hint": "Docker-Extensions können installiert werden.",
+    "not_installed_hint": "Docker wird für diese Extensions benötigt. Klicke auf Installieren um Docker einzurichten.",
+    "install_button": "Docker installieren",
+    "installing": "Installiert…",
+    "log_starting": "Starte Docker-Installation…"
+  },
+  "modal": {
+    "install": "Installieren",
+    "uninstall": "Deinstallieren",
+    "running_hint": "Läuft — bitte nicht schließen",
+    "start_button": "Installation starten",
+    "waiting": "Warte auf Ausgabe…",
+    "success": "Erfolgreich abgeschlossen",
+    "failed": "Fehlgeschlagen",
+    "close": "Schließen"
+  }
+}

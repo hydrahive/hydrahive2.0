@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Package, RefreshCw, Container, Terminal } from "lucide-react"
 import { fetchExtensions, authHeaders } from "./api"
 import { ExtensionCard } from "./ExtensionCard"
@@ -12,6 +13,7 @@ interface ModalState {
 }
 
 export function ExtensionsPage() {
+  const { t } = useTranslation("extensions")
   const [extensions, setExtensions] = useState<Extension[]>([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState("all")
@@ -42,7 +44,7 @@ export function ExtensionsPage() {
 
   async function installDocker() {
     setDockerInstalling(true)
-    setDockerInstallLog(["Starte Docker-Installation…"])
+    setDockerInstallLog([t("docker.log_starting")])
     try {
       const res = await fetch("/api/admin/extensions/install-docker", {
         method: "POST",
@@ -84,9 +86,9 @@ export function ExtensionsPage() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Package className="text-violet-400" size={20} />
-          <h1 className="text-xl font-semibold text-zinc-100">Extensions</h1>
+          <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
           <span className="text-xs text-zinc-500">
-            {extensions.filter((e) => e.installed).length} von {extensions.length} installiert
+            {t("installed_count", { installed: extensions.filter((e) => e.installed).length, total: extensions.length })}
           </span>
         </div>
         <button onClick={load}
@@ -135,12 +137,10 @@ export function ExtensionsPage() {
               <Container size={18} className={dockerAvailable ? "text-emerald-400 mt-0.5" : "text-blue-400 mt-0.5"} />
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium ${dockerAvailable ? "text-emerald-300" : "text-blue-300"}`}>
-                  {dockerAvailable ? "Docker ist verfügbar" : "Docker ist nicht installiert"}
+                  {dockerAvailable ? t("docker.available") : t("docker.not_installed")}
                 </p>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  {dockerAvailable
-                    ? "Docker-Extensions können installiert werden."
-                    : "Docker wird für diese Extensions benötigt. Klicke auf Installieren um Docker einzurichten."}
+                  {dockerAvailable ? t("docker.available_hint") : t("docker.not_installed_hint")}
                 </p>
               </div>
               {!dockerAvailable && (
@@ -149,7 +149,7 @@ export function ExtensionsPage() {
                   disabled={dockerInstalling}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-medium transition-colors shrink-0">
                   <Terminal size={12} />
-                  {dockerInstalling ? "Installiert…" : "Docker installieren"}
+                  {dockerInstalling ? t("docker.installing") : t("docker.install_button")}
                 </button>
               )}
             </div>
@@ -169,9 +169,9 @@ export function ExtensionsPage() {
           )}
 
           {loading && extensions.length === 0 ? (
-            <p className="text-zinc-500 text-sm">Lade Extensions…</p>
+            <p className="text-zinc-500 text-sm">{t("loading")}</p>
           ) : visible.length === 0 ? (
-            <p className="text-zinc-500 text-sm">Keine Extensions in dieser Kategorie.</p>
+            <p className="text-zinc-500 text-sm">{t("empty_category")}</p>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
               {visible.map((ext) => (

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { X, Terminal } from "lucide-react"
 import type { Extension, InstallMode, InstallParam } from "./types"
 import { streamAction } from "./api"
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function InstallModal({ ext, action, mode, onClose }: Props) {
+  const { t } = useTranslation("extensions")
   const [params, setParams] = useState<Record<string, string>>({})
   const visibleParams = (ext.install_params ?? []).filter((p) => !p.auto_generate || p.required)
   const [phase, setPhase] = useState<"params" | "running" | "done">(
@@ -47,11 +49,11 @@ export function InstallModal({ ext, action, mode, onClose }: Props) {
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[6%]">
           <Terminal size={16} className="text-violet-400" />
           <span className="font-semibold text-zinc-100 text-sm">
-            {action === "install" ? "Installieren" : "Deinstallieren"}: {ext.name}
+            {action === "install" ? t("modal.install") : t("modal.uninstall")}: {ext.name}
           </span>
           <div className="flex-1" />
           {phase === "running" && (
-            <span className="text-xs text-amber-400 animate-pulse">Läuft — bitte nicht schließen</span>
+            <span className="text-xs text-amber-400 animate-pulse">{t("modal.running_hint")}</span>
           )}
           {phase !== "running" && (
             <button onClick={() => onClose(phase === "done" && !failed)}
@@ -85,7 +87,7 @@ export function InstallModal({ ext, action, mode, onClose }: Props) {
               disabled={requiredMissing.length > 0}
               onClick={() => setPhase("running")}
               className="w-full py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors">
-              Installation starten
+              {t("modal.start_button")}
             </button>
           </div>
         )}
@@ -95,7 +97,7 @@ export function InstallModal({ ext, action, mode, onClose }: Props) {
           <>
             <div ref={logRef}
               className="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed bg-zinc-950/50 min-h-[300px]">
-              {lines.length === 0 && <span className="text-zinc-600">Warte auf Ausgabe…</span>}
+              {lines.length === 0 && <span className="text-zinc-600">{t("modal.waiting")}</span>}
               {lines.map((l, i) => (
                 <div key={i} className={
                   l.startsWith("[OK]") ? "text-emerald-400" :
@@ -108,11 +110,11 @@ export function InstallModal({ ext, action, mode, onClose }: Props) {
             {phase === "done" && (
               <div className="px-5 py-4 border-t border-white/[6%] flex items-center justify-between">
                 <span className={`text-sm font-medium ${failed ? "text-rose-400" : "text-emerald-400"}`}>
-                  {failed ? "Fehlgeschlagen" : "Erfolgreich abgeschlossen"}
+                  {failed ? t("modal.failed") : t("modal.success")}
                 </span>
                 <button onClick={() => onClose(!failed)}
                   className="px-4 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-sm transition-colors">
-                  Schließen
+                  {t("modal.close")}
                 </button>
               </div>
             )}

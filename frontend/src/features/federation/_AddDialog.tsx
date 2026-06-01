@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { federationApi } from "./api"
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function AddWorkstationDialog({ onClose, onCreated }: Props) {
+  const { t } = useTranslation("federation")
   const [name, setName] = useState("")
   const [url, setUrl] = useState("")
   const [token, setToken] = useState("")
@@ -28,7 +30,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
       })
       onCreated()
     } catch (err: any) {
-      setError(err?.message ?? "Fehler beim Speichern")
+      setError(err?.message ?? t("add_dialog.error"))
     } finally {
       setSaving(false)
     }
@@ -48,12 +50,12 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="px-5 py-4 border-b border-white/8">
-          <h2 className="text-sm font-semibold text-zinc-100">Workstation hinzufügen</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">A2A-kompatible Workstation registrieren</p>
+          <h2 className="text-sm font-semibold text-zinc-100">{t("add_dialog.title")}</h2>
+          <p className="text-xs text-zinc-500 mt-0.5">{t("add_dialog.subtitle")}</p>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-3">
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Name</label>
+            <label className="text-xs text-zinc-400 mb-1 block">{t("add_dialog.name_label")}</label>
             <input
               className={input}
               placeholder="projektx-till"
@@ -66,7 +68,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
             </p>
           </div>
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">URL</label>
+            <label className="text-xs text-zinc-400 mb-1 block">{t("add_dialog.url_label")}</label>
             <input
               className={input}
               placeholder="https://100.127.195.68:8100"
@@ -80,11 +82,11 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
             </p>
           </div>
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Remote-Token (PROJEKTX_REMOTE_TOKEN)</label>
+            <label className="text-xs text-zinc-400 mb-1 block">{t("add_dialog.token_label")}</label>
             <input
               className={input}
               type="password"
-              placeholder="optional — für /remote/* Zugriff"
+              placeholder={t("add_dialog.token_placeholder")}
               value={token}
               onChange={e => setToken(e.target.value)}
             />
@@ -97,17 +99,12 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
                 onChange={e => setVerifyTls(e.target.checked)}
                 className="w-4 h-4 accent-violet-500"
               />
-              <span className="text-xs text-zinc-300">TLS-Zertifikat verifizieren</span>
+              <span className="text-xs text-zinc-300">{t("add_dialog.tls_label")}</span>
             </label>
             <p className="text-[10px] text-zinc-600 mt-1 ml-6">
-              Aus für self-signed Setups (ProjektX <code>--tls-auto</code>, Tailnet, LAN).
-              An für echte CA-signierte Peers über öffentliches Internet.
+              {t("add_dialog.tls_hint")}
               {looksSelfSigned && verifyTls && (
-                <span className="text-amber-400 block mt-1">
-                  ⚠ Diese URL sieht nach LAN/Tailnet aus — TLS-Verify ist
-                  hier vermutlich der Grund weshalb die Card nicht erreichbar
-                  ist. Häkchen entfernen?
-                </span>
+                <span className="text-amber-400 block mt-1">{t("add_dialog.tls_warn")}</span>
               )}
             </p>
           </div>
@@ -118,14 +115,14 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
               disabled={saving || !name.trim() || !url.trim()}
               className="flex-1 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white transition-colors"
             >
-              {saving ? "Speichern…" : "Hinzufügen"}
+              {saving ? t("add_dialog.saving") : t("add_dialog.save")}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors"
             >
-              Abbrechen
+              {t("add_dialog.cancel")}
             </button>
           </div>
         </form>

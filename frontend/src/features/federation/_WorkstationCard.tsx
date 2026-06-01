@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Activity, ChevronDown, ChevronUp, Lock, RefreshCw, Shield, ShieldOff, Terminal, Trash2, Unlock } from "lucide-react"
 import type { Workstation } from "./types"
 import { federationApi } from "./api"
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
+  const { t } = useTranslation("federation")
   const [expanded, setExpanded] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [auditRows, setAuditRows] = useState<unknown[] | null>(null)
@@ -55,27 +57,27 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
         </div>
         <div className="flex items-center gap-1">
           {ws.has_token ? (
-            <span title="Token konfiguriert"><Shield size={13} className="text-emerald-400" /></span>
+            <span title={t("workstation.token_ok")}><Shield size={13} className="text-emerald-400" /></span>
           ) : (
-            <span title="Kein Token"><ShieldOff size={13} className="text-zinc-600" /></span>
+            <span title={t("workstation.no_token")}><ShieldOff size={13} className="text-zinc-600" /></span>
           )}
           {ws.verify_tls ? (
-            <span title="TLS-Verify aktiv"><Lock size={12} className="text-emerald-400/70" /></span>
+            <span title={t("workstation.tls_on")}><Lock size={12} className="text-emerald-400/70" /></span>
           ) : (
-            <span title="TLS-Verify deaktiviert (self-signed OK)"><Unlock size={12} className="text-amber-400/70" /></span>
+            <span title={t("workstation.tls_off")}><Unlock size={12} className="text-amber-400/70" /></span>
           )}
           <button
             onClick={handleRefresh}
             disabled={refreshing}
             className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-zinc-200 transition-colors"
-            title="A2A-Card neu laden"
+            title={t("workstation.refresh")}
           >
             <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
           </button>
           <button
             onClick={() => onToggle(ws.id, !ws.enabled)}
             className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-zinc-200 transition-colors"
-            title={ws.enabled ? "Deaktivieren" : "Aktivieren"}
+            title={ws.enabled ? t("workstation.disable") : t("workstation.enable")}
           >
             <Activity size={13} className={ws.enabled ? "text-emerald-400" : "text-zinc-600"} />
           </button>
@@ -113,7 +115,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
               </div>
               {agents.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1.5">Personas / Agents</div>
+                  <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1.5">{t("workstation.personas")}</div>
                   <div className="space-y-1">
                     {agents.map(a => (
                       <div key={a.id} className="flex items-center gap-2 text-xs">
@@ -128,13 +130,13 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
               )}
               {ws.last_seen && (
                 <div className="text-[10px] text-zinc-600">
-                  Zuletzt gesehen: {new Date(ws.last_seen).toLocaleString("de")}
+                  {t("workstation.last_seen")} {new Date(ws.last_seen).toLocaleString()}
                 </div>
               )}
             </>
           ) : (
             <div className="text-xs text-zinc-500 italic">
-              Keine A2A-Card — bitte Token prüfen und «Refresh» klicken
+              {t("workstation.no_card")}
             </div>
           )}
 
@@ -142,11 +144,9 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
             <div className="text-xs">
               <div className="text-zinc-300 flex items-center gap-1.5">
                 {ws.verify_tls ? <Lock size={12} /> : <Unlock size={12} className="text-amber-400" />}
-                TLS-Zertifikat verifizieren
+                {t("workstation.tls_label")}
               </div>
-              <div className="text-[10px] text-zinc-600 mt-0.5">
-                Aus für self-signed (LAN/Tailnet, --tls-auto)
-              </div>
+              <div className="text-[10px] text-zinc-600 mt-0.5">{t("workstation.tls_hint")}</div>
             </div>
             <button
               onClick={async () => {
@@ -157,8 +157,8 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
               }}
               title={
                 ws.verify_tls
-                  ? "Aktuell AN — TLS-Zertifikatskette wird validiert. Klick deaktiviert die Prüfung (nur für self-signed Peers in LAN/Tailnet sinnvoll)."
-                  : "Aktuell AUS — Zertifikat wird NICHT geprüft. Nur sicher in vertrauenswürdigen Netzwerken (LAN, Tailnet). Klick aktiviert die Prüfung wieder."
+                  ? t("workstation.tls_on_title")
+                  : t("workstation.tls_off_title")
               }
               className={`text-[10px] px-2 py-1 rounded-md font-medium transition-colors ${
                 ws.verify_tls
@@ -166,7 +166,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
                   : "bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
               }`}
             >
-              {ws.verify_tls ? "AN" : "AUS"}
+              {ws.verify_tls ? t("workstation.tls_on_label") : t("workstation.tls_off_label")}
             </button>
           </div>
 
@@ -178,11 +178,11 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
                 className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
               >
                 <Terminal size={12} />
-                {auditLoading ? "Lade…" : "Remote-Audit-Log"}
+                {auditLoading ? t("workstation.audit_loading") : t("workstation.audit_load")}
               </button>
               {auditRows && (
                 <div className="mt-2 max-h-48 overflow-y-auto rounded-lg bg-black/30 p-2 font-mono text-[10px] text-zinc-400 space-y-1">
-                  {auditRows.length === 0 && <div>Keine Einträge</div>}
+                  {auditRows.length === 0 && <div>{t("workstation.audit_empty")}</div>}
                   {(auditRows as any[]).map((r, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className="text-zinc-600 flex-shrink-0">

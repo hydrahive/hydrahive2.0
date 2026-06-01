@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Globe, Plus } from "lucide-react"
 import { federationApi } from "./api"
 import type { Workstation } from "./types"
@@ -8,6 +9,7 @@ import { ClientConnectionsSection } from "./_ClientConnectionsSection"
 import { DataminingInstancesSection } from "./_DataminingInstancesSection"
 
 export function FederationPage() {
+  const { t } = useTranslation("federation")
   const [workstations, setWorkstations] = useState<Workstation[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -24,7 +26,7 @@ export function FederationPage() {
   useEffect(() => { load() }, [])
 
   async function handleDelete(id: string) {
-    if (!confirm("Workstation entfernen?")) return
+    if (!confirm(t("delete_confirm"))) return
     await federationApi.delete(id).catch(() => {})
     load()
   }
@@ -40,10 +42,8 @@ export function FederationPage() {
         <div className="flex items-center gap-3">
           <Globe className="text-violet-400" size={20} />
           <div>
-            <h1 className="text-xl font-semibold text-zinc-100">Federation</h1>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              A2A-Workstations — ferngesteuerte Agent-Systeme
-            </p>
+            <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
+            <p className="text-xs text-zinc-500 mt-0.5">{t("subtitle")}</p>
           </div>
         </div>
         <button
@@ -51,7 +51,7 @@ export function FederationPage() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-violet-600 hover:bg-violet-500 text-white transition-colors"
         >
           <Plus size={14} />
-          Hinzufügen
+          {t("add")}
         </button>
       </div>
 
@@ -63,16 +63,16 @@ export function FederationPage() {
       </div>
 
       {loading ? (
-        <div className="text-sm text-zinc-600 py-8 text-center">Lade…</div>
+        <div className="text-sm text-zinc-600 py-8 text-center">{t("loading")}</div>
       ) : workstations.length === 0 ? (
         <div className="rounded-xl border border-white/[4%] bg-zinc-950/30 py-12 text-center">
           <Globe size={32} className="text-zinc-700 mx-auto mb-3" />
-          <p className="text-sm text-zinc-600">Noch keine Workstations registriert</p>
+          <p className="text-sm text-zinc-600">{t("empty")}</p>
           <button
             onClick={() => setShowAdd(true)}
             className="mt-3 text-xs text-violet-400 hover:text-violet-300 transition-colors"
           >
-            Erste Workstation hinzufügen →
+            {t("add_first")}
           </button>
         </div>
       ) : (
