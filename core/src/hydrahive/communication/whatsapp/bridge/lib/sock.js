@@ -102,14 +102,23 @@ async function handleMessage(user, m) {
   if (!text && !audioMsg) return;
   if (text && text.includes(LOOP_MARKER)) return;
   const isGroup = rawJid.endsWith("@g.us");
-  const jid = !isGroup && rawJid.endsWith("@lid") && m.key.senderPn
-    ? m.key.senderPn
+  // v7: Bei @lid-Adressierung liefert WhatsApp die Telefon-JID als `remoteJidAlt`
+  // gleich mit. An diese (@s.whatsapp.net) antworten — Senden an die rohe @lid
+  // erzeugt beim Empfänger "Auf diese Nachricht wird gewartet" (undecryptable).
+  // Fallback-Kette: remoteJidAlt (v7) → senderPn (älteres Feld) → rohe JID.
+  const jid = !isGroup && rawJid.endsWith("@lid")
+    ? (m.key.remoteJidAlt || m.key.senderPn || rawJid)
     : rawJid;
   const participant = isGroup
-    ? ((m.key.participant?.endsWith("@lid") && m.key.participantPn)
-        ? m.key.participantPn
+    ? (m.key.participant?.endsWith("@lid")
+        ? (m.key.participantAlt || m.key.participantPn || m.key.participant || null)
         : (m.key.participant || null))
     : null;
+  if (rawJid.endsWith("@lid") || m.key.participant?.endsWith("@lid")) {
+    logger.info({ rawJid, resolvedJid: jid, remoteJidAlt: m.key.remoteJidAlt || null,
+                  addressingMode: m.key.addressingMode || null },
+                "lid-resolution");
+  }
 
   let media_type = null;
   let media_mime = null;
