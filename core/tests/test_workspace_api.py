@@ -41,6 +41,10 @@ def test_raw_serves_file(client, admin_headers):
     res = client.get(f"/api/workspace/raw?agent_id={aid}&path=hello.txt", headers=admin_headers)
     assert res.status_code == 200, res.text
     assert res.content == b"raw-bytes"
+    # XSS-Härtung: untrusted Workspace-Bytes nie scriptfähig ausliefern
+    assert "sandbox" in res.headers.get("content-security-policy", "")
+    assert res.headers.get("x-content-type-options") == "nosniff"
+    assert "attachment" in res.headers.get("content-disposition", "")
 
 
 def test_raw_rejects_traversal(client, admin_headers):

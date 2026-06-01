@@ -96,4 +96,13 @@ def get_raw(
     if not abs_path.is_file():
         raise HTTPException(status_code=404, detail="file_not_found")
     media_type = mimetypes.guess_type(abs_path.name)[0] or "application/octet-stream"
-    return FileResponse(abs_path, media_type=media_type, filename=abs_path.name)
+    # Workspace-Inhalt ist untrusted (Agenten schreiben autonom). Stored-XSS-Schutz
+    # für aktiv renderbare Typen (SVG/HTML): FileResponse(filename=) setzt bereits
+    # Content-Disposition: attachment; zusätzlich sandbox-CSP + nosniff. Direkte
+    # Navigation wird damit sandboxed/heruntergeladen statt mit Scripts gerendert;
+    # der Viewer holt die Bytes per Blob-Fetch und behält so den echten Content-Type.
+    headers = {
+        "Content-Security-Policy": "sandbox; default-src 'none'",
+        "X-Content-Type-Options": "nosniff",
+    }
+    return FileResponse(abs_path, media_type=media_type, filename=abs_path.name, headers=headers)
