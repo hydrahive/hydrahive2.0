@@ -109,10 +109,19 @@ async def on_embed_model_change(new_model: str) -> None:
         await ensure_embed_col(conn)
         await ensure_embed_col(conn, table="cards")
     if new_model:
-        try:
-            _backfill_task = asyncio.get_running_loop().create_task(_run_backfill(new_model))
-        except RuntimeError:
-            pass
+        _start_backfill(new_model)
+
+
+def _start_backfill(model: str) -> None:
+    """Backfill-Task auf dem laufenden Loop starten. Ein fehlender Loop wird
+    geloggt statt still verschluckt (#201) — sonst bleibt ein nie startender
+    Backfill unsichtbar (erklärte die Datamining-Backfill-Lücke)."""
+    global _backfill_task
+    try:
+        _backfill_task = asyncio.get_running_loop().create_task(_run_backfill(model))
+    except RuntimeError as e:
+        logger.error("PG-Mirror: Backfill (model=%s) konnte nicht gestartet werden "
+                     "(kein laufender Event-Loop?): %s", model, e)
 
 
 async def reset_embeddings(event_type: str | None = None) -> int:
