@@ -16,15 +16,9 @@ from hydrahive.api.routes._butler_route_helpers import (
 from hydrahive.butler import executor as bex
 from hydrahive.butler import persistence as bp
 from hydrahive.butler.models import Flow, TriggerEvent
-from hydrahive.butler.registry import all_specs
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/butler", tags=["butler"])
-
-
-@router.get("/registry")
-def get_registry(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    return all_specs()
 
 
 @router.get("/flows")
