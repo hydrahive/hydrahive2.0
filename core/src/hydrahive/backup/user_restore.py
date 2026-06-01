@@ -42,14 +42,20 @@ def restore_user_archive(archive_path: Path, username: str) -> None:
             tar.extractall(tmp_path, filter="data")
 
             _restore_sessions(tmp_path / "sessions.json", username)
-            _restore_dir(tmp_path / "agents", settings.agents_dir)
-            _restore_dir(tmp_path / "workspaces" / "master",
-                         settings.data_dir / "workspaces" / "master")
-            _restore_dir(tmp_path / "workspaces" / "specialists",
-                         settings.data_dir / "workspaces" / "specialists")
-            _restore_projects(tmp_path / "projects")
-            _restore_dir(tmp_path / "workspaces" / "projects",
-                         settings.data_dir / "workspaces" / "projects")
+            # Agents/Projects vor ihren Workspaces einspielen — die Workspace-
+            # Freigabe richtet sich nach der (ggf. frisch wiederhergestellten)
+            # DB-Ownership der jeweiligen ID.
+            _restore_agents(tmp_path / "agents", username)
+            _restore_owned_workspaces(tmp_path / "workspaces" / "master",
+                                      settings.data_dir / "workspaces" / "master",
+                                      username, is_project=False)
+            _restore_owned_workspaces(tmp_path / "workspaces" / "specialists",
+                                      settings.data_dir / "workspaces" / "specialists",
+                                      username, is_project=False)
+            _restore_projects(tmp_path / "projects", username)
+            _restore_owned_workspaces(tmp_path / "workspaces" / "projects",
+                                      settings.data_dir / "workspaces" / "projects",
+                                      username, is_project=True)
             _restore_whatsapp(tmp_path / "whatsapp.json", username)
             _restore_butler(tmp_path / "butler", username)
 
@@ -97,9 +103,7 @@ def _restore_sessions(sessions_file: Path, username: str) -> None:
                 )
 
 
-def _restore_dir(src: Path, dst: Path) -> None:
-    if not src.exists():
-        return
+def _copy_tree(src: Path, dst: Path) -> None:
     dst.mkdir(parents=True, exist_ok=True)
     for item in src.rglob("*"):
         rel = item.relative_to(src)
@@ -111,23 +115,77 @@ def _restore_dir(src: Path, dst: Path) -> None:
             shutil.copy2(item, target)
 
 
-def _restore_projects(projects_src: Path) -> None:
+def _json_field(path: Path, field: str) -> str | None:
+    try:
+        return json.loads(path.read_text()).get(field)
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return None
+
+
+def _restore_agents(src: Path, username: str) -> None:
+    """Pro Agent-ID gaten: existiert er, muss er dem User gehören; existiert er
+    nicht, darf das Archiv ihn nur als dem User gehörend (re-)anlegen (#183)."""
+    if not src.exists():
+        return
+    from hydrahive.agents import config as agent_config
+    for agent_dir in src.iterdir():
+        if not agent_dir.is_dir():
+            continue
+        agent_id = agent_dir.name
+        existing = agent_config.get(agent_id)
+        if existing is not None:
+            allowed = existing.get("owner") == username
+        else:
+            allowed = _json_field(agent_dir / "config.json", "owner") == username
+        if not allowed:
+            logger.warning("User-Restore: Agent '%s' übersprungen (fremder/ungültiger Owner)", agent_id)
+            continue
+        _copy_tree(agent_dir, settings.agents_dir / agent_id)
+
+
+def _restore_projects(projects_src: Path, username: str) -> None:
     if not projects_src.exists():
         return
-    dst = settings.projects_dir
-    dst.mkdir(parents=True, exist_ok=True)
+    from hydrahive.projects import _config_io as project_config
+    settings.projects_dir.mkdir(parents=True, exist_ok=True)
     for proj_dir in projects_src.iterdir():
-        if proj_dir.is_dir():
-            target = dst / proj_dir.name
-            target.mkdir(parents=True, exist_ok=True)
-            for item in proj_dir.rglob("*"):
-                rel = item.relative_to(proj_dir)
-                t = target / rel
-                if item.is_dir():
-                    t.mkdir(parents=True, exist_ok=True)
-                else:
-                    t.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(item, t)
+        if not proj_dir.is_dir():
+            continue
+        pid = proj_dir.name
+        existing = project_config.get(pid)
+        if existing is not None:
+            allowed = existing.get("created_by") == username
+        else:
+            allowed = _json_field(proj_dir / "config.json", "created_by") == username
+        if not allowed:
+            logger.warning("User-Restore: Projekt '%s' übersprungen (fremder/ungültiger Owner)", pid)
+            continue
+        _copy_tree(proj_dir, settings.projects_dir / pid)
+
+
+def _restore_owned_workspaces(src: Path, dst: Path, username: str, *, is_project: bool) -> None:
+    """Workspace-Verzeichnisse nur einspielen, wenn die zugehörige Agent-/Projekt-
+    ID (jetzt) dem User gehört. Läuft nach dem Agent-/Projekt-Restore."""
+    if not src.exists():
+        return
+    if is_project:
+        from hydrahive.projects import _config_io as project_config
+
+        def _owned(eid: str) -> bool:
+            return (project_config.get(eid) or {}).get("created_by") == username
+    else:
+        from hydrahive.agents import config as agent_config
+
+        def _owned(eid: str) -> bool:
+            return (agent_config.get(eid) or {}).get("owner") == username
+
+    for entry in src.iterdir():
+        if not entry.is_dir():
+            continue
+        if not _owned(entry.name):
+            logger.warning("User-Restore: Workspace '%s' übersprungen (fremder Owner)", entry.name)
+            continue
+        _copy_tree(entry, dst / entry.name)
 
 
 def _restore_whatsapp(wa_file: Path, username: str) -> None:
