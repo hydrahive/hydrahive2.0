@@ -2,11 +2,7 @@ import { Archive, Loader2, SquarePen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { NewChatHint } from "./NewChatHint"
-import { ModelPicker } from "./ModelPicker"
-import { ReasoningEffortPill } from "./ReasoningEffortPill"
 import { TokenMeter } from "./TokenMeter"
-import { chatApi } from "./api"
-import { agentsApi } from "@/features/agents/api"
 import type { ChatState } from "./useChat"
 import type { AgentBrief, Session } from "./types"
 
@@ -22,24 +18,14 @@ interface Props {
   onCompact: () => void
   onDelete: () => void
   onNewSession: () => void
-  onSessionChanged: (session: Session) => void
-  onAgentChanged?: (agent: AgentBrief) => void
   tokenRefresh: number
 }
 
 export function ChatHeader({
   session, agent, orphaned, compacting, compactNote,
-  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onNewSession, onSessionChanged, onAgentChanged, tokenRefresh,
+  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onNewSession, tokenRefresh,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
-
-  // Aktives Modell (mit Session-Override) bestimmen
-  const activeModel = (session.metadata as { model_override?: string })?.model_override || agent?.llm_model || ""
-  const strippedModel = activeModel.replace(/^anthropic\//, "")
-  const isClaudeModel = strippedModel.startsWith("claude-")
-  const supportsReasoningEffort = isClaudeModel || /^MiniMax-M2/.test(strippedModel)
-  // Claude 4.6+ bietet xhigh/max (output_config.effort) — Spiegel von EFFORT_PARAM_MODELS im Backend.
-  const supportsExtendedEffort = /^claude-(opus-4-6|opus-4-7|opus-4-8|sonnet-4-6)/.test(strippedModel)
 
   return (
     <>
@@ -53,25 +39,7 @@ export function ChatHeader({
           </h2>
           <p className="text-xs text-zinc-600 mt-0.5 flex items-center gap-2 flex-wrap">
             <span>{t("session.id_short")}: {session.id.slice(0, 8)}…</span>
-            {agent && (
-              <span className="text-zinc-500 inline-flex items-center gap-1">
-                ·{" "}
-                <ModelPicker
-                  current={agent.llm_model}
-                  hint={t("model_hint")}
-                  onPick={async (m) => {
-                    // Agent-Default ändern (greift sofort + im /model-Output) UND
-                    // alten Session-Override räumen damit nichts kollidiert.
-                    const updatedAgent = await agentsApi.update(agent.id, { llm_model: m })
-                    onAgentChanged?.({ ...agent, llm_model: updatedAgent.llm_model })
-                    if ((session.metadata as { model_override?: string })?.model_override) {
-                      const updated = await chatApi.updateSession(session.id, { model_override: "" })
-                      onSessionChanged(updated)
-                    }
-                  }}
-                />
-              </span>
-            )}
+            {agent && <span className="text-zinc-500">· {agent.llm_model.replace(/^anthropic\//, "")}</span>}
             {lastTurnTokens && !busy && (
               <span className="text-zinc-500" title={t("tokens.tooltip")}>
                 · {t("tokens.last_turn")}: <span className="tabular-nums">
@@ -90,16 +58,6 @@ export function ChatHeader({
           </p>
         </div>
         <TokenMeter sessionId={session.id} refresh={tokenRefresh} />
-        {supportsReasoningEffort && (
-          <ReasoningEffortPill
-            current={(session.metadata as { reasoning_effort?: string })?.reasoning_effort}
-            extended={supportsExtendedEffort}
-            onSelect={async (effort) => {
-              const updated = await chatApi.updateSession(session.id, { reasoning_effort: effort })
-              onSessionChanged(updated)
-            }}
-          />
-        )}
         <HelpButton topic="chat" />
         <button
           onClick={onNewSession}

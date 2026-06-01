@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams, useSearchParams } from "react-router-dom"
-import { Coins, Cpu, Download, FileText, GamepadIcon, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
+import { Coins, Download, FileText, GamepadIcon, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
 import { AgentPixelMonitor } from "./AgentPixelMonitor"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { chatApi } from "./api"
@@ -11,7 +11,7 @@ import { MessageInput } from "./MessageInput"
 import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
 import { ToolConfirmBanner } from "./ToolConfirmBanner"
-import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
+import { ThreePanelLayout } from "./layout/ThreePanelLayout"
 import { ChatHeader } from "./_ChatHeader"
 import { ChatBubbleThread } from "./_ChatBubbleThread"
 import { useHydraRuntime } from "./_assistantRuntime"
@@ -193,111 +193,110 @@ export function ChatPage() {
     return () => { alive = false }
   }, [activeAgent?.id])
 
-  return (
-    <AssistantRuntimeProvider runtime={runtime} key={activeId ?? "empty"}>
-      <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6">
-        <main className="flex-1 flex flex-col min-w-0 p-3 md:p-4">
-          {activeSession ? (
-            <ChatSearchProvider messages={allMessages}>
-            <ChatSearchScrollEffect />
-            <div
-              className="relative flex flex-col rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur w-full h-full"
-            >
-              <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-white/[3%]" />
-              {searchOpen && <ChatSearchBar onClose={() => setSearchOpen(false)} />}
-              <ChatHeader
-                session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
-                compacting={compacting} compactNote={compactNote}
-                lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
-                systemPrompt={systemPrompt} onCompact={handleCompact}
-                onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
-                onNewSession={async () => {
-                  if (!activeAgent) return
-                  const s = await chatApi.createSession(activeAgent.id)
-                  setSessions((cur) => [s, ...cur]); setActiveId(s.id)
-                }}
-                onSessionChanged={(updated) =>
-                  setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
-                }
-                onAgentChanged={(updated) =>
-                  setAgents((cur) => cur.map((a) => a.id === updated.id ? updated : a))
-                }
-              />
-              <ChatBubbleThread />
-              {showPixelMonitor && (
-                <AgentPixelMonitor
-                  agentTools={pixelData.agentTools}
-                  activeAgents={pixelData.activeAgents}
-                  doneAgents={pixelData.doneAgents}
-                />
+  const handleSessionChanged = (updated: Session) =>
+    setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
+  const handleAgentChanged = (updated: AgentBrief) =>
+    setAgents((cur) => cur.map((a) => a.id === updated.id ? updated : a))
+
+  const center = activeSession ? (
+    <div className="flex flex-col min-w-0 p-3 md:p-4 h-full">
+      <ChatSearchProvider messages={allMessages}>
+        <ChatSearchScrollEffect />
+        <div className="relative flex flex-col rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur w-full h-full">
+          <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-white/[3%]" />
+          {searchOpen && <ChatSearchBar onClose={() => setSearchOpen(false)} />}
+          <ChatHeader
+            session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
+            compacting={compacting} compactNote={compactNote}
+            lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
+            systemPrompt={systemPrompt} onCompact={handleCompact}
+            onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
+            onNewSession={async () => {
+              if (!activeAgent) return
+              const s = await chatApi.createSession(activeAgent.id)
+              setSessions((cur) => [s, ...cur]); setActiveId(s.id)
+            }}
+          />
+          <ChatBubbleThread />
+          {showPixelMonitor && (
+            <AgentPixelMonitor
+              agentTools={pixelData.agentTools}
+              activeAgents={pixelData.activeAgents}
+              doneAgents={pixelData.doneAgents}
+            />
+          )}
+          {chat.error && (
+            <div className="px-4 py-2 text-xs text-rose-400 bg-rose-500/10 border-t border-rose-500/20 flex items-center justify-between gap-3">
+              <span>{chat.error}</span>
+              {chat.errorKind === "max_iterations" && (
+                <button
+                  onClick={() => handleSend("Weitermachen, bitte fortsetzen.")}
+                  className="px-2 py-1 rounded-md text-xs text-rose-200 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 whitespace-nowrap"
+                >
+                  Weitermachen
+                </button>
               )}
-              {chat.error && (
-                <div className="px-4 py-2 text-xs text-rose-400 bg-rose-500/10 border-t border-rose-500/20 flex items-center justify-between gap-3">
-                  <span>{chat.error}</span>
-                  {chat.errorKind === "max_iterations" && (
-                    <button
-                      onClick={() => handleSend("Weitermachen, bitte fortsetzen.")}
-                      className="px-2 py-1 rounded-md text-xs text-rose-200 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 whitespace-nowrap"
-                    >
-                      Weitermachen
-                    </button>
-                  )}
-                </div>
-              )}
-              {chat.pendingConfirm && (
-                <ToolConfirmBanner
-                  pending={chat.pendingConfirm}
-                  onApprove={() => chat.confirmTool("approve")}
-                  onDeny={() => chat.confirmTool("deny")}
-                />
-              )}
-              {chat.compacting && (
-                <div className="px-4 py-1.5 text-xs text-amber-400/80 bg-amber-500/5 border-t border-amber-500/15 flex items-center gap-2">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse" />
-                  Kontext wird komprimiert…
-                </div>
-              )}
-              <div className="border-t border-white/[6%] bg-black/30">
-                <MessageInput
-                  onSend={handleSend} onCancel={chat.cancel}
-                  busy={chat.busy} disabled={activeOrphaned}
-                  quickActions={(insert) => (
-                    <>
-                      <CmdPill icon={<HelpCircle size={11} />} label="help" color="sky" onClick={() => handleSend("/help")} />
-                      <CmdPill icon={<RotateCcw size={11} />} label="clear" color="amber" onClick={() => handleSend("/clear")} />
-                      <CmdPill icon={<Cpu size={11} />} label="model" color="violet" onClick={() => insert("/model")} />
-                      <CmdPill icon={<GitMerge size={11} />} label="compact" color="emerald" onClick={() => handleSend("/compact")} />
-                      <CmdPill icon={<Coins size={11} />} label="tokens" color="amber" onClick={() => handleSend("/tokens")} />
-                      <CmdPill icon={<Pencil size={11} />} label="title" color="pink" onClick={() => insert("/title ")} />
-                      <CmdPill icon={<Wand2 size={11} />} label="system" color="violet" onClick={() => handleSend("/system")} />
-                      <CmdPill icon={<Hammer size={11} />} label="tools" color="sky" onClick={() => handleSend("/tools")} />
-                      <CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} />
-                      <CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} />
-                      <SkillCatalogPill agentId={activeAgent?.id ?? null} insert={insert} />
-                      <CmdPill icon={<GamepadIcon size={11} />} label="pixel" color={showPixelMonitor ? "violet" : "sky"} onClick={() => setShowPixelMonitor(v => !v)} />
-                    </>
-                  )}
-                />
-              </div>
-            </div>
-            </ChatSearchProvider>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
-              {t("session.select_or_new")}
             </div>
           )}
-        </main>
+          {chat.pendingConfirm && (
+            <ToolConfirmBanner
+              pending={chat.pendingConfirm}
+              onApprove={() => chat.confirmTool("approve")}
+              onDeny={() => chat.confirmTool("deny")}
+            />
+          )}
+          {chat.compacting && (
+            <div className="px-4 py-1.5 text-xs text-amber-400/80 bg-amber-500/5 border-t border-amber-500/15 flex items-center gap-2">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400/60 animate-pulse" />
+              Kontext wird komprimiert…
+            </div>
+          )}
+          <div className="border-t border-white/[6%] bg-black/30">
+            <MessageInput
+              onSend={handleSend} onCancel={chat.cancel}
+              busy={chat.busy} disabled={activeOrphaned}
+              quickActions={(insert) => (
+                <>
+                  <CmdPill icon={<HelpCircle size={11} />} label="help" color="sky" onClick={() => handleSend("/help")} />
+                  <CmdPill icon={<RotateCcw size={11} />} label="clear" color="amber" onClick={() => handleSend("/clear")} />
+                  <CmdPill icon={<GitMerge size={11} />} label="compact" color="emerald" onClick={() => handleSend("/compact")} />
+                  <CmdPill icon={<Coins size={11} />} label="tokens" color="amber" onClick={() => handleSend("/tokens")} />
+                  <CmdPill icon={<Pencil size={11} />} label="title" color="pink" onClick={() => insert("/title ")} />
+                  <CmdPill icon={<Wand2 size={11} />} label="system" color="violet" onClick={() => handleSend("/system")} />
+                  <CmdPill icon={<Hammer size={11} />} label="tools" color="sky" onClick={() => handleSend("/tools")} />
+                  <CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} />
+                  <CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} />
+                  <SkillCatalogPill agentId={activeAgent?.id ?? null} insert={insert} />
+                  <CmdPill icon={<GamepadIcon size={11} />} label="pixel" color={showPixelMonitor ? "violet" : "sky"} onClick={() => setShowPixelMonitor(v => !v)} />
+                </>
+              )}
+            />
+          </div>
+        </div>
+      </ChatSearchProvider>
+    </div>
+  ) : (
+    <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
+      {t("session.select_or_new")}
+    </div>
+  )
 
-        <CollapsibleSidebar defaultOpen>
+  return (
+    <AssistantRuntimeProvider runtime={runtime} key={activeId ?? "empty"}>
+      <ThreePanelLayout
+        left={
           <SessionList
             sessions={sessions} activeId={activeId}
             knownAgentIds={knownAgentIds} buddyAgentIds={buddyAgentIds} projects={projects}
             onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
+            activeSession={activeSession} activeAgent={activeAgent}
+            onSessionChanged={handleSessionChanged} onAgentChanged={handleAgentChanged}
           />
-        </CollapsibleSidebar>
-
-        {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
-      </div>
+        }
+        center={center}
+        right={<div className="p-4 text-xs text-zinc-600">Workspace folgt…</div>}
+      />
+      {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
     </AssistantRuntimeProvider>
   )
 }
