@@ -8,10 +8,9 @@ Header). Der Agent sieht den Token nie.
 from __future__ import annotations
 
 import base64
-import ipaddress
-import socket
 import urllib.parse
 
+from hydrahive.net.ssrf import is_blocked_host as _is_blocked
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
@@ -26,56 +25,7 @@ _DESCRIPTION = (
 _MAX_BYTES = 200_000
 _ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}
 
-# SSRF-Schutz: interne IP-Ranges blockieren
-_BLOCKED_RANGES = [
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
-    ipaddress.ip_network("fe80::/10"),
-]
-
-# Hostnames die direkt geblockt werden (ohne DNS-Lookup)
-_BLOCKED_HOSTNAMES = {
-    "localhost",
-    "metadata.google.internal",
-    "metadata.internal",
-    "169.254.169.254",  # AWS/GCP/Azure Metadaten-IP als String
-}
-
-
-def _is_blocked(hostname: str) -> bool:
-    """Prüft ob ein Hostname auf eine interne/gesperrte Adresse zeigt.
-
-    Drei Stufen: Hostname-Denylist → direktes IP-Parse → DNS-Auflösung.
-    """
-    if not hostname:
-        return True
-    normalized = hostname.lower().strip(".")
-    if normalized in _BLOCKED_HOSTNAMES:
-        return True
-    # Direkt als IP parsen
-    try:
-        ip = ipaddress.ip_address(hostname)
-        return any(ip in net for net in _BLOCKED_RANGES)
-    except ValueError:
-        pass
-    # Hostname per DNS auflösen und alle resultierenden IPs prüfen
-    try:
-        infos = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
-        for info in infos:
-            addr = info[4][0]
-            try:
-                if any(ipaddress.ip_address(addr) in net for net in _BLOCKED_RANGES):
-                    return True
-            except ValueError:
-                pass
-    except OSError:
-        pass
-    return False
+# SSRF-Schutz (_is_blocked) lebt zentral in hydrahive.net.ssrf — siehe Import oben.
 
 
 _SCHEMA = {

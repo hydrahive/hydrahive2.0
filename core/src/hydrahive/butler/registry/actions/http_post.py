@@ -9,6 +9,7 @@ from hydrahive.butler.registry import (
     ActionResult, ActionSpec, ParamSchema, register_action,
 )
 from hydrahive.butler.template import render
+from hydrahive.net.ssrf import validate_outbound_url
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,11 @@ async def _execute(params: dict, event: TriggerEvent) -> ActionResult:
     url = render(params.get("url") or "", event).strip()
     if not url:
         return ActionResult(ok=False, detail="url_missing")
+    # SSRF-Schutz (#187): nur http/https, keine internen Hosts/IPs/Metadata.
+    blocked = validate_outbound_url(url)
+    if blocked:
+        logger.warning("http_post: URL geblockt (%s): %s", blocked, url)
+        return ActionResult(ok=False, detail=f"url_blocked: {blocked}")
     body_raw = render(params.get("body") or "", event)
     headers_raw = params.get("headers") or "{}"
     try:
@@ -25,7 +31,9 @@ async def _execute(params: dict, event: TriggerEvent) -> ActionResult:
         headers = {}
     headers.setdefault("Content-Type", "application/json")
     try:
-        async with httpx.AsyncClient(timeout=15.0) as cli:
+        # follow_redirects=False: ein 30x auf eine interne URL würde den
+        # SSRF-Check sonst umgehen.
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=False) as cli:
             r = await cli.post(url, content=body_raw.encode("utf-8"), headers=headers)
         return ActionResult(ok=r.is_success, detail=f"HTTP {r.status_code}")
     except Exception as e:
