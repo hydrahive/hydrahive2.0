@@ -45,13 +45,15 @@ async def handle(event: WSEvent) -> None:
         to_agent_id = state.handoff.to_agent
     target = _find_target_agent(to_agent_id)
     if not target:
-        logger.error(
-            "handoff_receiver: kein Agent für to_agent=%r und kein Admin-Master — Handoff abgelehnt",
+        logger.warning(
+            "handoff_receiver: to_agent=%r nicht adressiert/unbekannt/inaktiv — Handoff abgelehnt "
+            "(kein Master-Fallback, Issue #177)",
             to_agent_id,
         )
-        await _post_error_reply(state, "Kein Ziel-Agent konfiguriert")
+        await _post_error_reply(state, "Kein gültiger Ziel-Agent adressiert")
         return
 
+    _warn_if_unconfirmed(target)
     owner = target.get("owner_id") or "admin"
     session = sessions_db.create(
         agent_id=target["id"],
@@ -78,19 +80,31 @@ async def handle(event: WSEvent) -> None:
 
 
 def _find_target_agent(to_agent_id: str | None) -> dict | None:
-    """Gibt den adressierten Agenten zurück, Fallback: Admin-Master."""
+    """Gibt den explizit adressierten, aktiven Agenten zurück — sonst None.
+
+    KEIN Fallback auf den Admin-Master (Issue #177): ein eingehender Handoff
+    von außen darf niemals auf den unrestricted Master eskalieren. Unadressierte,
+    unbekannte oder inaktive Handoffs werden abgelehnt."""
     from hydrahive.agents import config as agent_config
-    if to_agent_id:
-        agent = agent_config.get(to_agent_id)
-        if agent and agent.get("status") == "active":
-            logger.debug("handoff_receiver: Ziel-Agent '%s' lokal gefunden", to_agent_id)
-            return agent
+    if not to_agent_id:
+        return None
+    agent = agent_config.get(to_agent_id)
+    if agent and agent.get("status") == "active":
+        logger.debug("handoff_receiver: Ziel-Agent '%s' lokal gefunden", to_agent_id)
+        return agent
+    return None
+
+
+def _warn_if_unconfirmed(target: dict) -> None:
+    """Macht sichtbar, wenn ein AgentLink-Handoff einen Agenten trifft, der
+    Tools ohne Bestätigung ausführt (auto-exec). Architektur-Empfehlung:
+    AgentLink-erreichbare Agenten mit require_tool_confirm=True konfigurieren."""
+    if not target.get("require_tool_confirm", False):
         logger.warning(
-            "handoff_receiver: to_agent='%s' nicht gefunden oder inaktiv — Fallback auf Admin-Master",
-            to_agent_id,
+            "handoff_receiver: Ziel-Agent '%s' läuft mit require_tool_confirm=False — "
+            "AgentLink-Handoff führt Tools ohne Bestätigung aus",
+            target.get("id"),
         )
-    all_agents = agent_config.list_by_owner("admin")
-    return next((a for a in all_agents if a.get("type") == "master" and a.get("status") == "active"), None)
 
 
 def _build_user_input(state: State) -> str:

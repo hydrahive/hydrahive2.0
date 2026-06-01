@@ -34,6 +34,12 @@ __all__ = [
 _PENDING_FUTURES: dict[str, asyncio.Future] = {}
 
 
+def _auth_headers() -> dict[str, str]:
+    """Bearer-Header für AgentLink-Calls, wenn HH_AGENTLINK_TOKEN gesetzt ist."""
+    token = settings.agentlink_token
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
 def register_pending(reply_to_state_id: str) -> asyncio.Future:
     fut: asyncio.Future = asyncio.get_event_loop().create_future()
     _PENDING_FUTURES[reply_to_state_id] = fut
@@ -61,7 +67,11 @@ def pending_handoffs_count() -> int:
 async def post_state(state: State) -> State:
     url = settings.agentlink_url.rstrip("/") + "/states"
     async with httpx.AsyncClient(timeout=30.0) as client:
-        r = await client.post(url, json=state.model_dump(exclude_none=True, exclude={"extra"}))
+        r = await client.post(
+            url,
+            json=state.model_dump(exclude_none=True, exclude={"extra"}),
+            headers=_auth_headers(),
+        )
         r.raise_for_status()
         return State.model_validate(r.json())
 
@@ -69,7 +79,7 @@ async def post_state(state: State) -> State:
 async def get_state(state_id: str) -> State | None:
     url = settings.agentlink_url.rstrip("/") + f"/states/{state_id}"
     async with httpx.AsyncClient(timeout=15.0) as client:
-        r = await client.get(url)
+        r = await client.get(url, headers=_auth_headers())
         if r.status_code == 404:
             return None
         r.raise_for_status()
@@ -96,21 +106,21 @@ async def register_agent(
             "type": agent_type,
             "owner": owner,
             "meta": meta,
-        })
+        }, headers=_auth_headers())
         r.raise_for_status()
 
 
 async def heartbeat_agent(agent_id: str) -> None:
     url = settings.agentlink_url.rstrip("/") + f"/agents/{agent_id}/heartbeat"
     async with httpx.AsyncClient(timeout=10.0) as client:
-        r = await client.post(url)
+        r = await client.post(url, headers=_auth_headers())
         r.raise_for_status()
 
 
 async def list_specialists_with_meta() -> list[dict]:
     url = settings.agentlink_url.rstrip("/") + "/agents"
     async with httpx.AsyncClient(timeout=15.0) as client:
-        r = await client.get(url)
+        r = await client.get(url, headers=_auth_headers())
         r.raise_for_status()
         data = r.json()
     return [

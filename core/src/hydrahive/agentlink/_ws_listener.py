@@ -68,7 +68,10 @@ async def listen_loop(on_event: OnEvent, stop: asyncio.Event) -> None:
                 logger.info("AgentLink-WS verbunden: %s", ws_url)
                 _set_connected(True)
                 backoff = 1.0
-                await ws.send(json.dumps({"action": "subscribe", "channel": f"agent:{my_id}"}))
+                subscribe: dict[str, str] = {"action": "subscribe", "channel": f"agent:{my_id}"}
+                if settings.agentlink_token:
+                    subscribe["token"] = settings.agentlink_token
+                await ws.send(json.dumps(subscribe))
 
                 async def reader():
                     async for msg in ws:

@@ -69,6 +69,15 @@ class _AgentLinkMixin:
         return os.environ.get("HH_AGENTLINK_AGENT_ID", "hydrahive").strip()
 
     @cached_property
+    def agentlink_token(self) -> str:
+        """Shared-Secret für die AgentLink-Anbindung (Issue #177). Leer ⇒ kein
+        Header. Wenn gesetzt: als ``Authorization: Bearer`` auf allen REST-Calls
+        und beim WS-Subscribe mitgeschickt, damit nur autorisierte Clients mit
+        dem AgentLink-Service sprechen. Die harte Inbound-Garantie (kein Master-
+        Fallback) liegt in handoff_receiver — der Token ist Transport-Hygiene."""
+        return os.environ.get("HH_AGENTLINK_TOKEN", "").strip()
+
+    @cached_property
     def agentlink_handoff_timeout(self) -> int:
         """Wie lange ein ask_agent-Aufruf max. auf eine Antwort wartet (Sekunden)."""
         return int(os.environ.get("HH_AGENTLINK_HANDOFF_TIMEOUT", "600"))
