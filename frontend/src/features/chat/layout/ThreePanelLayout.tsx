@@ -9,7 +9,10 @@ function loadState(): PanelState {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
   } catch { /* ignore */ }
-  return { left: true, right: true }
+  // Ohne gespeicherte Präferenz: auf schmalen Screens beide zu (Chat voll),
+  // auf Desktop beide offen.
+  const narrow = typeof window !== "undefined" && window.innerWidth < 768
+  return { left: !narrow, right: !narrow }
 }
 
 interface Props {
