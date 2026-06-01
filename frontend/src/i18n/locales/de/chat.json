@@ -1,5 +1,24 @@
 {
   "title": "Chat",
+  "search": {
+    "next": "Nächster (Enter)",
+    "close": "Schließen (ESC)"
+  },
+  "lightbox": {
+    "view_full": "Bild in Originalgröße anzeigen",
+    "close": "Schließen (Esc)",
+    "close_aria": "Schließen"
+  },
+  "effort": {
+    "off_label": "Aus",
+    "off_title": "Kein Reasoning-Effort",
+    "low_title": "Schnell & günstig — einfache Aufgaben",
+    "medium_title": "Ausgewogen zwischen Tempo und Tiefe",
+    "high_title": "Tiefes Reasoning (Standard auf Opus)",
+    "xhigh_title": "Long-Horizon — empfohlen für Agentic Coding",
+    "max_title": "Maximale Tiefe, keine Token-Grenze"
+  },
+  "model_hint": "Modell für diesen Agenten wechseln (gilt für alle Sessions)",
   "tabs": {
     "direct": "Direkt",
     "projects": "Projekte"

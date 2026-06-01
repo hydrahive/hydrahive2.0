@@ -1,5 +1,24 @@
 {
   "title": "Chat",
+  "search": {
+    "next": "Next (Enter)",
+    "close": "Close (ESC)"
+  },
+  "lightbox": {
+    "view_full": "View full size",
+    "close": "Close (Esc)",
+    "close_aria": "Close"
+  },
+  "effort": {
+    "off_label": "Off",
+    "off_title": "No reasoning effort",
+    "low_title": "Fast & cheap — simple tasks",
+    "medium_title": "Balanced between speed and depth",
+    "high_title": "Deep reasoning (default on Opus)",
+    "xhigh_title": "Long-horizon — recommended for agentic coding",
+    "max_title": "Maximum depth, no token limit"
+  },
+  "model_hint": "Switch model for this agent (applies to all sessions)",
   "tabs": { "direct": "Direct", "projects": "Projects" },
   "session": {
     "list_title": "Sessions",

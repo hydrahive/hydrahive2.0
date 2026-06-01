@@ -58,7 +58,7 @@ export function ChatHeader({
                 ·{" "}
                 <ModelPicker
                   current={agent.llm_model}
-                  hint="Modell für diesen Agenten wechseln (gilt für alle Sessions)"
+                  hint={t("model_hint")}
                   onPick={async (m) => {
                     // Agent-Default ändern (greift sofort + im /model-Output) UND
                     // alten Session-Override räumen damit nichts kollidiert.

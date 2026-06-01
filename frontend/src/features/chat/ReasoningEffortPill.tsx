@@ -1,11 +1,11 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Brain } from "lucide-react"
 
 export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max"
 
 interface Props {
   current: string | null | undefined
-  /** Claude 4.6+ unterstützt xhigh/max (output_config.effort). Legacy-Modelle nur low/med/high. */
   extended?: boolean
   onSelect: (effort: EffortLevel | null) => Promise<void>
 }
@@ -16,25 +16,24 @@ interface EffortOption {
   title: string
 }
 
-const BASE_EFFORTS: EffortOption[] = [
-  { value: null, label: "Aus", title: "Kein Reasoning-Effort" },
-  { value: "low", label: "Low", title: "Schnell & günstig — einfache Aufgaben" },
-  { value: "medium", label: "Med", title: "Ausgewogen zwischen Tempo und Tiefe" },
-  { value: "high", label: "High", title: "Tiefes Reasoning (Standard auf Opus)" },
-]
-
-const EXTENDED_EFFORTS: EffortOption[] = [
-  { value: "xhigh", label: "XHigh", title: "Long-Horizon — empfohlen für Agentic Coding" },
-  { value: "max", label: "Max", title: "Maximale Tiefe, keine Token-Grenze" },
-]
-
-/** Reasoning-Effort-Pill. Claude 4.6+ (extended) zeigt zusätzlich XHigh/Max. */
 export function ReasoningEffortPill({ current, extended = false, onSelect }: Props) {
+  const { t } = useTranslation("chat")
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
 
+  const BASE_EFFORTS: EffortOption[] = [
+    { value: null,     label: t("effort.off_label"), title: t("effort.off_title") },
+    { value: "low",    label: "Low",   title: t("effort.low_title") },
+    { value: "medium", label: "Med",   title: t("effort.medium_title") },
+    { value: "high",   label: "High",  title: t("effort.high_title") },
+  ]
+  const EXTENDED_EFFORTS: EffortOption[] = [
+    { value: "xhigh", label: "XHigh", title: t("effort.xhigh_title") },
+    { value: "max",   label: "Max",   title: t("effort.max_title") },
+  ]
+
   const efforts = extended ? [...BASE_EFFORTS, ...EXTENDED_EFFORTS] : BASE_EFFORTS
-  const currentLabel = efforts.find((e) => e.value === current)?.label || "Aus"
+  const currentLabel = efforts.find((e) => e.value === current)?.label || t("effort.off_label")
 
   async function handleSelect(value: EffortLevel | null) {
     setBusy(true)
@@ -62,10 +61,7 @@ export function ReasoningEffortPill({ current, extended = false, onSelect }: Pro
 
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute top-full right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 min-w-[160px] overflow-hidden">
             {efforts.map((effort) => (
               <button

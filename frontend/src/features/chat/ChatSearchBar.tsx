@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { ChevronDown, ChevronUp, X } from "lucide-react"
 import { useChatSearch } from "./ChatSearchContext"
 
 export function ChatSearchBar({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation("chat")
   const { query, setQuery, activeIdx, matchCount, next, prev } = useChatSearch()
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -23,23 +25,23 @@ export function ChatSearchBar({ onClose }: { onClose: () => void }) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="In Verlauf suchen…"
+        placeholder={t("session.new_chat")}
         className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none"
       />
       {hasQuery && (
         <span className={`text-xs tabular-nums whitespace-nowrap ${matchCount === 0 ? "text-rose-400" : "text-zinc-400"}`}>
-          {matchCount === 0 ? "Keine Treffer" : `${activeIdx + 1} / ${matchCount}`}
+          {matchCount === 0 ? t("session.no_sessions") : `${activeIdx + 1} / ${matchCount}`}
         </span>
       )}
       <button onClick={prev} disabled={matchCount === 0} title="Vorheriger (Shift+Enter)"
         className="p-1 rounded text-zinc-500 hover:text-zinc-200 disabled:opacity-30 transition-colors">
         <ChevronUp size={14} />
       </button>
-      <button onClick={next} disabled={matchCount === 0} title="Nächster (Enter)"
+      <button onClick={next} disabled={matchCount === 0} title={t("search.next")}
         className="p-1 rounded text-zinc-500 hover:text-zinc-200 disabled:opacity-30 transition-colors">
         <ChevronDown size={14} />
       </button>
-      <button onClick={() => { setQuery(""); onClose() }} title="Schließen (ESC)"
+      <button onClick={() => { setQuery(""); onClose() }} title={t("search.close")}
         className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors">
         <X size={14} />
       </button>

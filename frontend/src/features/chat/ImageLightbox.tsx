@@ -6,6 +6,7 @@
  * Download-Button lädt das Original mit sinnvollem Dateinamen.
  */
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Download, X } from "lucide-react"
 
 function fileNameFromUrl(url: string): string {
@@ -14,6 +15,7 @@ function fileNameFromUrl(url: string): string {
 }
 
 export function ImageLightbox({ url }: { url: string }) {
+  const { t } = useTranslation("chat")
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function ImageLightbox({ url }: { url: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Bild in Originalgröße anzeigen"
+        aria-label={t("lightbox.view_full")}
         className="group block cursor-zoom-in rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
       >
         <img
@@ -66,8 +68,8 @@ export function ImageLightbox({ url }: { url: string }) {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              title="Schließen (Esc)"
-              aria-label="Schließen"
+              title={t("lightbox.close")}
+              aria-label={t("lightbox.close_aria")}
               className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white/90 hover:bg-white/20 hover:text-white transition-colors backdrop-blur"
             >
               <X size={18} />
