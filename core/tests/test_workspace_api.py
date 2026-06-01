@@ -53,11 +53,17 @@ def test_raw_rejects_traversal(client, admin_headers):
     assert res.status_code == 403
 
 
-def test_git_status_no_repo(client, admin_headers):
+def test_git_repos_empty_for_fresh_workspace(client, admin_headers):
     agent = _agent(client, admin_headers)
-    res = client.get(f"/api/workspace/git/status?agent_id={agent['id']}", headers=admin_headers)
+    res = client.get(f"/api/workspace/git/repos?agent_id={agent['id']}", headers=admin_headers)
     assert res.status_code == 200, res.text
-    assert res.json()["is_repo"] is False
+    assert res.json() == []
+
+
+def test_git_status_unknown_repo_404(client, admin_headers):
+    agent = _agent(client, admin_headers)
+    res = client.get(f"/api/workspace/git/status?agent_id={agent['id']}&repo=nope", headers=admin_headers)
+    assert res.status_code == 404
 
 
 def test_git_commit_empty_message_rejected(client, admin_headers):

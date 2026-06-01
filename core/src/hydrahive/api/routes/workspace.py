@@ -109,13 +109,31 @@ def get_raw(
     return FileResponse(abs_path, media_type=media_type, filename=abs_path.name, headers=headers)
 
 
+def _repo_path(agent_id: str, auth: tuple[str, str], repo: str):
+    """Workspace-Root (owner-checked) → konkretes Repo-Verzeichnis."""
+    root = _root_for(agent_id, auth)
+    repo_path = gs.resolve_repo(root, repo)
+    if repo_path is None:
+        raise HTTPException(status_code=404, detail="repo_not_found")
+    return repo_path
+
+
+@router.get("/git/repos")
+def git_repos(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    agent_id: str = Query(...),
+) -> list[dict]:
+    root = _root_for(agent_id, auth)
+    return gs.list_repos(root)
+
+
 @router.get("/git/status")
 def git_status(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
     agent_id: str = Query(...),
+    repo: str = Query(gs.ROOT_REPO),
 ) -> dict:
-    root = _root_for(agent_id, auth)
-    return gs.status(root)
+    return gs.status(_repo_path(agent_id, auth, repo))
 
 
 @router.get("/git/diff")
@@ -123,19 +141,21 @@ def git_diff(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
     agent_id: str = Query(...),
     file: str = Query(...),
+    repo: str = Query(gs.ROOT_REPO),
 ) -> dict:
-    root = _root_for(agent_id, auth)
+    repo_path = _repo_path(agent_id, auth, repo)
     try:
-        resolve_in_workspace(root, file)
+        resolve_in_workspace(repo_path, file)
     except WorkspacePathError:
         raise HTTPException(status_code=403, detail="path_outside_workspace")
-    return {"diff": gs.diff(root, file)}
+    return {"diff": gs.diff(repo_path, file)}
 
 
 class StageBody(BaseModel):
     agent_id: str
     file: str
     staged: bool
+    repo: str = gs.ROOT_REPO
 
 
 @router.post("/git/stage")
@@ -143,13 +163,13 @@ def git_stage(
     body: StageBody,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    root = _root_for(body.agent_id, auth)
+    repo_path = _repo_path(body.agent_id, auth, body.repo)
     try:
-        resolve_in_workspace(root, body.file)
+        resolve_in_workspace(repo_path, body.file)
     except WorkspacePathError:
         raise HTTPException(status_code=403, detail="path_outside_workspace")
     try:
-        gs.stage(root, body.file, body.staged)
+        gs.stage(repo_path, body.file, body.staged)
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True}
@@ -158,6 +178,7 @@ def git_stage(
 class CommitBody(BaseModel):
     agent_id: str
     message: str
+    repo: str = gs.ROOT_REPO
 
 
 @router.post("/git/commit")
@@ -167,8 +188,8 @@ def git_commit(
 ) -> dict:
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="empty_message")
-    root = _root_for(body.agent_id, auth)
+    repo_path = _repo_path(body.agent_id, auth, body.repo)
     try:
-        return {"sha": gs.commit(root, body.message)}
+        return {"sha": gs.commit(repo_path, body.message)}
     except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))

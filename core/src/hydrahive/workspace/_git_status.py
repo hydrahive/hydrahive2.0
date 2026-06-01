@@ -2,6 +2,8 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+ROOT_REPO = "_root"
+
 
 def _git(root: Path, *args: str) -> str:
     res = subprocess.run(
@@ -15,6 +17,36 @@ def _git(root: Path, *args: str) -> str:
 
 def is_repo(root: Path) -> bool:
     return (root / ".git").exists()
+
+
+def _branch(repo_path: Path) -> str | None:
+    try:
+        return _git(repo_path, "rev-parse", "--abbrev-ref", "HEAD").strip()
+    except RuntimeError:
+        return None
+
+
+def list_repos(root: Path) -> list[dict]:
+    """Repos im Workspace: Wurzel (als `_root`) + direkte Unterordner mit `.git`.
+    Deckt HH2s Multi-Repo-Layout (`workspace/<repo>/.git`) und Legacy-Single-Repo ab."""
+    if not root.exists():
+        return []
+    out: list[dict] = []
+    if (root / ".git").exists():
+        out.append({"name": ROOT_REPO, "branch": _branch(root)})
+    for child in sorted(root.iterdir()):
+        if child.is_dir() and not child.name.startswith(".") and (child / ".git").exists():
+            out.append({"name": child.name, "branch": _branch(child)})
+    return out
+
+
+def resolve_repo(root: Path, repo: str) -> Path | None:
+    """Repo-Name → Pfad. Nur tatsächlich existierende Repos (traversal-sicher,
+    da nur gegen die gescannte Liste gematcht wird)."""
+    for r in list_repos(root):
+        if r["name"] == repo:
+            return root if repo == ROOT_REPO else root / repo
+    return None
 
 
 def status(root: Path) -> dict:
