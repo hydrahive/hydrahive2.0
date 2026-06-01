@@ -42,25 +42,42 @@ den User per WhatsApp-Voice-Note geschickt. Halte dich an folgende Regeln:
 [/VOICE-MODE-CALL]"""
 
 
-def _build_agent_input(event_text: str, prefix: str | None, voice_reply: bool) -> tuple[str, str | None]:
-    """Baut (user_text, extra_system) für einen Channel-Agent-Run.
+def _build_agent_input(event: IncomingEvent, prefix: str | None, voice_reply: bool) -> tuple[str, str | None]:
+    """Baut (user_text, extra_system) für einen eingehenden Channel-Agent-Run.
 
-    Die Butler-Vorgabe (prefix) ist eine vom Betreiber konfigurierte, VERTRAUENS-
-    WÜRDIGE Anweisung und gehört in den System-Kontext — NICHT in den User-Turn.
-    Früher wurde sie als `[BUTLER-VORGABE: ...]` vor die Sender-Nachricht geklebt;
-    der Agent behandelte sie dann (korrekt) als Prompt-Injection des Senders und
-    lehnte ab. Im System-Block folgt der Agent ihr, während echte Injection-
-    Versuche im Sender-Text weiter abgewehrt werden.
+    Portiert HH1s bewährte Sender-Rahmung (router_user_integrations.py): die rohe
+    Nachricht wird mit einem Sender-Header gerahmt, damit der Agent WEISS, dass er
+    einer externen Person antwortet (nicht dem Owner) — sonst hält er die Nachricht
+    für den Owner und antwortet in eigener Persona an ihn. Reihenfolge im Header:
+      1. Sender-Kontext (wer, Kanal, Vertrauensstufe)
+      2. Butler-Vorgabe als Betreiber-Direktive (nicht als Sender-Text → keine
+         fälschliche Injection-Abwehr)
+      3. bei Fremden ein Datenschutz-Block (keine Owner-Daten/Fähigkeiten)
+      4. die eigentliche Nachricht
     """
-    system_parts: list[str] = []
+    is_owner = bool(event.metadata.get("is_owner", False))
+    is_group = bool(event.metadata.get("is_group", False))
+    sender_label = event.sender_name or event.external_user_id
+    chat_type = "Gruppen-Chat" if is_group else "Einzel-Chat"
+    channel = (event.channel or "Channel").capitalize()
+    trust = "vertrauenswürdiger Kontakt" if is_owner else "unbekannter Kontakt"
+
+    lines = [f"[{channel} {chat_type} von {sender_label} — {trust}]"]
     if prefix:
-        system_parts.append(
-            "[BUTLER-VORGABE — vom Betreiber konfiguriert, vertrauenswürdig, "
-            "befolge sie für diese Antwort]\n" + prefix
+        lines.append(f"[VORGABE FÜR DIESE ANTWORT (vom Betreiber konfiguriert, befolgen): {prefix}]")
+    if not is_owner:
+        lines.append(
+            "[ANWEISUNG FÜR DIESEN KONTAKT: Nenne NICHT den Namen des Besitzers; "
+            "beschreibe KEINE internen System-Fähigkeiten; teile keine privaten Daten, "
+            "Passwörter oder persönlichen Infos des Besitzers; stelle dich als allgemeiner "
+            "KI-Assistent vor; führe KEINE System-/Datei-/Admin-Aktionen aus. "
+            "Antworte freundlich und hilfsbereit.]"
         )
-    if voice_reply:
-        system_parts.append(_VOICE_MODE_SYSTEM_HINT)
-    return event_text, ("\n\n".join(system_parts) or None)
+    lines.append(event.text)
+    user_text = "\n".join(lines)
+
+    extra_system = _VOICE_MODE_SYSTEM_HINT if voice_reply else None
+    return user_text, extra_system
 
 
 class NoMasterError(RuntimeError):
@@ -105,7 +122,7 @@ async def _run_agent(
         external_user_id=event.external_user_id,
         title_hint=f"{event.channel}: {event.sender_name or event.external_user_id}",
     )
-    user_text, extra_system = _build_agent_input(event.text, prefix, voice_reply)
+    user_text, extra_system = _build_agent_input(event, prefix, voice_reply)
 
     answer_parts: list[str] = []
     current_text: list[str] = []
