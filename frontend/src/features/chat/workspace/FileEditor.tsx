@@ -3,7 +3,11 @@ import { useTranslation } from "react-i18next"
 import { Save } from "lucide-react"
 import type { FileContent } from "./api"
 
-const Monaco = lazy(() => import("@monaco-editor/react"))
+// Setup (lokaler Loader + Worker) zuerst, dann den Editor — beides im Lazy-Chunk.
+const Monaco = lazy(async () => {
+  await import("./monacoSetup")
+  return import("@monaco-editor/react")
+})
 
 function langFromPath(path: string): string {
   const ext = path.split(".").pop()?.toLowerCase()
