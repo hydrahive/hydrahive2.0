@@ -10,9 +10,23 @@ from hydrahive.settings import settings
 from hydrahive.vms.models import VM
 
 
+def _iso_drive_path(vm: VM) -> Path | None:
+    """ISO-Pfad nur zurückgeben, wenn er real existiert UND unter vms_isos_dir
+    liegt. Defense-in-Depth gegen Path-Traversal in vm.iso_filename (Issue #179):
+    selbst wenn ein roher '../../etc/passwd'-Wert in die DB gelangt, wird hier
+    keine Datei außerhalb der ISO-Library als -drive gemountet."""
+    if not vm.iso_filename:
+        return None
+    isos_dir = settings.vms_isos_dir.resolve()
+    iso_path = (settings.vms_isos_dir / vm.iso_filename).resolve()
+    if not iso_path.is_file() or not iso_path.is_relative_to(isos_dir):
+        return None
+    return iso_path
+
+
 def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
     """argv für qemu-system-x86_64 — VNC-Display = vnc_port - 5900."""
-    iso_path = settings.vms_isos_dir / vm.iso_filename if vm.iso_filename else None
+    iso_path = _iso_drive_path(vm)
     pid_file = settings.vms_pids_dir / f"{vm.vm_id}.pid"
     qmp_socket = settings.vms_pids_dir / f"{vm.vm_id}.qmp"
 
@@ -41,7 +55,7 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
     args += _disk_args(vm)
 
     # Boot-Reihenfolge: ISO > Disk wenn ISO vorhanden, sonst nur Disk
-    if iso_path and iso_path.exists():
+    if iso_path:
         args += [
             "-drive", f"file={iso_path},media=cdrom,readonly=on",
             "-boot", "order=dc,menu=on",  # d=cdrom, c=disk, mit Boot-Menü

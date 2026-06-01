@@ -129,9 +129,12 @@ async def update_vm(
     if req.clear_iso:
         iso_kw["iso_filename"] = None
     elif req.iso_filename is not None:
-        if not resolve_iso(req.iso_filename):
+        iso_safe = resolve_iso(req.iso_filename)
+        if not iso_safe:
             raise coded(status.HTTP_404_NOT_FOUND, "vm_iso_not_found", filename=req.iso_filename)
-        iso_kw["iso_filename"] = req.iso_filename
+        # Sanitisierten Basename speichern, NICHT den Rohwert (Issue #179 —
+        # sonst landet '../../etc/passwd' in der DB und wird als CD-ROM gemountet).
+        iso_kw["iso_filename"] = iso_safe
 
     # Disk-Resize physisch BEVOR DB-Update — wenn das fehlschlägt soll DB konsistent bleiben
     if req.disk_gb is not None and req.disk_gb != vm.disk_gb:
