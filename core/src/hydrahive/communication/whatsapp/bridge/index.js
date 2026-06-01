@@ -1,13 +1,26 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import { connect, disconnect, send, sendAudio, getStatus } from "./lib/sock.js";
 import { logger } from "./lib/log.js";
 
 const PORT = parseInt(process.env.HH_WA_BRIDGE_PORT || "8767", 10);
 const HOST = "127.0.0.1";
+const SECRET = process.env.HH_WA_BRIDGE_SECRET || "";
 
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
+}
+
+// Inbound-Auth (#181): die Loopback-Bindung ist kein Trust-Boundary, weil HH2
+// untrusted Agent-Tools (shell_exec) auf demselben Host ausführt. Jeder Request
+// (außer /healthz) muss das Shared-Secret tragen. Konstant-zeitig, fail-closed.
+function authorized(req) {
+  if (!SECRET) return false;
+  const provided = req.headers["x-hh-bridge-secret"] || "";
+  const a = Buffer.from(provided);
+  const b = Buffer.from(SECRET);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 async function readBody(req) {
@@ -32,6 +45,9 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/healthz") {
       return sendJson(res, 200, { ok: true });
+    }
+    if (!authorized(req)) {
+      return sendJson(res, 401, { error: "unauthorized" });
     }
     if (req.method === "POST" && mConnect) {
       const status = await connect(decodeURIComponent(mConnect[1]));

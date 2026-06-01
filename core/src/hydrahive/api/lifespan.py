@@ -184,7 +184,7 @@ async def lifespan(app: FastAPI):
             secret=wa_secret,
         )
         if await wa_bridge.start():
-            wa_adapter = WhatsAppAdapter(settings.whatsapp_bridge_url)
+            wa_adapter = WhatsAppAdapter(settings.whatsapp_bridge_url, wa_secret)
             register_channel(wa_adapter)
             asyncio.create_task(_whatsapp_auto_reconnect(wa_adapter))
         else:

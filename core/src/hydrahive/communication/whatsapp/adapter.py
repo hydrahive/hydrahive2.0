@@ -14,13 +14,16 @@ class WhatsAppAdapter:
     name = "whatsapp"
     label = "WhatsApp"
 
-    def __init__(self, bridge_url: str):
+    def __init__(self, bridge_url: str, secret: str = ""):
         self._base = bridge_url.rstrip("/")
+        self._secret = secret
         self._client: httpx.AsyncClient | None = None
 
     async def _http(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(timeout=30.0)
+            # Bridge validiert eingehende Requests gegen HH_WA_BRIDGE_SECRET (#181)
+            headers = {"X-HH-Bridge-Secret": self._secret} if self._secret else {}
+            self._client = httpx.AsyncClient(timeout=30.0, headers=headers)
         return self._client
 
     async def status(self, username: str) -> ChannelStatus:
