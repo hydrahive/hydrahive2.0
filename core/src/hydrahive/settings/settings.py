@@ -18,6 +18,7 @@ from hydrahive.settings._infra import (
     _VmsMixin,
     _WebminMixin,
 )
+from hydrahive.settings._mail import _MailMixin
 from hydrahive.settings._paths import _PathsMixin
 from hydrahive.settings._services import (
     _AgentLinkMixin,
@@ -31,6 +32,7 @@ class Settings(
     _ServerMixin,
     _AgentLinkMixin,
     _CommunicationMixin,
+    _MailMixin,
     _SambaMixin,
     _VmsMixin,
     _ExtensionsMixin,

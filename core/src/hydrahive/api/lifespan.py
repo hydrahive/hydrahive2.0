@@ -134,6 +134,13 @@ async def lifespan(app: FastAPI):
         container_reconciler.run_loop(container_reconciler_stop)
     )
 
+    mail_stop: asyncio.Event | None = None
+    mail_task: asyncio.Task[None] | None = None
+    if settings.mail_enabled:
+        from hydrahive.communication.mail import watcher as mail_watcher
+        mail_stop = asyncio.Event()
+        mail_task = asyncio.create_task(mail_watcher.run_loop(mail_stop))
+
     # AgentLink-WS-Listener: persistent connection, subscribed auf agent:{my_id},
     # routet handoff_received-Events via Future-Map an wartende ask_agent-Calls.
     if settings.agentlink_url:
@@ -212,8 +219,13 @@ async def lifespan(app: FastAPI):
     zahnfee_stop.set()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
+    if mail_stop is not None:
+        mail_stop.set()
     await agentlink_client.stop_listener()
-    for task in (zahnfee_task, vm_reconciler_task, container_reconciler_task):
+    shutdown_tasks = [zahnfee_task, vm_reconciler_task, container_reconciler_task]
+    if mail_task is not None:
+        shutdown_tasks.append(mail_task)
+    for task in shutdown_tasks:
         try:
             await asyncio.wait_for(task, timeout=5.0)
         except (asyncio.TimeoutError, asyncio.CancelledError):
