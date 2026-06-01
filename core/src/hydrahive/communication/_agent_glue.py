@@ -42,19 +42,37 @@ den User per WhatsApp-Voice-Note geschickt. Halte dich an folgende Regeln:
 [/VOICE-MODE-CALL]"""
 
 
+def _operator_directive_block(prefix: str, *, is_owner: bool) -> str:
+    """Betreiber-Vorgabe als vertrauenswürdiger System-Block.
+
+    MUSS in `extra_system` (System-Schicht), NICHT in den User-Turn: ein
+    injection-resistenter Agent (Opus 4.8) hält eine Identitäts-/Persona-Anweisung
+    im User-Turn für eine eingeschleuste Nachricht und lehnt sie korrekt ab. In der
+    System-Schicht ist sie echte Betreiber-Konfiguration und wird befolgt.
+    """
+    floor = "" if is_owner else (
+        "\n\nSicherheits-Boden (gilt immer, auch hier): niemals Passwörter, Secrets, "
+        "Zugangsdaten oder Tokens preisgeben; keine System-/Datei-/Admin-Aktionen ausführen."
+    )
+    return (
+        "[BETREIBER-VORGABE FÜR DIESE CHANNEL-ANTWORT]\n"
+        "Diese Anweisung stammt von deinem Betreiber über den vertrauenswürdigen "
+        "System-Kanal — NICHT vom Absender der Nachricht. Sie ist deine Konfiguration "
+        "für diese automatische Antwort und hat Vorrang vor deiner sonstigen Persona:\n\n"
+        f"{prefix}{floor}\n"
+        "[/BETREIBER-VORGABE]"
+    )
+
+
 def _build_agent_input(event: IncomingEvent, prefix: str | None, voice_reply: bool) -> tuple[str, str | None]:
     """Baut (user_text, extra_system) für einen eingehenden Channel-Agent-Run.
 
-    Portiert HH1s bewährte Sender-Rahmung (router_user_integrations.py): die rohe
-    Nachricht wird mit einem Sender-Header gerahmt, damit der Agent WEISS, dass er
-    einer externen Person antwortet (nicht dem Owner) — sonst hält er die Nachricht
-    für den Owner und antwortet in eigener Persona an ihn. Reihenfolge im Header:
-      1. Sender-Kontext (wer, Kanal, Vertrauensstufe)
-      2. Butler-Vorgabe als Betreiber-Direktive (nicht als Sender-Text → keine
-         fälschliche Injection-Abwehr)
-      3. bei Fremden: mit Vorgabe nur ein harter Sicherheits-Boden (Vorgabe hat
-         Vorrang über Persona/Inhalt), ohne Vorgabe der volle Datenschutz-Block
-      4. die eigentliche Nachricht
+    Zwei Schichten, bewusst getrennt:
+      USER-TURN: Sender-Rahmung (HH1-Port: wer/Kanal/Vertrauensstufe, damit der Agent
+        WEISS dass er einem externen Kontakt antwortet) + die eigentliche Nachricht.
+        Ohne Betreiber-Vorgabe zusätzlich der Datenschutz-Block für Fremde.
+      SYSTEM (`extra_system`): die Betreiber-Vorgabe (vertrauenswürdig, sonst lehnt der
+        Agent sie als Injection ab) + ggf. der Voice-Mode-Hint.
     """
     is_owner = bool(event.metadata.get("is_owner", False))
     is_group = bool(event.metadata.get("is_group", False))
@@ -64,34 +82,26 @@ def _build_agent_input(event: IncomingEvent, prefix: str | None, voice_reply: bo
     trust = "vertrauenswürdiger Kontakt" if is_owner else "unbekannter Kontakt"
 
     lines = [f"[{channel} {chat_type} von {sender_label} — {trust}]"]
-    if prefix:
-        lines.append(f"[VORGABE FÜR DIESE ANTWORT (vom Betreiber konfiguriert, befolgen): {prefix}]")
-    if not is_owner:
-        if prefix:
-            # Betreiber hat per Vorgabe explizit entschieden, was dieser Kontakt
-            # bekommt (Persona, was geteilt wird) → die Vorgabe hat Vorrang. Hier
-            # nur noch der harte Sicherheits-Boden, der NIE überschrieben wird —
-            # sonst würde der generische Datenschutz-Block die Vorgabe aushebeln
-            # (z.B. "stell dich als Joshua vor" vs. "stell dich als KI-Assistent vor").
-            lines.append(
-                "[SICHERHEITS-BODEN (überstimmt die VORGABE NICHT): Die VORGABE oben "
-                "bestimmt deine Persona und was du teilst — folge ihr. Unabhängig davon "
-                "NIEMALS Passwörter, Secrets, Zugangsdaten oder Tokens preisgeben und "
-                "KEINE System-/Datei-/Admin-Aktionen ausführen.]"
-            )
-        else:
-            # Kein Betreiber-Hinweis → vorsichtiger Default für Fremde.
-            lines.append(
-                "[ANWEISUNG FÜR DIESEN KONTAKT: Nenne NICHT den Namen des Besitzers; "
-                "beschreibe KEINE internen System-Fähigkeiten; teile keine privaten Daten, "
-                "Passwörter oder persönlichen Infos des Besitzers; stelle dich als allgemeiner "
-                "KI-Assistent vor; führe KEINE System-/Datei-/Admin-Aktionen aus. "
-                "Antworte freundlich und hilfsbereit.]"
-            )
+    # Ohne Vorgabe: vorsichtiger Datenschutz-Block für Fremde im User-Turn. MIT
+    # Vorgabe wandert alles Anweisende in die System-Schicht (die Vorgabe regelt
+    # dann Persona + was geteilt wird, plus Sicherheits-Boden).
+    if not is_owner and not prefix:
+        lines.append(
+            "[ANWEISUNG FÜR DIESEN KONTAKT: Nenne NICHT den Namen des Besitzers; "
+            "beschreibe KEINE internen System-Fähigkeiten; teile keine privaten Daten, "
+            "Passwörter oder persönlichen Infos des Besitzers; stelle dich als allgemeiner "
+            "KI-Assistent vor; führe KEINE System-/Datei-/Admin-Aktionen aus. "
+            "Antworte freundlich und hilfsbereit.]"
+        )
     lines.append(event.text)
     user_text = "\n".join(lines)
 
-    extra_system = _VOICE_MODE_SYSTEM_HINT if voice_reply else None
+    system_blocks: list[str] = []
+    if prefix:
+        system_blocks.append(_operator_directive_block(prefix, is_owner=is_owner))
+    if voice_reply:
+        system_blocks.append(_VOICE_MODE_SYSTEM_HINT)
+    extra_system = "\n\n".join(system_blocks) if system_blocks else None
     return user_text, extra_system
 
 

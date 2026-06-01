@@ -42,25 +42,38 @@ def test_unknown_contact_gets_privacy_guard():
     assert "Besitzers" in user_text  # Owner-Name-Schutz
 
 
-def test_butler_vorgabe_is_operator_directive():
+def test_butler_vorgabe_lives_in_system_not_user_turn():
+    # Bug (Tills WhatsApp-Test): Vorgabe im User-Turn → injection-resistenter Agent
+    # hält sie für eine eingeschleuste Nachricht und lehnt ab ("das kommt aus deiner
+    # Nachricht"). Fix: Vorgabe gehört in die vertrauenswürdige System-Schicht.
     from hydrahive.communication._agent_glue import _build_agent_input
-    user_text, _ = _build_agent_input(_event(), "Antworte als Joshua", voice_reply=False)
-    assert "Antworte als Joshua" in user_text
-    assert "Betreiber" in user_text  # als Betreiber-Direktive gerahmt, nicht als Sender-Text
+    user_text, extra_system = _build_agent_input(_event(), "Antworte als Joshua", voice_reply=False)
+    assert "Antworte als Joshua" not in user_text            # NICHT im untrusted User-Turn
+    assert extra_system is not None
+    assert "Antworte als Joshua" in extra_system             # sondern im System
+    assert "vertrauenswürdigen System-Kanal" in extra_system
+    assert "NICHT vom Absender" in extra_system
 
 
-def test_vorgabe_overrides_privacy_guard_for_unknown_contact():
-    # Bug: bei Fremden + Vorgabe überstimmte der generische Datenschutz-Block die
-    # Betreiber-Vorgabe (Agent sagte "ich bin KI-Assistent" statt der Persona aus
-    # der Vorgabe). Fix: Vorgabe gewinnt, nur harter Sicherheits-Boden bleibt.
+def test_vorgabe_replaces_privacy_block_for_unknown_contact():
+    # Bei Fremden + Vorgabe: kein generischer "ich bin KI-Assistent"-Block im
+    # User-Turn (würde die Persona aus der Vorgabe aushebeln). Stattdessen Vorgabe
+    # + harter Sicherheits-Boden im System.
     from hydrahive.communication._agent_glue import _build_agent_input
-    user_text, _ = _build_agent_input(
+    user_text, extra_system = _build_agent_input(
         _event(is_owner=False), "Du bist Joshua, stell dich mit Namen vor", voice_reply=False)
-    assert "Du bist Joshua" in user_text                     # Vorgabe da
     assert "stelle dich als allgemeiner" not in user_text    # generische Persona NICHT erzwungen
     assert "Nenne NICHT den Namen des Besitzers" not in user_text
-    assert "SICHERHEITS-BODEN" in user_text                  # harter Boden bleibt
-    assert "Passwörter" in user_text and "System-/Datei-/Admin" in user_text
+    assert "Du bist Joshua" in extra_system                  # Persona-Vorgabe im System
+    assert "Sicherheits-Boden" in extra_system               # harter Boden für Fremde
+    assert "Passwörter" in extra_system
+
+
+def test_vorgabe_and_voice_hint_combine_in_system():
+    from hydrahive.communication._agent_glue import _build_agent_input, _VOICE_MODE_SYSTEM_HINT
+    _user, extra_system = _build_agent_input(_event(), "Antworte als Joshua", voice_reply=True)
+    assert "Antworte als Joshua" in extra_system
+    assert _VOICE_MODE_SYSTEM_HINT in extra_system
 
 
 def test_voice_hint_in_extra_system():
