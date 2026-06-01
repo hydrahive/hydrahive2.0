@@ -9,10 +9,11 @@ interface EmbedStatus {
   backfill_running: boolean
 }
 
-export function EmbedStatusBar({ status, onBackfill, onReset }: {
+export function EmbedStatusBar({ status, onBackfill, onReset, onRechunk }: {
   status: EmbedStatus
   onBackfill: () => void
   onReset: () => void
+  onRechunk: () => void
 }) {
   const { t } = useTranslation("datamining")
   const hasEmbedModel = !!status.model
@@ -45,6 +46,11 @@ export function EmbedStatusBar({ status, onBackfill, onReset }: {
           backfill
         </button>
       ) : null}
+      {hasEmbedModel && (
+        <button onClick={onRechunk} className="text-zinc-600 hover:text-amber-300 shrink-0 transition-colors" title="Zu lange Events neu chunken">
+          ✂
+        </button>
+      )}
       {hasEmbedModel && (
         <button onClick={onReset} className="text-zinc-600 hover:text-zinc-400 shrink-0 transition-colors" title="Alle Embeddings zurücksetzen">
           ↺

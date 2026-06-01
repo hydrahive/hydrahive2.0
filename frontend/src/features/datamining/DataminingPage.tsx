@@ -159,6 +159,11 @@ export function DataminingPage() {
               .then(() => dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {}))
               .catch(() => {})
           }
+          onRechunk={() =>
+            dataminingApi.triggerRechunk()
+              .then(() => dataminingApi.embedStatus().then(setEmbedStatus).catch(() => {}))
+              .catch(() => {})
+          }
         />
       )}
 

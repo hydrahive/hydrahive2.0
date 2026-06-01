@@ -58,6 +58,9 @@ export const dataminingApi = {
     return api.post<{ ok: boolean; reset: number }>(`/datamining/embed/reset${qs}`, {})
   },
 
+  triggerRechunk: () =>
+    api.post<{ ok: boolean }>("/datamining/embed/rechunk", {}),
+
   startExport: () =>
     api.post<{ ok: boolean; reason?: string }>("/datamining/export", {}),
 
