@@ -31,3 +31,19 @@ def test_tree_rejects_foreign_agent(client, admin_headers, auth_headers):
     agent = _agent(client, admin_headers)
     res = client.get(f"/api/workspace/tree?agent_id={agent['id']}&path=", headers=auth_headers)
     assert res.status_code == 404
+
+
+def test_raw_serves_file(client, admin_headers):
+    agent = _agent(client, admin_headers)
+    aid = agent["id"]
+    client.put("/api/workspace/file", headers=admin_headers,
+               json={"agent_id": aid, "path": "hello.txt", "content": "raw-bytes"})
+    res = client.get(f"/api/workspace/raw?agent_id={aid}&path=hello.txt", headers=admin_headers)
+    assert res.status_code == 200, res.text
+    assert res.content == b"raw-bytes"
+
+
+def test_raw_rejects_traversal(client, admin_headers):
+    agent = _agent(client, admin_headers)
+    res = client.get(f"/api/workspace/raw?agent_id={agent['id']}&path=../../etc/passwd", headers=admin_headers)
+    assert res.status_code == 403
