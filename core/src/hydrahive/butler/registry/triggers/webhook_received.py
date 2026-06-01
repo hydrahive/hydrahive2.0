@@ -16,7 +16,8 @@ def _matches(params: dict, event: TriggerEvent) -> bool:
 register_trigger(TriggerSpec(
     subtype="webhook_received",
     label="Webhook eingegangen",
-    description="HTTP-POST an /api/webhooks/butler/<hook_id> (Pro-Hook-Secret)",
+    description="Feuert bei einem Projekt-Webhook (POST /api/butler/webhooks/project/{id}). "
+                "Hook-ID matcht den Event-Channel (z.B. 'project:<id>'); leer = jeder Webhook.",
     params=[
         ParamSchema(
             key="hook_id", label="Hook-ID", kind="text",
