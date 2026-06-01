@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { FileTree } from "./FileTree"
+import { GitPanel } from "./GitPanel"
 import { classifyFile, type FileKind } from "./fileType"
 
 type Tab = "files" | "git"
@@ -33,7 +34,7 @@ export function WorkspacePanel({ agentId, onOpenFile }: Props) {
             <FileTree agentId={agentId} path="" onOpen={(p) => onOpenFile(p, classifyFile(p))} />
           </div>
         )}
-        {tab === "git" && <div className="p-2 text-[11px] text-zinc-500">{t("no_repo")}</div>}
+        {tab === "git" && <GitPanel agentId={agentId} />}
       </div>
     </div>
   )

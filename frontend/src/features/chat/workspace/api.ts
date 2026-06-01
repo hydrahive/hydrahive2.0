@@ -25,3 +25,17 @@ export const workspaceApi = {
     return URL.createObjectURL(blob)
   },
 }
+
+export interface GitFile { status: string; path: string; staged: boolean }
+export interface GitStatus { is_repo: boolean; branch: string | null; files: GitFile[] }
+
+export const gitApi = {
+  status: (agentId: string) =>
+    api.get<GitStatus>(`/workspace/git/status?agent_id=${agentId}`),
+  diff: (agentId: string, file: string) =>
+    api.get<{ diff: string }>(`/workspace/git/diff?agent_id=${agentId}&file=${encodeURIComponent(file)}`),
+  stage: (agentId: string, file: string, staged: boolean) =>
+    api.post<{ ok: boolean }>(`/workspace/git/stage`, { agent_id: agentId, file, staged }),
+  commit: (agentId: string, message: string) =>
+    api.post<{ sha: string }>(`/workspace/git/commit`, { agent_id: agentId, message }),
+}
