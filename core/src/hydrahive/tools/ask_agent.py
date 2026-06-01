@@ -185,7 +185,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not sent.id:
         return ToolResult.fail("AgentLink lieferte keinen state.id zurück")
 
-    fut = register_pending(sent.id)
+    # Nur ein Antwort-State vom beauftragten Ziel darf die Future lösen (#184).
+    fut = register_pending(sent.id, routing_target)
     try:
         response = await asyncio.wait_for(fut, timeout=settings.agentlink_handoff_timeout)
     except asyncio.TimeoutError:

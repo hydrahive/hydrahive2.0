@@ -31,7 +31,10 @@ __all__ = [
     "OnEvent",
 ]
 
-_PENDING_FUTURES: dict[str, asyncio.Future] = {}
+# Pending ask_agent-Futures: state-id → (Future, erwarteter Absender).
+# Der erwartete Absender ist das ursprüngliche handoff.to_agent; nur ein
+# Antwort-State von genau diesem Agenten darf die Future auflösen (#184).
+_PENDING_FUTURES: dict[str, tuple[asyncio.Future, str]] = {}
 
 
 def _auth_headers() -> dict[str, str]:
@@ -40,21 +43,42 @@ def _auth_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"} if token else {}
 
 
-def register_pending(reply_to_state_id: str) -> asyncio.Future:
+def register_pending(reply_to_state_id: str, expected_sender: str = "") -> asyncio.Future:
     fut: asyncio.Future = asyncio.get_event_loop().create_future()
-    _PENDING_FUTURES[reply_to_state_id] = fut
+    _PENDING_FUTURES[reply_to_state_id] = (fut, expected_sender)
     return fut
 
 
 def cancel_pending(reply_to_state_id: str) -> None:
-    fut = _PENDING_FUTURES.pop(reply_to_state_id, None)
-    if fut and not fut.done():
-        fut.cancel()
+    entry = _PENDING_FUTURES.pop(reply_to_state_id, None)
+    if entry and not entry[0].done():
+        entry[0].cancel()
+
+
+def _sender_matches(expected: str, response: State) -> bool:
+    """Leerer expected ⇒ keine Prüfung (Rückwärtskompatibilität). Sonst muss der
+    Absender exakt oder als Basis-ID (vor '/Name'-Suffix) übereinstimmen."""
+    if not expected:
+        return True
+    sender = response.agent_id or ""
+    return expected == sender or expected == sender.split("/", 1)[0]
 
 
 def resolve_pending(reply_to_state_id: str, response_state: State) -> bool:
-    fut = _PENDING_FUTURES.pop(reply_to_state_id, None)
-    if fut and not fut.done():
+    entry = _PENDING_FUTURES.get(reply_to_state_id)
+    if not entry:
+        return False
+    fut, expected = entry
+    if not _sender_matches(expected, response_state):
+        # Gefälschter/fremder Absender: Future NICHT auflösen und NICHT entfernen,
+        # damit die echte Antwort sie später noch lösen kann (kein Spoof-DoS).
+        logger.warning(
+            "AgentLink: Antwort-State auf %s von unerwartetem Absender %r (erwartet %r) — verworfen",
+            reply_to_state_id, response_state.agent_id, expected,
+        )
+        return False
+    _PENDING_FUTURES.pop(reply_to_state_id, None)
+    if not fut.done():
         fut.set_result(response_state)
         return True
     return False
