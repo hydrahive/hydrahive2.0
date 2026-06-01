@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Disc, Download, Plus, RefreshCw } from "lucide-react"
 import type { VM } from "./types"
@@ -14,6 +15,7 @@ import { VMLogsPanel } from "./VMLogsPanel"
 const POLL_MS = 4000
 
 export function VMsPage() {
+  const { t } = useTranslation("vms")
   const [vms, setVms] = useState<VM[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,34 +56,34 @@ export function VMsPage() {
     <div className="space-y-6 max-w-7xl">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">Virtual Machines</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">QEMU/KVM direkt — bridged Networking, VNC im Browser, Snapshots.</p>
+          <h1 className="text-xl font-bold text-white">{t("title")}</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowImports(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%]">
-            <Download size={12} /> Disk-Import
+            <Download size={12} /> {t("imports.button")}
           </button>
           <button onClick={() => setShowISOs(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%]">
-            <Disc size={12} /> ISO-Library
+            <Disc size={12} /> {t("iso.title")}
           </button>
           <button onClick={refresh}
-            className="p-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-400 hover:text-zinc-200" title="Aktualisieren">
+            className="p-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-400 hover:text-zinc-200" title={t("refresh")}>
             <RefreshCw size={13} />
           </button>
           <button onClick={() => setShowCreate(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-medium hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-violet-900/20">
-            <Plus size={13} /> Neue VM
+            <Plus size={13} /> {t("new_vm")}
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard label="VMs gesamt" value={summary.total} />
-        <SummaryCard label="Laufend" value={summary.running} highlight />
-        <SummaryCard label="vCPU belegt" value={summary.cpu} />
-        <SummaryCard label="RAM belegt" value={`${summary.ramGb.toFixed(1)} GB`} />
+        <SummaryCard label={t("summary.total")} value={summary.total} />
+        <SummaryCard label={t("summary.running")} value={summary.running} highlight />
+        <SummaryCard label={t("summary.vcpu")} value={summary.cpu} />
+        <SummaryCard label={t("summary.ram")} value={`${summary.ramGb.toFixed(1)} GB`} />
       </div>
 
       {error && (
@@ -89,11 +91,11 @@ export function VMsPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Lade…</p>
+        <p className="text-sm text-zinc-500">{t("loading")}</p>
       ) : vms.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/[10%] bg-white/[2%] p-10 text-center">
-          <p className="text-sm text-zinc-400">Noch keine VMs. Klicke <span className="text-violet-300">„Neue VM"</span> um anzufangen.</p>
-          <p className="text-xs text-zinc-600 mt-2">Tipp: erst eine ISO über die ISO-Library hochladen, dann VM mit dieser ISO erstellen.</p>
+          <p className="text-sm text-zinc-400">{t("empty")} <span className="text-violet-300">{t("empty_cta")}</span> {t("empty_suffix")}</p>
+          <p className="text-xs text-zinc-600 mt-2">{t("tip")} {t("tip_iso")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

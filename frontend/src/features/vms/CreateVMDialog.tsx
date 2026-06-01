@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 import type { DiskInterface, ImportJob, ISO, MachineType, NetworkDevice, NetworkMode, VMCreateInput } from "./types"
@@ -13,6 +14,7 @@ interface Props {
 type BootSource = "iso" | "import" | "blank"
 
 export function CreateVMDialog({ onClose, onCreated }: Props) {
+  const { t } = useTranslation("vms")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [cpu, setCpu] = useState(2)
@@ -38,8 +40,8 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
   const validName = /^[a-zA-Z][a-zA-Z0-9-]{0,31}$/.test(name)
 
   async function submit() {
-    if (!validName) { setError("Name: 1–32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"); return }
-    if (bootSrc === "import" && !importJobId) { setError("Bitte einen Import-Job auswählen"); return }
+    if (!validName) { setError(t("create.error_name_invalid")); return }
+    if (bootSrc === "import" && !importJobId) { setError(t("create.field_import_job")); return }
     setBusy(true); setError(null)
     try {
       const input: VMCreateInput & { import_job_id?: string } = {
@@ -63,31 +65,31 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
     <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl mx-4 rounded-2xl border border-white/[8%] bg-zinc-900 shadow-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[6%]">
-          <h2 className="text-lg font-bold text-white">Neue VM erstellen</h2>
+          <h2 className="text-lg font-bold text-white">{t("create.title")}</h2>
           <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"><X size={16} /></button>
         </div>
         <div className="overflow-y-auto px-5 py-4 space-y-5">
-          <Field label="Name" hint="1–32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -">
+          <Field label={t("create.field_name")} hint={t("create.field_name_hint")}>
             <input value={name} onChange={(e) => setName(e.target.value)}
               placeholder="z.B. metin2-prod"
               className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none" />
           </Field>
-          <Field label="Beschreibung (optional)">
+          <Field label={t("create.field_desc")}>
             <input value={description} onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none" />
           </Field>
-          <Field label="Boot-Quelle">
+          <Field label={t("create.field_boot_src")}>
             <div className="grid grid-cols-3 gap-2">
               <RadioCard active={bootSrc === "iso"} onClick={() => setBootSrc("iso")}
-                title="Aus ISO booten" desc="Neue Disk + ISO als Boot-Medium" />
+                title={t("create.boot_iso_title")} desc={t("create.boot_iso_desc")} />
               <RadioCard active={bootSrc === "import"} onClick={() => setBootSrc("import")}
-                title="Importierte Disk" desc="qcow2 aus Import-Job übernehmen" />
+                title={t("create.boot_import_title")} desc={t("create.boot_import_desc")} />
               <RadioCard active={bootSrc === "blank"} onClick={() => setBootSrc("blank")}
-                title="Leere Disk" desc="Boot-loop bis Setup nachgereicht wird" />
+                title={t("create.boot_blank_title")} desc={t("create.boot_blank_desc")} />
             </div>
           </Field>
           {bootSrc === "iso" && (
-            <Field label="ISO auswählen">
+            <Field label={t("create.field_iso")}>
               <select value={iso} onChange={(e) => setIso(e.target.value)}
                 className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none">
                 <option value="">— Keine —</option>
@@ -95,11 +97,11 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
                   <option key={i.filename} value={i.filename}>{i.filename} ({formatBytes(i.size_bytes)})</option>
                 ))}
               </select>
-              {isos.length === 0 && <p className="text-[11px] text-zinc-500 mt-1">Keine ISOs vorhanden — erst hochladen.</p>}
+              {isos.length === 0 && <p className="text-[11px] text-zinc-500 mt-1">{t("create.no_isos")}</p>}
             </Field>
           )}
           {bootSrc === "import" && (
-            <Field label="Import-Job auswählen" hint="qcow2 wird in die VM verschoben, der Job verschwindet danach.">
+            <Field label={t("create.field_import_job")} hint={t("create.field_import_hint")}>
               <select value={importJobId} onChange={(e) => setImportJobId(e.target.value)}
                 className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none">
                 <option value="">— Auswählen —</option>
@@ -108,7 +110,7 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
                   return <option key={j.job_id} value={j.job_id}>{src} ({formatBytes(j.bytes_total)})</option>
                 })}
               </select>
-              {imports.length === 0 && <p className="text-[11px] text-zinc-500 mt-1">Keine fertigen Import-Jobs — erst Disk-Image hochladen oder importieren.</p>}
+              {imports.length === 0 && <p className="text-[11px] text-zinc-500 mt-1">{t("imports.empty")}</p>}
             </Field>
           )}
           <div className="grid grid-cols-3 gap-3">
@@ -117,56 +119,54 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
             <Slider label="Disk" value={diskGb} min={5} max={500} step={5} onChange={setDiskGb} suffix={`${diskGb} GB`}
               disabled={bootSrc === "import"} />
           </div>
-          {bootSrc === "import" && <p className="text-[11px] text-zinc-500 -mt-3">Disk-Größe kommt aus der importierten Datei.</p>}
-          <Field label="Netzwerk">
+          {bootSrc === "import" && <p className="text-[11px] text-zinc-500 -mt-3">{t("create.disk_size_from_import")}</p>}
+          <Field label={t("create.field_network")}>
             <div className="grid grid-cols-2 gap-2">
               <RadioCard active={network === "bridged"} onClick={() => setNetwork("bridged")}
-                title="Bridged (br0)" desc="VM bekommt DHCP-IP aus dem LAN" />
+                title={t("create.net_bridged_title")} desc={t("create.net_bridged_desc")} />
               <RadioCard active={network === "isolated"} onClick={() => setNetwork("isolated")}
-                title="Isoliert" desc="Kein Netzwerk-Zugang" />
+                title={t("create.net_isolated_title")} desc={t("create.net_isolated_desc")} />
             </div>
           </Field>
           <Field
-            label="Disk-Interface"
-            hint={bootSrc === "import"
-              ? "Bei importierten qcow2 aus VirtualBox/HH1/etc. meist 'sata' nötig — Bootloader haben oft keine virtio-Treiber."
-              : "virtio = schnellste Performance unter KVM. sata wenn das Gast-OS keine virtio-Treiber hat (z.B. Windows ohne virtio-win)."}>
+            label={t("create.field_disk_interface")}
+            hint={bootSrc === "import" ? t("create.disk_hint_import") : t("create.disk_hint_iso")}>
             <div className="grid grid-cols-3 gap-2">
               <RadioCard active={diskInterface === "virtio"} onClick={() => setDiskInterface("virtio")}
-                title="virtio" desc="Schnell, Default" />
+                title={t("create.disk_virtio_title")} desc={t("create.disk_virtio_desc")} />
               <RadioCard active={diskInterface === "sata"} onClick={() => setDiskInterface("sata")}
-                title="sata" desc="Kompatibel, importiert" />
+                title="sata" desc={t("create.disk_sata_desc")} />
               <RadioCard active={diskInterface === "ide"} onClick={() => setDiskInterface("ide")}
-                title="ide" desc="Legacy, Notnagel" />
+                title="ide" desc={t("create.disk_ide_desc")} />
             </div>
           </Field>
           <Field
-            label="Machine-Type"
-            hint="q35 = modernes ICH9-Chipset (Default). pc = i440FX, kompatibel mit FreeBSD-ZFS-Boot, Windows XP, alte Linux, VirtualBox-Imports.">
+            label={t("create.field_machine_type")}
+            hint={t("create.machine_hint")}>
             <div className="grid grid-cols-2 gap-2">
               <RadioCard active={machineType === "q35"} onClick={() => setMachineType("q35")}
-                title="q35" desc="Modern, Default" />
+                title="q35" desc={t("create.machine_q35_desc")} />
               <RadioCard active={machineType === "pc"} onClick={() => setMachineType("pc")}
-                title="pc (i440FX)" desc="Kompatibel, FreeBSD/XP/alt" />
+                title="pc (i440FX)" desc={t("create.machine_pc_desc")} />
             </div>
           </Field>
           <Field
-            label="Network-Device"
-            hint="virtio-net-pci = schnell (Default). e1000 = Intel-NIC, in fast jedem Gast-OS unterstützt — für Imports ohne virtio-Treiber.">
+            label={t("create.field_network_device")}
+            hint={t("create.netdev_hint")}>
             <div className="grid grid-cols-2 gap-2">
               <RadioCard active={networkDevice === "virtio-net-pci"} onClick={() => setNetworkDevice("virtio-net-pci")}
-                title="virtio-net-pci" desc="Schnell, Default" />
+                title="virtio-net-pci" desc={t("create.netdev_virtio_desc")} />
               <RadioCard active={networkDevice === "e1000"} onClick={() => setNetworkDevice("e1000")}
-                title="e1000" desc="Intel-Treiber, kompatibel" />
+                title="e1000" desc={t("create.netdev_e1000_desc")} />
             </div>
           </Field>
           {error && <div className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">{error}</div>}
         </div>
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-white/[6%]">
-          <button onClick={onClose} disabled={busy} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">Abbrechen</button>
+          <button onClick={onClose} disabled={busy} className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">{t("create.cancel")}</button>
           <button onClick={submit} disabled={busy || !validName}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40">
-            {busy ? "Erstelle…" : "VM erstellen"}
+            {busy ? t("create.submitting") : t("create.submit")}
           </button>
         </div>
       </div>

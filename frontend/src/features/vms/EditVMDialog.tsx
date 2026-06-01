@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { Loader2, Save, X } from "lucide-react"
 import type { DiskInterface, ISO, MachineType, NetworkDevice, VM } from "./types"
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function EditVMDialog({ vm, onClose, onSaved }: Props) {
+  const { t } = useTranslation("vms")
   const editable = vm.actual_state === "stopped" || vm.actual_state === "created" || vm.actual_state === "error"
 
   const [name, setName] = useState(vm.name)
@@ -42,7 +44,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
     networkDevice !== vm.network_device
 
   async function submit() {
-    if (!validName) { setError("Name: 1-32 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"); return }
+    if (!validName) { setError(t("edit.error_name_invalid")); return }
     if (diskGb < vm.disk_gb) {
       setError(`Disk-Verkleinerung nicht unterstützt (aktuell ${vm.disk_gb} GB).`)
       return
@@ -65,7 +67,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
       await vmsApi.update(vm.vm_id, patch)
       onSaved()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Fehler")
+      setError(e instanceof Error ? e.message : t("edit.error"))
     } finally { setBusy(false) }
   }
 
@@ -87,21 +89,21 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
         )}
 
         <div className="space-y-2">
-          <Field label="Name">
+          <Field label={t("edit.field_name")}>
             <input value={name} onChange={(e) => setName(e.target.value)} disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
           </Field>
-          <Field label="Beschreibung">
+          <Field label={t("edit.field_desc")}>
             <input value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="CPU-Kerne">
+            <Field label={t("edit.field_cpu")}>
               <input type="number" min={1} max={64} value={cpu}
                 onChange={(e) => setCpu(parseInt(e.target.value) || 1)} disabled={!editable}
                 className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
             </Field>
-            <Field label="RAM (MB)">
+            <Field label={t("edit.field_ram")}>
               <input type="number" min={128} max={131072} step={128} value={ramMb}
                 onChange={(e) => setRamMb(parseInt(e.target.value) || 128)} disabled={!editable}
                 className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
@@ -116,7 +118,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
               (<code className="font-mono">growpart /dev/sda 1 && resize2fs /dev/sda1</code>).
             </p>
           </Field>
-          <Field label="Boot-ISO (leer = keine ISO eingelegt)">
+          <Field label={t("edit.field_boot_iso")}>
             <select value={iso} onChange={(e) => setIso(e.target.value)} disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50">
               <option value="">— keine ISO —</option>
@@ -126,20 +128,20 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
               )}
             </select>
           </Field>
-          <Field label="Disk-Interface">
+          <Field label={t("edit.field_disk_interface")}>
             <select value={diskInterface}
               onChange={(e) => setDiskInterface(e.target.value as DiskInterface)}
               disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50">
-              <option value="virtio">virtio (schnell, Default)</option>
-              <option value="sata">sata (kompatibel, für importierte Images)</option>
-              <option value="ide">ide (Legacy)</option>
+              <option value="virtio">{t("edit.disk_virtio_label")}</option>
+              <option value="sata">{t("edit.disk_sata_label")}</option>
+              <option value="ide">{t("edit.disk_ide_label")}</option>
             </select>
             <p className="text-[10px] text-zinc-600 mt-0.5">
               Bei Boot-Problemen mit importierten qcow2 (HH1/VirtualBox/etc.) auf <code className="font-mono">sata</code> umstellen — VM stoppen, hier ändern, wieder starten.
             </p>
           </Field>
-          <Field label="Machine-Type">
+          <Field label={t("edit.field_machine_type")}>
             <select value={machineType}
               onChange={(e) => setMachineType(e.target.value as MachineType)}
               disabled={!editable}
@@ -151,7 +153,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
               Bei <code className="font-mono">cannot read MOS</code> (FreeBSD-ZFS) oder Boot-Hängern alter Gäste auf <code className="font-mono">pc</code> umstellen.
             </p>
           </Field>
-          <Field label="Network-Device">
+          <Field label={t("edit.field_network_device")}>
             <select value={networkDevice}
               onChange={(e) => setNetworkDevice(e.target.value as NetworkDevice)}
               disabled={!editable}

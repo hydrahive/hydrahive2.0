@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { Disc, Trash2, Upload } from "lucide-react"
 import type { ISO } from "./types"
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function ISOLibraryPanel({ onClose }: Props) {
+  const { t } = useTranslation("vms")
   const [isos, setIsos] = useState<ISO[]>([])
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +36,7 @@ export function ISOLibraryPanel({ onClose }: Props) {
   }
 
   async function handleDelete(filename: string) {
-    if (!confirm(`ISO "${filename}" löschen?`)) return
+    if (!confirm(`ISO "${filename}" ${t("actions.delete_title")}?`)) return
     try { await vmsApi.isoDelete(filename); await refresh() }
     catch (e) { setError(e instanceof Error ? e.message : String(e)) }
   }
@@ -44,15 +46,15 @@ export function ISOLibraryPanel({ onClose }: Props) {
       <div className="flex items-center justify-between px-5 py-4 border-b border-white/[6%]">
         <div className="flex items-center gap-2">
           <Disc size={18} className="text-violet-400" />
-          <h2 className="text-lg font-bold text-white">ISO-Library</h2>
+          <h2 className="text-lg font-bold text-white">{t("iso.title")}</h2>
         </div>
-        <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200 text-sm">Schließen</button>
+        <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200 text-sm">{t("iso.close")}</button>
       </div>
       <div className="px-5 py-4 border-b border-white/[6%]">
         <button onClick={() => fileRef.current?.click()}
           disabled={progress !== null}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/30 text-violet-200 text-sm font-medium disabled:opacity-40">
-          <Upload size={14} /> {progress !== null ? `Upload ${progress}%` : "ISO hochladen"}
+          <Upload size={14} /> {progress !== null ? t("iso.uploading", { pct: progress }) : t("iso.upload")}
         </button>
         <input ref={fileRef} type="file" accept=".iso,application/x-iso9660-image"
           className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleUpload(f); e.target.value = "" }} />
@@ -65,7 +67,7 @@ export function ISOLibraryPanel({ onClose }: Props) {
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {isos.length === 0 ? (
-          <p className="text-sm text-zinc-500 text-center py-12">Keine ISOs vorhanden.</p>
+          <p className="text-sm text-zinc-500 text-center py-12">{t("iso.empty")}</p>
         ) : isos.map((iso) => (
           <div key={iso.filename}
             className="flex items-center gap-3 p-3 rounded-lg border border-white/[8%] bg-white/[2%]">

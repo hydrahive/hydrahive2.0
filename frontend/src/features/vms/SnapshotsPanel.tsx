@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { Camera, Plus, RotateCcw, Trash2, X } from "lucide-react"
 import type { Snapshot, VM } from "./types"
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function SnapshotsPanel({ vm, onClose }: Props) {
+  const { t } = useTranslation("vms")
   const [snaps, setSnaps] = useState<Snapshot[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -32,7 +34,7 @@ export function SnapshotsPanel({ vm, onClose }: Props) {
   const canMutate = vm.actual_state === "stopped"
 
   async function handleCreate() {
-    if (!name.trim()) { setError("Name darf nicht leer sein"); return }
+    if (!name.trim()) { setError(t("snapshots.error_name_empty")); return }
     setBusy(true); setError(null)
     try {
       await vmsApi.createSnapshot(vm.vm_id, name.trim(), description.trim() || undefined)
@@ -58,7 +60,7 @@ export function SnapshotsPanel({ vm, onClose }: Props) {
   }
 
   async function handleDelete(s: Snapshot) {
-    if (!confirm(`Snapshot "${s.name}" löschen?`)) return
+    if (!confirm(`Snapshot "${s.name}" ${t("actions.delete_title")}?`)) return
     setBusy(true); setError(null)
     try {
       await vmsApi.deleteSnapshot(vm.vm_id, s.snapshot_id)
@@ -90,7 +92,7 @@ export function SnapshotsPanel({ vm, onClose }: Props) {
           <input
             value={name} onChange={(e) => setName(e.target.value)}
             disabled={!canMutate || busy}
-            placeholder="Snapshot-Name (z.B. before-update)"
+            placeholder={t("snapshots.name_placeholder")}
             className="col-span-2 bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 disabled:opacity-50 focus:border-violet-500/50 outline-none"
           />
           <button onClick={handleCreate} disabled={!canMutate || busy || !name.trim()}
@@ -100,7 +102,7 @@ export function SnapshotsPanel({ vm, onClose }: Props) {
         </div>
         <input value={description} onChange={(e) => setDescription(e.target.value)}
           disabled={!canMutate || busy}
-          placeholder="Beschreibung (optional)"
+          placeholder={t("snapshots.desc_placeholder")}
           className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-xs text-zinc-300 disabled:opacity-50 focus:border-violet-500/50 outline-none"
         />
         {error && <div className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">{error}</div>}
@@ -108,9 +110,9 @@ export function SnapshotsPanel({ vm, onClose }: Props) {
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {loading ? (
-          <p className="text-sm text-zinc-500 text-center py-6">Lade…</p>
+          <p className="text-sm text-zinc-500 text-center py-6">{t("snapshots.loading")}</p>
         ) : snaps.length === 0 ? (
-          <p className="text-sm text-zinc-500 text-center py-12">Noch keine Snapshots.</p>
+          <p className="text-sm text-zinc-500 text-center py-12">{t("snapshots.empty")}</p>
         ) : snaps.map((s) => (
           <div key={s.snapshot_id} className="rounded-lg border border-white/[8%] bg-white/[2%] p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">

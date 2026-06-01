@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { FileText, RefreshCw, X } from "lucide-react"
 import type { VM } from "./types"
@@ -11,6 +12,7 @@ interface Props {
 const POLL_MS = 2500
 
 export function VMLogsPanel({ vm, onClose }: Props) {
+  const { t } = useTranslation("vms")
   const [lines, setLines] = useState<string[]>([])
   const [exists, setExists] = useState(true)
   const [autoRefresh, setAutoRefresh] = useState(true)
@@ -61,11 +63,11 @@ export function VMLogsPanel({ vm, onClose }: Props) {
       </div>
       <div className="flex-1 overflow-hidden p-3">
         {!exists ? (
-          <p className="text-sm text-zinc-500 text-center py-12">Noch keine Log-Datei — VM wurde noch nicht gestartet.</p>
+          <p className="text-sm text-zinc-500 text-center py-12">{t("logs.no_log")}</p>
         ) : (
           <pre ref={preRef}
             className="w-full h-full overflow-auto p-3 rounded-lg bg-zinc-950 border border-white/[6%] text-[11px] font-mono leading-relaxed text-zinc-300 whitespace-pre-wrap">
-            {lines.length === 0 ? <span className="text-zinc-600">Log ist leer.</span> : lines.join("\n")}
+            {lines.length === 0 ? <span className="text-zinc-600">{t("logs.empty")}</span> : lines.join("\n")}
           </pre>
         )}
       </div>
