@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { akteApi, type AkteEntityKey, type AkteRecord } from "../api"
 import { useAkteSchema } from "../useAkteSchema"
 import { VerifyBadge } from "../components/VerifyBadge"
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function AkteEntityList({ entity, statusFilter }: Props) {
+  const { t } = useTranslation("health")
   const schema = useAkteSchema()
   const [rows, setRows] = useState<AkteRecord[] | null>(null)
   const [search, setSearch] = useState("")
@@ -41,7 +43,7 @@ export function AkteEntityList({ entity, statusFilter }: Props) {
   }
 
   const handleDelete = async (eid: string) => {
-    if (!confirm("Eintrag wirklich löschen?")) return
+    if (!confirm(t("akte.delete_confirm"))) return
     setDeleting(eid)
     try {
       await akteApi.deleteEntity(entity, eid)
@@ -105,7 +107,7 @@ export function AkteEntityList({ entity, statusFilter }: Props) {
         <button
           onClick={() => setModal({ existing: r })}
           className="text-zinc-600 hover:text-zinc-300 text-xs transition-colors"
-          title="Bearbeiten"
+          title={t("akte.edit_title")}
         >
           ✎
         </button>
@@ -113,7 +115,7 @@ export function AkteEntityList({ entity, statusFilter }: Props) {
           onClick={() => handleDelete(r.id)}
           disabled={deleting === r.id}
           className="text-zinc-600 hover:text-red-400 text-xs transition-colors disabled:opacity-50"
-          title="Löschen"
+          title={t("akte.delete_title")}
         >
           ✕
         </button>
@@ -130,7 +132,7 @@ export function AkteEntityList({ entity, statusFilter }: Props) {
         <span className="text-xs text-zinc-600">({rows.length})</span>
         <input
           type="search"
-          placeholder="Suchen…"
+          placeholder={t("akte.search_placeholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="ml-auto rounded-lg border border-white/[8%] bg-zinc-800 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 w-48"

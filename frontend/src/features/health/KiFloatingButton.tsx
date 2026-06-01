@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { MessageCircle } from "lucide-react"
 import { useNavigate, useLocation } from "react-router-dom"
 
@@ -24,6 +25,7 @@ const ROUTE_TO_RESOURCE_TYPE: Record<string, string> = {
 }
 
 export function KiFloatingButton() {
+  const { t } = useTranslation("health")
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const resourceType = ROUTE_TO_RESOURCE_TYPE[pathname]
@@ -31,7 +33,7 @@ export function KiFloatingButton() {
 
   if (pathname === "/health/ki") return null
 
-  const label = categoryLabel ? `KI zu ${categoryLabel} fragen` : "KI fragen"
+  const label = categoryLabel ? `${t("ki.ask")} (${categoryLabel})` : t("ki.ask")
 
   return (
     <button

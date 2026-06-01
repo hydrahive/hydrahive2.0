@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState, useRef } from "react"
 import { Upload } from "lucide-react"
 import { fhirApi } from "../api"
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function FhirImportButton({ onImported }: Props) {
+  const { t } = useTranslation("health")
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -21,7 +23,7 @@ export function FhirImportButton({ onImported }: Props) {
       setMessage(`${result.imported} importiert, ${result.updated} aktualisiert`)
       onImported?.(result)
     } catch {
-      setMessage("Fehler beim Import")
+      setMessage(t("import.error"))
     } finally {
       setLoading(false)
     }
@@ -42,7 +44,7 @@ export function FhirImportButton({ onImported }: Props) {
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm bg-rose-500/10 text-rose-300 border border-rose-500/20 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
       >
         <Upload size={14} />
-        {loading ? "Importiere…" : "Akte aktualisieren"}
+        {loading ? t("import.importing") : t("import.update_akte")}
       </button>
       {message && <span className="text-xs text-zinc-400">{message}</span>}
     </div>

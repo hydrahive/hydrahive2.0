@@ -1,0 +1,87 @@
+{
+  "page_title": "Health",
+  "page_subtitle": "My Patient Record",
+  "loading": "Loading…",
+  "loading_data": "Could not load data.",
+  "empty": "No entries yet.",
+  "no_data": "No data.",
+  "period_days": "{{days}}d",
+  "nav": {
+    "overview": "Overview",
+    "timeline": "Timeline",
+    "conditions": "Diagnoses",
+    "medications": "Medications",
+    "observations": "Lab Values",
+    "allergies": "Allergies",
+    "events": "Events",
+    "imaging": "Imaging",
+    "practitioners": "Doctors",
+    "documents": "Documents",
+    "notes": "Notes",
+    "import": "eGA / FHIR",
+    "apple": "Apple Health",
+    "sleep": "Sleep",
+    "ki": "AI Assistant",
+    "section_akte": "My Record",
+    "section_import": "Import",
+    "section_tracking": "Tracking",
+    "section_ki": "AI"
+  },
+  "tracking": {
+    "trend_title": "Trends",
+    "sleep_title": "Sleep history"
+  },
+  "metrics": {
+    "steps": "Steps",
+    "heart_rate": "Heart rate",
+    "sleep": "Sleep",
+    "active_kcal": "Active kcal",
+    "base_kcal": "Base kcal",
+    "spo2": "SpO₂",
+    "distance": "Distance"
+  },
+  "ingest": {
+    "last_sync": "Last sync",
+    "no_data": "No data"
+  },
+  "ki": {
+    "ask": "Ask AI",
+    "placeholder": "Ask a question about your patient record…",
+    "error": "Error in response. Please try again."
+  },
+  "akte": {
+    "title": "My Patient Record",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "create": "Create record",
+    "creating": "Creating…",
+    "new": "New",
+    "delete_confirm": "Really delete entry?",
+    "delete_title": "Delete",
+    "edit_title": "Edit",
+    "verified_title": "Manually verified",
+    "unverified_title": "Not verified — click to verify",
+    "verify_title": "Click to verify",
+    "close": "Close",
+    "no_entries": "No entries",
+    "empty_entries": "No entries yet.",
+    "search_placeholder": "Search…",
+    "male": "♂ Male",
+    "female": "♀ Female",
+    "diverse": "⚥ Diverse",
+    "date": "Date",
+    "error_boundary": "Record view error"
+  },
+  "import": {
+    "update_akte": "Update record",
+    "importing": "Importing…",
+    "error": "Import error",
+    "failed": "Import failed"
+  },
+  "research": {
+    "token_placeholder": "Enter token",
+    "key_placeholder": "Enter API key"
+  }
+}

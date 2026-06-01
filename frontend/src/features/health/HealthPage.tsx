@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { Activity } from "lucide-react"
 import { HealthSidebar } from "./HealthSidebar"
@@ -27,6 +28,7 @@ function ImportView() {
 }
 
 export function HealthPage() {
+  const { t } = useTranslation("health")
   const { pathname } = useLocation()
   return (
     <div className="max-w-6xl mx-auto">
@@ -35,8 +37,8 @@ export function HealthPage() {
           <Activity size={18} className="text-rose-400" />
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">Gesundheit</h1>
-          <p className="text-xs text-zinc-500">Meine Patientenakte</p>
+          <h1 className="text-lg font-semibold text-zinc-100">{t("page_title")}</h1>
+          <p className="text-xs text-zinc-500">{t("page_subtitle")}</p>
         </div>
       </div>
 

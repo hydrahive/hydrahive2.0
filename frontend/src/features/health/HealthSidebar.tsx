@@ -1,55 +1,47 @@
+import { useTranslation } from "react-i18next"
 import { NavLink } from "react-router-dom"
 
-interface SectionItem {
-  to: string
-  icon: string
-  label: string
-}
-
-interface Section {
-  title: string
-  items: SectionItem[]
-}
-
-const SECTIONS: Section[] = [
-  {
-    title: "Meine Akte",
-    items: [
-      { to: "/health/uebersicht",     icon: "🗂", label: "Übersicht" },
-      { to: "/health/timeline",       icon: "📅", label: "Zeitstrahl" },
-      { to: "/health/conditions",    icon: "🔴", label: "Diagnosen" },
-      { to: "/health/medications",   icon: "💊", label: "Medikamente" },
-      { to: "/health/observations",   icon: "🧪", label: "Laborwerte" },
-      { to: "/health/allergies",     icon: "🤧", label: "Allergien" },
-      { to: "/health/events",        icon: "📋", label: "Ereignisse" },
-      { to: "/health/imaging",       icon: "🩻", label: "Bildgebung" },
-      { to: "/health/practitioners", icon: "👨‍⚕️", label: "Ärzte" },
-      { to: "/health/documents",     icon: "📄", label: "Dokumente" },
-      { to: "/health/notes",         icon: "📝", label: "Notizen" },
-    ],
-  },
-  {
-    title: "Import",
-    items: [
-      { to: "/health/import", icon: "📥", label: "eGA / FHIR" },
-    ],
-  },
-  {
-    title: "Tracking",
-    items: [
-      { to: "/health/apple",  icon: "🍎", label: "Apple Health" },
-      { to: "/health/schlaf", icon: "😴", label: "Schlaf" },
-    ],
-  },
-  {
-    title: "KI",
-    items: [
-      { to: "/health/ki", icon: "💬", label: "KI-Assistent" },
-    ],
-  },
-]
-
 export function HealthSidebar() {
+  const { t } = useTranslation("health")
+
+  const SECTIONS = [
+    {
+      title: t("nav.section_akte"),
+      items: [
+        { to: "/health/uebersicht",     icon: "🗂", label: t("nav.overview") },
+        { to: "/health/timeline",       icon: "📅", label: t("nav.timeline") },
+        { to: "/health/conditions",     icon: "🔴", label: t("nav.conditions") },
+        { to: "/health/medications",    icon: "💊", label: t("nav.medications") },
+        { to: "/health/observations",   icon: "🧪", label: t("nav.observations") },
+        { to: "/health/allergies",      icon: "🤧", label: t("nav.allergies") },
+        { to: "/health/events",         icon: "📋", label: t("nav.events") },
+        { to: "/health/imaging",        icon: "🩻", label: t("nav.imaging") },
+        { to: "/health/practitioners",  icon: "👨‍⚕️", label: t("nav.practitioners") },
+        { to: "/health/documents",      icon: "📄", label: t("nav.documents") },
+        { to: "/health/notes",          icon: "📝", label: t("nav.notes") },
+      ],
+    },
+    {
+      title: t("nav.section_import"),
+      items: [
+        { to: "/health/import", icon: "📥", label: t("nav.import") },
+      ],
+    },
+    {
+      title: t("nav.section_tracking"),
+      items: [
+        { to: "/health/apple",  icon: "🍎", label: t("nav.apple") },
+        { to: "/health/schlaf", icon: "😴", label: t("nav.sleep") },
+      ],
+    },
+    {
+      title: t("nav.section_ki"),
+      items: [
+        { to: "/health/ki", icon: "💬", label: t("nav.ki") },
+      ],
+    },
+  ]
+
   return (
     <nav className="w-48 flex-shrink-0 flex flex-col gap-4 py-2">
       {SECTIONS.map((section) => (

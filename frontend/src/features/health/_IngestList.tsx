@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { ChevronDown, ChevronRight, Package } from "lucide-react"
 import type { IngestRecord } from "./api"
@@ -55,12 +56,13 @@ interface Props {
 }
 
 export function IngestList({ records }: Props) {
+  const { t } = useTranslation("health")
   const [expanded, setExpanded] = useState<string | null>(null)
 
   if (records.length === 0) {
     return (
       <p className="text-zinc-600 text-sm text-center py-8">
-        Noch keine Daten empfangen.
+        {t("empty")}
       </p>
     )
   }

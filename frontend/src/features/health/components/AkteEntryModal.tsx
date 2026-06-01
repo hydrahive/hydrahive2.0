@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { akteApi, type AkteEntityKey, type AkteRecord, type AkteUiField } from "../api"
 
@@ -21,6 +22,7 @@ function initialForm(fields: AkteUiField[], existing?: AkteRecord): Record<strin
 }
 
 export function AkteEntryModal({ entity, title, fields, existing, onClose, onSaved }: Props) {
+  const { t } = useTranslation("health")
   const [form, setForm] = useState<Record<string, string>>(() => initialForm(fields, existing))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,12 +73,12 @@ export function AkteEntryModal({ entity, title, fields, existing, onClose, onSav
       >
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-zinc-100">
-            {existing ? "Bearbeiten" : "Neu"}: {title}
+            {existing ? t("akte.edit") : t("akte.new")}: {title}
           </h2>
           <button
             onClick={onClose}
             className="text-zinc-500 hover:text-zinc-300 text-xl leading-none"
-            aria-label="Schließen"
+            aria-label={t("akte.close")}
           >
             ×
           </button>
@@ -133,7 +135,7 @@ export function AkteEntryModal({ entity, title, fields, existing, onClose, onSav
               disabled={saving}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:bg-rose-500/30 transition-colors disabled:opacity-50"
             >
-              {saving ? "Speichern…" : "Speichern"}
+              {saving ? t("akte.saving") : t("akte.save")}
             </button>
           </div>
         </form>

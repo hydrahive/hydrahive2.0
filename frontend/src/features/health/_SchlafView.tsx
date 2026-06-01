@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { SleepChart } from "./_SleepChart"
 import { healthApi, type MetricsSummary } from "./api"
 
 const PERIODS = [7, 14, 30, 90] as const
 
 export function SchlafView() {
+  const { t } = useTranslation("health")
   const [summary, setSummary] = useState<MetricsSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [days, setDays] = useState<number>(30)
@@ -12,13 +14,13 @@ export function SchlafView() {
   useEffect(() => {
     setSummary(null)
     setError(null)
-    healthApi.metrics(days).then(setSummary).catch(() => setError("Daten konnten nicht geladen werden."))
+    healthApi.metrics(days).then(setSummary).catch(() => setError(t("loading_data")))
   }, [days])
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-zinc-300">Schlafverlauf</h2>
+        <h2 className="text-sm font-medium text-zinc-300">{t("tracking.sleep_title")}</h2>
         <div className="flex gap-1">
           {PERIODS.map((d) => (
             <button
@@ -30,7 +32,7 @@ export function SchlafView() {
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[4%]"
               }`}
             >
-              {d}T
+              {t("period_days", { days: d })}
             </button>
           ))}
         </div>

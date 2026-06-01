@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { egaApi } from "../api"
 import { EgaImportButton } from "../components/EgaImportButton"
@@ -22,6 +23,7 @@ function fmt(n: number) {
 }
 
 export function UebersichtView() {
+  const { t } = useTranslation("health")
   const [summary, setSummary] = useState<Record<string, number> | null>(null)
   const [costs, setCosts] = useState<Costs | null>(null)
 
@@ -83,7 +85,7 @@ export function UebersichtView() {
 
       {summary && Object.keys(summary).length === 0 && (
         <div className="rounded-xl border border-dashed border-white/10 p-8 text-center">
-          <p className="text-zinc-500 text-sm">Noch keine Gesundheitsdaten importiert.</p>
+          <p className="text-zinc-500 text-sm">{t("empty")}</p>
           <p className="text-zinc-600 text-xs mt-1">TK-Safe App öffnen → Akte exportieren → ZIP hier hochladen.</p>
         </div>
       )}

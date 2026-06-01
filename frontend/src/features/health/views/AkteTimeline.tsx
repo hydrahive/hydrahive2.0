@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { akteApi, type AkteEntityKey, type AkteTimelineEntry } from "../api"
 import { useAkteSchema } from "../useAkteSchema"
@@ -18,6 +19,7 @@ const ENTITY_ICONS: Record<string, string> = {
 type FilterEntity = AkteEntityKey | "all"
 
 export function AkteTimeline() {
+  const { t } = useTranslation("health")
   const schema = useAkteSchema()
   const [entries, setEntries] = useState<AkteTimelineEntry[] | null>(null)
   const [filter, setFilter] = useState<FilterEntity>("all")
@@ -82,7 +84,7 @@ export function AkteTimeline() {
 
       {(!filtered || filtered.length === 0) && (
         <p className="text-sm text-zinc-500 py-8 text-center">
-          {entries === null ? "Laden…" : "Noch keine Einträge vorhanden."}
+          {entries === null ? t("loading") : t("akte.empty_entries")}
         </p>
       )}
 

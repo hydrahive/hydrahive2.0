@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { akteApi, type AktePatient } from "../api"
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function AkteDashboard({ onSaved }: Props) {
+  const { t } = useTranslation("health")
   const navigate = useNavigate()
   const schema = useAkteSchema()
   const [akte, setAkte] = useState<AktePatient | null | "loading">("loading")
@@ -161,7 +163,7 @@ export function AkteDashboard({ onSaved }: Props) {
               disabled={saving}
               className="w-full rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-300 py-2 text-sm font-medium hover:bg-rose-500/30 transition-colors disabled:opacity-50"
             >
-              {saving ? "Wird angelegt…" : "Akte anlegen"}
+              {saving ? t("akte.creating") : t("akte.create")}
             </button>
           </form>
         </div>
@@ -208,7 +210,7 @@ export function AkteDashboard({ onSaved }: Props) {
             onClick={() => setEditing((e) => !e)}
             className="text-xs text-zinc-500 hover:text-zinc-300 px-3 py-1.5 rounded-lg border border-white/[6%] hover:bg-white/[4%] transition-colors"
           >
-            {editing ? "Abbrechen" : "Bearbeiten"}
+            {editing ? t("akte.cancel") : t("akte.edit")}
           </button>
         </div>
 
@@ -264,7 +266,7 @@ export function AkteDashboard({ onSaved }: Props) {
               disabled={saving}
               className="rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-300 px-4 py-2 text-sm font-medium hover:bg-rose-500/30 transition-colors disabled:opacity-50"
             >
-              {saving ? "Speichern…" : "Speichern"}
+              {saving ? t("akte.saving") : t("akte.save")}
             </button>
           </form>
         )}

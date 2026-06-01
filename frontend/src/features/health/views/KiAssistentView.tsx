@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState, useRef, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 import { Send } from "lucide-react"
@@ -22,6 +23,7 @@ const SUGGESTIONS: Record<string, string[]> = {
 }
 
 export function KiAssistentView() {
+  const { t } = useTranslation("health")
   const location = useLocation()
   const contextType = (location.state as { resourceType?: string } | null)?.resourceType
   const suggestions = SUGGESTIONS[contextType ?? "default"] ?? SUGGESTIONS.default
@@ -68,7 +70,7 @@ export function KiAssistentView() {
         } else if (event.type === "error") {
           setMessages((prev) => {
             const updated = [...prev]
-            updated[updated.length - 1] = { role: "assistant", text: "Fehler bei der Antwort. Bitte erneut versuchen." }
+            updated[updated.length - 1] = { role: "assistant", text: t("ki.error") }
             return updated
           })
           break
@@ -80,10 +82,10 @@ export function KiAssistentView() {
         const last = prev[prev.length - 1]
         if (last?.role === "assistant" && last.text === "") {
           const updated = [...prev]
-          updated[updated.length - 1] = { role: "assistant", text: "Fehler bei der Antwort. Bitte erneut versuchen." }
+          updated[updated.length - 1] = { role: "assistant", text: t("ki.error") }
           return updated
         }
-        return [...prev, { role: "assistant", text: "Fehler bei der Antwort. Bitte erneut versuchen." }]
+        return [...prev, { role: "assistant", text: t("ki.error") }]
       })
     } finally {
       abortRef.current = null
@@ -144,7 +146,7 @@ export function KiAssistentView() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Stelle eine Frage zu deiner Patientenakte…"
+          placeholder={t("ki.placeholder")}
           className="flex-1 bg-zinc-900 border border-white/[8%] rounded-xl px-4 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/40"
         />
         <button

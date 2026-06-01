@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+
 interface Column<T> {
   key: string
   label: string
@@ -10,9 +12,11 @@ interface Props<T> {
   emptyText?: string
 }
 
-export function ResourceTable<T extends Record<string, unknown>>({ rows, columns, emptyText = "Keine Einträge" }: Props<T>) {
+export function ResourceTable<T extends Record<string, unknown>>({ rows, columns, emptyText }: Props<T>) {
+  const { t } = useTranslation("health")
+  const empty = emptyText ?? t("akte.no_entries")
   if (rows.length === 0) {
-    return <p className="text-sm text-zinc-500 py-8 text-center">{emptyText}</p>
+    return <p className="text-sm text-zinc-500 py-8 text-center">{empty}</p>
   }
   return (
     <div className="rounded-xl border border-white/[6%] overflow-hidden">

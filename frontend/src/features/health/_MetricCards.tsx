@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { MetricDay, MetricsSummary } from "./api"
 
 const METRIC_META: Record<string, { icon: string; label: string }> = {
@@ -52,12 +53,13 @@ interface Props {
 }
 
 export function MetricCards({ summary }: Props) {
+  const { t } = useTranslation("health")
   const entries = Object.entries(summary.metrics)
 
   if (entries.length === 0) {
     return (
       <p className="text-zinc-600 text-sm text-center py-8">
-        Noch keine Metriken vorhanden.
+        {t("no_data")}
       </p>
     )
   }

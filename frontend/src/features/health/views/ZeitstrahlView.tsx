@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { egaApi, type EgaTimelineEntry } from "../api"
 
@@ -18,6 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 export function ZeitstrahlView() {
+  const { t } = useTranslation("health")
   const [entries, setEntries] = useState<EgaTimelineEntry[] | null>(null)
 
   useEffect(() => {
@@ -25,7 +27,7 @@ export function ZeitstrahlView() {
   }, [])
 
   if (entries === null) return <div className="h-48 rounded-xl bg-zinc-900/50 animate-pulse" />
-  if (entries.length === 0) return <p className="text-zinc-500 text-sm py-8 text-center">Noch keine Daten importiert.</p>
+  if (entries.length === 0) return <p className="text-zinc-500 text-sm py-8 text-center">{t("empty")}</p>
 
   return (
     <div className="space-y-4">
