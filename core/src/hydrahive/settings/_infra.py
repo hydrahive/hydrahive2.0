@@ -64,10 +64,6 @@ class _ExtensionsMixin:
     def extensions_install_dir(self) -> Path:
         return self.base_dir / "extensions" / "install"
 
-    @cached_property
-    def extensions_uninstall_dir(self) -> Path:
-        return self.base_dir / "extensions" / "uninstall"
-
 
 class _WebminMixin:
     @cached_property
@@ -85,7 +81,3 @@ class _ButlerMixin:
     @cached_property
     def butler_dir(self) -> Path:
         return self.config_dir / "butler"
-
-    @cached_property
-    def butler_secrets_file(self) -> Path:
-        return self.config_dir / "butler_hook_secrets.json"

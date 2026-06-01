@@ -171,3 +171,18 @@ def health() -> dict:
         "commit": commit,
         "update_behind": behind,
     }
+
+
+def run() -> None:
+    """Python-Entrypoint (console_script `hydrahive`). Liest Host/Port aus den
+    Settings — konsistent mit dem Installer, der dieselben HH_HOST/HH_PORT-Env-
+    Vars an die uvicorn-CLI gibt (#198). Der frühere Script zeigte auf das
+    ASGI-App-Objekt statt auf ein Callable und war damit nicht startbar."""
+    import uvicorn
+
+    from hydrahive.settings import settings
+    uvicorn.run("hydrahive.api.main:app", host=settings.host, port=settings.port)
+
+
+if __name__ == "__main__":
+    run()

@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.scripts]
-hydrahive = "hydrahive.api.main:app"
+hydrahive = "hydrahive.api.main:run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/hydrahive"]
