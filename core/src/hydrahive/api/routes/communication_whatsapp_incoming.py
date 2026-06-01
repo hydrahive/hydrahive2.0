@@ -4,8 +4,11 @@ import logging
 import re
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 
+from hydrahive.api.middleware.client_ip import client_ip
+from hydrahive.api.middleware.inbound_ratelimit import check_rate
+from hydrahive.api.middleware.secret_compare import verify_secret
 from hydrahive.api.routes._wa_voice import process_voice, send_voice_or_text
 from hydrahive.communication import get, handle_incoming
 from hydrahive.communication.base import IncomingEvent
@@ -37,10 +40,15 @@ def _looks_like_metadata(answer: str) -> bool:
 @router.post("/whatsapp/incoming")
 async def wa_incoming(
     payload: dict,
+    request: Request,
     x_hh_bridge_secret: Annotated[str | None, Header(alias="X-HH-Bridge-Secret")] = None,
 ) -> dict:
+    allowed, retry_after = check_rate(f"wa-incoming:{client_ip(request)}")
+    if not allowed:
+        raise HTTPException(status_code=429, detail="rate_limited",
+                            headers={"Retry-After": str(retry_after)})
     expected = ensure_secret(settings.whatsapp_bridge_secret_file)
-    if x_hh_bridge_secret != expected:
+    if not verify_secret(x_hh_bridge_secret, expected):
         raise HTTPException(status_code=401, detail="bad_secret")
 
     target_username = payload.get("target_username")

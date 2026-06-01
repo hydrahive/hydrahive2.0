@@ -4,9 +4,12 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 
 from hydrahive.api.middleware.auth import require_auth
+from hydrahive.api.middleware.client_ip import client_ip
+from hydrahive.api.middleware.inbound_ratelimit import check_rate
+from hydrahive.api.middleware.secret_compare import verify_secret
 from hydrahive.db import health as health_db
 from hydrahive.settings import settings
 
@@ -25,13 +28,16 @@ def _check_key(
     bearer = None
     if authorization and authorization.lower().startswith("bearer "):
         bearer = authorization[7:].strip()
-    if x_hh_health_key != expected and bearer != expected and query_key != expected:
+    if not (verify_secret(x_hh_health_key, expected)
+            or verify_secret(bearer, expected)
+            or verify_secret(query_key, expected)):
         raise HTTPException(status_code=401, detail="bad_key")
 
 
 @router.post("/ingest")
 async def ingest(
     payload: dict,
+    request: Request,
     x_hh_health_key: Annotated[str | None, Header(alias="X-HH-Health-Key")] = None,
     authorization: Annotated[str | None, Header()] = None,
     key: str | None = Query(default=None),
@@ -41,6 +47,10 @@ async def ingest(
     x_period: Annotated[str | None, Header(alias="automation-period")] = None,
     x_aggregation: Annotated[str | None, Header(alias="automation-aggregation")] = None,
 ) -> dict:
+    allowed, retry_after = check_rate(f"health-ingest:{client_ip(request)}")
+    if not allowed:
+        raise HTTPException(status_code=429, detail="rate_limited",
+                            headers={"Retry-After": str(retry_after)})
     _check_key(x_hh_health_key, authorization, key)
 
     # user_id kommt NICHT aus dem Request — der Key bindet an genau einen

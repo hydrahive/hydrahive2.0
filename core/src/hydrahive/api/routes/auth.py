@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel
 
 from hydrahive.api.middleware import lockout
+from hydrahive.api.middleware.client_ip import client_ip
 from hydrahive.api.middleware.api_keys import create as create_key
 from hydrahive.api.middleware.api_keys import delete as delete_key
 from hydrahive.api.middleware.api_keys import list_keys
@@ -27,21 +28,9 @@ class LoginResponse(BaseModel):
     role: str
 
 
-_TRUSTED_PROXIES = frozenset({"127.0.0.1", "::1"})
-
-
-def _client_ip(request: Request) -> str:
-    direct = request.client.host if request.client else "?"
-    if direct in _TRUSTED_PROXIES:
-        fwd = request.headers.get("x-forwarded-for")
-        if fwd:
-            return fwd.split(",")[0].strip()
-    return direct
-
-
 @router.post("/login", response_model=LoginResponse)
 def login(req: LoginRequest, request: Request) -> LoginResponse:
-    ip = _client_ip(request)
+    ip = client_ip(request)
     locked, retry_after = lockout.is_locked(req.username, ip)
     if locked:
         exc = coded(status.HTTP_429_TOO_MANY_REQUESTS, "too_many_login_attempts", retry_after=retry_after)
