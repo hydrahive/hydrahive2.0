@@ -32,6 +32,7 @@ export function SessionModelControls({ session, agent, onSessionChanged, onAgent
           <ModelPicker
             current={agent.llm_model}
             hint={t("model_hint")}
+            fullWidth
             onPick={async (m) => {
               const updatedAgent = await agentsApi.update(agent.id, { llm_model: m })
               onAgentChanged?.({ ...agent, llm_model: updatedAgent.llm_model })
