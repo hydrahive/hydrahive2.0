@@ -1,0 +1,15 @@
+{
+  "title": "Workspace",
+  "tab_files": "Files",
+  "tab_git": "Git",
+  "tab_editor": "Editor",
+  "loading": "Loading…",
+  "empty": "Empty",
+  "no_file": "No file open",
+  "no_repo": "No Git repository",
+  "changed": "{{count}} changed",
+  "commit": "Commit…",
+  "commit_message": "Commit message…",
+  "stage_all": "Stage all",
+  "save": "Save"
+}

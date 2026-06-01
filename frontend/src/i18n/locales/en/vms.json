@@ -5,7 +5,7 @@
   "refresh": "Refresh",
   "loading": "Loading…",
   "empty": "No VMs yet. Click",
-  "empty_cta": ""New VM"",
+  "empty_cta": "\"New VM\"",
   "empty_suffix": "to get started.",
   "tip": "Tip:",
   "tip_iso": "upload an ISO via the ISO Library first, then create a VM with that ISO.",

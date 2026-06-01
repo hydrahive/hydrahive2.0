@@ -5,7 +5,7 @@
   "refresh": "Aktualisieren",
   "loading": "Lade…",
   "empty": "Noch keine VMs. Klicke",
-  "empty_cta": "„Neue VM"",
+  "empty_cta": "„Neue VM\"",
   "empty_suffix": "um anzufangen.",
   "tip": "Tipp:",
   "tip_iso": "erst eine ISO über die ISO-Library hochladen, dann VM mit dieser ISO erstellen.",
