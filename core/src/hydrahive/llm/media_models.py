@@ -133,10 +133,21 @@ async def first_voice(model: str) -> str | None:
     return voices[0] if voices else None
 
 
+# Bekannte OpenRouter-Transkriptions-Modelle als Fallback wenn die API-Filterung
+# leer bleibt (OpenRouter unterstützt ?input_modalities= nicht zuverlässig).
+_TRANSCRIBE_FALLBACK: list[dict] = [
+    {"id": "openai/whisper-large-v3", "name": "Whisper Large v3"},
+    {"id": "openai/whisper-large-v3-turbo", "name": "Whisper Large v3 Turbo"},
+    {"id": "openai/whisper-1", "name": "Whisper v1"},
+]
+
+
 async def list_transcribe_models(force: bool = False) -> list[dict]:
     """Live-Liste der Audio-Transkriptions-Modelle von OpenRouter.
 
-    Filtert den Haupt-Catalog nach input_modalities=audio. 5-Min-Cache. Ohne Key → [].
+    Versucht den Catalog nach input_modalities=audio zu filtern. Gibt bei leerem
+    Ergebnis (OpenRouter unterstützt den Filter nicht zuverlässig) die bekannte
+    Fallback-Liste zurück. Ohne Key → Fallback. 5-Min-Cache.
     Gibt [{"id": str, "name": str}] zurück.
     """
     global _transcribe_cache
@@ -145,7 +156,7 @@ async def list_transcribe_models(force: bool = False) -> list[dict]:
         return _transcribe_cache[1]
     key = openrouter_key()
     if not key:
-        return []
+        return _TRANSCRIBE_FALLBACK
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
             resp = await client.get(
@@ -154,13 +165,15 @@ async def list_transcribe_models(force: bool = False) -> list[dict]:
             )
             resp.raise_for_status()
             data = resp.json().get("data", [])
+        out = [
+            {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
+            for m in data
+            if m.get("id") and "audio" in (m.get("input_modalities") or [])
+        ]
     except Exception:
-        return []
-    out = [
-        {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
-        for m in data
-        if m.get("id") and "audio" in (m.get("input_modalities") or [])
-    ]
+        out = []
+    if not out:
+        out = _TRANSCRIBE_FALLBACK
     _transcribe_cache = (now, out)
     return out
 
