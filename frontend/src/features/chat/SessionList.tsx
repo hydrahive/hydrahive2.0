@@ -2,7 +2,8 @@ import { AlertTriangle, Folder, Heart, MessageCircle, Play, Plus, Trash2 } from 
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { ProjectBrief } from "./api"
-import type { Session } from "./types"
+import type { AgentBrief, Session } from "./types"
+import { SessionModelControls } from "./SessionModelControls"
 
 type Tab = "direct" | "projects" | "buddy"
 
@@ -15,9 +16,13 @@ interface Props {
   onSelect: (id: string) => void
   onDelete: (id: string) => void
   onNew: () => void
+  activeSession?: Session | null
+  activeAgent?: AgentBrief | null
+  onSessionChanged?: (session: Session) => void
+  onAgentChanged?: (agent: AgentBrief) => void
 }
 
-export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, projects, onSelect, onDelete, onNew }: Props) {
+export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, projects, onSelect, onDelete, onNew, activeSession, activeAgent, onSessionChanged, onAgentChanged }: Props) {
   const { t } = useTranslation("chat")
   const { t: tCommon } = useTranslation("common")
   const [tab, setTab] = useState<Tab>("direct")
@@ -94,6 +99,15 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
           </div>
         ))}
       </div>
+
+      {activeSession && activeAgent && onSessionChanged && (
+        <SessionModelControls
+          session={activeSession}
+          agent={activeAgent}
+          onSessionChanged={onSessionChanged}
+          onAgentChanged={onAgentChanged}
+        />
+      )}
     </div>
   )
 }

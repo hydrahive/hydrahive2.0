@@ -19,6 +19,8 @@
     "max_title": "Maximum depth, no token limit"
   },
   "model_hint": "Switch model for this agent (applies to all sessions)",
+  "model": "Model",
+  "effort_label": "Depth",
   "tabs": { "direct": "Direct", "projects": "Projects" },
   "session": {
     "list_title": "Sessions",

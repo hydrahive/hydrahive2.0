@@ -19,6 +19,8 @@
     "max_title": "Maximale Tiefe, keine Token-Grenze"
   },
   "model_hint": "Modell für diesen Agenten wechseln (gilt für alle Sessions)",
+  "model": "Modell",
+  "effort_label": "Tiefe",
   "tabs": {
     "direct": "Direkt",
     "projects": "Projekte"
