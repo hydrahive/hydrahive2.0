@@ -24,3 +24,10 @@ def test_tree_rejects_traversal(client, admin_headers):
     agent = _agent(client, admin_headers)
     res = client.get(f"/api/workspace/tree?agent_id={agent['id']}&path=../../etc", headers=admin_headers)
     assert res.status_code == 403
+
+
+def test_tree_rejects_foreign_agent(client, admin_headers, auth_headers):
+    # Agent gehört admin; testuser darf nicht in dessen Workspace (IDOR-Schutz)
+    agent = _agent(client, admin_headers)
+    res = client.get(f"/api/workspace/tree?agent_id={agent['id']}&path=", headers=auth_headers)
+    assert res.status_code == 404

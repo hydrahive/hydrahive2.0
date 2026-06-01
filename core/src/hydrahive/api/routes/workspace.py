@@ -11,9 +11,11 @@ from hydrahive.workspace._tree import list_dir, read_file
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
 
 
-def _root_for(agent_id: str):
+def _root_for(agent_id: str, auth: tuple[str, str]):
+    username, role = auth
     agent = agents_config.get(agent_id)
-    if not agent:
+    # 404 (nicht 403) wenn fremd — Existenz fremder Agents nicht leaken
+    if not agent or (role != "admin" and agent.get("owner") != username):
         raise HTTPException(status_code=404, detail="agent_not_found")
     return ensure_workspace(agent)
 
@@ -24,7 +26,7 @@ def get_tree(
     agent_id: str = Query(...),
     path: str = Query(""),
 ) -> list[dict]:
-    root = _root_for(agent_id)
+    root = _root_for(agent_id, auth)
     try:
         abs_path = resolve_in_workspace(root, path)
     except WorkspacePathError:
@@ -43,7 +45,7 @@ def get_file(
     agent_id: str = Query(...),
     path: str = Query(...),
 ) -> dict:
-    root = _root_for(agent_id)
+    root = _root_for(agent_id, auth)
     try:
         abs_path = resolve_in_workspace(root, path)
     except WorkspacePathError:
