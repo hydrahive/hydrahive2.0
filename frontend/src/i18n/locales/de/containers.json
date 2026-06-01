@@ -1,0 +1,85 @@
+{
+  "title": "Container",
+  "summary": {
+    "total": "Container gesamt",
+    "running": "Laufend"
+  },
+  "empty": "Noch keine Container.",
+  "loading": "Lade…",
+  "status": {
+    "created": "Erstellt",
+    "starting": "Startet…",
+    "running": "Läuft",
+    "stopping": "Stoppt…",
+    "stopped": "Gestoppt",
+    "error": "Fehler"
+  },
+  "tabs": {
+    "config": "Config",
+    "console": "Konsole",
+    "logs": "Logs",
+    "stats": "Stats"
+  },
+  "spec": {
+    "cpu_unlimited": "CPU ∞",
+    "ram_unlimited": "RAM ∞",
+    "cpu_limit": "Limit: {{cpu}} vCPU",
+    "no_limit": "Kein Limit",
+    "no_ipv4": "(keine IPv4)"
+  },
+  "stats": {
+    "not_running": "Container läuft nicht — keine Live-Stats."
+  },
+  "logs": {
+    "lifecycle_title": "Lifecycle-Log (incus info --show-log)",
+    "auto_refresh": "Auto-Refresh",
+    "empty": "(leer)",
+    "tip": "Tipp:"
+  },
+  "detail": {
+    "loading": "Lade…",
+    "back": "Zurück zu Container",
+    "refresh": "Aktualisieren",
+    "new": "Neuer Container",
+    "subtitle": "LXC via incus — leichtgewichtige Dienste in br0, ohne VM-Overhead.",
+    "console_not_running": "Container läuft nicht — Konsole nicht verfügbar."
+  },
+  "console": {
+    "error_not_logged_in": "Nicht angemeldet",
+    "error_connection": "Verbindung fehlgeschlagen",
+    "error_unauthorized": "Nicht autorisiert",
+    "error_not_found": "Container nicht gefunden",
+    "error_not_running": "Container läuft nicht",
+    "error_backend": "Backend-Fehler"
+  },
+  "create": {
+    "title": "Container erstellen",
+    "submit": "Container erstellen",
+    "submitting": "Erstelle…",
+    "field_name": "Name",
+    "field_name_hint": "z.B. searxng, vaultwarden, linkding",
+    "field_desc": "Beschreibung (optional)",
+    "field_image": "Image",
+    "field_cpu": "CPU-Limit (optional)",
+    "field_cpu_hint": "leer = unbegrenzt",
+    "field_ram": "RAM-Limit MB (optional)",
+    "field_ram_hint": "leer = unbegrenzt",
+    "field_network": "Netzwerk",
+    "network_bridged_title": "Bridged (br0)",
+    "network_bridged_desc": "Container bekommt DHCP-IP aus dem LAN — wie VMs",
+    "network_isolated_title": "Isoliert",
+    "network_isolated_desc": "Kein Netzwerk-Zugang",
+    "custom_image_label": "Custom Image-Alias eingeben",
+    "back_to_list": "← Quick-Liste",
+    "error_image_missing": "Image fehlt",
+    "error_name_invalid": "Name: 1-63 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"
+  },
+  "edit": {
+    "field_name": "Name",
+    "field_desc": "Beschreibung",
+    "field_cpu": "CPU-Kerne",
+    "field_ram": "RAM (MB)",
+    "field_image_readonly": "Image (read-only — Re-Create für anderes Image)",
+    "error": "Fehler"
+  }
+}

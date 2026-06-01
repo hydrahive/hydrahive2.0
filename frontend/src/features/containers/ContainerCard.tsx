@@ -1,5 +1,6 @@
 import { Box, Cpu, MemoryStick, Network, Pencil, Play, RotateCw, Square, Terminal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import type { Container, ContainerInfo } from "./types"
 import { ContainerStatusBadge } from "./StatusBadge"
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function ContainerCard({ container: c, onStart, onStop, onRestart, onDelete, onEdit }: Props) {
+  const { t } = useTranslation("containers")
   const [busy, setBusy] = useState(false)
   const [info, setInfo] = useState<ContainerInfo | null>(null)
   const [showConsole, setShowConsole] = useState(false)
@@ -62,8 +64,8 @@ export function ContainerCard({ container: c, onStart, onStop, onRestart, onDele
       </div>
 
       <div className="flex flex-wrap gap-2 text-[11px]">
-        <Spec icon={Cpu} label={c.cpu ? `${c.cpu} vCPU` : "CPU ∞"} />
-        <Spec icon={MemoryStick} label={c.ram_mb ? `${c.ram_mb} MB` : "RAM ∞"} />
+        <Spec icon={Cpu} label={c.cpu ? `${c.cpu} vCPU` : t("spec.cpu_unlimited")} />
+        <Spec icon={MemoryStick} label={c.ram_mb ? `${c.ram_mb} MB` : t("spec.ram_unlimited")} />
         <Spec icon={Network} label={c.network_mode} />
         {info?.ipv4 && <Spec label={info.ipv4} highlight />}
       </div>

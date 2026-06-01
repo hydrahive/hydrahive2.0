@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Loader2, Save, X } from "lucide-react"
 import type { Container } from "./types"
 import { containersApi } from "./api"
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function EditContainerDialog({ container, onClose, onSaved }: Props) {
+  const { t } = useTranslation("containers")
   const editable = container.actual_state === "stopped" || container.actual_state === "created" || container.actual_state === "error"
 
   const [name, setName] = useState(container.name)
@@ -31,7 +33,7 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
     ramSet !== origRamSet || (ramSet && ramMb !== container.ram_mb)
 
   async function submit() {
-    if (!validName) { setError("Name: 1-63 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"); return }
+    if (!validName) { setError(t("create.error_name_invalid")); return }
     setBusy(true); setError(null)
     try {
       const patch: Parameters<typeof containersApi.update>[1] = {}
@@ -52,7 +54,7 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
       await containersApi.update(container.container_id, patch)
       onSaved()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Fehler")
+      setError(e instanceof Error ? e.message : t("edit.error"))
     } finally { setBusy(false) }
   }
 
@@ -74,20 +76,20 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
         )}
 
         <div className="space-y-2">
-          <Field label="Name">
+          <Field label={t("edit.field_name")}>
             <input value={name} onChange={(e) => setName(e.target.value)} disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
           </Field>
-          <Field label="Beschreibung">
+          <Field label={t("edit.field_desc")}>
             <input value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
           </Field>
-          <Field label="Image (read-only — Re-Create für anderes Image)">
+          <Field label={t("edit.field_image_readonly")}>
             <input value={container.image} disabled
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-500 font-mono cursor-not-allowed" />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="CPU-Kerne">
+            <Field label={t("edit.field_cpu")}>
               <div className="flex items-center gap-1.5">
                 <input type="checkbox" checked={cpuSet} onChange={(e) => setCpuSet(e.target.checked)} disabled={!editable}
                   className="accent-violet-500" />
@@ -97,7 +99,7 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
               </div>
               <p className="text-[10px] text-zinc-600 mt-0.5">{cpuSet ? "" : "unbegrenzt"}</p>
             </Field>
-            <Field label="RAM (MB)">
+            <Field label={t("edit.field_ram")}>
               <div className="flex items-center gap-1.5">
                 <input type="checkbox" checked={ramSet} onChange={(e) => setRamSet(e.target.checked)} disabled={!editable}
                   className="accent-violet-500" />

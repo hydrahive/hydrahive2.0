@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, FileText, Gauge, Settings, Terminal as TerminalIcon } from "lucide-react"
 import type { Container } from "./types"
@@ -12,6 +13,7 @@ import { ContainerConfigPane } from "./ContainerConfigPane"
 type Tab = "console" | "logs" | "stats" | "config"
 
 export function ContainerDetailPage() {
+  const { t } = useTranslation("containers")
   const { id } = useParams()
   const navigate = useNavigate()
   const [container, setContainer] = useState<Container | null>(null)
@@ -47,7 +49,7 @@ export function ContainerDetailPage() {
     return (
       <div className="space-y-3">
         <BackLink />
-        <p className="text-sm text-zinc-500">Lade…</p>
+        <p className="text-sm text-zinc-500">{t("detail.loading")}</p>
       </div>
     )
   }
@@ -72,16 +74,16 @@ export function ContainerDetailPage() {
 
       <div className="flex items-center gap-1 border-b border-white/[8%] flex-shrink-0">
         <TabBtn active={tab === "console"} onClick={() => setTab("console")} disabled={!running}>
-          <TerminalIcon size={12} /> Console
+          <TerminalIcon size={12} /> {t("tabs.console")}
         </TabBtn>
         <TabBtn active={tab === "logs"} onClick={() => setTab("logs")}>
-          <FileText size={12} /> Logs
+          <FileText size={12} /> {t("tabs.logs")}
         </TabBtn>
         <TabBtn active={tab === "stats"} onClick={() => setTab("stats")}>
-          <Gauge size={12} /> Stats
+          <Gauge size={12} /> {t("tabs.stats")}
         </TabBtn>
         <TabBtn active={tab === "config"} onClick={() => setTab("config")}>
-          <Settings size={12} /> Konfig
+          <Settings size={12} /> {t("tabs.config")}
         </TabBtn>
       </div>
 
@@ -89,7 +91,7 @@ export function ContainerDetailPage() {
         {tab === "console" && running && <ConsolePane containerId={container.container_id} className="h-full" />}
         {tab === "console" && !running && (
           <div className="h-full flex items-center justify-center text-sm text-zinc-500">
-            Container läuft nicht — Konsole nicht verfügbar.
+            {t("detail.console_not_running")}
           </div>
         )}
         {tab === "logs" && <ContainerLogPane containerId={container.container_id} />}
@@ -101,9 +103,10 @@ export function ContainerDetailPage() {
 }
 
 function BackLink() {
+  const { t } = useTranslation("containers")
   return (
     <Link to="/containers" className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200">
-      <ArrowLeft size={12} /> Zurück zu Container
+      <ArrowLeft size={12} /> {t("detail.back")}
     </Link>
   )
 }

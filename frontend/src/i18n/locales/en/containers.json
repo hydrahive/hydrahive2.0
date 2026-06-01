@@ -1,0 +1,85 @@
+{
+  "title": "Containers",
+  "summary": {
+    "total": "Total containers",
+    "running": "Running"
+  },
+  "empty": "No containers yet.",
+  "loading": "Loading…",
+  "status": {
+    "created": "Created",
+    "starting": "Starting…",
+    "running": "Running",
+    "stopping": "Stopping…",
+    "stopped": "Stopped",
+    "error": "Error"
+  },
+  "tabs": {
+    "config": "Config",
+    "console": "Console",
+    "logs": "Logs",
+    "stats": "Stats"
+  },
+  "spec": {
+    "cpu_unlimited": "CPU ∞",
+    "ram_unlimited": "RAM ∞",
+    "cpu_limit": "Limit: {{cpu}} vCPU",
+    "no_limit": "No limit",
+    "no_ipv4": "(no IPv4)"
+  },
+  "stats": {
+    "not_running": "Container is not running — no live stats."
+  },
+  "logs": {
+    "lifecycle_title": "Lifecycle log (incus info --show-log)",
+    "auto_refresh": "Auto-refresh",
+    "empty": "(empty)",
+    "tip": "Tip:"
+  },
+  "detail": {
+    "loading": "Loading…",
+    "back": "Back to containers",
+    "refresh": "Refresh",
+    "new": "New container",
+    "subtitle": "LXC via incus — lightweight services in br0, no VM overhead.",
+    "console_not_running": "Container is not running — console unavailable."
+  },
+  "console": {
+    "error_not_logged_in": "Not logged in",
+    "error_connection": "Connection failed",
+    "error_unauthorized": "Unauthorized",
+    "error_not_found": "Container not found",
+    "error_not_running": "Container is not running",
+    "error_backend": "Backend error"
+  },
+  "create": {
+    "title": "Create container",
+    "submit": "Create container",
+    "submitting": "Creating…",
+    "field_name": "Name",
+    "field_name_hint": "e.g. searxng, vaultwarden, linkding",
+    "field_desc": "Description (optional)",
+    "field_image": "Image",
+    "field_cpu": "CPU limit (optional)",
+    "field_cpu_hint": "empty = unlimited",
+    "field_ram": "RAM limit MB (optional)",
+    "field_ram_hint": "empty = unlimited",
+    "field_network": "Network",
+    "network_bridged_title": "Bridged (br0)",
+    "network_bridged_desc": "Container gets DHCP IP from LAN — like VMs",
+    "network_isolated_title": "Isolated",
+    "network_isolated_desc": "No network access",
+    "custom_image_label": "Enter custom image alias",
+    "back_to_list": "← Quick list",
+    "error_image_missing": "Image required",
+    "error_name_invalid": "Name: 1-63 chars, starts with letter, only a-z A-Z 0-9 -"
+  },
+  "edit": {
+    "field_name": "Name",
+    "field_desc": "Description",
+    "field_cpu": "CPU cores",
+    "field_ram": "RAM (MB)",
+    "field_image_readonly": "Image (read-only — Re-Create to change image)",
+    "error": "Error"
+  }
+}

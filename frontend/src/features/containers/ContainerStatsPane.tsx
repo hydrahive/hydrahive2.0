@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Cpu, MemoryStick, Network } from "lucide-react"
 import type { Container, ContainerInfo } from "./types"
 import { containersApi } from "./api"
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function ContainerStatsPane({ container: c }: Props) {
+  const { t } = useTranslation("containers")
   const [info, setInfo] = useState<ContainerInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,9 +38,9 @@ export function ContainerStatsPane({ container: c }: Props) {
         <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">{error}</div>
       )}
       {c.actual_state !== "running" ? (
-        <p className="text-sm text-zinc-500">Container läuft nicht — keine Live-Stats.</p>
+        <p className="text-sm text-zinc-500">{t("stats.not_running")}</p>
       ) : !info ? (
-        <p className="text-sm text-zinc-500">Lade…</p>
+        <p className="text-sm text-zinc-500">{t("loading")}</p>
       ) : (
         <>
           <Card icon={<MemoryStick size={14} className="text-violet-400" />} label="RAM">
@@ -63,13 +65,13 @@ export function ContainerStatsPane({ container: c }: Props) {
               {(info.cpu_usage_ns ?? 0) / 1e9} s gesamt
             </div>
             <p className="mt-1 text-[11px] text-zinc-500">
-              {c.cpu ? `Limit: ${c.cpu} vCPU` : "Kein Limit"}
+              {c.cpu ? t("spec.cpu_limit", { cpu: c.cpu }) : t("spec.no_limit")}
             </p>
           </Card>
 
           <Card icon={<Network size={14} className="text-violet-400" />} label="Netzwerk">
             <div className="font-mono text-xs text-zinc-300">
-              {info.ipv4 ?? "(keine IPv4)"} — {c.network_mode}
+              {info.ipv4 ?? t("spec.no_ipv4")} — {c.network_mode}
             </div>
           </Card>
         </>

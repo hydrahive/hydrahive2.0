@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Terminal } from "xterm"
 import { FitAddon } from "xterm-addon-fit"
 import "xterm/css/xterm.css"
@@ -12,6 +13,7 @@ interface Props {
 export type ConsoleStatus = "connecting" | "connected" | "closed"
 
 export function ConsolePane({ containerId, className }: Props) {
+  const { t } = useTranslation("containers")
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const [status, setStatus] = useState<ConsoleStatus>("connecting")
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +22,7 @@ export function ConsolePane({ containerId, className }: Props) {
     if (!wrapRef.current) return
     const token = useAuthStore.getState().token
     if (!token) {
-      setError("Nicht angemeldet")
+      setError(t("console.error_not_logged_in"))
       setStatus("closed")
       return
     }
@@ -50,13 +52,13 @@ export function ConsolePane({ containerId, className }: Props) {
       if (ev.data instanceof ArrayBuffer) term.write(new Uint8Array(ev.data))
       else if (typeof ev.data === "string") term.write(ev.data)
     }
-    ws.onerror = () => setError("Verbindung fehlgeschlagen")
+    ws.onerror = () => setError(t("console.error_connection"))
     ws.onclose = (ev) => {
       setStatus("closed")
-      if (ev.code === 4401) setError("Nicht autorisiert")
-      else if (ev.code === 4404) setError("Container nicht gefunden")
-      else if (ev.code === 4409) setError("Container läuft nicht")
-      else if (ev.code === 4500) setError("Backend-Fehler")
+      if (ev.code === 4401) setError(t("console.error_unauthorized"))
+      else if (ev.code === 4404) setError(t("console.error_not_found"))
+      else if (ev.code === 4409) setError(t("console.error_not_running"))
+      else if (ev.code === 4500) setError(t("console.error_backend"))
     }
 
     const onData = term.onData((data) => {

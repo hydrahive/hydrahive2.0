@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { RefreshCw } from "lucide-react"
 import { containersApi } from "./api"
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export function ContainerLogPane({ containerId }: Props) {
+  const { t } = useTranslation("containers")
   const [text, setText] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -16,7 +18,7 @@ export function ContainerLogPane({ containerId }: Props) {
     setLoading(true)
     try {
       const r = await containersApi.log(containerId)
-      setText(r.text || "(leer)")
+      setText(r.text || t("logs.empty"))
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -36,12 +38,12 @@ export function ContainerLogPane({ containerId }: Props) {
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/[8%] flex-shrink-0">
-        <p className="text-xs text-zinc-400">Lifecycle-Log (incus info --show-log)</p>
+        <p className="text-xs text-zinc-400">{t("logs.lifecycle_title")}</p>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-[11px] text-zinc-400">
             <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)}
               className="accent-violet-500" />
-            Auto-Refresh
+            {t("logs.auto_refresh")}
           </label>
           <button onClick={load} disabled={loading}
             className="p-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-400 hover:text-zinc-200 disabled:opacity-40">

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { X } from "lucide-react"
 import type { ContainerCreateInput, NetworkMode } from "./types"
 import { containersApi } from "./api"
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function CreateContainerDialog({ onClose, onCreated }: Props) {
+  const { t } = useTranslation("containers")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("debian/12")
@@ -28,8 +30,8 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
   const validName = /^[a-zA-Z][a-zA-Z0-9-]{0,62}$/.test(name)
 
   async function submit() {
-    if (!validName) { setError("Name: 1–63 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"); return }
-    if (!image.trim()) { setError("Image fehlt"); return }
+    if (!validName) { setError(t("create.error_name_invalid")); return }
+    if (!image.trim()) { setError(t("create.error_image_missing")); return }
     setBusy(true); setError(null)
     try {
       const input: ContainerCreateInput = {
@@ -58,17 +60,17 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
           <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"><X size={16} /></button>
         </div>
         <div className="overflow-y-auto px-5 py-4 space-y-5">
-          <Field label="Name" hint="z.B. searxng, vaultwarden, linkding">
+          <Field label={t("create.field_name")} hint={t("create.field_name_hint")}>
             <input value={name} onChange={(e) => setName(e.target.value)}
               placeholder="searxng"
               className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none" />
           </Field>
-          <Field label="Beschreibung (optional)">
+          <Field label={t("create.field_desc")}>
             <input value={description} onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none" />
           </Field>
 
-          <Field label="Image">
+          <Field label={t("create.field_image")}>
             {customImage ? (
               <input value={image} onChange={(e) => setImage(e.target.value)}
                 placeholder="z.B. images:ubuntu/24.04 oder ubuntu/24.04"
@@ -87,18 +89,18 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
             )}
             <button type="button" onClick={() => setCustomImage(!customImage)}
               className="mt-1 text-[11px] text-zinc-500 hover:text-zinc-300">
-              {customImage ? "← Quick-Liste" : "Custom Image-Alias eingeben"}
+              {customImage ? t("create.back_to_list") : t("create.custom_image_label")}
             </button>
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="CPU-Limit (optional)" hint="leer = unbegrenzt">
+            <Field label={t("create.field_cpu")} hint={t("create.field_cpu_hint")}>
               <input type="number" min={1} max={16} value={cpu}
                 onChange={(e) => setCpu(e.target.value === "" ? "" : Math.max(1, Math.min(16, parseInt(e.target.value, 10) || 1)))}
                 placeholder="—"
                 className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none" />
             </Field>
-            <Field label="RAM-Limit MB (optional)" hint="leer = unbegrenzt">
+            <Field label={t("create.field_ram")} hint={t("create.field_ram_hint")}>
               <input type="number" min={64} max={32768} step={64} value={ramMb}
                 onChange={(e) => setRamMb(e.target.value === "" ? "" : Math.max(64, Math.min(32768, parseInt(e.target.value, 10) || 64)))}
                 placeholder="—"
@@ -106,12 +108,12 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
             </Field>
           </div>
 
-          <Field label="Netzwerk">
+          <Field label={t("create.field_network")}>
             <div className="grid grid-cols-2 gap-2">
               <RadioCard active={network === "bridged"} onClick={() => setNetwork("bridged")}
-                title="Bridged (br0)" desc="Container bekommt DHCP-IP aus dem LAN — wie VMs" />
+                title={t("create.network_bridged_title")} desc={t("create.network_bridged_desc")} />
               <RadioCard active={network === "isolated"} onClick={() => setNetwork("isolated")}
-                title="Isoliert" desc="Kein Netzwerk-Zugang" />
+                title={t("create.network_isolated_title")} desc={t("create.network_isolated_desc")} />
             </div>
           </Field>
 
@@ -124,7 +126,7 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
           </button>
           <button onClick={submit} disabled={busy || !validName}
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40">
-            {busy ? "Erstelle…" : "Container erstellen"}
+            {busy ? t("create.submitting") : t("create.submit")}
           </button>
         </div>
       </div>
