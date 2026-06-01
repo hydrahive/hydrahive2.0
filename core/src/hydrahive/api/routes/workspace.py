@@ -10,6 +10,7 @@ from hydrahive.agents import config as agents_config
 from hydrahive.agents._paths import ensure_workspace
 from hydrahive.workspace._paths import resolve_in_workspace, WorkspacePathError
 from hydrahive.workspace._tree import list_dir, read_file, write_file
+from hydrahive.workspace import _git_status as gs
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
 
@@ -106,3 +107,68 @@ def get_raw(
         "X-Content-Type-Options": "nosniff",
     }
     return FileResponse(abs_path, media_type=media_type, filename=abs_path.name, headers=headers)
+
+
+@router.get("/git/status")
+def git_status(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    agent_id: str = Query(...),
+) -> dict:
+    root = _root_for(agent_id, auth)
+    return gs.status(root)
+
+
+@router.get("/git/diff")
+def git_diff(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    agent_id: str = Query(...),
+    file: str = Query(...),
+) -> dict:
+    root = _root_for(agent_id, auth)
+    try:
+        resolve_in_workspace(root, file)
+    except WorkspacePathError:
+        raise HTTPException(status_code=403, detail="path_outside_workspace")
+    return {"diff": gs.diff(root, file)}
+
+
+class StageBody(BaseModel):
+    agent_id: str
+    file: str
+    staged: bool
+
+
+@router.post("/git/stage")
+def git_stage(
+    body: StageBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    root = _root_for(body.agent_id, auth)
+    try:
+        resolve_in_workspace(root, body.file)
+    except WorkspacePathError:
+        raise HTTPException(status_code=403, detail="path_outside_workspace")
+    try:
+        gs.stage(root, body.file, body.staged)
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}
+
+
+class CommitBody(BaseModel):
+    agent_id: str
+    message: str
+
+
+@router.post("/git/commit")
+def git_commit(
+    body: CommitBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    if not body.message.strip():
+        raise HTTPException(status_code=400, detail="empty_message")
+    root = _root_for(body.agent_id, auth)
+    try:
+        return {"sha": gs.commit(root, body.message)}
+    except RuntimeError as e:
+        raise HTTPException(status_code=400, detail=str(e))

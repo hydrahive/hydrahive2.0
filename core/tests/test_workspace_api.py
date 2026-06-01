@@ -51,3 +51,23 @@ def test_raw_rejects_traversal(client, admin_headers):
     agent = _agent(client, admin_headers)
     res = client.get(f"/api/workspace/raw?agent_id={agent['id']}&path=../../etc/passwd", headers=admin_headers)
     assert res.status_code == 403
+
+
+def test_git_status_no_repo(client, admin_headers):
+    agent = _agent(client, admin_headers)
+    res = client.get(f"/api/workspace/git/status?agent_id={agent['id']}", headers=admin_headers)
+    assert res.status_code == 200, res.text
+    assert res.json()["is_repo"] is False
+
+
+def test_git_commit_empty_message_rejected(client, admin_headers):
+    agent = _agent(client, admin_headers)
+    res = client.post("/api/workspace/git/commit", headers=admin_headers,
+                      json={"agent_id": agent["id"], "message": "  "})
+    assert res.status_code == 400
+
+
+def test_git_status_rejects_foreign_agent(client, admin_headers, auth_headers):
+    agent = _agent(client, admin_headers)
+    res = client.get(f"/api/workspace/git/status?agent_id={agent['id']}", headers=auth_headers)
+    assert res.status_code == 404
