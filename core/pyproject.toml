@@ -24,7 +24,14 @@ dependencies = [
     "discord.py>=2.3",
     "asyncpg>=0.29",
     "pytest>=9.0",
+    "pytest-asyncio>=1.4",
 ]
+
+[tool.pytest.ini_options]
+# asyncio_mode=auto: `async def test_*` laufen ohne expliziten Marker (die
+# vorhandenen @pytest.mark.asyncio bleiben gültig). Ohne pytest-asyncio wurden
+# alle async-Tests (TTS/wyoming/generate_music) als Fehler übersprungen.
+asyncio_mode = "auto"
 
 [project.scripts]
 hydrahive = "hydrahive.api.main:run"
