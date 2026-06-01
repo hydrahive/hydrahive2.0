@@ -90,4 +90,9 @@ export const butlerLegacyApi = {
     const updated = await api.put<BackendFlow>(`/butler/flows/${id}`, body)
     return { enabled: updated.enabled }
   },
+  dryRun: async (id: string, event: Record<string, unknown>): Promise<{
+    matched: boolean; actions_executed: { subtype: string }[]
+  }> => {
+    return api.post(`/butler/flows/${id}/dry_run`, { event })
+  },
 }

@@ -19,7 +19,7 @@ function ButlerPageInner() {
     flows, activeFlowId, flowName, flowEnabled, saving, toast, projectId,
     nodes, edges, onNodesChange, onEdgesChange,
     selectedNode, agents,
-    loadFlow, newFlow, saveFlow, deleteFlow, toggleFlow,
+    loadFlow, newFlow, saveFlow, deleteFlow, toggleFlow, dryRunFlow,
     onConnect, onDrop, onDragOver, onNodeClick, onPaneClick,
     updateParams, deleteSelected, setFlowName,
   } = useButlerFlow()
@@ -33,7 +33,7 @@ function ButlerPageInner() {
         flowName={flowName} flowEnabled={flowEnabled} saving={saving}
         onSelectFlow={f => f ? loadFlow(f) : newFlow()}
         onNameChange={setFlowName} onToggle={toggleFlow}
-        onNew={newFlow} onSave={saveFlow} onDelete={deleteFlow}
+        onNew={newFlow} onSave={saveFlow} onDelete={deleteFlow} onDryRun={dryRunFlow}
       />
       {toast && (
         <div className="px-4 py-1.5 bg-indigo-900/40 border-b border-indigo-500/30 text-sm text-indigo-200">

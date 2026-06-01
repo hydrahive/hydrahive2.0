@@ -99,6 +99,19 @@ export function useButlerFlow() {
     } catch (e) { showToast(e instanceof Error ? e.message : t("toast_error")) }
   }
 
+  const dryRunFlow = async () => {
+    // dry_run braucht einen serverseitig gespeicherten Flow (flow_id).
+    if (!activeFlowId) { showToast(t("dry_run_save_first")); return }
+    try {
+      const res = await butlerLegacyApi.dryRun(activeFlowId, {
+        event_type: "message", channel: "all", message_text: "test",
+      })
+      showToast(res.matched
+        ? t("dry_run_matched", { count: res.actions_executed.length })
+        : t("dry_run_no_match"))
+    } catch (e) { showToast(e instanceof Error ? e.message : t("toast_error")) }
+  }
+
   const onConnect = useCallback((c: Connection) => {
     setEdges(es => addEdge({ ...c, animated: true, style: { stroke: "#6366f1", strokeWidth: 2 } }, es))
   }, [setEdges])
@@ -134,7 +147,7 @@ export function useButlerFlow() {
     flows, activeFlowId, flowName, flowEnabled, saving, toast, projectId,
     nodes, edges, onNodesChange, onEdgesChange,
     selectedNode, agents,
-    loadFlow, newFlow, saveFlow, deleteFlow, toggleFlow,
+    loadFlow, newFlow, saveFlow, deleteFlow, toggleFlow, dryRunFlow,
     onConnect, onDrop, onDragOver, onNodeClick, onPaneClick,
     updateParams, deleteSelected, setFlowName,
   }

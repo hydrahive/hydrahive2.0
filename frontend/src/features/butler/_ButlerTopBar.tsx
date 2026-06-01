@@ -1,4 +1,4 @@
-import { Plus, Save, ToggleLeft, ToggleRight, Trash2, Workflow } from "lucide-react"
+import { Play, Plus, Save, ToggleLeft, ToggleRight, Trash2, Workflow } from "lucide-react"
 import { cn } from "@/shared/cn"
 import { useTranslation } from "react-i18next"
 import type { ButlerFlow } from "./types"
@@ -16,11 +16,12 @@ interface Props {
   onNew: () => void
   onSave: () => void
   onDelete: () => void
+  onDryRun: () => void
 }
 
 export function ButlerTopBar({
   flows, activeFlowId, projectId, flowName, flowEnabled, saving,
-  onSelectFlow, onNameChange, onToggle, onNew, onSave, onDelete,
+  onSelectFlow, onNameChange, onToggle, onNew, onSave, onDelete, onDryRun,
 }: Props) {
   const { t } = useTranslation("butler")
 
@@ -85,6 +86,15 @@ export function ButlerTopBar({
         <Save className="h-3.5 w-3.5" />
         {saving ? "Speichert…" : "Speichern"}
       </button>
+
+      {activeFlowId && (
+        <button type="button" onClick={onDryRun} title={t("dry_run_hint")}
+          className="flex items-center gap-1.5 rounded-lg border border-white/[8%] px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-white/[5%] transition-colors"
+        >
+          <Play className="h-3.5 w-3.5" />
+          {t("dry_run")}
+        </button>
+      )}
 
       {activeFlowId && (
         <button type="button" onClick={onDelete}
