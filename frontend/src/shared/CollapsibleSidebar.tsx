@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface CollapsibleSidebarProps {
   children: React.ReactNode
@@ -8,6 +9,7 @@ interface CollapsibleSidebarProps {
 
 export function CollapsibleSidebar({ children, defaultOpen = false }: CollapsibleSidebarProps) {
   const [open, setOpen] = useState(defaultOpen)
+  const { t } = useTranslation("nav")
 
   return (
     <>
@@ -17,7 +19,7 @@ export function CollapsibleSidebar({ children, defaultOpen = false }: Collapsibl
         className={`fixed top-20 z-50 flex items-center justify-center w-6 h-12 rounded-l-lg bg-zinc-800/90 border border-white/10 border-r-0 shadow-lg transition-all duration-300 ${
           open ? "right-[18rem]" : "right-0"
         }`}
-        title={open ? "Seitenleiste verstecken" : "Seitenleiste anzeigen"}
+        title={open ? t("sidebar.hide") : t("sidebar.show")}
       >
         {open ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>

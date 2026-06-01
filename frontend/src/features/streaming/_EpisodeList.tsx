@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Download } from "lucide-react"
 import type { Episode, ScrapeResult } from "./types"
 
@@ -14,6 +15,7 @@ interface Props {
 export function EpisodeList({
   result, selected, onToggle, onSelectAll, onClearAll, onDownload, downloading
 }: Props) {
+  const { t } = useTranslation("streaming")
   const allSelected = selected.size === result.episodes.length
 
   return (
@@ -30,7 +32,7 @@ export function EpisodeList({
             onClick={allSelected ? onClearAll : onSelectAll}
             className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
           >
-            {allSelected ? "Alle abwählen" : "Alle wählen"}
+            {allSelected ? t("deselect_all") : t("select_all")}
           </button>
           <button
             onClick={onDownload}
@@ -38,7 +40,7 @@ export function EpisodeList({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white transition-colors"
           >
             <Download size={12} />
-            {downloading ? "Startet…" : `${selected.size} laden`}
+            {downloading ? t("starting") : t("download", { count: selected.size })}
           </button>
         </div>
       </div>

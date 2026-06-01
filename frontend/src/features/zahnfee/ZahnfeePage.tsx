@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Loader2, Play, Save, RotateCcw } from "lucide-react"
 import { zahnfeeApi, type ZahnfeeConfig, type Briefing } from "./api"
 import { ModelPicker } from "@/features/chat/ModelPicker"
@@ -14,42 +15,28 @@ function Section({ title, content, accent }: { title: string; content: string; a
 }
 
 function BriefingPreview({ briefing }: { briefing: Briefing }) {
+  const { t } = useTranslation("zahnfee")
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-zinc-500">
-        Generiert: {new Date(briefing.generated_at).toLocaleString("de")} · Stand: {briefing.date}
+        {t("briefing.generated_at")}: {new Date(briefing.generated_at).toLocaleString()} · {t("briefing.date")}: {briefing.date}
       </p>
       {briefing.error && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4">
-          <p className="text-xs font-semibold text-rose-400 mb-1">Fehler</p>
+          <p className="text-xs font-semibold text-rose-400 mb-1">{t("briefing.error")}</p>
           <p className="text-sm text-rose-300 font-mono">{briefing.error}</p>
         </div>
       )}
-      <Section
-        title="Offen"
-        content={briefing.open_items}
-        accent="border-amber-500/20 bg-amber-500/5 text-amber-200"
-      />
-      <Section
-        title="Gut gelaufen"
-        content={briefing.went_well}
-        accent="border-emerald-500/20 bg-emerald-500/5 text-emerald-200"
-      />
-      <Section
-        title="Schlecht gelaufen"
-        content={briefing.went_badly}
-        accent="border-rose-500/20 bg-rose-500/5 text-rose-200"
-      />
-      <Section
-        title="Heute relevant"
-        content={briefing.today}
-        accent="border-violet-500/20 bg-violet-500/5 text-violet-200"
-      />
+      <Section title={t("briefing.sections.open")} content={briefing.open_items} accent="border-amber-500/20 bg-amber-500/5 text-amber-200" />
+      <Section title={t("briefing.sections.went_well")} content={briefing.went_well} accent="border-emerald-500/20 bg-emerald-500/5 text-emerald-200" />
+      <Section title={t("briefing.sections.went_badly")} content={briefing.went_badly} accent="border-rose-500/20 bg-rose-500/5 text-rose-200" />
+      <Section title={t("briefing.sections.today")} content={briefing.today} accent="border-violet-500/20 bg-violet-500/5 text-violet-200" />
     </div>
   )
 }
 
 export function ZahnfeePage() {
+  const { t } = useTranslation("zahnfee")
   const [cfg, setCfg] = useState<ZahnfeeConfig | null>(null)
   const [briefing, setBriefing] = useState<Briefing | null>(null)
   const [saving, setSaving] = useState(false)
@@ -98,35 +85,33 @@ export function ZahnfeePage() {
         <span className="text-4xl">🦷</span>
         <div>
           <h1 className="text-xl font-bold text-zinc-100">Zahnfee</h1>
-          <p className="text-sm text-zinc-500">Nacht-Agent für dein Morgen-Briefing</p>
+          <p className="text-sm text-zinc-500">{t("subtitle")}</p>
         </div>
       </div>
 
       {/* Aktuelles Briefing */}
       <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-zinc-300">Aktuelles Briefing</h2>
+          <h2 className="text-sm font-semibold text-zinc-300">{t("briefing.title")}</h2>
           <button
             onClick={runNow}
             disabled={running}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-medium transition-colors"
           >
             {running ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
-            {running ? "Läuft…" : "Jetzt generieren"}
+            {running ? t("briefing.running") : t("briefing.run_now")}
           </button>
         </div>
         {briefing ? (
           <BriefingPreview briefing={briefing} />
         ) : (
-          <p className="text-sm text-zinc-500 italic">
-            Noch kein Briefing vorhanden — klicke auf "Jetzt generieren" zum Testen.
-          </p>
+          <p className="text-sm text-zinc-500 italic">{t("briefing.empty")}</p>
         )}
       </div>
 
       {/* Config */}
       <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-6 flex flex-col gap-5">
-        <h2 className="text-sm font-semibold text-zinc-300">Einstellungen</h2>
+        <h2 className="text-sm font-semibold text-zinc-300">{t("config.title")}</h2>
 
         {/* Aktiviert */}
         <label className="flex items-center gap-3 cursor-pointer">
@@ -136,15 +121,15 @@ export function ZahnfeePage() {
             onChange={(e) => setCfg({ ...cfg, enabled: e.target.checked })}
             className="w-4 h-4 accent-violet-500"
           />
-          <span className="text-sm text-zinc-300">Zahnfee aktiviert</span>
+          <span className="text-sm text-zinc-300">{t("config.enabled")}</span>
         </label>
 
         {/* Modell */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Modell</label>
+          <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.model")}</label>
           <ModelPicker
             current={cfg.model}
-            hint="Standard-Modell verwenden"
+            hint={t("config.model_hint")}
             showReset
             onPick={(m) => setCfg({ ...cfg, model: m })}
             onReset={() => setCfg({ ...cfg, model: "" })}
@@ -154,7 +139,7 @@ export function ZahnfeePage() {
         {/* Uhrzeit + Lookback */}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Uhrzeit (Stunde, 0–23)</label>
+            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.run_hour")}</label>
             <input
               type="number"
               min={0}
@@ -165,7 +150,7 @@ export function ZahnfeePage() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Lookback (Stunden)</label>
+            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.lookback")}</label>
             <input
               type="number"
               min={1}
@@ -179,7 +164,7 @@ export function ZahnfeePage() {
 
         {/* Quellen */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Quellen</label>
+          <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.sources")}</label>
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -187,7 +172,7 @@ export function ZahnfeePage() {
               onChange={(e) => setCfg({ ...cfg, source_datamining: e.target.checked })}
               className="w-4 h-4 accent-violet-500"
             />
-            <span className="text-sm text-zinc-300">Datamining (Chat-Events)</span>
+            <span className="text-sm text-zinc-300">{t("config.source_datamining")}</span>
           </label>
           <label className="flex items-center gap-3 cursor-pointer opacity-50">
             <input
@@ -196,20 +181,20 @@ export function ZahnfeePage() {
               onChange={(e) => setCfg({ ...cfg, source_mail: e.target.checked })}
               className="w-4 h-4 accent-violet-500"
             />
-            <span className="text-sm text-zinc-300">E-Mail <span className="text-zinc-600 text-xs">(noch nicht verfügbar)</span></span>
+            <span className="text-sm text-zinc-300">{t("config.source_mail")} <span className="text-zinc-600 text-xs">{t("config.source_mail_unavailable")}</span></span>
           </label>
         </div>
 
         {/* Soul */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Soul / System-Prompt</label>
+            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.soul")}</label>
             <button
               onClick={() => setCfg({ ...cfg, soul: "" })}
               className="flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-              title="Auf Standard zurücksetzen"
+              title={t("config.soul_reset")}
             >
-              <RotateCcw size={11} /> Reset
+              <RotateCcw size={11} /> {t("config.soul_reset_short")}
             </button>
           </div>
           <textarea
@@ -226,7 +211,7 @@ export function ZahnfeePage() {
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-sm font-medium transition-colors"
         >
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          {saved ? "Gespeichert ✓" : "Speichern"}
+          {saved ? t("config.saved") : saving ? t("config.saving") : t("config.save")}
         </button>
       </div>
     </div>

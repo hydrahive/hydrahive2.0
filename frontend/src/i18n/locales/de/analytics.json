@@ -1,0 +1,49 @@
+{
+  "open_in_chat": "Im Chat öffnen",
+  "loading": "…",
+  "error": "Fehler: {{message}}",
+  "metrics": {
+    "llm_calls": "LLM-Calls",
+    "input_tokens": "Input Tokens",
+    "output_tokens": "Output Tokens",
+    "cache_read": "Cache Read",
+    "cache_creation": "Cache Creation",
+    "cache_hit": "Cache-Hit",
+    "cost": "Kosten",
+    "llm_time": "LLM-Zeit",
+    "tool_calls": "Tool-Calls",
+    "tool_errors": "Tool-Fehler",
+    "compactions": "Compactions",
+    "errors": "Fehler"
+  },
+  "sections": {
+    "llm_calls": "LLM-Calls ({{count}})",
+    "tool_calls": "Tool-Calls ({{count}})",
+    "compactions": "Compactions ({{count}})",
+    "errors": "Fehler ({{count}})"
+  },
+  "table": {
+    "iteration": "Iteration",
+    "it": "It.",
+    "time": "Zeit",
+    "model": "Modell",
+    "input": "Input",
+    "output": "Output",
+    "cache_rc": "Cache R/C",
+    "duration": "Dauer",
+    "cost": "Kosten",
+    "stop": "Stop",
+    "tool": "Tool",
+    "status": "Status",
+    "args": "Args",
+    "result": "Result",
+    "args_preview": "Args-Preview",
+    "trigger": "Trigger",
+    "skip": "Skip?",
+    "msgs_before": "Msgs vorher",
+    "msgs_kept": "Msgs gekept",
+    "tokens_before": "Tokens vorher",
+    "tokens_after": "Tokens nachher",
+    "no": "nein"
+  }
+}

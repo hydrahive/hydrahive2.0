@@ -1,0 +1,26 @@
+{
+  "title": "Streaming Downloader",
+  "subtitle": "Ghostflix → Plex",
+  "url_placeholder": "https://ghostflix.tv/videos/series-season-1/",
+  "load_episodes": "Load episodes",
+  "loading": "Loading…",
+  "error_download": "Download error",
+  "select_all": "Select all",
+  "deselect_all": "Deselect all",
+  "download": "Download {{count}}",
+  "starting": "Starting…",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "credentials": {
+    "title": "Ghostflix Login",
+    "email": "Email / Username",
+    "password": "Password",
+    "password_placeholder_existing": "••••••• (leave empty = unchanged)",
+    "password_placeholder_new": "Ghostflix password",
+    "plex_path": "Plex output path",
+    "plex_hint": "Series go to:",
+    "save": "Save",
+    "saving": "Saving…",
+    "error": "Error saving"
+  }
+}

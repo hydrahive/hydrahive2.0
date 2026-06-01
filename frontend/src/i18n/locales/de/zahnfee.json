@@ -1,0 +1,36 @@
+{
+  "subtitle": "Nacht-Agent für dein Morgen-Briefing",
+  "briefing": {
+    "title": "Aktuelles Briefing",
+    "generated_at": "Generiert",
+    "date": "Stand",
+    "error": "Fehler",
+    "empty": "Noch kein Briefing vorhanden — klicke auf \"Jetzt generieren\" zum Testen.",
+    "run_now": "Jetzt generieren",
+    "running": "Läuft…",
+    "sections": {
+      "open": "Offen",
+      "went_well": "Gut gelaufen",
+      "went_badly": "Schlecht gelaufen",
+      "today": "Heute relevant"
+    }
+  },
+  "config": {
+    "title": "Einstellungen",
+    "enabled": "Zahnfee aktiviert",
+    "model": "Modell",
+    "model_hint": "Standard-Modell verwenden",
+    "run_hour": "Uhrzeit (Stunde, 0–23)",
+    "lookback": "Lookback (Stunden)",
+    "sources": "Quellen",
+    "source_datamining": "Datamining (Chat-Events)",
+    "source_mail": "E-Mail",
+    "source_mail_unavailable": "(noch nicht verfügbar)",
+    "soul": "Soul / System-Prompt",
+    "soul_reset": "Auf Standard zurücksetzen",
+    "soul_reset_short": "Reset",
+    "save": "Speichern",
+    "saving": "Speichert…",
+    "saved": "Gespeichert ✓"
+  }
+}

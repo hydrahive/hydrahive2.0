@@ -1,0 +1,49 @@
+{
+  "open_in_chat": "Open in chat",
+  "loading": "…",
+  "error": "Error: {{message}}",
+  "metrics": {
+    "llm_calls": "LLM Calls",
+    "input_tokens": "Input Tokens",
+    "output_tokens": "Output Tokens",
+    "cache_read": "Cache Read",
+    "cache_creation": "Cache Creation",
+    "cache_hit": "Cache Hit",
+    "cost": "Cost",
+    "llm_time": "LLM Time",
+    "tool_calls": "Tool Calls",
+    "tool_errors": "Tool Errors",
+    "compactions": "Compactions",
+    "errors": "Errors"
+  },
+  "sections": {
+    "llm_calls": "LLM Calls ({{count}})",
+    "tool_calls": "Tool Calls ({{count}})",
+    "compactions": "Compactions ({{count}})",
+    "errors": "Errors ({{count}})"
+  },
+  "table": {
+    "iteration": "Iteration",
+    "it": "It.",
+    "time": "Time",
+    "model": "Model",
+    "input": "Input",
+    "output": "Output",
+    "cache_rc": "Cache R/C",
+    "duration": "Duration",
+    "cost": "Cost",
+    "stop": "Stop",
+    "tool": "Tool",
+    "status": "Status",
+    "args": "Args",
+    "result": "Result",
+    "args_preview": "Args Preview",
+    "trigger": "Trigger",
+    "skip": "Skip?",
+    "msgs_before": "Msgs before",
+    "msgs_kept": "Msgs kept",
+    "tokens_before": "Tokens before",
+    "tokens_after": "Tokens after",
+    "no": "no"
+  }
+}

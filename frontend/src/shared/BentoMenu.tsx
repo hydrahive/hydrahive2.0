@@ -44,7 +44,7 @@ export function BentoMenu({ open, onClose }: Props) {
       >
         <div className="flex items-center gap-2 px-2 pb-2 mb-2 border-b border-white/[6%]">
           <Grip size={13} className="text-zinc-500" />
-          <p className="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold">Apps</p>
+          <p className="text-[11px] uppercase tracking-wider text-zinc-500 font-semibold">{t("apps_menu")}</p>
         </div>
 
         {NAV_GROUPS.map((group) => {

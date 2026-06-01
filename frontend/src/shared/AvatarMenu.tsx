@@ -44,7 +44,7 @@ export function AvatarMenu() {
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 hover:bg-white/[5%]"
             >
               <User size={13} />
-              <span>Profil</span>
+              <span>{t("profile")}</span>
             </Link>
           </div>
           <div className="px-3 py-2 border-t border-white/[6%]">

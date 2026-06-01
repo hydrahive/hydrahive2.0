@@ -1,0 +1,36 @@
+{
+  "subtitle": "Night agent for your morning briefing",
+  "briefing": {
+    "title": "Current Briefing",
+    "generated_at": "Generated",
+    "date": "As of",
+    "error": "Error",
+    "empty": "No briefing yet — click \"Generate now\" to test.",
+    "run_now": "Generate now",
+    "running": "Running…",
+    "sections": {
+      "open": "Open",
+      "went_well": "Went well",
+      "went_badly": "Went badly",
+      "today": "Relevant today"
+    }
+  },
+  "config": {
+    "title": "Settings",
+    "enabled": "Zahnfee enabled",
+    "model": "Model",
+    "model_hint": "Use default model",
+    "run_hour": "Time (hour, 0–23)",
+    "lookback": "Lookback (hours)",
+    "sources": "Sources",
+    "source_datamining": "Datamining (chat events)",
+    "source_mail": "Email",
+    "source_mail_unavailable": "(not yet available)",
+    "soul": "Soul / System Prompt",
+    "soul_reset": "Reset to default",
+    "soul_reset_short": "Reset",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved ✓"
+  }
+}

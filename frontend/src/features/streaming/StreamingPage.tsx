@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Film, Search } from "lucide-react"
 import { streamingApi } from "./api"
 import type { ScrapeResult, StreamingCredentials, StreamingJob } from "./types"
@@ -7,6 +8,7 @@ import { EpisodeList } from "./_EpisodeList"
 import { JobList } from "./_JobList"
 
 export function StreamingPage() {
+  const { t } = useTranslation("streaming")
   const [creds, setCreds] = useState<StreamingCredentials | null>(null)
   const [url, setUrl] = useState("")
   const [scraping, setScraping] = useState(false)
@@ -80,7 +82,7 @@ export function StreamingPage() {
       setSelected(new Set())
       setUrl("")
     } catch (err: any) {
-      setScrapeError(err?.message ?? "Download-Fehler")
+      setScrapeError(err?.message ?? t("error_download"))
     } finally {
       setDownloading(false)
     }
@@ -91,8 +93,8 @@ export function StreamingPage() {
       <div className="flex items-center gap-3">
         <Film className="text-violet-400" size={20} />
         <div>
-          <h1 className="text-xl font-semibold text-zinc-100">Streaming-Downloader</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Ghostflix → Plex</p>
+          <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">{t("subtitle")}</p>
         </div>
       </div>
 
@@ -102,7 +104,7 @@ export function StreamingPage() {
         <form onSubmit={handleScrape} className="flex gap-2">
           <input
             className="flex-1 bg-zinc-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50"
-            placeholder="https://ghostflix.tv/videos/serie-staffel-1/"
+            placeholder={t("url_placeholder")}
             value={url}
             onChange={e => setUrl(e.target.value)}
             required
@@ -113,7 +115,7 @@ export function StreamingPage() {
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white transition-colors flex-shrink-0"
           >
             <Search size={14} />
-            {scraping ? "Lade…" : "Episoden laden"}
+            {scraping ? t("loading") : t("load_episodes")}
           </button>
         </form>
       )}

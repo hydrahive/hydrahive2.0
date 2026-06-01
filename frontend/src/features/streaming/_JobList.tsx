@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { CheckCircle, Clock, Download, Trash2, X, XCircle, SkipForward } from "lucide-react"
 import type { StreamingJob } from "./types"
 import { streamingApi } from "./api"
@@ -19,6 +20,7 @@ const DELETABLE = new Set(["done", "error", "skipped"])
 const CANCELLABLE = new Set(["pending", "downloading"])
 
 export function JobList({ jobs, onDeleted }: Props) {
+  const { t } = useTranslation("streaming")
   if (jobs.length === 0) return null
 
   async function deleteJob(id: string) {
@@ -84,7 +86,7 @@ export function JobList({ jobs, onDeleted }: Props) {
                 <button
                   onClick={() => cancelJob(job.id)}
                   className="text-zinc-700 hover:text-amber-400 transition-colors"
-                  title="Abbrechen"
+                  title={t("cancel")}
                 >
                   <X size={12} />
                 </button>
@@ -93,7 +95,7 @@ export function JobList({ jobs, onDeleted }: Props) {
                 <button
                   onClick={() => deleteJob(job.id)}
                   className="text-zinc-700 hover:text-rose-400 transition-colors"
-                  title="Löschen"
+                  title={t("delete")}
                 >
                   <Trash2 size={12} />
                 </button>

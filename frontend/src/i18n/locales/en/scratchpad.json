@@ -1,0 +1,13 @@
+{
+  "title": "Scratchpad",
+  "saved": "saved",
+  "saving": "saving…",
+  "my_ideas": "My Ideas",
+  "placeholder": "Ideas, notes, tasks (Markdown, `- [ ]` for checkboxes)…",
+  "empty_preview": "_(empty)_",
+  "agent_notes": "Agent Notes",
+  "agent_notes_hint": "(only the agent writes here)",
+  "agent_notes_empty": "_(no agent notes yet)_",
+  "clear": "Clear",
+  "clear_confirm": "Really clear agent notes?"
+}

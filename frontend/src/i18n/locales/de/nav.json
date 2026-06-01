@@ -37,6 +37,11 @@
     "wiki": "Wiki",
     "help": "Hilfe"
   },
+  "apps_menu": "Apps",
+  "sidebar": {
+    "show": "Seitenleiste anzeigen",
+    "hide": "Seitenleiste verstecken"
+  },
   "online": "Online",
   "help_button": "Seiten-Hilfe öffnen",
   "update": {

@@ -37,6 +37,11 @@
     "wiki": "Wiki",
     "help": "Help"
   },
+  "apps_menu": "Apps",
+  "sidebar": {
+    "show": "Show sidebar",
+    "hide": "Hide sidebar"
+  },
   "online": "Online",
   "help_button": "Open page help",
   "update": {

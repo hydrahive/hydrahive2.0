@@ -1,0 +1,26 @@
+{
+  "title": "Streaming-Downloader",
+  "subtitle": "Ghostflix → Plex",
+  "url_placeholder": "https://ghostflix.tv/videos/serie-staffel-1/",
+  "load_episodes": "Episoden laden",
+  "loading": "Lade…",
+  "error_download": "Download-Fehler",
+  "select_all": "Alle wählen",
+  "deselect_all": "Alle abwählen",
+  "download": "{{count}} laden",
+  "starting": "Startet…",
+  "cancel": "Abbrechen",
+  "delete": "Löschen",
+  "credentials": {
+    "title": "Ghostflix-Login",
+    "email": "E-Mail / Benutzername",
+    "password": "Passwort",
+    "password_placeholder_existing": "••••••• (leer = unverändert)",
+    "password_placeholder_new": "Ghostflix-Passwort",
+    "plex_path": "Plex-Ausgabepfad",
+    "plex_hint": "Serien landen in:",
+    "save": "Speichern",
+    "saving": "Speichern…",
+    "error": "Fehler beim Speichern"
+  }
+}

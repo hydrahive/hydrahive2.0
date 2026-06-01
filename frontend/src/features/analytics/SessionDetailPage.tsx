@@ -1,9 +1,11 @@
 import { ArrowLeft, MessageSquare } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router-dom"
 import { analyticsApi, type SessionDetail } from "./api"
 
 export function SessionDetailPage() {
+  const { t } = useTranslation("analytics")
   const { sid } = useParams<{ sid: string }>()
   const [data, setData] = useState<SessionDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -17,8 +19,8 @@ export function SessionDetailPage() {
     return () => { alive = false }
   }, [sid])
 
-  if (error) return <div className="p-4 text-red-400">Fehler: {error}</div>
-  if (!data) return <div className="p-4 text-zinc-500">…</div>
+  if (error) return <div className="p-4 text-red-400">{t("error", { message: error })}</div>
+  if (!data) return <div className="p-4 text-zinc-500">{t("loading")}</div>
 
   const s = data.session
   const m = data.metrics
@@ -39,31 +41,31 @@ export function SessionDetailPage() {
           <Link to={`/werkstatt?session=${s.id}`}
             className="text-xs px-3 py-1.5 rounded-md bg-violet-500/20 text-violet-300 hover:bg-violet-500/30 flex items-center gap-1.5">
             <MessageSquare size={12} />
-            Im Chat öffnen
+            {t("open_in_chat")}
           </Link>
         </div>
       </div>
 
       {m && <MetricsRow m={m} />}
 
-      <Section title={`LLM-Calls (${data.llm_calls.length})`}>
+      <Section title={t("sections.llm_calls", { count: data.llm_calls.length })}>
         <LlmCallsTable rows={data.llm_calls} />
       </Section>
 
       {data.tool_calls.length > 0 && (
-        <Section title={`Tool-Calls (${data.tool_calls.length})`}>
+        <Section title={t("sections.tool_calls", { count: data.tool_calls.length })}>
           <ToolCallsTable rows={data.tool_calls} />
         </Section>
       )}
 
       {data.compactions.length > 0 && (
-        <Section title={`Compactions (${data.compactions.length})`}>
+        <Section title={t("sections.compactions", { count: data.compactions.length })}>
           <CompactionsTable rows={data.compactions} />
         </Section>
       )}
 
       {data.errors.length > 0 && (
-        <Section title={`Fehler (${data.errors.length})`}>
+        <Section title={t("sections.errors", { count: data.errors.length })}>
           <ErrorsTable rows={data.errors} />
         </Section>
       )}
@@ -72,21 +74,22 @@ export function SessionDetailPage() {
 }
 
 function MetricsRow({ m }: { m: NonNullable<SessionDetail["metrics"]> }) {
+  const { t } = useTranslation("analytics")
   const totalInput = (m.input_tokens || 0) + (m.cache_read_tokens || 0) + (m.cache_creation_tokens || 0)
   const cacheRatio = totalInput > 0 ? Math.round(100 * (m.cache_read_tokens || 0) / totalInput) : 0
   const items: [string, string | number][] = [
-    ["LLM-Calls", m.llm_calls || 0],
-    ["Input Tokens", formatN(m.input_tokens || 0)],
-    ["Output Tokens", formatN(m.output_tokens || 0)],
-    ["Cache Read", formatN(m.cache_read_tokens || 0)],
-    ["Cache Creation", formatN(m.cache_creation_tokens || 0)],
-    ["Cache-Hit", `${cacheRatio}%`],
-    ["Kosten", formatCost(m.cost_micros || 0)],
-    ["LLM-Zeit", `${formatMs(m.total_llm_ms || 0)}`],
-    ["Tool-Calls", m.tool_calls || 0],
-    ["Tool-Fehler", m.tool_errors || 0],
-    ["Compactions", m.compactions || 0],
-    ["Fehler", m.errors || 0],
+    [t("metrics.llm_calls"), m.llm_calls || 0],
+    [t("metrics.input_tokens"), formatN(m.input_tokens || 0)],
+    [t("metrics.output_tokens"), formatN(m.output_tokens || 0)],
+    [t("metrics.cache_read"), formatN(m.cache_read_tokens || 0)],
+    [t("metrics.cache_creation"), formatN(m.cache_creation_tokens || 0)],
+    [t("metrics.cache_hit"), `${cacheRatio}%`],
+    [t("metrics.cost"), formatCost(m.cost_micros || 0)],
+    [t("metrics.llm_time"), `${formatMs(m.total_llm_ms || 0)}`],
+    [t("metrics.tool_calls"), m.tool_calls || 0],
+    [t("metrics.tool_errors"), m.tool_errors || 0],
+    [t("metrics.compactions"), m.compactions || 0],
+    [t("metrics.errors"), m.errors || 0],
   ]
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -110,14 +113,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function LlmCallsTable({ rows }: { rows: SessionDetail["llm_calls"] }) {
+  const { t } = useTranslation("analytics")
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead className="text-zinc-500 text-[10px] uppercase">
           <tr>
-            <Th>Iteration</Th><Th>Zeit</Th><Th>Modell</Th>
-            <Th right>Input</Th><Th right>Output</Th><Th right>Cache R/C</Th>
-            <Th right>Dauer</Th><Th right>Kosten</Th><Th>Stop</Th>
+            <Th>{t("table.iteration")}</Th><Th>{t("table.time")}</Th><Th>{t("table.model")}</Th>
+            <Th right>{t("table.input")}</Th><Th right>{t("table.output")}</Th><Th right>{t("table.cache_rc")}</Th>
+            <Th right>{t("table.duration")}</Th><Th right>{t("table.cost")}</Th><Th>{t("table.stop")}</Th>
           </tr>
         </thead>
         <tbody>
@@ -143,13 +147,14 @@ function LlmCallsTable({ rows }: { rows: SessionDetail["llm_calls"] }) {
 }
 
 function ToolCallsTable({ rows }: { rows: SessionDetail["tool_calls"] }) {
+  const { t } = useTranslation("analytics")
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead className="text-zinc-500 text-[10px] uppercase">
           <tr>
-            <Th>It.</Th><Th>Zeit</Th><Th>Tool</Th><Th>Status</Th>
-            <Th right>Dauer</Th><Th right>Args</Th><Th right>Result</Th><Th>Args-Preview</Th>
+            <Th>{t("table.it")}</Th><Th>{t("table.time")}</Th><Th>{t("table.tool")}</Th><Th>{t("table.status")}</Th>
+            <Th right>{t("table.duration")}</Th><Th right>{t("table.args")}</Th><Th right>{t("table.result")}</Th><Th>{t("table.args_preview")}</Th>
           </tr>
         </thead>
         <tbody>
@@ -174,14 +179,15 @@ function ToolCallsTable({ rows }: { rows: SessionDetail["tool_calls"] }) {
 }
 
 function CompactionsTable({ rows }: { rows: SessionDetail["compactions"] }) {
+  const { t } = useTranslation("analytics")
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
         <thead className="text-zinc-500 text-[10px] uppercase">
           <tr>
-            <Th>Zeit</Th><Th>Trigger</Th><Th>Skip?</Th>
-            <Th right>Msgs vorher</Th><Th right>Msgs gekept</Th>
-            <Th right>Tokens vorher</Th><Th right>Tokens nachher</Th><Th right>Dauer</Th>
+            <Th>{t("table.time")}</Th><Th>{t("table.trigger")}</Th><Th>{t("table.skip")}</Th>
+            <Th right>{t("table.msgs_before")}</Th><Th right>{t("table.msgs_kept")}</Th>
+            <Th right>{t("table.tokens_before")}</Th><Th right>{t("table.tokens_after")}</Th><Th right>{t("table.duration")}</Th>
           </tr>
         </thead>
         <tbody>
@@ -190,7 +196,7 @@ function CompactionsTable({ rows }: { rows: SessionDetail["compactions"] }) {
               <Td className="text-zinc-500">{shortTime(r.created_at)}</Td>
               <Td>{r.triggered_by} {r.trigger_threshold_pct ? `@${r.trigger_threshold_pct}%` : ""}</Td>
               <Td className={r.skipped ? "text-amber-400" : "text-emerald-400"}>
-                {r.skipped ? r.skip_reason : "nein"}
+                {r.skipped ? r.skip_reason : t("table.no")}
               </Td>
               <Td right>{r.messages_visible_before ?? "—"}</Td>
               <Td right>{r.messages_kept ?? "—"}</Td>
