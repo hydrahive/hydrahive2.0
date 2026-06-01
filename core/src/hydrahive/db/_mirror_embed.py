@@ -23,7 +23,8 @@ def queue_embed(pool, events: list[dict]) -> None:
             try:
                 asyncio.get_running_loop().create_task(embed_event(pool, e["id"], text, model))
             except RuntimeError:
-                pass
+                logger.debug("queue_embed: kein Event-Loop, Embedding-Task für Event %s übersprungen",
+                             e.get("id", "?"))
 
 
 def embed_text(e: dict) -> str | None:

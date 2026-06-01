@@ -146,8 +146,8 @@ def _parse_episodes(html: str) -> list[dict]:
         try:
             data = json.loads(m.group(1))
             return _episodes_from_dict(data)
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            logger.debug("Scraper: JSON-Parse fehlgeschlagen, versuche Regex-Fallback: %s", e)
 
     # Fallback: key=value assignment pattern
     video_ids: dict[str, str] = {}

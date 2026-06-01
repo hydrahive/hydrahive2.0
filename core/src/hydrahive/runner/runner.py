@@ -130,8 +130,8 @@ async def run(
             _ut = _user_text(user_input).strip()
             if len(_ut.split()) >= 3:
                 recall_search = await search_cards(_ut, limit=3)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Recall fehlgeschlagen (best-effort): %s", e, exc_info=True)
 
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)

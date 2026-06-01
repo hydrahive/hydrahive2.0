@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
+
+logger = logging.getLogger(__name__)
 
 
 def insert(
@@ -152,7 +155,11 @@ def backfill_daily(user_id: str = "till") -> int:
             payload = json.loads(row["payload"])
             _process_payload_to_daily(payload, user_id)
             count += 1
-        except (json.JSONDecodeError, Exception):
+        except json.JSONDecodeError as e:
+            logger.warning("health backfill: ungültiger JSON in Row, skip: %s", e)
+            continue
+        except Exception as e:
+            logger.error("health backfill: Row-Verarbeitung fehlgeschlagen: %s", e, exc_info=True)
             continue
     return count
 

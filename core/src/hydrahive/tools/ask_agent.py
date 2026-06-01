@@ -153,8 +153,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         caller = _ac2.get(ctx.agent_id)
         if caller and caller.get("name"):
             caller_al_id = f"{settings.agentlink_agent_id}/{caller['name']}"
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("ask_agent: Caller-Name-Lookup fehlgeschlagen: %s", e)
 
     routing_target = settings.agentlink_agent_id if _is_internal else target
     task_reason = f"hh-task: {task[:120]}"

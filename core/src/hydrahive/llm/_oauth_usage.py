@@ -10,11 +10,14 @@ Portiert aus HH1 orchestrator_llm.py Zeile 140-224.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from hydrahive.settings import settings
+
+logger = logging.getLogger(__name__)
 
 _CACHE_FILE = settings.data_dir / "oauth_usage.json"
 
@@ -26,8 +29,8 @@ def _load_cache() -> dict:
     try:
         if _CACHE_FILE.exists():
             return json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("OAuth-Usage-Cache laden fehlgeschlagen: %s", e)
     return {}
 
 
@@ -36,8 +39,8 @@ def _save_cache(data: dict) -> None:
     try:
         _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
         _CACHE_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("OAuth-Usage-Cache schreiben fehlgeschlagen: %s", e)
 
 
 def extract_rate_limit_headers(headers: dict | Any) -> None:

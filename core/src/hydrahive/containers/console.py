@@ -89,8 +89,8 @@ class ConsoleSession:
             return
         try:
             os.write(self._master_fd, data)
-        except OSError:
-            pass
+        except OSError as e:
+            logger.debug("Console write fehlgeschlagen (fd möglicherweise geschlossen): %s", e)
 
     def resize(self, rows: int, cols: int) -> None:
         if self._master_fd is None:
@@ -100,8 +100,8 @@ class ConsoleSession:
                 self._master_fd, termios.TIOCSWINSZ,
                 struct.pack("HHHH", rows, cols, 0, 0),
             )
-        except OSError:
-            pass
+        except OSError as e:
+            logger.debug("Console resize fehlgeschlagen (fd möglicherweise geschlossen): %s", e)
 
     async def stop(self) -> None:
         self._cleanup_reader()
