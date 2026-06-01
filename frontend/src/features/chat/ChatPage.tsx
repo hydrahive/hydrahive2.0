@@ -12,6 +12,7 @@ import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
 import { ToolConfirmBanner } from "./ToolConfirmBanner"
 import { ThreePanelLayout } from "./layout/ThreePanelLayout"
+import { WorkspacePanel } from "./workspace/WorkspacePanel"
 import { ChatHeader } from "./_ChatHeader"
 import { ChatBubbleThread } from "./_ChatBubbleThread"
 import { useHydraRuntime } from "./_assistantRuntime"
@@ -294,7 +295,7 @@ export function ChatPage() {
           />
         }
         center={center}
-        right={<div className="p-4 text-xs text-zinc-600">Workspace folgt…</div>}
+        right={<WorkspacePanel agentId={activeAgent?.id ?? null} />}
       />
       {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
     </AssistantRuntimeProvider>
