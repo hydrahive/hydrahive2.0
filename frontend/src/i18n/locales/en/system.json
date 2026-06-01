@@ -1,5 +1,17 @@
 {
   "title": "System Status",
+  "voice_install": {
+    "title": "Install Voice Interface",
+    "lxc_hint": "Runs as incus-LXC (no Docker)",
+    "download_hint": "Models/voices will be downloaded (~0.5–1 GB)",
+    "ports_hint": "STT on port 10300, TTS (Piper) on port 10200",
+    "autostart_hint": "Containers start automatically on every system reboot",
+    "log_title": "Installation log",
+    "log_empty": "Waiting for log output…",
+    "running": "Installation running — incus container + models being set up…",
+    "cancel": "Cancel",
+    "install": "Install"
+  },
   "subtitle": "Auto-refresh every {{seconds}}s",
   "subtitle_with_uptime": "Auto-refresh every {{seconds}}s · running for {{uptime}}",
   "stats": {

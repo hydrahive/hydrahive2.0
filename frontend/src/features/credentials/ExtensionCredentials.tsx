@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { Eye, EyeOff, Package, RefreshCw } from "lucide-react"
 import { api } from "@/shared/api-client"
@@ -33,6 +34,7 @@ function FieldRow({ field }: { field: CredField }) {
 }
 
 export function ExtensionCredentials() {
+  const { t } = useTranslation("credentials")
   const [creds, setCreds] = useState<ExtCred[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -58,11 +60,11 @@ export function ExtensionCredentials() {
       </div>
 
       {loading ? (
-        <p className="text-xs text-zinc-600 py-6 text-center">Lade…</p>
+        <p className="text-xs text-zinc-600 py-6 text-center">{t("loading")}</p>
       ) : creds.length === 0 ? (
         <div className="text-center py-10">
           <Package size={24} className="mx-auto text-zinc-700 mb-2" />
-          <p className="text-xs text-zinc-600">Noch keine Extension-Zugangsdaten vorhanden.</p>
+          <p className="text-xs text-zinc-600">{t("extension_empty")}</p>
           <p className="text-[11px] text-zinc-700 mt-1">
             Werden automatisch beim Installieren von Extensions gespeichert.
           </p>

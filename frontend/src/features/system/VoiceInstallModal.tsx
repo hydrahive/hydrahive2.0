@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { CheckCircle, Loader2, Mic, X, XCircle } from "lucide-react"
 import { systemApi } from "./api"
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: Props) {
+  const { t } = useTranslation("system")
   const [logLines, setLogLines] = useState<string[]>([])
   const logRef = useRef<HTMLPreElement>(null)
   const isPolling = state === "starting" || state === "running"
@@ -49,7 +51,7 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
         <div className="flex items-center justify-between p-5 border-b border-white/[6%]">
           <div className="flex items-center gap-2">
             <Mic size={16} className="text-violet-400" />
-            <h2 className="text-lg font-bold text-white">Voice Interface installieren</h2>
+            <h2 className="text-lg font-bold text-white">{t("voice_install.title")}</h2>
           </div>
           {dismissable && (
             <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
@@ -65,10 +67,10 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
                 Wyoming STT (faster-whisper) + TTS (Piper) als incus-Container installieren?
               </p>
               <ul className="text-xs text-zinc-400 space-y-1 list-disc list-inside">
-                <li>Läuft als incus-LXC (kein Docker)</li>
-                <li>Modelle/Stimmen werden heruntergeladen (~0,5–1 GB)</li>
-                <li>STT läuft auf Port 10300, TTS (Piper) auf Port 10200</li>
-                <li>Container starten automatisch bei jedem System-Neustart</li>
+                <li>{t("voice_install.lxc_hint")}</li>
+                <li>{t("voice_install.download_hint")}</li>
+                <li>{t("voice_install.ports_hint")}</li>
+                <li>{t("voice_install.autostart_hint")}</li>
               </ul>
             </>
           )}
@@ -79,7 +81,7 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
               <span>
                 {state === "starting"
                   ? "Installation wird gestartet…"
-                  : "Installation läuft — incus-Container + Modelle werden eingerichtet…"}
+                  : t("voice_install.running")}
               </span>
             </div>
           )}
@@ -100,14 +102,14 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
 
           {state !== "confirm" && (
             <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Installations-Log</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{t("voice_install.log_title")}</p>
               <pre
                 ref={logRef}
                 className="rounded-lg border border-white/[6%] bg-zinc-950 p-3 text-[11px] font-mono leading-relaxed text-zinc-300 overflow-x-auto whitespace-pre-wrap min-h-[240px] max-h-[400px]"
               >
                 {logLines.length > 0
                   ? logLines.join("")
-                  : <span className="text-zinc-600">Warte auf Log-Ausgabe…</span>}
+                  : <span className="text-zinc-600">{t("voice_install.log_empty")}</span>}
               </pre>
             </div>
           )}
@@ -120,13 +122,13 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
                 onClick={onClose}
                 className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
               >
-                Abbrechen
+                {t("voice_install.cancel")}
               </button>
               <button
                 onClick={onConfirm}
                 className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium shadow-md shadow-violet-900/20"
               >
-                Installieren
+                {t("voice_install.install")}
               </button>
             </>
           )}

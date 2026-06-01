@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { GitPullRequest } from "lucide-react"
 import { dataminingApi } from "./api"
@@ -35,6 +36,7 @@ export function IssueImportButtons({
 
 
 export function IssueImportForm({ variant }: { variant: Variant }) {
+  const { t } = useTranslation("datamining")
   const [owner, setOwner] = useState("")
   const [repo, setRepo] = useState("")
   const [token, setToken] = useState("")
@@ -52,7 +54,7 @@ export function IssueImportForm({ variant }: { variant: Variant }) {
       setState("done")
       setResult(`${res.inserted} Events importiert`)
     } catch {
-      setState("error"); setResult("Import fehlgeschlagen")
+      setState("error"); setResult(t("import_failed"))
     }
   }
 
@@ -98,7 +100,7 @@ export function IssueImportForm({ variant }: { variant: Variant }) {
         disabled={state === "running" || !owner || !repo}
         className="px-3 py-1.5 rounded text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 disabled:opacity-40 transition-colors"
       >
-        {state === "running" ? "lädt…" : "Importieren"}
+        {state === "running" ? t("importing") : t("import")}
       </button>
       {result && (
         <span className={`text-xs ${state === "done" ? "text-emerald-400" : "text-red-400"}`}>

@@ -1,6 +1,12 @@
 {
   "title": "Datamining",
   "subtitle": "Search and analyse all agent conversations",
+  "import_failed": "Import failed",
+  "embed_status": "embedding…",
+  "loading": "Loading…",
+  "no_credentials": "No extension credentials yet.",
+  "importing": "importing…",
+  "import": "Import",
   "status_active": "Mirror active",
   "status_inactive": "Mirror inactive",
   "live_feed": "Live feed",

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 interface EmbedStatus {
   active: boolean
   sessions: number
@@ -13,6 +14,7 @@ export function EmbedStatusBar({ status, onBackfill, onReset }: {
   onBackfill: () => void
   onReset: () => void
 }) {
+  const { t } = useTranslation("datamining")
   const hasEmbedModel = !!status.model
   const pct = status.total > 0 ? Math.round((status.embedded / status.total) * 100) : 0
   const allDone = status.pending === 0 && status.total > 0 && hasEmbedModel
@@ -37,7 +39,7 @@ export function EmbedStatusBar({ status, onBackfill, onReset }: {
         </>
       )}
       {status.backfill_running ? (
-        <span className="text-violet-400 shrink-0 animate-pulse">einbettend…</span>
+        <span className="text-violet-400 shrink-0 animate-pulse">{t("embed_status")}</span>
       ) : status.pending > 0 ? (
         <button onClick={onBackfill} className="text-violet-400 hover:text-violet-300 shrink-0 transition-colors">
           backfill

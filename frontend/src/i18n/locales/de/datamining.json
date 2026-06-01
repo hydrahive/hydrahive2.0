@@ -1,6 +1,12 @@
 {
   "title": "Datamining",
   "subtitle": "Suche und Analyse aller Agent-Konversationen",
+  "import_failed": "Import fehlgeschlagen",
+  "embed_status": "einbettend…",
+  "loading": "Lade…",
+  "no_credentials": "Noch keine Extension-Zugangsdaten vorhanden.",
+  "importing": "lädt…",
+  "import": "Importieren",
   "status_active": "Mirror aktiv",
   "status_inactive": "Mirror inaktiv",
   "live_feed": "Live-Feed",

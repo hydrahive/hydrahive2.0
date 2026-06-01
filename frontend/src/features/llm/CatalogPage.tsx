@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useMemo, useState } from "react"
 import { Loader2, RefreshCw, ArrowLeft, Search, Zap, CheckCircle, XCircle, HelpCircle } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -6,6 +7,7 @@ import type { AgentBrief } from "@/features/chat/types"
 import { catalogApi, type CatalogModel, type CatalogProvider, type CatalogTestResult } from "./api"
 
 export function CatalogPage() {
+  const { t } = useTranslation("llm")
   const [providers, setProviders] = useState<CatalogProvider[]>([])
   const [activePid, setActivePid] = useState<string>("")
   const [search, setSearch] = useState("")
@@ -77,7 +79,7 @@ export function CatalogPage() {
               <ArrowLeft size={12} /> LLM-Konfiguration
             </Link>
           </div>
-          <h1 className="text-xl font-bold text-white">Modell-Catalog</h1>
+          <h1 className="text-xl font-bold text-white">{t("catalog.title")}</h1>
           <p className="text-zinc-500 text-sm mt-0.5">
             Live-Listing pro Provider. Test-Button macht 1 Mini-Call (kostet 1 API-Credit).
           </p>
@@ -145,7 +147,7 @@ export function CatalogPage() {
           </tbody>
         </table>
         {filtered.length === 0 && !loading && (
-          <p className="px-3 py-6 text-center text-sm text-zinc-600">Keine Modelle in diesem Filter.</p>
+          <p className="px-3 py-6 text-center text-sm text-zinc-600">{t("catalog.empty")}</p>
         )}
       </div>
 
@@ -162,11 +164,12 @@ export function CatalogPage() {
 function Row({
   m, testResult, testing, onTest, onUse,
 }: { m: CatalogModel; testResult?: CatalogTestResult; testing: boolean; onTest: () => void; onUse: () => void }) {
+  const { t } = useTranslation("llm")
   return (
     <tr className="border-t border-white/[5%] hover:bg-white/[2%]">
       <td className="px-3 py-2 font-mono text-xs text-zinc-200 break-all">
         {m.id}
-        {m.is_free === true && <span className="text-[10px] text-emerald-400 ml-1">gratis</span>}
+        {m.is_free === true && <span className="text-[10px] text-emerald-400 ml-1">{t("catalog.free")}</span>}
       </td>
       <td className="px-3 py-2 text-right text-xs tabular-nums text-zinc-400">
         {m.context_window ? m.context_window.toLocaleString("de") : "—"}
@@ -204,11 +207,12 @@ function Row({
 function UseInAgentDialog({
   model, agents, onSubmit, onCancel, error,
 }: { model: string; agents: AgentBrief[]; onSubmit: (aid: string) => void; onCancel: () => void; error: string | null }) {
+  const { t } = useTranslation("llm")
   const [pick, setPick] = useState<string>(agents[0]?.id ?? "")
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
       <div className="bg-zinc-950 border border-white/10 rounded-xl p-5 max-w-md w-full m-4 space-y-3" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-sm font-medium text-zinc-100">Modell auf Agent setzen</h3>
+        <h3 className="text-sm font-medium text-zinc-100">{t("catalog.set_for_agent")}</h3>
         <p className="text-xs text-zinc-400 break-all">→ <span className="font-mono">{model}</span></p>
         <div>
           <label className="block text-xs text-zinc-500 mb-1">Agent</label>

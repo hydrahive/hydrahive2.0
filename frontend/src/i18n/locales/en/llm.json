@@ -1,6 +1,17 @@
 {
   "title": "LLM Configuration",
   "subtitle": "Providers, API keys, and default model",
+  "catalog": {
+    "title": "Model catalog",
+    "model_col": "Model",
+    "context_col": "Context",
+    "tools_col": "Tools",
+    "category_col": "Category",
+    "size_col": "Size",
+    "empty": "No models in this filter.",
+    "free": "free",
+    "set_for_agent": "Set model for agent"
+  },
   "providers": {
     "title": "Providers",
     "add": "Add provider",

@@ -1,5 +1,17 @@
 {
   "title": "System-Status",
+  "voice_install": {
+    "title": "Voice Interface installieren",
+    "lxc_hint": "Läuft als incus-LXC (kein Docker)",
+    "download_hint": "Modelle/Stimmen werden heruntergeladen (~0,5–1 GB)",
+    "ports_hint": "STT läuft auf Port 10300, TTS (Piper) auf Port 10200",
+    "autostart_hint": "Container starten automatisch bei jedem System-Neustart",
+    "log_title": "Installations-Log",
+    "log_empty": "Warte auf Log-Ausgabe…",
+    "running": "Installation läuft — incus-Container + Modelle werden eingerichtet…",
+    "cancel": "Abbrechen",
+    "install": "Installieren"
+  },
   "subtitle": "Auto-Refresh alle {{seconds}}s",
   "subtitle_with_uptime": "Auto-Refresh alle {{seconds}}s · läuft seit {{uptime}}",
   "stats": {
