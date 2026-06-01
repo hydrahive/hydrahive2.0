@@ -26,7 +26,7 @@ export function ThreePanelLayout({ left, center, right }: Props) {
   }, [panels])
 
   return (
-    <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6">
+    <div className="flex h-[calc(100dvh-3rem)] -m-4 md:-m-6 overflow-hidden">
       <CollapsiblePanel side="left" open={panels.left} width={280}
         onToggle={() => setPanels((p) => ({ ...p, left: !p.left }))}>
         {left}
