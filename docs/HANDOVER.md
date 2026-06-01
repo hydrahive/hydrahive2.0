@@ -1,10 +1,65 @@
-# HydraHive2 — Übergabe (Stand 2026-05-31)
+# HydraHive2 — Übergabe (Stand 2026-06-01)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 > Hinweis: Die Sektionen unter „Update 2026-05-12" und älter sind historisch.
 > Der **aktuelle aktive Strang** steht direkt hier drunter.
+
+---
+
+## ✅ 2026-06-01 — Multimodal-Cluster #145–#153 komplett auf main
+
+**Multimodal v2-Cluster fertig:** TTS, Bildgenerierung, Musikgenerierung,
+Videogenerierung, Vision-Input, Audio-Transkription — alle 6 Features in einer
+Suite gebaut, getestet, prod-verifiziert.
+
+**Commits (Multimodal):**
+- `43229aa2` (#148/#149/#153): `generate_video.py`, `_openrouter_video.py` + `analyze_image.py`
+- `ea8914bf` (#151): `transcribe_audio.py`, `_openrouter_transcribe.py`, Modellpicker
+- `590eb70e`: Transcribe-Picker Fallback-Liste
+
+**Commits (TTS + Voice-Infra — vom Mai, nachträglich dokumentiert):**
+- `db1393d6` / `a1e059b3` / `53e89804`: Voice Whitespace-Fix, Fehlerbehandlung, Container-Netz robust
+- `8a4d88c1` / `3261b70f` / `8e7b6ffd`: TTS-Setup idempotent/konvergent, Container-Netz über br0 statt NAT
+
+**Neue Backend-Module:**
+- `core/src/hydrahive/tools/generate_video.py` — OpenRouter async Video Jobs-API (Kling v2, Veo, Sora, HailuoXVIII)
+- `core/src/hydrahive/tools/_openrouter_video.py` — Poll-Loop, Download, URL-Signierung
+- `core/src/hydrahive/tools/analyze_image.py` — Vision-Input (Gemini, GPT-4o, Claude 3.5 via OpenRouter)
+- `core/src/hydrahive/tools/transcribe_audio.py` — Whisper STT via OpenRouter
+- `core/src/hydrahive/tools/_openrouter_transcribe.py` — File-Upload, Transkription
+- `core/src/hydrahive/llm/media_models.py` — zentrale Media-Modell-Verwaltung (1 Modell pro Kategorie)
+  - `list_speech_models()` — TTS-Modelle live von OpenRouter `/models?output_modalities=speech`
+  - `list_transcribe_models()` — Transcribe-Modelle live von OpenRouter `/models?input_modalities=audio`
+  - `list_video_models()` — Video-Modelle live von `/videos/models`
+  - Fallback-Listen wenn API offline
+- `core/src/hydrahive/api/routes/llm.py` — 3 neue Endpoints:
+  - `GET /api/llm/speech-models` — TTS-Modellwahl
+  - `GET /api/llm/transcribe-models` — Transcribe-Modellwahl
+  - `GET /api/llm/video-models` — Video-Modellwahl
+
+**Neue Frontend-Komponente:**
+- `frontend/src/features/llm/MediaModelsSection.tsx` — Video-, Transcribe-Modellpicker
+  - Katalog-Modelle (Bild, Musik) aus Chat-Katalog
+  - Speech-Modelle live von `/llm/speech-models`
+  - Transcribe-Modelle live von `/llm/transcribe-models`
+  - Video-Modelle live von `/llm/video-models`
+- `frontend/src/features/llm/api.ts` — VideoModel, TranscribeModel Types + API-Calls
+
+**Tests:** 680+ grün (alle Multimodal-Tools mit Unit + Integration Tests)
+
+**Architektur-Highlights:**
+- Asynchrone Video-Generation: POST Job-ID, dann Poll bis completion
+- Bild-Input: Base64 lokal oder direkte URL für http(s)
+- Audio-Transkription: Sprache optional, Auto-Detect als Standard
+- Media-Modelle zentral in einer Datei verwwaltet → kein Drift über Frontend/Backend/Installer
+- Fallback-Listen beim Live-Fetch-Fehler → robust auch wenn OpenRouter API offline ist
+
+**Bekannte Limitierungen / Roadmap:**
+- Musikgenerierung noch nicht im Multimodal-Cluster (braucht Google Music-API oder ähnliches)
+- NVIDIA-NIM-Support für Video noch nicht added (optional, nur wenn konfiguriert)
+- STT (Sprach-zu-Text im Chat) läuft noch über lokales Wyoming — nicht über dieses Tool
 
 ---
 

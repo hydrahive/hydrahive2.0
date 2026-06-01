@@ -2,7 +2,7 @@
 
 > Subsystem-Deep-Dives. Nicht-normativ — Quelle der Wahrheit ist immer der
 > Code. Ziel: Onboarding für neue Contributor / KI-Sessions ohne dass sie
-> sich durch 343 .py-Files lesen müssen bevor sie was beitragen können.
+> sich durch 350+ .py-Files lesen müssen bevor sie was beitragen können.
 
 ## Subsysteme
 
@@ -12,6 +12,8 @@
 | [runner.md](runner.md) | Tool-Loop, Streaming vs Fallback, Provider-Switch, Token-Counts |
 | [compaction.md](compaction.md) | Append-only `firstKeptEntryId`-Pointer, hierarchisches Merging, Live-Truncation |
 | [auth.md](auth.md) | JWT, API-Keys, Roles, Login-Lockout, OAuth-Flow + atomic Refresh |
+| [tools.md](tools.md) | Built-in Tools — Vision, Audio, Video, Datamining, System |
+| [media-models.md](media-models.md) | Media-Modell-Verwaltung — TTS, Transcribe, Video zentral (1 pro Kategorie) |
 
 ## Pflege-Hinweise
 

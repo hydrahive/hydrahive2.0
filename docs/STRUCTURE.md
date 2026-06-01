@@ -1,9 +1,9 @@
 # HydraHive2 — Verzeichnisstruktur
 
-> **Last Updated:** 2026-05-09 — Snapshot, kein Designdokument.
+> **Last Updated:** 2026-06-01 — Snapshot, kein Designdokument.
 > Quelle der Wahrheit ist der Code, nicht diese Datei.
-> Backend: 343 .py-Files, 243 Tests in 17 Test-Dateien.
-> Frontend: 262 .ts/.tsx-Files, 23 Feature-Folders.
+> Backend: 350+ .py-Files, 280+ Tests in 18+ Test-Dateien.
+> Frontend: 270+ .ts/.tsx-Files, 24+ Feature-Folders.
 
 ## Übersicht
 
@@ -28,8 +28,8 @@ hydrahive2.0/
 │       ├── agents/            ← Defaults, Config-Utils (master/ + project/ leere Stubs)
 │       ├── runner/            ← Tool-Loop, Dispatcher, Codex/LiteLLM-Bridge
 │       ├── compaction/        ← Append-only Compaction (firstKeptEntryId)
-│       ├── llm/               ← LiteLLM-Wrapper, Provider-Catalog, Streaming
-│       ├── tools/             ← Built-in Tools (shell, file_*, fetch_url, datamining, …)
+│       ├── llm/               ← LiteLLM-Wrapper, Provider-Catalog, Streaming, Media-Modelle
+│       ├── tools/             ← Built-in Tools (shell, file_*, fetch_url, datamining, generate_*, analyze_*, transcribe_*, …)
 │       ├── mcp/               ← MCP-Client (stdio + HTTP-Streamable + SSE)
 │       ├── plugins/           ← Plugin-Loader
 │       ├── skills/            ← SKILL.md-Loader + system_defaults/
