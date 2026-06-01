@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { egaApi } from "../api"
 import { EgaImportButton } from "../components/EgaImportButton"
+import { FhirImportButton } from "../components/FhirImportButton"
 
 const CATEGORIES = [
   { type: "Encounter",           icon: "🏥", label: "Arztbesuche" },
@@ -40,7 +41,10 @@ export function UebersichtView() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-zinc-100">Übersicht</h2>
-        <EgaImportButton onImported={load} />
+        <div className="flex items-center gap-2">
+          <EgaImportButton onImported={load} />
+          <FhirImportButton onImported={() => load()} />
+        </div>
       </div>
 
       {summary === null ? (

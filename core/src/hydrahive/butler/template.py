@@ -6,7 +6,6 @@ Verfügbare Variablen pro Render: `event` (TriggerEvent als dict).
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from jinja2.sandbox import SandboxedEnvironment
 
@@ -28,11 +27,3 @@ def render(template: str, event: TriggerEvent) -> str:
     except Exception as e:
         logger.debug("Butler-Template render fehlgeschlagen: %s", e)
         return template
-
-
-def render_dict(d: dict[str, Any], event: TriggerEvent) -> dict[str, Any]:
-    """Rendert alle String-Values eines Dicts. Nicht-Strings unverändert."""
-    out: dict[str, Any] = {}
-    for k, v in d.items():
-        out[k] = render(v, event) if isinstance(v, str) else v
-    return out

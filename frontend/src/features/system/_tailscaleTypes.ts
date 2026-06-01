@@ -1,4 +1,4 @@
-export interface TailscalePeer {
+interface TailscalePeer {
   hostname: string
   dns_name: string
   ip?: string

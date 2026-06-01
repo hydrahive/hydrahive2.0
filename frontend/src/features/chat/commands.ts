@@ -8,7 +8,7 @@ import { skillsApi } from "@/features/skills/api"
 import { chatApi } from "./api"
 import type { AgentBrief, Message, Session } from "./types"
 
-export interface ChatCommandResult {
+interface ChatCommandResult {
   message: string
   newSessionId?: string
   agentChanged?: AgentBrief

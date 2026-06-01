@@ -8,7 +8,7 @@ import { chatApi } from "@/features/chat/api"
 import type { Message } from "@/features/chat/types"
 import { buddyApi, type BuddyState } from "./api"
 
-export interface CommandResult {
+interface CommandResult {
   message: string
   newSessionId?: string
 }

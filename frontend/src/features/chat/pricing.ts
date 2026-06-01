@@ -1,6 +1,6 @@
 // USD pro 1M Tokens. Stand 2026-Q1. Quelle: jeweilige Provider-Pricing-Pages.
 // Cache-Read = ~10% von Input; Cache-Write = ~125% von Input (Anthropic-Konvention).
-export interface Pricing {
+interface Pricing {
   input: number
   output: number
   cache_read?: number
@@ -21,7 +21,7 @@ const PRICING: { match: RegExp; price: Pricing }[] = [
   { match: /^o1-mini/i,                   price: { input: 3.00,  output: 12.00 } },
 ]
 
-export function pricingFor(model?: string): Pricing | null {
+function pricingFor(model?: string): Pricing | null {
   if (!model) return null
   for (const { match, price } of PRICING) {
     if (match.test(model)) return price
