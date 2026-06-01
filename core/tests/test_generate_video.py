@@ -78,9 +78,12 @@ async def test_poll_video_job_completed():
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200
+    # Echtes OpenRouter-Format: unsigned_urls (Doku: openrouter.ai/.../create-videos)
     mock_resp.json.return_value = {
+        "id": "job-123",
         "status": "completed",
-        "output": {"url": "https://cdn.test/video.mp4"},
+        "unsigned_urls": ["https://cdn.test/video.mp4"],
+        "usage": {"cost": 0.1, "is_byok": False},
     }
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)

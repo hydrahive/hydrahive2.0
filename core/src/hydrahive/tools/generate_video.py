@@ -126,7 +126,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         if status == "completed":
             url = job.get("url")
             if not url:
-                return ToolResult.fail("Job completed aber keine Download-URL in Antwort")
+                raw = str(job.get("_raw", {}))[:400]
+                return ToolResult.fail(
+                    f"Job completed aber keine Download-URL in unsigned_urls. "
+                    f"OpenRouter-Antwort: {raw}"
+                )
             try:
                 path = await download_video(url, ctx.workspace / "generated", key=key)
             except RuntimeError as e:
@@ -134,7 +138,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             logger.info("generate_video: fertig model=%s path=%s", model, path)
             return ToolResult.ok(f"Video generiert und gespeichert: {path}", model=model)
 
-        if status == "failed":
+        # Doku: "in_progress" (nicht "processing")
+        if status in ("failed", "cancelled", "expired"):
             error = job.get("error") or "Unbekannter Fehler"
             return ToolResult.fail(f"Video-Generierung fehlgeschlagen: {error}")
 

@@ -92,10 +92,45 @@ async def poll_video_job(job_id: str, *, key: str) -> dict:
         raise RuntimeError(f"Netzwerk-Fehler beim Video-Poll: {e}") from e
 
     status = (data.get("status") or "pending").lower()
-    url = (data.get("output") or {}).get("url") or data.get("url") or None
+    url = _extract_video_url(data)
     error = data.get("error") or (data.get("output") or {}).get("error") or None
-    logger.debug("video poll: id=%s status=%s", job_id, status)
-    return {"status": status, "url": url, "error": error}
+
+    if status == "completed":
+        # Volle Antwort loggen — hilft beim Debugging wenn URL-Pfad falsch war
+        logger.info("video poll completed: id=%s url=%s raw=%s", job_id, url, str(data)[:500])
+    else:
+        logger.debug("video poll: id=%s status=%s", job_id, status)
+
+    return {"status": status, "url": url, "error": error, "_raw": data}
+
+
+def _extract_video_url(data: dict) -> str | None:
+    """Extrahiert die Video-URL aus einer OpenRouter VideoGenerationResponse.
+
+    Laut Doku (openrouter.ai/docs/.../create-videos): fertige URLs stehen in
+    `unsigned_urls` (array of strings). Die URLs sind pre-signed (zeitlich
+    begrenzt) → sofort downloaden.
+    """
+    # Primär: unsigned_urls[0] (dokumentiertes Format)
+    unsigned = data.get("unsigned_urls") or []
+    if isinstance(unsigned, list) and unsigned:
+        url = unsigned[0]
+        if isinstance(url, str) and url.startswith("http"):
+            return url
+
+    # Fallback: ältere/undokumentierte Pfade
+    for key in ("url", "video_url", "output_url"):
+        val = data.get(key)
+        if val and isinstance(val, str) and val.startswith("http"):
+            return val
+
+    output = data.get("output") or {}
+    if isinstance(output, dict):
+        url = output.get("url") or output.get("video_url")
+        if url:
+            return str(url)
+
+    return None
 
 
 async def download_video(url: str, dest_dir: Path, *, key: str) -> Path:
