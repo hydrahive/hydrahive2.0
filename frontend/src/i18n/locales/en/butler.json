@@ -1,4 +1,8 @@
 {
+  "toast_saved": "Saved",
+  "toast_deleted": "Deleted",
+  "toast_error": "Error",
+  "toast_save_error": "Save error",
   "infoTitle": "Butler — Automatic Message Processing",
   "infoText": "The Butler automatically processes incoming messages based on your rules. Create flows with triggers (e.g. WhatsApp message), conditions (e.g. time, sender) and actions (e.g. forward to agent, auto-reply). Open the Blueprint tab for the visual flow editor.",
   "active": "Active",

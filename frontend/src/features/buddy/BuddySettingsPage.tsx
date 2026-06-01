@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ArrowLeft, Check, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { buddyApi, type BuddyConfig, type BuddyConfigPatch } from "./api"
@@ -8,15 +9,10 @@ import { BuddySettingsContext } from "./_BuddySettingsContext"
 import { BuddySettingsTools } from "./_BuddySettingsTools"
 import { BuddySettingsCompaction } from "./_BuddySettingsCompaction"
 
-const TABS = [
-  { id: "identity", label: "Identität" },
-  { id: "context", label: "Kontext" },
-  { id: "tools", label: "Tools" },
-  { id: "compaction", label: "Compaction" },
-] as const
-type TabId = typeof TABS[number]["id"]
+type TabId = "identity" | "context" | "tools" | "compaction"
 
 export function BuddySettingsPage() {
+  const { t } = useTranslation("buddy")
   const navigate = useNavigate()
   const [config, setConfig] = useState<BuddyConfig | null>(null)
   const [draft, setDraft] = useState<BuddyConfigPatch>({})
@@ -26,9 +22,16 @@ export function BuddySettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const TABS: { id: TabId; label: string }[] = [
+    { id: "identity", label: t("settings.tab_identity") },
+    { id: "context", label: t("settings.tab_context") },
+    { id: "tools", label: t("settings.tab_tools") },
+    { id: "compaction", label: t("settings.tab_compaction") },
+  ]
+
   useEffect(() => {
     buddyApi.getConfig().then(setConfig).catch((e: unknown) =>
-      setError(e instanceof Error ? e.message : "Fehler beim Laden"))
+      setError(e instanceof Error ? e.message : t("settings.title")))
     llmInfoApi.getModels().then((r) => setModels(r.models)).catch(() => {})
   }, [])
 
@@ -50,7 +53,7 @@ export function BuddySettingsPage() {
         setTimeout(() => navigate("/"), 1200)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Fehler beim Speichern")
+      setError(e instanceof Error ? e.message : t("settings.title"))
     } finally {
       setBusy(false)
     }
@@ -82,7 +85,7 @@ export function BuddySettingsPage() {
         </button>
         <div className="flex items-center gap-2">
           <span className="text-2xl">🐝</span>
-          <h1 className="text-lg font-bold text-white">Buddy-Einstellungen</h1>
+          <h1 className="text-lg font-bold text-white">{t("settings.title")}</h1>
         </div>
       </div>
 
@@ -146,21 +149,21 @@ export function BuddySettingsPage() {
             {saved && (
               <div className="flex items-center gap-1.5 text-xs text-emerald-400">
                 <Check size={13} />
-                Gespeichert
+                {t("saved")}
               </div>
             )}
             <button
               onClick={() => navigate("/")}
               className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
             >
-              Abbrechen
+              {t("cancel")}
             </button>
             <button
               onClick={save}
               disabled={!hasDraft || busy}
               className="px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20 transition-all"
             >
-              {busy ? <Loader2 size={14} className="animate-spin" /> : "Speichern"}
+              {busy ? <Loader2 size={14} className="animate-spin" /> : t("save")}
             </button>
           </div>
         </>

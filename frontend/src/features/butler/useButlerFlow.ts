@@ -74,9 +74,9 @@ export function useButlerFlow() {
         const created = await butlerLegacyApi.create(payload)
         setFlows(fs => [...fs, created]); setActiveId(created.id)
       }
-      showToast("Gespeichert")
+      showToast(t("toast_saved"))
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Speicherfehler")
+      showToast(e instanceof Error ? e.message : t("toast_save_error"))
     } finally { setSaving(false) }
   }
 
@@ -84,8 +84,8 @@ export function useButlerFlow() {
     if (!activeFlowId || !confirm(`Flow "${flowName}" wirklich löschen?`)) return
     try {
       await butlerLegacyApi.remove(activeFlowId)
-      setFlows(fs => fs.filter(f => f.id !== activeFlowId)); newFlow(); showToast("Gelöscht")
-    } catch (e) { showToast(e instanceof Error ? e.message : "Fehler") }
+      setFlows(fs => fs.filter(f => f.id !== activeFlowId)); newFlow(); showToast(t("toast_deleted"))
+    } catch (e) { showToast(e instanceof Error ? e.message : t("toast_error")) }
   }
 
   const toggleFlow = async () => {
@@ -96,7 +96,7 @@ export function useButlerFlow() {
       const res = await butlerLegacyApi.toggle(activeFlowId, { ...current, name: flowName, nodes, edges })
       setEnabled(res.enabled)
       setFlows(fs => fs.map(f => f.id === activeFlowId ? { ...f, enabled: res.enabled } : f))
-    } catch (e) { showToast(e instanceof Error ? e.message : "Fehler") }
+    } catch (e) { showToast(e instanceof Error ? e.message : t("toast_error")) }
   }
 
   const onConnect = useCallback((c: Connection) => {

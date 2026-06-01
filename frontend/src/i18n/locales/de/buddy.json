@@ -5,5 +5,45 @@
   "waking_up": "Buddy wacht auf…",
   "just_woken_up": "🎉 Hallo! Ich bin frisch geschlüpft — schreib mir!",
   "empty_hint": "Sag was. Ich bin da.",
-  "new_chat": "Neuer Chat"
+  "new_chat": "Neuer Chat",
+  "saved": "Gespeichert",
+  "cancel": "Abbrechen",
+  "save": "Speichern",
+  "settings": {
+    "title": "Buddy-Einstellungen",
+    "tab_identity": "Identität",
+    "tab_context": "Kontext",
+    "tab_compaction": "Kompaktierung",
+    "tab_tools": "Tools",
+    "tab_extensions": "Extensions"
+  },
+  "left_panel": {
+    "no_briefing": "Noch kein Briefing für heute.",
+    "setup": "Einrichten →",
+    "tokens_today": "Tokens heute",
+    "active_sessions": "Aktive Sessions",
+    "tool_calls": "Tool Calls",
+    "server": "Server",
+    "backend": "Backend",
+    "backend_ok": "✓ OK",
+    "backend_error": "✗ Fehler"
+  },
+  "briefing": {
+    "open": "Offen",
+    "went_well": "Gut",
+    "went_badly": "Schlecht",
+    "today": "Heute"
+  },
+  "identity": {
+    "name_label": "Name",
+    "character_label": "Aktueller Charakter",
+    "language_label": "Sprache",
+    "tone_label": "Ton",
+    "lang_de": "Immer Deutsch",
+    "lang_en": "Always English",
+    "lang_auto": "Folgt dem User",
+    "tone_casual": "Locker & direkt",
+    "tone_professional": "Professionell",
+    "tone_brief": "Kurz und knapp"
+  }
 }

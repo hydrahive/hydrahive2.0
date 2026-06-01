@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Activity, Loader2 } from "lucide-react"
 import { dashboardApi, type DashboardSummary } from "@/features/dashboard/api"
 import { zahnfeeApi, type Briefing } from "@/features/zahnfee/api"
@@ -26,6 +27,7 @@ function StatRow({ label, value, accent }: { label: string; value: React.ReactNo
 }
 
 function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
+  const { t } = useTranslation("buddy")
   if (briefing === undefined) {
     return (
       <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
@@ -36,16 +38,16 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   if (!briefing) {
     return (
       <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
-        <p className="text-xs text-zinc-500 italic leading-relaxed">Noch kein Briefing für heute.</p>
-        <Link to="/zahnfee" className="mt-2 block text-xs text-violet-400 hover:text-violet-300 transition-colors">Einrichten →</Link>
+        <p className="text-xs text-zinc-500 italic leading-relaxed">{t("left_panel.no_briefing")}</p>
+        <Link to="/zahnfee" className="mt-2 block text-xs text-violet-400 hover:text-violet-300 transition-colors">{t("left_panel.setup")}</Link>
       </PanelBox>
     )
   }
   const sections = [
-    { label: "Offen", value: briefing.open_items, color: "text-amber-400" },
-    { label: "Gut", value: briefing.went_well, color: "text-emerald-400" },
-    { label: "Schlecht", value: briefing.went_badly, color: "text-rose-400" },
-    { label: "Heute", value: briefing.today, color: "text-violet-400" },
+    { label: t("briefing.open"), value: briefing.open_items, color: "text-amber-400" },
+    { label: t("briefing.went_well"), value: briefing.went_well, color: "text-emerald-400" },
+    { label: t("briefing.went_badly"), value: briefing.went_badly, color: "text-rose-400" },
+    { label: t("briefing.today"), value: briefing.today, color: "text-violet-400" },
   ].filter((s) => s.value)
 
   return (
@@ -70,6 +72,7 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
 }
 
 export function BuddyLeftPanel() {
+  const { t } = useTranslation("buddy")
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [briefing, setBriefing] = useState<Briefing | null | undefined>(undefined)
 
@@ -87,17 +90,17 @@ export function BuddyLeftPanel() {
           <Loader2 size={14} className="text-zinc-600 animate-spin" />
         ) : (
           <div>
-            <StatRow label="Tokens heute" value={summary.stats.tokens_today.toLocaleString("de")} />
-            <StatRow label="Aktive Sessions" value={summary.stats.active_sessions} />
-            <StatRow label="Tool Calls" value={summary.stats.tool_calls_today} />
+            <StatRow label={t("left_panel.tokens_today")} value={summary.stats.tokens_today.toLocaleString()} />
+            <StatRow label={t("left_panel.active_sessions")} value={summary.stats.active_sessions} />
+            <StatRow label={t("left_panel.tool_calls")} value={summary.stats.tool_calls_today} />
             <StatRow
-              label="Server"
+              label={t("left_panel.server")}
               value={`${summary.stats.servers_running} / ${summary.stats.servers_total}`}
               accent={summary.stats.servers_running > 0 ? "text-emerald-400" : "text-zinc-500"}
             />
             <StatRow
-              label="Backend"
-              value={summary.health.backend.ok ? "✓ OK" : "✗ Fehler"}
+              label={t("left_panel.backend")}
+              value={summary.health.backend.ok ? t("left_panel.backend_ok") : t("left_panel.backend_error")}
               accent={summary.health.backend.ok ? "text-emerald-400" : "text-rose-400"}
             />
           </div>

@@ -1,16 +1,6 @@
+import { useTranslation } from "react-i18next"
 import { Dice5 } from "lucide-react"
 import type { BuddyConfig, BuddyConfigPatch } from "./api"
-
-const LANGUAGE_OPTIONS = [
-  { value: "de", label: "Immer Deutsch" },
-  { value: "en", label: "Always English" },
-  { value: "auto", label: "Folgt dem User" },
-]
-const TONE_OPTIONS = [
-  { value: "locker", label: "Locker & direkt" },
-  { value: "professionell", label: "Professionell" },
-  { value: "knapp", label: "Kurz und knapp" },
-]
 
 interface Props {
   config: BuddyConfig
@@ -21,14 +11,26 @@ interface Props {
 }
 
 export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharacter, busy }: Props) {
+  const { t } = useTranslation("buddy")
   const name = draft.name ?? config.name
   const language = draft.language ?? config.language
   const tone = draft.tone ?? config.tone
 
+  const LANGUAGE_OPTIONS = [
+    { value: "de", label: t("identity.lang_de") },
+    { value: "en", label: t("identity.lang_en") },
+    { value: "auto", label: t("identity.lang_auto") },
+  ]
+  const TONE_OPTIONS = [
+    { value: "locker", label: t("identity.tone_casual") },
+    { value: "professionell", label: t("identity.tone_professional") },
+    { value: "knapp", label: t("identity.tone_brief") },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-zinc-400">Name</label>
+        <label className="block text-xs font-medium text-zinc-400">{t("identity.name_label")}</label>
         <input
           value={name}
           onChange={(e) => onChange({ name: e.target.value })}
@@ -37,7 +39,7 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-zinc-400">Aktueller Charakter</label>
+        <label className="block text-xs font-medium text-zinc-400">{t("identity.character_label")}</label>
         <div className="flex items-center gap-3">
           <span className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-300 text-sm truncate">
             {config.character || "—"}
@@ -48,15 +50,14 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[8%] text-xs text-zinc-400 hover:text-pink-300 hover:border-pink-500/30 hover:bg-pink-500/[4%] transition-all disabled:opacity-40"
           >
             <Dice5 size={13} />
-            Würfeln
+            🎲
           </button>
         </div>
-        <p className="text-xs text-zinc-600">Würfeln startet eine neue Chat-Session mit dem neuen Charakter.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">Sprache</label>
+          <label className="block text-xs font-medium text-zinc-400">{t("identity.language_label")}</label>
           <select
             value={language}
             onChange={(e) => onChange({ language: e.target.value as BuddyConfigPatch["language"] })}
@@ -66,7 +67,7 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">Ton</label>
+          <label className="block text-xs font-medium text-zinc-400">{t("identity.tone_label")}</label>
           <select
             value={tone}
             onChange={(e) => onChange({ tone: e.target.value as BuddyConfigPatch["tone"] })}
@@ -76,10 +77,6 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
           </select>
         </div>
       </div>
-
-      <p className="text-xs text-zinc-600">
-        Sprache und Ton ändern den System-Prompt. Eine neue Chat-Session wird automatisch gestartet.
-      </p>
     </div>
   )
 }

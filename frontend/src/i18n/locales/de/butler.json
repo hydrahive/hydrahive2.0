@@ -1,4 +1,8 @@
 {
+  "toast_saved": "Gespeichert",
+  "toast_deleted": "Gelöscht",
+  "toast_error": "Fehler",
+  "toast_save_error": "Speicherfehler",
   "infoTitle": "Butler — Automatische Nachrichtenverarbeitung",
   "infoText": "Der Butler verarbeitet eingehende Nachrichten automatisch nach deinen Regeln. Erstelle Flows mit Triggern (z.B. WhatsApp-Nachricht), Bedingungen (z.B. Uhrzeit, Absender) und Aktionen (z.B. an Agent weiterleiten, automatisch antworten). Öffne den Blueprint-Tab für den visuellen Flow-Editor.",
   "active": "Aktiv",

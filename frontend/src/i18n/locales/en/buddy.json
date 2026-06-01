@@ -5,5 +5,45 @@
   "waking_up": "Buddy is waking up…",
   "just_woken_up": "🎉 Hi! I just hatched — write to me!",
   "empty_hint": "Say something. I'm here.",
-  "new_chat": "New Chat"
+  "new_chat": "New Chat",
+  "saved": "Saved",
+  "cancel": "Cancel",
+  "save": "Save",
+  "settings": {
+    "title": "Buddy settings",
+    "tab_identity": "Identity",
+    "tab_context": "Context",
+    "tab_compaction": "Compaction",
+    "tab_tools": "Tools",
+    "tab_extensions": "Extensions"
+  },
+  "left_panel": {
+    "no_briefing": "No briefing for today yet.",
+    "setup": "Set up →",
+    "tokens_today": "Tokens today",
+    "active_sessions": "Active sessions",
+    "tool_calls": "Tool calls",
+    "server": "Server",
+    "backend": "Backend",
+    "backend_ok": "✓ OK",
+    "backend_error": "✗ Error"
+  },
+  "briefing": {
+    "open": "Open",
+    "went_well": "Went well",
+    "went_badly": "Went badly",
+    "today": "Today"
+  },
+  "identity": {
+    "name_label": "Name",
+    "character_label": "Current character",
+    "language_label": "Language",
+    "tone_label": "Tone",
+    "lang_de": "Always German",
+    "lang_en": "Always English",
+    "lang_auto": "Follows user",
+    "tone_casual": "Casual & direct",
+    "tone_professional": "Professional",
+    "tone_brief": "Short and concise"
+  }
 }
