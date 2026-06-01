@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { catalogApi, llmApi, type CatalogModel, type SpeechModel, type VideoModel } from "./api"
+import { catalogApi, llmApi, type CatalogModel, type SpeechModel, type TranscribeModel, type VideoModel } from "./api"
 
 interface Category {
   key: string
@@ -40,6 +40,7 @@ export function MediaModelsSection({ mediaModels, onChange }: MediaModelsSection
   const { t } = useTranslation("llm")
   const [catalog, setCatalog] = useState<CatalogModel[]>([])
   const [speech, setSpeech] = useState<SpeechModel[]>([])
+  const [transcribe, setTranscribe] = useState<TranscribeModel[]>([])
   const [video, setVideo] = useState<VideoModel[]>([])
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export function MediaModelsSection({ mediaModels, onChange }: MediaModelsSection
       .then((res) => setCatalog(res.providers.flatMap((p) => p.models)))
       .catch(() => {})
     llmApi.getSpeechModels().then(setSpeech).catch(() => {})
+    llmApi.getTranscribeModels().then(setTranscribe).catch(() => {})
     llmApi.getVideoModels().then(setVideo).catch(() => {})
   }, [])
 
@@ -71,6 +73,11 @@ export function MediaModelsSection({ mediaModels, onChange }: MediaModelsSection
         <Select label={t("media_models.tts")} options={speech.map((s) => s.id)}
           value={mediaModels["tts"] ?? ""}
           onChange={(v) => onChange("tts", v)} />
+      )}
+      {transcribe.length > 0 && (
+        <Select label={t("media_models.transcribe")} options={transcribe.map((m) => m.id)}
+          value={mediaModels["transcribe"] ?? ""}
+          onChange={(v) => onChange("transcribe", v)} />
       )}
       {video.length > 0 && (
         <Select label={t("media_models.video")} options={video.map((v) => v.id)}

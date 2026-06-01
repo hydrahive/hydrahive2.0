@@ -25,6 +25,7 @@
     "image": "Bild",
     "music": "Musik",
     "tts": "Sprache (TTS)",
+    "transcribe": "Transkription (STT)",
     "video": "Video"
   },
   "test": {
