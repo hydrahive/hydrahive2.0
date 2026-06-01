@@ -43,7 +43,7 @@ Alle Pfade über `settings.*` — nie direkt hardcodieren.
 cd core && python3 -c "
 from hydrahive.api.routes import agents
 from hydrahive.runner import runner
-from hydrahive.agentlink import handoff_receiver
+from hydrahive.runner import handoff_receiver
 print('OK')
 " 2>&1
 ```

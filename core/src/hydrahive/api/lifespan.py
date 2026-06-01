@@ -14,7 +14,7 @@ from fastapi import FastAPI
 
 from hydrahive.agents import bootstrap as agent_bootstrap
 from hydrahive.agentlink import client as agentlink_client
-from hydrahive.agentlink import handoff_receiver
+from hydrahive.runner import handoff_receiver
 from hydrahive.api.middleware.users import ensure_admin
 from hydrahive.api.routes.system import set_start_time
 from hydrahive.api.version import update_check_loop

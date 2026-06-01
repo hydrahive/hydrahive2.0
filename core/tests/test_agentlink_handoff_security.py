@@ -11,7 +11,7 @@ import logging
 import pytest
 
 from hydrahive.agentlink import client
-from hydrahive.agentlink.handoff_receiver import _find_target_agent, _warn_if_unconfirmed
+from hydrahive.runner.handoff_receiver import _find_target_agent, _warn_if_unconfirmed
 
 
 # --- _find_target_agent: keine Master-Eskalation ---------------------------
