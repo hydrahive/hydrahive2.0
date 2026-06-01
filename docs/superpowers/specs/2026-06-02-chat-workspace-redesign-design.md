@@ -29,7 +29,7 @@ Kein Code aus hermes-webui wird übernommen — nur Design und Funktionsweise.
 
 | Frage | Entscheidung |
 |---|---|
-| Workspace-Pfad | **C** — Standard ist Agent-Pfad (`workspace_for(agent)`), User kann überschreiben |
+| Workspace-Pfad | **Agent-Workspace only** — `workspace_for(agent)`, kein Override (Sicherheit + einfache Validierung) |
 | Datei-Bearbeitung | **B** — inline Editor im Panel (lesen + schreiben) |
 | Git-Umfang | **B** — Status + Diff + Stage + Commit direkt aus dem Panel |
 | Panel-Kollaps | **A** — beide Seitenpanels einzeln ein-/ausklappbar |
@@ -71,8 +71,7 @@ in `localStorage` (Schlüssel `hh2.chat.panels`), damit die Aufteilung über Rel
 `onToggle`, `width`, `children`. Im eingeklappten Zustand 32px Streifen mit Pfeil-Button.
 
 **`WorkspacePanel.tsx`** — Dach des rechten Panels. Drei Tabs (Files / Git / Editor) +
-Pfad-Anzeige mit Override-Möglichkeit. Liest Default-Pfad aus dem aktiven Agenten,
-hält Override im `useWorkspace`-State.
+Pfad-Anzeige (read-only). Wurzel = `workspace_for(agent)` des aktiven Agenten, kein Override.
 
 **`FileTree.tsx`** — rekursiver Dateibaum. Lädt Ordnerinhalte lazy beim Aufklappen
 (`GET /api/workspace/tree?path=…`). Zeigt Git-Status-Marker (M/A/D) pro Datei.
@@ -107,11 +106,13 @@ Es gibt **keine** generischen Workspace-File- oder Git-Status-Endpunkte. Neu nö
 | POST | `/api/workspace/git/stage` | Datei(en) stagen/unstagen |
 | POST | `/api/workspace/git/commit` | Commit mit Message |
 
-**Sicherheit (KRITISCH):** Alle Pfade müssen serverseitig gegen einen erlaubten Wurzelpfad
-validiert werden (Path-Traversal-Schutz). Erlaubte Wurzel = `workspace_for(agent)` des
-anfragenden Users, oder ein explizit konfigurierter zusätzlicher Pfad. Kein Zugriff
-ausserhalb. `require_auth` + Owner-Check auf jeden Endpunkt. Symlinks auflösen und
-erneut gegen die Wurzel prüfen (kein Entkommen über Links).
+**Sicherheit (KRITISCH):** Alle Pfade müssen serverseitig gegen die erlaubte Wurzel
+validiert werden (Path-Traversal-Schutz). Erlaubte Wurzel = **ausschliesslich**
+`workspace_for(agent)` des anfragenden Users — kein konfigurierbarer Override, kein
+Zugriff ausserhalb. `require_auth` + Owner-Check auf jeden Endpunkt. Symlinks auflösen
+(`Path.resolve()`) und erneut gegen die Wurzel prüfen (kein Entkommen über Links).
+Jeder Pfad-Parameter wird relativ zur Wurzel interpretiert; `..`-Segmente nach dem
+Resolve, die ausserhalb der Wurzel landen, geben 403.
 
 ### Datenfluss
 
@@ -154,14 +155,18 @@ Jede Phase ist eigenständig testbar und wird einzeln gepusht (HH2-Regel: ein Fe
 | Risiko | Mitigation |
 |---|---|
 | Path-Traversal / Datei-Lesezugriff ausserhalb Workspace | Serverseitige Wurzel-Validierung + Symlink-Auflösung + security-reviewer vor Merge |
-| CodeMirror vergrößert Bundle stark | Dynamic Import (`await import`), nur im Editor-Tab laden |
+| Monaco ~5 MB Bundle | Dynamic Import, nur beim Öffnen des Editor-Tabs geladen; initiales Laden unberührt |
+| Monaco Web-Worker mit Vite fummelig | Vite `?worker`-Import-Pattern; in Phase 3 isoliert testen bevor Editor scharf geschaltet wird |
 | Git-Status-Polling belastet Server | Intervall wie VMs (4s), nur wenn Git-Tab offen |
 | ChatPage wird beim Umbau instabil | Phase 1 ändert nur Layout, Chat-Logik unangetastet; Till testet nach jeder Phase |
 | Mobile: 3 Panels passen nicht | Auf Mobile nur Chat sichtbar, Panels als Slide-over (wie bestehende Sidebar) |
 
 ## Tech-Entscheidungen
 
-- **Editor:** CodeMirror 6 (leichter als Monaco, dynamic import)
+- **Editor:** Monaco (VS-Code-Editor) — vollwertig für Programmierer: IntelliSense,
+  Diff-View, Multi-Cursor, TS-Sprachverständnis. ~5 MB Bundle, daher **dynamic import**
+  (`await import`) — Kosten fallen nur an wenn der Editor-Tab geöffnet wird, nicht beim
+  initialen Laden. Web-Worker-Setup über Vites `?worker`-Import.
 - **Git im Backend:** bestehende `_git_ops`-Helfer wiederverwenden wo möglich, aber
   workspace-scoped statt project-scoped (eigene Pfad-Validierung)
 - **State:** lokaler `useWorkspace`-Hook, kein globaler Store (Workspace-State ist chat-lokal)
