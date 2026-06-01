@@ -63,13 +63,17 @@ async def launch(name: str, image: str, *,
     privileged=True ist im nested-LXC-Setup Pflicht. Bare-Metal ginge auch
     unprivileged, aber das entscheidet der Installer global im default-Profil.
     """
-    args = ["launch", image, name]
+    # Optionen zuerst, dann '--', dann die Positional-Args (image, name). Das '--'
+    # garantiert, dass incus/cobra image/name NIE als Flags interpretiert, selbst
+    # wenn der Wert mit '-' beginnt (Defense-in-Depth zur IMAGE_RE-Allowlist, #185).
+    opts: list[str] = []
     if cpu:
-        args += ["-c", f"limits.cpu={cpu}"]
+        opts += ["-c", f"limits.cpu={cpu}"]
     if ram_mb:
-        args += ["-c", f"limits.memory={ram_mb}MiB"]
+        opts += ["-c", f"limits.memory={ram_mb}MiB"]
     if privileged:
-        args += ["-c", "security.privileged=true", "-c", "security.nesting=true"]
+        opts += ["-c", "security.privileged=true", "-c", "security.nesting=true"]
+    args = ["launch", *opts, "--", image, name]
 
     rc, _, err = await _run(*args, timeout=300.0)
     if rc != 0:

@@ -16,7 +16,7 @@ from hydrahive.api.routes._container_helpers import (
 from hydrahive.containers import db as cdb
 from hydrahive.containers import incus_client as incus
 from hydrahive.containers import lifecycle
-from hydrahive.containers.models import NAME_RE, QUICK_IMAGES
+from hydrahive.containers.models import IMAGE_RE, NAME_RE, QUICK_IMAGES
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/containers", tags=["containers"])
@@ -44,14 +44,16 @@ async def create_container(
         raise coded(status.HTTP_400_BAD_REQUEST, "container_name_invalid")
     if body.network_mode not in ("bridged", "isolated"):
         raise coded(status.HTTP_400_BAD_REQUEST, "container_network_mode_invalid")
+    # Image gegen Allowlist prüfen, BEVOR der images:-Präfix gesetzt wird (#185)
+    image = body.image.strip()
+    if not re.match(IMAGE_RE, image):
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_image_invalid")
+    if ":" not in image:
+        image = f"images:{image}"
     if cdb.name_taken(body.name):
         raise coded(status.HTTP_409_CONFLICT, "container_name_taken")
     if not incus.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "incus_missing")
-
-    image = body.image.strip()
-    if ":" not in image:
-        image = f"images:{image}"
 
     c = cdb.create(
         owner=user, name=body.name, description=body.description,

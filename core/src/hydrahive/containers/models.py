@@ -39,6 +39,10 @@ class ContainerImage:
 
 # Limits + Validation
 NAME_RE = r"^[a-zA-Z][a-zA-Z0-9-]{0,62}$"  # incus erlaubt bis 63 chars
+# Image-Allowlist (Issue #185): optionaler <remote>:-Präfix, danach Alias. Beide
+# Teile MÜSSEN alphanumerisch beginnen → kein führendes '-', sonst würde
+# incus/cobra den Wert als Flag interpretieren (--target/--project/--profile).
+IMAGE_RE = r"^(?:[a-zA-Z0-9][a-zA-Z0-9-]*:)?[a-zA-Z0-9][a-zA-Z0-9._/-]*$"
 MIN_CPU = 1
 MAX_CPU = 16
 MIN_RAM_MB = 64
