@@ -8,10 +8,9 @@ logger = logging.getLogger(__name__)
 
 from hydrahive.llm import client as llm_client
 from hydrahive.runner._anthropic_payload import (
-    add_cache_reference_to_tool_results as _add_cache_reference_to_tool_results,
     block_to_dict as _block_to_dict,
-    cache_control as _cache_control,
-    with_cache_breakpoint as _with_cache_breakpoint,
+    build_anthropic_kwargs,
+    build_minimax_kwargs,
 )
 from hydrahive.runner._litellm_convert import (
     messages_to_openai,
@@ -36,43 +35,14 @@ async def anthropic_call(
     reasoning_effort: str | None = None,
 ) -> tuple[list[dict], str, dict[str, int]]:
     import anthropic as _anthropic
-    from hydrahive.llm._anthropic import apply_effort
     from hydrahive.runner._token_usage import usage_dict
 
-    is_oauth = key.startswith("sk-ant-oat")
-    if is_oauth:
-        client = _anthropic.AsyncAnthropic(
-            api_key="", auth_token=key, timeout=300.0,
-            default_headers=llm_client._ANTHROPIC_OAUTH_HEADERS,
-        )
-    else:
-        client = _anthropic.AsyncAnthropic(api_key=key, timeout=300.0)
-
-    system_blocks: list[dict[str, Any]] = []
-    if is_oauth:
-        system_blocks.append({"type": "text", "text": llm_client._ANTHROPIC_OAUTH_IDENTITY[0]["text"]})
-    if system_prompt:
-        system_blocks.append({"type": "text", "text": system_prompt, "cache_control": _cache_control(cache_ttl)})
-    elif system_blocks:
-        system_blocks[0]["cache_control"] = _cache_control(cache_ttl)
-    if summary_system:
-        system_blocks.append({"type": "text", "text": summary_system, "cache_control": _cache_control(cache_ttl)})
-    if volatile_system:
-        system_blocks.append({"type": "text", "text": volatile_system})
-
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "messages": _with_cache_breakpoint(messages, ttl=cache_ttl),
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if system_blocks:
-        kwargs["system"] = system_blocks
-    if tools:
-        cached_tools = [*tools[:-1], {**tools[-1], "cache_control": _cache_control(cache_ttl)}]
-        kwargs["tools"] = cached_tools
-
-    apply_effort(kwargs, model, reasoning_effort)
+    client, kwargs = build_anthropic_kwargs(
+        key=key, model=model, system_prompt=system_prompt,
+        volatile_system=volatile_system, summary_system=summary_system,
+        cache_ttl=cache_ttl, messages=messages, tools=tools,
+        temperature=temperature, max_tokens=max_tokens, reasoning_effort=reasoning_effort,
+    )
 
     # Manche neueren Claude-Modelle (z.B. opus-4-7) akzeptieren kein temperature
     # mehr — Anthropic returnt dann 400 "temperature is deprecated for this
@@ -112,40 +82,20 @@ async def minimax_anthropic_call(
     - Authorization: Bearer manuell gesetzt (MiniMax-Konvention)
     - kein Identity-System-Block — MiniMax erwartet den nicht
     """
-    import anthropic as _anthropic
-    from hydrahive.llm._anthropic import apply_effort
     from hydrahive.runner._token_usage import usage_dict
 
-    client = _anthropic.AsyncAnthropic(
-        base_url=llm_client.MINIMAX_BASE_URL,
-        api_key=api_key,
-        timeout=300.0,
-        default_headers={"Authorization": f"Bearer {api_key}"},
+    client, kwargs = build_minimax_kwargs(
+        api_key=api_key, model=model, system_prompt=system_prompt,
+        volatile_system=volatile_system, summary_system=summary_system,
+        messages=messages, tools=tools, temperature=temperature,
+        max_tokens=max_tokens, reasoning_effort=reasoning_effort,
     )
-
-    from hydrahive.runner._stream_providers import _strip_minimax_cache_control
-    messages, tools = _strip_minimax_cache_control(messages, tools)
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if system_prompt or summary_system or volatile_system:
-        # MiniMax: system als einzelner Text-Block — Array mit mehreren Blöcken
-        # führt nach Compaction (3 Blöcke: stable+summary+volatile) zu HTTP 500.
-        parts = [p for p in [system_prompt, summary_system, volatile_system] if p]
-        kwargs["system"] = "\n\n".join(parts)
-    if tools:
-        kwargs["tools"] = tools
-
-    apply_effort(kwargs, model, reasoning_effort)
 
     logger.debug(
         "MiniMax non-stream: model=%s msgs=%d sys_len=%d tools=%d thinking=%s",
-        model, len(messages),
+        model, len(kwargs.get("messages", [])),
         len(kwargs.get("system", "") or ""),
-        len(tools),
+        len(kwargs.get("tools", [])),
         "thinking" in kwargs,
     )
     resp = await client.messages.create(**kwargs)

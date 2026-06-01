@@ -6,11 +6,10 @@ Storage-Druck), 1h-cache_creation kostet aber 2× — netto teurer.
 """
 from __future__ import annotations
 
-from hydrahive.runner._llm_bridge_backends import (
-    _with_cache_breakpoint as backend_breakpoint,
-)
-from hydrahive.runner._stream_providers import (
-    _with_cache_breakpoint as stream_breakpoint,
+# Seit #200 single-source in _anthropic_payload — beide Pfade nutzen dieselbe Funktion.
+from hydrahive.runner._anthropic_payload import (
+    with_cache_breakpoint as backend_breakpoint,
+    with_cache_breakpoint as stream_breakpoint,
 )
 
 

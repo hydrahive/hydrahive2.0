@@ -16,7 +16,7 @@ from hydrahive.runner.system_prompt import compose as build_system_prompts
 # ---------------------------------------------------------------------------
 
 def test_cache_control_1h_setzt_ttl():
-    from hydrahive.runner._stream_providers import _cache_control
+    from hydrahive.runner._anthropic_payload import cache_control as _cache_control
     ctrl = _cache_control("1h")
     assert ctrl["type"] == "ephemeral"
     assert ctrl.get("ttl") == "1h"
@@ -24,7 +24,7 @@ def test_cache_control_1h_setzt_ttl():
 
 def test_cache_control_5m_kein_ttl():
     """5m = Anthropic-Default — kein ttl-Feld schicken."""
-    from hydrahive.runner._stream_providers import _cache_control
+    from hydrahive.runner._anthropic_payload import cache_control as _cache_control
     ctrl = _cache_control("5m")
     assert ctrl["type"] == "ephemeral"
     assert "ttl" not in ctrl
@@ -32,8 +32,8 @@ def test_cache_control_5m_kein_ttl():
 
 def test_cache_control_konsistent_in_beiden_modulen():
     """Beide Provider-Module müssen identisches Verhalten liefern."""
-    from hydrahive.runner._stream_providers import _cache_control as cc_stream
-    from hydrahive.runner._llm_bridge_backends import _cache_control as cc_bridge
+    from hydrahive.runner._anthropic_payload import cache_control as cc_stream
+    from hydrahive.runner._anthropic_payload import cache_control as cc_bridge
     for ttl in ("1h", "5m", ""):
         assert cc_stream(ttl) == cc_bridge(ttl), f"Divergenz bei ttl={ttl!r}"
 
@@ -44,7 +44,7 @@ def test_cache_control_konsistent_in_beiden_modulen():
 
 def _apply_tool_cache(tools: list[dict], ttl: str = "1h") -> list[dict]:
     """Spiegelt die Logik aus _stream_providers.anthropic_stream."""
-    from hydrahive.runner._stream_providers import _cache_control
+    from hydrahive.runner._anthropic_payload import cache_control as _cache_control
     return [*tools[:-1], {**tools[-1], "cache_control": _cache_control(ttl)}]
 
 
