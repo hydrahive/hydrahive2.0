@@ -4,6 +4,13 @@ from __future__ import annotations
 from typing import Any, AsyncIterator
 
 from hydrahive.llm import client as llm_client
+from hydrahive.runner._anthropic_payload import (
+    add_cache_reference_to_tool_results as _add_cache_reference_to_tool_results,
+    block_to_dict as _block_to_dict,
+    cache_control as _cache_control,
+    with_cache_breakpoint as _with_cache_breakpoint,
+)
+from hydrahive.runner._token_usage import usage_dict
 
 
 def _map_event(ev: Any) -> dict | None:
@@ -34,91 +41,6 @@ def _map_event(ev: Any) -> dict | None:
     return None
 
 
-def _with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
-    """Marks the last content block of the LAST message as a cache breakpoint.
-
-    Quelle: claude-code-source-code/src/services/api/claude.ts:3089
-        `const markerIndex = skipCacheWrite ? messages.length - 2 : messages.length - 1`
-
-    Siehe _llm_bridge_backends.py:_with_cache_breakpoint für die volle
-    Begründung (Mycro turn-to-turn eviction + KV-page-refcounting).
-
-    Default-TTL = "5m" (Anthropic-Default).
-    """
-    if not messages:
-        return messages
-    msgs = list(messages)
-    target = msgs[-1]
-    content = target.get("content", [])
-    if not isinstance(content, list) or not content:
-        if isinstance(content, str) and content:
-            return [*msgs[:-1], {**target, "content": [
-                {"type": "text", "text": content, "cache_control": _cache_control(ttl)},
-            ]}]
-        return msgs
-    last_block = content[-1]
-    if not isinstance(last_block, dict):
-        return msgs
-    new_content = list(content)
-    new_content[-1] = {**last_block, "cache_control": _cache_control(ttl)}
-    msgs[-1] = {**target, "content": new_content}
-    return msgs
-
-
-def _add_cache_reference_to_tool_results(messages: list[dict]) -> list[dict]:
-    """DEAKTIVIERT — siehe _llm_bridge_backends.py für die volle Begründung.
-    cache_reference braucht den cache-editing Beta-Header, den wir nicht haben.
-    """
-    last_cc_idx = -1
-    for i, msg in enumerate(messages):
-        content = msg.get("content")
-        if not isinstance(content, list):
-            continue
-        for block in content:
-            if isinstance(block, dict) and "cache_control" in block:
-                last_cc_idx = i
-
-    if last_cc_idx < 0:
-        return messages
-
-    result = list(messages)
-    for i in range(last_cc_idx):
-        msg = result[i]
-        if msg.get("role") != "user":
-            continue
-        content = msg.get("content")
-        if not isinstance(content, list):
-            continue
-        new_content = list(content)
-        modified = False
-        for j, block in enumerate(new_content):
-            if not isinstance(block, dict) or block.get("type") != "tool_result":
-                continue
-            tool_use_id = block.get("tool_use_id")
-            if not tool_use_id:
-                continue
-            new_content[j] = {**block, "cache_reference": tool_use_id}
-            modified = True
-        if modified:
-            result[i] = {**msg, "content": new_content}
-    return result
-
-
-def _cache_control(ttl: str) -> dict:
-    ctrl: dict[str, Any] = {"type": "ephemeral"}
-    if ttl and ttl != "5m":
-        ctrl["ttl"] = ttl
-    return ctrl
-
-
-def _block_to_dict(block: Any) -> dict:
-    if hasattr(block, "model_dump"):
-        return block.model_dump()
-    if isinstance(block, dict):
-        return block
-    return {"type": getattr(block, "type", "unknown")}
-
-
 def _strip_minimax_cache_control(messages: list[dict], tools: list[dict]) -> tuple[list[dict], list[dict]]:
     """Entfernt cache_control aus Messages und Tools — MiniMax wirft sonst HTTP 500."""
     clean: list[dict] = []
@@ -131,15 +53,6 @@ def _strip_minimax_cache_control(messages: list[dict], tools: list[dict]) -> tup
             clean.append(msg)
     clean_tools = [{k: v for k, v in t.items() if k != "cache_control"} for t in tools]
     return clean, clean_tools
-
-
-def _usage_dict(usage: Any) -> dict:
-    return {
-        "input_tokens": (getattr(usage, "input_tokens", 0) or 0) if usage else 0,
-        "output_tokens": (getattr(usage, "output_tokens", 0) or 0) if usage else 0,
-        "cache_creation_tokens": (getattr(usage, "cache_creation_input_tokens", 0) or 0) if usage else 0,
-        "cache_read_tokens": (getattr(usage, "cache_read_input_tokens", 0) or 0) if usage else 0,
-    }
 
 
 async def anthropic_stream(
@@ -199,7 +112,7 @@ async def anthropic_stream(
             final = await stream.get_final_message()
             usage = getattr(final, "usage", None)
             yield {"type": "message_stop", "stop_reason": getattr(final, "stop_reason", "") or "",
-                   "blocks": [_block_to_dict(b) for b in (final.content or [])], **_usage_dict(usage)}
+                   "blocks": [_block_to_dict(b) for b in (final.content or [])], **usage_dict(usage)}
 
     yielded = False
     try:
@@ -260,4 +173,4 @@ async def minimax_stream(
         final = await stream.get_final_message()
         usage = getattr(final, "usage", None)
         yield {"type": "message_stop", "stop_reason": getattr(final, "stop_reason", "") or "",
-               "blocks": [_block_to_dict(b) for b in (final.content or [])], **_usage_dict(usage)}
+               "blocks": [_block_to_dict(b) for b in (final.content or [])], **usage_dict(usage)}
