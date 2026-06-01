@@ -19,8 +19,6 @@ export const agentsApi = {
     api.put<{ component: string; saved: boolean }>(`/agents/${id}/soul/${component}`, { content }),
   getSoulTemplates: (id: string) =>
     api.get<{ templates: Record<string, string>; agent_type: string }>(`/agents/${id}/soul/templates`),
-  applySoulTemplate: (id: string) =>
-    api.post<{ applied: string[] }>(`/agents/${id}/soul/apply-template`, {}),
   listTools: () => api.get<ToolMeta[]>("/agents/_meta/tools"),
   getDefaults: () => api.get<AgentDefaults>("/agents/_meta/defaults"),
   listTemplates: () => api.get<AgentTemplate[]>("/agents/_meta/templates"),

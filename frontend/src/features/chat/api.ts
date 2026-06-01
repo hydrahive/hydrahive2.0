@@ -11,7 +11,6 @@ export interface ProjectBrief {
 
 export const chatApi = {
   listSessions: () => api.get<Session[]>("/sessions"),
-  getSession: (id: string) => api.get<Session>(`/sessions/${id}`),
   createSession: (agent_id: string, title?: string, project_id?: string) =>
     api.post<Session>("/sessions", { agent_id, title, project_id }),
   deleteSession: (id: string) => api.delete<void>(`/sessions/${id}`),

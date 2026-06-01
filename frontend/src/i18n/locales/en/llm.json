@@ -17,6 +17,8 @@
     "add": "Add provider",
     "none": "No provider configured yet",
     "no_key": "No key",
+    "revoke_oauth": "Disconnect OAuth",
+    "revoke_oauth_confirm": "Disconnect OAuth connection for \"{{provider}}\"?",
     "models_count": "{{count}} model",
     "models_count_plural": "{{count}} models"
   },

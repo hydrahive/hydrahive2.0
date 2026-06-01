@@ -74,7 +74,9 @@ function DailyChart({ days }: { days: StatsDay[] }) {
   )
 }
 
-function LatestTable({ sessions, onSelect }: { sessions: StatsSession[]; onSelect: (id: string) => void }) {
+function LatestTable({ sessions, onSelect, onSelectAgent }: {
+  sessions: StatsSession[]; onSelect: (id: string) => void; onSelectAgent: (agentId: string) => void
+}) {
   return (
     <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
       <div className="px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
@@ -103,7 +105,14 @@ function LatestTable({ sessions, onSelect }: { sessions: StatsSession[]; onSelec
                 className="border-b border-white/[3%] hover:bg-white/[3%] cursor-pointer transition-colors"
               >
                 <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">{fmtDateTime(s.updated_at)}</td>
-                <td className="px-3 py-2 text-zinc-400 truncate max-w-[120px]">{s.agent_id}</td>
+                <td className="px-3 py-2 truncate max-w-[120px]">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onSelectAgent(s.agent_id) }}
+                    className="text-zinc-400 hover:text-amber-300 hover:underline transition-colors"
+                  >
+                    {s.agent_id}
+                  </button>
+                </td>
                 <td className="px-3 py-2 text-zinc-300 truncate max-w-[200px]">{s.title ?? "—"}</td>
                 <td className="px-3 py-2 text-zinc-500 text-right tabular-nums">{s.message_count}</td>
                 <td className="px-3 py-2 text-zinc-400 text-right tabular-nums">{fmt(s.input_tokens)}</td>
@@ -168,12 +177,67 @@ function SessionDetailPanel({ sessionId, onClose }: { sessionId: string; onClose
   )
 }
 
+function AgentStatsPanel({ agentId, onClose }: { agentId: string; onClose: () => void }) {
+  const [stats, setStats] = useState<import("./api").StatsAgent | null>(null)
+
+  useEffect(() => {
+    dataminingApi.statsAgent(agentId).then(setStats).catch(() => {})
+  }, [agentId])
+
+  if (!stats) return (
+    <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">Lade…</div>
+  )
+
+  const rows: [string, string][] = [
+    ["Sessions", String(stats.session_count)],
+    ["Input Tokens", fmt(stats.total_input_tokens)],
+    ["Output Tokens", fmt(stats.total_output_tokens)],
+    ["Cache Creation", fmt(stats.total_cache_creation_tokens)],
+    ["Cache Read", fmt(stats.total_cache_read_tokens)],
+    ["Ø Input/Session", fmt(stats.avg_input_tokens_per_session)],
+    ["Cache-Hit", `${stats.cache_hit_pct}%`],
+  ]
+
+  return (
+    <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
+        <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+          Agent-Detail ({stats.days}d)
+        </span>
+        <span className="text-zinc-400 text-xs truncate flex-1">{stats.agent_id}</span>
+        <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 text-xs">✕</button>
+      </div>
+      <div className="p-3 grid grid-cols-2 gap-x-6 gap-y-1.5">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between text-xs border-b border-white/[3%] py-1">
+            <span className="text-zinc-500">{label}</span>
+            <span className="text-zinc-300 tabular-nums">{value}</span>
+          </div>
+        ))}
+      </div>
+      {stats.top_tools.length > 0 && (
+        <div className="px-3 pb-3 pt-1">
+          <div className="text-[10px] uppercase tracking-wider text-zinc-600 mb-1">Top-Tools</div>
+          <div className="flex flex-wrap gap-1.5">
+            {stats.top_tools.map((tt) => (
+              <span key={tt.tool} className="text-[11px] px-2 py-0.5 rounded bg-white/[5%] text-zinc-400">
+                {tt.tool} <span className="text-zinc-600 tabular-nums">{tt.count}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function StatsTab({ active }: { active: boolean }) {
   const [latest, setLatest] = useState<StatsSession[]>([])
   const [daily, setDaily] = useState<StatsDay[]>([])
   const [days, setDays] = useState(14)
   const [loading, setLoading] = useState(true)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
 
   useEffect(() => {
     if (!active) return
@@ -207,7 +271,11 @@ export function StatsTab({ active }: { active: boolean }) {
 
       <DailyChart days={daily} />
 
-      <LatestTable sessions={latest} onSelect={setSelectedSession} />
+      <LatestTable sessions={latest} onSelect={setSelectedSession} onSelectAgent={setSelectedAgent} />
+
+      {selectedAgent && (
+        <AgentStatsPanel agentId={selectedAgent} onClose={() => setSelectedAgent(null)} />
+      )}
 
       {selectedSession && (
         <SessionDetailPanel sessionId={selectedSession} onClose={() => setSelectedSession(null)} />

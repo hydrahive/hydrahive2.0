@@ -102,7 +102,12 @@ export function LlmPage() {
                 }} />
             : <ProviderCard key={i} provider={p}
                 onEdit={() => setEditingIdx(i)}
-                onDelete={() => deleteProvider(i)} />
+                onDelete={() => deleteProvider(i)}
+                onRevokeOAuth={async () => {
+                  if (!confirm(t("providers.revoke_oauth_confirm", { provider: p.name || p.id }))) return
+                  await llmApi.oauthRevoke(p.id)
+                  setConfig(await llmApi.getConfig())
+                }} />
         ))}
         {showAdd && <ProviderForm onSave={addProvider} onCancel={() => setShowAdd(false)}
           onOAuthConnected={async () => {

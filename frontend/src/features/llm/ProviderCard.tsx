@@ -1,4 +1,4 @@
-import { CheckCircle, Pencil, Trash2 } from "lucide-react"
+import { CheckCircle, Pencil, Trash2, Unlink } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { LlmProvider } from "./api"
 
@@ -6,10 +6,12 @@ export function ProviderCard({
   provider,
   onEdit,
   onDelete,
+  onRevokeOAuth,
 }: {
   provider: LlmProvider
   onEdit: () => void
   onDelete: () => void
+  onRevokeOAuth?: () => void
 }) {
   const { t } = useTranslation("llm")
   const hasOAuth = !!provider.oauth?.access
@@ -34,6 +36,12 @@ export function ProviderCard({
           <span>{t("providers.models_count", { count: provider.models.length })}</span>
         </p>
       </div>
+      {hasOAuth && onRevokeOAuth && (
+        <button onClick={onRevokeOAuth} title={t("providers.revoke_oauth")}
+          className="p-1.5 rounded-lg text-zinc-600 hover:text-amber-300 hover:bg-amber-500/10 transition-colors">
+          <Unlink size={14} />
+        </button>
+      )}
       <button onClick={onEdit}
         className="p-1.5 rounded-lg text-zinc-600 hover:text-violet-300 hover:bg-violet-500/10 transition-colors">
         <Pencil size={14} />

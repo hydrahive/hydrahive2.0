@@ -17,6 +17,8 @@
     "add": "Provider hinzufügen",
     "none": "Noch kein Provider konfiguriert",
     "no_key": "Kein Key",
+    "revoke_oauth": "OAuth trennen",
+    "revoke_oauth_confirm": "OAuth-Verbindung für „{{provider}}\" trennen?",
     "models_count": "{{count}} Modell",
     "models_count_plural": "{{count}} Modelle"
   },
