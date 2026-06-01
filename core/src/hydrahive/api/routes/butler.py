@@ -144,11 +144,28 @@ async def project_webhook(
         payload=request_body,
     )
     fired = 0
-    for flow in bp.list_flows():
+    for flow in _project_flows(project, project_id):
         try:
             result = await bex.dispatch(flow, event)
-            if result:
+            if result.get("matched"):
                 fired += 1
         except Exception as e:
             logger.warning("Butler-Flow '%s' dispatch fehlgeschlagen: %s", flow.flow_id, e)
     return {"ok": True, "flows_fired": fired, "project_id": project_id}
+
+
+def _project_flows(project: dict, project_id: str) -> list[Flow]:
+    """Tenant-isolierte Flow-Auswahl für einen Projekt-Webhook (Issue #178).
+
+    Nur Flows feuern, die einem auf dem Projekt autorisierten Owner gehören
+    (created_by + members), explizit auf DIESES Projekt gescopt und enabled
+    sind. So kann ein Außenstehender weder fremde Flows triggern noch über ein
+    gefälschtes scope_id auf ein fremdes Projekt feuern."""
+    authorized = {project.get("created_by"), *project.get("members", [])}
+    authorized.discard(None)
+    selected: list[Flow] = []
+    for owner in authorized:
+        for flow in bp.list_flows(owner=owner):
+            if flow.enabled and flow.scope == "project" and flow.scope_id == project_id:
+                selected.append(flow)
+    return selected
