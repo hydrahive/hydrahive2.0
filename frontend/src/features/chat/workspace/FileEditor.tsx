@@ -49,7 +49,7 @@ export function FileEditor({ file, onSave }: Props) {
           <Monaco
             height="100%" theme="vs-dark" language={langFromPath(file.path)} value={value}
             onChange={(v) => { setValue(v ?? ""); setDirty(true) }}
-            options={{ fontSize: 12, minimap: { enabled: false }, scrollBeyondLastLine: false }}
+            options={{ fontSize: 13, minimap: { enabled: false }, scrollBeyondLastLine: false, wordWrap: "on" }}
           />
         </Suspense>
       </div>

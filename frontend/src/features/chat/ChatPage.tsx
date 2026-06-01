@@ -13,6 +13,8 @@ import { SessionList } from "./SessionList"
 import { ToolConfirmBanner } from "./ToolConfirmBanner"
 import { ThreePanelLayout } from "./layout/ThreePanelLayout"
 import { WorkspacePanel } from "./workspace/WorkspacePanel"
+import { FileOverlay } from "./workspace/FileOverlay"
+import type { FileKind } from "./workspace/fileType"
 import { ChatHeader } from "./_ChatHeader"
 import { ChatBubbleThread } from "./_ChatBubbleThread"
 import { useHydraRuntime } from "./_assistantRuntime"
@@ -42,6 +44,7 @@ export function ChatPage() {
   const deepLinkSid = sid ?? searchParams.get("session") ?? null
   const deepLinkApplied = useRef(false)
 
+  const [wsFile, setWsFile] = useState<{ path: string; kind: FileKind } | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [agents, setAgents] = useState<AgentBrief[]>([])
   const [projects, setProjects] = useState<ProjectBrief[]>([])
@@ -295,8 +298,11 @@ export function ChatPage() {
           />
         }
         center={center}
-        right={<WorkspacePanel agentId={activeAgent?.id ?? null} />}
+        right={<WorkspacePanel agentId={activeAgent?.id ?? null} onOpenFile={(path, kind) => setWsFile({ path, kind })} />}
       />
+      {wsFile && activeAgent && (
+        <FileOverlay agentId={activeAgent.id} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
+      )}
       {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
     </AssistantRuntimeProvider>
   )

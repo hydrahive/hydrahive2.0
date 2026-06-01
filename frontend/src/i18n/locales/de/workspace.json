@@ -11,5 +11,6 @@
   "commit": "Commit…",
   "commit_message": "Commit-Nachricht…",
   "stage_all": "Alle stagen",
-  "save": "Speichern"
+  "save": "Speichern",
+  "close": "Schließen"
 }

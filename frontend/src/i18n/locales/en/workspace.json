@@ -11,5 +11,6 @@
   "commit": "Commit…",
   "commit_message": "Commit message…",
   "stage_all": "Stage all",
-  "save": "Save"
+  "save": "Save",
+  "close": "Close"
 }
