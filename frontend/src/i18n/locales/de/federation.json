@@ -6,7 +6,9 @@
   "empty": "Noch keine Workstations registriert",
   "add_first": "Erste Workstation hinzufügen →",
   "delete_confirm": "Workstation entfernen?",
-  "info": "Registrierte Workstations sind über <code>ask_agent(\"persona@name\", …)</code> erreichbar.",
+  "info_p1": "Registrierte Workstations sind über ",
+  "info_p2": " erreichbar. Der Token ist das ",
+  "info_p3": " der Ziel-Workstation.",
   "workstation": {
     "token_ok": "Token konfiguriert",
     "no_token": "Kein Token",

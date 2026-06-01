@@ -6,6 +6,9 @@
   "empty": "No workstations registered yet",
   "add_first": "Add first workstation →",
   "delete_confirm": "Remove workstation?",
+  "info_p1": "Registered workstations are reachable via ",
+  "info_p2": ". The token is the target workstation's ",
+  "info_p3": ".",
   "workstation": {
     "token_ok": "Token configured",
     "no_token": "No token",

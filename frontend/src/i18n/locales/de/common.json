@@ -29,7 +29,8 @@
     "loading": "Lädt…",
     "saving": "Speichert…",
     "error": "Fehler",
-    "ok": "OK"
+    "ok": "OK",
+    "empty": "Kein Inhalt"
   },
   "labels": {
     "name": "Name",

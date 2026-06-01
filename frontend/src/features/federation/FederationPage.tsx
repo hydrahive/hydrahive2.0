@@ -57,8 +57,11 @@ export function FederationPage() {
 
       <div className="rounded-xl border border-white/[6%] bg-zinc-950/50 p-4 space-y-2">
         <p className="text-xs text-zinc-500">
-          Registrierte Workstations sind über <code className="text-violet-400">ask_agent("persona@name", …)</code> erreichbar.
-          Der Token ist das <code className="text-zinc-400">PROJEKTX_REMOTE_TOKEN</code> der Ziel-Workstation.
+          {t("info_p1")}
+          <code className="text-violet-400">ask_agent("persona@name", …)</code>
+          {t("info_p2")}
+          <code className="text-zinc-400">PROJEKTX_REMOTE_TOKEN</code>
+          {t("info_p3")}
         </p>
       </div>
 
