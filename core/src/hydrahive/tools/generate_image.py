@@ -67,9 +67,29 @@ _SCHEMA = {
             "description": "Bildhöhe in Pixel (default 1024).",
             "default": 1024,
         },
+        "transparent": {
+            "type": "boolean",
+            "description": (
+                "Transparentes PNG (Default true). OpenRouter kann keine echte "
+                "Transparenz — das Motiv wird auf reinem Grün generiert und der "
+                "grüne Hintergrund serverseitig rausgekeyt. Für Logos, Icons, "
+                "Maskottchen. Für Fotos/Hintergründe auf false setzen."
+            ),
+            "default": True,
+        },
     },
     "required": ["prompt"],
 }
+
+# Green-Screen: Hintergrundfarbe, die das Modell malen soll und die wir rauskeyen.
+_KEY_RGB = (0, 255, 0)
+_GREEN_BG_INSTRUCTION = (
+    "\n\nIMPORTANT: Render the subject as a single solid, fully filled figure "
+    "with no internal gaps or holes, centered, on a completely flat pure green "
+    "background (RGB 0,255,0) that fills the entire canvas. Do not draw a "
+    "checkerboard. No gradient, no shadow on the background, no other background "
+    "elements."
+)
 
 
 def _get_openrouter_key() -> str:
@@ -90,13 +110,20 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     model = (args.get("model") or get_media_model("image")).strip()
     width = int(args.get("width") or 1024)
     height = int(args.get("height") or 1024)
+    transparent = bool(args.get("transparent", True))
 
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [
+            {"role": "user", "content": prompt + (_GREEN_BG_INSTRUCTION if transparent else "")}
+        ],
         "modalities": ["image", "text"],
         "image": {"size": f"{width}x{height}"},
     }
+    if transparent:
+        # `image_config.background_rgb_color` ist der einzige Hebel, mit dem
+        # OpenRouter eine einfarbige Fläche anfordert — Basis fürs Freistellen.
+        payload["image_config"] = {"background_rgb_color": list(_KEY_RGB)}
 
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
@@ -125,7 +152,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     # data:-URI → im Workspace speichern (base64 NIE ins LLM); echte URL → direkt nutzen.
     # Workspace liegt unter data_dir/workspaces → von /api/files ausgeliefert.
-    path, err = _persist_data_uri(url, ctx.workspace / "generated")
+    path, err = _persist_data_uri(url, ctx.workspace / "generated", transparent=transparent)
     if err:
         return ToolResult.fail(err)
     if path is not None:
@@ -169,11 +196,16 @@ def _extract_image_url(data: dict) -> str | None:
     return None
 
 
-def _persist_data_uri(url: str, dest_dir: Path) -> tuple[Path | None, str | None]:
+def _persist_data_uri(
+    url: str, dest_dir: Path, *, transparent: bool = False
+) -> tuple[Path | None, str | None]:
     """data:-URI → Datei. Gibt (path, None) bei Erfolg, (None, error) bei Fehler.
 
     Für echte HTTP-URLs (kein data:-Präfix): (None, None) — kein Speichern nötig,
     der Aufrufer reicht die URL direkt durch.
+
+    `transparent=True`: der grüne Hintergrund wird rausgekeyt und das Ergebnis
+    immer als PNG (mit Alpha) gespeichert.
     """
     if not url.startswith("data:"):
         return None, None
@@ -184,6 +216,11 @@ def _persist_data_uri(url: str, dest_dir: Path) -> tuple[Path | None, str | None
         raw = base64.b64decode(b64, validate=True)
     except (ValueError, binascii.Error) as e:
         return None, f"Bild-Daten ungültig (data-URI nicht dekodierbar): {e}"
+
+    if transparent:
+        from hydrahive.tools._image_keying import chroma_key_green
+        raw = chroma_key_green(raw)
+        ext = "png"
 
     return save_bytes(raw, dest_dir, ext), None
 

@@ -8,10 +8,12 @@ nur der Pfad geht zurück.
 from __future__ import annotations
 
 import base64
+import io
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from PIL import Image
 
 from hydrahive.tools.base import ToolContext
 
@@ -213,3 +215,77 @@ async def test_execute_keine_bild_url_fehler(ctx, tmp_path):
     ):
         result = await generate_image._execute({"prompt": "test"}, ctx)
     assert not result.success
+
+
+# ---------------------------------------------------------------- Transparenz (Green-Screen)
+
+def _green_data_uri(size=(8, 8)) -> str:
+    """Reines Grün als PNG-data-URI — simuliert das Modell auf Green-Screen."""
+    buf = io.BytesIO()
+    Image.new("RGB", size, (0, 255, 0)).save(buf, "PNG")
+    return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
+
+
+def _saved_path(output: str) -> Path:
+    return Path(output.split(": ", 1)[1].strip())
+
+
+def test_schema_hat_transparent_default_true():
+    from hydrahive.tools import REGISTRY
+    props = REGISTRY["generate_image"].schema["properties"]
+    assert "transparent" in props
+    assert props["transparent"].get("default") is True
+
+
+@pytest.mark.asyncio
+async def test_transparent_fordert_gruen_an_und_keyt_es(ctx):
+    from hydrahive.tools import generate_image
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=_fake_response_images(_green_data_uri()))
+
+    with (
+        patch("hydrahive.tools.generate_image.httpx.AsyncClient", return_value=mock_client),
+        patch("hydrahive.tools.generate_image._get_openrouter_key", return_value="sk-test"),
+    ):
+        result = await generate_image._execute(
+            {"prompt": "a neon hydra", "model": "openai/gpt-5-image"}, ctx
+        )
+
+    assert result.success
+    # Grüner Hintergrund wird über image_config angefordert (der bisher fehlende Wert)
+    posted = mock_client.post.call_args.kwargs["json"]
+    assert posted["image_config"]["background_rgb_color"] == [0, 255, 0]
+    # Ergebnis ist PNG, Grün rausgekeyt → voll transparent
+    path = _saved_path(result.output)
+    assert path.suffix == ".png"
+    img = Image.open(path).convert("RGBA")
+    alphas = [img.getpixel((x, y))[3] for y in range(img.height) for x in range(img.width)]
+    assert max(alphas) == 0
+
+
+@pytest.mark.asyncio
+async def test_opak_pfad_keyt_nicht(ctx):
+    from hydrahive.tools import generate_image
+
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=_fake_response_images(_green_data_uri()))
+
+    with (
+        patch("hydrahive.tools.generate_image.httpx.AsyncClient", return_value=mock_client),
+        patch("hydrahive.tools.generate_image._get_openrouter_key", return_value="sk-test"),
+    ):
+        result = await generate_image._execute(
+            {"prompt": "x", "model": "openai/gpt-5-image", "transparent": False}, ctx
+        )
+
+    assert result.success
+    posted = mock_client.post.call_args.kwargs["json"]
+    assert "background_rgb_color" not in posted.get("image_config", {})
+    # Grün bleibt deckend (kein Key)
+    img = Image.open(_saved_path(result.output)).convert("RGBA")
+    assert img.getpixel((0, 0))[3] == 255
