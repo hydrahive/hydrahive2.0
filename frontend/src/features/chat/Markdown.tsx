@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Copy, Check } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { remarkHydraEmotes } from "./remarkHydraEmotes"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"
 
@@ -26,8 +27,14 @@ export function Markdown({ text }: { text: string }) {
   return (
     <div className="prose prose-invert prose-sm max-w-none prose-pre:p-0 prose-pre:bg-transparent prose-headings:text-zinc-100 prose-strong:text-zinc-100 prose-a:text-violet-300 prose-code:text-violet-200 prose-code:bg-violet-500/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkHydraEmotes]}
         components={{
+          img({ src, alt, ...props }: any) {
+            if (typeof alt === "string" && alt.startsWith(":hydra-")) {
+              return <img src={src} alt={alt} className="hydra-emote" />
+            }
+            return <img src={src} alt={alt} className="rounded-lg max-w-full" {...props} />
+          },
           code({ inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || "")
             if (!inline && match) {

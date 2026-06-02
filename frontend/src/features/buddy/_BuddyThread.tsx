@@ -16,6 +16,7 @@ import { ImageBlock, ToolResultCard, ToolUseCard } from "@/features/chat/ToolCar
 import { extractMedia, MediaPreview } from "@/features/chat/MediaPreview"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
 import { HydraMascot } from "@/shared/HydraMascot"
+import { EmoteText } from "@/features/chat/EmoteText"
 import type { ContentBlock, Message } from "@/features/chat/types"
 
 function BuddyUserMessage() {
@@ -49,7 +50,7 @@ function BuddyUserMessage() {
         {text && (
           <>
             <div className="px-4 py-2.5 bubble-user text-sm whitespace-pre-wrap">
-              {text}
+              <EmoteText text={text} />
             </div>
             <div className="flex items-center justify-end gap-1.5">
               <ActionBarPrimitive.Edit asChild>

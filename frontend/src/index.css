@@ -240,4 +240,15 @@
     box-shadow: 0 0 14px -4px rgba(251,146,60,.5), 0 8px 22px -16px rgba(251,146,60,.9);
     color: #fcd6b0;
   }
+
+  /* Hydra-Emoticons inline im Chat — Emoji-Größe, sitzt auf der Textlinie.
+     Höhere Spezifität als prose's :where(img) → kein Block-Margin im Markdown. */
+  img.hydra-emote {
+    display: inline-block;
+    height: 1.45em;
+    width: auto;
+    margin: 0 1px;
+    vertical-align: -0.32em;
+    filter: drop-shadow(0 0 4px rgba(34,211,238,0.35));
+  }
 }

@@ -3,6 +3,7 @@ import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useVoiceInput } from "./useVoiceInput"
 import { MessageFileChip } from "./_MessageFileChip"
+import { EmotePicker } from "./EmotePicker"
 
 const MAX_FILES = 5
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -41,6 +42,11 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit() }
+  }
+
+  function insertEmote(shortcode: string) {
+    setText((prev) => (prev && !prev.endsWith(" ") ? prev + " " : prev) + shortcode + " ")
+    textRef.current?.focus()
   }
 
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
@@ -103,6 +109,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
         >
           {voice.state === "recording" ? <MicOff size={15} /> : <Mic size={15} />}
         </button>
+        <EmotePicker onPick={insertEmote} disabled={disabled || busy} />
         <textarea
           ref={textRef}
           value={text}

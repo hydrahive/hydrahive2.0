@@ -17,6 +17,7 @@ import { Markdown } from "./Markdown"
 import { ThinkingBlock } from "./ThinkingBlock"
 import { ImageBlock, ToolResultCard, ToolUseCard } from "./ToolCards"
 import { extractMedia, MediaPreview } from "./MediaPreview"
+import { EmoteText } from "./EmoteText"
 import { useVoiceOutput } from "./useVoiceOutput"
 import { useChatSearch } from "./ChatSearchContext"
 import type { ContentBlock, Message } from "./types"
@@ -65,7 +66,7 @@ function ChatUserMessage() {
         {text && (
           <>
             <div className={`px-4 py-2.5 bubble-user text-sm whitespace-pre-wrap transition-colors ${isActive ? "shadow-[0_0_0_2px_theme(colors.amber.400/45)]" : ""}`}>
-              {query ? hl(text, query) : text}
+              {query ? hl(text, query) : <EmoteText text={text} />}
             </div>
             <div className="flex items-center justify-end gap-1.5">
               <ActionBarPrimitive.Edit asChild>
