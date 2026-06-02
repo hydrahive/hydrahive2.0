@@ -1,9 +1,10 @@
 import { AlertTriangle, Folder, Heart, MessageCircle, Play, Plus, Trash2 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useMemo, useState, type CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import type { ProjectBrief } from "./api"
 import type { AgentBrief, Session } from "./types"
 import { SessionModelControls } from "./SessionModelControls"
+import { rgbFor } from "@/shared/colors"
 
 type Tab = "direct" | "projects" | "buddy"
 
@@ -47,7 +48,7 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
   }, [projectSessions])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="box flex flex-col h-full" style={{ "--c": rgbFor("/werkstatt") } as CSSProperties}>
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("session.list_title")}</p>
         <button

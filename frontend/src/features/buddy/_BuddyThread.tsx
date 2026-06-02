@@ -47,7 +47,7 @@ function BuddyUserMessage() {
         {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
         {text && (
           <>
-            <div className="px-4 py-2.5 rounded-2xl rounded-tr-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-50 text-sm whitespace-pre-wrap">
+            <div className="px-4 py-2.5 bubble-user text-sm whitespace-pre-wrap">
               {text}
             </div>
             <div className="flex items-center justify-end gap-1.5">
@@ -95,7 +95,7 @@ function BuddyAssistantMessage() {
           </pre>
         ) : blocks.map((b, i) => {
           if (b.type === "text" && b.text) return (
-            <div key={i} className="px-4 py-2.5 rounded-2xl rounded-tl-md bg-yellow-500/10 border border-yellow-500/30 text-yellow-100">
+            <div key={i} className="px-4 py-2.5 bubble-ai">
               {monoMode
                 ? <pre className="font-mono text-xs whitespace-pre-wrap break-words m-0">{b.text}</pre>
                 : <Markdown text={b.text} />}

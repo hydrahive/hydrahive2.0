@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { FileTree } from "./FileTree"
 import { GitPanel } from "./GitPanel"
 import { classifyFile, type FileKind } from "./fileType"
+import { rgbFor } from "@/shared/colors"
 
 type Tab = "files" | "git"
 
@@ -18,7 +19,7 @@ export function WorkspacePanel({ agentId, onOpenFile }: Props) {
   if (!agentId) return <div className="p-4 text-[11px] text-zinc-600">{t("no_file")}</div>
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="box flex flex-col h-full" style={{ "--c": rgbFor("/werkstatt") } as CSSProperties}>
       <div className="px-2.5 py-2 border-b border-white/[6%] text-[11px] font-medium text-zinc-300">{t("title")}</div>
       <div className="flex border-b border-white/[6%] text-[10px]">
         {(["files", "git"] as Tab[]).map((id) => (
