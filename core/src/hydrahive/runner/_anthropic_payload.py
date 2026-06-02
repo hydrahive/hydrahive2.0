@@ -53,48 +53,6 @@ def with_cache_breakpoint(messages: list[dict], ttl: str = "5m") -> list[dict]:
     return msgs
 
 
-def add_cache_reference_to_tool_results(messages: list[dict]) -> list[dict]:
-    """DEAKTIVIERT — cache_reference ist Anthropic-Beta (cache-editing) und
-    braucht einen Beta-Header, den wir nicht haben (sonst API-Error 400).
-
-    Portiert von Claude Code (claude.ts:3164-3207). Bleibt für die Zukunft hier,
-    wird aber aktuell NICHT aufgerufen.
-    """
-    last_cc_idx = -1
-    for i, msg in enumerate(messages):
-        content = msg.get("content")
-        if not isinstance(content, list):
-            continue
-        for block in content:
-            if isinstance(block, dict) and "cache_control" in block:
-                last_cc_idx = i  # last-write-wins — nur der letzte zählt
-
-    if last_cc_idx < 0:
-        return messages
-
-    result = list(messages)
-    for i in range(last_cc_idx):
-        msg = result[i]
-        if msg.get("role") != "user":
-            continue
-        content = msg.get("content")
-        if not isinstance(content, list):
-            continue
-        new_content = list(content)
-        modified = False
-        for j, block in enumerate(new_content):
-            if not isinstance(block, dict) or block.get("type") != "tool_result":
-                continue
-            tool_use_id = block.get("tool_use_id")
-            if not tool_use_id:
-                continue
-            new_content[j] = {**block, "cache_reference": tool_use_id}
-            modified = True
-        if modified:
-            result[i] = {**msg, "content": new_content}
-    return result
-
-
 def block_to_dict(block: Any) -> dict:
     """Anthropic-SDK liefert typisierte Objekte; für DB-Storage zu Plain-Dicts
     normalisieren. Vier Stufen, damit auch SDK-Objekte OHNE model_dump (z.B. ein
