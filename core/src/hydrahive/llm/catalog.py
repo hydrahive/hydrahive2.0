@@ -134,6 +134,7 @@ async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
 
 def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
     """Joint Live-Eintrag mit METADATA. Live-context_window hat Vorrang."""
+    from hydrahive.llm._anthropic import _uses_effort_param
     md = METADATA.get(entry["id"], {})
     return {
         "id": entry["id"],
@@ -146,6 +147,7 @@ def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
         "price_completion": entry.get("price_completion"),
         "output_modalities": entry.get("output_modalities") or [],
         "input_modalities": entry.get("input_modalities") or [],
+        "supports_effort": _uses_effort_param(entry["id"]),
         "unknown": entry["id"] not in METADATA,
     }
 

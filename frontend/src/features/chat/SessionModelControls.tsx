@@ -3,6 +3,7 @@ import { ModelPicker } from "./ModelPicker"
 import { ReasoningEffortPill } from "./ReasoningEffortPill"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
+import { modelSupportsExtendedEffort, useEffortPrefixes } from "@/features/llm/effort"
 import type { AgentBrief, Session } from "./types"
 
 interface Props {
@@ -17,12 +18,13 @@ interface Props {
  *  modellabhängige Effort-Unterstützung an einer Stelle. */
 export function SessionModelControls({ session, agent, onSessionChanged, onAgentChanged }: Props) {
   const { t } = useTranslation("chat")
+  const effortPrefixes = useEffortPrefixes()
 
   const activeModel = (session.metadata as { model_override?: string })?.model_override || agent.llm_model || ""
   const strippedModel = activeModel.replace(/^anthropic\//, "")
   const isClaudeModel = strippedModel.startsWith("claude-")
   const supportsReasoningEffort = isClaudeModel || /^MiniMax-M2/.test(strippedModel)
-  const supportsExtendedEffort = /^claude-(opus-4-6|opus-4-7|opus-4-8|sonnet-4-6)/.test(strippedModel)
+  const supportsExtendedEffort = modelSupportsExtendedEffort(activeModel, effortPrefixes)
 
   return (
     <div className="border-t border-white/[8%] bg-black/20">

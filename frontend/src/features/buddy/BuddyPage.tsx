@@ -10,6 +10,7 @@ import { useHydraRuntime } from "@/features/chat/_assistantRuntime"
 import { ModelPicker } from "@/features/chat/ModelPicker"
 import { ReasoningEffortPill, type EffortLevel } from "@/features/chat/ReasoningEffortPill"
 import { chatApi } from "@/features/chat/api"
+import { modelSupportsExtendedEffort, useEffortPrefixes } from "@/features/llm/effort"
 import type { Message } from "@/features/chat/types"
 import { BuddyThread } from "./_BuddyThread"
 import { NewChatHint } from "@/features/chat/NewChatHint"
@@ -23,6 +24,7 @@ import { HealthBuddyBox } from "@/features/health/_HealthBuddyBox"
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
   const navigate = useNavigate()
+  const effortPrefixes = useEffortPrefixes()
   const [state, setState] = useState<BuddyState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [reasoningEffort, setReasoningEffort] = useState<EffortLevel | null>(null)
@@ -139,7 +141,7 @@ export function BuddyPage() {
                 /^(claude-|anthropic\/claude-|MiniMax-M2)/.test(state.model) && (
                   <ReasoningEffortPill
                     current={reasoningEffort}
-                    extended={/^(anthropic\/)?claude-(opus-4-6|opus-4-7|opus-4-8|sonnet-4-6)/.test(state.model)}
+                    extended={modelSupportsExtendedEffort(state.model, effortPrefixes)}
                     onSelect={async (effort) => {
                       if (state.session_id) {
                         await chatApi.updateSession(state.session_id, { reasoning_effort: effort })

@@ -93,6 +93,7 @@ export interface CatalogModel {
   price_completion: string | null
   output_modalities?: string[]
   input_modalities?: string[]
+  supports_effort?: boolean
 }
 
 export interface CatalogProvider {

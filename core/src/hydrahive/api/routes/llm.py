@@ -120,3 +120,14 @@ async def minimax_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) ->
 def anthropic_rate_limits(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """Anthropic OAuth Rate-Limits. Für alle User sichtbar — zeigt 5h/7d Utilization."""
     return get_oauth_rate_limits()
+
+
+@router.get("/effort-models")
+def effort_models(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Modell-Präfixe mit erweitertem Effort (xhigh/max) — SSOT fürs Frontend.
+
+    Leitet aus EFFORT_PARAM_MODELS ab, damit die Effort-Capability nicht im
+    Frontend dupliziert (und bei neuen Modellen vergessen) wird (#214).
+    """
+    from hydrahive.llm._anthropic import EFFORT_PARAM_MODELS
+    return {"prefixes": list(EFFORT_PARAM_MODELS)}
