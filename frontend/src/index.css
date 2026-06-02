@@ -174,6 +174,11 @@
       0 0 34px 0 rgb(var(--c) / .60),
       0 24px 54px -18px rgb(var(--c));
   }
+  /* Statische Box für INTERAKTIVE Inhalte (Konsole/xterm, Monaco): gleicher
+     Glow-Look, aber KEIN Hover-Lift + keine Transition — die verschieben/
+     reflowen den Container und lassen das Terminal „aufblitzen und schrumpfen". */
+  .box.box-static { transition: none; }
+  .box.box-static:hover { transform: none; }
   .box-h { display: flex; align-items: center; gap: 9px; padding: 13px 15px; border-bottom: 1px solid var(--hh-bd); }
   .box-h .ic {
     width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; flex: none;

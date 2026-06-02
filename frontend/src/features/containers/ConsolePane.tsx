@@ -37,7 +37,9 @@ export function ConsolePane({ containerId, className }: Props) {
     const fit = new FitAddon()
     term.loadAddon(fit)
     term.open(wrapRef.current)
-    fit.fit()
+    const safeFit = () => { try { fit.fit() } catch { /* */ } }
+    safeFit()
+    requestAnimationFrame(safeFit)  // nach Layout-Settle nochmal fitten
 
     const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
     const url = `${proto}//${window.location.host}/api/containers/${containerId}/console?token=${encodeURIComponent(token)}`

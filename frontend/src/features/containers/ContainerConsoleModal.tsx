@@ -13,7 +13,7 @@ export function ContainerConsoleModal({ container, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="box overflow-hidden w-full max-w-5xl flex flex-col"
+      <div className="box box-static overflow-hidden w-full max-w-5xl flex flex-col"
         style={{ height: "min(80vh, 700px)", "--c": rgbFor("/containers") } as CSSProperties}>
         <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[8%] flex-shrink-0">
           <p className="text-sm font-mono text-zinc-200 truncate">{container.name} <span className="text-[11px] text-zinc-500">— Console</span></p>

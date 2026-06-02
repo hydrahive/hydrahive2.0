@@ -89,7 +89,7 @@ export function ContainerDetailPage() {
         </TabBtn>
       </div>
 
-      <div className="box flex-1 min-h-0 overflow-hidden" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
+      <div className="box box-static flex-1 min-h-0 overflow-hidden" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
         {tab === "console" && running && <ConsolePane containerId={container.container_id} className="h-full" />}
         {tab === "console" && !running && (
           <div className="h-full flex items-center justify-center text-sm text-zinc-500">
