@@ -37,15 +37,15 @@ export function ToolUseCard({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="rounded-lg border border-violet-500/20 bg-violet-500/[6%] px-3 py-2">
+    <div className="rounded-lg border border-orange-500/25 bg-orange-500/[7%] px-3 py-2">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 text-xs text-violet-300 font-mono text-left"
+        className="w-full flex items-center gap-2 text-xs text-orange-300 font-mono text-left"
       >
         <Wrench size={12} />
         <span className="flex-1">{block.name}</span>
         {block.duration_ms !== undefined && (
-          <span className="text-[10.5px] text-violet-400/60 tabular-nums">{formatDuration(block.duration_ms)}</span>
+          <span className="text-[10.5px] text-orange-400/60 tabular-nums">{formatDuration(block.duration_ms)}</span>
         )}
         {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
       </button>
