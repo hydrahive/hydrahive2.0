@@ -1,4 +1,6 @@
 import { Trash2 } from "lucide-react"
+import type { CSSProperties } from "react"
+import { rgbFor } from "@/shared/colors"
 import type { ImportJob } from "./types"
 import { formatBytes, formatRelative } from "./format"
 
@@ -15,7 +17,7 @@ export function ImportJobCard({ job, onDelete }: Props) {
   const target = job.target_qcow2.split("/").pop() ?? job.target_qcow2
   const source = job.source_path.split("/").pop() ?? job.source_path
   return (
-    <div className="rounded-lg border border-white/[8%] bg-white/[2%] p-3 space-y-2">
+    <div className="box overflow-hidden p-3 space-y-2" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-mono text-zinc-300 truncate">{source}</p>

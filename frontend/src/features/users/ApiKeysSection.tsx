@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Copy, KeyRound, Plus, Trash2 } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { apiKeysApi } from "./api"
 import type { ApiKey } from "./types"
 
@@ -56,7 +58,7 @@ export function ApiKeysSection() {
       </div>
 
       {newKey && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+        <div className="box overflow-hidden p-3 space-y-2" style={{ "--c": rgbFor("/users") } as CSSProperties}>
           <p className="text-xs text-amber-300 font-medium">{t("apikeys.save_now")}</p>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-xs font-mono text-zinc-200 bg-black/30 rounded px-2 py-1.5 break-all">
@@ -101,7 +103,7 @@ export function ApiKeysSection() {
       {keys.length > 0 && (
         <div className="space-y-1.5">
           {keys.map(k => (
-            <div key={k.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[2%] border border-white/[5%]">
+            <div key={k.id} className="box overflow-hidden flex items-center gap-3 px-3 py-2" style={{ "--c": rgbFor("/users") } as CSSProperties}>
               <KeyRound size={13} className="text-zinc-600 shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-sm text-zinc-300">{k.name}</span>

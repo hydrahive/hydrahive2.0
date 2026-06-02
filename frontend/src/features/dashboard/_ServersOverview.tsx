@@ -1,6 +1,8 @@
+import { type CSSProperties } from "react"
 import { Box, HardDrive } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { DashboardServer } from "./api"
 
 interface Props {
@@ -10,7 +12,7 @@ interface Props {
 export function ServersOverview({ servers }: Props) {
   const { t } = useTranslation("dashboard")
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[3%] p-4">
+    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/") } as CSSProperties}>
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
         {t("sections.servers")}
       </h3>

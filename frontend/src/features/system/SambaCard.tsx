@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useEffect, useRef, useState } from "react"
 import { CheckCircle2, Copy, Eye, EyeOff, FolderOpen, Loader2, Play, X, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { systemApi } from "./api"
 
 type Phase = "idle" | "running" | "done" | "failed"
@@ -66,7 +68,7 @@ export function SambaCard() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-3">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
       <div className="flex items-center gap-3">
         <FolderOpen size={16} className="text-amber-300 flex-shrink-0" />
         <div className="flex-1">

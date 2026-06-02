@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import { Download, Network, WifiOff } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { api } from "@/shared/api-client"
 import type { TailscaleStatus } from "./_tailscaleTypes"
 import { TailscaleConnectedView } from "./_TailscaleConnectedView"
@@ -75,7 +77,7 @@ export function TailscaleCard() {
 
   if (!status.installed) {
     return (
-      <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-3">
+      <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
         <div className="flex items-center gap-2">
           <WifiOff size={14} className="text-zinc-500" />
           <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{t("tailscale.title")}</p>
@@ -104,7 +106,7 @@ export function TailscaleCard() {
   const Icon = connected ? Network : WifiOff
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-3">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Icon size={14} className={tone} />

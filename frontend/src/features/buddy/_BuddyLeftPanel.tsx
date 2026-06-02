@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Activity, Loader2 } from "lucide-react"
 import { dashboardApi, type DashboardSummary } from "@/features/dashboard/api"
 import { zahnfeeApi, type Briefing } from "@/features/zahnfee/api"
 import { Link } from "react-router-dom"
 
-function PanelBox({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function PanelBox({ title, icon, c, children }: { title: string; icon: React.ReactNode; c: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[6%] bg-black/20 flex items-center gap-2">
-        {icon}
-        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">{title}</span>
+    <div className="box overflow-hidden" style={{ "--c": c } as CSSProperties}>
+      <div className="box-h">
+        <span className="ic">{icon}</span>
+        <span className="t">{title}</span>
       </div>
-      <div className="p-4">{children}</div>
+      <div className="box-b">{children}</div>
     </div>
   )
 }
@@ -30,14 +30,14 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   const { t } = useTranslation("buddy")
   if (briefing === undefined) {
     return (
-      <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
+      <PanelBox title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
         <Loader2 size={14} className="text-zinc-600 animate-spin" />
       </PanelBox>
     )
   }
   if (!briefing) {
     return (
-      <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
+      <PanelBox title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
         <p className="text-xs text-zinc-500 italic leading-relaxed">{t("left_panel.no_briefing")}</p>
         <Link to="/zahnfee" className="mt-2 block text-xs text-violet-400 hover:text-violet-300 transition-colors">{t("left_panel.setup")}</Link>
       </PanelBox>
@@ -51,7 +51,7 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   ].filter((s) => s.value)
 
   return (
-    <PanelBox title="Zahnfee" icon={<span className="text-sm">🦷</span>}>
+    <PanelBox title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
       {briefing.error ? (
         <p className="text-xs text-rose-400 italic">{briefing.error}</p>
       ) : (
@@ -85,7 +85,7 @@ export function BuddyLeftPanel() {
     <div className="flex flex-col gap-4 w-60">
       <ZahnfeeBox briefing={briefing} />
 
-      <PanelBox title="System" icon={<Activity size={13} className="text-zinc-400" />}>
+      <PanelBox title="System" c="20 184 166" icon={<Activity size={13} className="text-teal-300" />}>
         {!summary ? (
           <Loader2 size={14} className="text-zinc-600 animate-spin" />
         ) : (

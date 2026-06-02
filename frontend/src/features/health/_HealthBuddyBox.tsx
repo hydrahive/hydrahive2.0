@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
+import { type CSSProperties, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Activity } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { healthApi } from "./api"
 
 const QUICK_PROMPTS = [
@@ -29,7 +30,7 @@ export function HealthBuddyBox({ onPrompt }: Props) {
     : null
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-xl overflow-hidden w-60">
+    <div className="box overflow-hidden w-60" style={{ "--c": rgbFor("/health") } as CSSProperties}>
       <div className="px-4 py-3 border-b border-white/[6%] bg-black/20 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity size={14} className="text-rose-400" />

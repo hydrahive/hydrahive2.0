@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react"
 import type { LucideIcon } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 
 interface Props {
   icon: LucideIcon
@@ -10,7 +12,7 @@ interface Props {
 
 export function StatCard({ icon: Icon, label, value, detail, glow }: Props) {
   return (
-    <div className={`relative rounded-2xl border border-white/[8%] bg-gradient-to-br from-white/[3%] to-transparent p-5 overflow-hidden`}>
+    <div className="box overflow-hidden relative p-5" style={{ "--c": rgbFor("/system") } as CSSProperties}>
       <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-40 ${glow}`} />
       <div className="relative">
         <div className="flex items-center gap-2 mb-3">

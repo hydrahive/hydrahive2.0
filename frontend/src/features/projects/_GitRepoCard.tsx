@@ -1,10 +1,12 @@
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import {
   ArrowDown, ArrowUp, ChevronDown, ChevronRight,
   GitBranch, GitCommitHorizontal, Loader2, Settings, Trash2,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 import { GitRepoSettings, type Busy } from "./_GitRepoSettings"
 import type { ProjectGitRepo } from "./types"
 
@@ -41,7 +43,7 @@ export function GitRepoCard({ projectId, repo, onChanged }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-white/[8%] bg-white/[2%]">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <div className="flex items-center gap-2 px-3 py-2">
         <button onClick={() => setOpen(!open)} className="text-zinc-500 hover:text-zinc-200">
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}

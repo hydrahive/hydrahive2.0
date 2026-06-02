@@ -1,6 +1,8 @@
+import { type CSSProperties } from "react"
 import { Bot, Crown, Wrench } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { DashboardAgent } from "./api"
 
 const TYPE_ICON = { master: Crown, project: Bot, specialist: Wrench }
@@ -18,7 +20,7 @@ export function AgentsList({ agents }: Props) {
   const { t } = useTranslation("dashboard")
   if (agents.length === 0) {
     return (
-      <div className="rounded-xl border border-white/[8%] bg-white/[3%] p-4">
+      <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/") } as CSSProperties}>
         <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
           {t("sections.agents")}
         </h3>
@@ -31,7 +33,7 @@ export function AgentsList({ agents }: Props) {
     items: agents.filter((a) => a.type === type),
   })).filter((g) => g.items.length > 0)
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[3%] p-4 space-y-3">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/") } as CSSProperties}>
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
         {t("sections.agents")}
       </h3>

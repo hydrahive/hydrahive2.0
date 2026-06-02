@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useState } from "react"
 import { CheckCircle, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { LlmProvider } from "./api"
 import { EMPTY_PROVIDER, KNOWN_PROVIDERS } from "./_llm_providers"
 import { OAuthFlow } from "./OAuthFlow"
@@ -31,7 +33,7 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 rounded-xl border border-white/[8%] bg-white/[2%] space-y-3">
+    <form onSubmit={handleSubmit} className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{isEdit ? form.name || form.id : t("providers.add")}</p>
       <div className="grid grid-cols-2 gap-3">
         <div>

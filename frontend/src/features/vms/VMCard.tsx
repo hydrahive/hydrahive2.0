@@ -1,5 +1,7 @@
 import { Cpu, HardDrive, MemoryStick, Network } from "lucide-react"
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
+import { rgbFor } from "@/shared/colors"
 import type { VM } from "./types"
 import { StatusBadge } from "./StatusBadge"
 import { formatRamMB } from "./format"
@@ -48,7 +50,7 @@ export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole, o
   const canStart = vm.actual_state === "stopped" || vm.actual_state === "created" || vm.actual_state === "error"
 
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[2%] p-4 space-y-3 hover:border-white/[14%] transition-colors">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-zinc-100 truncate">{vm.name}</p>

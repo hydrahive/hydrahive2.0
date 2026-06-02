@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import { ExternalLink, Link2, Link2Off, Loader2, RefreshCw } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { relTime, type AgentLinkStatus } from "./_agentLinkHelpers"
@@ -43,7 +45,7 @@ export function AgentLinkCard() {
   if (!status) return null
   if (!status.configured) {
     return (
-      <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-2">
+      <div className="box overflow-hidden p-4 space-y-2" style={{ "--c": rgbFor("/system") } as CSSProperties}>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
           {t("agentlink.title")}
         </p>
@@ -58,7 +60,7 @@ export function AgentLinkCard() {
   const dot = status.connected ? "bg-emerald-400" : "bg-rose-400"
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-3">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Icon size={14} className={tone} />

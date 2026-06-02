@@ -1,8 +1,10 @@
+import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import {
   Activity, Bot, Database, Folder, MessageSquare, Mic, RotateCw, Server, Wrench, Zap,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { HelpButton } from "@/i18n/HelpButton"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { RestartModal } from "@/shared/RestartModal"
@@ -125,7 +127,7 @@ export function SystemPage() {
       )}
 
       {info && (
-        <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-1">
+        <div className="box overflow-hidden p-4 space-y-1" style={{ "--c": rgbFor("/system") } as CSSProperties}>
           <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">{t("paths.title")}</p>
           <PathRow label={t("paths.data")} value={info.data_dir} />
           <PathRow label={t("paths.config")} value={info.config_dir} />

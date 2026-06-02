@@ -1,6 +1,8 @@
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { CheckCircle2, Copy, Eye, EyeOff, FolderOpen, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 
 interface SambaInfo {
   enabled: boolean
@@ -27,7 +29,7 @@ export function SambaSection({ samba, busy, error, onToggle }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-white/[6%] bg-white/[2%] p-3 space-y-2">
+    <div className="box overflow-hidden p-3 space-y-2" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <div className="flex items-center gap-2">
         <FolderOpen size={14} className="text-amber-300" />
         <p className="text-sm font-medium text-zinc-200 flex-1">{t("samba.title")}</p>

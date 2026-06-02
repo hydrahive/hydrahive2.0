@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { ClipboardList, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 import type { ProjectAuditAction, ProjectAuditEntry } from "./types"
 
 interface Props {
@@ -43,7 +45,7 @@ interface EntryRowProps {
 
 function EntryRow({ entry, actionLabel, locale }: EntryRowProps) {
   return (
-    <div className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[6%]">
+    <div className="flex items-start gap-3 px-3 py-2.5 box overflow-hidden" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <ClipboardList size={13} className="text-zinc-500 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <span className="text-sm text-zinc-200 font-medium">{actionLabel}</span>

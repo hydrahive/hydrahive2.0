@@ -5,6 +5,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Redesign „freundlich/dunkel-neon": die Box-/App-Töne zentral umbiegen.
+        // 276 bestehende bg-zinc-900/950-Boxen werden so an EINER Stelle wärmer +
+        // angehoben — ohne 37 Komponenten anzufassen. Übrige zinc-Töne (Text) bleiben.
+        zinc: {
+          900: "#1c2334", // Box-/Panel-Fläche (vorher #18181b) — angehoben, wärmer
+          950: "#0f1320", // App-/Tiefen-Dunkel (vorher #09090b)
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

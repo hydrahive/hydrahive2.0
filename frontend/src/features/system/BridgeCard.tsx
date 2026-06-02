@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useEffect, useRef, useState } from "react"
 import { CheckCircle2, Loader2, Network, Play, X, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { systemApi } from "./api"
 
 type Phase = "idle" | "confirm" | "running" | "done" | "failed"
@@ -61,7 +63,7 @@ export function BridgeCard() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-3">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
       <div className="flex items-center gap-3">
         <Network size={16} className="text-teal-300 flex-shrink-0" />
         <div className="flex-1">

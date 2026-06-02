@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
+import { type CSSProperties, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2, Play, Save, RotateCcw } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { zahnfeeApi, type ZahnfeeConfig, type Briefing } from "./api"
 import { ModelPicker } from "@/features/chat/ModelPicker"
 
@@ -90,7 +91,7 @@ export function ZahnfeePage() {
       </div>
 
       {/* Aktuelles Briefing */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-6">
+      <div className="box overflow-hidden p-6" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-zinc-300">{t("briefing.title")}</h2>
           <button
@@ -110,7 +111,7 @@ export function ZahnfeePage() {
       </div>
 
       {/* Config */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 p-6 flex flex-col gap-5">
+      <div className="box overflow-hidden p-6 flex flex-col gap-5" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
         <h2 className="text-sm font-semibold text-zinc-300">{t("config.title")}</h2>
 
         {/* Aktiviert */}

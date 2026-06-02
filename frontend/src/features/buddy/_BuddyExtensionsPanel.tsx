@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { type CSSProperties, useEffect, useState } from "react"
 import {
   Brain, Code2, ExternalLink, FileText, GitBranch, Gamepad2,
   Lock, Network, Search, ShieldOff, Package, Loader2,
 } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { fetchExtensions } from "@/features/extensions/api"
 import type { Extension } from "@/features/extensions/types"
 
@@ -32,7 +33,7 @@ function ExtTile({ ext }: { ext: Extension }) {
     : "bg-zinc-600"
 
   const tile = (
-    <div className="relative flex flex-col items-center gap-1.5 p-2.5 rounded-xl border border-white/[6%] hover:border-violet-500/30 hover:bg-violet-500/[3%] transition-all group cursor-pointer">
+    <div className="tile relative flex flex-col items-center gap-1.5 p-2.5 transition-all group cursor-pointer" style={{ "--c": rgbFor("/mcp") } as CSSProperties}>
       <div className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full ${statusColor}`} />
       <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
         <ExtIcon name={ext.icon} />
@@ -64,7 +65,7 @@ export function BuddyExtensionsPanel() {
   }, [])
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-xl overflow-hidden w-60">
+    <div className="box overflow-hidden w-60" style={{ "--c": rgbFor("/mcp") } as CSSProperties}>
       <div className="px-4 py-3 border-b border-white/[6%] bg-black/20 flex items-center gap-2">
         <span className="text-sm">🧩</span>
         <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Anwendungen</span>

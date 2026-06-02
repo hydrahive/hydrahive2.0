@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { Loader2, Save, X } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { DiskInterface, ISO, MachineType, NetworkDevice, VM } from "./types"
 import { vmsApi } from "./api"
 
@@ -74,7 +76,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-2xl border border-white/[8%] bg-zinc-900 p-5 shadow-2xl shadow-black/40 space-y-3">
+        className="box overflow-hidden w-full max-w-lg p-5 space-y-3" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">VM bearbeiten: {vm.name}</h2>
           <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">

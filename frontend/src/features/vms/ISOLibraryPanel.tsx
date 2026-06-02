@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 import { Disc, Trash2, Upload } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { ISO } from "./types"
 import { uploadIso, vmsApi } from "./api"
 import { formatBytes } from "./format"
@@ -70,7 +72,7 @@ export function ISOLibraryPanel({ onClose }: Props) {
           <p className="text-sm text-zinc-500 text-center py-12">{t("iso.empty")}</p>
         ) : isos.map((iso) => (
           <div key={iso.filename}
-            className="flex items-center gap-3 p-3 rounded-lg border border-white/[8%] bg-white/[2%]">
+            className="box overflow-hidden flex items-center gap-3 p-3" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
             <Disc size={16} className="text-zinc-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-zinc-100 truncate">{iso.filename}</p>

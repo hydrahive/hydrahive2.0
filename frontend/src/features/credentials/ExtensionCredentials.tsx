@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { Eye, EyeOff, Package, RefreshCw } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { api } from "@/shared/api-client"
 
 interface CredField {
@@ -73,7 +75,7 @@ export function ExtensionCredentials() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {creds.map((c) => (
             <div key={c.id}
-              className="rounded-lg border border-white/[8%] bg-white/[2%] p-4">
+              className="box overflow-hidden p-4" style={{ "--c": rgbFor("/credentials") } as CSSProperties}>
               <div className="flex items-center gap-2 mb-3">
                 <Package size={13} className="text-violet-400 shrink-0" />
                 <span className="text-sm font-medium text-zinc-100">{c.name}</span>

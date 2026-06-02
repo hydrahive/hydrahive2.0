@@ -1,7 +1,9 @@
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { useEffect, useMemo, useState } from "react"
 import { Loader2, RefreshCw, ArrowLeft, Search, Zap, CheckCircle, XCircle, HelpCircle } from "lucide-react"
 import { Link } from "react-router-dom"
+import { rgbFor } from "@/shared/colors"
 import { chatApi } from "@/features/chat/api"
 import type { AgentBrief } from "@/features/chat/types"
 import { catalogApi, type CatalogModel, type CatalogProvider, type CatalogTestResult } from "./api"
@@ -128,7 +130,7 @@ export function CatalogPage() {
         <span className="text-xs text-zinc-600 ml-auto">{filtered.length} Modelle</span>
       </div>
 
-      <div className="rounded-xl border border-white/[8%] overflow-hidden">
+      <div className="box overflow-hidden" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
         <table className="w-full text-sm">
           <thead className="bg-white/[3%] text-[10px] uppercase tracking-widest text-zinc-500">
             <tr>
@@ -211,7 +213,7 @@ function UseInAgentDialog({
   const [pick, setPick] = useState<string>(agents[0]?.id ?? "")
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
-      <div className="bg-zinc-950 border border-white/10 rounded-xl p-5 max-w-md w-full m-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+      <div className="box overflow-hidden p-5 max-w-md w-full m-4 space-y-3" style={{ "--c": rgbFor("/llm") } as CSSProperties} onClick={(e) => e.stopPropagation()}>
         <h3 className="text-sm font-medium text-zinc-100">{t("catalog.set_for_agent")}</h3>
         <p className="text-xs text-zinc-400 break-all">→ <span className="font-mono">{model}</span></p>
         <div>

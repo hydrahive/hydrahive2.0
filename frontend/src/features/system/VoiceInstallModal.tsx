@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { CheckCircle, Loader2, Mic, X, XCircle } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { systemApi } from "./api"
 
 export type VoiceInstallState = "confirm" | "starting" | "running" | "done" | "failed"
@@ -46,7 +48,8 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl mx-4 rounded-2xl border border-white/[8%] bg-zinc-900 shadow-2xl shadow-black/40 flex flex-col max-h-[85vh]"
+        className="box overflow-hidden w-full max-w-2xl mx-4 flex flex-col max-h-[85vh]"
+        style={{ "--c": rgbFor("/system") } as CSSProperties}
       >
         <div className="flex items-center justify-between p-5 border-b border-white/[6%]">
           <div className="flex items-center gap-2">

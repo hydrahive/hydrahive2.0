@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { Camera, Plus, RotateCcw, Trash2, X } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { Snapshot, VM } from "./types"
 import { vmsApi } from "./api"
 import { formatBytes, formatRelative } from "./format"
@@ -114,7 +116,7 @@ export function SnapshotsPanel({ vm, onClose }: Props) {
         ) : snaps.length === 0 ? (
           <p className="text-sm text-zinc-500 text-center py-12">{t("snapshots.empty")}</p>
         ) : snaps.map((s) => (
-          <div key={s.snapshot_id} className="rounded-lg border border-white/[8%] bg-white/[2%] p-3 space-y-2">
+          <div key={s.snapshot_id} className="box overflow-hidden p-3 space-y-2" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-mono text-zinc-100 truncate">{s.name}</p>

@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { useState } from "react"
 import { ExternalLink, Loader2 } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { llmApi } from "./api"
 
 export function OAuthFlow({
@@ -41,7 +43,7 @@ export function OAuthFlow({
   }
 
   return (
-    <div className="space-y-3 p-3 rounded-lg bg-violet-500/[6%] border border-violet-500/30">
+    <div className="box overflow-hidden space-y-3 p-3" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <p className="text-xs font-semibold uppercase tracking-widest text-violet-300">
         OAuth-Login — Schritt {step} von 2
       </p>

@@ -1,9 +1,11 @@
 import { Check, Copy, ExternalLink, GitBranch, Tag, X } from "lucide-react"
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { MemberManager } from "./MemberManager"
 import { projectsApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 import type { Project } from "./types"
 
 interface Props {
@@ -124,7 +126,7 @@ function WebhookQuickLink({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%]">
+    <div className="flex items-center gap-2 px-3 py-2 box overflow-hidden" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <code className="flex-1 text-xs text-zinc-400 font-mono truncate">{url}</code>
       <button onClick={copy} className="flex-shrink-0 text-zinc-500 hover:text-zinc-200 transition-colors">
         {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}

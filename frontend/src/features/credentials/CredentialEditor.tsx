@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useState } from "react"
 import { Loader2, Save, Trash2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { credentialsApi } from "./api"
 import { Field, CredentialValueInput } from "./_credentialHelpers"
 import type { Credential, CredentialType } from "./types"
@@ -61,7 +63,7 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-2xl border border-white/[8%] bg-zinc-900 p-5 shadow-2xl shadow-black/40 space-y-3">
+        className="box overflow-hidden w-full max-w-lg p-5 space-y-3" style={{ "--c": rgbFor("/credentials") } as CSSProperties}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
             {isNew ? t("new_title") : t("edit_title", { name: credential!.name })}

@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { CheckCircle, Pencil, Trash2, Unlink } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { LlmProvider } from "./api"
 
 export function ProviderCard({
@@ -16,7 +18,7 @@ export function ProviderCard({
   const { t } = useTranslation("llm")
   const hasOAuth = !!provider.oauth?.access
   return (
-    <div className="flex items-center gap-3 p-4 rounded-xl border border-white/[8%] bg-white/[3%]">
+    <div className="box overflow-hidden flex items-center gap-3 p-4" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-200">{provider.name || provider.id}</p>
         <p className="text-xs text-zinc-500 mt-0.5 flex items-center gap-1.5">

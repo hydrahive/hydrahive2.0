@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Cpu, MemoryStick, Network } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { Container, ContainerInfo } from "./types"
 import { containersApi } from "./api"
 
@@ -82,7 +84,7 @@ export function ContainerStatsPane({ container: c }: Props) {
 
 function Card({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[2%] p-4">
+    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
       <div className="flex items-center gap-2 mb-2">
         {icon}
         <p className="text-[11px] uppercase tracking-wider text-zinc-500">{label}</p>

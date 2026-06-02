@@ -1,9 +1,11 @@
 import { Brain } from "lucide-react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { McpSelector } from "./McpSelector"
 import { ToolsSelector } from "./ToolsSelector"
 import type { Agent, ToolMeta } from "./types"
 import type { McpServerBrief } from "./api"
+import { rgbFor } from "@/shared/colors"
 
 interface Props {
   draft: Agent
@@ -16,7 +18,7 @@ export function ToolsTab({ draft, tools, mcpServers, onChange }: Props) {
   const { t } = useTranslation("agents")
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-white/[6%] bg-white/[3%] px-3 py-2.5 flex items-center justify-between gap-3">
+      <div className="box overflow-hidden px-3 py-2.5 flex items-center justify-between gap-3" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
         <div className="flex items-center gap-2">
           <Brain size={14} className="text-violet-400 shrink-0" />
           <div>

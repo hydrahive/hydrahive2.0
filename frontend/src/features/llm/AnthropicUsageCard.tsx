@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import { Activity, AlertCircle, Clock, Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { llmApi, type AnthropicRateLimits } from "./api"
 
 export function AnthropicUsageCard() {
@@ -59,7 +61,7 @@ export function AnthropicUsageCard() {
   }
 
   return (
-    <div className="rounded-lg border border-violet-500/30 bg-gradient-to-br from-violet-500/5 to-purple-500/5 p-4 space-y-3">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <div className="flex items-center gap-2 text-sm font-medium text-violet-300">
         <Zap size={16} />
         {t("usage.anthropic_title")}

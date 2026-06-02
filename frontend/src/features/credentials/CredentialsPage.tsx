@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import { Key, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { credentialsApi } from "./api"
 import { CredentialEditor } from "./CredentialEditor"
@@ -74,7 +76,7 @@ export function CredentialsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {creds.map((c) => (
             <button key={c.name} onClick={() => setEditor(c)}
-              className="text-left rounded-lg border border-white/[8%] bg-white/[2%] p-3 hover:border-white/[15%] hover:bg-white/[5%] transition-colors">
+              className="box overflow-hidden text-left p-3 transition-colors" style={{ "--c": rgbFor("/credentials") } as CSSProperties}>
               <div className="flex items-center gap-2 mb-1">
                 <Key size={11} className="text-amber-300 flex-shrink-0" />
                 <p className="text-sm font-mono text-zinc-200 truncate flex-1">{c.name}</p>

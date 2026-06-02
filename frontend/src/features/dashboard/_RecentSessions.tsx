@@ -1,6 +1,8 @@
+import { type CSSProperties } from "react"
 import { Bot, Crown, MessageSquare, Wrench } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { DashboardSession } from "./api"
 
 const TYPE_ICON = { master: Crown, project: Bot, specialist: Wrench }
@@ -56,7 +58,7 @@ export function RecentSessions({ sessions }: Props) {
 
 function SectionShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[3%] p-4">
+    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/") } as CSSProperties}>
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">{title}</h3>
       {children}
     </div>

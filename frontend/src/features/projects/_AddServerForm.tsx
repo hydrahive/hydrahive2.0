@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { Box, HardDrive, Loader2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 import type { ProjectServer } from "./types"
 
 interface Props {
@@ -36,7 +38,7 @@ export function AddServerForm({ projectId, onCancel, onAdded }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-violet-500/20 bg-violet-500/[3%] p-3 space-y-2">
+    <div className="box overflow-hidden p-3 space-y-2" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <div className="flex items-center justify-between">
         <p className="text-xs text-violet-300 font-medium">{t("servers.add_title")}</p>
         <button onClick={onCancel} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">

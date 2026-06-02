@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { useRef, useState } from "react"
 import { Download, Upload, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { systemApi } from "./api"
 import { BackupRestoreModal, type RestoreState } from "./BackupRestoreModal"
 
@@ -64,7 +66,7 @@ export function BackupCard() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-white/[2%] p-4 space-y-3">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
           {t("backup.title")}

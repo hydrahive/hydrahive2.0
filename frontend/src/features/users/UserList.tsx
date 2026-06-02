@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { Crown, KeyRound, Pencil, Trash2, User as UserIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { User } from "./types"
 
 interface Props {
@@ -25,7 +27,8 @@ export function UserList({ users, currentUsername, onEdit, onChangePassword, onD
         return (
           <div
             key={u.username}
-            className="flex items-center gap-3 p-3 rounded-xl border border-white/[8%] bg-white/[3%]"
+            className="box overflow-hidden flex items-center gap-3 p-3"
+            style={{ "--c": rgbFor("/users") } as CSSProperties}
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
               {u.username[0]?.toUpperCase() ?? "?"}

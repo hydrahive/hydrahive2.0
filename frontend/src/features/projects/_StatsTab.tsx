@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { MessageSquare, Zap, Activity, Clock, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 import type { ProjectStats } from "./types"
 
 interface Props {
@@ -12,7 +14,7 @@ function StatCard({ icon: Icon, label, value, sub }: {
   icon: React.ElementType; label: string; value: string | number; sub?: string
 }) {
   return (
-    <div className="p-4 rounded-xl bg-zinc-900 border border-white/[6%] space-y-2">
+    <div className="p-4 box overflow-hidden space-y-2" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <div className="flex items-center gap-2 text-zinc-500">
         <Icon size={13} />
         <span className="text-xs uppercase tracking-wider">{label}</span>

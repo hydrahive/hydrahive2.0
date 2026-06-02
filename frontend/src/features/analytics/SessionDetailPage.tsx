@@ -1,7 +1,8 @@
+import { type CSSProperties, useEffect, useState } from "react"
 import { ArrowLeft, MessageSquare } from "lucide-react"
-import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router-dom"
+import { rgbFor } from "@/shared/colors"
 import { analyticsApi, type SessionDetail } from "./api"
 
 export function SessionDetailPage() {
@@ -105,7 +106,7 @@ function MetricsRow({ m }: { m: NonNullable<SessionDetail["metrics"]> }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[3%] p-3">
+    <div className="box overflow-hidden p-3" style={{ "--c": rgbFor("/") } as CSSProperties}>
       <h3 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">{title}</h3>
       {children}
     </div>

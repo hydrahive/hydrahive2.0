@@ -1,7 +1,8 @@
+import { type CSSProperties, useEffect, useState } from "react"
 import { AlertTriangle, Coins, Cpu, TrendingUp } from "lucide-react"
-import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { cn } from "@/shared/cn"
+import { rgbFor } from "@/shared/colors"
 import { analyticsApi, type AnalyticsOverview } from "./api"
 
 const REFRESH_MS = 30_000
@@ -126,7 +127,7 @@ export function TokenAuditCard() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[3%] p-4">
+    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/") } as CSSProperties}>
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
         Token-Audit
       </h3>

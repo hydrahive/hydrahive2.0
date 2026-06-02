@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Box, Plus, RefreshCw } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { Container } from "./types"
 import { containersApi } from "./api"
 import { ContainerCard } from "./ContainerCard"
@@ -70,7 +72,7 @@ export function ContainersPage() {
       {loading ? (
         <p className="text-sm text-zinc-500">{t("loading")}</p>
       ) : containers.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/[10%] bg-white/[2%] p-10 text-center">
+        <div className="box overflow-hidden p-10 text-center" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
           <Box size={28} className="mx-auto text-zinc-600 mb-3" />
           <p className="text-sm text-zinc-400">{t("empty")}</p>
           <p className="text-xs text-zinc-600 mt-2">{t("logs.tip")} <span className="text-violet-300">debian/12</span> ist gut für die meisten Dienste, <span className="text-violet-300">alpine/3.21</span> für Minimum-Footprint.</p>
@@ -101,7 +103,7 @@ export function ContainersPage() {
 
 function SummaryCard({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
   return (
-    <div className={`rounded-xl border p-4 ${highlight ? "border-emerald-500/30 bg-emerald-500/5" : "border-white/[8%] bg-white/[2%]"}`}>
+    <div className={`box overflow-hidden p-4 ${highlight ? "border-emerald-500/30 bg-emerald-500/5" : ""}`} style={{ "--c": rgbFor("/containers") } as CSSProperties}>
       <p className="text-[11px] uppercase tracking-wider text-zinc-500">{label}</p>
       <p className={`text-2xl font-bold mt-1 ${highlight ? "text-emerald-200" : "text-zinc-100"}`}>{value}</p>
     </div>

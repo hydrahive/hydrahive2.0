@@ -1,7 +1,9 @@
 import { Box, Cpu, MemoryStick, Network, Pencil, Play, RotateCw, Square, Terminal, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+import { rgbFor } from "@/shared/colors"
 import type { Container, ContainerInfo } from "./types"
 import { ContainerStatusBadge } from "./StatusBadge"
 import { ContainerConsoleModal } from "./ContainerConsoleModal"
@@ -47,7 +49,7 @@ export function ContainerCard({ container: c, onStart, onStop, onRestart, onDele
   const canStart = c.actual_state === "stopped" || c.actual_state === "error"
 
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[2%] p-4 space-y-3 hover:border-white/[14%] transition-colors">
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

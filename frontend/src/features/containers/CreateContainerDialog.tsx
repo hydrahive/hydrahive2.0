@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { X } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { ContainerCreateInput, NetworkMode } from "./types"
 import { containersApi } from "./api"
 import { Field, RadioCard } from "./_containerDialogHelpers"
@@ -54,7 +56,7 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xl mx-4 rounded-2xl border border-white/[8%] bg-zinc-900 shadow-2xl flex flex-col max-h-[90vh]">
+      <div onClick={(e) => e.stopPropagation()} className="box overflow-hidden w-full max-w-xl mx-4 flex flex-col max-h-[90vh]" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[6%]">
           <h2 className="text-lg font-bold text-white">Neuer Container</h2>
           <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"><X size={16} /></button>

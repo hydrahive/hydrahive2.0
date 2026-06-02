@@ -1,7 +1,9 @@
 import { ChevronRight, File, Folder, Loader2, Pencil, Save, Trash2, Upload, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 
 interface Entry { name: string; type: "file" | "dir"; size: number | null; modified: number }
 
@@ -170,7 +172,7 @@ export function FilesTab({ projectId }: Props) {
           )}
         </div>
       ) : (
-        <div className="rounded-lg border border-white/[8%] overflow-hidden">
+        <div className="box overflow-hidden" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
           {path && (
             <button
               onClick={navigateUp}

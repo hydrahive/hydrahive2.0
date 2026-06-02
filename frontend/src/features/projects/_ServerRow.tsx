@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { Box, ExternalLink, HardDrive, Loader2, Trash2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { ProjectServer } from "./types"
 
 interface Props { server: ProjectServer; busy: boolean; onUnassign: () => void }
@@ -18,7 +20,7 @@ export function ServerRow({ server, busy, onUnassign }: Props) {
   const detailHref = server.kind === "vm" ? `/vms/${server.id}` : `/containers/${server.id}`
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[8%] bg-white/[2%]">
+    <div className="flex items-center gap-2 px-3 py-2 box overflow-hidden" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
       <Icon size={14} className="text-violet-300 flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-zinc-200 truncate">{server.name}</p>

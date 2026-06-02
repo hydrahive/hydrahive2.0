@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import type { Agent } from "./types"
+import { rgbFor } from "@/shared/colors"
 
 interface Props {
   draft: Agent
@@ -75,7 +77,7 @@ function InfoBlock({ agent }: { agent: Agent }) {
     { label: t("info.project"), value: agent.project_id ?? null },
   ].filter((r) => r.value)
   return (
-    <div className="rounded-md border border-white/[6%] bg-white/[2%] p-2 space-y-0.5">
+    <div className="box overflow-hidden p-2 space-y-0.5" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
       <p className="text-[10px] font-medium text-zinc-500 mb-1">{t("info.title")}</p>
       <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
         {rows.map((r) => (

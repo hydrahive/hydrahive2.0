@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, FileText, Gauge, Settings, Terminal as TerminalIcon } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { Container } from "./types"
 import { containersApi } from "./api"
 import { ContainerStatusBadge } from "./StatusBadge"
@@ -87,7 +89,7 @@ export function ContainerDetailPage() {
         </TabBtn>
       </div>
 
-      <div className="flex-1 min-h-0 rounded-xl border border-white/[8%] bg-zinc-950 overflow-hidden">
+      <div className="box flex-1 min-h-0 overflow-hidden" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
         {tab === "console" && running && <ConsolePane containerId={container.container_id} className="h-full" />}
         {tab === "console" && !running && (
           <div className="h-full flex items-center justify-center text-sm text-zinc-500">
