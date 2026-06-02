@@ -112,7 +112,10 @@ export function BuddyPage() {
           <BuddyLeftPanel />
         </div>
         <div className="w-full max-w-3xl flex flex-col min-w-0 min-h-0">
-          <div className="relative flex flex-col flex-1 min-h-0 rounded-[28px] border border-[#104E8B]/70 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] overflow-hidden backdrop-blur">
+          <div
+            className="relative flex flex-col flex-1 min-h-0 rounded-[28px] border border-[#104E8B]/70 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] overflow-hidden backdrop-blur"
+            style={{ background: "linear-gradient(158deg, rgba(255,255,255,.06), rgba(255,255,255,.015)), linear-gradient(160deg, rgba(16,78,139,.38), rgba(16,78,139,.13) 65%), #1c2334" }}
+          >
             <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-[#104E8B]/30" />
             {state.created && (
               <div className="px-5 pt-3 pb-1 text-[11px] text-[var(--hh-accent-text)] text-center">

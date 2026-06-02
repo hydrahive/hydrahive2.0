@@ -213,7 +213,10 @@ export function ChatPage() {
     <div className="flex flex-col min-w-0 p-3 md:p-4 h-full">
       <ChatSearchProvider messages={allMessages}>
         <ChatSearchScrollEffect />
-        <div className="relative flex flex-col rounded-[28px] border border-[#104E8B]/70 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] overflow-hidden backdrop-blur w-full h-full">
+        <div
+          className="relative flex flex-col rounded-[28px] border border-[#104E8B]/70 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] overflow-hidden backdrop-blur w-full h-full"
+          style={{ background: "linear-gradient(158deg, rgba(255,255,255,.06), rgba(255,255,255,.015)), linear-gradient(160deg, rgba(16,78,139,.38), rgba(16,78,139,.13) 65%), #1c2334" }}
+        >
           <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-[#104E8B]/30" />
           {searchOpen && <ChatSearchBar onClose={() => setSearchOpen(false)} />}
           <ChatHeader
