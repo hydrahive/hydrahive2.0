@@ -245,10 +245,10 @@
      Höhere Spezifität als prose's :where(img) → kein Block-Margin im Markdown. */
   img.hydra-emote {
     display: inline-block;
-    height: 1.45em;
+    height: 4em;
     width: auto;
-    margin: 0 1px;
-    vertical-align: -0.32em;
-    filter: drop-shadow(0 0 4px rgba(34,211,238,0.35));
+    margin: 0 2px;
+    vertical-align: middle;
+    filter: drop-shadow(0 0 6px rgba(34,211,238,0.4));
   }
 }
