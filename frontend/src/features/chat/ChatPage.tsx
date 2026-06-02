@@ -50,6 +50,7 @@ export function ChatPage() {
   const [projects, setProjects] = useState<ProjectBrief[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const chat = useChat(activeId)
   const allMessages = useMemo(() => [...chat.messages, ...localMsgs], [chat.messages, localMsgs])
@@ -66,13 +67,17 @@ export function ChatPage() {
         chatApi.listProjects(),
       ])
       setSessions(s); setAgents(a); setProjects(p)
+      setLoadError(null)
       if (!deepLinkApplied.current && deepLinkSid) {
         deepLinkApplied.current = true
         setActiveId(deepLinkSid)
       } else if (!activeId && !deepLinkSid && s.length > 0) {
         setActiveId(s[0].id)
       }
-    } catch { /* ignore */ }
+    } catch {
+      // Nicht still schlucken (#211): die Sitzungsliste wäre sonst unbemerkt veraltet.
+      setLoadError("Sitzungen konnten nicht geladen werden — Anzeige ist evtl. veraltet.")
+    }
   }
 
   useEffect(() => { loadAll() }, [])
@@ -304,6 +309,17 @@ export function ChatPage() {
         <FileOverlay agentId={activeAgent.id} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
       )}
       {showNew && <NewSessionDialog onClose={() => setShowNew(false)} onCreate={handleNew} />}
+      {loadError && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm px-4 py-3 rounded-xl bg-rose-950/90 border border-rose-500/40 text-xs text-rose-200 shadow-xl backdrop-blur flex items-center gap-3">
+          <span>{loadError}</span>
+          <button
+            onClick={() => loadAll()}
+            className="px-2 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 whitespace-nowrap"
+          >
+            {t("retry", "Erneut")}
+          </button>
+        </div>
+      )}
     </AssistantRuntimeProvider>
   )
 }
