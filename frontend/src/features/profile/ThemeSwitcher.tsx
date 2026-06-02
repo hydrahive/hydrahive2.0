@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { Check, Palette } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { applyTheme, getStoredTheme, THEMES, type ThemeId } from "@/shared/theme"
 
 export function ThemeSwitcher() {
@@ -13,7 +15,7 @@ export function ThemeSwitcher() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[2%] p-5 space-y-3">
+    <div className="box overflow-hidden p-5 space-y-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
       <div>
         <h2 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
           <Palette size={14} className="text-[var(--hh-accent-text)]" />

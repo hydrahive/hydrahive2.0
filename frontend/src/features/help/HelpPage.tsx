@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2 } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { Markdown } from "@/features/chat/Markdown"
 import { type HelpTopic, loadHelp } from "@/i18n/help/loader"
 
@@ -51,7 +53,7 @@ export function HelpPage() {
         </nav>
       </aside>
 
-      <article className="rounded-xl border border-white/[6%] bg-white/[2%] p-5 min-h-[300px]">
+      <article className="box overflow-hidden p-5 min-h-[300px]" style={{ "--c": rgbFor("/help") } as CSSProperties}>
         {loading ? (
           <div className="flex items-center gap-2 text-zinc-400 text-sm">
             <Loader2 size={14} className="animate-spin" />

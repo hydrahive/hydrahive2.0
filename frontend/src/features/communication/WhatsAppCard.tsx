@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { MessageCircle, Loader2, LinkIcon, Unlink } from "lucide-react"
 import { communicationApi, type ChannelStatus } from "./api"
 import { WhatsAppFilterPanel } from "./WhatsAppFilterPanel"
+import { rgbFor } from "@/shared/colors"
 
 const POLL_MS = 1500
 
@@ -66,7 +68,7 @@ export function WhatsAppCard() {
     : isError ? "bg-rose-400" : "bg-zinc-600"
 
   return (
-    <div className="rounded-xl bg-white/[3%] border border-white/[6%] p-5 space-y-4">
+    <div className="box overflow-hidden p-5 space-y-4" style={{ "--c": rgbFor("/communication") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shrink-0">

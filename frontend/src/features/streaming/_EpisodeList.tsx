@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Download } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { Episode, ScrapeResult } from "./types"
 
 interface Props {
@@ -19,7 +21,7 @@ export function EpisodeList({
   const allSelected = selected.size === result.episodes.length
 
   return (
-    <div className="rounded-xl border border-white/10 bg-zinc-900/60 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <div>
           <div className="text-sm font-medium text-zinc-100">{result.title}</div>

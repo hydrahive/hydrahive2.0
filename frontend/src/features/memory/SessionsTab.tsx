@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { ChevronDown, ChevronRight } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { memoryApi } from "./api"
 import type { MemorySession, CompressedObservation } from "./types"
 
@@ -58,7 +60,8 @@ export function SessionsTab({ agentId }: Props) {
             return (
               <div
                 key={s.session_id}
-                className="rounded-md border border-white/[6%] bg-white/[1%] overflow-hidden"
+                className="box overflow-hidden"
+                style={{ "--c": rgbFor("/agents") } as CSSProperties}
               >
                 {/* Row */}
                 <button
@@ -112,7 +115,7 @@ export function SessionsTab({ agentId }: Props) {
 function ObservationCard({ obs }: { obs: CompressedObservation }) {
   const { t } = useTranslation("memory")
   return (
-    <div className="rounded border border-white/[5%] bg-zinc-900/60 px-3 py-2 space-y-1.5">
+    <div className="box overflow-hidden px-3 py-2 space-y-1.5" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
       <div className="flex items-center gap-2">
         <TypeBadge type={obs.type} />
         <p className="text-xs font-medium text-zinc-200">{obs.title}</p>

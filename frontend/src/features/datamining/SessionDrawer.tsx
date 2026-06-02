@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { ArrowLeft } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { dataminingApi } from "./api"
 import { fmtTime, fmtDateTime, TYPE_COLORS, type DmSession, type DmSessionEvent } from "./types"
 
@@ -46,7 +48,7 @@ export function SessionDrawer({ session, onClose }: Props) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
+      <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
         {loading ? (
           <div className="flex items-center justify-center h-40 text-zinc-600 text-sm">{t("loading")}</div>
         ) : !events || events.length === 0 ? (

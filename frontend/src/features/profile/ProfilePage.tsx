@@ -1,6 +1,8 @@
+import type { CSSProperties } from "react"
 import { Crown, User as UserIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { rgbFor } from "@/shared/colors"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 import { BackupRestoreCard } from "./BackupRestoreCard"
 import { ChangeOwnPasswordCard } from "./ChangeOwnPasswordCard"
@@ -22,7 +24,7 @@ export function ProfilePage() {
         <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
       </div>
 
-      <div className="flex items-center gap-4 p-5 rounded-xl border border-white/[8%] bg-white/[3%]">
+      <div className="box overflow-hidden flex items-center gap-4 p-5" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-violet-700 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-violet-900/30 flex-shrink-0">
           {username[0]?.toUpperCase() ?? "?"}
         </div>
@@ -37,7 +39,7 @@ export function ProfilePage() {
 
       <ChangeOwnPasswordCard />
 
-      <div className="rounded-xl border border-white/[8%] bg-white/[2%] p-5 space-y-3">
+      <div className="box overflow-hidden p-5 space-y-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
         <div>
           <h2 className="text-sm font-semibold text-zinc-200">{t("language.title")}</h2>
           <p className="text-xs text-zinc-500 mt-0.5">{t("language.description")}</p>

@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2, Trash2, Download, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { HubPlugin, InstalledPlugin } from "./types"
 
 interface HubCardProps {
@@ -12,7 +14,7 @@ interface HubCardProps {
 export function HubCard({ plugin, installed, busy, onInstall }: HubCardProps) {
   const { t } = useTranslation("plugins")
   return (
-    <div className="rounded-xl border border-white/[6%] bg-zinc-950/50 p-4 flex flex-col gap-2">
+    <div className="box overflow-hidden p-4 flex flex-col gap-2" style={{ "--c": rgbFor("/plugins") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-zinc-100 truncate">{plugin.name}</h3>
@@ -54,7 +56,7 @@ interface InstalledCardProps {
 export function InstalledCard({ plugin, busy, onUpdate, onUninstall }: InstalledCardProps) {
   const { t } = useTranslation("plugins")
   return (
-    <div className="rounded-xl border border-white/[6%] bg-zinc-950/50 p-4 flex flex-col gap-2">
+    <div className="box overflow-hidden p-4 flex flex-col gap-2" style={{ "--c": rgbFor("/plugins") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-zinc-100 truncate">{plugin.name}</h3>

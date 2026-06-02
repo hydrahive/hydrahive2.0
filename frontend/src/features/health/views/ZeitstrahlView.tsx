@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { egaApi, type EgaTimelineEntry } from "../api"
+import { rgbFor } from "@/shared/colors"
 
 const TYPE_COLORS: Record<string, string> = {
   Encounter:          "bg-purple-500",
@@ -37,7 +38,7 @@ export function ZeitstrahlView() {
         {entries.map((entry) => (
           <div key={entry.id} className="relative mb-4">
             <div className={`absolute -left-4 top-1.5 w-2 h-2 rounded-full ${TYPE_COLORS[entry.dto_type] ?? "bg-zinc-500"}`} />
-            <div className="rounded-lg border border-white/[6%] bg-zinc-900/40 px-3 py-2">
+            <div className="box overflow-hidden px-3 py-2" style={{ "--c": rgbFor("/health") } as CSSProperties}>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-zinc-200 truncate max-w-xs">{entry.display}</span>
                 <span className="text-xs text-zinc-600 shrink-0 ml-2">{entry.sort_date ?? ""}</span>

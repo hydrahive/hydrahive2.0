@@ -1,8 +1,10 @@
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Activity, ChevronDown, ChevronUp, Lock, RefreshCw, Shield, ShieldOff, Terminal, Trash2, Unlock } from "lucide-react"
 import type { Workstation } from "./types"
 import { federationApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 
 interface Props {
   ws: Workstation
@@ -41,7 +43,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
     : "bg-zinc-600"
 
   return (
-    <div className={`rounded-xl border ${ws.enabled ? "border-white/10" : "border-white/5 opacity-60"} bg-zinc-900/60 overflow-hidden`}>
+    <div className={`box overflow-hidden ${!ws.enabled ? "opacity-60" : ""}`} style={{ "--c": rgbFor("/federation") } as CSSProperties}>
       <div className="flex items-center gap-3 px-4 py-3">
         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot}`} />
         <div className="flex-1 min-w-0">

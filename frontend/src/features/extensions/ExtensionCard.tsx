@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react"
 import {
   BookOpen, Brain, CalendarDays, CheckSquare, Code2, Download, ExternalLink,
   FileText, Film, GitBranch, Gamepad2, LayoutGrid, Lock,
@@ -6,6 +7,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import type { Extension, InstallMode } from "./types"
 import { streamAction } from "./api"
 
@@ -72,7 +74,7 @@ export function ExtensionCard({ ext, onInstall, onUninstall, onRefresh }: Props 
   })()
 
   return (
-    <div className="flex flex-col gap-3 p-4 rounded-xl bg-white/[2%] border border-white/[6%] hover:border-white/[10%] transition-colors">
+    <div className="box overflow-hidden flex flex-col gap-3 p-4 transition-opacity hover:opacity-90" style={{ "--c": rgbFor("/mcp") } as CSSProperties}>
       <div className="flex items-start gap-3">
         <div className="p-2 rounded-lg bg-violet-500/10 text-violet-400 shrink-0">
           <ExtIcon name={ext.icon} />

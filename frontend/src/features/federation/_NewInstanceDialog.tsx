@@ -1,8 +1,10 @@
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Copy, X } from "lucide-react"
 import { externalInstancesApi } from "./api"
 import type { CreateInstanceResult } from "./types"
+import { rgbFor } from "@/shared/colors"
 
 interface Props {
   onClose: () => void
@@ -44,7 +46,7 @@ export function NewInstanceDialog({ onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[8%] bg-zinc-900 p-6 shadow-2xl">
+      <div className="box overflow-hidden w-full max-w-lg p-6" style={{ "--c": rgbFor("/federation") } as CSSProperties}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-zinc-100">{t("new_instance.title")}</h2>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">

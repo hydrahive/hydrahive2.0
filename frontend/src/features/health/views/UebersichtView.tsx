@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { egaApi } from "../api"
 import { EgaImportButton } from "../components/EgaImportButton"
 import { FhirImportButton } from "../components/FhirImportButton"
+import { rgbFor } from "@/shared/colors"
 
 const CATEGORIES = [
   { type: "Encounter",           icon: "🏥", label: "Arztbesuche" },
@@ -56,7 +57,7 @@ export function UebersichtView() {
       ) : (
         <div className="grid grid-cols-3 gap-3">
           {CATEGORIES.map((c) => (
-            <div key={c.type} className="rounded-xl border border-white/[6%] bg-zinc-900/40 p-4">
+            <div key={c.type} className="box overflow-hidden p-4" style={{ "--c": rgbFor("/health") } as CSSProperties}>
               <div className="text-lg mb-1">{c.icon}</div>
               <div className="text-2xl font-bold text-zinc-100">{summary[c.type] ?? 0}</div>
               <div className="text-xs text-zinc-500 mt-0.5">{c.label}</div>
@@ -68,7 +69,7 @@ export function UebersichtView() {
       {hasCosts && (
         <div>
           <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-600 mb-2">Kosten (Kassenleistungen)</h3>
-          <div className="rounded-xl border border-white/[6%] bg-zinc-900/40 divide-y divide-white/[4%]">
+          <div className="box overflow-hidden divide-y divide-white/[4%]" style={{ "--c": rgbFor("/health") } as CSSProperties}>
             <div className="flex items-center justify-between px-4 py-2.5">
               <span className="text-sm text-zinc-400">Arztbesuche abgerechnet</span>
               <span className="text-sm font-medium text-zinc-200">{fmt(costs!.ambulant_eur)}</span>
@@ -88,7 +89,7 @@ export function UebersichtView() {
       )}
 
       {summary && Object.keys(summary).length === 0 && (
-        <div className="rounded-xl border border-dashed border-white/10 p-8 text-center">
+        <div className="box overflow-hidden p-8 text-center" style={{ "--c": rgbFor("/health") } as CSSProperties}>
           <p className="text-zinc-500 text-sm">{t("empty")}</p>
           <p className="text-zinc-600 text-xs mt-1">TK-Safe App öffnen → Akte exportieren → ZIP hier hochladen.</p>
         </div>

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Globe, Plus } from "lucide-react"
 import { federationApi } from "./api"
 import type { Workstation } from "./types"
+import { rgbFor } from "@/shared/colors"
 import { WorkstationCard } from "./_WorkstationCard"
 import { AddWorkstationDialog } from "./_AddDialog"
 import { ClientConnectionsSection } from "./_ClientConnectionsSection"
@@ -55,7 +57,7 @@ export function FederationPage() {
         </button>
       </div>
 
-      <div className="rounded-xl border border-white/[6%] bg-zinc-950/50 p-4 space-y-2">
+      <div className="box overflow-hidden p-4 space-y-2" style={{ "--c": rgbFor("/federation") } as CSSProperties}>
         <p className="text-xs text-zinc-500">
           {t("info_p1")}
           <code className="text-violet-400">ask_agent("persona@name", …)</code>

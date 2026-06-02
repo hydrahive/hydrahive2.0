@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import {
   researchApi,
   type ResearchApiPublic,
   type ResearchCategory,
   type ResearchTestResult,
 } from "../api"
+import { rgbFor } from "@/shared/colors"
 
 const CATEGORY_LABELS: Record<ResearchCategory, string> = {
   literatur: "📚 Literatur & Studien",
@@ -52,7 +53,7 @@ function ApiCard({ api, onChange }: { api: ResearchApiPublic; onChange: (a: Rese
   const showKeyField = api.auth_type !== "none"
 
   return (
-    <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-4 flex flex-col gap-2">
+    <div className="box overflow-hidden p-4 flex flex-col gap-2" style={{ "--c": rgbFor("/health") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

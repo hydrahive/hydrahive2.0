@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { memoryApi } from "./api"
 import type { MemoryEntry } from "./types"
 
@@ -104,7 +106,7 @@ export function MemoryTab({ agentId }: Props) {
       {entries.length === 0 && !loading ? (
         <p className="text-xs text-zinc-600 text-center py-8">{t("no_entries")}</p>
       ) : (
-        <div className="rounded-md border border-white/[6%] overflow-hidden">
+        <div className="box overflow-hidden" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-white/[6%] bg-white/[2%]">

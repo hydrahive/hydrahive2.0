@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { akteApi, type AkteEntityKey, type AkteTimelineEntry } from "../api"
 import { useAkteSchema } from "../useAkteSchema"
 import { VerifyBadge } from "../components/VerifyBadge"
+import { rgbFor } from "@/shared/colors"
 
 const ENTITY_ICONS: Record<string, string> = {
   conditions:    "🔴",
@@ -98,7 +99,7 @@ export function AkteTimeline() {
                   entry.verifiziert ? "bg-emerald-400" : "bg-orange-400"
                 }`}
               />
-              <div className="rounded-lg border border-white/[6%] bg-zinc-900/40 px-3 py-2">
+              <div className="box overflow-hidden px-3 py-2" style={{ "--c": rgbFor("/health") } as CSSProperties}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <VerifyBadge verifiziert={entry.verifiziert} onVerify={() => {

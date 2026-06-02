@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Package, RefreshCw, Container, Terminal } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { fetchExtensions, authHeaders } from "./api"
 import { ExtensionCard } from "./ExtensionCard"
 import { InstallModal } from "./InstallModal"
@@ -157,7 +159,7 @@ export function ExtensionsPage() {
 
           {/* Docker-Install-Log */}
           {category === "dockertools" && dockerInstallLog && (
-            <div className="rounded-xl border border-white/[6%] bg-zinc-950/50 p-4 font-mono text-xs leading-relaxed max-h-48 overflow-y-auto">
+            <div className="box overflow-y-auto p-4 font-mono text-xs leading-relaxed max-h-48" style={{ "--c": rgbFor("/mcp") } as CSSProperties}>
               {dockerInstallLog.map((l, i) => (
                 <div key={i} className={
                   l.startsWith("[OK]") ? "text-emerald-400" :

@@ -1,6 +1,8 @@
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { CheckCircle, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { profileApi } from "./api"
 
 export function ChangeOwnPasswordCard() {
@@ -25,7 +27,7 @@ export function ChangeOwnPasswordCard() {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-white/[8%] bg-white/[2%] p-5 space-y-3">
+    <form onSubmit={submit} className="box overflow-hidden p-5 space-y-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
       <div>
         <h2 className="text-sm font-semibold text-zinc-200">{t("password.title")}</h2>
         <p className="text-xs text-zinc-500 mt-0.5">{t("password.description")}</p>

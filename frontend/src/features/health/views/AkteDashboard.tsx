@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { useNavigate } from "react-router-dom"
 import { akteApi, type AktePatient } from "../api"
 import { useAkteSchema } from "../useAkteSchema"
+import { rgbFor } from "@/shared/colors"
 
 function calcAge(geb: string): number {
   const birth = new Date(geb)
@@ -104,7 +105,7 @@ export function AkteDashboard({ onSaved }: Props) {
   if (akte === null) {
     return (
       <div className="space-y-6">
-        <div className="rounded-xl border border-white/[6%] bg-zinc-900/40 p-8 text-center space-y-4">
+        <div className="box overflow-hidden p-8 text-center space-y-4" style={{ "--c": rgbFor("/health") } as CSSProperties}>
           <div className="text-4xl">🗂</div>
           <div>
             <h2 className="text-lg font-semibold text-zinc-100 mb-1">Meine Patientenakte</h2>
@@ -189,7 +190,7 @@ export function AkteDashboard({ onSaved }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-xl border border-white/[6%] bg-zinc-900/40 p-5">
+      <div className="box overflow-hidden p-5" style={{ "--c": rgbFor("/health") } as CSSProperties}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-2xl">
@@ -279,7 +280,8 @@ export function AkteDashboard({ onSaved }: Props) {
             <div
               key={key}
               onClick={() => navigate(`/health/${key}`)}
-              className="rounded-xl border border-white/[6%] bg-zinc-900/40 p-4 cursor-pointer hover:bg-white/[2%] transition-colors"
+              className="box overflow-hidden p-4 cursor-pointer hover:bg-white/[2%] transition-colors"
+              style={{ "--c": rgbFor("/health") } as CSSProperties}
             >
               <div className="text-2xl font-bold text-zinc-100">{summary[key] ?? 0}</div>
               <div className="text-xs text-zinc-500 mt-0.5 capitalize">
@@ -294,7 +296,7 @@ export function AkteDashboard({ onSaved }: Props) {
       <div className="space-y-3">
         {/* Aktive Diagnosen */}
         {conditions.length > 0 && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+          <div className="box overflow-hidden p-4" style={{ "--c": "239 68 68" } as CSSProperties}>
             <h3 className="text-sm font-semibold text-red-300 mb-2">🔴 Aktive Diagnosen</h3>
             <ul className="space-y-1">
               {conditions.slice(0, 5).map((c: any) => (
@@ -313,7 +315,7 @@ export function AkteDashboard({ onSaved }: Props) {
 
         {/* Allergien */}
         {allergies.length > 0 && (
-          <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4">
+          <div className="box overflow-hidden p-4" style={{ "--c": "251 146 60" } as CSSProperties}>
             <h3 className="text-sm font-semibold text-orange-300 mb-2">⚠️ Allergien</h3>
             <ul className="space-y-1">
               {allergies.slice(0, 5).map((a: any) => (
@@ -328,7 +330,7 @@ export function AkteDashboard({ onSaved }: Props) {
 
         {/* Dauermedikation */}
         {medications.length > 0 && (
-          <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+          <div className="box overflow-hidden p-4" style={{ "--c": "59 130 246" } as CSSProperties}>
             <h3 className="text-sm font-semibold text-blue-300 mb-2">💊 Dauermedikation</h3>
             <ul className="space-y-1">
               {medications.slice(0, 5).map((m: any) => (

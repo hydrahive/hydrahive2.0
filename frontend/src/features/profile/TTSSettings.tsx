@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { rgbFor } from "@/shared/colors"
 import {
   DEFAULT_VOICE,
   TTS_PROVIDER_KEY,
@@ -51,7 +53,7 @@ export function TTSSettings() {
   }
 
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[2%] p-5 space-y-3">
+    <div className="box overflow-hidden p-5 space-y-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
       <div>
         <h2 className="text-sm font-semibold text-zinc-200">Sprachausgabe</h2>
         <p className="text-xs text-zinc-500 mt-0.5">Wähle die Stimme für vorgelesene Antworten.</p>

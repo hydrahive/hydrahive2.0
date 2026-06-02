@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { dataminingApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 
 const ForceGraph3D = React.lazy(() => import("react-force-graph-3d"))
 
@@ -121,8 +123,8 @@ export function GraphTab() {
         {error && <span className="text-xs text-rose-400">{error}</span>}
       </div>
 
-      <div className="relative rounded-xl border border-white/[6%] bg-zinc-950 overflow-hidden"
-        style={{ height: "calc(100dvh - 20rem)" }}>
+      <div className="box overflow-hidden relative"
+        style={{ "--c": rgbFor("/datamining"), height: "calc(100dvh - 20rem)" } as CSSProperties}>
 
         {!data && !loading && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-600">

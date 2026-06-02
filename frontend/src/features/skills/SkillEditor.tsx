@@ -1,6 +1,8 @@
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { Loader2, Save, Trash2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 import { skillsApi } from "./api"
 import { Field } from "./_skillHelpers"
 import { SkillSourcesList } from "./_SkillSourcesList"
@@ -66,7 +68,8 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/[8%] bg-zinc-900 p-5 shadow-2xl shadow-black/40 space-y-3">
+        className="box overflow-y-auto w-full max-w-3xl max-h-[90vh] p-5 shadow-2xl shadow-black/40 space-y-3"
+        style={{ "--c": rgbFor("/skills") } as CSSProperties}>
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
             {isNew ? t("new_title") : t("edit_title", { name: skill!.name })}

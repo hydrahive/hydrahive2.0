@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { CheckCircle, Clock, Download, Trash2, X, XCircle, SkipForward } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import type { StreamingJob } from "./types"
 import { streamingApi } from "./api"
 
@@ -42,7 +44,7 @@ export function JobList({ jobs, onDeleted }: Props) {
   const hasFinished = jobs.some(j => DELETABLE.has(j.status))
 
   return (
-    <div className="rounded-xl border border-white/10 bg-zinc-900/60 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <div className="px-4 py-2.5 border-b border-white/5 flex items-center">
         <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest flex-1">Downloads</span>
         {hasFinished && (

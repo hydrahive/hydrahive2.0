@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { dataminingApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 import { fmtDateTime, type DmSession } from "./types"
 import { SessionDrawer } from "./SessionDrawer"
 
@@ -24,7 +26,7 @@ export function SessionsTab({ active }: { active: boolean }) {
   }
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
       <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
           {t("sessions.title")}

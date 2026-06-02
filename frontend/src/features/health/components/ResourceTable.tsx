@@ -1,4 +1,6 @@
 import { useTranslation } from "react-i18next"
+import type { CSSProperties } from "react"
+import { rgbFor } from "@/shared/colors"
 
 interface Column<T> {
   key: string
@@ -19,7 +21,7 @@ export function ResourceTable<T extends Record<string, unknown>>({ rows, columns
     return <p className="text-sm text-zinc-500 py-8 text-center">{empty}</p>
   }
   return (
-    <div className="rounded-xl border border-white/[6%] overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/health") } as CSSProperties}>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/[6%] bg-zinc-900/50">

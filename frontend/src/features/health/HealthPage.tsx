@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next"
+import { type CSSProperties } from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { Activity } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { HealthSidebar } from "./HealthSidebar"
 import { KiFloatingButton } from "./KiFloatingButton"
 import { AkteErrorBoundary } from "./components/AkteErrorBoundary"
@@ -20,7 +22,7 @@ function ImportView() {
         oder aus beliebigen FHIR-Bundles. Importierte Daten sind read-only und bleiben
         vom eigenen Akten-Bereich getrennt.
       </p>
-      <div className="rounded-xl border border-white/[6%] bg-zinc-900/40 p-6 text-center text-sm text-zinc-500">
+      <div className="box overflow-hidden p-6 text-center text-sm text-zinc-500" style={{ "--c": rgbFor("/health") } as CSSProperties}>
         Import-Funktionen werden in Kürze verfügbar sein.
       </div>
     </div>

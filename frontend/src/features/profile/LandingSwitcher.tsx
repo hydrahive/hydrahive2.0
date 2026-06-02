@@ -1,5 +1,7 @@
+import type { CSSProperties } from "react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
 
 type Landing = "buddy" | "dashboard"
 
@@ -24,7 +26,7 @@ export function LandingSwitcher() {
   ]
 
   return (
-    <div className="rounded-xl border border-white/[8%] bg-white/[2%] p-5 space-y-3">
+    <div className="box overflow-hidden p-5 space-y-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
       <div>
         <h2 className="text-sm font-semibold text-zinc-200">{t("landing.title")}</h2>
         <p className="text-xs text-zinc-500 mt-0.5">{t("landing.description")}</p>

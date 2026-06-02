@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { Loader2, Plus, Sparkles } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { rgbFor } from "@/shared/colors"
 import { skillsApi } from "./api"
 import { SkillEditor } from "./SkillEditor"
 import type { Skill } from "./types"
@@ -79,7 +81,8 @@ function Section({ title, skills, onClick, emptyHint }: {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {skills.map((s) => (
             <button key={`${s.scope}:${s.name}`} onClick={() => onClick(s)}
-              className="text-left rounded-lg border border-white/[8%] bg-white/[2%] p-3 hover:border-white/[15%] hover:bg-white/[5%] transition-colors">
+              className="box overflow-hidden text-left p-3 hover:opacity-90 transition-opacity"
+              style={{ "--c": rgbFor("/skills") } as CSSProperties}>
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles size={11} className="text-violet-300 flex-shrink-0" />
                 <p className="text-sm font-mono text-zinc-200 truncate flex-1">{s.name}</p>

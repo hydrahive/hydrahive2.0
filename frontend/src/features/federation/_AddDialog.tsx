@@ -1,6 +1,8 @@
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { federationApi } from "./api"
+import { rgbFor } from "@/shared/colors"
 
 interface Props {
   onClose: () => void
@@ -48,7 +50,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+      <div className="box overflow-hidden w-full max-w-md" style={{ "--c": rgbFor("/federation") } as CSSProperties}>
         <div className="px-5 py-4 border-b border-white/8">
           <h2 className="text-sm font-semibold text-zinc-100">{t("add_dialog.title")}</h2>
           <p className="text-xs text-zinc-500 mt-0.5">{t("add_dialog.subtitle")}</p>

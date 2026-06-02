@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { KeyRound, Save } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { streamingApi } from "./api"
 import type { StreamingCredentials } from "./types"
 
@@ -43,7 +45,7 @@ export function CredentialsForm({ creds, onSaved }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-zinc-900/60 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <button
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-2 px-4 py-3 text-sm text-zinc-300 hover:text-zinc-100 transition-colors"

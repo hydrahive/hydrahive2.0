@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { dataminingApi, type StatsDay, type StatsSession } from "./api"
 import { fmtDateTime } from "./types"
+import { rgbFor } from "@/shared/colors"
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -25,7 +27,7 @@ function DailyChart({ days }: { days: StatsDay[] }) {
   const maxTokens = Math.max(...days.map((d) => d.input_tokens + d.cache_creation_tokens + d.cache_read_tokens), 1)
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
       <div className="px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
           Token-Zeitreihe (Tage)
@@ -78,7 +80,7 @@ function LatestTable({ sessions, onSelect, onSelectAgent }: {
   sessions: StatsSession[]; onSelect: (id: string) => void; onSelectAgent: (agentId: string) => void
 }) {
   return (
-    <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
       <div className="px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
           Letzte Sessions
@@ -154,7 +156,7 @@ function SessionDetailPanel({ sessionId, onClose }: { sessionId: string; onClose
   ]
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
       <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
           Session-Detail
@@ -199,7 +201,7 @@ function AgentStatsPanel({ agentId, onClose }: { agentId: string; onClose: () =>
   ]
 
   return (
-    <div className="rounded-xl border border-white/[6%] bg-black/20 overflow-hidden">
+    <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
       <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
           Agent-Detail ({stats.days}d)

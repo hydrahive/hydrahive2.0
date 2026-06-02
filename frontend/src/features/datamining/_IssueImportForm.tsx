@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
+import type { CSSProperties } from "react"
 import { GitPullRequest } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { dataminingApi } from "./api"
 
 type Variant = "github" | "gitea"
@@ -61,7 +63,7 @@ export function IssueImportForm({ variant }: { variant: Variant }) {
   const inputClass = "px-2 py-1 rounded text-xs bg-zinc-800 text-zinc-200 border border-white/[8%] focus:outline-none focus:border-amber-400/50"
 
   return (
-    <div className="flex flex-wrap items-end gap-2 p-3 rounded-lg bg-white/[3%] border border-white/[6%]">
+    <div className="box overflow-hidden flex flex-wrap items-end gap-2 p-3" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-zinc-500">Owner</label>
         <input

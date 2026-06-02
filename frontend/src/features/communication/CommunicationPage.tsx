@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { MessageCircle } from "lucide-react"
 import { communicationApi } from "./api"
 import { WhatsAppCard } from "./WhatsAppCard"
+import { rgbFor } from "@/shared/colors"
 import { DiscordCard } from "./DiscordCard"
 
 export function CommunicationPage() {
@@ -30,7 +32,7 @@ export function CommunicationPage() {
         {hasWhatsApp ? (
           <WhatsAppCard />
         ) : channels === null ? null : (
-          <div className="rounded-xl bg-white/[3%] border border-white/[6%] p-5">
+          <div className="box overflow-hidden p-5" style={{ "--c": rgbFor("/communication") } as CSSProperties}>
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shrink-0">
                 <MessageCircle className="text-white" size={20} />
@@ -46,7 +48,7 @@ export function CommunicationPage() {
         {hasDiscord ? (
           <DiscordCard />
         ) : channels === null ? null : (
-          <div className="rounded-xl bg-white/[3%] border border-white/[6%] p-5">
+          <div className="box overflow-hidden p-5" style={{ "--c": rgbFor("/communication") } as CSSProperties}>
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
                 <MessageCircle className="text-white" size={20} />

@@ -5,9 +5,11 @@
  * "application/butler-node" auf den Canvas gezogen.
  */
 import React, { useMemo } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
 import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE, UNWIRED_TRIGGERS } from "./palette-data"
+import { rgbFor } from "@/shared/colors"
 
 const COLOR_MAP = {
   green:  "border-green-500/40 bg-green-950/30 hover:bg-green-950/60 text-green-300",
@@ -46,7 +48,7 @@ export function NodePalette() {
   })), [t])
 
   return (
-    <div className="w-44 shrink-0 overflow-y-auto border-r border-white/10 bg-[hsl(var(--sidebar-bg,220_15%_8%))] p-3 flex flex-col gap-2">
+    <div className="box overflow-y-auto w-44 shrink-0 p-3 flex flex-col gap-2" style={{ "--c": rgbFor("/butler") } as CSSProperties}>
       <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/30 px-1 mb-1">
         {t("nodePalette")}
       </p>

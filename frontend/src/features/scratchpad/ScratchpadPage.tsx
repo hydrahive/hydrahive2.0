@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Markdown } from "@/features/chat/Markdown"
+import { rgbFor } from "@/shared/colors"
 import { scratchpadApi } from "./api"
 
 export function ScratchpadPage() {
@@ -50,9 +52,10 @@ export function ScratchpadPage() {
             value={userText}
             onChange={(e) => onChange(e.target.value)}
             placeholder={t("placeholder")}
-            className="min-h-[24rem] rounded-xl border border-white/[8%] bg-zinc-900 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 font-mono resize-y"
+            className="box min-h-[24rem] px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 font-mono resize-y"
+            style={{ "--c": rgbFor("/profile") } as CSSProperties}
           />
-          <div className="min-h-[24rem] rounded-xl border border-white/[6%] bg-zinc-900/40 px-4 py-3 overflow-auto">
+          <div className="box overflow-auto min-h-[24rem] px-4 py-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
             <Markdown text={userText || t("empty_preview")} />
           </div>
         </div>
@@ -69,7 +72,7 @@ export function ScratchpadPage() {
             {t("clear")}
           </button>
         </div>
-        <div className="rounded-xl border border-violet-500/15 bg-violet-500/[4%] px-4 py-3">
+        <div className="box overflow-hidden px-4 py-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
           <Markdown text={agentText || t("agent_notes_empty")} />
         </div>
       </section>

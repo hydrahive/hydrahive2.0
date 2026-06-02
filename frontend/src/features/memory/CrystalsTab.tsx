@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Gem } from "lucide-react"
+import { rgbFor } from "@/shared/colors"
 import { memoryApi } from "./api"
 import type { Crystal } from "./types"
 
@@ -38,7 +40,8 @@ export function CrystalsTab({ agentId }: Props) {
             return (
               <div
                 key={c.id}
-                className="rounded-md border border-white/[6%] bg-white/[1%] overflow-hidden"
+                className="box overflow-hidden"
+                style={{ "--c": rgbFor("/agents") } as CSSProperties}
               >
                 {/* Header */}
                 <button
