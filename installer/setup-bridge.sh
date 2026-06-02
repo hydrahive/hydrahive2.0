@@ -32,6 +32,19 @@ log "Default-Interface: $IFACE — wird in br0 enslaved."
 # Aktuelle MAC-Adresse merken — für saubere DHCP-Fortsetzung
 MAC=$(ip link show "$IFACE" | awk '/link\/ether/ {print $2}')
 
+# Renderer bestimmen (#174): managt NetworkManager das Default-Interface, MUSS die
+# Bridge-Config renderer: NetworkManager nutzen. Sonst baut networkd eine tote
+# Bridge (NO-CARRIER), während NM das physische Interface weiter beansprucht.
+RENDERER="networkd"
+if systemctl is-active --quiet NetworkManager 2>/dev/null && command -v nmcli >/dev/null 2>&1; then
+  NM_CONN=$(nmcli -t -f DEVICE,CONNECTION device status 2>/dev/null | awk -F: -v i="$IFACE" '$1==i {print $2}')
+  if [ -n "$NM_CONN" ] && [ "$NM_CONN" != "--" ]; then
+    RENDERER="NetworkManager"
+    log "NetworkManager managt $IFACE (Profil '$NM_CONN') → renderer: NetworkManager"
+  fi
+fi
+[ "$RENDERER" = "networkd" ] && log "Renderer: networkd (kein NM-Management von $IFACE erkannt)"
+
 # netplan-Config schreiben (nur wenn noch keine Bridge-Config existiert)
 CFG=/etc/netplan/99-hydrahive-bridge.yaml
 if [ -f "$CFG" ]; then
@@ -42,7 +55,7 @@ log "Schreibe $CFG"
 cat > "$CFG" <<EOF
 network:
   version: 2
-  renderer: networkd
+  renderer: $RENDERER
   ethernets:
     $IFACE:
       dhcp4: false

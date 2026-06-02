@@ -70,6 +70,14 @@ if [ -f "$SERVICE_FILE" ]; then
     sed -i '/^\[Service\]/a DeviceAllow=/dev/kvm rw' "$SERVICE_FILE"
     CHANGED=1
   fi
+  # Bridged VMs: der qemu-bridge-helper öffnet /dev/net/tun. Sobald oben der
+  # erste DeviceAllow= steht, läuft die Unit im Whitelist-Modus — /dev/net/tun
+  # ist dann gesperrt (EPERM trotz korrekter Bridge + setuid). Explizit erlauben. (#176)
+  if ! grep -q "^DeviceAllow=/dev/net/tun" "$SERVICE_FILE"; then
+    log "DeviceAllow=/dev/net/tun rw in Service-File einfügen (bridged VMs)"
+    sed -i '/^\[Service\]/a DeviceAllow=/dev/net/tun rw' "$SERVICE_FILE"
+    CHANGED=1
+  fi
   if ! grep -q "^SupplementaryGroups=kvm" "$SERVICE_FILE"; then
     log "SupplementaryGroups=kvm in Service-File einfügen"
     sed -i '/^\[Service\]/a SupplementaryGroups=kvm' "$SERVICE_FILE"
