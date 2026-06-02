@@ -82,7 +82,6 @@ export function useVoiceInput(onResult: (text: string) => void) {
         ? new MediaRecorder(stream, { mimeType: mime })
         : new MediaRecorder(stream)
       mimeRef.current = recorder.mimeType || mime || "audio/webm"
-      console.log("[voice] start, mimeType=", mimeRef.current)
       chunksRef.current = []
       recorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data)
@@ -109,7 +108,6 @@ export function useVoiceInput(onResult: (text: string) => void) {
     const mime = mimeRef.current
     const blob = new Blob(chunksRef.current, { type: mime })
     chunksRef.current = []
-    console.log("[voice] transcribe blob size=", blob.size, "mime=", mime)
     if (blob.size === 0) { set("idle"); return }
     const form = new FormData()
     const ext = mime.startsWith("audio/mp4") ? "m4a"
@@ -129,7 +127,6 @@ export function useVoiceInput(onResult: (text: string) => void) {
         throw new Error(`STT ${res.status}`)
       }
       const { text } = await res.json() as { text: string }
-      console.log("[voice] STT result:", text)
       if (text) onResult(text)
       set("idle")
     } catch (e) {

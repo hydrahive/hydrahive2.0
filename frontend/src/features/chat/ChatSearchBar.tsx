@@ -12,8 +12,8 @@ export function ChatSearchBar({ onClose }: { onClose: () => void }) {
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Escape") { setQuery(""); onClose() }
-    else if (e.key === "Enter") { e.preventDefault(); e.shiftKey ? prev() : next() }
-    else if (e.key === "F3") { e.preventDefault(); e.shiftKey ? prev() : next() }
+    else if (e.key === "Enter") { e.preventDefault(); if (e.shiftKey) prev(); else next() }
+    else if (e.key === "F3") { e.preventDefault(); if (e.shiftKey) prev(); else next() }
   }
 
   const hasQuery = query.trim().length > 0

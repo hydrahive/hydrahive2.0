@@ -52,8 +52,8 @@ export function SimpleListView({ dtoType, title, icon }: Props) {
         <p className="text-zinc-500 text-sm py-8 text-center">Keine {title} importiert.</p>
       ) : (
         <div className="rounded-xl border border-white/[6%] overflow-hidden">
-          {items.map((item, i) => (
-            <div key={i} className="px-4 py-3 border-b border-white/[4%] last:border-0 hover:bg-white/[2%]">
+          {items.map((item) => (
+            <div key={`${item.date}-${item.primary}-${item.secondary}`} className="px-4 py-3 border-b border-white/[4%] last:border-0 hover:bg-white/[2%]">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-zinc-200">{item.primary}</span>
                 <span className="text-xs text-zinc-600">{item.date}</span>

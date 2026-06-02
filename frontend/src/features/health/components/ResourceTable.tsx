@@ -32,7 +32,7 @@ export function ResourceTable<T extends Record<string, unknown>>({ rows, columns
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-white/[4%] hover:bg-white/[2%] transition-colors">
+            <tr key={String(row.id ?? i)} className="border-b border-white/[4%] hover:bg-white/[2%] transition-colors">
               {columns.map((col) => (
                 <td key={col.key} className="px-4 py-3 text-zinc-300">
                   {col.render ? col.render(row) : String(row[col.key] ?? "")}

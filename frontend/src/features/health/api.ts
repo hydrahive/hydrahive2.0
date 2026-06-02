@@ -138,12 +138,6 @@ export const fhirApi = {
 
   getResources: (resourceType: string) =>
     api.get<FhirResourcesResponse>(`/fhir/resources/${resourceType}`),
-
-  getSummary: () =>
-    api.get<FhirSummary>("/fhir/summary"),
-
-  getTimeline: () =>
-    api.get<{ count: number; entries: FhirTimelineEntry[] }>("/fhir/timeline"),
 }
 
 // ─── Forschungs-APIs (Admin) ──────────────────────────────────────────────

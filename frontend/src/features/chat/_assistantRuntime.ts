@@ -7,6 +7,18 @@ function imgUrl(src: ImageSource): string {
   return src.type === "url" ? src.url : `data:${src.media_type};base64,${src.data}`
 }
 
+type RuntimePart =
+  | { type: "text"; text: string }
+  | { type: "image"; image: string }
+  | {
+      type: "tool-call"
+      toolCallId: string
+      toolName: string
+      args: unknown
+      result: unknown
+      isError: boolean
+    }
+
 export function convertMessage(msg: Message, _idx: number): ThreadMessageLike {
   const role =
     msg.role === "compaction" || msg.role === "system" ? "system"
@@ -23,8 +35,7 @@ export function convertMessage(msg: Message, _idx: number): ThreadMessageLike {
     for (const b of msg.content) {
       if (b.type === "tool_result") toolResults.set(b.tool_use_id, b)
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parts: any[] = []
+    const parts: RuntimePart[] = []
     for (const b of msg.content) {
       if (b.type === "text" && b.text) {
         parts.push({ type: "text", text: b.text })

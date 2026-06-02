@@ -80,6 +80,8 @@ export function ChatPage() {
     }
   }
 
+  // Einmalig beim Mount laden — loadAll bewusst nicht in den Deps (sonst Re-Run pro Render).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll() }, [])
   useEffect(() => { setLocalMsgs([]); chat.reload() }, [activeId, chat.reload])
 
