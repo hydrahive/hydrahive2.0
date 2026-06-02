@@ -1,18 +1,28 @@
 // Hydra-Emoticons fürs Chat: Kürzel :hydra-NAME: → kleines Bild.
 // Geteilt von EmoteText (Plain-Text-Bubbles) und remarkHydraEmotes (Markdown).
 
-const EMOTE_NAMES = [
-  "smile", "laughing", "wink", "cool", "silly", "wow",
-  "heart", "love", "thumbsup", "idea", "rich", "rocket",
-  "fire", "hmm", "sleepy", "angry", "cry",
+// Kanonische Emotes (= Dateien hydra-NAME.png). Reihenfolge = Picker-Reihenfolge.
+export const EMOTE_NAMES = [
+  "smile", "grin", "lol", "tears", "rofl",
+  "wink", "kiss", "smirk", "cool", "sunglasses",
+  "love", "plead", "hmm", "monocle", "wow",
+  "hushed", "scared", "explode", "angry", "unamused",
+  "facepalm", "cry", "nerd", "money", "fire",
+  "idea", "party", "thumbsup", "sleepy", "neutral",
+  "shush", "zipper", "devil", "angel", "sick",
+  "cowboy", "alien", "drool",
 ] as const
 
 export const HYDRA_EMOTES: Record<string, string> = Object.fromEntries(
-  EMOTE_NAMES.filter((n) => n !== "love").map((n) => [n, `/illustrations/emoticons/hydra-${n}.png`])
+  EMOTE_NAMES.map((n) => [n, `/illustrations/emoticons/hydra-${n}.png`])
 )
 
-// `love` ist ein Alias auf `heart` (geläufiges Kürzel, gleiche Grafik).
-HYDRA_EMOTES.love = HYDRA_EMOTES.heart
+// Freundliche Aliase auf die gleiche Grafik (geläufige Kürzel; heart hat keine
+// eigene Datei → nutzt love).
+const ALIASES: Record<string, string> = { heart: "love", laughing: "lol" }
+for (const [alias, target] of Object.entries(ALIASES)) {
+  HYDRA_EMOTES[alias] = HYDRA_EMOTES[target]
+}
 
 export const EMOTE_RE = /:hydra-([a-z]+):/g
 

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { Smile } from "lucide-react"
-import { HYDRA_EMOTES } from "./hydraEmotes"
+import { HYDRA_EMOTES, EMOTE_NAMES } from "./hydraEmotes"
 
-// Eindeutige Emotes (love teilt sich die Grafik mit heart → nur einmal zeigen).
-const PICKER = Object.entries(HYDRA_EMOTES).filter(([n]) => n !== "love")
+// Nur kanonische Emotes im Picker (Aliase wie heart/laughing nicht doppelt zeigen).
+const PICKER = EMOTE_NAMES.map((n) => [n, HYDRA_EMOTES[n]] as const)
 
 /** Button + Raster-Popover. Klick auf ein Emote ruft onPick(":hydra-name:"). */
 export function EmotePicker({ onPick, disabled }: { onPick: (shortcode: string) => void; disabled?: boolean }) {
@@ -33,7 +33,7 @@ export function EmotePicker({ onPick, disabled }: { onPick: (shortcode: string) 
         <Smile size={15} />
       </button>
       {open && (
-        <div className="absolute bottom-full mb-2 left-0 z-30 grid grid-cols-5 gap-1 p-2 rounded-xl bg-zinc-900/95 backdrop-blur border border-white/10 shadow-xl shadow-black/50 w-max">
+        <div className="absolute bottom-full mb-2 left-0 z-30 grid grid-cols-7 gap-1 p-2 rounded-xl bg-zinc-900/95 backdrop-blur border border-white/10 shadow-xl shadow-black/50 w-max max-h-[280px] overflow-y-auto">
           {PICKER.map(([name, src]) => (
             <button
               key={name}
