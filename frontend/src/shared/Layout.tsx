@@ -96,8 +96,10 @@ export function Layout() {
 
       <BentoMenu open={bentoOpen} onClose={() => setBentoOpen(false)} />
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto relative z-10 p-4 md:p-6">
+      {/* Content — overflow-x-hidden + overscroll-x-none: kein horizontales Pannen
+          auf Touch-Geräten (sonst wischt der Chat „ins Nirvana"). Vertikal scrollt
+          weiter; breite Inhalte (Code/Tabellen/Monaco) haben eigene innere Scroller. */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none relative z-10 p-4 md:p-6">
         <Outlet />
       </main>
 

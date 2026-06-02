@@ -112,6 +112,10 @@
   * { @apply border-border; }
   body { @apply bg-background text-foreground antialiased; }
 
+  /* Kein horizontales Pannen der ganzen Seite auf Touch-Geräten (Chat „ins Nirvana").
+     Dokument-Level-Guard zusätzlich zum overflow-x-hidden am <main>. */
+  html, body { overflow-x: hidden; overscroll-behavior-x: none; }
+
   /* Scrollbar passend zur Theme — nicht weiß und plump */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
