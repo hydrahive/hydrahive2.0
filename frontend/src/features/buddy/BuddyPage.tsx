@@ -107,15 +107,12 @@ export function BuddyPage() {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <div className="flex items-start justify-center min-h-[calc(100dvh-3rem-2.5rem)] py-6 gap-4 px-4">
-        <div className="hidden xl:block pt-0 shrink-0">
+      <div className="flex items-stretch justify-center h-full gap-4 px-4 py-4 overflow-hidden">
+        <div className="hidden xl:block shrink-0 overflow-y-auto min-h-0">
           <BuddyLeftPanel />
         </div>
-        <div className="w-full max-w-3xl flex flex-col min-w-0">
-          <div
-            className="relative flex flex-col rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur"
-            style={{ height: "calc(100dvh - 3rem - 2.5rem - 4rem)" }}
-          >
+        <div className="w-full max-w-3xl flex flex-col min-w-0 min-h-0">
+          <div className="relative flex flex-col flex-1 min-h-0 rounded-[28px] border border-white/10 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-2xl shadow-[var(--hh-accent-soft)] overflow-hidden backdrop-blur">
             <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-white/[3%]" />
             {state.created && (
               <div className="px-5 pt-3 pb-1 text-[11px] text-[var(--hh-accent-text)] text-center">
@@ -220,7 +217,7 @@ export function BuddyPage() {
           <div className="mx-auto -mt-px w-1/3 h-3 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-b-md border border-t-0 border-white/[6%]" />
           <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
         </div>
-        <div className="hidden xl:flex flex-col gap-4 pt-0 shrink-0">
+        <div className="hidden xl:flex flex-col gap-4 shrink-0 overflow-y-auto min-h-0">
           <BuddyExtensionsPanel />
           <HealthBuddyBox onPrompt={(text) => handleSend(text)} />
         </div>

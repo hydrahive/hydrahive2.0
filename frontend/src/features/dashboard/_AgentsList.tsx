@@ -20,7 +20,7 @@ export function AgentsList({ agents }: Props) {
   const { t } = useTranslation("dashboard")
   if (agents.length === 0) {
     return (
-      <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/") } as CSSProperties}>
+      <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
         <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
           {t("sections.agents")}
         </h3>
@@ -33,7 +33,7 @@ export function AgentsList({ agents }: Props) {
     items: agents.filter((a) => a.type === type),
   })).filter((g) => g.items.length > 0)
   return (
-    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/") } as CSSProperties}>
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
         {t("sections.agents")}
       </h3>

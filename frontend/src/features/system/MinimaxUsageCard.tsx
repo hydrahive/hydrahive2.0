@@ -63,7 +63,7 @@ export function MinimaxUsageCard() {
   if (!usage || (!usage.available && usage.reason === "no_api_key")) return null
 
   return (
-    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <div className="flex items-center gap-2">
         <Coins size={14} className="text-amber-300" />
         <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">

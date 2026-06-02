@@ -12,7 +12,7 @@ interface Props {
 export function ServersOverview({ servers }: Props) {
   const { t } = useTranslation("dashboard")
   return (
-    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/") } as CSSProperties}>
+    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
         {t("sections.servers")}
       </h3>

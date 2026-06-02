@@ -77,7 +77,7 @@ export function TailscaleCard() {
 
   if (!status.installed) {
     return (
-      <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
+      <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
         <div className="flex items-center gap-2">
           <WifiOff size={14} className="text-zinc-500" />
           <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{t("tailscale.title")}</p>
@@ -106,7 +106,7 @@ export function TailscaleCard() {
   const Icon = connected ? Network : WifiOff
 
   return (
-    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
+    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Icon size={14} className={tone} />

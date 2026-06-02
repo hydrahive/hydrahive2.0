@@ -127,7 +127,7 @@ export function TokenAuditCard() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/") } as CSSProperties}>
+    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
       <h3 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">
         Token-Audit
       </h3>

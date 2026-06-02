@@ -1,6 +1,7 @@
 import { Activity, Coins, MessageSquare, Server } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
+import type { CSSProperties } from "react"
 import type { DashboardStats } from "./api"
 
 interface Props {
@@ -15,21 +16,21 @@ export function StatsRow({ stats }: Props) {
       label: t("stats.active_sessions"),
       value: stats.active_sessions,
       from: "from-fuchsia-500", to: "to-fuchsia-700",
-      glow: "hover:shadow-fuchsia-500/15",
+      c: "217 70 239",
     },
     {
       icon: Coins,
       label: t("stats.tokens_today"),
       value: formatNumber(stats.tokens_today),
       from: "from-amber-500", to: "to-orange-600",
-      glow: "hover:shadow-amber-500/15",
+      c: "245 158 11",
     },
     {
       icon: Activity,
       label: t("stats.tool_calls_today"),
       value: formatNumber(stats.tool_calls_today),
       from: "from-emerald-500", to: "to-teal-600",
-      glow: "hover:shadow-emerald-500/15",
+      c: "16 185 129",
     },
     {
       icon: Server,
@@ -39,18 +40,15 @@ export function StatsRow({ stats }: Props) {
         ? t("stats.servers_total_suffix", { total: stats.servers_total })
         : undefined,
       from: "from-teal-500", to: "to-sky-600",
-      glow: "hover:shadow-teal-500/15",
+      c: "20 184 166",
     },
   ]
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {cards.map((c) => (
         <div key={c.label}
-          className={cn(
-            "group relative rounded-lg border border-white/[8%] bg-white/[3%] px-3 py-2 flex items-center gap-2.5",
-            "hover:border-white/20 hover:bg-white/[6%] transition-all duration-200",
-            c.glow,
-          )}>
+          className="box group relative px-3.5 py-3 flex items-center gap-2.5"
+          style={{ "--c": c.c } as CSSProperties}>
           <div className={cn(
             "relative w-7 h-7 rounded-full flex items-center justify-center bg-gradient-to-br shrink-0",
             c.from, c.to,
