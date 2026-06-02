@@ -1,10 +1,69 @@
-# HydraHive2 — Übergabe (Stand 2026-06-01)
+# HydraHive2 — Übergabe (Stand 2026-06-02)
 
 Konsolidierter Snapshot. Beim Wieder-Aufnehmen diese Datei zuerst,
 dann SPEC.md, dann konkret nach offenen Tasks fragen.
 
 > Hinweis: Die Sektionen unter „Update 2026-05-12" und älter sind historisch.
 > Der **aktuelle aktive Strang** steht direkt hier drunter.
+
+---
+
+## ✅ 2026-06-02 — Grafiken + 155 Emotes + Feature-Landkarte + Live-Sync + 2 Bugfixes
+
+Großer Grafik-/Feature-Tag. Suite **1061 grün**, alles auf `main`.
+
+**1. generate_image: echte Transparenz** (`89a5cb6f`) — OpenRouter hat **keinen**
+Transparenz-Parameter (verifiziert via Docs); bei „transparent" im Prompt malt das
+Modell ein Karo. Fix: Motiv auf reinem Grün anfordern
+(`image_config.background_rgb_color`) + serverseitiger **Pillow-Chroma-Key**
+(`core/src/hydrahive/tools/_image_keying.py`, TDD). `transparent` Default an
+(Fotos/Szenen: `false`). **Pillow** neue Core-Dependency. War die Wurzel des
+ganzen Grafik-Dramas. Details: Memory `reference_generate_image_transparency`.
+
+**2. Hydra-Grafiken verbaut** (`de94b3e1`) — Maskottchen (8 Zustände via
+`shared/HydraMascot.tsx`), 6 Leerzustände (`shared/EmptyState.tsx`), Login- +
+Topbar-Logo (`logo-mark`), 404-Seite (`shared/NotFoundPage.tsx`), `bg-app.jpg` als
+fixierter App-Hintergrund.
+
+**3. 155 Hydra-Emotes im Chat** (`6fd1ab91`, `49535a89`, `149dbc3f`, `d18df73b`;
+Alias `4b279032`; Größe `1650ec16`) — Kürzel `:hydra-NAME:` rendern inline (eigene
+**und** Buddy-Nachrichten), Picker in der Eingabe. **Auto-Discovery**:
+`frontend/scripts/gen-emotes.mjs` (npm `prebuild`/`dev`) generiert die Namensliste
+aus den PNGs → neue Emotes = nur PNG nach `public/illustrations/emoticons/` legen,
+kein Code. Buddy kennt sie via System-Prompt-Hint (`runner/_emote_hint.py`, nur
+`is_buddy`). `EMOTE_RE` erlaubt Bindestriche.
+
+**4. Feature-Landkarte** (`6cef58e5`) — „Feldforschung" (Multi-Agent-Fan-out):
+`docs/feature-map/` mit **26 Referenz-Sektionen** (Opus-4.8-Fan-out, ~11.800 Zeilen,
+`datei:zeile`) + `uebersicht/` **36 Architektur-Sektionen** (Buddy auf Sonnet-4.6) +
+README-Index. ~4,3 Mio Tokens. **Bei „wo ist X / warum geht Y" zuerst hier
+nachschlagen** statt Code neu durchforsten. End-to-End-Datenfluss in `26-glue.md`.
+
+**5. Tablet-Bug** (`f7ce9b5e`) — Buddy-Chat ließ sich auf Tablet horizontal „ins
+Nirvana" wischen. `<main>` (Layout) hatte kein x-Lock → `overflow-x-hidden` +
+`overscroll-x-none` an `<main>` + `html/body`. Cross-device verifiziert.
+
+**6. Live-Sync v1** (`ed2ef716`, SPEC `f9bdd65c`) — aus **HH1** portiert
+(`~/octopos/.../shared_session.py`; war beim HH2-Neuaufbau nie mitgekommen). Mehrere
+Geräte derselben Session bleiben synchron: `SessionBroadcaster` (TDD) +
+`GET /api/sessions/{id}/stream` + `useChat`-Subscription; passives Gerät lädt bei
+Lauf-Ping nach (nur wenn nicht `busy` → kein Clobber). v1 = Turn-Granularität (nicht
+Token-smooth). **Cross-device verifiziert.** SPEC dokumentiert (Standalone-Commit).
+
+### Offen / Kür (nicht gebaut)
+- Live-Sync **v2**: Token-für-Token live auf passiven Geräten (Event-Spiegelung statt
+  Reload). **Channel-Broadcast**: WhatsApp/Butler-getriggerte Läufe auch live im Web
+  (v1 broadcastet nur web-getriggerte über `sse_run_with_guard`).
+- Memory `project_shared_session_live_sync` hält Port-Plan + Stand.
+
+### Lektionen (neu)
+- **OpenRouter kann keine Transparenz** — Green-Screen + serverseitiger Key statt
+  Prompt-„transparent" (= Karo). Grüne Motive (Med-Kreuz) in Teal generieren.
+- **Workflow-Fan-out in Wellen**: ~14 parallel triggert das Anthropic-Org-Rate-Limit
+  (24 Agenten auf einmal → alle gedrosselt). 5er-Wellen liefen sauber durch.
+- **Workflow-Agent + erzwungenes Schema** = sie bailen ohne Output. Schema weglassen,
+  die **geschriebene Datei** ist das Ergebnis (Canary-Agent vorher validieren).
+- **Karo-Detektor** (Eck-Alpha-Std ~0.5) verwechselt echte Waben mit Karo → Augenschein.
 
 ---
 
