@@ -273,6 +273,12 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Login** — JWT
 - **Dashboard** — Systemstatus, laufende Agents
 - **Chat** — mit jedem Agenten chatten (SSE-Streaming)
+  - **Live-Sync über Geräte** — mehrere offene Clients (Geräte/Tabs) derselben
+    Session bleiben synchron: löst ein Client einen Lauf aus, sehen die anderen
+    offenen Clients die Antwort live erscheinen. Jeder Client abonniert einen
+    per-Session SSE-Broadcast-Kanal (`/api/sessions/{id}/stream`); bei
+    Lauf-Fortschritt lädt er nach. Der auslösende Client behält sein direktes
+    Token-Streaming.
   - Header-Switcher: aktuelles Modell und Reasoning-Effort (low/medium/high)
     pro Session umschaltbar. Effort mappt auf OpenAI `reasoning_effort`
     (GPT-5) bzw. Anthropic `extended_thinking.budget_tokens`. Bei Providern
