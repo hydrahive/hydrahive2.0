@@ -180,12 +180,13 @@
   .box-h .r { margin-left: auto; font-size: 11px; color: #6b7186; }
   .box-b { padding: 14px 15px; }
 
-  /* Box-Text lesbarer: graue Utilities IN der Box heller — gezielt an EINER Stelle,
-     gilt damit automatisch für jede .box (höhere Spezifität als die zinc-Utility). */
-  .box-b .text-zinc-600 { color: rgb(150 156 173); }
-  .box-b .text-zinc-500 { color: rgb(180 186 203); }
-  .box-b .text-zinc-400 { color: rgb(210 215 227); }
-  .box-b .text-zinc-300 { color: rgb(229 232 241); }
+  /* Box-Text lesbar: graue Utilities IN jeder .box deutlich heller (Richtung weiß),
+     an EINER Stelle. Gilt für alle Box-Inhalte (auch Dashboard-Karten direkt in .box). */
+  .box .text-zinc-600 { color: rgb(176 182 198); }
+  .box .text-zinc-500 { color: rgb(206 211 223); }
+  .box .text-zinc-400 { color: rgb(226 229 238); }
+  .box .text-zinc-300 { color: rgb(240 242 247); }
+  .box .text-zinc-200 { color: rgb(246 247 250); }
 
   /* App-Kacheln (Bento) — gleiches Prinzip, etwas kräftiger */
   .tile {
