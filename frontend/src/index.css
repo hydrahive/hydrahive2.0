@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* slate-950 base — dunkel aber nicht schwarz */
-    --background: 222 47% 3%;
+    /* Redesign „freundlich / dunkel-neon" — wärmeres Dunkel statt Loch-Schwarz */
+    --background: 223 33% 6%;
     --foreground: 220 13% 91%;
     --card: 240 5% 8%;
     --card-foreground: 220 13% 91%;
@@ -23,6 +23,14 @@
     --destructive: 0 63% 58%;
     --destructive-foreground: 0 0% 100%;
     --radius: 0.75rem;
+
+    /* Redesign: angehobene Panel-Fläche + Box-Radius (Boxen runder als shadcn-Controls) */
+    --hh-bg:        #0b0e16;
+    --hh-panel:     #1c2334;
+    --hh-panel-top: rgba(255,255,255,.06);
+    --hh-panel-bot: rgba(255,255,255,.015);
+    --hh-bd:        rgba(255,255,255,.10);
+    --hh-r:         1.1rem;
 
     /* Theme-Akzentfarben — default Violet (Standard) */
     --hh-accent-from: rgb(79 70 229);    /* indigo-600 */
@@ -118,4 +126,108 @@
 
   /* Firefox */
   * { scrollbar-width: thin; scrollbar-color: var(--hh-scrollbar-thumb) transparent; }
+}
+
+/* ============================================================
+   Redesign „freundlich / dunkel-neon" — wiederverwendbares Box-/
+   Bubble-/Chip-System. Pro Element nur --c (Domain-RGB) setzen.
+   ============================================================ */
+@layer components {
+  /* Atmosphäre-Glows hinter dem App-Inhalt */
+  .hh-app { position: relative; background: var(--hh-bg); isolation: isolate; }
+  .hh-app::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(560px 360px at 50% -8%,   rgba(124,58,237,.20), transparent 70%),
+      radial-gradient(520px 420px at -6% 108%,  rgba(20,184,166,.16), transparent 70%),
+      radial-gradient(520px 420px at 106% 112%, rgba(245,158,11,.15), transparent 70%);
+  }
+  .hh-app > * { position: relative; z-index: 1; }
+
+  /* Bereichsfarbe trägt die ganze Box: Farbwasch + leuchtender Rand + Halo */
+  .box {
+    --c: 139 92 246;
+    border-radius: var(--hh-r);
+    background:
+      linear-gradient(158deg, var(--hh-panel-top), var(--hh-panel-bot)),
+      linear-gradient(160deg, rgb(var(--c) / .38), rgb(var(--c) / .13) 65%),
+      var(--hh-panel);
+    border: 1px solid rgb(var(--c) / .62);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.12),
+      0 0 0 1px rgb(var(--c) / .30),
+      0 0 24px -2px rgb(var(--c) / .50),
+      0 18px 44px -20px rgb(var(--c) / .95);
+    transition: .22s;
+  }
+  .box:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.16),
+      0 0 0 1px rgb(var(--c) / .45),
+      0 0 34px 0 rgb(var(--c) / .60),
+      0 24px 54px -18px rgb(var(--c));
+  }
+  .box-h { display: flex; align-items: center; gap: 9px; padding: 13px 15px; border-bottom: 1px solid var(--hh-bd); }
+  .box-h .ic {
+    width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; flex: none;
+    color: rgb(var(--c));
+    background: rgb(var(--c) / .22);
+    box-shadow: inset 0 0 0 1px rgb(var(--c) / .45), 0 0 12px -2px rgb(var(--c) / .6);
+    text-shadow: 0 0 8px rgb(var(--c) / .7);
+  }
+  .box-h .t { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #c4c9d8; }
+  .box-h .r { margin-left: auto; font-size: 11px; color: #6b7186; }
+  .box-b { padding: 14px 15px; }
+
+  /* App-Kacheln (Bento) — gleiches Prinzip, etwas kräftiger */
+  .tile {
+    --c: 139 92 246;
+    border-radius: var(--hh-r);
+    background:
+      linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02)),
+      linear-gradient(160deg, rgb(var(--c) / .44), rgb(var(--c) / .15)),
+      var(--hh-panel);
+    border: 1px solid rgb(var(--c) / .62);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10),
+                0 0 18px -3px rgb(var(--c) / .60),
+                0 10px 26px -16px rgb(var(--c) / .95);
+  }
+  .tile .gi { color: rgb(var(--c)); text-shadow: 0 0 10px rgb(var(--c) / .75); }
+
+  /* Slash-Chips unter der Eingabe — je Befehl eigene Domain-Farbe */
+  .sp {
+    --c: 139 92 246;
+    background: rgb(var(--c) / .16); color: rgb(var(--c));
+    border: 1px solid rgb(var(--c) / .55);
+    box-shadow: 0 0 12px -3px rgb(var(--c) / .7), 0 4px 12px -7px rgb(var(--c));
+    text-shadow: 0 0 7px rgb(var(--c) / .6);
+  }
+  .sp .sp-dot { background: rgb(var(--c)); box-shadow: 0 0 8px rgb(var(--c)); }
+
+  /* Chat-Bubbles: eigene Eingabe = grün, KI = gelb, Tool = orange */
+  .bubble-user {
+    border-radius: 18px;
+    background: linear-gradient(160deg, rgba(16,185,129,.24), rgba(16,185,129,.08));
+    border: 1px solid rgba(16,185,129,.55);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12),
+                0 0 20px -4px rgba(16,185,129,.45),
+                0 14px 36px -20px rgba(16,185,129,.90);
+    color: #e6f7ee;
+  }
+  .bubble-ai {
+    border-radius: 18px;
+    background: linear-gradient(160deg, rgba(250,204,21,.22), rgba(250,204,21,.07)), #201d13;
+    border: 1px solid rgba(250,204,21,.50);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12),
+                0 0 20px -4px rgba(250,204,21,.40),
+                0 14px 36px -20px rgba(250,204,21,.85);
+    color: #fbf3d6;
+  }
+  .toolrow {
+    background: rgba(251,146,60,.13);
+    border: 1px solid rgba(251,146,60,.45);
+    box-shadow: 0 0 14px -4px rgba(251,146,60,.5), 0 8px 22px -16px rgba(251,146,60,.9);
+    color: #fcd6b0;
+  }
 }

@@ -43,6 +43,19 @@ export function colorFor(path: string): DomainColor {
   return match ? DOMAIN_COLORS[match] : "violet"
 }
 
+// RGB-Tripel pro Domain-Farbe (Tailwind-500-Basis) für das Redesign-Glow-System:
+// am Box-Element `style={{ "--c": rgbFor(path) }}` setzen, das CSS macht den Rest.
+export const DOMAIN_RGB: Record<DomainColor, string> = {
+  blue: "59 130 246", violet: "139 92 246", amber: "245 158 11", emerald: "16 185 129",
+  fuchsia: "217 70 239", rose: "244 63 94", sky: "14 165 233", teal: "20 184 166",
+  lime: "132 204 22", yellow: "250 204 21", indigo: "99 102 241", zinc: "161 161 170",
+  cyan: "34 211 238", orange: "251 146 60",
+}
+
+export function rgbFor(path: string): string {
+  return DOMAIN_RGB[colorFor(path)]
+}
+
 // Tailwind-Klassen pro Farbe — Tailwind kann dynamische Klassen-Strings nicht
 // treeshaken, deshalb hardcoded Map. Wir nutzen 500/15% bzw. 500/30 als
 // Hintergrund/Border für active-States, 400 als Text/Icon-Farbe.

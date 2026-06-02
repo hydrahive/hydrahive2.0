@@ -32,12 +32,12 @@ export function Layout() {
   )
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#020617]">
-      {/* Ambient background glows */}
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-[#0b0e16]">
+      {/* Atmosphäre-Glows (Redesign): violett oben-mitte, teal unten-links, amber unten-rechts */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 left-1/4 w-[500px] h-[500px] bg-violet-600/[13%] rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -right-20 w-96 h-96 bg-indigo-600/[10%] rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 left-1/3 w-80 h-80 bg-purple-700/[10%] rounded-full blur-3xl" />
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[560px] h-[400px] bg-violet-600/[18%] rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-24 w-[520px] h-[440px] bg-teal-500/[15%] rounded-full blur-3xl" />
+        <div className="absolute -bottom-44 -right-24 w-[520px] h-[440px] bg-amber-500/[14%] rounded-full blur-3xl" />
       </div>
 
       {/* Top-Bar */}
