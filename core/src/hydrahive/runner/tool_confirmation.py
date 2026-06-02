@@ -21,7 +21,7 @@ _pending: dict[str, asyncio.Future[Decision]] = {}
 
 
 def register(call_id: str) -> asyncio.Future[Decision]:
-    fut: asyncio.Future[Decision] = asyncio.get_event_loop().create_future()
+    fut: asyncio.Future[Decision] = asyncio.get_running_loop().create_future()
     _pending[call_id] = fut
     return fut
 

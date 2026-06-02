@@ -70,3 +70,32 @@ def test_summary(client, auth_headers):
     resp = client.get("/api/fhir/summary", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json().get("Condition", 0) >= 1
+
+
+# --- #209 (M10): gemischtes Bundle zählt den Per-Entry-errors-Pfad -----------
+
+def test_import_mixed_bundle_counts_per_entry_errors(client, auth_headers):
+    bundle = {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [
+            {"resource": _condition("mix-ok", "I10", "Gültig")},  # ok
+            {"resource": {"resourceType": "Observation"}},          # id fehlt → error
+            {"resource": {"id": "no-type"}},                        # resourceType fehlt → error
+        ],
+    }
+    resp = client.post("/api/fhir/import", json=bundle, headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["imported"] >= 1
+    assert data["errors"] == 2
+
+
+# --- #210 (L2): fhir.timeline ist gebounded ----------------------------------
+
+def test_fhir_timeline_respektiert_limit(client, auth_headers):
+    from hydrahive.db import fhir as fhir_db
+    bundle = _bundle([_condition(f"tl{i}", "I10", f"D{i}") for i in range(5)])
+    client.post("/api/fhir/import", json=bundle, headers=auth_headers)
+    rows = fhir_db.timeline("testuser", limit=2)
+    assert len(rows) == 2

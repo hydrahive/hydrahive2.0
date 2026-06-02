@@ -64,3 +64,12 @@ def test_cancel_cancels_future():
         tc.cancel("c4")
         assert fut.cancelled()
     _run(body())
+
+
+def test_register_requires_running_loop():
+    # #210 (L3): register() bindet die Future an den LAUFENDEN Loop
+    # (get_running_loop statt deprecated get_event_loop). Ohne Loop → RuntimeError.
+    import pytest
+    tc._pending.clear()
+    with pytest.raises(RuntimeError):
+        tc.register("no-loop")

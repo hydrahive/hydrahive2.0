@@ -88,12 +88,12 @@ def summary(user_id: str) -> dict:
     return {r["resource_type"]: r["count"] for r in rows}
 
 
-def timeline(user_id: str) -> list[dict]:
-    """Gibt alle Ressourcen chronologisch sortiert zurück (neueste zuerst)."""
+def timeline(user_id: str, limit: int = 1000) -> list[dict]:
+    """Gibt Ressourcen chronologisch sortiert zurück (neueste zuerst), gebounded."""
     with db() as conn:
         rows = conn.execute(
-            "SELECT resource_type, resource_json, imported_at FROM fhir_resources WHERE user_id=? ORDER BY imported_at DESC",
-            (user_id,),
+            "SELECT resource_type, resource_json, imported_at FROM fhir_resources WHERE user_id=? ORDER BY imported_at DESC LIMIT ?",
+            (user_id, limit),
         ).fetchall()
     return [
         {
