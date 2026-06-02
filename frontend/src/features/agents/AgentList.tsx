@@ -24,6 +24,12 @@ const TYPE_PILL: Record<string, string> = {
   specialist: "bg-sky-500/[8%] border-sky-500/25 text-sky-300",
 }
 
+const TYPE_AVATAR: Record<string, string> = {
+  master: "/illustrations/agent-master.png",
+  project: "/illustrations/agent-project.png",
+  specialist: "/illustrations/agent-specialist.png",
+}
+
 export function AgentList({ agents, activeId, onSelect, onNew }: Props) {
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
@@ -60,6 +66,11 @@ export function AgentList({ agents, activeId, onSelect, onNew }: Props) {
               } ${dim ? "opacity-50" : ""}`}
               onClick={() => onSelect(a.id)}
             >
+              <img
+                src={TYPE_AVATAR[a.type] ?? TYPE_AVATAR.specialist}
+                alt=""
+                className="w-10 h-10 object-contain shrink-0 drop-shadow-[0_0_5px_rgba(34,211,238,0.45)]"
+              />
               <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] flex-shrink-0 ${TYPE_PILL[a.type] ?? TYPE_PILL.specialist}`}>
                 <Icon size={9} />
                 {t(`type.${a.type}`)}
