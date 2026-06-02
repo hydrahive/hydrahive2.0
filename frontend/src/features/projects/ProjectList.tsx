@@ -1,3 +1,5 @@
+import { rgbFor } from "@/shared/colors"
+import type { CSSProperties } from "react"
 import { Folder, GitBranch, Plus, Search, Tag, Users } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -24,7 +26,7 @@ export function ProjectList({ projects, activeId, onSelect, onNew }: Props) {
     : projects
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="box flex flex-col h-full" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("list_title")}</p>
         <div className="flex items-center gap-1">

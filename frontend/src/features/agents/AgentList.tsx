@@ -2,6 +2,8 @@ import { Crown, Plus, User, Wrench } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { Agent } from "./types"
+import { rgbFor } from "@/shared/colors"
+import type { CSSProperties } from "react"
 
 interface Props {
   agents: Agent[]
@@ -26,7 +28,7 @@ export function AgentList({ agents, activeId, onSelect, onNew }: Props) {
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
   return (
-    <div className="flex flex-col h-full">
+    <div className="box flex flex-col h-full" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
       <div className="flex items-center justify-between p-3 border-b border-white/[6%]">
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("list_title")}</p>
         <div className="flex items-center gap-1">
