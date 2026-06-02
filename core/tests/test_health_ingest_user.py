@@ -62,3 +62,42 @@ def test_ingest_falscher_key_401(client, monkeypatch):
     )
 
     assert r.status_code == 401
+
+
+# --- #207 Schritt 1: ?key=-Query loggt Deprecation, bricht aber nicht --------
+
+def test_ingest_query_key_logs_deprecation_warning(client, monkeypatch, caplog):
+    import logging
+
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "health_api_key", "k")
+    monkeypatch.setattr(settings, "health_ingest_user", "till")
+    import hydrahive.api.routes.health_data as mod
+    monkeypatch.setattr(mod.health_db, "insert", lambda **kw: "rec1")
+
+    with caplog.at_level(logging.WARNING, logger="hydrahive.api.routes.health_data"):
+        r = client.post(
+            "/api/health-data/ingest?key=k",
+            json={"data": {"metrics": [], "workouts": []}},
+        )
+    assert r.status_code == 200  # weiter funktionsfähig — kein Bruch
+    assert any("?key=" in rec.message for rec in caplog.records)
+
+
+def test_ingest_header_key_no_deprecation_warning(client, monkeypatch, caplog):
+    import logging
+
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "health_api_key", "k")
+    monkeypatch.setattr(settings, "health_ingest_user", "till")
+    import hydrahive.api.routes.health_data as mod
+    monkeypatch.setattr(mod.health_db, "insert", lambda **kw: "rec1")
+
+    with caplog.at_level(logging.WARNING, logger="hydrahive.api.routes.health_data"):
+        r = client.post(
+            "/api/health-data/ingest",
+            json={"data": {"metrics": [], "workouts": []}},
+            headers={"X-HH-Health-Key": "k"},
+        )
+    assert r.status_code == 200
+    assert not any("?key=" in rec.message for rec in caplog.records)

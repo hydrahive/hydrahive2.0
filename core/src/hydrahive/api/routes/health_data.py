@@ -53,6 +53,15 @@ async def ingest(
                             headers={"Retry-After": str(retry_after)})
     _check_key(x_hh_health_key, authorization, key)
 
+    if key is not None:
+        # #207: Key im ?key=-Query landet in Access-/Proxy-Logs. Noch akzeptiert
+        # (kein Bruch), aber der Pfad wird entfernt sobald der Client umgestellt ist.
+        logger.warning(
+            "health-ingest: Key via ?key=-Query empfangen — landet in Access-Logs. "
+            "Client bitte auf Header 'X-HH-Health-Key' umstellen; der Query-Pfad "
+            "wird danach entfernt (#207).",
+        )
+
     # user_id kommt NICHT aus dem Request — der Key bindet an genau einen
     # konfigurierten User (Single-Device-Ingest). Verhindert Cross-User-PHI-Schreiben.
     user = settings.health_ingest_user
