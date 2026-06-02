@@ -15,6 +15,14 @@ export const EMOTE_NAMES = [
   "pirate", "ninja", "wizard", "king", "chef",
   "hacker", "detective", "builder", "coffee", "borg",
   "brainfull", "doublefacepalm",
+  // Symbole & Objekte (datengetrieben — meistgenutzte Emojis der Agenten)
+  "checkmark", "cross", "warning", "chart", "vulcan",
+  "muscle", "lobster", "trophy", "sparkle", "lightning",
+  "shield", "search", "bug", "brain", "bulb",
+  "robot", "refresh", "handshake", "wave", "eyes",
+  "books", "graduation", "lab", "palette", "hammer",
+  "wrench", "plug", "globe", "moon", "bee",
+  "clapper", "theater",
 ] as const
 
 export const HYDRA_EMOTES: Record<string, string> = Object.fromEntries(
