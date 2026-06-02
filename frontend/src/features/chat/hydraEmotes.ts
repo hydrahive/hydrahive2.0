@@ -23,7 +23,9 @@ export const HYDRA_EMOTES: Record<string, string> = Object.fromEntries(
 
 // Freundliche Aliase auf die gleiche Grafik (geläufige Kürzel; heart hat keine
 // eigene Datei → nutzt love).
-const ALIASES: Record<string, string> = { heart: "love", laughing: "lol" }
+const ALIASES: Record<string, string> = {
+  heart: "love", laughing: "lol", rich: "money", silly: "lol",
+}
 for (const [alias, target] of Object.entries(ALIASES)) {
   HYDRA_EMOTES[alias] = HYDRA_EMOTES[target]
 }
