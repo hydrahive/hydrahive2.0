@@ -22,6 +22,7 @@ from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._pricing import cost_micros, provider_from_model
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
+from hydrahive.runner._emote_hint import with_emote_hint
 from hydrahive.runner._runner_helpers import close_open_tool_uses
 from hydrahive.runner._runner_iter import (
     IterationResult,
@@ -92,6 +93,7 @@ async def run(
     )
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])
+    base_system_prompt = with_emote_hint(base_system_prompt, is_buddy=bool(agent.get("is_buddy")))
 
     local_tools: list[str] = agent.get("tools", [])
     mcp_servers: list[str] = agent.get("mcp_servers", [])
