@@ -10,7 +10,7 @@ from __future__ import annotations
 import base64
 import urllib.parse
 
-from hydrahive.net.ssrf import is_blocked_host as _is_blocked
+from hydrahive.net.ssrf import SsrfBlocked, is_blocked_host as _is_blocked, safe_async_client
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
@@ -118,11 +118,15 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         headers["Content-Type"] = content_type
 
     try:
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+        # safe_async_client pinnt den Connect an eine vorab validierte IP →
+        # DNS-Rebinding zwischen Check und Connect ist ausgeschlossen (#206).
+        async with safe_async_client(url, timeout=timeout) as client:
             r = await client.request(
                 method, url, headers=headers, params=params or None,
                 content=body.encode("utf-8") if body else None,
             )
+    except SsrfBlocked as e:
+        return ToolResult.fail(f"Zugriff auf interne/private Adressen gesperrt: {e}")
     except httpx.HTTPError as e:
         return ToolResult.fail(f"HTTP-Fehler: {e}")
 
