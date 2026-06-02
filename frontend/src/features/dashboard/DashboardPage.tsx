@@ -33,7 +33,7 @@ export function DashboardPage() {
   }, [])
 
   return (
-    <div className="space-y-3 max-w-7xl">
+    <div className="space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-white">{t("title")}</h1>
