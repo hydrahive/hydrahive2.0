@@ -31,6 +31,30 @@ if [ -d "${SEARXNG_DIR}/.git" ]; then
     systemctl stop searxng 2>/dev/null || true
     git -C "${SEARXNG_DIR}" pull --quiet 2>/dev/null || true
     sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -qU searxng 2>/dev/null || true
+
+    # JSON-Format nachrüsten (idempotent) — heilt ältere Installationen ohne
+    # format=json, damit web_search/API funktioniert. Kein /opt von Hand nötig.
+    SETTINGS="${SEARXNG_DIR}/searxng/settings.yml"
+    if [ -f "${SETTINGS}" ] && ! grep -qE '^[[:space:]]*-[[:space:]]*json[[:space:]]*$' "${SETTINGS}"; then
+        if grep -qE '^[[:space:]]*formats[[:space:]]*:' "${SETTINGS}"; then
+            warn "settings.yml hat einen formats-Block ohne json — bitte '- json' manuell ergänzen"
+        else
+            info "Aktiviere JSON-Format in settings.yml..."
+            python3 - "${SETTINGS}" <<'PYEOF'
+import sys
+p = sys.argv[1]
+lines = open(p, encoding="utf-8").read().splitlines()
+out = []
+for line in lines:
+    out.append(line)
+    if line.rstrip() == "search:":
+        out += ["  formats:", "    - html", "    - json"]
+open(p, "w", encoding="utf-8").write("\n".join(out) + "\n")
+PYEOF
+            chown "${SEARXNG_USER}:${SEARXNG_USER}" "${SETTINGS}" 2>/dev/null || true
+        fi
+    fi
+
     systemctl start searxng
     success "SearXNG aktualisiert"
     exit 0
@@ -86,6 +110,11 @@ search:
   safe_search: 0
   autocomplete: ""
   default_lang: "de-DE"
+  # JSON-Format aktiv: HydraHives web_search-Tool (und jede API-Nutzung) braucht
+  # format=json. SearXNG liefert sonst nur HTML → 403 auf JSON-Anfragen.
+  formats:
+    - html
+    - json
 CONFEOF
 chown -R "${SEARXNG_USER}:${SEARXNG_USER}" "${SEARXNG_DIR}"
 success "Konfiguration erstellt"
