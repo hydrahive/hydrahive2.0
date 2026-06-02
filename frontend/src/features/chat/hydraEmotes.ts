@@ -10,7 +10,11 @@ export const EMOTE_NAMES = [
   "facepalm", "cry", "nerd", "money", "fire",
   "idea", "party", "thumbsup", "sleepy", "neutral",
   "shush", "zipper", "devil", "angel", "sick",
-  "cowboy", "alien", "drool",
+  "cowboy", "alien", "drool", "rocket",
+  // Charakter-Hydras
+  "pirate", "ninja", "wizard", "king", "chef",
+  "hacker", "detective", "builder", "coffee", "borg",
+  "brainfull", "doublefacepalm",
 ] as const
 
 export const HYDRA_EMOTES: Record<string, string> = Object.fromEntries(
