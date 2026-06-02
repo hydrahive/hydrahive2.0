@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import httpx
 
+from hydrahive.settings.overrides import resolve as resolve_setting
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
 _DESCRIPTION = (
     "Websuche über lokalen SearxNG. Gibt Titel, URL, Snippet zurück. "
-    "Braucht `searxng_url` in der Tool-Config."
+    "URL kommt aus den Einstellungen (SearXNG-URL) bzw. HH_SEARXNG_URL."
 )
 
 _SCHEMA = {
@@ -25,9 +26,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not query:
         return ToolResult.fail("Leere Suchanfrage")
 
-    base = (ctx.config.get("searxng_url") or "").rstrip("/")
+    # Tool-Config (pro Agent) hat Vorrang; sonst die globale Einstellung
+    # (GUI-Override → HH_SEARXNG_URL).
+    base = (ctx.config.get("searxng_url") or resolve_setting("searxng_url") or "").rstrip("/")
     if not base:
-        return ToolResult.fail("SearxNG nicht konfiguriert (searxng_url fehlt)")
+        return ToolResult.fail("SearxNG nicht konfiguriert — URL in den Einstellungen hinterlegen")
 
     count = max(1, min(50, int(args.get("count", 10))))
 

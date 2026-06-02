@@ -5,6 +5,8 @@ import os
 from functools import cached_property
 from pathlib import Path
 
+from hydrahive.settings.overrides import env_or_override
+
 
 class _ServerMixin:
     @cached_property
@@ -38,7 +40,7 @@ class _ServerMixin:
         dann wird auch der Health-Endpoint kein ``update_behind`` mehr liefern.
         Sendet sonst keine Daten außer dem Standard-Git-Protocol-Request.
         """
-        val = os.environ.get("HH_UPDATE_CHECK_ENABLED", "true").strip().lower()
+        val = env_or_override("update_check_enabled", "HH_UPDATE_CHECK_ENABLED", "true").strip().lower()
         return val not in {"0", "false", "no", "off"}
 
 
@@ -47,7 +49,7 @@ class _AgentLinkMixin:
     def agentlink_url(self) -> str:
         """AgentLink-REST-URL. Leer ⇒ AgentLink nicht angebunden,
         ask_agent-Tool wird nicht registriert."""
-        return os.environ.get("HH_AGENTLINK_URL", "").strip()
+        return env_or_override("agentlink_url", "HH_AGENTLINK_URL", "").strip()
 
     @cached_property
     def agentlink_ws_url(self) -> str:
@@ -75,7 +77,7 @@ class _AgentLinkMixin:
         und beim WS-Subscribe mitgeschickt, damit nur autorisierte Clients mit
         dem AgentLink-Service sprechen. Die harte Inbound-Garantie (kein Master-
         Fallback) liegt in handoff_receiver — der Token ist Transport-Hygiene."""
-        return os.environ.get("HH_AGENTLINK_TOKEN", "").strip()
+        return env_or_override("agentlink_token", "HH_AGENTLINK_TOKEN", "").strip()
 
     @cached_property
     def agentlink_handoff_timeout(self) -> int:
@@ -99,7 +101,7 @@ class _CommunicationMixin:
 
     @cached_property
     def discord_enabled(self) -> bool:
-        return os.environ.get("HH_DISCORD_ENABLED", "1").lower() in ("1", "true", "yes")
+        return env_or_override("discord_enabled", "HH_DISCORD_ENABLED", "1").lower() in ("1", "true", "yes")
 
     @cached_property
     def discord_config_dir(self) -> Path:
@@ -128,7 +130,7 @@ class _CommunicationMixin:
     @cached_property
     def health_api_key(self) -> str:
         """API-Key für Health Auto Export Ingest. Leer ⇒ Endpoint antwortet mit 403."""
-        return os.environ.get("HH_HEALTH_API_KEY", "").strip()
+        return env_or_override("health_api_key", "HH_HEALTH_API_KEY", "").strip()
 
     @cached_property
     def health_ingest_user(self) -> str:

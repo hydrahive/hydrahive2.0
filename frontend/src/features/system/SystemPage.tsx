@@ -1,8 +1,9 @@
 import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import {
-  Activity, Bot, Database, Folder, MessageSquare, Mic, RotateCw, Server, Wrench, Zap,
+  Activity, Bot, Database, Folder, MessageSquare, Mic, RotateCw, Server, SlidersHorizontal, Wrench, Zap,
 } from "lucide-react"
+import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
 import { HelpButton } from "@/i18n/HelpButton"
@@ -63,6 +64,12 @@ export function SystemPage() {
         <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
+              <Link to="/system/settings"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-200 text-xs font-medium hover:bg-violet-500/20 transition-colors"
+              >
+                <SlidersHorizontal size={12} />
+                Einstellungen
+              </Link>
               <button onClick={voice.begin}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-xs font-medium hover:bg-emerald-500/20 transition-colors"
               >

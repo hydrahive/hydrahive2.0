@@ -13,6 +13,7 @@ import { McpPage } from "@/features/mcp/McpPage"
 import { SkillsPage } from "@/features/skills/SkillsPage"
 import { CredentialsPage } from "@/features/credentials/CredentialsPage"
 import { SystemPage } from "@/features/system/SystemPage"
+import { SettingsPage } from "@/features/system/SettingsPage"
 import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
@@ -86,6 +87,7 @@ export default function App() {
           <Route path="skills" element={<SkillsPage />} />
           <Route path="credentials" element={<CredentialsPage />} />
           <Route path="system" element={<SystemPage />} />
+          <Route path="system/settings" element={<AdminGuard><SettingsPage /></AdminGuard>} />
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
           <Route path="extensions" element={<AdminGuard><ExtensionsPage /></AdminGuard>} />

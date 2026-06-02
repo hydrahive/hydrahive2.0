@@ -54,6 +54,7 @@ from hydrahive.api.routes.system import router as system_router
 from hydrahive.api.routes.system_admin import router as system_admin_router
 from hydrahive.api.routes.system_bridge import router as system_bridge_router
 from hydrahive.api.routes.system_samba import router as system_samba_router
+from hydrahive.api.routes.system_settings import router as system_settings_router
 from hydrahive.api.routes.tailscale import router as tailscale_router
 from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.zahnfee import router as zahnfee_router
@@ -144,6 +145,7 @@ app.include_router(system_router)
 app.include_router(system_admin_router)
 app.include_router(system_bridge_router)
 app.include_router(system_samba_router)
+app.include_router(system_settings_router)
 app.include_router(tailscale_router)
 app.include_router(zahnfee_router)
 app.include_router(federation_router)
