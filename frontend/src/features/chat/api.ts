@@ -104,3 +104,45 @@ function parseSseFrame(frame: string): RunnerEvent | null {
     return null
   }
 }
+
+/**
+ * Live-Sync v1: abonniert den Session-Broadcast-Kanal. Ruft `onPing` bei jedem
+ * Aktivitäts-Ping (ein Lauf macht Fortschritt). Läuft bis `signal` abbricht und
+ * reconnectet bei Verbindungsabriss. EventSource scheidet aus (kann keinen
+ * Authorization-Header), darum fetch + getReader wie bei sendMessage.
+ */
+export async function subscribeSession(
+  sessionId: string,
+  onPing: () => void,
+  signal: AbortSignal,
+): Promise<void> {
+  const RECONNECT_MS = 1500
+  while (!signal.aborted) {
+    try {
+      const token = useAuthStore.getState().token
+      const res = await fetch(`/api/sessions/${sessionId}/stream`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        signal,
+      })
+      if (!res.ok || !res.body) throw new Error(`stream ${res.status}`)
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const frames = buffer.split("\n\n")
+        buffer = frames.pop() ?? ""
+        // Ein Frame mit data:-Zeile = Ping (Keepalive sind reine :-Kommentare).
+        for (const frame of frames) {
+          if (frame.split("\n").some((l) => l.startsWith("data:"))) onPing()
+        }
+      }
+    } catch {
+      if (signal.aborted) return
+    }
+    if (signal.aborted) return
+    await new Promise((r) => setTimeout(r, RECONNECT_MS))
+  }
+}

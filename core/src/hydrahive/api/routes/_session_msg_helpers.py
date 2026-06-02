@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import time
+
 from fastapi import UploadFile, status
 from fastapi.responses import StreamingResponse
 
 from hydrahive.agents import config as agent_config
 from hydrahive.agents._paths import ensure_workspace
+from hydrahive.api._session_broadcast import broadcaster
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._files import process_upload
 from hydrahive.api.routes._sse import to_sse
 from hydrahive.runner import run as runner_run
 from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
+
+# Live-Sync v1: max ein Aktivitäts-Ping pro Intervall während eines Laufs.
+_PING_INTERVAL_S = 0.5
 
 
 async def build_user_content(agent_id: str, text: str, files: list[UploadFile]) -> str | list:
@@ -48,15 +54,26 @@ async def sse_run_with_guard(session_id: str, user_content, *, extra_system: str
         raise coded(status.HTTP_409_CONFLICT, "session_already_running")
 
     async def _guarded_stream():
+        # Live-Sync v1: leichte Pings an alle Geräte derselben Session, damit ein
+        # passives Tab/Tablet bei Lauf-Fortschritt nachlädt. Der Sender-Stream
+        # (yield ev) bleibt davon unberührt.
+        last_ping = 0.0
         try:
             async with session_run_guard(session_id):
+                broadcaster.broadcast(session_id, '{"t":"start"}')
                 if extra_system is not None:
                     gen = runner_run(session_id, user_content, extra_system=extra_system)
                 else:
                     gen = runner_run(session_id, user_content)
                 async for ev in gen:
                     yield ev
+                    now = time.monotonic()
+                    if now - last_ping >= _PING_INTERVAL_S:
+                        last_ping = now
+                        broadcaster.broadcast(session_id, '{"t":"activity"}')
         except SessionAlreadyRunning:
             return  # lost the race between is_running() check and acquire
+        finally:
+            broadcaster.broadcast(session_id, '{"t":"done"}')
 
     return sse_run_response(_guarded_stream())

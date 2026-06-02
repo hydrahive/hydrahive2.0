@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from "react"
-import { chatApi, sendMessage } from "./api"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { chatApi, sendMessage, subscribeSession } from "./api"
 import { applyStreamEvent } from "./_chatStream"
 import type { ContentBlock, Message } from "./types"
 
@@ -104,6 +104,28 @@ export function useChat(sessionId: string | null) {
     },
     [sessionId, state.pendingConfirm],
   )
+
+  // Live-Sync v1: passives Gerät/Tab lädt nach, wenn ein Lauf die Session bewegt
+  // (egal welches Gerät ihn ausgelöst hat). Refs halten busy/reload für die
+  // langlebige Subscription-Closure frisch.
+  const busyRef = useRef(state.busy)
+  busyRef.current = state.busy
+  const reloadRef = useRef(reload)
+  reloadRef.current = reload
+
+  useEffect(() => {
+    if (!sessionId) return
+    const controller = new AbortController()
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const onPing = () => {
+      // Eigener Sende-Stream rendert schon (busy) → kein Reload-Clobber.
+      // Schon ein Reload eingeplant (timer) → debouncen.
+      if (busyRef.current || timer) return
+      timer = setTimeout(() => { timer = null; void reloadRef.current() }, 400)
+    }
+    void subscribeSession(sessionId, onPing, controller.signal)
+    return () => { controller.abort(); if (timer) clearTimeout(timer) }
+  }, [sessionId])
 
   return { ...state, send, cancel, reload, confirmTool }
 }

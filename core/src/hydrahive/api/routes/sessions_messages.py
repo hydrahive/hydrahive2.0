@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Annotated
@@ -13,6 +14,7 @@ from pydantic import BaseModel, Field
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api._session_broadcast import broadcaster
 from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_with_guard
 from hydrahive.runner import run as runner_run
 from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
@@ -52,6 +54,43 @@ def list_messages(
             if tc.duration_ms is not None and tu.get("id"):
                 durations[tu["id"]] = tc.duration_ms
     return [serialize_message(m, durations) for m in msgs]
+
+
+@messages_router.get("/{session_id}/stream")
+async def stream_session(
+    session_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> StreamingResponse:
+    """Live-Sync v1: SSE-Kanal, den jedes offene Gerät derselben Session abonniert.
+
+    Während ein Lauf läuft (egal von welchem Gerät ausgelöst) broadcastet die
+    Sende-Route leichte Pings hier rein; der Client lädt bei Ping nach. Keepalive
+    alle 20s als SSE-Kommentar, damit Proxies die Verbindung nicht killen.
+    """
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+
+    queue = broadcaster.subscribe(session_id)
+
+    async def _events():
+        try:
+            yield ": connected\n\n"
+            while True:
+                try:
+                    payload = await asyncio.wait_for(queue.get(), timeout=20.0)
+                    yield f"data: {payload}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            broadcaster.unsubscribe(session_id, queue)
+
+    return StreamingResponse(
+        _events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
 
 
 @messages_router.get("/{session_id}/tokens")
