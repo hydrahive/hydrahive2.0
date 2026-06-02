@@ -16,6 +16,7 @@ from hydrahive.api.routes._server_route_helpers import (
     project_or_404 as _project_or_404, vm_dict as _vm_dict,
 )
 from hydrahive.containers import db as containers_db
+from hydrahive.projects import audit as project_audit
 from hydrahive.vms import db as vms_db
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -80,6 +81,8 @@ def assign_server(
         if c.project_id and c.project_id != project_id:
             raise coded(409, "server_already_assigned", project_id=c.project_id)
         containers_db.set_project(req.id, project_id)
+    project_audit.log(project_id, username, "server_assigned",
+                      target=f"{getattr(req.kind, 'value', req.kind)}:{req.id}")
     return {"ok": True}
 
 
@@ -106,3 +109,5 @@ def unassign_server(
         if role != "admin" and c.owner != username:
             raise coded(403, "container_no_access")
         containers_db.set_project(server_id, None)
+    project_audit.log(project_id, username, "server_unassigned",
+                      target=f"{getattr(kind, 'value', kind)}:{server_id}")

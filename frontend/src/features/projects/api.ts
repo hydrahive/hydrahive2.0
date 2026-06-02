@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectCreate, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind } from "./types"
+import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -62,6 +62,16 @@ export const projectsApi = {
     api.get<{ enabled: boolean; share_name: string; user: string; password: string }>(`/projects/${id}/samba`),
   putSamba: (id: string, enabled: boolean) =>
     api.put<{ ok: boolean; enabled: boolean }>(`/projects/${id}/samba`, { enabled }),
+  getAudit: (id: string, params?: { action?: string; user?: string; limit?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.action) qs.set("action", params.action)
+    if (params?.user) qs.set("user", params.user)
+    if (params?.limit != null) qs.set("limit", String(params.limit))
+    const query = qs.toString()
+    return api.get<{ entries: ProjectAuditEntry[]; count: number }>(
+      `/projects/${id}/audit${query ? `?${query}` : ""}`,
+    )
+  },
 }
 
 export const usersApi = {

@@ -36,7 +36,8 @@
     "servers": "Servers",
     "stats": "Stats",
     "settings": "Settings",
-    "specialists": "Specialists"
+    "specialists": "Specialists",
+    "audit": "History"
   },
   "specialists": {
     "description": "Which specialists can the project agent call via ask_agent?",
@@ -132,6 +133,22 @@
     "password_label": "Password",
     "copy": "Copy",
     "copied": "Copied!"
+  },
+  "audit": {
+    "empty": "No entries yet.",
+    "load_error": "Could not load history.",
+    "filter": {
+      "all_actions": "All actions",
+      "user_placeholder": "Filter by user…",
+      "search": "Search"
+    },
+    "actions": {
+      "project_updated": "Project updated",
+      "member_added": "Member added",
+      "member_removed": "Member removed",
+      "server_assigned": "Server assigned",
+      "server_unassigned": "Server unassigned"
+    }
   },
   "new_dialog": {
     "title": "New project",

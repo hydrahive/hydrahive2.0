@@ -77,3 +77,20 @@ export interface ProjectStats {
   total_tokens: number
   last_activity: string | null
 }
+
+export interface ProjectAuditEntry {
+  id: string
+  project_id: string
+  user: string
+  action: string
+  target: string | null
+  details: Record<string, unknown> | null
+  created_at: string
+}
+
+export type ProjectAuditAction =
+  | "project_updated"
+  | "member_added"
+  | "member_removed"
+  | "server_assigned"
+  | "server_unassigned"

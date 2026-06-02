@@ -36,7 +36,8 @@
     "servers": "Server",
     "stats": "Statistiken",
     "settings": "Einstellungen",
-    "specialists": "Spezialisten"
+    "specialists": "Spezialisten",
+    "audit": "Verlauf"
   },
   "specialists": {
     "description": "Welche Spezialisten darf der Projekt-Agent via ask_agent beauftragen?",
@@ -132,6 +133,22 @@
     "password_label": "Passwort",
     "copy": "Kopieren",
     "copied": "Kopiert!"
+  },
+  "audit": {
+    "empty": "Noch keine Einträge.",
+    "load_error": "Verlauf konnte nicht geladen werden.",
+    "filter": {
+      "all_actions": "Alle Aktionen",
+      "user_placeholder": "User filtern…",
+      "search": "Suchen"
+    },
+    "actions": {
+      "project_updated": "Projekt geändert",
+      "member_added": "Member hinzugefügt",
+      "member_removed": "Member entfernt",
+      "server_assigned": "Server zugewiesen",
+      "server_unassigned": "Server entfernt"
+    }
   },
   "new_dialog": {
     "title": "Neues Projekt",
