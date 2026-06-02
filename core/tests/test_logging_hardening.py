@@ -40,7 +40,7 @@ def test_backfill_logs_processing_error(client, caplog, monkeypatch):
     from hydrahive.db import health
     _insert_raw_ingest("hproc", '{"ok": true}')
 
-    def _boom(payload, user_id):
+    def _boom(payload, user_id, conn):
         raise ValueError("db kaputt")
 
     monkeypatch.setattr(health, "_process_payload_to_daily", _boom)

@@ -22,6 +22,8 @@ def insert(
     aggregation: str | None = None,
 ) -> str:
     record_id = uuid7()
+    # Roh-Insert UND Tages-Rollup in EINER Transaktion → schlägt der Rollup fehl,
+    # wird auch der Rohsatz zurückgerollt (keine halbe Ingest-Spur).
     with db() as conn:
         conn.execute(
             """INSERT INTO health_ingest
@@ -31,7 +33,7 @@ def insert(
             (record_id, now_iso(), user_id, automation_name, automation_id,
              session_id, period, aggregation, json.dumps(payload)),
         )
-    _process_payload_to_daily(payload, user_id)
+        _process_payload_to_daily(payload, user_id, conn)
     return record_id
 
 
@@ -91,11 +93,17 @@ def _aggregate_samples(name: str, samples: list[dict]) -> float:
     return sum(values) / len(values)
 
 
-def _process_payload_to_daily(payload: dict, user_id: str) -> None:
+def _process_payload_to_daily(payload: dict, user_id: str, conn) -> None:
+    """Schreibt den Tages-Rollup über die übergebene Verbindung ``conn`` (gleiche
+    Transaktion wie der Roh-Insert bzw. eine eigene beim Backfill)."""
     try:
         data = payload.get("data", payload)
         metrics_list = data.get("metrics", [])
     except AttributeError:
+        logger.warning(
+            "health ingest: Payload nicht verarbeitbar (kein dict/metrics) — "
+            "Rohsatz gespeichert, kein Tages-Rollup", exc_info=True,
+        )
         return
 
     by_metric: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
@@ -122,23 +130,22 @@ def _process_payload_to_daily(payload: dict, user_id: str) -> None:
             value = round(_aggregate_samples(name, samples), 1)
             rows.append((date, name, user_id, unit, value))
 
-    with db() as conn:
-        conn.executemany(
-            """INSERT INTO health_daily (date, metric_name, user_id, unit, value)
-               VALUES (?, ?, ?, ?, ?)
-               ON CONFLICT (date, metric_name, user_id) DO UPDATE SET
-                 value = CASE
-                   WHEN metric_name IN (
-                     'step_count','active_energy_burned','basal_energy_burned',
-                     'dietary_energy','distance_walking_running','flights_climbed',
-                     'push_count','swimming_stroke_count',
-                     'sleep_analysis','mindful_session','stand_time'
-                   ) THEN health_daily.value + excluded.value
-                   ELSE (health_daily.value + excluded.value) / 2.0
-                 END,
-                 unit = excluded.unit""",
-            rows,
-        )
+    conn.executemany(
+        """INSERT INTO health_daily (date, metric_name, user_id, unit, value)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT (date, metric_name, user_id) DO UPDATE SET
+             value = CASE
+               WHEN metric_name IN (
+                 'step_count','active_energy_burned','basal_energy_burned',
+                 'dietary_energy','distance_walking_running','flights_climbed',
+                 'push_count','swimming_stroke_count',
+                 'sleep_analysis','mindful_session','stand_time'
+               ) THEN health_daily.value + excluded.value
+               ELSE (health_daily.value + excluded.value) / 2.0
+             END,
+             unit = excluded.unit""",
+        rows,
+    )
 
 
 def backfill_daily(user_id: str = "till") -> int:
@@ -153,7 +160,8 @@ def backfill_daily(user_id: str = "till") -> int:
     for row in rows:
         try:
             payload = json.loads(row["payload"])
-            _process_payload_to_daily(payload, user_id)
+            with db() as conn:
+                _process_payload_to_daily(payload, user_id, conn)
             count += 1
         except json.JSONDecodeError as e:
             logger.warning("health backfill: ungültiger JSON in Row, skip: %s", e)

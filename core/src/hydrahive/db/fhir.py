@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
+
+logger = logging.getLogger(__name__)
 
 # FHIR resourceType → Sidebar-Kategorie
 RESOURCE_LABELS: dict[str, str] = {
@@ -56,6 +59,10 @@ def upsert_bundle(bundle: dict, user_id: str) -> dict:
                     )
                     imported += 1
             except Exception:
+                logger.warning(
+                    "FHIR-Ressource übersprungen (%s/%s): Import fehlgeschlagen",
+                    resource_type, resource_id, exc_info=True,
+                )
                 errors += 1
 
     return {"imported": imported, "updated": updated, "errors": errors}

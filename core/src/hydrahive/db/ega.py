@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 
 from hydrahive.db.connection import db
+
+logger = logging.getLogger(__name__)
 
 
 def _stable_id(dto_type: str, record: dict) -> str:
@@ -86,6 +89,10 @@ def upsert_records(records: list[tuple[str, dict]], user_id: str) -> dict:
                     )
                     imported += 1
             except Exception:
+                logger.warning(
+                    "eGA-Record übersprungen (dto_type=%s): Import fehlgeschlagen",
+                    dto_type, exc_info=True,
+                )
                 errors += 1
     return {"imported": imported, "updated": updated, "errors": errors}
 

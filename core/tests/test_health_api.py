@@ -34,7 +34,7 @@ def _insert_payload(metrics: list[dict], days_ago: int = 0) -> str:
             (record_id, received, "Test", "test-id", "sess", "Default", "Default",
              _json.dumps(payload)),
         )
-    _process_payload_to_daily(payload, "till")
+        _process_payload_to_daily(payload, "till", conn)
     return record_id
 
 
