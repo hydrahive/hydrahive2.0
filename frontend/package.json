@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "gen:emotes": "node scripts/gen-emotes.mjs",
+    "dev": "node scripts/gen-emotes.mjs && vite",
+    "prebuild": "node scripts/gen-emotes.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

@@ -1,49 +1,23 @@
 // Hydra-Emoticons fürs Chat: Kürzel :hydra-NAME: → kleines Bild.
 // Geteilt von EmoteText (Plain-Text-Bubbles) und remarkHydraEmotes (Markdown).
+//
+// Die Namensliste wird AUTOMATISCH aus den PNG-Dateien generiert
+// (scripts/gen-emotes.mjs → _emoteNames.generated.ts, läuft via npm prebuild).
+// Neue Emotes brauchen keinen Code mehr — PNG reinlegen, fertig.
+import { EMOTE_NAMES } from "./_emoteNames.generated"
 
-// Kanonische Emotes (= Dateien hydra-NAME.png). Reihenfolge = Picker-Reihenfolge.
-export const EMOTE_NAMES = [
-  "smile", "grin", "lol", "tears", "rofl",
-  "wink", "kiss", "smirk", "cool", "sunglasses",
-  "love", "plead", "hmm", "monocle", "wow",
-  "hushed", "scared", "explode", "angry", "unamused",
-  "facepalm", "cry", "nerd", "money", "fire",
-  "idea", "party", "thumbsup", "sleepy", "neutral",
-  "shush", "zipper", "devil", "angel", "sick",
-  "cowboy", "alien", "drool", "rocket",
-  // Charakter-Hydras
-  "pirate", "ninja", "wizard", "king", "chef",
-  "hacker", "detective", "builder", "coffee", "borg",
-  "brainfull", "doublefacepalm",
-  // Symbole & Objekte (datengetrieben — meistgenutzte Emojis der Agenten)
-  "checkmark", "cross", "warning", "chart", "vulcan",
-  "muscle", "lobster", "trophy", "sparkle", "lightning",
-  "shield", "search", "bug", "brain", "bulb",
-  "robot", "refresh", "handshake", "wave", "eyes",
-  "books", "graduation", "lab", "palette", "hammer",
-  "wrench", "plug", "globe", "moon", "bee",
-  "clapper", "theater",
-  // Reaktionen & Objekte (Batch 3)
-  "thumbsdown", "ok", "fist", "clap", "crossfingers",
-  "shrug", "grimace", "woozy", "scream", "starstruck",
-  "sweat-smile", "raised-eyebrow", "question", "boom", "skull",
-  "siren", "stop", "confetti", "gift", "dice",
-  "gold", "crystal", "dna", "dragon", "gear",
-  "laptop", "mic", "speaker", "speech", "spy",
-  "tophat", "popcorn",
-] as const
+export { EMOTE_NAMES }
 
 export const HYDRA_EMOTES: Record<string, string> = Object.fromEntries(
   EMOTE_NAMES.map((n) => [n, `/illustrations/emoticons/hydra-${n}.png`])
 )
 
-// Freundliche Aliase auf die gleiche Grafik (geläufige Kürzel; heart hat keine
-// eigene Datei → nutzt love).
+// Freundliche Aliase auf gleichbedeutende Grafiken (geläufige Kürzel ohne eigene Datei).
 const ALIASES: Record<string, string> = {
   heart: "love", laughing: "lol", rich: "money", silly: "lol",
 }
 for (const [alias, target] of Object.entries(ALIASES)) {
-  HYDRA_EMOTES[alias] = HYDRA_EMOTES[target]
+  if (HYDRA_EMOTES[target]) HYDRA_EMOTES[alias] = HYDRA_EMOTES[target]
 }
 
 export const EMOTE_RE = /:hydra-([a-z0-9-]+):/g
