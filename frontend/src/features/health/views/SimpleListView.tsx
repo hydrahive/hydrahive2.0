@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react"
 import { egaApi, type EgaRecord } from "../api"
 import { rgbFor } from "@/shared/colors"
+import { EmptyState } from "@/shared/EmptyState"
 
 interface Props {
   dtoType: string
@@ -50,7 +51,7 @@ export function SimpleListView({ dtoType, title, icon }: Props) {
       {items === null ? (
         <div className="h-32 rounded-xl bg-zinc-900/50 animate-pulse" />
       ) : items.length === 0 ? (
-        <p className="text-zinc-500 text-sm py-8 text-center">Keine {title} importiert.</p>
+        <EmptyState src="/illustrations/empty-medical.png" hint={`Keine ${title} importiert.`} />
       ) : (
         <div className="box overflow-hidden" style={{ "--c": rgbFor("/health") } as CSSProperties}>
           {items.map((item) => (

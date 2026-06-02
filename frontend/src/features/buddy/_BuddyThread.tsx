@@ -15,6 +15,7 @@ import { Markdown } from "@/features/chat/Markdown"
 import { ImageBlock, ToolResultCard, ToolUseCard } from "@/features/chat/ToolCards"
 import { extractMedia, MediaPreview } from "@/features/chat/MediaPreview"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
+import { HydraMascot } from "@/shared/HydraMascot"
 import type { ContentBlock, Message } from "@/features/chat/types"
 
 function BuddyUserMessage() {
@@ -86,7 +87,9 @@ function BuddyAssistantMessage() {
 
   return (
     <MessagePrimitive.Root className="flex items-start gap-3 py-1">
-      <div className={`text-2xl flex-shrink-0 mt-0.5 ${isLive ? "animate-pulse" : ""}`}>🐝</div>
+      <div className="flex-shrink-0 mt-0.5">
+        <HydraMascot state={isLive ? "thinking" : "idle"} size={30} animate={isLive} />
+      </div>
       <div className="flex-1 min-w-0 space-y-2">
         {original && <BubbleHeader createdAt={original.created_at} align="left" />}
         {showRaw ? (
@@ -164,6 +167,15 @@ export function BuddyThread() {
   return (
     <ThreadPrimitive.Root className="flex-1 overflow-hidden flex flex-col">
       <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <ThreadPrimitive.Empty>
+          <div className="flex flex-col items-center justify-center text-center gap-3 py-16 px-6">
+            <HydraMascot state="celebrate" size={132} />
+            <p className="text-sm font-medium text-zinc-200">Frische Tentakel, frischer Chat</p>
+            <p className="text-xs text-zinc-500 max-w-xs leading-relaxed">
+              Schreib einfach drauflos — oder tipp einen Slash-Befehl unten an.
+            </p>
+          </div>
+        </ThreadPrimitive.Empty>
         <ThreadPrimitive.Messages
           components={{
             UserMessage: BuddyUserMessage,

@@ -38,8 +38,12 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   if (!briefing) {
     return (
       <PanelBox title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
-        <p className="text-xs text-zinc-500 italic leading-relaxed">{t("left_panel.no_briefing")}</p>
-        <Link to="/zahnfee" className="mt-2 block text-xs text-violet-400 hover:text-violet-300 transition-colors">{t("left_panel.setup")}</Link>
+        <div className="flex flex-col items-center text-center gap-2">
+          <img src="/illustrations/empty-briefing.png" alt="" width={84} height={84}
+            className="object-contain opacity-95 drop-shadow-[0_0_16px_rgba(139,92,246,0.3)] select-none pointer-events-none" />
+          <p className="text-xs text-zinc-500 italic leading-relaxed">{t("left_panel.no_briefing")}</p>
+          <Link to="/zahnfee" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">{t("left_panel.setup")}</Link>
+        </div>
       </PanelBox>
     )
   }

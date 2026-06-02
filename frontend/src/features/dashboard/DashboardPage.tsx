@@ -12,6 +12,7 @@ import { UpdateBanner } from "./_UpdateBanner"
 import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { AgentLinkCard } from "@/features/system/AgentLinkCard"
 import { MinimaxUsageCard } from "@/features/system/MinimaxUsageCard"
+import { EmptyState } from "@/shared/EmptyState"
 
 const REFRESH_MS = 30_000
 
@@ -68,6 +69,15 @@ export function DashboardPage() {
 
           <ServersOverview servers={data.servers} />
         </>
+      )}
+
+      {!data && (
+        <EmptyState
+          src="/illustrations/empty-dashboard.png"
+          size={150}
+          hint="Einen Moment — die Hydra sammelt die Daten…"
+          className="min-h-[50vh]"
+        />
       )}
     </div>
   )

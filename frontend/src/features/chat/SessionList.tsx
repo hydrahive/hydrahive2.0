@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import type { ProjectBrief } from "./api"
 import type { AgentBrief, Session } from "./types"
 import { SessionModelControls } from "./SessionModelControls"
+import { EmptyState } from "@/shared/EmptyState"
 import { rgbFor } from "@/shared/colors"
 
 type Tab = "direct" | "projects" | "buddy"
@@ -69,13 +70,13 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {tab === "direct" && direct.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">{t("session.no_direct")}</p>
+          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint={t("session.no_direct")} />
         )}
         {tab === "projects" && projectSessions.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">{t("session.no_project")}</p>
+          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint={t("session.no_project")} />
         )}
         {tab === "buddy" && buddy.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">Keine Buddy-Sessions</p>
+          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint="Keine Buddy-Sessions" />
         )}
         {tab === "direct" && direct.map((s) => (
           <SessionRow key={s.id} session={s} active={s.id === activeId}

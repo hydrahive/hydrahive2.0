@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { Coins } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
+import { EmptyState } from "@/shared/EmptyState"
 import { api } from "@/shared/api-client"
 
 interface ModelUsage {
@@ -74,7 +75,7 @@ export function MinimaxUsageCard() {
       {!usage.available ? (
         <p className="text-xs text-rose-300/80">{t(`minimax.error_${usage.reason}`, { defaultValue: usage.reason })}</p>
       ) : !usage.models || usage.models.length === 0 ? (
-        <p className="text-xs text-zinc-500">{t("minimax.no_data")}</p>
+        <EmptyState src="/illustrations/empty-quota.png" size={84} hint={t("minimax.no_data")} />
       ) : (
         <div className="space-y-2">
           {usage.models.map((m) => (

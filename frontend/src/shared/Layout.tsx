@@ -43,9 +43,11 @@ export function Layout() {
       {/* Top-Bar */}
       <header className="relative z-30 flex items-center gap-2 px-3 sm:px-4 h-12 border-b border-white/[6%] bg-zinc-950/80 backdrop-blur">
         <Link to="/" className="flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] flex items-center justify-center text-xs shadow-md shadow-black/40">
-            🐝
-          </div>
+          <img
+            src="/illustrations/logo-mark.png"
+            alt=""
+            className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] select-none"
+          />
           <span className="hidden sm:inline font-bold text-[var(--hh-accent-text)] tracking-tight">
             HydraHive
           </span>

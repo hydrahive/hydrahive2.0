@@ -6,6 +6,8 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
+import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
+import { HydraMascot } from "@/shared/HydraMascot"
 import { useHydraRuntime } from "@/features/chat/_assistantRuntime"
 import { ModelPicker } from "@/features/chat/ModelPicker"
 import { ReasoningEffortPill, type EffortLevel } from "@/features/chat/ReasoningEffortPill"
@@ -31,6 +33,8 @@ export function BuddyPage() {
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const initRef = useRef(false)
   const chat = useChat(state?.session_id ?? null)
+  const tts = useVoiceOutput()
+  const mascotState = tts.speaking ? "speaking" : chat.busy ? "working" : "idle"
 
   const allMessages = [...chat.messages, ...localMsgs]
   const runtime = useHydraRuntime(allMessages, chat.busy, chat.send, chat.cancel)
@@ -89,7 +93,7 @@ export function BuddyPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="text-6xl">🐝</div>
+        <HydraMascot state="error" size={120} />
         <p className="text-sm text-rose-300">{error}</p>
       </div>
     )
@@ -98,7 +102,7 @@ export function BuddyPage() {
   if (!state) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="text-6xl animate-pulse">🐝</div>
+        <HydraMascot state="sleeping" size={120} animate />
         <Loader2 size={16} className="text-zinc-500 animate-spin" />
         <p className="text-xs text-zinc-500">{t("waking_up")}</p>
       </div>
@@ -123,7 +127,7 @@ export function BuddyPage() {
               </div>
             )}
             <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3 bg-black/30">
-              <div className="text-2xl">🐝</div>
+              <HydraMascot state={mascotState} size={30} animate={chat.busy || tts.speaking} />
               <p className="text-sm font-medium text-zinc-100 truncate">{state.agent_name}</p>
               {state.model && (
                 <ModelPicker

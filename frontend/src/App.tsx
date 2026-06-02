@@ -32,6 +32,7 @@ import { HealthPage } from "@/features/health/HealthPage"
 import { ScratchpadPage } from "@/features/scratchpad/ScratchpadPage"
 import { FederationPage } from "@/features/federation/FederationPage"
 import { StreamingPage } from "@/features/streaming/StreamingPage"
+import { NotFoundPage } from "@/shared/NotFoundPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
           <Route path="zahnfee" element={<AdminGuard><ZahnfeePage /></AdminGuard>} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import type { CSSProperties } from "react"
 import { rgbFor } from "@/shared/colors"
+import { EmptyState } from "@/shared/EmptyState"
 
 interface Column<T> {
   key: string
@@ -18,7 +19,7 @@ export function ResourceTable<T extends Record<string, unknown>>({ rows, columns
   const { t } = useTranslation("health")
   const empty = emptyText ?? t("akte.no_entries")
   if (rows.length === 0) {
-    return <p className="text-sm text-zinc-500 py-8 text-center">{empty}</p>
+    return <EmptyState src="/illustrations/empty-akte.png" hint={empty} />
   }
   return (
     <div className="box overflow-hidden" style={{ "--c": rgbFor("/health") } as CSSProperties}>

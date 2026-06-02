@@ -47,9 +47,11 @@ export function LoginPage() {
         <div className="rounded-2xl border border-white/[8%] bg-white/[3%] backdrop-blur-sm p-8 shadow-2xl shadow-black/40">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] mb-4 shadow-lg shadow-black/30">
-              <span className="text-2xl">🐝</span>
-            </div>
+            <img
+              src="/illustrations/hydra-idle.png"
+              alt="HydraHive"
+              className="w-24 h-24 mx-auto mb-3 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,0.45)] select-none"
+            />
             <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-300 bg-clip-text text-transparent">
               HydraHive
             </h1>
