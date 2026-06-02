@@ -23,6 +23,14 @@ export const EMOTE_NAMES = [
   "books", "graduation", "lab", "palette", "hammer",
   "wrench", "plug", "globe", "moon", "bee",
   "clapper", "theater",
+  // Reaktionen & Objekte (Batch 3)
+  "thumbsdown", "ok", "fist", "clap", "crossfingers",
+  "shrug", "grimace", "woozy", "scream", "starstruck",
+  "sweat-smile", "raised-eyebrow", "question", "boom", "skull",
+  "siren", "stop", "confetti", "gift", "dice",
+  "gold", "crystal", "dna", "dragon", "gear",
+  "laptop", "mic", "speaker", "speech", "spy",
+  "tophat", "popcorn",
 ] as const
 
 export const HYDRA_EMOTES: Record<string, string> = Object.fromEntries(
@@ -38,7 +46,7 @@ for (const [alias, target] of Object.entries(ALIASES)) {
   HYDRA_EMOTES[alias] = HYDRA_EMOTES[target]
 }
 
-export const EMOTE_RE = /:hydra-([a-z]+):/g
+export const EMOTE_RE = /:hydra-([a-z0-9-]+):/g
 
 export type EmoteToken =
   | { type: "text"; value: string }

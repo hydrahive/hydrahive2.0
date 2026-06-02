@@ -24,6 +24,12 @@ EMOTE_NAMES = [
     "robot", "refresh", "handshake", "wave", "eyes", "books", "graduation", "lab",
     "palette", "hammer", "wrench", "plug", "globe", "moon", "bee", "clapper",
     "theater",
+    # Reaktionen & Objekte (Batch 3)
+    "thumbsdown", "ok", "fist", "clap", "crossfingers", "shrug", "grimace",
+    "woozy", "scream", "starstruck", "sweat-smile", "raised-eyebrow", "question",
+    "boom", "skull", "siren", "stop", "confetti", "gift", "dice", "gold",
+    "crystal", "dna", "dragon", "gear", "laptop", "mic", "speaker", "speech",
+    "spy", "tophat", "popcorn",
 ]
 
 HYDRA_EMOTE_HINT = (
