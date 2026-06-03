@@ -43,8 +43,9 @@ print(
 )
 
 from hydrahive.db.connection import init_db          # noqa: E402
-from hydrahive.teamchat.identity import ensure_identity  # noqa: E402
-from hydrahive.teamchat import rooms, messages        # noqa: E402
+from hydrahive.db import teamchat as db_teamchat      # noqa: E402
+from hydrahive.teamchat.identity import ensure_identity, ensure_bot_identity  # noqa: E402
+from hydrahive.teamchat import rooms, messages, agent_membership  # noqa: E402
 
 
 async def main() -> None:
@@ -86,7 +87,29 @@ async def main() -> None:
     print(f"    stranger ist Mitglied: {stranger_in}   (erwartet False)")
     assert bob_in is True and stranger_in is False, "Membership-Gate falsch!"
 
-    print("\n✅ SMOKE-TEST OK — die ganze Kette läuft gegen den echten tuwunel.")
+    print("\n[8] Bot-Identität (eigener Namensraum, agent-Präfix)...")
+    bot = await ensure_bot_identity("smoke_agent_buddy")
+    print(f"    bot -> {bot.user_id}   (erwartet @agent-smoke_agent_buddy:...)")
+    assert bot.user_id.startswith("@agent-smoke_agent_buddy:"), "Bot-localpart falsch!"
+
+    print("\n[9] Agent zuschalten (Bot tritt dem Raum bei)...")
+    await agent_membership.attach_agent(room_id, "smoke_alice", "smoke_agent_buddy")
+    members_with_bot = await rooms.list_members(room_id, "smoke_alice")
+    print(f"    Mitglieder: {members_with_bot}")
+    assert bot.user_id in members_with_bot, "Bot ist dem Raum nicht beigetreten!"
+    assert db_teamchat.list_room_agents(room_id), "Agent-Zuordnung nicht in DB!"
+
+    print("\n[10] Agent wegschalten (Bot verlässt den Raum)...")
+    await agent_membership.detach_agent(room_id, "smoke_agent_buddy")
+    members_after = await rooms.list_members(room_id, "smoke_alice")
+    print(f"    Mitglieder: {members_after}")
+    assert bot.user_id not in members_after, "Bot hat den Raum nicht verlassen!"
+    assert not db_teamchat.list_room_agents(room_id), "Agent-Zuordnung nicht entfernt!"
+
+    print(
+        "\n✅ SMOKE-TEST OK — Mensch- UND Agent-Bot-Kette laufen gegen den echten tuwunel."
+        "\n   (Die LLM-gestützte Agent-Antwort selbst testet Till im Browser, Etappe 4b.)"
+    )
 
 
 if __name__ == "__main__":
