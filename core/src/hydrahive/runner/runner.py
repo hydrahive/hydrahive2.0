@@ -12,7 +12,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_MAX_ITERATIONS,
     DEFAULT_MAX_TOKENS,
 )
-from hydrahive.runner._run_workspace import resolve_run_context
+from hydrahive.runner._run_workspace import project_layout_hint, resolve_run_context
 from hydrahive.compaction import compact_session, should_compact
 from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import errors_log
@@ -98,10 +98,7 @@ async def run(
         from hydrahive.projects import config as project_config
         _proj = project_config.get(active_project_id)
         if _proj:
-            base_system_prompt = (
-                f"{base_system_prompt}\n\nAktives Projekt: {_proj['name']}. "
-                "Dein Arbeitsverzeichnis ist dieses Projekt-Repo — arbeite hier, nicht woanders."
-            )
+            base_system_prompt = f"{base_system_prompt}\n\n{project_layout_hint(workspace, _proj)}"
 
     local_tools: list[str] = agent.get("tools", [])
     mcp_servers: list[str] = agent.get("mcp_servers", [])
