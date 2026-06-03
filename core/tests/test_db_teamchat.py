@@ -169,10 +169,23 @@ def test_list_rooms_for_user_sortiert_nach_created_at():
     teamchat.create_room("!roomA:mx.example", "Alpha", created_by="u1")
     teamchat.create_room("!roomB:mx.example", "Beta", created_by="u1")
 
+    # created_at deterministisch setzen (SQLite-strftime: 1s-Auflösung).
+    # roomB bewusst FRÜHER als roomA, obwohl roomA zuerst erstellt wurde —
+    # so prüft der Assert die ORDER BY created_at echt.
+    from hydrahive.db.connection import db
+    with db() as conn:
+        conn.execute(
+            "UPDATE teamchat_rooms SET created_at = ? WHERE room_id = ?",
+            ("2026-01-01T00:00:00Z", "!roomB:mx.example"),
+        )
+        conn.execute(
+            "UPDATE teamchat_rooms SET created_at = ? WHERE room_id = ?",
+            ("2026-01-01T00:00:01Z", "!roomA:mx.example"),
+        )
+
     rooms = teamchat.list_rooms_for_user("u1")
-    assert len(rooms) >= 2
-    created_ats = [r["created_at"] for r in rooms]
-    assert created_ats == sorted(created_ats)
+    ours = [r["room_id"] for r in rooms if r["room_id"] in ("!roomA:mx.example", "!roomB:mx.example")]
+    assert ours == ["!roomB:mx.example", "!roomA:mx.example"]
 
 
 # ---------------------------------------------------------------------------
@@ -216,20 +229,29 @@ def test_detach_agent():
     assert agents == []
 
 
-def test_list_room_agents_mehrere_agents_sortiert():
+def test_list_room_agents_sortiert_nach_attached_at():
     from hydrahive.db import teamchat
-    import time
+    from hydrahive.db.connection import db
 
     teamchat.create_room("!r4:mx.example", "Multi-Agent Room", created_by="admin")
     teamchat.attach_agent("!r4:mx.example", "agent-A", attached_by="admin")
-    # Kleine Pause damit attached_at unterschiedlich ist
-    time.sleep(0.01)
     teamchat.attach_agent("!r4:mx.example", "agent-B", attached_by="admin")
 
+    # attached_at deterministisch setzen — SQLite-strftime hat nur 1s-Auflösung,
+    # ein sleep wäre unzuverlässig. agent-B bewusst FRÜHER als agent-A, obwohl
+    # agent-A zuerst attached wurde — so prüft der Assert die ORDER BY echt.
+    with db() as conn:
+        conn.execute(
+            "UPDATE teamchat_room_agents SET attached_at = ? WHERE room_id = ? AND agent_id = ?",
+            ("2026-01-01T00:00:00Z", "!r4:mx.example", "agent-B"),
+        )
+        conn.execute(
+            "UPDATE teamchat_room_agents SET attached_at = ? WHERE room_id = ? AND agent_id = ?",
+            ("2026-01-01T00:00:01Z", "!r4:mx.example", "agent-A"),
+        )
+
     agents = teamchat.list_room_agents("!r4:mx.example")
-    assert len(agents) == 2
-    attached_ats = [a["attached_at"] for a in agents]
-    assert attached_ats == sorted(attached_ats)
+    assert [a["agent_id"] for a in agents] == ["agent-B", "agent-A"]
 
 
 def test_list_room_agents_leerer_raum():
