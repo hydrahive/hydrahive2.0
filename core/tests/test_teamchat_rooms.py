@@ -319,6 +319,53 @@ async def test_invite_member_success(setup_test_env):
     invitee_client.close.assert_awaited_once()
 
 
+# ---------------------------------------------------------------------------
+# kick_member — Mitglied entfernen (5a)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_kick_member_success(setup_test_env, monkeypatch):
+    """kick_member: room_kick auf die aus server_name gebaute Target-MXID
+    (KEIN ensure_identity(target) → kein Geister-Account)."""
+    import nio
+    monkeypatch.setenv("HH_MATRIX_SERVER_NAME", "test.local")
+    kicker = _make_tokens("@admin:test.local")
+    client = MagicMock()
+    client.room_kick = AsyncMock(return_value=MagicMock(spec=nio.RoomKickResponse))
+    client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=kicker)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+    ):
+        from hydrahive.teamchat.rooms import kick_member
+        await kick_member("!room:test.local", "admin", "bibi")
+
+    client.room_kick.assert_awaited_once_with("!room:test.local", "@bibi:test.local")
+    client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_kick_member_error_raises(setup_test_env, monkeypatch):
+    """room_kick-Fehler → RoomError, Client trotzdem geschlossen."""
+    import nio
+    monkeypatch.setenv("HH_MATRIX_SERVER_NAME", "test.local")
+    kicker = _make_tokens("@admin:test.local")
+    client = MagicMock()
+    client.room_kick = AsyncMock(return_value=MagicMock(spec=nio.RoomKickError))
+    client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=kicker)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+    ):
+        from hydrahive.teamchat.rooms import kick_member, RoomError
+        with pytest.raises(RoomError):
+            await kick_member("!room:test.local", "admin", "bibi")
+
+    client.close.assert_awaited_once()
+
+
 @pytest.mark.asyncio
 async def test_invite_member_error_raises_room_error(setup_test_env):
     """RoomInviteError → RoomError, close() trotzdem aufgerufen."""

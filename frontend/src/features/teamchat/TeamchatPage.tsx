@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { Loader2, MessagesSquare } from "lucide-react"
 import { Link } from "react-router-dom"
 import { HydraMascot } from "@/shared/HydraMascot"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { rgbFor } from "@/shared/colors"
 import { useTeamchat } from "./useTeamchat"
 import { RoomList } from "./_RoomList"
@@ -12,6 +13,8 @@ export function TeamchatPage() {
   const { t } = useTranslation("teamchat")
   const tc = useTeamchat()
   const accent = rgbFor("/teamchat")
+  const me = useAuthStore((s) => s.username)
+  const role = useAuthStore((s) => s.role)
 
   if (tc.loading) {
     return (
@@ -45,6 +48,7 @@ export function TeamchatPage() {
   }
 
   const currentRoom = tc.rooms.find((r) => r.room_id === tc.currentRoomId) ?? null
+  const canManage = !!currentRoom && (currentRoom.created_by === me || role === "admin")
 
   return (
     <div className="flex items-stretch h-full gap-4 px-4 py-4 overflow-hidden">
@@ -55,8 +59,12 @@ export function TeamchatPage() {
           currentRoomId={tc.currentRoomId}
           members={tc.members}
           agents={tc.roomAgents}
+          me={me}
+          canManage={canManage}
           onSelect={tc.selectRoom}
           onCreateRoom={tc.createRoom}
+          onAddMember={tc.addMember}
+          onRemoveMember={tc.removeMember}
         />
       </aside>
 

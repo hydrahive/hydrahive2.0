@@ -83,6 +83,18 @@ export function useTeamchat() {
     setCurrentRoomId(room_id)
   }, [])
 
+  const addMember = useCallback(async (userId: string) => {
+    if (!currentRoomId) return
+    await teamchatApi.inviteMember(currentRoomId, userId)
+    refreshRoomContext(currentRoomId)
+  }, [currentRoomId, refreshRoomContext])
+
+  const removeMember = useCallback(async (userId: string) => {
+    if (!currentRoomId) return
+    await teamchatApi.kickMember(currentRoomId, userId)
+    refreshRoomContext(currentRoomId)
+  }, [currentRoomId, refreshRoomContext])
+
   const attachAgent = useCallback(async (agentId: string) => {
     if (!currentRoomId) return
     await teamchatApi.attachAgent(currentRoomId, agentId)
@@ -98,6 +110,6 @@ export function useTeamchat() {
   return {
     rooms, currentRoomId, messages, members, roomAgents, ownAgents,
     loading, notConfigured, error,
-    selectRoom, send, createRoom, attachAgent, detachAgent,
+    selectRoom, send, createRoom, attachAgent, detachAgent, addMember, removeMember,
   }
 }

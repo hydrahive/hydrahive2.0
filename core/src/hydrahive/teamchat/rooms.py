@@ -89,8 +89,8 @@ async def create_room(
             join_resp = await inv_client.join(room_id)
             if not isinstance(join_resp, nio.JoinResponse):
                 logger.warning(
-                    "create_room: auto-join failed for %s in %s: %r",
-                    tokens.user_id, room_id, join_resp,
+                    "create_room: auto-join failed for %s in %s: %s",
+                    tokens.user_id, room_id, type(join_resp).__name__,
                 )
         finally:
             await inv_client.close()
@@ -137,7 +137,7 @@ async def invite_member(
     try:
         join_resp = await invitee_client.join(room_id)
         if not isinstance(join_resp, nio.JoinResponse):
-            raise RoomError(f"join failed for {invitee.user_id} in {room_id}: {join_resp!r}")
+            raise RoomError(f"join failed for {invitee.user_id} in {room_id} ({type(join_resp).__name__})")
     finally:
         await invitee_client.close()
 
@@ -145,6 +145,35 @@ async def invite_member(
         "invite_member: room=%s inviter=%s invitee=%s",
         room_id, inviter_user_id, invitee_user_id,
     )
+
+
+async def kick_member(room_id: str, kicker_user_id: str, target_user_id: str) -> None:
+    """Entfernt *target_user_id* aus *room_id* (Matrix room_kick).
+
+    Wird als *kicker_user_id* ausgeführt — der braucht das Power-Level dafür
+    (der Raum-Ersteller hat es). Authz (wer darf kicken) liegt in der Route.
+    """
+    from hydrahive.settings import settings
+
+    kicker = await ensure_identity(kicker_user_id)
+    # Ziel-MXID direkt aus server_name bauen — NICHT ensure_identity(target):
+    # Kicken darf keinen Matrix-Account provisionieren (ein Tippfehler würde sonst
+    # einen Geister-Account anlegen). Ist das Ziel kein Mitglied, scheitert der
+    # Kick harmlos.
+    target_mxid = f"@{target_user_id}:{settings.matrix_server_name}"
+
+    client = build_client(
+        settings.matrix_homeserver_url,
+        kicker.user_id, kicker.access_token, kicker.device_id,
+    )
+    try:
+        resp = await client.room_kick(room_id, target_mxid)
+        if not isinstance(resp, nio.RoomKickResponse):
+            # Kein volles repr der nio-Response (Header/Token-Hygiene).
+            raise RoomError(f"room_kick fehlgeschlagen ({type(resp).__name__})")
+    finally:
+        await client.close()
+    logger.info("kick_member: room=%s kicker=%s target=%s", room_id, kicker_user_id, target_user_id)
 
 
 async def list_members(room_id: str, requester_user_id: str) -> list[str]:

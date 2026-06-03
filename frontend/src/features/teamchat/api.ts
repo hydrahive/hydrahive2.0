@@ -25,6 +25,8 @@ export const teamchatApi = {
   getMembers: (roomId: string) => api.get<string[]>(roomPath(roomId, "/members")),
   inviteMember: (roomId: string, userId: string) =>
     api.post<void>(roomPath(roomId, "/members"), { user_id: userId }),
+  kickMember: (roomId: string, userId: string) =>
+    api.delete<void>(roomPath(roomId, `/members/${encodeURIComponent(userId)}`)),
 
   getRoomAgents: (roomId: string) => api.get<RoomAgent[]>(roomPath(roomId, "/agents")),
   attachAgent: (roomId: string, agentId: string) =>

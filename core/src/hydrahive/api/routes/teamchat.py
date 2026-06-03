@@ -16,6 +16,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from hydrahive.agents import config as agent_config
+from hydrahive.api.middleware import users as hh_users
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.db import teamchat as db_teamchat
 from hydrahive.teamchat import agent_bridge, agent_membership, messages, rooms
@@ -91,6 +92,27 @@ def _require_agent_owner(agent_id: str, user_id: str, role: str) -> dict:
     if role != "admin" and cfg.get("owner") != user_id:
         raise HTTPException(status_code=403, detail="not_your_agent")
     return cfg
+
+
+def _require_room_manager(room_id: str, user_id: str, role: str) -> dict:
+    """404 wenn Raum unbekannt, 403 wenn User weder Ersteller noch Admin ist.
+
+    Mitglieder hinzufügen/entfernen darf nur, wer den Raum erstellt hat (er hat
+    auch das Matrix-Power-Level) — oder ein Admin.
+    """
+    room = db_teamchat.get_room(room_id)
+    if room is None:
+        raise HTTPException(status_code=404, detail="room_not_found")
+    if role != "admin" and room.get("created_by") != user_id:
+        raise HTTPException(status_code=403, detail="not_room_manager")
+    return room
+
+
+def _require_known_user(user_id: str) -> None:
+    """404 wenn der User kein registrierter HH-User ist — verhindert, dass ein
+    Tippfehler beim Einladen einen Geister-Matrix-Account provisioniert."""
+    if not any(u.get("username") == user_id for u in hh_users.list_users()):
+        raise HTTPException(status_code=404, detail="user_not_found")
 
 
 # ---------------------------------------------------------------------------
@@ -178,9 +200,35 @@ async def post_members(
     body: InviteMemberBody,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
-    user_id = auth[0]
+    user_id, role = auth
+    room = _require_room_manager(room_id, user_id, role)
+    _require_known_user(body.user_id)
     try:
-        await rooms.invite_member(room_id, user_id, body.user_id)
+        # Als Raum-Ersteller einladen — er hat das Matrix-Power-Level (greift auch
+        # wenn ein Admin einlädt, der den Raum nicht erstellt hat).
+        await rooms.invite_member(room_id, room["created_by"], body.user_id)
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router.delete(
+    "/rooms/{room_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[_TC],
+)
+async def delete_member(
+    room_id: str,
+    user_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    requester, role = auth
+    room = _require_room_manager(room_id, requester, role)
+    if user_id == room["created_by"]:
+        # Den Ersteller zu kicken würde den Raum unbedienbar machen (Power-Level weg).
+        raise HTTPException(status_code=422, detail="cannot_remove_room_owner")
+    try:
+        # Kick als Ersteller ausführen (Power-Level), nicht als Requester.
+        await rooms.kick_member(room_id, room["created_by"], user_id)
     except RoomError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 

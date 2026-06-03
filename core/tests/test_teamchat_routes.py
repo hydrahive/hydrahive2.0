@@ -319,11 +319,16 @@ def test_get_members_returns_list(client_enabled):
 # ---------------------------------------------------------------------------
 
 def test_post_members_invites_user(client_enabled):
+    """Ersteller (till) darf einen bekannten User einladen — Invite läuft als Ersteller."""
     room_id = "!chat:matrix.local"
-    with patch(
-        "hydrahive.api.routes.teamchat.rooms.invite_member",
-        new=AsyncMock(return_value=None),
-    ) as mock_invite:
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "created_by": "till"}),
+        patch("hydrahive.api.routes.teamchat.hh_users.list_users",
+              return_value=[{"username": "charlie"}]),
+        patch("hydrahive.api.routes.teamchat.rooms.invite_member",
+              new=AsyncMock(return_value=None)) as mock_invite,
+    ):
         resp = client_enabled.post(
             f"/api/teamchat/rooms/{room_id}/members",
             json={"user_id": "charlie"},
@@ -333,13 +338,54 @@ def test_post_members_invites_user(client_enabled):
     mock_invite.assert_awaited_once_with(room_id, "till", "charlie")
 
 
+def test_post_members_unknown_user_404(client_enabled):
+    """Einladen eines nicht-registrierten Users → 404 (kein Geister-Account)."""
+    room_id = "!chat:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "created_by": "till"}),
+        patch("hydrahive.api.routes.teamchat.hh_users.list_users",
+              return_value=[{"username": "till"}]),
+        patch("hydrahive.api.routes.teamchat.rooms.invite_member",
+              new=AsyncMock()) as mock_invite,
+    ):
+        resp = client_enabled.post(
+            f"/api/teamchat/rooms/{room_id}/members",
+            json={"user_id": "ghost"},
+        )
+
+    assert resp.status_code == 404
+    mock_invite.assert_not_awaited()
+
+
+def test_post_members_not_manager_403(client_enabled):
+    """Nicht-Ersteller/Nicht-Admin darf NICHT einladen."""
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"created_by": "someone_else"}),
+        patch("hydrahive.api.routes.teamchat.rooms.invite_member",
+              new=AsyncMock()) as mock_invite,
+    ):
+        resp = client_enabled.post(
+            "/api/teamchat/rooms/!chat:matrix.local/members",
+            json={"user_id": "charlie"},
+        )
+
+    assert resp.status_code == 403
+    mock_invite.assert_not_awaited()
+
+
 def test_post_members_room_error_returns_502(client_enabled):
     from hydrahive.teamchat.rooms import RoomError
     room_id = "!chat:matrix.local"
 
-    with patch(
-        "hydrahive.api.routes.teamchat.rooms.invite_member",
-        new=AsyncMock(side_effect=RoomError("invite failed")),
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "created_by": "till"}),
+        patch("hydrahive.api.routes.teamchat.hh_users.list_users",
+              return_value=[{"username": "charlie"}]),
+        patch("hydrahive.api.routes.teamchat.rooms.invite_member",
+              new=AsyncMock(side_effect=RoomError("invite failed"))),
     ):
         resp = client_enabled.post(
             f"/api/teamchat/rooms/{room_id}/members",
@@ -347,6 +393,58 @@ def test_post_members_room_error_returns_502(client_enabled):
         )
 
     assert resp.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# DELETE /rooms/{room_id}/members/{user_id} — Mitglied entfernen (5a)
+# ---------------------------------------------------------------------------
+
+def test_delete_member_kicks_when_manager(client_enabled):
+    room_id = "!chat:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "created_by": "till"}),
+        patch("hydrahive.api.routes.teamchat.rooms.kick_member",
+              new=AsyncMock()) as mock_kick,
+    ):
+        resp = client_enabled.delete(f"/api/teamchat/rooms/{room_id}/members/bibi")
+
+    assert resp.status_code == 204
+    mock_kick.assert_awaited_once_with(room_id, "till", "bibi")
+
+
+def test_delete_member_not_manager_403(client_enabled):
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"created_by": "someone_else"}),
+        patch("hydrahive.api.routes.teamchat.rooms.kick_member",
+              new=AsyncMock()) as mock_kick,
+    ):
+        resp = client_enabled.delete("/api/teamchat/rooms/!chat:matrix.local/members/bibi")
+
+    assert resp.status_code == 403
+    mock_kick.assert_not_awaited()
+
+
+def test_delete_member_room_not_found_404(client_enabled):
+    with patch("hydrahive.api.routes.teamchat.db_teamchat.get_room", return_value=None):
+        resp = client_enabled.delete("/api/teamchat/rooms/!chat:matrix.local/members/bibi")
+    assert resp.status_code == 404
+
+
+def test_delete_member_cannot_remove_owner_422(client_enabled):
+    """Den Raum-Ersteller zu kicken ist verboten (würde den Raum unbedienbar machen)."""
+    room_id = "!chat:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "created_by": "till"}),
+        patch("hydrahive.api.routes.teamchat.rooms.kick_member",
+              new=AsyncMock()) as mock_kick,
+    ):
+        resp = client_enabled.delete(f"/api/teamchat/rooms/{room_id}/members/till")
+
+    assert resp.status_code == 422
+    mock_kick.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
