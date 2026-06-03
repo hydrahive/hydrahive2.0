@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, status
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.projects import config as project_config
 from hydrahive.api.routes._sessions_helpers import (
     SessionCreate,
     SessionUpdate,
@@ -79,7 +80,25 @@ def update_session(
     # reasoning_effort getrennt — unter metadata, read-modify-write
     if req.reasoning_effort is not None:
         sessions_db.set_reasoning_effort(session_id, req.reasoning_effort or None)
+    # project_id getrennt — eigene Spalte; bestimmt das Run-Arbeitsverzeichnis.
+    if req.project_id is not None:
+        pid = req.project_id or None
+        if pid is not None:
+            _assert_project_access(pid, *auth)
+        sessions_db.set_project(session_id, pid)
     return serialize_session(sessions_db.get(session_id))
+
+
+def _assert_project_access(project_id: str, username: str, role: str) -> None:
+    """Verhindert, dass eine Session an ein fremdes Projekt geheftet wird."""
+    proj = project_config.get(project_id)
+    if not proj:
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+    members = set(proj.get("members", []))
+    if proj.get("created_by"):
+        members.add(proj["created_by"])
+    if role != "admin" and username not in members:
+        raise coded(status.HTTP_403_FORBIDDEN, "project_no_access")
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)

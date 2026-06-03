@@ -5,6 +5,7 @@ export interface BuddyState {
   session_id: string
   agent_name: string
   model: string
+  project_id: string | null
   created: boolean
 }
 

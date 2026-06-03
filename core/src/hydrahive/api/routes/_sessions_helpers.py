@@ -21,6 +21,9 @@ class SessionUpdate(BaseModel):
     # Pro-Session Reasoning-Effort-Override für Anthropic Extended Thinking.
     # "low" | "medium" | "high" | None (= aus)
     reasoning_effort: str | None = None
+    # Aktives Projekt der Session → bestimmt das Arbeitsverzeichnis des Runs.
+    # Leer-String hängt die Session vom Projekt ab. None = unverändert lassen.
+    project_id: str | None = None
 
 
 def check_owner(session, username: str, role: str) -> None:

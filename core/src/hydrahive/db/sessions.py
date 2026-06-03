@@ -175,6 +175,19 @@ def set_reasoning_effort(session_id: str, effort: str | None) -> None:
         mirror.schedule_session(s)
 
 
+def set_project(session_id: str, project_id: str | None) -> None:
+    """Setzt session.project_id (Spalte). None hängt die Session von jedem Projekt ab.
+    Bestimmt das Arbeitsverzeichnis des Runs — siehe runner._run_workspace."""
+    with db() as conn:
+        conn.execute(
+            "UPDATE sessions SET project_id = ?, updated_at = ? WHERE id = ?",
+            (project_id, now_iso(), session_id),
+        )
+    s = get(session_id)
+    if s:
+        mirror.schedule_session(s)
+
+
 def touch(session_id: str) -> None:
     with db() as conn:
         conn.execute("UPDATE sessions SET updated_at = ? WHERE id = ?", (now_iso(), session_id))

@@ -10,8 +10,9 @@ import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
 import { HydraMascot } from "@/shared/HydraMascot"
 import { useHydraRuntime } from "@/features/chat/_assistantRuntime"
 import { ModelPicker } from "@/features/chat/ModelPicker"
+import { ProjectPicker } from "@/features/chat/ProjectPicker"
 import { ReasoningEffortPill, type EffortLevel } from "@/features/chat/ReasoningEffortPill"
-import { chatApi } from "@/features/chat/api"
+import { chatApi, type ProjectBrief } from "@/features/chat/api"
 import { modelSupportsExtendedEffort, useEffortPrefixes } from "@/features/llm/effort"
 import type { Message } from "@/features/chat/types"
 import { BuddyThread } from "./_BuddyThread"
@@ -31,6 +32,8 @@ export function BuddyPage() {
   const [error, setError] = useState<string | null>(null)
   const [reasoningEffort, setReasoningEffort] = useState<EffortLevel | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
+  const [projects, setProjects] = useState<ProjectBrief[]>([])
+  const [projectBusy, setProjectBusy] = useState(false)
   const initRef = useRef(false)
   const chat = useChat(state?.session_id ?? null)
   const tts = useVoiceOutput()
@@ -51,6 +54,20 @@ export function BuddyPage() {
     if (state?.session_id) chat.reload()
   }, [state?.session_id, chat.reload])
 
+  useEffect(() => {
+    chatApi.listProjects().then(setProjects).catch(() => {})
+  }, [])
+
+  async function handleProjectPick(pid: string | null) {
+    if (!state?.session_id) return
+    setProjectBusy(true)
+    try {
+      await chatApi.updateSession(state.session_id, { project_id: pid ?? "" })
+      setState(await buddyApi.state())
+    } finally {
+      setProjectBusy(false)
+    }
+  }
 
   function appendLocal(role: "user" | "assistant", text: string) {
     setLocalMsgs((prev) => [
@@ -128,18 +145,27 @@ export function BuddyPage() {
             )}
             <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3 bg-black/30">
               <HydraMascot state={mascotState} size={30} animate={chat.busy || tts.speaking} />
-              <p className="text-sm font-medium text-zinc-100 truncate">{state.agent_name}</p>
+              <p className="text-sm font-medium text-zinc-100 truncate shrink">{state.agent_name}</p>
+              <ProjectPicker
+                current={state.project_id}
+                projects={projects}
+                onPick={handleProjectPick}
+                busy={projectBusy}
+              />
               {state.model && (
-                <ModelPicker
-                  current={state.model}
-                  hint="Buddy-Modell wechseln"
-                  onPick={async (m) => {
-                    await buddyApi.setModel(m)
-                    const fresh = await buddyApi.state()
-                    setReasoningEffort(null)
-                    setState(fresh)
-                  }}
-                />
+                <div className="max-w-[9rem] min-w-0 shrink">
+                  <ModelPicker
+                    current={state.model}
+                    hint="Buddy-Modell wechseln"
+                    fullWidth
+                    onPick={async (m) => {
+                      await buddyApi.setModel(m)
+                      const fresh = await buddyApi.state()
+                      setReasoningEffort(null)
+                      setState(fresh)
+                    }}
+                  />
+                </div>
               )}
               {state.model && (
                 /^(claude-|anthropic\/claude-|MiniMax-M2)/.test(state.model) && (

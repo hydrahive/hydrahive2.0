@@ -81,8 +81,14 @@ def _get_or_create_session(agent_id: str, username: str) -> str:
     return s.id
 
 
+def _session_project_id(session_id: str) -> str | None:
+    from hydrahive.db import sessions as sessions_db
+    s = sessions_db.get(session_id)
+    return s.project_id if s else None
+
+
 def get_or_create_buddy(username: str) -> dict:
-    """Returns {agent_id, session_id, agent_name, model, created}.
+    """Returns {agent_id, session_id, agent_name, model, project_id, created}.
     Erstellt Buddy bei Bedarf — Master-Agent mit Soul-Prompt + Lifetime-Session.
 
     Charakter wird hier deterministisch gewürfelt (Python random.choice)
@@ -101,6 +107,7 @@ def get_or_create_buddy(username: str) -> dict:
             "session_id": sid,
             "agent_name": existing["name"],
             "model": existing["llm_model"],
+            "project_id": _session_project_id(sid),
             "created": False,
         }
     cfg = load_config()
@@ -135,6 +142,7 @@ def get_or_create_buddy(username: str) -> dict:
         "session_id": sid,
         "agent_name": agent["name"],
         "model": model,
+        "project_id": _session_project_id(sid),
         "created": True,
     }
 

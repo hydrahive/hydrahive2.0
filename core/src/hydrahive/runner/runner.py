@@ -12,7 +12,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_MAX_ITERATIONS,
     DEFAULT_MAX_TOKENS,
 )
-from hydrahive.agents._paths import ensure_workspace
+from hydrahive.runner._run_workspace import resolve_run_context
 from hydrahive.compaction import compact_session, should_compact
 from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import errors_log
@@ -78,22 +78,30 @@ async def run(
     if agent.get("status") != "active":
         yield Error(f"Agent '{agent['name']}' ist deaktiviert"); return
 
-    workspace = ensure_workspace(agent)
+    workspace, active_project_id = resolve_run_context(session, agent, tool_config)
     ctx = ToolContext(session_id=session_id, agent_id=agent["id"], user_id=session.user_id,
                      workspace=workspace, config=tool_config or {},
-                     project_id=(tool_config or {}).get("project_id"))
+                     project_id=active_project_id)
 
     # Session-Lifecycle: start
     _first_prompt = user_input if isinstance(user_input, str) else None
     session_start(
         agent["id"], session_id,
-        project=(tool_config or {}).get("project_id"),
+        project=active_project_id,
         model=agent.get("llm_model"),
         first_prompt=_first_prompt,
     )
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])
     base_system_prompt = with_emote_hint(base_system_prompt, is_buddy=bool(agent.get("is_buddy")))
+    if active_project_id:
+        from hydrahive.projects import config as project_config
+        _proj = project_config.get(active_project_id)
+        if _proj:
+            base_system_prompt = (
+                f"{base_system_prompt}\n\nAktives Projekt: {_proj['name']}. "
+                "Dein Arbeitsverzeichnis ist dieses Projekt-Repo — arbeite hier, nicht woanders."
+            )
 
     local_tools: list[str] = agent.get("tools", [])
     mcp_servers: list[str] = agent.get("mcp_servers", [])
