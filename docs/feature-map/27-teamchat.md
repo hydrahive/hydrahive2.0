@@ -13,9 +13,9 @@
 > Design-Dok: `docs/superpowers/specs/2026-06-03-teamchat-schicht1-design.md` ·
 > Plan: `docs/superpowers/plans/2026-06-03-teamchat-schicht1.md`.
 > Status (2026-06-03): **Schicht 1 komplett** (Etappe 1–3 Fundament/Bridge/Räume+API+SSE,
-> 4a Agent-Bridge, 4b Frontend) **+ Etappe 5a Mitglieder-Verwaltung + 5b Raum umbenennen/löschen** — alles auf
-> `main`, live verifiziert auf Testserver `192.168.3.23`. Offen: 5c privat/offen pro Raum, 5d Presence.
-> (Detail-Refresh dieser Sektion für 5b's rename/delete folgt am Etappe-5-Ende.)
+> 4a Agent-Bridge, 4b Frontend) **+ Etappe 5 komplett** (5a Mitglieder-Verwaltung, 5b Raum umbenennen/löschen,
+> 5c privat/offen pro Raum + entdecken/beitreten, 5d Presence) — alles auf `main`, live verifiziert auf
+> Testserver `192.168.3.23`. Offen: Schicht 2/3 (Föderation).
 >
 > **3 Schichten** (Regel #2): 1 = Intra-Instanz (eigene User + lokaler Agent) ← *hier*,
 > 2 = Föderation Cross-Node/Tailscale, 3 = fremde Agenten cross-node.
@@ -125,10 +125,24 @@
 - Verkabelung: Route `/teamchat` (`App.tsx`), NavItem Gruppe „working" + Icon `MessagesSquare` (`nav-config.ts`),
   Farbe `cyan` (`colors.ts`), i18n-Namespace `teamchat` de+en (`i18n/index.ts` + `locales/{de,en}/teamchat.json`).
 
+### Etappe 5 — Raum-/Mitglied-Verwaltung + Presence
+- **5a Mitglieder:** `rooms.kick_member` (Ziel-MXID aus server_name → kein Geister-Account), `DELETE /rooms/{id}/members/{user}`,
+  Authz `_require_room_manager` (Ersteller/Admin) auf add+remove, `_require_known_user` (Einladen nur echter HH-User),
+  Op läuft als Ersteller (Power-Level), Ersteller nicht kickbar (422). Frontend: Member-Panel „+ Mitglied"/Entfernen.
+- **5b Umbenennen/Löschen:** `db.update_room_name`/`delete_room`, `rooms.rename_room` (DB=Truth + Matrix-Name best-effort)
+  /`delete_room` (Ersteller leave + DB weg, Matrix-Hülle verwaist), `PATCH`/`DELETE /rooms/{id}` (manager-gated).
+  Frontend: Raum-Hover umbenennen(inline)/löschen(confirm).
+- **5c Privat/Offen:** Migration `026_teamchat_visibility.sql` (`visibility`, Default private). `create_room(visibility)`
+  (public_chat-preset für offen), `rooms.join_room` + `list_open_rooms`, `GET /rooms/open` + `POST /rooms/{id}/join`
+  (404/403-Gate nur offene). Frontend: Sichtbarkeits-Umschalter, Lock/Globe-Icon, `_DiscoverRooms.tsx`.
+- **5d Presence:** `teamchat/presence.py` (Refcount pro User, HH-native, KEIN Matrix-Sync), `stream_room` connect/disconnect
+  (connect IM Generator), `GET /presence`. Frontend: 15s-Poll, grün/grau-Punkt. **Caveat:** online sofort, offline ~20s
+  (Server merkt toten Client erst beim nächsten Keepalive-Sendeversuch — selbst-heilend, kein Dauer-Leak).
+
 ### Tests + Smoke
-- `core/tests/test_teamchat_{settings,db,client,identity,loop_guard,rooms,messages,broadcaster,routes,agent_bridge,agent_membership}.py`
-  (~170 teamchat-Tests, TDD, Netzwerk gemockt). `scripts/smoke_teamchat.py` — E2E gegen echten tuwunel
-  (Schritte 1–7 Mensch-Kette + 8–10 Bot join/leave).
+- `core/tests/test_teamchat_{settings,db,client,identity,loop_guard,rooms,messages,broadcaster,routes,agent_bridge,agent_membership,presence}.py`
+  (~195 teamchat-Tests, TDD, Netzwerk gemockt). `scripts/smoke_teamchat.py` — E2E gegen echten tuwunel
+  (Schritte 1–7 Mensch-Kette + 8–10 Bot join/leave). Etappe 5 live verifiziert auf .23 (HTTP-API-E2E, nicht im Smoke).
 
 ---
 
@@ -205,8 +219,9 @@ is_group=True))` → Runner (Agent-eigenes `llm_model`) → egress-`scrub` → B
 ---
 
 ## Offene Enden
-- **Etappe 5c** privat/offen pro Raum (Migration `visibility` + browse/join), **5d** Presence (geplant HH-native:
-  online = aktive SSE-Verbindung) — noch nicht gebaut. (5a Mitglieder + 5b umbenennen/löschen sind fertig.)
+- **Etappe 5 komplett** (5a–5d, s.o.) — nichts mehr offen in Schicht 1.
+- **Presence-Offline-Lag ~20s** (5d): Server merkt toten Client erst beim nächsten Keepalive-Send; snappier via
+  kürzeres Keepalive-Intervall oder proaktive Disconnect-Erkennung (bewusst nicht in v1).
 - **Leere/fehlgeschlagene Agent-Antwort ist still** — kein sichtbarer Hinweis im Raum (UX-Politur offen).
 - **Kein Emote-Picker** im teamchat-Eingabefeld (Rendering geht, Einfügen nur per Tippen `:hydra-name:`).
 - **Formales `m.mentions`** (primäres Anrede-Signal laut Design) wird vom Frontend (noch) nicht produziert;
