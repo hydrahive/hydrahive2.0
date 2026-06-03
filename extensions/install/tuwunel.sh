@@ -182,6 +182,20 @@ if [ ! -f "$HH_TOKEN_FILE" ] || [ ! -s "$HH_TOKEN_FILE" ]; then
 else
   info "registration_token-Datei bereits vorhanden — nicht überschrieben"
 fi
+
+# ── matrix/-Config dem HydraHive-Service-User übereignen ─────────────────────
+# Das Backend läuft non-root (Default 'hydrahive') und muss server_name +
+# registration_token (chmod 600) lesen. Ohne chown bleibt der Token root-owned
+# und der Service liest ihn NICHT → ensure_identity scheitert. Service-User aus
+# der laufenden Unit ableiten, Fallback 'hydrahive'.
+HH_SERVICE_USER=$(systemctl show hydrahive2.service -p User --value 2>/dev/null || true)
+[ -z "$HH_SERVICE_USER" ] && HH_SERVICE_USER="hydrahive"
+if id "$HH_SERVICE_USER" &>/dev/null; then
+  chown -R "$HH_SERVICE_USER:$HH_SERVICE_USER" "$HH_MATRIX_DIR"
+  success "matrix-Config gehört $HH_SERVICE_USER (Backend kann server_name + Token lesen)"
+else
+  warn "Service-User '$HH_SERVICE_USER' existiert nicht — matrix-Config bleibt root-owned; Backend kann den Token evtl. nicht lesen"
+fi
 # Token bewusst NICHT in den Install-Log echoen (der streamt ins Admin-UI) —
 # er liegt sicher in $HH_TOKEN_FILE (chmod 600). Secret gehört nicht in Logs.
 
