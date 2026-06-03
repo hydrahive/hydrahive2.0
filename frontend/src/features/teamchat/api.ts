@@ -27,6 +27,7 @@ export const teamchatApi = {
   sendMessage: (roomId: string, text: string) =>
     api.post<TeamMessage>(roomPath(roomId, "/messages"), { text }),
 
+  getPresence: () => api.get<{ online: string[] }>("/teamchat/presence"),
   getMembers: (roomId: string) => api.get<string[]>(roomPath(roomId, "/members")),
   inviteMember: (roomId: string, userId: string) =>
     api.post<void>(roomPath(roomId, "/members"), { user_id: userId }),

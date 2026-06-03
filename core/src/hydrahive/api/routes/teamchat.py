@@ -22,6 +22,7 @@ from hydrahive.db import teamchat as db_teamchat
 from hydrahive.teamchat import agent_bridge, agent_membership, messages, rooms
 from hydrahive.teamchat.agent_membership import AgentMembershipError
 from hydrahive.teamchat.broadcaster import room_broadcaster
+from hydrahive.teamchat.presence import presence
 from hydrahive.teamchat.messages import MessageError
 from hydrahive.teamchat.rooms import RoomError
 
@@ -329,6 +330,10 @@ async def stream_room(
     queue = room_broadcaster.subscribe(room_id)
 
     async def _events():
+        # connect IM Generator (nicht im Handler-Body): paart sich garantiert mit
+        # disconnect im finally — sonst bliebe der User „online" hängen, wenn der
+        # Client abbricht bevor der Generator überhaupt startet.
+        presence.connect(user_id)
         try:
             yield ": connected\n\n"
             while True:
@@ -339,6 +344,7 @@ async def stream_room(
                     yield ": keepalive\n\n"
         finally:
             room_broadcaster.unsubscribe(room_id, queue)
+            presence.disconnect(user_id)
 
     return StreamingResponse(
         _events(),
@@ -349,6 +355,14 @@ async def stream_room(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/presence", dependencies=[_TC])
+async def get_presence(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Wer ist gerade online (hat eine offene teamchat-SSE-Verbindung)."""
+    return {"online": sorted(presence.online_users())}
 
 
 # ---------------------------------------------------------------------------

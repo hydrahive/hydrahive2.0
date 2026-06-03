@@ -10,6 +10,7 @@ interface RoomListProps {
   currentRoomId: string | null
   members: string[]
   agents: RoomAgent[]
+  online: string[]
   me: string | null
   isAdmin: boolean
   canManage: boolean
@@ -22,7 +23,7 @@ interface RoomListProps {
 }
 
 export function RoomList(props: RoomListProps) {
-  const { accent, rooms, currentRoomId, members, agents, me, isAdmin, canManage } = props
+  const { accent, rooms, currentRoomId, members, agents, online, me, isAdmin, canManage } = props
   const { onSelect, onCreateRoom, onRenameRoom, onDeleteRoom, onAddMember, onRemoveMember } = props
   const { t } = useTranslation("teamchat")
   const [adding, setAdding] = useState(false)
@@ -239,10 +240,16 @@ export function RoomList(props: RoomListProps) {
           )}
           {humans.map((mxid) => {
             const username = mxidToName(mxid).name
+            const isOnline = online.includes(username)
             return (
               <div key={mxid} className="flex items-center gap-2 py-1 group">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
-                <span className="text-xs text-zinc-300 flex-1 truncate">{username}</span>
+                <span
+                  title={isOnline ? t("online") : t("offline")}
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isOnline ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" : "bg-zinc-600"
+                  }`}
+                />
+                <span className={`text-xs flex-1 truncate ${isOnline ? "text-zinc-300" : "text-zinc-500"}`}>{username}</span>
                 {canManage && username !== me && (
                   <button
                     onClick={() => onRemoveMember(username)}

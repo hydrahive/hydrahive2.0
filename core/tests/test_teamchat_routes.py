@@ -809,3 +809,34 @@ def test_stream_route_is_registered_and_wired(client_enabled):
     route = routes[room_stream_path]
     # GET-Methode muss vorhanden sein
     assert "GET" in getattr(route, "methods", set())
+
+
+# ---------------------------------------------------------------------------
+# Presence (5d) — GET /presence + Stream registriert Verbindung
+# ---------------------------------------------------------------------------
+
+def test_get_presence_returns_online_users(client_enabled):
+    with patch("hydrahive.api.routes.teamchat.presence.online_users",
+               return_value={"till", "bibi"}):
+        resp = client_enabled.get("/api/teamchat/presence")
+
+    assert resp.status_code == 200
+    assert resp.json() == {"online": ["bibi", "till"]}
+
+
+def test_stream_registers_presence(client_enabled):
+    """Öffnen eines Streams meldet den User als online (presence.connect)."""
+    room_id = "!open:matrix.local"
+    mock_queue = MagicMock()
+    mock_queue.get = AsyncMock(side_effect=Exception("stop"))
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.room_broadcaster") as mock_bc,
+        patch("hydrahive.api.routes.teamchat.presence.connect") as mock_connect,
+    ):
+        mock_bc.subscribe.return_value = mock_queue
+        try:
+            client_enabled.get(f"/api/teamchat/rooms/{room_id}/stream", timeout=1)
+        except Exception:
+            pass
+        mock_connect.assert_called_once_with("till")

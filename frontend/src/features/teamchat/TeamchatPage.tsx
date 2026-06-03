@@ -60,6 +60,7 @@ export function TeamchatPage() {
           currentRoomId={tc.currentRoomId}
           members={tc.members}
           agents={tc.roomAgents}
+          online={tc.online}
           me={me}
           isAdmin={role === "admin"}
           canManage={canManage}

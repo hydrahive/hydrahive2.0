@@ -7,6 +7,7 @@ import type { RoomAgent, RoomVisibility, TeamMessage, TeamRoom } from "./types"
 export function useTeamchat() {
   const [rooms, setRooms] = useState<TeamRoom[]>([])
   const [openRooms, setOpenRooms] = useState<TeamRoom[]>([])
+  const [online, setOnline] = useState<string[]>([])
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null)
   const [messages, setMessages] = useState<TeamMessage[]>([])
   const [members, setMembers] = useState<string[]>([])
@@ -38,6 +39,17 @@ export function useTeamchat() {
 
   const refreshOpenRooms = useCallback(() => {
     teamchatApi.listOpenRooms().then(setOpenRooms).catch(() => setOpenRooms([]))
+  }, [])
+
+  // Presence: alle 15s pollen, wer eine offene teamchat-Verbindung hat.
+  useEffect(() => {
+    let alive = true
+    const load = () => teamchatApi.getPresence()
+      .then((r) => { if (alive) setOnline(r.online) })
+      .catch(() => {})
+    load()
+    const id = setInterval(load, 15000)
+    return () => { alive = false; clearInterval(id) }
   }, [])
 
   const refreshRoomContext = useCallback((roomId: string) => {
@@ -139,7 +151,7 @@ export function useTeamchat() {
   }, [currentRoomId, refreshRoomContext])
 
   return {
-    rooms, openRooms, currentRoomId, messages, members, roomAgents, ownAgents,
+    rooms, openRooms, online, currentRoomId, messages, members, roomAgents, ownAgents,
     loading, notConfigured, error,
     selectRoom, send, createRoom, renameRoom, deleteRoom, joinRoom,
     attachAgent, detachAgent, addMember, removeMember,
