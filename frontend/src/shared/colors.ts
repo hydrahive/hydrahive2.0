@@ -18,6 +18,7 @@ export const DOMAIN_COLORS: Record<string, DomainColor> = {
   "/agents": "violet",
   "/projects": "amber",
   "/communication": "lime",
+  "/teamchat": "cyan",
   "/butler": "rose",
   "/vms": "teal",
   "/containers": "sky",

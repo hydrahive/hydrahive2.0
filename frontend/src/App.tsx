@@ -19,6 +19,7 @@ import { ProfilePage } from "@/features/profile/ProfilePage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
 import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
+import { TeamchatPage } from "@/features/teamchat/TeamchatPage"
 import { VMsPage } from "@/features/vms/VMsPage"
 import { ContainersPage } from "@/features/containers/ContainersPage"
 import { ContainerDetailPage } from "@/features/containers/ContainerDetailPage"
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="communication" element={<CommunicationPage />} />
+          <Route path="teamchat" element={<TeamchatPage />} />
           <Route path="vms" element={<VMsPage />} />
           <Route path="containers" element={<ContainersPage />} />
           <Route path="containers/:id" element={<ContainerDetailPage />} />
