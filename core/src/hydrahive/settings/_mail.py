@@ -36,19 +36,21 @@ class _MailMixin:
 
     @cached_property
     def mail_imap_host(self) -> str:
-        return os.environ.get("HH_MAIL_IMAP_HOST", "").strip()
+        # Gleicher Host wie SMTP (ein Postfach), sofern nicht explizit überschrieben.
+        return env_or_override("mail_imap_host", "HH_MAIL_IMAP_HOST", "").strip() or self.mail_smtp_host
 
     @cached_property
     def mail_imap_port(self) -> int:
-        return int(os.environ.get("HH_MAIL_IMAP_PORT", "993"))
+        return int(env_or_override("mail_imap_port", "HH_MAIL_IMAP_PORT", "993"))
 
     @cached_property
     def mail_imap_user(self) -> str:
-        return os.environ.get("HH_MAIL_IMAP_USER", "").strip()
+        # Gleicher Login wie SMTP, sofern nicht explizit überschrieben.
+        return os.environ.get("HH_MAIL_IMAP_USER", "").strip() or self.mail_smtp_user
 
     @cached_property
     def mail_imap_password(self) -> str:
-        return os.environ.get("HH_MAIL_IMAP_PASSWORD", "")
+        return os.environ.get("HH_MAIL_IMAP_PASSWORD", "") or self.mail_smtp_password
 
     @cached_property
     def mail_imap_folder(self) -> str:

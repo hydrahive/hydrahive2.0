@@ -8,8 +8,9 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
 _DESCRIPTION = (
-    "Sendet eine E-Mail. Konfiguration über `smtp` in der Tool-Config "
-    "(host, port, user, password, from, use_tls). Ohne Config: Stub mit Hinweis."
+    "Sendet eine E-Mail. Nutzt standardmäßig die globalen Mail-Settings "
+    "(System → Einstellungen → Mail). Eine agent-eigene `smtp`-Tool-Config "
+    "(host, port, user, password, from, use_tls) überschreibt diese optional."
 )
 
 _SCHEMA = {
@@ -22,6 +23,31 @@ _SCHEMA = {
     },
     "required": ["to", "subject", "body"],
 }
+
+
+def _settings_smtp() -> dict:
+    """SMTP-Config aus den globalen Mail-Settings — dieselbe Quelle wie der Watcher."""
+    from hydrahive.settings import settings
+    return {
+        "host": settings.mail_smtp_host,
+        "port": settings.mail_smtp_port,
+        "user": settings.mail_smtp_user,
+        "password": settings.mail_smtp_password,
+        "from": settings.mail_from,
+        "use_tls": settings.mail_smtp_use_tls,
+    }
+
+
+def _resolve_smtp_cfg(tool_config: dict) -> dict:
+    """Per-Agent-`smtp`-Override gewinnt, sonst globale Settings (Single Source).
+
+    Ein Override zählt nur als gültig, wenn er host UND from trägt — eine halb
+    gefüllte Tool-Config fällt sauber auf die globalen Settings zurück.
+    """
+    override = tool_config.get("smtp") or {}
+    if override.get("host") and override.get("from"):
+        return override
+    return _settings_smtp()
 
 
 def _send_sync(cfg: dict, msg: EmailMessage) -> None:
@@ -42,10 +68,11 @@ def _send_sync(cfg: dict, msg: EmailMessage) -> None:
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
-    cfg = ctx.config.get("smtp") or {}
+    cfg = _resolve_smtp_cfg(ctx.config)
     if not cfg.get("host") or not cfg.get("from"):
         return ToolResult.fail(
-            "SMTP nicht konfiguriert (smtp.host und smtp.from fehlen) — send_mail ist aktuell ein Stub."
+            "SMTP nicht konfiguriert (Mail-Settings unter System → Einstellungen → Mail "
+            "ausfüllen, oder agent-eigene smtp-Tool-Config setzen) — send_mail ist aktuell ein Stub."
         )
 
     to = (args.get("to") or "").strip()

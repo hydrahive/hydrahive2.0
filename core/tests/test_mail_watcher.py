@@ -173,3 +173,45 @@ def test_process_no_reply_when_agent_silent(monkeypatch):
 
     asyncio.run(watcher._process(_msg(), {"smtp_from": "bot@myhive.de"}))
     assert sent["called"] is False
+
+
+# ---------------------------------------------------- IMAP leitet sich aus SMTP ab
+# Single-Account: ein Eintrag (SMTP) konfiguriert Senden UND Empfangen, weil
+# IMAP-Host/-Login beim selben Postfach identisch sind (nur Port unterscheidet sich).
+
+def _fresh_settings(monkeypatch, tmp_path, **env):
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    for k in ("HH_MAIL_IMAP_HOST", "HH_MAIL_IMAP_USER", "HH_MAIL_IMAP_PASSWORD",
+              "HH_MAIL_IMAP_PORT", "HH_MAIL_SMTP_HOST", "HH_MAIL_SMTP_USER",
+              "HH_MAIL_SMTP_PASSWORD"):
+        monkeypatch.delenv(k, raising=False)
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    from hydrahive.settings.settings import Settings
+    return Settings()
+
+
+def test_imap_host_defaults_to_smtp_host(monkeypatch, tmp_path):
+    s = _fresh_settings(monkeypatch, tmp_path, HH_MAIL_SMTP_HOST="mail.example.biz")
+    assert s.mail_imap_host == "mail.example.biz"
+
+
+def test_imap_credentials_derive_from_smtp(monkeypatch, tmp_path):
+    s = _fresh_settings(monkeypatch, tmp_path,
+                        HH_MAIL_SMTP_HOST="mail.example.biz",
+                        HH_MAIL_SMTP_USER="alex@example.biz",
+                        HH_MAIL_SMTP_PASSWORD="secret")
+    assert s.mail_imap_user == "alex@example.biz"
+    assert s.mail_imap_password == "secret"
+
+
+def test_imap_host_explicit_override_wins(monkeypatch, tmp_path):
+    s = _fresh_settings(monkeypatch, tmp_path,
+                        HH_MAIL_SMTP_HOST="mail.example.biz",
+                        HH_MAIL_IMAP_HOST="imap.other.biz")
+    assert s.mail_imap_host == "imap.other.biz"
+
+
+def test_imap_port_default_993(monkeypatch, tmp_path):
+    s = _fresh_settings(monkeypatch, tmp_path, HH_MAIL_SMTP_HOST="mail.example.biz")
+    assert s.mail_imap_port == 993
