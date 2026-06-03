@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Agent, AgentCreate, AgentDefaults, AgentTemplate, ToolMeta } from "./types"
+import type { Agent, AgentCreate, AgentDefaults, AgentTemplate, AgentToolConfig, ToolMeta } from "./types"
 import type { CatalogModel } from "@/features/llm/api"
 
 export const agentsApi = {
@@ -22,6 +22,11 @@ export const agentsApi = {
   listTools: () => api.get<ToolMeta[]>("/agents/_meta/tools"),
   getDefaults: () => api.get<AgentDefaults>("/agents/_meta/defaults"),
   listTemplates: () => api.get<AgentTemplate[]>("/agents/_meta/templates"),
+}
+
+/** Effektive globale Mail-Config — Platzhalter fürs per-Buddy-Postfach (ohne Passwort). */
+export const mailDefaultsApi = {
+  get: () => api.get<AgentToolConfig>("/system/mail-defaults"),
 }
 
 export interface LlmProviderInfo {

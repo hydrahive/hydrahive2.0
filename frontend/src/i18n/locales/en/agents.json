@@ -65,7 +65,8 @@
     "password_placeholder": "Enter password",
     "password_keep": "•••••••• (set — leave empty to keep)",
     "imap_host_ph": "empty = same as SMTP host",
-    "imap_login_ph": "empty = same as SMTP login"
+    "imap_login_ph": "empty = same as SMTP login",
+    "global_suffix": " (global)"
   },
   "soul": {
     "description": "Identity, behavior and background of the agent as Markdown files.",

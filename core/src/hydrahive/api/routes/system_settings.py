@@ -10,9 +10,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
-from hydrahive.api.middleware.auth import require_admin
+from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.settings import overrides
+from hydrahive.settings import overrides, settings
 from hydrahive.settings.editable import BY_KEY, EDITABLE_SETTINGS
 
 router = APIRouter(prefix="/api/system", tags=["system"])
@@ -37,6 +37,25 @@ def _serialize(key: str) -> dict:
 @router.get("/settings", dependencies=[Depends(require_admin)])
 def get_settings() -> dict:
     return {"settings": [_serialize(s.key) for s in EDITABLE_SETTINGS]}
+
+
+@router.get("/mail-defaults", dependencies=[Depends(require_auth)])
+def get_mail_defaults() -> dict:
+    """Effektive globale Mail-Config als Platzhalter fürs per-Buddy-Postfach.
+    IMAP-Host/-Login sind aus SMTP abgeleitet (settings.mail_imap_*). Ohne Passwort."""
+    return {
+        "smtp": {
+            "host": settings.mail_smtp_host,
+            "port": settings.mail_smtp_port,
+            "user": settings.mail_smtp_user,
+            "from": settings.mail_from,
+        },
+        "imap": {
+            "host": settings.mail_imap_host,
+            "port": settings.mail_imap_port,
+            "user": settings.mail_imap_user,
+        },
+    }
 
 
 class SettingUpdate(BaseModel):

@@ -65,7 +65,8 @@
     "password_placeholder": "Passwort eingeben",
     "password_keep": "•••••••• (gesetzt — leer lassen = behalten)",
     "imap_host_ph": "leer = wie SMTP-Host",
-    "imap_login_ph": "leer = wie SMTP-Login"
+    "imap_login_ph": "leer = wie SMTP-Login",
+    "global_suffix": " (global)"
   },
   "soul": {
     "description": "Identität, Verhalten und Hintergrund des Agents als Markdown-Dateien.",
