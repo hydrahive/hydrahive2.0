@@ -5,7 +5,7 @@ import shutil
 import uuid
 from typing import Any
 
-from hydrahive.agents import _prompt, _validation
+from hydrahive.agents import _prompt, _tool_config, _validation
 from hydrahive.agents._config_utils import (
     get, list_all, list_by_owner, normalize, save_atomic,
 )
@@ -95,6 +95,10 @@ def update(agent_id: str, **changes: Any) -> dict:
         _validation.validate_max_tokens(changes["max_tokens"])
     if "status" in changes:
         _validation.validate_status(changes["status"])
+    if "tool_config" in changes:
+        _validation.validate_tool_config(changes["tool_config"])
+        changes["tool_config"] = _tool_config.merge_secrets(
+            cfg.get("tool_config"), changes["tool_config"])
 
     _validation.normalize_compact_changes(changes)
 

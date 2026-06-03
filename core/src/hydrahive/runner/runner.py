@@ -12,7 +12,9 @@ from hydrahive.agents._defaults import (
     DEFAULT_MAX_ITERATIONS,
     DEFAULT_MAX_TOKENS,
 )
-from hydrahive.runner._run_workspace import project_layout_hint, resolve_run_context
+from hydrahive.runner._run_workspace import (
+    effective_tool_config, project_layout_hint, resolve_run_context,
+)
 from hydrahive.compaction import compact_session, should_compact
 from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import errors_log
@@ -80,7 +82,7 @@ async def run(
 
     workspace, active_project_id = resolve_run_context(session, agent, tool_config)
     ctx = ToolContext(session_id=session_id, agent_id=agent["id"], user_id=session.user_id,
-                     workspace=workspace, config=tool_config or {},
+                     workspace=workspace, config=effective_tool_config(agent, tool_config),
                      project_id=active_project_id)
 
     # Session-Lifecycle: start

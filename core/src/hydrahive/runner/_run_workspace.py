@@ -28,6 +28,13 @@ def resolve_run_context(session, agent: dict, tool_config: dict | None = None) -
     return _agent_workspace(agent), (tool_config or {}).get("project_id")
 
 
+def effective_tool_config(agent: dict, tool_config: dict | None) -> dict:
+    """ctx.config für den Run: persistente Agent-tool_config als Basis, der
+    per-Run-tool_config (z.B. Agent-zu-Agent) überschreibt. So feuern die
+    smtp/imap-Overrides in send_mail/read_mail aus der Agent-Config (Schicht 2)."""
+    return {**(agent.get("tool_config") or {}), **(tool_config or {})}
+
+
 def project_layout_hint(workspace: Path, project: dict) -> str:
     """Beschreibt die Projekt-Struktur fürs System-Prompt — wo die Repos liegen,
     welche Assets daneben. Der cwd ist der Projekt-Root; Repos sind Unterordner

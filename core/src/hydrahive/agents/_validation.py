@@ -86,6 +86,43 @@ def validate_fallback_models(models: list[str]) -> None:
         validate_model(m)
 
 
+_TOOL_CONFIG_BLOCKS = {
+    "smtp": {"host", "port", "user", "password", "from", "use_tls"},
+    "imap": {"host", "port", "user", "password"},
+}
+
+
+def validate_tool_config(tc: object) -> None:
+    """Per-Agent tool_config: aktuell nur smtp/imap-Postfach-Overrides.
+
+    Strikt — unbekannte Schlüssel werden abgelehnt (fail fast), damit kein
+    Tippfehler still ins Leere läuft."""
+    if not isinstance(tc, dict):
+        raise AgentValidationError("tool_config muss ein Objekt sein")
+    unknown = set(tc) - set(_TOOL_CONFIG_BLOCKS)
+    if unknown:
+        raise AgentValidationError(
+            f"tool_config: unbekannte Schlüssel {sorted(unknown)} "
+            f"(erlaubt: {sorted(_TOOL_CONFIG_BLOCKS)})"
+        )
+    for block, allowed in _TOOL_CONFIG_BLOCKS.items():
+        if block not in tc:
+            continue
+        b = tc[block]
+        if not isinstance(b, dict):
+            raise AgentValidationError(f"tool_config.{block} muss ein Objekt sein")
+        unk = set(b) - allowed
+        if unk:
+            raise AgentValidationError(
+                f"tool_config.{block}: unbekannte Schlüssel {sorted(unk)}"
+            )
+        if "port" in b:
+            try:
+                int(b["port"])
+            except (TypeError, ValueError):
+                raise AgentValidationError(f"tool_config.{block}.port muss eine Zahl sein")
+
+
 def validate_temperature(temp: float) -> None:
     if not isinstance(temp, (int, float)):
         raise AgentValidationError("temperature muss eine Zahl sein")

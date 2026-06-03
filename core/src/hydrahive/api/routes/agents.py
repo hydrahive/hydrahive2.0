@@ -8,6 +8,7 @@ from fastapi import APIRouter, Body, Depends, status
 
 from hydrahive.api.middleware.errors import coded
 from hydrahive.agents import AgentValidationError, config as agent_config
+from hydrahive.agents import _tool_config
 from hydrahive.agents._defaults import DEFAULT_TOOLS
 from hydrahive.agents._prompt import (
     SOUL_COMPONENTS, get_soul_components, save_soul_component,
@@ -26,6 +27,14 @@ router = APIRouter(prefix="/api/agents", tags=["agents"])
 
 
 _check_access = check_agent_access
+
+
+def _public(agent: dict) -> dict:
+    """Agent für die API: per-Agent tool_config-Secrets maskiert ausliefern."""
+    tc = agent.get("tool_config")
+    if not tc:
+        return agent
+    return {**agent, "tool_config": _tool_config.mask(tc)}
 
 
 @router.get("/_meta/tools")
@@ -60,9 +69,8 @@ def list_defaults(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
 @router.get("")
 def list_agents(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     username, role = auth
-    if role == "admin":
-        return agent_config.list_all()
-    return agent_config.list_by_owner(username)
+    agents = agent_config.list_all() if role == "admin" else agent_config.list_by_owner(username)
+    return [_public(a) for a in agents]
 
 
 @router.get("/{agent_id}")
@@ -75,7 +83,7 @@ def get_agent(
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     _check_access(agent, *auth)
     from hydrahive.agents._paths import workspace_for
-    return {**agent, "workspace": str(workspace_for(agent))}
+    return {**_public(agent), "workspace": str(workspace_for(agent))}
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -85,7 +93,7 @@ def create_agent(
 ) -> dict:
     creator, _ = auth
     try:
-        return agent_config.create(
+        return _public(agent_config.create(
             agent_type=req.type,
             name=req.name,
             llm_model=req.llm_model,
@@ -102,7 +110,7 @@ def create_agent(
             domain=req.domain,
             system_prompt=req.system_prompt,
             external=req.external,
-        )
+        ))
     except AgentValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
@@ -114,9 +122,9 @@ def update_agent(agent_id: str, req: AgentUpdate) -> dict:
         agent = agent_config.get(agent_id)
         if not agent:
             raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
-        return agent
+        return _public(agent)
     try:
-        return agent_config.update(agent_id, **changes)
+        return _public(agent_config.update(agent_id, **changes))
     except KeyError:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     except AgentValidationError as e:
