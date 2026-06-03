@@ -62,6 +62,7 @@
 | `33-scratchpad.md` | Scratchpad | User-Notizen + Agent-Zone. Zwei-Zonen-Modell. |
 | `34-webmin.md` | Webmin | Server-Monitoring via XML-RPC. CPU, RAM, Disk, SMART. |
 | `35-system-hooks.md` | System-Hooks | Event-Hooks + APScheduler. Background-Tasks. |
+| `29-teamchat.md` | Team-Chat | Mehr-Parteien-Chat über Matrix/tuwunel-Bridge. Freie Räume, Mitglieder, Agent-Zuschaltung (@Anrede), SSE-Echtzeit. *(nachgetragen 2026-06-03)* |
 
 ---
 
