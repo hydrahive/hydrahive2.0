@@ -102,8 +102,23 @@ fi
 mkdir -p "$TUWUNEL_DIR" "$TUWUNEL_CONFIG_DIR"
 chown -R "$TUWUNEL_USER:$TUWUNEL_USER" "$TUWUNEL_DIR"
 
-# ── Hostname ermitteln ───────────────────────────────────────────────────────
-SERVER_NAME=$(hostname -f 2>/dev/null || hostname)
+# ── server_name bestimmen ────────────────────────────────────────────────────
+# Matrix-server_name ist nach Account-Erstellung praktisch UNVERÄNDERLICH (Teil
+# aller IDs @user:NAME). Darum bewusst wählbar:
+#   1. HH_MATRIX_SERVER_NAME (Install-Param) — explizite Wahl, z.B. eine Domain
+#   2. bestehende ${HH_MATRIX_DIR}/server_name — ein einmal gesetzter Name überlebt Re-Installs
+#   3. hostname -f — Fallback
+HH_SERVER_NAME_FILE="${HH_MATRIX_DIR}/server_name"
+if [ -n "${HH_MATRIX_SERVER_NAME:-}" ]; then
+  SERVER_NAME="$HH_MATRIX_SERVER_NAME"
+  info "server_name aus Install-Param: $SERVER_NAME"
+elif [ -f "$HH_SERVER_NAME_FILE" ] && [ -s "$HH_SERVER_NAME_FILE" ]; then
+  SERVER_NAME=$(cat "$HH_SERVER_NAME_FILE")
+  info "server_name aus $HH_SERVER_NAME_FILE übernommen: $SERVER_NAME"
+else
+  SERVER_NAME=$(hostname -f 2>/dev/null || hostname)
+  info "server_name aus hostname (Fallback): $SERVER_NAME"
+fi
 
 # ── Registration-Token: vorhandenen behalten (Idempotenz) ───────────────────
 # Neu generieren nur wenn kein gültiger Token existiert (kein Re-Install soll bestehende

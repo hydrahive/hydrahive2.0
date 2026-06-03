@@ -10,5 +10,14 @@
   "health_url": "http://127.0.0.1:6167/_matrix/client/versions",
   "open_url": null,
   "installed_check": "/usr/local/bin/tuwunel",
-  "install_params": []
+  "install_params": [
+    {
+      "key": "HH_MATRIX_SERVER_NAME",
+      "label": "Matrix server_name (Domain)",
+      "type": "text",
+      "placeholder": "z.B. masternode.hydrahive.org — leer = Hostname",
+      "required": false,
+      "description": "Feste Identität des Homeservers (Teil aller IDs @user:NAME). Nach dem ersten echten Account praktisch unveränderlich — bewusst wählen, idealerweise eine Domain für spätere Föderation. Leer lassen = Linux-Hostname."
+    }
+  ]
 }
