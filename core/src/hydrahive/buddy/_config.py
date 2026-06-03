@@ -1,6 +1,7 @@
 """Buddy-Konfiguration lesen und schreiben (für die Settings-Page)."""
 from __future__ import annotations
 
+from hydrahive.agents import _tool_config
 from hydrahive.agents import config as agent_config
 from hydrahive.buddy._characters import pick_character as _pick_character
 from hydrahive.plugins import tool_bridge as plugin_bridge
@@ -34,6 +35,7 @@ def get_config(username: str) -> dict:
         "language": memory.read_key(bid, "_pref_language") or "de",
         "tone": memory.read_key(bid, "_pref_tone") or "locker",
         "context": memory.read_key(bid, "_pref_context") or "",
+        "tool_config": _tool_config.mask(buddy.get("tool_config")),
     }
 
 
@@ -57,6 +59,10 @@ def patch_config(username: str, changes: dict) -> dict:
     for field in ("compact_threshold_pct", "compact_model", "tool_result_max_chars"):
         if field in changes:
             agent_updates[field] = changes[field]
+
+    if "tool_config" in changes:
+        # agent_config.update validiert + merged Secrets (leeres Passwort = behalten).
+        agent_updates["tool_config"] = changes["tool_config"]
 
     if "language" in changes:
         memory.write_key(bid, "_pref_language", changes["language"])

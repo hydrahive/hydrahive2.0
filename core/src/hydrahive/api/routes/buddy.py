@@ -135,6 +135,7 @@ class BuddyConfigPatch(BaseModel):
     language: str | None = Field(default=None, pattern="^(de|en|auto)$")
     tone: str | None = Field(default=None, pattern="^(locker|professionell|knapp)$")
     context: str | None = Field(default=None, max_length=8000)
+    tool_config: dict | None = None
 
 
 @router.patch("/config")

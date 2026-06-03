@@ -7,9 +7,10 @@ import { llmInfoApi } from "@/features/agents/api"
 import { BuddySettingsIdentity } from "./_BuddySettingsIdentity"
 import { BuddySettingsContext } from "./_BuddySettingsContext"
 import { BuddySettingsTools } from "./_BuddySettingsTools"
+import { BuddySettingsMail } from "./_BuddySettingsMail"
 import { BuddySettingsCompaction } from "./_BuddySettingsCompaction"
 
-type TabId = "identity" | "context" | "tools" | "compaction"
+type TabId = "identity" | "context" | "tools" | "mail" | "compaction"
 
 export function BuddySettingsPage() {
   const { t } = useTranslation("buddy")
@@ -22,10 +23,12 @@ export function BuddySettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const hasMail = !!config?.tools?.some((tool) => tool === "send_mail" || tool === "read_mail")
   const TABS: { id: TabId; label: string }[] = [
     { id: "identity", label: t("settings.tab_identity") },
     { id: "context", label: t("settings.tab_context") },
     { id: "tools", label: t("settings.tab_tools") },
+    ...(hasMail ? [{ id: "mail" as const, label: t("settings.tab_mail") }] : []),
     { id: "compaction", label: t("settings.tab_compaction") },
   ]
 
@@ -133,6 +136,9 @@ export function BuddySettingsPage() {
               )}
               {activeTab === "tools" && (
                 <BuddySettingsTools config={config} draft={draft} onChange={applyDraft} />
+              )}
+              {activeTab === "mail" && hasMail && (
+                <BuddySettingsMail config={config} draft={draft} onChange={applyDraft} />
               )}
               {activeTab === "compaction" && (
                 <BuddySettingsCompaction

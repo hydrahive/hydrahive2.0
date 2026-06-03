@@ -67,3 +67,21 @@ def test_remember_text_stores_note(setup_test_env):
     assert result["key"] == "farbe"
     stored = memory.read_key(info["agent_id"], "farbe")
     assert stored == "Lieblingsfarbe: blau"
+
+
+def test_buddy_config_mail_roundtrip(setup_test_env):
+    """Per-Buddy-Postfach: patch persistiert roh am Agent, get liefert maskiert."""
+    from hydrahive.buddy import get_or_create_buddy
+    from hydrahive.buddy import _config as buddy_config
+
+    get_or_create_buddy("testuser")
+    buddy_config.patch_config("testuser", {"tool_config": {
+        "smtp": {"host": "w0.kas", "from": "a@b", "user": "u", "password": "longsecret123"}}})
+
+    cfg = buddy_config.get_config("testuser")
+    assert cfg["tool_config"]["smtp"]["host"] == "w0.kas"
+    assert cfg["tool_config"]["smtp"]["password"] == ""          # API maskiert
+    assert cfg["tool_config"]["smtp"]["password_set"] is True
+    # roh am Agent gespeichert
+    raw = buddy_config._find_buddy("testuser")["tool_config"]["smtp"]["password"]
+    assert raw == "longsecret123"

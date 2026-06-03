@@ -1,4 +1,5 @@
 import { api } from "@/shared/api-client"
+import type { AgentToolConfig } from "@/features/agents/types"
 
 export interface BuddyState {
   agent_id: string
@@ -27,6 +28,7 @@ export interface BuddyConfig {
   language: "de" | "en" | "auto"
   tone: "locker" | "professionell" | "knapp"
   context: string
+  tool_config?: AgentToolConfig
 }
 
 export interface BuddyConfigPatch {
@@ -38,6 +40,7 @@ export interface BuddyConfigPatch {
   language?: "de" | "en" | "auto"
   tone?: "locker" | "professionell" | "knapp"
   context?: string
+  tool_config?: AgentToolConfig
 }
 
 export interface PatchResult { ok: boolean; new_session_id: string | null }
