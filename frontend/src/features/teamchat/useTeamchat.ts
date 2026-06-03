@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react"
 import { agentsApi } from "@/features/agents/api"
 import type { Agent } from "@/features/agents/types"
 import { streamRoom, teamchatApi } from "./api"
-import type { RoomAgent, TeamMessage, TeamRoom } from "./types"
+import type { RoomAgent, RoomVisibility, TeamMessage, TeamRoom } from "./types"
 
 export function useTeamchat() {
   const [rooms, setRooms] = useState<TeamRoom[]>([])
+  const [openRooms, setOpenRooms] = useState<TeamRoom[]>([])
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null)
   const [messages, setMessages] = useState<TeamMessage[]>([])
   const [members, setMembers] = useState<string[]>([])
@@ -31,7 +32,12 @@ export function useTeamchat() {
       })
       .finally(() => { if (alive) setLoading(false) })
     agentsApi.list().then((a) => { if (alive) setOwnAgents(a) }).catch(() => {})
+    teamchatApi.listOpenRooms().then((o) => { if (alive) setOpenRooms(o) }).catch(() => {})
     return () => { alive = false }
+  }, [])
+
+  const refreshOpenRooms = useCallback(() => {
+    teamchatApi.listOpenRooms().then(setOpenRooms).catch(() => setOpenRooms([]))
   }, [])
 
   const refreshRoomContext = useCallback((roomId: string) => {
@@ -76,12 +82,19 @@ export function useTeamchat() {
     await teamchatApi.sendMessage(currentRoomId, text)
   }, [currentRoomId])
 
-  const createRoom = useCallback(async (name: string, memberCsv: string) => {
+  const createRoom = useCallback(async (name: string, memberCsv: string, visibility: RoomVisibility = "private") => {
     const members = memberCsv.split(",").map((s) => s.trim()).filter(Boolean)
-    const { room_id } = await teamchatApi.createRoom(name, members)
+    const { room_id } = await teamchatApi.createRoom(name, members, visibility)
     setRooms(await teamchatApi.listRooms())
     setCurrentRoomId(room_id)
   }, [])
+
+  const joinRoom = useCallback(async (roomId: string) => {
+    await teamchatApi.joinRoom(roomId)
+    setRooms(await teamchatApi.listRooms())
+    setCurrentRoomId(roomId)
+    refreshOpenRooms()
+  }, [refreshOpenRooms])
 
   const renameRoom = useCallback(async (roomId: string, name: string) => {
     await teamchatApi.renameRoom(roomId, name)
@@ -126,8 +139,9 @@ export function useTeamchat() {
   }, [currentRoomId, refreshRoomContext])
 
   return {
-    rooms, currentRoomId, messages, members, roomAgents, ownAgents,
+    rooms, openRooms, currentRoomId, messages, members, roomAgents, ownAgents,
     loading, notConfigured, error,
-    selectRoom, send, createRoom, renameRoom, deleteRoom, attachAgent, detachAgent, addMember, removeMember,
+    selectRoom, send, createRoom, renameRoom, deleteRoom, joinRoom,
+    attachAgent, detachAgent, addMember, removeMember,
   }
 }

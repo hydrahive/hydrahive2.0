@@ -6,6 +6,7 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { rgbFor } from "@/shared/colors"
 import { useTeamchat } from "./useTeamchat"
 import { RoomList } from "./_RoomList"
+import { DiscoverRooms } from "./_DiscoverRooms"
 import { ChatView } from "./_ChatView"
 import { AgentPanel } from "./_AgentPanel"
 
@@ -69,6 +70,7 @@ export function TeamchatPage() {
           onAddMember={tc.addMember}
           onRemoveMember={tc.removeMember}
         />
+        <DiscoverRooms accent={accent} openRooms={tc.openRooms} onJoinRoom={tc.joinRoom} />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">

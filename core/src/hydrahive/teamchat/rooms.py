@@ -29,14 +29,13 @@ async def create_room(
     creator_user_id: str,
     name: str,
     invite_user_ids: list[str],
+    visibility: str = "private",
 ) -> str:
     """Create a Matrix room and persist it in the DB.
 
-    1. Ensure Matrix identity for creator and all invitees.
-    2. Create room via nio with preset=private_chat (sends invites).
-    3. Store room in DB.
-    4. Auto-join each invitee using their own token (invite alone ≠ member).
-    5. Return Matrix room_id.
+    visibility="open" → preset public_chat (jeder lokale User kann beitreten),
+    sonst private_chat (invite-only). Ablauf: Identitäten sichern → room_create →
+    DB (mit visibility) → Invitees auto-joinen → room_id zurück.
     """
     # Lazy import avoids settings.data_dir freeze at collection time
     from hydrahive.settings import settings
@@ -59,18 +58,19 @@ async def create_room(
         creator.device_id,
     )
     try:
+        preset = nio.RoomPreset.public_chat if visibility == "open" else nio.RoomPreset.private_chat
         resp = await client.room_create(
             name=name,
-            preset=nio.RoomPreset.private_chat,
+            preset=preset,
             invite=invitee_mxids,
         )
         if not isinstance(resp, nio.RoomCreateResponse):
-            raise RoomError(f"room_create failed: {resp!r}")
+            raise RoomError(f"room_create failed ({type(resp).__name__})")
         room_id = resp.room_id
     finally:
         await client.close()
 
-    db_teamchat.create_room(room_id, name, creator_user_id)
+    db_teamchat.create_room(room_id, name, creator_user_id, visibility)
     logger.info(
         "create_room: room=%s name=%r creator=%s invitees=%s",
         room_id, name, creator_user_id, invitee_mxids,
@@ -294,3 +294,45 @@ async def is_member(room_id: str, user_id: str) -> bool:
         return room_id in resp.rooms
     finally:
         await client.close()
+
+
+async def join_room(room_id: str, user_id: str) -> None:
+    """Lässt *user_id* einem offenen Raum beitreten (Matrix join, public join_rule).
+
+    Für private Räume schlägt der Join in Matrix fehl — die Route lässt nur offene
+    Räume hierher (sonst 403).
+    """
+    from hydrahive.settings import settings
+
+    u = await ensure_identity(user_id)
+    client = build_client(
+        settings.matrix_homeserver_url,
+        u.user_id, u.access_token, u.device_id,
+    )
+    try:
+        resp = await client.join(room_id)
+        if not isinstance(resp, nio.JoinResponse):
+            raise RoomError(f"join fehlgeschlagen ({type(resp).__name__})")
+    finally:
+        await client.close()
+    logger.info("join_room: room=%s user=%s", room_id, user_id)
+
+
+async def list_open_rooms(user_id: str) -> list[dict]:
+    """Offene Räume, in denen *user_id* noch NICHT Mitglied ist (Entdecken-Liste)."""
+    from hydrahive.settings import settings
+
+    u = await ensure_identity(user_id)
+    client = build_client(
+        settings.matrix_homeserver_url,
+        u.user_id, u.access_token, u.device_id,
+    )
+    try:
+        resp = await client.joined_rooms()
+        if not isinstance(resp, nio.JoinedRoomsResponse):
+            raise RoomError(f"joined_rooms failed ({type(resp).__name__})")
+        joined = set(resp.rooms)
+    finally:
+        await client.close()
+
+    return [r for r in db_teamchat.list_open_rooms() if r["room_id"] not in joined]

@@ -83,10 +83,12 @@ def test_post_message_disabled_returns_409(client_disabled):
 
 def test_post_rooms_calls_create_room_and_returns_room_id(client_enabled):
     room_id = "!newroom:matrix.local"
-    with patch(
-        "hydrahive.api.routes.teamchat.rooms.create_room",
-        new=AsyncMock(return_value=room_id),
-    ) as mock_create:
+    with (
+        patch("hydrahive.api.routes.teamchat.hh_users.list_users",
+              return_value=[{"username": "alice"}, {"username": "bob"}]),
+        patch("hydrahive.api.routes.teamchat.rooms.create_room",
+              new=AsyncMock(return_value=room_id)) as mock_create,
+    ):
         resp = client_enabled.post(
             "/api/teamchat/rooms",
             json={"name": "Dev Chat", "members": ["alice", "bob"]},
@@ -94,11 +96,27 @@ def test_post_rooms_calls_create_room_and_returns_room_id(client_enabled):
 
     assert resp.status_code == 201
     assert resp.json() == {"room_id": room_id}
-    mock_create.assert_awaited_once_with("till", "Dev Chat", ["alice", "bob"])
+    mock_create.assert_awaited_once_with("till", "Dev Chat", ["alice", "bob"], "private")
+
+
+def test_post_rooms_unknown_member_404(client_enabled):
+    """Raum mit unbekanntem Member-Namen anlegen → 404, kein Raum erstellt."""
+    with (
+        patch("hydrahive.api.routes.teamchat.hh_users.list_users",
+              return_value=[{"username": "till"}]),
+        patch("hydrahive.api.routes.teamchat.rooms.create_room", new=AsyncMock()) as mock_create,
+    ):
+        resp = client_enabled.post(
+            "/api/teamchat/rooms",
+            json={"name": "Dev", "members": ["ghost"]},
+        )
+
+    assert resp.status_code == 404
+    mock_create.assert_not_awaited()
 
 
 def test_post_rooms_default_members_empty(client_enabled):
-    """Wenn 'members' fehlt, wird leere Liste übergeben."""
+    """Wenn 'members' fehlt, wird leere Liste + Default-visibility übergeben."""
     room_id = "!room2:matrix.local"
     with patch(
         "hydrahive.api.routes.teamchat.rooms.create_room",
@@ -107,7 +125,74 @@ def test_post_rooms_default_members_empty(client_enabled):
         resp = client_enabled.post("/api/teamchat/rooms", json={"name": "Solo Room"})
 
     assert resp.status_code == 201
-    mock_create.assert_awaited_once_with("till", "Solo Room", [])
+    mock_create.assert_awaited_once_with("till", "Solo Room", [], "private")
+
+
+def test_post_rooms_open_visibility(client_enabled):
+    room_id = "!open:matrix.local"
+    with patch(
+        "hydrahive.api.routes.teamchat.rooms.create_room",
+        new=AsyncMock(return_value=room_id),
+    ) as mock_create:
+        resp = client_enabled.post(
+            "/api/teamchat/rooms",
+            json={"name": "Offen", "visibility": "open"},
+        )
+
+    assert resp.status_code == 201
+    mock_create.assert_awaited_once_with("till", "Offen", [], "open")
+
+
+def test_post_rooms_invalid_visibility_422(client_enabled):
+    resp = client_enabled.post(
+        "/api/teamchat/rooms",
+        json={"name": "X", "visibility": "weird"},
+    )
+    assert resp.status_code == 422
+
+
+def test_get_open_rooms_returns_list(client_enabled):
+    fake = [{"room_id": "!o:matrix.local", "name": "Offen", "visibility": "open"}]
+    with patch(
+        "hydrahive.api.routes.teamchat.rooms.list_open_rooms",
+        new=AsyncMock(return_value=fake),
+    ) as mock_open:
+        resp = client_enabled.get("/api/teamchat/rooms/open")
+
+    assert resp.status_code == 200
+    assert resp.json() == fake
+    mock_open.assert_awaited_once_with("till")
+
+
+def test_post_join_open_room_204(client_enabled):
+    room_id = "!o:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "visibility": "open"}),
+        patch("hydrahive.api.routes.teamchat.rooms.join_room", new=AsyncMock()) as mock_join,
+    ):
+        resp = client_enabled.post(f"/api/teamchat/rooms/{room_id}/join")
+
+    assert resp.status_code == 204
+    mock_join.assert_awaited_once_with(room_id, "till")
+
+
+def test_post_join_private_room_403(client_enabled):
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": "!p:matrix.local", "visibility": "private"}),
+        patch("hydrahive.api.routes.teamchat.rooms.join_room", new=AsyncMock()) as mock_join,
+    ):
+        resp = client_enabled.post("/api/teamchat/rooms/!p:matrix.local/join")
+
+    assert resp.status_code == 403
+    mock_join.assert_not_awaited()
+
+
+def test_post_join_unknown_room_404(client_enabled):
+    with patch("hydrahive.api.routes.teamchat.db_teamchat.get_room", return_value=None):
+        resp = client_enabled.post("/api/teamchat/rooms/!x:matrix.local/join")
+    assert resp.status_code == 404
 
 
 def test_post_rooms_room_error_returns_502(client_enabled):

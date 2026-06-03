@@ -1,6 +1,6 @@
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { api } from "@/shared/api-client"
-import type { RoomAgent, TeamMessage, TeamRoom } from "./types"
+import type { RoomAgent, RoomVisibility, TeamMessage, TeamRoom } from "./types"
 
 function authHeaders(): Record<string, string> {
   const token = useAuthStore.getState().token
@@ -14,8 +14,10 @@ function roomPath(roomId: string, suffix = ""): string {
 
 export const teamchatApi = {
   listRooms: () => api.get<TeamRoom[]>("/teamchat/rooms"),
-  createRoom: (name: string, members: string[]) =>
-    api.post<{ room_id: string }>("/teamchat/rooms", { name, members }),
+  listOpenRooms: () => api.get<TeamRoom[]>("/teamchat/rooms/open"),
+  createRoom: (name: string, members: string[], visibility: RoomVisibility = "private") =>
+    api.post<{ room_id: string }>("/teamchat/rooms", { name, members, visibility }),
+  joinRoom: (roomId: string) => api.post<void>(roomPath(roomId, "/join"), {}),
   renameRoom: (roomId: string, name: string) =>
     api.patch<void>(roomPath(roomId), { name }),
   deleteRoom: (roomId: string) => api.delete<void>(roomPath(roomId)),

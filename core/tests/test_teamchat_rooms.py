@@ -830,3 +830,83 @@ async def test_invite_member_join_error_raises_room_error(setup_test_env):
             await invite_member("!room:test.local", "inviter", "guest")
 
     invitee_client.close.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# Sichtbarkeit: offen / beitreten / entdecken (5c)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_create_room_open_uses_public_preset(setup_test_env):
+    """visibility='open' → Matrix-preset public_chat + DB-visibility 'open'."""
+    import nio
+    room_id = "!open:test.local"
+    creator = _make_tokens("@creator:test.local")
+    client = _make_nio_client(room_create_resp=_make_room_create_response(room_id))
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=creator)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+        patch("hydrahive.teamchat.rooms.db_teamchat") as db_mock,
+    ):
+        from hydrahive.teamchat.rooms import create_room
+        await create_room("creator", "Offen", [], visibility="open")
+
+    assert client.room_create.await_args.kwargs.get("preset") == nio.RoomPreset.public_chat
+    db_mock.create_room.assert_called_once_with(room_id, "Offen", "creator", "open")
+
+
+@pytest.mark.asyncio
+async def test_join_room_success(setup_test_env):
+    import nio
+    joiner = _make_tokens("@bibi:test.local")
+    client = _make_nio_client(join_resp=_make_join_response())
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=joiner)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+    ):
+        from hydrahive.teamchat.rooms import join_room
+        await join_room("!open:test.local", "bibi")
+
+    client.join.assert_awaited_once_with("!open:test.local")
+    client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_join_room_error_raises(setup_test_env):
+    joiner = _make_tokens("@bibi:test.local")
+    client = _make_nio_client(join_resp=_make_join_error())
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=joiner)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+    ):
+        from hydrahive.teamchat.rooms import join_room, RoomError
+        with pytest.raises(RoomError):
+            await join_room("!open:test.local", "bibi")
+
+    client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_list_open_rooms_excludes_already_joined(setup_test_env):
+    """Entdecken zeigt offene Räume, in denen der User noch NICHT ist."""
+    user = _make_tokens("@bibi:test.local")
+    client = _make_nio_client()
+    client.joined_rooms = AsyncMock(return_value=_make_joined_rooms_response(["!already:test.local"]))
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=user)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+        patch("hydrahive.teamchat.rooms.db_teamchat") as db_mock,
+    ):
+        db_mock.list_open_rooms.return_value = [
+            {"room_id": "!already:test.local", "name": "Schon drin"},
+            {"room_id": "!new:test.local", "name": "Neu"},
+        ]
+        from hydrahive.teamchat.rooms import list_open_rooms
+        result = await list_open_rooms("bibi")
+
+    assert [r["room_id"] for r in result] == ["!new:test.local"]
+    client.close.assert_awaited_once()

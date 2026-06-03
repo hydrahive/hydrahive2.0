@@ -77,13 +77,22 @@ def get_room(room_id: str) -> dict | None:
     return _row(row) if row else None
 
 
-def create_room(room_id: str, name: str, created_by: str) -> dict:
+def create_room(room_id: str, name: str, created_by: str, visibility: str = "private") -> dict:
     with db() as conn:
         conn.execute(
-            "INSERT INTO teamchat_rooms (room_id, name, created_by) VALUES (?, ?, ?)",
-            (room_id, name, created_by),
+            "INSERT INTO teamchat_rooms (room_id, name, created_by, visibility) VALUES (?, ?, ?, ?)",
+            (room_id, name, created_by, visibility),
         )
     return get_room(room_id)  # type: ignore[return-value]
+
+
+def list_open_rooms() -> list[dict]:
+    """Alle offenen Räume (für jeden sichtbar/beitretbar), sortiert nach created_at."""
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM teamchat_rooms WHERE visibility = 'open' ORDER BY created_at"
+        ).fetchall()
+    return [_row(r) for r in rows]
 
 
 def update_room_name(room_id: str, name: str) -> None:

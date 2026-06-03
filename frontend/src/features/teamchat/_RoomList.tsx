@@ -1,8 +1,8 @@
 import { useRef, useState, type CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
-import { Hash, Pencil, Plus, Trash2, UserPlus, Users, X } from "lucide-react"
+import { Globe, Hash, Lock, Pencil, Plus, Trash2, UserPlus, Users, X } from "lucide-react"
 import { mxidToName } from "./_format"
-import type { RoomAgent, TeamRoom } from "./types"
+import type { RoomAgent, RoomVisibility, TeamRoom } from "./types"
 
 interface RoomListProps {
   accent: string
@@ -14,7 +14,7 @@ interface RoomListProps {
   isAdmin: boolean
   canManage: boolean
   onSelect: (roomId: string) => void
-  onCreateRoom: (name: string, memberCsv: string) => Promise<void>
+  onCreateRoom: (name: string, memberCsv: string, visibility: RoomVisibility) => Promise<void>
   onRenameRoom: (roomId: string, name: string) => Promise<void>
   onDeleteRoom: (roomId: string) => Promise<void>
   onAddMember: (userId: string) => Promise<void>
@@ -28,6 +28,7 @@ export function RoomList(props: RoomListProps) {
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState("")
   const [memberCsv, setMemberCsv] = useState("")
+  const [newVisibility, setNewVisibility] = useState<RoomVisibility>("private")
   const [busy, setBusy] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
   const [memberName, setMemberName] = useState("")
@@ -66,8 +67,8 @@ export function RoomList(props: RoomListProps) {
     if (!name.trim()) return
     setBusy(true)
     try {
-      await onCreateRoom(name.trim(), memberCsv)
-      setName(""); setMemberCsv(""); setAdding(false)
+      await onCreateRoom(name.trim(), memberCsv, newVisibility)
+      setName(""); setMemberCsv(""); setNewVisibility("private"); setAdding(false)
     } finally {
       setBusy(false)
     }
@@ -115,6 +116,22 @@ export function RoomList(props: RoomListProps) {
                 placeholder={t("members_csv")}
                 className="bg-white/[5%] border border-white/[8%] rounded-md px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
               />
+              <div className="flex gap-1.5">
+                {(["private", "open"] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setNewVisibility(v)}
+                    className={`flex-1 inline-flex items-center justify-center gap-1 text-[11px] px-2 py-1 rounded-md border transition-all ${
+                      newVisibility === v
+                        ? "bg-[#104E8B]/50 text-zinc-100 border-[#104E8B]/70"
+                        : "text-zinc-400 border-white/[8%] hover:bg-white/[5%]"
+                    }`}
+                  >
+                    {v === "private" ? <Lock size={11} /> : <Globe size={11} />}
+                    {t(v === "private" ? "visibility_private" : "visibility_open")}
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={create} disabled={busy || !name.trim()}
                 className="text-xs px-2 py-1 rounded-md bg-[#104E8B]/60 text-zinc-100 hover:bg-[#104E8B]/80 disabled:opacity-30 transition-all"
@@ -157,7 +174,9 @@ export function RoomList(props: RoomListProps) {
                   onClick={() => onSelect(r.room_id)}
                   className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 text-sm text-left"
                 >
-                  <Hash size={13} className="shrink-0 opacity-60" />
+                  {r.visibility === "open"
+                    ? <Globe size={13} className="shrink-0 opacity-60" />
+                    : <Lock size={13} className="shrink-0 opacity-60" />}
                   <span className="truncate">{r.name}</span>
                 </button>
                 {manageable && (

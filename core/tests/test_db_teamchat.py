@@ -188,6 +188,32 @@ def test_list_rooms_for_user_sortiert_nach_created_at():
     assert ours == ["!roomB:mx.example", "!roomA:mx.example"]
 
 
+def test_create_room_default_visibility_private():
+    from hydrahive.db import teamchat
+
+    room = teamchat.create_room("!rv:mx.example", "Default", created_by="admin")
+    assert room["visibility"] == "private"
+
+
+def test_create_room_open_visibility():
+    from hydrahive.db import teamchat
+
+    room = teamchat.create_room("!ro:mx.example", "Offen", created_by="admin", visibility="open")
+    assert room["visibility"] == "open"
+    assert teamchat.get_room("!ro:mx.example")["visibility"] == "open"
+
+
+def test_list_open_rooms_nur_offene():
+    from hydrahive.db import teamchat
+
+    teamchat.create_room("!p:mx.example", "Privat", created_by="admin")
+    teamchat.create_room("!o1:mx.example", "Offen 1", created_by="admin", visibility="open")
+    teamchat.create_room("!o2:mx.example", "Offen 2", created_by="admin", visibility="open")
+
+    ids = {r["room_id"] for r in teamchat.list_open_rooms()}
+    assert ids == {"!o1:mx.example", "!o2:mx.example"}
+
+
 def test_update_room_name():
     from hydrahive.db import teamchat
 

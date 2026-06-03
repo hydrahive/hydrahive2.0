@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -54,8 +54,9 @@ _TC = Depends(_require_teamchat)
 # ---------------------------------------------------------------------------
 
 class CreateRoomBody(BaseModel):
-    name: str
-    members: list[str] = []
+    name: str = Field(min_length=1, max_length=255)
+    members: list[str] = Field(default_factory=list, max_length=50)
+    visibility: Literal["private", "open"] = "private"
 
 
 class SendMessageBody(BaseModel):
@@ -140,11 +141,45 @@ async def post_rooms(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     user_id = auth[0]
+    # Nur echte HH-User einladen — sonst legt ein Tippfehler Geister-Accounts an.
+    for member in body.members:
+        _require_known_user(member)
     try:
-        room_id = await rooms.create_room(user_id, body.name, body.members)
+        room_id = await rooms.create_room(user_id, body.name, body.members, body.visibility)
     except RoomError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
     return {"room_id": room_id}
+
+
+@router.get("/rooms/open", dependencies=[_TC])
+async def get_open_rooms(
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> list[dict]:
+    """Offene Räume, in denen der User noch nicht ist (Entdecken-Liste)."""
+    try:
+        return await rooms.list_open_rooms(auth[0])
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router.post(
+    "/rooms/{room_id}/join",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[_TC],
+)
+async def post_join(
+    room_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    room = db_teamchat.get_room(room_id)
+    if room is None:
+        raise HTTPException(status_code=404, detail="room_not_found")
+    if room.get("visibility") != "open":
+        raise HTTPException(status_code=403, detail="room_not_open")
+    try:
+        await rooms.join_room(room_id, auth[0])
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 @router.patch(

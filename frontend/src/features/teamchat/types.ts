@@ -1,7 +1,10 @@
+export type RoomVisibility = "private" | "open"
+
 export interface TeamRoom {
   room_id: string
   name: string
   created_by: string
+  visibility: RoomVisibility
   created_at?: string
 }
 
