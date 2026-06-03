@@ -235,3 +235,20 @@ def test_send_reply_delegates_to_transport_with_port(monkeypatch):
     assert seen["cfg"]["port"] == 465          # → Transport wählt implizites SSL
     assert seen["frm"] == "bot@x"
     assert seen["to"] == "y@z"
+
+
+# ----------------------------------------- Mail-Settings sind live (kein Neustart)
+
+def test_mail_settings_reflect_override_without_restart(monkeypatch, tmp_path):
+    from hydrahive.settings import overrides
+    from hydrahive.settings.settings import Settings
+
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("HH_MAIL_SMTP_HOST", raising=False)
+    s = Settings()
+
+    overrides.set_override("mail_smtp_host", "first.host")
+    assert s.mail_smtp_host == "first.host"
+
+    overrides.set_override("mail_smtp_host", "second.host")
+    assert s.mail_smtp_host == "second.host"   # live: dieselbe Instanz sieht die Änderung
