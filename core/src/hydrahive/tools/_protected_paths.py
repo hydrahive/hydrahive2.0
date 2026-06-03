@@ -36,6 +36,18 @@ _WRAPPERS = {"sudo", "env", "nice", "nohup", "time", "doas"}
 
 _REDIRECT = re.compile(r">>?\s*([^\s;|&>]+)")
 
+# Pseudo-Geräte unter /dev sind normale Redirect-Ziele (2>/dev/null ist DAS
+# häufigste Shell-Idiom) — kein Harakiri. Echte Block-Devices (/dev/sda) bleiben
+# geschützt. Ohne diese Ausnahme würde der Schutz bei fast jedem Befehl nerven.
+_SAFE_DEV = frozenset({
+    "/dev/null", "/dev/zero", "/dev/full", "/dev/random", "/dev/urandom",
+    "/dev/stdin", "/dev/stdout", "/dev/stderr", "/dev/tty", "/dev/ptmx",
+})
+
+
+def _is_safe_dev(path: str) -> bool:
+    return path in _SAFE_DEV or path.startswith("/dev/fd/")
+
 # --- Geheimnisse (Vertraulichkeit, schmal) ---
 # Hier ist JEDER Zugriff selten und relevant — read wie write → Popup.
 _SECRET_FILES = ("/etc/shadow", "/etc/gshadow", "/etc/sudoers")
@@ -58,6 +70,8 @@ def _hit(token: str, protected: Sequence[str]) -> str | None:
     path = token.strip("'\"")
     for pre in protected:
         if path == pre or path.startswith(pre + "/"):
+            if pre == "/dev" and _is_safe_dev(path):
+                return None
             return pre
     return None
 

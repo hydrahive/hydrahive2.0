@@ -127,6 +127,28 @@ def test_does_not_flag_harmless_reads(cmd):
     assert wants_sensitive_read(cmd) is None
 
 
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "curl -s https://api.example.com/x 2>/dev/null",
+        "echo hi > /dev/null",
+        "foo >/dev/null 2>&1",
+        "command 2>/dev/null | head -c 100",
+        "echo x | tee /dev/stderr",
+        'ADDR="x"\ncurl -s "https://api.trongrid.io/v1/accounts/$ADDR" 2>/dev/null | head -c 1500\necho ok',
+    ],
+)
+def test_dev_null_and_pseudo_devices_not_flagged(cmd):
+    # 2>/dev/null & Co. sind normale Redirect-Ziele — kein Harakiri.
+    assert wants_protected_write(cmd, P) is None
+    assert shell_confirm_reason(cmd) is None
+
+
+def test_real_device_write_still_flagged():
+    # Echte Block-Devices bleiben geschützt (dd of=/dev/sda wischt eine Platte).
+    assert wants_protected_write("dd if=/dev/zero of=/dev/sda bs=1M", P) == "/dev"
+
+
 def test_shell_confirm_reason_combines_both():
     w = shell_confirm_reason("rm -rf /opt")
     assert w and "/opt" in w
