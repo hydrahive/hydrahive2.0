@@ -75,6 +75,7 @@ async def register_account(
     base_body = {
         "username": username,
         "password": password,
+        "initial_device_display_name": device_name,
         "inhibit_login": False,
     }
 
@@ -82,7 +83,11 @@ async def register_account(
         # Step 1: probe / get UIAA session
         resp1 = await http.post(register_url, json=base_body)
         d1: dict = resp1.json()
-        logger.debug("register step-1 response: status=%s body=%r", resp1.status_code, d1)
+        # Body NICHT loggen — er kann im No-UIAA-Fall einen access_token enthalten.
+        logger.debug(
+            "register step-1: status=%s has_token=%s has_session=%s",
+            resp1.status_code, "access_token" in d1, "session" in d1,
+        )
 
         if "access_token" in d1:
             # No UIAA required — homeserver accepted the request directly.
@@ -110,7 +115,11 @@ async def register_account(
         step2_body = {**base_body, "auth": auth_block}
         resp2 = await http.post(register_url, json=step2_body)
         d2: dict = resp2.json()
-        logger.debug("register step-2 response: status=%s body=%r", resp2.status_code, d2)
+        # Body NICHT loggen — er enthält bei Erfolg den access_token.
+        logger.debug(
+            "register step-2: status=%s has_token=%s",
+            resp2.status_code, "access_token" in d2,
+        )
 
         if "access_token" not in d2:
             raise RegistrationError(
@@ -177,8 +186,11 @@ def build_client(
 
 
 def _tokens_from_dict(d: dict) -> AccountTokens:
-    return AccountTokens(
-        user_id=d["user_id"],
-        access_token=d["access_token"],
-        device_id=d.get("device_id"),
-    )
+    try:
+        return AccountTokens(
+            user_id=d["user_id"],
+            access_token=d["access_token"],
+            device_id=d.get("device_id"),
+        )
+    except KeyError as e:
+        raise RegistrationError(f"Matrix-Response fehlt Pflichtfeld {e}") from e

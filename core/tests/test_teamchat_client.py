@@ -79,12 +79,15 @@ async def test_register_account_uiaa_two_step():
 
     # Second call must carry the UIAA auth block with the session
     assert mock_post.call_count == 2
-    second_call_kwargs = mock_post.call_args_list[1]
-    body = second_call_kwargs.kwargs.get("json") or second_call_kwargs.args[1]
+    body = mock_post.call_args_list[1].kwargs["json"]
     auth = body["auth"]
     assert auth["type"] == "m.login.registration_token"
     assert auth["token"] == "reg-token-123"
     assert auth["session"] == "sess-abc"
+
+    # device_name wird als initial_device_display_name gesendet (Default "hydrahive")
+    first_body = mock_post.call_args_list[0].kwargs["json"]
+    assert first_body["initial_device_display_name"] == "hydrahive"
 
 
 # ---------------------------------------------------------------------------
