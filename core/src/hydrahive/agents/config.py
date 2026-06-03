@@ -96,9 +96,12 @@ def update(agent_id: str, **changes: Any) -> dict:
     if "status" in changes:
         _validation.validate_status(changes["status"])
     if "tool_config" in changes:
-        _validation.validate_tool_config(changes["tool_config"])
-        changes["tool_config"] = _tool_config.merge_secrets(
-            cfg.get("tool_config"), changes["tool_config"])
+        # Erst mergen (strippt das API-Masking-Flag `password_set` + behält
+        # leere Passwörter), DANN validieren — sonst würde das vom Frontend
+        # zurückgeschickte `password_set` als unbekannter Key abgelehnt.
+        merged = _tool_config.merge_secrets(cfg.get("tool_config"), changes["tool_config"])
+        _validation.validate_tool_config(merged)
+        changes["tool_config"] = merged
 
     _validation.normalize_compact_changes(changes)
 

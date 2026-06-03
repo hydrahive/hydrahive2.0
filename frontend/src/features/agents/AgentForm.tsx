@@ -6,6 +6,7 @@ import { CompactionSection } from "./CompactionSection"
 import { OverviewTab } from "./_OverviewTab"
 import { ModelTab } from "./_ModelTab"
 import { ToolsTab } from "./_ToolsTab"
+import { MailTab } from "./_MailTab"
 import { SoulTab } from "./_SoulTab"
 import { SkillsTab } from "./_SkillsTab"
 import { AgentFormHeader } from "./_AgentFormHeader"
@@ -22,7 +23,7 @@ interface Props {
   onDeleted: () => void
 }
 
-type TabId = "overview" | "model" | "tools" | "skills" | "soul" | "advanced"
+type TabId = "overview" | "model" | "tools" | "mail" | "skills" | "soul" | "advanced"
 
 export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("agents")
@@ -66,10 +67,12 @@ export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }:
     onDeleted()
   }
 
+  const hasMail = draft.tools.includes("send_mail") || draft.tools.includes("read_mail")
   const tabs: { id: TabId; label: string }[] = [
     { id: "overview", label: t("tabs.overview") },
     { id: "model", label: t("tabs.model") },
     { id: "tools", label: t("tabs.tools") },
+    ...(hasMail ? [{ id: "mail" as const, label: t("tabs.mail") }] : []),
     { id: "skills", label: t("tabs.skills") },
     { id: "soul", label: t("tabs.soul") },
     { id: "advanced", label: t("tabs.advanced") },
@@ -94,6 +97,7 @@ export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }:
         {tab === "overview" && <OverviewTab draft={draft} onChange={patch} />}
         {tab === "model" && <ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} />}
         {tab === "tools" && <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
+        {tab === "mail" && hasMail && <MailTab draft={draft} onChange={patch} />}
         {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
         {tab === "soul" && <SoulTab agent={agent} />}
         {tab === "advanced" && (

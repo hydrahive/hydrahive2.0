@@ -140,6 +140,27 @@ def test_update_persists_and_preserves_secret(client):
         agent_config.delete(a["id"])
 
 
+def test_update_tolerates_password_set_flag_roundtrip(client):
+    # Frontend schickt den maskierten Draft zurück (inkl. password_set) — darf
+    # nicht an der Validierung scheitern, und password_set wird nie persistiert.
+    from hydrahive.agents import config as agent_config
+    a = agent_config.create(agent_type="master", name="roundtrip", llm_model=MODEL,
+                            owner="admin", temperature=0.7, max_tokens=1000, thinking_budget=0)
+    try:
+        agent_config.update(a["id"], tool_config={
+            "smtp": {"host": "h", "from": "a@b", "user": "u", "password": "geheim"}})
+        # zweiter Save: maskiert (password="" + password_set=True), Rest geändert
+        agent_config.update(a["id"], tool_config={
+            "smtp": {"host": "h", "from": "a@b", "user": "u2",
+                     "password": "", "password_set": True}})
+        smtp = agent_config.get(a["id"])["tool_config"]["smtp"]
+        assert smtp["user"] == "u2"
+        assert smtp["password"] == "geheim"        # behalten
+        assert "password_set" not in smtp          # Flag nie persistiert
+    finally:
+        agent_config.delete(a["id"])
+
+
 def test_api_get_agent_masks_password(client, admin_headers):
     from hydrahive.agents import config as agent_config
     a = agent_config.create(agent_type="master", name="apimask", llm_model=MODEL,

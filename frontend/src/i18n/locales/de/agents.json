@@ -46,9 +46,26 @@
     "overview": "Übersicht",
     "model": "Modell",
     "tools": "Tools & MCP",
+    "mail": "Postfach",
     "skills": "Skills",
     "soul": "Soul",
     "advanced": "Erweitert"
+  },
+  "mail": {
+    "intro": "Eigenes Postfach für diesen Buddy. Alles leer = die globalen Mail-Settings (System → Einstellungen → Mail) werden genutzt. Gefüllt = dieser Buddy sendet/liest über sein eigenes Konto.",
+    "smtp_title": "SMTP (Senden)",
+    "imap_title": "IMAP (Empfangen)",
+    "host": "Host",
+    "port": "Port",
+    "user": "Benutzer",
+    "password": "Passwort",
+    "from": "Absender (From)",
+    "starttls": "STARTTLS",
+    "tls_hint": "Port 465 nutzt automatisch implizites SSL. STARTTLS gilt für 587.",
+    "password_placeholder": "Passwort eingeben",
+    "password_keep": "•••••••• (gesetzt — leer lassen = behalten)",
+    "imap_host_ph": "leer = wie SMTP-Host",
+    "imap_login_ph": "leer = wie SMTP-Login"
   },
   "soul": {
     "description": "Identität, Verhalten und Hintergrund des Agents als Markdown-Dateien.",

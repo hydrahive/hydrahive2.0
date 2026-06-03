@@ -93,7 +93,10 @@ async def execute_tool(
     # Engstelle: bekannte Secret-Werte aus dem Output schwärzen, BEVOR er in die
     # tool_calls-DB (asdict unten) und ins Transcript/Stream (Rückgabewert) geht.
     # Egal wie der Key in den Output kam — env-Dump, `echo $KEY`, `cat config`.
-    result = redaction.scrub_result(result)
+    # Plus per-Agent-Secrets (Postfach-Passwort aus tool_config), die secret_values()
+    # nicht kennt — sonst leakt ein Buddy beim Lesen der eigenen config.json.
+    secrets = redaction.secret_values() | redaction.agent_secret_values(ctx.agent_id)
+    result = redaction.scrub_result(result, secrets)
 
     duration_ms = int((time.monotonic() - start) * 1000)
     tools_db.finish(

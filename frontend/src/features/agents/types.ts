@@ -30,6 +30,25 @@ export interface Agent {
   disabled_skills?: string[]
   require_tool_confirm?: boolean
   longterm_memory?: boolean
+  // Per-Agent Postfach (Schicht 2). Leer = globale Mail-Settings. Passwort wird
+  // von der API maskiert ausgeliefert ("" + password_set); leeres Passwort beim
+  // Speichern = bestehendes behalten.
+  tool_config?: AgentToolConfig
+}
+
+export interface MailAccountConfig {
+  host?: string
+  port?: number
+  user?: string
+  password?: string
+  password_set?: boolean   // read-only von der API: ob ein Passwort gespeichert ist
+  from?: string            // nur SMTP
+  use_tls?: boolean        // nur SMTP
+}
+
+export interface AgentToolConfig {
+  smtp?: MailAccountConfig
+  imap?: MailAccountConfig
 }
 
 export interface ToolMeta {

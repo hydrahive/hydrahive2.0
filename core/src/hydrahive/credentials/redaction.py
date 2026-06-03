@@ -55,6 +55,30 @@ def secret_values() -> set[str]:
     return out
 
 
+def agent_secret_values(agent_id: str) -> set[str]:
+    """Per-Agent Secret-Werte: die Postfach-Passwörter aus `tool_config`.
+
+    `secret_values()` (env + LLM-Config) kennt diese nicht — sie liegen in der
+    Agent-Config. Damit ein Buddy, der seine eigene config.json liest, das
+    Passwort nicht im Tool-Output leakt, mischt der dispatcher diese an der
+    Schwärz-Engstelle dazu. Werte < MIN_SECRET_LEN bleiben (wie überall)
+    ungeschützt, um kurze Substrings nicht überall im Output zu zerstören.
+    """
+    if not agent_id:
+        return set()
+    out: set[str] = set()
+    try:
+        from hydrahive.agents import config as agent_config
+        tc = (agent_config.get(agent_id) or {}).get("tool_config") or {}
+        for block in ("smtp", "imap"):
+            pw = (tc.get(block) or {}).get("password", "")
+            if len(pw) >= MIN_SECRET_LEN:
+                out.add(pw)
+    except Exception:
+        pass
+    return out
+
+
 def _scrub_str(text: str, secrets: Iterable[str]) -> str:
     for secret in secrets:
         if secret and len(secret) >= MIN_SECRET_LEN and secret in text:

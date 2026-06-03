@@ -46,9 +46,26 @@
     "overview": "Overview",
     "model": "Model",
     "tools": "Tools & MCP",
+    "mail": "Mailbox",
     "skills": "Skills",
     "soul": "Soul",
     "advanced": "Advanced"
+  },
+  "mail": {
+    "intro": "Dedicated mailbox for this buddy. All empty = the global mail settings (System → Settings → Mail) are used. Filled = this buddy sends/reads via its own account.",
+    "smtp_title": "SMTP (sending)",
+    "imap_title": "IMAP (receiving)",
+    "host": "Host",
+    "port": "Port",
+    "user": "User",
+    "password": "Password",
+    "from": "Sender (From)",
+    "starttls": "STARTTLS",
+    "tls_hint": "Port 465 uses implicit SSL automatically. STARTTLS applies to 587.",
+    "password_placeholder": "Enter password",
+    "password_keep": "•••••••• (set — leave empty to keep)",
+    "imap_host_ph": "empty = same as SMTP host",
+    "imap_login_ph": "empty = same as SMTP login"
   },
   "soul": {
     "description": "Identity, behavior and background of the agent as Markdown files.",
