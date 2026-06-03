@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from email.message import EmailMessage
+from email.utils import parseaddr
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
@@ -49,12 +50,30 @@ def _resolve_smtp_cfg(tool_config: dict) -> dict:
     return _settings_smtp()
 
 
+def _is_qualified_address(from_value: str) -> bool:
+    """True wenn der From-Wert eine vollständige Mailadresse enthält (auch als
+    'Name <adresse@domain>'). Sonst lehnt der Mailserver mit einem kryptischen
+    504 'need fully-qualified address' ab."""
+    addr = parseaddr(from_value or "")[1]
+    parts = addr.split("@")
+    return len(parts) == 2 and all(p.strip() for p in parts)
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     cfg = _resolve_smtp_cfg(ctx.config)
     if not cfg.get("host") or not cfg.get("from"):
         return ToolResult.fail(
             "SMTP nicht konfiguriert (Mail-Settings unter System → Einstellungen → Mail "
             "ausfüllen, oder agent-eigene smtp-Tool-Config setzen) — send_mail ist aktuell ein Stub."
+        )
+
+    if not _is_qualified_address(cfg["from"]):
+        return ToolResult.fail(
+            f"Absender (From) ist keine vollständige Mailadresse: '{cfg['from']}'. "
+            "Erwartet z.B. name@domain.tld oder 'Name <name@domain.tld>', und die "
+            "Adresse muss ein echtes Postfach auf dem SMTP-Account sein. Setzen unter "
+            "System → Einstellungen → Mail (Absender) bzw. in der agent-eigenen "
+            "smtp-Tool-Config — danach Dienst neu starten (Settings werden beim Start gelesen)."
         )
 
     to = (args.get("to") or "").strip()

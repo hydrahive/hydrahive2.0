@@ -81,3 +81,38 @@ def test_execute_stub_when_nothing_configured(monkeypatch):
         {"to": "x@y", "subject": "Hi", "body": "yo"}, _ctx({})))
     assert not res.success
     assert "Stub" in res.error
+
+
+# ---------------------------------------------------------------- From-Validierung
+
+def test_execute_rejects_from_without_address(monkeypatch):
+    # KAS gibt sonst nur kryptisch "504 need fully-qualified address" zurück.
+    from hydrahive.tools import send_mail
+    from hydrahive.communication.mail import _transport
+    monkeypatch.setattr(send_mail, "_settings_smtp",
+                        lambda: {"host": "w0.kasserver.com", "from": "Agenttest"})
+    called = {"sent": False}
+    monkeypatch.setattr(_transport, "send_message",
+                        lambda cfg, msg: called.update(sent=True))
+
+    res = asyncio.run(send_mail._execute(
+        {"to": "x@y.de", "subject": "Hi", "body": "yo"}, _ctx({})))
+    assert not res.success
+    assert "Agenttest" in res.error          # nennt den fehlerhaften Wert
+    assert called["sent"] is False           # gar nicht erst verbunden
+
+
+def test_execute_accepts_display_name_address(monkeypatch):
+    from hydrahive.tools import send_mail
+    from hydrahive.communication.mail import _transport
+    monkeypatch.setattr(send_mail, "_settings_smtp",
+                        lambda: {"host": "w0.kasserver.com", "port": 465,
+                                 "from": "Agent Test <agenttest@hydrahive.org>"})
+    sent = {}
+    monkeypatch.setattr(_transport, "send_message",
+                        lambda cfg, msg: sent.update(frm=msg["From"]))
+
+    res = asyncio.run(send_mail._execute(
+        {"to": "x@y.de", "subject": "Hi", "body": "yo"}, _ctx({})))
+    assert res.success
+    assert sent["frm"] == "Agent Test <agenttest@hydrahive.org>"
