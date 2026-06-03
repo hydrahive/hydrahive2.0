@@ -15,8 +15,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_auth
-from hydrahive.teamchat import messages, rooms
+from hydrahive.db import teamchat as db_teamchat
+from hydrahive.teamchat import agent_bridge, agent_membership, messages, rooms
+from hydrahive.teamchat.agent_membership import AgentMembershipError
 from hydrahive.teamchat.broadcaster import room_broadcaster
 from hydrahive.teamchat.messages import MessageError
 from hydrahive.teamchat.rooms import RoomError
@@ -60,6 +63,34 @@ class SendMessageBody(BaseModel):
 
 class InviteMemberBody(BaseModel):
     user_id: str
+
+
+class AttachAgentBody(BaseModel):
+    agent_id: str
+
+
+# ---------------------------------------------------------------------------
+# Authz helpers (Agent-Endpoints schreiben in die HH-DB → nicht Matrix-geschützt)
+# ---------------------------------------------------------------------------
+
+async def _require_member(room_id: str, user_id: str) -> None:
+    """403 wenn der User kein Mitglied des Raums ist."""
+    try:
+        member = await rooms.is_member(room_id, user_id)
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    if not member:
+        raise HTTPException(status_code=403, detail="not_a_member")
+
+
+def _require_agent_owner(agent_id: str, user_id: str, role: str) -> dict:
+    """404 wenn der Agent fehlt, 403 wenn der User ihn nicht besitzt (Admin darf)."""
+    cfg = agent_config.get(agent_id)
+    if cfg is None:
+        raise HTTPException(status_code=404, detail="agent_not_found")
+    if role != "admin" and cfg.get("owner") != user_id:
+        raise HTTPException(status_code=403, detail="not_your_agent")
+    return cfg
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +147,12 @@ async def post_message(
         raise HTTPException(status_code=502, detail=str(exc))
     # Broadcast to all SSE subscribers of this room (Schicht-1: POST-side broadcast)
     room_broadcaster.broadcast(room_id, json.dumps(result))
+    # Zugeschaltete Agenten bei Anrede antworten lassen — fire-and-forget,
+    # damit die HTTP-Antwort nicht auf den Agent-Run wartet.
+    # Schicht-1: Anrede-Erkennung nur über den Text (@name / Vokativ). Das
+    # explizite m.mentions-Signal (is_addressed kann es) wird in Etappe 4b vom
+    # Frontend geliefert und hier als mention_mxids durchgereicht.
+    agent_bridge.schedule_response(room_id, user_id, body.text)
     return result
 
 
@@ -190,3 +227,59 @@ async def stream_room(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Agent-Zuschaltung
+# ---------------------------------------------------------------------------
+
+@router.get("/rooms/{room_id}/agents", dependencies=[_TC])
+async def get_room_agents(
+    room_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> list[dict]:
+    await _require_member(room_id, auth[0])
+    result: list[dict] = []
+    for entry in db_teamchat.list_room_agents(room_id):
+        cfg = agent_config.get(entry["agent_id"])
+        result.append({
+            "agent_id": entry["agent_id"],
+            "name": cfg.get("name") if cfg else None,
+        })
+    return result
+
+
+@router.post(
+    "/rooms/{room_id}/agents",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[_TC],
+)
+async def post_room_agent(
+    room_id: str,
+    body: AttachAgentBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    user_id, role = auth
+    await _require_member(room_id, user_id)
+    _require_agent_owner(body.agent_id, user_id, role)
+    try:
+        await agent_membership.attach_agent(room_id, user_id, body.agent_id)
+    except AgentMembershipError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    return {"room_id": room_id, "agent_id": body.agent_id}
+
+
+@router.delete(
+    "/rooms/{room_id}/agents/{agent_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[_TC],
+)
+async def delete_room_agent(
+    room_id: str,
+    agent_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    user_id, role = auth
+    await _require_member(room_id, user_id)
+    _require_agent_owner(agent_id, user_id, role)
+    await agent_membership.detach_agent(room_id, agent_id)

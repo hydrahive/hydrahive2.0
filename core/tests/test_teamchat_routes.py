@@ -181,6 +181,28 @@ def test_post_message_calls_send_and_broadcasts(client_enabled):
     mock_bc.broadcast.assert_called_once_with(room_id, json.dumps(msg_result))
 
 
+def test_post_message_schedules_agent_response(client_enabled):
+    """Nach send+broadcast wird die Agent-Antwort als Background-Task geplant."""
+    room_id = "!chat:matrix.local"
+    msg_result = {"event_id": "$evt1", "sender": "@till:matrix.local", "text": "buddy hi"}
+
+    with (
+        patch(
+            "hydrahive.api.routes.teamchat.messages.send_message",
+            new=AsyncMock(return_value=msg_result),
+        ),
+        patch("hydrahive.api.routes.teamchat.room_broadcaster"),
+        patch("hydrahive.api.routes.teamchat.agent_bridge.schedule_response") as mock_sched,
+    ):
+        resp = client_enabled.post(
+            f"/api/teamchat/rooms/{room_id}/messages",
+            json={"text": "buddy hi"},
+        )
+
+    assert resp.status_code == 200
+    mock_sched.assert_called_once_with(room_id, "till", "buddy hi")
+
+
 def test_post_message_message_error_returns_502(client_enabled):
     from hydrahive.teamchat.messages import MessageError
     room_id = "!chat:matrix.local"
@@ -385,6 +407,148 @@ def test_stream_room_error_returns_502(client_enabled):
 # ---------------------------------------------------------------------------
 # GET /rooms/{room_id}/stream  (SSE — light test)
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Agent-Endpoints: GET/POST/DELETE /rooms/{room_id}/agents
+# ---------------------------------------------------------------------------
+
+def _override_auth(username, role):
+    from hydrahive.api.main import app
+    from hydrahive.api.middleware.auth import require_auth
+    app.dependency_overrides[require_auth] = lambda: (username, role)
+
+
+def test_post_agents_disabled_returns_409(client_disabled):
+    resp = client_disabled.post("/api/teamchat/rooms/!r:t/agents", json={"agent_id": "a1"})
+    assert resp.status_code == 409
+
+
+def test_get_room_agents_returns_names(client_enabled):
+    room_id = "!r:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.db_teamchat.list_room_agents",
+              return_value=[{"agent_id": "a1"}, {"agent_id": "a2"}]),
+        patch("hydrahive.api.routes.teamchat.agent_config.get",
+              side_effect=lambda aid: {"a1": {"name": "buddy"}, "a2": {"name": "zahnfee"}}.get(aid)),
+    ):
+        resp = client_enabled.get(f"/api/teamchat/rooms/{room_id}/agents")
+
+    assert resp.status_code == 200
+    assert resp.json() == [
+        {"agent_id": "a1", "name": "buddy"},
+        {"agent_id": "a2", "name": "zahnfee"},
+    ]
+
+
+def test_get_room_agents_not_member_403(client_enabled):
+    with patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=False)):
+        resp = client_enabled.get("/api/teamchat/rooms/!secret:matrix.local/agents")
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "not_a_member"
+
+
+def test_post_room_agent_attaches_when_member_and_owner(client_enabled):
+    room_id = "!r:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.agent_config.get",
+              return_value={"id": "a1", "name": "buddy", "owner": "till"}),
+        patch("hydrahive.api.routes.teamchat.agent_membership.attach_agent",
+              new=AsyncMock()) as mock_attach,
+    ):
+        resp = client_enabled.post(f"/api/teamchat/rooms/{room_id}/agents", json={"agent_id": "a1"})
+
+    assert resp.status_code == 201
+    mock_attach.assert_awaited_once_with(room_id, "till", "a1")
+
+
+def test_post_room_agent_not_member_403_and_no_attach(client_enabled):
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=False)),
+        patch("hydrahive.api.routes.teamchat.agent_config.get",
+              return_value={"id": "a1", "name": "buddy", "owner": "till"}),
+        patch("hydrahive.api.routes.teamchat.agent_membership.attach_agent",
+              new=AsyncMock()) as mock_attach,
+    ):
+        resp = client_enabled.post("/api/teamchat/rooms/!r:matrix.local/agents", json={"agent_id": "a1"})
+
+    assert resp.status_code == 403
+    mock_attach.assert_not_awaited()
+
+
+def test_post_room_agent_not_owner_403(client_enabled):
+    """User darf einen fremden Agenten NICHT zuschalten."""
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.agent_config.get",
+              return_value={"id": "a1", "name": "buddy", "owner": "someone_else"}),
+        patch("hydrahive.api.routes.teamchat.agent_membership.attach_agent",
+              new=AsyncMock()) as mock_attach,
+    ):
+        resp = client_enabled.post("/api/teamchat/rooms/!r:matrix.local/agents", json={"agent_id": "a1"})
+
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "not_your_agent"
+    mock_attach.assert_not_awaited()
+
+
+def test_post_room_agent_unknown_agent_404(client_enabled):
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.agent_config.get", return_value=None),
+        patch("hydrahive.api.routes.teamchat.agent_membership.attach_agent", new=AsyncMock()),
+    ):
+        resp = client_enabled.post("/api/teamchat/rooms/!r:matrix.local/agents", json={"agent_id": "ghost"})
+
+    assert resp.status_code == 404
+
+
+def test_admin_may_attach_foreign_agent(client_enabled):
+    """Admin darf auch einen fremden Agenten zuschalten."""
+    _override_auth("admin_user", "admin")
+    room_id = "!r:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.agent_config.get",
+              return_value={"id": "a1", "name": "buddy", "owner": "till"}),
+        patch("hydrahive.api.routes.teamchat.agent_membership.attach_agent",
+              new=AsyncMock()) as mock_attach,
+    ):
+        resp = client_enabled.post(f"/api/teamchat/rooms/{room_id}/agents", json={"agent_id": "a1"})
+
+    assert resp.status_code == 201
+    mock_attach.assert_awaited_once_with(room_id, "admin_user", "a1")
+
+
+def test_delete_room_agent_detaches(client_enabled):
+    room_id = "!r:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.agent_config.get",
+              return_value={"id": "a1", "name": "buddy", "owner": "till"}),
+        patch("hydrahive.api.routes.teamchat.agent_membership.detach_agent",
+              new=AsyncMock()) as mock_detach,
+    ):
+        resp = client_enabled.delete(f"/api/teamchat/rooms/{room_id}/agents/a1")
+
+    assert resp.status_code == 204
+    mock_detach.assert_awaited_once_with(room_id, "a1")
+
+
+def test_delete_room_agent_not_owner_403(client_enabled):
+    with (
+        patch("hydrahive.api.routes.teamchat.rooms.is_member", new=AsyncMock(return_value=True)),
+        patch("hydrahive.api.routes.teamchat.agent_config.get",
+              return_value={"id": "a1", "name": "buddy", "owner": "someone_else"}),
+        patch("hydrahive.api.routes.teamchat.agent_membership.detach_agent",
+              new=AsyncMock()) as mock_detach,
+    ):
+        resp = client_enabled.delete("/api/teamchat/rooms/!r:matrix.local/agents/a1")
+
+    assert resp.status_code == 403
+    mock_detach.assert_not_awaited()
+
 
 def test_stream_route_is_registered_and_wired(client_enabled):
     """SSE-Endpoint ist registriert: Route ist in der App vorhanden und
