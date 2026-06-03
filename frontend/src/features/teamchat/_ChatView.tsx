@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { AtSign, Hash, Send } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { EmoteText } from "@/features/chat/EmoteText"
+import { Markdown } from "@/features/chat/Markdown"
 import { mxidToName } from "./_format"
 import type { RoomAgent, TeamMessage } from "./types"
 
@@ -83,13 +85,17 @@ export function ChatView({ roomName, messages, agents, onSend }: ChatViewProps) 
                 </span>
               </div>
               <div
-                className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${
+                className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm break-words ${
+                  isBot ? "" : "whitespace-pre-wrap"
+                } ${
                   mine
                     ? "bg-[#104E8B]/50 text-zinc-100 rounded-tr-sm"
                     : "bg-white/[6%] text-zinc-200 rounded-tl-sm"
                 }`}
               >
-                {m.text}
+                {/* Mensch: Plain-Text + Inline-Emotes. Bot: Markdown (+ Emotes) —
+                    identisch zum regulären Chat (EmoteText/Markdown). */}
+                {isBot ? <Markdown text={m.text} /> : <EmoteText text={m.text} />}
               </div>
             </div>
           )
