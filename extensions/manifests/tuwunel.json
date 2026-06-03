@@ -1,0 +1,14 @@
+{
+  "id": "tuwunel",
+  "name": "Tuwunel (Matrix-Homeserver für Team-Chat)",
+  "description": "Selbst-gehosteter Matrix-Homeserver (tuwunel, Nachfolger von conduwuit) — privates Team-Chat-Backend für den HydraHive Matrix-Channel, Federation deaktiviert.",
+  "icon": "MessagesSquare",
+  "category": "network",
+  "install_script": "install/tuwunel.sh",
+  "uninstall_script": "uninstall/tuwunel.sh",
+  "service": "hydrahive-tuwunel",
+  "health_url": "http://127.0.0.1:6167/_matrix/client/versions",
+  "open_url": null,
+  "installed_check": "/usr/local/bin/tuwunel",
+  "install_params": []
+}
