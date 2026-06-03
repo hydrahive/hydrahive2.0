@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 _DESCRIPTION = (
-    "Führt einen Shell-Befehl im Workspace aus. Gibt stdout, stderr und "
+    "Führt einen Shell-Befehl im Workspace aus (bash). Gibt stdout, stderr und "
     "Exit-Code zurück. Default-Timeout: 60s. "
     "GH_TOKEN + GITHUB_TOKEN sind automatisch gesetzt wenn das Projekt einen Token hat — "
     "`gh issue create`, `git push` etc. ohne extra Auth. "

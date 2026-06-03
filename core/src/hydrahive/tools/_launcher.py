@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 logger = logging.getLogger(__name__)
+
+# Agenten-Shell läuft in bash, nicht im default /bin/sh (dash). LLMs generieren
+# ständig Bashisms (`[[ ]]`, Prozesssubstitution, Arrays) — in dash failen die
+# mit kryptischen Syntaxfehlern. Fallback auf den Shell-Default, falls bash fehlt
+# (minimale Container), damit shell_exec nie ganz bricht.
+_BASH = shutil.which("bash")
 
 
 @dataclass
@@ -49,6 +56,7 @@ class DevLauncher:
             cmd,
             cwd=str(cwd),
             env=env,
+            executable=_BASH,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
