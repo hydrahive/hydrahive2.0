@@ -71,16 +71,30 @@ def _make_joined_members_error():
     return MagicMock(spec=nio.JoinedMembersError)
 
 
+def _make_join_response():
+    import nio
+    return MagicMock(spec=nio.JoinResponse)
+
+
+def _make_join_error():
+    import nio
+    return MagicMock(spec=nio.JoinError)
+
+
 def _make_nio_client(
     room_create_resp=None,
     room_invite_resp=None,
     joined_members_resp=None,
+    join_resp=None,
 ):
     """Build a MagicMock nio.AsyncClient with AsyncMock methods."""
+    if join_resp is None:
+        join_resp = _make_join_response()
     mock_client = MagicMock()
     mock_client.room_create = AsyncMock(return_value=room_create_resp)
     mock_client.room_invite = AsyncMock(return_value=room_invite_resp)
     mock_client.joined_members = AsyncMock(return_value=joined_members_resp)
+    mock_client.join = AsyncMock(return_value=join_resp)
     mock_client.close = AsyncMock()
     return mock_client
 
@@ -96,9 +110,9 @@ async def test_create_room_returns_room_id(setup_test_env):
     invitee_tokens = _make_tokens("@alice:test.local", "tok_alice")
 
     room_id = "!abc123:test.local"
-    mock_client = _make_nio_client(
-        room_create_resp=_make_room_create_response(room_id)
-    )
+    # build_client wird 2x aufgerufen: creator (room_create) + alice (join)
+    creator_client = _make_nio_client(room_create_resp=_make_room_create_response(room_id))
+    invitee_client = _make_nio_client()
 
     def ensure_identity_side_effect(uid):
         mapping = {"creator": creator_tokens, "alice": invitee_tokens}
@@ -111,7 +125,7 @@ async def test_create_room_returns_room_id(setup_test_env):
         ),
         patch(
             "hydrahive.teamchat.rooms.build_client",
-            return_value=mock_client,
+            side_effect=[creator_client, invitee_client],
         ),
     ):
         from hydrahive.teamchat.rooms import create_room
@@ -128,9 +142,10 @@ async def test_create_room_calls_ensure_identity_for_all(setup_test_env):
     inv2_tokens = _make_tokens("@bob:test.local")
 
     room_id = "!room1:test.local"
-    mock_client = _make_nio_client(
-        room_create_resp=_make_room_create_response(room_id)
-    )
+    # build_client 3x: creator (room_create) + alice (join) + bob (join)
+    creator_client = _make_nio_client(room_create_resp=_make_room_create_response(room_id))
+    alice_client = _make_nio_client()
+    bob_client = _make_nio_client()
 
     def ensure_identity_side_effect(uid):
         mapping = {
@@ -144,7 +159,10 @@ async def test_create_room_calls_ensure_identity_for_all(setup_test_env):
 
     with (
         patch("hydrahive.teamchat.rooms.ensure_identity", new=mock_ensure),
-        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            side_effect=[creator_client, alice_client, bob_client],
+        ),
     ):
         from hydrahive.teamchat.rooms import create_room
         await create_room("creator", "Team", ["alice", "bob"])
@@ -165,9 +183,8 @@ async def test_create_room_passes_preset_and_invitees(setup_test_env):
     alice_tokens = _make_tokens("@alice:test.local")
 
     room_id = "!room2:test.local"
-    mock_client = _make_nio_client(
-        room_create_resp=_make_room_create_response(room_id)
-    )
+    creator_client = _make_nio_client(room_create_resp=_make_room_create_response(room_id))
+    invitee_client = _make_nio_client()
 
     def ensure_identity_side_effect(uid):
         return creator_tokens if uid == "creator" else alice_tokens
@@ -177,13 +194,16 @@ async def test_create_room_passes_preset_and_invitees(setup_test_env):
             "hydrahive.teamchat.rooms.ensure_identity",
             new=AsyncMock(side_effect=ensure_identity_side_effect),
         ),
-        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            side_effect=[creator_client, invitee_client],
+        ),
     ):
         from hydrahive.teamchat.rooms import create_room
         await create_room("creator", "My Room", ["alice"])
 
-    mock_client.room_create.assert_awaited_once()
-    kwargs = mock_client.room_create.call_args.kwargs
+    creator_client.room_create.assert_awaited_once()
+    kwargs = creator_client.room_create.call_args.kwargs
     assert kwargs.get("preset") == nio.RoomPreset.private_chat
     assert "@alice:test.local" in kwargs.get("invite", [])
 
@@ -216,9 +236,10 @@ async def test_create_room_persists_in_db(setup_test_env):
 
 @pytest.mark.asyncio
 async def test_create_room_closes_client(setup_test_env):
-    """close() wird immer aufgerufen — auch im Erfolgsfall."""
+    """close() wird für den Creator-Client aufgerufen — auch ohne invitees."""
     creator_tokens = _make_tokens("@creator:test.local")
     room_id = "!closetest:test.local"
+    # Keine invitees → build_client nur 1x aufgerufen
     mock_client = _make_nio_client(
         room_create_resp=_make_room_create_response(room_id)
     )
@@ -268,13 +289,13 @@ async def test_create_room_raises_on_error_response(setup_test_env):
 
 @pytest.mark.asyncio
 async def test_invite_member_success(setup_test_env):
-    """invite_member: room_invite mit invitee-MXID aufgerufen, kein Fehler."""
+    """invite_member: room_invite + join aufgerufen, kein Fehler."""
     inviter_tokens = _make_tokens("@inviter:test.local")
     invitee_tokens = _make_tokens("@guest:test.local")
 
-    mock_client = _make_nio_client(
-        room_invite_resp=_make_room_invite_response()
-    )
+    # build_client 2x: inviter (room_invite) + invitee (join)
+    inviter_client = _make_nio_client(room_invite_resp=_make_room_invite_response())
+    invitee_client = _make_nio_client()
 
     def ensure_identity_side_effect(uid):
         return inviter_tokens if uid == "inviter" else invitee_tokens
@@ -284,13 +305,18 @@ async def test_invite_member_success(setup_test_env):
             "hydrahive.teamchat.rooms.ensure_identity",
             new=AsyncMock(side_effect=ensure_identity_side_effect),
         ),
-        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            side_effect=[inviter_client, invitee_client],
+        ),
     ):
         from hydrahive.teamchat.rooms import invite_member
         await invite_member("!room:test.local", "inviter", "guest")
 
-    mock_client.room_invite.assert_awaited_once_with("!room:test.local", "@guest:test.local")
-    mock_client.close.assert_awaited_once()
+    inviter_client.room_invite.assert_awaited_once_with("!room:test.local", "@guest:test.local")
+    invitee_client.join.assert_awaited_once_with("!room:test.local")
+    inviter_client.close.assert_awaited_once()
+    invitee_client.close.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -299,9 +325,8 @@ async def test_invite_member_error_raises_room_error(setup_test_env):
     inviter_tokens = _make_tokens("@inviter:test.local")
     invitee_tokens = _make_tokens("@guest:test.local")
 
-    mock_client = _make_nio_client(
-        room_invite_resp=_make_room_invite_error()
-    )
+    # room_invite schlägt fehl → nur 1 build_client (inviter); invitee-join nie erreicht
+    inviter_client = _make_nio_client(room_invite_resp=_make_room_invite_error())
 
     def ensure_identity_side_effect(uid):
         return inviter_tokens if uid == "inviter" else invitee_tokens
@@ -311,13 +336,16 @@ async def test_invite_member_error_raises_room_error(setup_test_env):
             "hydrahive.teamchat.rooms.ensure_identity",
             new=AsyncMock(side_effect=ensure_identity_side_effect),
         ),
-        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            return_value=inviter_client,
+        ),
     ):
         from hydrahive.teamchat.rooms import invite_member, RoomError
         with pytest.raises(RoomError):
             await invite_member("!room:test.local", "inviter", "guest")
 
-    mock_client.close.assert_awaited_once()
+    inviter_client.close.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------
@@ -521,3 +549,168 @@ async def test_is_member_raises_room_error_on_matrix_error(setup_test_env):
         from hydrahive.teamchat.rooms import is_member, RoomError
         with pytest.raises(RoomError):
             await is_member("!target:test.local", "user1")
+
+
+# ---------------------------------------------------------------------------
+# create_room — auto-join invitees
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_create_room_invitees_auto_join(setup_test_env):
+    """Jeder invitee joinet den Raum automatisch nach room_create."""
+    creator_tokens = _make_tokens("@creator:test.local")
+    alice_tokens = _make_tokens("@alice:test.local", "tok_alice")
+    bob_tokens = _make_tokens("@bob:test.local", "tok_bob")
+
+    room_id = "!autojoin:test.local"
+    creator_client = _make_nio_client(room_create_resp=_make_room_create_response(room_id))
+    alice_client = _make_nio_client()
+    bob_client = _make_nio_client()
+
+    def ensure_identity_side_effect(uid):
+        mapping = {"creator": creator_tokens, "alice": alice_tokens, "bob": bob_tokens}
+        return mapping[uid]
+
+    with (
+        patch(
+            "hydrahive.teamchat.rooms.ensure_identity",
+            new=AsyncMock(side_effect=ensure_identity_side_effect),
+        ),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            side_effect=[creator_client, alice_client, bob_client],
+        ),
+    ):
+        from hydrahive.teamchat.rooms import create_room
+        result = await create_room("creator", "Auto Join Room", ["alice", "bob"])
+
+    assert result == room_id
+    alice_client.join.assert_awaited_once_with(room_id)
+    bob_client.join.assert_awaited_once_with(room_id)
+    # Creator joinet nicht explizit (Matrix auto-join beim room_create)
+    creator_client.join.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_create_room_join_error_logs_warning_does_not_raise(setup_test_env):
+    """JoinError für einen invitee → warning geloggt, kein raise, room_id zurückgegeben."""
+    creator_tokens = _make_tokens("@creator:test.local")
+    alice_tokens = _make_tokens("@alice:test.local")
+
+    room_id = "!joinfail:test.local"
+    creator_client = _make_nio_client(room_create_resp=_make_room_create_response(room_id))
+    # alice's join schlägt fehl
+    alice_client = _make_nio_client(join_resp=_make_join_error())
+
+    def ensure_identity_side_effect(uid):
+        return creator_tokens if uid == "creator" else alice_tokens
+
+    with (
+        patch(
+            "hydrahive.teamchat.rooms.ensure_identity",
+            new=AsyncMock(side_effect=ensure_identity_side_effect),
+        ),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            side_effect=[creator_client, alice_client],
+        ),
+        patch("hydrahive.teamchat.rooms.logger") as mock_logger,
+    ):
+        from hydrahive.teamchat.rooms import create_room
+        result = await create_room("creator", "Join Fail Room", ["alice"])
+
+    # Kein raise — room_id trotzdem zurückgegeben
+    assert result == room_id
+    # Warnung geloggt
+    mock_logger.warning.assert_called()
+    # Raum in DB persistiert
+    from hydrahive.db import teamchat as db
+    assert db.get_room(room_id) is not None
+    # Client immer geschlossen
+    alice_client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_create_room_no_invitees_no_join_calls(setup_test_env):
+    """Ohne invitees wird join nie aufgerufen."""
+    creator_tokens = _make_tokens("@creator:test.local")
+    room_id = "!noinvite:test.local"
+    creator_client = _make_nio_client(room_create_resp=_make_room_create_response(room_id))
+
+    with (
+        patch(
+            "hydrahive.teamchat.rooms.ensure_identity",
+            new=AsyncMock(return_value=creator_tokens),
+        ),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            return_value=creator_client,
+        ),
+    ):
+        from hydrahive.teamchat.rooms import create_room
+        result = await create_room("creator", "No Invite Room", [])
+
+    assert result == room_id
+    creator_client.join.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# invite_member — auto-join after invite
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_invite_member_invitee_joins_after_invite(setup_test_env):
+    """Nach room_invite joinet der invitee den Raum automatisch."""
+    inviter_tokens = _make_tokens("@inviter:test.local")
+    invitee_tokens = _make_tokens("@guest:test.local")
+
+    inviter_client = _make_nio_client(room_invite_resp=_make_room_invite_response())
+    invitee_client = _make_nio_client()
+
+    def ensure_identity_side_effect(uid):
+        return inviter_tokens if uid == "inviter" else invitee_tokens
+
+    with (
+        patch(
+            "hydrahive.teamchat.rooms.ensure_identity",
+            new=AsyncMock(side_effect=ensure_identity_side_effect),
+        ),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            side_effect=[inviter_client, invitee_client],
+        ),
+    ):
+        from hydrahive.teamchat.rooms import invite_member
+        await invite_member("!room:test.local", "inviter", "guest")
+
+    invitee_client.join.assert_awaited_once_with("!room:test.local")
+    invitee_client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_invite_member_join_error_raises_room_error(setup_test_env):
+    """JoinError beim invitee-join → RoomError (invite_member muss den einen User wirklich einjoinen)."""
+    inviter_tokens = _make_tokens("@inviter:test.local")
+    invitee_tokens = _make_tokens("@guest:test.local")
+
+    inviter_client = _make_nio_client(room_invite_resp=_make_room_invite_response())
+    invitee_client = _make_nio_client(join_resp=_make_join_error())
+
+    def ensure_identity_side_effect(uid):
+        return inviter_tokens if uid == "inviter" else invitee_tokens
+
+    with (
+        patch(
+            "hydrahive.teamchat.rooms.ensure_identity",
+            new=AsyncMock(side_effect=ensure_identity_side_effect),
+        ),
+        patch(
+            "hydrahive.teamchat.rooms.build_client",
+            side_effect=[inviter_client, invitee_client],
+        ),
+    ):
+        from hydrahive.teamchat.rooms import invite_member, RoomError
+        with pytest.raises(RoomError):
+            await invite_member("!room:test.local", "inviter", "guest")
+
+    invitee_client.close.assert_awaited_once()
