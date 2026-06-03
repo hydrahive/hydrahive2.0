@@ -370,26 +370,154 @@ async def test_list_members_error_raises_room_error(setup_test_env):
 
 
 # ---------------------------------------------------------------------------
-# list_rooms
+# list_joined_rooms
 # ---------------------------------------------------------------------------
 
-def test_list_rooms_returns_db_rows(setup_test_env):
-    """list_rooms gibt DB-Einträge zurück, kein Netzwerk."""
+def _make_joined_rooms_response(room_ids: list[str]):
+    """Minimal nio.JoinedRoomsResponse mock."""
+    import nio
+    resp = MagicMock(spec=nio.JoinedRoomsResponse)
+    resp.rooms = room_ids
+    return resp
+
+
+def _make_joined_rooms_error():
+    import nio
+    return MagicMock(spec=nio.JoinedRoomsError)
+
+
+@pytest.mark.asyncio
+async def test_list_joined_rooms_returns_only_joined_teamchat_rooms(setup_test_env):
+    """list_joined_rooms gibt nur Räume zurück, in denen der User Mitglied ist
+    UND die in der teamchat_rooms-DB vorhanden sind."""
     from hydrahive.db import teamchat as db
-    db.create_room("!r1:test.local", "Room One", "user1")
-    db.create_room("!r2:test.local", "Room Two", "user2")
+    db.create_room("!joined:test.local", "Joined Room", "user1")
+    db.create_room("!other:test.local", "Other Room", "user2")
 
-    from hydrahive.teamchat.rooms import list_rooms
-    rows = list_rooms("user1")
+    tokens = _make_tokens("@user1:test.local")
+    # User ist nur in !joined:test.local, nicht in !other:test.local
+    mock_client = MagicMock()
+    mock_client.joined_rooms = AsyncMock(
+        return_value=_make_joined_rooms_response(["!joined:test.local", "!foreign:matrix.org"])
+    )
+    mock_client.close = AsyncMock()
 
-    ids = [r["room_id"] for r in rows]
-    assert "!r1:test.local" in ids
-    assert "!r2:test.local" in ids
-    assert len(rows) >= 2
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=tokens)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+    ):
+        from hydrahive.teamchat.rooms import list_joined_rooms
+        result = await list_joined_rooms("user1")
+
+    ids = [r["room_id"] for r in result]
+    assert "!joined:test.local" in ids
+    assert "!other:test.local" not in ids   # user nicht Mitglied
+    assert "!foreign:matrix.org" not in ids  # nicht in teamchat-DB
+    mock_client.close.assert_awaited_once()
 
 
-def test_list_rooms_empty(setup_test_env):
-    """list_rooms gibt leere Liste zurück wenn keine Räume vorhanden."""
-    from hydrahive.teamchat.rooms import list_rooms
-    rows = list_rooms("nobody")
-    assert rows == []
+@pytest.mark.asyncio
+async def test_list_joined_rooms_empty_when_no_joined_rooms(setup_test_env):
+    """Keine Matrix-Mitgliedschaften → leere Liste."""
+    tokens = _make_tokens("@user1:test.local")
+    mock_client = MagicMock()
+    mock_client.joined_rooms = AsyncMock(
+        return_value=_make_joined_rooms_response([])
+    )
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=tokens)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+    ):
+        from hydrahive.teamchat.rooms import list_joined_rooms
+        result = await list_joined_rooms("user1")
+
+    assert result == []
+    mock_client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_list_joined_rooms_raises_room_error_on_matrix_error(setup_test_env):
+    """JoinedRoomsError → RoomError, close() trotzdem aufgerufen."""
+    tokens = _make_tokens("@user1:test.local")
+    mock_client = MagicMock()
+    mock_client.joined_rooms = AsyncMock(
+        return_value=_make_joined_rooms_error()
+    )
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=tokens)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+    ):
+        from hydrahive.teamchat.rooms import list_joined_rooms, RoomError
+        with pytest.raises(RoomError):
+            await list_joined_rooms("user1")
+
+    mock_client.close.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# is_member
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_is_member_returns_true_when_room_in_joined_rooms(setup_test_env):
+    """is_member gibt True zurück wenn room_id in joined_rooms-Response."""
+    tokens = _make_tokens("@user1:test.local")
+    mock_client = MagicMock()
+    mock_client.joined_rooms = AsyncMock(
+        return_value=_make_joined_rooms_response(["!target:test.local", "!other:test.local"])
+    )
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=tokens)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+    ):
+        from hydrahive.teamchat.rooms import is_member
+        result = await is_member("!target:test.local", "user1")
+
+    assert result is True
+    mock_client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_is_member_returns_false_when_room_not_in_joined_rooms(setup_test_env):
+    """is_member gibt False zurück wenn room_id NICHT in joined_rooms-Response."""
+    tokens = _make_tokens("@user1:test.local")
+    mock_client = MagicMock()
+    mock_client.joined_rooms = AsyncMock(
+        return_value=_make_joined_rooms_response(["!other:test.local"])
+    )
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=tokens)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+    ):
+        from hydrahive.teamchat.rooms import is_member
+        result = await is_member("!target:test.local", "user1")
+
+    assert result is False
+    mock_client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_is_member_raises_room_error_on_matrix_error(setup_test_env):
+    """JoinedRoomsError → RoomError, close() trotzdem aufgerufen."""
+    tokens = _make_tokens("@user1:test.local")
+    mock_client = MagicMock()
+    mock_client.joined_rooms = AsyncMock(
+        return_value=_make_joined_rooms_error()
+    )
+    mock_client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=tokens)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=mock_client),
+    ):
+        from hydrahive.teamchat.rooms import is_member, RoomError
+        with pytest.raises(RoomError):
+            await is_member("!target:test.local", "user1")

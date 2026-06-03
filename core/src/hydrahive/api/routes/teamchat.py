@@ -11,7 +11,7 @@ import json
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -67,11 +67,14 @@ class InviteMemberBody(BaseModel):
 # ---------------------------------------------------------------------------
 
 @router.get("/rooms", dependencies=[_TC])
-def get_rooms(
+async def get_rooms(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> list[dict]:
     user_id = auth[0]
-    return rooms.list_rooms(user_id)
+    try:
+        return await rooms.list_joined_rooms(user_id)
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 @router.post("/rooms", status_code=status.HTTP_201_CREATED, dependencies=[_TC])
@@ -91,7 +94,7 @@ async def post_rooms(
 async def get_messages(
     room_id: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
-    limit: int = 50,
+    limit: int = Query(50, ge=1, le=200),
 ) -> list[dict]:
     user_id = auth[0]
     try:
@@ -154,7 +157,16 @@ async def stream_room(
 
     Broadcast kommt von post_message (POST /rooms/{id}/messages). Keepalive
     alle 20s als SSE-Kommentar, damit Proxies die Verbindung nicht killen.
+    Membership-Check via Matrix joined_rooms — Nicht-Mitglieder erhalten 403.
     """
+    user_id = auth[0]
+    try:
+        member = await rooms.is_member(room_id, user_id)
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    if not member:
+        raise HTTPException(status_code=403, detail="not_a_member")
+
     queue = room_broadcaster.subscribe(room_id)
 
     async def _events():

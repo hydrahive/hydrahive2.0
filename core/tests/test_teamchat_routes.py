@@ -131,14 +131,26 @@ def test_get_rooms_returns_list(client_enabled):
         {"room_id": "!r2:matrix.local", "name": "Dev"},
     ]
     with patch(
-        "hydrahive.api.routes.teamchat.rooms.list_rooms",
-        return_value=fake_rooms,
+        "hydrahive.api.routes.teamchat.rooms.list_joined_rooms",
+        new=AsyncMock(return_value=fake_rooms),
     ) as mock_list:
         resp = client_enabled.get("/api/teamchat/rooms")
 
     assert resp.status_code == 200
     assert resp.json() == fake_rooms
-    mock_list.assert_called_once_with("till")
+    mock_list.assert_awaited_once_with("till")
+
+
+def test_get_rooms_room_error_returns_502(client_enabled):
+    """RoomError aus list_joined_rooms → 502."""
+    from hydrahive.teamchat.rooms import RoomError
+    with patch(
+        "hydrahive.api.routes.teamchat.rooms.list_joined_rooms",
+        new=AsyncMock(side_effect=RoomError("Matrix unavailable")),
+    ):
+        resp = client_enabled.get("/api/teamchat/rooms")
+
+    assert resp.status_code == 502
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +195,37 @@ def test_post_message_message_error_returns_502(client_enabled):
         )
 
     assert resp.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# GET /rooms/{room_id}/messages — limit validation
+# ---------------------------------------------------------------------------
+
+def test_get_messages_limit_too_large_returns_422(client_enabled):
+    """limit > 200 muss 422 Unprocessable Entity zurückgeben."""
+    room_id = "!chat:matrix.local"
+    resp = client_enabled.get(f"/api/teamchat/rooms/{room_id}/messages?limit=9999")
+    assert resp.status_code == 422
+
+
+def test_get_messages_limit_zero_returns_422(client_enabled):
+    """limit=0 ist ungültig (ge=1) → 422."""
+    room_id = "!chat:matrix.local"
+    resp = client_enabled.get(f"/api/teamchat/rooms/{room_id}/messages?limit=0")
+    assert resp.status_code == 422
+
+
+def test_get_messages_limit_200_is_valid(client_enabled):
+    """limit=200 ist der maximale gültige Wert."""
+    room_id = "!chat:matrix.local"
+    with patch(
+        "hydrahive.api.routes.teamchat.messages.history",
+        new=AsyncMock(return_value=[]),
+    ) as mock_history:
+        resp = client_enabled.get(f"/api/teamchat/rooms/{room_id}/messages?limit=200")
+
+    assert resp.status_code == 200
+    mock_history.assert_awaited_once_with(room_id, "till", 200)
 
 
 # ---------------------------------------------------------------------------
@@ -280,6 +323,61 @@ def test_post_members_room_error_returns_502(client_enabled):
             f"/api/teamchat/rooms/{room_id}/members",
             json={"user_id": "charlie"},
         )
+
+    assert resp.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# GET /rooms/{room_id}/stream  — Membership-Gate
+# ---------------------------------------------------------------------------
+
+def test_stream_returns_403_when_not_member(client_enabled):
+    """is_member=False → 403 Forbidden, bevor der SSE-Generator gestartet wird."""
+    from hydrahive.teamchat.rooms import RoomError
+    room_id = "!secret:matrix.local"
+    with patch(
+        "hydrahive.api.routes.teamchat.rooms.is_member",
+        new=AsyncMock(return_value=False),
+    ):
+        resp = client_enabled.get(f"/api/teamchat/rooms/{room_id}/stream")
+
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "not_a_member"
+
+
+def test_stream_subscribes_when_member(client_enabled):
+    """is_member=True → room_broadcaster.subscribe wird aufgerufen."""
+    room_id = "!open:matrix.local"
+    mock_queue = MagicMock()
+    mock_queue.get = AsyncMock(side_effect=Exception("stop"))  # Sofort abbrechen
+
+    with (
+        patch(
+            "hydrahive.api.routes.teamchat.rooms.is_member",
+            new=AsyncMock(return_value=True),
+        ),
+        patch(
+            "hydrahive.api.routes.teamchat.room_broadcaster",
+        ) as mock_bc,
+    ):
+        mock_bc.subscribe.return_value = mock_queue
+        # Der Stream wird gestartet aber bricht sofort ab → subscribe wurde aufgerufen
+        try:
+            client_enabled.get(f"/api/teamchat/rooms/{room_id}/stream", timeout=1)
+        except Exception:
+            pass
+        mock_bc.subscribe.assert_called_once_with(room_id)
+
+
+def test_stream_room_error_returns_502(client_enabled):
+    """RoomError aus is_member → 502."""
+    from hydrahive.teamchat.rooms import RoomError
+    room_id = "!err:matrix.local"
+    with patch(
+        "hydrahive.api.routes.teamchat.rooms.is_member",
+        new=AsyncMock(side_effect=RoomError("Matrix down")),
+    ):
+        resp = client_enabled.get(f"/api/teamchat/rooms/{room_id}/stream")
 
     assert resp.status_code == 502
 

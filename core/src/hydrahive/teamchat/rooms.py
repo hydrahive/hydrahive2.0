@@ -125,6 +125,51 @@ async def list_members(room_id: str, requester_user_id: str) -> list[str]:
         await client.close()
 
 
-def list_rooms(user_id: str) -> list[dict]:
-    """Return DB rows for all known rooms (sync, no network)."""
-    return db_teamchat.list_rooms_for_user(user_id)
+async def list_joined_rooms(user_id: str) -> list[dict]:
+    """Return DB metadata only for rooms the user is actually joined to in Matrix.
+
+    Calls client.joined_rooms() — the authoritative membership source — then
+    intersects with teamchat_rooms in our DB.  Rooms that exist in Matrix but
+    not in our DB (foreign rooms) are silently skipped.
+    """
+    from hydrahive.settings import settings
+
+    u = await ensure_identity(user_id)
+    client = build_client(
+        settings.matrix_homeserver_url,
+        u.user_id,
+        u.access_token,
+        u.device_id,
+    )
+    try:
+        resp = await client.joined_rooms()
+        if not isinstance(resp, nio.JoinedRoomsResponse):
+            raise RoomError(f"joined_rooms failed: {resp!r}")
+    finally:
+        await client.close()
+
+    return [
+        row
+        for rid in resp.rooms
+        if (row := db_teamchat.get_room(rid)) is not None
+    ]
+
+
+async def is_member(room_id: str, user_id: str) -> bool:
+    """Return True if user_id is currently joined to room_id in Matrix."""
+    from hydrahive.settings import settings
+
+    u = await ensure_identity(user_id)
+    client = build_client(
+        settings.matrix_homeserver_url,
+        u.user_id,
+        u.access_token,
+        u.device_id,
+    )
+    try:
+        resp = await client.joined_rooms()
+        if not isinstance(resp, nio.JoinedRoomsResponse):
+            raise RoomError(f"joined_rooms failed: {resp!r}")
+        return room_id in resp.rooms
+    finally:
+        await client.close()
