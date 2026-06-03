@@ -71,7 +71,7 @@ for a in d.get('assets', []):
   # ── zstd sicherstellen ──────────────────────────────────────────────────
   if ! command -v zstd &>/dev/null; then
     info "zstd nicht gefunden — installiere via apt-get..."
-    apt-get install -y zstd
+    apt-get update -qq && apt-get install -y zstd
     success "zstd installiert"
   fi
 
@@ -167,7 +167,8 @@ if [ ! -f "$HH_TOKEN_FILE" ] || [ ! -s "$HH_TOKEN_FILE" ]; then
 else
   info "registration_token-Datei bereits vorhanden — nicht überschrieben"
 fi
-info "Registration-Token: $REG_TOKEN"
+# Token bewusst NICHT in den Install-Log echoen (der streamt ins Admin-UI) —
+# er liegt sicher in $HH_TOKEN_FILE (chmod 600). Secret gehört nicht in Logs.
 
 # ── Systemd-Unit schreiben ───────────────────────────────────────────────────
 cat > /etc/systemd/system/hydrahive-tuwunel.service << UNIT
