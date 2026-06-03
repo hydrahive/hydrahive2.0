@@ -23,6 +23,7 @@ dependencies = [
     "pyyaml>=6.0",
     "websockets>=13",
     "discord.py>=2.3",
+    "matrix-nio>=0.25,<0.26",
     "asyncpg>=0.29",
     "pytest>=9.0",
     "pytest-asyncio>=1.4",
