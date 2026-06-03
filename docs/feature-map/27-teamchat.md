@@ -13,9 +13,9 @@
 > Design-Dok: `docs/superpowers/specs/2026-06-03-teamchat-schicht1-design.md` ·
 > Plan: `docs/superpowers/plans/2026-06-03-teamchat-schicht1.md`.
 > Status (2026-06-03): **Schicht 1 komplett** (Etappe 1–3 Fundament/Bridge/Räume+API+SSE,
-> 4a Agent-Bridge, 4b Frontend) **+ Etappe 5a Mitglieder-Verwaltung** — alles auf `main`,
-> live verifiziert auf Testserver `192.168.3.23`. Offen: 5b Raum umbenennen/löschen,
-> 5c privat/offen pro Raum, 5d Presence.
+> 4a Agent-Bridge, 4b Frontend) **+ Etappe 5a Mitglieder-Verwaltung + 5b Raum umbenennen/löschen** — alles auf
+> `main`, live verifiziert auf Testserver `192.168.3.23`. Offen: 5c privat/offen pro Raum, 5d Presence.
+> (Detail-Refresh dieser Sektion für 5b's rename/delete folgt am Etappe-5-Ende.)
 >
 > **3 Schichten** (Regel #2): 1 = Intra-Instanz (eigene User + lokaler Agent) ← *hier*,
 > 2 = Föderation Cross-Node/Tailscale, 3 = fremde Agenten cross-node.
@@ -205,8 +205,8 @@ is_group=True))` → Runner (Agent-eigenes `llm_model`) → egress-`scrub` → B
 ---
 
 ## Offene Enden
-- **Etappe 5b** Raum umbenennen/löschen, **5c** privat/offen pro Raum (Migration `visibility` + browse/join),
-  **5d** Presence (geplant HH-native: online = aktive SSE-Verbindung) — noch nicht gebaut.
+- **Etappe 5c** privat/offen pro Raum (Migration `visibility` + browse/join), **5d** Presence (geplant HH-native:
+  online = aktive SSE-Verbindung) — noch nicht gebaut. (5a Mitglieder + 5b umbenennen/löschen sind fertig.)
 - **Leere/fehlgeschlagene Agent-Antwort ist still** — kein sichtbarer Hinweis im Raum (UX-Politur offen).
 - **Kein Emote-Picker** im teamchat-Eingabefeld (Rendering geht, Einfügen nur per Tippen `:hydra-name:`).
 - **Formales `m.mentions`** (primäres Anrede-Signal laut Design) wird vom Frontend (noch) nicht produziert;
