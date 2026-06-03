@@ -5,7 +5,18 @@ ohne Dienst-Neustart — identisches Muster wie `_mail.py`.
 """
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from hydrahive.settings.overrides import env_or_override
+
+# Direkt aus Env lesen — NICHT über self.config_dir (cached_property würde zur
+# Import-Zeit einfrieren und Test-Envs vergiften; identisches Muster wie overrides.py).
+_CONFIG_DIR_DEFAULT = "/etc/hydrahive2"
+
+
+def _config_dir() -> Path:
+    return Path(os.environ.get("HH_CONFIG_DIR", _CONFIG_DIR_DEFAULT))
 
 
 class _TeamchatMixin:
@@ -19,7 +30,17 @@ class _TeamchatMixin:
 
     @property
     def matrix_server_name(self) -> str:
-        return env_or_override("matrix_server_name", "HH_MATRIX_SERVER_NAME", "").strip()
+        value = env_or_override("matrix_server_name", "HH_MATRIX_SERVER_NAME", "").strip()
+        if value:
+            return value
+        # Fallback: tuwunel Extension schreibt den gewählten Namen in diese Datei.
+        # Pfad direkt aus HH_CONFIG_DIR (nicht self.config_dir) — verhindert
+        # cached_property-Freeze bei Test-Collection (vgl. overrides.py).
+        sn_file = _config_dir() / "matrix" / "server_name"
+        try:
+            return sn_file.read_text().strip()
+        except OSError:
+            return ""
 
     @property
     def matrix_registration_token(self) -> str:

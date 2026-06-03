@@ -43,3 +43,55 @@ def test_matrix_registration_token_default_leer(monkeypatch, tmp_path):
     from hydrahive.settings import settings
 
     assert settings.matrix_registration_token == ""
+
+
+# ---------------------------------------------------------------------------
+# matrix_server_name — File-Fallback (Part A)
+# ---------------------------------------------------------------------------
+
+def test_matrix_server_name_file_fallback(monkeypatch, tmp_path):
+    """Wenn env leer und Datei vorhanden → Datei-Inhalt wird zurückgegeben."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("HH_MATRIX_SERVER_NAME", raising=False)
+
+    server_name_file = tmp_path / "matrix" / "server_name"
+    server_name_file.parent.mkdir(parents=True, exist_ok=True)
+    server_name_file.write_text("masternode.hydrahive.org\n")
+
+    from hydrahive.settings import settings
+    assert settings.matrix_server_name == "masternode.hydrahive.org"
+
+
+def test_matrix_server_name_env_gewinnt_vor_datei(monkeypatch, tmp_path):
+    """Wenn env gesetzt → env-Wert gewinnt, Datei wird ignoriert."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setenv("HH_MATRIX_SERVER_NAME", "env-server.example.org")
+
+    server_name_file = tmp_path / "matrix" / "server_name"
+    server_name_file.parent.mkdir(parents=True, exist_ok=True)
+    server_name_file.write_text("file-server.example.org\n")
+
+    from hydrahive.settings import settings
+    assert settings.matrix_server_name == "env-server.example.org"
+
+
+def test_matrix_server_name_datei_fehlt_gibt_leer(monkeypatch, tmp_path):
+    """Wenn env leer und Datei fehlt → leerer String."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("HH_MATRIX_SERVER_NAME", raising=False)
+
+    from hydrahive.settings import settings
+    assert settings.matrix_server_name == ""
+
+
+def test_matrix_server_name_datei_leer_gibt_leer(monkeypatch, tmp_path):
+    """Wenn env leer und Datei vorhanden aber leer → leerer String."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("HH_MATRIX_SERVER_NAME", raising=False)
+
+    server_name_file = tmp_path / "matrix" / "server_name"
+    server_name_file.parent.mkdir(parents=True, exist_ok=True)
+    server_name_file.write_text("   \n")
+
+    from hydrahive.settings import settings
+    assert settings.matrix_server_name == ""
