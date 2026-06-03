@@ -8,7 +8,7 @@ _BASE_TOOLS: dict[str, list[str]] = {
         "shell_exec", "file_read", "file_write", "file_patch",
         "web_search", "fetch_url",
         "read_memory", "write_memory", "search_memory",
-        "todo_write", "ask_agent", "send_mail", "list_projects",
+        "todo_write", "ask_agent", "send_mail", "read_mail", "list_projects",
         "list_skills", "load_skill",
         "read_scratchpad", "write_scratchpad",
         "webmin_status", "webmin_call",
