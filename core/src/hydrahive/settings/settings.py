@@ -19,6 +19,7 @@ from hydrahive.settings._infra import (
     _WebminMixin,
 )
 from hydrahive.settings._mail import _MailMixin
+from hydrahive.settings._teamchat import _TeamchatMixin
 from hydrahive.settings._paths import _PathsMixin
 from hydrahive.settings._services import (
     _AgentLinkMixin,
@@ -33,6 +34,7 @@ class Settings(
     _AgentLinkMixin,
     _CommunicationMixin,
     _MailMixin,
+    _TeamchatMixin,
     _SambaMixin,
     _VmsMixin,
     _ExtensionsMixin,
