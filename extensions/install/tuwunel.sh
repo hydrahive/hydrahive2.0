@@ -16,7 +16,7 @@ TUWUNEL_DIR="/var/lib/tuwunel"
 TUWUNEL_CONFIG_DIR="/etc/tuwunel"
 TUWUNEL_CONFIG="${TUWUNEL_CONFIG_DIR}/tuwunel.toml"
 TUWUNEL_BIN="/usr/local/bin/tuwunel"
-HH_MATRIX_DIR="${HH_CONFIG_DIR:-/etc/hydrahive}/matrix"
+HH_MATRIX_DIR="${HH_CONFIG_DIR:-/etc/hydrahive2}/matrix"
 
 info "Installiere tuwunel Matrix-Homeserver..."
 

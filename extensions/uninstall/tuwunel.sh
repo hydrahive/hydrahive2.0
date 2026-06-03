@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # extensions/uninstall/tuwunel.sh — tuwunel Matrix-Homeserver entfernen
-# Hinweis zu HH2-Config-Dateien: ${HH_CONFIG_DIR:-/etc/hydrahive}/matrix/ wird
+# Hinweis zu HH2-Config-Dateien: ${HH_CONFIG_DIR:-/etc/hydrahive2}/matrix/ wird
 # NICHT gelöscht — die Dateien enthalten den registration_token und server_name,
 # die beim nächsten Install wiederverwendet werden (Idempotenz) und ggf. noch
 # im HydraHive-Backend referenziert werden.
@@ -40,8 +40,8 @@ success "Datenverzeichnis $TUWUNEL_DIR entfernt"
 userdel -r "$TUWUNEL_USER" 2>/dev/null || true
 success "System-User '$TUWUNEL_USER' entfernt"
 
-# HH2-Config-Dateien (${HH_CONFIG_DIR:-/etc/hydrahive}/matrix/) werden
+# HH2-Config-Dateien (${HH_CONFIG_DIR:-/etc/hydrahive2}/matrix/) werden
 # NICHT gelöscht — sie werden beim nächsten Install wiederverwendet.
-info "Hinweis: ${HH_CONFIG_DIR:-/etc/hydrahive}/matrix/ bleibt erhalten (registration_token + server_name für Re-Install)"
+info "Hinweis: ${HH_CONFIG_DIR:-/etc/hydrahive2}/matrix/ bleibt erhalten (registration_token + server_name für Re-Install)"
 
 success "tuwunel deinstalliert"

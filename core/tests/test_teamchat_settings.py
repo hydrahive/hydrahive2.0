@@ -95,3 +95,33 @@ def test_matrix_server_name_datei_leer_gibt_leer(monkeypatch, tmp_path):
 
     from hydrahive.settings import settings
     assert settings.matrix_server_name == ""
+
+
+# ---------------------------------------------------------------------------
+# matrix_registration_token — File-Fallback (gleiche Quelle wie der Installer)
+# ---------------------------------------------------------------------------
+
+def test_matrix_registration_token_file_fallback(monkeypatch, tmp_path):
+    """Wenn env leer und Datei vorhanden → Token aus der Installer-Datei."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("HH_MATRIX_REGISTRATION_TOKEN", raising=False)
+
+    token_file = tmp_path / "matrix" / "registration_token"
+    token_file.parent.mkdir(parents=True, exist_ok=True)
+    token_file.write_text("deadbeef0123\n")
+
+    from hydrahive.settings import settings
+    assert settings.matrix_registration_token == "deadbeef0123"
+
+
+def test_matrix_registration_token_env_gewinnt_vor_datei(monkeypatch, tmp_path):
+    """Wenn env gesetzt → env-Wert gewinnt, Datei wird ignoriert."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setenv("HH_MATRIX_REGISTRATION_TOKEN", "env-token")
+
+    token_file = tmp_path / "matrix" / "registration_token"
+    token_file.parent.mkdir(parents=True, exist_ok=True)
+    token_file.write_text("file-token\n")
+
+    from hydrahive.settings import settings
+    assert settings.matrix_registration_token == "env-token"
