@@ -1,11 +1,6 @@
 import { Check, ShieldAlert, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
-
-export interface PendingConfirm {
-  call_id: string
-  tool_name: string
-  arguments: Record<string, unknown>
-}
+import type { PendingConfirm } from "./useChat"
 
 interface Props {
   pending: PendingConfirm
@@ -24,10 +19,13 @@ export function ToolConfirmBanner({ pending, onApprove, onDeny, busy }: Props) {
       <ShieldAlert size={16} className="text-amber-300 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0 space-y-1">
         <p className="text-sm text-amber-100">
-          {t("tool_confirm.message")}
+          {pending.reason ? t("tool_confirm.protected") : t("tool_confirm.message")}
           {" "}
           <code className="font-mono text-amber-200 bg-amber-500/10 px-1.5 py-0.5 rounded">{pending.tool_name}</code>
         </p>
+        {pending.reason && (
+          <p className="text-xs font-medium text-amber-200">{pending.reason}</p>
+        )}
         <p className="text-[11px] font-mono text-amber-200/70 truncate" title={argsStr}>
           {argsShort}
         </p>

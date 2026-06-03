@@ -7,6 +7,8 @@ export interface PendingConfirm {
   call_id: string
   tool_name: string
   arguments: Record<string, unknown>
+  // Gesetzt vom Harakiri-Schutz: warum dieser shell_exec bestätigt werden muss.
+  reason?: string | null
 }
 
 export interface ChatState {

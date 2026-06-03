@@ -58,6 +58,7 @@ export function applyStreamEvent(
         call_id: ev.call_id as string,
         tool_name: ev.tool_name as string,
         arguments: ev.arguments as Record<string, unknown>,
+        reason: (ev.reason as string | null | undefined) ?? null,
       },
     }))
   } else if (ev.type === "tool_use_result") {

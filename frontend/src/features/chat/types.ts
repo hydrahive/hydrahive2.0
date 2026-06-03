@@ -66,6 +66,7 @@ export type RunnerEvent =
       call_id: string
       tool_name: string
       arguments: Record<string, unknown>
+      reason?: string | null
     }
   | {
       type: "tool_use_result"

@@ -125,6 +125,7 @@
   },
   "tool_confirm": {
     "message": "Agent wants to execute the following tool:",
+    "protected": "Protected access — confirmation required:",
     "approve": "Allow",
     "deny": "Deny"
   }

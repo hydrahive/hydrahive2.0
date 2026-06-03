@@ -12,6 +12,7 @@ from hydrahive.runner import tool_confirmation
 from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, ToolUseStart
 from hydrahive.tools import ToolContext, ToolResult
+from hydrahive.tools._protected_paths import shell_confirm_reason
 from hydrahive.tools._observations import (
     HOOK_POST_TOOL_FAILURE,
     HOOK_POST_TOOL_USE,
@@ -39,9 +40,19 @@ async def process_tool_uses(
         tu_args = tu.get("input", {}) or {}
         yield ToolUseStart(call_id=tu_id, tool_name=tu_name, arguments=tu_args)
 
-        if require_confirm:
+        # Harakiri-Schutz: auch ohne globales require_confirm verlangt ein
+        # shell_exec, das in einen geschützten Pfad schreibt oder ein Geheimnis
+        # liest, eine Bestätigung — pro Call, mit Begründung im Event.
+        confirm_reason: str | None = None
+        if tu_name == "shell_exec":
+            confirm_reason = shell_confirm_reason(tu_args.get("cmd", "") or "")
+        needs_confirm = require_confirm or confirm_reason is not None
+
+        if needs_confirm:
             fut = tool_confirmation.register(tu_id)
-            yield ToolConfirmRequired(call_id=tu_id, tool_name=tu_name, arguments=tu_args)
+            yield ToolConfirmRequired(
+                call_id=tu_id, tool_name=tu_name, arguments=tu_args, reason=confirm_reason
+            )
             decision = await tool_confirmation.wait(tu_id)
             _ = fut
             if decision == "deny":

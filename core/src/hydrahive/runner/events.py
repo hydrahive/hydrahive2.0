@@ -48,10 +48,16 @@ class ToolUseStart:
 
 @dataclass
 class ToolConfirmRequired:
-    """Tool-Confirm-Modus aktiv — Runner wartet auf User-Entscheidung."""
+    """Tool-Confirm-Modus aktiv — Runner wartet auf User-Entscheidung.
+
+    `reason` ist gesetzt wenn die Bestätigung NICHT vom globalen
+    require_tool_confirm kommt, sondern vom Harakiri-Schutz (shell_exec will in
+    einen geschützten Pfad schreiben oder ein Geheimnis lesen).
+    """
     call_id: str
     tool_name: str
     arguments: dict
+    reason: str | None = None
     type: Literal["tool_confirm_required"] = "tool_confirm_required"
 
 
