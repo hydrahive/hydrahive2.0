@@ -86,6 +86,25 @@ def create_room(room_id: str, name: str, created_by: str) -> dict:
     return get_room(room_id)  # type: ignore[return-value]
 
 
+def update_room_name(room_id: str, name: str) -> None:
+    """Benennt einen Raum um (HH-DB ist die für die UI sichtbare Quelle)."""
+    with db() as conn:
+        conn.execute(
+            "UPDATE teamchat_rooms SET name = ? WHERE room_id = ?", (name, room_id)
+        )
+
+
+def delete_room(room_id: str) -> None:
+    """Entfernt einen Raum + seine Agent-Zuordnungen aus der HH-DB.
+
+    Die Matrix-Hülle bleibt verwaist — Matrix kennt kein echtes Raum-Löschen;
+    aus HH-Sicht (list_joined_rooms ∩ DB) verschwindet der Raum für alle.
+    """
+    with db() as conn:
+        conn.execute("DELETE FROM teamchat_room_agents WHERE room_id = ?", (room_id,))
+        conn.execute("DELETE FROM teamchat_rooms WHERE room_id = ?", (room_id,))
+
+
 def list_rooms_for_user(user_id: str) -> list[dict]:
     """Gibt alle bekannten Räume zurück, sortiert nach created_at.
 

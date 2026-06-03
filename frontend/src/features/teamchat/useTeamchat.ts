@@ -83,6 +83,24 @@ export function useTeamchat() {
     setCurrentRoomId(room_id)
   }, [])
 
+  const renameRoom = useCallback(async (roomId: string, name: string) => {
+    await teamchatApi.renameRoom(roomId, name)
+    setRooms(await teamchatApi.listRooms())
+  }, [])
+
+  const deleteRoom = useCallback(async (roomId: string) => {
+    await teamchatApi.deleteRoom(roomId)
+    try {
+      const rs = await teamchatApi.listRooms()
+      setRooms(rs)
+      setCurrentRoomId((cur) => (cur === roomId ? (rs[0]?.room_id ?? null) : cur))
+    } catch {
+      // Refresh schlug fehl → trotzdem lokal entfernen (Raum ist serverseitig weg)
+      setRooms((prev) => prev.filter((r) => r.room_id !== roomId))
+      setCurrentRoomId((cur) => (cur === roomId ? null : cur))
+    }
+  }, [])
+
   const addMember = useCallback(async (userId: string) => {
     if (!currentRoomId) return
     await teamchatApi.inviteMember(currentRoomId, userId)
@@ -110,6 +128,6 @@ export function useTeamchat() {
   return {
     rooms, currentRoomId, messages, members, roomAgents, ownAgents,
     loading, notConfigured, error,
-    selectRoom, send, createRoom, attachAgent, detachAgent, addMember, removeMember,
+    selectRoom, send, createRoom, renameRoom, deleteRoom, attachAgent, detachAgent, addMember, removeMember,
   }
 }

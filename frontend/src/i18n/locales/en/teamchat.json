@@ -1,6 +1,9 @@
 {
   "rooms": "Rooms",
   "new_room": "New room",
+  "rename_room": "Rename room",
+  "delete_room": "Delete room",
+  "delete_room_confirm": "Really delete room \"{{name}}\"? This removes it for everyone.",
   "room_name": "Room name",
   "members_csv": "Members (comma-separated)",
   "create": "Create",

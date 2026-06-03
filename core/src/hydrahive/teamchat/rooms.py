@@ -176,6 +176,55 @@ async def kick_member(room_id: str, kicker_user_id: str, target_user_id: str) ->
     logger.info("kick_member: room=%s kicker=%s target=%s", room_id, kicker_user_id, target_user_id)
 
 
+async def rename_room(room_id: str, renamer_user_id: str, new_name: str) -> None:
+    """Benennt einen Raum um. Der DB-Name ist die HH-sichtbare Quelle; der Matrix-
+    Raumname wird best-effort mitgesetzt (relevant erst für Schicht 2/Föderation)."""
+    from hydrahive.settings import settings
+
+    # Identität zuerst — sonst hätten wir bei Provisioning-Fehler die DB schon
+    # umbenannt, der Aufrufer aber einen 502 bekommen (stille Mutation).
+    renamer = await ensure_identity(renamer_user_id)
+    db_teamchat.update_room_name(room_id, new_name)
+
+    client = build_client(
+        settings.matrix_homeserver_url,
+        renamer.user_id, renamer.access_token, renamer.device_id,
+    )
+    try:
+        resp = await client.room_put_state(room_id, "m.room.name", {"name": new_name})
+        if not isinstance(resp, nio.RoomPutStateResponse):
+            logger.warning(
+                "rename_room: Matrix-Name nicht gesetzt für %s: %s", room_id, type(resp).__name__,
+            )
+    finally:
+        await client.close()
+    logger.info("rename_room: room=%s by=%s", room_id, renamer_user_id)
+
+
+async def delete_room(room_id: str, deleter_user_id: str) -> None:
+    """Löscht einen Raum aus HH: Ersteller verlässt den Matrix-Raum (best-effort),
+    DB-Eintrag (Raum + Agent-Zuordnungen) wird entfernt → für alle aus HH weg.
+    Die leere Matrix-Hülle bleibt verwaist (Matrix kennt kein echtes Löschen)."""
+    from hydrahive.settings import settings
+
+    deleter = await ensure_identity(deleter_user_id)
+    client = build_client(
+        settings.matrix_homeserver_url,
+        deleter.user_id, deleter.access_token, deleter.device_id,
+    )
+    try:
+        resp = await client.room_leave(room_id)
+        if not isinstance(resp, nio.RoomLeaveResponse):
+            logger.warning(
+                "delete_room: leave nicht bestätigt für %s: %s", room_id, type(resp).__name__,
+            )
+    finally:
+        await client.close()
+
+    db_teamchat.delete_room(room_id)
+    logger.info("delete_room: room=%s by=%s", room_id, deleter_user_id)
+
+
 async def list_members(room_id: str, requester_user_id: str) -> list[str]:
     """Return a list of MXIDs of joined members in a room."""
     from hydrahive.settings import settings

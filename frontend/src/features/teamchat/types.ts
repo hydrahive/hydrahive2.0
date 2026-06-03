@@ -1,7 +1,7 @@
 export interface TeamRoom {
   room_id: string
   name: string
-  created_by?: string
+  created_by: string
   created_at?: string
 }
 

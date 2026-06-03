@@ -366,6 +366,75 @@ async def test_kick_member_error_raises(setup_test_env, monkeypatch):
     client.close.assert_awaited_once()
 
 
+# ---------------------------------------------------------------------------
+# rename_room / delete_room (5b)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_rename_room_updates_db_and_matrix(setup_test_env, monkeypatch):
+    """rename_room: DB-Name (HH-Quelle) + best-effort Matrix-Raumname."""
+    import nio
+    renamer = _make_tokens("@admin:test.local")
+    client = MagicMock()
+    client.room_put_state = AsyncMock(return_value=MagicMock(spec=nio.RoomPutStateResponse))
+    client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=renamer)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+        patch("hydrahive.teamchat.rooms.db_teamchat") as db_mock,
+    ):
+        from hydrahive.teamchat.rooms import rename_room
+        await rename_room("!room:test.local", "admin", "Neuer Name")
+
+    db_mock.update_room_name.assert_called_once_with("!room:test.local", "Neuer Name")
+    client.room_put_state.assert_awaited_once()
+    client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_rename_room_db_gewinnt_auch_wenn_matrix_scheitert(setup_test_env):
+    """Matrix-Name-Setzen scheitert → DB-Rename trotzdem durchgeführt (HH-Truth)."""
+    import nio
+    renamer = _make_tokens("@admin:test.local")
+    client = MagicMock()
+    client.room_put_state = AsyncMock(return_value=MagicMock(spec=nio.RoomPutStateError))
+    client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=renamer)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+        patch("hydrahive.teamchat.rooms.db_teamchat") as db_mock,
+    ):
+        from hydrahive.teamchat.rooms import rename_room
+        await rename_room("!room:test.local", "admin", "Trotzdem")  # darf NICHT werfen
+
+    db_mock.update_room_name.assert_called_once_with("!room:test.local", "Trotzdem")
+    client.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_room_leaves_and_deletes(setup_test_env):
+    """delete_room: Ersteller verlässt Matrix-Raum (best-effort) + DB-Löschung."""
+    import nio
+    deleter = _make_tokens("@admin:test.local")
+    client = MagicMock()
+    client.room_leave = AsyncMock(return_value=MagicMock(spec=nio.RoomLeaveResponse))
+    client.close = AsyncMock()
+
+    with (
+        patch("hydrahive.teamchat.rooms.ensure_identity", new=AsyncMock(return_value=deleter)),
+        patch("hydrahive.teamchat.rooms.build_client", return_value=client),
+        patch("hydrahive.teamchat.rooms.db_teamchat") as db_mock,
+    ):
+        from hydrahive.teamchat.rooms import delete_room
+        await delete_room("!room:test.local", "admin")
+
+    db_mock.delete_room.assert_called_once_with("!room:test.local")
+    client.room_leave.assert_awaited_once_with("!room:test.local")
+    client.close.assert_awaited_once()
+
+
 @pytest.mark.asyncio
 async def test_invite_member_error_raises_room_error(setup_test_env):
     """RoomInviteError → RoomError, close() trotzdem aufgerufen."""

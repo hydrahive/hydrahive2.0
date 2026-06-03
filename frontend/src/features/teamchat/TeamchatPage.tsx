@@ -48,7 +48,7 @@ export function TeamchatPage() {
   }
 
   const currentRoom = tc.rooms.find((r) => r.room_id === tc.currentRoomId) ?? null
-  const canManage = !!currentRoom && (currentRoom.created_by === me || role === "admin")
+  const canManage = !!currentRoom && !!me && (currentRoom.created_by === me || role === "admin")
 
   return (
     <div className="flex items-stretch h-full gap-4 px-4 py-4 overflow-hidden">
@@ -60,9 +60,12 @@ export function TeamchatPage() {
           members={tc.members}
           agents={tc.roomAgents}
           me={me}
+          isAdmin={role === "admin"}
           canManage={canManage}
           onSelect={tc.selectRoom}
           onCreateRoom={tc.createRoom}
+          onRenameRoom={tc.renameRoom}
+          onDeleteRoom={tc.deleteRoom}
           onAddMember={tc.addMember}
           onRemoveMember={tc.removeMember}
         />

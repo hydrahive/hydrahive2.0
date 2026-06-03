@@ -13,7 +13,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware import users as hh_users
@@ -68,6 +68,10 @@ class InviteMemberBody(BaseModel):
 
 class AttachAgentBody(BaseModel):
     agent_id: str
+
+
+class RenameRoomBody(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +145,41 @@ async def post_rooms(
     except RoomError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
     return {"room_id": room_id}
+
+
+@router.patch(
+    "/rooms/{room_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[_TC],
+)
+async def patch_room(
+    room_id: str,
+    body: RenameRoomBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    user_id, role = auth
+    _require_room_manager(room_id, user_id, role)
+    try:
+        await rooms.rename_room(room_id, user_id, body.name)
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+
+@router.delete(
+    "/rooms/{room_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[_TC],
+)
+async def delete_room(
+    room_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> None:
+    user_id, role = auth
+    _require_room_manager(room_id, user_id, role)
+    try:
+        await rooms.delete_room(room_id, user_id)
+    except RoomError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
 
 @router.get("/rooms/{room_id}/messages", dependencies=[_TC])

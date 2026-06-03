@@ -154,6 +154,64 @@ def test_get_rooms_room_error_returns_502(client_enabled):
 
 
 # ---------------------------------------------------------------------------
+# PATCH/DELETE /rooms/{room_id} — umbenennen/löschen (5b)
+# ---------------------------------------------------------------------------
+
+def test_patch_room_renames_when_manager(client_enabled):
+    room_id = "!r:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "created_by": "till"}),
+        patch("hydrahive.api.routes.teamchat.rooms.rename_room",
+              new=AsyncMock()) as mock_rename,
+    ):
+        resp = client_enabled.patch(f"/api/teamchat/rooms/{room_id}", json={"name": "Neuer Name"})
+
+    assert resp.status_code == 204
+    mock_rename.assert_awaited_once_with(room_id, "till", "Neuer Name")
+
+
+def test_patch_room_not_manager_403(client_enabled):
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"created_by": "someone_else"}),
+        patch("hydrahive.api.routes.teamchat.rooms.rename_room",
+              new=AsyncMock()) as mock_rename,
+    ):
+        resp = client_enabled.patch("/api/teamchat/rooms/!r:matrix.local", json={"name": "X"})
+
+    assert resp.status_code == 403
+    mock_rename.assert_not_awaited()
+
+
+def test_delete_room_when_manager(client_enabled):
+    room_id = "!r:matrix.local"
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"room_id": room_id, "created_by": "till"}),
+        patch("hydrahive.api.routes.teamchat.rooms.delete_room",
+              new=AsyncMock()) as mock_delete,
+    ):
+        resp = client_enabled.delete(f"/api/teamchat/rooms/{room_id}")
+
+    assert resp.status_code == 204
+    mock_delete.assert_awaited_once_with(room_id, "till")
+
+
+def test_delete_room_not_manager_403(client_enabled):
+    with (
+        patch("hydrahive.api.routes.teamchat.db_teamchat.get_room",
+              return_value={"created_by": "someone_else"}),
+        patch("hydrahive.api.routes.teamchat.rooms.delete_room",
+              new=AsyncMock()) as mock_delete,
+    ):
+        resp = client_enabled.delete("/api/teamchat/rooms/!r:matrix.local")
+
+    assert resp.status_code == 403
+    mock_delete.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
 # POST /rooms/{room_id}/messages
 # ---------------------------------------------------------------------------
 

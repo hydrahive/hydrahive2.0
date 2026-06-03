@@ -188,6 +188,24 @@ def test_list_rooms_for_user_sortiert_nach_created_at():
     assert ours == ["!roomB:mx.example", "!roomA:mx.example"]
 
 
+def test_update_room_name():
+    from hydrahive.db import teamchat
+
+    teamchat.create_room("!rn:mx.example", "Alt", created_by="admin")
+    teamchat.update_room_name("!rn:mx.example", "Neu")
+    assert teamchat.get_room("!rn:mx.example")["name"] == "Neu"
+
+
+def test_delete_room_entfernt_raum_und_agents():
+    from hydrahive.db import teamchat
+
+    teamchat.create_room("!rd:mx.example", "Weg", created_by="admin")
+    teamchat.attach_agent("!rd:mx.example", "agent-x", attached_by="admin")
+    teamchat.delete_room("!rd:mx.example")
+    assert teamchat.get_room("!rd:mx.example") is None
+    assert teamchat.list_room_agents("!rd:mx.example") == []
+
+
 # ---------------------------------------------------------------------------
 # room_agents
 # ---------------------------------------------------------------------------

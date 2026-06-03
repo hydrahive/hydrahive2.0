@@ -16,6 +16,9 @@ export const teamchatApi = {
   listRooms: () => api.get<TeamRoom[]>("/teamchat/rooms"),
   createRoom: (name: string, members: string[]) =>
     api.post<{ room_id: string }>("/teamchat/rooms", { name, members }),
+  renameRoom: (roomId: string, name: string) =>
+    api.patch<void>(roomPath(roomId), { name }),
+  deleteRoom: (roomId: string) => api.delete<void>(roomPath(roomId)),
 
   getMessages: (roomId: string, limit = 50) =>
     api.get<TeamMessage[]>(roomPath(roomId, `/messages?limit=${limit}`)),

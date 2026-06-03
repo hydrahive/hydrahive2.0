@@ -1,6 +1,9 @@
 {
   "rooms": "Räume",
   "new_room": "Neuer Raum",
+  "rename_room": "Raum umbenennen",
+  "delete_room": "Raum löschen",
+  "delete_room_confirm": "Raum „{{name}}\" wirklich löschen? Das entfernt ihn für alle.",
   "room_name": "Raumname",
   "members_csv": "Mitglieder (Komma-getrennt)",
   "create": "Anlegen",
