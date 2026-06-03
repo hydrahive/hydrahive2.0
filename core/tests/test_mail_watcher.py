@@ -215,3 +215,23 @@ def test_imap_host_explicit_override_wins(monkeypatch, tmp_path):
 def test_imap_port_default_993(monkeypatch, tmp_path):
     s = _fresh_settings(monkeypatch, tmp_path, HH_MAIL_SMTP_HOST="mail.example.biz")
     assert s.mail_imap_port == 993
+
+
+# ------------------------------------- Watcher-Antwort nutzt den Transport (465-Fix)
+
+def test_send_reply_delegates_to_transport_with_port(monkeypatch):
+    from hydrahive.communication.mail import smtp_send
+
+    seen = {}
+    monkeypatch.setattr(smtp_send._transport, "send_message",
+                        lambda cfg, msg: seen.update(cfg=cfg, frm=msg["From"], to=msg["To"]))
+
+    smtp_send.send_reply(
+        {"smtp_host": "w0.kasserver.com", "smtp_port": 465, "smtp_user": "u",
+         "smtp_password": "p", "smtp_from": "bot@x", "smtp_use_tls": True},
+        to="y@z", subject="Re: Frage", body="ok", in_reply_to="<m1@x>")
+
+    assert seen["cfg"]["host"] == "w0.kasserver.com"
+    assert seen["cfg"]["port"] == 465          # → Transport wählt implizites SSL
+    assert seen["frm"] == "bot@x"
+    assert seen["to"] == "y@z"

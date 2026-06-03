@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import smtplib
 from email.message import EmailMessage
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
@@ -50,23 +49,6 @@ def _resolve_smtp_cfg(tool_config: dict) -> dict:
     return _settings_smtp()
 
 
-def _send_sync(cfg: dict, msg: EmailMessage) -> None:
-    host = cfg.get("host", "")
-    port = int(cfg.get("port", 587))
-    use_tls = bool(cfg.get("use_tls", True))
-    user = cfg.get("user")
-    pw = cfg.get("password")
-
-    with smtplib.SMTP(host, port, timeout=30) as s:
-        s.ehlo()
-        if use_tls:
-            s.starttls()
-            s.ehlo()
-        if user and pw:
-            s.login(user, pw)
-        s.send_message(msg)
-
-
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     cfg = _resolve_smtp_cfg(ctx.config)
     if not cfg.get("host") or not cfg.get("from"):
@@ -90,8 +72,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     msg["Subject"] = subject
     msg.set_content(body)
 
+    # Lazy: tools wird früh geladen — kein Top-Level-Import in communication (Zirkel).
+    from hydrahive.communication.mail import _transport
+
     try:
-        await asyncio.to_thread(_send_sync, cfg, msg)
+        await asyncio.to_thread(_transport.send_message, cfg, msg)
     except Exception as e:
         return ToolResult.fail(f"Mail-Versand fehlgeschlagen: {e}")
 

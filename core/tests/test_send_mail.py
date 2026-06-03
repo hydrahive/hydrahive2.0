@@ -63,7 +63,8 @@ def test_execute_sends_via_settings_fallback(monkeypatch):
         sent["from"] = msg["From"]
         sent["to"] = msg["To"]
 
-    monkeypatch.setattr(send_mail, "_send_sync", fake_send)
+    from hydrahive.communication.mail import _transport
+    monkeypatch.setattr(_transport, "send_message", fake_send)
 
     res = asyncio.run(send_mail._execute(
         {"to": "x@y", "subject": "Hi", "body": "yo"}, _ctx({})))
