@@ -34,7 +34,14 @@ def _matrix_file(name: str) -> str:
 class _TeamchatMixin:
     @property
     def teamchat_enabled(self) -> bool:
-        return env_or_override("teamchat_enabled", "HH_TEAMCHAT_ENABLED", "0").lower() in ("1", "true", "yes")
+        # Explizites Flag (Env/GUI-Override) gewinnt — Admin kann an/aus erzwingen.
+        explicit = env_or_override("teamchat_enabled", "HH_TEAMCHAT_ENABLED", "").strip().lower()
+        if explicit:
+            return explicit in ("1", "true", "yes")
+        # Sonst aktiv, sobald der Homeserver konfiguriert ist (tuwunel-Extension
+        # installiert → server_name + registration_token vorhanden). „Konditional
+        # wie Mail/WhatsApp" — kein manuelles Flag pro Deployment nötig.
+        return bool(self.matrix_server_name and self.matrix_registration_token)
 
     @property
     def matrix_homeserver_url(self) -> str:

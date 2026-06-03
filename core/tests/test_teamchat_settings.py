@@ -21,6 +21,36 @@ def test_teamchat_enabled_true_wenn_env_1(monkeypatch, tmp_path):
     assert settings.teamchat_enabled is True
 
 
+def _write_matrix_config(tmp_path):
+    mx = tmp_path / "matrix"
+    mx.mkdir(parents=True, exist_ok=True)
+    (mx / "server_name").write_text("hydratest")
+    (mx / "registration_token").write_text("tok-abc123")
+
+
+def test_teamchat_auto_aktiv_wenn_homeserver_konfiguriert(monkeypatch, tmp_path):
+    """Ohne explizites Flag: aktiv sobald die tuwunel-Extension server_name +
+    registration_token geschrieben hat (konditional wie Mail/WhatsApp)."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.delenv("HH_TEAMCHAT_ENABLED", raising=False)
+    monkeypatch.delenv("HH_MATRIX_SERVER_NAME", raising=False)
+    monkeypatch.delenv("HH_MATRIX_REGISTRATION_TOKEN", raising=False)
+    _write_matrix_config(tmp_path)
+    from hydrahive.settings import settings
+
+    assert settings.teamchat_enabled is True
+
+
+def test_teamchat_env_0_erzwingt_aus_trotz_config(monkeypatch, tmp_path):
+    """Explizites HH_TEAMCHAT_ENABLED=0 schaltet aus, auch wenn konfiguriert (Admin-Force-Off)."""
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setenv("HH_TEAMCHAT_ENABLED", "0")
+    _write_matrix_config(tmp_path)
+    from hydrahive.settings import settings
+
+    assert settings.teamchat_enabled is False
+
+
 def test_matrix_homeserver_url_default(monkeypatch, tmp_path):
     monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
     monkeypatch.delenv("HH_MATRIX_HOMESERVER_URL", raising=False)
