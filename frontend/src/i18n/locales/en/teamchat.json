@@ -1,0 +1,23 @@
+{
+  "rooms": "Rooms",
+  "new_room": "New room",
+  "room_name": "Room name",
+  "members_csv": "Members (comma-separated)",
+  "create": "Create",
+  "no_rooms": "No rooms yet",
+  "members": "Members",
+  "no_members": "No members",
+  "agents": "Agents",
+  "attach_agent": "Attach agent",
+  "detach_agent": "Remove agent",
+  "no_agents": "No agent attached",
+  "no_available_agents": "No more agents available",
+  "no_messages": "No messages yet — say something.",
+  "input_placeholder": "Message… (@name addresses an agent)",
+  "send": "Send",
+  "not_configured": "Team chat is not enabled",
+  "not_configured_hint": "The Matrix homeserver (tuwunel) is unreachable or team chat is switched off.",
+  "to_extensions": "Go to extensions",
+  "no_room_selected": "No room selected",
+  "no_room_selected_hint": "Pick a room on the left or create a new one."
+}
