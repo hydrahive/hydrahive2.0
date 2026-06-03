@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
-import { Hash, Send } from "lucide-react"
+import { AtSign, Hash, Send } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { mxidToName } from "./_format"
-import type { TeamMessage } from "./types"
+import type { RoomAgent, TeamMessage } from "./types"
 
 const CARD_BG =
   "linear-gradient(158deg, rgba(255,255,255,.06), rgba(255,255,255,.015)), " +
@@ -12,34 +12,46 @@ const CARD_BG =
 interface ChatViewProps {
   roomName: string
   messages: TeamMessage[]
+  agents: RoomAgent[]
   onSend: (text: string) => void | Promise<void>
 }
 
-export function ChatView({ roomName, messages, onSend }: ChatViewProps) {
+export function ChatView({ roomName, messages, agents, onSend }: ChatViewProps) {
   const { t } = useTranslation("teamchat")
   const me = useAuthStore((s) => s.username)
   const [draft, setDraft] = useState("")
   const endRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages.length])
 
-  async function submit() {
+  // Bot-MXID (@agent-<id>) → Agent-Anzeigename. Der localpart nach "agent-" ist
+  // die agent_id; in roomAgents nachschlagen, sonst Rohwert.
+  function displayName(sender: string): { label: string; isBot: boolean } {
+    const { name, isBot } = mxidToName(sender)
+    if (!isBot) return { label: name, isBot }
+    const agent = agents.find((a) => a.agent_id === name)
+    return { label: agent?.name ?? name, isBot }
+  }
+
+  function insertMention(name: string) {
+    setDraft((d) => `@${name} ` + d)
+    inputRef.current?.focus()
+  }
+
+  function submit() {
     const text = draft.trim()
     if (!text) return
     setDraft("")
-    try {
-      await onSend(text)
-    } catch {
-      setDraft(text) // nicht gesendet → Entwurf zurückgeben statt still zu verschlucken
-    }
+    Promise.resolve(onSend(text)).catch(() => setDraft(text))
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      void submit()
+      submit()
     }
   }
 
@@ -60,14 +72,14 @@ export function ChatView({ roomName, messages, onSend }: ChatViewProps) {
           <p className="text-xs text-zinc-500 italic text-center pt-8">{t("no_messages")}</p>
         )}
         {messages.map((m) => {
-          const { name, isBot } = mxidToName(m.sender)
-          const mine = name === me
+          const { label, isBot } = displayName(m.sender)
+          const mine = label === me
           return (
             <div key={m.event_id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
               <div className="flex items-center gap-1.5 mb-0.5 px-1">
                 {isBot && <span className="text-[10px]">🐙</span>}
                 <span className={`text-[11px] font-medium ${isBot ? "text-[var(--hh-accent-text)]" : "text-zinc-400"}`}>
-                  {name}
+                  {label}
                 </span>
               </div>
               <div
@@ -85,23 +97,42 @@ export function ChatView({ roomName, messages, onSend }: ChatViewProps) {
         <div ref={endRef} />
       </div>
 
-      <div className="border-t border-white/[6%] bg-black/30 p-3 flex items-end gap-2">
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKeyDown}
-          rows={1}
-          placeholder={t("input_placeholder")}
-          className="flex-1 resize-none bg-white/[4%] border border-white/[8%] rounded-xl px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-[#104E8B]/70 max-h-32"
-        />
-        <button
-          onClick={submit}
-          disabled={!draft.trim()}
-          title={t("send")}
-          className="shrink-0 p-2.5 rounded-xl bg-[#104E8B]/60 text-zinc-100 hover:bg-[#104E8B]/80 border border-white/[8%] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <Send size={15} />
-        </button>
+      <div className="border-t border-white/[6%] bg-black/30 px-3 pt-2 pb-3">
+        {agents.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+            <span className="text-[10px] text-zinc-500 inline-flex items-center gap-1">
+              <AtSign size={11} /> {t("address")}:
+            </span>
+            {agents.map((a) => (
+              <button
+                key={a.agent_id}
+                onClick={() => insertMention(a.name ?? a.agent_id)}
+                className="text-[11px] px-2 py-0.5 rounded-full bg-[#104E8B]/30 text-[var(--hh-accent-text)] hover:bg-[#104E8B]/50 border border-white/[8%] transition-all"
+              >
+                @{a.name ?? a.agent_id}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={onKeyDown}
+            rows={1}
+            placeholder={t("input_placeholder")}
+            className="flex-1 resize-none bg-white/[4%] border border-white/[8%] rounded-xl px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-[#104E8B]/70 max-h-32"
+          />
+          <button
+            onClick={submit}
+            disabled={!draft.trim()}
+            title={t("send")}
+            className="shrink-0 p-2.5 rounded-xl bg-[#104E8B]/60 text-zinc-100 hover:bg-[#104E8B]/80 border border-white/[8%] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <Send size={15} />
+          </button>
+        </div>
       </div>
     </div>
   )

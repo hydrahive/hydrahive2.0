@@ -54,6 +54,7 @@ export function TeamchatPage() {
           rooms={tc.rooms}
           currentRoomId={tc.currentRoomId}
           members={tc.members}
+          agents={tc.roomAgents}
           onSelect={tc.selectRoom}
           onCreateRoom={tc.createRoom}
         />
@@ -61,7 +62,7 @@ export function TeamchatPage() {
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {currentRoom ? (
-          <ChatView roomName={currentRoom.name} messages={tc.messages} onSend={tc.send} />
+          <ChatView roomName={currentRoom.name} messages={tc.messages} agents={tc.roomAgents} onSend={tc.send} />
         ) : (
           <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center">
             <MessagesSquare size={56} className="text-zinc-700" />

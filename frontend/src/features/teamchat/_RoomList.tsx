@@ -2,18 +2,19 @@ import { useState, type CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Hash, Plus, Users } from "lucide-react"
 import { mxidToName } from "./_format"
-import type { TeamRoom } from "./types"
+import type { RoomAgent, TeamRoom } from "./types"
 
 interface RoomListProps {
   accent: string
   rooms: TeamRoom[]
   currentRoomId: string | null
   members: string[]
+  agents: RoomAgent[]
   onSelect: (roomId: string) => void
   onCreateRoom: (name: string, memberCsv: string) => Promise<void>
 }
 
-export function RoomList({ accent, rooms, currentRoomId, members, onSelect, onCreateRoom }: RoomListProps) {
+export function RoomList({ accent, rooms, currentRoomId, members, agents, onSelect, onCreateRoom }: RoomListProps) {
   const { t } = useTranslation("teamchat")
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState("")
@@ -104,12 +105,16 @@ export function RoomList({ accent, rooms, currentRoomId, members, onSelect, onCr
               <span className="text-xs text-zinc-300">{mxidToName(mxid).name}</span>
             </div>
           ))}
-          {bots.map((mxid) => (
-            <div key={mxid} className="flex items-center gap-2 py-1">
-              <span className="text-[10px]">🐙</span>
-              <span className="text-xs text-[var(--hh-accent-text)]">{mxidToName(mxid).name}</span>
-            </div>
-          ))}
+          {bots.map((mxid) => {
+            const lp = mxidToName(mxid).name
+            const label = agents.find((a) => a.agent_id === lp)?.name ?? lp
+            return (
+              <div key={mxid} className="flex items-center gap-2 py-1">
+                <span className="text-[10px]">🐙</span>
+                <span className="text-xs text-[var(--hh-accent-text)]">{label}</span>
+              </div>
+            )
+          })}
         </div>
       </div>
     </>

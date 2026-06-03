@@ -14,6 +14,7 @@
   "no_available_agents": "Keine weiteren Agenten verfügbar",
   "no_messages": "Noch keine Nachrichten — schreib etwas.",
   "input_placeholder": "Nachricht… (@name spricht einen Agenten an)",
+  "address": "Ansprechen",
   "send": "Senden",
   "not_configured": "Team-Chat ist nicht aktiviert",
   "not_configured_hint": "Der Matrix-Homeserver (tuwunel) ist nicht erreichbar oder der Team-Chat ist ausgeschaltet.",
