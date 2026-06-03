@@ -13,15 +13,15 @@ def test_get_settings_listet_registry_admin(client, admin_headers):
     assert pw["type"] == "secret" and pw["value"] == ""  # nie roh
 
 
-def test_mail_defaults_effective_no_password(client, auth_headers, monkeypatch, tmp_path):
+def test_mail_defaults_effective_no_password(client, admin_headers, monkeypatch, tmp_path):
     # Platzhalter-Quelle fürs per-Buddy-Postfach: effektive globale Mail-Config,
-    # IMAP-Host aus SMTP abgeleitet, niemals das Passwort.
+    # IMAP-Host aus SMTP abgeleitet, niemals das Passwort. Admin-only (Infra-Config).
     monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
     monkeypatch.setenv("HH_MAIL_SMTP_HOST", "w0.kasserver.com")
     monkeypatch.setenv("HH_MAIL_SMTP_USER", "m07")
     monkeypatch.delenv("HH_MAIL_IMAP_HOST", raising=False)
 
-    r = client.get("/api/system/mail-defaults", headers=auth_headers)
+    r = client.get("/api/system/mail-defaults", headers=admin_headers)
     assert r.status_code == 200
     body = r.json()
     assert body["smtp"]["host"] == "w0.kasserver.com"
@@ -29,6 +29,12 @@ def test_mail_defaults_effective_no_password(client, auth_headers, monkeypatch, 
     assert body["imap"]["host"] == "w0.kasserver.com"   # aus SMTP abgeleitet
     assert "password" not in body["smtp"]
     assert "password" not in body["imap"]
+
+
+def test_mail_defaults_non_admin_forbidden(client, auth_headers):
+    # Nicht-Admin darf die globale Infra-Config nicht sehen (kein Privilege-Downgrade).
+    r = client.get("/api/system/mail-defaults", headers=auth_headers)
+    assert r.status_code == 403
 
 
 def test_put_setzt_override_und_get_spiegelt(client, admin_headers, monkeypatch, tmp_path):
