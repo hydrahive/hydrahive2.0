@@ -182,6 +182,117 @@ async def test_ensure_identity_raises_wenn_reg_token_leer(monkeypatch, setup_tes
 # Deterministisches Passwort
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Bot-Identität (Agent-Bots) — eigener Namensraum, gültiger localpart
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_ensure_bot_identity_provisions_with_bot_localpart(monkeypatch, setup_test_env):
+    """Bot-Account: register mit localpart 'agent-buddy', DB-Key 'agent:buddy'."""
+    monkeypatch.setenv("HH_MATRIX_SERVER_NAME", "test.local")
+    monkeypatch.setenv("HH_MATRIX_HOMESERVER_URL", "http://127.0.0.1:6167")
+    monkeypatch.setenv("HH_MATRIX_REGISTRATION_TOKEN", "reg-token-test")
+    monkeypatch.setenv("HH_SECRET_KEY", "test-secret-key-for-jwt-signing")
+
+    captured: list[str] = []
+
+    async def capturing_register(homeserver, username, password, reg_token, *, device_name):
+        captured.append(username)
+        from hydrahive.teamchat.client import AccountTokens
+        return AccountTokens(
+            user_id=f"@{username}:test.local",
+            access_token="syt_bot_token",
+            device_id="DEVBOT",
+        )
+
+    with patch("hydrahive.teamchat.identity.client.register_account", new=capturing_register):
+        from hydrahive.teamchat.identity import ensure_bot_identity
+        result = await ensure_bot_identity("buddy")
+
+    # Matrix-localpart ist bot-präfixiert
+    assert captured == ["agent-buddy"]
+    assert result.user_id == "@agent-buddy:test.local"
+    assert result.access_token == "syt_bot_token"
+
+    # DB-Eintrag unter eigenem Namensraum-Key, Token verschlüsselt
+    from hydrahive.db import teamchat
+    row = teamchat.get_identity("agent:buddy")
+    assert row is not None
+    assert row["access_token"].startswith("enc:v1:")
+    assert row["mxid"] == "@agent-buddy:test.local"
+
+
+@pytest.mark.asyncio
+async def test_ensure_bot_identity_idempotent(monkeypatch, setup_test_env):
+    """Zweiter Aufruf: kein erneutes register."""
+    monkeypatch.setenv("HH_MATRIX_SERVER_NAME", "test.local")
+    monkeypatch.setenv("HH_MATRIX_HOMESERVER_URL", "http://127.0.0.1:6167")
+    monkeypatch.setenv("HH_MATRIX_REGISTRATION_TOKEN", "reg-token-test")
+    monkeypatch.setenv("HH_SECRET_KEY", "test-secret-key-for-jwt-signing")
+
+    tokens = _make_account_tokens("@agent-buddy:test.local", "syt_x", "DEV")
+    with patch("hydrahive.teamchat.identity.client.register_account", new=AsyncMock(return_value=tokens)):
+        from hydrahive.teamchat.identity import ensure_bot_identity
+        await ensure_bot_identity("buddy")
+
+    mock_register2 = AsyncMock()
+    with patch("hydrahive.teamchat.identity.client.register_account", new=mock_register2):
+        second = await ensure_bot_identity("buddy")
+
+    mock_register2.assert_not_awaited()
+    assert second.access_token == "syt_x"
+
+
+@pytest.mark.asyncio
+async def test_ensure_bot_identity_localpart_sanitized(monkeypatch, setup_test_env):
+    """Großschreibung/ungültige Zeichen im agent_id → gültiger localpart."""
+    monkeypatch.setenv("HH_MATRIX_SERVER_NAME", "test.local")
+    monkeypatch.setenv("HH_MATRIX_HOMESERVER_URL", "http://127.0.0.1:6167")
+    monkeypatch.setenv("HH_MATRIX_REGISTRATION_TOKEN", "reg-token-test")
+    monkeypatch.setenv("HH_SECRET_KEY", "test-secret-key-for-jwt-signing")
+
+    captured: list[str] = []
+
+    async def capturing_register(homeserver, username, password, reg_token, *, device_name):
+        captured.append(username)
+        from hydrahive.teamchat.client import AccountTokens
+        return AccountTokens(user_id=f"@{username}:test.local", access_token="t", device_id="D")
+
+    with patch("hydrahive.teamchat.identity.client.register_account", new=capturing_register):
+        from hydrahive.teamchat.identity import ensure_bot_identity
+        await ensure_bot_identity("Sales Bot#1")
+
+    localpart = captured[0]
+    assert localpart.startswith("agent-")
+    # nur erlaubte Matrix-localpart-Zeichen
+    assert all(c in "abcdefghijklmnopqrstuvwxyz0123456789._=/-" for c in localpart)
+
+
+@pytest.mark.asyncio
+async def test_bot_identity_namespace_separate_from_human(monkeypatch, setup_test_env):
+    """Mensch 'buddy' und Bot 'buddy' sind getrennte Accounts."""
+    monkeypatch.setenv("HH_MATRIX_SERVER_NAME", "test.local")
+    monkeypatch.setenv("HH_MATRIX_HOMESERVER_URL", "http://127.0.0.1:6167")
+    monkeypatch.setenv("HH_MATRIX_REGISTRATION_TOKEN", "reg-token-test")
+    monkeypatch.setenv("HH_SECRET_KEY", "test-secret-key-for-jwt-signing")
+
+    async def reg(homeserver, username, password, reg_token, *, device_name):
+        from hydrahive.teamchat.client import AccountTokens
+        return AccountTokens(user_id=f"@{username}:test.local", access_token=f"tok_{username}", device_id="D")
+
+    with patch("hydrahive.teamchat.identity.client.register_account", new=reg):
+        from hydrahive.teamchat.identity import ensure_identity, ensure_bot_identity
+        human = await ensure_identity("buddy")
+        bot = await ensure_bot_identity("buddy")
+
+    assert human.user_id == "@buddy:test.local"
+    assert bot.user_id == "@agent-buddy:test.local"
+
+    from hydrahive.db import teamchat
+    assert teamchat.get_identity("buddy") is not None
+    assert teamchat.get_identity("agent:buddy") is not None
+
+
 @pytest.mark.asyncio
 async def test_ensure_identity_deterministic_password(monkeypatch, setup_test_env):
     """Passwort muss deterministisch und 32 Hex-Zeichen sein."""
