@@ -53,6 +53,40 @@ nach migrieren. Eng mit dem User-/Gruppen-Management denken (Module deklarieren 
 
 ---
 
+## 🎛️ UI-Redesign: weg von Tabs → eine Seite aus dichten, einklappbaren Boxen
+
+> Tills Beobachtung beim Durchklicken (2026-06-04): Tab-Seiten verbrauchen viel
+> Platz mit Leerraum; alles soll auf EINE Seite, gegliedert in farbige Boxen
+> (wie das Dashboard), einklappbar, dichter.
+
+**A. Einklappbare Boxen (Querschnitt-Konvention → SPEC):**
+- Jede Box bekommt oben im Header einen Einklapp-Button.
+- Buddy-Boxen am Anfang **eingeklappt**; User klappt auf/zu.
+- **Auf-/Zu-Zustand wird gespeichert** (pro User, je Box-ID).
+- Gilt für **jede künftige Box** → Till will das als SPEC-Konvention.
+- Technisch: eine wiederverwendbare `<CollapsibleBox>` + persistenter Zustand
+  (localStorage/Settings je Box-ID). Shared Primitive für B und C.
+
+**B. Agents-Seite umbauen:**
+- Rechtes Menü bleibt; **Tabs raus** → alles auf eine Seite als Boxen.
+- Bereiche als Boxen: Übersicht · Modell · Tools & MCP · Skills · Soul · Erweitert.
+- Boxen dicht (wenig Leerraum); Listen-Boxen (Tools/Skills) **intern scrollbar**,
+  max. ~15 Einträge sichtbar, dann scrollen.
+- **Soul** = Editor-Boxen (Identität / Verhalten / Hintergrund), je editierbar,
+  „leer = nicht aktiv", möglichst einklappbar.
+- **Erweitert** = alles untereinander in einer Box.
+
+**C. Projekt-Seite umbauen:**
+- Ebenfalls **Tabs raus** → alles auf eine Seite, in Boxen (wie Agents).
+- Bestehende Tab-Inhalte 50–80 % verkleinern (verbauen derzeit viel Leerraum).
+- **Statistiken** (heute 1 Tab mit 4 Riesen-Boxen) → kompakt + logisch gegliedert
+  auf eine Fläche (Beispiel: alles in ~800×800 statt 4 XL-Boxen), farbige Boxen.
+
+> Reihenfolge-Empfehlung: **A zuerst** (Primitive + Konvention, hoher Alltagsnutzen,
+> klein), dann B/C, die A nutzen.
+
+---
+
 ## 📦 Module-Backlog (werden Module, sobald das Modulsystem steht)
 
 Klassische PIM-/Haushalts-Apps — ohne Modulsystem würden sie den Core wieder
