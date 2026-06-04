@@ -30,6 +30,14 @@ def list_modules() -> dict:
         }
         for m in REGISTRY.values()
     ]
+    # Hub vor dem Listen pullen, damit "available" den echten Hub spiegelt.
+    # read_hub_index() pullt nur bei FEHLENDEM Cache — ohne dies fröre die Liste
+    # auf dem Stand des ersten Clones ein (neue Module würden nie auftauchen).
+    # Netzwerk-/Hub-Fehler beim Refresh sind unkritisch → Fallback auf den Cache.
+    try:
+        hub_client.refresh()
+    except Exception as exc:
+        logger.warning("Modul-Hub-Refresh fehlgeschlagen, nutze Cache: %s", exc)
     try:
         available = hub_client.read_hub_index().get("modules", [])
     except Exception as exc:  # Hub unerreichbar → leere Liste, aber nicht still schlucken
