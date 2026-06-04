@@ -60,9 +60,10 @@ def read_hub_index() -> dict:
 
 def module_source_path(module_path: str) -> Path:
     """Absoluter Pfad eines Modul-Source-Verzeichnisses im Cache."""
-    cache = settings.module_hub_cache
-    # Sicherheits-Check: kein Path-Escape ausm Cache
-    full = (cache / module_path).resolve()
-    if not str(full).startswith(str(cache.resolve())):
-        raise HubError(f"ungültiger module-path: {module_path}")
+    cache_root = settings.module_hub_cache.resolve()
+    full = (cache_root / module_path).resolve()
+    try:
+        full.relative_to(cache_root)  # echte Verzeichnis-Grenze, kein String-Prefix
+    except ValueError as e:
+        raise HubError(f"ungültiger module-path: {module_path}") from e
     return full

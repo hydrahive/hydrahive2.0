@@ -54,6 +54,32 @@ def test_module_source_path_escape_blocked(mod_env):
         module_source_path("../../etc/passwd")
 
 
+def test_module_source_path_blocks_sibling_prefix(mod_env):
+    import pytest
+    from hydrahive.modules.hub_client import module_source_path, HubError
+    from hydrahive.settings import settings
+    settings.module_hub_cache.mkdir(parents=True, exist_ok=True)
+    # ../<cachename>-evil teilt den String-Prefix, ist aber außerhalb der Grenze
+    with pytest.raises(HubError):
+        module_source_path(f"../{settings.module_hub_cache.name}-evil/x")
+
+
+def test_module_source_path_blocks_traversal(mod_env):
+    import pytest
+    from hydrahive.modules.hub_client import module_source_path, HubError
+    from hydrahive.settings import settings
+    settings.module_hub_cache.mkdir(parents=True, exist_ok=True)
+    with pytest.raises(HubError):
+        module_source_path("../../etc/passwd")
+
+
+def test_module_source_path_allows_valid(mod_env):
+    from hydrahive.modules.hub_client import module_source_path
+    from hydrahive.settings import settings
+    settings.module_hub_cache.mkdir(parents=True, exist_ok=True)
+    assert module_source_path("example") == (settings.module_hub_cache.resolve() / "example")
+
+
 def test_hub_error_on_bad_json(mod_env):
     from hydrahive.settings import settings
     cache = settings.module_hub_cache
