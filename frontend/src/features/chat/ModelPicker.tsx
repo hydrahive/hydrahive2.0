@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { llmInfoApi } from "@/features/agents/api"
+import { llmModelsApi } from "@/features/llm/api"
 
 interface Props {
   /** Aktuelles Modell — wird im select selektiert dargestellt. */
@@ -26,8 +26,8 @@ export function ModelPicker({ current, hint, onPick, showReset, onReset, fullWid
 
   useEffect(() => {
     let alive = true
-    llmInfoApi.getModels()
-      .then((info) => { if (alive) setModels([...info.models].sort()) })
+    llmModelsApi.byModality("chat")
+      .then((res) => { if (alive) setModels(res.models.map((m) => m.id)) })  // Backend sortiert schon
       .catch(() => {})
     return () => { alive = false }
   }, [])
