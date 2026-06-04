@@ -47,7 +47,7 @@ def _filtered() -> dict[str, list[str]]:
     result: dict[str, list[str]] = {}
     for agent_type, tools in _BASE_TOOLS.items():
         names = list(tools) + (module_master if agent_type == "master" else [])
-        result[agent_type] = [t for t in names if t in REGISTRY]
+        result[agent_type] = [t for t in dict.fromkeys(names) if t in REGISTRY]
     return result
 
 

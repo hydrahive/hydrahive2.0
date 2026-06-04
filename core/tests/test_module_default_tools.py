@@ -47,6 +47,18 @@ def test_unflagged_module_tool_not_in_defaults(monkeypatch):
         tools.register_module_tools([])
 
 
+def test_master_defaults_deduped(monkeypatch):
+    from hydrahive import tools
+    # flagged module re-declares an existing core master default tool name
+    _install_fake_module(monkeypatch, flag=True, tool_name="todo_write")
+    try:
+        from hydrahive.agents._defaults import DEFAULT_TOOLS
+        master = DEFAULT_TOOLS["master"]
+        assert master.count("todo_write") == 1   # not duplicated
+    finally:
+        tools.register_module_tools([])
+
+
 def test_unregistered_module_tool_filtered(monkeypatch):
     # Flag gesetzt, aber Tool NICHT in tools.REGISTRY → muss rausgefiltert werden.
     from hydrahive import tools
