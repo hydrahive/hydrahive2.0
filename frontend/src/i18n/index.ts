@@ -30,7 +30,6 @@ import deContainers from "./locales/de/containers.json"
 import deExtensions from "./locales/de/extensions.json"
 import deFederation from "./locales/de/federation.json"
 import deHealth from "./locales/de/health.json"
-import deScratchpad from "./locales/de/scratchpad.json"
 import deStreaming from "./locales/de/streaming.json"
 import deVms from "./locales/de/vms.json"
 import deWorkspace from "./locales/de/workspace.json"
@@ -65,7 +64,6 @@ import enContainers from "./locales/en/containers.json"
 import enExtensions from "./locales/en/extensions.json"
 import enFederation from "./locales/en/federation.json"
 import enHealth from "./locales/en/health.json"
-import enScratchpad from "./locales/en/scratchpad.json"
 import enStreaming from "./locales/en/streaming.json"
 import enVms from "./locales/en/vms.json"
 import enWorkspace from "./locales/en/workspace.json"
@@ -82,7 +80,7 @@ const baseResources = {
     communication: deCommunication, butler: deButler, skills: deSkills,
     credentials: deCredentials, buddy: deBuddy, datamining: deDatamining, memory: deMemory,
     analytics: deAnalytics, containers: deContainers, extensions: deExtensions,
-    federation: deFederation, health: deHealth, scratchpad: deScratchpad,
+    federation: deFederation, health: deHealth,
     streaming: deStreaming, vms: deVms, workspace: deWorkspace, zahnfee: deZahnfee,
     teamchat: deTeamchat,
     modules: deModules,
@@ -95,7 +93,7 @@ const baseResources = {
     communication: enCommunication, butler: enButler, skills: enSkills,
     credentials: enCredentials, buddy: enBuddy, datamining: enDatamining, memory: enMemory,
     analytics: enAnalytics, containers: enContainers, extensions: enExtensions,
-    federation: enFederation, health: enHealth, scratchpad: enScratchpad,
+    federation: enFederation, health: enHealth,
     streaming: enStreaming, vms: enVms, workspace: enWorkspace, zahnfee: enZahnfee,
     teamchat: enTeamchat,
     modules: enModules,
@@ -128,7 +126,7 @@ i18n
     resources: mergedResources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "health", "scratchpad", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "health", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

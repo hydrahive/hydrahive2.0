@@ -1,6 +1,6 @@
 import { Activity, BrainCircuit,
   BookOpen, Bot, Box, Boxes, Cpu, Film, FolderKanban, Globe, HardDrive, Heart, Key, LayoutDashboard,
-  MessageCircle, MessageSquare, MessagesSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, StickyNote, Users, Workflow,
+  MessageCircle, MessageSquare, MessagesSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, Users, Workflow,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { moduleNav } from "@/modules/index.generated"
@@ -41,7 +41,6 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/health",      icon: Activity,        labelKey: "health",      group: "overview" },
   // Arbeiten
   { path: "/",            icon: Heart,           labelKey: "buddy",       group: "working" },
-  { path: "/scratchpad",  icon: StickyNote,      labelKey: "scratchpad",  group: "working" },
   { path: "/werkstatt",   icon: MessageSquare,   labelKey: "werkstatt",   group: "working" },
   { path: "/agents",      icon: Bot,             labelKey: "agents",      group: "working" },
   { path: "/projects",    icon: FolderKanban,    labelKey: "projects",    group: "working" },
