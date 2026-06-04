@@ -1,0 +1,27 @@
+{
+  "title": "Modules",
+  "installed_count": "{{count}} installed",
+  "loading": "Loading modules…",
+  "empty_installed": "No modules installed.",
+  "empty_available": "No further modules available.",
+  "section": {
+    "installed": "Installed Modules",
+    "available": "Available Modules"
+  },
+  "status": {
+    "loaded": "Loaded",
+    "error": "Error",
+    "available": "Available"
+  },
+  "actions": {
+    "install": "Install",
+    "installing": "Installing…",
+    "uninstall": "Uninstall",
+    "uninstalling": "Uninstalling…"
+  },
+  "log": {
+    "waiting": "Waiting for output…",
+    "success": "Completed successfully",
+    "failed": "Failed"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "example",
+  "name": "Beispiel-Modul",
+  "version": "1.0.0",
+  "icon": "Boxes",
+  "nav_group": "working",
+  "permissions": [],
+  "has_service": false,
+  "min_core_version": "2.0.0"
+}

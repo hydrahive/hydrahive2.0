@@ -62,10 +62,12 @@ from hydrahive.api.routes.users import router as users_router
 from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.teamchat import router as teamchat_router
+from hydrahive.api.routes.modules import router as modules_admin_router
 from hydrahive.api.routes.health_data import router as health_data_router
 from hydrahive.api.routes.patientenakte import router as patientenakte_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
+from hydrahive import modules as _modules
 
 logging.basicConfig(
     level=logging.INFO,
@@ -152,9 +154,25 @@ app.include_router(zahnfee_router)
 app.include_router(federation_router)
 app.include_router(streaming_router)
 app.include_router(teamchat_router)
+app.include_router(modules_admin_router)
 app.include_router(health_data_router)
 app.include_router(fhir_router)
 app.include_router(ega_router)
+
+
+def mount_module_routers(target_app: FastAPI) -> None:
+    """Hängt die Router aller erfolgreich geladenen Module ein (Prefix pro Modul).
+    Wird im Lifespan nach modules.load_all() aufgerufen (REGISTRY ist beim Import leer).
+    Fehler beim Einhängen eines Moduls werden isoliert — sie dürfen den Start nicht abbrechen."""
+    for entry in _modules.REGISTRY.values():
+        if not (entry.loaded and entry.ctx):
+            continue
+        for r in entry.ctx.routers:
+            try:
+                target_app.include_router(r, prefix=f"/api/modules/{entry.manifest.id}")
+            except Exception as exc:
+                logger.error("Modul '%s': include_router fehlgeschlagen — übersprungen: %s",
+                             entry.manifest.id, exc)
 
 
 @app.exception_handler(Exception)

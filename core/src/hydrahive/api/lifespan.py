@@ -117,6 +117,10 @@ async def lifespan(app: FastAPI):
     agent_bootstrap.ensure_master("admin")
     agent_bootstrap.migrate_tools()
     plugin_system.load_all()
+    from hydrahive import modules as module_system
+    module_system.load_all()
+    from hydrahive.api.main import mount_module_routers
+    mount_module_routers(app)
     load_butler_builtins()
     set_start_time()
 

@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Module system — install-managed, regenerated on every build
+src/modules/*/
+src/modules/index.generated.ts

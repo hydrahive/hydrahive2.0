@@ -2,6 +2,11 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { Layout } from "@/shared/Layout"
+import type { ReactElement } from "react"
+import { moduleRoutes } from "@/modules/index.generated"
+
+interface ModuleRoute { path: string; element: ReactElement }
+const appModuleRoutes = moduleRoutes as ModuleRoute[]
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { SessionDetailPage } from "@/features/analytics/SessionDetailPage"
 import { ChatPage } from "@/features/chat/ChatPage"
@@ -18,6 +23,7 @@ import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
 import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
+import { ModulesPage } from "@/features/modules/ModulesPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
 import { TeamchatPage } from "@/features/teamchat/TeamchatPage"
 import { VMsPage } from "@/features/vms/VMsPage"
@@ -93,9 +99,13 @@ export default function App() {
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
           <Route path="extensions" element={<AdminGuard><ExtensionsPage /></AdminGuard>} />
+          <Route path="modules" element={<AdminGuard><ModulesPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
           <Route path="zahnfee" element={<AdminGuard><ZahnfeePage /></AdminGuard>} />
+          {appModuleRoutes.map((r) => (
+            <Route key={r.path} path={r.path} element={r.element} />
+          ))}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
