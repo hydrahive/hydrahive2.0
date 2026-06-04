@@ -8,6 +8,8 @@ import { AkteTimeline } from "./views/AkteTimeline"
 import { AkteEntityList } from "./views/AkteEntityList"
 import { AkteLabCharts } from "./views/AkteLabCharts"
 import { ImportView } from "./views/ImportView"
+import { AppleHealthView } from "./views/AppleHealthView"
+import { SchlafView } from "./views/SchlafView"
 
 export function AktePage() {
   const { t } = useTranslation("akte")
@@ -42,6 +44,8 @@ export function AktePage() {
               <Route path="documents"      element={<AkteEntityList entity="documents" />} />
               <Route path="notes"          element={<AkteEntityList entity="notes" />} />
               <Route path="import"         element={<ImportView />} />
+              <Route path="tracking"       element={<AppleHealthView />} />
+              <Route path="schlaf"         element={<SchlafView />} />
             </Routes>
           </AkteErrorBoundary>
         </div>

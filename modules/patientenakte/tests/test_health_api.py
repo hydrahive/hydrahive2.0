@@ -1,7 +1,7 @@
 """Tests für Health DB + API Metrics-Endpunkt."""
 from __future__ import annotations
 import pytest
-from hydrahive.db import health as health_db
+from backend import health_store as health_db
 from hydrahive.db import init_db
 
 
@@ -20,7 +20,7 @@ def _insert_payload(metrics: list[dict], days_ago: int = 0) -> str:
     from datetime import datetime, timezone, timedelta
     from hydrahive.db._utils import uuid7
     from hydrahive.db.connection import db
-    from hydrahive.db.health import _process_payload_to_daily
+    from backend.health_store import _process_payload_to_daily
     import json as _json
 
     received = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
@@ -97,13 +97,13 @@ def test_get_metrics_summary_metric_filter(setup_test_env):
 
 def test_metrics_endpoint_ohne_auth(client):
     """Ohne Session-Token muss 401 kommen."""
-    r = client.get("/api/health-data/metrics")
+    r = client.get("/api/modules/patientenakte/health-data/metrics")
     assert r.status_code == 401
 
 
 def test_metrics_endpoint_mit_auth(client, auth_headers):
     """Mit gültigem JWT muss 200 + metrics-Struktur kommen."""
-    r = client.get("/api/health-data/metrics", headers=auth_headers)
+    r = client.get("/api/modules/patientenakte/health-data/metrics", headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
     assert "metrics" in body

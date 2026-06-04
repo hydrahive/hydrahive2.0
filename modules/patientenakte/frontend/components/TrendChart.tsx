@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid,
 } from "recharts"
-import type { MetricsSummary } from "./api"
+import type { MetricsSummary } from "../api"
 
 const METRIC_LABELS: Record<string, string> = {
   // Aktivität

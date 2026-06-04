@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { SleepChart } from "./_SleepChart"
-import { healthApi, type MetricsSummary } from "./api"
+import { SleepChart } from "../components/SleepChart"
+import { healthApi, type MetricsSummary } from "../api"
 
 const PERIODS = [7, 14, 30, 90] as const
 
 export function SchlafView() {
-  const { t } = useTranslation("health")
+  const { t } = useTranslation("akte")
   const [summary, setSummary] = useState<MetricsSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [days, setDays] = useState<number>(30)
@@ -15,7 +15,7 @@ export function SchlafView() {
     setSummary(null)
     setError(null)
     healthApi.metrics(days).then(setSummary).catch(() => setError(t("loading_data")))
-  }, [days])
+  }, [days, t])
 
   return (
     <div className="space-y-4">

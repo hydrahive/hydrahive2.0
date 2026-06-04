@@ -47,12 +47,14 @@ def setup_test_env():
         from backend import router as akte_router
         from backend.fhir_routes import router as fhir_router
         from backend.ega_routes import router as ega_router
+        from backend.health_routes import router as health_router
         # Exakt wie der Core (mount_module_routers): jeder Router unter /api/modules/<id>.
         # Damit treffen die Tests denselben Pfad wie die Produktion.
         mod_prefix = "/api/modules/patientenakte"
         main.app.include_router(akte_router, prefix=mod_prefix)
         main.app.include_router(fhir_router, prefix=mod_prefix)
         main.app.include_router(ega_router, prefix=mod_prefix)
+        main.app.include_router(health_router, prefix=mod_prefix)
 
         yield tmp_path
 
@@ -106,7 +108,9 @@ def _akte_db(setup_test_env):
         for spec in ENTITIES.values():
             conn.execute(f"DELETE FROM {spec.table}")
         conn.execute("DELETE FROM akte_patient")
-        # Import-Stores ebenfalls leeren → Test-Isolation unabhängig von Reihenfolge
+        # Import-Stores + Health ebenfalls leeren → Test-Isolation unabhängig von Reihenfolge
         conn.execute("DELETE FROM fhir_resources")
         conn.execute("DELETE FROM ega_records")
+        conn.execute("DELETE FROM health_ingest")
+        conn.execute("DELETE FROM health_daily")
     yield

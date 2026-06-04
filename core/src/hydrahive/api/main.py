@@ -60,7 +60,6 @@ from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.teamchat import router as teamchat_router
 from hydrahive.api.routes.modules import router as modules_admin_router
-from hydrahive.api.routes.health_data import router as health_data_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
 from hydrahive import modules as _modules
@@ -149,7 +148,6 @@ app.include_router(federation_router)
 app.include_router(streaming_router)
 app.include_router(teamchat_router)
 app.include_router(modules_admin_router)
-app.include_router(health_data_router)
 
 
 def mount_module_routers(target_app: FastAPI) -> None:

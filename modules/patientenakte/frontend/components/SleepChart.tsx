@@ -2,7 +2,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from "recharts"
-import type { MetricsSummary } from "./api"
+import type { MetricsSummary } from "../api"
 
 const RECOMMENDED_SLEEP_MIN = 7 * 60
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ComponentType } from "react"
 import { useTranslation } from "react-i18next"
 import { Cpu, Dice5, Download, FileText, GitMerge, HelpCircle, Loader2, RotateCcw, Save, Settings, Sparkles, SquarePen, Wand2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -22,7 +22,13 @@ import { BuddyExtensionsPanel } from "./_BuddyExtensionsPanel"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
-import { HealthBuddyBox } from "@/features/health/_HealthBuddyBox"
+import { moduleBuddyWidgets } from "@/modules/index.generated"
+
+// Buddy-Widget-Slot: installierte Module hängen Widgets ins rechte Panel ein.
+// Sie bekommen onPrompt durch (→ sendet an den Buddy-Chat). Ersetzt den früheren
+// fixen HealthBuddyBox-Import (lebt jetzt im patientenakte-Modul).
+type BuddyWidget = ComponentType<{ onPrompt: (text: string) => void }>
+const BUDDY_WIDGETS = moduleBuddyWidgets as BuddyWidget[]
 
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
@@ -252,7 +258,9 @@ export function BuddyPage() {
         </div>
         <div className="hidden xl:flex flex-col gap-4 shrink-0 overflow-y-auto min-h-0">
           <BuddyExtensionsPanel />
-          <HealthBuddyBox onPrompt={(text) => handleSend(text)} />
+          {BUDDY_WIDGETS.map((W, i) => (
+            <W key={i} onPrompt={(text) => handleSend(text)} />
+          ))}
         </div>
       </div>
     </AssistantRuntimeProvider>

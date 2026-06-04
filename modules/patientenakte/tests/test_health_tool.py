@@ -32,10 +32,10 @@ def test_query_health_data_reicht_user_id_durch(monkeypatch):
         captured["metric"] = metric
         return {"metrics": {"step_count": 5000}, "last_ingest": "2026-05-28"}
 
-    import hydrahive.tools.health_data as mod
+    import backend.health_tool as mod
     monkeypatch.setattr(mod.health_db, "get_metrics_summary", fake_summary)
 
-    from hydrahive.tools.health_data import TOOL
+    from backend.health_tool import TOOL
     result = _run(TOOL.execute({"days": 30, "metric": "step_count"}, _make_ctx("testuser")))
 
     assert result.success
@@ -48,7 +48,7 @@ def test_query_health_data_ohne_user_kontext_faellt_ab(monkeypatch):
     from hydrahive.settings import settings
     monkeypatch.setattr(settings, "health_api_key", "testkey")
 
-    from hydrahive.tools.health_data import TOOL
+    from backend.health_tool import TOOL
     result = _run(TOOL.execute({}, _make_ctx("")))
 
     assert not result.success
@@ -59,7 +59,7 @@ def test_query_health_data_ohne_api_key_faellt_ab(monkeypatch):
     from hydrahive.settings import settings
     monkeypatch.setattr(settings, "health_api_key", "")
 
-    from hydrahive.tools.health_data import TOOL
+    from backend.health_tool import TOOL
     result = _run(TOOL.execute({}, _make_ctx("testuser")))
 
     assert not result.success

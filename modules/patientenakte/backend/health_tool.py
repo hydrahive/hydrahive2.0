@@ -1,7 +1,7 @@
 """query_health_data — Buddy-Tool für Apple Health Auswertung."""
 from __future__ import annotations
 
-from hydrahive.db import health as health_db
+from . import health_store as health_db
 from hydrahive.settings import settings
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 

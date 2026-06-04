@@ -1,4 +1,4 @@
-import { Activity, BrainCircuit,
+import { BrainCircuit,
   BookOpen, Bot, Box, Boxes, Cpu, Film, FolderKanban, Globe, HardDrive, Heart, Key, LayoutDashboard,
   MessageCircle, MessageSquare, MessagesSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, Users, Workflow,
 } from "lucide-react"
@@ -38,7 +38,6 @@ export const NAV_GROUPS: NavGroup[] = [
 export const NAV_ITEMS: NavItem[] = [
   // Überblick
   { path: "/dashboard",   icon: LayoutDashboard, labelKey: "dashboard",   group: "overview" },
-  { path: "/health",      icon: Activity,        labelKey: "health",      group: "overview" },
   // Arbeiten
   { path: "/",            icon: Heart,           labelKey: "buddy",       group: "working" },
   { path: "/werkstatt",   icon: MessageSquare,   labelKey: "werkstatt",   group: "working" },

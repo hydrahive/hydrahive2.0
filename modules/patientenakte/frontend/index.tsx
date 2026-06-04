@@ -1,8 +1,12 @@
 import { AktePage } from "./AktePage"
+import { HealthBuddyBox } from "./components/HealthBuddyBox"
 
 export const routes = [
   { path: "/akte/*", element: <AktePage /> },
 ]
+
+// Buddy-Widget-Slot: wird im rechten Buddy-Panel gerendert, bekommt onPrompt durch.
+export const buddyWidgets = [HealthBuddyBox]
 
 export const nav = [
   {
@@ -36,7 +40,13 @@ export const i18n = {
         notes: "Notizen",
         section_import: "Import",
         import: "eGA / FHIR",
+        section_tracking: "Tracking",
+        tracking: "Apple Health",
+        sleep: "Schlaf",
       },
+      tracking: { trend_title: "Verlauf", sleep_title: "Schlafverlauf" },
+      loading_data: "Daten konnten nicht geladen werden.",
+      period_days: "{{days}}T",
       import: {
         title: "Import",
         subtitle: "TK-eGA-Export oder FHIR-Bundle importieren. Importierte Daten sind read-only und bleiben von der eigenen Akte getrennt.",
@@ -112,7 +122,13 @@ export const i18n = {
         notes: "Notes",
         section_import: "Import",
         import: "eGA / FHIR",
+        section_tracking: "Tracking",
+        tracking: "Apple Health",
+        sleep: "Sleep",
       },
+      tracking: { trend_title: "Trends", sleep_title: "Sleep history" },
+      loading_data: "Could not load data.",
+      period_days: "{{days}}d",
       import: {
         title: "Import",
         subtitle: "Import a TK eGA export or a FHIR bundle. Imported data is read-only and kept separate from your own record.",

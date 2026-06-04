@@ -10,11 +10,11 @@ from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.client_ip import client_ip
 from hydrahive.api.middleware.inbound_ratelimit import check_rate
 from hydrahive.api.middleware.secret_compare import verify_secret
-from hydrahive.db import health as health_db
+from . import health_store as health_db
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/health-data", tags=["health"])
+router = APIRouter(prefix="/health-data", tags=["health"])
 
 
 def _check_key(

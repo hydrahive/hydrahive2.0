@@ -27,6 +27,13 @@ export function AkteSidebar() {
         { to: "/akte/import", icon: "📥", label: t("nav.import") },
       ],
     },
+    {
+      title: t("nav.section_tracking"),
+      items: [
+        { to: "/akte/tracking", icon: "🍎", label: t("nav.tracking") },
+        { to: "/akte/schlaf",   icon: "😴", label: t("nav.sleep") },
+      ],
+    },
   ]
 
   return (
