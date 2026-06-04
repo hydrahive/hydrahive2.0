@@ -2,6 +2,8 @@
 
 Subsystem für alles rund um LLM-Zugriff, Modell-Katalog, Provider-Verwaltung, OAuth-Logins (Anthropic / OpenAI-Codex), Embedding-Modelle, Media-Modelle (image/music/tts/transcribe/video), Pricing/Cost-Tracking, Reasoning-Effort und Usage-/Rate-Limit-Anzeige.
 
+**LLM-SSOT (SP1+SP2, 2026-06-04):** Die Modell-Listen sind auf EINE kanonische Registry (`llm/registry.py`) + EINEN API-Endpoint (`GET /api/llm/models?modality=`) + EINE Config-Sektion (`DefaultModelsSection.tsx`) vereinheitlicht. Alle Picker lesen dieselbe Quelle. Alte Modality-Routen (`/embed-models`/`/speech-models`/`/transcribe-models`/`/video-models`) gelöscht.
+
 Kanonische Quellen:
 - Backend Core: `core/src/hydrahive/llm/` + `core/src/hydrahive/oauth/`
 - API-Routen: `core/src/hydrahive/api/routes/llm.py`, `llm_catalog.py`, `llm_oauth.py`
@@ -11,6 +13,18 @@ Kanonische Quellen:
 ---
 
 ## WAS
+
+### Kanonische Modell-Registry (`llm/registry.py`)
+- `ModelEntry(frozen=True)` — `id`, `provider`, `label`, `purposes: frozenset[str]`, `context_window`, `is_free`, `embed_dim`, `source` (`"live"` | `"fallback"`). `registry.py:26`
+- `PURPOSES = ("chat","embed","tts","stt","image","video","music")` — vollständige Zweck-Menge. `registry.py:22`
+- `_classify_catalog_entry(entry) -> frozenset[str]` — Default chat; image/music aus `output_modalities`. `registry.py:37`
+- `async _build() -> list[ModelEntry]` — aggregiert Chat-Katalog + Embed + TTS/STT/Video; dedupliziert per id, vereinigt Zweck-Mengen. `registry.py:81`
+- `async list_models(modality?) -> list[ModelEntry]` — gecacht (TTL=300s), leere Liste wird NICHT gecacht (nächster Call retryt). Double-Check-Lock. `registry.py:122`
+- `known_ids() -> set[str]` — sync, aus Cache (kein Fetch). Für `validate_model`. `registry.py:144`
+- `is_known(model_id) -> bool` — True wenn bekannt ODER Cache leer (fail-open). `registry.py:149`
+- `async awarm()` — Lifespan-Startup-Vorwärmung; blockiert nicht. `registry.py:155`
+- `invalidate()` — Cache leeren + Lock resetten (nach `PUT /api/llm`). `registry.py:163`
+- `_CACHE_TTL = 300.0`, `_cache: tuple[float, list[ModelEntry]] | None`, `_lock: asyncio.Lock`. `registry.py:52-54`
 
 ### LLM-Client Public-API (`llm/client.py`)
 - `default_model()` — liefert `default_model` aus `llm.json`. `llm/client.py:59`
@@ -35,6 +49,9 @@ Kanonische Quellen:
 - `openrouter_key() -> str` — SSOT für OpenRouter-Key (alle Media-Tools). `llm/_config.py:64`
 - `get_provider_group_id(config, provider_id) -> str` — MiniMax-`group_id` (für Embeddings). `llm/_config.py:69`
 - `_config_cache: tuple[float, dict] | None` — mtime-Cache-Slot. `llm/_config.py:26`
+- `_PURPOSE_KEYS: dict[str, tuple[str, ...]]` — SSOT-Mapping Zweck → Pfad in `llm.json` (z.B. `"stt"` → `("media_models","transcribe")`; `"chat"` → `("default_model",)`). `llm/_config.py:77`
+- `get_default(purpose) -> str` — liest konfigurierten Default via `_PURPOSE_KEYS` aus `load_config()`. `llm/_config.py:88`
+- `set_default(purpose, model)` — schreibt `llm.json` + invalidiert `_config_cache`. `llm/_config.py:97`
 
 ### Anthropic-/MiniMax-Direkt-SDK-Pfad (`llm/_anthropic.py`)
 - `_OAUTH_HEADERS` — Claude-Code-Identität-Header (`anthropic-beta` mit `claude-code-20250219,oauth-2025-04-20,fine-grained-tool-streaming-2025-05-14,prompt-caching-2024-07-31`, `user-agent: claude-cli/2.1.62`, `x-app: cli`). `llm/_anthropic.py:12`
@@ -119,18 +136,19 @@ Kanonische Quellen:
 - `_llm_config_rmw.py`: `update_provider_oauth(path, provider_id, new_oauth_block)` — atomic RMW mit `fcntl.flock` auf `<llm.json>.lock`, temp+rename. `_atomic_write`. `oauth/_llm_config_rmw.py:28`, `:34`
 
 ### API-Endpoints — `routes/llm.py` (prefix `/api/llm`)
-- `GET /api/llm` (admin) — `get_config()`, ganze `llm.json` inkl. OAuth-Blöcke. `routes/llm.py:52`
-- `PUT /api/llm` (admin) — `update_config(cfg: LlmConfig)`, speichert, triggert bei `embed_model`-Wechsel `mirror.on_embed_model_change`. `routes/llm.py:57`
-- `POST /api/llm/test` (admin) — `test_connection(model?)`, 1-Wort-Call. `routes/llm.py:73`
-- `GET /api/llm/embed-models` (admin) — `available_for_config`. `routes/llm.py:86`
-- `GET /api/llm/speech-models` (admin) — Live-TTS+Voices. `routes/llm.py:92`
-- `GET /api/llm/transcribe-models` (admin). `routes/llm.py:99`
-- `GET /api/llm/video-models` (admin). `routes/llm.py:106`
-- `GET /api/llm/minimax/usage` (auth, nicht nur admin) — MiniMax-Quota. `routes/llm.py:113`
-- `GET /api/llm/anthropic/rate-limits` (auth) — OAuth-Rate-Limits. `routes/llm.py:119`
-- `GET /api/llm/effort-models` (auth) — `{prefixes: EFFORT_PARAM_MODELS}`, SSOT fürs Frontend (#214). `routes/llm.py:125`
-- Pydantic-Modelle: `LlmProvider` (`extra="allow"` für OAuth-Block!), `LlmConfig` (providers/default_model/embed_model/media_models), `TestRequest`. `routes/llm.py:22`, `:32`, `:69`
-- `_load()`/`_save()` — direkter `llm.json`-Zugriff. `routes/llm.py:41`, `:47`
+- `GET /api/llm` (admin) — `get_config()`, ganze `llm.json` inkl. OAuth-Blöcke. `routes/llm.py:53`
+- `PUT /api/llm` (admin) — `update_config(cfg: LlmConfig)`, speichert, ruft `registry.invalidate()`, triggert bei `embed_model`-Wechsel `mirror.on_embed_model_change`. `routes/llm.py:58`
+- `POST /api/llm/test` (admin) — `test_connection(model?)`, 1-Wort-Call. `routes/llm.py:76`
+- `GET /api/llm/minimax/usage` (auth) — MiniMax-Quota. `routes/llm.py:89`
+- `GET /api/llm/anthropic/rate-limits` (auth) — OAuth-Rate-Limits. `routes/llm.py:95`
+- `GET /api/llm/effort-models` (auth) — `{prefixes: EFFORT_PARAM_MODELS}`, SSOT fürs Frontend (#214). `routes/llm.py:101`
+- **`GET /api/llm/models?modality=` (auth)** — kanonische Modell-Liste aus Registry, gefiltert nach Zweck. Liefert `{models: [ModelEntry], default: str}`. Für ALLE Picker (require_auth, nicht admin-only). `default` = konfiguriertes Standardmodell des Zwecks via `_config.get_default`. `routes/llm.py:112`
+- ~~`GET /api/llm/embed-models`~~ **GELÖSCHT** (SP1)
+- ~~`GET /api/llm/speech-models`~~ **GELÖSCHT** (SP1)
+- ~~`GET /api/llm/transcribe-models`~~ **GELÖSCHT** (SP1)
+- ~~`GET /api/llm/video-models`~~ **GELÖSCHT** (SP1)
+- Pydantic-Modelle: `LlmProvider` (`extra="allow"` für OAuth-Block!), `LlmConfig` (providers/default_model/embed_model/media_models), `TestRequest`. `routes/llm.py:23`, `:33`, `:72`
+- `_load()`/`_save()` — direkter `llm.json`-Zugriff. `routes/llm.py:42`, `:48`
 
 ### API-Endpoints — `routes/llm_catalog.py` (prefix `/api/llm/catalog`)
 - `GET /api/llm/catalog` (admin) — `get_catalog()`, Live-Listing aller Provider. `routes/llm_catalog.py:19`
@@ -146,26 +164,34 @@ Kanonische Quellen:
 - Helpers: `_load_pending`/`_save_pending`(chmod 0600)/`_delete_pending`/`_write_provider_oauth`. `routes/llm_oauth.py:62-98`
 
 ### Frontend — Feature-Folder `features/llm/`
-- `api.ts` — Typen (`LlmProvider`, `LlmConfig`, `OAuthBlock`, `EmbedModel`, `SpeechModel`, `VideoModel`, `TranscribeModel`, `AnthropicRateLimits`, `CatalogModel`, `CatalogProvider`, `CatalogTestResult`) + Clients `llmApi` (getConfig/updateConfig/testConnection/getEmbedModels/getSpeechModels/getTranscribeModels/getVideoModels/oauthStart/oauthExchange/oauthRevoke/getAnthropicRateLimits) + `catalogApi` (get/test/useInAgent). `features/llm/api.ts`
-- `LlmPage.tsx` — Hauptseite: Provider-Liste, Default-Modell-Select, Embed-Modell-Select, Media-Modelle-Section, Test-Button, Anthropic-Usage-Card. `features/llm/LlmPage.tsx`
-- `CatalogPage.tsx` — Modell-Katalog: Provider-Tabs, Suche, Filter (all/tool_use/no_tools/unknown/free), Test pro Modell, "Im Agent nutzen"-Dialog. `features/llm/CatalogPage.tsx`
-- `ProviderForm.tsx` — Provider hinzufügen/editieren; OAuth-Branch wenn `auth==="oauth"`; MiniMax `group_id`-Feld; custom Models. `features/llm/ProviderForm.tsx`
-- `ProviderCard.tsx` — Provider-Anzeige (OAuth-Badge + account_id-Snippet, masked Key, Revoke-Button). `features/llm/ProviderCard.tsx`
+- `api.ts` — Typen (`LlmProvider`, `LlmConfig`, `OAuthBlock`, `AnthropicRateLimits`, `CatalogModel`, `CatalogProvider`, `CatalogTestResult`, **`RegistryModel`**) + Clients `llmApi` (getConfig/updateConfig/testConnection/oauthStart/oauthExchange/oauthRevoke/getAnthropicRateLimits) + `catalogApi` (get/test/useInAgent) + **`llmModelsApi.byModality(modality?)`** (`GET /llm/models?modality=`, liefert `{models: RegistryModel[], default: string}`). `features/llm/api.ts:96-109`
+- `LlmPage.tsx` — Hauptseite: Provider-Liste, `DefaultModelsSection`, Test-Button, Anthropic-Usage-Card. `features/llm/LlmPage.tsx:10,121`
+- **`DefaultModelsSection.tsx`** — **neue einheitliche Config-Sektion** für alle 7 Zwecke (chat/embed/image/music/tts/stt/video). Holt per Zweck via `llmModelsApi.byModality`, speichert direkt via `llmApi.updateConfig`. Löst `MediaModelsSection.tsx` ab. `features/llm/DefaultModelsSection.tsx:1-148`
+- `CatalogPage.tsx` — Modell-Katalog (Admin): Provider-Tabs, Suche, Filter, Test, "Im Agent nutzen". `features/llm/CatalogPage.tsx`
+- `ProviderForm.tsx` — Provider hinzufügen/editieren; OAuth-Branch; MiniMax `group_id`. `features/llm/ProviderForm.tsx`
+- `ProviderCard.tsx` — Provider-Anzeige (OAuth-Badge, masked Key, Revoke-Button). `features/llm/ProviderCard.tsx`
 - `OAuthFlow.tsx` — 2-Schritt-OAuth-UI (Login öffnen → URL/Code einfügen). `features/llm/OAuthFlow.tsx`
-- `MediaModelsSection.tsx` — Selects pro Kategorie (image/music aus Katalog-Output-Modalität, tts/transcribe/video aus eigenen Endpoints). `features/llm/MediaModelsSection.tsx`
-- `AnthropicUsageCard.tsx` — 5h/7d-Utilization-Balken + Reset-Zeit + Threshold-Warnung + Overage; 60s-Polling. `features/llm/AnthropicUsageCard.tsx`
-- `effort.ts` — `fetchEffortPrefixes`/`useEffortPrefixes`/`modelSupportsExtendedEffort` (SSOT vom Backend `/llm/effort-models`, #214). `features/llm/effort.ts`
-- `_llm_providers.ts` — `KNOWN_PROVIDERS` (9: anthropic/openai/openai-codex(oauth)/openrouter/groq/mistral/gemini/minimax/nvidia), `EMPTY_PROVIDER`. `features/llm/_llm_providers.ts`
+- ~~`MediaModelsSection.tsx`~~ — **GELÖSCHT** (SP1); ersetzt durch `DefaultModelsSection.tsx`.
+- `AnthropicUsageCard.tsx` — 5h/7d-Utilization + Reset + Overage; 60s-Polling. `features/llm/AnthropicUsageCard.tsx`
+- `effort.ts` — `fetchEffortPrefixes`/`useEffortPrefixes`/`modelSupportsExtendedEffort`. `features/llm/effort.ts`
+- `_llm_providers.ts` — `KNOWN_PROVIDERS` (9: anthropic/openai/openai-codex(oauth)/openrouter/groq/mistral/gemini/minimax/nvidia). `features/llm/_llm_providers.ts`
+
+**Picker-Konsumenten außerhalb `features/llm/`** (alle via `llmModelsApi.byModality("chat")`):
+- `features/chat/ModelPicker.tsx:2,29`
+- `features/chat/commands.ts:7,42,47`
+- `features/agents/AgentsPage.tsx:9,32`
+- `features/buddy/BuddySettingsPage.tsx:6,38`
+- `features/projects/NewProjectDialog.tsx:5,28`
 
 ---
 
 ## WIE
 
 ### Provider anlegen (LLM-Seite)
-1. `LlmPage` lädt `GET /api/llm` (Config) + `GET /api/llm/embed-models`. `LlmPage.tsx:25-28`
+1. `LlmPage` lädt `GET /api/llm` (Config); `DefaultModelsSection` lädt Modell-Listen per Zweck via `llmModelsApi.byModality`. `LlmPage.tsx:10,121`
 2. "+" öffnet `ProviderForm`. Bei Auswahl eines OAuth-Providers (`openai-codex`) wird statt API-Key-Feld die `OAuthFlow`-Komponente gezeigt.
-3. Save → `addProvider`/`updateProvider` → `save(next)` → `PUT /api/llm` → Backend `update_config` schreibt `llm.json`. `LlmPage.tsx:30-63`, `routes/llm.py:57`
-4. `update_config` vergleicht alten vs neuen `embed_model`; bei Änderung `await mirror.on_embed_model_change(new_model)`. `routes/llm.py:59-66`
+3. Save → `addProvider`/`updateProvider` → `save(next)` → `PUT /api/llm` → Backend `update_config` schreibt `llm.json`, ruft `registry.invalidate()`. `routes/llm.py:58-69`
+4. `update_config` vergleicht alten vs neuen `embed_model`; bei Änderung `await mirror.on_embed_model_change(new_model)`. `routes/llm.py:60-68`
 
 ### LLM-Call (Agent-Runner-Pfad)
 1. Runner liest `reasoning_effort` aus `session.metadata`. `runner/runner.py:170`
@@ -194,9 +220,10 @@ Kanonische Quellen:
 7. "Im Agent nutzen": `POST /api/llm/catalog/use-in-agent` → `_ensure_model_in_providers` (Modell in Provider-Liste) → `agent_config.update(llm_model=…)` (durch `validate_model`). `routes/llm_catalog.py:102`
 
 ### validate_model-Interaktion
-- `_available_models()` = Union aus Katalog-Cache (`catalog._cache`) + custom `provider.models`. `agents/_validation.py:45`
-- `validate_model`: leere Liste → durchwinken (Erst-Setup/Fetch-Fehler); sonst muss Modell drin sein. `agents/_validation.py:68`
-- Deshalb trägt `use-in-agent` das Modell aktiv in die Provider-Liste ein, damit `validate_model` nicht blockt.
+- `_available_models()` liest **`registry.known_ids()`** (sync, aus Cache). `agents/_validation.py:45-49`
+- `validate_model`: leere Menge → durchwinken (Erst-Setup/Fetch-Fehler/Cache kalt); sonst muss Modell drin sein. `agents/_validation.py:52-61`
+- Fix (SP1): vorher las `_available_models` direkt aus `catalog._cache` — das schloss statische Fallback-Modelle (z.B. claude bei 401-Auth) aus. Registry aggregiert Fallbacks, deshalb tauchen sie jetzt auf.
+- `use-in-agent` trägt Modell weiterhin aktiv in Provider-Liste ein, damit `validate_model` auch ohne warmen Cache nicht blockt.
 
 ### OpenAI-Codex-OAuth (GUI-Flow)
 1. `OAuthFlow` → `oauthStart("openai-codex")` → `POST /api/llm/oauth/start`: `make_pkce`+`make_state`, pending-File (chmod 0600, ts), liefert `authorize_url`. `routes/llm_oauth.py:101`
@@ -216,14 +243,15 @@ Kanonische Quellen:
 ## WO
 
 Backend Core:
-- `core/src/hydrahive/llm/__init__.py` — leeres Package-Init (1 Zeile).
+- `core/src/hydrahive/llm/__init__.py` — leeres Package-Init.
+- **`core/src/hydrahive/llm/registry.py:1-167`** — kanonische Registry: `ModelEntry`, `_classify_catalog_entry`, `_build`, `list_models`, `known_ids`, `is_known`, `awarm`, `invalidate`.
 - `core/src/hydrahive/llm/client.py:59-163` — `default_model`/`complete`/`stream` + Re-Exports.
-- `core/src/hydrahive/llm/_config.py:9-73` — `_ENV_MAP`, `load_config`, `apply_keys`, `get_provider_key`, `openrouter_key`, `get_provider_group_id`, `provider_env_vars`.
+- `core/src/hydrahive/llm/_config.py:9-111` — `_ENV_MAP`, `load_config`, `apply_keys`, `get_provider_key`, `openrouter_key`, `get_provider_group_id`, `provider_env_vars`, **`_PURPOSE_KEYS`**, **`get_default`**, **`set_default`**.
 - `core/src/hydrahive/llm/_anthropic.py:12-217` — Direkt-SDK, Effort-Konstanten+`apply_effort`, MiniMax-Helpers.
-- `core/src/hydrahive/llm/catalog.py:31-177` — Katalog-Logik + Cache.
+- `core/src/hydrahive/llm/catalog.py:31-177` — Katalog-Logik + Cache (jetzt intern via Registry).
 - `core/src/hydrahive/llm/_catalog_data.py:13-249` — `PROVIDER_ENDPOINTS`/`STATIC_MODELS`/`PROVIDER_PREFIX`/`METADATA`.
-- `core/src/hydrahive/llm/embed.py:16-182` — Embedding-Modelle + `aembed_batch`.
-- `core/src/hydrahive/llm/media_models.py:32-207` — Media-Modell-Resolver + Live-Listen.
+- `core/src/hydrahive/llm/embed.py:16-182` — Embedding-Modelle + `aembed_batch` (intern via Registry).
+- `core/src/hydrahive/llm/media_models.py:32-207` — Media-Modell-Resolver + Live-Listen (intern via Registry).
 - `core/src/hydrahive/llm/_pricing.py:15-135` — Pricing-Tabellen + `cost_micros`.
 - `core/src/hydrahive/llm/_minimax_usage.py:79-114` — `fetch_usage`.
 - `core/src/hydrahive/llm/_oauth_usage.py:46-117` — Rate-Limit-Header-Cache.
@@ -232,10 +260,13 @@ Backend Core:
 - `core/src/hydrahive/oauth/openai_codex.py:32-208` — Codex-OAuth-Konstanten + Flow + `resolve_openai_codex_token` + `extract_account_id`.
 - `core/src/hydrahive/oauth/_llm_config_rmw.py:28-63` — flock-RMW.
 
-API-Routen (registriert in `core/src/hydrahive/api/main.py:37-39, 111-113`):
-- `core/src/hydrahive/api/routes/llm.py:19-133` — prefix `/api/llm`.
+API-Routen (registriert in `core/src/hydrahive/api/main.py`):
+- `core/src/hydrahive/api/routes/llm.py:1-137` — prefix `/api/llm`.
 - `core/src/hydrahive/api/routes/llm_catalog.py:16-119` — prefix `/api/llm/catalog`.
 - `core/src/hydrahive/api/routes/llm_oauth.py:25-170` — prefix `/api/llm/oauth`.
+
+Lifespan:
+- `core/src/hydrahive/api/lifespan.py:124-127` — `asyncio.create_task(llm_registry.awarm())` beim Start; Registry-Invalidierung bei `PUT /api/llm` via `routes/llm.py:64`.
 
 Cross-Module-Konsumenten:
 - `core/src/hydrahive/runner/llm_bridge.py:13-107` — `call_with_tools`, Provider-Routing.
@@ -243,7 +274,7 @@ Cross-Module-Konsumenten:
 - `core/src/hydrahive/runner/_anthropic_payload.py:83-165` — `build_anthropic_kwargs`/`build_minimax_kwargs` + `apply_effort`.
 - `core/src/hydrahive/runner/_codex_provider.py:22,57-64` — `CODEX_URL`, `_headers` (`chatgpt-account-id`).
 - `core/src/hydrahive/runner/runner.py:22,211,228` — `cost_micros`, `provider_from_model`, `llm_calls`-Insert.
-- `core/src/hydrahive/agents/_validation.py:45-77` — `_available_models`/`validate_model` (nutzt `catalog._cache`).
+- `core/src/hydrahive/agents/_validation.py:45-49` — `_available_models` liest **`registry.known_ids()`** (nicht mehr `catalog._cache`).
 - `core/src/hydrahive/tools/shell.py:102-104` — `provider_env_vars()` in Denylist.
 - `core/src/hydrahive/tools/generate_image.py`, `generate_video.py`, `generate_music.py`, `generate_speech.py`, `transcribe_audio.py`, `_openrouter_media.py`, `_openrouter_transcribe.py` — `get_media_model`/`openrouter_key`.
 - `core/src/hydrahive/voice/tts.py`, `api/routes/tts.py` — `get_media_model`.
@@ -255,17 +286,29 @@ Settings-Pfade:
 - `oauth_usage.json` Pfad hartkodiert in `llm/_oauth_usage.py:22` (`data_dir/oauth_usage.json`).
 
 Frontend:
-- `frontend/src/features/llm/api.ts`, `LlmPage.tsx`, `CatalogPage.tsx`, `ProviderForm.tsx`, `ProviderCard.tsx`, `OAuthFlow.tsx`, `MediaModelsSection.tsx`, `AnthropicUsageCard.tsx`, `effort.ts`, `_llm_providers.ts`.
-- Effort-Konsumenten außerhalb: `frontend/src/features/chat/SessionModelControls.tsx`, `frontend/src/features/buddy/BuddyPage.tsx`.
-- MiniMax-Usage-Card (separate Surface): `frontend/src/features/system/MinimaxUsageCard.tsx`.
+- `frontend/src/features/llm/api.ts` — `llmApi`, `catalogApi`, **`llmModelsApi`** (`byModality`), `RegistryModel`.
+- `frontend/src/features/llm/LlmPage.tsx`, `CatalogPage.tsx`, `ProviderForm.tsx`, `ProviderCard.tsx`, `OAuthFlow.tsx`, **`DefaultModelsSection.tsx`**, `AnthropicUsageCard.tsx`, `effort.ts`, `_llm_providers.ts`.
+- ~~`frontend/src/features/llm/MediaModelsSection.tsx`~~ **GELÖSCHT** (SP1).
+- Picker-Konsumenten: `features/chat/ModelPicker.tsx`, `features/chat/commands.ts`, `features/agents/AgentsPage.tsx`, `features/buddy/BuddySettingsPage.tsx`, `features/projects/NewProjectDialog.tsx`.
+- Effort-Konsumenten: `frontend/src/features/chat/SessionModelControls.tsx`, `frontend/src/features/buddy/BuddyPage.tsx`.
+- MiniMax-Usage-Card: `frontend/src/features/system/MinimaxUsageCard.tsx`.
 - i18n-Namespace: `frontend/src/i18n/locales/{de,en}/llm.json`.
 
-Tests:
-- `core/tests/test_embed.py`, `test_media_models.py`, `test_llm_media_models_config.py`, `test_openrouter_media.py`, `test_llm_config_rmw.py`, `test_llm_pricing.py`, `test_catalog_live.py`, `test_llm_calls_logging.py`, `test_anthropic_oauth_headers.py`.
+Tests (neu in SP1/SP2):
+- `core/tests/test_registry_build.py`, `test_registry_classify.py`, `test_registry_invalidate.py` — Registry-Unit-Tests.
+- `core/tests/test_validate_registry.py`, `test_validate_model_live.py` — validate_model über Registry.
+- `core/tests/test_llm_models_endpoint.py`, `test_llm_models_default.py` — `/api/llm/models`-Endpoint.
+- Bestehend: `core/tests/test_embed.py`, `test_media_models.py`, `test_llm_media_models_config.py`, `test_openrouter_media.py`, `test_llm_config_rmw.py`, `test_llm_pricing.py`, `test_catalog_live.py`, `test_llm_calls_logging.py`, `test_anthropic_oauth_headers.py`.
 
 ---
 
 ## WARUM (nicht-offensichtliche Verdrahtung, Invarianten, Gotchas)
+
+- **Registry als SSOT (SP1+SP2).** `registry.py` ist die einzige Stelle, die alle Modell-Listen zusammenführt. Chat-Katalog, Embed, TTS/STT/Video werden intern aggregiert — kein Konsument greift noch direkt auf `catalog._cache`, `embed.available_for_config` oder `media_models.list_*` für Picker-Zwecke. Wer eine neue Modell-Kategorie hinzufügt, muss sie in `_build()` einklinken. `registry.py:81-119`
+- **Leere Registry-Build wird nicht gecacht.** Wenn alle Provider-Fetches fehlschlagen (kein Netz, keine Keys), gibt `_build` eine leere Liste zurück; `list_models` cached das nicht und setzt `_cache=None`. Nächster Aufruf (z.B. beim nächsten Picker-Refresh) retryt. Konsequenz: `known_ids()` gibt leere Menge → `is_known` gibt True → `validate_model` winkt durch. `registry.py:130-133`
+- **Startup: warm-Start verhindert Cold-Window.** `lifespan.py` startet `asyncio.create_task(registry.awarm())` beim Startup. Blockiert den Server nicht (Provider-Fetches können lang dauern), aber nach dem ersten Request-Batch ist der Cache warm. Bis dahin: `validate_model` fail-open. `lifespan.py:124-127`
+- **Custom-Modelle erscheinen NICHT im Dropdown** wenn sie nicht vom Provider live zurückkommen. `provider.models` in `llm.json` trägt Modelle nur in die Provider-Config (und damit in `use-in-agent` + Validate) ein, aber NICHT in die Registry. Das ist bewusst — Registry zeigt nur was die Provider-APIs liefern (plus Fallbacks). Folge: wer ein Custom-Modell nutzen will, muss es manuell eingeben; es erscheint nicht im Picker-Dropdown.
+- **`_PURPOSE_KEYS` ist SSOT für Default-Mapping.** `_config.py::_PURPOSE_KEYS` mappt Zweck → Pfad in `llm.json`. `routes/llm.py::list_llm_models` liest damit `get_default(purpose)` und hängt es als `"default"`-Feld an die Registry-Antwort. Frontend-Pickers bekommen so Vorauswahl direkt vom Endpoint — kein zusätzlicher `GET /api/llm`. `_config.py:77`, `routes/llm.py:120-128`
 
 - **`llm.json` ist die einzige Laufzeit-Quelle.** Provider-Keys, OAuth-Blöcke, `default_model`, `embed_model`, `media_models` leben alle hier. Mehrere Module lesen/schreiben es direkt (`routes/llm.py._load/_save`, `routes/llm_oauth.py._write_provider_oauth`, `oauth/*.resolve_*`, `_llm_config_rmw.update_provider_oauth`). Wer hier schreibt OHNE flock riskiert, einen parallelen Token-Refresh zu überschreiben.
 - **OAuth-Race-Schutz nur in `_llm_config_rmw`.** `update_provider_oauth` hält `fcntl.flock` auf `llm.json.lock`, liest frisch, mutiert nur den oauth-Block, atomic-rename. Aber `routes/llm.py._save` und `routes/llm_oauth.py._write_provider_oauth` nutzen das NICHT — sie überschreiben die ganze Datei. Ein gleichzeitiger Token-Refresh (flock-geschützt) und ein UI-Save (ungeschützt) können sich gegenseitig zerstören. Praktisch selten, aber eine Falle.

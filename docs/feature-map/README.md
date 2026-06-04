@@ -53,11 +53,13 @@ Nachschlagewerk. Bei Abweichungen gewinnt die Referenz-Schicht (frischer + `date
 | 25 | Frontend-Shell, Chat & Workspace | [25-frontend.md](25-frontend.md) | Routing, Layout/Topbar, Chat-Thread/Bubbles/Emotes, Workspace (Monaco/Git), Redesign, i18n |
 | 26 | **Querschnitt: End-to-End & Glue** | [26-glue.md](26-glue.md) | Eine Nachricht Klick→API→Runner→LLM→Tools→DB→SSE→UI. Session-Lifecycle. Die load-bearing Verdrahtung. |
 | 27 | **Team-Chat (Matrix/tuwunel)** | [27-teamchat.md](27-teamchat.md) | Mehr-Parteien-Chat über Matrix-Bridge: freie Räume, Mitglieder-Verwaltung, Agent-Zuschaltung (@Anrede), SSE-Echtzeit, tuwunel-Extension. *(nachgetragen 2026-06-03, nach der Feldforschung gebaut)* |
+| 28 | **Modulsystem v1** | [28-modules.md](28-modules.md) | Dritte Extensibility-Stufe: Voll-Stack-Module (UI+API+Migrations+opt. Dienst), install/deinstall per Knopf, Daten bleiben bei Deinstall, Frontend-Codegen, three-Hook-Core, Hub (github.com/hydrahive/hydrahive2-modules). *(nachgetragen 2026-06-04)* |
 
 ## Überblick-Schicht (Sonnet-4.6-Einzelagent)
 
 37 kompakte Sektionen unter [`uebersicht/`](uebersicht/) — Start: [`uebersicht/00-overview.md`](uebersicht/00-overview.md)
-(inkl. [`uebersicht/29-teamchat.md`](uebersicht/29-teamchat.md), nachgetragen 2026-06-03).
+(inkl. [`uebersicht/29-teamchat.md`](uebersicht/29-teamchat.md), nachgetragen 2026-06-03;
+[`uebersicht/36-modules.md`](uebersicht/36-modules.md), nachgetragen 2026-06-04).
 Feinere Aufteilung (trennt u.a. webmin, system-hooks, multimodal, zahnfee, samba einzeln), Tabellen + ASCII-Flows.
 
 ---

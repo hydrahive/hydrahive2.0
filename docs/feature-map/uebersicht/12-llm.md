@@ -1,8 +1,8 @@
-# Feature Map: LLM — Provider-Catalog & Modell-Verwaltung
+# Feature Map: LLM — Provider-Catalog, Registry & Modell-Verwaltung
 
 > **Modul:** `core/src/hydrahive/llm/`  
-> **Was:** Zentrale Verwaltung aller LLM-Provider und Modelle. Live-Fetch von Modell-Listen.  
-> **Warum:** Ohne korrekte Modell-Configs: Routing-Fehler, falsche Preise, tote Failover-Listen.
+> **Was:** Zentrale Verwaltung aller LLM-Provider und Modelle. **Eine kanonische Registry** aggregiert Chat-Katalog, Media- und Embed-Modelle. Alle Picker lesen denselben Endpoint.  
+> **Warum:** Ohne korrekte Modell-Configs: Routing-Fehler, falsche Preise, tote Failover-Listen. Vor dem SSOT-Umbau: 6+ divergierende Listen; Modell-Switch-Bug (claude selektierbar auch bei 401).
 
 ---
 
@@ -10,63 +10,57 @@
 
 | Datei | Verantwortung |
 |---|---|
-| `catalog.py` | **SSOT für alle Modelle.** Live-Fetch von `/v1/models` je Provider. 5-Min-TTL-Cache. |
+| `registry.py` | **Kanonische SSOT.** Aggregiert catalog/media/embed intern. `list_models(modality?)` (async, gecacht), `known_ids()`/`is_known()` (sync, für validate). Cache-TTL 300s, leere Liste wird nicht gecacht. |
+| `catalog.py` | Live-Fetch von `/v1/models` je Provider. 5-Min-TTL-Cache. Fallback auf `STATIC_MODELS`. |
+| `_config.py` | `load_config()` (mtime-Cache), `get_default(purpose)`/`set_default(purpose, model)` — Defaults-Accessor über `llm.json`. `_PURPOSE_KEYS` mappt Zweck → Pfad in `llm.json`. |
 | `_pricing.py` | Preis-Lookup: `cost_micros(model, input_tokens, output_tokens)`. `provider_from_model()`. |
-| `media_models.py` | **SSOT für Media-Modelle** (TTS, Video, Transcribe, Bild, Musik). Live-Fetch. Fallback-Listen. |
-| `_model_meta.py` | Modell-Metadaten (Context-Window, Features, ...) |
+| `media_models.py` | Live-Listen für TTS/Transcribe/Video (OpenRouter). Fallback-Listen. Weiterhin von der Registry intern genutzt. |
+| `embed.py` | Embed-Modelle + `aembed_batch`. Weiterhin von der Registry intern genutzt. |
 
 ---
 
-## catalog.py — das Herz
+## registry.py — die neue kanonische SSOT
 
 ```python
-# Live-Fetch von Modell-Listen:
-list_models(provider="openrouter") → [ModelInfo, ...]
-list_models(provider="anthropic") → [ModelInfo, ...]
-# ...für alle 7 konfigurierten Provider
+# Async: gebaut + gecacht, optional nach Zweck gefiltert
+await list_models(modality="chat")   → [ModelEntry, ...]
+await list_models(modality="tts")    → [ModelEntry, ...]
+await list_models()                  → alle Zwecke
 
-validate_model(model_id: str) → bool
-# Prüft ob Modell existiert (gegen Live-Liste)
-# Bei leerem Cache: True (fail-open)
+# Sync (kein Fetch — für validate):
+known_ids()  → set[str]      # leere Menge wenn Cache kalt
+is_known(model_id)  → bool   # True bei leerem Cache (fail-open)
+
+# Startup-Vorwärmung (in lifespan.py):
+await awarm()                        # blockiert Startup nicht
+
+# Cache leeren (z.B. nach config-PUT):
+invalidate()
 ```
 
-**Provider:**
-- `anthropic` — Anthropic API direkt
-- `openrouter` — OpenRouter (100+ Modelle)
-- `openai` — OpenAI API direkt
-- `groq` — Groq (schnelle Inference)
-- `deepseek` — DeepSeek
-- `nvidia` — NVIDIA NIM
-- `google` — Google Gemini
+**Zwecke (`PURPOSES`):** `chat`, `embed`, `tts`, `stt`, `image`, `video`, `music`
 
-**5-Minuten-TTL-Cache:** Live-Fetch wird gecacht damit nicht jeder Request die API bemüht.
+**`ModelEntry` (frozen dataclass):** `id`, `provider`, `label`, `purposes: frozenset[str]`,
+`context_window`, `is_free`, `embed_dim`, `source` (`"live"` | `"fallback"`)
+
+**Build-Logik:** Chat-Katalog → je Eintrag `_classify_catalog_entry` (chat + image/music aus
+output_modalities); Embed-Modelle; TTS/STT/Video via `list_speech_models`/`list_transcribe_models`/
+`list_video_models`. Dedupliziert per id, Zweck-Mengen werden vereinigt.
+Leere Builds werden **nicht** gecacht → nächster Aufruf retryt automatisch.
 
 ---
 
-## media_models.py — Media-SSOT
+## _config.py — Defaults-Accessor
 
 ```python
-# TTS-Modelle (Text-to-Speech):
-list_speech_models() → live von OpenRouter /models?output_modalities=speech
-# Fallback: ["openai/gpt-4o-audio-preview", ...]
-
-# Transcribe-Modelle (Audio → Text):
-list_transcribe_models() → live von OpenRouter /models?input_modalities=audio
-# Fallback: ["openai/whisper-large-v3", ...]
-
-# Video-Modelle:
-list_video_models() → live von OpenRouter /videos/models
-# Fallback: ["kling/kling-video-v2-master", "google/veo-3.1", ...]
+get_default("chat")   → "claude-sonnet-4-6"   # aus llm.json default_model
+get_default("tts")    → "hexgrad/kokoro-82m"   # aus llm.json media_models.tts
+get_default("stt")    → ...                    # aus llm.json media_models.transcribe
+set_default("image", "openai/gpt-5-image-mini")  # schreibt llm.json, invalidiert Cache
 ```
 
-**Bild-Modelle:** Katalog-Modelle (hardcoded Kurz-Liste):
-- `openai/gpt-5-image-mini` (default, günstig)
-- `openai/gpt-5-image`
-- `google/gemini-2.5-flash-image`
-
-**Musik-Modelle:**
-- `google/lyria-3-pro-preview` (default)
-- `google/lyria-3-clip-preview` (kurze Clips)
+`_PURPOSE_KEYS` mappt jeden Zweck auf seinen Pfad in `llm.json`
+(z.B. `"stt"` → `("media_models", "transcribe")`). SSOT für alle Defaults.
 
 ---
 
@@ -90,24 +84,50 @@ provider_from_model("openrouter/...") → "openrouter"
 
 ## LLM-API-Endpoints (aus routes/llm.py)
 
-| Endpoint | Beschreibung |
-|---|---|
-| `GET /api/llm/models?provider=openrouter` | Live-Modell-Liste eines Providers |
-| `GET /api/llm/catalog` | Kompletter Provider-Katalog |
-| `GET /api/llm/speech-models` | TTS-Modelle |
-| `GET /api/llm/transcribe-models` | Transcribe-Modelle |
-| `GET /api/llm/video-models` | Video-Modelle |
+| Endpoint | Auth | Beschreibung |
+|---|---|---|
+| `GET /api/llm/models?modality=` | require_auth | **Kanonische Liste** aus Registry, gefiltert nach Zweck. Liefert `{models, default}`. ALLE Picker nutzen diesen einen Endpoint. |
+| `GET /api/llm/catalog` | admin | Kompletter Provider-Katalog (CatalogPage, Admin). |
+| `GET /api/llm/effort-models` | require_auth | SSOT für xhigh/max-fähige Modell-Prefixe. |
+| `GET /api/llm` | admin | Ganze `llm.json` (Config-Page). |
+| `PUT /api/llm` | admin | Config speichern, triggert `registry.invalidate()`. |
+
+**Gelöschte Routen (SP1):** `/api/llm/embed-models`, `/api/llm/speech-models`,
+`/api/llm/transcribe-models`, `/api/llm/video-models` — alle ersetzt durch `/api/llm/models?modality=`.
+Die Fetcher-Funktionen in `media_models.py`/`embed.py` existieren weiter, werden aber nur noch
+intern von der Registry genutzt, nicht mehr direkt als Endpoints.
 
 ---
 
 ## Frontend-Nutzung
 
-- `features/llm/MediaModelsSection.tsx` — Video/Transcribe/Speech Modell-Picker
-- `features/chat/ModelPicker.tsx` — Modell-Auswahl im Chat (Such-Combobox, 🆓-Badge)
-- `features/agents/AgentForm.tsx` — Modell-Auswahl im Agent-Config
+Alle Picker lesen `llmModelsApi.byModality(modality)` → `GET /api/llm/models?modality=`.
 
-**SSOT-Lektion (gelernt):** Früher waren Modell-Listen hardgespiegelt über 6+ Dateien.
-Nach dem SSOT-Umbau: Frontend holt Live-Liste von API. Kein Drift mehr.
+| Komponente | Zweck |
+|---|---|
+| `features/llm/DefaultModelsSection.tsx` | **Eine** Config-Sektion für alle 7 Zwecke (chat/embed/image/music/tts/stt/video). Löst `MediaModelsSection.tsx` ab. |
+| `features/llm/api.ts` — `llmModelsApi.byModality` | Typisierter Client für `/llm/models`. |
+| `features/chat/ModelPicker.tsx` | Chat-Modell-Auswahl (byModality("chat")). |
+| `features/chat/commands.ts` | /model-Command (byModality("chat")). |
+| `features/agents/AgentsPage.tsx` | Agent-Modell-Tab (byModality("chat")). |
+| `features/buddy/BuddySettingsPage.tsx` | Buddy-Modell-Picker (byModality("chat")). |
+| `features/projects/NewProjectDialog.tsx` | Projekt-Modell-Auswahl (byModality("chat")). |
+
+**`MediaModelsSection.tsx` gelöscht** (war: separate Selects pro Kategorie gegen die alten
+Modality-Endpoints). Ersetzt durch `DefaultModelsSection.tsx`.
+
+**Hinweis:** Manuell getippte Custom-Modelle (in `provider.models` in `llm.json` eingetragen)
+erscheinen NICHT im Dropdown, solange sie nicht durch den Live-Fetch zurückkommen — bewusste
+Entscheidung (Registry-Konsistenz).
+
+---
+
+## validate_model → Registry
+
+`agents/_validation.py::_available_models()` liest jetzt `registry.known_ids()` statt direkt
+aus `catalog._cache`. Fix für den Modell-Switch-Bug: `validate_model` blockte zuvor Modelle
+die im statischen Fallback-Katalog (bei 401-Providern) nicht auftauchten.
+Fail-open-Semantik bleibt: leere Menge (Cache kalt) = durchwinken.
 
 ---
 
@@ -121,7 +141,7 @@ https://openrouter.ai/settings/privacy nötig für free tier). Kein HH2-Bug.
 
 ## Verwandte Subsysteme
 
-- **→ Runner** (`01-runner.md`): nutzt `catalog.validate_model()`, `_pricing.cost_micros()`
+- **→ Runner** (`01-runner.md`): nutzt `validate_model()` (über Registry), `_pricing.cost_micros()`
 - **→ Compaction** (`06-compaction.md`): `tokens.context_window_for(model)`
-- **→ Multimodal** (`30-multimodal.md`): `media_models.py` ist SSOT für Media-Tools
-- **→ OAuth** (`36-oauth.md`): OAuth-Flows für Anthropic/OpenAI
+- **→ Multimodal** (`27-multimodal.md`): `media_models.py` intern in Registry; Tools nutzen `get_media_model`
+- **→ OAuth** (LLM-Seite): OAuth-Flows für Anthropic/OpenAI in `oauth/`

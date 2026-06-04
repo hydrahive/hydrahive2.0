@@ -71,7 +71,14 @@ zumüllen. Daher: Modulsystem ist die **Voraussetzung**.
 
 ## ✅ Erledigt / in Arbeit (Kontext)
 
-- **Team-Chat (Matrix/tuwunel)** — Schicht 1 + Etappe 5a/5b/5c fertig; 5d (Presence)
-  als Nächstes. Voll dokumentiert in [`feature-map/27-teamchat.md`](feature-map/27-teamchat.md).
+- **LLM-SSOT (SP1+SP2, erledigt 2026-06-04)** — Eine kanonische Modell-Quelle, ein API-Endpoint,
+  eine Config-Sektion, alle Picker vereinheitlicht. `registry.py` aggregiert Chat-Katalog/Media/Embed
+  intern; `GET /api/llm/models?modality=` ist der einzige Picker-Endpoint; `DefaultModelsSection.tsx`
+  ist die einzige Config-Sektion für alle 7 Zwecke. Alte Modality-Routen gelöscht.
+  Hinweis: manuell getippte Custom-Modelle erscheinen nicht im Dropdown — bewusste Entscheidung
+  (Registry zeigt nur was Provider-APIs zurückliefern).
+
+- **Team-Chat (Matrix/tuwunel)** — Schicht 1 + Etappe 5a/5b/5c/5d fertig (inkl. Presence).
+  Voll dokumentiert in [`feature-map/27-teamchat.md`](feature-map/27-teamchat.md).
   Genau dieses Feature wäre der **erste Migrations-Kandidat** fürs Modulsystem
   („/modul/chat" mit allem drin, inkl. tuwunel-Extension).
