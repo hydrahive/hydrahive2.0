@@ -4,9 +4,10 @@ import { ChevronDown } from "lucide-react"
 /**
  * Einklappbare Inhaltsbox (SPEC-Konvention, Web-Konsole/Design).
  *
- * Standard-Box-Chrome (Rahmen + Header) + Einklapp-Button im Header. Der Auf-/Zu-
- * Zustand wird je `boxId` in localStorage persistiert (bleibt über Sessions/Tabs
- * erhalten — wie Theme/Sprache). Vorlage für jede künftige Box.
+ * Standard-Box-Chrome (`.box` + `.box-h`-Header) + Einklapp-Button im Header. Der
+ * Auf-/Zu-Zustand wird je `boxId` in localStorage persistiert (bleibt über Sessions/Tabs
+ * erhalten — wie Theme/Sprache). Body wird vom Aufrufer geliefert (z.B. `.box-b` oder
+ * `p-3`). Vorlage für jede künftige Box.
  */
 
 const lsKey = (id: string) => `hh2.box.${id}`
@@ -24,6 +25,7 @@ interface Props {
   /** Stabiler Schlüssel für die Persistenz (eindeutig je Box). */
   boxId: string
   title: ReactNode
+  /** Wird in den `.ic`-Chip des Headers gelegt (26px, `--c`-getönt). */
   icon?: ReactNode
   /** Optionaler Inhalt rechts im Header (z.B. ein Link) — vor dem Einklapp-Button. */
   headerRight?: ReactNode
@@ -52,23 +54,21 @@ export function CollapsibleBox({
       className={`box overflow-hidden ${className}`}
       style={color ? ({ "--c": color } as CSSProperties) : undefined}
     >
-      <div
-        className={`px-4 py-3 bg-black/20 flex items-center gap-2 ${collapsed ? "" : "border-b border-white/[6%]"}`}
-      >
-        {icon}
-        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex-1 min-w-0 truncate">
-          {title}
+      <div className="box-h" style={collapsed ? { borderBottom: "none" } : undefined}>
+        {icon && <span className="ic">{icon}</span>}
+        <span className="t">{title}</span>
+        <span className="r flex items-center gap-2">
+          {headerRight}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Aufklappen" : "Einklappen"}
+            className="text-zinc-500 hover:text-zinc-200 transition-colors"
+          >
+            <ChevronDown size={14} className={`transition-transform ${collapsed ? "-rotate-90" : ""}`} />
+          </button>
         </span>
-        {headerRight}
-        <button
-          type="button"
-          onClick={toggle}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Aufklappen" : "Einklappen"}
-          className="shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
-        >
-          <ChevronDown size={14} className={`transition-transform ${collapsed ? "-rotate-90" : ""}`} />
-        </button>
       </div>
       {!collapsed && children}
     </div>

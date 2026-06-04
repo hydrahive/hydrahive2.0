@@ -1,19 +1,16 @@
-import { useEffect, useState, type CSSProperties } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Activity, Loader2 } from "lucide-react"
+import { CollapsibleBox } from "@/shared/CollapsibleBox"
 import { dashboardApi, type DashboardSummary } from "@/features/dashboard/api"
 import { zahnfeeApi, type Briefing } from "@/features/zahnfee/api"
 import { Link } from "react-router-dom"
 
-function PanelBox({ title, icon, c, children }: { title: string; icon: React.ReactNode; c: string; children: React.ReactNode }) {
+function PanelBox({ boxId, title, icon, c, children }: { boxId: string; title: string; icon: React.ReactNode; c: string; children: React.ReactNode }) {
   return (
-    <div className="box overflow-hidden" style={{ "--c": c } as CSSProperties}>
-      <div className="box-h">
-        <span className="ic">{icon}</span>
-        <span className="t">{title}</span>
-      </div>
+    <CollapsibleBox boxId={boxId} title={title} icon={icon} color={c} defaultCollapsed>
       <div className="box-b">{children}</div>
-    </div>
+    </CollapsibleBox>
   )
 }
 
@@ -30,14 +27,14 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   const { t } = useTranslation("buddy")
   if (briefing === undefined) {
     return (
-      <PanelBox title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
+      <PanelBox boxId="buddy-zahnfee" title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
         <Loader2 size={14} className="text-zinc-600 animate-spin" />
       </PanelBox>
     )
   }
   if (!briefing) {
     return (
-      <PanelBox title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
+      <PanelBox boxId="buddy-zahnfee" title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
         <div className="flex flex-col items-center text-center gap-2">
           <img src="/illustrations/empty-briefing.png" alt="" width={84} height={84}
             className="object-contain opacity-95 drop-shadow-[0_0_16px_rgba(139,92,246,0.3)] select-none pointer-events-none" />
@@ -55,7 +52,7 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   ].filter((s) => s.value)
 
   return (
-    <PanelBox title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
+    <PanelBox boxId="buddy-zahnfee" title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
       {briefing.error ? (
         <p className="text-xs text-rose-400 italic">{briefing.error}</p>
       ) : (
@@ -89,7 +86,7 @@ export function BuddyLeftPanel() {
     <div className="flex flex-col gap-4 w-60">
       <ZahnfeeBox briefing={briefing} />
 
-      <PanelBox title="System" c="20 184 166" icon={<Activity size={13} className="text-teal-300" />}>
+      <PanelBox boxId="buddy-system" title="System" c="20 184 166" icon={<Activity size={13} className="text-teal-300" />}>
         {!summary ? (
           <Loader2 size={14} className="text-zinc-600 animate-spin" />
         ) : (
