@@ -3,36 +3,36 @@ import { BookOpen, CheckCircle, Loader2, Plus, XCircle, Zap } from "lucide-react
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
-import { llmApi, type EmbedModel, type LlmConfig, type LlmProvider } from "./api"
+import { llmApi, type LlmConfig, type LlmProvider } from "./api"
 import { ProviderCard } from "./ProviderCard"
 import { ProviderForm } from "./ProviderForm"
 import { AnthropicUsageCard } from "./AnthropicUsageCard"
-import { MediaModelsSection } from "./MediaModelsSection"
+import { DefaultModelsSection } from "./DefaultModelsSection"
 
 export function LlmPage() {
   const { t } = useTranslation("llm")
   const { t: tCommon } = useTranslation("common")
   const [config, setConfig] = useState<LlmConfig>({ providers: [], default_model: "", embed_model: "", media_models: {} })
-  const [embedModels, setEmbedModels] = useState<EmbedModel[]>([])
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
 
-  const allModels = config.providers.flatMap((p) => p.models)
-
   useEffect(() => {
     llmApi.getConfig().then(setConfig).catch(() => {})
-    llmApi.getEmbedModels().then(setEmbedModels).catch(() => {})
   }, [])
+
+  async function reloadConfig() {
+    const fresh = await llmApi.getConfig()
+    setConfig(fresh)
+  }
 
   async function save(next: LlmConfig) {
     setSaving(true)
     try {
       const saved = await llmApi.updateConfig(next)
       setConfig(saved)
-      llmApi.getEmbedModels().then(setEmbedModels).catch(() => {})
     } finally { setSaving(false) }
   }
 
@@ -115,51 +115,7 @@ export function LlmPage() {
           }} />}
       </div>
 
-      {allModels.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("default_model")}</p>
-          <select value={config.default_model}
-            onChange={(e) => { const next = { ...config, default_model: e.target.value }; setConfig(next); save(next) }}
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50">
-            <option value="" className="bg-zinc-900 text-zinc-400">{tCommon("actions.select")}</option>
-            {allModels.map((m) => <option key={m} value={m} className="bg-zinc-900 text-zinc-200">{m}</option>)}
-          </select>
-        </div>
-      )}
-
-      {embedModels.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("embed_model")}</p>
-          <select value={config.embed_model}
-            onChange={(e) => { const next = { ...config, embed_model: e.target.value }; setConfig(next); save(next) }}
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50">
-            <option value="" className="bg-zinc-900 text-zinc-400">{tCommon("actions.select")}</option>
-            {embedModels.map((m) => (
-              <option key={m.model} value={m.model} className="bg-zinc-900 text-zinc-200">
-                {m.model} ({m.dim}d)
-              </option>
-            ))}
-          </select>
-          {config.embed_model && (
-            <p className="text-[11px] text-zinc-600">
-              {t("embed_model_hint", { dim: embedModels.find(m => m.model === config.embed_model)?.dim ?? "?" })}
-            </p>
-          )}
-        </div>
-      )}
-
-      {config.providers.length > 0 && (
-        <MediaModelsSection
-          mediaModels={config.media_models ?? {}}
-          onChange={(category, model) => {
-            const next = {
-              ...config,
-              media_models: { ...(config.media_models ?? {}), [category]: model },
-            }
-            setConfig(next); save(next)
-          }}
-        />
-      )}
+      <DefaultModelsSection config={config} onSaved={reloadConfig} />
 
       <div className="flex items-center gap-3">
         <button onClick={testConnection} disabled={testing || !config.default_model}
