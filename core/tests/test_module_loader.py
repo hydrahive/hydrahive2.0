@@ -54,3 +54,25 @@ def test_load_all_isolates_broken_module(mod_env):
     load_all()
     assert REGISTRY["good"].loaded is True
     assert REGISTRY["bad"].loaded is False and REGISTRY["bad"].error
+
+
+def test_load_all_module_without_register(mod_env):
+    md = mod_env / "modules" / "noreg"; (md / "backend").mkdir(parents=True)
+    (md / "manifest.json").write_text('{"id":"noreg","name":"N","version":"1.0.0"}')
+    (md / "backend" / "__init__.py").write_text("x = 1\n")  # kein register
+    from hydrahive.modules.loader import load_all
+    from hydrahive.modules.registry import REGISTRY
+    load_all()
+    assert REGISTRY["noreg"].loaded is False
+    assert "register" in (REGISTRY["noreg"].error or "")
+
+
+def test_load_all_idempotent_rerun(mod_env):
+    from hydrahive.db.connection import db
+    _make_module(mod_env / "modules", "beta")
+    from hydrahive.modules.loader import load_all
+    from hydrahive.modules.registry import REGISTRY
+    load_all(); load_all()
+    assert "beta" in REGISTRY and REGISTRY["beta"].loaded is True
+    with db() as c:
+        assert c.execute("SELECT COUNT(*) FROM module_schema_version WHERE module_id='beta'").fetchone()[0] == 1

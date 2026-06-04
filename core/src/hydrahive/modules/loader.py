@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.util
 import logging
 import sys
+import types
 from pathlib import Path
 
 from hydrahive.modules.manifest import ManifestError, ModuleManifest
@@ -19,11 +20,15 @@ from hydrahive.modules.migrations import apply_module_migrations
 logger = logging.getLogger(__name__)
 
 
-def _import_backend(module_dir: Path, mid: str):
+def _import_backend(module_dir: Path, mid: str) -> types.ModuleType:
     """Importiert backend/__init__.py mit dem Plugin-Loader-Idiom.
 
-    Analog zu plugins/loader.py:43-66 — spec_from_file_location +
-    sys.path + sys.modules — damit relative Imports im Modul funktionieren.
+    Folgt demselben Idiom wie plugins/loader.py (spec_from_file_location +
+    sys.path-Eintrag + sys.modules-Registrierung), damit relative Imports im
+    Modul-Backend funktionieren.  Hinweis: der sys.path-Eintrag und der
+    sys.modules-Eintrag bleiben für die gesamte Prozess-Laufzeit erhalten;
+    das Bereinigen von entfernten Modulen obliegt dem Backend-Neustart
+    (by design).
     """
     safe = "hhmod_" + mid.replace("-", "_")
     backend = module_dir / "backend"
@@ -48,6 +53,9 @@ def _load_one(module_dir: Path) -> LoadedModule:
         manifest = ModuleManifest.load(module_dir / "manifest.json")
     except ManifestError as e:
         return LoadedModule(name=name, manifest=None, path=module_dir, error=str(e))
+
+    if name.replace("-", "_") != manifest.id.replace("-", "_"):
+        logger.warning("Modul-Verzeichnis %r weicht von manifest.id %r ab", name, manifest.id)
 
     try:
         backend = _import_backend(module_dir, manifest.id)
@@ -78,7 +86,7 @@ def load_all() -> None:
     base = settings.modules_dir
     if not base.is_dir():
         return
-    for module_dir in sorted(p for p in base.iterdir() if p.is_dir()):
+    for module_dir in sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith(".")):
         loaded = _load_one(module_dir)
         REGISTRY[loaded.name] = loaded
         if loaded.loaded:
