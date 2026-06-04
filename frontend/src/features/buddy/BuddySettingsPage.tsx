@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { ArrowLeft, Check, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { buddyApi, type BuddyConfig, type BuddyConfigPatch } from "./api"
-import { llmInfoApi } from "@/features/agents/api"
+import { llmModelsApi } from "@/features/llm/api"
 import { BuddySettingsIdentity } from "./_BuddySettingsIdentity"
 import { BuddySettingsContext } from "./_BuddySettingsContext"
 import { BuddySettingsTools } from "./_BuddySettingsTools"
@@ -35,7 +35,7 @@ export function BuddySettingsPage() {
   useEffect(() => {
     buddyApi.getConfig().then(setConfig).catch((e: unknown) =>
       setError(e instanceof Error ? e.message : t("settings.title")))
-    llmInfoApi.getModels().then((r) => setModels(r.models)).catch(() => {})
+    llmModelsApi.byModality("chat").then((r) => setModels(r.models.map((m) => m.id))).catch(() => {})
   }, [])
 
   function applyDraft(patch: BuddyConfigPatch) {
