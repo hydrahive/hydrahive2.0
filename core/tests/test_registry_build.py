@@ -63,3 +63,27 @@ async def test_empty_build_not_cached(monkeypatch):
     assert await registry.list_models() == []
     assert registry.known_ids() == set()      # nicht gecacht
     assert registry.is_known("x") is True      # failopen bei leerem Cache
+
+
+@pytest.mark.asyncio
+async def test_anthropic_401_static_fallback_keeps_claude_known(monkeypatch):
+    """Regression (der eigentliche Bug): Anthropic-Live-Fetch schlägt fehl (401 → leer),
+    catalog_for_providers liefert den STATIC_MODELS-Fallback → claude bleibt in der Registry
+    + known_ids → validate würde es akzeptieren."""
+    from hydrahive.llm import registry, catalog
+    from hydrahive.llm._catalog_data import STATIC_MODELS
+    monkeypatch.setattr(registry, "_providers", lambda: [{"id": "anthropic", "api_key": "bad-key"}])
+    monkeypatch.setattr(registry, "_embed_models", lambda: [])
+    async def empty_live(provider_id, api_key):   # simuliert 401 / leeren Live-Fetch
+        return []
+    monkeypatch.setattr(catalog, "_fetch_live_models", empty_live)
+    async def none(force=False): return []
+    monkeypatch.setattr(registry, "list_speech_models", none)
+    monkeypatch.setattr(registry, "list_transcribe_models", none)
+    monkeypatch.setattr(registry, "list_video_models", none)
+    catalog._cache_clear()
+    registry.invalidate()
+    chat_ids = {m.id for m in await registry.list_models("chat")}
+    assert any(cid in chat_ids for cid in STATIC_MODELS["anthropic"]), \
+        f"claude-Fallback fehlt; got {sorted(chat_ids)}"
+    assert registry.is_known(STATIC_MODELS["anthropic"][0]) is True
