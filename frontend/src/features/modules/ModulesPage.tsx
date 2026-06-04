@@ -22,6 +22,7 @@ export function ModulesPage() {
     setLoading(false)
   }, [])
 
+  // load() ist async — setState passiert nach dem await; die Regel über-feuert hier.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
