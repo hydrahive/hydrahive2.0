@@ -1,36 +1,10 @@
-"""Tests für hydrahive.modules.loader (load_all).
-
-_make_module ist eine wiederverwendbare Hilfsfunktion — sie wird auch von
-Task 6 (Install/Uninstall) importiert.
-"""
+"""Tests für hydrahive.modules.loader (load_all)."""
 from __future__ import annotations
-from pathlib import Path
 
 
-def _make_module(modules_dir: Path, mid: str) -> Path:
-    """Legt ein minimales, valides Modul-Verzeichnis an."""
-    md = modules_dir / mid
-    (md / "backend").mkdir(parents=True)
-    (md / "migrations").mkdir()
-    (md / "manifest.json").write_text('{"id":"%s","name":"X","version":"1.0.0"}' % mid)
-    (md / "migrations" / "001_t.sql").write_text(
-        f"CREATE TABLE module_{mid}_t (id INTEGER);"
-    )
-    (md / "backend" / "__init__.py").write_text(
-        "from fastapi import APIRouter\n"
-        "def register(ctx):\n"
-        "    r=APIRouter()\n"
-        "    @r.get('/ping')\n"
-        "    def ping(): return {'ok': True}\n"
-        "    ctx.register_router(r)\n"
-        "    ctx.register_migrations('migrations')\n"
-    )
-    return md
-
-
-def test_load_all_loads_module_and_migrations(mod_env):
+def test_load_all_loads_module_and_migrations(mod_env, make_module):
     from hydrahive.db.connection import db
-    _make_module(mod_env / "modules", "alpha")   # == settings.modules_dir
+    make_module(mod_env / "modules", "alpha")   # == settings.modules_dir
     from hydrahive.modules.loader import load_all
     from hydrahive.modules.registry import REGISTRY
     load_all()
@@ -43,8 +17,8 @@ def test_load_all_loads_module_and_migrations(mod_env):
     assert count == 1
 
 
-def test_load_all_isolates_broken_module(mod_env):
-    _make_module(mod_env / "modules", "good")
+def test_load_all_isolates_broken_module(mod_env, make_module):
+    make_module(mod_env / "modules", "good")
     bad = mod_env / "modules" / "bad"
     (bad / "backend").mkdir(parents=True)
     (bad / "manifest.json").write_text('{"id":"bad","name":"B","version":"1"}')
@@ -67,9 +41,9 @@ def test_load_all_module_without_register(mod_env):
     assert "register" in (REGISTRY["noreg"].error or "")
 
 
-def test_load_all_idempotent_rerun(mod_env):
+def test_load_all_idempotent_rerun(mod_env, make_module):
     from hydrahive.db.connection import db
-    _make_module(mod_env / "modules", "beta")
+    make_module(mod_env / "modules", "beta")
     from hydrahive.modules.loader import load_all
     from hydrahive.modules.registry import REGISTRY
     load_all(); load_all()

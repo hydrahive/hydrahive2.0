@@ -158,13 +158,19 @@ app.include_router(fhir_router)
 app.include_router(ega_router)
 
 
-def mount_module_routers(target_app) -> None:
+def mount_module_routers(target_app: FastAPI) -> None:
     """Hängt die Router aller erfolgreich geladenen Module ein (Prefix pro Modul).
-    Wird im Lifespan nach modules.load_all() aufgerufen (REGISTRY ist beim Import leer)."""
+    Wird im Lifespan nach modules.load_all() aufgerufen (REGISTRY ist beim Import leer).
+    Fehler beim Einhängen eines Moduls werden isoliert — sie dürfen den Start nicht abbrechen."""
     for entry in _modules.REGISTRY.values():
-        if entry.loaded and entry.ctx:
-            for r in entry.ctx.routers:
+        if not (entry.loaded and entry.ctx):
+            continue
+        for r in entry.ctx.routers:
+            try:
                 target_app.include_router(r, prefix=f"/api/modules/{entry.manifest.id}")
+            except Exception as exc:
+                logger.error("Modul '%s': include_router fehlgeschlagen — übersprungen: %s",
+                             entry.manifest.id, exc)
 
 
 @app.exception_handler(Exception)
