@@ -60,6 +60,8 @@ async def update_config(cfg: LlmConfig) -> dict:
     old_model = _load().get("embed_model", "")
     data = cfg.model_dump()
     _save(data)
+    from hydrahive.llm import registry
+    registry.invalidate()
     new_model = data.get("embed_model", "")
     if new_model != old_model:
         from hydrahive.db import mirror

@@ -117,6 +117,8 @@ async def lifespan(app: FastAPI):
     agent_bootstrap.ensure_master("admin")
     agent_bootstrap.migrate_tools()
     plugin_system.load_all()
+    from hydrahive.llm import registry as llm_registry
+    await llm_registry.awarm()
     load_butler_builtins()
     set_start_time()
 
