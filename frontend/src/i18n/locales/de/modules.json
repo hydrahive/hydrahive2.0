@@ -1,0 +1,27 @@
+{
+  "title": "Module",
+  "installed_count": "{{count}} installiert",
+  "loading": "Lade Module…",
+  "empty_installed": "Keine Module installiert.",
+  "empty_available": "Keine weiteren Module verfügbar.",
+  "section": {
+    "installed": "Installierte Module",
+    "available": "Verfügbare Module"
+  },
+  "status": {
+    "loaded": "Geladen",
+    "error": "Fehler",
+    "available": "Verfügbar"
+  },
+  "actions": {
+    "install": "Installieren",
+    "installing": "Installiert…",
+    "uninstall": "Deinstallieren",
+    "uninstalling": "Deinstalliert…"
+  },
+  "log": {
+    "waiting": "Warte auf Ausgabe…",
+    "success": "Erfolgreich abgeschlossen",
+    "failed": "Fehlgeschlagen"
+  }
+}

@@ -36,6 +36,7 @@ import deVms from "./locales/de/vms.json"
 import deWorkspace from "./locales/de/workspace.json"
 import deZahnfee from "./locales/de/zahnfee.json"
 import deTeamchat from "./locales/de/teamchat.json"
+import deModules from "./locales/de/modules.json"
 
 import enCommon from "./locales/en/common.json"
 import enAuth from "./locales/en/auth.json"
@@ -70,6 +71,7 @@ import enVms from "./locales/en/vms.json"
 import enWorkspace from "./locales/en/workspace.json"
 import enZahnfee from "./locales/en/zahnfee.json"
 import enTeamchat from "./locales/en/teamchat.json"
+import enModules from "./locales/en/modules.json"
 
 const baseResources = {
   de: {
@@ -83,6 +85,7 @@ const baseResources = {
     federation: deFederation, health: deHealth, scratchpad: deScratchpad,
     streaming: deStreaming, vms: deVms, workspace: deWorkspace, zahnfee: deZahnfee,
     teamchat: deTeamchat,
+    modules: deModules,
   },
   en: {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
@@ -95,6 +98,7 @@ const baseResources = {
     federation: enFederation, health: enHealth, scratchpad: enScratchpad,
     streaming: enStreaming, vms: enVms, workspace: enWorkspace, zahnfee: enZahnfee,
     teamchat: enTeamchat,
+    modules: enModules,
   },
 }
 
@@ -124,7 +128,7 @@ i18n
     resources: mergedResources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "health", "scratchpad", "streaming", "vms", "workspace", "zahnfee", "teamchat"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "health", "scratchpad", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
