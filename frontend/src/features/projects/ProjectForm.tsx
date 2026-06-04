@@ -82,11 +82,12 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
           <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
         )}
 
-        <div className="columns-1 xl:columns-2 2xl:columns-3 gap-3">
-          <CollapsibleBox boxId="project-overview" color={C} className={BOX} icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
-            <div className="box-b"><OverviewTab project={project} draft={draft} agentName={agentName} onChange={onSaved} onDraftChange={setDraft} /></div>
-          </CollapsibleBox>
+        {/* Übersicht: volle Breite, ganz oben (außerhalb des Masonry-Grids). */}
+        <CollapsibleBox boxId="project-overview" color={C} className="box-static mb-3" icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
+          <div className="box-b"><OverviewTab project={project} draft={draft} agentName={agentName} onChange={onSaved} onDraftChange={setDraft} /></div>
+        </CollapsibleBox>
 
+        <div className="columns-1 xl:columns-2 2xl:columns-3 gap-3">
           <CollapsibleBox boxId="project-stats" color={C} className={BOX} icon={<BarChart3 size={14} />} title={t("tabs.stats")}>
             <div className="box-b"><StatsTab projectId={project.id} /></div>
           </CollapsibleBox>
