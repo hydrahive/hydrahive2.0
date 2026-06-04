@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react"
-import { Folder, Loader2, Save } from "lucide-react"
+import {
+  Folder, Loader2, Save, LayoutGrid, BarChart3, StickyNote, FolderOpen,
+  MessageSquare, GitBranch, Server, SlidersHorizontal, Users, ScrollText,
+} from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
+import { CollapsibleBox } from "@/shared/CollapsibleBox"
 import { projectsApi } from "./api"
 import { OverviewTab } from "./_OverviewTab"
 import { SessionsTab } from "./_SessionsTab"
@@ -20,7 +25,10 @@ interface Props {
   onDeleted: () => void
 }
 
-type Tab = "overview" | "notes" | "files" | "sessions" | "git" | "servers" | "stats" | "settings" | "specialists" | "audit"
+const C = rgbFor("/projects")
+const BOX = "box-static mb-3 break-inside-avoid"
+// Lange Listen: höhengedeckelt → intern scrollen statt sprawl.
+const SCROLL = "max-h-[28rem] overflow-y-auto"
 
 export function ProjectForm({ project, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("projects")
@@ -29,11 +37,9 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
   const [agentName, setAgentName] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>("overview")
 
   useEffect(() => {
     setDraft(project)
-    setTab("overview")
     projectsApi.getAgent(project.id).then((a) => setAgentName(a.name)).catch(() => setAgentName(""))
   }, [project.id])
 
@@ -50,19 +56,6 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
       setError(e instanceof Error ? e.message : tCommon("status.error"))
     } finally { setSaving(false) }
   }
-
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "overview", label: t("tabs.overview") },
-    { id: "notes", label: t("tabs.notes") },
-    { id: "files", label: t("tabs.files") },
-    { id: "sessions", label: t("tabs.sessions") },
-    { id: "git", label: t("tabs.git") },
-    { id: "servers", label: t("tabs.servers") },
-    { id: "stats", label: t("tabs.stats") },
-    { id: "settings", label: t("tabs.settings") },
-    { id: "specialists", label: t("tabs.specialists") },
-    { id: "audit", label: t("tabs.audit") },
-  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -84,36 +77,52 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
         )}
       </div>
 
-      <div className="flex gap-1 px-6 pt-3 pb-0 border-b border-white/[6%]">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3 py-2 text-xs font-medium rounded-t-md transition-colors border-b-2 -mb-px ${
-              tab === t.id
-                ? "text-violet-300 border-violet-500"
-                : "text-zinc-500 border-transparent hover:text-zinc-300"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       <div className="flex-1 overflow-y-auto px-6 py-5">
         {error && (
           <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
         )}
-        {tab === "overview" && <OverviewTab project={project} draft={draft} agentName={agentName} onChange={onSaved} onDraftChange={setDraft} />}
-        {tab === "notes" && <NotesTab project={project} onSaved={onSaved} />}
-        {tab === "files" && <FilesTab projectId={project.id} />}
-        {tab === "sessions" && <SessionsTab projectId={project.id} />}
-        {tab === "git" && <GitTab projectId={project.id} onChanged={() => projectsApi.get(project.id).then(onSaved)} />}
-        {tab === "servers" && <ServersTab projectId={project.id} />}
-        {tab === "stats" && <StatsTab projectId={project.id} />}
-        {tab === "settings" && <SettingsTab project={project} draft={draft} onDraftChange={setDraft} onDeleted={onDeleted} />}
-        {tab === "specialists" && <SpecialistsTab project={project} onSaved={onSaved} />}
-        {tab === "audit" && <AuditTab projectId={project.id} />}
+
+        <div className="columns-1 xl:columns-2 2xl:columns-3 gap-3">
+          <CollapsibleBox boxId="project-overview" color={C} className={BOX} icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
+            <div className="box-b"><OverviewTab project={project} draft={draft} agentName={agentName} onChange={onSaved} onDraftChange={setDraft} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-stats" color={C} className={BOX} icon={<BarChart3 size={14} />} title={t("tabs.stats")}>
+            <div className="box-b"><StatsTab projectId={project.id} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-sessions" color={C} className={BOX} icon={<MessageSquare size={14} />} title={t("tabs.sessions")}>
+            <div className={`box-b ${SCROLL}`}><SessionsTab projectId={project.id} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-notes" color={C} className={BOX} icon={<StickyNote size={14} />} title={t("tabs.notes")}>
+            <div className="box-b"><NotesTab project={project} onSaved={onSaved} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-files" color={C} className={BOX} icon={<FolderOpen size={14} />} title={t("tabs.files")} defaultCollapsed>
+            <div className={`box-b ${SCROLL}`}><FilesTab projectId={project.id} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-git" color={C} className={BOX} icon={<GitBranch size={14} />} title={t("tabs.git")} defaultCollapsed>
+            <div className="box-b"><GitTab projectId={project.id} onChanged={() => projectsApi.get(project.id).then(onSaved)} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-servers" color={C} className={BOX} icon={<Server size={14} />} title={t("tabs.servers")} defaultCollapsed>
+            <div className={`box-b ${SCROLL}`}><ServersTab projectId={project.id} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-settings" color={C} className={BOX} icon={<SlidersHorizontal size={14} />} title={t("tabs.settings")} defaultCollapsed>
+            <div className="box-b"><SettingsTab project={project} draft={draft} onDraftChange={setDraft} onDeleted={onDeleted} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-specialists" color={C} className={BOX} icon={<Users size={14} />} title={t("tabs.specialists")} defaultCollapsed>
+            <div className="box-b"><SpecialistsTab project={project} onSaved={onSaved} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-audit" color={C} className={BOX} icon={<ScrollText size={14} />} title={t("tabs.audit")} defaultCollapsed>
+            <div className={`box-b ${SCROLL}`}><AuditTab projectId={project.id} /></div>
+          </CollapsibleBox>
+        </div>
       </div>
     </div>
   )
