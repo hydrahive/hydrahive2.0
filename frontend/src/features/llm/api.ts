@@ -130,5 +130,5 @@ export interface RegistryModel {
 
 export const llmModelsApi = {
   byModality: (modality?: string) =>
-    api.get<{ models: RegistryModel[] }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
+    api.get<{ models: RegistryModel[]; default: string }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
 }
