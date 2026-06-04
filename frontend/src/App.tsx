@@ -6,7 +6,7 @@ import type { ReactElement } from "react"
 import { moduleRoutes } from "@/modules/index.generated"
 
 interface ModuleRoute { path: string; element: ReactElement }
-const appModuleRoutes = moduleRoutes as unknown as ModuleRoute[]
+const appModuleRoutes = moduleRoutes as ModuleRoute[]
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { SessionDetailPage } from "@/features/analytics/SessionDetailPage"
 import { ChatPage } from "@/features/chat/ChatPage"

@@ -16,7 +16,7 @@ interface ModuleNavEntry {
   icon: string
   labelKey: string
   group?: string
-  roles?: string[]
+  roles?: ("admin" | "user")[]
 }
 
 export interface NavItem {
@@ -71,12 +71,12 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const QUICK_LINK_PATHS = ["/dashboard", "/werkstatt", "/agents", "/projects"]
 
-const MODULE_NAV_ITEMS: NavItem[] = (moduleNav as unknown as ModuleNavEntry[]).map((n) => ({
+const MODULE_NAV_ITEMS: NavItem[] = (moduleNav as ModuleNavEntry[]).map((n) => ({
   path: n.path,
   icon: moduleIcon(n.icon),
   labelKey: n.labelKey,
   group: n.group ?? "working",
-  roles: n.roles as ("admin" | "user")[] | undefined,
+  roles: n.roles,
 }))
 
 export function visibleItems(role: string | null): NavItem[] {

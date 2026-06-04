@@ -105,12 +105,12 @@ const mergedResources: { de: LangResources; en: LangResources } = {
   de: { ...baseResources.de } as LangResources,
   en: { ...baseResources.en } as LangResources,
 }
-for (const bundle of moduleI18n as unknown as ModuleI18nBundle[]) {
+for (const bundle of moduleI18n as ModuleI18nBundle[]) {
   if (bundle.de) Object.assign(mergedResources.de, bundle.de)
   if (bundle.en) Object.assign(mergedResources.en, bundle.en)
 }
 
-export const resources = baseResources
+export const resources = mergedResources
 
 export const SUPPORTED_LANGUAGES = [
   { code: "de", label: "Deutsch", flag: "🇩🇪" },
