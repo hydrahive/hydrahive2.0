@@ -2,6 +2,11 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { Layout } from "@/shared/Layout"
+import type { ReactElement } from "react"
+import { moduleRoutes } from "@/modules/index.generated"
+
+interface ModuleRoute { path: string; element: ReactElement }
+const appModuleRoutes = moduleRoutes as unknown as ModuleRoute[]
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { SessionDetailPage } from "@/features/analytics/SessionDetailPage"
 import { ChatPage } from "@/features/chat/ChatPage"
@@ -96,6 +101,9 @@ export default function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
           <Route path="zahnfee" element={<AdminGuard><ZahnfeePage /></AdminGuard>} />
+          {appModuleRoutes.map((r) => (
+            <Route key={r.path} path={r.path} element={r.element} />
+          ))}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

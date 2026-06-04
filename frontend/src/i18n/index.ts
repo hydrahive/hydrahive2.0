@@ -1,6 +1,7 @@
 import i18n from "i18next"
 import LanguageDetector from "i18next-browser-languagedetector"
 import { initReactI18next } from "react-i18next"
+import { moduleI18n } from "@/modules/index.generated"
 
 import deCommon from "./locales/de/common.json"
 import deAuth from "./locales/de/auth.json"
@@ -70,7 +71,7 @@ import enWorkspace from "./locales/en/workspace.json"
 import enZahnfee from "./locales/en/zahnfee.json"
 import enTeamchat from "./locales/en/teamchat.json"
 
-export const resources = {
+const baseResources = {
   de: {
     common: deCommon, auth: deAuth, nav: deNav, chat: deChat,
     agents: deAgents, projects: deProjects, llm: deLlm, mcp: deMcp,
@@ -95,7 +96,21 @@ export const resources = {
     streaming: enStreaming, vms: enVms, workspace: enWorkspace, zahnfee: enZahnfee,
     teamchat: enTeamchat,
   },
-} as const
+}
+
+// Merge module i18n bundles without clobbering existing namespaces
+type LangResources = Record<string, Record<string, unknown>>
+interface ModuleI18nBundle { de?: Record<string, unknown>; en?: Record<string, unknown> }
+const mergedResources: { de: LangResources; en: LangResources } = {
+  de: { ...baseResources.de } as LangResources,
+  en: { ...baseResources.en } as LangResources,
+}
+for (const bundle of moduleI18n as unknown as ModuleI18nBundle[]) {
+  if (bundle.de) Object.assign(mergedResources.de, bundle.de)
+  if (bundle.en) Object.assign(mergedResources.en, bundle.en)
+}
+
+export const resources = baseResources
 
 export const SUPPORTED_LANGUAGES = [
   { code: "de", label: "Deutsch", flag: "🇩🇪" },
@@ -106,7 +121,7 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
+    resources: mergedResources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
     ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "health", "scratchpad", "streaming", "vms", "workspace", "zahnfee", "teamchat"],

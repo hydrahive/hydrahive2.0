@@ -2,15 +2,26 @@ import { Activity, BrainCircuit,
   BookOpen, Bot, Box, Cpu, Film, FolderKanban, Globe, HardDrive, Heart, Key, LayoutDashboard,
   MessageCircle, MessageSquare, MessagesSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, StickyNote, Users, Workflow,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+import { moduleNav } from "@/modules/index.generated"
+import { moduleIcon } from "@/shared/module-icon"
 
 export interface NavGroup {
   key: string
   labelKey: string
 }
 
+interface ModuleNavEntry {
+  path: string
+  icon: string
+  labelKey: string
+  group?: string
+  roles?: string[]
+}
+
 export interface NavItem {
   path: string
-  icon: typeof Bot
+  icon: LucideIcon
   labelKey: string
   group: string
   roles?: ("admin" | "user")[]
@@ -60,8 +71,17 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const QUICK_LINK_PATHS = ["/dashboard", "/werkstatt", "/agents", "/projects"]
 
+const MODULE_NAV_ITEMS: NavItem[] = (moduleNav as unknown as ModuleNavEntry[]).map((n) => ({
+  path: n.path,
+  icon: moduleIcon(n.icon),
+  labelKey: n.labelKey,
+  group: n.group ?? "working",
+  roles: n.roles as ("admin" | "user")[] | undefined,
+}))
+
 export function visibleItems(role: string | null): NavItem[] {
-  return NAV_ITEMS.filter((i) =>
-    !i.roles || (role !== null && i.roles.includes(role as "admin" | "user"))
+  const all = [...NAV_ITEMS, ...MODULE_NAV_ITEMS]
+  return all.filter((i) =>
+    !i.roles || i.roles.length === 0 || (role !== null && i.roles.includes(role as "admin" | "user"))
   )
 }
