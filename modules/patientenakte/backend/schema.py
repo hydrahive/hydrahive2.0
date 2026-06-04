@@ -2,7 +2,7 @@
 
 Die SQL-Migration (023) ist die DDL-Quelle; diese Registry mappt die API auf
 die Spalten UND trägt die UI-Metadaten (Formularfelder, Label-Felder, Listen-
-Spalten). Frontend zieht sie über GET /api/health/patientenakte/_schema und
+Spalten). Frontend zieht sie über GET /api/modules/patientenakte/akte/_schema und
 rendert generisch — kein handgespiegeltes akteFields.ts / ENTITY_COLUMNS mehr.
 
 Guard-Tests (test_akte_schema.py) erzwingen Konsistenz:

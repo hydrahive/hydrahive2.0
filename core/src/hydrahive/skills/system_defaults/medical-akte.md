@@ -10,15 +10,20 @@ metadata:
 # Patientenakte befüllen
 
 Du schreibst strukturierte medizinische Daten über die REST-API in die Patientenakte.
-Aufrufe per `fetch_url` gegen die lokale HydraHive-API.
+Aufrufe per `fetch_url` gegen die lokale HydraHive-API. Die Patientenakte ist ein
+installiertes Modul (`patientenakte`) — die Endpunkte liegen daher unter
+`/api/modules/patientenakte/akte`.
 
-- **Basis:** `http://127.0.0.1:8000/api/health/patientenakte` (Port ggf. anpassen)
+- **Basis:** `http://127.0.0.1:8000/api/modules/patientenakte/akte` (Port ggf. anpassen)
 - **Auth:** `Authorization: Bearer <hhk_…>` (API-Key des Nutzers mit Akte-Zugriff)
 - **Body:** JSON. Immer `Content-Type: application/json` setzen.
+- **Single-User:** Jeder Nutzer hat genau EINE Akte (kein `pid` im Pfad). Der Key
+  bindet an den Nutzer; Einträge gehen direkt in dessen Akte.
 
 ## Grundregeln
 
-1. **Erst den Patienten holen/anlegen**, dann Einträge unter dessen `pid` schreiben.
+1. **Erst die eigene Akte holen** (`GET /`) — gibt 404 wenn noch keine existiert; dann
+   einmalig **anlegen** (`POST /`). Danach Einträge direkt schreiben.
 2. **Idempotenz:** Gib bei jedem Eintrag eine stabile `external_id` mit (z. B.
    `<quelle>-<datum>-<code>`). Ein erneuter POST mit gleicher `external_id` aktualisiert
    den Eintrag, legt kein Duplikat an.
@@ -26,13 +31,13 @@ Aufrufe per `fetch_url` gegen die lokale HydraHive-API.
    bei automatischer Extraktion). Nicht raten — `confidence` ehrlich setzen.
 4. **Laborwerte als Batch** schicken (viele Parameter, ein Datum).
 
-## Patient
+## Eigene Akte (Stammdaten)
 
 ```
-GET  /patients                 # Liste (eigene)
-POST /patients                 # {slug, name, vorname, geburtsdatum, geschlecht,
-                               #  adresse{...}, versicherung{...}, notfallkontakt{...}}
-GET  /patients/{pid}           # Detail inkl. counts je Entität
+GET    /                       # eigene Akte inkl. counts je Entität (404 = noch keine)
+POST   /                       # einmalig anlegen {slug, name, vorname, geburtsdatum,
+                               #  geschlecht, adresse{...}, versicherung{...}, notfallkontakt{...}}
+PATCH  /                       # Stammdaten aktualisieren
 ```
 
 ## Einträge (generisch je {entity})
@@ -42,14 +47,14 @@ GET  /patients/{pid}           # Detail inkl. counts je Entität
 `documents` · `notes`
 
 ```
-GET    /patients/{pid}/{entity}                 # Liste (+?q=, +?status=)
-POST   /patients/{pid}/{entity}                 # anlegen / per external_id upserten
-POST   /patients/{pid}/{entity}/batch           # {items:[...]} — v.a. observations
-GET    /patients/{pid}/{entity}/{id}
-PATCH  /patients/{pid}/{entity}/{id}
-DELETE /patients/{pid}/{entity}/{id}
-GET    /patients/{pid}/timeline                 # chronologisch
-GET    /patients/{pid}/summary                  # Zähler je Entität
+GET    /{entity}                 # Liste (+?q=, +?status=)
+POST   /{entity}                 # anlegen / per external_id upserten
+POST   /{entity}/batch           # {items:[...]} — v.a. observations
+GET    /{entity}/{id}
+PATCH  /{entity}/{id}
+DELETE /{entity}/{id}
+GET    /timeline                 # chronologisch über alle Entitäten
+GET    /summary                  # Zähler je Entität
 ```
 
 ### Felder je Entität
@@ -59,7 +64,7 @@ GET    /patients/{pid}/summary                  # Zähler je Entität
 - **events:** datum_von, datum_bis, typ, einrichtung, fachabteilung, fallnummer, hauptdiagnose, verlauf, nebendiagnosen[], prozeduren[], op_codes[], entlassmedikation[]
 - **imaging:** datum, modalitaet, region, einrichtung, ueberweiser, serien_beschreibung, anzahl_bilder, dicom_pfad, befund, vorschau_bilder[]
 - **allergies:** substanz, reaktion, schweregrad, festgestellt_am
-- **practitioners:** name, fach, einrichtung, adresse, telefon, rolle (`hausarzt`/`facharzt`/`klinik`)
+- **practitioners:** name, fach, einrichtung, adresse, telefon, rolle (`hausarzt`/`facharzt`/`sonstige`)
 - **documents:** titel, typ, datum, datei_pfad, mime_type, ocr_text
 - **notes:** titel, inhalt (Markdown), kategorie, datum
 
@@ -70,7 +75,7 @@ Alle Entitäten akzeptieren zusätzlich: `external_id`, `quelle`, `confidence`, 
 Diagnose anlegen (aus Arztbrief-OCR):
 ```
 fetch_url(
-  "http://127.0.0.1:8000/api/health/patientenakte/patients/<pid>/conditions",
+  "http://127.0.0.1:8000/api/modules/patientenakte/akte/conditions",
   method="POST",
   headers={"Authorization": "Bearer <hhk_…>", "Content-Type": "application/json"},
   body='{"external_id":"kath-2024-11-K75.0","diagnose":"Leberabszess","icd_code":"K75.0",'
@@ -82,7 +87,7 @@ fetch_url(
 Laborwerte als Batch (eine Tabelle, ein Datum):
 ```
 fetch_url(
-  "http://127.0.0.1:8000/api/health/patientenakte/patients/<pid>/observations/batch",
+  "http://127.0.0.1:8000/api/modules/patientenakte/akte/observations/batch",
   method="POST",
   headers={"Authorization": "Bearer <hhk_…>", "Content-Type": "application/json"},
   body='{"items":['

@@ -1,16 +1,19 @@
 # Feature Map: Patientenakte — FHIR R4, Gesundheitsdaten, EGA
 
-> **Modul:** `core/src/hydrahive/patientenakte/`  
-> **Frontend:** `frontend/src/features/health/`  
-> **Was:** Digitale Patientenakte im FHIR R4 Format. Import aus TK-App/EGA. KI-gestützte Analyse.  
-> **Warum:** Medizinische Daten sicher lokal speichern und per KI auswertbar machen.
+> ⚠️ **Ausgelagert (2026-06, E1–3): lebt jetzt als Modul `patientenakte`.**
+> **Backend:** `modules/patientenakte/backend/`  
+> **Frontend:** `modules/patientenakte/frontend/` (Route `/akte`)  
+> **API:** `/api/modules/patientenakte/{akte,fhir,ega,health-data}/*`  
+> **Was:** Digitale Patientenakte (ePA-light, SSOT) + FHIR/eGA-Import + Apple-Health-Tracking.  
+> **Warum:** Medizinische Daten sicher lokal speichern und per KI auswertbar machen.  
+> Pfade unten teils historisch (Pre-Port-Core).
 
 ---
 
 ## SSOT-Architektur
 
 Nach dem Umbau 2026-05-31 ist `schema.py` die **EINE Wahrheitsquelle** für alle 10 Entitäten.
-Frontend zieht Schema per `useAkteSchema()` von `GET /api/akte/_schema` — kein Spiegel mehr.
+Frontend zieht Schema per `useAkteSchema()` von `GET /api/modules/patientenakte/akte/_schema` — kein Spiegel mehr.
 
 ---
 
@@ -37,7 +40,7 @@ Frontend zieht Schema per `useAkteSchema()` von `GET /api/akte/_schema` — kein
 | Datei | Verantwortung |
 |---|---|
 | `patientenakte/schema.py` | **SSOT**: Registry aller Entitäten mit Feldern, Types, Validierung |
-| `api/routes/patientenakte.py` | CRUD-Endpoints für alle Entitäten, `GET /api/akte/_schema` |
+| `modules/patientenakte/backend/routes.py` | CRUD-Endpoints für alle Entitäten, `GET /api/modules/patientenakte/akte/_schema` |
 | `api/routes/fhir.py` | FHIR R4 REST-API (Standard-konform) |
 | `api/routes/ega.py` | EGA-Import-Endpoint |
 | `db/fhir.py` | FHIR-Daten in SQLite (JSON-Blobs) |

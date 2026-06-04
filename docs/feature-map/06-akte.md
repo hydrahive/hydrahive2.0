@@ -1,5 +1,14 @@
 # Patientenakte & Health
 
+> ⚠️ **Ausgelagert (2026-06, Etappen 1–3): die gesamte Patientenakte + FHIR/eGA-Import +
+> Apple-Health ist in das installierbare Modul `patientenakte` gewandert.** Code liegt jetzt
+> unter `modules/patientenakte/{backend,frontend,migrations}`, API unter
+> `/api/modules/patientenakte/{akte,fhir,ega,health-data}/*`, Buddy-Box läuft über den
+> Modul-Widget-Slot. Core behält nur: Migrationen 015/016/020/021/022/023 (Tabellen-DDL +
+> Daten, unbeweglich), die 2 Health-Settings (`health_api_key`, `health_ingest_user`) und den
+> `/api/health`-Versionscheck (anderer Endpunkt). Die `core/`-Pfade unten sind **historisch
+> (Pre-Port)** — der lebende Code ist im Modul. Siehe Memory `project_akte_module_port`.
+
 > Stand: 2026-06-02. Subsystem-Scope: strukturierte schreibbare Patientenakte (ePA-light),
 > read-only eGA/FHIR-Importschicht (Kassendaten), Apple-Health-Ingest, Zahnfee-Nacht-Briefing
 > und der gesamte Frontend-`features/health/`-Bereich.
@@ -72,47 +81,47 @@ date_field, array_fields, numeric_fields:
 `COMMON_FIELDS` = `("external_id", "quelle", "confidence", "verifiziert")` — auf jeder Entität
 zusätzlich vorhanden (in jeder `akte_*`-Tabelle als Spalte).
 
-### C. Patientenakte — REST-Endpoints (`api/routes/patientenakte.py`, prefix `/api/health/patientenakte`)
+### C. Patientenakte — REST-Endpoints (`api/routes/patientenakte.py`, prefix `/api/modules/patientenakte/akte`)
 
-- `GET  /api/health/patientenakte` — eigene Akte + `counts` (404 wenn keine).
-- `POST /api/health/patientenakte` — eigene Akte anlegen (409 wenn existiert).
-- `PATCH /api/health/patientenakte` — Stammdaten der eigenen Akte aktualisieren.
-- `GET  /api/health/patientenakte/_schema` — UI-Registry (SSOT) als JSON. Keine Akte nötig.
-- `GET  /api/health/patientenakte/timeline` — Cross-Entity-Zeitstrahl.
-- `GET  /api/health/patientenakte/summary` — Counts je Entität.
-- `GET  /api/health/patientenakte/{entity}` — Liste (Query: `q`, `status`).
-- `POST /api/health/patientenakte/{entity}` — Eintrag anlegen (Upsert via external_id).
-- `POST /api/health/patientenakte/{entity}/batch` — Batch-Import (`{items:[…]}`).
-- `GET  /api/health/patientenakte/{entity}/{eid}` — einzelner Eintrag.
-- `PATCH /api/health/patientenakte/{entity}/{eid}` — Eintrag aktualisieren.
-- `DELETE /api/health/patientenakte/{entity}/{eid}` — Eintrag löschen.
+- `GET  /api/modules/patientenakte/akte` — eigene Akte + `counts` (404 wenn keine).
+- `POST /api/modules/patientenakte/akte` — eigene Akte anlegen (409 wenn existiert).
+- `PATCH /api/modules/patientenakte/akte` — Stammdaten der eigenen Akte aktualisieren.
+- `GET  /api/modules/patientenakte/akte/_schema` — UI-Registry (SSOT) als JSON. Keine Akte nötig.
+- `GET  /api/modules/patientenakte/akte/timeline` — Cross-Entity-Zeitstrahl.
+- `GET  /api/modules/patientenakte/akte/summary` — Counts je Entität.
+- `GET  /api/modules/patientenakte/akte/{entity}` — Liste (Query: `q`, `status`).
+- `POST /api/modules/patientenakte/akte/{entity}` — Eintrag anlegen (Upsert via external_id).
+- `POST /api/modules/patientenakte/akte/{entity}/batch` — Batch-Import (`{items:[…]}`).
+- `GET  /api/modules/patientenakte/akte/{entity}/{eid}` — einzelner Eintrag.
+- `PATCH /api/modules/patientenakte/akte/{entity}/{eid}` — Eintrag aktualisieren.
+- `DELETE /api/modules/patientenakte/akte/{entity}/{eid}` — Eintrag löschen.
 - Alle hinter `require_auth` (Token/JWT). `_entity_or_404`-Guard für unbekannte Entitäten.
 
-### D. FHIR — Endpoints (`api/routes/fhir.py`, prefix `/api/fhir`)
+### D. FHIR — Endpoints (`api/routes/fhir.py`, prefix `/api/modules/patientenakte/fhir`)
 
-- `POST /api/fhir/import` — FHIR-Bundle importieren (Upsert, 422 bei invalid).
-- `POST /api/fhir/import-ega` — TK-eGA-ZIP hochladen → intern zu FHIR konvertiert → importiert.
-- `GET  /api/fhir/resources/{resource_type}` — alle Ressourcen eines Typs.
-- `GET  /api/fhir/summary` — Count je resourceType.
-- `GET  /api/fhir/timeline` — alle Ressourcen chronologisch (nach imported_at), gebounded auf 1000.
+- `POST /api/modules/patientenakte/fhir/import` — FHIR-Bundle importieren (Upsert, 422 bei invalid).
+- `POST /api/modules/patientenakte/fhir/import-ega` — TK-eGA-ZIP hochladen → intern zu FHIR konvertiert → importiert.
+- `GET  /api/modules/patientenakte/fhir/resources/{resource_type}` — alle Ressourcen eines Typs.
+- `GET  /api/modules/patientenakte/fhir/summary` — Count je resourceType.
+- `GET  /api/modules/patientenakte/fhir/timeline` — alle Ressourcen chronologisch (nach imported_at), gebounded auf 1000.
 - Alle hinter `require_auth`.
 
-### E. eGA — Endpoints (`api/routes/ega.py`, prefix `/api/ega`)
+### E. eGA — Endpoints (`api/routes/ega.py`, prefix `/api/modules/patientenakte/ega`)
 
-- `POST /api/ega/import` — TK-eGA-Export-ZIP nativ importieren (ohne FHIR-Konvertierung).
-- `GET  /api/ega/summary` — Count je dto_type.
-- `GET  /api/ega/records/{dto_type}` — alle Records eines DTO-Typs.
-- `GET  /api/ega/costs` — Kostenzusammenfassung (ambulant_eur, medikamente_eur, medikamente_zuzahlung_eur).
-- `GET  /api/ega/timeline` — chronologische Liste (gebounded auf 200).
+- `POST /api/modules/patientenakte/ega/import` — TK-eGA-Export-ZIP nativ importieren (ohne FHIR-Konvertierung).
+- `GET  /api/modules/patientenakte/ega/summary` — Count je dto_type.
+- `GET  /api/modules/patientenakte/ega/records/{dto_type}` — alle Records eines DTO-Typs.
+- `GET  /api/modules/patientenakte/ega/costs` — Kostenzusammenfassung (ambulant_eur, medikamente_eur, medikamente_zuzahlung_eur).
+- `GET  /api/modules/patientenakte/ega/timeline` — chronologische Liste (gebounded auf 200).
 - Alle hinter `require_auth`.
 
-### F. Apple-Health — Endpoints (`api/routes/health_data.py`, prefix `/api/health-data`)
+### F. Apple-Health — Endpoints (`api/routes/health_data.py`, prefix `/api/modules/patientenakte/health-data`)
 
-- `POST /api/health-data/ingest` — **kein require_auth**; Key-basiert (Header `X-HH-Health-Key`,
+- `POST /api/modules/patientenakte/health-data/ingest` — **kein require_auth**; Key-basiert (Header `X-HH-Health-Key`,
   `Authorization: Bearer`, oder `?key=`-Query [deprecated #207]). Rate-Limited je Client-IP.
-- `GET  /api/health-data/data` — letzte N Ingest-Records (Query: `limit` 1–500, `automation_id`). require_auth.
-- `GET  /api/health-data/metrics` — Tages-Rollup-Zusammenfassung (Query: `days` 1–365, `metric`). require_auth.
-- `GET  /api/health-data/data/{record_id}` — Roh-Payload eines Records. require_auth.
+- `GET  /api/modules/patientenakte/health-data/data` — letzte N Ingest-Records (Query: `limit` 1–500, `automation_id`). require_auth.
+- `GET  /api/modules/patientenakte/health-data/metrics` — Tages-Rollup-Zusammenfassung (Query: `days` 1–365, `metric`). require_auth.
+- `GET  /api/modules/patientenakte/health-data/data/{record_id}` — Roh-Payload eines Records. require_auth.
 
 ### G. Zahnfee — Endpoints (`api/routes/zahnfee.py`, prefix `/api/zahnfee`)
 
@@ -190,7 +199,7 @@ benutzt). `_HealthBuddyBox.tsx` (nur von `features/buddy/BuddyPage.tsx` referenz
 2. `AkteEntryModal.handleSubmit`: sammelt nur ausgefüllte Felder, castet `type==="number"` zu
    `Number()`, prüft das erste `required`-Feld clientseitig, ruft
    `akteApi.createEntity(entity, payload)` (oder `updateEntity` bei `existing`).
-3. `akteApi.createEntity` → `POST /api/health/patientenakte/{entity}` mit JSON-Body.
+3. `akteApi.createEntity` → `POST /api/modules/patientenakte/akte/{entity}` mit JSON-Body.
 4. Route `create_my_entity`: `patients.get_own_id(user)` löst die eigene Akte auf (404 wenn keine),
    `_entity_or_404(entity)`, dann `entities.create(user, pid, entity, data)`.
 5. `entities.create`: `_spec(entity)` holt den `EntitySpec`, `_ensure_owner` prüft Besitz
@@ -234,7 +243,7 @@ benutzt). `_HealthBuddyBox.tsx` (nur von `features/buddy/BuddyPage.tsx` referenz
 
 ### eGA-Import-Fluss
 
-1. UI lädt ZIP → `POST /api/ega/import` (`egaApi.importZip` via FormData).
+1. UI lädt ZIP → `POST /api/modules/patientenakte/ega/import` (`egaApi.importZip` via FormData).
 2. `ega.py:import_ega`: `extract_ega_records(data)` (`fhir_ega.py`) öffnet ZIP in-memory,
    lädt alle `.json`, sammelt DTO-Listen, mappt auf `(dto_type, record)`-Tupel.
    DTO→Typ-Mapping: EncounterDTO→Encounter, HospitalClaimDTO→HospitalStay,
@@ -248,8 +257,8 @@ benutzt). `_HealthBuddyBox.tsx` (nur von `features/buddy/BuddyPage.tsx` referenz
 
 ### FHIR-Import-Fluss
 
-1. UI lädt `.json`-Bundle (`fhirApi.importBundle` liest Text, `JSON.parse`, `POST /api/fhir/import`)
-   oder `.zip` (`fhirApi.importEgaZip` → `POST /api/fhir/import-ega`).
+1. UI lädt `.json`-Bundle (`fhirApi.importBundle` liest Text, `JSON.parse`, `POST /api/modules/patientenakte/fhir/import`)
+   oder `.zip` (`fhirApi.importEgaZip` → `POST /api/modules/patientenakte/fhir/import-ega`).
 2. `fhir.py:import_bundle`/`import_ega_zip`: ZIP-Pfad ruft `convert_ega_zip(data)` (`fhir_ega.py`) —
    konvertiert dieselben DTOs in echte FHIR-R4-Ressourcen (`_encounters`, `_conditions`,
    `_medication_dispenses`, `_procedures`, `_hospital_encounters`), baut ein collection-Bundle.
@@ -258,7 +267,7 @@ benutzt). `_HealthBuddyBox.tsx` (nur von `features/buddy/BuddyPage.tsx` referenz
 
 ### Apple-Health-Ingest-Fluss (kritischster Sicherheitspfad)
 
-1. iPhone-Automation (Apple Health Auto Export) `POST /api/health-data/ingest` mit Payload +
+1. iPhone-Automation (Apple Health Auto Export) `POST /api/modules/patientenakte/health-data/ingest` mit Payload +
    Headern (automation-name/-id, session-id, automation-period/-aggregation) + Health-Key.
 2. `check_rate(f"health-ingest:{client_ip}")` (Sliding-Window-Limiter); 429 + Retry-After bei Limit.
 3. `_check_key`: `settings.health_api_key` leer → **403** `health_ingest_disabled`. Sonst
@@ -327,7 +336,7 @@ benutzt). `_HealthBuddyBox.tsx` (nur von `features/buddy/BuddyPage.tsx` referenz
 
 ### Patientenakte — Route
 
-- `core/src/hydrahive/api/routes/patientenakte.py:19` Router (prefix `/api/health/patientenakte`).
+- `core/src/hydrahive/api/routes/patientenakte.py:19` Router (prefix `/api/modules/patientenakte/akte`).
 - `:24` `_entity_or_404`. `:39` GET root, `:52` POST root, `:61` PATCH root.
 - `:72` `/_schema`, `:82` `/timeline`, `:91` `/summary`.
 - `:105` GET `{entity}`, `:116` POST `{entity}`, `:126` POST `{entity}/batch`,
@@ -627,7 +636,7 @@ Backend `api/routes/research_apis.py` + `researchApi` in api.ts, ist aber im Fro
 
 `HealthPage.tsx:ImportView` rendert nur „Import-Funktionen werden in Kürze verfügbar sein." Die
 funktionierenden Upload-Buttons (`EgaImportButton`/`FhirImportButton`) sind nicht verdrahtet. Die
-**Backend-Import-Endpoints (`/api/ega/import`, `/api/fhir/import`, `/api/fhir/import-ega`) sind aber
+**Backend-Import-Endpoints (`/api/modules/patientenakte/ega/import`, `/api/modules/patientenakte/fhir/import`, `/api/modules/patientenakte/fhir/import-ega`) sind aber
 voll funktionsfähig** — nur die UI fehlt. Wer eGA/FHIR importieren will, muss aktuell direkt die API
 ansprechen.
 

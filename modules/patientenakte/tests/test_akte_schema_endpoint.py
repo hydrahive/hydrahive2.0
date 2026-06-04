@@ -1,4 +1,4 @@
-"""GET /api/health/patientenakte/_schema — liefert die UI-Registry (SSOT).
+"""GET /api/modules/patientenakte/akte/_schema — liefert die UI-Registry (SSOT).
 
 Das Frontend zieht diese Antwort einmal und rendert Formulare/Spalten/Labels
 generisch, statt schema.py handzuspiegeln. Kritisch: _schema ist eine literale

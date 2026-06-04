@@ -144,9 +144,9 @@
 ### Health, FHIR, Federation, System
 | Route-Datei | Endpoints | Beschreibung |
 |---|---|---|
-| `routes/health_data.py` | `GET/POST /api/health/*` | Apple Health Daten |
-| `routes/fhir.py` | `GET/POST /api/fhir/*` | FHIR R4 Ressourcen |
-| `routes/patientenakte.py` | `GET/POST/PUT/DELETE /api/akte/*` | Patientenakte CRUD |
+| `modules/patientenakte/backend/health_routes.py` | `GET/POST /api/modules/patientenakte/health-data/*` | Apple Health (Modul) |
+| `modules/patientenakte/backend/fhir_routes.py` | `GET/POST /api/modules/patientenakte/fhir/*` | FHIR R4 (Modul) |
+| `modules/patientenakte/backend/routes.py` | `GET/POST/PATCH/DELETE /api/modules/patientenakte/akte/*` | Patientenakte CRUD (Modul) |
 | `routes/federation.py` | `GET/POST/DELETE /api/federation/*` | Federation-Verbindungen |
 | `routes/external_instances.py` | `GET/POST /api/external-instances/*` | Externe HH2-Instanzen |
 | `routes/system.py` | `GET /api/system/status` | System-Status |
@@ -158,7 +158,7 @@
 | `routes/tailscale.py` | `GET/POST /api/tailscale/*` | Tailscale-Status/Config |
 | `routes/research_apis.py` | `GET /api/research/*` | Research-API-Proxies |
 | `routes/agentlink.py` | `POST/GET /api/agentlink/*` | AgentLink-Handoff-Endpoints |
-| `routes/ega.py` | `POST /api/ega/import` | EGA-Daten-Import |
+| `modules/patientenakte/backend/ega_routes.py` | `POST /api/modules/patientenakte/ega/import` | eGA-Import (Modul) |
 | `routes/workspace.py` | `GET /api/workspace/*` | Workspace-Infos |
 | `routes/files.py` | `GET/POST/DELETE /api/files/*` | Allgemeiner File-Upload/-Download |
 | `routes/stt.py` | `POST /api/stt` | Speech-to-Text (Wyoming) |
