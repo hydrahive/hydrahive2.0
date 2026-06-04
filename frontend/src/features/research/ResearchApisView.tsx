@@ -4,7 +4,7 @@ import {
   type ResearchApiPublic,
   type ResearchCategory,
   type ResearchTestResult,
-} from "../api"
+} from "./api"
 import { rgbFor } from "@/shared/colors"
 
 const CATEGORY_LABELS: Record<ResearchCategory, string> = {
