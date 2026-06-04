@@ -18,6 +18,7 @@ class ModuleManifest:
     nav_group: str = "working"
     permissions: tuple[str, ...] = ()
     has_service: bool = False
+    default_agent_tools: bool = False
     min_core_version: str = "2.0.0"
 
     @classmethod
@@ -36,5 +37,6 @@ class ModuleManifest:
             icon=d.get("icon", "Boxes"), nav_group=d.get("nav_group", "working"),
             permissions=tuple(d.get("permissions", [])),
             has_service=bool(d.get("has_service", False)),
+            default_agent_tools=bool(d.get("default_agent_tools", False)),
             min_core_version=d.get("min_core_version", "2.0.0"),
         )
