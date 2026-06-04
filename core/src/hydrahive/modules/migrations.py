@@ -16,13 +16,25 @@ def _current(conn: sqlite3.Connection, module_id: str) -> int:
     return (row[0] if row else 0) or 0
 
 
-def apply_module_migrations(module_id: str, migrations_dir: Path) -> None:
+def _ensure_module_version_table(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS module_schema_version (
+               module_id   TEXT NOT NULL,
+               version     INTEGER NOT NULL,
+               applied_at  TEXT NOT NULL,
+               PRIMARY KEY (module_id, version)
+           )"""
+    )
+
+
+def apply_module_migrations(module_id: str, migrations_dir: str | Path) -> None:
     """Wendet ausstehende NNN_*.sql des Moduls an, trackt pro Modul.
     Deinstall ruft das NICHT rückwärts — Daten bleiben."""
     migrations_dir = Path(migrations_dir)
     if not migrations_dir.is_dir():
         return
     with db() as conn:
+        _ensure_module_version_table(conn)
         current = _current(conn, module_id)
         for f in sorted(migrations_dir.glob("*.sql")):
             try:
@@ -42,4 +54,7 @@ def apply_module_migrations(module_id: str, migrations_dir: Path) -> None:
                 "INSERT OR IGNORE INTO module_schema_version (module_id, version, applied_at) VALUES (?, ?, ?)",
                 (module_id, version, now_iso()),
             )
+            # executescript() issues an implicit COMMIT, so we commit explicitly
+            # here to keep each migration's version entry in its own transaction.
+            conn.commit()
             logger.info("Modul %s: Migration %s angewendet (v%d)", module_id, f.name, version)
