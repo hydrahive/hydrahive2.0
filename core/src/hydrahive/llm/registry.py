@@ -5,8 +5,17 @@ Modell in eine Zweck-Menge und cached. async build/list, sync is_known (für val
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from dataclasses import dataclass
+
+from hydrahive.llm._config import load_config
+from hydrahive.llm.catalog import catalog_for_providers
+from hydrahive.llm import embed as _embed
+from hydrahive.llm.media_models import (
+    list_speech_models, list_transcribe_models, list_video_models,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +48,6 @@ def _classify_catalog_entry(entry: dict) -> frozenset[str]:
 # ---------------------------------------------------------------------------
 # Build + Cache
 # ---------------------------------------------------------------------------
-import asyncio
-import time
-
-from hydrahive.llm.catalog import catalog_for_providers
-from hydrahive.llm.media_models import (
-    list_speech_models, list_transcribe_models, list_video_models,
-)
-from hydrahive.llm import embed as _embed
-from hydrahive.llm._config import load_config
 
 _CACHE_TTL = 300.0
 _cache: tuple[float, list[ModelEntry]] | None = None
@@ -126,7 +126,15 @@ async def list_models(modality: str | None = None) -> list[ModelEntry]:
     if _cache is None or now - _cache[0] >= _CACHE_TTL:
         async with _lock:
             if _cache is None or time.monotonic() - _cache[0] >= _CACHE_TTL:
-                _cache = (time.monotonic(), await _build())
+                built = await _build()
+                if built:                       # leere Liste NICHT cachen → nächster Aufruf retryt
+                    _cache = (time.monotonic(), built)
+                else:
+                    _cache = None
+                models = built
+                if modality:
+                    models = [m for m in models if modality in m.purposes]
+                return models
     models = _cache[1]
     if modality:
         models = [m for m in models if modality in m.purposes]
@@ -153,5 +161,6 @@ async def awarm() -> None:
 
 
 def invalidate() -> None:
-    global _cache
+    global _cache, _lock
     _cache = None
+    _lock = asyncio.Lock()

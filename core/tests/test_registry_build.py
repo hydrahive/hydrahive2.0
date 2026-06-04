@@ -52,3 +52,14 @@ def test_is_known_empty_cache_is_failopen(monkeypatch):
     from hydrahive.llm import registry
     registry.invalidate()
     assert registry.is_known("anything") is True
+
+
+@pytest.mark.asyncio
+async def test_empty_build_not_cached(monkeypatch):
+    from hydrahive.llm import registry
+    async def empty_build(): return []
+    monkeypatch.setattr(registry, "_build", empty_build)
+    registry.invalidate()
+    assert await registry.list_models() == []
+    assert registry.known_ids() == set()      # nicht gecacht
+    assert registry.is_known("x") is True      # failopen bei leerem Cache
