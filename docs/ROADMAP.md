@@ -69,6 +69,32 @@ zumüllen. Daher: Modulsystem ist die **Voraussetzung**.
 
 ---
 
+## 🔀 Modul-Portierungs-Kandidaten (bestehende Features → Module)
+
+> Erste Sichtung 2026-06-04 (Till). **Inventar, keine Zusage** — vor jedem Port eine
+> eigene Kopplungs-Analyse. „Effort" ist grob. Reihenfolge-Empfehlung unten.
+
+**Kandidaten (Voll-Stack, abtrennbar):**
+
+| Subsystem | Aufwand | Notiz |
+|---|---|---|
+| **Patientenakte** (`feature-map/06-akte`) ⭐ | mittel | eigene Domäne, UI+API+Schema-Registry, schon sauber gekapselt |
+| **Datamining** (`07-datamining`) ⭐ | mittel | UI+API+Ingest+Suche, abgrenzbar |
+| **Scratchpad** (`23-scratchpad`) | leicht | klein, kaum Kopplung — guter früher Port |
+| **Research-APIs** (`24-research`) | leicht | Config+Tool |
+| **Health-Ingest** | leicht-mittel | API-Ingest+UI |
+| **Voice/TTS-STT** (`11-voice`) | mittel | Tools+UI+Provider-Dienste; Tools koppeln an Chat |
+| **Zahnfee** (Scheduler/Briefing) | mittel | koppelt an Agents |
+| **VMs** (`15-vms`) | schwer | Reconciler+libvirt-Dienst (Extension-Hook nötig) |
+| **Containers** (`16-containers`) | schwer | Reconciler+Infra |
+| **Team-Chat** (`27-teamchat`) | — | bereits als Modul-Migration vorgesehen (Dienst-Proof, tuwunel) |
+
+**Bleibt Core-Kernel (KEIN Modul):** runner · agents · llm (Registry-SSOT) · agentlink · auth · db · memory · communication-Basis · **butler** · **federation** · system · settings · projects · buddy · plugins/skills/tools/mcp (Erweiterungs-Substrat) · frontend-shell. *(Butler + Federation sind Grundfunktionen — Tills Entscheidung 2026-06-04.)*
+
+**Empfohlene Reihenfolge (wenn portiert wird):** Scratchpad → Research-APIs (leichte Proofs) → Patientenakte/Datamining (große, sauber gekapselt) → Voice/Zahnfee → VMs/Containers (schwer, Dienst-Hook). Team-Chat als eigener Strang.
+
+---
+
 ## ✅ Erledigt / in Arbeit (Kontext)
 
 - **LLM-SSOT (SP1+SP2, erledigt 2026-06-04)** — Eine kanonische Modell-Quelle, ein API-Endpoint,
