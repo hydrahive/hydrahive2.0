@@ -118,7 +118,9 @@ async def lifespan(app: FastAPI):
     agent_bootstrap.migrate_tools()
     plugin_system.load_all()
     from hydrahive.llm import registry as llm_registry
-    await llm_registry.awarm()
+    # Hintergrund-Warm: blockiert den Start nicht (Provider-Fetch-Timeouts);
+    # validate ist failopen während des kurzen kalten Fensters.
+    asyncio.create_task(llm_registry.awarm())
     load_butler_builtins()
     set_start_time()
 
