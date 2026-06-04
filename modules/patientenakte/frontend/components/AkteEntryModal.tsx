@@ -22,7 +22,7 @@ function initialForm(fields: AkteUiField[], existing?: AkteRecord): Record<strin
 }
 
 export function AkteEntryModal({ entity, title, fields, existing, onClose, onSaved }: Props) {
-  const { t } = useTranslation("health")
+  const { t } = useTranslation("akte")
   const [form, setForm] = useState<Record<string, string>>(() => initialForm(fields, existing))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)

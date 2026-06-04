@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from hydrahive.patientenakte import entities, patients
+from backend import entities, patients
 
 
 @pytest.fixture

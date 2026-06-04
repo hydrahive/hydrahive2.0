@@ -16,9 +16,9 @@ from typing import Any
 
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
-from hydrahive.patientenakte._dates import to_sort_date
-from hydrahive.patientenakte.patients import get as _get_patient
-from hydrahive.patientenakte.schema import COMMON_FIELDS, ENTITIES, EntitySpec
+from ._dates import to_sort_date
+from .patients import get as _get_patient
+from .schema import COMMON_FIELDS, ENTITIES, EntitySpec
 
 
 def _spec(entity: str) -> EntitySpec:

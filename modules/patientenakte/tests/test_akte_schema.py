@@ -35,7 +35,7 @@ def test_entity_has_common_columns():
 
 def test_registry_columns_subset_of_tables():
     """Guard: jede Registry-Spalte existiert wirklich in der Tabelle (kein Drift)."""
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     with db() as conn:
         for spec in ENTITIES.values():
@@ -45,7 +45,7 @@ def test_registry_columns_subset_of_tables():
 
 
 def test_registry_keys_match_lastenheft():
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     assert set(ENTITIES) == {
         "conditions", "medications", "observations", "events", "imaging",
@@ -64,14 +64,14 @@ VALID_FIELD_TYPES = {"text", "number", "date", "textarea", "select"}
 
 def test_fields_derived_from_ui_fields():
     """fields ist abgeleitet aus ui_fields (eine Quelle, keine Doppelung)."""
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         assert spec.fields == tuple(f.key for f in spec.ui_fields), key
 
 
 def test_ui_field_keys_unique():
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         keys = [f.key for f in spec.ui_fields]
@@ -79,7 +79,7 @@ def test_ui_field_keys_unique():
 
 
 def test_ui_field_types_are_valid():
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         for f in spec.ui_fields:
@@ -87,7 +87,7 @@ def test_ui_field_types_are_valid():
 
 
 def test_select_fields_have_options():
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         for f in spec.ui_fields:
@@ -97,7 +97,7 @@ def test_select_fields_have_options():
 
 def test_each_entity_has_required_label_field():
     """Mind. ein Pflichtfeld pro Entität — sonst leere Einträge ohne Label."""
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         required = [f.key for f in spec.ui_fields if f.required]
@@ -105,7 +105,7 @@ def test_each_entity_has_required_label_field():
 
 
 def test_label_fields_subset_of_fields():
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         assert spec.label_fields, f"{key}: keine label_fields"
@@ -115,7 +115,7 @@ def test_label_fields_subset_of_fields():
 
 def test_list_columns_subset_of_fields():
     """Der Guard, der die toten Spalten (körperstelle/sicherheit/…) fängt."""
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         unknown = set(spec.list_columns) - set(spec.fields)
@@ -123,7 +123,7 @@ def test_list_columns_subset_of_fields():
 
 
 def test_numeric_fields_subset_of_fields():
-    from hydrahive.patientenakte.schema import ENTITIES
+    from backend.schema import ENTITIES
 
     for key, spec in ENTITIES.items():
         unknown = set(spec.numeric_fields) - set(spec.fields)

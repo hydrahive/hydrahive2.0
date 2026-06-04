@@ -13,8 +13,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from hydrahive.api.middleware.auth import require_auth
-from hydrahive.patientenakte import entities, patients, views
-from hydrahive.patientenakte.schema import ENTITIES, ui_schema
+from . import entities, patients, views
+from .schema import ENTITIES, ui_schema
 
 router = APIRouter(prefix="/api/health/patientenakte", tags=["patientenakte"])
 Auth = Annotated[tuple[str, str], Depends(require_auth)]

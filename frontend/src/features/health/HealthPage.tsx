@@ -6,10 +6,6 @@ import { rgbFor } from "@/shared/colors"
 import { HealthSidebar } from "./HealthSidebar"
 import { KiFloatingButton } from "./KiFloatingButton"
 import { AkteErrorBoundary } from "./components/AkteErrorBoundary"
-import { AkteDashboard }  from "./views/AkteDashboard"
-import { AkteTimeline }  from "./views/AkteTimeline"
-import { AkteEntityList } from "./views/AkteEntityList"
-import { AkteLabCharts } from "./views/AkteLabCharts"
 import { AppleHealthView } from "./_AppleHealthView"
 import { SchlafView } from "./_SchlafView"
 
@@ -49,19 +45,7 @@ export function HealthPage() {
         <div className="flex-1 min-w-0 relative">
           <AkteErrorBoundary resetKey={pathname}>
           <Routes>
-            {/* Meine Akte */}
-            <Route index element={<Navigate to="uebersicht" replace />} />
-            <Route path="uebersicht"     element={<AkteDashboard />} />
-            <Route path="timeline"       element={<AkteTimeline />} />
-            <Route path="conditions"    element={<AkteEntityList entity="conditions" />} />
-            <Route path="medications"   element={<AkteEntityList entity="medications" />} />
-            <Route path="observations"  element={<AkteLabCharts />} />
-            <Route path="allergies"     element={<AkteEntityList entity="allergies" />} />
-            <Route path="events"        element={<AkteEntityList entity="events" />} />
-            <Route path="imaging"       element={<AkteEntityList entity="imaging" />} />
-            <Route path="practitioners" element={<AkteEntityList entity="practitioners" />} />
-            <Route path="documents"     element={<AkteEntityList entity="documents" />} />
-            <Route path="notes"         element={<AkteEntityList entity="notes" />} />
+            <Route index element={<Navigate to="apple" replace />} />
 
             {/* Import */}
             <Route path="import"        element={<ImportView />} />

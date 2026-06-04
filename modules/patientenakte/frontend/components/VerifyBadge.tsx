@@ -6,7 +6,7 @@ interface Props {
 }
 
 export function VerifyBadge({ verifiziert, onVerify }: Props) {
-  const { t } = useTranslation("health")
+  const { t } = useTranslation("akte")
   if (verifiziert) {
     return (
       <span title={t("akte.verified_title")} className="text-emerald-400 cursor-default">●</span>

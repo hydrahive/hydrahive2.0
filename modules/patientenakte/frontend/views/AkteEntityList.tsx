@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function AkteEntityList({ entity, statusFilter }: Props) {
-  const { t } = useTranslation("health")
+  const { t } = useTranslation("akte")
   const schema = useAkteSchema()
   const [rows, setRows] = useState<AkteRecord[] | null>(null)
   const [search, setSearch] = useState("")

@@ -3,8 +3,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-from hydrahive.patientenakte import entities, patients
-from hydrahive.patientenakte.import_proto import import_akte
+from backend import entities, patients
+from backend.import_proto import import_akte
 
 
 def _write(tmp: Path, name: str, content: str):

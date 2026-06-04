@@ -20,7 +20,7 @@ const ENTITY_ICONS: Record<string, string> = {
 type FilterEntity = AkteEntityKey | "all"
 
 export function AkteTimeline() {
-  const { t } = useTranslation("health")
+  const { t } = useTranslation("akte")
   const schema = useAkteSchema()
   const [entries, setEntries] = useState<AkteTimelineEntry[] | null>(null)
   const [filter, setFilter] = useState<FilterEntity>("all")
@@ -99,7 +99,7 @@ export function AkteTimeline() {
                   entry.verifiziert ? "bg-emerald-400" : "bg-orange-400"
                 }`}
               />
-              <div className="box overflow-hidden px-3 py-2" style={{ "--c": rgbFor("/health") } as CSSProperties}>
+              <div className="box overflow-hidden px-3 py-2" style={{ "--c": rgbFor("/akte") } as CSSProperties}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <VerifyBadge verifiziert={entry.verifiziert} onVerify={() => {

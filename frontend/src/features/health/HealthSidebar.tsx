@@ -6,22 +6,6 @@ export function HealthSidebar() {
 
   const SECTIONS = [
     {
-      title: t("nav.section_akte"),
-      items: [
-        { to: "/health/uebersicht",     icon: "🗂", label: t("nav.overview") },
-        { to: "/health/timeline",       icon: "📅", label: t("nav.timeline") },
-        { to: "/health/conditions",     icon: "🔴", label: t("nav.conditions") },
-        { to: "/health/medications",    icon: "💊", label: t("nav.medications") },
-        { to: "/health/observations",   icon: "🧪", label: t("nav.observations") },
-        { to: "/health/allergies",      icon: "🤧", label: t("nav.allergies") },
-        { to: "/health/events",         icon: "📋", label: t("nav.events") },
-        { to: "/health/imaging",        icon: "🩻", label: t("nav.imaging") },
-        { to: "/health/practitioners",  icon: "👨‍⚕️", label: t("nav.practitioners") },
-        { to: "/health/documents",      icon: "📄", label: t("nav.documents") },
-        { to: "/health/notes",          icon: "📝", label: t("nav.notes") },
-      ],
-    },
-    {
       title: t("nav.section_import"),
       items: [
         { to: "/health/import", icon: "📥", label: t("nav.import") },

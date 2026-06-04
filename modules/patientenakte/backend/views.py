@@ -4,9 +4,9 @@ from __future__ import annotations
 from typing import Any
 
 from hydrahive.db.connection import db
-from hydrahive.patientenakte.entities import _row_to_dict
-from hydrahive.patientenakte.patients import get as _get_patient
-from hydrahive.patientenakte.schema import ENTITIES
+from .entities import _row_to_dict
+from .patients import get as _get_patient
+from .schema import ENTITIES
 
 
 def summary(user_id: str, pid: str) -> dict[str, int]:

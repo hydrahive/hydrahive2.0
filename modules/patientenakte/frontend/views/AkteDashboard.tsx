@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function AkteDashboard({ onSaved }: Props) {
-  const { t } = useTranslation("health")
+  const { t } = useTranslation("akte")
   const navigate = useNavigate()
   const schema = useAkteSchema()
   const [akte, setAkte] = useState<AktePatient | null | "loading">("loading")
@@ -105,7 +105,7 @@ export function AkteDashboard({ onSaved }: Props) {
   if (akte === null) {
     return (
       <div className="space-y-6">
-        <div className="box overflow-hidden p-8 text-center space-y-4" style={{ "--c": rgbFor("/health") } as CSSProperties}>
+        <div className="box overflow-hidden p-8 text-center space-y-4" style={{ "--c": rgbFor("/akte") } as CSSProperties}>
           <div className="text-4xl">🗂</div>
           <div>
             <h2 className="text-lg font-semibold text-zinc-100 mb-1">Meine Patientenakte</h2>
@@ -190,7 +190,7 @@ export function AkteDashboard({ onSaved }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="box overflow-hidden p-5" style={{ "--c": rgbFor("/health") } as CSSProperties}>
+      <div className="box overflow-hidden p-5" style={{ "--c": rgbFor("/akte") } as CSSProperties}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-2xl">
@@ -279,9 +279,9 @@ export function AkteDashboard({ onSaved }: Props) {
           {(["conditions", "medications", "observations", "allergies", "events", "imaging", "practitioners", "documents", "notes"] as const).map((key) => (
             <div
               key={key}
-              onClick={() => navigate(`/health/${key}`)}
+              onClick={() => navigate(`/akte/${key}`)}
               className="box overflow-hidden p-4 cursor-pointer hover:bg-white/[2%] transition-colors"
-              style={{ "--c": rgbFor("/health") } as CSSProperties}
+              style={{ "--c": rgbFor("/akte") } as CSSProperties}
             >
               <div className="text-2xl font-bold text-zinc-100">{summary[key] ?? 0}</div>
               <div className="text-xs text-zinc-500 mt-0.5 capitalize">

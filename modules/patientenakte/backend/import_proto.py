@@ -12,10 +12,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import yaml
 
-from hydrahive.patientenakte import entities, patients
-from hydrahive.patientenakte.schema import COMMON_FIELDS, ENTITIES
+from . import entities, patients
+from .schema import COMMON_FIELDS, ENTITIES
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +22,7 @@ logger = logging.getLogger(__name__)
 def _load_yaml(path: Path) -> Any:
     if not path.exists():
         return None
+    import yaml
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 

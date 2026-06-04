@@ -31,6 +31,7 @@ export const DOMAIN_COLORS: Record<string, DomainColor> = {
   "/datamining": "amber",
   "/system": "zinc",
   "/health": "rose",
+  "/akte": "rose",
   "/help": "cyan",
   "/profile": "violet",
 }

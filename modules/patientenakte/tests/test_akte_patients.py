@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
-from hydrahive.patientenakte import patients
+from backend import patients
 
 
 def test_create_and_get_patient():
