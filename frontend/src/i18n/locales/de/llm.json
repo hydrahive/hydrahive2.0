@@ -31,6 +31,17 @@
   "default_model": "Standard-Modell",
   "embed_model": "Embedding-Modell",
   "embed_model_hint": "Vektor-Dimension: {{dim}} — neue Events werden automatisch eingebettet",
+  "default_models": {
+    "title": "Standard-Modelle",
+    "chat": "Chat",
+    "embed": "Embedding",
+    "image": "Bild",
+    "music": "Musik",
+    "tts": "Sprache (TTS)",
+    "stt": "Transkription (STT)",
+    "video": "Video",
+    "save_error": "Speichern fehlgeschlagen"
+  },
   "media_models": {
     "title": "Media-Modelle",
     "hint": "Live aus dem Modell-Catalog, nach Modalität gefiltert",

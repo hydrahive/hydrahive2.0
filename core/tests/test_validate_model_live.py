@@ -28,13 +28,7 @@ def test_rejects_unknown_when_list_present(monkeypatch):
 
 
 def test_accepts_custom_provider_model(monkeypatch):
-    """Custom provider.models-Eintrag wird akzeptiert, auch wenn Live-Cache leer."""
-    from hydrahive.llm import client as llm_client
-    from hydrahive.llm import catalog
-    monkeypatch.setattr(
-        llm_client, "_load_config",
-        lambda: {"providers": [{"id": "openrouter", "models": ["openrouter/custom:free"]}]},
-    )
-    catalog._cache_clear()
-    # Live-Cache leer, aber custom in provider.models → akzeptiert
+    """Custom-Modell wird akzeptiert wenn es in der Registry known_ids steht."""
+    from hydrahive.llm import registry
+    monkeypatch.setattr(registry, "known_ids", lambda: {"openrouter/custom:free"})
     _validation.validate_model("openrouter/custom:free")  # darf NICHT raisen

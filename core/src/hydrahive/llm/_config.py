@@ -71,3 +71,40 @@ def get_provider_group_id(config: dict, provider_id: str) -> str:
         if p.get("id") == provider_id:
             return p.get("group_id", "")
     return ""
+
+
+# Zweck → Storage-Pfad in llm.json. stt liegt historisch unter media_models.transcribe.
+_PURPOSE_KEYS: dict[str, tuple[str, ...]] = {
+    "chat": ("default_model",),
+    "embed": ("embed_model",),
+    "image": ("media_models", "image"),
+    "music": ("media_models", "music"),
+    "tts": ("media_models", "tts"),
+    "stt": ("media_models", "transcribe"),
+    "video": ("media_models", "video"),
+}
+
+
+def get_default(purpose: str) -> str:
+    if purpose not in _PURPOSE_KEYS:
+        raise ValueError(f"unbekannter Zweck: {purpose}")
+    node: object = load_config()
+    for k in _PURPOSE_KEYS[purpose]:
+        node = node.get(k) if isinstance(node, dict) else None
+    return node if isinstance(node, str) else ""
+
+
+def set_default(purpose: str, model: str) -> None:
+    global _config_cache
+    if purpose not in _PURPOSE_KEYS:
+        raise ValueError(f"unbekannter Zweck: {purpose}")
+    path = settings.llm_config
+    data = json.loads(path.read_text()) if path.exists() else {"providers": []}
+    keys = _PURPOSE_KEYS[purpose]
+    node = data
+    for k in keys[:-1]:
+        node = node.setdefault(k, {})
+    node[keys[-1]] = model
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2))
+    _config_cache = None  # Cache invalidieren, sonst liest load_config alt

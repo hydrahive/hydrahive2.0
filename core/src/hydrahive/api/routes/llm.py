@@ -11,6 +11,7 @@ from typing import Annotated
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.llm import client as llm_client
+from hydrahive.llm import registry
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
 from hydrahive.llm._oauth_usage import get_oauth_rate_limits
 from hydrahive.llm import embed as llm_embed
@@ -59,6 +60,8 @@ async def update_config(cfg: LlmConfig) -> dict:
     old_model = _load().get("embed_model", "")
     data = cfg.model_dump()
     _save(data)
+    from hydrahive.llm import registry
+    registry.invalidate()
     new_model = data.get("embed_model", "")
     if new_model != old_model:
         from hydrahive.db import mirror
@@ -131,3 +134,19 @@ def effort_models(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """
     from hydrahive.llm._anthropic import EFFORT_PARAM_MODELS
     return {"prefixes": list(EFFORT_PARAM_MODELS)}
+
+
+@router.get("/models")
+async def list_llm_models(
+    modality: str | None = None,
+    _: Annotated[tuple[str, str], Depends(require_auth)] = None,
+) -> dict:
+    """Kanonische Modell-Liste aus der Registry, optional nach Zweck gefiltert.
+    Für ALLE Picker (require_auth, nicht admin-only)."""
+    entries = await registry.list_models(modality)
+    return {"models": [
+        {"id": e.id, "label": e.label, "provider": e.provider,
+         "purposes": sorted(e.purposes), "context_window": e.context_window,
+         "is_free": e.is_free, "embed_dim": e.embed_dim}
+        for e in entries
+    ]}

@@ -117,3 +117,18 @@ export const catalogApi = {
   useInAgent: (agent_id: string, model: string) =>
     api.post<{ ok: boolean }>("/llm/catalog/use-in-agent", { agent_id, model }),
 }
+
+export interface RegistryModel {
+  id: string
+  label: string
+  provider: string
+  purposes: string[]
+  context_window: number | null
+  is_free: boolean | null
+  embed_dim: number | null
+}
+
+export const llmModelsApi = {
+  byModality: (modality?: string) =>
+    api.get<{ models: RegistryModel[] }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
+}

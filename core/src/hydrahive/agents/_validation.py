@@ -43,26 +43,10 @@ def validate_tools(tools: list[str]) -> None:
 
 
 def _available_models() -> list[str]:
-    """Verfügbare Modell-IDs: Live-Katalog-Cache UNION custom provider.models.
-
-    Leere Gesamt-Liste → validate_model winkt durch (kein Bruch bei
-    Fetch-Fehler oder Erst-Setup).
-    """
-    out: list[str] = []
-    try:
-        from hydrahive.llm.catalog import _cache
-        for _ts, entries in _cache.values():
-            out.extend(e["id"] for e in entries)
-    except Exception:
-        pass
-    try:
-        from hydrahive.llm.client import _load_config
-        cfg = _load_config()
-        for p in cfg.get("providers", []):
-            out.extend(m for m in p.get("models", []) if m)
-    except Exception:
-        pass
-    return out
+    """Verfügbare Modell-IDs: aus der kanonischen Registry (Cache).
+    Leere Liste → validate_model winkt durch (Erst-Setup / Fetch-Fehler)."""
+    from hydrahive.llm import registry
+    return sorted(registry.known_ids())
 
 
 def validate_model(model: str) -> None:

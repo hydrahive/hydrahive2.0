@@ -211,3 +211,21 @@ def mod_env(tmp_path, monkeypatch):
     return tmp_path
 
 
+@pytest.fixture(autouse=True)
+def _reset_llm_registry():
+    """Registry-Modell-Cache nach JEDEM Test leeren.
+
+    Ein Registry-Test, der `list_models()` baut, lässt sonst seinen In-Memory-Cache
+    stehen. Spätere modell-validierende Tests (z.B. Agent-Anlage in test_workspace_api)
+    laufen dann über `_available_models()` → `registry.known_ids()` gegen diesen
+    Leck-Cache und lehnen Modelle ab, die nicht drinstehen. Leeren stellt das
+    Failopen-Verhalten (leerer Cache → durchwinken) für unbeteiligte Tests wieder her.
+    """
+    yield
+    try:
+        from hydrahive.llm import registry
+        registry.invalidate()
+    except Exception:
+        pass
+
+
