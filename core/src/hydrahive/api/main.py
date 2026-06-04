@@ -66,6 +66,7 @@ from hydrahive.api.routes.health_data import router as health_data_router
 from hydrahive.api.routes.patientenakte import router as patientenakte_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
+from hydrahive import modules as _modules
 
 logging.basicConfig(
     level=logging.INFO,
@@ -155,6 +156,15 @@ app.include_router(teamchat_router)
 app.include_router(health_data_router)
 app.include_router(fhir_router)
 app.include_router(ega_router)
+
+
+def mount_module_routers(target_app) -> None:
+    """Hängt die Router aller erfolgreich geladenen Module ein (Prefix pro Modul).
+    Wird im Lifespan nach modules.load_all() aufgerufen (REGISTRY ist beim Import leer)."""
+    for entry in _modules.REGISTRY.values():
+        if entry.loaded and entry.ctx:
+            for r in entry.ctx.routers:
+                target_app.include_router(r, prefix=f"/api/modules/{entry.manifest.id}")
 
 
 @app.exception_handler(Exception)
