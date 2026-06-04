@@ -12,6 +12,7 @@ Orchestrierung (build, restart, service-Generator) ist Task 11 — nicht hier.
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 from pathlib import Path
 
@@ -24,6 +25,14 @@ logger = logging.getLogger(__name__)
 
 class InstallError(RuntimeError):
     """Wird geworfen wenn ein Modul nicht installiert werden kann."""
+
+
+_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")  # muss zu manifest._ID_RE passen
+
+
+def _validate_module_id(module_id: str) -> None:
+    if not _ID_RE.match(module_id):
+        raise InstallError(f"ungültige module_id: {module_id!r}")
 
 
 def _frontend_modules_dir() -> Path:
@@ -46,6 +55,7 @@ def copy_module_in(module_id: str) -> None:
 
     symlinks=False ist bewusst: keine Symlinks als Escape-Vektor.
     """
+    _validate_module_id(module_id)
     refresh()
     src = _cache_path_for(module_id)
 
@@ -57,13 +67,15 @@ def copy_module_in(module_id: str) -> None:
     shutil.copytree(src, backend_dst, symlinks=False)
     logger.info("Modul '%s' Backend nach %s kopiert", module_id, backend_dst)
 
-    # Frontend-Assets → <base_dir>/frontend/src/modules/<id>
-    fe_dst = _frontend_modules_dir() / module_id
-    fe_dst.parent.mkdir(parents=True, exist_ok=True)
-    if fe_dst.exists():
-        shutil.rmtree(fe_dst)
-    shutil.copytree(src / "frontend", fe_dst, symlinks=False)
-    logger.info("Modul '%s' Frontend nach %s kopiert", module_id, fe_dst)
+    # Frontend-Assets → <base_dir>/frontend/src/modules/<id> (optional)
+    fe_src = src / "frontend"
+    if fe_src.exists():
+        fe_dst = _frontend_modules_dir() / module_id
+        fe_dst.parent.mkdir(parents=True, exist_ok=True)
+        if fe_dst.exists():
+            shutil.rmtree(fe_dst)
+        shutil.copytree(fe_src, fe_dst, symlinks=False)
+        logger.info("Modul '%s' Frontend nach %s kopiert", module_id, fe_dst)
 
 
 def remove_module_files(module_id: str) -> None:
@@ -72,6 +84,7 @@ def remove_module_files(module_id: str) -> None:
     DB-Tabellen, Daten und module_schema_version bleiben unangetastet —
     das ist die Datensicherheits-Garantie des Modulsystems.
     """
+    _validate_module_id(module_id)
     for d in (
         settings.modules_dir / module_id,
         _frontend_modules_dir() / module_id,

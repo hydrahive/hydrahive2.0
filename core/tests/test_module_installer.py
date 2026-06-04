@@ -41,3 +41,17 @@ def test_remove_module_keeps_no_data_touch(mod_env):
     remove_module_files("example")
 
     assert not md.exists() and not fe.exists()
+
+
+def test_copy_module_in_rejects_traversal_id(mod_env):
+    import pytest
+    from hydrahive.modules.installer import copy_module_in, InstallError
+    with pytest.raises(InstallError):
+        copy_module_in("../../etc")
+
+
+def test_remove_module_files_rejects_traversal_id(mod_env):
+    import pytest
+    from hydrahive.modules.installer import remove_module_files, InstallError
+    with pytest.raises(InstallError):
+        remove_module_files("../../etc")
