@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import Annotated
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.llm import _config
 from hydrahive.llm import client as llm_client
 from hydrahive.llm import registry
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
@@ -142,11 +143,22 @@ async def list_llm_models(
     _: Annotated[tuple[str, str], Depends(require_auth)] = None,
 ) -> dict:
     """Kanonische Modell-Liste aus der Registry, optional nach Zweck gefiltert.
-    Für ALLE Picker (require_auth, nicht admin-only)."""
+    Für ALLE Picker (require_auth, nicht admin-only). `default` = konfiguriertes
+    Standard-Modell des Zwecks (für die Vorauswahl)."""
     entries = await registry.list_models(modality)
-    return {"models": [
-        {"id": e.id, "label": e.label, "provider": e.provider,
-         "purposes": sorted(e.purposes), "context_window": e.context_window,
-         "is_free": e.is_free, "embed_dim": e.embed_dim}
-        for e in entries
-    ]}
+    if modality is None:
+        purpose = "chat"
+    elif modality in _config._PURPOSE_KEYS:
+        purpose = modality
+    else:
+        purpose = None
+    default = _config.get_default(purpose) if purpose else ""
+    return {
+        "default": default,
+        "models": [
+            {"id": e.id, "label": e.label, "provider": e.provider,
+             "purposes": sorted(e.purposes), "context_window": e.context_window,
+             "is_free": e.is_free, "embed_dim": e.embed_dim}
+            for e in entries
+        ],
+    }
