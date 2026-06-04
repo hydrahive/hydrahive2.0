@@ -6,7 +6,7 @@
   "scripts": {
     "gen:emotes": "node scripts/gen-emotes.mjs",
     "dev": "node scripts/gen-emotes.mjs && vite",
-    "prebuild": "node scripts/gen-emotes.mjs",
+    "prebuild": "node scripts/gen-emotes.mjs && node scripts/gen-modules.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
