@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from hydrahive.db import fhir as fhir_db
+from . import fhir_store as fhir_db
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (

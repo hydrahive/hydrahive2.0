@@ -17,8 +17,6 @@ from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.backup import router as backup_router
 from hydrahive.api.routes.buddy import router as buddy_router
 from hydrahive.api.routes.butler import router as butler_router
-from hydrahive.api.routes.ega import router as ega_router
-from hydrahive.api.routes.fhir import router as fhir_router
 from hydrahive.api.routes.files import router as files_router
 from hydrahive.api.routes.communication import router as communication_router
 from hydrahive.api.routes.communication_whatsapp import router as communication_whatsapp_router
@@ -152,8 +150,6 @@ app.include_router(streaming_router)
 app.include_router(teamchat_router)
 app.include_router(modules_admin_router)
 app.include_router(health_data_router)
-app.include_router(fhir_router)
-app.include_router(ega_router)
 
 
 def mount_module_routers(target_app: FastAPI) -> None:

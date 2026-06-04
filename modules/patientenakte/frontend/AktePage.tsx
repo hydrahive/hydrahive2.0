@@ -7,6 +7,7 @@ import { AkteDashboard } from "./views/AkteDashboard"
 import { AkteTimeline } from "./views/AkteTimeline"
 import { AkteEntityList } from "./views/AkteEntityList"
 import { AkteLabCharts } from "./views/AkteLabCharts"
+import { ImportView } from "./views/ImportView"
 
 export function AktePage() {
   const { t } = useTranslation("akte")
@@ -40,6 +41,7 @@ export function AktePage() {
               <Route path="practitioners"  element={<AkteEntityList entity="practitioners" />} />
               <Route path="documents"      element={<AkteEntityList entity="documents" />} />
               <Route path="notes"          element={<AkteEntityList entity="notes" />} />
+              <Route path="import"         element={<ImportView />} />
             </Routes>
           </AkteErrorBoundary>
         </div>

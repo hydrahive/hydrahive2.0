@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from hydrahive.db import ega as ega_db
+from backend import ega_store as ega_db
 
 
 @pytest.fixture(autouse=True)

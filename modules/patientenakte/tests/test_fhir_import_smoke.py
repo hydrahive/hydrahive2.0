@@ -94,7 +94,7 @@ def test_import_mixed_bundle_counts_per_entry_errors(client, auth_headers):
 # --- #210 (L2): fhir.timeline ist gebounded ----------------------------------
 
 def test_fhir_timeline_respektiert_limit(client, auth_headers):
-    from hydrahive.db import fhir as fhir_db
+    from backend import fhir_store as fhir_db
     bundle = _bundle([_condition(f"tl{i}", "I10", f"D{i}") for i in range(5)])
     client.post("/api/fhir/import", json=bundle, headers=auth_headers)
     rows = fhir_db.timeline("testuser", limit=2)

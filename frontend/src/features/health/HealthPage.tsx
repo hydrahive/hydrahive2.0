@@ -1,29 +1,11 @@
 import { useTranslation } from "react-i18next"
-import { type CSSProperties } from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { Activity } from "lucide-react"
-import { rgbFor } from "@/shared/colors"
 import { HealthSidebar } from "./HealthSidebar"
 import { KiFloatingButton } from "./KiFloatingButton"
 import { AkteErrorBoundary } from "./components/AkteErrorBoundary"
 import { AppleHealthView } from "./_AppleHealthView"
 import { SchlafView } from "./_SchlafView"
-
-function ImportView() {
-  return (
-    <div className="space-y-6">
-      <h2 className="text-base font-semibold text-zinc-100">📥 eGA / FHIR Import</h2>
-      <p className="text-sm text-zinc-500">
-        Importiere Daten aus der elektronischen Gesundheitsakte (eGA) der Techniker Krankenkasse
-        oder aus beliebigen FHIR-Bundles. Importierte Daten sind read-only und bleiben
-        vom eigenen Akten-Bereich getrennt.
-      </p>
-      <div className="box overflow-hidden p-6 text-center text-sm text-zinc-500" style={{ "--c": rgbFor("/health") } as CSSProperties}>
-        Import-Funktionen werden in Kürze verfügbar sein.
-      </div>
-    </div>
-  )
-}
 
 export function HealthPage() {
   const { t } = useTranslation("health")
@@ -46,9 +28,6 @@ export function HealthPage() {
           <AkteErrorBoundary resetKey={pathname}>
           <Routes>
             <Route index element={<Navigate to="apple" replace />} />
-
-            {/* Import */}
-            <Route path="import"        element={<ImportView />} />
 
             {/* Tracking */}
             <Route path="apple"  element={<AppleHealthView />} />

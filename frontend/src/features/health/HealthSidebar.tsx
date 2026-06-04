@@ -6,12 +6,6 @@ export function HealthSidebar() {
 
   const SECTIONS = [
     {
-      title: t("nav.section_import"),
-      items: [
-        { to: "/health/import", icon: "📥", label: t("nav.import") },
-      ],
-    },
-    {
       title: t("nav.section_tracking"),
       items: [
         { to: "/health/apple",  icon: "🍎", label: t("nav.apple") },

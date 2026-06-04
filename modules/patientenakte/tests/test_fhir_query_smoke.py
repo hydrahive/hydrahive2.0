@@ -44,7 +44,7 @@ def _insert_test_data(client, auth_headers):
 
 def test_query_all_types(client, auth_headers):
     _insert_test_data(client, auth_headers)
-    from hydrahive.tools.fhir_data import TOOL
+    from backend.fhir_tool import TOOL
     ctx = _make_ctx()
     result = _run(TOOL.execute({}, ctx))
     assert result.success
@@ -53,7 +53,7 @@ def test_query_all_types(client, auth_headers):
 
 def test_query_by_type(client, auth_headers):
     _insert_test_data(client, auth_headers)
-    from hydrahive.tools.fhir_data import TOOL
+    from backend.fhir_tool import TOOL
     ctx = _make_ctx()
     result = _run(TOOL.execute({"resource_types": ["Condition"]}, ctx))
     assert result.success
@@ -62,7 +62,7 @@ def test_query_by_type(client, auth_headers):
 
 def test_query_fulltext(client, auth_headers):
     _insert_test_data(client, auth_headers)
-    from hydrahive.tools.fhir_data import TOOL
+    from backend.fhir_tool import TOOL
     ctx = _make_ctx()
     result = _run(TOOL.execute({"search_text": "HbA1c"}, ctx))
     assert result.success
@@ -70,7 +70,7 @@ def test_query_fulltext(client, auth_headers):
 
 
 def test_query_empty_returns_message(client, auth_headers):
-    from hydrahive.tools.fhir_data import TOOL
+    from backend.fhir_tool import TOOL
     ctx = _make_ctx()
     result = _run(TOOL.execute({"search_text": "xyznotexistent123"}, ctx))
     assert result.success

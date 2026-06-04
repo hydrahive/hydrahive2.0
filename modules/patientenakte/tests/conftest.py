@@ -42,10 +42,14 @@ def setup_test_env():
             "admin": {"password_hash": password_hash, "role": "admin"},
         }, indent=2))
 
-        # Modul-Router an die Core-App hängen (Core bindet ihn nach dem Port nicht ein).
+        # Modul-Router an die Core-App hängen (Core bindet sie nach dem Port nicht ein).
         from hydrahive.api import main
         from backend import router as akte_router
+        from backend.fhir_routes import router as fhir_router
+        from backend.ega_routes import router as ega_router
         main.app.include_router(akte_router)
+        main.app.include_router(fhir_router)
+        main.app.include_router(ega_router)
 
         yield tmp_path
 
@@ -99,4 +103,7 @@ def _akte_db(setup_test_env):
         for spec in ENTITIES.values():
             conn.execute(f"DELETE FROM {spec.table}")
         conn.execute("DELETE FROM akte_patient")
+        # Import-Stores ebenfalls leeren → Test-Isolation unabhängig von Reihenfolge
+        conn.execute("DELETE FROM fhir_resources")
+        conn.execute("DELETE FROM ega_records")
     yield

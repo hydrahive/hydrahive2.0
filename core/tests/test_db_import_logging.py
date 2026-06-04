@@ -1,5 +1,8 @@
-"""#208 (Befunde M1/M1c): stille Import-Fehler werden geloggt + der
-Health-Live-Ingest ist atomar (Roh-Insert + Tages-Rollup in EINER Transaktion).
+"""#208 (Befund M1c): der Health-Live-Ingest loggt unverarbeitbare Payloads
+und ist atomar (Roh-Insert + Tages-Rollup in EINER Transaktion).
+
+Die eGA/FHIR-Import-Logging-Tests (M1a/M1b) leben seit dem Akte-Modul-Port
+im Modul (modules/patientenakte/tests/test_import_logging.py).
 """
 from __future__ import annotations
 
@@ -7,8 +10,6 @@ import logging
 
 import pytest
 
-from hydrahive.db import ega as ega_db
-from hydrahive.db import fhir as fhir_db
 from hydrahive.db import health as health_db
 
 
@@ -19,32 +20,8 @@ def _ensure_db(setup_test_env):
     init_db()
     yield
     with db() as conn:
-        for tbl in ("ega_records", "fhir_resources", "health_ingest", "health_daily"):
+        for tbl in ("health_ingest", "health_daily"):
             conn.execute(f"DELETE FROM {tbl}")
-
-
-# --- M1a: ega.upsert_records loggt verschluckte Fehler statt still zu zählen --
-
-def test_ega_upsert_logs_swallowed_error(caplog):
-    # set ist nicht JSON-serialisierbar → wirft im try-Block, wird verschluckt
-    records = [("Medikament", {"boom": {1, 2}})]
-    with caplog.at_level(logging.WARNING, logger="hydrahive.db.ega"):
-        result = ega_db.upsert_records(records, "u_ega")
-    assert result["errors"] == 1
-    assert any(r.levelno >= logging.WARNING for r in caplog.records)
-
-
-# --- M1b: fhir.upsert_bundle loggt verschluckte Fehler -----------------------
-
-def test_fhir_upsert_logs_swallowed_error(caplog):
-    bundle = {
-        "resourceType": "Bundle",
-        "entry": [{"resource": {"resourceType": "Observation", "id": "1", "boom": {1, 2}}}],
-    }
-    with caplog.at_level(logging.WARNING, logger="hydrahive.db.fhir"):
-        result = fhir_db.upsert_bundle(bundle, "u_fhir")
-    assert result["errors"] == 1
-    assert any(r.levelno >= logging.WARNING for r in caplog.records)
 
 
 # --- M1c (1): health-Ingest loggt unverarbeitbare Payload --------------------

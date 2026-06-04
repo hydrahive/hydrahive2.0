@@ -6,6 +6,6 @@
   "nav_group": "overview",
   "permissions": [],
   "has_service": false,
-  "default_agent_tools": false,
+  "default_agent_tools": true,
   "min_core_version": "2.0.0"
 }

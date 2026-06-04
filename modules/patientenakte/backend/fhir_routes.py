@@ -7,8 +7,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
 from hydrahive.api.middleware.auth import require_auth
-from hydrahive.db import fhir as fhir_db
-from hydrahive.fhir_ega import convert_ega_zip
+from . import fhir_store as fhir_db
+from .fhir_ega import convert_ega_zip
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/fhir", tags=["fhir"])
