@@ -7,7 +7,7 @@ Akte wird stillschweigend nicht angelegt. Die Root-Route muss direkt 200 liefern
 """
 from __future__ import annotations
 
-BASE = "/api/health/patientenakte"
+BASE = "/api/modules/patientenakte/akte"
 
 
 def test_create_own_akte_without_trailing_slash(client, auth_headers):

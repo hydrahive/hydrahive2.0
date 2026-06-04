@@ -16,7 +16,7 @@ from hydrahive.api.middleware.auth import require_auth
 from . import entities, patients, views
 from .schema import ENTITIES, ui_schema
 
-router = APIRouter(prefix="/api/health/patientenakte", tags=["patientenakte"])
+router = APIRouter(prefix="/akte", tags=["patientenakte"])
 Auth = Annotated[tuple[str, str], Depends(require_auth)]
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

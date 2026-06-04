@@ -7,7 +7,7 @@ Route, die VOR /{entity} stehen muss — sonst matcht der Catch-all und liefert
 """
 from __future__ import annotations
 
-BASE = "/api/health/patientenakte"
+BASE = "/api/modules/patientenakte/akte"
 
 EXPECTED_ENTITIES = {
     "conditions", "medications", "observations", "events", "imaging",

@@ -11,7 +11,7 @@ from . import fhir_store as fhir_db
 from .fhir_ega import convert_ega_zip
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/fhir", tags=["fhir"])
+router = APIRouter(prefix="/fhir", tags=["fhir"])
 
 
 @router.post("/import")

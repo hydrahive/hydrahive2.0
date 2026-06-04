@@ -150,7 +150,7 @@ def test_route_costs_roundtrip(client, auth_headers):
     ega_db.upsert_records([
         ("AmbulantClaim", {"id": "a1", "total": {"value": "42.00"}}),
     ], user_id="testuser")
-    resp = client.get("/api/ega/costs", headers=auth_headers)
+    resp = client.get("/api/modules/patientenakte/ega/costs", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json()["ambulant_eur"] == 42.0
 
@@ -160,17 +160,17 @@ def test_route_summary_und_timeline(client, auth_headers):
         ("Condition", {"id": "c1", "code": {"coding": [{"display": "Diabetes"}]},
                        "metaInformation": {"sortDate": "2026-01-05"}}),
     ], user_id="testuser")
-    s = client.get("/api/ega/summary", headers=auth_headers)
+    s = client.get("/api/modules/patientenakte/ega/summary", headers=auth_headers)
     assert s.status_code == 200
     assert s.json().get("Condition") == 1
-    tl = client.get("/api/ega/timeline", headers=auth_headers)
+    tl = client.get("/api/modules/patientenakte/ega/timeline", headers=auth_headers)
     assert tl.status_code == 200
     assert tl.json()["count"] == 1
 
 
 def test_route_import_kaputtes_zip_422(client, auth_headers):
     resp = client.post(
-        "/api/ega/import",
+        "/api/modules/patientenakte/ega/import",
         files={"file": ("export.zip", b"das ist kein zip", "application/zip")},
         headers=auth_headers,
     )

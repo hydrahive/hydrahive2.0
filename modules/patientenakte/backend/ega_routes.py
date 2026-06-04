@@ -11,7 +11,7 @@ from . import ega_store as ega_db
 from .fhir_ega import extract_ega_records
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/ega", tags=["ega"])
+router = APIRouter(prefix="/ega", tags=["ega"])
 
 
 @router.post("/import")

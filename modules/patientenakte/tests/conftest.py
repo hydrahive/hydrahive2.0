@@ -47,9 +47,12 @@ def setup_test_env():
         from backend import router as akte_router
         from backend.fhir_routes import router as fhir_router
         from backend.ega_routes import router as ega_router
-        main.app.include_router(akte_router)
-        main.app.include_router(fhir_router)
-        main.app.include_router(ega_router)
+        # Exakt wie der Core (mount_module_routers): jeder Router unter /api/modules/<id>.
+        # Damit treffen die Tests denselben Pfad wie die Produktion.
+        mod_prefix = "/api/modules/patientenakte"
+        main.app.include_router(akte_router, prefix=mod_prefix)
+        main.app.include_router(fhir_router, prefix=mod_prefix)
+        main.app.include_router(ega_router, prefix=mod_prefix)
 
         yield tmp_path
 

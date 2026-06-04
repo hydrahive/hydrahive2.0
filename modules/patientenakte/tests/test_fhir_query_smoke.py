@@ -39,7 +39,7 @@ def _insert_test_data(client, auth_headers):
             }},
         ],
     }
-    client.post("/api/fhir/import", json=bundle, headers=auth_headers)
+    client.post("/api/modules/patientenakte/fhir/import", json=bundle, headers=auth_headers)
 
 
 def test_query_all_types(client, auth_headers):
