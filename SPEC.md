@@ -268,6 +268,10 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - Mehrsprachig: Deutsch, Englisch, Chinesisch
 - Dunkel gehalten, Farbakzente mit Verläufen — bunt aber nicht poppig
 - **Responsive**: Desktop = Sidebar links, Mobile = Navbar unten (wie WhatsApp/Telegram)
+- **Einklappbare Boxen (Konvention):** Inhaltsboxen (Dashboard-, Buddy-, Agenten-,
+  Projekt-Boxen …) sind ein-/ausklappbar — Einklapp-Button oben im Box-Header. Der
+  Auf-/Zu-Zustand wird **pro User je Box-ID persistiert** (bleibt über Sessions/Geräte
+  erhalten). Gilt als Standard für **jede künftige Box**. Buddy-Boxen starten eingeklappt.
 
 **Seiten:**
 - **Login** — JWT
