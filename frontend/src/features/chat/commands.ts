@@ -3,7 +3,8 @@
  * Eingabe `/foo bar` wird hier abgefangen, Ergebnis als persistente
  * Bubble in die Session gespeichert (siehe BuddyPage-Pattern).
  */
-import { agentsApi, llmInfoApi } from "@/features/agents/api"
+import { agentsApi } from "@/features/agents/api"
+import { llmModelsApi } from "@/features/llm/api"
 import { skillsApi } from "@/features/skills/api"
 import { chatApi } from "./api"
 import type { AgentBrief, Message, Session } from "./types"
@@ -38,12 +39,14 @@ export function isCommand(text: string): boolean {
 
 async function modelCmd(arg: string, agent: AgentBrief): Promise<ChatCommandResult> {
   if (!arg.trim()) {
-    const { models } = await llmInfoApi.getModels()
-    return { message: [`Aktuell: ${agent.llm_model}`, "Verfügbar:", ...models.map((m) => `  - ${m}`), "", "Wechseln mit `/model <name>`"].join("\n") }
+    const { models } = await llmModelsApi.byModality("chat")
+    const ids = models.map((m) => m.id)
+    return { message: [`Aktuell: ${agent.llm_model}`, "Verfügbar:", ...ids.map((id) => `  - ${id}`), "", "Wechseln mit `/model <name>`"].join("\n") }
   }
   const target = arg.trim()
-  const { models } = await llmInfoApi.getModels()
-  if (models.length > 0 && !models.includes(target)) {
+  const { models } = await llmModelsApi.byModality("chat")
+  const ids = models.map((m) => m.id)
+  if (ids.length > 0 && !ids.includes(target)) {
     return { message: `Unbekanntes Modell '${target}'. Tippe /model für die Liste.` }
   }
   const updated = await agentsApi.update(agent.id, { llm_model: target })
