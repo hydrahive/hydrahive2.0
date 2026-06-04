@@ -16,6 +16,7 @@ import logging
 import re
 import shutil
 import subprocess
+from collections.abc import Iterator
 from pathlib import Path
 
 from hydrahive.modules import hub_client
@@ -120,7 +121,7 @@ def _run_service_script(module_id: str, script: str) -> None:  # "install.sh" | 
         subprocess.run(["bash", str(path)], check=True)
 
 
-def install(module_id: str):
+def install(module_id: str) -> Iterator[str]:
     _validate_module_id(module_id)
     yield f"[modules] installiere {module_id} …"
     copy_module_in(module_id); yield "[modules] Dateien kopiert"
@@ -130,7 +131,7 @@ def install(module_id: str):
     _request_restart(); yield "[modules] Neustart angefordert — fertig"
 
 
-def uninstall(module_id: str):
+def uninstall(module_id: str) -> Iterator[str]:
     _validate_module_id(module_id)
     yield f"[modules] deinstalliere {module_id} …"
     if _manifest_has_service(module_id):
