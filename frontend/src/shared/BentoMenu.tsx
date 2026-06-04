@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Grip } from "lucide-react"
 import { NAV_GROUPS, visibleItems } from "./nav-config"
+import { navLabel } from "./nav-label"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { DOMAIN_TW, colorFor } from "./colors"
 
@@ -76,7 +77,7 @@ export function BentoMenu({ open, onClose }: Props) {
                       <span className={`text-[10px] text-center leading-tight ${
                         active ? `${c.textActive} font-medium` : "text-zinc-400"
                       }`}>
-                        {t(`items.${labelKey}`)}
+                        {navLabel(t, labelKey)}
                       </span>
                     </Link>
                   )

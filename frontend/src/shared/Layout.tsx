@@ -10,6 +10,7 @@ import { AvatarMenu } from "./AvatarMenu"
 import { BentoMenu } from "./BentoMenu"
 import { DOMAIN_TW, colorFor } from "./colors"
 import { NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
+import { navLabel } from "./nav-label"
 
 export function Layout() {
   const { role } = useAuthStore()
@@ -57,7 +58,7 @@ export function Layout() {
           <span className="flex items-center gap-1.5 text-[11px] sm:text-sm text-zinc-400 ml-1 sm:ml-2 truncate">
             <span className="text-zinc-600 mx-1">/</span>
             <span className={`w-1.5 h-1.5 rounded-full ${DOMAIN_TW[colorFor(currentPage.path)].iconBgActive}`} />
-            {t(`items.${currentPage.labelKey}`)}
+            {navLabel(t, currentPage.labelKey)}
           </span>
         )}
 
@@ -77,7 +78,7 @@ export function Layout() {
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
                 }`}
               >
-                <Icon size={13} /> {t(`items.${labelKey}`)}
+                <Icon size={13} /> {navLabel(t, labelKey)}
               </Link>
             )
           })}
