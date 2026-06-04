@@ -87,11 +87,12 @@ export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }:
           </div>
         )}
 
-        <div className="columns-1 xl:columns-2 2xl:columns-3 gap-3">
-          <CollapsibleBox boxId="agent-overview" color={C} className={BOX} icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
-            <div className="box-b"><OverviewTab draft={draft} onChange={patch} /></div>
-          </CollapsibleBox>
+        {/* Übersicht: volle Breite, ganz oben (außerhalb des Masonry-Grids). */}
+        <CollapsibleBox boxId="agent-overview" color={C} className="box-static mb-3" icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
+          <div className="box-b"><OverviewTab draft={draft} onChange={patch} /></div>
+        </CollapsibleBox>
 
+        <div className="columns-1 xl:columns-2 2xl:columns-3 gap-3">
           <CollapsibleBox boxId="agent-model" color={C} className={BOX} icon={<Cpu size={14} />} title={t("tabs.model")}>
             <div className="box-b"><ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} /></div>
           </CollapsibleBox>
