@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -10,6 +11,8 @@ from hydrahive.api.middleware.auth import require_admin
 from hydrahive.modules import REGISTRY
 from hydrahive.modules import hub_client
 from hydrahive.modules import installer
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/modules", tags=["modules"])
 
@@ -29,7 +32,8 @@ def list_modules() -> dict:
     ]
     try:
         available = hub_client.read_hub_index().get("modules", [])
-    except Exception:
+    except Exception as exc:  # Hub unerreichbar → leere Liste, aber nicht still schlucken
+        logger.warning("Modul-Hub-Index nicht abrufbar: %s", exc)
         available = []
     return {"installed": installed, "available": available}
 
