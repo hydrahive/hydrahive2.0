@@ -5,7 +5,7 @@ Beweist das volle Modul-Vertragsmodell: register(ctx) → Router + Migrationen.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.db.connection import db
@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 class NoteIn(BaseModel):
-    text: str
+    text: str = Field(min_length=1)
 
 
 @router.get("/notes", dependencies=[Depends(require_auth)])

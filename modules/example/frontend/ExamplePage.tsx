@@ -14,13 +14,15 @@ export function ExamplePage() {
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchNotes = () => {
     setLoading(true)
+    setError(null)
     api
       .get<Note[]>("/modules/example/notes")
       .then((data) => setNotes(data))
-      .catch(() => {})
+      .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }
 
@@ -32,13 +34,14 @@ export function ExamplePage() {
     const text = input.trim()
     if (!text) return
     setAdding(true)
+    setError(null)
     api
       .post<Note>("/modules/example/notes", { text })
       .then(() => {
         setInput("")
         fetchNotes()
       })
-      .catch(() => {})
+      .catch((e) => setError(String(e)))
       .finally(() => setAdding(false))
   }
 
@@ -63,6 +66,12 @@ export function ExamplePage() {
           {t("add")}
         </button>
       </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="h-24 rounded-xl bg-zinc-900/50 animate-pulse" />
