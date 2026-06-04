@@ -1,11 +1,9 @@
 import { Check, Copy, ExternalLink, GitBranch, Tag, X } from "lucide-react"
-import { useState } from "react"
-import type { CSSProperties } from "react"
+import { useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { MemberManager } from "./MemberManager"
 import { projectsApi } from "./api"
-import { rgbFor } from "@/shared/colors"
 import type { Project } from "./types"
 
 interface Props {
@@ -16,10 +14,11 @@ interface Props {
   onDraftChange: (p: Project) => void
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+// Kompakte Sub-Box: kleiner Rahmen + Mini-Label, fließt im Masonry-Mini-Grid.
+function SubBox({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">{label}</label>
+    <div className="mb-2.5 break-inside-avoid rounded-lg border border-white/[7%] bg-white/[2%] p-2.5 space-y-1.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{label}</p>
       {children}
     </div>
   )
@@ -64,53 +63,52 @@ export function OverviewTab({ project, draft, agentName, onChange, onDraftChange
   const { t: tCommon } = useTranslation("common")
 
   return (
-    <div className="space-y-6">
-      <Field label={tCommon("labels.description")}>
+    <div className="columns-1 sm:columns-2 xl:columns-3 gap-2.5">
+      <SubBox label={tCommon("labels.description")}>
         <textarea
           value={draft.description} rows={3}
           onChange={(e) => onDraftChange({ ...draft, description: e.target.value })}
-          className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 leading-relaxed resize-none"
+          className="w-full px-2 py-1.5 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 leading-relaxed resize-none"
         />
-      </Field>
+      </SubBox>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label={t("fields.agent")}>
-          <Link
-            to="/agents"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-violet-500/[6%] border border-violet-500/20 text-sm text-violet-200 hover:bg-violet-500/[10%] transition-colors"
-          >
-            <span className="flex-1 truncate">{agentName || t("fields.agent_loading")}</span>
-            <ExternalLink size={12} />
-          </Link>
-        </Field>
-        <Field label={t("fields.workspace")}>
-          <p className="px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-400 font-mono flex items-center gap-2">
-            {project.git_initialized && <GitBranch size={12} className="text-violet-400" />}
-            data/workspaces/projects/{project.id.slice(0, 8)}…
-          </p>
-        </Field>
-      </div>
+      <SubBox label={t("fields.agent")}>
+        <Link
+          to="/agents"
+          className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-violet-500/[6%] border border-violet-500/20 text-xs text-violet-200 hover:bg-violet-500/[10%] transition-colors"
+        >
+          <span className="flex-1 truncate">{agentName || t("fields.agent_loading")}</span>
+          <ExternalLink size={11} />
+        </Link>
+      </SubBox>
 
-      <Field label={t("tags.label")}>
+      <SubBox label={t("fields.workspace")}>
+        <p className="text-[11px] text-zinc-400 font-mono flex items-center gap-1.5 break-all">
+          {project.git_initialized && <GitBranch size={11} className="text-violet-400 shrink-0" />}
+          data/workspaces/projects/{project.id.slice(0, 8)}…
+        </p>
+      </SubBox>
+
+      <SubBox label={t("tags.label")}>
         <TagEditor project={project} onChange={onChange} />
-      </Field>
+      </SubBox>
 
-      <Field label={t("fields.members_label", { count: project.members.length })}>
+      <SubBox label={t("fields.members_label", { count: project.members.length })}>
         <MemberManager project={project} onChange={onChange} />
-      </Field>
+      </SubBox>
 
-      <Field label={t("webhook.label")}>
+      <SubBox label={t("webhook.label")}>
         <WebhookQuickLink projectId={project.id} />
-      </Field>
+      </SubBox>
 
-      <Field label={tCommon("labels.created_at")}>
-        <p className="text-xs text-zinc-500">
+      <SubBox label={tCommon("labels.created_at")}>
+        <p className="text-[11px] text-zinc-500">
           {t("fields.created_by", {
             date: new Date(project.created_at).toLocaleString(i18n.language),
             user: project.created_by,
           })}
         </p>
-      </Field>
+      </SubBox>
     </div>
   )
 }
@@ -126,8 +124,8 @@ function WebhookQuickLink({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 box overflow-hidden" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
-      <code className="flex-1 text-xs text-zinc-400 font-mono truncate">{url}</code>
+    <div className="flex items-center gap-2">
+      <code className="flex-1 text-[11px] text-zinc-400 font-mono truncate" title={url}>{url}</code>
       <button onClick={copy} className="flex-shrink-0 text-zinc-500 hover:text-zinc-200 transition-colors">
         {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
       </button>

@@ -1,94 +1,80 @@
-import type { CSSProperties } from "react"
+import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import type { Agent } from "./types"
-import { rgbFor } from "@/shared/colors"
 
 interface Props {
   draft: Agent
   onChange: (patch: Partial<Agent>) => void
 }
 
+// Kompakte Sub-Box: kleiner Rahmen + Mini-Label, fließt im Masonry-Mini-Grid.
+function SubBox({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mb-2.5 break-inside-avoid rounded-lg border border-white/[7%] bg-white/[2%] p-2.5 space-y-1.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{label}</p>
+      {children}
+    </div>
+  )
+}
+
 export function OverviewTab({ draft, onChange }: Props) {
   const { t } = useTranslation("agents")
   const isSpecialist = draft.type === "specialist"
 
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <Field label={t("fields.type")}>
-          <p className="px-2 py-1 text-xs text-zinc-300 font-mono">{t(`type.${draft.type}`)}</p>
-        </Field>
-        {isSpecialist && (
-          <Field label={t("fields.domain")}>
-            <input
-              value={draft.domain ?? ""}
-              onChange={(e) => onChange({ domain: e.target.value || null })}
-              placeholder={t("fields.domain_placeholder")}
-              className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
-            />
-          </Field>
-        )}
-      </div>
+  const info: { label: string; value: string | null }[] = [
+    { label: t("info.id"), value: draft.id },
+    { label: t("info.owner"), value: draft.owner },
+    { label: t("info.created_by"), value: draft.created_by },
+    { label: t("info.created_at"), value: formatDate(draft.created_at) },
+    { label: t("info.workspace"), value: draft.workspace ?? null },
+    { label: t("info.project"), value: draft.project_id ?? null },
+  ].filter((r) => r.value)
 
-      <Field label={t("fields.description")}>
+  return (
+    <div className="columns-1 sm:columns-2 xl:columns-3 gap-2.5">
+      <SubBox label={t("fields.type")}>
+        <p className="text-xs text-zinc-300 font-mono">{t(`type.${draft.type}`)}</p>
+        {isSpecialist && (
+          <input
+            value={draft.domain ?? ""}
+            onChange={(e) => onChange({ domain: e.target.value || null })}
+            placeholder={t("fields.domain_placeholder")}
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
+          />
+        )}
+      </SubBox>
+
+      <SubBox label={t("fields.description")}>
         <textarea
           value={draft.description}
           onChange={(e) => onChange({ description: e.target.value })}
           rows={3}
           className="w-full px-2 py-1.5 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500/50"
         />
-      </Field>
+      </SubBox>
 
-      <label className="flex items-start gap-2 px-2 py-2 rounded-md border border-white/[6%] bg-white/[2%] cursor-pointer hover:bg-white/[4%] transition-colors">
-        <input
-          type="checkbox"
-          checked={!!draft.require_tool_confirm}
-          onChange={(e) => onChange({ require_tool_confirm: e.target.checked })}
-          className="mt-0.5 accent-violet-500"
-        />
-        <span className="text-xs">
-          <span className="text-zinc-200 font-medium">{t("fields.require_tool_confirm")}</span>
-          <span className="block text-[10px] text-zinc-500 mt-0.5">{t("fields.require_tool_confirm_hint")}</span>
-        </span>
-      </label>
+      <SubBox label={t("fields.require_tool_confirm")}>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!!draft.require_tool_confirm}
+            onChange={(e) => onChange({ require_tool_confirm: e.target.checked })}
+            className="mt-0.5 accent-violet-500"
+          />
+          <span className="text-[10px] text-zinc-500">{t("fields.require_tool_confirm_hint")}</span>
+        </label>
+      </SubBox>
 
-      <InfoBlock agent={draft} />
-    </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-0.5">
-      <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
-      {children}
-    </div>
-  )
-}
-
-function InfoBlock({ agent }: { agent: Agent }) {
-  const { t } = useTranslation("agents")
-  const rows: { label: string; value: string | null }[] = [
-    { label: t("info.id"), value: agent.id },
-    { label: t("info.owner"), value: agent.owner },
-    { label: t("info.created_by"), value: agent.created_by },
-    { label: t("info.created_at"), value: formatDate(agent.created_at) },
-    { label: t("info.workspace"), value: agent.workspace ?? null },
-    { label: t("info.project"), value: agent.project_id ?? null },
-  ].filter((r) => r.value)
-  return (
-    <div className="box overflow-hidden p-2 space-y-0.5" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
-      <p className="text-[10px] font-medium text-zinc-500 mb-1">{t("info.title")}</p>
-      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
-        {rows.map((r) => (
-          <div key={r.label} className="contents">
-            <span className="text-zinc-600">{r.label}</span>
-            <span className="text-zinc-300 font-mono truncate" title={r.value ?? undefined}>
-              {r.value}
-            </span>
-          </div>
-        ))}
-      </div>
+      <SubBox label={t("info.title")}>
+        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
+          {info.map((r) => (
+            <div key={r.label} className="contents">
+              <span className="text-zinc-600">{r.label}</span>
+              <span className="text-zinc-300 font-mono truncate" title={r.value ?? undefined}>{r.value}</span>
+            </div>
+          ))}
+        </div>
+      </SubBox>
     </div>
   )
 }
