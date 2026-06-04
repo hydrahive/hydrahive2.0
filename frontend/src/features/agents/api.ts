@@ -1,6 +1,5 @@
 import { api } from "@/shared/api-client"
 import type { Agent, AgentCreate, AgentDefaults, AgentTemplate, AgentToolConfig, ToolMeta } from "./types"
-import type { CatalogModel } from "@/features/llm/api"
 
 export const agentsApi = {
   list: () => api.get<Agent[]>("/agents"),
@@ -27,31 +26,6 @@ export const agentsApi = {
 /** Effektive globale Mail-Config — Platzhalter fürs per-Buddy-Postfach (ohne Passwort). */
 export const mailDefaultsApi = {
   get: () => api.get<AgentToolConfig>("/system/mail-defaults"),
-}
-
-export interface LlmProviderInfo {
-  models: string[]              // IDs (Abwärtskompat. für CompactionSection/Fallback)
-  catalog: CatalogModel[]       // strukturiert (für ModelTab-Combobox: free-Badge/Filter)
-  default_model: string
-}
-
-export const llmInfoApi = {
-  getModels: async (): Promise<LlmProviderInfo> => {
-    const [cfg, cat] = await Promise.all([
-      api.get<{ default_model: string; providers: { models: string[] }[] }>("/llm"),
-      api.get<{ providers: { models: CatalogModel[] }[] }>("/llm/catalog"),
-    ])
-    const live = cat.providers.flatMap((p) => p.models)
-    const liveIds = new Set(live.map((m) => m.id))
-    // custom-Modelle (manuell in provider.models eingetragen), die NICHT live sind:
-    const customIds = cfg.providers.flatMap((p) => p.models).filter((id) => id && !liveIds.has(id))
-    const customEntries: CatalogModel[] = customIds.map((id) => ({
-      id, context_window: null, tool_use: null, category: "chat", family: "?",
-      unknown: true, is_free: null, price_prompt: null, price_completion: null,
-    }))
-    const catalog = [...live, ...customEntries]
-    return { models: catalog.map((m) => m.id), catalog, default_model: cfg.default_model }
-  },
 }
 
 export interface McpServerBrief {
