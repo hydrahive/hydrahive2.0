@@ -1,6 +1,8 @@
-import { Save, Loader2 } from "lucide-react"
+import { Save, Loader2, LayoutGrid, Cpu, Wrench, Sparkles, BrainCircuit, SlidersHorizontal, Mail } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { rgbFor } from "@/shared/colors"
+import { CollapsibleBox } from "@/shared/CollapsibleBox"
 import { agentsApi, mcpInfoApi, type McpServerBrief } from "./api"
 import { CompactionSection } from "./CompactionSection"
 import { OverviewTab } from "./_OverviewTab"
@@ -10,7 +12,6 @@ import { MailTab } from "./_MailTab"
 import { SoulTab } from "./_SoulTab"
 import { SkillsTab } from "./_SkillsTab"
 import { AgentFormHeader } from "./_AgentFormHeader"
-import { AgentTabBar } from "./_AgentTabBar"
 import type { Agent, ToolMeta } from "./types"
 import type { RegistryModel } from "@/features/llm/api"
 
@@ -23,7 +24,9 @@ interface Props {
   onDeleted: () => void
 }
 
-type TabId = "overview" | "model" | "tools" | "mail" | "skills" | "soul" | "advanced"
+const C = rgbFor("/agents")
+// Listen-Boxen (Tools/Skills): ~15 Zeilen sichtbar, dann intern scrollen.
+const LIST_SCROLL = "max-h-[26rem] overflow-y-auto"
 
 export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("agents")
@@ -32,10 +35,9 @@ export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }:
   const [mcpServers, setMcpServers] = useState<McpServerBrief[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<TabId>("overview")
 
   useEffect(() => {
-    setDraft(agent); setError(null); setTab("overview")
+    setDraft(agent); setError(null)
   }, [agent.id])
 
   useEffect(() => {
@@ -68,15 +70,6 @@ export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }:
   }
 
   const hasMail = draft.tools.includes("send_mail") || draft.tools.includes("read_mail")
-  const tabs: { id: TabId; label: string }[] = [
-    { id: "overview", label: t("tabs.overview") },
-    { id: "model", label: t("tabs.model") },
-    { id: "tools", label: t("tabs.tools") },
-    ...(hasMail ? [{ id: "mail" as const, label: t("tabs.mail") }] : []),
-    { id: "skills", label: t("tabs.skills") },
-    { id: "soul", label: t("tabs.soul") },
-    { id: "advanced", label: t("tabs.advanced") },
-  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -86,25 +79,43 @@ export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }:
         onStatusChange={(status) => patch({ status })}
         onDelete={remove}
       />
-      <AgentTabBar tabs={tabs} active={tab} onChange={(id) => setTab(id as TabId)} />
 
-      <div className="flex-1 overflow-y-auto px-5 py-4">
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {error && (
-          <div className="mb-3 rounded-md border border-rose-500/30 bg-rose-500/[6%] px-3 py-1.5 text-xs text-rose-300">
+          <div className="rounded-md border border-rose-500/30 bg-rose-500/[6%] px-3 py-1.5 text-xs text-rose-300">
             {error}
           </div>
         )}
-        {tab === "overview" && <OverviewTab draft={draft} onChange={patch} />}
-        {tab === "model" && <ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} />}
-        {tab === "tools" && <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
-        {tab === "mail" && hasMail && <MailTab draft={draft} onChange={patch} />}
-        {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
-        {tab === "soul" && <SoulTab agent={agent} />}
-        {tab === "advanced" && (
-          <div className="space-y-6">
-            <CompactionSection agent={draft} models={models} onChange={patch} />
-          </div>
+
+        <CollapsibleBox boxId="agent-overview" color={C} className="box-static" icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
+          <div className="box-b"><OverviewTab draft={draft} onChange={patch} /></div>
+        </CollapsibleBox>
+
+        <CollapsibleBox boxId="agent-model" color={C} className="box-static" icon={<Cpu size={14} />} title={t("tabs.model")}>
+          <div className="box-b"><ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} /></div>
+        </CollapsibleBox>
+
+        <CollapsibleBox boxId="agent-tools" color={C} className="box-static" icon={<Wrench size={14} />} title={t("tabs.tools")}>
+          <div className={`box-b ${LIST_SCROLL}`}><ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} /></div>
+        </CollapsibleBox>
+
+        {hasMail && (
+          <CollapsibleBox boxId="agent-mail" color={C} className="box-static" icon={<Mail size={14} />} title={t("tabs.mail")}>
+            <div className="box-b"><MailTab draft={draft} onChange={patch} /></div>
+          </CollapsibleBox>
         )}
+
+        <CollapsibleBox boxId="agent-skills" color={C} className="box-static" icon={<Sparkles size={14} />} title={t("tabs.skills")}>
+          <div className={`box-b ${LIST_SCROLL}`}><SkillsTab agent={agent} draft={draft} onChange={patch} /></div>
+        </CollapsibleBox>
+
+        <CollapsibleBox boxId="agent-soul" color={C} className="box-static" icon={<BrainCircuit size={14} />} title={t("tabs.soul")}>
+          <div className="box-b"><SoulTab agent={agent} /></div>
+        </CollapsibleBox>
+
+        <CollapsibleBox boxId="agent-advanced" color={C} className="box-static" icon={<SlidersHorizontal size={14} />} title={t("tabs.advanced")} defaultCollapsed>
+          <div className="box-b"><CompactionSection agent={draft} models={models} onChange={patch} /></div>
+        </CollapsibleBox>
       </div>
 
       {dirty && (
