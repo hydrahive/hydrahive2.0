@@ -270,8 +270,9 @@ Loop-Detektion damit Bots sich nicht endlos anschreiben.
 - **Responsive**: Desktop = Sidebar links, Mobile = Navbar unten (wie WhatsApp/Telegram)
 - **Einklappbare Boxen (Konvention):** Inhaltsboxen (Dashboard-, Buddy-, Agenten-,
   Projekt-Boxen …) sind ein-/ausklappbar — Einklapp-Button oben im Box-Header. Der
-  Auf-/Zu-Zustand wird **pro User je Box-ID persistiert** (bleibt über Sessions/Geräte
-  erhalten). Gilt als Standard für **jede künftige Box**. Buddy-Boxen starten eingeklappt.
+  Auf-/Zu-Zustand wird **je Box-ID persistiert** (localStorage, bleibt über Sessions/Tabs
+  erhalten — wie Theme/Sprache; geräteübergreifend wäre ein separater User-Prefs-Store).
+  Gilt als Standard für **jede künftige Box**. Buddy-Boxen starten eingeklappt.
 
 **Seiten:**
 - **Login** — JWT
