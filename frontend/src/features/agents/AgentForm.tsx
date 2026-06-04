@@ -25,8 +25,8 @@ interface Props {
 }
 
 const C = rgbFor("/agents")
-// Listen-Boxen (Tools/Skills): ~15 Zeilen sichtbar, dann intern scrollen.
-const LIST_SCROLL = "max-h-[26rem] overflow-y-auto"
+// Dichte Box-Klasse: kein Hover-Lift (Formular), kein Spalten-Umbruch (Masonry), Abstand.
+const BOX = "box-static mb-3 break-inside-avoid"
 
 export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("agents")
@@ -80,42 +80,44 @@ export function AgentForm({ agent, models, catalog, tools, onSaved, onDeleted }:
         onDelete={remove}
       />
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {error && (
-          <div className="rounded-md border border-rose-500/30 bg-rose-500/[6%] px-3 py-1.5 text-xs text-rose-300">
+          <div className="mb-3 rounded-md border border-rose-500/30 bg-rose-500/[6%] px-3 py-1.5 text-xs text-rose-300">
             {error}
           </div>
         )}
 
-        <CollapsibleBox boxId="agent-overview" color={C} className="box-static" icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
-          <div className="box-b"><OverviewTab draft={draft} onChange={patch} /></div>
-        </CollapsibleBox>
-
-        <CollapsibleBox boxId="agent-model" color={C} className="box-static" icon={<Cpu size={14} />} title={t("tabs.model")}>
-          <div className="box-b"><ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} /></div>
-        </CollapsibleBox>
-
-        <CollapsibleBox boxId="agent-tools" color={C} className="box-static" icon={<Wrench size={14} />} title={t("tabs.tools")}>
-          <div className={`box-b ${LIST_SCROLL}`}><ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} /></div>
-        </CollapsibleBox>
-
-        {hasMail && (
-          <CollapsibleBox boxId="agent-mail" color={C} className="box-static" icon={<Mail size={14} />} title={t("tabs.mail")}>
-            <div className="box-b"><MailTab draft={draft} onChange={patch} /></div>
+        <div className="columns-1 xl:columns-2 2xl:columns-3 gap-3">
+          <CollapsibleBox boxId="agent-overview" color={C} className={BOX} icon={<LayoutGrid size={14} />} title={t("tabs.overview")}>
+            <div className="box-b"><OverviewTab draft={draft} onChange={patch} /></div>
           </CollapsibleBox>
-        )}
 
-        <CollapsibleBox boxId="agent-skills" color={C} className="box-static" icon={<Sparkles size={14} />} title={t("tabs.skills")}>
-          <div className={`box-b ${LIST_SCROLL}`}><SkillsTab agent={agent} draft={draft} onChange={patch} /></div>
-        </CollapsibleBox>
+          <CollapsibleBox boxId="agent-model" color={C} className={BOX} icon={<Cpu size={14} />} title={t("tabs.model")}>
+            <div className="box-b"><ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} /></div>
+          </CollapsibleBox>
 
-        <CollapsibleBox boxId="agent-soul" color={C} className="box-static" icon={<BrainCircuit size={14} />} title={t("tabs.soul")}>
-          <div className="box-b"><SoulTab agent={agent} /></div>
-        </CollapsibleBox>
+          <CollapsibleBox boxId="agent-tools" color={C} className={BOX} icon={<Wrench size={14} />} title={t("tabs.tools")}>
+            <div className="box-b"><ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} /></div>
+          </CollapsibleBox>
 
-        <CollapsibleBox boxId="agent-advanced" color={C} className="box-static" icon={<SlidersHorizontal size={14} />} title={t("tabs.advanced")} defaultCollapsed>
-          <div className="box-b"><CompactionSection agent={draft} models={models} onChange={patch} /></div>
-        </CollapsibleBox>
+          {hasMail && (
+            <CollapsibleBox boxId="agent-mail" color={C} className={BOX} icon={<Mail size={14} />} title={t("tabs.mail")}>
+              <div className="box-b"><MailTab draft={draft} onChange={patch} /></div>
+            </CollapsibleBox>
+          )}
+
+          <CollapsibleBox boxId="agent-skills" color={C} className={BOX} icon={<Sparkles size={14} />} title={t("tabs.skills")}>
+            <div className="box-b"><SkillsTab agent={agent} draft={draft} onChange={patch} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="agent-soul" color={C} className={BOX} icon={<BrainCircuit size={14} />} title={t("tabs.soul")}>
+            <div className="box-b"><SoulTab agent={agent} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="agent-advanced" color={C} className={BOX} icon={<SlidersHorizontal size={14} />} title={t("tabs.advanced")} defaultCollapsed>
+            <div className="box-b"><CompactionSection agent={draft} models={models} onChange={patch} /></div>
+          </CollapsibleBox>
+        </div>
       </div>
 
       {dirty && (

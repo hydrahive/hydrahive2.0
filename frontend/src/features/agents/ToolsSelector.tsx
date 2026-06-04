@@ -59,7 +59,7 @@ export function ToolsSelector({ available, selected, onChange }: Props) {
           </option>
         ))}
       </select>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-56 overflow-y-auto pr-1">
         {visible.map((tool) => {
           const checked = set.has(tool.name)
           return (

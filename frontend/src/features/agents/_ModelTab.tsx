@@ -129,10 +129,13 @@ function ModelPicker({ value, catalog, onChange }: {
   )
 }
 
+function providerOf(model: string): string {
+  return model.includes("/") ? model.split("/")[0] : "(direkt)"
+}
+
 function FallbackModelsSelector({ primary, available, selected, onChange }: {
   primary: string; available: string[]; selected: string[]; onChange: (s: string[]) => void
 }) {
-  const remaining = available.filter((m) => m !== primary && !selected.includes(m))
   const add = (m: string) => onChange([...selected, m])
   const remove = (m: string) => onChange(selected.filter((x) => x !== m))
   const moveUp = (i: number) => {
@@ -141,6 +144,19 @@ function FallbackModelsSelector({ primary, available, selected, onChange }: {
     ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
     onChange(next)
   }
+
+  // Verbleibende Modelle nach Provider gruppieren → ein Dropdown pro Provider
+  // (statt hunderte Buttons untereinander).
+  const byProvider = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const m of available) {
+      if (m === primary || selected.includes(m)) continue
+      const p = providerOf(m)
+      ;(map.get(p) ?? map.set(p, []).get(p)!).push(m)
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
+  }, [available, primary, selected])
+
   return (
     <div className="space-y-2">
       {selected.length > 0 && (
@@ -157,18 +173,24 @@ function FallbackModelsSelector({ primary, available, selected, onChange }: {
           ))}
         </div>
       )}
-      {remaining.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {remaining.map((m) => (
-            <button key={m} onClick={() => add(m)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/[3%] border border-white/[8%] text-zinc-400 hover:text-zinc-100 hover:bg-white/[6%] text-xs font-mono transition-colors">
-              + {m}
-            </button>
+      {byProvider.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {byProvider.map(([prov, ms]) => (
+            <select
+              key={prov}
+              value=""
+              onChange={(e) => { if (e.target.value) add(e.target.value) }}
+              className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
+            >
+              <option value="">+ {prov} ({ms.length})…</option>
+              {ms.map((m) => (
+                <option key={m} value={m}>{m.includes("/") ? m.split("/").slice(1).join("/") : m}</option>
+              ))}
+            </select>
           ))}
         </div>
-      )}
-      {selected.length === 0 && remaining.length === 0 && (
-        <p className="text-xs text-zinc-600">—</p>
+      ) : (
+        selected.length === 0 && <p className="text-xs text-zinc-600">—</p>
       )}
     </div>
   )

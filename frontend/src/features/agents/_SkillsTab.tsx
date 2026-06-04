@@ -56,7 +56,7 @@ export function SkillsTab({ agent, draft, onChange }: Props) {
       {skills.length === 0 ? (
         <p className="text-xs text-zinc-600 py-6 text-center">{t("agent_tab_empty")}</p>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1 max-h-96 overflow-y-auto pr-1">
           {skills.map((s) => {
             const off = disabled.has(s.name)
             return (
