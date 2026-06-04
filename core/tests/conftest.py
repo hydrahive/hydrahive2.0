@@ -166,3 +166,26 @@ def admin_headers(client):
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture
+def mod_env(tmp_path, monkeypatch):
+    """Isolierte Modul-Umgebung: frische DB + repointete Modul-Pfade.
+
+    Umgeht den session-weiten settings-Freeze (cached_property): das autouse
+    `setup_test_env` friert die Pfade einmalig ein, `monkeypatch.setenv` ist
+    danach wirkungslos. Muster wie test_research_apis.py — direkt per setattr.
+    `db()`/`init_db()` lesen `settings.sessions_db` pro Aufruf, daher landet die
+    DB im tmp_path.
+    """
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "sessions_db", tmp_path / "test.db", raising=False)
+    monkeypatch.setattr(settings, "data_dir", tmp_path / "data", raising=False)
+    monkeypatch.setattr(settings, "modules_dir", tmp_path / "modules", raising=False)
+    monkeypatch.setattr(settings, "base_dir", tmp_path / "repo", raising=False)
+    monkeypatch.setattr(settings, "module_hub_cache", tmp_path / "hub", raising=False)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "modules").mkdir()
+    from hydrahive.db import init_db
+    init_db()
+    return tmp_path
+
+
