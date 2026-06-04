@@ -54,3 +54,4 @@ class Tool:
     schema: dict
     execute: ExecuteFn
     category: str = "other"
+    prompt_hint: str = ""
