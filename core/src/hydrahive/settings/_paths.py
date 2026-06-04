@@ -48,6 +48,21 @@ class _PathsMixin:
         )
 
     @cached_property
+    def modules_dir(self) -> Path:
+        return self.data_dir / "modules"
+
+    @cached_property
+    def module_hub_cache(self) -> Path:
+        return self.data_dir / ".module-cache" / "hub"
+
+    @cached_property
+    def module_hub_git_url(self) -> str:
+        return os.environ.get(
+            "HH_MODULE_HUB_GIT_URL",
+            "https://github.com/hydrahive/hydrahive2-modules.git",
+        )
+
+    @cached_property
     def tmp_dir(self) -> Path:
         return Path(os.environ.get("HH_TMP_DIR", tempfile.gettempdir()))
 
