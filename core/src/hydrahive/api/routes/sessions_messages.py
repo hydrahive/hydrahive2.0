@@ -20,8 +20,8 @@ from hydrahive.runner import run as runner_run
 from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
 from hydrahive.runner.events import Error as RunnerError
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
-from hydrahive.compaction import compact_session, total_tokens
-from hydrahive.compaction.compactor import DEFAULT_RESERVE_TOKENS
+from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT
+from hydrahive.compaction import compact_session, compact_threshold_tokens, total_tokens
 from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
@@ -106,7 +106,15 @@ def get_tokens(
     history = messages_db.list_for_llm(session_id) if agent else []
     used = total_tokens(history)
     window = context_window_for(agent["llm_model"]) if agent else 0
-    threshold = max(0, window - DEFAULT_RESERVE_TOKENS)
+    threshold = (
+        compact_threshold_tokens(
+            agent["llm_model"],
+            threshold_pct=int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT)),
+            reserve_tokens=agent.get("compact_reserve_tokens"),
+        )
+        if agent
+        else 0
+    )
     return {
         "used": used,
         "context_window": window,

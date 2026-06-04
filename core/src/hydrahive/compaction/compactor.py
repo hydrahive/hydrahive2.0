@@ -46,6 +46,44 @@ def should_compact(
     return total_tokens(messages) > (context_window_for(model) - reserve_tokens)
 
 
+def effective_reserve_tokens(
+    model: str,
+    *,
+    threshold_pct: int,
+    reserve_tokens: int | None,
+) -> int | None:
+    """Die Reserve, die der Auto-Compaction-Trigger tatsächlich verwendet.
+
+    Spiegelt runner._runner_iter.prepare_history: die konfigurierte Reserve,
+    angehoben auf die Früh-Compaction-Headroom aus threshold_pct (<100).
+    Gibt None zurück wenn keine Reserve konfiguriert ist (Caller fällt dann auf
+    should_compact's Default zurück) — hält das Runner-Verhalten byte-genau.
+    """
+    if reserve_tokens is None:
+        return None
+    if threshold_pct < 100:
+        window = context_window_for(model)
+        return max(reserve_tokens, window - int(window * threshold_pct / 100))
+    return reserve_tokens
+
+
+def compact_threshold_tokens(
+    model: str,
+    *,
+    threshold_pct: int,
+    reserve_tokens: int | None,
+) -> int:
+    """Token-Stand, bei dem Auto-Compaction feuert — die 100%-Marke des TokenMeter.
+
+    Single Source of Truth, geteilt von Runner-Trigger und /tokens-Endpoint,
+    damit der Balken nie etwas anderes anzeigt als den realen Compaction-Punkt.
+    """
+    reserve = effective_reserve_tokens(model, threshold_pct=threshold_pct, reserve_tokens=reserve_tokens)
+    if reserve is None:
+        reserve = DEFAULT_RESERVE_TOKENS
+    return max(0, context_window_for(model) - reserve)
+
+
 async def compact_session(
     session_id: str,
     *,

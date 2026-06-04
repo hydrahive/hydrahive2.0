@@ -5,8 +5,7 @@ import logging
 from dataclasses import dataclass
 from typing import AsyncIterator
 
-from hydrahive.compaction import compact_session, should_compact
-from hydrahive.compaction.tokens import context_window_for
+from hydrahive.compaction import compact_session, effective_reserve_tokens, should_compact
 from hydrahive.db import messages as messages_db
 from hydrahive.runner._call import CallResult, call_with_stream_or_fallback
 from hydrahive.runner.events import CompactionStart, Event
@@ -41,13 +40,9 @@ async def prepare_history(
     letzter yield ist immer die History-Liste.
     """
     history = messages_db.list_for_llm(session_id)
-    effective_reserve = compact_reserve
-    if effective_reserve is not None and compact_threshold_pct < 100:
-        window = context_window_for(model)
-        effective_reserve = max(
-            effective_reserve,
-            window - int(window * compact_threshold_pct / 100),
-        )
+    effective_reserve = effective_reserve_tokens(
+        model, threshold_pct=compact_threshold_pct, reserve_tokens=compact_reserve
+    )
     should_kwargs: dict = {}
     if effective_reserve is not None:
         should_kwargs["reserve_tokens"] = effective_reserve

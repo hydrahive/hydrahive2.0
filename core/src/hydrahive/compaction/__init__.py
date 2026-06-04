@@ -15,6 +15,8 @@ from hydrahive.compaction.compactor import (
     DEFAULT_MAX_TURNS_BEFORE_COMPACT,
     DEFAULT_RESERVE_TOKENS,
     compact_session,
+    compact_threshold_tokens,
+    effective_reserve_tokens,
     should_compact,
     total_tokens,
 )
@@ -28,6 +30,8 @@ from hydrahive.compaction.hooks import (
 __all__ = [
     "should_compact",
     "compact_session",
+    "compact_threshold_tokens",
+    "effective_reserve_tokens",
     "total_tokens",
     "DEFAULT_RESERVE_TOKENS",
     "DEFAULT_KEEP_RECENT_TOKENS",
