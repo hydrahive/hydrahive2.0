@@ -12,12 +12,12 @@ import { SkillsTab } from "./_SkillsTab"
 import { AgentFormHeader } from "./_AgentFormHeader"
 import { AgentTabBar } from "./_AgentTabBar"
 import type { Agent, ToolMeta } from "./types"
-import type { CatalogModel } from "@/features/llm/api"
+import type { RegistryModel } from "@/features/llm/api"
 
 interface Props {
   agent: Agent
   models: string[]
-  catalog: CatalogModel[]
+  catalog: RegistryModel[]
   tools: ToolMeta[]
   onSaved: (a: Agent) => void
   onDeleted: () => void
