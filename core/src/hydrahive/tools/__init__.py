@@ -91,20 +91,41 @@ def _build_registry() -> dict[str, Tool]:
 
 REGISTRY: dict[str, Tool] = _build_registry()
 
+# Unveränderliche Menge der beim Import vorhandenen Core-Tool-Namen.
+_CORE_TOOL_NAMES: frozenset[str] = frozenset(REGISTRY)
+
+# Namen von Modul-Tools die KEIN Core-Tool überlagern.
 _MODULE_TOOL_NAMES: set[str] = set()
+
+# Originale Core-Tools die durch ein Modul-Tool temporär verdrängt wurden.
+_DISPLACED_CORE: dict[str, Tool] = {}
 
 
 def register_module_tools(tools: list[Tool]) -> None:
     """Merged Modul-Tools idempotent in REGISTRY. Vorher gemergte Modul-Tools
     werden zuerst entfernt — load_all ist idempotent, ein erneuter Aufruf darf
     nicht duplizieren oder Leichen hinterlassen. REGISTRY bleibt die einzige
-    Tool-Quelle, damit get_tool/schemas_for/_defaults unverändert funktionieren."""
+    Tool-Quelle, damit get_tool/schemas_for/_defaults unverändert funktionieren.
+
+    Wenn ein Modul-Tool denselben Namen wie ein Core-Tool hat, übernimmt es
+    temporär den REGISTRY-Slot. Beim Reset (leere Liste oder neuer Satz) wird
+    das Original-Core-Tool WIEDERHERGESTELLT statt gelöscht."""
+    # 1. Nicht-Core-Modul-Tools entfernen
     for name in _MODULE_TOOL_NAMES:
         REGISTRY.pop(name, None)
+    # 2. Verdrängte Core-Tools wiederherstellen
+    REGISTRY.update(_DISPLACED_CORE)
+    # 3. Interne Zustandskarten leeren
     _MODULE_TOOL_NAMES.clear()
+    _DISPLACED_CORE.clear()
+    # 4. Neue Modul-Tools eintragen
     for tool in tools:
+        if tool.name in _CORE_TOOL_NAMES and tool.name in REGISTRY:
+            # Core-Original merken, bevor es überschrieben wird
+            _DISPLACED_CORE[tool.name] = REGISTRY[tool.name]
+        else:
+            _MODULE_TOOL_NAMES.add(tool.name)
         REGISTRY[tool.name] = tool
-        _MODULE_TOOL_NAMES.add(tool.name)
 
 # Tools die je nach Setup conditional registriert werden. Auf der Validation-
 # Ebene werden sie toleriert — der Runner filtert sie über schemas_for() ohnehin

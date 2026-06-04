@@ -45,3 +45,13 @@ def test_core_tools_untouched():
         assert "shell_exec" in tools.REGISTRY  # Core-Tool bleibt
     finally:
         tools.register_module_tools([])
+
+
+def test_reset_restores_shadowed_core_tool():
+    from hydrahive import tools
+    original = tools.REGISTRY["shell_exec"]
+    shadow = _tool("shell_exec")  # module tool reusing a core name
+    tools.register_module_tools([shadow])
+    assert tools.REGISTRY["shell_exec"] is shadow      # module overrides while active
+    tools.register_module_tools([])                    # reset
+    assert tools.REGISTRY["shell_exec"] is original    # core tool restored, not deleted
