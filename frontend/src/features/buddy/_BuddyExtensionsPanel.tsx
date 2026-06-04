@@ -4,6 +4,7 @@ import {
   Lock, Network, Search, ShieldOff, Package, Loader2,
 } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { CollapsibleBox } from "@/shared/CollapsibleBox"
 import { fetchExtensions } from "@/features/extensions/api"
 import type { Extension } from "@/features/extensions/types"
 
@@ -65,11 +66,14 @@ export function BuddyExtensionsPanel() {
   }, [])
 
   return (
-    <div className="box overflow-hidden w-60" style={{ "--c": rgbFor("/mcp") } as CSSProperties}>
-      <div className="px-4 py-3 border-b border-white/[6%] bg-black/20 flex items-center gap-2">
-        <span className="text-sm">🧩</span>
-        <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Anwendungen</span>
-      </div>
+    <CollapsibleBox
+      boxId="buddy-extensions"
+      icon={<span className="text-sm">🧩</span>}
+      title="Anwendungen"
+      color={rgbFor("/mcp")}
+      defaultCollapsed
+      className="w-60"
+    >
       <div className="p-3">
         {extensions === null ? (
           <div className="flex justify-center py-4">
@@ -85,6 +89,6 @@ export function BuddyExtensionsPanel() {
           </div>
         )}
       </div>
-    </div>
+    </CollapsibleBox>
   )
 }

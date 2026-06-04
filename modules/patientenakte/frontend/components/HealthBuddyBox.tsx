@@ -1,7 +1,8 @@
-import { type CSSProperties, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Activity } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { CollapsibleBox } from "@/shared/CollapsibleBox"
 import { healthApi } from "../api"
 
 const QUICK_PROMPTS = [
@@ -30,16 +31,19 @@ export function HealthBuddyBox({ onPrompt }: Props) {
     : null
 
   return (
-    <div className="box overflow-hidden w-60" style={{ "--c": rgbFor("/akte") } as CSSProperties}>
-      <div className="px-4 py-3 border-b border-white/[6%] bg-black/20 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Activity size={14} className="text-rose-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Gesundheit</span>
-        </div>
+    <CollapsibleBox
+      boxId="buddy-health"
+      icon={<Activity size={14} className="text-rose-400" />}
+      title="Gesundheit"
+      color={rgbFor("/akte")}
+      defaultCollapsed
+      className="w-60"
+      headerRight={
         <Link to="/akte/tracking" className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">
           → /akte
         </Link>
-      </div>
+      }
+    >
       <div className="p-3 space-y-2">
         <div className="flex items-center gap-1.5">
           <div className={`w-1.5 h-1.5 rounded-full ${formattedDate ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.6)]" : "bg-zinc-600"}`} />
@@ -59,6 +63,6 @@ export function HealthBuddyBox({ onPrompt }: Props) {
           ))}
         </div>
       </div>
-    </div>
+    </CollapsibleBox>
   )
 }
