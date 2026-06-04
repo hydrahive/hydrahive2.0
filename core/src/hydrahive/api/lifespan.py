@@ -121,6 +121,12 @@ async def lifespan(app: FastAPI):
     module_system.load_all()
     from hydrahive.api.main import mount_module_routers
     mount_module_routers(app)
+    from hydrahive.modules.registry import REGISTRY as _module_registry
+    from hydrahive.tools import register_module_tools
+    register_module_tools([
+        t for m in _module_registry.values()
+        if m.loaded and m.ctx for t in m.ctx.tools
+    ])
     from hydrahive.llm import registry as llm_registry
     # Hintergrund-Warm: blockiert den Start nicht (Provider-Fetch-Timeouts);
     # validate ist failopen während des kurzen kalten Fensters.
