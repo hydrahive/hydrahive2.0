@@ -24,27 +24,6 @@ export interface LlmConfig {
   media_models?: Record<string, string>
 }
 
-export interface EmbedModel {
-  model: string
-  dim: number
-  provider: string
-}
-
-export interface SpeechModel {
-  id: string
-  voices: string[]
-}
-
-export interface VideoModel {
-  id: string
-  name: string
-}
-
-export interface TranscribeModel {
-  id: string
-  name: string
-}
-
 export interface AnthropicRateLimits {
   updated_at?: string
   status?: string
@@ -66,10 +45,6 @@ export const llmApi = {
   updateConfig: (cfg: LlmConfig) => api.put<LlmConfig>("/llm", cfg),
   testConnection: (model?: string) =>
     api.post<{ ok: boolean; response: string }>("/llm/test", { model: model ?? null }),
-  getEmbedModels: () => api.get<EmbedModel[]>("/llm/embed-models"),
-  getSpeechModels: () => api.get<SpeechModel[]>("/llm/speech-models"),
-  getTranscribeModels: () => api.get<TranscribeModel[]>("/llm/transcribe-models"),
-  getVideoModels: () => api.get<VideoModel[]>("/llm/video-models"),
   oauthStart: (provider: string) =>
     api.post<{ authorize_url: string; state: string }>("/llm/oauth/start", { provider }),
   oauthExchange: (provider: string, code_or_url: string) =>
@@ -130,5 +105,5 @@ export interface RegistryModel {
 
 export const llmModelsApi = {
   byModality: (modality?: string) =>
-    api.get<{ models: RegistryModel[] }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
+    api.get<{ models: RegistryModel[]; default: string }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
 }

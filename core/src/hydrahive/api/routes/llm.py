@@ -10,11 +10,11 @@ from pydantic import BaseModel, ConfigDict
 from typing import Annotated
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.llm import _config
 from hydrahive.llm import client as llm_client
 from hydrahive.llm import registry
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
 from hydrahive.llm._oauth_usage import get_oauth_rate_limits
-from hydrahive.llm import embed as llm_embed
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
@@ -86,33 +86,6 @@ async def test_connection(req: TestRequest) -> dict:
         raise coded(status.HTTP_400_BAD_REQUEST, "llm_test_failed", message=str(e))
 
 
-@router.get("/embed-models", dependencies=[Depends(require_admin)])
-def get_embed_models() -> list[dict]:
-    """Gibt Embedding-Modelle zurück für die ein API-Key konfiguriert ist."""
-    return llm_embed.available_for_config(_load())
-
-
-@router.get("/speech-models", dependencies=[Depends(require_admin)])
-async def get_speech_models() -> list[dict]:
-    """Live-Liste der TTS-Modelle (output_modalities=speech) mit ihren Voices."""
-    from hydrahive.llm import media_models
-    return await media_models.list_speech_models()
-
-
-@router.get("/transcribe-models", dependencies=[Depends(require_admin)])
-async def get_transcribe_models() -> list[dict]:
-    """Live-Liste der Audio-Transkriptions-Modelle (input_modalities=audio)."""
-    from hydrahive.llm import media_models
-    return await media_models.list_transcribe_models()
-
-
-@router.get("/video-models", dependencies=[Depends(require_admin)])
-async def get_video_models() -> list[dict]:
-    """Live-Liste der Video-Generierungs-Modelle (/api/v1/videos/models)."""
-    from hydrahive.llm import media_models
-    return await media_models.list_video_models()
-
-
 @router.get("/minimax/usage")
 async def minimax_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """MiniMax token_plan/remains pro Modell. Auch für non-admin sichtbar — nur Quota-Info."""
@@ -142,11 +115,22 @@ async def list_llm_models(
     _: Annotated[tuple[str, str], Depends(require_auth)] = None,
 ) -> dict:
     """Kanonische Modell-Liste aus der Registry, optional nach Zweck gefiltert.
-    Für ALLE Picker (require_auth, nicht admin-only)."""
+    Für ALLE Picker (require_auth, nicht admin-only). `default` = konfiguriertes
+    Standard-Modell des Zwecks (für die Vorauswahl)."""
     entries = await registry.list_models(modality)
-    return {"models": [
-        {"id": e.id, "label": e.label, "provider": e.provider,
-         "purposes": sorted(e.purposes), "context_window": e.context_window,
-         "is_free": e.is_free, "embed_dim": e.embed_dim}
-        for e in entries
-    ]}
+    if modality is None:
+        purpose = "chat"
+    elif modality in _config._PURPOSE_KEYS:
+        purpose = modality
+    else:
+        purpose = None
+    default = _config.get_default(purpose) if purpose else ""
+    return {
+        "default": default,
+        "models": [
+            {"id": e.id, "label": e.label, "provider": e.provider,
+             "purposes": sorted(e.purposes), "context_window": e.context_window,
+             "is_free": e.is_free, "embed_dim": e.embed_dim}
+            for e in entries
+        ],
+    }

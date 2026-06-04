@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { Agent } from "./types"
-import type { CatalogModel } from "@/features/llm/api"
+import type { RegistryModel } from "@/features/llm/api"
 
 interface Props {
   draft: Agent
   models: string[]
-  catalog: CatalogModel[]
+  catalog: RegistryModel[]
   onChange: (patch: Partial<Agent>) => void
 }
 
@@ -98,7 +98,7 @@ function Field({ label, hint, hintTone, children }: {
 }
 
 function ModelPicker({ value, catalog, onChange }: {
-  value: string; catalog: CatalogModel[]; onChange: (m: string) => void
+  value: string; catalog: RegistryModel[]; onChange: (m: string) => void
 }) {
   const [q, setQ] = useState("")
   const [onlyFree, setOnlyFree] = useState(false)

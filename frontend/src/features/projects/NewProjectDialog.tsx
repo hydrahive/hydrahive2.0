@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import type { CSSProperties } from "react"
 import { GitBranch, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { llmInfoApi } from "@/features/agents/api"
+import { llmModelsApi } from "@/features/llm/api"
 import { projectsApi, usersApi } from "./api"
 import { rgbFor } from "@/shared/colors"
 
@@ -25,9 +25,10 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    llmInfoApi.getModels().then((info) => {
-      setModels(info.models)
-      setModel(info.default_model || info.models[0] || "")
+    llmModelsApi.byModality("chat").then((res) => {
+      const ids = res.models.map((m) => m.id)
+      setModels(ids)
+      setModel(res.default || res.models[0]?.id || "")
     }).catch(() => {})
     usersApi.list().then((us) => setUsers(us.map((u) => u.username))).catch(() => {})
   }, [])

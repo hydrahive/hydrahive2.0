@@ -4,9 +4,10 @@ import { AgentForm } from "./AgentForm"
 import { AgentList } from "./AgentList"
 import { NewAgentDialog } from "./NewAgentDialog"
 import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
-import { agentsApi, llmInfoApi } from "./api"
+import { agentsApi } from "./api"
 import type { Agent, ToolMeta } from "./types"
-import type { CatalogModel } from "@/features/llm/api"
+import { llmModelsApi } from "@/features/llm/api"
+import type { RegistryModel } from "@/features/llm/api"
 
 export function AgentsPage() {
   const { t } = useTranslation("agents")
@@ -14,7 +15,7 @@ export function AgentsPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [tools, setTools] = useState<ToolMeta[]>([])
   const [models, setModels] = useState<string[]>([])
-  const [catalog, setCatalog] = useState<CatalogModel[]>([])
+  const [catalog, setCatalog] = useState<RegistryModel[]>([])
   const [defaultModel, setDefaultModel] = useState("")
   const [showNew, setShowNew] = useState(false)
 
@@ -28,10 +29,10 @@ export function AgentsPage() {
   useEffect(() => {
     loadAgents().catch(() => {})
     agentsApi.listTools().then(setTools).catch(() => {})
-    llmInfoApi.getModels().then((info) => {
-      setModels(info.models)
-      setCatalog(info.catalog)
-      setDefaultModel(info.default_model)
+    llmModelsApi.byModality("chat").then((res) => {
+      setModels(res.models.map((m) => m.id))
+      setCatalog(res.models)
+      setDefaultModel(res.default)
     }).catch(() => {})
   }, [])
 
