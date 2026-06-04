@@ -81,7 +81,6 @@ zumüllen. Daher: Modulsystem ist die **Voraussetzung**.
 | **Patientenakte** (`feature-map/06-akte`) ⭐ | mittel | eigene Domäne, UI+API+Schema-Registry, schon sauber gekapselt |
 | **Datamining** (`07-datamining`) ⭐ | mittel | UI+API+Ingest+Suche, abgrenzbar |
 | **Scratchpad** (`23-scratchpad`) | leicht | ✅ portiert (Modul im Hub, Core-Removal 2026-06-04) |
-| **Research-APIs** (`24-research`) | leicht | Config+Tool |
 | **Health-Ingest** | leicht-mittel | API-Ingest+UI |
 | **Voice/TTS-STT** (`11-voice`) | mittel | Tools+UI+Provider-Dienste; Tools koppeln an Chat |
 | **Zahnfee** (Scheduler/Briefing) | mittel | koppelt an Agents |
@@ -89,9 +88,9 @@ zumüllen. Daher: Modulsystem ist die **Voraussetzung**.
 | **Containers** (`16-containers`) | schwer | Reconciler+Infra |
 | **Team-Chat** (`27-teamchat`) | — | bereits als Modul-Migration vorgesehen (Dienst-Proof, tuwunel) |
 
-**Bleibt Core-Kernel (KEIN Modul):** runner · agents · llm (Registry-SSOT) · agentlink · auth · db · memory · communication-Basis · **butler** · **federation** · system · settings · projects · buddy · plugins/skills/tools/mcp (Erweiterungs-Substrat) · frontend-shell. *(Butler + Federation sind Grundfunktionen — Tills Entscheidung 2026-06-04.)*
+**Bleibt Core-Kernel (KEIN Modul):** runner · agents · llm (Registry-SSOT) · agentlink · auth · db · memory · communication-Basis · **butler** · **federation** · **research-APIs** · system · settings · projects · buddy · plugins/skills/tools/mcp (Erweiterungs-Substrat) · frontend-shell. *(Butler + Federation sind Grundfunktionen — Tills Entscheidung 2026-06-04.)* *(Research-APIs reklassifiziert 2026-06-04: ist eine Auth-Key-Injektion ins Core-Tool `fetch_url` — `tools/fetch_url.py` ruft `match_research_api`; Plumbing für ein Core-Tool wie der Credential-Store, kein App-Modul. Ein Port hieße Core→Modul-Abhängigkeit oder ein Hook mit nur einem Nutzer.)*
 
-**Empfohlene Reihenfolge (wenn portiert wird):** Research-APIs (leichte Proofs) → Patientenakte/Datamining (große, sauber gekapselt) → Voice/Zahnfee → VMs/Containers (schwer, Dienst-Hook). Team-Chat als eigener Strang. *(Scratchpad ✅ erledigt — erster vollzogener Port.)*
+**Empfohlene Reihenfolge (wenn portiert wird):** Health-Ingest (leicht) → Patientenakte/Datamining (große, sauber gekapselt) → Voice/Zahnfee → VMs/Containers (schwer, Dienst-Hook). Team-Chat als eigener Strang. *(Scratchpad ✅ erledigt — erster vollzogener Port. Research-APIs ✗ kein Port — Core-Kernel, siehe oben.)*
 
 ---
 
