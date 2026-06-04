@@ -26,14 +26,29 @@ _BASE_TOOLS: dict[str, list[str]] = {
 }
 
 
+def _module_default_tool_names() -> list[str]:
+    """Tool-Namen aus geladenen Modulen mit default_agent_tools=true."""
+    try:
+        from hydrahive.modules.registry import REGISTRY as MODULES
+    except Exception:
+        return []
+    names: list[str] = []
+    for m in MODULES.values():
+        if m.loaded and m.ctx and m.manifest and m.manifest.default_agent_tools:
+            names.extend(t.name for t in m.ctx.tools)
+    return names
+
+
 def _filtered() -> dict[str, list[str]]:
-    """Filtert nicht-registrierte Tools raus — primär ask_agent wenn
-    AgentLink nicht konfiguriert ist."""
+    """Filtert nicht-registrierte Tools raus; Master bekommt zusätzlich die
+    Default-Tools installierter Module (Manifest-Flag)."""
     from hydrahive.tools import REGISTRY  # lazy um Zyklen zu vermeiden
-    return {
-        agent_type: [t for t in tools if t in REGISTRY]
-        for agent_type, tools in _BASE_TOOLS.items()
-    }
+    module_master = _module_default_tool_names()
+    result: dict[str, list[str]] = {}
+    for agent_type, tools in _BASE_TOOLS.items():
+        names = list(tools) + (module_master if agent_type == "master" else [])
+        result[agent_type] = [t for t in names if t in REGISTRY]
+    return result
 
 
 class _LazyDefaultTools(dict):
