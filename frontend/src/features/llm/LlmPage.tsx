@@ -24,8 +24,11 @@ export function LlmPage() {
   }, [])
 
   async function reloadConfig() {
-    const fresh = await llmApi.getConfig()
-    setConfig(fresh)
+    try {
+      setConfig(await llmApi.getConfig())
+    } catch (e) {
+      console.error("LLM-Config-Reload fehlgeschlagen:", e)
+    }
   }
 
   async function save(next: LlmConfig) {
