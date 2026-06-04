@@ -91,6 +91,21 @@ def _build_registry() -> dict[str, Tool]:
 
 REGISTRY: dict[str, Tool] = _build_registry()
 
+_MODULE_TOOL_NAMES: set[str] = set()
+
+
+def register_module_tools(tools: list[Tool]) -> None:
+    """Merged Modul-Tools idempotent in REGISTRY. Vorher gemergte Modul-Tools
+    werden zuerst entfernt — load_all ist idempotent, ein erneuter Aufruf darf
+    nicht duplizieren oder Leichen hinterlassen. REGISTRY bleibt die einzige
+    Tool-Quelle, damit get_tool/schemas_for/_defaults unverändert funktionieren."""
+    for name in _MODULE_TOOL_NAMES:
+        REGISTRY.pop(name, None)
+    _MODULE_TOOL_NAMES.clear()
+    for tool in tools:
+        REGISTRY[tool.name] = tool
+        _MODULE_TOOL_NAMES.add(tool.name)
+
 # Tools die je nach Setup conditional registriert werden. Auf der Validation-
 # Ebene werden sie toleriert — der Runner filtert sie über schemas_for() ohnehin
 # raus wenn nicht in REGISTRY. Verhindert Validation-Fail bei bestehenden
@@ -131,4 +146,5 @@ __all__ = [
     "list_tools",
     "get_tool",
     "schemas_for",
+    "register_module_tools",
 ]
