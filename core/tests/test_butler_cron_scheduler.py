@@ -25,24 +25,33 @@ def _cron_flow(*, owner="alice", cron="* * * * *", schedule_id="", enabled=True,
     return Flow(flow_id=flow_id, name="TestFlow", owner=owner, enabled=enabled, nodes=[node])
 
 
-# ---- _due (reine Fenster-Logik) ----
+# ---- _fire_times (Fenster-Enumeration, (since, now]) ----
 
-def test_due_taeglich_im_fenster():
-    # "0 8 * * *" feuert 08:00; Fenster 07:59→08:01 enthält es
-    assert sched._due("0 8 * * *", datetime(2026, 6, 5, 7, 59, tzinfo=UTC), datetime(2026, 6, 5, 8, 1, tzinfo=UTC)) is True
-
-
-def test_due_taeglich_ausserhalb_fenster():
-    assert sched._due("0 8 * * *", datetime(2026, 6, 5, 8, 1, tzinfo=UTC), datetime(2026, 6, 5, 8, 2, tzinfo=UTC)) is False
+def test_fire_times_taeglich_im_fenster():
+    # "0 8 * * *" feuert 08:00; Fenster 07:59→08:01 enthält genau diesen einen
+    times = sched._fire_times("0 8 * * *", datetime(2026, 6, 5, 7, 59, tzinfo=UTC), datetime(2026, 6, 5, 8, 1, tzinfo=UTC))
+    assert len(times) == 1
+    assert times[0] == datetime(2026, 6, 5, 8, 0, tzinfo=UTC)
 
 
-def test_due_jede_minute_im_fenster():
-    assert sched._due("* * * * *", datetime(2026, 6, 5, 10, 0, 0, tzinfo=UTC), datetime(2026, 6, 5, 10, 1, 0, tzinfo=UTC)) is True
+def test_fire_times_taeglich_ausserhalb_fenster():
+    assert sched._fire_times("0 8 * * *", datetime(2026, 6, 5, 8, 1, tzinfo=UTC), datetime(2026, 6, 5, 8, 2, tzinfo=UTC)) == []
 
 
-def test_due_jede_minute_zu_kurzes_fenster():
+def test_fire_times_jede_minute_ein_treffer():
+    times = sched._fire_times("* * * * *", datetime(2026, 6, 5, 10, 0, 0, tzinfo=UTC), datetime(2026, 6, 5, 10, 1, 0, tzinfo=UTC))
+    assert len(times) == 1
+
+
+def test_fire_times_zu_kurzes_fenster():
     # Fenster 10:00:10→10:00:50 enthält keinen Minutenwechsel
-    assert sched._due("* * * * *", datetime(2026, 6, 5, 10, 0, 10, tzinfo=UTC), datetime(2026, 6, 5, 10, 0, 50, tzinfo=UTC)) is False
+    assert sched._fire_times("* * * * *", datetime(2026, 6, 5, 10, 0, 10, tzinfo=UTC), datetime(2026, 6, 5, 10, 0, 50, tzinfo=UTC)) == []
+
+
+def test_fire_times_breites_fenster_mehrere_treffer():
+    # Langsamer Tick: Fenster 10:00:00→10:02:30 umspannt 10:01 UND 10:02 → beide feuern (Catch-up)
+    times = sched._fire_times("* * * * *", datetime(2026, 6, 5, 10, 0, 0, tzinfo=UTC), datetime(2026, 6, 5, 10, 2, 30, tzinfo=UTC))
+    assert times == [datetime(2026, 6, 5, 10, 1, tzinfo=UTC), datetime(2026, 6, 5, 10, 2, tzinfo=UTC)]
 
 
 # ---- _cron_trigger ----
@@ -84,6 +93,15 @@ async def test_tick_feuert_faellige_flows(monkeypatch, capture_dispatch):
     assert event.event_type == "cron"
     assert event.owner == "alice"
     assert event.payload.get("schedule_id") == "daily"
+
+
+async def test_tick_breites_fenster_feuert_mehrfach(monkeypatch, capture_dispatch):
+    flow = _cron_flow(cron="* * * * *")
+    monkeypatch.setattr(sched.bp, "list_flows", lambda owner=None: [flow])
+    # Fenster umspannt zwei Minutenwechsel → zwei Dispatches
+    fired = await sched._tick(datetime(2026, 6, 5, 10, 0, 0, tzinfo=UTC), datetime(2026, 6, 5, 10, 2, 30, tzinfo=UTC))
+    assert fired == 2
+    assert len(capture_dispatch) == 2
 
 
 async def test_tick_ueberspringt_nicht_faellige(monkeypatch, capture_dispatch):

@@ -22,9 +22,10 @@ async def _run_job(module_id: str, job: ModuleJob, stop: asyncio.Event) -> None:
     Der Stop-Event unterbricht sowohl die Start-Verzögerung als auch das
     Intervall-Warten, damit der Shutdown nicht bis zum nächsten Tick blockiert.
     """
-    if job.initial_delay_seconds > 0:
+    delay = max(0.0, job.initial_delay_seconds)
+    if delay > 0:
         try:
-            await asyncio.wait_for(stop.wait(), timeout=job.initial_delay_seconds)
+            await asyncio.wait_for(stop.wait(), timeout=delay)
         except asyncio.TimeoutError:
             pass
     while not stop.is_set():
@@ -65,18 +66,3 @@ def start_all(stop: asyncio.Event) -> list[asyncio.Task]:
             module_id, job.name, job.interval_seconds,
         )
     return tasks
-
-
-async def stop_all(
-    stop: asyncio.Event,
-    tasks: list[asyncio.Task],
-    *,
-    timeout: float = 5.0,
-) -> None:
-    """Signalisiert Stop und wartet (mit Timeout) auf alle Job-Tasks."""
-    stop.set()
-    for task in tasks:
-        try:
-            await asyncio.wait_for(task, timeout=timeout)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            task.cancel()

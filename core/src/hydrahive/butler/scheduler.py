@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 _STARTUP_DELAY = 20.0  # nach Start warten bis DB/Flows bereit
 _TICK_INTERVAL = 60.0  # Minutentakt
+_MAX_FIRINGS_PER_TICK = 100  # Kappe gegen Uhr-Sprünge / riesige Fenster
 
 
 def _cron_trigger(flow: Flow) -> Node | None:
@@ -34,17 +35,35 @@ def _cron_trigger(flow: Flow) -> Node | None:
     return None
 
 
-def _due(cron_expr: str, since: datetime, now: datetime) -> bool:
-    """True wenn die Cron-Expression im Fenster (since, now] mind. einmal feuert."""
-    nxt = croniter(cron_expr, since).get_next(datetime)
-    return since < nxt <= now
+def _fire_times(cron_expr: str, since: datetime, now: datetime) -> list[datetime]:
+    """Alle Cron-Feuerzeitpunkte im Fenster (since, now].
+
+    Enumeriert ALLE Treffer (nicht nur den ersten) — wenn ein Tick langsam war
+    und das Fenster mehrere Schedule-Zeitpunkte umspannt, wird für jeden
+    gefeuert (echtes Catch-up) statt sie zu einem zusammenzufassen. Die Kappe
+    schützt vor pathologisch großen Fenstern (z.B. nach einem Uhr-Sprung).
+    """
+    times: list[datetime] = []
+    itr = croniter(cron_expr, since)
+    for _ in range(_MAX_FIRINGS_PER_TICK):
+        nxt = itr.get_next(datetime)
+        if nxt.tzinfo is None:  # ältere croniter-Versionen: naive → UTC annehmen
+            nxt = nxt.replace(tzinfo=timezone.utc)
+        if nxt > now:
+            break
+        times.append(nxt)  # get_next liefert strikt > since, also im Fenster (since, now]
+    return times
 
 
 async def _tick(since: datetime, now: datetime) -> int:
     """Eine Auswertungsrunde — feuert alle im Fenster fälligen cron-Flows.
 
-    Liefert die Anzahl gefeuerter Flows. Pro-Flow-Fehler werden isoliert
-    (ein kaputter Flow bricht die anderen nicht).
+    Liefert die Anzahl gefeuerter Events (ein Flow kann pro Tick mehrfach
+    feuern, wenn das Fenster mehrere Schedule-Zeitpunkte umspannt). Pro-Flow-
+    Fehler werden isoliert (ein kaputter Flow bricht die anderen nicht).
+
+    `bp.list_flows` ist ein synchroner JSON-Read (wenige Flows) — dasselbe
+    Muster wie der Zahnfee-Scheduler, akzeptiert im Minutentakt.
     """
     fired = 0
     for flow in bp.list_flows(owner=None):
@@ -57,8 +76,7 @@ async def _tick(since: datetime, now: datetime) -> int:
         if not cron_expr:
             continue
         try:
-            if not _due(cron_expr, since, now):
-                continue
+            fire_times = _fire_times(cron_expr, since, now)
         except Exception as e:
             logger.warning(
                 "butler cron: ungültige Expression in Flow %s/%s: %r (%s)",
@@ -66,24 +84,25 @@ async def _tick(since: datetime, now: datetime) -> int:
             )
             continue
         schedule_id = (node.params.get("schedule_id") or "").strip()
-        event = TriggerEvent(
-            event_type="cron",
-            payload={"schedule_id": schedule_id} if schedule_id else {},
-            owner=flow.owner,
-            timestamp=now.isoformat(),
-        )
-        try:
-            result = await bex.dispatch(flow, event)
-            fired += 1
-            logger.info(
-                "butler cron gefeuert: %s/%s matched=%s",
-                flow.owner, flow.flow_id, result.get("matched"),
+        for ft in fire_times:
+            event = TriggerEvent(
+                event_type="cron",
+                payload={"schedule_id": schedule_id} if schedule_id else {},
+                owner=flow.owner,
+                timestamp=ft.isoformat(),
             )
-        except Exception as e:
-            logger.warning(
-                "butler cron dispatch fehlgeschlagen %s/%s: %s",
-                flow.owner, flow.flow_id, e,
-            )
+            try:
+                result = await bex.dispatch(flow, event)
+                fired += 1
+                logger.info(
+                    "butler cron gefeuert: %s/%s @%s matched=%s",
+                    flow.owner, flow.flow_id, ft.isoformat(), result.get("matched"),
+                )
+            except Exception as e:
+                logger.warning(
+                    "butler cron dispatch fehlgeschlagen %s/%s: %s",
+                    flow.owner, flow.flow_id, e,
+                )
     return fired
 
 

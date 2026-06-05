@@ -65,6 +65,8 @@ class ModuleContext:
         """
         if interval_seconds <= 0:
             raise ValueError("interval_seconds muss > 0 sein")
+        if initial_delay_seconds < 0:
+            raise ValueError("initial_delay_seconds muss >= 0 sein")
         self.jobs.append(ModuleJob(
             name=name,
             fn=fn,

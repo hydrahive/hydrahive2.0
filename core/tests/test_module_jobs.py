@@ -39,6 +39,15 @@ def test_register_job_lehnt_nichtpositives_intervall_ab():
         ctx.register_job("poll", f, interval_seconds=0)
 
 
+def test_register_job_lehnt_negativen_delay_ab():
+    ctx = ModuleContext("demo")
+
+    async def f() -> None: ...
+
+    with pytest.raises(ValueError):
+        ctx.register_job("poll", f, interval_seconds=5, initial_delay_seconds=-1)
+
+
 @pytest.mark.asyncio
 async def test_run_job_laeuft_bis_stop():
     calls = 0
@@ -93,7 +102,7 @@ async def test_run_job_stop_bricht_initial_delay_ab():
 
 
 @pytest.mark.asyncio
-async def test_start_all_und_stop_all(monkeypatch):
+async def test_start_all_und_stop(monkeypatch):
     calls = 0
 
     async def f() -> None:
@@ -115,7 +124,8 @@ async def test_start_all_und_stop_all(monkeypatch):
     tasks = module_jobs.start_all(stop)
     assert len(tasks) == 1
     await asyncio.sleep(0.05)
-    await module_jobs.stop_all(stop, tasks, timeout=1.0)
+    stop.set()
+    await asyncio.wait_for(asyncio.gather(*tasks), timeout=1.0)
     assert calls >= 2
     assert all(t.done() for t in tasks)
 
