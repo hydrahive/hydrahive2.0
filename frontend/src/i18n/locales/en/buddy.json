@@ -46,5 +46,10 @@
     "tone_casual": "Casual & direct",
     "tone_professional": "Professional",
     "tone_brief": "Short and concise"
+  },
+  "boxes": {
+    "extensions": "Applications",
+    "buddy_settings": "Buddy settings",
+    "zahnfee": "Tooth Fairy"
   }
 }

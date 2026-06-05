@@ -27,14 +27,14 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   const { t } = useTranslation("buddy")
   if (briefing === undefined) {
     return (
-      <PanelBox boxId="buddy-zahnfee" title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
+      <PanelBox boxId="buddy-zahnfee" title={t("boxes.zahnfee")} c="139 92 246" icon={<span className="text-sm">🦷</span>}>
         <Loader2 size={14} className="text-zinc-600 animate-spin" />
       </PanelBox>
     )
   }
   if (!briefing) {
     return (
-      <PanelBox boxId="buddy-zahnfee" title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
+      <PanelBox boxId="buddy-zahnfee" title={t("boxes.zahnfee")} c="139 92 246" icon={<span className="text-sm">🦷</span>}>
         <div className="flex flex-col items-center text-center gap-2">
           <img src="/illustrations/empty-briefing.png" alt="" width={84} height={84}
             className="object-contain opacity-95 drop-shadow-[0_0_16px_rgba(139,92,246,0.3)] select-none pointer-events-none" />
@@ -52,7 +52,7 @@ function ZahnfeeBox({ briefing }: { briefing: Briefing | null | undefined }) {
   ].filter((s) => s.value)
 
   return (
-    <PanelBox boxId="buddy-zahnfee" title="Zahnfee" c="139 92 246" icon={<span className="text-sm">🦷</span>}>
+    <PanelBox boxId="buddy-zahnfee" title={t("boxes.zahnfee")} c="139 92 246" icon={<span className="text-sm">🦷</span>}>
       {briefing.error ? (
         <p className="text-xs text-rose-400 italic">{briefing.error}</p>
       ) : (

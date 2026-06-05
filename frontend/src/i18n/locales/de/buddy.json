@@ -46,5 +46,10 @@
     "tone_casual": "Locker & direkt",
     "tone_professional": "Professionell",
     "tone_brief": "Kurz und knapp"
+  },
+  "boxes": {
+    "extensions": "Anwendungen",
+    "buddy_settings": "Buddy-Einstellungen",
+    "zahnfee": "Zahnfee"
   }
 }
