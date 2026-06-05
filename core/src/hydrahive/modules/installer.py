@@ -139,3 +139,17 @@ def uninstall(module_id: str) -> Iterator[str]:
     remove_module_files(module_id); yield "[modules] Dateien entfernt (Daten bleiben)"
     _frontend_build(); yield "[modules] Frontend gebaut"
     _request_restart(); yield "[modules] Neustart angefordert — fertig"
+
+
+def update(module_id: str) -> Iterator[str]:
+    """Hub pullen + Dateien ersetzen + einmal bauen. Daten bleiben unangetastet."""
+    _validate_module_id(module_id)
+    yield f"[modules] update {module_id} …"
+    if _manifest_has_service(module_id):
+        _run_service_script(module_id, "uninstall.sh"); yield "[modules] Dienst gestoppt"
+    remove_module_files(module_id); yield "[modules] alte Dateien entfernt"
+    copy_module_in(module_id); yield "[modules] neue Dateien kopiert"
+    if _manifest_has_service(module_id):
+        _run_service_script(module_id, "install.sh"); yield "[modules] Dienst gestartet"
+    _frontend_build(); yield "[modules] Frontend gebaut"
+    _request_restart(); yield "[modules] Neustart angefordert — fertig"

@@ -64,6 +64,11 @@ def install_module(module_id: str) -> StreamingResponse:
     return _stream(installer.install(module_id))
 
 
+@router.post("/{module_id}/update", dependencies=[Depends(require_admin)])
+def update_module(module_id: str) -> StreamingResponse:
+    return _stream(installer.update(module_id))
+
+
 @router.delete("/{module_id}", dependencies=[Depends(require_admin)])
 def uninstall_module(module_id: str) -> StreamingResponse:
     return _stream(installer.uninstall(module_id))

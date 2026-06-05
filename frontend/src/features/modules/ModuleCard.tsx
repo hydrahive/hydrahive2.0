@@ -1,12 +1,13 @@
 import type { CSSProperties } from "react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Boxes, CheckCircle, XCircle } from "lucide-react"
+import { Boxes, CheckCircle, RefreshCw, XCircle } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
 import type { AvailableModule, InstalledModule } from "./types"
-import { installModule, uninstallModule } from "./api"
+import { installModule, uninstallModule, updateModule } from "./api"
 
 type Phase = "idle" | "running" | "done"
+type Action = "update" | "uninstall"
 
 interface InstalledCardProps {
   mod: InstalledModule
@@ -16,6 +17,7 @@ interface InstalledCardProps {
 export function InstalledModuleCard({ mod, onRefresh }: InstalledCardProps) {
   const { t } = useTranslation("modules")
   const [phase, setPhase] = useState<Phase>("idle")
+  const [action, setAction] = useState<Action>("update")
   const [lines, setLines] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
   const logRef = useRef<HTMLDivElement>(null)
@@ -25,11 +27,13 @@ export function InstalledModuleCard({ mod, onRefresh }: InstalledCardProps) {
     logRef.current?.scrollTo(0, logRef.current.scrollHeight)
   }, [lines])
 
-  function handleUninstall() {
+  function run(a: Action) {
+    setAction(a)
     setPhase("running")
     setLines([])
     setFailed(false)
-    stopRef.current = uninstallModule(
+    const fn = a === "update" ? updateModule : uninstallModule
+    stopRef.current = fn(
       mod.id,
       (line) => setLines((l) => [...l.slice(-500), line]),
       () => { setPhase("done"); onRefresh() },
@@ -91,12 +95,21 @@ export function InstalledModuleCard({ mod, onRefresh }: InstalledCardProps) {
         </div>
       )}
 
-      <button
-        onClick={handleUninstall}
-        disabled={phase === "running"}
-        className="py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-xs font-medium transition-colors disabled:opacity-40">
-        {phase === "running" ? t("actions.uninstalling") : t("actions.uninstall")}
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => run("update")}
+          disabled={phase === "running"}
+          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-violet-300 text-xs font-medium transition-colors disabled:opacity-40">
+          <RefreshCw size={11} className={phase === "running" && action === "update" ? "animate-spin" : ""} />
+          {phase === "running" && action === "update" ? t("actions.updating") : t("actions.update")}
+        </button>
+        <button
+          onClick={() => run("uninstall")}
+          disabled={phase === "running"}
+          className="flex-1 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-xs font-medium transition-colors disabled:opacity-40">
+          {phase === "running" && action === "uninstall" ? t("actions.uninstalling") : t("actions.uninstall")}
+        </button>
+      </div>
     </div>
   )
 }

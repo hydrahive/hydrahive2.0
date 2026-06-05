@@ -72,3 +72,12 @@ export function uninstallModule(
 ): () => void {
   return stream(`/${id}`, "DELETE", onLine, onDone, onError)
 }
+
+export function updateModule(
+  id: string,
+  onLine: (line: string) => void,
+  onDone: () => void,
+  onError: (msg: string) => void,
+): () => void {
+  return stream(`/${id}/update`, "POST", onLine, onDone, onError)
+}

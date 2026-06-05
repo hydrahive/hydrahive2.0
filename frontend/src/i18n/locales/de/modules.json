@@ -16,6 +16,8 @@
   "actions": {
     "install": "Installieren",
     "installing": "Installiert…",
+    "update": "Aktualisieren",
+    "updating": "Aktualisiert…",
     "uninstall": "Deinstallieren",
     "uninstalling": "Deinstalliert…"
   },

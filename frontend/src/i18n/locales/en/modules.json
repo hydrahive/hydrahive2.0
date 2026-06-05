@@ -16,6 +16,8 @@
   "actions": {
     "install": "Install",
     "installing": "Installing…",
+    "update": "Update",
+    "updating": "Updating…",
     "uninstall": "Uninstall",
     "uninstalling": "Uninstalling…"
   },
