@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Grip } from "lucide-react"
+import { Grip, Settings } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { UpdateModal } from "@/shared/UpdateModal"
 import { useLayoutUpdate } from "./useLayoutUpdate"
@@ -83,6 +83,20 @@ export function Layout() {
             )
           })}
         </nav>
+
+        {role === "admin" && (
+          <Link
+            to="/system/settings"
+            className={`p-1.5 rounded-md transition-colors ${
+              pathname.startsWith("/system/settings")
+                ? "text-violet-300 bg-violet-500/15"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+            }`}
+            title="Einstellungen"
+          >
+            <Settings size={16} />
+          </Link>
+        )}
 
         <button
           onClick={() => setBentoOpen((o) => !o)}

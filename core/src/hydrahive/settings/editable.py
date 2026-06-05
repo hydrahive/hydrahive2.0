@@ -40,6 +40,10 @@ EDITABLE_SETTINGS: list[EditableSetting] = [
     EditableSetting("agentlink_url", "HH_AGENTLINK_URL", "string", "AgentLink", "AgentLink-URL"),
     EditableSetting("agentlink_token", "HH_AGENTLINK_TOKEN", "secret", "AgentLink", "AgentLink-Token"),
     EditableSetting("health_api_key", "HH_HEALTH_API_KEY", "secret", "Health", "Health-Ingest-API-Key"),
+    EditableSetting("coingecko_api_key", "HH_COINGECKO_API_KEY", "secret", "Krypto", "CoinGecko API-Key",
+                    help="Optionaler Demo-API-Key von CoinGecko (kostenlos, 10k Anfragen/Monat). Ohne Key läuft das Cryptoboard ebenfalls, aber mit niedrigerem Rate-Limit."),
+    EditableSetting("cryptocompare_api_key", "HH_CRYPTOCOMPARE_API_KEY", "secret", "Krypto", "CryptoCompare API-Key",
+                    help="Optionaler Key für Krypto-News via CryptoCompare. Ohne Key werden News übersprungen."),
     EditableSetting("update_check_enabled", "HH_UPDATE_CHECK_ENABLED", "bool", "System", "Update-Check aktiv", "true"),
 ]
 
