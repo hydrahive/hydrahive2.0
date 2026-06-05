@@ -48,9 +48,13 @@ def list_modules() -> dict:
 
 def _stream(gen) -> StreamingResponse:
     def _events():
-        for line in gen:
-            yield f"data: {json.dumps({'line': line})}\n\n"
-        yield "data: {\"done\": true}\n\n"
+        try:
+            for line in gen:
+                yield f"data: {json.dumps({'line': line})}\n\n"
+            yield "data: {\"done\": true}\n\n"
+        except Exception as exc:
+            logger.exception("Modul-Operation fehlgeschlagen")
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
 
     return StreamingResponse(_events(), media_type="text/event-stream", headers=_SSE_HEADERS)
 
