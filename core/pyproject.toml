@@ -22,6 +22,7 @@ dependencies = [
     "python-multipart>=0.0.9",
     "pyyaml>=6.0",
     "websockets>=13",
+    "croniter>=2.0",
     "discord.py>=2.3",
     "matrix-nio>=0.25,<0.26",
     "asyncpg>=0.29",

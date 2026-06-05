@@ -143,6 +143,9 @@ async def lifespan(app: FastAPI):
         logger.info("Update-Check deaktiviert (HH_UPDATE_CHECK_ENABLED=false)")
     zahnfee_stop = asyncio.Event()
     zahnfee_task = asyncio.create_task(zahnfee_scheduler.run_loop(zahnfee_stop))
+    from hydrahive.butler import scheduler as butler_scheduler
+    butler_cron_stop = asyncio.Event()
+    butler_cron_task = asyncio.create_task(butler_scheduler.run_loop(butler_cron_stop))
     vm_reconciler_stop = asyncio.Event()
     vm_reconciler_task = asyncio.create_task(vm_reconciler.run_loop(vm_reconciler_stop))
     container_reconciler_stop = asyncio.Event()
@@ -236,13 +239,14 @@ async def lifespan(app: FastAPI):
         except (asyncio.TimeoutError, asyncio.CancelledError):
             agentlink_heartbeat_task.cancel()
     zahnfee_stop.set()
+    butler_cron_stop.set()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
     module_jobs_stop.set()
     if mail_stop is not None:
         mail_stop.set()
     await agentlink_client.stop_listener()
-    shutdown_tasks = [zahnfee_task, vm_reconciler_task, container_reconciler_task, *module_job_tasks]
+    shutdown_tasks = [zahnfee_task, butler_cron_task, vm_reconciler_task, container_reconciler_task, *module_job_tasks]
     if mail_task is not None:
         shutdown_tasks.append(mail_task)
     for task in shutdown_tasks:
