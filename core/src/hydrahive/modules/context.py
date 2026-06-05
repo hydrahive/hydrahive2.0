@@ -1,9 +1,26 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Awaitable, Callable
 from fastapi import APIRouter
 
 if TYPE_CHECKING:
     from hydrahive.tools.base import Tool
+
+
+@dataclass(frozen=True)
+class ModuleJob:
+    """Ein periodischer Hintergrundjob eines Moduls.
+
+    `fn` ist eine async-Funktion ohne Argumente, die das Framework alle
+    `interval_seconds` aufruft (mit `initial_delay_seconds` Verzögerung nach
+    Start). Muss nicht-blockierend sein (async I/O), sonst blockiert sie den
+    Event-Loop. Exceptions werden vom Supervisor isoliert und geloggt — ein
+    kaputter Job bricht weder andere Jobs noch den Core.
+    """
+    name: str
+    fn: Callable[[], Awaitable[None]]
+    interval_seconds: float
+    initial_delay_seconds: float = 5.0
 
 
 class ModuleContext:
@@ -15,6 +32,7 @@ class ModuleContext:
         self.tools: list["Tool"] = []
         self.migrations_rel: str | None = None
         self.service_rel: str | None = None
+        self.jobs: list[ModuleJob] = []
 
     def register_router(self, router: APIRouter) -> None:
         self.routers.append(router)
@@ -27,3 +45,25 @@ class ModuleContext:
 
     def register_service(self, rel_dir: str) -> None:
         self.service_rel = rel_dir
+
+    def register_job(
+        self,
+        name: str,
+        fn: Callable[[], Awaitable[None]],
+        interval_seconds: float,
+        *,
+        initial_delay_seconds: float = 5.0,
+    ) -> None:
+        """Periodischen Hintergrundjob registrieren (Heartbeat/Poller).
+
+        Das Framework startet den Job beim Backend-Start als überwachten Task
+        und stoppt ihn beim Shutdown.
+        """
+        if interval_seconds <= 0:
+            raise ValueError("interval_seconds muss > 0 sein")
+        self.jobs.append(ModuleJob(
+            name=name,
+            fn=fn,
+            interval_seconds=interval_seconds,
+            initial_delay_seconds=initial_delay_seconds,
+        ))

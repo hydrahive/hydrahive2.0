@@ -147,6 +147,9 @@ async def lifespan(app: FastAPI):
     container_reconciler_task = asyncio.create_task(
         container_reconciler.run_loop(container_reconciler_stop)
     )
+    from hydrahive.modules import jobs as module_jobs
+    module_jobs_stop = asyncio.Event()
+    module_job_tasks = module_jobs.start_all(module_jobs_stop)
 
     mail_stop: asyncio.Event | None = None
     mail_task: asyncio.Task[None] | None = None
@@ -233,10 +236,11 @@ async def lifespan(app: FastAPI):
     zahnfee_stop.set()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
+    module_jobs_stop.set()
     if mail_stop is not None:
         mail_stop.set()
     await agentlink_client.stop_listener()
-    shutdown_tasks = [zahnfee_task, vm_reconciler_task, container_reconciler_task]
+    shutdown_tasks = [zahnfee_task, vm_reconciler_task, container_reconciler_task, *module_job_tasks]
     if mail_task is not None:
         shutdown_tasks.append(mail_task)
     for task in shutdown_tasks:
