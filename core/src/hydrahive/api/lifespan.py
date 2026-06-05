@@ -132,6 +132,8 @@ async def lifespan(app: FastAPI):
     # validate ist failopen während des kurzen kalten Fensters.
     asyncio.create_task(llm_registry.awarm())
     load_butler_builtins()
+    from hydrahive.modules.butler_bridge import register_module_butler_subtypes
+    register_module_butler_subtypes()
     set_start_time()
 
     if settings.update_check_enabled:
