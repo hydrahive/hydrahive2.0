@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
 import { Check, Loader2, Settings as SettingsIcon } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { settingsApi, type EditableSetting } from "./settingsApi"
 import { rgbFor } from "@/shared/colors"
 
@@ -70,6 +71,7 @@ function SettingRow({ s, onSaved }: { s: EditableSetting; onSaved: (u: EditableS
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation("system")
   const [settings, setSettings] = useState<EditableSetting[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -97,12 +99,9 @@ export function SettingsPage() {
     <div className="max-w-3xl mx-auto space-y-4">
       <div className="flex items-center gap-2.5">
         <SettingsIcon size={20} className="text-violet-300" />
-        <h1 className="text-xl font-bold text-white">Einstellungen</h1>
+        <h1 className="text-xl font-bold text-white">{t("settings.title")}</h1>
       </div>
-      <p className="text-sm text-zinc-500">
-        Integrations-Settings ohne SSH. Die SearXNG-URL greift sofort; Integrationen
-        wie Mail/Discord/AgentLink wirken nach einem Backend-Neustart.
-      </p>
+      <p className="text-sm text-zinc-500">{t("settings.subtitle")}</p>
 
       {error && <p className="text-sm text-rose-300">{error}</p>}
       {!settings && !error && <Loader2 size={18} className="text-zinc-500 animate-spin" />}

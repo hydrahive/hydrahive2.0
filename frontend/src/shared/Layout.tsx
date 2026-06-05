@@ -92,7 +92,7 @@ export function Layout() {
                 ? "text-violet-300 bg-violet-500/15"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
             }`}
-            title="Einstellungen"
+            title={t("settings.gear_tooltip", { ns: "system", defaultValue: "Einstellungen" })}
           >
             <Settings size={16} />
           </Link>

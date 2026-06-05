@@ -171,5 +171,10 @@
     "failed": "Bridge setup failed",
     "timeout": "Setup timed out — check log",
     "log_empty": "No output yet…"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Integration settings without SSH. The SearXNG URL takes effect immediately; integrations like Mail/Discord/AgentLink require a backend restart.",
+    "gear_tooltip": "Settings"
   }
 }
