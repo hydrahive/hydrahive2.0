@@ -31,7 +31,8 @@
       "blocked": "Blacklist",
       "blocked_hint": "Diese Nummern werden immer ignoriert.",
       "save": "Speichern",
-      "saved": "Gespeichert"
+      "saved": "Gespeichert",
+      "no_voices": "Keine Voices vom mmx-CLI geladen"
     }
   },
   "discord": {

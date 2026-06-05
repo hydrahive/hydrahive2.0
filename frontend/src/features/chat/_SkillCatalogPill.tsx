@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { BookOpen, X } from "lucide-react"
 import { skillsApi } from "@/features/skills/api"
 import type { Skill } from "@/features/skills/types"
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function SkillCatalogPill({ agentId, insert }: Props) {
+  const { t } = useTranslation("chat")
   const [open, setOpen] = useState(false)
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(false)
@@ -41,7 +43,7 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
     <div className="relative" ref={ref}>
       <button
         type="button"
-        title="Skill-Katalog"
+        title={t("skill_catalog.title")}
         onClick={() => setOpen((v) => !v)}
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors
           ${open
@@ -56,7 +58,7 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
       {open && (
         <div className="absolute bottom-full mb-2 right-0 z-50 w-72 rounded-xl border border-white/[8%] bg-zinc-900/98 shadow-2xl backdrop-blur-sm">
           <div className="flex items-center justify-between px-3 pt-3 pb-2 border-b border-white/[6%]">
-            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Skill-Katalog</span>
+            <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">{t("skill_catalog.title")}</span>
             <button onClick={() => setOpen(false)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
               <X size={12} />
             </button>
@@ -64,9 +66,9 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
 
           <div className="p-3 max-h-56 overflow-y-auto">
             {loading ? (
-              <p className="text-xs text-zinc-600 text-center py-4">Lade…</p>
+              <p className="text-xs text-zinc-600 text-center py-4">{t("skill_catalog.loading")}</p>
             ) : skills.length === 0 ? (
-              <p className="text-xs text-zinc-600 text-center py-4">Keine Skills verfügbar</p>
+              <p className="text-xs text-zinc-600 text-center py-4">{t("skill_catalog.empty")}</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {skills.map((s) => (
@@ -85,7 +87,7 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
           </div>
 
           <div className="px-3 pb-2 text-[9px] text-zinc-600 border-t border-white/[6%] pt-2">
-            Klick fügt Skill als Anweisung in die Eingabe ein
+            {t("skill_catalog.insert_hint")}
           </div>
         </div>
       )}

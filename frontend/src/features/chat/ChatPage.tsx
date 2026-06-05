@@ -244,10 +244,10 @@ export function ChatPage() {
               <span>{chat.error}</span>
               {chat.errorKind === "max_iterations" && (
                 <button
-                  onClick={() => handleSend("Weitermachen, bitte fortsetzen.")}
+                  onClick={() => handleSend(t("max_iter.continue_send"))}
                   className="px-2 py-1 rounded-md text-xs text-rose-200 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 whitespace-nowrap"
                 >
-                  Weitermachen
+                  {t("max_iter.continue_label")}
                 </button>
               )}
             </div>

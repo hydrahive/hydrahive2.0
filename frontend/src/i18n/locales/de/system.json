@@ -9,6 +9,10 @@
     "log_title": "Installations-Log",
     "log_empty": "Warte auf Log-Ausgabe…",
     "running": "Installation läuft — incus-Container + Modelle werden eingerichtet…",
+    "starting": "Installation wird gestartet…",
+    "done_msg": "Voice Interface erfolgreich installiert — STT Port 10300 · TTS Port 10200",
+    "failed": "Installation fehlgeschlagen",
+    "unknown_error": "Unbekannter Fehler",
     "cancel": "Abbrechen",
     "install": "Installieren"
   },

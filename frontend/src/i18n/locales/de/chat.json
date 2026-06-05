@@ -2,12 +2,15 @@
   "title": "Chat",
   "search": {
     "next": "Nächster (Enter)",
+    "prev": "Vorheriger (Shift+Enter)",
     "close": "Schließen (ESC)"
   },
   "lightbox": {
     "view_full": "Bild in Originalgröße anzeigen",
     "close": "Schließen (Esc)",
-    "close_aria": "Schließen"
+    "close_aria": "Schließen",
+    "download": "Original herunterladen",
+    "download_aria": "Bild herunterladen"
   },
   "effort": {
     "off_label": "Aus",
@@ -29,6 +32,7 @@
     "list_title": "Sessions",
     "new": "Neue Session",
     "no_sessions": "Noch keine Sessions",
+    "no_buddy": "Keine Buddy-Sessions",
     "no_direct": "Keine direkten Chats",
     "no_project": "Keine Projekt-Chats",
     "select_or_new": "Wähle rechts eine Session oder starte eine neue.",
@@ -124,7 +128,29 @@
   },
   "voice": {
     "speak": "Vorlesen",
-    "stop": "Stop"
+    "stop": "Stop",
+    "click_to_speak": "Klicken zum Sprechen",
+    "click_to_stop": "Klicken zum Beenden"
+  },
+  "model_switch": "Modell wechseln",
+  "project_picker_title": "Aktives Projekt — bestimmt das Arbeitsverzeichnis",
+  "skill_catalog": {
+    "title": "Skill-Katalog",
+    "insert_hint": "Klick fügt Skill als Anweisung in die Eingabe ein",
+    "loading": "Lade…",
+    "empty": "Keine Skills verfügbar"
+  },
+  "agent_monitor": {
+    "ready": "Bereit",
+    "done": "Fertig!"
+  },
+  "panel": {
+    "expand": "Aufklappen",
+    "collapse": "Einklappen"
+  },
+  "max_iter": {
+    "continue_send": "Weitermachen, bitte fortsetzen.",
+    "continue_label": "Weitermachen"
   },
   "tool_confirm": {
     "message": "Agent möchte folgendes Tool ausführen:",

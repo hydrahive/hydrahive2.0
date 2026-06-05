@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { CSSProperties } from "react"
+import { useTranslation } from "react-i18next"
 import { dataminingApi, type StatsDay, type StatsSession } from "./api"
 import { fmtDateTime } from "./types"
 import { rgbFor } from "@/shared/colors"
@@ -79,21 +80,22 @@ function DailyChart({ days }: { days: StatsDay[] }) {
 function LatestTable({ sessions, onSelect, onSelectAgent }: {
   sessions: StatsSession[]; onSelect: (id: string) => void; onSelectAgent: (agentId: string) => void
 }) {
+  const { t } = useTranslation("datamining")
   return (
     <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
       <div className="px-3 py-2 border-b border-white/[6%] bg-white/[2%]">
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
-          Letzte Sessions
+          {t("sessions.title")}
         </span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-white/[6%] text-[10px] uppercase tracking-wider text-zinc-600">
-              <th className="text-left px-3 py-2">Zuletzt</th>
+              <th className="text-left px-3 py-2">{t("stats.updated")}</th>
               <th className="text-left px-3 py-2">Agent</th>
-              <th className="text-left px-3 py-2">Titel</th>
-              <th className="text-right px-3 py-2">Nachrichten</th>
+              <th className="text-left px-3 py-2">{t("sessions.col_title")}</th>
+              <th className="text-right px-3 py-2">{t("stats.messages")}</th>
               <th className="text-right px-3 py-2">Input</th>
               <th className="text-right px-3 py-2">Output</th>
               <th className="px-3 py-2 min-w-[130px]">Cache-Hit</th>
@@ -130,6 +132,7 @@ function LatestTable({ sessions, onSelect, onSelectAgent }: {
 }
 
 function SessionDetailPanel({ sessionId, onClose }: { sessionId: string; onClose: () => void }) {
+  const { t } = useTranslation("datamining")
   const [detail, setDetail] = useState<import("./api").StatsSessionDetail | null>(null)
 
   useEffect(() => {
@@ -137,15 +140,15 @@ function SessionDetailPanel({ sessionId, onClose }: { sessionId: string; onClose
   }, [sessionId])
 
   if (!detail) return (
-    <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">Lade…</div>
+    <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">{t("loading")}</div>
   )
 
   const rows: [string, string][] = [
     ["Agent", detail.agent_id],
     ["Status", detail.status],
-    ["Erstellt", fmtDateTime(detail.created_at)],
-    ["Zuletzt", fmtDateTime(detail.updated_at)],
-    ["Nachrichten", String(detail.message_count)],
+    [t("stats.created"), fmtDateTime(detail.created_at)],
+    [t("stats.updated"), fmtDateTime(detail.updated_at)],
+    [t("stats.messages"), String(detail.message_count)],
     ["Tool-Calls", String(detail.tool_call_count)],
     ["Compactions", String(detail.compaction_count)],
     ["Input Tokens", fmt(detail.input_tokens)],

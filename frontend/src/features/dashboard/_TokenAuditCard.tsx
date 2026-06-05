@@ -1,4 +1,5 @@
 import { type CSSProperties, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { AlertTriangle, Coins, Cpu, TrendingUp } from "lucide-react"
 import { Link } from "react-router-dom"
 import { cn } from "@/shared/cn"
@@ -8,6 +9,7 @@ import { analyticsApi, type AnalyticsOverview } from "./api"
 const REFRESH_MS = 30_000
 
 export function TokenAuditCard() {
+  const { t } = useTranslation("dashboard")
   const [data, setData] = useState<AnalyticsOverview | null>(null)
   const [error, setError] = useState(false)
 
@@ -58,19 +60,19 @@ export function TokenAuditCard() {
   return (
     <Shell>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-        <Tile icon={Coins} label="Heute Tokens"
+        <Tile icon={Coins} label={t("token_audit.tokens_today")}
           value={formatNumber(todayTokens)}
           sub={`${today.llm_calls || 0} LLM-Calls`}
           from="from-amber-500" to="to-orange-600" />
-        <Tile icon={TrendingUp} label="Heute Kosten"
+        <Tile icon={TrendingUp} label={t("token_audit.cost_today")}
           value={formatCents(today.cost_micros || 0)}
           sub={`7 Tage: ${formatCents(last7.cost_micros || 0)}`}
           from="from-emerald-500" to="to-teal-600" />
-        <Tile icon={Cpu} label="Cache-Hit (7d)"
+        <Tile icon={Cpu} label={t("token_audit.cache_hit")}
           value={`${cacheRatio7d}%`}
           sub={`${formatNumber(last7.cache_read_tokens || 0)} cache_read`}
           from="from-sky-500" to="to-cyan-600" />
-        <Tile icon={AlertTriangle} label="Heute Fehler"
+        <Tile icon={AlertTriangle} label={t("token_audit.errors_today")}
           value={String((today.errors || 0) + (today.tool_errors || 0))}
           sub={`${today.compactions || 0} Compactions`}
           from="from-rose-500" to="to-pink-600" />

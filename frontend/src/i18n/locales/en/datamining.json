@@ -44,5 +44,21 @@
     "back": "Back",
     "events": "events",
     "untitled": "(untitled)"
+  },
+  "shell": {
+    "running": "Shell…",
+    "error": "Shell ✗",
+    "button": "Shell history",
+    "prompt": "Username for shell history:"
+  },
+  "graph": {
+    "loading": "loading…",
+    "load": "Load graph",
+    "sessions_with_users": "Sessions with users"
+  },
+  "stats": {
+    "created": "Created",
+    "updated": "Updated",
+    "messages": "Messages"
   }
 }

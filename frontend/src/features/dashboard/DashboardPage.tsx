@@ -75,7 +75,7 @@ export function DashboardPage() {
         <EmptyState
           src="/illustrations/empty-dashboard.png"
           size={150}
-          hint="Einen Moment — die Hydra sammelt die Daten…"
+          hint={t("loading")}
           className="min-h-[50vh]"
         />
       )}

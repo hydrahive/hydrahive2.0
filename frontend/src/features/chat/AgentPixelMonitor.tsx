@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import i18next from "i18next"
 import { getCharForAgent, type CharTemplate } from "./_mcCharacters"
 
 const S = 3
@@ -122,14 +123,14 @@ export function AgentPixelMonitor({ agentTools, activeAgents, doneAgents }: Prop
           x: hx, y: groundY, homeX: hx,
           frame: 0, facing: "front",
           status: isActive ? "active" : isDone ? "done" : "waiting",
-          bubble: isActive && lastTool ? (TOOL_BUBBLE[lastTool] ?? `${lastTool}…`) : "Bereit",
+          bubble: isActive && lastTool ? (TOOL_BUBBLE[lastTool] ?? `${lastTool}…`) : i18next.t("chat:agent_monitor.ready"),
           interacting: false,
         })
       } else {
         existing.homeX = hx
         existing.status = isActive ? "active" : isDone ? "done" : "waiting"
         if (isActive && lastTool) existing.bubble = TOOL_BUBBLE[lastTool] ?? `${lastTool}…`
-        if (!isActive) existing.bubble = isDone ? "Fertig!" : "Bereit"
+        if (!isActive) existing.bubble = isDone ? i18next.t("chat:agent_monitor.done") : i18next.t("chat:agent_monitor.ready")
       }
     })
     for (const key of map.keys()) if (!names.includes(key)) map.delete(key)
@@ -205,7 +206,7 @@ export function AgentPixelMonitor({ agentTools, activeAgents, doneAgents }: Prop
 
         if (a.status === "active") drawBubble(ctx, a.bubble, cx, a.y, cw)
         else if (a.status === "done") {
-          ctx.globalAlpha = 0.45; drawBubble(ctx, "Fertig!", cx, a.y, cw); ctx.globalAlpha = 1
+          ctx.globalAlpha = 0.45; drawBubble(ctx, i18next.t("chat:agent_monitor.done"), cx, a.y, cw); ctx.globalAlpha = 1
         }
       }
 

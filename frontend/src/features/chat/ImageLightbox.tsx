@@ -59,8 +59,8 @@ export function ImageLightbox({ url }: { url: string }) {
               href={url}
               download={fileNameFromUrl(url)}
               onClick={(e) => e.stopPropagation()}
-              title="Original herunterladen"
-              aria-label="Bild herunterladen"
+              title={t("lightbox.download")}
+              aria-label={t("lightbox.download_aria")}
               className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white/90 hover:bg-white/20 hover:text-white transition-colors backdrop-blur"
             >
               <Download size={18} />

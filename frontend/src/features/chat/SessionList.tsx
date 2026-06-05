@@ -76,7 +76,7 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
           <EmptyState src="/illustrations/empty-sessions.png" size={92} hint={t("session.no_project")} />
         )}
         {tab === "buddy" && buddy.length === 0 && (
-          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint="Keine Buddy-Sessions" />
+          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint={t("session.no_buddy")} />
         )}
         {tab === "direct" && direct.map((s) => (
           <SessionRow key={s.id} session={s} active={s.id === activeId}

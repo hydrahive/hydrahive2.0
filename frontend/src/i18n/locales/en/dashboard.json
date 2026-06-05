@@ -29,6 +29,13 @@
   "days_ago_one": "1 day ago",
   "days_ago_other": "{{count}} days ago",
   "just_now": "just now",
+  "loading": "One moment — Hydra is gathering data…",
+  "token_audit": {
+    "tokens_today": "Tokens today",
+    "cost_today": "Cost today",
+    "cache_hit": "Cache hit (7d)",
+    "errors_today": "Errors today"
+  },
   "update_banner": {
     "text_one": "One update available.",
     "text_other": "{{count}} updates available.",

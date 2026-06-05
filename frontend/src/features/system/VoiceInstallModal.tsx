@@ -83,7 +83,7 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
               <Loader2 size={14} className="animate-spin" />
               <span>
                 {state === "starting"
-                  ? "Installation wird gestartet…"
+                  ? t("voice_install.starting")
                   : t("voice_install.running")}
               </span>
             </div>
@@ -92,14 +92,14 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
           {state === "done" && (
             <div className="flex items-center gap-2 text-sm text-emerald-300">
               <CheckCircle size={14} />
-              <span>Voice Interface erfolgreich installiert — STT Port 10300 · TTS Port 10200</span>
+              <span>{t("voice_install.done_msg")}</span>
             </div>
           )}
 
           {state === "failed" && (
             <div className="flex items-center gap-2 text-sm text-rose-300">
               <XCircle size={14} />
-              <span>Installation fehlgeschlagen: {errorMessage ?? "Unbekannter Fehler"}</span>
+              <span>{t("voice_install.failed")}: {errorMessage ?? t("voice_install.unknown_error")}</span>
             </div>
           )}
 

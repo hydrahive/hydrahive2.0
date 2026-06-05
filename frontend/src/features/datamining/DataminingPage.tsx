@@ -99,7 +99,7 @@ export function DataminingPage() {
     e.target.value = ""
     setShellImport("running")
     try {
-      const username = window.prompt("Username für Shell-History:", "till") ?? "till"
+      const username = window.prompt(t("shell.prompt"), "till") ?? "till"
       const result = await dataminingApi.startShellImport(file, username)
       setShellInserted(result.inserted ?? 0)
       setShellImport("done")
@@ -211,10 +211,10 @@ export function DataminingPage() {
           title="~/.bash_history oder ~/.zsh_history importieren"
         >
           <Upload size={12} />
-          {shellImport === "running" ? "Shell…"
+          {shellImport === "running" ? t("shell.running")
             : shellImport === "done" ? `Shell ✓ (${shellInserted})`
-            : shellImport === "error" ? "Shell ✗"
-            : "Shell-History"}
+            : shellImport === "error" ? t("shell.error")
+            : t("shell.button")}
         </button>
         <input ref={shellImportRef} type="file" className="hidden" onChange={handleShellImport} />
         <IssueImportButtons

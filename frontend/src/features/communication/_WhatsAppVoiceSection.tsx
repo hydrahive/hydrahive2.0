@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import type { WhatsAppConfig } from "./api"
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function WhatsAppVoiceSection({ cfg, onChange }: Props) {
+  const { t } = useTranslation("communication")
   const [voices, setVoices] = useState<MmxVoice[]>([])
   const [voicesErr, setVoicesErr] = useState<string | null>(null)
 
@@ -30,7 +32,7 @@ export function WhatsAppVoiceSection({ cfg, onChange }: Props) {
       const seen = new Set<string>()
       const unique = all.filter((v) => { if (seen.has(v.voice_id)) return false; seen.add(v.voice_id); return true })
       setVoices(unique)
-      if (unique.length === 0) setVoicesErr("Keine Voices vom mmx-CLI geladen")
+      if (unique.length === 0) setVoicesErr(t("whatsapp.no_voices"))
     })
   }, [cfg.respond_as_voice, voices.length])
 

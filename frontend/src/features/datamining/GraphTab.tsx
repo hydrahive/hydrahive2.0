@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react"
 import type { CSSProperties } from "react"
+import { useTranslation } from "react-i18next"
 import { dataminingApi } from "./api"
 import { rgbFor } from "@/shared/colors"
 
@@ -42,6 +43,7 @@ const GROUP_LABELS: Record<string, string> = {
 }
 
 export function GraphTab() {
+  const { t } = useTranslation("datamining")
   const [data, setData] = useState<TopologyData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +101,7 @@ export function GraphTab() {
       <div className="flex items-center gap-3 flex-wrap">
         <button onClick={load} disabled={loading}
           className="px-3 py-1.5 rounded-lg text-xs bg-violet-500/15 border border-violet-500/30 text-violet-300 hover:bg-violet-500/25 disabled:opacity-40 transition-colors">
-          {loading ? "lade…" : "Graph laden"}
+          {loading ? t("graph.loading") : t("graph.load")}
         </button>
         {data && (
           <span className="text-xs text-zinc-500">
@@ -172,7 +174,7 @@ export function GraphTab() {
 
             <div className="text-xs text-zinc-500 space-y-1 mb-4">
               {selected.session_count !== undefined && (
-                <div>{selected.session_count} {selected.group === "user" ? "Sessions" : "Sessions mit Usern"}</div>
+                <div>{selected.session_count} {selected.group === "user" ? "Sessions" : t("graph.sessions_with_users")}</div>
               )}
               {selected.use_count !== undefined && (
                 <div>{selected.use_count}× genutzt</div>

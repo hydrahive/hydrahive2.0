@@ -2,12 +2,15 @@
   "title": "Chat",
   "search": {
     "next": "Next (Enter)",
+    "prev": "Previous (Shift+Enter)",
     "close": "Close (ESC)"
   },
   "lightbox": {
     "view_full": "View full size",
     "close": "Close (Esc)",
-    "close_aria": "Close"
+    "close_aria": "Close",
+    "download": "Download original",
+    "download_aria": "Download image"
   },
   "effort": {
     "off_label": "Off",
@@ -26,6 +29,7 @@
     "list_title": "Sessions",
     "new": "New session",
     "no_sessions": "No sessions yet",
+    "no_buddy": "No Buddy sessions",
     "no_direct": "No direct chats",
     "no_project": "No project chats",
     "select_or_new": "Select a session on the right or start a new one.",
@@ -121,7 +125,29 @@
   },
   "voice": {
     "speak": "Read aloud",
-    "stop": "Stop"
+    "stop": "Stop",
+    "click_to_speak": "Click to speak",
+    "click_to_stop": "Click to stop"
+  },
+  "model_switch": "Switch model",
+  "project_picker_title": "Active project — sets the working directory",
+  "skill_catalog": {
+    "title": "Skill catalog",
+    "insert_hint": "Click to insert skill as instruction",
+    "loading": "Loading…",
+    "empty": "No skills available"
+  },
+  "agent_monitor": {
+    "ready": "Ready",
+    "done": "Done!"
+  },
+  "panel": {
+    "expand": "Expand",
+    "collapse": "Collapse"
+  },
+  "max_iter": {
+    "continue_send": "Continue, please carry on.",
+    "continue_label": "Continue"
   },
   "tool_confirm": {
     "message": "Agent wants to execute the following tool:",

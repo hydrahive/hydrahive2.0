@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { ProjectBrief } from "./api"
 
 interface Props {
@@ -14,6 +15,7 @@ const NONE_VALUE = "__NONE__"
 /** Native <select> für die Projektwahl im Chat-Header. Setzt das aktive Projekt
  *  der Session → Runner weist dem Run das Projekt-Workspace zu (cwd = Repo). */
 export function ProjectPicker({ current, projects, onPick, busy }: Props) {
+  const { t } = useTranslation("chat")
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const value = e.target.value
     await onPick(value === NONE_VALUE ? null : value)
@@ -24,7 +26,7 @@ export function ProjectPicker({ current, projects, onPick, busy }: Props) {
       value={current ?? NONE_VALUE}
       onChange={handleChange}
       disabled={busy}
-      title="Aktives Projekt — bestimmt das Arbeitsverzeichnis"
+      title={t("project_picker_title")}
       className="appearance-none cursor-pointer px-2 py-0.5 pr-6 rounded text-xs max-w-[10rem] truncate transition-colors
         bg-no-repeat bg-[length:10px] bg-[position:right_4px_center]
         bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2334d399%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%226 9 12 15 18 9%22/></svg>')]

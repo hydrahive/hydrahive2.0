@@ -75,7 +75,7 @@ export function NodePalette() {
                   return (
                     <div
                       key={item.subtype}
-                      title={unwired ? "Noch nicht aktiv — kein Backend-Event-Sender vorhanden" : undefined}
+                      title={unwired ? t("node_unwired") : undefined}
                       className={cn(
                         "relative flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition-colors",
                         unwired

@@ -33,7 +33,7 @@ export function ChatSearchBar({ onClose }: { onClose: () => void }) {
           {matchCount === 0 ? t("session.no_sessions") : `${activeIdx + 1} / ${matchCount}`}
         </span>
       )}
-      <button onClick={prev} disabled={matchCount === 0} title="Vorheriger (Shift+Enter)"
+      <button onClick={prev} disabled={matchCount === 0} title={t("search.prev")}
         className="p-1 rounded text-zinc-500 hover:text-zinc-200 disabled:opacity-30 transition-colors">
         <ChevronUp size={14} />
       </button>

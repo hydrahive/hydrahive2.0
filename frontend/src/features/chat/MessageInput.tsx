@@ -99,7 +99,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
           type="button"
           disabled={disabled || busy || voice.state === "transcribing"}
           onClick={voice.toggle}
-          title={voice.state === "recording" ? "Klicken zum Beenden" : "Klicken zum Sprechen"}
+          title={voice.state === "recording" ? t("voice.click_to_stop") : t("voice.click_to_speak")}
           className={`flex-shrink-0 p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed
             ${voice.state === "recording"
               ? "text-rose-400 bg-rose-500/20 animate-pulse"

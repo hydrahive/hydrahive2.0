@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { llmModelsApi } from "@/features/llm/api"
 
 interface Props {
@@ -21,6 +22,7 @@ const RESET_VALUE = "__RESET__"
 /** Native <select> für Modellwahl. Caller entscheidet wo der Pick hingeht
  *  (session.metadata.model_override im Chat, agent.llm_model im Buddy). */
 export function ModelPicker({ current, hint, onPick, showReset, onReset, fullWidth }: Props) {
+  const { t } = useTranslation("chat")
   const [models, setModels] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
@@ -49,7 +51,7 @@ export function ModelPicker({ current, hint, onPick, showReset, onReset, fullWid
       value={current}
       onChange={handleChange}
       disabled={busy}
-      title={hint || "Modell wechseln"}
+      title={hint || t("model_switch")}
       className={`appearance-none cursor-pointer px-2 py-0.5 pr-6 rounded font-mono text-xs transition-colors
         bg-no-repeat bg-[length:10px] bg-[position:right_4px_center]
         bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23a78bfa%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%226 9 12 15 18 9%22/></svg>')]
