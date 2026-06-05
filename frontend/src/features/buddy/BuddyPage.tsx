@@ -190,7 +190,7 @@ export function BuddyPage() {
               <div className="flex-1" />
               <button
                 onClick={() => navigate("/buddy/settings")}
-                title="Buddy-Einstellungen"
+                title={t("boxes.buddy_settings")}
                 className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[6%] border border-white/[8%] transition-all"
               >
                 <Settings size={13} />

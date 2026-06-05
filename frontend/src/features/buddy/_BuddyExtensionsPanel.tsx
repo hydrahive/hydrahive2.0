@@ -3,6 +3,7 @@ import {
   Brain, Code2, ExternalLink, FileText, GitBranch, Gamepad2,
   Lock, Network, Search, ShieldOff, Package, Loader2,
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
 import { CollapsibleBox } from "@/shared/CollapsibleBox"
 import { fetchExtensions } from "@/features/extensions/api"
@@ -57,6 +58,7 @@ function ExtTile({ ext }: { ext: Extension }) {
 }
 
 export function BuddyExtensionsPanel() {
+  const { t } = useTranslation("buddy")
   const [extensions, setExtensions] = useState<Extension[] | null>(null)
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export function BuddyExtensionsPanel() {
     <CollapsibleBox
       boxId="buddy-extensions"
       icon={<span className="text-sm">🧩</span>}
-      title="Anwendungen"
+      title={t("boxes.extensions")}
       color={rgbFor("/mcp")}
       defaultCollapsed
       className="w-60"
