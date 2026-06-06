@@ -1,10 +1,16 @@
-import { useState, type CSSProperties } from "react"
+import { lazy, Suspense, useState, type CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { FileTree } from "./FileTree"
 import { GitPanel } from "./GitPanel"
 import { classifyFile, type FileKind } from "./fileType"
 import { rgbFor } from "@/shared/colors"
-import { TaskPanel } from "@/modules/tasks"
+
+// Lazy import — Tasks-Modul ist optional; wenn nicht installiert zeigt der Tab einen Hinweis.
+const TaskPanel = lazy(() =>
+  import("@/modules/tasks")
+    .then((m) => ({ default: m.TaskPanel }))
+    .catch(() => ({ default: () => <div className="p-4 text-[11px] text-zinc-600">Tasks-Modul nicht installiert.</div> }))
+)
 
 type Tab = "files" | "git" | "tasks"
 
@@ -37,7 +43,11 @@ export function WorkspacePanel({ agentId, onOpenFile }: Props) {
           </div>
         )}
         {tab === "git" && <GitPanel agentId={agentId} />}
-        {tab === "tasks" && <TaskPanel />}
+        {tab === "tasks" && (
+          <Suspense fallback={<div className="p-4 text-[11px] text-zinc-600">Laden…</div>}>
+            <TaskPanel />
+          </Suspense>
+        )}
       </div>
     </div>
   )
