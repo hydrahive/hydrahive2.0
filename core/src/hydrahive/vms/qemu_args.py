@@ -123,7 +123,7 @@ def _passthrough_disk_args(disks: list[PassthroughDisk]) -> list[str]:
         drive_id = f"ptdisk{idx}"
         args += [
             "-drive", f"file={disk.device_path},format=raw,if=none,id={drive_id},"
-                      "cache=none,aio=native",
+                      "cache=writeback,aio=threads",
             "-device", f"virtio-blk-pci,drive={drive_id}",
         ]
     return args
