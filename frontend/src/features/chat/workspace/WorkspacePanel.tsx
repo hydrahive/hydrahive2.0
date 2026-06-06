@@ -4,8 +4,9 @@ import { FileTree } from "./FileTree"
 import { GitPanel } from "./GitPanel"
 import { classifyFile, type FileKind } from "./fileType"
 import { rgbFor } from "@/shared/colors"
+import { TaskPanel } from "@/modules/tasks"
 
-type Tab = "files" | "git"
+type Tab = "files" | "git" | "tasks"
 
 interface Props {
   agentId: string | null
@@ -22,10 +23,10 @@ export function WorkspacePanel({ agentId, onOpenFile }: Props) {
     <div className="box flex flex-col h-full" style={{ "--c": rgbFor("/werkstatt") } as CSSProperties}>
       <div className="px-2.5 py-2 border-b border-white/[6%] text-[11px] font-medium text-zinc-300">{t("title")}</div>
       <div className="flex border-b border-white/[6%] text-[10px]">
-        {(["files", "git"] as Tab[]).map((id) => (
+        {(["files", "git", "tasks"] as Tab[]).map((id) => (
           <button key={id} onClick={() => setTab(id)}
             className={`flex-1 py-1.5 ${tab === id ? "text-violet-300 border-b-2 border-violet-500 bg-violet-500/5" : "text-zinc-500"}`}>
-            {t(`tab_${id}`)}
+            {id === "tasks" ? "Tasks" : t(`tab_${id}`)}
           </button>
         ))}
       </div>
@@ -36,6 +37,7 @@ export function WorkspacePanel({ agentId, onOpenFile }: Props) {
           </div>
         )}
         {tab === "git" && <GitPanel agentId={agentId} />}
+        {tab === "tasks" && <TaskPanel />}
       </div>
     </div>
   )

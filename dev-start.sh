@@ -33,6 +33,20 @@ echo "==> Backend starten auf http://127.0.0.1:8001"
   --host 127.0.0.1 --port 8001 --reload &
 BACKEND_PID=$!
 
+# Modul-Frontend-Assets in frontend/src/modules/<id>/ synchronisieren
+# (der Installer macht das bei install; im Dev-Checkout müssen wir es manuell tun)
+echo "==> Modul-Frontends synchronisieren"
+for mod_dir in "$SCRIPT_DIR/modules"/*/; do
+  mod_id="$(basename "$mod_dir")"
+  fe_src="$mod_dir/frontend"
+  fe_dst="$SCRIPT_DIR/frontend/src/modules/$mod_id"
+  if [ -d "$fe_src" ]; then
+    rm -rf "$fe_dst"
+    cp -r "$fe_src" "$fe_dst"
+    echo "    $mod_id"
+  fi
+done
+
 echo "==> Frontend starten"
 cd "$SCRIPT_DIR/frontend"
 npm run dev &
