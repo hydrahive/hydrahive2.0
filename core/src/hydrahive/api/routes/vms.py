@@ -18,6 +18,7 @@ from hydrahive.api.routes.vms_imports import router as _imports_router
 from hydrahive.api.routes.vms_isos import router as _isos_router
 from hydrahive.api.routes.vms_lifecycle import router as _lifecycle_router
 from hydrahive.api.routes.vms_ops import router as _ops_router
+from hydrahive.api.routes.vms_passthrough import router as _passthrough_router
 from hydrahive.api.routes.vms_snapshots import router as _snapshots_router
 from hydrahive.api.routes.vms_vnc import router as _vnc_router
 
@@ -25,6 +26,7 @@ router = APIRouter()
 # Literale Pfade ZUERST — siehe Module-Docstring.
 router.include_router(_imports_router)
 router.include_router(_isos_router)
+router.include_router(_passthrough_router)
 # Danach die /{vm_id}-Routen.
 router.include_router(_lifecycle_router)
 router.include_router(_ops_router)

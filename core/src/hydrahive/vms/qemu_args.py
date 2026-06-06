@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from hydrahive.settings import settings
-from hydrahive.vms.models import VM
+from hydrahive.vms.models import PassthroughDisk, VM
 
 
 def _iso_drive_path(vm: VM) -> Path | None:
@@ -24,7 +24,8 @@ def _iso_drive_path(vm: VM) -> Path | None:
     return iso_path
 
 
-def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
+def build_qemu_args(vm: VM, vnc_port: int,
+                    passthrough_disks: list[PassthroughDisk] | None = None) -> list[str]:
     """argv für qemu-system-x86_64 — VNC-Display = vnc_port - 5900."""
     iso_path = _iso_drive_path(vm)
     pid_file = settings.vms_pids_dir / f"{vm.vm_id}.pid"
@@ -53,6 +54,7 @@ def build_qemu_args(vm: VM, vnc_port: int) -> list[str]:
         "-daemonize",
     ]
     args += _disk_args(vm)
+    args += _passthrough_disk_args(passthrough_disks or [])
 
     # Boot-Reihenfolge: ISO > Disk wenn ISO vorhanden, sonst nur Disk
     if iso_path:
@@ -107,6 +109,24 @@ def _disk_args(vm: VM) -> list[str]:
         "-drive", f"file={vm.qcow2_path},format=qcow2,if=virtio,"
                   "cache=writeback,discard=unmap",
     ]
+
+
+def _passthrough_disk_args(disks: list[PassthroughDisk]) -> list[str]:
+    """QEMU-Args für alle Passthrough-Disks der VM.
+
+    Jede Disk bekommt ein eigenes virtio-blk-Gerät (if=none + device).
+    format=raw weil Block-Devices kein qcow2-Overhead brauchen.
+    cache=none + aio=native für direkten I/O ohne Kernel-Buffer-Dopplung.
+    """
+    args: list[str] = []
+    for idx, disk in enumerate(disks):
+        drive_id = f"ptdisk{idx}"
+        args += [
+            "-drive", f"file={disk.device_path},format=raw,if=none,id={drive_id},"
+                      "cache=none,aio=native",
+            "-device", f"virtio-blk-pci,drive={drive_id}",
+        ]
+    return args
 
 
 def _mac_for(vm_id: str) -> str:

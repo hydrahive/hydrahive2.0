@@ -62,6 +62,26 @@ class Snapshot:
 
 
 @dataclass
+class PassthroughDisk:
+    passthrough_id: str
+    vm_id: str
+    device_path: str
+    label: str | None
+    added_at: str
+
+
+@dataclass
+class HostDisk:
+    """Block-Device auf dem Host — von lsblk geliefert."""
+    name: str
+    path: str
+    size: str
+    model: str | None
+    serial: str | None
+    children: list["HostDisk"]
+
+
+@dataclass
 class ImportJob:
     job_id: str
     owner: str

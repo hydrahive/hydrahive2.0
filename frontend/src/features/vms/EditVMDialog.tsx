@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import type { CSSProperties } from "react"
-import { Loader2, Save, X } from "lucide-react"
+import { HardDrive, Loader2, Plus, Save, Trash2, X } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
-import type { DiskInterface, ISO, MachineType, NetworkDevice, VM } from "./types"
+import type { DiskInterface, HostDisk, ISO, MachineType, NetworkDevice, PassthroughDisk, VM } from "./types"
 import { vmsApi } from "./api"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 
 interface Props {
   vm: VM
@@ -29,8 +30,20 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const isAdmin = useAuthStore((s) => s.role) === "admin"
+  const [passthroughDisks, setPassthroughDisks] = useState<PassthroughDisk[]>([])
+  const [hostDisks, setHostDisks] = useState<HostDisk[]>([])
+  const [attachedPaths, setAttachedPaths] = useState<string[]>([])
+  const [selectedHostDisk, setSelectedHostDisk] = useState("")
+  const [ptBusy, setPtBusy] = useState(false)
+  const [ptError, setPtError] = useState<string | null>(null)
+
   useEffect(() => {
     vmsApi.isos().then(setIsos).catch(() => setIsos([]))
+    if (isAdmin) {
+      vmsApi.listPassthroughDisks(vm.vm_id).then(setPassthroughDisks).catch(() => {})
+      vmsApi.hostDisks().then((r) => { setHostDisks(r.disks); setAttachedPaths(r.attached_paths) }).catch(() => {})
+    }
   }, [])
 
   const validName = /^[a-zA-Z][a-zA-Z0-9-]{0,31}$/.test(name)
@@ -169,6 +182,45 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
           </Field>
         </div>
 
+        {isAdmin && (
+          <PassthroughSection
+            vm={vm}
+            editable={editable}
+            disks={passthroughDisks}
+            hostDisks={hostDisks}
+            attachedPaths={attachedPaths}
+            selected={selectedHostDisk}
+            onSelect={setSelectedHostDisk}
+            busy={ptBusy}
+            error={ptError}
+            onAdd={async () => {
+              if (!selectedHostDisk) return
+              setPtBusy(true); setPtError(null)
+              try {
+                const disk = hostDisks.find((d) => d.path === selectedHostDisk)
+                const label = disk ? `${disk.model ?? disk.name} (${disk.size})` : undefined
+                const added = await vmsApi.addPassthroughDisk(vm.vm_id, selectedHostDisk, label ?? undefined)
+                setPassthroughDisks((prev) => [...prev, added])
+                setAttachedPaths((prev) => [...prev, selectedHostDisk])
+                setSelectedHostDisk("")
+              } catch (e) {
+                setPtError(e instanceof Error ? e.message : "Fehler")
+              } finally { setPtBusy(false) }
+            }}
+            onRemove={async (id) => {
+              setPtBusy(true); setPtError(null)
+              try {
+                await vmsApi.removePassthroughDisk(vm.vm_id, id)
+                setPassthroughDisks((prev) => prev.filter((d) => d.passthrough_id !== id))
+                const removed = passthroughDisks.find((d) => d.passthrough_id === id)
+                if (removed) setAttachedPaths((prev) => prev.filter((p) => p !== removed.device_path))
+              } catch (e) {
+                setPtError(e instanceof Error ? e.message : "Fehler")
+              } finally { setPtBusy(false) }
+            }}
+          />
+        )}
+
         {error && (
           <p className="text-xs text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>
         )}
@@ -194,6 +246,98 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-0.5">
       <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
       {children}
+    </div>
+  )
+}
+
+interface PassthroughSectionProps {
+  vm: VM
+  editable: boolean
+  disks: PassthroughDisk[]
+  hostDisks: HostDisk[]
+  attachedPaths: string[]
+  selected: string
+  onSelect: (path: string) => void
+  busy: boolean
+  error: string | null
+  onAdd: () => void
+  onRemove: (id: string) => void
+}
+
+function PassthroughSection({
+  vm, editable, disks, hostDisks, attachedPaths, selected, onSelect,
+  busy, error, onAdd, onRemove,
+}: PassthroughSectionProps) {
+  const availableDisks = hostDisks.filter(
+    (d) => !attachedPaths.includes(d.path) || disks.some((pd) => pd.device_path === d.path && pd.vm_id === vm.vm_id)
+  )
+
+  return (
+    <div className="border-t border-white/[5%] pt-3 space-y-2">
+      <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-400">
+        <HardDrive size={11} />
+        <span>Passthrough-Disks</span>
+        <span className="text-zinc-600 font-normal">(physische Block-Devices direkt in VM)</span>
+      </div>
+
+      {disks.length > 0 && (
+        <div className="space-y-1">
+          {disks.map((d) => (
+            <div key={d.passthrough_id}
+              className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-zinc-950 border border-white/[6%]">
+              <div className="flex items-center gap-2 min-w-0">
+                <HardDrive size={11} className="text-indigo-400 shrink-0" />
+                <span className="text-xs text-zinc-200 font-mono truncate">{d.device_path}</span>
+                {d.label && <span className="text-[10px] text-zinc-500 truncate">{d.label}</span>}
+              </div>
+              <button
+                onClick={() => onRemove(d.passthrough_id)}
+                disabled={busy || !editable}
+                className="p-1 rounded text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30 shrink-0">
+                <Trash2 size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editable && (
+        <div className="flex gap-1.5">
+          <select
+            value={selected}
+            onChange={(e) => onSelect(e.target.value)}
+            disabled={busy || availableDisks.length === 0}
+            className="flex-1 px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50">
+            <option value="">
+              {availableDisks.length === 0 ? "— keine freien Disks —" : "— Disk wählen —"}
+            </option>
+            {availableDisks.map((d) => (
+              <option key={d.path} value={d.path}>
+                {d.path} — {d.model ?? d.name} ({d.size})
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={onAdd}
+            disabled={busy || !selected}
+            className="flex items-center gap-1 px-3 py-1 rounded-md bg-indigo-600/80 hover:bg-indigo-500/80 text-white text-xs disabled:opacity-30">
+            {busy ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+            Hinzufügen
+          </button>
+        </div>
+      )}
+
+      {!editable && disks.length === 0 && (
+        <p className="text-[10px] text-zinc-600">Keine Passthrough-Disks. VM stoppen zum Bearbeiten.</p>
+      )}
+
+      {error && (
+        <p className="text-[10px] text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded px-2 py-1">{error}</p>
+      )}
+
+      <p className="text-[10px] text-zinc-600">
+        Nur unmountete Disks. VM muss gestoppt sein. Änderungen werden beim nächsten Start der VM aktiv.
+      </p>
     </div>
   )
 }

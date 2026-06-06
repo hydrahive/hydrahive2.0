@@ -1,6 +1,6 @@
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "@/features/auth/useAuthStore"
-import type { DiskInterface, ImportJob, ISO, MachineType, NetworkDevice, Snapshot, VM, VMCreateInput } from "./types"
+import type { DiskInterface, HostDisk, ImportJob, ISO, MachineType, NetworkDevice, PassthroughDisk, Snapshot, VM, VMCreateInput } from "./types"
 
 export const vmsApi = {
   list: () => api.get<VM[]>("/vms"),
@@ -37,6 +37,14 @@ export const vmsApi = {
   importJobs: () => api.get<ImportJob[]>("/vms/import-jobs"),
   importFromPath: (path: string) => api.post<{ job_id: string }>("/vms/import-jobs/from-path", { source_path: path }),
   importJobDelete: (jobId: string) => api.delete<void>(`/vms/import-jobs/${jobId}`),
+
+  // Passthrough-Disks (admin only)
+  hostDisks: () => api.get<{ disks: HostDisk[]; attached_paths: string[] }>("/vms/host-disks"),
+  listPassthroughDisks: (vmId: string) => api.get<PassthroughDisk[]>(`/vms/${vmId}/passthrough-disks`),
+  addPassthroughDisk: (vmId: string, device_path: string, label?: string) =>
+    api.post<PassthroughDisk>(`/vms/${vmId}/passthrough-disks`, { device_path, label }),
+  removePassthroughDisk: (vmId: string, passthroughId: string) =>
+    api.delete<void>(`/vms/${vmId}/passthrough-disks/${passthroughId}`),
 }
 
 export async function uploadImport(file: File, onProgress?: (pct: number) => void): Promise<{ job_id: string }> {

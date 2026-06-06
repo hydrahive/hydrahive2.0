@@ -60,6 +60,23 @@ export interface ImportJob {
   finished_at: string | null
 }
 
+export interface PassthroughDisk {
+  passthrough_id: string
+  vm_id: string
+  device_path: string
+  label: string | null
+  added_at: string
+}
+
+export interface HostDisk {
+  name: string
+  path: string
+  size: string
+  model: string | null
+  serial: string | null
+  children: HostDisk[]
+}
+
 export interface VMCreateInput {
   name: string
   description?: string | null

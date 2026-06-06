@@ -11,6 +11,7 @@ from pathlib import Path
 from hydrahive.settings import settings
 from hydrahive.vms import vnc
 from hydrahive.vms.db import get_vm, update_vm_state
+from hydrahive.vms import passthrough as pt
 from hydrahive.vms.ports import allocate_vnc_port
 from hydrahive.vms.qemu_args import build_qemu_args, ensure_dirs
 
@@ -44,7 +45,8 @@ async def start(vm_id: str) -> None:
                     vnc_port=port, vnc_token=token,
                     error_code=None, error_params=None)
 
-    args = build_qemu_args(vm, port)
+    passthrough_disks = pt.list_for_vm(vm_id)
+    args = build_qemu_args(vm, port, passthrough_disks)
     log_path = settings.vms_logs_dir / f"{vm.vm_id}.log"
 
     try:
