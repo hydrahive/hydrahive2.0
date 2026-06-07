@@ -38,12 +38,26 @@ _SCHEMA = {
     },
 }
 
-_HINT = (
-    "Nutze task_write um Aufgaben persistent zu speichern (bleiben über Chat-Sessions erhalten). "
-    "Lege einen Task an wenn der User oder du eine Aufgabe identifizierst die erledigt werden soll. "
-    "Aktualisiere Tasks mit task_id wenn sich Status oder Inhalt ändern. "
-    "Nutze task_list um den aktuellen Stand zu sehen."
-)
+_HINT = """
+Nutze task_write PROAKTIV — ohne dass der User explizit darum bittet:
+
+WANN Tasks anlegen:
+- Komplexe Anfragen (mehrere Schritte, mehrere Dateien, längere Arbeit): ZUERST alle Teil-Tasks anlegen, dann anfangen.
+- User nennt etwas das erledigt werden soll ("wir müssen noch X", "vergiss nicht Y"): sofort als Task speichern.
+- Am Ende einer Session noch offene Punkte: als Tasks sichern damit sie nicht verloren gehen.
+
+WANN Status aktualisieren (task_id + status):
+- Fange ich einen Task an → status: in_progress
+- Task ist erledigt → status: done
+- Task wird nicht mehr gebraucht → status: cancelled
+
+WANN KEINE Tasks anlegen:
+- Einfache Fragen oder kurze Antworten (eine Aktion, ein Tool-Call).
+- Rein informative Gespräche ohne konkretes To-do.
+
+Nutze task_list um den aktuellen Stand vor längerer Arbeit zu prüfen.
+Tasks bleiben über alle Chat-Sessions erhalten — das ist ihr Hauptvorteil.
+"""
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
