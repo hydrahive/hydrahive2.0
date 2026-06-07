@@ -52,15 +52,15 @@ log "Frontend-Build fertig."
 
 # --- Restart ---
 log "Service-Restart..."
-systemctl restart hydrahive2
+sudo systemctl restart hydrahive2
 sleep 2
-if systemctl is-active --quiet hydrahive2; then
+if sudo systemctl is-active --quiet hydrahive2; then
   log "Deploy erfolgreich. $OLD_HEAD → $NEW_HEAD"
 else
   log "FEHLER: Service nicht gestartet — Rollback auf $OLD_HEAD"
   git reset --hard "$OLD_HEAD"
   $VENV/bin/pip install -e "$REPO/core/" -q
   npm run build --prefix "$REPO/frontend" -q || true
-  systemctl restart hydrahive2
+  sudo systemctl restart hydrahive2
   exit 1
 fi
