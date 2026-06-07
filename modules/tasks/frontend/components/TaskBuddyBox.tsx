@@ -5,7 +5,7 @@ import type { Task } from "../types"
 
 const PRIORITY_DOT: Record<Task["priority"], string> = {
   high:   "bg-rose-400 shadow-[0_0_4px_rgba(251,113,133,0.6)]",
-  medium: "bg-amber-400",
+  medium: "bg-yellow-300",
   low:    "bg-zinc-600",
 }
 
@@ -22,9 +22,9 @@ export function TaskBuddyBox({ onPrompt }: Props) {
   return (
     <CollapsibleBox
       boxId="buddy-tasks"
-      icon={<CheckSquare size={14} className="text-violet-400" />}
+      icon={<CheckSquare size={14} className="text-yellow-300" />}
       title="Aufgaben"
-      color="138,92,246"
+      color="234,179,8"
       defaultCollapsed={false}
       className="w-60"
       headerRight={
@@ -38,19 +38,18 @@ export function TaskBuddyBox({ onPrompt }: Props) {
           <p className="text-[11px] text-zinc-600 px-1 py-0.5">Keine offenen Aufgaben</p>
         ) : (
           visible.map((task) => (
-            <div key={task.id} className="flex items-start gap-1.5 group">
+            <div key={task.id} className="relative flex items-start gap-1.5 group">
               <button
                 onClick={() => complete(task.id)}
-                className="mt-0.5 flex-shrink-0 w-3.5 h-3.5 rounded border border-white/[8%] hover:border-violet-500/50 hover:bg-violet-500/10 transition-colors"
+                className="mt-0.5 flex-shrink-0 w-3.5 h-3.5 rounded border border-white/[8%] hover:border-yellow-400/50 hover:bg-yellow-400/10 transition-colors"
                 title="Als erledigt markieren"
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
                   <div className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[task.priority]}`} />
                   <span
-                    className="text-[11px] text-zinc-300 truncate cursor-pointer hover:text-zinc-100"
+                    className="text-[11px] text-zinc-300 truncate cursor-pointer hover:text-yellow-200 transition-colors"
                     onClick={() => onPrompt(`Zeige mir den Status von Task: "${task.title}"`)}
-                    title={task.title}
                   >
                     {task.title}
                   </span>
@@ -59,6 +58,19 @@ export function TaskBuddyBox({ onPrompt }: Props) {
                   <span className="text-[9px] text-amber-400 ml-3">in Arbeit</span>
                 )}
               </div>
+
+              {/* Hover-Tooltip mit Beschreibung */}
+              {task.description && (
+                <div className="
+                  pointer-events-none absolute left-0 bottom-full mb-1.5 z-50 w-52
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-150
+                  bg-zinc-900 border border-yellow-400/20 rounded-lg px-2.5 py-2
+                  shadow-[0_0_12px_rgba(234,179,8,0.15)]
+                ">
+                  <p className="text-[10px] text-yellow-200/80 font-medium mb-0.5 truncate">{task.title}</p>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed line-clamp-4">{task.description}</p>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -67,7 +79,7 @@ export function TaskBuddyBox({ onPrompt }: Props) {
             +{tasks.length - 6} weitere →{" "}
             <button
               onClick={() => onPrompt("Zeige mir alle offenen Aufgaben")}
-              className="text-violet-400 hover:text-violet-300 underline"
+              className="text-yellow-400 hover:text-yellow-300 underline"
             >
               Alle anzeigen
             </button>
@@ -75,7 +87,7 @@ export function TaskBuddyBox({ onPrompt }: Props) {
         )}
         <button
           onClick={() => onPrompt("Welche Aufgaben sind noch offen? Gib mir eine kurze Übersicht.")}
-          className="w-full text-left text-xs px-2 py-1.5 mt-1 rounded-lg border border-white/[6%] hover:border-violet-500/30 hover:bg-violet-500/[3%] text-zinc-400 hover:text-zinc-300 transition-all"
+          className="w-full text-left text-xs px-2 py-1.5 mt-1 rounded-lg border border-white/[6%] hover:border-yellow-400/20 hover:bg-yellow-400/[3%] text-zinc-400 hover:text-yellow-300 transition-all"
         >
           ✦ Aufgaben besprechen
         </button>
