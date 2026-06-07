@@ -1,10 +1,11 @@
 import { TaskBuddyBox } from "./components/TaskBuddyBox"
-
-export { TaskPanel } from "./components/TaskPanel"
+import { TaskPanel } from "./components/TaskPanel"
 
 export const routes = [] as const
 
 export const buddyWidgets = [TaskBuddyBox]
+
+export const workspaceTabs = [{ id: "tasks", label: "Tasks", component: TaskPanel }]
 
 export const nav = [] as const
 
