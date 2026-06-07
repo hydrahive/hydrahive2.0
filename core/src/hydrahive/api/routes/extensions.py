@@ -51,15 +51,18 @@ _HOST_STRIP_RE = re.compile(r"^https?://[^/:]+")
 
 
 def _normalize_cred_fields(fields: list[dict]) -> list[dict]:
-    """Normalisiert URL-Felder: alte Einträge mit aufgelöster IP → Port-Pattern."""
+    """Normalisiert URL-Felder: alte Einträge mit aufgelöster IP → Port-Pattern.
+
+    Alte Credential-Dateien haben kein "key"-Feld — daher Matching auf jedes
+    nicht-geheime Feld dessen Wert eine vollständige HTTP-URL ist.
+    """
     result = []
     for f in fields:
-        if f.get("key") == "url" and isinstance(f.get("value"), str):
-            val = f["value"]
-            if _FULL_URL_RE.match(val):
-                # "http://192.168.3.21:3001/" → ":3001/"
-                stripped = _HOST_STRIP_RE.sub("", val) or "/"
-                f = {**f, "value": stripped}
+        val = f.get("value") or ""
+        if not f.get("secret") and isinstance(val, str) and _FULL_URL_RE.match(val):
+            # "http://192.168.3.21:3001/" → ":3001/" + "key" ergänzen für Frontend
+            stripped = _HOST_STRIP_RE.sub("", val) or "/"
+            f = {**f, "key": "url", "value": stripped}
         result.append(f)
     return result
 

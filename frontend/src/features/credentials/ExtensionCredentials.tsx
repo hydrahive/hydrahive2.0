@@ -13,8 +13,8 @@ interface CredField {
 }
 
 interface ExtCred {
-  id: string
-  name: string
+  extension_id: string
+  extension_name: string
   fields: CredField[]
 }
 
@@ -88,11 +88,11 @@ export function ExtensionCredentials() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {creds.map((c) => (
-            <div key={c.id}
+            <div key={c.extension_id}
               className="box overflow-hidden p-4" style={{ "--c": rgbFor("/credentials") } as CSSProperties}>
               <div className="flex items-center gap-2 mb-3">
                 <Package size={13} className="text-violet-400 shrink-0" />
-                <span className="text-sm font-medium text-zinc-100">{c.name}</span>
+                <span className="text-sm font-medium text-zinc-100">{c.extension_name}</span>
               </div>
               <div>
                 {c.fields.map((f) => <FieldRow key={f.label} field={f} />)}
