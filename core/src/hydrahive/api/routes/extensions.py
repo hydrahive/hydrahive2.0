@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import StreamingResponse
@@ -45,6 +46,24 @@ async def list_extensions() -> list[dict]:
     return [await extension_status(m) for m in manifests]
 
 
+_FULL_URL_RE = re.compile(r"^https?://[^/]+(:\d+)?(/.*)?$")
+_HOST_STRIP_RE = re.compile(r"^https?://[^/:]+")
+
+
+def _normalize_cred_fields(fields: list[dict]) -> list[dict]:
+    """Normalisiert URL-Felder: alte Einträge mit aufgelöster IP → Port-Pattern."""
+    result = []
+    for f in fields:
+        if f.get("key") == "url" and isinstance(f.get("value"), str):
+            val = f["value"]
+            if _FULL_URL_RE.match(val):
+                # "http://192.168.3.21:3001/" → ":3001/"
+                stripped = _HOST_STRIP_RE.sub("", val) or "/"
+                f = {**f, "value": stripped}
+        result.append(f)
+    return result
+
+
 @router.get("/credentials", dependencies=[Depends(require_admin)])
 def list_credentials() -> list[dict]:
     cred_dir = settings.config_dir / "extensions"
@@ -54,6 +73,7 @@ def list_credentials() -> list[dict]:
     for f in sorted(cred_dir.glob("*.credentials.json")):
         try:
             data = json.loads(f.read_text())
+            data["fields"] = _normalize_cred_fields(data.get("fields") or [])
             results.append(data)
         except Exception:
             logger.warning("Credentials-Datei %s konnte nicht gelesen werden", f)
