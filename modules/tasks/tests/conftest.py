@@ -39,7 +39,7 @@ def setup_test_env():
         from hydrahive.db import init_db
         from hydrahive.modules.migrations import apply_module_migrations
         init_db()
-        apply_module_migrations("tasks", MODULE_DIR / "backend" / "migrations")
+        apply_module_migrations("tasks", MODULE_DIR / "migrations")
 
         from hydrahive.api import main
         from backend.routes import router as tasks_router
