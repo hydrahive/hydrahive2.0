@@ -5,17 +5,21 @@ OpenRouter Video läuft NICHT über chat/completions — eigene async Jobs-API:
   GET  /api/v1/videos/{job_id} → status ("pending"|"processing"|"completed"|"failed")
 
 Live-verifizierte Modelle (GET /api/v1/videos/models, Stand 2026-06):
-  kling/kling-video-v2-master      — Kling v2, Qualität/Preis-Champion (default)
+  kling/kling-video-v2-master      — Kling v2, Qualität/Preis-Champion (default), Image-to-Video
   google/veo-3.1                   — Veo 3.1 (teurer, top Qualität)
   openai/sora-2-pro                — Sora 2 Pro (~60-90s Generierzeit)
-  minimax/hailuo-2.3               — günstig, schnell
+  minimax/hailuo-2.3               — günstig, schnell, Image-to-Video
 
+Image-to-Video: image_url als Startframe mitgeben (Pfad im Workspace → data-URI,
+oder direkte https-URL). Nicht alle Modelle unterstützen das.
 Poll-Loop: max 300s, Intervall exponentiell 5s→10s→20s (Cap), dann Timeout-Fehler.
 """
 from __future__ import annotations
 
 import asyncio
+import base64
 import logging
+from pathlib import Path
 
 from hydrahive.llm.media_models import get_media_model
 from hydrahive.tools._openrouter_media import save_bytes  # noqa: F401 (re-export für Tests)
@@ -36,9 +40,10 @@ _POLL_INTERVAL_MAX = 20.0
 
 _DESCRIPTION = (
     "Generiert ein Video aus einem Text-Prompt über OpenRouter (async Jobs-API). "
+    "Optionaler Startframe via image_url (Workspace-Pfad oder https-URL) für Image-to-Video. "
     "Das Video wird gespeichert und im Chat als Video-Player angezeigt. "
-    "Verfügbare Modelle: kling/kling-video-v2-master (default, Qualität/Preis), "
-    "google/veo-3.1, openai/sora-2-pro, minimax/hailuo-2.3. "
+    "Verfügbare Modelle: kling/kling-video-v2-master (default, Image-to-Video), "
+    "google/veo-3.1, openai/sora-2-pro, minimax/hailuo-2.3 (Image-to-Video). "
     "Generierung dauert 15–90 Sekunden je nach Modell. "
     "Braucht einen konfigurierten OpenRouter API-Key."
 )
@@ -78,6 +83,14 @@ _SCHEMA = {
             "description": "Seitenverhältnis (default '16:9'). Weitere: '9:16', '1:1'.",
             "default": "16:9",
         },
+        "image_url": {
+            "type": "string",
+            "description": (
+                "Optionaler Startframe für Image-to-Video. "
+                "Workspace-Pfad (wird automatisch als data-URI kodiert) oder https-URL. "
+                "Nicht alle Modelle unterstützen das — Kling und Hailuo tun es."
+            ),
+        },
     },
     "required": ["prompt"],
 }
@@ -99,12 +112,25 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     height = int(args.get("height") or 720)
     duration = int(args.get("duration") or 5)
     aspect_ratio = (args.get("aspect_ratio") or "16:9").strip()
+    image_url: str | None = (args.get("image_url") or "").strip() or None
+
+    # Workspace-Pfad → data-URI
+    if image_url and not image_url.startswith(("http://", "https://", "data:")):
+        img_path = Path(image_url)
+        if not img_path.is_absolute():
+            img_path = ctx.workspace / image_url
+        if not img_path.exists():
+            return ToolResult.fail(f"Bild nicht gefunden: {img_path}")
+        suffix = img_path.suffix.lower().lstrip(".") or "jpeg"
+        mime = "image/png" if suffix == "png" else f"image/{suffix}"
+        image_url = f"data:{mime};base64,{base64.b64encode(img_path.read_bytes()).decode()}"
 
     try:
         job_id = await submit_video_job(
             prompt, model,
             key=key, width=width, height=height,
             duration=duration, aspect_ratio=aspect_ratio,
+            image_url=image_url,
         )
     except RuntimeError as e:
         return ToolResult.fail(str(e))

@@ -34,9 +34,12 @@ async def submit_video_job(
     height: int = 720,
     duration: int = 5,
     aspect_ratio: str = "16:9",
+    image_url: str | None = None,
 ) -> str:
     """Startet einen Video-Generierungs-Job. Gibt job_id zurück.
 
+    image_url: optionaler Startframe (data-URI oder https-URL). Nicht alle
+    Modelle unterstützen Image-to-Video — Kling und Hailuo tun es.
     Raises RuntimeError bei API- oder Netzwerk-Fehler.
     """
     payload: dict = {
@@ -47,6 +50,8 @@ async def submit_video_job(
         "duration": duration,
         "aspect_ratio": aspect_ratio,
     }
+    if image_url:
+        payload["image_url"] = image_url
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
