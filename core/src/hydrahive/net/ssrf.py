@@ -96,6 +96,29 @@ def validate_outbound_url(url: str) -> str | None:
     return None
 
 
+def resolve_internal_ip(hostname: str) -> str:
+    """Löst einen Hostname auf (auch interne IPs erlaubt) und gibt die erste Adresse zurück.
+
+    Gegenstück zu ``resolve_validated_ip`` für explizit vertrauenswürdige lokale Hosts.
+    Pinnt auf die erste aufgelöste Adresse — DNS-Rebinding-Schutz bleibt erhalten.
+    Wirft ``SsrfBlocked`` wenn DNS fehlschlägt oder keine Adresse auflösbar.
+    """
+    if not hostname:
+        raise SsrfBlocked("host_missing")
+    try:
+        return str(ipaddress.ip_address(hostname))  # IP-Literal: sofort zurück
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(hostname, None, proto=socket.IPPROTO_TCP)
+    except OSError as e:
+        raise SsrfBlocked("dns_failed") from e
+    addrs = [info[4][0] for info in infos if info[4][0]]
+    if not addrs:
+        raise SsrfBlocked("dns_empty")
+    return addrs[0]
+
+
 def resolve_validated_ip(hostname: str) -> str:
     """Löst ``hostname`` EINMAL auf und gibt eine validierte IP zurück.
 

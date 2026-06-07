@@ -10,7 +10,12 @@ from __future__ import annotations
 import base64
 import urllib.parse
 
-from hydrahive.net.ssrf import SsrfBlocked, is_blocked_host as _is_blocked, safe_async_client
+from hydrahive.net.ssrf import (
+    SsrfBlocked, _PinnedTransport,
+    is_blocked_host as _is_blocked,
+    resolve_internal_ip,
+    safe_async_client,
+)
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
@@ -108,13 +113,19 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     params: dict[str, str] = {}
     auth_used: str | None = None
 
-    # Credentials VOR SSRF-Check matchen: ein konfiguriertes Credential = Admin vertraut
-    # diesem Host explizit → darf auch localhost/RFC1918 ansprechen (z.B. lokales Gitea).
+    # Credentials VOR SSRF-Check matchen.
+    # Bypass nur wenn: (1) Credential vorhanden UND (2) dessen url_pattern den Hostname
+    # explizit enthält — kein Wildcard-Bypass ("*" oder bloßes Schema).
     cred = _select_cred(ctx.user_id, url, auth_name)
     is_internal = _is_blocked(parsed.hostname)
 
-    if is_internal and not cred:
-        return ToolResult.fail(f"Zugriff auf interne/private Adressen gesperrt: {parsed.hostname}")
+    if is_internal:
+        hostname_lower = parsed.hostname.lower()
+        pattern = (cred.url_pattern or "").lower() if cred else ""
+        if not cred or hostname_lower not in pattern:
+            return ToolResult.fail(
+                f"Zugriff auf interne/private Adressen gesperrt: {parsed.hostname}"
+            )
 
     if cred:
         auth_used = _apply_auth(cred, headers, params)
@@ -124,8 +135,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     try:
         if is_internal:
-            # Credential vorhanden, lokaler Host → direkter Client (kein DNS-Rebinding-Risiko).
-            async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+            # Internen Host einmal auflösen und pinnen → DNS-Rebinding-Schutz
+            # bleibt auch für lokale Adressen erhalten.
+            internal_ip = resolve_internal_ip(parsed.hostname)
+            transport = _PinnedTransport({parsed.hostname: internal_ip})
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=False,
+                                         transport=transport) as client:
                 r = await client.request(
                     method, url, headers=headers, params=params or None,
                     content=body.encode("utf-8") if body else None,

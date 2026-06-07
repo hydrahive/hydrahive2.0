@@ -106,12 +106,17 @@ def _env_denylist() -> set[str]:
     return _STATIC_ENV_DENYLIST | provider_env_vars()
 
 
+_GITEA_LOCAL_HOSTS = {"localhost", "127.0.0.1", "127.0.1.1"}
+
+
 def _resolve_gitea_token(ctx: ToolContext) -> str | None:
     """Gitea-Token aus dem Credential-Store für den aktuellen User.
 
-    Sucht das erste Credential dessen url_pattern auf einen bekannten lokalen
-    Gitea-Host (localhost, 127.0.0.1) zeigt. Ergebnis → GITEA_TOKEN in der Env.
+    Anforderungen: type=="bearer" + url_pattern-Hostname ist ein bekannter lokaler
+    Gitea-Host. Parsed url_pattern für exakten Hostname-Vergleich (kein Substring-Match
+    gegen beliebige Muster). Ergebnis → GITEA_TOKEN in der Env.
     """
+    import urllib.parse as _up
     try:
         from hydrahive.credentials import list_credentials
     except ImportError:
@@ -120,8 +125,16 @@ def _resolve_gitea_token(ctx: ToolContext) -> str | None:
     if not owner:
         return None
     for cred in list_credentials(owner):
-        pattern = (cred.url_pattern or "").lower()
-        if pattern and any(h in pattern for h in ("localhost", "127.0.0.1", "127.0.1.1")):
+        if cred.type != "bearer":
+            continue
+        pattern = (cred.url_pattern or "").strip()
+        if not pattern:
+            continue
+        try:
+            host = _up.urlparse(pattern).hostname or ""
+        except Exception:
+            continue
+        if host.lower() in _GITEA_LOCAL_HOSTS:
             return cred.value
     return None
 
