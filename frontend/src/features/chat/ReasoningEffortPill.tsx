@@ -7,6 +7,7 @@ export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max"
 interface Props {
   current: string | null | undefined
   extended?: boolean
+  dropUp?: boolean
   onSelect: (effort: EffortLevel | null) => Promise<void>
 }
 
@@ -16,7 +17,7 @@ interface EffortOption {
   title: string
 }
 
-export function ReasoningEffortPill({ current, extended = false, onSelect }: Props) {
+export function ReasoningEffortPill({ current, extended = false, dropUp = false, onSelect }: Props) {
   const { t } = useTranslation("chat")
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
@@ -62,7 +63,7 @@ export function ReasoningEffortPill({ current, extended = false, onSelect }: Pro
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full right-0 mt-1 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 min-w-[160px] overflow-hidden">
+          <div className={`absolute right-0 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 min-w-[160px] overflow-hidden ${dropUp ? "bottom-full mb-1" : "top-full mt-1"}`}>
             {efforts.map((effort) => (
               <button
                 key={effort.label}
