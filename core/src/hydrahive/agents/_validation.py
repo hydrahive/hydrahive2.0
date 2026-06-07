@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import logging
+
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import OPTIONAL_TOOLS, REGISTRY as TOOL_REGISTRY
+
+logger = logging.getLogger(__name__)
 
 
 class AgentValidationError(ValueError):
@@ -26,7 +30,12 @@ def validate_status(status: str) -> None:
         )
 
 
-def validate_tools(tools: list[str]) -> None:
+def validate_tools(tools: list[str]) -> list[str]:
+    """Prüft die Tool-Liste. Gibt eine Liste unbekannter Tool-Namen zurück (Warnung, kein Fehler).
+
+    Unbekannte Tools werden nur geloggt — Module können auf verschiedenen Instanzen
+    unterschiedlich installiert sein. Der Runner ignoriert nicht verfügbare Tools beim Start.
+    """
     if not isinstance(tools, list):
         raise AgentValidationError("tools muss eine Liste sein")
     plugin_names = {t["name"] for t in plugin_bridge.all_tool_meta()}
@@ -35,11 +44,8 @@ def validate_tools(tools: list[str]) -> None:
         if t not in TOOL_REGISTRY and t not in plugin_names and t not in OPTIONAL_TOOLS
     ]
     if unknown:
-        available = sorted(set(TOOL_REGISTRY.keys()) | plugin_names)
-        raise AgentValidationError(
-            f"Unbekannte Tools: {', '.join(unknown)}. "
-            f"Verfügbar: {', '.join(available)}"
-        )
+        logger.warning("Agent-Konfiguration enthält nicht installierte Tools: %s", ", ".join(unknown))
+    return unknown
 
 
 def _available_models() -> list[str]:
