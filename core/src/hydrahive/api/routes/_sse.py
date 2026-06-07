@@ -36,16 +36,35 @@ async def to_sse(events: AsyncIterator) -> AsyncIterator[str]:
     Sendet alle _HEARTBEAT_S Sekunden einen SSE-Comment (: heartbeat) damit
     nginx/Browser die Verbindung nicht wegen Inaktivität schließen — wichtig
     während Compaction-Pausen (LLM-Summarize-Call kann 10-30s dauern).
+
+    Benutzt asyncio.wait statt asyncio.wait_for, damit die innere Coroutine
+    beim Timeout NICHT gecancelt wird. wait_for cancelt den __anext__()-Call,
+    was den Async-Generator des Runners korrumpiert und alle folgenden Events
+    verschluckt — sichtbar als „hängt nach erstem Heartbeat" bei langsamen
+    Modellen (Opus + xhigh).
     """
     it = events.__aiter__()
+    task: asyncio.Task | None = None
     try:
         while True:
-            try:
-                ev = await asyncio.wait_for(it.__anext__(), timeout=_HEARTBEAT_S)
-                yield encode_event(ev)
-            except asyncio.TimeoutError:
+            if task is None:
+                task = asyncio.ensure_future(it.__anext__())
+            done, _ = await asyncio.wait({task}, timeout=_HEARTBEAT_S)
+            if not done:
                 yield ": heartbeat\n\n"
+                continue
+            task = None
+            try:
+                yield encode_event(done.pop().result())
             except StopAsyncIteration:
                 break
-    except Exception as e:
-        yield encode_event({"type": "error", "message": f"Stream-Fehler: {e}", "fatal": True})
+            except Exception as e:
+                yield encode_event({"type": "error", "message": f"Stream-Fehler: {e}", "fatal": True})
+                break
+    finally:
+        if task and not task.done():
+            task.cancel()
+            try:
+                await task
+            except (asyncio.CancelledError, StopAsyncIteration, Exception):
+                pass
