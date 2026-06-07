@@ -63,7 +63,7 @@ export function ReasoningEffortPill({ current, extended = false, dropUp = false,
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className={`absolute right-0 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 min-w-[160px] overflow-hidden ${dropUp ? "bottom-full mb-1" : "top-full mt-1"}`}>
+          <div className={`absolute bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 min-w-[160px] overflow-hidden ${dropUp ? "bottom-full mb-1 left-0" : "top-full mt-1 right-0"}`}>
             {efforts.map((effort) => (
               <button
                 key={effort.label}
