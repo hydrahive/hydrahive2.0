@@ -24,7 +24,7 @@ export function TaskBuddyBox({ onPrompt }: Props) {
       boxId="buddy-tasks"
       icon={<CheckSquare size={14} className="text-yellow-300" />}
       title="Aufgaben"
-      color="234,179,8"
+      color="250 204 21"
       defaultCollapsed={false}
       className="w-60"
       headerRight={
