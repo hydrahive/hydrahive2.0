@@ -166,3 +166,52 @@ async def test_task_read_user_isolation():
 
     r2 = await read.execute({"task_id": task_id}, make_ctx("bob"))
     assert not r2.success
+
+
+# ── task_delete ───────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_task_delete_removes_task():
+    from backend.tools.task_write import TOOL as write
+    from backend.tools.task_delete import TOOL as delete
+    from backend.tools.task_list import TOOL as lst
+    ctx = make_ctx()
+    r = await write.execute({"title": "Löschen"}, ctx)
+    task_id = r.output["task"]["id"]
+
+    rd = await delete.execute({"task_id": task_id}, ctx)
+    assert rd.success
+    assert rd.output["deleted"] is True
+
+    rl = await lst.execute({}, ctx)
+    assert rl.output["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_task_delete_by_prefix():
+    from backend.tools.task_write import TOOL as write
+    from backend.tools.task_delete import TOOL as delete
+    ctx = make_ctx()
+    r = await write.execute({"title": "Prefix-Delete"}, ctx)
+    prefix = r.output["task"]["id"][:8]
+
+    rd = await delete.execute({"task_id": prefix}, ctx)
+    assert rd.success
+
+
+@pytest.mark.asyncio
+async def test_task_delete_not_found():
+    from backend.tools.task_delete import TOOL as delete
+    r = await delete.execute({"task_id": "doesnotexist"}, make_ctx())
+    assert not r.success
+
+
+@pytest.mark.asyncio
+async def test_task_delete_user_isolation():
+    from backend.tools.task_write import TOOL as write
+    from backend.tools.task_delete import TOOL as delete
+    r = await write.execute({"title": "Alices"}, make_ctx("alice"))
+    task_id = r.output["task"]["id"]
+
+    rd = await delete.execute({"task_id": task_id}, make_ctx("bob"))
+    assert not rd.success

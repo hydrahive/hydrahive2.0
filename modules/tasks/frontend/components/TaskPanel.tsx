@@ -32,6 +32,7 @@ const FILTER_OPTIONS: Array<{ value: TaskStatus | "all"; label: string }> = [
   { value: "open",       label: "Offen" },
   { value: "in_progress",label: "In Arbeit" },
   { value: "done",       label: "Erledigt" },
+  { value: "cancelled",  label: "Abgebrochen" },
 ]
 
 interface NewTaskFormProps {
@@ -127,20 +128,23 @@ function TaskRow({ task, onStatusChange, onDelete }: TaskRowProps) {
         )}
       </div>
 
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <select
-          value={task.status}
-          onChange={(e) => onStatusChange(task.id, e.target.value as TaskStatus)}
-          onClick={(e) => e.stopPropagation()}
-          className={`bg-transparent border-0 text-[10px] focus:outline-none cursor-pointer ${STATUS_COLOR[task.status]}`}
-        >
-          {(Object.entries(STATUS_LABEL) as [TaskStatus, string][]).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <select
+            value={task.status}
+            onChange={(e) => onStatusChange(task.id, e.target.value as TaskStatus)}
+            onClick={(e) => e.stopPropagation()}
+            className={`bg-transparent border-0 text-[10px] focus:outline-none cursor-pointer ${STATUS_COLOR[task.status]}`}
+          >
+            {(Object.entries(STATUS_LABEL) as [TaskStatus, string][]).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+        </div>
         <button
           onClick={() => onDelete(task.id)}
           className="text-zinc-700 hover:text-rose-400 transition-colors"
+          title="Task löschen"
         >
           <Trash2 size={11} />
         </button>
