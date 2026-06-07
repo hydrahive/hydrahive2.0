@@ -42,7 +42,7 @@ export function IssueImportForm({ variant }: { variant: Variant }) {
   const [owner, setOwner] = useState("")
   const [repo, setRepo] = useState("")
   const [token, setToken] = useState("")
-  const [baseUrl, setBaseUrl] = useState("http://192.168.3.22:3001")
+  const [baseUrl, setBaseUrl] = useState("")
   const [state, setState] = useState<State>("idle")
   const [result, setResult] = useState<string | null>(null)
 
@@ -85,6 +85,7 @@ export function IssueImportForm({ variant }: { variant: Variant }) {
           <label className="text-xs text-zinc-500">Base-URL</label>
           <input
             value={baseUrl} onChange={e => setBaseUrl(e.target.value)}
+            placeholder="http://gitea:3000"
             className={`${inputClass} w-52`}
           />
         </div>
@@ -99,7 +100,7 @@ export function IssueImportForm({ variant }: { variant: Variant }) {
       </div>
       <button
         onClick={run}
-        disabled={state === "running" || !owner || !repo}
+        disabled={state === "running" || !owner || !repo || (variant === "gitea" && !baseUrl)}
         className="px-3 py-1.5 rounded text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 disabled:opacity-40 transition-colors"
       >
         {state === "running" ? t("importing") : t("import")}

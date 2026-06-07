@@ -31,7 +31,7 @@ class GithubImportRequest(BaseModel):
 class GiteaImportRequest(BaseModel):
     owner: str
     repo: str
-    base_url: str = "http://192.168.3.22:3001"
+    base_url: str
     token: str = ""
 
 
