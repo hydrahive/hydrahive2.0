@@ -141,7 +141,11 @@ def _sensitive_token(tok: str) -> str | None:
     if any(tok.startswith(d + "/") or tok == d for d in _SECRET_DIRS):
         return tok
     if _SSH_MARKER in tok or tok.endswith("/.ssh"):
-        return tok
+        # Nur Home-Verzeichnisse sind sensitiv (/home/…/.ssh, /root/.ssh).
+        # Workspace-SSH-Configs ($WORKSPACE/.ssh/config, /var/lib/…/.ssh/) sind
+        # normale Agenten-Operation — kein Popup.
+        if any(p in tok for p in ("/home/", "/root/")):
+            return tok
     bn = os.path.basename(tok)
     low = bn.lower()
     if bn in _SECRET_BASENAMES or low.endswith(_CRED_SUFFIX):
