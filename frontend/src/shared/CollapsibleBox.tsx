@@ -54,20 +54,23 @@ export function CollapsibleBox({
       className={`box overflow-hidden ${className}`}
       style={color ? ({ "--c": color } as CSSProperties) : undefined}
     >
-      <div className="box-h" style={collapsed ? { borderBottom: "none" } : undefined}>
+      <div
+        className="box-h cursor-pointer select-none"
+        style={collapsed ? { borderBottom: "none" } : undefined}
+        onClick={toggle}
+        aria-expanded={!collapsed}
+        role="button"
+      >
         {icon && <span className="ic">{icon}</span>}
         <span className="t">{title}</span>
-        <span className="r flex items-center gap-2">
+        <span className="r flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           {headerRight}
-          <button
-            type="button"
-            onClick={toggle}
-            aria-expanded={!collapsed}
+          <span
             aria-label={collapsed ? "Aufklappen" : "Einklappen"}
             className="text-zinc-500 hover:text-zinc-200 transition-colors"
           >
             <ChevronDown size={14} className={`transition-transform ${collapsed ? "-rotate-90" : ""}`} />
-          </button>
+          </span>
         </span>
       </div>
       {!collapsed && children}
