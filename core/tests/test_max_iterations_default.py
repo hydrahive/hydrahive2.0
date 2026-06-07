@@ -33,13 +33,15 @@ def test_validation_min_ist_1():
     validate_max_iterations(16)
     validate_max_iterations(50)
     validate_max_iterations(100)
+    validate_max_iterations(200)
+    validate_max_iterations(250)
     with pytest.raises(AgentValidationError, match="≥ 1"):
         validate_max_iterations(0)
 
 
-def test_validation_max_ist_100():
+def test_validation_max_ist_250():
     with pytest.raises(AgentValidationError, match="exzessiv"):
-        validate_max_iterations(101)
+        validate_max_iterations(251)
     with pytest.raises(AgentValidationError, match="exzessiv"):
         validate_max_iterations(1000)
 
@@ -57,7 +59,7 @@ def test_normalize_compact_changes_validiert_max_iterations():
     normalize_compact_changes(changes)
     assert changes["max_iterations"] == 32
 
-    changes_bad = {"max_iterations": 200}
+    changes_bad = {"max_iterations": 251}
     with pytest.raises(AgentValidationError, match="exzessiv"):
         normalize_compact_changes(changes_bad)
 
