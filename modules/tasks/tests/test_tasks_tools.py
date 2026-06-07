@@ -119,3 +119,50 @@ async def test_task_list_user_isolation():
     alice_result = await lst.execute({}, make_ctx("alice"))
     assert alice_result.output["count"] == 1
     assert alice_result.output["tasks"][0]["title"] == "Alices Task"
+
+
+# ── task_read ─────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_task_read_by_full_id():
+    from backend.tools.task_write import TOOL as write
+    from backend.tools.task_read import TOOL as read
+    ctx = make_ctx()
+    r = await write.execute({"title": "Lesbar", "description": "Wichtig"}, ctx)
+    task_id = r.output["task"]["id"]
+
+    r2 = await read.execute({"task_id": task_id}, ctx)
+    assert r2.success
+    assert r2.output["task"]["title"] == "Lesbar"
+    assert r2.output["task"]["description"] == "Wichtig"
+
+
+@pytest.mark.asyncio
+async def test_task_read_by_prefix():
+    from backend.tools.task_write import TOOL as write
+    from backend.tools.task_read import TOOL as read
+    ctx = make_ctx()
+    r = await write.execute({"title": "Prefix-Test"}, ctx)
+    prefix = r.output["task"]["id"][:8]
+
+    r2 = await read.execute({"task_id": prefix}, ctx)
+    assert r2.success
+    assert r2.output["task"]["title"] == "Prefix-Test"
+
+
+@pytest.mark.asyncio
+async def test_task_read_not_found():
+    from backend.tools.task_read import TOOL as read
+    r = await read.execute({"task_id": "doesnotexist"}, make_ctx())
+    assert not r.success
+
+
+@pytest.mark.asyncio
+async def test_task_read_user_isolation():
+    from backend.tools.task_write import TOOL as write
+    from backend.tools.task_read import TOOL as read
+    r = await write.execute({"title": "Geheim"}, make_ctx("alice"))
+    task_id = r.output["task"]["id"]
+
+    r2 = await read.execute({"task_id": task_id}, make_ctx("bob"))
+    assert not r2.success
