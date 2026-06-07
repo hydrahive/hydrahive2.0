@@ -44,7 +44,13 @@ export function useChat(sessionId: string | null) {
     if (!sessionId) { setState(EMPTY_STATE); return }
     try {
       const msgs = await chatApi.listMessages(sessionId)
-      setState((s) => ({ ...s, messages: msgs, busy: false, iteration: 0, error: null, errorKind: null }))
+      // max_iterations-Error bleibt stehen bis der User "weitermachen" klickt —
+      // Live-Sync-Reload darf ihn nicht wegwischen.
+      setState((s) => ({
+        ...s, messages: msgs, busy: false, iteration: 0,
+        error: s.errorKind === "max_iterations" ? s.error : null,
+        errorKind: s.errorKind === "max_iterations" ? s.errorKind : null,
+      }))
     } catch (e) {
       setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Fehler" }))
     }
