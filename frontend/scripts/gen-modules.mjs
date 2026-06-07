@@ -23,7 +23,7 @@ ${imports}
 function _opt<T>(mod: unknown, key: string): T[] {
   return ((mod as Record<string, unknown>)[key] as T[] | undefined) ?? []
 }
-const _mods = [${mods}]
+const _mods: unknown[] = [${mods}]
 export const moduleRoutes: unknown[] = [${routes}]
 export const moduleNav: unknown[] = [${nav}]
 export const moduleI18n: unknown[] = [${i18n}]
