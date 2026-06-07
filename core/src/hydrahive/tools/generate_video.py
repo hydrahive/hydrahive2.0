@@ -40,7 +40,7 @@ _POLL_INTERVAL_MAX = 20.0
 
 _DESCRIPTION = (
     "Generiert ein Video aus einem Text-Prompt über OpenRouter (async Jobs-API). "
-    "Optionaler Startframe via image_url (Workspace-Pfad oder https-URL) für Image-to-Video. "
+    "Optionaler Startframe via image_path (Workspace-Pfad relativ zum Workspace) für Image-to-Video. "
     "Das Video wird gespeichert und im Chat als Video-Player angezeigt. "
     "Verfügbare Modelle: kling/kling-video-v2-master (default, Image-to-Video), "
     "google/veo-3.1, openai/sora-2-pro, minimax/hailuo-2.3 (Image-to-Video). "
@@ -83,11 +83,11 @@ _SCHEMA = {
             "description": "Seitenverhältnis (default '16:9'). Weitere: '9:16', '1:1'.",
             "default": "16:9",
         },
-        "image_url": {
+        "image_path": {
             "type": "string",
             "description": (
-                "Optionaler Startframe für Image-to-Video. "
-                "Workspace-Pfad (wird automatisch als data-URI kodiert) oder https-URL. "
+                "Optionaler Startframe für Image-to-Video: Pfad relativ zum Workspace "
+                "(z.B. 'generated/bild.png'). Wird als base64 an die API übergeben. "
                 "Nicht alle Modelle unterstützen das — Kling und Hailuo tun es."
             ),
         },
@@ -112,13 +112,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     height = int(args.get("height") or 720)
     duration = int(args.get("duration") or 5)
     aspect_ratio = (args.get("aspect_ratio") or "16:9").strip()
-    image_url: str | None = (args.get("image_url") or "").strip() or None
+    image_path: str | None = (args.get("image_path") or "").strip() or None
+    image_url: str | None = None
 
-    # Workspace-Pfad → data-URI
-    if image_url and not image_url.startswith(("http://", "https://", "data:")):
-        img_path = Path(image_url)
+    if image_path:
+        img_path = Path(image_path)
         if not img_path.is_absolute():
-            img_path = ctx.workspace / image_url
+            img_path = ctx.workspace / image_path
         if not img_path.exists():
             return ToolResult.fail(f"Bild nicht gefunden: {img_path}")
         suffix = img_path.suffix.lower().lstrip(".") or "jpeg"
