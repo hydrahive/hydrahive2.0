@@ -6,6 +6,7 @@ import { rgbFor } from "@/shared/colors"
 import { api } from "@/shared/api-client"
 
 interface CredField {
+  key: string
   label: string
   value: string
   secret: boolean
@@ -17,13 +18,26 @@ interface ExtCred {
   fields: CredField[]
 }
 
+function resolveUrl(value: string): string {
+  if (value.startsWith(":") || (value.startsWith("/") && !value.startsWith("//")))
+    return `http://${window.location.hostname}${value}`
+  return value
+}
+
 function FieldRow({ field }: { field: CredField }) {
   const [visible, setVisible] = useState(false)
+  const display = field.secret && !visible ? "•".repeat(Math.min(field.value.length, 24)) : field.value
+  const fullUrl = !field.secret && field.key === "url" ? resolveUrl(field.value) : null
   return (
     <div className="flex items-center justify-between gap-3 py-1.5 border-b border-white/[4%] last:border-0">
       <span className="text-xs text-zinc-500 shrink-0 w-32">{field.label}</span>
       <span className="flex-1 font-mono text-xs text-zinc-200 truncate">
-        {field.secret && !visible ? "•".repeat(Math.min(field.value.length, 24)) : field.value}
+        {fullUrl ? (
+          <a href={fullUrl} target="_blank" rel="noreferrer"
+            className="text-violet-400 hover:text-violet-300 transition-colors">
+            {fullUrl}
+          </a>
+        ) : display}
       </span>
       {field.secret && (
         <button onClick={() => setVisible((v) => !v)}

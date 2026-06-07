@@ -51,13 +51,9 @@ def write_docker_credentials(manifest: dict, params: dict[str, str]) -> None:
     docker = manifest.get("docker", {})
     open_url = docker.get("open_url", "")
     if open_url:
-        import socket
-        try:
-            ip = socket.gethostbyname(socket.gethostname())
-        except Exception:
-            ip = "127.0.0.1"
-        fields.append({"key": "url", "label": "URL",
-                       "value": f"http://{ip}{open_url}", "secret": False})
+        # Pattern (z.B. ":3001/") speichern — Frontend ergänzt window.location.hostname.
+        # Kein socket.gethostbyname: löst die IP zum Install-Zeitpunkt auf und friert sie ein.
+        fields.append({"key": "url", "label": "URL", "value": open_url, "secret": False})
 
     for p in manifest.get("install_params", []):
         if p.get("auto_generate") and p.get("required") is False:
