@@ -12,8 +12,10 @@ logger = logging.getLogger(__name__)
 _DESCRIPTION = (
     "Führt einen Shell-Befehl im Workspace aus (bash). Gibt stdout, stderr und "
     "Exit-Code zurück. Default-Timeout: 60s. "
-    "GH_TOKEN + GITHUB_TOKEN sind automatisch gesetzt wenn das Projekt einen Token hat — "
+    "GH_TOKEN + GITHUB_TOKEN sind automatisch gesetzt wenn das Projekt einen GitHub-Token hat — "
     "`gh issue create`, `git push` etc. ohne extra Auth. "
+    "GITEA_TOKEN ist gesetzt wenn ein Credential für localhost/127.0.0.1 (lokales Gitea) existiert — "
+    "für Gitea-Pushes: `git -c http.extraHeader='Authorization: token '\"$GITEA_TOKEN\" push ...`. "
     "SSH mit Passwort: `sshpass -p '<pass>' ssh -o StrictHostKeyChecking=no <user>@<host> '<cmd>'` — "
     "Befehle in einem einzigen Aufruf bündeln."
 )
@@ -104,6 +106,26 @@ def _env_denylist() -> set[str]:
     return _STATIC_ENV_DENYLIST | provider_env_vars()
 
 
+def _resolve_gitea_token(ctx: ToolContext) -> str | None:
+    """Gitea-Token aus dem Credential-Store für den aktuellen User.
+
+    Sucht das erste Credential dessen url_pattern auf einen bekannten lokalen
+    Gitea-Host (localhost, 127.0.0.1) zeigt. Ergebnis → GITEA_TOKEN in der Env.
+    """
+    try:
+        from hydrahive.credentials import list_credentials
+    except ImportError:
+        return None
+    owner = getattr(ctx, "user_id", None) or ""
+    if not owner:
+        return None
+    for cred in list_credentials(owner):
+        pattern = (cred.url_pattern or "").lower()
+        if pattern and any(h in pattern for h in ("localhost", "127.0.0.1", "127.0.1.1")):
+            return cred.value
+    return None
+
+
 def _build_env(ctx: ToolContext) -> dict:
     denylist = _env_denylist()
     env = {k: v for k, v in os.environ.items() if k not in denylist}
@@ -111,6 +133,9 @@ def _build_env(ctx: ToolContext) -> dict:
     if token:
         env["GH_TOKEN"] = token
         env["GITHUB_TOKEN"] = token
+    gitea_token = _resolve_gitea_token(ctx)
+    if gitea_token:
+        env["GITEA_TOKEN"] = gitea_token
     return env
 
 

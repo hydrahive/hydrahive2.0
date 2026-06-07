@@ -91,8 +91,6 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         parsed = urllib.parse.urlparse(url)
         if not parsed.hostname:
             return ToolResult.fail("Ungültige URL — kein Hostname")
-        if _is_blocked(parsed.hostname):
-            return ToolResult.fail(f"Zugriff auf interne/private Adressen gesperrt: {parsed.hostname}")
     except Exception:
         return ToolResult.fail("Ungültige URL")
 
@@ -110,7 +108,14 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     params: dict[str, str] = {}
     auth_used: str | None = None
 
+    # Credentials VOR SSRF-Check matchen: ein konfiguriertes Credential = Admin vertraut
+    # diesem Host explizit → darf auch localhost/RFC1918 ansprechen (z.B. lokales Gitea).
     cred = _select_cred(ctx.user_id, url, auth_name)
+    is_internal = _is_blocked(parsed.hostname)
+
+    if is_internal and not cred:
+        return ToolResult.fail(f"Zugriff auf interne/private Adressen gesperrt: {parsed.hostname}")
+
     if cred:
         auth_used = _apply_auth(cred, headers, params)
 
@@ -118,13 +123,21 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         headers["Content-Type"] = content_type
 
     try:
-        # safe_async_client pinnt den Connect an eine vorab validierte IP →
-        # DNS-Rebinding zwischen Check und Connect ist ausgeschlossen (#206).
-        async with safe_async_client(url, timeout=timeout) as client:
-            r = await client.request(
-                method, url, headers=headers, params=params or None,
-                content=body.encode("utf-8") if body else None,
-            )
+        if is_internal:
+            # Credential vorhanden, lokaler Host → direkter Client (kein DNS-Rebinding-Risiko).
+            async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+                r = await client.request(
+                    method, url, headers=headers, params=params or None,
+                    content=body.encode("utf-8") if body else None,
+                )
+        else:
+            # safe_async_client pinnt den Connect an eine vorab validierte IP →
+            # DNS-Rebinding zwischen Check und Connect ist ausgeschlossen (#206).
+            async with safe_async_client(url, timeout=timeout) as client:
+                r = await client.request(
+                    method, url, headers=headers, params=params or None,
+                    content=body.encode("utf-8") if body else None,
+                )
     except SsrfBlocked as e:
         return ToolResult.fail(f"Zugriff auf interne/private Adressen gesperrt: {e}")
     except httpx.HTTPError as e:
