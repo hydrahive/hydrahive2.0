@@ -9,7 +9,7 @@ import { moduleWorkspaceTabs } from "@/modules/index.generated"
 interface WorkspaceTabDef {
   id: string
   label: string
-  component: ComponentType
+  component: ComponentType<{ projectId?: string | null }>
 }
 
 const extraTabs = moduleWorkspaceTabs as WorkspaceTabDef[]
@@ -19,10 +19,11 @@ type Tab = CoreTab | string
 
 interface Props {
   agentId: string | null
+  projectId?: string | null
   onOpenFile: (path: string, kind: FileKind) => void
 }
 
-export function WorkspacePanel({ agentId, onOpenFile }: Props) {
+export function WorkspacePanel({ agentId, projectId, onOpenFile }: Props) {
   const { t } = useTranslation("workspace")
   const [tab, setTab] = useState<Tab>("files")
 
@@ -56,7 +57,7 @@ export function WorkspacePanel({ agentId, onOpenFile }: Props) {
         {extraTabs.map(({ id, component: Comp }) =>
           tab === id ? (
             <Suspense key={id} fallback={<div className="p-4 text-[11px] text-zinc-600">Laden…</div>}>
-              <Comp />
+              <Comp projectId={projectId} />
             </Suspense>
           ) : null
         )}

@@ -308,7 +308,7 @@ export function ChatPage() {
           />
         }
         center={center}
-        right={<WorkspacePanel agentId={activeAgent?.id ?? null} onOpenFile={(path, kind) => setWsFile({ path, kind })} />}
+        right={<WorkspacePanel agentId={activeAgent?.id ?? null} projectId={activeSession?.project_id} onOpenFile={(path, kind) => setWsFile({ path, kind })} />}
       />
       {wsFile && activeAgent && (
         <FileOverlay agentId={activeAgent.id} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />

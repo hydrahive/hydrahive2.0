@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from "react"
-import { CheckSquare, Plus, Trash2 } from "lucide-react"
+import { CheckSquare, FolderOpen, Globe, Plus, Trash2 } from "lucide-react"
 import { useTasks } from "../useTasks"
 import type { Task, TaskStatus, TaskPriority } from "../types"
 
@@ -153,17 +153,22 @@ function TaskRow({ task, onStatusChange, onDelete }: TaskRowProps) {
   )
 }
 
-export function TaskPanel() {
+interface TaskPanelProps {
+  projectId?: string | null
+}
+
+export function TaskPanel({ projectId }: TaskPanelProps = {}) {
   const [filter, setFilter] = useState<TaskStatus | "all">("all")
   const [showForm, setShowForm] = useState(false)
 
   const { tasks, loading, error, createTask, updateTask, deleteTask } = useTasks({
     status: filter === "all" ? undefined : filter,
+    projectId: projectId ?? undefined,
     pollMs: 5000,
   })
 
   async function handleCreate(title: string, priority: TaskPriority) {
-    await createTask({ title, priority })
+    await createTask({ title, priority, project_id: projectId ?? undefined })
     setShowForm(false)
   }
 
@@ -175,6 +180,15 @@ export function TaskPanel() {
     <div className="flex flex-col h-full" style={{ "--c": "138,92,246" } as CSSProperties}>
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-white/[6%]">
         <CheckSquare size={12} className="text-violet-400 flex-shrink-0" />
+        {projectId ? (
+          <span className="flex items-center gap-0.5 text-[9px] text-violet-400/70 bg-violet-500/10 rounded px-1 py-0.5 flex-shrink-0">
+            <FolderOpen size={9} /> Projekt
+          </span>
+        ) : (
+          <span className="flex items-center gap-0.5 text-[9px] text-zinc-500 flex-shrink-0">
+            <Globe size={9} /> Alle
+          </span>
+        )}
         <div className="flex gap-0.5 flex-1 overflow-x-auto">
           {FILTER_OPTIONS.map(({ value, label }) => (
             <button

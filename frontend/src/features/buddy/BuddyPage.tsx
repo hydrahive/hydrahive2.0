@@ -27,7 +27,7 @@ import { moduleBuddyWidgets } from "@/modules/index.generated"
 // Buddy-Widget-Slot: installierte Module hängen Widgets ins rechte Panel ein.
 // Sie bekommen onPrompt durch (→ sendet an den Buddy-Chat). Ersetzt den früheren
 // fixen HealthBuddyBox-Import (lebt jetzt im patientenakte-Modul).
-type BuddyWidget = ComponentType<{ onPrompt: (text: string) => void }>
+type BuddyWidget = ComponentType<{ onPrompt: (text: string) => void; projectId?: string | null }>
 const BUDDY_WIDGETS = moduleBuddyWidgets as BuddyWidget[]
 
 export function BuddyPage() {
@@ -259,7 +259,7 @@ export function BuddyPage() {
         <div className="hidden xl:flex flex-col gap-4 shrink-0 overflow-y-auto min-h-0">
           <BuddyExtensionsPanel />
           {BUDDY_WIDGETS.map((W, i) => (
-            <W key={i} onPrompt={(text) => handleSend(text)} />
+            <W key={i} onPrompt={(text) => handleSend(text)} projectId={state?.project_id} />
           ))}
         </div>
       </div>

@@ -11,10 +11,11 @@ const PRIORITY_DOT: Record<Task["priority"], string> = {
 
 interface Props {
   onPrompt: (text: string) => void
+  projectId?: string | null
 }
 
-export function TaskBuddyBox({ onPrompt }: Props) {
-  const { tasks, complete } = useTasks({ status: "open", pollMs: 8000 })
+export function TaskBuddyBox({ onPrompt, projectId }: Props) {
+  const { tasks, complete } = useTasks({ status: "open", projectId: projectId ?? undefined, pollMs: 8000 })
   const inProgress = tasks.filter((t) => t.status === "in_progress")
   const open = tasks.filter((t) => t.status === "open")
   const visible = [...inProgress, ...open].slice(0, 6)
