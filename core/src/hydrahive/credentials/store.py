@@ -96,6 +96,11 @@ def save_credential(username: str, cred: Credential) -> tuple[bool, str]:
             return False, "credential_ssh_host_required"
         if not cred.header_name:
             return False, "credential_ssh_user_required"
+        import re as _re
+        if not _re.fullmatch(r"[A-Za-z0-9.\-]{1,253}", cred.url_pattern):
+            return False, "credential_ssh_host_invalid"
+        if not _re.fullmatch(r"[A-Za-z0-9._\-]{1,32}", cred.header_name):
+            return False, "credential_ssh_user_invalid"
     raw = _load_raw(username)
     raw[cred.name] = {
         "type": cred.type, "value": cred.value, "url_pattern": cred.url_pattern,

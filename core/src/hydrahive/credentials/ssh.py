@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import stat
 from pathlib import Path
 
@@ -80,8 +81,20 @@ def remove_ssh_key(username: str, cred_name: str) -> None:
         logger.warning("Key-Datei konnte nicht gelöscht werden: %s: %s", path, e)
 
 
+_SAFE_HOST = re.compile(r"^[A-Za-z0-9.\-]{1,253}$")
+_SAFE_USER = re.compile(r"^[A-Za-z0-9._\-]{1,32}$")
+
+
 def _build_host_block(host: str, ssh_user: str, key_path: Path) -> str:
-    """Generiert einen SSH-Config Host-Block."""
+    """Generiert einen SSH-Config Host-Block.
+
+    Beide Parameter werden gegen enge Allowlists geprüft — verhindert
+    SSH-Config-Injection via ProxyCommand oder andere Direktiven.
+    """
+    if not _SAFE_HOST.match(host):
+        raise ValueError(f"Ungültiger SSH-Hostname: {host!r}")
+    if not _SAFE_USER.match(ssh_user):
+        raise ValueError(f"Ungültiger SSH-Username: {ssh_user!r}")
     known_hosts = _known_hosts_path()
     lines = [
         f"Host {host}",
