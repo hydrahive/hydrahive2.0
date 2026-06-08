@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/credentials", tags=["credentials"])
 
 class CredentialBody(BaseModel):
     name: str = Field(min_length=1, max_length=50)
-    type: Literal["bearer", "basic", "cookie", "header", "query"]
+    type: Literal["bearer", "basic", "cookie", "header", "query", "ssh_key"]
     value: str
     url_pattern: str = "*"
     description: str = ""

@@ -4,8 +4,8 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-CredentialType = Literal["bearer", "basic", "cookie", "header", "query"]
-ALL_TYPES: tuple[CredentialType, ...] = ("bearer", "basic", "cookie", "header", "query")
+CredentialType = Literal["bearer", "basic", "cookie", "header", "query", "ssh_key"]
+ALL_TYPES: tuple[CredentialType, ...] = ("bearer", "basic", "cookie", "header", "query", "ssh_key")
 
 NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,49}$")
 

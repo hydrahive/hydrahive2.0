@@ -1,4 +1,4 @@
-export type CredentialType = "bearer" | "basic" | "cookie" | "header" | "query"
+export type CredentialType = "bearer" | "basic" | "cookie" | "header" | "query" | "ssh_key"
 
 export interface Credential {
   name: string

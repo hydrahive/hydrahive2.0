@@ -91,6 +91,11 @@ def save_credential(username: str, cred: Credential) -> tuple[bool, str]:
         return False, "credential_header_name_required"
     if cred.type == "query" and not cred.query_param:
         return False, "credential_query_param_required"
+    if cred.type == "ssh_key":
+        if not cred.url_pattern or cred.url_pattern == "*":
+            return False, "credential_ssh_host_required"
+        if not cred.header_name:
+            return False, "credential_ssh_user_required"
     raw = _load_raw(username)
     raw[cred.name] = {
         "type": cred.type, "value": cred.value, "url_pattern": cred.url_pattern,
@@ -98,6 +103,8 @@ def save_credential(username: str, cred: Credential) -> tuple[bool, str]:
         "query_param": cred.query_param,
     }
     _save_raw(username, raw)
+    if cred.type == "ssh_key":
+        _sync_ssh(username, cred.name, cred.value)
     return True, ""
 
 
@@ -105,9 +112,31 @@ def delete_credential(username: str, name: str) -> bool:
     raw = _load_raw(username)
     if name not in raw:
         return False
+    is_ssh = isinstance(raw[name], dict) and raw[name].get("type") == "ssh_key"
     del raw[name]
     _save_raw(username, raw)
+    if is_ssh:
+        _remove_ssh(username, name)
     return True
+
+
+def _sync_ssh(username: str, cred_name: str, private_key: str) -> None:
+    try:
+        from hydrahive.credentials.ssh import sync_ssh_config, write_ssh_key
+        if private_key:
+            write_ssh_key(username, cred_name, private_key)
+        sync_ssh_config()
+    except Exception as e:
+        logger.warning("SSH-Config konnte nicht aktualisiert werden: %s", e)
+
+
+def _remove_ssh(username: str, cred_name: str) -> None:
+    try:
+        from hydrahive.credentials.ssh import remove_ssh_key, sync_ssh_config
+        remove_ssh_key(username, cred_name)
+        sync_ssh_config()
+    except Exception as e:
+        logger.warning("SSH-Key konnte nicht entfernt werden: %s", e)
 
 
 def match_credential(username: str, url: str, *, prefer_name: str | None = None) -> Credential | None:

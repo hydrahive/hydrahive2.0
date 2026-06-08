@@ -15,7 +15,7 @@ interface Props {
 }
 
 const NAME_RE = /^[a-z0-9][a-z0-9_-]{0,49}$/
-const TYPES: CredentialType[] = ["bearer", "basic", "cookie", "header", "query"]
+const TYPES: CredentialType[] = ["bearer", "basic", "cookie", "header", "query", "ssh_key"]
 
 export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Props) {
   const { t } = useTranslation("credentials")
@@ -34,11 +34,14 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
   const validName = NAME_RE.test(name)
   const needsHeader = type === "header"
   const needsQuery = type === "query"
+  const isSshKey = type === "ssh_key"
 
   async function save() {
     if (!validName) { setError(t("name_invalid")); return }
     if (needsHeader && !headerName) { setError(t("header_name_required")); return }
     if (needsQuery && !queryParam) { setError(t("query_param_required")); return }
+    if (isSshKey && (!urlPattern || urlPattern === "*")) { setError(t("ssh_host_required")); return }
+    if (isSshKey && !headerName) { setError(t("ssh_user_required")); return }
     setBusy(true); setError(null)
     try {
       await credentialsApi.save({
@@ -89,9 +92,18 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
           </Field>
         </div>
 
-        <Field label={t("value")} hint={t(`value_hint_${type}`)}>
-          <CredentialValueInput credential={credential} value={value} onChange={setValue} />
-        </Field>
+        {isSshKey ? (
+          <Field label={t("ssh_private_key")} hint={t("ssh_private_key_hint")}>
+            <textarea value={value} onChange={(e) => setValue(e.target.value)}
+              rows={6}
+              placeholder={credential?.value_set ? "••••••••" : "-----BEGIN OPENSSH PRIVATE KEY-----\n...\n-----END OPENSSH PRIVATE KEY-----"}
+              className="w-full px-2 py-1.5 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono resize-y" />
+          </Field>
+        ) : (
+          <Field label={t("value")} hint={t(`value_hint_${type}`)}>
+            <CredentialValueInput credential={credential} value={value} onChange={setValue} />
+          </Field>
+        )}
 
         {needsHeader && (
           <Field label={t("header_name")}>
@@ -107,12 +119,28 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
           </Field>
         )}
+        {isSshKey && (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label={t("ssh_host")} hint={t("ssh_host_hint")}>
+              <input value={urlPattern} onChange={(e) => setUrlPattern(e.target.value)}
+                placeholder="192.168.178.216"
+                className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
+            </Field>
+            <Field label={t("ssh_user")}>
+              <input value={headerName} onChange={(e) => setHeaderName(e.target.value)}
+                placeholder="joshua"
+                className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
+            </Field>
+          </div>
+        )}
 
-        <Field label={t("url_pattern")} hint={t("url_pattern_hint")}>
-          <input value={urlPattern} onChange={(e) => setUrlPattern(e.target.value)}
-            placeholder="https://forum.metin2.de/*"
-            className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
-        </Field>
+        {!isSshKey && (
+          <Field label={t("url_pattern")} hint={t("url_pattern_hint")}>
+            <input value={urlPattern} onChange={(e) => setUrlPattern(e.target.value)}
+              placeholder="https://forum.metin2.de/*"
+              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
+          </Field>
+        )}
 
         <Field label={t("description")}>
           <input value={description} onChange={(e) => setDescription(e.target.value)}
