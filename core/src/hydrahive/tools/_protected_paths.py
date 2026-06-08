@@ -148,16 +148,7 @@ def _sensitive_token(tok: str) -> str | None:
             return tok
     bn = os.path.basename(tok)
     low = bn.lower()
-    if bn in _SECRET_BASENAMES:
-        # Service-Account-Keys (absolute Pfade außerhalb /home/ und /root/) und
-        # Shell-Variablen-Referenzen ($KEYDIR/id_ed25519) sind legitime
-        # Agenten-Operationen — kein Popup. User-Home-Pfade und relative Namen bleiben geblockt.
-        is_service_path = (
-            tok.startswith("/") and not any(p in tok for p in ("/home/", "/root/"))
-        ) or tok.startswith("$")
-        if not is_service_path:
-            return tok
-    if low.endswith(_CRED_SUFFIX):
+    if bn in _SECRET_BASENAMES or low.endswith(_CRED_SUFFIX):
         return tok
     if any(low.endswith(s) for s in _SECRET_SUFFIXES):
         return tok

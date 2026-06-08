@@ -16,9 +16,9 @@ _DESCRIPTION = (
     "`gh issue create`, `git push` etc. ohne extra Auth. "
     "GITEA_TOKEN ist gesetzt wenn ein Credential für localhost/127.0.0.1 (lokales Gitea) existiert — "
     "für Gitea-Pushes: `git -c http.extraHeader='Authorization: token '\"$GITEA_TOKEN\" push ...`. "
-    "HH_SSH_KEYFILE ist gesetzt wenn ein System-SSH-Key vorhanden ist — "
-    "für SSH zu bekannten Hosts: `ssh -i $HH_SSH_KEYFILE -o StrictHostKeyChecking=no user@host 'cmd'`. "
-    "SSH mit Passwort: `sshpass -p '<pass>' ssh -o StrictHostKeyChecking=no <user>@<host> '<cmd>'` — "
+    "SSH zu konfigurierten Hosts: `ssh user@host 'cmd'` — kein explizites -i nötig wenn "
+    "~/.ssh/config mit IdentityFile eingerichtet ist. "
+    "SSH mit Passwort: `sshpass -p '<pass>' ssh user@host '<cmd>'` — "
     "Befehle in einem einzigen Aufruf bündeln."
 )
 
@@ -141,23 +141,6 @@ def _resolve_gitea_token(ctx: ToolContext) -> str | None:
     return None
 
 
-def _resolve_ssh_keyfile() -> str | None:
-    """System-SSH-Key des hydrahive-Service-Accounts, falls vorhanden."""
-    try:
-        from hydrahive.settings import settings
-        data_dir = str(settings.data_dir)
-    except Exception:
-        data_dir = os.environ.get("HH_DATA_DIR", "/var/lib/hydrahive2")
-    candidates = [
-        os.path.join(data_dir, ".ssh", "id_ed25519"),
-        os.path.join(data_dir, ".ssh", "id_rsa"),
-    ]
-    for path in candidates:
-        if os.path.isfile(path):
-            return path
-    return None
-
-
 def _build_env(ctx: ToolContext) -> dict:
     denylist = _env_denylist()
     env = {k: v for k, v in os.environ.items() if k not in denylist}
@@ -168,9 +151,6 @@ def _build_env(ctx: ToolContext) -> dict:
     gitea_token = _resolve_gitea_token(ctx)
     if gitea_token:
         env["GITEA_TOKEN"] = gitea_token
-    ssh_keyfile = _resolve_ssh_keyfile()
-    if ssh_keyfile:
-        env["HH_SSH_KEYFILE"] = ssh_keyfile
     return env
 
 
