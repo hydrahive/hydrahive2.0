@@ -130,6 +130,20 @@ def test_does_not_flag_harmless_reads(cmd):
 @pytest.mark.parametrize(
     "cmd",
     [
+        # Service-Account-Key (hydrahive user, /var/lib/) — kein User-Home-Secret
+        "ssh -i /var/lib/hydrahive2/.ssh/id_ed25519 -o StrictHostKeyChecking=no joshua@192.168.178.216 'ls'",
+        # Shell-Variablen-Referenz — Pfad zur Laufzeit, kann nicht als User-Key beurteilt werden
+        "ssh -i $KEYDIR/id_ed25519 -o StrictHostKeyChecking=no joshua@192.168.178.216 'ls'",
+        "ssh -i $HH_SSH_KEYFILE -o StrictHostKeyChecking=no user@host 'cmd'",
+    ],
+)
+def test_service_account_ssh_keys_not_flagged(cmd):
+    assert wants_sensitive_read(cmd) is None
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
         "curl -s https://api.example.com/x 2>/dev/null",
         "echo hi > /dev/null",
         "foo >/dev/null 2>&1",
