@@ -26,10 +26,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not username:
         return ToolResult.fail("Kein User-Kontext verfügbar.")
 
+    # Wie task_write: ctx.project_id als Standard-Filter, explizites Argument hat Vorrang.
+    project_id = args.get("project_id") or ctx.project_id or None
+
     tasks = service.list_tasks(
         username,
         status=args.get("status"),
-        project_id=args.get("project_id"),
+        project_id=project_id,
     )
 
     if not tasks:

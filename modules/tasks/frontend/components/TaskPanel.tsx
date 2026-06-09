@@ -1,5 +1,5 @@
-import { useState, type CSSProperties } from "react"
-import { CheckSquare, FolderOpen, Globe, Plus, Trash2 } from "lucide-react"
+import { useEffect, useState, type CSSProperties } from "react"
+import { CheckSquare, ChevronDown, FolderOpen, Globe, Plus, Trash2 } from "lucide-react"
 import { useTasks } from "../useTasks"
 import type { Task, TaskStatus, TaskPriority } from "../types"
 
@@ -153,22 +153,37 @@ function TaskRow({ task, onStatusChange, onDelete }: TaskRowProps) {
   )
 }
 
+interface ProjectOption { id: string; name: string }
+
 interface TaskPanelProps {
   projectId?: string | null
 }
 
-export function TaskPanel({ projectId }: TaskPanelProps = {}) {
+export function TaskPanel({ projectId: sessionProjectId }: TaskPanelProps = {}) {
   const [filter, setFilter] = useState<TaskStatus | "all">("all")
   const [showForm, setShowForm] = useState(false)
+  // Wenn die Session kein Projekt hat, kann der User manuell eines wählen.
+  const [manualProjectId, setManualProjectId] = useState<string | "">("")
+  const [projects, setProjects] = useState<ProjectOption[]>([])
+
+  const effectiveProjectId = sessionProjectId ?? (manualProjectId || undefined)
+
+  useEffect(() => {
+    if (sessionProjectId) return
+    fetch("/api/projects", { credentials: "include" })
+      .then((r) => r.ok ? r.json() : [])
+      .then((list: ProjectOption[]) => setProjects(list))
+      .catch(() => {})
+  }, [sessionProjectId])
 
   const { tasks, loading, error, createTask, updateTask, deleteTask } = useTasks({
     status: filter === "all" ? undefined : filter,
-    projectId: projectId ?? undefined,
+    projectId: effectiveProjectId,
     pollMs: 5000,
   })
 
   async function handleCreate(title: string, priority: TaskPriority) {
-    await createTask({ title, priority, project_id: projectId ?? undefined })
+    await createTask({ title, priority, project_id: effectiveProjectId })
     setShowForm(false)
   }
 
@@ -180,10 +195,24 @@ export function TaskPanel({ projectId }: TaskPanelProps = {}) {
     <div className="flex flex-col h-full" style={{ "--c": "138,92,246" } as CSSProperties}>
       <div className="flex items-center gap-1.5 px-2.5 py-1.5 border-b border-white/[6%]">
         <CheckSquare size={12} className="text-violet-400 flex-shrink-0" />
-        {projectId ? (
+        {sessionProjectId ? (
           <span className="flex items-center gap-0.5 text-[9px] text-violet-400/70 bg-violet-500/10 rounded px-1 py-0.5 flex-shrink-0">
             <FolderOpen size={9} /> Projekt
           </span>
+        ) : projects.length > 0 ? (
+          <div className="relative flex-shrink-0">
+            <select
+              value={manualProjectId}
+              onChange={(e) => setManualProjectId(e.target.value)}
+              className="appearance-none bg-zinc-800/60 border border-white/[8%] rounded pl-1.5 pr-5 py-0.5 text-[9px] text-zinc-400 focus:outline-none focus:border-violet-500/40 cursor-pointer"
+            >
+              <option value="">Alle Projekte</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={8} className="absolute right-1 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" />
+          </div>
         ) : (
           <span className="flex items-center gap-0.5 text-[9px] text-zinc-500 flex-shrink-0">
             <Globe size={9} /> Alle
