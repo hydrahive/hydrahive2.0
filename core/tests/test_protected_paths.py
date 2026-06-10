@@ -158,3 +158,84 @@ def test_shell_confirm_reason_combines_both():
     assert s and "/etc/shadow" in s
     assert shell_confirm_reason("cat /opt/searxng/settings.yml") is None
     assert shell_confirm_reason("ls -la") is None
+
+
+# --- SSH / Remote-Arbeit -----------------------------------------------------
+# Das Gate schützt das LOKALE System. SSH-gewrappte Befehle laufen auf einer
+# Gegenstelle und dürfen dort sudo/System-Pfade anfassen, ohne dass bei jedem
+# Aufruf ein Popup kommt. Das `ssh -i <key>` ist Transport-Auth, kein Geheimnis-
+# Lesen. Lokaler Schutz bleibt davon unberührt.
+
+# Tills realer Fall: ein RSH-Funktions-Wrapper plus Remote-Body.
+RSH_DEF = (
+    'RSH() { ssh -i /tmp/romssh/id_ed25519 -o StrictHostKeyChecking=no '
+    '-o UserKnownHostsFile=/tmp/romssh/known_hosts -o ConnectTimeout=15 '
+    'runes@192.168.178.5 "$@"; }\n'
+)
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "ssh -i /tmp/romssh/id_ed25519 runes@192.168.178.5 'uptime'",
+        "scp -i ~/.ssh/id_ed25519 file.tar runes@host:/tmp/",
+        "ssh -o IdentityFile=/tmp/romssh/id_ed25519 host 'uptime'",
+        RSH_DEF + "RSH 'sudo systemctl is-active postgresql; psql --version'",
+    ],
+)
+def test_ssh_identity_file_not_flagged_as_secret(cmd):
+    assert wants_sensitive_read(cmd) is None
+    assert shell_confirm_reason(cmd) is None
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "ssh runes@192.168.178.5 'sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go.tgz'",
+        'ssh host "echo x | sudo tee /etc/profile.d/go.sh"',
+        "sshpass -p 'pw' ssh host 'sudo rm -rf /opt/x'",
+        RSH_DEF
+        + "RSH 'cd /tmp && sudo rm -rf /usr/local/go && echo p | sudo tee /etc/profile.d/go.sh >/dev/null && /usr/local/go/bin/go version'",
+    ],
+)
+def test_remote_body_not_flagged_as_local_write(cmd):
+    assert wants_protected_write(cmd, P) is None
+    assert shell_confirm_reason(cmd) is None
+
+
+def test_quote_awareness_does_not_weaken_local_protection():
+    # Gequotetes Pfad-Argument an ein LOKALES Kommando bleibt geschützt.
+    assert wants_protected_write('rm -rf "/opt/x"', P) == "/opt"
+    assert wants_protected_write("echo hi > /etc/foo", P) == "/etc"
+    # Lokales Kommando hinter einem ssh-Aufruf (außerhalb der Quotes).
+    assert wants_protected_write("ssh host 'uptime' && rm -rf /opt/x", P) == "/opt"
+    # Lokaler Redirect der ssh-Ausgabe in einen geschützten Pfad.
+    assert wants_protected_write("ssh host 'uptime' > /etc/foo", P) == "/etc"
+
+
+def test_dash_i_exemption_is_ssh_scoped():
+    # `cp -i` (interaktiv) ist kein ssh — ein Key-Read muss weiter feuern.
+    assert wants_sensitive_read("cp -i /root/.ssh/id_rsa /tmp/k") is not None
+
+
+def test_quoted_local_redirect_target_still_flagged():
+    # _mask_quotes darf einen LOKALEN Redirect mit gequotetem Ziel nicht verstecken.
+    assert wants_protected_write("echo evil > '/etc/passwd'", P) == "/etc"
+    assert wants_protected_write('cat x > "/opt/hydrahive2/config"', P) == "/opt"
+    assert wants_protected_write("echo p >> '/etc/cron.d/job'", P) == "/etc"
+    # Remote-Redirect (Operator INNERHALB der Quotes) bleibt ungated.
+    assert wants_protected_write("ssh host 'echo x > /etc/y'", P) is None
+    # Escapte Quote ausserhalb von Quotes darf den Operator nicht maskieren.
+    assert wants_protected_write('echo \\" > /etc/passwd', P) == "/etc"
+
+
+def test_rsync_dash_i_is_itemize_not_identity():
+    # rsync -i = --itemize-changes, KEIN Identity-File → Key-Read muss feuern.
+    assert wants_sensitive_read("rsync -i /root/.ssh/id_rsa /tmp/stolen") is not None
+
+
+def test_ssh_dash_o_only_skips_key_value_options():
+    # `-o` nimmt Key=Value; ein nackter Secret-Pfad danach wird NICHT übersprungen.
+    assert wants_sensitive_read("ssh host -o /etc/shadow") is not None
+    # IdentityFile=... (mit =) bleibt exempt.
+    assert wants_sensitive_read("ssh -o IdentityFile=/tmp/k/id_ed25519 host 'x'") is None

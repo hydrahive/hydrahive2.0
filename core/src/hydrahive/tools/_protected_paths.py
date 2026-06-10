@@ -48,6 +48,97 @@ _SAFE_DEV = frozenset({
 def _is_safe_dev(path: str) -> bool:
     return path in _SAFE_DEV or path.startswith("/dev/fd/")
 
+
+# --- SSH / Remote-Transport ---------------------------------------------------
+# Das Gate schützt das LOKALE System. Ein `ssh host '<script>'` führt <script>
+# auf einer Gegenstelle aus — dortige System-Pfade gehen den Lokal-Schutz nichts
+# an. Deshalb: (a) gequotete Strings sind beim Top-Level-Splitten opak (der
+# Remote-Body wird nicht an seinen `&&`/`;` zersägt), (b) Redirections in Quotes
+# zählen nicht, (c) das `ssh -i <key>` ist Transport-Auth, kein Geheimnis-Lesen.
+# Befehle, bei denen `-i <pfad>` das Identity-File ist (Transport-Auth).
+# Bewusst OHNE rsync: dort ist `-i` = --itemize-changes, kein Key-Argument.
+_SSH_FAMILY = frozenset({"ssh", "scp", "sftp", "slogin", "sshpass", "autossh"})
+
+
+def _split_top_level(cmd: str) -> list[str]:
+    """Splittet an `;`, `&`, `|`, Newline — aber nur AUSSERHALB von Quotes.
+
+    Ersetzt das quote-blinde `re.split`: `ssh host 'a && b'` bleibt ein Segment,
+    statt in lokal aussehende `a`/`b` zu zerfallen.
+    """
+    segs: list[str] = []
+    buf: list[str] = []
+    q: str | None = None
+    i, n = 0, len(cmd)
+    while i < n:
+        c = cmd[i]
+        if q is not None:
+            buf.append(c)
+            if c == "\\" and q == '"' and i + 1 < n:
+                buf.append(cmd[i + 1])
+                i += 2
+                continue
+            if c == q:
+                q = None
+            i += 1
+            continue
+        if c in ("'", '"'):
+            q = c
+            buf.append(c)
+        elif c == "\\" and i + 1 < n:
+            buf.append(c)
+            buf.append(cmd[i + 1])
+            i += 2
+            continue
+        elif c in ";&|\n":
+            segs.append("".join(buf))
+            buf = []
+        else:
+            buf.append(c)
+        i += 1
+    if buf:
+        segs.append("".join(buf))
+    return segs
+
+
+def _mask_quotes(s: str) -> str:
+    """Ersetzt gequotete Inhalte durch Leerzeichen (Quote-Zeichen bleiben).
+
+    So matcht der Redirect-Scan nur Redirections ausserhalb von Quotes —
+    `echo x > /etc/y` innerhalb von `ssh host '...'` ist ein Remote-Redirect.
+    """
+    out: list[str] = []
+    q: str | None = None
+    i, n = 0, len(s)
+    while i < n:
+        c = s[i]
+        if q is not None:
+            if c == "\\" and q == '"' and i + 1 < n:
+                out.append("  ")
+                i += 2
+                continue
+            if c == q:
+                q = None
+                out.append(c)
+            else:
+                out.append(" ")
+            i += 1
+            continue
+        if c == "\\" and i + 1 < n:
+            out.append(c)
+            out.append(s[i + 1])
+            i += 2
+            continue
+        if c in ("'", '"'):
+            q = c
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def _has_ssh_token(tokens: Sequence[str]) -> bool:
+    return any(os.path.basename(t.strip("'\"")) in _SSH_FAMILY for t in tokens)
+
 # --- Geheimnisse (Vertraulichkeit, schmal) ---
 # Hier ist JEDER Zugriff selten und relevant — read wie write → Popup.
 _SECRET_FILES = ("/etc/shadow", "/etc/gshadow", "/etc/sudoers")
@@ -81,8 +172,15 @@ def _is_root_target(token: str) -> bool:
 
 
 def _segment_target(seg: str, protected: Sequence[str]) -> str | None:
-    # Redirections (`> /opt/x`, `2>>/etc/y`) — unabhängig vom Befehl.
+    # Redirections (`> /opt/x`, `2>>/etc/y`) — unabhängig vom Befehl. Es zählt
+    # nur ein Redirect-OPERATOR ausserhalb von Quotes (sonst ist es ein Remote-
+    # Redirect, `ssh h 'echo>/etc/y'`). Das ZIEL darf gequotet sein (`> '/etc/x'`)
+    # — deshalb am Original matchen und nur die Operator-Position gegen die
+    # Maske prüfen (gleiche Länge, also positionsgleich).
+    masked = _mask_quotes(seg)
     for m in _REDIRECT.finditer(seg):
+        if masked[m.start()] != seg[m.start()]:
+            continue
         if (h := _hit(m.group(1), protected)):
             return h
 
@@ -126,7 +224,7 @@ def wants_protected_write(cmd: str, protected: Sequence[str] | None = None) -> s
     if not cmd or not cmd.strip():
         return None
     prefixes = protected if protected is not None else default_protected()
-    for seg in re.split(r"[;&|\n]+", cmd):
+    for seg in _split_top_level(cmd):
         if (h := _segment_target(seg, prefixes)):
             return h
     return None
@@ -160,12 +258,28 @@ def _sensitive_token(tok: str) -> str | None:
 
 def wants_sensitive_read(cmd: str) -> str | None:
     """Gibt den getroffenen Pfad zurück wenn `cmd` ein Geheimnis (Key, Shadow,
-    Credentials, .ssh, ...) berührt — read wie write. Sonst None."""
+    Credentials, .ssh, ...) berührt — read wie write. Sonst None.
+
+    Pro Segment ausgewertet: in einem ssh-Segment ist der Wert nach `-i`/`-o`
+    ein Identity-File / eine ssh-Option (Transport-Auth) und kein Geheimnis-Lesen.
+    Ohne ssh im Segment (z.B. `cp -i key /tmp`) bleibt der Treffer bestehen.
+    """
     if not cmd or not cmd.strip():
         return None
-    for tok in cmd.replace("|", " ").replace(";", " ").replace("&", " ").split():
-        if (h := _sensitive_token(tok)):
-            return h
+    for seg in _split_top_level(cmd):
+        tokens = seg.split()
+        ssh_ctx = _has_ssh_token(tokens)
+        prev = ""
+        for tok in tokens:
+            # ssh `-i <key>` = Identity-File; `-o Key=Value` (z.B. IdentityFile=)
+            # = ssh-Option. Beides ist Transport-Auth, kein Geheimnis-Lesen. Ein
+            # nackter Pfad nach `-o` (kein `=`) ist KEINE ssh-Option → nicht exempt.
+            exempt = ssh_ctx and (prev == "-i" or (prev == "-o" and "=" in tok))
+            prev = tok
+            if exempt:
+                continue
+            if (h := _sensitive_token(tok)):
+                return h
     return None
 
 
