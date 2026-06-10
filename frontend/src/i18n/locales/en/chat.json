@@ -24,7 +24,10 @@
   "model_hint": "Switch model for this agent (applies to all sessions)",
   "model": "Model",
   "effort_label": "Depth",
-  "tabs": { "direct": "Direct", "projects": "Projects" },
+  "tabs": {
+    "direct": "Direct",
+    "projects": "Projects"
+  },
   "session": {
     "list_title": "Sessions",
     "new": "New session",
@@ -78,7 +81,8 @@
     "tooltip": "Input ↑ · Output ↓ · Cache-Read ⚡ · Cache-Write 💾",
     "limit_tooltip": "Compaction threshold at {{limit}} tokens",
     "compact_imminent": "Compact soon",
-    "compact_imminent_tooltip": "Auto-compaction will trigger on the next turn — manually compact now if you want."
+    "compact_imminent_tooltip": "Auto-compaction will trigger on the next turn — manually compact now if you want.",
+    "turns_tooltip": "Messages: {{count}} / {{max}} — compaction also fires when this count is reached, not only at the token threshold."
   },
   "compact": {
     "button": "Compact",

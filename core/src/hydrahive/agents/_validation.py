@@ -161,6 +161,20 @@ def validate_max_iterations(n: int) -> None:
         raise AgentValidationError("max_iterations > 250 ist exzessiv — wahrscheinlich Konfig-Fehler")
 
 
+def validate_compact_max_turns(n: int) -> None:
+    # Untergrenze = Loop-sicherer Floor (DEFAULT_MAX_TURNS_BEFORE_COMPACT): nach
+    # Compaction bleiben ~20k Tokens erhalten; ein Deckel darunter würde sofort
+    # wieder triggern (Compaction-Endlosschleife). Setzen ist nur sinnvoll, um
+    # den auto-Wert NACH OBEN zu schieben — None/leer = window-skalierter Default.
+    from hydrahive.compaction.compactor import DEFAULT_MAX_TURNS_BEFORE_COMPACT
+    if not isinstance(n, int) or n < DEFAULT_MAX_TURNS_BEFORE_COMPACT:
+        raise AgentValidationError(
+            f"compact_max_turns muss ≥ {DEFAULT_MAX_TURNS_BEFORE_COMPACT} sein (Loop-Schutz)"
+        )
+    if n > 100_000:
+        raise AgentValidationError("compact_max_turns > 100000 ist exzessiv — wahrscheinlich Konfig-Fehler")
+
+
 def normalize_compact_changes(changes: dict) -> None:
     """Normalizes compaction fields in-place: None/empty → remove or default."""
     if "compact_model" in changes:
@@ -171,6 +185,7 @@ def normalize_compact_changes(changes: dict) -> None:
         ("compact_tool_result_limit", validate_compact_tool_result_limit),
         ("compact_reserve_tokens", validate_compact_reserve_tokens),
         ("compact_threshold_pct", validate_compact_threshold_pct),
+        ("compact_max_turns", validate_compact_max_turns),
         ("max_iterations", validate_max_iterations),
     ):
         if field not in changes:

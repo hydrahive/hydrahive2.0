@@ -323,7 +323,12 @@ async def run(
         try:
             _history = messages_db.list_for_llm(session_id)
             _window = context_window_for(agent["llm_model"])
-            if should_compact(_history, agent["llm_model"], reserve_tokens=_window // 2):
+            # compact_max_turns mitgeben, damit der Pre-Resume-Trigger dasselbe
+            # Turn-Netz nutzt wie der Haupt-Pfad (None → window-skalierter Default).
+            if should_compact(
+                _history, agent["llm_model"],
+                reserve_tokens=_window // 2, max_turns=compact_max_turns,
+            ):
                 _kwargs = {} if compact_tool_limit is None else {"tool_result_limit": compact_tool_limit}
                 await compact_session(
                     session_id, model=compact_model,

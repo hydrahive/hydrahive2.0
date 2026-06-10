@@ -23,6 +23,7 @@ export interface Agent {
   compact_tool_result_limit?: number
   compact_reserve_tokens?: number
   compact_threshold_pct?: number
+  compact_max_turns?: number | null  // null = window-skalierter Default (Turn-Netz)
   tool_result_max_chars?: number  // 0 = kein Limit; live-truncation vor LLM-Call
   cache_ttl?: string              // "5m" | "1h" — Anthropic Prompt-Cache-TTL
   max_iterations?: number
@@ -93,6 +94,7 @@ export interface AgentCreate {
   compact_tool_result_limit?: number
   compact_reserve_tokens?: number
   compact_threshold_pct?: number
+  compact_max_turns?: number | null
   tool_result_max_chars?: number
   max_iterations?: number
 }

@@ -81,7 +81,8 @@
     "tooltip": "Input ↑ · Output ↓ · Cache-Read ⚡ · Cache-Write 💾",
     "limit_tooltip": "Compact-Schwelle bei {{limit}} Tokens",
     "compact_imminent": "Compact bald",
-    "compact_imminent_tooltip": "Auto-Compaction wird beim nächsten Turn ausgelöst — vorher manuell compactieren möglich."
+    "compact_imminent_tooltip": "Auto-Compaction wird beim nächsten Turn ausgelöst — vorher manuell compactieren möglich.",
+    "turns_tooltip": "Nachrichten: {{count}} / {{max}} — Compaction feuert auch beim Erreichen dieser Zahl, nicht nur an der Token-Schwelle."
   },
   "compact": {
     "button": "Compact",

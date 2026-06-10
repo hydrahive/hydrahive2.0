@@ -126,6 +126,10 @@
     "live_truncation_disabled": "Kein Limit",
     "live_truncation_help": "Kürzt einzelne Tool-Results live auf X Zeichen bevor sie in den LLM-Context gehen. 0 = kein Limit. Empfohlen: 12000.",
     "cache_ttl": "Prompt-Cache TTL",
-    "cache_ttl_help": "Wie lange Anthropic den System-Prompt cached. 1h = Cache gilt über mehrere Sessions (2× Write-Kosten). 5m = Anthropic-Default (günstigere Writes, aber Cache verfällt schneller)."
+    "cache_ttl_help": "Wie lange Anthropic den System-Prompt cached. 1h = Cache gilt über mehrere Sessions (2× Write-Kosten). 5m = Anthropic-Default (günstigere Writes, aber Cache verfällt schneller).",
+    "max_turns": "Max-Nachrichten (Turn-Netz)",
+    "max_turns_auto": "auto",
+    "max_turns_help": "Compaction feuert auch, wenn die Nachrichten-Anzahl diesen Wert erreicht — unabhängig von den Tokens. Leer = automatisch (skaliert mit dem Context-Window, z.B. 5000 bei 1M). Nur setzen, wenn ein tool-lastiger Agent zu früh kompaktiert.",
+    "reserve_help": "Wirkt nur, wenn größer als die aus dem Trigger-% abgeleitete Headroom. Bei Trigger < 100% gewinnt meist das Prozent (z.B. 75% von 1M = 250k Reserve → dieser Wert bleibt dann wirkungslos)."
   }
 }

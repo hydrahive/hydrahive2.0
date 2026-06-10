@@ -26,7 +26,24 @@ DEFAULT_KEEP_RECENT_TOKENS = 20_000
 # last-resort safety net — tool-heavy sessions easily pack 200+ short messages
 # into 20K kept tokens, causing compaction to fire on every single turn if this
 # value is low (e.g. 24 caused infinite compaction loops).
+#
+# Floor (untere Grenze) des Turn-Netzes. Skaliert für große Fenster nach oben
+# (siehe default_max_turns) — der feste 1000er-Wert würgte tool-lastige Sessions
+# auf 1M-Modellen bei ~37% des Fensters ab, lange vor der Token-Linie.
 DEFAULT_MAX_TURNS_BEFORE_COMPACT = 1000
+# Erwartete Mindest-Token pro Nachricht. window // floor ergibt die Nachrichten-
+# Zahl, die ein volles Fenster bei dieser Dichte fasst — darüber ist es Runaway.
+# 200k/200 = 1000 (Alt-Default erhalten), 1M/200 = 5000.
+_MIN_TOKENS_PER_TURN = 200
+
+
+def default_max_turns(model: str) -> int:
+    """Window-skalierter Turn-Deckel, nie unter dem Loop-sicheren Floor (1000).
+
+    So regiert auf großen Fenstern (Opus 4.7/4.8: 1M) die Token-Schwelle, und das
+    Turn-Netz bleibt reiner Runaway-Schutz statt verfrühter Trigger.
+    """
+    return max(DEFAULT_MAX_TURNS_BEFORE_COMPACT, context_window_for(model) // _MIN_TOKENS_PER_TURN)
 
 
 def total_tokens(messages: list) -> int:
@@ -38,9 +55,14 @@ def should_compact(
     model: str,
     *,
     reserve_tokens: int = DEFAULT_RESERVE_TOKENS,
-    max_turns: int = DEFAULT_MAX_TURNS_BEFORE_COMPACT,
+    max_turns: int | None = None,
 ) -> bool:
-    """Token-based OR turn-based — was zuerst hits."""
+    """Token-based OR turn-based — was zuerst hits.
+
+    `max_turns=None` → window-skalierter Default (default_max_turns).
+    """
+    if max_turns is None:
+        max_turns = default_max_turns(model)
     if len(messages) >= max_turns:
         return True
     return total_tokens(messages) > (context_window_for(model) - reserve_tokens)

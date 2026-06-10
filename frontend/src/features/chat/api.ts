@@ -34,6 +34,8 @@ export const chatApi = {
     context_window: number
     compact_threshold: number
     model: string | null
+    message_count?: number
+    max_turns?: number
   }>(`/sessions/${id}/tokens`),
   toolConfirm: (sessionId: string, callId: string, decision: "approve" | "deny") =>
     api.post<{ resolved: boolean }>(`/sessions/${sessionId}/tool-confirm/${callId}`, { decision }),

@@ -17,6 +17,7 @@ export function CompactionSection({ agent, models, onChange }: Props) {
   const toolLimit = agent.compact_tool_result_limit ?? 2000
   const reserve = agent.compact_reserve_tokens ?? 16384
   const thresholdPct = agent.compact_threshold_pct ?? 100
+  const maxTurns = agent.compact_max_turns ?? ""
   const liveMax = agent.tool_result_max_chars ?? 12000
   const cacheTtl = agent.cache_ttl ?? "1h"
 
@@ -60,7 +61,9 @@ export function CompactionSection({ agent, models, onChange }: Props) {
         </div>
 
         <div className="space-y-0.5">
-          <label className="block text-[10px] text-zinc-500">{t("compaction.reserve_tokens")}</label>
+          <label className="block text-[10px] text-zinc-500" title={t("compaction.reserve_help")}>
+            {t("compaction.reserve_tokens")}
+          </label>
           <input
             type="number"
             min={1000}
@@ -68,6 +71,24 @@ export function CompactionSection({ agent, models, onChange }: Props) {
             step={1000}
             value={reserve}
             onChange={(e) => onChange({ compact_reserve_tokens: parseInt(e.target.value) })}
+            className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
+          />
+        </div>
+
+        <div className="space-y-0.5">
+          <label className="block text-[10px] text-zinc-500" title={t("compaction.max_turns_help")}>
+            {t("compaction.max_turns")}
+          </label>
+          <input
+            type="number"
+            min={1000}
+            step={500}
+            value={maxTurns}
+            placeholder={t("compaction.max_turns_auto")}
+            onChange={(e) => {
+              const v = e.target.value
+              onChange({ compact_max_turns: v === "" ? null : parseInt(v) })
+            }}
             className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
           />
         </div>

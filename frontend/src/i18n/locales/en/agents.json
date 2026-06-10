@@ -126,6 +126,10 @@
     "live_truncation_disabled": "No limit",
     "live_truncation_help": "Truncates individual tool results to X chars before they enter the LLM context. 0 = no limit. Recommended: 12000.",
     "cache_ttl": "Prompt cache TTL",
-    "cache_ttl_help": "How long Anthropic caches the system prompt. 1h = cache persists across sessions (2× write cost). 5m = Anthropic default (cheaper writes, but cache expires sooner)."
+    "cache_ttl_help": "How long Anthropic caches the system prompt. 1h = cache persists across sessions (2× write cost). 5m = Anthropic default (cheaper writes, but cache expires sooner).",
+    "max_turns": "Max messages (turn net)",
+    "max_turns_auto": "auto",
+    "max_turns_help": "Compaction also fires when the message count reaches this value — independent of tokens. Empty = automatic (scales with the context window, e.g. 5000 at 1M). Only set it if a tool-heavy agent compacts too early.",
+    "reserve_help": "Only takes effect when larger than the headroom derived from the trigger %. At trigger < 100% the percentage usually wins (e.g. 75% of 1M = 250k reserve → this value then has no effect)."
   }
 }

@@ -21,7 +21,12 @@ from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, sess
 from hydrahive.runner.events import Error as RunnerError
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
 from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT
-from hydrahive.compaction import compact_session, compact_threshold_tokens, total_tokens
+from hydrahive.compaction import (
+    compact_session,
+    compact_threshold_tokens,
+    default_max_turns,
+    total_tokens,
+)
 from hydrahive.compaction.tokens import context_window_for
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
@@ -115,11 +120,21 @@ def get_tokens(
         if agent
         else 0
     )
+    # Turn-Netz sichtbar machen: Compaction feuert auch bei message_count >=
+    # max_turns (window-skaliert), nicht nur an der Token-Schwelle. Ohne diese
+    # Zahl wirkt ein turn-getriggerter Compact „verfrüht" (Balken steht < 100%).
+    max_turns = (
+        (agent.get("compact_max_turns") or default_max_turns(agent["llm_model"]))
+        if agent
+        else 0
+    )
     return {
         "used": used,
         "context_window": window,
         "compact_threshold": threshold,
         "model": agent["llm_model"] if agent else None,
+        "message_count": len(history),
+        "max_turns": max_turns,
     }
 
 

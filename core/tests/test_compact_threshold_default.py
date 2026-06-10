@@ -19,6 +19,12 @@ def test_normalize_setzt_default_bei_fehlendem_feld():
     assert out["compact_threshold_pct"] == 75
 
 
+def test_normalize_setzt_compact_max_turns_default_none():
+    # None = window-skalierter Default im should_compact, kein fixer 1000er-Deckel.
+    out = normalize({"id": "a1", "name": "test"})
+    assert out["compact_max_turns"] is None
+
+
 def test_normalize_respektiert_expliziten_user_wert():
     # User hat 100 gewählt → bleibt 100, Default greift nicht
     cfg = {"id": "a1", "name": "test", "compact_threshold_pct": 100}

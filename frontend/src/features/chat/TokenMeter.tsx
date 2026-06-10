@@ -13,6 +13,8 @@ interface TokenInfo {
   used: number
   context_window: number
   compact_threshold: number
+  message_count?: number
+  max_turns?: number
 }
 
 export function TokenMeter({ sessionId, refresh }: Props) {
@@ -25,11 +27,13 @@ export function TokenMeter({ sessionId, refresh }: Props) {
 
   if (!info || info.context_window === 0) return null
 
-  const pct = info.compact_threshold > 0 ? Math.min(100, (info.used / info.compact_threshold) * 100) : 0
-  const tone =
-    pct < 50 ? "text-zinc-500"
-      : pct < 80 ? "text-amber-400"
-      : "text-rose-400"
+  const tokenPct = info.compact_threshold > 0 ? Math.min(100, (info.used / info.compact_threshold) * 100) : 0
+  // Compaction feuert beim ZUERST erreichten Limit — Tokens ODER Nachrichten.
+  const hasTurns = info.max_turns != null && info.max_turns > 0 && info.message_count != null
+  const turnPct = hasTurns ? Math.min(100, (info.message_count! / info.max_turns!) * 100) : 0
+  const pct = Math.max(tokenPct, turnPct)
+  const toneFor = (p: number) =>
+    p < 50 ? "text-zinc-500" : p < 80 ? "text-amber-400" : "text-rose-400"
   const barTone =
     pct < 50 ? "bg-zinc-600"
       : pct < 80 ? "bg-amber-400"
@@ -42,11 +46,19 @@ export function TokenMeter({ sessionId, refresh }: Props) {
   return (
     <div className="flex items-center gap-2" title={t("tokens.limit_tooltip", { limit: fmt(info.compact_threshold) })}>
       <div className="w-20 h-1 bg-white/[6%] rounded-full overflow-hidden">
-        <div className={`h-full ${barTone} transition-all`} style={{ width: `${pct}%` }} />
+        <div className={`h-full ${barTone} transition-all`} style={{ width: `${tokenPct}%` }} />
       </div>
-      <span className={`text-[11px] font-mono tabular-nums ${tone}`}>
+      <span className={`text-[11px] font-mono tabular-nums ${toneFor(tokenPct)}`}>
         {fmt(info.used)} / {fmt(info.compact_threshold)}
       </span>
+      {hasTurns && (
+        <span
+          className={`text-[11px] font-mono tabular-nums ${toneFor(turnPct)}`}
+          title={t("tokens.turns_tooltip", { count: fmt(info.message_count!), max: fmt(info.max_turns!) })}
+        >
+          {fmt(info.message_count!)} / {fmt(info.max_turns!)} ✉
+        </span>
+      )}
       {warning && (
         <span
           className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/[10%] border border-amber-500/30 text-[10px] text-amber-300"
