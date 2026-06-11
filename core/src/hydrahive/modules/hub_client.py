@@ -1,8 +1,16 @@
-"""Modul-Hub-Client: spiegelt das Hub-Repo als lokalen Cache (Muster plugins/hub_client.py)."""
+"""Modul-Hub-Client — spiegelt EINE oder MEHRERE Hub-Repos als lokalen Cache.
+
+Multi-Hub: der primäre Hub (`settings.module_hub_git_url`, Default GitHub) liegt
+weiter im `settings.module_hub_cache`; zusätzliche Hubs (`module_hub_extra_git_urls`,
+z.B. interne Gitea) klonen in Geschwister-Ordner `…/hub-<slug>`. `read_hub_index()`
+merged die `hub.json`-Indizes (erste id gewinnt, jeder Eintrag mit `_hub` getaggt);
+`module_source_path()` löst pro Hub auf. Per-Hub-Fehler beim Refresh sind isoliert.
+"""
 from __future__ import annotations
 
 import json
 import logging
+import re
 import subprocess
 from pathlib import Path
 
@@ -17,6 +25,24 @@ class HubError(RuntimeError):
     """Hub-Repo nicht erreichbar oder kaputt."""
 
 
+def _slug(url: str) -> str:
+    s = re.sub(r"^[a-z]+://", "", url.lower())
+    s = re.sub(r"\.git$", "", s)
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s[:60] or "hub"
+
+
+def _hubs() -> list[tuple[str | None, str, Path]]:
+    """(name, git_url, cache_dir). name=None → primärer Hub (Default-GitHub)."""
+    primary_cache = settings.module_hub_cache
+    hubs: list[tuple[str | None, str, Path]] = [
+        (None, settings.module_hub_git_url, primary_cache)
+    ]
+    for url in settings.module_hub_extra_git_urls:
+        hubs.append((_slug(url), url, primary_cache.parent / f"hub-{_slug(url)}"))
+    return hubs
+
+
 def _run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", *args],
@@ -26,9 +52,8 @@ def _run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPr
     )
 
 
-def refresh() -> None:
-    """Sicherstellt, dass der Cache aktuell ist. Idempotent."""
-    cache = settings.module_hub_cache
+def _refresh_one(cache: Path, url: str) -> None:
+    """Einen Hub klonen/pullen. Idempotent."""
     cache.parent.mkdir(parents=True, exist_ok=True)
     if (cache / ".git").exists():
         result = _run_git(["pull", "--ff-only"], cwd=cache)
@@ -36,31 +61,65 @@ def refresh() -> None:
             raise HubError(f"git pull failed: {result.stderr.strip()}")
         return
     if cache.exists():
-        # Verzeichnis ohne .git — fragwürdiger Zustand, lieber neu anlegen
         import shutil
         shutil.rmtree(cache)
-    result = _run_git([
-        "clone", "--depth=1", "--filter=blob:none",
-        settings.module_hub_git_url, str(cache),
-    ])
+    result = _run_git(["clone", "--depth=1", "--filter=blob:none", url, str(cache)])
     if result.returncode != 0:
         raise HubError(f"git clone failed: {result.stderr.strip()}")
 
 
-def read_hub_index() -> dict:
-    """`hub.json` aus dem Cache lesen. Ruft refresh() bei Bedarf auf."""
-    cache = settings.module_hub_cache
-    if not (cache / "hub.json").exists():
-        refresh()
+def refresh() -> None:
+    """Alle Hubs best-effort aktualisieren — Per-Hub-Fehler isoliert (geloggt).
+
+    Ein nicht erreichbarer Hub (z.B. GitHub offline) darf die anderen nicht
+    blockieren. read_hub_index() listet danach, was an Cache vorhanden ist.
+    """
+    for name, url, cache in _hubs():
+        try:
+            _refresh_one(cache, url)
+        except HubError as e:
+            logger.warning("Hub-Refresh fehlgeschlagen (%s): %s", name or "default", e)
+
+
+def _read_one(cache: Path) -> dict:
+    f = cache / "hub.json"
+    if not f.exists():
+        return {"modules": []}
     try:
-        return json.loads((cache / "hub.json").read_text(encoding="utf-8"))
-    except (FileNotFoundError, json.JSONDecodeError) as e:
+        return json.loads(f.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
         raise HubError(f"hub.json nicht lesbar: {e}") from e
 
 
-def module_source_path(module_path: str) -> Path:
-    """Absoluter Pfad eines Modul-Source-Verzeichnisses im Cache."""
-    cache_root = settings.module_hub_cache.resolve()
+def read_hub_index() -> dict:
+    """Gemergter `hub.json`-Index über alle Hubs. Erste id gewinnt; `_hub`-Tag
+    nennt die Quelle (None = primär). Refresh nur wenn noch GAR kein Cache da ist.
+    """
+    hubs = _hubs()
+    if not any((cache / "hub.json").exists() for _, _, cache in hubs):
+        refresh()
+    modules: list[dict] = []
+    seen: set[str] = set()
+    for name, _url, cache in hubs:
+        for m in _read_one(cache).get("modules", []):
+            mid = m.get("id")
+            if not mid or mid in seen:
+                continue
+            seen.add(mid)
+            modules.append({**m, "_hub": name})
+    return {"modules": modules}
+
+
+def _cache_for_hub(hub_name: str | None) -> Path:
+    for name, _url, cache in _hubs():
+        if name == hub_name:
+            return cache
+    raise HubError(f"unbekannter hub: {hub_name!r}")
+
+
+def module_source_path(module_path: str, hub_name: str | None = None) -> Path:
+    """Absoluter Pfad eines Modul-Source-Verzeichnisses im (passenden) Hub-Cache."""
+    cache_root = _cache_for_hub(hub_name).resolve()
     full = (cache_root / module_path).resolve()
     try:
         full.relative_to(cache_root)  # echte Verzeichnis-Grenze, kein String-Prefix

@@ -44,12 +44,12 @@ def _frontend_modules_dir() -> Path:
 
 
 def _cache_path_for(module_id: str) -> Path:
-    """Modul-Source im Hub-Cache anhand hub.json finden."""
+    """Modul-Source im (passenden) Hub-Cache anhand des gemergten hub.json finden."""
     index = hub_client.read_hub_index()
     for entry in index.get("modules", []):
         if entry.get("id") == module_id:
             path = entry.get("path") or module_id
-            return hub_client.module_source_path(path)
+            return hub_client.module_source_path(path, entry.get("_hub"))
     raise InstallError(f"module_not_in_hub:{module_id}")
 
 
