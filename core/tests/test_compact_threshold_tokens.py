@@ -14,29 +14,29 @@ from hydrahive.compaction import (
 )
 from hydrahive.compaction.tokens import context_window_for
 
-HAIKU = "claude-haiku-4-5"  # 200k-Modell — die SSOT-Beispielrechnung braucht ein 200k-Window
-WINDOW = 200_000  # context_window_for(HAIKU)
+SONNET = "claude-sonnet-4-6"
+WINDOW = 200_000  # context_window_for(SONNET)
 
 
 def test_threshold_pct_75_feuert_bei_75_prozent():
     # 200k Window, 75% → effektiv 50k Reserve → Schwelle bei 150k
-    assert compact_threshold_tokens(HAIKU, threshold_pct=75, reserve_tokens=16_384) == 150_000
+    assert compact_threshold_tokens(SONNET, threshold_pct=75, reserve_tokens=16_384) == 150_000
 
 
 def test_threshold_pct_100_nutzt_reine_reserve():
     # 100% = Früh-Compaction aus → Reserve bleibt 16384 → Window - 16384
-    assert compact_threshold_tokens(HAIKU, threshold_pct=100, reserve_tokens=16_384) == WINDOW - 16_384
+    assert compact_threshold_tokens(SONNET, threshold_pct=100, reserve_tokens=16_384) == WINDOW - 16_384
 
 
 def test_grosse_reserve_schlaegt_pct_headroom():
     # Reserve größer als die pct-Headroom (50k) → Reserve gewinnt
-    assert compact_threshold_tokens(HAIKU, threshold_pct=75, reserve_tokens=60_000) == WINDOW - 60_000
+    assert compact_threshold_tokens(SONNET, threshold_pct=75, reserve_tokens=60_000) == WINDOW - 60_000
 
 
 def test_none_reserve_faellt_auf_default_zurueck():
     # Kein Reserve gesetzt → should_compact-Default greift
     assert (
-        compact_threshold_tokens(HAIKU, threshold_pct=100, reserve_tokens=None)
+        compact_threshold_tokens(SONNET, threshold_pct=100, reserve_tokens=None)
         == WINDOW - DEFAULT_RESERVE_TOKENS
     )
 
@@ -49,26 +49,26 @@ def test_invariante_meter_schwelle_gleich_trigger_reserve():
     """
     for pct in (50, 75, 100):
         for reserve in (16_384, 40_000):
-            eff = effective_reserve_tokens(HAIKU, threshold_pct=pct, reserve_tokens=reserve)
-            threshold = compact_threshold_tokens(HAIKU, threshold_pct=pct, reserve_tokens=reserve)
-            assert threshold == context_window_for(HAIKU) - eff
+            eff = effective_reserve_tokens(SONNET, threshold_pct=pct, reserve_tokens=reserve)
+            threshold = compact_threshold_tokens(SONNET, threshold_pct=pct, reserve_tokens=reserve)
+            assert threshold == context_window_for(SONNET) - eff
 
 
 def test_behavioral_balken_100_faellt_mit_trigger_zusammen():
     """Sobald used die Schwelle übersteigt, triggert should_compact UND der
     Balken steht auf 100% — nicht vorher, nicht nachher."""
     pct, reserve = 75, 16_384
-    threshold = compact_threshold_tokens(HAIKU, threshold_pct=pct, reserve_tokens=reserve)
-    eff = effective_reserve_tokens(HAIKU, threshold_pct=pct, reserve_tokens=reserve)
+    threshold = compact_threshold_tokens(SONNET, threshold_pct=pct, reserve_tokens=reserve)
+    eff = effective_reserve_tokens(SONNET, threshold_pct=pct, reserve_tokens=reserve)
 
     # Nachricht knapp ÜBER der Schwelle → muss triggern, Balken auf 100%
     over = [_msg(threshold + 5_000)]
-    assert should_compact(over, HAIKU, reserve_tokens=eff) is True
+    assert should_compact(over, SONNET, reserve_tokens=eff) is True
     assert min(100, _meter_pct(over, threshold)) == 100
 
     # Nachricht klar UNTER der Schwelle → darf nicht triggern, Balken < 100
     under = [_msg(threshold - 30_000)]
-    assert should_compact(under, HAIKU, reserve_tokens=eff) is False
+    assert should_compact(under, SONNET, reserve_tokens=eff) is False
     assert _meter_pct(under, threshold) < 100
 
 

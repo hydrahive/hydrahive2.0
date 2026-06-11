@@ -85,34 +85,8 @@ def test_context_window_opus_4_8_mit_prefix_ist_1m():
     assert context_window_for("anthropic/claude-opus-4-8") == 1_000_000
 
 
-def test_context_window_sonnet_4_6_ist_1m():
-    # Anthropic Sonnet 4.6 hat ein 1M-Window — nicht 200k. Quelle ist der Katalog
-    # (METADATA), nicht mehr eine separate Hardcode-Heuristik.
-    assert context_window_for("claude-sonnet-4-6") == 1_000_000
-
-
-def test_context_window_sonnet_4_6_mit_prefix_ist_1m():
-    assert context_window_for("anthropic/claude-sonnet-4-6") == 1_000_000
-
-
-def test_context_window_opus_4_6_ist_1m():
-    # Nicht im statischen Katalog, aber laut Anthropic 1M → Heuristik deckt ab.
-    assert context_window_for("claude-opus-4-6") == 1_000_000
-
-
-def test_context_window_sonnet_4_5_bleibt_200k():
-    # 4.5er 1M ist Beta-gated → konservativ 200k.
-    assert context_window_for("claude-sonnet-4-5") == 200_000
-
-
-def test_context_window_haiku_4_5_bleibt_200k():
-    assert context_window_for("claude-haiku-4-5") == 200_000
-
-
-def test_context_window_katalog_schlaegt_heuristik():
-    # SSOT: METADATA gewinnt. MiniMax-Text-01 = 1M laut Katalog, nicht 256k
-    # (was die minimax-Heuristik liefern würde).
-    assert context_window_for("MiniMax-Text-01") == 1_000_000
+def test_context_window_sonnet_4_6_ist_200k():
+    assert context_window_for("claude-sonnet-4-6") == 200_000
 
 
 def test_context_window_gpt4o_ist_128k():
@@ -167,11 +141,11 @@ def test_should_compact_ueber_limit_true():
 
 
 def test_should_compact_custom_reserve():
-    """200k Window (Haiku 4.5), 50k Tokens, Reserve 100k → Cap 100k → 50k unter Cap."""
+    """200k Window, 50k Tokens, Reserve 100k → Cap 100k → 50k unter Cap."""
     msgs = [_msg("user", "x", token_count=50_000)]
-    assert should_compact(msgs, "claude-haiku-4-5", reserve_tokens=100_000) is False
+    assert should_compact(msgs, "claude-sonnet-4-6", reserve_tokens=100_000) is False
     # Reserve 180k → Cap 20k → 50k über Cap
-    assert should_compact(msgs, "claude-haiku-4-5", reserve_tokens=180_000) is True
+    assert should_compact(msgs, "claude-sonnet-4-6", reserve_tokens=180_000) is True
 
 
 def test_should_compact_default_reserve_ist_16k():
@@ -189,14 +163,13 @@ def test_should_compact_default_reserve_ist_16k():
 def test_should_compact_turn_trigger_bei_max_turns():
     """len(messages) >= max_turns → True, auch ohne Token-Druck."""
     msgs = [_msg("user", "x", f"m{i}", token_count=1) for i in range(DEFAULT_MAX_TURNS_BEFORE_COMPACT)]
-    # Haiku 4.5 = 200k → default_max_turns == Floor 1000, also greift das Turn-Netz hier.
-    assert should_compact(msgs, "claude-haiku-4-5") is True
+    assert should_compact(msgs, "claude-sonnet-4-6") is True
 
 
 def test_should_compact_unter_max_turns_kein_trigger():
     """len(messages) < max_turns, Token-Druck auch nicht → False."""
     msgs = [_msg("user", "x", f"m{i}", token_count=1) for i in range(DEFAULT_MAX_TURNS_BEFORE_COMPACT - 1)]
-    assert should_compact(msgs, "claude-haiku-4-5") is False
+    assert should_compact(msgs, "claude-sonnet-4-6") is False
 
 
 def test_should_compact_custom_max_turns_override():
@@ -209,8 +182,8 @@ def test_should_compact_custom_max_turns_override():
 
 def test_should_compact_token_trigger_unabhaengig_von_turns():
     """Token-Trigger feuert auch wenn Turn-Count weit unter max_turns."""
-    msgs = [_msg("user", "x", token_count=200_000)]  # 1 Message, Turn-Count weit unter dem Netz
-    assert should_compact(msgs, "claude-haiku-4-5") is True  # 200k > 200k-16k=184k
+    msgs = [_msg("user", "x", token_count=200_000)]  # 1 Message, weit unter 24
+    assert should_compact(msgs, "claude-sonnet-4-6") is True  # 200k > 200k-16k=184k
 
 
 def test_should_compact_default_max_turns_ist_1000():
