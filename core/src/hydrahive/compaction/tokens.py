@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from hydrahive.llm._catalog_data import METADATA
+
 # Char-based estimate. Real tokens vary by model — Anthropic ~3.5 chars/token
 # for English/code, more for German. Use 4 as a conservative-ish average.
 # We always overestimate slightly to trigger compaction earlier rather than
@@ -56,11 +58,22 @@ def estimate_message(message: Any) -> int:
 
 
 def context_window_for(model: str) -> int:
-    """Approximate context window in tokens for known models."""
+    """Approximate context window in tokens.
+
+    Single source of truth ist der Modell-Katalog (`METADATA` in `_catalog_data`).
+    Die Heuristik darunter greift nur noch für Modelle, die NICHT im Katalog
+    stehen — live-gefetchte OpenRouter-Customs ohne statischen Eintrag. Das
+    Katalog-Lesen beseitigt den Drift, der Sonnet 4.6 auf 200k hielt, obwohl
+    Anthropic 1M liefert (Compaction feuerte dadurch bei 150k statt 750k).
+    """
+    meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
+    if meta and meta.get("context_window"):
+        return meta["context_window"]
+
     m = model.lower()
     # Spezielle Versionen mit größerem Window — vor den generischen Patterns prüfen
-    if "claude-opus-4-8" in m or "claude-opus-4-7" in m:
-        return 1_000_000  # Opus 4-7 + 4-8 haben 1M Window (siehe _catalog_data.py)
+    if "claude-opus-4-8" in m or "claude-opus-4-7" in m or "claude-opus-4-6" in m:
+        return 1_000_000  # Opus 4-6/4-7/4-8 haben 1M Window (siehe _catalog_data.py)
     if "claude-sonnet-4" in m or "claude-opus-4" in m:
         return 200_000
     if "claude-haiku-4" in m:
