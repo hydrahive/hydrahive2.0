@@ -64,15 +64,18 @@ class _PathsMixin:
 
     @cached_property
     def module_hub_extra_git_urls(self) -> list[str]:
-        """Zusätzliche Hub-Quellen (komma-separiert in HH_MODULE_HUB_GIT_URLS).
+        """Zusätzliche Hub-Quellen (komma-separiert, GUI-Setting / HH_MODULE_HUB_GIT_URLS).
 
         Multi-Hub: neben dem primären `module_hub_git_url` (GitHub) können interne
-        Hubs (z.B. Gitea) als weitere Quellen eingebunden werden. Dedupliziert,
-        primäre URL wird hier nie doppelt aufgenommen.
+        Hubs (z.B. Gitea) als weitere Quellen eingebunden werden. Override (GUI) →
+        Env → Default. Dedupliziert, primäre URL nie doppelt.
         """
+        from hydrahive.settings import overrides
+
         primary = self.module_hub_git_url
+        raw = overrides.env_or_override("module_hub_extra_git_urls", "HH_MODULE_HUB_GIT_URLS", "")
         out: list[str] = []
-        for u in os.environ.get("HH_MODULE_HUB_GIT_URLS", "").split(","):
+        for u in raw.split(","):
             u = u.strip()
             if u and u != primary and u not in out:
                 out.append(u)

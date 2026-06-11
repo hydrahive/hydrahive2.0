@@ -105,6 +105,20 @@ def test_module_hub_extra_git_urls_parsed(monkeypatch):
         settings.__dict__.pop("module_hub_extra_git_urls", None)
 
 
+def test_module_hub_extra_git_urls_override_wins(monkeypatch, tmp_path):
+    """GUI-Override schlägt Env (Override → Env → Default)."""
+    from hydrahive.settings import settings
+
+    monkeypatch.setenv("HH_CONFIG_DIR", str(tmp_path))
+    (tmp_path / "overrides.json").write_text('{"module_hub_extra_git_urls":"http://gitea/x.git"}')
+    monkeypatch.setenv("HH_MODULE_HUB_GIT_URLS", "http://env/y.git")
+    settings.__dict__.pop("module_hub_extra_git_urls", None)
+    try:
+        assert settings.module_hub_extra_git_urls == ["http://gitea/x.git"]
+    finally:
+        settings.__dict__.pop("module_hub_extra_git_urls", None)
+
+
 def _seed_two_hubs(s, monkeypatch, primary_json: str, extra_json: str):
     """Primär- + einen Extra-Hub-Cache mit hub.json anlegen. Liefert (slug, extra_dir)."""
     from hydrahive.modules import hub_client

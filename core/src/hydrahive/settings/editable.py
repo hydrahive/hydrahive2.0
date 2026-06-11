@@ -45,6 +45,8 @@ EDITABLE_SETTINGS: list[EditableSetting] = [
     EditableSetting("cryptocompare_api_key", "HH_CRYPTOCOMPARE_API_KEY", "secret", "Krypto", "CryptoCompare API-Key",
                     help="Optionaler Key für Krypto-News via CryptoCompare. Ohne Key werden News übersprungen."),
     EditableSetting("update_check_enabled", "HH_UPDATE_CHECK_ENABLED", "bool", "System", "Update-Check aktiv", "true"),
+    EditableSetting("module_hub_extra_git_urls", "HH_MODULE_HUB_GIT_URLS", "string", "Module", "Zusätzliche Modul-Hubs",
+                    help="Komma-separierte Git-URLs interner Hubs (z.B. Gitea), zusätzlich zum öffentlichen GitHub-Hub. Deren Module erscheinen mit unter den verfügbaren. Greift nach Backend-Neustart."),
 ]
 
 BY_KEY: dict[str, EditableSetting] = {s.key: s for s in EDITABLE_SETTINGS}
