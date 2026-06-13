@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from hydrahive.llm._catalog_data import METADATA
+
 # Char-based estimate. Real tokens vary by model — Anthropic ~3.5 chars/token
 # for English/code, more for German. Use 4 as a conservative-ish average.
 # We always overestimate slightly to trigger compaction earlier rather than
@@ -56,11 +58,19 @@ def estimate_message(message: Any) -> int:
 
 
 def context_window_for(model: str) -> int:
-    """Approximate context window in tokens for known models."""
+    """Approximate context window in tokens.
+
+    SSOT ist der Modell-Katalog (METADATA in _catalog_data). Heuristik greift
+    nur für live-gefetchte Modelle die nicht im Katalog stehen.
+    """
+    meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
+    if meta and meta.get("context_window"):
+        return meta["context_window"]
+
     m = model.lower()
-    # Spezielle Versionen mit größerem Window — vor den generischen Patterns prüfen
-    if "claude-opus-4-8" in m or "claude-opus-4-7" in m:
-        return 1_000_000  # Opus 4-7 + 4-8 haben 1M Window (siehe _catalog_data.py)
+    # Heuristik nur für Nicht-Katalog-Modelle
+    if "claude-opus-4-8" in m or "claude-opus-4-7" in m or "claude-opus-4-6" in m:
+        return 1_000_000
     if "claude-sonnet-4" in m or "claude-opus-4" in m:
         return 200_000
     if "claude-haiku-4" in m:

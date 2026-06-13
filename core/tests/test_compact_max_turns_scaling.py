@@ -15,6 +15,7 @@ from hydrahive.compaction import default_max_turns, should_compact
 
 OPUS = "claude-opus-4-8"
 SONNET = "claude-sonnet-4-6"
+HAIKU = "claude-haiku-4-5"
 
 
 def _msg(tokens: int):
@@ -22,9 +23,9 @@ def _msg(tokens: int):
 
 
 def test_default_max_turns_scales_with_window():
-    assert default_max_turns(OPUS) == 5000          # 1M / 200
-    assert default_max_turns(SONNET) == 1000        # 200k / 200 (Alt-Default erhalten)
-    assert default_max_turns("claude-haiku-4-5") == 1000
+    assert default_max_turns(OPUS) == 5000    # 1M / 200
+    assert default_max_turns(SONNET) == 5000  # 1M / 200 (Sonnet 4.6 hat 1M Window)
+    assert default_max_turns(HAIKU) == 1000   # 200k / 200
 
 
 def test_small_window_keeps_floor():
