@@ -60,7 +60,7 @@ METADATA: dict[str, dict[str, Any]] = {
     # Anthropic
     "claude-opus-4-8":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-opus-4-7":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
-    "claude-sonnet-4-6": {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
+    "claude-sonnet-4-6": {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-sonnet-4-5": {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-haiku-4-5":  {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-3-7-sonnet-20250219": {"context_window": 200_000, "tool_use": True, "category": "chat", "family": "anthropic"},
