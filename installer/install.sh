@@ -26,6 +26,7 @@
 set -euo pipefail
 
 # --------------------------------------------------------------- Konfiguration
+HH_REPO_DIR_EXPLICIT="${HH_REPO_DIR:-}"   # vom User gesetzt? (leer = Auto-Detect)
 HH_REPO_DIR="${HH_REPO_DIR:-/opt/hydrahive2}"
 HH_USER="${HH_USER:-hydrahive}"
 HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
@@ -40,9 +41,34 @@ log() { printf "\033[1;36m[hh2-install]\033[0m %s\n" "$*"; }
 err() { printf "\033[1;31m[hh2-install]\033[0m %s\n" "$*" >&2; exit 1; }
 
 [ "$(id -u)" -eq 0 ] || err "Bitte mit sudo / als root ausführen."
-[ -d "$HH_REPO_DIR" ] || err "Repo-Verzeichnis $HH_REPO_DIR existiert nicht."
 
 INSTALLER_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Repo-Root robust ermitteln: der Installer liegt IMMER unter <repo>/installer/.
+# Damit funktioniert ./install.sh aus jedem Clone-Pfad — nicht nur /opt/hydrahive2.
+DETECTED_REPO_DIR="$(dirname "$INSTALLER_DIR")"
+
+if [ -n "$HH_REPO_DIR_EXPLICIT" ]; then
+  # HH_REPO_DIR wurde explizit per ENV gesetzt → respektieren, nur prüfen.
+  [ -d "$HH_REPO_DIR" ] || err "HH_REPO_DIR=$HH_REPO_DIR existiert nicht."
+elif [ "$DETECTED_REPO_DIR" != "$HH_REPO_DIR" ]; then
+  # Repo liegt nicht am kanonischen Ziel. Der systemd-Service läuft als
+  # '$HH_USER'-User; /root und private Home-Dirs sind Mode 700 → der Service
+  # könnte das Repo nicht lesen. Darum nach $HH_REPO_DIR verschieben und von
+  # dort neu starten (re-exec). mv && exec in EINER Zeile: bash hat das Kommando
+  # dann vollständig im Speicher, bevor das Skript-File unter ihm wegbewegt wird.
+  if [ -e "$HH_REPO_DIR" ]; then
+    err "Repo unter $DETECTED_REPO_DIR erkannt, aber $HH_REPO_DIR existiert bereits.
+     Bitte 'rm -rf $HH_REPO_DIR' (wenn kaputt/leer) ODER
+     'HH_REPO_DIR=$DETECTED_REPO_DIR ./install.sh' aus $INSTALLER_DIR starten."
+  fi
+  log "Repo unter $DETECTED_REPO_DIR erkannt — verschiebe nach $HH_REPO_DIR (world-readable für den $HH_USER-Service) und starte neu ..."
+  mkdir -p "$(dirname "$HH_REPO_DIR")"
+  export HH_REPO_DIR
+  mv "$DETECTED_REPO_DIR" "$HH_REPO_DIR" && exec "$HH_REPO_DIR/installer/$(basename "$0")" "$@"
+fi
+
+[ -d "$HH_REPO_DIR" ] || err "Repo-Verzeichnis $HH_REPO_DIR existiert nicht."
 
 export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR
 
