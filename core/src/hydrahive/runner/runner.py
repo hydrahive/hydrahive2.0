@@ -93,6 +93,8 @@ async def run(
         model=agent.get("llm_model"),
         first_prompt=_first_prompt,
     )
+    from hydrahive.runner import activity
+    activity.start(session_id, agent, owner=session.user_id, project_id=active_project_id)
 
     base_system_prompt = agent_config.get_system_prompt(agent["id"])
     base_system_prompt = with_emote_hint(base_system_prompt, is_buddy=bool(agent.get("is_buddy")))
@@ -299,6 +301,7 @@ async def run(
             return
 
         # Tool-Use-Loop: in Sub-Modul. Letzter yield ist result_blocks.
+        activity.set_tool(session_id, tool_uses[-1].get("name") if tool_uses else None)
         result_blocks: list[dict] = []
         async for item in process_tool_uses(
             tool_uses, ctx=ctx, allowed_tools=allowed_tools,

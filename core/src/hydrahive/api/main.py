@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from hydrahive.api.lifespan import lifespan
 from hydrahive.api.routes.agentlink import router as agentlink_router
 from hydrahive.api.routes.agents import router as agents_router
+from hydrahive.api.routes.agent_activity import router as agent_activity_router
 from hydrahive.api.routes.agent_memory import router as agent_memory_router
 from hydrahive.api.routes.workspace import router as workspace_router
 from hydrahive.api.routes.analytics import router as analytics_router
@@ -100,6 +101,7 @@ app.include_router(auth_router)
 app.include_router(backup_router)
 app.include_router(users_router)
 app.include_router(agents_router)
+app.include_router(agent_activity_router)
 app.include_router(workspace_router)
 app.include_router(external_instances_router)
 app.include_router(agent_memory_router)

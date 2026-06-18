@@ -100,6 +100,11 @@ def session_end(
     Beendet eine Session. Setzt ended_at und status.
     Gibt None zurück wenn Session nicht gefunden.
     """
+    # Live-Aktivität (Pixel-Leiste) unbedingt abräumen — auch wenn die Session-
+    # Datei fehlt/schon beendet ist. Lazy-Import gegen Import-Zyklus.
+    from hydrahive.runner import activity
+    activity.stop(session_id)
+
     path = _session_file(agent_id, session_id)
     session = _load_session_file(path)
     if session is None:
