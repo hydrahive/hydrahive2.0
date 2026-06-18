@@ -18,6 +18,8 @@ _BASE_TOOLS: dict[str, list[str]] = {
         "read_memory", "write_memory", "search_memory",
         "todo_write", "ask_agent", "list_projects",
         "list_skills", "load_skill",
+        "create_specialist", "configure_specialist", "list_specialists",
+        "write_skill", "delete_skill",
     ],
     "specialist": [
         "fetch_url", "list_skills", "load_skill",
