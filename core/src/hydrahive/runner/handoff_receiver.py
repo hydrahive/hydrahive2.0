@@ -58,6 +58,7 @@ async def handle(event: WSEvent) -> None:
     session = sessions_db.create(
         agent_id=target["id"],
         user_id=owner,
+        project_id=target.get("project_id"),
         title=(state.task.description or "AgentLink-Task")[:80],
         metadata={"source": "agentlink", "incoming_state_id": state.id},
     )
