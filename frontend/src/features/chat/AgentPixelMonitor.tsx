@@ -84,9 +84,11 @@ export interface Props {
   agentTools: Record<string, string[]>
   activeAgents: string[]
   doneAgents: string[]
+  scope: "chat" | "all"
+  onScope: (s: "chat" | "all") => void
 }
 
-export function AgentPixelMonitor({ agentTools, activeAgents, doneAgents }: Props) {
+export function AgentPixelMonitor({ agentTools, activeAgents, doneAgents, scope, onScope }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const agentsRef = useRef<Map<string, AgentState>>(new Map())
   const tickRef = useRef(0)
@@ -216,10 +218,26 @@ export function AgentPixelMonitor({ agentTools, activeAgents, doneAgents }: Prop
     return () => { running = false; cancelAnimationFrame(animRef.current) }
   }, [cw])
 
-  if (Object.keys(agentTools).length === 0) return null
+  const isEmpty = Object.keys(agentTools).length === 0
 
   return (
-    <div className="border-b border-white/[6%]">
+    <div className="relative border-b border-white/[6%]">
+      <div className="absolute top-1.5 right-2 z-10 flex gap-0.5 rounded-md bg-black/40 p-0.5 text-[10px]">
+        {(["chat", "all"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => onScope(s)}
+            className={`px-2 py-0.5 rounded ${scope === s ? "bg-white/15 text-white" : "text-zinc-400 hover:text-zinc-200"}`}
+          >
+            {s === "chat" ? "Chat" : "Alle"}
+          </button>
+        ))}
+      </div>
+      {isEmpty && (
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-600 pointer-events-none">
+          {scope === "all" ? "keine aktiven Agenten" : "kein aktiver Agent in diesem Chat"}
+        </div>
+      )}
       <canvas ref={canvasRef} style={{ width: "100%", height: H, display: "block", imageRendering: "pixelated" }} />
     </div>
   )

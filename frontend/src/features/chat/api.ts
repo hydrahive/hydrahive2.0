@@ -148,3 +148,54 @@ export async function subscribeSession(
     await new Promise((r) => setTimeout(r, RECONNECT_MS))
   }
 }
+
+export interface ActivityEntry {
+  session_id: string
+  agent_id: string
+  name: string
+  project_id: string | null
+  current_tool: string | null
+}
+
+/**
+ * Abonniert den globalen Agent-Aktivitäts-Feed (SSE). Ruft `onSnapshot` mit der
+ * jeweils vollen Momentaufnahme laufender Agenten. Reconnect bei Abriss.
+ */
+export async function subscribeAgentActivity(
+  onSnapshot: (agents: ActivityEntry[]) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  const RECONNECT_MS = 1500
+  while (!signal.aborted) {
+    try {
+      const token = useAuthStore.getState().token
+      const res = await fetch("/api/agents/activity/stream", {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        signal,
+      })
+      if (!res.ok || !res.body) throw new Error(`activity ${res.status}`)
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const frames = buffer.split("\n\n")
+        buffer = frames.pop() ?? ""
+        for (const frame of frames) {
+          const dataLine = frame.split("\n").find((l) => l.startsWith("data:"))
+          if (dataLine) {
+            try {
+              onSnapshot(JSON.parse(dataLine.slice(5).trim()) as ActivityEntry[])
+            } catch { /* unvollständiger Frame ignorieren */ }
+          }
+        }
+      }
+    } catch {
+      if (signal.aborted) return
+    }
+    if (signal.aborted) return
+    await new Promise((r) => setTimeout(r, RECONNECT_MS))
+  }
+}

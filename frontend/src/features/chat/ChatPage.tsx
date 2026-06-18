@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next"
 import { useParams, useSearchParams } from "react-router-dom"
 import { Coins, Download, FileText, GamepadIcon, GitMerge, Hammer, HelpCircle, Pencil, RotateCcw, Wand2 } from "lucide-react"
 import { AgentPixelMonitor } from "./AgentPixelMonitor"
+import { useAgentActivity } from "./useAgentActivity"
+import { selectPixelAgents } from "./_pixelSelect"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
@@ -163,35 +165,24 @@ export function ChatPage() {
   const activeOrphaned = activeSession ? !knownAgentIds.has(activeSession.agent_id) : false
   const activeAgent = activeSession ? (agents.find((a) => a.id === activeSession.agent_id) ?? null) : null
 
+  const [pixelScope, setPixelScope] = useState<"chat" | "all">("chat")
+  const { running, doneNames } = useAgentActivity(showPixelMonitor)
   const pixelData = useMemo(() => {
-    if (!activeAgent) return { agentTools: {}, activeAgents: [], doneAgents: [] }
-    type ToolUse = { type: "tool_use"; name: string; input: Record<string, unknown> }
-    const toolsByAgent: Record<string, string[]> = { [activeAgent.name]: [] }
+    // ask_agent-Ziele dieser Session → für die „Chat"-Scope-Filterung
+    const askTargets: string[] = []
     for (const msg of allMessages) {
       if (!Array.isArray(msg.content)) continue
       for (const block of msg.content) {
-        if (block.type !== "tool_use") continue
-        const b = block as ToolUse
-        toolsByAgent[activeAgent.name].push(b.name)
-        if (b.name === "ask_agent") {
-          const targetId = (b.input?.agent_id ?? "") as string
-          if (targetId) {
-            const found = agents.find(
-              a => a.id === targetId || a.name.toLowerCase().includes(targetId.toLowerCase()),
-            )
-            const targetName = found?.name ?? targetId
-            if (!toolsByAgent[targetName]) toolsByAgent[targetName] = []
-          }
-        }
+        const b = block as { type?: string; name?: string; input?: { agent_id?: string } }
+        if (b.type !== "tool_use" || b.name !== "ask_agent") continue
+        const tid = b.input?.agent_id ?? ""
+        const found = agents.find(a => a.id === tid || a.name.toLowerCase().includes(tid.toLowerCase()))
+        if (found?.name) askTargets.push(found.name)
+        else if (tid) askTargets.push(tid)
       }
     }
-    const hasActivity = Object.values(toolsByAgent).some(t => t.length > 0)
-    return {
-      agentTools: toolsByAgent,
-      activeAgents: chat.busy ? [activeAgent.name] : [],
-      doneAgents: !chat.busy && hasActivity ? Object.keys(toolsByAgent) : [],
-    }
-  }, [allMessages, activeAgent, agents, chat.busy])
+    return selectPixelAgents(running, pixelScope, activeAgent?.name ?? null, askTargets, doneNames)
+  }, [running, doneNames, pixelScope, activeAgent, agents, allMessages])
 
   const [systemPrompt, setSystemPrompt] = useState<string>("")
   useEffect(() => {
@@ -237,6 +228,8 @@ export function ChatPage() {
               agentTools={pixelData.agentTools}
               activeAgents={pixelData.activeAgents}
               doneAgents={pixelData.doneAgents}
+              scope={pixelScope}
+              onScope={setPixelScope}
             />
           )}
           {chat.error && (
