@@ -54,7 +54,7 @@ async def handle(event: WSEvent) -> None:
         return
 
     _warn_if_unconfirmed(target)
-    owner = target.get("owner_id") or "admin"
+    owner = target.get("owner") or "admin"
     session = sessions_db.create(
         agent_id=target["id"],
         user_id=owner,

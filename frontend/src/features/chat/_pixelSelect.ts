@@ -19,10 +19,12 @@ export function selectPixelAgents(
   doneNames: string[],
 ): PixelProps {
   const targets = new Set(askTargets)
-  const inChat = (name: string) => name === activeAgentName || targets.has(name)
-
-  const visible = scope === "all" ? running : running.filter((a) => inChat(a.name))
-  const doneVisible = scope === "all" ? doneNames : doneNames.filter(inChat)
+  const visible = scope === "all"
+    ? running
+    : running.filter((a) => a.name === activeAgentName || targets.has(a.name) || targets.has(a.agent_id))
+  const doneVisible = scope === "all"
+    ? doneNames
+    : doneNames.filter((n) => n === activeAgentName || targets.has(n))
 
   const agentTools: Record<string, string[]> = {}
   for (const a of visible) agentTools[a.name] = a.current_tool ? [a.current_tool] : []

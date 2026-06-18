@@ -31,7 +31,7 @@ def test_handoff_session_inherits_target_project_id(monkeypatch):
     monkeypatch.setattr(hr, "get_state", _get_state)
     monkeypatch.setattr(hr, "_find_target_agent",
                         lambda tid: {"id": "spec-1", "type": "specialist", "project_id": "P",
-                                     "owner_id": "u", "require_tool_confirm": True})
+                                     "owner": "u", "require_tool_confirm": True})
     monkeypatch.setattr(hr.sessions_db, "create", lambda **k: (captured.update(k), _Sess())[1])
     monkeypatch.setattr(hr.db_agent_handoffs, "create", lambda **k: {"id": "h1"})
     monkeypatch.setattr(hr, "_run_and_reply", _noop)
@@ -39,3 +39,7 @@ def test_handoff_session_inherits_target_project_id(monkeypatch):
     asyncio.run(hr.handle(WSEvent(type="handoff_received", state_id="s1")))
 
     assert captured.get("project_id") == "P"
+    # Session erbt den ECHTEN Owner des Ziel-Agenten (config-key 'owner'),
+    # nicht "admin" — sonst versteckt der owner-gefilterte Aktivitäts-Feed
+    # den delegierten Spezialisten vor seinem User.
+    assert captured.get("user_id") == "u"

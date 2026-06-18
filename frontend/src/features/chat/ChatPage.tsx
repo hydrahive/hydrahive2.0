@@ -176,9 +176,10 @@ export function ChatPage() {
         const b = block as { type?: string; name?: string; input?: { agent_id?: string } }
         if (b.type !== "tool_use" || b.name !== "ask_agent") continue
         const tid = b.input?.agent_id ?? ""
+        if (tid) askTargets.push(tid)
         const found = agents.find(a => a.id === tid || a.name.toLowerCase().includes(tid.toLowerCase()))
         if (found?.name) askTargets.push(found.name)
-        else if (tid) askTargets.push(tid)
+        if (found?.id) askTargets.push(found.id)
       }
     }
     return selectPixelAgents(running, pixelScope, activeAgent?.name ?? null, askTargets, doneNames)
