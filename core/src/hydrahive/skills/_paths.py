@@ -18,6 +18,10 @@ def agent_dir(agent_id: str) -> Path:
     return settings.data_dir / "agents" / agent_id / "skills"
 
 
+def project_dir(project_id: str) -> Path:
+    return settings.data_dir / "projects" / project_id / "skills"
+
+
 def dir_for(scope: SkillScope, owner: str) -> Path:
     if scope == "system":
         return system_dir()
@@ -25,6 +29,8 @@ def dir_for(scope: SkillScope, owner: str) -> Path:
         return user_dir(owner)
     if scope == "agent":
         return agent_dir(owner)
+    if scope == "project":
+        return project_dir(owner)
     raise ValueError(f"unbekannter scope: {scope}")
 
 

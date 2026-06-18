@@ -9,7 +9,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-SkillScope = Literal["system", "user", "agent"]
+SkillScope = Literal["system", "user", "agent", "project"]
 
 NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,49}$")
 

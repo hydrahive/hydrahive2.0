@@ -20,7 +20,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("Agent nicht gefunden")
     owner = agent.get("owner") or ctx.user_id
     disabled = list(agent.get("disabled_skills", []))
-    skills = list_for_agent(ctx.agent_id, owner, disabled=disabled)
+    skills = list_for_agent(ctx.agent_id, owner, disabled=disabled, project_id=agent.get("project_id"))
     return ToolResult.ok({
         "skills": [{
             "name": s.name,

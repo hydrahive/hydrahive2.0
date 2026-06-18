@@ -27,6 +27,24 @@ from hydrahive.skills.models import Skill, SkillScope, SkillSource, is_valid_nam
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
 
+def _check_project_access(project_id: str | None, username: str, role: str) -> None:
+    """project-Scope: nur Owner/Member des Projekts (oder Admin) dürfen schreiben/löschen.
+    Schließt das Tor, das durch 'project' in SkillScope sonst offenstünde."""
+    from hydrahive.projects import config as project_config
+    if not project_id:
+        raise coded(status.HTTP_400_BAD_REQUEST, "skill_owner_required")
+    proj = project_config.get(project_id)
+    if not proj:
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+    if role == "admin" or proj.get("owner") == username:
+        return
+    members = proj.get("members") or []
+    names = {m if isinstance(m, str) else (m or {}).get("username") for m in members}
+    if username in names:
+        return
+    raise coded(status.HTTP_403_FORBIDDEN, "skill_no_access")
+
+
 @router.get("")
 def list_skills_endpoint(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
@@ -39,7 +57,7 @@ def list_skills_endpoint(
     if agent_id:
         agent = _check_agent_access(agent_id, username, role)
         disabled = list(agent.get("disabled_skills", []))
-        return [_serialize(s) for s in list_for_agent(agent_id, agent["owner"] or username, disabled=disabled)]
+        return [_serialize(s) for s in list_for_agent(agent_id, agent["owner"] or username, disabled=disabled, project_id=agent.get("project_id"))]
     out: list[Skill] = []
     if scope in ("system", "all"):
         out.extend(_list_dir(system_dir(), "system", "system"))
@@ -66,6 +84,8 @@ def get_skill_endpoint(
         if not owner:
             raise coded(status.HTTP_400_BAD_REQUEST, "skill_owner_required")
         _check_agent_access(owner, username, role)
+    if scope == "project":
+        _check_project_access(owner, username, role)
     s = get_skill(scope, owner or "", name)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "skill_not_found", name=name)
@@ -92,6 +112,8 @@ def create_or_update(
         if not owner:
             raise coded(status.HTTP_400_BAD_REQUEST, "skill_owner_required")
         _check_agent_access(owner, username, role)
+    elif scope == "project":
+        _check_project_access(owner, username, role)
     skill = Skill(
         name=req.name, description=req.description, when_to_use=req.when_to_use,
         tools_required=list(req.tools_required), body=req.body,
@@ -123,5 +145,7 @@ def delete_skill_endpoint(
         if not owner:
             raise coded(status.HTTP_400_BAD_REQUEST, "skill_owner_required")
         _check_agent_access(owner, username, role)
+    elif scope == "project":
+        _check_project_access(owner, username, role)
     if not delete_skill(scope, owner or "", name):
         raise coded(status.HTTP_404_NOT_FOUND, "skill_not_found", name=name)

@@ -29,7 +29,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("Agent nicht gefunden")
     owner = agent.get("owner") or ctx.user_id
     disabled = list(agent.get("disabled_skills", []))
-    skills = list_for_agent(ctx.agent_id, owner, disabled=disabled)
+    skills = list_for_agent(ctx.agent_id, owner, disabled=disabled, project_id=agent.get("project_id"))
     skill = next((s for s in skills if s.name == name), None)
     if not skill:
         available = ", ".join(s.name for s in skills) or "(keine)"

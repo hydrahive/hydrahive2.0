@@ -123,7 +123,7 @@ async def run(
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
     max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
-    agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [])
+    agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [], project_id=agent.get("project_id"))
 
     # Proaktiver Recall A: Top-N Cards einmal pro Session laden (recency × salience)
     # → in den gecachten Stable-Prompt gewebt. Ändert sich nur bei nächtlicher
