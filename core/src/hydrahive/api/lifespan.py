@@ -87,6 +87,9 @@ async def _agentlink_heartbeat_loop(stop: asyncio.Event) -> None:
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
     init_db()
+    # Verwaiste Handoffs (durch früheren Worker-Tod auf 'running' hängen
+    # geblieben) terminal markieren — sonst bleiben sie ewige in_progress-Zombies.
+    handoff_receiver.reconcile_orphaned_handoffs()
     if settings.pg_mirror_dsn:
         await pg_mirror.init()
     from hydrahive.skills.loader import install_system_defaults

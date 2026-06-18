@@ -85,6 +85,14 @@ class _AgentLinkMixin:
         return int(os.environ.get("HH_AGENTLINK_HANDOFF_TIMEOUT", "600"))
 
     @cached_property
+    def agentlink_run_timeout(self) -> int:
+        """Max. Laufzeit eines eingehenden Handoff-Runs (Sekunden), bevor der
+        handoff_receiver mit einer Fehler-Antwort abbricht statt still zu hängen.
+        Bewusst < agentlink_handoff_timeout, damit der Auftraggeber eine klare
+        Fehler-Antwort bekommt, bevor sein eigenes Caller-Timeout zuschlägt."""
+        return int(os.environ.get("HH_AGENTLINK_RUN_TIMEOUT", "540"))
+
+    @cached_property
     def agentlink_dashboard_url(self) -> str:
         """URL des AgentLink-Frontends (separates statisches SPA, default 9001)."""
         return os.environ.get("HH_AGENTLINK_DASHBOARD_URL", "").strip()

@@ -123,26 +123,57 @@ def _build_user_input(state: State) -> str:
     return "\n".join(parts)
 
 
-async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> None:
+async def _consume_run(session_id: str, user_input: str, output_parts: list[str]) -> str | None:
+    """Führt den Agent-Run aus und sammelt Text-Output in `output_parts`.
+    Returnt eine Fehlermeldung wenn der Runner ein Error-Event liefert, sonst None.
+    Ausgelagert, damit `_run_and_reply` sie in ein asyncio.timeout kapseln kann."""
     from hydrahive.runner import runner
-    from hydrahive.runner.concurrency import SessionAlreadyRunning, session_run_guard
+    from hydrahive.runner.concurrency import session_run_guard
     from hydrahive.runner.events import Error
+
+    async with session_run_guard(session_id):
+        async for ev in runner.run(session_id, user_input):
+            if hasattr(ev, "text"):
+                output_parts.append(ev.text)
+            elif isinstance(ev, Error):
+                return ev.message
+    return None
+
+
+async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> None:
+    from hydrahive.runner.concurrency import SessionAlreadyRunning
 
     user_input = _build_user_input(state)
     output_parts: list[str] = []
     error_msg: str | None = None
 
     try:
-        async with session_run_guard(session_id):
-            async for ev in runner.run(session_id, user_input):
-                if hasattr(ev, "text"):
-                    output_parts.append(ev.text)
-                elif isinstance(ev, Error):
-                    error_msg = ev.message
-                    break
+        async with asyncio.timeout(settings.agentlink_run_timeout):
+            error_msg = await _consume_run(session_id, user_input, output_parts)
+    except TimeoutError:
+        # Run lief länger als der Worker tolerieren soll → terminale Fehler-Antwort,
+        # damit der Auftraggeber nicht ins Caller-Timeout läuft und kein in_progress-
+        # Zombie zurückbleibt.
+        error_msg = (
+            f"Timeout nach {settings.agentlink_run_timeout}s — Aufgabe nicht abgeschlossen"
+        )
+        logger.warning("handoff_receiver: Run-Timeout für Session %s", session_id)
     except SessionAlreadyRunning:
         error_msg = "Session läuft bereits — handoff ignoriert"
         logger.warning("handoff_receiver: Session %s läuft bereits — skip", session_id)
+    except asyncio.CancelledError:
+        # Worker-Shutdown/Reload: best-effort terminale Antwort posten, dann
+        # re-raise. Ohne das bliebe der State ewig in_progress (Subagent-Zombie).
+        logger.warning(
+            "handoff_receiver: Run für Session %s abgebrochen (Shutdown) — poste Fehler-Antwort",
+            session_id,
+        )
+        try:
+            await asyncio.shield(_post_reply(state, "Abgebrochen (Worker-Shutdown)", "error"))
+            db_agent_handoffs.update_status(handoff_db_id, "error")
+        except Exception:
+            logger.exception("handoff_receiver: Fehler-Antwort bei Cancel fehlgeschlagen")
+        raise
     except Exception as e:
         error_msg = str(e)
         logger.exception("handoff_receiver: Runner-Fehler für Session %s", session_id)
@@ -152,6 +183,23 @@ async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> N
 
     await _post_reply(state, output, status)
     db_agent_handoffs.update_status(handoff_db_id, status)
+
+
+def reconcile_orphaned_handoffs() -> int:
+    """Beim Start: alle noch auf 'running' stehenden Handoffs auf 'error' setzen.
+
+    Solche Einträge sind durch einen früheren Worker-Tod (Crash, --reload, SIGKILL)
+    verwaist — der zugehörige Run wurde nie beendet und nie beantwortet. Ohne
+    Reconciliation blieben sie ewig als in_progress-Zombie hängen."""
+    orphans = db_agent_handoffs.list_active()
+    for h in orphans:
+        db_agent_handoffs.update_status(h["id"], "error")
+    if orphans:
+        logger.warning(
+            "handoff_receiver: %d verwaiste Handoff(s) beim Start auf 'error' gesetzt",
+            len(orphans),
+        )
+    return len(orphans)
 
 
 async def _post_reply(incoming: State, output: str, status: str) -> None:
