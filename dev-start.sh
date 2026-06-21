@@ -36,6 +36,7 @@ BACKEND_PID=$!
 # Modul-Frontend-Assets in frontend/src/modules/<id>/ synchronisieren
 # (der Installer macht das bei install; im Dev-Checkout müssen wir es manuell tun)
 echo "==> Modul-Frontends synchronisieren"
+mkdir -p "$SCRIPT_DIR/frontend/src/modules"
 for mod_dir in "$SCRIPT_DIR/modules"/*/; do
   mod_id="$(basename "$mod_dir")"
   fe_src="$mod_dir/frontend"
@@ -49,6 +50,7 @@ done
 
 echo "==> Frontend starten"
 cd "$SCRIPT_DIR/frontend"
+node scripts/gen-modules.mjs
 npm run dev &
 FRONTEND_PID=$!
 
