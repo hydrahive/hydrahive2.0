@@ -908,6 +908,50 @@ ICD-11 (WHO), MyGene/MyVariant, Open Targets, HPO, ClinicalTrials.gov v2.
 
 ---
 
+## Deep Research — Recherche-Agent mit präsentationsfertigem Report (Modul)
+
+Optionales Modul: recherchiert zu einer Nutzerfrage eigenständig im Web (iterativer
+Plan→Such→Extrahier→Synthese-Loop über das vorhandene SearxNG + fetch_url) und erzeugt
+einen zitierten, magazin-artig gestylten, **eigenständigen HTML-Bericht** (Hero-Bild,
+Auto-Inhaltsverzeichnis, Quellen-Panel, aus den Quell-Seiten gescrapte Bilder). Zwei
+Einstiege: eigene UI-Seite und Agent-Tool. Lokale Modelle werden unterstützt.
+
+### Funktionsumfang
+- Iterativer Research-Loop: Plan (Sub-Fragen + Kategorie) → Runden (Queries → Suche →
+  Extraktion → evolving Synthese → Stop-Entscheidung) → finaler Langform-Report mit
+  inline-Zitaten. Datums-geerdet (gegen Jahr-Bias lokaler Modelle).
+- Suche über vorhandenes `web_search` (SearxNG); Seiten holen über `fetch_url`
+  (SSRF-Schutz, 200 KB-Cap); JS-Seiten optional über `web_browser`.
+- LLM über `llm.client` (auch lokale Modelle via LiteLLM); Modell pro Lauf wählbar.
+- **Self-contained HTML-Report**: dark/light, Serif-Display, Auto-TOC, Quellen-Panel,
+  „Als PDF drucken" (Browser-Print) + „HTML laden". On-demand gerendert, nh3-sanitisiert.
+- OG-Image-Scraping zur Bebilderung; Hero + per-Sektion; einzelne Bilder ausblendbar.
+- Persistenz der Läufe (SQLite); Live-Fortschritt (Polling).
+- Einstiege: UI-Seite `/deepresearch` + Agent-Tool `deep_research`.
+
+### Nicht-Ziele
+- Kein Server-PDF (PDF = Browser-Druck)
+- Keine KI-generierten Bilder (nur gescrapte OG-Images)
+- Keine zusätzlichen Such-Provider (nur SearxNG; kein Brave/Tavily/Serper)
+- Kein Volltext-Caching abgerufener Seiten
+- Kein SSE im ersten Wurf (Polling)
+- Keine automatische/geplante Recherche (nur nutzer-/agent-getriggert)
+
+### Voraussetzungen
+- `web_search` (SearxNG) + `fetch_url`
+- `llm.client` + konfiguriertes Modell (lokal oder Cloud)
+- Modul-System
+- Neue Python-Deps: `markdown`, `nh3`
+
+### Architektur
+Modul `modules/deepresearch/` (kein Core-Code). Backend `research/*` (Loop, je ≤200 Zeilen)
++ `report/*` (HTML-Generator als zerlegte Fragmente: template/styles/script/markdown/images)
++ Migration `research_runs` + Agent-Tool `tools/research_run.py`. Frontend im Modul
+(`/deepresearch` + iframe-Report-Viewer). Optional nutzt es die Forschungs-APIs-Registry
+als zusätzliche Quell-Liste.
+
+---
+
 ## Patientenakte — Strukturierte elektronische Akte (Health-Extension, Core-Komponente)
 
 Strukturierte, persistente, multi-Patient-fähige elektronische Patientenakte (ePA-light)
