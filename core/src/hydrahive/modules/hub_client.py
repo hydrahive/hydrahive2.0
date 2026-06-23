@@ -58,7 +58,12 @@ def _refresh_one(cache: Path, url: str) -> None:
     if (cache / ".git").exists():
         result = _run_git(["pull", "--ff-only"], cwd=cache)
         if result.returncode != 0:
-            raise HubError(f"git pull failed: {result.stderr.strip()}")
+            # ff-only schlägt fehl, wenn die Hub-History divergiert (z.B. nach
+            # einem force-push/History-Rewrite im Hub-Repo). Der Cache ist eine
+            # REINE Spiegelung ohne lokale Commits — es gibt nichts zu verlieren.
+            # Statt das Update für den Nutzer zu blockieren (der keine Shell hat),
+            # hart auf den Remote-Stand re-synchronisieren. Selbstheilend.
+            _resync_hard(cache, result.stderr.strip())
         return
     if cache.exists():
         import shutil
@@ -66,6 +71,22 @@ def _refresh_one(cache: Path, url: str) -> None:
     result = _run_git(["clone", "--depth=1", "--filter=blob:none", url, str(cache)])
     if result.returncode != 0:
         raise HubError(f"git clone failed: {result.stderr.strip()}")
+
+
+def _resync_hard(cache: Path, pull_error: str) -> None:
+    """Hub-Cache hart auf den Remote-Stand zwingen (Fallback bei divergierter
+    History). Sicher, weil der Cache nur gespiegelt wird — keine lokale Arbeit.
+
+    Ermittelt den aktuellen Branch des Caches und setzt ihn auf origin/<branch>.
+    """
+    logger.warning("Hub pull --ff-only fehlgeschlagen, re-sync hart auf Remote: %s", pull_error)
+    fetched = _run_git(["fetch", "origin"], cwd=cache)
+    if fetched.returncode != 0:
+        raise HubError(f"git fetch failed: {fetched.stderr.strip()}")
+    head = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=cache).stdout.strip() or "main"
+    reset = _run_git(["reset", "--hard", f"origin/{head}"], cwd=cache)
+    if reset.returncode != 0:
+        raise HubError(f"git reset failed: {reset.stderr.strip()}")
 
 
 def refresh() -> None:

@@ -189,3 +189,96 @@ def test_installer_cache_path_for_uses_hub(mod_env, monkeypatch):
     )
     (extra / "rom").mkdir()
     assert installer._cache_path_for("rom") == (extra / "rom").resolve()
+
+
+# --- Selbstheilung bei divergierter Hub-History --------------------------
+
+def _fake_proc(returncode=0, stdout="", stderr=""):
+    """Minimaler CompletedProcess-Ersatz für gemockte _run_git-Aufrufe."""
+    from types import SimpleNamespace
+    return SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
+
+
+def test_refresh_one_ff_pull_erfolg_kein_reset(mod_env, tmp_path):
+    """Normaler Fall: pull --ff-only klappt → kein fetch/reset-Fallback."""
+    from hydrahive.modules import hub_client
+
+    cache = tmp_path / "hub"
+    (cache / ".git").mkdir(parents=True)
+    calls = []
+
+    def fake_git(args, cwd=None):
+        calls.append(args)
+        return _fake_proc(returncode=0)
+
+    with patch.object(hub_client, "_run_git", side_effect=fake_git):
+        hub_client._refresh_one(cache, "http://x/y.git")
+
+    assert calls == [["pull", "--ff-only"]]  # nur pull, kein reset
+
+
+def test_refresh_one_divergenz_heilt_per_reset(mod_env, tmp_path):
+    """ff-only schlägt fehl (divergierte History) → fetch + reset --hard origin/<branch>."""
+    from hydrahive.modules import hub_client
+
+    cache = tmp_path / "hub"
+    (cache / ".git").mkdir(parents=True)
+    calls = []
+
+    def fake_git(args, cwd=None):
+        calls.append(args)
+        if args[:2] == ["pull", "--ff-only"]:
+            return _fake_proc(returncode=1, stderr="Not possible to fast-forward")
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return _fake_proc(returncode=0, stdout="main\n")
+        return _fake_proc(returncode=0)
+
+    with patch.object(hub_client, "_run_git", side_effect=fake_git):
+        hub_client._refresh_one(cache, "http://x/y.git")  # darf NICHT werfen
+
+    assert ["pull", "--ff-only"] in calls
+    assert ["fetch", "origin"] in calls
+    assert ["reset", "--hard", "origin/main"] in calls
+
+
+def test_refresh_one_divergenz_nutzt_aktuellen_branch(mod_env, tmp_path):
+    """Der hart resyncte Branch folgt dem tatsächlichen HEAD des Caches."""
+    from hydrahive.modules import hub_client
+
+    cache = tmp_path / "hub"
+    (cache / ".git").mkdir(parents=True)
+    calls = []
+
+    def fake_git(args, cwd=None):
+        calls.append(args)
+        if args[:2] == ["pull", "--ff-only"]:
+            return _fake_proc(returncode=1, stderr="diverged")
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return _fake_proc(returncode=0, stdout="release\n")
+        return _fake_proc(returncode=0)
+
+    with patch.object(hub_client, "_run_git", side_effect=fake_git):
+        hub_client._refresh_one(cache, "http://x/y.git")
+
+    assert ["reset", "--hard", "origin/release"] in calls
+
+
+def test_refresh_one_reset_fehler_wirft(mod_env, tmp_path):
+    """Schlägt sogar der Reset fehl, wird ein HubError gemeldet (nicht still)."""
+    from hydrahive.modules import hub_client
+
+    cache = tmp_path / "hub"
+    (cache / ".git").mkdir(parents=True)
+
+    def fake_git(args, cwd=None):
+        if args[:2] == ["pull", "--ff-only"]:
+            return _fake_proc(returncode=1, stderr="diverged")
+        if args[:2] == ["rev-parse", "--abbrev-ref"]:
+            return _fake_proc(returncode=0, stdout="main\n")
+        if args[0] == "reset":
+            return _fake_proc(returncode=1, stderr="reset boom")
+        return _fake_proc(returncode=0)
+
+    with patch.object(hub_client, "_run_git", side_effect=fake_git):
+        with pytest.raises(hub_client.HubError, match="git reset failed"):
+            hub_client._refresh_one(cache, "http://x/y.git")
