@@ -130,7 +130,7 @@ DE/EN Strings (das Repo ist zweisprachig).
 - [ ] JWT-Auth auf allen Endpoints; Ownership-Checks bei Schreiboperationen.
 
 ## 8. Ausblick (später, nicht jetzt)
-- **Referenzbild als Tool-Input:** `generate_image` um optionalen `reference_image_path` erweitern (image-to-image), damit `sample_path` aus dem Archiv direkt als Stil-Referenz in die Folge-Generierung geht. Macht den Serien-Workflow komplett rund. (Bewusst NICHT im Backend-Schritt — eigene Etappe.)
+- ✅ **ERLEDIGT (Commit ed9a4c9d):** `generate_image` akzeptiert `reference_image_path` (image-to-image). `sample_path` aus dem Archiv kann als Stil-Referenz in die Folge-Generierung. Serien-Workflow ist damit rund.
 - „Aus letzter Generierung speichern" — Modell/Params automatisch aus dem Tool-Result ins Archiv ziehen (Seed nur falls Modell ihn liefert).
 - Teilen an bestimmte User / Teams statt nur global public.
 - Import/Export (JSON), Community-Sammlung.
