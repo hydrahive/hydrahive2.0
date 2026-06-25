@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useVoiceInput } from "./useVoiceInput"
 import { MessageFileChip } from "./_MessageFileChip"
 import { EmotePicker } from "./EmotePicker"
+import { PromptArchivePicker } from "./PromptArchivePicker"
 
 const MAX_FILES = 5
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -46,6 +47,11 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
 
   function insertEmote(shortcode: string) {
     setText((prev) => (prev && !prev.endsWith(" ") ? prev + " " : prev) + shortcode + " ")
+    textRef.current?.focus()
+  }
+
+  function insertPrompt(promptText: string) {
+    setText(promptText)
     textRef.current?.focus()
   }
 
@@ -110,6 +116,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
           {voice.state === "recording" ? <MicOff size={15} /> : <Mic size={15} />}
         </button>
         <EmotePicker onPick={insertEmote} disabled={disabled || busy} />
+        <PromptArchivePicker onPick={insertPrompt} disabled={disabled || busy} />
         <textarea
           ref={textRef}
           value={text}

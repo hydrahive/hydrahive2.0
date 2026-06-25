@@ -158,5 +158,36 @@
     "protected": "Protected access — confirmation required:",
     "approve": "Allow",
     "deny": "Deny"
+  },
+  "prompts": {
+    "button_title": "Prompt archive",
+    "search": "Search prompts …",
+    "loading": "Loading …",
+    "empty": "No prompts saved yet.",
+    "use": "Insert into chat",
+    "edit": "Edit",
+    "delete": "Delete",
+    "used_n": "used {{n}}×",
+    "confirm_delete": "Really delete prompt \"{{title}}\"?",
+    "new_title": "New prompt",
+    "edit_title": "Edit prompt",
+    "field_title": "Title (e.g. HydraHive mascot)",
+    "field_prompt": "Prompt text (the subject)",
+    "field_style_anchor": "Style anchor — stays constant across a series (e.g. flat vector, warm earth tones)",
+    "field_model": "Model (optional, e.g. openai/gpt-5-image-mini)",
+    "field_tags": "Tags, comma-separated",
+    "field_notes": "Notes (optional)",
+    "field_public": "Public — visible to others",
+    "save": "Save",
+    "cancel": "Cancel",
+    "cat": {
+      "all": "All",
+      "image": "Image",
+      "music": "Music",
+      "system": "System",
+      "video": "Video",
+      "speech": "Speech",
+      "other": "Other"
+    }
   }
 }
