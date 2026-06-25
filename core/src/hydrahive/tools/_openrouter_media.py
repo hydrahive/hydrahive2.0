@@ -6,9 +6,11 @@ einzelnen Tool-Module. Die Datei muss in einem servable-Verzeichnis landen
 """
 from __future__ import annotations
 
+import base64
 import io
 import json
 import logging
+import mimetypes
 import uuid
 import wave
 from pathlib import Path
@@ -19,11 +21,49 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _AUDIO_SPEECH_URL = "https://openrouter.ai/api/v1/audio/speech"
+_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB — OpenRouter-Limit für inline base64
 
 
 def openrouter_key() -> str:
     from hydrahive.llm._config import openrouter_key as _key
     return _key()
+
+
+def image_to_content_block(
+    image: str, *, workspace: Path | None = None
+) -> dict | str:
+    """Bild-Pfad oder URL → OpenAI/OpenRouter image_url-Block.
+
+    Geteilt von analyze_image (Vision-Input) und generate_image (Referenzbild
+    für image-to-image). http(s)-URLs werden direkt durchgereicht; lokale
+    Dateien als base64-data-URI eingebettet (≤5 MB).
+
+    `workspace`: wenn gesetzt, werden relative Pfade (z.B. "generated/x.png"
+    aus dem Prompt-Archiv) dagegen aufgelöst. Absolute Pfade bleiben unberührt.
+
+    Gibt einen dict-Block zurück, oder einen str mit Fehlermeldung (Datei
+    fehlt / kein File / zu groß).
+    """
+    if image.startswith(("http://", "https://")):
+        return {"type": "image_url", "image_url": {"url": image}}
+
+    path = Path(image)
+    if workspace is not None and not path.is_absolute():
+        path = workspace / path
+    if not path.exists():
+        return f"Bilddatei nicht gefunden: {image}"
+    if not path.is_file():
+        return f"Pfad ist kein File: {image}"
+
+    size = path.stat().st_size
+    if size > _MAX_IMAGE_BYTES:
+        mb = size / (1024 * 1024)
+        return f"Bild zu groß ({mb:.1f} MB) — maximal {_MAX_IMAGE_BYTES // (1024*1024)} MB"
+
+    raw = path.read_bytes()
+    mime = mimetypes.guess_type(path.name)[0] or "image/jpeg"
+    b64 = base64.standard_b64encode(raw).decode()
+    return {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
 
 
 def is_done_line(line: str) -> bool:

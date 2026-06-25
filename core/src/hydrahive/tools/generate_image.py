@@ -23,7 +23,7 @@ from pathlib import Path
 import httpx
 
 from hydrahive.llm.media_models import get_media_model
-from hydrahive.tools._openrouter_media import openrouter_key, save_bytes
+from hydrahive.tools._openrouter_media import image_to_content_block, openrouter_key, save_bytes
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,10 @@ _DESCRIPTION = (
     "Verfügbare Modelle: openai/gpt-5-image-mini (default, günstig), "
     "openai/gpt-5-image, openai/gpt-5.4-image-2, "
     "google/gemini-2.5-flash-image, google/gemini-3-pro-image-preview. "
+    "Mit reference_image_path kann ein vorhandenes Bild als Stil-Referenz "
+    "mitgegeben werden (image-to-image) — ideal für konsistente Bildserien: "
+    "das gespeicherte Beispielbild eines Prompt-Archiv-Eintrags (sample_path) "
+    "als Referenz nehmen, dann übernimmt das Folgebild den Look. "
     "Braucht einen konfigurierten OpenRouter API-Key."
 )
 
@@ -73,9 +77,20 @@ _SCHEMA = {
                 "Transparentes PNG (Default true). OpenRouter kann keine echte "
                 "Transparenz — das Motiv wird auf reinem Grün generiert und der "
                 "grüne Hintergrund serverseitig rausgekeyt. Für Logos, Icons, "
-                "Maskottchen. Für Fotos/Hintergründe auf false setzen."
+                "Maskottchen. Für Fotos/Hintergründe auf false setzen. "
+                "Wird bei gesetztem reference_image_path ignoriert (der "
+                "Grünscreen würde den Referenz-Look überschreiben)."
             ),
             "default": True,
+        },
+        "reference_image_path": {
+            "type": "string",
+            "description": (
+                "Optional: Pfad zu einem Referenzbild (image-to-image). Workspace-"
+                "relativ (z.B. 'generated/foo.png') oder absolut, oder http(s)-URL. "
+                "Das Modell übernimmt Stil/Look des Referenzbilds — für konsistente "
+                "Serien das sample_path eines Prompt-Archiv-Eintrags nutzen."
+            ),
         },
     },
     "required": ["prompt"],
@@ -111,12 +126,25 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     width = int(args.get("width") or 1024)
     height = int(args.get("height") or 1024)
     transparent = bool(args.get("transparent", True))
+    reference = (args.get("reference_image_path") or "").strip()
+
+    # Referenzbild (image-to-image) und Grünscreen-Freistellen schließen sich aus:
+    # der grüne Hintergrund würde den übernommenen Look überschreiben.
+    if reference:
+        transparent = False
+
+    text_content = prompt + (_GREEN_BG_INSTRUCTION if transparent else "")
+    if reference:
+        ref_block = image_to_content_block(reference, workspace=ctx.workspace)
+        if isinstance(ref_block, str):
+            return ToolResult.fail(ref_block)  # Datei fehlt / zu groß
+        content: object = [ref_block, {"type": "text", "text": text_content}]
+    else:
+        content = text_content
 
     payload = {
         "model": model,
-        "messages": [
-            {"role": "user", "content": prompt + (_GREEN_BG_INSTRUCTION if transparent else "")}
-        ],
+        "messages": [{"role": "user", "content": content}],
         "modalities": ["image", "text"],
         "image": {"size": f"{width}x{height}"},
     }

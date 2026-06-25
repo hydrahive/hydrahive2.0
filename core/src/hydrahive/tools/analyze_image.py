@@ -13,21 +13,17 @@ gpt-4o oder claude-3-5-sonnet wechseln wenn er will.
 """
 from __future__ import annotations
 
-import base64
 import logging
-import mimetypes
-from pathlib import Path
 
 import httpx
 
-from hydrahive.tools._openrouter_media import openrouter_key
+from hydrahive.tools._openrouter_media import image_to_content_block, openrouter_key
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
 
 _OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
 _DEFAULT_MODEL = "google/gemini-2.5-flash"
-_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 5 MB
 _TIMEOUT = 60.0
 
 _DESCRIPTION = (
@@ -66,31 +62,6 @@ _SCHEMA = {
 }
 
 
-def _image_to_content_block(image: str) -> dict | str:
-    """Bild-Pfad oder URL → OpenAI-Format image_url-Block.
-
-    Gibt einen dict-Block zurück oder einen str (Fehler-Meldung wenn Datei fehlt/zu groß).
-    """
-    if image.startswith(("http://", "https://")):
-        return {"type": "image_url", "image_url": {"url": image}}
-
-    path = Path(image)
-    if not path.exists():
-        return f"Bilddatei nicht gefunden: {image}"
-    if not path.is_file():
-        return f"Pfad ist kein File: {image}"
-
-    size = path.stat().st_size
-    if size > _MAX_IMAGE_BYTES:
-        mb = size / (1024 * 1024)
-        return f"Bild zu groß ({mb:.1f} MB) — maximal {_MAX_IMAGE_BYTES // (1024*1024)} MB"
-
-    raw = path.read_bytes()
-    mime = mimetypes.guess_type(path.name)[0] or "image/jpeg"
-    b64 = base64.standard_b64encode(raw).decode()
-    return {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
-
-
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     image = (args.get("image") or "").strip()
     question = (args.get("question") or "").strip()
@@ -107,7 +78,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     model = (args.get("model") or _DEFAULT_MODEL).strip()
 
-    image_block = _image_to_content_block(image)
+    image_block = image_to_content_block(image, workspace=ctx.workspace)
     if isinstance(image_block, str):
         return ToolResult.fail(image_block)
 
