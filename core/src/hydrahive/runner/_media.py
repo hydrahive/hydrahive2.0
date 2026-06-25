@@ -74,12 +74,12 @@ def _candidates_from_output(output: Any) -> list[str]:
     if isinstance(output, dict):
         if isinstance(output.get("output_file"), str):
             out.append(output["output_file"])
-        for s in output.get("saved") or []:
-            if isinstance(s, str):
-                out.append(s)
-        for s in output.get("all_files") or []:
-            if isinstance(s, str):
-                out.append(s)
+        # Nur echte Listen iterieren. Tools wie save_prompt liefern z.B.
+        # {"saved": True} (bool) — `for s in True` würde sonst crashen.
+        for key in ("saved", "all_files"):
+            value = output.get(key)
+            if isinstance(value, list):
+                out.extend(s for s in value if isinstance(s, str))
     # Plus regex-scan aller String-Werte (fängt z.B. shell_exec stdout
     # mit `{"saved":["foo.jpg"]}` ein).
     for s in _walk_strings(output):
