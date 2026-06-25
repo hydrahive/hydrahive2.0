@@ -823,7 +823,7 @@ vom handkuratierten Memory.
 Konsolidierung baut auf `tools/_crystallize.py` (Session→Digest+Lessons, LLM)
 und der Zahnfee-Batch-/Scheduler-Maschinerie auf; eigener abgeleiteter
 Card-Store; Recall über `runner/system_prompt.py` (Prompt-Weaving) + pgvector.
-Card-Schema ist der Vertrag (`docs/superpowers/specs/2026-05-29-proactive-recall-design.md`).
+Card-Schema ist der Vertrag.
 
 ---
 
@@ -857,7 +857,6 @@ Größenlimit pro Zone). API `/api/scratchpad` (GET beide Zonen, PUT nur Mensch-
 DELETE Agent-Zone). Core-Tools `read_scratchpad` + `write_scratchpad`. Speicher
 `$HH_DATA_DIR/scratchpad/<user_id>/{user,agent}.md`. Statischer Prompt-Hinweis im
 `stable_system`-Block (kein Cache-Bruch). Frontend `frontend/src/features/scratchpad/`.
-Design: `docs/superpowers/specs/2026-05-31-scratchpad-design.md`.
 
 ---
 

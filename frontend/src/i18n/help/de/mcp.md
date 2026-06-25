@@ -34,7 +34,7 @@ Ein MCP-Server kann auf drei Arten laufen:
 
 1. **Vorlage** klicken
 2. **Filesystem** wählen
-3. Pfad: z.B. `/home/till/claudeneu` (das Verzeichnis das der Agent sehen darf)
+3. Pfad: z.B. `/home/<user>/hydrahive2` (das Verzeichnis das der Agent sehen darf)
 4. **Anlegen** — Server ist konfiguriert
 5. Im Detail-Form: **Connect** klicken — npx lädt das Paket beim ersten Mal
 6. 14 Tools erscheinen (`read_file`, `list_directory`, `search_files`, …)

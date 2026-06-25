@@ -35,7 +35,7 @@ claude mcp add hydrahive -s user \
   -e HH_PASS=DEIN_PASSWORT \
   -e HH_AGENT_ID=claude-code \
   -e HH_VERIFY_SSL=0 \
-  -- python3 /home/till/claudeneu/mcp-servers/hydrahive-api/server.py
+  -- python3 /home/<user>/hydrahive2/mcp-servers/hydrahive-api/server.py
 
 # Option B: API-Key (hhk_...)
 claude mcp add hydrahive -s user \
@@ -43,7 +43,7 @@ claude mcp add hydrahive -s user \
   -e HH_API_KEY=hhk_DEIN_API_KEY \
   -e HH_AGENT_ID=claude-code \
   -e HH_VERIFY_SSL=0 \
-  -- python3 /home/till/claudeneu/mcp-servers/hydrahive-api/server.py
+  -- python3 /home/<user>/hydrahive2/mcp-servers/hydrahive-api/server.py
 ```
 
 Passwort nachträglich setzen:

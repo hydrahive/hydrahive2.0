@@ -41,13 +41,13 @@ The workspace is at `data/workspaces/projects/<project_id>/`. Three options:
 
 ```bash
 # Option 1: symlink existing code
-ln -s /path/to/your/code/* /home/till/.hh2-dev/data/workspaces/projects/<id>/
+ln -s /path/to/your/code/* /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
 
 # Option 2: copy
-cp -r /path/to/your/code/* /home/till/.hh2-dev/data/workspaces/projects/<id>/
+cp -r /path/to/your/code/* /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
 
 # Option 3: git clone
-cd /home/till/.hh2-dev/data/workspaces/projects/<id>/
+cd /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
 git clone <repo-url> .
 ```
 

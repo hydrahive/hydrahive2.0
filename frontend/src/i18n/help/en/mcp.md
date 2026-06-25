@@ -34,7 +34,7 @@ An MCP server can run via three transports:
 
 1. Click **Template**
 2. Pick **Filesystem**
-3. Path: e.g. `/home/till/claudeneu` (the directory the agent may see)
+3. Path: e.g. `/home/<user>/hydrahive2` (the directory the agent may see)
 4. **Create** — server is configured
 5. In the detail form: **Connect** — npx pulls the package on first use
 6. 14 tools appear (`read_file`, `list_directory`, `search_files`, …)

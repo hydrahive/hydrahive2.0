@@ -122,7 +122,7 @@ api/routes/agents.py          # /agents Endpoints, nur das
 
 ## Referenz-Material
 
-Unter `/home/till/claude code source/` liegen:
+Unter `/home/<user>/claude-code-source/` liegen:
 - `collection-claude-code-source-code-1.01/` — Claude Code Source (Referenz für Tool-Loop, Context-Management, Memory)
 - `open-claude-code-2.1.0/` — OpenClaw Source (Referenz für Soul/Skills/Masteragent-Konzept)
 - `open-multi-agent-main/` — Multi-Agent Framework (Referenz für Agent-Koordination)

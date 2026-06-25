@@ -21,7 +21,7 @@ git commit -m "fix(auth): kurze Beschreibung was und warum"
 git push
 ```
 
-Git-Befehle immer im Repo-Root (`/home/till/claudeneu/` bzw. wo `.git/` liegt).
+Git-Befehle immer im Repo-Root (`/home/<user>/hydrahive2/` bzw. wo `.git/` liegt).
 
 ### Commit-Message-Konventionen
 
@@ -47,8 +47,8 @@ erzwingt das.
 
 ```bash
 cd core
-/home/till/claudeneu/.venv/bin/python -m pytest          # alle 243 Tests, ~5s
-/home/till/claudeneu/.venv/bin/python -m ruff check src tests
+/home/<user>/hydrahive2/.venv/bin/python -m pytest          # alle 243 Tests, ~5s
+/home/<user>/hydrahive2/.venv/bin/python -m ruff check src tests
 ```
 
 Pytest, Ruff, mypy-Linting sind in `core/pyproject.toml` als Dev-Dependencies.

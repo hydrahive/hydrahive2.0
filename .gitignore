@@ -67,3 +67,20 @@ tmp_*
 .remember/tmp/
 .playwright-mcp/
 konami.png
+
+# Interne Dev-Dokumentation — bleibt lokal, NICHT auf GitHub
+# (Pläne/Specs/Reviews enthalten interne Pfade + private Identitäten)
+docs/superpowers/
+docs/feature-map/
+docs/research/
+docs/HANDOVER.md
+docs/ROADMAP.md
+docs/STRUCTURE.md
+docs/TESTING_STATUS.md
+docs/TEST_CHECKLIST.md
+docs/TEST_DEEP_DIVE.md
+docs/minimax-agent-profiles.md
+REVIEW_*.md
+CHANGES_SUMMARY.md
+REASONING_EFFORT_*.md
+TESTING_CHECKLIST.md

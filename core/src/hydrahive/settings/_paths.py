@@ -90,7 +90,7 @@ class _PathsMixin:
         """Zusätzliche Verzeichnisse die über /api/files ausgeliefert werden dürfen.
 
         HH_MEDIA_DIRS: Doppelpunkt-getrennte Liste absoluter Pfade.
-        Beispiel: HH_MEDIA_DIRS=/home/till/security bücherei:/mnt/ebooks
+        Beispiel: HH_MEDIA_DIRS=/home/<user>/security bücherei:/mnt/ebooks
         """
         raw = os.environ.get("HH_MEDIA_DIRS", "")
         return [Path(p) for p in raw.split(":") if p.strip()]
