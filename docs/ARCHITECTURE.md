@@ -2,7 +2,7 @@
 
 > **Stand:** 2026-05-07  
 > **Zielgruppe:** Entwickler, Contributors, System-Architekten  
-> **Verwandte Dokumente:** [SPEC.md](../SPEC.md) · [CLAUDE.md](../CLAUDE.md) · [README.md](../README.md)
+> **Verwandte Dokumente:** [SPEC.md](../SPEC.md) · [README.md](../README.md)
 
 ---
 
@@ -683,4 +683,4 @@ HydraHive 2.0 ist eine **schlanke, selbst gehostete, plugin-erweiterte KI-Agente
 
 ---
 
-**Fragen? Siehe [SPEC.md](../SPEC.md) für vollständige Produktspezifikation oder [CLAUDE.md](../CLAUDE.md) für Arbeitsregeln.**
+**Fragen? Siehe [SPEC.md](../SPEC.md) für vollständige Produktspezifikation.**

@@ -1,13 +1,13 @@
 ---
 name: hh-review
-description: HydraHive2-spezifischer Code-Review. Prüft Einhaltung der CLAUDE.md-Regeln — Dateigröße, Co-location, Architektur, keine print()-Statements, Settings-Singleton, keine zirkulären Imports.
+description: HydraHive2-spezifischer Code-Review. Prüft Einhaltung der Architektur-Regeln — Dateigröße, Co-location, Architektur, keine print()-Statements, Settings-Singleton, keine zirkulären Imports.
 when_to_use: Vor jedem Commit oder PR auf HydraHive2-Code. Prüft strukturelle Integrität des Projekts nach den verbindlichen Architektur-Regeln.
 tools_required: [read_file, grep, glob, bash]
 ---
 
 # HydraHive2 Code-Review
 
-Prüfe den Code gegen die verbindlichen Regeln aus CLAUDE.md.
+Prüfe den Code gegen die verbindlichen Architektur-Regeln (siehe SPEC.md).
 
 ## 1. Dateigröße — max ~200 Zeilen
 

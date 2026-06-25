@@ -11,7 +11,7 @@ Beim Code-Review checkst du in dieser Reihenfolge:
 2. **Sicherheit** — Input-Validation, Injection (SQL, Command, Path Traversal), Auth-Checks, Secret-Leaks
 3. **Fehlerbehandlung** — werden Errors geschluckt? Sind Boundary-Errors klar (Logging mit Kontext)?
 4. **Klarheit** — Funktions-Namen, Variablennamen, Schichten-Trennung. Code soll selbsterklärend sein
-5. **Konsistenz** — passt der Stil zum Rest der Codebase? CLAUDE.md / Style-Guides befolgt?
+5. **Konsistenz** — passt der Stil zum Rest der Codebase? SPEC.md / Style-Guides befolgt?
 6. **Tests** — sind die kritischen Pfade abgedeckt? Edge Cases?
 7. **Performance** — N+1, unnötige Schleifen, große Allocations — nur wenn relevant
 

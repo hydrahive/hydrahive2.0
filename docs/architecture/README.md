@@ -23,4 +23,4 @@
 - File-Refs (`runner/_call.py`) sind robust gegen Line-Drift, aber Line-Refs
   (`:42`) altern schnell. Bei Letzterem im Kommit-Trailer dokumentieren wenn
   bewegt
-- Bei neuer/entfernter Subsystem-Datei: Tabelle hier + STRUCTURE.md anpassen
+- Bei neuer/entfernter Subsystem-Datei: Tabelle hier anpassen

@@ -1,7 +1,8 @@
 # Contributing to HydraHive2
 
-> Vor dem ersten Commit: `CLAUDE.md` lesen — die enthält die verbindlichen
-> Arbeitsregeln (Datei-Größe, Co-location, Permissions, was-nicht-zu-tun).
+> Vor dem ersten Commit: `SPEC.md` lesen — sie enthält die verbindliche
+> Produktspezifikation. Arbeitsregeln (Datei-Größe, Co-location, Permissions,
+> was-nicht-zu-tun) sind unten in diesem Dokument zusammengefasst.
 
 ---
 
@@ -37,7 +38,7 @@ refactor(runner): runner.py 271 → 212 + 3 Sub-Module
 test(memory): 32 Tests für Memory v2 Store-Logic
 ```
 
-Issues schließen via Trailer: `Closes #123`. SPEC.md / CLAUDE.md werden in
+Issues schließen via Trailer: `Closes #123`. SPEC.md wird in
 **standalone-Commits** gepflegt — Pre-Commit-Hook (`installer/git-hooks/pre-commit`)
 erzwingt das.
 
@@ -71,7 +72,6 @@ CI läuft beides auf jeden Push (`.github/workflows/pytest.yml`).
   `test_llm_config_rmw.py::test_concurrent_writes_kein_datenverlust`)
 - Async via `pytest-asyncio` (im Test-Setup als `asyncio: mode=Mode.STRICT`)
 
-Detail siehe `docs/TESTING_STATUS.md`.
 
 ---
 
@@ -143,10 +143,8 @@ Das gibt nur die relevanten Zeilen zurück — spart Token und Zeit.
 
 ## Doku-Pflege
 
-- `HANDOVER.md` — fortlaufender Session-State, am Ende jeder größeren Session updaten
-- `TESTING_STATUS.md` — bei neuen/entfernten Test-Dateien aktualisieren
-- `STRUCTURE.md` — bei neuen Modulen/Verzeichnissen
-- `SPEC.md`, `CLAUDE.md` — **nur mit ausdrücklicher Zustimmung von Till**,
-  standalone-Commit (siehe CLAUDE.md Regel 8)
+- `docs/ARCHITECTURE.md` / `docs/architecture/` — bei neuen Modulen/Verzeichnissen aktualisieren
+- `docs/USER_GUIDE.md` — bei nutzerseitigen Änderungen
+- `SPEC.md` — **nur mit ausdrücklicher Zustimmung des Maintainers**, standalone-Commit
 
 Architektur-Dokus für Subsysteme liegen in `docs/architecture/`.

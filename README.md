@@ -80,11 +80,9 @@ selbst braucht kein sudo.
 | Du willst… | Lies… |
 |---|---|
 | das System nutzen | dieses README, [installer/README.md](installer/README.md) |
-| beitragen / Code ändern | [CLAUDE.md](CLAUDE.md) → [CONTRIBUTING.md](CONTRIBUTING.md) → [docs/STRUCTURE.md](docs/STRUCTURE.md) |
+| beitragen / Code ändern | [CONTRIBUTING.md](CONTRIBUTING.md) → [SPEC.md](SPEC.md) → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | verstehen wie ein Subsystem funktioniert | [docs/architecture/](docs/architecture/) — Memory, Runner, Compaction, Auth |
 | die Produkt-Spec lesen | [SPEC.md](SPEC.md) |
-| die letzte Session aufgreifen | [docs/HANDOVER.md](docs/HANDOVER.md) |
-| den Test-Status prüfen | [docs/TESTING_STATUS.md](docs/TESTING_STATUS.md) |
 
 Vollständiger Doku-Index: [docs/README.md](docs/README.md).
 

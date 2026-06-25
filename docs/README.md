@@ -6,16 +6,15 @@ Eine Übersicht über die vorhandene Doku, sortiert nach Ziel.
 
 → Hauptverzeichnis [README.md](../README.md) — Quick-Start, Konfiguration, Sicherheit
 → [installer/README.md](../installer/README.md) — Installations-Details
+→ [USER_GUIDE.md](USER_GUIDE.md) — Bedienung aus Nutzersicht
 
 ## "Ich will beitragen / Code ändern"
 
 In dieser Reihenfolge:
 
-1. [CLAUDE.md](../CLAUDE.md) — **verbindliche Arbeitsregeln** (Datei-Größen, Co-location, was-nicht-zu-tun)
-2. [CONTRIBUTING.md](../CONTRIBUTING.md) — Git-Workflow, Tests, Konventionen
-3. [STRUCTURE.md](STRUCTURE.md) — Verzeichnis-Übersicht, wo liegt was
-4. [SPEC.md](../SPEC.md) — Produkt-Spezifikation (heilig, nicht ohne Tills OK ändern)
-5. [HANDOVER.md](HANDOVER.md) — aktueller Session-State, was offen ist
+1. [CONTRIBUTING.md](../CONTRIBUTING.md) — Git-Workflow, Tests, Konventionen, Arbeitsregeln
+2. [SPEC.md](../SPEC.md) — Produkt-Spezifikation (heilig, nicht ohne OK ändern)
+3. [ARCHITECTURE.md](ARCHITECTURE.md) — Architektur-Überblick, wo liegt was
 
 ## "Ich will verstehen wie ein Subsystem funktioniert"
 
@@ -25,21 +24,11 @@ In dieser Reihenfolge:
 - [runner.md](architecture/runner.md) — Tool-Loop, Streaming, Provider-Switch, Token-Counts
 - [compaction.md](architecture/compaction.md) — `firstKeptEntryId`-Pointer, hierarchisches Merging
 - [auth.md](architecture/auth.md) — JWT, API-Keys, Roles, OAuth-Flow
-
-## "Ich will Tests schreiben / Test-Status prüfen"
-
-- [TESTING_STATUS.md](TESTING_STATUS.md) — aktueller Stand (243 Tests, Coverage-Matrix)
-- [TEST_DEEP_DIVE.md](TEST_DEEP_DIVE.md) — historische Analyse (2026-05-06, vor dem Test-Aufbau)
-- [TEST_CHECKLIST.md](TEST_CHECKLIST.md) — historisches Tracking (während Test-Aufbau)
-
-## "Ich greife eine alte KI-Session wieder auf"
-
-- [HANDOVER.md](HANDOVER.md) zuerst lesen
-- dann [SPEC.md](../SPEC.md) wenn unklar was gebaut werden soll
-- dann konkret nach offenen Tasks fragen
+- [tools.md](architecture/tools.md) — Tool-System
+- [media-models.md](architecture/media-models.md) — Media-Modell-Konfiguration
 
 ## Pflege
 
 Wer welche Datei ändert, siehe [CONTRIBUTING.md](../CONTRIBUTING.md#doku-pflege).
-SPEC.md und CLAUDE.md sind Tills Domäne — nie ohne explizites OK ändern,
-standalone-Commit erforderlich (Pre-Commit-Hook erzwingt).
+SPEC.md wird nur mit explizitem OK geändert — standalone-Commit erforderlich
+(Pre-Commit-Hook erzwingt das).

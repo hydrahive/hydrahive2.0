@@ -40,8 +40,8 @@ class DevLauncher:
     """Spawns subprocesses as the service user inside `cwd`.
 
     This is the production launcher. Privilege-separation per Agent (systemd-run
-    + dedicated users) is out of scope for Tills threat-model (home-lab, trusted
-    agents with intentional full tool access — see CLAUDE.md).
+    + dedicated users) is out of scope for the project's threat-model (home-lab,
+    trusted agents with intentional full tool access).
     """
 
     async def run(
