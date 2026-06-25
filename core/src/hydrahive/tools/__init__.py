@@ -31,6 +31,7 @@ from hydrahive.tools import (
     configure_specialist,
     delete_skill_tool,
     write_skill,
+    prompt_archive,
     read_mail,
     read_memory,
     search_memory,
@@ -82,6 +83,9 @@ def _build_registry() -> dict[str, Tool]:
         datamining.TOOL_SEMANTIC,
         datamining.TOOL_TIMELINE,
         datamining.TOOL_TODAY,
+        prompt_archive.TOOL_LIST,
+        prompt_archive.TOOL_GET,
+        prompt_archive.TOOL_SAVE,
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)

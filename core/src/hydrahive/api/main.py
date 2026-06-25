@@ -60,6 +60,7 @@ from hydrahive.api.routes.users import router as users_router
 from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.teamchat import router as teamchat_router
+from hydrahive.api.routes.prompt_archive import router as prompt_archive_router
 from hydrahive.api.routes.modules import router as modules_admin_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
@@ -149,6 +150,7 @@ app.include_router(zahnfee_router)
 app.include_router(federation_router)
 app.include_router(streaming_router)
 app.include_router(teamchat_router)
+app.include_router(prompt_archive_router)
 app.include_router(modules_admin_router)
 
 
