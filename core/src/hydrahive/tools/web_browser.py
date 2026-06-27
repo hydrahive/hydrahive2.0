@@ -66,6 +66,92 @@ _SCHEMA = {
 }
 
 
+# Fehler-Signaturen, die auf einen veralteten Daemon hindeuten (z.B. nach
+# Sandbox-Remount: der Daemon hängt in einem alten Mount-Namespace und sein
+# /tmp ist nicht mehr beschreibbar → Playwright scheitert an mkdtemp).
+# In diesem Fall: Daemon killen, Socket/PID räumen, einmal retryen.
+_STALE_DAEMON_SIGS = (
+    "mkdtemp",
+    "ENOENT",
+    "no such file or directory",
+    "ECONNREFUSED",
+    "socket",
+    "daemon",
+)
+
+
+def _kill_stale_daemon(dev_home: str) -> bool:
+    """Killt einen hängenden dev-browser-Daemon und räumt Socket/PID auf.
+
+    Gibt True zurück, wenn etwas aufgeräumt wurde (also ein Retry sinnvoll ist).
+    """
+    import os
+    import signal
+
+    state_dir = os.path.join(dev_home, ".dev-browser")
+    pid_file = os.path.join(state_dir, "daemon.pid")
+    sock_file = os.path.join(state_dir, "daemon.sock")
+    cleaned = False
+
+    try:
+        with open(pid_file, encoding="utf-8") as fh:
+            pid = int(fh.read().strip())
+    except (OSError, ValueError):
+        pid = 0
+
+    if pid > 1:
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            try:
+                os.kill(pid, sig)
+                cleaned = True
+            except ProcessLookupError:
+                break
+            except OSError:
+                break
+            import time
+            time.sleep(0.5)
+            try:
+                os.kill(pid, 0)  # noch da?
+            except ProcessLookupError:
+                break
+
+    for path in (sock_file, pid_file):
+        try:
+            os.unlink(path)
+            cleaned = True
+        except OSError:
+            pass
+
+    logger.info("dev-browser: stale daemon aufgeräumt (cleaned=%s)", cleaned)
+    return cleaned
+
+
+async def _run_dev_browser(
+    script: str, env: dict, timeout: int
+) -> tuple[int, str, str]:
+    """Startet dev-browser einmal und liefert (exit_code, stdout, stderr)."""
+    proc = await asyncio.create_subprocess_exec(
+        "dev-browser", "--headless",
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        env=env,
+    )
+    try:
+        stdout_b, stderr_b = await asyncio.wait_for(
+            proc.communicate(input=script.encode("utf-8")),
+            timeout=timeout,
+        )
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        raise
+
+    stdout = stdout_b.decode("utf-8", errors="replace")
+    stderr = stderr_b.decode("utf-8", errors="replace")
+    return (proc.returncode or 0), stdout, stderr
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not shutil.which("dev-browser"):
         return ToolResult.fail(
@@ -96,35 +182,66 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     env = os.environ.copy()
     env["HOME"] = dev_home
 
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "dev-browser", "--headless",
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=env,
-        )
-        try:
-            stdout_b, stderr_b = await asyncio.wait_for(
-                proc.communicate(input=script.encode("utf-8")),
-                timeout=timeout,
-            )
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            return ToolResult.fail(f"Timeout nach {timeout}s")
-    except FileNotFoundError:
-        return ToolResult.fail("dev-browser Binary nicht gefunden (PATH-Problem?)")
-    except OSError as e:
-        return ToolResult.fail(f"Prozess-Start fehlgeschlagen: {e}")
+    # Eigenes, garantiert beschreibbares TMPDIR mitgeben, damit Playwright
+    # nicht vom geerbten /tmp abhängt (das nach einem Remount im Daemon-
+    # Namespace tot sein kann).
+    tmp_dir = os.path.join(dev_home, "tmp")
+    os.makedirs(tmp_dir, exist_ok=True)
+    env["TMPDIR"] = tmp_dir
 
-    stdout = stdout_b.decode("utf-8", errors="replace")
-    stderr = stderr_b.decode("utf-8", errors="replace")
+    # Beim allerersten Aufruf nach Daemon-Tod fährt der Daemon erst hoch —
+    # das kann ein paar Spawn-Races (ProcessLookupError/OSError) auslösen,
+    # bis der Socket bereit ist. Daher mit Backoff mehrfach versuchen.
+    exit_code = stdout = stderr = None
+    last_spawn_err: Exception | None = None
+    for attempt in range(4):
+        try:
+            exit_code, stdout, stderr = await _run_dev_browser(script, env, timeout)
+            break
+        except asyncio.TimeoutError:
+            return ToolResult.fail(f"Timeout nach {timeout}s")
+        except FileNotFoundError:
+            return ToolResult.fail(
+                "dev-browser Binary nicht gefunden (PATH-Problem?)"
+            )
+        except OSError as e:
+            # ProcessLookupError ist OSError-Subklasse — Spawn-Race, Daemon
+            # fährt noch hoch. Kurz warten und neu versuchen.
+            last_spawn_err = e
+            if attempt < 3:
+                logger.info(
+                    "dev-browser: Spawn-Race (Versuch %d) — retry", attempt + 1
+                )
+                await asyncio.sleep(1.0 + attempt)
+                continue
+            return ToolResult.fail(
+                f"Prozess-Start fehlgeschlagen nach {attempt + 1} Versuchen: "
+                f"{last_spawn_err or e}"
+            )
+
+    # Selbstheilung: Sieht der Fehler nach einem veralteten Daemon aus
+    # (Sandbox-Remount → totes /tmp im alten Namespace), Daemon killen und
+    # genau einmal frisch retryen.
+    if exit_code != 0 and any(
+        sig.lower() in (stderr or "").lower() for sig in _STALE_DAEMON_SIGS
+    ):
+        logger.warning(
+            "dev-browser exit %s mit stale-daemon-Signatur — retry nach cleanup",
+            exit_code,
+        )
+        if _kill_stale_daemon(dev_home):
+            try:
+                exit_code, stdout, stderr = await _run_dev_browser(
+                    script, env, timeout
+                )
+            except asyncio.TimeoutError:
+                return ToolResult.fail(f"Timeout nach {timeout}s (nach Daemon-Restart)")
+            except OSError as e:
+                return ToolResult.fail(f"Prozess-Start fehlgeschlagen (Retry): {e}")
 
     if len(stdout) > _MAX_OUTPUT:
-        stdout = stdout[:_MAX_OUTPUT] + f"\n… (gekürzt, {len(stdout_b)} Bytes gesamt)"
+        stdout = stdout[:_MAX_OUTPUT] + f"\n… (gekürzt, {len(stdout)} Bytes gesamt)"
 
-    exit_code = proc.returncode or 0
     if exit_code != 0:
         return ToolResult.fail(
             f"dev-browser exit {exit_code}",
