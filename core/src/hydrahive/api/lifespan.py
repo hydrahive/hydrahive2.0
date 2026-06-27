@@ -90,6 +90,11 @@ async def lifespan(app: FastAPI):
     # Verwaiste Handoffs (durch früheren Worker-Tod auf 'running' hängen
     # geblieben) terminal markieren — sonst bleiben sie ewige in_progress-Zombies.
     handoff_receiver.reconcile_orphaned_handoffs()
+    # SMB-Auto-Remount: nach einem Reboot sind die CIFS-Mounts weg; zugewiesene
+    # Shares einmalig wieder hochziehen. Im Executor, damit ein träger
+    # Fileserver den Start nicht blockiert.
+    from hydrahive.smbmounts.reconcile import reconcile_mounts_on_start
+    asyncio.create_task(asyncio.to_thread(reconcile_mounts_on_start))
     if settings.pg_mirror_dsn:
         await pg_mirror.init()
     from hydrahive.skills.loader import install_system_defaults
