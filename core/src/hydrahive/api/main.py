@@ -45,6 +45,7 @@ from hydrahive.api.routes.projects_files_write import router as projects_files_w
 from hydrahive.api.routes.projects_git import router as projects_git_router
 from hydrahive.api.routes.projects_samba import router as projects_samba_router
 from hydrahive.api.routes.projects_servers import router as projects_servers_router
+from hydrahive.api.routes.projects_mounts import router as projects_mounts_router
 from hydrahive.api.routes.smbmounts import router as smbmounts_router
 from hydrahive.api.routes.sessions import router as sessions_router
 from hydrahive.api.routes.skills import router as skills_router
@@ -124,6 +125,7 @@ app.include_router(projects_git_router)
 app.include_router(projects_samba_router)
 app.include_router(projects_servers_router)
 app.include_router(smbmounts_router)
+app.include_router(projects_mounts_router)
 app.include_router(sessions_router)
 app.include_router(skills_router)
 app.include_router(stt_router)
