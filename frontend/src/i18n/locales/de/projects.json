@@ -37,7 +37,8 @@
     "stats": "Statistiken",
     "settings": "Einstellungen",
     "specialists": "Spezialisten",
-    "audit": "Verlauf"
+    "audit": "Verlauf",
+    "mounts": "Freigaben"
   },
   "specialists": {
     "description": "Welche Spezialisten darf der Projekt-Agent via ask_agent beauftragen?",
@@ -157,5 +158,24 @@
     "no_model": "(kein Modell konfiguriert)",
     "git_init": "Workspace mit `git init` initialisieren",
     "no_users": "(keine User)"
+  },
+  "mounts": {
+    "empty": "Noch keine Freigabe zugewiesen.",
+    "count_one": "{{count}} Freigabe",
+    "count_other": "{{count}} Freigaben",
+    "add": "Freigabe zuweisen",
+    "add_title": "SMB-Freigabe zuweisen",
+    "none_available": "Keine freien Freigaben — leg unten eine neue an.",
+    "unassign": "Aus Projekt entfernen",
+    "unassign_confirm": "Freigabe aushängen und aus Projekt entfernen? (Definition bleibt erhalten)",
+    "create_title": "Neue SMB-Freigabe anlegen",
+    "create_submit": "Anlegen",
+    "f_name": "Name (z.B. nas-backup)",
+    "f_host": "Host / IP (z.B. 192.168.178.219)",
+    "f_share": "Freigabe (z.B. backups)",
+    "f_subpath": "Unterpfad (optional)",
+    "f_credential": "Credential-Name (optional, leer = Gast)",
+    "f_readonly": "Nur lesen",
+    "credential_hint": "Login über ein 'basic'-Credential (Benutzer:Passwort) unter /credentials. Leer = Gast-Zugang."
   }
 }

@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind } from "./types"
+import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind, SmbMount, SmbMountCreate } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -62,6 +62,18 @@ export const projectsApi = {
     api.get<{ enabled: boolean; share_name: string; user: string; password: string }>(`/projects/${id}/samba`),
   putSamba: (id: string, enabled: boolean) =>
     api.put<{ ok: boolean; enabled: boolean }>(`/projects/${id}/samba`, { enabled }),
+  // SMB-Mounts: CRUD (user-scoped) + Projekt-Zuweisung
+  listMounts: () => api.get<SmbMount[]>("/smb-mounts"),
+  createMount: (body: SmbMountCreate) => api.post<SmbMount>("/smb-mounts", body),
+  deleteMount: (mountId: string) => api.delete<void>(`/smb-mounts/${mountId}`),
+  getProjectMounts: (id: string) =>
+    api.get<SmbMount[]>(`/projects/${id}/mounts`),
+  getAvailableMounts: (id: string) =>
+    api.get<SmbMount[]>(`/projects/${id}/mounts/available`),
+  assignMount: (id: string, mountId: string) =>
+    api.post<SmbMount>(`/projects/${id}/mounts/assign`, { id: mountId }),
+  unassignMount: (id: string, mountId: string) =>
+    api.delete<void>(`/projects/${id}/mounts/${encodeURIComponent(mountId)}`),
   getAudit: (id: string, params?: { action?: string; user?: string; limit?: number }) => {
     const qs = new URLSearchParams()
     if (params?.action) qs.set("action", params.action)
