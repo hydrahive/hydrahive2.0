@@ -113,12 +113,20 @@ def delete(project_id: str) -> bool:
     from hydrahive.vms import db as vms_db
     from hydrahive.containers import db as containers_db
     from hydrahive.samba import disable_share as samba_disable
+    from hydrahive.smbmounts import db as mounts_db
+    from hydrahive.smbmounts import mounter as smb_mounter
     from hydrahive.agents._workspace_links import sync_links_for_user
     affected_users = set(cfg.get("members", []))
     if cfg.get("created_by"):
         affected_users.add(cfg["created_by"])
     vms_db.clear_project_assignments(project_id)
     containers_db.clear_project_assignments(project_id)
+    # SMB-Mounts erst aushängen (vor rmtree!), sonst löscht rmtree in das
+    # gemountete Fileserver-Verzeichnis hinein.
+    for m in mounts_db.list_for_project(project_id):
+        smb_mounter.umount(m)
+        mounts_db.set_state(m.mount_id, "unmounted")
+    mounts_db.clear_project_assignments(project_id)
     samba_disable(project_id)
     ws = settings.data_dir / "workspaces" / "projects" / project_id
     if ws.exists():
