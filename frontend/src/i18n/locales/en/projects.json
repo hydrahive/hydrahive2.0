@@ -37,7 +37,8 @@
     "stats": "Stats",
     "settings": "Settings",
     "specialists": "Specialists",
-    "audit": "History"
+    "audit": "History",
+    "mounts": "Shares"
   },
   "specialists": {
     "description": "Which specialists can the project agent call via ask_agent?",
@@ -157,5 +158,24 @@
     "no_model": "(no model configured)",
     "git_init": "Initialize workspace with `git init`",
     "no_users": "(no users)"
+  },
+  "mounts": {
+    "empty": "No share assigned yet.",
+    "count_one": "{{count}} share",
+    "count_other": "{{count}} shares",
+    "add": "Assign share",
+    "add_title": "Assign SMB share",
+    "none_available": "No free shares — create a new one below.",
+    "unassign": "Remove from project",
+    "unassign_confirm": "Unmount and remove share from project? (definition is kept)",
+    "create_title": "Create new SMB share",
+    "create_submit": "Create",
+    "f_name": "Name (e.g. nas-backup)",
+    "f_host": "Host / IP (e.g. 192.168.178.219)",
+    "f_share": "Share (e.g. backups)",
+    "f_subpath": "Subpath (optional)",
+    "f_credential": "Credential name (optional, empty = guest)",
+    "f_readonly": "Read only",
+    "credential_hint": "Auth via a 'basic' credential (user:password) under /credentials. Empty = guest access."
   }
 }

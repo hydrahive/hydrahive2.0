@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import {
   Folder, Loader2, Save, LayoutGrid, BarChart3, StickyNote, FolderOpen,
   MessageSquare, GitBranch, Server, SlidersHorizontal, Users, ScrollText,
+  FolderInput,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
@@ -11,6 +12,7 @@ import { OverviewTab } from "./_OverviewTab"
 import { SessionsTab } from "./_SessionsTab"
 import { GitTab } from "./_GitTab"
 import { ServersTab } from "./_ServersTab"
+import { MountsTab } from "./_MountsTab"
 import { StatsTab } from "./_StatsTab"
 import { SettingsTab } from "./_SettingsTab"
 import { SpecialistsTab } from "./_SpecialistsTab"
@@ -110,6 +112,10 @@ export function ProjectForm({ project, onSaved, onDeleted }: Props) {
 
           <CollapsibleBox boxId="project-servers" color={C} className={BOX} icon={<Server size={14} />} title={t("tabs.servers")} defaultCollapsed>
             <div className={`box-b ${SCROLL}`}><ServersTab projectId={project.id} /></div>
+          </CollapsibleBox>
+
+          <CollapsibleBox boxId="project-mounts" color={C} className={BOX} icon={<FolderInput size={14} />} title={t("tabs.mounts")} defaultCollapsed>
+            <div className={`box-b ${SCROLL}`}><MountsTab projectId={project.id} /></div>
           </CollapsibleBox>
 
           <CollapsibleBox boxId="project-settings" color={C} className={BOX} icon={<SlidersHorizontal size={14} />} title={t("tabs.settings")} defaultCollapsed>

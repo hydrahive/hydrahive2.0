@@ -70,6 +70,34 @@ export interface ProjectServer {
   image?: string
 }
 
+export type MountState = "unmounted" | "mounting" | "mounted" | "error"
+
+export interface SmbMount {
+  id: string
+  name: string
+  host: string
+  share: string
+  subpath: string | null
+  credential: string | null
+  read_only: boolean
+  options: string | null
+  project_id: string | null
+  mount_state: MountState
+  last_error_code: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SmbMountCreate {
+  name: string
+  host: string
+  share: string
+  subpath?: string | null
+  credential?: string | null
+  read_only?: boolean
+  options?: string | null
+}
+
 export interface ProjectStats {
   total_sessions: number
   active_sessions: number
