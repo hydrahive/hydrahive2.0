@@ -51,36 +51,38 @@ def test_analyze_image_schema_felder():
     assert set(schema["required"]) == {"image", "question"}
 
 
-# ---------------------------------------------------------------- _image_to_content_block
+# --------------------------------------------------------------- image_to_content_block
+# Die Bild→content-block-Logik wurde nach hydrahive.tools._openrouter_media
+# ausgelagert (geteilt von analyze_image + generate_image). Tests folgen dahin.
 
 def test_http_url_wird_als_url_block_gebaut():
-    from hydrahive.tools.analyze_image import _image_to_content_block
-    block = _image_to_content_block("https://example.com/foto.jpg")
+    from hydrahive.tools._openrouter_media import image_to_content_block
+    block = image_to_content_block("https://example.com/foto.jpg")
     assert isinstance(block, dict)
     assert block["type"] == "image_url"
     assert block["image_url"]["url"] == "https://example.com/foto.jpg"
 
 
 def test_lokaler_pfad_wird_base64(image_file):
-    from hydrahive.tools.analyze_image import _image_to_content_block
-    block = _image_to_content_block(str(image_file))
+    from hydrahive.tools._openrouter_media import image_to_content_block
+    block = image_to_content_block(str(image_file))
     assert isinstance(block, dict)
     assert block["type"] == "image_url"
     assert block["image_url"]["url"].startswith("data:image/png;base64,")
 
 
 def test_datei_nicht_gefunden_gibt_fehler_string(tmp_path):
-    from hydrahive.tools.analyze_image import _image_to_content_block
-    result = _image_to_content_block(str(tmp_path / "ghost.png"))
+    from hydrahive.tools._openrouter_media import image_to_content_block
+    result = image_to_content_block(str(tmp_path / "ghost.png"))
     assert isinstance(result, str)
     assert "nicht gefunden" in result
 
 
 def test_datei_zu_gross_gibt_fehler_string(tmp_path):
-    from hydrahive.tools.analyze_image import _image_to_content_block, _MAX_IMAGE_BYTES
+    from hydrahive.tools._openrouter_media import image_to_content_block, _MAX_IMAGE_BYTES
     big = tmp_path / "big.png"
     big.write_bytes(b"x" * (_MAX_IMAGE_BYTES + 1))
-    result = _image_to_content_block(str(big))
+    result = image_to_content_block(str(big))
     assert isinstance(result, str)
     assert "zu groß" in result
 

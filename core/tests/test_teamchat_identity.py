@@ -92,7 +92,7 @@ async def test_ensure_identity_second_call_idempotent(monkeypatch, setup_test_en
     mock_register = AsyncMock(return_value=tokens)
     with patch("hydrahive.teamchat.identity.client.register_account", new=mock_register):
         from hydrahive.teamchat.identity import ensure_identity
-        first = await ensure_identity("bob")
+        await ensure_identity("bob")
 
     # Zweiter Aufruf — register_account darf NICHT nochmal gerufen werden
     mock_register2 = AsyncMock()

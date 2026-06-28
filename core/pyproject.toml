@@ -7,7 +7,13 @@ name = "hydrahive-core"
 version = "2.0.0"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.111",
+    # Obergrenze <0.137: FastAPI 0.137.0 brachte einen Route-Tree-Refactor
+    # (fastapi/fastapi#15745, Regression #15762), der include_router-Routen nicht
+    # mehr flach in app.routes legt, sondern als verschachtelte `_IncludedRouter`
+    # ohne `.path`. Folge: app.routes-Introspektion bricht und das OpenAPI-Schema
+    # (/docs, /openapi.json) wird LEER. Bis upstream gefixt ist, bleiben wir auf
+    # 0.136.x — identisch zum laufenden Produktivstand. Deckel danach lockern.
+    "fastapi>=0.111,<0.137",
     "uvicorn[standard]>=0.30",
     "pyjwt>=2.8",
     "bcrypt>=4.0",

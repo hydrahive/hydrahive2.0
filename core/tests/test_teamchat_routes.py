@@ -15,41 +15,59 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # App + auth fixture
 # ---------------------------------------------------------------------------
 
-@pytest.fixture()
-def client_enabled(setup_test_env):
-    """TestClient mit teamchat_enabled=True und auth-Override."""
-    import os
-    os.environ["HH_TEAMCHAT_ENABLED"] = "1"
-    try:
-        from fastapi.testclient import TestClient
-        from hydrahive.api.main import app
-        from hydrahive.api.middleware.auth import require_auth
+from contextlib import asynccontextmanager
 
-        app.dependency_overrides[require_auth] = lambda: ("till", "user")
-        with TestClient(app, raise_server_exceptions=True) as c:
+
+@asynccontextmanager
+async def _minimal_lifespan(app):
+    """Startet die App OHNE den echten Lifespan.
+
+    Der echte Lifespan (hydrahive.api.lifespan) feuert beim Start ein Dutzend
+    Background-Tasks ab (Reconciler für VMs/Container/SMB-Mounts, Butler-Cron,
+    Mail-Watcher, AgentLink-Heartbeat …). Im Test blockieren/leaken die — u.a.
+    versucht der SMB-Reconcile einen echten mount.cifs. Das hängt die Suite auf
+    und verschmutzt den globalen App-State für nachfolgende Tests. Diese Fixture
+    umgeht das, identisch zur zentralen `client`-Fixture in conftest.py.
+    """
+    from hydrahive.settings import settings
+    settings.ensure_dirs()
+    yield
+
+
+def _teamchat_client(enabled: bool):
+    """TestClient mit minimalem Lifespan + auth-Override, teamchat an/aus."""
+    import os
+    if enabled:
+        os.environ["HH_TEAMCHAT_ENABLED"] = "1"
+    else:
+        os.environ["HH_TEAMCHAT_ENABLED"] = "0"
+
+    from fastapi.testclient import TestClient
+    from hydrahive.api import main
+    from hydrahive.api.middleware.auth import require_auth
+
+    original_lifespan = main.app.router.lifespan_context
+    main.app.router.lifespan_context = _minimal_lifespan
+    main.app.dependency_overrides[require_auth] = lambda: ("till", "user")
+    try:
+        with TestClient(main.app, raise_server_exceptions=True) as c:
             yield c
     finally:
-        app.dependency_overrides.pop(require_auth, None)
+        main.app.dependency_overrides.pop(require_auth, None)
+        main.app.router.lifespan_context = original_lifespan
         os.environ.pop("HH_TEAMCHAT_ENABLED", None)
+
+
+@pytest.fixture()
+def client_enabled(setup_test_env):
+    """TestClient mit teamchat_enabled=True und auth-Override (minimaler Lifespan)."""
+    yield from _teamchat_client(enabled=True)
 
 
 @pytest.fixture()
 def client_disabled(setup_test_env):
-    """TestClient mit teamchat_enabled=False."""
-    import os
-    os.environ.pop("HH_TEAMCHAT_ENABLED", None)
-    os.environ["HH_TEAMCHAT_ENABLED"] = "0"
-    try:
-        from fastapi.testclient import TestClient
-        from hydrahive.api.main import app
-        from hydrahive.api.middleware.auth import require_auth
-
-        app.dependency_overrides[require_auth] = lambda: ("till", "user")
-        with TestClient(app, raise_server_exceptions=True) as c:
-            yield c
-    finally:
-        app.dependency_overrides.pop(require_auth, None)
-        os.environ.pop("HH_TEAMCHAT_ENABLED", None)
+    """TestClient mit teamchat_enabled=False (minimaler Lifespan)."""
+    yield from _teamchat_client(enabled=False)
 
 
 # ---------------------------------------------------------------------------

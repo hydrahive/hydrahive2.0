@@ -98,7 +98,6 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     model = (args.get("model") or get_media_model("transcribe") or _DEFAULT_MODEL).strip()
     language = (args.get("language") or "").strip() or None
 
-    mime = _mime_for(path)
     filename = f"{path.stem}{path.suffix}" if path.suffix else f"{path.stem}.audio"
 
     try:

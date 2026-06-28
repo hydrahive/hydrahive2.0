@@ -194,7 +194,7 @@ def _copy_via_temp_table(src: Path, dst: Path, target_cols: dict[str, set[str]] 
                         col_indices = None
                         cols_str = ", ".join(src_cols)
                     tmp = f"_mg_{tbl_name}"
-                    fout.write(f"BEGIN;\n")
+                    fout.write("BEGIN;\n")
                     fout.write(f"CREATE TEMP TABLE {tmp} AS SELECT {cols_str} FROM {table_expr} LIMIT 0;\n")
                     fout.write(f"COPY {tmp} ({cols_str}) FROM stdin;\n")
                     in_copy = True
