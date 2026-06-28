@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { agentsApi } from "@/features/agents/api"
-import { AgentForm } from "@/features/agents/AgentForm"
+import { AgentFormTabs } from "./AgentFormTabs"
 import { llmModelsApi, type RegistryModel } from "@/features/llm/api"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 
@@ -53,7 +53,7 @@ export function AgentSettings({ itemId }: { itemId: string | null }) {
   }
 
   return (
-    <AgentForm
+    <AgentFormTabs
       agent={agent}
       models={models}
       catalog={catalog}
