@@ -1,9 +1,9 @@
 import { type CSSProperties, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Loader2, Play, Save, RotateCcw } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Loader2, Play, Settings as SettingsIcon } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
-import { zahnfeeApi, type ZahnfeeConfig, type Briefing } from "./api"
-import { ModelPicker } from "@/features/chat/ModelPicker"
+import { zahnfeeApi, type Briefing } from "./api"
 
 function Section({ title, content, accent }: { title: string; content: string; accent: string }) {
   if (!content) return null
@@ -36,31 +36,22 @@ function BriefingPreview({ briefing }: { briefing: Briefing }) {
   )
 }
 
+/**
+ * Zahnfee — AUSWERTUNG (das tägliche Briefing). Die Einstellungen wurden in den
+ * zentralen Settings-Hub ausgelagert (Trennung Auswertung/Einstellung).
+ */
 export function ZahnfeePage() {
   const { t } = useTranslation("zahnfee")
-  const [cfg, setCfg] = useState<ZahnfeeConfig | null>(null)
   const [briefing, setBriefing] = useState<Briefing | null>(null)
-  const [saving, setSaving] = useState(false)
   const [running, setRunning] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    zahnfeeApi.config().then(setCfg).catch(() => {})
-    zahnfeeApi.briefing().then((r) => setBriefing(r.briefing)).catch(() => {})
+    zahnfeeApi.briefing()
+      .then((r) => setBriefing(r.briefing))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
-
-  async function save() {
-    if (!cfg) return
-    setSaving(true)
-    try {
-      const updated = await zahnfeeApi.updateConfig(cfg)
-      setCfg(updated)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   async function runNow() {
     setRunning(true)
@@ -72,25 +63,23 @@ export function ZahnfeePage() {
     }
   }
 
-  if (!cfg) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 size={20} className="animate-spin text-zinc-500" />
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-8">
       <div className="flex items-center gap-3">
         <span className="text-4xl">🦷</span>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-zinc-100">Zahnfee</h1>
           <p className="text-sm text-zinc-500">{t("subtitle")}</p>
         </div>
+        <Link
+          to="/settings"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
+          title={t("config.title")}
+        >
+          <SettingsIcon size={13} /> {t("config.title")}
+        </Link>
       </div>
 
-      {/* Aktuelles Briefing */}
       <div className="box overflow-hidden p-6" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-zinc-300">{t("briefing.title")}</h2>
@@ -103,117 +92,15 @@ export function ZahnfeePage() {
             {running ? t("briefing.running") : t("briefing.run_now")}
           </button>
         </div>
-        {briefing ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 size={18} className="animate-spin text-zinc-500" />
+          </div>
+        ) : briefing ? (
           <BriefingPreview briefing={briefing} />
         ) : (
           <p className="text-sm text-zinc-500 italic">{t("briefing.empty")}</p>
         )}
-      </div>
-
-      {/* Config */}
-      <div className="box overflow-hidden p-6 flex flex-col gap-5" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
-        <h2 className="text-sm font-semibold text-zinc-300">{t("config.title")}</h2>
-
-        {/* Aktiviert */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={cfg.enabled}
-            onChange={(e) => setCfg({ ...cfg, enabled: e.target.checked })}
-            className="w-4 h-4 accent-violet-500"
-          />
-          <span className="text-sm text-zinc-300">{t("config.enabled")}</span>
-        </label>
-
-        {/* Modell */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.model")}</label>
-          <ModelPicker
-            current={cfg.model}
-            hint={t("config.model_hint")}
-            showReset
-            onPick={(m) => setCfg({ ...cfg, model: m })}
-            onReset={() => setCfg({ ...cfg, model: "" })}
-          />
-        </div>
-
-        {/* Uhrzeit + Lookback */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.run_hour")}</label>
-            <input
-              type="number"
-              min={0}
-              max={23}
-              value={cfg.run_hour}
-              onChange={(e) => setCfg({ ...cfg, run_hour: Number(e.target.value) })}
-              className="bg-zinc-800 border border-white/[8%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.lookback")}</label>
-            <input
-              type="number"
-              min={1}
-              max={720}
-              value={cfg.lookback_hours}
-              onChange={(e) => setCfg({ ...cfg, lookback_hours: Number(e.target.value) })}
-              className="bg-zinc-800 border border-white/[8%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
-            />
-          </div>
-        </div>
-
-        {/* Quellen */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.sources")}</label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={cfg.source_datamining}
-              onChange={(e) => setCfg({ ...cfg, source_datamining: e.target.checked })}
-              className="w-4 h-4 accent-violet-500"
-            />
-            <span className="text-sm text-zinc-300">{t("config.source_datamining")}</span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer opacity-50">
-            <input
-              type="checkbox"
-              checked={cfg.source_mail}
-              onChange={(e) => setCfg({ ...cfg, source_mail: e.target.checked })}
-              className="w-4 h-4 accent-violet-500"
-            />
-            <span className="text-sm text-zinc-300">{t("config.source_mail")} <span className="text-zinc-600 text-xs">{t("config.source_mail_unavailable")}</span></span>
-          </label>
-        </div>
-
-        {/* Soul */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.soul")}</label>
-            <button
-              onClick={() => setCfg({ ...cfg, soul: "" })}
-              className="flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
-              title={t("config.soul_reset")}
-            >
-              <RotateCcw size={11} /> {t("config.soul_reset_short")}
-            </button>
-          </div>
-          <textarea
-            value={cfg.soul}
-            onChange={(e) => setCfg({ ...cfg, soul: e.target.value })}
-            rows={12}
-            className="bg-zinc-800 border border-white/[8%] rounded-lg px-3 py-2 text-sm text-zinc-200 font-mono resize-y focus:outline-none focus:border-violet-500/50 leading-relaxed"
-          />
-        </div>
-
-        <button
-          onClick={save}
-          disabled={saving}
-          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-sm font-medium transition-colors"
-        >
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          {saved ? t("config.saved") : saving ? t("config.saving") : t("config.save")}
-        </button>
       </div>
     </div>
   )
