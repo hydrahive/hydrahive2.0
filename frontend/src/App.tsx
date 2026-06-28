@@ -10,8 +10,7 @@ const appModuleRoutes = moduleRoutes as ModuleRoute[]
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { SessionDetailPage } from "@/features/analytics/SessionDetailPage"
 import { ChatPage } from "@/features/chat/ChatPage"
-import { AgentsPage } from "@/features/agents/AgentsPage"
-import { ProjectsPage } from "@/features/projects/ProjectsPage"
+
 import { LlmPage } from "@/features/llm/LlmPage"
 import { CatalogPage } from "@/features/llm/CatalogPage"
 import { McpPage } from "@/features/mcp/McpPage"
@@ -74,8 +73,9 @@ export default function App() {
           <Route path="werkstatt" element={<ChatPage />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
           <Route path="devchat" element={<Navigate to="/werkstatt" replace />} />
-          <Route path="agents" element={<AgentsPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
+          {/* Agenten & Projekte leben jetzt im Settings-Hub (eine Config-Stelle). */}
+          <Route path="agents" element={<Navigate to="/settings/agents" replace />} />
+          <Route path="projects" element={<Navigate to="/settings/projects" replace />} />
           <Route path="communication" element={<CommunicationPage />} />
           <Route path="teamchat" element={<TeamchatPage />} />
           <Route path="vms" element={<VMsPage />} />
@@ -92,6 +92,7 @@ export default function App() {
           <Route path="skills" element={<SkillsPage />} />
           <Route path="credentials" element={<CredentialsPage />} />
           <Route path="settings" element={<SettingsHubPage />} />
+          <Route path="settings/:groupId" element={<SettingsHubPage />} />
           <Route path="system" element={<SystemPage />} />
           <Route path="system/settings" element={<AdminGuard><SettingsPage /></AdminGuard>} />
           <Route path="users" element={<AdminGuard><UsersPage /></AdminGuard>} />
