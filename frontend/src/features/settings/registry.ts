@@ -26,6 +26,7 @@ const ConnSamba = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ defa
 const SysBackup = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysBackup })))
 const SysBridge = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysBridge })))
 const SysStatus = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysStatus })))
+const ZahnfeeConfig = lazy(() => import("@/features/zahnfee/ZahnfeeConfig").then((m) => ({ default: m.ZahnfeeConfig })))
 
 /**
  * Settings-Gruppen-Registry (SSOT für die linke Auswahl-Spalte).
@@ -76,7 +77,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "butler", label: "Butler", icon: Workflow, hasSubmenu: false,
     tabs: ["Flows"], route: "/butler" },
   { id: "zahnfee", label: "Zahnfee", icon: MoonStar, hasSubmenu: false,
-    tabs: ["Einstellungen"], route: "/zahnfee", adminOnly: true },
+    tabs: ["Einstellungen"], route: "/zahnfee", component: ZahnfeeConfig, adminOnly: true },
   { id: "skills", label: "Skills", icon: Sparkles, hasSubmenu: false,
     tabs: ["Bibliothek"], route: "/skills", component: SkillsPage },
   { id: "mcp", label: "MCP", icon: Server, hasSubmenu: false,
