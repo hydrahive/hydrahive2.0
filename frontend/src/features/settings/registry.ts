@@ -12,6 +12,10 @@ const CredentialsPage = lazy(() => import("@/features/credentials/CredentialsPag
 const SkillsPage = lazy(() => import("@/features/skills/SkillsPage").then((m) => ({ default: m.SkillsPage })))
 const UsersPage = lazy(() => import("@/features/users/UsersPage").then((m) => ({ default: m.UsersPage })))
 const SettingsPage = lazy(() => import("@/features/system/SettingsPage").then((m) => ({ default: m.SettingsPage })))
+const ModulesPage = lazy(() => import("@/features/modules/ModulesPage").then((m) => ({ default: m.ModulesPage })))
+const ExtensionsPage = lazy(() => import("@/features/extensions/ExtensionsPage").then((m) => ({ default: m.ExtensionsPage })))
+const PluginsPage = lazy(() => import("@/features/plugins/PluginsPage").then((m) => ({ default: m.PluginsPage })))
+const FederationPage = lazy(() => import("@/features/federation/FederationPage").then((m) => ({ default: m.FederationPage })))
 
 /**
  * Settings-Gruppen-Registry (SSOT für die linke Auswahl-Spalte).
@@ -60,9 +64,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "mcp", label: "MCP", icon: Server, hasSubmenu: false,
     tabs: ["Server"], route: "/mcp" },
   { id: "plugins", label: "Plugins", icon: Puzzle, hasSubmenu: false,
-    tabs: ["Installiert"], route: "/plugins", adminOnly: true },
+    tabs: ["Installiert"], route: "/plugins", component: PluginsPage, adminOnly: true },
   { id: "federation", label: "Föderation", icon: Globe, hasSubmenu: false,
-    tabs: ["Instanzen"], route: "/federation" },
+    tabs: ["Instanzen"], route: "/federation", component: FederationPage },
   { id: "llm", label: "KI-Modelle", icon: Cpu, hasSubmenu: false,
     tabs: ["Provider & Modelle"], route: "/llm", component: LlmPage },
   { id: "credentials", label: "Zugangsdaten", icon: Key, hasSubmenu: false,
@@ -70,9 +74,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "memory", label: "Gedächtnis", icon: BrainCircuit, hasSubmenu: false,
     tabs: ["Einträge"], route: "/memory" },
   { id: "extensions", label: "Erweiterungen", icon: Package, hasSubmenu: false,
-    tabs: ["Installiert"], route: "/extensions", adminOnly: true },
+    tabs: ["Installiert"], route: "/extensions", component: ExtensionsPage, adminOnly: true },
   { id: "modules", label: "Module", icon: Boxes, hasSubmenu: false,
-    tabs: ["Verfügbar"], route: "/modules", adminOnly: true },
+    tabs: ["Verfügbar"], route: "/modules", component: ModulesPage, adminOnly: true },
   { id: "connections", label: "Verbindungen", icon: Network, hasSubmenu: false,
     tabs: ["Mail", "Tailscale", "AgentLink", "Samba"], route: "/system" },
   { id: "system", label: "System", icon: SlidersHorizontal, hasSubmenu: false,
