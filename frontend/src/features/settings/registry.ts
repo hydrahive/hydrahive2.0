@@ -32,9 +32,10 @@ const ZahnfeeConfig = lazy(() => import("@/features/zahnfee/ZahnfeeConfig").then
 // Detail-Komponente (Submenü-Schema): Agenten — zeigt Settings des gewählten Agenten.
 const AgentSettings = lazy(() => import("./detail/AgentSettings").then((m) => ({ default: m.AgentSettings })))
 const AgentSubMenu = lazy(() => import("./detail/AgentSubMenu").then((m) => ({ default: m.AgentSubMenu })))
+const ProjectSettings = lazy(() => import("./detail/ProjectSettings").then((m) => ({ default: m.ProjectSettings })))
+const ProjectSubMenu = lazy(() => import("./detail/ProjectSubMenu").then((m) => ({ default: m.ProjectSubMenu })))
 
-// Noch nicht ins Schema migriert (Vollbild via EmbedFrame): Projekte, MCP, Memory, Butler.
-const ProjectsPage = lazy(() => import("@/features/projects/ProjectsPage").then((m) => ({ default: m.ProjectsPage })))
+// Noch nicht ins Schema migriert (Vollbild via EmbedFrame): MCP, Memory, Butler.
 const McpPage = lazy(() => import("@/features/mcp/McpPage").then((m) => ({ default: m.McpPage })))
 const MemoryPage = lazy(() => import("@/features/memory/MemoryPage").then((m) => ({ default: m.MemoryPage })))
 const ButlerPage = lazy(() => import("@/features/butler/ButlerPage").then((m) => ({ default: m.ButlerPage })))
@@ -92,8 +93,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: true,
     submenuLabel: "Agenten", tabs: ["Einstellungen"], route: "/agents",
     detailComponent: AgentSettings, submenuComponent: AgentSubMenu },
-  { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: false,
-    tabs: ["Verwaltung"], route: "/projects", component: ProjectsPage, fullscreen: true },
+  { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: true,
+    submenuLabel: "Projekte", tabs: ["Einstellungen"], route: "/projects",
+    detailComponent: ProjectSettings, submenuComponent: ProjectSubMenu },
   { id: "communication", label: "Kommunikation", icon: MessageCircle, hasSubmenu: false,
     tabs: ["Discord", "WhatsApp", "Mail"], route: "/communication",
     tabComponents: { Discord: CommDiscord, WhatsApp: CommWhatsApp, Mail: CommMail } },
