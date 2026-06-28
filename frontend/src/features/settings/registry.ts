@@ -17,6 +17,16 @@ const ExtensionsPage = lazy(() => import("@/features/extensions/ExtensionsPage")
 const PluginsPage = lazy(() => import("@/features/plugins/PluginsPage").then((m) => ({ default: m.PluginsPage })))
 const FederationPage = lazy(() => import("@/features/federation/FederationPage").then((m) => ({ default: m.FederationPage })))
 
+// Per-Tab-Inhalte für Multi-Tab-Gruppen (Kommunikation, Verbindungen, System).
+const CommDiscord = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommDiscord })))
+const CommWhatsApp = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommWhatsApp })))
+const ConnTailscale = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnTailscale })))
+const ConnAgentLink = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnAgentLink })))
+const ConnSamba = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnSamba })))
+const SysBackup = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysBackup })))
+const SysBridge = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysBridge })))
+const SysStatus = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysStatus })))
+
 /**
  * Settings-Gruppen-Registry (SSOT für die linke Auswahl-Spalte).
  *
@@ -45,6 +55,9 @@ export interface SettingsGroup {
   // Direkt eingebettete Komponente. Wenn gesetzt, rendert ContentArea sie
   // (in einem isolierten Scroll-Container) statt Platzhalter + Link.
   component?: LazyExoticComponent<ComponentType>
+  // Per-Tab-Komponenten (Tab-Name → Komponente) für Multi-Tab-Gruppen.
+  // Hat Vorrang vor `component` für den jeweils aktiven Tab.
+  tabComponents?: Record<string, LazyExoticComponent<ComponentType>>
   adminOnly?: boolean
 }
 
@@ -54,7 +67,8 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: true,
     submenuLabel: "Projekte", tabs: ["Einstellungen"], route: "/projects" },
   { id: "communication", label: "Kommunikation", icon: MessageCircle, hasSubmenu: false,
-    tabs: ["Discord", "WhatsApp", "Mail"], route: "/communication" },
+    tabs: ["Discord", "WhatsApp", "Mail"], route: "/communication",
+    tabComponents: { Discord: CommDiscord, WhatsApp: CommWhatsApp } },
   { id: "butler", label: "Butler", icon: Workflow, hasSubmenu: false,
     tabs: ["Flows"], route: "/butler" },
   { id: "zahnfee", label: "Zahnfee", icon: MoonStar, hasSubmenu: false,
@@ -78,9 +92,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "modules", label: "Module", icon: Boxes, hasSubmenu: false,
     tabs: ["Verfügbar"], route: "/modules", component: ModulesPage, adminOnly: true },
   { id: "connections", label: "Verbindungen", icon: Network, hasSubmenu: false,
-    tabs: ["Mail", "Tailscale", "AgentLink", "Samba"], route: "/system" },
+    tabs: ["Tailscale", "AgentLink", "Samba"], route: "/system",
+    tabComponents: { Tailscale: ConnTailscale, AgentLink: ConnAgentLink, Samba: ConnSamba } },
   { id: "system", label: "System", icon: SlidersHorizontal, hasSubmenu: false,
-    tabs: ["Allgemein", "Backup", "Status"], route: "/system", adminOnly: true },
+    tabs: ["Status", "Backup", "Bridge"], route: "/system", adminOnly: true,
+    tabComponents: { Status: SysStatus, Backup: SysBackup, Bridge: SysBridge } },
   { id: "settings_values", label: "Globale Settings", icon: Database, hasSubmenu: false,
     tabs: ["Werte"], route: "/system/settings", component: SettingsPage, adminOnly: true },
   { id: "users", label: "Benutzer", icon: Users, hasSubmenu: false,
