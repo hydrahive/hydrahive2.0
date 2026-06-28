@@ -62,10 +62,14 @@ export interface SettingsGroup {
 }
 
 export const SETTINGS_GROUPS: SettingsGroup[] = [
-  { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: true,
-    submenuLabel: "Agenten", tabs: ["Einstellungen", "Tools", "Mail"], route: "/agents" },
-  { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: true,
-    submenuLabel: "Projekte", tabs: ["Einstellungen"], route: "/projects" },
+  // Agenten & Projekte bringen ihre eigene Liste+Detail-Ansicht (Vollbild) mit
+  // — das ist bereits die ideale Settings-UI. Daher kein zusätzliches Submenü,
+  // sondern ein klarer Verweis auf die vollwertige Seite (kein erzwungenes
+  // Einbetten, das die bestehende Bedienung verschlechtern würde).
+  { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: false,
+    tabs: ["Verwaltung"], route: "/agents" },
+  { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: false,
+    tabs: ["Verwaltung"], route: "/projects" },
   { id: "communication", label: "Kommunikation", icon: MessageCircle, hasSubmenu: false,
     tabs: ["Discord", "WhatsApp", "Mail"], route: "/communication",
     tabComponents: { Discord: CommDiscord, WhatsApp: CommWhatsApp } },
