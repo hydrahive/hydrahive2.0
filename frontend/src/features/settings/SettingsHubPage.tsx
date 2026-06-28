@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { Suspense, useState } from "react"
+import { Loader2 } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { SETTINGS_GROUPS, type SettingsGroup } from "./registry"
 import { GroupList } from "./GroupList"
@@ -40,12 +41,26 @@ export function SettingsHubPage() {
           <ContentArea group={active} subItem={subItem} />
         </div>
 
-        {/* Rechts: Submenü — nur wenn die Gruppe eins braucht */}
-        {active.hasSubmenu && (
-          <div className="w-56 shrink-0 border-l border-white/8 bg-zinc-950/50">
-            <SubMenu group={active} activeItem={subItem} onSelect={setSubItem} />
-          </div>
-        )}
+        {/* Rechts: Submenü — nur wenn die Gruppe eins braucht. Eigene
+            submenuComponent (z.B. Agentenliste mit Farben) hat Vorrang. */}
+        {active.hasSubmenu && (() => {
+          const Custom = active.submenuComponent
+          return (
+            <div className="w-64 shrink-0 border-l border-white/8 bg-zinc-950/50">
+              {Custom ? (
+                <Suspense fallback={
+                  <div className="flex h-full items-center justify-center">
+                    <Loader2 size={18} className="animate-spin text-zinc-500" />
+                  </div>
+                }>
+                  <Custom activeItem={subItem} onSelect={setSubItem} />
+                </Suspense>
+              ) : (
+                <SubMenu group={active} activeItem={subItem} onSelect={setSubItem} />
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

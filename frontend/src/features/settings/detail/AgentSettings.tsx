@@ -53,15 +53,13 @@ export function AgentSettings({ itemId }: { itemId: string | null }) {
   }
 
   return (
-    <div className="max-w-3xl">
-      <AgentForm
-        agent={agent}
-        models={models}
-        catalog={catalog}
-        tools={tools}
-        onSaved={setAgent}
-        onDeleted={() => setAgent(null)}
-      />
-    </div>
+    <AgentForm
+      agent={agent}
+      models={models}
+      catalog={catalog}
+      tools={tools}
+      onSaved={setAgent}
+      onDeleted={() => setAgent(null)}
+    />
   )
 }
