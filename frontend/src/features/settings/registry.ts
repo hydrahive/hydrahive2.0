@@ -29,8 +29,10 @@ const SysBridge = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default:
 const SysStatus = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysStatus })))
 const ZahnfeeConfig = lazy(() => import("@/features/zahnfee/ZahnfeeConfig").then((m) => ({ default: m.ZahnfeeConfig })))
 
-// Vollbild-Pages (werden in EmbedFrame gerendert, fullscreen: true).
-const AgentsPage = lazy(() => import("@/features/agents/AgentsPage").then((m) => ({ default: m.AgentsPage })))
+// Detail-Komponente (Submenü-Schema): Agenten — zeigt Settings des gewählten Agenten.
+const AgentSettings = lazy(() => import("./detail/AgentSettings").then((m) => ({ default: m.AgentSettings })))
+
+// Noch nicht ins Schema migriert (Vollbild via EmbedFrame): Projekte, MCP, Memory, Butler.
 const ProjectsPage = lazy(() => import("@/features/projects/ProjectsPage").then((m) => ({ default: m.ProjectsPage })))
 const McpPage = lazy(() => import("@/features/mcp/McpPage").then((m) => ({ default: m.McpPage })))
 const MemoryPage = lazy(() => import("@/features/memory/MemoryPage").then((m) => ({ default: m.MemoryPage })))
@@ -68,8 +70,13 @@ export interface SettingsGroup {
   // Hat Vorrang vor `component` für den jeweils aktiven Tab.
   tabComponents?: Record<string, LazyExoticComponent<ComponentType>>
   // Wenn true, wird die eingebettete component in einen EmbedFrame gepackt
-  // (für Vollbild-Pages mit -m-/h-calc-Layout: Agenten, Projekte, MCP, …).
+  // (für Vollbild-Pages mit -m-/h-calc-Layout: Projekte, MCP, … solange noch
+  // nicht ins Schema migriert).
   fullscreen?: boolean
+  // Detail-Komponente für Gruppen MIT Submenü: bekommt die im Submenü gewählte
+  // itemId und zeigt nur deren Einstellungen (Tills Schema). Hat Vorrang vor
+  // component, wenn hasSubmenu=true.
+  detailComponent?: LazyExoticComponent<ComponentType<{ itemId: string | null }>>
   adminOnly?: boolean
 }
 
@@ -78,8 +85,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   // — das ist bereits die ideale Settings-UI. Daher kein zusätzliches Submenü,
   // sondern ein klarer Verweis auf die vollwertige Seite (kein erzwungenes
   // Einbetten, das die bestehende Bedienung verschlechtern würde).
-  { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: false,
-    tabs: ["Verwaltung"], route: "/agents", component: AgentsPage, fullscreen: true },
+  { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: true,
+    submenuLabel: "Agenten", tabs: ["Einstellungen"], route: "/agents",
+    detailComponent: AgentSettings },
   { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: false,
     tabs: ["Verwaltung"], route: "/projects", component: ProjectsPage, fullscreen: true },
   { id: "communication", label: "Kommunikation", icon: MessageCircle, hasSubmenu: false,

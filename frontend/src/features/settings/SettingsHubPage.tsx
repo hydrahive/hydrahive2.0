@@ -37,7 +37,7 @@ export function SettingsHubPage() {
 
         {/* Mitte: Inhalt mit Tabs */}
         <div className="flex-1 min-w-0 bg-zinc-950/20">
-          <ContentArea group={active} />
+          <ContentArea group={active} subItem={subItem} />
         </div>
 
         {/* Rechts: Submenü — nur wenn die Gruppe eins braucht */}

@@ -6,21 +6,24 @@ import { EmbedFrame } from "./EmbedFrame"
 
 interface Props {
   group: SettingsGroup
+  subItem?: string | null
 }
 
 /**
  * Mittlerer Bereich: Karteikarten-Tabs oben + Inhalt darunter.
  *
- * Wenn group.component gesetzt ist, wird die bestehende Feature-Page direkt
- * eingebettet (in einem isolierten, scrollbaren Container — neutralisiert
- * etwaiges Vollbild-Layout der Page). Sonst: Platzhalter + Link zur alten Seite
- * (Gerüst-Phase, Inhalt folgt etappenweise).
+ * Render-Priorität:
+ *  1. detailComponent (Gruppe mit Submenü) → bekommt die gewählte itemId.
+ *  2. tabComponents[tab] → Per-Tab-Inhalt.
+ *  3. component (+ fullscreen → EmbedFrame) → ganze Feature-Page.
+ *  4. Platzhalter + Link (noch nicht migriert).
  */
-export function ContentArea({ group }: Props) {
+export function ContentArea({ group, subItem = null }: Props) {
   const [tab, setTab] = useState(group.tabs[0] ?? "")
 
   useEffect(() => { setTab(group.tabs[0] ?? "") }, [group.id, group.tabs])
 
+  const Detail = group.detailComponent
   // Per-Tab-Komponente hat Vorrang, sonst die gruppenweite component.
   const tabComp = group.tabComponents?.[tab]
   const Embedded = tabComp ?? group.component
@@ -48,7 +51,15 @@ export function ContentArea({ group }: Props) {
 
       {/* Inhalt */}
       <div className="flex-1 overflow-y-auto p-5">
-        {Embedded && useFrame ? (
+        {Detail ? (
+          <Suspense fallback={
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 size={20} className="animate-spin text-zinc-500" />
+            </div>
+          }>
+            <Detail itemId={subItem} />
+          </Suspense>
+        ) : Embedded && useFrame ? (
           <EmbedFrame><Embedded /></EmbedFrame>
         ) : Embedded ? (
           <Suspense fallback={
