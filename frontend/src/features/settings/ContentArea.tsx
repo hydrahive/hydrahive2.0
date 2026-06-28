@@ -20,7 +20,8 @@ export function ContentArea({ group }: Props) {
 
   useEffect(() => { setTab(group.tabs[0] ?? "") }, [group.id, group.tabs])
 
-  const Embedded = group.component
+  // Per-Tab-Komponente hat Vorrang, sonst die gruppenweite component.
+  const Embedded = group.tabComponents?.[tab] ?? group.component
 
   return (
     <div className="flex h-full flex-col">
