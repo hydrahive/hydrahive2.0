@@ -206,3 +206,40 @@ def _reset_llm_registry():
         pass
 
 
+@pytest.fixture(autouse=True)
+def _no_real_cifs_mount(monkeypatch):
+    """Niemals echtes `sudo mount.cifs` aus einem Test heraus aufrufen.
+
+    Die SMB-Mount-Tests benutzen einen bewusst toten Host (10.255.255.1), um den
+    Fehlerpfad zu prüfen. Echtes mount.cifs gegen so einen Host schlägt aber NICHT
+    schnell fehl — es blockiert minutenlang im CIFS-Netzwerk-Timeout als
+    root-Kindprozess im uninterruptible D-State, den auch subprocess.timeout nicht
+    killen kann. Das hängt die ganze Suite auf.
+
+    Diese autouse-Fixture ersetzt den echten Mounter durch schnelle Fakes:
+    - mount()/umount() gegen einen erreichbaren Mock-Host liefern Erfolg,
+    - der tote Test-Host (10.255.255.x) liefert sofort einen sauberen Fehler.
+    So bleibt die Reconcile-/Assign-/Delete-Logik testbar, ohne je das Netzwerk
+    oder sudo anzufassen. Tests, die das echte Verhalten brauchen, können
+    `mounter.mount`/`umount` lokal selbst überschreiben.
+    """
+    try:
+        from hydrahive.smbmounts import mounter
+    except Exception:
+        yield
+        return
+
+    def _fake_mount(m):
+        host = getattr(m, "host", "") or ""
+        if host.startswith("10.255.255."):
+            return False, "mount_failed"
+        return True, mounter.mountpoint_for(m.project_id, m.name)
+
+    def _fake_umount(m):
+        return True, "unmounted"
+
+    monkeypatch.setattr(mounter, "mount", _fake_mount, raising=True)
+    monkeypatch.setattr(mounter, "umount", _fake_umount, raising=True)
+    yield
+
+
