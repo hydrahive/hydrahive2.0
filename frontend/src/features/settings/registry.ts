@@ -1,8 +1,17 @@
+import { lazy, type LazyExoticComponent, type ComponentType } from "react"
 import {
   Bot, FolderKanban, MessageCircle, Workflow, MoonStar, Sparkles, Server,
   Puzzle, Globe, Cpu, Package, Boxes, Users, Key, BrainCircuit,
   SlidersHorizontal, Database, Network, type LucideIcon,
 } from "lucide-react"
+
+// Lazy-geladene bestehende Feature-Pages, die direkt eingebettet werden.
+// Code-split: nur geladen, wenn die Gruppe geöffnet wird.
+const LlmPage = lazy(() => import("@/features/llm/LlmPage").then((m) => ({ default: m.LlmPage })))
+const CredentialsPage = lazy(() => import("@/features/credentials/CredentialsPage").then((m) => ({ default: m.CredentialsPage })))
+const SkillsPage = lazy(() => import("@/features/skills/SkillsPage").then((m) => ({ default: m.SkillsPage })))
+const UsersPage = lazy(() => import("@/features/users/UsersPage").then((m) => ({ default: m.UsersPage })))
+const SettingsPage = lazy(() => import("@/features/system/SettingsPage").then((m) => ({ default: m.SettingsPage })))
 
 /**
  * Settings-Gruppen-Registry (SSOT für die linke Auswahl-Spalte).
@@ -28,7 +37,10 @@ export interface SettingsGroup {
   hasSubmenu: boolean
   submenuLabel?: string
   tabs: string[]
-  route?: string          // bestehende Seite (Fallback, bis migriert)
+  route?: string          // bestehende Seite (Fallback-Link, bis eingebettet)
+  // Direkt eingebettete Komponente. Wenn gesetzt, rendert ContentArea sie
+  // (in einem isolierten Scroll-Container) statt Platzhalter + Link.
+  component?: LazyExoticComponent<ComponentType>
   adminOnly?: boolean
 }
 
@@ -44,7 +56,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "zahnfee", label: "Zahnfee", icon: MoonStar, hasSubmenu: false,
     tabs: ["Einstellungen"], route: "/zahnfee", adminOnly: true },
   { id: "skills", label: "Skills", icon: Sparkles, hasSubmenu: false,
-    tabs: ["Bibliothek"], route: "/skills" },
+    tabs: ["Bibliothek"], route: "/skills", component: SkillsPage },
   { id: "mcp", label: "MCP", icon: Server, hasSubmenu: false,
     tabs: ["Server"], route: "/mcp" },
   { id: "plugins", label: "Plugins", icon: Puzzle, hasSubmenu: false,
@@ -52,9 +64,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "federation", label: "Föderation", icon: Globe, hasSubmenu: false,
     tabs: ["Instanzen"], route: "/federation" },
   { id: "llm", label: "KI-Modelle", icon: Cpu, hasSubmenu: false,
-    tabs: ["Provider", "Modelle"], route: "/llm" },
+    tabs: ["Provider & Modelle"], route: "/llm", component: LlmPage },
   { id: "credentials", label: "Zugangsdaten", icon: Key, hasSubmenu: false,
-    tabs: ["Credentials"], route: "/credentials" },
+    tabs: ["Credentials"], route: "/credentials", component: CredentialsPage },
   { id: "memory", label: "Gedächtnis", icon: BrainCircuit, hasSubmenu: false,
     tabs: ["Einträge"], route: "/memory" },
   { id: "extensions", label: "Erweiterungen", icon: Package, hasSubmenu: false,
@@ -66,7 +78,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "system", label: "System", icon: SlidersHorizontal, hasSubmenu: false,
     tabs: ["Allgemein", "Backup", "Status"], route: "/system", adminOnly: true },
   { id: "settings_values", label: "Globale Settings", icon: Database, hasSubmenu: false,
-    tabs: ["Werte"], route: "/system/settings", adminOnly: true },
+    tabs: ["Werte"], route: "/system/settings", component: SettingsPage, adminOnly: true },
   { id: "users", label: "Benutzer", icon: Users, hasSubmenu: false,
-    tabs: ["Verwaltung"], route: "/users", adminOnly: true },
+    tabs: ["Verwaltung"], route: "/users", component: UsersPage, adminOnly: true },
 ]
