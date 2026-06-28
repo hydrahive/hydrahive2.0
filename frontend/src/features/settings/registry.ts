@@ -1,7 +1,7 @@
 import { lazy, type LazyExoticComponent, type ComponentType } from "react"
 import {
   Bot, FolderKanban, MessageCircle, Workflow, MoonStar, Sparkles, Server,
-  Puzzle, Globe, Cpu, Package, Boxes, Users, Key, BrainCircuit,
+  Puzzle, Globe, Cpu, Package, Boxes, Users, Key,
   SlidersHorizontal, Database, Network, type LucideIcon,
 } from "lucide-react"
 
@@ -35,9 +35,8 @@ const AgentSubMenu = lazy(() => import("./detail/AgentSubMenu").then((m) => ({ d
 const ProjectSettings = lazy(() => import("./detail/ProjectSettings").then((m) => ({ default: m.ProjectSettings })))
 const ProjectSubMenu = lazy(() => import("./detail/ProjectSubMenu").then((m) => ({ default: m.ProjectSubMenu })))
 
-// Noch nicht ins Schema migriert (Vollbild via EmbedFrame): MCP, Memory, Butler.
+// Noch nicht ins Schema migriert (Vollbild via EmbedFrame): MCP, Butler.
 const McpPage = lazy(() => import("@/features/mcp/McpPage").then((m) => ({ default: m.McpPage })))
-const MemoryPage = lazy(() => import("@/features/memory/MemoryPage").then((m) => ({ default: m.MemoryPage })))
 const ButlerPage = lazy(() => import("@/features/butler/ButlerPage").then((m) => ({ default: m.ButlerPage })))
 
 /**
@@ -115,8 +114,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     tabs: ["Provider & Modelle"], route: "/llm", component: LlmPage },
   { id: "credentials", label: "Zugangsdaten", icon: Key, hasSubmenu: false,
     tabs: ["Credentials"], route: "/credentials", component: CredentialsPage },
-  { id: "memory", label: "Gedächtnis", icon: BrainCircuit, hasSubmenu: false,
-    tabs: ["Einträge"], route: "/memory", component: MemoryPage, fullscreen: true },
+
   { id: "extensions", label: "Erweiterungen", icon: Package, hasSubmenu: false,
     tabs: ["Installiert"], route: "/extensions", component: ExtensionsPage, adminOnly: true },
   { id: "modules", label: "Module", icon: Boxes, hasSubmenu: false,

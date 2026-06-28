@@ -1,6 +1,6 @@
 import { BrainCircuit,
-  BookOpen, Bot, Box, Boxes, Cpu, Film, FolderKanban, Globe, HardDrive, Heart, Key, LayoutDashboard,
-  MessageCircle, MessageSquare, MessagesSquare, MoonStar, Package, Pickaxe, Puzzle, Server, Settings, Sparkles, Users, Workflow,
+  BookOpen, Bot, Box, Film, FolderKanban, Globe, HardDrive, Heart, LayoutDashboard,
+  MessageCircle, MessageSquare, MessagesSquare, MoonStar, Pickaxe, Puzzle, Server, Sparkles, Workflow,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { moduleNav } from "@/modules/index.generated"
@@ -57,14 +57,12 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/federation",  icon: Globe,           labelKey: "federation",  group: "infrastructure" },
   { path: "/streaming",   icon: Film,            labelKey: "streaming",   group: "infrastructure" },
   { path: "/datamining",  icon: Pickaxe,         labelKey: "datamining",  group: "infrastructure" },
-  // Einstellungen
-  { path: "/llm",         icon: Cpu,             labelKey: "llm",         group: "settings" },
-  { path: "/credentials", icon: Key,             labelKey: "credentials", group: "settings" },
-  { path: "/memory",      icon: BrainCircuit,    labelKey: "memory",      group: "settings" },
-  { path: "/extensions",  icon: Package,         labelKey: "extensions",  group: "settings", roles: ["admin"] },
-  { path: "/modules",     icon: Boxes,           labelKey: "modules",     group: "settings", roles: ["admin"] },
-  { path: "/users",       icon: Users,           labelKey: "users",       group: "settings", roles: ["admin"] },
-  { path: "/system",      icon: Settings,        labelKey: "system",      group: "settings" },
+  // Gedächtnis = Auswertung (kein Setting) → bei den Infrastruktur-/Analyse-Tools.
+  { path: "/memory",      icon: BrainCircuit,    labelKey: "memory",      group: "infrastructure" },
+
+  // Einstellungen: LLM/Credentials/Extensions/Module/Benutzer/System sind jetzt
+  // alle gebündelt im zentralen Settings-Hub (Zahnrad → /settings) erreichbar,
+  // daher hier KEINE Einzeleinträge mehr. Nur Hilfe bleibt.
   { path: "/help",        icon: BookOpen,        labelKey: "help",        group: "settings" },
 ]
 
