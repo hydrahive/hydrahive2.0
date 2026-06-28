@@ -84,19 +84,17 @@ export function Layout() {
           })}
         </nav>
 
-        {role === "admin" && (
-          <Link
-            to="/system/settings"
-            className={`p-1.5 rounded-md transition-colors ${
-              pathname.startsWith("/system/settings")
-                ? "text-violet-300 bg-violet-500/15"
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
-            }`}
-            title={t("settings.gear_tooltip", { ns: "system", defaultValue: "Einstellungen" })}
-          >
-            <Settings size={16} />
-          </Link>
-        )}
+        <Link
+          to="/settings"
+          className={`p-1.5 rounded-md transition-colors ${
+            pathname.startsWith("/settings")
+              ? "text-violet-300 bg-violet-500/15"
+              : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+          }`}
+          title={t("settings.gear_tooltip", { ns: "system", defaultValue: "Einstellungen" })}
+        >
+          <Settings size={16} />
+        </Link>
 
         <button
           onClick={() => setBentoOpen((o) => !o)}
