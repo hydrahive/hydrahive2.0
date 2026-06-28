@@ -20,6 +20,7 @@ const FederationPage = lazy(() => import("@/features/federation/FederationPage")
 // Per-Tab-Inhalte für Multi-Tab-Gruppen (Kommunikation, Verbindungen, System).
 const CommDiscord = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommDiscord })))
 const CommWhatsApp = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommWhatsApp })))
+const CommMail = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommMail })))
 const ConnTailscale = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnTailscale })))
 const ConnAgentLink = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnAgentLink })))
 const ConnSamba = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnSamba })))
@@ -27,6 +28,13 @@ const SysBackup = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default:
 const SysBridge = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysBridge })))
 const SysStatus = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysStatus })))
 const ZahnfeeConfig = lazy(() => import("@/features/zahnfee/ZahnfeeConfig").then((m) => ({ default: m.ZahnfeeConfig })))
+
+// Vollbild-Pages (werden in EmbedFrame gerendert, fullscreen: true).
+const AgentsPage = lazy(() => import("@/features/agents/AgentsPage").then((m) => ({ default: m.AgentsPage })))
+const ProjectsPage = lazy(() => import("@/features/projects/ProjectsPage").then((m) => ({ default: m.ProjectsPage })))
+const McpPage = lazy(() => import("@/features/mcp/McpPage").then((m) => ({ default: m.McpPage })))
+const MemoryPage = lazy(() => import("@/features/memory/MemoryPage").then((m) => ({ default: m.MemoryPage })))
+const ButlerPage = lazy(() => import("@/features/butler/ButlerPage").then((m) => ({ default: m.ButlerPage })))
 
 /**
  * Settings-Gruppen-Registry (SSOT für die linke Auswahl-Spalte).
@@ -59,6 +67,9 @@ export interface SettingsGroup {
   // Per-Tab-Komponenten (Tab-Name → Komponente) für Multi-Tab-Gruppen.
   // Hat Vorrang vor `component` für den jeweils aktiven Tab.
   tabComponents?: Record<string, LazyExoticComponent<ComponentType>>
+  // Wenn true, wird die eingebettete component in einen EmbedFrame gepackt
+  // (für Vollbild-Pages mit -m-/h-calc-Layout: Agenten, Projekte, MCP, …).
+  fullscreen?: boolean
   adminOnly?: boolean
 }
 
@@ -68,20 +79,20 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   // sondern ein klarer Verweis auf die vollwertige Seite (kein erzwungenes
   // Einbetten, das die bestehende Bedienung verschlechtern würde).
   { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: false,
-    tabs: ["Verwaltung"], route: "/agents" },
+    tabs: ["Verwaltung"], route: "/agents", component: AgentsPage, fullscreen: true },
   { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: false,
-    tabs: ["Verwaltung"], route: "/projects" },
+    tabs: ["Verwaltung"], route: "/projects", component: ProjectsPage, fullscreen: true },
   { id: "communication", label: "Kommunikation", icon: MessageCircle, hasSubmenu: false,
     tabs: ["Discord", "WhatsApp", "Mail"], route: "/communication",
-    tabComponents: { Discord: CommDiscord, WhatsApp: CommWhatsApp } },
+    tabComponents: { Discord: CommDiscord, WhatsApp: CommWhatsApp, Mail: CommMail } },
   { id: "butler", label: "Butler", icon: Workflow, hasSubmenu: false,
-    tabs: ["Flows"], route: "/butler" },
+    tabs: ["Flows"], route: "/butler", component: ButlerPage, fullscreen: true },
   { id: "zahnfee", label: "Zahnfee", icon: MoonStar, hasSubmenu: false,
     tabs: ["Einstellungen"], route: "/zahnfee", component: ZahnfeeConfig, adminOnly: true },
   { id: "skills", label: "Skills", icon: Sparkles, hasSubmenu: false,
     tabs: ["Bibliothek"], route: "/skills", component: SkillsPage },
   { id: "mcp", label: "MCP", icon: Server, hasSubmenu: false,
-    tabs: ["Server"], route: "/mcp" },
+    tabs: ["Server"], route: "/mcp", component: McpPage, fullscreen: true },
   { id: "plugins", label: "Plugins", icon: Puzzle, hasSubmenu: false,
     tabs: ["Installiert"], route: "/plugins", component: PluginsPage, adminOnly: true },
   { id: "federation", label: "Föderation", icon: Globe, hasSubmenu: false,
@@ -91,7 +102,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "credentials", label: "Zugangsdaten", icon: Key, hasSubmenu: false,
     tabs: ["Credentials"], route: "/credentials", component: CredentialsPage },
   { id: "memory", label: "Gedächtnis", icon: BrainCircuit, hasSubmenu: false,
-    tabs: ["Einträge"], route: "/memory" },
+    tabs: ["Einträge"], route: "/memory", component: MemoryPage, fullscreen: true },
   { id: "extensions", label: "Erweiterungen", icon: Package, hasSubmenu: false,
     tabs: ["Installiert"], route: "/extensions", component: ExtensionsPage, adminOnly: true },
   { id: "modules", label: "Module", icon: Boxes, hasSubmenu: false,
