@@ -73,7 +73,7 @@ def parse_history(content: str, username: str) -> list[dict]:
         row_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"shell:{username}:{day}:{cmd[:200]}"))
         rows.append({
             "id": row_id,
-            "session_id": f"shell-history",
+            "session_id": "shell-history",
             "event_type": "shell_command",
             "text": cmd[:500],
             "username": username,

@@ -77,7 +77,6 @@ def _is_mounted(path: str, all_disks: list[dict]) -> bool:
         if dev_path == path and dev.get("mountpoint"):
             return True
         for child in dev.get("children", []) or []:
-            child_path = child.get("path", f"/dev/{child.get('name', '')}")
             if child.get("mountpoint"):
                 # Wenn eine Partition gemountet ist, gilt die ganze Disk als in Benutzung
                 if dev_path == path:

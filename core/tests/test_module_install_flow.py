@@ -18,7 +18,7 @@ def test_install_flow_calls_steps(mod_env):
 
 def test_uninstall_keeps_data(mod_env):
     with (patch("hydrahive.modules.installer.remove_module_files") as rm,
-          patch("hydrahive.modules.installer._run_service_script") as svc,
+          patch("hydrahive.modules.installer._run_service_script"),
           patch("hydrahive.modules.installer._frontend_build"),
           patch("hydrahive.modules.installer._request_restart"),
           patch("hydrahive.modules.installer._manifest_has_service", return_value=False)):

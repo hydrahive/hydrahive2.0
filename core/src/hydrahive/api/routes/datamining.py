@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
@@ -109,7 +110,6 @@ async def rechunk_events(_auth: Auth) -> dict:
     if mirror._pool is None:
         return {"ok": False, "reason": "Mirror nicht aktiv"}
     from hydrahive.api.routes._datamining_rechunk import run_rechunk
-    import asyncio
     asyncio.get_running_loop().create_task(run_rechunk())
     return {"ok": True, "message": "Rechunk gestartet — läuft im Hintergrund"}
 
@@ -124,7 +124,6 @@ async def trigger_backfill(_auth: Auth) -> dict:
     model = load_config().get("embed_model", "")
     if not model:
         return {"ok": False, "reason": "Kein Embedding-Modell konfiguriert"}
-    import asyncio
     mirror._backfill_task = asyncio.get_running_loop().create_task(mirror._run_backfill(model))
     return {"ok": True, "model": model}
 
@@ -190,7 +189,6 @@ async def start_sqlite_import(_auth: Auth) -> dict:
     s = sqlite_import_status()
     if s["running"]:
         return {"ok": False, "reason": "Import läuft bereits"}
-    import asyncio
     asyncio.get_running_loop().create_task(run_sqlite_import())
     return {"ok": True}
 
