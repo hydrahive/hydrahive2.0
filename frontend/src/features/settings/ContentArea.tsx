@@ -30,6 +30,23 @@ export function ContentArea({ group, subItem = null }: Props) {
   // EmbedFrame nur für gruppenweite Vollbild-Pages (nicht für Tab-Overrides).
   const useFrame = !tabComp && Boolean(group.fullscreen)
 
+  // Detail-Komponente (Submenü-Schema) bringt ihr eigenes vollständiges Layout
+  // (Header + eigene Karteikarten-Reiter + Save-Bar) — daher ohne äußere Tabs
+  // und ohne Padding, volle Höhe.
+  if (Detail) {
+    return (
+      <div className="h-full">
+        <Suspense fallback={
+          <div className="flex h-full items-center justify-center">
+            <Loader2 size={20} className="animate-spin text-zinc-500" />
+          </div>
+        }>
+          <Detail itemId={subItem} />
+        </Suspense>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Karteikarten */}
@@ -51,15 +68,7 @@ export function ContentArea({ group, subItem = null }: Props) {
 
       {/* Inhalt */}
       <div className="flex-1 overflow-y-auto p-5">
-        {Detail ? (
-          <Suspense fallback={
-            <div className="flex h-40 items-center justify-center">
-              <Loader2 size={20} className="animate-spin text-zinc-500" />
-            </div>
-          }>
-            <Detail itemId={subItem} />
-          </Suspense>
-        ) : Embedded && useFrame ? (
+        {Embedded && useFrame ? (
           <EmbedFrame><Embedded /></EmbedFrame>
         ) : Embedded ? (
           <Suspense fallback={
