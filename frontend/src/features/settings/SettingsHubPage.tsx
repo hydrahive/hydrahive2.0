@@ -1,4 +1,5 @@
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
+import { useParams, useNavigate } from "react-router-dom"
 import { Loader2 } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { SETTINGS_GROUPS, type SettingsGroup } from "./registry"
@@ -15,13 +16,19 @@ import { SubMenu } from "./SubMenu"
  */
 export function SettingsHubPage() {
   const role = useAuthStore((s) => s.role) ?? "user"
+  const navigate = useNavigate()
+  const { groupId } = useParams<{ groupId?: string }>()
   const groups = SETTINGS_GROUPS.filter((g) => !g.adminOnly || role === "admin")
-  const [active, setActive] = useState<SettingsGroup>(groups[0])
+
+  // Aktive Gruppe aus der URL (/settings/:groupId), Fallback erste Gruppe.
+  const active = groups.find((g) => g.id === groupId) ?? groups[0]
   const [subItem, setSubItem] = useState<string | null>(null)
 
+  // Submenü-Auswahl zurücksetzen, wenn die Gruppe wechselt (auch via Deeplink).
+  useEffect(() => { setSubItem(null) }, [active.id])
+
   const selectGroup = (g: SettingsGroup) => {
-    setActive(g)
-    setSubItem(null)
+    navigate(`/settings/${g.id}`)
   }
 
   return (

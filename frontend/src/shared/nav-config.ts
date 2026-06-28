@@ -41,8 +41,8 @@ export const NAV_ITEMS: NavItem[] = [
   // Arbeiten
   { path: "/",            icon: Heart,           labelKey: "buddy",       group: "working" },
   { path: "/werkstatt",   icon: MessageSquare,   labelKey: "werkstatt",   group: "working" },
-  { path: "/agents",      icon: Bot,             labelKey: "agents",      group: "working" },
-  { path: "/projects",    icon: FolderKanban,    labelKey: "projects",    group: "working" },
+  { path: "/settings/agents",   icon: Bot,          labelKey: "agents",   group: "working" },
+  { path: "/settings/projects", icon: FolderKanban, labelKey: "projects", group: "working" },
   { path: "/communication", icon: MessageCircle, labelKey: "communication", group: "working" },
   { path: "/teamchat",    icon: MessagesSquare,  labelKey: "teamchat",    group: "working" },
   // Automatisierung
@@ -66,7 +66,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/help",        icon: BookOpen,        labelKey: "help",        group: "settings" },
 ]
 
-export const QUICK_LINK_PATHS = ["/dashboard", "/werkstatt", "/agents", "/projects"]
+export const QUICK_LINK_PATHS = ["/dashboard", "/werkstatt", "/settings/agents", "/settings/projects"]
 
 const MODULE_NAV_ITEMS: NavItem[] = (moduleNav as ModuleNavEntry[]).map((n) => ({
   path: n.path,
