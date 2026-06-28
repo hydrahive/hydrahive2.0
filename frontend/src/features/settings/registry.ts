@@ -31,6 +31,7 @@ const ZahnfeeConfig = lazy(() => import("@/features/zahnfee/ZahnfeeConfig").then
 
 // Detail-Komponente (Submenü-Schema): Agenten — zeigt Settings des gewählten Agenten.
 const AgentSettings = lazy(() => import("./detail/AgentSettings").then((m) => ({ default: m.AgentSettings })))
+const AgentSubMenu = lazy(() => import("./detail/AgentSubMenu").then((m) => ({ default: m.AgentSubMenu })))
 
 // Noch nicht ins Schema migriert (Vollbild via EmbedFrame): Projekte, MCP, Memory, Butler.
 const ProjectsPage = lazy(() => import("@/features/projects/ProjectsPage").then((m) => ({ default: m.ProjectsPage })))
@@ -77,6 +78,9 @@ export interface SettingsGroup {
   // itemId und zeigt nur deren Einstellungen (Tills Schema). Hat Vorrang vor
   // component, wenn hasSubmenu=true.
   detailComponent?: LazyExoticComponent<ComponentType<{ itemId: string | null }>>
+  // Eigene Submenü-Komponente (z.B. echte Agentenliste mit Farben) statt des
+  // generischen SubMenu. Bekommt activeItem + onSelect.
+  submenuComponent?: LazyExoticComponent<ComponentType<{ activeItem: string | null; onSelect: (id: string) => void }>>
   adminOnly?: boolean
 }
 
@@ -87,7 +91,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   // Einbetten, das die bestehende Bedienung verschlechtern würde).
   { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: true,
     submenuLabel: "Agenten", tabs: ["Einstellungen"], route: "/agents",
-    detailComponent: AgentSettings },
+    detailComponent: AgentSettings, submenuComponent: AgentSubMenu },
   { id: "projects", label: "Projekte", icon: FolderKanban, hasSubmenu: false,
     tabs: ["Verwaltung"], route: "/projects", component: ProjectsPage, fullscreen: true },
   { id: "communication", label: "Kommunikation", icon: MessageCircle, hasSubmenu: false,
