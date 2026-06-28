@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { ExternalLink, Loader2 } from "lucide-react"
 import type { SettingsGroup } from "./registry"
+import { EmbedFrame } from "./EmbedFrame"
 
 interface Props {
   group: SettingsGroup
@@ -21,7 +22,10 @@ export function ContentArea({ group }: Props) {
   useEffect(() => { setTab(group.tabs[0] ?? "") }, [group.id, group.tabs])
 
   // Per-Tab-Komponente hat Vorrang, sonst die gruppenweite component.
-  const Embedded = group.tabComponents?.[tab] ?? group.component
+  const tabComp = group.tabComponents?.[tab]
+  const Embedded = tabComp ?? group.component
+  // EmbedFrame nur für gruppenweite Vollbild-Pages (nicht für Tab-Overrides).
+  const useFrame = !tabComp && Boolean(group.fullscreen)
 
   return (
     <div className="flex h-full flex-col">
@@ -44,7 +48,9 @@ export function ContentArea({ group }: Props) {
 
       {/* Inhalt */}
       <div className="flex-1 overflow-y-auto p-5">
-        {Embedded ? (
+        {Embedded && useFrame ? (
+          <EmbedFrame><Embedded /></EmbedFrame>
+        ) : Embedded ? (
           <Suspense fallback={
             <div className="flex h-40 items-center justify-center">
               <Loader2 size={20} className="animate-spin text-zinc-500" />
