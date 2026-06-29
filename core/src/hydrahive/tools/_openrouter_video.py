@@ -51,7 +51,14 @@ async def submit_video_job(
         "aspect_ratio": aspect_ratio,
     }
     if image_url:
-        payload["image_url"] = image_url
+        # Startframe MUSS als frame_images/first_frame gehen — ein flaches
+        # payload["image_url"] ignoriert die OpenRouter-Video-API, dann läuft
+        # die Anfrage als Text-to-Video und das Bild wird verworfen.
+        payload["frame_images"] = [{
+            "type": "image_url",
+            "image_url": {"url": image_url},
+            "frame_type": "first_frame",
+        }]
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(

@@ -5,13 +5,14 @@ OpenRouter Video läuft NICHT über chat/completions — eigene async Jobs-API:
   GET  /api/v1/videos/{job_id} → status ("pending"|"processing"|"completed"|"failed")
 
 Live-verifizierte Modelle (GET /api/v1/videos/models, Stand 2026-06):
-  kling/kling-video-v2-master      — Kling v2, Qualität/Preis-Champion (default), Image-to-Video
+  minimax/hailuo-2.3               — günstig, schnell, Image-to-Video (default)
+  kwaivgi/kling-v3.0-std           — Kling v3, gutes Preis/Qualität
+  bytedance/seedance-2.0-fast      — schnell
   google/veo-3.1                   — Veo 3.1 (teurer, top Qualität)
-  openai/sora-2-pro                — Sora 2 Pro (~60-90s Generierzeit)
-  minimax/hailuo-2.3               — günstig, schnell, Image-to-Video
 
 Image-to-Video: image_url als Startframe mitgeben (Pfad im Workspace → data-URI,
-oder direkte https-URL). Nicht alle Modelle unterstützen das.
+oder direkte https-URL). Wird intern als frame_images/first_frame gesendet —
+das flache image_url-Feld ignoriert die API. Nicht alle Modelle können I2V.
 Poll-Loop: max 300s, Intervall exponentiell 5s→10s→20s (Cap), dann Timeout-Fehler.
 """
 from __future__ import annotations
@@ -33,7 +34,7 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_MODEL = "kling/kling-video-v2-master"
+_DEFAULT_MODEL = "minimax/hailuo-2.3"
 _POLL_TIMEOUT = 300.0      # Sekunden bis Timeout-Fehler
 _POLL_INTERVAL_START = 5.0
 _POLL_INTERVAL_MAX = 20.0
@@ -42,8 +43,8 @@ _DESCRIPTION = (
     "Generiert ein Video aus einem Text-Prompt über OpenRouter (async Jobs-API). "
     "Optionaler Startframe via image_path (Workspace-Pfad relativ zum Workspace) für Image-to-Video. "
     "Das Video wird gespeichert und im Chat als Video-Player angezeigt. "
-    "Verfügbare Modelle: kling/kling-video-v2-master (default, Image-to-Video), "
-    "google/veo-3.1, openai/sora-2-pro, minimax/hailuo-2.3 (Image-to-Video). "
+    "Verfügbare Modelle: minimax/hailuo-2.3 (default, Image-to-Video), "
+    "kwaivgi/kling-v3.0-std, bytedance/seedance-2.0-fast, google/veo-3.1. "
     "Generierung dauert 15–90 Sekunden je nach Modell. "
     "Braucht einen konfigurierten OpenRouter API-Key."
 )
@@ -58,8 +59,8 @@ _SCHEMA = {
         "model": {
             "type": "string",
             "description": (
-                "OpenRouter-Modell-ID. Default: kling/kling-video-v2-master. "
-                "Weitere: google/veo-3.1, openai/sora-2-pro, minimax/hailuo-2.3"
+                "OpenRouter-Modell-ID. Default: minimax/hailuo-2.3. "
+                "Weitere: kwaivgi/kling-v3.0-std, bytedance/seedance-2.0-fast, google/veo-3.1"
             ),
             "default": _DEFAULT_MODEL,
         },

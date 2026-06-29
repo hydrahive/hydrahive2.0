@@ -56,6 +56,32 @@ async def test_submit_video_job_gibt_job_id():
 
 
 @pytest.mark.asyncio
+async def test_submit_video_job_startframe_als_frame_images():
+    """Startbild MUSS als frame_images/first_frame gehen — flaches image_url
+    ignoriert die API (→ Text-to-Video, Bild verworfen)."""
+    from hydrahive.tools._openrouter_video import submit_video_job
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"id": "job-x"}
+    mock_client = AsyncMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("hydrahive.tools._openrouter_video.httpx.AsyncClient", return_value=mock_client):
+        await submit_video_job(
+            "zoom in", "minimax/hailuo-2.3", key="sk-test",
+            image_url="data:image/png;base64,AAAA",
+        )
+
+    payload = mock_client.post.call_args.kwargs["json"]
+    assert "image_url" not in payload  # NICHT flach
+    assert payload["frame_images"][0]["frame_type"] == "first_frame"
+    assert payload["frame_images"][0]["image_url"]["url"] == "data:image/png;base64,AAAA"
+
+
+@pytest.mark.asyncio
 async def test_submit_video_job_api_fehler():
     from hydrahive.tools._openrouter_video import submit_video_job
 
