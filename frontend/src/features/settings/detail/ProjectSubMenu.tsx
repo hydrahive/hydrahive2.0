@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
-import { Folder, Users, GitBranch, Tag } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { Folder, Users, GitBranch, Plus, Tag } from "lucide-react"
 import { projectsApi } from "@/features/projects/api"
+import { NewProjectDialog } from "@/features/projects/NewProjectDialog"
 import type { Project } from "@/features/projects/types"
 
 interface Props {
@@ -18,8 +19,10 @@ const STATUS_ORDER: Record<string, number> = { active: 0, paused: 1, archived: 2
 export function ProjectSubMenu({ activeItem, onSelect }: Props) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true)
     projectsApi.list()
       .then((list) => {
         const sorted = [...list].sort((a, b) => {
@@ -32,10 +35,18 @@ export function ProjectSubMenu({ activeItem, onSelect }: Props) {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => { load() }, [load])
+
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/8 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <h2 className="text-sm font-semibold text-zinc-200">Projekte</h2>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-1 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-xs text-violet-300 hover:bg-violet-500/20"
+        >
+          <Plus size={12} /> Neu
+        </button>
       </div>
       <div className="flex-1 space-y-1 overflow-y-auto p-2">
         {loading ? (
@@ -86,6 +97,17 @@ export function ProjectSubMenu({ activeItem, onSelect }: Props) {
           })
         )}
       </div>
+
+      {creating && (
+        <NewProjectDialog
+          onClose={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false)
+            load()
+            onSelect(id)
+          }}
+        />
+      )}
     </div>
   )
 }

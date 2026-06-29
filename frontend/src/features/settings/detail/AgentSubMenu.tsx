@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react"
-import { Crown, User, Wrench } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { Crown, Plus, User, Wrench } from "lucide-react"
 import { agentsApi } from "@/features/agents/api"
+import { llmModelsApi } from "@/features/llm/api"
+import { NewAgentDialog } from "@/features/agents/NewAgentDialog"
 import type { Agent } from "@/features/agents/types"
 
 interface Props {
@@ -30,8 +32,11 @@ const TYPE_ORDER: Record<string, number> = { master: 0, project: 1, specialist: 
 export function AgentSubMenu({ activeItem, onSelect }: Props) {
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
+  const [models, setModels] = useState<string[]>([])
+  const [creating, setCreating] = useState(false)
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true)
     agentsApi.list()
       .then((list) => {
         const sorted = [...list].sort((a, b) => {
@@ -44,10 +49,22 @@ export function AgentSubMenu({ activeItem, onSelect }: Props) {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    llmModelsApi.byModality("chat").then((res) => setModels(res.models.map((m) => m.id))).catch(() => {})
+  }, [])
+
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/8 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
         <h2 className="text-sm font-semibold text-zinc-200">Agenten</h2>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-1 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 py-1 text-xs text-violet-300 hover:bg-violet-500/20"
+        >
+          <Plus size={12} /> Neu
+        </button>
       </div>
       <div className="flex-1 space-y-1 overflow-y-auto p-2">
         {loading ? (
@@ -91,6 +108,19 @@ export function AgentSubMenu({ activeItem, onSelect }: Props) {
           })
         )}
       </div>
+
+      {creating && (
+        <NewAgentDialog
+          models={models}
+          defaultModel={models[0] ?? ""}
+          onClose={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false)
+            load()
+            onSelect(id)
+          }}
+        />
+      )}
     </div>
   )
 }
