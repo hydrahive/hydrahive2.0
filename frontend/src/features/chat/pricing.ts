@@ -9,6 +9,7 @@ interface Pricing {
 
 const PRICING: { match: RegExp; price: Pricing }[] = [
   { match: /^claude-opus-4/i,             price: { input: 15.00, output: 75.00, cache_read: 1.50,  cache_write: 18.75 } },
+  { match: /^claude-sonnet-5/i,           price: { input: 2.00,  output: 10.00, cache_read: 0.20,  cache_write: 2.50  } },
   { match: /^claude-sonnet-4/i,           price: { input: 3.00,  output: 15.00, cache_read: 0.30,  cache_write: 3.75  } },
   { match: /^claude-haiku-4/i,            price: { input: 1.00,  output: 5.00,  cache_read: 0.10,  cache_write: 1.25  } },
   { match: /^claude-3-7-sonnet/i,         price: { input: 3.00,  output: 15.00, cache_read: 0.30,  cache_write: 3.75  } },
