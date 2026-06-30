@@ -108,17 +108,24 @@ async def list_tools(server_id: str) -> list[McpTool]:
     client = await get_or_connect(server_id)
     try:
         return await client.list_tools()
-    except Exception as e:
+    except BaseException as e:  # noqa: BLE001 - anyio BaseExceptionGroup einschließen
         logger.warning("MCP %s list_tools fehlgeschlagen (%s) — reconnect", server_id, e)
-        await disconnect(server_id)
-        return await (await connect(server_id)).list_tools()
+        try:
+            await disconnect(server_id)
+            return await (await connect(server_id)).list_tools()
+        except BaseException as e2:  # noqa: BLE001 - auch Reconnect darf nicht durchreißen
+            logger.warning("MCP %s reconnect/list_tools endgültig fehlgeschlagen: %s", server_id, e2)
+            return []
 
 
 async def call_tool(server_id: str, tool_name: str, arguments: dict) -> McpToolResult:
     client = await get_or_connect(server_id)
     try:
         return await client.call_tool(tool_name, arguments)
-    except Exception as e:
+    except BaseException as e:  # noqa: BLE001 - anyio BaseExceptionGroup einschließen
         logger.warning("MCP %s call_tool fehlgeschlagen (%s) — reconnect", server_id, e)
-        await disconnect(server_id)
-        return await (await connect(server_id)).call_tool(tool_name, arguments)
+        try:
+            await disconnect(server_id)
+            return await (await connect(server_id)).call_tool(tool_name, arguments)
+        except BaseException as e2:  # noqa: BLE001 - auch Reconnect darf nicht durchreißen
+            return McpToolResult(success=False, error=f"MCP-Aufruf fehlgeschlagen: {e2}")

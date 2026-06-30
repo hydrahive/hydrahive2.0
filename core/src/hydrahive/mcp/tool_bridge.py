@@ -68,7 +68,8 @@ async def schemas_for_servers(server_ids: list[str]) -> list[dict]:
             ]
             _schema_cache[sid] = (now, schemas)
             return sid, schemas
-        except Exception as e:
+        except BaseException as e:  # noqa: BLE001 - anyio TaskGroup wirft BaseExceptionGroup;
+            # ein kaputter MCP-Server darf NIE den Agent-Run reißen → hart abfangen.
             logger.warning("MCP-Server '%s' Tool-Listing fehlgeschlagen: %s", sid, e)
             return sid, []
 
@@ -88,5 +89,5 @@ async def call(qualified_name: str, arguments: dict) -> McpToolResult | None:
     server_id, tool_name = parsed
     try:
         return await mcp_manager.call_tool(server_id, tool_name, arguments)
-    except Exception as e:
+    except BaseException as e:  # noqa: BLE001 - anyio BaseExceptionGroup nicht durchreißen lassen
         return McpToolResult(success=False, error=f"MCP-Aufruf fehlgeschlagen: {e}")
