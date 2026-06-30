@@ -21,6 +21,8 @@
     "args_placeholder": "z.B. -y @modelcontextprotocol/server-filesystem /tmp",
     "env": "Env (eine pro Zeile, KEY=VALUE)",
     "url": "URL",
+    "headers": "HTTP-Header (z.B. Token)",
+    "headers_placeholder": "Authorization: Bearer dein-token",
     "tools_count": "Tools ({{count}})",
     "no_tools": "Noch keine Tools — Server connecten zum Laden."
   },

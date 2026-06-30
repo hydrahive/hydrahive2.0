@@ -22,6 +22,7 @@ export function NewMcpServerDialog({ onClose, onCreated }: Props) {
   const [argsText, setArgsText] = useState("")
   const [envText, setEnvText] = useState("")
   const [url, setUrl] = useState("")
+  const [headersText, setHeadersText] = useState("")
   const [description, setDescription] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,12 +35,19 @@ export function NewMcpServerDialog({ onClose, onCreated }: Props) {
         envText.split("\n").map((l) => l.trim()).filter(Boolean)
           .map((l) => l.split("=", 2)).filter((p) => p.length === 2)
       )
+      // Header-Zeilen "Key: Value" → Objekt (für Bearer-Token etc.).
+      const headers = Object.fromEntries(
+        headersText.split("\n").map((l) => l.trim()).filter(Boolean)
+          .map((l) => { const i = l.indexOf(":"); return i < 0 ? [] : [l.slice(0, i).trim(), l.slice(i + 1).trim()] })
+          .filter((p) => p.length === 2)
+      )
       const created = await mcpApi.create({
         id: id.trim(), name: name.trim(), transport, description, enabled: true,
         command: transport === "stdio" ? command : undefined,
         args: transport === "stdio" ? argsText.split(/\s+/).filter(Boolean) : undefined,
         env: transport === "stdio" ? env : undefined,
         url: transport !== "stdio" ? url : undefined,
+        headers: transport !== "stdio" && Object.keys(headers).length > 0 ? headers : undefined,
       })
       onCreated(created.id)
     } catch (e) { setError(e instanceof Error ? e.message : tCommon("status.error")) }
@@ -105,11 +113,19 @@ export function NewMcpServerDialog({ onClose, onCreated }: Props) {
         )}
 
         {(transport === "http" || transport === "sse") && (
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-zinc-400">{t("fields.url")}</label>
-            <input value={url} onChange={(e) => setUrl(e.target.value)} required
-              className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm font-mono" />
-          </div>
+          <>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-400">{t("fields.url")}</label>
+              <input value={url} onChange={(e) => setUrl(e.target.value)} required
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm font-mono" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-400">{t("fields.headers")}</label>
+              <textarea value={headersText} onChange={(e) => setHeadersText(e.target.value)} rows={2}
+                placeholder={t("fields.headers_placeholder")}
+                className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm font-mono" />
+            </div>
+          </>
         )}
 
         <div className="space-y-1.5">

@@ -20,6 +20,9 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
   const [envText, setEnvText] = useState(
     Object.entries(server.env ?? {}).map(([k, v]) => `${k}=${v}`).join("\n"),
   )
+  const [headersText, setHeadersText] = useState(
+    Object.entries(server.headers ?? {}).map(([k, v]) => `${k}: ${v}`).join("\n"),
+  )
   const [tools, setTools] = useState<McpTool[]>([])
   const [saving, setSaving] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -29,6 +32,7 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
     setDraft(server)
     setArgsText((server.args ?? []).join(" "))
     setEnvText(Object.entries(server.env ?? {}).map(([k, v]) => `${k}=${v}`).join("\n"))
+    setHeadersText(Object.entries(server.headers ?? {}).map(([k, v]) => `${k}: ${v}`).join("\n"))
     setTools([]); setError(null)
     if (server.connected) loadTools()
   }, [server.id])
@@ -44,10 +48,15 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
         envText.split("\n").map((l) => l.trim()).filter(Boolean)
           .map((l) => l.split("=", 2)).filter((p) => p.length === 2)
       )
+      const headers = Object.fromEntries(
+        headersText.split("\n").map((l) => l.trim()).filter(Boolean)
+          .map((l) => { const i = l.indexOf(":"); return i < 0 ? [] : [l.slice(0, i).trim(), l.slice(i + 1).trim()] })
+          .filter((p) => p.length === 2)
+      )
       const updated = await mcpApi.update(server.id, {
         name: draft.name, description: draft.description, enabled: draft.enabled,
         command: draft.command, args: argsText.split(/\s+/).filter(Boolean),
-        env, url: draft.url,
+        env, url: draft.url, headers,
       })
       onSaved(updated)
     } catch (e) { setError(e instanceof Error ? e.message : tCommon("status.error")) }
@@ -116,10 +125,17 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
           </>
         )}
         {(server.transport === "http" || server.transport === "sse") && (
-          <Field label={t("fields.url")}>
-            <input value={draft.url ?? ""} onChange={(e) => setDraft({ ...draft, url: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono" />
-          </Field>
+          <>
+            <Field label={t("fields.url")}>
+              <input value={draft.url ?? ""} onChange={(e) => setDraft({ ...draft, url: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono" />
+            </Field>
+            <Field label={t("fields.headers")}>
+              <textarea value={headersText} onChange={(e) => setHeadersText(e.target.value)} rows={3}
+                placeholder={t("fields.headers_placeholder")}
+                className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-200 font-mono leading-relaxed" />
+            </Field>
+          </>
         )}
         <Field label={t("fields.tools_count", { count: tools.length })}>
           <McpToolList tools={tools} />
