@@ -27,7 +27,8 @@ PROVIDER_ENDPOINTS = {
 # Static-Listen für Provider ohne /v1/models-Endpoint.
 STATIC_MODELS = {
     "anthropic": [
-        "claude-sonnet-5", "claude-sonnet-4-6", "claude-opus-4-8", "claude-opus-4-7",
+        "claude-fable-5", "claude-sonnet-5", "claude-sonnet-4-6",
+        "claude-opus-4-8", "claude-opus-4-7",
         "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219",
         "claude-3-5-haiku-20241022",
     ],
@@ -59,6 +60,7 @@ PROVIDER_PREFIX = {
 # tool_use: True/False/None (None = ungetestet/unbekannt).
 METADATA: dict[str, dict[str, Any]] = {
     # Anthropic
+    "claude-fable-5":    {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-sonnet-5":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-opus-4-8":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-opus-4-7":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},

@@ -23,6 +23,8 @@ class Pricing(NamedTuple):
 # Anthropic Claude — $/1M tokens × 100 cents × 1000 micros / 1M tokens = $-Wert × 0.1 micros/token
 # Beispiel: Sonnet $3/1M input = 3 × 0.1 = 0.3 micros/token
 _ANTHROPIC: dict[str, Pricing] = {
+    # Fable 5: $10 / $50 / cache_read $1.00 / cache_write $12.50 (Stand 2026-06, Release 09.06)
+    "claude-fable-5": Pricing(1.0, 5.0, 0.1, 1.25),
     # Sonnet 5: $2 / $10 / cache_read $0.20 / cache_write $2.50 (Intro-Preis, Stand 2026-07)
     "claude-sonnet-5": Pricing(0.2, 1.0, 0.02, 0.25),
     # Sonnet 4.x (4-5, 4-6, 4-7): $3 / $15 / cache_read $0.30 / cache_write $3.75
