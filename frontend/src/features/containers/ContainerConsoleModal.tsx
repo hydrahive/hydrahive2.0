@@ -1,6 +1,7 @@
 import { X } from "lucide-react"
 import type { CSSProperties } from "react"
 import { rgbFor } from "@/shared/colors"
+import { ModalPortal } from "@/shared/ModalPortal"
 import type { Container } from "./types"
 import { ConsolePane } from "./ConsolePane"
 
@@ -11,6 +12,7 @@ interface Props {
 
 export function ContainerConsoleModal({ container, onClose }: Props) {
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="box box-static overflow-hidden w-full max-w-5xl flex flex-col"
@@ -25,5 +27,6 @@ export function ContainerConsoleModal({ container, onClose }: Props) {
         <ConsolePane containerId={container.container_id} className="flex-1" />
       </div>
     </div>
+    </ModalPortal>
   )
 }

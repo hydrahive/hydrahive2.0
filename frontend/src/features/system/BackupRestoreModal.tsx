@@ -2,6 +2,7 @@ import type { CSSProperties } from "react"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
+import { ModalPortal } from "@/shared/ModalPortal"
 
 export type RestoreState = "idle" | "confirm" | "uploading" | "waiting" | "done" | "failed"
 
@@ -14,8 +15,9 @@ export function BackupRestoreModal({ state, error, fileName, onConfirm, onClose 
 }) {
   const { t } = useTranslation("system")
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="box overflow-hidden p-6 max-w-md w-full mx-4 space-y-4" style={{ "--c": rgbFor("/system") } as CSSProperties}>
+      <div className="box box-static overflow-hidden p-6 max-w-md w-full mx-4 space-y-4" style={{ "--c": rgbFor("/system") } as CSSProperties}>
         <div className="flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
@@ -51,5 +53,6 @@ export function BackupRestoreModal({ state, error, fileName, onConfirm, onClose 
         </div>
       </div>
     </div>
+    </ModalPortal>
   )
 }
