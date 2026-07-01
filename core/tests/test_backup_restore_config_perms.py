@@ -162,3 +162,58 @@ def test_replace_dir_new_target_just_moves(tmp_path):
     dst = tmp_path / "neu-dst"
     restore._atomic_replace_dir(src, dst)
     assert (dst / "x").read_text() == "1"
+
+
+# ---------------------------------------------------------------- _replace_file (DB)
+def test_replace_file_same_device_rename(tmp_path):
+    """src+dst gleiches Filesystem → rename-Pfad, Datei ersetzt."""
+    from hydrahive.backup import restore
+
+    src = tmp_path / "new.db"; src.write_text("NEU")
+    dst = tmp_path / "sessions.db"; dst.write_text("ALT")
+    restore._replace_file(src, dst)
+    assert dst.read_text() == "NEU"
+    assert not src.exists()
+
+
+def test_replace_file_cross_device_falls_back_to_copy(tmp_path, monkeypatch):
+    """EXDEV bei rename → copy-Fallback (in temp neben dst, dann atomarer rename)."""
+    import errno
+    from hydrahive.backup import restore
+
+    src = tmp_path / "new.db"; src.write_text("NEU")
+    dst = tmp_path / "sessions.db"; dst.write_text("ALT")
+
+    calls = {"n": 0}
+    real_replace = restore.Path.replace
+
+    def flaky_replace(self, target):
+        # Erster replace-Aufruf (src->dst) simuliert cross-device; der zweite
+        # (tmp->dst, innerhalb Ziel-FS) läuft echt durch.
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OSError(errno.EXDEV, "Invalid cross-device link")
+        return real_replace(self, target)
+
+    monkeypatch.setattr(restore.Path, "replace", flaky_replace)
+
+    restore._replace_file(src, dst)
+    assert dst.read_text() == "NEU"
+    assert not src.exists()
+    assert not dst.with_name(dst.name + ".restore-tmp").exists()
+
+
+def test_replace_file_other_oserror_propagates(tmp_path, monkeypatch):
+    """Ein anderer OSError als EXDEV wird NICHT geschluckt."""
+    import errno
+    from hydrahive.backup import restore
+
+    src = tmp_path / "new.db"; src.write_text("NEU")
+    dst = tmp_path / "sessions.db"
+
+    def fail(self, target):
+        raise OSError(errno.EACCES, "Permission denied")
+    monkeypatch.setattr(restore.Path, "replace", fail)
+
+    with pytest.raises(OSError):
+        restore._replace_file(src, dst)
