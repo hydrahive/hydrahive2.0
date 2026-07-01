@@ -44,6 +44,7 @@ EXCLUDE_PATTERNS: tuple[str, ...] = (
     ".restart_request",
     ".voice_install_request",
     ".backup-rollback-",
+    ".hh2-restore-",     # transientes Extraktions-Tempdir (Restore läuft in data_dir)
 )
 
 # Verzeichnis-Namen die komplett ausgeklammert werden (vergleicht gegen Path-Parts).

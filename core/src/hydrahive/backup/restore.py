@@ -12,6 +12,7 @@ Wenn Schritte 1-3 scheitern, bleibt der Live-Stand unverändert.
 """
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import shutil
@@ -34,7 +35,15 @@ def restore_system_archive(archive_path: Path) -> dict:
     manifest = validate_archive(archive_path)
     rollback = _create_rollback_backup()
 
-    with tempfile.TemporaryDirectory(prefix="hh2-restore-") as tdir:
+    # WICHTIG: Extraktion NICHT nach /tmp. Der systemd-Dienst läuft mit
+    # PrivateTmp=true → sein /tmp ist ein eigener Mount, und /var/lib/hydrahive2
+    # + /etc/hydrahive2 sind eigene Bind-Mounts (ReadWritePaths). rename/replace
+    # ÜBER Mount-Grenzen scheitert mit EXDEV ("Invalid cross-device link").
+    # Deshalb in ein Temp-Verzeichnis auf demselben Filesystem wie das Haupt-Ziel
+    # (data_dir) extrahieren — dann laufen die Verzeichnis-/DB-Replaces innerhalb
+    # einer Mount-Grenze und funktionieren atomar.
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".hh2-restore-", dir=settings.data_dir) as tdir:
         extract_root = Path(tdir)
         with tarfile.open(archive_path, "r:gz") as tar:
             enforce_archive_limits(tar)  # Dekompressionsbomben-Schutz (#189)
@@ -56,11 +65,30 @@ def restore_system_archive(archive_path: Path) -> dict:
         db_arc, db_dst = db_arcname()
         db_src = extract_root / db_arc
         if db_src.exists():
-            db_dst.parent.mkdir(parents=True, exist_ok=True)
-            db_src.replace(db_dst)
+            _replace_file(db_src, db_dst)
 
     _trigger_restart()
     return {"manifest": manifest, "rollback": str(rollback)}
+
+
+def _replace_file(src: Path, dst: Path) -> None:
+    """Ersetzt eine Datei robust — rename wenn möglich, sonst copy (cross-device).
+
+    ``Path.replace`` (=rename) scheitert mit EXDEV, wenn src und dst auf
+    verschiedenen Mounts liegen (systemd PrivateTmp / Bind-Mounts). In dem Fall
+    copy → fsync → atomic rename innerhalb des Ziel-Verzeichnisses.
+    """
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        src.replace(dst)
+    except OSError as e:
+        if e.errno != errno.EXDEV:
+            raise
+        # Cross-Device: in temp NEBEN dem Ziel kopieren, dann atomar reinrename.
+        tmp = dst.with_name(dst.name + ".restore-tmp")
+        shutil.copy2(src, tmp)
+        tmp.replace(dst)  # rename innerhalb des Ziel-Filesystems → atomar
+        src.unlink(missing_ok=True)
 
 
 def _create_rollback_backup() -> Path:
