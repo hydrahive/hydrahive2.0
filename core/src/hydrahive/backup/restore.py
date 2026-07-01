@@ -14,9 +14,7 @@ from __future__ import annotations
 
 import logging
 import os
-import shlex
 import shutil
-import subprocess
 import tarfile
 import tempfile
 import time
@@ -76,22 +74,31 @@ def _create_rollback_backup() -> Path:
 
 
 def _atomic_replace_dir(src: Path, dst: Path) -> None:
-    """Verzeichnis-Replace: alten Pfad nach .old umbenennen, neuen rein, alten löschen.
+    """Ersetzt das Zielverzeichnis durch ``src``.
 
-    Nicht strikt atomic — wenn zwischen rename und Löschen abgebrochen wird,
-    bleibt der .old-Pfad stehen und kann manuell wiederhergestellt werden.
+    Bevorzugt der schnelle, atomare Verzeichnis-rename (altes → ``.old-restore``,
+    neues rein, altes löschen). Der greift aber NICHT, wenn das Zielverzeichnis
+    selbst nicht umbenannt werden kann:
 
-    Wenn das Ziel-Elternverzeichnis für den Service-User nicht schreibbar ist
-    (z.B. ``config_dir`` = ``/etc/hydrahive2`` — ``/etc`` gehört root), läuft der
-    Replace über ``sudo -n bash`` (vorhandenes NOPASSWD-Recht, gleiches Muster wie
-    Extensions-Manager/SMB-Mounter). Sonst der reine-Python-Pfad wie bisher.
+    - ``config_dir`` = ``/etc/hydrahive2`` liegt in ``/etc`` (gehört root) → der
+      Service-User darf dort nicht umbenennen (EPERM), UND
+    - der systemd-Dienst richtet ``ReadWritePaths=/etc/hydrahive2 /var/lib/hydrahive2``
+      als Bind-Mounts im Service-Namespace ein → das Verzeichnis IST ein
+      Mount-Point und ``rename`` schlägt mit EBUSY fehl.
+
+    In beiden Fällen wird der INHALT in-place ersetzt (Dateien im bestehenden
+    Verzeichnis austauschen), statt das Verzeichnis selbst zu bewegen. Das umgeht
+    Permission UND Bind-Mount, ohne sudo — alle Operationen laufen im
+    user-eigenen Verzeichnis.
     """
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if not os.access(dst.parent, os.W_OK):
-        _privileged_replace_dir(src, dst)
+    if not dst.exists():
+        shutil.move(str(src), str(dst))
         return
-    if dst.exists():
-        old = dst.with_suffix(dst.suffix + ".old-restore")
+
+    old = dst.with_suffix(dst.suffix + ".old-restore")
+    if _can_rename_dir(dst, old):
+        # Schneller Pfad: Verzeichnis atomar tauschen.
         if old.exists():
             shutil.rmtree(old, ignore_errors=True)
         dst.rename(old)
@@ -102,55 +109,97 @@ def _atomic_replace_dir(src: Path, dst: Path) -> None:
             raise
         shutil.rmtree(old, ignore_errors=True)
     else:
-        shutil.move(str(src), str(dst))
+        # Mount-Point / nicht umbenennbares Verzeichnis: Inhalt in-place ersetzen.
+        _replace_dir_contents(src, dst)
 
 
-def _privileged_replace_dir(src: Path, dst: Path) -> None:
-    """Verzeichnis-Replace über ``sudo -n bash`` — für Ziele deren Elternpfad
-    dem Service-User nicht gehört (``/etc/hydrahive2``).
-
-    Gleiches Auto-Rollback-Prinzip wie der Python-Pfad: altes Verzeichnis nach
-    ``.old-restore`` umziehen, neues rein, altes löschen; bei Fehler das alte
-    zurückholen. Läuft als EIN bash-Aufruf, damit die Schritte atomar unter root
-    ablaufen. Wenn der Prozess bereits als root läuft (getuid==0), ohne sudo.
-    """
-    s = shlex.quote(str(src))
-    d = shlex.quote(str(dst))
-    old = shlex.quote(str(dst) + ".old-restore")
-    # Das neue Verzeichnis wird von root (via sudo) verschoben und gehört danach
-    # root — die Ownership muss auf den Service-User zurück, sonst kann der Dienst
-    # seine eigene Config (users.json, llm.json …) nicht mehr schreiben. Rechte
-    # wie im Installer (20-paths.sh): <user>:<user>, dir 770.
-    owner = shlex.quote(f"{_service_user()}:{_service_user()}")
-    # set -e: bricht bei jedem Fehler ab. Bei mv-Fehler des neuen Verzeichnisses
-    # wird das alte zurückgeholt (|| mv old dst) und mit Exit 1 abgebrochen.
-    script = (
-        f"set -e; "
-        f'if [ -e {d} ]; then '
-        f"rm -rf {old}; "
-        f"mv {d} {old}; "
-        f"mv {s} {d} || {{ mv {old} {d}; exit 1; }}; "
-        f"rm -rf {old}; "
-        f"else mv {s} {d}; fi; "
-        f"chown -R {owner} {d}; chmod 770 {d}"
-    )
-    cmd = ["bash", "-c", script] if os.getuid() == 0 else ["sudo", "-n", "bash", "-c", script]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-    if proc.returncode != 0:
-        raise RestoreError(
-            f"config_dir-Replace fehlgeschlagen (rc={proc.returncode}): "
-            f"{proc.stderr.strip() or proc.stdout.strip()}"
-        )
-
-
-def _service_user() -> str:
-    """Name des Users, unter dem der Dienst läuft (für chown nach dem sudo-Move)."""
-    import getpass
+def _can_rename_dir(dst: Path, probe: Path) -> bool:
+    """Testet ohne Seiteneffekt, ob ``dst`` umbenannt werden kann (nicht Mount-
+    Point, Elternpfad schreibbar). Benennt kurz um und sofort zurück."""
+    if not os.access(dst.parent, os.W_OK):
+        return False
+    if probe.exists():
+        return False
     try:
-        return getpass.getuser()
+        dst.rename(probe)
+    except OSError:
+        return False
+    try:
+        probe.rename(dst)
+    except OSError:
+        # Rückbenennung scheiterte — extrem unwahrscheinlich; als nicht-renambar
+        # behandeln, damit der Inhalts-Pfad übernimmt (dst liegt noch als probe).
+        try:
+            probe.rename(dst)
+        except OSError:
+            pass
+        return False
+    return True
+
+
+def _replace_dir_contents(src: Path, dst: Path) -> None:
+    """Ersetzt den Inhalt von ``dst`` durch den von ``src`` — Datei für Datei,
+    ohne ``dst`` selbst zu bewegen (Mount-Point-/Permission-sicher).
+
+    Auto-Rollback: alter Inhalt wandert erst in ein ``.old-restore/`` UNTERHALB
+    von ``dst`` (gleiches Filesystem, umbenennbar), wird bei Erfolg gelöscht und
+    bei Fehler zurückgeholt. Einträge, die der User nicht bewegen kann (fremd-
+    owned wie root-eigene ``env``/``extensions``), werden übersprungen und bleiben
+    unverändert erhalten — die sind hostspezifisch, nicht Teil eines portablen
+    Restores (analog zum ``tls/``-Ausschluss im Backup)."""
+    backup = dst / ".old-restore"
+    if backup.exists():
+        shutil.rmtree(backup, ignore_errors=True)
+    backup.mkdir(parents=True, exist_ok=True)
+
+    backed_up: list[str] = []   # Namen, deren Original in backup/ liegt
+    added: list[str] = []        # Namen, die wir neu in dst eingebracht haben
+    skipped: list[str] = []
+    try:
+        # 1) bestehenden Inhalt (außer dem backup-Ordner) beiseite räumen
+        for entry in list(dst.iterdir()):
+            if entry == backup:
+                continue
+            try:
+                entry.rename(backup / entry.name)
+                backed_up.append(entry.name)
+            except OSError:
+                # Nicht bewegbar (fremd-owned, z.B. root:hydrahive env/extensions)
+                # → unverändert lassen. Hostspezifisch, gehört nicht in den Restore.
+                skipped.append(entry.name)
+
+        # 2) neuen Inhalt hineinbringen (skip, was wir übersprungen haben)
+        for entry in list(src.iterdir()):
+            if entry.name in skipped:
+                continue
+            shutil.move(str(entry), str(dst / entry.name))
+            added.append(entry.name)
+
+        # 3) Erfolg → alten Inhalt löschen
+        shutil.rmtree(backup, ignore_errors=True)
+        if skipped:
+            logger.warning(
+                "config-Restore: %d hostspezifische Einträge übersprungen "
+                "(fremd-owned, unverändert erhalten): %s",
+                len(skipped), ", ".join(sorted(skipped)),
+            )
     except Exception:
-        import pwd
-        return pwd.getpwuid(os.getuid()).pw_name
+        # Rollback: erst neu eingebrachte Einträge raus, dann Originale zurück.
+        for name in added:
+            live = dst / name
+            if live.is_dir():
+                shutil.rmtree(live, ignore_errors=True)
+            else:
+                live.unlink(missing_ok=True)
+        for name in backed_up:
+            src_bak = backup / name
+            if src_bak.exists():
+                try:
+                    src_bak.rename(dst / name)
+                except OSError:
+                    pass
+        shutil.rmtree(backup, ignore_errors=True)
+        raise
 
 
 def _trigger_restart() -> None:

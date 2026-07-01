@@ -1,158 +1,164 @@
-"""System-Restore: config_dir (/etc/hydrahive2) liegt unter einem Elternpfad
-(/etc), den der Service-User nicht beschreiben darf → Verzeichnis-rename schlägt
-mit 'Permission denied' fehl.
+"""System-Restore: config_dir (/etc/hydrahive2) kann NICHT per Verzeichnis-rename
+ersetzt werden — zwei Gründe, die zusammen auftreten:
 
-Fix: _atomic_replace_dir erkennt nicht-schreibbares Elternverzeichnis und ersetzt
-über _privileged_replace_dir (sudo -n bash, vorhandenes NOPASSWD-Recht). Der
-data_dir-Pfad (schreibbares Elternverzeichnis) bleibt reiner Python-Move.
+1. /etc gehört root → Service-User (hydrahive) darf dort nicht umbenennen (EPERM).
+2. Die systemd-Unit setzt ReadWritePaths=/etc/hydrahive2 → das Verzeichnis ist im
+   Service-Namespace ein Bind-Mount → rename() gibt EBUSY.
+
+Fix: _atomic_replace_dir testet ob dst umbenennbar ist (_can_rename_dir). Wenn
+nicht, wird der INHALT in-place ersetzt (_replace_dir_contents) — Mount-Point-
+und Permission-sicher, ohne sudo. Fremd-owned Einträge (root:hydrahive env/
+extensions) werden übersprungen (hostspezifisch).
 """
 from __future__ import annotations
-
-import os
 
 import pytest
 
 
-def test_replace_writable_parent_uses_python_path(tmp_path, monkeypatch):
-    """Schreibbares Elternverzeichnis → reiner Python-Move, KEIN sudo."""
+def test_can_rename_normal_dir(tmp_path):
+    """Normales Verzeichnis mit schreibbarem Parent → umbenennbar."""
     from hydrahive.backup import restore
 
-    called = {"privileged": False}
-    monkeypatch.setattr(
-        restore, "_privileged_replace_dir",
-        lambda s, d: called.__setitem__("privileged", True),
-    )
-
-    src = tmp_path / "src"
-    src.mkdir()
-    (src / "file.txt").write_text("neu")
-    dst = tmp_path / "dst"
+    dst = tmp_path / "d"
     dst.mkdir()
-    (dst / "file.txt").write_text("alt")
+    (dst / "x").write_text("1")
+    assert restore._can_rename_dir(dst, tmp_path / "d.old") is True
+    # nach dem Probe-Test steht dst wieder am Platz, Inhalt intakt
+    assert (dst / "x").read_text() == "1"
+
+
+def test_can_rename_readonly_parent(tmp_path, monkeypatch):
+    """Nicht-schreibbares Elternverzeichnis (simuliert /etc) → nicht umbenennbar."""
+    from hydrahive.backup import restore
+
+    dst = tmp_path / "d"
+    dst.mkdir()
+    monkeypatch.setattr(restore.os, "access", lambda p, mode: False)
+    assert restore._can_rename_dir(dst, tmp_path / "d.old") is False
+
+
+def test_replace_dir_uses_rename_when_possible(tmp_path, monkeypatch):
+    """Umbenennbares Ziel → schneller rename-Pfad, KEIN Content-Replace."""
+    from hydrahive.backup import restore
+
+    called = {"contents": False}
+    monkeypatch.setattr(restore, "_replace_dir_contents",
+                        lambda s, d: called.__setitem__("contents", True))
+
+    src = tmp_path / "src"; src.mkdir(); (src / "neu").write_text("N")
+    dst = tmp_path / "dst"; dst.mkdir(); (dst / "alt").write_text("A")
 
     restore._atomic_replace_dir(src, dst)
+    assert called["contents"] is False
+    assert (dst / "neu").read_text() == "N"
+    assert not (dst / "alt").exists()
 
-    assert called["privileged"] is False
-    assert (dst / "file.txt").read_text() == "neu"
 
-
-def test_replace_readonly_parent_uses_privileged_path(tmp_path, monkeypatch):
-    """Nicht-schreibbares Elternverzeichnis → _privileged_replace_dir wird genutzt."""
+def test_replace_dir_falls_back_to_contents(tmp_path, monkeypatch):
+    """Nicht umbenennbares Ziel → Content-Replace-Pfad."""
     from hydrahive.backup import restore
 
     captured = {}
-    monkeypatch.setattr(
-        restore, "_privileged_replace_dir",
-        lambda s, d: captured.update(src=s, dst=d),
-    )
-    # os.access für das Elternverzeichnis auf False zwingen (simuliert /etc)
-    monkeypatch.setattr(restore.os, "access", lambda p, mode: False)
+    monkeypatch.setattr(restore, "_can_rename_dir", lambda d, p: False)
+    monkeypatch.setattr(restore, "_replace_dir_contents",
+                        lambda s, d: captured.update(src=s, dst=d))
 
-    src = tmp_path / "src"
-    src.mkdir()
-    dst = tmp_path / "etc-like" / "hydrahive2"
-
+    src = tmp_path / "src"; src.mkdir()
+    dst = tmp_path / "dst"; dst.mkdir()
     restore._atomic_replace_dir(src, dst)
-
-    assert captured["dst"] == dst
-    assert captured["src"] == src
+    assert captured == {"src": src, "dst": dst}
 
 
-def test_privileged_replace_builds_sudo_command(tmp_path, monkeypatch):
-    """_privileged_replace_dir ruft 'sudo -n bash -c <script>' mit dem
-    korrekten mv/chown-Script (wenn nicht als root)."""
+# ---------------------------------------------------------------- Content-Replace
+def test_replace_contents_swaps_files(tmp_path):
+    """In-place Content-Replace: dst behält seine Identität (Mount-Point-sicher),
+    Inhalt wird ausgetauscht, .old-restore aufgeräumt."""
     from hydrahive.backup import restore
 
-    recorded = {}
+    src = tmp_path / "src"; src.mkdir()
+    (src / "llm.json").write_text("neu")
+    (src / "sub").mkdir(); (src / "sub" / "a.txt").write_text("x")
 
-    class _Proc:
-        returncode = 0
-        stdout = ""
-        stderr = ""
+    dst = tmp_path / "dst"; dst.mkdir()
+    dst_inode = dst.stat().st_ino
+    (dst / "llm.json").write_text("alt")
+    (dst / "weg.json").write_text("weg")
 
-    def fake_run(cmd, **kwargs):
-        recorded["cmd"] = cmd
-        return _Proc()
+    restore._replace_dir_contents(src, dst)
 
-    monkeypatch.setattr(restore.subprocess, "run", fake_run)
-    monkeypatch.setattr(restore.os, "getuid", lambda: 1000)  # nicht root
-    monkeypatch.setattr(restore, "_service_user", lambda: "hydrahive")
-
-    src = tmp_path / "src"
-    dst = tmp_path / "target"
-    restore._privileged_replace_dir(src, dst)
-
-    cmd = recorded["cmd"]
-    assert cmd[:3] == ["sudo", "-n", "bash"]
-    assert cmd[3] == "-c"
-    script = cmd[4]
-    # Move + Auto-Rollback + Ownership-Wiederherstellung im Script
-    assert str(dst) in script and str(src) in script
-    assert ".old-restore" in script
-    assert "chown -R" in script and "hydrahive:hydrahive" in script
-    assert "chmod 770" in script
+    assert dst.stat().st_ino == dst_inode          # dst NICHT bewegt (Mount-safe)
+    assert (dst / "llm.json").read_text() == "neu"  # ersetzt
+    assert (dst / "sub" / "a.txt").read_text() == "x"  # neu rein
+    assert not (dst / "weg.json").exists()          # alter Inhalt weg
+    assert not (dst / ".old-restore").exists()       # Backup aufgeräumt
 
 
-def test_privileged_replace_as_root_no_sudo(tmp_path, monkeypatch):
-    """Läuft der Prozess bereits als root → bash ohne sudo-Präfix."""
+def test_replace_contents_skips_unmovable(tmp_path, monkeypatch):
+    """Fremd-owned Einträge (können nicht umbenannt werden) werden übersprungen
+    und bleiben unverändert erhalten — env/extensions bleiben vom Zielserver."""
     from hydrahive.backup import restore
 
-    recorded = {}
+    src = tmp_path / "src"; src.mkdir()
+    (src / "llm.json").write_text("neu")
+    (src / "env").write_text("SRC-ENV")  # käme aus Backup, soll NICHT übernommen werden
 
-    class _Proc:
-        returncode = 0
-        stdout = ""
-        stderr = ""
+    dst = tmp_path / "dst"; dst.mkdir()
+    (dst / "llm.json").write_text("alt")
+    (dst / "env").write_text("HOST-ENV")  # hostspezifisch, "fremd-owned"
 
-    monkeypatch.setattr(restore.subprocess, "run",
-                        lambda cmd, **k: recorded.update(cmd=cmd) or _Proc())
-    monkeypatch.setattr(restore.os, "getuid", lambda: 0)  # root
-    monkeypatch.setattr(restore, "_service_user", lambda: "hydrahive")
+    real_rename = restore.Path.rename
 
-    restore._privileged_replace_dir(tmp_path / "s", tmp_path / "d")
+    def guarded_rename(self, target):
+        # 'env' simuliert fremd-owned: rename ins Backup schlägt fehl
+        if self.name == "env" and ".old-restore" in str(target):
+            raise OSError("Operation not permitted")
+        return real_rename(self, target)
 
-    assert recorded["cmd"][0] == "bash"
-    assert "sudo" not in recorded["cmd"]
+    monkeypatch.setattr(restore.Path, "rename", guarded_rename)
 
+    restore._replace_dir_contents(src, dst)
 
-def test_privileged_replace_raises_on_failure(tmp_path, monkeypatch):
-    """Nicht-0-Exit des sudo-Scripts → RestoreError mit stderr."""
-    from hydrahive.backup import restore
-    from hydrahive.backup.validate import RestoreError
-
-    class _Proc:
-        returncode = 1
-        stdout = ""
-        stderr = "mv: cannot move"
-
-    monkeypatch.setattr(restore.subprocess, "run", lambda cmd, **k: _Proc())
-    monkeypatch.setattr(restore.os, "getuid", lambda: 1000)
-    monkeypatch.setattr(restore, "_service_user", lambda: "hydrahive")
-
-    with pytest.raises(RestoreError, match="config_dir-Replace fehlgeschlagen"):
-        restore._privileged_replace_dir(tmp_path / "s", tmp_path / "d")
+    assert (dst / "llm.json").read_text() == "neu"     # normal ersetzt
+    assert (dst / "env").read_text() == "HOST-ENV"      # übersprungen, Host-Wert bleibt
 
 
-def test_privileged_replace_real_move_as_root_only(tmp_path, monkeypatch):
-    """Echter Move-Roundtrip OHNE sudo (getuid=0-Pfad, echtes bash) —
-    verifiziert dass das Script mv + Auto-Rollback korrekt macht.
-    Läuft nur wenn wir tatsächlich schreibende Rechte im tmp haben (immer)."""
+def test_replace_contents_rollback_on_error(tmp_path, monkeypatch):
+    """Fehler beim Einbringen des neuen Inhalts → alter Inhalt wird zurückgeholt."""
     from hydrahive.backup import restore
 
-    # Als 'root' behandeln → bash ohne sudo; chown/chmod auf tmp (eigene Files) ok
-    monkeypatch.setattr(restore.os, "getuid", lambda: 0)
-    monkeypatch.setattr(restore, "_service_user", lambda: __import__("getpass").getuser())
+    src = tmp_path / "src"; src.mkdir()
+    (src / "a.json").write_text("A-neu")
+    (src / "b.json").write_text("B-neu")
 
-    src = tmp_path / "src"
-    src.mkdir()
-    (src / "neu.txt").write_text("N")
-    dst = tmp_path / "dst"
-    dst.mkdir()
-    (dst / "alt.txt").write_text("A")
+    dst = tmp_path / "dst"; dst.mkdir()
+    (dst / "a.json").write_text("A-alt")
+    (dst / "b.json").write_text("B-alt")
 
-    restore._privileged_replace_dir(src, dst)
+    real_move = restore.shutil.move
+    state = {"n": 0}
 
-    assert (dst / "neu.txt").read_text() == "N"
-    assert not (dst / "alt.txt").exists()          # altes Verzeichnis ersetzt
-    assert not dst.with_suffix(dst.suffix + ".old-restore").exists()  # aufgeräumt
-    assert not src.exists()                         # src wurde verschoben
+    def flaky_move(s, d):
+        state["n"] += 1
+        if state["n"] == 2:  # zweites Einbringen schlägt fehl
+            raise OSError("disk full")
+        return real_move(s, d)
+
+    monkeypatch.setattr(restore.shutil, "move", flaky_move)
+
+    with pytest.raises(OSError):
+        restore._replace_dir_contents(src, dst)
+
+    # Rollback: beide Originale wieder da, kein .old-restore-Rest
+    assert (dst / "a.json").read_text() == "A-alt"
+    assert (dst / "b.json").read_text() == "B-alt"
+    assert not (dst / ".old-restore").exists()
+
+
+def test_replace_dir_new_target_just_moves(tmp_path):
+    """Ziel existiert noch nicht → einfacher move."""
+    from hydrahive.backup import restore
+
+    src = tmp_path / "src"; src.mkdir(); (src / "x").write_text("1")
+    dst = tmp_path / "neu-dst"
+    restore._atomic_replace_dir(src, dst)
+    assert (dst / "x").read_text() == "1"
