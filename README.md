@@ -3,7 +3,7 @@
 ### Dein selbstgehostetes KI-Agenten-System — für Familie, Team und Privatsphäre
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Status-Alpha-orange?style=flat-square" alt="Status">
+  <img src="https://img.shields.io/badge/Status-Beta-blue?style=flat-square" alt="Status">
   <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12+-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/FastAPI-0.150+-green?style=flat-square" alt="FastAPI">
