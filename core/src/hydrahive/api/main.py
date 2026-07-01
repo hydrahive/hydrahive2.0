@@ -16,6 +16,7 @@ from hydrahive.api.routes.workspace import router as workspace_router
 from hydrahive.api.routes.analytics import router as analytics_router
 from hydrahive.api.routes.auth import router as auth_router
 from hydrahive.api.routes.backup import router as backup_router
+from hydrahive.api.routes.migration import router as migration_router
 from hydrahive.api.routes.buddy import router as buddy_router
 from hydrahive.api.routes.butler import router as butler_router
 from hydrahive.api.routes.files import router as files_router
@@ -102,6 +103,7 @@ app.add_middleware(
 app.include_router(agentlink_router)
 app.include_router(auth_router)
 app.include_router(backup_router)
+app.include_router(migration_router)
 app.include_router(users_router)
 app.include_router(agents_router)
 app.include_router(agent_activity_router)

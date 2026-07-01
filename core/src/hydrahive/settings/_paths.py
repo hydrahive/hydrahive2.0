@@ -159,6 +159,10 @@ class _PathsMixin:
     def bridge_log_path(self) -> Path:
         return Path(os.environ.get("HH_BRIDGE_LOG", "/var/log/hydrahive2-bridge.log"))
 
+    @cached_property
+    def migration_log_path(self) -> Path:
+        return Path(os.environ.get("HH_MIGRATION_LOG", "/var/log/hydrahive2-migration.log"))
+
     # ------------------------------------------------------------------ helpers
 
     def ensure_dirs(self) -> None:

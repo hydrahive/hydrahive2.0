@@ -91,4 +91,22 @@ export const systemApi = {
     }
     return r.json()
   },
+  migrationStatus: () =>
+    api.get<{ running: boolean; last_result: { ok: boolean; finished_at: number } | null }>(
+      "/admin/migration/status",
+    ),
+  migrationStart: (body: MigrationStartBody) =>
+    api.post<{ started: boolean }>("/admin/migration/start", body),
+  migrationLog: (tail = 500) =>
+    api.get<{ exists: boolean; lines: string[]; running: boolean }>(
+      `/admin/migration/log?tail=${tail}`,
+    ),
+}
+
+export interface MigrationStartBody {
+  host: string
+  port: number
+  ssh_user: string
+  password: string
+  bwlimit_kbps: number
 }
