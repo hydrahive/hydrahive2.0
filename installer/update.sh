@@ -230,6 +230,46 @@ EOF
   systemctl restart hydrahive2-samba.timer
 fi
 
+if [ ! -f /etc/systemd/system/hydrahive2-migration.timer ] || [ ! -f /etc/systemd/system/hydrahive2-migration.service ]; then
+  log "Migrations-Units anlegen (Server-zu-Server Voll-Klon)"
+  cat > /etc/systemd/system/hydrahive2-migration.service <<EOF
+[Unit]
+Description=HydraHive2 Server-Migration Runner (rsync Voll-Klon)
+ConditionPathExists=$HH_DATA_DIR/.migration_request
+
+[Service]
+Type=oneshot
+# 1,2 TB rsync kann Stunden dauern — kein Start-Timeout.
+TimeoutStartSec=0
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.migration_request
+Environment=HH_USER=$HH_USER
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+Environment=HH_REPO_DIR=$HH_REPO_DIR
+ExecStart=$HH_REPO_DIR/installer/migrate.sh
+StandardOutput=append:/var/log/hydrahive2-migration.log
+StandardError=append:/var/log/hydrahive2-migration.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-migration.timer <<EOF
+[Unit]
+Description=HydraHive2 Migration-Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-migration.service
+
+[Install]
+WantedBy=timers.target
+EOF
+  touch /var/log/hydrahive2-migration.log
+  chmod 644 /var/log/hydrahive2-migration.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-migration.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-migration.timer
+fi
+
 # Self-Heal: alter smb.conf-Patch (Verzeichnis-Include statt _index.conf-Datei)
 if [ -f /etc/samba/smb.conf ] && \
    grep -qE "^(config file|include) = /etc/samba/hh-projects\.d(\$|/%u\.conf)" /etc/samba/smb.conf 2>/dev/null; then
