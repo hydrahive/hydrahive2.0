@@ -132,6 +132,17 @@ def _client(key: str):
     return _anthropic.AsyncAnthropic(api_key=key, timeout=300.0), False
 
 
+def _is_temperature_deprecated_error(exc: Exception) -> bool:
+    """True wenn Anthropic mit 'temperature is deprecated for this model' 400t.
+
+    Manche neueren Claude-Modelle (z.B. opus-4-7+, sonnet-5) akzeptieren keinen
+    temperature-Parameter mehr. Gilt für alle direkten Anthropic-SDK-Pfade
+    (complete/stream, OAuth/API-Key/MiniMax) — nicht nur den Runner-Pfad.
+    """
+    msg = str(exc).lower()
+    return "temperature" in msg and "deprecated" in msg
+
+
 async def anthropic_complete(
     key: str, messages: list[dict], model: str,
     temperature: float, max_tokens: int,
@@ -152,7 +163,15 @@ async def anthropic_complete(
     if system:
         kwargs["system"] = system
     from hydrahive.llm._oauth_usage import extract_rate_limit_headers
-    raw_resp = await client.messages.with_raw_response.create(**kwargs)
+    import anthropic as _anthropic
+
+    try:
+        raw_resp = await client.messages.with_raw_response.create(**kwargs)
+    except _anthropic.BadRequestError as e:
+        if not _is_temperature_deprecated_error(e):
+            raise
+        kwargs.pop("temperature", None)
+        raw_resp = await client.messages.with_raw_response.create(**kwargs)
     extract_rate_limit_headers(raw_resp.headers)
     resp = raw_resp.parse()
     return extract_text(resp.content)
@@ -169,12 +188,19 @@ async def minimax_complete(
         timeout=60.0,
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
-    resp = await client.messages.create(
-        model=strip_provider_prefix(model),
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    kwargs: dict = {
+        "model": strip_provider_prefix(model),
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    try:
+        resp = await client.messages.create(**kwargs)
+    except _anthropic.BadRequestError as e:
+        if not _is_temperature_deprecated_error(e):
+            raise
+        kwargs.pop("temperature", None)
+        resp = await client.messages.create(**kwargs)
     return extract_text(resp.content)
 
 
@@ -189,20 +215,31 @@ async def minimax_stream(
         timeout=60.0,
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
-    async with client.messages.stream(
-        model=strip_provider_prefix(model),
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    ) as s:
-        async for text in s.text_stream:
-            yield text
+    kwargs: dict = {
+        "model": strip_provider_prefix(model),
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    try:
+        async with client.messages.stream(**kwargs) as s:
+            async for text in s.text_stream:
+                yield text
+    except _anthropic.BadRequestError as e:
+        if not _is_temperature_deprecated_error(e):
+            raise
+        kwargs.pop("temperature", None)
+        async with client.messages.stream(**kwargs) as s:
+            async for text in s.text_stream:
+                yield text
 
 
 async def anthropic_stream(
     key: str, messages: list[dict], model: str,
     temperature: float, max_tokens: int,
 ) -> AsyncIterator[str]:
+    import anthropic as _anthropic
+
     client, is_oauth = _client(key)
     kwargs: dict = {
         "model": strip_provider_prefix(model),
@@ -212,6 +249,14 @@ async def anthropic_stream(
     }
     if is_oauth:
         kwargs["system"] = _OAUTH_IDENTITY
-    async with client.messages.stream(**kwargs) as stream:
-        async for text in stream.text_stream:
-            yield text
+    try:
+        async with client.messages.stream(**kwargs) as stream:
+            async for text in stream.text_stream:
+                yield text
+    except _anthropic.BadRequestError as e:
+        if not _is_temperature_deprecated_error(e):
+            raise
+        kwargs.pop("temperature", None)
+        async with client.messages.stream(**kwargs) as stream:
+            async for text in stream.text_stream:
+                yield text
