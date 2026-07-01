@@ -28,9 +28,21 @@ from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/admin/migration", tags=["admin"])
 
-TRIGGER = settings.data_dir / ".migration_request"
-SECRET = settings.data_dir / ".migration_secret"
-DONE_MARKER = settings.data_dir / ".migration_done"
+
+# Pfade werden zur LAUFZEIT aus settings aufgelöst (nicht als Import-Konstante),
+# damit Tests sie per monkeypatch(settings.data_dir) umlenken können und nicht
+# in die echte data_dir schreiben.
+def _trigger_path() -> Path:
+    return settings.data_dir / ".migration_request"
+
+
+def _secret_path() -> Path:
+    return settings.data_dir / ".migration_secret"
+
+
+def _done_path() -> Path:
+    return settings.data_dir / ".migration_done"
+
 
 # Hostname/IP: Buchstaben, Ziffern, Punkt, Bindestrich, Doppelpunkt (IPv6).
 _HOST_RE = re.compile(r"^[A-Za-z0-9._:-]{1,253}$")
@@ -48,16 +60,17 @@ class MigrationStart(BaseModel):
 
 def _is_running() -> bool:
     """Läuft gerade eine Migration? Trigger existiert oder Service aktiv."""
-    return TRIGGER.exists() or SECRET.exists()
+    return _trigger_path().exists() or _secret_path().exists()
 
 
 @router.get("/status")
 def migration_status(_: Annotated[tuple[str, str], Depends(require_admin)]) -> dict:
     running = _is_running()
     done = None
-    if DONE_MARKER.exists():
+    done_marker = _done_path()
+    if done_marker.exists():
         try:
-            done = json.loads(DONE_MARKER.read_text())
+            done = json.loads(done_marker.read_text())
         except (OSError, ValueError):
             done = None
     return {"running": running, "last_result": done}
@@ -78,11 +91,11 @@ def migration_start(
         raise coded(status.HTTP_400_BAD_REQUEST, "migration_invalid_user")
 
     settings.data_dir.mkdir(parents=True, exist_ok=True)
-    DONE_MARKER.unlink(missing_ok=True)
+    _done_path().unlink(missing_ok=True)
 
     # Passwort in separate 0600-Datei — NICHT in den Klartext-Trigger, NICHT ins Log.
     # umask-sicher: erst 0600 anlegen, dann schreiben.
-    fd = os.open(str(SECRET), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    fd = os.open(str(_secret_path()), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:
         os.write(fd, body.password.encode())
     finally:
@@ -95,7 +108,7 @@ def migration_start(
         "bwlimit_kbps": body.bwlimit_kbps,
         "requested_at": int(time.time()),
     }
-    TRIGGER.write_text(json.dumps(request))
+    _trigger_path().write_text(json.dumps(request))
     return {"started": True}
 
 
