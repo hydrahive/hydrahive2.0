@@ -15,6 +15,8 @@ BRIDGE_SERVICE=/etc/systemd/system/hydrahive2-bridge.service
 BRIDGE_TIMER=/etc/systemd/system/hydrahive2-bridge.timer
 SAMBA_SERVICE=/etc/systemd/system/hydrahive2-samba.service
 SAMBA_TIMER=/etc/systemd/system/hydrahive2-samba.timer
+MIGRATION_SERVICE=/etc/systemd/system/hydrahive2-migration.service
+MIGRATION_TIMER=/etc/systemd/system/hydrahive2-migration.timer
 
 # JWT-Secret generieren falls nicht da
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -249,6 +251,41 @@ Unit=hydrahive2-bridge.service
 WantedBy=timers.target
 EOF
 
+log "Schreibe $MIGRATION_SERVICE (Server-zu-Server Voll-Klon Runner)"
+cat > "$MIGRATION_SERVICE" <<EOF
+[Unit]
+Description=HydraHive2 Server-Migration Runner (rsync Voll-Klon)
+ConditionPathExists=$HH_DATA_DIR/.migration_request
+
+[Service]
+Type=oneshot
+# 1,2 TB rsync kann Stunden dauern — kein Start-Timeout.
+TimeoutStartSec=0
+ExecStartPre=/bin/rm -f $HH_DATA_DIR/.migration_request
+Environment=HH_USER=$HH_USER
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+Environment=HH_REPO_DIR=$HH_REPO_DIR
+ExecStart=$HH_REPO_DIR/installer/migrate.sh
+StandardOutput=append:/var/log/hydrahive2-migration.log
+StandardError=append:/var/log/hydrahive2-migration.log
+EOF
+
+log "Schreibe $MIGRATION_TIMER (Migration Trigger-Poller)"
+cat > "$MIGRATION_TIMER" <<EOF
+[Unit]
+Description=HydraHive2 Migration-Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-migration.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # Alte Path-Units entfernen falls vorhanden
 rm -f /etc/systemd/system/hydrahive2-update.path
 rm -f /etc/systemd/system/hydrahive2-restart.path
@@ -262,6 +299,8 @@ touch /var/log/hydrahive2-bridge.log
 chmod 644 /var/log/hydrahive2-bridge.log
 touch /var/log/hydrahive2-samba.log
 chmod 644 /var/log/hydrahive2-samba.log
+touch /var/log/hydrahive2-migration.log
+chmod 644 /var/log/hydrahive2-migration.log
 
 log "systemd reload + enable"
 systemctl daemon-reload
@@ -271,14 +310,16 @@ systemctl enable hydrahive2-restart.timer >/dev/null 2>&1
 systemctl enable hydrahive2-voice.timer >/dev/null 2>&1
 systemctl enable hydrahive2-bridge.timer >/dev/null 2>&1
 systemctl enable hydrahive2-samba.timer >/dev/null 2>&1
+systemctl enable hydrahive2-migration.timer >/dev/null 2>&1
 
-log "Starte Service + Update-/Restart-/Voice-/Bridge-/Samba-Timer"
+log "Starte Service + Update-/Restart-/Voice-/Bridge-/Samba-/Migration-Timer"
 systemctl restart hydrahive2.service
 systemctl restart hydrahive2-update.timer
 systemctl restart hydrahive2-restart.timer
 systemctl restart hydrahive2-voice.timer
 systemctl restart hydrahive2-bridge.timer
 systemctl restart hydrahive2-samba.timer
+systemctl restart hydrahive2-migration.timer
 
 sleep 2
 if systemctl is-active --quiet hydrahive2.service; then

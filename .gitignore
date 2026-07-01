@@ -12,6 +12,7 @@ build/
 node_modules/
 dist/
 .vite/
+.npm-cache/
 
 # Env
 .env

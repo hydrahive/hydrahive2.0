@@ -103,6 +103,30 @@
     "confirm_restore": "Restore",
     "close": "Close"
   },
+  "migration": {
+    "title": "Server Migration (Full Clone)",
+    "description": "Transfers ALL data via rsync to a freshly installed HydraHive2 server — including projects, Git repos, workspaces, VMs and disk archives. Incremental and resumable.",
+    "open": "Clone server",
+    "running_short": "Migration running…",
+    "warning": "The target server must have a freshly installed HydraHive2. ALL data there will be overwritten with this server's data. The target service is stopped during transfer and restarted afterwards.",
+    "host": "Target host / IP",
+    "port": "SSH port",
+    "user": "SSH user",
+    "password": "SSH password",
+    "bwlimit": "Bandwidth limit (KB/s, 0 = unlimited)",
+    "start": "Start clone",
+    "cancel": "Cancel",
+    "close": "Close",
+    "running": "Transfer in progress — this may take hours for large data sets…",
+    "success": "Migration completed successfully. The target server is a 1:1 clone.",
+    "failure": "Migration failed — see log.",
+    "log_wait": "Waiting for output…",
+    "err": {
+      "migration_already_running": "A migration is already running.",
+      "migration_invalid_host": "Invalid target host.",
+      "migration_invalid_user": "Invalid SSH user."
+    }
+  },
   "tailscale": {
     "title": "Tailscale",
     "not_installed": "Tailscale is not installed.",

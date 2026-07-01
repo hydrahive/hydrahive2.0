@@ -16,6 +16,7 @@ import { BridgeCard } from "./BridgeCard"
 import { SambaCard } from "./SambaCard"
 import { TailscaleCard } from "./TailscaleCard"
 import { BackupCard } from "./BackupCard"
+import { MigrationCard } from "./MigrationCard"
 import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
 import { VoiceInstallModal } from "./VoiceInstallModal"
@@ -147,6 +148,7 @@ export function SystemPage() {
       {role === "admin" && <BridgeCard />}
       {role === "admin" && <SambaCard />}
       {role === "admin" && <BackupCard />}
+      {role === "admin" && <MigrationCard />}
     </div>
   )
 }
