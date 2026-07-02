@@ -25,6 +25,7 @@ import { UiKitPage } from "@/features/uikit/UiKitPage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
 import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
 import { ModulesPage } from "@/features/modules/ModulesPage"
+import { ThemesPage } from "@/features/themes/ThemesPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
 import { TeamchatPage } from "@/features/teamchat/TeamchatPage"
 import { VMsPage } from "@/features/vms/VMsPage"
@@ -101,6 +102,7 @@ export default function App() {
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
           <Route path="extensions" element={<AdminGuard><ExtensionsPage /></AdminGuard>} />
           <Route path="modules" element={<AdminGuard><ModulesPage /></AdminGuard>} />
+          <Route path="themes" element={<AdminGuard><ThemesPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
           <Route path="zahnfee" element={<AdminGuard><ZahnfeePage /></AdminGuard>} />

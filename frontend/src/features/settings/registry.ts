@@ -1,7 +1,7 @@
 import { lazy, type LazyExoticComponent, type ComponentType } from "react"
 import {
   Bot, FolderKanban, MessageCircle, Workflow, MoonStar, Sparkles, Server,
-  Puzzle, Globe, Cpu, Package, Boxes, Users, Key,
+  Puzzle, Globe, Cpu, Package, Boxes, Palette, Users, Key,
   SlidersHorizontal, Database, Network, type LucideIcon,
 } from "lucide-react"
 
@@ -13,6 +13,7 @@ const SkillsPage = lazy(() => import("@/features/skills/SkillsPage").then((m) =>
 const UsersPage = lazy(() => import("@/features/users/UsersPage").then((m) => ({ default: m.UsersPage })))
 const SettingsPage = lazy(() => import("@/features/system/SettingsPage").then((m) => ({ default: m.SettingsPage })))
 const ModulesPage = lazy(() => import("@/features/modules/ModulesPage").then((m) => ({ default: m.ModulesPage })))
+const ThemesPage = lazy(() => import("@/features/themes/ThemesPage").then((m) => ({ default: m.ThemesPage })))
 const ExtensionsPage = lazy(() => import("@/features/extensions/ExtensionsPage").then((m) => ({ default: m.ExtensionsPage })))
 const PluginsPage = lazy(() => import("@/features/plugins/PluginsPage").then((m) => ({ default: m.PluginsPage })))
 const FederationPage = lazy(() => import("@/features/federation/FederationPage").then((m) => ({ default: m.FederationPage })))
@@ -119,6 +120,8 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     tabs: ["Installiert"], route: "/extensions", component: ExtensionsPage, adminOnly: true },
   { id: "modules", label: "Module", icon: Boxes, hasSubmenu: false,
     tabs: ["Verfügbar"], route: "/modules", component: ModulesPage, adminOnly: true },
+  { id: "themes", label: "Themes", icon: Palette, hasSubmenu: false,
+    tabs: ["Verfügbar"], route: "/themes", component: ThemesPage, adminOnly: true },
   { id: "connections", label: "Verbindungen", icon: Network, hasSubmenu: false,
     tabs: ["Tailscale", "AgentLink", "Samba"], route: "/system",
     tabComponents: { Tailscale: ConnTailscale, AgentLink: ConnAgentLink, Samba: ConnSamba } },
