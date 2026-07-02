@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Code2, Eye } from "lucide-react"
 import { renderTemplate } from "./TemplateRenderer"
+import { TemplateBoundary } from "./TemplateBoundary"
 import { SAMPLE_TEMPLATE } from "./_sampleTemplate"
 import { SLOT_BLOCKS } from "./registry"
 
@@ -58,7 +59,16 @@ export function TemplateProofPage() {
             <Eye size={12} /> Live-Vorschau
           </div>
           <div className="flex-1 p-4 rounded-xl bg-[#0b0e16] border border-white/[8%] overflow-y-auto">
-            {renderTemplate(html)}
+            <TemplateBoundary
+              key={html}
+              fallback={
+                <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">
+                  Dieses Template konnte nicht gerendert werden (fehlerhafter Baustein oder Markup).
+                </div>
+              }
+            >
+              {renderTemplate(html)}
+            </TemplateBoundary>
           </div>
         </div>
       </div>
