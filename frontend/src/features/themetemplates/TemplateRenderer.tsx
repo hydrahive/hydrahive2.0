@@ -21,6 +21,26 @@ function nextKey(): string {
   return `t${_key}`
 }
 
+/** Wandelt einen CSS-style-String in ein React-Style-Objekt.
+ *  React akzeptiert kein style="…"-String, sondern {prop: value}. CSS-Property-
+ *  Namen werden zu camelCase (background-color → backgroundColor), CSS-Custom-
+ *  Properties (--hh-…) bleiben unverändert. */
+function parseStyle(css: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const decl of css.split(";")) {
+    const idx = decl.indexOf(":")
+    if (idx < 0) continue
+    const rawProp = decl.slice(0, idx).trim()
+    const value = decl.slice(idx + 1).trim()
+    if (!rawProp || !value) continue
+    const prop = rawProp.startsWith("--")
+      ? rawProp
+      : rawProp.toLowerCase().replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+    out[prop] = value
+  }
+  return out
+}
+
 /** Wandelt einen DOM-Knoten rekursiv in React-Elemente.
  *  - <hh-xxx/> → echter Baustein aus dem Register
  *  - erlaubtes Tag → als React-Element mit gefilterten Attributen
@@ -57,12 +77,13 @@ function nodeToReact(node: Node): ReactNode {
   }
 
   // Erlaubtes Tag: Attribute filtern (class→className), Kinder rekursiv.
-  const props: Record<string, string> = { key: nextKey() }
+  const props: Record<string, unknown> = { key: nextKey() }
   for (const a of Array.from(el.attributes)) {
     const name = a.name.toLowerCase()
     if (name.startsWith("on")) continue // niemals Event-Handler aus Fremd-HTML
     if (!ALLOWED_ATTRS.has(name)) continue
     if (name === "class") props.className = a.value
+    else if (name === "style") props.style = parseStyle(a.value) // React braucht ein Objekt, keinen String
     else props[name] = a.value
   }
   const voidTags = new Set(["img", "hr", "br"])
