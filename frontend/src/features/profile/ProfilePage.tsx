@@ -8,6 +8,7 @@ import { BackupRestoreCard } from "./BackupRestoreCard"
 import { ChangeOwnPasswordCard } from "./ChangeOwnPasswordCard"
 import { LandingSwitcher } from "./LandingSwitcher"
 import { LookSwitcher } from "./LookSwitcher"
+import { ThemePicker } from "./ThemePicker"
 import { ThemeSwitcher } from "./ThemeSwitcher"
 import { TTSSettings } from "./TTSSettings"
 
@@ -49,6 +50,8 @@ export function ProfilePage() {
           <LanguageSwitcher />
         </div>
       </div>
+
+      <ThemePicker />
 
       <ThemeSwitcher />
 
