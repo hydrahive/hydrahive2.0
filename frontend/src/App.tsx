@@ -27,6 +27,7 @@ import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
 import { ModulesPage } from "@/features/modules/ModulesPage"
 import { ThemesPage } from "@/features/themes/ThemesPage"
 import { TemplateProofPage } from "@/features/themetemplates/TemplateProofPage"
+import { ThemedPage } from "@/features/themetemplates/ThemedPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
 import { TeamchatPage } from "@/features/teamchat/TeamchatPage"
 import { VMsPage } from "@/features/vms/VMsPage"
@@ -69,7 +70,7 @@ export default function App() {
             </Guard>
           }
         >
-          <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <BuddyPage />} />
+          <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <ThemedPage route="buddy" fallback={<BuddyPage />} />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />

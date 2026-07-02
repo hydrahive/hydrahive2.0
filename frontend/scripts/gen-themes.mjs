@@ -36,6 +36,20 @@ ids.forEach((id, i) => {
   if (hasCss) imports.push(`import _css${i} from "./${id}/theme.css?raw"`)
   if (preview) imports.push(`import _prev${i} from "./${id}/${preview}?url"`)
 
+  // Seiten-Templates: templates/<route>.html → { route: rohes HTML }.
+  // Der Dateiname (ohne .html) ist der Routen-Schlüssel (z.B. buddy.html → "buddy").
+  const tplDir = join(dir, "templates")
+  const tplEntries = []
+  if (existsSync(tplDir) && statSync(tplDir).isDirectory()) {
+    for (const f of readdirSync(tplDir)) {
+      if (!f.endsWith(".html")) continue
+      const route = f.slice(0, -5)
+      const varName = `_tpl${i}_${route.replace(/[^a-z0-9]/gi, "_")}`
+      imports.push(`import ${varName} from "./${id}/templates/${f}?raw"`)
+      tplEntries.push(`${JSON.stringify(route)}: ${varName}`)
+    }
+  }
+
   const fields = [
     `id: ${JSON.stringify(String(manifest.id ?? id))}`,
     `name: ${JSON.stringify(String(manifest.name ?? id))}`,
@@ -47,6 +61,7 @@ ids.forEach((id, i) => {
     hasLayout ? `customLayout: _layout${i}` : null,
     hasCss ? `css: _css${i}` : null,
     preview ? `preview: _prev${i}` : null,
+    tplEntries.length ? `templates: { ${tplEntries.join(", ")} }` : null,
   ].filter(Boolean)
 
   entries.push(`  { ${fields.join(", ")} }`)

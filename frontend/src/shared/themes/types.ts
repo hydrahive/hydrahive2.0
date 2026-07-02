@@ -15,6 +15,9 @@ export interface ThemeMeta {
   preview?: string
   author?: string
   version?: string
+  /** Seiten-Templates (Route → rohes Designer-HTML). Überschreibt die
+   *  eingebaute Seite, wenn ein Eintrag für die Route existiert. */
+  templates?: Record<string, string>
   /** Herkunft — eingebaut oder aus einem Theme-Paket. */
   source: "builtin" | "user"
 }
@@ -35,4 +38,5 @@ export interface GeneratedThemeEntry {
   variables?: Record<string, string>
   css?: string
   preview?: string
+  templates?: Record<string, string>
 }

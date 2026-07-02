@@ -39,6 +39,7 @@ function resolveUserTheme(e: GeneratedThemeEntry): ThemeMeta {
     variables: e.variables,
     css: e.css,
     preview: e.preview,
+    templates: e.templates,
     source: "user",
   }
 }

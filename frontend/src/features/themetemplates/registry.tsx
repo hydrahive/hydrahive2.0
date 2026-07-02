@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { AgentLinkCard } from "@/features/system/AgentLinkCard"
 import { MinimaxUsageCard } from "@/features/system/MinimaxUsageCard"
+import { ChatboxBlock } from "./blocks/ChatboxBlock"
 
 /** Ein einsetzbarer Baustein. `render` bekommt die Attribute des Platzhalter-Tags
  *  (z.B. <hh-chatbox agent="buddy"/> → { agent: "buddy" }) und gibt das echte
@@ -18,6 +19,11 @@ export interface SlotBlock {
 /** Proof-Katalog v1 — bewusst self-contained Karten, die schon überall laufen.
  *  Später kommen hier hh-menu, hh-chatbox, hh-videoeditor etc. dazu. */
 export const SLOT_BLOCKS: SlotBlock[] = [
+  {
+    name: "chatbox",
+    label: "Buddy-Chat (volle interaktive Chatbox)",
+    render: (attrs) => <ChatboxBlock attrs={attrs} />,
+  },
   {
     name: "tailscale",
     label: "Tailscale-Status",
