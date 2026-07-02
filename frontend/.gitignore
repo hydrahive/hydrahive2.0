@@ -26,3 +26,7 @@ dist-ssr
 # Module system — install-managed, regenerated on every build
 src/modules/*/
 src/modules/index.generated.ts
+
+# Theme system — index ist generiert; mitgelieferte Beispiel-Themes bleiben
+# im Repo (Vorlage für Theme-Bauer). Hub-installierte Themes → Etappe 3.
+src/themes/index.generated.ts

@@ -1,0 +1,11 @@
+/* Aurora — Beispiel-Theme-CSS. Wird nur eingehängt, wenn dieses Theme aktiv ist.
+   Zeigt, dass ein Theme-Paket über CSS-Variablen hinaus eigene Regeln mitbringen
+   kann. Scope bewusst zurückhaltend halten (kein globales Layout-Chaos). */
+:root {
+  --hh-glow: rgba(45, 212, 191, 0.35);
+}
+
+/* Dezenter Aurora-Schimmer auf Panels. */
+.box {
+  transition: box-shadow 0.25s ease;
+}

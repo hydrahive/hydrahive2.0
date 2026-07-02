@@ -1,0 +1,18 @@
+{
+  "id": "aurora",
+  "name": "Aurora",
+  "version": "1.0.0",
+  "author": "hydrahive",
+  "description": "Beispiel-Theme: Sidebar-Layout mit kühler Aurora-Farbwelt.",
+  "layout": "sidebar",
+  "variables": {
+    "--hh-r": "0.7rem",
+    "--hh-accent-from": "rgb(14 116 144)",
+    "--hh-accent-to": "rgb(6 95 70)",
+    "--hh-accent": "rgb(45 212 191)",
+    "--hh-accent-text": "rgb(153 246 228)",
+    "--hh-accent-soft": "rgba(45, 212, 191, 0.10)",
+    "--hh-accent-border": "rgba(45, 212, 191, 0.30)"
+  },
+  "min_core_version": "2.0.0"
+}
