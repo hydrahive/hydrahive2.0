@@ -80,20 +80,20 @@ export default function App() {
           {/* Agenten & Projekte leben jetzt im Settings-Hub (eine Config-Stelle). */}
           <Route path="agents" element={<Navigate to="/settings/agents" replace />} />
           <Route path="projects" element={<Navigate to="/settings/projects" replace />} />
-          <Route path="communication" element={<CommunicationPage />} />
-          <Route path="teamchat" element={<TeamchatPage />} />
-          <Route path="vms" element={<VMsPage />} />
-          <Route path="containers" element={<ContainersPage />} />
+          <Route path="communication" element={<ThemedPage route="communication" fallback={<CommunicationPage />} />} />
+          <Route path="teamchat" element={<ThemedPage route="teamchat" fallback={<TeamchatPage />} />} />
+          <Route path="vms" element={<ThemedPage route="vms" fallback={<VMsPage />} />} />
+          <Route path="containers" element={<ThemedPage route="containers" fallback={<ContainersPage />} />} />
           <Route path="containers/:id" element={<ContainerDetailPage />} />
           <Route path="butler" element={<ThemedPage route="butler" fallback={<ButlerPage />} />} />
-          <Route path="federation" element={<FederationPage />} />
-          <Route path="streaming" element={<StreamingPage />} />
-          <Route path="datamining" element={<DataminingPage />} />
+          <Route path="federation" element={<ThemedPage route="federation" fallback={<FederationPage />} />} />
+          <Route path="streaming" element={<ThemedPage route="streaming" fallback={<StreamingPage />} />} />
+          <Route path="datamining" element={<ThemedPage route="datamining" fallback={<DataminingPage />} />} />
           <Route path="memory" element={<ThemedPage route="memory" fallback={<MemoryPage />} />} />
           <Route path="llm" element={<LlmPage />} />
           <Route path="llm/catalog" element={<CatalogPage />} />
-          <Route path="mcp" element={<McpPage />} />
-          <Route path="skills" element={<SkillsPage />} />
+          <Route path="mcp" element={<ThemedPage route="mcp" fallback={<McpPage />} />} />
+          <Route path="skills" element={<ThemedPage route="skills" fallback={<SkillsPage />} />} />
           <Route path="ui-kit" element={<UiKitPage />} />
           <Route path="credentials" element={<CredentialsPage />} />
           <Route path="settings" element={<SettingsHubPage />} />
@@ -108,7 +108,7 @@ export default function App() {
           <Route path="template-proof" element={<AdminGuard><TemplateProofPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
-          <Route path="zahnfee" element={<AdminGuard><ZahnfeePage /></AdminGuard>} />
+          <Route path="zahnfee" element={<AdminGuard><ThemedPage route="zahnfee" fallback={<ZahnfeePage />} /></AdminGuard>} />
           {appModuleRoutes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}
