@@ -21,6 +21,7 @@ import { SettingsPage } from "@/features/system/SettingsPage"
 import { SettingsHubPage } from "@/features/settings/SettingsHubPage"
 import { UsersPage } from "@/features/users/UsersPage"
 import { ProfilePage } from "@/features/profile/ProfilePage"
+import { UiKitPage } from "@/features/uikit/UiKitPage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
 import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
 import { ModulesPage } from "@/features/modules/ModulesPage"
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="llm/catalog" element={<CatalogPage />} />
           <Route path="mcp" element={<McpPage />} />
           <Route path="skills" element={<SkillsPage />} />
+          <Route path="ui-kit" element={<UiKitPage />} />
           <Route path="credentials" element={<CredentialsPage />} />
           <Route path="settings" element={<SettingsHubPage />} />
           <Route path="settings/:groupId" element={<SettingsHubPage />} />

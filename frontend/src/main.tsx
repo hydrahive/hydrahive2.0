@@ -4,8 +4,10 @@ import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { applyTheme, getStoredTheme } from './shared/theme'
+import { applyLook, getStoredLook } from './shared/look'
 
 applyTheme(getStoredTheme())
+applyLook(getStoredLook())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

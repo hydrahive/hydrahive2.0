@@ -32,6 +32,18 @@
     --hh-bd:        rgba(255,255,255,.10);
     --hh-r:         1.1rem;
 
+    /* ── Look-Stellschrauben (data-look überschreibt sie) ──────────────
+       Steuern die FORM statt der Farbe. Default = Neon (Original).
+       Multiplikatoren skalieren Farbwäsche/Rand/Glow der .box & Controls,
+       ohne Layout zu reflowen (rein visuell). */
+    --hh-box-wash:   1;      /* Farbwäsche-Intensität der Panels    */
+    --hh-box-border: 1;      /* Randdeckkraft                        */
+    --hh-glow:       1;      /* Glow-Halo-Intensität (0 = kein Glow) */
+    --hh-lift:       -2px;   /* Hover-Anheben der .box               */
+    --hh-ctl-r:      0.5rem; /* Radius interaktiver Controls (Button/Input) */
+    --hh-ctl-py:     0.5rem; /* vertikales Control-Padding (Dichte)  */
+    --hh-ctl-px:     0.9rem; /* horizontales Control-Padding (Dichte)*/
+
     /* Theme-Akzentfarben — default Violet (Standard) */
     --hh-accent-from: rgb(79 70 229);    /* indigo-600 */
     --hh-accent-to:   rgb(124 58 237);   /* violet-600 */
@@ -85,6 +97,39 @@
     --hh-accent-border: rgba(161, 161, 170, 0.30);
     --hh-scrollbar-thumb: rgba(161, 161, 170, 0.18);
     --hh-scrollbar-thumb-hover: rgba(161, 161, 170, 0.35);
+  }
+
+  /* ── Look-Presets ─────────────────────────────────────────────────
+     Verändern Radius/Ränder/Glow/Dichte. Kombinierbar mit jeder Farbe. */
+  [data-look="clean"] {
+    --hh-r:          0.6rem;
+    --hh-box-wash:   0.35;
+    --hh-box-border: 0.5;
+    --hh-glow:       0.15;
+    --hh-lift:       0px;
+    --hh-ctl-r:      0.5rem;
+    --hh-panel:      #161b28;
+  }
+
+  [data-look="compact"] {
+    --hh-r:          0.5rem;
+    --hh-box-wash:   0.7;
+    --hh-box-border: 0.8;
+    --hh-glow:       0.5;
+    --hh-lift:       -1px;
+    --hh-ctl-r:      0.4rem;
+    --hh-ctl-py:     0.3rem;
+    --hh-ctl-px:     0.65rem;
+  }
+
+  [data-look="solid"] {
+    --hh-r:          0.7rem;
+    --hh-box-wash:   1.4;
+    --hh-box-border: 1.6;
+    --hh-glow:       0.25;
+    --hh-lift:       0px;
+    --hh-ctl-r:      0.55rem;
+    --hh-panel:      #232a3d;
   }
 
   .light {
@@ -156,23 +201,23 @@
     border-radius: var(--hh-r);
     background:
       linear-gradient(158deg, var(--hh-panel-top), var(--hh-panel-bot)),
-      linear-gradient(160deg, rgb(var(--c) / .38), rgb(var(--c) / .13) 65%),
+      linear-gradient(160deg, rgb(var(--c) / calc(.38 * var(--hh-box-wash))), rgb(var(--c) / calc(.13 * var(--hh-box-wash))) 65%),
       var(--hh-panel);
-    border: 1px solid rgb(var(--c) / .62);
+    border: 1px solid rgb(var(--c) / calc(.62 * var(--hh-box-border)));
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.12),
-      0 0 0 1px rgb(var(--c) / .30),
-      0 0 24px -2px rgb(var(--c) / .50),
-      0 18px 44px -20px rgb(var(--c) / .95);
+      0 0 0 1px rgb(var(--c) / calc(.30 * var(--hh-box-border))),
+      0 0 24px -2px rgb(var(--c) / calc(.50 * var(--hh-glow))),
+      0 18px 44px -20px rgb(var(--c) / calc(.95 * var(--hh-glow)));
     transition: .22s;
   }
   .box:hover {
-    transform: translateY(-2px);
+    transform: translateY(var(--hh-lift));
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.16),
-      0 0 0 1px rgb(var(--c) / .45),
-      0 0 34px 0 rgb(var(--c) / .60),
-      0 24px 54px -18px rgb(var(--c));
+      0 0 0 1px rgb(var(--c) / calc(.45 * var(--hh-box-border))),
+      0 0 34px 0 rgb(var(--c) / calc(.60 * var(--hh-glow))),
+      0 24px 54px -18px rgb(var(--c) / calc(1 * var(--hh-glow)));
   }
   /* Statische Box für INTERAKTIVE Inhalte (Konsole/xterm, Monaco): gleicher
      Glow-Look, aber KEIN Hover-Lift + keine Transition — die verschieben/

@@ -7,6 +7,8 @@ import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 import { BackupRestoreCard } from "./BackupRestoreCard"
 import { ChangeOwnPasswordCard } from "./ChangeOwnPasswordCard"
 import { LandingSwitcher } from "./LandingSwitcher"
+import { LookSwitcher } from "./LookSwitcher"
+import { ThemePicker } from "./ThemePicker"
 import { ThemeSwitcher } from "./ThemeSwitcher"
 import { TTSSettings } from "./TTSSettings"
 
@@ -49,7 +51,11 @@ export function ProfilePage() {
         </div>
       </div>
 
+      <ThemePicker />
+
       <ThemeSwitcher />
+
+      <LookSwitcher />
 
       <LandingSwitcher />
 
