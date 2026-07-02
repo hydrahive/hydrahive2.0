@@ -27,6 +27,9 @@ dist-ssr
 src/modules/*/
 src/modules/index.generated.ts
 
-# Theme system — index ist generiert; mitgelieferte Beispiel-Themes bleiben
-# im Repo (Vorlage für Theme-Bauer). Hub-installierte Themes → Etappe 3.
+# Theme system — index ist generiert; Hub-installierte Themes sind
+# install-managed. Das mitgelieferte Beispiel-Theme (aurora) + README bleiben
+# als Vorlage im Repo.
 src/themes/index.generated.ts
+src/themes/*/
+!src/themes/aurora/

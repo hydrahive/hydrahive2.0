@@ -82,6 +82,45 @@ class _PathsMixin:
         return out
 
     @cached_property
+    def themes_frontend_dir(self) -> Path:
+        """Kopierziel installierter Themes (Frontend-Paket-Ordner im Repo).
+
+        Ein Theme ist reines Frontend — anders als Module gibt es kein eigenes
+        data_dir-Ziel. Der Ordner wird beim Build von scripts/gen-themes.mjs
+        gescannt.
+        """
+        return self.base_dir / "frontend" / "src" / "themes"
+
+    @cached_property
+    def theme_hub_cache(self) -> Path:
+        return self.data_dir / ".theme-cache" / "hub"
+
+    @cached_property
+    def theme_hub_git_url(self) -> str:
+        return os.environ.get(
+            "HH_THEME_HUB_GIT_URL",
+            "https://github.com/hydrahive/hydrahive2-themes.git",
+        )
+
+    @cached_property
+    def theme_hub_extra_git_urls(self) -> list[str]:
+        """Zusätzliche Theme-Hub-Quellen (komma-separiert, GUI / HH_THEME_HUB_GIT_URLS).
+
+        Multi-Hub analog zum Modulsystem: Override (GUI) → Env → Default.
+        Dedupliziert, primäre URL nie doppelt.
+        """
+        from hydrahive.settings import overrides
+
+        primary = self.theme_hub_git_url
+        raw = overrides.env_or_override("theme_hub_extra_git_urls", "HH_THEME_HUB_GIT_URLS", "")
+        out: list[str] = []
+        for u in raw.split(","):
+            u = u.strip()
+            if u and u != primary and u not in out:
+                out.append(u)
+        return out
+
+    @cached_property
     def tmp_dir(self) -> Path:
         return Path(os.environ.get("HH_TMP_DIR", tempfile.gettempdir()))
 
