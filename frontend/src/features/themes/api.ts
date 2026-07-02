@@ -81,3 +81,45 @@ export function updateTheme(
 ): () => void {
   return stream(`/${id}/update`, "POST", onLine, onDone, onError)
 }
+
+// --- Editor-API (Etappe 2/3): Templates lesen/schreiben, forken, publishen ---
+
+export interface TemplateList {
+  theme_id: string
+  routes: string[]
+  protected: boolean
+}
+export interface TemplateContent {
+  theme_id: string
+  route: string
+  html: string
+}
+
+export function listTemplates(themeId: string): Promise<TemplateList> {
+  return api.get<TemplateList>(`${BASE}/${themeId}/templates`)
+}
+
+export function getTemplate(themeId: string, route: string): Promise<TemplateContent> {
+  return api.get<TemplateContent>(`${BASE}/${themeId}/templates/${route}`)
+}
+
+export function saveTemplate(themeId: string, route: string, html: string): Promise<unknown> {
+  return api.put(`${BASE}/${themeId}/templates/${route}`, { html })
+}
+
+export function forkTheme(
+  sourceId: string,
+  newId: string,
+  newName: string,
+): Promise<{ id: string; name: string; source: string }> {
+  return api.post(`${BASE}/${sourceId}/fork`, { new_id: newId, new_name: newName })
+}
+
+export function publishTheme(
+  id: string,
+  onLine: (line: string) => void,
+  onDone: () => void,
+  onError: (msg: string) => void,
+): () => void {
+  return stream(`/${id}/publish`, "POST", onLine, onDone, onError)
+}

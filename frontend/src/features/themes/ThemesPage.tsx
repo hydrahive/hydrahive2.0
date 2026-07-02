@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { Palette, RefreshCw } from "lucide-react"
+import { Palette, RefreshCw, Blocks } from "lucide-react"
 import type { ThemesIndex } from "./types"
 import { listThemes } from "./api"
 import { InstalledThemeCard, AvailableThemeCard } from "./ThemeCard"
@@ -41,6 +41,12 @@ export function ThemesPage() {
           className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
+        <a
+          href="/theme-editor"
+          className="ml-1 inline-flex items-center gap-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 px-2.5 py-1.5 text-xs font-medium text-teal-300 hover:bg-teal-500/20 transition-colors"
+        >
+          <Blocks size={14} /> Theme-Editor
+        </a>
       </div>
 
       <p className="text-sm text-zinc-500 -mt-3">
