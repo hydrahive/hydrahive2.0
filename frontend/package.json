@@ -15,6 +15,7 @@
   "dependencies": {
     "@assistant-ui/react": "^0.12.28",
     "@assistant-ui/react-markdown": "^0.12.11",
+    "@grapesjs/react": "^2.0.0",
     "@monaco-editor/react": "^4.7.0",
     "@novnc/novnc": "^1.7.0",
     "@types/d3": "^7.4.3",
@@ -25,6 +26,7 @@
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "epubjs": "^0.3.93",
+    "grapesjs": "^0.22.16",
     "i18next": "^26.0.8",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^1.11.0",

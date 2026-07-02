@@ -33,3 +33,4 @@ src/modules/index.generated.ts
 src/themes/index.generated.ts
 src/themes/*/
 !src/themes/aurora/
+.npm-cache/
