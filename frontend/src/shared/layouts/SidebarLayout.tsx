@@ -71,7 +71,7 @@ export function SidebarLayout({ chrome }: { chrome: LayoutChrome }) {
             <Grip size={16} />
           </button>
           <div className="ml-auto">
-            <AvatarMenu />
+            <AvatarMenu placement="top-left" />
           </div>
         </div>
       </aside>

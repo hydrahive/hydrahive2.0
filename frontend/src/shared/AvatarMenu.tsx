@@ -5,7 +5,17 @@ import { LogOut, User } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 
-export function AvatarMenu() {
+/** Öffnungsrichtung des Dropdowns. In der Topbar (Avatar oben rechts) klappt es
+ *  nach unten auf; in der Sidebar (Avatar unten links) muss es nach oben +
+ *  rechtsbündig zur linken Kante öffnen, sonst landet es außerhalb des Viewports. */
+type AvatarMenuPlacement = "bottom-right" | "top-left"
+
+const PLACEMENT_CLASS: Record<AvatarMenuPlacement, string> = {
+  "bottom-right": "right-0 top-full mt-2",
+  "top-left": "left-0 bottom-full mb-2",
+}
+
+export function AvatarMenu({ placement = "bottom-right" }: { placement?: AvatarMenuPlacement }) {
   const { username, role, logout } = useAuthStore()
   const { t } = useTranslation("auth")
   const [open, setOpen] = useState(false)
@@ -32,7 +42,7 @@ export function AvatarMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 rounded-xl border border-white/[10%] bg-zinc-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 z-50 overflow-hidden">
+        <div className={`absolute ${PLACEMENT_CLASS[placement]} w-64 rounded-xl border border-white/[10%] bg-zinc-950/95 backdrop-blur-xl shadow-2xl shadow-black/60 z-50 overflow-hidden`}>
           <div className="px-4 py-3 border-b border-white/[6%]">
             <p className="text-sm font-medium text-zinc-100 truncate">{username}</p>
             <p className="text-[11px] text-zinc-500">{role}</p>
