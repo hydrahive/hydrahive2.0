@@ -72,9 +72,9 @@ export default function App() {
         >
           <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <ThemedPage route="buddy" fallback={<BuddyPage />} />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
-          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="dashboard" element={<ThemedPage route="dashboard" fallback={<DashboardPage />} />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
-          <Route path="werkstatt" element={<ChatPage />} />
+          <Route path="werkstatt" element={<ThemedPage route="werkstatt" fallback={<ChatPage />} />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
           <Route path="devchat" element={<Navigate to="/werkstatt" replace />} />
           {/* Agenten & Projekte leben jetzt im Settings-Hub (eine Config-Stelle). */}
@@ -85,11 +85,11 @@ export default function App() {
           <Route path="vms" element={<VMsPage />} />
           <Route path="containers" element={<ContainersPage />} />
           <Route path="containers/:id" element={<ContainerDetailPage />} />
-          <Route path="butler" element={<ButlerPage />} />
+          <Route path="butler" element={<ThemedPage route="butler" fallback={<ButlerPage />} />} />
           <Route path="federation" element={<FederationPage />} />
           <Route path="streaming" element={<StreamingPage />} />
           <Route path="datamining" element={<DataminingPage />} />
-          <Route path="memory" element={<MemoryPage />} />
+          <Route path="memory" element={<ThemedPage route="memory" fallback={<MemoryPage />} />} />
           <Route path="llm" element={<LlmPage />} />
           <Route path="llm/catalog" element={<CatalogPage />} />
           <Route path="mcp" element={<McpPage />} />
