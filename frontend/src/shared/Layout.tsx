@@ -44,6 +44,18 @@ export function Layout() {
     }
   }, [theme])
 
+  // Optionales rohes Theme-CSS (aus theme.css eines Pakets) einhängen.
+  useEffect(() => {
+    if (!theme.css) return
+    const style = document.createElement("style")
+    style.setAttribute("data-hh-theme", theme.id)
+    style.textContent = theme.css
+    document.head.appendChild(style)
+    return () => {
+      style.remove()
+    }
+  }, [theme])
+
   const visible = visibleItems(role)
   const quickLinks = QUICK_LINK_PATHS
     .map((p) => visible.find((i) => i.path === p))

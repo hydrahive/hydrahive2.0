@@ -1,34 +1,55 @@
-// Theme-Registry — mitgelieferte Themes. Ein Theme wählt ein Layout-Gerüst und
-// kann CSS-Variablen (--hh-*) überschreiben. Später kommen hier user-gebaute
-// Themes (Paket-Loader, Etappe 2) additiv dazu.
-import type { LayoutComponent } from "@/shared/layouts/types"
+// Theme-Registry — führt eingebaute Themes und user-gebaute Theme-Pakete
+// zusammen. User-Themes kommen aus themes/<id>/theme.json (Dropin-Ordner),
+// eingelesen vom Generator scripts/gen-themes.mjs → index.generated.ts.
 import { TopnavLayout } from "@/shared/layouts/TopnavLayout"
 import { SidebarLayout } from "@/shared/layouts/SidebarLayout"
+import { getBuiltinLayout } from "@/shared/layouts/builtins"
+import type { ThemeMeta, GeneratedThemeEntry } from "./types"
+import { userThemes } from "@/themes/index.generated"
 
-export interface ThemeMeta {
-  id: string
-  name: string
-  description: string
-  /** Layout-Gerüst dieses Themes. */
-  layout: LayoutComponent
-  /** Optionale CSS-Variablen-Overrides (--hh-*). */
-  variables?: Record<string, string>
-}
+export type { ThemeMeta } from "./types"
 
-export const THEMES: ThemeMeta[] = [
+const BUILTIN_THEMES: ThemeMeta[] = [
   {
     id: "standard",
     name: "Standard",
     description: "Das Original — Menü oben, Waben-Glow, runde Panels.",
     layout: TopnavLayout,
+    source: "builtin",
   },
   {
     id: "sidebar",
     name: "Sidebar (Test)",
     description: "Menü links in einer Seitenleiste, Inhalt rechts. Testdesign.",
     layout: SidebarLayout,
+    source: "builtin",
   },
 ]
+
+/** Wandelt ein generiertes Paket-Manifest in ein konsumierbares Theme.
+ *  Eigenes layout.tsx hat Vorrang, sonst ein eingebautes Gerüst per Name. */
+function resolveUserTheme(e: GeneratedThemeEntry): ThemeMeta {
+  return {
+    id: e.id,
+    name: e.name,
+    description: e.description,
+    author: e.author || undefined,
+    version: e.version || undefined,
+    layout: e.customLayout ?? getBuiltinLayout(e.layoutName),
+    variables: e.variables,
+    css: e.css,
+    preview: e.preview,
+    source: "user",
+  }
+}
+
+// User-Themes gewinnen bei ID-Kollision (überschreiben ein gleichnamiges Built-in).
+const _userThemes = userThemes.map(resolveUserTheme)
+const _userIds = new Set(_userThemes.map((t) => t.id))
+export const THEMES: ThemeMeta[] = [
+  ..._userThemes,
+  ...BUILTIN_THEMES.filter((t) => !_userIds.has(t.id)),
+].sort((a, b) => (a.source === b.source ? 0 : a.source === "builtin" ? -1 : 1))
 
 const STORAGE_KEY = "hh-active-theme"
 export const DEFAULT_THEME_ID = "standard"
@@ -48,5 +69,5 @@ export function storeThemeId(id: string): void {
 }
 
 export function getTheme(id: string): ThemeMeta {
-  return THEMES.find((t) => t.id === id) ?? THEMES[0]
+  return THEMES.find((t) => t.id === id) ?? THEMES.find((t) => t.id === DEFAULT_THEME_ID) ?? THEMES[0]
 }
