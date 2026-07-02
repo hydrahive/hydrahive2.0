@@ -3,6 +3,7 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { Layout } from "@/shared/Layout"
 import type { ReactElement } from "react"
+import { lazy, Suspense } from "react"
 import { moduleRoutes } from "@/modules/index.generated"
 
 interface ModuleRoute { path: string; element: ReactElement }
@@ -26,6 +27,10 @@ import { PluginsPage } from "@/features/plugins/PluginsPage"
 import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
 import { ModulesPage } from "@/features/modules/ModulesPage"
 import { ThemesPage } from "@/features/themes/ThemesPage"
+// GrapesJS ist groß (~1 MB) → nur laden wenn der Editor wirklich geöffnet wird.
+const ThemeEditorPage = lazy(() =>
+  import("@/features/themeeditor/ThemeEditorPage").then((m) => ({ default: m.ThemeEditorPage })),
+)
 import { TemplateProofPage } from "@/features/themetemplates/TemplateProofPage"
 import { ThemedPage } from "@/features/themetemplates/ThemedPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
@@ -105,6 +110,7 @@ export default function App() {
           <Route path="extensions" element={<AdminGuard><ExtensionsPage /></AdminGuard>} />
           <Route path="modules" element={<AdminGuard><ModulesPage /></AdminGuard>} />
           <Route path="themes" element={<AdminGuard><ThemesPage /></AdminGuard>} />
+          <Route path="theme-editor" element={<AdminGuard><Suspense fallback={<div className="p-8 text-sm text-zinc-500">Editor lädt …</div>}><ThemeEditorPage /></Suspense></AdminGuard>} />
           <Route path="template-proof" element={<AdminGuard><TemplateProofPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
