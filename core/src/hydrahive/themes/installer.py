@@ -114,3 +114,18 @@ def update(theme_id: str) -> Iterator[str]:
     copy_theme_in(theme_id); yield "[themes] neue Dateien kopiert"
     _frontend_build(); yield "[themes] Frontend gebaut"
     _request_restart(); yield "[themes] Neustart angefordert — fertig"
+
+
+def publish(theme_id: str) -> Iterator[str]:
+    """Editierte Theme-Dateien ins laufende Frontend übernehmen (Build + Restart).
+
+    Anders als update() wird NICHT aus dem Hub kopiert — die Quelle ist der
+    bereits im Frontend-Ordner liegende (im Editor bearbeitete) Theme-Ordner.
+    Der Build bettet die geänderten Templates via gen-themes.mjs neu ein.
+    """
+    _validate_theme_id(theme_id)
+    if not (settings.themes_frontend_dir / theme_id).is_dir():
+        raise InstallError(f"theme_not_found:{theme_id}")
+    yield f"[themes] veröffentliche {theme_id} …"
+    _frontend_build(); yield "[themes] Frontend gebaut"
+    _request_restart(); yield "[themes] Neustart angefordert — fertig"
