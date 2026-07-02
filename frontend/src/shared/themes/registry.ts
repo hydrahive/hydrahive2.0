@@ -2,26 +2,22 @@
 // zusammen. User-Themes kommen aus themes/<id>/theme.json (Dropin-Ordner),
 // eingelesen vom Generator scripts/gen-themes.mjs → index.generated.ts.
 import { TopnavLayout } from "@/shared/layouts/TopnavLayout"
-import { SidebarLayout } from "@/shared/layouts/SidebarLayout"
 import { getBuiltinLayout } from "@/shared/layouts/builtins"
 import type { ThemeMeta, GeneratedThemeEntry } from "./types"
 import { userThemes } from "@/themes/index.generated"
 
 export type { ThemeMeta } from "./types"
 
+// Nur "Standard" ist ein fest eingebautes Fallback-Theme (reines Layout-Gerüst,
+// keine editierbaren Vorlagen). Alle echten, gestaltbaren Themes kommen als
+// Ordner-Pakete (src/themes/<id>/) über den Generator. Das Sidebar-Layout-
+// Gerüst bleibt via layouts/builtins.ts verfügbar (Aurora nutzt "sidebar").
 const BUILTIN_THEMES: ThemeMeta[] = [
   {
     id: "standard",
     name: "Standard",
     description: "Das Original — Menü oben, Waben-Glow, runde Panels.",
     layout: TopnavLayout,
-    source: "builtin",
-  },
-  {
-    id: "sidebar",
-    name: "Sidebar (Test)",
-    description: "Menü links in einer Seitenleiste, Inhalt rechts. Testdesign.",
-    layout: SidebarLayout,
     source: "builtin",
   },
 ]
