@@ -106,4 +106,10 @@ mit **einem** Platzhalter `<hh-chatbox/>`. Sichtbar machen: Designer-HTML drumhe
 
 ## Ideen-Halde (Tills „wirre Dinge" — unsortiert, willkommen)
 
-- (hier landet, was noch kommt)
+- **WYSIWYG-Template-Editor (Till, 2026-07-02):** ein visueller Editor für die
+  Theme-Templates — Vorbild: unser Blueprint/Butler-Node-Editor (@xyflow/react
+  ist schon im Projekt!). Statt HTML zu tippen, Bausteine per Klick/Drag auf eine
+  Leinwand ziehen, Attribute in einem Panel setzen. Ausgabe = dasselbe Template-
+  HTML wie heute (Editor UND Handschrift bleiben kompatibel, weil beide dasselbe
+  <hh-…/>-Format erzeugen). Erst NACH dem „kompletten Satz" (Seiten + Bausteine)
+  bauen — der Editor ist die Kür, die Bausteine sind die Pflicht.
