@@ -9,6 +9,11 @@ import { SkillsPage } from "@/features/skills/SkillsPage"
 import { VMsPage } from "@/features/vms/VMsPage"
 import { DataminingPage } from "@/features/datamining/DataminingPage"
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
+import { ContainersPage } from "@/features/containers/ContainersPage"
+import { FederationPage } from "@/features/federation/FederationPage"
+import { StreamingPage } from "@/features/streaming/StreamingPage"
+import { McpPage } from "@/features/mcp/McpPage"
+import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
 import { AtelierPage } from "@/modules/atelier/AtelierPage"
 import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { AgentLinkCard } from "@/features/system/AgentLinkCard"
@@ -61,6 +66,11 @@ export const SLOT_BLOCKS: SlotBlock[] = [
 
   // Infrastruktur
   { name: "vms", label: "VMs", render: flowPage(VMsPage) },
+  { name: "containers", label: "Container", render: flowPage(ContainersPage) },
+  { name: "federation", label: "Föderation", render: flowPage(FederationPage) },
+  { name: "streaming", label: "Streaming", render: flowPage(StreamingPage) },
+  { name: "mcp", label: "MCP-Server", render: flowPage(McpPage) },
+  { name: "zahnfee", label: "Zahnfee", render: flowPage(ZahnfeePage) },
 
   // Kleine Status-Karten (self-contained)
   { name: "tailscale", label: "Tailscale-Status", render: () => <TailscaleCard /> },
