@@ -52,6 +52,13 @@ class _PathsMixin:
         return self.data_dir / "modules"
 
     @cached_property
+    def workspaces_dir(self) -> Path:
+        """Wurzel der echten Projekt-/Agent-Workspaces (Git-Repos, Projektdaten).
+        Enthält master/, projects/, specialists/. NICHT data_dir/projects (nur
+        config.json-Metadaten) — die echten Daten liegen hier."""
+        return self.data_dir / "workspaces"
+
+    @cached_property
     def module_hub_cache(self) -> Path:
         return self.data_dir / ".module-cache" / "hub"
 

@@ -1,6 +1,7 @@
 """Welche Pfade gehen ins System-Backup, welche nicht.
 
-Inkludiert: DB, alle User-Workspaces, alle Configs, Plugins, WhatsApp-State.
+Inkludiert: DB, alle User-Workspaces (workspaces/), Module (modules/),
+Projekt-Metadaten, Agents, Configs, Plugins, WhatsApp-State.
 Exkludiert: VMs/Container (zu groß, separates Operator-Backup), transiente
 Trigger-Dateien, Plugin-Hub-Cache.
 """
@@ -18,6 +19,12 @@ def data_subdirs() -> list[tuple[str, Path]]:
     return [
         ("data/agents", settings.agents_dir),
         ("data/projects", settings.projects_dir),
+        # workspaces/ enthält die ECHTEN Projekt-/Agent-Daten (Git-Repos, Code) —
+        # data/projects trägt nur config.json-Metadaten. Ohne diesen Eintrag ging
+        # bei jedem System-Backup die eigentliche Arbeit verloren.
+        ("data/workspaces", settings.workspaces_dir),
+        # modules/ = installierte Feature-Module (Backend+Frontend).
+        ("data/modules", settings.modules_dir),
         ("data/plugins", settings.plugins_dir),
         ("data/whatsapp", settings.whatsapp_data_dir),
     ]
@@ -39,6 +46,7 @@ def db_arcname() -> tuple[str, Path]:
 # - Trigger-Files (Self-Update, Restart, Voice-Install — laufen nur wenn frisch)
 # - Auto-Rollback-Backups (sonst rekursive Aufblähung)
 EXCLUDE_PATTERNS: tuple[str, ...] = (
+    ".qcow2",            # VM-Disk-Images (mehrere GB) — nie ins System-Backup
     ".plugin-cache",
     ".update_request",
     ".restart_request",
@@ -52,6 +60,8 @@ EXCLUDE_PATTERNS: tuple[str, ...] = (
 #   beim Migrate macht es mehr Sinn neu zu generieren als alten Cert mitzunehmen.
 EXCLUDE_DIRS: tuple[str, ...] = (
     "tls",
+    "vms",               # VM-/Container-Disks (mehrere GB, separater Operator-Backup)
+    ".module-cache",     # transienter Modul-Hub-Cache
 )
 
 
