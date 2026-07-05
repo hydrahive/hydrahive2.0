@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Check, Save } from "lucide-react"
+import { Check, Save, ChevronDown, ExternalLink, BookOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { communicationApi, type DiscordConfig } from "./api"
 
@@ -25,6 +25,7 @@ export function DiscordFilterPanel() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [tokenInput, setTokenInput] = useState("")
+  const [setupOpen, setSetupOpen] = useState(false)
 
   useEffect(() => {
     communicationApi.discord.getConfig()
@@ -66,6 +67,45 @@ export function DiscordFilterPanel() {
           className="w-full bg-white/[4%] border border-white/[8%] rounded-md px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/50 font-mono"
         />
         <p className="text-[10px] text-zinc-600">{t("discord.filter.token_hint")}</p>
+      </div>
+
+      {/* Setup-Anleitung (aufklappbar) */}
+      <div className="rounded-md border border-white/[8%] bg-white/[2%] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setSetupOpen((v) => !v)}
+          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-zinc-300 hover:bg-white/[4%] transition-colors"
+        >
+          <BookOpen size={13} className="text-violet-400 shrink-0" />
+          <span className="flex-1 text-left font-medium">{t("discord.filter.setup_toggle")}</span>
+          <ChevronDown
+            size={14}
+            className={`text-zinc-500 transition-transform ${setupOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+        {setupOpen && (
+          <div className="px-3 pb-3 pt-1 space-y-3 border-t border-white/[6%]">
+            {([1, 2, 3, 4] as const).map((n) => (
+              <div key={n} className="space-y-0.5">
+                <p className="text-[11px] font-medium text-zinc-200">
+                  {t(`discord.filter.setup_step${n}_title`)}
+                </p>
+                <p className="text-[10px] text-zinc-500 leading-relaxed">
+                  {t(`discord.filter.setup_step${n}_body`)}
+                </p>
+              </div>
+            ))}
+            <a
+              href="https://discord.com/developers/applications"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[11px] text-violet-300 hover:text-violet-200 transition-colors"
+            >
+              <ExternalLink size={11} />
+              {t("discord.filter.setup_portal_link")}
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Toggles */}
