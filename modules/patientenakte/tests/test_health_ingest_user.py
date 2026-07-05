@@ -64,40 +64,51 @@ def test_ingest_falscher_key_401(client, monkeypatch):
     assert r.status_code == 401
 
 
-# --- #207 Schritt 1: ?key=-Query loggt Deprecation, bricht aber nicht --------
+# --- #207 Schritt 2: ?key=-Query entfernt — Secret darf nicht in Access-Logs --
 
-def test_ingest_query_key_logs_deprecation_warning(client, monkeypatch, caplog):
-    import logging
-
+def test_ingest_query_key_wird_abgelehnt(client, monkeypatch):
+    """#207: Der ?key=-Query-Pfad ist entfernt. Ein Key im Query authentifiziert
+    nicht mehr → 401 (verhindert Secret-Leak in Access-/Proxy-Logs)."""
     from hydrahive.settings import settings
     monkeypatch.setattr(settings, "health_api_key", "k")
     monkeypatch.setattr(settings, "health_ingest_user", "till")
     import backend.health_routes as mod
     monkeypatch.setattr(mod.health_db, "insert", lambda **kw: "rec1")
 
-    with caplog.at_level(logging.WARNING, logger="backend.health_routes"):
-        r = client.post(
-            "/api/modules/patientenakte/health-data/ingest?key=k",
-            json={"data": {"metrics": [], "workouts": []}},
-        )
-    assert r.status_code == 200  # weiter funktionsfähig — kein Bruch
-    assert any("?key=" in rec.message for rec in caplog.records)
+    r = client.post(
+        "/api/modules/patientenakte/health-data/ingest?key=k",
+        json={"data": {"metrics": [], "workouts": []}},
+    )
+    assert r.status_code == 401
 
 
-def test_ingest_header_key_no_deprecation_warning(client, monkeypatch, caplog):
-    import logging
-
+def test_ingest_header_key_funktioniert_weiter(client, monkeypatch):
+    """#207: Der etablierte Header-Weg bleibt unverändert funktionsfähig."""
     from hydrahive.settings import settings
     monkeypatch.setattr(settings, "health_api_key", "k")
     monkeypatch.setattr(settings, "health_ingest_user", "till")
     import backend.health_routes as mod
     monkeypatch.setattr(mod.health_db, "insert", lambda **kw: "rec1")
 
-    with caplog.at_level(logging.WARNING, logger="backend.health_routes"):
-        r = client.post(
-            "/api/modules/patientenakte/health-data/ingest",
-            json={"data": {"metrics": [], "workouts": []}},
-            headers={"X-HH-Health-Key": "k"},
-        )
+    r = client.post(
+        "/api/modules/patientenakte/health-data/ingest",
+        json={"data": {"metrics": [], "workouts": []}},
+        headers={"X-HH-Health-Key": "k"},
+    )
     assert r.status_code == 200
-    assert not any("?key=" in rec.message for rec in caplog.records)
+
+
+def test_ingest_bearer_key_funktioniert_weiter(client, monkeypatch):
+    """#207: Der Bearer-Weg (Authorization-Header) bleibt als Alternative erhalten."""
+    from hydrahive.settings import settings
+    monkeypatch.setattr(settings, "health_api_key", "k")
+    monkeypatch.setattr(settings, "health_ingest_user", "till")
+    import backend.health_routes as mod
+    monkeypatch.setattr(mod.health_db, "insert", lambda **kw: "rec1")
+
+    r = client.post(
+        "/api/modules/patientenakte/health-data/ingest",
+        json={"data": {"metrics": [], "workouts": []}},
+        headers={"Authorization": "Bearer k"},
+    )
+    assert r.status_code == 200
