@@ -204,3 +204,30 @@ async def test_list_audio_models_leer_ohne_key():
     mm._audio_cache_clear()
     with patch("hydrahive.llm.media_models.openrouter_key", return_value=""):
         assert await mm.list_audio_models(force=True) == []
+
+
+# ---------------------------------------------------------------- Video-Modelle (/videos/models)
+
+_VIDEO_RESPONSE = {
+    "data": [
+        {"id": "google/veo-3.1", "name": "Veo 3.1",
+         "supported_durations": [4, 6, 8], "supported_aspect_ratios": ["16:9", "9:16"]},
+        {"id": "minimax/hailuo-2.3"},  # ohne Metadaten → leere Listen
+    ]
+}
+
+
+@pytest.mark.asyncio
+async def test_list_video_models_traegt_durations_und_aspects():
+    mm._video_cache_clear()
+    with (
+        patch("hydrahive.llm.media_models.httpx.AsyncClient", return_value=_client_returning(_VIDEO_RESPONSE)),
+        patch("hydrahive.llm.media_models.openrouter_key", return_value="sk-or-v1-test"),
+    ):
+        models = await mm.list_video_models(force=True)
+    by_id = {m["id"]: m for m in models}
+    assert by_id["google/veo-3.1"]["durations"] == [4, 6, 8]
+    assert by_id["google/veo-3.1"]["aspect_ratios"] == ["16:9", "9:16"]
+    # ohne Metadaten → leere Listen (Client fällt auf Freitext/Defaults zurück)
+    assert by_id["minimax/hailuo-2.3"]["durations"] == []
+    assert by_id["minimax/hailuo-2.3"]["aspect_ratios"] == []

@@ -215,7 +215,14 @@ async def list_video_models(force: bool = False) -> list[dict]:
     # OpenRouter gibt entweder {"data": [...]} oder direkt eine Liste
     items = data.get("data") or (data if isinstance(data, list) else [])
     out = [
-        {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
+        {
+            "id": m.get("id", ""),
+            "name": m.get("name") or m.get("id", ""),
+            # Pro-Modell erlaubte Werte — der Client darf nur diese anbieten,
+            # sonst quittiert OpenRouter mit HTTP 400.
+            "durations": m.get("supported_durations") or [],
+            "aspect_ratios": m.get("supported_aspect_ratios") or [],
+        }
         for m in items if m.get("id")
     ]
     _video_cache = (now, out)
