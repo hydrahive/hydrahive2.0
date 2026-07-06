@@ -37,7 +37,8 @@
       "memory": "Memory",
       "datamining": "Datamining",
       "communication": "Communication",
-      "teamchat": "Team chat"
+      "teamchat": "Team chat",
+      "atelier": "Atelier (media)"
     }
   }
 }
