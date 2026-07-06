@@ -134,3 +134,31 @@ async def list_llm_models(
             for e in entries
         ],
     }
+
+
+# category → (Live-Lister, Config-Key für das aktive Modell)
+_MEDIA_CATEGORY_KEY = {"video": "video", "image": "image", "audio": "music"}
+
+
+@router.get("/media-models")
+async def list_media_models(
+    category: str,
+    _: Annotated[tuple[str, str], Depends(require_auth)] = None,
+) -> dict:
+    """Live-Liste der Media-Generierungs-Modelle je Kategorie (OpenRouter), für
+    Frontend-Picker (Atelier Regie/Video/Audio). `default` = konfiguriertes
+    Modell der Kategorie. 5-Min-Cache in media_models. Ohne Key → leere Liste.
+
+    category: 'video' | 'image' | 'audio'.
+    """
+    from hydrahive.llm import media_models
+    cfg_key = _MEDIA_CATEGORY_KEY.get(category)
+    if cfg_key is None:
+        raise coded(status.HTTP_400_BAD_REQUEST, "unknown_category")
+    if category == "video":
+        models = await media_models.list_video_models()
+    elif category == "image":
+        models = await media_models.list_image_models()
+    else:  # audio
+        models = await media_models.list_audio_models()
+    return {"default": media_models.get_media_model(cfg_key), "models": models}
