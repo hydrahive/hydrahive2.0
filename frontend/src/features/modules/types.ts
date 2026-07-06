@@ -3,6 +3,8 @@ export interface InstalledModule {
   loaded: boolean
   error: string | null
   version: string | null
+  available_version?: string | null
+  update_available?: boolean
 }
 
 export interface AvailableModule {

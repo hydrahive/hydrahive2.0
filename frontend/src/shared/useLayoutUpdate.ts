@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react"
 import { api } from "@/shared/api-client"
+import { getModuleUpdateCount } from "@/features/modules/api"
 import type { UpdateState } from "@/shared/UpdateModal"
 
-export function useLayoutUpdate() {
+export function useLayoutUpdate(isAdmin: boolean) {
   const [version, setVersion] = useState<string | null>(null)
   const [commit, setCommit] = useState<string | null>(null)
   const [updateBehind, setUpdateBehind] = useState<number | null>(null)
+  const [moduleUpdateCount, setModuleUpdateCount] = useState(0)
   const [updateState, setUpdateState] = useState<"idle" | UpdateState>("idle")
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [newCommit, setNewCommit] = useState<string | null>(null)
@@ -20,6 +22,22 @@ export function useLayoutUpdate() {
     const t = setInterval(loadHealth, 5 * 60 * 1000)
     return () => clearInterval(t)
   }, [])
+
+  // Modul-Update-Zähler nur für Admins (Endpoint ist admin-gated). Billiger
+  // Cache-Read im Backend (kein git-pull) — trotzdem selten pollen.
+  useEffect(() => {
+    // Nur Admins fragen den (admin-gated) Zähler ab. Nicht-Admins: bleibt 0
+    // (Initialwert) — kein synchroner setState im Effect nötig.
+    if (!isAdmin) return
+    function loadModuleUpdates() {
+      getModuleUpdateCount()
+        .then((r) => setModuleUpdateCount(r.count))
+        .catch(() => {})
+    }
+    loadModuleUpdates()
+    const t = setInterval(loadModuleUpdates, 15 * 60 * 1000)
+    return () => clearInterval(t)
+  }, [isAdmin])
 
   async function confirmUpdate() {
     setUpdateState("starting"); setUpdateError(null)
@@ -62,7 +80,7 @@ export function useLayoutUpdate() {
   }
 
   return {
-    version, commit, updateBehind,
+    version, commit, updateBehind, moduleUpdateCount,
     updateState, updateError, newCommit,
     confirmUpdate,
     openUpdateModal: () => { setUpdateState("confirm"); setUpdateError(null); setNewCommit(null) },

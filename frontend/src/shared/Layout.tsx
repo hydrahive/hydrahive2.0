@@ -18,10 +18,10 @@ export function Layout() {
   const { pathname } = useLocation()
 
   const {
-    version, commit, updateBehind,
+    version, commit, updateBehind, moduleUpdateCount,
     updateState, updateError, newCommit,
     confirmUpdate, openUpdateModal, closeUpdateModal,
-  } = useLayoutUpdate()
+  } = useLayoutUpdate(role === "admin")
   const [bentoOpen, setBentoOpen] = useState(false)
 
   // Aktives Theme (aus localStorage). Re-render bei Wechsel via Custom-Event.
@@ -68,7 +68,7 @@ export function Layout() {
     role, t, pathname, visible, quickLinks, currentPage,
     onBentoToggle: () => setBentoOpen((o) => !o),
     footer: {
-      version, commit, updateBehind,
+      version, commit, updateBehind, moduleUpdateCount,
       isAdmin: role === "admin",
       onUpdateClick: openUpdateModal,
     },

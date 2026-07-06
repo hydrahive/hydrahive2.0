@@ -48,6 +48,7 @@
   "update": {
     "available": "Update available — click to update",
     "force": "Force update / rebuild",
+    "modules": "{{count}} module update(s) available — go to module management",
     "modal_title": "System update",
     "confirm_question": "Update now?",
     "confirm_question_force": "Force update?",

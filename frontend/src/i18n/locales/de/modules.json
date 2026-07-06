@@ -13,6 +13,19 @@
     "error": "Fehler",
     "available": "Verfügbar"
   },
+  "update": {
+    "available": "Update verfügbar",
+    "badge": "v{{from}} → v{{to}}",
+    "current": "Aktuell",
+    "count_one": "{{count}} Update",
+    "count_other": "{{count}} Updates",
+    "all": "Alle updaten",
+    "all_running": "Aktualisiere ({{done}}/{{total}})…"
+  },
+  "section_toggle": {
+    "expand": "Ausklappen",
+    "collapse": "Einklappen"
+  },
   "actions": {
     "install": "Installieren",
     "installing": "Installiert…",

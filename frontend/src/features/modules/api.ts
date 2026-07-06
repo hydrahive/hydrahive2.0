@@ -13,6 +13,11 @@ export function listModules(): Promise<ModulesIndex> {
   return api.get<ModulesIndex>(BASE)
 }
 
+/** Anzahl installierter Module mit verfügbarem Update (billig, für den Footer). */
+export function getModuleUpdateCount(): Promise<{ count: number }> {
+  return api.get<{ count: number }>(`${BASE}/update-count`)
+}
+
 function stream(
   path: string,
   method: "POST" | "DELETE",
