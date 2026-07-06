@@ -13,6 +13,10 @@
       "glossary": "Glossary"
     },
     "topics": {
+      "onboarding": "Getting started",
+      "buddy": "Buddy (assistant)",
+      "butler": "Butler (automations)",
+      "credentials": "Credentials",
       "architecture": "3-Tier Architecture",
       "compaction": "Compaction",
       "mcp": "MCP Protocol",
@@ -28,7 +32,13 @@
       "faq_general": "General",
       "faq_errors": "Error messages",
       "faq_setup": "Setup",
-      "glossary_main": "Terms A-Z"
+      "glossary_main": "Terms A-Z",
+      "skills": "Skills",
+      "memory": "Memory",
+      "datamining": "Datamining",
+      "communication": "Communication",
+      "teamchat": "Team chat",
+      "atelier": "Atelier (media)"
     }
   }
 }

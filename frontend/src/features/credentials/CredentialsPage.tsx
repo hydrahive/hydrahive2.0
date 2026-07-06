@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { Key, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { credentialsApi } from "./api"
 import { CredentialEditor } from "./CredentialEditor"
@@ -31,9 +32,12 @@ export function CredentialsPage() {
   return (
     <div className="space-y-5 max-w-4xl">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white">{t("title")}</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+        <div className="flex items-center gap-1">
+          <div>
+            <h1 className="text-xl font-bold text-white">{t("title")}</h1>
+            <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+          </div>
+          <HelpButton topic="credentials" />
         </div>
         {tab === "http" && (
           <button onClick={() => setEditor("new")}

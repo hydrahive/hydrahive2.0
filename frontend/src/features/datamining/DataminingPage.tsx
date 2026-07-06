@@ -10,6 +10,7 @@ import { dataminingApi } from "./api"
 import { EmbedStatusBar, type EmbedStatus } from "./_EmbedStatusBar"
 import { IssueImportButtons, IssueImportForm } from "./_IssueImportForm"
 import { SourceImportButtons } from "./_SourceImportButtons"
+import { HelpButton } from "@/i18n/HelpButton"
 
 const TABS = ["feed", "search", "sessions", "stats", "graph"] as const
 type Tab = typeof TABS[number]
@@ -129,6 +130,7 @@ export function DataminingPage() {
           <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
           <p className="text-xs text-zinc-500 mt-0.5">{t("subtitle")}</p>
         </div>
+        <HelpButton topic="datamining" />
       </div>
 
       <div className="flex gap-1 border-b border-white/[6%]">

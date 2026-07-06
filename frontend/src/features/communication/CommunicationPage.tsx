@@ -5,6 +5,7 @@ import { MessageCircle } from "lucide-react"
 import { communicationApi } from "./api"
 import { WhatsAppCard } from "./WhatsAppCard"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import { DiscordCard } from "./DiscordCard"
 
 export function CommunicationPage() {
@@ -26,6 +27,7 @@ export function CommunicationPage() {
           <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
           <p className="text-xs text-zinc-500 mt-0.5">{t("subtitle")}</p>
         </div>
+        <HelpButton topic="communication" />
       </div>
 
       <div className="grid grid-cols-1 gap-3">

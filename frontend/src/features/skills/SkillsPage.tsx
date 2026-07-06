@@ -4,6 +4,7 @@ import { Loader2, Plus, Sparkles } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import { skillsApi } from "./api"
 import { SkillEditor } from "./SkillEditor"
 import type { Skill } from "./types"
@@ -30,9 +31,12 @@ export function SkillsPage() {
   return (
     <div className="space-y-5 max-w-4xl">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white">{t("title")}</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+        <div className="flex items-center gap-1">
+          <div>
+            <h1 className="text-xl font-bold text-white">{t("title")}</h1>
+            <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+          </div>
+          <HelpButton topic="skills" />
         </div>
         <button onClick={() => setEditor("new")}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium">

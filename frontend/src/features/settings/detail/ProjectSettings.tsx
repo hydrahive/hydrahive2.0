@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import { projectsApi } from "@/features/projects/api"
 import { ProjectFormTabs } from "./ProjectFormTabs"
 import type { Project } from "@/features/projects/types"
@@ -23,9 +24,15 @@ export function ProjectSettings({ itemId }: { itemId: string | null }) {
 
   if (!itemId) {
     return (
-      <p className="py-16 text-center text-sm text-zinc-500">
-        Rechts ein Projekt wählen, um seine Einstellungen zu bearbeiten.
-      </p>
+      <div className="flex flex-col items-center gap-2 py-16">
+        <p className="text-center text-sm text-zinc-500">
+          Rechts ein Projekt wählen, um seine Einstellungen zu bearbeiten.
+        </p>
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span>Neu hier? Erst die Hilfe lesen:</span>
+          <HelpButton topic="projects" />
+        </div>
+      </div>
     )
   }
   if (loading || !project) {

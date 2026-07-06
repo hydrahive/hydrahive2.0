@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import { agentsApi } from "@/features/agents/api"
 import { AgentFormTabs } from "./AgentFormTabs"
 import { llmModelsApi, type RegistryModel } from "@/features/llm/api"
@@ -39,9 +40,15 @@ export function AgentSettings({ itemId }: { itemId: string | null }) {
 
   if (!itemId) {
     return (
-      <p className="py-16 text-center text-sm text-zinc-500">
-        Rechts einen Agenten wählen, um seine Einstellungen zu bearbeiten.
-      </p>
+      <div className="flex flex-col items-center gap-2 py-16">
+        <p className="text-center text-sm text-zinc-500">
+          Rechts einen Agenten wählen, um seine Einstellungen zu bearbeiten.
+        </p>
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+          <span>Neu hier? Erst die Hilfe lesen:</span>
+          <HelpButton topic="agents" />
+        </div>
+      </div>
     )
   }
   if (loading || !agent) {

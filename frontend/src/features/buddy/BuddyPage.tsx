@@ -4,6 +4,7 @@ import { Cpu, Dice5, Download, FileText, GitMerge, HelpCircle, Loader2, RotateCc
 import { useNavigate } from "react-router-dom"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { MessageInput } from "@/features/chat/MessageInput"
+import { HelpButton } from "@/i18n/HelpButton"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
@@ -188,6 +189,7 @@ export function BuddyPage() {
                 )
               )}
               <div className="flex-1" />
+              <HelpButton topic="buddy" />
               <button
                 onClick={() => navigate("/buddy/settings")}
                 title={t("boxes.buddy_settings")}
