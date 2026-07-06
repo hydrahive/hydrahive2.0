@@ -126,3 +126,81 @@ async def test_first_voice_und_voices_for():
         assert await mm.first_voice("unbekannt/modell") is None
         assert await mm.voices_for("hexgrad/kokoro-82m") == ["af_bella", "am_adam"]
         assert await mm.voices_for("unbekannt/modell") == []
+
+
+# ---------------------------------------------------------------- Image-Modelle (/images/models)
+
+_IMAGE_RESPONSE = {
+    "data": [
+        {"id": "openai/gpt-image-2", "name": "GPT Image 2"},
+        {"id": "google/gemini-3.1-flash-lite-image"},  # ohne name → id als name
+        {"id": "", "name": "leer"},  # ohne id → ignoriert
+    ]
+}
+
+
+def _client_returning(payload):
+    resp = MagicMock()
+    resp.raise_for_status = MagicMock()
+    resp.json = MagicMock(return_value=payload)
+    client = AsyncMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.get = AsyncMock(return_value=resp)
+    return client
+
+
+@pytest.mark.asyncio
+async def test_list_image_models_parst():
+    mm._image_cache_clear()
+    with (
+        patch("hydrahive.llm.media_models.httpx.AsyncClient", return_value=_client_returning(_IMAGE_RESPONSE)),
+        patch("hydrahive.llm.media_models.openrouter_key", return_value="sk-or-v1-test"),
+    ):
+        models = await mm.list_image_models(force=True)
+    by_id = {m["id"]: m for m in models}
+    assert by_id["openai/gpt-image-2"]["name"] == "GPT Image 2"
+    assert by_id["google/gemini-3.1-flash-lite-image"]["name"] == "google/gemini-3.1-flash-lite-image"
+    assert "" not in by_id
+
+
+@pytest.mark.asyncio
+async def test_list_image_models_leer_ohne_key():
+    mm._image_cache_clear()
+    with patch("hydrahive.llm.media_models.openrouter_key", return_value=""):
+        assert await mm.list_image_models(force=True) == []
+
+
+# ---------------------------------------------------------------- Audio-Modelle (output_modalities=audio)
+
+_AUDIO_RESPONSE = {
+    "data": [
+        {"id": "google/lyria-3-pro-preview", "name": "Lyria 3 Pro",
+         "architecture": {"output_modalities": ["audio", "text"]}},
+        {"id": "openai/gpt-audio", "architecture": {"output_modalities": ["audio"]}},
+        {"id": "some/text-only", "architecture": {"output_modalities": ["text"]}},  # kein audio → raus
+        {"id": "", "architecture": {"output_modalities": ["audio"]}},  # leere id → raus
+    ]
+}
+
+
+@pytest.mark.asyncio
+async def test_list_audio_models_nur_audio_output():
+    mm._audio_cache_clear()
+    with (
+        patch("hydrahive.llm.media_models.httpx.AsyncClient", return_value=_client_returning(_AUDIO_RESPONSE)),
+        patch("hydrahive.llm.media_models.openrouter_key", return_value="sk-or-v1-test"),
+    ):
+        models = await mm.list_audio_models(force=True)
+    ids = {m["id"] for m in models}
+    assert "google/lyria-3-pro-preview" in ids
+    assert "openai/gpt-audio" in ids
+    assert "some/text-only" not in ids
+    assert "" not in ids
+
+
+@pytest.mark.asyncio
+async def test_list_audio_models_leer_ohne_key():
+    mm._audio_cache_clear()
+    with patch("hydrahive.llm.media_models.openrouter_key", return_value=""):
+        assert await mm.list_audio_models(force=True) == []

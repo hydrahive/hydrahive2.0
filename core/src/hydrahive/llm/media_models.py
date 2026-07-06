@@ -24,6 +24,10 @@ _TRANSCRIBE_MODELS_URL = "https://openrouter.ai/api/v1/models?input_modalities=a
 _TRANSCRIBE_TTL = 300.0
 _VIDEO_MODELS_URL = "https://openrouter.ai/api/v1/videos/models"
 _VIDEO_TTL = 300.0
+_IMAGE_MODELS_URL = "https://openrouter.ai/api/v1/images/models"
+_IMAGE_TTL = 300.0
+_AUDIO_MODELS_URL = "https://openrouter.ai/api/v1/models?output_modalities=audio"
+_AUDIO_TTL = 300.0
 
 # Fallback wenn llm.json keinen Eintrag hat.
 # tts = echtes Speech-Modell (/audio/speech), NICHT gpt-audio (Konversation).
@@ -49,6 +53,8 @@ _CATEGORY_MODALITY: dict[str, tuple[str, str]] = {
 _speech_cache: tuple[float, list[dict]] | None = None
 _transcribe_cache: tuple[float, list[dict]] | None = None
 _video_cache: tuple[float, list[dict]] | None = None
+_image_cache: tuple[float, list[dict]] | None = None
+_audio_cache: tuple[float, list[dict]] | None = None
 
 
 def _speech_cache_clear() -> None:
@@ -64,6 +70,16 @@ def _transcribe_cache_clear() -> None:
 def _video_cache_clear() -> None:
     global _video_cache
     _video_cache = None
+
+
+def _image_cache_clear() -> None:
+    global _image_cache
+    _image_cache = None
+
+
+def _audio_cache_clear() -> None:
+    global _audio_cache
+    _audio_cache = None
 
 
 def get_media_model(category: str, config: dict | None = None) -> str:
@@ -203,4 +219,57 @@ async def list_video_models(force: bool = False) -> list[dict]:
         for m in items if m.get("id")
     ]
     _video_cache = (now, out)
+    return out
+
+
+async def list_image_models(force: bool = False) -> list[dict]:
+    """Live-Liste der Bild-Generierungs-Modelle von OpenRouter.
+
+    Eigene Fläche /api/v1/images/models (mehr als der Modalitäts-Filter im
+    chat-/models). 5-Min-Cache. Ohne Key → []. Gibt [{"id", "name"}] zurück.
+    """
+    global _image_cache
+    now = time.time()
+    if not force and _image_cache and now - _image_cache[0] < _IMAGE_TTL:
+        return _image_cache[1]
+    key = openrouter_key()
+    if not key:
+        return []
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(_IMAGE_MODELS_URL, headers={"Authorization": f"Bearer {key}"})
+        resp.raise_for_status()
+        data = resp.json()
+    items = data.get("data") or (data if isinstance(data, list) else [])
+    out = [
+        {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
+        for m in items if m.get("id")
+    ]
+    _image_cache = (now, out)
+    return out
+
+
+async def list_audio_models(force: bool = False) -> list[dict]:
+    """Live-Liste der Audio-Ausgabe-Modelle (Musik/Sprache) von OpenRouter.
+
+    Audio-Modelle liegen NICHT auf einer eigenen Fläche — sie stehen im
+    zentralen /models, gefiltert nach output_modalities=audio (z.B. Lyria,
+    gpt-audio). 5-Min-Cache. Ohne Key → []. Gibt [{"id", "name"}] zurück.
+    """
+    global _audio_cache
+    now = time.time()
+    if not force and _audio_cache and now - _audio_cache[0] < _AUDIO_TTL:
+        return _audio_cache[1]
+    key = openrouter_key()
+    if not key:
+        return []
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.get(_AUDIO_MODELS_URL, headers={"Authorization": f"Bearer {key}"})
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+    out = [
+        {"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")}
+        for m in data
+        if m.get("id") and "audio" in ((m.get("architecture") or {}).get("output_modalities") or m.get("output_modalities") or [])
+    ]
+    _audio_cache = (now, out)
     return out
