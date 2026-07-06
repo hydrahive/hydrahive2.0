@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { BrainCircuit } from "lucide-react"
 import { CollapsibleSidebar } from "@/shared/CollapsibleSidebar"
+import { HelpButton } from "@/i18n/HelpButton"
 import { agentsApi } from "@/features/agents/api"
 import { AgentTabBar } from "@/features/agents/_AgentTabBar"
 import type { Agent } from "@/features/agents/types"
@@ -45,6 +46,7 @@ export function MemoryPage() {
               {active ? active.name : t("no_agent_selected")}
             </p>
           </div>
+          <HelpButton topic="memory" />
         </div>
 
         {active ? (

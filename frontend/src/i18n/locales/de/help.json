@@ -15,6 +15,7 @@
     "topics": {
       "onboarding": "Erste Schritte",
       "buddy": "Buddy (Assistent)",
+      "butler": "Butler (Automationen)",
       "credentials": "Credentials",
       "architecture": "3-Ebenen-Architektur",
       "compaction": "Compaction",
@@ -31,7 +32,9 @@
       "faq_general": "Allgemein",
       "faq_errors": "Fehlermeldungen",
       "faq_setup": "Setup",
-      "glossary_main": "Begriffe A-Z"
+      "glossary_main": "Begriffe A-Z",
+      "skills": "Skills",
+      "memory": "Gedächtnis"
     }
   }
 }

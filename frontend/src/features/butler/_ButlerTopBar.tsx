@@ -1,6 +1,7 @@
 import { Play, Plus, Save, ToggleLeft, ToggleRight, Trash2, Workflow } from "lucide-react"
 import { cn } from "@/shared/cn"
 import { useTranslation } from "react-i18next"
+import { HelpButton } from "@/i18n/HelpButton"
 import type { ButlerFlow } from "./types"
 
 interface Props {
@@ -29,6 +30,7 @@ export function ButlerTopBar({
     <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-2.5 shrink-0">
       <Workflow className="h-5 w-5 text-indigo-400 shrink-0" />
       <h1 className="text-base font-semibold text-white mr-1">Butler</h1>
+      <HelpButton topic="butler" />
       {projectId && (
         <span className="rounded-full bg-indigo-500/20 px-2.5 py-0.5 text-[11px] font-medium text-indigo-300">
           {projectId}
