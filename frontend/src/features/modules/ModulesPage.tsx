@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ArrowUpCircle, Boxes, ChevronDown, ChevronRight, RefreshCw } from "lucide-react"
+import { ArrowUpCircle, Boxes, RefreshCw } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import type { ModulesIndex } from "./types"
 import { listModules, updateModule } from "./api"
-import { InstalledModuleCard, AvailableModuleCard } from "./ModuleCard"
+import { ModuleCard } from "./ModuleCard"
 
 export function ModulesPage() {
   const { t } = useTranslation("modules")
-  const [data, setData] = useState<ModulesIndex>({ installed: [], available: [] })
+  const [data, setData] = useState<ModulesIndex>({ modules: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [collapsed, setCollapsed] = useState(false)
   const [batch, setBatch] = useState<{ done: number; total: number } | null>(null)
   const stopRef = useRef<(() => void) | null>(null)
 
@@ -18,10 +18,7 @@ export function ModulesPage() {
     setLoading(true)
     setError(null)
     try {
-      const idx = await listModules()
-      setData(idx)
-      // Bei vielen installierten Modulen die Sektion einklappen → Übersicht.
-      setCollapsed(idx.installed.length > 4)
+      setData(await listModules())
     } catch (e) {
       setError(String(e))
     }
@@ -32,10 +29,10 @@ export function ModulesPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
-  // Laufenden Batch beim Unmount abbrechen.
   useEffect(() => () => stopRef.current?.(), [])
 
-  const outdated = data.installed.filter((m) => m.update_available)
+  const outdated = data.modules.filter((m) => m.update_available)
+  const installedCount = data.modules.filter((m) => m.installed).length
 
   /** Alle veralteten Module sequentiell aktualisieren (ein Stream nach dem anderen). */
   const updateAll = useCallback(async () => {
@@ -45,7 +42,7 @@ export function ModulesPage() {
       await new Promise<void>((resolve) => {
         stopRef.current = updateModule(
           outdated[i].id,
-          () => { /* Logs pro Modul zeigt die Karte selbst nicht — Batch ist kompakt */ },
+          () => { /* Batch kompakt — pro-Modul-Logs zeigt die Karte selbst */ },
           () => resolve(),
           () => resolve(), // Fehler eines Moduls stoppt den Batch nicht
         )
@@ -58,45 +55,24 @@ export function ModulesPage() {
   }, [outdated, batch, load])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Boxes className="text-violet-400" size={20} />
           <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
           <span className="text-xs text-zinc-500">
-            {t("installed_count", { count: data.installed.length })}
+            {t("installed_count", { count: installedCount })}
           </span>
+          {outdated.length > 0 && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              <ArrowUpCircle size={9} />
+              {t("update.count", { count: outdated.length })}
+            </span>
+          )}
+          <HelpButton topic="modules" prominent />
         </div>
-        <button
-          onClick={load}
-          disabled={loading || batch !== null}
-          className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors disabled:opacity-40">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-        </button>
-      </div>
-
-      {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Installed */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            onClick={() => setCollapsed((v) => !v)}
-            className="flex items-center gap-1.5 text-sm font-semibold text-zinc-400 uppercase tracking-wide hover:text-zinc-200 transition-colors">
-            {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-            {t("section.installed")}
-            {outdated.length > 0 && (
-              <span className="normal-case tracking-normal flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                <ArrowUpCircle size={9} />
-                {t("update.count", { count: outdated.length })}
-              </span>
-            )}
-          </button>
+        <div className="flex items-center gap-2">
           {outdated.length > 0 && (
             <button
               onClick={updateAll}
@@ -108,38 +84,32 @@ export function ModulesPage() {
                 : t("update.all")}
             </button>
           )}
+          <button
+            onClick={load}
+            disabled={loading || batch !== null}
+            className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors disabled:opacity-40">
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
         </div>
+      </div>
 
-        {loading && data.installed.length === 0 ? (
-          <p className="text-zinc-500 text-sm">{t("loading")}</p>
-        ) : data.installed.length === 0 ? (
-          <p className="text-zinc-500 text-sm">{t("empty_installed")}</p>
-        ) : collapsed ? null : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {data.installed.map((mod) => (
-              <InstalledModuleCard key={mod.id} mod={mod} onRefresh={load} />
-            ))}
-          </div>
-        )}
-      </section>
+      {error && (
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+          {error}
+        </div>
+      )}
 
-      {/* Available */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wide">
-          {t("section.available")}
-        </h2>
-        {loading && data.available.length === 0 ? (
-          <p className="text-zinc-500 text-sm">{t("loading")}</p>
-        ) : data.available.length === 0 ? (
-          <p className="text-zinc-500 text-sm">{t("empty_available")}</p>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {data.available.map((mod) => (
-              <AvailableModuleCard key={mod.id} mod={mod} onRefresh={load} />
-            ))}
-          </div>
-        )}
-      </section>
+      {loading && data.modules.length === 0 ? (
+        <p className="text-zinc-500 text-sm">{t("loading")}</p>
+      ) : data.modules.length === 0 ? (
+        <p className="text-zinc-500 text-sm">{t("empty")}</p>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+          {data.modules.map((mod) => (
+            <ModuleCard key={mod.id} mod={mod} onRefresh={load} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

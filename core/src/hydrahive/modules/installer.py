@@ -69,6 +69,21 @@ def available_version(module_id: str) -> str | None:
         return None
 
 
+def available_description(module_id: str) -> str:
+    """Beschreibung aus dem manifest.json des Moduls im Hub-Cache (ohne git-pull).
+
+    Für die (noch) nicht installierte Ansicht — die installierte Beschreibung
+    kommt aus dem REGISTRY-Manifest. Fehler/kein Manifest → "" (nie werfen).
+    """
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+    try:
+        src = _cache_path_for(module_id)
+        return ModuleManifest.load(src / "manifest.json").description
+    except (InstallError, ManifestError, OSError) as exc:
+        logger.debug("available_description(%s) nicht ermittelbar: %s", module_id, exc)
+        return ""
+
+
 def is_update_available(installed: str | None, available: str | None) -> bool:
     """True, wenn `available` eine neuere Version als `installed` ist.
 

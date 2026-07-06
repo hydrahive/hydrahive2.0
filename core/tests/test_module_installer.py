@@ -108,3 +108,25 @@ def test_available_version_not_in_hub_returns_none(mod_env):
     with patch("hydrahive.modules.installer.hub_client.read_hub_index",
                return_value={"modules": []}):
         assert available_version("unknown") is None
+
+
+def test_available_description_reads_hub_cache_manifest(mod_env):
+    from unittest.mock import patch
+    src = mod_env / "hub" / "demo"
+    src.mkdir(parents=True)
+    (src / "manifest.json").write_text(
+        '{"id":"demo","name":"Demo","version":"1.0.0","description":"Zwei Sätze. Test."}'
+    )
+    with patch("hydrahive.modules.installer._cache_path_for", return_value=src):
+        from hydrahive.modules.installer import available_description
+        assert available_description("demo") == "Zwei Sätze. Test."
+
+
+def test_available_description_missing_returns_empty(mod_env):
+    from unittest.mock import patch
+    src = mod_env / "hub" / "nodesc"
+    src.mkdir(parents=True)
+    (src / "manifest.json").write_text('{"id":"nodesc","name":"X","version":"1.0.0"}')
+    with patch("hydrahive.modules.installer._cache_path_for", return_value=src):
+        from hydrahive.modules.installer import available_description
+        assert available_description("nodesc") == ""
