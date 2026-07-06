@@ -13,6 +13,19 @@
     "error": "Error",
     "available": "Available"
   },
+  "update": {
+    "available": "Update available",
+    "badge": "v{{from}} → v{{to}}",
+    "current": "Up to date",
+    "count_one": "{{count}} update",
+    "count_other": "{{count}} updates",
+    "all": "Update all",
+    "all_running": "Updating ({{done}}/{{total}})…"
+  },
+  "section_toggle": {
+    "expand": "Expand",
+    "collapse": "Collapse"
+  },
   "actions": {
     "install": "Install",
     "installing": "Installing…",

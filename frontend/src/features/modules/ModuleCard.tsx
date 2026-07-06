@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Boxes, CheckCircle, RefreshCw, XCircle } from "lucide-react"
+import { ArrowUpCircle, Boxes, CheckCircle, RefreshCw, XCircle } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
 import type { AvailableModule, InstalledModule } from "./types"
 import { installModule, uninstallModule, updateModule } from "./api"
@@ -59,6 +59,14 @@ export function InstalledModuleCard({ mod, onRefresh }: InstalledCardProps) {
                 v{mod.version}
               </span>
             )}
+            {mod.update_available && mod.available_version && (
+              <span
+                title={t("update.available")}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                <ArrowUpCircle size={9} />
+                {t("update.badge", { from: mod.version, to: mod.available_version })}
+              </span>
+            )}
             {mod.loaded ? (
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                 <CheckCircle size={9} /> {t("status.loaded")}
@@ -99,9 +107,16 @@ export function InstalledModuleCard({ mod, onRefresh }: InstalledCardProps) {
         <button
           onClick={() => run("update")}
           disabled={phase === "running"}
-          className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-violet-300 text-xs font-medium transition-colors disabled:opacity-40">
+          className={
+            "flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-40 " +
+            (mod.update_available
+              ? "bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/30 text-amber-300"
+              : "bg-violet-500/10 hover:bg-violet-500/20 border-violet-500/20 text-violet-300")
+          }>
           <RefreshCw size={11} className={phase === "running" && action === "update" ? "animate-spin" : ""} />
-          {phase === "running" && action === "update" ? t("actions.updating") : t("actions.update")}
+          {phase === "running" && action === "update"
+            ? t("actions.updating")
+            : mod.update_available ? t("update.available") : t("actions.update")}
         </button>
         <button
           onClick={() => run("uninstall")}

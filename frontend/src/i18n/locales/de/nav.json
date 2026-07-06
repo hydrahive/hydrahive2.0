@@ -48,6 +48,7 @@
   "update": {
     "available": "Update verfügbar — klicken zum Aktualisieren",
     "force": "Update erzwingen / Rebuild",
+    "modules": "{{count}} Modul-Update(s) verfügbar — zur Modul-Verwaltung",
     "modal_title": "System-Update",
     "confirm_question": "Jetzt aktualisieren?",
     "confirm_question_force": "Update erzwingen?",

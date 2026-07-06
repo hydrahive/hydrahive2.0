@@ -23,6 +23,8 @@ export interface LayoutChrome {
     version: string | null
     commit: string | null
     updateBehind: number | null
+    /** Anzahl installierter Module mit verfügbarem Update (0 = keine). */
+    moduleUpdateCount: number
     isAdmin: boolean
     onUpdateClick: () => void
   }

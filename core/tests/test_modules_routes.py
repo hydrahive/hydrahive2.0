@@ -47,3 +47,57 @@ def test_install_streams(client, admin_headers):
         r = client.post("/api/admin/modules/example/install", headers=admin_headers)
     assert r.status_code == 200
     assert "line1" in r.text
+
+
+# --- Update-Erkennung: erweiterte Felder + /update-count -------------------
+
+def _fake_registry(version: str = "1.0.0"):
+    """Ein LoadedModule 'demo' mit gegebener installierter Version."""
+    from hydrahive.modules.manifest import ModuleManifest
+    from hydrahive.modules.registry import LoadedModule
+    from pathlib import Path
+    manifest = ModuleManifest(id="demo", name="Demo", version=version)
+    return {"demo": LoadedModule(name="demo", manifest=manifest, path=Path("/x"), loaded=True)}
+
+
+def test_list_modules_marks_update_available(client, admin_headers):
+    with patch("hydrahive.api.routes.modules.REGISTRY", _fake_registry("1.0.0")), \
+         patch("hydrahive.api.routes.modules.hub_client.refresh"), \
+         patch("hydrahive.api.routes.modules.hub_client.read_hub_index", return_value={"modules": []}), \
+         patch("hydrahive.api.routes.modules.installer.available_version", return_value="1.2.0"):
+        r = client.get("/api/admin/modules", headers=admin_headers)
+    assert r.status_code == 200
+    demo = next(m for m in r.json()["installed"] if m["id"] == "demo")
+    assert demo["version"] == "1.0.0"
+    assert demo["available_version"] == "1.2.0"
+    assert demo["update_available"] is True
+
+
+def test_list_modules_no_update_when_current(client, admin_headers):
+    with patch("hydrahive.api.routes.modules.REGISTRY", _fake_registry("2.0.0")), \
+         patch("hydrahive.api.routes.modules.hub_client.refresh"), \
+         patch("hydrahive.api.routes.modules.hub_client.read_hub_index", return_value={"modules": []}), \
+         patch("hydrahive.api.routes.modules.installer.available_version", return_value="2.0.0"):
+        r = client.get("/api/admin/modules", headers=admin_headers)
+    demo = next(m for m in r.json()["installed"] if m["id"] == "demo")
+    assert demo["update_available"] is False
+
+
+def test_update_count_admin(client, admin_headers):
+    with patch("hydrahive.api.routes.modules.REGISTRY", _fake_registry("1.0.0")), \
+         patch("hydrahive.api.routes.modules.installer.available_version", return_value="1.5.0"):
+        r = client.get("/api/admin/modules/update-count", headers=admin_headers)
+    assert r.status_code == 200
+    assert r.json()["count"] == 1
+
+
+def test_update_count_zero_when_current(client, admin_headers):
+    with patch("hydrahive.api.routes.modules.REGISTRY", _fake_registry("1.5.0")), \
+         patch("hydrahive.api.routes.modules.installer.available_version", return_value="1.5.0"):
+        r = client.get("/api/admin/modules/update-count", headers=admin_headers)
+    assert r.json()["count"] == 0
+
+
+def test_update_count_requires_admin(client, auth_headers):
+    r = client.get("/api/admin/modules/update-count", headers=auth_headers)
+    assert r.status_code in (401, 403)

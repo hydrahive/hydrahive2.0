@@ -21,29 +21,52 @@ _SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
 
 @router.get("", dependencies=[Depends(require_admin)])
 def list_modules() -> dict:
-    installed = [
-        {
-            "id": m.name,
-            "loaded": m.loaded,
-            "error": m.error,
-            "version": m.manifest.version if m.manifest else None,
-        }
-        for m in REGISTRY.values()
-    ]
     # Hub vor dem Listen pullen, damit "available" den echten Hub spiegelt.
     # read_hub_index() pullt nur bei FEHLENDEM Cache — ohne dies fröre die Liste
     # auf dem Stand des ersten Clones ein (neue Module würden nie auftauchen).
     # Netzwerk-/Hub-Fehler beim Refresh sind unkritisch → Fallback auf den Cache.
+    # WICHTIG: erst refreshen, DANN available_version() lesen — sonst basiert die
+    # Update-Erkennung auf einem veralteten Cache.
     try:
         hub_client.refresh()
     except Exception as exc:
         logger.warning("Modul-Hub-Refresh fehlgeschlagen, nutze Cache: %s", exc)
+
+    installed = []
+    for m in REGISTRY.values():
+        inst_ver = m.manifest.version if m.manifest else None
+        avail_ver = installer.available_version(m.name)
+        installed.append({
+            "id": m.name,
+            "loaded": m.loaded,
+            "error": m.error,
+            "version": inst_ver,
+            "available_version": avail_ver,
+            "update_available": installer.is_update_available(inst_ver, avail_ver),
+        })
+
     try:
         available = hub_client.read_hub_index().get("modules", [])
     except Exception as exc:  # Hub unerreichbar → leere Liste, aber nicht still schlucken
         logger.warning("Modul-Hub-Index nicht abrufbar: %s", exc)
         available = []
     return {"installed": installed, "available": available}
+
+
+@router.get("/update-count", dependencies=[Depends(require_admin)])
+def module_update_count() -> dict:
+    """Anzahl installierter Module mit verfügbarem Update — billig (kein git-pull).
+
+    Für den Footer-Indikator gedacht. Liest available_version() aus dem
+    VORHANDENEN Hub-Cache, ohne zu refreshen. Fehler → count 0 (nie werfen).
+    """
+    count = 0
+    for m in REGISTRY.values():
+        inst_ver = m.manifest.version if m.manifest else None
+        avail_ver = installer.available_version(m.name)
+        if installer.is_update_available(inst_ver, avail_ver):
+            count += 1
+    return {"count": count}
 
 
 def _stream(gen) -> StreamingResponse:

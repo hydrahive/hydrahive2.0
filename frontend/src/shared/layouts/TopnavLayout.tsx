@@ -93,6 +93,7 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
         version={footer.version}
         commit={footer.commit}
         updateBehind={footer.updateBehind}
+        moduleUpdateCount={footer.moduleUpdateCount}
         isAdmin={footer.isAdmin}
         onUpdateClick={footer.onUpdateClick}
       />

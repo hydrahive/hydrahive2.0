@@ -53,6 +53,38 @@ def _cache_path_for(module_id: str) -> Path:
     raise InstallError(f"module_not_in_hub:{module_id}")
 
 
+def available_version(module_id: str) -> str | None:
+    """Version aus dem manifest.json des Moduls im Hub-Cache (ohne git-pull).
+
+    Nutzt den bereits vorhandenen Hub-Cache — es wird NICHT frisch gepullt, damit
+    der Aufruf billig bleibt (z.B. für den Footer-Zähler). Fehler/kein Manifest
+    → None (nie werfen; Update-Erkennung darf die Modul-Liste nie sprengen).
+    """
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+    try:
+        src = _cache_path_for(module_id)
+        return ModuleManifest.load(src / "manifest.json").version
+    except (InstallError, ManifestError, OSError) as exc:
+        logger.debug("available_version(%s) nicht ermittelbar: %s", module_id, exc)
+        return None
+
+
+def is_update_available(installed: str | None, available: str | None) -> bool:
+    """True, wenn `available` eine neuere Version als `installed` ist.
+
+    Semver-Vergleich via packaging.version; bei Parse-Fehler Fallback auf
+    String-Ungleichheit (konservativ: unterschiedlich → Update anbieten).
+    Fehlt eine der Versionen → kein Update.
+    """
+    if not installed or not available:
+        return False
+    from packaging.version import InvalidVersion, Version
+    try:
+        return Version(available) > Version(installed)
+    except InvalidVersion:
+        return available != installed
+
+
 def copy_module_in(module_id: str) -> None:
     """Kopiert ein Modul aus dem Hub-Cache in die lokalen Verzeichnisse.
 
