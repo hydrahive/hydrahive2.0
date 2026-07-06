@@ -34,7 +34,10 @@
       "faq_setup": "Setup",
       "glossary_main": "Begriffe A-Z",
       "skills": "Skills",
-      "memory": "Gedächtnis"
+      "memory": "Gedächtnis",
+      "datamining": "Datamining",
+      "communication": "Kommunikation",
+      "teamchat": "Teamchat"
     }
   }
 }

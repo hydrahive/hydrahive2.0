@@ -1,6 +1,7 @@
 import { useRef, useState, type CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Globe, Hash, Lock, Pencil, Plus, Trash2, UserPlus, Users, X } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import { mxidToName } from "./_format"
 import type { RoomAgent, RoomVisibility, TeamRoom } from "./types"
 
@@ -96,10 +97,11 @@ export function RoomList(props: RoomListProps) {
         <div className="box-h">
           <span className="ic"><Hash size={14} /></span>
           <span className="t">{t("rooms")}</span>
+          <HelpButton topic="teamchat" className="r" />
           <button
             onClick={() => setAdding((v) => !v)}
             title={t("new_room")}
-            className="r p-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
+            className="p-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
           >
             <Plus size={14} />
           </button>
