@@ -13,6 +13,9 @@
       "glossary": "Glossar"
     },
     "topics": {
+      "onboarding": "Erste Schritte",
+      "buddy": "Buddy (Assistent)",
+      "credentials": "Credentials",
       "architecture": "3-Ebenen-Architektur",
       "compaction": "Compaction",
       "mcp": "MCP-Protokoll",
