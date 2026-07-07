@@ -38,7 +38,11 @@
       "datamining": "Datamining",
       "communication": "Communication",
       "teamchat": "Team chat",
-      "atelier": "Atelier (media)"
+      "atelier": "Atelier (media)",
+      "vms": "Virtual Machines",
+      "containers": "Containers",
+      "users": "Users",
+      "patientenakte": "My Record"
     }
   }
 }

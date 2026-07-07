@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import type { CSSProperties } from "react"
 import { Disc, Download, Plus, RefreshCw } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import type { VM } from "./types"
 import { vmsApi } from "./api"
 import { VMCard } from "./VMCard"
@@ -57,9 +58,12 @@ export function VMsPage() {
   return (
     <div className="space-y-6 max-w-7xl">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white">{t("title")}</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+        <div className="flex items-center gap-1">
+          <div>
+            <h1 className="text-xl font-bold text-white">{t("title")}</h1>
+            <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+          </div>
+          <HelpButton topic="vms" />
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setShowImports(true)}

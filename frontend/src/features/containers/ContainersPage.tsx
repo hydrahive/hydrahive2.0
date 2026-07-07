@@ -3,6 +3,7 @@ import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Box, Plus, RefreshCw } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import type { Container } from "./types"
 import { containersApi } from "./api"
 import { ContainerCard } from "./ContainerCard"
@@ -44,9 +45,12 @@ export function ContainersPage() {
   return (
     <div className="space-y-6 max-w-7xl">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white">{t("title")}</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{t("detail.subtitle")}</p>
+        <div className="flex items-center gap-1">
+          <div>
+            <h1 className="text-xl font-bold text-white">{t("title")}</h1>
+            <p className="text-zinc-500 text-sm mt-0.5">{t("detail.subtitle")}</p>
+          </div>
+          <HelpButton topic="containers" />
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refresh}
