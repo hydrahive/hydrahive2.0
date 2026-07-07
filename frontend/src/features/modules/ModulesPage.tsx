@@ -70,7 +70,7 @@ export function ModulesPage() {
               {t("update.count", { count: outdated.length })}
             </span>
           )}
-          <HelpButton topic="modules" prominent />
+          <HelpButton topic="modules" />
         </div>
         <div className="flex items-center gap-2">
           {outdated.length > 0 && (
