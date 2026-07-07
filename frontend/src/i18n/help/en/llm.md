@@ -54,12 +54,13 @@ field — HydraHive detects the `sk-ant-oat...` prefix and treats it as OAuth.
 The most convenient path with a Claude subscription — no terminal needed.
 HydraHive fetches the token itself and **refreshes it automatically**, so you
 don't have to log in again every few days.
-1. **Add provider** → **Anthropic**.
-2. Below the API-key field, at the OAuth login, click **Open login** → sign in at
-   **claude.ai** and authorize.
-3. The browser redirects to `localhost:53692` and shows "site can't be reached" —
-   **that's normal**. Copy the whole URL from the address bar.
-4. Paste the URL in step two → **Connect**. It shows "Connected via OAuth".
+1. Click **Add provider** and select **Anthropic** in the dropdown. As soon as
+   "Anthropic" is selected, the "or via OAuth login" area appears **below the
+   API-key field**.
+2. There, click **Open login** → sign in at **claude.ai** and authorize.
+3. **Anthropic then shows a code directly on the page** (format `code#state`) —
+   unlike ChatGPT there is **no URL to copy** here. Copy that **code**.
+4. Paste the code in step two → **Connect**. It shows "Connected via OAuth".
 5. Pick models, **Add**, set default model, **Test connection**.
 
 > The API-key field stays visible in all three ways — the OAuth login (way 3) is
