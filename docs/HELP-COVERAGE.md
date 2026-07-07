@@ -17,7 +17,7 @@
 
 | Seite | Pfad | Artikel | HelpButton | Loader-Topic | Prio |
 |-------|------|---------|-----------|--------------|------|
-| Dashboard | /dashboard | ✅ (dünn, 1.4k) | ✅ | ✅ | hoch |
+| Dashboard | /dashboard | ✅ (überarbeitet: Widgets, anpassbar) | ✅ | ✅ | hoch |
 | Buddy | / | ✅ | ✅ | ✅ | **sehr hoch** (Startseite) |
 | Werkstatt | /werkstatt | 🟡 (chat.md passt teils) | ✅ (im ChatHeader) | ✅ (chat) | **sehr hoch** |
 | Agenten | /settings/agents | ✅ (3.6k) | ✅ (Empty-State) | ✅ | hoch |
