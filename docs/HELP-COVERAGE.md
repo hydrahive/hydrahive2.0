@@ -66,7 +66,7 @@
 | Musicplayer | /musicplayer | ❌ | niedrig |
 | Tasks | (Widget) | ❌ | niedrig |
 
-## Zusammenfassung (Stand: Deep-Dive-Chargen 1–5)
+## Zusammenfassung (Stand: Deep-Dive-Chargen 1–9 — ABGESCHLOSSEN)
 - **Loader** kennt jetzt **alle** geplanten Topics (Typ + Glob) — neue Artikel greifen sofort.
 - **Neu geschrieben (de+en, ausführlich)**: onboarding, buddy, credentials, butler,
   skills, memory, datamining, communication, teamchat, atelier → **10 neue Artikel-Paare**.
@@ -75,13 +75,25 @@
 - Bestehende Artikel (dashboard, agents, projects, llm, mcp, system, chat) unverändert;
   Dashboard weiterhin dünn → Kandidat für Überarbeitung.
 
-## Noch offen (nächste Chargen)
-- **Mittel**: VMs, Container, Module-Verwaltung, Users, Patientenakte.
-- **Dünn überarbeiten**: Dashboard.
-- **Niedrig**: Zahnfee, Plugins, Federation, Streaming, Extensions, Cryptoboard,
-  Notizbuch, Scratchpad, Deepresearch, Homeassistant, Archiver, Blueprint, Spiele.
-- **Werkstatt**: chat.md ggf. um werkstatt-spezifische Aspekte ergänzen.
-- **Phase 3**: Feld-Tooltips an unklaren Eingabefeldern.
+## Status: VOLLSTÄNDIG ✅ (Chargen 1–9)
+Alle Nav-Seiten und Module haben jetzt einen Deep-Dive-Artikel (de+en) **und**
+einen HelpButton (gelber Blob). Erledigt in Chargen:
+- **1–5**: onboarding, buddy, credentials, butler, skills, memory, datamining,
+  communication, teamchat, atelier + Agenten/Projekte-Buttons.
+- **6**: vms, containers, users, patientenakte.
+- **Dashboard** überarbeitet (war dünn → Widget-Beschreibung).
+- **7**: cryptoboard, notizbuch, scratchpad, deepresearch.
+- **8**: homeassistant, archiver, blueprint, boardgames, minigames, musicplayer,
+  tasks, videoeditor.
+- **9**: zahnfee, plugins, federation, streaming, extensions.
+
+Bestehende Artikel aus der Frühzeit: agents, projects, llm, mcp, system, chat.
+
+### Nur noch optional offen
+- **Werkstatt**: chat.md deckt es ab; ggf. werkstatt-spezifische Ergänzung.
+- **Phase 3**: Feld-Tooltips an unklaren Eingabefeldern (eigenes, größeres Thema).
+- Modul-Verwaltung (Settings-Bereich Module) — hat kein eigenes Topic; die
+  Modul-Liste selbst ist über die Modul-Seite dokumentiert.
 
 ## Fahrplan (Original)
 1. ✅ **Loader + HelpTopic-Typ** auf alle Topics erweitern.
