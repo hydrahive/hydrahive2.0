@@ -14,7 +14,7 @@ import { FederationPage } from "@/features/federation/FederationPage"
 import { StreamingPage } from "@/features/streaming/StreamingPage"
 import { McpPage } from "@/features/mcp/McpPage"
 import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
-import { AtelierPage } from "@/modules/atelier/AtelierPage"
+import { moduleSlotBlocks } from "@/modules/index.generated"
 import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { AgentLinkCard } from "@/features/system/AgentLinkCard"
 import { MinimaxUsageCard } from "@/features/system/MinimaxUsageCard"
@@ -55,7 +55,6 @@ export const SLOT_BLOCKS: SlotBlock[] = [
   { name: "communication", label: "Kommunikation", render: flowPage(CommunicationPage) },
 
   // Kreativ / Automation
-  { name: "atelier", label: "Atelier (Bildgenerator)", render: flowPage(AtelierPage) },
   { name: "butler", label: "Butler (Automation)", render: fullPage(ButlerPage) },
 
   // Auswertung / Wissen
@@ -76,6 +75,10 @@ export const SLOT_BLOCKS: SlotBlock[] = [
   { name: "tailscale", label: "Tailscale-Status", render: () => <TailscaleCard /> },
   { name: "agentlink", label: "AgentLink-Status", render: () => <AgentLinkCard /> },
   { name: "minimax", label: "MiniMax-Nutzung", render: () => <MinimaxUsageCard /> },
+
+  // Modul-Bausteine (z.B. Atelier) — nur vorhanden wenn das Modul installiert
+  // ist. Kein harter Core→Modul-Import, damit der Core ohne Module baubar bleibt.
+  ...(moduleSlotBlocks as SlotBlock[]),
 ]
 
 export function getBlock(name: string): SlotBlock | undefined {
