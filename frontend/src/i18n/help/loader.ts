@@ -17,7 +17,8 @@ export type HelpTopic =
   | "onboarding"
   // Module
   | "atelier" | "patientenakte" | "cryptoboard" | "notizbuch" | "scratchpad"
-  | "deepresearch" | "homeassistant" | "archiver"
+  | "deepresearch" | "homeassistant" | "archiver" | "blueprint" | "boardgames"
+  | "minigames" | "musicplayer" | "tasks" | "videoeditor"
 
 export async function loadHelp(topic: HelpTopic, lang: string): Promise<string> {
   const code = lang.split("-")[0]
