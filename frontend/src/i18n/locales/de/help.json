@@ -46,7 +46,15 @@
       "cryptoboard": "Cryptoboard",
       "notizbuch": "Notizbuch",
       "scratchpad": "Scratchpad",
-      "deepresearch": "Deep Research"
+      "deepresearch": "Deep Research",
+      "homeassistant": "Home Assistant",
+      "archiver": "Archiver",
+      "blueprint": "Blueprint",
+      "boardgames": "Brettspiele",
+      "minigames": "Minigames",
+      "musicplayer": "Musik",
+      "tasks": "Aufgaben",
+      "videoeditor": "Video-Editor"
     }
   }
 }
