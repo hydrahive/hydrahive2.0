@@ -45,6 +45,7 @@
   },
   "online": "Online",
   "help_button": "Seiten-Hilfe öffnen",
+  "help_label": "Hilfe",
   "update": {
     "available": "Update verfügbar — klicken zum Aktualisieren",
     "force": "Update erzwingen / Rebuild",

@@ -2,12 +2,7 @@
   "title": "Modules",
   "installed_count": "{{count}} installed",
   "loading": "Loading modules…",
-  "empty_installed": "No modules installed.",
-  "empty_available": "No further modules available.",
-  "section": {
-    "installed": "Installed Modules",
-    "available": "Available Modules"
-  },
+  "empty": "No modules found.",
   "status": {
     "loaded": "Loaded",
     "error": "Error",
@@ -21,10 +16,6 @@
     "count_other": "{{count}} updates",
     "all": "Update all",
     "all_running": "Updating ({{done}}/{{total}})…"
-  },
-  "section_toggle": {
-    "expand": "Expand",
-    "collapse": "Collapse"
   },
   "actions": {
     "install": "Install",

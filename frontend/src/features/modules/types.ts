@@ -1,19 +1,18 @@
-export interface InstalledModule {
+/** Ein Modul in der vereinheitlichten Liste (installiert oder verfügbar). */
+export interface ModuleEntry {
   id: string
+  name: string
+  description: string
+  installed: boolean
   loaded: boolean
   error: string | null
+  /** Installierte Version (null wenn nicht installiert). */
   version: string | null
-  available_version?: string | null
-  update_available?: boolean
-}
-
-export interface AvailableModule {
-  id: string
-  name?: string
-  path?: string
+  /** Version im Hub (null wenn nicht ermittelbar). */
+  available_version: string | null
+  update_available: boolean
 }
 
 export interface ModulesIndex {
-  installed: InstalledModule[]
-  available: AvailableModule[]
+  modules: ModuleEntry[]
 }

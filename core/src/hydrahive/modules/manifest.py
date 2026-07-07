@@ -14,6 +14,7 @@ class ModuleManifest:
     id: str
     name: str
     version: str
+    description: str = ""
     icon: str = "Boxes"
     nav_group: str = "working"
     permissions: tuple[str, ...] = ()
@@ -34,6 +35,7 @@ class ModuleManifest:
             raise ManifestError(f"manifest.json: ungültige id {d['id']!r} (nur a-z0-9-)")
         return cls(
             id=d["id"], name=d["name"], version=str(d["version"]),
+            description=str(d.get("description", "")),
             icon=d.get("icon", "Boxes"), nav_group=d.get("nav_group", "working"),
             permissions=tuple(d.get("permissions", [])),
             has_service=bool(d.get("has_service", False)),
