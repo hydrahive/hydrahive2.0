@@ -35,6 +35,8 @@
 | Streaming | /streaming | ❌ | ❌ | ✅ | niedrig |
 | Datamining | /datamining | ✅ | ✅ | ✅ | mittel |
 | Memory | /memory | ✅ | ✅ | ✅ | mittel |
+| VMs | /vms | ✅ | ✅ | ✅ | mittel |
+| Container | /containers | ✅ | ✅ | ✅ | mittel |
 | System | /settings → System | ✅ (2.3k) | ✅ | ✅ | hoch |
 | LLM | /settings → LLM | ✅ (3.3k) | ✅ | ✅ | hoch |
 | Hilfe/Handbuch | /help | (Meta) | — | — | — |
@@ -45,14 +47,14 @@
 | Credentials | ✅ (Artikel + Button) | hoch (Keys/Secrets — kritisch für Einstieg) |
 | Extensions | ❌ | niedrig |
 | Module (Verwaltung) | ❌ | mittel |
-| Benutzer/Users | ❌ | mittel |
+| Benutzer/Users | ✅ (Artikel + Button) | mittel |
 | Einstellungen (Mail, SearXNG, …) | ❌ | mittel |
 
 ## Module (frontend/src/modules/*)
 | Modul | Pfad | Artikel | Prio |
 |-------|------|---------|------|
 | Atelier | /atelier | ✅ (Artikel + Button, Button im modules-Repo) | mittel (groß, viel Erklärbedarf) |
-| Patientenakte | /akte | ❌ | mittel |
+| Patientenakte | /akte | ✅ (Artikel + Button, Button im modules-Repo) | mittel |
 | Cryptoboard | /cryptoboard | ❌ | niedrig |
 | Notizbuch | /notizbuch | ❌ | niedrig |
 | Scratchpad | /scratchpad | ❌ | niedrig |
