@@ -28,15 +28,42 @@ Das **Standard-Modell** wird verwendet wenn ein Agent kein eigenes Modell expliz
 
 ## Schritt-für-Schritt
 
-### Anthropic-OAuth-Token (Claude Max) einrichten
+### Anthropic mit Claude-Abo (Pro/Max) einrichten — OAuth-Token
 
-1. Auf https://claude.ai/settings/billing dein Token-Plan-Abo bestätigen
-2. OAuth-Token besorgen (siehe Anthropic-Docs)
-3. Hier **Provider hinzufügen** → **Anthropic**
-4. API-Key-Feld: `sk-ant-oat01-...` einfügen
-5. Modelle ankreuzen (`claude-sonnet-4-6` etc.)
-6. **Hinzufügen**
-7. Standard-Modell setzen, **Verbindung testen** klicken — sollte "OK" zurückgeben
+Mit einem Claude-Abo (Pro/Max) kannst du deinen Account statt eines
+kostenpflichtigen API-Keys nutzen. Der OAuth-Token wird **in der Shell mit der
+Claude-Code-CLI erzeugt** und hier ins normale API-Key-Feld eingefügt — HydraHive
+erkennt am Präfix `sk-ant-oat...` automatisch, dass es ein OAuth-Token ist.
+
+1. In einer Shell mit installierter Claude-Code-CLI den Befehl ausführen:
+   ```
+   claude setup-token
+   ```
+2. Es öffnet sich der Browser → mit deinem Claude-Account (Pro/Max) **anmelden
+   und autorisieren**.
+3. Danach erscheint **in der Shell** ein langlebiger Token (`sk-ant-oat01-...`,
+   ~1 Jahr gültig). Diesen kopieren.
+4. Hier **Provider hinzufügen** → **Anthropic**.
+5. API-Key-Feld: den kopierten `sk-ant-oat01-...`-Token einfügen (kein
+   OAuth-Login-Button nötig — der wird nur für ChatGPT/Codex gebraucht).
+6. Modelle ankreuzen (z.B. `claude-sonnet-4-6`, `claude-opus-4-8`).
+7. **Hinzufügen**.
+8. Standard-Modell setzen, **Verbindung testen** klicken — sollte "OK" zurückgeben.
+
+> Alternativ geht auch ein klassischer API-Key aus der Anthropic-Console
+> (`sk-ant-api03-...`) — dann wird pro Nutzung nach API-Preisen abgerechnet statt
+> übers Abo.
+
+### ChatGPT Plus/Pro (Codex) per OAuth-Login
+
+Das ist der **einzige** Provider mit echtem OAuth-Login-Button in der GUI (kein
+Key nötig):
+
+1. **Provider hinzufügen** → **ChatGPT Plus/Pro (Codex)**.
+2. **Login öffnen** klicken → im Browser bei ChatGPT anmelden.
+3. Der Browser leitet auf `localhost:1455` um und zeigt „Seite nicht erreichbar" —
+   **das ist normal**. Die ganze URL aus dem Adressfeld kopieren.
+4. URL im zweiten Schritt einfügen → **Verbinden**.
 
 ### MiniMax-Provider mit Token-Plan
 
