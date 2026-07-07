@@ -41,7 +41,8 @@
       "atelier": "Atelier (media)",
       "vms": "Virtual Machines",
       "containers": "Containers",
-      "users": "Users"
+      "users": "Users",
+      "patientenakte": "My Record"
     }
   }
 }
