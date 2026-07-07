@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { HelpButton } from "@/i18n/HelpButton"
 import { ApiKeysSection } from "./ApiKeysSection"
 import { ChangePasswordDialog } from "./ChangePasswordDialog"
 import { EditUserDialog } from "./EditUserDialog"
@@ -41,9 +42,12 @@ export function UsersPage() {
   return (
     <div className="space-y-5 max-w-3xl">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-white">{t("title")}</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+        <div className="flex items-center gap-1">
+          <div>
+            <h1 className="text-xl font-bold text-white">{t("title")}</h1>
+            <p className="text-zinc-500 text-sm mt-0.5">{t("subtitle")}</p>
+          </div>
+          <HelpButton topic="users" />
         </div>
         <button
           onClick={() => setShowNew(true)}

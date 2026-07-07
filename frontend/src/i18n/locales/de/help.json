@@ -38,7 +38,10 @@
       "datamining": "Datamining",
       "communication": "Kommunikation",
       "teamchat": "Teamchat",
-      "atelier": "Atelier (Medien)"
+      "atelier": "Atelier (Medien)",
+      "vms": "Virtuelle Maschinen",
+      "containers": "Container",
+      "users": "Benutzer"
     }
   }
 }
