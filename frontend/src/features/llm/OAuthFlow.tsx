@@ -4,6 +4,12 @@ import { ExternalLink, Loader2 } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
 import { llmApi } from "./api"
 
+// Provider-spezifische Texte für den OAuth-Login (Flow ist identisch).
+const OAUTH_META: Record<string, { service: string; callback: string }> = {
+  "openai-codex": { service: "OpenAI/ChatGPT", callback: "localhost:1455" },
+  anthropic: { service: "Claude (claude.ai)", callback: "localhost:53692" },
+}
+
 export function OAuthFlow({
   providerId,
   onConnected,
@@ -13,6 +19,7 @@ export function OAuthFlow({
   onConnected: () => void
   onCancel?: () => void
 }) {
+  const meta = OAUTH_META[providerId] ?? { service: providerId, callback: "localhost" }
   const [step, setStep] = useState<1 | 2>(1)
   const [authUrl, setAuthUrl] = useState("")
   const [code, setCode] = useState("")
@@ -51,7 +58,7 @@ export function OAuthFlow({
       {step === 1 && (
         <div className="space-y-2">
           <p className="text-xs text-zinc-400">
-            Login bei OpenAI/ChatGPT. Du wirst danach auf <code className="text-zinc-300">localhost:1455</code> umgeleitet —
+            Login bei {meta.service}. Du wirst danach auf <code className="text-zinc-300">{meta.callback}</code> umgeleitet —
             das wird im Browser eine "Diese Seite kann nicht erreicht werden"-Fehlermeldung zeigen.
             <strong className="text-zinc-200"> Das ist normal.</strong> Du kopierst die ganze URL aus
             dem Browser-Adressfeld in Schritt 2.
@@ -76,7 +83,7 @@ export function OAuthFlow({
         <div className="space-y-2">
           <p className="text-xs text-zinc-400">
             Kopier die ganze URL aus dem Browser-Adressfeld
-            (<code className="text-zinc-300">http://localhost:1455/auth/callback?code=...&state=...</code>)
+            (<code className="text-zinc-300">http://{meta.callback}/...?code=...&state=...</code>)
             und füge sie hier ein:
           </p>
           {authUrl && (
@@ -86,7 +93,7 @@ export function OAuthFlow({
             </a>
           )}
           <textarea value={code} onChange={(e) => setCode(e.target.value)}
-            rows={3} placeholder="http://localhost:1455/auth/callback?code=...&state=..."
+            rows={3} placeholder={`http://${meta.callback}/...?code=...&state=...`}
             className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-xs font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50 resize-none" />
           {error && <p className="text-xs text-rose-400">{error}</p>}
           <div className="flex gap-2">

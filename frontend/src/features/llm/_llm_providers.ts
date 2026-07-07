@@ -2,7 +2,11 @@ import type { LlmProvider } from "./api"
 
 export const KNOWN_PROVIDERS = [
   {
+    // Hybrid: API-Key-Feld bleibt (Weg 1 sk-ant-api03, Weg 2 sk-ant-oat01 via
+    // `claude setup-token`) UND zusätzlich optionaler OAuth-Login (Weg 3).
+    // oauthOptional versteckt das Key-Feld NICHT (anders als auth:"oauth").
     id: "anthropic", name: "Anthropic", placeholder: "sk-ant-...",
+    oauthOptional: true as const,
     models: [],
   },
   {

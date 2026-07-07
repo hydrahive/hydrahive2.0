@@ -26,7 +26,9 @@
     "provider_label": "Provider",
     "api_key": "API Key",
     "models_label": "Modelle ({{selected}} ausgewählt)",
-    "custom_model": "oder Custom-Modell eingeben…"
+    "custom_model": "oder Custom-Modell eingeben…",
+    "or_oauth": "oder per OAuth-Login",
+    "oauth_connected": "Per OAuth verbunden"
   },
   "default_model": "Standard-Modell",
   "embed_model": "Embedding-Modell",
