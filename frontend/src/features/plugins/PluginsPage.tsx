@@ -5,6 +5,7 @@ import { HubCard, InstalledCard } from "./PluginCard"
 import { usePlugins } from "./usePlugins"
 import { RestartModal } from "@/shared/RestartModal"
 import { useRestart } from "@/shared/useRestart"
+import { HelpButton } from "@/i18n/HelpButton"
 
 type Tab = "hub" | "installed"
 
@@ -22,6 +23,7 @@ export function PluginsPage() {
         <div className="flex items-center gap-3">
           <Puzzle className="text-violet-400" size={20} />
           <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
+          <HelpButton topic="plugins" />
         </div>
         <button onClick={restart.open}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] transition-colors">

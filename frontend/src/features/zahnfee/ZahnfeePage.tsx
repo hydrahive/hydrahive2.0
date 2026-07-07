@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { Loader2, Play, Settings as SettingsIcon } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import { zahnfeeApi, type Briefing } from "./api"
 
 function Section({ title, content, accent }: { title: string; content: string; accent: string }) {
@@ -71,6 +72,7 @@ export function ZahnfeePage() {
           <h1 className="text-xl font-bold text-zinc-100">Zahnfee</h1>
           <p className="text-sm text-zinc-500">{t("subtitle")}</p>
         </div>
+        <HelpButton topic="zahnfee" />
         <Link
           to="/settings"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
