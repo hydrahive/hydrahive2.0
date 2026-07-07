@@ -42,7 +42,11 @@
       "vms": "Virtual Machines",
       "containers": "Containers",
       "users": "Users",
-      "patientenakte": "My Record"
+      "patientenakte": "My Record",
+      "cryptoboard": "Cryptoboard",
+      "notizbuch": "Notebook",
+      "scratchpad": "Scratchpad",
+      "deepresearch": "Deep Research"
     }
   }
 }
