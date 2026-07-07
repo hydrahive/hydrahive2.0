@@ -7,11 +7,10 @@ import type { HelpTopic } from "./help/loader"
 interface Props {
   topic: HelpTopic
   className?: string
-  /** Auffällige Variante: Icon + Label "Hilfe", kräftiges Violett mit Border. */
-  prominent?: boolean
 }
 
-export function HelpButton({ topic, className = "", prominent = false }: Props) {
+/** Auffälliger gelber "Hilfe"-Blob — öffnet die Seiten-Hilfe im Drawer. */
+export function HelpButton({ topic, className = "" }: Props) {
   const [open, setOpen] = useState(false)
   const { t } = useTranslation("nav")
   return (
@@ -19,14 +18,10 @@ export function HelpButton({ topic, className = "", prominent = false }: Props) 
       <button
         onClick={() => setOpen(true)}
         title={t("help_button")}
-        className={
-          prominent
-            ? `${className} inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-violet-200 bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/40 transition-colors`.trim()
-            : `${className} p-2 rounded-lg text-zinc-500 hover:text-violet-300 hover:bg-violet-500/10 transition-colors`.trim()
-        }
+        className={`${className} inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-amber-950 bg-amber-400 hover:bg-amber-300 border border-amber-500/60 shadow-sm shadow-amber-500/20 transition-colors`.trim()}
       >
-        <HelpCircle size={prominent ? 14 : 15} />
-        {prominent && <span>{t("help_label")}</span>}
+        <HelpCircle size={14} />
+        <span>{t("help_label")}</span>
       </button>
       <HelpDrawer topic={topic} open={open} onClose={() => setOpen(false)} />
     </>
