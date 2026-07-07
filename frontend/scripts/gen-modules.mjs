@@ -29,5 +29,6 @@ export const moduleNav: unknown[] = [${nav}]
 export const moduleI18n: unknown[] = [${i18n}]
 export const moduleBuddyWidgets: unknown[] = _mods.flatMap(m => _opt(m, "buddyWidgets"))
 export const moduleWorkspaceTabs: unknown[] = _mods.flatMap(m => _opt(m, "workspaceTabs"))
+export const moduleSlotBlocks: unknown[] = _mods.flatMap(m => _opt(m, "slotBlocks"))
 `)
 console.log(`[gen-modules] ${ids.length} Modul(e): ${ids.join(", ") || "(keine)"}`)
