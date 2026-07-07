@@ -28,36 +28,47 @@ Das **Standard-Modell** wird verwendet wenn ein Agent kein eigenes Modell expliz
 
 ## Schritt-für-Schritt
 
-### Anthropic mit Claude-Abo (Pro/Max) einrichten — OAuth-Token
+### Anthropic einrichten — drei Wege
 
-Mit einem Claude-Abo (Pro/Max) kannst du deinen Account statt eines
-kostenpflichtigen API-Keys nutzen. Der OAuth-Token wird **in der Shell mit der
-Claude-Code-CLI erzeugt** und hier ins normale API-Key-Feld eingefügt — HydraHive
+Für Anthropic gibt es **drei** Wege. Alle enden im selben Provider „Anthropic".
+Wenn du sowohl einen Key als auch OAuth hinterlegst, hat **OAuth Vorrang**.
+
+**Weg 1 — klassischer API-Key (Pay-per-Use)**
+1. In der Anthropic-Console einen API-Key erstellen (`sk-ant-api03-...`).
+2. **Provider hinzufügen** → **Anthropic** → Key ins **API-Key-Feld** einfügen.
+3. Modelle ankreuzen, **Hinzufügen**, **Verbindung testen**.
+   Abrechnung nach API-Preisen (nicht übers Abo).
+
+**Weg 2 — Abo-Token per CLI (`claude setup-token`)**
+Nutzt dein Claude-Abo (Pro/Max) statt API-Credits. Der Token wird **in der Shell
+mit der Claude-Code-CLI** erzeugt und ins API-Key-Feld eingefügt — HydraHive
 erkennt am Präfix `sk-ant-oat...` automatisch, dass es ein OAuth-Token ist.
+1. In einer Shell mit Claude-Code-CLI: `claude setup-token` ausführen.
+2. Browser öffnet sich → mit Claude-Account **anmelden und autorisieren**.
+3. Der langlebige Token (`sk-ant-oat01-...`, ~1 Jahr) erscheint **in der Shell** →
+   kopieren.
+4. **Provider hinzufügen** → **Anthropic** → Token ins **API-Key-Feld** einfügen.
+5. Modelle ankreuzen, **Hinzufügen**, **Verbindung testen**.
 
-1. In einer Shell mit installierter Claude-Code-CLI den Befehl ausführen:
-   ```
-   claude setup-token
-   ```
-2. Es öffnet sich der Browser → mit deinem Claude-Account (Pro/Max) **anmelden
-   und autorisieren**.
-3. Danach erscheint **in der Shell** ein langlebiger Token (`sk-ant-oat01-...`,
-   ~1 Jahr gültig). Diesen kopieren.
-4. Hier **Provider hinzufügen** → **Anthropic**.
-5. API-Key-Feld: den kopierten `sk-ant-oat01-...`-Token einfügen (kein
-   OAuth-Login-Button nötig — der wird nur für ChatGPT/Codex gebraucht).
-6. Modelle ankreuzen (z.B. `claude-sonnet-4-6`, `claude-opus-4-8`).
-7. **Hinzufügen**.
-8. Standard-Modell setzen, **Verbindung testen** klicken — sollte "OK" zurückgeben.
+**Weg 3 — OAuth-Login per Klick (Abo, ohne CLI)**
+Der bequemste Weg mit Claude-Abo — kein Terminal nötig. HydraHive holt den Token
+selbst und **erneuert ihn automatisch** (Auto-Refresh), du musst dich also nicht
+alle paar Tage neu einloggen.
+1. **Provider hinzufügen** → **Anthropic**.
+2. Unter dem API-Key-Feld beim OAuth-Login **Login öffnen** klicken → im Browser
+   bei **claude.ai** anmelden und autorisieren.
+3. Der Browser leitet auf `localhost:53692` um und zeigt „Seite nicht erreichbar" —
+   **das ist normal**. Die ganze URL aus dem Adressfeld kopieren.
+4. URL im zweiten Schritt einfügen → **Verbinden**. Es erscheint „Per OAuth
+   verbunden".
+5. Modelle ankreuzen, **Hinzufügen**, Standard-Modell setzen, **Verbindung testen**.
 
-> Alternativ geht auch ein klassischer API-Key aus der Anthropic-Console
-> (`sk-ant-api03-...`) — dann wird pro Nutzung nach API-Preisen abgerechnet statt
-> übers Abo.
+> Das API-Key-Feld bleibt bei allen drei Wegen sichtbar — der OAuth-Login (Weg 3)
+> ist eine zusätzliche Option, kein Ersatz.
 
 ### ChatGPT Plus/Pro (Codex) per OAuth-Login
 
-Das ist der **einzige** Provider mit echtem OAuth-Login-Button in der GUI (kein
-Key nötig):
+Auch ChatGPT hat einen OAuth-Login-Button (kein Key nötig):
 
 1. **Provider hinzufügen** → **ChatGPT Plus/Pro (Codex)**.
 2. **Login öffnen** klicken → im Browser bei ChatGPT anmelden.

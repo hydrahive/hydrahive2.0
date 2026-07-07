@@ -23,6 +23,8 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
   const [customModels, setCustomModels] = useState(existing ? existing.models.join(", ") : "")
   const known = KNOWN_PROVIDERS.find((p) => p.id === form.id)
   const isOAuth = (known as { auth?: string } | undefined)?.auth === "oauth"
+  // Hybrid-Provider (Anthropic): Key-Feld bleibt sichtbar UND zusätzlich OAuth-Login.
+  const isOAuthOptional = (known as { oauthOptional?: boolean } | undefined)?.oauthOptional === true
   const hasToken = !!form.oauth?.access
 
   function handleSubmit(e: React.FormEvent) {
@@ -77,6 +79,25 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
           onConnected={() => onOAuthConnected?.()}
         />
       )}
+      {isOAuthOptional && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[11px] text-zinc-500">
+            <span className="h-px flex-1 bg-white/[8%]" />
+            {t("form.or_oauth")}
+            <span className="h-px flex-1 bg-white/[8%]" />
+          </div>
+          {hasToken ? (
+            <p className="flex items-center gap-1.5 text-xs text-emerald-400">
+              <CheckCircle size={12} /> {t("form.oauth_connected")}
+            </p>
+          ) : (
+            <OAuthFlow
+              providerId={form.id}
+              onConnected={() => onOAuthConnected?.()}
+            />
+          )}
+        </div>
+      )}
       {known && (
         <div>
           <label className="block text-xs text-zinc-500 mb-1">Eigene Modelle (optional, kommagetrennt)</label>
@@ -88,7 +109,13 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
       )}
       <div className="flex items-center gap-2">
         <button type="submit"
-          disabled={!form.id || (!isOAuth && !form.api_key) || (isOAuth && !hasToken)}
+          disabled={
+            !form.id
+            || (isOAuth && !hasToken)
+            // Hybrid (Anthropic): Key ODER OAuth-Token reicht.
+            || (isOAuthOptional && !form.api_key && !hasToken)
+            || (!isOAuth && !isOAuthOptional && !form.api_key)
+          }
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all">
           <Plus size={14} /> {isEdit ? tCommon("actions.save") : tCommon("actions.add")}
         </button>
