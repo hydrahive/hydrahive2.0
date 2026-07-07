@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Film, Search } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
 import { streamingApi } from "./api"
 import type { ScrapeResult, StreamingCredentials, StreamingJob } from "./types"
 import { CredentialsForm } from "./_CredentialsForm"
@@ -96,6 +97,7 @@ export function StreamingPage() {
           <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
           <p className="text-xs text-zinc-500 mt-0.5">{t("subtitle")}</p>
         </div>
+        <HelpButton topic="streaming" />
       </div>
 
       <CredentialsForm creds={creds} onSaved={loadCreds} />

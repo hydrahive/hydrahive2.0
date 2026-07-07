@@ -54,7 +54,12 @@
       "minigames": "Minigames",
       "musicplayer": "Music",
       "tasks": "Tasks",
-      "videoeditor": "Video editor"
+      "videoeditor": "Video editor",
+      "zahnfee": "Tooth Fairy",
+      "plugins": "Plugins",
+      "federation": "Federation",
+      "streaming": "Streaming",
+      "extensions": "Extensions"
     }
   }
 }

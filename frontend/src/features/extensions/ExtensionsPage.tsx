@@ -3,6 +3,7 @@ import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Package, RefreshCw, Container, Terminal } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import { fetchExtensions, authHeaders } from "./api"
 import { ExtensionCard } from "./ExtensionCard"
 import { InstallModal } from "./InstallModal"
@@ -89,6 +90,7 @@ export function ExtensionsPage() {
         <div className="flex items-center gap-3">
           <Package className="text-violet-400" size={20} />
           <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
+          <HelpButton topic="extensions" />
           <span className="text-xs text-zinc-500">
             {t("installed_count", { installed: extensions.filter((e) => e.installed).length, total: extensions.length })}
           </span>

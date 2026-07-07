@@ -5,6 +5,7 @@ import { Globe, Plus } from "lucide-react"
 import { federationApi } from "./api"
 import type { Workstation } from "./types"
 import { rgbFor } from "@/shared/colors"
+import { HelpButton } from "@/i18n/HelpButton"
 import { WorkstationCard } from "./_WorkstationCard"
 import { AddWorkstationDialog } from "./_AddDialog"
 import { ClientConnectionsSection } from "./_ClientConnectionsSection"
@@ -47,6 +48,7 @@ export function FederationPage() {
             <h1 className="text-xl font-semibold text-zinc-100">{t("title")}</h1>
             <p className="text-xs text-zinc-500 mt-0.5">{t("subtitle")}</p>
           </div>
+          <HelpButton topic="federation" />
         </div>
         <button
           onClick={() => setShowAdd(true)}
