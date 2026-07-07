@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType } from "react"
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
 import { useTranslation } from "react-i18next"
 import { Cpu, Dice5, Download, FileText, GitMerge, HelpCircle, Loader2, RotateCcw, Save, Settings, Sparkles, SquarePen, Wand2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -31,6 +31,12 @@ import { moduleBuddyWidgets } from "@/modules/index.generated"
 type BuddyWidget = ComponentType<{ onPrompt: (text: string) => void; projectId?: string | null }>
 const BUDDY_WIDGETS = moduleBuddyWidgets as BuddyWidget[]
 
+// Nur die letzten N Nachrichten rendern — sonst hängt das UI hunderte DOM-Knoten
+// (Markdown + Syntax-Highlighting) gleichzeitig auf und ruckelt. Ältere werden per
+// Button/Scroll nachgeladen. ponytail: reines Slicing, kein Virtualisierungs-Framework.
+const MSG_WINDOW = 60
+const MSG_WINDOW_STEP = 100
+
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
   const navigate = useNavigate()
@@ -39,6 +45,7 @@ export function BuddyPage() {
   const [error, setError] = useState<string | null>(null)
   const [reasoningEffort, setReasoningEffort] = useState<EffortLevel | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
+  const [visibleCount, setVisibleCount] = useState(MSG_WINDOW)
   const [projects, setProjects] = useState<ProjectBrief[]>([])
   const [projectBusy, setProjectBusy] = useState(false)
   const initRef = useRef(false)
@@ -47,7 +54,12 @@ export function BuddyPage() {
   const mascotState = tts.speaking ? "speaking" : chat.busy ? "working" : "idle"
 
   const allMessages = [...chat.messages, ...localMsgs]
-  const runtime = useHydraRuntime(allMessages, chat.busy, chat.send, chat.cancel)
+  const windowedMessages = useMemo(
+    () => (allMessages.length > visibleCount ? allMessages.slice(-visibleCount) : allMessages),
+    [allMessages, visibleCount],
+  )
+  const hiddenCount = allMessages.length - windowedMessages.length
+  const runtime = useHydraRuntime(windowedMessages, chat.busy, chat.send, chat.cancel)
 
   useEffect(() => {
     if (initRef.current) return
@@ -58,7 +70,7 @@ export function BuddyPage() {
   }, [])
 
   useEffect(() => {
-    if (state?.session_id) chat.reload()
+    if (state?.session_id) { chat.reload(); setVisibleCount(MSG_WINDOW) }
   }, [state?.session_id, chat.reload])
 
   useEffect(() => {
@@ -221,7 +233,10 @@ export function BuddyPage() {
                 setState((s) => (s ? { ...s, session_id: r.session_id } : s))
               }}
             />
-            <BuddyThread />
+            <BuddyThread
+              hiddenCount={hiddenCount}
+              onLoadOlder={() => setVisibleCount((n) => n + MSG_WINDOW_STEP)}
+            />
             {chat.pendingConfirm && (
               <ToolConfirmBanner
                 pending={chat.pendingConfirm}

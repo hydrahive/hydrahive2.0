@@ -164,10 +164,26 @@ function BuddySystemMessage() {
   return <CompactionBlock message={original} />
 }
 
-export function BuddyThread() {
+export function BuddyThread({
+  hiddenCount = 0,
+  onLoadOlder,
+}: {
+  hiddenCount?: number
+  onLoadOlder?: () => void
+}) {
   return (
     <ThreadPrimitive.Root className="flex-1 overflow-hidden flex flex-col">
       <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        {hiddenCount > 0 && (
+          <div className="flex justify-center pb-2">
+            <button
+              onClick={onLoadOlder}
+              className="text-xs text-zinc-400 hover:text-zinc-200 rounded-full border border-zinc-700 px-3 py-1 transition-colors"
+            >
+              ↑ {hiddenCount} ältere Nachrichten laden
+            </button>
+          </div>
+        )}
         <ThreadPrimitive.Empty>
           <div className="flex flex-col items-center justify-center text-center gap-3 py-16 px-6">
             <HydraMascot state="celebrate" size={132} />
