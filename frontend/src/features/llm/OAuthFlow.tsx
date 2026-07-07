@@ -4,10 +4,13 @@ import { ExternalLink, Loader2 } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
 import { llmApi } from "./api"
 
-// Provider-spezifische Texte für den OAuth-Login (Flow ist identisch).
-const OAUTH_META: Record<string, { service: string; callback: string }> = {
-  "openai-codex": { service: "OpenAI/ChatGPT", callback: "localhost:1455" },
-  anthropic: { service: "Claude (claude.ai)", callback: "localhost:53692" },
+// Provider-spezifische Texte. mode="url": Browser zeigt Connection-Refused-Page,
+// User kopiert die REDIRECT-URL aus der Adresszeile (ChatGPT/Codex).
+// mode="code": Anbieter-Seite zeigt einen Code direkt an, User kopiert den CODE
+// (Anthropic/claude.ai — Format code#state).
+const OAUTH_META: Record<string, { service: string; callback: string; mode: "url" | "code" }> = {
+  "openai-codex": { service: "OpenAI/ChatGPT", callback: "localhost:1455", mode: "url" },
+  anthropic: { service: "Claude (claude.ai)", callback: "localhost:53692", mode: "code" },
 }
 
 export function OAuthFlow({
@@ -57,12 +60,21 @@ export function OAuthFlow({
 
       {step === 1 && (
         <div className="space-y-2">
-          <p className="text-xs text-zinc-400">
-            Login bei {meta.service}. Du wirst danach auf <code className="text-zinc-300">{meta.callback}</code> umgeleitet —
-            das wird im Browser eine "Diese Seite kann nicht erreicht werden"-Fehlermeldung zeigen.
-            <strong className="text-zinc-200"> Das ist normal.</strong> Du kopierst die ganze URL aus
-            dem Browser-Adressfeld in Schritt 2.
-          </p>
+          {meta.mode === "code" ? (
+            <p className="text-xs text-zinc-400">
+              Login bei {meta.service}. Nach dem Bestätigen zeigt die Seite einen
+              <strong className="text-zinc-200"> Authorisierungs-Code</strong> an
+              (Format <code className="text-zinc-300">code#state</code>). Diesen
+              Code kopierst du in Schritt 2.
+            </p>
+          ) : (
+            <p className="text-xs text-zinc-400">
+              Login bei {meta.service}. Du wirst danach auf <code className="text-zinc-300">{meta.callback}</code> umgeleitet —
+              das wird im Browser eine "Diese Seite kann nicht erreicht werden"-Fehlermeldung zeigen.
+              <strong className="text-zinc-200"> Das ist normal.</strong> Du kopierst die ganze URL aus
+              dem Browser-Adressfeld in Schritt 2.
+            </p>
+          )}
           <div className="flex gap-2">
             <button onClick={startFlow} disabled={busy}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-40">
@@ -81,11 +93,19 @@ export function OAuthFlow({
 
       {step === 2 && (
         <div className="space-y-2">
-          <p className="text-xs text-zinc-400">
-            Kopier die ganze URL aus dem Browser-Adressfeld
-            (<code className="text-zinc-300">http://{meta.callback}/...?code=...&state=...</code>)
-            und füge sie hier ein:
-          </p>
+          {meta.mode === "code" ? (
+            <p className="text-xs text-zinc-400">
+              Füge den <strong className="text-zinc-200">Code</strong> ein, den die
+              Login-Seite angezeigt hat (Format
+              <code className="text-zinc-300"> code#state</code>):
+            </p>
+          ) : (
+            <p className="text-xs text-zinc-400">
+              Kopier die ganze URL aus dem Browser-Adressfeld
+              (<code className="text-zinc-300">http://{meta.callback}/...?code=...&state=...</code>)
+              und füge sie hier ein:
+            </p>
+          )}
           {authUrl && (
             <a href={authUrl} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[11px] text-violet-300 hover:text-violet-200 underline">
@@ -93,7 +113,10 @@ export function OAuthFlow({
             </a>
           )}
           <textarea value={code} onChange={(e) => setCode(e.target.value)}
-            rows={3} placeholder={`http://${meta.callback}/...?code=...&state=...`}
+            rows={3}
+            placeholder={meta.mode === "code"
+              ? "code#state"
+              : `http://${meta.callback}/...?code=...&state=...`}
             className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-xs font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50 resize-none" />
           {error && <p className="text-xs text-rose-400">{error}</p>}
           <div className="flex gap-2">
