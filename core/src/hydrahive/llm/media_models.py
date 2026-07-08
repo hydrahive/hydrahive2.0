@@ -222,6 +222,9 @@ async def list_video_models(force: bool = False) -> list[dict]:
             # sonst quittiert OpenRouter mit HTTP 400.
             "durations": m.get("supported_durations") or [],
             "aspect_ratios": m.get("supported_aspect_ratios") or [],
+            # Welche Frame-Typen das Modell akzeptiert (first_frame/last_frame).
+            # Der Client zeigt das Endbild-Feld nur bei last_frame-Support.
+            "frame_images": m.get("supported_frame_images") or [],
         }
         for m in items if m.get("id")
     ]
