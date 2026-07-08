@@ -6,6 +6,7 @@
   "just_woken_up": "🎉 Hallo! Ich bin frisch geschlüpft — schreib mir!",
   "empty_hint": "Sag was. Ich bin da.",
   "new_chat": "Neuer Chat",
+  "load_older": "↑ {{count}} ältere Nachrichten laden",
   "saved": "Gespeichert",
   "cancel": "Abbrechen",
   "save": "Speichern",

@@ -236,6 +236,7 @@ export function BuddyPage() {
             <BuddyThread
               hiddenCount={hiddenCount}
               onLoadOlder={() => setVisibleCount((n) => n + MSG_WINDOW_STEP)}
+              loadOlderLabel={t("load_older", { count: hiddenCount })}
             />
             {chat.pendingConfirm && (
               <ToolConfirmBanner

@@ -6,6 +6,7 @@
   "just_woken_up": "🎉 Hi! I just hatched — write to me!",
   "empty_hint": "Say something. I'm here.",
   "new_chat": "New Chat",
+  "load_older": "↑ Load {{count}} older messages",
   "saved": "Saved",
   "cancel": "Cancel",
   "save": "Save",

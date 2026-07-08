@@ -167,9 +167,11 @@ function BuddySystemMessage() {
 export function BuddyThread({
   hiddenCount = 0,
   onLoadOlder,
+  loadOlderLabel,
 }: {
   hiddenCount?: number
   onLoadOlder?: () => void
+  loadOlderLabel?: string
 }) {
   return (
     <ThreadPrimitive.Root className="flex-1 overflow-hidden flex flex-col">
@@ -180,7 +182,7 @@ export function BuddyThread({
               onClick={onLoadOlder}
               className="text-xs text-zinc-400 hover:text-zinc-200 rounded-full border border-zinc-700 px-3 py-1 transition-colors"
             >
-              ↑ {hiddenCount} ältere Nachrichten laden
+              {loadOlderLabel}
             </button>
           </div>
         )}
