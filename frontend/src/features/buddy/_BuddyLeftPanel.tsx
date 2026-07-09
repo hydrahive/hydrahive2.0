@@ -83,7 +83,7 @@ export function BuddyLeftPanel() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-4 w-60">
+    <div className="flex flex-col gap-4 w-64">
       <ZahnfeeBox briefing={briefing} />
 
       <PanelBox boxId="buddy-system" title="System" c="20 184 166" icon={<Activity size={13} className="text-teal-300" />}>

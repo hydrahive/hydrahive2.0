@@ -12,6 +12,7 @@ from hydrahive.agents import config as agent_config
 from hydrahive.buddy._characters import pick_character as _pick_character
 from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._config import load_config
+from hydrahive.llm.model_provider import provider_for_model
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,7 @@ def get_or_create_buddy(username: str) -> dict:
             "session_id": sid,
             "agent_name": existing["name"],
             "model": existing["llm_model"],
+            "provider": provider_for_model(existing["llm_model"]),
             "project_id": _session_project_id(sid),
             "created": False,
         }
@@ -142,6 +144,7 @@ def get_or_create_buddy(username: str) -> dict:
         "session_id": sid,
         "agent_name": agent["name"],
         "model": model,
+        "provider": provider_for_model(model),
         "project_id": _session_project_id(sid),
         "created": True,
     }

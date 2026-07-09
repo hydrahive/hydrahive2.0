@@ -10,6 +10,35 @@
   "saved": "Gespeichert",
   "cancel": "Abbrechen",
   "save": "Speichern",
+  "cockpit": {
+    "title": "Cockpit",
+    "model_hint": "Buddy-Modell wechseln",
+    "prefs_warning": "Cockpit-Einstellungen konnten nicht synchronisiert werden. Das Layout bleibt lokal aktiv, wird aber nicht gespeichert.",
+    "collapse": "Einklappen",
+    "expand": "Ausklappen",
+    "hide": "Ausblenden",
+    "hide_rail": "Rail ausblenden",
+    "show_rail": "Rail einblenden",
+    "decor": "Cockpit-Dekor",
+    "decor_variants": {
+      "default": "Default",
+      "calm": "Ruhig",
+      "aurora": "Aurora",
+      "minimal": "Minimal"
+    },
+    "usage": {
+      "no_turn": "noch kein Turn",
+      "price_na": "Preis n/a"
+    },
+    "slots": {
+      "music": "Musik",
+      "extensions": "Extensions",
+      "moduleWidgets": "Spiele & Widgets",
+      "futureBottom": "Freier Slot",
+      "future_empty": "Dieser Deko-/Widget-Slot ist für spätere Cockpit-Erweiterungen reserviert.",
+      "no_widgets": "Keine Spiele oder Modul-Widgets installiert."
+    }
+  },
   "settings": {
     "title": "Buddy-Einstellungen",
     "tab_identity": "Identität",
