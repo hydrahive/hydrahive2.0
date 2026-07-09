@@ -15,7 +15,8 @@ Buddy ist ein vollwertiger Agent: Er kann **Werkzeuge benutzen** (Dateien lesen,
 - **Modell wählen** — oben der Modell-Auswähler: welches KI-Modell Buddy gerade benutzt.
 - **Projekt-Kontext setzen** — mit dem Projekt-Auswähler bindest du Buddy an ein Projekt; dann arbeiten seine Datei-Werkzeuge im Projekt-Ordner.
 - **Denk-Tiefe steuern** — die „Reasoning Effort"-Pille bestimmt, wie gründlich das Modell nachdenkt (mehr Tiefe = langsamer, aber durchdachter; nur bei Modellen, die das können).
-- **Modul-Widgets** — installierte Module blenden rechts kleine Helfer ein (z.B. Gesundheits-Box der Patientenakte), die per Klick etwas an Buddy schicken.
+- **Cockpit-Slots steuern** — Musik, Extensions sowie Spiele & Widgets liegen rechts in einer Cockpit-Rail. Du kannst Slots einklappen oder ausblenden; gespeichert wird serverseitig pro Buddy, nicht im Browser-LocalStorage.
+- **Verbrauch sehen** — der Usage-Chip zeigt Provider, Token des letzten Turns und — wenn Preisdaten bekannt sind — eine grobe Kostenschätzung. Ist kein Preis/Quota bekannt, steht dort ehrlich „Preis n/a“.
 - **Buddy anpassen** — über das Zahnrad kommst du zu den Buddy-Einstellungen (Name, Charakter, Werkzeuge …).
 
 ## Wichtige Begriffe

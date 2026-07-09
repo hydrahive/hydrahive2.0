@@ -74,7 +74,7 @@ export function BuddyExtensionsPanel() {
       title={t("boxes.extensions")}
       color={rgbFor("/mcp")}
       defaultCollapsed
-      className="w-60"
+      className="w-full"
     >
       <div className="p-3">
         {extensions === null ? (
