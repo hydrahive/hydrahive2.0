@@ -15,6 +15,58 @@ def _find_buddy(username: str) -> dict:
             return a
     raise LookupError("Kein Buddy für diesen User")
 
+_PREF_COCKPIT = "_pref_cockpit"
+_COCKPIT_SLOT_IDS = ("music", "extensions", "moduleWidgets", "futureBottom")
+_DECOR_VARIANTS = {"default", "calm", "aurora", "minimal"}
+
+DEFAULT_COCKPIT_PREFS = {
+    "version": 1,
+    "slots": {
+        "music": {"visible": True, "collapsed": True},
+        "extensions": {"visible": True, "collapsed": True},
+        "moduleWidgets": {"visible": True, "collapsed": False},
+        "futureBottom": {"visible": False, "collapsed": True},
+    },
+    "rightRailCollapsed": False,
+    "decorVariant": "default",
+}
+
+
+def _bool(value: object, default: bool) -> bool:
+    return value if isinstance(value, bool) else default
+
+
+def normalize_cockpit_prefs(raw: object | None) -> dict:
+    source = raw if isinstance(raw, dict) else {}
+    raw_slots = source.get("slots") if isinstance(source.get("slots"), dict) else {}
+    slots = {}
+    for slot_id in _COCKPIT_SLOT_IDS:
+        default_slot = DEFAULT_COCKPIT_PREFS["slots"][slot_id]
+        incoming = raw_slots.get(slot_id) if isinstance(raw_slots.get(slot_id), dict) else {}
+        slots[slot_id] = {
+            "visible": _bool(incoming.get("visible"), default_slot["visible"]),
+            "collapsed": _bool(incoming.get("collapsed"), default_slot["collapsed"]),
+        }
+    decor = source.get("decorVariant")
+    return {
+        "version": 1,
+        "slots": slots,
+        "rightRailCollapsed": _bool(source.get("rightRailCollapsed"), DEFAULT_COCKPIT_PREFS["rightRailCollapsed"]),
+        "decorVariant": decor if decor in _DECOR_VARIANTS else DEFAULT_COCKPIT_PREFS["decorVariant"],
+    }
+
+
+def get_cockpit_prefs(username: str) -> dict:
+    buddy = _find_buddy(username)
+    return normalize_cockpit_prefs(memory.read_key(buddy["id"], _PREF_COCKPIT))
+
+
+def put_cockpit_prefs(username: str, prefs: dict) -> dict:
+    buddy = _find_buddy(username)
+    normalized = normalize_cockpit_prefs(prefs)
+    memory.write_key(buddy["id"], _PREF_COCKPIT, normalized)
+    return normalized
+
 
 def get_config(username: str) -> dict:
     buddy = _find_buddy(username)
