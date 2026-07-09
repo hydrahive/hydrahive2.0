@@ -1,34 +1,14 @@
 import { api } from "@/shared/api-client"
 import type { AgentToolConfig } from "@/features/agents/types"
 
-export type LlmProviderId = "anthropic" | "openai" | "minimax" | "openrouter" | "local" | "unknown" | string
-
 export interface BuddyState {
   agent_id: string
   session_id: string
   agent_name: string
   model: string
-  provider: LlmProviderId
   project_id: string | null
   created: boolean
 }
-
-export type BuddyCockpitSlotId = "music" | "extensions" | "moduleWidgets" | "futureBottom"
-export type BuddyDecorVariant = "default" | "calm" | "aurora" | "minimal"
-
-export interface BuddyCockpitSlotPrefs {
-  visible: boolean
-  collapsed: boolean
-}
-
-export interface BuddyCockpitPrefs {
-  version: 1
-  slots: Record<BuddyCockpitSlotId, BuddyCockpitSlotPrefs>
-  rightRailCollapsed: boolean
-  decorVariant: BuddyDecorVariant
-}
-
-export interface CockpitPrefsResult { ok: boolean; cockpit_prefs: BuddyCockpitPrefs }
 
 export interface ClearResult { ok: boolean; session_id: string; message: string }
 export interface RememberResult { ok: boolean; key: string; message: string }
@@ -77,7 +57,4 @@ export const buddyApi = {
     api.post<{ ok: boolean }>("/buddy/log-cmd", { user_text, assistant_text }),
   getConfig: () => api.get<BuddyConfig>("/buddy/config"),
   patchConfig: (patch: BuddyConfigPatch) => api.patch<PatchResult>("/buddy/config", patch),
-  getCockpitPrefs: () => api.get<BuddyCockpitPrefs>("/buddy/cockpit-prefs"),
-  putCockpitPrefs: (prefs: BuddyCockpitPrefs) =>
-    api.put<CockpitPrefsResult>("/buddy/cockpit-prefs", prefs),
 }

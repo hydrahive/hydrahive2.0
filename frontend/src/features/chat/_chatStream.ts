@@ -88,10 +88,6 @@ export function applyStreamEvent(
         cache_creation: ev.cache_creation_tokens as number,
         cache_read: ev.cache_read_tokens as number,
       },
-      lastTurnUsage: {
-        model: typeof ev.model === "string" ? ev.model : undefined,
-        provider: typeof ev.provider === "string" ? ev.provider : undefined,
-      },
     }))
     return "done"
   }

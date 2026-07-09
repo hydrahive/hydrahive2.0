@@ -5,7 +5,7 @@ Slash-Commands sind deterministisch (keine LLM-Roundtrips) — `/clear`,
 """
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
@@ -148,41 +148,3 @@ def patch_buddy_config(
         return buddy_config.patch_config(_user(auth), changes)
     except LookupError as e:
         raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
-
-
-# ── Cockpit-Prefs Endpoints ─────────────────────────────────────────────────
-
-class CockpitSlotPrefs(BaseModel):
-    visible: bool = True
-    collapsed: bool = True
-
-
-class CockpitPrefsBody(BaseModel):
-    version: Literal[1] = 1
-    slots: dict[str, CockpitSlotPrefs] = Field(default_factory=dict)
-    rightRailCollapsed: bool = False
-    decorVariant: str = Field(default="default", max_length=40)
-
-
-@router.get("/cockpit-prefs")
-def get_buddy_cockpit_prefs(
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-) -> dict:
-    try:
-        return buddy_config.get_cockpit_prefs(_user(auth))
-    except LookupError as e:
-        raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
-
-
-@router.put("/cockpit-prefs")
-def put_buddy_cockpit_prefs(
-    body: CockpitPrefsBody,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
-) -> dict:
-    try:
-        prefs = buddy_config.put_cockpit_prefs(_user(auth), body.model_dump())
-        return {"ok": True, "cockpit_prefs": prefs}
-    except LookupError as e:
-        raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
-    except ValueError as e:
-        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))

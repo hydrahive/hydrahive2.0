@@ -25,15 +25,11 @@ export interface ChatState {
     cache_creation: number
     cache_read: number
   } | null
-  lastTurnUsage: {
-    model?: string
-    provider?: string
-  } | null
 }
 
 const EMPTY_STATE: ChatState = {
   messages: [], busy: false, compacting: false, iteration: 0,
-  error: null, errorKind: null, pendingConfirm: null, lastTurnTokens: null, lastTurnUsage: null,
+  error: null, errorKind: null, pendingConfirm: null, lastTurnTokens: null,
 }
 
 export function useChat(sessionId: string | null) {

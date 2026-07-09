@@ -22,7 +22,6 @@ from hydrahive.db import llm_calls as llm_calls_db
 from hydrahive.db import messages as messages_db
 from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._pricing import cost_micros, provider_from_model
-from hydrahive.llm.model_provider import provider_for_model
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._emote_hint import with_emote_hint
@@ -247,15 +246,14 @@ async def run(
         except Exception:
             logger.exception("llm_calls-Insert fehlgeschlagen — Telemetrie verloren, Lauf läuft weiter")
 
-        result_provider = provider_for_model(result.used_model)
         assistant_msg = messages_db.append(
             session_id, "assistant", result.blocks,
             token_count=result.output_tokens or None,
             metadata={"input_tokens": result.input_tokens, "output_tokens": result.output_tokens,
                       "cache_creation_tokens": result.cache_creation_tokens,
                       "cache_read_tokens": result.cache_read_tokens,
-                      "model": result.used_model, "provider": result_provider,
-                      "stop_reason": result.stop_reason, "iteration": iteration + 1},
+                      "model": result.used_model, "stop_reason": result.stop_reason,
+                      "iteration": iteration + 1},
         )
         last_assistant_id = assistant_msg.id
         history.append(assistant_msg)
@@ -289,8 +287,7 @@ async def run(
             )
             yield Done(message_id=assistant_msg.id, iterations=iteration + 1,
                        input_tokens=total_input_tokens, output_tokens=total_output_tokens,
-                       cache_creation_tokens=total_cache_creation, cache_read_tokens=total_cache_read,
-                       model=result.used_model, provider=result_provider)
+                       cache_creation_tokens=total_cache_creation, cache_read_tokens=total_cache_read)
             return
 
         signature = "|".join(f"{tu.get('name')}:{json.dumps(tu.get('input', {}), sort_keys=True)}" for tu in tool_uses)

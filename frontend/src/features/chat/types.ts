@@ -85,7 +85,5 @@ export type RunnerEvent =
       output_tokens: number
       cache_creation_tokens: number
       cache_read_tokens: number
-      model?: string
-      provider?: string
     }
   | { type: "error"; message: string; fatal: boolean }

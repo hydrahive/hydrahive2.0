@@ -15,8 +15,7 @@ Buddy is a full agent: it can **use tools** (read files, search the web, send em
 - **Pick a model** — the model selector at the top: which AI model Buddy currently uses.
 - **Set project context** — bind Buddy to a project; its file tools then work inside that project's folder.
 - **Control thinking depth** — the "Reasoning Effort" pill sets how thoroughly the model reasons (more depth = slower but more considered; only for models that support it).
-- **Control cockpit slots** — music, extensions, games & widgets live in the right cockpit rail. You can collapse or hide slots; preferences are stored server-side per Buddy, not in browser localStorage.
-- **See usage** — the usage chip shows the backend-provided provider, last-turn tokens and, when pricing is known, a rough cost estimate. If no pricing/quota data exists, it honestly says “price n/a”.
+- **Module widgets** — installed modules show small helpers on the right that send something to Buddy on click.
 - **Customize Buddy** — the gear icon opens Buddy's settings (name, character, tools …).
 
 ## Key terms

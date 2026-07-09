@@ -10,35 +10,6 @@
   "saved": "Saved",
   "cancel": "Cancel",
   "save": "Save",
-  "cockpit": {
-    "title": "Cockpit",
-    "model_hint": "Switch Buddy model",
-    "prefs_warning": "Cockpit preferences could not be synced. The layout stays active locally but is not saved.",
-    "collapse": "Collapse",
-    "expand": "Expand",
-    "hide": "Hide",
-    "hide_rail": "Hide rail",
-    "show_rail": "Show rail",
-    "decor": "Cockpit decor",
-    "decor_variants": {
-      "default": "Default",
-      "calm": "Calm",
-      "aurora": "Aurora",
-      "minimal": "Minimal"
-    },
-    "usage": {
-      "no_turn": "no turn yet",
-      "price_na": "price n/a"
-    },
-    "slots": {
-      "music": "Music",
-      "extensions": "Extensions",
-      "moduleWidgets": "Games & widgets",
-      "futureBottom": "Free slot",
-      "future_empty": "This decor/widget slot is reserved for later cockpit extensions.",
-      "no_widgets": "No games or module widgets installed."
-    }
-  },
   "settings": {
     "title": "Buddy settings",
     "tab_identity": "Identity",
