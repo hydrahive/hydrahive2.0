@@ -38,6 +38,9 @@ STATIC_MODELS = {
         "embo-01",
     ],
     "openai-codex": [
+        "openai-codex/gpt-5.6-sol",
+        "openai-codex/gpt-5.6-terra",
+        "openai-codex/gpt-5.6-luna",
         "openai-codex/gpt-5.5",
         "openai-codex/gpt-5.4",
         "openai-codex/gpt-5.3-codex",
@@ -241,6 +244,9 @@ METADATA: dict[str, dict[str, Any]] = {
     # OpenAI Codex (ChatGPT Plus/Pro via OAuth — Responses-API).
     # Context-Windows: gpt-5-Klasse hat ~272k bei OpenAI dokumentiert; codex-Varianten
     # geben ~400k im Codex-Backend frei. Tool-Use bei allen Codex-Modellen.
+    "openai-codex/gpt-5.6-sol":          {"context_window": 1_000_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.6-terra":        {"context_window": 1_000_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-5.6-luna":         {"context_window": 1_000_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.5":              {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.4":              {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.3-codex":        {"context_window": 400_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
