@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import logging
+import shutil
 import sys
 import types
 from pathlib import Path
@@ -18,6 +19,40 @@ from hydrahive.modules.registry import REGISTRY, LoadedModule
 from hydrahive.modules.migrations import apply_module_migrations
 
 logger = logging.getLogger(__name__)
+
+# Module, die von Core-UI/Features direkt erwartet werden. Sie bleiben normale
+# Runtime-Module unter settings.modules_dir, werden aber aus dem gebündelten Repo-
+# Verzeichnis repariert, falls eine Installation fehlt oder offensichtlich kaputt
+# ist (z.B. leeres /var/lib/hydrahive2/modules/tasks ohne manifest.json).
+REQUIRED_BUNDLED_MODULES = ("tasks",)
+
+
+def ensure_required_bundled_modules() -> None:
+    """Stellt sicher, dass Core-erwartete gebündelte Module installierbar sind.
+
+    Normale installierte Module werden nicht überschrieben. Repariert wird nur,
+    wenn das Ziel fehlt oder kein manifest.json enthält. Damit werden User-Daten
+    in Modul-DB-Tabellen nicht angefasst und bewusst installierte Modulstände
+    bleiben erhalten, während ein kaputtes/leeres Modulverzeichnis keinen 404 für
+    Core-Cockpit-Funktionen verursacht.
+    """
+    from hydrahive.settings import settings  # lazy: Settings-Pfade erst zur Laufzeit binden
+
+    bundled_base = settings.base_dir / "modules"
+    settings.modules_dir.mkdir(parents=True, exist_ok=True)
+    for module_id in REQUIRED_BUNDLED_MODULES:
+        src = bundled_base / module_id
+        dst = settings.modules_dir / module_id
+        if not (src / "manifest.json").is_file():
+            logger.warning("Gebündeltes Pflichtmodul '%s' fehlt unter %s", module_id, src)
+            continue
+        if (dst / "manifest.json").is_file():
+            continue
+        if dst.exists():
+            shutil.rmtree(dst)
+            logger.warning("Kaputtes Pflichtmodul '%s' ohne manifest.json entfernt: %s", module_id, dst)
+        shutil.copytree(src, dst, symlinks=False)
+        logger.info("Pflichtmodul '%s' aus Bundle installiert: %s", module_id, dst)
 
 
 def _import_backend(module_dir: Path, mid: str) -> types.ModuleType:
