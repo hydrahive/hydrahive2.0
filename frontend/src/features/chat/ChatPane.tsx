@@ -247,6 +247,9 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               await createPreferredSession()
             }}
             cockpitMode={!showSidePanels}
+            sessions={!showSidePanels ? visibleSessions : undefined}
+            activeSessionId={activeId}
+            onSelectSession={setActiveId}
           />
           <ChatBubbleThread />
           {showPixelMonitor && (
@@ -324,31 +327,6 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
 
   const embeddedCenter = showSidePanels ? center : (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-[#2a364b] bg-[#121a29] px-3 py-2">
-        {visibleSessions.map((session) => (
-          <button
-            key={session.id}
-            type="button"
-            onClick={() => setActiveId(session.id)}
-            className={[
-              "max-w-48 shrink-0 truncate rounded-[4px] border px-2.5 py-1.5 text-xs font-semibold transition-colors",
-              session.id === activeId
-                ? "border-[#69d7ff]/45 bg-[#1c2940] text-[#69d7ff]"
-                : "border-[#2a364b] bg-[#0d1420] text-[#8d9ab0] hover:border-[#46617f] hover:text-[#e8eef8]",
-            ].join(" ")}
-          >
-            {session.title || "Neue Session"}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={createPreferredSession}
-          disabled={agents.length === 0}
-          className="shrink-0 rounded-[4px] border border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] px-2.5 py-1.5 text-xs font-black uppercase tracking-[0.10em] text-white hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Session +
-        </button>
-      </div>
       <div className="min-h-0 flex-1">{center}</div>
     </div>
   )

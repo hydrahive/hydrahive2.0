@@ -1,4 +1,5 @@
-import { Archive, Loader2, SquarePen } from "lucide-react"
+import { useState } from "react"
+import { Archive, ChevronDown, Loader2, SquarePen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { NewChatHint } from "./NewChatHint"
@@ -20,14 +21,18 @@ interface Props {
   onNewSession: () => void
   tokenRefresh: number
   cockpitMode?: boolean
+  sessions?: Session[]
+  activeSessionId?: string | null
+  onSelectSession?: (sessionId: string) => void
 }
 
 export function ChatHeader({
   session, agent, orphaned, compacting, compactNote,
   lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onNewSession, tokenRefresh,
-  cockpitMode = false,
+  cockpitMode = false, sessions = [], activeSessionId = null, onSelectSession,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
+  const [sessionMenuOpen, setSessionMenuOpen] = useState(false)
 
   if (cockpitMode) {
     return (
@@ -57,6 +62,42 @@ export function ChatHeader({
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {sessions.length > 0 && onSelectSession && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSessionMenuOpen((open) => !open)}
+                  className="flex max-w-[240px] items-center gap-2 rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2.5 py-1.5 text-xs font-semibold text-[#e8eef8] outline-none hover:border-[#46617f]"
+                  title="Projekt-Session wählen"
+                >
+                  <span className="truncate">{session.title || "Neue Session"}</span>
+                  <ChevronDown size={12} className="shrink-0 text-[#8d9ab0]" />
+                </button>
+                {sessionMenuOpen && (
+                  <div className="absolute right-0 z-30 mt-1 max-h-[320px] w-[280px] overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-1 shadow-2xl shadow-black/50">
+                    {sessions.map((item) => {
+                      const active = item.id === (activeSessionId ?? session.id)
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectSession(item.id)
+                            setSessionMenuOpen(false)
+                          }}
+                          className={[
+                            "block w-full truncate rounded-[4px] px-2.5 py-2 text-left text-xs font-semibold transition-colors",
+                            active ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#cdd7e6] hover:bg-[#172133] hover:text-[#e8eef8]",
+                          ].join(" ")}
+                        >
+                          {item.title || "Neue Session"}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             <TokenMeter sessionId={session.id} refresh={tokenRefresh} />
             <button
               onClick={onCompact}
