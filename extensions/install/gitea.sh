@@ -182,7 +182,8 @@ cat > "${GITEA_CONFIG_FILE}" << GITCFG
   "admin_pass": "${GITEA_ADMIN_PASS}"
 }
 GITCFG
-chmod 600 "${GITEA_CONFIG_FILE}"
+chown root:hydrahive "${GITEA_CONFIG_FILE}"
+chmod 640 "${GITEA_CONFIG_FILE}"
 success "Gitea-Config: ${GITEA_CONFIG_FILE}"
 
 # Standardisierte Credentials für den Credentials-Tab
