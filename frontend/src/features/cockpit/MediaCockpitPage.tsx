@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { Images, Music2, Palette, Plus, Send, Wand2 } from "lucide-react"
 import { chatApi, type ProjectBrief } from "@/features/chat/api"
+import { atelierApi } from "@/modules/atelier/api"
+import type { AtelierCharacter, AtelierCI, FilmJob, GalleryItem, PresetCatalog, VideoJob } from "@/modules/atelier/types"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
@@ -23,18 +25,18 @@ const fallbackScenes = [
   { title: "Szene 03 — Finale", text: "Action, Schnitt und Sounddesign sammeln." },
 ]
 
-const assets = [
-  { kind: "Charakter", name: "Atelier-Figuren", icon: Images, path: "/atelier" },
-  { kind: "Stil", name: "CI / Look", icon: Palette, path: "/atelier" },
-  { kind: "Bild", name: "Keyframes", icon: Wand2, path: "/atelier" },
-  { kind: "Audio", name: "Musik / Voice", icon: Music2, path: "/musicplayer" },
-]
-
 export function MediaCockpitPage() {
   const [projects, setProjects] = useState<ProjectBrief[]>([])
   const [projectStatus, setProjectStatus] = useState<"loading" | "ready" | "offline">("loading")
   const [projectId, setProjectId] = useState("")
   const [mediaProject, setMediaProject] = useState("atelier-clips")
+  const [atelierStatus, setAtelierStatus] = useState<"idle" | "loading" | "ready" | "offline">("idle")
+  const [ci, setCi] = useState<AtelierCI | null>(null)
+  const [characters, setCharacters] = useState<AtelierCharacter[]>([])
+  const [gallery, setGallery] = useState<GalleryItem[]>([])
+  const [videos, setVideos] = useState<VideoJob[]>([])
+  const [films, setFilms] = useState<FilmJob[]>([])
+  const [presets, setPresets] = useState<PresetCatalog>({})
   const [area, setArea] = useState(productionAreas[0].title)
   const [imageModel, setImageModel] = useState("GPT Image Mini")
   const [videoModel, setVideoModel] = useState("Hailuo 2.3")
@@ -52,8 +54,38 @@ export function MediaCockpitPage() {
       .catch(() => setProjectStatus("offline"))
   }, [])
 
+  useEffect(() => {
+    if (!projectId) return
+    let cancelled = false
+    setAtelierStatus("loading")
+    Promise.allSettled([
+      atelierApi.getCI(projectId),
+      atelierApi.listCharacters(projectId),
+      atelierApi.gallery(projectId),
+      atelierApi.listVideos(projectId),
+      atelierApi.listFilms(projectId),
+      atelierApi.presets(),
+    ]).then(([ciResult, charactersResult, galleryResult, videosResult, filmsResult, presetsResult]) => {
+      if (cancelled) return
+      if (ciResult.status === "fulfilled") { setCi(ciResult.value); setImageModel(ciResult.value.default_model || "GPT Image Mini") }
+      if (charactersResult.status === "fulfilled") setCharacters(charactersResult.value)
+      if (galleryResult.status === "fulfilled") setGallery(galleryResult.value)
+      if (videosResult.status === "fulfilled") setVideos(videosResult.value)
+      if (filmsResult.status === "fulfilled") setFilms(filmsResult.value)
+      if (presetsResult.status === "fulfilled") setPresets(presetsResult.value)
+      setAtelierStatus([ciResult, charactersResult, galleryResult, videosResult, filmsResult, presetsResult].some((result) => result.status === "fulfilled") ? "ready" : "offline")
+    })
+    return () => { cancelled = true }
+  }, [projectId])
+
   const selectedProject = useMemo(() => projects.find((project) => project.id === projectId), [projects, projectId])
   const activeStep = area.includes("Idee") ? 0 : area.includes("Regie") ? 1 : area.includes("Charakter") || area.includes("Stil") ? 2 : 0
+  const mediaAssets = useMemo(() => [
+    { kind: "Charakter", name: characters[0]?.name ?? "Atelier-Figuren", count: characters.length, icon: Images, path: "/atelier" },
+    { kind: "Stil", name: ci?.style_anchor ? "CI geladen" : "CI / Look", count: ci?.palette?.length ?? 0, icon: Palette, path: "/atelier" },
+    { kind: "Bild", name: gallery[0]?.name ?? "Keyframes", count: gallery.length, icon: Wand2, path: "/atelier" },
+    { kind: "Clips", name: videos[0]?.status ?? "Videojobs", count: videos.length + films.length, icon: Music2, path: "/videoeditor" },
+  ], [characters, ci, gallery, videos, films])
 
   return (
     <CockpitShell
@@ -81,7 +113,7 @@ export function MediaCockpitPage() {
               {projects.length === 0 && projectStatus !== "offline" && <option>Lokale Projekte laden…</option>}
               {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
             </select>
-            <p className="mt-2 text-xs leading-4 text-[#8d9ab0]">Assets liegen im Projekt/Workspace und bleiben zurückverlinkt. Status: {projectStatus === "ready" ? "lokal geladen" : projectStatus === "offline" ? "offline nutzbar" : "lädt"}.</p>
+            <p className="mt-2 text-xs leading-4 text-[#8d9ab0]">Assets liegen im Projekt/Workspace und bleiben zurückverlinkt. Projekte: {projectStatus === "ready" ? "lokal geladen" : projectStatus === "offline" ? "offline nutzbar" : "lädt"}. Atelier: {atelierStatus === "ready" ? `${characters.length} Figuren · ${gallery.length} Bilder · ${videos.length} Clips` : atelierStatus === "loading" ? "lädt" : "offline/leer"}.</p>
           </div>
 
           <div className="mt-4">
@@ -104,6 +136,8 @@ export function MediaCockpitPage() {
             <select value={videoModel} onChange={(event) => setVideoModel(event.target.value)} className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"><option>Hailuo 2.3</option><option>Kling 3.0</option><option>Seedance 2.0</option><option>Veo 3.1</option></select>
             <label className="mt-2 block text-xs text-[#8d9ab0]">Musik/Voice</label>
             <select value={audioModel} onChange={(event) => setAudioModel(event.target.value)} className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"><option>Lyria + TTS default</option><option>Nur Musik</option><option>Nur Voice</option></select>
+            <p className="mt-3 text-xs leading-4 text-[#8d9ab0]">CI: {ci?.style_anchor ? ci.style_anchor.slice(0, 90) : "noch kein Stil geladen"}{ci?.style_anchor && ci.style_anchor.length > 90 ? "…" : ""}</p>
+            <p className="mt-1 text-xs text-[#8d9ab0]">Presets: {Object.keys(presets).length || 0} Gruppen</p>
           </div>
         </aside>
 
@@ -152,9 +186,9 @@ export function MediaCockpitPage() {
         <aside className="grid min-h-0 grid-rows-[42%_58%] gap-[10px] overflow-hidden">
           <CockpitPanel title="Asset-Bibliothek" eyebrow="Material" actions={<CockpitButton onClick={() => openLocalPath("/atelier")}>Import</CockpitButton>} className="min-h-0 overflow-y-auto">
             <div className="grid grid-cols-2 gap-2">
-              {assets.map((asset) => {
+              {mediaAssets.map((asset) => {
                 const Icon = asset.icon
-                return <button key={asset.kind} onClick={() => openLocalPath(asset.path)} className="h-[76px] rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-left text-xs text-[#8d9ab0] hover:border-[#46617f]"><Icon size={14} className="mb-1 text-[#ffb86b]" />{asset.kind}<strong className="block text-sm text-[#e8eef8]">{asset.name}</strong></button>
+                return <button key={asset.kind} onClick={() => openLocalPath(asset.path)} className="h-[76px] rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-left text-xs text-[#8d9ab0] hover:border-[#46617f]"><Icon size={14} className="mb-1 text-[#ffb86b]" />{asset.kind} · {asset.count}<strong className="block truncate text-sm text-[#e8eef8]">{asset.name}</strong></button>
               })}
             </div>
           </CockpitPanel>
