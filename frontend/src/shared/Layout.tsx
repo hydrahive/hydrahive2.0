@@ -33,7 +33,7 @@ export function Layout() {
   }, [])
 
   const theme = getTheme(themeId)
-  const cockpitPaths = ["/projects", "/media", "/vault", "/admin"]
+  const cockpitPaths = ["/projects", "/buddy", "/media", "/vault", "/admin"]
   const isCockpitRoute = cockpitPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 
   // Theme-CSS-Variablen auf <html> anwenden (überschreibt --hh-*).
