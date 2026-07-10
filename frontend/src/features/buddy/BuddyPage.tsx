@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentType } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Cpu, Dice5, Download, FileText, GitMerge, HelpCircle, Loader2, RotateCcw, Save, Settings, Sparkles, SquarePen, Wand2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -16,24 +16,17 @@ import { ReasoningEffortPill, type EffortLevel } from "@/features/chat/Reasoning
 import { chatApi, type ProjectBrief } from "@/features/chat/api"
 import { modelSupportsExtendedEffort, useEffortPrefixes } from "@/features/llm/effort"
 import type { Message } from "@/features/chat/types"
-import { BuddyThread } from "./_BuddyThread"
 import { NewChatHint } from "@/features/chat/NewChatHint"
-import { BuddyLeftPanel } from "./_BuddyLeftPanel"
-import { BuddyExtensionsPanel } from "./_BuddyExtensionsPanel"
+import { CockpitButton } from "@/features/cockpit/CockpitButton"
+import { CockpitPanel } from "@/features/cockpit/CockpitPanel"
+import { CockpitShell } from "@/features/cockpit/CockpitShell"
+import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
+import { buddyOfflineActions, openLocalPath } from "@/features/cockpit/actionRegistry"
+import { BuddyThread } from "./_BuddyThread"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
-import { moduleBuddyWidgets } from "@/modules/index.generated"
 
-// Buddy-Widget-Slot: installierte Module hängen Widgets ins rechte Panel ein.
-// Sie bekommen onPrompt durch (→ sendet an den Buddy-Chat). Ersetzt den früheren
-// fixen HealthBuddyBox-Import (lebt jetzt im patientenakte-Modul).
-type BuddyWidget = ComponentType<{ onPrompt: (text: string) => void; projectId?: string | null }>
-const BUDDY_WIDGETS = moduleBuddyWidgets as BuddyWidget[]
-
-// Nur die letzten N Nachrichten rendern — sonst hängt das UI hunderte DOM-Knoten
-// (Markdown + Syntax-Highlighting) gleichzeitig auf und ruckelt. Ältere werden per
-// Button/Scroll nachgeladen. ponytail: reines Slicing, kein Virtualisierungs-Framework.
 const MSG_WINDOW = 60
 const MSG_WINDOW_STEP = 100
 
@@ -48,34 +41,43 @@ export function BuddyPage() {
   const [visibleCount, setVisibleCount] = useState(MSG_WINDOW)
   const [projects, setProjects] = useState<ProjectBrief[]>([])
   const [projectBusy, setProjectBusy] = useState(false)
+  const [localOverviewOpen, setLocalOverviewOpen] = useState(false)
   const initRef = useRef(false)
   const chat = useChat(state?.session_id ?? null)
   const tts = useVoiceOutput()
   const mascotState = tts.speaking ? "speaking" : chat.busy ? "working" : "idle"
-
   const allMessages = [...chat.messages, ...localMsgs]
-  const windowedMessages = useMemo(
-    () => (allMessages.length > visibleCount ? allMessages.slice(-visibleCount) : allMessages),
-    [allMessages, visibleCount],
-  )
+  const windowedMessages = useMemo(() => (allMessages.length > visibleCount ? allMessages.slice(-visibleCount) : allMessages), [allMessages, visibleCount])
   const hiddenCount = allMessages.length - windowedMessages.length
   const runtime = useHydraRuntime(windowedMessages, chat.busy, chat.send, chat.cancel)
 
   useEffect(() => {
     if (initRef.current) return
     initRef.current = true
-    buddyApi.state()
-      .then(setState)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Fehler"))
+    buddyApi.state().then(setState).catch((e: unknown) => setError(e instanceof Error ? e.message : "Fehler"))
   }, [])
 
   useEffect(() => {
     if (state?.session_id) { chat.reload(); setVisibleCount(MSG_WINDOW) }
   }, [state?.session_id, chat.reload])
 
-  useEffect(() => {
-    chatApi.listProjects().then(setProjects).catch(() => {})
-  }, [])
+  useEffect(() => { chatApi.listProjects().then(setProjects).catch(() => {}) }, [])
+
+  async function newChat() {
+    const r = await buddyApi.clear()
+    setLocalMsgs([])
+    setReasoningEffort(null)
+    setState((s) => (s ? { ...s, session_id: r.session_id } : s))
+  }
+
+  function handleBuddyLocalAction(actionId: string) {
+    if (actionId === "today") {
+      setLocalOverviewOpen((open) => !open)
+      return
+    }
+    const action = buddyOfflineActions.find((item) => item.id === actionId)
+    if (action?.path) openLocalPath(action.path)
+  }
 
   async function handleProjectPick(pid: string | null) {
     if (!state?.session_id) return
@@ -89,198 +91,84 @@ export function BuddyPage() {
   }
 
   function appendLocal(role: "user" | "assistant", text: string) {
-    setLocalMsgs((prev) => [
-      ...prev,
-      { id: `local-cmd-${Date.now()}-${prev.length}`, role,
-        content: [{ type: "text", text }],
-        created_at: new Date().toISOString(), token_count: null, metadata: {} },
-    ])
+    setLocalMsgs((prev) => [...prev, { id: `local-cmd-${Date.now()}-${prev.length}`, role, content: [{ type: "text", text }], created_at: new Date().toISOString(), token_count: null, metadata: {} }])
   }
 
   async function handleSend(text: string, files: File[] = []) {
     if (isCommand(text)) {
       if (!state) return
-      // 1) Sofort lokal anzeigen (kein Spinner-Wartezeit für User)
       appendLocal("user", text)
       const result = await runCommand(text, state)
       appendLocal("assistant", result.message)
       if (result.newSessionId) {
-        // /character + /clear: Session wechselt → localMsgs leer (sind eh
-        // an die alte Session gebunden), state.session_id triggert reload.
         setLocalMsgs([])
         setState((s) => (s ? { ...s, session_id: result.newSessionId! } : s))
         return
       }
-      // 2) Slash-Output dauerhaft in DB persistieren, danach localMsgs leeren
-      //    und chat reload — sonst ploppt der Output nach dem nächsten reload weg.
       try {
         await buddyApi.logCmd(text, result.message)
         await chat.reload()
         setLocalMsgs([])
-      } catch {
-        // Persistenz failt? localMsgs bleibt — User sieht Output zumindest
-        // bis zum nächsten reload.
-      }
+      } catch {}
       return
     }
     await chat.send(text, files)
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <HydraMascot state="error" size={120} />
-        <p className="text-sm text-rose-300">{error}</p>
-      </div>
-    )
-  }
-
-  if (!state) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <HydraMascot state="sleeping" size={120} animate />
-        <Loader2 size={16} className="text-zinc-500 animate-spin" />
-        <p className="text-xs text-zinc-500">{t("waking_up")}</p>
-      </div>
-    )
-  }
+  if (error) return <BuddyLoading state="error" text={error} />
+  if (!state) return <BuddyLoading state="sleeping" text={t("waking_up")} loading />
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <div className="flex items-stretch justify-center h-full gap-4 px-4 py-4 overflow-hidden">
-        <div className="hidden xl:block shrink-0 overflow-y-auto min-h-0">
-          <BuddyLeftPanel />
-        </div>
-        <div className="w-full max-w-3xl flex flex-col min-w-0 min-h-0">
-          <div
-            className="relative flex flex-col flex-1 min-h-0 rounded-[28px] border border-[#104E8B]/70 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] overflow-hidden backdrop-blur"
-            style={{ background: "linear-gradient(158deg, rgba(255,255,255,.06), rgba(255,255,255,.015)), linear-gradient(160deg, rgba(16,78,139,.38), rgba(16,78,139,.13) 65%), #1c2334" }}
-          >
-            <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-[#104E8B]/30" />
-            {state.created && (
-              <div className="px-5 pt-3 pb-1 text-[11px] text-[var(--hh-accent-text)] text-center">
-                {t("just_woken_up")}
+      <CockpitShell className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]" title="Buddy" hideHeader>
+        <CockpitTopbar active="buddy" context={state.agent_name} action={{ label: "Buddy-Settings", path: "/buddy/settings" }} />
+        <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[300px_minmax(520px,1fr)_330px]">
+          <BuddyLeftRail state={state} mascotState={mascotState} chatBusy={chat.busy} ttsSpeaking={tts.speaking} projects={projects} localOverviewOpen={localOverviewOpen} onLocalAction={handleBuddyLocalAction} />
+          <main className="panel flex min-h-0 flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
+            <div className="flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-[#2a364b] bg-[#111827] px-3">
+              <div className="min-w-0">
+                <strong className="text-sm text-[#e8eef8]">Buddy-Chat</strong>
+                <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-[#8d9ab0]"><span>Session: {state.session_id?.slice(0, 12) ?? "buddy"}…</span><span>· {state.model}</span></div>
               </div>
-            )}
-            <div className="px-5 py-2.5 border-b border-white/[6%] flex items-center gap-3 bg-black/30">
-              <HydraMascot state={mascotState} size={30} animate={chat.busy || tts.speaking} />
-              <p className="text-sm font-medium text-zinc-100 truncate shrink">{state.agent_name}</p>
-              <ProjectPicker
-                current={state.project_id}
-                projects={projects}
-                onPick={handleProjectPick}
-                busy={projectBusy}
-              />
-              {state.model && (
-                <div className="max-w-[9rem] min-w-0 shrink">
-                  <ModelPicker
-                    current={state.model}
-                    hint="Buddy-Modell wechseln"
-                    fullWidth
-                    onPick={async (m) => {
-                      await buddyApi.setModel(m)
-                      const fresh = await buddyApi.state()
-                      setReasoningEffort(null)
-                      setState(fresh)
-                    }}
-                  />
-                </div>
-              )}
-              {state.model && (
-                /^(claude-|anthropic\/claude-|MiniMax-M2)/.test(state.model) && (
-                  <ReasoningEffortPill
-                    current={reasoningEffort}
-                    extended={modelSupportsExtendedEffort(state.model, effortPrefixes)}
-                    onSelect={async (effort) => {
-                      if (state.session_id) {
-                        await chatApi.updateSession(state.session_id, { reasoning_effort: effort })
-                      }
-                      setReasoningEffort(effort)
-                    }}
-                  />
-                )
-              )}
-              <div className="flex-1" />
-              <HelpButton topic="buddy" />
-              <button
-                onClick={() => navigate("/buddy/settings")}
-                title={t("boxes.buddy_settings")}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[6%] border border-white/[8%] transition-all"
-              >
-                <Settings size={13} />
-              </button>
-              <button
-                onClick={async () => {
-                  const r = await buddyApi.clear()
-                  setLocalMsgs([])
-                  setReasoningEffort(null)
-                  setState((s) => (s ? { ...s, session_id: r.session_id } : s))
-                }}
-                disabled={chat.busy}
-                title={t("new_chat")}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/[6%] border border-white/[8%] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <SquarePen size={11} />
-                {t("new_chat")}
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <ProjectPicker current={state.project_id} projects={projects} onPick={handleProjectPick} busy={projectBusy} />
+                {state.model && <div className="w-[210px]"><ModelPicker current={state.model} hint="Buddy-Modell wechseln" fullWidth onPick={async (m) => { await buddyApi.setModel(m); setReasoningEffort(null); setState(await buddyApi.state()) }} /></div>}
+                {state.model && /^(claude-|anthropic\/claude-|MiniMax-M2)/.test(state.model) && <ReasoningEffortPill current={reasoningEffort} extended={modelSupportsExtendedEffort(state.model, effortPrefixes)} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort }); setReasoningEffort(effort) }} />}
+                <HelpButton topic="buddy" />
+                <CockpitButton disabled={chat.busy} tone="primary" onClick={newChat}>Neuer Chat</CockpitButton>
+              </div>
             </div>
-            <NewChatHint
-              inputTokens={chat.lastTurnTokens?.input ?? null}
-              onNewChat={async () => {
-                const r = await buddyApi.clear()
-                setLocalMsgs([])
-                setReasoningEffort(null)
-                setState((s) => (s ? { ...s, session_id: r.session_id } : s))
-              }}
-            />
-            <BuddyThread
-              hiddenCount={hiddenCount}
-              onLoadOlder={() => setVisibleCount((n) => n + MSG_WINDOW_STEP)}
-              loadOlderLabel={t("load_older", { count: hiddenCount })}
-            />
-            {chat.pendingConfirm && (
-              <ToolConfirmBanner
-                pending={chat.pendingConfirm}
-                onApprove={() => chat.confirmTool("approve")}
-                onDeny={() => chat.confirmTool("deny")}
-              />
-            )}
-            <div className="border-t border-white/[6%] bg-black/30">
-              <MessageInput
-                onSend={handleSend}
-                onCancel={chat.cancel}
-                busy={chat.busy}
-                quickActions={(insert) => (
-                  <>
-                    <CmdPill icon={<HelpCircle size={11} />} label="help" color="sky" onClick={() => handleSend("/help")} />
-                    <CmdPill icon={<RotateCcw size={11} />} label="clear" color="amber" onClick={() => handleSend("/clear")} />
-                    <CmdPill icon={<Save size={11} />} label="remember" color="emerald" onClick={() => handleSend("/remember")} />
-                    <CmdPill icon={<Cpu size={11} />} label="model" color="violet" onClick={() => insert("/model")} />
-                    <CmdPill icon={<Dice5 size={11} />} label="character" color="pink" onClick={() => handleSend("/character")} />
-                    <CmdPill icon={<GitMerge size={11} />} label="compact" color="emerald" onClick={() => handleSend("/compact")} />
-                    <CmdPill icon={<Wand2 size={11} />} label="system" color="violet" onClick={() => handleSend("/system")} />
-                    <CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} />
-                    <CmdPill icon={<Sparkles size={11} />} label="soul" color="violet" onClick={() => handleSend("/soul")} />
-                    <CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} />
-                  </>
-                )}
-              />
+            {state.created && <div className="px-5 pt-3 pb-1 text-center text-[11px] text-[#69d7ff]">{t("just_woken_up")}</div>}
+            <NewChatHint inputTokens={chat.lastTurnTokens?.input ?? null} onNewChat={newChat} />
+            <BuddyThread hiddenCount={hiddenCount} onLoadOlder={() => setVisibleCount((n) => n + MSG_WINDOW_STEP)} loadOlderLabel={t("load_older", { count: hiddenCount })} />
+            {chat.pendingConfirm && <ToolConfirmBanner pending={chat.pendingConfirm} onApprove={() => chat.confirmTool("approve")} onDeny={() => chat.confirmTool("deny")} />}
+            <div className="shrink-0 border-t border-[#2a364b] bg-[#111827]">
+              <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} quickActions={(insert) => <BuddyQuickActions handleSend={handleSend} insert={insert} />} />
             </div>
-            <div className="absolute bottom-2 right-4 flex items-center gap-1.5 text-[9px] text-zinc-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
-              <span className="font-mono">ON</span>
-            </div>
-          </div>
-          <div className="mx-auto -mt-px w-1/3 h-3 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-b-md border border-t-0 border-white/[6%]" />
-          <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
+          </main>
+          <BuddyRightRail state={state} onSettings={() => navigate("/buddy/settings")} />
         </div>
-        <div className="hidden xl:flex flex-col gap-4 shrink-0 overflow-y-auto min-h-0">
-          <BuddyExtensionsPanel />
-          {BUDDY_WIDGETS.map((W, i) => (
-            <W key={i} onPrompt={(text) => handleSend(text)} projectId={state?.project_id} />
-          ))}
-        </div>
-      </div>
+      </CockpitShell>
     </AssistantRuntimeProvider>
   )
+}
+
+function BuddyLoading({ state, text, loading }: { state: "error" | "sleeping"; text: string; loading?: boolean }) {
+  return <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3"><HydraMascot state={state} size={120} animate={loading} />{loading && <Loader2 size={16} className="animate-spin text-zinc-500" />}<p className="text-sm text-zinc-400">{text}</p></div>
+}
+
+function BuddyLeftRail({ state, mascotState, chatBusy, ttsSpeaking, projects, localOverviewOpen, onLocalAction }: { state: BuddyState; mascotState: "idle" | "working" | "speaking"; chatBusy: boolean; ttsSpeaking: boolean; projects: ProjectBrief[]; localOverviewOpen: boolean; onLocalAction: (actionId: string) => void }) {
+  const activeProject = projects.find((project) => project.id === state.project_id)
+  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Buddy" eyebrow="Companion"><div className="rounded-[4px] border border-[#2a364b] bg-[#070b12] p-3"><div className="grid h-[160px] place-items-center rounded-[4px] border border-[#2a364b] bg-[radial-gradient(circle_at_50%_20%,rgba(244,114,182,.25),rgba(8,11,17,.9))]"><HydraMascot state={mascotState} size={120} animate={chatBusy || ttsSpeaking} /></div><div className="mt-2 text-xs text-[#8d9ab0]">Reaction: {mascotState === "working" ? "arbeitet" : mascotState === "speaking" ? "spricht" : "wach"}</div></div><div className="mt-4 space-y-3"><label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Modus</label><select className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"><option>Normaler Buddy-Chat</option><option>Fokus</option><option>Humorvoll</option><option>Kurze Antworten</option></select><div className="space-y-2">{buddyOfflineActions.map((action) => <button key={action.id} onClick={() => onLocalAction(action.id)} className="w-full rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-sm text-[#e8eef8] hover:border-[#46617f]">{action.label}<span className="block text-xs text-[#8d9ab0]">{action.description}</span></button>)}</div>{localOverviewOpen && <div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-xs leading-4 text-[#8d9ab0]"><strong className="block text-[#e8eef8]">Lokale Übersicht</strong><span>Projekt: {activeProject?.name ?? "kein Projekt gewählt"}</span><br /><span>Geladene Projekte: {projects.length}</span><br /><span>Agent: {state.agent_name}</span></div>}<p className="text-xs text-[#8d9ab0]">Agent: {state.agent_name}</p></div></CockpitPanel></aside>
+}
+
+function BuddyRightRail({ state, onSettings }: { state: BuddyState; onSettings: () => void }) {
+  const primaryLinks = [["Projekte", "/projects"], ["Media", "/media"], ["Vault", "/vault"], ["Admin", "/admin"]]
+  const toolLinks = [["Scratchpad", "/scratchpad"], ["Musik", "/musicplayer"], ["Spiele", "/minigames"], ["Boardgames", "/boardgames"]]
+
+  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Kontext" eyebrow="Ruhig" actions={<button onClick={onSettings} className="rounded-[4px] border border-[#2a364b] p-1 text-[#8d9ab0] hover:text-[#e8eef8]"><Settings size={14} /></button>}><div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-3"><div className="text-[11px] uppercase tracking-[0.12em] text-[#69d7ff]">Aktiver Buddy</div><div className="mt-1 text-sm font-bold text-[#e8eef8]">{state.agent_name}</div><div className="mt-1 text-xs text-[#8d9ab0]">Module bleiben im Hintergrund. Buddy bleibt zuerst Chat und Companion.</div></div><div className="mt-3 grid grid-cols-2 gap-2">{primaryLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-xs font-bold text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><CockpitPanel title="Werkzeuge" eyebrow="Kompakt"><p className="text-xs leading-4 text-[#8d9ab0]">Keine Modul-Boxen im Buddy. Häufige Werkzeuge liegen hier als leise Links; die vollständige Verwaltung bleibt in den Cockpits.</p><div className="mt-3 flex flex-wrap gap-2">{toolLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-full border border-[#2a364b] bg-[#111827] px-3 py-1 text-xs text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><CockpitPanel title="Hinweis" eyebrow="Offline"><p className="text-xs leading-4 text-[#8d9ab0]">Diese Spalte startet keine LLM-Anfrage. Für Module: Cockpit öffnen, dort arbeiten, bei Bedarf bewusst Buddy fragen.</p></CockpitPanel></aside>
+}
+
+function BuddyQuickActions({ handleSend, insert }: { handleSend: (text: string) => void; insert: (text: string) => void }) {
+  return <><CmdPill icon={<HelpCircle size={11} />} label="help" color="sky" onClick={() => handleSend("/help")} /><CmdPill icon={<RotateCcw size={11} />} label="clear" color="amber" onClick={() => handleSend("/clear")} /><CmdPill icon={<Save size={11} />} label="remember" color="emerald" onClick={() => handleSend("/remember")} /><CmdPill icon={<Cpu size={11} />} label="model" color="violet" onClick={() => insert("/model")} /><CmdPill icon={<Dice5 size={11} />} label="character" color="pink" onClick={() => handleSend("/character")} /><CmdPill icon={<GitMerge size={11} />} label="compact" color="emerald" onClick={() => handleSend("/compact")} /><CmdPill icon={<Wand2 size={11} />} label="system" color="violet" onClick={() => handleSend("/system")} /><CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} /><CmdPill icon={<Sparkles size={11} />} label="soul" color="violet" onClick={() => handleSend("/soul")} /><CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} /><CmdPill icon={<SquarePen size={11} />} label="idea" color="sky" onClick={() => insert("Idee merken:")} /></>
 }

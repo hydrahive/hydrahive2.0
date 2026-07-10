@@ -9,6 +9,7 @@
     "dev": "node scripts/gen-emotes.mjs && node scripts/gen-themes.mjs && vite",
     "prebuild": "node scripts/gen-emotes.mjs && node scripts/gen-modules.mjs && node scripts/gen-themes.mjs",
     "build": "tsc -b && vite build",
+    "check:cockpit-offline": "node scripts/check-cockpit-offline-first.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

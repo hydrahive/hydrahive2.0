@@ -1,17 +1,13 @@
 import type { ComponentType } from "react"
-import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
+import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
+import { CockpitTopbar } from "./CockpitTopbar"
+import { adminOfflineActions, explicitAiActions, openLocalPath } from "./actionRegistry"
 
-const adminLinks = [
-  { title: "System", path: "/system", icon: Server, desc: "Status, Backup, Samba, Tailscale, AgentLink und Wartung." },
-  { title: "User", path: "/users", icon: Users, desc: "Accounts, Rollen und Zugriff." },
-  { title: "Module", path: "/modules", icon: Boxes, desc: "HydraHive-Module installieren und aktualisieren." },
-  { title: "Extensions", path: "/extensions", icon: PlugZap, desc: "System-Erweiterungen wie Gitea, Ollama oder Dienste." },
-  { title: "Plugins", path: "/plugins", icon: CircuitBoard, desc: "Tool-Plugins verwalten." },
-  { title: "Credentials", path: "/credentials", icon: KeyRound, desc: "Zugangsdaten sicher speichern — Werte bleiben maskiert." },
-]
+const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
+const adminLinks = adminOfflineActions.map((action, index) => ({ title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
 
 const opsLinks = [
   { title: "LLM", path: "/llm", icon: Brain },
@@ -22,16 +18,25 @@ const opsLinks = [
   { title: "Themes", path: "/themes", icon: WandSparkles },
 ]
 
+const integrationLinks = [
+  { title: "Gitea", path: "/extensions", icon: GitBranch, text: "Lokaler Git-Server, Repo-Spiegel und Projekt-Remotes." },
+  { title: "Credentials", path: "/credentials", icon: KeyRound, text: "Zentraler Einstieg für Tokens, Keys und Extension-Zugänge." },
+  { title: "Module", path: "/modules", icon: Boxes, text: "Gebündelte HydraHive-Funktionen installieren und prüfen." },
+  { title: "Plugins", path: "/plugins", icon: CircuitBoard, text: "Agent-Tools und Plugin-Status verwalten." },
+]
+
 export function AdminCockpitPage() {
   return (
     <CockpitShell
       eyebrow="Admin"
       title="Admin-Cockpit"
       description="Schaltzentrale für System, User, Module, Integrationen, Credentials und Infrastruktur. Die Route bleibt durch AdminGuard geschützt."
-      actions={<CockpitButton tone="primary" onClick={() => window.open("/system", "_self")}>System öffnen</CockpitButton>}
-      className="min-h-[100dvh] bg-[#080b11]"
+      actions={<CockpitButton tone="primary" onClick={() => openLocalPath("/system")}>System öffnen</CockpitButton>}
+      className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      hideHeader
     >
-      <div className="grid gap-[10px] xl:grid-cols-[320px_minmax(420px,1fr)_340px]">
+      <CockpitTopbar active="admin" context="Admin" action={{ label: "System öffnen", path: "/system" }} />
+      <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_370px]">
         <aside className="space-y-[10px]">
           <CockpitPanel title="Admin-Bereiche" eyebrow="Control">
             <div className="space-y-2">
@@ -40,7 +45,7 @@ export function AdminCockpitPage() {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => window.open(item.path, "_self")}
+                    onClick={() => openLocalPath(item.path)}
                     className="group flex w-full items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
                   >
                     <Icon size={18} className="mt-0.5 text-[#69d7ff]" />
@@ -63,7 +68,7 @@ export function AdminCockpitPage() {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => window.open(item.path, "_self")}
+                    onClick={() => openLocalPath(item.path)}
                     className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]"
                   >
                     <Icon size={18} className="mb-3 text-[#69d7ff]" />
@@ -94,6 +99,21 @@ export function AdminCockpitPage() {
             </div>
           </CockpitPanel>
 
+          <CockpitPanel title="Integrationen" eyebrow="Connect">
+            <div className="grid gap-2 md:grid-cols-4">
+              {integrationLinks.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button key={item.title} onClick={() => openLocalPath(item.path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                    <Icon size={16} className="mb-2 text-[#69d7ff]" />
+                    <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
+                    <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
+                  </button>
+                )
+              })}
+            </div>
+          </CockpitPanel>
+
           <CockpitPanel title="Wartung & Backups" eyebrow="Recovery">
             <div className="grid gap-2 md:grid-cols-2">
               <Info title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." path="/system" />
@@ -108,6 +128,11 @@ export function AdminCockpitPage() {
             <p className="mt-2 text-sm leading-5 text-[#d7deea]">
               Admin ist jetzt kein leerer Platzhalter mehr. Es ist die strukturierte Startseite für vorhandene Admin- und Infrastruktur-Module.
             </p>
+          </CockpitPanel>
+
+          <CockpitPanel title="Optionale KI" eyebrow="Explizit">
+            <p className="text-xs leading-4 text-[#8d9ab0]">Admin-Kacheln öffnen lokale Seiten und starten keine Analyse. KI-Hilfe ist ein bewusst separater Schritt.</p>
+            <CockpitButton onClick={() => openLocalPath(explicitAiActions.find((action) => action.id === "admin-agent")?.path ?? "/buddy")} className="mt-3">Admin-Agent bewusst öffnen</CockpitButton>
           </CockpitPanel>
 
           <CockpitPanel title="Nächste Ausbaustufen" eyebrow="Roadmap">
@@ -126,7 +151,7 @@ export function AdminCockpitPage() {
 
 function Info({ title, text, path, icon: Icon }: { title: string; text: string; path: string; icon: ComponentType<{ size?: number; className?: string }> }) {
   return (
-    <button onClick={() => window.open(path, "_self")} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+    <button onClick={() => openLocalPath(path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
       <div className="mb-2 flex items-center gap-2">
         <Icon size={16} className="text-[#69d7ff]" />
         <h3 className="text-sm font-bold text-[#e8eef8]">{title}</h3>
