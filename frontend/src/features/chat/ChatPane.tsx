@@ -40,9 +40,13 @@ function ChatSearchScrollEffect() {
 
 interface ChatPaneProps {
   deepLinkSid?: string | null
+  /** undefined = alle Sessions; null = nur sessions ohne Projekt; string = Projekt-Sessions */
+  projectId?: string | null
+  showSidePanels?: boolean
+  preferredAgentId?: string | null
 }
 
-export function ChatPane({ deepLinkSid = null }: ChatPaneProps) {
+export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true, preferredAgentId = null }: ChatPaneProps) {
   const { t } = useTranslation("chat")
   const deepLinkApplied = useRef(false)
 
@@ -70,11 +74,12 @@ export function ChatPane({ deepLinkSid = null }: ChatPaneProps) {
       ])
       setSessions(s); setAgents(a); setProjects(p)
       setLoadError(null)
+      const visibleSessions = projectId === undefined ? s : s.filter((session) => session.project_id === projectId)
       if (!deepLinkApplied.current && deepLinkSid) {
         deepLinkApplied.current = true
         setActiveId(deepLinkSid)
-      } else if (!activeId && !deepLinkSid && s.length > 0) {
-        setActiveId(s[0].id)
+      } else if (!activeId && !deepLinkSid && visibleSessions.length > 0) {
+        setActiveId(visibleSessions[0].id)
       }
     } catch {
       // Nicht still schlucken (#211): die Sitzungsliste wäre sonst unbemerkt veraltet.
@@ -86,6 +91,11 @@ export function ChatPane({ deepLinkSid = null }: ChatPaneProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAll() }, [])
   useEffect(() => { setLocalMsgs([]); chat.reload() }, [activeId, chat.reload])
+  useEffect(() => {
+    if (projectId === undefined || !activeId) return
+    const current = sessions.find((s) => s.id === activeId)
+    if (current && current.project_id !== projectId) setActiveId(null)
+  }, [projectId, activeId, sessions])
 
   async function handleNew(agentId: string, title: string, projectId?: string) {
     const s = await chatApi.createSession(agentId, title || undefined, projectId)
@@ -161,9 +171,14 @@ export function ChatPane({ deepLinkSid = null }: ChatPaneProps) {
     await chat.send(text, files); loadAll(); setTokenRefresh((n) => n + 1)
   }
 
-  const activeSession = sessions.find((s) => s.id === activeId) ?? null
+  const visibleSessions = useMemo(
+    () => projectId === undefined ? sessions : sessions.filter((session) => session.project_id === projectId),
+    [sessions, projectId],
+  )
+  const activeSession = visibleSessions.find((s) => s.id === activeId) ?? null
+  const preferredAgent = preferredAgentId ? (agents.find((a) => a.id === preferredAgentId) ?? null) : null
   const activeOrphaned = activeSession ? !knownAgentIds.has(activeSession.agent_id) : false
-  const activeAgent = activeSession ? (agents.find((a) => a.id === activeSession.agent_id) ?? null) : null
+  const activeAgent = activeSession ? (agents.find((a) => a.id === activeSession.agent_id) ?? null) : preferredAgent
 
   const [pixelScope, setPixelScope] = useState<"chat" | "all">("chat")
   const { running, doneNames } = useAgentActivity(showPixelMonitor)
@@ -201,6 +216,14 @@ export function ChatPane({ deepLinkSid = null }: ChatPaneProps) {
   const handleAgentChanged = (updated: AgentBrief) =>
     setAgents((cur) => cur.map((a) => a.id === updated.id ? updated : a))
 
+  async function createPreferredSession() {
+    const agent = activeAgent ?? preferredAgent ?? agents.find((a) => !a.is_buddy) ?? agents[0]
+    if (!agent) return
+    const s = await chatApi.createSession(agent.id, undefined, projectId ?? undefined)
+    setSessions((cur) => [s, ...cur])
+    setActiveId(s.id)
+  }
+
   const center = activeSession ? (
     <div className="flex flex-col min-w-0 p-3 md:p-4 h-full">
       <ChatSearchProvider messages={allMessages}>
@@ -219,8 +242,7 @@ export function ChatPane({ deepLinkSid = null }: ChatPaneProps) {
             onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
             onNewSession={async () => {
               if (!activeAgent) return
-              const s = await chatApi.createSession(activeAgent.id)
-              setSessions((cur) => [s, ...cur]); setActiveId(s.id)
+              await createPreferredSession()
             }}
           />
           <ChatBubbleThread />
@@ -284,26 +306,36 @@ export function ChatPane({ deepLinkSid = null }: ChatPaneProps) {
       </ChatSearchProvider>
     </div>
   ) : (
-    <div className="flex-1 flex items-center justify-center text-sm text-zinc-600">
-      {t("session.select_or_new")}
+    <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-zinc-600">
+      <span>{t("session.select_or_new")}</span>
+      <button
+        type="button"
+        onClick={createPreferredSession}
+        disabled={agents.length === 0}
+        className="rounded-[4px] border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Neue Projekt-Session
+      </button>
     </div>
   )
 
   return (
     <AssistantRuntimeProvider runtime={runtime} key={activeId ?? "empty"}>
-      <ThreePanelLayout
-        left={
-          <SessionList
-            sessions={sessions} activeId={activeId}
-            knownAgentIds={knownAgentIds} buddyAgentIds={buddyAgentIds} projects={projects}
-            onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
-            activeSession={activeSession} activeAgent={activeAgent}
-            onSessionChanged={handleSessionChanged} onAgentChanged={handleAgentChanged}
-          />
-        }
-        center={center}
-        right={<WorkspacePanel agentId={activeAgent?.id ?? null} projectId={activeSession?.project_id} onOpenFile={(path, kind) => setWsFile({ path, kind })} />}
-      />
+      {showSidePanels ? (
+        <ThreePanelLayout
+          left={
+            <SessionList
+              sessions={visibleSessions} activeId={activeId}
+              knownAgentIds={knownAgentIds} buddyAgentIds={buddyAgentIds} projects={projects}
+              onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
+              activeSession={activeSession} activeAgent={activeAgent}
+              onSessionChanged={handleSessionChanged} onAgentChanged={handleAgentChanged}
+            />
+          }
+          center={center}
+          right={<WorkspacePanel agentId={activeAgent?.id ?? null} projectId={activeSession?.project_id} onOpenFile={(path, kind) => setWsFile({ path, kind })} />}
+        />
+      ) : center}
       {wsFile && activeAgent && (
         <FileOverlay agentId={activeAgent.id} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
       )}
