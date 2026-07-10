@@ -1,9 +1,8 @@
 import { Film, FolderOpen, Images, Mic2, Music2, Palette, PlaySquare, Scissors, Sparkles, Wand2 } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
-import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
-import { cockpitMenu } from "./cockpitMenus"
+import { CockpitTopbar } from "./CockpitTopbar"
 
 const pipeline = [
   { label: "Idee", text: "Prompt, Mood, Stil und CI sammeln", icon: Sparkles },
@@ -39,11 +38,12 @@ export function MediaCockpitPage() {
       eyebrow="Media"
       title="Media-Cockpit"
       description="Produktionsstrecke von Idee und Regie über Assets und Clips bis zum Schnitt. Diese Etappe verknüpft vorhandene Module ohne automatische Generierungsjobs."
-      menu={<CockpitHeaderMenu items={cockpitMenu("media")} />}
       actions={<CockpitButton tone="primary" onClick={() => window.open("/atelier", "_self")}>Atelier öffnen</CockpitButton>}
-      className="min-h-[100dvh] bg-[#080b11]"
+      className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      hideHeader
     >
-      <div className="grid gap-[10px] xl:grid-cols-[280px_minmax(420px,1fr)_340px]">
+      <CockpitTopbar active="media" context="Projekt: HydraHive DEV" action={{ label: "Atelier öffnen", path: "/atelier" }} />
+      <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_360px]">
         <aside className="space-y-[10px]">
           <CockpitPanel title="Schnellstart" eyebrow="Module">
             <div className="space-y-2">
