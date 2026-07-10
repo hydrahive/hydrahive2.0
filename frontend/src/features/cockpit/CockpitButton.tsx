@@ -13,9 +13,9 @@ export function CockpitButton({ tone = "default", className, ...props }: Props) 
       {...props}
       className={cn(
         "rounded-[4px] border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-        tone === "primary" && "border-cyan-400/30 bg-cyan-400/15 text-cyan-100 hover:bg-cyan-400/20",
+        tone === "primary" && "border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] text-white hover:brightness-110",
         tone === "danger" && "border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15",
-        tone === "default" && "border-white/[10%] bg-white/[4%] text-zinc-300 hover:bg-white/[7%] hover:text-zinc-100",
+        tone === "default" && "border-[#2a364b] bg-[#172133] text-[#e8eef8] hover:border-[#46617f] hover:bg-[#1b2536]",
         className,
       )}
     />

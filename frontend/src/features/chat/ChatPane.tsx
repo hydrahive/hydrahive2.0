@@ -230,14 +230,11 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
   }
 
   const center = activeSession ? (
-    <div className="flex flex-col min-w-0 p-3 md:p-4 h-full">
+    <div className="flex h-full min-w-0 flex-col">
       <ChatSearchProvider messages={allMessages}>
         <ChatSearchScrollEffect />
-        <div
-          className="relative flex flex-col rounded-[28px] border border-[#104E8B]/70 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] overflow-hidden backdrop-blur w-full h-full"
-          style={{ background: "linear-gradient(158deg, rgba(255,255,255,.06), rgba(255,255,255,.015)), linear-gradient(160deg, rgba(16,78,139,.38), rgba(16,78,139,.13) 65%), #1c2334" }}
-        >
-          <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-[#104E8B]/30" />
+        <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#151c2b] text-[#e8eef8]">
+          <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#2a364b]" />
           {searchOpen && <ChatSearchBar onClose={() => setSearchOpen(false)} />}
           <ChatHeader
             session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
@@ -286,7 +283,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               Kontext wird komprimiert…
             </div>
           )}
-          <div className="border-t border-white/[6%] bg-black/30">
+          <div className="border-t border-[#2a364b] bg-[#111827]">
             <MessageInput
               onSend={handleSend} onCancel={chat.cancel}
               busy={chat.busy} disabled={activeOrphaned}
@@ -326,7 +323,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
 
   const embeddedCenter = showSidePanels ? center : (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-white/[8%] bg-black/20 px-3 py-2">
+      <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-[#2a364b] bg-[#121a29] px-3 py-2">
         {visibleSessions.map((session) => (
           <button
             key={session.id}
@@ -335,8 +332,8 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
             className={[
               "max-w-48 shrink-0 truncate rounded-[4px] border px-2.5 py-1.5 text-xs font-semibold transition-colors",
               session.id === activeId
-                ? "border-cyan-300/45 bg-cyan-400/10 text-cyan-100"
-                : "border-white/[8%] bg-white/[3%] text-zinc-500 hover:border-cyan-400/30 hover:text-zinc-200",
+                ? "border-[#69d7ff]/45 bg-[#1c2940] text-[#69d7ff]"
+                : "border-[#2a364b] bg-[#0d1420] text-[#8d9ab0] hover:border-[#46617f] hover:text-[#e8eef8]",
             ].join(" ")}
           >
             {session.title || "Neue Session"}
@@ -346,7 +343,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
           type="button"
           onClick={createPreferredSession}
           disabled={agents.length === 0}
-          className="shrink-0 rounded-[4px] border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 text-xs font-black uppercase tracking-[0.10em] text-cyan-100 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="shrink-0 rounded-[4px] border border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] px-2.5 py-1.5 text-xs font-black uppercase tracking-[0.10em] text-white hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Session +
         </button>

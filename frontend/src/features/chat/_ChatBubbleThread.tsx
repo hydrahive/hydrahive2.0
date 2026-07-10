@@ -65,7 +65,7 @@ function ChatUserMessage() {
         {images.map((b, i) => <ImageBlock key={i} block={b as ContentBlock & { type: "image" }} />)}
         {text && (
           <>
-            <div className={`px-4 py-2.5 bubble-user text-sm whitespace-pre-wrap transition-colors ${isActive ? "shadow-[0_0_0_2px_theme(colors.amber.400/45)]" : ""}`}>
+            <div className={`rounded-[14px] bg-[#23415a] px-3 py-2.5 text-sm text-[#e8eef8] whitespace-pre-wrap transition-colors ${isActive ? "shadow-[0_0_0_2px_rgba(251,191,36,.45)]" : ""}`}>
               {query ? hl(text, query) : <EmoteText text={text} />}
             </div>
             <div className="flex items-center justify-end gap-1.5">
@@ -119,7 +119,7 @@ function ChatAssistantMessage() {
           </pre>
         ) : blocks.map((b, i) => {
           if (b.type === "text" && b.text) return (
-            <div key={i} className="px-4 py-2.5 bubble-ai">
+            <div key={i} className="rounded-[14px] border border-[#2a364b] bg-[#1b2536] px-3 py-2.5 text-[#e8eef8]">
               {monoMode
                 ? <pre className="font-mono text-xs whitespace-pre-wrap break-words m-0">{query ? hl(b.text, query) : b.text}</pre>
                 : <Markdown text={b.text} />}
@@ -188,7 +188,7 @@ function ChatSystemMessage() {
 export function ChatBubbleThread() {
   return (
     <ThreadPrimitive.Root className="flex-1 overflow-hidden flex flex-col">
-      <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+      <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto space-y-[9px] p-[14px]">
         <ThreadPrimitive.Messages
           components={{
             UserMessage: ChatUserMessage,

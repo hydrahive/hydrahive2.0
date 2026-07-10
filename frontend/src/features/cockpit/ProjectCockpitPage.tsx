@@ -72,11 +72,25 @@ export function ProjectCockpitPage() {
           <CockpitButton tone="primary" onClick={() => window.open("/werkstatt", "_self")}>Alte Werkstatt</CockpitButton>
         </>
       )}
-      className="flex h-full min-h-0 flex-col overflow-hidden"
+      className="-m-4 flex h-[calc(100dvh-3rem)] min-h-0 flex-col overflow-hidden bg-[#080b11] md:-m-6"
+      hideHeader
     >
-      {error && <div className="shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
-      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[280px_minmax(420px,1fr)_360px]">
-        <aside className="min-h-0 space-y-3 overflow-y-auto pr-1">
+      <header className="flex h-[58px] shrink-0 items-center gap-[18px] border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-[18px]">
+        <div className="font-black tracking-[-0.03em] text-[#e8eef8]">HydraHive</div>
+        <nav className="flex gap-1.5 text-sm">
+          <span className="rounded-[4px] bg-[#1c2940] px-3 py-2 font-semibold text-[#69d7ff]">Projekte</span>
+          <span className="rounded-[4px] px-3 py-2 text-[#8d9ab0]">Buddy</span>
+          <span className="rounded-[4px] px-3 py-2 text-[#8d9ab0]">Media</span>
+          <span className="rounded-[4px] px-3 py-2 text-[#8d9ab0]">Vault</span>
+          <span className="rounded-[4px] px-3 py-2 text-[#8d9ab0]">Admin</span>
+        </nav>
+        <div className="flex-1" />
+        {activeProject && <div className="hidden text-xs text-[#8d9ab0] lg:block">Projekt bleibt gespeichert: {activeProject.name}</div>}
+        <CockpitButton onClick={() => window.open("/settings/projects", "_self")}>Projekt-Einstellungen</CockpitButton>
+      </header>
+      {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
+      <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[270px_minmax(420px,1fr)_360px]">
+        <aside className="min-h-0 space-y-[10px] overflow-y-auto pr-1">
           <CockpitPanel>
             <ProjectSelector projects={projects} activeProjectId={activeProjectId} loading={loading || prefs.loading} onPick={pickProject} />
             {activeProject && <p className="mt-3 line-clamp-3 text-xs text-zinc-500">{activeProject.description || "Keine Beschreibung."}</p>}
@@ -96,7 +110,7 @@ export function ProjectCockpitPage() {
           </CockpitPanel>
         </aside>
 
-        <main className="min-h-0 overflow-hidden rounded-[4px] border border-white/[8%] bg-zinc-950/40">
+        <main className="min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
           {activeProjectId ? (
             <ChatPane projectId={activeProjectId} showSidePanels={false} preferredAgentId={selectedAgentId} />
           ) : (
@@ -104,7 +118,7 @@ export function ProjectCockpitPage() {
           )}
         </main>
 
-        <aside className="grid min-h-0 gap-3 overflow-hidden xl:grid-rows-[minmax(0,1fr)_auto]">
+        <aside className="grid min-h-0 gap-[10px] overflow-hidden xl:grid-rows-[minmax(0,1fr)_auto]">
           <ProjectFilesPanel agentId={projectAgentId} projectId={activeProjectId} onOpenFile={(path, kind) => setWsFile({ path, kind })} />
           <ProjectTasksPanel projectId={activeProjectId} />
         </aside>

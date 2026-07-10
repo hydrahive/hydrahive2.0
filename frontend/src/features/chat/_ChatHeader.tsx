@@ -29,15 +29,15 @@ export function ChatHeader({
 
   return (
     <>
-      <div className="px-6 py-3 border-b border-white/[6%] flex items-center gap-3">
+      <div className="flex h-[52px] items-center gap-3 border-b border-[#2a364b] bg-[#121a29] px-[14px]">
         <div className="flex-1 min-w-0">
           <h2
-            className="text-sm font-medium text-zinc-200 truncate flex items-center gap-2"
+            className="text-sm font-bold text-[#e8eef8] truncate flex items-center gap-2"
             title={systemPrompt ? `${t("session.system_prompt_label")}\n\n${systemPrompt.slice(0, 1500)}${systemPrompt.length > 1500 ? "…" : ""}` : undefined}
           >
             {session.title}
           </h2>
-          <p className="text-xs text-zinc-600 mt-0.5 flex items-center gap-2 flex-wrap">
+          <p className="text-xs text-[#8d9ab0] mt-0.5 flex items-center gap-2 flex-wrap">
             <span>{t("session.id_short")}: {session.id.slice(0, 8)}…</span>
             {agent && <span className="text-zinc-500">· {agent.llm_model.replace(/^anthropic\//, "")}</span>}
             {lastTurnTokens && !busy && (
@@ -63,7 +63,7 @@ export function ChatHeader({
           onClick={onNewSession}
           disabled={busy}
           title={t("session.new_chat")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/[6%] border border-white/[8%] hover:border-white/[14%] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
         >
           <SquarePen size={12} />
           {t("session.new_chat")}
@@ -72,7 +72,7 @@ export function ChatHeader({
           onClick={onCompact}
           disabled={compacting || orphaned}
           title={t("compact.tooltip")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 border border-amber-500/20 hover:border-amber-500/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
         >
           {compacting ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
           {t("compact.button")}
