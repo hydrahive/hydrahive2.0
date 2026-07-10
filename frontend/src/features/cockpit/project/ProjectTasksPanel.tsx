@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitPanel } from "../CockpitPanel"
 import { api } from "@/shared/api-client"
@@ -36,9 +36,11 @@ export function ProjectTasksPanel({ projectId }: Props) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [priority, setPriority] = useState<TaskPriority>("medium")
   const [error, setError] = useState<string | null>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   async function reload() {
     if (!projectId) {
@@ -68,6 +70,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
       setTasks((cur) => [task, ...cur])
       setTitle("")
       setPriority("medium")
+      setCreateOpen(false)
     } catch {
       setError("Task konnte nicht erstellt werden.")
     } finally {
@@ -88,10 +91,16 @@ export function ProjectTasksPanel({ projectId }: Props) {
     }
   }
 
+  function openCreate() {
+    setCreateOpen(true)
+    window.setTimeout(() => titleInputRef.current?.focus(), 0)
+  }
+
   return (
-    <CockpitPanel title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={() => void reload()}>Task +</CockpitButton>} className="flex min-h-0 flex-col">
-      <div className="mb-3 space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
+    <CockpitPanel title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={openCreate}>Task +</CockpitButton>} className="flex min-h-0 flex-col">
+      {createOpen && <div className="mb-3 space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
         <input
+          ref={titleInputRef}
           value={title}
           disabled={!projectId || creating}
           onChange={(e) => setTitle(e.target.value)}
@@ -112,7 +121,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
           </select>
           <CockpitButton tone="primary" disabled={!projectId || creating || !title.trim()} onClick={() => void createTask()}>Task +</CockpitButton>
         </div>
-      </div>
+      </div>}
       {error ? <p className="mb-2 text-xs text-rose-300">{error}</p> : null}
       {loading ? <p className="text-sm text-zinc-600">Lade Tasks…</p> : null}
       {!loading && tasks.length === 0 ? <p className="text-sm text-zinc-600">Keine Tasks für dieses Projekt.</p> : null}
