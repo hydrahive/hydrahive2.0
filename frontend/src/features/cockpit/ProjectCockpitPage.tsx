@@ -73,7 +73,7 @@ export function ProjectCockpitPage() {
           <CockpitButton tone="primary" onClick={() => window.open("/werkstatt", "_self")}>Alte Werkstatt</CockpitButton>
         </>
       )}
-      className="-m-4 flex h-[calc(100dvh-3rem)] min-h-0 flex-col overflow-hidden bg-[#080b11] md:-m-6"
+      className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
       hideHeader
     >
       <header className="flex h-[58px] shrink-0 items-center gap-[18px] border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-[18px]">

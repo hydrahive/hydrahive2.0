@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useLocation } from "react-router-dom"
+import { Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { UpdateModal } from "@/shared/UpdateModal"
@@ -33,6 +33,8 @@ export function Layout() {
   }, [])
 
   const theme = getTheme(themeId)
+  const cockpitPaths = ["/projects", "/media", "/vault", "/admin"]
+  const isCockpitRoute = cockpitPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 
   // Theme-CSS-Variablen auf <html> anwenden (überschreibt --hh-*).
   useEffect(() => {
@@ -78,7 +80,13 @@ export function Layout() {
 
   return (
     <>
-      <ActiveLayout chrome={chrome} />
+      {isCockpitRoute ? (
+        <main className="h-[100dvh] overflow-hidden bg-[#080b11]">
+          <Outlet />
+        </main>
+      ) : (
+        <ActiveLayout chrome={chrome} />
+      )}
 
       <BentoMenu open={bentoOpen} onClose={() => setBentoOpen(false)} />
 
