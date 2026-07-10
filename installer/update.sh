@@ -495,6 +495,7 @@ else
   grep -q "Strict-Transport-Security" "$NGINX_CONF" && NEEDS_REWRITE=1
   grep -q "assets.coingecko.com"         "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "resources.cryptocompare.com" "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "hh_cache_control"            "$NGINX_CONF" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "nginx: Config braucht Update (HTTPS / VNC-Proxy / ISO-Upload-Limit) — neu schreiben"
     HH_HOST="${HH_HOST:-127.0.0.1}"

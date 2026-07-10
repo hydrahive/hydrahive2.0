@@ -49,6 +49,15 @@ map \$http_upgrade \$connection_upgrade {
     '' close;
 }
 
+# Cache-Control je Pfad: content-gehashte Assets (/assets/) sind immutable und
+# dürfen hart gecacht werden; index.html/HTML NIE hart cachen — sonst hält der
+# Browser nach einem Deploy die alte index.html mit toten Asset-Hashes → 404 →
+# weißer Screen. 'no-cache' = speichern erlaubt, aber immer per ETag revalidieren.
+map \$uri \$hh_cache_control {
+    default    "no-cache";
+    ~^/assets/ "public, max-age=31536000, immutable";
+}
+
 # HTTP: nur Health-Ingest durchlassen, alles andere → HTTPS
 server {
     listen 80 default_server;
@@ -88,6 +97,10 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     # microphone=(self) erlaubt Mikrofon-Zugriff vom gleichen Origin
     add_header Permissions-Policy "geolocation=(), microphone=(self), camera=(), payment=()" always;
+    # Anti-Stale-Cache (siehe map \$hh_cache_control oben). Ein einzelner add_header
+    # auf Server-Ebene — bewusst KEIN add_header in location-Bloecken, sonst faellt
+    # die Vererbung der Security-Header (CSP etc.) weg.
+    add_header Cache-Control \$hh_cache_control always;
     # script-src braucht 'unsafe-eval' wegen three.js Shader-Compile + d3 Path-Builder
     # (beide verwenden new Function()). 'wasm-unsafe-eval' für künftiges WASM
     # (xterm/novnc bauen mit WebAssembly).
