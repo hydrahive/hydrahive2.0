@@ -4,6 +4,7 @@ import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
+import { explicitAiActions, openLocalPath, vaultOfflineActions } from "./actionRegistry"
 
 const vaultAreas = [
   { title: "Patientenakte", path: "/akte", icon: FolderHeart, desc: "Diagnosen, Medikamente, Laborwerte, FHIR/eGA und medizinische Timeline.", tone: "rose" },
@@ -37,7 +38,7 @@ export function VaultCockpitPage() {
       eyebrow="Vault"
       title="Vault-Cockpit"
       description="Sensible Bereiche an einem Ort: Patientenakte, Crypto, Dokumente, Notizen, Credentials und private Historie — mit klaren Schutzplanken."
-      actions={<CockpitButton tone="primary" onClick={() => window.open("/akte", "_self")}>Meine Akte öffnen</CockpitButton>}
+      actions={<CockpitButton tone="primary" onClick={() => openLocalPath("/akte")}>Meine Akte öffnen</CockpitButton>}
       className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
       hideHeader
     >
@@ -51,7 +52,7 @@ export function VaultCockpitPage() {
                 return (
                   <button
                     key={area.path}
-                    onClick={() => window.open(area.path, "_self")}
+                    onClick={() => openLocalPath(area.path)}
                     className="group flex w-full items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
                   >
                     <Icon size={18} className="mt-0.5 text-[#69d7ff]" />
@@ -72,7 +73,7 @@ export function VaultCockpitPage() {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => window.open(item.path, "_self")}
+                    onClick={() => openLocalPath(item.path)}
                     className="flex w-full items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]"
                   >
                     <Icon size={17} className="mt-0.5 text-[#69d7ff]" />
@@ -118,7 +119,7 @@ export function VaultCockpitPage() {
               {actionLinks.map((item) => {
                 const Icon = item.icon
                 return (
-                  <button key={item.title} onClick={() => window.open(item.path, "_self")} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                  <button key={item.title} onClick={() => openLocalPath(item.path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
                     <Icon size={16} className="mb-2 text-[#69d7ff]" />
                     <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
                     <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
@@ -129,6 +130,7 @@ export function VaultCockpitPage() {
           </CockpitPanel>
 
           <CockpitPanel title="Dokumente & Suche" eyebrow="Vorbereitung">
+            <div className="mb-3 flex flex-wrap gap-2">{vaultOfflineActions.filter((action) => action.kind === "status-only").map((action) => <span key={action.id} className="rounded-[4px] border border-amber-400/20 bg-amber-500/[6%] px-2 py-1 text-[11px] text-amber-100">{action.label}: geplant</span>)}</div>
             <div className="grid gap-2 md:grid-cols-2">
               <div className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3">
                 <h3 className="text-sm font-bold text-[#e8eef8]">Patientenakte-Dokumente</h3>
@@ -148,6 +150,11 @@ export function VaultCockpitPage() {
             <p className="mt-2 text-sm leading-5 text-[#d7deea]">
               Vault ist jetzt ein echter Einstiegspunkt für sensible Bereiche. Die volle Dokumenten- und Sicherheitslogik kommt in Folgeetappen.
             </p>
+          </CockpitPanel>
+
+          <CockpitPanel title="Optionale KI" eyebrow="Explizit">
+            <p className="text-xs leading-4 text-[#8d9ab0]">Vault lädt keine sensiblen Daten in einen Chat. KI-Auswertung bleibt ein bewusst gestarteter, separater Schritt.</p>
+            <CockpitButton onClick={() => openLocalPath(explicitAiActions.find((action) => action.id === "vault-agent")?.path ?? "/buddy")} className="mt-3">Vault-Agent bewusst öffnen</CockpitButton>
           </CockpitPanel>
 
           <CockpitPanel title="Nächste Ausbaustufen" eyebrow="Roadmap">

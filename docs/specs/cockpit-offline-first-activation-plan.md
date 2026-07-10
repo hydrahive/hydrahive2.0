@@ -73,32 +73,32 @@ Normale Klicks dürfen keine Chat-/LLM-Anfrage versteckt auslösen. Wenn Interne
 - Commit: `refactor(cockpit): classify cockpit actions offline first`
 
 ### Task 2: Buddy offline aktivieren
-- [ ] Buddy-Quickies auf echte lokale Aktionen umstellen:
+- [x] Buddy-Quickies auf echte lokale Aktionen umstellen:
   - „Projekt öffnen“ → `/projects`
   - „Idee merken“ → Scratchpad/Notizdialog oder `/scratchpad` mit klarer Übergabe
   - „Was liegt an?“ → lokale Statuskarte aus Tasks/Projektstatus, ohne LLM
-- [ ] Rechte Mini-Dummies entfernen oder durch echte Modulwidgets ersetzen.
-- [ ] Music/Games/Scratchpad als echte Links/Controls, keine Slash-Fake-Klicks.
-- [ ] Buddy-Chat bleibt explizit als LLM-Aktion.
+- [x] Rechte Mini-Dummies entfernen oder durch echte Modulwidgets ersetzen.
+- [x] Music/Games/Scratchpad als echte Links/Controls, keine Slash-Fake-Klicks.
+- [x] Buddy-Chat bleibt explizit als LLM-Aktion.
 - Commit: `feat(buddy): activate offline quick actions`
 
 ### Task 3: Media offline aktivieren
 - [ ] Media-Projekt-Auswahl aus vorhandenen Projekten/Atelier-Daten laden.
-- [ ] Produktionsbereich-Kacheln auf reale Atelier-/Streaming-/Music-/Workspace-Links verdrahten.
+- [x] Produktionsbereich-Kacheln auf reale Atelier-/Streaming-/Music-/Videoeditor-Links verdrahten.
 - [ ] Pipeline zeigt lokale Statusdaten oder explizit „keine Assets“ statt Dummy-Texte.
-- [ ] Media-Agent als klar beschrifteter optionaler Chat, nicht als Default-Klick.
+- [x] Media-Agent als klar beschrifteter optionaler Chat, nicht als Default-Klick.
 - Commit: `feat(cockpit): activate media offline actions`
 
 ### Task 4: Vault offline aktivieren
-- [ ] Vault-Bereiche direkt mit vorhandenen Modulen verbinden.
-- [ ] Dokumente/FTS/OCR als deaktivierte, klare „geplant“-Aktion solange Backend fehlt.
-- [ ] Datamining/Memory nur als Navigation, keine Suche beim Laden.
-- [ ] Vault-Chat nur explizit und mit sensibler Warnung.
+- [x] Vault-Bereiche direkt mit vorhandenen Modulen verbinden.
+- [x] Dokumente/FTS/OCR als deaktivierte, klare „geplant“-Aktion solange Backend fehlt.
+- [x] Datamining/Memory nur als Navigation, keine Suche beim Laden.
+- [x] Vault-Chat nur explizit und mit sensibler Warnung.
 - Commit: `feat(cockpit): activate vault offline actions`
 
 ### Task 5: Admin offline aktivieren
-- [ ] Admin-Kacheln auf vorhandene lokale Systemseiten/API-Status verbinden.
-- [ ] Keine gefährlichen Aktionen im Cockpit direkt ausführen; nur Seiten öffnen oder Status lesen.
+- [x] Admin-Kacheln auf vorhandene lokale Systemseiten/API-Status verbinden.
+- [x] Keine gefährlichen Aktionen im Cockpit direkt ausführen; nur Seiten öffnen oder Status lesen.
 - [ ] Logs/Metriken nur aus vorhandenen lokalen APIs, kein LLM.
 - Commit: `feat(cockpit): activate admin offline actions`
 

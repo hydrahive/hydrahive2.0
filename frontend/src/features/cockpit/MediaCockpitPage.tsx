@@ -3,6 +3,7 @@ import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
+import { explicitAiActions, mediaOfflineActions, openLocalPath } from "./actionRegistry"
 
 const pipeline = [
   { label: "Idee", text: "Prompt, Mood, Stil und CI sammeln", icon: Sparkles },
@@ -12,11 +13,7 @@ const pipeline = [
   { label: "Schnitt", text: "Timeline, Film Composer und Export", icon: Scissors },
 ]
 
-const quickLinks = [
-  { title: "Atelier öffnen", desc: "Bild, Charaktere, Regie, Video, Audio und Film Composer", path: "/atelier", icon: Palette, primary: true },
-  { title: "Streaming", desc: "Medien-Downloads und Plex/Streaming-Helfer", path: "/streaming", icon: Film },
-  { title: "Musikplayer", desc: "Musik-Modul und generierte Tracks", path: "/musicplayer", icon: Music2 },
-]
+const quickLinks = mediaOfflineActions.filter((action) => action.path).map((action, index) => ({ title: action.label, desc: action.description ?? "Lokales Modul öffnen.", path: action.path!, icon: [Palette, Film, Music2, Scissors][index] ?? FolderOpen, primary: index === 0 }))
 
 const assetAreas = [
   { title: "Charaktere", body: "Figuren, Referenzbilder und wiederverwendbare Looks aus dem Atelier.", icon: Images },
@@ -38,7 +35,7 @@ export function MediaCockpitPage() {
       eyebrow="Media"
       title="Media-Cockpit"
       description="Produktionsstrecke von Idee und Regie über Assets und Clips bis zum Schnitt. Diese Etappe verknüpft vorhandene Module ohne automatische Generierungsjobs."
-      actions={<CockpitButton tone="primary" onClick={() => window.open("/atelier", "_self")}>Atelier öffnen</CockpitButton>}
+      actions={<CockpitButton tone="primary" onClick={() => openLocalPath("/atelier")}>Atelier öffnen</CockpitButton>}
       className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
       hideHeader
     >
@@ -52,7 +49,7 @@ export function MediaCockpitPage() {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => window.open(item.path, "_self")}
+                    onClick={() => openLocalPath(item.path)}
                     className={["group flex w-full items-start gap-3 rounded-[4px] border p-3 text-left transition-colors", item.primary ? "border-[#69d7ff]/45 bg-[#1c2940]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f] hover:bg-[#172133]"].join(" ")}
                   >
                     <Icon size={18} className={item.primary ? "mt-0.5 text-[#69d7ff]" : "mt-0.5 text-[#8d9ab0] group-hover:text-[#e8eef8]"} />
@@ -117,7 +114,7 @@ export function MediaCockpitPage() {
               {workbenchLinks.map((item) => {
                 const Icon = item.icon
                 return (
-                  <button key={item.title} onClick={() => window.open(item.path, "_self")} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                  <button key={item.title} onClick={() => openLocalPath(item.path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
                     <Icon size={16} className="mb-2 text-[#69d7ff]" />
                     <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
                     <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
@@ -133,7 +130,7 @@ export function MediaCockpitPage() {
                 Der Regie-/Drehbuchplaner bleibt als größere Folgeetappe im Atelier-Modul geplant. Dieses Cockpit ist jetzt der stabile Einstiegspunkt: Es bündelt die bestehende Produktion und hält die Pipeline sichtbar, ohne automatisch LLM- oder Medienjobs zu starten.
               </p>
               <div className="mt-3 flex gap-2">
-                <CockpitButton onClick={() => window.open("/atelier", "_self")}>Zur Regie im Atelier</CockpitButton>
+                <CockpitButton onClick={() => openLocalPath("/atelier")}>Zur Regie im Atelier</CockpitButton>
                 <CockpitButton onClick={() => window.open("/mockups/media-cockpit-v1/index.html", "_blank")}>Mockup öffnen</CockpitButton>
               </div>
             </div>
@@ -152,6 +149,11 @@ export function MediaCockpitPage() {
               <li>• vorhandene Module bleiben Quelle der Wahrheit</li>
               <li>• Pipeline bereit für echte Regie-Integration</li>
             </ul>
+          </CockpitPanel>
+
+          <CockpitPanel title="Optionale KI" eyebrow="Explizit">
+            <p className="text-xs leading-4 text-[#8d9ab0]">Keine Medien-Kachel startet automatisch einen LLM- oder Generierungsjob. Wenn du KI willst, startest du sie bewusst.</p>
+            <CockpitButton onClick={() => openLocalPath(explicitAiActions.find((action) => action.id === "media-agent")?.path ?? "/buddy")} className="mt-3">Media-Agent bewusst öffnen</CockpitButton>
           </CockpitPanel>
 
           <CockpitPanel title="Nächste Ausbaustufen" eyebrow="Roadmap">
