@@ -10,6 +10,7 @@ import { useUserPreferences } from "@/features/preferences/useUserPreferences"
 import { CockpitButton } from "./CockpitButton"
 import { CollapsibleCockpitPanel } from "./project/CollapsibleCockpitPanel"
 import { CockpitShell } from "./CockpitShell"
+import { ProjectAgentEditOverlay } from "./project/ProjectAgentEditOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
@@ -25,6 +26,7 @@ export function ProjectCockpitPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [wsFile, setWsFile] = useState<{ path: string; kind: FileKind } | null>(null)
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null)
   const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -132,6 +134,7 @@ export function ProjectCockpitPage() {
                 if (!activeProjectId) return
                 setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
               }}
+              onEdit={setEditingAgentId}
             />
           </CollapsibleCockpitPanel>
 
@@ -176,6 +179,13 @@ export function ProjectCockpitPage() {
       </div>
       {wsFile && projectAgentId && (
         <FileOverlay agentId={projectAgentId} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
+      )}
+      {editingAgentId && (
+        <ProjectAgentEditOverlay
+          agentId={editingAgentId}
+          onClose={() => setEditingAgentId(null)}
+          onSaved={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}
+        />
       )}
     </CockpitShell>
   )
