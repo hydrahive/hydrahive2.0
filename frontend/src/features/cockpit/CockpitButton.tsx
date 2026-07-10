@@ -1,0 +1,23 @@
+import type { ButtonHTMLAttributes } from "react"
+import { cn } from "@/shared/cn"
+
+type Tone = "default" | "primary" | "danger"
+
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+  tone?: Tone
+}
+
+export function CockpitButton({ tone = "default", className, ...props }: Props) {
+  return (
+    <button
+      {...props}
+      className={cn(
+        "rounded-[4px] border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+        tone === "primary" && "border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] text-white hover:brightness-110",
+        tone === "danger" && "border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15",
+        tone === "default" && "border-[#2a364b] bg-[#172133] text-[#e8eef8] hover:border-[#46617f] hover:bg-[#1b2536]",
+        className,
+      )}
+    />
+  )
+}

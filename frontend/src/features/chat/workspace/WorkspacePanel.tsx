@@ -1,9 +1,8 @@
-import { type ComponentType, Suspense, useState, type CSSProperties } from "react"
+import { type ComponentType, Suspense, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { FileTree } from "./FileTree"
 import { GitPanel } from "./GitPanel"
 import { classifyFile, type FileKind } from "./fileType"
-import { rgbFor } from "@/shared/colors"
 import { moduleWorkspaceTabs } from "@/modules/index.generated"
 
 interface WorkspaceTabDef {
@@ -33,15 +32,15 @@ export function WorkspacePanel({ agentId, projectId, onOpenFile }: Props) {
   const allTabs = [...coreTabs, ...extraTabs.map((x) => x.id)]
 
   return (
-    <div className="box flex flex-col h-full" style={{ "--c": rgbFor("/werkstatt") } as CSSProperties}>
-      <div className="px-2.5 py-2 border-b border-white/[6%] text-[11px] font-medium text-zinc-300">{t("title")}</div>
-      <div className="flex border-b border-white/[6%] text-[10px]">
+    <div className="flex h-full flex-col overflow-hidden bg-[#151c2b] text-[#e8eef8]">
+      <div className="border-b border-[#2a364b] bg-[#121a29] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#69d7ff]">{t("title")}</div>
+      <div className="flex border-b border-[#2a364b] bg-[#111827] text-[10px]">
         {allTabs.map((id) => {
           const extra = extraTabs.find((x) => x.id === id)
           const label = extra ? extra.label : t(`tab_${id}`)
           return (
             <button key={id} onClick={() => setTab(id)}
-              className={`flex-1 py-1.5 ${tab === id ? "text-violet-300 border-b-2 border-violet-500 bg-violet-500/5" : "text-zinc-500"}`}>
+              className={`flex-1 border-b-2 py-1.5 font-semibold transition-colors ${tab === id ? "border-[#69d7ff] bg-[#1c2940] text-[#69d7ff]" : "border-transparent text-[#8d9ab0] hover:bg-[#172133] hover:text-[#e8eef8]"}`}>
               {label}
             </button>
           )

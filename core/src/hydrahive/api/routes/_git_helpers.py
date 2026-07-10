@@ -56,6 +56,10 @@ def err_to_code(err: str) -> tuple[int, str]:
         "no_repo": (400, "git_no_repo"),
         "empty_message": (400, "git_empty_message"),
         "timeout": (504, "git_timeout"),
+        "invalid_remote": (400, "git_invalid_remote"),
+        "gitea_not_configured": (503, "gitea_not_configured"),
+        "gitea_unreachable": (502, "gitea_unreachable"),
+        "gitea_create_failed": (502, "gitea_create_failed"),
     }
     return mapping.get(err, (500, "git_failed"))
 

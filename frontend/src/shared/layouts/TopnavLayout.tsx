@@ -85,7 +85,7 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
 
       {/* Content — overflow-x-hidden + overscroll-x-none: kein horizontales Pannen
           auf Touch-Geräten. Vertikal scrollt weiter. */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none relative z-10 p-4 md:p-6">
+      <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-x-none relative z-10 p-4 md:p-6">
         <Outlet />
       </main>
 

@@ -78,7 +78,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
   }
 
   return (
-    <div className="border-t border-white/[6%] p-4"
+    <div className="border-t border-[#2a364b] bg-[#111827] p-[10px]"
       onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
@@ -88,8 +88,8 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
           {files.map((f, i) => <MessageFileChip key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />)}
         </div>
       )}
-      <div className={`flex items-end gap-2 rounded-2xl border bg-white/[3%] px-3 py-2 transition-all
-        ${dragOver ? "border-violet-500/60 bg-violet-500/[5%]" : "border-white/[8%] focus-within:border-violet-500/40 focus-within:bg-white/[5%]"}`}>
+      <div className={`flex items-end gap-2 rounded-[4px] border bg-[#080d15] px-3 py-2 transition-colors
+        ${dragOver ? "border-[#69d7ff]/60 bg-[#0d1420]" : "border-[#2a364b] focus-within:border-[#46617f]"}`}>
         <button
           type="button"
           disabled={disabled || busy}
@@ -134,7 +134,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
           </button>
         ) : (
           <button onClick={submit} disabled={busy || (!text.trim() && files.length === 0) || disabled}
-            className="flex-shrink-0 p-2 rounded-xl bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md shadow-black/30">
+            className="flex-shrink-0 rounded-[4px] bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] p-2 text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30">
             <Send size={15} />
           </button>
         )}

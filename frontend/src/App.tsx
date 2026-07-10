@@ -47,6 +47,10 @@ import { HelpPage } from "@/features/help/HelpPage"
 import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
 import { FederationPage } from "@/features/federation/FederationPage"
 import { StreamingPage } from "@/features/streaming/StreamingPage"
+import { ProjectCockpitPage } from "@/features/cockpit/ProjectCockpitPage"
+import { MediaCockpitPage } from "@/features/cockpit/MediaCockpitPage"
+import { VaultCockpitPage } from "@/features/cockpit/VaultCockpitPage"
+import { AdminCockpitPage } from "@/features/cockpit/AdminCockpitPage"
 import { NotFoundPage } from "@/shared/NotFoundPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
@@ -75,16 +79,20 @@ export default function App() {
             </Guard>
           }
         >
-          <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <ThemedPage route="buddy" fallback={<BuddyPage />} />} />
+          <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <Navigate to="/buddy" replace />} />
+          <Route path="buddy" element={<ThemedPage route="buddy" fallback={<BuddyPage />} />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<ThemedPage route="dashboard" fallback={<DashboardPage />} />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="werkstatt" element={<ThemedPage route="werkstatt" fallback={<ChatPage />} />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
           <Route path="devchat" element={<Navigate to="/werkstatt" replace />} />
-          {/* Agenten & Projekte leben jetzt im Settings-Hub (eine Config-Stelle). */}
+          {/* Agenten bleiben vorerst im Settings-Hub; Projekte bekommen ein neues Cockpit. */}
           <Route path="agents" element={<Navigate to="/settings/agents" replace />} />
-          <Route path="projects" element={<Navigate to="/settings/projects" replace />} />
+          <Route path="projects" element={<ProjectCockpitPage />} />
+          <Route path="media" element={<MediaCockpitPage />} />
+          <Route path="vault" element={<VaultCockpitPage />} />
+          <Route path="admin" element={<AdminGuard><AdminCockpitPage /></AdminGuard>} />
           <Route path="communication" element={<ThemedPage route="communication" fallback={<CommunicationPage />} />} />
           <Route path="teamchat" element={<ThemedPage route="teamchat" fallback={<TeamchatPage />} />} />
           <Route path="vms" element={<ThemedPage route="vms" fallback={<VMsPage />} />} />

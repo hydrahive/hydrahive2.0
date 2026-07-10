@@ -50,3 +50,40 @@ def test_load_all_idempotent_rerun(mod_env, make_module):
     assert "beta" in REGISTRY and REGISTRY["beta"].loaded is True
     with db() as c:
         assert c.execute("SELECT COUNT(*) FROM module_schema_version WHERE module_id='beta'").fetchone()[0] == 1
+
+
+def test_ensure_required_bundled_modules_installs_missing_task(mod_env, make_module):
+    from hydrahive.modules.loader import ensure_required_bundled_modules
+
+    make_module(mod_env / "repo" / "modules", "tasks")
+    ensure_required_bundled_modules()
+
+    assert (mod_env / "modules" / "tasks" / "manifest.json").is_file()
+    assert (mod_env / "modules" / "tasks" / "backend" / "__init__.py").is_file()
+
+
+def test_ensure_required_bundled_modules_repairs_broken_task_dir(mod_env, make_module):
+    from hydrahive.modules.loader import ensure_required_bundled_modules
+
+    make_module(mod_env / "repo" / "modules", "tasks")
+    broken = mod_env / "modules" / "tasks"
+    broken.mkdir(parents=True)
+    (broken / "stale.txt").write_text("broken")
+
+    ensure_required_bundled_modules()
+
+    assert not (broken / "stale.txt").exists()
+    assert (broken / "manifest.json").is_file()
+
+
+def test_ensure_required_bundled_modules_does_not_overwrite_installed_task(mod_env, make_module):
+    from hydrahive.modules.loader import ensure_required_bundled_modules
+
+    make_module(mod_env / "repo" / "modules", "tasks")
+    installed = make_module(mod_env / "modules", "tasks")
+    marker = installed / "custom.txt"
+    marker.write_text("keep")
+
+    ensure_required_bundled_modules()
+
+    assert marker.read_text() == "keep"

@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind, SmbMount, SmbMountCreate } from "./types"
+import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGiteaStatus, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind, SmbMount, SmbMountCreate } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -49,6 +49,14 @@ export const projectsApi = {
     api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/push`, {}),
   pullRepo: (id: string, name: string) =>
     api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/pull`, {}),
+  getGiteaStatus: (id: string, name: string) =>
+    api.get<ProjectGiteaStatus>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/gitea`),
+  createGiteaRepo: (id: string, name: string) =>
+    api.post<{ ok: boolean; status: ProjectGiteaStatus }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/gitea/create`, {}),
+  pushGiteaRepo: (id: string, name: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/gitea/push`, {}),
+  pullGiteaRepo: (id: string, name: string) =>
+    api.post<{ ok: boolean }>(`/projects/${id}/git/repos/${encodeURIComponent(name)}/gitea/pull`, {}),
   deleteRepo: (id: string, name: string) =>
     api.delete<void>(`/projects/${id}/git/repos/${encodeURIComponent(name)}`),
   getServers: (id: string) => api.get<ProjectServer[]>(`/projects/${id}/servers`),
