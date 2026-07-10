@@ -1,8 +1,32 @@
 import { useEffect, useState } from "react"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitPanel } from "../CockpitPanel"
-import { tasksApi } from "@/modules/tasks/api"
-import type { Task, TaskPriority, TaskStatus } from "@/modules/tasks/types"
+import { api } from "@/shared/api-client"
+
+type TaskStatus = "open" | "in_progress" | "done" | "cancelled"
+type TaskPriority = "low" | "medium" | "high"
+
+interface Task {
+  id: string
+  project_id: string | null
+  title: string
+  status: TaskStatus
+  priority: TaskPriority
+}
+
+const TASKS_BASE = "/modules/tasks/tasks"
+
+const projectTasksApi = {
+  list(projectId: string): Promise<Task[]> {
+    return api.get<Task[]>(`${TASKS_BASE}?project_id=${encodeURIComponent(projectId)}`)
+  },
+  create(projectId: string, title: string, priority: TaskPriority): Promise<Task> {
+    return api.post<Task>(TASKS_BASE, { project_id: projectId, title, priority })
+  },
+  updateStatus(taskId: string, status: TaskStatus): Promise<Task> {
+    return api.patch<Task>(`${TASKS_BASE}/${taskId}`, { status })
+  },
+}
 
 interface Props {
   projectId: string | null
@@ -24,7 +48,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
     setLoading(true)
     setError(null)
     try {
-      setTasks(await tasksApi.list({ project_id: projectId }))
+      setTasks(await projectTasksApi.list(projectId))
     } catch {
       setTasks([])
       setError("Tasks konnten nicht geladen werden.")
@@ -40,7 +64,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
     setCreating(true)
     setError(null)
     try {
-      const task = await tasksApi.create({ project_id: projectId, title: title.trim(), priority })
+      const task = await projectTasksApi.create(projectId, title.trim(), priority)
       setTasks((cur) => [task, ...cur])
       setTitle("")
       setPriority("medium")
@@ -56,7 +80,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
     const before = tasks
     setTasks((cur) => cur.map((item) => item.id === task.id ? { ...item, status } : item))
     try {
-      const updated = await tasksApi.update(task.id, { status })
+      const updated = await projectTasksApi.updateStatus(task.id, status)
       setTasks((cur) => cur.map((item) => item.id === updated.id ? updated : item))
     } catch {
       setTasks(before)
