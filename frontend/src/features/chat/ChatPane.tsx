@@ -180,6 +180,11 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
   const activeOrphaned = activeSession ? !knownAgentIds.has(activeSession.agent_id) : false
   const activeAgent = activeSession ? (agents.find((a) => a.id === activeSession.agent_id) ?? null) : preferredAgent
 
+  useEffect(() => {
+    if (activeId || deepLinkSid || visibleSessions.length === 0) return
+    setActiveId(visibleSessions[0].id)
+  }, [activeId, deepLinkSid, visibleSessions])
+
   const [pixelScope, setPixelScope] = useState<"chat" | "all">("chat")
   const { running, doneNames } = useAgentActivity(showPixelMonitor)
   const pixelData = useMemo(() => {
