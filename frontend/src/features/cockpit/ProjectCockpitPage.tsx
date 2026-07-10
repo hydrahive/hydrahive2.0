@@ -11,6 +11,7 @@ import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
+import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
 import { ProjectGitTreePanel } from "./project/ProjectGitTreePanel"
 import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
@@ -57,6 +58,7 @@ export function ProjectCockpitPage() {
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
   const projectAgentId = activeProject?.agent_id ?? null
   const selectedAgentId = activeProjectId ? (selectedAgentByProject[activeProjectId] ?? projectAgentId) : projectAgentId
+  const selectedAgentModel = agents.find((agent) => agent.id === selectedAgentId)?.llm_model ?? ""
 
   async function pickProject(projectId: string | null) {
     await prefs.patch({ active_project_id: projectId })
@@ -106,14 +108,16 @@ export function ProjectCockpitPage() {
             }}
           />
           <ProjectGitSummary projectId={activeProjectId} />
-          <CockpitPanel title="KI Einstellungen" eyebrow="Chat">
-            <p className="text-xs text-zinc-500">Modell und Tiefe bleiben im Chat/Agenten-Kontext. Die vollständigen Controls werden in der nächsten ChatPane-Etappe eingebettet.</p>
-          </CockpitPanel>
+          <ProjectAiSettingsPanel
+            agentId={projectAgentId}
+            agents={agents}
+            onAgentChanged={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}
+          />
         </aside>
 
         <main className="min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
           {activeProjectId ? (
-            <ChatPane projectId={activeProjectId} showSidePanels={false} preferredAgentId={selectedAgentId} />
+            <ChatPane key={`${activeProjectId}:${selectedAgentId}:${selectedAgentModel}`} projectId={activeProjectId} showSidePanels={false} preferredAgentId={selectedAgentId} />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-zinc-600">Bitte ein Projekt auswählen.</div>
           )}
