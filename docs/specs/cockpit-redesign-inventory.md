@@ -1,7 +1,7 @@
 # Cockpit-Redesign Inventur
 
 Stand: 2026-07-10  
-Status: **Inventur vor Umsetzung**  
+Status: **Abschluss-Inventur nach Etappe Projekt-Cockpit**  
 Mockups:
 
 - `generated/mockups/cockpit-v2/index.html`
@@ -9,6 +9,44 @@ Mockups:
 - `generated/mockups/media-cockpit-v1/index.html`
 - `generated/mockups/vault-cockpit-v1/index.html`
 - `generated/mockups/admin-cockpit-v1/index.html`
+
+## Abschlussstand 2026-07-10
+
+Diese Inventur wurde ursprünglich vor der Umsetzung erstellt und nach der ersten funktionsfähigen Projekt-Cockpit-Etappe aktualisiert.
+
+### Umgesetzt auf `feat/cockpit-redesign`
+
+- Neue Cockpit-Routen sind eingehängt: `/projects`, `/media`, `/vault`, `/admin`.
+- Legacy-Layout-Chrome wird auf Cockpit-Routen umgangen; Cockpits verwenden `CockpitShell`.
+- Topbar/Quicklinks zeigen die neue Zielstruktur mit `Projekte`, `Buddy`, `Media`, `Vault`, `Admin`.
+- Projekt-Cockpit ist produktiv nutzbar:
+  - serverseitig persistente aktive Projektwahl über `/api/me/preferences`, inklusive Backend-Test,
+  - eingebetteter vollwertiger Chat über `ChatPane`, nicht neu implementiert,
+  - Session-Wechsel im Chat-Header als Dropdown statt horizontaler Chip-Leiste,
+  - linke Panels für Projekt-Agenten, KI-Einstellungen, Projekt-Git und Workspace-Git,
+  - rechte Panels für Git Tree, Workspace-Dateimanager und Projekt-Tasks,
+  - einklappbare linke Panels mit serverseitig gespeicherten Cockpit-Preferences,
+  - LLM-Auswahl als Dropdown mit Speichern über Agent-API,
+  - Workspace-Dateien öffnen, Upload, neue Datei erstellen,
+  - Projekt-Tasks listen, erstellen und Status wechseln.
+- Testserver `192.168.178.62` läuft auf dem Branch; Tasks-Modul wurde dort als installierter Runtime-Modulstand repariert.
+- Frontend-Build war nach den Etappen grün.
+
+### Bewusst noch Platzhalter
+
+- `/media`, `/vault` und `/admin` sind derzeit stabile Cockpit-Einstiegspunkte mit Mockup-/Migrationshinweis, aber noch keine voll ausgebauten Cockpits.
+- `/buddy` bleibt die vorhandene Buddy-Seite; das frühere Buddy-Cockpit-Redesign ist separat umgesetzt/gemergt, aber nicht Teil dieser Projekt-Cockpit-Etappe.
+- Gitea-Repo-Erstellen/Remote-Anlage ist noch nicht implementiert; nur vorhandene Git-/Repo-Informationen und Pull/Push-Aktionen sind im Projekt-Cockpit sichtbar.
+- Agent-Edit-Overlay ist noch nicht umgesetzt; Agentenliste ist aktuell Lesemodus mit Link in die Einstellungen.
+- Vault-Sicherheitsmodell, Media-Pipeline und Admin-Konsolidierung bleiben Folgeetappen.
+
+### Merge-Blocker vor `main`
+
+1. Finaler Build/Typecheck auf sauberem Branch.
+2. Backend-Tests mindestens für Preferences und betroffene APIs. Hinweis: lokal mit `PYTHONPATH=$PWD/core/src` testen, damit nicht versehentlich das installierte `/opt/hydrahive2`-Paket importiert wird.
+3. `hh-review` gegen HydraHive-Architekturregeln.
+4. Kurzer UI-Smoke auf Staging: `/projects`, `/media`, `/vault`, `/admin`, Chat senden, Datei-Upload, Datei-Neu, Task-Neu, LLM speichern.
+5. Entscheidung, ob Runtime-Modul-Kopie für `tasks` beim Deployment dokumentiert/automatisiert werden muss, damit `/api/modules/tasks/tasks` nicht wieder 404 liefert.
 
 ## Ziel
 
@@ -409,21 +447,21 @@ Mögliche Felder:
 
 | Mockup-Feature | Bestand | Status | Risiko |
 |---|---|---|---|
-| Topbar neue Sparten | teilweise | neu ordnen | niedrig |
-| Projekt-Dropdown persistent | teilweise | Backend-Pref nötig | mittel |
-| Projektchat | vorhanden | Chat kapseln | hoch, wenn neu gebaut |
-| Session-Dropdown im Chat | vorhanden SessionList/API | kompakt neu | mittel |
-| Kontext/Tokens im Header | vorhanden | 1:1 übernehmen | hoch, wenn vergessen |
-| Slash-Befehle | vorhanden | 1:1 übernehmen | mittel |
-| Upload/Bild/Datei | vorhanden | 1:1 übernehmen | hoch |
-| Agentenliste | vorhanden | kompakt neu | niedrig |
-| Agent-Edit Overlay | vorhanden Formteile | Modal-Integration | mittel |
-| Git Status | vorhanden | wiederverwenden | niedrig-mittel |
-| Gitea Status/Repo erstellen | teilweise | neu | hoch/security |
-| Dateimanager | vorhanden | wiederverwenden | mittel |
-| Git Tree | teilweise | neu/klein | niedrig |
-| Projekt-Tasks | vorhanden Modul | Widget/Filter | mittel |
-| Model/Tiefe | vorhanden | 1:1 übernehmen | mittel |
+| Topbar neue Sparten | vorhanden | umgesetzt | niedrig |
+| Projekt-Dropdown persistent | vorhanden | umgesetzt über `/api/me/preferences` | niedrig |
+| Projektchat | vorhanden | umgesetzt via `ChatPane`; Chat nicht neu gebaut | mittel: Regressionen weiter smoke-testen |
+| Session-Dropdown im Chat | vorhanden SessionList/API | umgesetzt im kompakten Header | niedrig |
+| Kontext/Tokens im Header | vorhanden | erhalten über bestehenden Chat-Header | mittel: UI-Smoke erforderlich |
+| Slash-Befehle | vorhanden | erhalten über bestehenden `MessageInput`/Chat-Runtime | niedrig-mittel |
+| Upload/Bild/Datei | vorhanden | Chat-Uploads erhalten; Workspace-Upload zusätzlich umgesetzt | niedrig-mittel |
+| Agentenliste | vorhanden | kompakt umgesetzt | niedrig |
+| Agent-Edit Overlay | vorhanden Formteile | offen; Link zu Einstellungen bleibt | mittel |
+| Git Status | vorhanden | Projekt-Git + Workspace-Git eingebunden | niedrig-mittel |
+| Gitea Status/Repo erstellen | teilweise | offen/Folgeetappe | hoch/security |
+| Dateimanager | vorhanden | umgesetzt mit Öffnen, Upload, neue Datei | niedrig-mittel |
+| Git Tree | teilweise | umgesetzt als kompakte Repo-Liste | niedrig |
+| Projekt-Tasks | vorhanden Modul | umgesetzt; Runtime-Modul muss installiert sein | mittel: Deployment-Doku |
+| Model/Tiefe | vorhanden | Modell-Dropdown umgesetzt; Tiefe bleibt im Chat-Kontext | mittel |
 | Buddy Musik/Games | vorhanden | einbetten | niedrig |
 | Buddy Reaction Video | neu | leicht | niedrig |
 | Wühlkiste Widget | neu/Markdown | leicht | niedrig |
@@ -433,7 +471,41 @@ Mögliche Felder:
 | Vault Akte/Crypto | vorhanden | Container neu | mittel |
 | Vault PDF/OCR/FTS | offen | später | mittel-hoch |
 | Admin System/User/Module | vorhanden | Container neu | mittel |
-| Datamining Widgets | vorhanden API | kleine Widgets | mittel wegen Kosten |
+| Datamining Widgets | vorhanden API | noch nicht in Cockpit eingebettet | mittel wegen Kosten |
+
+---
+
+# 10. Abschluss-Testmatrix für Merge
+
+Diese Matrix ist der konkrete Smoke-Test vor Merge nach `main`.
+
+| Bereich | Test | Erwartung | Status 2026-07-10 |
+|---|---|---|---|
+| Routing | `/projects` laden | Cockpit ohne Legacy-Chrome, kein Crash | auf Staging genutzt |
+| Routing | `/media`, `/vault`, `/admin` laden | Platzhalter-Cockpits laden; Admin nur mit AdminGuard | noch final smoke-testen |
+| Projektwahl | Projekt im Dropdown wechseln, F5 | Auswahl bleibt erhalten | implementiert, noch final smoke-testen |
+| Chat | Nachricht im Projekt-Cockpit senden | Bestehende Chat-Runtime streamt, Toolcards/Uploads bleiben verfügbar | noch final smoke-testen |
+| Sessions | Session-Dropdown öffnen/wechseln, Session+ | maximal kompakt, kein horizontaler Overflow | umgesetzt, auf Staging geprüft |
+| KI-Einstellungen | Modell aus Dropdown wählen und speichern | Agent `llm_model` wird persistiert | umgesetzt, auf Staging geprüft |
+| Linke Panels | Panels einklappen, F5 | Collapse-Zustand bleibt erhalten | umgesetzt |
+| Projekt-Git | Repos anzeigen, Pull/Push Buttons | vorhandene APIs reagieren; Fehler sichtbar | noch final smoke-testen |
+| Workspace-Git | Status/Files anzeigen | bestehendes GitPanel funktioniert im Cockpit | noch final smoke-testen |
+| Workspace | Datei öffnen | Overlay/Preview öffnet | auf Staging geprüft |
+| Workspace | Upload | Datei landet im aktuellen Ordner und Liste refreshed | auf Staging geprüft |
+| Workspace | Neue Datei | Datei wird erstellt und geöffnet | auf Staging geprüft |
+| Tasks | Task+ anlegen | Task erscheint im Projektfilter | auf Staging geprüft nach Modul-Reparatur |
+| Build | `npm --prefix frontend run build` | Exit 0 | mehrfach grün, vor Merge wiederholen |
+| Backend | Preferences-Tests | grün | `PYTHONPATH=$PWD/core/src pytest core/tests/test_me_preferences.py -q` → 6 passed |
+| Architektur | `hh-review` | keine Blocker | ausstehend |
+
+# 11. Offene Folgeetappen nach Merge
+
+1. **Media-Cockpit ausbauen:** Atelier/Videoeditor/Pipeline in `/media` einbetten.
+2. **Vault-Cockpit ausbauen:** Patientenakte, Crypto, Dokumente, Datamining mit Security-Guard bündeln.
+3. **Admin-Cockpit ausbauen:** System/User/Module/Credentials/Logs in `/admin` konsolidieren.
+4. **Projekt-Cockpit Gitea-Flow:** lokales Gitea-Repo erstellen, Remote setzen, Initial Push, Rechte/Security-Tests.
+5. **Projekt-Cockpit Agent-Edit:** kompakter Edit-Dialog statt nur Einstellungslink.
+6. **Deployment-Robustheit Module:** sicherstellen, dass installierte Module wie `tasks` in `/var/lib/hydrahive2/modules` vollständig vorhanden sind oder beim Deploy synchronisiert werden.
 
 ---
 
