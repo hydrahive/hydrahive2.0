@@ -8,6 +8,7 @@ import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
 import { openLocalPath } from "./actionRegistry"
+import { mediaProjectsApi, type MediaProject } from "./mediaProjectsApi"
 
 const productionAreas = [
   { title: "Idee & Prompt", text: "Grundidee, Ziel, Stil", path: "/atelier" },
@@ -29,7 +30,13 @@ export function MediaCockpitPage() {
   const [projects, setProjects] = useState<ProjectBrief[]>([])
   const [projectStatus, setProjectStatus] = useState<"loading" | "ready" | "offline">("loading")
   const [projectId, setProjectId] = useState("")
-  const [mediaProject, setMediaProject] = useState("atelier-clips")
+  const [mediaProjects, setMediaProjects] = useState<MediaProject[]>([])
+  const [mediaProject, setMediaProject] = useState("")
+  const [mediaProjectStatus, setMediaProjectStatus] = useState<"idle" | "loading" | "ready" | "offline">("idle")
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState("")
+  const [createDescription, setCreateDescription] = useState("")
+  const [createError, setCreateError] = useState("")
   const [atelierStatus, setAtelierStatus] = useState<"idle" | "loading" | "ready" | "offline">("idle")
   const [ci, setCi] = useState<AtelierCI | null>(null)
   const [characters, setCharacters] = useState<AtelierCharacter[]>([])
@@ -53,6 +60,21 @@ export function MediaCockpitPage() {
       })
       .catch(() => setProjectStatus("offline"))
   }, [])
+
+  useEffect(() => {
+    if (!projectId) return
+    let cancelled = false
+    setMediaProjectStatus("loading")
+    mediaProjectsApi.list(projectId).then((items) => {
+      if (cancelled) return
+      setMediaProjects(items)
+      setMediaProject((current) => items.some((item) => item.slug === current) ? current : (items[0]?.slug ?? ""))
+      setMediaProjectStatus("ready")
+    }).catch(() => {
+      if (!cancelled) setMediaProjectStatus("offline")
+    })
+    return () => { cancelled = true }
+  }, [projectId])
 
   useEffect(() => {
     if (!projectId) return
@@ -106,6 +128,21 @@ export function MediaCockpitPage() {
     return presetNames.length ? presetNames : modes
   }, [presets])
 
+  const createMediaProject = async () => {
+    const name = createName.trim()
+    const slug = name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 64)
+    if (!projectId || !name || !slug) { setCreateError("Bitte einen gültigen Namen eingeben."); return }
+    setCreateError("")
+    try {
+      const created = await mediaProjectsApi.create(projectId, { slug, name, description: createDescription.trim() })
+      setMediaProjects((items) => [...items, created])
+      setMediaProject(created.slug)
+      setCreateOpen(false)
+      setCreateName("")
+      setCreateDescription("")
+    } catch { setCreateError("Media-Projekt konnte nicht angelegt werden.") }
+  }
+
   return (
     <CockpitShell
       eyebrow="Media"
@@ -118,11 +155,10 @@ export function MediaCockpitPage() {
       <CockpitTopbar active="media" context={selectedProject?.name ?? "Projekt: lokal"} action={{ label: "Atelier öffnen", path: "/atelier" }} />
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_360px]">
         <aside className="panel min-h-0 overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3">
-          <CockpitSectionLabel>Media-Projekt</CockpitSectionLabel>
-          <select value={mediaProject} onChange={(event) => setMediaProject(event.target.value)} className="mt-2 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]">
-            <option value="testfilm">Filmprojekt: Testfilm 90min</option>
-            <option value="atelier-clips">Atelier Clips</option>
-            <option value="buddy-trailer">Buddy Trailer</option>
+          <div className="flex items-center justify-between gap-2"><CockpitSectionLabel>Media-Projekt</CockpitSectionLabel><CockpitButton onClick={() => setCreateOpen(true)}><Plus size={12} className="mr-1 inline" /> Neu</CockpitButton></div>
+          <select value={mediaProject} onChange={(event) => setMediaProject(event.target.value)} disabled={!mediaProjects.length} className="mt-2 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8] disabled:opacity-60">
+            {!mediaProjects.length && <option value="">{mediaProjectStatus === "loading" ? "Media-Projekte laden…" : mediaProjectStatus === "offline" ? "Media-Projekte offline" : "Noch kein Media-Projekt"}</option>}
+            {mediaProjects.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
           </select>
 
           <div className="mt-4">
@@ -222,6 +258,18 @@ export function MediaCockpitPage() {
           </section>
         </aside>
       </div>
+      {createOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="create-media-title">
+        <section className="w-full max-w-lg rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
+          <header className="border-b border-[#2a364b] p-4"><CockpitSectionLabel>Neues Media-Projekt</CockpitSectionLabel><h2 id="create-media-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Produktionsworkspace anlegen</h2></header>
+          <div className="space-y-3 p-4">
+            <label className="block text-xs text-[#8d9ab0]">Name<input autoFocus value={createName} onChange={(event) => setCreateName(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]" /></label>
+            <label className="block text-xs text-[#8d9ab0]">Beschreibung<textarea value={createDescription} onChange={(event) => setCreateDescription(event.target.value)} rows={4} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]" /></label>
+            <p className="text-xs leading-4 text-[#8d9ab0]">Wird sicher im Workspace des gewählten Heimatprojekts unter <code>media/&lt;slug&gt;</code> angelegt. Kein Generator- oder LLM-Job wird gestartet.</p>
+            {createError && <p className="text-sm text-[#fb7185]">{createError}</p>}
+          </div>
+          <footer className="flex justify-end gap-2 border-t border-[#2a364b] p-3"><CockpitButton onClick={() => setCreateOpen(false)}>Schließen</CockpitButton><CockpitButton tone="primary" onClick={createMediaProject}>Anlegen</CockpitButton></footer>
+        </section>
+      </div>}
     </CockpitShell>
   )
 }
