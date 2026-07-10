@@ -11,8 +11,9 @@ import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
-import { ProjectFilesPanel } from "./project/ProjectFilesPanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
+import { ProjectGitTreePanel } from "./project/ProjectGitTreePanel"
+import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
 import { ProjectSelector } from "./project/ProjectSelector"
 import { ProjectTasksPanel } from "./project/ProjectTasksPanel"
 
@@ -118,8 +119,9 @@ export function ProjectCockpitPage() {
           )}
         </main>
 
-        <aside className="grid min-h-0 gap-[10px] overflow-hidden xl:grid-rows-[minmax(0,1fr)_auto]">
-          <ProjectFilesPanel agentId={projectAgentId} projectId={activeProjectId} onOpenFile={(path, kind) => setWsFile({ path, kind })} />
+        <aside className="grid min-h-0 gap-[10px] overflow-hidden xl:grid-rows-[32fr_38fr_30fr]">
+          <ProjectGitTreePanel projectId={activeProjectId} />
+          <ProjectWorkspacePanel projectId={activeProjectId} onOpenFile={(path, kind) => setWsFile({ path, kind })} />
           <ProjectTasksPanel projectId={activeProjectId} />
         </aside>
       </div>

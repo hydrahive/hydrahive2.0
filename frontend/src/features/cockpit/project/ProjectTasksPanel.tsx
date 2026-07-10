@@ -89,22 +89,22 @@ export function ProjectTasksPanel({ projectId }: Props) {
   }
 
   return (
-    <CockpitPanel title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={() => void reload()}>Refresh</CockpitButton>}>
-      <div className="mb-3 space-y-2 rounded-[4px] border border-white/[8%] bg-black/20 p-2">
+    <CockpitPanel title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={() => void reload()}>Task +</CockpitButton>} className="flex min-h-0 flex-col">
+      <div className="mb-3 space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
         <input
           value={title}
           disabled={!projectId || creating}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") void createTask() }}
           placeholder="Neuer Projekt-Task…"
-          className="w-full rounded-[4px] border border-white/[10%] bg-zinc-950/70 px-2 py-1.5 text-sm text-zinc-100 outline-none placeholder:text-zinc-700 focus:border-cyan-400/30"
+          className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1.5 text-sm text-[#e8eef8] outline-none placeholder:text-[#8d9ab0] focus:border-[#46617f]"
         />
         <div className="flex gap-2">
           <select
             value={priority}
             disabled={!projectId || creating}
             onChange={(e) => setPriority(e.target.value as TaskPriority)}
-            className="min-w-0 flex-1 rounded-[4px] border border-white/[10%] bg-zinc-950/70 px-2 py-1.5 text-xs font-semibold text-zinc-300 outline-none"
+            className="min-w-0 flex-1 rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1.5 text-xs font-semibold text-[#e8eef8] outline-none"
           >
             <option value="low">low</option>
             <option value="medium">medium</option>
@@ -116,11 +116,11 @@ export function ProjectTasksPanel({ projectId }: Props) {
       {error ? <p className="mb-2 text-xs text-rose-300">{error}</p> : null}
       {loading ? <p className="text-sm text-zinc-600">Lade Tasks…</p> : null}
       {!loading && tasks.length === 0 ? <p className="text-sm text-zinc-600">Keine Tasks für dieses Projekt.</p> : null}
-      <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {tasks.slice(0, 20).map((task) => (
-          <div key={task.id} className="rounded-[4px] border border-white/[8%] bg-white/[3%] p-2">
+          <div key={task.id} className="rounded-[4px] border border-[#223048] bg-[#111827] p-2">
             <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 text-sm font-semibold text-zinc-200">{task.title}</p>
+              <p className="min-w-0 text-sm font-semibold text-[#e8eef8]">{task.title}</p>
               <span className="shrink-0 rounded-[3px] bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-black uppercase text-amber-200">
                 {task.priority}
               </span>
