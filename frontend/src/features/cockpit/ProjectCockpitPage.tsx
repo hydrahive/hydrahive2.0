@@ -12,6 +12,7 @@ import { CollapsibleCockpitPanel } from "./project/CollapsibleCockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
 import { ProjectAgentEditOverlay } from "./project/ProjectAgentEditOverlay"
+import { ProjectCreateOverlay } from "./project/ProjectCreateOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
@@ -28,6 +29,7 @@ export function ProjectCockpitPage() {
   const [error, setError] = useState<string | null>(null)
   const [wsFile, setWsFile] = useState<{ path: string; kind: FileKind } | null>(null)
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null)
+  const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export function ProjectCockpitPage() {
       actions={(
         <>
           <CockpitButton onClick={() => window.open("/settings/projects", "_self")}>Projekt-Einstellungen</CockpitButton>
-          <CockpitButton tone="primary" onClick={() => window.open("/werkstatt", "_self")}>Alte Werkstatt</CockpitButton>
+          <CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton>
         </>
       )}
       className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
@@ -172,6 +174,17 @@ export function ProjectCockpitPage() {
       </div>
       {wsFile && projectAgentId && (
         <FileOverlay agentId={projectAgentId} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
+      )}
+      {createProjectOpen && (
+        <ProjectCreateOverlay
+          agents={agents}
+          onClose={() => setCreateProjectOpen(false)}
+          onCreated={(project) => {
+            setProjects((current) => [project, ...current])
+            setCreateProjectOpen(false)
+            void prefs.patch({ active_project_id: project.id })
+          }}
+        />
       )}
       {editingAgentId && (
         <ProjectAgentEditOverlay
