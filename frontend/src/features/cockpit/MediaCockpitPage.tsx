@@ -101,6 +101,10 @@ export function MediaCockpitPage() {
   }, [gallery, videos])
   const timelineVideoClips = useMemo(() => videos.length > 0 ? videos.slice(0, 5).map((job, index) => ({ left: index * 18, width: 14, color: statusColor(job.status) })) : [{ left: 3, width: 22 }, { left: 30, width: 18 }, { left: 55, width: 32 }], [videos])
   const timelineFilmClips = useMemo(() => films.length > 0 ? films.slice(0, 3).map((job, index) => ({ left: index * 28, width: 22, color: statusColor(job.status) })) : [{ left: 30, width: 18, color: "#69d7ff" }], [films])
+  const modePills = useMemo(() => {
+    const presetNames = Object.values(presets).flat().slice(0, 4)
+    return presetNames.length ? presetNames : modes
+  }, [presets])
 
   return (
     <CockpitShell
@@ -183,7 +187,7 @@ export function MediaCockpitPage() {
                 <CockpitButton onClick={() => openLocalPath("/atelier")}>Overlay öffnen</CockpitButton>
               </div>
               <textarea value={jobText} onChange={(event) => setJobText(event.target.value)} rows={8} className="w-full resize-y rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm leading-5 text-[#e8eef8]" />
-              <div className="mt-3 flex flex-wrap gap-2">{modes.map((mode) => <button key={mode} onClick={() => setJobText((text) => `${text}\n# ${mode}`)} className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1 text-xs text-[#d7deea] hover:border-[#46617f]">{mode}</button>)}</div>
+              <div className="mt-3 flex flex-wrap gap-2">{modePills.map((mode) => <button key={mode} onClick={() => setJobText((text) => `${text}\n# ${mode}`)} className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1 text-xs text-[#d7deea] hover:border-[#46617f]">{mode}</button>)}</div>
               <p className="mt-3 text-xs leading-4 text-[#8d9ab0]">Offline-first: Dieser Auftrag wird hier nur vorbereitet. Generierung startet erst bewusst im Atelier/Overlay.</p>
             </div>
           </section>

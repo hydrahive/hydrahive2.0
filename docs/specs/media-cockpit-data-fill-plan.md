@@ -39,9 +39,9 @@ Das Media-Cockpit wird vom Mockup-Gerüst zu einem echten, offline-first Produkt
 - Commit: `feat(cockpit): derive media timeline from jobs`
 
 ### Task 5: Modelle/Presets besser anbinden
-- [ ] Modellfelder übernehmen CI-Default und bekannte Video/Musik-Defaults.
-- [ ] Presets werden als auswählbare Tags/Pills im Generator-Auftrag angeboten.
-- [ ] Nicht unterstützte Modelllisten bleiben als statische Defaults sichtbar.
+- [x] Modellfelder übernehmen CI-Default und bekannte Video/Musik-Defaults.
+- [x] Presets werden als auswählbare Tags/Pills im Generator-Auftrag angeboten.
+- [x] Nicht unterstützte Modelllisten bleiben als statische Defaults sichtbar.
 - Commit: `feat(cockpit): bind media model presets`
 
 ## Akzeptanzkriterien
