@@ -38,6 +38,7 @@ from hydrahive.api.routes.llm import router as llm_router
 from hydrahive.api.routes.llm_catalog import router as llm_catalog_router
 from hydrahive.api.routes.llm_oauth import router as llm_oauth_router
 from hydrahive.api.routes.mcp import router as mcp_router
+from hydrahive.api.routes.me_preferences import router as me_preferences_router
 from hydrahive.api.routes.plugins import router as plugins_router
 from hydrahive.api.routes.projects import router as projects_router
 from hydrahive.api.routes.projects_info import router as projects_info_router
@@ -119,6 +120,7 @@ app.include_router(llm_router)
 app.include_router(llm_catalog_router)
 app.include_router(llm_oauth_router)
 app.include_router(mcp_router)
+app.include_router(me_preferences_router)
 app.include_router(plugins_router)
 app.include_router(projects_router)
 app.include_router(projects_info_router)
