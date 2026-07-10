@@ -21,6 +21,7 @@ import { CockpitButton } from "@/features/cockpit/CockpitButton"
 import { CockpitPanel } from "@/features/cockpit/CockpitPanel"
 import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
+import { buddyOfflineActions, openLocalPath } from "@/features/cockpit/actionRegistry"
 import { moduleBuddyWidgets } from "@/modules/index.generated"
 import { BuddyThread } from "./_BuddyThread"
 import { buddyApi, type BuddyState } from "./api"
@@ -43,6 +44,7 @@ export function BuddyPage() {
   const [visibleCount, setVisibleCount] = useState(MSG_WINDOW)
   const [projects, setProjects] = useState<ProjectBrief[]>([])
   const [projectBusy, setProjectBusy] = useState(false)
+  const [localOverviewOpen, setLocalOverviewOpen] = useState(false)
   const initRef = useRef(false)
   const chat = useChat(state?.session_id ?? null)
   const tts = useVoiceOutput()
@@ -69,6 +71,15 @@ export function BuddyPage() {
     setLocalMsgs([])
     setReasoningEffort(null)
     setState((s) => (s ? { ...s, session_id: r.session_id } : s))
+  }
+
+  function handleBuddyLocalAction(actionId: string) {
+    if (actionId === "today") {
+      setLocalOverviewOpen((open) => !open)
+      return
+    }
+    const action = buddyOfflineActions.find((item) => item.id === actionId)
+    if (action?.path) openLocalPath(action.path)
   }
 
   async function handleProjectPick(pid: string | null) {
@@ -115,7 +126,7 @@ export function BuddyPage() {
       <CockpitShell className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]" title="Buddy" hideHeader>
         <CockpitTopbar active="buddy" context={state.agent_name} action={{ label: "Buddy-Settings", path: "/buddy/settings" }} />
         <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[300px_minmax(520px,1fr)_330px]">
-          <BuddyLeftRail state={state} mascotState={mascotState} chatBusy={chat.busy} ttsSpeaking={tts.speaking} onSend={handleSend} />
+          <BuddyLeftRail state={state} mascotState={mascotState} chatBusy={chat.busy} ttsSpeaking={tts.speaking} projects={projects} localOverviewOpen={localOverviewOpen} onLocalAction={handleBuddyLocalAction} />
           <main className="panel flex min-h-0 flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
             <div className="flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-[#2a364b] bg-[#111827] px-3">
               <div className="min-w-0">
@@ -149,8 +160,9 @@ function BuddyLoading({ state, text, loading }: { state: "error" | "sleeping"; t
   return <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3"><HydraMascot state={state} size={120} animate={loading} />{loading && <Loader2 size={16} className="animate-spin text-zinc-500" />}<p className="text-sm text-zinc-400">{text}</p></div>
 }
 
-function BuddyLeftRail({ state, mascotState, chatBusy, ttsSpeaking, onSend }: { state: BuddyState; mascotState: "idle" | "working" | "speaking"; chatBusy: boolean; ttsSpeaking: boolean; onSend: (text: string) => void }) {
-  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Buddy" eyebrow="Companion"><div className="rounded-[4px] border border-[#2a364b] bg-[#070b12] p-3"><div className="grid h-[160px] place-items-center rounded-[4px] border border-[#2a364b] bg-[radial-gradient(circle_at_50%_20%,rgba(244,114,182,.25),rgba(8,11,17,.9))]"><HydraMascot state={mascotState} size={120} animate={chatBusy || ttsSpeaking} /></div><div className="mt-2 text-xs text-[#8d9ab0]">Reaction: {mascotState === "working" ? "arbeitet" : mascotState === "speaking" ? "spricht" : "wach"}</div></div><div className="mt-4 space-y-3"><label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Modus</label><select className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"><option>Normaler Buddy-Chat</option><option>Fokus</option><option>Humorvoll</option><option>Kurze Antworten</option></select><div className="grid grid-cols-4 gap-1.5"><CockpitButton onClick={() => onSend("/mood happy")}>😊</CockpitButton><CockpitButton onClick={() => onSend("/game")}>🎮</CockpitButton><CockpitButton onClick={() => onSend("/music")}>🎧</CockpitButton><CockpitButton onClick={() => onSend("Was liegt an?")}>☕</CockpitButton></div><div className="space-y-2">{["Was liegt an?", "Idee merken", "Projekt öffnen"].map((q) => <button key={q} onClick={() => onSend(q)} className="w-full rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-sm text-[#e8eef8] hover:border-[#46617f]">{q}<span className="block text-xs text-[#8d9ab0]">Quickie</span></button>)}</div><p className="text-xs text-[#8d9ab0]">Agent: {state.agent_name}</p></div></CockpitPanel></aside>
+function BuddyLeftRail({ state, mascotState, chatBusy, ttsSpeaking, projects, localOverviewOpen, onLocalAction }: { state: BuddyState; mascotState: "idle" | "working" | "speaking"; chatBusy: boolean; ttsSpeaking: boolean; projects: ProjectBrief[]; localOverviewOpen: boolean; onLocalAction: (actionId: string) => void }) {
+  const activeProject = projects.find((project) => project.id === state.project_id)
+  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Buddy" eyebrow="Companion"><div className="rounded-[4px] border border-[#2a364b] bg-[#070b12] p-3"><div className="grid h-[160px] place-items-center rounded-[4px] border border-[#2a364b] bg-[radial-gradient(circle_at_50%_20%,rgba(244,114,182,.25),rgba(8,11,17,.9))]"><HydraMascot state={mascotState} size={120} animate={chatBusy || ttsSpeaking} /></div><div className="mt-2 text-xs text-[#8d9ab0]">Reaction: {mascotState === "working" ? "arbeitet" : mascotState === "speaking" ? "spricht" : "wach"}</div></div><div className="mt-4 space-y-3"><label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Modus</label><select className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"><option>Normaler Buddy-Chat</option><option>Fokus</option><option>Humorvoll</option><option>Kurze Antworten</option></select><div className="grid grid-cols-4 gap-1.5"><CockpitButton onClick={() => onLocalAction("today")}>☕</CockpitButton><CockpitButton onClick={() => openLocalPath("/minigames")}>🎮</CockpitButton><CockpitButton onClick={() => openLocalPath("/scratchpad")}>📝</CockpitButton><CockpitButton onClick={() => openLocalPath("/projects")}>📁</CockpitButton></div><div className="space-y-2">{buddyOfflineActions.map((action) => <button key={action.id} onClick={() => onLocalAction(action.id)} className="w-full rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-sm text-[#e8eef8] hover:border-[#46617f]">{action.label}<span className="block text-xs text-[#8d9ab0]">{action.description}</span></button>)}</div>{localOverviewOpen && <div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-xs leading-4 text-[#8d9ab0]"><strong className="block text-[#e8eef8]">Lokale Übersicht</strong><span>Projekt: {activeProject?.name ?? "kein Projekt gewählt"}</span><br /><span>Geladene Projekte: {projects.length}</span><br /><span>Agent: {state.agent_name}</span></div>}<p className="text-xs text-[#8d9ab0]">Agent: {state.agent_name}</p></div></CockpitPanel></aside>
 }
 
 function BuddyRightRail({ state, onSend, onSettings }: { state: BuddyState; onSend: (text: string) => void; onSettings: () => void }) {
@@ -159,5 +171,5 @@ function BuddyRightRail({ state, onSend, onSettings }: { state: BuddyState; onSe
 }
 
 function BuddyQuickActions({ handleSend, insert }: { handleSend: (text: string) => void; insert: (text: string) => void }) {
-  return <><CmdPill icon={<HelpCircle size={11} />} label="help" color="sky" onClick={() => handleSend("/help")} /><CmdPill icon={<RotateCcw size={11} />} label="clear" color="amber" onClick={() => handleSend("/clear")} /><CmdPill icon={<Save size={11} />} label="remember" color="emerald" onClick={() => handleSend("/remember")} /><CmdPill icon={<Cpu size={11} />} label="model" color="violet" onClick={() => insert("/model")} /><CmdPill icon={<Dice5 size={11} />} label="character" color="pink" onClick={() => handleSend("/character")} /><CmdPill icon={<GitMerge size={11} />} label="compact" color="emerald" onClick={() => handleSend("/compact")} /><CmdPill icon={<Wand2 size={11} />} label="system" color="violet" onClick={() => handleSend("/system")} /><CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} /><CmdPill icon={<Sparkles size={11} />} label="soul" color="violet" onClick={() => handleSend("/soul")} /><CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} /><CmdPill icon={<SquarePen size={11} />} label="idea" color="sky" onClick={() => handleSend("Idee merken:")} /></>
+  return <><CmdPill icon={<HelpCircle size={11} />} label="help" color="sky" onClick={() => handleSend("/help")} /><CmdPill icon={<RotateCcw size={11} />} label="clear" color="amber" onClick={() => handleSend("/clear")} /><CmdPill icon={<Save size={11} />} label="remember" color="emerald" onClick={() => handleSend("/remember")} /><CmdPill icon={<Cpu size={11} />} label="model" color="violet" onClick={() => insert("/model")} /><CmdPill icon={<Dice5 size={11} />} label="character" color="pink" onClick={() => handleSend("/character")} /><CmdPill icon={<GitMerge size={11} />} label="compact" color="emerald" onClick={() => handleSend("/compact")} /><CmdPill icon={<Wand2 size={11} />} label="system" color="violet" onClick={() => handleSend("/system")} /><CmdPill icon={<FileText size={11} />} label="agent" color="emerald" onClick={() => handleSend("/agent")} /><CmdPill icon={<Sparkles size={11} />} label="soul" color="violet" onClick={() => handleSend("/soul")} /><CmdPill icon={<Download size={11} />} label="export" color="pink" onClick={() => handleSend("/export")} /><CmdPill icon={<SquarePen size={11} />} label="idea" color="sky" onClick={() => insert("Idee merken:")} /></>
 }

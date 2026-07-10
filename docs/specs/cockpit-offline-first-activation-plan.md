@@ -66,10 +66,10 @@ Normale Klicks dürfen keine Chat-/LLM-Anfrage versteckt auslösen. Wenn Interne
 ## Implementierungsreihenfolge
 
 ### Task 1: Dummy-Audit und Typisierung
-- [ ] Datei `frontend/src/features/cockpit/actionRegistry.ts` anlegen.
-- [ ] Typen: `local-link`, `local-action`, `status-only`, `explicit-ai`.
-- [ ] Alle Cockpit-Kacheln auf diesen Typ mappen.
-- [ ] Test/Check: Keine normale Kachel verwendet `handleSend`/`chat.send`.
+- [x] Datei `frontend/src/features/cockpit/actionRegistry.ts` anlegen.
+- [x] Typen: `local-link`, `local-action`, `status-only`, `explicit-ai`.
+- [x] Buddy-Quickies auf Offline-Aktionen mappen.
+- [x] Test/Check: Buddy-Rail-Quickies verwenden keine `handleSend`/`chat.send`-Autoanfragen.
 - Commit: `refactor(cockpit): classify cockpit actions offline first`
 
 ### Task 2: Buddy offline aktivieren
