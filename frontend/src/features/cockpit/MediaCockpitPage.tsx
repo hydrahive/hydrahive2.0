@@ -20,9 +20,9 @@ const pipeline = ["1 Idee", "2 Regie", "3 Assets", "4 Clips", "5 Schnitt"]
 const modes = ["Storyboard", "Keyframes", "Clips vorbereiten", "Continue-Frame"]
 
 const fallbackScenes = [
-  { title: "Szene 01 — Ankunft", text: "Noch nicht aus Atelier geladen. Als Regie-Slot vorbereitet." },
-  { title: "Szene 02 — Dialog", text: "Charaktere, Voiceover und Close-ups planen." },
-  { title: "Szene 03 — Finale", text: "Action, Schnitt und Sounddesign sammeln." },
+  { title: "Szene 01 — Ankunft", text: "Noch nicht aus Atelier geladen. Als Regie-Slot vorbereitet.", source: "Entwurf" },
+  { title: "Szene 02 — Dialog", text: "Charaktere, Voiceover und Close-ups planen.", source: "Entwurf" },
+  { title: "Szene 03 — Finale", text: "Action, Schnitt und Sounddesign sammeln.", source: "Entwurf" },
 ]
 
 export function MediaCockpitPage() {
@@ -86,6 +86,21 @@ export function MediaCockpitPage() {
     { kind: "Bild", name: gallery[0]?.name ?? "Keyframes", count: gallery.length, icon: Wand2, path: "/atelier" },
     { kind: "Clips", name: videos[0]?.status ?? "Videojobs", count: videos.length + films.length, icon: Music2, path: "/videoeditor" },
   ], [characters, ci, gallery, videos, films])
+  const productionSlots = useMemo(() => {
+    const imageSlots = gallery.slice(0, 3).map((item, index) => ({
+      title: `Keyframe ${String(index + 1).padStart(2, "0")} — ${item.name}`,
+      text: item.prompt ?? `Bild aus Galerie: ${item.rel}`,
+      source: "Galerie",
+    }))
+    const videoSlots = videos.slice(0, 3 - imageSlots.length).map((item, index) => ({
+      title: `Clip ${String(index + 1).padStart(2, "0")} — ${item.status}`,
+      text: item.prompt || item.source_rel,
+      source: "Videojob",
+    }))
+    return [...imageSlots, ...videoSlots, ...fallbackScenes].slice(0, 3)
+  }, [gallery, videos])
+  const timelineVideoClips = useMemo(() => videos.length > 0 ? videos.slice(0, 5).map((job, index) => ({ left: index * 18, width: 14, color: statusColor(job.status) })) : [{ left: 3, width: 22 }, { left: 30, width: 18 }, { left: 55, width: 32 }], [videos])
+  const timelineFilmClips = useMemo(() => films.length > 0 ? films.slice(0, 3).map((job, index) => ({ left: index * 28, width: 22, color: statusColor(job.status) })) : [{ left: 30, width: 18, color: "#69d7ff" }], [films])
 
   return (
     <CockpitShell
@@ -153,10 +168,10 @@ export function MediaCockpitPage() {
                 <CockpitButton onClick={() => openLocalPath("/atelier")}><Plus size={12} className="mr-1 inline" /> Szene +</CockpitButton>
               </div>
               <div className="space-y-2">
-                {fallbackScenes.map((scene, index) => (
-                  <button key={scene.title} onClick={() => setJobText(`Erzeuge aus ${scene.title} ein Storyboard mit 8 Shots. Nutze den Projektstil, Charaktere und Kamera-Presets.`)} className="grid w-full grid-cols-[82px_1fr] gap-3 rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-left hover:border-[#46617f]">
+                {productionSlots.map((scene, index) => (
+                  <button key={scene.title} onClick={() => setJobText(`Erzeuge aus ${scene.title} ein Storyboard mit 8 Shots. Nutze den Projektstil, Charaktere und Kamera-Presets.\n\nQuelle: ${scene.text}`)} className="grid w-full grid-cols-[82px_1fr] gap-3 rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-left hover:border-[#46617f]">
                     <div className="h-[54px] rounded-[4px] border border-[#2a364b] bg-[linear-gradient(135deg,#3b2342,#7c3a1b)]" />
-                    <div><strong className="block text-sm text-[#e8eef8]">{scene.title}</strong><p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{scene.text}</p><span className="mt-1 block font-mono text-[10px] text-[#69d7ff]">Slot {index + 1}</span></div>
+                    <div><strong className="block text-sm text-[#e8eef8]">{scene.title}</strong><p className="mt-1 max-h-8 overflow-hidden text-xs leading-4 text-[#8d9ab0]">{scene.text}</p><span className="mt-1 block font-mono text-[10px] text-[#69d7ff]">{scene.source} · Slot {index + 1}</span></div>
                   </button>
                 ))}
               </div>
@@ -176,9 +191,9 @@ export function MediaCockpitPage() {
           <section className="border-t border-[#2a364b] bg-[#101724] p-3">
             <div className="mb-2 flex items-center justify-between gap-2"><CockpitSectionLabel>Schnitt-Timeline</CockpitSectionLabel><CockpitButton tone="primary" onClick={() => openLocalPath("/videoeditor")}>Export / Schnitt</CockpitButton></div>
             <div className="space-y-2">
-              <TimelineTrack label="Video" clips={[{ left: 3, width: 22 }, { left: 30, width: 18 }, { left: 55, width: 32 }]} />
-              <TimelineTrack label="Voice" clips={[{ left: 30, width: 18, color: "#69d7ff" }]} />
-              <TimelineTrack label="Musik" clips={[{ left: 0, width: 88, color: "#4ade80" }]} />
+              <TimelineTrack label="Video" clips={timelineVideoClips} />
+              <TimelineTrack label="Film" clips={timelineFilmClips} />
+              <TimelineTrack label="Assets" clips={[{ left: 0, width: Math.min(88, Math.max(12, gallery.length * 8)), color: gallery.length ? "#4ade80" : "#2a364b" }]} />
             </div>
           </section>
         </main>
@@ -205,6 +220,13 @@ export function MediaCockpitPage() {
       </div>
     </CockpitShell>
   )
+}
+
+function statusColor(status: VideoJob["status"] | FilmJob["status"]) {
+  if (status === "completed") return "#4ade80"
+  if (status === "failed") return "#fb7185"
+  if (status === "processing") return "#69d7ff"
+  return "#fbbf24"
 }
 
 function TimelineTrack({ label, clips }: { label: string; clips: Array<{ left: number; width: number; color?: string }> }) {

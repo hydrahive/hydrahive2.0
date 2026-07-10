@@ -27,15 +27,15 @@ Das Media-Cockpit wird vom Mockup-Gerüst zu einem echten, offline-first Produkt
 - Commit: `feat(cockpit): bind media asset library`
 
 ### Task 3: Szenen-/Generatorbereich mit Daten vorbereiten
-- [ ] Szenenliste nutzt vorhandene Szenen-Quelle, falls vorhanden; solange keine API existiert, werden Galerie/Video-Prompts als Produktionsslots angezeigt.
-- [ ] Auswahl einer Szene/eines Slots setzt den Generator-Auftrag lokal.
-- [ ] Auftrag bleibt Draft im Cockpit; Button öffnet bewusst Atelier.
+- [x] Szenenliste nutzt vorhandene Szenen-Quelle, falls vorhanden; solange keine API existiert, werden Galerie/Video-Prompts als Produktionsslots angezeigt.
+- [x] Auswahl einer Szene/eines Slots setzt den Generator-Auftrag lokal.
+- [x] Auftrag bleibt Draft im Cockpit; Button öffnet bewusst Atelier.
 - Commit: `feat(cockpit): prepare media generator drafts`
 
 ### Task 4: Timeline aus echten Jobs ableiten
-- [ ] Timeline zeigt Videojobs/Filmjobs aus Atelier statt Demo-Clips.
-- [ ] Statusfarben: pending/processing/completed/failed.
-- [ ] Keine Polling-Spam-Schleife; Refresh per User-Aktion oder sparsamer Reload.
+- [x] Timeline zeigt Videojobs/Filmjobs aus Atelier statt Demo-Clips.
+- [x] Statusfarben: pending/processing/completed/failed.
+- [x] Keine Polling-Spam-Schleife; Refresh per User-Aktion oder sparsamer Reload.
 - Commit: `feat(cockpit): derive media timeline from jobs`
 
 ### Task 5: Modelle/Presets besser anbinden
