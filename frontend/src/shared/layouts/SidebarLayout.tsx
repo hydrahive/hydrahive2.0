@@ -77,7 +77,7 @@ export function SidebarLayout({ chrome }: { chrome: LayoutChrome }) {
       </aside>
 
       {/* Rechte Spalte: schmale Kopfzeile mit Breadcrumb + Content + Footer */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-h-0 min-w-0">
         <header className="relative z-20 flex items-center h-12 px-4 border-b border-white/[6%] bg-zinc-950/40 backdrop-blur">
           {currentPage && (
             <span className="flex items-center gap-1.5 text-sm text-zinc-300 truncate">
@@ -87,7 +87,7 @@ export function SidebarLayout({ chrome }: { chrome: LayoutChrome }) {
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none relative z-10 p-4 md:p-6">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-x-none relative z-10 p-4 md:p-6">
           <Outlet />
         </main>
 

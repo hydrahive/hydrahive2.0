@@ -324,6 +324,37 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     </div>
   )
 
+  const embeddedCenter = showSidePanels ? center : (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-white/[8%] bg-black/20 px-3 py-2">
+        {visibleSessions.map((session) => (
+          <button
+            key={session.id}
+            type="button"
+            onClick={() => setActiveId(session.id)}
+            className={[
+              "max-w-48 shrink-0 truncate rounded-[4px] border px-2.5 py-1.5 text-xs font-semibold transition-colors",
+              session.id === activeId
+                ? "border-cyan-300/45 bg-cyan-400/10 text-cyan-100"
+                : "border-white/[8%] bg-white/[3%] text-zinc-500 hover:border-cyan-400/30 hover:text-zinc-200",
+            ].join(" ")}
+          >
+            {session.title || "Neue Session"}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={createPreferredSession}
+          disabled={agents.length === 0}
+          className="shrink-0 rounded-[4px] border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 text-xs font-black uppercase tracking-[0.10em] text-cyan-100 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Session +
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">{center}</div>
+    </div>
+  )
+
   return (
     <AssistantRuntimeProvider runtime={runtime} key={activeId ?? "empty"}>
       {showSidePanels ? (
@@ -337,10 +368,10 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               onSessionChanged={handleSessionChanged} onAgentChanged={handleAgentChanged}
             />
           }
-          center={center}
+          center={embeddedCenter}
           right={<WorkspacePanel agentId={activeAgent?.id ?? null} projectId={activeSession?.project_id} onOpenFile={(path, kind) => setWsFile({ path, kind })} />}
         />
-      ) : center}
+      ) : embeddedCenter}
       {wsFile && activeAgent && (
         <FileOverlay agentId={activeAgent.id} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
       )}

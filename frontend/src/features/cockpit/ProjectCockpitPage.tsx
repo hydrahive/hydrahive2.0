@@ -72,11 +72,11 @@ export function ProjectCockpitPage() {
           <CockpitButton tone="primary" onClick={() => window.open("/werkstatt", "_self")}>Alte Werkstatt</CockpitButton>
         </>
       )}
-      className="h-full"
+      className="flex h-full min-h-0 flex-col overflow-hidden"
     >
-      {error && <div className="rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
-      <div className="grid min-h-[calc(100dvh-11rem)] gap-3 xl:grid-cols-[280px_minmax(420px,1fr)_360px]">
-        <aside className="space-y-3 overflow-hidden">
+      {error && <div className="shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
+      <div className="grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[280px_minmax(420px,1fr)_360px]">
+        <aside className="min-h-0 space-y-3 overflow-y-auto pr-1">
           <CockpitPanel>
             <ProjectSelector projects={projects} activeProjectId={activeProjectId} loading={loading || prefs.loading} onPick={pickProject} />
             {activeProject && <p className="mt-3 line-clamp-3 text-xs text-zinc-500">{activeProject.description || "Keine Beschreibung."}</p>}
@@ -96,7 +96,7 @@ export function ProjectCockpitPage() {
           </CockpitPanel>
         </aside>
 
-        <main className="min-h-[620px] overflow-hidden rounded-[4px] border border-white/[8%] bg-zinc-950/40">
+        <main className="min-h-0 overflow-hidden rounded-[4px] border border-white/[8%] bg-zinc-950/40">
           {activeProjectId ? (
             <ChatPane projectId={activeProjectId} showSidePanels={false} preferredAgentId={selectedAgentId} />
           ) : (
