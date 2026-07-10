@@ -246,6 +246,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               if (!activeAgent) return
               await createPreferredSession()
             }}
+            cockpitMode={!showSidePanels}
           />
           <ChatBubbleThread />
           {showPixelMonitor && (
