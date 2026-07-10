@@ -1,6 +1,6 @@
 import { BrainCircuit,
   BookOpen, Bot, Box, Film, FolderKanban, Globe, HardDrive, Heart, LayoutDashboard,
-  MessageCircle, MessageSquare, MessagesSquare, MoonStar, Pickaxe, Puzzle, Server, Sparkles, Workflow,
+  MessageCircle, MessageSquare, MessagesSquare, MoonStar, Pickaxe, Puzzle, Server, Shield, Sparkles, Workflow,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { moduleNav } from "@/modules/index.generated"
@@ -38,11 +38,16 @@ export const NAV_GROUPS: NavGroup[] = [
 export const NAV_ITEMS: NavItem[] = [
   // Überblick
   { path: "/dashboard",   icon: LayoutDashboard, labelKey: "dashboard",   group: "overview" },
-  // Arbeiten
-  { path: "/",            icon: Heart,           labelKey: "buddy",       group: "working" },
+  // Cockpits
+  { path: "/projects",    icon: FolderKanban,    labelKey: "projects",    group: "working" },
+  { path: "/buddy",       icon: Heart,           labelKey: "buddy",       group: "working" },
+  { path: "/media",       icon: Film,            labelKey: "media",       group: "working" },
+  { path: "/vault",       icon: Shield,          labelKey: "vault",       group: "working" },
+  { path: "/admin",       icon: Server,          labelKey: "admin",       group: "working", roles: ["admin"] },
+  // Alte Arbeitsbereiche bleiben erreichbar, verschwinden aber aus den Quicklinks.
   { path: "/werkstatt",   icon: MessageSquare,   labelKey: "werkstatt",   group: "working" },
   { path: "/settings/agents",   icon: Bot,          labelKey: "agents",   group: "working" },
-  { path: "/settings/projects", icon: FolderKanban, labelKey: "projects", group: "working" },
+  { path: "/settings/projects", icon: FolderKanban, labelKey: "projectSettings", group: "working" },
   { path: "/communication", icon: MessageCircle, labelKey: "communication", group: "working" },
   { path: "/teamchat",    icon: MessagesSquare,  labelKey: "teamchat",    group: "working" },
   // Automatisierung
@@ -66,7 +71,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/help",        icon: BookOpen,        labelKey: "help",        group: "settings" },
 ]
 
-export const QUICK_LINK_PATHS = ["/dashboard", "/werkstatt", "/settings/agents", "/settings/projects"]
+export const QUICK_LINK_PATHS = ["/projects", "/buddy", "/media", "/vault", "/admin"]
 
 const MODULE_NAV_ITEMS: NavItem[] = (moduleNav as ModuleNavEntry[]).map((n) => ({
   path: n.path,
