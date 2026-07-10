@@ -41,6 +41,17 @@ export function ProjectAiSettingsPanel({ agentId, agents, onAgentChanged }: Prop
     return () => { alive = false }
   }, [])
 
+  const availableModels = useMemo(() => {
+    const seen = new Set<string>()
+    const next: string[] = []
+    for (const item of [agent?.llm_model, ...models]) {
+      if (!item || seen.has(item)) continue
+      seen.add(item)
+      next.push(item)
+    }
+    return next
+  }, [agent?.llm_model, models])
+
   async function save() {
     if (!agent || !model.trim()) return
     setSaving(true)
@@ -75,16 +86,16 @@ export function ProjectAiSettingsPanel({ agentId, agents, onAgentChanged }: Prop
         <>
           <div>
             <label className="mb-1 block text-xs text-[#8d9ab0]">Modell</label>
-            <input
-              list="project-cockpit-llm-models"
+            <select
               value={model}
+              disabled={loadingModels || availableModels.length === 0}
               onChange={(event) => setModel(event.target.value)}
-              placeholder={loadingModels ? "Lade Modelle…" : "z.B. openai-codex/gpt-5-codex"}
-              className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm font-semibold text-[#e8eef8] outline-none placeholder:text-[#8d9ab0] focus:border-[#46617f]"
-            />
-            <datalist id="project-cockpit-llm-models">
-              {models.map((item) => <option key={item} value={item} />)}
-            </datalist>
+              className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm font-semibold text-[#e8eef8] outline-none hover:border-[#46617f] disabled:opacity-50"
+            >
+              {loadingModels ? <option value={model}>Lade Modelle…</option> : null}
+              {!loadingModels && availableModels.length === 0 ? <option value="">Keine Modelle konfiguriert</option> : null}
+              {availableModels.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
             <p className="mt-1 text-[11px] text-[#8d9ab0]">
               Aktuell am Projekt-Agenten: <span className="font-mono text-[#69d7ff]">{agent.llm_model}</span>
             </p>
