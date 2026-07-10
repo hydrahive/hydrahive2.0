@@ -23,6 +23,7 @@ import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { moduleBuddyWidgets } from "@/modules/index.generated"
 import { BuddyThread } from "./_BuddyThread"
+import { BuddyExtensionsPanel } from "./_BuddyExtensionsPanel"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
@@ -154,8 +155,11 @@ function BuddyLeftRail({ state, mascotState, chatBusy, ttsSpeaking, onSend }: { 
 }
 
 function BuddyRightRail({ state, onSend, onSettings }: { state: BuddyState; onSend: (text: string) => void; onSettings: () => void }) {
-  const widgetPlan = ["Musik: echte Player-Controls aus MusicPlayerBuddyBox extrahieren", "Games: Minigames/Boardgames direkt öffnen statt Slash-Fake", "Scratchpad: API-Aktion für schnelle Notiz definieren", "Sichtbarkeit: serverseitige Buddy-Prefs"]
-  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Widget-Wirkung" eyebrow="Plan" actions={<button onClick={onSettings} className="rounded-[4px] border border-[#2a364b] p-1 text-[#8d9ab0] hover:text-[#e8eef8]"><Settings size={14} /></button>}><p className="text-xs leading-4 text-[#8d9ab0]">Keine Fake-Buttons mehr: Rechts stehen nur echte Modulwidgets oder klar geplante Effekte.</p><ul className="mt-3 space-y-1.5 text-xs text-[#8d9ab0]">{widgetPlan.map((item) => <li key={item} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">• {item}</li>)}</ul></CockpitPanel><div className="mt-[10px] space-y-[10px]">{BUDDY_WIDGETS.map((W, i) => <CockpitPanel key={i} title={`Modul ${i + 1}`} eyebrow="Echt"><W onPrompt={onSend} projectId={state.project_id} /></CockpitPanel>)}</div><CockpitPanel title="Verknüpfungen" eyebrow="Wechseln"><div className="space-y-2">{[["Projekt-Cockpit", "/projects"], ["Media-Cockpit", "/media"], ["Vault", "/vault"], ["Minigames", "/minigames"], ["Boardgames", "/boardgames"]].map(([label, path]) => <button key={path} onClick={() => window.open(path, "_self")} className="w-full rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-sm text-[#e8eef8] hover:border-[#46617f]">{label}<span className="block text-xs text-[#8d9ab0]">öffnen</span></button>)}</div></CockpitPanel></aside>
+  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Widgets" eyebrow="Buddy" actions={<button onClick={onSettings} className="rounded-[4px] border border-[#2a364b] p-1 text-[#8d9ab0] hover:text-[#e8eef8]"><Settings size={14} /></button>}><BuddyExtensionsPanel /><div className="mt-3 grid grid-cols-2 gap-2"><MiniWidget title="Musik" text="LoFi Focus" onClick={() => onSend("/music")} /><MiniWidget title="Games" text="Mini Games" onClick={() => onSend("/game")} /><MiniWidget title="Wühlkiste" text="Idee merken" onClick={() => onSend("/remember")} /><MiniWidget title="Scratchpad" text="Schnelle Notiz" onClick={() => onSend("/scratchpad")} /></div></CockpitPanel><div className="mt-[10px] space-y-[10px]">{BUDDY_WIDGETS.map((W, i) => <CockpitPanel key={i} title={`Modul ${i + 1}`} eyebrow="Widget"><W onPrompt={onSend} projectId={state.project_id} /></CockpitPanel>)}</div><CockpitPanel title="Verknüpfungen" eyebrow="Wechseln"><div className="space-y-2">{[["Projekt-Cockpit", "/projects"], ["Media-Cockpit", "/media"], ["Vault", "/vault"]].map(([label, path]) => <button key={path} onClick={() => window.open(path, "_self")} className="w-full rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-sm text-[#e8eef8] hover:border-[#46617f]">{label}<span className="block text-xs text-[#8d9ab0]">öffnen</span></button>)}</div></CockpitPanel></aside>
+}
+
+function MiniWidget({ title, text, onClick }: { title: string; text: string; onClick: () => void }) {
+  return <button onClick={onClick} className="min-h-[74px] rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left hover:border-[#46617f]"><strong className="text-sm text-[#e8eef8]">{title}</strong><span className="mt-2 block text-xs text-[#8d9ab0]">{text}</span></button>
 }
 
 function BuddyQuickActions({ handleSend, insert }: { handleSend: (text: string) => void; insert: (text: string) => void }) {
