@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
+import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
@@ -22,6 +22,13 @@ const opsLinks = [
   { title: "VMs", path: "/vms", icon: MonitorCog },
   { title: "Container", path: "/containers", icon: Container },
   { title: "Themes", path: "/themes", icon: WandSparkles },
+]
+
+const integrationLinks = [
+  { title: "Gitea", path: "/extensions", icon: GitBranch, text: "Lokaler Git-Server, Repo-Spiegel und Projekt-Remotes." },
+  { title: "Credentials", path: "/credentials", icon: KeyRound, text: "Zentraler Einstieg für Tokens, Keys und Extension-Zugänge." },
+  { title: "Module", path: "/modules", icon: Boxes, text: "Gebündelte HydraHive-Funktionen installieren und prüfen." },
+  { title: "Plugins", path: "/plugins", icon: CircuitBoard, text: "Agent-Tools und Plugin-Status verwalten." },
 ]
 
 export function AdminCockpitPage() {
@@ -94,6 +101,21 @@ export function AdminCockpitPage() {
                   "Logs und Status werden nicht breit gepollt.",
                 ].map((item) => <div key={item} className="rounded-[4px] border border-white/[8%] bg-white/[3%] p-2 text-xs text-[#8d9ab0]">• {item}</div>)}
               </div>
+            </div>
+          </CockpitPanel>
+
+          <CockpitPanel title="Integrationen" eyebrow="Connect">
+            <div className="grid gap-2 md:grid-cols-4">
+              {integrationLinks.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button key={item.title} onClick={() => window.open(item.path, "_self")} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                    <Icon size={16} className="mb-2 text-[#69d7ff]" />
+                    <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
+                    <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
+                  </button>
+                )
+              })}
             </div>
           </CockpitPanel>
 

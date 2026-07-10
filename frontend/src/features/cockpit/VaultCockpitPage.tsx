@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import { Activity, BrainCircuit, Coins, FileText, FolderHeart, KeyRound, LockKeyhole, Pickaxe, ShieldCheck, StickyNote, Wallet } from "lucide-react"
+import { Activity, BrainCircuit, Coins, FileSearch, FileText, FolderHeart, KeyRound, LockKeyhole, Pickaxe, ShieldCheck, StickyNote, Wallet } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
@@ -23,6 +23,13 @@ const guardrails = [
   "Kein automatisches Datamining beim Laden.",
   "Medizinische Daten getrennt von generischer Recherche behandeln.",
   "Credentials und Wallet-Informationen nie in Logs oder Chat-Meta anzeigen.",
+]
+
+const actionLinks = [
+  { title: "Befunde suchen", path: "/akte", icon: FileSearch, text: "Medizinische Timeline und Einträge öffnen." },
+  { title: "Portfolio prüfen", path: "/cryptoboard", icon: Wallet, text: "Crypto-Daten im spezialisierten Modul bearbeiten." },
+  { title: "Private Notiz", path: "/scratchpad", icon: StickyNote, text: "Scratchpad ohne automatische KI-Auswertung öffnen." },
+  { title: "Secrets verwalten", path: "/credentials", icon: KeyRound, text: "Credentials-Seite mit Maskierung und Guards verwenden." },
 ]
 
 export function VaultCockpitPage() {
@@ -103,6 +110,21 @@ export function VaultCockpitPage() {
                   <div key={item} className="rounded-[4px] border border-white/[8%] bg-white/[3%] p-2 text-xs text-[#8d9ab0]">• {item}</div>
                 ))}
               </div>
+            </div>
+          </CockpitPanel>
+
+          <CockpitPanel title="Bewusste Aktionen" eyebrow="Launchpad">
+            <div className="grid gap-2 md:grid-cols-4">
+              {actionLinks.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button key={item.title} onClick={() => window.open(item.path, "_self")} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                    <Icon size={16} className="mb-2 text-[#69d7ff]" />
+                    <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
+                    <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
+                  </button>
+                )
+              })}
             </div>
           </CockpitPanel>
 

@@ -1,4 +1,4 @@
-import { Film, Images, Mic2, Music2, Palette, Scissors, Sparkles, Wand2 } from "lucide-react"
+import { Film, FolderOpen, Images, Mic2, Music2, Palette, PlaySquare, Scissors, Sparkles, Wand2 } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
@@ -24,6 +24,13 @@ const assetAreas = [
   { title: "Bildwelten", body: "Generierte Frames, Stiltests, CI-Varianten und Keyframes.", icon: Palette },
   { title: "Video-Clips", body: "Einzelclips, Continue-Jobs und Szenenvarianten.", icon: Film },
   { title: "Audio", body: "Musik, Voiceover, Soundbeds und spätere Mixdowns.", icon: Mic2 },
+]
+
+const workbenchLinks = [
+  { title: "Atelier-Projekte", path: "/atelier", icon: FolderOpen, text: "Ideen, Charaktere, Stile und Regie-Arbeit öffnen." },
+  { title: "Clips prüfen", path: "/atelier", icon: PlaySquare, text: "Video-Jobs, Continue-Frames und Varianten über das Atelier verfolgen." },
+  { title: "Soundtrack", path: "/musicplayer", icon: Music2, text: "Generierte Musik importieren, abspielen und sortieren." },
+  { title: "Streaming", path: "/streaming", icon: Film, text: "Downloads und Streaming-Helfer im Blick behalten." },
 ]
 
 export function MediaCockpitPage() {
@@ -100,6 +107,21 @@ export function MediaCockpitPage() {
                     </div>
                     <p className="text-xs leading-4 text-[#8d9ab0]">{area.body}</p>
                   </div>
+                )
+              })}
+            </div>
+          </CockpitPanel>
+
+          <CockpitPanel title="Arbeitsflächen" eyebrow="Workbench">
+            <div className="grid gap-2 md:grid-cols-4">
+              {workbenchLinks.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button key={item.title} onClick={() => window.open(item.path, "_self")} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                    <Icon size={16} className="mb-2 text-[#69d7ff]" />
+                    <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
+                    <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
+                  </button>
                 )
               })}
             </div>
