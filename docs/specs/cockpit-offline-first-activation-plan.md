@@ -103,8 +103,8 @@ Normale Klicks dürfen keine Chat-/LLM-Anfrage versteckt auslösen. Wenn Interne
 - Commit: `feat(cockpit): activate admin offline actions`
 
 ### Task 6: Tests/Guards
-- [ ] Frontend-Build grün.
-- [ ] Statischer grep/Check: keine nicht-Chat-Kachel ruft `handleSend`, `chat.send`, `buddyApi.logCmd` auf.
+- [x] Frontend-Build grün.
+- [x] Statischer grep/Check: keine nicht-Chat-Kachel ruft `handleSend`, `chat.send`, `buddyApi.logCmd` auf.
 - [ ] Offline-Smoke: Netzwerk/LLM nicht erforderlich für Navigation und lokale Panels.
 - [ ] Staging-Smoke: `/buddy`, `/media`, `/vault`, `/admin`, `/projects` laden.
 - Commit: `test(cockpit): guard offline-first actions`
