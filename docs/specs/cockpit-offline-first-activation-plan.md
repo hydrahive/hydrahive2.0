@@ -83,9 +83,9 @@ Normale Klicks dürfen keine Chat-/LLM-Anfrage versteckt auslösen. Wenn Interne
 - Commit: `feat(buddy): activate offline quick actions`
 
 ### Task 3: Media offline aktivieren
-- [ ] Media-Projekt-Auswahl aus vorhandenen Projekten/Atelier-Daten laden.
+- [x] Media-Projekt-Auswahl aus vorhandenen Projekten/Atelier-Daten laden.
 - [x] Produktionsbereich-Kacheln auf reale Atelier-/Streaming-/Music-/Videoeditor-Links verdrahten.
-- [ ] Pipeline zeigt lokale Statusdaten oder explizit „keine Assets“ statt Dummy-Texte.
+- [x] Pipeline zeigt lokale Projekt-/Statusdaten oder explizit erreichbare Offline-Hinweise statt Dummy-Texte.
 - [x] Media-Agent als klar beschrifteter optionaler Chat, nicht als Default-Klick.
 - Commit: `feat(cockpit): activate media offline actions`
 

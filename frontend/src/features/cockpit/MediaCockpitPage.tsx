@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react"
 import { Film, FolderOpen, Images, Mic2, Music2, Palette, PlaySquare, Scissors, Sparkles, Wand2 } from "lucide-react"
+import { chatApi, type ProjectBrief } from "@/features/chat/api"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
@@ -30,6 +32,15 @@ const workbenchLinks = [
 ]
 
 export function MediaCockpitPage() {
+  const [projects, setProjects] = useState<ProjectBrief[]>([])
+  const [projectStatus, setProjectStatus] = useState<"loading" | "ready" | "offline">("loading")
+
+  useEffect(() => {
+    chatApi.listProjects()
+      .then((items) => { setProjects(items); setProjectStatus("ready") })
+      .catch(() => setProjectStatus("offline"))
+  }, [])
+
   return (
     <CockpitShell
       eyebrow="Media"
@@ -70,6 +81,11 @@ export function MediaCockpitPage() {
               <p><span className="font-semibold text-[#e8eef8]">Musik:</span> Lyria/Music-Modul.</p>
               <p><span className="font-semibold text-[#e8eef8]">Voice:</span> TTS/Voiceover über Medien-Tools.</p>
             </div>
+          </CockpitPanel>
+
+          <CockpitPanel title="Projektstatus" eyebrow="Lokal">
+            <p className="text-xs leading-4 text-[#8d9ab0]">{projectStatus === "loading" ? "Lade lokale Projektliste…" : projectStatus === "offline" ? "Projektliste nicht erreichbar — Cockpit-Links bleiben lokal nutzbar." : `${projects.length} Projekt(e) lokal verfügbar.`}</p>
+            <div className="mt-3 space-y-1.5">{projects.slice(0, 4).map((project) => <button key={project.id} onClick={() => openLocalPath("/projects")} className="w-full rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-xs text-[#e8eef8] hover:border-[#46617f]"><span className="block font-semibold">{project.name}</span><span className="text-[#8d9ab0]">Status: {project.status || "unbekannt"}</span></button>)}</div>
           </CockpitPanel>
         </aside>
 
