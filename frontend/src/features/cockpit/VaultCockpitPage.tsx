@@ -1,10 +1,9 @@
 import type { ComponentType } from "react"
 import { Activity, BrainCircuit, Coins, FileSearch, FileText, FolderHeart, KeyRound, LockKeyhole, Pickaxe, ShieldCheck, StickyNote, Wallet } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
-import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
-import { cockpitMenu } from "./cockpitMenus"
+import { CockpitTopbar } from "./CockpitTopbar"
 
 const vaultAreas = [
   { title: "Patientenakte", path: "/akte", icon: FolderHeart, desc: "Diagnosen, Medikamente, Laborwerte, FHIR/eGA und medizinische Timeline.", tone: "rose" },
@@ -38,11 +37,12 @@ export function VaultCockpitPage() {
       eyebrow="Vault"
       title="Vault-Cockpit"
       description="Sensible Bereiche an einem Ort: Patientenakte, Crypto, Dokumente, Notizen, Credentials und private Historie — mit klaren Schutzplanken."
-      menu={<CockpitHeaderMenu items={cockpitMenu("vault")} />}
       actions={<CockpitButton tone="primary" onClick={() => window.open("/akte", "_self")}>Meine Akte öffnen</CockpitButton>}
-      className="min-h-[100dvh] bg-[#080b11]"
+      className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      hideHeader
     >
-      <div className="grid gap-[10px] xl:grid-cols-[300px_minmax(420px,1fr)_340px]">
+      <CockpitTopbar active="vault" context="gesperrt nach 15 min" action={{ label: "Meine Akte", path: "/akte" }} />
+      <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_360px]">
         <aside className="space-y-[10px]">
           <CockpitPanel title="Vault-Bereiche" eyebrow="Privat">
             <div className="space-y-2">

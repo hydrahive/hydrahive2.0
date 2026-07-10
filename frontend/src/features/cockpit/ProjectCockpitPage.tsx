@@ -10,6 +10,7 @@ import { useUserPreferences } from "@/features/preferences/useUserPreferences"
 import { CockpitButton } from "./CockpitButton"
 import { CollapsibleCockpitPanel } from "./project/CollapsibleCockpitPanel"
 import { CockpitShell } from "./CockpitShell"
+import { CockpitTopbar } from "./CockpitTopbar"
 import { ProjectAgentEditOverlay } from "./project/ProjectAgentEditOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
@@ -92,19 +93,11 @@ export function ProjectCockpitPage() {
       className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
       hideHeader
     >
-      <header className="flex h-[58px] shrink-0 items-center gap-[18px] border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-[18px]">
-        <div className="font-black tracking-[-0.03em] text-[#e8eef8]">HydraHive</div>
-        <nav className="flex gap-1.5 text-sm">
-          <button onClick={() => window.open("/projects", "_self")} className="rounded-[4px] bg-[#1c2940] px-3 py-2 font-semibold text-[#69d7ff]">Projekte</button>
-          <button onClick={() => window.open("/buddy", "_self")} className="rounded-[4px] px-3 py-2 text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]">Buddy</button>
-          <button onClick={() => window.open("/media", "_self")} className="rounded-[4px] px-3 py-2 text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]">Media</button>
-          <button onClick={() => window.open("/vault", "_self")} className="rounded-[4px] px-3 py-2 text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]">Vault</button>
-          <button onClick={() => window.open("/admin", "_self")} className="rounded-[4px] px-3 py-2 text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]">Admin</button>
-        </nav>
-        <div className="flex-1" />
-        {activeProject && <div className="hidden text-xs text-[#8d9ab0] lg:block">Projekt bleibt gespeichert: {activeProject.name}</div>}
-        <CockpitButton onClick={() => window.open("/settings/projects", "_self")}>Projekt-Einstellungen</CockpitButton>
-      </header>
+      <CockpitTopbar
+        active="projects"
+        context={activeProject ? `Projekt bleibt gespeichert: ${activeProject.name}` : undefined}
+        action={{ label: "Projekt-Einstellungen", path: "/settings/projects" }}
+      />
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[270px_minmax(420px,1fr)_360px]">
         <aside className="min-h-0 space-y-[10px] overflow-y-auto pr-1">
