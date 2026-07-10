@@ -51,6 +51,17 @@ export interface ProjectGitRepo {
   has_token: boolean
 }
 
+export interface ProjectGiteaStatus {
+  configured: boolean
+  remote_name: string
+  remote_present: boolean
+  remote_url: string | null
+  repo_name: string
+  owner: string | null
+  repo_exists: boolean
+  web_url: string | null
+}
+
 export type ServerKind = "vm" | "container"
 
 export interface ProjectServer {

@@ -64,15 +64,21 @@ def clone_into(workspace: Path, repo_name: str, url: str, branch: str | None = N
     return True, ""
 
 
-def set_remote(repo_path: Path, url: str) -> tuple[bool, str]:
+def set_named_remote(repo_path: Path, remote_name: str, url: str) -> tuple[bool, str]:
     if not (repo_path / ".git").exists():
         return False, "no_repo"
-    existing_ok, _, _ = _runx(repo_path, "remote", "get-url", "origin")
+    if not re.fullmatch(r"[A-Za-z0-9._-]{1,32}", remote_name):
+        return False, "invalid_remote"
+    existing_ok, _, _ = _runx(repo_path, "remote", "get-url", remote_name)
     if existing_ok:
-        ok, _, err = _runx(repo_path, "remote", "set-url", "origin", url)
+        ok, _, err = _runx(repo_path, "remote", "set-url", remote_name, url)
     else:
-        ok, _, err = _runx(repo_path, "remote", "add", "origin", url)
+        ok, _, err = _runx(repo_path, "remote", "add", remote_name, url)
     return ok, err
+
+
+def set_remote(repo_path: Path, url: str) -> tuple[bool, str]:
+    return set_named_remote(repo_path, "origin", url)
 
 
 def commit_all(repo_path: Path, message: str, author_name: str, author_email: str) -> tuple[bool, str]:
@@ -89,13 +95,13 @@ def commit_all(repo_path: Path, message: str, author_name: str, author_email: st
     return ok, err
 
 
-def _remote_url(repo_path: Path) -> str:
-    ok, out, _ = _runx(repo_path, "remote", "get-url", "origin")
+def _remote_url(repo_path: Path, remote_name: str = "origin") -> str:
+    ok, out, _ = _runx(repo_path, "remote", "get-url", remote_name)
     return out if ok else ""
 
 
-def push(repo_path: Path, branch: str | None = None, token: str | None = None) -> tuple[bool, str]:
-    remote_url = _remote_url(repo_path)
+def push(repo_path: Path, branch: str | None = None, token: str | None = None, remote_name: str = "origin") -> tuple[bool, str]:
+    remote_url = _remote_url(repo_path, remote_name)
     if not remote_url:
         return False, "no_remote"
     auth_url = _inject_token(remote_url, token)
@@ -106,8 +112,8 @@ def push(repo_path: Path, branch: str | None = None, token: str | None = None) -
     return ok, err
 
 
-def pull(repo_path: Path, branch: str | None = None, token: str | None = None) -> tuple[bool, str]:
-    remote_url = _remote_url(repo_path)
+def pull(repo_path: Path, branch: str | None = None, token: str | None = None, remote_name: str = "origin") -> tuple[bool, str]:
+    remote_url = _remote_url(repo_path, remote_name)
     if not remote_url:
         return False, "no_remote"
     auth_url = _inject_token(remote_url, token)

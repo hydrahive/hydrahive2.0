@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react"
 import { CockpitButton } from "../CockpitButton"
 import { projectsApi } from "@/features/projects/api"
-import type { ProjectGitRepo } from "@/features/projects/types"
+import type { ProjectGiteaStatus, ProjectGitRepo } from "@/features/projects/types"
 
-type GitAction = "pull" | "push"
+type GitAction = "pull" | "push" | "gitea-create" | "gitea-push" | "gitea-pull"
 
 interface Props {
   projectId: string | null
@@ -14,6 +14,7 @@ export function ProjectGitSummary({ projectId }: Props) {
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [busyAction, setBusyAction] = useState<GitAction | null>(null)
+  const [giteaStatus, setGiteaStatus] = useState<ProjectGiteaStatus | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,6 +41,16 @@ export function ProjectGitSummary({ projectId }: Props) {
 
   useEffect(() => { void reload() }, [reload])
 
+  useEffect(() => {
+    let alive = true
+    setGiteaStatus(null)
+    if (!projectId || !selectedRepo) return
+    projectsApi.getGiteaStatus(projectId, selectedRepo)
+      .then((status) => { if (alive) setGiteaStatus(status) })
+      .catch(() => { if (alive) setGiteaStatus(null) })
+    return () => { alive = false }
+  }, [projectId, selectedRepo])
+
   async function runAction(action: GitAction) {
     if (!projectId || !selectedRepo) return
     setBusyAction(action)
@@ -48,10 +59,30 @@ export function ProjectGitSummary({ projectId }: Props) {
     try {
       if (action === "pull") await projectsApi.pullRepo(projectId, selectedRepo)
       if (action === "push") await projectsApi.pushRepo(projectId, selectedRepo)
-      setMessage(action === "pull" ? "Pull abgeschlossen." : "Push abgeschlossen.")
+      if (action === "gitea-create") {
+        const result = await projectsApi.createGiteaRepo(projectId, selectedRepo)
+        setGiteaStatus(result.status)
+      }
+      if (action === "gitea-push") await projectsApi.pushGiteaRepo(projectId, selectedRepo)
+      if (action === "gitea-pull") await projectsApi.pullGiteaRepo(projectId, selectedRepo)
+      const labels: Record<GitAction, string> = {
+        pull: "Pull abgeschlossen.",
+        push: "Push abgeschlossen.",
+        "gitea-create": "Gitea-Repo erstellt und Remote gesetzt.",
+        "gitea-push": "Push zu Gitea abgeschlossen.",
+        "gitea-pull": "Pull von Gitea abgeschlossen.",
+      }
+      setMessage(labels[action])
       await reload()
     } catch {
-      setError(action === "pull" ? "Pull fehlgeschlagen." : "Push fehlgeschlagen.")
+      const labels: Record<GitAction, string> = {
+        pull: "Pull fehlgeschlagen.",
+        push: "Push fehlgeschlagen.",
+        "gitea-create": "Gitea-Repo konnte nicht erstellt werden.",
+        "gitea-push": "Gitea-Push fehlgeschlagen.",
+        "gitea-pull": "Gitea-Pull fehlgeschlagen.",
+      }
+      setError(labels[action])
     } finally {
       setBusyAction(null)
     }
@@ -61,6 +92,8 @@ export function ProjectGitSummary({ projectId }: Props) {
   const status = activeRepo?.status ?? null
   const canPull = Boolean(projectId && activeRepo?.status.initialized && (status?.behind ?? 0) > 0)
   const canPush = Boolean(projectId && activeRepo?.status.initialized && (status?.ahead ?? 0) > 0 && activeRepo?.has_token)
+  const canCreateGitea = Boolean(projectId && activeRepo?.status.initialized && giteaStatus?.configured && !giteaStatus.remote_present)
+  const canUseGitea = Boolean(projectId && activeRepo?.status.initialized && giteaStatus?.configured && giteaStatus.remote_present)
 
   return (
     <div>
@@ -110,8 +143,28 @@ export function ProjectGitSummary({ projectId }: Props) {
         </div>
       ) : null}
 
-      <div className="mt-3 rounded-[4px] border border-rose-400/20 bg-rose-500/[5%] p-2 text-xs text-zinc-400">
-        Gitea: noch nicht eingerichtet · Repo erstellen folgt in eigener Etappe.
+      <div className="mt-3 rounded-[4px] border border-cyan-400/20 bg-cyan-500/[5%] p-2 text-xs text-zinc-400">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="font-semibold text-cyan-200">Lokales Gitea</span>
+          <span className={giteaStatus?.configured ? "text-emerald-300" : "text-amber-300"}>
+            {giteaStatus?.configured ? (giteaStatus.remote_present ? "Remote aktiv" : "bereit") : "nicht konfiguriert"}
+          </span>
+        </div>
+        {giteaStatus?.configured ? (
+          <>
+            <p className="truncate text-[11px] text-zinc-500">
+              Repo: {giteaStatus.owner}/{giteaStatus.repo_name}
+            </p>
+            {giteaStatus.web_url ? <p className="truncate text-[11px] text-zinc-600">{giteaStatus.web_url}</p> : null}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <CockpitButton disabled={!canCreateGitea || busyAction !== null} onClick={() => void runAction("gitea-create")}>Repo erstellen</CockpitButton>
+              <CockpitButton disabled={!canUseGitea || busyAction !== null} onClick={() => void runAction("gitea-push")}>Gitea Push</CockpitButton>
+              <CockpitButton disabled={!canUseGitea || busyAction !== null} onClick={() => void runAction("gitea-pull")}>Gitea Pull</CockpitButton>
+            </div>
+          </>
+        ) : (
+          <p className="text-[11px] text-zinc-600">Gitea-Extension ist nicht installiert oder nicht lokal konfiguriert.</p>
+        )}
       </div>
     </div>
   )
