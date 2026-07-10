@@ -8,7 +8,7 @@ import { projectsApi } from "@/features/projects/api"
 import type { Project } from "@/features/projects/types"
 import { useUserPreferences } from "@/features/preferences/useUserPreferences"
 import { CockpitButton } from "./CockpitButton"
-import { CockpitPanel } from "./CockpitPanel"
+import { CollapsibleCockpitPanel } from "./project/CollapsibleCockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
@@ -58,7 +58,19 @@ export function ProjectCockpitPage() {
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
   const projectAgentId = activeProject?.agent_id ?? null
   const selectedAgentId = activeProjectId ? (selectedAgentByProject[activeProjectId] ?? projectAgentId) : projectAgentId
-  const selectedAgentModel = agents.find((agent) => agent.id === selectedAgentId)?.llm_model ?? ""
+  const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? null
+  const selectedAgentModel = selectedAgent?.llm_model ?? ""
+  type LeftPanelId = "project" | "agents" | "git" | "ai"
+  const leftPanelDefaults: Record<LeftPanelId, boolean> = { project: false, agents: false, git: true, ai: true }
+  const leftPanelCollapsed = { ...leftPanelDefaults, ...((prefs.preferences.cockpit_layout?.project_left_collapsed ?? {}) as Partial<Record<LeftPanelId, boolean>>) }
+  const setLeftPanelCollapsed = (panel: LeftPanelId, collapsed: boolean) => {
+    void prefs.patch({
+      cockpit_layout: {
+        ...prefs.preferences.cockpit_layout,
+        project_left_collapsed: { ...leftPanelCollapsed, [panel]: collapsed },
+      },
+    })
+  }
 
   async function pickProject(projectId: string | null) {
     await prefs.patch({ active_project_id: projectId })
@@ -94,25 +106,58 @@ export function ProjectCockpitPage() {
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[270px_minmax(420px,1fr)_360px]">
         <aside className="min-h-0 space-y-[10px] overflow-y-auto pr-1">
-          <CockpitPanel>
+          <CollapsibleCockpitPanel
+            title="Projekt"
+            eyebrow="Projekt"
+            summary={activeProject?.name ?? "Kein Projekt"}
+            collapsed={leftPanelCollapsed.project}
+            onToggle={() => setLeftPanelCollapsed("project", !leftPanelCollapsed.project)}
+          >
             <ProjectSelector projects={projects} activeProjectId={activeProjectId} loading={loading || prefs.loading} onPick={pickProject} />
-            {activeProject && <p className="mt-3 line-clamp-3 text-xs text-zinc-500">{activeProject.description || "Keine Beschreibung."}</p>}
-          </CockpitPanel>
-          <ProjectAgentsPanel
-            agents={agents}
-            projectAgentId={projectAgentId}
-            selectedAgentId={selectedAgentId}
-            onSelect={(agentId) => {
-              if (!activeProjectId) return
-              setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
-            }}
-          />
-          <ProjectGitSummary projectId={activeProjectId} />
-          <ProjectAiSettingsPanel
-            agentId={projectAgentId}
-            agents={agents}
-            onAgentChanged={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}
-          />
+            {activeProject && <p className="mt-3 line-clamp-3 text-xs text-[#8d9ab0]">{activeProject.description || "Keine Beschreibung."}</p>}
+          </CollapsibleCockpitPanel>
+
+          <CollapsibleCockpitPanel
+            title="Projekt-Agenten"
+            eyebrow="Agenten"
+            summary={selectedAgent?.name ?? "Kein Agent"}
+            collapsed={leftPanelCollapsed.agents}
+            onToggle={() => setLeftPanelCollapsed("agents", !leftPanelCollapsed.agents)}
+          >
+            <ProjectAgentsPanel
+              agents={agents}
+              projectAgentId={projectAgentId}
+              selectedAgentId={selectedAgentId}
+              onSelect={(agentId) => {
+                if (!activeProjectId) return
+                setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
+              }}
+            />
+          </CollapsibleCockpitPanel>
+
+          <CollapsibleCockpitPanel
+            title="Git Status"
+            eyebrow="Git"
+            summary="Repository-Status"
+            collapsed={leftPanelCollapsed.git}
+            onToggle={() => setLeftPanelCollapsed("git", !leftPanelCollapsed.git)}
+          >
+            <ProjectGitSummary projectId={activeProjectId} />
+          </CollapsibleCockpitPanel>
+
+          <CollapsibleCockpitPanel
+            title="KI Einstellungen"
+            eyebrow="Chat"
+            summary={selectedAgentModel || "Kein Modell"}
+            collapsed={leftPanelCollapsed.ai}
+            onToggle={() => setLeftPanelCollapsed("ai", !leftPanelCollapsed.ai)}
+          >
+            <ProjectAiSettingsPanel
+              agentId={projectAgentId}
+              agents={agents}
+              onAgentChanged={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}
+            />
+          </CollapsibleCockpitPanel>
         </aside>
 
         <main className="min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">

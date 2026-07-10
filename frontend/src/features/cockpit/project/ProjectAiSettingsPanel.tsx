@@ -4,7 +4,6 @@ import { agentsApi } from "@/features/agents/api"
 import { llmModelsApi } from "@/features/llm/api"
 import type { AgentBrief } from "@/features/chat/types"
 import { CockpitButton } from "../CockpitButton"
-import { CockpitPanel } from "../CockpitPanel"
 
 interface Props {
   agentId: string | null
@@ -79,7 +78,7 @@ export function ProjectAiSettingsPanel({ agentId, agents, onAgentChanged }: Prop
   const dirty = Boolean(agent && model.trim() && model.trim() !== agent.llm_model)
 
   return (
-    <CockpitPanel title="KI Einstellungen" eyebrow="Chat" className="space-y-3">
+    <div className="space-y-3">
       {!agent ? (
         <p className="text-xs text-[#8d9ab0]">Kein Projekt-Agent ausgewählt.</p>
       ) : (
@@ -128,6 +127,6 @@ export function ProjectAiSettingsPanel({ agentId, agents, onAgentChanged }: Prop
           </div>
         </>
       )}
-    </CockpitPanel>
+    </div>
   )
 }

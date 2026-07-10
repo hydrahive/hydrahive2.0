@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
 import { CockpitButton } from "../CockpitButton"
-import { CockpitPanel } from "../CockpitPanel"
 import { projectsApi } from "@/features/projects/api"
 import type { ProjectGitRepo } from "@/features/projects/types"
 
@@ -64,8 +63,9 @@ export function ProjectGitSummary({ projectId }: Props) {
   const canPush = Boolean(projectId && activeRepo?.status.initialized && (status?.ahead ?? 0) > 0 && activeRepo?.has_token)
 
   return (
-    <CockpitPanel title="Git Status" eyebrow="Git" actions={<CockpitButton disabled={!projectId || loading} onClick={() => void reload()}>Refresh</CockpitButton>}>
-      {loading ? <p className="text-sm text-zinc-600">Lade Git-Status…</p> : null}
+    <div>
+      <div className="mb-3 flex justify-end"><CockpitButton disabled={!projectId || loading} onClick={() => void reload()}>Refresh</CockpitButton></div>
+      {loading ? <p className="text-sm text-[#8d9ab0]">Lade Git-Status…</p> : null}
       {!loading && repos.length === 0 ? <p className="text-sm text-zinc-600">Keine Repos im Projekt.</p> : null}
       {error ? <p className="mb-2 text-xs text-rose-300">{error}</p> : null}
       {message ? <p className="mb-2 text-xs text-emerald-300">{message}</p> : null}
@@ -113,6 +113,6 @@ export function ProjectGitSummary({ projectId }: Props) {
       <div className="mt-3 rounded-[4px] border border-rose-400/20 bg-rose-500/[5%] p-2 text-xs text-zinc-400">
         Gitea: noch nicht eingerichtet · Repo erstellen folgt in eigener Etappe.
       </div>
-    </CockpitPanel>
+    </div>
   )
 }
