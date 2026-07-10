@@ -6,12 +6,13 @@ interface Props {
   eyebrow?: string
   description?: string
   actions?: ReactNode
+  menu?: ReactNode
   children: ReactNode
   className?: string
   hideHeader?: boolean
 }
 
-export function CockpitShell({ title, eyebrow, description, actions, children, className, hideHeader = false }: Props) {
+export function CockpitShell({ title, eyebrow, description, actions, menu, children, className, hideHeader = false }: Props) {
   return (
     <div className={cn("min-h-full space-y-4", className)}>
       {!hideHeader && (
@@ -24,6 +25,7 @@ export function CockpitShell({ title, eyebrow, description, actions, children, c
             )}
             <h1 className="mt-2 truncate text-2xl font-black tracking-tight text-[#e8eef8]">{title}</h1>
             {description && <p className="mt-1 max-w-3xl text-sm text-[#8d9ab0]">{description}</p>}
+            {menu && <div className="mt-3">{menu}</div>}
           </div>
           {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
         </header>

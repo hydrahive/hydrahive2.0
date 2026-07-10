@@ -24,6 +24,11 @@ import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
 import { moduleBuddyWidgets } from "@/modules/index.generated"
+import { CockpitButton } from "@/features/cockpit/CockpitButton"
+import { CockpitHeaderMenu } from "@/features/cockpit/CockpitHeaderMenu"
+import { CockpitPanel } from "@/features/cockpit/CockpitPanel"
+import { CockpitShell } from "@/features/cockpit/CockpitShell"
+import { cockpitMenu } from "@/features/cockpit/cockpitMenus"
 
 // Buddy-Widget-Slot: installierte Module hängen Widgets ins rechte Panel ein.
 // Sie bekommen onPrompt durch (→ sendet an den Buddy-Chat). Ersetzt den früheren
@@ -147,16 +152,42 @@ export function BuddyPage() {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <div className="flex items-stretch justify-center h-full gap-4 px-4 py-4 overflow-hidden">
-        <div className="hidden xl:block shrink-0 overflow-y-auto min-h-0">
-          <BuddyLeftPanel />
+      <CockpitShell
+        eyebrow="Buddy"
+        title="Buddy-Cockpit"
+        description="Dein persönlicher Agent mit Projektkontext, Modellwahl, Slash-Commands, Tools und Modul-Widgets — jetzt im gleichen Cockpit-Raster wie der Rest."
+        menu={<CockpitHeaderMenu items={cockpitMenu("buddy")} />}
+        actions={(
+          <>
+            <CockpitButton onClick={() => navigate("/buddy/settings")}>Einstellungen</CockpitButton>
+            <CockpitButton
+              tone="primary"
+              disabled={chat.busy}
+              onClick={async () => {
+                const r = await buddyApi.clear()
+                setLocalMsgs([])
+                setReasoningEffort(null)
+                setState((s) => (s ? { ...s, session_id: r.session_id } : s))
+              }}
+            >
+              Neuer Chat
+            </CockpitButton>
+          </>
+        )}
+        className="min-h-[100dvh] bg-[#080b11]"
+      >
+      <div className="grid h-[calc(100dvh-156px)] min-h-[640px] gap-[10px] overflow-hidden xl:grid-cols-[280px_minmax(420px,1fr)_320px]">
+        <div className="hidden min-h-0 overflow-y-auto xl:block">
+          <CockpitPanel title="Buddy-Zentrale" eyebrow="Agent">
+            <BuddyLeftPanel />
+          </CockpitPanel>
         </div>
-        <div className="w-full max-w-3xl flex flex-col min-w-0 min-h-0">
+        <div className="flex min-w-0 flex-col min-h-0">
           <div
-            className="relative flex flex-col flex-1 min-h-0 rounded-[28px] border border-[#104E8B]/70 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] overflow-hidden backdrop-blur"
-            style={{ background: "linear-gradient(158deg, rgba(255,255,255,.06), rgba(255,255,255,.015)), linear-gradient(160deg, rgba(16,78,139,.38), rgba(16,78,139,.13) 65%), #1c2334" }}
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0d1420] shadow-2xl shadow-black/30 backdrop-blur"
+            style={{ background: "linear-gradient(158deg, rgba(105,215,255,.08), rgba(255,255,255,.015)), linear-gradient(160deg, rgba(16,78,139,.28), rgba(8,11,17,.9) 65%), #0d1420" }}
           >
-            <div className="absolute inset-0 pointer-events-none rounded-[28px] ring-1 ring-inset ring-[#104E8B]/30" />
+            <div className="pointer-events-none absolute inset-0 rounded-[4px] ring-1 ring-inset ring-[#69d7ff]/10" />
             {state.created && (
               <div className="px-5 pt-3 pb-1 text-[11px] text-[var(--hh-accent-text)] text-center">
                 {t("just_woken_up")}
@@ -271,16 +302,19 @@ export function BuddyPage() {
               <span className="font-mono">ON</span>
             </div>
           </div>
-          <div className="mx-auto -mt-px w-1/3 h-3 bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-b-md border border-t-0 border-white/[6%]" />
-          <div className="mx-auto w-2/5 h-1.5 bg-zinc-900 rounded-full mt-0.5 shadow-md shadow-black/50" />
         </div>
-        <div className="hidden xl:flex flex-col gap-4 shrink-0 overflow-y-auto min-h-0">
-          <BuddyExtensionsPanel />
+        <div className="hidden min-h-0 flex-col gap-[10px] overflow-y-auto xl:flex">
+          <CockpitPanel title="Erweiterungen" eyebrow="Buddy">
+            <BuddyExtensionsPanel />
+          </CockpitPanel>
           {BUDDY_WIDGETS.map((W, i) => (
-            <W key={i} onPrompt={(text) => handleSend(text)} projectId={state?.project_id} />
+            <CockpitPanel key={i} title={`Widget ${i + 1}`} eyebrow="Modul">
+              <W onPrompt={(text) => handleSend(text)} projectId={state?.project_id} />
+            </CockpitPanel>
           ))}
         </div>
       </div>
+      </CockpitShell>
     </AssistantRuntimeProvider>
   )
 }
