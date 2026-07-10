@@ -1,8 +1,10 @@
 import type { ComponentType } from "react"
 import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
+import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
+import { cockpitMenu } from "./cockpitMenus"
 
 const adminLinks = [
   { title: "System", path: "/system", icon: Server, desc: "Status, Backup, Samba, Tailscale, AgentLink und Wartung." },
@@ -28,6 +30,7 @@ export function AdminCockpitPage() {
       eyebrow="Admin"
       title="Admin-Cockpit"
       description="Schaltzentrale für System, User, Module, Integrationen, Credentials und Infrastruktur. Die Route bleibt durch AdminGuard geschützt."
+      menu={<CockpitHeaderMenu items={cockpitMenu("admin")} />}
       actions={<CockpitButton tone="primary" onClick={() => window.open("/system", "_self")}>System öffnen</CockpitButton>}
       className="min-h-[100dvh] bg-[#080b11]"
     >

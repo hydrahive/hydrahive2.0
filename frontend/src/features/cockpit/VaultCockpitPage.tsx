@@ -1,8 +1,10 @@
 import type { ComponentType } from "react"
 import { Activity, BrainCircuit, Coins, FileText, FolderHeart, KeyRound, LockKeyhole, Pickaxe, ShieldCheck, StickyNote, Wallet } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
+import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
+import { cockpitMenu } from "./cockpitMenus"
 
 const vaultAreas = [
   { title: "Patientenakte", path: "/akte", icon: FolderHeart, desc: "Diagnosen, Medikamente, Laborwerte, FHIR/eGA und medizinische Timeline.", tone: "rose" },
@@ -29,6 +31,7 @@ export function VaultCockpitPage() {
       eyebrow="Vault"
       title="Vault-Cockpit"
       description="Sensible Bereiche an einem Ort: Patientenakte, Crypto, Dokumente, Notizen, Credentials und private Historie — mit klaren Schutzplanken."
+      menu={<CockpitHeaderMenu items={cockpitMenu("vault")} />}
       actions={<CockpitButton tone="primary" onClick={() => window.open("/akte", "_self")}>Meine Akte öffnen</CockpitButton>}
       className="min-h-[100dvh] bg-[#080b11]"
     >

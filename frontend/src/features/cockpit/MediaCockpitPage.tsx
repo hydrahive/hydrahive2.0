@@ -1,7 +1,9 @@
 import { Film, Images, Mic2, Music2, Palette, Scissors, Sparkles, Wand2 } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
+import { CockpitHeaderMenu } from "./CockpitHeaderMenu"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
+import { cockpitMenu } from "./cockpitMenus"
 
 const pipeline = [
   { label: "Idee", text: "Prompt, Mood, Stil und CI sammeln", icon: Sparkles },
@@ -30,6 +32,7 @@ export function MediaCockpitPage() {
       eyebrow="Media"
       title="Media-Cockpit"
       description="Produktionsstrecke von Idee und Regie über Assets und Clips bis zum Schnitt. Diese Etappe verknüpft vorhandene Module ohne automatische Generierungsjobs."
+      menu={<CockpitHeaderMenu items={cockpitMenu("media")} />}
       actions={<CockpitButton tone="primary" onClick={() => window.open("/atelier", "_self")}>Atelier öffnen</CockpitButton>}
       className="min-h-[100dvh] bg-[#080b11]"
     >
