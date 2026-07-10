@@ -23,6 +23,7 @@ export function ProjectCockpitPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [wsFile, setWsFile] = useState<{ path: string; kind: FileKind } | null>(null)
+  const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let alive = true
@@ -54,6 +55,7 @@ export function ProjectCockpitPage() {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
   const projectAgentId = activeProject?.agent_id ?? null
+  const selectedAgentId = activeProjectId ? (selectedAgentByProject[activeProjectId] ?? projectAgentId) : projectAgentId
 
   async function pickProject(projectId: string | null) {
     await prefs.patch({ active_project_id: projectId })
@@ -79,7 +81,15 @@ export function ProjectCockpitPage() {
             <ProjectSelector projects={projects} activeProjectId={activeProjectId} loading={loading || prefs.loading} onPick={pickProject} />
             {activeProject && <p className="mt-3 line-clamp-3 text-xs text-zinc-500">{activeProject.description || "Keine Beschreibung."}</p>}
           </CockpitPanel>
-          <ProjectAgentsPanel agents={agents} projectAgentId={projectAgentId} />
+          <ProjectAgentsPanel
+            agents={agents}
+            projectAgentId={projectAgentId}
+            selectedAgentId={selectedAgentId}
+            onSelect={(agentId) => {
+              if (!activeProjectId) return
+              setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
+            }}
+          />
           <ProjectGitSummary projectId={activeProjectId} />
           <CockpitPanel title="KI Einstellungen" eyebrow="Chat">
             <p className="text-xs text-zinc-500">Modell und Tiefe bleiben im Chat/Agenten-Kontext. Die vollständigen Controls werden in der nächsten ChatPane-Etappe eingebettet.</p>
@@ -88,7 +98,7 @@ export function ProjectCockpitPage() {
 
         <main className="min-h-[620px] overflow-hidden rounded-[4px] border border-white/[8%] bg-zinc-950/40">
           {activeProjectId ? (
-            <ChatPane projectId={activeProjectId} showSidePanels={false} preferredAgentId={projectAgentId} />
+            <ChatPane projectId={activeProjectId} showSidePanels={false} preferredAgentId={selectedAgentId} />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-zinc-600">Bitte ein Projekt auswählen.</div>
           )}
