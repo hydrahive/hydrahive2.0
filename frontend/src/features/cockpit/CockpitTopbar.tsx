@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Menu, MoreHorizontal, X } from "lucide-react"
+import { HelpButton } from "@/i18n/HelpButton"
+import type { HelpTopic } from "@/i18n/help/loader"
 import { CockpitButton } from "./CockpitButton"
+import { CockpitAppsMenu } from "./CockpitAppsMenu"
+import { CockpitUserMenu } from "./CockpitUserMenu"
 
 interface Props {
   active: "projects" | "buddy" | "media" | "vault" | "admin"
@@ -19,6 +23,13 @@ const nav = [
 ] as const
 
 const go = (path: string) => window.open(path, "_self")
+const HELP_TOPICS: Record<Props["active"], HelpTopic> = {
+  projects: "projects",
+  buddy: "buddy",
+  media: "atelier",
+  vault: "patientenakte",
+  admin: "system",
+}
 
 export function CockpitTopbar({ active, context, action, extraActions }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -54,7 +65,9 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
       <div className="hidden items-center gap-2 2xl:flex">
         {extraActions}
         {action ? <CockpitButton onClick={() => go(action.path)}>{action.label}</CockpitButton> : null}
-        <CockpitButton onClick={() => go("/settings")}>Profil</CockpitButton>
+        <CockpitAppsMenu />
+        <HelpButton topic={HELP_TOPICS[active]} />
+        <CockpitUserMenu />
       </div>
       <button
         ref={triggerRef}
@@ -79,7 +92,9 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
           <div className="grid gap-2 border-t border-[#2a364b] pt-4 sm:border-0 sm:pt-0">
             <div className="contents [&>button]:w-full">{extraActions}</div>
             {action ? <CockpitButton onClick={() => go(action.path)}>{action.label}</CockpitButton> : null}
-            <CockpitButton onClick={() => go("/settings")}>Profil</CockpitButton>
+            <CockpitAppsMenu compact />
+            <HelpButton topic={HELP_TOPICS[active]} className="w-full justify-center" />
+            <CockpitUserMenu compact />
           </div>
         </section>
       </>}
