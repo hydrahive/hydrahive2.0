@@ -21,6 +21,7 @@ import { ProjectInsightsOverlay, type ProjectInsightView } from "./project/Proje
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
+import { ProjectGitOverlay } from "./project/ProjectGitOverlay"
 import { ProjectGitTreePanel } from "./project/ProjectGitTreePanel"
 import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
 import { ProjectSelector } from "./project/ProjectSelector"
@@ -40,6 +41,8 @@ export function ProjectCockpitPage() {
   const [serversOpen, setServersOpen] = useState(false)
   const [mountsOpen, setMountsOpen] = useState(false)
   const [insightView, setInsightView] = useState<ProjectInsightView | null>(null)
+  const [gitOpen, setGitOpen] = useState(false)
+  const [gitRevision, setGitRevision] = useState(0)
   const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -108,7 +111,7 @@ export function ProjectCockpitPage() {
       <CockpitTopbar
         active="projects"
         context={activeProject ? `Projekt bleibt gespeichert: ${activeProject.name}` : undefined}
-        extraActions={<><CockpitButton onClick={() => setInsightView("stats")} disabled={!activeProject}>Statistiken</CockpitButton><CockpitButton onClick={() => setInsightView("sessions")} disabled={!activeProject}>Sessions</CockpitButton><CockpitButton onClick={() => setInsightView("audit")} disabled={!activeProject}>Audit</CockpitButton><CockpitButton onClick={() => setMountsOpen(true)} disabled={!activeProject}>Mounts</CockpitButton><CockpitButton onClick={() => setServersOpen(true)} disabled={!activeProject}>Server</CockpitButton><CockpitButton onClick={() => setAccessOpen(true)} disabled={!activeProject}>Zugriff</CockpitButton><CockpitButton onClick={() => setDetailsOpen(true)} disabled={!activeProject}>Projekt bearbeiten</CockpitButton><CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton></>}
+        extraActions={<><CockpitButton onClick={() => setGitOpen(true)} disabled={!activeProject}>Git verwalten</CockpitButton><CockpitButton onClick={() => setInsightView("stats")} disabled={!activeProject}>Statistiken</CockpitButton><CockpitButton onClick={() => setInsightView("sessions")} disabled={!activeProject}>Sessions</CockpitButton><CockpitButton onClick={() => setInsightView("audit")} disabled={!activeProject}>Audit</CockpitButton><CockpitButton onClick={() => setMountsOpen(true)} disabled={!activeProject}>Mounts</CockpitButton><CockpitButton onClick={() => setServersOpen(true)} disabled={!activeProject}>Server</CockpitButton><CockpitButton onClick={() => setAccessOpen(true)} disabled={!activeProject}>Zugriff</CockpitButton><CockpitButton onClick={() => setDetailsOpen(true)} disabled={!activeProject}>Projekt bearbeiten</CockpitButton><CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton></>}
         action={{ label: "Projekt-Einstellungen", path: "/settings/projects" }}
       />
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
@@ -151,7 +154,7 @@ export function ProjectCockpitPage() {
             collapsed={leftPanelCollapsed.git}
             onToggle={() => setLeftPanelCollapsed("git", !leftPanelCollapsed.git)}
           >
-            <ProjectGitSummary projectId={activeProjectId} />
+            <ProjectGitSummary key={`${activeProjectId}:${gitRevision}`} projectId={activeProjectId} />
           </CollapsibleCockpitPanel>
 
           <CollapsibleCockpitPanel
@@ -186,6 +189,7 @@ export function ProjectCockpitPage() {
       {wsFile && projectAgentId && (
         <FileOverlay agentId={projectAgentId} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
       )}
+      {gitOpen && activeProject && <ProjectGitOverlay project={activeProject} onClose={() => setGitOpen(false)} onChanged={() => setGitRevision((revision) => revision + 1)} />}
       {insightView && activeProject && <ProjectInsightsOverlay project={activeProject} view={insightView} onClose={() => setInsightView(null)} />}
       {mountsOpen && activeProject && <ProjectMountsOverlay project={activeProject} onClose={() => setMountsOpen(false)} />}
       {serversOpen && activeProject && <ProjectServersOverlay project={activeProject} onClose={() => setServersOpen(false)} />}
