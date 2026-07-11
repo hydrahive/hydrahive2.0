@@ -13,8 +13,10 @@ from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.llm import _config
 from hydrahive.llm import client as llm_client
 from hydrahive.llm import registry
+from hydrahive.llm._codex_usage import fetch_usage as fetch_codex_usage
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
 from hydrahive.llm._oauth_usage import get_oauth_rate_limits
+from hydrahive.llm._openrouter_credits import fetch_credits as fetch_openrouter_credits
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
@@ -96,6 +98,18 @@ async def minimax_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) ->
 def anthropic_rate_limits(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     """Anthropic OAuth Rate-Limits. Für alle User sichtbar — zeigt 5h/7d Utilization."""
     return get_oauth_rate_limits()
+
+
+@router.get("/codex/usage")
+async def codex_usage(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Codex Plan-Usage (5h/7d) aus der ChatGPT-OAuth. Ausgeblendet wenn kein OAuth aktiv."""
+    return await fetch_codex_usage()
+
+
+@router.get("/openrouter/credits")
+async def openrouter_credits(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """OpenRouter Restguthaben. Ausgeblendet wenn kein Key gesetzt."""
+    return await fetch_openrouter_credits()
 
 
 @router.get("/effort-models")
