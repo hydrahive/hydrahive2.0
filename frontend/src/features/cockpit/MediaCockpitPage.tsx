@@ -14,6 +14,7 @@ import { MediaAssetOverlay } from "./MediaAssetOverlay"
 import { MediaReferenceOverlay } from "./MediaReferenceOverlay"
 import { MediaScreenplayOverlay } from "./MediaScreenplayOverlay"
 import { MediaAgentPopup } from "./MediaAgentPopup"
+import { MediaTimelineOverlay } from "./MediaTimelineOverlay"
 
 const productionAreas = [
   { title: "Idee & Prompt", text: "Grundidee, Ziel, Stil", path: "/atelier" },
@@ -44,6 +45,7 @@ export function MediaCockpitPage() {
   const [atelierRoot, setAtelierRoot] = useState("")
   const [referencesOpen, setReferencesOpen] = useState(false)
   const [screenplayOpen, setScreenplayOpen] = useState(false)
+  const [timelineOpen, setTimelineOpen] = useState(false)
   const [createName, setCreateName] = useState("")
   const [createDescription, setCreateDescription] = useState("")
   const [createError, setCreateError] = useState("")
@@ -241,7 +243,7 @@ export function MediaCockpitPage() {
           </section>
 
           <section className="border-t border-[#2a364b] bg-[#101724] p-3">
-            <div className="mb-2 flex items-center justify-between gap-2"><CockpitSectionLabel>Schnitt-Timeline</CockpitSectionLabel><CockpitButton tone="primary" onClick={() => openLocalPath("/videoeditor")}>Export / Schnitt</CockpitButton></div>
+            <div className="mb-2 flex items-center justify-between gap-2"><CockpitSectionLabel>Schnitt-Timeline</CockpitSectionLabel><CockpitButton tone="primary" onClick={() => setTimelineOpen(true)} disabled={!mediaProject}>Schnitt öffnen</CockpitButton></div>
             <div className="space-y-2">
               <TimelineTrack label="Video" clips={timelineVideoClips} />
               <TimelineTrack label="Film" clips={timelineFilmClips} />
@@ -274,6 +276,7 @@ export function MediaCockpitPage() {
       {assetTab && <MediaAssetOverlay tab={assetTab} root={atelierRoot} ci={ci} characters={characters} gallery={gallery} videos={videos} films={films} onClose={() => setAssetTab(null)} />}
       {referencesOpen && projectId && mediaProject && <MediaReferenceOverlay projectId={projectId} mediaSlug={mediaProject} projects={projects} onClose={() => setReferencesOpen(false)} />}
       {screenplayOpen && projectId && mediaProject && <MediaScreenplayOverlay projectId={projectId} mediaSlug={mediaProject} onClose={() => setScreenplayOpen(false)} />}
+      {timelineOpen && projectId && mediaProject && <MediaTimelineOverlay projectId={projectId} mediaSlug={mediaProject} onClose={() => setTimelineOpen(false)} />}
       {projectId && mediaProject && <MediaAgentPopup projectId={projectId} mediaSlug={mediaProject} promptDraft={jobText} />}
       {createOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="create-media-title">
         <section className="w-full max-w-lg rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
