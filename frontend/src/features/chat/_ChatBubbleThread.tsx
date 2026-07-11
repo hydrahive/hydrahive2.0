@@ -185,10 +185,11 @@ function ChatSystemMessage() {
   return <CompactionBlock message={original} />
 }
 
-export function ChatBubbleThread() {
+export function ChatBubbleThread({ topSlot }: { topSlot?: ReactNode } = {}) {
   return (
     <ThreadPrimitive.Root className="flex-1 overflow-hidden flex flex-col">
       <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto space-y-[9px] p-[14px]">
+        {topSlot}
         <ThreadPrimitive.Messages
           components={{
             UserMessage: ChatUserMessage,
