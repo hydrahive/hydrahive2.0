@@ -32,20 +32,32 @@ function fmtResetIn(s: number): string {
   return `${Math.max(1, Math.floor(s / 60))}m`
 }
 
-function barTone(pct: number): string {
+/** Ampel für verbrauchten Anteil: viel verbraucht = rot. */
+function barToneUsed(pct: number): string {
   if (pct >= 90) return "bg-rose-400"
   if (pct >= 70) return "bg-amber-400"
   return "bg-emerald-400"
 }
 
-/** Eine kompakte Balken-Zeile: Label · %-Balken · Reset/Zahl rechts. */
-function UsageBar({ label, pct, right }: { label: string; pct: number; right?: string }) {
+/** Ampel für Restanteil: wenig Rest = rot. */
+function barToneRemaining(pct: number): string {
+  if (pct <= 10) return "bg-rose-400"
+  if (pct <= 30) return "bg-amber-400"
+  return "bg-emerald-400"
+}
+
+/** Eine kompakte Balken-Zeile: Label · %-Balken · Reset/Zahl rechts.
+ *  mode="used" (default): Balken zeigt Verbrauch. mode="remaining": Balken zeigt Rest. */
+function UsageBar({ label, pct, right, mode = "used" }: {
+  label: string; pct: number; right?: string; mode?: "used" | "remaining"
+}) {
   const clamped = Math.max(0, Math.min(100, pct))
+  const tone = mode === "remaining" ? barToneRemaining(clamped) : barToneUsed(clamped)
   return (
     <div className="flex items-center gap-2">
       <span className="w-9 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[#8d9ab0]">{label}</span>
       <div className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[6%]">
-        <div className={`absolute inset-y-0 left-0 rounded-full ${barTone(clamped)}`} style={{ width: `${clamped}%` }} />
+        <div className={`absolute inset-y-0 left-0 rounded-full ${tone}`} style={{ width: `${clamped}%` }} />
       </div>
       <span className="w-7 shrink-0 text-right text-[10px] tabular-nums text-[#c3ccdd]">{Math.round(clamped)}%</span>
       {right !== undefined ? (
@@ -126,7 +138,8 @@ export function CockpitUsagePanel() {
         <ProviderBlock name="OpenRouter">
           <UsageBar
             label="Rest"
-            pct={openrouter?.used_pct ?? 0}
+            mode="remaining"
+            pct={100 - (openrouter?.used_pct ?? 0)}
             right={`$${(openrouter?.remaining ?? 0).toFixed(2)}`}
           />
         </ProviderBlock>
@@ -143,10 +156,16 @@ export function CockpitUsagePanel() {
   )
 }
 
-/** ISO-Reset-Zeitpunkt → Sekunden ab jetzt (Anthropic liefert absolute Zeit). */
-function secondsUntil(iso?: string): number {
-  if (!iso) return 0
-  const t = Date.parse(iso)
-  if (Number.isNaN(t)) return 0
-  return Math.max(0, Math.floor((t - Date.now()) / 1000))
+/** Reset-Zeitpunkt → Sekunden ab jetzt. Anthropic liefert Unix-Epoch-Sekunden
+ *  als String (z.B. "1783735800"), akzeptiert zur Sicherheit auch ISO-Datum. */
+function secondsUntil(value?: string): number {
+  if (!value) return 0
+  let ms: number
+  if (/^\d+$/.test(value.trim())) {
+    ms = Number(value) * 1000 // Unix-Sekunden
+  } else {
+    ms = Date.parse(value) // ISO-Fallback
+  }
+  if (Number.isNaN(ms)) return 0
+  return Math.max(0, Math.floor((ms - Date.now()) / 1000))
 }
