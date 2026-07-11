@@ -40,6 +40,32 @@ export interface AnthropicRateLimits {
   overage_reset?: string
 }
 
+export interface CodexUsageWindow {
+  used_pct: number
+  reset_in_s: number
+  window_s: number
+}
+
+export interface CodexUsage {
+  available: boolean
+  reason?: string
+  fetched_at?: string
+  plan_type?: string
+  primary?: CodexUsageWindow | null
+  secondary?: CodexUsageWindow | null
+  credits?: { has_credits?: boolean; unlimited?: boolean; balance?: number }
+}
+
+export interface OpenRouterCredits {
+  available: boolean
+  reason?: string
+  fetched_at?: string
+  total?: number
+  used?: number
+  remaining?: number
+  used_pct?: number
+}
+
 export const llmApi = {
   getConfig: () => api.get<LlmConfig>("/llm"),
   updateConfig: (cfg: LlmConfig) => api.put<LlmConfig>("/llm", cfg),
@@ -53,6 +79,8 @@ export const llmApi = {
   oauthRevoke: (provider: string) =>
     api.delete<{ ok: boolean }>(`/llm/oauth/${provider}`),
   getAnthropicRateLimits: () => api.get<AnthropicRateLimits>("/llm/anthropic/rate-limits"),
+  getCodexUsage: () => api.get<CodexUsage>("/llm/codex/usage"),
+  getOpenRouterCredits: () => api.get<OpenRouterCredits>("/llm/openrouter/credits"),
 }
 
 export interface CatalogModel {

@@ -20,6 +20,7 @@ import { ProjectMountsOverlay } from "./project/ProjectMountsOverlay"
 import { ProjectInsightsOverlay, type ProjectInsightView } from "./project/ProjectInsightsOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
+import { CockpitUsagePanel } from "./project/CockpitUsagePanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
 import { ProjectGitOverlay } from "./project/ProjectGitOverlay"
 import { ProjectIntegrationsOverlay } from "./project/ProjectIntegrationsOverlay"
@@ -81,8 +82,8 @@ export function ProjectCockpitPage() {
   const selectedAgentId = activeProjectId ? (selectedAgentByProject[activeProjectId] ?? projectAgentId) : projectAgentId
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? null
   const selectedAgentModel = selectedAgent?.llm_model ?? ""
-  type LeftPanelId = "project" | "agents" | "git" | "ai"
-  const leftPanelDefaults: Record<LeftPanelId, boolean> = { project: false, agents: false, git: true, ai: true }
+  type LeftPanelId = "project" | "agents" | "git" | "ai" | "usage"
+  const leftPanelDefaults: Record<LeftPanelId, boolean> = { project: false, agents: false, git: true, ai: true, usage: false }
   const leftPanelCollapsed = { ...leftPanelDefaults, ...((prefs.preferences.cockpit_layout?.project_left_collapsed ?? {}) as Partial<Record<LeftPanelId, boolean>>) }
   const setLeftPanelCollapsed = (panel: LeftPanelId, collapsed: boolean) => {
     void prefs.patch({
@@ -181,6 +182,16 @@ export function ProjectCockpitPage() {
               agents={agents}
               onAgentChanged={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}
             />
+          </CollapsibleCockpitPanel>
+
+          <CollapsibleCockpitPanel
+            title="Verbrauch"
+            eyebrow="Guthaben"
+            summary="Modell-Kontingente"
+            collapsed={leftPanelCollapsed.usage}
+            onToggle={() => setLeftPanelCollapsed("usage", !leftPanelCollapsed.usage)}
+          >
+            <CockpitUsagePanel />
           </CollapsibleCockpitPanel>
         </aside>
 
