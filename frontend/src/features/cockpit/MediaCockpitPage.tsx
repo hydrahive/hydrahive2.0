@@ -11,6 +11,7 @@ import { openLocalPath } from "./actionRegistry"
 import { mediaProjectsApi, type MediaProject } from "./mediaProjectsApi"
 import { MediaPromptOverlay } from "./MediaPromptOverlay"
 import { MediaAssetOverlay } from "./MediaAssetOverlay"
+import { MediaReferenceOverlay } from "./MediaReferenceOverlay"
 
 const productionAreas = [
   { title: "Idee & Prompt", text: "Grundidee, Ziel, Stil", path: "/atelier" },
@@ -39,6 +40,7 @@ export function MediaCockpitPage() {
   const [promptOpen, setPromptOpen] = useState(false)
   const [assetTab, setAssetTab] = useState<"all" | "characters" | "style" | "images" | "video" | "audio" | null>(null)
   const [atelierRoot, setAtelierRoot] = useState("")
+  const [referencesOpen, setReferencesOpen] = useState(false)
   const [createName, setCreateName] = useState("")
   const [createDescription, setCreateDescription] = useState("")
   const [createError, setCreateError] = useState("")
@@ -246,7 +248,7 @@ export function MediaCockpitPage() {
         </main>
 
         <aside className="grid min-h-0 grid-rows-[42%_58%] gap-[10px] overflow-hidden">
-          <CockpitPanel title="Asset-Bibliothek" eyebrow="Material" actions={<CockpitButton onClick={() => setAssetTab("all")}>Öffnen</CockpitButton>} className="min-h-0 overflow-y-auto">
+          <CockpitPanel title="Asset-Bibliothek" eyebrow="Material" actions={<><CockpitButton onClick={() => setReferencesOpen(true)} disabled={!mediaProject}>Referenzen</CockpitButton><CockpitButton onClick={() => setAssetTab("all")}>Öffnen</CockpitButton></>} className="min-h-0 overflow-y-auto">
             <div className="grid grid-cols-2 gap-2">
               {mediaAssets.map((asset) => {
                 const Icon = asset.icon
@@ -267,6 +269,7 @@ export function MediaCockpitPage() {
       </div>
       {promptOpen && projectId && mediaProject && <MediaPromptOverlay projectId={projectId} mediaSlug={mediaProject} initialBody={jobText} onClose={() => setPromptOpen(false)} />}
       {assetTab && <MediaAssetOverlay tab={assetTab} root={atelierRoot} ci={ci} characters={characters} gallery={gallery} videos={videos} films={films} onClose={() => setAssetTab(null)} />}
+      {referencesOpen && projectId && mediaProject && <MediaReferenceOverlay projectId={projectId} mediaSlug={mediaProject} projects={projects} onClose={() => setReferencesOpen(false)} />}
       {createOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="create-media-title">
         <section className="w-full max-w-lg rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
           <header className="border-b border-[#2a364b] p-4"><CockpitSectionLabel>Neues Media-Projekt</CockpitSectionLabel><h2 id="create-media-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Produktionsworkspace anlegen</h2></header>
