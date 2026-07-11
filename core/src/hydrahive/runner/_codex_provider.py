@@ -51,8 +51,11 @@ def _build_payload(
         "parallel_tool_calls": True,
         "instructions": instructions or _DEFAULT_INSTRUCTIONS,
     }
-    if max_tokens:
-        payload["max_output_tokens"] = max_tokens
+    # Der Codex-OAuth-/Responses-Backend lehnt max_output_tokens ab
+    # ("Unsupported parameter"). Der offizielle Codex-Client sendet es nicht;
+    # das Output-Limit wird serverseitig gesteuert. max_tokens bleibt in der
+    # Signatur für API-Parität, wird für diesen Pfad aber nicht übertragen.
+    _ = max_tokens
     if reasoning_effort:
         from hydrahive.llm.reasoning_effort import effort_levels_for_model
         if reasoning_effort in effort_levels_for_model(f"openai-codex/{model}"):

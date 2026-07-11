@@ -12,11 +12,12 @@ def test_codex_oauth_context_windows_match_official_client():
     assert context_window_for("openai-codex/gpt-5.4-mini") == 272_000
 
 
-def test_codex_payload_sets_output_limit():
+def test_codex_payload_omits_unsupported_output_limit():
+    # Der Codex-OAuth-Endpunkt lehnt max_output_tokens mit HTTP 400 ab.
     payload = _build_payload(
         model="gpt-5.6-sol", system_prompt="", messages=[], tools=[], max_tokens=32_000,
     )
-    assert payload["max_output_tokens"] == 32_000
+    assert "max_output_tokens" not in payload
 
 
 def test_encrypted_reasoning_replayed_for_same_model_only():
