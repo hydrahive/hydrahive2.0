@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { memo, useState } from "react"
 import { Copy, Check } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -23,7 +23,7 @@ function CopyCodeButton({ code }: { code: string }) {
   )
 }
 
-export function Markdown({ text }: { text: string }) {
+function MarkdownImpl({ text }: { text: string }) {
   return (
     <div className="prose prose-invert prose-sm max-w-none prose-pre:p-0 prose-pre:bg-transparent prose-headings:text-zinc-100 prose-strong:text-zinc-100 prose-a:text-violet-300 prose-code:text-violet-200 prose-code:bg-violet-500/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
       <ReactMarkdown
@@ -82,3 +82,9 @@ export function Markdown({ text }: { text: string }) {
     </div>
   )
 }
+
+// Nur neu rendern, wenn sich der Text tatsächlich ändert. Ohne diese
+// Memoisierung parst jede fertige Nachricht ihr Markdown neu (inkl. Prism-
+// Syntax-Highlighting), sobald irgendeine andere Nachricht streamt — das
+// blockiert den Main-Thread und lässt die Tastatureingabe ruckeln.
+export const Markdown = memo(MarkdownImpl, (prev, next) => prev.text === next.text)
