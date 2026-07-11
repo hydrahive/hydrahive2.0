@@ -18,6 +18,7 @@ from hydrahive.llm._anthropic import (
     EFFORT_TO_BUDGET,
     apply_effort,
 )
+from hydrahive.llm.reasoning_effort import effort_levels_for_model
 
 # Repräsentative Modelle pro Pfad
 _NEW = "claude-opus-4-8"        # adaptive + output_config.effort
@@ -182,6 +183,40 @@ def test_opus_4_8_in_effort_param_models():
 
 def test_sonnet_4_6_in_effort_param_models():
     assert any("claude-sonnet-4-6".startswith(p) for p in EFFORT_PARAM_MODELS)
+
+
+# ---------------------------------------------------------------------------
+# UI-Dropdown-Stufen (effort_levels_for_model) müssen zum apply_effort-Pfad passen
+# ---------------------------------------------------------------------------
+
+def test_ui_levels_claude_4_8_enthalten_xhigh_und_max():
+    levels = effort_levels_for_model("claude-opus-4-8")
+    assert levels == ("low", "medium", "high", "xhigh", "max")
+
+
+def test_ui_levels_claude_4_8_mit_provider_prefix():
+    levels = effort_levels_for_model("anthropic/claude-opus-4-8")
+    assert "xhigh" in levels and "max" in levels
+
+
+def test_ui_levels_sonnet_5_enthalten_xhigh():
+    assert "xhigh" in effort_levels_for_model("claude-sonnet-5")
+
+
+def test_ui_levels_legacy_claude_nur_low_medium_high():
+    assert effort_levels_for_model("claude-opus-4-5") == ("low", "medium", "high")
+
+
+def test_ui_levels_minimax_nur_low_medium_high():
+    assert effort_levels_for_model("MiniMax-M2.7") == ("low", "medium", "high")
+
+
+def test_ui_levels_decken_sich_mit_apply_effort():
+    """Jede angebotene UI-Stufe muss von apply_effort tatsächlich akzeptiert werden."""
+    for level in effort_levels_for_model("claude-opus-4-8"):
+        kwargs = {"max_tokens": 8192}
+        apply_effort(kwargs, "claude-opus-4-8", level)
+        assert kwargs.get("output_config", {}).get("effort") == level
 
 
 # ---------------------------------------------------------------------------
