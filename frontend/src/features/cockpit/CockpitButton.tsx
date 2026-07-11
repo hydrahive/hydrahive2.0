@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react"
+import { forwardRef, type ButtonHTMLAttributes } from "react"
 import { cn } from "@/shared/cn"
 
 type Tone = "default" | "primary" | "danger"
@@ -7,9 +7,13 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   tone?: Tone
 }
 
-export function CockpitButton({ tone = "default", className, ...props }: Props) {
+export const CockpitButton = forwardRef<HTMLButtonElement, Props>(function CockpitButton(
+  { tone = "default", className, ...props },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       {...props}
       className={cn(
         "rounded-[4px] border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
@@ -20,4 +24,4 @@ export function CockpitButton({ tone = "default", className, ...props }: Props) 
       )}
     />
   )
-}
+})
