@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ComponentType } from "react"
 import { Film, Images, Sparkles, Users, Video } from "lucide-react"
 import { projectsApi } from "@/features/projects/api"
 import type { Project } from "@/features/projects/types"
-import { AtelierPage, type AtelierStep } from "@/modules/atelier/AtelierPage"
+import { AtelierPage } from "@/modules/atelier/AtelierPage"
 import { CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
+
+type AtelierStep = "characters" | "generate" | "gallery" | "clips" | "film"
+type ControlledAtelierProps = { projectId?: string; step?: AtelierStep; onStepChange?: (step: AtelierStep) => void; hideHeader?: boolean }
+const ControlledAtelierPage = AtelierPage as ComponentType<ControlledAtelierProps>
 
 const steps = [
   { id: "characters", number: "01", title: "Charaktere", text: "Figuren auswählen und verwalten", icon: Users },
@@ -65,7 +69,7 @@ export function MediaCockpitPage() {
             <h1 className="mt-1 text-lg font-semibold text-[#e8eef8]">{steps[activeIndex]?.title}</h1>
             <p className="mt-1 text-xs text-[#8d9ab0]">{steps[activeIndex]?.text}</p>
           </header>
-          <div className="min-h-0 overflow-hidden p-4"><AtelierPage projectId={projectId} step={step} onStepChange={setStep} hideHeader /></div>
+          <div className="min-h-0 overflow-hidden p-4"><ControlledAtelierPage projectId={projectId} step={step} onStepChange={setStep} hideHeader /></div>
         </main>
       </div>
     </CockpitShell>
