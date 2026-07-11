@@ -104,6 +104,7 @@ def create_agent(
             temperature=req.temperature,
             max_tokens=req.max_tokens,
             thinking_budget=req.thinking_budget,
+            reasoning_effort=req.reasoning_effort,
             mcp_servers=req.mcp_servers,
             fallback_models=req.fallback_models,
             project_id=req.project_id,

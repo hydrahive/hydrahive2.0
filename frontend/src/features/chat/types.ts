@@ -45,6 +45,7 @@ export interface AgentBrief {
   name: string
   type: string
   llm_model: string
+  reasoning_effort?: string
   status: string
   is_buddy?: boolean
 }

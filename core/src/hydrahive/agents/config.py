@@ -30,6 +30,7 @@ def create(
     temperature: float,
     max_tokens: int,
     thinking_budget: int,
+    reasoning_effort: str = "",
     mcp_servers: list[str] | None = None,
     fallback_models: list[str] | None = None,
     project_id: str | None = None,
@@ -55,6 +56,7 @@ def create(
         "tools": list(tools), "mcp_servers": list(mcp_servers or []),
         "description": description, "temperature": float(temperature),
         "max_tokens": int(max_tokens), "thinking_budget": int(thinking_budget),
+        "reasoning_effort": reasoning_effort,
         "status": "active", "created_at": now_iso(), "updated_at": now_iso(),
         "external": bool(external),
     }
