@@ -1,76 +1,70 @@
-# Projekte
+# Projekt-Cockpit
 
-## Was ist das?
+## Was ist ein Projekt?
 
-Ein Projekt ist die mittlere Ebene der **3-Ebenen-Architektur**: Master beauftragt Projekte, Projekte nutzen Spezialisten. Es ist eine Kombination aus:
+Ein Projekt ist ein abgegrenzter Arbeitskontext mit eigenem Workspace, Projektagent, Mitgliedern, Sessions und optionalen Git-, Server- und Netzwerkverbindungen. Der Projektagent arbeitet nur im zugehörigen Workspace.
 
-- **Workspace** — eigener Dateisystem-Ordner (`data/workspaces/projects/<id>/`)
-- **Project-Agent** — automatisch erstellt, an den Workspace gebunden, kann nicht außerhalb operieren
-- **Members** — User die Zugriff haben
+## Orientierung
 
-Ein Projekt = ein abgegrenzter Arbeits-Kontext. Beispiel: dein Vorhaben "Webseite XY" hat ein Projekt mit eigenem Git-Repo, eigenem Memory, eigenen Sessions.
+- **Mitte:** projektgebundener Chat
+- **Links:** Projektwahl, Projektaktionen, Agenten, Git-Status und KI-Einstellungen
+- **Rechts:** Git-Baum, Workspace-Dateien und Tasks
 
-## Was kann ich hier tun?
+Das aktive Projekt wird serverseitig als Benutzerpräferenz gespeichert.
 
-- **Neues Projekt anlegen** — Name, Beschreibung, Members, Modell für den Project-Agent, optional `git init`
-- **Members hinzufügen / entfernen** über Chips im Detail
-- **Status setzen** — aktiv / archiviert
-- **Löschen** — räumt alles weg (Project-Agent + Workspace + alle Sessions)
-- **Sessions** in diesem Projekt: über Chat-Tab "Projekte"
+## Projekt auswählen und Aktionen finden
 
-## Wichtige Begriffe
+1. Links das Panel **Projekt** aufklappen.
+2. Projekt in der Auswahl wählen.
+3. Unter Beschreibung und Auswahl findest du die Projektaktionen.
 
-- **Project-Agent** — Agent vom Typ `project`, an dieses Projekt gekoppelt
-- **Workspace** — der zugewiesene Dateisystem-Bereich, isolated von anderen Projekten
-- **Member** — User mit Zugriff. Admin sieht alle Projekte.
+Ist das Panel eingeklappt, sind auch die Aktionen verborgen. Sie stehen bewusst nicht in der globalen Topbar.
 
-## Schritt-für-Schritt
+### Direkt sichtbar
 
-### Projekt für ein Code-Vorhaben anlegen
+- **+ Neues Projekt** — Projekt mit zugehörigem Projektagent anlegen
+- **Bearbeiten** — Name, Beschreibung, Status und Notizen ändern; Projekt kontrolliert löschen
 
-1. **+ Neu** klicken
-2. Name: z.B. *Website-Relaunch*, Beschreibung: kurze Erklärung
-3. Members: dich selbst (oder mehrere User)
-4. Modell: `claude-sonnet-4-6`
-5. **Workspace mit `git init`** ankreuzen — direkt versionierbar
-6. **Anlegen** — Project-Agent wird erstellt, Workspace existiert leer
+### Verwalten
 
-### Code in den Workspace laden
+- **Zugriff** — Members und Spezialisten verwalten
+- **Server** — Server, VMs und Container zuweisen oder entfernen
+- **Mounts** — SMB-/Netzwerkfreigaben erstellen und zuweisen
+- **Git** — Repository initialisieren oder klonen, Commits, Remotes, Pull und Push
+- **Integrationen** — MCP-Server-IDs, erlaubte Plugins, LLM-Projekt-Key und Samba
 
-Workspace liegt unter `data/workspaces/projects/<project_id>/`. Drei Wege:
+### Auswerten
 
-```bash
-# Variante 1: Symlink existierender Code
-ln -s /pfad/zu/deinem/code/* /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
+- **Statistiken** — Sessions, Nachrichten, Tokens und letzte Aktivität
+- **Sessions** — vollständige Projekt-Sessionliste; Klick öffnet die Werkstatt
+- **Audit** — Aktivitäten nach Aktion und Benutzer filtern
 
-# Variante 2: Kopieren
-cp -r /pfad/zu/deinem/code/* /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
+## Globale Topbar
 
-# Variante 3: Git-Clone
-cd /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
-git clone <repo-url> .
-```
+Die obere Leiste ist für globale Funktionen reserviert:
 
-### Projekt-Chat starten
+- Wechsel zwischen Projekte, Buddy, Media, Vault und Admin
+- **Apps** öffnet alle für deine Rolle erlaubten Bereiche
+- **Hilfe** öffnet diese kontextuelle Hilfe
+- Das Benutzermenü öffnet Profil und Einstellungen oder meldet dich ab
 
-1. **Chat** in der Sidebar öffnen
-2. **+ Neu** → Modus **Im Projekt**
-3. Projekt wählen — Project-Agent ist automatisch dabei
-4. Tools wie `file_read`, `shell_exec` operieren jetzt im Projekt-Workspace
+Auf kleinen Displays erscheint die Navigation in einem rechten Drawer.
 
-### Member entfernen
+## Sicherheit
 
-1. Projekt öffnen
-2. Im Members-Bereich auf das `×` neben dem User-Chip klicken
-3. Bestätigen
+- Löschen und Entfernen verlangen eine Bestätigung.
+- Git-Tokens werden nicht angezeigt.
+- Ein vorhandener LLM-Projekt-Key wird nicht in das Formular geladen; er kann ersetzt oder explizit entfernt werden.
+- Das Samba-Passwort wird im Project-Cockpit weder angezeigt noch kopiert.
+- Member sehen nur Projekte, auf die sie Zugriff haben; Admins sehen alle.
 
-## Typische Fehler
+## Typische Probleme
 
-- **`User existiert nicht`** beim Hinzufügen eines Members — User muss erst angelegt werden (System-Page → Users, oder per Backend).
-- **Project-Agent verwaist** wenn der Project-Agent direkt gelöscht wird statt das Projekt — Projekt zeigt den Agent dann nicht. Lösung: Projekt löschen oder Agent über Agents-Page neu anlegen mit `project_id`.
+- **Projektaktionen fehlen:** Panel **Projekt** links aufklappen.
+- **User kann nicht hinzugefügt werden:** Der Account muss zuerst in der Benutzerverwaltung existieren.
+- **Pull/Push deaktiviert:** Repository benötigt ein Remote; Push ist ohne ausstehende Commits deaktiviert.
+- **Mount oder Server fehlt:** Nur verfügbare und für dich erlaubte Ressourcen werden angeboten.
 
-## Tipps
+## Tipp
 
-- **Pro großes Vorhaben ein eigenes Projekt** — saubere Trennung, eigener Verlauf, eigenes Memory
-- **Members reduzieren auf wer wirklich arbeitet** — Sessions sind sichtbar für alle Members
-- **Optional `git init`** auch wenn du nicht remote pushen willst — lokale Versionierung hilft beim Zurückrollen wenn der Agent was kaputt macht
+Nutze pro größerem Vorhaben ein eigenes Projekt. So bleiben Workspace, Agent, Sessions, Git-Verlauf und Zugriffsrechte sauber getrennt.

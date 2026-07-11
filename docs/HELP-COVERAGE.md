@@ -21,7 +21,7 @@
 | Buddy | / | ✅ | ✅ | ✅ | **sehr hoch** (Startseite) |
 | Werkstatt | /werkstatt | 🟡 (chat.md passt teils) | ✅ (im ChatHeader) | ✅ (chat) | **sehr hoch** |
 | Agenten | /settings/agents | ✅ (3.6k) | ✅ (Empty-State) | ✅ | hoch |
-| Projekte | /settings/projects | ✅ (3.1k) | ✅ (Empty-State) | ✅ | hoch |
+| Projekte | /projects | ✅ (Project-Cockpit P1–P7, globale Menüs) | ✅ (CockpitTopbar) | ✅ | hoch |
 | Communication | /communication | ✅ | ✅ | ✅ | mittel |
 | Teamchat | /teamchat | ✅ | ✅ | ✅ | mittel |
 | Butler | /butler | ✅ | ✅ | ✅ | mittel |

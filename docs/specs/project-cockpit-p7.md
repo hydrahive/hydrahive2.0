@@ -21,7 +21,7 @@ Diese Einstellungen sind bislang nur in der alten Projektverwaltung erreichbar. 
 ## Implementierungsreihenfolge
 
 1. Sichere Integrations-Formkomponente erstellen.
-2. Cockpit-Overlay und Topbar-Aktion ergänzen.
+2. Cockpit-Overlay und Aktion unter **Verwalten** ergänzen.
 3. Aktualisierte Projektdaten in den Cockpit-State übernehmen.
 4. Build, Offline-Guard, Diff- und Security-Prüfung ausführen.
 

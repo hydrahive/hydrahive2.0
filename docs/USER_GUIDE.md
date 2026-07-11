@@ -222,19 +222,34 @@ Ein **Projekt** ist:
 
 ### Projekt anlegen
 
-1. **Projekte-Seite** öffnen (Sidebar → Projects)
-2. **"Neues Projekt"** klicken
-3. **Name** eingeben (z.B. "Website-Relaunch")
-4. **Members** auswählen (wer darf mitarbeiten)
-5. **Git** aktivieren (optional)
-6. **Samba-Share** aktivieren (optional, für Netzwerk-Zugriff)
-7. **Erstellen** klicken
+1. Das **Projekt-Cockpit** unter `/projects` öffnen.
+2. Links das Panel **Projekt** aufklappen.
+3. **+ Neues Projekt** wählen.
+4. Name, Beschreibung und Projektagent festlegen.
+5. Projekt anlegen; weitere Zugriffe und Integrationen anschließend projektbezogen konfigurieren.
 
 **Was passiert:**
-- Ordner `/var/lib/hydrahive2/workspaces/projects/<projekt-name>/` wird erstellt
-- Projektagent wird automatisch angelegt
-- Git-Repo wird initialisiert (wenn aktiviert)
-- Samba-Share wird konfiguriert (wenn aktiviert)
+- Ein eigener Projekt-Workspace wird erstellt.
+- Ein Projektagent wird angelegt und an den Workspace gebunden.
+- Das Projekt wird als aktiver Cockpit-Kontext gespeichert.
+
+### Projekt verwalten
+
+Alle Fachaktionen liegen bewusst im linken Panel **Projekt**, nicht in der globalen Topbar:
+
+- **Bearbeiten** — Basisdaten, Status, Notizen und kontrolliertes Löschen
+- **Verwalten → Zugriff** — Members und Spezialisten
+- **Verwalten → Server** — Server, VMs und Container
+- **Verwalten → Mounts** — SMB- und Netzwerkfreigaben
+- **Verwalten → Git** — Init, Clone, Commit, Remotes, Pull und Push
+- **Verwalten → Integrationen** — MCP, Plugins, LLM-Projekt-Key und Samba
+- **Auswerten** — Statistiken, Sessions und Audit
+
+Bestehende Secrets werden im Cockpit nicht offengelegt. Insbesondere werden gespeicherte Git-Tokens, vorhandene LLM-Projekt-Keys und Samba-Passwörter nicht angezeigt.
+
+### Globale Cockpit-Menüs
+
+Die obere Leiste enthält nur globale Funktionen: Cockpit-Wechsel, **Apps**, kontextuelle **Hilfe** und das Benutzermenü mit Profil, Einstellungen und Abmelden. Auf kleinen Displays liegen diese Funktionen in einem Drawer.
 
 ### Mit Projekt arbeiten
 

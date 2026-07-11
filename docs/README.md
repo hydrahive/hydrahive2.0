@@ -7,6 +7,7 @@ Eine Übersicht über die vorhandene Doku, sortiert nach Ziel.
 → Hauptverzeichnis [README.md](../README.md) — Quick-Start, Konfiguration, Sicherheit
 → [installer/README.md](../installer/README.md) — Installations-Details
 → [USER_GUIDE.md](USER_GUIDE.md) — Bedienung aus Nutzersicht
+→ [COCKPITS.md](COCKPITS.md) — Cockpit-Routen, globale Menüs und Project-Cockpit
 
 ## "Ich will beitragen / Code ändern"
 
