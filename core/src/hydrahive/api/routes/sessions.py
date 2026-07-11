@@ -51,6 +51,29 @@ def create_session(
     return serialize_session(s)
 
 
+@router.post("/{session_id}/handover")
+async def create_handover(
+    session_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+    if not s.project_id:
+        return {"written": False, "reason": "session_without_project"}
+    agent = agent_config.get(s.agent_id)
+    if not agent:
+        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    from hydrahive.handover import create_for_session
+    path = await create_for_session(
+        session_id,
+        model=agent.get("compact_model") or agent["llm_model"],
+        tool_result_limit=agent.get("compact_tool_result_limit"),
+    )
+    return {"written": path is not None}
+
+
 @router.get("/{session_id}")
 def get_session(
     session_id: str,

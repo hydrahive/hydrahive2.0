@@ -111,6 +111,8 @@ async def run(
     tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
     allowed_tools = local_tools + [s["name"] for s in mcp_schemas]
 
+    from hydrahive.handover import prompt_for_new_session
+    handover_system = prompt_for_new_session(session_id)
     messages_db.append(session_id, "user", user_input)
 
     last_assistant_id: str | None = None
@@ -171,7 +173,7 @@ async def run(
             base_system_prompt,
             extra_system=extra_system,
             workspace=workspace,
-            summary=messages_db.get_latest_summary(session_id),
+            summary=messages_db.get_latest_summary(session_id) or handover_system,
             skills=agent_skills,
             longterm_memory=bool(agent.get("longterm_memory")),
             tool_schemas=tool_schemas,

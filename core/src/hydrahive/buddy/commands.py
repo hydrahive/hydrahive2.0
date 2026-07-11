@@ -26,9 +26,12 @@ def _require_buddy(username: str) -> dict:
 def clear_session(username: str) -> dict:
     """Beendet aktuelle Lifetime-Session, legt neue an. Alte bleibt in DB."""
     buddy = _require_buddy(username)
+    current = [s for s in sessions_db.list_for_user(username) if s.agent_id == buddy["id"]]
+    current.sort(key=lambda s: s.created_at, reverse=True)
+    project_id = current[0].project_id if current else None
     new_session = sessions_db.create(
         agent_id=buddy["id"], user_id=username,
-        title=f"{username}'s Buddy", project_id=None,
+        title=f"{username}'s Buddy", project_id=project_id,
     )
     return {
         "ok": True,

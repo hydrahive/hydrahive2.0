@@ -54,6 +54,7 @@ async function modelCmd(arg: string, agent: AgentBrief): Promise<ChatCommandResu
 }
 
 async function clearCmd(session: Session, agent: AgentBrief): Promise<ChatCommandResult> {
+  if (session.project_id) await chatApi.handover(session.id)
   const fresh = await chatApi.createSession(agent.id, undefined, session.project_id ?? undefined)
   return { message: `Neue Session gestartet: ${fresh.title || fresh.id.slice(0, 8)}`, newSessionId: fresh.id }
 }

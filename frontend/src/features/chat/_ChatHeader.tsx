@@ -19,6 +19,7 @@ interface Props {
   onCompact: () => void
   onDelete: () => void
   onNewSession: () => void
+  newSessionBusy?: boolean
   tokenRefresh: number
   cockpitMode?: boolean
   sessions?: Session[]
@@ -28,7 +29,7 @@ interface Props {
 
 export function ChatHeader({
   session, agent, orphaned, compacting, compactNote,
-  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onNewSession, tokenRefresh,
+  lastTurnTokens, busy, systemPrompt, onCompact, onDelete, onNewSession, newSessionBusy = false, tokenRefresh,
   cockpitMode = false, sessions = [], activeSessionId = null, onSelectSession,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
@@ -110,11 +111,11 @@ export function ChatHeader({
             </button>
             <button
               onClick={onNewSession}
-              disabled={busy}
+              disabled={busy || newSessionBusy}
               title={t("session.new_chat")}
               className="rounded-[4px] border border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <SquarePen size={12} className="mr-1 inline" /> Neuer Chat
+              {newSessionBusy ? <Loader2 size={12} className="mr-1 inline animate-spin" /> : <SquarePen size={12} className="mr-1 inline" />} {newSessionBusy ? "Übergabe wird erstellt …" : "Neuer Chat"}
             </button>
           </div>
         </div>
@@ -165,12 +166,12 @@ export function ChatHeader({
         <HelpButton topic="chat" />
         <button
           onClick={onNewSession}
-          disabled={busy}
+          disabled={busy || newSessionBusy}
           title={t("session.new_chat")}
           className="flex items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
         >
-          <SquarePen size={12} />
-          {t("session.new_chat")}
+          {newSessionBusy ? <Loader2 size={12} className="animate-spin" /> : <SquarePen size={12} />}
+          {newSessionBusy ? "Übergabe wird erstellt …" : t("session.new_chat")}
         </button>
         <button
           onClick={onCompact}
