@@ -92,7 +92,7 @@ export function ProjectCockpitPage() {
           <CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton>
         </>
       )}
-      className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
       hideHeader
     >
       <CockpitTopbar

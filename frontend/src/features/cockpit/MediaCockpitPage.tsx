@@ -156,7 +156,7 @@ export function MediaCockpitPage() {
       title="Media-Cockpit"
       description="Produktionsarbeitsplatz für Idee, Regie, Assets, Generator-Aufträge und Schnitt — nach Mockup-Parität, aber ohne automatische Generierungs- oder LLM-Jobs."
       actions={<CockpitButton tone="primary" onClick={() => openLocalPath("/atelier")}>Atelier öffnen</CockpitButton>}
-      className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
       hideHeader
     >
       <CockpitTopbar active="media" context={selectedProject?.name ?? "Projekt: lokal"} action={{ label: "Atelier öffnen", path: "/atelier" }} />

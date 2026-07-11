@@ -120,7 +120,7 @@ export function BuddyPage() {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <CockpitShell className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#080b11]" title="Buddy" hideHeader>
+      <CockpitShell className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]" title="Buddy" hideHeader>
         <CockpitTopbar active="buddy" context={state.agent_name} action={{ label: "Buddy-Settings", path: "/buddy/settings" }} />
         <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[300px_minmax(520px,1fr)_330px]">
           <BuddyLeftRail state={state} mascotState={mascotState} chatBusy={chat.busy} ttsSpeaking={tts.speaking} projects={projects} localOverviewOpen={localOverviewOpen} onLocalAction={handleBuddyLocalAction} />
