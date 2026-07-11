@@ -14,6 +14,7 @@ import { CockpitTopbar } from "./CockpitTopbar"
 import { ProjectAgentEditOverlay } from "./project/ProjectAgentEditOverlay"
 import { ProjectCreateOverlay } from "./project/ProjectCreateOverlay"
 import { ProjectDetailsOverlay } from "./project/ProjectDetailsOverlay"
+import { ProjectAccessOverlay } from "./project/ProjectAccessOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
@@ -32,6 +33,7 @@ export function ProjectCockpitPage() {
   const [editingAgentId, setEditingAgentId] = useState<string | null>(null)
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [accessOpen, setAccessOpen] = useState(false)
   const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -100,7 +102,7 @@ export function ProjectCockpitPage() {
       <CockpitTopbar
         active="projects"
         context={activeProject ? `Projekt bleibt gespeichert: ${activeProject.name}` : undefined}
-        extraActions={<><CockpitButton onClick={() => setDetailsOpen(true)} disabled={!activeProject}>Projekt bearbeiten</CockpitButton><CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton></>}
+        extraActions={<><CockpitButton onClick={() => setAccessOpen(true)} disabled={!activeProject}>Zugriff</CockpitButton><CockpitButton onClick={() => setDetailsOpen(true)} disabled={!activeProject}>Projekt bearbeiten</CockpitButton><CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton></>}
         action={{ label: "Projekt-Einstellungen", path: "/settings/projects" }}
       />
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
@@ -177,6 +179,13 @@ export function ProjectCockpitPage() {
       </div>
       {wsFile && projectAgentId && (
         <FileOverlay agentId={projectAgentId} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
+      )}
+      {accessOpen && activeProject && (
+        <ProjectAccessOverlay
+          project={activeProject}
+          onClose={() => setAccessOpen(false)}
+          onChanged={(updated) => setProjects((current) => current.map((project) => project.id === updated.id ? updated : project))}
+        />
       )}
       {detailsOpen && activeProject && (
         <ProjectDetailsOverlay
