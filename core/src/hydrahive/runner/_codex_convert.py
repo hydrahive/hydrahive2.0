@@ -35,7 +35,9 @@ def tools_to_codex(tools: list[dict]) -> list[dict]:
     return out
 
 
-def messages_to_codex(messages: list[dict], system_prompt: str = "") -> tuple[str, list[dict]]:
+def messages_to_codex(
+    messages: list[dict], system_prompt: str = "", model: str = "",
+) -> tuple[str, list[dict]]:
     """Anthropic-messages → (instructions, input_items).
 
     instructions: System-Prompt-String.
@@ -87,6 +89,10 @@ def messages_to_codex(messages: list[dict], system_prompt: str = "") -> tuple[st
                 btype = b.get("type")
                 if btype == "text":
                     text_parts.append(b.get("text", ""))
+                elif btype == "codex_reasoning" and b.get("model") == model:
+                    encrypted = b.get("encrypted_content")
+                    if encrypted:
+                        items.append({"type": "reasoning", "encrypted_content": encrypted})
                 elif btype == "tool_use":
                     tool_uses.append(b)
             joined = "".join(text_parts)

@@ -16,10 +16,10 @@ export function CompactionSection({ agent, models, onChange }: Props) {
   const compactModel = agent.compact_model ?? ""
   const toolLimit = agent.compact_tool_result_limit ?? 2000
   const reserve = agent.compact_reserve_tokens ?? 16384
-  const thresholdPct = agent.compact_threshold_pct ?? 100
+  const thresholdPct = agent.compact_threshold_pct ?? 75
   const maxTurns = agent.compact_max_turns ?? ""
   const liveMax = agent.tool_result_max_chars ?? 12000
-  const cacheTtl = agent.cache_ttl ?? "1h"
+  const cacheTtl = agent.cache_ttl ?? "5m"
 
   return (
     <div className="space-y-2">

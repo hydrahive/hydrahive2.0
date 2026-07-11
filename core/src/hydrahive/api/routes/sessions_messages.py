@@ -110,10 +110,11 @@ def get_tokens(
     agent = agent_config.get(s.agent_id)
     history = messages_db.list_for_llm(session_id) if agent else []
     used = total_tokens(history)
-    window = context_window_for(agent["llm_model"]) if agent else 0
+    model = ((s.metadata or {}).get("model_override") or agent["llm_model"]) if agent else ""
+    window = context_window_for(model) if agent else 0
     threshold = (
         compact_threshold_tokens(
-            agent["llm_model"],
+            model,
             threshold_pct=int(agent.get("compact_threshold_pct", DEFAULT_COMPACT_THRESHOLD_PCT)),
             reserve_tokens=agent.get("compact_reserve_tokens"),
         )
@@ -124,7 +125,7 @@ def get_tokens(
     # max_turns (window-skaliert), nicht nur an der Token-Schwelle. Ohne diese
     # Zahl wirkt ein turn-getriggerter Compact „verfrüht" (Balken steht < 100%).
     max_turns = (
-        (agent.get("compact_max_turns") or default_max_turns(agent["llm_model"]))
+        (agent.get("compact_max_turns") or default_max_turns(model))
         if agent
         else 0
     )

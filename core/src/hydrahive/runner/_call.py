@@ -46,6 +46,9 @@ _ALLOWED_FIELDS = {
     "tool_use": {"type", "id", "name", "input"},
     "thinking": {"type", "thinking", "signature"},
     "tool_result": {"type", "tool_use_id", "content", "is_error"},
+    # Opaque provider state only; never rendered. Required for stateless Codex
+    # reasoning continuity and prompt-cache efficiency.
+    "codex_reasoning": {"type", "encrypted_content", "model"},
 }
 
 
