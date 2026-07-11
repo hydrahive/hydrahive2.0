@@ -36,8 +36,11 @@ _DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
 def _build_payload(
     *, model: str, system_prompt: str, messages: list[dict], tools: list[dict],
     reasoning_effort: str | None = None,
+    max_tokens: int | None = None,
 ) -> dict:
-    instructions, input_items = messages_to_codex(messages, system_prompt)
+    instructions, input_items = messages_to_codex(
+        messages, system_prompt, model=f"openai-codex/{model}",
+    )
     payload: dict[str, Any] = {
         "model": model,
         "input": input_items,
@@ -48,6 +51,8 @@ def _build_payload(
         "parallel_tool_calls": True,
         "instructions": instructions or _DEFAULT_INSTRUCTIONS,
     }
+    if max_tokens:
+        payload["max_output_tokens"] = max_tokens
     if reasoning_effort:
         from hydrahive.llm.reasoning_effort import effort_levels_for_model
         if reasoning_effort in effort_levels_for_model(f"openai-codex/{model}"):
@@ -85,11 +90,12 @@ async def codex_stream(
     *, access_token: str, account_id: str, model: str,
     system_prompt: str, messages: list[dict], tools: list[dict],
     reasoning_effort: str | None = None,
+    max_tokens: int | None = None,
 ) -> AsyncIterator[dict]:
     """HH2-normalisierte Stream-Events aus Codex."""
     payload = _build_payload(
         model=model, system_prompt=system_prompt, messages=messages, tools=tools,
-        reasoning_effort=reasoning_effort,
+        reasoning_effort=reasoning_effort, max_tokens=max_tokens,
     )
     text_index: int | None = None
     fn_index: dict[str, int] = {}
@@ -98,6 +104,7 @@ async def codex_stream(
     fn_order: list[str] = []
     text_buf = ""
     usage_in = usage_out = cache_read = 0
+    reasoning_items: list[dict] = []
 
     yield {"type": "message_start"}
 
@@ -135,9 +142,20 @@ async def codex_stream(
                     text_buf += delta
                     yield {"type": "text_delta", "index": text_index, "text": delta}
 
-                elif t == "response.output_item.added":
+                elif t in ("response.output_item.added", "response.output_item.done"):
                     item = ev.get("item", {}) or {}
-                    if item.get("type") != "function_call":
+                    if item.get("type") == "reasoning":
+                        encrypted = item.get("encrypted_content")
+                        if encrypted and not any(
+                            block.get("encrypted_content") == encrypted for block in reasoning_items
+                        ):
+                            reasoning_items.append({
+                                "type": "codex_reasoning", "encrypted_content": encrypted,
+                                "model": f"openai-codex/{model}",
+                            })
+                        continue
+                    # Function calls are initialized on added; done would duplicate them.
+                    if t != "response.output_item.added" or item.get("type") != "function_call":
                         continue
                     item_id = item.get("id", "")
                     call_id = item.get("call_id", "") or item_id
@@ -179,7 +197,7 @@ async def codex_stream(
     if text_index is not None:
         yield {"type": "block_stop", "index": text_index}
 
-    blocks: list[dict] = []
+    blocks: list[dict] = list(reasoning_items)
     if text_buf:
         blocks.append({"type": "text", "text": text_buf})
     for fn_id in fn_order:
@@ -210,6 +228,7 @@ async def codex_call(
     *, access_token: str, account_id: str, model: str,
     system_prompt: str, messages: list[dict], tools: list[dict],
     reasoning_effort: str | None = None,
+    max_tokens: int | None = None,
 ) -> tuple[list[dict], str, dict[str, int]]:
     """Non-streaming Wrapper. Verbraucht codex_stream und gibt das finale
     message_stop-Event als (blocks, stop_reason, usage) zurück."""
@@ -217,7 +236,7 @@ async def codex_call(
     async for ev in codex_stream(
         access_token=access_token, account_id=account_id, model=model,
         system_prompt=system_prompt, messages=messages, tools=tools,
-        reasoning_effort=reasoning_effort,
+        reasoning_effort=reasoning_effort, max_tokens=max_tokens,
     ):
         if ev.get("type") == "message_stop":
             final = ev

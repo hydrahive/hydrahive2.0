@@ -82,6 +82,7 @@ async def stream_with_tools(
             messages=messages,
             tools=tools,
             reasoning_effort=reasoning_effort,
+            max_tokens=max_tokens,
         ):
             yield ev
         return

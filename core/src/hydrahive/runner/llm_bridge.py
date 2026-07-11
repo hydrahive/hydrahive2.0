@@ -90,6 +90,7 @@ async def call_with_tools(
             messages=messages,
             tools=tools,
             reasoning_effort=reasoning_effort,
+            max_tokens=max_tokens,
         )
 
     # Alle anderen Provider (OpenAI mit API-Key, NVIDIA, Groq, Mistral, Gemini,

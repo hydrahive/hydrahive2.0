@@ -147,9 +147,17 @@ async def run(
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
 
+        # Session-Modell vor der Compaction auflösen, damit Fenster und LLM-Call
+        # garantiert dasselbe Modell verwenden.
+        _fresh_session = sessions_db.get(session_id)
+        model_override = (_fresh_session.metadata or {}).get("model_override") if _fresh_session else None
+        primary_model = model_override or agent["llm_model"]
+        session_effort = (_fresh_session.metadata or {}).get("reasoning_effort") if _fresh_session else None
+        reasoning_effort = session_effort or agent.get("reasoning_effort") or None
+
         history = []
         async for _item in prepare_history(
-            session_id, model=agent["llm_model"], compact_model=compact_model,
+            session_id, model=primary_model, compact_model=compact_model,
             compact_tool_limit=compact_tool_limit, compact_reserve=compact_reserve,
             compact_threshold_pct=compact_threshold_pct,
             compact_max_turns=compact_max_turns,
@@ -171,14 +179,6 @@ async def run(
             recall_cards=recall_cards,
             recall_search=recall_search,
         )
-
-        # Pro-Session-Override (Chat-Header-Switcher) gewinnt vor Agent-Default.
-        # Re-Read aus DB damit ein Switch ohne Server-Restart sofort greift.
-        _fresh_session = sessions_db.get(session_id)
-        model_override = (_fresh_session.metadata or {}).get("model_override") if _fresh_session else None
-        session_effort = (_fresh_session.metadata or {}).get("reasoning_effort") if _fresh_session else None
-        reasoning_effort = session_effort or agent.get("reasoning_effort") or None
-        primary_model = model_override or agent["llm_model"]
 
         result: IterationResult | None = None
         t0 = time.monotonic()
