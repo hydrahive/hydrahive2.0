@@ -3,7 +3,7 @@ import { ModelPicker } from "./ModelPicker"
 import { ReasoningEffortPill } from "./ReasoningEffortPill"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
-import { modelSupportsExtendedEffort, useEffortPrefixes } from "@/features/llm/effort"
+import { useEffortLevels } from "@/features/llm/effort"
 import type { AgentBrief, Session } from "./types"
 
 interface Props {
@@ -18,13 +18,9 @@ interface Props {
  *  modellabhängige Effort-Unterstützung an einer Stelle. */
 export function SessionModelControls({ session, agent, onSessionChanged, onAgentChanged }: Props) {
   const { t } = useTranslation("chat")
-  const effortPrefixes = useEffortPrefixes()
-
   const activeModel = (session.metadata as { model_override?: string })?.model_override || agent.llm_model || ""
-  const strippedModel = activeModel.replace(/^anthropic\//, "")
-  const isClaudeModel = strippedModel.startsWith("claude-")
-  const supportsReasoningEffort = isClaudeModel || /^MiniMax-M2/.test(strippedModel)
-  const supportsExtendedEffort = modelSupportsExtendedEffort(activeModel, effortPrefixes)
+  const effortLevels = useEffortLevels(activeModel)
+  const supportsReasoningEffort = effortLevels.length > 0
 
   return (
     <div className="border-t border-white/[8%] bg-black/20">
@@ -51,10 +47,10 @@ export function SessionModelControls({ session, agent, onSessionChanged, onAgent
           <span className="text-[9px] uppercase tracking-wider text-zinc-600 w-9 shrink-0">{t("effort_label")}</span>
           <ReasoningEffortPill
             current={(session.metadata as { reasoning_effort?: string })?.reasoning_effort}
-            extended={supportsExtendedEffort}
+            levels={effortLevels}
             dropUp
             onSelect={async (effort) => {
-              const updated = await chatApi.updateSession(session.id, { reasoning_effort: effort })
+              const updated = await chatApi.updateSession(session.id, { reasoning_effort: effort ?? "" })
               onSessionChanged(updated)
             }}
           />

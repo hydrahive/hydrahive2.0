@@ -35,6 +35,7 @@ _DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
 
 def _build_payload(
     *, model: str, system_prompt: str, messages: list[dict], tools: list[dict],
+    reasoning_effort: str | None = None,
 ) -> dict:
     instructions, input_items = messages_to_codex(messages, system_prompt)
     payload: dict[str, Any] = {
@@ -47,6 +48,10 @@ def _build_payload(
         "parallel_tool_calls": True,
         "instructions": instructions or _DEFAULT_INSTRUCTIONS,
     }
+    if reasoning_effort:
+        from hydrahive.llm.reasoning_effort import effort_levels_for_model
+        if reasoning_effort in effort_levels_for_model(f"openai-codex/{model}"):
+            payload["reasoning"] = {"effort": reasoning_effort}
     codex_tools = tools_to_codex(tools)
     if codex_tools:
         payload["tools"] = codex_tools
@@ -79,10 +84,12 @@ def _parse_sse_line(line: str) -> dict | None:
 async def codex_stream(
     *, access_token: str, account_id: str, model: str,
     system_prompt: str, messages: list[dict], tools: list[dict],
+    reasoning_effort: str | None = None,
 ) -> AsyncIterator[dict]:
     """HH2-normalisierte Stream-Events aus Codex."""
     payload = _build_payload(
         model=model, system_prompt=system_prompt, messages=messages, tools=tools,
+        reasoning_effort=reasoning_effort,
     )
     text_index: int | None = None
     fn_index: dict[str, int] = {}
@@ -202,6 +209,7 @@ async def codex_stream(
 async def codex_call(
     *, access_token: str, account_id: str, model: str,
     system_prompt: str, messages: list[dict], tools: list[dict],
+    reasoning_effort: str | None = None,
 ) -> tuple[list[dict], str, dict[str, int]]:
     """Non-streaming Wrapper. Verbraucht codex_stream und gibt das finale
     message_stop-Event als (blocks, stop_reason, usage) zurück."""
@@ -209,6 +217,7 @@ async def codex_call(
     async for ev in codex_stream(
         access_token=access_token, account_id=account_id, model=model,
         system_prompt=system_prompt, messages=messages, tools=tools,
+        reasoning_effort=reasoning_effort,
     ):
         if ev.get("type") == "message_stop":
             final = ev
