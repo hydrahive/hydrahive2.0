@@ -95,7 +95,7 @@ export function MediaCockpitPage() {
           </header>
           <div className="min-h-0 overflow-y-auto p-4">
             {isEditor
-              ? <MediaPostProduction />
+              ? <MediaPostProduction projectId={projectId} />
               : <ControlledAtelierPage projectId={projectId} step={view as AtelierStep} onStepChange={setView} hideHeader />}
           </div>
         </main>
