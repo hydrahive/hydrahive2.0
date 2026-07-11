@@ -36,6 +36,7 @@ def normalize(cfg: dict) -> dict:
     cfg.setdefault("temperature", DEFAULT_TEMPERATURE)
     cfg.setdefault("max_tokens", DEFAULT_MAX_TOKENS)
     cfg.setdefault("thinking_budget", DEFAULT_THINKING_BUDGET)
+    cfg.setdefault("reasoning_effort", "")
     cfg.setdefault("mcp_servers", [])
     cfg.setdefault("fallback_models", [])
     cfg.setdefault("updated_at", cfg.get("created_at", ""))

@@ -12,6 +12,7 @@ export interface Agent {
   temperature: number
   max_tokens: number
   thinking_budget: number
+  reasoning_effort?: string
   status: "active" | "disabled"
   created_at: string
   updated_at: string
@@ -85,6 +86,7 @@ export interface AgentCreate {
   temperature: number
   max_tokens: number
   thinking_budget: number
+  reasoning_effort?: string
   mcp_servers: string[]
   fallback_models: string[]
   owner?: string | null

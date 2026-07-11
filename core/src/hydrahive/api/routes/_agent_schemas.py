@@ -17,6 +17,7 @@ class AgentCreate(BaseModel):
     temperature: float = 0.7
     max_tokens: int = DEFAULT_MAX_TOKENS
     thinking_budget: int = 0
+    reasoning_effort: str = ""
     mcp_servers: list[str] = []
     fallback_models: list[str] = []
     project_id: str | None = None
@@ -42,6 +43,7 @@ class AgentUpdate(BaseModel):
     temperature: float | None = None
     max_tokens: int | None = None
     thinking_budget: int | None = None
+    reasoning_effort: str | None = None
     mcp_servers: list[str] | None = None
     fallback_models: list[str] | None = None
     domain: str | None = None
