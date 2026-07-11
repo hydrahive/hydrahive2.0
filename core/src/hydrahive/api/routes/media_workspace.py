@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field, model_validator
 
-from hydrahive import media_workspace
+from hydrahive import media_export, media_workspace
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes.media_projects import _authorize
@@ -118,3 +118,14 @@ def get_timeline(project_id: str, media_slug: str, auth: Annotated[tuple[str, st
 @router.put("/timeline")
 def put_timeline(project_id: str, media_slug: str, body: Timeline, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     return _run(project_id, auth, lambda: media_workspace.save_timeline(project_id, media_slug, body.model_dump()))
+
+
+@router.post("/timeline/export")
+def export_timeline(project_id: str, media_slug: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    _authorize(project_id, auth)
+    try:
+        return media_export.export(project_id, media_slug)
+    except FileNotFoundError:
+        raise coded(status.HTTP_404_NOT_FOUND, "media_project_or_asset_not_found")
+    except media_export.MediaExportError:
+        raise coded(status.HTTP_400_BAD_REQUEST, "media_export_failed")
