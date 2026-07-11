@@ -17,6 +17,7 @@ import { ProjectDetailsOverlay } from "./project/ProjectDetailsOverlay"
 import { ProjectAccessOverlay } from "./project/ProjectAccessOverlay"
 import { ProjectServersOverlay } from "./project/ProjectServersOverlay"
 import { ProjectMountsOverlay } from "./project/ProjectMountsOverlay"
+import { ProjectInsightsOverlay, type ProjectInsightView } from "./project/ProjectInsightsOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
@@ -38,6 +39,7 @@ export function ProjectCockpitPage() {
   const [accessOpen, setAccessOpen] = useState(false)
   const [serversOpen, setServersOpen] = useState(false)
   const [mountsOpen, setMountsOpen] = useState(false)
+  const [insightView, setInsightView] = useState<ProjectInsightView | null>(null)
   const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export function ProjectCockpitPage() {
       <CockpitTopbar
         active="projects"
         context={activeProject ? `Projekt bleibt gespeichert: ${activeProject.name}` : undefined}
-        extraActions={<><CockpitButton onClick={() => setMountsOpen(true)} disabled={!activeProject}>Mounts</CockpitButton><CockpitButton onClick={() => setServersOpen(true)} disabled={!activeProject}>Server</CockpitButton><CockpitButton onClick={() => setAccessOpen(true)} disabled={!activeProject}>Zugriff</CockpitButton><CockpitButton onClick={() => setDetailsOpen(true)} disabled={!activeProject}>Projekt bearbeiten</CockpitButton><CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton></>}
+        extraActions={<><CockpitButton onClick={() => setInsightView("stats")} disabled={!activeProject}>Statistiken</CockpitButton><CockpitButton onClick={() => setInsightView("sessions")} disabled={!activeProject}>Sessions</CockpitButton><CockpitButton onClick={() => setInsightView("audit")} disabled={!activeProject}>Audit</CockpitButton><CockpitButton onClick={() => setMountsOpen(true)} disabled={!activeProject}>Mounts</CockpitButton><CockpitButton onClick={() => setServersOpen(true)} disabled={!activeProject}>Server</CockpitButton><CockpitButton onClick={() => setAccessOpen(true)} disabled={!activeProject}>Zugriff</CockpitButton><CockpitButton onClick={() => setDetailsOpen(true)} disabled={!activeProject}>Projekt bearbeiten</CockpitButton><CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton></>}
         action={{ label: "Projekt-Einstellungen", path: "/settings/projects" }}
       />
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
@@ -184,6 +186,7 @@ export function ProjectCockpitPage() {
       {wsFile && projectAgentId && (
         <FileOverlay agentId={projectAgentId} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
       )}
+      {insightView && activeProject && <ProjectInsightsOverlay project={activeProject} view={insightView} onClose={() => setInsightView(null)} />}
       {mountsOpen && activeProject && <ProjectMountsOverlay project={activeProject} onClose={() => setMountsOpen(false)} />}
       {serversOpen && activeProject && <ProjectServersOverlay project={activeProject} onClose={() => setServersOpen(false)} />}
       {accessOpen && activeProject && (
