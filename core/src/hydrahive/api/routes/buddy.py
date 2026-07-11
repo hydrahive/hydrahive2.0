@@ -29,9 +29,21 @@ def _user(auth: tuple[str, str]) -> str:
 
 
 @router.post("/clear")
-def buddy_clear(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+async def buddy_clear(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     try:
-        return commands.clear_session(_user(auth))
+        username = _user(auth)
+        state = get_or_create_buddy(username)
+        if state.get("project_id"):
+            from hydrahive.agents import config as agent_config
+            from hydrahive.handover import create_for_session
+            agent = agent_config.get(state["agent_id"])
+            if agent:
+                await create_for_session(
+                    state["session_id"],
+                    model=agent.get("compact_model") or agent["llm_model"],
+                    tool_result_limit=agent.get("compact_tool_result_limit"),
+                )
+        return commands.clear_session(username)
     except LookupError as e:
         raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
 

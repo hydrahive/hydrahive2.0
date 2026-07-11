@@ -98,6 +98,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
   }, [projectId, activeId, sessions])
 
   async function handleNew(agentId: string, title: string, projectId?: string) {
+    if (activeSession?.project_id) await chatApi.handover(activeSession.id)
     const s = await chatApi.createSession(agentId, title || undefined, projectId)
     setShowNew(false); setSessions((cur) => [s, ...cur]); setActiveId(s.id)
   }
@@ -109,6 +110,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
   }
 
   const [tokenRefresh, setTokenRefresh] = useState(0)
+  const [newSessionBusy, setNewSessionBusy] = useState(false)
   const [showPixelMonitor, setShowPixelMonitor] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -224,9 +226,15 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
   async function createPreferredSession() {
     const agent = activeAgent ?? preferredAgent ?? agents.find((a) => !a.is_buddy) ?? agents[0]
     if (!agent) return
-    const s = await chatApi.createSession(agent.id, undefined, projectId ?? undefined)
-    setSessions((cur) => [s, ...cur])
-    setActiveId(s.id)
+    setNewSessionBusy(true)
+    try {
+      if (activeSession?.project_id) await chatApi.handover(activeSession.id)
+      const s = await chatApi.createSession(agent.id, undefined, projectId ?? undefined)
+      setSessions((cur) => [s, ...cur])
+      setActiveId(s.id)
+    } finally {
+      setNewSessionBusy(false)
+    }
   }
 
   const center = activeSession ? (
@@ -241,6 +249,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
             compacting={compacting} compactNote={compactNote}
             lastTurnTokens={chat.lastTurnTokens} busy={chat.busy}
             systemPrompt={systemPrompt} onCompact={handleCompact}
+            newSessionBusy={newSessionBusy}
             onDelete={() => handleDelete(activeSession.id)} tokenRefresh={tokenRefresh}
             onNewSession={async () => {
               if (!activeAgent) return

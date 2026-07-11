@@ -63,11 +63,18 @@ export function BuddyPage() {
 
   useEffect(() => { chatApi.listProjects().then(setProjects).catch(() => {}) }, [])
 
+  const [handoverBusy, setHandoverBusy] = useState(false)
+
   async function newChat() {
-    const r = await buddyApi.clear()
-    setLocalMsgs([])
-    setReasoningEffort(null)
-    setState((s) => (s ? { ...s, session_id: r.session_id } : s))
+    setHandoverBusy(true)
+    try {
+      const r = await buddyApi.clear()
+      setLocalMsgs([])
+      setReasoningEffort(null)
+      setState((s) => (s ? { ...s, session_id: r.session_id } : s))
+    } finally {
+      setHandoverBusy(false)
+    }
   }
 
   function handleBuddyLocalAction(actionId: string) {
@@ -135,7 +142,7 @@ export function BuddyPage() {
                 {state.model && <div className="w-[210px]"><ModelPicker current={state.model} hint="Buddy-Modell wechseln" fullWidth onPick={async (m) => { await buddyApi.setModel(m); setReasoningEffort(null); setState(await buddyApi.state()) }} /></div>}
                 {effortLevels.length > 0 && <ReasoningEffortPill current={reasoningEffort} levels={effortLevels} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort ?? "" }); setReasoningEffort(effort) }} />}
                 <HelpButton topic="buddy" />
-                <CockpitButton disabled={chat.busy} tone="primary" onClick={newChat}>Neuer Chat</CockpitButton>
+                <CockpitButton disabled={chat.busy || handoverBusy} tone="primary" onClick={newChat}>{handoverBusy ? "Übergabe wird erstellt …" : "Neuer Chat"}</CockpitButton>
               </div>
             </div>
             {state.created && <div className="px-5 pt-3 pb-1 text-center text-[11px] text-[#69d7ff]">{t("just_woken_up")}</div>}

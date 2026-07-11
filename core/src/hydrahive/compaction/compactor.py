@@ -228,6 +228,15 @@ async def compact_session(
                     snap["summary_chars"] = len(res.summary)
                     snap["summary_tokens_estimate"] = len(res.summary) // 4
                     rec = persist_compaction(session_id, kept, res.summary, ctx, dict(res.details), source=h.name)
+                    if session.project_id:
+                        try:
+                            from hydrahive.handover import write_project_handover
+                            write_project_handover(
+                                session.project_id, session_id=session_id,
+                                agent_id=session.agent_id, summary=res.summary,
+                            )
+                        except Exception as e:
+                            logger.warning("Projekt-Handover nach Compaction fehlgeschlagen: %s", e)
                     snap["compaction_message_id"] = rec.get("id")
                     snap["tokens_after_estimate"] = total_tokens(kept) + snap["summary_tokens_estimate"]
                     return rec
@@ -281,6 +290,15 @@ async def compact_session(
         )
         details = {"facts": facts, **files}
         record = persist_compaction(session_id, kept, summary_text, ctx, details, source=source)
+        if session.project_id:
+            try:
+                from hydrahive.handover import write_project_handover
+                write_project_handover(
+                    session.project_id, session_id=session_id,
+                    agent_id=session.agent_id, summary=summary_text,
+                )
+            except Exception as e:
+                logger.warning("Projekt-Handover nach Compaction fehlgeschlagen: %s", e)
         snap["compaction_message_id"] = record.get("id")
         snap["tokens_after_estimate"] = total_tokens(kept) + snap["summary_tokens_estimate"]
 

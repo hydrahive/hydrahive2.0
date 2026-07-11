@@ -14,6 +14,7 @@ export const chatApi = {
   createSession: (agent_id: string, title?: string, project_id?: string) =>
     api.post<Session>("/sessions", { agent_id, title, project_id }),
   deleteSession: (id: string) => api.delete<void>(`/sessions/${id}`),
+  handover: (id: string) => api.post<{ written: boolean; reason?: string }>(`/sessions/${id}/handover`, {}),
   updateSession: (id: string, fields: { title?: string; status?: string; model_override?: string | null; reasoning_effort?: string | null; project_id?: string | null }) =>
     api.patch<Session>(`/sessions/${id}`, fields),
   listMessages: (id: string) => api.get<Message[]>(`/sessions/${id}/messages`),
