@@ -15,13 +15,8 @@ import { MediaReferenceOverlay } from "./MediaReferenceOverlay"
 import { MediaScreenplayOverlay } from "./MediaScreenplayOverlay"
 import { MediaAgentPopup } from "./MediaAgentPopup"
 import { MediaTimelineOverlay } from "./MediaTimelineOverlay"
-
-const productionAreas = [
-  { title: "Idee & Prompt", text: "Grundidee, Ziel, Stil", path: "/atelier" },
-  { title: "Drehbuch / Regie", text: "Akte, Szenen, Shots", path: "/atelier" },
-  { title: "Charaktere", text: "Personen, Stimmen, Looks", path: "/atelier" },
-  { title: "Stil / CI", text: "Look, Kamera, Farben", path: "/atelier" },
-]
+import { MediaIdeaOverlay } from "./media/MediaIdeaOverlay"
+import { mediaWorkspaceAreas, type MediaWorkspaceArea } from "./media/mediaWorkspaceNavigation"
 
 const pipeline = ["1 Idee", "2 Regie", "3 Assets", "4 Clips", "5 Schnitt"]
 const modes = ["Storyboard", "Keyframes", "Clips vorbereiten", "Continue-Frame"]
@@ -40,6 +35,7 @@ export function MediaCockpitPage() {
   const [mediaProject, setMediaProject] = useState("")
   const [mediaProjectStatus, setMediaProjectStatus] = useState<"idle" | "loading" | "ready" | "offline">("idle")
   const [createOpen, setCreateOpen] = useState(false)
+  const [ideaOpen, setIdeaOpen] = useState(false)
   const [promptOpen, setPromptOpen] = useState(false)
   const [assetTab, setAssetTab] = useState<"all" | "characters" | "style" | "images" | "video" | "audio" | null>(null)
   const [atelierRoot, setAtelierRoot] = useState("")
@@ -56,7 +52,7 @@ export function MediaCockpitPage() {
   const [videos, setVideos] = useState<VideoJob[]>([])
   const [films, setFilms] = useState<FilmJob[]>([])
   const [presets, setPresets] = useState<PresetCatalog>({})
-  const [area, setArea] = useState(productionAreas[0].title)
+  const [area, setArea] = useState<MediaWorkspaceArea>("idea")
   const [imageModel, setImageModel] = useState("GPT Image Mini")
   const [videoModel, setVideoModel] = useState("Hailuo 2.3")
   const [audioModel, setAudioModel] = useState("Lyria + TTS default")
@@ -115,7 +111,8 @@ export function MediaCockpitPage() {
   }, [projectId])
 
   const selectedProject = useMemo(() => projects.find((project) => project.id === projectId), [projects, projectId])
-  const activeStep = area.includes("Idee") ? 0 : area.includes("Regie") ? 1 : area.includes("Charakter") || area.includes("Stil") ? 2 : 0
+  const selectedMediaProject = useMemo(() => mediaProjects.find((project) => project.slug === mediaProject), [mediaProjects, mediaProject])
+  const activeStep = mediaWorkspaceAreas.find((item) => item.id === area)?.step ?? 0
   const mediaAssets = useMemo(() => [
     { kind: "Charakter", name: characters[0]?.name ?? "Atelier-Figuren", count: characters.length, icon: Images, tab: "characters" as const },
     { kind: "Stil", name: ci?.style_anchor ? "CI geladen" : "CI / Look", count: ci?.palette?.length ?? 0, icon: Palette, tab: "style" as const },
@@ -141,6 +138,23 @@ export function MediaCockpitPage() {
     const presetNames = Object.values(presets).flat().slice(0, 4)
     return presetNames.length ? presetNames : modes
   }, [presets])
+
+  function openArea(next: MediaWorkspaceArea) {
+    setArea(next)
+    if (next === "idea") setIdeaOpen(true)
+    if (next === "prompts") setPromptOpen(true)
+    if (next === "screenplay") setScreenplayOpen(true)
+    if (next === "characters") setAssetTab("characters")
+    if (next === "style") setAssetTab("style")
+    if (next === "assets") setAssetTab("all")
+    if (next === "timeline") setTimelineOpen(true)
+  }
+
+  async function saveIdea(input: { name: string; description: string }) {
+    if (!projectId || !mediaProject) return
+    const updated = await mediaProjectsApi.update(projectId, mediaProject, input)
+    setMediaProjects((items) => items.map((item) => item.slug === updated.slug ? updated : item))
+  }
 
   const createMediaProject = async () => {
     const name = createName.trim()
@@ -188,8 +202,8 @@ export function MediaCockpitPage() {
           <div className="mt-4">
             <CockpitSectionLabel>Produktionsbereich</CockpitSectionLabel>
             <div className="mt-2 space-y-2">
-              {productionAreas.map((item) => (
-                <button key={item.title} onClick={() => setArea(item.title)} className={["w-full rounded-[4px] border p-2 text-left transition-colors", area === item.title ? "border-[#ffb86b]/55 bg-[#30243a]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]"].join(" ")}>
+              {mediaWorkspaceAreas.map((item) => (
+                <button key={item.id} disabled={!mediaProject} onClick={() => openArea(item.id)} className={["w-full rounded-[4px] border p-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50", area === item.id ? "border-[#ffb86b]/55 bg-[#30243a]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]"].join(" ")}>
                   <strong className="block text-sm text-[#e8eef8]">{item.title}</strong>
                   <span className="text-xs text-[#8d9ab0]">{item.text}</span>
                 </button>
@@ -272,6 +286,7 @@ export function MediaCockpitPage() {
           </section>
         </aside>
       </div>
+      {ideaOpen && selectedMediaProject && <MediaIdeaOverlay project={selectedMediaProject} onSave={saveIdea} onClose={() => setIdeaOpen(false)} />}
       {promptOpen && projectId && mediaProject && <MediaPromptOverlay projectId={projectId} mediaSlug={mediaProject} initialBody={jobText} onClose={() => setPromptOpen(false)} />}
       {assetTab && <MediaAssetOverlay tab={assetTab} root={atelierRoot} ci={ci} characters={characters} gallery={gallery} videos={videos} films={films} onClose={() => setAssetTab(null)} />}
       {referencesOpen && projectId && mediaProject && <MediaReferenceOverlay projectId={projectId} mediaSlug={mediaProject} projects={projects} onClose={() => setReferencesOpen(false)} />}
