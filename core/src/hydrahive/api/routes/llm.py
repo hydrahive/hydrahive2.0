@@ -109,6 +109,16 @@ def effort_models(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     return {"prefixes": list(EFFORT_PARAM_MODELS)}
 
 
+@router.get("/effort-levels")
+def effort_levels(
+    model: str,
+    _: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Erlaubte Reasoning-Tiefen für das konkrete Modell."""
+    from hydrahive.llm.reasoning_effort import effort_levels_for_model
+    return {"levels": list(effort_levels_for_model(model))}
+
+
 @router.get("/models")
 async def list_llm_models(
     modality: str | None = None,

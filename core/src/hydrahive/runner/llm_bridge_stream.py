@@ -81,6 +81,7 @@ async def stream_with_tools(
             system_prompt=system_prompt,
             messages=messages,
             tools=tools,
+            reasoning_effort=reasoning_effort,
         ):
             yield ev
         return

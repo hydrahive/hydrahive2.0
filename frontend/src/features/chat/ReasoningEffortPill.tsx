@@ -2,11 +2,11 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Brain } from "lucide-react"
 
-export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max"
+export type EffortLevel = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
 
 interface Props {
   current: string | null | undefined
-  extended?: boolean
+  levels?: string[]
   dropUp?: boolean
   onSelect: (effort: EffortLevel | null) => Promise<void>
 }
@@ -17,23 +17,16 @@ interface EffortOption {
   title: string
 }
 
-export function ReasoningEffortPill({ current, extended = false, dropUp = false, onSelect }: Props) {
+export function ReasoningEffortPill({ current, levels = ["low", "medium", "high"], dropUp = false, onSelect }: Props) {
   const { t } = useTranslation("chat")
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
 
-  const BASE_EFFORTS: EffortOption[] = [
-    { value: null,     label: t("effort.off_label"), title: t("effort.off_title") },
-    { value: "low",    label: "Low",   title: t("effort.low_title") },
-    { value: "medium", label: "Med",   title: t("effort.medium_title") },
-    { value: "high",   label: "High",  title: t("effort.high_title") },
+  const labels: Record<EffortLevel, string> = { none: "None", minimal: "Min", low: "Low", medium: "Med", high: "High", xhigh: "XHigh", max: "Max" }
+  const efforts: EffortOption[] = [
+    { value: null, label: t("effort.off_label"), title: t("effort.off_title") },
+    ...levels.map((level) => ({ value: level as EffortLevel, label: labels[level as EffortLevel] ?? level, title: level })),
   ]
-  const EXTENDED_EFFORTS: EffortOption[] = [
-    { value: "xhigh", label: "XHigh", title: t("effort.xhigh_title") },
-    { value: "max",   label: "Max",   title: t("effort.max_title") },
-  ]
-
-  const efforts = extended ? [...BASE_EFFORTS, ...EXTENDED_EFFORTS] : BASE_EFFORTS
   const currentLabel = efforts.find((e) => e.value === current)?.label || t("effort.off_label")
 
   async function handleSelect(value: EffortLevel | null) {

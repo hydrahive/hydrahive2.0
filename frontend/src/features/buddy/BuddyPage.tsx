@@ -14,7 +14,7 @@ import { ModelPicker } from "@/features/chat/ModelPicker"
 import { ProjectPicker } from "@/features/chat/ProjectPicker"
 import { ReasoningEffortPill, type EffortLevel } from "@/features/chat/ReasoningEffortPill"
 import { chatApi, type ProjectBrief } from "@/features/chat/api"
-import { modelSupportsExtendedEffort, useEffortPrefixes } from "@/features/llm/effort"
+import { useEffortLevels } from "@/features/llm/effort"
 import type { Message } from "@/features/chat/types"
 import { NewChatHint } from "@/features/chat/NewChatHint"
 import { CockpitButton } from "@/features/cockpit/CockpitButton"
@@ -33,8 +33,8 @@ const MSG_WINDOW_STEP = 100
 export function BuddyPage() {
   const { t } = useTranslation("buddy")
   const navigate = useNavigate()
-  const effortPrefixes = useEffortPrefixes()
   const [state, setState] = useState<BuddyState | null>(null)
+  const effortLevels = useEffortLevels(state?.model ?? "")
   const [error, setError] = useState<string | null>(null)
   const [reasoningEffort, setReasoningEffort] = useState<EffortLevel | null>(null)
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
@@ -133,7 +133,7 @@ export function BuddyPage() {
               <div className="flex shrink-0 items-center gap-2">
                 <ProjectPicker current={state.project_id} projects={projects} onPick={handleProjectPick} busy={projectBusy} />
                 {state.model && <div className="w-[210px]"><ModelPicker current={state.model} hint="Buddy-Modell wechseln" fullWidth onPick={async (m) => { await buddyApi.setModel(m); setReasoningEffort(null); setState(await buddyApi.state()) }} /></div>}
-                {state.model && /^(claude-|anthropic\/claude-|MiniMax-M2)/.test(state.model) && <ReasoningEffortPill current={reasoningEffort} extended={modelSupportsExtendedEffort(state.model, effortPrefixes)} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort }); setReasoningEffort(effort) }} />}
+                {effortLevels.length > 0 && <ReasoningEffortPill current={reasoningEffort} levels={effortLevels} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort ?? "" }); setReasoningEffort(effort) }} />}
                 <HelpButton topic="buddy" />
                 <CockpitButton disabled={chat.busy} tone="primary" onClick={newChat}>Neuer Chat</CockpitButton>
               </div>
