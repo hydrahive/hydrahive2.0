@@ -1,76 +1,70 @@
-# Projects
+# Project Cockpit
 
-## What is this?
+## What is a project?
 
-A project is the middle tier of the **3-tier architecture**: master delegates to projects, projects use specialists. It's a combination of:
+A project is a bounded work context with its own workspace, project agent, members, sessions, and optional Git, server, and network connections. The project agent only operates inside its assigned workspace.
 
-- **Workspace** — its own filesystem folder (`data/workspaces/projects/<id>/`)
-- **Project agent** — auto-created, bound to the workspace, can't operate outside
-- **Members** — users with access
+## Layout
 
-A project = a bounded work context. Example: your "Website XY" effort gets a project with its own git repo, memory, and sessions.
+- **Center:** project-bound chat
+- **Left:** project selection, project actions, agents, Git status, and AI settings
+- **Right:** Git tree, workspace files, and tasks
 
-## What can I do here?
+The active project is stored server-side as a user preference.
 
-- **Create a new project** — name, description, members, model for the project agent, optional `git init`
-- **Add / remove members** via chips in the detail
-- **Set status** — active / archived
-- **Delete** — wipes everything (project agent + workspace + all sessions)
-- **Sessions** in this project: via Chat tab "Projects"
+## Select a project and find its actions
 
-## Key terms
+1. Expand the **Project** panel on the left.
+2. Select a project.
+3. Project actions appear below the selector and description.
 
-- **Project agent** — agent of type `project`, paired with this project
-- **Workspace** — assigned filesystem area, isolated from other projects
-- **Member** — user with access. Admin sees all projects.
+When the panel is collapsed, its actions are hidden too. Project-specific actions deliberately do not live in the global top bar.
 
-## Step by step
+### Direct actions
 
-### Create a project for a code effort
+- **+ New project** — create a project and its project agent
+- **Edit** — change name, description, status, and notes; delete the project with confirmation
 
-1. Click **+ New**
-2. Name: e.g. *Website-Relaunch*, description: short explanation
-3. Members: yourself (or multiple users)
-4. Model: `claude-sonnet-4-6`
-5. Check **Initialize workspace with `git init`** — version-controllable from the start
-6. **Create** — project agent is created, workspace exists empty
+### Manage
 
-### Load code into the workspace
+- **Access** — manage members and specialists
+- **Servers** — assign or remove servers, VMs, and containers
+- **Mounts** — create and assign SMB/network shares
+- **Git** — initialize or clone repositories, commit, configure remotes, pull, and push
+- **Integrations** — MCP server IDs, allowed plugins, project LLM key, and Samba
 
-The workspace is at `data/workspaces/projects/<project_id>/`. Three options:
+### Insights
 
-```bash
-# Option 1: symlink existing code
-ln -s /path/to/your/code/* /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
+- **Statistics** — sessions, messages, tokens, and last activity
+- **Sessions** — complete project session list; clicking opens the workshop
+- **Audit** — filter project activity by action and user
 
-# Option 2: copy
-cp -r /path/to/your/code/* /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
+## Global top bar
 
-# Option 3: git clone
-cd /home/<user>/.hh2-dev/data/workspaces/projects/<id>/
-git clone <repo-url> .
-```
+The top bar is reserved for global functions:
 
-### Start a project chat
+- Switch between Projects, Buddy, Media, Vault, and Admin
+- **Apps** opens all areas allowed for your role
+- **Help** opens this contextual help
+- The user menu opens Profile and Settings or signs you out
 
-1. Open **Chat** in the sidebar
-2. **+ New** → mode **In project**
-3. Pick the project — project agent is automatically attached
-4. Tools like `file_read`, `shell_exec` now operate inside the project workspace
+On small displays, navigation appears in a right-side drawer.
 
-### Remove a member
+## Security
 
-1. Open the project
-2. In the members area click `×` next to the user chip
-3. Confirm
+- Delete and remove operations require confirmation.
+- Stored Git tokens are never displayed.
+- An existing project LLM key is not loaded into the form; it can only be replaced or explicitly removed.
+- The Samba password is neither displayed nor copyable in the Project Cockpit.
+- Members only see projects they can access; admins see all projects.
 
-## Common errors
+## Common issues
 
-- **`User does not exist`** when adding a member — user must be created first (System page → Users, or via backend).
-- **Project agent orphaned** if the project agent is deleted directly instead of the project — project shows the agent missing. Fix: delete the project or recreate the agent via the Agents page with `project_id`.
+- **Project actions are missing:** expand the **Project** panel on the left.
+- **A user cannot be added:** create the account in user administration first.
+- **Pull/Push is disabled:** the repository needs a remote; push is disabled when there are no outgoing commits.
+- **A mount or server is missing:** only available resources allowed for your account are listed.
 
-## Tips
+## Tip
 
-- **One project per major effort** — clean separation, separate history, separate memory
-- **Reduce members to who really works on it** — sessions are visible to all members
-- **Optional `git init`** even if you don't push remotely — local versioning helps roll back when the agent breaks something
+Use one project per major effort. This keeps workspace, agent, sessions, Git history, and access rights cleanly separated.

@@ -10,7 +10,7 @@ Die kompakte Git-Zusammenfassung im Cockpit eignet sich für den schnellen Statu
 
 ## Wie
 
-- Ein Button **Git verwalten** in der Cockpit-Topbar öffnet ein projektgebundenes Overlay.
+- Die Aktion **Git** unter **Verwalten** im linken Projektpanel öffnet ein projektgebundenes Overlay.
 - Das Overlay verwendet den bestehenden `GitTab` und damit dieselben APIs und Sicherheitsprüfungen wie die Projekteinstellungen.
 - Nach Änderungen wird die kompakte Git-Zusammenfassung durch erneutes Einhängen aktualisiert.
 - Zugangstokens werden nicht aus gespeicherten Daten geladen oder im Overlay ausgegeben. Ein beim Clone eingegebenes Token bleibt ein maskiertes Eingabefeld und wird nur für den Request verwendet.
@@ -19,7 +19,7 @@ Die kompakte Git-Zusammenfassung im Cockpit eignet sich für den schnellen Statu
 ## Implementierungsreihenfolge
 
 1. Git-Verwaltungs-Overlay mit bestehendem `GitTab` anlegen.
-2. Topbar-Aktion und Overlay-Zustand im Project-Cockpit ergänzen.
+2. Aktion unter **Verwalten** und Overlay-Zustand im Project-Cockpit ergänzen.
 3. Git-Zusammenfassung nach Verwaltungsänderungen aktualisieren.
 4. Build, Offline-Guard, Diff- und Security-Prüfung ausführen.
 

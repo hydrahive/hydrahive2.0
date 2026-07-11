@@ -7,7 +7,7 @@ Die bestehende projektgebundene Serververwaltung ist direkt aus dem Cockpit erre
 ## Umsetzung
 
 - `ServersTab`, `ServerRow` und `AddServerForm` unverändert wiederverwenden.
-- Explizit schließbares Overlay aus der Project-Cockpit-Topbar.
+- Explizit schließbares Overlay über **Verwalten → Server** im linken Projektpanel.
 - Zuweisung nutzt ausschließlich vorhandene serverseitig gefilterte Available-API.
 - Entfernen bleibt durch vorhandenen Bestätigungsdialog geschützt.
 

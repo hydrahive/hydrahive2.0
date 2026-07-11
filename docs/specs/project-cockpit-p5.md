@@ -14,7 +14,7 @@ Diese Daten existieren bereits in den Projekteinstellungen, fehlen aber im neuen
 
 ## Wie
 
-- Drei Buttons in der Cockpit-Topbar öffnen jeweils ein fokussiertes Overlay.
+- Die Aktionen unter **Auswerten** im linken Projektpanel öffnen jeweils ein fokussiertes Overlay.
 - Die bestehenden Komponenten `StatsTab`, `SessionsTab` und `AuditTab` sowie ihre bestehenden APIs werden wiederverwendet.
 - Overlays sind projektgebunden und zeigen den Projektnamen.
 - Es entstehen keine automatischen Datamining-Abfragen und keine neuen Backend-Endpunkte.
@@ -22,7 +22,7 @@ Diese Daten existieren bereits in den Projekteinstellungen, fehlen aber im neuen
 ## Implementierungsreihenfolge
 
 1. Wiederverwendbares Cockpit-Insights-Overlay für die drei Ansichten anlegen.
-2. Zustände und Topbar-Aktionen im Project-Cockpit ergänzen.
+2. Zustände und Aktionen unter **Auswerten** im Projektpanel ergänzen.
 3. Frontend-Build und Offline-first-Guard ausführen.
 4. Architektur-Review durchführen und Änderungen committen.
 
