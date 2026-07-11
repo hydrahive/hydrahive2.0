@@ -5,24 +5,59 @@ import type React from "react"
 import type { ContentBlock } from "./types"
 import type { ChatState } from "./useChat"
 
-export function updateLive(
-  setState: React.Dispatch<React.SetStateAction<ChatState>>,
-  blocks: ContentBlock[],
-) {
+type SetState = React.Dispatch<React.SetStateAction<ChatState>>
+
+// Coalescing der Live-Updates: schnelles Token-Streaming feuert sonst hunderte
+// setState-Aufrufe pro Sekunde, jeder rendert den kompletten Thread neu und
+// blockiert den Main-Thread (Tastatureingabe ruckelt). Wir puffern die letzten
+// Blocks und schreiben höchstens einmal pro Animation-Frame in den State.
+let pendingBlocks: ContentBlock[] | null = null
+let rafHandle: number | null = null
+
+const supportsRaf = typeof requestAnimationFrame === "function"
+
+function flushLive(setState: SetState) {
+  rafHandle = null
+  const blocks = pendingBlocks
+  pendingBlocks = null
+  if (!blocks) return
   setState((s) => {
     const msgs = [...s.messages]
     const last = msgs[msgs.length - 1]
     if (last && last.id.startsWith("live-")) {
-      msgs[msgs.length - 1] = { ...last, content: [...blocks] }
+      msgs[msgs.length - 1] = { ...last, content: blocks }
     }
     return { ...s, messages: msgs }
   })
 }
 
+export function updateLive(setState: SetState, blocks: ContentBlock[]) {
+  const snapshot = [...blocks]
+  if (!supportsRaf) {
+    pendingBlocks = snapshot
+    flushLive(setState)
+    return
+  }
+  pendingBlocks = snapshot
+  if (rafHandle === null) {
+    rafHandle = requestAnimationFrame(() => flushLive(setState))
+  }
+}
+
+/** Erzwingt das sofortige Anwenden eines gepufferten Live-Updates. Muss vor
+ *  jedem Reload/Abschluss laufen, damit kein Frame verloren geht. */
+export function flushPendingLive(setState: SetState) {
+  if (rafHandle !== null && supportsRaf) {
+    cancelAnimationFrame(rafHandle)
+    rafHandle = null
+  }
+  if (pendingBlocks) flushLive(setState)
+}
+
 export function applyStreamEvent(
   ev: Record<string, unknown>,
   blocks: ContentBlock[],
-  setState: React.Dispatch<React.SetStateAction<ChatState>>,
+  setState: SetState,
 ): "continue" | "done" | "error" {
   if (ev.type === "compaction_start") {
     setState((s) => ({ ...s, compacting: true }))
@@ -50,6 +85,7 @@ export function applyStreamEvent(
       name: ev.tool_name as string,
       input: ev.arguments as Record<string, unknown>,
     })
+    flushPendingLive(setState)
     updateLive(setState, blocks)
   } else if (ev.type === "tool_confirm_required") {
     setState((s) => ({
@@ -69,8 +105,10 @@ export function applyStreamEvent(
       content: typeof ev.output === "string" ? ev.output : JSON.stringify(ev.output, null, 2),
       is_error: !ev.success as boolean,
     })
+    flushPendingLive(setState)
     updateLive(setState, blocks)
   } else if (ev.type === "error") {
+    flushPendingLive(setState)
     const meta = ev.metadata as { kind?: string } | undefined
     setState((s) => ({
       ...s,
@@ -80,6 +118,7 @@ export function applyStreamEvent(
     }))
     return "error"
   } else if (ev.type === "done") {
+    flushPendingLive(setState)
     setState((s) => ({
       ...s, busy: false,
       lastTurnTokens: {

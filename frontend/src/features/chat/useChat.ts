@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { chatApi, sendMessage, subscribeSession } from "./api"
-import { applyStreamEvent } from "./_chatStream"
+import { applyStreamEvent, flushPendingLive } from "./_chatStream"
 import type { ContentBlock, Message } from "./types"
 
 export interface PendingConfirm {
@@ -87,6 +87,7 @@ export function useChat(sessionId: string | null) {
           if (result === "done") { await reload(); return }
         }
       } catch (e) {
+        flushPendingLive(setState)
         const aborted = (e as DOMException)?.name === "AbortError"
         setState((s) => ({
           ...s,
