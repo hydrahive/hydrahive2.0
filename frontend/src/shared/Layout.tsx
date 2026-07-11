@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { UpdateModal } from "@/shared/UpdateModal"
+import { AppFooter } from "@/shared/AppFooter"
 import { useLayoutUpdate } from "./useLayoutUpdate"
 import { BentoMenu } from "./BentoMenu"
 import { NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
@@ -81,9 +82,19 @@ export function Layout() {
   return (
     <>
       {isCockpitRoute ? (
-        <main className="h-[100dvh] overflow-hidden bg-[#080b11]">
-          <Outlet />
-        </main>
+        <div className="flex h-[100dvh] min-h-0 flex-col bg-[#080b11]">
+          <main className="min-h-0 flex-1 overflow-hidden">
+            <Outlet />
+          </main>
+          <AppFooter
+            version={version}
+            commit={commit}
+            updateBehind={updateBehind}
+            moduleUpdateCount={moduleUpdateCount}
+            isAdmin={role === "admin"}
+            onUpdateClick={openUpdateModal}
+          />
+        </div>
       ) : (
         <ActiveLayout chrome={chrome} />
       )}
