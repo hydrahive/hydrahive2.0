@@ -98,6 +98,7 @@ export function ProjectCockpitPage() {
       <CockpitTopbar
         active="projects"
         context={activeProject ? `Projekt bleibt gespeichert: ${activeProject.name}` : undefined}
+        extraActions={<CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton>}
         action={{ label: "Projekt-Einstellungen", path: "/settings/projects" }}
       />
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}

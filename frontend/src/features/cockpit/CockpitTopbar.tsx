@@ -1,9 +1,11 @@
+import type { ReactNode } from "react"
 import { CockpitButton } from "./CockpitButton"
 
 interface Props {
   active: "projects" | "buddy" | "media" | "vault" | "admin"
   context?: string
   action?: { label: string; path: string }
+  extraActions?: ReactNode
 }
 
 const nav = [
@@ -15,7 +17,7 @@ const nav = [
   { id: "help", label: "Hilfe", path: "/help" },
 ] as const
 
-export function CockpitTopbar({ active, context, action }: Props) {
+export function CockpitTopbar({ active, context, action, extraActions }: Props) {
   return (
     <header className="flex h-[58px] shrink-0 items-center gap-[18px] border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-[18px]">
       <button onClick={() => window.open("/projects", "_self")} className="font-black tracking-[-0.03em] text-[#e8eef8]">HydraHive</button>
@@ -37,6 +39,7 @@ export function CockpitTopbar({ active, context, action }: Props) {
       </nav>
       <div className="flex-1" />
       {context ? <div className="hidden text-xs text-[#8d9ab0] lg:block">{context}</div> : null}
+      {extraActions}
       {action ? <CockpitButton onClick={() => window.open(action.path, "_self")}>{action.label}</CockpitButton> : null}
       <CockpitButton onClick={() => window.open("/settings", "_self")}>Profil</CockpitButton>
     </header>
