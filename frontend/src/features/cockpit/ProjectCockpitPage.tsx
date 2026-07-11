@@ -27,6 +27,7 @@ import { ProjectGitTreePanel } from "./project/ProjectGitTreePanel"
 import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
 import { ProjectSelector } from "./project/ProjectSelector"
 import { ProjectTasksPanel } from "./project/ProjectTasksPanel"
+import { ProjectActionGroups } from "./project/ProjectActionGroups"
 
 export function ProjectCockpitPage() {
   const prefs = useUserPreferences()
@@ -113,8 +114,6 @@ export function ProjectCockpitPage() {
       <CockpitTopbar
         active="projects"
         context={activeProject ? `Projekt bleibt gespeichert: ${activeProject.name}` : undefined}
-        extraActions={<><CockpitButton onClick={() => setIntegrationsOpen(true)} disabled={!activeProject}>Integrationen</CockpitButton><CockpitButton onClick={() => setGitOpen(true)} disabled={!activeProject}>Git verwalten</CockpitButton><CockpitButton onClick={() => setInsightView("stats")} disabled={!activeProject}>Statistiken</CockpitButton><CockpitButton onClick={() => setInsightView("sessions")} disabled={!activeProject}>Sessions</CockpitButton><CockpitButton onClick={() => setInsightView("audit")} disabled={!activeProject}>Audit</CockpitButton><CockpitButton onClick={() => setMountsOpen(true)} disabled={!activeProject}>Mounts</CockpitButton><CockpitButton onClick={() => setServersOpen(true)} disabled={!activeProject}>Server</CockpitButton><CockpitButton onClick={() => setAccessOpen(true)} disabled={!activeProject}>Zugriff</CockpitButton><CockpitButton onClick={() => setDetailsOpen(true)} disabled={!activeProject}>Projekt bearbeiten</CockpitButton><CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton></>}
-        action={{ label: "Projekt-Einstellungen", path: "/settings/projects" }}
       />
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[270px_minmax(420px,1fr)_360px]">
@@ -128,6 +127,17 @@ export function ProjectCockpitPage() {
           >
             <ProjectSelector projects={projects} activeProjectId={activeProjectId} loading={loading || prefs.loading} onPick={pickProject} />
             {activeProject && <p className="mt-3 line-clamp-3 text-xs text-[#8d9ab0]">{activeProject.description || "Keine Beschreibung."}</p>}
+            <ProjectActionGroups
+              disabled={!activeProject}
+              onCreate={() => setCreateProjectOpen(true)}
+              onEdit={() => setDetailsOpen(true)}
+              onAccess={() => setAccessOpen(true)}
+              onServers={() => setServersOpen(true)}
+              onMounts={() => setMountsOpen(true)}
+              onGit={() => setGitOpen(true)}
+              onIntegrations={() => setIntegrationsOpen(true)}
+              onInsight={setInsightView}
+            />
           </CollapsibleCockpitPanel>
 
           <CollapsibleCockpitPanel
