@@ -25,6 +25,7 @@ def test_export_renders_video_and_audio(tmp_path):
     assert (workspace_path(project["id"]) / "media" / "film" / result["rel_path"]).stat().st_size > 1000
 
 
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg fehlt")
 def test_export_rejects_missing_asset():
     project = project_config.create(name="Missing", members=["testuser"], llm_model="test", created_by="admin")
     media_projects.create(project["id"], "film", "Film")
