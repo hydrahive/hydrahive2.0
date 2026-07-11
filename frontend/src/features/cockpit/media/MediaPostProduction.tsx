@@ -1,4 +1,4 @@
-import { Film, Mic, Music, Pause, Play, Plus, Scissors, SkipBack, SkipForward, Sparkles, Square, Video } from "lucide-react"
+import { Film, Mic, Music, Pause, Play, Plus, SkipBack, SkipForward, Sparkles, Square, Video } from "lucide-react"
 import type { ComponentType } from "react"
 
 /** Dummy-Nachbearbeitung: 3 virtuelle Monitore (2× Input, 1× Output) + Mehrspur-Leiste.
@@ -58,18 +58,12 @@ function TransportButton({ icon: Icon, label, primary }: { icon: ComponentType<{
 
 export function MediaPostProduction() {
   return (
-    <section className="mt-[10px] border-t border-[#2a364b] px-[10px] pb-[10px] pt-4">
-      {/* Trenner Nachbearbeitung */}
-      <div className="mb-3 flex items-center gap-3">
-        <span className="grid h-7 w-7 place-items-center rounded-[4px] border border-[#2a364b] bg-[#111827] text-[#ffb86b]"><Scissors size={14} /></span>
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#ffb86b]">Nachbearbeitung</p>
-          <h2 className="text-base font-semibold text-[#e8eef8]">Videoschnitt</h2>
-        </div>
-        <span className="ml-auto rounded-[3px] border border-[#2a364b] bg-[#111827] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#68758a]">Dummy · in Arbeit</span>
+    <div>
+      <div className="mb-3 flex justify-end">
+        <span className="rounded-[3px] border border-[#2a364b] bg-[#111827] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#68758a]">Dummy · in Arbeit</span>
       </div>
 
-      <div className="rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3">
+      <div>
         {/* 3 Monitore: Input 1, Input 2, Output */}
         <div className="grid gap-3 lg:grid-cols-3">
           <Monitor title="Input · Vid 1" kind="input" />
@@ -125,6 +119,6 @@ export function MediaPostProduction() {
           })}
         </div>
       </div>
-    </section>
+    </div>
   )
 }
