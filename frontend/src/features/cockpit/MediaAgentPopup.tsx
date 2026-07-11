@@ -1,0 +1,15 @@
+import { useEffect, useState } from "react"
+import { CockpitButton } from "./CockpitButton"
+import { openLocalPath } from "./actionRegistry"
+import { mediaWorkspaceApi, type MediaAgentContext } from "./mediaWorkspaceApi"
+
+const empty: MediaAgentContext = { note: "", active_scene_id: null, asset_ids: [], prompt_draft: "" }
+export function MediaAgentPopup({ projectId, mediaSlug, promptDraft }: { projectId: string; mediaSlug: string; promptDraft: string }) {
+  const [minimized, setMinimized] = useState(true)
+  const [value, setValue] = useState<MediaAgentContext>(empty)
+  const [message, setMessage] = useState("")
+  useEffect(() => { mediaWorkspaceApi.getAgentContext(projectId, mediaSlug).then(setValue).catch(() => setValue({ ...empty, prompt_draft: promptDraft })) }, [projectId, mediaSlug, promptDraft])
+  if (minimized) return <button onClick={() => setMinimized(false)} className="fixed bottom-10 right-4 z-40 rounded-full border border-[#ffb86b]/60 bg-[#30243a] px-4 py-2 text-sm font-semibold text-[#ffb86b] shadow-xl">Media-Agent</button>
+  const save = async () => { try { setValue(await mediaWorkspaceApi.saveAgentContext(projectId, mediaSlug, value)); setMessage("Kontext gespeichert") } catch { setMessage("Speichern fehlgeschlagen") } }
+  return <section className="fixed bottom-10 right-4 z-40 flex h-[440px] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[6px] border border-[#46617f] bg-[#151c2b] shadow-2xl"><header className="flex items-center justify-between border-b border-[#2a364b] p-3"><div><strong className="text-sm text-[#e8eef8]">Media-Agent</strong><p className="text-[10px] text-[#8d9ab0]">Kontext lokal · Aktionen bestätigt</p></div><button onClick={() => setMinimized(true)} className="text-xs text-[#8d9ab0]">Minimieren</button></header><div className="flex-1 space-y-3 overflow-y-auto p-3"><label className="block text-xs text-[#8d9ab0]">Arbeitsnotiz<textarea value={value.note} onChange={(e) => setValue({ ...value, note: e.target.value })} rows={6} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-sm text-[#e8eef8]" /></label><label className="block text-xs text-[#8d9ab0]">Aktive Szene<input value={value.active_scene_id || ""} onChange={(e) => setValue({ ...value, active_scene_id: e.target.value || null })} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-sm text-[#e8eef8]" /></label><label className="block text-xs text-[#8d9ab0]">Prompt-Draft<textarea value={value.prompt_draft} onChange={(e) => setValue({ ...value, prompt_draft: e.target.value })} rows={5} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-sm text-[#e8eef8]" /></label></div><footer className="border-t border-[#2a364b] p-3"><p className="mb-2 text-[10px] text-[#8d9ab0]">{message || "Kein LLM-/Generierungsjob startet automatisch."}</p><div className="flex gap-2"><CockpitButton onClick={save}>Kontext speichern</CockpitButton><CockpitButton tone="primary" onClick={() => openLocalPath("/buddy")}>In Buddy besprechen</CockpitButton></div></footer></section>
+}
