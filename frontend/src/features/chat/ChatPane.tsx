@@ -18,6 +18,8 @@ import { FileOverlay } from "./workspace/FileOverlay"
 import type { FileKind } from "./workspace/fileType"
 import { ChatHeader } from "./_ChatHeader"
 import { ChatBubbleThread } from "./_ChatBubbleThread"
+import { LoadOlderSentinel } from "./_LoadOlderSentinel"
+import { useMessageWindow } from "./_useMessageWindow"
 import { useHydraRuntime } from "./_assistantRuntime"
 import type { AgentBrief, Message, Session } from "./types"
 import type { ProjectBrief } from "./api"
@@ -60,7 +62,10 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
   const [localMsgs, setLocalMsgs] = useState<Message[]>([])
   const chat = useChat(activeId)
   const allMessages = useMemo(() => [...chat.messages, ...localMsgs], [chat.messages, localMsgs])
-  const runtime = useHydraRuntime(allMessages, chat.busy, chat.send, chat.cancel)
+  // Nur die letzten N Nachrichten rendern; ältere werden beim Hochscrollen
+  // nachgeladen. Hält den DOM klein, damit lange Threads flüssig bleiben.
+  const { windowed, hasMore, loadMore, visibleCount } = useMessageWindow(allMessages, activeId)
+  const runtime = useHydraRuntime(windowed, chat.busy, chat.send, chat.cancel)
 
   const knownAgentIds = new Set(agents.map((a) => a.id))
   const buddyAgentIds = new Set(agents.filter((a) => a.is_buddy).map((a) => a.id))
@@ -260,7 +265,9 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
             activeSessionId={activeId}
             onSelectSession={setActiveId}
           />
-          <ChatBubbleThread />
+          <ChatBubbleThread
+            topSlot={<LoadOlderSentinel hasMore={hasMore} onLoadMore={loadMore} visibleCount={visibleCount} />}
+          />
           {showPixelMonitor && (
             <AgentPixelMonitor
               agentTools={pixelData.agentTools}
