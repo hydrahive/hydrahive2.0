@@ -10,6 +10,7 @@ import { CockpitTopbar } from "./CockpitTopbar"
 import { openLocalPath } from "./actionRegistry"
 import { mediaProjectsApi, type MediaProject } from "./mediaProjectsApi"
 import { MediaPromptOverlay } from "./MediaPromptOverlay"
+import { MediaAssetOverlay } from "./MediaAssetOverlay"
 
 const productionAreas = [
   { title: "Idee & Prompt", text: "Grundidee, Ziel, Stil", path: "/atelier" },
@@ -36,6 +37,8 @@ export function MediaCockpitPage() {
   const [mediaProjectStatus, setMediaProjectStatus] = useState<"idle" | "loading" | "ready" | "offline">("idle")
   const [createOpen, setCreateOpen] = useState(false)
   const [promptOpen, setPromptOpen] = useState(false)
+  const [assetTab, setAssetTab] = useState<"all" | "characters" | "style" | "images" | "video" | "audio" | null>(null)
+  const [atelierRoot, setAtelierRoot] = useState("")
   const [createName, setCreateName] = useState("")
   const [createDescription, setCreateDescription] = useState("")
   const [createError, setCreateError] = useState("")
@@ -83,21 +86,23 @@ export function MediaCockpitPage() {
     let cancelled = false
     setAtelierStatus("loading")
     Promise.allSettled([
+      atelierApi.meta(projectId),
       atelierApi.getCI(projectId),
       atelierApi.listCharacters(projectId),
       atelierApi.gallery(projectId),
       atelierApi.listVideos(projectId),
       atelierApi.listFilms(projectId),
       atelierApi.presets(),
-    ]).then(([ciResult, charactersResult, galleryResult, videosResult, filmsResult, presetsResult]) => {
+    ]).then(([metaResult, ciResult, charactersResult, galleryResult, videosResult, filmsResult, presetsResult]) => {
       if (cancelled) return
+      if (metaResult.status === "fulfilled") setAtelierRoot(metaResult.value.root)
       if (ciResult.status === "fulfilled") { setCi(ciResult.value); setImageModel(ciResult.value.default_model || "GPT Image Mini") }
       if (charactersResult.status === "fulfilled") setCharacters(charactersResult.value)
       if (galleryResult.status === "fulfilled") setGallery(galleryResult.value)
       if (videosResult.status === "fulfilled") setVideos(videosResult.value)
       if (filmsResult.status === "fulfilled") setFilms(filmsResult.value)
       if (presetsResult.status === "fulfilled") setPresets(presetsResult.value)
-      setAtelierStatus([ciResult, charactersResult, galleryResult, videosResult, filmsResult, presetsResult].some((result) => result.status === "fulfilled") ? "ready" : "offline")
+      setAtelierStatus([metaResult, ciResult, charactersResult, galleryResult, videosResult, filmsResult, presetsResult].some((result) => result.status === "fulfilled") ? "ready" : "offline")
     })
     return () => { cancelled = true }
   }, [projectId])
@@ -105,10 +110,10 @@ export function MediaCockpitPage() {
   const selectedProject = useMemo(() => projects.find((project) => project.id === projectId), [projects, projectId])
   const activeStep = area.includes("Idee") ? 0 : area.includes("Regie") ? 1 : area.includes("Charakter") || area.includes("Stil") ? 2 : 0
   const mediaAssets = useMemo(() => [
-    { kind: "Charakter", name: characters[0]?.name ?? "Atelier-Figuren", count: characters.length, icon: Images, path: "/atelier" },
-    { kind: "Stil", name: ci?.style_anchor ? "CI geladen" : "CI / Look", count: ci?.palette?.length ?? 0, icon: Palette, path: "/atelier" },
-    { kind: "Bild", name: gallery[0]?.name ?? "Keyframes", count: gallery.length, icon: Wand2, path: "/atelier" },
-    { kind: "Clips", name: videos[0]?.status ?? "Videojobs", count: videos.length + films.length, icon: Music2, path: "/videoeditor" },
+    { kind: "Charakter", name: characters[0]?.name ?? "Atelier-Figuren", count: characters.length, icon: Images, tab: "characters" as const },
+    { kind: "Stil", name: ci?.style_anchor ? "CI geladen" : "CI / Look", count: ci?.palette?.length ?? 0, icon: Palette, tab: "style" as const },
+    { kind: "Bild", name: gallery[0]?.name ?? "Keyframes", count: gallery.length, icon: Wand2, tab: "images" as const },
+    { kind: "Clips", name: videos[0]?.status ?? "Videojobs", count: videos.length + films.length, icon: Music2, tab: "video" as const },
   ], [characters, ci, gallery, videos, films])
   const productionSlots = useMemo(() => {
     const imageSlots = gallery.slice(0, 3).map((item, index) => ({
@@ -241,11 +246,11 @@ export function MediaCockpitPage() {
         </main>
 
         <aside className="grid min-h-0 grid-rows-[42%_58%] gap-[10px] overflow-hidden">
-          <CockpitPanel title="Asset-Bibliothek" eyebrow="Material" actions={<CockpitButton onClick={() => openLocalPath("/atelier")}>Import</CockpitButton>} className="min-h-0 overflow-y-auto">
+          <CockpitPanel title="Asset-Bibliothek" eyebrow="Material" actions={<CockpitButton onClick={() => setAssetTab("all")}>Öffnen</CockpitButton>} className="min-h-0 overflow-y-auto">
             <div className="grid grid-cols-2 gap-2">
               {mediaAssets.map((asset) => {
                 const Icon = asset.icon
-                return <button key={asset.kind} onClick={() => openLocalPath(asset.path)} className="h-[76px] rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-left text-xs text-[#8d9ab0] hover:border-[#46617f]"><Icon size={14} className="mb-1 text-[#ffb86b]" />{asset.kind} · {asset.count}<strong className="block truncate text-sm text-[#e8eef8]">{asset.name}</strong></button>
+                return <button key={asset.kind} onClick={() => setAssetTab(asset.tab)} className="h-[76px] rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-left text-xs text-[#8d9ab0] hover:border-[#46617f]"><Icon size={14} className="mb-1 text-[#ffb86b]" />{asset.kind} · {asset.count}<strong className="block truncate text-sm text-[#e8eef8]">{asset.name}</strong></button>
               })}
             </div>
           </CockpitPanel>
@@ -261,6 +266,7 @@ export function MediaCockpitPage() {
         </aside>
       </div>
       {promptOpen && projectId && mediaProject && <MediaPromptOverlay projectId={projectId} mediaSlug={mediaProject} initialBody={jobText} onClose={() => setPromptOpen(false)} />}
+      {assetTab && <MediaAssetOverlay tab={assetTab} root={atelierRoot} ci={ci} characters={characters} gallery={gallery} videos={videos} films={films} onClose={() => setAssetTab(null)} />}
       {createOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="create-media-title">
         <section className="w-full max-w-lg rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
           <header className="border-b border-[#2a364b] p-4"><CockpitSectionLabel>Neues Media-Projekt</CockpitSectionLabel><h2 id="create-media-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Produktionsworkspace anlegen</h2></header>
