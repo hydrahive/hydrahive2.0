@@ -9,6 +9,7 @@ import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
 import { openLocalPath } from "./actionRegistry"
 import { mediaProjectsApi, type MediaProject } from "./mediaProjectsApi"
+import { MediaPromptOverlay } from "./MediaPromptOverlay"
 
 const productionAreas = [
   { title: "Idee & Prompt", text: "Grundidee, Ziel, Stil", path: "/atelier" },
@@ -34,6 +35,7 @@ export function MediaCockpitPage() {
   const [mediaProject, setMediaProject] = useState("")
   const [mediaProjectStatus, setMediaProjectStatus] = useState<"idle" | "loading" | "ready" | "offline">("idle")
   const [createOpen, setCreateOpen] = useState(false)
+  const [promptOpen, setPromptOpen] = useState(false)
   const [createName, setCreateName] = useState("")
   const [createDescription, setCreateDescription] = useState("")
   const [createError, setCreateError] = useState("")
@@ -220,7 +222,7 @@ export function MediaCockpitPage() {
             <div className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <CockpitSectionLabel>Generator-Auftrag</CockpitSectionLabel>
-                <CockpitButton onClick={() => openLocalPath("/atelier")}>Overlay öffnen</CockpitButton>
+                <CockpitButton onClick={() => setPromptOpen(true)} disabled={!projectId || !mediaProject}>Promptarchiv</CockpitButton>
               </div>
               <textarea value={jobText} onChange={(event) => setJobText(event.target.value)} rows={8} className="w-full resize-y rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm leading-5 text-[#e8eef8]" />
               <div className="mt-3 flex flex-wrap gap-2">{modePills.map((mode) => <button key={mode} onClick={() => setJobText((text) => `${text}\n# ${mode}`)} className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1 text-xs text-[#d7deea] hover:border-[#46617f]">{mode}</button>)}</div>
@@ -258,6 +260,7 @@ export function MediaCockpitPage() {
           </section>
         </aside>
       </div>
+      {promptOpen && projectId && mediaProject && <MediaPromptOverlay projectId={projectId} mediaSlug={mediaProject} initialBody={jobText} onClose={() => setPromptOpen(false)} />}
       {createOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="create-media-title">
         <section className="w-full max-w-lg rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
           <header className="border-b border-[#2a364b] p-4"><CockpitSectionLabel>Neues Media-Projekt</CockpitSectionLabel><h2 id="create-media-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Produktionsworkspace anlegen</h2></header>
