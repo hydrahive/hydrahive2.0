@@ -6,6 +6,7 @@ import { AtelierPage } from "@/modules/atelier/AtelierPage"
 import { CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
+import { MediaPostProduction } from "./media/MediaPostProduction"
 
 type AtelierStep = "characters" | "generate" | "gallery" | "clips" | "film"
 type ControlledAtelierProps = { projectId?: string; step?: AtelierStep; onStepChange?: (step: AtelierStep) => void; hideHeader?: boolean }
@@ -37,8 +38,9 @@ export function MediaCockpitPage() {
   return (
     <CockpitShell title="Media-Cockpit" eyebrow="Media" description="Geführter Produktionsablauf" hideHeader className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]">
       <CockpitTopbar active="media" context={project?.name ?? "Projekt laden…"} action={{ label: "Atelier", path: "/atelier" }} />
-      <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="panel min-h-0 overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="grid min-h-[600px] gap-[10px] p-[10px] lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="panel overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3">
           <CockpitSectionLabel>Projekt</CockpitSectionLabel>
           <select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="mt-2 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]">
             {projects.length === 0 && <option value="">Projekte laden…</option>}
@@ -71,6 +73,9 @@ export function MediaCockpitPage() {
           </header>
           <div className="min-h-0 overflow-hidden p-4"><ControlledAtelierPage projectId={projectId} step={step} onStepChange={setStep} hideHeader /></div>
         </main>
+      </div>
+
+      <MediaPostProduction />
       </div>
     </CockpitShell>
   )
