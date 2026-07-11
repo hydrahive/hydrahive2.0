@@ -11,6 +11,10 @@ import { openLocalPath } from "./actionRegistry"
 import { mediaProjectsApi, type MediaProject } from "./mediaProjectsApi"
 import { MediaPromptOverlay } from "./MediaPromptOverlay"
 import { MediaAssetOverlay } from "./MediaAssetOverlay"
+import { MediaReferenceOverlay } from "./MediaReferenceOverlay"
+import { MediaScreenplayOverlay } from "./MediaScreenplayOverlay"
+import { MediaAgentPopup } from "./MediaAgentPopup"
+import { MediaTimelineOverlay } from "./MediaTimelineOverlay"
 
 const productionAreas = [
   { title: "Idee & Prompt", text: "Grundidee, Ziel, Stil", path: "/atelier" },
@@ -39,6 +43,9 @@ export function MediaCockpitPage() {
   const [promptOpen, setPromptOpen] = useState(false)
   const [assetTab, setAssetTab] = useState<"all" | "characters" | "style" | "images" | "video" | "audio" | null>(null)
   const [atelierRoot, setAtelierRoot] = useState("")
+  const [referencesOpen, setReferencesOpen] = useState(false)
+  const [screenplayOpen, setScreenplayOpen] = useState(false)
+  const [timelineOpen, setTimelineOpen] = useState(false)
   const [createName, setCreateName] = useState("")
   const [createDescription, setCreateDescription] = useState("")
   const [createError, setCreateError] = useState("")
@@ -212,7 +219,7 @@ export function MediaCockpitPage() {
             <div className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <CockpitSectionLabel>Drehbuch / Szenen</CockpitSectionLabel>
-                <CockpitButton onClick={() => openLocalPath("/atelier")}><Plus size={12} className="mr-1 inline" /> Szene +</CockpitButton>
+                <CockpitButton onClick={() => setScreenplayOpen(true)} disabled={!mediaProject}><Plus size={12} className="mr-1 inline" /> Regie öffnen</CockpitButton>
               </div>
               <div className="space-y-2">
                 {productionSlots.map((scene, index) => (
@@ -236,7 +243,7 @@ export function MediaCockpitPage() {
           </section>
 
           <section className="border-t border-[#2a364b] bg-[#101724] p-3">
-            <div className="mb-2 flex items-center justify-between gap-2"><CockpitSectionLabel>Schnitt-Timeline</CockpitSectionLabel><CockpitButton tone="primary" onClick={() => openLocalPath("/videoeditor")}>Export / Schnitt</CockpitButton></div>
+            <div className="mb-2 flex items-center justify-between gap-2"><CockpitSectionLabel>Schnitt-Timeline</CockpitSectionLabel><CockpitButton tone="primary" onClick={() => setTimelineOpen(true)} disabled={!mediaProject}>Schnitt öffnen</CockpitButton></div>
             <div className="space-y-2">
               <TimelineTrack label="Video" clips={timelineVideoClips} />
               <TimelineTrack label="Film" clips={timelineFilmClips} />
@@ -246,7 +253,7 @@ export function MediaCockpitPage() {
         </main>
 
         <aside className="grid min-h-0 grid-rows-[42%_58%] gap-[10px] overflow-hidden">
-          <CockpitPanel title="Asset-Bibliothek" eyebrow="Material" actions={<CockpitButton onClick={() => setAssetTab("all")}>Öffnen</CockpitButton>} className="min-h-0 overflow-y-auto">
+          <CockpitPanel title="Asset-Bibliothek" eyebrow="Material" actions={<><CockpitButton onClick={() => setReferencesOpen(true)} disabled={!mediaProject}>Referenzen</CockpitButton><CockpitButton onClick={() => setAssetTab("all")}>Öffnen</CockpitButton></>} className="min-h-0 overflow-y-auto">
             <div className="grid grid-cols-2 gap-2">
               {mediaAssets.map((asset) => {
                 const Icon = asset.icon
@@ -267,6 +274,10 @@ export function MediaCockpitPage() {
       </div>
       {promptOpen && projectId && mediaProject && <MediaPromptOverlay projectId={projectId} mediaSlug={mediaProject} initialBody={jobText} onClose={() => setPromptOpen(false)} />}
       {assetTab && <MediaAssetOverlay tab={assetTab} root={atelierRoot} ci={ci} characters={characters} gallery={gallery} videos={videos} films={films} onClose={() => setAssetTab(null)} />}
+      {referencesOpen && projectId && mediaProject && <MediaReferenceOverlay projectId={projectId} mediaSlug={mediaProject} projects={projects} onClose={() => setReferencesOpen(false)} />}
+      {screenplayOpen && projectId && mediaProject && <MediaScreenplayOverlay projectId={projectId} mediaSlug={mediaProject} onClose={() => setScreenplayOpen(false)} />}
+      {timelineOpen && projectId && mediaProject && <MediaTimelineOverlay projectId={projectId} mediaSlug={mediaProject} onClose={() => setTimelineOpen(false)} />}
+      {projectId && mediaProject && <MediaAgentPopup projectId={projectId} mediaSlug={mediaProject} promptDraft={jobText} />}
       {createOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="create-media-title">
         <section className="w-full max-w-lg rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
           <header className="border-b border-[#2a364b] p-4"><CockpitSectionLabel>Neues Media-Projekt</CockpitSectionLabel><h2 id="create-media-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Produktionsworkspace anlegen</h2></header>

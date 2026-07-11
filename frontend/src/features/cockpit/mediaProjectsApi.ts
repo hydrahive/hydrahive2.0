@@ -39,6 +39,29 @@ export const mediaProjectsApi = {
 
 const promptBase = (projectId: string, mediaSlug: string) => `/projects/${projectId}/media-projects/${mediaSlug}/prompts`
 
+export interface MediaAssetReference {
+  version: number
+  id: string
+  kind: "character" | "style" | "image" | "video" | "audio" | "voice" | "other"
+  label: string
+  source_project_id: string
+  rel_path: string
+  mode: "reference" | "copy"
+  read_only: boolean
+  available: boolean
+  created_at: string
+  updated_at: string
+}
+
+const assetBase = (projectId: string, mediaSlug: string) => `/projects/${projectId}/media-projects/${mediaSlug}/assets`
+
+export const mediaAssetsApi = {
+  list: (projectId: string, mediaSlug: string) => api.get<MediaAssetReference[]>(assetBase(projectId, mediaSlug)),
+  create: (projectId: string, mediaSlug: string, input: Pick<MediaAssetReference, "id" | "kind" | "label" | "source_project_id" | "rel_path">) => api.post<MediaAssetReference>(assetBase(projectId, mediaSlug), input),
+  importCopy: (projectId: string, mediaSlug: string, assetId: string) => api.post<MediaAssetReference>(`${assetBase(projectId, mediaSlug)}/${assetId}/import`, {}),
+  remove: (projectId: string, mediaSlug: string, assetId: string) => api.delete<void>(`${assetBase(projectId, mediaSlug)}/${assetId}`),
+}
+
 export const mediaPromptsApi = {
   list: (projectId: string, mediaSlug: string) => api.get<MediaPrompt[]>(promptBase(projectId, mediaSlug)),
   create: (projectId: string, mediaSlug: string, input: { slug: string; type: MediaPromptType; title: string; body: string; model: string; asset_refs: string[] }) =>
