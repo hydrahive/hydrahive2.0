@@ -10,11 +10,11 @@ Codex-GPT-Modelle erhalten modellgerechte Tiefenwerte, die Auswahl wird zuverlä
 
 ## Modellregeln
 
-- `openai-codex/gpt-5.4` und `gpt-5.5`: `none`, `low`, `medium`, `high`, `xhigh`.
-- `openai-codex/gpt-5.6-*`: zusätzlich `max`.
-- ältere/deprecated Codex-Modelle: `minimal`, `low`, `medium`, `high`.
+- `openai-codex/gpt-5.4`, `gpt-5.4-mini`, `gpt-5.5` und `gpt-5.3-codex-spark`: `low`, `medium`, `high`, `xhigh`.
+- `openai-codex/gpt-5.6-luna`: zusätzlich `max`.
+- `openai-codex/gpt-5.6-sol` und `gpt-5.6-terra`: zusätzlich `max`, `ultra`.
 - Die UI verwendet `null` für Standard/kein Override und sendet zum Löschen einen Leerstring.
-- Veraltete `gpt-5.2`- und `gpt-5.3-codex`-Einträge werden nicht mehr als reguläre ChatGPT-Codex-Auswahl angeboten.
+- Veraltete `gpt-5.2`- und `gpt-5.3-codex`-Einträge werden nicht mehr als reguläre ChatGPT-Codex-Auswahl angeboten; `gpt-5.3-codex-spark` bleibt aktuell.
 
 ## Umsetzung
 

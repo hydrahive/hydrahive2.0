@@ -35,6 +35,8 @@ PENDING_TTL_SECONDS = 600  # 10 min — nach Login muss User in dem Zeitraum exc
 CODEX_DEFAULT_MODELS = [
     "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.4",
+    "openai-codex/gpt-5.4-mini",
+    "openai-codex/gpt-5.3-codex-spark",
     "openai-codex/gpt-5.1",
     "openai-codex/gpt-5.1-codex-max",
     "openai-codex/gpt-5.1-codex-mini",

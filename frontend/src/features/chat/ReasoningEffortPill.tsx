@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Brain } from "lucide-react"
 
-export type EffortLevel = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
+export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max" | "ultra"
 
 interface Props {
   current: string | null | undefined
@@ -22,7 +22,7 @@ export function ReasoningEffortPill({ current, levels = ["low", "medium", "high"
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
 
-  const labels: Record<EffortLevel, string> = { none: "None", minimal: "Min", low: "Low", medium: "Med", high: "High", xhigh: "XHigh", max: "Max" }
+  const labels: Record<EffortLevel, string> = { low: "Low", medium: "Med", high: "High", xhigh: "XHigh", max: "Max", ultra: "Ultra" }
   const efforts: EffortOption[] = [
     { value: null, label: t("effort.off_label"), title: t("effort.off_title") },
     ...levels.map((level) => ({ value: level as EffortLevel, label: labels[level as EffortLevel] ?? level, title: level })),
