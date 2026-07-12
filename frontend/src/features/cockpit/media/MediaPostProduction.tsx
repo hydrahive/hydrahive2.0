@@ -1,4 +1,4 @@
-import { Pause, Play, Scissors, SkipBack, SkipForward, Square } from "lucide-react"
+import { Pause, Play, Scissors, SkipBack, SkipForward, SplitSquareHorizontal, Square } from "lucide-react"
 import { useEffect, useState, type ComponentType } from "react"
 import { buildAssetMedia, loadAtelierRoot, type ClipMedia } from "./videocut/api"
 import { ClipLibrary } from "./videocut/ClipLibrary"
@@ -41,6 +41,7 @@ export function MediaPostProduction({ projectId }: Props) {
   const {
     timeline, assets, loading, saving, error,
     addClip, removeClip, previewClipStart, moveClip,
+    previewClipTrim, trimClip, splitAt,
     addCutPoint, previewCutPoint, moveCutPoint, updateCutPoint, removeCutPoint,
   } = useCutTimeline(projectId)
   const { currentTime, duration, playing, play, pause, stop, seek, toStart, toEnd } = useCutPlayback(timeline)
@@ -91,6 +92,7 @@ export function MediaPostProduction({ projectId }: Props) {
           )}
           <TransportButton icon={Square} label="Stopp" onClick={stop} disabled={!canPlay} />
           <TransportButton icon={SkipForward} label="Zum Ende" onClick={toEnd} disabled={!canPlay} />
+          <TransportButton icon={SplitSquareHorizontal} label="Am Playhead teilen" onClick={() => splitAt(currentTime)} disabled={!timeline || saving} />
           <span className="ml-1 font-mono text-[11px] text-[#8d9ab0]">{timecode(currentTime)} / {timecode(duration)}</span>
 
           {/* Schnittpunkt am roten Cursor setzen und direkt auswählen */}
@@ -129,6 +131,8 @@ export function MediaPostProduction({ projectId }: Props) {
               onCursorChange={setCursorTime}
               onClipPreview={previewClipStart}
               onClipCommit={moveClip}
+              onClipTrimPreview={previewClipTrim}
+              onClipTrimCommit={trimClip}
               onCutPreview={previewCutPoint}
               onCutCommit={moveCutPoint}
               onCutRemove={(id) => { removeCutPoint(id); if (id === selectedCutId) setSelectedCutId(null) }}

@@ -4,7 +4,8 @@ import type { MediaCutPoint, MediaTimeline } from "../../mediaWorkspaceApi"
 import { ensureAssetRef, ensureCutProject, loadTimelineAndAssets, saveTimeline, type LibraryItem } from "./api"
 import {
   addCut, appendClip, AUDIO_FALLBACK_DURATION, CUT_TRACKS, IMAGE_DEFAULT_DURATION,
-  patchCut, probeDuration, removeClipFrom, removeCut, setClipStart, withDefaultTracks,
+  patchCut, probeDuration, removeClipFrom, removeCut, setClipStart,
+  splitClipAt, trimClipEdge, withDefaultTracks,
 } from "./timelineOps"
 
 // Re-Export für bestehende Importe (TrackArea, ClipLibrary, InputMonitor …).
@@ -79,6 +80,30 @@ export function useCutTimeline(projectId: string) {
     if (timeline) void persist(setClipStart(timeline, trackId, clipId, start))
   }, [timeline, persist])
 
+  /** Trimmt eine Clip-Kante lokal (ohne PUT) — für flüssiges Ziehen. */
+  const previewClipTrim = useCallback((trackId: string, clipId: string, edge: "start" | "end", value: number) => {
+    setTimeline((cur) => (cur ? trimClipEdge(cur, trackId, clipId, edge, value) : cur))
+  }, [])
+
+  const trimClip = useCallback((trackId: string, clipId: string, edge: "start" | "end", value: number) => {
+    if (timeline) void persist(trimClipEdge(timeline, trackId, clipId, edge, value))
+  }, [timeline, persist])
+
+  /** Teilt alle Video-Clips, die an der Zeit t liegen, in zwei. */
+  const splitAt = useCallback((t: number) => {
+    if (!timeline) return
+    let next = timeline
+    for (const track of timeline.tracks) {
+      if (track.kind !== "video") continue
+      for (const clip of track.clips) {
+        if (t > clip.start && t < clip.start + clip.duration) {
+          next = splitClipAt(next, track.id, clip.id, t)
+        }
+      }
+    }
+    if (next !== timeline) void persist(next)
+  }, [timeline, persist])
+
   /** Fügt am Zeitpunkt time einen Schnittpunkt hinzu und gibt dessen ID zurück. */
   const addCutPoint = useCallback((time: number): string | null => {
     if (!timeline) return null
@@ -108,6 +133,7 @@ export function useCutTimeline(projectId: string) {
   return {
     timeline, assets, loading, saving, error,
     addClip, removeClip, previewClipStart, moveClip,
+    previewClipTrim, trimClip, splitAt,
     addCutPoint, previewCutPoint, moveCutPoint, updateCutPoint, removeCutPoint,
   }
 }

@@ -4,6 +4,7 @@ import type { MediaAssetReference } from "../../mediaProjectsApi"
 import type { MediaTimeline } from "../../mediaWorkspaceApi"
 import { ClipBlock } from "./ClipBlock"
 import { CutPointMarker } from "./CutPointMarker"
+import { TimelineCursors } from "./TimelineCursors"
 import { useDragX } from "./useDragX"
 import { useElementWidth } from "./useElementWidth"
 import { CUT_TRACKS } from "./useCutTimeline"
@@ -24,6 +25,9 @@ interface Props {
   /** Clip-Verschieben: live (preview) + persistiert (commit). */
   onClipPreview: (trackId: string, clipId: string, start: number) => void
   onClipCommit: (trackId: string, clipId: string, start: number) => void
+  /** Clip-Trimmen: Kante live (preview) + persistiert (commit). */
+  onClipTrimPreview: (trackId: string, clipId: string, edge: "start" | "end", value: number) => void
+  onClipTrimCommit: (trackId: string, clipId: string, edge: "start" | "end", value: number) => void
   /** Schnittpunkte: live verschieben (preview) + persistiert (commit) + löschen. */
   onCutPreview: (cutId: string, time: number) => void
   onCutCommit: (cutId: string, time: number) => void
@@ -49,6 +53,7 @@ const GAP = 8
 export function TrackArea({
   timeline, assets, onRemoveClip, currentTime, onSeek, onScrubStart,
   cursorTime, onCursorChange, onClipPreview, onClipCommit,
+  onClipTrimPreview, onClipTrimCommit,
   onCutPreview, onCutCommit, onCutRemove, selectedCutId, onSelectCut,
 }: Props) {
   const assetLabel = useMemo(() => new Map(assets.map((a) => [a.id, a.label])), [assets])
@@ -142,6 +147,8 @@ export function TrackArea({
                       snapTargets={def.kind === "video" ? [...clipEdges, cursorTime] : [0, cursorTime]}
                       onPreview={(start) => onClipPreview(def.id, clip.id, start)}
                       onCommit={(start) => onClipCommit(def.id, clip.id, start)}
+                      onTrimPreview={(edge, value) => onClipTrimPreview(def.id, clip.id, edge, value)}
+                      onTrimCommit={(edge, value) => onClipTrimCommit(def.id, clip.id, edge, value)}
                       onRemove={() => onRemoveClip(def.id, clip.id)}
                     />
                   ))}
@@ -166,31 +173,15 @@ export function TrackArea({
             />
           ))}
 
-          {/* Playhead-Linie (Wiedergabe) — Griff oben ziehbar zum Vor-/Zurückscrollen */}
-          <div
-            className="absolute inset-y-0 z-10 w-px bg-[#ffb86b]"
-            style={{ left: `calc(${LABEL_COL}px + ${GAP}px + ${playheadLeft}px)` }}
-          >
-            <div
-              onPointerDown={onPlayheadPointerDown}
-              title="Abspielposition ziehen"
-              className={["absolute -top-1.5 -left-[6px] h-3.5 w-3.5 cursor-ew-resize touch-none rounded-[2px] bg-[#ffb86b] shadow",
-                playheadDrag.dragging ? "ring-2 ring-[#ffd9a8]" : ""].join(" ")}
-            />
-          </div>
-
-          {/* Roter Cut-Cursor (Justage) — ziehbar */}
-          <div
-            className="absolute inset-y-0 z-20 w-[2px] touch-none bg-rose-500"
-            style={{ left: `calc(${LABEL_COL}px + ${GAP}px + ${cursorLeft}px)` }}
-          >
-            <div
-              onPointerDown={onCursorPointerDown}
-              className={["absolute -top-1 -left-[6px] h-3 w-3.5 cursor-ew-resize rounded-[2px] bg-rose-500 shadow",
-                cursorDrag.dragging ? "ring-2 ring-rose-300" : ""].join(" ")}
-              title="Cut-Cursor ziehen"
-            />
-          </div>
+          <TimelineCursors
+            laneOffsetCss={`${LABEL_COL}px + ${GAP}px`}
+            playheadLeft={playheadLeft}
+            cursorLeft={cursorLeft}
+            onPlayheadPointerDown={onPlayheadPointerDown}
+            onCursorPointerDown={onCursorPointerDown}
+            playheadDragging={playheadDrag.dragging}
+            cursorDragging={cursorDrag.dragging}
+          />
         </div>
       </div>
     </div>

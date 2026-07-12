@@ -88,3 +88,66 @@ export function patchCut(tl: MediaTimeline, cutId: string, patch: Partial<MediaC
 export function removeCut(tl: MediaTimeline, cutId: string): MediaTimeline {
   return { ...tl, cut_points: (tl.cut_points ?? []).filter((cp) => cp.id !== cutId) }
 }
+
+export const MIN_CLIP_DURATION = 0.1
+
+/** Teilt einen Clip an der absoluten Timeline-Sekunde t in zwei Clips.
+ *  Liegt t nicht echt im Clip-Inneren (mit Mindestabstand), bleibt tl unverändert. */
+export function splitClipAt(tl: MediaTimeline, trackId: string, clipId: string, t: number): MediaTimeline {
+  return {
+    ...tl,
+    tracks: tl.tracks.map((track) => {
+      if (track.id !== trackId) return track
+      const clips = track.clips.flatMap((c) => {
+        if (c.id !== clipId) return [c]
+        const offset = t - c.start
+        if (offset < MIN_CLIP_DURATION || offset > c.duration - MIN_CLIP_DURATION) return [c]
+        const left = { ...c, duration: offset }
+        const right = {
+          ...c,
+          id: genId("clip"),
+          start: t,
+          source_in: (c.source_in ?? 0) + offset,
+          duration: c.duration - offset,
+        }
+        return [left, right]
+      })
+      return { ...track, clips }
+    }),
+  }
+}
+
+/** Trimmt eine Clip-Kante. edge="start": linke Kante auf newStart (Timeline-Sek);
+ *  edge="end": rechte Kante auf newEnd. Hält Mindestdauer und source_in ≥ 0 ein. */
+export function trimClipEdge(
+  tl: MediaTimeline,
+  trackId: string,
+  clipId: string,
+  edge: "start" | "end",
+  value: number,
+): MediaTimeline {
+  return {
+    ...tl,
+    tracks: tl.tracks.map((track) => {
+      if (track.id !== trackId) return track
+      return {
+        ...track,
+        clips: track.clips.map((c) => {
+          if (c.id !== clipId) return c
+          if (edge === "end") {
+            const duration = Math.max(MIN_CLIP_DURATION, value - c.start)
+            return { ...c, duration }
+          }
+          // edge === "start": linke Kante verschieben, source_in mitziehen.
+          const sourceIn = c.source_in ?? 0
+          const maxStart = c.start + c.duration - MIN_CLIP_DURATION
+          // delta so begrenzen, dass source_in ≥ 0 bleibt.
+          let newStart = Math.min(value, maxStart)
+          let delta = newStart - c.start
+          if (sourceIn + delta < 0) { delta = -sourceIn; newStart = c.start + delta }
+          return { ...c, start: Math.max(0, newStart), source_in: sourceIn + delta, duration: c.duration - delta }
+        }),
+      }
+    }),
+  }
+}
