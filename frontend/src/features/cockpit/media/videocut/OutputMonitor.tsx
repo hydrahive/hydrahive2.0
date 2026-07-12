@@ -1,10 +1,11 @@
 import { Film } from "lucide-react"
-import { useRef } from "react"
+import { useRef, type CSSProperties } from "react"
 import type { MediaTimeline } from "../../mediaWorkspaceApi"
 import type { ClipMedia } from "./api"
-import { activeVideoAt } from "./assembleOutput"
+import { outputLayersAt } from "./assembleOutput"
 import { useMediaSync } from "./playbackSync"
-import { timecode } from "./useCutPlayback"
+import { blackVeilOpacity, overlayStyle } from "./transitions"
+import { timecode, type ActiveClip } from "./useCutPlayback"
 
 interface Props {
   timeline: MediaTimeline
@@ -20,9 +21,33 @@ function VideoSurface({ url, localTime, playing, muted }: { url: string; localTi
   return <video ref={ref} src={url} className="h-full w-full object-contain" playsInline preload="auto" muted={muted} />
 }
 
-export function OutputMonitor({ timeline, media, currentTime, playing }: Props) {
-  const active = activeVideoAt(timeline, currentTime)
+/** Ein Layer (Video oder Standbild) für einen aktiven Clip. Absolut positioniert,
+ *  Effekt-Styling via style. muted, damit im Übergang nicht zwei Tonspuren doppeln
+ *  (der Ton kommt aus dem base-Layer / den Audio-Spuren). */
+function ClipLayer({ active, media, playing, style, muted }: {
+  active: ActiveClip | null
+  media: Map<string, ClipMedia>
+  playing: boolean
+  style?: CSSProperties
+  muted: boolean
+}) {
   const clipMedia = active ? media.get(active.clip.asset_id) ?? null : null
+  if (!active || !clipMedia) return null
+  return (
+    <div className="absolute inset-0" style={style}>
+      {clipMedia.kind === "video" ? (
+        <VideoSurface key={active.clip.id} url={clipMedia.url} localTime={active.localTime} playing={playing} muted={muted || active.track.muted} />
+      ) : (
+        <img key={active.clip.id} src={clipMedia.url} alt="" className="h-full w-full object-contain" />
+      )}
+    </div>
+  )
+}
+
+export function OutputMonitor({ timeline, media, currentTime, playing }: Props) {
+  const { base, overlay, progress, effect } = outputLayersAt(timeline, currentTime)
+  const hasSignal = Boolean(base) || Boolean(overlay)
+  const veil = blackVeilOpacity(effect, progress)
 
   return (
     <div className="flex min-w-0 flex-col">
@@ -31,17 +56,16 @@ export function OutputMonitor({ timeline, media, currentTime, playing }: Props) 
         <span className="font-mono text-[10px] text-[#68758a]">{timecode(currentTime)}</span>
       </div>
       <div className="relative aspect-video overflow-hidden rounded-[4px] border border-[#2a364b] bg-black">
-        {clipMedia && clipMedia.kind === "video" ? (
-          <VideoSurface
-            key={active!.clip.id}
-            url={clipMedia.url}
-            localTime={active!.localTime}
-            playing={playing}
-            muted={active!.track.muted}
-          />
-        ) : clipMedia && clipMedia.kind === "image" ? (
-          <img key={active!.clip.id} src={clipMedia.url} alt="" className="h-full w-full object-contain" />
-        ) : (
+        {/* Base-Layer (Spur vor dem Schnittpunkt) — trägt den Ton */}
+        <ClipLayer active={base} media={media} playing={playing} muted={false} />
+
+        {/* Overlay-Layer (Spur nach dem Schnittpunkt) — nur im Übergang */}
+        {overlay ? <ClipLayer active={overlay} media={media} playing={playing} muted style={overlayStyle(effect, progress)} /> : null}
+
+        {/* Schwarzblende (fade-black) */}
+        {veil > 0 ? <div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: veil }} /> : null}
+
+        {!hasSignal ? (
           <>
             <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
             <div className="absolute inset-0 grid place-items-center">
@@ -51,7 +75,7 @@ export function OutputMonitor({ timeline, media, currentTime, playing }: Props) 
               </div>
             </div>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   )
