@@ -13,8 +13,10 @@ interface Props {
   onRemoveClip: (trackId: string, clipId: string) => void
   /** Playhead-Position (Wiedergabe) in Sekunden. */
   currentTime: number
-  /** Springt zu Sekunde t (Klick/Scrub im Ruler). */
+  /** Springt zu Sekunde t (Klick/Scrub im Ruler oder Playhead-Drag). */
   onSeek: (t: number) => void
+  /** Wird beim Beginn eines Scrubs gerufen (z.B. um die Wiedergabe zu pausieren). */
+  onScrubStart?: () => void
   /** Roter Cut-Cursor (Justage) in Sekunden. */
   cursorTime: number
   onCursorChange: (t: number) => void
@@ -44,7 +46,7 @@ const LABEL_COL = 84
 const GAP = 8
 
 export function TrackArea({
-  timeline, assets, onRemoveClip, currentTime, onSeek,
+  timeline, assets, onRemoveClip, currentTime, onSeek, onScrubStart,
   cursorTime, onCursorChange, onClipPreview, onClipCommit,
   onCutPreview, onCutCommit, onCutRemove, selectedCutId, onSelectCut,
 }: Props) {
@@ -74,11 +76,20 @@ export function TrackArea({
     cursorDrag.start(e, cursorTime)
   }, [cursorDrag, cursorTime])
 
+  // Playhead-Drag: pausiert die Wiedergabe und scrubbt über onSeek.
+  const playheadDrag = useDragX({ pxPerSecond: PX_PER_SECOND, onMove: onSeek })
+  const onPlayheadPointerDown = useCallback((e: PointerEvent) => {
+    e.stopPropagation()
+    onScrubStart?.()
+    playheadDrag.start(e, currentTime)
+  }, [playheadDrag, currentTime, onScrubStart])
+
   const seekFromRuler = useCallback((e: PointerEvent) => {
+    onScrubStart?.()
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const x = Math.max(0, Math.min(e.clientX - rect.left, innerWidth))
     onSeek(x / PX_PER_SECOND)
-  }, [innerWidth, onSeek])
+  }, [innerWidth, onSeek, onScrubStart])
 
   return (
     <div className="overflow-x-auto">
@@ -147,12 +158,17 @@ export function TrackArea({
             />
           ))}
 
-          {/* Playhead-Linie (Wiedergabe) */}
+          {/* Playhead-Linie (Wiedergabe) — Griff oben ziehbar zum Vor-/Zurückscrollen */}
           <div
-            className="pointer-events-none absolute inset-y-0 z-10 w-px bg-[#ffb86b]"
+            className="absolute inset-y-0 z-10 w-px bg-[#ffb86b]"
             style={{ left: `calc(${LABEL_COL}px + ${GAP}px + ${playheadLeft}px)` }}
           >
-            <div className="absolute -top-0.5 -left-[3px] h-1.5 w-1.5 rounded-full bg-[#ffb86b]" />
+            <div
+              onPointerDown={onPlayheadPointerDown}
+              title="Abspielposition ziehen"
+              className={["absolute -top-1.5 -left-[6px] h-3.5 w-3.5 cursor-ew-resize touch-none rounded-[2px] bg-[#ffb86b] shadow",
+                playheadDrag.dragging ? "ring-2 ring-[#ffd9a8]" : ""].join(" ")}
+            />
           </div>
 
           {/* Roter Cut-Cursor (Justage) — ziehbar */}
