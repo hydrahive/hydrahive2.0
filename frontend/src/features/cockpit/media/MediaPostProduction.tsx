@@ -68,8 +68,8 @@ export function MediaPostProduction({ projectId }: Props) {
         <div className="grid gap-3 lg:grid-cols-3">
           {timeline ? (
             <>
-              <InputMonitor title="Input · Vid 1" trackId="vid1" timeline={timeline} media={media} cursorTime={cursorTime} accent="#5aa9ff" />
-              <InputMonitor title="Input · Vid 2" trackId="vid2" timeline={timeline} media={media} cursorTime={cursorTime} accent="#7c9cff" />
+              <InputMonitor title="Input · Vid 1" trackId="vid1" timeline={timeline} media={media} currentTime={currentTime} cursorTime={cursorTime} playing={playing} accent="#5aa9ff" />
+              <InputMonitor title="Input · Vid 2" trackId="vid2" timeline={timeline} media={media} currentTime={currentTime} cursorTime={cursorTime} playing={playing} accent="#7c9cff" />
               <OutputMonitor timeline={timeline} media={media} currentTime={currentTime} playing={playing} />
             </>
           ) : (
