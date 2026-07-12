@@ -23,6 +23,7 @@ import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { CockpitUsagePanel } from "./project/CockpitUsagePanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
 import { ProjectGitOverlay } from "./project/ProjectGitOverlay"
+import { ProjectGraphOverlay } from "./project/ProjectGraphOverlay"
 import { ProjectIntegrationsOverlay } from "./project/ProjectIntegrationsOverlay"
 import { ProjectGitTreePanel } from "./project/ProjectGitTreePanel"
 import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
@@ -45,6 +46,7 @@ export function ProjectCockpitPage() {
   const [mountsOpen, setMountsOpen] = useState(false)
   const [insightView, setInsightView] = useState<ProjectInsightView | null>(null)
   const [gitOpen, setGitOpen] = useState(false)
+  const [graphOpen, setGraphOpen] = useState(false)
   const [gitRevision, setGitRevision] = useState(0)
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
   const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
@@ -138,6 +140,7 @@ export function ProjectCockpitPage() {
               onGit={() => setGitOpen(true)}
               onIntegrations={() => setIntegrationsOpen(true)}
               onInsight={setInsightView}
+              onGraph={() => setGraphOpen(true)}
             />
           </CollapsibleCockpitPanel>
 
@@ -215,6 +218,7 @@ export function ProjectCockpitPage() {
       {integrationsOpen && activeProject && <ProjectIntegrationsOverlay project={activeProject} onClose={() => setIntegrationsOpen(false)} onSaved={(updated) => setProjects((current) => current.map((project) => project.id === updated.id ? updated : project))} />}
       {gitOpen && activeProject && <ProjectGitOverlay project={activeProject} onClose={() => setGitOpen(false)} onChanged={() => setGitRevision((revision) => revision + 1)} />}
       {insightView && activeProject && <ProjectInsightsOverlay project={activeProject} view={insightView} onClose={() => setInsightView(null)} />}
+      {graphOpen && activeProject && <ProjectGraphOverlay project={activeProject} onClose={() => setGraphOpen(false)} />}
       {mountsOpen && activeProject && <ProjectMountsOverlay project={activeProject} onClose={() => setMountsOpen(false)} />}
       {serversOpen && activeProject && <ProjectServersOverlay project={activeProject} onClose={() => setServersOpen(false)} />}
       {accessOpen && activeProject && (
