@@ -13,19 +13,29 @@ interface SyncOptions {
   muted?: boolean
 }
 
+/** Startet die Wiedergabe robust gegen die Autoplay-Policy: Ein Video MIT Ton
+ *  darf ohne User-Geste nicht auto-starten → play() rejected. In dem Fall
+ *  stummschalten und erneut versuchen (Bild läuft, Ton kommt beim ersten
+ *  echten Klick/Transport-Tick dazu). Verhindert das „nur Standbild". */
+function safePlay(el: HTMLMediaElement) {
+  el.play().catch(() => {
+    if (!el.muted) {
+      el.muted = true
+      el.play().catch(() => {})
+    }
+  })
+}
+
 /** Koppelt ein <video>/<audio>-Element an die Master-Clock — ohne „Daumenkino".
  *
- *  Kernidee: Während der Wiedergabe läuft das Element mit seiner NATIVEN Clock
- *  frei und wird NICHT pro Frame nachgezogen. Es wird nur einmal an den Sollwert
- *  geseekt, wenn die Wiedergabe startet (oder das Element via key neu mountet).
- *  Im pausierten Zustand folgt es dagegen jederzeit dem Sollwert (Scrub/Cursor).
- *  Dadurch kämpfen Master-Clock und Video-Playback nicht mehr gegeneinander. */
+ *  Während der Wiedergabe läuft das Element mit seiner NATIVEN Clock frei und
+ *  wird NICHT pro Frame nachgezogen; nur einmal beim Play-Start bzw. beim
+ *  Clip-Wechsel (via key-Remount) an die Soll-Position geseekt. Im pausierten
+ *  Zustand folgt es dem Sollwert (Scrub/Cursor). */
 export function useMediaSync(
   ref: RefObject<HTMLMediaElement | null>,
   { localTime, playing, active, volume = 1, muted = false }: SyncOptions,
 ): void {
-  // Aktuellen Sollwert in einem Ref halten, damit der Play-Start-Effekt ihn
-  // lesen kann, ohne bei jeder Positionsänderung neu zu laufen.
   const localTimeRef = useRef(localTime)
   useEffect(() => { localTimeRef.current = localTime })
 
@@ -37,22 +47,34 @@ export function useMediaSync(
     el.muted = muted
   }, [ref, volume, muted])
 
-  // Play/Pause + einmaliger Seek beim Start der Wiedergabe.
+  // Play/Pause + einmaliger Seek beim Start der Wiedergabe. Retry via `canplay`,
+  // falls das Video beim Play-Start noch nicht genug gepuffert hat.
   useEffect(() => {
     const el = ref.current
     if (!el) return
+
     if (!active) {
       if (!el.paused) el.pause()
       return
     }
-    if (playing) {
-      // Einmal an die Soll-Position setzen, dann frei laufen lassen.
+
+    if (!playing) {
+      if (!el.paused) el.pause()
+      return
+    }
+
+    const startPlayback = () => {
       if (Math.abs(el.currentTime - localTimeRef.current) > 0.25) {
         try { el.currentTime = localTimeRef.current } catch { /* Metadata noch nicht bereit */ }
       }
-      if (el.paused) void el.play().catch(() => {})
-    } else if (!el.paused) {
-      el.pause()
+      if (el.paused) safePlay(el)
+    }
+
+    if (el.readyState >= 2) {
+      startPlayback()
+    } else {
+      el.addEventListener("canplay", startPlayback, { once: true })
+      return () => el.removeEventListener("canplay", startPlayback)
     }
   }, [ref, playing, active])
 
