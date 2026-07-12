@@ -1,35 +1,16 @@
-import { Film, Pause, Play, SkipBack, SkipForward, Square } from "lucide-react"
+import { Pause, Play, SkipBack, SkipForward, Square } from "lucide-react"
 import { useEffect, useState, type ComponentType } from "react"
 import { buildAssetMedia, loadAtelierRoot, type ClipMedia } from "./videocut/api"
 import { ClipLibrary } from "./videocut/ClipLibrary"
+import { InputMonitor } from "./videocut/InputMonitor"
 import { OutputMonitor } from "./videocut/OutputMonitor"
 import { PlaybackAudio } from "./videocut/PlaybackAudio"
 import { TrackArea } from "./videocut/TrackArea"
 import { timecode, useCutPlayback } from "./videocut/useCutPlayback"
 import { useCutTimeline } from "./videocut/useCutTimeline"
 
-/** Videoschnitt (V2): Playback im Output-Monitor, Playhead + Transport.
- *  Die beiden Input-Monitore bleiben Platzhalter (Feintrim ab V3/V4). */
-
-function InputMonitor({ title }: { title: string }) {
-  return (
-    <div className="flex min-w-0 flex-col">
-      <div className="flex items-center justify-between px-1 pb-1">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5aa9ff]">{title}</span>
-        <span className="font-mono text-[10px] text-[#68758a]">00:00:00</span>
-      </div>
-      <div className="relative aspect-video overflow-hidden rounded-[4px] border border-[#2a364b] bg-black">
-        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "24px 24px" }} />
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="flex flex-col items-center gap-1 text-[#3f4b60]">
-            <Film size={26} />
-            <span className="text-[10px] uppercase tracking-[0.14em]">kein Signal</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+/** Videoschnitt (V3a): A/B-Roll-Justage. Input 1 zeigt vid1, Input 2 zeigt vid2
+ *  am roten Cut-Cursor; Clips frei verschiebbar (Überlappung erlaubt). */
 
 function TransportButton({ icon: Icon, label, onClick, primary, disabled }: {
   icon: ComponentType<{ size?: number | string }>
@@ -52,10 +33,13 @@ interface Props {
 }
 
 export function MediaPostProduction({ projectId }: Props) {
-  const { timeline, assets, loading, saving, error, addClip, removeClip } = useCutTimeline(projectId)
+  const { timeline, assets, loading, saving, error, addClip, removeClip, previewClipStart, moveClip } = useCutTimeline(projectId)
   const { currentTime, duration, playing, play, pause, stop, seek, toStart, toEnd } = useCutPlayback(timeline)
 
-  // Atelier-Root → asset_id-Medien-Map für das Playback.
+  // Roter Cut-Cursor (Justage-Position der Input-Monitore).
+  const [cursorTime, setCursorTime] = useState(0)
+
+  // Atelier-Root → asset_id-Medien-Map für Playback + Frozen-Frames.
   const [media, setMedia] = useState<Map<string, ClipMedia>>(new Map())
   useEffect(() => {
     if (!projectId) return
@@ -71,14 +55,16 @@ export function MediaPostProduction({ projectId }: Props) {
   return (
     <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_260px]">
       <div className="min-w-0">
-        {/* 3 Monitore: Input 1, Input 2, Output (live) */}
+        {/* 3 Monitore: Input 1 (vid1), Input 2 (vid2), Output (Ergebnis) */}
         <div className="grid gap-3 lg:grid-cols-3">
-          <InputMonitor title="Input · Vid 1" />
-          <InputMonitor title="Input · Vid 2" />
           {timeline ? (
-            <OutputMonitor timeline={timeline} media={media} currentTime={currentTime} playing={playing} />
+            <>
+              <InputMonitor title="Input · Vid 1" trackId="vid1" timeline={timeline} media={media} cursorTime={cursorTime} accent="#5aa9ff" />
+              <InputMonitor title="Input · Vid 2" trackId="vid2" timeline={timeline} media={media} cursorTime={cursorTime} accent="#7c9cff" />
+              <OutputMonitor timeline={timeline} media={media} currentTime={currentTime} playing={playing} />
+            </>
           ) : (
-            <InputMonitor title="Output" />
+            <p className="col-span-3 text-xs text-[#7a869c]">Monitore werden geladen…</p>
           )}
         </div>
 
@@ -93,6 +79,7 @@ export function MediaPostProduction({ projectId }: Props) {
           <TransportButton icon={Square} label="Stopp" onClick={stop} disabled={!canPlay} />
           <TransportButton icon={SkipForward} label="Zum Ende" onClick={toEnd} disabled={!canPlay} />
           <span className="ml-1 font-mono text-[11px] text-[#8d9ab0]">{timecode(currentTime)} / {timecode(duration)}</span>
+          <span className="ml-3 font-mono text-[11px] text-rose-300">Cut {timecode(cursorTime)}</span>
           <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-[#68758a]">
             {loading ? "Lade…" : saving ? "Speichere…" : "Gespeichert"}
           </span>
@@ -100,10 +87,20 @@ export function MediaPostProduction({ projectId }: Props) {
 
         {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
 
-        {/* Spuren mit Clips + Playhead */}
+        {/* Spuren mit verschiebbaren Clips + roter Cut-Cursor + Playhead */}
         <div className="mt-3">
           {timeline ? (
-            <TrackArea timeline={timeline} assets={assets} onRemoveClip={removeClip} currentTime={currentTime} onSeek={seek} />
+            <TrackArea
+              timeline={timeline}
+              assets={assets}
+              onRemoveClip={removeClip}
+              currentTime={currentTime}
+              onSeek={seek}
+              cursorTime={cursorTime}
+              onCursorChange={setCursorTime}
+              onClipPreview={previewClipStart}
+              onClipCommit={moveClip}
+            />
           ) : (
             <p className="text-xs text-[#7a869c]">{loading ? "Timeline wird geladen…" : "Keine Timeline verfügbar."}</p>
           )}
