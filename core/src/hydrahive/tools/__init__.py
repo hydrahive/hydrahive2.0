@@ -12,6 +12,7 @@ Public API:
 
 from hydrahive.tools import (
     ask_agent,
+    code_graph_tools,
     datamining,
     analyze_image,
     generate_image,
@@ -86,6 +87,10 @@ def _build_registry() -> dict[str, Tool]:
         prompt_archive.TOOL_LIST,
         prompt_archive.TOOL_GET,
         prompt_archive.TOOL_SAVE,
+        code_graph_tools.TOOL_QUERY,
+        code_graph_tools.TOOL_EXPLAIN,
+        code_graph_tools.TOOL_PATH,
+        code_graph_tools.TOOL_AFFECTED,
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)
