@@ -124,6 +124,7 @@ export function MediaPostProduction({ projectId }: Props) {
               onRemoveClip={removeClip}
               currentTime={currentTime}
               onSeek={seek}
+              onScrubStart={pause}
               cursorTime={cursorTime}
               onCursorChange={setCursorTime}
               onClipPreview={previewClipStart}
