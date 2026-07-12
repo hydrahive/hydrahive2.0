@@ -23,6 +23,38 @@ export function libraryFileUrl(absPath: string): string {
   return fileUrl(absPath)
 }
 
+/** Auflösbares Medium eines Timeline-Clips (für Playback). */
+export interface ClipMedia {
+  url: string
+  kind: "video" | "image" | "audio"
+}
+
+/** Baut asset_id → abspielbare URL/Art aus Asset-Referenzen + Atelier-Root.
+ *  rel_path liegt als `atelier/<rel>` vor; der absolute Pfad ergibt sich aus
+ *  dem Atelier-Root des Projekts, ausgeliefert über /api/files. */
+export function buildAssetMedia(
+  assets: MediaAssetReference[],
+  atelierRoot: string | null,
+): Map<string, ClipMedia> {
+  const map = new Map<string, ClipMedia>()
+  if (!atelierRoot) return map
+  for (const asset of assets) {
+    const rel = asset.rel_path.startsWith("atelier/") ? asset.rel_path.slice("atelier/".length) : asset.rel_path
+    const kind = asset.kind === "video" ? "video" : asset.kind === "image" ? "image" : "audio"
+    map.set(asset.id, { url: fileUrl(`${atelierRoot}/${rel}`), kind })
+  }
+  return map
+}
+
+/** Atelier-Root des Projekts (für absolute Pfade). Fehler → null. */
+export async function loadAtelierRoot(projectId: string): Promise<string | null> {
+  try {
+    return (await atelierApi.meta(projectId)).root
+  } catch {
+    return null
+  }
+}
+
 /** Stellt sicher, dass das Schnitt-Media-Projekt existiert. */
 export async function ensureCutProject(projectId: string): Promise<void> {
   const existing = await mediaProjectsApi.list(projectId)
