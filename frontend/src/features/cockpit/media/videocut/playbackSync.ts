@@ -1,11 +1,7 @@
-import { useEffect, type RefObject } from "react"
-
-/** Ab welchem Drift (Sekunden) currentTime des Elements nachgezogen wird.
- *  Grobe Sync reicht für die Preview — häufiges Nachziehen würde ruckeln. */
-const DRIFT_THRESHOLD = 0.3
+import { useEffect, useRef, type RefObject } from "react"
 
 interface SyncOptions {
-  /** Lokale Soll-Position im Medium (Sekunden ab Clip-Start). */
+  /** Soll-Position im Medium (Sekunden ab Clip-Start, inkl. source_in). */
   localTime: number
   /** Läuft die Master-Clock? */
   playing: boolean
@@ -17,15 +13,23 @@ interface SyncOptions {
   muted?: boolean
 }
 
-/** Hält ein <video>/<audio>-Element grob an der Master-Clock.
- *  - Drift > Schwelle → currentTime nachziehen
- *  - playing/active steuern play()/pause()
- *  play() kann rejecten (Autoplay-Policy) — bewusst verschluckt. */
+/** Koppelt ein <video>/<audio>-Element an die Master-Clock — ohne „Daumenkino".
+ *
+ *  Kernidee: Während der Wiedergabe läuft das Element mit seiner NATIVEN Clock
+ *  frei und wird NICHT pro Frame nachgezogen. Es wird nur einmal an den Sollwert
+ *  geseekt, wenn die Wiedergabe startet (oder das Element via key neu mountet).
+ *  Im pausierten Zustand folgt es dagegen jederzeit dem Sollwert (Scrub/Cursor).
+ *  Dadurch kämpfen Master-Clock und Video-Playback nicht mehr gegeneinander. */
 export function useMediaSync(
   ref: RefObject<HTMLMediaElement | null>,
   { localTime, playing, active, volume = 1, muted = false }: SyncOptions,
 ): void {
-  // Lautstärke/Mute getrennt anwenden (kein Re-Sync nötig).
+  // Aktuellen Sollwert in einem Ref halten, damit der Play-Start-Effekt ihn
+  // lesen kann, ohne bei jeder Positionsänderung neu zu laufen.
+  const localTimeRef = useRef(localTime)
+  useEffect(() => { localTimeRef.current = localTime })
+
+  // Lautstärke/Mute.
   useEffect(() => {
     const el = ref.current
     if (!el) return
@@ -33,27 +37,31 @@ export function useMediaSync(
     el.muted = muted
   }, [ref, volume, muted])
 
+  // Play/Pause + einmaliger Seek beim Start der Wiedergabe.
   useEffect(() => {
     const el = ref.current
     if (!el) return
-
     if (!active) {
       if (!el.paused) el.pause()
       return
     }
-
-    if (Math.abs(el.currentTime - localTime) > DRIFT_THRESHOLD) {
-      try {
-        el.currentTime = localTime
-      } catch {
-        /* Metadata evtl. noch nicht geladen — nächster Tick korrigiert. */
+    if (playing) {
+      // Einmal an die Soll-Position setzen, dann frei laufen lassen.
+      if (Math.abs(el.currentTime - localTimeRef.current) > 0.25) {
+        try { el.currentTime = localTimeRef.current } catch { /* Metadata noch nicht bereit */ }
       }
-    }
-
-    if (playing && el.paused) {
-      void el.play().catch(() => {})
-    } else if (!playing && !el.paused) {
+      if (el.paused) void el.play().catch(() => {})
+    } else if (!el.paused) {
       el.pause()
+    }
+  }, [ref, playing, active])
+
+  // Nur im pausierten Zustand dem Sollwert folgen (Scrub / Justage-Cursor).
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !active || playing) return
+    if (Math.abs(el.currentTime - localTime) > 0.05) {
+      try { el.currentTime = localTime } catch { /* Metadata noch nicht bereit */ }
     }
   }, [ref, localTime, playing, active])
 }
