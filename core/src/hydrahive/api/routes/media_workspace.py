@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field, model_validator
 
-from hydrahive import media_export, media_workspace
+from hydrahive import media_export, media_exports, media_workspace
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes.media_projects import _authorize
@@ -149,3 +149,20 @@ def export_timeline(project_id: str, media_slug: str, auth: Annotated[tuple[str,
         raise coded(status.HTTP_404_NOT_FOUND, "media_project_or_asset_not_found")
     except media_export.MediaExportError:
         raise coded(status.HTTP_400_BAD_REQUEST, "media_export_failed")
+
+
+@router.get("/timeline/exports")
+def list_timeline_exports(project_id: str, media_slug: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    return _run(project_id, auth, lambda: media_exports.list_exports(project_id, media_slug))
+
+
+@router.delete("/timeline/exports/{name}")
+def delete_timeline_export(project_id: str, media_slug: str, name: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    _authorize(project_id, auth)
+    try:
+        media_exports.delete_export(project_id, media_slug, name)
+        return {"status": "deleted", "name": name}
+    except FileNotFoundError:
+        raise coded(status.HTTP_404_NOT_FOUND, "export_not_found")
+    except media_exports.MediaExportError:
+        raise coded(status.HTTP_400_BAD_REQUEST, "invalid_export_name")

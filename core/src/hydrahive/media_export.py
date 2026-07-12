@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 from hydrahive import media_assets, media_projects, media_timeline_assembly, media_workspace
@@ -105,7 +106,8 @@ def export(project_id: str, media_slug: str) -> dict:
 
     duration = _timeline_duration(timeline)
     root = media_projects._dir(project_id, media_slug)
-    output = root / "exports" / "timeline.mp4"
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    output = root / "exports" / f"schnitt-{stamp}.mp4"
     output.parent.mkdir(parents=True, exist_ok=True)
 
     args = ["ffmpeg", "-y", "-f", "lavfi", "-i",
@@ -183,7 +185,15 @@ def export(project_id: str, media_slug: str) -> dict:
     if result.returncode != 0 or not output.is_file():
         error = result.stderr.decode(errors="replace")[-500:]
         raise MediaExportError(f"FFmpeg-Export fehlgeschlagen: {error}")
-    return {"status": "completed", "rel_path": str(output.relative_to(root)), "path": str(output), "duration": duration}
+
+    created_at = datetime.now(timezone.utc).isoformat()
+    output.with_suffix(".json").write_text(
+        json.dumps({"created_at": created_at, "duration": duration}), encoding="utf-8"
+    )
+    return {
+        "status": "completed", "name": output.name, "rel_path": str(output.relative_to(root)),
+        "path": str(output), "duration": duration, "created_at": created_at,
+    }
 
 
 def _timeline_duration(timeline: dict) -> float:
