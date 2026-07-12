@@ -45,14 +45,40 @@ def _enable_expr(segments: list[tuple[float, float]]) -> str:
     return "+".join(f"between(t,{a},{b})" for a, b in segments)
 
 
+def _fmt(x: float) -> str:
+    return f"{x:.4f}".rstrip("0").rstrip(".")
+
+
+def _transition_suffix(ops: dict, width: int) -> str:
+    """Filterkette-Suffix für die weichen Übergänge eines Video-Clips.
+
+    fades → format=yuva420p + fade(alpha=1); wipes → geq-Alpha-Maske (von links
+    wachsende Kante). Ohne Übergänge leer (Hartschnitt wie V6a). Die Zeitangaben
+    sind absolute Timeline-Sekunden — der Overlay-Layer trägt bereits das globale
+    PTS (setpts=…+start/TB), daher passen st-Werte direkt. """
+    fades = ops.get("fades", [])
+    wipes = ops.get("wipes", [])
+    if not fades and not wipes:
+        return ""
+    parts = [",format=yuva420p"]
+    for f in fades:
+        parts.append(f",fade=t={f['type']}:st={_fmt(f['st'])}:d={_fmt(f['d'])}:alpha=1")
+    for wp in wipes:
+        st, d = _fmt(wp["st"]), _fmt(wp["d"])
+        # Alpha 255 links der wachsenden Kante x = W * clip((T-st)/d, 0, 1), sonst 0.
+        parts.append(f",geq=lum='lum(X,Y)':a='if(lt(X,{width}*clip((T-{st})/{d},0,1)),255,0)'")
+    return "".join(parts)
+
+
 def export(project_id: str, media_slug: str) -> dict:
     if shutil.which("ffmpeg") is None:
         raise MediaExportError("ffmpeg fehlt")
     timeline = media_workspace.timeline(project_id, media_slug)
     assets = _asset_paths(project_id, media_slug)
 
-    # WYSIWYG-Assemblierung: welcher Video-Clip ist wann sichtbar (entlang Schnittpunkte).
-    onair = media_timeline_assembly.video_onair_segments(timeline)
+    # WYSIWYG-Render-Plan: welcher Video-Clip wann sichtbar ist (entlang Schnittpunkte)
+    # inkl. weicher Übergänge (Fades/Wipes) an den Schnittpunkten.
+    plan = media_timeline_assembly.video_render_plan(timeline)
 
     # Clip-Metadaten je ID (aus den Video-Spuren).
     video_clips: dict[str, dict] = {}
@@ -70,11 +96,11 @@ def export(project_id: str, media_slug: str) -> dict:
     ]
 
     # Fehlende Assets prüfen (nur was tatsächlich gerendert wird).
-    missing = {video_clips[cid]["asset_id"] for cid in onair if video_clips[cid]["asset_id"] not in assets}
+    missing = {video_clips[cid]["asset_id"] for cid in plan if video_clips[cid]["asset_id"] not in assets}
     missing |= {clip["asset_id"] for _, clip in audio_clips if clip["asset_id"] not in assets}
     if missing:
         raise MediaExportError(f"Assets fehlen: {', '.join(sorted(missing))}")
-    if not onair and not audio_clips:
+    if not plan and not audio_clips:
         raise MediaExportError("Timeline ist leer")
 
     duration = _timeline_duration(timeline)
@@ -85,15 +111,15 @@ def export(project_id: str, media_slug: str) -> dict:
     args = ["ffmpeg", "-y", "-f", "lavfi", "-i",
             f"color=c=black:s={timeline['width']}x{timeline['height']}:r={timeline['fps']}:d={duration}"]
 
-    # Inputs sammeln (Video-Clips mit on-air-Segmenten + Audio-Clips).
-    inputs: list[tuple[str, dict, Path, list[tuple[float, float]] | None]] = []
-    for clip_id, segments in onair.items():
+    # Inputs sammeln (Video-Clips aus dem Render-Plan + Audio-Clips).
+    inputs: list[tuple[str, dict, Path, dict | None]] = []
+    for clip_id, ops in plan.items():
         clip = video_clips[clip_id]
         path = assets[clip["asset_id"]]
         if path.suffix.lower() not in VIDEO_EXTS:
             continue
         args.extend(["-i", str(path)])
-        inputs.append(("video", clip, path, segments))
+        inputs.append(("video", clip, path, ops))
     for track, clip in audio_clips:
         path = assets[clip["asset_id"]]
         if path.suffix.lower() not in AUDIO_EXTS | VIDEO_EXTS:
@@ -106,19 +132,21 @@ def export(project_id: str, media_slug: str) -> dict:
     audio_labels: list[str] = []
     idx = 0
     w, h = timeline["width"], timeline["height"]
-    for kind, clip, path, segments in inputs:
+    for kind, clip, path, ops in inputs:
         idx += 1
         start, length, source_in = clip["start"], clip["duration"], clip.get("source_in", 0)
         if kind == "video":
-            assert segments is not None
+            assert ops is not None
             vlabel = f"v{idx}"
             out = f"base{idx}"
-            filters.append(
+            chain = (
                 f"[{idx}:v]trim=start={source_in}:duration={length},setpts=PTS-STARTPTS+{start}/TB,"
                 f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
-                f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2[{vlabel}]"
+                f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2"
             )
-            filters.append(f"[{base}][{vlabel}]overlay=enable='{_enable_expr(segments)}'[{out}]")
+            chain += _transition_suffix(ops, w)
+            filters.append(f"{chain}[{vlabel}]")
+            filters.append(f"[{base}][{vlabel}]overlay=enable='{_enable_expr(ops['segments'])}'[{out}]")
             base = out
             # Video-O-Ton nur für die on-air-Segmente (falls Audiospur vorhanden).
             if _has_audio_stream(path):

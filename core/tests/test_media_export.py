@@ -49,6 +49,46 @@ def test_export_assembles_along_cut_points(tmp_path):
     assert (workspace_path(project["id"]) / "media" / "film" / result["rel_path"]).stat().st_size > 1000
 
 
+def _sample_center(video_path, t):
+    """RGB-Pixel in der Bildmitte zum Zeitpunkt t (via ffmpeg + PIL)."""
+    import tempfile
+    from pathlib import Path
+
+    from PIL import Image
+    with tempfile.TemporaryDirectory() as tmp:
+        frame = Path(tmp) / "f.png"
+        subprocess.run(["ffmpeg", "-y", "-ss", str(t), "-i", str(video_path), "-frames:v", "1", str(frame)], check=True, capture_output=True)
+        im = Image.open(frame).convert("RGB")
+        return im.getpixel((im.size[0] // 2, im.size[1] // 2))
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg fehlt")
+def test_export_crossfade_blends_midpoint(tmp_path):
+    project = project_config.create(name="ExportXf", members=["testuser"], llm_model="test", created_by="admin")
+    media_projects.create(project["id"], "film", "Film")
+    root = workspace_path(project["id"])
+    subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=red:s=160x90:d=8", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(root / "a.mp4")], check=True, capture_output=True)
+    subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=green:s=160x90:d=8", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(root / "b.mp4")], check=True, capture_output=True)
+    media_assets.create(project["id"], "film", "va", "video", project["id"], "a.mp4", "A")
+    media_assets.create(project["id"], "film", "vb", "video", project["id"], "b.mp4", "B")
+    media_workspace.save_timeline(project["id"], "film", {
+        "fps": 25, "width": 160, "height": 90,
+        "tracks": [
+            {"id": "vid1", "name": "V1", "kind": "video", "muted": False, "clips": [{"id": "ca", "asset_id": "va", "start": 0, "duration": 8, "source_in": 0, "volume": 1}]},
+            {"id": "vid2", "name": "V2", "kind": "video", "muted": False, "clips": [{"id": "cb", "asset_id": "vb", "start": 0, "duration": 8, "source_in": 0, "volume": 1}]},
+        ],
+        "cut_points": [{"id": "cut1", "time": 4, "effect": "crossfade", "duration": 2}],
+    })
+    result = media_export.export(project["id"], "film")
+    out = workspace_path(project["id"]) / "media" / "film" / result["rel_path"]
+    r1, g1, b1 = _sample_center(out, 1)   # vor Übergang → rot
+    rm, gm, bm = _sample_center(out, 4)   # Mitte Übergang → Mischung
+    r3, g3, b3 = _sample_center(out, 7)   # nach Übergang → grün
+    assert r1 > 150 and g1 < 80           # rot
+    assert r3 < 80 and g3 > 80            # grün
+    assert rm > 30 and gm > 30           # beide Kanäle präsent → Überblendung
+
+
 @pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg fehlt")
 def test_export_rejects_missing_asset():
     project = project_config.create(name="Missing", members=["testuser"], llm_model="test", created_by="admin")
