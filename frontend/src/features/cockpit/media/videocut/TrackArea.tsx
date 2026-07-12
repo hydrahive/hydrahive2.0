@@ -1,5 +1,5 @@
 import { Mic, Music, Sparkles, Video, X } from "lucide-react"
-import type { ComponentType } from "react"
+import { useCallback, useRef, type ComponentType, type PointerEvent } from "react"
 import type { MediaAssetReference } from "../../mediaProjectsApi"
 import type { MediaTimeline } from "../../mediaWorkspaceApi"
 import { CUT_TRACKS } from "./useCutTimeline"
@@ -8,6 +8,10 @@ interface Props {
   timeline: MediaTimeline
   assets: MediaAssetReference[]
   onRemoveClip: (trackId: string, clipId: string) => void
+  /** Aktuelle Playhead-Position in Sekunden. */
+  currentTime: number
+  /** Springt zu Sekunde t (Klick/Scrub im Ruler). */
+  onSeek: (t: number) => void
 }
 
 const TRACK_META: Record<string, { icon: ComponentType<{ size?: number | string; className?: string }>; tone: string }> = {
@@ -26,7 +30,7 @@ function fmtDur(s: number): string {
   return `${Math.round(s * 10) / 10}s`
 }
 
-export function TrackArea({ timeline, assets, onRemoveClip }: Props) {
+export function TrackArea({ timeline, assets, onRemoveClip, currentTime, onSeek }: Props) {
   const assetLabel = new Map(assets.map((a) => [a.id, a.label]))
   const totalLen = Math.max(
     MIN_RULER_SECONDS,
@@ -34,24 +38,58 @@ export function TrackArea({ timeline, assets, onRemoveClip }: Props) {
   )
   const rulerSteps = Math.ceil(totalLen / 5)
   const innerWidth = totalLen * PX_PER_SECOND
+  const playheadLeft = Math.min(currentTime, totalLen) * PX_PER_SECOND
+
+  const scrubbing = useRef(false)
+  const laneRef = useRef<HTMLDivElement>(null)
+
+  const seekFromEvent = useCallback((e: PointerEvent) => {
+    const el = laneRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const x = Math.max(0, Math.min(e.clientX - rect.left, innerWidth))
+    onSeek(x / PX_PER_SECOND)
+  }, [innerWidth, onSeek])
+
+  const onPointerDown = useCallback((e: PointerEvent) => {
+    scrubbing.current = true
+    e.currentTarget.setPointerCapture(e.pointerId)
+    seekFromEvent(e)
+  }, [seekFromEvent])
+
+  const onPointerMove = useCallback((e: PointerEvent) => {
+    if (scrubbing.current) seekFromEvent(e)
+  }, [seekFromEvent])
+
+  const onPointerUp = useCallback((e: PointerEvent) => {
+    scrubbing.current = false
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* nicht gecaptured */ }
+  }, [])
 
   return (
     <div className="overflow-x-auto">
       <div style={{ minWidth: `${innerWidth + 96}px` }}>
-        {/* Ruler */}
+        {/* Ruler — Scrub-Fläche */}
         <div className="grid grid-cols-[84px_1fr] gap-2">
           <div />
-          <div className="relative h-5 rounded-[3px] border border-[#2a364b] bg-[#111827]" style={{ width: `${innerWidth}px` }}>
+          <div
+            ref={laneRef}
+            className="relative h-5 cursor-pointer rounded-[3px] border border-[#2a364b] bg-[#111827] touch-none"
+            style={{ width: `${innerWidth}px` }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+          >
             {Array.from({ length: rulerSteps + 1 }, (_, i) => (
-              <span key={i} className="absolute top-0.5 font-mono text-[9px] text-[#68758a]" style={{ left: `${i * 5 * PX_PER_SECOND + 2}px` }}>
+              <span key={i} className="pointer-events-none absolute top-0.5 font-mono text-[9px] text-[#68758a]" style={{ left: `${i * 5 * PX_PER_SECOND + 2}px` }}>
                 {i * 5}s
               </span>
             ))}
           </div>
         </div>
 
-        {/* Spuren */}
-        <div className="mt-2 space-y-1.5">
+        {/* Spuren + Playhead-Overlay */}
+        <div className="relative mt-2 space-y-1.5">
           {CUT_TRACKS.map((def) => {
             const track = timeline.tracks.find((t) => t.id === def.id)
             const meta = TRACK_META[def.id]
@@ -86,6 +124,14 @@ export function TrackArea({ timeline, assets, onRemoveClip }: Props) {
               </div>
             )
           })}
+
+          {/* Playhead-Linie über allen Spuren (nur im Spurbereich, nicht über den Labels) */}
+          <div
+            className="pointer-events-none absolute inset-y-0 z-10 w-px bg-[#ffb86b]"
+            style={{ left: `calc(84px + 0.5rem + ${playheadLeft}px)` }}
+          >
+            <div className="absolute -top-0.5 -left-[3px] h-1.5 w-1.5 rounded-full bg-[#ffb86b]" />
+          </div>
         </div>
       </div>
     </div>
