@@ -5,6 +5,7 @@ import type { MediaTimeline } from "../../mediaWorkspaceApi"
 import { ClipBlock } from "./ClipBlock"
 import { CutPointMarker } from "./CutPointMarker"
 import { useDragX } from "./useDragX"
+import { useElementWidth } from "./useElementWidth"
 import { CUT_TRACKS } from "./useCutTimeline"
 
 interface Props {
@@ -40,7 +41,7 @@ const TRACK_META: Record<string, { icon: ComponentType<{ size?: number | string;
   voice: { icon: Mic, tone: "#ffb86b" },
 }
 
-const PX_PER_SECOND = 6
+const MIN_PX_PER_SECOND = 6   // untere Grenze für lange Filme (dann scrollbar)
 const MIN_RULER_SECONDS = 30
 const LABEL_COL = 84
 const GAP = 8
@@ -51,14 +52,21 @@ export function TrackArea({
   onCutPreview, onCutCommit, onCutRemove, selectedCutId, onSelectCut,
 }: Props) {
   const assetLabel = useMemo(() => new Map(assets.map((a) => [a.id, a.label])), [assets])
+  const { ref: outerRef, width: outerWidth } = useElementWidth<HTMLDivElement>()
+
   const totalLen = Math.max(
     MIN_RULER_SECONDS,
     ...timeline.tracks.flatMap((t) => t.clips.map((c) => c.start + c.duration)),
   )
+  // Dynamische Skala: Spurbereich füllt die verfügbare Breite; bei langen Filmen
+  // greift die Mindest-Skala und die Timeline wird scrollbar.
+  const laneWidth = Math.max(0, outerWidth - LABEL_COL - GAP)
+  const pxPerSecond = laneWidth > 0 ? Math.max(MIN_PX_PER_SECOND, laneWidth / totalLen) : MIN_PX_PER_SECOND
+
   const rulerSteps = Math.ceil(totalLen / 5)
-  const innerWidth = totalLen * PX_PER_SECOND
-  const playheadLeft = Math.min(currentTime, totalLen) * PX_PER_SECOND
-  const cursorLeft = Math.min(cursorTime, totalLen) * PX_PER_SECOND
+  const innerWidth = totalLen * pxPerSecond
+  const playheadLeft = Math.min(currentTime, totalLen) * pxPerSecond
+  const cursorLeft = Math.min(cursorTime, totalLen) * pxPerSecond
 
   // Alle Clip-Kanten (Start/Ende) über beide Video-Spuren als Snap-Ziele.
   const clipEdges = useMemo(() => {
@@ -70,14 +78,14 @@ export function TrackArea({
     return edges
   }, [timeline])
 
-  const cursorDrag = useDragX({ pxPerSecond: PX_PER_SECOND, onMove: onCursorChange })
+  const cursorDrag = useDragX({ pxPerSecond: pxPerSecond, onMove: onCursorChange })
   const onCursorPointerDown = useCallback((e: PointerEvent) => {
     e.stopPropagation()
     cursorDrag.start(e, cursorTime)
   }, [cursorDrag, cursorTime])
 
   // Playhead-Drag: pausiert die Wiedergabe und scrubbt über onSeek.
-  const playheadDrag = useDragX({ pxPerSecond: PX_PER_SECOND, onMove: onSeek })
+  const playheadDrag = useDragX({ pxPerSecond: pxPerSecond, onMove: onSeek })
   const onPlayheadPointerDown = useCallback((e: PointerEvent) => {
     e.stopPropagation()
     onScrubStart?.()
@@ -88,22 +96,22 @@ export function TrackArea({
     onScrubStart?.()
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const x = Math.max(0, Math.min(e.clientX - rect.left, innerWidth))
-    onSeek(x / PX_PER_SECOND)
-  }, [innerWidth, onSeek, onScrubStart])
+    onSeek(x / pxPerSecond)
+  }, [innerWidth, pxPerSecond, onSeek, onScrubStart])
 
   return (
-    <div className="overflow-x-auto">
+    <div ref={outerRef} className="overflow-x-auto">
       <div style={{ minWidth: `${innerWidth + LABEL_COL + GAP}px` }}>
         {/* Ruler — Scrub-Fläche (Playhead) */}
         <div className="grid gap-2" style={{ gridTemplateColumns: `${LABEL_COL}px 1fr` }}>
           <div />
           <div
-            className="relative h-5 cursor-pointer touch-none rounded-[3px] border border-[#2a364b] bg-[#111827]"
+            className="relative h-6 cursor-pointer touch-none rounded-[3px] border border-[#2a364b] bg-[#111827]"
             style={{ width: `${innerWidth}px` }}
             onPointerDown={seekFromRuler}
           >
             {Array.from({ length: rulerSteps + 1 }, (_, i) => (
-              <span key={i} className="pointer-events-none absolute top-0.5 font-mono text-[9px] text-[#68758a]" style={{ left: `${i * 5 * PX_PER_SECOND + 2}px` }}>
+              <span key={i} className="pointer-events-none absolute top-0.5 font-mono text-[9px] text-[#68758a]" style={{ left: `${i * 5 * pxPerSecond + 2}px` }}>
                 {i * 5}s
               </span>
             ))}
@@ -118,19 +126,19 @@ export function TrackArea({
             const Icon = meta.icon
             return (
               <div key={def.id} className="grid gap-2" style={{ gridTemplateColumns: `${LABEL_COL}px 1fr` }}>
-                <div className="flex items-center gap-1.5 rounded-[3px] border border-[#2a364b] bg-[#111827] px-2 py-1.5" style={{ borderLeft: `3px solid ${meta.tone}` }}>
-                  <Icon size={13} className="shrink-0" />
-                  <span className="truncate text-[11px] font-semibold text-[#c3ccdd]">{def.name}</span>
+                <div className="flex items-center gap-1.5 rounded-[3px] border border-[#2a364b] bg-[#111827] px-2 py-2" style={{ borderLeft: `3px solid ${meta.tone}` }}>
+                  <Icon size={14} className="shrink-0" />
+                  <span className="truncate text-[12px] font-semibold text-[#c3ccdd]">{def.name}</span>
                 </div>
-                <div className="relative h-10 rounded-[3px] border border-[#223048] bg-[#0d1420]" style={{ width: `${innerWidth}px` }}>
-                  <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: `${5 * PX_PER_SECOND}px 100%` }} />
+                <div className="relative h-14 rounded-[3px] border border-[#223048] bg-[#0d1420]" style={{ width: `${innerWidth}px` }}>
+                  <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: `${5 * pxPerSecond}px 100%` }} />
                   {(track?.clips ?? []).map((clip) => (
                     <ClipBlock
                       key={clip.id}
                       clip={clip}
                       label={assetLabel.get(clip.asset_id) ?? clip.asset_id}
                       tone={meta.tone}
-                      pxPerSecond={PX_PER_SECOND}
+                      pxPerSecond={pxPerSecond}
                       snapTargets={def.kind === "video" ? [...clipEdges, cursorTime] : [0, cursorTime]}
                       onPreview={(start) => onClipPreview(def.id, clip.id, start)}
                       onCommit={(start) => onClipCommit(def.id, clip.id, start)}
@@ -147,7 +155,7 @@ export function TrackArea({
             <CutPointMarker
               key={cut.id}
               cut={cut}
-              pxPerSecond={PX_PER_SECOND}
+              pxPerSecond={pxPerSecond}
               laneOffsetCss={`${LABEL_COL}px + ${GAP}px`}
               snapTargets={clipEdges}
               selected={selectedCutId === cut.id}

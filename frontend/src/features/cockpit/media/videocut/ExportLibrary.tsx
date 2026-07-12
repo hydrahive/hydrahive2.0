@@ -1,5 +1,7 @@
-import { Download, Film, Trash2 } from "lucide-react"
+import { Download, Play, Trash2 } from "lucide-react"
+import { useState } from "react"
 import type { MediaExportEntry } from "../../mediaWorkspaceApi"
+import { MediaLightbox, type LightboxSource } from "./MediaLightbox"
 import { timecode } from "./useCutPlayback"
 
 interface Props {
@@ -22,6 +24,7 @@ function fmtWhen(iso: string): string {
 
 /** „Fertige Filme": persistente Liste der exportierten MP4s mit Download + Löschen. */
 export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
+  const [preview, setPreview] = useState<LightboxSource | null>(null)
   return (
     <div className="mt-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
       <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Fertige Filme</p>
@@ -31,7 +34,17 @@ export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
         <ul className="space-y-1.5">
           {exports.map((exp) => (
             <li key={exp.name} className="flex items-center gap-2 rounded-[3px] border border-[#223048] bg-[#0d1420] p-1.5">
-              <Film size={14} className="shrink-0 text-emerald-300" />
+              <button
+                type="button"
+                onClick={() => setPreview({ url: downloadUrl(exp.path), kind: "video", label: exp.name })}
+                title="Vorschau ansehen"
+                className="group/thumb relative h-9 w-16 shrink-0 overflow-hidden rounded-[3px] border border-[#2a364b] bg-black"
+              >
+                <video src={downloadUrl(exp.path)} className="h-full w-full object-cover" preload="metadata" muted />
+                <span className="absolute inset-0 grid place-items-center bg-black/25 transition-colors group-hover/thumb:bg-black/40">
+                  <Play size={14} className="text-white drop-shadow" />
+                </span>
+              </button>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[11px] font-semibold text-[#c3ccdd]" title={exp.name}>{exp.name}</p>
                 <p className="font-mono text-[9px] text-[#68758a]">
@@ -58,6 +71,8 @@ export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
           ))}
         </ul>
       )}
+
+      <MediaLightbox source={preview} onClose={() => setPreview(null)} />
     </div>
   )
 }

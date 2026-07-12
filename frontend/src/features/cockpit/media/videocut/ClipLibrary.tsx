@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react"
-import { Image as ImageIcon, Music, Video } from "lucide-react"
+import { Image as ImageIcon, Music, Play, Video } from "lucide-react"
 import { atelierApi } from "@/modules/atelier/api"
 import { libraryFileUrl, loadLibrary, type LibraryItem } from "./api"
+import { MediaLightbox, type LightboxSource } from "./MediaLightbox"
 
 interface Props {
   projectId: string
@@ -27,6 +28,12 @@ export function ClipLibrary({ projectId, onAdd, disabled }: Props) {
   const [items, setItems] = useState<LibraryItem[] | null>(null)
   const [kind, setKind] = useState<LibraryItem["kind"]>("video")
   const [pending, setPending] = useState<LibraryItem | null>(null)
+  const [preview, setPreview] = useState<LightboxSource | null>(null)
+
+  const openPreview = (item: LibraryItem) => {
+    if (!item.absPath) return
+    setPreview({ url: libraryFileUrl(item.absPath), kind: item.kind, label: item.label })
+  }
 
   useEffect(() => {
     if (!projectId) return
@@ -67,7 +74,13 @@ export function ClipLibrary({ projectId, onAdd, disabled }: Props) {
       <div className="mt-2 grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-3">
         {visible.map((item) => (
           <div key={item.key} className="rounded-[3px] border border-[#223048] bg-[#111827] p-1">
-            <div className="relative aspect-video overflow-hidden rounded-[2px] bg-black">
+            <button
+              type="button"
+              onClick={() => openPreview(item)}
+              disabled={!item.absPath}
+              title="Vorschau ansehen"
+              className="group/thumb relative block aspect-video w-full overflow-hidden rounded-[2px] bg-black disabled:cursor-default"
+            >
               {item.kind === "image" && item.absPath ? (
                 <img src={libraryFileUrl(item.absPath)} alt="" className="h-full w-full object-cover" loading="lazy" />
               ) : item.kind === "video" && item.absPath ? (
@@ -75,7 +88,12 @@ export function ClipLibrary({ projectId, onAdd, disabled }: Props) {
               ) : (
                 <div className="grid h-full place-items-center text-[#3f4b60]"><Music size={18} /></div>
               )}
-            </div>
+              {item.absPath ? (
+                <span className="absolute inset-0 grid place-items-center bg-black/0 opacity-0 transition-opacity group-hover/thumb:bg-black/30 group-hover/thumb:opacity-100">
+                  <Play size={18} className="text-white drop-shadow" />
+                </span>
+              ) : null}
+            </button>
             <p className="mt-1 truncate text-[10px] text-[#c3ccdd]" title={item.label}>{item.label}</p>
             {pending?.key === item.key ? (
               <div className="mt-1 flex flex-wrap gap-1">
@@ -96,6 +114,8 @@ export function ClipLibrary({ projectId, onAdd, disabled }: Props) {
           </div>
         ))}
       </div>
+
+      <MediaLightbox source={preview} onClose={() => setPreview(null)} />
     </div>
   )
 }
