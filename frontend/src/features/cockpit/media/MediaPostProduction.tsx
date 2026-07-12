@@ -4,11 +4,13 @@ import { buildAssetMedia, loadAtelierRoot, type ClipMedia } from "./videocut/api
 import { ClipLibrary } from "./videocut/ClipLibrary"
 import { CutPointInspector } from "./videocut/CutPointInspector"
 import { ExportBar } from "./videocut/ExportBar"
+import { ExportLibrary } from "./videocut/ExportLibrary"
 import { InputMonitor } from "./videocut/InputMonitor"
 import { OutputMonitor } from "./videocut/OutputMonitor"
 import { PlaybackAudio } from "./videocut/PlaybackAudio"
 import { TrackArea } from "./videocut/TrackArea"
 import { timecode, useCutPlayback } from "./videocut/useCutPlayback"
+import { useCutExport } from "./videocut/useCutExport"
 import { useCutTimeline } from "./videocut/useCutTimeline"
 
 /** Videoschnitt (V3c): A/B-Roll mit Übergangseffekten. Input 1/2 zeigen vid1/vid2
@@ -42,6 +44,7 @@ export function MediaPostProduction({ projectId }: Props) {
     addCutPoint, previewCutPoint, moveCutPoint, updateCutPoint, removeCutPoint,
   } = useCutTimeline(projectId)
   const { currentTime, duration, playing, play, pause, stop, seek, toStart, toEnd } = useCutPlayback(timeline)
+  const cutExport = useCutExport(projectId)
 
   // Roter Cut-Cursor (Justage-Position der Input-Monitore).
   const [cursorTime, setCursorTime] = useState(0)
@@ -146,14 +149,17 @@ export function MediaPostProduction({ projectId }: Props) {
           />
         ) : null}
 
-        {/* Export: Schnitt als MP4 rendern + herunterladen */}
-        <ExportBar projectId={projectId} disabled={!timeline || saving} />
+        {/* Export: Schnitt als MP4 rendern (Ergebnis in „Fertige Filme") */}
+        <ExportBar status={cutExport.status} error={cutExport.error} disabled={!timeline || saving} onExport={() => void cutExport.run()} />
       </div>
 
-      {/* Clip-Bibliothek rechts */}
-      <aside className="min-h-0 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 xl:max-h-[calc(100vh-220px)]">
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Bibliothek</p>
-        <ClipLibrary projectId={projectId} onAdd={(item, trackId, url) => void addClip(item, trackId, url)} disabled={!timeline || saving} />
+      {/* Rechte Spalte: Clip-Bibliothek + fertige Filme */}
+      <aside className="min-w-0">
+        <div className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Bibliothek</p>
+          <ClipLibrary projectId={projectId} onAdd={(item, trackId, url) => void addClip(item, trackId, url)} disabled={!timeline || saving} />
+        </div>
+        <ExportLibrary exports={cutExport.exports} downloadUrl={cutExport.downloadUrl} onRemove={(name) => void cutExport.remove(name)} />
       </aside>
 
       {/* Parallele Audio-Wiedergabe (versteckt) */}

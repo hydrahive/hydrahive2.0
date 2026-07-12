@@ -1,42 +1,56 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { fileUrl } from "@/modules/atelier/api"
-import { mediaWorkspaceApi } from "../../mediaWorkspaceApi"
+import { mediaWorkspaceApi, type MediaExportEntry } from "../../mediaWorkspaceApi"
 import { CUT_SLUG } from "./api"
 
 export type ExportStatus = "idle" | "running" | "done" | "error"
 
-export interface ExportResult {
-  downloadUrl: string
-  duration: number
-}
-
-/** Rendert den Schnitt serverseitig (FFmpeg) und liefert einen Download-Link.
- *  Der Export läuft synchron im Request — für lange Timelines kann das dauern
- *  (Hintergrund-Job wäre eine spätere Ausbaustufe). */
+/** Rendert den Schnitt serverseitig (FFmpeg) und verwaltet die Liste der
+ *  fertigen Filme (persistente Export-Historie). */
 export function useCutExport(projectId: string) {
   const [status, setStatus] = useState<ExportStatus>("idle")
-  const [result, setResult] = useState<ExportResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [exports, setExports] = useState<MediaExportEntry[]>([])
+
+  const refresh = useCallback(async () => {
+    try {
+      setExports(await mediaWorkspaceApi.listExports(projectId, CUT_SLUG))
+    } catch {
+      /* Liste ist optional — Fehler still schlucken. */
+    }
+  }, [projectId])
+
+  // Initiales Laden der Export-Historie (setState erfolgt asynchron nach await).
+  useEffect(() => {
+    if (!projectId) return
+    let alive = true
+    void mediaWorkspaceApi.listExports(projectId, CUT_SLUG)
+      .then((list) => { if (alive) setExports(list) })
+      .catch(() => { /* Liste optional */ })
+    return () => { alive = false }
+  }, [projectId])
 
   const run = useCallback(async () => {
     setStatus("running")
     setError(null)
-    setResult(null)
     try {
-      const res = await mediaWorkspaceApi.exportTimeline(projectId, CUT_SLUG)
-      setResult({ downloadUrl: fileUrl(res.path), duration: res.duration })
+      await mediaWorkspaceApi.exportTimeline(projectId, CUT_SLUG)
       setStatus("done")
+      await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Export fehlgeschlagen.")
       setStatus("error")
     }
-  }, [projectId])
+  }, [projectId, refresh])
 
-  const reset = useCallback(() => {
-    setStatus("idle")
-    setResult(null)
-    setError(null)
-  }, [])
+  const remove = useCallback(async (name: string) => {
+    try {
+      await mediaWorkspaceApi.deleteExport(projectId, CUT_SLUG, name)
+      await refresh()
+    } catch {
+      /* Fehler still — Liste bleibt wie sie ist. */
+    }
+  }, [projectId, refresh])
 
-  return { status, result, error, run, reset }
+  return { status, error, exports, run, remove, downloadUrl: (path: string) => fileUrl(path) }
 }

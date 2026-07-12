@@ -20,5 +20,16 @@ export const mediaWorkspaceApi = {
   saveAgentContext: (projectId: string, mediaSlug: string, value: MediaAgentContext) => api.put<MediaAgentContext>(`${base(projectId, mediaSlug)}/agent-context`, value),
   getTimeline: (projectId: string, mediaSlug: string) => api.get<MediaTimeline>(`${base(projectId, mediaSlug)}/timeline`),
   saveTimeline: (projectId: string, mediaSlug: string, value: MediaTimeline) => api.put<MediaTimeline>(`${base(projectId, mediaSlug)}/timeline`, value),
-  exportTimeline: (projectId: string, mediaSlug: string) => api.post<{ status: string; rel_path: string; path: string; duration: number }>(`${base(projectId, mediaSlug)}/timeline/export`, {}),
+  exportTimeline: (projectId: string, mediaSlug: string) => api.post<MediaExportEntry & { status: string }>(`${base(projectId, mediaSlug)}/timeline/export`, {}),
+  listExports: (projectId: string, mediaSlug: string) => api.get<MediaExportEntry[]>(`${base(projectId, mediaSlug)}/timeline/exports`),
+  deleteExport: (projectId: string, mediaSlug: string, name: string) => api.delete<{ status: string; name: string }>(`${base(projectId, mediaSlug)}/timeline/exports/${encodeURIComponent(name)}`),
+}
+
+export interface MediaExportEntry {
+  name: string
+  rel_path: string
+  path: string
+  size?: number
+  created_at: string
+  duration: number | null
 }

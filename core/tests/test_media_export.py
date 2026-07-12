@@ -3,7 +3,7 @@ import subprocess
 
 import pytest
 
-from hydrahive import media_assets, media_export, media_projects, media_workspace
+from hydrahive import media_assets, media_export, media_exports, media_projects, media_workspace
 from hydrahive.projects import config as project_config
 from hydrahive.projects._paths import workspace_path
 
@@ -87,6 +87,38 @@ def test_export_crossfade_blends_midpoint(tmp_path):
     assert r1 > 150 and g1 < 80           # rot
     assert r3 < 80 and g3 > 80            # grün
     assert rm > 30 and gm > 30           # beide Kanäle präsent → Überblendung
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg fehlt")
+def test_exports_list_and_delete(tmp_path):
+    project = project_config.create(name="ExportList", members=["testuser"], llm_model="test", created_by="admin")
+    media_projects.create(project["id"], "film", "Film")
+    root = workspace_path(project["id"])
+    subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=blue:s=160x90:d=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(root / "s.mp4")], check=True, capture_output=True)
+    media_assets.create(project["id"], "film", "video", "video", project["id"], "s.mp4", "Video")
+    media_workspace.save_timeline(project["id"], "film", {"fps": 25, "width": 160, "height": 90, "tracks": [{"id": "vid1", "name": "V", "kind": "video", "muted": False, "clips": [{"id": "c", "asset_id": "video", "start": 0, "duration": 1, "source_in": 0, "volume": 1}]}]})
+
+    r1 = media_export.export(project["id"], "film")
+    import time as _t
+    _t.sleep(1.1)  # eindeutiger Zeitstempel (Sekunden-Auflösung)
+    r2 = media_export.export(project["id"], "film")
+    assert r1["name"] != r2["name"]  # keine Überschreibung
+
+    exports = media_exports.list_exports(project["id"], "film")
+    assert len(exports) == 2
+    assert exports[0]["created_at"] >= exports[1]["created_at"]  # neueste zuerst
+    assert all(e["duration"] == 1 for e in exports)
+
+    media_exports.delete_export(project["id"], "film", r1["name"])
+    remaining = media_exports.list_exports(project["id"], "film")
+    assert [e["name"] for e in remaining] == [r2["name"]]
+
+
+def test_delete_export_rejects_traversal():
+    project = project_config.create(name="ExportTrav", members=["testuser"], llm_model="test", created_by="admin")
+    media_projects.create(project["id"], "film", "Film")
+    with pytest.raises(media_exports.MediaExportError):
+        media_exports.delete_export(project["id"], "film", "../secret.mp4")
 
 
 @pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg fehlt")
