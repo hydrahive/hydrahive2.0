@@ -68,10 +68,17 @@ class Track(BaseModel):
 
 
 class CutPoint(BaseModel):
-    """A/B-Roll-Schnittpunkt: schaltet den Output zwischen den Video-Spuren um."""
+    """A/B-Roll-Schnittpunkt: schaltet den Output zwischen den Video-Spuren um.
+
+    ``effect`` + ``duration`` beschreiben den Übergang: ``cut`` ist der
+    Hartschnitt (Dauer ignoriert), sonst wird über ``duration`` Sekunden
+    zentriert um ``time`` übergeblendet.
+    """
 
     id: str = Field(..., min_length=1, max_length=100)
     time: float = Field(ge=0, le=86_400)
+    effect: Literal["cut", "crossfade", "wipe", "fade-black"] = "cut"
+    duration: float = Field(default=0, ge=0, le=30)
 
 
 class Timeline(BaseModel):

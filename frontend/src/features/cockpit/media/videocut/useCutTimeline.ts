@@ -1,44 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { MediaAssetReference } from "../../mediaProjectsApi"
-import type { MediaTimeline, MediaTimelineTrack } from "../../mediaWorkspaceApi"
+import type { MediaCutPoint, MediaTimeline } from "../../mediaWorkspaceApi"
 import { ensureAssetRef, ensureCutProject, loadTimelineAndAssets, saveTimeline, type LibraryItem } from "./api"
+import {
+  addCut, appendClip, AUDIO_FALLBACK_DURATION, CUT_TRACKS, IMAGE_DEFAULT_DURATION,
+  patchCut, probeDuration, removeClipFrom, removeCut, setClipStart, withDefaultTracks,
+} from "./timelineOps"
 
-/** Feste UI-Spuren des Schnittpults → Timeline-Track-Kinds. */
-export const CUT_TRACKS = [
-  { id: "vid1", name: "Video 1", kind: "video" as const },
-  { id: "vid2", name: "Video 2", kind: "video" as const },
-  { id: "music", name: "Musik", kind: "music" as const },
-  { id: "fx", name: "Effekt", kind: "audio" as const },
-  { id: "voice", name: "Sprache", kind: "voice" as const },
-]
-
-export const IMAGE_DEFAULT_DURATION = 5
-const AUDIO_FALLBACK_DURATION = 30
-
-function withDefaultTracks(timeline: MediaTimeline): MediaTimeline {
-  const existing = new Map(timeline.tracks.map((t) => [t.id, t]))
-  const tracks: MediaTimelineTrack[] = CUT_TRACKS.map((def) =>
-    existing.get(def.id) ?? { id: def.id, name: def.name, kind: def.kind, muted: false, clips: [] },
-  )
-  return { ...timeline, tracks, cut_points: timeline.cut_points ?? [] }
-}
-
-function trackEnd(track: MediaTimelineTrack): number {
-  return track.clips.reduce((max, clip) => Math.max(max, clip.start + clip.duration), 0)
-}
-
-/** Dauer einer Audio-/Videodatei clientseitig über Element-Metadata ermitteln. */
-function probeDuration(url: string, kind: "audio" | "video"): Promise<number | null> {
-  return new Promise((resolve) => {
-    const el = document.createElement(kind)
-    const done = (value: number | null) => { el.src = ""; resolve(value) }
-    el.preload = "metadata"
-    el.onloadedmetadata = () => done(Number.isFinite(el.duration) && el.duration > 0 ? el.duration : null)
-    el.onerror = () => done(null)
-    setTimeout(() => done(null), 8000)
-    el.src = url
-  })
-}
+// Re-Export für bestehende Importe (TrackArea, ClipLibrary, InputMonitor …).
+export { CUT_TRACKS, IMAGE_DEFAULT_DURATION }
 
 export function useCutTimeline(projectId: string) {
   const [timeline, setTimeline] = useState<MediaTimeline | null>(null)
@@ -90,102 +60,54 @@ export function useCutTimeline(projectId: string) {
       }
       if (duration == null) duration = item.kind === "image" ? IMAGE_DEFAULT_DURATION : AUDIO_FALLBACK_DURATION
 
-      const next: MediaTimeline = {
-        ...timeline,
-        tracks: timeline.tracks.map((track) => {
-          if (track.id !== trackId) return track
-          const clip = {
-            id: `clip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-            asset_id: ref.id,
-            start: trackEnd(track),
-            duration,
-            source_in: 0,
-            volume: 1,
-          }
-          return { ...track, clips: [...track.clips, clip] }
-        }),
-      }
-      await persist(next)
+      await persist(appendClip(timeline, trackId, ref.id, duration))
     } catch {
       setError("Clip konnte nicht hinzugefügt werden.")
     }
   }, [timeline, assets, projectId, persist])
 
   const removeClip = useCallback((trackId: string, clipId: string) => {
-    if (!timeline) return
-    const next: MediaTimeline = {
-      ...timeline,
-      tracks: timeline.tracks.map((track) =>
-        track.id === trackId ? { ...track, clips: track.clips.filter((c) => c.id !== clipId) } : track,
-      ),
-    }
-    void persist(next)
+    if (timeline) void persist(removeClipFrom(timeline, trackId, clipId))
   }, [timeline, persist])
 
   /** Setzt clip.start lokal (ohne PUT) — für flüssiges Ziehen. */
   const previewClipStart = useCallback((trackId: string, clipId: string, start: number) => {
-    setTimeline((cur) => {
-      if (!cur) return cur
-      return {
-        ...cur,
-        tracks: cur.tracks.map((track) =>
-          track.id !== trackId
-            ? track
-            : { ...track, clips: track.clips.map((c) => (c.id === clipId ? { ...c, start: Math.max(0, start) } : c)) },
-        ),
-      }
-    })
+    setTimeline((cur) => (cur ? setClipStart(cur, trackId, clipId, start) : cur))
   }, [])
 
-  /** Persistiert die neue Clip-Position (beim Loslassen). */
   const moveClip = useCallback((trackId: string, clipId: string, start: number) => {
-    if (!timeline) return
-    const next: MediaTimeline = {
-      ...timeline,
-      tracks: timeline.tracks.map((track) =>
-        track.id !== trackId
-          ? track
-          : { ...track, clips: track.clips.map((c) => (c.id === clipId ? { ...c, start: Math.max(0, start) } : c)) },
-      ),
-    }
-    void persist(next)
+    if (timeline) void persist(setClipStart(timeline, trackId, clipId, start))
   }, [timeline, persist])
 
-  /** Fügt am Zeitpunkt time einen Schnittpunkt hinzu (persistiert). */
-  const addCutPoint = useCallback((time: number) => {
-    if (!timeline) return
-    const cut = { id: `cut-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, time: Math.max(0, time) }
-    void persist({ ...timeline, cut_points: [...(timeline.cut_points ?? []), cut] })
+  /** Fügt am Zeitpunkt time einen Schnittpunkt hinzu und gibt dessen ID zurück. */
+  const addCutPoint = useCallback((time: number): string | null => {
+    if (!timeline) return null
+    const { timeline: next, cut } = addCut(timeline, time)
+    void persist(next)
+    return cut.id
   }, [timeline, persist])
 
   /** Setzt cut.time lokal (ohne PUT) — für flüssiges Ziehen. */
   const previewCutPoint = useCallback((cutId: string, time: number) => {
-    setTimeline((cur) => {
-      if (!cur) return cur
-      return {
-        ...cur,
-        cut_points: (cur.cut_points ?? []).map((cp) => (cp.id === cutId ? { ...cp, time: Math.max(0, time) } : cp)),
-      }
-    })
+    setTimeline((cur) => (cur ? patchCut(cur, cutId, { time: Math.max(0, time) }) : cur))
   }, [])
 
-  /** Persistiert die neue Schnittpunkt-Position (beim Loslassen). */
   const moveCutPoint = useCallback((cutId: string, time: number) => {
-    if (!timeline) return
-    void persist({
-      ...timeline,
-      cut_points: (timeline.cut_points ?? []).map((cp) => (cp.id === cutId ? { ...cp, time: Math.max(0, time) } : cp)),
-    })
+    if (timeline) void persist(patchCut(timeline, cutId, { time: Math.max(0, time) }))
+  }, [timeline, persist])
+
+  /** Ändert Effekt/Dauer (o.ä.) eines Schnittpunkts und persistiert. */
+  const updateCutPoint = useCallback((cutId: string, patch: Partial<MediaCutPoint>) => {
+    if (timeline) void persist(patchCut(timeline, cutId, patch))
   }, [timeline, persist])
 
   const removeCutPoint = useCallback((cutId: string) => {
-    if (!timeline) return
-    void persist({ ...timeline, cut_points: (timeline.cut_points ?? []).filter((cp) => cp.id !== cutId) })
+    if (timeline) void persist(removeCut(timeline, cutId))
   }, [timeline, persist])
 
   return {
     timeline, assets, loading, saving, error,
     addClip, removeClip, previewClipStart, moveClip,
-    addCutPoint, previewCutPoint, moveCutPoint, removeCutPoint,
+    addCutPoint, previewCutPoint, moveCutPoint, updateCutPoint, removeCutPoint,
   }
 }

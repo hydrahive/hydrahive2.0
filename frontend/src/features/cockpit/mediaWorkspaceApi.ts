@@ -8,7 +8,8 @@ export interface MediaAgentContext { version?: number; note: string; active_scen
 export type MediaTrackKind = "video" | "voice" | "music" | "audio"
 export interface MediaTimelineClip { id: string; asset_id: string; start: number; duration: number; source_in: number; volume: number }
 export interface MediaTimelineTrack { id: string; name: string; kind: MediaTrackKind; muted: boolean; clips: MediaTimelineClip[] }
-export interface MediaCutPoint { id: string; time: number }
+export type MediaTransitionEffect = "cut" | "crossfade" | "wipe" | "fade-black"
+export interface MediaCutPoint { id: string; time: number; effect?: MediaTransitionEffect; duration?: number }
 export interface MediaTimeline { version?: number; fps: number; width: number; height: number; tracks: MediaTimelineTrack[]; cut_points?: MediaCutPoint[]; updated_at?: string | null }
 
 const base = (projectId: string, mediaSlug: string) => `/projects/${projectId}/media-projects/${mediaSlug}`

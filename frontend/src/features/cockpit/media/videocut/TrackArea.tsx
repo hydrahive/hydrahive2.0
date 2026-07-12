@@ -25,6 +25,9 @@ interface Props {
   onCutPreview: (cutId: string, time: number) => void
   onCutCommit: (cutId: string, time: number) => void
   onCutRemove: (cutId: string) => void
+  /** Ausgewählter Schnittpunkt (für Inspector). */
+  selectedCutId: string | null
+  onSelectCut: (cutId: string) => void
 }
 
 const TRACK_META: Record<string, { icon: ComponentType<{ size?: number | string; className?: string }>; tone: string }> = {
@@ -43,7 +46,7 @@ const GAP = 8
 export function TrackArea({
   timeline, assets, onRemoveClip, currentTime, onSeek,
   cursorTime, onCursorChange, onClipPreview, onClipCommit,
-  onCutPreview, onCutCommit, onCutRemove,
+  onCutPreview, onCutCommit, onCutRemove, selectedCutId, onSelectCut,
 }: Props) {
   const assetLabel = useMemo(() => new Map(assets.map((a) => [a.id, a.label])), [assets])
   const totalLen = Math.max(
@@ -136,6 +139,8 @@ export function TrackArea({
               pxPerSecond={PX_PER_SECOND}
               laneOffsetCss={`${LABEL_COL}px + ${GAP}px`}
               snapTargets={clipEdges}
+              selected={selectedCutId === cut.id}
+              onSelect={() => onSelectCut(cut.id)}
               onPreview={(time) => onCutPreview(cut.id, time)}
               onCommit={(time) => onCutCommit(cut.id, time)}
               onRemove={() => onCutRemove(cut.id)}

@@ -2,6 +2,7 @@ import { Pause, Play, Scissors, SkipBack, SkipForward, Square } from "lucide-rea
 import { useEffect, useState, type ComponentType } from "react"
 import { buildAssetMedia, loadAtelierRoot, type ClipMedia } from "./videocut/api"
 import { ClipLibrary } from "./videocut/ClipLibrary"
+import { CutPointInspector } from "./videocut/CutPointInspector"
 import { InputMonitor } from "./videocut/InputMonitor"
 import { OutputMonitor } from "./videocut/OutputMonitor"
 import { PlaybackAudio } from "./videocut/PlaybackAudio"
@@ -9,8 +10,9 @@ import { TrackArea } from "./videocut/TrackArea"
 import { timecode, useCutPlayback } from "./videocut/useCutPlayback"
 import { useCutTimeline } from "./videocut/useCutTimeline"
 
-/** Videoschnitt (V3a): A/B-Roll-Justage. Input 1 zeigt vid1, Input 2 zeigt vid2
- *  am roten Cut-Cursor; Clips frei verschiebbar (Überlappung erlaubt). */
+/** Videoschnitt (V3c): A/B-Roll mit Übergangseffekten. Input 1/2 zeigen vid1/vid2
+ *  am roten Cut-Cursor; Clips überlappen; Schnittpunkte schalten den Output um,
+ *  mit optionalem Übergang (Crossfade/Wipe/Schwarzblende). */
 
 function TransportButton({ icon: Icon, label, onClick, primary, disabled }: {
   icon: ComponentType<{ size?: number | string }>
@@ -36,12 +38,15 @@ export function MediaPostProduction({ projectId }: Props) {
   const {
     timeline, assets, loading, saving, error,
     addClip, removeClip, previewClipStart, moveClip,
-    addCutPoint, previewCutPoint, moveCutPoint, removeCutPoint,
+    addCutPoint, previewCutPoint, moveCutPoint, updateCutPoint, removeCutPoint,
   } = useCutTimeline(projectId)
   const { currentTime, duration, playing, play, pause, stop, seek, toStart, toEnd } = useCutPlayback(timeline)
 
   // Roter Cut-Cursor (Justage-Position der Input-Monitore).
   const [cursorTime, setCursorTime] = useState(0)
+  // Ausgewählter Schnittpunkt (für Inspector).
+  const [selectedCutId, setSelectedCutId] = useState<string | null>(null)
+  const selectedCut = timeline?.cut_points?.find((cp) => cp.id === selectedCutId) ?? null
 
   // Atelier-Root → asset_id-Medien-Map für Playback + Frozen-Frames.
   const [media, setMedia] = useState<Map<string, ClipMedia>>(new Map())
@@ -84,10 +89,10 @@ export function MediaPostProduction({ projectId }: Props) {
           <TransportButton icon={SkipForward} label="Zum Ende" onClick={toEnd} disabled={!canPlay} />
           <span className="ml-1 font-mono text-[11px] text-[#8d9ab0]">{timecode(currentTime)} / {timecode(duration)}</span>
 
-          {/* Schnittpunkt am roten Cursor setzen */}
+          {/* Schnittpunkt am roten Cursor setzen und direkt auswählen */}
           <button
             type="button"
-            onClick={() => addCutPoint(cursorTime)}
+            onClick={() => { const id = addCutPoint(cursorTime); if (id) setSelectedCutId(id) }}
             disabled={!timeline || saving}
             title="Schnittpunkt am Cut-Cursor hinzufügen"
             className="ml-3 inline-flex items-center gap-1.5 rounded-[4px] border border-rose-500/50 bg-rose-500/10 px-2 py-1 text-[11px] font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-40"
@@ -121,12 +126,24 @@ export function MediaPostProduction({ projectId }: Props) {
               onClipCommit={moveClip}
               onCutPreview={previewCutPoint}
               onCutCommit={moveCutPoint}
-              onCutRemove={removeCutPoint}
+              onCutRemove={(id) => { removeCutPoint(id); if (id === selectedCutId) setSelectedCutId(null) }}
+              selectedCutId={selectedCutId}
+              onSelectCut={setSelectedCutId}
             />
           ) : (
             <p className="text-xs text-[#7a869c]">{loading ? "Timeline wird geladen…" : "Keine Timeline verfügbar."}</p>
           )}
         </div>
+
+        {/* Inspector für den ausgewählten Schnittpunkt (Übergangseffekt + Dauer) */}
+        {selectedCut ? (
+          <CutPointInspector
+            cut={selectedCut}
+            onChange={(patch) => updateCutPoint(selectedCut.id, patch)}
+            onRemove={() => { removeCutPoint(selectedCut.id); setSelectedCutId(null) }}
+            onClose={() => setSelectedCutId(null)}
+          />
+        ) : null}
       </div>
 
       {/* Clip-Bibliothek rechts */}

@@ -48,3 +48,21 @@ def test_timeline_rejects_duplicate_cut_point_ids(client, auth_headers):
     base = _base(client, auth_headers)
     payload = {"cut_points": [{"id": "same", "time": 1}, {"id": "same", "time": 2}]}
     assert client.put(f"{base}/timeline", headers=auth_headers, json=payload).status_code == 422
+
+
+def test_cut_point_transition_persists_and_defaults(client, auth_headers):
+    base = _base(client, auth_headers)
+    payload = {"cut_points": [
+        {"id": "cut-1", "time": 3, "effect": "crossfade", "duration": 1.5},
+        {"id": "cut-2", "time": 6},  # ohne effect/duration → Defaults
+    ]}
+    assert client.put(f"{base}/timeline", headers=auth_headers, json=payload).status_code == 200
+    cuts = client.get(f"{base}/timeline", headers=auth_headers).json()["cut_points"]
+    assert cuts[0]["effect"] == "crossfade" and cuts[0]["duration"] == 1.5
+    assert cuts[1]["effect"] == "cut" and cuts[1]["duration"] == 0
+
+
+def test_cut_point_rejects_unknown_effect(client, auth_headers):
+    base = _base(client, auth_headers)
+    payload = {"cut_points": [{"id": "cut-1", "time": 1, "effect": "explode"}]}
+    assert client.put(f"{base}/timeline", headers=auth_headers, json=payload).status_code == 422
