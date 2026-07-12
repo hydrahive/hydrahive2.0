@@ -20,6 +20,7 @@ _BASE_TOOLS: dict[str, list[str]] = {
         "list_skills", "load_skill",
         "create_specialist", "configure_specialist", "list_specialists",
         "write_skill", "delete_skill",
+        "graph_query", "graph_explain", "graph_path", "graph_affected",
     ],
     "specialist": [
         "fetch_url", "list_skills", "load_skill",
