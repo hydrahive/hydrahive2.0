@@ -3,6 +3,7 @@ import { useCallback, useMemo, type ComponentType, type PointerEvent } from "rea
 import type { MediaAssetReference } from "../../mediaProjectsApi"
 import type { MediaTimeline } from "../../mediaWorkspaceApi"
 import { ClipBlock } from "./ClipBlock"
+import { CutPointMarker } from "./CutPointMarker"
 import { useDragX } from "./useDragX"
 import { CUT_TRACKS } from "./useCutTimeline"
 
@@ -20,6 +21,10 @@ interface Props {
   /** Clip-Verschieben: live (preview) + persistiert (commit). */
   onClipPreview: (trackId: string, clipId: string, start: number) => void
   onClipCommit: (trackId: string, clipId: string, start: number) => void
+  /** Schnittpunkte: live verschieben (preview) + persistiert (commit) + löschen. */
+  onCutPreview: (cutId: string, time: number) => void
+  onCutCommit: (cutId: string, time: number) => void
+  onCutRemove: (cutId: string) => void
 }
 
 const TRACK_META: Record<string, { icon: ComponentType<{ size?: number | string; className?: string }>; tone: string }> = {
@@ -38,6 +43,7 @@ const GAP = 8
 export function TrackArea({
   timeline, assets, onRemoveClip, currentTime, onSeek,
   cursorTime, onCursorChange, onClipPreview, onClipCommit,
+  onCutPreview, onCutCommit, onCutRemove,
 }: Props) {
   const assetLabel = useMemo(() => new Map(assets.map((a) => [a.id, a.label])), [assets])
   const totalLen = Math.max(
@@ -121,6 +127,20 @@ export function TrackArea({
               </div>
             )
           })}
+
+          {/* Schnittpunkt-Marker (weiß, ziehbar) */}
+          {(timeline.cut_points ?? []).map((cut) => (
+            <CutPointMarker
+              key={cut.id}
+              cut={cut}
+              pxPerSecond={PX_PER_SECOND}
+              laneOffsetCss={`${LABEL_COL}px + ${GAP}px`}
+              snapTargets={clipEdges}
+              onPreview={(time) => onCutPreview(cut.id, time)}
+              onCommit={(time) => onCutCommit(cut.id, time)}
+              onRemove={() => onCutRemove(cut.id)}
+            />
+          ))}
 
           {/* Playhead-Linie (Wiedergabe) */}
           <div

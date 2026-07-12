@@ -58,10 +58,10 @@ def save_agent_context(project_id: str, media_slug: str, data: dict) -> dict:
 
 
 def timeline(project_id: str, media_slug: str) -> dict:
-    default = {"version": 1, "fps": 25, "width": 1920, "height": 1080, "tracks": [], "updated_at": None}
+    default = {"version": 1, "fps": 25, "width": 1920, "height": 1080, "tracks": [], "cut_points": [], "updated_at": None}
     return _read(_root(project_id, media_slug) / "timeline" / "timeline.json", default)
 
 
 def save_timeline(project_id: str, media_slug: str, data: dict) -> dict:
-    value = {"version": 1, "fps": data.get("fps", 25), "width": data.get("width", 1920), "height": data.get("height", 1080), "tracks": data.get("tracks", []), "updated_at": _now()}
+    value = {"version": 1, "fps": data.get("fps", 25), "width": data.get("width", 1920), "height": data.get("height", 1080), "tracks": data.get("tracks", []), "cut_points": data.get("cut_points", []), "updated_at": _now()}
     return _atomic(_root(project_id, media_slug) / "timeline" / "timeline.json", value)
