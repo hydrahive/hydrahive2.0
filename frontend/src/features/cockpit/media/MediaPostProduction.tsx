@@ -3,6 +3,7 @@ import { useEffect, useState, type ComponentType } from "react"
 import { buildAssetMedia, loadAtelierRoot, type ClipMedia } from "./videocut/api"
 import { ClipLibrary } from "./videocut/ClipLibrary"
 import { CutPointInspector } from "./videocut/CutPointInspector"
+import { ExportBar } from "./videocut/ExportBar"
 import { InputMonitor } from "./videocut/InputMonitor"
 import { OutputMonitor } from "./videocut/OutputMonitor"
 import { PlaybackAudio } from "./videocut/PlaybackAudio"
@@ -144,6 +145,9 @@ export function MediaPostProduction({ projectId }: Props) {
             onClose={() => setSelectedCutId(null)}
           />
         ) : null}
+
+        {/* Export: Schnitt als MP4 rendern + herunterladen */}
+        <ExportBar projectId={projectId} disabled={!timeline || saving} />
       </div>
 
       {/* Clip-Bibliothek rechts */}
