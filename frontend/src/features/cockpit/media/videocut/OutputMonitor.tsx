@@ -2,25 +2,15 @@ import { Film } from "lucide-react"
 import { useRef } from "react"
 import type { MediaTimeline } from "../../mediaWorkspaceApi"
 import type { ClipMedia } from "./api"
+import { activeVideoAt } from "./assembleOutput"
 import { useMediaSync } from "./playbackSync"
-import { clipAt, timecode, type ActiveClip } from "./useCutPlayback"
+import { timecode } from "./useCutPlayback"
 
 interface Props {
   timeline: MediaTimeline
   media: Map<string, ClipMedia>
   currentTime: number
   playing: boolean
-}
-
-/** Sichtbarer Clip an Position t: obere Video-Spur (vid2) hat Vorrang vor vid1. */
-function activeVisual(timeline: MediaTimeline, t: number): ActiveClip | null {
-  for (const id of ["vid2", "vid1"]) {
-    const track = timeline.tracks.find((tr) => tr.id === id)
-    if (!track) continue
-    const hit = clipAt(track, t)
-    if (hit) return hit
-  }
-  return null
 }
 
 /** <video>-Element, folgt der Master-Clock. key={clip.id} sorgt für Remount bei Clip-Wechsel. */
@@ -31,7 +21,7 @@ function VideoSurface({ url, localTime, playing, muted }: { url: string; localTi
 }
 
 export function OutputMonitor({ timeline, media, currentTime, playing }: Props) {
-  const active = activeVisual(timeline, currentTime)
+  const active = activeVideoAt(timeline, currentTime)
   const clipMedia = active ? media.get(active.clip.asset_id) ?? null : null
 
   return (

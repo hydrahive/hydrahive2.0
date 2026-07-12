@@ -31,3 +31,20 @@ def test_timeline_rejects_duplicate_clip_ids(client, auth_headers):
     clip = {"id": "same", "asset_id": "a", "start": 0, "duration": 1}
     payload = {"tracks": [{"id": "one", "kind": "video", "clips": [clip]}, {"id": "two", "kind": "audio", "clips": [clip]}]}
     assert client.put(f"{base}/timeline", headers=auth_headers, json=payload).status_code == 422
+
+
+def test_timeline_cut_points_persist(client, auth_headers):
+    base = _base(client, auth_headers)
+    timeline = {
+        "tracks": [{"id": "vid1", "kind": "video", "clips": [{"id": "clip-1", "asset_id": "frame", "start": 0, "duration": 5}]}],
+        "cut_points": [{"id": "cut-1", "time": 2.5}, {"id": "cut-2", "time": 4}],
+    }
+    assert client.put(f"{base}/timeline", headers=auth_headers, json=timeline).status_code == 200
+    fetched = client.get(f"{base}/timeline", headers=auth_headers).json()
+    assert [cp["time"] for cp in fetched["cut_points"]] == [2.5, 4]
+
+
+def test_timeline_rejects_duplicate_cut_point_ids(client, auth_headers):
+    base = _base(client, auth_headers)
+    payload = {"cut_points": [{"id": "same", "time": 1}, {"id": "same", "time": 2}]}
+    assert client.put(f"{base}/timeline", headers=auth_headers, json=payload).status_code == 422

@@ -67,17 +67,30 @@ class Track(BaseModel):
     clips: list[Clip] = Field(default_factory=list, max_length=2000)
 
 
+class CutPoint(BaseModel):
+    """A/B-Roll-Schnittpunkt: schaltet den Output zwischen den Video-Spuren um."""
+
+    id: str = Field(..., min_length=1, max_length=100)
+    time: float = Field(ge=0, le=86_400)
+
+
 class Timeline(BaseModel):
     fps: int = Field(default=25, ge=1, le=120)
     width: int = Field(default=1920, ge=16, le=7680)
     height: int = Field(default=1080, ge=16, le=4320)
     tracks: list[Track] = Field(default_factory=list, max_length=100)
+    cut_points: list[CutPoint] = Field(default_factory=list, max_length=2000)
 
     @model_validator(mode="after")
     def unique_ids(self):
         track_ids = [track.id for track in self.tracks]
         clip_ids = [clip.id for track in self.tracks for clip in track.clips]
-        if len(track_ids) != len(set(track_ids)) or len(clip_ids) != len(set(clip_ids)):
+        cut_ids = [cp.id for cp in self.cut_points]
+        if (
+            len(track_ids) != len(set(track_ids))
+            or len(clip_ids) != len(set(clip_ids))
+            or len(cut_ids) != len(set(cut_ids))
+        ):
             raise ValueError("IDs müssen eindeutig sein")
         return self
 

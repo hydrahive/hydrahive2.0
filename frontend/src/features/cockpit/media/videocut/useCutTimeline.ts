@@ -20,7 +20,7 @@ function withDefaultTracks(timeline: MediaTimeline): MediaTimeline {
   const tracks: MediaTimelineTrack[] = CUT_TRACKS.map((def) =>
     existing.get(def.id) ?? { id: def.id, name: def.name, kind: def.kind, muted: false, clips: [] },
   )
-  return { ...timeline, tracks }
+  return { ...timeline, tracks, cut_points: timeline.cut_points ?? [] }
 }
 
 function trackEnd(track: MediaTimelineTrack): number {
@@ -151,5 +151,41 @@ export function useCutTimeline(projectId: string) {
     void persist(next)
   }, [timeline, persist])
 
-  return { timeline, assets, loading, saving, error, addClip, removeClip, previewClipStart, moveClip }
+  /** Fügt am Zeitpunkt time einen Schnittpunkt hinzu (persistiert). */
+  const addCutPoint = useCallback((time: number) => {
+    if (!timeline) return
+    const cut = { id: `cut-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, time: Math.max(0, time) }
+    void persist({ ...timeline, cut_points: [...(timeline.cut_points ?? []), cut] })
+  }, [timeline, persist])
+
+  /** Setzt cut.time lokal (ohne PUT) — für flüssiges Ziehen. */
+  const previewCutPoint = useCallback((cutId: string, time: number) => {
+    setTimeline((cur) => {
+      if (!cur) return cur
+      return {
+        ...cur,
+        cut_points: (cur.cut_points ?? []).map((cp) => (cp.id === cutId ? { ...cp, time: Math.max(0, time) } : cp)),
+      }
+    })
+  }, [])
+
+  /** Persistiert die neue Schnittpunkt-Position (beim Loslassen). */
+  const moveCutPoint = useCallback((cutId: string, time: number) => {
+    if (!timeline) return
+    void persist({
+      ...timeline,
+      cut_points: (timeline.cut_points ?? []).map((cp) => (cp.id === cutId ? { ...cp, time: Math.max(0, time) } : cp)),
+    })
+  }, [timeline, persist])
+
+  const removeCutPoint = useCallback((cutId: string) => {
+    if (!timeline) return
+    void persist({ ...timeline, cut_points: (timeline.cut_points ?? []).filter((cp) => cp.id !== cutId) })
+  }, [timeline, persist])
+
+  return {
+    timeline, assets, loading, saving, error,
+    addClip, removeClip, previewClipStart, moveClip,
+    addCutPoint, previewCutPoint, moveCutPoint, removeCutPoint,
+  }
 }

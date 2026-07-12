@@ -1,4 +1,4 @@
-import { Pause, Play, SkipBack, SkipForward, Square } from "lucide-react"
+import { Pause, Play, Scissors, SkipBack, SkipForward, Square } from "lucide-react"
 import { useEffect, useState, type ComponentType } from "react"
 import { buildAssetMedia, loadAtelierRoot, type ClipMedia } from "./videocut/api"
 import { ClipLibrary } from "./videocut/ClipLibrary"
@@ -33,7 +33,11 @@ interface Props {
 }
 
 export function MediaPostProduction({ projectId }: Props) {
-  const { timeline, assets, loading, saving, error, addClip, removeClip, previewClipStart, moveClip } = useCutTimeline(projectId)
+  const {
+    timeline, assets, loading, saving, error,
+    addClip, removeClip, previewClipStart, moveClip,
+    addCutPoint, previewCutPoint, moveCutPoint, removeCutPoint,
+  } = useCutTimeline(projectId)
   const { currentTime, duration, playing, play, pause, stop, seek, toStart, toEnd } = useCutPlayback(timeline)
 
   // Roter Cut-Cursor (Justage-Position der Input-Monitore).
@@ -79,7 +83,22 @@ export function MediaPostProduction({ projectId }: Props) {
           <TransportButton icon={Square} label="Stopp" onClick={stop} disabled={!canPlay} />
           <TransportButton icon={SkipForward} label="Zum Ende" onClick={toEnd} disabled={!canPlay} />
           <span className="ml-1 font-mono text-[11px] text-[#8d9ab0]">{timecode(currentTime)} / {timecode(duration)}</span>
-          <span className="ml-3 font-mono text-[11px] text-rose-300">Cut {timecode(cursorTime)}</span>
+
+          {/* Schnittpunkt am roten Cursor setzen */}
+          <button
+            type="button"
+            onClick={() => addCutPoint(cursorTime)}
+            disabled={!timeline || saving}
+            title="Schnittpunkt am Cut-Cursor hinzufügen"
+            className="ml-3 inline-flex items-center gap-1.5 rounded-[4px] border border-rose-500/50 bg-rose-500/10 px-2 py-1 text-[11px] font-semibold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-40"
+          >
+            <Scissors size={13} /> Schnittpunkt
+          </button>
+          <span className="font-mono text-[11px] text-rose-300">{timecode(cursorTime)}</span>
+          {timeline && (timeline.cut_points?.length ?? 0) > 0 ? (
+            <span className="text-[10px] uppercase tracking-[0.12em] text-[#68758a]">· {timeline.cut_points!.length} Schnitte</span>
+          ) : null}
+
           <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-[#68758a]">
             {loading ? "Lade…" : saving ? "Speichere…" : "Gespeichert"}
           </span>
@@ -100,6 +119,9 @@ export function MediaPostProduction({ projectId }: Props) {
               onCursorChange={setCursorTime}
               onClipPreview={previewClipStart}
               onClipCommit={moveClip}
+              onCutPreview={previewCutPoint}
+              onCutCommit={moveCutPoint}
+              onCutRemove={removeCutPoint}
             />
           ) : (
             <p className="text-xs text-[#7a869c]">{loading ? "Timeline wird geladen…" : "Keine Timeline verfügbar."}</p>
