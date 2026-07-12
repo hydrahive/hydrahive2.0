@@ -122,5 +122,34 @@ export function useCutTimeline(projectId: string) {
     void persist(next)
   }, [timeline, persist])
 
-  return { timeline, assets, loading, saving, error, addClip, removeClip }
+  /** Setzt clip.start lokal (ohne PUT) — für flüssiges Ziehen. */
+  const previewClipStart = useCallback((trackId: string, clipId: string, start: number) => {
+    setTimeline((cur) => {
+      if (!cur) return cur
+      return {
+        ...cur,
+        tracks: cur.tracks.map((track) =>
+          track.id !== trackId
+            ? track
+            : { ...track, clips: track.clips.map((c) => (c.id === clipId ? { ...c, start: Math.max(0, start) } : c)) },
+        ),
+      }
+    })
+  }, [])
+
+  /** Persistiert die neue Clip-Position (beim Loslassen). */
+  const moveClip = useCallback((trackId: string, clipId: string, start: number) => {
+    if (!timeline) return
+    const next: MediaTimeline = {
+      ...timeline,
+      tracks: timeline.tracks.map((track) =>
+        track.id !== trackId
+          ? track
+          : { ...track, clips: track.clips.map((c) => (c.id === clipId ? { ...c, start: Math.max(0, start) } : c)) },
+      ),
+    }
+    void persist(next)
+  }, [timeline, persist])
+
+  return { timeline, assets, loading, saving, error, addClip, removeClip, previewClipStart, moveClip }
 }
