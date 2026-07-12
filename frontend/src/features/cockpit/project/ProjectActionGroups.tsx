@@ -13,9 +13,10 @@ interface Props {
   onGit: () => void
   onIntegrations: () => void
   onInsight: (view: ProjectInsightView) => void
+  onGraph: () => void
 }
 
-export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, onIntegrations, onInsight }: Props) {
+export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, onIntegrations, onInsight, onGraph }: Props) {
   return <div className="mt-3 space-y-2 border-t border-[#2a364b] pt-3">
     <div className="grid grid-cols-2 gap-2">
       <CockpitButton tone="primary" onClick={onCreate}>+ Neues Projekt</CockpitButton>
@@ -32,6 +33,7 @@ export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onSe
       <ActionButton onClick={() => onInsight("stats")} disabled={disabled}>Statistiken</ActionButton>
       <ActionButton onClick={() => onInsight("sessions")} disabled={disabled}>Sessions</ActionButton>
       <ActionButton onClick={() => onInsight("audit")} disabled={disabled}>Audit</ActionButton>
+      <ActionButton onClick={onGraph} disabled={disabled}>Code-Graph</ActionButton>
     </ActionGroup>
   </div>
 }

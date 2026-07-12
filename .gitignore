@@ -86,3 +86,7 @@ CHANGES_SUMMARY.md
 REASONING_EFFORT_*.md
 TESTING_CHECKLIST.md
 CLAUDE.md
+
+# Code-Graph (graphify) Ausgaben
+graphify-out/
+.graphify/
