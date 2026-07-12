@@ -8,17 +8,23 @@ from __future__ import annotations
 
 import json
 import logging
-import re
+import os
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from hydrahive.code_graph_config import get_config
+from hydrahive.code_graph_report import collect_output, graph_metrics, output_paths, report_excerpt
 from hydrahive.projects._paths import workspace_path
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
+
+# graphify erzeugt standardmäßig KEINE interaktive graph.html über 5000 Knoten.
+# Wir heben das Limit an, damit auch große Codebases eine Grafik bekommen.
+VIZ_NODE_LIMIT = 20000
 
 
 class CodeGraphError(RuntimeError):
@@ -59,86 +65,92 @@ def ensure_installed() -> None:
         raise CodeGraphError("graphify-Binary nach Installation nicht gefunden")
 
 
-_METRICS_RE = re.compile(r"(\d+)\s+nodes,\s+(\d+)\s+edges,\s+(\d+)\s+communities")
+def _run_graphify(args: list[str], timeout: int = 1800) -> subprocess.CompletedProcess:
+    """graphify-Aufruf mit erhöhtem Viz-Node-Limit (große Codebases → graph.html)."""
+    env = {**os.environ, "GRAPHIFY_VIZ_NODE_LIMIT": str(VIZ_NODE_LIMIT)}
+    return subprocess.run(
+        [str(_graphify_bin()), *args],
+        check=True, capture_output=True, timeout=timeout, text=True, env=env,
+    )
 
 
-def _parse_metrics(stdout: str) -> dict:
-    m = _METRICS_RE.search(stdout)
-    if not m:
-        return {}
-    return {"nodes": int(m.group(1)), "edges": int(m.group(2)), "communities": int(m.group(3))}
+def _extract_one(target: Path) -> Path | None:
+    """Baut den Graphen für EIN Verzeichnis und gibt den graph.json-Pfad zurück.
+    graphify schreibt nach <target>/graphify-out/ — das räumen wir danach weg."""
+    try:
+        _run_graphify(["update", str(target)])
+    except subprocess.CalledProcessError as exc:
+        raise CodeGraphError(f"graphify update fehlgeschlagen: {(exc.stderr or '')[-300:]}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise CodeGraphError("graphify update Timeout") from exc
+    produced = target / "graphify-out" / "graph.json"
+    return produced if produced.is_file() else None
 
 
 def build(project_id: str) -> dict:
-    """Baut den Code-Graph über die konfigurierten Scan-Verzeichnisse."""
+    """Baut den Code-Graph über ALLE konfigurierten Scan-Verzeichnisse und führt
+    sie zu EINEM Graphen zusammen (merge-graphs), statt sie zu überschreiben."""
     ensure_installed()
     cfg = get_config(project_id)
     scan_dirs = cfg.get("scan_dirs", [])
     if not scan_dirs:
         raise CodeGraphError("Keine Scan-Verzeichnisse gewählt")
 
-    root = workspace_path(project_id)
+    root = workspace_path(project_id).resolve()
     out = _out_dir(project_id)
     out.mkdir(parents=True, exist_ok=True)
 
-    metrics: dict = {}
+    # 1. Jeden Ordner einzeln extrahieren, graph.json-Pfade sammeln.
+    graphs: list[Path] = []
+    scanned: list[Path] = []
     for rel in scan_dirs:
         target = (root / rel).resolve()
         try:
-            target.relative_to(root.resolve())
+            target.relative_to(root)
         except ValueError:
             continue
         if not target.is_dir():
             continue
-        try:
-            result = subprocess.run(
-                [str(_graphify_bin()), "update", str(target)],
-                check=True, capture_output=True, timeout=1800, text=True,
-            )
-            metrics = _parse_metrics(result.stdout) or metrics
-            # graphify legt <target>/graphify-out/ an — ins gemeinsame out/ spiegeln.
-            produced = target / "graphify-out"
-            if produced.is_dir():
-                for name in ("graph.json", "graph.html", "GRAPH_REPORT.md"):
-                    src = produced / name
-                    if src.is_file():
-                        (out / name).write_bytes(src.read_bytes())
-        except subprocess.CalledProcessError as exc:
-            raise CodeGraphError(f"graphify update fehlgeschlagen: {exc.stderr[-300:] if exc.stderr else ''}") from exc
-        except subprocess.TimeoutExpired as exc:
-            raise CodeGraphError("graphify update Timeout") from exc
+        scanned.append(target)
+        g = _extract_one(target)
+        if g is not None:
+            graphs.append(g)
+
+    if not graphs:
+        _cleanup(scanned)
+        raise CodeGraphError("Keine Quelldateien in den gewählten Verzeichnissen gefunden")
+
+    graph_json = out / "graph.json"
+    try:
+        if len(graphs) == 1:
+            shutil.copy(graphs[0], graph_json)
+        else:
+            _run_graphify(["merge-graphs", *map(str, graphs), "--out", str(graph_json)])
+        # 2. Clustering + graph.html + Report für den Gesamtgraphen erzeugen.
+        _run_graphify(["cluster-only", str(out.parent), "--graph", str(graph_json)])
+    except subprocess.CalledProcessError as exc:
+        raise CodeGraphError(f"Graph-Zusammenführung fehlgeschlagen: {(exc.stderr or '')[-300:]}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise CodeGraphError("Graph-Zusammenführung Timeout") from exc
+    finally:
+        _cleanup(scanned)
+
+    # cluster-only schreibt nach <out.parent>/graphify-out/ — ins out/ ziehen.
+    collect_output(out)
 
     meta = {
         "built_at": datetime.now(timezone.utc).isoformat(),
         "scan_dirs": scan_dirs,
-        "metrics": metrics,
+        "metrics": graph_metrics(graph_json),
     }
     (out / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    return {**meta, "report": _report_excerpt(out), **_output_paths(project_id)}
+    return {**meta, "report": report_excerpt(out), **output_paths(out)}
 
 
-def _output_paths(project_id: str) -> dict:
-    out = _out_dir(project_id)
-    html = out / "graph.html"
-    report = out / "GRAPH_REPORT.md"
-    return {
-        "html_path": str(html) if html.is_file() else None,
-        "report_path": str(report) if report.is_file() else None,
-    }
-
-
-def _report_excerpt(out: Path) -> dict:
-    """God-Nodes + Import-Zyklen aus dem Report ziehen (für die UI-Kurzsicht)."""
-    report = out / "GRAPH_REPORT.md"
-    if not report.is_file():
-        return {}
-    text = report.read_text(encoding="utf-8", errors="replace")
-    god = re.findall(r"^\d+\.\s+`([^`]+)`\s+-\s+(\d+)\s+edges", text, re.MULTILINE)[:10]
-    cycles = re.findall(r"cycle:\s+`([^`]+)`", text)[:10]
-    return {
-        "god_nodes": [{"name": n, "edges": int(e)} for n, e in god],
-        "cycles": cycles,
-    }
+def _cleanup(dirs: list[Path]) -> None:
+    """Entfernt die von graphify in den Scan-Ordnern angelegten graphify-out/."""
+    for d in dirs:
+        shutil.rmtree(d / "graphify-out", ignore_errors=True)
 
 
 def status(project_id: str) -> dict:
@@ -155,6 +167,6 @@ def status(project_id: str) -> dict:
         "built_at": meta.get("built_at"),
         "scan_dirs": meta.get("scan_dirs", []),
         "metrics": meta.get("metrics", {}),
-        "report": _report_excerpt(out) if meta else {},
-        **_output_paths(project_id),
+        "report": report_excerpt(out) if meta else {},
+        **output_paths(out),
     }
