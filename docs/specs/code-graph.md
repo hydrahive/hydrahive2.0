@@ -45,9 +45,17 @@ anschauen). Agenten-Tools (query/explain/path) folgen in Etappe 2.
 - `ensure_installed()` → legt venv an + pip install (idempotent, mit Timeout).
 - `get_config(project_id)` / `set_config(project_id, scan_dirs)` — scan_dirs gegen
   Path-Traversal validiert (müssen **innerhalb** des Workspace liegen, existieren).
-- `build(project_id)` → für jedes scan_dir `graphify update`; danach die Outputs
-  ins gemeinsame `.graphify/out/` konsolidieren; liefert Kurz-Metriken
-  (nodes/edges/communities) + Report-Auszug (God-Nodes, Zyklen).
+- `build(project_id)` → für jedes scan_dir `graphify update`; danach die
+  Einzelgraphen per `merge-graphs` zu **einem** Gesamtgraphen mergen und via
+  `cluster-only` (`GRAPHIFY_VIZ_NODE_LIMIT` hochgesetzt) `graph.html` + Report
+  für den Gesamtgraphen erzeugen. graphify-out-Reste werden aus den scan_dirs
+  aufgeräumt. Liefert Kurz-Metriken (nodes/edges/communities) + God-Nodes + Zyklen.
+- **Import-Zyklen** kommen NICHT aus graphifys Report (der kollabiert Knoten auf
+  ihren Datei-Basename → massenhaft Schein-`__init__.py`-Zyklen). Stattdessen
+  berechnet `code_graph_cycles.import_cycles()` echte Zyklen aus `graph.json`:
+  Datei-Import-Graph mit vollen Pfaden (repo-qualifiziert) + Tarjan-SCC.
+- `code_graph_report.py` bündelt Output-Konsolidierung, Metriken (aus graph.json)
+  und Report-Auszug; `code_graph_cycles.py` die Zyklus-Erkennung.
 - `status(project_id)` → letzter Build (Zeit, Metriken, ob graph.html existiert).
 - Routen (neuer Router `code_graph.py`, require_auth + _authorize):
   - `GET  /api/projects/{id}/code-graph/status`
@@ -59,7 +67,8 @@ anschauen). Agenten-Tools (query/explain/path) folgen in Etappe 2.
 - `projectsApi`-Erweiterung bzw. `codeGraphApi` (status/config/build).
 - **`ProjectGraphOverlay`**: Verzeichnis-Auswahl (Checkbox-Liste aus Vorschlägen +
   manuell), „Graph bauen" (zeigt Fortschritt), nach Build: Metriken + God-Nodes +
-  Zyklen aus dem Report, und die interaktive `graph.html` als iframe
+  echte Import-Zyklen (rot mit vollen Pfaden; grüne „keine Zyklen"-Bestätigung
+  wenn sauber), und die interaktive `graph.html` als iframe
   (`/api/files?path=…`). Bootstrap-Hinweis, falls venv erst eingerichtet wird.
 - **Button „Graph"** in `ProjectActionGroups`, verdrahtet in `ProjectCockpitPage`.
 

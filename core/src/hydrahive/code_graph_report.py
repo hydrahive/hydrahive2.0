@@ -7,6 +7,8 @@ import re
 import shutil
 from pathlib import Path
 
+from hydrahive.code_graph_cycles import import_cycles
+
 
 def collect_output(out: Path) -> None:
     """Zieht graph.html + Report + graph.json aus <out.parent>/graphify-out/ nach out/."""
@@ -42,14 +44,17 @@ def output_paths(out: Path) -> dict:
 
 
 def report_excerpt(out: Path) -> dict:
-    """God-Nodes + Import-Zyklen aus dem Report ziehen (für die UI-Kurzsicht)."""
+    """God-Nodes aus dem Report + echte Import-Zyklen aus graph.json.
+
+    God-Nodes stimmen im graphify-Report; die Zyklus-Liste dort ist wegen
+    Basename-Kollaps unbrauchbar (viele Schein-`__init__.py`-Zyklen), darum
+    berechnen wir sie selbst aus dem Graphen mit vollen Datei-Pfaden."""
     report = out / "GRAPH_REPORT.md"
     if not report.is_file():
         return {}
     text = report.read_text(encoding="utf-8", errors="replace")
     god = re.findall(r"^\d+\.\s+`([^`]+)`\s+-\s+(\d+)\s+edges", text, re.MULTILINE)[:10]
-    cycles = re.findall(r"cycle:\s+`([^`]+)`", text)[:10]
     return {
         "god_nodes": [{"name": n, "edges": int(e)} for n, e in god],
-        "cycles": cycles,
+        "cycles": import_cycles(out / "graph.json"),
     }

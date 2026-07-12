@@ -120,9 +120,14 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
             {cycles.length ? (
               <div className="rounded-[4px] border border-rose-500/30 bg-rose-500/5 p-3">
                 <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-rose-300">Import-Zyklen</p>
-                <ul className="space-y-0.5 text-[11px] text-rose-200">
-                  {cycles.map((c) => <li key={c} className="truncate font-mono">{c}</li>)}
+                <ul className="space-y-1 text-[11px] text-rose-200">
+                  {cycles.map((c) => <li key={c} className="break-all font-mono leading-snug">{c}</li>)}
                 </ul>
+              </div>
+            ) : metrics ? (
+              <div className="rounded-[4px] border border-emerald-500/25 bg-emerald-500/5 p-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-emerald-300">Import-Zyklen</p>
+                <p className="mt-1 text-[11px] text-emerald-200/90">Keine echten Zyklen gefunden.</p>
               </div>
             ) : null}
           </div>
