@@ -33,7 +33,12 @@ from hydrahive.runner._runner_iter import (
 )
 from hydrahive.runner.system_prompt import compose as compose_system_prompts
 from hydrahive.runner._runner_tools import process_tool_uses
-from hydrahive.runner.context import extract_tool_uses, heal_orphan_tool_uses, to_anthropic_messages
+from hydrahive.runner.context import (
+    extract_tool_uses,
+    has_visible_content,
+    heal_orphan_tool_uses,
+    to_anthropic_messages,
+)
 from hydrahive.runner.events import Done, Error, Event, IterationStart
 from hydrahive.skills.loader import list_for_agent as load_agent_skills
 from hydrahive.tools import ToolContext, schemas_for
@@ -271,6 +276,23 @@ async def run(
                 f"max_tokens ({agent.get('max_tokens', DEFAULT_MAX_TOKENS)}) erreicht — Antwort abgeschnitten. "
                 "Tool-Argumente sind unvollständig. Erhöhe max_tokens oder formuliere die Aufgabe kürzer.",
                 metadata={"stop_reason": result.stop_reason, "message_id": assistant_msg.id},
+            ); return
+
+        # Leerer Turn: LLM lieferte weder Text noch Tool-Use (z.B. nur reasoning-
+        # Blöcke oder eine komplett leere Antwort). Früher endete das still als
+        # "completed" → der Chat wirkte, als hänge er, ohne jede Fehlermeldung.
+        # Jetzt sichtbar als Fehler melden statt stumm zu beenden.
+        if not tool_uses and not has_visible_content(result.blocks):
+            logger.warning(
+                "Leere LLM-Antwort (model=%s, stop=%s, blocks=%d) — Turn ohne sichtbaren Inhalt",
+                result.used_model, result.stop_reason, len(result.blocks),
+            )
+            session_end(agent["id"], session_id, status="abandoned")
+            yield Error(
+                "Das Modell hat eine leere Antwort geliefert (kein Text, kein Tool-Aufruf). "
+                "Bitte erneut senden — ggf. anderes Modell oder Reasoning-Tiefe wählen.",
+                metadata={"stop_reason": result.stop_reason, "model": result.used_model,
+                          "message_id": assistant_msg.id},
             ); return
 
         if not tool_uses:
