@@ -8,9 +8,26 @@ from hydrahive.projects import config as project_config
 
 
 def test_graph_tools_registered():
-    for name in ("graph_query", "graph_explain", "graph_path", "graph_affected"):
+    for name in ("graph_query", "graph_explain", "graph_path", "graph_affected", "graph_refresh"):
         assert name in REGISTRY
         assert REGISTRY[name].category == "code"
+
+
+def test_refresh_without_scan_dirs_returns_hint():
+    project = project_config.create(name="NoScan", members=["testuser"], llm_model="test", created_by="admin")
+    ctx = _ctx(project["id"])
+    result = asyncio.run(cgt._refresh({}, ctx))
+    assert not result.success
+    assert "Scan-Verzeichnis" in (result.error or "")
+
+
+def test_refresh_without_project():
+    ctx = ToolContext(session_id="s", agent_id="a", user_id="u", workspace=ensure_workspace(
+        project_config.create(name="P", members=["testuser"], llm_model="test", created_by="admin")["id"]
+    ), project_id=None)
+    result = asyncio.run(cgt._refresh({}, ctx))
+    assert not result.success
+    assert "Projekt" in (result.error or "")
 
 
 def _ctx(project_id):

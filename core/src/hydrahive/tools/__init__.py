@@ -91,6 +91,7 @@ def _build_registry() -> dict[str, Tool]:
         code_graph_tools.TOOL_EXPLAIN,
         code_graph_tools.TOOL_PATH,
         code_graph_tools.TOOL_AFFECTED,
+        code_graph_tools.TOOL_REFRESH,
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)

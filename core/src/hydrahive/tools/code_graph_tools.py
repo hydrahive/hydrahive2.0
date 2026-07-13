@@ -44,6 +44,34 @@ async def _run_graphify(args: list[str], project_id: str | None) -> ToolResult:
     return ToolResult.ok(out.decode(errors="replace").strip() or "Keine Treffer.")
 
 
+async def _refresh(args: dict, ctx: ToolContext) -> ToolResult:
+    """Baut den Code-Graph neu — nach eigenen Code-Änderungen, damit die
+    Graph-Abfragen wieder den aktuellen Stand zeigen (statt veraltetem Build)."""
+    if not ctx.project_id:
+        return ToolResult.fail("Kein aktives Projekt.")
+    from hydrahive.code_graph import CodeGraphError, build
+    try:
+        result = await asyncio.to_thread(build, ctx.project_id)
+    except CodeGraphError as exc:
+        msg = str(exc)
+        if "Scan-Verzeichnisse" in msg:
+            return ToolResult.fail(
+                "Kein Scan-Verzeichnis konfiguriert. Erst im Cockpit unter 'Code-Graph' "
+                "die zu scannenden Verzeichnisse wählen und einmal bauen."
+            )
+        return ToolResult.fail(f"Graph-Neuaufbau fehlgeschlagen: {msg}")
+    metrics = result.get("metrics", {})
+    cycles = result.get("report", {}).get("cycles", [])
+    lines = [
+        "Code-Graph neu gebaut.",
+        f"Verzeichnisse: {', '.join(result.get('scan_dirs', [])) or '—'}",
+        f"Knoten: {metrics.get('nodes', 0)} · Kanten: {metrics.get('edges', 0)} · "
+        f"Communities: {metrics.get('communities', 0)}",
+        f"Import-Zyklen: {len(cycles)}" + (f" ({cycles[0]} …)" if cycles else " (keine)"),
+    ]
+    return ToolResult.ok("\n".join(lines))
+
+
 async def _query(args: dict, ctx: ToolContext) -> ToolResult:
     question = (args.get("question") or "").strip()
     if not question:
@@ -74,6 +102,20 @@ async def _affected(args: dict, ctx: ToolContext) -> ToolResult:
     depth = int(args.get("depth", 2))
     return await _run_graphify(["affected", node, "--depth", str(depth)], ctx.project_id)
 
+
+TOOL_REFRESH = Tool(
+    name="graph_refresh",
+    description=(
+        "Baut den Code-Graph des aktiven Projekts neu (lokal, ohne LLM/Kosten) — nutze das "
+        "nachdem du selbst Code geändert hast, damit graph_query/explain/path/affected wieder "
+        "den aktuellen Stand zeigen statt eines veralteten Builds. Scannt die im Cockpit "
+        "gewählten Verzeichnisse. Dauert je nach Projektgröße Sekunden bis ~1-2 Minuten. "
+        "Voraussetzung: der Graph wurde mind. einmal im Cockpit konfiguriert/gebaut."
+    ),
+    schema={"type": "object", "properties": {}},
+    execute=_refresh,
+    category="code",
+)
 
 TOOL_QUERY = Tool(
     name="graph_query",

@@ -2,7 +2,7 @@
 name: code-graph
 description: Den Code-Graph des Projekts abfragen statt den Quellcode zu durchwühlen
 when_to_use: Wenn du verstehen willst wie Code zusammenhängt — was ruft was auf, was hängt an einem Symbol, was bricht bei einer Änderung, wie hängen zwei Dateien zusammen. Bevor du dich mit grep durch viele Dateien liest.
-tools_required: [graph_query, graph_explain, graph_path, graph_affected]
+tools_required: [graph_query, graph_explain, graph_path, graph_affected, graph_refresh]
 ---
 
 # Code-Graph nutzen statt Grep-und-Lesen
@@ -33,15 +33,33 @@ schneller und token-günstiger als den Quellcode zu durchsuchen.
 3. Für „Impact einer Änderung": **`graph_affected "<symbol>"`** vor dem Umbau.
 4. Für „wie erreicht A B": **`graph_path "A" "B"`**.
 
+## Graph aktualisieren nach eigenen Änderungen
+
+Der Graph ist so aktuell wie sein letzter Build. Hast du selbst Code geändert
+(neue Datei, umbenannt, größeres Refactoring) und willst danach wieder
+zuverlässig `graph_query`/`graph_affected` nutzen, baue ihn neu:
+
+- **`graph_refresh`** — baut den Graph lokal neu (ohne LLM/Kosten) über die im
+  Cockpit gewählten Verzeichnisse. Dauert Sekunden bis ~1-2 Minuten. Danach
+  spiegeln die Abfragen den aktuellen Code.
+
+Wann sinnvoll:
+- Vor einer Impact-Analyse (`graph_affected`), wenn du seit dem letzten Build
+  schon Dateien angefasst hast — sonst basiert die Analyse auf altem Stand.
+- Nach dem Abschluss eines Features/Refactors, bevor du den Graph erneut befragst.
+
+Nicht bei jeder Kleinigkeit neu bauen — nur wenn die Struktur sich geändert hat
+und du dich danach wieder auf den Graph stützen willst.
+
 ## Wenn kein Graph da ist
 
-Die Tools antworten dann mit einem Hinweis „erst im Cockpit den Graph bauen".
-Das ist kein Fehler — dann normal mit `grep`/`file_read` weiterarbeiten und
-dem User ggf. vorschlagen, den Code-Graph im Cockpit zu bauen.
+Die Abfrage-Tools antworten dann mit einem Hinweis „erst im Cockpit den Graph
+bauen". Das ist kein Fehler — dann normal mit `grep`/`file_read` weiterarbeiten
+und dem User ggf. vorschlagen, den Code-Graph im Cockpit zu bauen. `graph_refresh`
+funktioniert erst, wenn im Cockpit einmal Scan-Verzeichnisse gewählt wurden.
 
 ## Merke
 - Der Graph zeigt **Struktur**, nicht den aktuellen Datei-Inhalt Zeile für Zeile.
   Immer die genannten Stellen danach mit `file_read` verifizieren, bevor du
   Änderungen darauf stützt.
-- Der Graph ist so aktuell wie sein letzter Build. Nach größeren Refactors kann
-  er veraltet sein.
+- Nach größeren Refactors mit `graph_refresh` neu bauen, sonst ist er veraltet.
