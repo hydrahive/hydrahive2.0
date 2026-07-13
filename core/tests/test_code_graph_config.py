@@ -37,6 +37,41 @@ def test_suggestions_find_source_dirs_and_skip_ignored():
     assert all("node_modules" not in s for s in suggestions)
 
 
+def test_browse_lists_direct_subdirs_and_skips_ignored():
+    pid, ws = _project_with_dirs()
+    (ws / "sdk").mkdir(exist_ok=True)
+    result = code_graph_config.browse_dirs(pid, "")
+    names = {d["name"] for d in result["dirs"]}
+    assert "core" in names and "frontend" in names and "sdk" in names
+    assert "node_modules" not in names  # IGNORE_DIRS
+    assert result["parent"] is None  # an der Wurzel
+
+
+def test_browse_navigates_into_nested_dir():
+    pid, ws = _project_with_dirs()
+    (ws / "sdk" / "client" / "net").mkdir(parents=True, exist_ok=True)
+    result = code_graph_config.browse_dirs(pid, "sdk/client")
+    rels = {d["rel"] for d in result["dirs"]}
+    assert "sdk/client/net" in rels
+    assert result["path"] == "sdk/client"
+    assert result["parent"] == "sdk"
+
+
+def test_browse_flags_has_children():
+    pid, ws = _project_with_dirs()
+    (ws / "sdk" / "inner").mkdir(parents=True, exist_ok=True)
+    result = code_graph_config.browse_dirs(pid, "")
+    sdk = next(d for d in result["dirs"] if d["name"] == "sdk")
+    assert sdk["has_children"] is True
+
+
+def test_browse_traversal_falls_back_to_root():
+    pid, _ = _project_with_dirs()
+    result = code_graph_config.browse_dirs(pid, "../../../etc")
+    assert result["path"] == ""  # Traversal → Wurzel
+    assert result["parent"] is None
+
+
 def test_graph_metrics_counts_nodes_edges_communities(tmp_path):
     graph = tmp_path / "graph.json"
     graph.write_text(json.dumps({

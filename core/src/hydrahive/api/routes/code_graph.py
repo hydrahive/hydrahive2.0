@@ -29,6 +29,17 @@ def get_config(project_id: str, auth: Annotated[tuple[str, str], Depends(require
     return code_graph_config.get_config(project_id)
 
 
+@router.get("/config/browse")
+def browse_config(
+    project_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    path: str = "",
+) -> dict:
+    """Unterverzeichnisse einer Ebene für die granulare Ordner-Auswahl."""
+    _authorize(project_id, auth)
+    return code_graph_config.browse_dirs(project_id, path)
+
+
 @router.put("/config")
 def put_config(project_id: str, body: GraphConfig, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     _authorize(project_id, auth)

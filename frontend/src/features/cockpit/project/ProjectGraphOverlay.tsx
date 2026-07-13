@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
-import { Loader2, Network } from "lucide-react"
+import { Loader2, Network, X } from "lucide-react"
 import type { Project } from "@/features/projects/types"
 import { codeGraphApi, graphFileUrl, type CodeGraphStatus } from "../codeGraphApi"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitSectionLabel } from "../CockpitPanel"
+import { GraphDirBrowser } from "./_GraphDirBrowser"
 
 export function ProjectGraphOverlay({ project, onClose }: { project: Project; onClose: () => void }) {
   const [status, setStatus] = useState<CodeGraphStatus | null>(null)
@@ -67,20 +68,42 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
           {/* Steuerung: Verzeichnis-Auswahl + Build */}
           <div className="space-y-3">
             <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3">
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Verzeichnisse</p>
-              {suggestions.length === 0 ? (
-                <p className="text-xs text-[#7a869c]">Keine Quellordner gefunden.</p>
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">
+                Zu scannen{selected.length ? ` (${selected.length})` : ""}
+              </p>
+              {selected.length === 0 ? (
+                <p className="text-xs text-[#7a869c]">Noch nichts gewählt — unten Ordner hinzufügen.</p>
               ) : (
-                <ul className="space-y-1">
-                  {suggestions.map((dir) => (
+                <ul className="flex flex-wrap gap-1.5">
+                  {selected.map((dir) => (
                     <li key={dir}>
-                      <label className="flex cursor-pointer items-center gap-2 text-xs text-[#c3ccdd]">
-                        <input type="checkbox" checked={selected.includes(dir)} onChange={() => toggle(dir)} className="accent-cyan-400" />
-                        <span className="truncate font-mono">{dir}</span>
-                      </label>
+                      <button
+                        onClick={() => toggle(dir)}
+                        title="Entfernen"
+                        className="flex items-center gap-1 rounded-full border border-cyan-400/40 bg-cyan-400/10 py-0.5 pl-2 pr-1 text-[11px] font-mono text-cyan-100 hover:border-rose-400/50 hover:bg-rose-400/10"
+                      >
+                        <span className="max-w-[180px] truncate">{dir}</span>
+                        <X size={11} className="shrink-0" />
+                      </button>
                     </li>
                   ))}
                 </ul>
+              )}
+              {suggestions.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-1 text-[10px] uppercase tracking-[0.12em] text-[#68758a]">Vorschläge</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {suggestions.filter((d) => !selected.includes(d)).map((dir) => (
+                      <button
+                        key={dir}
+                        onClick={() => toggle(dir)}
+                        className="rounded-full border border-[#2a364b] bg-[#0d1420] px-2 py-0.5 text-[11px] font-mono text-[#8d9ab0] hover:border-cyan-400/40 hover:text-cyan-100"
+                      >
+                        + {dir}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
               <button
                 type="button"
@@ -94,6 +117,8 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
               {building ? <p className="mt-2 text-[11px] text-[#8d9ab0]">Erstlauf richtet das Analyse-Tool ein — kann einen Moment dauern.</p> : null}
               {error ? <p className="mt-2 text-[11px] text-rose-300">{error}</p> : null}
             </div>
+
+            <GraphDirBrowser projectId={project.id} selected={selected} onToggle={toggle} />
 
             {metrics?.nodes ? (
               <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3 text-xs text-[#c3ccdd]">
