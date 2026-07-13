@@ -168,6 +168,20 @@ def test_patch_agent_empty_body_returns_agent(client, admin_headers):
     assert res.json()["id"] == agent["id"]
 
 
+def test_patch_agent_persists_disabled_skills(client, admin_headers):
+    """Der vollständige Agenten-Editor muss Skills pro Agent deaktivieren können."""
+    agent = _create_agent(client, admin_headers, name="Selective Bot")
+
+    res = client.patch(
+        f"/api/agents/{agent['id']}",
+        headers=admin_headers,
+        json={"disabled_skills": ["debugging", "docs"]},
+    )
+
+    assert res.status_code == 200
+    assert res.json()["disabled_skills"] == ["debugging", "docs"]
+
+
 # ---------------------------------------------------------------------------
 # DELETE /api/agents/{id}  — delete
 # ---------------------------------------------------------------------------
