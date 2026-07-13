@@ -116,7 +116,9 @@ export function BuddyPage() {
         await buddyApi.logCmd(text, result.message)
         await chat.reload()
         setLocalMsgs([])
-      } catch {}
+      } catch {
+        /* Log/Reload best-effort — lokale Anzeige bleibt trotzdem gültig */
+      }
       return
     }
     await chat.send(text, files)

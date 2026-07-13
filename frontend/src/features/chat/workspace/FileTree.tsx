@@ -27,7 +27,7 @@ export function FileTree({ agentId, path, onOpen, depth = 0 }: Props) {
           <div key={e.name}>
             <button
               onClick={() => e.is_dir
-                ? setExpanded((s) => { const n = new Set(s); n.has(e.name) ? n.delete(e.name) : n.add(e.name); return n })
+                ? setExpanded((s) => { const n = new Set(s); if (n.has(e.name)) n.delete(e.name); else n.add(e.name); return n })
                 : onOpen(childPath)}
               className="flex w-full items-center gap-1 rounded-[4px] px-1.5 py-0.5 text-left text-[11px] text-[#cdd7e6] hover:bg-[#172133]"
               style={{ paddingLeft: `${6 + depth * 12}px` }}

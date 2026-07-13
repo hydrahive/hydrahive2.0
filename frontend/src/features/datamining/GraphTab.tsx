@@ -71,7 +71,9 @@ export function GraphTab() {
       try {
         const d = await dataminingApi.graph() as TopologyData
         if (d.active_agents) setActiveAgents(new Set(d.active_agents))
-      } catch {}
+      } catch {
+        /* Polling best-effort — nächster Tick versucht es erneut */
+      }
     }, 10000)
     return () => clearInterval(iv)
   }, [!!data])
