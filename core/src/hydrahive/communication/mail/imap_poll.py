@@ -112,8 +112,8 @@ def fetch(cfg: dict, folder: str, *, criterion: str = "ALL",
         if conn is not None:
             try:
                 conn.logout()
-            except Exception:
-                pass
+            except (OSError, imaplib.IMAP4.error):
+                pass  # Verbindung wird ohnehin verworfen — Logout-Fehler egal
     return out
 
 

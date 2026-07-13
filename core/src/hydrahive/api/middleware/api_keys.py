@@ -91,8 +91,10 @@ def verify(plain: str) -> dict | None:
         try:
             if bcrypt.checkpw(encoded, entry["key_hash"].encode()):
                 return {"username": entry["username"], "role": entry["role"]}
-        except Exception:
-            pass
+        except (ValueError, KeyError) as exc:
+            # Defekter/fehlender Hash-Eintrag — Key gilt als ungültig, aber der
+            # Grund darf nicht still verschwinden (Auth-Debugging).
+            logger.warning("API-Key-Prüfung fehlgeschlagen (key_id=%s): %s", key_id, exc)
         return None
 
     # Altformat-Fallback: lineare Schleife mit key_prefix-Filter

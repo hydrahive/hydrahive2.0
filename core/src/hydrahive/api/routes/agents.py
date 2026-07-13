@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Annotated
 
@@ -19,6 +20,8 @@ from hydrahive.api.routes._agent_schemas import (
 )
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import REGISTRY as TOOL_REGISTRY
+
+logger = logging.getLogger(__name__)
 
 _TEMPLATE_DIR = Path(__file__).parent.parent.parent / "agents" / "soul_templates"
 _EXAMPLE_AGENT_DIR = Path(__file__).parents[5] / "examples" / "agents"
@@ -54,8 +57,8 @@ def list_agent_templates(_: Annotated[tuple[str, str], Depends(require_auth)]) -
     for f in sorted(_EXAMPLE_AGENT_DIR.glob("*.json")):
         try:
             result.append(json.loads(f.read_text()))
-        except Exception:
-            pass
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Beispiel-Agent-Template %s übersprungen: %s", f.name, exc)
     return result
 
 

@@ -137,8 +137,8 @@ async def extension_status(manifest: dict) -> dict:
             p = Path(url_file)
             if p.exists():
                 open_url = p.read_text().strip()
-        except Exception:
-            pass
+        except OSError:
+            pass  # optionale URL-Datei nicht lesbar — open_url bleibt leer
 
     return {
         **manifest,

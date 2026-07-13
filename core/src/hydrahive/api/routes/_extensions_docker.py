@@ -72,8 +72,8 @@ async def install_docker_engine_stream():
         rc2, _ = await _run(_sudo(["usermod", "-aG", "docker", current_user]))
         if rc2 == 0:
             yield f"data: {json.dumps({'line': f'Benutzer {current_user} zur docker-Gruppe hinzugefügt'})}\n\n"
-    except Exception:
-        pass
+    except (OSError, KeyError):
+        pass  # Gruppe-Setzen optional (kein usermod/pwd-Eintrag) — Setup läuft weiter
 
     reset_docker_cache()
     yield f"data: {json.dumps({'line': '[OK] Docker ist bereit'})}\n\n"
