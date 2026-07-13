@@ -100,8 +100,8 @@ async def install_extension(ext_id: str, request: Request) -> StreamingResponse:
         body = await request.json()
         user_params = body.get("params", {})
         mode = body.get("mode", "native")
-    except Exception:
-        pass
+    except (ValueError, TypeError):
+        pass  # leerer/kein JSON-Body — Defaults (native, keine Params) gelten
 
     errors = validate_manifest(manifest, mode)
     if errors:
@@ -154,8 +154,8 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
     try:
         body = await request.json()
         mode = body.get("mode", "native")
-    except Exception:
-        pass
+    except (ValueError, TypeError):
+        pass  # leerer/kein JSON-Body — Default-Mode "native" gilt
 
     if mode == "docker":
         docker = manifest.get("docker")
@@ -172,8 +172,8 @@ async def uninstall_extension(ext_id: str, request: Request) -> StreamingRespons
             ]:
                 try:
                     cleanup.unlink(missing_ok=True)
-                except Exception:
-                    pass
+                except OSError:
+                    pass  # Cleanup best-effort — Datei bleibt liegen, unkritisch
             yield "data: {\"done\": true}\n\n"
 
         return StreamingResponse(_generate_docker_down(), media_type="text/event-stream", headers=_SSE_HEADERS)

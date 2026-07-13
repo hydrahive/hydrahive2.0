@@ -77,5 +77,5 @@ def write_docker_credentials(manifest: dict, params: dict[str, str]) -> None:
     cred_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
     try:
         os.chmod(cred_file, 0o640)
-    except Exception:
-        pass
+    except OSError:
+        pass  # Permission-Härtung best-effort (z.B. auf FS ohne chmod)

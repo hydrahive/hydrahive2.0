@@ -1,6 +1,7 @@
 """Federation API — Workstation-Registry + A2A-Card-Refresh + Client-Config-Generator."""
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Annotated
 
@@ -12,6 +13,8 @@ from hydrahive.api.middleware import api_keys as ak
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.db import federation as fed_db
 from hydrahive.federation.registry import fetch_card
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/federation", tags=["federation"])
 
@@ -173,8 +176,10 @@ async def create_client(
         try:
             invite = await create_invite()
             authkey = invite.get("auth_key") or None
-        except Exception:
-            pass
+        except Exception as exc:
+            # Invite ist optional (Tailscale evtl. ohne Auth-Key-Rechte) — der
+            # Rest der Antwort bleibt gültig, aber der Grund soll auffindbar sein.
+            logger.warning("Tailscale-Invite konnte nicht erstellt werden: %s", exc)
         tailscale_section = {
             "ip": ts.get("ip"),
             "hostname": ts.get("hostname"),

@@ -87,7 +87,9 @@ def _explode_row(m: dict, s: dict) -> list[dict]:
     content = m.get("content", "")
     try:
         content = json.loads(content)
-    except Exception:
+    except (json.JSONDecodeError, TypeError):
+        # content ist legitim auch als Roh-String gültig (Plaintext-Message) —
+        # dann bleibt es unverändert. Nur echte Parse-Fehler abfangen.
         pass
 
     msg = Message(

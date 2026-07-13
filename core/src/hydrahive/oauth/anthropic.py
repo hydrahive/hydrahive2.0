@@ -80,8 +80,8 @@ def parse_callback_input(value: str) -> dict[str, str]:
                 out["state"] = qs["state"][0]
             if out:
                 return out
-    except Exception:
-        pass
+    except ValueError:
+        pass  # kein parsebarer URL — Fallback-Parsing unten versuchen
     # 'code#state'-Format wie pi-ai
     if "#" in value:
         code, state = value.split("#", 1)

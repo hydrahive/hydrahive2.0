@@ -13,11 +13,14 @@ Keine dritte hartcodierte Liste — neue Provider sind automatisch abgedeckt.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 from typing import Any, Iterable
 
 from hydrahive.tools.base import ToolResult
+
+logger = logging.getLogger(__name__)
 
 # Werte kürzer als das werden NICHT geschwärzt: ein kurzer Secret-Wert (oder ein
 # leerer) würde sonst als Substring überall im Output matchen und ihn zerstören.
@@ -74,8 +77,10 @@ def agent_secret_values(agent_id: str) -> set[str]:
             pw = (tc.get(block) or {}).get("password", "")
             if len(pw) >= MIN_SECRET_LEN:
                 out.add(pw)
-    except Exception:
-        pass
+    except Exception as exc:
+        # Sicherheitsrelevant: schlägt das Laden fehl, werden diese Secrets NICHT
+        # geschwärzt. Nicht still verschlucken — sonst leakt es unbemerkt.
+        logger.warning("Mail-Secrets für Redaction (agent=%s) nicht ladbar: %s", agent_id, exc)
     return out
 
 

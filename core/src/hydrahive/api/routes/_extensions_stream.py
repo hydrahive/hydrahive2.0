@@ -88,8 +88,8 @@ async def stream_docker(
                 if os.getuid() != 0:
                     sysctl_cmd = ["sudo", "-n"] + sysctl_cmd
                 subprocess.run(sysctl_cmd, capture_output=True, timeout=5)
-            except Exception:
-                pass
+            except (OSError, subprocess.SubprocessError):
+                pass  # sysctl best-effort (fehlende Rechte/kein sudo) — unkritisch
         elif action == "down":
             # Leere .env damit compose keine Warnings über fehlende Variablen wirft
             tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False, dir="/tmp")
