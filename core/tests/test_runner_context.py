@@ -8,6 +8,7 @@ from hydrahive.db.messages import Message
 from hydrahive.runner.context import (
     _sanitize_block,
     extract_tool_uses,
+    has_visible_content,
     heal_orphan_tool_uses,
     merge_text_blocks,
     to_anthropic_messages,
@@ -228,3 +229,36 @@ def test_heal_dedupliziert_doppelte_tool_results():
     results = [b for b in out[1].content if b.get("type") == "tool_result"]
     assert len(results) == 1
     assert results[0]["content"] == "first"
+
+
+def test_has_visible_content_true_for_text():
+    assert has_visible_content([{"type": "text", "text": "Hallo"}]) is True
+
+
+def test_has_visible_content_true_for_tool_use():
+    assert has_visible_content([{"type": "tool_use", "id": "t1", "name": "x", "input": {}}]) is True
+
+
+def test_has_visible_content_false_for_empty():
+    assert has_visible_content([]) is False
+
+
+def test_has_visible_content_false_for_whitespace_only_text():
+    assert has_visible_content([{"type": "text", "text": "   \n  "}]) is False
+
+
+def test_has_visible_content_false_for_reasoning_only():
+    # Nur reasoning/thinking ohne Text/Tool → gilt als leerer Turn.
+    blocks = [
+        {"type": "codex_reasoning", "encrypted_content": "enc", "model": "openai-codex/gpt-5.6-sol"},
+        {"type": "thinking", "thinking": "hmm", "signature": "s"},
+    ]
+    assert has_visible_content(blocks) is False
+
+
+def test_has_visible_content_true_when_text_alongside_reasoning():
+    blocks = [
+        {"type": "codex_reasoning", "encrypted_content": "enc", "model": "m"},
+        {"type": "text", "text": "Antwort"},
+    ]
+    assert has_visible_content(blocks) is True

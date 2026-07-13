@@ -203,3 +203,20 @@ def merge_text_blocks(blocks: list[dict]) -> str:
 def extract_tool_uses(blocks: list[dict]) -> list[dict]:
     """Filter assistant content to just tool_use blocks."""
     return [b for b in blocks if isinstance(b, dict) and b.get("type") == "tool_use"]
+
+
+def has_visible_content(blocks: list[dict]) -> bool:
+    """Ob die Antwort etwas Sichtbares/Handlungsrelevantes enthält.
+
+    Reine reasoning/thinking-Blöcke ohne Text und ohne tool_use zählen NICHT —
+    ein solcher Turn bringt den User nicht weiter und darf nicht als stiller
+    Leerlauf durchgehen (sonst: Chat wirkt „hängt", ohne Fehlermeldung)."""
+    for b in blocks:
+        if not isinstance(b, dict):
+            continue
+        btype = b.get("type")
+        if btype == "tool_use":
+            return True
+        if btype == "text" and (b.get("text") or "").strip():
+            return True
+    return False
