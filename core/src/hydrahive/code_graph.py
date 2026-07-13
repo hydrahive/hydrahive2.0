@@ -90,11 +90,11 @@ def _extract_one(target: Path) -> Path | None:
 def build(project_id: str) -> dict:
     """Baut den Code-Graph über ALLE konfigurierten Scan-Verzeichnisse und führt
     sie zu EINEM Graphen zusammen (merge-graphs), statt sie zu überschreiben."""
-    ensure_installed()
     cfg = get_config(project_id)
     scan_dirs = cfg.get("scan_dirs", [])
     if not scan_dirs:
         raise CodeGraphError("Keine Scan-Verzeichnisse gewählt")
+    ensure_installed()
 
     root = workspace_path(project_id).resolve()
     out = _out_dir(project_id)

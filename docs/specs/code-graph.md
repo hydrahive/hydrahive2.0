@@ -80,8 +80,10 @@ anschauen). Agenten-Tools (query/explain/path) folgen in Etappe 2.
 - [ ] venv wird on-demand gebootstrappt; Kern-Dependencies unverändert.
 - [ ] Backend-Tests grün (config round-trip, dir-validation); Build/Typecheck/ESLint grün.
 
-## Etappe 2 (später, nicht dieser PR)
+## Etappe 2 (umgesetzt)
 Agenten-Tools `graph_query` / `graph_explain` / `graph_path` / `graph_affected`
 (dünne Wrapper über `graphify query/explain/path/affected` auf `graph.json`) +
-Skill „code-graph" (wann Graph statt Grep). Optional MCP-Server. Optional
-Doku-Graphing (LLM).
+`graph_refresh` (baut den Graph via `code_graph.build()` neu, damit der Agent nach
+eigenen Code-Änderungen wieder aktuelle Abfragen bekommt — läuft in `asyncio.to_thread`,
+Scan-Dir-Prüfung vor der graphify-Installation) + Skill „code-graph" (wann Graph
+statt Grep, wann neu bauen). Optional MCP-Server. Optional Doku-Graphing (LLM).
