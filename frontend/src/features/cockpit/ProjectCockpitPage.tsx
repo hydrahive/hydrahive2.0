@@ -254,6 +254,7 @@ export function ProjectCockpitPage() {
       )}
       {editingAgentId && (
         <ProjectAgentEditOverlay
+          key={editingAgentId}
           agentId={editingAgentId}
           onClose={() => setEditingAgentId(null)}
           onSaved={(updated) => setAgents((cur) => cur.map((agent) => agent.id === updated.id ? { ...agent, ...updated } : agent))}

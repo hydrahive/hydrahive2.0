@@ -1,11 +1,11 @@
 import { api } from "@/shared/api-client"
-import type { Agent, AgentCreate, AgentDefaults, AgentTemplate, AgentToolConfig, ToolMeta } from "./types"
+import type { Agent, AgentCreate, AgentDefaults, AgentTemplate, AgentToolConfig, AgentUpdate, ToolMeta } from "./types"
 
 export const agentsApi = {
   list: () => api.get<Agent[]>("/agents"),
   get: (id: string) => api.get<Agent>(`/agents/${id}`),
   create: (req: AgentCreate) => api.post<Agent>("/agents", req),
-  update: (id: string, fields: Partial<AgentCreate & { status: string }>) =>
+  update: (id: string, fields: AgentUpdate) =>
     api.patch<Agent>(`/agents/${id}`, fields),
   delete: (id: string) => api.delete<void>(`/agents/${id}`),
   getSystemPrompt: (id: string) =>
