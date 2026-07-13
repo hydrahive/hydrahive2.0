@@ -45,6 +45,9 @@ anschauen). Agenten-Tools (query/explain/path) folgen in Etappe 2.
 - `ensure_installed()` → legt venv an + pip install (idempotent, mit Timeout).
 - `get_config(project_id)` / `set_config(project_id, scan_dirs)` — scan_dirs gegen
   Path-Traversal validiert (müssen **innerhalb** des Workspace liegen, existieren).
+- `browse_dirs(project_id, rel_path)` → direkte Unterordner EINER Ebene
+  ({path, parent, dirs:[{rel, name, has_children}]}) für granulare Auswahl
+  beliebiger Verzeichnisse (z.B. `sdk/` tief im Baum), Traversal-geschützt.
 - `build(project_id)` → für jedes scan_dir `graphify update`; danach die
   Einzelgraphen per `merge-graphs` zu **einem** Gesamtgraphen mergen und via
   `cluster-only` (`GRAPHIFY_VIZ_NODE_LIMIT` hochgesetzt) `graph.html` + Report
@@ -60,13 +63,16 @@ anschauen). Agenten-Tools (query/explain/path) folgen in Etappe 2.
 - Routen (neuer Router `code_graph.py`, require_auth + _authorize):
   - `GET  /api/projects/{id}/code-graph/status`
   - `GET/PUT /api/projects/{id}/code-graph/config`
+  - `GET  /api/projects/{id}/code-graph/config/browse?path=<rel>`
   - `POST /api/projects/{id}/code-graph/build`
   - Report/HTML über `status` (Pfade) → Frontend lädt via `/api/files`.
 
 ### Frontend
 - `projectsApi`-Erweiterung bzw. `codeGraphApi` (status/config/build).
-- **`ProjectGraphOverlay`**: Verzeichnis-Auswahl (Checkbox-Liste aus Vorschlägen +
-  manuell), „Graph bauen" (zeigt Fortschritt), nach Build: Metriken + God-Nodes +
+- **`ProjectGraphOverlay`**: Verzeichnis-Auswahl (gewählte Ordner als entfernbare
+  Chips + Vorschlags-Quick-Picks + navigierbarer `GraphDirBrowser` mit Breadcrumb
+  für beliebige Unterordner), „Graph bauen" (zeigt Fortschritt), nach Build:
+  Metriken + God-Nodes +
   echte Import-Zyklen (rot mit vollen Pfaden; grüne „keine Zyklen"-Bestätigung
   wenn sauber), und die interaktive `graph.html` als iframe
   (`/api/files?path=…`). Bootstrap-Hinweis, falls venv erst eingerichtet wird.

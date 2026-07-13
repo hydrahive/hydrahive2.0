@@ -60,6 +60,57 @@ def suggest_scan_dirs(project_id: str) -> list[str]:
     return found[:20]
 
 
+def _has_scannable_child(d: Path) -> bool:
+    """Ob ein Ordner mindestens einen nicht-ignorierten Unterordner hat
+    (für das Aufklapp-Chevron im Verzeichnis-Browser)."""
+    try:
+        for child in d.iterdir():
+            if child.is_dir() and child.name not in IGNORE_DIRS and not child.name.startswith("."):
+                return True
+    except OSError:
+        pass
+    return False
+
+
+def browse_dirs(project_id: str, rel_path: str = "") -> dict:
+    """Direkte Unterverzeichnisse EINER Ebene für den Verzeichnis-Browser.
+
+    Erlaubt granulare Auswahl beliebiger Ordner (z.B. `sdk/` tief im Baum),
+    nicht nur die Namens-Heuristik aus suggest_scan_dirs. Traversal-geschützt:
+    nur Verzeichnisse innerhalb des Workspace werden aufgelistet.
+    Returns: {path, parent, dirs:[{rel, name, has_children}]}.
+    """
+    root = workspace_path(project_id).resolve()
+    if not root.is_dir():
+        return {"path": "", "parent": None, "dirs": []}
+    target = (root / rel_path).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        target = root  # Traversal-Versuch → auf Workspace-Wurzel zurückfallen
+    if not target.is_dir():
+        target = root
+
+    dirs: list[dict] = []
+    try:
+        for child in sorted(target.iterdir(), key=lambda c: c.name.lower()):
+            if not child.is_dir() or child.name in IGNORE_DIRS or child.name.startswith("."):
+                continue
+            dirs.append({
+                "rel": child.relative_to(root).as_posix(),
+                "name": child.name,
+                "has_children": _has_scannable_child(child),
+            })
+    except OSError:
+        pass
+
+    cur_rel = target.relative_to(root).as_posix() if target != root else ""
+    parent = None if target == root else (
+        target.parent.relative_to(root).as_posix() if target.parent != root else ""
+    )
+    return {"path": cur_rel, "parent": parent, "dirs": dirs}
+
+
 def validate_scan_dirs(project_id: str, scan_dirs: list[str]) -> list[str]:
     """Filtert scan_dirs auf existierende Verzeichnisse INNERHALB des Workspace.
     Path-Traversal (../, absolute Pfade außerhalb) wird verworfen."""
