@@ -74,7 +74,7 @@ export function useChat(sessionId: string | null) {
         const trimmed = resendMessageId
           ? s.messages.slice(0, s.messages.findIndex((m) => m.id === resendMessageId))
           : s.messages
-        return { ...s, messages: [...trimmed, userMsg, liveAssistant], busy: true, compacting: false, iteration: 1, error: null, errorKind: null }
+        return { ...s, messages: [...trimmed, userMsg, liveAssistant], busy: true, compacting: false, iteration: 1, error: null, errorKind: null, lastTurnTokens: null }
       })
 
       const blocks: ContentBlock[] = []
