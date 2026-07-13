@@ -21,10 +21,9 @@ interface Props {
   activeSession?: Session | null
   activeAgent?: AgentBrief | null
   onSessionChanged?: (session: Session) => void
-  onAgentChanged?: (agent: AgentBrief) => void
 }
 
-export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, projects, onSelect, onDelete, onNew, activeSession, activeAgent, onSessionChanged, onAgentChanged }: Props) {
+export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, projects, onSelect, onDelete, onNew, activeSession, activeAgent, onSessionChanged }: Props) {
   const { t } = useTranslation("chat")
   const { t: tCommon } = useTranslation("common")
   const [tab, setTab] = useState<Tab>("direct")
@@ -107,7 +106,6 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
           session={activeSession}
           agent={activeAgent}
           onSessionChanged={onSessionChanged}
-          onAgentChanged={onAgentChanged}
         />
       )}
     </div>

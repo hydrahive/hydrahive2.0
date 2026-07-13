@@ -225,8 +225,6 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
 
   const handleSessionChanged = (updated: Session) =>
     setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
-  const handleAgentChanged = (updated: AgentBrief) =>
-    setAgents((cur) => cur.map((a) => a.id === updated.id ? updated : a))
 
   async function createPreferredSession() {
     const agent = activeAgent ?? preferredAgent ?? agents.find((a) => !a.is_buddy) ?? agents[0]
@@ -357,7 +355,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               knownAgentIds={knownAgentIds} buddyAgentIds={buddyAgentIds} projects={projects}
               onSelect={setActiveId} onDelete={handleDelete} onNew={() => setShowNew(true)}
               activeSession={activeSession} activeAgent={activeAgent}
-              onSessionChanged={handleSessionChanged} onAgentChanged={handleAgentChanged}
+              onSessionChanged={handleSessionChanged}
             />
           }
           center={embeddedCenter}
