@@ -26,7 +26,7 @@ export function ExtensionsPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { setExtensions(await fetchExtensions()) } catch {}
+    try { setExtensions(await fetchExtensions()) } catch { /* Liste bleibt leer bei Fehler */ }
     setLoading(false)
   }, [])
 
@@ -74,7 +74,7 @@ export function ExtensionsPage() {
             const obj = JSON.parse(dataLine.slice(5).trim())
             if (obj.line !== undefined) setDockerInstallLog((l) => [...(l ?? []), obj.line])
             if (obj.done) { load(); break }
-          } catch {}
+          } catch { /* unvollständige SSE-Zeile überspringen */ }
         }
       }
     } catch (e) {

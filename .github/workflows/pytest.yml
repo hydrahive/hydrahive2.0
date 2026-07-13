@@ -54,3 +54,10 @@ jobs:
       - name: Type-check
         working-directory: frontend
         run: npx tsc --noEmit
+
+      - name: ESLint
+        working-directory: frontend
+        # Blockiert nur bei echten Fehlern (severity=error). Warnungen (react-
+        # hooks-v7-Rauschen, exhaustive-deps-Altfälle, explizite any) bleiben
+        # sichtbar, brechen den Build aber nicht.
+        run: npx eslint .

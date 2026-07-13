@@ -48,7 +48,7 @@ export function streamAction(
           const obj = JSON.parse(dataLine.slice(5).trim())
           if (obj.done) { onDone(); return }
           if (obj.line !== undefined) onLine(obj.line)
-        } catch {}
+        } catch { /* unvollständige SSE-Zeile überspringen */ }
       }
     }
   }).catch((e) => {
