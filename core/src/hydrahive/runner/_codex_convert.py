@@ -92,7 +92,15 @@ def messages_to_codex(
                 elif btype == "codex_reasoning" and b.get("model") == model:
                     encrypted = b.get("encrypted_content")
                     if encrypted:
-                        items.append({"type": "reasoning", "encrypted_content": encrypted})
+                        # Die Responses-API verlangt bei zurückgesendeten reasoning-
+                        # Items ein `summary`-Feld (400 "Missing required parameter:
+                        # input[..].summary" sonst). Wir führen keine Summaries mit,
+                        # also leere Liste — encrypted_content trägt den State.
+                        items.append({
+                            "type": "reasoning",
+                            "encrypted_content": encrypted,
+                            "summary": [],
+                        })
                 elif btype == "tool_use":
                     tool_uses.append(b)
             joined = "".join(text_parts)
