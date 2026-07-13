@@ -38,6 +38,34 @@ export interface Agent {
   tool_config?: AgentToolConfig
 }
 
+export type AgentUpdate = Partial<Pick<Agent,
+  | "name"
+  | "owner"
+  | "llm_model"
+  | "fallback_models"
+  | "tools"
+  | "mcp_servers"
+  | "description"
+  | "temperature"
+  | "max_tokens"
+  | "thinking_budget"
+  | "reasoning_effort"
+  | "status"
+  | "domain"
+  | "compact_model"
+  | "compact_tool_result_limit"
+  | "compact_reserve_tokens"
+  | "compact_threshold_pct"
+  | "compact_max_turns"
+  | "tool_result_max_chars"
+  | "cache_ttl"
+  | "max_iterations"
+  | "disabled_skills"
+  | "require_tool_confirm"
+  | "longterm_memory"
+  | "tool_config"
+>>
+
 export interface MailAccountConfig {
   host?: string
   port?: number

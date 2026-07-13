@@ -58,6 +58,7 @@ class AgentUpdate(BaseModel):
     cache_ttl: str | None = None
     require_tool_confirm: bool | None = None
     longterm_memory: bool | None = None
+    disabled_skills: list[str] | None = None
     tool_config: dict | None = None
 
 
