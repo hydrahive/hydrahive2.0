@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next"
 import { ModelPicker } from "./ModelPicker"
 import { ReasoningEffortPill } from "./ReasoningEffortPill"
 import { chatApi } from "./api"
-import { agentsApi } from "@/features/agents/api"
 import { useEffortLevels } from "@/features/llm/effort"
 import type { AgentBrief, Session } from "./types"
 
@@ -10,15 +9,17 @@ interface Props {
   session: Session
   agent: AgentBrief
   onSessionChanged: (session: Session) => void
-  onAgentChanged?: (agent: AgentBrief) => void
 }
 
 /** Modell-Picker + Reasoning-Effort für die aktive Session/Agent.
- *  Kapselt die Override-Logik (Agent-Default vs. Session-Override) und die
- *  modellabhängige Effort-Unterstützung an einer Stelle. */
-export function SessionModelControls({ session, agent, onSessionChanged, onAgentChanged }: Props) {
+ *  Das Modell wird als SESSION-Override (session.metadata.model_override)
+ *  gesetzt — session-lokal, ohne Admin-Rechte, und der Runner liest es pro
+ *  Iteration frisch (greift also ab dem nächsten Turn/Schritt). Der Agent-
+ *  Default bleibt unangetastet; „Reset" nimmt den Override wieder zurück. */
+export function SessionModelControls({ session, agent, onSessionChanged }: Props) {
   const { t } = useTranslation("chat")
-  const activeModel = (session.metadata as { model_override?: string })?.model_override || agent.llm_model || ""
+  const override = (session.metadata as { model_override?: string })?.model_override
+  const activeModel = override || agent.llm_model || ""
   const effortLevels = useEffortLevels(activeModel)
   const supportsReasoningEffort = effortLevels.length > 0
 
@@ -28,16 +29,17 @@ export function SessionModelControls({ session, agent, onSessionChanged, onAgent
         <span className="text-[9px] uppercase tracking-wider text-zinc-600 w-9 shrink-0">{t("model")}</span>
         <div className="flex-1 min-w-0">
           <ModelPicker
-            current={agent.llm_model}
-            hint={t("model_hint")}
+            current={activeModel}
+            hint={override ? t("model_hint") : `${t("model_hint")} · ${agent.llm_model}`}
             fullWidth
+            showReset={!!override}
+            onReset={async () => {
+              const updated = await chatApi.updateSession(session.id, { model_override: "" })
+              onSessionChanged(updated)
+            }}
             onPick={async (m) => {
-              const updatedAgent = await agentsApi.update(agent.id, { llm_model: m })
-              onAgentChanged?.({ ...agent, llm_model: updatedAgent.llm_model })
-              if ((session.metadata as { model_override?: string })?.model_override) {
-                const updated = await chatApi.updateSession(session.id, { model_override: "" })
-                onSessionChanged(updated)
-              }
+              const updated = await chatApi.updateSession(session.id, { model_override: m })
+              onSessionChanged(updated)
             }}
           />
         </div>
