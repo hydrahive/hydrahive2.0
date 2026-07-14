@@ -16,7 +16,7 @@ const VIEW_COPY: Record<ProjectInsightView, { eyebrow: string; title: string; fo
   sessions: {
     eyebrow: "Projektverlauf",
     title: "Sessions",
-    footer: "Ein Klick auf eine Session öffnet sie direkt in der Werkstatt.",
+    footer: "Ein Klick auf eine Session öffnet sie direkt im Cockpit-Chat.",
   },
   audit: {
     eyebrow: "Nachvollziehbarkeit",
@@ -25,10 +25,11 @@ const VIEW_COPY: Record<ProjectInsightView, { eyebrow: string; title: string; fo
   },
 }
 
-export function ProjectInsightsOverlay({ project, view, onClose }: {
+export function ProjectInsightsOverlay({ project, view, onClose, onOpenSession }: {
   project: Project
   view: ProjectInsightView
   onClose: () => void
+  onOpenSession: (sessionId: string) => void
 }) {
   const copy = VIEW_COPY[view]
   return (
@@ -45,7 +46,7 @@ export function ProjectInsightsOverlay({ project, view, onClose }: {
         <main className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-4">
             {view === "stats" && <StatsTab projectId={project.id} />}
-            {view === "sessions" && <SessionsTab projectId={project.id} />}
+            {view === "sessions" && <SessionsTab projectId={project.id} onOpenSession={onOpenSession} />}
             {view === "audit" && <AuditTab projectId={project.id} />}
           </div>
         </main>

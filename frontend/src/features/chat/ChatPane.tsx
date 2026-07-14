@@ -46,9 +46,13 @@ interface ChatPaneProps {
   projectId?: string | null
   showSidePanels?: boolean
   preferredAgentId?: string | null
+  /** Von außen angeforderte Session in-place öffnen (z. B. Klick im Auswerten-Panel). */
+  openSessionRequest?: string | null
+  /** Wird aufgerufen, sobald openSessionRequest angewendet wurde (Parent kann zurücksetzen). */
+  onSessionRequestHandled?: () => void
 }
 
-export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true, preferredAgentId = null }: ChatPaneProps) {
+export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true, preferredAgentId = null, openSessionRequest = null, onSessionRequestHandled }: ChatPaneProps) {
   const { t } = useTranslation("chat")
   const deepLinkApplied = useRef(false)
 
@@ -101,6 +105,13 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     const current = sessions.find((s) => s.id === activeId)
     if (current && current.project_id !== projectId) setActiveId(null)
   }, [projectId, activeId, sessions])
+
+  // Externe Anforderung (z. B. Session-Klick im Auswerten-Panel) in-place öffnen.
+  useEffect(() => {
+    if (!openSessionRequest) return
+    setActiveId(openSessionRequest)
+    onSessionRequestHandled?.()
+  }, [openSessionRequest, onSessionRequestHandled])
 
   async function handleNew(agentId: string, title: string, projectId?: string) {
     if (activeSession?.project_id) await chatApi.handover(activeSession.id)

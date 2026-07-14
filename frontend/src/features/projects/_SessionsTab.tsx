@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react"
 import { MessageSquare, Loader2, ExternalLink } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
 import type { ProjectSession } from "./types"
 
 interface Props {
   projectId: string
+  /** Session in-place im Cockpit-Chat öffnen statt in die Werkstatt zu navigieren. */
+  onOpenSession: (sessionId: string) => void
 }
 
-export function SessionsTab({ projectId }: Props) {
+export function SessionsTab({ projectId, onOpenSession }: Props) {
   const { t, i18n } = useTranslation("projects")
-  const navigate = useNavigate()
   const [sessions, setSessions] = useState<ProjectSession[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -38,7 +38,7 @@ export function SessionsTab({ projectId }: Props) {
       {sessions.map((s) => (
         <button
           key={s.id}
-          onClick={() => navigate(`/werkstatt/${s.id}`)}
+          onClick={() => onOpenSession(s.id)}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[6%] hover:border-violet-500/30 hover:bg-violet-500/[4%] transition-all group text-left"
         >
           <MessageSquare size={14} className="text-zinc-500 group-hover:text-violet-400 flex-shrink-0" />
