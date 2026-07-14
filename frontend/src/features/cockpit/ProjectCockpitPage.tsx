@@ -45,6 +45,7 @@ export function ProjectCockpitPage() {
   const [serversOpen, setServersOpen] = useState(false)
   const [mountsOpen, setMountsOpen] = useState(false)
   const [insightView, setInsightView] = useState<ProjectInsightView | null>(null)
+  const [openSessionRequest, setOpenSessionRequest] = useState<string | null>(null)
   const [gitOpen, setGitOpen] = useState(false)
   const [graphOpen, setGraphOpen] = useState(false)
   const [gitRevision, setGitRevision] = useState(0)
@@ -200,7 +201,14 @@ export function ProjectCockpitPage() {
 
         <main className="min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
           {activeProjectId ? (
-            <ChatPane key={`${activeProjectId}:${selectedAgentId}:${selectedAgentModel}`} projectId={activeProjectId} showSidePanels={false} preferredAgentId={selectedAgentId} />
+            <ChatPane
+              key={`${activeProjectId}:${selectedAgentId}:${selectedAgentModel}`}
+              projectId={activeProjectId}
+              showSidePanels={false}
+              preferredAgentId={selectedAgentId}
+              openSessionRequest={openSessionRequest}
+              onSessionRequestHandled={() => setOpenSessionRequest(null)}
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-zinc-600">Bitte ein Projekt auswählen.</div>
           )}
@@ -217,7 +225,14 @@ export function ProjectCockpitPage() {
       )}
       {integrationsOpen && activeProject && <ProjectIntegrationsOverlay project={activeProject} onClose={() => setIntegrationsOpen(false)} onSaved={(updated) => setProjects((current) => current.map((project) => project.id === updated.id ? updated : project))} />}
       {gitOpen && activeProject && <ProjectGitOverlay project={activeProject} onClose={() => setGitOpen(false)} onChanged={() => setGitRevision((revision) => revision + 1)} />}
-      {insightView && activeProject && <ProjectInsightsOverlay project={activeProject} view={insightView} onClose={() => setInsightView(null)} />}
+      {insightView && activeProject && (
+        <ProjectInsightsOverlay
+          project={activeProject}
+          view={insightView}
+          onClose={() => setInsightView(null)}
+          onOpenSession={(sessionId) => { setOpenSessionRequest(sessionId); setInsightView(null) }}
+        />
+      )}
       {graphOpen && activeProject && <ProjectGraphOverlay project={activeProject} onClose={() => setGraphOpen(false)} />}
       {mountsOpen && activeProject && <ProjectMountsOverlay project={activeProject} onClose={() => setMountsOpen(false)} />}
       {serversOpen && activeProject && <ProjectServersOverlay project={activeProject} onClose={() => setServersOpen(false)} />}
