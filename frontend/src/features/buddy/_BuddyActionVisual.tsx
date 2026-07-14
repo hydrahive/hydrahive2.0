@@ -13,13 +13,15 @@ interface Props {
   speaking: boolean
 }
 
+// Der Asset-Prefix darf nicht der BrowserRouter-Route `/buddy` entsprechen:
+// nginx würde das echte Verzeichnis vor dem SPA-Fallback wählen (F5 → 403).
 const VIDEOS: Record<BuddyActionPhase, { src: string; label: string; loop: boolean }> = {
-  idle: { src: "/buddy/buddy-idle.mp4", label: "Buddy wartet", loop: true },
-  starting: { src: "/buddy/buddy-idle-to-working.mp4", label: "Buddy beginnt zu arbeiten", loop: false },
-  working: { src: "/buddy/buddy-working.mp4", label: "Buddy arbeitet", loop: true },
-  success: { src: "/buddy/buddy-success.mp4", label: "Buddy hat die Aufgabe geschafft", loop: false },
-  error: { src: "/buddy/buddy-error.mp4", label: "Bei Buddys Arbeit ist ein Fehler aufgetreten", loop: false },
-  stopping: { src: "/buddy/buddy-working-to-idle.mp4", label: "Buddy beendet die Arbeit", loop: false },
+  idle: { src: "/buddy-media/buddy-idle.mp4", label: "Buddy wartet", loop: true },
+  starting: { src: "/buddy-media/buddy-idle-to-working.mp4", label: "Buddy beginnt zu arbeiten", loop: false },
+  working: { src: "/buddy-media/buddy-working.mp4", label: "Buddy arbeitet", loop: true },
+  success: { src: "/buddy-media/buddy-success.mp4", label: "Buddy hat die Aufgabe geschafft", loop: false },
+  error: { src: "/buddy-media/buddy-error.mp4", label: "Bei Buddys Arbeit ist ein Fehler aufgetreten", loop: false },
+  stopping: { src: "/buddy-media/buddy-working-to-idle.mp4", label: "Buddy beendet die Arbeit", loop: false },
 }
 
 export function BuddyActionVisual({ activity, speaking }: Props) {
