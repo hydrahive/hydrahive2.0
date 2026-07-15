@@ -17,7 +17,7 @@ export const CockpitButton = forwardRef<HTMLButtonElement, Props>(function Cockp
       {...props}
       className={cn(
         "rounded-[4px] border px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
-        tone === "primary" && "border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] text-white hover:brightness-110",
+        tone === "primary" && "border-[#69d7ff]/45 bg-[#163248] text-[#c8f2ff] hover:border-[#69d7ff]/70 hover:bg-[#1b3d56]",
         tone === "danger" && "border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15",
         tone === "default" && "border-[#2a364b] bg-[#172133] text-[#e8eef8] hover:border-[#46617f] hover:bg-[#1b2536]",
         className,

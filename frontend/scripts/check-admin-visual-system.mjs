@@ -7,6 +7,15 @@ import { resolve } from "node:path"
  * rules in docs/specs/admin-cockpit-visual-system.md.
  */
 const migratedFiles = [
+  "src/features/cockpit/CockpitButton.tsx",
+  "src/features/cockpit/admin/ui/AdminAction.tsx",
+  "src/features/cockpit/admin/ui/adminActionClass.ts",
+  "src/features/cockpit/admin/ui/AdminDialog.tsx",
+  "src/features/cockpit/admin/ui/AdminFeedback.tsx",
+  "src/features/cockpit/admin/ui/AdminField.tsx",
+  "src/features/cockpit/admin/ui/AdminPanel.tsx",
+  "src/features/cockpit/admin/ui/AdminStat.tsx",
+  "src/features/cockpit/admin/ui/AdminStatus.tsx",
   "src/features/cockpit/admin/SystemOverlay.tsx",
   "src/features/cockpit/admin/SystemSettingsOverlay.tsx",
   "src/features/system/StatCard.tsx",
