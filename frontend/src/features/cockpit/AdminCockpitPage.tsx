@@ -12,17 +12,18 @@ import { CredentialsOverlay } from "./admin/CredentialsOverlay"
 import { ThemesOverlay } from "./admin/ThemesOverlay"
 import { McpOverlay } from "./admin/McpOverlay"
 import { LlmOverlay } from "./admin/LlmOverlay"
+import { ExtensionsOverlay } from "./admin/ExtensionsOverlay"
 
 /** Admin-Bereiche, die bereits als eingerastetes Cockpit-Overlay existieren.
  *  Alles andere fällt (noch) auf die bestehende Legacy-Seite via openLocalPath. */
-type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm"
+type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions"
 
 const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
 // action.ids mit Overlay werden eingerastet, der Rest per Pfad geöffnet.
 const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
-const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules", plugins: "plugins", credentials: "credentials" }
+const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules", plugins: "plugins", credentials: "credentials", extensions: "extensions" }
 // Pfad-basierte Kacheln (Ops/Integrationen ohne action.id) auf Overlays mappen.
-const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials", "/themes": "themes", "/mcp": "mcp", "/llm": "llm" }
+const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials", "/themes": "themes", "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions" }
 
 const opsLinks = [
   { title: "LLM", path: "/llm", icon: Brain },
@@ -185,6 +186,7 @@ export function AdminCockpitPage() {
       {overlay === "themes" && <ThemesOverlay onClose={() => setOverlay(null)} />}
       {overlay === "mcp" && <McpOverlay onClose={() => setOverlay(null)} />}
       {overlay === "llm" && <LlmOverlay onClose={() => setOverlay(null)} />}
+      {overlay === "extensions" && <ExtensionsOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
 }
