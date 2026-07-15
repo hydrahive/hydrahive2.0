@@ -8,6 +8,7 @@ import { resolve } from "node:path"
  */
 const migratedFiles = [
   "src/features/cockpit/CockpitButton.tsx",
+  "src/features/cockpit/AdminCockpitPage.tsx",
   "src/features/cockpit/admin/ui/AdminAction.tsx",
   "src/features/cockpit/admin/ui/adminActionClass.ts",
   "src/features/cockpit/admin/ui/AdminDialog.tsx",
@@ -18,11 +19,25 @@ const migratedFiles = [
   "src/features/cockpit/admin/ui/AdminStatus.tsx",
   "src/features/cockpit/admin/SystemOverlay.tsx",
   "src/features/cockpit/admin/SystemSettingsOverlay.tsx",
+  "src/features/system/SystemPage.tsx",
+  "src/features/system/SettingsPage.tsx",
   "src/features/system/StatCard.tsx",
   "src/features/system/HealthBar.tsx",
   "src/features/system/_systemHelpers.tsx",
   "src/features/system/systemFormat.ts",
   "src/features/system/VoiceInstallModal.tsx",
+  "src/features/system/AgentLinkCard.tsx",
+  "src/features/system/_AgentLinkKnownAgents.tsx",
+  "src/features/system/TailscaleCard.tsx",
+  "src/features/system/_TailscaleConnectedView.tsx",
+  "src/features/system/_TailscaleInviteSection.tsx",
+  "src/features/system/_TailscaleLoginForm.tsx",
+  "src/features/system/BridgeCard.tsx",
+  "src/features/system/SambaCard.tsx",
+  "src/features/system/BackupCard.tsx",
+  "src/features/system/BackupRestoreModal.tsx",
+  "src/features/system/MigrationCard.tsx",
+  "src/features/system/MigrationModal.tsx",
   "src/shared/RestartModal.tsx",
 ]
 

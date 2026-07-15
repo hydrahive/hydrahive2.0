@@ -1,8 +1,13 @@
-import type { CSSProperties } from "react"
 import { useEffect, useRef, useState } from "react"
-import { CheckCircle2, Copy, Eye, EyeOff, FolderOpen, Loader2, Play, X, XCircle } from "lucide-react"
+import { CheckCircle2, Copy, Eye, EyeOff, FolderOpen, Play, X, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { rgbFor } from "@/shared/colors"
+import {
+  AdminAction,
+  AdminCodeBlock,
+  AdminFeedback,
+  AdminPanel,
+  AdminStatus,
+} from "@/features/cockpit/admin/ui"
 import { systemApi } from "./api"
 
 type Phase = "idle" | "running" | "done" | "failed"
@@ -16,28 +21,31 @@ export function SambaCard() {
   const [error, setError] = useState<string | null>(null)
   const [showPwd, setShowPwd] = useState(false)
   const [copied, setCopied] = useState(false)
-  const logRef = useRef<HTMLPreElement>(null)
+  const logRef = useRef<HTMLDivElement>(null)
 
   async function reload() {
     try { setStatus(await systemApi.sambaStatus()) }
     catch { /* leise */ }
   }
 
-  useEffect(() => { reload() }, [])
+  useEffect(() => {
+    const initialLoad = setTimeout(() => { void reload() }, 0)
+    return () => clearTimeout(initialLoad)
+  }, [])
 
   useEffect(() => {
     if (phase !== "running") return
     let alive = true
     async function pull() {
       try {
-        const r = await systemApi.sambaLog(200)
+        const response = await systemApi.sambaLog(200)
         if (!alive) return
-        if (r.exists) setLog(r.lines)
+        if (response.exists) setLog(response.lines)
       } catch { /* ignore */ }
     }
-    pull()
-    const t = setInterval(pull, 1500)
-    return () => { alive = false; clearInterval(t) }
+    void pull()
+    const interval = setInterval(pull, 1500)
+    return () => { alive = false; clearInterval(interval) }
   }, [phase])
 
   useEffect(() => {
@@ -50,11 +58,11 @@ export function SambaCard() {
     catch (e) { setPhase("failed"); setError(e instanceof Error ? e.message : ""); return }
     const startedAt = Date.now()
     while (Date.now() - startedAt < 300_000) {
-      await new Promise((r) => setTimeout(r, 2000))
+      await new Promise((resolve) => setTimeout(resolve, 2000))
       try {
-        const s = await systemApi.sambaStatus()
-        if (s.installed && s.running) {
-          setStatus(s); setPhase("done"); return
+        const nextStatus = await systemApi.sambaStatus()
+        if (nextStatus.installed && nextStatus.running) {
+          setStatus(nextStatus); setPhase("done"); return
         }
       } catch { /* ignore */ }
     }
@@ -67,81 +75,84 @@ export function SambaCard() {
     setCopied(true); setTimeout(() => setCopied(false), 1500)
   }
 
-  return (
-    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/system") } as CSSProperties}>
-      <div className="flex items-center gap-3">
-        <FolderOpen size={16} className="text-amber-300 flex-shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-zinc-200">{t("samba.title")}</p>
-          <p className="text-[11px] text-zinc-500 mt-0.5">{t("samba.subtitle")}</p>
-        </div>
-        {status && (
-          status.installed && status.running ? (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/[8%] border border-emerald-500/20 text-[10px] text-emerald-300">
-              <CheckCircle2 size={10} /> {t("samba.running")}
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/[8%] border border-amber-500/20 text-[10px] text-amber-300">
-              <XCircle size={10} /> {t("samba.not_installed")}
-            </span>
-          )
-        )}
-      </div>
+  const isRunning = Boolean(status?.installed && status.running)
 
+  return (
+    <AdminPanel
+      title={t("samba.title")}
+      description={t("samba.subtitle")}
+      icon={FolderOpen}
+      actions={status ? (
+        <AdminStatus tone={isRunning ? "success" : "warning"} icon={isRunning ? CheckCircle2 : XCircle}>
+          {isRunning ? t("samba.running") : t("samba.not_installed")}
+        </AdminStatus>
+      ) : undefined}
+      bodyClassName="space-y-3"
+    >
       {status?.installed && status.password_set && (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-          <span className="text-zinc-500">{t("samba.user")}</span>
-          <span className="text-zinc-300 font-mono">{status.user}</span>
-          <span className="text-zinc-500">{t("samba.password")}</span>
-          <span className="flex items-center gap-1.5">
-            <span className="text-zinc-300 font-mono truncate flex-1">
+        <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
+          <span className="text-[#8d9ab0]">{t("samba.user")}</span>
+          <span className="font-mono text-[#e8eef8]">{status.user}</span>
+          <span className="text-[#8d9ab0]">{t("samba.password")}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="min-w-0 flex-1 truncate font-mono text-[#e8eef8]">
               {showPwd ? status.password : "••••••••••••"}
             </span>
-            <button onClick={() => setShowPwd(!showPwd)}
-              className="p-0.5 text-zinc-500 hover:text-zinc-300">
+            <AdminAction
+              tone="ghost"
+              className="px-2"
+              onClick={() => setShowPwd(!showPwd)}
+              aria-label={t("samba.password")}
+              title={t("samba.password")}
+            >
               {showPwd ? <EyeOff size={11} /> : <Eye size={11} />}
-            </button>
-            <button onClick={copyPassword}
-              className="p-0.5 text-zinc-500 hover:text-zinc-300"
-              title={copied ? t("samba.copied") : t("samba.copy")}>
+            </AdminAction>
+            <AdminAction
+              tone="ghost"
+              className="px-2"
+              onClick={copyPassword}
+              aria-label={copied ? t("samba.copied") : t("samba.copy")}
+              title={copied ? t("samba.copied") : t("samba.copy")}
+            >
               {copied ? <CheckCircle2 size={11} className="text-emerald-400" /> : <Copy size={11} />}
-            </button>
+            </AdminAction>
           </span>
         </div>
       )}
 
       {!status?.installed && phase === "idle" && (
-        <button onClick={start}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-medium">
+        <AdminAction onClick={start} tone="primary">
           <Play size={11} /> {t("samba.setup")}
-        </button>
+        </AdminAction>
       )}
 
       {(phase === "running" || phase === "done" || phase === "failed") && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs">
-            {phase === "running" && (
-              <><Loader2 size={12} className="animate-spin text-amber-300" /><span className="text-amber-300">{t("samba.running_setup")}</span></>
-            )}
-            {phase === "done" && (
-              <><CheckCircle2 size={12} className="text-emerald-400" /><span className="text-emerald-300">{t("samba.done")}</span></>
-            )}
-            {phase === "failed" && (
-              <><XCircle size={12} className="text-rose-400" /><span className="text-rose-300">{error ?? t("samba.failed")}</span></>
-            )}
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              {phase === "running" && <AdminFeedback tone="warning" loading>{t("samba.running_setup")}</AdminFeedback>}
+              {phase === "done" && <AdminFeedback tone="success">{t("samba.done")}</AdminFeedback>}
+              {phase === "failed" && <AdminFeedback tone="danger">{error ?? t("samba.failed")}</AdminFeedback>}
+            </div>
             {(phase === "done" || phase === "failed") && (
-              <button onClick={() => { setPhase("idle"); setLog([]) }}
-                className="ml-auto p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
+              <AdminAction
+                tone="ghost"
+                className="px-2"
+                aria-label={tCommon("actions.close")}
+                title={tCommon("actions.close")}
+                onClick={() => { setPhase("idle"); setLog([]) }}
+              >
                 <X size={11} />
-              </button>
+              </AdminAction>
             )}
           </div>
-          <pre ref={logRef}
-            className="rounded-md border border-white/[6%] bg-zinc-950 p-2 text-[11px] font-mono leading-relaxed text-zinc-300 overflow-x-auto whitespace-pre-wrap min-h-[120px] max-h-[260px]">
-            {log.length > 0 ? log.join("") : <span className="text-zinc-600">{tCommon("status.empty")}</span>}
-          </pre>
+          <div ref={logRef} className="max-h-[260px] min-h-[120px] overflow-auto">
+            <AdminCodeBlock className="min-h-[120px]">
+              {log.length > 0 ? log.join("") : tCommon("status.empty")}
+            </AdminCodeBlock>
+          </div>
         </div>
       )}
-    </div>
+    </AdminPanel>
   )
 }
