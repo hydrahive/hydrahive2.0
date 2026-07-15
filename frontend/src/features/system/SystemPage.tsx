@@ -21,7 +21,8 @@ import { HealthBar } from "./HealthBar"
 import { StatCard } from "./StatCard"
 import { VoiceInstallModal } from "./VoiceInstallModal"
 import { useVoiceInstall } from "./useVoiceInstall"
-import { PathRow, formatBytes, formatUptime } from "./_systemHelpers"
+import { PathRow } from "./_systemHelpers"
+import { formatBytes, formatUptime } from "./systemFormat"
 
 const REFRESH_MS = 10_000
 

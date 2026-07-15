@@ -20,7 +20,10 @@ const migratedFiles = [
   "src/features/cockpit/admin/SystemSettingsOverlay.tsx",
   "src/features/system/StatCard.tsx",
   "src/features/system/HealthBar.tsx",
+  "src/features/system/_systemHelpers.tsx",
+  "src/features/system/systemFormat.ts",
   "src/features/system/VoiceInstallModal.tsx",
+  "src/shared/RestartModal.tsx",
 ]
 
 const forbidden = [

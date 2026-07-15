@@ -12,12 +12,14 @@ import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { BackupCard } from "@/features/system/BackupCard"
 import { MigrationCard } from "@/features/system/MigrationCard"
 import { HealthBar } from "@/features/system/HealthBar"
-import { StatCard } from "@/features/system/StatCard"
 import { VoiceInstallModal } from "@/features/system/VoiceInstallModal"
 import { useVoiceInstall } from "@/features/system/useVoiceInstall"
-import { PathRow, formatBytes, formatUptime } from "@/features/system/_systemHelpers"
+import { PathRow } from "@/features/system/_systemHelpers"
+import { formatBytes, formatUptime } from "@/features/system/systemFormat"
 import { CockpitButton } from "../CockpitButton"
+import { AdminPanel, AdminStat } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
+import { SystemSettingsOverlay } from "./SystemSettingsOverlay"
 
 const REFRESH_MS = 10_000
 
@@ -31,17 +33,21 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [checks, setChecks] = useState<HealthCheck[]>([])
+  const [showSettings, setShowSettings] = useState(false)
 
   async function loadAll() {
     try {
-      const [i, s, h] = await Promise.all([systemApi.info(), systemApi.stats(), systemApi.health()])
-      setInfo(i); setStats(s); setChecks(h.checks)
-    } catch { /* leise */ }
+      const [nextInfo, nextStats, health] = await Promise.all([systemApi.info(), systemApi.stats(), systemApi.health()])
+      setInfo(nextInfo)
+      setStats(nextStats)
+      setChecks(health.checks)
+    } catch { /* Status-Polling bleibt absichtlich leise. */ }
   }
+
   useEffect(() => {
-    loadAll()
-    const id = setInterval(loadAll, REFRESH_MS)
-    return () => clearInterval(id)
+    const initial = window.setTimeout(loadAll, 0)
+    const id = window.setInterval(loadAll, REFRESH_MS)
+    return () => { window.clearTimeout(initial); window.clearInterval(id) }
   }, [])
 
   return (
@@ -51,14 +57,14 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       maxWidthClass="max-w-6xl"
       headerActions={role === "admin" ? (
-        <div className="flex items-center gap-2">
-          <CockpitButton onClick={() => window.open("/system/settings", "_self")}>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <CockpitButton onClick={() => setShowSettings(true)}>
             <SlidersHorizontal size={12} className="mr-1 inline" />Einstellungen
           </CockpitButton>
           <CockpitButton onClick={voice.begin}>
             <Mic size={12} className="mr-1 inline" />Voice installieren
           </CockpitButton>
-          <CockpitButton onClick={restart.open}>
+          <CockpitButton onClick={restart.open} tone="danger">
             <RotateCw size={12} className="mr-1 inline" />{tNav("restart.button")}
           </CockpitButton>
         </div>
@@ -75,31 +81,30 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
 
         {stats && (
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard icon={Bot} label={t("stats.agents")} value={stats.agents.total}
-              detail={Object.entries(stats.agents.by_type).map(([k, v]) => t("stats.agents_detail", { count: v, type: tAgents(`type.${k}`) })).join(", ")} glow="bg-violet-500/40" />
-            <StatCard icon={Folder} label={t("stats.projects")} value={stats.projects.total}
-              detail={t("stats.projects_detail", { count: stats.projects.active })} glow="bg-indigo-500/40" />
-            <StatCard icon={MessageSquare} label={t("stats.sessions")} value={stats.sessions.total}
-              detail={t("stats.sessions_detail", { count: stats.sessions.active })} glow="bg-fuchsia-500/40" />
-            <StatCard icon={Activity} label={t("stats.messages")} value={stats.messages.total}
-              detail={t("stats.messages_detail", { count: stats.messages.compactions })} glow="bg-amber-500/40" />
-            <StatCard icon={Wrench} label={t("stats.tool_calls")} value={stats.tool_calls.total}
-              detail={t("stats.tool_calls_detail", { rate: stats.tool_calls.success_rate })} glow="bg-emerald-500/40" />
-            <StatCard icon={Database} label={t("stats.db_size")} value={info ? formatBytes(info.db_size_bytes) : "—"}
-              detail={t("stats.db_size_detail")} glow="bg-cyan-500/40" />
-            <StatCard icon={Zap} label={t("stats.python")} value={info?.python ?? "—"} detail={info?.platform} glow="bg-yellow-500/40" />
-            <StatCard icon={Server} label={t("stats.version")} value={info?.version ?? "—"}
-              detail={t("stats.version_detail")} glow="bg-rose-500/40" />
+            <AdminStat icon={Bot} label={t("stats.agents")} value={stats.agents.total}
+              detail={Object.entries(stats.agents.by_type).map(([key, value]) => t("stats.agents_detail", { count: value, type: tAgents(`type.${key}`) })).join(", ")} />
+            <AdminStat icon={Folder} label={t("stats.projects")} value={stats.projects.total}
+              detail={t("stats.projects_detail", { count: stats.projects.active })} />
+            <AdminStat icon={MessageSquare} label={t("stats.sessions")} value={stats.sessions.total}
+              detail={t("stats.sessions_detail", { count: stats.sessions.active })} />
+            <AdminStat icon={Activity} label={t("stats.messages")} value={stats.messages.total}
+              detail={t("stats.messages_detail", { count: stats.messages.compactions })} />
+            <AdminStat icon={Wrench} label={t("stats.tool_calls")} value={stats.tool_calls.total}
+              detail={t("stats.tool_calls_detail", { rate: stats.tool_calls.success_rate })} />
+            <AdminStat icon={Database} label={t("stats.db_size")} value={info ? formatBytes(info.db_size_bytes) : "—"}
+              detail={t("stats.db_size_detail")} />
+            <AdminStat icon={Zap} label={t("stats.python")} value={info?.python ?? "—"} detail={info?.platform} />
+            <AdminStat icon={Server} label={t("stats.version")} value={info?.version ?? "—"}
+              detail={t("stats.version_detail")} />
           </div>
         )}
 
         {info && (
-          <div className="space-y-1 rounded-[6px] border border-[#2a364b] bg-[#111827] p-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#8d9ab0]">{t("paths.title")}</p>
+          <AdminPanel title={t("paths.title")} bodyClassName="space-y-1">
             <PathRow label={t("paths.data")} value={info.data_dir} />
             <PathRow label={t("paths.config")} value={info.config_dir} />
             <PathRow label={t("paths.db")} value={info.db_path} />
-          </div>
+          </AdminPanel>
         )}
 
         <AgentLinkCard />
@@ -110,6 +115,7 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
         {role === "admin" && <MigrationCard />}
       </div>
 
+      {showSettings && <SystemSettingsOverlay onClose={() => setShowSettings(false)} />}
       {restart.state !== "idle" && (
         <RestartModal state={restart.state} errorMessage={restart.error} onConfirm={restart.confirm} onClose={restart.close} />
       )}
