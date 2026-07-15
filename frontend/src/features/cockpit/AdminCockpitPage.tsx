@@ -1,13 +1,20 @@
-import type { ComponentType } from "react"
+import { useState, type ComponentType } from "react"
 import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
 import { adminOfflineActions, explicitAiActions, openLocalPath } from "./actionRegistry"
+import { UsersOverlay } from "./admin/UsersOverlay"
+
+/** Admin-Bereiche, die bereits als eingerastetes Cockpit-Overlay existieren.
+ *  Alles andere fällt (noch) auf die bestehende Legacy-Seite via openLocalPath. */
+type AdminOverlayId = "users"
 
 const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
-const adminLinks = adminOfflineActions.map((action, index) => ({ title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
+// action.id "users" wird als Overlay geöffnet, der Rest per Pfad.
+const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
+const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users" }
 
 const opsLinks = [
   { title: "LLM", path: "/llm", icon: Brain },
@@ -26,6 +33,16 @@ const integrationLinks = [
 ]
 
 export function AdminCockpitPage() {
+  const [overlay, setOverlay] = useState<AdminOverlayId | null>(null)
+
+  // Kachel-Klick: existiert ein Cockpit-Overlay für die Action → einrasten,
+  // sonst (noch) die bestehende Legacy-Seite öffnen.
+  const openArea = (actionId: string, path: string) => {
+    const target = OVERLAY_BY_ACTION[actionId]
+    if (target) setOverlay(target)
+    else openLocalPath(path)
+  }
+
   return (
     <CockpitShell
       eyebrow="Admin"
@@ -45,7 +62,7 @@ export function AdminCockpitPage() {
                 return (
                   <button
                     key={item.path}
-                    onClick={() => openLocalPath(item.path)}
+                    onClick={() => openArea(item.id, item.path)}
                     className="group flex w-full items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
                   >
                     <Icon size={18} className="mt-0.5 text-[#69d7ff]" />
@@ -145,6 +162,8 @@ export function AdminCockpitPage() {
           </CockpitPanel>
         </aside>
       </div>
+
+      {overlay === "users" && <UsersOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
 }
