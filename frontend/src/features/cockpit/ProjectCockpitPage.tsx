@@ -51,6 +51,10 @@ export function ProjectCockpitPage() {
   const [gitRevision, setGitRevision] = useState(0)
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
   const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
+  // Explizite User-Auswahl hat Vorrang vor dem aus den Prefs abgeleiteten Default.
+  // Ohne diesen State fällt die Auswahl in Ladezuständen auf projects[0] zurück
+  // und der frühere Auto-Writeback-Effekt schrieb das erste Projekt fest.
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -67,18 +71,15 @@ export function ProjectCockpitPage() {
     return () => { alive = false }
   }, [])
 
+  // Reihenfolge: (1) explizite User-Auswahl dieser Sitzung, (2) gespeicherte
+  // Preference, (3) erstes Projekt als Fallback. Jede Stufe nur gültig, wenn das
+  // Projekt in der geladenen Liste existiert. KEIN Auto-Writeback mehr — gespeichert
+  // wird ausschließlich bei bewusster Auswahl (pickProject/onCreated/onDeleted),
+  // damit transiente Ladezustände die Preference nicht überschreiben.
   const activeProjectId = useMemo(() => {
-    const preferred = prefs.preferences.active_project_id
-    if (preferred && projects.some((p) => p.id === preferred)) return preferred
-    return projects[0]?.id ?? null
-  }, [prefs.preferences.active_project_id, projects])
-
-  useEffect(() => {
-    if (!activeProjectId || prefs.loading) return
-    if (prefs.preferences.active_project_id !== activeProjectId) {
-      void prefs.patch({ active_project_id: activeProjectId })
-    }
-  }, [activeProjectId, prefs.loading, prefs.preferences.active_project_id, prefs.patch])
+    const known = (id: string | null) => (id && projects.some((p) => p.id === id) ? id : null)
+    return known(selectedProjectId) ?? known(prefs.preferences.active_project_id) ?? projects[0]?.id ?? null
+  }, [selectedProjectId, prefs.preferences.active_project_id, projects])
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
   const projectAgentId = activeProject?.agent_id ?? null
@@ -98,6 +99,9 @@ export function ProjectCockpitPage() {
   }
 
   async function pickProject(projectId: string | null) {
+    // Optimistisch lokal setzen, damit die Auswahl sofort einrastet und nicht
+    // vom asynchronen prefs-Reload zurückgesetzt wird; dann serverseitig speichern.
+    setSelectedProjectId(projectId)
     await prefs.patch({ active_project_id: projectId })
   }
 
@@ -252,7 +256,9 @@ export function ProjectCockpitPage() {
             const remaining = projects.filter((project) => project.id !== projectId)
             setProjects(remaining)
             setDetailsOpen(false)
-            void prefs.patch({ active_project_id: remaining[0]?.id ?? null })
+            const next = remaining[0]?.id ?? null
+            setSelectedProjectId(next)
+            void prefs.patch({ active_project_id: next })
           }}
         />
       )}
@@ -263,6 +269,7 @@ export function ProjectCockpitPage() {
           onCreated={(project) => {
             setProjects((current) => [project, ...current])
             setCreateProjectOpen(false)
+            setSelectedProjectId(project.id)
             void prefs.patch({ active_project_id: project.id })
           }}
         />
