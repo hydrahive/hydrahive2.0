@@ -4,7 +4,7 @@ import { HelpButton } from "@/i18n/HelpButton"
 import type { HelpTopic } from "@/i18n/help/loader"
 import { navLabel } from "@/shared/nav-label"
 import { useTranslation } from "react-i18next"
-import { COCKPIT_MODULE_ITEMS } from "@/shared/nav-config"
+import { cockpitModuleItems } from "@/shared/nav-config"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitAppsMenu } from "./CockpitAppsMenu"
 import { CockpitUserMenu } from "./CockpitUserMenu"
@@ -52,7 +52,7 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
 
   // Cockpit-Module (nav mit cockpit:true) als zusätzliche Reiter; Label aus dem
   // jeweiligen Modul-i18n (<key>:title) via navLabel. Hilfe-Reiter bleibt am Ende.
-  const moduleTabs: NavTab[] = COCKPIT_MODULE_ITEMS.map((i) => ({
+  const moduleTabs: NavTab[] = cockpitModuleItems().map((i) => ({
     id: i.path, label: navLabel(t, i.labelKey), path: i.path,
   }))
   const nav: NavTab[] = [...CORE_NAV, ...moduleTabs, { id: "help", label: "Hilfe", path: "/help" }]

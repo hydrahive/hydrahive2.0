@@ -77,21 +77,29 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const QUICK_LINK_PATHS = ["/projects", "/buddy", "/media", "/vault", "/admin"]
 
-const MODULE_NAV_ITEMS: NavItem[] = (moduleNav as ModuleNavEntry[]).map((n) => ({
-  path: n.path,
-  icon: moduleIcon(n.icon),
-  labelKey: n.labelKey,
-  group: n.group ?? "working",
-  roles: n.roles,
-  cockpit: n.cockpit,
-}))
+// LAZY auswerten (Funktion statt top-level const): moduleNav stammt aus
+// index.generated, das über CockpitTopbar → nav-config einen Import-Zyklus bildet.
+// Eine eager map() beim Modul-Import liefe, bevor moduleNav initialisiert ist
+// (undefined.map → Boot-Crash). Zur Render-Zeit ist das Live-Binding gefüllt.
+function moduleNavItems(): NavItem[] {
+  return (moduleNav as ModuleNavEntry[]).map((n) => ({
+    path: n.path,
+    icon: moduleIcon(n.icon),
+    labelKey: n.labelKey,
+    group: n.group ?? "working",
+    roles: n.roles,
+    cockpit: n.cockpit,
+  }))
+}
 
 /** Cockpit-Module (nav mit cockpit:true). Basis für dynamische Cockpit-Reiter
- *  im Top-Menü und für die bare-Chrome-Erkennung in Layout.tsx. */
-export const COCKPIT_MODULE_ITEMS: NavItem[] = MODULE_NAV_ITEMS.filter((i) => i.cockpit)
+ *  im Top-Menü und für die bare-Chrome-Erkennung in Layout.tsx. Lazy — siehe oben. */
+export function cockpitModuleItems(): NavItem[] {
+  return moduleNavItems().filter((i) => i.cockpit)
+}
 
 export function visibleItems(role: string | null): NavItem[] {
-  const all = [...NAV_ITEMS, ...MODULE_NAV_ITEMS]
+  const all = [...NAV_ITEMS, ...moduleNavItems()]
   return all.filter((i) =>
     !i.roles || i.roles.length === 0 || (role !== null && i.roles.includes(role as "admin" | "user"))
   )

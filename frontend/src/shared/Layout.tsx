@@ -6,7 +6,7 @@ import { UpdateModal } from "@/shared/UpdateModal"
 import { AppFooter } from "@/shared/AppFooter"
 import { useLayoutUpdate } from "./useLayoutUpdate"
 import { BentoMenu } from "./BentoMenu"
-import { COCKPIT_MODULE_ITEMS, NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
+import { cockpitModuleItems, NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
 import { getStoredThemeId, getTheme } from "./themes/registry"
 import type { LayoutChrome } from "./layouts/types"
 
@@ -37,7 +37,7 @@ export function Layout() {
   // Core-Cockpits + installierte Cockpit-Module (nav mit cockpit:true) laufen
   // im bare Cockpit-Chrome statt im Theme-Layout.
   const cockpitPaths = ["/projects", "/buddy", "/media", "/vault", "/admin",
-    ...COCKPIT_MODULE_ITEMS.map((i) => i.path)]
+    ...cockpitModuleItems().map((i) => i.path)]
   const isCockpitRoute = cockpitPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 
   // Theme-CSS-Variablen auf <html> anwenden (überschreibt --hh-*).
