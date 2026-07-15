@@ -13,17 +13,18 @@ import { ThemesOverlay } from "./admin/ThemesOverlay"
 import { McpOverlay } from "./admin/McpOverlay"
 import { LlmOverlay } from "./admin/LlmOverlay"
 import { ExtensionsOverlay } from "./admin/ExtensionsOverlay"
+import { SystemOverlay } from "./admin/SystemOverlay"
 
 /** Admin-Bereiche, die bereits als eingerastetes Cockpit-Overlay existieren.
  *  Alles andere fällt (noch) auf die bestehende Legacy-Seite via openLocalPath. */
-type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions"
+type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions" | "system"
 
 const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
 // action.ids mit Overlay werden eingerastet, der Rest per Pfad geöffnet.
 const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
-const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules", plugins: "plugins", credentials: "credentials", extensions: "extensions" }
+const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules", plugins: "plugins", credentials: "credentials", extensions: "extensions", system: "system" }
 // Pfad-basierte Kacheln (Ops/Integrationen ohne action.id) auf Overlays mappen.
-const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials", "/themes": "themes", "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions" }
+const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials", "/themes": "themes", "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions", "/system": "system" }
 
 const opsLinks = [
   { title: "LLM", path: "/llm", icon: Brain },
@@ -64,11 +65,11 @@ export function AdminCockpitPage() {
       eyebrow="Admin"
       title="Admin-Cockpit"
       description="Schaltzentrale für System, User, Module, Integrationen, Credentials und Infrastruktur. Die Route bleibt durch AdminGuard geschützt."
-      actions={<CockpitButton tone="primary" onClick={() => openLocalPath("/system")}>System öffnen</CockpitButton>}
+      actions={<CockpitButton tone="primary" onClick={() => setOverlay("system")}>System öffnen</CockpitButton>}
       className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
       hideHeader
     >
-      <CockpitTopbar active="admin" context="Admin" action={{ label: "System öffnen", path: "/system" }} />
+      <CockpitTopbar active="admin" context="Admin" />
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_370px]">
         <aside className="space-y-[10px]">
           <CockpitPanel title="Admin-Bereiche" eyebrow="Control">
@@ -149,8 +150,8 @@ export function AdminCockpitPage() {
 
           <CockpitPanel title="Wartung & Backups" eyebrow="Recovery">
             <div className="grid gap-2 md:grid-cols-2">
-              <Info title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." path="/system" />
-              <Info title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen und Migrationen bleiben geschützt unter /system/settings." path="/system/settings" />
+              <Info title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
+              <Info title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen und Migrationen bleiben geschützt unter /system/settings." onOpen={() => openPath("/system/settings")} />
             </div>
           </CockpitPanel>
         </main>
@@ -187,13 +188,14 @@ export function AdminCockpitPage() {
       {overlay === "mcp" && <McpOverlay onClose={() => setOverlay(null)} />}
       {overlay === "llm" && <LlmOverlay onClose={() => setOverlay(null)} />}
       {overlay === "extensions" && <ExtensionsOverlay onClose={() => setOverlay(null)} />}
+      {overlay === "system" && <SystemOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
 }
 
-function Info({ title, text, path, icon: Icon }: { title: string; text: string; path: string; icon: ComponentType<{ size?: number; className?: string }> }) {
+function Info({ title, text, onOpen, icon: Icon }: { title: string; text: string; onOpen: () => void; icon: ComponentType<{ size?: number; className?: string }> }) {
   return (
-    <button onClick={() => openLocalPath(path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+    <button onClick={onOpen} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
       <div className="mb-2 flex items-center gap-2">
         <Icon size={16} className="text-[#69d7ff]" />
         <h3 className="text-sm font-bold text-[#e8eef8]">{title}</h3>
