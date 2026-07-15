@@ -7,17 +7,18 @@ import { CockpitTopbar } from "./CockpitTopbar"
 import { adminOfflineActions, explicitAiActions, openLocalPath } from "./actionRegistry"
 import { UsersOverlay } from "./admin/UsersOverlay"
 import { ModulesOverlay } from "./admin/ModulesOverlay"
+import { PluginsOverlay } from "./admin/PluginsOverlay"
 
 /** Admin-Bereiche, die bereits als eingerastetes Cockpit-Overlay existieren.
  *  Alles andere fällt (noch) auf die bestehende Legacy-Seite via openLocalPath. */
-type AdminOverlayId = "users" | "modules"
+type AdminOverlayId = "users" | "modules" | "plugins"
 
 const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
 // action.ids mit Overlay werden eingerastet, der Rest per Pfad geöffnet.
 const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
-const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules" }
+const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules", plugins: "plugins" }
 // Pfad-basierte Kacheln (Ops/Integrationen ohne action.id) auf Overlays mappen.
-const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules" }
+const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins" }
 
 const opsLinks = [
   { title: "LLM", path: "/llm", icon: Brain },
@@ -175,6 +176,7 @@ export function AdminCockpitPage() {
 
       {overlay === "users" && <UsersOverlay onClose={() => setOverlay(null)} />}
       {overlay === "modules" && <ModulesOverlay onClose={() => setOverlay(null)} />}
+      {overlay === "plugins" && <PluginsOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
 }
