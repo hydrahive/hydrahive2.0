@@ -2,36 +2,35 @@ import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Menu, MoreHorizontal, X } from "lucide-react"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { HelpTopic } from "@/i18n/help/loader"
+import { navLabel } from "@/shared/nav-label"
+import { useTranslation } from "react-i18next"
+import { COCKPIT_MODULE_ITEMS } from "@/shared/nav-config"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitAppsMenu } from "./CockpitAppsMenu"
 import { CockpitUserMenu } from "./CockpitUserMenu"
 
 interface Props {
-  active: "projects" | "buddy" | "media" | "vault" | "admin"
+  /** Core-Cockpit-Id oder Pfad eines Cockpit-Moduls (z. B. "/mediacenter"). */
+  active: "projects" | "buddy" | "media" | "vault" | "admin" | (string & {})
   context?: string
   action?: { label: string; path: string }
   extraActions?: ReactNode
 }
 
-const nav = [
-  { id: "projects", label: "Projekte", path: "/projects" },
-  { id: "buddy", label: "Buddy", path: "/buddy" },
-  { id: "media", label: "Media", path: "/media" },
-  { id: "vault", label: "Vault", path: "/vault" },
-  { id: "admin", label: "Admin", path: "/admin" },
-  { id: "help", label: "Hilfe", path: "/help" },
-] as const
+interface NavTab { id: string; label: string; path: string; help?: HelpTopic }
+
+const CORE_NAV: NavTab[] = [
+  { id: "projects", label: "Projekte", path: "/projects", help: "projects" },
+  { id: "buddy", label: "Buddy", path: "/buddy", help: "buddy" },
+  { id: "media", label: "Media", path: "/media", help: "atelier" },
+  { id: "vault", label: "Vault", path: "/vault", help: "patientenakte" },
+  { id: "admin", label: "Admin", path: "/admin", help: "system" },
+]
 
 const go = (path: string) => window.open(path, "_self")
-const HELP_TOPICS: Record<Props["active"], HelpTopic> = {
-  projects: "projects",
-  buddy: "buddy",
-  media: "atelier",
-  vault: "patientenakte",
-  admin: "system",
-}
 
 export function CockpitTopbar({ active, context, action, extraActions }: Props) {
+  const { t } = useTranslation("nav")
   const [menuOpen, setMenuOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLElement>(null)
@@ -51,7 +50,17 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [menuOpen])
 
-  const activeLabel = nav.find((item) => item.id === active)?.label ?? "Cockpit"
+  // Cockpit-Module (nav mit cockpit:true) als zusätzliche Reiter; Label aus dem
+  // jeweiligen Modul-i18n (<key>:title) via navLabel. Hilfe-Reiter bleibt am Ende.
+  const moduleTabs: NavTab[] = COCKPIT_MODULE_ITEMS.map((i) => ({
+    id: i.path, label: navLabel(t, i.labelKey), path: i.path,
+  }))
+  const nav: NavTab[] = [...CORE_NAV, ...moduleTabs, { id: "help", label: "Hilfe", path: "/help" }]
+
+  const activeItem = nav.find((item) => item.id === active)
+  const activeLabel = activeItem?.label ?? "Cockpit"
+  // Cockpit-Module bringen kein Core-Help-Topic mit → Onboarding als sicherer Default.
+  const helpTopic: HelpTopic = activeItem?.help ?? "onboarding"
 
   return (
     <header className="relative flex h-[58px] shrink-0 items-center gap-3 border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-3 sm:px-[18px]">
@@ -66,7 +75,7 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
         {extraActions}
         {action ? <CockpitButton onClick={() => go(action.path)}>{action.label}</CockpitButton> : null}
         <CockpitAppsMenu />
-        <HelpButton topic={HELP_TOPICS[active]} />
+        <HelpButton topic={helpTopic} />
         <CockpitUserMenu />
       </div>
       <button
@@ -93,7 +102,7 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
             <div className="contents [&>button]:w-full">{extraActions}</div>
             {action ? <CockpitButton onClick={() => go(action.path)}>{action.label}</CockpitButton> : null}
             <CockpitAppsMenu compact />
-            <HelpButton topic={HELP_TOPICS[active]} className="w-full justify-center" />
+            <HelpButton topic={helpTopic} className="w-full justify-center" />
             <CockpitUserMenu compact />
           </div>
         </section>
@@ -103,7 +112,7 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
 }
 
 function NavButton({ item, active, onNavigate }: {
-  item: (typeof nav)[number]
+  item: NavTab
   active: boolean
   onNavigate?: () => void
 }) {

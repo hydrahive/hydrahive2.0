@@ -17,6 +17,9 @@ interface ModuleNavEntry {
   labelKey: string
   group?: string
   roles?: ("admin" | "user")[]
+  /** true = Modul ist ein Cockpit-Modul: eigener Reiter im Cockpit-Top-Menü,
+   *  Seite läuft im bare Cockpit-Chrome statt im Theme-Layout. */
+  cockpit?: boolean
 }
 
 export interface NavItem {
@@ -25,6 +28,7 @@ export interface NavItem {
   labelKey: string
   group: string
   roles?: ("admin" | "user")[]
+  cockpit?: boolean
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -79,7 +83,12 @@ const MODULE_NAV_ITEMS: NavItem[] = (moduleNav as ModuleNavEntry[]).map((n) => (
   labelKey: n.labelKey,
   group: n.group ?? "working",
   roles: n.roles,
+  cockpit: n.cockpit,
 }))
+
+/** Cockpit-Module (nav mit cockpit:true). Basis für dynamische Cockpit-Reiter
+ *  im Top-Menü und für die bare-Chrome-Erkennung in Layout.tsx. */
+export const COCKPIT_MODULE_ITEMS: NavItem[] = MODULE_NAV_ITEMS.filter((i) => i.cockpit)
 
 export function visibleItems(role: string | null): NavItem[] {
   const all = [...NAV_ITEMS, ...MODULE_NAV_ITEMS]
