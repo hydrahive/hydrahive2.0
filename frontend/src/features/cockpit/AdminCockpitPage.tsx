@@ -16,17 +16,18 @@ import { ExtensionsOverlay } from "./admin/ExtensionsOverlay"
 import { SystemOverlay } from "./admin/SystemOverlay"
 import { SystemSettingsOverlay } from "./admin/SystemSettingsOverlay"
 import { ContainersOverlay } from "./admin/ContainersOverlay"
+import { VMsOverlay } from "./admin/VMsOverlay"
 
 /** Admin-Bereiche, die bereits als eingerastetes Cockpit-Overlay existieren.
  *  Alles andere fällt (noch) auf die bestehende Legacy-Seite via openLocalPath. */
-type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions" | "system" | "system-settings" | "containers"
+type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions" | "system" | "system-settings" | "containers" | "vms"
 
 const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
 // action.ids mit Overlay werden eingerastet, der Rest per Pfad geöffnet.
 const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
 const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules", plugins: "plugins", credentials: "credentials", extensions: "extensions", system: "system" }
 // Pfad-basierte Kacheln (Ops/Integrationen ohne action.id) auf Overlays mappen.
-const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials", "/themes": "themes", "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions", "/system": "system", "/system/settings": "system-settings", "/containers": "containers" }
+const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials", "/themes": "themes", "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions", "/system": "system", "/system/settings": "system-settings", "/containers": "containers", "/vms": "vms" }
 
 const opsLinks = [
   { title: "LLM", path: "/llm", icon: Brain },
@@ -193,6 +194,7 @@ export function AdminCockpitPage() {
       {overlay === "system" && <SystemOverlay onClose={() => setOverlay(null)} />}
       {overlay === "system-settings" && <SystemSettingsOverlay onClose={() => setOverlay(null)} />}
       {overlay === "containers" && <ContainersOverlay onClose={() => setOverlay(null)} />}
+      {overlay === "vms" && <VMsOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
 }
