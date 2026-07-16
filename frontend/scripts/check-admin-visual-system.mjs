@@ -12,6 +12,7 @@ const migratedFiles = [
   "src/features/cockpit/admin/ui/AdminAction.tsx",
   "src/features/cockpit/admin/ui/adminActionClass.ts",
   "src/features/cockpit/admin/ui/AdminDialog.tsx",
+  "src/features/cockpit/admin/ui/AdminConfirmDialog.tsx",
   "src/features/cockpit/admin/ui/AdminFeedback.tsx",
   "src/features/cockpit/admin/ui/AdminField.tsx",
   "src/features/cockpit/admin/ui/AdminPanel.tsx",
@@ -38,6 +39,14 @@ const migratedFiles = [
   "src/features/system/BackupRestoreModal.tsx",
   "src/features/system/MigrationCard.tsx",
   "src/features/system/MigrationModal.tsx",
+  "src/features/cockpit/admin/UsersOverlay.tsx",
+  "src/features/users/UsersPage.tsx",
+  "src/features/users/NewUserDialog.tsx",
+  "src/features/users/EditUserDialog.tsx",
+  "src/features/users/ChangePasswordDialog.tsx",
+  "src/features/users/ApiKeysSection.tsx",
+  "src/i18n/HelpButton.tsx",
+  "src/i18n/HelpDrawer.tsx",
   "src/shared/RestartModal.tsx",
 ]
 

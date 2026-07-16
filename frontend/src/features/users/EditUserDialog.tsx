@@ -1,8 +1,7 @@
-import type { CSSProperties } from "react"
-import { useState } from "react"
-import { X } from "lucide-react"
+import { useId, useState } from "react"
+import { Pencil } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { rgbFor } from "@/shared/colors"
+import { AdminAction, AdminDialog, AdminFeedback, AdminField, adminInputClass } from "@/features/cockpit/admin/ui"
 import { usersApi } from "./api"
 import type { User, UserRole } from "./types"
 
@@ -15,59 +14,50 @@ interface Props {
 export function EditUserDialog({ user, onClose, onSaved }: Props) {
   const { t } = useTranslation("users")
   const { t: tCommon } = useTranslation("common")
+  const formId = useId()
   const [role, setRole] = useState<UserRole>(user.role)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
   const dirty = role !== user.role
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
     if (!dirty) { onClose(); return }
-    setBusy(true); setError(null)
+    setBusy(true)
+    setError(null)
     try {
       await usersApi.update(user.username, { role })
       onSaved()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : tCommon("status.error"))
-    } finally { setBusy(false) }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : tCommon("status.error"))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <form onSubmit={submit} onClick={(e) => e.stopPropagation()}
-        className="box overflow-hidden w-full max-w-md p-6 space-y-4" style={{ "--c": rgbFor("/users") } as CSSProperties}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">{t("edit_dialog.title", { name: user.username })}</h2>
-          <button type="button" onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">{t("fields.role")}</label>
-          <select value={role} onChange={(e) => setRole(e.target.value as UserRole)} autoFocus
-            className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm">
+    <AdminDialog
+      eyebrow="Admin · Benutzer"
+      title={t("edit_dialog.title", { name: user.username })}
+      icon={<Pencil size={16} />}
+      onClose={busy ? undefined : onClose}
+      maxWidthClass="max-w-md"
+      footer={(
+        <>
+          <AdminAction onClick={onClose} disabled={busy}>{tCommon("actions.cancel")}</AdminAction>
+          <AdminAction type="submit" form={formId} tone="primary" disabled={busy || !dirty}>{tCommon("actions.save")}</AdminAction>
+        </>
+      )}
+    >
+      <form id={formId} onSubmit={submit} className="space-y-4">
+        <AdminField label={t("fields.role")}>
+          <select value={role} onChange={(event) => setRole(event.target.value as UserRole)} autoFocus className={adminInputClass}>
             <option value="user">{t("role.user")}</option>
             <option value="admin">{t("role.admin")}</option>
           </select>
-        </div>
-
-        {error && (
-          <p className="text-sm text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>
-        )}
-
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5">
-            {tCommon("actions.cancel")}
-          </button>
-          <button type="submit" disabled={busy || !dirty}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-violet-900/20">
-            {tCommon("actions.save")}
-          </button>
-        </div>
+        </AdminField>
+        {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
       </form>
-    </div>
+    </AdminDialog>
   )
 }

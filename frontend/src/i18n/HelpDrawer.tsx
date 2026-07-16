@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { X, Loader2 } from "lucide-react"
+import { useEffect, useId, useState } from "react"
+import { Loader2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Markdown } from "@/features/chat/Markdown"
 import { type HelpTopic, loadHelp } from "./help/loader"
@@ -12,47 +12,51 @@ interface Props {
 
 export function HelpDrawer({ topic, open, onClose }: Props) {
   const { t, i18n } = useTranslation("help")
-  const [content, setContent] = useState<string>("")
+  const titleId = useId()
+  const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    setLoading(true)
-    loadHelp(topic, i18n.language)
-      .then(setContent)
-      .finally(() => setLoading(false))
+    let active = true
+    const initial = window.setTimeout(() => {
+      setLoading(true)
+      loadHelp(topic, i18n.language)
+        .then((nextContent) => { if (active) setContent(nextContent) })
+        .finally(() => { if (active) setLoading(false) })
+    }, 0)
+    return () => { active = false; window.clearTimeout(initial) }
   }, [open, topic, i18n.language])
 
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity ${
-          open ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm transition-opacity ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={onClose}
+        aria-hidden="true"
       />
       <aside
-        className={`fixed top-0 right-0 bottom-0 w-full max-w-2xl bg-zinc-950 border-l border-white/[8%] shadow-2xl shadow-black/50 z-50 flex flex-col transition-transform duration-200 ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed bottom-0 right-0 top-0 z-[90] flex w-full max-w-2xl flex-col border-l border-[#46617f] bg-[#0e1420] shadow-2xl transition-transform duration-200 ${open ? "translate-x-0" : "translate-x-full"}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-hidden={!open}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[6%]">
-          <h2 className="text-lg font-bold text-white">{t("drawer.title")}</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/5 transition-colors"
-            title={t("drawer.close")}
-          >
+        <header className="flex items-center justify-between border-b border-[#2a364b] bg-[#131b2a] px-5 py-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">Hilfe</p>
+            <h2 id={titleId} className="text-lg font-black text-[#e8eef8]">{t("drawer.title")}</h2>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-[4px] p-2 text-[#8d9ab0] hover:bg-[#172133] hover:text-[#e8eef8]" title={t("drawer.close")} aria-label={t("drawer.close")}>
             <X size={16} />
           </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {loading && (
-            <div className="flex items-center gap-2 text-sm text-zinc-500">
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[#d4deeb]">
+          {loading ? (
+            <div className="flex items-center gap-2 text-sm text-[#8d9ab0]">
               <Loader2 size={14} className="animate-spin" /> Lädt…
             </div>
-          )}
-          {!loading && <Markdown text={content} />}
+          ) : <Markdown text={content} />}
         </div>
       </aside>
     </>
