@@ -1,29 +1,21 @@
 import { CheckCircle, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { AdminStatus } from "@/features/cockpit/admin/ui"
 import type { HealthCheck } from "./api"
 
 export function HealthBar({ checks }: { checks: HealthCheck[] }) {
   const { t } = useTranslation("system")
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {checks.map((c, i) => {
-        const Icon = c.ok ? CheckCircle : XCircle
-        const tone = c.ok
-          ? "border-emerald-500/20 bg-emerald-500/[5%] text-emerald-300"
-          : "border-rose-500/20 bg-rose-500/[5%] text-rose-300"
-        const name = c.name_code ? t(`checks.${c.name_code}`) : (c.name ?? "?")
-        const detail = c.detail_code
-          ? t(`checks.${c.detail_code}`, c.params ?? {})
-          : (c.detail ?? "")
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {checks.map((check, index) => {
+        const name = check.name_code ? t(`checks.${check.name_code}`) : (check.name ?? "?")
+        const detail = check.detail_code ? t(`checks.${check.detail_code}`, check.params ?? {}) : (check.detail ?? "")
         return (
-          <div key={c.name_code ?? c.name ?? i} className={`rounded-xl border p-3 ${tone}`}>
-            <div className="flex items-center gap-2">
-              <Icon size={14} />
-              <p className="text-xs font-semibold uppercase tracking-wider">{name}</p>
-            </div>
-            <p className="text-xs text-zinc-400 mt-1.5 leading-snug truncate" title={detail}>
-              {detail}
-            </p>
+          <div key={check.name_code ?? check.name ?? index} className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-3">
+            <AdminStatus tone={check.ok ? "success" : "danger"} icon={check.ok ? CheckCircle : XCircle}>
+              {name}
+            </AdminStatus>
+            <p className="mt-2 truncate text-xs leading-relaxed text-[#8d9ab0]" title={detail}>{detail}</p>
           </div>
         )
       })}

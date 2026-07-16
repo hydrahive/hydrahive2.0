@@ -1,9 +1,14 @@
-import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
 import { Download, Network, WifiOff } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { rgbFor } from "@/shared/colors"
 import { api } from "@/shared/api-client"
+import {
+  AdminAction,
+  AdminCodeBlock,
+  AdminFeedback,
+  AdminPanel,
+  AdminStatus,
+} from "@/features/cockpit/admin/ui"
 import type { TailscaleStatus } from "./_tailscaleTypes"
 import { TailscaleConnectedView } from "./_TailscaleConnectedView"
 import { TailscaleInviteSection } from "./_TailscaleInviteSection"
@@ -35,8 +40,9 @@ export function TailscaleCard() {
   }
 
   useEffect(() => {
-    load()
-    const id = setInterval(load, REFRESH_MS)
+    async function tick() { await load() }
+    tick()
+    const id = setInterval(tick, REFRESH_MS)
     return () => clearInterval(id)
   }, [])
 
@@ -77,47 +83,37 @@ export function TailscaleCard() {
 
   if (!status.installed) {
     return (
-      <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
-        <div className="flex items-center gap-2">
-          <WifiOff size={14} className="text-zinc-500" />
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{t("tailscale.title")}</p>
-        </div>
-        <p className="text-zinc-400 text-sm">{t("tailscale.not_installed")}</p>
-        <p className="text-zinc-500 text-xs">{t("tailscale.install_hint")}</p>
-        <button
-          onClick={handleInstall}
-          disabled={installing}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-medium hover:bg-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
+      <AdminPanel
+        title={t("tailscale.title")}
+        description={t("tailscale.not_installed")}
+        icon={WifiOff}
+        bodyClassName="space-y-3"
+      >
+        <p className="text-xs text-[#8d9ab0]">{t("tailscale.install_hint")}</p>
+        <AdminAction onClick={handleInstall} disabled={installing} tone="primary">
           <Download size={12} className={installing ? "animate-pulse" : ""} />
           {installing ? t("tailscale.installing") : t("tailscale.install_button")}
-        </button>
-        {error && <p className="text-xs text-rose-400">{error}</p>}
-        {installOutput && (
-          <pre className="text-[10px] text-zinc-500 bg-black/30 rounded p-2 overflow-auto max-h-40 whitespace-pre-wrap">{installOutput}</pre>
-        )}
-      </div>
+        </AdminAction>
+        {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
+        {installOutput && <AdminCodeBlock className="max-h-40">{installOutput}</AdminCodeBlock>}
+      </AdminPanel>
     )
   }
 
   const connected = status.connected
-  const tone = connected ? "text-emerald-300" : "text-zinc-500"
-  const dot = connected ? "bg-emerald-400" : "bg-zinc-600"
   const Icon = connected ? Network : WifiOff
 
   return (
-    <div className="box overflow-hidden p-4 space-y-3" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Icon size={14} className={tone} />
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{t("tailscale.title")}</p>
-        </div>
-        <span className={`flex items-center gap-1.5 text-[11px] ${tone}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+    <AdminPanel
+      title={t("tailscale.title")}
+      icon={Icon}
+      actions={(
+        <AdminStatus tone={connected ? "success" : "danger"} dot>
           {connected ? t("tailscale.connected") : t("tailscale.disconnected")}
-        </span>
-      </div>
-
+        </AdminStatus>
+      )}
+      bodyClassName="space-y-3"
+    >
       {connected && (
         <>
           <TailscaleConnectedView status={status} loggingOut={loggingOut} onLogout={handleLogout} />
@@ -125,14 +121,13 @@ export function TailscaleCard() {
         </>
       )}
 
-      {error && !showLogin && <p className="text-xs text-rose-400">{error}</p>}
+      {error && !showLogin && <AdminFeedback tone="danger">{error}</AdminFeedback>}
 
       {!connected && !showLogin && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <button onClick={() => setShowLogin(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-medium hover:bg-emerald-500/20 transition-colors">
+          <AdminAction onClick={() => setShowLogin(true)} tone="primary">
             <Network size={12} /> {t("tailscale.connect")}
-          </button>
+          </AdminAction>
         </div>
       )}
 
@@ -144,6 +139,6 @@ export function TailscaleCard() {
           onCancel={() => { setShowLogin(false); setError(null) }}
         />
       )}
-    </div>
+    </AdminPanel>
   )
 }

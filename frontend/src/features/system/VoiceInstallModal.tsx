@@ -1,8 +1,7 @@
-import type { CSSProperties } from "react"
-import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
-import { CheckCircle, Loader2, Mic, X, XCircle } from "lucide-react"
-import { rgbFor } from "@/shared/colors"
+import { Mic } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import { AdminAction, AdminCodeBlock, AdminDialog, AdminFeedback } from "@/features/cockpit/admin/ui"
 import { systemApi } from "./api"
 
 export type VoiceInstallState = "confirm" | "starting" | "running" | "done" | "failed"
@@ -17,18 +16,18 @@ interface Props {
 export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: Props) {
   const { t } = useTranslation("system")
   const [logLines, setLogLines] = useState<string[]>([])
-  const logRef = useRef<HTMLPreElement>(null)
+  const logRef = useRef<HTMLDivElement>(null)
   const isPolling = state === "starting" || state === "running"
+  const dismissable = state === "confirm" || state === "done" || state === "failed"
 
   useEffect(() => {
     if (!isPolling && state !== "done" && state !== "failed") return
     let alive = true
     async function fetchLog() {
       try {
-        const r = await systemApi.voiceLog(300)
-        if (!alive) return
-        if (r.exists) setLogLines(r.lines)
-      } catch { /* leise */ }
+        const response = await systemApi.voiceLog(300)
+        if (alive && response.exists) setLogLines(response.lines)
+      } catch { /* Die Installation läuft unabhängig vom optionalen Log-Polling. */ }
     }
     fetchLog()
     const interval = isPolling ? setInterval(fetchLog, 1500) : null
@@ -39,112 +38,52 @@ export function VoiceInstallModal({ state, errorMessage, onConfirm, onClose }: P
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight
   }, [logLines])
 
-  const dismissable = state === "confirm" || state === "done" || state === "failed"
+  const footer = state === "confirm" ? (
+    <>
+      <AdminAction onClick={onClose}>{t("voice_install.cancel")}</AdminAction>
+      <AdminAction tone="primary" onClick={onConfirm}>{t("voice_install.install")}</AdminAction>
+    </>
+  ) : dismissable ? (
+    <AdminAction tone="primary" onClick={onClose}>Schließen</AdminAction>
+  ) : undefined
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={() => dismissable && onClose()}
+    <AdminDialog
+      eyebrow="System · Voice"
+      title={t("voice_install.title")}
+      icon={<Mic size={16} />}
+      onClose={dismissable ? onClose : undefined}
+      footer={footer}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="box overflow-hidden w-full max-w-2xl mx-4 flex flex-col max-h-[85vh]"
-        style={{ "--c": rgbFor("/system") } as CSSProperties}
-      >
-        <div className="flex items-center justify-between p-5 border-b border-white/[6%]">
-          <div className="flex items-center gap-2">
-            <Mic size={16} className="text-violet-400" />
-            <h2 className="text-lg font-bold text-white">{t("voice_install.title")}</h2>
+      <div className="space-y-4">
+        {state === "confirm" && (
+          <>
+            <p className="text-sm text-[#e8eef8]">Wyoming STT (faster-whisper) und TTS (Piper) als Incus-Container installieren?</p>
+            <ul className="list-inside list-disc space-y-1 text-xs leading-relaxed text-[#8d9ab0]">
+              <li>{t("voice_install.lxc_hint")}</li>
+              <li>{t("voice_install.download_hint")}</li>
+              <li>{t("voice_install.ports_hint")}</li>
+              <li>{t("voice_install.autostart_hint")}</li>
+            </ul>
+          </>
+        )}
+
+        {state === "starting" && <AdminFeedback tone="warning" loading>{t("voice_install.starting")}</AdminFeedback>}
+        {state === "running" && <AdminFeedback tone="warning" loading>{t("voice_install.running")}</AdminFeedback>}
+        {state === "done" && <AdminFeedback tone="success">{t("voice_install.done_msg")}</AdminFeedback>}
+        {state === "failed" && <AdminFeedback tone="danger">{t("voice_install.failed")}: {errorMessage ?? t("voice_install.unknown_error")}</AdminFeedback>}
+
+        {state !== "confirm" && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8d9ab0]">{t("voice_install.log_title")}</p>
+            <div ref={logRef} className="max-h-[400px] min-h-[240px] overflow-auto">
+              <AdminCodeBlock className="min-h-[240px]">
+                {logLines.length > 0 ? logLines.join("") : t("voice_install.log_empty")}
+              </AdminCodeBlock>
+            </div>
           </div>
-          {dismissable && (
-            <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
-              <X size={16} />
-            </button>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {state === "confirm" && (
-            <>
-              <p className="text-sm text-zinc-200">
-                Wyoming STT (faster-whisper) + TTS (Piper) als incus-Container installieren?
-              </p>
-              <ul className="text-xs text-zinc-400 space-y-1 list-disc list-inside">
-                <li>{t("voice_install.lxc_hint")}</li>
-                <li>{t("voice_install.download_hint")}</li>
-                <li>{t("voice_install.ports_hint")}</li>
-                <li>{t("voice_install.autostart_hint")}</li>
-              </ul>
-            </>
-          )}
-
-          {(state === "starting" || state === "running") && (
-            <div className="flex items-center gap-2 text-sm text-amber-300">
-              <Loader2 size={14} className="animate-spin" />
-              <span>
-                {state === "starting"
-                  ? t("voice_install.starting")
-                  : t("voice_install.running")}
-              </span>
-            </div>
-          )}
-
-          {state === "done" && (
-            <div className="flex items-center gap-2 text-sm text-emerald-300">
-              <CheckCircle size={14} />
-              <span>{t("voice_install.done_msg")}</span>
-            </div>
-          )}
-
-          {state === "failed" && (
-            <div className="flex items-center gap-2 text-sm text-rose-300">
-              <XCircle size={14} />
-              <span>{t("voice_install.failed")}: {errorMessage ?? t("voice_install.unknown_error")}</span>
-            </div>
-          )}
-
-          {state !== "confirm" && (
-            <div className="space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{t("voice_install.log_title")}</p>
-              <pre
-                ref={logRef}
-                className="rounded-lg border border-white/[6%] bg-zinc-950 p-3 text-[11px] font-mono leading-relaxed text-zinc-300 overflow-x-auto whitespace-pre-wrap min-h-[240px] max-h-[400px]"
-              >
-                {logLines.length > 0
-                  ? logLines.join("")
-                  : <span className="text-zinc-600">{t("voice_install.log_empty")}</span>}
-              </pre>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 p-5 border-t border-white/[6%]">
-          {state === "confirm" && (
-            <>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-              >
-                {t("voice_install.cancel")}
-              </button>
-              <button
-                onClick={onConfirm}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium shadow-md shadow-violet-900/20"
-              >
-                {t("voice_install.install")}
-              </button>
-            </>
-          )}
-          {(state === "done" || state === "failed") && (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium shadow-md shadow-violet-900/20"
-            >
-              Schließen
-            </button>
-          )}
-        </div>
+        )}
       </div>
-    </div>
+    </AdminDialog>
   )
 }

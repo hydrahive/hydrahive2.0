@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from "react"
+import { useSearchParams } from "react-router-dom"
 import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
@@ -17,17 +17,11 @@ import { SystemOverlay } from "./admin/SystemOverlay"
 import { SystemSettingsOverlay } from "./admin/SystemSettingsOverlay"
 import { ContainersOverlay } from "./admin/ContainersOverlay"
 import { VMsOverlay } from "./admin/VMsOverlay"
-
-/** Admin-Bereiche, die bereits als eingerastetes Cockpit-Overlay existieren.
- *  Alles andere fällt (noch) auf die bestehende Legacy-Seite via openLocalPath. */
-type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions" | "system" | "system-settings" | "containers" | "vms"
+import { AdminInfoCard } from "./admin/AdminInfoCard"
+import { isAdminOverlayId, OVERLAY_BY_ACTION, OVERLAY_BY_PATH, type AdminOverlayId } from "./admin/adminOverlayRegistry"
 
 const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
-// action.ids mit Overlay werden eingerastet, der Rest per Pfad geöffnet.
 const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
-const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = { users: "users", modules: "modules", plugins: "plugins", credentials: "credentials", extensions: "extensions", system: "system" }
-// Pfad-basierte Kacheln (Ops/Integrationen ohne action.id) auf Overlays mappen.
-const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = { "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials", "/themes": "themes", "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions", "/system": "system", "/system/settings": "system-settings", "/containers": "containers", "/vms": "vms" }
 
 const opsLinks = [
   { title: "LLM", path: "/llm", icon: Brain },
@@ -46,17 +40,23 @@ const integrationLinks = [
 ]
 
 export function AdminCockpitPage() {
-  const [overlay, setOverlay] = useState<AdminOverlayId | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedOverlay = searchParams.get("section")
+  const overlay = isAdminOverlayId(requestedOverlay) ? requestedOverlay : null
 
-  // Kachel-Klick: existiert ein Cockpit-Overlay für die Action → einrasten,
-  // sonst (noch) die bestehende Legacy-Seite öffnen.
+  function setOverlay(nextOverlay: AdminOverlayId | null) {
+    const next = new URLSearchParams(searchParams)
+    if (nextOverlay) next.set("section", nextOverlay)
+    else next.delete("section")
+    setSearchParams(next, { replace: true })
+  }
+
   const openArea = (actionId: string, path: string) => {
     const target = OVERLAY_BY_ACTION[actionId]
     if (target) setOverlay(target)
     else openLocalPath(path)
   }
 
-  // Pfad-basierte Kacheln (Ops/Integrationen): Overlay wenn gemappt, sonst Pfad.
   const openPath = (path: string) => {
     const target = OVERLAY_BY_PATH[path]
     if (target) setOverlay(target)
@@ -123,7 +123,7 @@ export function AdminCockpitPage() {
                 <h3 className="text-sm font-black text-[#e8eef8]">Keine gefährlichen Aktionen beim Laden</h3>
               </div>
               <p className="text-sm leading-5 text-[#d7deea]">
-                Das Admin-Cockpit bündelt Einstiege, führt aber keine Wartung, Installationen, Backups, Deletes oder Secrets-Reads automatisch aus. Kritische Aktionen bleiben in den vorhandenen Admin-Seiten und deren Guards.
+                Das Admin-Cockpit bündelt Einstiege, führt aber keine Wartung, Installationen, Backups, Deletes oder Secrets-Reads automatisch aus. Kritische Aktionen bleiben in geschützten Cockpit-Dialogen und ihren Bestätigungen.
               </p>
               <div className="mt-4 grid gap-2 md:grid-cols-2">
                 {[
@@ -131,7 +131,7 @@ export function AdminCockpitPage() {
                   "Module/Extensions nur per explizitem Klick.",
                   "Backups/Restore bleiben in Systemkarten.",
                   "Logs und Status werden nicht breit gepollt.",
-                ].map((item) => <div key={item} className="rounded-[4px] border border-white/[8%] bg-white/[3%] p-2 text-xs text-[#8d9ab0]">• {item}</div>)}
+                ].map((item) => <div key={item} className="rounded-[4px] border border-[#2a364b] bg-[#131b2a] p-2 text-xs text-[#8d9ab0]">• {item}</div>)}
               </div>
             </div>
           </CockpitPanel>
@@ -153,8 +153,8 @@ export function AdminCockpitPage() {
 
           <CockpitPanel title="Wartung & Backups" eyebrow="Recovery">
             <div className="grid gap-2 md:grid-cols-2">
-              <Info title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
-              <Info title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen und Migrationen bleiben geschützt unter /system/settings." onOpen={() => openPath("/system/settings")} />
+              <AdminInfoCard title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
+              <AdminInfoCard title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
             </div>
           </CockpitPanel>
         </main>
@@ -196,17 +196,5 @@ export function AdminCockpitPage() {
       {overlay === "containers" && <ContainersOverlay onClose={() => setOverlay(null)} />}
       {overlay === "vms" && <VMsOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
-  )
-}
-
-function Info({ title, text, onOpen, icon: Icon }: { title: string; text: string; onOpen: () => void; icon: ComponentType<{ size?: number; className?: string }> }) {
-  return (
-    <button onClick={onOpen} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
-      <div className="mb-2 flex items-center gap-2">
-        <Icon size={16} className="text-[#69d7ff]" />
-        <h3 className="text-sm font-bold text-[#e8eef8]">{title}</h3>
-      </div>
-      <p className="text-xs leading-4 text-[#8d9ab0]">{text}</p>
-    </button>
   )
 }
