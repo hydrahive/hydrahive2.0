@@ -1,9 +1,16 @@
-import { Navigate } from "react-router-dom"
+import { Navigate, useNavigate } from "react-router-dom"
+import { SystemOverlay } from "@/features/cockpit/admin/SystemOverlay"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 
 /**
- * Legacy route compatibility: all system entry points converge on the same
- * Admin-Cockpit overlay instead of maintaining a second visual implementation.
+ * Legacy route compatibility without a second visual implementation. Admins
+ * deep-link into the cockpit; other authenticated roles retain their previous
+ * read-only system access through the same shared overlay content.
  */
 export function SystemPage() {
-  return <Navigate to="/admin?section=system" replace />
+  const role = useAuthStore((state) => state.role)
+  const navigate = useNavigate()
+
+  if (role === "admin") return <Navigate to="/admin?section=system" replace />
+  return <SystemOverlay onClose={() => navigate("/dashboard")} />
 }
