@@ -1,8 +1,14 @@
-import { useState } from "react"
-import type { CSSProperties } from "react"
+import { useId, useState } from "react"
+import { Loader2, Save } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { Loader2, Save, X } from "lucide-react"
-import { rgbFor } from "@/shared/colors"
+import {
+  AdminAction,
+  AdminDialog,
+  AdminFeedback,
+  AdminField,
+  AdminToggle,
+  adminInputClass,
+} from "@/features/cockpit/admin/ui"
 import type { Container } from "./types"
 import { containersApi } from "./api"
 
@@ -14,8 +20,8 @@ interface Props {
 
 export function EditContainerDialog({ container, onClose, onSaved }: Props) {
   const { t } = useTranslation("containers")
+  const formId = useId()
   const editable = container.actual_state === "stopped" || container.actual_state === "created" || container.actual_state === "error"
-
   const [name, setName] = useState(container.name)
   const [description, setDescription] = useState(container.description ?? "")
   const [cpuSet, setCpuSet] = useState(container.cpu !== null && container.cpu !== undefined)
@@ -28,15 +34,16 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
   const validName = /^[a-zA-Z][a-zA-Z0-9-]{0,62}$/.test(name)
   const origCpuSet = container.cpu !== null && container.cpu !== undefined
   const origRamSet = container.ram_mb !== null && container.ram_mb !== undefined
-  const dirty =
-    name !== container.name ||
-    description !== (container.description ?? "") ||
-    cpuSet !== origCpuSet || (cpuSet && cpu !== container.cpu) ||
-    ramSet !== origRamSet || (ramSet && ramMb !== container.ram_mb)
+  const dirty = name !== container.name
+    || description !== (container.description ?? "")
+    || cpuSet !== origCpuSet || (cpuSet && cpu !== container.cpu)
+    || ramSet !== origRamSet || (ramSet && ramMb !== container.ram_mb)
 
-  async function submit() {
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
     if (!validName) { setError(t("create.error_name_invalid")); return }
-    setBusy(true); setError(null)
+    setBusy(true)
+    setError(null)
     try {
       const patch: Parameters<typeof containersApi.update>[1] = {}
       if (name !== container.name) patch.name = name
@@ -55,90 +62,68 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
       }
       await containersApi.update(container.container_id, patch)
       onSaved()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("edit.error"))
-    } finally { setBusy(false) }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t("edit.error"))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()}
-        className="box overflow-hidden w-full max-w-lg p-5 space-y-3" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Container bearbeiten: {container.name}</h2>
-          <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
-            <X size={16} />
-          </button>
-        </div>
-
+    <AdminDialog
+      eyebrow="Admin · Container"
+      title={`Container bearbeiten: ${container.name}`}
+      icon={<Save size={16} />}
+      onClose={busy ? undefined : onClose}
+      maxWidthClass="max-w-lg"
+      footer={(
+        <>
+          <AdminAction onClick={onClose} disabled={busy}>Abbrechen</AdminAction>
+          <AdminAction type="submit" form={formId} tone="primary" disabled={!editable || !dirty || busy}>
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+            Speichern
+          </AdminAction>
+        </>
+      )}
+    >
+      <form id={formId} onSubmit={submit} className="space-y-4">
         {!editable && (
-          <p className="text-xs text-amber-300 bg-amber-500/[8%] border border-amber-500/25 rounded-md px-3 py-2">
+          <AdminFeedback tone="warning">
             Container muss gestoppt sein zum Bearbeiten. Aktuell: <strong>{container.actual_state}</strong>
-          </p>
+          </AdminFeedback>
         )}
 
-        <div className="space-y-2">
-          <Field label={t("edit.field_name")}>
-            <input value={name} onChange={(e) => setName(e.target.value)} disabled={!editable}
-              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
-          </Field>
-          <Field label={t("edit.field_desc")}>
-            <input value={description} onChange={(e) => setDescription(e.target.value)} disabled={!editable}
-              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
-          </Field>
-          <Field label={t("edit.field_image_readonly")}>
-            <input value={container.image} disabled
-              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-500 font-mono cursor-not-allowed" />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label={t("edit.field_cpu")}>
-              <div className="flex items-center gap-1.5">
-                <input type="checkbox" checked={cpuSet} onChange={(e) => setCpuSet(e.target.checked)} disabled={!editable}
-                  className="accent-violet-500" />
-                <input type="number" min={1} max={64} value={cpu} disabled={!editable || !cpuSet}
-                  onChange={(e) => setCpu(parseInt(e.target.value) || 1)}
-                  className="flex-1 px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-30" />
-              </div>
-              <p className="text-[10px] text-zinc-600 mt-0.5">{cpuSet ? "" : "unbegrenzt"}</p>
-            </Field>
-            <Field label={t("edit.field_ram")}>
-              <div className="flex items-center gap-1.5">
-                <input type="checkbox" checked={ramSet} onChange={(e) => setRamSet(e.target.checked)} disabled={!editable}
-                  className="accent-violet-500" />
-                <input type="number" min={64} max={32768} step={64} value={ramMb} disabled={!editable || !ramSet}
-                  onChange={(e) => setRamMb(parseInt(e.target.value) || 64)}
-                  className="flex-1 px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-30" />
-              </div>
-              <p className="text-[10px] text-zinc-600 mt-0.5">{ramSet ? "" : "unbegrenzt"}</p>
-            </Field>
+        <AdminField label={t("edit.field_name")}>
+          <input value={name} onChange={(event) => setName(event.target.value)} disabled={!editable} className={adminInputClass} />
+        </AdminField>
+        <AdminField label={t("edit.field_desc")}>
+          <input value={description} onChange={(event) => setDescription(event.target.value)} disabled={!editable} className={adminInputClass} />
+        </AdminField>
+        <AdminField label={t("edit.field_image_readonly")}>
+          <input value={container.image} disabled className={`${adminInputClass} cursor-not-allowed font-mono`} />
+        </AdminField>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3">
+            <AdminToggle label={t("edit.field_cpu")} checked={cpuSet}
+              onChange={(event) => setCpuSet(event.target.checked)} disabled={!editable} />
+            <AdminField label={cpuSet ? t("edit.field_cpu") : "unbegrenzt"}>
+              <input type="number" min={1} max={64} value={cpu} disabled={!editable || !cpuSet}
+                onChange={(event) => setCpu(parseInt(event.target.value, 10) || 1)} className={adminInputClass} />
+            </AdminField>
+          </div>
+          <div className="space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3">
+            <AdminToggle label={t("edit.field_ram")} checked={ramSet}
+              onChange={(event) => setRamSet(event.target.checked)} disabled={!editable} />
+            <AdminField label={ramSet ? t("edit.field_ram") : "unbegrenzt"}>
+              <input type="number" min={64} max={32768} step={64} value={ramMb} disabled={!editable || !ramSet}
+                onChange={(event) => setRamMb(parseInt(event.target.value, 10) || 64)} className={adminInputClass} />
+            </AdminField>
           </div>
         </div>
 
-        {error && (
-          <p className="text-xs text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>
-        )}
-
-        <div className="flex justify-end gap-2 pt-1">
-          <button onClick={onClose}
-            className="px-3 py-1.5 rounded-md text-xs text-zinc-400 hover:text-zinc-200 hover:bg-white/5">
-            Abbrechen
-          </button>
-          <button onClick={submit} disabled={!editable || !dirty || busy}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-30">
-            {busy ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-            Speichern
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-0.5">
-      <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
-      {children}
-    </div>
+        {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
+      </form>
+    </AdminDialog>
   )
 }

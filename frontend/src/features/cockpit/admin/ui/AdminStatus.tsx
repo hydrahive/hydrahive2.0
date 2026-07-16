@@ -23,13 +23,14 @@ interface Props {
   children: ReactNode
   icon?: LucideIcon
   dot?: boolean
+  pulse?: boolean
   className?: string
 }
 
-export function AdminStatus({ tone = "neutral", children, icon: Icon, dot = false, className }: Props) {
+export function AdminStatus({ tone = "neutral", children, icon: Icon, dot = false, pulse = false, className }: Props) {
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-[4px] border px-2 py-1 text-[10px] font-bold uppercase tracking-wider", toneClasses[tone], className)}>
-      {Icon ? <Icon size={11} /> : dot ? <span className={cn("h-1.5 w-1.5 rounded-full", dotClasses[tone])} /> : null}
+      {Icon ? <Icon size={11} /> : dot ? <span className={cn("h-1.5 w-1.5 rounded-full", dotClasses[tone], pulse && "animate-pulse")} /> : null}
       {children}
     </span>
   )

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { RefreshCw } from "lucide-react"
+import { AdminAction, AdminCodeBlock, AdminFeedback } from "@/features/cockpit/admin/ui"
 import { containersApi } from "./api"
 
 interface Props {
@@ -11,34 +12,34 @@ export function ContainerConfigPane({ containerId }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await containersApi.config(containerId)
-      setText(r.text || "(leer)")
+      const response = await containersApi.config(containerId)
+      setText(response.text || "(leer)")
       setError(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason))
     } finally {
       setLoading(false)
     }
-  }
+  }, [containerId])
 
-  useEffect(() => { void load() /* eslint-disable-next-line */ }, [containerId])
+  useEffect(() => {
+    const initial = window.setTimeout(load, 0)
+    return () => window.clearTimeout(initial)
+  }, [load])
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/[8%] flex-shrink-0">
-        <p className="text-xs text-zinc-400">incus config show</p>
-        <button onClick={load} disabled={loading}
-          className="p-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-400 hover:text-zinc-200 disabled:opacity-40">
+    <div className="flex h-full min-h-0 flex-col bg-[#0e1420]">
+      <div className="flex shrink-0 items-center justify-between border-b border-[#2a364b] bg-[#131b2a] px-4 py-2">
+        <p className="font-mono text-xs text-[#8d9ab0]">incus config show</p>
+        <AdminAction onClick={load} disabled={loading} aria-label="Konfiguration neu laden" title="Konfiguration neu laden" className="px-2 py-1.5">
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-        </button>
+        </AdminAction>
       </div>
-      {error && (
-        <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/30 text-xs text-rose-200 flex-shrink-0">{error}</div>
-      )}
-      <pre className="flex-1 min-h-0 overflow-auto p-3 text-[11px] text-zinc-300 font-mono whitespace-pre-wrap bg-[#0b0b0f]">{text}</pre>
+      {error && <AdminFeedback tone="danger" className="m-3 shrink-0">{error}</AdminFeedback>}
+      <AdminCodeBlock className="min-h-0 flex-1 rounded-none border-0">{text}</AdminCodeBlock>
     </div>
   )
 }

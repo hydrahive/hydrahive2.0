@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
 import { RefreshCw } from "lucide-react"
+import { useTranslation } from "react-i18next"
+import {
+  AdminAction,
+  AdminCodeBlock,
+  AdminFeedback,
+  AdminToggle,
+} from "@/features/cockpit/admin/ui"
 import { containersApi } from "./api"
 
 interface Props {
@@ -17,44 +23,40 @@ export function ContainerLogPane({ containerId }: Props) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await containersApi.log(containerId)
-      setText(r.text || t("logs.empty"))
+      const response = await containersApi.log(containerId)
+      setText(response.text || t("logs.empty"))
       setError(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason))
     } finally {
       setLoading(false)
     }
-  }, [containerId])
+  }, [containerId, t])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    const initial = window.setTimeout(load, 0)
+    return () => window.clearTimeout(initial)
+  }, [load])
 
   useEffect(() => {
     if (!auto) return
-    const t = setInterval(load, 5000)
-    return () => clearInterval(t)
+    const interval = setInterval(load, 5000)
+    return () => clearInterval(interval)
   }, [auto, load])
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/[8%] flex-shrink-0">
-        <p className="text-xs text-zinc-400">{t("logs.lifecycle_title")}</p>
+    <div className="flex h-full min-h-0 flex-col bg-[#0e1420]">
+      <div className="flex shrink-0 items-center justify-between border-b border-[#2a364b] bg-[#131b2a] px-4 py-2">
+        <p className="text-xs text-[#8d9ab0]">{t("logs.lifecycle_title")}</p>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-1.5 text-[11px] text-zinc-400">
-            <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)}
-              className="accent-violet-500" />
-            {t("logs.auto_refresh")}
-          </label>
-          <button onClick={load} disabled={loading}
-            className="p-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-400 hover:text-zinc-200 disabled:opacity-40">
+          <AdminToggle label={t("logs.auto_refresh")} checked={auto} onChange={(event) => setAuto(event.target.checked)} />
+          <AdminAction onClick={load} disabled={loading} aria-label="Logs neu laden" title="Logs neu laden" className="px-2 py-1.5">
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          </button>
+          </AdminAction>
         </div>
       </div>
-      {error && (
-        <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/30 text-xs text-rose-200 flex-shrink-0">{error}</div>
-      )}
-      <pre className="flex-1 min-h-0 overflow-auto p-3 text-[11px] text-zinc-300 font-mono whitespace-pre-wrap break-all bg-[#0b0b0f]">{text}</pre>
+      {error && <AdminFeedback tone="danger" className="m-3 shrink-0">{error}</AdminFeedback>}
+      <AdminCodeBlock className="min-h-0 flex-1 break-all rounded-none border-0">{text}</AdminCodeBlock>
     </div>
   )
 }
