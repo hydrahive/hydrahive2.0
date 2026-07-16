@@ -1,6 +1,7 @@
 export { AdminAction } from "./AdminAction"
 export { adminActionClass, type AdminActionTone } from "./adminActionClass"
 export { AdminCodeBlock, AdminFeedback } from "./AdminFeedback"
+export { AdminConfirmDialog } from "./AdminConfirmDialog"
 export { AdminDialog } from "./AdminDialog"
 export { AdminField, AdminToggle, adminInputClass } from "./AdminField"
 export { AdminPanel } from "./AdminPanel"
