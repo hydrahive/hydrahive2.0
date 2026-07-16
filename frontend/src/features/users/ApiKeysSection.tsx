@@ -133,7 +133,7 @@ export function ApiKeysSection() {
               </div>
             ))}
           </div>
-        ) : !loading && !newKey ? <p className="text-xs italic text-[#5b6675]">{t("apikeys.empty")}</p> : null}
+        ) : !loading && !error && !newKey ? <p className="text-xs italic text-[#5b6675]">{t("apikeys.empty")}</p> : null}
       </AdminPanel>
 
       {deleteTarget && (

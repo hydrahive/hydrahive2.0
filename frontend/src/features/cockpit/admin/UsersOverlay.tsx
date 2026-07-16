@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { Crown, KeyRound, Pencil, Plus, Trash2, User as UserIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { HelpButton } from "@/i18n/HelpButton"
 import { ApiKeysSection } from "@/features/users/ApiKeysSection"
 import { ChangePasswordDialog } from "@/features/users/ChangePasswordDialog"
 import { EditUserDialog } from "@/features/users/EditUserDialog"
@@ -63,9 +64,12 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
       title={t("title")}
       onClose={onClose}
       headerActions={(
-        <CockpitButton tone="primary" onClick={() => setShowNew(true)}>
-          <Plus size={13} className="mr-1 inline" />{t("actions.new")}
-        </CockpitButton>
+        <div className="flex items-center gap-2">
+          <HelpButton topic="users" />
+          <CockpitButton tone="primary" onClick={() => setShowNew(true)}>
+            <Plus size={13} className="mr-1 inline" />{t("actions.new")}
+          </CockpitButton>
+        </div>
       )}
     >
       <div className="space-y-5">
@@ -73,7 +77,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
         {actionError && <AdminFeedback tone="danger">{actionError}</AdminFeedback>}
         {loading && <AdminFeedback loading>Benutzer werden geladen …</AdminFeedback>}
 
-        {!loading && users.length === 0 ? (
+        {!loading && !actionError && users.length === 0 ? (
           <AdminFeedback>{t("no_users")}</AdminFeedback>
         ) : (
           <div className="space-y-2">

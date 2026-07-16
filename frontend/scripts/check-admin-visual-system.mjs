@@ -45,6 +45,8 @@ const migratedFiles = [
   "src/features/users/EditUserDialog.tsx",
   "src/features/users/ChangePasswordDialog.tsx",
   "src/features/users/ApiKeysSection.tsx",
+  "src/i18n/HelpButton.tsx",
+  "src/i18n/HelpDrawer.tsx",
   "src/shared/RestartModal.tsx",
 ]
 
