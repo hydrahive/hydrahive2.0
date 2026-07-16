@@ -73,6 +73,12 @@ if [ -z "${HH_UPDATE_REEXECED:-}" ] && [ -n "$SELF_HASH_BEFORE" ]; then
   fi
 fi
 
+# Bestehende Installationen können eine vom Installer als root erzeugte llm.json
+# besitzen. Dann scheitern Hinzufügen, Bearbeiten und Löschen in der Web-UI.
+# shellcheck source=lib/config-permissions.sh
+source "$HH_REPO_DIR/installer/lib/config-permissions.sh"
+repair_llm_config_permissions
+
 log "Node.js prüfen"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ]; then
   log "Node.js 20 fehlt — installiere via NodeSource"
