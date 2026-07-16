@@ -1,6 +1,5 @@
-import { X } from "lucide-react"
-import type { CSSProperties } from "react"
-import { rgbFor } from "@/shared/colors"
+import { TerminalSquare } from "lucide-react"
+import { AdminDialog } from "@/features/cockpit/admin/ui"
 import { ModalPortal } from "@/shared/ModalPortal"
 import type { Container } from "./types"
 import { ConsolePane } from "./ConsolePane"
@@ -13,20 +12,16 @@ interface Props {
 export function ContainerConsoleModal({ container, onClose }: Props) {
   return (
     <ModalPortal>
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="box box-static overflow-hidden w-full max-w-5xl flex flex-col"
-        style={{ height: "min(80vh, 700px)", "--c": rgbFor("/containers") } as CSSProperties}>
-        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/[8%] flex-shrink-0">
-          <p className="text-sm font-mono text-zinc-200 truncate">{container.name} <span className="text-[11px] text-zinc-500">— Console</span></p>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%]">
-            <X size={16} />
-          </button>
-        </div>
-        <ConsolePane containerId={container.container_id} className="flex-1" />
-      </div>
-    </div>
+      <AdminDialog
+        eyebrow="Admin · Container"
+        title={<span className="font-mono">{container.name} — Console</span>}
+        icon={<TerminalSquare size={16} />}
+        onClose={onClose}
+        maxWidthClass="max-w-5xl"
+        className="h-[min(80vh,700px)]"
+      >
+        <ConsolePane containerId={container.container_id} className="h-full" />
+      </AdminDialog>
     </ModalPortal>
   )
 }

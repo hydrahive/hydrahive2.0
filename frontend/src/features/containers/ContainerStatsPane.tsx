@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
-import type { CSSProperties } from "react"
-import { useTranslation } from "react-i18next"
 import { Cpu, MemoryStick, Network } from "lucide-react"
-import { rgbFor } from "@/shared/colors"
+import { useTranslation } from "react-i18next"
+import { AdminFeedback, AdminPanel } from "@/features/cockpit/admin/ui"
 import type { Container, ContainerInfo } from "./types"
 import { containersApi } from "./api"
 
@@ -10,86 +9,75 @@ interface Props {
   container: Container
 }
 
-export function ContainerStatsPane({ container: c }: Props) {
+export function ContainerStatsPane({ container: currentContainer }: Props) {
   const { t } = useTranslation("containers")
   const [info, setInfo] = useState<ContainerInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (c.actual_state !== "running") { setInfo(null); return }
-    let alive = true
+    if (currentContainer.actual_state !== "running") {
+      const clear = window.setTimeout(() => setInfo(null), 0)
+      return () => window.clearTimeout(clear)
+    }
+    let active = true
     async function tick() {
       try {
-        const i = await containersApi.info(c.container_id)
-        if (alive) { setInfo(i); setError(null) }
-      } catch (e) {
-        if (alive) setError(e instanceof Error ? e.message : String(e))
+        const nextInfo = await containersApi.info(currentContainer.container_id)
+        if (active) { setInfo(nextInfo); setError(null) }
+      } catch (reason) {
+        if (active) setError(reason instanceof Error ? reason.message : String(reason))
       }
     }
     void tick()
-    const t = setInterval(tick, 3000)
-    return () => { alive = false; clearInterval(t) }
-  }, [c.container_id, c.actual_state])
+    const interval = setInterval(tick, 3000)
+    return () => { active = false; clearInterval(interval) }
+  }, [currentContainer.container_id, currentContainer.actual_state])
 
-  const memMb = info?.memory_bytes ? Math.round(info.memory_bytes / 1024 / 1024) : null
-  const memPct = memMb && c.ram_mb ? Math.min(100, (memMb / c.ram_mb) * 100) : null
+  const memoryMb = info?.memory_bytes ? Math.round(info.memory_bytes / 1024 / 1024) : null
+  const memoryPercent = memoryMb && currentContainer.ram_mb
+    ? Math.min(100, (memoryMb / currentContainer.ram_mb) * 100)
+    : null
 
   return (
-    <div className="p-6 space-y-5 overflow-auto h-full">
-      {error && (
-        <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs text-rose-200">{error}</div>
-      )}
-      {c.actual_state !== "running" ? (
-        <p className="text-sm text-zinc-500">{t("stats.not_running")}</p>
+    <div className="h-full space-y-4 overflow-auto p-6">
+      {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
+      {currentContainer.actual_state !== "running" ? (
+        <AdminFeedback>{t("stats.not_running")}</AdminFeedback>
       ) : !info ? (
-        <p className="text-sm text-zinc-500">{t("loading")}</p>
+        <AdminFeedback loading>{t("loading")}</AdminFeedback>
       ) : (
         <>
-          <Card icon={<MemoryStick size={14} className="text-violet-400" />} label="RAM">
-            <div className="font-mono text-xs text-zinc-300">
-              {memMb ?? "—"} MB
-              {c.ram_mb && <span className="text-zinc-500"> / {c.ram_mb} MB</span>}
+          <AdminPanel title="RAM" icon={MemoryStick}>
+            <div className="font-mono text-xs text-[#b9c5d6]">
+              {memoryMb ?? "—"} MB
+              {currentContainer.ram_mb && <span className="text-[#8d9ab0]"> / {currentContainer.ram_mb} MB</span>}
             </div>
-            {memPct != null && (
-              <div className="h-1.5 mt-2 rounded-full bg-zinc-800 overflow-hidden">
-                <div className="h-full bg-emerald-500 transition-all" style={{ width: `${memPct}%` }} />
+            {memoryPercent != null && (
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#0b111c]">
+                <div className="h-full bg-[#69d7ff] transition-all" style={{ width: `${memoryPercent}%` }} />
               </div>
             )}
             {info.memory_peak_bytes && (
-              <p className="mt-1.5 text-[11px] text-zinc-500">
+              <p className="mt-1.5 text-[11px] text-[#8d9ab0]">
                 Peak: {Math.round(info.memory_peak_bytes / 1024 / 1024)} MB
               </p>
             )}
-          </Card>
+          </AdminPanel>
 
-          <Card icon={<Cpu size={14} className="text-violet-400" />} label="CPU">
-            <div className="font-mono text-xs text-zinc-300">
-              {(info.cpu_usage_ns ?? 0) / 1e9} s gesamt
-            </div>
-            <p className="mt-1 text-[11px] text-zinc-500">
-              {c.cpu ? t("spec.cpu_limit", { cpu: c.cpu }) : t("spec.no_limit")}
+          <AdminPanel title="CPU" icon={Cpu}>
+            <div className="font-mono text-xs text-[#b9c5d6]">{(info.cpu_usage_ns ?? 0) / 1e9} s gesamt</div>
+            <p className="mt-1 text-[11px] text-[#8d9ab0]">
+              {currentContainer.cpu ? t("spec.cpu_limit", { cpu: currentContainer.cpu }) : t("spec.no_limit")}
             </p>
-          </Card>
+          </AdminPanel>
 
-          <Card icon={<Network size={14} className="text-violet-400" />} label="Netzwerk">
-            <div className="font-mono text-xs text-zinc-300">
-              {info.ipv4 ?? t("spec.no_ipv4")} — {c.network_mode}
+          <AdminPanel title="Netzwerk" icon={Network}>
+            <div className="font-mono text-xs text-[#b9c5d6]">
+              {info.ipv4 ?? t("spec.no_ipv4")} — {currentContainer.network_mode}
             </div>
-          </Card>
+          </AdminPanel>
         </>
       )}
-    </div>
-  )
-}
-
-function Card({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
-  return (
-    <div className="box overflow-hidden p-4" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
-      <div className="flex items-center gap-2 mb-2">
-        {icon}
-        <p className="text-[11px] uppercase tracking-wider text-zinc-500">{label}</p>
-      </div>
-      {children}
     </div>
   )
 }

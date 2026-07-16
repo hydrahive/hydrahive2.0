@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Terminal } from "xterm"
 import { FitAddon } from "xterm-addon-fit"
 import "xterm/css/xterm.css"
+import { AdminFeedback, AdminStatus, type AdminStatusTone } from "@/features/cockpit/admin/ui"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 
 interface Props {
@@ -11,6 +12,12 @@ interface Props {
 }
 
 export type ConsoleStatus = "connecting" | "connected" | "closed"
+
+const STATUS_TONES: Record<ConsoleStatus, AdminStatusTone> = {
+  connecting: "warning",
+  connected: "success",
+  closed: "danger",
+}
 
 export function ConsolePane({ containerId, className }: Props) {
   const { t } = useTranslation("containers")
@@ -22,84 +29,79 @@ export function ConsolePane({ containerId, className }: Props) {
     if (!wrapRef.current) return
     const token = useAuthStore.getState().token
     if (!token) {
-      setError(t("console.error_not_logged_in"))
-      setStatus("closed")
-      return
+      const missingToken = window.setTimeout(() => {
+        setError(t("console.error_not_logged_in"))
+        setStatus("closed")
+      }, 0)
+      return () => window.clearTimeout(missingToken)
     }
 
-    const term = new Terminal({
+    const terminal = new Terminal({
       cursorBlink: true,
       fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Consolas, monospace',
       fontSize: 13,
-      theme: { background: "#0b0b0f", foreground: "#e4e4e7", cursor: "#a78bfa" },
+      theme: { background: "#0b111c", foreground: "#e8eef8", cursor: "#69d7ff" },
       convertEol: true,
     })
     const fit = new FitAddon()
-    term.loadAddon(fit)
-    term.open(wrapRef.current)
-    const safeFit = () => { try { fit.fit() } catch { /* */ } }
+    terminal.loadAddon(fit)
+    terminal.open(wrapRef.current)
+    const safeFit = () => { try { fit.fit() } catch { /* Das Terminal kann während des Schließens bereits getrennt sein. */ } }
     safeFit()
-    requestAnimationFrame(safeFit)  // nach Layout-Settle nochmal fitten
+    requestAnimationFrame(safeFit)
 
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
-    const url = `${proto}//${window.location.host}/api/containers/${containerId}/console?token=${encodeURIComponent(token)}`
-    const ws = new WebSocket(url)
-    ws.binaryType = "arraybuffer"
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+    const url = `${protocol}//${window.location.host}/api/containers/${containerId}/console?token=${encodeURIComponent(token)}`
+    const socket = new WebSocket(url)
+    socket.binaryType = "arraybuffer"
 
-    ws.onopen = () => {
+    socket.onopen = () => {
       setStatus("connected")
-      ws.send(JSON.stringify({ type: "resize", rows: term.rows, cols: term.cols }))
+      socket.send(JSON.stringify({ type: "resize", rows: terminal.rows, cols: terminal.cols }))
     }
-    ws.onmessage = (ev) => {
-      if (ev.data instanceof ArrayBuffer) term.write(new Uint8Array(ev.data))
-      else if (typeof ev.data === "string") term.write(ev.data)
+    socket.onmessage = (event) => {
+      if (event.data instanceof ArrayBuffer) terminal.write(new Uint8Array(event.data))
+      else if (typeof event.data === "string") terminal.write(event.data)
     }
-    ws.onerror = () => setError(t("console.error_connection"))
-    ws.onclose = (ev) => {
+    socket.onerror = () => setError(t("console.error_connection"))
+    socket.onclose = (event) => {
       setStatus("closed")
-      if (ev.code === 4401) setError(t("console.error_unauthorized"))
-      else if (ev.code === 4404) setError(t("console.error_not_found"))
-      else if (ev.code === 4409) setError(t("console.error_not_running"))
-      else if (ev.code === 4500) setError(t("console.error_backend"))
+      if (event.code === 4401) setError(t("console.error_unauthorized"))
+      else if (event.code === 4404) setError(t("console.error_not_found"))
+      else if (event.code === 4409) setError(t("console.error_not_running"))
+      else if (event.code === 4500) setError(t("console.error_backend"))
     }
 
-    const onData = term.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "input", data }))
+    const onData = terminal.onData((data) => {
+      if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "input", data }))
     })
-
     const onResize = () => {
-      try { fit.fit() } catch { /* */ }
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "resize", rows: term.rows, cols: term.cols }))
+      try { fit.fit() } catch { /* Das Terminal kann während des Schließens bereits getrennt sein. */ }
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "resize", rows: terminal.rows, cols: terminal.cols }))
       }
     }
     window.addEventListener("resize", onResize)
-    const ro = new ResizeObserver(onResize)
-    if (wrapRef.current) ro.observe(wrapRef.current)
-
-    term.focus()
+    const resizeObserver = new ResizeObserver(onResize)
+    resizeObserver.observe(wrapRef.current)
+    terminal.focus()
 
     return () => {
       window.removeEventListener("resize", onResize)
-      ro.disconnect()
+      resizeObserver.disconnect()
       onData.dispose()
-      try { ws.close() } catch { /* */ }
-      term.dispose()
+      try { socket.close() } catch { /* Die Verbindung kann bereits geschlossen sein. */ }
+      terminal.dispose()
     }
-  }, [containerId])
+  }, [containerId, t])
 
   return (
-    <div className={`flex flex-col min-h-0 ${className ?? ""}`}>
-      {error && (
-        <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/30 text-xs text-rose-200 flex-shrink-0">{error}</div>
-      )}
-      <div className="flex-1 min-h-0 p-2 bg-[#0b0b0f]" ref={wrapRef} />
-      <div className="px-4 py-2 border-t border-white/[8%] text-[11px] text-zinc-500 font-mono flex items-center justify-between flex-shrink-0">
+    <div className={`flex min-h-0 flex-col bg-[#0b111c] ${className ?? ""}`}>
+      {error && <AdminFeedback tone="danger" className="m-2 shrink-0">{error}</AdminFeedback>}
+      <div className="min-h-0 flex-1 bg-[#0b111c] p-2" ref={wrapRef} />
+      <div className="flex shrink-0 items-center justify-between border-t border-[#2a364b] bg-[#0d1420] px-4 py-2 font-mono text-[11px] text-[#8d9ab0]">
         <span>incus exec — Strg+D zum Beenden</span>
-        <span className={
-          status === "connected" ? "text-emerald-400" :
-          status === "connecting" ? "text-amber-400" : "text-rose-400"
-        }>● {status}</span>
+        <AdminStatus tone={STATUS_TONES[status]} dot>{status}</AdminStatus>
       </div>
     </div>
   )
