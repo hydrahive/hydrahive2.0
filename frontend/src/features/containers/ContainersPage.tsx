@@ -1,115 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
-import type { CSSProperties } from "react"
-import { useTranslation } from "react-i18next"
-import { Box, Plus, RefreshCw } from "lucide-react"
-import { rgbFor } from "@/shared/colors"
-import { HelpButton } from "@/i18n/HelpButton"
-import type { Container } from "./types"
-import { containersApi } from "./api"
-import { ContainerCard } from "./ContainerCard"
-import { CreateContainerDialog } from "./CreateContainerDialog"
-import { EditContainerDialog } from "./EditContainerDialog"
+import { Navigate, useNavigate } from "react-router-dom"
+import { ContainersOverlay } from "@/features/cockpit/admin/ContainersOverlay"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 
-const POLL_MS = 4000
-
+/** Legacy route compatibility without maintaining a second container UI. */
 export function ContainersPage() {
-  const { t } = useTranslation("containers")
-  const [containers, setContainers] = useState<Container[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [showCreate, setShowCreate] = useState(false)
-  const [editC, setEditC] = useState<Container | null>(null)
+  const role = useAuthStore((state) => state.role)
+  const navigate = useNavigate()
 
-  const refresh = useCallback(async () => {
-    try {
-      setError(null)
-      setContainers(await containersApi.list())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void refresh()
-    const t = setInterval(refresh, POLL_MS)
-    return () => clearInterval(t)
-  }, [refresh])
-
-  const summary = useMemo(() => {
-    const running = containers.filter((c) => c.actual_state === "running")
-    return { total: containers.length, running: running.length }
-  }, [containers])
-
+  if (role === "admin") return <Navigate to="/admin?section=containers" replace />
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-1">
-          <div>
-            <h1 className="text-xl font-bold text-white">{t("title")}</h1>
-            <p className="text-zinc-500 text-sm mt-0.5">{t("detail.subtitle")}</p>
-          </div>
-          <HelpButton topic="containers" />
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={refresh}
-            className="p-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-400 hover:text-zinc-200" title={t("detail.refresh")}>
-            <RefreshCw size={13} />
-          </button>
-          <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-xs font-medium hover:from-indigo-500 hover:to-violet-500 shadow-md shadow-violet-900/20">
-            <Plus size={13} /> {t("detail.new")}
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard label={t("summary.total")} value={summary.total} />
-        <SummaryCard label={t("summary.running")} value={summary.running} highlight />
-      </div>
-
-      {error && (
-        <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</div>
-      )}
-
-      {loading ? (
-        <p className="text-sm text-zinc-500">{t("loading")}</p>
-      ) : containers.length === 0 ? (
-        <div className="box overflow-hidden p-10 text-center" style={{ "--c": rgbFor("/containers") } as CSSProperties}>
-          <Box size={28} className="mx-auto text-zinc-600 mb-3" />
-          <p className="text-sm text-zinc-400">{t("empty")}</p>
-          <p className="text-xs text-zinc-600 mt-2">{t("logs.tip")} <span className="text-violet-300">debian/12</span> ist gut für die meisten Dienste, <span className="text-violet-300">alpine/3.21</span> für Minimum-Footprint.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {containers.map((c) => (
-            <ContainerCard key={c.container_id} container={c}
-              onStart={async () => { await containersApi.start(c.container_id); await refresh() }}
-              onStop={async () => { await containersApi.stop(c.container_id); await refresh() }}
-              onRestart={async () => { await containersApi.restart(c.container_id); await refresh() }}
-              onDelete={async () => { await containersApi.remove(c.container_id); await refresh() }}
-              onEdit={() => setEditC(c)}
-            />
-          ))}
-        </div>
-      )}
-
-      {showCreate && <CreateContainerDialog onClose={() => setShowCreate(false)} onCreated={refresh} />}
-      {editC && (
-        <EditContainerDialog container={editC}
-          onClose={() => setEditC(null)}
-          onSaved={async () => { setEditC(null); await refresh() }} />
-      )}
-    </div>
-  )
-}
-
-function SummaryCard({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
-  return (
-    <div className={`box overflow-hidden p-4 ${highlight ? "border-emerald-500/30 bg-emerald-500/5" : ""}`} style={{ "--c": rgbFor("/containers") } as CSSProperties}>
-      <p className="text-[11px] uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${highlight ? "text-emerald-200" : "text-zinc-100"}`}>{value}</p>
-    </div>
+    <ContainersOverlay
+      onClose={() => navigate("/dashboard")}
+      onSelectContainer={(containerId) => {
+        if (containerId) navigate(`/containers/${encodeURIComponent(containerId)}`)
+      }}
+    />
   )
 }

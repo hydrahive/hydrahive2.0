@@ -1,4 +1,3 @@
-import { useSearchParams } from "react-router-dom"
 import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, MonitorCog, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
@@ -18,7 +17,8 @@ import { SystemSettingsOverlay } from "./admin/SystemSettingsOverlay"
 import { ContainersOverlay } from "./admin/ContainersOverlay"
 import { VMsOverlay } from "./admin/VMsOverlay"
 import { AdminInfoCard } from "./admin/AdminInfoCard"
-import { isAdminOverlayId, OVERLAY_BY_ACTION, OVERLAY_BY_PATH, type AdminOverlayId } from "./admin/adminOverlayRegistry"
+import { OVERLAY_BY_ACTION, OVERLAY_BY_PATH } from "./admin/adminOverlayRegistry"
+import { useAdminOverlayNavigation } from "./admin/useAdminOverlayNavigation"
 
 const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
 const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
@@ -40,16 +40,7 @@ const integrationLinks = [
 ]
 
 export function AdminCockpitPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const requestedOverlay = searchParams.get("section")
-  const overlay = isAdminOverlayId(requestedOverlay) ? requestedOverlay : null
-
-  function setOverlay(nextOverlay: AdminOverlayId | null) {
-    const next = new URLSearchParams(searchParams)
-    if (nextOverlay) next.set("section", nextOverlay)
-    else next.delete("section")
-    setSearchParams(next, { replace: true })
-  }
+  const { overlay, selectedContainerId, setOverlay, setContainerDetail } = useAdminOverlayNavigation()
 
   const openArea = (actionId: string, path: string) => {
     const target = OVERLAY_BY_ACTION[actionId]
@@ -193,7 +184,13 @@ export function AdminCockpitPage() {
       {overlay === "extensions" && <ExtensionsOverlay onClose={() => setOverlay(null)} />}
       {overlay === "system" && <SystemOverlay onClose={() => setOverlay(null)} />}
       {overlay === "system-settings" && <SystemSettingsOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "containers" && <ContainersOverlay onClose={() => setOverlay(null)} />}
+      {overlay === "containers" && (
+        <ContainersOverlay
+          onClose={() => setOverlay(null)}
+          selectedContainerId={selectedContainerId}
+          onSelectContainer={setContainerDetail}
+        />
+      )}
       {overlay === "vms" && <VMsOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
