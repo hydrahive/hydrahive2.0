@@ -23,6 +23,10 @@ def test_login_success(client):
     assert data["username"] == "testuser"
     assert data["role"] == "user"
 
+    from hydrahive.api.middleware.auth import _decode
+    payload = _decode(data["access_token"])
+    assert payload["uid"]
+
 
 def test_login_wrong_password(client):
     """POST /api/auth/login mit falschem Passwort → 401."""
@@ -47,6 +51,29 @@ def test_me_with_valid_token(client, auth_headers):
     data = response.json()
     assert data["username"] == "testuser"
     assert data["role"] == "user"
+
+
+def test_create_api_key_requires_current_stable_principal(
+    client, tmp_path, monkeypatch,
+):
+    from hydrahive.api.middleware import users
+    from hydrahive.api.middleware.auth import create_token
+    from hydrahive.settings import settings
+
+    monkeypatch.setattr(settings, "users_config", tmp_path / "users.json", raising=False)
+    old_id = users.create("reused", "first-password")
+    stale_token = create_token("reused", "user", old_id)
+    users.delete("reused")
+    users.create("reused", "second-password")
+
+    response = client.post(
+        "/api/auth/apikeys",
+        json={"name": "must-not-be-created"},
+        headers={"Authorization": f"Bearer {stale_token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "invalid_token"
 
 
 # ============================================================================
