@@ -25,9 +25,9 @@ export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onSe
     <ActionGroup title="Verwalten">
       <ActionButton onClick={onAccess} disabled={disabled}>Zugriff</ActionButton>
       <ActionButton onClick={onServers} disabled={disabled}>Server</ActionButton>
-      <ActionButton onClick={onMounts} disabled={disabled}>Mounts</ActionButton>
+      <ActionButton onClick={onMounts} disabled={disabled}>Externe Mounts</ActionButton>
       <ActionButton onClick={onGit} disabled={disabled}>Git</ActionButton>
-      <ActionButton onClick={onIntegrations} disabled={disabled}>Integrationen</ActionButton>
+      <ActionButton onClick={onIntegrations} disabled={disabled}>Samba &amp; Integrationen</ActionButton>
     </ActionGroup>
     <ActionGroup title="Auswerten">
       <ActionButton onClick={() => onInsight("stats")} disabled={disabled}>Statistiken</ActionButton>
