@@ -119,7 +119,7 @@ function ModelPicker({ value, catalog, onChange }: {
       </div>
       <select value={value} onChange={(e) => onChange(e.target.value)} size={6}
         className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 font-mono">
-        {!catalog.some((m) => m.id === value) && value && <option value={value}>{value} (aktuell)</option>}
+        {!filtered.some((m) => m.id === value) && value && <option value={value}>{value} (aktuell)</option>}
         {filtered.map((m) => (
           <option key={m.id} value={m.id}>{m.is_free === true ? "🆓 " : ""}{m.id}</option>
         ))}
