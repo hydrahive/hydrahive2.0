@@ -45,6 +45,13 @@ def _save(data: dict) -> None:
     tmp.replace(p)
 
 
+def _verified_identity(entry: dict) -> dict:
+    identity = {"username": entry["username"], "role": entry["role"]}
+    if entry.get("user_id"):
+        identity["user_id"] = entry["user_id"]
+    return identity
+
+
 def _is_new_format(plain: str) -> bool:
     """Erkennt neues Format: hhk_<16 Hex-Zeichen>_<Rest>.
     Hex-Zeichen sind [0-9a-f] — kein Überschneidung mit Base64url-Uppercase."""
@@ -56,8 +63,17 @@ def _is_new_format(plain: str) -> bool:
     )
 
 
-def create(name: str, username: str, role: str) -> str:
-    """Erzeugt einen neuen API-Key im neuen Format. Gibt den Klartext zurück (einmalig)."""
+def create(name: str, username: str, role: str, user_id: str | None = None) -> str:
+    """Erzeugt einen neuen API-Key im neuen Format. Gibt den Klartext zurück (einmalig).
+
+    User-Keys werden an die unveränderliche Benutzer-ID gebunden. Sonderrollen- und
+    Legacy-Keys ohne passende ID bleiben für die alte Tuple-Auth kompatibel, werden
+    von der strikten Principal-Auth jedoch abgewiesen.
+    """
+    if user_id is None:
+        from hydrahive.api.middleware.users import get_by_username
+        user = get_by_username(username)
+        user_id = user["user_id"] if user else None
     key_id = secrets.token_hex(8)            # 16 Hex-Zeichen
     random_part = secrets.token_urlsafe(32)  # 43 Zeichen
     plain = f"{PREFIX}{key_id}_{random_part}"
@@ -67,6 +83,7 @@ def create(name: str, username: str, role: str) -> str:
         "name": name,
         "key_hash": key_hash,
         "username": username,
+        "user_id": user_id,
         "role": role,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -90,7 +107,7 @@ def verify(plain: str) -> dict | None:
             return None
         try:
             if bcrypt.checkpw(encoded, entry["key_hash"].encode()):
-                return {"username": entry["username"], "role": entry["role"]}
+                return _verified_identity(entry)
         except (ValueError, KeyError) as exc:
             # Defekter/fehlender Hash-Eintrag — Key gilt als ungültig, aber der
             # Grund darf nicht still verschwinden (Auth-Debugging).
@@ -104,7 +121,7 @@ def verify(plain: str) -> dict | None:
             continue
         try:
             if bcrypt.checkpw(encoded, entry["key_hash"].encode()):
-                return {"username": entry["username"], "role": entry["role"]}
+                return _verified_identity(entry)
         except Exception:
             continue
     return None

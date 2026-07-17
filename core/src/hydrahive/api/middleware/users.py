@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import logging
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 import bcrypt
 
@@ -12,26 +16,65 @@ from hydrahive.settings import settings
 logger = logging.getLogger(__name__)
 
 # User-Struktur:
-# {"username": {"password_hash": "...", "role": "admin|user"}}
+# {"username": {"user_id": "uuid", "password_hash": "...", "role": "admin|user"}}
 # password_hash kann bcrypt ($2b$...) oder Legacy-SHA256 (64 hex chars) sein.
-# Legacy-Hashes werden beim nächsten erfolgreichen Login transparent auf bcrypt
-# migriert (lazy re-hash).
+# Fehlende user_id und Legacy-Hashes werden transparent migriert.
 
 
-def _load() -> dict:
+def _read_unlocked() -> dict:
     path: Path = settings.users_config
     if not path.exists():
         return {}
     return json.loads(path.read_text())
 
 
-def _save(users: dict) -> None:
-    """Atomic write — verhindert truncated users.json bei parallelem
-    Login + Hash-Migration (Race-Condition vor Fix war beobachtbar)."""
+def _save_unlocked(users: dict) -> None:
+    """Atomic write while the caller holds the cross-process users lock."""
     settings.users_config.parent.mkdir(parents=True, exist_ok=True)
     tmp = settings.users_config.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(users, indent=2))
     tmp.replace(settings.users_config)
+
+
+def _migrate_user_ids(users: dict) -> bool:
+    changed = False
+    for username, user in users.items():
+        if not user.get("user_id"):
+            # Deterministic only for one-time legacy migration: parallel workers
+            # must not mint competing IDs for the same pre-migration record.
+            legacy_key = f"hydrahive-user:{username}:{user.get('password_hash', '')}"
+            user["user_id"] = str(uuid5(NAMESPACE_URL, legacy_key))
+            changed = True
+    return changed
+
+
+@contextmanager
+def _locked_users() -> Iterator[dict]:
+    """Serialize reads that may migrate and every users.json mutation."""
+    path: Path = settings.users_config
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_suffix(path.suffix + ".lock")
+    with lock_path.open("a") as lock_file:
+        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        users = _read_unlocked()
+        migrated = _migrate_user_ids(users)
+        before = json.dumps(users, sort_keys=True)
+        try:
+            yield users
+        except Exception:
+            raise
+        else:
+            if migrated or json.dumps(users, sort_keys=True) != before:
+                _save_unlocked(users)
+                if migrated:
+                    logger.info("Bestehende Benutzer um stabile user_id ergänzt")
+        finally:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+def _load() -> dict:
+    with _locked_users() as users:
+        return users
 
 
 def _hash(password: str) -> str:
@@ -52,74 +95,103 @@ def _verify_hash(password: str, stored: str) -> bool:
 
 
 def verify(username: str, password: str) -> dict | None:
-    """Returns user dict {username, role} or None if invalid.
+    """Returns public user data or None and lazily migrates legacy hashes."""
+    with _locked_users() as users:
+        user = users.get(username)
+        if not user:
+            return None
+        stored = user["password_hash"]
+        if not _verify_hash(password, stored):
+            return None
+        if not _is_bcrypt(stored):
+            user["password_hash"] = _hash(password)
+            logger.info("User '%s' Hash auf bcrypt migriert", username)
+        return {"user_id": user["user_id"], "username": username, "role": user["role"]}
 
-    Migrates legacy SHA256 hashes to bcrypt on successful login.
+
+def create(username: str, password: str, role: str = "user") -> str:
+    """Creates a new user and returns its immutable ID.
+
+    Raises ValueError if the username already exists.
     """
-    users = _load()
-    user = users.get(username)
-    if not user:
-        return None
-    stored = user["password_hash"]
-    if not _verify_hash(password, stored):
-        return None
-    if not _is_bcrypt(stored):
-        users[username]["password_hash"] = _hash(password)
-        _save(users)
-        logger.info("User '%s' Hash auf bcrypt migriert", username)
-    return {"username": username, "role": user["role"]}
-
-
-def create(username: str, password: str, role: str = "user") -> None:
-    """Creates a new user. Raises ValueError if username exists."""
-    users = _load()
-    if username in users:
-        raise ValueError(f"User '{username}' existiert bereits")
-    users[username] = {"password_hash": _hash(password), "role": role}
-    _save(users)
-    logger.info("User '%s' angelegt (role=%s)", username, role)
+    user_id = str(uuid4())
+    password_hash = _hash(password)
+    with _locked_users() as users:
+        if username in users:
+            raise ValueError(f"User '{username}' existiert bereits")
+        users[username] = {
+            "user_id": user_id,
+            "password_hash": password_hash,
+            "role": role,
+        }
+    logger.info("User '%s' angelegt (role=%s, user_id=%s)", username, role, user_id)
+    return user_id
 
 
 def update_password(username: str, new_password: str) -> None:
-    users = _load()
-    if username not in users:
-        raise ValueError(f"User '{username}' nicht gefunden")
-    users[username]["password_hash"] = _hash(new_password)
-    _save(users)
+    password_hash = _hash(new_password)
+    with _locked_users() as users:
+        if username not in users:
+            raise ValueError(f"User '{username}' nicht gefunden")
+        users[username]["password_hash"] = password_hash
 
 
 def update_role(username: str, role: str) -> None:
     if role not in ("admin", "user"):
         raise ValueError(f"Ungültige Rolle: {role}")
-    users = _load()
-    if username not in users:
-        raise ValueError(f"User '{username}' nicht gefunden")
-    if users[username]["role"] == "admin" and role != "admin":
-        admins = [u for u, v in users.items() if v["role"] == "admin"]
-        if len(admins) <= 1:
-            raise ValueError("last_admin")
-    users[username]["role"] = role
-    _save(users)
+    with _locked_users() as users:
+        if username not in users:
+            raise ValueError(f"User '{username}' nicht gefunden")
+        if users[username]["role"] == "admin" and role != "admin":
+            admins = [u for u, value in users.items() if value["role"] == "admin"]
+            if len(admins) <= 1:
+                raise ValueError("last_admin")
+        users[username]["role"] = role
     logger.info("User '%s' Rolle auf '%s' geändert", username, role)
 
 
 def delete(username: str) -> None:
-    users = _load()
-    users.pop(username, None)
-    _save(users)
+    with _locked_users() as users:
+        users.pop(username, None)
+
+
+def get_by_username(username: str) -> dict | None:
+    """Returns one public user record without exposing the user list."""
+    with _locked_users() as users:
+        user = users.get(username)
+        if not user:
+            return None
+        return {"user_id": user["user_id"], "username": username, "role": user["role"]}
+
+
+def get_by_id(user_id: str) -> dict | None:
+    """Returns one public user record for an immutable ID."""
+    with _locked_users() as users:
+        for username, user in users.items():
+            if user["user_id"] == user_id:
+                return {"user_id": user_id, "username": username, "role": user["role"]}
+    return None
 
 
 def list_users() -> list[dict]:
-    return [
-        {"username": k, "role": v["role"]}
-        for k, v in _load().items()
-    ]
+    with _locked_users() as users:
+        return [
+            {"user_id": value["user_id"], "username": username, "role": value["role"]}
+            for username, value in users.items()
+        ]
 
 
 def ensure_admin(username: str, password: str) -> bool:
-    """Creates admin user if no users exist yet. Returns True if a new user was created."""
-    if not _load():
-        create(username, password, role="admin")
-        logger.info("Admin '%s' beim ersten Start angelegt", username)
-        return True
-    return False
+    """Creates admin user if no users exist yet. Returns whether it was created."""
+    user_id = str(uuid4())
+    password_hash = _hash(password)
+    with _locked_users() as users:
+        if users:
+            return False
+        users[username] = {
+            "user_id": user_id,
+            "password_hash": password_hash,
+            "role": "admin",
+        }
+    logger.info("Admin '%s' beim ersten Start angelegt", username)
+    return True

@@ -18,6 +18,7 @@ from hydrahive.api.middleware.auth import (
     get_current_user_optional,
     require_admin,
     require_auth,
+    require_principal,
 )
 from hydrahive.settings import settings
 
@@ -51,6 +52,11 @@ def test_gueltiges_token_dekodiert_korrekt():
     assert payload["sub"] == "alice"
     assert payload["role"] == "user"
     assert "exp" in payload
+
+
+def test_neues_token_enthaelt_stabile_user_id():
+    token = create_token("alice", "user", "stable-123")
+    assert _decode(token)["uid"] == "stable-123"
 
 
 def test_falscher_secret_wirft_401():
@@ -97,6 +103,106 @@ def test_require_auth_mit_gueltigem_token_gibt_username_und_rolle():
     username, role = require_auth(_creds(token))
     assert username == "clara"
     assert role == "editor"
+
+
+# ---------------------------------------------------------------------------
+# require_principal
+# ---------------------------------------------------------------------------
+
+
+def test_require_principal_nutzt_stabile_id_und_aktuelle_rolle(monkeypatch):
+    from hydrahive.api.middleware import users
+
+    monkeypatch.setattr(
+        users,
+        "get_by_id",
+        lambda user_id: {
+            "user_id": user_id,
+            "username": "clara",
+            "role": "admin",
+        },
+    )
+    token = create_token("clara", "user", "stable-123")
+
+    principal = require_principal(_creds(token))
+
+    assert principal.user_id == "stable-123"
+    assert principal.username == "clara"
+    assert principal.role == "admin"
+
+
+def test_require_principal_lehnt_legacy_token_ohne_user_id_ab():
+    token = create_token("clara", "user")
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_principal(_creds(token))
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail["code"] == "invalid_token"
+
+
+def test_require_principal_lehnt_geloeschten_user_ab(monkeypatch):
+    from hydrahive.api.middleware import users
+
+    monkeypatch.setattr(users, "get_by_id", lambda _user_id: None)
+    token = create_token("clara", "user", "deleted-123")
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_principal(_creds(token))
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail["code"] == "invalid_token"
+
+
+def test_require_principal_lehnt_neuangelegten_user_mit_gleichem_namen_ab(monkeypatch):
+    from hydrahive.api.middleware import users
+
+    monkeypatch.setattr(users, "get_by_id", lambda _user_id: None)
+    old_token = create_token("clara", "user", "old-user-id")
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_principal(_creds(old_token))
+
+    assert exc_info.value.status_code == 401
+
+
+def test_require_principal_akzeptiert_id_gebundenen_api_key(monkeypatch):
+    from hydrahive.api.middleware import api_keys, users
+
+    monkeypatch.setattr(
+        api_keys,
+        "verify",
+        lambda _token: {"user_id": "stable-123", "username": "clara", "role": "user"},
+    )
+    monkeypatch.setattr(
+        users,
+        "get_by_id",
+        lambda user_id: {"user_id": user_id, "username": "clara", "role": "user"},
+    )
+
+    principal = require_principal(_creds("hhk_test"))
+
+    assert principal.user_id == "stable-123"
+
+
+def test_require_principal_lehnt_api_key_nach_rollenaenderung_ab(monkeypatch):
+    from hydrahive.api.middleware import api_keys, users
+
+    monkeypatch.setattr(
+        api_keys,
+        "verify",
+        lambda _token: {"user_id": "stable-123", "username": "clara", "role": "admin"},
+    )
+    monkeypatch.setattr(
+        users,
+        "get_by_id",
+        lambda user_id: {"user_id": user_id, "username": "clara", "role": "user"},
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        require_principal(_creds("hhk_test"))
+
+    assert exc_info.value.status_code == 401
 
 
 # ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@ from hydrahive.api.middleware.client_ip import client_ip
 from hydrahive.api.middleware.api_keys import create as create_key
 from hydrahive.api.middleware.api_keys import delete as delete_key
 from hydrahive.api.middleware.api_keys import list_keys
-from hydrahive.api.middleware.auth import create_token, require_auth
+from hydrahive.api.middleware.auth import AuthPrincipal, create_token, require_auth, require_principal
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.middleware.users import verify
 
@@ -41,7 +41,7 @@ def login(req: LoginRequest, request: Request) -> LoginResponse:
         lockout.record_failure(req.username, ip)
         raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_credentials")
     lockout.reset(req.username, ip)
-    token = create_token(user["username"], user["role"])
+    token = create_token(user["username"], user["role"], user["user_id"])
     return LoginResponse(access_token=token, username=user["username"], role=user["role"])
 
 
@@ -64,13 +64,17 @@ def get_api_keys(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> lis
 @router.post("/apikeys", status_code=status.HTTP_201_CREATED)
 def create_api_key(
     req: CreateKeyRequest,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    principal: Annotated[AuthPrincipal, Depends(require_principal)],
 ) -> dict:
-    username, role = auth
     if not req.name.strip():
         raise coded(status.HTTP_400_BAD_REQUEST, "name_required")
-    plain = create_key(req.name.strip(), username, role)
-    return {"key": plain, "name": req.name.strip(), "username": username}
+    plain = create_key(
+        req.name.strip(),
+        principal.username,
+        principal.role,
+        principal.user_id,
+    )
+    return {"key": plain, "name": req.name.strip(), "username": principal.username}
 
 
 @router.delete("/apikeys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
