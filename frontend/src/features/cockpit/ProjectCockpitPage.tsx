@@ -58,7 +58,6 @@ export function ProjectCockpitPage() {
 
   useEffect(() => {
     let alive = true
-    setLoading(true)
     Promise.all([projectsApi.list(), chatApi.listAgents()])
       .then(([projectList, agentList]) => {
         if (!alive) return
@@ -83,7 +82,9 @@ export function ProjectCockpitPage() {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
   const projectAgentId = activeProject?.agent_id ?? null
-  const selectedAgentId = activeProjectId ? (selectedAgentByProject[activeProjectId] ?? projectAgentId) : projectAgentId
+  const projectTeamIds = new Set([projectAgentId, ...(activeProject?.allowed_specialists ?? [])].filter(Boolean))
+  const requestedAgentId = activeProjectId ? selectedAgentByProject[activeProjectId] : null
+  const selectedAgentId = requestedAgentId && projectTeamIds.has(requestedAgentId) ? requestedAgentId : projectAgentId
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? null
   const selectedAgentModel = selectedAgent?.llm_model ?? ""
   type LeftPanelId = "project" | "agents" | "git" | "ai" | "usage"
@@ -150,8 +151,8 @@ export function ProjectCockpitPage() {
           </CollapsibleCockpitPanel>
 
           <CollapsibleCockpitPanel
-            title="Projekt-Agenten"
-            eyebrow="Agenten"
+            title="Projekt-Agenten & Spezialisten"
+            eyebrow="Projekt-Team"
             summary={selectedAgent?.name ?? "Kein Agent"}
             collapsed={leftPanelCollapsed.agents}
             onToggle={() => setLeftPanelCollapsed("agents", !leftPanelCollapsed.agents)}
@@ -159,6 +160,7 @@ export function ProjectCockpitPage() {
             <ProjectAgentsPanel
               agents={agents}
               projectAgentId={projectAgentId}
+              specialistAgentIds={activeProject?.allowed_specialists}
               selectedAgentId={selectedAgentId}
               onSelect={(agentId) => {
                 if (!activeProjectId) return

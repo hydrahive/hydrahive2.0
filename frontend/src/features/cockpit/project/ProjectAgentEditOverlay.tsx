@@ -115,7 +115,7 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
       <div className="flex h-[90dvh] w-full max-w-6xl flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0e1420] shadow-2xl">
         <header className="flex shrink-0 items-center gap-3 border-b border-[#2a364b] bg-[#131b2a] px-4 py-3">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">Projekt-Agent</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">{draft?.type === "specialist" ? "Projekt-Spezialist" : "Projekt-Agent"}</p>
             <h2 className="text-lg font-black text-[#e8eef8]">Vollständige Agenten-Einstellungen</h2>
           </div>
           <div className="flex-1" />
