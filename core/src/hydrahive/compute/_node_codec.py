@@ -64,7 +64,13 @@ def dump_json(value: JSONObject, field_name: str) -> str:
     if not isinstance(value, dict):
         raise ValueError(f"{field_name} must be a JSON object")
     try:
-        encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        encoded = json.dumps(
+            value,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+            allow_nan=False,
+        )
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field_name} must contain valid JSON") from exc
     if len(encoded.encode("utf-8")) > MAX_NODE_JSON_BYTES:

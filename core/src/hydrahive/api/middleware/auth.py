@@ -54,6 +54,7 @@ def require_auth(
     token = creds.credentials
     if token.startswith("hhk_"):
         from hydrahive.api.middleware.api_keys import verify as verify_key
+
         user = verify_key(token)
         if not user:
             raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
@@ -78,6 +79,7 @@ def require_principal(
     credential: dict
     if token.startswith("hhk_"):
         from hydrahive.api.middleware.api_keys import verify as verify_key
+
         credential = verify_key(token) or {}
         user_id = credential.get("user_id")
     else:
@@ -88,6 +90,7 @@ def require_principal(
         raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
 
     from hydrahive.api.middleware.users import get_by_id
+
     current = get_by_id(user_id)
     if not current or current["username"] != credential.get("sub", credential.get("username")):
         raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
@@ -114,6 +117,15 @@ def require_admin(
     return username, role
 
 
+def require_admin_principal(
+    principal: Annotated[AuthPrincipal, Depends(require_principal)],
+) -> AuthPrincipal:
+    """Require a currently existing principal whose current role is admin."""
+    if principal.role != "admin":
+        raise coded(status.HTTP_403_FORBIDDEN, "admin_only")
+    return principal
+
+
 def get_current_user_optional(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> tuple[str, str] | None:
@@ -124,6 +136,7 @@ def get_current_user_optional(
         token = creds.credentials
         if token.startswith("hhk_"):
             from hydrahive.api.middleware.api_keys import verify as verify_key
+
             user = verify_key(token)
             if not user:
                 return None

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from hydrahive.compute import audit
 from hydrahive.compute._node_codec import ALLOWED_STATUS_TRANSITIONS, row_to_node, validate_status
 from hydrahive.compute.models import ComputeNode, NodeStatus
 from hydrahive.db._utils import now_iso
@@ -37,10 +38,21 @@ def approve_node(node_id: str, approved_by: str) -> ComputeNode | None:
                WHERE node_id = ? AND status = 'pending'""",
             (timestamp, approved_by, timestamp, node_id),
         )
+        audit.record_in_connection(
+            conn,
+            actor=approved_by,
+            action="node.approved",
+            node_id=node_id,
+        )
     return _read_node(node_id)
 
 
-def transition_node_status(node_id: str, status: NodeStatus) -> ComputeNode | None:
+def transition_node_status(
+    node_id: str,
+    status: NodeStatus,
+    *,
+    actor: str | None = None,
+) -> ComputeNode | None:
     if node_id == LOCAL_NODE_ID:
         raise ValueError("local node status is managed by the control plane")
     validate_status(status)
@@ -64,10 +76,17 @@ def transition_node_status(node_id: str, status: NodeStatus) -> ComputeNode | No
         )
         if result.rowcount != 1:  # pragma: no cover - protected by BEGIN IMMEDIATE
             raise RuntimeError("compute node status changed concurrently")
+        if actor is not None:
+            audit.record_in_connection(
+                conn,
+                actor=actor,
+                action=f"node.{status}",
+                node_id=node_id,
+            )
     return _read_node(node_id)
 
 
-def revoke_node(node_id: str) -> ComputeNode | None:
+def revoke_node(node_id: str, *, actor: str | None = None) -> ComputeNode | None:
     if node_id == LOCAL_NODE_ID:
         raise ValueError("local node cannot be revoked")
     timestamp = now_iso()
@@ -84,4 +103,11 @@ def revoke_node(node_id: str) -> ComputeNode | None:
                WHERE node_id = ? AND status = ?""",
             ("revoked", timestamp, timestamp, node_id, current.status),
         )
+        if actor is not None:
+            audit.record_in_connection(
+                conn,
+                actor=actor,
+                action="node.revoked",
+                node_id=node_id,
+            )
     return _read_node(node_id)

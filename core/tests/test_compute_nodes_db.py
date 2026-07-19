@@ -97,6 +97,8 @@ def test_node_registry_updates_fields_and_validates_status_transitions(compute_d
 def test_node_registry_rejects_invalid_and_oversized_json(compute_db: Path) -> None:
     with pytest.raises(ValueError, match="JSON"):
         node_db.create_node(node_id="node-a", name="Compute A", labels={"bad": object()})
+    with pytest.raises(ValueError, match="JSON"):
+        node_db.create_node(node_id="node-nan", name="Compute NaN", resources={"load": float("nan")})
 
     with pytest.raises(ValueError, match="too large"):
         node_db.create_node(

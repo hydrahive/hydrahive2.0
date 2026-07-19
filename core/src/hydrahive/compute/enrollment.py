@@ -8,6 +8,7 @@ import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+from hydrahive.compute import audit
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
 from hydrahive.settings import settings
@@ -48,7 +49,14 @@ def _validate_text(value: str, field: str, maximum: int) -> str:
     return value
 
 
-def _token_hmac(token: str) -> str:
+def validate_token(token: str) -> str:
+    if not isinstance(token, str) or not 32 <= len(token) <= MAX_TOKEN_LENGTH or not token.isascii():
+        raise EnrollmentError()
+    return token
+
+
+def token_digest(token: str) -> str:
+    validate_token(token)
     return hmac.new(
         settings.secret_key.encode("utf-8"),
         b"hydrahive-compute-enrollment-v1\0" + token.encode("ascii"),
@@ -81,15 +89,19 @@ def create_token(
             """INSERT INTO compute_enrollment_tokens
                    (token_id, token_hmac, requested_name, expires_at, created_by, created_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            (token_id, _token_hmac(token), requested_name, expires_at, created_by, now_iso()),
+            (token_id, token_digest(token), requested_name, expires_at, created_by, now_iso()),
+        )
+        audit.record_in_connection(
+            conn,
+            actor=created_by,
+            action="enrollment.created",
+            details={"token_id": token_id, "requested_name": requested_name},
         )
     return CreatedEnrollmentToken(token_id, token, requested_name, expires_at)
 
 
 def consume_token(token: str) -> ConsumedEnrollmentToken:
-    if not isinstance(token, str) or not 32 <= len(token) <= MAX_TOKEN_LENGTH or not token.isascii():
-        raise EnrollmentError()
-    digest = _token_hmac(token)
+    digest = token_digest(token)
     consumed_at = now_iso()
     with db(immediate=True) as conn:
         row = conn.execute(
