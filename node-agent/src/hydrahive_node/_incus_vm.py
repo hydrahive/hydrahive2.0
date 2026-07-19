@@ -1,20 +1,46 @@
-"""Strict allowlisted Incus-container operations for signed compute jobs."""
+"""Strict allowlisted Incus virtual-machine operations for signed compute jobs.
+
+VMs reuse the container adapter's ownership, network and state helpers but add a
+``--vm`` launch with an explicit root-disk size and a hard KVM-capability gate.
+ISO boot, image import, host paths and device passthrough are intentionally not
+reachable through this adapter.
+"""
 
 from __future__ import annotations
 
-import json
+import os
+from pathlib import Path
 
-from hydrahive_node._incus_process import run as _run
 from hydrahive_node import _incus_state as state
 from hydrahive_node._incus_validation import (
-    CREATE_FIELDS,
-    LIFECYCLE_FIELDS,
     IncusJobError,
     image as _image,
     name as _name,
     optional_int as _optional_int,
 )
 from hydrahive_node.jobs import VerifiedJob
+
+VM_CREATE_FIELDS = {"name", "image", "network_mode", "cpu", "ram_mb", "disk_gb"}
+VM_LIFECYCLE_FIELDS = {"name"}
+KVM_DEVICE = Path("/dev/kvm")
+
+
+async def _run(*args: str, timeout: float = 60.0) -> tuple[int, str, str]:
+    # Delegate to the container adapter's runner so a single subprocess seam is
+    # shared (and test monkeypatches of incus._run intercept VM calls too).
+    from hydrahive_node import incus
+
+    return await incus._run(*args, timeout=timeout)
+
+
+def _kvm_available() -> bool:
+    return KVM_DEVICE.exists() and os.access(KVM_DEVICE, os.R_OK | os.W_OK)
+
+
+def _required_int(value: object, minimum: int, maximum: int, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or not minimum <= value <= maximum:
+        raise IncusJobError(f"vm_{field}_invalid")
+    return value
 
 
 async def _ownership(name: str, resource_id: str) -> dict | None:
@@ -28,39 +54,6 @@ async def _checked(*args: str, timeout: float = 60.0) -> str:
     return output
 
 
-async def _network_matches(name: str, desired: dict[str, str]) -> bool:
-    output = await _checked("config", "show", name, "--expanded", "--format=json", timeout=30.0)
-    try:
-        eth0 = json.loads(output).get("devices", {}).get("eth0", {})
-    except (ValueError, AttributeError) as exc:
-        raise IncusJobError("incus_inspect_invalid") from exc
-    return isinstance(eth0, dict) and all(eth0.get(key) == value for key, value in desired.items())
-
-
-async def _configure_network(name: str, mode: str) -> None:
-    desired = {"type": "none"} if mode == "isolated" else {"type": "nic", "nictype": "bridged", "parent": "br0"}
-    if await _network_matches(name, desired):
-        return
-    settings = [f"{key}={value}" for key, value in desired.items()]
-    commands = [
-        ("override", *settings),
-        ("set", *settings),
-        ("add", desired["type"], *settings[1:]),
-    ]
-    rc = -1
-    for action in commands:
-        try:
-            rc, _, _ = await _run("config", "device", action[0], name, "eth0", *action[1:], timeout=30.0)
-        except TimeoutError:
-            if await _network_matches(name, desired):
-                return
-            raise IncusJobError("operation_outcome_unknown") from None
-        if rc == 0:
-            break
-    if rc != 0 or not await _network_matches(name, desired):
-        raise IncusJobError("incus_operation_failed")
-
-
 async def _wait_for_owned_instance(name: str, resource_id: str) -> dict | None:
     return await state.wait_for_owned(_run, name, resource_id)
 
@@ -70,33 +63,45 @@ async def _wait_for_state(name: str, resource_id: str, expected: str | None) -> 
 
 
 async def _create(job: VerifiedJob) -> dict[str, object]:
-    if set(job.payload) != CREATE_FIELDS or job.resource_id is None:
-        raise IncusJobError("container_create_payload_invalid")
+    if set(job.payload) != VM_CREATE_FIELDS or job.resource_id is None:
+        raise IncusJobError("vm_create_payload_invalid")
+    if not _kvm_available():
+        raise IncusJobError("vm_kvm_unavailable")
     name = _name(job.payload["name"])
     image = _image(job.payload["image"])
     mode = job.payload["network_mode"]
     if mode not in {"bridged", "isolated"}:
         raise IncusJobError("container_network_mode_invalid")
-    cpu = _optional_int(job.payload["cpu"], 1, 16, "cpu")
-    ram_mb = _optional_int(job.payload["ram_mb"], 64, 32768, "ram")
+    cpu = _optional_int(job.payload["cpu"], 1, 64, "cpu")
+    ram_mb = _optional_int(job.payload["ram_mb"], 256, 262144, "ram")
+    disk_gb = _required_int(job.payload["disk_gb"], 1, 2048, "disk")
+
     instance = await _ownership(name, job.resource_id)
     if instance is None:
-        options = ["-c", f"user.hydrahive.id={job.resource_id}"]
+        options = [
+            "--vm",
+            "-c", f"user.hydrahive.id={job.resource_id}",
+            "-d", f"root,size={disk_gb}GiB",
+        ]
         if cpu is not None:
             options += ["-c", f"limits.cpu={cpu}"]
         if ram_mb is not None:
             options += ["-c", f"limits.memory={ram_mb}MiB"]
         timed_out = False
         try:
-            rc, _, _ = await _run("init", *options, "--", image, name, timeout=300.0)
+            rc, _, _ = await _run("init", *options, "--", image, name, timeout=600.0)
         except TimeoutError:
             rc, timed_out = -1, True
         if rc != 0 and await _wait_for_owned_instance(name, job.resource_id) is None:
             raise IncusJobError("operation_outcome_unknown" if timed_out else "incus_operation_failed")
+
+    # Reuse the container network reconciliation (bridged -> br0, isolated -> none).
+    from hydrahive_node.incus import _configure_network
+
     await _configure_network(name, str(mode))
     instance = await _ownership(name, job.resource_id)
     if instance is None:
-        raise IncusJobError("container_not_found")
+        raise IncusJobError("vm_not_found")
     if str(instance.get("status", "")).lower() != "running":
         try:
             await _checked("start", name)
@@ -107,16 +112,16 @@ async def _create(job: VerifiedJob) -> dict[str, object]:
 
 
 async def _lifecycle(job: VerifiedJob) -> dict[str, object]:
-    if set(job.payload) != LIFECYCLE_FIELDS or job.resource_id is None:
-        raise IncusJobError("container_lifecycle_payload_invalid")
+    if set(job.payload) != VM_LIFECYCLE_FIELDS or job.resource_id is None:
+        raise IncusJobError("vm_lifecycle_payload_invalid")
     name = _name(job.payload["name"])
     instance = await _ownership(name, job.resource_id)
-    if job.operation == "container.delete" and instance is None:
+    if job.operation == "vm.delete" and instance is None:
         return {"actual_state": "deleted"}
     if instance is None:
-        raise IncusJobError("container_not_found")
+        raise IncusJobError("vm_not_found")
     status = str(instance.get("status", "")).lower()
-    if job.operation == "container.start":
+    if job.operation == "vm.start":
         if status != "running":
             try:
                 await _checked("start", name)
@@ -124,7 +129,7 @@ async def _lifecycle(job: VerifiedJob) -> dict[str, object]:
                 if not await _wait_for_state(name, job.resource_id, "running"):
                     raise IncusJobError("operation_outcome_unknown") from None
         return {"actual_state": "running"}
-    if job.operation == "container.stop":
+    if job.operation == "vm.stop":
         if status != "stopped":
             try:
                 await _checked("stop", name, "--force")
@@ -132,13 +137,13 @@ async def _lifecycle(job: VerifiedJob) -> dict[str, object]:
                 if not await _wait_for_state(name, job.resource_id, "stopped"):
                     raise IncusJobError("operation_outcome_unknown") from None
         return {"actual_state": "stopped"}
-    if job.operation == "container.restart":
+    if job.operation == "vm.restart":
         try:
             await _checked("restart", name)
         except TimeoutError as exc:
             raise IncusJobError("operation_outcome_unknown") from exc
         return {"actual_state": "running"}
-    if job.operation == "container.delete":
+    if job.operation == "vm.delete":
         try:
             await _checked("delete", name, "--force")
         except TimeoutError:
@@ -146,25 +151,15 @@ async def _lifecycle(job: VerifiedJob) -> dict[str, object]:
                 raise IncusJobError("operation_outcome_unknown") from None
         return {"actual_state": "deleted"}
     if status not in {"running", "stopped"}:
-        raise IncusJobError("container_state_unknown")
+        raise IncusJobError("vm_state_unknown")
     return {"actual_state": status}
 
 
 async def execute(job: VerifiedJob) -> dict[str, object]:
-    if job.resource_kind == "vm":
-        from hydrahive_node import _incus_vm
-
-        return await _incus_vm.execute(job)
-    if job.resource_kind != "container" or not job.operation.startswith("container."):
-        raise IncusJobError("container_operation_invalid")
-    if job.operation == "container.create":
+    if job.resource_kind != "vm" or not job.operation.startswith("vm."):
+        raise IncusJobError("vm_operation_invalid")
+    if job.operation == "vm.create_from_image":
         return await _create(job)
-    if job.operation not in {
-        "container.start",
-        "container.stop",
-        "container.restart",
-        "container.delete",
-        "container.inspect",
-    }:
-        raise IncusJobError("container_operation_invalid")
+    if job.operation not in {"vm.start", "vm.stop", "vm.restart", "vm.delete", "vm.inspect"}:
+        raise IncusJobError("vm_operation_invalid")
     return await _lifecycle(job)

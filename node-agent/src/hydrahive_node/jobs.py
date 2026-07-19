@@ -149,6 +149,11 @@ async def execute_offer(
         "container.stop",
         "container.delete",
         "container.inspect",
+        "vm.create_from_image",
+        "vm.start",
+        "vm.stop",
+        "vm.delete",
+        "vm.inspect",
     }:
         outcome: dict[str, object] = {
             "type": "job_failed",

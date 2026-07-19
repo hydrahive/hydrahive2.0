@@ -19,6 +19,7 @@ def _signed_offer(
     node_id: str = "node-one",
     operation: str = "container.start",
     resource_id: str = "019f7be0-95fb-73d3-a87a-2290c85ea427",
+    resource_kind: str = "container",
 ) -> tuple[dict, str]:
     key = Ed25519PrivateKey.generate()
     public = (
@@ -31,12 +32,12 @@ def _signed_offer(
     payload = {
         "job_id": "job-one",
         "node_id": node_id,
-        "resource_kind": "container",
+        "resource_kind": resource_kind,
         "resource_id": resource_id,
         "operation": operation,
         "generation": 1,
         "payload": {"name": "demo"},
-        "idempotency_key": "container:demo:start:1",
+        "idempotency_key": f"{resource_kind}:demo:{operation}:1",
         "lease_id": "lease-one",
         "lease_until": (datetime.now(UTC) + timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
     }
@@ -117,6 +118,70 @@ def test_interrupted_idempotent_job_is_reconciled_by_handler(tmp_path) -> None:
         nonlocal calls
         calls += 1
         return {"actual_state": "running"}
+
+    outcome = asyncio.run(jobs.execute_offer(paths, verified, handler))
+
+    assert calls == 1
+    assert outcome["type"] == "job_succeeded"
+
+
+def test_interrupted_vm_restart_is_not_executed_again(tmp_path) -> None:
+    # vm.restart is not idempotent; a mid-flight restart has an unknown outcome
+    # and must fail closed on resume (mirrors container.restart).
+    paths = StatePaths(tmp_path / "state")
+    paths.directory.mkdir(mode=0o700)
+    offer, public = _signed_offer(operation="vm.restart", resource_kind="vm")
+    verified = jobs.verify_offer(offer, public, "node-one")
+    job_state.prepare_job_execution(paths, asdict(verified))
+    job_state.mark_job_in_progress(paths, verified.idempotency_key)
+    calls = 0
+
+    async def handler(job: jobs.VerifiedJob) -> dict[str, object]:
+        nonlocal calls
+        calls += 1
+        return {"actual_state": "running"}
+
+    outcome = asyncio.run(jobs.execute_offer(paths, verified, handler))
+
+    assert calls == 0
+    assert outcome["error_code"] == "operation_outcome_unknown"
+
+
+def test_interrupted_vm_create_is_reconciled_by_handler(tmp_path) -> None:
+    # vm.create_from_image is made idempotent by the ownership guard, so a resumed
+    # create re-runs the handler and reconciles (mirrors container.create).
+    paths = StatePaths(tmp_path / "state")
+    paths.directory.mkdir(mode=0o700)
+    offer, public = _signed_offer(operation="vm.create_from_image", resource_kind="vm")
+    verified = jobs.verify_offer(offer, public, "node-one")
+    job_state.prepare_job_execution(paths, asdict(verified))
+    job_state.mark_job_in_progress(paths, verified.idempotency_key)
+    calls = 0
+
+    async def handler(job: jobs.VerifiedJob) -> dict[str, object]:
+        nonlocal calls
+        calls += 1
+        return {"actual_state": "running"}
+
+    outcome = asyncio.run(jobs.execute_offer(paths, verified, handler))
+
+    assert calls == 1
+    assert outcome["type"] == "job_succeeded"
+
+
+def test_interrupted_idempotent_vm_job_is_reconciled_by_handler(tmp_path) -> None:
+    paths = StatePaths(tmp_path / "state")
+    paths.directory.mkdir(mode=0o700)
+    offer, public = _signed_offer(operation="vm.stop", resource_kind="vm")
+    verified = jobs.verify_offer(offer, public, "node-one")
+    job_state.prepare_job_execution(paths, asdict(verified))
+    job_state.mark_job_in_progress(paths, verified.idempotency_key)
+    calls = 0
+
+    async def handler(job: jobs.VerifiedJob) -> dict[str, object]:
+        nonlocal calls
+        calls += 1
+        return {"actual_state": "stopped"}
 
     outcome = asyncio.run(jobs.execute_offer(paths, verified, handler))
 
