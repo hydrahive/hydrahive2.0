@@ -1,0 +1,106 @@
+{
+  "title": "Compute Nodes",
+  "subtitle": "Approved Ubuntu nodes with an outbound-connected agent. The local host is always present.",
+  "loading": "Loading…",
+  "empty": "No compute nodes paired yet.",
+  "empty_hint": "Create an enrollment token and set up the node agent on the target host.",
+  "refresh": "Refresh",
+  "summary": {
+    "total": "Total nodes",
+    "online": "Online",
+    "pending": "Awaiting approval",
+    "offline": "Offline"
+  },
+  "kind": {
+    "local": "Local",
+    "agent": "Agent"
+  },
+  "selector": {
+    "label": "Target node",
+    "hint": "Defaults to the local host. Remote nodes must be online and capable."
+  },
+  "status": {
+    "pending": "Pending",
+    "online": "Online",
+    "degraded": "Degraded",
+    "offline": "Offline",
+    "draining": "Draining",
+    "disabled": "Disabled",
+    "revoked": "Revoked"
+  },
+  "card": {
+    "agent_version": "Agent version",
+    "last_seen": "Last seen",
+    "protocol": "Protocol",
+    "cpu": "CPU",
+    "memory": "RAM",
+    "storage": "Storage",
+    "incus": "Incus",
+    "kvm": "KVM",
+    "yes": "yes",
+    "no": "no",
+    "never": "never",
+    "unknown": "unknown",
+    "details": "Details"
+  },
+  "actions": {
+    "enroll": "Pair node",
+    "approve": "Approve",
+    "drain": "Drain",
+    "disable": "Disable",
+    "enable": "Enable",
+    "revoke": "Revoke"
+  },
+  "detail": {
+    "title": "Node details",
+    "identity": "Identity",
+    "capabilities": "Capabilities",
+    "resources": "Resources",
+    "health": "Health",
+    "no_health_errors": "No errors reported.",
+    "fingerprint": "Certificate fingerprint",
+    "no_fingerprint": "No certificate yet.",
+    "approved_by": "Approved by",
+    "approved_at": "Approved at",
+    "created_at": "Created at",
+    "updated_at": "Updated at",
+    "labels": "Labels",
+    "no_labels": "No labels."
+  },
+  "enroll": {
+    "title": "Pair node",
+    "intro": "Create a one-time enrollment token. The node agent uses it exactly once to enroll.",
+    "field_name": "Node name",
+    "field_name_hint": "unique, e.g. compute-01",
+    "field_ttl": "Validity (seconds)",
+    "field_ttl_hint": "30–3600, default 900",
+    "submit": "Create token",
+    "submitting": "Creating…",
+    "token_title": "Enrollment token — visible only now",
+    "token_warning": "Copy the token now. It will not be shown again.",
+    "token_next": "On the target host: run hydrahive-node enroll with this token, then approve it in the node list.",
+    "copy": "Copy token",
+    "copied": "Copied",
+    "done": "Done",
+    "expires_at": "Expires at"
+  },
+  "approve": {
+    "title": "Approve node",
+    "intro": "Confirm the certificate fingerprint the node showed during enrollment. The node is approved only on an exact match.",
+    "field_fingerprint": "Certificate fingerprint",
+    "field_fingerprint_hint": "sha256:… — exactly as shown by the agent",
+    "reported_fingerprint": "Reported by node",
+    "submit": "Approve",
+    "submitting": "Approving…"
+  },
+  "confirm": {
+    "drain_title": "Drain node?",
+    "drain_body": "The node stops accepting new activation jobs. Running workloads remain; stop/delete/inspect stay available.",
+    "disable_title": "Disable node?",
+    "disable_body": "The node is marked disabled and accepts no more jobs.",
+    "revoke_title": "Revoke node?",
+    "revoke_body": "The node identity is permanently revoked. The agent can no longer connect. This cannot be undone.",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  }
+}

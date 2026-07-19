@@ -1,0 +1,69 @@
+{
+  "title": "Compute-Jobs",
+  "subtitle": "Persistente, signierte Mutationsjobs auf Compute-Nodes. Jeder Job ist an Node und Generation gebunden.",
+  "loading": "Lade…",
+  "empty": "Keine Jobs gefunden.",
+  "refresh": "Aktualisieren",
+  "summary": {
+    "total": "Jobs gesamt",
+    "active": "Aktiv",
+    "failed": "Fehlgeschlagen"
+  },
+  "filter": {
+    "all_nodes": "Alle Nodes",
+    "all_states": "Alle Status",
+    "node": "Node",
+    "status": "Status"
+  },
+  "status": {
+    "queued": "Eingereiht",
+    "leased": "Zugewiesen",
+    "running": "Läuft",
+    "succeeded": "Erfolgreich",
+    "failed": "Fehlgeschlagen",
+    "cancelled": "Abgebrochen",
+    "expired": "Abgelaufen"
+  },
+  "resource_kind": {
+    "container": "Container",
+    "vm": "VM",
+    "node": "Node"
+  },
+  "columns": {
+    "operation": "Operation",
+    "resource": "Ressource",
+    "node": "Node",
+    "status": "Status",
+    "attempts": "Versuche",
+    "progress": "Fortschritt",
+    "created_at": "Angelegt"
+  },
+  "card": {
+    "generation": "Generation",
+    "error_code": "Fehlercode",
+    "created_by": "Erstellt von",
+    "started_at": "Gestartet",
+    "finished_at": "Beendet",
+    "lease_until": "Lease bis"
+  },
+  "detail": {
+    "title": "Job-Details",
+    "timeline": "Ereignis-Verlauf",
+    "no_events": "Noch keine Ereignisse.",
+    "cancel": "Job abbrechen",
+    "cancelling": "Breche ab…",
+    "back": "Zurück zu Jobs"
+  },
+  "event": {
+    "sequence": "#{{sequence}}",
+    "progress": "Fortschritt: {{progress}}%",
+    "error": "Fehler: {{code}}",
+    "reason": "Grund: {{reason}}"
+  },
+  "confirm": {
+    "cancel_title": "Job abbrechen?",
+    "cancel_body": "Der Job wird abgebrochen, sofern sein Zustand das erlaubt. Bereits laufende, nicht idempotente Operationen werden nicht blind zurückgerollt.",
+    "confirm": "Abbrechen",
+    "cancel": "Zurück"
+  }
+}
