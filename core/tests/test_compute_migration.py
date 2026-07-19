@@ -52,6 +52,8 @@ def test_migration_creates_compute_schema_and_local_node_once(tmp_path: Path) ->
                 "resources_json",
                 "labels_json",
                 "last_seen_at",
+                "last_sequence",
+                "health_errors_json",
                 "approved_at",
                 "approved_by",
                 "revoked_at",
@@ -128,6 +130,28 @@ def test_compute_migrations_resume_after_legacy_columns_were_partially_applied(t
         assert version >= 39
         assert {"idx_containers_node_id", "idx_vms_node_id"} <= indexes
         assert "compute_nodes_restrict_delete" in triggers
+    finally:
+        conn.close()
+
+
+def test_enrollment_recovery_migration_upgrades_existing_041_schema(tmp_path: Path) -> None:
+    conn = sqlite3.connect(tmp_path / "enrollment-upgrade.db")
+    conn.row_factory = sqlite3.Row
+    try:
+        _apply_through_031(conn)
+        for migration in sorted(MIGRATIONS_DIR.glob("*.sql")):
+            if 32 <= _migration_version(migration) <= 41:
+                conn.executescript(migration.read_text())
+        before = {row["name"] for row in conn.execute("PRAGMA table_info(compute_enrollment_results)")}
+        assert "recovery_until" not in before
+
+        conn.executescript((MIGRATIONS_DIR / "042_compute_enrollment_recovery_window.sql").read_text())
+        conn.executescript((MIGRATIONS_DIR / "043_compute_pending_enrollment_name.sql").read_text())
+
+        after = {row["name"] for row in conn.execute("PRAGMA table_info(compute_enrollment_results)")}
+        indexes = {row["name"] for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'index'")}
+        assert "recovery_until" in after
+        assert "idx_compute_enrollment_pending_name" in indexes
     finally:
         conn.close()
 

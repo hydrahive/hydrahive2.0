@@ -27,6 +27,7 @@ from hydrahive.communication.whatsapp import (
     ensure_secret,
 )
 from hydrahive.containers import reconciler as container_reconciler
+from hydrahive.compute import channel_monitor
 from hydrahive.zahnfee import scheduler as zahnfee_scheduler
 from hydrahive.db import init_db
 from hydrahive.db import mirror as pg_mirror
@@ -162,6 +163,8 @@ async def lifespan(app: FastAPI):
     container_reconciler_task = asyncio.create_task(
         container_reconciler.run_loop(container_reconciler_stop)
     )
+    compute_monitor_stop = asyncio.Event()
+    compute_monitor_task = asyncio.create_task(channel_monitor.run_loop(compute_monitor_stop))
     from hydrahive.modules import jobs as module_jobs
     module_jobs_stop = asyncio.Event()
     module_job_tasks = module_jobs.start_all(module_jobs_stop)
@@ -252,11 +255,19 @@ async def lifespan(app: FastAPI):
     butler_cron_stop.set()
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
+    compute_monitor_stop.set()
     module_jobs_stop.set()
     if mail_stop is not None:
         mail_stop.set()
     await agentlink_client.stop_listener()
-    shutdown_tasks = [zahnfee_task, butler_cron_task, vm_reconciler_task, container_reconciler_task, *module_job_tasks]
+    shutdown_tasks = [
+        zahnfee_task,
+        butler_cron_task,
+        vm_reconciler_task,
+        container_reconciler_task,
+        compute_monitor_task,
+        *module_job_tasks,
+    ]
     if mail_task is not None:
         shutdown_tasks.append(mail_task)
     for task in shutdown_tasks:

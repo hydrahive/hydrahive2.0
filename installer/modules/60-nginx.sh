@@ -39,6 +39,20 @@ if [ ! -f "$TLS_DIR/hydrahive.crt" ]; then
   chmod 644 "$TLS_DIR/hydrahive.crt"
 fi
 
+COMPUTE_PKI_DIR="$HH_CONFIG_DIR/compute-pki"
+log "Initialisiere Compute-CA für mTLS"
+env HH_CONFIG_DIR="$HH_CONFIG_DIR" HH_DATA_DIR="$HH_DATA_DIR" \
+  "$HH_REPO_DIR/.venv/bin/python" -c "from hydrahive.compute.identity import ensure_compute_ca; ensure_compute_ca()"
+chown -R "$HH_USER:$HH_USER" "$COMPUTE_PKI_DIR"
+chmod 700 "$COMPUTE_PKI_DIR"
+chmod 600 "$COMPUTE_PKI_DIR/ca-key.pem"
+chmod 644 "$COMPUTE_PKI_DIR/ca-cert.pem"
+COMPUTE_PROXY_SECRET="$(cat "$HH_CONFIG_DIR/compute_proxy_secret")"
+COMPUTE_PROXY_SNIPPET=/etc/nginx/snippets/hydrahive-compute-secret.conf
+install -d -m 0755 /etc/nginx/snippets
+printf 'proxy_set_header X-HydraHive-Proxy-Secret "%s";\n' "$COMPUTE_PROXY_SECRET" > "$COMPUTE_PROXY_SNIPPET"
+chmod 600 "$COMPUTE_PROXY_SNIPPET"
+
 CONF_FILE=/etc/nginx/sites-available/hydrahive2
 log "Schreibe $CONF_FILE (HTTPS)"
 cat > "$CONF_FILE" <<EOF
@@ -88,6 +102,9 @@ server {
     ssl_certificate_key $TLS_DIR/hydrahive.key;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_client_certificate $COMPUTE_PKI_DIR/ca-cert.pem;
+    ssl_verify_client optional;
+    ssl_verify_depth 1;
 
     root $HH_REPO_DIR/frontend/dist;
     index index.html;
@@ -108,6 +125,21 @@ server {
 
     location / {
         try_files \$uri \$uri/ /index.html;
+    }
+
+    location = /api/compute/agent/connect {
+        if (\$ssl_client_verify != SUCCESS) { return 403; }
+        proxy_pass http://$HH_HOST:$HH_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-HydraHive-Node-ID \$http_x_hydrahive_node_id;
+        proxy_set_header X-HydraHive-Client-Cert \$ssl_client_escaped_cert;
+        include $COMPUTE_PROXY_SNIPPET;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+        client_max_body_size 64k;
     }
 
     location /api/ {

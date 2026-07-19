@@ -1,0 +1,34 @@
+[Unit]
+Description=HydraHive Compute Node Agent
+After=network-online.target incus.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hydrahive-node
+Group=hydrahive-node
+ExecStart=/usr/local/bin/hydrahive-node run
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictRealtime=true
+ReadWritePaths=/var/lib/hydrahive-node
+CapabilityBoundingSet=
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

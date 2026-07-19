@@ -9,8 +9,10 @@ Properties sind in Mixins gruppiert:
 - `_services.py`: Server, JWT, AgentLink, Communication
 - `_infra.py`: Samba, VMs, Extensions, Butler
 """
+
 from __future__ import annotations
 
+from hydrahive.settings._compute import _ComputeMixin
 from hydrahive.settings._infra import (
     _ButlerMixin,
     _ExtensionsMixin,
@@ -35,6 +37,7 @@ class Settings(
     _CommunicationMixin,
     _MailMixin,
     _TeamchatMixin,
+    _ComputeMixin,
     _SambaMixin,
     _VmsMixin,
     _ExtensionsMixin,

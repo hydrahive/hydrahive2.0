@@ -28,6 +28,24 @@ if [ ! -f "$SECRET_FILE" ]; then
 fi
 SECRET_KEY="$(cat "$SECRET_FILE")"
 
+COMPUTE_PROXY_SECRET_FILE="$HH_CONFIG_DIR/compute_proxy_secret"
+if [ ! -f "$COMPUTE_PROXY_SECRET_FILE" ]; then
+  log "Generiere Compute-Proxy-Secret"
+  python3 -c "import secrets; print(secrets.token_urlsafe(48))" > "$COMPUTE_PROXY_SECRET_FILE"
+  chmod 600 "$COMPUTE_PROXY_SECRET_FILE"
+  chown root:root "$COMPUTE_PROXY_SECRET_FILE"
+fi
+COMPUTE_PROXY_SECRET="$(cat "$COMPUTE_PROXY_SECRET_FILE")"
+COMPUTE_PROXY_ENV="$HH_CONFIG_DIR/compute-proxy.env"
+printf 'HH_COMPUTE_PROXY_SECRET=%s\n' "$COMPUTE_PROXY_SECRET" > "$COMPUTE_PROXY_ENV"
+chmod 600 "$COMPUTE_PROXY_ENV"
+chown root:root "$COMPUTE_PROXY_ENV"
+
+case "$HH_HOST" in
+  127.0.0.1|::1|localhost) ;;
+  *) echo "Compute-Agent-Proxy erfordert einen nur lokal gebundenen Backend-Host (HH_HOST=$HH_HOST)" >&2; exit 1 ;;
+esac
+
 # Optionale Nutzer-Konfig-Datei anlegen falls nicht vorhanden
 ENV_EXTRA="$HH_CONFIG_DIR/env"
 if [ ! -f "$ENV_EXTRA" ]; then
@@ -64,7 +82,8 @@ Environment=HH_SECRET_KEY=$SECRET_KEY
 Environment=HOME=/home/$HH_USER
 Environment=PATH=$HH_REPO_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=-$ENV_EXTRA
-ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST --port $HH_PORT
+EnvironmentFile=$COMPUTE_PROXY_ENV
+ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST --port $HH_PORT --ws-max-size 65536
 Restart=on-failure
 RestartSec=5
 
