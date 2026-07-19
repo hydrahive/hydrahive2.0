@@ -6,7 +6,7 @@ import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
-from hydrahive.compute import audit
+from hydrahive.compute import audit, jobs
 from hydrahive.db._utils import now_iso
 from hydrahive.db.connection import db
 
@@ -64,6 +64,7 @@ async def run_loop(stop: asyncio.Event, interval: float = 15.0) -> None:
     while not stop.is_set():
         try:
             await asyncio.to_thread(mark_stale_nodes)
+            await asyncio.to_thread(jobs.expire_leases)
         except Exception:
             logger.exception("compute node dead-detection failed")
         try:

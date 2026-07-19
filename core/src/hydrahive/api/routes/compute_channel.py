@@ -30,7 +30,7 @@ async def connect_agent(websocket: WebSocket) -> None:
                 return
             try:
                 message = channel.parse_message(raw)
-                acknowledgement = channel.accept_message(node_id, message)
+                acknowledgement = channel.response_for_message(node_id, message)
             except channel.ProtocolError as exc:
                 await websocket.send_json({"type": "error", "code": exc.code})
                 await websocket.close(code=4400, reason=exc.code)

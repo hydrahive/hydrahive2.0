@@ -13,6 +13,7 @@ import websockets
 
 from hydrahive_node import __version__
 from hydrahive_node.capabilities import collect
+from hydrahive_node.job_state import save_job_signing_public_key
 from hydrahive_node.storage import AgentIdentity, StatePaths, next_sequence
 
 HEARTBEAT_SECONDS = 30.0
@@ -55,13 +56,38 @@ def _message(
     return sequence, encoded
 
 
-async def _send(websocket, paths: StatePaths, identity: AgentIdentity, message_type: str, payload: dict) -> None:
+async def _exchange(
+    websocket,
+    lock: asyncio.Lock,
+    paths: StatePaths,
+    identity: AgentIdentity,
+    message_type: str,
+    payload: dict[str, object],
+) -> dict:
     sequence, encoded = _message(paths, identity, message_type, payload)
-    await websocket.send(encoded)
-    raw = await asyncio.wait_for(websocket.recv(), timeout=20.0)
-    acknowledgement = json.loads(raw)
-    if acknowledgement.get("type") != "ack" or acknowledgement.get("sequence") != sequence:
-        raise RuntimeError("invalid acknowledgement from control plane")
+    async with lock:
+        await websocket.send(encoded)
+        raw = await asyncio.wait_for(websocket.recv(), timeout=20.0)
+    response = json.loads(raw)
+    if not isinstance(response, dict) or response.get("sequence") != sequence or response.get("type") == "error":
+        raise RuntimeError("invalid response from control plane")
+    return response
+
+
+async def _heartbeat_loop(exchange) -> None:
+    while True:
+        capabilities, resources, health_errors = collect()
+        response = await exchange(
+            "heartbeat",
+            {
+                "capabilities": capabilities,
+                "resources": resources,
+                "health_errors": health_errors,
+            },
+        )
+        if response.get("type") != "ack":
+            raise RuntimeError("heartbeat was not acknowledged")
+        await asyncio.sleep(HEARTBEAT_SECONDS)
 
 
 async def _run_session(paths: StatePaths, identity: AgentIdentity) -> None:
@@ -74,29 +100,26 @@ async def _run_session(paths: StatePaths, identity: AgentIdentity) -> None:
         max_size=MAX_MESSAGE_BYTES,
         open_timeout=20.0,
     ) as websocket:
-        await _send(websocket, paths, identity, "hello", {"agent_version": __version__})
-        capabilities, resources, health_errors = collect()
-        await _send(
-            websocket,
-            paths,
-            identity,
+        lock = asyncio.Lock()
+
+        async def exchange(message_type: str, payload: dict[str, object]) -> dict:
+            return await _exchange(websocket, lock, paths, identity, message_type, payload)
+
+        hello = await exchange("hello", {"agent_version": __version__})
+        public_key = hello.get("job_signing_public_key")
+        if not isinstance(public_key, str):
+            raise RuntimeError("control plane did not provide a job signing key")
+        save_job_signing_public_key(paths, public_key)
+        capabilities, resources, _ = collect()
+        response = await exchange(
             "capabilities",
             {"capabilities": capabilities, "resources": resources},
         )
-        while True:
-            capabilities, resources, health_errors = collect()
-            await _send(
-                websocket,
-                paths,
-                identity,
-                "heartbeat",
-                {
-                    "capabilities": capabilities,
-                    "resources": resources,
-                    "health_errors": health_errors,
-                },
-            )
-            await asyncio.sleep(HEARTBEAT_SECONDS)
+        if response.get("type") != "ack":
+            raise RuntimeError("capabilities were not acknowledged")
+        # Job polling is enabled by the P4 runtime only after concrete, allowlisted
+        # operation handlers have been installed.
+        await _heartbeat_loop(exchange)
 
 
 async def run(paths: StatePaths, identity: AgentIdentity) -> None:
