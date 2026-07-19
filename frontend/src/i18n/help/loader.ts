@@ -10,7 +10,7 @@ export type HelpTopic =
   // Automatisierung
   | "butler" | "zahnfee" | "skills" | "mcp" | "plugins"
   // Infrastruktur
-  | "vms" | "containers" | "federation" | "streaming" | "datamining" | "memory"
+  | "vms" | "containers" | "nodes" | "jobs" | "federation" | "streaming" | "datamining" | "memory"
   // Konfiguration
   | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings"
   // Einstieg

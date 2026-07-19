@@ -22,7 +22,9 @@ def claim_next_job(node_id: str, *, lease_seconds: int = 60) -> ComputeJob | Non
         row = conn.execute(
             """SELECT * FROM compute_jobs
                WHERE node_id = ? AND status = 'queued'
-                 AND (? != 'draining' OR operation NOT IN ('container.create', 'vm.create_from_image'))
+                 AND (? != 'draining' OR operation IN
+                      ('container.stop', 'container.delete', 'container.inspect',
+                       'vm.stop', 'vm.delete', 'vm.inspect'))
                ORDER BY created_at, job_id LIMIT 1""",
             (node_id, node["status"]),
         ).fetchone()
@@ -73,6 +75,16 @@ def expire_leases() -> tuple[int, int]:
                 data={"reason": "lease_expired"},
                 actor="system:compute-jobs",
             )
+            if target == "expired" and row["resource_kind"] == "container":
+                from hydrahive.containers import remote
+
+                completed_row = conn.execute("SELECT * FROM compute_jobs WHERE job_id = ?", (row["job_id"],)).fetchone()
+                remote.apply_failure(row_to_job(completed_row), "lease_expired", connection=conn)
+            elif target == "expired" and row["resource_kind"] == "vm":
+                from hydrahive.vms import remote as vm_remote
+
+                completed_row = conn.execute("SELECT * FROM compute_jobs WHERE job_id = ?", (row["job_id"],)).fetchone()
+                vm_remote.apply_failure(row_to_job(completed_row), "lease_expired", connection=conn)
             requeued += target == "queued"
             expired += target == "expired"
     return requeued, expired

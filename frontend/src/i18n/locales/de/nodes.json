@@ -1,0 +1,106 @@
+{
+  "title": "Compute-Nodes",
+  "subtitle": "Freigegebene Ubuntu-Nodes mit ausgehend verbundenem Agent. Der lokale Host ist immer vorhanden.",
+  "loading": "Lade…",
+  "empty": "Noch keine Compute-Nodes gekoppelt.",
+  "empty_hint": "Erzeuge einen Enrollment-Token und richte den Node-Agent auf dem Zielhost ein.",
+  "refresh": "Aktualisieren",
+  "summary": {
+    "total": "Nodes gesamt",
+    "online": "Online",
+    "pending": "Wartet auf Freigabe",
+    "offline": "Offline"
+  },
+  "kind": {
+    "local": "Lokal",
+    "agent": "Agent"
+  },
+  "selector": {
+    "label": "Ziel-Node",
+    "hint": "Standard ist der lokale Host. Remote-Nodes müssen online und geeignet sein."
+  },
+  "status": {
+    "pending": "Wartet",
+    "online": "Online",
+    "degraded": "Eingeschränkt",
+    "offline": "Offline",
+    "draining": "Wird geleert",
+    "disabled": "Deaktiviert",
+    "revoked": "Widerrufen"
+  },
+  "card": {
+    "agent_version": "Agent-Version",
+    "last_seen": "Zuletzt gesehen",
+    "protocol": "Protokoll",
+    "cpu": "CPU",
+    "memory": "RAM",
+    "storage": "Speicher",
+    "incus": "Incus",
+    "kvm": "KVM",
+    "yes": "ja",
+    "no": "nein",
+    "never": "nie",
+    "unknown": "unbekannt",
+    "details": "Details"
+  },
+  "actions": {
+    "enroll": "Node koppeln",
+    "approve": "Freigeben",
+    "drain": "Leeren",
+    "disable": "Deaktivieren",
+    "enable": "Aktivieren",
+    "revoke": "Widerrufen"
+  },
+  "detail": {
+    "title": "Node-Details",
+    "identity": "Identität",
+    "capabilities": "Capabilities",
+    "resources": "Ressourcen",
+    "health": "Gesundheit",
+    "no_health_errors": "Keine Fehler gemeldet.",
+    "fingerprint": "Zertifikat-Fingerprint",
+    "no_fingerprint": "Noch kein Zertifikat vorhanden.",
+    "approved_by": "Freigegeben von",
+    "approved_at": "Freigegeben am",
+    "created_at": "Angelegt am",
+    "updated_at": "Aktualisiert am",
+    "labels": "Labels",
+    "no_labels": "Keine Labels."
+  },
+  "enroll": {
+    "title": "Node koppeln",
+    "intro": "Erzeuge einen einmaligen Enrollment-Token. Der Node-Agent nutzt ihn genau einmal, um sich anzumelden.",
+    "field_name": "Node-Name",
+    "field_name_hint": "eindeutig, z.B. compute-01",
+    "field_ttl": "Gültigkeit (Sekunden)",
+    "field_ttl_hint": "30–3600, Standard 900",
+    "submit": "Token erzeugen",
+    "submitting": "Erzeuge…",
+    "token_title": "Enrollment-Token — nur jetzt sichtbar",
+    "token_warning": "Kopiere den Token jetzt. Er wird nicht erneut angezeigt.",
+    "token_next": "Auf dem Zielhost: hydrahive-node enroll mit diesem Token ausführen, dann in der Node-Liste freigeben.",
+    "copy": "Token kopieren",
+    "copied": "Kopiert",
+    "done": "Fertig",
+    "expires_at": "Läuft ab am"
+  },
+  "approve": {
+    "title": "Node freigeben",
+    "intro": "Bestätige den Zertifikat-Fingerprint, den der Node beim Enrollment angezeigt hat. Nur bei Übereinstimmung wird der Node freigegeben.",
+    "field_fingerprint": "Zertifikat-Fingerprint",
+    "field_fingerprint_hint": "sha256:… — exakt wie vom Agent angezeigt",
+    "reported_fingerprint": "Vom Node gemeldet",
+    "submit": "Freigeben",
+    "submitting": "Gebe frei…"
+  },
+  "confirm": {
+    "drain_title": "Node leeren?",
+    "drain_body": "Der Node nimmt keine neuen Aktivierungsjobs mehr an. Laufende Workloads bleiben, Stop/Delete/Inspect bleiben möglich.",
+    "disable_title": "Node deaktivieren?",
+    "disable_body": "Der Node wird als deaktiviert markiert und nimmt keine Jobs mehr an.",
+    "revoke_title": "Node widerrufen?",
+    "revoke_body": "Die Node-Identität wird dauerhaft widerrufen. Der Agent kann sich nicht mehr verbinden. Dies kann nicht rückgängig gemacht werden.",
+    "confirm": "Bestätigen",
+    "cancel": "Abbrechen"
+  }
+}

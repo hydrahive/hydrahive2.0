@@ -8,16 +8,28 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from hydrahive.api.middleware import users
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._container_helpers import container_or_404, ensure_local_container
+from hydrahive.compute import db as node_db
 from hydrahive.containers import db as cdb
+from hydrahive.containers import execution
 from hydrahive.containers import incus_client as incus
-from hydrahive.containers import lifecycle
+from hydrahive.containers import remote
 from fastapi import status
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/containers", tags=["containers"])
+
+
+def _actor(auth: tuple[str, str]) -> str:
+    current = users.get_by_username(auth[0])
+    return current["user_id"] if current is not None else auth[0]
+
+
+def _remote_error(exc: remote.RemoteContainerError):
+    return coded(status.HTTP_409_CONFLICT, "container_remote_unavailable", reason=str(exc))
 
 
 @router.post("/{container_id}/start")
@@ -27,9 +39,11 @@ async def start_container(
 ) -> dict:
     container_or_404(container_id, *auth)
     try:
-        await lifecycle.start(container_id)
+        await execution.start(container_id, actor=_actor(auth))
     except incus.IncusError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
+    except remote.RemoteContainerError as exc:
+        raise _remote_error(exc)
     return asdict(cdb.get(container_id))  # type: ignore[arg-type]
 
 
@@ -40,9 +54,11 @@ async def stop_container(
 ) -> dict:
     container_or_404(container_id, *auth)
     try:
-        await lifecycle.stop(container_id, force=False)
+        await execution.stop(container_id, actor=_actor(auth), force=False)
     except incus.IncusError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
+    except remote.RemoteContainerError as exc:
+        raise _remote_error(exc)
     return asdict(cdb.get(container_id))  # type: ignore[arg-type]
 
 
@@ -53,9 +69,11 @@ async def restart_container(
 ) -> dict:
     container_or_404(container_id, *auth)
     try:
-        await lifecycle.restart_(container_id)
+        await execution.restart(container_id, actor=_actor(auth))
     except incus.IncusError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
+    except remote.RemoteContainerError as exc:
+        raise _remote_error(exc)
     return asdict(cdb.get(container_id))  # type: ignore[arg-type]
 
 
@@ -67,6 +85,19 @@ async def container_log(
     c = container_or_404(container_id, *auth)
     ensure_local_container(c)
     return {"text": await incus.show_log(c.name)}
+
+
+@router.post("/{container_id}/refresh", status_code=status.HTTP_202_ACCEPTED)
+async def refresh_container(
+    container_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    container_or_404(container_id, *auth)
+    try:
+        job = remote.queue_inspect(container_id, actor=_actor(auth))
+    except remote.RemoteContainerError as exc:
+        raise _remote_error(exc)
+    return {"job_id": job.job_id, "status": job.status}
 
 
 @router.get("/{container_id}/config")
@@ -86,6 +117,14 @@ async def container_info(
 ) -> dict:
     """Live info from incus: status, CPU/memory, IP."""
     c = container_or_404(container_id, *auth)
+    if c.node_id != "local":
+        node = node_db.get_node(c.node_id)
+        return {
+            "alive": node is not None and node.status in {"online", "draining"},
+            "status": c.actual_state,
+            "node_id": c.node_id,
+            "refresh_queued": False,
+        }
     ensure_local_container(c)
     info = await incus.info(c.name)
     if not info:

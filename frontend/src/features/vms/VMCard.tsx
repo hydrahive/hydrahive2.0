@@ -1,4 +1,4 @@
-import { Cpu, HardDrive, MemoryStick, Network } from "lucide-react"
+import { Cpu, HardDrive, MemoryStick, Network, Server } from "lucide-react"
 import { useEffect, useState } from "react"
 import type { CSSProperties } from "react"
 import { rgbFor } from "@/shared/colors"
@@ -26,7 +26,8 @@ export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole, o
   const [stats, setStats] = useState<{ cpu_pct: number; rss_mb: number } | null>(null)
 
   useEffect(() => {
-    if (vm.actual_state !== "running") { setStats(null); return }
+    // Remote VMs have no local stats endpoint — skip polling to avoid 400s.
+    if (vm.actual_state !== "running" || vm.node_id !== "local") { setStats(null); return }
     let alive = true
     async function tick() {
       try {
@@ -66,6 +67,8 @@ export function VMCard({ vm, onStart, onStop, onPoweroff, onDelete, onConsole, o
         <Spec icon={MemoryStick} label={formatRamMB(vm.ram_mb)} />
         <Spec icon={HardDrive} label={`${vm.disk_gb} GB`} />
         <Spec icon={Network} label={vm.network_mode} />
+        {vm.node_id !== "local" && <Spec icon={Server} label={vm.node_id} />}
+        {vm.image && <Spec label={vm.image} />}
         {vm.iso_filename && <Spec label={vm.iso_filename} />}
       </div>
 

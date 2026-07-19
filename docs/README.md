@@ -28,6 +28,13 @@ In dieser Reihenfolge:
 - [tools.md](architecture/tools.md) — Tool-System
 - [media-models.md](architecture/media-models.md) — Media-Modell-Konfiguration
 
+Compute-Cluster:
+
+- [compute-roadmap.md](compute-roadmap.md) — Master-Roadmap und aktueller Phasenstatus
+- [compute-cluster-v1.md](specs/compute-cluster-v1.md) — verbindliche V1-Spezifikation
+- [compute-cluster-v1-plan.md](specs/compute-cluster-v1-plan.md) — detaillierter, fortlaufender Taskplan
+- [Compute-Abschluss P1–P4](audit/compute-implementation-completion-2026-07-17.md) — Implementierungs- und Verifikationsbericht
+
 ## Pflege
 
 Wer welche Datei ändert, siehe [CONTRIBUTING.md](../CONTRIBUTING.md#doku-pflege).

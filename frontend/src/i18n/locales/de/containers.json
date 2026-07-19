@@ -72,7 +72,8 @@
     "custom_image_label": "Custom Image-Alias eingeben",
     "back_to_list": "← Quick-Liste",
     "error_image_missing": "Image fehlt",
-    "error_name_invalid": "Name: 1-63 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -"
+    "error_name_invalid": "Name: 1-63 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -",
+    "remote_placement_note": "Remote-Platzierung: Der Container läuft dauerhaft auf dem gewählten Node (Admin-only). Eine Migration ist in V1 nicht vorgesehen."
   },
   "edit": {
     "field_name": "Name",

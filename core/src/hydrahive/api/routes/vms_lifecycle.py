@@ -23,15 +23,20 @@ from hydrahive.api.routes._vms_helpers import (
     serialize,
     vm_or_404,
 )
+from hydrahive.api.middleware import users
 from hydrahive.vms import db as vmdb
 from hydrahive.vms import disk as vmdisk
+from hydrahive.vms import execution as vmexec
 from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import lifecycle
+from hydrahive.vms import remote as vmremote
 from hydrahive.vms.models import (
     DISK_INTERFACES,
+    IMAGE_RE,
     MACHINE_TYPES,
     NAME_RE,
     NETWORK_DEVICES,
+    VM_QUICK_IMAGES,
 )
 
 logger = logging.getLogger(__name__)
@@ -45,18 +50,60 @@ def list_vms(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[di
     return [serialize(v) for v in vms]
 
 
+@router.get("/quick-images")
+def vm_quick_images(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[str]:
+    return list(VM_QUICK_IMAGES)
+
+
+async def _create_remote_vm(body: VMCreate, user: str, role: str) -> dict:
+    """Create an image-based VM on a remote agent node (admin-only)."""
+    if role != "admin":
+        raise coded(status.HTTP_403_FORBIDDEN, "vm_remote_placement_forbidden")
+    image = (body.image or "").strip()
+    if not image or not re.match(IMAGE_RE, image):
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_image_invalid")
+    if ":" not in image:
+        image = f"images:{image}"
+    if body.iso_filename or body.import_job_id:
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_remote_iso_not_supported")
+    if vmdb.name_taken(user, body.name):
+        raise coded(status.HTTP_409_CONFLICT, "vm_name_taken")
+
+    vm = vmdb.create_vm(
+        owner=user,
+        name=body.name,
+        description=body.description,
+        cpu=body.cpu,
+        ram_mb=body.ram_mb,
+        disk_gb=body.disk_gb,
+        network_mode=body.network_mode,
+        qcow2_path="",
+        node_id=body.node_id,
+        runtime="incus",
+        image=image,
+    )
+    actor = users.get_by_username(user)
+    actor_id = actor["user_id"] if actor is not None else user
+    try:
+        await vmexec.create_and_start(vm.vm_id, actor=actor_id)
+    except vmremote.RemoteVMError as e:
+        vmdb.delete_vm(vm.vm_id)
+        raise coded(status.HTTP_409_CONFLICT, "vm_remote_unavailable", reason=str(e))
+    return serialize(vmdb.get_vm(vm.vm_id))
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_vm(
     body: VMCreate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     user, role = auth
-    if body.node_id != "local":
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_remote_execution_not_supported")
     if not re.match(NAME_RE, body.name):
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_name_invalid")
     if body.network_mode not in ("bridged", "isolated"):
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_mode_invalid")
+    if body.node_id != "local":
+        return await _create_remote_vm(body, user, role)
     if body.disk_interface not in DISK_INTERFACES:
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid", value=body.disk_interface)
     if body.machine_type not in MACHINE_TYPES:
@@ -176,10 +223,14 @@ async def update_vm(
 @router.delete("/{vm_id}", status_code=204)
 async def delete_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> None:
     vm = vm_or_404(vm_id, *auth)
-    try:
-        lifecycle.ensure_local(vm)
-    except lifecycle.VMLifecycleError as e:
-        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
+    if vmexec.is_remote(vm):
+        actor = users.get_by_username(auth[0])
+        actor_id = actor["user_id"] if actor is not None else auth[0]
+        try:
+            await vmexec.delete(vm_id, actor=actor_id)
+        except vmremote.RemoteVMError as e:
+            raise coded(status.HTTP_409_CONFLICT, "vm_remote_unavailable", reason=str(e))
+        return
     if vm.actual_state in ("running", "starting"):
         await lifecycle.shutdown(vm_id, hard=True)
     vmdisk.remove_qcow2(vm_id)

@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.auth import AuthPrincipal, require_admin_principal
 from hydrahive.api.middleware.errors import coded
+from hydrahive.compute import console_tickets
 from hydrahive.compute import enrollment
 from hydrahive.compute import db as node_db
 from hydrahive.compute._node_codec import normalize_certificate_fingerprint
@@ -22,6 +23,12 @@ router = APIRouter(prefix="/api/compute", tags=["compute"])
 class EnrollmentCreate(BaseModel):
     requested_name: str = Field(min_length=1, max_length=128)
     ttl_seconds: int = Field(default=900, ge=30, le=3600)
+
+
+class ConsoleTicketCreate(BaseModel):
+    resource_kind: str = Field(pattern="^(container|vm)$")
+    resource_id: str = Field(min_length=1, max_length=128)
+    ttl_seconds: int = Field(default=30, ge=15, le=120)
 
 
 class ApprovalRequest(BaseModel):
@@ -151,3 +158,33 @@ def revoke_compute_node(
     except ValueError as exc:
         raise coded(status.HTTP_409_CONFLICT, "compute_node_revoke_invalid", reason=str(exc))
     return asdict(node)
+
+
+@router.post("/nodes/{node_id}/console-tickets", status_code=status.HTTP_201_CREATED)
+def issue_console_ticket(
+    node_id: str,
+    body: ConsoleTicketCreate,
+    auth: Annotated[AuthPrincipal, Depends(require_admin_principal)],
+) -> dict:
+    """Issue a short-lived, one-time, resource-bound console ticket (admin-only)."""
+    _node_or_404(node_id)
+    try:
+        issued = console_tickets.issue_ticket(
+            node_id=node_id,
+            resource_kind=body.resource_kind,
+            resource_id=body.resource_id,
+            created_by=auth.user_id,
+            ttl_seconds=body.ttl_seconds,
+        )
+    except console_tickets.ConsoleTicketError as exc:
+        raise coded(status.HTTP_409_CONFLICT, exc.code)
+    except ValueError as exc:
+        raise coded(status.HTTP_400_BAD_REQUEST, "console_ticket_invalid", reason=str(exc))
+    return {
+        "ticket_id": issued.ticket_id,
+        "ticket": issued.ticket,
+        "node_id": issued.node_id,
+        "resource_kind": issued.resource_kind,
+        "resource_id": issued.resource_id,
+        "expires_at": issued.expires_at,
+    }

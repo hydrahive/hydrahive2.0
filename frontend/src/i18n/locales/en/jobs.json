@@ -1,0 +1,69 @@
+{
+  "title": "Compute Jobs",
+  "subtitle": "Durable, signed mutation jobs on compute nodes. Every job is bound to a node and generation.",
+  "loading": "Loading…",
+  "empty": "No jobs found.",
+  "refresh": "Refresh",
+  "summary": {
+    "total": "Total jobs",
+    "active": "Active",
+    "failed": "Failed"
+  },
+  "filter": {
+    "all_nodes": "All nodes",
+    "all_states": "All states",
+    "node": "Node",
+    "status": "Status"
+  },
+  "status": {
+    "queued": "Queued",
+    "leased": "Leased",
+    "running": "Running",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "expired": "Expired"
+  },
+  "resource_kind": {
+    "container": "Container",
+    "vm": "VM",
+    "node": "Node"
+  },
+  "columns": {
+    "operation": "Operation",
+    "resource": "Resource",
+    "node": "Node",
+    "status": "Status",
+    "attempts": "Attempts",
+    "progress": "Progress",
+    "created_at": "Created"
+  },
+  "card": {
+    "generation": "Generation",
+    "error_code": "Error code",
+    "created_by": "Created by",
+    "started_at": "Started",
+    "finished_at": "Finished",
+    "lease_until": "Lease until"
+  },
+  "detail": {
+    "title": "Job details",
+    "timeline": "Event timeline",
+    "no_events": "No events yet.",
+    "cancel": "Cancel job",
+    "cancelling": "Cancelling…",
+    "back": "Back to jobs"
+  },
+  "event": {
+    "sequence": "#{{sequence}}",
+    "progress": "Progress: {{progress}}%",
+    "error": "Error: {{code}}",
+    "reason": "Reason: {{reason}}"
+  },
+  "confirm": {
+    "cancel_title": "Cancel job?",
+    "cancel_body": "The job is cancelled if its state allows it. Running, non-idempotent operations are not blindly rolled back.",
+    "confirm": "Cancel job",
+    "cancel": "Back"
+  }
+}

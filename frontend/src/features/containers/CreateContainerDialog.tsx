@@ -8,6 +8,7 @@ import {
   AdminField,
   adminInputClass,
 } from "@/features/cockpit/admin/ui"
+import { NodeSelector } from "@/features/nodes/NodeSelector"
 import type { ContainerCreateInput, NetworkMode } from "./types"
 import { containersApi } from "./api"
 import { RadioCard } from "./_containerDialogHelpers"
@@ -27,6 +28,7 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
   const [cpu, setCpu] = useState<number | "">("")
   const [ramMb, setRamMb] = useState<number | "">("")
   const [network, setNetwork] = useState<NetworkMode>("bridged")
+  const [nodeId, setNodeId] = useState("local")
   const [quickImages, setQuickImages] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -55,6 +57,7 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
         cpu: cpu === "" ? null : Number(cpu),
         ram_mb: ramMb === "" ? null : Number(ramMb),
         network_mode: network,
+        node_id: nodeId,
       }
       await containersApi.create(input)
       onCreated()
@@ -133,6 +136,9 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
               title={t("create.network_isolated_title")} desc={t("create.network_isolated_desc")} />
           </div>
         </AdminField>
+
+        <NodeSelector value={nodeId} onChange={setNodeId} requireCapability="incus" disabled={busy} />
+        {nodeId !== "local" && <AdminFeedback tone="warning">{t("create.remote_placement_note")}</AdminFeedback>}
 
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
       </form>

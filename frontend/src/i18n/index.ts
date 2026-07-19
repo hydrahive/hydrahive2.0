@@ -31,6 +31,8 @@ import deExtensions from "./locales/de/extensions.json"
 import deFederation from "./locales/de/federation.json"
 import deStreaming from "./locales/de/streaming.json"
 import deVms from "./locales/de/vms.json"
+import deNodes from "./locales/de/nodes.json"
+import deJobs from "./locales/de/jobs.json"
 import deWorkspace from "./locales/de/workspace.json"
 import deZahnfee from "./locales/de/zahnfee.json"
 import deTeamchat from "./locales/de/teamchat.json"
@@ -64,6 +66,8 @@ import enExtensions from "./locales/en/extensions.json"
 import enFederation from "./locales/en/federation.json"
 import enStreaming from "./locales/en/streaming.json"
 import enVms from "./locales/en/vms.json"
+import enNodes from "./locales/en/nodes.json"
+import enJobs from "./locales/en/jobs.json"
 import enWorkspace from "./locales/en/workspace.json"
 import enZahnfee from "./locales/en/zahnfee.json"
 import enTeamchat from "./locales/en/teamchat.json"
@@ -79,7 +83,7 @@ const baseResources = {
     credentials: deCredentials, buddy: deBuddy, datamining: deDatamining, memory: deMemory,
     analytics: deAnalytics, containers: deContainers, extensions: deExtensions,
     federation: deFederation,
-    streaming: deStreaming, vms: deVms, workspace: deWorkspace, zahnfee: deZahnfee,
+    streaming: deStreaming, vms: deVms, nodes: deNodes, jobs: deJobs, workspace: deWorkspace, zahnfee: deZahnfee,
     teamchat: deTeamchat,
     modules: deModules,
   },
@@ -92,7 +96,7 @@ const baseResources = {
     credentials: enCredentials, buddy: enBuddy, datamining: enDatamining, memory: enMemory,
     analytics: enAnalytics, containers: enContainers, extensions: enExtensions,
     federation: enFederation,
-    streaming: enStreaming, vms: enVms, workspace: enWorkspace, zahnfee: enZahnfee,
+    streaming: enStreaming, vms: enVms, nodes: enNodes, jobs: enJobs, workspace: enWorkspace, zahnfee: enZahnfee,
     teamchat: enTeamchat,
     modules: enModules,
   },

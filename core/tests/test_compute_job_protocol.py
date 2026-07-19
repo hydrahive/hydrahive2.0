@@ -74,7 +74,7 @@ def test_job_events_require_matching_node_job_and_lease(protocol_node: str) -> N
     job_protocol.handle_message(
         protocol_node,
         "job_succeeded",
-        {"job_id": created.job_id, "lease_id": lease_id, "result": {"state": "running"}},
+        {"job_id": created.job_id, "lease_id": lease_id, "result": {"actual_state": "running"}},
     )
     assert jobs.get_job(created.job_id).status == "succeeded"
     rejected = job_protocol.handle_message(

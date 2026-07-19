@@ -15,6 +15,8 @@ export interface Container {
   actual_state: ActualState
   last_error_code: string | null
   last_error_params: Record<string, unknown> | null
+  node_id: string
+  generation: number
   created_at: string
   updated_at: string
 }
@@ -35,4 +37,5 @@ export interface ContainerCreateInput {
   cpu?: number | null
   ram_mb?: number | null
   network_mode: NetworkMode
+  node_id?: string
 }

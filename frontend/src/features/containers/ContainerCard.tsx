@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentType } from "react"
-import { Box, Cpu, MemoryStick, Network, Pencil, Play, RotateCw, Square, Terminal, Trash2 } from "lucide-react"
+import { Box, Cpu, MemoryStick, Network, Pencil, Play, RotateCw, Server, Square, Terminal, Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   AdminAction,
@@ -82,6 +82,7 @@ export function ContainerCard({ container, onStart, onStop, onRestart, onDelete,
           <Spec icon={Cpu} label={container.cpu ? `${container.cpu} vCPU` : t("spec.cpu_unlimited")} />
           <Spec icon={MemoryStick} label={container.ram_mb ? `${container.ram_mb} MB` : t("spec.ram_unlimited")} />
           <Spec icon={Network} label={container.network_mode} />
+          {container.node_id !== "local" && <Spec icon={Server} label={container.node_id} accent />}
           {info?.ipv4 && <Spec label={info.ipv4} accent />}
         </div>
 

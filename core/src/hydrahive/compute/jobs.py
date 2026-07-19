@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import sqlite3
+from contextlib import nullcontext
+
 from hydrahive.compute._job_codec import (
     MAX_IDEMPOTENCY_KEY,
     JobConflict,
@@ -98,6 +101,7 @@ def create_job(
     payload: JSONObject,
     idempotency_key: str,
     created_by: str,
+    connection: sqlite3.Connection | None = None,
 ) -> ComputeJob:
     node_id = validate_text(node_id, "node_id", maximum=128)
     resource_kind = validate_resource_kind(resource_kind)
@@ -111,7 +115,7 @@ def create_job(
     payload_json = dump_job_json(payload, "payload")
     comparison = (node_id, resource_kind, resource_id, operation, generation, payload, created_by)
     timestamp = now_iso()
-    with db(immediate=True) as conn:
+    with nullcontext(connection) if connection is not None else db(immediate=True) as conn:
         existing_row = conn.execute(
             "SELECT * FROM compute_jobs WHERE idempotency_key = ?",
             (idempotency_key,),
@@ -124,8 +128,13 @@ def create_job(
         node = conn.execute("SELECT kind, status FROM compute_nodes WHERE node_id = ?", (node_id,)).fetchone()
         if node is None or node["kind"] != "agent" or node["status"] not in {"online", "draining"}:
             raise JobConflict("target compute node cannot accept jobs")
-        if node["status"] == "draining" and operation.endswith(".create"):
-            raise JobConflict("draining compute node cannot accept create jobs")
+        if node["status"] == "draining" and operation.rsplit(".", 1)[-1] in {
+            "create",
+            "create_from_image",
+            "start",
+            "restart",
+        }:
+            raise JobConflict("draining compute node cannot accept workload activation jobs")
         job_id = uuid7()
         conn.execute(
             """INSERT INTO compute_jobs
@@ -158,8 +167,8 @@ def create_job(
 
 
 from hydrahive.compute._job_leases import claim_next_job, expire_leases  # noqa: E402
+from hydrahive.compute._job_cancel import cancel_job  # noqa: E402
 from hydrahive.compute._job_lifecycle import (  # noqa: E402
-    cancel_job,
     fail_job,
     renew_job_lease,
     report_progress,

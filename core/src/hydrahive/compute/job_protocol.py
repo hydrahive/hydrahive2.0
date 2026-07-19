@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from hydrahive.compute import job_signing, jobs
 from hydrahive.compute.models import ComputeJob, JSONObject
+from hydrahive.db.connection import db
 
 JOB_MESSAGE_TYPES = frozenset({"job_poll", "job_started", "job_renew", "job_progress", "job_succeeded", "job_failed"})
 
@@ -75,14 +76,62 @@ def handle_message(node_id: str, message_type: str, payload: dict[str, object]) 
         elif message_type == "job_succeeded":
             if set(payload) != {"job_id", "lease_id", "result"}:
                 raise JobProtocolError("job result payload is invalid")
-            jobs.succeed_job(job.job_id, lease_id, _object(payload, "result"))
+            result = _object(payload, "result")
+            with db(immediate=True) as conn:
+                if job.resource_kind == "container":
+                    from hydrahive.containers import remote
+
+                    if not remote.success_result_is_valid(job, result):
+                        failed = jobs.fail_job(
+                            job.job_id,
+                            lease_id,
+                            "agent_result_invalid",
+                            {},
+                            connection=conn,
+                        )
+                        remote.apply_failure(failed, "agent_result_invalid", connection=conn)
+                    else:
+                        completed = jobs.succeed_job(job.job_id, lease_id, result, connection=conn)
+                        remote.apply_success(completed, result, connection=conn)
+                elif job.resource_kind == "vm":
+                    from hydrahive.vms import remote as vm_remote
+
+                    if not vm_remote.success_result_is_valid(job, result):
+                        failed = jobs.fail_job(
+                            job.job_id,
+                            lease_id,
+                            "agent_result_invalid",
+                            {},
+                            connection=conn,
+                        )
+                        vm_remote.apply_failure(failed, "agent_result_invalid", connection=conn)
+                    else:
+                        completed = jobs.succeed_job(job.job_id, lease_id, result, connection=conn)
+                        vm_remote.apply_success(completed, result, connection=conn)
+                else:
+                    jobs.succeed_job(job.job_id, lease_id, result, connection=conn)
         else:
             if set(payload) != {"job_id", "lease_id", "error_code", "error_params"}:
                 raise JobProtocolError("job failure payload is invalid")
             error_code = payload["error_code"]
             if not isinstance(error_code, str):
                 raise JobProtocolError("job error code is invalid")
-            jobs.fail_job(job.job_id, lease_id, error_code, _object(payload, "error_params"))
+            with db(immediate=True) as conn:
+                failed = jobs.fail_job(
+                    job.job_id,
+                    lease_id,
+                    error_code,
+                    _object(payload, "error_params"),
+                    connection=conn,
+                )
+                if failed.resource_kind == "container":
+                    from hydrahive.containers import remote
+
+                    remote.apply_failure(failed, error_code, connection=conn)
+                elif failed.resource_kind == "vm":
+                    from hydrahive.vms import remote as vm_remote
+
+                    vm_remote.apply_failure(failed, error_code, connection=conn)
     except JobProtocolError:
         raise
     except jobs.JobConflict:

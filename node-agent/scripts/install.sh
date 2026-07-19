@@ -14,6 +14,11 @@ fi
 if ! id hydrahive-node >/dev/null 2>&1; then
     useradd --system --gid hydrahive-node --home-dir /var/lib/hydrahive-node --shell /usr/sbin/nologin hydrahive-node
 fi
+if ! getent group incus-admin >/dev/null 2>&1; then
+    echo "incus-admin group is missing; install and initialize Incus first" >&2
+    exit 1
+fi
+usermod -a -G incus-admin hydrahive-node
 install -d -m 0700 -o hydrahive-node -g hydrahive-node /var/lib/hydrahive-node
 python3 -m pip install --disable-pip-version-check "$SCRIPT_DIR"
 install -m 0644 "$SCRIPT_DIR/systemd/hydrahive-node.service" /etc/systemd/system/hydrahive-node.service
