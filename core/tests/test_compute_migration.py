@@ -52,6 +52,8 @@ def test_migration_creates_compute_schema_and_local_node_once(tmp_path: Path) ->
                 "resources_json",
                 "labels_json",
                 "last_seen_at",
+                "last_sequence",
+                "health_errors_json",
                 "approved_at",
                 "approved_by",
                 "revoked_at",

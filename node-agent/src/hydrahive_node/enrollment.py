@@ -144,5 +144,6 @@ def enroll(
         private_key_pem=private_key_pem,
         certificate_pem=data["certificate_pem"].encode("ascii"),
         ca_certificate_pem=data["ca_certificate_pem"].encode("ascii"),
+        server_ca_certificate_pem=ca_file.read_bytes() if ca_file else None,
     )
     return identity

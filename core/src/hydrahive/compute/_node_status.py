@@ -34,7 +34,7 @@ def approve_node(node_id: str, approved_by: str) -> ComputeNode | None:
             raise ValueError("node requires a certificate fingerprint before approval")
         conn.execute(
             """UPDATE compute_nodes
-               SET status = 'online', approved_at = ?, approved_by = ?, updated_at = ?
+               SET status = 'offline', approved_at = ?, approved_by = ?, updated_at = ?
                WHERE node_id = ? AND status = 'pending'""",
             (timestamp, approved_by, timestamp, node_id),
         )

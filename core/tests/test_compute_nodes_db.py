@@ -79,6 +79,8 @@ def test_node_registry_updates_fields_and_validates_status_transitions(compute_d
     assert approved is not None
     assert approved.approved_at is not None
     assert approved.approved_by == "admin"
+    assert approved.status == "offline"
+    node_db.transition_node_status("node-a", "online")
     updated = node_db.update_node(
         "node-a",
         name="Compute Alpha",

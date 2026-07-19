@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import secrets
@@ -38,6 +39,14 @@ class StatePaths:
     def ca_certificate(self) -> Path:
         return self.directory / "ca-cert.pem"
 
+    @property
+    def server_ca_certificate(self) -> Path:
+        return self.directory / "server-ca.pem"
+
+    @property
+    def protocol_state(self) -> Path:
+        return self.directory / "protocol-state.json"
+
 
 def _atomic_write(path: Path, content: bytes, mode: int) -> None:
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
@@ -65,12 +74,15 @@ def save_identity(
     private_key_pem: bytes,
     certificate_pem: bytes,
     ca_certificate_pem: bytes,
+    server_ca_certificate_pem: bytes | None = None,
 ) -> None:
     paths.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(paths.directory, 0o700)
     _atomic_write(paths.private_key, private_key_pem, 0o600)
     _atomic_write(paths.certificate, certificate_pem, 0o644)
     _atomic_write(paths.ca_certificate, ca_certificate_pem, 0o644)
+    if server_ca_certificate_pem is not None:
+        _atomic_write(paths.server_ca_certificate, server_ca_certificate_pem, 0o644)
     identity_json = json.dumps(asdict(identity), ensure_ascii=False, sort_keys=True, indent=2).encode("utf-8")
     _atomic_write(paths.identity, identity_json, 0o600)
 
@@ -89,3 +101,27 @@ def load_identity(paths: StatePaths) -> AgentIdentity:
     if not identity.server_url.startswith("https://"):
         raise RuntimeError("node server URL must use HTTPS")
     return identity
+
+
+def next_sequence(paths: StatePaths) -> int:
+    lock_path = paths.directory / ".protocol-state.lock"
+    descriptor = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        try:
+            data = json.loads(paths.protocol_state.read_text(encoding="utf-8"))
+            current = int(data["sequence"])
+        except FileNotFoundError:
+            current = 0
+        except (OSError, ValueError, TypeError, KeyError) as exc:
+            raise RuntimeError("node protocol state is invalid") from exc
+        sequence = current + 1
+        _atomic_write(
+            paths.protocol_state,
+            json.dumps({"sequence": sequence}, separators=(",", ":")).encode("ascii"),
+            0o600,
+        )
+        return sequence
+    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)

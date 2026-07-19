@@ -72,7 +72,7 @@ def test_full_node_enrollment_approval_disable_enable_and_revoke(client, admin_h
         json={"certificate_fingerprint": fingerprint},
     )
     assert approved.status_code == 200
-    assert approved.json()["status"] == "online"
+    assert approved.json()["status"] == "offline"
 
     disabled = client.post(f"/api/compute/nodes/{node_id}/disable", headers=admin_headers)
     assert disabled.status_code == 200

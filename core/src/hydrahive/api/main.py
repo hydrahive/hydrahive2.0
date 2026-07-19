@@ -26,6 +26,7 @@ from hydrahive.api.routes.communication_discord import router as communication_d
 from hydrahive.api.routes.container_console import router as container_console_router
 from hydrahive.api.routes.containers import router as containers_router
 from hydrahive.api.routes.compute_agent import router as compute_agent_router
+from hydrahive.api.routes.compute_channel import router as compute_channel_router
 from hydrahive.api.routes.compute_nodes import router as compute_nodes_router
 from hydrahive.api.routes.credentials import router as credentials_router
 from hydrahive.api.routes.research_apis import router as research_apis_router
@@ -150,6 +151,7 @@ app.include_router(tts_router)
 app.include_router(vms_router)
 app.include_router(containers_router)
 app.include_router(compute_agent_router)
+app.include_router(compute_channel_router)
 app.include_router(compute_nodes_router)
 app.include_router(credentials_router)
 app.include_router(research_apis_router)

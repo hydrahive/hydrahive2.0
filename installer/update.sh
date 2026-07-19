@@ -473,6 +473,8 @@ if [ -f "$SERVICE_FILE" ]; then
   # sie via Group-Membership ändern kann (Workspace-Schreibzugriff über Samba).
   grep -q "^UMask=0002" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "^EnvironmentFile=" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -Fq "EnvironmentFile=$HH_CONFIG_DIR/compute-proxy.env" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q -- "--ws-max-size 65536" "$SERVICE_FILE" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "Service-File braucht Update — neu schreiben"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
@@ -486,7 +488,8 @@ log "nginx-Config prüfen"
 NGINX_CONF=/etc/nginx/sites-available/hydrahive2
 if ! command -v nginx >/dev/null 2>&1 || [ ! -f "$NGINX_CONF" ]; then
   log "nginx fehlt oder nicht konfiguriert — starte 60-nginx.sh"
-  HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
+  HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+    HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
     HH_REPO_DIR="$HH_REPO_DIR" \
     bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || log "nginx-setup failed — weiter"
 else
@@ -502,11 +505,15 @@ else
   grep -q "assets.coingecko.com"         "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "resources.cryptocompare.com" "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "hh_cache_control"            "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "/api/compute/agent/connect"   "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "ssl_verify_client optional"   "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "hydrahive-compute-secret.conf" "$NGINX_CONF" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "nginx: Config braucht Update (HTTPS / VNC-Proxy / ISO-Upload-Limit) — neu schreiben"
     HH_HOST="${HH_HOST:-127.0.0.1}"
     HH_PORT="${HH_PORT:-8001}"
-    HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
+    HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+      HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="$HH_HOST" HH_PORT="$HH_PORT" \
       bash "$HH_REPO_DIR/installer/modules/60-nginx.sh" || log "nginx-rewrite failed — weiter"
   fi
 fi

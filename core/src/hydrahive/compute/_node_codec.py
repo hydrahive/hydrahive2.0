@@ -85,6 +85,13 @@ def load_json(value: str, field_name: str) -> JSONObject:
     return cast(JSONObject, decoded)
 
 
+def _load_health_errors(value: str) -> list[str]:
+    decoded = json.loads(value)
+    if not isinstance(decoded, list) or not all(isinstance(item, str) for item in decoded):
+        raise ValueError("stored health_errors must be a string list")
+    return decoded
+
+
 def row_to_node(row: sqlite3.Row) -> ComputeNode:
     return ComputeNode(
         node_id=row["node_id"],
@@ -97,10 +104,12 @@ def row_to_node(row: sqlite3.Row) -> ComputeNode:
         capabilities=load_json(row["capabilities_json"], "capabilities"),
         resources=load_json(row["resources_json"], "resources"),
         labels=load_json(row["labels_json"], "labels"),
+        health_errors=(_load_health_errors(row["health_errors_json"]) if "health_errors_json" in row.keys() else []),
         last_seen_at=row["last_seen_at"],
         approved_at=row["approved_at"],
         approved_by=row["approved_by"],
         revoked_at=row["revoked_at"],
         created_at=row["created_at"],
         updated_at=row["updated_at"],
+        last_sequence=row["last_sequence"] if "last_sequence" in row.keys() else 0,
     )

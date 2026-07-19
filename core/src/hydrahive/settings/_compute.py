@@ -19,3 +19,7 @@ class _ComputeMixin:
     @cached_property
     def compute_ca_cert_path(self) -> Path:
         return self.compute_pki_dir / "ca-cert.pem"
+
+    @cached_property
+    def compute_proxy_secret(self) -> str:
+        return os.environ.get("HH_COMPUTE_PROXY_SECRET", "").strip()

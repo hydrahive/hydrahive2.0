@@ -31,9 +31,11 @@ class ComputeNode:
     protocol_version: int
     created_at: str
     updated_at: str
+    last_sequence: int = 0
     capabilities: JSONObject = field(default_factory=dict)
     resources: JSONObject = field(default_factory=dict)
     labels: JSONObject = field(default_factory=dict)
+    health_errors: list[str] = field(default_factory=list)
     certificate_fingerprint: str | None = None
     agent_version: str | None = None
     last_seen_at: str | None = None
