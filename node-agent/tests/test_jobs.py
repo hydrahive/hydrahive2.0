@@ -14,7 +14,12 @@ from hydrahive_node import job_runtime, job_state, jobs
 from hydrahive_node.storage import StatePaths
 
 
-def _signed_offer(*, node_id: str = "node-one", operation: str = "container.start") -> tuple[dict, str]:
+def _signed_offer(
+    *,
+    node_id: str = "node-one",
+    operation: str = "container.start",
+    resource_id: str = "019f7be0-95fb-73d3-a87a-2290c85ea427",
+) -> tuple[dict, str]:
     key = Ed25519PrivateKey.generate()
     public = (
         base64.urlsafe_b64encode(
@@ -27,7 +32,7 @@ def _signed_offer(*, node_id: str = "node-one", operation: str = "container.star
         "job_id": "job-one",
         "node_id": node_id,
         "resource_kind": "container",
-        "resource_id": "demo",
+        "resource_id": resource_id,
         "operation": operation,
         "generation": 1,
         "payload": {"name": "demo"},
@@ -52,6 +57,10 @@ def test_verify_offer_rejects_tampering_wrong_node_and_expiry() -> None:
     with pytest.raises(jobs.JobValidationError, match="node"):
         jobs.verify_offer(fresh, public, "node-one")
 
+    empty_resource, public = _signed_offer(resource_id="")
+    with pytest.raises(jobs.JobValidationError, match="resource_id"):
+        jobs.verify_offer(empty_resource, public, "node-one")
+
 
 def test_dispatcher_persists_result_before_delivery_and_never_executes_twice(tmp_path) -> None:
     paths = StatePaths(tmp_path / "state")
@@ -75,10 +84,10 @@ def test_dispatcher_persists_result_before_delivery_and_never_executes_twice(tmp
     assert paths.job_results.stat().st_mode & 0o777 == 0o600
 
 
-def test_interrupted_in_progress_job_is_not_executed_again(tmp_path) -> None:
+def test_interrupted_restart_job_is_not_executed_again(tmp_path) -> None:
     paths = StatePaths(tmp_path / "state")
     paths.directory.mkdir(mode=0o700)
-    offer, public = _signed_offer()
+    offer, public = _signed_offer(operation="container.restart")
     verified = jobs.verify_offer(offer, public, "node-one")
     job_state.prepare_job_execution(paths, asdict(verified))
     job_state.mark_job_in_progress(paths, verified.idempotency_key)
@@ -93,6 +102,26 @@ def test_interrupted_in_progress_job_is_not_executed_again(tmp_path) -> None:
 
     assert calls == 0
     assert outcome["error_code"] == "operation_outcome_unknown"
+
+
+def test_interrupted_idempotent_job_is_reconciled_by_handler(tmp_path) -> None:
+    paths = StatePaths(tmp_path / "state")
+    paths.directory.mkdir(mode=0o700)
+    offer, public = _signed_offer(operation="container.start")
+    verified = jobs.verify_offer(offer, public, "node-one")
+    job_state.prepare_job_execution(paths, asdict(verified))
+    job_state.mark_job_in_progress(paths, verified.idempotency_key)
+    calls = 0
+
+    async def handler(job: jobs.VerifiedJob) -> dict[str, object]:
+        nonlocal calls
+        calls += 1
+        return {"actual_state": "running"}
+
+    outcome = asyncio.run(jobs.execute_offer(paths, verified, handler))
+
+    assert calls == 1
+    assert outcome["type"] == "job_succeeded"
 
 
 def test_delivered_job_state_is_bounded_and_pending_payload_is_removed(tmp_path, monkeypatch) -> None:
@@ -124,6 +153,28 @@ def test_resume_cleans_journal_if_delivery_marker_was_already_committed(tmp_path
         raise AssertionError("delivered job must not execute")
 
     asyncio.run(job_runtime._resume_executions(paths, unused_exchange, unused_handler))
+    assert job_state.load_job_executions(paths) == {}
+
+
+def test_resume_requires_valid_lease_before_reconciliation(tmp_path) -> None:
+    paths = StatePaths(tmp_path / "state")
+    paths.directory.mkdir(mode=0o700)
+    offer, public = _signed_offer(operation="container.start")
+    verified = jobs.verify_offer(offer, public, "node-one")
+    job_state.prepare_job_execution(paths, asdict(verified))
+    job_state.mark_job_in_progress(paths, verified.idempotency_key)
+    calls: list[str] = []
+
+    async def exchange(message_type: str, payload: dict[str, object]) -> dict:
+        calls.append(message_type)
+        return {"type": "job_rejected"}
+
+    async def handler(job: jobs.VerifiedJob) -> dict[str, object]:
+        raise AssertionError("expired lease must not mutate the runtime")
+
+    asyncio.run(job_runtime._resume_executions(paths, exchange, handler))
+
+    assert calls == ["job_renew"]
     assert job_state.load_job_executions(paths) == {}
 
 

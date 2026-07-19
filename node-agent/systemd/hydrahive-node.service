@@ -7,6 +7,8 @@ Wants=network-online.target
 Type=simple
 User=hydrahive-node
 Group=hydrahive-node
+SupplementaryGroups=incus-admin
+Environment=HOME=/var/lib/hydrahive-node
 ExecStart=/usr/local/bin/hydrahive-node run
 Restart=on-failure
 RestartSec=5s

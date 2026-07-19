@@ -99,6 +99,13 @@ async def _resume_executions(paths: StatePaths, exchange: Exchange, handler: Han
                 continue
             if started.get("type") != "ack":
                 raise RuntimeError("resumed job start was not acknowledged")
+        elif execution.get("state") == "in_progress":
+            renewed = await exchange("job_renew", {"job_id": job.job_id, "lease_id": job.lease_id})
+            if renewed.get("type") == "job_rejected":
+                mark_job_result_delivered(paths, idempotency_key)
+                continue
+            if renewed.get("type") != "ack":
+                raise RuntimeError("resumed job lease was not acknowledged")
         outcome = await _execute_with_renewal(paths, job, exchange, handler)
         await _deliver(exchange, outcome)
         mark_job_result_delivered(paths, idempotency_key)
