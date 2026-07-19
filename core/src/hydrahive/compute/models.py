@@ -14,6 +14,8 @@ JSONValue: TypeAlias = JSONScalar | list["JSONValue"] | dict[str, "JSONValue"]
 JSONObject: TypeAlias = dict[str, JSONValue]
 
 NODE_KINDS: frozenset[str] = frozenset({"local", "agent"})
+JOB_RESOURCE_KINDS: frozenset[str] = frozenset({"container", "vm", "node"})
+JOB_STATUSES: frozenset[str] = frozenset({"queued", "leased", "running", "succeeded", "failed", "cancelled", "expired"})
 NODE_STATUSES: frozenset[str] = frozenset(
     {"pending", "online", "degraded", "offline", "draining", "disabled", "revoked"}
 )
