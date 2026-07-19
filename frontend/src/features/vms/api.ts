@@ -6,6 +6,7 @@ export const vmsApi = {
   list: () => api.get<VM[]>("/vms"),
   get: (id: string) => api.get<VM>(`/vms/${id}`),
   create: (input: VMCreateInput) => api.post<VM>("/vms", input),
+  quickImages: () => api.get<string[]>("/vms/quick-images"),
   update: (id: string, patch: {
     name?: string
     description?: string | null

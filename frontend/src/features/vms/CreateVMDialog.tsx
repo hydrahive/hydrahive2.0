@@ -3,6 +3,9 @@ import { useEffect, useState } from "react"
 import type { CSSProperties } from "react"
 import { X } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { nodesApi } from "@/features/nodes/api"
+import { isPlaceableStatus } from "@/features/nodes/NodeStatusBadge"
+import type { ComputeNode } from "@/features/nodes/types"
 import type { DiskInterface, ImportJob, ISO, MachineType, NetworkDevice, NetworkMode, VMCreateInput } from "./types"
 import { vmsApi } from "./api"
 import { formatBytes } from "./format"
@@ -31,21 +34,45 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
   const [networkDevice, setNetworkDevice] = useState<NetworkDevice>("virtio-net-pci")
   const [isos, setIsos] = useState<ISO[]>([])
   const [imports, setImports] = useState<ImportJob[]>([])
+  const [nodes, setNodes] = useState<ComputeNode[]>([])
+  const [nodeId, setNodeId] = useState("local")
+  const [image, setImage] = useState("images:debian/12")
+  const [quickImages, setQuickImages] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     vmsApi.isos().then(setIsos).catch(() => setIsos([]))
     vmsApi.importJobs().then((j) => setImports(j.filter((x) => x.status === "done"))).catch(() => setImports([]))
+    nodesApi.list().then(setNodes).catch(() => setNodes([]))
+    vmsApi.quickImages().then(setQuickImages).catch(() => setQuickImages([]))
   }, [])
 
+  const isRemote = nodeId !== "local"
   const validName = /^[a-zA-Z][a-zA-Z0-9-]{0,31}$/.test(name)
+  // Only VM-capable (incus + kvm) online agent nodes can host image VMs.
+  const vmNodes = nodes.filter((n) => n.node_id !== "local"
+    && isPlaceableStatus(n.status)
+    && Boolean((n.capabilities as Record<string, unknown>).incus)
+    && Boolean((n.capabilities as Record<string, unknown>).kvm))
 
   async function submit() {
     if (!validName) { setError(t("create.error_name_invalid")); return }
-    if (bootSrc === "import" && !importJobId) { setError(t("create.field_import_job")); return }
+    if (isRemote && !image.trim()) { setError(t("create.field_image")); return }
+    if (!isRemote && bootSrc === "import" && !importJobId) { setError(t("create.field_import_job")); return }
     setBusy(true); setError(null)
     try {
+      if (isRemote) {
+        await vmsApi.create({
+          name, description: description.trim() || null,
+          cpu, ram_mb: ramMb, disk_gb: diskGb,
+          network_mode: network,
+          node_id: nodeId,
+          image: image.trim(),
+        })
+        onCreated(); onClose()
+        return
+      }
       const input: VMCreateInput & { import_job_id?: string } = {
         name, description: description.trim() || null,
         cpu, ram_mb: ramMb, disk_gb: diskGb,
@@ -80,6 +107,28 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
             <input value={description} onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none" />
           </Field>
+          {vmNodes.length > 0 && (
+            <Field label={t("create.field_node")} hint={t("create.node_hint")}>
+              <select value={nodeId} onChange={(e) => setNodeId(e.target.value)}
+                className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-violet-500/50 outline-none">
+                <option value="local">{t("create.node_local")}</option>
+                {vmNodes.map((n) => <option key={n.node_id} value={n.node_id}>{n.name}</option>)}
+              </select>
+            </Field>
+          )}
+          {isRemote && (
+            <>
+              <Field label={t("create.field_image")} hint={t("create.image_hint")}>
+                <select value={image} onChange={(e) => setImage(e.target.value)}
+                  className="w-full bg-zinc-950 border border-white/[10%] rounded-lg px-3 py-2 text-sm text-zinc-200 font-mono focus:border-violet-500/50 outline-none">
+                  {(quickImages.length > 0 ? quickImages : [image]).map((img) => <option key={img} value={img}>{img}</option>)}
+                </select>
+              </Field>
+              <div className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2">{t("create.remote_note")}</div>
+            </>
+          )}
+          {!isRemote && (
+          <>
           <Field label={t("create.field_boot_src")}>
             <div className="grid grid-cols-3 gap-2">
               <RadioCard active={bootSrc === "iso"} onClick={() => setBootSrc("iso")}
@@ -115,6 +164,8 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
               {imports.length === 0 && <p className="text-[11px] text-zinc-500 mt-1">{t("imports.empty")}</p>}
             </Field>
           )}
+          </>
+          )}
           <div className="grid grid-cols-3 gap-3">
             <Slider label="vCPU" value={cpu} min={1} max={16} step={1} onChange={setCpu} suffix={`${cpu}`} />
             <Slider label="RAM" value={ramMb} min={512} max={32768} step={512} onChange={setRamMb} suffix={`${(ramMb / 1024).toFixed(1)} GB`} />
@@ -130,6 +181,8 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
                 title={t("create.net_isolated_title")} desc={t("create.net_isolated_desc")} />
             </div>
           </Field>
+          {!isRemote && (
+          <>
           <Field
             label={t("create.field_disk_interface")}
             hint={bootSrc === "import" ? t("create.disk_hint_import") : t("create.disk_hint_iso")}>
@@ -162,6 +215,8 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
                 title="e1000" desc={t("create.netdev_e1000_desc")} />
             </div>
           </Field>
+          </>
+          )}
           {error && <div className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">{error}</div>}
         </div>
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-white/[6%]">

@@ -26,6 +26,11 @@ export interface VM {
   vnc_token: string | null
   last_error_code: string | null
   last_error_params: Record<string, unknown> | null
+  node_id: string
+  generation: number
+  runtime: "qemu" | "incus"
+  runtime_ref: string | null
+  image: string | null
   created_at: string
   updated_at: string
 }
@@ -88,4 +93,6 @@ export interface VMCreateInput {
   disk_interface?: DiskInterface
   machine_type?: MachineType
   network_device?: NetworkDevice
+  node_id?: string
+  image?: string | null
 }
