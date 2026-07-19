@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hydrahive.compute import channel, channel_monitor
+from hydrahive.compute import channel, channel_monitor, jobs
 from hydrahive.compute import db as node_db
 from hydrahive.db.connection import db, init_db
 from hydrahive.settings import settings
@@ -145,8 +145,9 @@ def test_capabilities_and_heartbeats_update_node_health(connected_node: str) -> 
     assert "node.degraded" in actions
 
 
-def test_websocket_channel_requires_bound_identity_and_acknowledges(client, monkeypatch) -> None:
+def test_websocket_channel_requires_bound_identity_and_offers_jobs(client, monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(settings, "compute_proxy_secret", "proxy-secret", raising=False)
+    monkeypatch.setattr(settings, "compute_pki_dir", tmp_path / "compute-pki", raising=False)
     monkeypatch.setattr(channel, "proxy_certificate_fingerprint", lambda certificate: "cd" * 32)
     node = node_db.create_node(
         node_id="node-websocket",
@@ -154,14 +155,40 @@ def test_websocket_channel_requires_bound_identity_and_acknowledges(client, monk
         certificate_fingerprint="cd" * 32,
     )
     node_db.approve_node(node.node_id, "admin-id")
+    node_db.transition_node_status(node.node_id, "online")
+    created = jobs.create_job(
+        node_id=node.node_id,
+        resource_kind="container",
+        resource_id="demo",
+        operation="container.start",
+        generation=1,
+        payload={"name": "demo"},
+        idempotency_key="websocket-demo-start",
+        created_by="admin-id",
+    )
     headers = {
         "x-hydrahive-node-id": node.node_id,
         "x-hydrahive-client-cert": "valid-cert",
         "x-hydrahive-proxy-secret": "proxy-secret",
     }
     with client.websocket_connect("/api/compute/agent/connect", headers=headers) as websocket:
-        websocket.send_text(_raw(node.node_id, sequence=1, nonce="nonce-websocket01"))
-        assert websocket.receive_json()["sequence"] == 1
+        websocket.send_text(
+            _raw(
+                node.node_id,
+                sequence=1,
+                nonce="nonce-websocket01",
+                kind="hello",
+                payload={"agent_version": "0.1.0"},
+            )
+        )
+        hello = websocket.receive_json()
+        assert hello["sequence"] == 1
+        assert hello["job_signing_public_key"]
+
+        websocket.send_text(_raw(node.node_id, sequence=2, nonce="nonce-websocket02", kind="job_poll", payload={}))
+        offer = websocket.receive_json()
+        assert offer["type"] == "job_offer"
+        assert offer["job"]["job_id"] == created.job_id
 
 
 def test_dead_detection_marks_degraded_then_offline(connected_node: str) -> None:

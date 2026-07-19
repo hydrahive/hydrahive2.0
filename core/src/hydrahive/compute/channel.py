@@ -6,51 +6,17 @@ import hmac
 import json
 import sqlite3
 from datetime import UTC, datetime, timedelta
-from typing import Literal
 from urllib.parse import unquote
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
-
-from hydrahive.compute import audit, identity
+from hydrahive.compute import audit, identity, job_protocol
 from hydrahive.compute._node_codec import dump_json, normalize_certificate_fingerprint
+from hydrahive.compute.channel_message import AgentMessage, ProtocolError, parse_message
 from hydrahive.db._utils import now_iso
 from hydrahive.db.connection import db
 from hydrahive.settings import settings
 
-MAX_CLOCK_SKEW_SECONDS = 120
 NONCE_TTL_MINUTES = 10
 CONNECTED_STATUSES = {"online", "degraded", "offline", "draining"}
-
-
-class ProtocolError(ValueError):
-    def __init__(self, code: str) -> None:
-        self.code = code
-        super().__init__(code)
-
-
-class AgentMessage(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    type: Literal["hello", "heartbeat", "capabilities"]
-    protocol_version: Literal[1]
-    node_id: str = Field(min_length=1, max_length=128)
-    sequence: int = Field(ge=1, le=9_223_372_036_854_775_807)
-    nonce: str = Field(min_length=16, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
-    sent_at: datetime
-    payload: dict[str, object] = Field(default_factory=dict)
-
-
-def parse_message(raw: str) -> AgentMessage:
-    try:
-        message = AgentMessage.model_validate_json(raw)
-    except ValidationError as exc:
-        raise ProtocolError("agent_message_invalid") from exc
-    sent_at = message.sent_at
-    if sent_at.tzinfo is None:
-        raise ProtocolError("agent_timestamp_invalid")
-    if abs((datetime.now(UTC) - sent_at.astimezone(UTC)).total_seconds()) > MAX_CLOCK_SKEW_SECONDS:
-        raise ProtocolError("agent_timestamp_invalid")
-    return message
 
 
 def proxy_certificate_fingerprint(escaped_certificate: str) -> str:
@@ -145,7 +111,7 @@ def accept_message(authenticated_node_id: str, message: AgentMessage) -> dict:
                 raise ProtocolError("agent_payload_invalid")
             updates.extend(("capabilities_json = ?", "resources_json = ?"))
             values.extend((_json_object(capabilities, "capabilities"), _json_object(resources, "resources")))
-        else:
+        elif message.type == "heartbeat":
             capabilities = message.payload.get("capabilities")
             resources = message.payload.get("resources")
             if not isinstance(capabilities, dict) or not isinstance(resources, dict):
@@ -182,3 +148,19 @@ def accept_message(authenticated_node_id: str, message: AgentMessage) -> dict:
             values,
         )
     return {"type": "ack", "sequence": message.sequence, "accepted_at": now}
+
+
+def response_for_message(authenticated_node_id: str, message: AgentMessage) -> dict:
+    acknowledgement = accept_message(authenticated_node_id, message)
+    if message.type in job_protocol.JOB_MESSAGE_TYPES:
+        try:
+            response = job_protocol.handle_message(authenticated_node_id, message.type, message.payload)
+        except job_protocol.JobProtocolError as exc:
+            raise ProtocolError("agent_job_invalid") from exc
+        response["sequence"] = message.sequence
+        return response
+    if message.type == "hello":
+        from hydrahive.compute import job_signing
+
+        acknowledgement["job_signing_public_key"] = job_signing.public_key_text()
+    return acknowledgement

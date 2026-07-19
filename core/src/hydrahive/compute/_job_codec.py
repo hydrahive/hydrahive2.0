@@ -29,7 +29,7 @@ class JobNotFound(ValueError):
 
 def validate_text(value: str, field: str, *, maximum: int = MAX_JOB_TEXT) -> str:
     value = value.strip()
-    if not value or len(value) > maximum:
+    if not value or len(value) > maximum or any(not character.isprintable() for character in value):
         raise ValueError(f"{field} must contain 1-{maximum} characters")
     return value
 
