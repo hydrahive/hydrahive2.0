@@ -26,7 +26,9 @@ sudo sh scripts/setup.sh
 
 Das Skript nimmt dich an die Hand und fragt der Reihe nach:
 
-1. **Prüft**, ob Incus (und optional KVM für VMs) vorhanden ist.
+1. **Richtet Incus ein** — installiert und initialisiert es automatisch (nach
+   Rückfrage), falls noch nicht vorhanden, und legt die Netzwerk-Bridge `br0` an.
+   Du musst vorher nichts vorbereiten.
 2. **Installiert** den Node-Agent.
 3. **Fragt** nach der Server-Adresse, einem Namen für den Node und dem
    **Kopplungs-Code**. Den Code holst du im Browser aus dem Cockpit:
@@ -56,12 +58,16 @@ einmalige Server-Einrichtung für Admins.
 
 ## Voraussetzungen am Node
 
-- **Ubuntu** (LTS empfohlen) mit sudo-Zugriff.
-- **Incus** installiert und initialisiert (`incus admin init`), Bridge **`br0`**.
-  Das Setup-Skript prüft das und sagt dir, falls etwas fehlt.
+- **Ubuntu** (LTS empfohlen) mit sudo-Zugriff und Internetverbindung.
+- Python ≥ 3.12 (auf aktuellem Ubuntu vorinstalliert).
 - Für **virtuelle Maschinen** zusätzlich **KVM** (`/dev/kvm`). Fehlt es, läuft der
   Node trotzdem — dann eben nur mit Containern.
-- Python ≥ 3.12 (auf aktuellem Ubuntu vorinstalliert).
+
+**Incus musst du nicht vorbereiten.** Das Setup-Skript installiert und
+initialisiert Incus bei Bedarf automatisch (nach Rückfrage) und legt die benötigte
+Netzwerk-Bridge **`br0`** an. Diese Bridge nutzt NAT und **verändert deine
+SSH-Verbindung nicht**. Wer Container/VMs mit echten IP-Adressen aus dem Heimnetz
+will, richtet stattdessen manuell LAN-Bridging ein (siehe unten).
 
 ---
 
@@ -81,17 +87,41 @@ rsync -a node-agent/ root@<node-host>:/opt/hydrahive-node-agent/
 
 ## Was macht das Setup-Skript technisch?
 
-`scripts/setup.sh` ruft intern `scripts/install.sh` auf. Das:
-- legt den gesperrten System-Benutzer `hydrahive-node` an und hängt ihn in die
-  Gruppe `incus-admin`,
-- erstellt `/var/lib/hydrahive-node/` (`0700`) für Identität und Zustand,
-- installiert das Paket (CLI `hydrahive-node`),
-- installiert die gehärtete systemd-Unit und aktiviert sie.
+`scripts/setup.sh` prüft und richtet der Reihe nach ein:
+- **Incus:** installiert es bei Bedarf (`apt-get install incus`) und initialisiert
+  es (`incus admin init --auto`, Standard-Storage, keine LAN-Änderung),
+- **Bridge `br0`:** legt sie bei Bedarf als von Incus verwaltete NAT-Bridge an
+  (`incus network create br0`),
+- ruft dann `scripts/install.sh` auf. Das legt den gesperrten System-Benutzer
+  `hydrahive-node` an, hängt ihn in die Gruppe `incus-admin`, erstellt
+  `/var/lib/hydrahive-node/` (`0700`), installiert das Paket (CLI
+  `hydrahive-node`) und die gehärtete systemd-Unit.
+
+Jeder Änderungsschritt fragt vorher nach — nichts wird ungefragt installiert.
 
 Die Kopplung selbst läuft über `hydrahive-node enroll`. Der Agent erzeugt lokal
 ein Schlüsselpaar, sendet einen Zertifikatsantrag (CSR) und zeigt einen
 Fingerprint, den du im Cockpit bestätigst. Erst nach der Freigabe nimmt der Node
 Arbeit an.
+
+---
+
+## Optional: echtes LAN-Bridging (fortgeschritten)
+
+Die vom Skript angelegte `br0` nutzt **NAT**: Container/VMs haben ein eigenes
+Subnetz und kommen nach außen, sind aber nicht direkt aus deinem Heimnetz
+erreichbar. Für die meisten Dienste reicht das.
+
+Wenn Container/VMs **echte IP-Adressen aus deinem LAN** (per DHCP vom Router)
+bekommen sollen, brauchst du eine echte Bridge über dein physisches Netzwerk-
+Interface. **Achtung:** Das kann über SSH die Verbindung kurz unterbrechen —
+mach es nur mit lokalem Zugang oder einer zweiten Zugangsmöglichkeit.
+
+Kurz gefasst: Statt der NAT-`br0` legst du mit netplan eine System-Bridge `br0`
+an, die dein Interface (z. B. `enp3s0`) einschließt, und lässt Incus diese Bridge
+nur nutzen (`incus network` wird dann nicht gebraucht — der Agent hängt Container
+per `parent=br0` an die System-Bridge). Details richten sich nach deiner
+netplan-Konfiguration; das ist ein bewusster, manueller Admin-Schritt.
 
 ---
 

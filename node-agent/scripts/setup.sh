@@ -37,27 +37,75 @@ say ""
 # --- 0. als root? -----------------------------------------------------------
 [ "$(id -u)" -eq 0 ] || die "Bitte mit sudo starten:  sudo sh scripts/setup.sh"
 
-# --- 1. Voraussetzungen prüfen ---------------------------------------------
+confirm() { # confirm "Frage" -> 0 wenn ja
+    printf '%s%s [J/n]%s ' "$C" "$1" "$N"
+    IFS= read -r _yn || return 1
+    case "${_yn:-j}" in j*|J*|y*|Y*|"") return 0 ;; *) return 1 ;; esac
+}
+
+# --- 1. Voraussetzungen prüfen und ggf. einrichten -------------------------
 step "Schritt 1/5: Voraussetzungen prüfen"
 
 command -v python3 >/dev/null 2>&1 || die "Python 3 fehlt. Installiere es mit:  apt install python3 python3-pip"
 ok "Python 3 vorhanden"
 
+# Incus installieren, falls es fehlt
 if command -v incus >/dev/null 2>&1; then
     ok "Incus ist installiert"
 else
-    die "Incus fehlt. Installiere und richte es zuerst ein:
-       apt install incus
-       incus admin init      (Fragen mit Enter bestätigen, Bridge br0 erstellen lassen)
-     Danach dieses Skript erneut starten."
+    warn "Incus ist nicht installiert."
+    if command -v apt-get >/dev/null 2>&1; then
+        if confirm "Soll ich Incus jetzt automatisch installieren?"; then
+            say "  Installiere Incus (das kann ein bis zwei Minuten dauern)…"
+            apt-get update -qq || die "apt-get update fehlgeschlagen. Internetverbindung prüfen."
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -qq incus \
+                || die "Incus-Installation fehlgeschlagen. Prüfe: apt-get install incus"
+            command -v incus >/dev/null 2>&1 || die "Incus ist nach der Installation nicht auffindbar."
+            ok "Incus installiert"
+        else
+            die "Ohne Incus geht es nicht. Installiere es mit:  apt install incus"
+        fi
+    else
+        die "Kein apt-get gefunden. Bitte Incus manuell installieren, dann erneut starten."
+    fi
 fi
 
-if getent group incus-admin >/dev/null 2>&1; then
-    ok "Incus ist einsatzbereit (Gruppe incus-admin vorhanden)"
+# Incus initialisieren, falls noch nie geschehen (Gruppe incus-admin fehlt sonst)
+if ! getent group incus-admin >/dev/null 2>&1; then
+    warn "Incus wurde noch nie initialisiert."
+    if confirm "Soll ich Incus jetzt mit Standardeinstellungen initialisieren?"; then
+        say "  Initialisiere Incus (Standard-Storage, keine LAN-Änderung)…"
+        incus admin init --auto \
+            || die "incus admin init fehlgeschlagen. Manuell versuchen:  incus admin init"
+        getent group incus-admin >/dev/null 2>&1 \
+            || die "Gruppe incus-admin fehlt weiterhin. Bitte 'incus admin init' manuell ausführen."
+        ok "Incus initialisiert"
+    else
+        die "Incus muss initialisiert werden. Führe aus:  incus admin init"
+    fi
 else
-    die "Incus ist noch nicht fertig eingerichtet. Führe aus:  incus admin init"
+    ok "Incus ist einsatzbereit"
 fi
 
+# Bridge br0 sicherstellen (der Agent hängt Container/VMs an 'br0')
+if incus network show br0 >/dev/null 2>&1; then
+    ok "Netzwerk-Bridge 'br0' vorhanden"
+else
+    warn "Die vom Agent benötigte Bridge 'br0' fehlt."
+    say "  Ich lege eine von Incus verwaltete Bridge 'br0' mit eigenem Subnetz an."
+    say "  ${Y}Das verändert deine SSH-Verbindung NICHT${N} — die Bridge nutzt NAT."
+    say "  (Für echtes LAN-Bridging, damit Container IPs aus deinem Heimnetz bekommen,"
+    say "   siehe README — das ist ein bewusster manueller Schritt.)"
+    if confirm "Soll ich die Bridge 'br0' (NAT) jetzt anlegen?"; then
+        incus network create br0 \
+            || die "Konnte Bridge 'br0' nicht anlegen. Prüfe:  incus network create br0"
+        ok "Bridge 'br0' angelegt (NAT-Modus)"
+    else
+        die "Ohne Bridge 'br0' können keine Workloads starten. Lege sie an mit:  incus network create br0"
+    fi
+fi
+
+# KVM (optional, nur für VMs)
 if [ -e /dev/kvm ]; then
     ok "KVM vorhanden — dieser Node kann auch virtuelle Maschinen betreiben"
 else
