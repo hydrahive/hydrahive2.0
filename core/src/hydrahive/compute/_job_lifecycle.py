@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import UTC, datetime, timedelta
 
 from hydrahive.compute._job_codec import (
     JobConflict,
@@ -59,6 +60,19 @@ def start_job(job_id: str, lease_id: str) -> ComputeJob:
             data={},
             actor=f"node:{row['node_id']}",
         )
+        return _updated(conn, job_id)
+
+
+def renew_job_lease(job_id: str, lease_id: str, *, lease_seconds: int = 300) -> ComputeJob:
+    if not 10 <= lease_seconds <= 300:
+        raise ValueError("lease_seconds must be between 10 and 300")
+    lease_until = (datetime.now(UTC) + timedelta(seconds=lease_seconds)).isoformat().replace("+00:00", "Z")
+    with db(immediate=True) as conn:
+        row = _load(conn, job_id)
+        if row["status"] != "running":
+            raise JobConflict("compute job is not running")
+        _lease(row, lease_id)
+        conn.execute("UPDATE compute_jobs SET lease_until = ? WHERE job_id = ?", (lease_until, job_id))
         return _updated(conn, job_id)
 
 

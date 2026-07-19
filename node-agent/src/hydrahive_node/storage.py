@@ -59,6 +59,10 @@ class StatePaths:
     def delivered_jobs(self) -> Path:
         return self.directory / "delivered-jobs.json"
 
+    @property
+    def job_executions(self) -> Path:
+        return self.directory / "job-executions.json"
+
 
 def _atomic_write(path: Path, content: bytes, mode: int) -> None:
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")

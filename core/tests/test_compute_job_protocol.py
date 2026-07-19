@@ -77,6 +77,17 @@ def test_job_events_require_matching_node_job_and_lease(protocol_node: str) -> N
         {"job_id": created.job_id, "lease_id": lease_id, "result": {"state": "running"}},
     )
     assert jobs.get_job(created.job_id).status == "succeeded"
+    rejected = job_protocol.handle_message(
+        protocol_node,
+        "job_failed",
+        {
+            "job_id": created.job_id,
+            "lease_id": "stale-lease",
+            "error_code": "late",
+            "error_params": {},
+        },
+    )
+    assert rejected == {"type": "job_rejected", "reason": "state_conflict"}
 
 
 def test_job_poll_without_work_is_explicit(protocol_node: str) -> None:

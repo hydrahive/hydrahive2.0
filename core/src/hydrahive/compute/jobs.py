@@ -161,6 +161,7 @@ from hydrahive.compute._job_leases import claim_next_job, expire_leases  # noqa:
 from hydrahive.compute._job_lifecycle import (  # noqa: E402
     cancel_job,
     fail_job,
+    renew_job_lease,
     report_progress,
     start_job,
     succeed_job,
@@ -177,6 +178,7 @@ __all__ = [
     "get_job",
     "list_events",
     "list_jobs",
+    "renew_job_lease",
     "report_progress",
     "start_job",
     "succeed_job",

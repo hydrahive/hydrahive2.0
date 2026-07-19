@@ -12,7 +12,6 @@ from datetime import UTC, datetime
 import websockets
 
 from hydrahive_node import __version__
-from hydrahive_node import job_runtime
 from hydrahive_node.capabilities import collect
 from hydrahive_node.job_state import save_job_signing_public_key
 from hydrahive_node.storage import AgentIdentity, StatePaths, next_sequence
@@ -118,9 +117,9 @@ async def _run_session(paths: StatePaths, identity: AgentIdentity) -> None:
         )
         if response.get("type") != "ack":
             raise RuntimeError("capabilities were not acknowledged")
-        async with asyncio.TaskGroup() as tasks:
-            tasks.create_task(_heartbeat_loop(exchange))
-            tasks.create_task(job_runtime.run_loop(paths, identity, exchange))
+        # Job polling is enabled by the P4 runtime only after concrete, allowlisted
+        # operation handlers have been installed.
+        await _heartbeat_loop(exchange)
 
 
 async def run(paths: StatePaths, identity: AgentIdentity) -> None:

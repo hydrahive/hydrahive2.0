@@ -25,6 +25,7 @@ class AgentMessage(BaseModel):
         "capabilities",
         "job_poll",
         "job_started",
+        "job_renew",
         "job_progress",
         "job_succeeded",
         "job_failed",

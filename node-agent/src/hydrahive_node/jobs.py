@@ -11,7 +11,12 @@ from datetime import UTC, datetime
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-from hydrahive_node.job_state import load_job_results, save_job_result
+from hydrahive_node.job_state import (
+    load_job_executions,
+    load_job_results,
+    mark_job_in_progress,
+    save_job_result,
+)
 from hydrahive_node.storage import StatePaths
 
 MAX_JOB_BYTES = 64 * 1024
@@ -130,11 +135,25 @@ async def execute_offer(
     existing = load_job_results(paths).get(job.idempotency_key)
     if existing is not None:
         return existing
+    execution = load_job_executions(paths).get(job.idempotency_key)
+    if execution is None:
+        raise RuntimeError("job execution was not durably prepared")
+    if execution.get("state") == "in_progress":
+        outcome: dict[str, object] = {
+            "type": "job_failed",
+            "job_id": job.job_id,
+            "lease_id": job.lease_id,
+            "error_code": "operation_outcome_unknown",
+            "error_params": {},
+        }
+        save_job_result(paths, job.idempotency_key, outcome)
+        return outcome
+    mark_job_in_progress(paths, job.idempotency_key)
     try:
         result = await handler(job)
         if not isinstance(result, dict):
             raise TypeError("handler result must be an object")
-        outcome: dict[str, object] = {
+        outcome = {
             "type": "job_succeeded",
             "job_id": job.job_id,
             "lease_id": job.lease_id,

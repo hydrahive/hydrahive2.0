@@ -5,7 +5,7 @@ from __future__ import annotations
 from hydrahive.compute import job_signing, jobs
 from hydrahive.compute.models import ComputeJob, JSONObject
 
-JOB_MESSAGE_TYPES = frozenset({"job_poll", "job_started", "job_progress", "job_succeeded", "job_failed"})
+JOB_MESSAGE_TYPES = frozenset({"job_poll", "job_started", "job_renew", "job_progress", "job_succeeded", "job_failed"})
 
 
 class JobProtocolError(ValueError):
@@ -61,6 +61,10 @@ def handle_message(node_id: str, message_type: str, payload: dict[str, object]) 
             if set(payload) != {"job_id", "lease_id"}:
                 raise JobProtocolError("job started payload is invalid")
             jobs.start_job(job.job_id, lease_id)
+        elif message_type == "job_renew":
+            if set(payload) != {"job_id", "lease_id"}:
+                raise JobProtocolError("job renewal payload is invalid")
+            jobs.renew_job_lease(job.job_id, lease_id)
         elif message_type == "job_progress":
             if set(payload) != {"job_id", "lease_id", "progress", "data"}:
                 raise JobProtocolError("job progress payload is invalid")
@@ -79,8 +83,10 @@ def handle_message(node_id: str, message_type: str, payload: dict[str, object]) 
             if not isinstance(error_code, str):
                 raise JobProtocolError("job error code is invalid")
             jobs.fail_job(job.job_id, lease_id, error_code, _object(payload, "error_params"))
-    except (jobs.JobConflict, jobs.JobNotFound, ValueError) as exc:
-        if isinstance(exc, JobProtocolError):
-            raise
-        raise JobProtocolError(str(exc)) from exc
+    except JobProtocolError:
+        raise
+    except jobs.JobConflict:
+        return {"type": "job_rejected", "reason": "state_conflict"}
+    except (jobs.JobNotFound, ValueError) as exc:
+        raise JobProtocolError("job state update is invalid") from exc
     return {"type": "ack"}
