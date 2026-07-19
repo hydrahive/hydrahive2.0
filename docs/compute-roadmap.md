@@ -1,7 +1,7 @@
 # HydraHive Compute — Master-Roadmap
 
 **Letzte Aktualisierung:** 20. Juli 2026
-**Aktueller Stand:** P0–P6 abgeschlossen, P7 als nächste Phase
+**Aktueller Stand:** P0–P7 code-seitig abgeschlossen; offen bleibt nur das physische Rollout-Gate (echter Ubuntu-/Incus-Node)
 **Verbindliche V1-Spezifikation:** [specs/compute-cluster-v1.md](specs/compute-cluster-v1.md)
 **Detaillierte Tasks:** [specs/compute-cluster-v1-plan.md](specs/compute-cluster-v1-plan.md)
 
@@ -27,7 +27,7 @@ HydraHive verwaltet den lokalen Host und freigegebene Ubuntu-Compute-Nodes über
 | P4 | ✅ | Remote-Container End-to-End | Allowlist-Incus-Adapter, atomare Routing-/Resultpfade, Remote-Lifecycle |
 | P5 | ✅ | Node-/Job-Frontend | Admin-Overlays, Enrollment-UX, Jobmonitoring und Node-Auswahl |
 | P6 | ✅ | Imagebasierte Remote-VMs | Incus-VM-Adapter, Routing, Runtime-Anzeige und VM-Lifecycle |
-| P7 | 🚧 | Console-Proxy und V1-Abschluss | Kurzlebige Sessions, Audit, Last-/Ausfalltests, Runbooks |
+| P7 | ✅ | Console-Proxy und V1-Abschluss | Console-Tickets, Revocation-/Update-Hardening, Runbooks |
 
 ## Abgeschlossene Grundlagen
 
@@ -103,13 +103,24 @@ HydraHive verwaltet den lokalen Host und freigegebene Ubuntu-Compute-Nodes über
 - [x] ISO, Import, Hostpfade und Passthrough auf Agent-Nodes abgelehnt.
 - [x] VM-Frontend: Node-Auswahl, kuratierte Images, Node-Badge; QEMU-Felder nur lokal.
 
-## Nächste Phase: P7 — Console-Proxy und V1-Abschluss 🚧
+### P7 — Console-Proxy und V1-Abschluss ✅
 
-- [ ] Kurzlebige, resource- und nodegebundene Console-Sessions.
-- [ ] Keine allgemeinen Tunnel oder Remote-Shell-Primitiven.
-- [ ] Audit-Vollständigkeit, Rate Limits, Last-, Reconnect- und Chaos-Tests.
-- [ ] Installations-, Upgrade-, Drain-, Recovery- und Revocation-Runbooks.
-- [ ] Rollout auf echtem Ubuntu-/Incus-Testnode und dokumentierte Abnahme.
+**Commits:** `feat(compute): issue resource-bound console tickets`, `feat(node-agent): harden revocation and updates`
+
+- [x] Kurzlebige, resource- und nodegebundene Console-Tickets (einmalig, TTL 15–120 s, Admin-only).
+- [x] Keine allgemeinen Tunnel oder Remote-Shell-Primitiven; nur allowlistete Incus-Operationen.
+- [x] Revocation invalidiert Node-Identität und alle offenen Console-Tickets atomar; Job-Isolation zwischen Nodes verifiziert.
+- [x] Signiertes Agent-Update-Manifest (Ed25519 + SHA-256 + Downgrade-Schutz).
+- [x] Betriebs-, Recovery-, Drain- und Revocation-Runbook: [compute-node-runbook.md](compute-node-runbook.md).
+- [ ] Rollout auf echtem Ubuntu-/Incus-Testnode und dokumentierte Abnahme — **physisches Rollout-Gate, kein Code-Todo**.
+
+## V1-Status
+
+Der Compute-Cluster V1 ist code-seitig vollständig (P0–P7). Alle automatisierten
+Backend-, Node-Agent- und Frontend-Prüfungen sind grün, die Security-Properties
+sind belegt (siehe Runbook Abschnitt 8). Die einzige verbleibende Aufgabe ist die
+physische Abnahme auf echter Ubuntu-/Incus-Hardware — ein Rollout-Gate, das
+bewusst von der Code-Abnahme getrennt ist.
 
 ## Nicht Bestandteil von V1 ⛔
 

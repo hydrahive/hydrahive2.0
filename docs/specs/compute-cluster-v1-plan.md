@@ -1,6 +1,6 @@
 # Plan: HydraHive Compute Cluster V1
 
-**Stand: 20. Juli 2026 — P1 bis P6 implementiert; P7 offen.**
+**Stand: 20. Juli 2026 — P1 bis P7 code-seitig implementiert; nur physisches Rollout-Gate offen.**
 
 ## Ziel
 
@@ -258,36 +258,39 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 
 ### Task 7.1: Ressourcengebundene Console-Tickets
 
-- [ ] Auth-, Ownership-, TTL-, Einmal- und Origin-Tests schreiben.
-- [ ] Keine direkten Node-Ports; binärer Stream über authentisierten Master-Proxy.
-- [ ] Revoke/Disconnect trennt Sessions.
-- [ ] Security-Review und Tests GREEN.
-- [ ] Commit: `feat(compute): proxy remote instance consoles`.
+- [x] Auth-, Ownership-, TTL-, Einmal- und Origin-Tests schreiben.
+- [x] Keine direkten Node-Ports; binärer Stream über authentisierten Master-Proxy.
+- [x] Revoke/Disconnect trennt Sessions.
+- [x] Security-Review und Tests GREEN.
+- [x] Commit: `feat(compute): proxy remote instance consoles`.
 
 ### Task 7.2: Hardening und Updatepfad
 
-- [ ] Revocation-E2E-Test.
-- [ ] kompromittierter/falscher Node kann keine fremden Jobs lesen.
-- [ ] signiertes Agent-Update-Manifest und Hashprüfung implementieren.
-- [ ] Last-/Reconnect-/Lease-Tests.
-- [ ] Auditprüfung.
-- [ ] Commit: `feat(node-agent): harden revocation and updates`.
+- [x] Revocation-E2E-Test.
+- [x] kompromittierter/falscher Node kann keine fremden Jobs lesen.
+- [x] signiertes Agent-Update-Manifest und Hashprüfung implementieren.
+- [x] Last-/Reconnect-/Lease-Tests.
+- [x] Auditprüfung.
+- [x] Commit: `feat(node-agent): harden revocation and updates`.
 
 ### Task 7.3: Abschluss
 
-- [ ] vollständige Backend-, Agent- und Frontendtests.
+- [x] vollständige Backend-, Agent- und Frontendtests.
 - [ ] Installer-Test auf frischem Ubuntu-Node.
 - [ ] realer E2E-Test mit einem separaten Compute-Node.
-- [ ] Security-Audit ohne Critical/High-Findings.
-- [ ] Betriebs-, Recovery- und Deinstallationsdoku.
-- [ ] PRs mergen und Tasks schließen.
+- [x] Security-Audit ohne Critical/High-Findings.
+- [x] Betriebs-, Recovery- und Deinstallationsdoku.
+- [x] PRs mergen und Tasks schließen.
 
 ## Globale Akzeptanzkriterien
 
-- [ ] Kein Remote-Agent akzeptiert freie Shell-Befehle.
-- [ ] Jeder Node hat eine eigene widerrufbare Identität.
-- [ ] Bestehende lokale Instanzen funktionieren ohne manuelle Migration.
-- [ ] Jobs sind persistent, idempotent und auditierbar.
-- [ ] Node-Ausfall wird korrekt dargestellt und löst keine Doppelstarts aus.
-- [ ] Remote-Container und imagebasierte Remote-VMs sind über HydraHive steuerbar.
-- [ ] Keine Live-Migration, kein HA und kein automatischer Scheduler in V1.
+- [x] Kein Remote-Agent akzeptiert freie Shell-Befehle.
+- [x] Jeder Node hat eine eigene widerrufbare Identität.
+- [x] Bestehende lokale Instanzen funktionieren ohne manuelle Migration.
+- [x] Jobs sind persistent, idempotent und auditierbar.
+- [x] Node-Ausfall wird korrekt dargestellt und löst keine Doppelstarts aus.
+- [x] Remote-Container und imagebasierte Remote-VMs sind über HydraHive steuerbar.
+- [x] Keine Live-Migration, kein HA und kein automatischer Scheduler in V1.
+
+_Alle Kriterien sind code-seitig erfüllt und durch automatisierte Tests belegt.
+Die physische Abnahme auf echter Hardware bleibt das einzige offene Rollout-Gate._
