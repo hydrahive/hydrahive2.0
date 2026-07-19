@@ -46,6 +46,7 @@ class VM:
     generation: int = 0
     runtime: VMRuntime = "qemu"
     runtime_ref: str | None = None
+    image: str | None = None
 
 
 @dataclass
@@ -109,3 +110,17 @@ MAX_RAM_MB = 65536
 MIN_DISK_GB = 1
 MAX_DISK_GB = 1024
 NAME_RE = r"^[a-zA-Z][a-zA-Z0-9-]{0,31}$"  # 1-32 chars, alphanumeric+dash
+
+# Image reference for image-based remote (Incus) VMs. Same shape as the
+# container image allowlist regex; ISO/import paths are not accepted here.
+IMAGE_RE = r"^(?:[a-zA-Z0-9][a-zA-Z0-9-]*:)?[a-zA-Z0-9][a-zA-Z0-9._/-]*$"
+
+# Curated images offered for remote image VMs. Agent nodes only launch VM-capable
+# cloud images; ISO installs and imports stay a local-only workflow.
+VM_QUICK_IMAGES = [
+    "images:debian/12",
+    "images:ubuntu/24.04",
+    "images:ubuntu/22.04",
+    "images:fedora/40",
+    "images:archlinux",
+]

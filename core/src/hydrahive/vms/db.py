@@ -56,6 +56,7 @@ def _row_to_vm(r: sqlite3.Row) -> VM:
         generation=r["generation"] if "generation" in keys else 0,
         runtime=r["runtime"] if "runtime" in keys else "qemu",
         runtime_ref=r["runtime_ref"] if "runtime_ref" in keys else None,
+        image=r["image"] if "image" in keys else None,
     )
 
 
@@ -75,6 +76,7 @@ def create_vm(
     node_id: str = "local",
     runtime: VMRuntime = "qemu",
     runtime_ref: str | None = None,
+    image: str | None = None,
 ) -> VM:
     if (node_id == "local") != (runtime == "qemu"):
         raise ValueError("local VMs require qemu and remote VMs require incus")
@@ -85,8 +87,8 @@ def create_vm(
             """INSERT INTO vms (vm_id, owner, name, description, cpu, ram_mb, disk_gb,
                                 iso_filename, network_mode, qcow2_path, disk_interface,
                                 machine_type, network_device, node_id, runtime, runtime_ref,
-                                desired_state, actual_state, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
+                                image, desired_state, actual_state, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
             (
                 vm_id,
                 owner,
@@ -104,6 +106,7 @@ def create_vm(
                 node_id,
                 runtime,
                 runtime_ref,
+                image,
                 ts,
                 ts,
             ),

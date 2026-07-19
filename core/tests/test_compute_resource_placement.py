@@ -81,11 +81,23 @@ def test_container_remote_placement_requires_admin() -> None:
     assert exc_info.value.status_code == 403
 
 
-def test_vm_create_route_rejects_remote_before_local_creation(monkeypatch) -> None:
+def test_vm_remote_placement_requires_admin() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            vms_lifecycle.create_vm(
+                VMCreate(name="remote-vm", cpu=1, ram_mb=512, disk_gb=5, node_id="node-a", image="debian/12"),
+                ("user", "user"),
+            )
+        )
+
+    assert exc_info.value.status_code == 403
+
+
+def test_vm_remote_create_requires_image(monkeypatch) -> None:
     monkeypatch.setattr(
         vms_lifecycle.vmdb,
         "create_vm",
-        lambda *args, **kwargs: pytest.fail("remote payload reached local VM execution path"),
+        lambda *args, **kwargs: pytest.fail("remote payload without image reached VM creation"),
     )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -97,6 +109,34 @@ def test_vm_create_route_rejects_remote_before_local_creation(monkeypatch) -> No
         )
 
     assert exc_info.value.status_code == 400
+
+
+def test_vm_remote_create_does_not_touch_local_qemu_disk(resource_db, monkeypatch) -> None:
+    node_db.create_node(
+        node_id="node-a",
+        name="Node A",
+        certificate_fingerprint="cd" * 32,
+        capabilities={"incus": True, "kvm": True, "instance_types": ["container", "vm"]},
+    )
+    node_db.approve_node("node-a", "admin")
+    node_db.transition_node_status("node-a", "online")
+
+    async def fail_disk(*args, **kwargs):
+        pytest.fail("remote VM create provisioned a local qcow2 disk")
+
+    monkeypatch.setattr(vms_lifecycle.vmdisk, "create_qcow2", fail_disk)
+
+    result = asyncio.run(
+        vms_lifecycle.create_vm(
+            VMCreate(name="remote-vm", cpu=2, ram_mb=2048, disk_gb=20, node_id="node-a", image="debian/12"),
+            ("admin", "admin"),
+        )
+    )
+
+    assert result["node_id"] == "node-a"
+    assert result["runtime"] == "incus"
+    assert result["image"] == "images:debian/12"
+    assert result["actual_state"] == "starting"
 
 
 def test_resource_serialization_includes_placement_and_runtime() -> None:

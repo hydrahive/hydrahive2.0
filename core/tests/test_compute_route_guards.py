@@ -117,18 +117,34 @@ def test_vm_local_data_routes_reject_remote(monkeypatch, module, route) -> None:
     assert exc_info.value.status_code == 400
 
 
-@pytest.mark.parametrize("route", [vms_ops.stop_vm, vms_ops.poweroff_vm])
-def test_vm_stop_routes_return_coded_error_for_remote(monkeypatch, route) -> None:
-    monkeypatch.setattr(
-        vms_ops,
-        "vm_or_404",
-        lambda *args: _vm(node_id="node-a", runtime="incus"),
-    )
+@pytest.mark.parametrize("route", [vms_ops.start_vm, vms_ops.stop_vm, vms_ops.poweroff_vm])
+def test_vm_lifecycle_routes_route_remote_to_compute_jobs(monkeypatch, route) -> None:
+    """P6.2: remote VM start/stop/poweroff enqueue durable jobs instead of
+    touching the local QEMU host or being rejected outright."""
+    remote_vm = _vm(node_id="node-a", runtime="incus")
+    monkeypatch.setattr(vms_ops, "vm_or_404", lambda *args: remote_vm)
+    monkeypatch.setattr(vms_ops, "_actor_id", lambda username: "actor-id")
+    monkeypatch.setattr(vms_ops.vmdb, "get_vm", lambda vm_id: remote_vm)
 
-    with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(route("vm-1", ("admin", "admin")))
+    async def fail_local(*args, **kwargs):
+        pytest.fail("remote VM reached local QEMU lifecycle")
 
-    assert exc_info.value.status_code == 400
+    monkeypatch.setattr(vms_ops.lifecycle, "start", fail_local)
+    monkeypatch.setattr(vms_ops.lifecycle, "shutdown", fail_local)
+
+    calls: list[tuple[str, str]] = []
+
+    async def fake_start(vm_id, *, actor):
+        calls.append(("start", vm_id))
+
+    async def fake_stop(vm_id, *, actor, hard=False):
+        calls.append(("stop", vm_id))
+
+    monkeypatch.setattr(vms_ops.vmexec, "start", fake_start)
+    monkeypatch.setattr(vms_ops.vmexec, "stop", fake_stop)
+
+    asyncio.run(route("vm-1", ("admin", "admin")))
+    assert calls and calls[0][1] == "vm-1"
 
 
 def test_vm_snapshot_and_passthrough_routes_reject_remote_before_local_io(monkeypatch) -> None:

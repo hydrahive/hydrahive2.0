@@ -80,6 +80,11 @@ def expire_leases() -> tuple[int, int]:
 
                 completed_row = conn.execute("SELECT * FROM compute_jobs WHERE job_id = ?", (row["job_id"],)).fetchone()
                 remote.apply_failure(row_to_job(completed_row), "lease_expired", connection=conn)
+            elif target == "expired" and row["resource_kind"] == "vm":
+                from hydrahive.vms import remote as vm_remote
+
+                completed_row = conn.execute("SELECT * FROM compute_jobs WHERE job_id = ?", (row["job_id"],)).fetchone()
+                vm_remote.apply_failure(row_to_job(completed_row), "lease_expired", connection=conn)
             requeued += target == "queued"
             expired += target == "expired"
     return requeued, expired

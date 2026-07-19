@@ -93,6 +93,21 @@ def handle_message(node_id: str, message_type: str, payload: dict[str, object]) 
                     else:
                         completed = jobs.succeed_job(job.job_id, lease_id, result, connection=conn)
                         remote.apply_success(completed, result, connection=conn)
+                elif job.resource_kind == "vm":
+                    from hydrahive.vms import remote as vm_remote
+
+                    if not vm_remote.success_result_is_valid(job, result):
+                        failed = jobs.fail_job(
+                            job.job_id,
+                            lease_id,
+                            "agent_result_invalid",
+                            {},
+                            connection=conn,
+                        )
+                        vm_remote.apply_failure(failed, "agent_result_invalid", connection=conn)
+                    else:
+                        completed = jobs.succeed_job(job.job_id, lease_id, result, connection=conn)
+                        vm_remote.apply_success(completed, result, connection=conn)
                 else:
                     jobs.succeed_job(job.job_id, lease_id, result, connection=conn)
         else:
@@ -113,6 +128,10 @@ def handle_message(node_id: str, message_type: str, payload: dict[str, object]) 
                     from hydrahive.containers import remote
 
                     remote.apply_failure(failed, error_code, connection=conn)
+                elif failed.resource_kind == "vm":
+                    from hydrahive.vms import remote as vm_remote
+
+                    vm_remote.apply_failure(failed, error_code, connection=conn)
     except JobProtocolError:
         raise
     except jobs.JobConflict:

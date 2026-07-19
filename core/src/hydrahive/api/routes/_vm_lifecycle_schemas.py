@@ -20,6 +20,7 @@ class VMCreate(BaseModel):
     machine_type: str = "q35"
     network_device: str = "virtio-net-pci"
     node_id: str = Field(default="local", min_length=1, max_length=128)
+    image: str | None = Field(default=None, max_length=255)
 
 
 class VMUpdate(BaseModel):

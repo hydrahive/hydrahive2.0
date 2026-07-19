@@ -38,4 +38,8 @@ def cancel_job(job_id: str, *, actor: str) -> ComputeJob:
             from hydrahive.containers import remote
 
             remote.apply_failure(cancelled, "job_cancelled", connection=conn)
+        elif cancelled.resource_kind == "vm":
+            from hydrahive.vms import remote as vm_remote
+
+            vm_remote.apply_failure(cancelled, "job_cancelled", connection=conn)
         return cancelled
