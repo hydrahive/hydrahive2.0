@@ -1,7 +1,7 @@
 # HydraHive Compute — Master-Roadmap
 
-**Letzte Aktualisierung:** 17. Juli 2026
-**Aktueller Stand:** P0–P4 abgeschlossen, P5 als nächste Phase
+**Letzte Aktualisierung:** 20. Juli 2026
+**Aktueller Stand:** P0–P6 abgeschlossen, P7 als nächste Phase
 **Verbindliche V1-Spezifikation:** [specs/compute-cluster-v1.md](specs/compute-cluster-v1.md)
 **Detaillierte Tasks:** [specs/compute-cluster-v1-plan.md](specs/compute-cluster-v1-plan.md)
 
@@ -25,9 +25,9 @@ HydraHive verwaltet den lokalen Host und freigegebene Ubuntu-Compute-Nodes über
 | P2 | ✅ | Enrollment, Identität und Agentkanal | HMAC-Token, CSR/mTLS, Freigabe/Widerruf, Heartbeats und Capabilities |
 | P3 | ✅ | Persistente Compute-Jobs | Signatur, Lease, Idempotenz, Reconnect-Recovery, Job-API und Audit-Events |
 | P4 | ✅ | Remote-Container End-to-End | Allowlist-Incus-Adapter, atomare Routing-/Resultpfade, Remote-Lifecycle |
-| P5 | ⬜ | Node-/Job-Frontend | Admin-Overlays, Enrollment-UX, Jobmonitoring und Node-Auswahl |
-| P6 | ⬜ | Imagebasierte Remote-VMs | Incus-VM-Adapter, Routing, Runtime-Anzeige und VM-Lifecycle |
-| P7 | ⬜ | Console-Proxy und V1-Abschluss | Kurzlebige Sessions, Audit, Last-/Ausfalltests, Runbooks |
+| P5 | ✅ | Node-/Job-Frontend | Admin-Overlays, Enrollment-UX, Jobmonitoring und Node-Auswahl |
+| P6 | ✅ | Imagebasierte Remote-VMs | Incus-VM-Adapter, Routing, Runtime-Anzeige und VM-Lifecycle |
+| P7 | 🚧 | Console-Proxy und V1-Abschluss | Kurzlebige Sessions, Audit, Last-/Ausfalltests, Runbooks |
 
 ## Abgeschlossene Grundlagen
 
@@ -81,41 +81,29 @@ HydraHive verwaltet den lokalen Host und freigegebene Ubuntu-Compute-Nodes über
 - [x] `GET /info` bleibt read-only; Remote-Refresh läuft explizit als `POST .../refresh`.
 - [x] Lokale Container verwenden unverändert den bestehenden Lifecycle-Pfad.
 
-## Nächste Phase: P5 — Node-/Job-Frontend ⬜
+### P5 — Node-/Job-Frontend ✅
 
-### P5.1 Nodes-Overlay
+**Commit:** `feat(admin): add compute node and job cockpit`
 
-- [ ] Nodes-Liste mit Pending/Online/Degraded/Draining/Offline/Revoked.
-- [ ] Enrollment-Token-Flow und Fingerprint-Bestätigung.
-- [ ] Node-Details für Agentversion, Capabilities, Ressourcen und letzte Heartbeats.
-- [ ] Admin-Aktionen Approve, Drain, Disable und Revoke mit Bestätigungsdialog.
+- [x] Nodes-Liste mit Pending/Online/Degraded/Draining/Offline/Revoked.
+- [x] Enrollment-Token-Flow und Fingerprint-Bestätigung.
+- [x] Node-Details für Agentversion, Capabilities, Ressourcen und letzte Heartbeats.
+- [x] Admin-Aktionen Approve, Drain, Disable und Revoke mit Bestätigungsdialog.
+- [x] Filterbare Jobliste und Jobdetail mit Event-Timeline.
+- [x] Fortschritt, strukturierte Fehler und Lease-Informationen; Cancel nur in erlaubten Zuständen.
+- [x] Node-Auswahl im Container-Create-Dialog (Default `local`, nur online/geeignet); Node-Badge auf Karten.
 
-### P5.2 Jobs-Overlay
+### P6 — Imagebasierte Remote-VMs ✅
 
-- [ ] Filterbare Jobliste und Jobdetail mit Event-Timeline.
-- [ ] Fortschritt, strukturierte Fehler und Wiederholungs-/Lease-Informationen.
-- [ ] Cancel ausschließlich für serverseitig erlaubte Zustände.
-- [ ] Keine geheimen Payload-Felder oder rohe Agentausgaben darstellen.
+**Commits:** `feat(node-agent): manage incus virtual machines`, `feat(vms): route image vms to compute nodes`, `feat(vms): select target compute node`
 
-### P5.3 Container-Node-Auswahl
+- [x] Incus-VM-Allowlist und KVM-Capability-Gate (`incus init --vm`, expliziter Root-Disk).
+- [x] Remote-VM-Create/Start/Stop/Restart/Delete/Inspect als generation-gebundene Jobs.
+- [x] Lokales QEMU und Remote-Incus bleiben explizite Runtime-Typen; Reconciler filtert Remote.
+- [x] ISO, Import, Hostpfade und Passthrough auf Agent-Nodes abgelehnt.
+- [x] VM-Frontend: Node-Auswahl, kuratierte Images, Node-Badge; QEMU-Felder nur lokal.
 
-- [ ] Node-Auswahl im Create-Dialog, Default weiterhin `local`.
-- [ ] Nur geeignete und online Nodes auswählbar; Capability-Grund anzeigen.
-- [ ] Node-Badge und Remote-/Draining-/Offline-Zustand in Karten und Details.
-- [ ] Refresh-Aktion über den expliziten Remote-Inspect-Job.
-
-**P5-Abnahme:** Ein Admin kann einen Node vollständig über das Cockpit koppeln und überwachen; ein Container kann gezielt platziert werden; Jobfehler sind ohne Serverzugriff nachvollziehbar.
-
-## Spätere V1-Phasen
-
-### P6 — Imagebasierte Remote-VMs ⬜
-
-- [ ] Incus-VM-Allowlist und KVM-Capability-Gate.
-- [ ] Remote-VM-Create/Start/Stop/Restart/Delete/Inspect.
-- [ ] Lokales QEMU und Remote-Incus bleiben explizite Runtime-Typen.
-- [ ] ISO, Import, Hostpfade und Passthrough auf Agent-Nodes zunächst ablehnen.
-
-### P7 — Console-Proxy und V1-Abschluss ⬜
+## Nächste Phase: P7 — Console-Proxy und V1-Abschluss 🚧
 
 - [ ] Kurzlebige, resource- und nodegebundene Console-Sessions.
 - [ ] Keine allgemeinen Tunnel oder Remote-Shell-Primitiven.

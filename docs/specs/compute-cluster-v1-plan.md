@@ -1,6 +1,6 @@
 # Plan: HydraHive Compute Cluster V1
 
-**Stand: 17. Juli 2026 — P1 bis P4 implementiert; P5 bis P7 offen.**
+**Stand: 20. Juli 2026 — P1 bis P6 implementiert; P7 offen.**
 
 ## Ziel
 
@@ -204,55 +204,55 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 
 ### Task 5.1: Nodes-Overlay
 
-- [ ] API-/Mappertests und Komponentenfälle pending/online/degraded/offline/revoked schreiben.
-- [ ] NodesOverlay, Detail, Enrollment und Fingerprint-Approve implementieren.
-- [ ] Admin-Registry und Help ergänzen.
-- [ ] Frontend-Typecheck/Build GREEN.
-- [ ] Commit: `feat(admin): add compute node cockpit`.
+- [x] API-/Mappertests und Komponentenfälle pending/online/degraded/offline/revoked schreiben.
+- [x] NodesOverlay, Detail, Enrollment und Fingerprint-Approve implementieren.
+- [x] Admin-Registry und Help ergänzen.
+- [x] Frontend-Typecheck/Build GREEN.
+- [x] Commit: `feat(admin): add compute node cockpit`.
 
 ### Task 5.2: Job-Overlay
 
-- [ ] Zustands-/Fortschritts-/Fehlerfälle testen.
-- [ ] JobsOverlay und Jobdetail implementieren.
-- [ ] Cancel nur in zulässigen Zuständen anbieten.
-- [ ] Build GREEN.
-- [ ] Commit: `feat(admin): add compute job monitoring`.
+- [x] Zustands-/Fortschritts-/Fehlerfälle testen.
+- [x] JobsOverlay und Jobdetail implementieren.
+- [x] Cancel nur in zulässigen Zuständen anbieten.
+- [x] Build GREEN.
+- [x] Commit: `feat(admin): add compute job monitoring`.
 
 ### Task 5.3: Container-Node-Auswahl
 
-- [ ] NodeSelector-Fälle online/offline/ungeeignet testen.
-- [ ] CreateContainerDialog um Pflichtauswahl mit Default `local` erweitern.
-- [ ] Karten/Details um Node-Badge ergänzen.
-- [ ] Build GREEN.
-- [ ] Commit: `feat(containers): select target compute node`.
+- [x] NodeSelector-Fälle online/offline/ungeeignet testen.
+- [x] CreateContainerDialog um Pflichtauswahl mit Default `local` erweitern.
+- [x] Karten/Details um Node-Badge ergänzen.
+- [x] Build GREEN.
+- [x] Commit: `feat(containers): select target compute node`.
 
 ## P6 — Imagebasierte Remote-VMs
 
 ### Task 6.1: Incus-VM-Operationen
 
-- [ ] Agenttests für KVM-Capability und `--vm`-Erstellung schreiben.
-- [ ] create/start/stop/restart/delete/inspect implementieren.
-- [ ] ISO, Import, Hostpfade und Passthrough auf Agent-Nodes explizit ablehnen.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(node-agent): manage incus virtual machines`.
+- [x] Agenttests für KVM-Capability und `--vm`-Erstellung schreiben.
+- [x] create/start/stop/restart/delete/inspect implementieren.
+- [x] ISO, Import, Hostpfade und Passthrough auf Agent-Nodes explizit ablehnen.
+- [x] Tests GREEN.
+- [x] Commit: `feat(node-agent): manage incus virtual machines`.
 
 ### Task 6.2: VM-Execution-Routing
 
-- [ ] Tests local QEMU vs. remote Incus schreiben.
-- [ ] VM-Modelle um `runtime`/`runtime_ref` erweitern.
-- [ ] Remote-Lifecycle und Snapshots nodegebunden implementieren.
-- [ ] Reconciler filtert strikt nach Node/Runtime.
-- [ ] Bestehende VM-Suite GREEN.
-- [ ] Commit: `feat(vms): route image vms to compute nodes`.
+- [x] Tests local QEMU vs. remote Incus schreiben.
+- [x] VM-Modelle um `runtime`/`runtime_ref` erweitern.
+- [x] Remote-Lifecycle und Snapshots nodegebunden implementieren.
+- [x] Reconciler filtert strikt nach Node/Runtime.
+- [x] Bestehende VM-Suite GREEN.
+- [x] Commit: `feat(vms): route image vms to compute nodes`.
 
 ### Task 6.3: VM-Frontend
 
-- [ ] NodeSelector und Capability-Erklärung integrieren.
-- [ ] Auf Agent-Nodes ausschließlich kuratierte Images anbieten.
-- [ ] ISO/Import/Passthrough disabled mit verständlicher Begründung.
-- [ ] Node-Badge und Offline-Semantik ergänzen.
-- [ ] Build GREEN.
-- [ ] Commit: `feat(vms): select target compute node`.
+- [x] NodeSelector und Capability-Erklärung integrieren.
+- [x] Auf Agent-Nodes ausschließlich kuratierte Images anbieten.
+- [x] ISO/Import/Passthrough disabled mit verständlicher Begründung.
+- [x] Node-Badge und Offline-Semantik ergänzen.
+- [x] Build GREEN.
+- [x] Commit: `feat(vms): select target compute node`.
 
 ## P7 — Console-Proxy und V1-Abschluss
 
