@@ -87,6 +87,8 @@ def test_running_job_reports_progress_and_terminal_result_idempotently(jobs_db: 
     assert running.started_at is not None
     progressed = jobs.report_progress(created.job_id, claimed.lease_id, 40, {"phase": "launch"})
     assert progressed.progress == 40
+    with pytest.raises(jobs.JobConflict, match="running"):
+        jobs.cancel_job(created.job_id, actor="admin")
 
     succeeded = jobs.succeed_job(created.job_id, claimed.lease_id, {"runtime_ref": "container-one"})
     repeated = jobs.succeed_job(created.job_id, claimed.lease_id, {"runtime_ref": "container-one"})

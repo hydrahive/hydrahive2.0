@@ -13,7 +13,7 @@ from hydrahive.compute._job_codec import (
     validate_text,
 )
 from hydrahive.compute._job_events import append_event
-from hydrahive.compute.models import ComputeJob, ComputeJobEvent, JSONObject, JobResourceKind
+from hydrahive.compute.models import JOB_STATUSES, ComputeJob, ComputeJobEvent, JSONObject, JobResourceKind
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
 
@@ -39,6 +39,32 @@ def get_job(job_id: str) -> ComputeJob | None:
     with db() as conn:
         row = conn.execute("SELECT * FROM compute_jobs WHERE job_id = ?", (job_id,)).fetchone()
     return row_to_job(row) if row else None
+
+
+def list_jobs(
+    *,
+    node_id: str | None = None,
+    status: str | None = None,
+    created_by: str | None = None,
+    limit: int = 100,
+) -> list[ComputeJob]:
+    if status is not None and status not in JOB_STATUSES:
+        raise ValueError("invalid compute job status")
+    limit = max(1, min(limit, 200))
+    conditions: list[str] = []
+    values: list[object] = []
+    for column, value in (("node_id", node_id), ("status", status), ("created_by", created_by)):
+        if value is not None:
+            conditions.append(f"{column} = ?")
+            values.append(value)
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    values.append(limit)
+    with db() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM compute_jobs {where} ORDER BY created_at DESC, job_id DESC LIMIT ?",
+            values,
+        ).fetchall()
+    return [row_to_job(row) for row in rows]
 
 
 def list_events(job_id: str) -> list[ComputeJobEvent]:
@@ -150,6 +176,7 @@ __all__ = [
     "fail_job",
     "get_job",
     "list_events",
+    "list_jobs",
     "report_progress",
     "start_job",
     "succeed_job",

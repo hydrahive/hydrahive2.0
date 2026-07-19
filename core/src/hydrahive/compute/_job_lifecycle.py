@@ -162,6 +162,8 @@ def cancel_job(job_id: str, *, actor: str) -> ComputeJob:
         row = _load(conn, job_id)
         if row["status"] in TERMINAL_STATUSES:
             raise JobConflict("compute job is already terminal")
+        if row["status"] == "running":
+            raise JobConflict("running compute job cannot be cancelled safely")
         timestamp = now_iso()
         conn.execute(
             """UPDATE compute_jobs
