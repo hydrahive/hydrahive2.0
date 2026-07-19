@@ -25,6 +25,12 @@ Der Agent läuft als eigener Benutzer `hydrahive-node` mit ausschließlich den f
 Incus notwendigen Gruppenrechten. Identität und Zustand liegen unter
 `/var/lib/hydrahive-node/` mit restriktiven Dateirechten (`0600`/`0700`).
 
+> **Woher kommt der Agent, wie wird er installiert und der Master vorbereitet?**
+> Schritt-für-Schritt in [`../node-agent/README.md`](../node-agent/README.md)
+> (Bezugsquelle, Master-Proxy-Setup, `scripts/install.sh`, Troubleshooting).
+> Dieses Runbook fasst den Betrieb zusammen; das README ist die
+> Installationsreferenz.
+
 ## 2. Node koppeln (Enrollment)
 
 1. **Master (Admin, Cockpit → Admin → Compute-Nodes):** „Node koppeln" öffnen,
