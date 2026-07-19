@@ -1,5 +1,7 @@
 # Plan: HydraHive Compute Cluster V1
 
+**Stand: 17. Juli 2026 — P1 bis P4 implementiert; P5 bis P7 offen.**
+
 ## Ziel
 
 HydraHive verwaltet neben dem lokalen Host freigegebene Ubuntu-Compute-Nodes mit ausgehend verbundenem Node Agent und Incus. V1 liefert manuelle, feste Platzierung, Remote-Container und imagebasierte Remote-VMs ohne Live-Migration oder automatisches Failover.
@@ -38,14 +40,14 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 ### Node Agent
 
 - `node-agent/pyproject.toml` — separates minimales Paket und CLI-Entrypoint.
-- `node-agent/src/hydrahive_node_agent/config.py` — restriktive Konfiguration.
-- `node-agent/src/hydrahive_node_agent/identity.py` — Schlüssel, CSR und Zertifikate.
-- `node-agent/src/hydrahive_node_agent/enroll.py` — Enrollment-CLI.
-- `node-agent/src/hydrahive_node_agent/client.py` — Reconnect-/ACK-Agentkanal.
-- `node-agent/src/hydrahive_node_agent/capabilities.py` — Host-/Incus-/KVM-Inventar.
-- `node-agent/src/hydrahive_node_agent/jobs.py` — lokale Idempotenz und Dispatcher.
-- `node-agent/src/hydrahive_node_agent/incus.py` — allowlisteter Incus-CLI-Adapter.
-- `node-agent/src/hydrahive_node_agent/main.py` — systemd-Prozess.
+- `node-agent/src/hydrahive_node/config.py` — restriktive Konfiguration.
+- `node-agent/src/hydrahive_node/identity.py` — Schlüssel, CSR und Zertifikate.
+- `node-agent/src/hydrahive_node/enroll.py` — Enrollment-CLI.
+- `node-agent/src/hydrahive_node/client.py` — Reconnect-/ACK-Agentkanal.
+- `node-agent/src/hydrahive_node/capabilities.py` — Host-/Incus-/KVM-Inventar.
+- `node-agent/src/hydrahive_node/jobs.py` — lokale Idempotenz und Dispatcher.
+- `node-agent/src/hydrahive_node/incus.py` — allowlisteter Incus-CLI-Adapter.
+- `node-agent/src/hydrahive_node/main.py` — systemd-Prozess.
 - `installer/lib/node_agent.sh` — Installation, Benutzer, Rechte und systemd-Unit.
 
 ### Frontend
@@ -99,44 +101,44 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 
 ### Task 2.1: Compute-CA und Enrollment-Token
 
-- [ ] Tests für 256-Bit-Token, HMAC-at-rest, TTL, Einmalverbrauch und generische Fehler schreiben.
-- [ ] Tests für sichere CA-Key-Dateirechte und stabile Fingerprints schreiben.
-- [ ] Tests RED.
-- [ ] `identity.py` und `enrollment.py` implementieren.
-- [ ] Keine privaten Schlüssel oder Tokens loggen.
-- [ ] Tests GREEN.
-- [ ] Security-Review.
-- [ ] Commit: `feat(compute): add secure node enrollment`.
+- [x] Tests für 256-Bit-Token, HMAC-at-rest, TTL, Einmalverbrauch und generische Fehler schreiben.
+- [x] Tests für sichere CA-Key-Dateirechte und stabile Fingerprints schreiben.
+- [x] Tests RED.
+- [x] `identity.py` und `enrollment.py` implementieren.
+- [x] Keine privaten Schlüssel oder Tokens loggen.
+- [x] Tests GREEN.
+- [x] Security-Review.
+- [x] Commit: `feat(compute): add secure node enrollment`.
 
 ### Task 2.2: Enrollment-/Node-API
 
-- [ ] Auth-/Admin-/Rate-Limit-Tests schreiben.
-- [ ] Tests für pending → approved, disable und revoke schreiben.
-- [ ] Tests RED.
-- [ ] `compute_nodes.py` und öffentlichen, begrenzten Enroll-Endpunkt implementieren.
-- [ ] Audit für Token-Erzeugung, Enrollment, Approve und Revoke.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(compute): expose node administration api`.
+- [x] Auth-/Admin-/Rate-Limit-Tests schreiben.
+- [x] Tests für pending → approved, disable und revoke schreiben.
+- [x] Tests RED.
+- [x] `compute_nodes.py` und öffentlichen, begrenzten Enroll-Endpunkt implementieren.
+- [x] Audit für Token-Erzeugung, Enrollment, Approve und Revoke.
+- [x] Tests GREEN.
+- [x] Commit: `feat(compute): expose node administration api`.
 
 ### Task 2.3: Minimales Agentpaket
 
-- [ ] Agenttests für Config-Dateirechte, Enrollment, Serverzertifikatprüfung und Fingerprintanzeige schreiben.
-- [ ] Tests RED.
-- [ ] Separates `node-agent`-Paket implementieren.
-- [ ] `hydrahive-node enroll` und `hydrahive-node run` bereitstellen.
-- [ ] systemd-Unit und Installer implementieren.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(node-agent): add enrollment and service`.
+- [x] Agenttests für Config-Dateirechte, Enrollment, Serverzertifikatprüfung und Fingerprintanzeige schreiben.
+- [x] Tests RED.
+- [x] Separates `node-agent`-Paket implementieren.
+- [x] `hydrahive-node enroll` und `hydrahive-node run` bereitstellen.
+- [x] systemd-Unit und Installer implementieren.
+- [x] Tests GREEN.
+- [x] Commit: `feat(node-agent): add enrollment and service`.
 
 ### Task 2.4: Heartbeat und Capabilities
 
-- [ ] Protokolltests für Version, Sequenz, Nonce, Node-Bindung und Schemafehler schreiben.
-- [ ] Tests für online/degraded/offline und Dead-Detection schreiben.
-- [ ] Tests RED.
-- [ ] Agentkanal mit Reconnect/Jitter und read-only Heartbeats implementieren.
-- [ ] CPU/RAM/Storage/Incus/KVM-Capabilities implementieren.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(compute): connect node agent heartbeats`.
+- [x] Protokolltests für Version, Sequenz, Nonce, Node-Bindung und Schemafehler schreiben.
+- [x] Tests für online/degraded/offline und Dead-Detection schreiben.
+- [x] Tests RED.
+- [x] Agentkanal mit Reconnect/Jitter und read-only Heartbeats implementieren.
+- [x] CPU/RAM/Storage/Incus/KVM-Capabilities implementieren.
+- [x] Tests GREEN.
+- [x] Commit: `feat(compute): connect node agent heartbeats`.
 
 **P2-Akzeptanz:** Ein neuer Ubuntu-Node kann sicher gekoppelt, freigegeben, angezeigt und widerrufen werden; noch keine Workloads.
 
@@ -144,32 +146,32 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 
 ### Task 3.1: Jobzustandsmaschine
 
-- [ ] Tests für erlaubte Übergänge, atomaren Claim, Lease, Timeout und Cancel schreiben.
-- [ ] Tests für doppelte Resultate und Idempotency-Key schreiben.
-- [ ] Tests RED.
-- [ ] `compute/jobs.py` und Event-Persistenz implementieren.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(compute): add durable job state machine`.
+- [x] Tests für erlaubte Übergänge, atomaren Claim, Lease, Timeout und Cancel schreiben.
+- [x] Tests für doppelte Resultate und Idempotency-Key schreiben.
+- [x] Tests RED.
+- [x] `compute/jobs.py` und Event-Persistenz implementieren.
+- [x] Tests GREEN.
+- [x] Commit: `feat(compute): add durable job state machine`.
 
 ### Task 3.2: Signierte Jobs und Agentdispatcher
 
-- [ ] Tests für manipulierte Signatur, falsche Node-ID, alte Generation und Ablauf schreiben.
-- [ ] Tests RED.
-- [ ] kanonische Job-Signatur auf Master und Prüfung im Agent implementieren.
-- [ ] Agent persistiert lokale Idempotency-Keys.
-- [ ] Nur typisierte Operationen; unbekannte Operation fail-closed.
-- [ ] Tests GREEN.
-- [ ] Security-Review.
-- [ ] Commit: `feat(node-agent): execute signed compute jobs`.
+- [x] Tests für manipulierte Signatur, falsche Node-ID, alte Generation und Ablauf schreiben.
+- [x] Tests RED.
+- [x] kanonische Job-Signatur auf Master und Prüfung im Agent implementieren.
+- [x] Agent persistiert lokale Idempotency-Keys.
+- [x] Nur typisierte Operationen; unbekannte Operation fail-closed.
+- [x] Tests GREEN.
+- [x] Security-Review.
+- [x] Commit: `feat(node-agent): execute signed compute jobs`.
 
 ### Task 3.3: Job-API
 
-- [ ] Ownership-/Admin-/Filter-/Cancel-Tests schreiben.
-- [ ] Tests RED.
-- [ ] `compute_jobs.py` implementieren.
-- [ ] Ausgabe strikt begrenzen und keine Payload-Secrets zurückgeben.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(compute): expose job status api`.
+- [x] Ownership-/Admin-/Filter-/Cancel-Tests schreiben.
+- [x] Tests RED.
+- [x] `compute_jobs.py` implementieren.
+- [x] Ausgabe strikt begrenzen und keine Payload-Secrets zurückgeben.
+- [x] Tests GREEN.
+- [x] Commit: `feat(compute): expose job status api`.
 
 **P3-Akzeptanz:** Ein Testjob übersteht Agent-Reconnect ohne doppelte Ausführung und besitzt vollständigen Auditverlauf.
 
@@ -177,24 +179,24 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 
 ### Task 4.1: Incus-Allowlist im Agent
 
-- [ ] Tests für Name/Image/CPU/RAM/Netzwerk-Validierung und Flag-Injection schreiben.
-- [ ] Tests für create/start/stop/restart/delete/inspect schreiben, Incus mocken.
-- [ ] Tests RED.
-- [ ] `node-agent/.../incus.py` mit `create_subprocess_exec` und festen argv implementieren.
-- [ ] Output-, Zeit- und Parallelitätslimits implementieren.
-- [ ] Tests GREEN.
-- [ ] Security-Review.
-- [ ] Commit: `feat(node-agent): manage incus containers`.
+- [x] Tests für Name/Image/CPU/RAM/Netzwerk-Validierung und Flag-Injection schreiben.
+- [x] Tests für create/start/stop/restart/delete/inspect schreiben, Incus mocken.
+- [x] Tests RED.
+- [x] `node-agent/.../incus.py` mit `create_subprocess_exec` und festen argv implementieren.
+- [x] Output-, Zeit- und Parallelitätslimits implementieren.
+- [x] Tests GREEN.
+- [x] Security-Review.
+- [x] Commit: `feat(node-agent): manage incus containers`.
 
 ### Task 4.2: Container-Execution-Routing
 
-- [ ] Tests schreiben: local nutzt bisherigen Pfad, agent erzeugt Job, offline wird abgelehnt.
-- [ ] Reconciler-Test: Remote-Container wird nie lokal inspiziert/gestartet.
-- [ ] Tests RED.
-- [ ] lokalen und Agent-Execution-Adapter einführen.
-- [ ] Create/Lifecycle-Routen nodefähig machen.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(containers): route workloads to compute nodes`.
+- [x] Tests schreiben: local nutzt bisherigen Pfad, agent erzeugt Job, offline wird abgelehnt.
+- [x] Reconciler-Test: Remote-Container wird nie lokal inspiziert/gestartet.
+- [x] Tests RED.
+- [x] lokalen und Agent-Execution-Adapter einführen.
+- [x] Create/Lifecycle-Routen nodefähig machen.
+- [x] Tests GREEN.
+- [x] Commit: `feat(containers): route workloads to compute nodes`.
 
 **P4-Akzeptanz:** Ein Remote-Container kann über HydraHive vollständig verwaltet werden; lokale Container bleiben kompatibel.
 
