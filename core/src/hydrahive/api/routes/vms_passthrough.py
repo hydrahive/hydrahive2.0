@@ -1,4 +1,5 @@
 """Passthrough-Disk-Routes — nur Admins."""
+
 from __future__ import annotations
 
 import logging
@@ -9,7 +10,7 @@ from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._vms_helpers import vm_or_404
+from hydrahive.api.routes._vms_helpers import ensure_local_vm, vm_or_404
 from hydrahive.vms import passthrough as pt
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,7 @@ async def add_passthrough_disk(
 ) -> dict:
     require_admin(auth)
     vm = vm_or_404(vm_id, *auth)
+    ensure_local_vm(vm)
     if vm.actual_state not in ("stopped", "created", "error"):
         raise coded(status.HTTP_409_CONFLICT, "vm_must_be_stopped")
     try:
@@ -86,8 +88,7 @@ async def add_passthrough_disk(
     return _serialize_disk(disk)
 
 
-@router.delete("/{vm_id}/passthrough-disks/{passthrough_id}",
-               status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{vm_id}/passthrough-disks/{passthrough_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_passthrough_disk(
     vm_id: str,
     passthrough_id: str,
@@ -95,6 +96,7 @@ def remove_passthrough_disk(
 ) -> None:
     require_admin(auth)
     vm = vm_or_404(vm_id, *auth)
+    ensure_local_vm(vm)
     if vm.actual_state not in ("stopped", "created", "error"):
         raise coded(status.HTTP_409_CONFLICT, "vm_must_be_stopped")
     try:

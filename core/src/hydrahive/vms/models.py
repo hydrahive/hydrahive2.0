@@ -14,6 +14,7 @@ MachineType = Literal["q35", "pc"]
 MACHINE_TYPES: tuple[str, ...] = ("q35", "pc")
 NetworkDevice = Literal["virtio-net-pci", "e1000"]
 NETWORK_DEVICES: tuple[str, ...] = ("virtio-net-pci", "e1000")
+VMRuntime = Literal["qemu", "incus"]
 
 
 @dataclass
@@ -41,6 +42,10 @@ class VM:
     last_error_code: str | None = None
     last_error_params: dict | None = None
     project_id: str | None = None
+    node_id: str = "local"
+    generation: int = 0
+    runtime: VMRuntime = "qemu"
+    runtime_ref: str | None = None
 
 
 @dataclass

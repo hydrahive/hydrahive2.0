@@ -43,6 +43,8 @@ async def reconcile_once() -> None:
 
     active_tokens: set[str] = set()
     for vm in vms:
+        if vm.node_id != "local" or vm.runtime != "qemu":
+            continue
         if vm.actual_state not in ACTIVE_STATES:
             continue
         alive = _pid_alive(vm.pid)

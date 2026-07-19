@@ -1,0 +1,1 @@
+"""Compute-cluster persistence foundation."""

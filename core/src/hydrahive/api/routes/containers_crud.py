@@ -1,4 +1,5 @@
 """Container CRUD routes (list / create / get / update / delete)."""
+
 from __future__ import annotations
 
 import logging
@@ -11,7 +12,10 @@ from fastapi import APIRouter, Depends, status
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._container_helpers import (
-    ContainerCreate, ContainerUpdate, container_or_404, is_admin,
+    ContainerCreate,
+    ContainerUpdate,
+    container_or_404,
+    is_admin,
 )
 from hydrahive.containers import db as cdb
 from hydrahive.containers import incus_client as incus
@@ -40,6 +44,8 @@ async def create_container(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     user, _ = auth
+    if body.node_id != "local":
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_remote_execution_not_supported")
     if not re.match(NAME_RE, body.name):
         raise coded(status.HTTP_400_BAD_REQUEST, "container_name_invalid")
     if body.network_mode not in ("bridged", "isolated"):
@@ -56,9 +62,14 @@ async def create_container(
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "incus_missing")
 
     c = cdb.create(
-        owner=user, name=body.name, description=body.description,
-        image=image, cpu=body.cpu, ram_mb=body.ram_mb,
+        owner=user,
+        name=body.name,
+        description=body.description,
+        image=image,
+        cpu=body.cpu,
+        ram_mb=body.ram_mb,
         network_mode=body.network_mode,
+        node_id=body.node_id,
     )
     try:
         await lifecycle.create_and_start(c.container_id)
@@ -84,8 +95,7 @@ def update_container(
 ) -> dict:
     c = container_or_404(container_id, *auth)
     if c.actual_state not in ("stopped", "created", "error"):
-        raise coded(status.HTTP_400_BAD_REQUEST, "container_must_be_stopped",
-                    state=c.actual_state)
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_must_be_stopped", state=c.actual_state)
     if req.name and req.name != c.name and not re.match(NAME_RE, req.name):
         raise coded(status.HTTP_400_BAD_REQUEST, "container_name_invalid", name=req.name)
     if req.name and req.name != c.name and cdb.name_taken(req.name, exclude_id=container_id):

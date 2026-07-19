@@ -19,6 +19,7 @@ class VMCreate(BaseModel):
     disk_interface: str = "virtio"
     machine_type: str = "q35"
     network_device: str = "virtio-net-pci"
+    node_id: str = Field(default="local", min_length=1, max_length=128)
 
 
 class VMUpdate(BaseModel):

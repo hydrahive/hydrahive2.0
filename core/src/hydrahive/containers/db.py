@@ -1,4 +1,5 @@
 """DB-CRUD für Container."""
+
 from __future__ import annotations
 
 import json
@@ -13,28 +14,45 @@ def _row_to_container(r: sqlite3.Row) -> Container:
     params = json.loads(r["last_error_params"]) if r["last_error_params"] else None
     keys = r.keys() if hasattr(r, "keys") else []
     return Container(
-        container_id=r["container_id"], owner=r["owner"], name=r["name"],
-        description=r["description"], image=r["image"],
-        cpu=r["cpu"], ram_mb=r["ram_mb"], network_mode=r["network_mode"],
-        desired_state=r["desired_state"], actual_state=r["actual_state"],
-        last_error_code=r["last_error_code"], last_error_params=params,
-        created_at=r["created_at"], updated_at=r["updated_at"],
+        container_id=r["container_id"],
+        owner=r["owner"],
+        name=r["name"],
+        description=r["description"],
+        image=r["image"],
+        cpu=r["cpu"],
+        ram_mb=r["ram_mb"],
+        network_mode=r["network_mode"],
+        desired_state=r["desired_state"],
+        actual_state=r["actual_state"],
+        last_error_code=r["last_error_code"],
+        last_error_params=params,
+        created_at=r["created_at"],
+        updated_at=r["updated_at"],
         project_id=r["project_id"] if "project_id" in keys else None,
+        node_id=r["node_id"] if "node_id" in keys else "local",
+        generation=r["generation"] if "generation" in keys else 0,
     )
 
 
-def create(owner: str, name: str, image: str, network_mode: str = "bridged",
-           cpu: int | None = None, ram_mb: int | None = None,
-           description: str | None = None) -> Container:
+def create(
+    owner: str,
+    name: str,
+    image: str,
+    network_mode: str = "bridged",
+    cpu: int | None = None,
+    ram_mb: int | None = None,
+    description: str | None = None,
+    node_id: str = "local",
+) -> Container:
     cid = uuid7()
     ts = now_iso()
     with db() as conn:
         conn.execute(
             """INSERT INTO containers (container_id, owner, name, description, image,
-                                        cpu, ram_mb, network_mode,
+                                        cpu, ram_mb, network_mode, node_id,
                                         desired_state, actual_state, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
-            (cid, owner, name, description, image, cpu, ram_mb, network_mode, ts, ts),
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
+            (cid, owner, name, description, image, cpu, ram_mb, network_mode, node_id, ts, ts),
         )
     return get(cid)  # type: ignore[return-value]
 
@@ -42,7 +60,8 @@ def create(owner: str, name: str, image: str, network_mode: str = "bridged",
 def get(container_id: str) -> Container | None:
     with db() as conn:
         row = conn.execute(
-            "SELECT * FROM containers WHERE container_id = ?", (container_id,),
+            "SELECT * FROM containers WHERE container_id = ?",
+            (container_id,),
         ).fetchone()
     return _row_to_container(row) if row else None
 
@@ -50,9 +69,7 @@ def get(container_id: str) -> Container | None:
 def list_(owner: str | None = None) -> list[Container]:
     with db() as conn:
         if owner is None:
-            rows = conn.execute(
-                "SELECT * FROM containers ORDER BY created_at DESC"
-            ).fetchall()
+            rows = conn.execute("SELECT * FROM containers ORDER BY created_at DESC").fetchall()
         else:
             rows = conn.execute(
                 "SELECT * FROM containers WHERE owner = ? ORDER BY created_at DESC",
@@ -70,22 +87,31 @@ def name_taken(name: str, exclude_id: str | None = None) -> bool:
             ).fetchone()
         else:
             row = conn.execute(
-                "SELECT 1 FROM containers WHERE name = ?", (name,),
+                "SELECT 1 FROM containers WHERE name = ?",
+                (name,),
             ).fetchone()
     return row is not None
 
 
-def update_state(container_id: str, *, desired: str | None = None,
-                 actual: str | None = None,
-                 error_code: str | None = ..., error_params: dict | None = ...) -> None:
+def update_state(
+    container_id: str,
+    *,
+    desired: str | None = None,
+    actual: str | None = None,
+    error_code: str | None = ...,
+    error_params: dict | None = ...,
+) -> None:
     sets: list[str] = ["updated_at = ?"]
     vals: list = [now_iso()]
     if desired is not None:
-        sets.append("desired_state = ?"); vals.append(desired)
+        sets.extend(("desired_state = ?", "generation = generation + 1"))
+        vals.append(desired)
     if actual is not None:
-        sets.append("actual_state = ?"); vals.append(actual)
+        sets.append("actual_state = ?")
+        vals.append(actual)
     if error_code is not ...:
-        sets.append("last_error_code = ?"); vals.append(error_code)
+        sets.append("last_error_code = ?")
+        vals.append(error_code)
     if error_params is not ...:
         sets.append("last_error_params = ?")
         vals.append(json.dumps(error_params) if error_params else None)
@@ -99,21 +125,30 @@ def delete(container_id: str) -> None:
         conn.execute("DELETE FROM containers WHERE container_id = ?", (container_id,))
 
 
-def update_container_config(container_id: str, *, name: str | None = None,
-                             description: str | None = ...,
-                             cpu: int | None = ..., ram_mb: int | None = ...) -> None:
+def update_container_config(
+    container_id: str,
+    *,
+    name: str | None = None,
+    description: str | None = ...,
+    cpu: int | None = ...,
+    ram_mb: int | None = ...,
+) -> None:
     """Konfig-Update (Name, Description, CPU, RAM). cpu/ram_mb können explizit
     auf None gesetzt werden für 'unbegrenzt' (Sentinel ... = nicht ändern)."""
-    sets: list[str] = ["updated_at = ?"]
+    sets: list[str] = ["updated_at = ?", "generation = generation + 1"]
     vals: list = [now_iso()]
     if name is not None:
-        sets.append("name = ?"); vals.append(name)
+        sets.append("name = ?")
+        vals.append(name)
     if description is not ...:
-        sets.append("description = ?"); vals.append(description)
+        sets.append("description = ?")
+        vals.append(description)
     if cpu is not ...:
-        sets.append("cpu = ?"); vals.append(cpu)
+        sets.append("cpu = ?")
+        vals.append(cpu)
     if ram_mb is not ...:
-        sets.append("ram_mb = ?"); vals.append(ram_mb)
+        sets.append("ram_mb = ?")
+        vals.append(ram_mb)
     vals.append(container_id)
     with db() as conn:
         conn.execute(f"UPDATE containers SET {', '.join(sets)} WHERE container_id = ?", vals)
@@ -139,5 +174,6 @@ def list_for_project(project_id: str) -> list[Container]:
 def clear_project_assignments(project_id: str) -> None:
     with db() as conn:
         conn.execute(
-            "UPDATE containers SET project_id = NULL WHERE project_id = ?", (project_id,),
+            "UPDATE containers SET project_id = NULL WHERE project_id = ?",
+            (project_id,),
         )

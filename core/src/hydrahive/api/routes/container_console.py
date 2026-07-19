@@ -8,6 +8,7 @@ Nachrichten-Format:
 Auth via JWT im Query-Param `?token=...` (WS unterstützt keine
 Authorization-Header in Browsern).
 """
+
 from __future__ import annotations
 
 import json
@@ -45,6 +46,9 @@ async def container_console(ws: WebSocket, container_id: str, token: str | None 
     c = cdb.get(container_id)
     if not c or (c.owner != user and role != "admin"):
         await ws.close(code=4404)
+        return
+    if c.node_id != "local":
+        await ws.close(code=4409, reason="container_not_local")
         return
     if c.actual_state != "running":
         await ws.close(code=4409)

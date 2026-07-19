@@ -2,6 +2,7 @@
 
 Auth-Check + 404/403-Resolution + Serialisierung + Create-Input-Validation.
 """
+
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -13,13 +14,22 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.vms import db as vmdb
 from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import iso as vmiso
+from hydrahive.vms import lifecycle
+from hydrahive.vms.models import VM
 
 
 def is_admin(role: str) -> bool:
     return role == "admin"
 
 
-def vm_or_404(vm_id: str, owner: str, role: str):
+def ensure_local_vm(vm: VM) -> None:
+    try:
+        lifecycle.ensure_local(vm)
+    except lifecycle.VMLifecycleError as exc:
+        raise coded(status.HTTP_400_BAD_REQUEST, exc.code, **exc.params)
+
+
+def vm_or_404(vm_id: str, owner: str, role: str) -> VM:
     vm = vmdb.get_vm(vm_id)
     if not vm:
         raise coded(status.HTTP_404_NOT_FOUND, "vm_not_found")
@@ -28,7 +38,7 @@ def vm_or_404(vm_id: str, owner: str, role: str):
     return vm
 
 
-def serialize(vm) -> dict:
+def serialize(vm: VM) -> dict:
     return asdict(vm)
 
 

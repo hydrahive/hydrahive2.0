@@ -24,6 +24,8 @@ async def reconcile_once() -> None:
         return
 
     for c in local:
+        if c.node_id != "local":
+            continue
         if c.actual_state not in ACTIVE_STATES:
             continue
         is_running = c.name in running
