@@ -69,31 +69,32 @@ def test_legacy_create_payloads_default_to_local() -> None:
     assert vm.node_id == "local"
 
 
-@pytest.mark.parametrize(
-    ("route", "payload", "db_module"),
-    [
-        (
-            containers_crud.create_container,
-            ContainerCreate(name="remote-container", image="debian/12", node_id="node-a"),
-            containers_crud.cdb,
-        ),
-        (
-            vms_lifecycle.create_vm,
-            VMCreate(name="remote-vm", cpu=1, ram_mb=512, disk_gb=5, node_id="node-a"),
-            vms_lifecycle.vmdb,
-        ),
-    ],
-)
-def test_create_routes_reject_remote_before_local_creation(monkeypatch, route, payload, db_module) -> None:
-    create_name = "create" if db_module is containers_crud.cdb else "create_vm"
+def test_container_remote_placement_requires_admin() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            containers_crud.create_container(
+                ContainerCreate(name="remote-container", image="debian/12", node_id="node-a"),
+                ("user", "user"),
+            )
+        )
+
+    assert exc_info.value.status_code == 403
+
+
+def test_vm_create_route_rejects_remote_before_local_creation(monkeypatch) -> None:
     monkeypatch.setattr(
-        db_module,
-        create_name,
-        lambda *args, **kwargs: pytest.fail("remote payload reached local persistence/execution path"),
+        vms_lifecycle.vmdb,
+        "create_vm",
+        lambda *args, **kwargs: pytest.fail("remote payload reached local VM execution path"),
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        asyncio.run(route(payload, ("admin", "admin")))
+        asyncio.run(
+            vms_lifecycle.create_vm(
+                VMCreate(name="remote-vm", cpu=1, ram_mb=512, disk_gb=5, node_id="node-a"),
+                ("admin", "admin"),
+            )
+        )
 
     assert exc_info.value.status_code == 400
 

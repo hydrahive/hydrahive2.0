@@ -10,7 +10,7 @@ from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.containers.models import Container
 
 
-def _row_to_container(r: sqlite3.Row) -> Container:
+def row_to_container(r: sqlite3.Row) -> Container:
     params = json.loads(r["last_error_params"]) if r["last_error_params"] else None
     keys = r.keys() if hasattr(r, "keys") else []
     return Container(
@@ -63,7 +63,7 @@ def get(container_id: str) -> Container | None:
             "SELECT * FROM containers WHERE container_id = ?",
             (container_id,),
         ).fetchone()
-    return _row_to_container(row) if row else None
+    return row_to_container(row) if row else None
 
 
 def list_(owner: str | None = None) -> list[Container]:
@@ -75,7 +75,7 @@ def list_(owner: str | None = None) -> list[Container]:
                 "SELECT * FROM containers WHERE owner = ? ORDER BY created_at DESC",
                 (owner,),
             ).fetchall()
-    return [_row_to_container(r) for r in rows]
+    return [row_to_container(r) for r in rows]
 
 
 def name_taken(name: str, exclude_id: str | None = None) -> bool:
@@ -168,7 +168,7 @@ def list_for_project(project_id: str) -> list[Container]:
             "SELECT * FROM containers WHERE project_id = ? ORDER BY created_at DESC",
             (project_id,),
         ).fetchall()
-    return [_row_to_container(r) for r in rows]
+    return [row_to_container(r) for r in rows]
 
 
 def clear_project_assignments(project_id: str) -> None:

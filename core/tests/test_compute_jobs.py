@@ -77,6 +77,22 @@ def test_claim_is_atomic_node_bound_and_lease_checked(jobs_db: str) -> None:
         jobs.start_job(claimed.job_id, "wrong-lease")
 
 
+def test_draining_node_does_not_lease_queued_activation_job(jobs_db: str) -> None:
+    jobs.create_job(
+        node_id=jobs_db,
+        resource_kind="container",
+        resource_id="container-one",
+        operation="container.start",
+        generation=1,
+        payload={"name": "container-one"},
+        idempotency_key="container:start:draining",
+        created_by="admin",
+    )
+    node_db.transition_node_status(jobs_db, "draining")
+
+    assert jobs.claim_next_job(jobs_db) is None
+
+
 def test_running_job_reports_progress_and_terminal_result_idempotently(jobs_db: str) -> None:
     created = _create(jobs_db)
     claimed = jobs.claim_next_job(jobs_db)

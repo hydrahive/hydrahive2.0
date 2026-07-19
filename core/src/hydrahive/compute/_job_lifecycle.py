@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import nullcontext
 from datetime import UTC, datetime, timedelta
 
 from hydrahive.compute._job_codec import (
@@ -110,8 +111,9 @@ def _finish(
     event_data: JSONObject,
     error_code: str | None = None,
     error_params: JSONObject | None = None,
+    connection: sqlite3.Connection | None = None,
 ) -> ComputeJob:
-    with db(immediate=True) as conn:
+    with nullcontext(connection) if connection is not None else db(immediate=True) as conn:
         row = _load(conn, job_id)
         if row["status"] == target:
             event = conn.execute(
@@ -152,12 +154,31 @@ def _finish(
         return _updated(conn, job_id)
 
 
-def succeed_job(job_id: str, lease_id: str, result: JSONObject) -> ComputeJob:
+def succeed_job(
+    job_id: str,
+    lease_id: str,
+    result: JSONObject,
+    *,
+    connection: sqlite3.Connection | None = None,
+) -> ComputeJob:
     dump_job_json(result, "result")
-    return _finish(job_id, lease_id, target="succeeded", event_data={"result": result})
+    return _finish(
+        job_id,
+        lease_id,
+        target="succeeded",
+        event_data={"result": result},
+        connection=connection,
+    )
 
 
-def fail_job(job_id: str, lease_id: str, error_code: str, error_params: JSONObject) -> ComputeJob:
+def fail_job(
+    job_id: str,
+    lease_id: str,
+    error_code: str,
+    error_params: JSONObject,
+    *,
+    connection: sqlite3.Connection | None = None,
+) -> ComputeJob:
     error_code = validate_text(error_code, "error_code", maximum=128)
     dump_job_json(error_params, "error_params")
     return _finish(
@@ -167,30 +188,5 @@ def fail_job(job_id: str, lease_id: str, error_code: str, error_params: JSONObje
         event_data={"error_code": error_code, "error_params": error_params},
         error_code=error_code,
         error_params=error_params,
+        connection=connection,
     )
-
-
-def cancel_job(job_id: str, *, actor: str) -> ComputeJob:
-    actor = validate_text(actor, "actor", maximum=128)
-    with db(immediate=True) as conn:
-        row = _load(conn, job_id)
-        if row["status"] in TERMINAL_STATUSES:
-            raise JobConflict("compute job is already terminal")
-        if row["status"] == "running":
-            raise JobConflict("running compute job cannot be cancelled safely")
-        timestamp = now_iso()
-        conn.execute(
-            """UPDATE compute_jobs
-               SET status = 'cancelled', lease_id = NULL, lease_until = NULL, finished_at = ?
-               WHERE job_id = ?""",
-            (timestamp, job_id),
-        )
-        append_event(
-            conn,
-            job_id=job_id,
-            node_id=row["node_id"],
-            event_type="cancelled",
-            data={},
-            actor=actor,
-        )
-        return _updated(conn, job_id)

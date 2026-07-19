@@ -56,7 +56,6 @@ def _vm(*, node_id: str = "local", runtime: str = "qemu") -> VM:
     [
         (containers_ops.container_log, "show_log"),
         (containers_ops.container_config, "show_config"),
-        (containers_ops.container_info, "info"),
     ],
 )
 def test_container_inspection_routes_reject_remote_before_incus(monkeypatch, route, incus_operation: str) -> None:

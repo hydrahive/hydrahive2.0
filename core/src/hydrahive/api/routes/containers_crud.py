@@ -9,6 +9,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
+from hydrahive.api.middleware import users
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._container_helpers import (
@@ -18,8 +19,9 @@ from hydrahive.api.routes._container_helpers import (
     is_admin,
 )
 from hydrahive.containers import db as cdb
+from hydrahive.containers import execution
 from hydrahive.containers import incus_client as incus
-from hydrahive.containers import lifecycle
+from hydrahive.containers import remote
 from hydrahive.containers.models import IMAGE_RE, NAME_RE, QUICK_IMAGES
 
 logger = logging.getLogger(__name__)
@@ -43,9 +45,9 @@ async def create_container(
     body: ContainerCreate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    user, _ = auth
-    if body.node_id != "local":
-        raise coded(status.HTTP_400_BAD_REQUEST, "container_remote_execution_not_supported")
+    user, role = auth
+    if body.node_id != "local" and not is_admin(role):
+        raise coded(status.HTTP_403_FORBIDDEN, "container_remote_placement_forbidden")
     if not re.match(NAME_RE, body.name):
         raise coded(status.HTTP_400_BAD_REQUEST, "container_name_invalid")
     if body.network_mode not in ("bridged", "isolated"):
@@ -58,7 +60,7 @@ async def create_container(
         image = f"images:{image}"
     if cdb.name_taken(body.name):
         raise coded(status.HTTP_409_CONFLICT, "container_name_taken")
-    if not incus.is_available():
+    if body.node_id == "local" and not incus.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "incus_missing")
 
     c = cdb.create(
@@ -71,11 +73,18 @@ async def create_container(
         network_mode=body.network_mode,
         node_id=body.node_id,
     )
+    actor = users.get_by_username(user)
     try:
-        await lifecycle.create_and_start(c.container_id)
+        await execution.create_and_start(
+            c.container_id,
+            actor=actor["user_id"] if actor is not None else user,
+        )
     except incus.IncusError as e:
         cdb.delete(c.container_id)
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, e.code, **e.params)
+    except remote.RemoteContainerError as e:
+        cdb.delete(c.container_id)
+        raise coded(status.HTTP_409_CONFLICT, "container_remote_unavailable", reason=str(e))
     return asdict(cdb.get(c.container_id))  # type: ignore[arg-type]
 
 
@@ -94,6 +103,8 @@ def update_container(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     c = container_or_404(container_id, *auth)
+    if c.node_id != "local":
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_remote_config_not_supported")
     if c.actual_state not in ("stopped", "created", "error"):
         raise coded(status.HTTP_400_BAD_REQUEST, "container_must_be_stopped", state=c.actual_state)
     if req.name and req.name != c.name and not re.match(NAME_RE, req.name):
@@ -116,4 +127,8 @@ async def delete_container(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
     container_or_404(container_id, *auth)
-    await lifecycle.delete(container_id)
+    actor = users.get_by_username(auth[0])
+    try:
+        await execution.delete(container_id, actor=actor["user_id"] if actor is not None else auth[0])
+    except remote.RemoteContainerError as exc:
+        raise coded(status.HTTP_409_CONFLICT, "container_remote_unavailable", reason=str(exc))
