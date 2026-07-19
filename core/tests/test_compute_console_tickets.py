@@ -152,17 +152,22 @@ def test_node_revocation_invalidates_tickets_end_to_end(ticket_db: str) -> None:
 
 
 def test_console_ticket_api_requires_admin_and_issues_ticket(client, auth_headers, admin_headers) -> None:
+    # Unique identifiers keep this test independent of the shared client DB state.
+    from hydrahive.db._utils import uuid7
+
+    suffix = uuid7()[:8]
+    fingerprint = (suffix * 8)[:64]
     node = node_db.create_node(
-        node_id="api-node",
-        name="API Node",
-        certificate_fingerprint="cd" * 32,
+        node_id=f"api-node-{suffix}",
+        name=f"API Node {suffix}",
+        certificate_fingerprint=fingerprint,
         capabilities={"incus": True, "kvm": True, "instance_types": ["container", "vm"]},
     )
     node_db.approve_node(node.node_id, "admin")
     node_db.transition_node_status(node.node_id, "online")
     container = cdb.create(
         owner="admin",
-        name="api-remote",
+        name=f"apiremote{suffix}",
         image="images:debian/12",
         network_mode="bridged",
         node_id=node.node_id,
