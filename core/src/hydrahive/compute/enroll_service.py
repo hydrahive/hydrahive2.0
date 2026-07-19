@@ -5,12 +5,15 @@ from __future__ import annotations
 import hashlib
 import sqlite3
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from hydrahive.compute import audit, enrollment, identity
 from hydrahive.compute._node_codec import dump_json, row_to_node
 from hydrahive.compute.models import ComputeNode
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.db.connection import db
+
+RECOVERY_WINDOW_MINUTES = 10
 
 
 @dataclass(frozen=True)
@@ -38,7 +41,7 @@ def _recovered_result(
 ) -> EnrollmentResult | None:
     row = conn.execute(
         """SELECT r.csr_sha256, r.certificate_pem, r.certificate_expires_at,
-                  n.*
+                  r.recovery_until, n.*
            FROM compute_enrollment_results r
            JOIN compute_nodes n ON n.node_id = r.node_id
            WHERE r.token_id = ?""",
@@ -46,7 +49,7 @@ def _recovered_result(
     ).fetchone()
     if row is None:
         return None
-    if row["csr_sha256"] != csr_sha256:
+    if row["recovery_until"] <= now_iso() or row["csr_sha256"] != csr_sha256:
         raise enrollment.EnrollmentError()
     ca = identity.ensure_compute_ca()
     node = row_to_node(row)
@@ -110,6 +113,9 @@ def enroll_node(
         if token_row["expires_at"] <= now_iso():
             raise enrollment.EnrollmentError()
         timestamp = now_iso()
+        recovery_until = (
+            (datetime.now(UTC) + timedelta(minutes=RECOVERY_WINDOW_MINUTES)).isoformat().replace("+00:00", "Z")
+        )
         conn.execute(
             """INSERT INTO compute_nodes (
                    node_id, name, kind, status, certificate_fingerprint,
@@ -134,14 +140,16 @@ def enroll_node(
         )
         conn.execute(
             """INSERT INTO compute_enrollment_results
-                   (token_id, csr_sha256, node_id, certificate_pem, certificate_expires_at, created_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+                   (token_id, csr_sha256, node_id, certificate_pem,
+                    certificate_expires_at, recovery_until, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (
                 token_row["token_id"],
                 csr_sha256,
                 node_id,
                 issued.certificate_pem.decode("ascii"),
                 issued.expires_at,
+                recovery_until,
                 timestamp,
             ),
         )

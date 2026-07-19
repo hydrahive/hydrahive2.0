@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import sqlite3
 from dataclasses import asdict
 from typing import Annotated
 
@@ -79,6 +80,8 @@ def create_enrollment(
             created_by=actor,
             ttl_seconds=body.ttl_seconds,
         )
+    except sqlite3.IntegrityError:
+        raise coded(status.HTTP_409_CONFLICT, "compute_node_name_exists")
     except ValueError as exc:
         raise coded(status.HTTP_400_BAD_REQUEST, "compute_enrollment_invalid", reason=str(exc))
     return asdict(created)

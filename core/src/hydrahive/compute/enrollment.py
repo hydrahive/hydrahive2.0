@@ -81,6 +81,14 @@ def create_token(
     with db() as conn:
         retention_cutoff = (datetime.now(UTC) - timedelta(days=TOKEN_RETENTION_DAYS)).isoformat().replace("+00:00", "Z")
         conn.execute(
+            """DELETE FROM compute_enrollment_results
+               WHERE token_id IN (
+                   SELECT token_id FROM compute_enrollment_tokens
+                   WHERE expires_at < ? AND (consumed_at IS NULL OR consumed_at < ?)
+               )""",
+            (retention_cutoff, retention_cutoff),
+        )
+        conn.execute(
             """DELETE FROM compute_enrollment_tokens
                WHERE expires_at < ? AND (consumed_at IS NULL OR consumed_at < ?)""",
             (retention_cutoff, retention_cutoff),

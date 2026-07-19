@@ -88,6 +88,20 @@ def test_full_node_enrollment_approval_disable_enable_and_revoke(client, admin_h
     assert {"node.enrolled", "node.approved", "node.disabled", "node.online", "node.revoked"} <= actions
 
 
+def test_agent_enrollment_rejects_oversized_body_before_json_parsing(client) -> None:
+    inbound_ratelimit.reset()
+    oversized = b"{" + b"x" * (97 * 1024)
+
+    response = client.post(
+        "/api/compute/agent/enroll",
+        content=oversized,
+        headers={"content-type": "application/json"},
+    )
+
+    assert response.status_code == 413
+    assert error_code(response) == "compute_enrollment_body_too_large"
+
+
 def test_agent_enrollment_is_rate_limited(client, monkeypatch) -> None:
     from hydrahive.api.routes import compute_agent
 

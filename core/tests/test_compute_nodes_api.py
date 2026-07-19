@@ -60,6 +60,14 @@ def test_enrollment_token_creation_requires_admin_and_is_audited(client, auth_he
     assert record["details"]["token_id"] == body["token_id"]
     assert "token" not in record["details"]
 
+    duplicate = client.post(
+        "/api/compute/enrollments",
+        headers=admin_headers,
+        json={"requested_name": " API Auth Node ", "ttl_seconds": 300},
+    )
+    assert duplicate.status_code == 409
+    assert error_code(duplicate) == "compute_node_name_exists"
+
     with pytest.raises(sqlite3.IntegrityError, match="append_only"):
         with db() as conn:
             conn.execute(
