@@ -1,4 +1,5 @@
 """VM-Snapshots: list, create, restore, delete (alle offline)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._vms_helpers import vm_or_404
+from hydrahive.api.routes._vms_helpers import ensure_local_vm, vm_or_404
 from hydrahive.vms import snapshots as vmsnap
 
 router = APIRouter(prefix="/api/vms", tags=["vms"])
@@ -28,10 +29,12 @@ def list_snapshots(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_
 
 @router.post("/{vm_id}/snapshots", status_code=status.HTTP_201_CREATED)
 async def create_snapshot(
-    vm_id: str, body: SnapshotCreate,
+    vm_id: str,
+    body: SnapshotCreate,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     vm = vm_or_404(vm_id, *auth)
+    ensure_local_vm(vm)
     if vm.actual_state != "stopped":
         raise coded(status.HTTP_409_CONFLICT, "snapshot_vm_not_stopped")
     try:
@@ -44,10 +47,12 @@ async def create_snapshot(
 
 @router.post("/{vm_id}/snapshots/{snapshot_id}/restore", status_code=204)
 async def restore_snapshot(
-    vm_id: str, snapshot_id: str,
+    vm_id: str,
+    snapshot_id: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
     vm = vm_or_404(vm_id, *auth)
+    ensure_local_vm(vm)
     if vm.actual_state != "stopped":
         raise coded(status.HTTP_409_CONFLICT, "snapshot_vm_not_stopped")
     snap = vmsnap.db_get(snapshot_id)
@@ -61,10 +66,12 @@ async def restore_snapshot(
 
 @router.delete("/{vm_id}/snapshots/{snapshot_id}", status_code=204)
 async def delete_snapshot(
-    vm_id: str, snapshot_id: str,
+    vm_id: str,
+    snapshot_id: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
     vm = vm_or_404(vm_id, *auth)
+    ensure_local_vm(vm)
     snap = vmsnap.db_get(snapshot_id)
     if not snap or snap["vm_id"] != vm_id:
         raise coded(status.HTTP_404_NOT_FOUND, "snapshot_not_found")

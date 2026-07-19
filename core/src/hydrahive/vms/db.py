@@ -1,4 +1,5 @@
 """DB-Zugriff für VMs — Mapping zu/von Dataclasses + simple CRUD."""
+
 from __future__ import annotations
 
 import json
@@ -7,13 +8,20 @@ import sqlite3
 from hydrahive.db.connection import db
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.vms._vms_db_updates import update_vm_config, update_vm_state
-from hydrahive.vms.models import VM, ImportJob, Snapshot
+from hydrahive.vms.models import ImportJob, Snapshot, VM, VMRuntime
 
 __all__ = [
-    "create_vm", "get_vm", "list_vms", "delete_vm",
-    "update_vm_state", "update_vm_config",
-    "set_project", "list_for_project", "clear_project_assignments",
-    "name_taken", "used_vnc_ports",
+    "create_vm",
+    "get_vm",
+    "list_vms",
+    "delete_vm",
+    "update_vm_state",
+    "update_vm_config",
+    "set_project",
+    "list_for_project",
+    "clear_project_assignments",
+    "name_taken",
+    "used_vnc_ports",
 ]
 
 
@@ -21,39 +29,84 @@ def _row_to_vm(r: sqlite3.Row) -> VM:
     params = json.loads(r["last_error_params"]) if r["last_error_params"] else None
     keys = r.keys() if hasattr(r, "keys") else []
     return VM(
-        vm_id=r["vm_id"], owner=r["owner"], name=r["name"], description=r["description"],
-        cpu=r["cpu"], ram_mb=r["ram_mb"], disk_gb=r["disk_gb"],
-        iso_filename=r["iso_filename"], network_mode=r["network_mode"],
+        vm_id=r["vm_id"],
+        owner=r["owner"],
+        name=r["name"],
+        description=r["description"],
+        cpu=r["cpu"],
+        ram_mb=r["ram_mb"],
+        disk_gb=r["disk_gb"],
+        iso_filename=r["iso_filename"],
+        network_mode=r["network_mode"],
         qcow2_path=r["qcow2_path"],
         disk_interface=r["disk_interface"] if "disk_interface" in keys else "virtio",
         machine_type=r["machine_type"] if "machine_type" in keys else "q35",
         network_device=r["network_device"] if "network_device" in keys else "virtio-net-pci",
-        desired_state=r["desired_state"], actual_state=r["actual_state"],
-        pid=r["pid"], vnc_port=r["vnc_port"], vnc_token=r["vnc_token"],
-        last_error_code=r["last_error_code"], last_error_params=params,
-        created_at=r["created_at"], updated_at=r["updated_at"],
+        desired_state=r["desired_state"],
+        actual_state=r["actual_state"],
+        pid=r["pid"],
+        vnc_port=r["vnc_port"],
+        vnc_token=r["vnc_token"],
+        last_error_code=r["last_error_code"],
+        last_error_params=params,
+        created_at=r["created_at"],
+        updated_at=r["updated_at"],
         project_id=r["project_id"] if "project_id" in keys else None,
+        node_id=r["node_id"] if "node_id" in keys else "local",
+        generation=r["generation"] if "generation" in keys else 0,
+        runtime=r["runtime"] if "runtime" in keys else "qemu",
+        runtime_ref=r["runtime_ref"] if "runtime_ref" in keys else None,
     )
 
 
-def create_vm(owner: str, name: str, cpu: int, ram_mb: int, disk_gb: int,
-              qcow2_path: str, network_mode: str = "bridged",
-              description: str | None = None, iso_filename: str | None = None,
-              disk_interface: str = "virtio",
-              machine_type: str = "q35",
-              network_device: str = "virtio-net-pci") -> VM:
+def create_vm(
+    owner: str,
+    name: str,
+    cpu: int,
+    ram_mb: int,
+    disk_gb: int,
+    qcow2_path: str,
+    network_mode: str = "bridged",
+    description: str | None = None,
+    iso_filename: str | None = None,
+    disk_interface: str = "virtio",
+    machine_type: str = "q35",
+    network_device: str = "virtio-net-pci",
+    node_id: str = "local",
+    runtime: VMRuntime = "qemu",
+    runtime_ref: str | None = None,
+) -> VM:
+    if (node_id == "local") != (runtime == "qemu"):
+        raise ValueError("local VMs require qemu and remote VMs require incus")
     vm_id = uuid7()
     ts = now_iso()
     with db() as conn:
         conn.execute(
             """INSERT INTO vms (vm_id, owner, name, description, cpu, ram_mb, disk_gb,
                                 iso_filename, network_mode, qcow2_path, disk_interface,
-                                machine_type, network_device,
+                                machine_type, network_device, node_id, runtime, runtime_ref,
                                 desired_state, actual_state, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
-            (vm_id, owner, name, description, cpu, ram_mb, disk_gb,
-             iso_filename, network_mode, qcow2_path, disk_interface,
-             machine_type, network_device, ts, ts),
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stopped', 'created', ?, ?)""",
+            (
+                vm_id,
+                owner,
+                name,
+                description,
+                cpu,
+                ram_mb,
+                disk_gb,
+                iso_filename,
+                network_mode,
+                qcow2_path,
+                disk_interface,
+                machine_type,
+                network_device,
+                node_id,
+                runtime,
+                runtime_ref,
+                ts,
+                ts,
+            ),
         )
     return get_vm(vm_id)  # type: ignore[return-value]
 
@@ -101,7 +154,8 @@ def list_for_project(project_id: str) -> list[VM]:
 def clear_project_assignments(project_id: str) -> None:
     with db() as conn:
         conn.execute(
-            "UPDATE vms SET project_id = NULL WHERE project_id = ?", (project_id,),
+            "UPDATE vms SET project_id = NULL WHERE project_id = ?",
+            (project_id,),
         )
 
 
@@ -114,14 +168,13 @@ def name_taken(owner: str, name: str, exclude_id: str | None = None) -> bool:
             ).fetchone()
         else:
             row = conn.execute(
-                "SELECT 1 FROM vms WHERE owner = ? AND name = ?", (owner, name),
+                "SELECT 1 FROM vms WHERE owner = ? AND name = ?",
+                (owner, name),
             ).fetchone()
     return row is not None
 
 
 def used_vnc_ports() -> set[int]:
     with db() as conn:
-        rows = conn.execute(
-            "SELECT vnc_port FROM vms WHERE vnc_port IS NOT NULL"
-        ).fetchall()
+        rows = conn.execute("SELECT vnc_port FROM vms WHERE vnc_port IS NOT NULL").fetchall()
     return {r["vnc_port"] for r in rows}

@@ -113,7 +113,7 @@ Der Dienst läuft als eigener Benutzer `hydrahive-node`, erhält ausschließlich
 
 ## 5. Datenmodell
 
-Neue Migration: `core/src/hydrahive/db/migrations/032_compute_nodes.sql`.
+Neue additive Migrationsserie: `032_compute_nodes.sql` bis `039_compute_placement_integrity.sql`. Die Registry-/Jobtabellen sind idempotent; jede Legacy-Tabellenerweiterung liegt in einer eigenen Migration, damit ein Teilfehler sicher wiederaufgenommen werden kann.
 
 ### 5.1 `compute_nodes`
 

@@ -33,7 +33,7 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 - `core/src/hydrahive/api/routes/compute_nodes.py` — Admin-Node-API.
 - `core/src/hydrahive/api/routes/compute_jobs.py` — Admin-/User-Job-API.
 - `core/src/hydrahive/api/routes/compute_agent.py` — Enrollment und Agentkanal.
-- `core/src/hydrahive/db/migrations/032_compute_nodes.sql` — additive Clusterbasis.
+- `core/src/hydrahive/db/migrations/032_compute_nodes.sql` bis `039_compute_placement_integrity.sql` — additive, wiederaufnehmbare Clusterbasis.
 
 ### Node Agent
 
@@ -66,32 +66,32 @@ Die Umsetzung erfolgt in getrennten, jeweils produktionsfähigen PRs. Kein PR da
 
 ### Task 1.1: Migration und Modelle
 
-- [ ] Test schreiben: Migration erzeugt `compute_nodes`, `compute_enrollment_tokens`, `compute_jobs`, `compute_job_events`.
-- [ ] Test schreiben: `local` wird genau einmal angelegt.
-- [ ] Test schreiben: bestehende VMs/Container erhalten `node_id='local'` und `generation=0`.
-- [ ] Tests RED ausführen.
-- [ ] `032_compute_nodes.sql` additiv implementieren.
-- [ ] `compute/models.py` mit strikten Status-Literalen und Grenzen implementieren.
-- [ ] Tests GREEN ausführen.
-- [ ] Commit: `feat(compute): add node and job schema`.
+- [x] Test schreiben: Migration erzeugt `compute_nodes`, `compute_enrollment_tokens`, `compute_jobs`, `compute_job_events`.
+- [x] Test schreiben: `local` wird genau einmal angelegt.
+- [x] Test schreiben: bestehende VMs/Container erhalten `node_id='local'` und `generation=0`.
+- [x] Tests RED ausführen.
+- [x] Migrationsserie `032` bis `039` additiv und nach Teilfehlern wiederaufnehmbar implementieren.
+- [x] `compute/models.py` mit strikten Status-Literalen und Grenzen implementieren.
+- [x] Tests GREEN ausführen.
+- [x] Commit: `feat(compute): add node and job schema`.
 
 ### Task 1.2: Node-Repository
 
-- [ ] Tests für Create/List/Get/Update, eindeutige Namen, Statusübergänge und JSON-Grenzen schreiben.
-- [ ] Tests RED.
-- [ ] `compute/db.py` mit ausschließlich parametrisierten Queries implementieren.
-- [ ] Reservierten `local`-Node gegen Delete/Revoke schützen.
-- [ ] Tests GREEN.
-- [ ] Commit: `feat(compute): add node registry persistence`.
+- [x] Tests für Create/List/Get/Update, eindeutige Namen, Statusübergänge und JSON-Grenzen schreiben.
+- [x] Tests RED.
+- [x] `compute/db.py` mit ausschließlich parametrisierten Queries implementieren.
+- [x] Reservierten `local`-Node gegen Delete/Revoke schützen.
+- [x] Tests GREEN.
+- [x] Commit: `feat(compute): add node registry persistence`.
 
 ### Task 1.3: Bestehende Ressourcen nodefähig machen
 
-- [ ] Tests für Container-/VM-Serialisierung mit `node_id` schreiben.
-- [ ] Tests sichern, dass alte Create-Payloads ohne `node_id` lokal bleiben.
-- [ ] Dataclasses, DB-Mapper und API-Typen additiv erweitern.
-- [ ] Reconciler filtern strikt `node_id='local'`, damit Remote-Ressourcen nie lokal ausgeführt werden.
-- [ ] Bestehende Container-/VM-Suite GREEN.
-- [ ] Commit: `feat(compute): bind resources to local node`.
+- [x] Tests für Container-/VM-Serialisierung mit `node_id` schreiben.
+- [x] Tests sichern, dass alte Create-Payloads ohne `node_id` lokal bleiben.
+- [x] Dataclasses, DB-Mapper und API-Typen additiv erweitern.
+- [x] Reconciler filtern strikt `node_id='local'`, damit Remote-Ressourcen nie lokal ausgeführt werden.
+- [x] Bestehende Container-/VM-Suite GREEN.
+- [x] Commit: `feat(compute): bind resources to local node`.
 
 **P1-Akzeptanz:** Alle Bestandsressourcen verhalten sich unverändert; API-Antworten enthalten zusätzlich den lokalen Node.
 

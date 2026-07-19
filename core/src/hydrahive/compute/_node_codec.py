@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from typing import cast
 
@@ -18,6 +19,9 @@ from hydrahive.compute.models import (
     NodeStatus,
 )
 
+NODE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+CERTIFICATE_FINGERPRINT_RE = re.compile(r"^(?:[0-9A-Fa-f]{64}|(?:[0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2})$")
+
 ALLOWED_STATUS_TRANSITIONS: dict[str, frozenset[str]] = {
     "pending": frozenset({"online", "disabled", "revoked"}),
     "online": frozenset({"degraded", "offline", "draining", "disabled", "revoked"}),
@@ -30,10 +34,18 @@ ALLOWED_STATUS_TRANSITIONS: dict[str, frozenset[str]] = {
 
 
 def validate_identity(node_id: str, name: str) -> None:
-    if not node_id or len(node_id) > MAX_NODE_ID_LENGTH:
-        raise ValueError(f"node_id must contain 1-{MAX_NODE_ID_LENGTH} characters")
-    if not name or len(name) > MAX_NODE_NAME_LENGTH:
-        raise ValueError(f"name must contain 1-{MAX_NODE_NAME_LENGTH} characters")
+    if not node_id or len(node_id) > MAX_NODE_ID_LENGTH or NODE_ID_RE.fullmatch(node_id) is None:
+        raise ValueError(f"node_id must contain 1-{MAX_NODE_ID_LENGTH} safe characters")
+    if not name or len(name) > MAX_NODE_NAME_LENGTH or any(not char.isprintable() for char in name):
+        raise ValueError(f"name must contain 1-{MAX_NODE_NAME_LENGTH} printable characters")
+
+
+def normalize_certificate_fingerprint(value: str | None) -> str | None:
+    if value is None:
+        return None
+    if CERTIFICATE_FINGERPRINT_RE.fullmatch(value) is None:
+        raise ValueError("certificate_fingerprint must be a SHA-256 fingerprint")
+    return value.replace(":", "").lower()
 
 
 def validate_kind(kind: str) -> NodeKind:

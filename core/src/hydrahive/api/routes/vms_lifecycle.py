@@ -2,6 +2,7 @@
 
 Per-User-Owner: Liste/Detail nur eigene VMs (außer Admin).
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,14 +17,21 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.settings import settings
 from hydrahive.api.routes._vm_lifecycle_schemas import VMCreate, VMUpdate
 from hydrahive.api.routes._vms_helpers import (
-    is_admin, resolve_import_job, resolve_iso, serialize, vm_or_404,
+    is_admin,
+    resolve_import_job,
+    resolve_iso,
+    serialize,
+    vm_or_404,
 )
 from hydrahive.vms import db as vmdb
 from hydrahive.vms import disk as vmdisk
 from hydrahive.vms import import_job as vmimport
 from hydrahive.vms import lifecycle
 from hydrahive.vms.models import (
-    DISK_INTERFACES, MACHINE_TYPES, NAME_RE, NETWORK_DEVICES,
+    DISK_INTERFACES,
+    MACHINE_TYPES,
+    NAME_RE,
+    NETWORK_DEVICES,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,19 +51,18 @@ async def create_vm(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     user, role = auth
+    if body.node_id != "local":
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_remote_execution_not_supported")
     if not re.match(NAME_RE, body.name):
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_name_invalid")
     if body.network_mode not in ("bridged", "isolated"):
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_mode_invalid")
     if body.disk_interface not in DISK_INTERFACES:
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid",
-                    value=body.disk_interface)
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid", value=body.disk_interface)
     if body.machine_type not in MACHINE_TYPES:
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_machine_type_invalid",
-                    value=body.machine_type)
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_machine_type_invalid", value=body.machine_type)
     if body.network_device not in NETWORK_DEVICES:
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_device_invalid",
-                    value=body.network_device)
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_device_invalid", value=body.network_device)
     if vmdb.name_taken(user, body.name):
         raise coded(status.HTTP_409_CONFLICT, "vm_name_taken")
 
@@ -63,11 +70,19 @@ async def create_vm(
     import_qcow2 = resolve_import_job(body.import_job_id, user, role)
 
     vm = vmdb.create_vm(
-        owner=user, name=body.name, description=body.description,
-        cpu=body.cpu, ram_mb=body.ram_mb, disk_gb=body.disk_gb,
-        iso_filename=iso_safe, network_mode=body.network_mode,
-        qcow2_path="", disk_interface=body.disk_interface,
-        machine_type=body.machine_type, network_device=body.network_device,
+        owner=user,
+        name=body.name,
+        description=body.description,
+        cpu=body.cpu,
+        ram_mb=body.ram_mb,
+        disk_gb=body.disk_gb,
+        iso_filename=iso_safe,
+        network_mode=body.network_mode,
+        qcow2_path="",
+        disk_interface=body.disk_interface,
+        machine_type=body.machine_type,
+        network_device=body.network_device,
+        node_id=body.node_id,
     )
     try:
         if import_qcow2:
@@ -83,12 +98,11 @@ async def create_vm(
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, e.code, **e.params)
     except OSError as e:
         vmdb.delete_vm(vm.vm_id)
-        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "import_move_failed",
-                    error=str(e))
+        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "import_move_failed", error=str(e))
     from hydrahive.db.connection import db as _db
+
     with _db() as conn:
-        conn.execute("UPDATE vms SET qcow2_path = ? WHERE vm_id = ?",
-                     (str(path), vm.vm_id))
+        conn.execute("UPDATE vms SET qcow2_path = ? WHERE vm_id = ?", (str(path), vm.vm_id))
     return serialize(vmdb.get_vm(vm.vm_id))
 
 
@@ -105,25 +119,26 @@ async def update_vm(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     vm = vm_or_404(vm_id, *auth)
+    try:
+        lifecycle.ensure_local(vm)
+    except lifecycle.VMLifecycleError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
     if vm.actual_state not in ("stopped", "created", "error"):
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_must_be_stopped",
-                    state=vm.actual_state)
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_must_be_stopped", state=vm.actual_state)
     if req.name and req.name != vm.name and not re.match(NAME_RE, req.name):
         raise coded(status.HTTP_400_BAD_REQUEST, "vm_name_invalid", name=req.name)
     if req.name and req.name != vm.name and vmdb.name_taken(vm.owner, req.name, exclude_id=vm_id):
         raise coded(status.HTTP_409_CONFLICT, "vm_name_taken", name=req.name)
     if req.disk_gb is not None and req.disk_gb < vm.disk_gb:
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_shrink_not_supported",
-                    current=vm.disk_gb, requested=req.disk_gb)
+        raise coded(
+            status.HTTP_400_BAD_REQUEST, "vm_disk_shrink_not_supported", current=vm.disk_gb, requested=req.disk_gb
+        )
     if req.disk_interface is not None and req.disk_interface not in DISK_INTERFACES:
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid",
-                    value=req.disk_interface)
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_disk_interface_invalid", value=req.disk_interface)
     if req.machine_type is not None and req.machine_type not in MACHINE_TYPES:
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_machine_type_invalid",
-                    value=req.machine_type)
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_machine_type_invalid", value=req.machine_type)
     if req.network_device is not None and req.network_device not in NETWORK_DEVICES:
-        raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_device_invalid",
-                    value=req.network_device)
+        raise coded(status.HTTP_400_BAD_REQUEST, "vm_network_device_invalid", value=req.network_device)
 
     iso_kw: dict = {}
     if req.clear_iso:
@@ -161,9 +176,11 @@ async def update_vm(
 @router.delete("/{vm_id}", status_code=204)
 async def delete_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> None:
     vm = vm_or_404(vm_id, *auth)
+    try:
+        lifecycle.ensure_local(vm)
+    except lifecycle.VMLifecycleError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
     if vm.actual_state in ("running", "starting"):
         await lifecycle.shutdown(vm_id, hard=True)
     vmdisk.remove_qcow2(vm_id)
     vmdb.delete_vm(vm_id)
-
-

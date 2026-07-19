@@ -1,4 +1,5 @@
 """VM runtime operation routes (start / stop / poweroff / stats / log)."""
+
 from __future__ import annotations
 
 import logging
@@ -8,7 +9,7 @@ from fastapi import APIRouter, Depends
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._vms_helpers import serialize, vm_or_404
+from hydrahive.api.routes._vms_helpers import ensure_local_vm, serialize, vm_or_404
 from hydrahive.settings import settings
 from hydrahive.vms import db as vmdb
 from hydrahive.vms import lifecycle
@@ -31,30 +32,39 @@ async def start_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_
 
 @router.post("/{vm_id}/stop")
 async def stop_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    vm_or_404(vm_id, *auth)
-    await lifecycle.shutdown(vm_id, hard=False)
+    ensure_local_vm(vm_or_404(vm_id, *auth))
+    try:
+        await lifecycle.shutdown(vm_id, hard=False)
+    except lifecycle.VMLifecycleError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
     return serialize(vmdb.get_vm(vm_id))
 
 
 @router.post("/{vm_id}/poweroff")
 async def poweroff_vm(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    vm_or_404(vm_id, *auth)
-    await lifecycle.shutdown(vm_id, hard=True)
+    ensure_local_vm(vm_or_404(vm_id, *auth))
+    try:
+        await lifecycle.shutdown(vm_id, hard=True)
+    except lifecycle.VMLifecycleError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code, **e.params)
     return serialize(vmdb.get_vm(vm_id))
 
 
 @router.get("/{vm_id}/stats")
 def vm_stats(vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     vm = vm_or_404(vm_id, *auth)
+    ensure_local_vm(vm)
     return vmstats.read_stats(vm.vm_id, vm.pid)
 
 
 @router.get("/{vm_id}/log")
 def vm_log(
-    vm_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)],
+    vm_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
     tail: int = 200,
 ) -> dict:
     vm = vm_or_404(vm_id, *auth)
+    ensure_local_vm(vm)
     log_path = settings.vms_logs_dir / f"{vm.vm_id}.log"
     if not log_path.exists():
         return {"lines": [], "exists": False}

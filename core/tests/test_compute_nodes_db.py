@@ -7,6 +7,7 @@ import pytest
 
 from hydrahive.compute import db as node_db
 from hydrahive.compute.models import MAX_NODE_JSON_BYTES, ComputeNode
+from hydrahive.containers import db as container_db
 from hydrahive.db.connection import init_db
 from hydrahive.settings import settings
 
@@ -66,12 +67,21 @@ def test_node_registry_validates_model_bounds(compute_db: Path, kwargs: dict[str
 
 
 def test_node_registry_updates_fields_and_validates_status_transitions(compute_db: Path) -> None:
-    node_db.create_node(node_id="node-a", name="Compute A")
+    node_db.create_node(
+        node_id="node-a",
+        name="Compute A",
+        certificate_fingerprint="ab" * 32,
+    )
 
+    with pytest.raises(ValueError, match="approval"):
+        node_db.transition_node_status("node-a", "online")
+    approved = node_db.approve_node("node-a", "admin")
+    assert approved is not None
+    assert approved.approved_at is not None
+    assert approved.approved_by == "admin"
     updated = node_db.update_node(
         "node-a",
         name="Compute Alpha",
-        status="online",
         agent_version="1.2.3",
         capabilities={"instances": ["container", "vm"]},
     )
@@ -81,7 +91,7 @@ def test_node_registry_updates_fields_and_validates_status_transitions(compute_d
     assert updated.agent_version == "1.2.3"
 
     with pytest.raises(ValueError, match="transition"):
-        node_db.update_node("node-a", status="pending")
+        node_db.transition_node_status("node-a", "pending")
 
 
 def test_node_registry_rejects_invalid_and_oversized_json(compute_db: Path) -> None:
@@ -103,7 +113,7 @@ def test_node_registry_persists_revoke_and_delete(compute_db: Path) -> None:
     assert revoked.status == "revoked"
     assert revoked.revoked_at is not None
     with pytest.raises(ValueError, match="transition"):
-        node_db.update_node("node-a", status="online")
+        node_db.transition_node_status("node-a", "online")
 
     node_db.create_node(node_id="node-b", name="Compute B")
     node_db.delete_node("node-b")
@@ -116,4 +126,41 @@ def test_local_node_cannot_be_deleted_or_revoked(compute_db: Path) -> None:
     with pytest.raises(ValueError, match="local"):
         node_db.revoke_node("local")
 
+    with pytest.raises(ValueError, match="local"):
+        node_db.transition_node_status("local", "offline")
+
     assert node_db.get_node("local") is not None
+
+
+def test_new_nodes_must_be_pending_and_fingerprints_are_canonical(compute_db: Path) -> None:
+    node_db.create_node(node_id="node-no-cert", name="No Certificate")
+    with pytest.raises(ValueError, match="certificate fingerprint"):
+        node_db.approve_node("node-no-cert", "admin")
+    node_db.transition_node_status("node-no-cert", "disabled")
+    with pytest.raises(ValueError, match="approval"):
+        node_db.transition_node_status("node-no-cert", "online")
+    with pytest.raises(ValueError, match="pending"):
+        node_db.create_node(node_id="node-online", name="Online", status="online")
+    with pytest.raises(ValueError, match="fingerprint"):
+        node_db.create_node(node_id="node-bad-cert", name="Bad Cert", certificate_fingerprint="invalid")
+
+    fingerprint = ":".join(["AB"] * 32)
+    node = node_db.create_node(
+        node_id="node-cert",
+        name="Certificate Node",
+        certificate_fingerprint=fingerprint,
+    )
+    assert node.certificate_fingerprint == "ab" * 32
+
+
+def test_node_with_placed_resources_cannot_be_deleted(compute_db: Path) -> None:
+    node_db.create_node(node_id="node-a", name="Compute A")
+    container_db.create(
+        owner="admin",
+        name="remote-container",
+        image="images:debian/12",
+        node_id="node-a",
+    )
+
+    with pytest.raises(ValueError, match="in use"):
+        node_db.delete_node("node-a")

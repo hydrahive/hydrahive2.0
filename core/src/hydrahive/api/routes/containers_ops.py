@@ -1,4 +1,5 @@
 """Container lifecycle + inspection routes (start / stop / restart / log / config / info)."""
+
 from __future__ import annotations
 
 import logging
@@ -9,7 +10,7 @@ from fastapi import APIRouter, Depends
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._container_helpers import container_or_404
+from hydrahive.api.routes._container_helpers import container_or_404, ensure_local_container
 from hydrahive.containers import db as cdb
 from hydrahive.containers import incus_client as incus
 from hydrahive.containers import lifecycle
@@ -64,6 +65,7 @@ async def container_log(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     c = container_or_404(container_id, *auth)
+    ensure_local_container(c)
     return {"text": await incus.show_log(c.name)}
 
 
@@ -73,6 +75,7 @@ async def container_config(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     c = container_or_404(container_id, *auth)
+    ensure_local_container(c)
     return {"text": await incus.show_config(c.name)}
 
 
@@ -83,6 +86,7 @@ async def container_info(
 ) -> dict:
     """Live info from incus: status, CPU/memory, IP."""
     c = container_or_404(container_id, *auth)
+    ensure_local_container(c)
     info = await incus.info(c.name)
     if not info:
         return {"alive": False}

@@ -8,11 +8,20 @@ from hydrahive.db.migrations import apply_migrations
 MIGRATIONS_DIR = Path(__file__).parents[1] / "src" / "hydrahive" / "db" / "migrations"
 
 
+def _migration_version(path: Path) -> int:
+    return int(path.name.split("_", 1)[0])
+
+
 def _apply_through_031(conn: sqlite3.Connection) -> None:
     for migration in sorted(MIGRATIONS_DIR.glob("*.sql")):
-        if migration.name.startswith("032_"):
-            continue
-        conn.executescript(migration.read_text())
+        if _migration_version(migration) <= 31:
+            conn.executescript(migration.read_text())
+
+
+def _apply_compute_migrations(conn: sqlite3.Connection) -> None:
+    for migration in sorted(MIGRATIONS_DIR.glob("*.sql")):
+        if 32 <= _migration_version(migration) <= 39:
+            conn.executescript(migration.read_text())
 
 
 def test_migration_creates_compute_schema_and_local_node_once(tmp_path: Path) -> None:
@@ -100,6 +109,29 @@ def test_migration_creates_compute_schema_and_local_node_once(tmp_path: Path) ->
         conn.close()
 
 
+def test_compute_migrations_resume_after_legacy_columns_were_partially_applied(tmp_path: Path) -> None:
+    conn = sqlite3.connect(tmp_path / "partial.db")
+    conn.row_factory = sqlite3.Row
+    try:
+        apply_migrations(conn)
+        conn.execute("DELETE FROM schema_version WHERE version >= 33")
+        conn.execute("DROP INDEX idx_containers_node_id")
+        conn.execute("DROP INDEX idx_vms_node_id")
+        conn.execute("DROP TRIGGER compute_nodes_restrict_delete")
+        conn.commit()
+
+        apply_migrations(conn)
+
+        version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+        indexes = {row["name"] for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'index'")}
+        triggers = {row["name"] for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'trigger'")}
+        assert version >= 39
+        assert {"idx_containers_node_id", "idx_vms_node_id"} <= indexes
+        assert "compute_nodes_restrict_delete" in triggers
+    finally:
+        conn.close()
+
+
 def test_migration_backfills_existing_resources(tmp_path: Path) -> None:
     conn = sqlite3.connect(tmp_path / "backfill.db")
     conn.row_factory = sqlite3.Row
@@ -118,14 +150,17 @@ def test_migration_backfills_existing_resources(tmp_path: Path) -> None:
             ("vm-1", "owner", "existing-vm", 2, 2048, 20, "/tmp/vm.qcow2", "before", "before"),
         )
 
-        conn.executescript((MIGRATIONS_DIR / "032_compute_nodes.sql").read_text())
+        _apply_compute_migrations(conn)
 
         container = conn.execute(
             "SELECT node_id, generation FROM containers WHERE container_id = ?",
             ("container-1",),
         ).fetchone()
-        vm = conn.execute("SELECT node_id, generation FROM vms WHERE vm_id = ?", ("vm-1",)).fetchone()
+        vm = conn.execute(
+            "SELECT node_id, generation, runtime, runtime_ref FROM vms WHERE vm_id = ?",
+            ("vm-1",),
+        ).fetchone()
         assert tuple(container) == ("local", 0)
-        assert tuple(vm) == ("local", 0)
+        assert tuple(vm) == ("local", 0, "qemu", None)
     finally:
         conn.close()

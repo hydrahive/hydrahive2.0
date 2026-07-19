@@ -1,7 +1,6 @@
--- 032: Compute-cluster foundation: node registry, enrollment/job persistence,
--- and additive placement metadata for existing local resources.
+-- 032: Compute-cluster foundation: idempotent node registry and job tables.
 
-CREATE TABLE compute_nodes (
+CREATE TABLE IF NOT EXISTS compute_nodes (
     node_id                  TEXT PRIMARY KEY,
     name                     TEXT NOT NULL UNIQUE,
     kind                     TEXT NOT NULL CHECK (kind IN ('local', 'agent')),
@@ -28,9 +27,9 @@ INSERT INTO compute_nodes (
 ) VALUES (
     'local', 'Local Host', 'local', 'online', 1,
     '{}', '{}', '{}', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-) ON CONFLICT(node_id) DO NOTHING;
+) ON CONFLICT DO NOTHING;
 
-CREATE TABLE compute_enrollment_tokens (
+CREATE TABLE IF NOT EXISTS compute_enrollment_tokens (
     token_id         TEXT PRIMARY KEY,
     token_hmac       TEXT NOT NULL UNIQUE,
     requested_name   TEXT NOT NULL,
@@ -40,7 +39,7 @@ CREATE TABLE compute_enrollment_tokens (
     created_at       TEXT NOT NULL
 );
 
-CREATE TABLE compute_jobs (
+CREATE TABLE IF NOT EXISTS compute_jobs (
     job_id               TEXT PRIMARY KEY,
     node_id               TEXT NOT NULL REFERENCES compute_nodes(node_id),
     resource_kind         TEXT NOT NULL CHECK (resource_kind IN ('container', 'vm', 'node')),
@@ -64,7 +63,7 @@ CREATE TABLE compute_jobs (
     finished_at           TEXT
 );
 
-CREATE TABLE compute_job_events (
+CREATE TABLE IF NOT EXISTS compute_job_events (
     event_id       INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id         TEXT NOT NULL REFERENCES compute_jobs(job_id) ON DELETE CASCADE,
     sequence       INTEGER NOT NULL CHECK (sequence >= 0),
@@ -74,14 +73,6 @@ CREATE TABLE compute_job_events (
     UNIQUE(job_id, sequence)
 );
 
-CREATE INDEX idx_compute_nodes_status ON compute_nodes(status);
-CREATE INDEX idx_compute_jobs_node_status ON compute_jobs(node_id, status);
-CREATE INDEX idx_compute_job_events_job ON compute_job_events(job_id, sequence);
-
-ALTER TABLE containers ADD COLUMN node_id TEXT NOT NULL DEFAULT 'local';
-ALTER TABLE containers ADD COLUMN generation INTEGER NOT NULL DEFAULT 0 CHECK (generation >= 0);
-CREATE INDEX idx_containers_node_id ON containers(node_id);
-
-ALTER TABLE vms ADD COLUMN node_id TEXT NOT NULL DEFAULT 'local';
-ALTER TABLE vms ADD COLUMN generation INTEGER NOT NULL DEFAULT 0 CHECK (generation >= 0);
-CREATE INDEX idx_vms_node_id ON vms(node_id);
+CREATE INDEX IF NOT EXISTS idx_compute_nodes_status ON compute_nodes(status);
+CREATE INDEX IF NOT EXISTS idx_compute_jobs_node_status ON compute_jobs(node_id, status);
+CREATE INDEX IF NOT EXISTS idx_compute_job_events_job ON compute_job_events(job_id, sequence);
