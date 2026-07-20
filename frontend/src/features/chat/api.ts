@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/features/auth/useAuthStore"
-import { api } from "@/shared/api-client"
+import { api, buildErrorMessage } from "@/shared/api-client"
 import type { AgentBrief, Message, RunnerEvent, Session } from "./types"
 
 export interface ProjectBrief {
@@ -68,10 +68,9 @@ export async function* sendMessage(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    const detail = body.detail
     const msg = res.status === 409
       ? "Agent läuft noch – bitte kurz warten"
-      : typeof detail === "string" ? detail : (detail?.code ?? `HTTP ${res.status}`)
+      : buildErrorMessage(body, res.status)
     throw new Error(msg)
   }
   if (!res.body) throw new Error("Kein Response-Body")

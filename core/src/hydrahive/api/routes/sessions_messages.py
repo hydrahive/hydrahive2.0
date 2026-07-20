@@ -188,8 +188,8 @@ async def resend_message(
     if target.role != "user":
         raise coded(status.HTTP_400_BAD_REQUEST, "message_not_editable")
 
+    user_content = await build_user_content(s, text, files or [])
     messages_db.delete_from(session_id, message_id)
-    user_content = await build_user_content(s.agent_id, text, files or [])
     return await sse_run_with_guard(session_id, user_content)
 
 
@@ -205,7 +205,7 @@ async def post_message(
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     check_owner(s, *auth)
 
-    user_content = await build_user_content(s.agent_id, text, files or [])
+    user_content = await build_user_content(s, text, files or [])
     return await sse_run_with_guard(session_id, user_content)
 
 
@@ -256,7 +256,7 @@ async def inject_message(
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     if is_running(session_id):
         raise coded(status.HTTP_409_CONFLICT, "session_already_running")
-    user_content = await build_user_content(s.agent_id, text, [])
+    user_content = await build_user_content(s, text, [])
 
     async def _run() -> None:
         logger.info("inject %s: background task starting", session_id)

@@ -70,7 +70,10 @@
     "stop_title": "Stop — Antwort abbrechen"
   },
   "upload": {
-    "button_title": "Datei anhängen"
+    "button_title": "Datei anhängen",
+    "file_too_large": "{{name}} ist zu groß. Maximal {{maxMiB}} MiB pro Datei.",
+    "total_too_large": "Die Anhänge sind zusammen zu groß. Maximal {{maxMiB}} MiB pro Nachricht.",
+    "too_many": "Es sind maximal {{maxFiles}} Dateien pro Nachricht erlaubt."
   },
   "messages": {
     "empty": "Schreibe eine Nachricht um zu starten…",

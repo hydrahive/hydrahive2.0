@@ -7,8 +7,10 @@ import { EmotePicker } from "./EmotePicker"
 import { PromptArchivePicker } from "./PromptArchivePicker"
 
 const MAX_FILES = 5
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
-const MAX_TEXT_BYTES = 100 * 1024
+const MAX_FILE_BYTES = 100 * 1024 * 1024
+const MAX_TOTAL_BYTES = 200 * 1024 * 1024
+const MAX_FILE_MIB = MAX_FILE_BYTES / (1024 * 1024)
+const MAX_TOTAL_MIB = MAX_TOTAL_BYTES / (1024 * 1024)
 
 interface Props {
   onSend: (text: string, files: File[]) => void
@@ -28,6 +30,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
     setText((prev) => (prev ? prev + " " + transcript : transcript))
   })
   const [files, setFiles] = useState<File[]>([])
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -38,6 +41,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
     onSend(trimmed, files)
     setText("")
     setFiles([])
+    setUploadError(null)
     if (textRef.current) textRef.current.style.height = "auto"
   }
 
@@ -65,12 +69,26 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
   function addFiles(incoming: FileList | null) {
     if (!incoming) return
     const next = [...files]
-    for (const f of Array.from(incoming)) {
-      if (next.length >= MAX_FILES) break
-      const limit = f.type.startsWith("image/") ? MAX_IMAGE_BYTES : MAX_TEXT_BYTES * 500
-      if (f.size <= limit) next.push(f)
+    let total = next.reduce((sum, file) => sum + file.size, 0)
+    let error: string | null = null
+    for (const file of Array.from(incoming)) {
+      if (next.length >= MAX_FILES) {
+        error ??= t("upload.too_many", { maxFiles: MAX_FILES })
+        break
+      }
+      if (file.size > MAX_FILE_BYTES) {
+        error ??= t("upload.file_too_large", { name: file.name, maxMiB: MAX_FILE_MIB })
+        continue
+      }
+      if (total + file.size > MAX_TOTAL_BYTES) {
+        error ??= t("upload.total_too_large", { maxMiB: MAX_TOTAL_MIB })
+        continue
+      }
+      next.push(file)
+      total += file.size
     }
     setFiles(next)
+    setUploadError(error)
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -85,9 +103,16 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
     >
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
-          {files.map((f, i) => <MessageFileChip key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />)}
+          {files.map((f, i) => (
+            <MessageFileChip
+              key={i}
+              file={f}
+              onRemove={() => { setFiles(files.filter((_, j) => j !== i)); setUploadError(null) }}
+            />
+          ))}
         </div>
       )}
+      {uploadError && <p role="alert" className="mb-2 text-xs text-rose-400">{uploadError}</p>}
       <div className={`flex items-end gap-2 rounded-[4px] border bg-[#080d15] px-3 py-2 transition-colors
         ${dragOver ? "border-[#69d7ff]/60 bg-[#0d1420]" : "border-[#2a364b] focus-within:border-[#46617f]"}`}>
         <button

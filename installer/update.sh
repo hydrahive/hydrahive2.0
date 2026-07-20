@@ -505,6 +505,7 @@ else
   grep -q "assets.coingecko.com"         "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "resources.cryptocompare.com" "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "hh_cache_control"            "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "chat-upload-limit"           "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "/api/compute/agent/connect"   "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "ssl_verify_client optional"   "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "hydrahive-compute-secret.conf" "$NGINX_CONF" || NEEDS_REWRITE=1
