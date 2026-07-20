@@ -142,6 +142,27 @@ server {
         client_max_body_size 64k;
     }
 
+    # chat-upload-limit: 200 MiB Nutzdaten + Multipart-Overhead vor FastAPI begrenzen.
+    location ~ ^/api/sessions/[^/]+/messages(?:/[^/]+/resend)?/?$ {
+        proxy_pass http://$HH_HOST:$HH_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+        client_max_body_size 205M;
+        error_page 413 = @chat_upload_limit_error;
+    }
+
+    location @chat_upload_limit_error {
+        default_type application/json;
+        return 413 '{"detail":{"code":"upload_request_too_large","params":{"max_mib":205}}}';
+    }
+
     location /api/ {
         proxy_pass http://$HH_HOST:$HH_PORT;
         proxy_http_version 1.1;

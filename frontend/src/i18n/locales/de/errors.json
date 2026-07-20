@@ -26,6 +26,10 @@
 
   "session_not_found": "Session nicht gefunden",
   "session_no_access": "Kein Zugriff auf diese Session",
+  "upload_file_too_large": "{{filename}} ist zu groß. Maximal {{max_mib}} MiB pro Datei.",
+  "upload_total_too_large": "Die Anhänge sind zusammen zu groß. Maximal {{max_mib}} MiB pro Nachricht.",
+  "upload_too_many_files": "Es sind maximal {{max_files}} Dateien pro Nachricht erlaubt.",
+  "upload_size_unknown": "Die Dateigröße konnte nicht bestimmt werden.",
 
   "project_not_found": "Projekt nicht gefunden",
   "project_no_access": "Kein Zugriff auf dieses Projekt",
@@ -131,6 +135,12 @@
   "incus_stop_failed": "incus stop fehlgeschlagen: {{stderr}}",
   "incus_restart_failed": "incus restart fehlgeschlagen: {{stderr}}",
   "incus_delete_failed": "incus delete fehlgeschlagen: {{stderr}}",
+
+  "upload_file_too_large": "Die Datei „{{filename}}“ ist größer als {{max_mib}} MiB.",
+  "upload_total_too_large": "Die Anhänge sind zusammen größer als {{max_mib}} MiB.",
+  "upload_too_many_files": "Pro Nachricht sind höchstens {{max_files}} Anhänge erlaubt.",
+  "upload_size_unknown": "Die Größe eines Anhangs konnte nicht sicher bestimmt werden.",
+  "upload_request_too_large": "Die Upload-Anfrage ist inklusive Übertragungsdaten größer als {{max_mib}} MiB.",
 
   "validation_error": "{{message}}"
 }

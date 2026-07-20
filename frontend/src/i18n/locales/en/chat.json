@@ -70,7 +70,10 @@
     "stop_title": "Stop — cancel response"
   },
   "upload": {
-    "button_title": "Attach file"
+    "button_title": "Attach file",
+    "file_too_large": "{{name}} is too large. Maximum {{maxMiB}} MiB per file.",
+    "total_too_large": "The attachments are too large in total. Maximum {{maxMiB}} MiB per message.",
+    "too_many": "A maximum of {{maxFiles}} files per message is allowed."
   },
   "messages": {
     "empty": "Write a message to start…",

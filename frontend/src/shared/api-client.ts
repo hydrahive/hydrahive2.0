@@ -10,7 +10,7 @@ function isCoded(detail: unknown): detail is CodedDetail {
   return typeof detail === "object" && detail !== null && "code" in detail && typeof (detail as CodedDetail).code === "string"
 }
 
-function buildErrorMessage(body: { detail?: unknown }, status: number): string {
+export function buildErrorMessage(body: { detail?: unknown }, status: number): string {
   if (isCoded(body.detail)) {
     const { code, params } = body.detail
     const key = `errors:${code}`

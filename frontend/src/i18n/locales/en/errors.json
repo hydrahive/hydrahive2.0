@@ -26,6 +26,10 @@
 
   "session_not_found": "Session not found",
   "session_no_access": "No access to this session",
+  "upload_file_too_large": "{{filename}} is too large. Maximum {{max_mib}} MiB per file.",
+  "upload_total_too_large": "The attachments are too large in total. Maximum {{max_mib}} MiB per message.",
+  "upload_too_many_files": "A maximum of {{max_files}} files per message is allowed.",
+  "upload_size_unknown": "The file size could not be determined.",
 
   "project_not_found": "Project not found",
   "project_no_access": "No access to this project",
@@ -131,6 +135,12 @@
   "incus_stop_failed": "incus stop failed: {{stderr}}",
   "incus_restart_failed": "incus restart failed: {{stderr}}",
   "incus_delete_failed": "incus delete failed: {{stderr}}",
+
+  "upload_file_too_large": "The file “{{filename}}” is larger than {{max_mib}} MiB.",
+  "upload_total_too_large": "The attachments exceed the combined {{max_mib}} MiB limit.",
+  "upload_too_many_files": "A message can contain at most {{max_files}} attachments.",
+  "upload_size_unknown": "The size of an attachment could not be determined safely.",
+  "upload_request_too_large": "The upload request, including transfer overhead, exceeds {{max_mib}} MiB.",
 
   "validation_error": "{{message}}"
 }
