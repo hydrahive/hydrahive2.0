@@ -132,6 +132,29 @@ async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
         return []
 
 
+async def _fetch_ollama_models(provider: dict) -> list[dict]:
+    """Holt Ollama-Modelle live vom user-eigenen Endpoint (OpenAI-kompatibel).
+
+    Anders als die Cloud-Provider kommt die Base-URL aus der llm.json (`api_base`),
+    nicht aus PROVIDER_ENDPOINTS. Ollama braucht lokal keinen Key; ein optionaler
+    Key (Ollama-Cloud) wird als Bearer mitgegeben. Bei Fehler: leere Liste."""
+    base = (provider.get("api_base") or "").rstrip("/")
+    if not base:
+        return []
+    key = provider.get("api_key", "") or ""
+    url = f"{base}/v1/models"
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        return _parse_models_response("ollama", data)
+    except Exception as e:
+        logger.warning("Catalog: Ollama live-fetch (%s) fehlgeschlagen: %s", url, e)
+        return []
+
+
 def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
     """Joint Live-Eintrag mit METADATA. Live-context_window hat Vorrang."""
     from hydrahive.llm._anthropic import _uses_effort_param
@@ -159,6 +182,17 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
     """
     async def one(p: dict) -> dict:
         pid = p.get("id", "")
+        # Ollama: user-eigener Endpoint. api_base statt Cloud-URL, kein Key nötig.
+        if pid == "ollama":
+            entries = await _fetch_ollama_models(p)
+            models = [_enrich(pid, e) for e in entries]
+            return {
+                "provider_id": pid,
+                "provider_name": p.get("name", pid),
+                "configured": bool(p.get("api_base")),
+                "models": models,
+                "live_count": len(entries),
+            }
         key = p.get("api_key", "") or (p.get("oauth") or {}).get("access", "")
         entries = await _cached_fetch(pid, key)
         if not entries:

@@ -14,6 +14,10 @@ _ENV_MAP = {
     "mistral": "MISTRAL_API_KEY",
     "gemini": "GEMINI_API_KEY",
     "nvidia": "NVIDIA_NIM_API_KEY",
+    # Ollama kennt optional einen Key (Ollama-Cloud / geschützte Instanzen);
+    # lokal läuft es ohne Key. Trotzdem in _ENV_MAP, damit ein gesetzter Key
+    # via provider_env_vars() automatisch in der shell_exec-Denylist landet.
+    "ollama": "OLLAMA_API_KEY",
 }
 
 def provider_env_vars() -> set[str]:
@@ -40,6 +44,18 @@ def load_config() -> dict:
     data = json.loads(path.read_text())
     _config_cache = (mtime, data)
     return data
+
+
+def provider_api_base(config: dict, provider_id: str) -> str | None:
+    """Liefert die konfigurierte `api_base` eines Providers aus der llm.json.
+
+    Für OpenAI-kompatible Provider mit user-eigenem Endpoint (Ollama, LM Studio,
+    vLLM …). None, wenn der Provider keine api_base gesetzt hat."""
+    for p in config.get("providers", []):
+        if p.get("id", "") == provider_id:
+            base = p.get("api_base") or None
+            return base.rstrip("/") if base else None
+    return None
 
 
 def apply_keys(config: dict) -> None:
