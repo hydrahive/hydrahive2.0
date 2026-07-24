@@ -58,6 +58,27 @@ def provider_api_base(config: dict, provider_id: str) -> str | None:
     return None
 
 
+# Ollama defaultet lokal auf num_ctx=4096 (bzw. OLLAMA_CONTEXT_LENGTH). Wenn
+# HydraHive num_ctx nicht mitschickt, wird jeder Prompt > 4k Tokens still
+# abgeschnitten -> "Kontext stimmt nicht" + Dauer-Compact. Wir schicken deshalb
+# aktiv ein num_ctx mit. Obergrenze, damit ein 128k-Modell nicht versehentlich
+# den VRAM sprengt (num_ctx skaliert den KV-Cache linear).
+OLLAMA_NUM_CTX_CAP = 32768
+OLLAMA_NUM_CTX_DEFAULT = 8192
+
+
+def num_ctx_for_ollama(context_window: int | None) -> int:
+    """Leitet ein VRAM-verträgliches num_ctx aus dem Modell-Kontextfenster ab.
+
+    - None/0: konservativer, aber brauchbarer Default (nicht Ollamas 4k-Deckel).
+    - kleines Fenster: unverändert übernehmen (nicht künstlich aufblasen).
+    - großes Fenster: auf OLLAMA_NUM_CTX_CAP begrenzen (KV-Cache-Schutz).
+    """
+    if not context_window or context_window <= 0:
+        return OLLAMA_NUM_CTX_DEFAULT
+    return min(context_window, OLLAMA_NUM_CTX_CAP)
+
+
 def apply_keys(config: dict) -> None:
     """Setzt Provider-API-Keys als ENV-Vars für LiteLLM-Pfad."""
     for p in config.get("providers", []):

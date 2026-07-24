@@ -103,6 +103,14 @@ async def call_with_tools(
     # aus der llm.json an LiteLLM durchreichen. Der Provider-Prefix im Modell-String
     # (z.B. "ollama/llama3.1") mappt auf die provider_id.
     api_base = _resolve_api_base(cfg, target)
+    # Ollama: num_ctx explizit mitschicken, sonst deckelt Ollama lokal auf 4096
+    # und schneidet größere Prompts ab. Das Fenster kommt aus context_window_for
+    # (SSOT — dieselbe Zahl, mit der die Compaction rechnet).
+    num_ctx = None
+    if target.startswith("ollama/"):
+        from hydrahive.compaction.tokens import context_window_for
+        from hydrahive.llm._config import num_ctx_for_ollama
+        num_ctx = num_ctx_for_ollama(context_window_for(target))
     return await litellm_call(
         model=target,
         system_prompt=full_system,
@@ -111,6 +119,7 @@ async def call_with_tools(
         temperature=temperature,
         max_tokens=max_tokens,
         api_base=api_base,
+        num_ctx=num_ctx,
     )
 
 

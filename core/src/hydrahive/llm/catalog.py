@@ -149,10 +149,68 @@ async def _fetch_ollama_models(provider: dict) -> list[dict]:
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
-        return _parse_models_response("ollama", data)
+            entries = _parse_models_response("ollama", data)
+            # Ollamas OpenAI-/v1/models liefert weder context_length noch die
+            # Tool-Capability. Beides steht nur im nativen /api/show. Ohne diese
+            # Anreicherung landet jedes Modell mit context_window=None im Catalog
+            # (-> falsche Compaction-Rechnung -> Dauer-Compact) und tool_use=None.
+            await _enrich_ollama_from_show(client, base, headers, entries)
+        return entries
     except Exception as e:
         logger.warning("Catalog: Ollama live-fetch (%s) fehlgeschlagen: %s", url, e)
         return []
+
+
+def _ollama_bare_name(entry_id: str) -> str:
+    """'ollama/qwen3:14b' -> 'qwen3:14b' (Name den /api/show erwartet)."""
+    return entry_id.split("/", 1)[1] if entry_id.startswith("ollama/") else entry_id
+
+
+def _parse_ollama_show(data: dict) -> tuple[int | None, bool | None]:
+    """Zieht (context_window, tool_use) aus einer /api/show-Antwort.
+
+    context_length steht unter model_info["<arch>.context_length"] (der
+    Architektur-Prefix variiert: 'qwen3.', 'llama.', 'gemma3.' …), deshalb
+    suchen wir per Suffix. tool_use kommt aus capabilities (enthält "tools").
+    """
+    info = data.get("model_info") or {}
+    ctx: int | None = None
+    for k, v in info.items():
+        if k.endswith(".context_length") and isinstance(v, int):
+            ctx = v
+            break
+    caps = data.get("capabilities")
+    tool_use: bool | None = None
+    if isinstance(caps, list):
+        tool_use = "tools" in caps
+    return ctx, tool_use
+
+
+async def _enrich_ollama_from_show(client, base, headers, entries: list[dict]) -> None:
+    """Reichert jeden Ollama-Eintrag in-place mit /api/show-Daten an.
+
+    Fehler pro Modell werden geschluckt (context_window bleibt dann None) —
+    ein einzelnes kaputtes Modell darf nicht die ganze Liste killen.
+    """
+    show_url = f"{base}/api/show"
+
+    async def one(entry: dict) -> None:
+        try:
+            r = await client.post(
+                show_url, json={"model": _ollama_bare_name(entry["id"])},
+                headers=headers,
+            )
+            r.raise_for_status()
+            ctx, tool_use = _parse_ollama_show(r.json())
+        except Exception as e:  # noqa: BLE001 - best effort pro Modell
+            logger.debug("Catalog: /api/show für %s fehlgeschlagen: %s", entry.get("id"), e)
+            return
+        if ctx:
+            entry["context_window"] = ctx
+        if tool_use is not None:
+            entry["tool_use"] = tool_use
+
+    await asyncio.gather(*(one(e) for e in entries))
 
 
 def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
@@ -162,7 +220,10 @@ def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
     return {
         "id": entry["id"],
         "context_window": entry.get("context_window") or md.get("context_window"),
-        "tool_use": md.get("tool_use"),
+        # Live-tool_use (z.B. aus Ollama /api/show capabilities) hat Vorrang vor
+        # der statischen METADATA. `entry.get("tool_use")` kann True/False/None
+        # sein — nur wenn es None ist, auf METADATA zurückfallen.
+        "tool_use": entry["tool_use"] if entry.get("tool_use") is not None else md.get("tool_use"),
         "category": md.get("category", "chat"),
         "family": md.get("family", "?"),
         "is_free": entry.get("is_free"),
