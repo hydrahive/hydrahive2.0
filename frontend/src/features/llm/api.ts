@@ -13,6 +13,8 @@ export interface LlmProvider {
   name: string
   api_key: string
   group_id?: string
+  // Für Provider mit user-eigenem Endpoint (Ollama, LM Studio, vLLM …).
+  api_base?: string
   models: string[]
   oauth?: OAuthBlock
 }

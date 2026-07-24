@@ -45,6 +45,15 @@ export const KNOWN_PROVIDERS = [
     id: "nvidia", name: "NVIDIA NIM", placeholder: "nvapi-...",
     models: [],
   },
+  {
+    // Lokaler/Remote-Ollama: user-eigener Endpoint (api_base). Kein Key nötig
+    // (nur Ollama-Cloud/geschützte Instanzen). needsApiBase blendet das
+    // Endpoint-Feld ein und macht den Key optional.
+    id: "ollama", name: "Ollama (lokal)", placeholder: "leer für lokal (nur Cloud braucht Key)",
+    needsApiBase: true as const,
+    apiBasePlaceholder: "http://localhost:11434",
+    models: [],
+  },
 ]
 
 export const EMPTY_PROVIDER: LlmProvider = { id: "", name: "", api_key: "", models: [] }

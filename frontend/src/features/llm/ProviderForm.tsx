@@ -25,6 +25,9 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
   const isOAuth = (known as { auth?: string } | undefined)?.auth === "oauth"
   // Hybrid-Provider (Anthropic): Key-Feld bleibt sichtbar UND zusätzlich OAuth-Login.
   const isOAuthOptional = (known as { oauthOptional?: boolean } | undefined)?.oauthOptional === true
+  // Provider mit user-eigenem Endpoint (Ollama): api_base-Feld + Key optional.
+  const needsApiBase = (known as { needsApiBase?: boolean } | undefined)?.needsApiBase === true
+  const apiBasePlaceholder = (known as { apiBasePlaceholder?: string } | undefined)?.apiBasePlaceholder ?? "https://…"
   const hasToken = !!form.oauth?.access
 
   function handleSubmit(e: React.FormEvent) {
@@ -73,6 +76,15 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
             className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
         </div>
       )}
+      {needsApiBase && (
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1">Endpoint (api_base) <span className="text-zinc-600">(Pflicht)</span></label>
+          <input type="text" value={form.api_base ?? ""} onChange={(e) => setForm({ ...form, api_base: e.target.value || undefined })}
+            placeholder={apiBasePlaceholder}
+            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+          <p className="text-[10px] text-zinc-500 mt-1">URL deiner Ollama-Instanz. Modelle werden live von diesem Endpoint geladen. Key nur für Ollama-Cloud/geschützte Instanzen.</p>
+        </div>
+      )}
       {isOAuth && !hasToken && (
         <OAuthFlow
           providerId={form.id}
@@ -114,7 +126,9 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
             || (isOAuth && !hasToken)
             // Hybrid (Anthropic): Key ODER OAuth-Token reicht.
             || (isOAuthOptional && !form.api_key && !hasToken)
-            || (!isOAuth && !isOAuthOptional && !form.api_key)
+            // Ollama: api_base ist Pflicht, Key optional.
+            || (needsApiBase && !form.api_base)
+            || (!isOAuth && !isOAuthOptional && !needsApiBase && !form.api_key)
           }
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-all">
           <Plus size={14} /> {isEdit ? tCommon("actions.save") : tCommon("actions.add")}
