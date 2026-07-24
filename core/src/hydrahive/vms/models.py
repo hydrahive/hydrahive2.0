@@ -119,6 +119,7 @@ IMAGE_RE = r"^(?:[a-zA-Z0-9][a-zA-Z0-9-]*:)?[a-zA-Z0-9][a-zA-Z0-9._/-]*$"
 # cloud images; ISO installs and imports stay a local-only workflow.
 VM_QUICK_IMAGES = [
     "images:debian/12",
+    "images:ubuntu/26.04",
     "images:ubuntu/24.04",
     "images:ubuntu/22.04",
     "images:fedora/40",
