@@ -48,6 +48,30 @@ Ob ein Agent auf einem Ollama-Modell **Tools** aufrufen kann, hängt vom Modell 
 rohen JSON-Text im Chat aus, statt ihn auszuführen. Dann ein Modell mit nativem
 Tool-Support wählen.
 
+## Kontextfenster & num_ctx (wichtig!)
+
+Ollama deckelt lokal **jedes** Modell per Default auf ein kleines Kontextfenster
+(`num_ctx`, historisch 2048/4096 Tokens) — **unabhängig** davon, wie groß das
+Modell theoretisch kann. Schickt man einen größeren Prompt, schneidet Ollama ihn
+**still** ab.
+
+Damit HydraHive nicht mit einer falschen Fenstergröße rechnet (Symptom: „Kontext
+stimmt nicht mehr" + **Dauer-Compaction**), passiert jetzt zweierlei automatisch:
+
+1. **Echtes Fenster aus `/api/show`:** Beim Catalog-Aufruf fragt HydraHive pro
+   Modell `POST {api_base}/api/show` ab und liest das echte `context_length` aus
+   `model_info` sowie die Tool-Fähigkeit aus `capabilities`. Kein `None` mehr.
+2. **`num_ctx` wird aktiv mitgeschickt:** Beim LLM-Call reicht HydraHive ein
+   `num_ctx` an Ollama durch (abgeleitet aus dem echten Fenster, gedeckelt auf
+   `OLLAMA_NUM_CTX_CAP = 32768`, um den KV-Cache/VRAM nicht zu sprengen). Die
+   Compaction rechnet mit **exakt derselben** Zahl (SSOT), damit sie weder zu
+   früh noch zu spät auslöst.
+
+**VRAM-Hinweis:** `num_ctx` skaliert den KV-Cache linear. Ein großes Fenster
+braucht spürbar mehr VRAM. Wer bewusst kleiner/größer fahren will, kann Ollama
+serverseitig via `OLLAMA_CONTEXT_LENGTH` bzw. im Modelfile (`PARAMETER num_ctx`)
+steuern; der HydraHive-Cap ist die Obergrenze dessen, was HydraHive anfordert.
+
 ## Sicherheitshinweis
 
 Die `api_base` ist frei wählbar. Ein Admin, der einen Ollama-Provider anlegt,

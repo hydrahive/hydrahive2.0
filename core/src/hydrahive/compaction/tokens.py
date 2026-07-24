@@ -63,6 +63,19 @@ def context_window_for(model: str) -> int:
     SSOT ist der Modell-Katalog (METADATA in _catalog_data). Heuristik greift
     nur für live-gefetchte Modelle die nicht im Katalog stehen.
     """
+    # Ollama-Modelle laufen NICHT mit ihrem theoretischen Fenster, sondern mit
+    # dem num_ctx, das wir an den Ollama-Endpoint schicken (gedeckelt, KV-Cache-
+    # Schutz). Die Compaction muss mit exakt dieser Zahl rechnen, sonst compacted
+    # sie zu spät und Ollama schneidet den Prompt vorher still ab.
+    if model.startswith("ollama/"):
+        from hydrahive.llm._config import num_ctx_for_ollama
+        # theoretisches Fenster (falls im Katalog) → auf num_ctx-Cap begrenzen
+        theo = None
+        _meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
+        if _meta and _meta.get("context_window"):
+            theo = _meta["context_window"]
+        return num_ctx_for_ollama(theo)
+
     meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
     if meta and meta.get("context_window"):
         return meta["context_window"]

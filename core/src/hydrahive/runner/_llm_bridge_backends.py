@@ -128,6 +128,7 @@ async def litellm_call(
     temperature: float,
     max_tokens: int,
     api_base: str | None = None,
+    num_ctx: int | None = None,
 ) -> tuple[list[dict], str, dict[str, int]]:
     """Tool-Loop-fähiger Call für alle non-Anthropic/non-MiniMax Provider via LiteLLM.
 
@@ -165,6 +166,13 @@ async def litellm_call(
     # damit Cloud-Provider ihr Default-Routing behalten.
     if api_base:
         kwargs["api_base"] = api_base
+    # num_ctx nur für Ollama: das Modell-Kontextfenster explizit anfordern, sonst
+    # deckelt Ollama lokal auf 4096 und schneidet größere Prompts ab (-> falscher
+    # Kontext + Dauer-Compact). num_ctx ist eine Ollama-Option; LiteLLM reicht sie
+    # über extra_body.options an den nativen Ollama-Endpoint durch.
+    if num_ctx and model.startswith("ollama/"):
+        kwargs["num_ctx"] = num_ctx
+        kwargs["extra_body"] = {"options": {"num_ctx": num_ctx}}
 
     try:
         resp = await litellm.acompletion(**kwargs)
