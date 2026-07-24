@@ -94,11 +94,15 @@ async def call_with_tools(
         )
 
     # Alle anderen Provider (OpenAI mit API-Key, NVIDIA, Groq, Mistral, Gemini,
-    # OpenRouter, …) gehen über LiteLLM. apply_keys setzt die ENV-Variablen aus
-    # llm.json.
+    # OpenRouter, Ollama …) gehen über LiteLLM. apply_keys setzt die ENV-Variablen
+    # aus llm.json.
     apply_keys(cfg)
     parts = [p for p in [system_prompt, summary_system, volatile_system] if p]
     full_system = "\n\n".join(parts)
+    # Provider mit user-eigenem Endpoint (Ollama, LM Studio, vLLM …): die api_base
+    # aus der llm.json an LiteLLM durchreichen. Der Provider-Prefix im Modell-String
+    # (z.B. "ollama/llama3.1") mappt auf die provider_id.
+    api_base = _resolve_api_base(cfg, target)
     return await litellm_call(
         model=target,
         system_prompt=full_system,
@@ -106,4 +110,21 @@ async def call_with_tools(
         tools=tools,
         temperature=temperature,
         max_tokens=max_tokens,
+        api_base=api_base,
     )
+
+
+def _resolve_api_base(cfg: dict, model: str) -> str | None:
+    """Findet die api_base des Providers, zu dem `model` gehört.
+
+    Mappt den LiteLLM-Prefix aus dem Modell-String (z.B. "ollama/") zurück auf
+    die provider_id und liest deren api_base aus der Config. None, wenn kein
+    Provider mit api_base passt (Cloud-Provider behalten Default-Routing)."""
+    from hydrahive.llm._catalog_data import PROVIDER_PREFIX
+    from hydrahive.llm._config import provider_api_base
+    for provider_id, prefix in PROVIDER_PREFIX.items():
+        if prefix and model.startswith(prefix):
+            base = provider_api_base(cfg, provider_id)
+            if base:
+                return base
+    return None

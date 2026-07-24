@@ -127,6 +127,7 @@ async def litellm_call(
     tools: list[dict],
     temperature: float,
     max_tokens: int,
+    api_base: str | None = None,
 ) -> tuple[list[dict], str, dict[str, int]]:
     """Tool-Loop-fähiger Call für alle non-Anthropic/non-MiniMax Provider via LiteLLM.
 
@@ -160,6 +161,10 @@ async def litellm_call(
     if oai_tools:
         kwargs["tools"] = oai_tools
         kwargs["tool_choice"] = "auto"
+    # User-eigener Endpoint (Ollama, LM Studio, vLLM …). Nur setzen wenn gegeben,
+    # damit Cloud-Provider ihr Default-Routing behalten.
+    if api_base:
+        kwargs["api_base"] = api_base
 
     try:
         resp = await litellm.acompletion(**kwargs)

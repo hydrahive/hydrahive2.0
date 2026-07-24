@@ -55,6 +55,9 @@ STATIC_MODELS = {
 PROVIDER_PREFIX = {
     "openai": "openai/", "nvidia": "nvidia_nim/", "groq": "groq/",
     "mistral": "mistral/", "openrouter": "openrouter/", "gemini": "gemini/",
+    # Ollama: OpenAI-kompatibel, LiteLLM-Route "ollama/". Modelle kommen live
+    # vom user-eigenen Endpoint (keine STATIC_MODELS-Hardcodes).
+    "ollama": "ollama/",
 }
 
 # Interne Metadata-Tabelle. Per Modell-ID (mit Prefix) → Eigenschaften.
