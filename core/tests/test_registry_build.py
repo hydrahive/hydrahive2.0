@@ -57,7 +57,7 @@ def test_is_known_empty_cache_is_failopen(monkeypatch):
 @pytest.mark.asyncio
 async def test_empty_build_not_cached(monkeypatch):
     from hydrahive.llm import registry
-    async def empty_build(): return []
+    async def empty_build(): return [], True
     monkeypatch.setattr(registry, "_build", empty_build)
     registry.invalidate()
     assert await registry.list_models() == []

@@ -78,11 +78,22 @@ def _add(acc: dict[str, ModelEntry], entry: ModelEntry) -> None:
         )
 
 
-async def _build() -> list[ModelEntry]:
+async def _build() -> tuple[list[ModelEntry], bool]:
+    """Baut die kanonische Modell-Liste. Gibt (modelle, complete) zurück.
+
+    `complete` ist False, wenn ein konfigurierter Chat-Provider 0 Modelle
+    beisteuerte (transienter Live-Fetch-Fehler ohne STATIC-Fallback, z.B.
+    openai/openrouter). Eine unvollständige Liste darf NICHT gecacht werden —
+    sonst hängt für die Cache-TTL eine Rumpf-Auswahl in allen Pickern
+    (Bug: „Neues Projekt" zeigte nur 5-6 Modelle).
+    """
     acc: dict[str, ModelEntry] = {}
     providers = _providers()
+    complete = True
     try:
-        for prov in await catalog_for_providers(providers):
+        cat = await catalog_for_providers(providers)
+        for prov in cat:
+            n_before = len(acc)
             for m in prov.get("models", []):
                 mid = m.get("id", "")
                 if not mid:
@@ -93,8 +104,18 @@ async def _build() -> list[ModelEntry]:
                     context_window=m.get("context_window"), is_free=m.get("is_free"),
                     source="live" if prov.get("live_count") else "fallback",
                 ))
+            # Ein konfigurierter Provider, der KEIN einziges Modell beitrug, gilt
+            # als (transient) fehlgeschlagen -> Build ist unvollständig.
+            if len(acc) == n_before and not prov.get("models"):
+                complete = False
+                logger.warning(
+                    "Registry: Provider %s lieferte 0 Modelle — Build unvollständig, "
+                    "wird nicht gecacht (Retry beim nächsten Aufruf).",
+                    prov.get("provider_id", "?"),
+                )
     except Exception as e:
         logger.warning("Registry: Chat-Katalog-Build fehlgeschlagen: %s", e)
+        complete = False
     try:
         for em in _embed_models():
             _add(acc, ModelEntry(id=em["model"], provider=em.get("provider", ""),
@@ -116,7 +137,7 @@ async def _build() -> list[ModelEntry]:
     await _modality(list_speech_models, "tts")
     await _modality(list_transcribe_models, "stt")
     await _modality(list_video_models, "video")
-    return sorted(acc.values(), key=lambda e: (e.provider, e.label))
+    return sorted(acc.values(), key=lambda e: (e.provider, e.label)), complete
 
 
 async def list_models(modality: str | None = None) -> list[ModelEntry]:
@@ -126,8 +147,11 @@ async def list_models(modality: str | None = None) -> list[ModelEntry]:
     if _cache is None or now - _cache[0] >= _CACHE_TTL:
         async with _lock:
             if _cache is None or time.monotonic() - _cache[0] >= _CACHE_TTL:
-                built = await _build()
-                if built:                       # leere Liste NICHT cachen → nächster Aufruf retryt
+                built, complete = await _build()
+                # Nur eine VOLLSTÄNDIGE, nicht-leere Liste cachen. Eine Teil-Liste
+                # (ein Provider transient leer) würde sonst für die Cache-TTL in
+                # allen Pickern hängen — genau der „nur 5-6 Modelle"-Bug.
+                if built and complete:
                     _cache = (time.monotonic(), built)
                 else:
                     _cache = None
