@@ -7,7 +7,7 @@ async def test_invalidate_clears_cache(monkeypatch):
     from hydrahive.llm.registry import ModelEntry
 
     async def fake_build():
-        return [ModelEntry("a", "p", "a", frozenset({"chat"}))]
+        return [ModelEntry("a", "p", "a", frozenset({"chat"}))], True
 
     monkeypatch.setattr(registry, "_build", fake_build)
     registry.invalidate()
