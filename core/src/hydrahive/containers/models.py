@@ -54,6 +54,7 @@ MAX_RAM_MB = 32768
 QUICK_IMAGES = [
     "debian/12",
     "debian/13",
+    "ubuntu/26.04",
     "ubuntu/24.04",
     "ubuntu/22.04",
     "alpine/3.21",
