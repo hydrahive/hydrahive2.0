@@ -85,6 +85,44 @@ export const llmApi = {
   getOpenRouterCredits: () => api.get<OpenRouterCredits>("/llm/openrouter/credits"),
 }
 
+// --- Lokale Media-Backends (ComfyUI / Switch-Wrapper) -----------------------
+
+export interface MediaWorkflow {
+  id: string
+  label: string
+  category: "video" | "image"
+  output_node?: string
+  graph?: Record<string, unknown>
+  placeholders?: Record<string, string>
+  durations?: number[]
+  aspect_ratios?: string[]
+  frame_images?: string[]
+}
+
+export interface MediaBackend {
+  id: string
+  type: "comfyui" | "switch-http"
+  name: string
+  api_base: string
+  workflows?: MediaWorkflow[]
+}
+
+export interface ParsedWorkflow {
+  nodes: { id: string; class_type: string; inputs: string[] }[]
+  suggestions: Record<string, string>
+}
+
+export const mediaBackendsApi = {
+  list: () => api.get<{ media_backends: MediaBackend[] }>("/media-backends"),
+  save: (media_backends: MediaBackend[]) =>
+    api.put<{ ok: boolean; count: number }>("/media-backends", { media_backends }),
+  test: (type: string, api_base: string) =>
+    api.post<{ ok: boolean; mode?: string; node_count?: number; error?: string }>(
+      "/media-backends/test", { type, api_base }),
+  parseWorkflow: (graph: Record<string, unknown>) =>
+    api.post<ParsedWorkflow>("/media-backends/parse-workflow", { graph }),
+}
+
 export interface CatalogModel {
   id: string
   context_window: number | null

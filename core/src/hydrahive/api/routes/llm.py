@@ -33,12 +33,18 @@ class LlmProvider(BaseModel):
 
 
 class LlmConfig(BaseModel):
+    # extra="allow": media_backends (lokale ComfyUI/Switch-Backends) wird
+    # durchgereicht, ohne dass model_dump() es stillschweigend droppt.
+    model_config = ConfigDict(extra="allow")
     providers: list[LlmProvider] = []
     default_model: str = ""
     embed_model: str = ""
     # Aktives Modell pro Media-Kategorie (image/music/tts/transcribe/video).
     # Resolver: hydrahive.llm.media_models.get_media_model
     media_models: dict[str, str] = {}
+    # Lokale Media-Generierungs-Backends (ComfyUI, Switch-Wrapper).
+    # Struktur: docs/specs/local-video-backends.md. Verwaltet über /api/media-backends.
+    media_backends: list[dict] = []
 
 
 def _load() -> dict:
@@ -185,4 +191,40 @@ async def list_media_models(
         models = await media_models.list_image_models()
     else:  # audio
         models = await media_models.list_audio_models()
+
+    # Lokale Backends (ComfyUI/Switch-Wrapper) dazumischen — gruppiert für das UI.
+    # Jedes lokale Modell trägt "provider" (Backend-Name) für die Gruppierung.
+    if category in ("video", "image"):
+        local = await _local_media_models(category)
+        models = list(models) + local
+
     return {"default": media_models.get_media_model(cfg_key), "models": models}
+
+
+async def _local_media_models(category: str) -> list[dict]:
+    """Sammelt Modelle/Workflows aller konfigurierten lokalen Media-Backends.
+
+    Best-effort: ein offline/fehlerhaftes Backend liefert einfach nichts, ohne
+    die Liste zu killen. Nur Modelle der passenden Kategorie.
+    """
+    from hydrahive.llm._config import load_config
+    from hydrahive.llm.video_backends._registry import _backend_for_type
+    out: list[dict] = []
+    cfg = load_config()
+    for b in cfg.get("media_backends", []) or []:
+        backend = _backend_for_type(b.get("type", ""))
+        if backend is None:
+            continue
+        try:
+            vms = await backend.list_models(b)
+        except Exception:
+            continue
+        for m in vms:
+            if m.category != category:
+                continue
+            out.append({
+                "id": m.id, "name": m.name, "provider": b.get("name", b.get("id", "")),
+                "durations": m.durations, "aspect_ratios": m.aspect_ratios,
+                "frame_images": m.frame_images, "local": True,
+            })
+    return out

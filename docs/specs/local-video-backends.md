@@ -177,6 +177,20 @@ Der Wrapper läuft dauerhaft (leichtgewichtig, kein VRAM), Default z.B.
 Der Wrapper garantiert: Nach `done`/`error` (oder Timeout) schaltet er sd-server
 ab und lässt Ollama wieder laden. HydraHive muss sich **nicht** um VRAM kümmern.
 
+### Wichtig: sd-server hat KEINE Workflows (anders als ComfyUI)
+
+Klarstellung von Mia (2026-07-25): sd-server (stable-diffusion.cpp) ist **kein**
+Node-Graph-System. Es gibt **keine** Workflow-JSONs/Graphen wie bei ComfyUI —
+nur eine **direkte REST-API** (Prompt + Parameter → Bild/Video). Das
+Workflow-Template-Konzept (Graph + placeholders) gilt **ausschließlich für
+ComfyUI (Muskeln1)**.
+
+Für Muskeln2 gilt: Der node-lokale **Switch-Wrapper** kapselt den sd-server-
+Aufruf (inkl. sicherer Vulkan-Flags). HydraHive spricht nur den Wrapper-Vertrag
+unten — das interne sd-server-Payload-Schema kennt nur der Wrapper. Mia liefert
+das echte sd-server-Payload-Schema (`prompt`, `steps`, `width`, `height` …), das
+der Wrapper intern nutzt; HydraHive muss es NICHT kennen.
+
 ### Adapter `switch-http` (HydraHive-Seite)
 - Config: `{ "type":"switch-http", "api_base":"http://muskeln2:9700" }`
 - `list_models` → `GET /models`; `submit` → `POST /generate`;
