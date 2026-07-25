@@ -97,10 +97,86 @@ _SCHEMA = {
 }
 
 
+async def _execute_local(model: str, args: dict, ctx: ToolContext) -> ToolResult:
+    """Generierung über ein lokales Backend (local:<provider>/<model>).
+
+    Nutzt das VideoBackend-Protocol (resolve_backend). ComfyUI/Switch-Wrapper
+    laufen hierüber; OpenRouter behält seinen eigenen bewährten Pfad unten.
+    """
+    import asyncio as _asyncio
+
+    from hydrahive.llm._config import load_config
+    from hydrahive.llm.video_backends import VideoParams, resolve_backend
+
+    prompt = (args.get("prompt") or "").strip()
+    try:
+        backend, provider = resolve_backend(model, load_config())
+    except ValueError as e:
+        return ToolResult.fail(str(e))
+
+    image_url = _image_to_data_uri(args.get("image_path"), ctx)
+    params = VideoParams(
+        prompt=prompt,
+        width=int(args.get("width") or 1280),
+        height=int(args.get("height") or 720),
+        duration=int(args.get("duration") or 5),
+        aspect_ratio=(args.get("aspect_ratio") or "16:9").strip(),
+        seed=(int(args["seed"]) if args.get("seed") is not None else None),
+        frames=(int(args["frames"]) if args.get("frames") is not None else None),
+        image_url=image_url,
+    )
+    try:
+        job = await backend.submit(provider, model, params)
+    except RuntimeError as e:
+        return ToolResult.fail(str(e))
+
+    elapsed = 0.0
+    interval = _POLL_INTERVAL_START
+    while elapsed < _POLL_TIMEOUT:
+        await _asyncio.sleep(interval)
+        elapsed += interval
+        interval = min(interval * 2, _POLL_INTERVAL_MAX)
+        try:
+            st = await backend.poll(provider, job)
+        except RuntimeError as e:
+            return ToolResult.fail(f"Fehler beim Job-Status-Abruf: {e}")
+        if st.state == "done":
+            # URL (falls vorhanden) an den JobRef weiterreichen für fetch_output
+            job = job.__class__(native_id=job.native_id,
+                                extra={**job.extra, **({"url": st.url} if st.url else {})})
+            try:
+                path = await backend.fetch_output(provider, job, ctx.workspace / "generated")
+            except RuntimeError as e:
+                return ToolResult.fail(str(e))
+            return ToolResult.ok(f"Video generiert und gespeichert: {path}", model=model)
+        if st.state == "error":
+            return ToolResult.fail(f"Generierung fehlgeschlagen: {st.error or 'Unbekannter Fehler'}")
+    return ToolResult.fail(f"Timeout nach {_POLL_TIMEOUT:.0f}s — lokales Backend nicht fertig")
+
+
+def _image_to_data_uri(image_path: str | None, ctx: ToolContext) -> str | None:
+    image_path = (image_path or "").strip() or None
+    if not image_path:
+        return None
+    img_path = Path(image_path)
+    if not img_path.is_absolute():
+        img_path = ctx.workspace / image_path
+    if not img_path.exists():
+        return None
+    suffix = img_path.suffix.lower().lstrip(".") or "jpeg"
+    mime = "image/png" if suffix == "png" else f"image/{suffix}"
+    return f"data:{mime};base64,{base64.b64encode(img_path.read_bytes()).decode()}"
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     prompt = (args.get("prompt") or "").strip()
     if not prompt:
         return ToolResult.fail("Prompt darf nicht leer sein")
+
+    # Lokale Backends (ComfyUI / Switch-Wrapper) über den generischen Pfad.
+    _model = (args.get("model") or "").strip()
+    if _model.startswith("local:"):
+        return await _execute_local(_model, args, ctx)
 
     key = openrouter_key()
     if not key:

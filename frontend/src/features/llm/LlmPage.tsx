@@ -8,6 +8,7 @@ import { ProviderCard } from "./ProviderCard"
 import { ProviderForm } from "./ProviderForm"
 import { AnthropicUsageCard } from "./AnthropicUsageCard"
 import { DefaultModelsSection } from "./DefaultModelsSection"
+import { MediaBackendsSection } from "./MediaBackendsSection"
 
 export function LlmPage() {
   const { t } = useTranslation("llm")
@@ -119,6 +120,8 @@ export function LlmPage() {
       </div>
 
       <DefaultModelsSection config={config} onSaved={reloadConfig} />
+
+      <MediaBackendsSection />
 
       <div className="flex items-center gap-3">
         <button onClick={testConnection} disabled={testing || !config.default_model}
