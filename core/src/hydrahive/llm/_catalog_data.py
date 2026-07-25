@@ -173,6 +173,12 @@ METADATA: dict[str, dict[str, Any]] = {
     "nvidia_nim/nvidia/nemotron-4-340b-instruct":            {"context_window": 4_096,   "tool_use": True,  "category": "chat",   "family": "nemotron", "params": "340B"},
     "nvidia_nim/nvidia/nemotron-4-340b-reward":              {"context_window": 4_096,   "tool_use": False, "category": "specialized", "family": "nemotron", "params": "340B"},
     "nvidia_nim/nvidia/nemotron-3-super-120b-a12b":          {"context_window": 128_000, "tool_use": True,  "category": "chat",   "family": "nemotron", "params": "120B-MoE"},
+    # Ultra 550B: NIM meldet über /v1/models KEIN context_length (kommt als None
+    # rein) — Fallback-Metadata nötig, sonst rechnet die Compaction mit dem
+    # 32k-Default statt dem echten Fenster. NIM-Default = 262144 (256K, offizielle
+    # Doku docs.nvidia.com/nim/.../get-started-nemotron-3-ultra).
+    "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b":          {"context_window": 262_144, "tool_use": True,  "category": "chat",   "family": "nemotron", "params": "550B-MoE"},
+    "nvidia_nim/nvidia/nemotron-3.5-content-safety":         {"context_window": 128_000, "tool_use": False, "category": "safety", "family": "nemotron"},
     "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b":             {"context_window": 32_768,  "tool_use": False, "category": "chat",   "family": "nemotron", "params": "30B-MoE"},
     "nvidia_nim/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": {"context_window": 32_768, "tool_use": False, "category": "reasoning", "family": "nemotron", "params": "30B-MoE"},
     "nvidia_nim/nvidia/nemotron-nano-3-30b-a3b":             {"context_window": 128_000, "tool_use": True,  "category": "chat",   "family": "nemotron", "params": "30B-MoE"},
