@@ -10,13 +10,15 @@ kommen in E2/E4 dazu — hier ist der Erweiterungspunkt (_ADAPTERS).
 from __future__ import annotations
 
 from hydrahive.llm.video_backends._base import VideoBackend
+from hydrahive.llm.video_backends._comfyui import ComfyUIVideoBackend
 from hydrahive.llm.video_backends._openrouter import OpenRouterVideoBackend
 
 LOCAL_PREFIX = "local:"
 
-# Adapter-Fabriken je Backend-Typ. E2/E4 ergänzen "comfyui" / "switch-http".
+# Adapter-Fabriken je Backend-Typ. E4 ergänzt "switch-http".
 _ADAPTERS: dict[str, type] = {
     "openrouter": OpenRouterVideoBackend,
+    "comfyui": ComfyUIVideoBackend,
 }
 
 _openrouter_singleton = OpenRouterVideoBackend()
