@@ -1,4 +1,5 @@
 """Smoke-Tests für den Buddy — Session-Lifecycle und Slash-Commands."""
+
 from __future__ import annotations
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 @pytest.fixture(scope="module", autouse=True)
 def _init_db(setup_test_env):
     from hydrahive.db import init_db
+
     init_db()
 
 
@@ -14,6 +16,7 @@ def _init_db(setup_test_env):
 def _reset_buddy_agent(setup_test_env, _init_db):
     """Entfernt Buddy-Agents zwischen Tests damit get_or_create_buddy frisch startet."""
     from hydrahive.agents import config as agent_config
+
     for a in agent_config.list_by_owner("testuser"):
         if a.get("is_buddy"):
             agent_config.delete(a["id"])
@@ -69,18 +72,89 @@ def test_remember_text_stores_note(setup_test_env):
     assert stored == "Lieblingsfarbe: blau"
 
 
+def test_buddy_config_exposes_full_safe_agent_settings(setup_test_env):
+    from hydrahive.buddy import get_or_create_buddy
+    from hydrahive.buddy import _config as buddy_config
+
+    info = get_or_create_buddy("testuser")
+    cfg = buddy_config.get_config("testuser")
+
+    assert cfg["agent_id"] == info["agent_id"]
+    assert isinstance(cfg["available_tools"], list)
+    assert all({"name", "description", "category"} <= set(tool) for tool in cfg["available_tools"])
+    assert {
+        "fallback_models",
+        "temperature",
+        "max_tokens",
+        "thinking_budget",
+        "reasoning_effort",
+        "mcp_servers",
+        "disabled_skills",
+        "require_tool_confirm",
+        "longterm_memory",
+        "compact_tool_result_limit",
+        "compact_reserve_tokens",
+        "compact_max_turns",
+        "max_iterations",
+        "cache_ttl",
+    } <= set(cfg)
+
+
+def test_buddy_config_full_settings_roundtrip(setup_test_env):
+    from hydrahive.buddy import get_or_create_buddy
+    from hydrahive.buddy import _config as buddy_config
+
+    get_or_create_buddy("testuser")
+    buddy_config.patch_config(
+        "testuser",
+        {
+            "fallback_models": [],
+            "temperature": 0.4,
+            "max_tokens": 12_000,
+            "thinking_budget": 2_000,
+            "reasoning_effort": "medium",
+            "mcp_servers": ["docs"],
+            "disabled_skills": ["debugging"],
+            "require_tool_confirm": True,
+            "longterm_memory": False,
+            "compact_tool_result_limit": 4_000,
+            "compact_reserve_tokens": 8_000,
+            "compact_max_turns": 2_000,
+            "max_iterations": 12,
+            "cache_ttl": "1h",
+        },
+    )
+
+    cfg = buddy_config.get_config("testuser")
+    assert cfg["temperature"] == 0.4
+    assert cfg["max_tokens"] == 12_000
+    assert cfg["thinking_budget"] == 2_000
+    assert cfg["reasoning_effort"] == "medium"
+    assert cfg["mcp_servers"] == ["docs"]
+    assert cfg["disabled_skills"] == ["debugging"]
+    assert cfg["require_tool_confirm"] is True
+    assert cfg["longterm_memory"] is False
+    assert cfg["compact_tool_result_limit"] == 4_000
+    assert cfg["compact_reserve_tokens"] == 8_000
+    assert cfg["compact_max_turns"] == 2_000
+    assert cfg["max_iterations"] == 12
+    assert cfg["cache_ttl"] == "1h"
+
+
 def test_buddy_config_mail_roundtrip(setup_test_env):
     """Per-Buddy-Postfach: patch persistiert roh am Agent, get liefert maskiert."""
     from hydrahive.buddy import get_or_create_buddy
     from hydrahive.buddy import _config as buddy_config
 
     get_or_create_buddy("testuser")
-    buddy_config.patch_config("testuser", {"tool_config": {
-        "smtp": {"host": "w0.kas", "from": "a@b", "user": "u", "password": "longsecret123"}}})
+    buddy_config.patch_config(
+        "testuser",
+        {"tool_config": {"smtp": {"host": "w0.kas", "from": "a@b", "user": "u", "password": "longsecret123"}}},
+    )
 
     cfg = buddy_config.get_config("testuser")
     assert cfg["tool_config"]["smtp"]["host"] == "w0.kas"
-    assert cfg["tool_config"]["smtp"]["password"] == ""          # API maskiert
+    assert cfg["tool_config"]["smtp"]["password"] == ""  # API maskiert
     assert cfg["tool_config"]["smtp"]["password_set"] is True
     # roh am Agent gespeichert
     raw = buddy_config._find_buddy("testuser")["tool_config"]["smtp"]["password"]
