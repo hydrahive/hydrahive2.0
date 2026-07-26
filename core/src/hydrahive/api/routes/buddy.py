@@ -3,13 +3,15 @@
 Slash-Commands sind deterministisch (keine LLM-Roundtrips) — `/clear`,
 `/remember`, `/model`, `/character`. Logik in `hydrahive.buddy.commands`.
 """
+
 from __future__ import annotations
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from hydrahive.agents import AgentValidationError
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.buddy import commands, get_or_create_buddy
@@ -36,6 +38,7 @@ async def buddy_clear(auth: Annotated[tuple[str, str], Depends(require_auth)]) -
         if state.get("project_id"):
             from hydrahive.agents import config as agent_config
             from hydrahive.handover import create_for_session
+
             agent = agent_config.get(state["agent_id"])
             if agent:
                 await create_for_session(
@@ -116,19 +119,23 @@ def buddy_log_cmd(
     damit sie nach reload() erhalten bleiben.
     """
     from hydrahive.db import messages as messages_db
+
     state = get_or_create_buddy(_user(auth))
     sid = state.get("session_id") or ""
     if not sid:
         raise coded(status.HTTP_404_NOT_FOUND, "buddy_no_session")
     user_msg = messages_db.append(sid, "user", body.user_text)
     asst_msg = messages_db.append(
-        sid, "assistant", [{"type": "text", "text": body.assistant_text}],
+        sid,
+        "assistant",
+        [{"type": "text", "text": body.assistant_text}],
         metadata={"source": "slash_command"},
     )
     return {"ok": True, "user_id": user_msg.id, "assistant_id": asst_msg.id}
 
 
 # ── Config-Page Endpoints ──────────────────────────────────────────────────
+
 
 @router.get("/config")
 def get_buddy_config(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
@@ -139,11 +146,32 @@ def get_buddy_config(auth: Annotated[tuple[str, str], Depends(require_auth)]) ->
 
 
 class BuddyConfigPatch(BaseModel):
-    name: str | None = Field(default=None, max_length=120)
-    tools: list[str] | None = None
-    compact_threshold_pct: int | None = Field(default=None, ge=20, le=100)
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    model: str | None = Field(default=None, min_length=1, max_length=200)
+    fallback_models: list[Annotated[str, Field(min_length=1, max_length=200)]] | None = Field(
+        default=None, max_length=10
+    )
+    temperature: float | None = Field(default=None, ge=0, le=2)
+    max_tokens: int | None = Field(default=None, ge=1, le=200_000)
+    thinking_budget: int | None = Field(default=None, ge=0, le=200_000)
+    reasoning_effort: str | None = Field(default=None, pattern="^(|low|medium|high)$")
+    tools: list[Annotated[str, Field(min_length=1, max_length=128)]] | None = Field(default=None, max_length=500)
+    mcp_servers: list[Annotated[str, Field(min_length=1, max_length=128)]] | None = Field(default=None, max_length=100)
+    disabled_skills: list[Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,49}$")]] | None = Field(
+        default=None, max_length=500
+    )
+    require_tool_confirm: bool | None = None
+    longterm_memory: bool | None = None
+    compact_threshold_pct: int | None = Field(default=None, ge=30, le=100)
     compact_model: str | None = Field(default=None, max_length=200)
-    tool_result_max_chars: int | None = Field(default=None, ge=0)
+    compact_tool_result_limit: int | None = Field(default=None, ge=100, le=50_000)
+    compact_reserve_tokens: int | None = Field(default=None, ge=1_000, le=100_000)
+    compact_max_turns: int | None = Field(default=None, ge=1_000, le=100_000)
+    tool_result_max_chars: int | None = Field(default=None, ge=0, le=1_000_000)
+    max_iterations: int | None = Field(default=None, ge=1, le=250)
+    cache_ttl: str | None = Field(default=None, pattern="^(5m|1h)$")
     language: str | None = Field(default=None, pattern="^(de|en|auto)$")
     tone: str | None = Field(default=None, pattern="^(locker|professionell|knapp)$")
     context: str | None = Field(default=None, max_length=8000)
@@ -155,8 +183,11 @@ def patch_buddy_config(
     body: BuddyConfigPatch,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    changes = body.model_dump(exclude_none=True)
+    changes = body.model_dump(exclude_unset=True)
+    changes = {key: value for key, value in changes.items() if value is not None or key == "compact_max_turns"}
     try:
         return buddy_config.patch_config(_user(auth), changes)
     except LookupError as e:
         raise coded(status.HTTP_404_NOT_FOUND, "buddy_not_found", message=str(e))
+    except AgentValidationError:
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error") from None

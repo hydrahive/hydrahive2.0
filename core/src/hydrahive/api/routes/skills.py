@@ -7,6 +7,7 @@ Scopes:
 
 Listing für einen Agent ruft list_for_agent (merge system+user+agent).
 """
+
 from __future__ import annotations
 
 from typing import Annotated, Literal
@@ -16,7 +17,9 @@ from fastapi import APIRouter, Depends, status
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._skill_route_helpers import (
-    SkillBody, SkillSourceBody, check_agent_access as _check_agent_access,
+    SkillBody,
+    SkillSourceBody,
+    check_agent_access as _check_agent_access,
     serialize_skill as _serialize,
 )
 from hydrahive.skills import delete_skill, get_skill, list_for_agent, save_skill
@@ -31,6 +34,7 @@ def _check_project_access(project_id: str | None, username: str, role: str) -> N
     """project-Scope: nur Owner/Member des Projekts (oder Admin) dürfen schreiben/löschen.
     Schließt das Tor, das durch 'project' in SkillScope sonst offenstünde."""
     from hydrahive.projects import config as project_config
+
     if not project_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "skill_owner_required")
     proj = project_config.get(project_id)
@@ -50,14 +54,23 @@ def list_skills_endpoint(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
     agent_id: str | None = None,
     scope: Literal["system", "user", "agent", "all"] = "all",
+    include_disabled: bool = False,
 ) -> list[dict]:
     """Wenn agent_id gesetzt: gemergte Liste für diesen Agent (system+user+agent).
     Sonst: filterbar nach scope."""
     username, role = auth
     if agent_id:
         agent = _check_agent_access(agent_id, username, role)
-        disabled = list(agent.get("disabled_skills", []))
-        return [_serialize(s) for s in list_for_agent(agent_id, agent["owner"] or username, disabled=disabled, project_id=agent.get("project_id"))]
+        disabled = [] if include_disabled else list(agent.get("disabled_skills", []))
+        return [
+            _serialize(skill)
+            for skill in list_for_agent(
+                agent_id,
+                agent["owner"] or username,
+                disabled=disabled,
+                project_id=agent.get("project_id"),
+            )
+        ]
     out: list[Skill] = []
     if scope in ("system", "all"):
         out.extend(_list_dir(system_dir(), "system", "system"))
@@ -115,11 +128,14 @@ def create_or_update(
     elif scope == "project":
         _check_project_access(owner, username, role)
     skill = Skill(
-        name=req.name, description=req.description, when_to_use=req.when_to_use,
-        tools_required=list(req.tools_required), body=req.body,
-        sources=[SkillSource(url=s.url, auth=s.auth, description=s.description)
-                 for s in req.sources if s.url],
-        scope=scope, owner=owner or "",
+        name=req.name,
+        description=req.description,
+        when_to_use=req.when_to_use,
+        tools_required=list(req.tools_required),
+        body=req.body,
+        sources=[SkillSource(url=s.url, auth=s.auth, description=s.description) for s in req.sources if s.url],
+        scope=scope,
+        owner=owner or "",
     )
     ok, err = save_skill(skill)
     if not ok:

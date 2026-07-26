@@ -12,8 +12,8 @@ interface Props {
 type Block = "smtp" | "imap"
 
 const inputCls =
-  "w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200"
-const labelCls = "block text-[10px] text-zinc-500"
+  "w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-xs text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
+const labelCls = "block text-[10px] font-semibold text-[#8d9ab0]"
 
 /**
  * Geteilte SMTP/IMAP-Felder fürs „eigenes Postfach". Wird vom Agent-Editor
@@ -49,13 +49,13 @@ export function MailAccountFields({ value, onChange }: Props) {
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-1.5">
-        <Info size={12} className="mt-0.5 text-zinc-600 shrink-0" />
-        <p className="text-xs text-zinc-400">{t("mail.intro")}</p>
+        <Info size={12} className="mt-0.5 text-[#718097] shrink-0" />
+        <p className="text-xs text-[#8d9ab0]">{t("mail.intro")}</p>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-400">{t("mail.smtp_title")}</p>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+        <p className="text-xs font-medium text-[#8d9ab0]">{t("mail.smtp_title")}</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-0.5">
             <label className={labelCls}>{t("mail.host")}</label>
             <input className={inputCls} value={smtp.host ?? ""} placeholder={gph(gd.smtp?.host)}
@@ -82,18 +82,18 @@ export function MailAccountFields({ value, onChange }: Props) {
               placeholder={smtp.password_set ? t("mail.password_keep") : t("mail.password_placeholder")}
               onChange={(e) => setField("smtp", "password", e.target.value)} />
           </div>
-          <label className="flex items-center gap-1.5 self-end pb-1 text-[11px] text-zinc-400">
+          <label className="flex items-center gap-1.5 self-end pb-1 text-[11px] text-[#8d9ab0]">
             <input type="checkbox" checked={smtp.use_tls ?? true}
               onChange={(e) => setField("smtp", "use_tls", e.target.checked)} />
             {t("mail.starttls")}
           </label>
         </div>
-        <p className="text-[10px] text-zinc-600">{t("mail.tls_hint")}</p>
+        <p className="text-[10px] text-[#718097]">{t("mail.tls_hint")}</p>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-400">{t("mail.imap_title")}</p>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+        <p className="text-xs font-medium text-[#8d9ab0]">{t("mail.imap_title")}</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-0.5">
             <label className={labelCls}>{t("mail.host")}</label>
             <input className={inputCls} value={imap.host ?? ""}
