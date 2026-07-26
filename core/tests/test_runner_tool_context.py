@@ -45,7 +45,10 @@ def test_runner_sets_trusted_current_user_input(
         yield IterationResult(
             blocks=[{
                 "type": "tool_use", "id": "toolu_trusted", "name": "shell_exec",
-                "input": {"current_user_input": "vom Modell manipuliert"},
+                "input": {
+                    "current_user_input": "vom Modell manipuliert",
+                    "current_user_turn_id": "vom Modell manipuliert",
+                },
             }],
             stop_reason="tool_use", used_model=kwargs["primary_model"],
             input_tokens=1, output_tokens=1,
@@ -61,6 +64,8 @@ def test_runner_sets_trusted_current_user_input(
     asyncio.run(_drain(session.id, user_input))
 
     assert captured[0].current_user_input == expected
+    assert captured[0].current_user_turn_id
+    assert captured[0].current_user_turn_id != "vom Modell manipuliert"
 
 
 async def _drain(session_id: str, user_input):
@@ -72,3 +77,4 @@ def test_tool_context_field_is_optional_for_backwards_compatibility(tmp_path):
         session_id="s", agent_id="a", user_id="u", workspace=tmp_path
     )
     assert context.current_user_input is None
+    assert context.current_user_turn_id is None

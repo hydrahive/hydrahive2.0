@@ -15,6 +15,7 @@ class ToolContext:
     config: dict = field(default_factory=dict)
     project_id: str | None = None  # Aktives Projekt — Memory-Tools nutzen dies als Default-Filter
     current_user_input: str | None = None  # Vertrauenswürdig: ausschließlich vom Runner gesetzt
+    current_user_turn_id: str | None = None  # ID der vom Runner persistierten User-Nachricht
 
 
 @dataclass
