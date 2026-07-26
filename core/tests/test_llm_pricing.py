@@ -5,7 +5,7 @@ cost_micros() darf für OpenRouter keine Exception werfen (Option A: None).
 """
 from __future__ import annotations
 
-from hydrahive.llm._pricing import cost_micros, provider_from_model
+from hydrahive.llm._pricing import Pricing, cost_micros, lookup, provider_from_model
 
 
 def test_openrouter_prefix_erkannt():
@@ -20,6 +20,15 @@ def test_andere_provider_unveraendert():
     assert provider_from_model("claude-sonnet-4-6") == "anthropic"
     assert provider_from_model("gpt-4o") == "openai"
     assert provider_from_model("unknown-model-xyz") == "other"
+
+
+def test_claude_opus_5_pricing_is_current():
+    assert lookup("anthropic", "claude-opus-5") == Pricing(
+        input=0.5,
+        output=2.5,
+        cache_read=0.05,
+        cache_creation=0.625,
+    )
 
 
 def test_cost_micros_openrouter_gibt_none_nicht_crash():
