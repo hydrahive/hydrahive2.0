@@ -1,7 +1,7 @@
 """LLM-Pricing-Lookup für Cost-Tracking (Mikro-Cents).
 
 Preise in **Mikro-Cents pro Token** (1 Cent = 1000 Micros). Quelle: offizielle
-Anbieter-Pricing-Pages, Stand 2026-05-11. Veraltete Werte bei Modell-Refresh
+Anbieter-Pricing-Pages, Stand 2026-07-24. Veraltete Werte bei Modell-Refresh
 hier aktualisieren — diese Datei ist die einzige Quelle.
 
 Mapping `(provider, model)` → 4 Raten. Für nicht-gelistete Modelle: None →
@@ -23,6 +23,8 @@ class Pricing(NamedTuple):
 # Anthropic Claude — $/1M tokens × 100 cents × 1000 micros / 1M tokens = $-Wert × 0.1 micros/token
 # Beispiel: Sonnet $3/1M input = 3 × 0.1 = 0.3 micros/token
 _ANTHROPIC: dict[str, Pricing] = {
+    # Opus 5: $5 / $25 / cache_read $0.50 / cache_write $6.25 (Stand 2026-07, Release 24.07)
+    "claude-opus-5": Pricing(0.5, 2.5, 0.05, 0.625),
     # Fable 5: $10 / $50 / cache_read $1.00 / cache_write $12.50 (Stand 2026-06, Release 09.06)
     "claude-fable-5": Pricing(1.0, 5.0, 0.1, 1.25),
     # Sonnet 5: $2 / $10 / cache_read $0.20 / cache_write $2.50 (Intro-Preis, Stand 2026-07)

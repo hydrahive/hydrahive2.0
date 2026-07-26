@@ -177,6 +177,16 @@ def test_effort_levels_vollstaendig():
     assert EFFORT_LEVELS == ("low", "medium", "high", "xhigh", "max")
 
 
+def test_opus_5_uses_adaptive_effort_including_max():
+    assert any("claude-opus-5".startswith(p) for p in EFFORT_PARAM_MODELS)
+    assert effort_levels_for_model("claude-opus-5") == EFFORT_LEVELS
+    kwargs = {"max_tokens": 8192, "temperature": 0.4}
+    apply_effort(kwargs, "claude-opus-5", "max")
+    assert kwargs["thinking"] == {"type": "adaptive"}
+    assert kwargs["output_config"]["effort"] == "max"
+    assert kwargs["temperature"] == 0.4
+
+
 def test_opus_4_8_in_effort_param_models():
     assert any("claude-opus-4-8".startswith(p) for p in EFFORT_PARAM_MODELS)
 

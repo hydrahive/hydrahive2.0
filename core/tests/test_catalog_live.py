@@ -86,13 +86,121 @@ def test_anthropic_endpoint_uses_x_api_key():
 
 
 def test_auth_for_x_api_key():
-    headers, params = catalog._auth_for({"auth": "x-api-key"}, "sk-ant-xxx")
-    assert headers["x-api-key"] == "sk-ant-xxx"
+    headers, params = catalog._auth_for({"auth": "x-api-key"}, "sk-ant-api03-xxx")
+    assert headers["x-api-key"] == "sk-ant-api03-xxx"
+    assert "Authorization" not in headers
     assert headers["anthropic-version"] == "2023-06-01"
     assert params == {}
 
 
+def test_auth_for_anthropic_oauth_uses_bearer_and_cli_headers():
+    headers, params = catalog._auth_for({"auth": "x-api-key"}, "sk-ant-oat01-xxx")
+    assert headers["Authorization"] == "Bearer sk-ant-oat01-xxx"
+    assert "x-api-key" not in headers
+    assert headers["anthropic-version"] == "2023-06-01"
+    assert "oauth-2025-04-20" in headers["anthropic-beta"]
+    assert headers["x-app"] == "cli"
+    assert params == {}
+
+
+def test_opus_5_is_complete_static_fallback():
+    from hydrahive.llm._catalog_data import METADATA, STATIC_MODELS
+
+    assert "claude-opus-5" in STATIC_MODELS["anthropic"]
+    assert METADATA["claude-opus-5"] == {
+        "context_window": 1_000_000,
+        "tool_use": True,
+        "category": "chat",
+        "family": "anthropic",
+    }
+
+
 import asyncio
+
+
+def test_anthropic_catalog_prefers_oauth_access_over_api_key(monkeypatch):
+    seen = []
+
+    async def fake_fetch(provider_id, key):
+        seen.append((provider_id, key))
+        return [{"id": "claude-opus-5", "context_window": 1_000_000,
+                 "is_free": None, "price_prompt": None, "price_completion": None}]
+
+    monkeypatch.setattr(catalog, "_cached_fetch", fake_fetch)
+    providers = [{
+        "id": "anthropic",
+        "api_key": "sk-ant-api03-old",
+        "oauth": {"access": "sk-ant-oat01-current"},
+    }]
+
+    result = asyncio.run(catalog.catalog_for_providers(providers))
+
+    assert seen == [("anthropic", "sk-ant-oat01-current")]
+    assert result[0]["models"][0]["id"] == "claude-opus-5"
+
+
+def test_anthropic_catalog_uses_api_key_when_oauth_is_expired(monkeypatch):
+    seen = []
+
+    async def fake_fetch(provider_id, key):
+        seen.append((provider_id, key))
+        return [{"id": "claude-opus-5", "context_window": 1_000_000,
+                 "is_free": None, "price_prompt": None, "price_completion": None}]
+
+    monkeypatch.setattr(catalog, "_cached_fetch", fake_fetch)
+    providers = [{
+        "id": "anthropic",
+        "api_key": "sk-ant-api03-current",
+        "oauth": {"access": "sk-ant-oat01-expired", "expires_at": 1},
+    }]
+
+    asyncio.run(catalog.catalog_for_providers(providers))
+
+    assert seen == [("anthropic", "sk-ant-api03-current")]
+
+
+def test_anthropic_catalog_retries_api_key_after_oauth_failure(monkeypatch):
+    seen = []
+
+    async def fake_fetch(provider_id, key):
+        seen.append((provider_id, key))
+        if key.startswith("sk-ant-oat"):
+            return []
+        return [{"id": "claude-opus-5", "context_window": 1_000_000,
+                 "is_free": None, "price_prompt": None, "price_completion": None}]
+
+    monkeypatch.setattr(catalog, "_cached_fetch", fake_fetch)
+    providers = [{
+        "id": "anthropic",
+        "api_key": "sk-ant-api03-fallback",
+        "oauth": {"access": "sk-ant-oat01-revoked", "expires_at": 9_999_999_999},
+    }]
+
+    result = asyncio.run(catalog.catalog_for_providers(providers))
+
+    assert seen == [
+        ("anthropic", "sk-ant-oat01-revoked"),
+        ("anthropic", "sk-ant-api03-fallback"),
+    ]
+    assert result[0]["models"][0]["id"] == "claude-opus-5"
+
+
+def test_cache_is_scoped_by_credential_without_storing_raw_token(monkeypatch):
+    calls = []
+
+    async def fake_fetch(pid, key):
+        calls.append((pid, key))
+        return [{"id": f"{pid}/x", "context_window": None, "is_free": True,
+                 "price_prompt": "0", "price_completion": "0"}]
+
+    monkeypatch.setattr(catalog, "_fetch_live_models", fake_fetch)
+    catalog._cache_clear()
+    asyncio.run(catalog._cached_fetch("openrouter", "first-secret-token"))
+    asyncio.run(catalog._cached_fetch("openrouter", "second-secret-token"))
+
+    assert len(calls) == 2
+    assert "first-secret-token" not in repr(catalog._cache)
+    assert "second-secret-token" not in repr(catalog._cache)
 
 
 def test_cache_hit_skips_second_fetch(monkeypatch):

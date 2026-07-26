@@ -12,6 +12,12 @@ import json
 from unittest.mock import AsyncMock, patch
 
 
+def test_anthropic_oauth_defaults_include_opus_5():
+    from hydrahive.api.routes.llm_oauth import ANTHROPIC_DEFAULT_MODELS
+
+    assert ANTHROPIC_DEFAULT_MODELS[0] == "claude-opus-5"
+
+
 def _fake_pkce():
     return ("verifier123", "challenge123")
 

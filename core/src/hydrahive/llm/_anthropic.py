@@ -28,7 +28,7 @@ EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 # Claude-Modelle mit adaptive thinking + output_config.effort (4.6 und neuer).
 # Alle anderen (Claude 4.5/4.1/4.0/3.x, MiniMax) nutzen den Legacy-Pfad.
 EFFORT_PARAM_MODELS = (
-    "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8", "claude-sonnet-4-6",
+    "claude-opus-5", "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8", "claude-sonnet-4-6",
     "claude-sonnet-5", "claude-fable-5",
 )
 

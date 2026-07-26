@@ -13,6 +13,7 @@ Daten (Provider-Endpoints, Static-Listen, Metadata) liegen in
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import time
 from typing import Any
@@ -35,22 +36,30 @@ _cache_locks: dict[str, asyncio.Lock] = {}
 
 def _cache_clear() -> None:
     _cache.clear()
+    _cache_locks.clear()
+
+
+def _credential_cache_key(provider_id: str, credential: str) -> str:
+    """Isoliert Provider-Listings pro Credential, ohne Tokens im Cache abzulegen."""
+    digest = hashlib.sha256(credential.encode()).hexdigest()[:16]
+    return f"{provider_id}:{digest}"
 
 
 async def _cached_fetch(provider_id: str, api_key: str) -> list[dict]:
     """Live-Fetch mit 5-Min-TTL-Cache + Lock gegen parallele Fetches."""
+    cache_key = _credential_cache_key(provider_id, api_key)
     now = time.monotonic()
-    hit = _cache.get(provider_id)
+    hit = _cache.get(cache_key)
     if hit and now - hit[0] < _CACHE_TTL:
         return hit[1]
-    lock = _cache_locks.setdefault(provider_id, asyncio.Lock())
+    lock = _cache_locks.setdefault(cache_key, asyncio.Lock())
     async with lock:
-        hit = _cache.get(provider_id)  # zweiter Check nach Lock
+        hit = _cache.get(cache_key)  # zweiter Check nach Lock
         if hit and time.monotonic() - hit[0] < _CACHE_TTL:
             return hit[1]
         entries = await _fetch_live_models(provider_id, api_key)
         if entries:  # nur erfolgreiche Fetches cachen
-            _cache[provider_id] = (time.monotonic(), entries)
+            _cache[cache_key] = (time.monotonic(), entries)
         return entries
 
 
@@ -109,7 +118,14 @@ def _auth_for(cfg: dict, api_key: str) -> tuple[dict, dict]:
         return {"Authorization": f"Bearer {api_key}"}, {}
     if kind == "query":
         return {}, {cfg.get("query_param", "key"): api_key}
-    if kind == "x-api-key":  # Anthropic
+    if kind == "x-api-key":  # Anthropic: API-Key oder Claude-Code-OAuth-Token
+        if api_key.startswith("sk-ant-oat"):
+            from hydrahive.llm._anthropic import _OAUTH_HEADERS
+            return {
+                "Authorization": f"Bearer {api_key}",
+                "anthropic-version": "2023-06-01",
+                **_OAUTH_HEADERS,
+            }, {}
         return {"x-api-key": api_key, "anthropic-version": "2023-06-01"}, {}
     return {}, {}
 
@@ -236,6 +252,25 @@ def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
     }
 
 
+def _catalog_credentials(provider: dict) -> list[str]:
+    """Credentials in sicherer Retry-Reihenfolge, ohne sie zu persistieren.
+
+    Für Anthropic wird ein noch gültiger OAuth-Token bevorzugt. Ist er abgelaufen,
+    kommt ein paralleler API-Key zuerst. Der zweite Credential bleibt als einmaliger
+    Fallback erhalten, falls der bevorzugte widerrufen wurde.
+    """
+    api_key = provider.get("api_key", "") or ""
+    oauth = provider.get("oauth") or {}
+    access = oauth.get("access", "") or ""
+    if provider.get("id") != "anthropic":
+        return [key for key in (api_key or access,) if key]
+
+    expires_at = int(oauth.get("expires_at") or 0)
+    oauth_current = bool(access) and (expires_at == 0 or expires_at > time.time())
+    ordered = (access, api_key) if oauth_current else (api_key, access)
+    return list(dict.fromkeys(key for key in ordered if key))
+
+
 async def catalog_for_providers(providers: list[dict]) -> list[dict]:
     """Erzeugt Catalog-Einträge pro konfiguriertem Provider parallel.
 
@@ -254,8 +289,13 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
                 "models": models,
                 "live_count": len(entries),
             }
-        key = p.get("api_key", "") or (p.get("oauth") or {}).get("access", "")
-        entries = await _cached_fetch(pid, key)
+        credentials = _catalog_credentials(p)
+        entries: list[dict] = []
+        for credential in credentials:
+            entries = await _cached_fetch(pid, credential)
+            if entries:
+                break
+        live_count = len(entries)
         if not entries:
             entries = [{"id": _normalize_id(pid, m), "context_window": None,
                         "is_free": None, "price_prompt": None, "price_completion": None}
@@ -264,8 +304,8 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
         return {
             "provider_id": pid,
             "provider_name": p.get("name", pid),
-            "configured": bool(key),
+            "configured": bool(credentials),
             "models": models,
-            "live_count": len(entries),
+            "live_count": live_count,
         }
     return await asyncio.gather(*[one(p) for p in providers])
