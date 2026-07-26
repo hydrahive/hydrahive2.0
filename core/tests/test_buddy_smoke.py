@@ -104,10 +104,11 @@ def test_buddy_config_full_settings_roundtrip(setup_test_env):
     from hydrahive.buddy import get_or_create_buddy
     from hydrahive.buddy import _config as buddy_config
 
-    get_or_create_buddy("testuser")
+    state = get_or_create_buddy("testuser")
     buddy_config.patch_config(
         "testuser",
         {
+            "model": state["model"],
             "fallback_models": [],
             "temperature": 0.4,
             "max_tokens": 12_000,
@@ -126,6 +127,7 @@ def test_buddy_config_full_settings_roundtrip(setup_test_env):
     )
 
     cfg = buddy_config.get_config("testuser")
+    assert cfg["model"] == state["model"]
     assert cfg["temperature"] == 0.4
     assert cfg["max_tokens"] == 12_000
     assert cfg["thinking_budget"] == 2_000
@@ -139,6 +141,9 @@ def test_buddy_config_full_settings_roundtrip(setup_test_env):
     assert cfg["compact_max_turns"] == 2_000
     assert cfg["max_iterations"] == 12
     assert cfg["cache_ttl"] == "1h"
+
+    buddy_config.patch_config("testuser", {"compact_max_turns": None})
+    assert buddy_config.get_config("testuser")["compact_max_turns"] is None
 
 
 def test_buddy_config_mail_roundtrip(setup_test_env):

@@ -51,7 +51,7 @@ def get_config(username: str) -> dict:
         "mcp_servers": buddy.get("mcp_servers", []),
         "disabled_skills": buddy.get("disabled_skills", []),
         "require_tool_confirm": buddy.get("require_tool_confirm", False),
-        "longterm_memory": buddy.get("longterm_memory", True),
+        "longterm_memory": buddy.get("longterm_memory", False),
         "compact_threshold_pct": buddy.get("compact_threshold_pct", 70),
         "compact_model": buddy.get("compact_model", "") or "",
         "compact_tool_result_limit": buddy.get("compact_tool_result_limit", 8_000),

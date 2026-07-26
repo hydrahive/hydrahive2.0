@@ -105,8 +105,15 @@ def update(agent_id: str, **changes: Any) -> dict:
         _validation.validate_tool_config(merged)
         changes["tool_config"] = merged
 
+    clear_fields = {
+        field
+        for field in ("compact_max_turns",)
+        if field in changes and changes[field] in (None, "")
+    }
     _validation.normalize_compact_changes(changes)
 
+    for field in clear_fields:
+        cfg.pop(field, None)
     cfg.update(changes)
     cfg["updated_at"] = now_iso()
     save_atomic(config_path(agent_id), cfg)
