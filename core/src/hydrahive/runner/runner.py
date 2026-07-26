@@ -119,7 +119,8 @@ async def run(
 
     from hydrahive.handover import prompt_for_new_session
     handover_system = prompt_for_new_session(session_id)
-    messages_db.append(session_id, "user", user_input)
+    user_message = messages_db.append(session_id, "user", user_input)
+    ctx.current_user_turn_id = user_message.id
 
     last_assistant_id: str | None = None
     recent_tool_calls: list[str] = []
