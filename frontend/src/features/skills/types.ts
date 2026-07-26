@@ -1,4 +1,4 @@
-export type SkillScope = "system" | "user" | "agent"
+export type SkillScope = "system" | "user" | "project" | "agent"
 
 export interface SkillSource {
   url: string

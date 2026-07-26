@@ -2,11 +2,12 @@ import { api } from "@/shared/api-client"
 import type { Skill, SkillSavePayload, SkillScope } from "./types"
 
 export const skillsApi = {
-  /** Wenn agentId gesetzt: gemergte Liste (system+user+agent). Sonst: scope-basiert. */
-  list: (params?: { agentId?: string; scope?: SkillScope | "all" }) => {
+  /** Wenn agentId gesetzt: effektive Liste (system+user+project+agent). */
+  list: (params?: { agentId?: string; scope?: SkillScope | "all"; includeDisabled?: boolean }) => {
     const qs = new URLSearchParams()
     if (params?.agentId) qs.set("agent_id", params.agentId)
     if (params?.scope) qs.set("scope", params.scope)
+    if (params?.includeDisabled) qs.set("include_disabled", "true")
     const q = qs.toString()
     return api.get<Skill[]>(`/skills${q ? "?" + q : ""}`)
   },

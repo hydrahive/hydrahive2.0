@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { BuddyConfig, BuddyConfigPatch } from "./api"
 
 interface Props {
@@ -7,34 +8,27 @@ interface Props {
 }
 
 export function BuddySettingsContext({ config, draft, onChange }: Props) {
+  const { t } = useTranslation("buddy")
   const context = draft.context ?? config.context
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-zinc-400">
-          Was soll Buddy über dich wissen?
-        </label>
-        <textarea
-          value={context}
-          onChange={(e) => onChange({ context: e.target.value })}
-          rows={12}
-          placeholder={"Beispiel:\nIch bin Till, 35, Softwareentwickler.\nIch arbeite hauptsächlich mit Python und TypeScript.\nMeine laufenden Projekte: HydraHive2 (selbst gehostetes KI-System).\nIch habe ~4000 E-Books und eine große Filmsammlung.\nMeine bevorzugte Sprache ist Deutsch."}
-          className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-700 resize-none font-mono leading-relaxed"
-        />
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-zinc-600">
-            Dieser Text wird in jeden Chat injiziert — Buddy kennt ihn immer.
-          </p>
-          <span className="text-xs text-zinc-700 font-mono">{context.length} / 8000</span>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-amber-500/20 bg-amber-500/[4%] px-3 py-2">
-        <p className="text-xs text-amber-400/80">
-          Änderungen hier starten eine neue Chat-Session (neuer System-Prompt).
-        </p>
+  return <div className="space-y-4">
+    <div>
+      <label className="mb-1.5 block text-xs font-semibold text-[#8d9ab0]">{t("context.label")}</label>
+      <textarea
+        value={context}
+        onChange={(event) => onChange({ context: event.target.value })}
+        rows={14}
+        maxLength={8000}
+        placeholder={t("context.placeholder")}
+        className="w-full resize-y rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 font-mono text-sm leading-relaxed text-[#e8eef8] outline-none placeholder:text-[#59677d] focus:border-[#69d7ff]/60"
+      />
+      <div className="mt-1 flex items-center justify-between gap-3 text-xs text-[#718097]">
+        <p>{t("context.hint")}</p>
+        <span className="shrink-0 font-mono">{context.length} / 8000</span>
       </div>
     </div>
-  )
+    <div className="rounded-[4px] border border-amber-400/25 bg-amber-400/[7%] px-3 py-2 text-xs text-amber-200">
+      {t("context.session_warning")}
+    </div>
+  </div>
 }

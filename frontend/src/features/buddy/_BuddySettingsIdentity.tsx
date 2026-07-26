@@ -30,24 +30,24 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
   return (
     <div className="space-y-6">
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-zinc-400">{t("identity.name_label")}</label>
+        <label className="block text-xs font-medium text-[#8d9ab0]">{t("identity.name_label")}</label>
         <input
           value={name}
           onChange={(e) => onChange({ name: e.target.value })}
-          className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm"
+          className="w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
         />
       </div>
 
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-zinc-400">{t("identity.character_label")}</label>
+        <label className="block text-xs font-medium text-[#8d9ab0]">{t("identity.character_label")}</label>
         <div className="flex items-center gap-3">
-          <span className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-300 text-sm truncate">
+          <span className="flex-1 truncate rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#d7deea]">
             {config.character || "—"}
           </span>
           <button
             onClick={onRerollCharacter}
             disabled={busy}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[8%] text-xs text-zinc-400 hover:text-pink-300 hover:border-pink-500/30 hover:bg-pink-500/[4%] transition-all disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-2 text-xs text-[#8d9ab0] hover:border-[#69d7ff]/45 hover:text-[#c8f2ff] disabled:opacity-40"
           >
             <Dice5 size={13} />
             🎲
@@ -57,21 +57,21 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">{t("identity.language_label")}</label>
+          <label className="block text-xs font-medium text-[#8d9ab0]">{t("identity.language_label")}</label>
           <select
             value={language}
             onChange={(e) => onChange({ language: e.target.value as BuddyConfigPatch["language"] })}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm"
+            className="w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
           >
             {LANGUAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-zinc-400">{t("identity.tone_label")}</label>
+          <label className="block text-xs font-medium text-[#8d9ab0]">{t("identity.tone_label")}</label>
           <select
             value={tone}
             onChange={(e) => onChange({ tone: e.target.value as BuddyConfigPatch["tone"] })}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm"
+            className="w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
           >
             {TONE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>

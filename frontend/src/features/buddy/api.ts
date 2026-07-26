@@ -10,6 +10,17 @@ export interface BuddyState {
   created: boolean
 }
 
+export interface BuddyToolMeta {
+  name: string
+  description: string
+  category?: string | null
+}
+
+export type BuddyLanguage = "de" | "en" | "auto"
+export type BuddyTone = "locker" | "professionell" | "knapp"
+export type ReasoningEffort = "" | "low" | "medium" | "high"
+export type CacheTtl = "5m" | "1h"
+
 export interface ClearResult { ok: boolean; session_id: string; message: string }
 export interface RememberResult { ok: boolean; key: string; message: string }
 export interface ModelsResult { current: string; available: string[] }
@@ -17,28 +28,59 @@ export interface SetModelResult { ok: boolean; model: string; message: string }
 export interface CharacterResult { ok: boolean; session_id: string; message: string }
 
 export interface BuddyConfig {
+  agent_id: string
   name: string
   model: string
+  fallback_models: string[]
+  temperature: number
+  max_tokens: number
+  thinking_budget: number
+  reasoning_effort: ReasoningEffort
   character: string
   tools: string[]
   all_tools: string[]
+  available_tools: BuddyToolMeta[]
+  mcp_servers: string[]
+  disabled_skills: string[]
+  require_tool_confirm: boolean
+  longterm_memory: boolean
   compact_threshold_pct: number
   compact_model: string
+  compact_tool_result_limit: number
+  compact_reserve_tokens: number
+  compact_max_turns: number | null
   tool_result_max_chars: number
-  language: "de" | "en" | "auto"
-  tone: "locker" | "professionell" | "knapp"
+  max_iterations: number
+  cache_ttl: CacheTtl
+  language: BuddyLanguage
+  tone: BuddyTone
   context: string
   tool_config?: AgentToolConfig
 }
 
 export interface BuddyConfigPatch {
   name?: string
+  model?: string
+  fallback_models?: string[]
+  temperature?: number
+  max_tokens?: number
+  thinking_budget?: number
+  reasoning_effort?: ReasoningEffort
   tools?: string[]
+  mcp_servers?: string[]
+  disabled_skills?: string[]
+  require_tool_confirm?: boolean
+  longterm_memory?: boolean
   compact_threshold_pct?: number
   compact_model?: string
+  compact_tool_result_limit?: number
+  compact_reserve_tokens?: number
+  compact_max_turns?: number | null
   tool_result_max_chars?: number
-  language?: "de" | "en" | "auto"
-  tone?: "locker" | "professionell" | "knapp"
+  max_iterations?: number
+  cache_ttl?: CacheTtl
+  language?: BuddyLanguage
+  tone?: BuddyTone
   context?: string
   tool_config?: AgentToolConfig
 }

@@ -1,8 +1,6 @@
 import { useState } from "react"
-import type { CSSProperties } from "react"
 import { Loader2, Save, Trash2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { rgbFor } from "@/shared/colors"
 import { skillsApi } from "./api"
 import { Field } from "./_skillHelpers"
 import { SkillSourcesList } from "./_SkillSourcesList"
@@ -68,8 +66,8 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
-        className="box overflow-y-auto w-full max-w-3xl max-h-[90vh] p-5 shadow-2xl shadow-black/40 space-y-3"
-        style={{ "--c": rgbFor("/skills") } as CSSProperties}>
+        role="dialog" aria-modal="true" aria-label={isNew ? t("new_title") : t("edit_title", { name: skill!.name })}
+        className="max-h-[90vh] w-full max-w-3xl space-y-3 overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-5 text-[#e8eef8] shadow-2xl shadow-black/40">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
             {isNew ? t("new_title") : t("edit_title", { name: skill!.name })}
@@ -115,7 +113,7 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
         <Field label={t("body")}>
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={14}
             placeholder={t("body_placeholder")}
-            className="w-full px-2 py-1.5 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+            className="w-full px-2 py-1.5 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:border-[#69d7ff]/60" />
         </Field>
 
         {error && (
@@ -135,7 +133,7 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
             {tCommon("actions.cancel")}
           </button>
           <button onClick={save} disabled={!validName || busy}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-30">
+            className="flex items-center gap-1.5 rounded-[4px] border border-[#69d7ff]/45 bg-[#163248] px-4 py-1.5 text-xs font-bold text-[#c8f2ff] hover:bg-[#1b3d56] disabled:opacity-30">
             {busy ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
             {tCommon("actions.save")}
           </button>
