@@ -88,7 +88,8 @@ async def run(
     workspace, active_project_id = resolve_run_context(session, agent, tool_config)
     ctx = ToolContext(session_id=session_id, agent_id=agent["id"], user_id=session.user_id,
                      workspace=workspace, config=effective_tool_config(agent, tool_config),
-                     project_id=active_project_id)
+                     project_id=active_project_id,
+                     current_user_input=_user_text(user_input))
 
     # Session-Lifecycle: start
     _first_prompt = user_input if isinstance(user_input, str) else None
