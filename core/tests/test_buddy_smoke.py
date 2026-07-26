@@ -146,6 +146,24 @@ def test_buddy_config_full_settings_roundtrip(setup_test_env):
     assert buddy_config.get_config("testuser")["compact_max_turns"] is None
 
 
+def test_buddy_config_does_not_partially_write_soul_preferences(setup_test_env):
+    from hydrahive.agents._validation import AgentValidationError
+    from hydrahive.buddy import get_or_create_buddy
+    from hydrahive.buddy import _config as buddy_config
+
+    get_or_create_buddy("testuser")
+
+    with pytest.raises(AgentValidationError):
+        buddy_config.patch_config(
+            "testuser",
+            {"max_tokens": 0, "language": "en", "context": "must not persist"},
+        )
+
+    cfg = buddy_config.get_config("testuser")
+    assert cfg["language"] == "de"
+    assert cfg["context"] == ""
+
+
 def test_buddy_config_mail_roundtrip(setup_test_env):
     """Per-Buddy-Postfach: patch persistiert roh am Agent, get liefert maskiert."""
     from hydrahive.buddy import get_or_create_buddy

@@ -111,6 +111,11 @@ def patch_config(username: str, changes: dict) -> dict:
         # agent_config.update validiert + merged Secrets (leeres Passwort = behalten).
         agent_updates["tool_config"] = changes["tool_config"]
 
+    # Zuerst Agent-Felder validieren und persistieren. So schreiben ungültige
+    # Modell-/Runtime-Patches nicht bereits teilweise Soul-Präferenzen.
+    if agent_updates:
+        agent_config.update(bid, **agent_updates)
+
     if "language" in changes:
         memory.write_key(bid, "_pref_language", changes["language"])
         soul_dirty = True
@@ -122,9 +127,6 @@ def patch_config(username: str, changes: dict) -> dict:
     if "context" in changes:
         memory.write_key(bid, "_pref_context", changes["context"])
         soul_dirty = True
-
-    if agent_updates:
-        agent_config.update(bid, **agent_updates)
 
     if soul_dirty:
         character_raw = memory.read_key(bid, "character") or ""
