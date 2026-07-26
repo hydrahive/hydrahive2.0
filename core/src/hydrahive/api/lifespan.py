@@ -138,6 +138,7 @@ async def lifespan(app: FastAPI):
         t for m in _module_registry.values()
         if m.loaded and m.ctx for t in m.ctx.tools
     ])
+    agent_bootstrap.migrate_tools(include_module_defaults=True)
     from hydrahive.llm import registry as llm_registry
     # Hintergrund-Warm: blockiert den Start nicht (Provider-Fetch-Timeouts);
     # validate ist failopen während des kurzen kalten Fensters.

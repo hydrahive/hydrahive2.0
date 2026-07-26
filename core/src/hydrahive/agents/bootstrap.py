@@ -24,11 +24,11 @@ def _write_startup(agent: dict) -> None:
     startup.write_text(_STARTUP_TEMPLATE.read_text(encoding="utf-8"), encoding="utf-8")
 
 
-def migrate_tools() -> None:
-    """Stellt sicher dass alle bestehenden Agenten die Tools aus _BASE_TOOLS haben.
+def migrate_tools(*, include_module_defaults: bool = False) -> None:
+    """Stellt sicher dass bestehende Agenten ihre kanonischen Default-Tools haben.
 
-    Läuft bei jedem Start — idempotent. Neue Tools in _BASE_TOOLS werden so
-    automatisch in bestehende Agent-Configs übernommen ohne manuellen Eingriff.
+    Läuft bei jedem Start idempotent. Nach dem Modul-Load ergänzt der optionale
+    zweite Lauf auch Tools aus Modulen mit ``default_agent_tools=true`` bei Mastern.
 
     Nutzt direktes save_atomic statt config.update, damit Agenten mit Plugin-Tools
     (plugin__*) nicht an der Validation scheitern — wir fügen nur hinzu, nie entfernen.
@@ -36,13 +36,23 @@ def migrate_tools() -> None:
     from hydrahive.agents._config_utils import list_all, save_atomic
     from hydrahive.agents._paths import config_path
     from hydrahive.db._utils import now_iso
+    if include_module_defaults:
+        from hydrahive.agents._defaults import _module_default_tool_names
+        from hydrahive.tools import REGISTRY
+        module_defaults = [
+            name for name in _module_default_tool_names() if name in REGISTRY
+        ]
+    else:
+        module_defaults = []
     for agent in list_all():
         agent_type = agent.get("type", "")
         if agent_type not in _BASE_TOOLS:
             continue
         current: list[str] = agent.get("tools", [])
-        canonical: list[str] = _BASE_TOOLS[agent_type]
-        missing = [t for t in canonical if t not in current]
+        canonical = list(_BASE_TOOLS[agent_type])
+        if agent_type == "master":
+            canonical.extend(module_defaults)
+        missing = [t for t in dict.fromkeys(canonical) if t not in current]
         if not missing:
             continue
         try:

@@ -59,6 +59,26 @@ def test_master_defaults_deduped(monkeypatch):
         tools.register_module_tools([])
 
 
+def test_existing_master_receives_module_defaults_after_load(monkeypatch):
+    from hydrahive.agents import bootstrap
+    from hydrahive.agents import _config_utils
+    from hydrahive.agents import _paths
+    from hydrahive import tools
+
+    _install_fake_module(monkeypatch, flag=True, tool_name="fakemod_migrated")
+    agent = {"id": "master-1", "name": "Master", "type": "master", "tools": []}
+    saved = []
+    monkeypatch.setattr(_config_utils, "list_all", lambda: [agent])
+    monkeypatch.setattr(_config_utils, "save_atomic", lambda path, value: saved.append(value.copy()))
+    monkeypatch.setattr(_paths, "config_path", lambda _: Path("/tmp/fake-agent.json"))
+    try:
+        bootstrap.migrate_tools(include_module_defaults=True)
+        assert "fakemod_migrated" in agent["tools"]
+        assert len(saved) == 1
+    finally:
+        tools.register_module_tools([])
+
+
 def test_unregistered_module_tool_filtered(monkeypatch):
     # Flag gesetzt, aber Tool NICHT in tools.REGISTRY → muss rausgefiltert werden.
     from hydrahive import tools
@@ -70,3 +90,11 @@ def test_unregistered_module_tool_filtered(monkeypatch):
                                      ctx=ctx, loaded=True))
     from hydrahive.agents._defaults import DEFAULT_TOOLS
     assert "ghost_tool" not in DEFAULT_TOOLS["master"]
+
+    from hydrahive.agents import _config_utils, _paths, bootstrap
+    agent = {"id": "master-ghost", "name": "Master", "type": "master", "tools": []}
+    monkeypatch.setattr(_config_utils, "list_all", lambda: [agent])
+    monkeypatch.setattr(_config_utils, "save_atomic", lambda *args: None)
+    monkeypatch.setattr(_paths, "config_path", lambda _: Path("/tmp/ghost.json"))
+    bootstrap.migrate_tools(include_module_defaults=True)
+    assert "ghost_tool" not in agent["tools"]
