@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { AlertTriangle, Search, Server } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { McpServerBrief } from "@/features/agents/api"
@@ -19,15 +19,19 @@ export function BuddySettingsTools({ config, draft, onChange, mcpServers }: Prop
   const knownNames = new Set(config.available_tools.map((tool) => tool.name))
   const unknown: BuddyToolMeta[] = Array.from(activeTools).filter((name) => !knownNames.has(name)).map((name) => ({ name, description: t("tools.unavailable_hint"), category: t("tools.unavailable") }))
   const catalog = [...config.available_tools, ...unknown]
-  const categories = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    const filtered = catalog.filter((tool) => !needle || `${tool.name} ${tool.description} ${tool.category}`.toLowerCase().includes(needle))
-    return Array.from(new Set(filtered.map((tool) => tool.category || t("tools.other")))).sort().map((category) => ({ category, tools: filtered.filter((tool) => (tool.category || t("tools.other")) === category) }))
-  }, [catalog, query, t])
+  const needle = query.trim().toLowerCase()
+  const filtered = catalog.filter((tool) => !needle || `${tool.name} ${tool.description} ${tool.category}`.toLowerCase().includes(needle))
+  const categories = Array.from(new Set(filtered.map((tool) => tool.category || t("tools.other"))))
+    .sort()
+    .map((category) => ({
+      category,
+      tools: filtered.filter((tool) => (tool.category || t("tools.other")) === category),
+    }))
 
   function toggle(tool: string) {
     const next = new Set(activeTools)
-    next.has(tool) ? next.delete(tool) : next.add(tool)
+    if (next.has(tool)) next.delete(tool)
+    else next.add(tool)
     onChange({ tools: Array.from(next) })
   }
 

@@ -46,7 +46,10 @@ export function BuddySettingsPage() {
     setLoading(false)
   }, [t])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0)
+    return () => window.clearTimeout(timer)
+  }, [load])
 
   function applyDraft(patch: BuddyConfigPatch) {
     setDraft((previous) => ({ ...previous, ...patch }))
@@ -93,10 +96,7 @@ export function BuddySettingsPage() {
     return all.filter((tab) => tab.show !== false)
   }, [hasMail, t])
 
-  useEffect(() => {
-    if (!tabs.some((tab) => tab.id === activeTab)) setActiveTab("tools")
-  }, [activeTab, tabs])
-
+  const visibleTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "tools"
   const dirty = Object.keys(draft).length > 0
 
   return <CockpitShell title={t("settings.title")} className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]" hideHeader>
@@ -115,16 +115,16 @@ export function BuddySettingsPage() {
 
         {loading && !config ? <div className="flex flex-1 items-center justify-center py-24"><Loader2 size={22} className="animate-spin text-[#69d7ff]" /></div> : config && <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[210px_minmax(0,1fr)]">
           <nav className="flex gap-1 overflow-x-auto rounded-[6px] border border-[#2a364b] bg-[#101724] p-2 lg:flex-col lg:self-start" aria-label={t("settings.sections")}>
-            {tabs.map(({ id, icon: Icon, label }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={activeTab === id ? "flex shrink-0 items-center gap-2 rounded-[4px] border border-[#69d7ff]/40 bg-[#1c2940] px-3 py-2 text-left text-xs font-bold text-[#c8f2ff]" : "flex shrink-0 items-center gap-2 rounded-[4px] border border-transparent px-3 py-2 text-left text-xs font-semibold text-[#8d9ab0] hover:bg-white/5 hover:text-[#e8eef8]"}><Icon size={14} />{label}</button>)}
+            {tabs.map(({ id, icon: Icon, label }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={visibleTab === id ? "flex shrink-0 items-center gap-2 rounded-[4px] border border-[#69d7ff]/40 bg-[#1c2940] px-3 py-2 text-left text-xs font-bold text-[#c8f2ff]" : "flex shrink-0 items-center gap-2 rounded-[4px] border border-transparent px-3 py-2 text-left text-xs font-semibold text-[#8d9ab0] hover:bg-white/5 hover:text-[#e8eef8]"}><Icon size={14} />{label}</button>)}
           </nav>
           <section className="min-w-0 rounded-[6px] border border-[#2a364b] bg-[#101724] p-4 sm:p-5">
-            {activeTab === "identity" && <BuddySettingsIdentity config={config} draft={draft} onChange={applyDraft} onRerollCharacter={() => void rerollCharacter()} busy={busy} />}
-            {activeTab === "context" && <BuddySettingsContext config={config} draft={draft} onChange={applyDraft} />}
-            {activeTab === "model" && <BuddySettingsModel config={config} draft={draft} onChange={applyDraft} availableModels={models} />}
-            {activeTab === "tools" && <BuddySettingsTools config={config} draft={draft} onChange={applyDraft} mcpServers={mcpServers} />}
-            {activeTab === "skills" && <BuddySettingsSkills config={config} draft={draft} onChange={applyDraft} />}
-            {activeTab === "mail" && hasMail && <BuddySettingsMail config={config} draft={draft} onChange={applyDraft} />}
-            {activeTab === "advanced" && <BuddySettingsAdvanced config={config} draft={draft} onChange={applyDraft} availableModels={models} />}
+            {visibleTab === "identity" && <BuddySettingsIdentity config={config} draft={draft} onChange={applyDraft} onRerollCharacter={() => void rerollCharacter()} busy={busy} />}
+            {visibleTab === "context" && <BuddySettingsContext config={config} draft={draft} onChange={applyDraft} />}
+            {visibleTab === "model" && <BuddySettingsModel config={config} draft={draft} onChange={applyDraft} availableModels={models} />}
+            {visibleTab === "tools" && <BuddySettingsTools config={config} draft={draft} onChange={applyDraft} mcpServers={mcpServers} />}
+            {visibleTab === "skills" && <BuddySettingsSkills config={config} draft={draft} onChange={applyDraft} />}
+            {visibleTab === "mail" && hasMail && <BuddySettingsMail config={config} draft={draft} onChange={applyDraft} />}
+            {visibleTab === "advanced" && <BuddySettingsAdvanced config={config} draft={draft} onChange={applyDraft} availableModels={models} />}
           </section>
         </div>}
 

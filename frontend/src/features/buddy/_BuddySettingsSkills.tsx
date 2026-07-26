@@ -28,7 +28,10 @@ export function BuddySettingsSkills({ config, draft, onChange }: Props) {
     finally { setLoading(false) }
   }, [config.agent_id, t])
 
-  useEffect(() => { void reload() }, [reload])
+  useEffect(() => {
+    const timer = window.setTimeout(() => void reload(), 0)
+    return () => window.clearTimeout(timer)
+  }, [reload])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
