@@ -93,6 +93,13 @@ server {
     }
 }
 
+# HTTPS-Erzwingung hinter einem vorgeschalteten Proxy (Cloudflare, Traefik …).
+# Dort endet TLS am Rand und der Request erreicht nginx per HTTP auf Port 443
+# oder mit X-Forwarded-Proto=http. Der 301 im Port-80-Block oben greift dann
+# nicht, weil der Proxy Port 80 selbst beantwortet.
+# Aktivierung: HH_FORCE_HTTPS=1 (Default aus, damit lokale Installationen ohne
+# Proxy und ohne Zertifikat nicht in eine Redirect-Schleife laufen).
+
 server {
     listen 443 ssl default_server;
     listen [::]:443 ssl default_server;
@@ -109,9 +116,24 @@ server {
     root $HH_REPO_DIR/frontend/dist;
     index index.html;
 
+    # Hinter einem Proxy (Cloudflare & Co.) meldet X-Forwarded-Proto, womit der
+    # Besucher wirklich verbunden ist. Steht dort "http", kam die Anfrage
+    # unverschluesselt am Rand an -> auf https umleiten, bevor irgendetwas
+    # ausgeliefert wird. Ohne Proxy ist der Header leer und die Regel greift nie.
+    if (\$http_x_forwarded_proto = "http") {
+        return 301 https://\$host\$request_uri;
+    }
+
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # HSTS: der Browser merkt sich, dass diese Domain nur verschluesselt
+    # erreichbar ist — schuetzt auch, wenn jemand die Adresse ohne https
+    # eintippt. Bewusst OHNE preload und mit moderatem max-age: preload ist
+    # nur schwer rueckgaengig zu machen und wuerde eine Fehlkonfiguration
+    # dauerhaft festschreiben. includeSubDomains ebenfalls bewusst weggelassen,
+    # damit unverschluesselte Subdomains (z.B. interne Tools) nicht brechen.
+    add_header Strict-Transport-Security "max-age=31536000" always;
     # microphone=(self) erlaubt Mikrofon-Zugriff vom gleichen Origin
     add_header Permissions-Policy "geolocation=(), microphone=(self), camera=(), payment=()" always;
     # Anti-Stale-Cache (siehe map \$hh_cache_control oben). Ein einzelner add_header
