@@ -12,13 +12,15 @@ from __future__ import annotations
 from hydrahive.llm.video_backends._base import VideoBackend
 from hydrahive.llm.video_backends._comfyui import ComfyUIVideoBackend
 from hydrahive.llm.video_backends._openrouter import OpenRouterVideoBackend
+from hydrahive.llm.video_backends._switch_http import SwitchHttpVideoBackend
 
 LOCAL_PREFIX = "local:"
 
-# Adapter-Fabriken je Backend-Typ. E4 ergänzt "switch-http".
+# Adapter-Fabriken je Backend-Typ.
 _ADAPTERS: dict[str, type] = {
     "openrouter": OpenRouterVideoBackend,
     "comfyui": ComfyUIVideoBackend,
+    "switch-http": SwitchHttpVideoBackend,
 }
 
 _openrouter_singleton = OpenRouterVideoBackend()
