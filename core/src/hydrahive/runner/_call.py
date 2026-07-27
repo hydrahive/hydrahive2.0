@@ -64,6 +64,26 @@ def _sanitize_blocks(blocks: list[dict]) -> list[dict]:
     return out
 
 
+def _tools_for(model: str, tools: list[dict]) -> list[dict]:
+    """Tools nur an Modelle geben, die Function-Calling können.
+
+    Modelle ohne Tool-Support erfinden sonst Tool-Calls als Text-JSON, das wir
+    (korrekt) nicht ausführen — es landet stumpf im Chat. Das Gate greift PRO
+    MODELL, weil die Fallback-Kette auf ein Modell mit anderer Fähigkeit
+    wechseln kann. Die übergebene Liste wird nie mutiert.
+    """
+    if not tools:
+        return tools
+    from hydrahive.llm.tool_support import model_supports_tools
+    if model_supports_tools(model):
+        return tools
+    logger.info(
+        "Modell %s kann kein Function-Calling — %d Tool-Schemas werden nicht gesendet",
+        model, len(tools),
+    )
+    return []
+
+
 async def call_with_stream_or_fallback(
     *,
     models: list[str],
@@ -90,7 +110,7 @@ async def call_with_stream_or_fallback(
     _stream_kwargs = dict(
         model=primary, system_prompt=system_prompt, volatile_system=volatile_system,
         summary_system=summary_system, cache_ttl=cache_ttl, messages=messages,
-        tools=tools, temperature=temperature, max_tokens=max_tokens,
+        tools=_tools_for(primary, tools), temperature=temperature, max_tokens=max_tokens,
         reasoning_effort=reasoning_effort,
     )
     # Retry einmal bei transientem Connection-Fehler — aber nur solange noch
@@ -144,7 +164,7 @@ async def call_with_stream_or_fallback(
             fallback_blocks, fallback_stop, fallback_usage = await call_with_tools(
                 model=model, system_prompt=system_prompt, volatile_system=volatile_system,
                 summary_system=summary_system,
-                cache_ttl=cache_ttl, messages=messages, tools=tools,
+                cache_ttl=cache_ttl, messages=messages, tools=_tools_for(model, tools),
                 temperature=temperature, max_tokens=max_tokens,
                 reasoning_effort=reasoning_effort,
             )

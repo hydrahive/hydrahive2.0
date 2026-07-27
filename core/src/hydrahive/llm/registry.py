@@ -32,6 +32,10 @@ class ModelEntry:
     is_free: bool | None = None
     embed_dim: int | None = None
     source: str = "live"  # "live" | "fallback"
+    # Function-Calling-Fähigkeit. None = unbekannt (Provider meldet nichts).
+    # Für Ollama kommt das aus /api/show capabilities — die Registry ist die
+    # einzige Ebene, auf der lokale und Cloud-Modelle zusammenlaufen.
+    tool_use: bool | None = None
 
 
 def _classify_catalog_entry(entry: dict) -> frozenset[str]:
@@ -75,6 +79,7 @@ def _add(acc: dict[str, ModelEntry], entry: ModelEntry) -> None:
             is_free=prev.is_free if prev.is_free is not None else entry.is_free,
             embed_dim=prev.embed_dim or entry.embed_dim,
             source=prev.source,
+            tool_use=prev.tool_use if prev.tool_use is not None else entry.tool_use,
         )
 
 
@@ -103,6 +108,7 @@ async def _build() -> tuple[list[ModelEntry], bool]:
                     purposes=_classify_catalog_entry(m),
                     context_window=m.get("context_window"), is_free=m.get("is_free"),
                     source="live" if prov.get("live_count") else "fallback",
+                    tool_use=m.get("tool_use"),
                 ))
             # Ein konfigurierter Provider, der KEIN einziges Modell beitrug, gilt
             # als (transient) fehlgeschlagen -> Build ist unvollständig.
