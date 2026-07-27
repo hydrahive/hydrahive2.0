@@ -263,13 +263,17 @@ der Wrapper intern nutzt; HydraHive muss es NICHT kennen.
 
 ## Umsetzungs-Etappen (jede mit Tests, klein & mergebar)
 
-- **E1**: `media_backends`-Config + `VideoBackend`-Protocol + OpenRouter refactored
-  dahinter (kein Verhaltensänderung, reine Struktur). Registry mischt Quellen.
-- **E2**: `ComfyUIVideoBackend` (submit/poll/view + ffmpeg) + Workflow-Template-Modell.
-- **E3**: GUI — Media-Backend-Verwaltung + „Verbindung testen" + Workflow-Upload/Mapping.
-- **E4**: `SwitchHttpVideoBackend` (Adapter gegen den Wrapper-API-Vertrag) +
-  GUI-Preset. Voraussetzung: Kunde/Mia stellt den node-lokalen Wrapper bereit,
-  der den API-Vertrag erfüllt. HydraHive-Adapter ist gegen Mock testbar.
+- **E1** ✅ (PR #375): `media_backends`-Config + `VideoBackend`-Protocol + OpenRouter
+  refactored dahinter (keine Verhaltensänderung, reine Struktur).
+- **E2** ✅ (PR #376): `ComfyUIVideoBackend` (submit/poll/view + ffmpeg) +
+  Workflow-Template-Modell.
+- **E3** ✅ (PR #377): GUI — Media-Backend-Verwaltung + „Verbindung testen" +
+  Workflow-Upload/Mapping.
+- **E4** ✅: `SwitchHttpVideoBackend` (Adapter gegen den Wrapper-API-Vertrag),
+  in `_ADAPTERS` registriert. Gegen einen Mock des Vertrags getestet (25 Tests),
+  blockiert also **nicht** auf Mias Wrapper. GUI-Preset + Test-Endpoint waren
+  bereits aus E3 vorhanden. Offen bleibt nur der Live-Test gegen den echten
+  Wrapper (→ E6).
 - **E5**: Video-Dialog: gruppiertes Dropdown + lokale Metadaten/Limits.
 - **E6**: Doku (`docs/local-video-backends.md`) + Live-Test beim Kunden.
 
