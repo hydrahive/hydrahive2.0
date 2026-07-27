@@ -41,6 +41,15 @@ dependencies = [
 # vorhandenen @pytest.mark.asyncio bleiben gültig). Ohne pytest-asyncio wurden
 # alle async-Tests (TTS/wyoming/generate_music) als Fehler übersprungen.
 asyncio_mode = "auto"
+# pythonpath: Tests laufen IMMER gegen das Repo (core/src), nie gegen eine
+# anderswo installierte hydrahive-Version.
+#
+# Hintergrund: Auf dem Server liegt ein editable-Install, dessen .pth-Datei
+# /opt/hydrahive2/core/src fest in sys.path einträgt. Ohne diesen Eintrag hier
+# gewinnt der Produktionsstand — man testet dann unbemerkt den ALTEN Code, und
+# neue Module aus dem Arbeitsverzeichnis werfen ModuleNotFoundError.
+# Relativ zur rootdir (= core/), gilt für lokale Läufe und CI gleichermaßen.
+pythonpath = ["src"]
 
 [project.scripts]
 hydrahive = "hydrahive.api.main:run"

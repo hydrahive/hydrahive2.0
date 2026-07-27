@@ -48,11 +48,21 @@ erzwingt das.
 
 ```bash
 cd core
-/home/<user>/hydrahive2/.venv/bin/python -m pytest          # alle 243 Tests, ~5s
-/home/<user>/hydrahive2/.venv/bin/python -m ruff check src tests
+python -m pytest                    # ganze Suite
+python -m ruff check src tests
 ```
 
 Pytest, Ruff, mypy-Linting sind in `core/pyproject.toml` als Dev-Dependencies.
+
+**Immer aus `core/` heraus starten.** Die pytest-Option `pythonpath = ["src"]`
+ist relativ zur rootdir und sorgt dafür, dass die Tests gegen den Code **dieses
+Repos** laufen. Ohne sie gewinnt eine anderswo installierte hydrahive-Version
+(z.B. der editable-Install unter `/opt/hydrahive2` auf dem Server) — man testet
+dann unbemerkt den alten Produktionsstand, und neue Module werfen
+`ModuleNotFoundError`, obwohl die Datei direkt daneben liegt.
+
+`tests/test_pytest_uses_repo_source.py` wacht darüber und schlägt fehl, sobald
+wieder eine Fremdinstallation importiert wird.
 
 **Frontend:**
 ```bash
