@@ -31,10 +31,11 @@ class GitCommit(BaseModel):
 
 
 def project_or_404(project_id: str, username: str, role: str) -> dict:
+    from hydrahive.projects import _members_model
     p = project_config.get(project_id)
     if not p:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    if role != "admin" and username not in p.get("members", []) and p.get("created_by") != username:
+    if role != "admin" and not _members_model.is_member(p, username):
         raise coded(status.HTTP_403_FORBIDDEN, "project_no_access")
     return p
 

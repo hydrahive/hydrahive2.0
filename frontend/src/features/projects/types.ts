@@ -1,3 +1,10 @@
+export type ProjectRole = "read" | "write" | "admin"
+
+export interface ProjectMember {
+  username: string
+  role: ProjectRole
+}
+
 export interface Project {
   id: string
   name: string
@@ -8,7 +15,7 @@ export interface Project {
   allowed_plugins: string[]
   allowed_specialists: string[]
   llm_api_key: string
-  members: string[]
+  members: ProjectMember[]
   agent_id: string
   status: "active" | "paused" | "archived"
   created_at: string
@@ -20,7 +27,7 @@ export interface Project {
 export interface ProjectCreate {
   name: string
   description: string
-  members: string[]
+  members: (string | ProjectMember)[]
   llm_model: string
   init_git: boolean
 }
@@ -131,5 +138,6 @@ export type ProjectAuditAction =
   | "project_updated"
   | "member_added"
   | "member_removed"
+  | "member_role_changed"
   | "server_assigned"
   | "server_unassigned"

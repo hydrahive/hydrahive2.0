@@ -86,7 +86,8 @@ def sync_links_for_project(project_id: str) -> None:
     cfg = project_config.get(project_id)
     users: set[str] = set()
     if cfg:
-        users.update(cfg.get("members", []))
+        from hydrahive.projects import _members_model
+        users.update(_members_model.usernames(cfg))
         if cfg.get("created_by"):
             users.add(cfg["created_by"])
     # Für robustes Cleanup auch alle Owner mit existierendem Master-Workspace

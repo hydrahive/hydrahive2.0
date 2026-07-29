@@ -32,8 +32,25 @@ def validate_member(username: str) -> None:
         raise ProjectValidationError(f"User '{username}' existiert nicht")
 
 
-def validate_members(members: list[str]) -> None:
+_VALID_ROLES = {"read", "write", "admin"}
+
+
+def validate_role(role: str) -> None:
+    if role not in _VALID_ROLES:
+        raise ProjectValidationError(
+            f"Ungültige Rolle: '{role}' (erlaubt: {', '.join(sorted(_VALID_ROLES))})"
+        )
+
+
+def validate_members(members: list) -> None:
+    """Akzeptiert Legacy (list[str]) und neues Format (list[{username, role}])."""
     if not isinstance(members, list):
         raise ProjectValidationError("members muss eine Liste sein")
     for m in members:
-        validate_member(m)
+        if isinstance(m, str):
+            validate_member(m)
+        elif isinstance(m, dict):
+            validate_member(m.get("username") or "")
+            validate_role(m.get("role") or "write")
+        else:
+            raise ProjectValidationError("Member muss str oder {username, role} sein")

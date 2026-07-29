@@ -35,18 +35,18 @@ def _check_project_access(project_id: str | None, username: str, role: str) -> N
     Schließt das Tor, das durch 'project' in SkillScope sonst offenstünde."""
     from hydrahive.projects import config as project_config
 
+    from hydrahive.api.routes._project_route_helpers import check_project_access
+
     if not project_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "skill_owner_required")
     proj = project_config.get(project_id)
     if not proj:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    if role == "admin" or proj.get("owner") == username:
-        return
-    members = proj.get("members") or []
-    names = {m if isinstance(m, str) else (m or {}).get("username") for m in members}
-    if username in names:
-        return
-    raise coded(status.HTTP_403_FORBIDDEN, "skill_no_access")
+    # Skills anlegen/ändern/löschen ist schreibend -> Rolle write.
+    try:
+        check_project_access(proj, username, role, required="write")
+    except Exception:
+        raise coded(status.HTTP_403_FORBIDDEN, "skill_no_access")
 
 
 @router.get("")

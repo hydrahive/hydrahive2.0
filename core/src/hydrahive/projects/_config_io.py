@@ -5,6 +5,7 @@ import json
 import logging
 from pathlib import Path
 
+from hydrahive.projects import _members_model
 from hydrahive.projects._paths import config_path, projects_root
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,8 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("status", "active")
     cfg.setdefault("description", "")
     cfg.setdefault("members", [])
+    # Legacy list[str] -> list[{username, role}] transparent beim Lesen.
+    cfg["members"] = _members_model.normalize_members(cfg.get("members"))
     cfg.setdefault("git_initialized", False)
     cfg.setdefault("git_token", "")
     cfg.setdefault("git_repos", {})
@@ -58,5 +61,4 @@ def list_all() -> list[dict]:
 
 
 def list_for_user(username: str) -> list[dict]:
-    return [p for p in list_all()
-            if username in p.get("members", []) or p.get("created_by") == username]
+    return [p for p in list_all() if _members_model.is_member(p, username)]
