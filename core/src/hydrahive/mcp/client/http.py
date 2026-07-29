@@ -5,7 +5,16 @@ import logging
 from contextlib import AsyncExitStack
 
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+
+# mcp benannte den streamableHTTP-Client zwischen Versionen um
+# (streamablehttp_client → streamable_http_client). Beide Namen unterstützen,
+# damit der Import über mcp-Versionen hinweg funktioniert (CI-Dependency-Drift).
+try:  # ältere mcp
+    from mcp.client.streamable_http import streamablehttp_client
+except ImportError:  # neuere mcp
+    from mcp.client.streamable_http import (
+        streamable_http_client as streamablehttp_client,
+    )
 
 from hydrahive.mcp.client.base import McpTool, McpToolResult, render_tool_content
 
