@@ -20,10 +20,23 @@ from hydrahive.api.routes._files import (
     process_upload,
     validate_upload_sizes,
 )
-from hydrahive.api.routes._sse import to_sse
+from hydrahive.api.routes._sse import encode_event, to_sse
+from hydrahive.runner.events import Error as RunnerError
+import asyncio
+import logging
+
 from hydrahive.runner import run as runner_run
 from hydrahive.runner._run_workspace import resolve_run_context
-from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
+from hydrahive.runner.concurrency import (
+    SessionAlreadyRunning,
+    is_running,
+    register_task,
+    session_run_guard,
+    unregister_task,
+)
+from hydrahive.runner.event_bus import bus as event_bus
+
+logger = logging.getLogger(__name__)
 
 # Live-Sync v1: max ein Aktivitäts-Ping pro Intervall während eines Laufs.
 _PING_INTERVAL_S = 0.5
@@ -81,33 +94,75 @@ def _upload_http_error(exc):
     return coded(status.HTTP_400_BAD_REQUEST, "upload_size_unknown")
 
 
+_SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
+
+
 def sse_run_response(events) -> StreamingResponse:
     return StreamingResponse(
         to_sse(events),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
+        headers=_SSE_HEADERS,
     )
 
 
-async def sse_run_with_guard(session_id: str, user_content, *, extra_system: str | None = None) -> StreamingResponse:
-    """SSE-Response für runner_run MIT Session-Concurrency-Guard.
+async def _raw_with_heartbeat(frames):
+    """Reicht bereits SSE-serialisierte Frames (aus dem Event-Bus) durch und
+    fügt bei Inaktivität einen Heartbeat-Comment ein, damit Proxies/Browser die
+    Verbindung nicht schließen."""
+    it = frames.__aiter__()
+    task: asyncio.Task | None = None
+    try:
+        while True:
+            if task is None:
+                task = asyncio.ensure_future(it.__anext__())
+            done, _ = await asyncio.wait({task}, timeout=15)
+            if not done:
+                yield ": heartbeat\n\n"
+                continue
+            task = None
+            try:
+                yield done.pop().result()
+            except StopAsyncIteration:
+                break
+    finally:
+        if task is not None:
+            task.cancel()
 
-    409 wenn für die Session bereits ein Run läuft. Verhindert dass
-    bei abgerissenem SSE-Stream (Browser-Refresh, Modell-Switch, Network-Hiccup)
-    ein zweiter Run parallel angestoßen wird — siehe runner.concurrency
-    für den Hintergrund.
+
+def sse_run_response_raw(frames) -> StreamingResponse:
+    return StreamingResponse(
+        _raw_with_heartbeat(frames),
+        media_type="text/event-stream",
+        headers=_SSE_HEADERS,
+    )
+
+
+def start_run_task(session_id: str, user_content, *, extra_system: str | None = None) -> "asyncio.Task":
+    """Startet einen Agent-Run als ENTKOPPELTEN Server-Task.
+
+    Der Run hängt NICHT an der auslösenden HTTP-Verbindung — schließt der Browser
+    (oder geht der PC aus), läuft der Run serverseitig zu Ende. Über
+    concurrency.cancel(session_id) (Stop-Button → POST /stop) lässt er sich
+    jederzeit gezielt abbrechen, auch nach einem Reconnect.
+
+    Variante A: Läuft bereits ein Run für die Session → SessionAlreadyRunning
+    (kein Doppellauf, schützt lange Läufe). Der Aufrufer übersetzt das in 409.
+
+    Live-Fortschritt geht wie bisher über den broadcaster (start/activity/done);
+    die Clients laden bei Ping aus der DB nach.
     """
     if is_running(session_id):
-        raise coded(status.HTTP_409_CONFLICT, "session_already_running")
+        raise SessionAlreadyRunning(session_id)
 
-    async def _guarded_stream():
-        # Live-Sync v1: leichte Pings an alle Geräte derselben Session, damit ein
-        # passives Tab/Tablet bei Lauf-Fortschritt nachlädt. Der Sender-Stream
-        # (yield ev) bleibt davon unberührt.
+    # Frischen Event-Bus-Kanal öffnen (seq startet bei 0), BEVOR der erste
+    # Consumer (der Sende-Stream) subscribed — kein Event geht verloren.
+    event_bus.open(session_id)
+
+    async def _run() -> None:
         last_ping = 0.0
         try:
             async with session_run_guard(session_id):
@@ -117,14 +172,57 @@ async def sse_run_with_guard(session_id: str, user_content, *, extra_system: str
                 else:
                     gen = runner_run(session_id, user_content)
                 async for ev in gen:
-                    yield ev
+                    # Volles Event in den Bus (flüssiges Token-Streaming für ALLE
+                    # Consumer, auch nach Reconnect lückenlos).
+                    event_bus.publish(session_id, encode_event(ev))
                     now = time.monotonic()
                     if now - last_ping >= _PING_INTERVAL_S:
                         last_ping = now
+                        # Leichter Ping für passive Tabs (die aus der DB nachladen).
                         broadcaster.broadcast(session_id, '{"t":"activity"}')
         except SessionAlreadyRunning:
-            return  # lost the race between is_running() check and acquire
+            return  # Race verloren — anderer Task hält den Guard
+        except asyncio.CancelledError:
+            logger.info("Run gestoppt (cancel): %s", session_id)
+            event_bus.publish(session_id, encode_event(
+                RunnerError(message="Lauf gestoppt.")))
+            raise
+        except Exception:
+            logger.exception("Entkoppelter Run fehlgeschlagen: %s", session_id)
         finally:
+            unregister_task(session_id)
+            event_bus.close(session_id)
             broadcaster.broadcast(session_id, '{"t":"done"}')
 
-    return sse_run_response(_guarded_stream())
+    task = asyncio.create_task(_run())
+    register_task(session_id, task)
+    return task
+
+
+async def run_and_stream(session_id: str, user_content, *, extra_system: str | None = None) -> StreamingResponse:
+    """Startet den entkoppelten Run und gibt einen SSE-Stream zurück, der die
+    Events aus dem Event-Bus liest. Reißt DIESER Stream ab (Browser zu), läuft
+    der Run weiter — er hängt am Server-Task, nicht an der Verbindung.
+
+    409 wenn schon ein Run läuft (Variante A: kein Doppellauf)."""
+    start_run_task(session_id, user_content, extra_system=extra_system)  # wirft SessionAlreadyRunning → vom Router in 409 übersetzt
+
+    async def _events():
+        async for _seq, sse_frame in event_bus.subscribe(session_id, after_seq=0):
+            yield sse_frame  # bereits SSE-serialisiert (encode_event)
+
+    return sse_run_response_raw(_events())
+
+
+async def attach_stream(session_id: str, after_seq: int = 0) -> StreamingResponse:
+    """Zuschauer-/Reconnect-Stream: liest denselben Event-Bus ab `after_seq`.
+    Läuft kein Run, endet der Stream schnell (leerer Kanal). Für den Stop-Button
+    nach Reconnect zählt der running-Status (siehe /stop + is_running)."""
+    async def _events():
+        async for _seq, sse_frame in event_bus.subscribe(session_id, after_seq=after_seq):
+            yield sse_frame
+
+    return sse_run_response_raw(_events())
+
+
+
