@@ -155,7 +155,8 @@ def _project_flows(project: dict, project_id: str) -> list[Flow]:
     (created_by + members), explizit auf DIESES Projekt gescopt und enabled
     sind. So kann ein Außenstehender weder fremde Flows triggern noch über ein
     gefälschtes scope_id auf ein fremdes Projekt feuern."""
-    authorized = {project.get("created_by"), *project.get("members", [])}
+    from hydrahive.projects import _members_model
+    authorized = {project.get("created_by"), *_members_model.usernames(project)}
     authorized.discard(None)
     selected: list[Flow] = []
     for owner in authorized:

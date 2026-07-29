@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGiteaStatus, ProjectGitRepo, ProjectServer, ProjectStats, ProjectSession, ServerKind, SmbMount, SmbMountCreate } from "./types"
+import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGiteaStatus, ProjectGitRepo, ProjectRole, ProjectServer, ProjectStats, ProjectSession, ServerKind, SmbMount, SmbMountCreate } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -29,8 +29,10 @@ export const projectsApi = {
   deleteFile: (id: string, path: string) =>
     api.delete<{ ok: boolean }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
   delete: (id: string) => api.delete<void>(`/projects/${id}`),
-  addMember: (id: string, username: string) =>
-    api.post<Project>(`/projects/${id}/members/${username}`, {}),
+  addMember: (id: string, username: string, role: ProjectRole = "write") =>
+    api.post<Project>(`/projects/${id}/members/${username}`, { role }),
+  setMemberRole: (id: string, username: string, role: ProjectRole) =>
+    api.patch<Project>(`/projects/${id}/members/${username}`, { role }),
   removeMember: (id: string, username: string) =>
     api.delete<Project>(`/projects/${id}/members/${username}`),
   getAgent: (id: string) => api.get<{ id: string; name: string; llm_model: string }>(`/projects/${id}/agent`),

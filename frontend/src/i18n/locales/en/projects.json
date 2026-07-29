@@ -25,7 +25,12 @@
   "members": {
     "no_members": "No members",
     "remove_confirm": "Remove '{{username}}' from project?",
-    "select_user": "Select user…"
+    "select_user": "Select user…",
+    "roles": {
+      "read": "Read",
+      "write": "Write",
+      "admin": "Admin"
+    }
   },
   "tabs": {
     "overview": "Overview",

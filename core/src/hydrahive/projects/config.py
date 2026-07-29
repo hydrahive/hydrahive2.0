@@ -8,6 +8,7 @@ from typing import Any
 from hydrahive.agents import config as agent_config
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.projects import _validation
+from hydrahive.projects import _members_model
 from hydrahive.projects._config_io import (
     _normalize, _save_atomic, get, list_all, list_for_user,
 )
@@ -36,6 +37,7 @@ def create(
     _validation.validate_name(name)
     members = members or []
     _validation.validate_members(members)
+    members = _members_model.normalize_members(members)
 
     project_id = uuid7()
     cfg: dict[str, Any] = {
@@ -116,7 +118,7 @@ def delete(project_id: str) -> bool:
     from hydrahive.smbmounts import db as mounts_db
     from hydrahive.smbmounts import mounter as smb_mounter
     from hydrahive.agents._workspace_links import sync_links_for_user
-    affected_users = set(cfg.get("members", []))
+    affected_users = set(_members_model.usernames(cfg))
     if cfg.get("created_by"):
         affected_users.add(cfg["created_by"])
     vms_db.clear_project_assignments(project_id)

@@ -6,12 +6,19 @@ from fastapi import status
 from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.errors import coded
+from hydrahive.projects import _members_model
+
+
+class MemberEntry(BaseModel):
+    username: str = Field(..., min_length=1)
+    role: str = Field("write", pattern="^(read|write|admin)$")
 
 
 class ProjectCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     description: str = ""
-    members: list[str] = []
+    # Akzeptiert Legacy (list[str]) und neues Format (list[{username, role}]).
+    members: list[str | MemberEntry] = []
     llm_model: str
     init_git: bool = False
 
@@ -20,14 +27,20 @@ class ProjectUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     status: str | None = None
-    members: list[str] | None = None
+    members: list[str | MemberEntry] | None = None
     allowed_specialists: list[str] | None = None
 
 
-def check_project_access(project: dict, username: str, role: str) -> None:
+def check_project_access(
+    project: dict, username: str, role: str, required: str = "read"
+) -> None:
+    """Setzt Projekt-Rollen durch. System-Admins (Auth-role) dürfen alles.
+
+    ``required`` ist die Mindest-Projektrolle (read < write < admin).
+    """
     if role == "admin":
         return
-    if username in project.get("members", []) or project.get("created_by") == username:
+    if _members_model.has_at_least(_members_model.role_of(project, username), required):
         return
     raise coded(status.HTTP_403_FORBIDDEN, "project_no_access")
 

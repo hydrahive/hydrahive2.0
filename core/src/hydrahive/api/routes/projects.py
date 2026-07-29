@@ -4,6 +4,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
+from pydantic import BaseModel, Field
+
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._project_route_helpers import (
@@ -15,6 +17,19 @@ from hydrahive.projects import members as project_members
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 _check_access = check_project_access
+
+
+class MemberRoleBody(BaseModel):
+    role: str = Field("write", pattern="^(read|write|admin)$")
+
+
+def _require_project_admin(project_id: str, auth: tuple[str, str]) -> dict:
+    """Member-Verwaltung: System-Admin ODER Projekt-admin (created_by/role admin)."""
+    p = project_config.get(project_id)
+    if not p:
+        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+    check_project_access(p, *auth, required="admin")
+    return p
 
 
 @router.get("")
@@ -31,11 +46,12 @@ def create_project(
     auth: Annotated[tuple[str, str], Depends(require_admin)],
 ) -> dict:
     creator, _ = auth
+    members = [m if isinstance(m, str) else m.model_dump() for m in req.members]
     try:
         return project_config.create(
             name=req.name,
             description=req.description,
-            members=req.members,
+            members=members,
             llm_model=req.llm_model,
             created_by=creator,
             init_git=req.init_git,
@@ -85,15 +101,38 @@ def delete_project(project_id: str) -> None:
 def add_member(
     project_id: str,
     username: str,
-    auth: Annotated[tuple[str, str], Depends(require_admin)],
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    body: MemberRoleBody | None = None,
 ) -> dict:
+    _require_project_admin(project_id, auth)
+    role = (body.role if body else None) or project_members.DEFAULT_ROLE
     try:
-        result = project_members.add(project_id, username)
+        result = project_members.add(project_id, username, role)
     except KeyError:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     except ProjectValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
-    project_audit.log(project_id, auth[0], "member_added", target=username)
+    project_audit.log(project_id, auth[0], "member_added", target=username,
+                      details={"role": role})
+    return result
+
+
+@router.patch("/{project_id}/members/{username}")
+def set_member_role(
+    project_id: str,
+    username: str,
+    body: MemberRoleBody,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    _require_project_admin(project_id, auth)
+    try:
+        result = project_members.set_role(project_id, username, body.role)
+    except KeyError:
+        raise coded(status.HTTP_404_NOT_FOUND, "member_not_found")
+    except ProjectValidationError as e:
+        raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
+    project_audit.log(project_id, auth[0], "member_role_changed", target=username,
+                      details={"role": body.role})
     return result
 
 
@@ -101,8 +140,9 @@ def add_member(
 def remove_member(
     project_id: str,
     username: str,
-    auth: Annotated[tuple[str, str], Depends(require_admin)],
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
+    _require_project_admin(project_id, auth)
     try:
         result = project_members.remove(project_id, username)
     except KeyError:

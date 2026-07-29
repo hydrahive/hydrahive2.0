@@ -34,7 +34,7 @@ def write_file(
     p = project_config.get(project_id)
     if not p:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    check_project_access(p, *auth)
+    check_project_access(p, *auth, required="write")
 
     workspace = workspace_path(project_id)
     target = safe_workspace_path(workspace, body.path)
@@ -65,7 +65,7 @@ async def upload_file(
     p = project_config.get(project_id)
     if not p:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    check_project_access(p, *auth)
+    check_project_access(p, *auth, required="write")
 
     name = (file.filename or "upload").strip()
     if not name or "/" in name or "\\" in name:
@@ -94,7 +94,7 @@ def delete_file(
     p = project_config.get(project_id)
     if not p:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    check_project_access(p, *auth)
+    check_project_access(p, *auth, required="write")
 
     workspace = workspace_path(project_id)
     target = safe_workspace_path(workspace, path)
