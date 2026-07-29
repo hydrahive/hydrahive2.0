@@ -36,21 +36,31 @@ export function useChat(sessionId: string | null) {
   const [state, setState] = useState<ChatState>(EMPTY_STATE)
   const abortRef = useRef<AbortController | null>(null)
 
+  // True solange ein Run für diese Session aktiv beobachtet wird (Sende- oder
+  // Reconnect-Stream). reload() darf busy dann NICHT auf false zwingen, sonst
+  // verschwindet der Stop-Button nach F5 mitten im Lauf.
+  const runningRef = useRef(false)
+
   // Stop: cancelt den Server-Task (funktioniert IMMER, auch nach Reconnect),
   // danach das lokale Zuhören beenden. Kein Verlass mehr auf Verbindungsabbruch.
   const cancel = useCallback(() => {
+    runningRef.current = false
     if (sessionId) { void chatApi.stopRun(sessionId).catch(() => {}) }
     abortRef.current?.abort(); abortRef.current = null
+    setState((s) => ({ ...s, busy: false }))
   }, [sessionId])
 
   const reload = useCallback(async () => {
     if (!sessionId) { setState(EMPTY_STATE); return }
     try {
       const msgs = await chatApi.listMessages(sessionId)
+      // busy bleibt true, wenn gerade ein Run läuft (Reconnect/Sende-Stream) —
+      // die Wahrheit ist der Server-Run-Status, nicht der lokale Ladevorgang.
+      const stillRunning = runningRef.current
       // max_iterations-Error bleibt stehen bis der User "weitermachen" klickt —
       // Live-Sync-Reload darf ihn nicht wegwischen.
       setState((s) => ({
-        ...s, messages: msgs, busy: false, iteration: 0,
+        ...s, messages: msgs, busy: stillRunning, iteration: stillRunning ? s.iteration : 0,
         error: s.errorKind === "max_iterations" ? s.error : null,
         errorKind: s.errorKind === "max_iterations" ? s.errorKind : null,
       }))
@@ -83,11 +93,12 @@ export function useChat(sessionId: string | null) {
       const blocks: ContentBlock[] = []
       const controller = new AbortController()
       abortRef.current = controller
+      runningRef.current = true
       try {
         for await (const ev of sendMessage(sessionId, text, files, controller.signal, resendMessageId)) {
           const result = applyStreamEvent(ev as Record<string, unknown>, blocks, setState)
-          if (result === "error") return
-          if (result === "done") { await reload(); return }
+          if (result === "error") { runningRef.current = false; return }
+          if (result === "done") { runningRef.current = false; await reload(); return }
         }
       } catch (e) {
         flushPendingLive(setState)
@@ -98,7 +109,7 @@ export function useChat(sessionId: string | null) {
           busy: false,
         }))
         if (aborted) await reload()
-      } finally { abortRef.current = null }
+      } finally { runningRef.current = false; abortRef.current = null }
     },
     [sessionId, reload],
   )
@@ -151,20 +162,21 @@ export function useChat(sessionId: string | null) {
       try {
         const st = await chatApi.runStatus(sessionId)
         if (cancelled || !st.running || busyRef.current) return
+        runningRef.current = true
         setState((s) => ({ ...s, busy: true }))
         abortRef.current = controller
         const blocks: ContentBlock[] = []
         for await (const ev of attachRun(sessionId, st.latest_seq, controller.signal)) {
           const result = applyStreamEvent(ev as Record<string, unknown>, blocks, setState)
           if (result === "error") break
-          if (result === "done") { await reload(); break }
+          if (result === "done") break
         }
       } catch {
         /* Run schon vorbei / Abbruch — reload holt den Endstand */
-        if (!cancelled) await reload()
       } finally {
+        runningRef.current = false
         if (abortRef.current === controller) abortRef.current = null
-        if (!cancelled) setState((s) => ({ ...s, busy: false }))
+        if (!cancelled) { await reload() }
       }
     })()
     return () => { cancelled = true; controller.abort() }
