@@ -40,6 +40,13 @@ export const chatApi = {
   }>(`/sessions/${id}/tokens`),
   toolConfirm: (sessionId: string, callId: string, decision: "approve" | "deny") =>
     api.post<{ resolved: boolean }>(`/sessions/${sessionId}/tool-confirm/${callId}`, { decision }),
+  /** Stoppt den laufenden Agent-Run serverseitig — funktioniert immer, auch nach
+   *  Reconnect (cancelt den Server-Task, nicht die Verbindung). */
+  stopRun: (sessionId: string) =>
+    api.post<{ stopped: boolean }>(`/sessions/${sessionId}/stop`, {}),
+  /** Läuft für die Session gerade ein Run? + aktuelle Event-Seq (für Reconnect). */
+  runStatus: (sessionId: string) =>
+    api.get<{ running: boolean; latest_seq: number }>(`/sessions/${sessionId}/run-status`),
 }
 
 /** Stream a user message through SSE and yield runner events as they arrive. */
@@ -87,6 +94,35 @@ export async function* sendMessage(
     const frames = buffer.split("\n\n")
     buffer = frames.pop() ?? ""
 
+    for (const frame of frames) {
+      const event = parseSseFrame(frame)
+      if (event) yield event
+    }
+  }
+}
+
+/** Hängt sich an einen bereits laufenden Run und streamt dessen Events ab
+ *  `afterSeq` lückenlos weiter (Reconnect mitten im Lauf ohne Token-Verlust). */
+export async function* attachRun(
+  sessionId: string,
+  afterSeq: number,
+  signal?: AbortSignal,
+): AsyncIterable<RunnerEvent> {
+  const token = useAuthStore.getState().token
+  const res = await fetch(
+    `/api/sessions/${sessionId}/attach?after_seq=${afterSeq}`,
+    { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal },
+  )
+  if (!res.ok || !res.body) return
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const frames = buffer.split("\n\n")
+    buffer = frames.pop() ?? ""
     for (const frame of frames) {
       const event = parseSseFrame(frame)
       if (event) yield event

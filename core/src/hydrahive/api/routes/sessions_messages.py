@@ -15,9 +15,15 @@ from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api._session_broadcast import broadcaster
-from hydrahive.api.routes._session_msg_helpers import build_user_content, sse_run_with_guard
+from hydrahive.api.routes._session_msg_helpers import (
+    attach_stream,
+    build_user_content,
+    run_and_stream,
+)
 from hydrahive.runner import run as runner_run
+from hydrahive.runner import concurrency
 from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
+from hydrahive.runner.event_bus import bus as event_bus
 from hydrahive.runner.events import Error as RunnerError
 from hydrahive.api.routes._sessions_helpers import check_owner, serialize_message
 from hydrahive.agents._defaults import DEFAULT_COMPACT_THRESHOLD_PCT
@@ -96,6 +102,59 @@ async def stream_session(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )
+
+
+@messages_router.get("/{session_id}/run-status")
+async def run_status(
+    session_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Läuft für diese Session gerade ein Agent-Run? + aktuelle Event-Seq.
+
+    Das aktive Tab fragt das beim Laden/Reconnect ab: ist ein Run aktiv, hängt es
+    sich per /attach an den Event-Bus (lückenloses Token-Streaming) und aktiviert
+    den Stop-Button — auch wenn der Run von einem anderen Gerät gestartet wurde
+    oder der eigene Browser zwischendurch zu war.
+    """
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+    return {
+        "running": is_running(session_id),
+        "latest_seq": event_bus.latest_seq(session_id),
+    }
+
+
+@messages_router.get("/{session_id}/attach")
+async def attach_run(
+    session_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    after_seq: int = 0,
+) -> StreamingResponse:
+    """Hängt sich an den laufenden Run und streamt die Events ab `after_seq`
+    lückenlos weiter (Reconnect mitten im Lauf ohne Token-Verlust)."""
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+    return await attach_stream(session_id, after_seq=max(0, after_seq))
+
+
+@messages_router.post("/{session_id}/stop")
+async def stop_run(
+    session_id: str,
+    auth: Annotated[tuple[str, str], Depends(require_auth)],
+) -> dict:
+    """Stoppt den laufenden Agent-Run — funktioniert IMMER (auch nach Reconnect),
+    weil es den Server-Task gezielt cancelt, statt sich auf einen abgerissenen
+    SSE-Stream zu verlassen. Das ist der Stop-Button-Pfad."""
+    s = sessions_db.get(session_id)
+    if not s:
+        raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    check_owner(s, *auth)
+    stopped = concurrency.cancel(session_id)
+    return {"stopped": stopped}
 
 
 @messages_router.get("/{session_id}/tokens")
@@ -190,7 +249,10 @@ async def resend_message(
 
     user_content = await build_user_content(s, text, files or [])
     messages_db.delete_from(session_id, message_id)
-    return await sse_run_with_guard(session_id, user_content)
+    try:
+        return await run_and_stream(session_id, user_content)
+    except SessionAlreadyRunning:
+        raise coded(status.HTTP_409_CONFLICT, "session_already_running")
 
 
 @messages_router.post("/{session_id}/messages")
@@ -206,7 +268,10 @@ async def post_message(
     check_owner(s, *auth)
 
     user_content = await build_user_content(s, text, files or [])
-    return await sse_run_with_guard(session_id, user_content)
+    try:
+        return await run_and_stream(session_id, user_content)
+    except SessionAlreadyRunning:
+        raise coded(status.HTTP_409_CONFLICT, "session_already_running")
 
 
 class LogCmdBody(BaseModel):

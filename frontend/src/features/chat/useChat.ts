@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { chatApi, sendMessage, subscribeSession } from "./api"
+import { attachRun, chatApi, sendMessage, subscribeSession } from "./api"
 import { applyStreamEvent, flushPendingLive } from "./_chatStream"
 import type { ContentBlock, Message } from "./types"
 
@@ -36,9 +36,12 @@ export function useChat(sessionId: string | null) {
   const [state, setState] = useState<ChatState>(EMPTY_STATE)
   const abortRef = useRef<AbortController | null>(null)
 
+  // Stop: cancelt den Server-Task (funktioniert IMMER, auch nach Reconnect),
+  // danach das lokale Zuhören beenden. Kein Verlass mehr auf Verbindungsabbruch.
   const cancel = useCallback(() => {
+    if (sessionId) { void chatApi.stopRun(sessionId).catch(() => {}) }
     abortRef.current?.abort(); abortRef.current = null
-  }, [])
+  }, [sessionId])
 
   const reload = useCallback(async () => {
     if (!sessionId) { setState(EMPTY_STATE); return }
@@ -135,6 +138,37 @@ export function useChat(sessionId: string | null) {
     void subscribeSession(sessionId, onPing, controller.signal)
     return () => { controller.abort(); if (timer) clearTimeout(timer) }
   }, [sessionId])
+
+  // Reconnect-in-Lauf: Beim Öffnen einer Session prüfen, ob dort schon ein Run
+  // läuft (von diesem oder einem anderen Gerät). Wenn ja: an den Event-Bus
+  // anhängen → live weiterschauen (flüssig) + Stop-Button aktiv. Der eigene
+  // Sende-Stream (busy schon true) übernimmt selbst, daher hier nur wenn NICHT busy.
+  useEffect(() => {
+    if (!sessionId) return
+    const controller = new AbortController()
+    let cancelled = false
+    ;(async () => {
+      try {
+        const st = await chatApi.runStatus(sessionId)
+        if (cancelled || !st.running || busyRef.current) return
+        setState((s) => ({ ...s, busy: true }))
+        abortRef.current = controller
+        const blocks: ContentBlock[] = []
+        for await (const ev of attachRun(sessionId, st.latest_seq, controller.signal)) {
+          const result = applyStreamEvent(ev as Record<string, unknown>, blocks, setState)
+          if (result === "error") break
+          if (result === "done") { await reload(); break }
+        }
+      } catch {
+        /* Run schon vorbei / Abbruch — reload holt den Endstand */
+        if (!cancelled) await reload()
+      } finally {
+        if (abortRef.current === controller) abortRef.current = null
+        if (!cancelled) setState((s) => ({ ...s, busy: false }))
+      }
+    })()
+    return () => { cancelled = true; controller.abort() }
+  }, [sessionId, reload])
 
   return { ...state, send, cancel, reload, confirmTool }
 }
