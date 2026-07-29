@@ -14,6 +14,7 @@ const ACTION_KEYS: Record<ProjectAuditAction, string> = {
   project_updated: "audit.actions.project_updated",
   member_added: "audit.actions.member_added",
   member_removed: "audit.actions.member_removed",
+  member_role_changed: "audit.actions.member_role_changed",
   server_assigned: "audit.actions.server_assigned",
   server_unassigned: "audit.actions.server_unassigned",
 }
@@ -22,6 +23,7 @@ const ALL_ACTIONS: ProjectAuditAction[] = [
   "project_updated",
   "member_added",
   "member_removed",
+  "member_role_changed",
   "server_assigned",
   "server_unassigned",
 ]

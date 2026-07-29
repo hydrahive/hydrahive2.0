@@ -153,7 +153,8 @@
       "member_added": "Member added",
       "member_removed": "Member removed",
       "server_assigned": "Server assigned",
-      "server_unassigned": "Server unassigned"
+      "server_unassigned": "Server unassigned",
+      "member_role_changed": "Role changed"
     }
   },
   "new_dialog": {
