@@ -29,6 +29,7 @@ import { SkillCatalogPill } from "./_SkillCatalogPill"
 import { isCommand, runChatCommand } from "./commands"
 import { ChatSearchProvider, useChatSearch } from "./ChatSearchContext"
 import { ChatSearchBar } from "./ChatSearchBar"
+import { pickSessionFor } from "./_pickSession"
 
 function ChatSearchScrollEffect() {
   const { activeMessageId } = useChatSearch()
@@ -88,7 +89,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
         deepLinkApplied.current = true
         setActiveId(deepLinkSid)
       } else if (!activeId && !deepLinkSid && visibleSessions.length > 0) {
-        setActiveId(visibleSessions[0].id)
+        setActiveId(pickSessionFor(visibleSessions, preferredAgentId))
       }
     } catch {
       // Nicht still schlucken (#211): die Sitzungsliste wäre sonst unbemerkt veraltet.
@@ -209,8 +210,8 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
 
   useEffect(() => {
     if (activeId || deepLinkSid || visibleSessions.length === 0) return
-    setActiveId(visibleSessions[0].id)
-  }, [activeId, deepLinkSid, visibleSessions])
+    setActiveId(pickSessionFor(visibleSessions, preferredAgentId))
+  }, [activeId, deepLinkSid, visibleSessions, preferredAgentId])
 
   const [pixelScope, setPixelScope] = useState<"chat" | "all">("chat")
   const { running, doneNames } = useAgentActivity(showPixelMonitor)
@@ -351,15 +352,21 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
       </ChatSearchProvider>
     </div>
   ) : (
-    <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-zinc-600">
-      <span>{t("session.select_or_new")}</span>
+    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-zinc-600">
+      <span>
+        {preferredAgent
+          ? `${preferredAgent.name} hat in diesem Projekt noch keine Session.`
+          : t("session.select_or_new")}
+      </span>
       <button
         type="button"
         onClick={createPreferredSession}
-        disabled={agents.length === 0}
+        disabled={agents.length === 0 || newSessionBusy}
         className="rounded-[4px] border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Neue Projekt-Session
+        {newSessionBusy
+          ? "Wird gestartet …"
+          : preferredAgent ? `Session mit ${preferredAgent.name} starten` : "Neue Projekt-Session"}
       </button>
     </div>
   )
