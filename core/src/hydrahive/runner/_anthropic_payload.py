@@ -11,6 +11,7 @@ import json
 from typing import Any
 
 from hydrahive.llm import client as llm_client
+from hydrahive.runner._anthropic_sanitize import strip_foreign_blocks
 
 
 def cache_control(ttl: str) -> dict:
@@ -119,9 +120,14 @@ def build_anthropic_kwargs(
     if volatile_system:
         system_blocks.append({"type": "text", "text": volatile_system})
 
+    # Provider-fremde Blocks (z.B. codex_reasoning aus einer vorher über Codex
+    # gelaufenen Session) VOR dem Cache-Breakpoint entfernen — sonst landet der
+    # Breakpoint womöglich auf einem Block, den wir gleich wegwerfen.
+    clean_messages = strip_foreign_blocks(messages)
+
     kwargs: dict[str, Any] = {
         "model": model,
-        "messages": with_cache_breakpoint(messages, ttl=cache_ttl),
+        "messages": with_cache_breakpoint(clean_messages, ttl=cache_ttl),
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -150,7 +156,8 @@ def build_minimax_kwargs(
         base_url=llm_client.MINIMAX_BASE_URL, api_key=api_key, timeout=300.0,
         default_headers={"Authorization": f"Bearer {api_key}"},
     )
-    messages, tools = strip_minimax_cache_control(messages, tools)
+    # Gleiches Format wie Anthropic → dieselben fremden Blocks müssen raus.
+    messages, tools = strip_minimax_cache_control(strip_foreign_blocks(messages), tools)
     kwargs: dict[str, Any] = {
         "model": model, "messages": messages,
         "temperature": temperature, "max_tokens": max_tokens,
