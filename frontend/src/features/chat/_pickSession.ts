@@ -22,17 +22,27 @@ export function pickSessionFor(
   sessions: Session[],
   preferredAgentId: string | null,
   rememberedId?: string | null,
+  opts?: { agentExplicit?: boolean },
 ): string | null {
   if (sessions.length === 0) return null
-  // Nach F5: die zuletzt offene Session wiederherstellen — aber nur, wenn sie
-  // noch existiert UND zum gewählten Agenten passt. Sonst würde ein
-  // Agentenwechsel die gemerkte Session fälschlich wieder aufziehen.
+
+  // Nach F5 die zuletzt offene Session wiederherstellen.
+  //
+  // Der Agent-Abgleich ist bewusst an `agentExplicit` gekoppelt: Nur wenn die
+  // Agentenwahl WIRKLICH vom Nutzer stammt, darf ein abweichender Merker
+  // verworfen werden (sonst zöge ein Agentenwechsel die alte Session wieder
+  // auf). Stammt der Agent dagegen nur aus dem Fallback — etwa weil die
+  // Preferences noch laden —, gewinnt der Merker: sonst verwirft ausgerechnet
+  // die Schutzprüfung die korrekt gemerkte Session und öffnet den Chat des
+  // Projekt-Agenten.
   if (rememberedId) {
     const remembered = sessions.find((s) => s.id === rememberedId)
-    if (remembered && (!preferredAgentId || remembered.agent_id === preferredAgentId)) {
-      return remembered.id
+    if (remembered) {
+      const agentMismatch = Boolean(preferredAgentId) && remembered.agent_id !== preferredAgentId
+      if (!agentMismatch || !opts?.agentExplicit) return remembered.id
     }
   }
+
   if (!preferredAgentId) return sessions[0].id
   const own = sessions.filter((s) => s.agent_id === preferredAgentId)
   return own.length > 0 ? own[0].id : null

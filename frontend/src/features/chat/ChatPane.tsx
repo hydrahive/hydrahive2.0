@@ -48,13 +48,15 @@ interface ChatPaneProps {
   projectId?: string | null
   showSidePanels?: boolean
   preferredAgentId?: string | null
+  /** true = der Agent wurde bewusst gewählt (nicht bloß Fallback beim Laden). */
+  agentSelectionExplicit?: boolean
   /** Von außen angeforderte Session in-place öffnen (z. B. Klick im Auswerten-Panel). */
   openSessionRequest?: string | null
   /** Wird aufgerufen, sobald openSessionRequest angewendet wurde (Parent kann zurücksetzen). */
   onSessionRequestHandled?: () => void
 }
 
-export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true, preferredAgentId = null, openSessionRequest = null, onSessionRequestHandled }: ChatPaneProps) {
+export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true, preferredAgentId = null, agentSelectionExplicit = false, openSessionRequest = null, onSessionRequestHandled }: ChatPaneProps) {
   const { t } = useTranslation("chat")
   const deepLinkApplied = useRef(false)
 
@@ -90,7 +92,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
         deepLinkApplied.current = true
         setActiveId(deepLinkSid)
       } else if (!activeId && !deepLinkSid && visibleSessions.length > 0) {
-        setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null)))
+        setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null), { agentExplicit: agentSelectionExplicit }))
       }
     } catch {
       // Nicht still schlucken (#211): die Sitzungsliste wäre sonst unbemerkt veraltet.
@@ -223,8 +225,8 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
 
   useEffect(() => {
     if (activeId || deepLinkSid || visibleSessions.length === 0) return
-    setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null)))
-  }, [activeId, deepLinkSid, visibleSessions, preferredAgentId, projectId])
+    setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null), { agentExplicit: agentSelectionExplicit }))
+  }, [activeId, deepLinkSid, visibleSessions, preferredAgentId, projectId, agentSelectionExplicit])
 
   const [pixelScope, setPixelScope] = useState<"chat" | "all">("chat")
   const { running, doneNames } = useAgentActivity(showPixelMonitor)
