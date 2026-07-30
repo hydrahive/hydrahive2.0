@@ -20,6 +20,7 @@ import { ProjectMountsOverlay } from "./project/ProjectMountsOverlay"
 import { ProjectInsightsOverlay, type ProjectInsightView } from "./project/ProjectInsightsOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
 import { useProjectSessionStarter } from "./project/useProjectSessionStarter"
+import { useProjectAgentSelection } from "./project/useProjectAgentSelection"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { CockpitUsagePanel } from "./project/CockpitUsagePanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
@@ -51,7 +52,8 @@ export function ProjectCockpitPage() {
   const [graphOpen, setGraphOpen] = useState(false)
   const [gitRevision, setGitRevision] = useState(0)
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
-  const [selectedAgentByProject, setSelectedAgentByProject] = useState<Record<string, string>>({})
+  const agentSelection = useProjectAgentSelection(prefs)
+  const selectedAgentByProject = agentSelection.selectedByProject
   // Explizite User-Auswahl hat Vorrang vor dem aus den Prefs abgeleiteten Default.
   // Ohne diesen State fällt die Auswahl in Ladezuständen auf projects[0] zurück
   // und der frühere Auto-Writeback-Effekt schrieb das erste Projekt fest.
@@ -87,7 +89,7 @@ export function ProjectCockpitPage() {
     if (!activeProjectId) return
     const sessionId = await sessionStarter.start(agentId)
     if (!sessionId) return
-    setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
+    agentSelection.select(activeProjectId, agentId)
     setOpenSessionRequest(sessionId)
     setInsightView(null)
   }
@@ -176,7 +178,7 @@ export function ProjectCockpitPage() {
               selectedAgentId={selectedAgentId}
               onSelect={(agentId) => {
                 if (!activeProjectId) return
-                setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
+                agentSelection.select(activeProjectId, agentId)
               }}
               onEdit={setEditingAgentId}
               onNewSession={(agentId) => { void startSessionWithAgent(agentId) }}

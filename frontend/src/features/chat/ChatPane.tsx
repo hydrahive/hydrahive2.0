@@ -30,6 +30,7 @@ import { isCommand, runChatCommand } from "./commands"
 import { ChatSearchProvider, useChatSearch } from "./ChatSearchContext"
 import { ChatSearchBar } from "./ChatSearchBar"
 import { pickSessionFor } from "./_pickSession"
+import { readStoredSession, writeStoredSession } from "./_storedSession"
 
 function ChatSearchScrollEffect() {
   const { activeMessageId } = useChatSearch()
@@ -89,7 +90,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
         deepLinkApplied.current = true
         setActiveId(deepLinkSid)
       } else if (!activeId && !deepLinkSid && visibleSessions.length > 0) {
-        setActiveId(pickSessionFor(visibleSessions, preferredAgentId))
+        setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null)))
       }
     } catch {
       // Nicht still schlucken (#211): die Sitzungsliste wäre sonst unbemerkt veraltet.
@@ -123,6 +124,14 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openSessionRequest, onSessionRequestHandled, sessions])
 
+  // Offene Session pro Projekt merken, damit ein Reload nicht in einem anderen
+  // Chat landet. Nur im Projekt-Kontext — ohne projectId gibt es nichts zu
+  // unterscheiden.
+  useEffect(() => {
+    if (projectId === undefined || !activeId) return
+    writeStoredSession(projectId ?? null, activeId)
+  }, [projectId, activeId])
+
   async function handleNew(agentId: string, title: string, projectId?: string) {
     if (activeSession?.project_id) await chatApi.handover(activeSession.id)
     const s = await chatApi.createSession(agentId, title || undefined, projectId)
@@ -132,7 +141,11 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
   async function handleDelete(id: string) {
     await chatApi.deleteSession(id)
     setSessions((cur) => cur.filter((s) => s.id !== id))
-    if (activeId === id) setActiveId(null)
+    if (activeId === id) {
+      setActiveId(null)
+      // Gemerkte Session mitlöschen — sie zeigt sonst ins Leere.
+      writeStoredSession(projectId ?? null, null)
+    }
   }
 
   const [tokenRefresh, setTokenRefresh] = useState(0)
@@ -210,8 +223,8 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
 
   useEffect(() => {
     if (activeId || deepLinkSid || visibleSessions.length === 0) return
-    setActiveId(pickSessionFor(visibleSessions, preferredAgentId))
-  }, [activeId, deepLinkSid, visibleSessions, preferredAgentId])
+    setActiveId(pickSessionFor(visibleSessions, preferredAgentId, readStoredSession(projectId ?? null)))
+  }, [activeId, deepLinkSid, visibleSessions, preferredAgentId, projectId])
 
   const [pixelScope, setPixelScope] = useState<"chat" | "all">("chat")
   const { running, doneNames } = useAgentActivity(showPixelMonitor)
