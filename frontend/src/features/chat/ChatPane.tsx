@@ -106,12 +106,21 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     if (current && current.project_id !== projectId) setActiveId(null)
   }, [projectId, activeId, sessions])
 
-  // Externe Anforderung (z. B. Session-Klick im Auswerten-Panel) in-place öffnen.
+  // Externe Anforderung (z. B. Session-Klick im Auswerten-Panel, oder eine im
+  // Cockpit frisch erstellte Session) in-place öffnen. Ist die Session hier noch
+  // unbekannt — bei Neuanlage von außen der Normalfall — muss die Liste zuerst
+  // nachgeladen werden: sonst verwirft der Projekt-Guard oben die activeId
+  // wieder, weil sie in `sessions` nicht auffindbar ist.
   useEffect(() => {
     if (!openSessionRequest) return
+    if (!sessions.some((s) => s.id === openSessionRequest)) {
+      void loadAll()
+      return
+    }
     setActiveId(openSessionRequest)
     onSessionRequestHandled?.()
-  }, [openSessionRequest, onSessionRequestHandled])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSessionRequest, onSessionRequestHandled, sessions])
 
   async function handleNew(agentId: string, title: string, projectId?: string) {
     if (activeSession?.project_id) await chatApi.handover(activeSession.id)
@@ -238,7 +247,12 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     setSessions((cur) => cur.map((s) => s.id === updated.id ? updated : s))
 
   async function createPreferredSession() {
-    const agent = activeAgent ?? preferredAgent ?? agents.find((a) => !a.is_buddy) ?? agents[0]
+    // preferredAgent (im Cockpit: der links ausgewählte Projekt-Agent) hat
+    // Vorrang vor dem Agenten der zufällig offenen Session. Sonst startet der
+    // Button eine Session mit dem zuletzt benutzten Agenten statt mit dem
+    // sichtbar ausgewählten — im Projekt-Cockpit mit gemischten Sessions
+    // (Projekt-Agent + Buddy) war das reproduzierbar der falsche.
+    const agent = preferredAgent ?? activeAgent ?? agents.find((a) => !a.is_buddy) ?? agents[0]
     if (!agent) return
     setNewSessionBusy(true)
     try {
