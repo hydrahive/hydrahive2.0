@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { Loader2 } from "lucide-react"
 import { ChatPane } from "@/features/chat/ChatPane"
 import { chatApi } from "@/features/chat/api"
 import type { AgentBrief } from "@/features/chat/types"
@@ -227,12 +228,25 @@ export function ProjectCockpitPage() {
         </aside>
 
         <main className="min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
-          {activeProjectId ? (
+          {/*
+            Erst rendern, wenn die Preferences geladen sind. Sonst mountet die
+            ChatPane mit dem noch leeren Default (selectedAgentId fällt auf den
+            Projekt-Agenten zurück), lädt Sessions für den FALSCHEN Agenten, und
+            wird beim Eintreffen der Preferences per key-Wechsel neu gemountet.
+            Genau dieses Rennen ließ nach F5 den Chat des Projekt-Agenten
+            aufgehen statt der zuletzt offenen Spezialisten-Session.
+          */}
+          {prefs.loading || loading ? (
+            <div className="flex h-full items-center justify-center text-sm text-[#8d9ab0]">
+              <Loader2 size={14} className="mr-2 animate-spin" /> Arbeitsbereich wird geladen …
+            </div>
+          ) : activeProjectId ? (
             <ChatPane
               key={`${activeProjectId}:${selectedAgentId}:${selectedAgentModel}`}
               projectId={activeProjectId}
               showSidePanels={false}
               preferredAgentId={selectedAgentId}
+              agentSelectionExplicit={Boolean(requestedAgentId)}
               openSessionRequest={openSessionRequest}
               onSessionRequestHandled={() => setOpenSessionRequest(null)}
             />
