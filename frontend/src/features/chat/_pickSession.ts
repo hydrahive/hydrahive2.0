@@ -18,8 +18,21 @@ import type { Session } from "./types"
  * Erwartet die Liste vorsortiert nach updated_at DESC (so liefert sie
  * `list_for_user` in core/src/hydrahive/db/sessions.py).
  */
-export function pickSessionFor(sessions: Session[], preferredAgentId: string | null): string | null {
+export function pickSessionFor(
+  sessions: Session[],
+  preferredAgentId: string | null,
+  rememberedId?: string | null,
+): string | null {
   if (sessions.length === 0) return null
+  // Nach F5: die zuletzt offene Session wiederherstellen — aber nur, wenn sie
+  // noch existiert UND zum gewählten Agenten passt. Sonst würde ein
+  // Agentenwechsel die gemerkte Session fälschlich wieder aufziehen.
+  if (rememberedId) {
+    const remembered = sessions.find((s) => s.id === rememberedId)
+    if (remembered && (!preferredAgentId || remembered.agent_id === preferredAgentId)) {
+      return remembered.id
+    }
+  }
   if (!preferredAgentId) return sessions[0].id
   const own = sessions.filter((s) => s.agent_id === preferredAgentId)
   return own.length > 0 ? own[0].id : null
