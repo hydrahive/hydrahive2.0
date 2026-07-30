@@ -19,6 +19,7 @@ import { ProjectServersOverlay } from "./project/ProjectServersOverlay"
 import { ProjectMountsOverlay } from "./project/ProjectMountsOverlay"
 import { ProjectInsightsOverlay, type ProjectInsightView } from "./project/ProjectInsightsOverlay"
 import { ProjectAgentsPanel } from "./project/ProjectAgentsPanel"
+import { useProjectSessionStarter } from "./project/useProjectSessionStarter"
 import { ProjectAiSettingsPanel } from "./project/ProjectAiSettingsPanel"
 import { CockpitUsagePanel } from "./project/CockpitUsagePanel"
 import { ProjectGitSummary } from "./project/ProjectGitSummary"
@@ -79,6 +80,17 @@ export function ProjectCockpitPage() {
     const known = (id: string | null) => (id && projects.some((p) => p.id === id) ? id : null)
     return known(selectedProjectId) ?? known(prefs.preferences.active_project_id) ?? projects[0]?.id ?? null
   }, [selectedProjectId, prefs.preferences.active_project_id, projects])
+
+  const sessionStarter = useProjectSessionStarter(activeProjectId)
+
+  async function startSessionWithAgent(agentId: string) {
+    if (!activeProjectId) return
+    const sessionId = await sessionStarter.start(agentId)
+    if (!sessionId) return
+    setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
+    setOpenSessionRequest(sessionId)
+    setInsightView(null)
+  }
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
   const projectAgentId = activeProject?.agent_id ?? null
@@ -167,7 +179,14 @@ export function ProjectCockpitPage() {
                 setSelectedAgentByProject((cur) => ({ ...cur, [activeProjectId]: agentId }))
               }}
               onEdit={setEditingAgentId}
+              onNewSession={(agentId) => { void startSessionWithAgent(agentId) }}
+              newSessionAgentId={sessionStarter.pendingAgentId}
             />
+            {sessionStarter.error && (
+              <p className="mt-2 rounded-[4px] border border-rose-500/30 bg-rose-500/[8%] px-2 py-1.5 text-xs text-rose-200">
+                {sessionStarter.error}
+              </p>
+            )}
           </CollapsibleCockpitPanel>
 
           <CollapsibleCockpitPanel
