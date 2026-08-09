@@ -93,6 +93,11 @@ export interface AnalyticsByModel {
   output_tokens: number
   cache_read_tokens: number
   cost_micros: number
+  /** Gemessene Ausgabegeschwindigkeit (Tokens/Sekunde). null wenn keine
+   *  auswertbaren Calls (ohne Timing oder ohne Output-Tokens). */
+  tok_per_s: number | null
+  /** Mittlere Dauer eines Calls in Millisekunden. null wie oben. */
+  avg_ms: number | null
 }
 
 export interface AnalyticsOverview {

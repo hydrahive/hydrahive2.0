@@ -30,7 +30,11 @@ def overview(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
         today: heute-Aggregat (tokens, cost_micros, errors)
         last_7d: 7-Tage-Aggregat
         top_cost_sessions: 5 teuerste Sessions im Zeitfenster
-        by_model: aufschlüsselung pro Modell (last 7d)
+        by_model: aufschlüsselung pro Modell (last 7d), inkl. gemessener
+                  Geschwindigkeit (tok_per_s) und mittlerer Call-Dauer (avg_ms).
+                  Beide nur über Calls mit total_ms > 0 und completion_tokens > 0
+                  gemittelt — Calls ohne Timing/Output verzerren sonst den Wert.
+                  NULL wenn ein Modell keine auswertbaren Calls hat.
     """
     username, role = auth
     today = today_start_iso()
@@ -101,7 +105,11 @@ def overview(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
                           SUM(prompt_tokens) AS input_tokens,
                           SUM(completion_tokens) AS output_tokens,
                           SUM(cache_read_tokens) AS cache_read_tokens,
-                          SUM(cost_micros) AS cost_micros
+                          SUM(cost_micros) AS cost_micros,
+                          AVG(CASE WHEN total_ms > 0 AND completion_tokens > 0
+                                   THEN completion_tokens * 1000.0 / total_ms END) AS tok_per_s,
+                          AVG(CASE WHEN total_ms > 0 AND completion_tokens > 0
+                                   THEN total_ms END) AS avg_ms
                    FROM llm_calls
                    WHERE created_at >= ?
                    GROUP BY model
@@ -115,7 +123,11 @@ def overview(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
                           SUM(lc.prompt_tokens) AS input_tokens,
                           SUM(lc.completion_tokens) AS output_tokens,
                           SUM(lc.cache_read_tokens) AS cache_read_tokens,
-                          SUM(lc.cost_micros) AS cost_micros
+                          SUM(lc.cost_micros) AS cost_micros,
+                          AVG(CASE WHEN lc.total_ms > 0 AND lc.completion_tokens > 0
+                                   THEN lc.completion_tokens * 1000.0 / lc.total_ms END) AS tok_per_s,
+                          AVG(CASE WHEN lc.total_ms > 0 AND lc.completion_tokens > 0
+                                   THEN lc.total_ms END) AS avg_ms
                    FROM llm_calls lc
                    WHERE lc.created_at >= ?
                      AND lc.user_id = ?

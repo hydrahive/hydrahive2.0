@@ -115,6 +115,16 @@ export function TokenAuditCard() {
               <div key={m.model} className="flex items-center gap-2 px-1.5 py-0.5">
                 <p className="text-[11px] text-zinc-300 flex-1 truncate font-mono">{m.model}</p>
                 <span className="text-[10px] text-zinc-500">{m.calls}×</span>
+                <span
+                  className="text-[10px] text-zinc-500 w-14 text-right tabular-nums"
+                  title={
+                    m.tok_per_s != null && m.avg_ms != null
+                      ? `${m.tok_per_s.toFixed(1)} Tokens/s · ⌀ ${(m.avg_ms / 1000).toFixed(1)} s pro Call`
+                      : "Keine Timing-Daten"
+                  }
+                >
+                  {m.tok_per_s != null ? `${Math.round(m.tok_per_s)} t/s` : "–"}
+                </span>
                 <span className="text-[11px] font-semibold text-amber-400 w-16 text-right">
                   {formatCents(m.cost_micros)}
                 </span>

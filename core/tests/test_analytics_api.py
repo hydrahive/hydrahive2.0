@@ -6,14 +6,15 @@ from hydrahive.db import sessions as sessions_db
 
 
 def _llm(sid: str, aid: str, uid: str, *, cost: int, prompt: int = 1000,
-         completion: int = 100, cache_read: int = 0) -> None:
+         completion: int = 100, cache_read: int = 0, total_ms: int | None = 300,
+         model: str = "claude-sonnet-4-7") -> None:
     llm_calls_db.insert(llm_calls_db.LlmCall(
         session_id=sid, agent_id=aid, user_id=uid,
-        provider="anthropic", model="claude-sonnet-4-7",
+        provider="anthropic", model=model,
         temperature=0.7, max_tokens=4096, reasoning_effort=None,
         prompt_tokens=prompt, completion_tokens=completion,
         cache_read_tokens=cache_read, cache_creation_tokens=0,
-        stop_reason="end_turn", ttft_ms=None, total_ms=300,
+        stop_reason="end_turn", ttft_ms=None, total_ms=total_ms,
         cost_micros=cost, turn_in_session=1,
     ))
 
@@ -112,3 +113,67 @@ def test_overview_by_model_aufgeschluesselt(client, admin_headers):
     models = {row["model"] for row in by_model}
     assert "claude-opus-4-7-20251015" in models
     assert "claude-sonnet-4-7" in models
+
+
+# --- D1: gemessene Modell-Geschwindigkeit (tok_per_s / avg_ms) ---------------
+
+def _by_model(data: dict, model: str) -> dict:
+    """Hilfsfunktion: Zeile eines Modells aus by_model holen."""
+    return next(r for r in data["by_model"] if r["model"] == model)
+
+
+def test_by_model_liefert_gemessene_geschwindigkeit(client, admin_headers):
+    """100 Tokens in 500 ms sind exakt 200 tok/s — Wert muss stimmen, nicht nur da sein."""
+    sid = sessions_db.create(agent_id="test-agent-001", user_id="admin", title="speed").id
+    _llm(sid, "test-agent-001", "admin", cost=100, completion=100,
+         total_ms=500, model="speed-model")
+
+    r = client.get("/api/analytics/overview", headers=admin_headers)
+    assert r.status_code == 200
+    row = _by_model(r.json(), "speed-model")
+    assert row["tok_per_s"] == 200.0
+    assert row["avg_ms"] == 500.0
+
+
+def test_by_model_ignoriert_calls_ohne_timing(client, admin_headers):
+    """Calls ohne total_ms dürfen den Schnitt nicht verwässern (und nicht crashen).
+
+    Zwei Calls: einer mit Timing (200 tok/s), einer ohne. Erwartung: der
+    Durchschnitt bleibt 200 — der Call ohne Timing wird ausgeschlossen,
+    nicht als 0 mitgerechnet.
+    """
+    sid = sessions_db.create(agent_id="test-agent-001", user_id="admin", title="mixed").id
+    _llm(sid, "test-agent-001", "admin", cost=100, completion=100,
+         total_ms=500, model="mixed-model")
+    _llm(sid, "test-agent-001", "admin", cost=100, completion=100,
+         total_ms=None, model="mixed-model")
+
+    r = client.get("/api/analytics/overview", headers=admin_headers)
+    row = _by_model(r.json(), "mixed-model")
+    assert row["calls"] == 2          # beide zählen für die Call-Zahl
+    assert row["tok_per_s"] == 200.0  # aber nur einer für die Geschwindigkeit
+
+
+def test_by_model_ohne_auswertbare_calls_liefert_null(client, admin_headers):
+    """Modell ganz ohne Timing: tok_per_s ist None statt Division durch Null."""
+    sid = sessions_db.create(agent_id="test-agent-001", user_id="admin", title="notiming").id
+    _llm(sid, "test-agent-001", "admin", cost=100, completion=100,
+         total_ms=None, model="no-timing-model")
+
+    r = client.get("/api/analytics/overview", headers=admin_headers)
+    row = _by_model(r.json(), "no-timing-model")
+    assert row["tok_per_s"] is None
+    assert row["avg_ms"] is None
+
+
+def test_by_model_geschwindigkeit_auch_fuer_normalen_user(client, auth_headers):
+    """Die user-gefilterte Query muss dieselben Felder liefern wie die Admin-Query."""
+    sid = sessions_db.create(agent_id="test-agent-001", user_id="testuser", title="u-speed").id
+    _llm(sid, "test-agent-001", "testuser", cost=100, completion=50,
+         total_ms=250, model="user-model")
+
+    r = client.get("/api/analytics/overview", headers=auth_headers)
+    assert r.status_code == 200
+    row = _by_model(r.json(), "user-model")
+    assert row["tok_per_s"] == 200.0
+    assert row["avg_ms"] == 250.0
