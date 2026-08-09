@@ -35,6 +35,13 @@ Compute-Cluster:
 - [compute-cluster-v1-plan.md](specs/compute-cluster-v1-plan.md) — detaillierter, fortlaufender Taskplan
 - [Compute-Abschluss P1–P4](audit/compute-implementation-completion-2026-07-17.md) — Implementierungs- und Verifikationsbericht
 
+Feature-Spezifikationen:
+
+- [specs/README.md](specs/README.md) — **Index aller 59 Spezifikationen** mit Titel,
+  Status und Datum der letzten Änderung. Mehrteilige Reihen (z.B. Videoschnitt V1–V6b)
+  sind gruppiert; dort ist in der Regel der letzte Teil der aktuelle Stand.
+  Neu erzeugen nach dem Anlegen einer Spec: `python3 scripts/gen_spec_index.py`
+
 ## Pflege
 
 Wer welche Datei ändert, siehe [CONTRIBUTING.md](../CONTRIBUTING.md#doku-pflege).
