@@ -135,7 +135,15 @@ def _inject_longterm_memory(
 def render_cards_block(cards: list[dict]) -> str:
     """Recall A: kompakter, klar als *abgeleitet* gelabelter Erinnerungs-Block für
     den gecachten Stable-Prompt. Getrennt vom kuratierten Memory; leerer String
-    wenn keine brauchbaren Cards."""
+    wenn keine brauchbaren Cards.
+
+    Cards mit `groundedness='claimed'` werden zusätzlich als *unbelegt*
+    gekennzeichnet: sie stammen überwiegend aus Assistant-Text, also aus einer
+    Behauptung des Modells, nicht aus einem Tool-Ergebnis. `top_cards_for`
+    sortiert sie bereits ans Ende — sie erscheinen hier nur, wenn nicht genug
+    belegtes Material vorliegt. Dann soll das Modell den Unterschied sehen,
+    statt die Behauptung als Tatsache zu übernehmen.
+    """
     lines = []
     for c in cards:
         gist = (c.get("gist") or "").strip()
@@ -143,7 +151,8 @@ def render_cards_block(cards: list[dict]) -> str:
             continue
         topics = c.get("topics") or []
         suffix = f"  ({', '.join(str(t) for t in topics[:4])})" if topics else ""
-        lines.append(f"- [{c.get('valence') or 'neutral'}] {gist}{suffix}")
+        unverified = " ⚠ unbelegt" if c.get("groundedness") == "claimed" else ""
+        lines.append(f"- [{c.get('valence') or 'neutral'}{unverified}] {gist}{suffix}")
     if not lines:
         return ""
     return (
