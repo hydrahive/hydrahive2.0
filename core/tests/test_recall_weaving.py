@@ -66,3 +66,48 @@ def test_user_text_extraction():
     assert _user_text("hallo welt") == "hallo welt"
     assert _user_text([{"type": "text", "text": "block a"}, {"type": "image"}, "raw"]) == "block a raw"
     assert _user_text(None) == ""
+
+
+# --- D2: unbelegte Cards (groundedness='claimed') kennzeichnen ---------------
+
+def test_claimed_card_wird_als_unbelegt_markiert():
+    """Cards aus reinem Assistant-Text sind Behauptungen — das muss das Modell sehen."""
+    out = render_cards_block([
+        {"gist": "Deployment lief durch", "valence": "good", "groundedness": "claimed"},
+    ])
+    assert "⚠ unbelegt" in out
+    assert "Deployment lief durch" in out
+
+
+def test_observed_card_bleibt_unmarkiert():
+    """Belegte Cards (aus Tool-Ergebnissen) bekommen keine Warnung."""
+    out = render_cards_block([
+        {"gist": "Tests grün", "valence": "good", "groundedness": "observed"},
+    ])
+    assert "unbelegt" not in out
+    assert "[good]" in out
+
+
+def test_mixed_und_fehlende_groundedness_bleiben_unmarkiert():
+    """Nur 'claimed' wird markiert — 'mixed' und Alt-Cards ohne Feld nicht.
+
+    Wichtig für Rückwärtskompatibilität: Cards, die vor dem groundedness-Feld
+    entstanden sind, dürfen nicht plötzlich als unbelegt gelten.
+    """
+    out = render_cards_block([
+        {"gist": "gemischte Card", "valence": "neutral", "groundedness": "mixed"},
+        {"gist": "alte Card ohne Feld", "valence": "neutral"},
+    ])
+    assert "unbelegt" not in out
+    assert "gemischte Card" in out
+    assert "alte Card ohne Feld" in out
+
+
+def test_markierung_stoert_valence_und_topics_nicht():
+    """Die Kennzeichnung darf das bestehende Format nicht zerschiessen."""
+    out = render_cards_block([
+        {"gist": "Behauptung", "valence": "bad", "groundedness": "claimed",
+         "topics": ["deploy", "ci"]},
+    ])
+    assert "[bad ⚠ unbelegt]" in out
+    assert "deploy, ci" in out

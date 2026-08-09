@@ -140,12 +140,29 @@ async def wipe_cards() -> int:
 
 
 async def top_cards_for(agent_id: str | None, limit: int = 8) -> list[dict[str, Any]]:
-    """Recall A: Top-N Cards eines Agents nach recency × salience (high zuerst,
-    dann jüngste). Ohne agent_id: über alle (Fallback)."""
+    """Recall A: Top-N Cards eines Agents nach Belegtheit × salience × recency.
+    Ohne agent_id: über alle (Fallback).
+
+    Belegtheit zuerst: `groundedness='claimed'` heißt, die Card stammt
+    überwiegend aus Assistant-Text — also aus einer *Behauptung* des Modells,
+    nicht aus einem Tool-Ergebnis (siehe `_mirror_cards_model.derive_groundedness`).
+    Solche Cards landen ans Ende der Sortierung und fallen bei ausreichend
+    belegtem Material durch das LIMIT heraus. Sie werden nicht gelöscht und
+    nicht ausgeschlossen — gibt es nur Behauptungen, erscheinen sie weiterhin
+    (dann markiert, siehe `runner.system_prompt.render_cards_block`).
+
+    Grund: ~21% der Cards sind 'claimed'. Ungefiltert bekommt ein Agent damit
+    jede fünfte Erinnerung als unbelegte Behauptung in den System-Prompt —
+    und behandelt sie dort wie eine Tatsache.
+    """
     pool = _pool()
     if not pool:
         return []
-    order = "(salience = 'high') DESC, created_at DESC NULLS LAST"
+    order = (
+        "(groundedness = 'claimed') ASC, "
+        "(salience = 'high') DESC, "
+        "created_at DESC NULLS LAST"
+    )
     try:
         async with pool.acquire() as conn:
             if agent_id:
