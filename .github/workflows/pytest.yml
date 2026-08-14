@@ -29,6 +29,24 @@ jobs:
       - name: Ruff lint
         run: ruff check core/
 
+      # Supply-Chain-Absicherung. Anlass: LiteLLM-Vorfall 24.03.2026 —
+      # Versionen 1.82.7/1.82.8 enthielten einen Credential-Stealer und waren
+      # ~40 Minuten auf PyPI online; laut CloudSEK waren ~434.000 Build-Pipelines
+      # bei 2500+ Firmen betroffen. Ein Build ohne Versionsdeckel zieht so etwas
+      # automatisch mit. Deckel stehen jetzt in core/pyproject.toml; dieser Schritt
+      # meldet zusaetzlich bekannte Schwachstellen in der aufgeloesten Umgebung.
+      #
+      # continue-on-error: Der Schritt SOLL informieren, nicht blockieren. Neue
+      # CVEs in transitiven Abhaengigkeiten erscheinen taeglich — ein harter Fail
+      # wuerde sonst fremde PRs blockieren, ohne dass deren Autor etwas dafuer kann.
+      # Ergebnis steht in der Job-Summary.
+      - name: Dependency-Audit (informativ)
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          echo "## Dependency-Audit" >> "$GITHUB_STEP_SUMMARY"
+          pip-audit --desc off -f markdown >> "$GITHUB_STEP_SUMMARY" || true
+
       - name: Run pytest
         run: |
           cd core

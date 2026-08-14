@@ -14,29 +14,38 @@ dependencies = [
     # (/docs, /openapi.json) wird LEER. Bis upstream gefixt ist, bleiben wir auf
     # 0.136.x — identisch zum laufenden Produktivstand. Deckel danach lockern.
     "fastapi>=0.111,<0.137",
-    "uvicorn[standard]>=0.30",
-    "pyjwt>=2.8",
-    "bcrypt>=4.0",
-    "cryptography>=41.0",
-    "litellm>=1.40",
-    "anthropic>=0.105",
+    "uvicorn[standard]>=0.30,<1",
+    # Obergrenzen bei sicherheitskritischen Paketen: sie begrenzen das Zeitfenster
+    # eines Supply-Chain-Angriffs auf PyPI. Ohne Deckel zieht ein frischer Build
+    # automatisch die neueste Version — auch eine, die Minuten zuvor kompromittiert
+    # veröffentlicht wurde. Genau so lief der LiteLLM-Vorfall am 24.03.2026:
+    # 1.82.7/1.82.8 mit Credential-Stealer, ~40 Minuten online, laut CloudSEK
+    # ~434.000 Build-Pipelines bei 2500+ Firmen betroffen. Wir hatten nur Glück,
+    # dass dieses Repo erst am 28.04.2026 begann.
+    # Deckel = nächste Major-Version: Sicherheits-Patches kommen weiter durch,
+    # ein unbemerkter Sprung über eine Bruchkante nicht.
+    "pyjwt>=2.8,<3",
+    "bcrypt>=4.0,<6",
+    "cryptography>=41.0,<49",
+    "litellm>=1.83,<2",
+    "anthropic>=0.105,<1",
     # <2 pinnen: mcp v2 ist ein Major-Rework mit Breaking Changes —
     # streamablehttp_client → streamable_http_client umbenannt UND zieht
     # opentelemetry rein (verletzt den No-Telemetry-Guard). v1 bleibt kompatibel.
     "mcp>=1.0,<2",
-    "httpx>=0.27",
-    "Pillow>=10.0",
-    "playwright>=1.44",
-    "yt-dlp>=2024.1",
-    "python-multipart>=0.0.9",
-    "pyyaml>=6.0",
-    "websockets>=13",
-    "croniter>=2.0",
-    "discord.py>=2.3",
+    "httpx>=0.27,<1",
+    "Pillow>=10.0,<14",
+    "playwright>=1.44,<2",
+    "yt-dlp>=2024.1",  # CalVer, kein Major-Schema — Deckel waere willkuerlich
+    "python-multipart>=0.0.9,<1",
+    "pyyaml>=6.0,<7",
+    "websockets>=13,<17",
+    "croniter>=2.0,<7",
+    "discord.py>=2.3,<3",
     "matrix-nio>=0.25,<0.26",
-    "asyncpg>=0.29",
-    "pytest>=9.0",
-    "pytest-asyncio>=1.4",
+    "asyncpg>=0.29,<1",
+    "pytest>=9.0,<10",
+    "pytest-asyncio>=1.4,<2",
 ]
 
 [tool.pytest.ini_options]
