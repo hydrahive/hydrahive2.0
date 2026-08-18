@@ -1,6 +1,6 @@
 # Ubuntu 26.04 LTS Support
 
-**Status:** Sondierung abgeschlossen — Installer-Umbau offen
+**Status:** Installerlauf auf 26.04 durchgeführt — Blocker ist der Frontend-Build, nicht Python
 **Branch:** `feat/ubuntu-2604-support`
 **Erstellt:** 2026-08-19
 **Task:** f888b99f
@@ -90,6 +90,75 @@ Alle Werte auf dem Testserver mit `apt-cache policy` verifiziert:
 | CI | `python-version: "3.12"`, `node-version: "20"` | — | `.github/workflows/pytest.yml` |
 | ruff | `target-version = "py312"` | — | `core/pyproject.toml` |
 
+## KORREKTUR: Python-3.12-Blocker entschärft
+
+**Der oben beschriebene Blocker greift in der Praxis NICHT.** Beim echten
+Installerlauf auf 26.04 (2026-08-19) zeigte sich:
+
+deadsnakes liefert `python3.12` **doch** für `resolute` —
+`3.12.13-1+resolute1`. Die Aussage auf der Launchpad-Seite ("resolute wird von
+Ubuntu selbst bedient") bezieht sich auf 3.14, nicht auf ältere Versionen. Der
+Fallback in `00-deps.sh` (Zeile 42) greift korrekt, weil er an
+`command -v python3.12` hängt und nicht an der Ubuntu-Version.
+
+Phase 1 und 4 des Installers laufen damit **fehlerfrei durch**. Der Kommentar
+"für Ubuntu < 24.04" ist irreführend, das Verhalten aber richtig.
+
+**Konsequenz:** Der Python-Umbau ist damit *nicht dringend*. Er bleibt trotzdem
+sinnvoll (Phase 2), weil eine dauerhafte deadsnakes-Abhängigkeit auf einem
+LTS-Server unschön ist — aber er ist kein Blocker mehr. Priorität sinkt.
+
+## ECHTER BLOCKER: Frontend-Build bricht ab (Phase 5)
+
+**Der Installer stirbt in Phase 5 — und zwar aus einem Grund, der nichts mit
+26.04 zu tun hat.** Er tritt auf jeder frischen Installation auf, auch auf 24.04.
+
+```
+src/features/cockpit/MediaAssetOverlay.tsx(2,25): error TS2307:
+  Cannot find module '@/modules/atelier/api'
+... 8 Fehler in 5 Dateien
+```
+
+### Ursache (verifiziert)
+
+`frontend/.gitignore` Zeilen 27–28 schließen die Modulverzeichnisse vom Repo aus:
+
+```
+src/modules/*/
+src/modules/index.generated.ts
+```
+
+Module sind bewusst **nicht** Teil des Core-Repos — sie werden separat
+installiert. Im frischen Clone enthält `frontend/src/modules/` daher nur
+`index.generated.ts`, und `gen-modules` meldet folgerichtig `0 Modul(e): (keine)`.
+
+**Aber der Core-Code importiert das Atelier-Modul statisch:**
+
+| Datei | Import |
+|---|---|
+| `features/cockpit/MediaAssetOverlay.tsx` | `@/modules/atelier/api`, `/types` |
+| `features/cockpit/MediaCockpitPage.tsx` | `@/modules/atelier/AtelierPage` |
+| `features/cockpit/media/videocut/api.ts` | `@/modules/atelier/api`, `/types` |
+| `features/cockpit/media/videocut/ClipLibrary.tsx` | `@/modules/atelier/api` |
+| `features/cockpit/media/videocut/useCutExport.ts` | `@/modules/atelier/api` |
+
+Damit hängt der **Core-Build** an einem **optionalen Modul**. Das ist eine
+Architekturverletzung: Kern darf nicht auf Erweiterung zeigen.
+
+Zum Vergleich der korrekte Weg — zwei weitere Dateien machen es richtig und gehen
+über die generierte Registry, die immer existiert:
+
+- `features/chat/workspace/WorkspacePanel.tsx` → `@/modules/index.generated`
+- `features/themetemplates/registry.tsx` → `@/modules/index.generated`
+
+### Zusammenhang mit dem Kunden-Bugreport
+
+Das ist **dieselbe Fehlerklasse** wie die offenen Atelier-Tasks (7ce545d1,
+d1833b23, daa27f8a, 53bb0538): dort meldete ein Kunde TS2307 für
+`../videoeditor/...` aus `AtelierCutPanel.tsx`. Gleiches Muster, andere Richtung —
+statische Imports über Modulgrenzen hinweg. Eine gemeinsame Lösung sollte beide
+Fälle abdecken.
+
 ## Wie (Vorgehen)
 
 Reihenfolge bewusst: **erst messen, dann bauen.**
@@ -115,13 +184,28 @@ werden nicht angefasst.
 
 ### Phase 2b — Verbleibende Unbekannte
 
-Die Sondierung deckte Backend + Tests ab. Noch **nicht** verifiziert:
+Installerlauf kam bis Phase 5 (von 8). Noch **nicht** erreicht/verifiziert:
 
-- **Frontend-Build** (`npm ci && npm run build`) unter Node 22 statt 20 —
-  Vite 8 / TypeScript 6 / React 19
+- Phase 6 WhatsApp-Bridge, Phase 7 systemd, Phase 8 nginx
+- Backend-Start als Dienst unter 26.04
 - **ffmpeg 8** in der Voice-Pipeline (24.04 hat 7) — Filter-/Flag-Kompatibilität
-- **sudo-rs**: ob alle im Installer genutzten sudo-Aufrufe unterstützt werden
-- **Vollständiger `install.sh`-Durchlauf** auf frischem 26.04
+- **sudo-rs**: bislang unauffällig, aber nicht systematisch geprüft
+- **Vite-8-Build selbst** — der Abbruch kam schon bei `tsc -b`, der Bundler lief
+  noch gar nicht
+
+### Phase 2c — Modul-Entkopplung (NEU, vorgezogen)
+
+Blockiert aktuell jede frische Installation. Optionen:
+
+1. **Registry statt Direktimport** — Core geht ausschließlich über
+   `@/modules/index.generated`; Media-Cockpit-Teile mit Atelier-Bezug werden
+   optionale Slots. Sauberste Lösung, mittlerer Aufwand.
+2. **Atelier in den Core ziehen** — wenn es faktisch Kernbestandteil ist, ehrlich
+   so behandeln. Widerspricht dem Modulkonzept.
+3. **Build-Stubs** — Platzhaltertypen wenn Modul fehlt. Billig, aber verschleiert
+   die Kopplung; Laufzeitfehler statt Buildfehler.
+
+Empfehlung: Option 1, gemeinsam mit den offenen Atelier-Tasks lösen.
 
 ### Phase 3 — CI + Doku
 
