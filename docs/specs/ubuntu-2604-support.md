@@ -1,6 +1,6 @@
 # Ubuntu 26.04 LTS Support
 
-**Status:** Planung / Sondierung
+**Status:** Sondierung abgeschlossen — Installer-Umbau offen
 **Branch:** `feat/ubuntu-2604-support`
 **Erstellt:** 2026-08-19
 **Task:** f888b99f
@@ -40,26 +40,52 @@ Betroffene Stellen:
 Folge: Installation bricht in Phase 1 (deps) bzw. 3 (python) ab. Kein Workaround
 ohne Codeänderung.
 
-### Offene Risiken (noch nicht verifiziert)
+### ENTWARNUNG: Dependency-Stack trägt unter Python 3.14
 
-Der eigentliche Risikoblock ist **nicht** der Installer, sondern die Frage, ob der
-Dependency-Stack unter Python 3.14 trägt. Besonders zu prüfen sind Pakete mit
-C-Extensions und enger Interpreter-Kopplung:
+**Auf echter Hardware verifiziert (Testserver 192.168.178.174, Ubuntu 26.04 LTS,
+Python 3.14.4, 2026-08-19).**
 
-- `bcrypt`, `cryptography` (C-Extensions)
-- `asyncpg` (C-Extension, eigene Event-Loop-Integration)
-- `litellm`, `anthropic` (großer Abhängigkeitsbaum)
-- `playwright` (Browser-Binaries + Python-Bindings)
-- `matrix-nio`, `discord.py` (async, ältere Codebasen)
-- `uvicorn[standard]` (uvloop/httptools — C-Extensions)
+`pip install -e core/` läuft vollständig durch. Alle C-Extension-Pakete, die als
+Hauptrisiko galten, liefern fertige `cp314`-Wheels — nichts muss aus Quellen
+gebaut werden:
+
+| Paket | Version unter 3.14 |
+|---|---|
+| `asyncpg` | 0.31.0 |
+| `bcrypt` | 5.0.0 |
+| `cryptography` | 48.0.1 |
+| `uvloop` | 0.22.1 |
+| `httptools` | 0.8.0 |
+| `playwright` | 1.62.0 |
+| `litellm` | 1.97.0 |
+| `matrix-nio` | 0.25.2 |
+| `discord.py` | 2.7.1 |
+| `fastapi` | 0.136.3 (innerhalb `<0.137`-Deckel) |
+
+**Testsuite: 2031 bestanden, 0 Fehler, 5 übersprungen (145 s).**
+
+Erster Lauf zeigte 4 Fehler in `tests/test_vm_passthrough.py`. Ursache war **nicht**
+Python 3.14, sondern fehlendes `qemu-img` auf dem frischen Server. Nach
+`apt-get install qemu-utils` sind alle 15 Tests der Datei grün. Nebenbefund:
+`qemu-utils` ist eine faktische Testabhängigkeit, die in `00-deps.sh` fehlt.
+
+Damit ist Option A (venv auf System-Python 3.14) tragfähig. Das Restrisiko liegt
+nur noch im Installer selbst.
 
 ### Weitere Abweichungen
 
+Alle Werte auf dem Testserver mit `apt-cache policy` verifiziert:
+
 | Thema | 24.04 | 26.04 | Bewertung |
 |---|---|---|---|
-| PostgreSQL | 16 | 18 | `48-postgres.sh` ermittelt `PG_VER` dynamisch → vermutlich ok; `postgresql-18-pgvector` verifizieren |
-| sudo | sudo | **sudo-rs** | Flag-Kompatibilität der Skripte prüfen |
-| Node.js | 20 (gepinnt) | — | `00-deps.sh` pinnt `setup_20.x`; Node 20 läuft 2026 aus dem Support |
+| PostgreSQL | 16 | **18** (`18+290ubuntu1`) | `48-postgres.sh` ermittelt `PG_VER` dynamisch → ok |
+| pgvector | `postgresql-16-pgvector` | **`postgresql-18-pgvector` 0.8.1-2 vorhanden** | ok, kein Handlungsbedarf |
+| sudo | sudo | **sudo-rs 0.2.13** | Flag-Kompatibilität der Skripte prüfen |
+| Node.js | 20 (gepinnt) | Distro liefert **22.22** | `00-deps.sh` pinnt `setup_20.x`; Node 20 läuft 2026 aus dem Support |
+| nginx | — | 1.28.3 | ok |
+| ffmpeg | — | 8.0.1 | Major-Sprung (7 → 8), Voice-Pipeline gegenprüfen |
+| sshpass | — | 1.10 | ok |
+| `qemu-utils` | implizit da | **fehlt** | faktische Abhängigkeit, in `00-deps.sh` ergänzen |
 | Voice-LXC | `images:ubuntu/24.04` | fest verdrahtet | `55-voice.sh` Zeilen 115, 236 |
 | CI | `python-version: "3.12"`, `node-version: "20"` | — | `.github/workflows/pytest.yml` |
 | ruff | `target-version = "py312"` | — | `core/pyproject.toml` |
@@ -68,26 +94,34 @@ C-Extensions und enger Interpreter-Kopplung:
 
 Reihenfolge bewusst: **erst messen, dann bauen.**
 
-### Phase 1 — Sondierung (keine Codeänderung)
+### Phase 1 — Sondierung ✅ ABGESCHLOSSEN (2026-08-19)
 
-26.04-Container hochziehen, `pip install -e core/` unter Python 3.14, volle
-Testsuite (1937 Tests). Ergebnis entscheidet über Phase 2.
+Auf Testserver 192.168.178.174 durchgeführt. Ergebnis: Stack trägt unter 3.14,
+Testsuite vollständig grün. Option A ist tragfähig, Phase 2 kann starten.
 
-Diese Phase ist billig und beantwortet die einzige wirklich offene Frage. Ohne sie
-besteht das Risiko, den Installer umzubauen und erst danach festzustellen, dass ein
-Kernpaket unter 3.14 nicht startet.
+### Phase 2 — Installer versions-agnostisch (offen)
 
-### Phase 2 — Installer versions-agnostisch
-
-Abhängig vom Ergebnis aus Phase 1:
-
-- Interpreter-Erkennung statt hartem `python3.12` (Reihenfolge: 3.12 → 3.13 → 3.14,
-  bzw. was Phase 1 als tragfähig erweist)
+- Interpreter-Erkennung statt hartem `python3.12`: höchste verfügbare Version aus
+  3.12 / 3.13 / 3.14 wählen (alle drei nachweislich tragfähig)
+- `python3.12-venv` → passendes `pythonX.Y-venv` zum erkannten Interpreter
+- `qemu-utils` in `REQUIRED_PACKAGES` ergänzen
+- Node-Pin überdenken: 26.04 liefert bereits 22.22; `setup_20.x` ist überholt
+- `55-voice.sh`: LXC-Image nicht mehr fest auf 24.04
 - Distro-Erkennung über `VERSION_ID`/`UBUNTU_CODENAME` statt impliziter Annahmen
-- PG-, Node- und LXC-Image-Versionen dynamisch bzw. konfigurierbar
+- deadsnakes-Fallback: greift nur für < 24.04, muss diese Grenze sauber prüfen
 
 Ziel: **eine** Codebasis bedient 24.04 und 26.04. Bestandsinstallationen auf 24.04
 werden nicht angefasst.
+
+### Phase 2b — Verbleibende Unbekannte
+
+Die Sondierung deckte Backend + Tests ab. Noch **nicht** verifiziert:
+
+- **Frontend-Build** (`npm ci && npm run build`) unter Node 22 statt 20 —
+  Vite 8 / TypeScript 6 / React 19
+- **ffmpeg 8** in der Voice-Pipeline (24.04 hat 7) — Filter-/Flag-Kompatibilität
+- **sudo-rs**: ob alle im Installer genutzten sudo-Aufrufe unterstützt werden
+- **Vollständiger `install.sh`-Durchlauf** auf frischem 26.04
 
 ### Phase 3 — CI + Doku
 
