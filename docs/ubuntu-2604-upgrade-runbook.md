@@ -1,85 +1,438 @@
-# Distro-Upgrade 24.04 → 26.04 für HydraHive-Server
+# HydraHive-Server: Ubuntu 24.04 auf 26.04 aktualisieren
 
-**Stand:** 2026-08-19 · Testserver `192.168.178.186` · Branch `feat/ubuntu-2604-support`
+**Freigabestand:** 2026-08-19
 
-Dieses Dokument entsteht während des Testlaufs. Es beschreibt **noch nicht**
-das freigegebene Vorgehen für den Produktivserver — das folgt, wenn der
-Testserver das Upgrade überstanden hat.
+**Getesteter Pfad:** Ubuntu 24.04.4 LTS → Ubuntu 26.04 LTS
 
-## Warum ein Testlauf zwingend ist
+**Gilt für:** bestehende HydraHive-2.0-Server auf Ubuntu 24.04
+**Wartungsfenster:** mindestens 2 Stunden einplanen
 
-`installer/update.sh` aktualisiert HydraHive, **fasst das venv aber nie an**:
-es ruft direkt `.venv/bin/pip install -e core` und führt weder `00-deps.sh`
-noch `30-python.sh` aus.
+> Das Ubuntu-Upgrade und das HydraHive-Update sind zwei getrennte Vorgänge.
+> `installer/update.sh` startet kein Betriebssystem-Upgrade. Es repariert
+> HydraHive nach dem Ubuntu-Upgrade selbstständig.
 
-Auf 24.04 kommt `python3.12` aus dem **Ubuntu-Archiv** (`noble-updates/main`),
-nicht von deadsnakes. Auf 26.04 existiert dieses Paket dort nicht mehr. Ein
-`do-release-upgrade` entfernt den Interpreter also — und das venv zeigt
-anschließend ins Leere.
+## Kurzfassung
 
-**Folge: HydraHive startet nach dem Upgrade nicht mehr, und `update.sh`
-repariert das nicht.** Genau dieselbe Klasse von Fehler hatten wir bei
-HydraLink (venv-Zwitter nach Interpreter-Wechsel).
+```bash
+# 1. Auf Ubuntu 24.04 zuerst HydraHive auf den freigegebenen Stand bringen
+sudo /opt/hydrahive2/installer/update.sh
 
-## Ausgangszustand des Testservers (vor dem Upgrade)
+# 2. Externen VM-/Container-Snapshot oder vollständiges Host-Backup erstellen
+#    (außerhalb von HydraHive)
 
-| Komponente | Version |
-|---|---|
-| OS | Ubuntu 24.04.4 LTS |
-| Python | 3.12.3 (`noble-updates/main`) |
-| venv | `executable = /usr/bin/python3.12` |
-| Node.js | v20.20.2 |
-| PostgreSQL | 16.14 (Cluster `16 main`, Port 5432) |
-| nginx | 1.24.0 |
-| ffmpeg | 6.1.1 |
-| sudo | 1.9.15p5 (klassisch) |
-| incus | `hydrahive2-stt`, `hydrahive2-tts` (beide RUNNING) |
+# 3. Ubuntu 24.04 vollständig aktualisieren
+sudo apt update
+sudo apt full-upgrade -y
+sudo apt install -y update-manager-core
 
-HydraHive-Stand: `aa717132`, alle Dienste aktiv, API-Endpunkte 200.
+# 4. Ubuntu-Release-Upgrade starten (siehe wichtigen Hinweis zu -d unten)
+sudo do-release-upgrade
+# Falls 26.04 am 2026-08-19 noch nicht regulär angeboten wird:
+sudo do-release-upgrade -d
 
-**Erwartete Zielversionen auf 26.04** (auf dem 26er Testserver gemessen):
-Python 3.14.4, PostgreSQL 18, Node 22.22, nginx 1.28.3, ffmpeg 8.0.1,
-sudo-rs 0.2.13.
+# 5. Nach dem Reboot HydraHive reparieren/aktualisieren
+sudo /opt/hydrahive2/installer/update.sh
 
-## Vorab-Ergebnis: 24.04-Regressionstest bestanden
+# 6. PostgreSQL-Daten kontrolliert von 16 auf 18 migrieren
+sudo /opt/hydrahive2/installer/migrate-postgresql-cluster.sh --yes
 
-Der Branch `feat/ubuntu-2604-support` wurde auf frischem 24.04 installiert —
-**ohne Regression**. Alle Phasen liefen durch, kein `FEHLT`-Block, alle Dienste
-aktiv, `/api/health`, Buddy, Agents, Projekte und AgentLink antworten mit 200.
+# 7. Abschließend neu starten
+sudo reboot
+```
 
-Damit ist Akzeptanzkriterium 2 der Spec erfüllt: die Fixes brechen 24.04 nicht.
+Die Kurzfassung ersetzt **nicht** die Backup- und Prüfhinweise unten.
 
-## Risiken beim Upgrade (Reihenfolge nach Schwere)
+---
 
-1. **venv zeigt auf gelöschten Interpreter** → Backend startet nicht.
-   Betrifft `/opt/hydrahive2/.venv` und `/opt/hydralink/.venv`.
-2. **PostgreSQL 16 → 18**: Ubuntu legt einen neuen Cluster an, der alte bleibt
-   liegen. Ohne `pg_upgradecluster` zeigt der Dienst auf eine leere Datenbank.
-3. **incus-Container**: `hydrahive2-stt`/`-tts` überstehen einen Distro-Wechsel
-   des Hosts nicht zwangsläufig.
-4. **sudo → sudo-rs**: verschärfte Syntaxprüfung (unser `requiretty`-Fix ist
-   bereits drin, aber andere Dateien können betroffen sein).
-5. **Node 20 → 22**: NodeSource-Repo-Eintrag zeigt weiter auf `setup_20.x`.
-6. **ffmpeg 6 → 8**: zwei Major-Sprünge, Voice-Pipeline ungetestet.
+## Wichtiger Hinweis zum heutigen `-d`-Kanal
 
-## Vorgehen im Test
+Am 2026-08-19 meldet der normale LTS-Kanal auf dem Testsystem noch kein Upgrade,
+der Frühupgrade-Kanal dagegen ausdrücklich:
 
-1. Ausgangszustand dokumentieren ✅ (siehe oben)
-2. Prüfsumme fachlicher Daten sichern (Agenten, Projekte, Sessions) — damit
-   nach dem Upgrade belegbar ist, dass nichts verloren ging
-3. `do-release-upgrade` durchführen, Ausgabe vollständig protokollieren
-4. Schadensaufnahme: welche Dienste starten, welche nicht
-5. Reparaturen ableiten und in `update.sh` gießen
-6. Runbook für den Produktivserver fertigstellen
+```text
+New release '26.04 LTS' available.
+```
 
-## Offene Empfehlung für den Produktivserver
+Der produktiv bevorzugte Befehl bleibt:
 
-Vor jedem Upgrade des Produktivsystems: **vollständiges Backup bzw.
-VM-Snapshot**, und einen Rückfallweg festlegen. Ein Distro-Upgrade ist nicht
-zurückrollbar.
+```bash
+sudo do-release-upgrade -c
+sudo do-release-upgrade
+```
 
-Ernsthaft zu prüfende Alternative: **neuen 26.04-Server aufsetzen und Daten
-migrieren** statt in-place zu upgraden. Vorteile: kein Altlast-Zwitter, Testen
-vor dem Umschalten möglich, alter Server bleibt als sofortiger Rückfallweg
-stehen. Bei einem System mit PostgreSQL, incus-Containern und VMs ist das
-üblicherweise der ruhigere Weg.
+Nur wenn `-c` noch kein 26.04 anbietet und das Upgrade **heute ausdrücklich**
+erfolgen soll, wurde folgender Pfad real getestet:
+
+```bash
+sudo do-release-upgrade -d
+```
+
+`-d` umgeht die übliche Wartefrist bis zur regulären LTS-Freigabe. Deshalb ist
+ein externer Snapshot bzw. ein vollständiges Host-Backup zwingend. Sobald der
+normale Kanal 26.04 anbietet, `-d` nicht mehr verwenden.
+
+---
+
+## 1. Voraussetzungen und Preflight
+
+### Unterstützte Ausgangslage
+
+```bash
+. /etc/os-release
+echo "$PRETTY_NAME"
+python3 --version
+pg_lsclusters
+```
+
+Erwartet vor dem Upgrade:
+
+- Ubuntu 24.04.x LTS
+- Python 3.12.x
+- PostgreSQL `16 main` online auf Port 5432
+- HydraHive und AgentLink aktiv
+
+```bash
+systemctl is-active hydrahive2 agentlink nginx postgresql redis-server
+```
+
+Alle Ausgaben müssen `active` sein.
+
+### Freier Speicher
+
+```bash
+df -h /
+sudo du -sh /var/lib/postgresql /var/lib/hydrahive2 /opt/hydrahive2
+```
+
+Für Betriebssystem, parallelen PostgreSQL-18-Cluster und Backups ausreichend
+freien Speicher bereitstellen. Das PostgreSQL-Migrationsskript prüft später
+zusätzlich konservativ auf mindestens dreimal die Größe des alten Clusters plus
+1 GiB Reserve.
+
+### Locale vor dem Release-Upgrade reparieren
+
+Inkonsistente Locale-Variablen erzeugen beim Ubuntu-Upgrader Warnungen. Vorher:
+
+```bash
+sudo locale-gen en_US.UTF-8 de_DE.UTF-8
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+locale
+```
+
+### HydraHive noch auf 24.04 aktualisieren
+
+```bash
+sudo /opt/hydrahive2/installer/update.sh
+```
+
+Das ist wichtig: Dadurch liegt der Self-Heal-Code bereits lokal vor, selbst wenn
+HydraHive nach dem OS-Reboot vorübergehend nicht startet.
+
+---
+
+## 2. Backup und Rückfallpunkt
+
+### Bevorzugt: Snapshot außerhalb von HydraHive
+
+- VM: Hypervisor-Snapshot
+- Incus/LXC: Snapshot auf dem äußeren Incus-Host
+- Bare Metal: vollständiges Image-/Dateisystem-Backup
+
+Beispiel auf einem Incus-Host:
+
+```bash
+incus snapshot create <container-name> before-ubuntu-2604
+incus snapshot list <container-name>
+```
+
+Auf `dir`-Storage wird der Snapshot per rsync kopiert und kann mehrere Minuten
+dauern. Erst fortfahren, wenn `incus operation list` keinen laufenden
+Snapshot-Vorgang mehr zeigt.
+
+HydraHive besitzt aktuell noch keine Container-Snapshot-Funktion im Cockpit.
+Das ist separat als Feature geplant; der Snapshot muss heute auf dem äußeren
+Host angelegt werden.
+
+### Zusätzlich: logisches Datenbank- und Hydra-Datenbackup
+
+```bash
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+sudo install -d -m 700 /var/backups/hydrahive2
+sudo bash -o pipefail -c \
+  "runuser -u postgres -- pg_dumpall | gzip -9 > '/var/backups/hydrahive2/postgresql-before-os-upgrade-$STAMP.sql.gz'"
+sudo gzip -t "/var/backups/hydrahive2/postgresql-before-os-upgrade-$STAMP.sql.gz"
+sudo sha256sum "/var/backups/hydrahive2/postgresql-before-os-upgrade-$STAMP.sql.gz" \
+  | sudo tee "/var/backups/hydrahive2/postgresql-before-os-upgrade-$STAMP.sql.gz.sha256"
+
+sudo tar -C / --xattrs --acls -czf \
+  "/var/backups/hydrahive2/hydrahive-data-before-os-upgrade-$STAMP.tar.gz" \
+  etc/hydrahive2 var/lib/hydrahive2
+sudo chmod 600 /var/backups/hydrahive2/*
+```
+
+Das Backup enthält Datenbankrollen und Kennworthashes. Es muss mit Modus 0600
+und außerhalb öffentlich erreichbarer Verzeichnisse bleiben.
+
+---
+
+## 3. Ubuntu aktualisieren
+
+Für Remote-Systeme den Vorgang in einer Hypervisor-Konsole oder in `tmux`
+ausführen. Während des Paketwechsels kann SSH vorübergehend neu gestartet
+werden.
+
+```bash
+sudo apt update
+sudo apt full-upgrade -y
+sudo apt install -y update-manager-core
+sudo do-release-upgrade -c
+```
+
+Wenn der normale Kanal 26.04 anbietet:
+
+```bash
+sudo do-release-upgrade
+```
+
+Nur für den am 2026-08-19 getesteten Frühupgrade-Pfad:
+
+```bash
+sudo do-release-upgrade -d
+```
+
+Bei Rückfragen zu lokal geänderten HydraHive-/nginx-/PostgreSQL-Konfigurationen
+die vorhandene lokale Konfiguration behalten. Den Ubuntu-Upgrader vollständig
+beenden lassen und den verlangten Neustart durchführen.
+
+### Erwartetes Verhalten nach dem ersten Reboot
+
+Ubuntu 26.04 entfernt Python 3.12. Alte Installationen hatten:
+
+```text
+/opt/hydrahive2/.venv/bin/python -> python3.12
+/opt/hydralink/.venv/bin/python  -> python3.12
+```
+
+HydraHive und AgentLink können daher zunächst mit `status=203/EXEC` ausfallen.
+Das ist im getesteten Ablauf erwartet und wird im nächsten Schritt repariert.
+nginx, SSH, Redis und der alte PostgreSQL-16-Cluster bleiben erreichbar.
+
+---
+
+## 4. HydraHive und AgentLink selbstheilend reparieren
+
+```bash
+sudo /opt/hydrahive2/installer/update.sh
+```
+
+Der neue Updatepfad:
+
+1. erkennt einen fehlenden oder falschen Venv-Interpreter;
+2. stoppt den betroffenen Dienst vor dem Rebuild;
+3. installiert nötigenfalls `python3-venv`;
+4. baut das Venv kontrolliert mit `--clear` auf Python 3.14 neu;
+5. installiert Core und Abhängigkeiten über `python -m pip`;
+6. repariert fehlendes npm reproduzierbar auf npm 11.6.2;
+7. baut das Frontend;
+8. aktualisiert AgentLink und repariert dessen Venv ebenfalls;
+9. startet vorhandene Voice-Container und setzt `boot.autostart=true`.
+
+Erwartete Logzeilen beim ersten Lauf:
+
+```text
+Python-venv: Zielinterpreter /usr/bin/python3 (Python 3.14.x)
+Python-venv fehlt oder ist inkompatibel — baue mit --clear neu
+AgentLink-venv: bin/python fehlt ... — baue venv neu (--clear)
+Update erfolgreich, Service läuft.
+```
+
+Falls npm beim OS-Upgrade entfernt wurde:
+
+```text
+npm fehlt — repariere Node-Toolchain
+Preparing npm@11.6.2 for immediate activation...
+```
+
+Prüfen:
+
+```bash
+/opt/hydrahive2/.venv/bin/python --version
+/opt/hydralink/.venv/bin/python --version
+npm --version
+systemctl is-active hydrahive2 agentlink agentlink-frontend nginx redis-server
+```
+
+Erwartet: beide Venvs Python 3.14.x, npm 11.6.2 und alle Dienste `active`.
+
+---
+
+## 5. PostgreSQL 16 kontrolliert auf 18 migrieren
+
+Nach dem Ubuntu-Upgrade läuft zunächst weiterhin `16 main` auf Port 5432. Das
+ist absichtlich sicherer als eine unbemerkte automatische Datenmigration.
+
+Status prüfen:
+
+```bash
+pg_lsclusters
+```
+
+Dann:
+
+```bash
+sudo /opt/hydrahive2/installer/migrate-postgresql-cluster.sh --yes
+```
+
+Das Skript:
+
+- verlangt explizit `--yes` und root;
+- verhindert parallele Läufe per `flock`;
+- prüft freien Speicher;
+- installiert PostgreSQL 18 und `postgresql-18-pgvector`;
+- führt `pg_upgradecluster --check` aus;
+- erstellt ein vollständiges `pg_dumpall`-Backup unter
+  `/var/backups/hydrahive2/`;
+- prüft gzip und erzeugt eine SHA-256-Datei;
+- stoppt HydraHive und AgentLink während der Migration;
+- migriert sicher per dump/restore;
+- baut Indizes für die neue libc-Collation neu;
+- prüft Datenbanken und Vector-Erweiterung;
+- startet die Dienste wieder;
+- **löscht den alten PostgreSQL-16-Cluster nicht**.
+
+Erwartet danach:
+
+```text
+16  main  5433  down
+18  main  5432  online
+```
+
+Prüfen:
+
+```bash
+pg_lsclusters
+sudo -u postgres psql -d hydrahive_mirror -Atc \
+  "SELECT extversion FROM pg_extension WHERE extname='vector'"
+sudo sha256sum -c /var/backups/hydrahive2/*.sha256
+```
+
+Der alte Cluster bleibt mindestens bis nach der vollständigen Kundenabnahme als
+Rollback-Punkt erhalten. Nicht am selben Abend löschen.
+
+---
+
+## 6. Abschließender Reboot und Abnahme
+
+```bash
+sudo reboot
+```
+
+Danach:
+
+```bash
+systemctl is-active hydrahive2 agentlink agentlink-frontend nginx postgresql redis-server
+pg_lsclusters
+/opt/hydrahive2/.venv/bin/python --version
+/opt/hydralink/.venv/bin/python --version
+npm --version
+```
+
+Wenn Voice installiert ist:
+
+```bash
+incus list -c ns --format csv
+incus config get hydrahive2-stt boot.autostart
+incus config get hydrahive2-tts boot.autostart
+ss -ltn | grep -E '127.0.0.1:(10200|10300)'
+```
+
+Erwartet:
+
+- STT und TTS `RUNNING`
+- beide Autostart-Werte `true`
+- Ports 10200 und 10300 erreichbar
+
+API-Abnahme:
+
+```bash
+curl -k https://127.0.0.1/api/health
+```
+
+Zusätzlich im Cockpit prüfen:
+
+- Login funktioniert
+- Projekte und Agenten vorhanden
+- bestehende Sessions vorhanden
+- Buddy antwortet
+- AgentLink-Status grün
+- Voice-Status grün, falls installiert
+
+### LXC-Hinweis: netplan-configure
+
+In einem verschachtelten Ubuntu-26.04-LXC kann diese Unit fehlschlagen:
+
+```text
+netplan-configure.service: udevadm: No such file or directory
+```
+
+Wenn der Container seine korrekte IP hat, SSH funktioniert und die oben
+genannten Ports erreichbar sind, ist das eine LXC-/udev-Eigenheit und kein
+HydraHive-Ausfall. Auf Bare Metal oder einer echten VM trat dieser Gast-spezifische
+Befund nicht auf.
+
+---
+
+## 7. Rollback
+
+### Vollständiges OS-Rollback
+
+Ein Ubuntu-Release-Upgrade lässt sich nicht zuverlässig per apt zurückrollen.
+Bei grundlegendem Fehler den externen VM-/Container-Snapshot bzw. das
+vollständige Host-Backup wiederherstellen.
+
+### Nur PostgreSQL zurück auf 16
+
+Das Migrationsskript gibt am Ende die konkreten Ports aus. Typischer Zustand:
+PG18 auf 5432, alter PG16 auf 5433.
+
+```bash
+sudo systemctl stop hydrahive2 agentlink
+sudo pg_ctlcluster 18 main stop
+sudo pg_conftool 18 main set port 5433
+sudo pg_conftool 16 main set port 5432
+sudo pg_ctlcluster 16 main start
+sudo systemctl start hydrahive2 agentlink
+```
+
+Danach sofort `pg_lsclusters` und die APIs prüfen. Nicht gleichzeitig beide
+Cluster auf demselben Port starten.
+
+---
+
+## Real verifizierter Testlauf
+
+Ausgang:
+
+- Ubuntu 24.04.4
+- Python 3.12.3
+- PostgreSQL 16.14
+- Node 20.20.2
+- ffmpeg 6.1.1
+- zwei Voice-Incus-Container
+
+Ziel nach echtem Release-Upgrade, Reparatur, PG-Migration und finalem Reboot:
+
+- Ubuntu 26.04 LTS
+- Python 3.14.4 in beiden Venvs
+- PostgreSQL 18.4 auf Port 5432
+- PostgreSQL 16 gestoppt auf Port 5433 als Rollback
+- Vector 0.8.1
+- Node 22.22.1 und npm 11.6.2
+- HydraHive, AgentLink, nginx, PostgreSQL und Redis aktiv
+- Voice-STT/TTS `RUNNING`, beide mit Autostart
+- `/api/health`, Projekte, Sessions, Agenten, AgentLink und Buddy: HTTP 200
+- Sentinel-Projekt, Sentinel-Datei und Testsession unverändert vorhanden
+- Datenbanktabellen vor/nach Migration identisch
+- Backup-Prüfsumme erfolgreich
+- 2061 Core-Tests bestanden
