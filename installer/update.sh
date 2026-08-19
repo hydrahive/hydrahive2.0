@@ -96,21 +96,32 @@ if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 |
 fi
 
 # Beim Ubuntu-Release-Upgrade kann Node.js erhalten/aktualisiert werden, während
-# das separat paketierte npm entfernt wird. Der reine Node-Versionscheck oben
-# erkennt diesen Zustand nicht und der Frontend-Build bricht später ab.
-if ! command -v npm >/dev/null 2>&1; then
-  log "npm fehlt — repariere Node-Toolchain"
-  if command -v corepack >/dev/null 2>&1; then
+# das separat paketierte npm entfernt wird. Corepack hat außerdem pro Benutzer
+# einen eigenen Versionszustand: root kann npm 11 sehen, während $HH_USER schon
+# ein mit Node 22 inkompatibles npm 12 lädt. Darum als Service-User prüfen.
+NPM_VERSION="$(hh_run_as_owner "$HH_USER" npm --version 2>/dev/null || true)"
+NPM_MAJOR="${NPM_VERSION%%.*}"
+if [ -z "$NPM_VERSION" ] || ! [[ "$NPM_MAJOR" =~ ^[0-9]+$ ]] \
+    || [ "$NPM_MAJOR" -gt 11 ]; then
+  log "npm fehlt/ist inkompatibel (${NPM_VERSION:-nicht installiert}) — repariere Node-Toolchain"
+  if [ -x /usr/bin/corepack ]; then
     # Gepinnt statt 'latest': reproduzierbar und mit Node 20/22 kompatibel.
     corepack prepare npm@11.6.2 --activate
-    corepack enable npm
+    cat > /usr/local/bin/npm <<'EOF'
+#!/bin/sh
+exec /usr/bin/corepack npm@11.6.2 "$@"
+EOF
+    chmod 0755 /usr/local/bin/npm
   else
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
     apt-get install -y npm
   fi
-  command -v npm >/dev/null 2>&1 || err "npm konnte nicht installiert werden."
 fi
+command -v npm >/dev/null 2>&1 || err "npm konnte nicht installiert werden."
+NPM_VERSION="$(hh_run_as_owner "$HH_USER" npm --version 2>/dev/null || true)"
+[ -n "$NPM_VERSION" ] || err "npm funktioniert für $HH_USER nicht."
+log "npm $NPM_VERSION für $HH_USER bereit"
 
 log "Backend-Dependencies aktualisieren"
 hh_run_as_owner "$HH_USER" \
