@@ -1,31 +1,37 @@
-import { useEffect, useMemo, useState, type ComponentType } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Film, Images, Scissors, Sparkles, Users, Video } from "lucide-react"
 import { projectsApi } from "@/features/projects/api"
 import type { Project } from "@/features/projects/types"
-import { AtelierPage } from "@/modules/atelier/AtelierPage"
 import { CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
 import { MediaPostProduction } from "./media/MediaPostProduction"
+import { primaryMediaWorkflow } from "./media/mediaRegistry"
 
-type AtelierStep = "characters" | "generate" | "gallery" | "clips" | "film"
-type ControlledAtelierProps = { projectId?: string; step?: AtelierStep; onStepChange?: (step: AtelierStep) => void; hideHeader?: boolean }
-const ControlledAtelierPage = AtelierPage as ComponentType<ControlledAtelierProps>
+/** Aktive Ansicht: eine Schritt-ID des Modul-Workflows oder der Videoschnitt.
+ *  Die Schritte liefert das Modul, deshalb ist die ID nicht mehr fest bekannt. */
+type MediaView = string
 
-type MediaView = AtelierStep | "editor"
+/** Produktions-Workflow aus einem Modul (Atelier). Nicht installiert → null;
+ *  das Cockpit zeigt dann nur den Videoschnitt. */
+const workflow = primaryMediaWorkflow()
+const WorkflowPage = workflow?.component ?? null
 
-const steps = [
-  { id: "characters", number: "01", title: "Charaktere", text: "Figuren auswählen und verwalten", icon: Users },
-  { id: "generate", number: "02", title: "Bild erzeugen", text: "Keyframes und Motive erstellen", icon: Sparkles },
-  { id: "gallery", number: "03", title: "Galerie", text: "Bilder ansehen und weiterverwenden", icon: Images },
-  { id: "clips", number: "04", title: "Videoclips", text: "Clips erzeugen und abspielen", icon: Video },
-  { id: "film", number: "05", title: "Film erstellen", text: "Clips ordnen und Film rendern", icon: Film },
-] as const
+const ICONS: Record<string, typeof Users> = { characters: Users, generate: Sparkles, gallery: Images, clips: Video, film: Film }
+
+const steps = (workflow?.steps ?? []).map((step, index) => ({
+  id: step.id,
+  number: String(index + 1).padStart(2, "0"),
+  title: step.title,
+  text: step.text,
+  icon: ICONS[step.icon ?? step.id] ?? Sparkles,
+}))
 
 export function MediaCockpitPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState("")
-  const [view, setView] = useState<MediaView>("generate")
+  // Ohne Produktions-Workflow (Modul fehlt) startet das Cockpit direkt im Schnitt.
+  const [view, setView] = useState<MediaView>(workflow ? "generate" : "editor")
 
   useEffect(() => {
     projectsApi.list().then((items) => {
@@ -35,13 +41,13 @@ export function MediaCockpitPage() {
   }, [])
 
   const project = useMemo(() => projects.find((item) => item.id === projectId), [projects, projectId])
-  const isEditor = view === "editor"
+  const isEditor = view === "editor" || !WorkflowPage
   const activeIndex = steps.findIndex((item) => item.id === view)
   const activeStep = steps[activeIndex]
 
   return (
     <CockpitShell title="Media-Cockpit" eyebrow="Media" description="Geführter Produktionsablauf" hideHeader className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]">
-      <CockpitTopbar active="media" context={project?.name ?? "Projekt laden…"} action={{ label: "Atelier", path: "/atelier" }} />
+      <CockpitTopbar active="media" context={project?.name ?? "Projekt laden…"} action={workflow ? { label: "Atelier", path: "/atelier" } : undefined} />
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="panel min-h-0 overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3">
           <CockpitSectionLabel>Projekt</CockpitSectionLabel>
@@ -50,6 +56,7 @@ export function MediaCockpitPage() {
             {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
 
+          {steps.length > 0 && <>
           <div className="mt-5 flex items-center justify-between gap-2">
             <CockpitSectionLabel>Produktion</CockpitSectionLabel>
             <span className="font-mono text-[10px] text-[#8d9ab0]">{activeIndex >= 0 ? activeIndex + 1 : "–"} / {steps.length}</span>
@@ -66,6 +73,7 @@ export function MediaCockpitPage() {
               )
             })}
           </nav>
+          </>}
 
           {/* Trenner + eigener Menüpunkt Nachbearbeitung */}
           <div className="mt-5 border-t border-[#2a364b] pt-4">
@@ -94,9 +102,9 @@ export function MediaCockpitPage() {
             )}
           </header>
           <div className="min-h-0 overflow-y-auto p-4">
-            {isEditor
+            {isEditor || !WorkflowPage
               ? <MediaPostProduction projectId={projectId} />
-              : <ControlledAtelierPage projectId={projectId} step={view as AtelierStep} onStepChange={setView} hideHeader />}
+              : <WorkflowPage projectId={projectId} step={view} onStepChange={setView} hideHeader />}
           </div>
         </main>
       </div>

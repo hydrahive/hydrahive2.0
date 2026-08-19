@@ -1,23 +1,17 @@
-import { atelierApi, fileUrl } from "@/modules/atelier/api"
-import type { AudioLibraryItem, GalleryItem, VideoJob } from "@/modules/atelier/types"
+import { fileUrl } from "@/shared/files"
+import { loadMediaLibrary, resolveMediaRoot, type MediaLibraryItem } from "../mediaRegistry"
 import { mediaAssetsApi, mediaProjectsApi, type MediaAssetReference } from "../../mediaProjectsApi"
 import { mediaWorkspaceApi, type MediaTimeline } from "../../mediaWorkspaceApi"
 
 /** Media-Projekt-Slug für den Videoschnitt — wird still angelegt. */
 export const CUT_SLUG = "schnitt"
 
-/** Bibliothekseintrag, normalisiert über alle Atelier-Quellen. */
-export interface LibraryItem {
-  key: string
-  kind: "video" | "image" | "audio"
-  label: string
-  /** rel_path im Projekt-Workspace (atelier/...) für Asset-Referenzen. */
-  relPath: string
-  /** Absoluter Pfad für Thumbnails/Preview via /api/files. */
-  absPath: string | null
-  /** Bekannte Dauer in Sekunden (Videos aus Job-Meta), sonst null. */
-  duration: number | null
-}
+/** Bibliothekseintrag, normalisiert über alle Medienquellen.
+ *
+ *  Die Form kommt aus der Modul-Registry; der Core kennt keine Modul-Rohtypen
+ *  mehr. Re-Export unter dem etablierten Namen, damit bestehende Importe
+ *  (ClipLibrary, TrackArea, InputMonitor …) unverändert bleiben. */
+export type LibraryItem = MediaLibraryItem
 
 export function libraryFileUrl(absPath: string): string {
   return fileUrl(absPath)
@@ -46,13 +40,10 @@ export function buildAssetMedia(
   return map
 }
 
-/** Atelier-Root des Projekts (für absolute Pfade). Fehler → null. */
+/** Projekt-Root für absolute Pfade, über die registrierten Medienquellen.
+ *  Keine Quelle installiert oder Fehler → null. */
 export async function loadAtelierRoot(projectId: string): Promise<string | null> {
-  try {
-    return (await atelierApi.meta(projectId)).root
-  } catch {
-    return null
-  }
+  return resolveMediaRoot(projectId)
 }
 
 /** Stellt sicher, dass das Schnitt-Media-Projekt existiert. */
@@ -66,53 +57,10 @@ export async function ensureCutProject(projectId: string): Promise<void> {
   })
 }
 
-/** Lädt alle Bibliotheksquellen des Projekts parallel. Fehler je Quelle → leere Liste. */
+/** Lädt die Bibliothek aller registrierten Medienquellen.
+ *  Ohne installierte Quelle → leere Liste (kein Fehler). */
 export async function loadLibrary(projectId: string, atelierRoot: string | null): Promise<LibraryItem[]> {
-  const [gallery, videos, audio] = await Promise.allSettled([
-    atelierApi.gallery(projectId),
-    atelierApi.listVideos(projectId),
-    atelierApi.audioLibrary(projectId),
-  ])
-  const items: LibraryItem[] = []
-
-  if (videos.status === "fulfilled") {
-    for (const job of videos.value as VideoJob[]) {
-      if (job.status !== "completed" || !job.video_rel) continue
-      items.push({
-        key: `video:${job.video_rel}`,
-        kind: "video",
-        label: job.prompt?.slice(0, 60) || job.video_rel.split("/").pop() || job.job_id,
-        relPath: `atelier/${job.video_rel}`,
-        absPath: atelierRoot ? `${atelierRoot}/${job.video_rel}` : null,
-        duration: job.duration > 0 ? job.duration : null,
-      })
-    }
-  }
-  if (gallery.status === "fulfilled") {
-    for (const img of gallery.value as GalleryItem[]) {
-      items.push({
-        key: `image:${img.rel}`,
-        kind: "image",
-        label: img.name,
-        relPath: `atelier/${img.rel}`,
-        absPath: img.path || null,
-        duration: null,
-      })
-    }
-  }
-  if (audio.status === "fulfilled") {
-    for (const track of audio.value as AudioLibraryItem[]) {
-      items.push({
-        key: `audio:${track.rel}`,
-        kind: "audio",
-        label: track.name,
-        relPath: `atelier/${track.rel}`,
-        absPath: atelierRoot ? `${atelierRoot}/${track.rel}` : null,
-        duration: null,
-      })
-    }
-  }
-  return items
+  return loadMediaLibrary(projectId, atelierRoot)
 }
 
 /** Findet oder erstellt die Asset-Referenz für einen Bibliothekseintrag. */
