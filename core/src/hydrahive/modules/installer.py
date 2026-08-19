@@ -150,7 +150,26 @@ def remove_module_files(module_id: str) -> None:
 
 def _frontend_build() -> None:
     fe = settings.base_dir / "frontend"
+    _clear_ts_buildinfo(fe)
     subprocess.run(["npm", "run", "build"], cwd=fe, check=True)
+
+
+def _clear_ts_buildinfo(frontend_dir: Path) -> None:
+    """Inkrementellen TypeScript-Cache verwerfen.
+
+    ``tsc -b`` merkt sich in ``node_modules/.tmp/*.tsbuildinfo``, welche Dateien
+    es gesehen hat. Modul-Verzeichnisse kommen und gehen aber ausserhalb dieses
+    Wissens: nach einer Installation meldete ``tsc`` sonst
+    ``TS6053: File '…/modules/<id>/index.tsx' not found`` fuer eine Datei, die
+    tatsaechlich existiert — der Cache stammte noch aus einem Lauf ohne das
+    Modul. Der Build brach ab, das ausgelieferte ``dist/`` blieb auf altem
+    Stand, und im Cockpit fehlten die neu installierten Module.
+
+    Die Dateien sind reiner Cache; ein Neuaufbau kostet nur wenige Sekunden.
+    """
+    for stale in (frontend_dir / "node_modules" / ".tmp").glob("*.tsbuildinfo"):
+        stale.unlink(missing_ok=True)
+        logger.info("TypeScript-Buildcache verworfen: %s", stale.name)
 
 
 def _request_restart() -> None:
