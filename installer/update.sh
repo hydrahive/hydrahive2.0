@@ -103,6 +103,7 @@ if ! command -v npm >/dev/null 2>&1; then
   if command -v corepack >/dev/null 2>&1; then
     # Gepinnt statt 'latest': reproduzierbar und mit Node 20/22 kompatibel.
     corepack prepare npm@11.6.2 --activate
+    corepack enable npm
   else
     export DEBIAN_FRONTEND=noninteractive
     apt-get update

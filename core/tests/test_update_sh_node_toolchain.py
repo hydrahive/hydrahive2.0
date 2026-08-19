@@ -17,5 +17,6 @@ def test_missing_npm_uses_pinned_corepack_version_with_apt_fallback() -> None:
     text = SCRIPT.read_text()
 
     assert "corepack prepare npm@11.6.2 --activate" in text
+    assert "corepack enable npm" in text
     assert 'apt-get install -y npm' in text
     assert 'command -v npm >/dev/null 2>&1 || err' in text
