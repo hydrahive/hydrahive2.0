@@ -162,6 +162,10 @@ else
   fi
 fi
 
+# Verwaltete Voice-Container müssen einen Reboot des äußeren Hosts überleben.
+# Incus startet Container ohne boot.autostart nicht automatisch neu.
+incus config set "$CT_NAME" boot.autostart true
+
 # ── Migrations-Reihenfolge: alter Docker-Container muss Port freigeben ──
 # Sonst kann incus-proxy-device nicht binden (Port already in use).
 # Voice-Downtime ist die Phase zwischen "docker stop" und "Wyoming-LXC ready".
@@ -240,6 +244,7 @@ elif ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "$CT_TTS,RUNNING"; 
 else
   log "TTS-Container '$CT_TTS' läuft"
 fi
+incus config set "$CT_TTS" boot.autostart true
 
 # 2. wyoming-piper installieren FALLS es fehlt (idempotent — repariert auch einen
 #    bestehenden Container, in dem apt früher ohne Netz scheiterte).
