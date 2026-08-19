@@ -1,6 +1,6 @@
 # Ubuntu 26.04 LTS Support
 
-**Status:** Installerlauf auf 26.04 durchgeführt — Blocker ist der Frontend-Build, nicht Python
+**Status:** Installation auf 26.04 läuft fehlerfrei durch — bereit für Kundentest
 **Branch:** `feat/ubuntu-2604-support`
 **Erstellt:** 2026-08-19
 **Task:** f888b99f
@@ -182,16 +182,29 @@ Testsuite vollständig grün. Option A ist tragfähig, Phase 2 kann starten.
 Ziel: **eine** Codebasis bedient 24.04 und 26.04. Bestandsinstallationen auf 24.04
 werden nicht angefasst.
 
-### Phase 2b — Verbleibende Unbekannte
+### Phase 2b — Vollständiger Installerlauf ✅ (2026-08-19)
 
-Installerlauf kam bis Phase 5 (von 8). Noch **nicht** erreicht/verifiziert:
+Alle Phasen laufen durch. Dienste aktiv: `hydrahive2`, `agentlink`,
+`agentlink-frontend`, `nginx`, `postgresql`, `redis-server`, `smbd`.
+Login, `/api/health`, Buddy und Modulverwaltung antworten mit 200; Logs sauber.
 
-- Phase 6 WhatsApp-Bridge, Phase 7 systemd, Phase 8 nginx
-- Backend-Start als Dienst unter 26.04
+Dabei gefundene und behobene Fehler — **drei davon distributionsunabhängig**,
+sie betrafen auch 24.04 und wären früher oder später jedem Kunden begegnet:
+
+| Fehler | Ursache | Fix |
+|---|---|---|
+| Frontend-Build bricht ab (TS2307) | Core importierte optionales Atelier-Modul statisch | `469bdf48` + Modul-Gegenstück |
+| Buddy liefert HTTP 500 | `known_ids()` gab auch STT-Modelle zurück → Failopen in `validate_model` griff nicht, obwohl kein Chat-Modell bekannt war | `bf7bea41` |
+| Module fehlen im Cockpit | `tsc -b`-Cache (`node_modules/.tmp/*.tsbuildinfo`) kannte neue Modulverzeichnisse nicht → TS6053, Build brach ab, `dist/` blieb alt | `46cddeea` |
+| sudoers ungültig | `requiretty` unbekannt für sudo-rs | `f7cefa5b` |
+| AgentLink-Installation scheitert | `pydantic==2.9.2` ohne cp314-Wheel; `python3` = 3.14 | hydralink PR #1 |
+| AgentLink-venv-Zwitter | `-m venv` ersetzt alte `bin/python`-Symlinks nicht | hydralink PR #1 |
+
+Noch **nicht** systematisch geprüft:
+
 - **ffmpeg 8** in der Voice-Pipeline (24.04 hat 7) — Filter-/Flag-Kompatibilität
-- **sudo-rs**: bislang unauffällig, aber nicht systematisch geprüft
-- **Vite-8-Build selbst** — der Abbruch kam schon bei `tsc -b`, der Bundler lief
-  noch gar nicht
+- **Voice-Stack** insgesamt (STT-LXC lief mit, aber ungetestet)
+- **VM-Bridge `br0`** fehlt — per `setup-bridge.sh` nachholbar
 
 ### Phase 2c — Modul-Entkopplung (NEU, vorgezogen)
 
@@ -214,11 +227,22 @@ Testmatrix um 26.04/Python 3.14 erweitern, `installer/README.md` und
 
 ## Akzeptanzkriterien
 
-1. `installer/install.sh` läuft auf frischem Ubuntu 26.04 LTS ohne Fehler durch.
-2. `installer/install.sh` läuft weiterhin auf 24.04 LTS durch (keine Regression).
-3. Backend startet, Frontend baut, Testsuite grün — auf beiden Distributionen.
-4. CI prüft beide Konstellationen.
-5. Bestehende 24.04-Instanzen brauchen **keine** Migration.
+1. ✅ `installer/install.sh` läuft auf frischem Ubuntu 26.04 LTS ohne Fehler durch.
+2. ⬜ `installer/install.sh` läuft weiterhin auf 24.04 LTS durch (keine Regression)
+   — **noch nicht gegengeprüft**, siehe unten.
+3. ✅ Backend startet, Frontend baut, Testsuite grün (2042) — auf 26.04 verifiziert.
+4. ⬜ CI prüft beide Konstellationen.
+5. ✅ Bestehende 24.04-Instanzen brauchen keine Migration (keine Änderung erzwingt sie).
+
+### Offener Punkt vor dem Merge: Regressionstest auf 24.04
+
+Alle Fixes sind versionsunabhängig geschrieben (Interpreter-Erkennung mit
+Fallback, Cache-Löschung, Registry-Filter). Ein Durchlauf auf 24.04 fehlt aber
+noch. Besonders zu prüfen:
+
+- `pick_python` wählt dort weiterhin 3.12 (vorhanden) → venv-Rebuild darf **nicht**
+  auslösen
+- entpinnte `requirements.txt` zieht auf 24.04 dieselben Versionen wie zuvor
 
 ## Nicht Teil dieser Spec
 
