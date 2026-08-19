@@ -39,6 +39,10 @@ HH_PORT="${HH_PORT:-8001}"
 # --------------------------------------------------------------- Helfer
 log() { printf "\033[1;36m[hh2-install]\033[0m %s\n" "$*"; }
 err() { printf "\033[1;31m[hh2-install]\033[0m %s\n" "$*" >&2; exit 1; }
+# Wie err(), aber ohne Abbruch — für Fehler, die die Installation nicht
+# wertlos machen, aber sichtbar bleiben müssen.
+err_soft() { printf "\033[1;31m[hh2-install]\033[0m %s\n" "$*" >&2; }
+AGENTLINK_FAILED=0
 
 [ "$(id -u)" -eq 0 ] || err "Bitte mit sudo / als root ausführen."
 
@@ -186,7 +190,10 @@ run_wizard() {
   prompt_component HH_INSTALL_VOICE      y "Voice-Stack (Whisper-STT in LXC + mmx-TTS)? [groß: ~30 min]"
   prompt_component HH_INSTALL_CONTAINERS y "Container-Manager (incus) installieren?"
   prompt_component HH_INSTALL_VMS        y "VM-Manager (QEMU/KVM + websockify) installieren?"
-  prompt_component HH_INSTALL_AGENTLINK  y "HydraLink (AgentLink) installieren?"
+  # HydraLink wird NICHT abgefragt: AgentLink ist Pflichtbestandteil, ohne ihn
+  # können Agenten sich nicht gegenseitig beauftragen (ask_agent). Für
+  # Entwicklungs-Setups bleibt HH_INSTALL_AGENTLINK=no als bewusster Notausstieg
+  # per ENV erhalten.
   prompt_component HH_INSTALL_NGINX      y "nginx Reverse-Proxy installieren?"
   prompt_component HH_INSTALL_SAMBA      y "Samba für Projekt-Workspace-Shares?"
   prompt_component HH_INSTALL_WHATSAPP   y "WhatsApp-Bridge installieren?"
@@ -276,10 +283,20 @@ else
 fi
 
 if [ "${HH_INSTALL_AGENTLINK:-yes}" != "no" ]; then
-  log "Phase 11: HydraLink (AgentLink)"
-  bash "$INSTALLER_DIR/modules/75-agentlink.sh"
+  log "Phase 11: HydraLink (AgentLink) — Pflichtkomponente"
+  # Kein hartes Abbrechen: eine sonst fehlerfreie Installation soll nutzbar
+  # bleiben. Der Fehlschlag wird stattdessen laut protokolliert und in der
+  # Abschlussübersicht wiederholt — AgentLink ist Pflicht, ein stilles
+  # Übergehen wäre irreführend.
+  if ! bash "$INSTALLER_DIR/modules/75-agentlink.sh"; then
+    AGENTLINK_FAILED=1
+    err_soft "HydraLink-Installation FEHLGESCHLAGEN — Agenten können sich nicht
+     gegenseitig beauftragen (ask_agent fehlt). Details oben im Log.
+     Nachholen mit: sudo bash $INSTALLER_DIR/modules/75-agentlink.sh"
+  fi
 else
-  log "Phase 11: HydraLink übersprungen (HH_INSTALL_AGENTLINK=no)"
+  AGENTLINK_FAILED=1
+  log "Phase 11: HydraLink übersprungen (HH_INSTALL_AGENTLINK=no) — ask_agent steht NICHT zur Verfügung"
 fi
 
 log "Phase 12: Tailscale"
@@ -442,7 +459,13 @@ else
   SKIPPED+=("containers")
 fi
 
-if is_yes "${HH_INSTALL_AGENTLINK:-yes}"; then
+if [ "${AGENTLINK_FAILED:-0}" = "1" ]; then
+  section "HydraLink (AgentLink) — FEHLT"
+  kv "Status:" "NICHT INSTALLIERT — Agenten können sich nicht beauftragen"
+  kv "Folge:" "ask_agent steht nicht zur Verfügung"
+  kv "Nachholen:" "sudo bash $INSTALLER_DIR/modules/75-agentlink.sh"
+  SKIPPED+=("agentlink (FEHLGESCHLAGEN)")
+elif is_yes "${HH_INSTALL_AGENTLINK:-yes}"; then
   section "HydraLink (AgentLink)"
   kv "Backend:" "http://127.0.0.1:9000"
   kv "Repo:" "/opt/hydralink"

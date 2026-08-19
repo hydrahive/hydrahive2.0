@@ -520,10 +520,20 @@ else
 fi
 
 if [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
-  log "HydraLink (AgentLink) Update über 75-agentlink.sh"
+  log "HydraLink (AgentLink) Update über 75-agentlink.sh — Pflichtkomponente"
   # Wrapper rufen statt /opt/hydralink/installer/install.sh direkt — sonst
   # wird HL_BACKEND_PORT=9000 nicht gesetzt und hydralink fällt auf 8000 zurück.
-  bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh" || log "hydralink-install failed — weiter"
+  #
+  # Fehlschlag beendet das Update nicht (der Rest ist bereits aktualisiert),
+  # wird aber deutlich gemeldet. Vorher lief hier nur ein beiläufiges
+  # "failed — weiter", wodurch ein kaputtes AgentLink unbemerkt blieb und
+  # ask_agent still verschwand.
+  if ! bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh"; then
+    printf "\033[1;31m[hh2-update]\033[0m %s\n" \
+      "HydraLink-Update FEHLGESCHLAGEN — Agenten können sich nicht gegenseitig
+     beauftragen (ask_agent fehlt). Nachholen mit:
+     sudo bash $HH_REPO_DIR/installer/modules/75-agentlink.sh" >&2
+  fi
 fi
 
 if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ] && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then

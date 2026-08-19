@@ -17,9 +17,16 @@ def today_start_iso() -> str:
 
 def health_check() -> dict:
     backend = {"ok": True}
-    agentlink = {"ok": agentlink_connected(), "configured": bool(settings.agentlink_url)}
-    if not agentlink["configured"]:
-        agentlink = {"ok": True, "configured": False}
+    # AgentLink gehört zur Grundinstallation. Ein Ausfall wird darum als nicht-ok
+    # gemeldet — vorher galt "nicht konfiguriert" als ok=True, wodurch ein
+    # fehlgeschlagenes Setup unsichtbar blieb und ask_agent still verschwand.
+    # Nur eine ausdrückliche Abschaltung (HH_AGENTLINK_URL="") bleibt unkritisch.
+    configured = bool(settings.agentlink_url)
+    agentlink = {
+        "ok": agentlink_connected() if configured else True,
+        "configured": configured,
+        "required": True,
+    }
 
     ip_bin = shutil.which("ip") or "/sbin/ip"
     bridge_ok = False
