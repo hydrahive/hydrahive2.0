@@ -79,6 +79,14 @@ fi
 source "$HH_REPO_DIR/installer/lib/config-permissions.sh"
 repair_llm_config_permissions
 
+# Distro-Upgrades können den Interpreter eines bestehenden venv entfernen
+# (Ubuntu 24.04: Python 3.12 -> Ubuntu 26.04: Python 3.14). Vor JEDEM Zugriff
+# auf pip das venv prüfen und bei Bedarf kontrolliert neu aufbauen.
+# shellcheck source=installer/lib/python-venv.sh
+source "$HH_REPO_DIR/installer/lib/python-venv.sh"
+hh_ensure_python_venv \
+  "$HH_REPO_DIR/.venv" "$HH_USER" "hydrahive2.service" "$HH_REPO_DIR"
+
 log "Node.js prüfen"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ]; then
   log "Node.js 20 fehlt — installiere via NodeSource"
@@ -88,7 +96,8 @@ if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 |
 fi
 
 log "Backend-Dependencies aktualisieren"
-"$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core"
+hh_run_as_owner "$HH_USER" \
+  "$HH_REPO_DIR/.venv/bin/python" -m pip install -e "$HH_REPO_DIR/core"
 
 log "Playwright-Chromium prüfen"
 VENV_PLAYWRIGHT="$HH_REPO_DIR/.venv/bin/playwright"
