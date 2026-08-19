@@ -172,8 +172,21 @@ async def list_models(modality: str | None = None) -> list[ModelEntry]:
 
 
 def known_ids() -> set[str]:
-    """Sync: alle bekannten IDs aus dem Cache (kein Fetch — für validate)."""
-    return {m.id for m in _cache[1]} if _cache else set()
+    """Sync: bekannte CHAT-Modell-IDs aus dem Cache (kein Fetch — für validate).
+
+    Nur ``chat``-Modelle: Agenten werden gegen diese Menge validiert, und
+    STT/TTS/Embed-Einträge sind dort keine gültige Wahl.
+
+    Die Einschränkung ist wichtig für den Failopen in :func:`is_known` und
+    ``_validation.validate_model``: die winken durch, solange die Menge LEER
+    ist (Erst-Setup, noch kein LLM-Provider konfiguriert). Ohne den Filter
+    genügte ein einzelnes fest eingebautes STT-Modell, damit die Menge nicht
+    mehr leer war — dann schlug jede Agent-Erstellung fehl, weil kein einziges
+    Chat-Modell bekannt war. Genau daran scheiterte auf einer frischen
+    Installation die Buddy-Anlage mit HTTP 500
+    ("Modell '…' ist nicht in der Live-Modell-Liste verfügbar").
+    """
+    return {m.id for m in _cache[1] if "chat" in m.purposes} if _cache else set()
 
 
 def is_known(model_id: str) -> bool:
