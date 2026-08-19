@@ -428,6 +428,20 @@ if ! command -v incus >/dev/null 2>&1 \
     bash "$HH_REPO_DIR/installer/modules/70-containers.sh" || log "containers-setup failed — weiter"
 fi
 
+# Bestandsmigration: vorhandene verwaltete Voice-Container müssen nach einem
+# Reboot des äußeren Hosts automatisch wiederkommen. Nicht an voice_ok koppeln —
+# ein bereits laufender Stack kann trotzdem noch ohne boot.autostart existieren.
+for voice_container in hydrahive2-stt hydrahive2-tts; do
+  if incus list --format=csv -c n 2>/dev/null | grep -qx "$voice_container"; then
+    incus config set "$voice_container" boot.autostart true
+    if ! incus list --format=csv -c n,s 2>/dev/null \
+        | grep -qx "$voice_container,RUNNING"; then
+      log "Voice-Container '$voice_container' nach Host-Reboot starten"
+      incus start "$voice_container"
+    fi
+  fi
+done
+
 # Voice-Setup nach incus — STT läuft jetzt in einem incus-LXC (kein Docker).
 # Vier Bedingungen — alle müssen erfüllt sein:
 # 1. incus-Container 'hydrahive2-stt' läuft
