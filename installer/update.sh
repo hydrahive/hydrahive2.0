@@ -95,6 +95,22 @@ if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 |
   apt-get install -y nodejs
 fi
 
+# Beim Ubuntu-Release-Upgrade kann Node.js erhalten/aktualisiert werden, während
+# das separat paketierte npm entfernt wird. Der reine Node-Versionscheck oben
+# erkennt diesen Zustand nicht und der Frontend-Build bricht später ab.
+if ! command -v npm >/dev/null 2>&1; then
+  log "npm fehlt — repariere Node-Toolchain"
+  if command -v corepack >/dev/null 2>&1; then
+    # Gepinnt statt 'latest': reproduzierbar und mit Node 20/22 kompatibel.
+    corepack prepare npm@11.6.2 --activate
+  else
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y npm
+  fi
+  command -v npm >/dev/null 2>&1 || err "npm konnte nicht installiert werden."
+fi
+
 log "Backend-Dependencies aktualisieren"
 hh_run_as_owner "$HH_USER" \
   "$HH_REPO_DIR/.venv/bin/python" -m pip install -e "$HH_REPO_DIR/core"
