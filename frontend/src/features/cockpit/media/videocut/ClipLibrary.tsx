@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { Image as ImageIcon, Music, Play, Video } from "lucide-react"
-import { atelierApi } from "@/modules/atelier/api"
-import { libraryFileUrl, loadLibrary, type LibraryItem } from "./api"
+import { libraryFileUrl, loadAtelierRoot, loadLibrary, type LibraryItem } from "./api"
 import { MediaLightbox, type LightboxSource } from "./MediaLightbox"
 
 interface Props {
@@ -39,8 +38,7 @@ export function ClipLibrary({ projectId, onAdd, disabled }: Props) {
     if (!projectId) return
     let alive = true
     ;(async () => {
-      let root: string | null = null
-      try { root = (await atelierApi.meta(projectId)).root } catch { /* ohne root keine previews */ }
+      const root = await loadAtelierRoot(projectId)   // ohne Quelle null → keine Previews
       const list = await loadLibrary(projectId, root)
       if (alive) setItems(list)
     })()

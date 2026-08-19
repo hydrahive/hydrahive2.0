@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { fileUrl } from "@/modules/atelier/api"
+import { fileUrl } from "@/shared/files"
 import { mediaWorkspaceApi, type MediaExportEntry } from "../../mediaWorkspaceApi"
 import { CUT_SLUG } from "./api"
 

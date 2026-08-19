@@ -115,11 +115,15 @@ SYSCTL_BIN="$(command -v sysctl 2>/dev/null || echo /sbin/sysctl)"
 cat > /etc/sudoers.d/hydrahive2-extensions <<SUDOEOF
 # Extensions-Manager: hydrahive darf bash + docker + sysctl + rm als root ausführen.
 # Sicherheit kommt aus Admin-only API-Endpoint — kein direkter Shell-Zugang.
+#
+# Kein "Defaults:$HH_USER !requiretty": sudo-rs (Default ab Ubuntu 26.04) kennt
+# das Setting nicht und verwirft daraufhin die GESAMTE Datei als ungültig
+# ("unknown setting: 'requiretty'"). requiretty ist auf Debian/Ubuntu ohnehin
+# nie Default gewesen — die Zeile war wirkungslos und ist jetzt schädlich.
 $HH_USER ALL=(ALL) NOPASSWD: /bin/bash
 $HH_USER ALL=(ALL) NOPASSWD: /usr/bin/bash
 $HH_USER ALL=(ALL) NOPASSWD: $DOCKER_BIN
 $HH_USER ALL=(ALL) NOPASSWD: $SYSCTL_BIN
-Defaults:$HH_USER !requiretty
 SUDOEOF
 chmod 440 /etc/sudoers.d/hydrahive2-extensions
 visudo -c -f /etc/sudoers.d/hydrahive2-extensions && log "sudoers OK"

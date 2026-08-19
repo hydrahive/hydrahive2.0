@@ -81,7 +81,13 @@ def remove_theme_files(theme_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 def _frontend_build() -> None:
+    # Denselben Weg wie der Modul-Installer nehmen: der inkrementelle
+    # TypeScript-Cache muss vorher weg, sonst scheitert tsc an Dateien, die es
+    # im letzten Lauf noch nicht gab (TS6053) — siehe modules.installer.
+    from hydrahive.modules.installer import _clear_ts_buildinfo
+
     fe = settings.base_dir / "frontend"
+    _clear_ts_buildinfo(fe)
     subprocess.run(["npm", "run", "build"], cwd=fe, check=True)
 
 

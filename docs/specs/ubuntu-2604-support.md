@@ -1,0 +1,257 @@
+# Ubuntu 26.04 LTS Support
+
+**Status:** Installation auf 26.04 läuft fehlerfrei durch — bereit für Kundentest
+**Branch:** `feat/ubuntu-2604-support`
+**Erstellt:** 2026-08-19
+**Task:** f888b99f
+
+## Was
+
+HydraHive muss auf Ubuntu 26.04 LTS ("Resolute Raccoon", Release 23.04.2026)
+fehlerfrei installierbar und lauffähig sein. Aktuell bricht `installer/install.sh`
+auf 26.04 ab.
+
+## Warum
+
+24.04 LTS bleibt zwar bis 2029 im Standard-Support, aber 26.04 ist ab sofort die
+LTS-Version, die Neukunden auf frischer Hardware installieren. Ohne Anpassung
+scheitert dort jede Erstinstallation — und zwar hart, nicht mit Degradation.
+
+## Befund (verifiziert 2026-08-19)
+
+### Blocker: Python 3.12 existiert auf 26.04 nicht
+
+26.04 liefert **Python 3.14** als Default-Interpreter. Es gibt **kein**
+`python3.12`-Paket:
+
+- nicht im Ubuntu-Archiv (main/universe)
+- nicht über deadsnakes — das PPA liefert grundsätzlich nur Versionen, die die
+  Distribution nicht selbst mitbringt; für `resolute` ist 3.14 ausdrücklich
+  ausgenommen
+
+Betroffene Stellen:
+
+| Datei | Zeile | Problem |
+|---|---|---|
+| `installer/modules/00-deps.sh` | 11–12 | `python3.12`, `python3.12-venv` in `REQUIRED_PACKAGES` → `apt-get install` scheitert |
+| `installer/modules/00-deps.sh` | 42 | deadsnakes-Fallback greift nur für "Ubuntu < 24.04", hilft hier nicht |
+| `installer/modules/30-python.sh` | 11 | `python3.12 -m venv "$VENV"` → Kommando existiert nicht |
+
+Folge: Installation bricht in Phase 1 (deps) bzw. 3 (python) ab. Kein Workaround
+ohne Codeänderung.
+
+### ENTWARNUNG: Dependency-Stack trägt unter Python 3.14
+
+**Auf echter Hardware verifiziert (Testserver 192.168.178.174, Ubuntu 26.04 LTS,
+Python 3.14.4, 2026-08-19).**
+
+`pip install -e core/` läuft vollständig durch. Alle C-Extension-Pakete, die als
+Hauptrisiko galten, liefern fertige `cp314`-Wheels — nichts muss aus Quellen
+gebaut werden:
+
+| Paket | Version unter 3.14 |
+|---|---|
+| `asyncpg` | 0.31.0 |
+| `bcrypt` | 5.0.0 |
+| `cryptography` | 48.0.1 |
+| `uvloop` | 0.22.1 |
+| `httptools` | 0.8.0 |
+| `playwright` | 1.62.0 |
+| `litellm` | 1.97.0 |
+| `matrix-nio` | 0.25.2 |
+| `discord.py` | 2.7.1 |
+| `fastapi` | 0.136.3 (innerhalb `<0.137`-Deckel) |
+
+**Testsuite: 2031 bestanden, 0 Fehler, 5 übersprungen (145 s).**
+
+Erster Lauf zeigte 4 Fehler in `tests/test_vm_passthrough.py`. Ursache war **nicht**
+Python 3.14, sondern fehlendes `qemu-img` auf dem frischen Server. Nach
+`apt-get install qemu-utils` sind alle 15 Tests der Datei grün. Nebenbefund:
+`qemu-utils` ist eine faktische Testabhängigkeit, die in `00-deps.sh` fehlt.
+
+Damit ist Option A (venv auf System-Python 3.14) tragfähig. Das Restrisiko liegt
+nur noch im Installer selbst.
+
+### Weitere Abweichungen
+
+Alle Werte auf dem Testserver mit `apt-cache policy` verifiziert:
+
+| Thema | 24.04 | 26.04 | Bewertung |
+|---|---|---|---|
+| PostgreSQL | 16 | **18** (`18+290ubuntu1`) | `48-postgres.sh` ermittelt `PG_VER` dynamisch → ok |
+| pgvector | `postgresql-16-pgvector` | **`postgresql-18-pgvector` 0.8.1-2 vorhanden** | ok, kein Handlungsbedarf |
+| sudo | sudo | **sudo-rs 0.2.13** | Flag-Kompatibilität der Skripte prüfen |
+| Node.js | 20 (gepinnt) | Distro liefert **22.22** | `00-deps.sh` pinnt `setup_20.x`; Node 20 läuft 2026 aus dem Support |
+| nginx | — | 1.28.3 | ok |
+| ffmpeg | — | 8.0.1 | Major-Sprung (7 → 8), Voice-Pipeline gegenprüfen |
+| sshpass | — | 1.10 | ok |
+| `qemu-utils` | implizit da | **fehlt** | faktische Abhängigkeit, in `00-deps.sh` ergänzen |
+| Voice-LXC | `images:ubuntu/24.04` | fest verdrahtet | `55-voice.sh` Zeilen 115, 236 |
+| CI | `python-version: "3.12"`, `node-version: "20"` | — | `.github/workflows/pytest.yml` |
+| ruff | `target-version = "py312"` | — | `core/pyproject.toml` |
+
+## KORREKTUR: Python-3.12-Blocker entschärft
+
+**Der oben beschriebene Blocker greift in der Praxis NICHT.** Beim echten
+Installerlauf auf 26.04 (2026-08-19) zeigte sich:
+
+deadsnakes liefert `python3.12` **doch** für `resolute` —
+`3.12.13-1+resolute1`. Die Aussage auf der Launchpad-Seite ("resolute wird von
+Ubuntu selbst bedient") bezieht sich auf 3.14, nicht auf ältere Versionen. Der
+Fallback in `00-deps.sh` (Zeile 42) greift korrekt, weil er an
+`command -v python3.12` hängt und nicht an der Ubuntu-Version.
+
+Phase 1 und 4 des Installers laufen damit **fehlerfrei durch**. Der Kommentar
+"für Ubuntu < 24.04" ist irreführend, das Verhalten aber richtig.
+
+**Konsequenz:** Der Python-Umbau ist damit *nicht dringend*. Er bleibt trotzdem
+sinnvoll (Phase 2), weil eine dauerhafte deadsnakes-Abhängigkeit auf einem
+LTS-Server unschön ist — aber er ist kein Blocker mehr. Priorität sinkt.
+
+## ECHTER BLOCKER: Frontend-Build bricht ab (Phase 5)
+
+**Der Installer stirbt in Phase 5 — und zwar aus einem Grund, der nichts mit
+26.04 zu tun hat.** Er tritt auf jeder frischen Installation auf, auch auf 24.04.
+
+```
+src/features/cockpit/MediaAssetOverlay.tsx(2,25): error TS2307:
+  Cannot find module '@/modules/atelier/api'
+... 8 Fehler in 5 Dateien
+```
+
+### Ursache (verifiziert)
+
+`frontend/.gitignore` Zeilen 27–28 schließen die Modulverzeichnisse vom Repo aus:
+
+```
+src/modules/*/
+src/modules/index.generated.ts
+```
+
+Module sind bewusst **nicht** Teil des Core-Repos — sie werden separat
+installiert. Im frischen Clone enthält `frontend/src/modules/` daher nur
+`index.generated.ts`, und `gen-modules` meldet folgerichtig `0 Modul(e): (keine)`.
+
+**Aber der Core-Code importiert das Atelier-Modul statisch:**
+
+| Datei | Import |
+|---|---|
+| `features/cockpit/MediaAssetOverlay.tsx` | `@/modules/atelier/api`, `/types` |
+| `features/cockpit/MediaCockpitPage.tsx` | `@/modules/atelier/AtelierPage` |
+| `features/cockpit/media/videocut/api.ts` | `@/modules/atelier/api`, `/types` |
+| `features/cockpit/media/videocut/ClipLibrary.tsx` | `@/modules/atelier/api` |
+| `features/cockpit/media/videocut/useCutExport.ts` | `@/modules/atelier/api` |
+
+Damit hängt der **Core-Build** an einem **optionalen Modul**. Das ist eine
+Architekturverletzung: Kern darf nicht auf Erweiterung zeigen.
+
+Zum Vergleich der korrekte Weg — zwei weitere Dateien machen es richtig und gehen
+über die generierte Registry, die immer existiert:
+
+- `features/chat/workspace/WorkspacePanel.tsx` → `@/modules/index.generated`
+- `features/themetemplates/registry.tsx` → `@/modules/index.generated`
+
+### Zusammenhang mit dem Kunden-Bugreport
+
+Das ist **dieselbe Fehlerklasse** wie die offenen Atelier-Tasks (7ce545d1,
+d1833b23, daa27f8a, 53bb0538): dort meldete ein Kunde TS2307 für
+`../videoeditor/...` aus `AtelierCutPanel.tsx`. Gleiches Muster, andere Richtung —
+statische Imports über Modulgrenzen hinweg. Eine gemeinsame Lösung sollte beide
+Fälle abdecken.
+
+## Wie (Vorgehen)
+
+Reihenfolge bewusst: **erst messen, dann bauen.**
+
+### Phase 1 — Sondierung ✅ ABGESCHLOSSEN (2026-08-19)
+
+Auf Testserver 192.168.178.174 durchgeführt. Ergebnis: Stack trägt unter 3.14,
+Testsuite vollständig grün. Option A ist tragfähig, Phase 2 kann starten.
+
+### Phase 2 — Installer versions-agnostisch (offen)
+
+- Interpreter-Erkennung statt hartem `python3.12`: höchste verfügbare Version aus
+  3.12 / 3.13 / 3.14 wählen (alle drei nachweislich tragfähig)
+- `python3.12-venv` → passendes `pythonX.Y-venv` zum erkannten Interpreter
+- `qemu-utils` in `REQUIRED_PACKAGES` ergänzen
+- Node-Pin überdenken: 26.04 liefert bereits 22.22; `setup_20.x` ist überholt
+- `55-voice.sh`: LXC-Image nicht mehr fest auf 24.04
+- Distro-Erkennung über `VERSION_ID`/`UBUNTU_CODENAME` statt impliziter Annahmen
+- deadsnakes-Fallback: greift nur für < 24.04, muss diese Grenze sauber prüfen
+
+Ziel: **eine** Codebasis bedient 24.04 und 26.04. Bestandsinstallationen auf 24.04
+werden nicht angefasst.
+
+### Phase 2b — Vollständiger Installerlauf ✅ (2026-08-19)
+
+Alle Phasen laufen durch. Dienste aktiv: `hydrahive2`, `agentlink`,
+`agentlink-frontend`, `nginx`, `postgresql`, `redis-server`, `smbd`.
+Login, `/api/health`, Buddy und Modulverwaltung antworten mit 200; Logs sauber.
+
+Dabei gefundene und behobene Fehler — **drei davon distributionsunabhängig**,
+sie betrafen auch 24.04 und wären früher oder später jedem Kunden begegnet:
+
+| Fehler | Ursache | Fix |
+|---|---|---|
+| Frontend-Build bricht ab (TS2307) | Core importierte optionales Atelier-Modul statisch | `469bdf48` + Modul-Gegenstück |
+| Buddy liefert HTTP 500 | `known_ids()` gab auch STT-Modelle zurück → Failopen in `validate_model` griff nicht, obwohl kein Chat-Modell bekannt war | `bf7bea41` |
+| Module fehlen im Cockpit | `tsc -b`-Cache (`node_modules/.tmp/*.tsbuildinfo`) kannte neue Modulverzeichnisse nicht → TS6053, Build brach ab, `dist/` blieb alt | `46cddeea` |
+| sudoers ungültig | `requiretty` unbekannt für sudo-rs | `f7cefa5b` |
+| AgentLink-Installation scheitert | `pydantic==2.9.2` ohne cp314-Wheel; `python3` = 3.14 | hydralink PR #1 |
+| AgentLink-venv-Zwitter | `-m venv` ersetzt alte `bin/python`-Symlinks nicht | hydralink PR #1 |
+
+Noch **nicht** systematisch geprüft:
+
+- **ffmpeg 8** in der Voice-Pipeline (24.04 hat 7) — Filter-/Flag-Kompatibilität
+- **Voice-Stack** insgesamt (STT-LXC lief mit, aber ungetestet)
+- **VM-Bridge `br0`** fehlt — per `setup-bridge.sh` nachholbar
+
+### Phase 2c — Modul-Entkopplung (NEU, vorgezogen)
+
+Blockiert aktuell jede frische Installation. Optionen:
+
+1. **Registry statt Direktimport** — Core geht ausschließlich über
+   `@/modules/index.generated`; Media-Cockpit-Teile mit Atelier-Bezug werden
+   optionale Slots. Sauberste Lösung, mittlerer Aufwand.
+2. **Atelier in den Core ziehen** — wenn es faktisch Kernbestandteil ist, ehrlich
+   so behandeln. Widerspricht dem Modulkonzept.
+3. **Build-Stubs** — Platzhaltertypen wenn Modul fehlt. Billig, aber verschleiert
+   die Kopplung; Laufzeitfehler statt Buildfehler.
+
+Empfehlung: Option 1, gemeinsam mit den offenen Atelier-Tasks lösen.
+
+### Phase 3 — CI + Doku
+
+Testmatrix um 26.04/Python 3.14 erweitern, `installer/README.md` und
+`requires-python` nachziehen.
+
+## Akzeptanzkriterien
+
+1. ✅ `installer/install.sh` läuft auf frischem Ubuntu 26.04 LTS ohne Fehler durch.
+2. ⬜ `installer/install.sh` läuft weiterhin auf 24.04 LTS durch (keine Regression)
+   — **noch nicht gegengeprüft**, siehe unten.
+3. ✅ Backend startet, Frontend baut, Testsuite grün (2042) — auf 26.04 verifiziert.
+4. ⬜ CI prüft beide Konstellationen.
+5. ✅ Bestehende 24.04-Instanzen brauchen keine Migration (keine Änderung erzwingt sie).
+
+### Offener Punkt vor dem Merge: Regressionstest auf 24.04
+
+Alle Fixes sind versionsunabhängig geschrieben (Interpreter-Erkennung mit
+Fallback, Cache-Löschung, Registry-Filter). Ein Durchlauf auf 24.04 fehlt aber
+noch. Besonders zu prüfen:
+
+- `pick_python` wählt dort weiterhin 3.12 (vorhanden) → venv-Rebuild darf **nicht**
+  auslösen
+- entpinnte `requirements.txt` zieht auf 24.04 dieselben Versionen wie zuvor
+
+## Nicht Teil dieser Spec
+
+- Migration bestehender 24.04-Instanzen auf 26.04 (eigener Vorgang, falls gewünscht)
+- Abkündigung von 22.04 (`installer/README.md` nennt es noch)
+- Voice-Bridge-Themen (separat, aktuell pausiert)
+
+## Offene Entscheidung
+
+Support-Matrix: 24.04 **und** 26.04 dauerhaft parallel (doppelte Testmatrix), oder
+26.04 als alleiniges Ziel mit definiertem Migrationspfad? Diese Spec geht bis zur
+Klärung vom Parallelbetrieb aus, weil er Bestandsinstallationen schützt.

@@ -79,6 +79,14 @@ fi
 source "$HH_REPO_DIR/installer/lib/config-permissions.sh"
 repair_llm_config_permissions
 
+# Distro-Upgrades können den Interpreter eines bestehenden venv entfernen
+# (Ubuntu 24.04: Python 3.12 -> Ubuntu 26.04: Python 3.14). Vor JEDEM Zugriff
+# auf pip das venv prüfen und bei Bedarf kontrolliert neu aufbauen.
+# shellcheck source=installer/lib/python-venv.sh
+source "$HH_REPO_DIR/installer/lib/python-venv.sh"
+hh_ensure_python_venv \
+  "$HH_REPO_DIR/.venv" "$HH_USER" "hydrahive2.service" "$HH_REPO_DIR"
+
 log "Node.js prüfen"
 if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 | tr -d v)" -lt 20 ]; then
   log "Node.js 20 fehlt — installiere via NodeSource"
@@ -87,8 +95,26 @@ if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 |
   apt-get install -y nodejs
 fi
 
+# Beim Ubuntu-Release-Upgrade kann Node.js erhalten/aktualisiert werden, während
+# das separat paketierte npm entfernt wird. Der reine Node-Versionscheck oben
+# erkennt diesen Zustand nicht und der Frontend-Build bricht später ab.
+if ! command -v npm >/dev/null 2>&1; then
+  log "npm fehlt — repariere Node-Toolchain"
+  if command -v corepack >/dev/null 2>&1; then
+    # Gepinnt statt 'latest': reproduzierbar und mit Node 20/22 kompatibel.
+    corepack prepare npm@11.6.2 --activate
+    corepack enable npm
+  else
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y npm
+  fi
+  command -v npm >/dev/null 2>&1 || err "npm konnte nicht installiert werden."
+fi
+
 log "Backend-Dependencies aktualisieren"
-"$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core"
+hh_run_as_owner "$HH_USER" \
+  "$HH_REPO_DIR/.venv/bin/python" -m pip install -e "$HH_REPO_DIR/core"
 
 log "Playwright-Chromium prüfen"
 VENV_PLAYWRIGHT="$HH_REPO_DIR/.venv/bin/playwright"
@@ -403,6 +429,20 @@ if ! command -v incus >/dev/null 2>&1 \
     bash "$HH_REPO_DIR/installer/modules/70-containers.sh" || log "containers-setup failed — weiter"
 fi
 
+# Bestandsmigration: vorhandene verwaltete Voice-Container müssen nach einem
+# Reboot des äußeren Hosts automatisch wiederkommen. Nicht an voice_ok koppeln —
+# ein bereits laufender Stack kann trotzdem noch ohne boot.autostart existieren.
+for voice_container in hydrahive2-stt hydrahive2-tts; do
+  if incus list --format=csv -c n 2>/dev/null | grep -qx "$voice_container"; then
+    incus config set "$voice_container" boot.autostart true
+    if ! incus list --format=csv -c n,s 2>/dev/null \
+        | grep -qx "$voice_container,RUNNING"; then
+      log "Voice-Container '$voice_container' nach Host-Reboot starten"
+      incus start "$voice_container"
+    fi
+  fi
+done
+
 # Voice-Setup nach incus — STT läuft jetzt in einem incus-LXC (kein Docker).
 # Vier Bedingungen — alle müssen erfüllt sein:
 # 1. incus-Container 'hydrahive2-stt' läuft
@@ -520,10 +560,20 @@ else
 fi
 
 if [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
-  log "HydraLink (AgentLink) Update über 75-agentlink.sh"
+  log "HydraLink (AgentLink) Update über 75-agentlink.sh — Pflichtkomponente"
   # Wrapper rufen statt /opt/hydralink/installer/install.sh direkt — sonst
   # wird HL_BACKEND_PORT=9000 nicht gesetzt und hydralink fällt auf 8000 zurück.
-  bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh" || log "hydralink-install failed — weiter"
+  #
+  # Fehlschlag beendet das Update nicht (der Rest ist bereits aktualisiert),
+  # wird aber deutlich gemeldet. Vorher lief hier nur ein beiläufiges
+  # "failed — weiter", wodurch ein kaputtes AgentLink unbemerkt blieb und
+  # ask_agent still verschwand.
+  if ! bash "$HH_REPO_DIR/installer/modules/75-agentlink.sh"; then
+    printf "\033[1;31m[hh2-update]\033[0m %s\n" \
+      "HydraLink-Update FEHLGESCHLAGEN — Agenten können sich nicht gegenseitig
+     beauftragen (ask_agent fehlt). Nachholen mit:
+     sudo bash $HH_REPO_DIR/installer/modules/75-agentlink.sh" >&2
+  fi
 fi
 
 if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ] && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then

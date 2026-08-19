@@ -45,11 +45,20 @@ class _ServerMixin:
 
 
 class _AgentLinkMixin:
+    #: Lokaler AgentLink, wie ihn installer/modules/75-agentlink.sh aufsetzt.
+    #: AgentLink ist Pflichtbestandteil — deshalb ist der Default gesetzt und
+    #: nicht leer: ask_agent bleibt registriert, und ein Ausfall meldet sich als
+    #: Fehler, statt das Werkzeug stillschweigend verschwinden zu lassen.
+    DEFAULT_AGENTLINK_URL = "http://127.0.0.1:9000"
+
     @cached_property
     def agentlink_url(self) -> str:
-        """AgentLink-REST-URL. Leer ⇒ AgentLink nicht angebunden,
-        ask_agent-Tool wird nicht registriert."""
-        return env_or_override("agentlink_url", "HH_AGENTLINK_URL", "").strip()
+        """AgentLink-REST-URL. Default zeigt auf die lokale Installation.
+
+        Bewusst nicht leer: AgentLink gehört zur Grundinstallation. Wer ihn
+        wirklich abschalten will, setzt HH_AGENTLINK_URL="" explizit — dann
+        entfällt ask_agent wie bisher."""
+        return env_or_override("agentlink_url", "HH_AGENTLINK_URL", self.DEFAULT_AGENTLINK_URL).strip()
 
     @cached_property
     def agentlink_ws_url(self) -> str:
