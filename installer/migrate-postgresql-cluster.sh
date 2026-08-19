@@ -141,9 +141,14 @@ NEW_STATUS="$(printf '%s\n' "$NEW_ROW" | field 4)"
 log "Baue Indizes für die neue Collation-Version neu"
 run_pg reindexdb --cluster "$TARGET_VERSION/$CLUSTER" --all
 log "Aktualisiere Collation-Metadaten"
-run_pg psql --cluster "$TARGET_VERSION/$CLUSTER" -d postgres -Atc \
-  "SELECT format('ALTER DATABASE %I REFRESH COLLATION VERSION;', datname) FROM pg_database" \
-  | run_pg psql --cluster "$TARGET_VERSION/$CLUSTER" -d postgres
+run_pg psql --cluster "$TARGET_VERSION/$CLUSTER" -d postgres \
+  -v ON_ERROR_STOP=1 -Atc \
+  "SELECT format('ALTER DATABASE %I REFRESH COLLATION VERSION;', datname)
+     FROM pg_database
+    WHERE datcollversion IS NOT NULL
+      AND datcollversion IS DISTINCT FROM pg_database_collation_actual_version(oid)" \
+  | run_pg psql --cluster "$TARGET_VERSION/$CLUSTER" -d postgres \
+      -v ON_ERROR_STOP=1
 
 log "Verifiziere Datenbanken und vector-Erweiterung"
 run_pg psql --cluster "$TARGET_VERSION/$CLUSTER" -d postgres -v ON_ERROR_STOP=1 -Atc \

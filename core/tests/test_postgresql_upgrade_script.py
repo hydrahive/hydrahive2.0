@@ -59,3 +59,5 @@ def test_script_handles_collation_change_after_os_upgrade() -> None:
 
     assert re.search(r"reindexdb .*--all", text)
     assert "REFRESH COLLATION VERSION" in text
+    assert "datcollversion IS NOT NULL" in text
+    assert text.count("ON_ERROR_STOP=1") >= 3
