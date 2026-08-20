@@ -5,12 +5,14 @@ from pathlib import Path
 import pwd
 import subprocess
 import sys
+import tomllib
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER = REPO_ROOT / "installer" / "lib" / "python-venv.sh"
 UPDATE_SCRIPT = REPO_ROOT / "installer" / "update.sh"
 PYTHON_MODULE = REPO_ROOT / "installer" / "modules" / "30-python.sh"
+CORE_PYPROJECT = REPO_ROOT / "core" / "pyproject.toml"
 
 
 def _bash(command: str, *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -135,3 +137,9 @@ def test_fresh_install_module_uses_shared_helper() -> None:
     assert "python-venv.sh" in text
     assert "hh_ensure_python_venv" in text
     assert "python3.12 -m venv" not in text
+
+
+def test_core_declares_bounded_voice_bridge_dependency() -> None:
+    project = tomllib.loads(CORE_PYPROJECT.read_text())["project"]
+
+    assert "aioesphomeapi>=45.3.1,<46" in project["dependencies"]

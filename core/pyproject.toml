@@ -27,6 +27,9 @@ dependencies = [
     "pyjwt>=2.8,<3",
     "bcrypt>=4.0,<6",
     "cryptography>=41.0,<49",
+    # HA Voice PE bridge: muss im Core-venv deklariert sein, damit ein venv-
+    # Neuaufbau bei Python-/Distro-Upgrades die ESPHome-Anbindung nicht entfernt.
+    "aioesphomeapi>=45.3.1,<46",
     "litellm>=1.83,<2",
     "anthropic>=0.105,<1",
     # <2 pinnen: mcp v2 ist ein Major-Rework mit Breaking Changes —
