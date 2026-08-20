@@ -11,9 +11,6 @@
 </p>
 
 ---
-## Discord Server ##
-
-https://discord.gg/MmyBE2T9f
 
 ## Was ist HydraHive?
 
