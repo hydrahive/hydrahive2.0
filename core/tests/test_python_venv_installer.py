@@ -143,3 +143,38 @@ def test_core_declares_bounded_voice_bridge_dependency() -> None:
     project = tomllib.loads(CORE_PYPROJECT.read_text())["project"]
 
     assert "aioesphomeapi>=45.3.1,<46" in project["dependencies"]
+
+
+def test_run_as_owner_home_uses_explicit_service_home(tmp_path: Path) -> None:
+    owner = pwd.getpwuid(os.getuid()).pw_name
+    service_home = tmp_path / "service-home"
+    observed = tmp_path / "observed-home"
+    probe = tmp_path / "probe.sh"
+    probe.write_text('#!/bin/sh\nprintf "%s" "$HOME" > "$1"\n')
+    probe.chmod(0o755)
+
+    _bash(
+        f'hh_run_as_owner_home {owner!r} {str(service_home)!r} '
+        f'{str(probe)!r} {str(observed)!r}'
+    )
+
+    assert observed.read_text() == str(service_home)
+
+
+def test_update_always_syncs_matching_playwright_browser_revision() -> None:
+    text = UPDATE_SCRIPT.read_text()
+    section = text[text.index('log "Playwright-Chromium-Version synchronisieren"'):text.index('log "Frontend neu bauen"')]
+
+    assert 'find "$PW_CACHE_DIR"' not in section
+    assert 'hh_run_as_owner_home "$HH_USER" "$HH_HOME"' in section
+    assert '"$HH_REPO_DIR/.venv/bin/python" -m playwright install chromium' in section
+    assert '|| log "Playwright-Chromium-Install fehlgeschlagen' in section
+
+
+def test_fresh_install_downloads_matching_playwright_browser_revision() -> None:
+    text = PYTHON_MODULE.read_text()
+
+    assert 'HH_HOME="/home/$HH_USER"' in text
+    assert 'hh_run_as_owner_home "$HH_USER" "$HH_HOME"' in text
+    assert '"$VENV/bin/python" -m playwright install chromium' in text
+    assert '|| log "Playwright-Chromium-Install fehlgeschlagen' in text

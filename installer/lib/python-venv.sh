@@ -96,15 +96,21 @@ hh_venv_needs_rebuild() {
   return 1
 }
 
+hh_run_as_owner_home() {
+  local owner="$1" owner_home="$2"
+  shift 2
+  if [ "$(id -u)" -eq 0 ] && [ "$owner" != "root" ]; then
+    /usr/bin/sudo -u "$owner" -- /usr/bin/env HOME="$owner_home" "$@"
+  else
+    /usr/bin/env HOME="$owner_home" "$@"
+  fi
+}
+
 hh_run_as_owner() {
   local owner="$1" owner_home
   shift
-  if [ "$(id -u)" -eq 0 ] && [ "$owner" != "root" ]; then
-    owner_home="$(getent passwd "$owner" | cut -d: -f6)"
-    /usr/bin/sudo -u "$owner" -- /usr/bin/env HOME="$owner_home" "$@"
-  else
-    "$@"
-  fi
+  owner_home="$(getent passwd "$owner" | cut -d: -f6)"
+  hh_run_as_owner_home "$owner" "$owner_home" "$@"
 }
 
 hh_ensure_python_venv() {
