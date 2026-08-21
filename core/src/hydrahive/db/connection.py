@@ -29,13 +29,18 @@ def init_db() -> None:
 
 
 @contextmanager
-def db(immediate: bool = False) -> Iterator[sqlite3.Connection]:
+def db(
+    immediate: bool = False,
+    *,
+    timeout: float = 5.0,
+) -> Iterator[sqlite3.Connection]:
     """Per-call connection with FK enforcement and automatic commit/rollback.
 
     immediate=True uses BEGIN IMMEDIATE to acquire the write lock upfront,
-    preventing TOCTOU races in read-modify-write patterns.
+    preventing TOCTOU races in read-modify-write patterns. ``timeout`` controls
+    how long SQLite waits for a competing writer before raising ``locked``.
     """
-    conn = sqlite3.connect(settings.sessions_db)
+    conn = sqlite3.connect(settings.sessions_db, timeout=timeout)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     if immediate:

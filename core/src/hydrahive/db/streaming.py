@@ -94,13 +94,23 @@ def update_job_status(
     status: str,
     progress: int = 0,
     error: str | None = None,
-) -> None:
-    with db() as conn:
-        conn.execute(
-            """UPDATE streaming_jobs SET status=?, progress=?, error=?,
-               updated_at=datetime('now') WHERE id=?""",
-            (status, progress, error, job_id),
+    *,
+    timeout: float = 5.0,
+    expected_statuses: tuple[str, ...] | None = None,
+) -> bool:
+    where = "id=?"
+    params: list[Any] = [status, progress, error, job_id]
+    if expected_statuses:
+        placeholders = ",".join("?" for _ in expected_statuses)
+        where += f" AND status IN ({placeholders})"
+        params.extend(expected_statuses)
+    with db(timeout=timeout) as conn:
+        cur = conn.execute(
+            f"""UPDATE streaming_jobs SET status=?, progress=?, error=?,
+                updated_at=datetime('now') WHERE {where}""",
+            params,
         )
+    return cur.rowcount > 0
 
 
 def delete_job(job_id: str, user_id: str) -> bool:
