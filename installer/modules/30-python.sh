@@ -17,6 +17,16 @@ hh_run_as_owner "$HH_USER" "$VENV/bin/python" -m pip install --upgrade pip
 log "Installiere hydrahive-core (editable + Dependencies)"
 hh_run_as_owner "$HH_USER" "$VENV/bin/python" -m pip install -e "$HH_REPO_DIR/core"
 
+# Das Python-Paket allein enthält keinen Browser. Immer die exakt zur
+# installierten Playwright-Version passende Chromium-Revision sicherstellen;
+# der Befehl ist idempotent und lädt bei vorhandenem Match nichts erneut.
+log "Installiere passende Playwright-Chromium-Version"
+HH_HOME="/home/$HH_USER"
+PW_CACHE_DIR="$HH_HOME/.cache/ms-playwright"
+install -d -o "$HH_USER" -g "$(id -gn "$HH_USER")" "$HH_HOME/.cache" "$PW_CACHE_DIR"
+hh_run_as_owner_home "$HH_USER" "$HH_HOME" "$VENV/bin/python" -m playwright install chromium \
+  || log "Playwright-Chromium-Install fehlgeschlagen — Streaming-Scraper nicht verfügbar"
+
 # Mac/uv installieren falls fehlt — manche MCP-Server brauchen uvx
 if ! "$VENV/bin/python" -m pip show anthropic >/dev/null 2>&1; then
   log "anthropic-SDK fehlt — installiere"
