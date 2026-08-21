@@ -1,6 +1,7 @@
 """Streaming-Downloader API."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Annotated
 
@@ -111,7 +112,8 @@ async def start_download(
         out = downloader.build_output_path(
             body.plex_path, body.series_title, body.season, j.episode
         )
-        job = db.create_job(
+        job = await asyncio.to_thread(
+            db.create_job,
             user_id=user_id,
             series_title=body.series_title,
             series_url=body.series_url,
@@ -148,9 +150,9 @@ def delete_job(job_id: str, auth: Auth) -> None:
 
 
 @router.post("/jobs/{job_id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
-def cancel_job(job_id: str, auth: Auth) -> None:
+async def cancel_job(job_id: str, auth: Auth) -> None:
     user_id, _ = auth
-    job = db.get_job(job_id)
+    job = await asyncio.to_thread(db.get_job, job_id)
     if not job or job["user_id"] != user_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Job nicht gefunden")
-    downloader.cancel_job(job_id)
+    await downloader.cancel_job(job_id)
