@@ -79,6 +79,19 @@ fi
 source "$HH_REPO_DIR/installer/lib/config-permissions.sh"
 repair_llm_config_permissions
 
+# Distro-Upgrades hinterlassen Host-Zustände, die HydraHive lahmlegen: /tmp als
+# RAM-Disk (führt zu "database is locked") und ein zurückgesetzter
+# resolved-Stub, der einen lokalen DNS-Server von Port 53 verdrängt.
+# Früh ausführen — der Rest des Updates braucht funktionierendes DNS.
+# shellcheck source=installer/lib/host-selfheal.sh
+source "$HH_REPO_DIR/installer/lib/host-selfheal.sh"
+log "Host-Zustand nach möglichem Distro-Upgrade prüfen"
+hh_fix_tmp_on_tmpfs
+hh_fix_resolved_stub
+hh_fix_incus_bridge_dns
+hh_fix_pihole_ordering
+hh_verify_dns
+
 # Distro-Upgrades können den Interpreter eines bestehenden venv entfernen
 # (Ubuntu 24.04: Python 3.12 -> Ubuntu 26.04: Python 3.14). Vor JEDEM Zugriff
 # auf pip das venv prüfen und bei Bedarf kontrolliert neu aufbauen.

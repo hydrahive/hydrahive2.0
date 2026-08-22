@@ -218,6 +218,53 @@ HydraHive und AgentLink können daher zunächst mit `status=203/EXEC` ausfallen.
 Das ist im getesteten Ablauf erwartet und wird im nächsten Schritt repariert.
 nginx, SSH, Redis und der alte PostgreSQL-16-Cluster bleiben erreichbar.
 
+Zwei weitere Änderungen nimmt Ubuntu 26.04 am Host vor. Beide werden von
+`update.sh` automatisch behoben (Schritt 4); dieser Abschnitt beschreibt sie,
+damit die Symptome zuzuordnen sind.
+
+#### `/tmp` liegt danach im RAM
+
+Ubuntu 26.04 aktiviert die Vendor-Unit `tmp.mount`. `/tmp` wird dadurch ein
+`tmpfs` und liegt im Arbeitsspeicher statt auf der Platte:
+
+```bash
+findmnt -no FSTYPE,SIZE /tmp
+```
+
+Zeigt das `tmpfs`, ist der Zustand vorhanden. Läuft `/tmp` voll — etwa beim
+Kopieren großer Mediendateien — geraten RAM und Swap unter Druck,
+SQLite-Commits blockieren und das Backend meldet `database is locked`, im
+Streaming-Bereich als „Internal Error“. `update.sh` maskiert `tmp.mount`; wirksam
+wird das beim nächsten Reboot (Schritt 6).
+
+#### Der DNS-Stub verdrängt einen lokalen DNS-Server
+
+Das Upgrade setzt `/etc/systemd/resolved.conf` auf den Werkszustand zurück. Wer
+auf demselben Host Pi-hole, dnsmasq, bind9 oder unbound betreibt, verliert
+dadurch die Namensauflösung — der Stub-Listener belegt Port 53 zuerst.
+
+Verschärfend kommt hinzu: Incus startet je verwalteter Bridge einen eigenen
+`dnsmasq`, der TCP auf der Bridge-IP `:53` hält und den Wildcard-Bind ebenfalls
+blockiert.
+
+Typische Meldung im Journal des DNS-Servers:
+
+```text
+dnsmasq: failed to create listening socket for port 53: Address in use
+```
+
+> **Achtung:** `systemctl is-active pihole-FTL` meldet in diesem Fall trotzdem
+> `active`. Der Ausfall entgeht jedem Healthcheck, der nur den Unit-Status
+> prüft. Verlässlich ist allein eine echte Abfrage:
+>
+> ```bash
+> dig +short github.com @127.0.0.1
+> ```
+
+`update.sh` schaltet den Stub-Listener per Drop-in ab, hängt `/etc/resolv.conf`
+auf den echten Resolver um und deaktiviert den DNS-Teil der Incus-Bridges
+(`raw.dnsmasq port=0`) — DHCP der Container bleibt dabei erhalten.
+
 ---
 
 ## 4. HydraHive und AgentLink selbstheilend reparieren
@@ -236,7 +283,15 @@ Der neue Updatepfad:
 6. repariert fehlendes npm reproduzierbar auf npm 11.6.2;
 7. baut das Frontend;
 8. aktualisiert AgentLink und repariert dessen Venv ebenfalls;
-9. startet vorhandene Voice-Container und setzt `boot.autostart=true`.
+9. startet vorhandene Voice-Container und setzt `boot.autostart=true`;
+10. maskiert `tmp.mount`, wenn `/tmp` als `tmpfs` im RAM liegt;
+11. stellt `DNSStubListener=no` wieder her, sofern ein lokaler DNS-Server läuft;
+12. schaltet den DNS-Teil verwalteter Incus-Bridges ab (DHCP bleibt aktiv);
+13. prüft die Namensauflösung real und startet den DNS-Server notfalls neu.
+
+Die Schritte 10 bis 13 laufen nur an, wenn der jeweilige Fehlerzustand
+tatsächlich vorliegt. Auf einem Server ohne eigenen DNS-Dienst bleibt der
+`systemd-resolved`-Stub unangetastet.
 
 Erwartete Logzeilen beim ersten Lauf:
 
@@ -264,6 +319,13 @@ systemctl is-active hydrahive2 agentlink agentlink-frontend nginx redis-server
 ```
 
 Erwartet: beide Venvs Python 3.14.x, npm 11.6.2 und alle Dienste `active`.
+
+Zusätzlich auf Hosts mit eigenem DNS-Server:
+
+```bash
+dig +short github.com @127.0.0.1        # muss eine IP liefern
+systemctl is-enabled tmp.mount           # erwartet: masked
+```
 
 ---
 
@@ -337,6 +399,26 @@ pg_lsclusters
 /opt/hydralink/.venv/bin/python --version
 npm --version
 ```
+
+`/tmp` muss jetzt wieder auf der Platte liegen — erst der Reboot macht die
+Maskierung von `tmp.mount` wirksam:
+
+```bash
+findmnt -no FSTYPE,SIZE /tmp
+```
+
+Erwartet: das Dateisystem der Root-Platte (z. B. `ext4`), **nicht** `tmpfs`.
+
+Auf Hosts mit eigenem DNS-Server (Pi-hole, dnsmasq, bind9, unbound) zusätzlich:
+
+```bash
+dig +short github.com @127.0.0.1
+ss -lunp 'sport = :53'
+```
+
+Erwartet: eine IP-Adresse, und der eigene DNS-Server auf `0.0.0.0:53`. Taucht
+dort stattdessen `systemd-resolve` auf `127.0.0.53` oder ein `dnsmasq` auf einer
+Incus-Bridge-IP auf, greift der Self-Heal nicht — dann Abschnitt 3 erneut lesen.
 
 Wenn Voice installiert ist:
 
