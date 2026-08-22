@@ -101,7 +101,12 @@ ensure_container_net() {  # $1 = container-name; return 0 wenn ECHTER Outbound d
   # 2) NAT-Fallback (Boxen ohne br0, z.B. Minimal-Setups)
   log "  NAT-Netz '$VOICE_NET' als Fallback"
   if ! incus network list --format=csv -c n 2>/dev/null | grep -qx "$VOICE_NET"; then
-    incus network create "$VOICE_NET" ipv4.address=auto ipv4.nat=true ipv6.address=none 2>&1 | tail -2 || true
+    # raw.dnsmasq=port=0: der Bridge-dnsmasq würde sonst TCP <bridge-ip>:53
+    # halten und einen Host-DNS-Server (Pi-hole & Co.) am Wildcard-Bind
+    # hindern — der Host verliert dann komplett die Namensauflösung.
+    # DHCP für die Container bleibt davon unberührt.
+    incus network create "$VOICE_NET" ipv4.address=auto ipv4.nat=true ipv6.address=none \
+      raw.dnsmasq=port=0 2>&1 | tail -2 || true
   fi
   incus config device add "$ct" eth0 nic network="$VOICE_NET" name=eth0 2>&1 | tail -2 || true
   incus restart "$ct" 2>&1 | tail -2 || true
