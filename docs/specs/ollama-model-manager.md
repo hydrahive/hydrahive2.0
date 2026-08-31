@@ -24,6 +24,7 @@ HydraHive verbindet drei getrennte Quellen:
    - Liefert Hardwaredaten, Fit-Level, Laufmodus, Speicherbedarf und geschätzte beziehungsweise gemessene Tokenrate.
    - HydraHive führt den Prozess ohne Shell und mit fester Argumentliste sowie Timeout aus.
    - Wenn llmfit fehlt oder ein Modell nicht zugeordnet werden kann, bleibt der Katalog funktionsfähig und kennzeichnet den Fit als nicht verfügbar.
+   - llmfit bewertet den HydraHive-Host. Liegt der konfigurierte Ollama-Endpunkt nicht auf Loopback, zeigt HydraHive bewusst keinen Fit an, statt die Hardware des falschen Rechners zuzuordnen.
 
 ## API
 

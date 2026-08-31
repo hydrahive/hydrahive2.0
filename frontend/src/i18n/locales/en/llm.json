@@ -33,6 +33,7 @@
     "fit_unavailable": "Hardware fit unavailable",
     "llmfit_not_installed": "llmfit is not installed",
     "llmfit_failed": "llmfit could not be executed",
+    "llmfit_remote_ollama": "Ollama runs on another host; hardware fit for that host is not available yet",
     "fit": {
       "perfect": "perfect",
       "good": "good",

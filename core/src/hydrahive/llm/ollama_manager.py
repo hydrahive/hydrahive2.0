@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from urllib.parse import urlsplit
 
 from hydrahive.llm import ollama_client, ollama_fit, ollama_library
 from hydrahive.llm._config import load_config
@@ -28,6 +29,15 @@ def _merge_fit(model: dict, fit_models: dict[str, dict]) -> dict:
     return {**_FIT_DEFAULTS, **model, **fit_models.get(model["ollama_name"], {})}
 
 
+async def _fit_for_provider(provider: dict | None) -> dict:
+    if not provider:
+        return {"available": False, "reason": "ollama_not_configured", "system": None, "models": {}}
+    hostname = (urlsplit(str(provider.get("api_base") or "")).hostname or "").lower()
+    if hostname not in {"localhost", "127.0.0.1", "::1"}:
+        return {"available": False, "reason": "llmfit_remote_ollama", "system": None, "models": {}}
+    return await ollama_fit.load_hardware_fit()
+
+
 def _hardware_summary(fit: dict) -> dict:
     return {
         "available": bool(fit.get("available")),
@@ -38,7 +48,7 @@ def _hardware_summary(fit: dict) -> dict:
 
 async def catalog_overview(provider: dict | None = None) -> dict:
     provider = provider or configured_provider()
-    fit_task = asyncio.create_task(ollama_fit.load_hardware_fit())
+    fit_task = asyncio.create_task(_fit_for_provider(provider))
     family_task = asyncio.create_task(ollama_library.list_families())
     local_task = asyncio.create_task(ollama_client.list_installed(provider)) if provider else None
 
@@ -106,7 +116,7 @@ async def family_variants(family: str, provider: dict | None = None) -> dict:
     provider = provider or configured_provider()
     tags_task = asyncio.create_task(ollama_library.list_tags(family))
     families_task = asyncio.create_task(ollama_library.list_families())
-    fit_task = asyncio.create_task(ollama_fit.load_hardware_fit())
+    fit_task = asyncio.create_task(_fit_for_provider(provider))
     local_task = asyncio.create_task(ollama_client.list_installed(provider)) if provider else None
 
     tags, families, fit = await asyncio.gather(tags_task, families_task, fit_task)

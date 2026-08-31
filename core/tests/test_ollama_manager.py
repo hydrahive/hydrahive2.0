@@ -129,6 +129,21 @@ def test_llmfit_missing_binary_degrades_without_catalog_failure(monkeypatch):
     assert result == {"available": False, "reason": "llmfit_not_installed", "system": None, "models": {}}
 
 
+def test_remote_ollama_does_not_receive_fit_from_hydrahive_host(monkeypatch):
+    called = False
+
+    async def fit():
+        nonlocal called
+        called = True
+        return {"available": True, "models": {}}
+
+    monkeypatch.setattr(ollama_manager.ollama_fit, "load_hardware_fit", fit)
+    result = asyncio.run(ollama_manager._fit_for_provider({"api_base": "http://192.0.2.10:11434"}))
+    assert result["available"] is False
+    assert result["reason"] == "llmfit_remote_ollama"
+    assert called is False
+
+
 def test_catalog_overview_keeps_local_models_when_library_is_offline(monkeypatch):
     async def local(_provider):
         return [{

@@ -33,6 +33,7 @@
     "fit_unavailable": "Hardwarebewertung nicht verfügbar",
     "llmfit_not_installed": "llmfit nicht installiert",
     "llmfit_failed": "llmfit konnte nicht ausgeführt werden",
+    "llmfit_remote_ollama": "Ollama läuft auf einem anderen Host; dessen Hardware-Fit ist noch nicht verfügbar",
     "fit": {
       "perfect": "perfekt",
       "good": "gut",
