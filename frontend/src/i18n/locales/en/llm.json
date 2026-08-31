@@ -12,6 +12,36 @@
     "free": "free",
     "set_for_agent": "Set model for agent"
   },
+  "ollama": {
+    "connection": "Ollama connection",
+    "connected": "Connected",
+    "offline": "Unavailable",
+    "installed_models": "Installed models",
+    "installed": "installed",
+    "installed_count": "{{count}} installed",
+    "search": "Search the official Ollama Library…",
+    "refresh": "Refresh",
+    "install": "Install",
+    "remove": "Remove",
+    "remove_confirm": "Really remove Ollama model “{{model}}”?",
+    "use": "Use in agent",
+    "no_models": "No Ollama models found.",
+    "no_variants": "No variants available.",
+    "pull_failed": "Installation failed",
+    "library_offline": "The official Ollama Library is currently unavailable. Installed models remain accessible.",
+    "fit_available": "Hardware detected",
+    "fit_unavailable": "Hardware fit unavailable",
+    "llmfit_not_installed": "llmfit is not installed",
+    "llmfit_failed": "llmfit could not be executed",
+    "llmfit_remote_ollama": "Ollama runs on another host; hardware fit for that host is not available yet",
+    "fit": {
+      "perfect": "perfect",
+      "good": "good",
+      "marginal": "marginal",
+      "too_tight": "too large",
+      "unknown": "fit unknown"
+    }
+  },
   "providers": {
     "title": "Providers",
     "add": "Add provider",
