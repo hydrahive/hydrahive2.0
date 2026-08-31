@@ -140,6 +140,11 @@ log "Backend-Dependencies aktualisieren"
 hh_run_as_owner "$HH_USER" \
   "$HH_REPO_DIR/.venv/bin/python" -m pip install -e "$HH_REPO_DIR/core"
 
+log "llmfit für lokale Modellbewertung synchronisieren"
+if ! bash "$HH_REPO_DIR/installer/modules/35-llmfit.sh"; then
+  log "llmfit-Installation fehlgeschlagen — Hardware-Fit bleibt vorerst unbekannt"
+fi
+
 log "Playwright-Chromium-Version synchronisieren"
 # `pip install -e core` kann Playwright aktualisieren. Jede Playwright-Version
 # erwartet eine bestimmte Chromium-Revision; ein beliebiger alter chromium-*
