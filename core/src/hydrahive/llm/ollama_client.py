@@ -15,6 +15,10 @@ class OllamaUnavailable(RuntimeError):
     pass
 
 
+class OllamaModelNotFound(RuntimeError):
+    pass
+
+
 def normalized_base_url(provider: dict) -> str:
     raw = str(provider.get("api_base") or "").strip().rstrip("/")
     parsed = urlsplit(raw)
@@ -110,6 +114,26 @@ async def list_installed(provider: dict) -> list[dict]:
             await asyncio.gather(*(enrich(row) for row in rows))
             return rows
     except OllamaUnavailable:
+        raise
+    except Exception as exc:
+        raise OllamaUnavailable("ollama_unreachable") from exc
+
+
+async def delete_model(provider: dict, model: str) -> None:
+    base = normalized_base_url(provider)
+    name = normalize_model_name(model)
+    try:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
+            response = await client.request(
+                "DELETE",
+                f"{base}/api/delete",
+                headers=auth_headers(provider),
+                json={"model": name},
+            )
+            if response.status_code == 404:
+                raise OllamaModelNotFound(name)
+            await _json(response)
+    except (OllamaModelNotFound, OllamaUnavailable):
         raise
     except Exception as exc:
         raise OllamaUnavailable("ollama_unreachable") from exc

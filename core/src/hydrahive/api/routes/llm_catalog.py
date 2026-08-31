@@ -83,6 +83,8 @@ def _ensure_model_in_providers(model: str) -> None:
         pid = "gemini"
     elif model.startswith("openrouter/"):
         pid = "openrouter"
+    elif model.startswith("ollama/"):
+        pid = "ollama"
     elif model.startswith("claude-"):
         pid = "anthropic"
     elif model.startswith("MiniMax") or model.startswith("abab") or model.startswith("embo-"):
