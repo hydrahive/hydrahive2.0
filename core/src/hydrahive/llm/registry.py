@@ -195,6 +195,24 @@ def is_known(model_id: str) -> bool:
     return (not ids) or (model_id in ids)
 
 
+def cached_context_window(model_id: str) -> int | None:
+    """Sync, kein Fetch: echtes Kontextfenster aus dem Registry-Cache.
+
+    Für Ollama-Modelle ist dies die einzige Quelle mit dem realen, live per
+    ``/api/show`` geholten Fenster (die statische METADATA-Tabelle in
+    ``_catalog_data`` kennt keine Ollama-Modelle). None wenn der Cache leer
+    ist oder das Modell darin fehlt — der Aufrufer muss dann selbst
+    fallbacken (z.B. auf einen konservativen Default), niemals stillschweigend
+    ein falsches Fenster annehmen.
+    """
+    if not _cache:
+        return None
+    for entry in _cache[1]:
+        if entry.id == model_id and entry.context_window:
+            return entry.context_window
+    return None
+
+
 async def awarm() -> None:
     """Cache vorwärmen (Lifespan-Start) — Picker nie kalt nach Neustart."""
     try:
