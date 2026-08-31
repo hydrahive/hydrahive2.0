@@ -10,6 +10,13 @@ from hydrahive.llm.ollama_client import parse_tags_response
 from hydrahive.llm.ollama_common import normalize_model_name, validate_family_name
 
 
+@pytest.fixture(autouse=True)
+def _clear_fit_cache():
+    ollama_fit._cache_clear()
+    yield
+    ollama_fit._cache_clear()
+
+
 LIBRARY_HTML = """
 <ul>
   <li class="flex border-b">

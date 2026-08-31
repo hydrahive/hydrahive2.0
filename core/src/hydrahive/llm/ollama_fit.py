@@ -3,10 +3,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 
-MAX_OUTPUT_BYTES = 16_000_000
+# llmfit 1.1.12 liefert für ~8.800 Varianten knapp 17 MB JSON.
+# Feste Obergrenze schützt den Service, ohne die reale Ausgabe abzuschneiden.
+MAX_OUTPUT_BYTES = 32_000_000
 _TIMEOUT_SECONDS = 30
+_CACHE_TTL = 300
 _FIT_LEVELS = {"perfect", "good", "marginal", "too_tight"}
+_cache: tuple[float, dict] | None = None
+_cache_lock = asyncio.Lock()
 
 
 async def _run_json(*args: str) -> object:
@@ -72,7 +78,7 @@ def _normalize_fit(row: dict) -> tuple[str, dict] | None:
     }
 
 
-async def load_hardware_fit() -> dict:
+async def _load_uncached() -> dict:
     try:
         system_payload, fit_payload = await asyncio.gather(
             _run_json("system", "--json"),
@@ -89,3 +95,21 @@ async def load_hardware_fit() -> dict:
         if normalized:
             models[normalized[0]] = normalized[1]
     return {"available": True, "reason": None, "system": _system(system_payload), "models": models}
+
+
+async def load_hardware_fit() -> dict:
+    global _cache
+    if _cache and time.monotonic() - _cache[0] < _CACHE_TTL:
+        return _cache[1]
+    async with _cache_lock:
+        if _cache and time.monotonic() - _cache[0] < _CACHE_TTL:
+            return _cache[1]
+        result = await _load_uncached()
+        _cache = (time.monotonic(), result)
+        return result
+
+
+def _cache_clear() -> None:
+    global _cache, _cache_lock
+    _cache = None
+    _cache_lock = asyncio.Lock()
