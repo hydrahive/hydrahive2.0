@@ -12,6 +12,35 @@
     "free": "gratis",
     "set_for_agent": "Modell auf Agent setzen"
   },
+  "ollama": {
+    "connection": "Ollama-Verbindung",
+    "connected": "Verbunden",
+    "offline": "Nicht erreichbar",
+    "installed_models": "Installierte Modelle",
+    "installed": "installiert",
+    "installed_count": "{{count}} installiert",
+    "search": "Offizielle Ollama Library durchsuchen…",
+    "refresh": "Aktualisieren",
+    "install": "Installieren",
+    "remove": "Entfernen",
+    "remove_confirm": "Ollama-Modell „{{model}}“ wirklich entfernen?",
+    "use": "Im Agent nutzen",
+    "no_models": "Keine Ollama-Modelle gefunden.",
+    "no_variants": "Keine Varianten verfügbar.",
+    "pull_failed": "Installation fehlgeschlagen",
+    "library_offline": "Die offizielle Ollama Library ist gerade nicht erreichbar. Installierte Modelle bleiben verfügbar.",
+    "fit_available": "Hardware erkannt",
+    "fit_unavailable": "Hardwarebewertung nicht verfügbar",
+    "llmfit_not_installed": "llmfit nicht installiert",
+    "llmfit_failed": "llmfit konnte nicht ausgeführt werden",
+    "fit": {
+      "perfect": "perfekt",
+      "good": "gut",
+      "marginal": "grenzwertig",
+      "too_tight": "zu groß",
+      "unknown": "Fit unbekannt"
+    }
+  },
   "providers": {
     "title": "Provider",
     "add": "Provider hinzufügen",

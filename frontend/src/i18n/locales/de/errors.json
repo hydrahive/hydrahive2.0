@@ -142,5 +142,14 @@
   "upload_size_unknown": "Die Größe eines Anhangs konnte nicht sicher bestimmt werden.",
   "upload_request_too_large": "Die Upload-Anfrage ist inklusive Übertragungsdaten größer als {{max_mib}} MiB.",
 
+  "ollama_not_configured": "Ollama ist noch nicht konfiguriert.",
+  "ollama_unreachable": "Ollama ist nicht erreichbar.",
+  "ollama_library_unavailable": "Die offizielle Ollama Library ist nicht erreichbar.",
+  "invalid_ollama_family": "Ungültige Ollama-Modellfamilie.",
+  "invalid_ollama_model": "Ungültiger Ollama-Modellname.",
+  "ollama_pull_not_found": "Ollama-Download nicht gefunden.",
+  "ollama_model_not_found": "Das Ollama-Modell ist nicht installiert.",
+  "ollama_model_in_use": "Das Modell wird noch verwendet: {{references}}",
+
   "validation_error": "{{message}}"
 }
