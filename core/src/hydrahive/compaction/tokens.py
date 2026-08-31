@@ -67,13 +67,20 @@ def context_window_for(model: str) -> int:
     # dem num_ctx, das wir an den Ollama-Endpoint schicken (gedeckelt, KV-Cache-
     # Schutz). Die Compaction muss mit exakt dieser Zahl rechnen, sonst compacted
     # sie zu spät und Ollama schneidet den Prompt vorher still ab.
+    #
+    # Die statische METADATA-Tabelle kennt KEINE Ollama-Modelle (sie deckt nur
+    # Cloud-Provider ab) — das theoretische Fenster kam hier bis Bug #(gemma4
+    # bekam num_ctx=8192 statt 131072) IMMER aus METADATA und war für jedes
+    # Ollama-Modell None. Die Registry hat das echte, live per /api/show
+    # geholte Fenster bereits gecached — das ist die richtige Quelle.
     if model.startswith("ollama/"):
         from hydrahive.llm._config import num_ctx_for_ollama
-        # theoretisches Fenster (falls im Katalog) → auf num_ctx-Cap begrenzen
-        theo = None
-        _meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
-        if _meta and _meta.get("context_window"):
-            theo = _meta["context_window"]
+        from hydrahive.llm import registry
+        theo = registry.cached_context_window(model)
+        if theo is None:
+            _meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
+            if _meta and _meta.get("context_window"):
+                theo = _meta["context_window"]
         return num_ctx_for_ollama(theo)
 
     meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
