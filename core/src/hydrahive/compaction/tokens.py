@@ -57,6 +57,22 @@ def estimate_message(message: Any) -> int:
     return estimate_message_content(getattr(message, "content", None))
 
 
+def _cached_free_vram_gib() -> float | None:
+    """Freier VRAM aus dem llmfit-Cache. Sync, ohne Subprozess.
+
+    context_window_for() ist synchron und wird auf jedem Nachrichtenpfad
+    aufgerufen — hier darf nie ein llmfit-Lauf angestoßen werden. Es zählt
+    nur, was der asynchrone Katalogpfad bereits ermittelt hat.
+    """
+    try:
+        from hydrahive.llm import ollama_fit
+        cached = ollama_fit.cached_system()
+    except Exception:  # noqa: BLE001 - Fit ist optional, nie blockierend
+        return None
+    from hydrahive.llm.ollama_fit import free_vram_gib
+    return free_vram_gib(cached)
+
+
 def context_window_for(model: str) -> int:
     """Approximate context window in tokens.
 
@@ -81,7 +97,9 @@ def context_window_for(model: str) -> int:
             _meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
             if _meta and _meta.get("context_window"):
                 theo = _meta["context_window"]
-        return num_ctx_for_ollama(theo)
+        # Der Deckel richtet sich nach dem freien VRAM, sofern llmfit ihn
+        # gemessen hat. Ohne diese Info bleibt es beim konservativen Fallback.
+        return num_ctx_for_ollama(theo, free_vram_gib=_cached_free_vram_gib())
 
     meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
     if meta and meta.get("context_window"):

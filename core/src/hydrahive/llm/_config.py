@@ -61,22 +61,52 @@ def provider_api_base(config: dict, provider_id: str) -> str | None:
 # Ollama defaultet lokal auf num_ctx=4096 (bzw. OLLAMA_CONTEXT_LENGTH). Wenn
 # HydraHive num_ctx nicht mitschickt, wird jeder Prompt > 4k Tokens still
 # abgeschnitten -> "Kontext stimmt nicht" + Dauer-Compact. Wir schicken deshalb
-# aktiv ein num_ctx mit. Obergrenze, damit ein 128k-Modell nicht versehentlich
-# den VRAM sprengt (num_ctx skaliert den KV-Cache linear).
-OLLAMA_NUM_CTX_CAP = 32768
+# aktiv ein num_ctx mit.
+#
+# Der frueher feste Deckel von 32768 war zu konservativ: auf einer RTX 5060 Ti
+# (16 GiB) laeuft gemma4:latest (8B, Q4_K_M) auch mit vollen 131072 Tokens zu
+# 100 % auf der GPU und belegt dabei nur 7,96 GiB. Gemessen wuchs der KV-Cache
+# um rund 0,5 GiB je 32k Tokens. Der Deckel verschenkte damit das Vierfache an
+# nutzbarem Kontext ohne technischen Grund. Er richtet sich jetzt nach dem
+# tatsaechlich freien VRAM.
+OLLAMA_NUM_CTX_CAP = 32768          # Fallback, wenn kein VRAM ermittelbar ist
 OLLAMA_NUM_CTX_DEFAULT = 8192
+OLLAMA_NUM_CTX_MAX = 131072         # oberhalb dessen kann HH2 nichts mehr pruefen
+
+# Grobe, bewusst pessimistische Schaetzung des KV-Cache-Bedarfs. Die Messung auf
+# der 5060 Ti ergab ~0,5 GiB je 32k fuer Gemma (GQA + Sliding Window); Modelle
+# ohne diese Optimierungen brauchen ein Vielfaches. 2 GiB je 32k liegt sicher
+# darueber, ohne den Deckel sinnlos klein zu machen.
+_KV_CACHE_GIB_PER_32K = 2.0
+# Reserve fuer Grafikausgabe, andere Prozesse und Fragmentierung.
+_VRAM_HEADROOM_GIB = 2.0
 
 
-def num_ctx_for_ollama(context_window: int | None) -> int:
+def _vram_budget_ctx(free_vram_gib: float | None) -> int | None:
+    """Wieviel num_ctx traegt der freie VRAM? None, wenn unbekannt."""
+    if not free_vram_gib or free_vram_gib <= 0:
+        return None
+    usable = free_vram_gib - _VRAM_HEADROOM_GIB
+    if usable <= 0:
+        return None
+    budget = int((usable / _KV_CACHE_GIB_PER_32K) * 32768)
+    # Auf 8k-Schritte abrunden, damit sich der Wert nicht bei jedem Aufruf
+    # minimal aendert (Ollama laedt bei geaendertem num_ctx neu).
+    return max(OLLAMA_NUM_CTX_DEFAULT, (budget // 8192) * 8192)
+
+
+def num_ctx_for_ollama(context_window: int | None, free_vram_gib: float | None = None) -> int:
     """Leitet ein VRAM-verträgliches num_ctx aus dem Modell-Kontextfenster ab.
 
     - None/0: konservativer, aber brauchbarer Default (nicht Ollamas 4k-Deckel).
     - kleines Fenster: unverändert übernehmen (nicht künstlich aufblasen).
-    - großes Fenster: auf OLLAMA_NUM_CTX_CAP begrenzen (KV-Cache-Schutz).
+    - großes Fenster: am freien VRAM ausrichten; ohne VRAM-Info greift der
+      konservative Fallback-Deckel.
     """
     if not context_window or context_window <= 0:
         return OLLAMA_NUM_CTX_DEFAULT
-    return min(context_window, OLLAMA_NUM_CTX_CAP)
+    cap = _vram_budget_ctx(free_vram_gib) or OLLAMA_NUM_CTX_CAP
+    return min(context_window, cap, OLLAMA_NUM_CTX_MAX)
 
 
 def apply_keys(config: dict) -> None:

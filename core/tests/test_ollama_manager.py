@@ -129,6 +129,33 @@ def test_llmfit_missing_binary_degrades_without_catalog_failure(monkeypatch):
     assert result == {"available": False, "reason": "llmfit_not_installed", "system": None, "models": {}}
 
 
+def test_own_lan_ip_receives_fit(monkeypatch):
+    """Regression: Ollama unter der eigenen LAN-IP galt faelschlich als remote."""
+    from hydrahive.llm import _local_host
+
+    monkeypatch.setattr(_local_host, "_own_addresses", lambda: frozenset({"192.168.178.197"}))
+    _local_host._cache_clear()
+
+    async def fit():
+        return {"available": True, "reason": None, "system": {"gpu_vram_gb": 16}, "models": {}}
+
+    monkeypatch.setattr(ollama_manager.ollama_fit, "load_hardware_fit", fit)
+    result = asyncio.run(ollama_manager._fit_for_provider({"api_base": "http://192.168.178.197:11434"}))
+    assert result["available"] is True
+
+
+def test_catalog_reports_effective_context_window(monkeypatch):
+    """Der Katalog muss das genutzte Fenster nennen, nicht nur das theoretische."""
+    row = {"id": "ollama/gemma4:latest", "ollama_name": "gemma4:latest",
+           "installed": True, "context_window": 131_072}
+    merged = ollama_manager._merge_fit(row, {}, free_vram=14.0)
+    assert merged["context_window"] == 131_072
+    assert merged["effective_context_window"] == 131_072
+
+    tight = ollama_manager._merge_fit(row, {}, free_vram=4.0)
+    assert tight["effective_context_window"] < 131_072
+
+
 def test_remote_ollama_does_not_receive_fit_from_hydrahive_host(monkeypatch):
     called = False
 

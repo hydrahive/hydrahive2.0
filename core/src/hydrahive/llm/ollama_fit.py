@@ -56,6 +56,22 @@ def _system(payload: object) -> dict | None:
     return value if isinstance(value, dict) else payload
 
 
+def free_vram_gib(system: dict | None) -> float | None:
+    """Freier GPU-Speicher aus dem llmfit-system-Block. None wenn unbekannt.
+
+    llmfit meldet `gpu_available_gb` (frei) und `gpu_vram_gb` (gesamt). Für die
+    num_ctx-Budgetierung zählt der freie Speicher; fehlt er, ist der Gesamtwert
+    die schlechtere, aber immer noch brauchbare Näherung.
+    """
+    if not isinstance(system, dict):
+        return None
+    for key in ("gpu_available_gb", "gpu_vram_gb"):
+        value = system.get(key)
+        if isinstance(value, (int, float)) and value > 0:
+            return float(value)
+    return None
+
+
 def _fit_code(value: object) -> str:
     code = str(value or "").strip().lower().replace(" ", "_").replace("-", "_")
     return code if code in _FIT_LEVELS else "unknown"
@@ -107,6 +123,16 @@ async def load_hardware_fit() -> dict:
         result = await _load_uncached()
         _cache = (time.monotonic(), result)
         return result
+
+
+def cached_system() -> dict | None:
+    """Sync, ohne Subprozess: der zuletzt ermittelte llmfit-system-Block.
+
+    Für synchrone Aufrufer (z.B. context_window_for), die den freien VRAM
+    brauchen, aber niemals einen llmfit-Lauf auslösen dürfen. None, solange
+    der asynchrone Katalogpfad noch nichts ermittelt hat.
+    """
+    return _cache[1].get("system") if _cache else None
 
 
 def _cache_clear() -> None:

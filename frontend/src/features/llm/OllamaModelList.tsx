@@ -40,6 +40,25 @@ function metric(value: number | null | undefined, suffix: string): string {
   return value == null ? "—" : `${value.toFixed(1)} ${suffix}`
 }
 
+/** Zeigt das genutzte Fenster, wenn es unter dem theoretischen liegt.
+ *  Sonst verspricht der Katalog mehr Kontext als der Agent wirklich bekommt. */
+function contextLabel(model: OllamaModel): string {
+  const full = model.context_window
+  if (!full) return "— ctx"
+  const used = model.effective_context_window
+  if (used != null && used < full) {
+    return `${used.toLocaleString()} / ${full.toLocaleString()} ctx`
+  }
+  return `${full.toLocaleString()} ctx`
+}
+
+function contextTitle(model: OllamaModel, t: (key: string) => string): string | undefined {
+  const full = model.context_window
+  const used = model.effective_context_window
+  if (!full || used == null || used >= full) return undefined
+  return t("ollama.context_capped")
+}
+
 export function OllamaModelList({ models, jobs, busyModel, onInstall, onDelete, onUse }: Props) {
   const { t } = useTranslation("llm")
   if (!models.length) return <p className="py-6 text-center text-sm text-zinc-600">{t("ollama.no_variants")}</p>
@@ -68,7 +87,7 @@ export function OllamaModelList({ models, jobs, busyModel, onInstall, onDelete, 
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500">
                   <span>{formatBytes(model.size)}</span>
-                  <span>{model.context_window ? `${model.context_window.toLocaleString()} ctx` : "— ctx"}</span>
+                  <span title={contextTitle(model, t)}>{contextLabel(model)}</span>
                   <span>{model.parameter_size || model.best_quant || "—"}</span>
                   <span>{metric(model.memory_required_gb, "GB VRAM")}</span>
                   <span>{metric(speed, "tok/s")}{model.measured_tps != null ? " ✓" : ""}</span>
