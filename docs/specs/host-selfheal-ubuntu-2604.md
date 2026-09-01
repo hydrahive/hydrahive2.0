@@ -71,9 +71,11 @@ root, Logging über die vorhandene `log`-Funktion.
 
 ### `hh_fix_tmp_on_tmpfs`
 
-1. Kein `tmpfs` auf `/tmp`? → nichts tun, Rückgabe 0.
-2. `tmp.mount` bereits maskiert? → nichts tun (idempotent).
-3. Sonst: `systemctl mask tmp.mount` und Hinweis loggen, dass die Änderung
+1. `/tmp` in `/etc/fstab` definiert? → **niemals maskieren**, Rückgabe 0. Eine
+   bereits gesetzte Maskierung wird aufgehoben. Begründung im Nachtrag unten.
+2. Kein `tmpfs` auf `/tmp`? → nichts tun, Rückgabe 0.
+3. `tmp.mount` bereits maskiert? → nichts tun (idempotent).
+4. Sonst: `systemctl mask tmp.mount` und Hinweis loggen, dass die Änderung
    erst nach dem nächsten Reboot greift.
 
 Bewusst kein `umount`: Läuft der Dienst, sind Dateien offen — ein erzwungenes
@@ -132,6 +134,44 @@ bestehenden Installer-Tests.
 - Jede Funktion ist bei zweiter Ausführung wirkungslos (idempotent).
 - Ohne Host-DNS-Server bleibt der resolved-Stub unverändert.
 - Ohne `tmpfs` auf `/tmp` bleibt `tmp.mount` unverändert.
+- Steht `/tmp` in `/etc/fstab`, bleibt `tmp.mount` unmaskiert — unabhängig vom
+  Dateisystemtyp des laufenden Mounts.
 - DHCP der Voice-Bridge funktioniert nach dem Fix weiter.
 - Ein fehlgeschlagener Teilschritt bricht das Update nicht ab.
 - Das Kunden-Runbook beschreibt beide Symptome samt Verifikationsbefehlen.
+
+## Nachtrag 2026-09-01 — Maskierung nur bei der Vendor-Unit
+
+Ausgelöst durch: Workstation-Ausfall auf tills-master-wks am 2026-08-31
+
+Die ursprüngliche Fassung maskierte `tmp.mount`, sobald `/tmp` ein `tmpfs` war.
+Sie unterschied dabei nicht, *woher* dieses `tmpfs` stammt — und genau darin lag
+ein Fehler mit Totalausfall als Folge.
+
+Definiert `/etc/fstab` einen `/tmp`-Eintrag, erzeugt der systemd-fstab-generator
+daraus selbst eine `tmp.mount` und trägt sie unter `local-fs.target.requires`
+ein: eine **harte** Abhängigkeit. Eine maskierte Unit kann niemals starten,
+`local-fs.target` bleibt damit dauerhaft unerfüllbar. In der Folge läuft
+`systemd-remount-fs` nie, `/` wird nie von `ro` auf `rw` umgestellt und der Host
+bootet nicht mehr durch.
+
+Die Vendor-Unit aus Ubuntu 26.04 hängt dagegen nur per `WantedBy` (weich) an
+`local-fs.target`. Nur sie darf maskiert werden.
+
+Das Fehlerbild ist irreführend: Sichtbar wird eine Reihe scheinbar
+zusammenhangloser Dienste, die beim Start scheitern — `swap`, incus-Sockets,
+`snapd`, `smbd`, `sysstat`, `grub-common`, `nginx`, `docker`. Ihr gemeinsamer
+Nenner ist lediglich, dass sie Schreibzugriff brauchen. Auch das Fehlen
+jeglicher Journale der Fehlboots gehört zum Bild, denn `journald` kann auf ein
+read-only `/var/log` nichts schreiben. Der Recovery-Modus funktioniert weiter,
+weil `friendly-recovery` sein eigenes `mount -o remount,rw /` absetzt.
+
+Diagnose-Abkürzung: Scheitern viele unzusammenhängende Dienste und existiert
+kein Journal des Fehlboots, zuerst `mount | grep ' / '` prüfen und dann die
+Target-Kette mit `systemctl is-active local-fs-pre.target local-fs.target` —
+nicht Pakete, Treiber oder `fsck`.
+
+`hh_fix_tmp_on_tmpfs` prüft die fstab jetzt vor allem anderen und nimmt eine
+bereits gesetzte Maskierung zurück, damit betroffene Hosts sich selbst heilen.
+Wer `/tmp` auf einem solchen Host auf die Platte holen will, entfernt die
+`/tmp`-Zeile aus `/etc/fstab` und startet neu — Maskieren ist dort kein Mittel.

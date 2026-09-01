@@ -237,6 +237,14 @@ SQLite-Commits blockieren und das Backend meldet `database is locked`, im
 Streaming-Bereich als „Internal Error“. `update.sh` maskiert `tmp.mount`; wirksam
 wird das beim nächsten Reboot (Schritt 6).
 
+> **Ausnahme — `/tmp` steht in `/etc/fstab`:** Dann wird **nicht** maskiert.
+> Ein fstab-Eintrag erzeugt eine `tmp.mount` als harte Abhängigkeit von
+> `local-fs.target`; maskiert man sie, bleibt das Target unerfüllbar,
+> `systemd-remount-fs` läuft nie und `/` bleibt read-only — der Host bootet
+> nicht mehr. `update.sh` erkennt das und hebt eine bereits gesetzte Maskierung
+> auf. Prüfen mit `findmnt --fstab /tmp`. Soll `/tmp` auf einem solchen Host auf
+> der Platte liegen, ist die `/tmp`-Zeile aus `/etc/fstab` zu entfernen.
+
 #### Der DNS-Stub verdrängt einen lokalen DNS-Server
 
 Das Upgrade setzt `/etc/systemd/resolved.conf` auf den Werkszustand zurück. Wer
@@ -284,7 +292,8 @@ Der neue Updatepfad:
 7. baut das Frontend;
 8. aktualisiert AgentLink und repariert dessen Venv ebenfalls;
 9. startet vorhandene Voice-Container und setzt `boot.autostart=true`;
-10. maskiert `tmp.mount`, wenn `/tmp` als `tmpfs` im RAM liegt;
+10. maskiert `tmp.mount`, wenn `/tmp` als `tmpfs` im RAM liegt und *nicht* in
+    `/etc/fstab` steht (sonst würde der Host nicht mehr booten);
 11. stellt `DNSStubListener=no` wieder her, sofern ein lokaler DNS-Server läuft;
 12. schaltet den DNS-Teil verwalteter Incus-Bridges ab (DHCP bleibt aktiv);
 13. prüft die Namensauflösung real und startet den DNS-Server notfalls neu.
@@ -324,8 +333,17 @@ Zusätzlich auf Hosts mit eigenem DNS-Server:
 
 ```bash
 dig +short github.com @127.0.0.1        # muss eine IP liefern
+```
+
+Sowie auf Hosts, deren `/tmp` **nicht** in `/etc/fstab` steht:
+
+```bash
+findmnt --fstab /tmp                     # erwartet: kein Treffer
 systemctl is-enabled tmp.mount           # erwartet: masked
 ```
+
+Meldet `findmnt --fstab /tmp` dagegen einen Treffer, ist `masked` der *falsche*
+Zustand — dort muss `tmp.mount` unmaskiert bleiben.
 
 ---
 
@@ -408,6 +426,11 @@ findmnt -no FSTYPE,SIZE /tmp
 ```
 
 Erwartet: das Dateisystem der Root-Platte (z. B. `ext4`), **nicht** `tmpfs`.
+
+Steht `/tmp` in `/etc/fstab`, bleibt es dagegen ein `tmpfs` — dort wird bewusst
+nicht maskiert (siehe Ausnahme in Schritt 4). Zusätzlich sollte dann
+`systemctl is-active local-fs.target` `active` melden; ein `inactive` dort
+bedeutet, dass `/` read-only geblieben ist.
 
 Auf Hosts mit eigenem DNS-Server (Pi-hole, dnsmasq, bind9, unbound) zusätzlich:
 
