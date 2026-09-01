@@ -13,6 +13,8 @@ export interface OllamaModel {
   parameter_size?: string | null
   quantization?: string | null
   context_window?: number | null
+  /** Fenster, das HydraHive tatsächlich an Ollama schickt (VRAM-gedeckelt). */
+  effective_context_window?: number | null
   capabilities: string[]
   input_modalities: string[]
   output_modalities: string[]

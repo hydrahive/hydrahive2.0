@@ -34,6 +34,7 @@
     "llmfit_not_installed": "llmfit nicht installiert",
     "llmfit_failed": "llmfit konnte nicht ausgeführt werden",
     "llmfit_remote_ollama": "Ollama läuft auf einem anderen Host; dessen Hardware-Fit ist noch nicht verfügbar",
+    "context_capped": "Genutztes Kontextfenster / theoretisches Maximum des Modells. HydraHive begrenzt den Kontext nach freiem Grafikspeicher, damit das Modell vollständig auf der GPU bleibt.",
     "fit": {
       "perfect": "perfekt",
       "good": "gut",

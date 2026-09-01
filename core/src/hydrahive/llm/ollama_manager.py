@@ -5,7 +5,8 @@ import asyncio
 from urllib.parse import urlsplit
 
 from hydrahive.llm import ollama_client, ollama_fit, ollama_library
-from hydrahive.llm._config import load_config
+from hydrahive.llm._config import load_config, num_ctx_for_ollama
+from hydrahive.llm._local_host import is_local_host
 from hydrahive.llm.ollama_common import validate_family_name
 
 _FIT_DEFAULTS = {
@@ -25,15 +26,29 @@ def configured_provider() -> dict | None:
     return next((p for p in load_config().get("providers", []) if p.get("id") == "ollama"), None)
 
 
-def _merge_fit(model: dict, fit_models: dict[str, dict]) -> dict:
-    return {**_FIT_DEFAULTS, **model, **fit_models.get(model["ollama_name"], {})}
+def _merge_fit(model: dict, fit_models: dict[str, dict], free_vram: float | None = None) -> dict:
+    merged = {**_FIT_DEFAULTS, **model, **fit_models.get(model["ollama_name"], {})}
+    # Das theoretische Fenster allein ist irrefuehrend: HydraHive schickt ein
+    # gedeckeltes num_ctx an Ollama. Beide Zahlen gehoeren in den Katalog,
+    # sonst verspricht die Anzeige mehr als der Agent tatsaechlich nutzt.
+    window = merged.get("context_window")
+    merged["effective_context_window"] = (
+        num_ctx_for_ollama(window, free_vram_gib=free_vram) if window else None
+    )
+    return merged
 
 
 async def _fit_for_provider(provider: dict | None) -> dict:
     if not provider:
         return {"available": False, "reason": "ollama_not_configured", "system": None, "models": {}}
-    hostname = (urlsplit(str(provider.get("api_base") or "")).hostname or "").lower()
-    if hostname not in {"localhost", "127.0.0.1", "::1"}:
+    # llmfit misst IMMER die Hardware des Rechners, auf dem HydraHive laeuft.
+    # Diese Zahlen duerfen nur einem Ollama-Endpunkt zugeordnet werden, der
+    # tatsaechlich hier laeuft. Loopback allein reicht als Pruefung nicht: eine
+    # Workstation traegt ihren Endpunkt ueblicherweise unter der eigenen LAN-IP
+    # ein (192.168.x.y), nicht unter localhost — die galt frueher faelschlich
+    # als Fremdrechner und der Fit wurde komplett ausgeblendet.
+    hostname = urlsplit(str(provider.get("api_base") or "")).hostname
+    if not is_local_host(hostname):
         return {"available": False, "reason": "llmfit_remote_ollama", "system": None, "models": {}}
     return await ollama_fit.load_hardware_fit()
 
@@ -72,7 +87,8 @@ async def catalog_overview(provider: dict | None = None) -> dict:
 
     fit = await fit_task
     fit_models = fit.get("models") or {}
-    installed = [_merge_fit(row, fit_models) for row in installed]
+    free_vram = ollama_fit.free_vram_gib(fit.get("system"))
+    installed = [_merge_fit(row, fit_models, free_vram) for row in installed]
     installed_by_family: dict[str, list[str]] = {}
     for row in installed:
         installed_by_family.setdefault(row["ollama_name"].split(":", 1)[0], []).append(row["ollama_name"])
@@ -136,5 +152,6 @@ async def family_variants(family: str, provider: dict | None = None) -> dict:
         if installed:
             base.update(installed)
             base["capabilities"] = sorted(set(capabilities) | set(installed.get("capabilities") or []))
-        models.append(_merge_fit(base, fit.get("models") or {}))
+        models.append(_merge_fit(base, fit.get("models") or {},
+                                 ollama_fit.free_vram_gib(fit.get("system"))))
     return {"family": family_row or {"name": family}, "models": models}
