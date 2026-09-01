@@ -42,6 +42,24 @@ hh_fix_tmp_on_tmpfs() {
   command -v systemctl >/dev/null 2>&1 || return 0
   command -v findmnt >/dev/null 2>&1 || return 0
 
+  # Definiert /etc/fstab einen /tmp-Eintrag, erzeugt der systemd-fstab-generator
+  # daraus eine tmp.mount und traegt sie als HARTE Abhaengigkeit unter
+  # local-fs.target.requires ein. Eine maskierte Unit kann niemals starten:
+  # local-fs.target bleibt inaktiv -> systemd-remount-fs laeuft nie -> / bleibt
+  # read-only -> der Host bootet nicht mehr. Maskiert werden darf nur die
+  # systemd-Vendor-Unit, die lediglich per WantedBy (weich) haengt.
+  if findmnt --fstab /tmp >/dev/null 2>&1; then
+    if [ "$(systemctl is-enabled tmp.mount 2>/dev/null || true)" = "masked" ]; then
+      hh_host_log "tmp.mount maskiert, /tmp kommt aber aus /etc/fstab — hebe Maskierung auf"
+      systemctl unmask tmp.mount >/dev/null 2>&1 || {
+        hh_host_log "WARNUNG: tmp.mount konnte nicht demaskiert werden"
+      }
+    fi
+    hh_host_log "/tmp stammt aus /etc/fstab — tmp.mount wird nicht maskiert"
+    hh_host_log "  Fuer /tmp auf Platte: /tmp-Zeile in /etc/fstab entfernen, dann Reboot"
+    return 0
+  fi
+
   fstype="$(findmnt -no FSTYPE /tmp 2>/dev/null || true)"
   [ "$fstype" = "tmpfs" ] || return 0
 

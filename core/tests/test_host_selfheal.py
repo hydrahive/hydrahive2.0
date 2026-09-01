@@ -83,13 +83,32 @@ exit 0
     return calls
 
 
+def _findmnt_stub(bin_dir: Path, *, fstype: str = "tmpfs", in_fstab: bool = False) -> None:
+    """findmnt-Stub.
+
+    `fstype` ist der Typ des laufenden /tmp-Mounts, `in_fstab` steuert, ob
+    `findmnt --fstab /tmp` einen Treffer meldet, /etc/fstab also einen
+    /tmp-Eintrag definiert.
+    """
+    _write_stub(
+        bin_dir,
+        "findmnt",
+        f"""
+for arg in "$@"; do
+  [ "$arg" = "--fstab" ] && exit {0 if in_fstab else 1}
+done
+echo {fstype}
+""",
+    )
+
+
 # ── tmp.mount ────────────────────────────────────────────────────────────────
 
 
 def test_tmp_on_tmpfs_gets_masked(tmp_path: Path) -> None:
     """Ist /tmp eine RAM-Disk, muss tmp.mount maskiert werden."""
     calls = _systemctl_stub(tmp_path)
-    _write_stub(tmp_path, "findmnt", 'echo tmpfs')
+    _findmnt_stub(tmp_path, fstype="tmpfs")
 
     result = _run("hh_fix_tmp_on_tmpfs", tmp_path)
 
@@ -100,7 +119,7 @@ def test_tmp_on_tmpfs_gets_masked(tmp_path: Path) -> None:
 def test_tmp_on_disk_is_left_alone(tmp_path: Path) -> None:
     """Liegt /tmp auf Platte, darf nichts angefasst werden."""
     calls = _systemctl_stub(tmp_path)
-    _write_stub(tmp_path, "findmnt", 'echo ext4')
+    _findmnt_stub(tmp_path, fstype="ext4")
 
     result = _run("hh_fix_tmp_on_tmpfs", tmp_path)
 
@@ -111,12 +130,50 @@ def test_tmp_on_disk_is_left_alone(tmp_path: Path) -> None:
 def test_tmp_mask_is_idempotent(tmp_path: Path) -> None:
     """Bereits maskiert: kein zweiter mask-Aufruf."""
     calls = _systemctl_stub(tmp_path, masked="tmp.mount")
-    _write_stub(tmp_path, "findmnt", 'echo tmpfs')
+    _findmnt_stub(tmp_path, fstype="tmpfs")
 
     result = _run("hh_fix_tmp_on_tmpfs", tmp_path)
 
     assert result.returncode == 0, result.stderr
     assert "mask" not in _calls(calls)
+
+
+def test_tmp_from_fstab_is_never_masked(tmp_path: Path) -> None:
+    """tmpfs aus /etc/fstab: Maskieren wuerde local-fs.target blockieren.
+
+    Der fstab-Generator traegt tmp.mount als harte Requires-Abhaengigkeit in
+    local-fs.target ein. Maskiert man sie, bleibt das Target inaktiv,
+    systemd-remount-fs laeuft nie und / bleibt read-only: Der Host bootet nicht.
+    """
+    calls = _systemctl_stub(tmp_path)
+    _findmnt_stub(tmp_path, fstype="tmpfs", in_fstab=True)
+
+    result = _run("hh_fix_tmp_on_tmpfs", tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "mask tmp.mount" not in _calls(calls)
+
+
+def test_tmp_from_fstab_gets_unmasked(tmp_path: Path) -> None:
+    """Bereits maskiert und aus fstab: Die Maskierung wird zurueckgenommen."""
+    calls = _systemctl_stub(tmp_path, masked="tmp.mount")
+    _findmnt_stub(tmp_path, fstype="tmpfs", in_fstab=True)
+
+    result = _run("hh_fix_tmp_on_tmpfs", tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "unmask tmp.mount" in _calls(calls)
+
+
+def test_tmp_from_fstab_on_disk_is_never_masked(tmp_path: Path) -> None:
+    """Auch ein Platten-/tmp aus der fstab erzeugt die harte Abhaengigkeit."""
+    calls = _systemctl_stub(tmp_path)
+    _findmnt_stub(tmp_path, fstype="ext4", in_fstab=True)
+
+    result = _run("hh_fix_tmp_on_tmpfs", tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert "mask tmp.mount" not in _calls(calls)
 
 
 # ── systemd-resolved-Stub ────────────────────────────────────────────────────
