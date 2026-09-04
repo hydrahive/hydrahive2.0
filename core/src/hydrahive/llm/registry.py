@@ -39,9 +39,12 @@ class ModelEntry:
 
 
 def _classify_catalog_entry(entry: dict) -> frozenset[str]:
-    """Zweck-Menge eines Chat-Katalog-Eintrags. Default chat; image/music aus output_modalities."""
-    out = {"chat"}
+    """Zweck-Menge aus Live-Katalogdaten; unbekannte Einträge sind Chat."""
     om = entry.get("output_modalities") or []
+    category = entry.get("category")
+    if "embedding" in om or "embed" in om or category == "embed":
+        return frozenset({"embed"})
+    out = {"chat"}
     if "image" in om:
         out.add("image")
     if "audio" in om:
@@ -60,10 +63,6 @@ _lock = asyncio.Lock()
 
 def _providers() -> list[dict]:
     return load_config().get("providers", [])
-
-
-def _embed_models() -> list[dict]:
-    return _embed.available_for_config(load_config())
 
 
 def _add(acc: dict[str, ModelEntry], entry: ModelEntry) -> None:
@@ -103,10 +102,13 @@ async def _build() -> tuple[list[ModelEntry], bool]:
                 mid = m.get("id", "")
                 if not mid:
                     continue
+                embed_dim = m.get("embed_dim") or _embed.dim_for_model(mid) or None
+                _embed.register_model_dimension(mid, embed_dim)
                 _add(acc, ModelEntry(
                     id=mid, provider=prov.get("provider_id", ""), label=mid,
                     purposes=_classify_catalog_entry(m),
                     context_window=m.get("context_window"), is_free=m.get("is_free"),
+                    embed_dim=embed_dim,
                     source="live" if prov.get("live_count") else "fallback",
                     tool_use=m.get("tool_use"),
                 ))
@@ -122,14 +124,6 @@ async def _build() -> tuple[list[ModelEntry], bool]:
     except Exception as e:
         logger.warning("Registry: Chat-Katalog-Build fehlgeschlagen: %s", e)
         complete = False
-    try:
-        for em in _embed_models():
-            _add(acc, ModelEntry(id=em["model"], provider=em.get("provider", ""),
-                                 label=em["model"], purposes=frozenset({"embed"}),
-                                 embed_dim=em.get("dim")))
-    except Exception as e:
-        logger.warning("Registry: Embed-Build fehlgeschlagen: %s", e)
-
     async def _modality(fetch, purpose: str) -> None:
         try:
             for m in await fetch():

@@ -202,6 +202,15 @@ def _parse_ollama_show(data: dict) -> tuple[int | None, bool | None]:
     return ctx, tool_use
 
 
+def _ollama_embedding_dim(data: dict) -> int | None:
+    """Liest die native Ausgabedimension aus Ollamas model_info."""
+    info = data.get("model_info") or {}
+    return next(
+        (v for k, v in info.items() if k.endswith(".embedding_length") and isinstance(v, int) and v > 0),
+        None,
+    )
+
+
 async def _enrich_ollama_from_show(client, base, headers, entries: list[dict]) -> None:
     """Reichert jeden Ollama-Eintrag in-place mit /api/show-Daten an.
 
@@ -217,7 +226,8 @@ async def _enrich_ollama_from_show(client, base, headers, entries: list[dict]) -
                 headers=headers,
             )
             r.raise_for_status()
-            ctx, tool_use = _parse_ollama_show(r.json())
+            show = r.json()
+            ctx, tool_use = _parse_ollama_show(show)
         except Exception as e:  # noqa: BLE001 - best effort pro Modell
             logger.debug("Catalog: /api/show für %s fehlgeschlagen: %s", entry.get("id"), e)
             return
@@ -225,6 +235,12 @@ async def _enrich_ollama_from_show(client, base, headers, entries: list[dict]) -
             entry["context_window"] = ctx
         if tool_use is not None:
             entry["tool_use"] = tool_use
+        # Native Ollama /api/show exposes embedding capability, while /v1/models
+        # usually does not. Preserve it for registry modality classification.
+        capabilities = {str(x).lower() for x in (show.get("capabilities") or [])}
+        if "embedding" in capabilities or "embed" in capabilities:
+            entry["output_modalities"] = ["embedding"]
+            entry["embed_dim"] = _ollama_embedding_dim(show)
 
     await asyncio.gather(*(one(e) for e in entries))
 
@@ -233,20 +249,27 @@ def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
     """Joint Live-Eintrag mit METADATA. Live-context_window hat Vorrang."""
     from hydrahive.llm._anthropic import _uses_effort_param
     md = METADATA.get(entry["id"], {})
+    model_id = entry["id"].lower()
+    inferred_category = "embed" if any(token in model_id for token in ("embed", "embedding")) else "chat"
+    category = entry.get("category") or md.get("category") or inferred_category
+    result_id = entry["id"]
+    if provider_id == "minimax" and category == "embed" and not result_id.startswith("minimax/"):
+        result_id = f"minimax/{result_id}"
     return {
-        "id": entry["id"],
+        "id": result_id,
         "context_window": entry.get("context_window") or md.get("context_window"),
         # Live-tool_use (z.B. aus Ollama /api/show capabilities) hat Vorrang vor
         # der statischen METADATA. `entry.get("tool_use")` kann True/False/None
         # sein — nur wenn es None ist, auf METADATA zurückfallen.
         "tool_use": entry["tool_use"] if entry.get("tool_use") is not None else md.get("tool_use"),
-        "category": md.get("category", "chat"),
+        "category": category,
         "family": md.get("family", "?"),
         "is_free": entry.get("is_free"),
         "price_prompt": entry.get("price_prompt"),
         "price_completion": entry.get("price_completion"),
         "output_modalities": entry.get("output_modalities") or [],
         "input_modalities": entry.get("input_modalities") or [],
+        "embed_dim": entry.get("embed_dim") or md.get("embed_dim"),
         "supports_effort": _uses_effort_param(entry["id"]),
         "unknown": entry["id"] not in METADATA,
     }

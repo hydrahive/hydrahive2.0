@@ -35,7 +35,6 @@ def test_partial_catalog_is_not_cached(monkeypatch):
         {"id": "openrouter", "api_key": "sk-o"},
     ]
     monkeypatch.setattr(registry, "_providers", lambda: providers)
-    monkeypatch.setattr(registry, "_embed_models", lambda: [])
 
     calls = {"n": 0}
 
@@ -81,7 +80,6 @@ def test_complete_catalog_is_cached(monkeypatch):
 
     providers = [{"id": "anthropic", "api_key": "sk-a"}]
     monkeypatch.setattr(registry, "_providers", lambda: providers)
-    monkeypatch.setattr(registry, "_embed_models", lambda: [])
 
     calls = {"n": 0}
 

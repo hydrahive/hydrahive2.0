@@ -198,8 +198,8 @@ METADATA: dict[str, dict[str, Any]] = {
     "nvidia_nim/nvidia/vila":                                {"context_window": 4_096,   "tool_use": False, "category": "vision",  "family": "nvidia"},
     "nvidia_nim/nvidia/riva-translate-4b-instruct":          {"context_window": 4_096,   "tool_use": False, "category": "translation", "family": "nvidia", "params": "4B"},
     "nvidia_nim/nvidia/riva-translate-4b-instruct-v1.1":     {"context_window": 4_096,   "tool_use": False, "category": "translation", "family": "nvidia", "params": "4B"},
-    "nvidia_nim/nvidia/nv-embed-v1":                         {"context_window": 32_768,  "tool_use": False, "category": "embed",   "family": "nvidia"},
-    "nvidia_nim/nvidia/nv-embedqa-e5-v5":                    {"context_window": 512,     "tool_use": False, "category": "embed",   "family": "nvidia"},
+    "nvidia_nim/nvidia/nv-embed-v1":                         {"context_window": 32_768,  "tool_use": False, "category": "embed",   "family": "nvidia", "embed_dim": 4096},
+    "nvidia_nim/nvidia/nv-embedqa-e5-v5":                    {"context_window": 512,     "tool_use": False, "category": "embed",   "family": "nvidia", "embed_dim": 1024},
     "nvidia_nim/nvidia/nvclip":                              {"context_window": 77,      "tool_use": False, "category": "embed",   "family": "nvidia"},
     "nvidia_nim/nvidia/nemoretriever-parse":                 {"context_window": 8_192,   "tool_use": False, "category": "specialized", "family": "nvidia"},
     "nvidia_nim/nvidia/nemotron-parse":                      {"context_window": 8_192,   "tool_use": False, "category": "specialized", "family": "nvidia"},
@@ -222,7 +222,9 @@ METADATA: dict[str, dict[str, Any]] = {
     # AI Singapore
     "nvidia_nim/aisingapore/sea-lion-7b-instruct":      {"context_window": 4_096,   "tool_use": False, "category": "chat",        "family": "sea-lion", "params": "7B"},
     # BAAI
-    "nvidia_nim/baai/bge-m3":                           {"context_window": 8_192,   "tool_use": False, "category": "embed",       "family": "bge"},
+    "nvidia_nim/baai/bge-m3":                           {"context_window": 8_192,   "tool_use": False, "category": "embed",       "family": "bge", "embed_dim": 1024},
+    # OpenRouter Embeddings (Verfügbarkeit bleibt live; hier nur technische Metadaten)
+    "openrouter/baai/bge-m3-20251117":                  {"context_window": 8_192,   "tool_use": False, "category": "embed",       "family": "bge", "embed_dim": 1024},
     # Writer
     "nvidia_nim/writer/palmyra-creative-122b":          {"context_window": 32_768,  "tool_use": False, "category": "chat",        "family": "palmyra",  "params": "122B"},
     "nvidia_nim/writer/palmyra-fin-70b-32k":            {"context_window": 32_768,  "tool_use": False, "category": "chat",        "family": "palmyra",  "params": "70B"},

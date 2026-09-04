@@ -67,6 +67,7 @@ class _FakeClient:
         return _FakeResp({"data": [
             {"id": "qwen3:14b"},
             {"id": "gemma4:latest"},
+            {"id": "nomic-embed-text:latest"},
         ]})
 
     async def post(self, url, json=None, headers=None):
@@ -77,6 +78,11 @@ class _FakeClient:
                 "capabilities": ["completion", "tools"],
             })
         # gemma4: grosses Fenster, aber KEINE Tools
+        if model.startswith("nomic"):
+            return _FakeResp({
+                "model_info": {"bert.context_length": 8192, "bert.embedding_length": 768},
+                "capabilities": ["embedding"],
+            })
         return _FakeResp({
             "model_info": {"gemma3.context_length": 131072},
             "capabilities": ["completion", "vision"],
@@ -102,6 +108,9 @@ def test_ollama_catalog_uses_real_context_and_tools(monkeypatch):
     # Tool-Faehigkeit aus capabilities
     assert qwen["tool_use"] is True
     assert gemma["tool_use"] is False
+    nomic = by_id["ollama/nomic-embed-text:latest"]
+    assert nomic["output_modalities"] == ["embedding"]
+    assert nomic["embed_dim"] == 768
 
 
 # --- 2. num_ctx_for_ollama: sinnvoll + gedeckelt ----------------------------
