@@ -39,6 +39,8 @@ class LlmConfig(BaseModel):
     providers: list[LlmProvider] = []
     default_model: str = ""
     embed_model: str = ""
+    # Live ermittelte Dimensionen dynamischer Embedding-Modelle (z.B. OpenRouter).
+    embed_dimensions: dict[str, int] = {}
     # Aktives Modell pro Media-Kategorie (image/music/tts/transcribe/video).
     # Resolver: hydrahive.llm.media_models.get_media_model
     media_models: dict[str, str] = {}
@@ -65,12 +67,26 @@ def get_config() -> dict:
 
 @router.put("", dependencies=[Depends(require_admin)])
 async def update_config(cfg: LlmConfig) -> dict:
-    old_model = _load().get("embed_model", "")
+    old = _load()
+    old_model = old.get("embed_model", "")
     data = cfg.model_dump()
-    _save(data)
-    from hydrahive.llm import registry
-    registry.invalidate()
+    # Serverseitig ermittelte Werte niemals aus dem Request übernehmen.
+    dimensions = dict(old.get("embed_dimensions") or {})
+    data["embed_dimensions"] = dimensions
     new_model = data.get("embed_model", "")
+    if new_model and new_model != old_model:
+        available = {m.id for m in await registry.list_models("embed")}
+        if new_model not in available:
+            raise coded(status.HTTP_400_BAD_REQUEST, "embed_model_unavailable")
+        from hydrahive.llm import embed
+        try:
+            dim = await embed.ensure_model_dimension(new_model)
+        except RuntimeError as exc:
+            raise coded(status.HTTP_400_BAD_REQUEST, "embed_model_probe_failed", message=str(exc))
+        dimensions[new_model] = dim
+        data["embed_dimensions"] = dimensions
+    _save(data)
+    registry.invalidate()
     if new_model != old_model:
         from hydrahive.db import mirror
         await mirror.on_embed_model_change(new_model)

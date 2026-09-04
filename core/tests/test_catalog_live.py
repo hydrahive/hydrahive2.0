@@ -70,6 +70,12 @@ def test_parse_models_captures_modalities():
     assert plain["input_modalities"] == []
 
 
+def test_minimax_embedding_gets_canonical_provider_prefix():
+    enriched = catalog._enrich("minimax", {"id": "embo-01"})
+    assert enriched["id"] == "minimax/embo-01"
+    assert enriched["category"] == "embed"
+
+
 def test_enrich_passes_modalities_through():
     entry = {"id": "openrouter/openai/gpt-5-image-mini",
              "output_modalities": ["image", "text"], "input_modalities": ["text"]}

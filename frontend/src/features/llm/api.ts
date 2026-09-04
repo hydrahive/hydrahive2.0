@@ -23,6 +23,7 @@ export interface LlmConfig {
   providers: LlmProvider[]
   default_model: string
   embed_model: string
+  embed_dimensions?: Record<string, number>
   media_models?: Record<string, string>
 }
 

@@ -23,3 +23,9 @@ def test_media_models_durch_model_dump():
 def test_media_models_default_leer():
     from hydrahive.api.routes.llm import LlmConfig
     assert LlmConfig().model_dump()["media_models"] == {}
+
+
+def test_embed_dimensions_roundtrip():
+    from hydrahive.api.routes.llm import LlmConfig
+    data = LlmConfig(embed_dimensions={"ollama/nomic-embed-text:latest": 768}).model_dump()
+    assert data["embed_dimensions"] == {"ollama/nomic-embed-text:latest": 768}

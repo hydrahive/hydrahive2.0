@@ -10,6 +10,8 @@ def fake_sources(monkeypatch):
                  "models": [
                     {"id": "openrouter/chatty", "context_window": 8000, "is_free": True, "output_modalities": []},
                     {"id": "openrouter/painter", "output_modalities": ["image"]},
+                    {"id": "openrouter/baai/bge-m3", "category": "embed", "embed_dim": 1024,
+                     "output_modalities": ["embedding"]},
                  ], "live_count": 2}]
 
     async def fake_speech(force=False): return [{"id": "hexgrad/kokoro-82m", "voices": ["af"]}]
@@ -20,7 +22,6 @@ def fake_sources(monkeypatch):
     monkeypatch.setattr(registry, "list_speech_models", fake_speech)
     monkeypatch.setattr(registry, "list_transcribe_models", fake_transcribe)
     monkeypatch.setattr(registry, "list_video_models", fake_video)
-    monkeypatch.setattr(registry, "_embed_models", lambda: [{"model": "baai/bge-m3", "dim": 1024, "provider": "openrouter"}])
     monkeypatch.setattr(registry, "_providers", lambda: [{"id": "openrouter", "api_key": "k"}])
     registry.invalidate()
     return registry
@@ -35,7 +36,7 @@ async def test_list_models_classified_and_sorted(fake_sources):
     assert [m.id for m in await r.list_models("tts")] == ["hexgrad/kokoro-82m"]
     assert [m.id for m in await r.list_models("stt")] == ["openai/whisper-large-v3"]
     assert [m.id for m in await r.list_models("video")] == ["kling/v2"]
-    assert [m.id for m in await r.list_models("embed")] == ["baai/bge-m3"]
+    assert [m.id for m in await r.list_models("embed")] == ["openrouter/baai/bge-m3"]
     allm = await r.list_models()
     assert allm == sorted(allm, key=lambda e: (e.provider, e.label))
 
@@ -73,7 +74,6 @@ async def test_anthropic_401_static_fallback_keeps_claude_known(monkeypatch):
     from hydrahive.llm import registry, catalog
     from hydrahive.llm._catalog_data import STATIC_MODELS
     monkeypatch.setattr(registry, "_providers", lambda: [{"id": "anthropic", "api_key": "bad-key"}])
-    monkeypatch.setattr(registry, "_embed_models", lambda: [])
     async def empty_live(provider_id, api_key):   # simuliert 401 / leeren Live-Fetch
         return []
     monkeypatch.setattr(catalog, "_fetch_live_models", empty_live)
