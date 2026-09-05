@@ -94,11 +94,14 @@ docker pull "$MEDIA_IMAGE" >/dev/null
 
 docker rm -f hydra-comfyui >/dev/null 2>&1 || true
 log "ComfyUI localhost-only starten"
-# SDXL benötigt auf 16-GiB-Karten Low-VRAM-Offloading; größere Karten bleiben
-# im schnelleren Normalmodus. Der Grenzwert wird aus nvidia-smi abgeleitet.
+# SDXL passt auf 16-GiB-Karten nicht zuverlässig zusammen mit dem CLIP-Encoder
+# in den VRAM. --lowvram versucht weiterhin zu viel des Checkpoints zu laden und
+# endet bei der CLIP-Ladung mit OOM. --novram verschiebt die Gewichte aggressiv
+# auf den Host-RAM; größere Karten bleiben im schnelleren Normalmodus.
+# Der Grenzwert wird aus nvidia-smi abgeleitet.
 VRAM_MIB="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -1 | tr -d ' ')"
 COMFY_ARGS=""
-[ "${VRAM_MIB:-0}" -lt 20000 ] && COMFY_ARGS="--lowvram"
+[ "${VRAM_MIB:-0}" -lt 20000 ] && COMFY_ARGS="--novram"
 docker run -d --name hydra-comfyui --restart unless-stopped --gpus all \
   -e "CLI_ARGS=$COMFY_ARGS" \
   -p 127.0.0.1:8188:8188 \
