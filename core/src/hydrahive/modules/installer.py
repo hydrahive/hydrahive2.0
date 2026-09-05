@@ -16,6 +16,7 @@ import logging
 import re
 import shutil
 import subprocess
+import threading
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -173,7 +174,24 @@ def _clear_ts_buildinfo(frontend_dir: Path) -> None:
 
 
 def _request_restart() -> None:
-    (settings.data_dir / ".restart_request").write_text("module-change")
+    """Fordere Neustart verzögert an, damit der SSE-Stream sauber endet.
+
+    Der Restart-Timer überwacht `.restart_request` alle fünf Sekunden. Ein
+    sofortiges Schreiben beendet den laufenden API-Prozess oft, bevor das
+    abschließende SSE-Event (`done`) beim Browser angekommen ist; die Karte
+    bleibt dann scheinbar stundenlang auf „Aktualisiert…“. Zwei Sekunden
+    Verzögerung geben dem Stream Zeit, die Abschlussmeldung auszuliefern.
+    """
+    def write_request() -> None:
+        try:
+            settings.data_dir.mkdir(parents=True, exist_ok=True)
+            (settings.data_dir / ".restart_request").write_text("module-change")
+        except OSError:
+            logger.exception("Modul-Neustarttrigger konnte nicht geschrieben werden")
+
+    timer = threading.Timer(2.0, write_request)
+    timer.daemon = True
+    timer.start()
 
 
 def _manifest_has_service(module_id: str) -> bool:
