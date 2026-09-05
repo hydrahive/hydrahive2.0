@@ -104,11 +104,11 @@ async def _execute_local(model: str, args: dict, ctx: ToolContext) -> ToolResult
     laufen hierüber; OpenRouter behält seinen eigenen bewährten Pfad unten.
     """
     from hydrahive.llm._config import load_config
-    from hydrahive.llm.video_backends import VideoParams, resolve_backend, run_local_media
+    from hydrahive.llm.video_backends import VideoParams, resolve_local_workflow, run_local_media
 
     prompt = (args.get("prompt") or "").strip()
     try:
-        backend, provider = resolve_backend(model, load_config())
+        backend, provider = resolve_local_workflow(model, load_config(), "video")
     except ValueError as e:
         return ToolResult.fail(str(e))
 
