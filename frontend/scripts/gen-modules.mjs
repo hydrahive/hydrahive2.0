@@ -1,14 +1,41 @@
-import { readdirSync, statSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
-import { join, dirname } from "node:path"
+import { readdirSync, statSync, writeFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { join, dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const modulesDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "modules")
 mkdirSync(modulesDir, { recursive: true })   // robust auf frischem Checkout
 const out = join(modulesDir, "index.generated.ts")
 
+function hasMissingLocalImport(moduleDir) {
+  const files = []
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (/\.(tsx?|mts|cts)$/.test(name)) files.push(p)
+    }
+  }
+  walk(moduleDir)
+  const importRe = /from\s+["'](\.\.[^"']+)["']/g
+  for (const file of files) {
+    const source = readFileSync(file, "utf8")
+    for (const match of source.matchAll(importRe)) {
+      const target = resolve(dirname(file), match[1])
+      const candidates = [target, `${target}.ts`, `${target}.tsx`, join(target, "index.tsx")]
+      if (!candidates.some((candidate) => existsSync(candidate))) return true
+    }
+  }
+  return false
+}
+
 const ids = readdirSync(modulesDir).filter((n) => {
   const p = join(modulesDir, n)
-  return statSync(p).isDirectory() && existsSync(join(p, "index.tsx"))
+  if (!statSync(p).isDirectory() || !existsSync(join(p, "index.tsx"))) return false
+  if (hasMissingLocalImport(p)) {
+    console.warn(`[gen-modules] überspringe ${n}: optionale Modulabhängigkeit fehlt`)
+    return false
+  }
+  return true
 })
 
 const imports = ids.map((id, i) => `import * as m${i} from "./${id}"`).join("\n")
