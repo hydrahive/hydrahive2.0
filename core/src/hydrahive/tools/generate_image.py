@@ -24,6 +24,7 @@ import httpx
 
 from hydrahive.llm.media_models import get_media_model
 from hydrahive.tools._openrouter_media import image_to_content_block, openrouter_key, save_bytes
+from hydrahive.llm.video_backends import VideoParams, resolve_backend, run_local_media
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -111,18 +112,68 @@ def _get_openrouter_key() -> str:
     return openrouter_key()
 
 
+async def _execute_local(model: str, args: dict, ctx: ToolContext) -> ToolResult:
+    """Führt ein lokales Bild-Workflow-Modell über die gemeinsame Registry aus."""
+    from hydrahive.llm._config import load_config
+
+    try:
+        backend, provider = resolve_backend(model, load_config())
+    except ValueError as e:
+        return ToolResult.fail(str(e))
+
+    reference = (args.get("reference_image_path") or "").strip()
+    image_url = None
+    if reference:
+        block = image_to_content_block(reference, workspace=ctx.workspace)
+        if isinstance(block, str):
+            return ToolResult.fail(block)
+        image_url = (block.get("image_url") or {}).get("url")
+
+    params = VideoParams(
+        prompt=(args.get("prompt") or "").strip(),
+        width=int(args.get("width") or 1024),
+        height=int(args.get("height") or 1024),
+        aspect_ratio=(args.get("aspect_ratio") or "1:1").strip(),
+        seed=(int(args["seed"]) if args.get("seed") is not None else None),
+        image_url=image_url,
+    )
+    try:
+        path = await run_local_media(
+            backend, provider, model, params, ctx.workspace / "generated",
+            timeout=_TIMEOUT,
+        )
+        if bool(args.get("transparent", True)) and not reference:
+            from hydrahive.tools._image_keying import chroma_key_green
+            keyed = chroma_key_green(path.read_bytes())
+            if path.suffix.lower() != ".png":
+                png_path = path.with_suffix(".png")
+                path.unlink(missing_ok=True)
+                path = png_path
+            path.write_bytes(keyed)
+    except TimeoutError as e:
+        return ToolResult.fail(str(e))
+    except (RuntimeError, OSError) as e:
+        return ToolResult.fail(str(e))
+    logger.info("generate_image: lokales Bild gespeichert model=%s path=%s", model, path)
+    return ToolResult.ok(f"Bild generiert und gespeichert: {path}", model=model)
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     prompt = (args.get("prompt") or "").strip()
     if not prompt:
         return ToolResult.fail("Prompt darf nicht leer sein")
+
+    # Modell zuerst auflösen: ein lokales Default darf nicht die Cloud-Keyprüfung
+    # durchlaufen.
+    model = (args.get("model") or get_media_model("image") or _DEFAULT_MODEL).strip()
+    if model.startswith("local:"):
+        return await _execute_local(model, args, ctx)
 
     key = _get_openrouter_key()
     if not key:
         return ToolResult.fail(
             "Kein OpenRouter API-Key konfiguriert — unter Einstellungen → Anbieter hinterlegen"
         )
-
-    model = (args.get("model") or get_media_model("image")).strip()
     width = int(args.get("width") or 1024)
     height = int(args.get("height") or 1024)
     transparent = bool(args.get("transparent", True))
