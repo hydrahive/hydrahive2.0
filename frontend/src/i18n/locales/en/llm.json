@@ -73,6 +73,10 @@
     "tts": "Speech (TTS)",
     "stt": "Transcription (STT)",
     "video": "Video",
+    "local": "local",
+    "free": "free",
+    "paid": "paid",
+    "cost_unknown": "cost unknown",
     "save_error": "Failed to save"
   },
   "media_models": {
