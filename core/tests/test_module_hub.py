@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -215,6 +216,17 @@ def test_refresh_one_ff_pull_erfolg_kein_reset(mod_env, tmp_path):
         hub_client._refresh_one(cache, "http://x/y.git")
 
     assert calls == [["pull", "--ff-only"]]  # nur pull, kein reset
+
+
+def test_refresh_one_pull_timeout_becomes_cached_hub_error(mod_env, tmp_path):
+    """Offline/blocked Git darf den Modulstream nicht mit TimeoutExpired beenden."""
+    from hydrahive.modules import hub_client
+
+    cache = tmp_path / "hub"
+    (cache / ".git").mkdir(parents=True)
+    with patch.object(hub_client, "_run_git", side_effect=subprocess.TimeoutExpired("git", 1)):
+        with pytest.raises(hub_client.HubError, match="git pull Timeout"):
+            hub_client._refresh_one(cache, "http://x/y.git")
 
 
 def test_refresh_one_divergenz_heilt_per_reset(mod_env, tmp_path):
