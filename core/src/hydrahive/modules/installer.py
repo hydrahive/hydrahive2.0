@@ -199,14 +199,41 @@ def _manifest_has_service(module_id: str) -> bool:
     return ModuleManifest.load(settings.modules_dir / module_id / "manifest.json").has_service
 
 
+def _dependencies(module_id: str) -> tuple[str, ...]:
+    """Liest Abhängigkeiten aus dem aktuellen Hub-Manifest."""
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+    try:
+        refresh()
+        src = _cache_path_for(module_id)
+        return ModuleManifest.load(src / "manifest.json").dependencies
+    except (InstallError, ManifestError, OSError) as exc:
+        raise InstallError(f"manifest_unlesbar:{module_id}: {exc}") from exc
+
+
+def _ensure_dependencies(module_id: str, seen: set[str]) -> Iterator[str]:
+    for dep in _dependencies(module_id):
+        _validate_module_id(dep)
+        if dep in seen:
+            raise InstallError(f"zyklische Modulabhängigkeit: {module_id} → {dep}")
+        if (settings.modules_dir / dep / "manifest.json").is_file():
+            continue
+        yield f"[modules] Abhängigkeit {dep} wird installiert …"
+        yield from install(dep, _seen=seen)
+
+
 def _run_service_script(module_id: str, script: str) -> None:  # "install.sh" | "uninstall.sh"
     path = settings.modules_dir / module_id / "extension" / script
     if path.exists():
         subprocess.run(["bash", str(path)], check=True)
 
 
-def install(module_id: str) -> Iterator[str]:
+def install(module_id: str, *, _seen: set[str] | None = None) -> Iterator[str]:
     _validate_module_id(module_id)
+    seen = set(_seen or ())
+    if module_id in seen:
+        raise InstallError(f"zyklische Modulabhängigkeit: {module_id}")
+    seen.add(module_id)
+    yield from _ensure_dependencies(module_id, seen)
     yield f"[modules] installiere {module_id} …"
     copy_module_in(module_id); yield "[modules] Dateien kopiert"
     if _manifest_has_service(module_id):
@@ -228,6 +255,7 @@ def uninstall(module_id: str) -> Iterator[str]:
 def update(module_id: str) -> Iterator[str]:
     """Hub pullen + Dateien ersetzen + einmal bauen. Daten bleiben unangetastet."""
     _validate_module_id(module_id)
+    yield from _ensure_dependencies(module_id, {module_id})
     yield f"[modules] update {module_id} …"
     if _manifest_has_service(module_id):
         _run_service_script(module_id, "uninstall.sh"); yield "[modules] Dienst gestoppt"

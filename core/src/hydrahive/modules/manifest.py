@@ -21,6 +21,7 @@ class ModuleManifest:
     has_service: bool = False
     default_agent_tools: bool = False
     min_core_version: str = "2.0.0"
+    dependencies: tuple[str, ...] = ()
 
     @classmethod
     def load(cls, path: Path) -> "ModuleManifest":
@@ -41,4 +42,5 @@ class ModuleManifest:
             has_service=bool(d.get("has_service", False)),
             default_agent_tools=bool(d.get("default_agent_tools", False)),
             min_core_version=d.get("min_core_version", "2.0.0"),
+            dependencies=tuple(d.get("dependencies", [])),
         )
