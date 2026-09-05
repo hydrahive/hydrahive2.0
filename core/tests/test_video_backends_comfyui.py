@@ -155,6 +155,15 @@ def test_poll_running_then_done(monkeypatch):
     assert st.raw["files"][0]["filename"] == "out.webp"
 
 
+def test_collect_output_files_supports_native_video():
+    from hydrahive.llm.video_backends._comfyui import _collect_output_files
+
+    files = _collect_output_files({"11": {"videos": [
+        {"filename": "hydrahive/video.mp4", "subfolder": "", "type": "output"}
+    ]}})
+    assert files[0]["filename"] == "hydrahive/video.mp4"
+
+
 def test_poll_error(monkeypatch):
     from hydrahive.llm.video_backends import _comfyui
     from hydrahive.llm.video_backends._comfyui import ComfyUIVideoBackend

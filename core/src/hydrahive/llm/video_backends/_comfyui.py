@@ -180,7 +180,12 @@ class ComfyUIVideoBackend:
                 r = await client.get(f"{base}/view", params=params)
                 if r.status_code >= 400 or not r.content:
                     raise RuntimeError(f"ComfyUI /view Fehler für {f['filename']}: {r.status_code}")
-                p = dest_dir / f["filename"]
+                # ComfyUI-Dateinamen sind Remote-Daten: nur den Basename lokal
+                # verwenden, damit weder Unterordner noch `../` ausbrechen können.
+                safe_name = Path(f["filename"]).name
+                if not safe_name:
+                    raise RuntimeError("ComfyUI lieferte einen ungültigen Dateinamen")
+                p = dest_dir / safe_name
                 p.write_bytes(r.content)
                 local_paths.append(p)
 
@@ -200,7 +205,7 @@ def _collect_output_files(outputs: dict) -> list[dict]:
     for node_out in (outputs or {}).values():
         if not isinstance(node_out, dict):
             continue
-        for key in ("images", "gifs"):
+        for key in ("images", "gifs", "videos"):
             for item in node_out.get(key, []) or []:
                 if isinstance(item, dict) and item.get("filename"):
                     files.append({
