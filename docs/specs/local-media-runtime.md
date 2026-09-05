@@ -87,7 +87,17 @@ Read-only geprüft am 2026-09-05:
 - ComfyUI noch nicht installiert/als User-Service registriert
 - freier Speicher: ca. 399 GiB
 
-## Umsetzung
+## Installation und Updates
+
+Auf GPU-Nodes erfolgt die Einrichtung automatisch durch die Installations- und
+Updatepfade. `installer/modules/72-local-media.sh` (Server-Installation) und
+`node-agent/scripts/setup-local-media.sh` (Compute-Node) erkennen NVIDIA, sorgen
+für Docker und das signierte NVIDIA Container Toolkit, testen `--gpus all`,
+laden das gepinnte ComfyUI-Image und starten es ausschließlich auf
+`127.0.0.1:8188`. Auf Nodes ohne NVIDIA-GPU wird die Extension ohne Fehler
+übersprungen. Es gibt keine erforderliche manuelle Nachinstallation.
+
+### Umsetzung
 
 ### P1: Routing vervollständigen
 

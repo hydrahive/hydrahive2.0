@@ -145,6 +145,11 @@ if ! bash "$HH_REPO_DIR/installer/modules/35-llmfit.sh"; then
   log "llmfit-Installation fehlgeschlagen — Hardware-Fit bleibt vorerst unbekannt"
 fi
 
+log "Local Media Runtime synchronisieren (automatisch bei NVIDIA-GPU)"
+if ! bash "$HH_REPO_DIR/installer/modules/72-local-media.sh"; then
+  err "Local Media Runtime konnte beim Update nicht synchronisiert werden."
+fi
+
 log "Playwright-Chromium-Version synchronisieren"
 # `pip install -e core` kann Playwright aktualisieren. Jede Playwright-Version
 # erwartet eine bestimmte Chromium-Revision; ein beliebiger alter chromium-*
