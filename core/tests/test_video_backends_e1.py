@@ -41,6 +41,32 @@ def test_resolve_local_unknown_provider_raises():
         assert "doesnotexist" in str(e)
 
 
+def test_resolve_local_workflow_requires_matching_category():
+    from hydrahive.llm.video_backends import resolve_local_workflow
+
+    cfg = {"media_backends": [{
+        "id": "gpu", "type": "comfyui", "workflows": [
+            {"id": "sdxl", "category": "image"},
+            {"id": "wan", "category": "video"},
+        ],
+    }]}
+    backend, provider = resolve_local_workflow("local:gpu/sdxl", cfg, "image")
+    assert backend.type == "comfyui"
+    assert provider["id"] == "gpu"
+
+    try:
+        resolve_local_workflow("local:gpu/sdxl", cfg, "video")
+        assert False, "sollte Kategoriefehler werfen"
+    except ValueError as e:
+        assert "nicht für video-Generierung" in str(e)
+
+    try:
+        resolve_local_workflow("local:gpu/missing", cfg, "image")
+        assert False, "sollte unbekannten Workflow ablehnen"
+    except ValueError as e:
+        assert "Kein Workflow" in str(e)
+
+
 def test_resolve_local_unknown_type_raises():
     from hydrahive.llm.video_backends import resolve_backend
     cfg = {"media_backends": [{"id": "muskeln1", "type": "quantumfoo"}]}

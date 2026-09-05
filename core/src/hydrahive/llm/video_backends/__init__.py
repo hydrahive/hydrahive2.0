@@ -22,6 +22,7 @@ from hydrahive.llm.video_backends._base import (
 from hydrahive.llm.video_backends._registry import (
     LOCAL_PREFIX,
     resolve_backend,
+    resolve_local_workflow,
 )
 from hydrahive.llm.video_backends._runner import run_local_media
 
@@ -32,6 +33,7 @@ __all__ = [
     "VideoModel",
     "VideoParams",
     "resolve_backend",
+    "resolve_local_workflow",
     "run_local_media",
     "LOCAL_PREFIX",
 ]

@@ -24,7 +24,7 @@ import httpx
 
 from hydrahive.llm.media_models import get_media_model
 from hydrahive.tools._openrouter_media import image_to_content_block, openrouter_key, save_bytes
-from hydrahive.llm.video_backends import VideoParams, resolve_backend, run_local_media
+from hydrahive.llm.video_backends import VideoParams, resolve_local_workflow, run_local_media
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ async def _execute_local(model: str, args: dict, ctx: ToolContext) -> ToolResult
     from hydrahive.llm._config import load_config
 
     try:
-        backend, provider = resolve_backend(model, load_config())
+        backend, provider = resolve_local_workflow(model, load_config(), "image")
     except ValueError as e:
         return ToolResult.fail(str(e))
 

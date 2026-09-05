@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { llmApi, llmModelsApi, type LlmConfig, type RegistryModel } from "./api"
+import { llmApi, llmModelsApi, type LlmConfig, type MediaModel, type RegistryModel } from "./api"
+import { MediaModelSelect } from "./MediaModelSelect"
 import { KNOWN_PROVIDERS } from "./_llm_providers"
 
 // Maps purpose → config field path (mirrors backend _PURPOSE_KEYS)
@@ -122,6 +123,7 @@ interface DefaultModelsSectionProps {
 export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionProps) {
   const { t } = useTranslation("llm")
   const [modelsByPurpose, setModelsByPurpose] = useState<Partial<Record<Purpose, RegistryModel[]>>>({})
+  const [mediaModels, setMediaModels] = useState<Partial<Record<"image" | "video", MediaModel[]>>>({})
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -136,6 +138,15 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
       const map: Partial<Record<Purpose, RegistryModel[]>> = {}
       for (const r of results) map[r.purpose] = r.models
       setModelsByPurpose(map)
+    })
+    Promise.all(["image", "video"].map((category) =>
+      llmModelsApi.media(category as "image" | "video")
+        .then((res) => ({ category: category as "image" | "video", models: res.models }))
+        .catch(() => ({ category: category as "image" | "video", models: [] as MediaModel[] }))
+    )).then((results) => {
+      const map: Partial<Record<"image" | "video", MediaModel[]>> = {}
+      for (const result of results) map[result.category] = result.models
+      setMediaModels(map)
     })
   }, [])
 
@@ -161,13 +172,24 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
         </p>
       )}
       {PURPOSES.map((def) => {
-        const models = modelsByPurpose[def.purpose] ?? []
+        const value = def.getVal(config)
+        if (def.purpose === "image" || def.purpose === "video") {
+          return (
+            <MediaModelSelect
+              key={def.purpose}
+              label={t(def.labelKey)}
+              value={value}
+              models={mediaModels[def.purpose] ?? []}
+              onChange={(model) => handleChange(def, model)}
+            />
+          )
+        }
         return (
           <ModelSelect
             key={def.purpose}
             label={t(def.labelKey)}
-            value={def.getVal(config)}
-            models={models}
+            value={value}
+            models={modelsByPurpose[def.purpose] ?? []}
             onChange={(model) => handleChange(def, model)}
           />
         )

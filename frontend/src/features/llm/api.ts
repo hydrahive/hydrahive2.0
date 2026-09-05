@@ -172,7 +172,19 @@ export interface RegistryModel {
   embed_dim: number | null
 }
 
+export interface MediaModel {
+  id: string
+  name?: string
+  provider?: string
+  local?: boolean
+  durations?: number[]
+  aspect_ratios?: string[]
+  frame_images?: string[]
+}
+
 export const llmModelsApi = {
   byModality: (modality?: string) =>
     api.get<{ models: RegistryModel[]; default: string }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
+  media: (category: "image" | "video") =>
+    api.get<{ models: MediaModel[]; default: string }>(`/llm/media-models?category=${category}`),
 }
