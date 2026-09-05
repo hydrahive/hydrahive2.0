@@ -1,4 +1,4 @@
-import { readdirSync, statSync, writeFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { readdirSync, statSync, writeFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
 import { join, dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -32,7 +32,12 @@ const ids = readdirSync(modulesDir).filter((n) => {
   const p = join(modulesDir, n)
   if (!statSync(p).isDirectory() || !existsSync(join(p, "index.tsx"))) return false
   if (hasMissingLocalImport(p)) {
-    console.warn(`[gen-modules] überspringe ${n}: optionale Modulabhängigkeit fehlt`)
+    // Nur aus index.generated.ts auszublenden reicht nicht: tsconfig kompiliert
+    // weiterhin jedes *.ts(x) unter src/. Die Kopie unter frontend/src/modules
+    // ist jederzeit aus dem installierten Modul regenerierbar; deshalb entfernen
+    // wir ausschließlich diese Build-Kopie. Backend und Moduldaten bleiben intakt.
+    rmSync(p, { recursive: true, force: true })
+    console.warn(`[gen-modules] entferne Build-Kopie ${n}: Modulabhängigkeit fehlt`)
     return false
   }
   return true
