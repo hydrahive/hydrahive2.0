@@ -1,0 +1,35 @@
+{
+  "id": "wan21-flf2v",
+  "label": "Wan 2.1 FLF2V 14B Start-/Endbild (lokal)",
+  "category": "video",
+  "durations": [5],
+  "aspect_ratios": ["16:9"],
+  "frame_images": ["first_frame", "last_frame"],
+  "output_node": "SaveVideo",
+  "placeholders": {
+    "prompt": "6.inputs.text",
+    "seed": "3.inputs.seed",
+    "width": "5.inputs.width",
+    "height": "5.inputs.height",
+    "image_url": "12.inputs.image",
+    "end_image_url": "13.inputs.image"
+  },
+  "graph": {
+    "1": {"class_type": "UNETLoader", "inputs": {"unet_name": "wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors", "weight_dtype": "default"}},
+    "2": {"class_type": "CLIPLoader", "inputs": {"clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan", "device": "default"}},
+    "3": {"class_type": "KSampler", "inputs": {"seed": 1, "steps": 12, "cfg": 6.0, "sampler_name": "uni_pc", "scheduler": "simple", "denoise": 1.0, "model": ["4", 0], "positive": ["5", 0], "negative": ["5", 1], "latent_image": ["5", 2]}},
+    "4": {"class_type": "ModelSamplingSD3", "inputs": {"shift": 8.0, "model": ["1", 0]}},
+    "5": {"class_type": "WanFirstLastFrameToVideo", "inputs": {"positive": ["6", 0], "negative": ["7", 0], "vae": ["8", 0], "width": 832, "height": 480, "length": 81, "batch_size": 1, "clip_vision_start_image": ["15", 0], "clip_vision_end_image": ["16", 0], "start_image": ["12", 0], "end_image": ["13", 0]}},
+    "6": {"class_type": "CLIPTextEncode", "inputs": {"text": "cinematic transition with natural motion", "clip": ["2", 0]}},
+    "7": {"class_type": "CLIPTextEncode", "inputs": {"text": "static, blurry, low quality, distorted, text, watermark", "clip": ["2", 0]}},
+    "8": {"class_type": "VAELoader", "inputs": {"vae_name": "wan_2.1_vae.safetensors"}},
+    "9": {"class_type": "VAEDecode", "inputs": {"samples": ["3", 0], "vae": ["8", 0]}},
+    "10": {"class_type": "CreateVideo", "inputs": {"images": ["9", 0], "fps": 16.0}},
+    "11": {"class_type": "SaveVideo", "inputs": {"video": ["10", 0], "filename_prefix": "hydrahive/video", "format": "mp4", "codec": "h264"}},
+    "12": {"class_type": "LoadImage", "inputs": {"image": "hydrahive-start.png"}},
+    "13": {"class_type": "LoadImage", "inputs": {"image": "hydrahive-end.png"}},
+    "14": {"class_type": "CLIPVisionLoader", "inputs": {"clip_name": "clip_vision_h.safetensors"}},
+    "15": {"class_type": "CLIPVisionEncode", "inputs": {"clip_vision": ["14", 0], "image": ["12", 0]}},
+    "16": {"class_type": "CLIPVisionEncode", "inputs": {"clip_vision": ["14", 0], "image": ["13", 0]}}
+  }
+}

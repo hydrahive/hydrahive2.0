@@ -98,6 +98,9 @@ class _MockClient:
         return False
 
     async def post(self, url, json=None, **kw):
+        if url.endswith("/upload/image"):
+            label = "end" if "end" in str(kw.get("files")) else "start"
+            return _Resp({"name": f"hydrahive-{label}.png", "subfolder": "", "type": "input"})
         _MockClient.scenario["submitted_graph"] = json["prompt"]
         return _Resp({"prompt_id": "pid-1"})
 
@@ -130,6 +133,40 @@ def test_submit_posts_prompt_and_returns_jobref(monkeypatch):
     assert ref.extra["category"] == "video"
     # Prompt wurde in den gesendeten Graph gesetzt
     assert _MockClient.scenario["submitted_graph"]["6"]["inputs"]["text"] == "a cat"
+
+
+def test_submit_uploads_start_and_end_images(monkeypatch):
+    from hydrahive.llm.video_backends import _comfyui
+    from hydrahive.llm.video_backends._comfyui import ComfyUIVideoBackend
+    from hydrahive.llm.video_backends._base import VideoParams
+
+    _MockClient.scenario = {}
+    monkeypatch.setattr(_comfyui.httpx, "AsyncClient", _MockClient)
+    provider = {
+        "id": "wks", "type": "comfyui", "api_base": "http://wks:8188",
+        "workflows": [{
+            "id": "flf2v", "category": "video", "output_node": "SaveVideo",
+            "graph": {
+                "5": {"class_type": "WanFirstLastFrameToVideo", "inputs": {
+                    "start_image": "old-start", "end_image": "old-end",
+                }},
+            },
+            "placeholders": {
+                "image_url": "5.inputs.start_image",
+                "end_image_url": "5.inputs.end_image",
+            },
+        }],
+    }
+    ref = asyncio.run(ComfyUIVideoBackend().submit(
+        provider, "local:wks/flf2v", VideoParams(
+            prompt="transition",
+            image_url="data:image/png;base64,QUJD",
+            end_image_url="data:image/png;base64,REVG",
+        )))
+    assert ref.native_id == "pid-1"
+    graph = _MockClient.scenario["submitted_graph"]
+    assert graph["5"]["inputs"]["start_image"] == "hydrahive-start.png"
+    assert graph["5"]["inputs"]["end_image"] == "hydrahive-end.png"
 
 
 def test_poll_running_then_done(monkeypatch):
