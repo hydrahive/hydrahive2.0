@@ -1,824 +1,612 @@
-# HydraHive 2.0 — Benutzerhandbuch
+# HydraHive Benutzerhandbuch
 
-> **Für:** Endanwender, Familien-Admins, Nicht-Entwickler  
-> **Stand:** 2026-05-07  
-> **Weitere Dokumente:** [Installation](#installation) · [FAQ](#häufige-fragen)
+> **Für:** Anwender, Projektverantwortliche und Administratoren
+> **Stand:** 2026-09-06
+> **Funktionsstatus:** [FEATURES.md](FEATURES.md) · **Installation:** [installer/README.md](../installer/README.md)
 
----
+HydraHive ist eine selbst gehostete Arbeitsoberfläche für KI-Agenten, Projekte, Automatisierung und Medienproduktion. Die HydraHive-Daten liegen auf dem eigenen Server. Wenn du ein Cloud-Modell oder einen externen Dienst verwendest, werden die dafür nötigen Daten trotzdem an diesen Anbieter übertragen.
 
-## Inhaltsverzeichnis
-
-1. [Was ist HydraHive?](#was-ist-hydrahive)
-2. [Erste Schritte](#erste-schritte)
-3. [Die drei Agent-Typen](#die-drei-agent-typen)
-4. [Chat mit deinem Agent](#chat-mit-deinem-agent)
-5. [Projekte verwalten](#projekte-verwalten)
-6. [Spezialisten nutzen](#spezialisten-nutzen)
-7. [Skills & Fähigkeiten](#skills--fähigkeiten)
-8. [Messenger-Integration](#messenger-integration)
-9. [Butler (Automatisierung)](#butler-automatisierung)
-10. [Datamining & Suche](#datamining--suche)
-11. [Sicherheit & Privatsphäre](#sicherheit--privatsphäre)
-12. [Backup & Datenexport](#backup--datenexport)
-13. [Häufige Fragen](#häufige-fragen)
+Die sichtbaren Menüpunkte hängen von Rolle, installierten Modulen, aktivierten Integrationen und Bildschirmgröße ab. Die deutsche und englische Oberfläche können leicht abweichende Bezeichnungen verwenden.
 
 ---
 
-## Was ist HydraHive?
+## 1. Erste Anmeldung
 
-HydraHive ist dein **persönliches KI-Agenten-System**, das auf deinem eigenen Server läuft — nicht in der Cloud.
+Nach der Linux-Installation zeigt das Installationsskript:
 
-### Stell dir vor...
+- die HTTPS-Adresse des Servers;
+- den Benutzernamen `admin`;
+- das einmalig erzeugte Administrator-Passwort.
 
-- Du hast einen **persönlichen KI-Assistenten** (wie Claude oder ChatGPT), aber:
-  - ✅ Er läuft auf **deinem Server** — keine Daten gehen woanders hin
-  - ✅ Er **vergisst nichts** — alle Gespräche bleiben erhalten
-  - ✅ Er kann **wirklich arbeiten** — Dateien bearbeiten, Code schreiben, System verwalten
-  - ✅ Er ist **nur für dich** — oder für deine Familie/dein Team
-  - ✅ Er kann **andere Experten holen** wenn er Hilfe braucht
+Rufe anschließend `https://<server-ip>` auf. Das standardmäßig selbst signierte Zertifikat verursacht zunächst eine Browserwarnung. Prüfe, dass Adresse und Zertifikat zu deinem Server gehören, bevor du die Ausnahme bestätigst.
 
-### Was macht HydraHive besonders?
+Nach dem ersten Login:
 
-| Funktion | HydraHive | Cloud-Dienste |
-|----------|-----------|---------------|
-| **Privatsphäre** | Alles lokal auf deinem Server | Daten gehen zu Konzern |
-| **Kontextverlust** | ❌ Vergisst nichts | ✅ Jede Session ist neu |
-| **Mehrere Nutzer** | ✅ Pro-User-Isolation | ❌ Ein Account = ein User |
-| **Automatisierung** | ✅ Butler-Flows, Messenger-Bots | ❌ Nur Chat |
-| **Anpassbar** | ✅ Skills, Plugins, MCP-Server | ❌ Vorgegeben |
-| **Kosten** | Einmalige Server-Kosten | Monatliches Abo |
+1. ändere das Administrator-Passwort;
+2. richte mindestens einen Modellanbieter oder ein lokales Modell ein;
+3. prüfe unter **System/Integrationen**, welche optionalen Komponenten installiert wurden;
+4. lege für den Alltag einen normalen Benutzer an, wenn nicht jede Person Administratorrechte benötigt;
+5. aktiviere Tool-Bestätigungen für Agenten mit sensiblen System- oder Schreibwerkzeugen.
+
+> Administratoren können Benutzer, Server, Erweiterungen und Systemdienste verwalten. Vergib diese Rolle sparsam.
 
 ---
 
-## Erste Schritte
+## 2. Orientierung in der Oberfläche
 
-### Installation (für Server-Admin)
+Die wichtigsten Bereiche sind:
 
-```bash
-# Auf Ubuntu 24.04 Server
-git clone https://github.com/hydrahive/hydrahive2.0.git /opt/hydrahive2
-cd /opt/hydrahive2/installer
-sudo ./install.sh
-```
+| Bereich | Zweck |
+|---|---|
+| **Buddy** | persönlicher Standard-Assistent |
+| **Chats** | Unterhaltungen mit einem Agenten |
+| **Agenten** | Agenten, Modelle, Fähigkeiten und Tools konfigurieren |
+| **Läufe/Aufgaben** | aktive, wartende, abgeschlossene oder fehlgeschlagene Agentenläufe |
+| **Projekte** | gemeinsame Workspaces, Repositories, Mitglieder, Agenten und Aufgaben |
+| **Modelle / Provider** | Cloud- und lokale Modelle konfigurieren |
+| **Medien** | generierte Bilder, Audio und Videos verwalten |
+| **Prompt-Archiv** | wiederverwendbare Generierungsrezepte speichern |
+| **Atelier / Video Editor** | Charaktere, Szenen, Storyboards und Videos vorbereiten |
+| **Data Mining** | frühere Sessions durchsuchen und Aktivität auswerten |
+| **Module / Themes / Plugins** | HydraHive erweitern |
+| **Vault** | sensible Bereiche wie Akte, Crypto, Notizen, Credentials, Memory und Data Mining bewusst öffnen |
+| **Administration** | Benutzer, Sicherheit, Logs, Updates und Infrastruktur |
 
-Nach Installation:
-1. Browser öffnen: `http://<server-ip>/`
-2. Initiales Admin-Passwort holen:
-   ```bash
-   sudo journalctl -u hydrahive2 -n 50 | grep "Erster Start"
-   ```
-3. Einloggen mit `admin` + angezeigtem Passwort
-4. **Passwort sofort ändern** (Profil-Seite)
-
-### Erster Login
-
-1. **Web-UI öffnen** → `http://dein-server/`
-2. **Einloggen** mit deinen Zugangsdaten
-3. **Dashboard** zeigt Systemstatus
-
-**Du siehst jetzt:**
-- Deinen **Masteragent** (automatisch erstellt)
-- **Chat-Interface** (klick auf "Chat" in Sidebar)
-- **Agents-Seite** (um mehr Agents anzulegen)
+Auf kleinen Bildschirmen liegen globale Aktionen in kompakten Menüs. Projektbezogene Aktionen erscheinen innerhalb des jeweiligen Projekt-Cockpits.
 
 ---
 
-## Die drei Agent-Typen
+## 3. Mit Buddy und Agenten chatten
 
-HydraHive hat drei Arten von KI-Agents — jeder für einen anderen Zweck:
+### Neue Unterhaltung
 
-### 1. 👤 Masteragent (dein persönlicher Assistent)
+1. Öffne **Buddy**, **Chats** oder einen Agenten.
+2. Erstelle eine neue Session oder wähle eine bestehende aus.
+3. Gib die Aufgabe möglichst konkret ein.
+4. Hänge bei Bedarf Dateien oder Bilder an.
+5. Sende die Nachricht.
 
-**Was ist das?**
-- Dein **Haupt-Ansprechpartner**
-- Kennt **dich** und deine Vorlieben
-- Hat **Langzeitgedächtnis** (vergisst nie etwas)
-- Kann **alles** — Dateien, Shell-Befehle, Web-Suche, Email
+Antworten werden gestreamt. Während eines Laufs siehst du je nach Modell und Konfiguration:
 
-**Wann nutzen?**
-- Tägliche Fragen und Aufgaben
-- Planung und Organisation
-- Arbeitet mit dir an Projekten
-- Koordiniert andere Agents
+- bereits erzeugten Text;
+- Reasoning-/Statusinformationen;
+- angeforderte Tool-Aufrufe;
+- laufende, bestätigungspflichtige oder beendete Aktionen;
+- Token- und Modellinformationen.
 
-**Beispiele:**
-- *"Erstelle mir eine Einkaufsliste für Pasta Carbonara"*
-- *"Fasse zusammen was wir letzte Woche über das Website-Projekt besprochen haben"*
-- *"Schreibe eine Email an Till und frage nach dem Meeting-Termin"*
+### Anhänge
 
-### 2. 📁 Projektagent (für ein spezifisches Projekt)
+Chatnachrichten können Dateien enthalten. Der Linux-Proxy begrenzt normale Chat-Uploads auf ungefähr 200 MiB Nutzdaten plus Multipart-Overhead. Andere Upload-Endpunkte, etwa ISO- oder Mediendateien, haben eigene Grenzen.
 
-**Was ist das?**
-- Arbeitet **nur** in einem bestimmten Projekt-Ordner
-- Kennt **nur seinen Workspace** (kann nicht woanders hin)
-- Hat **eigene Konfiguration** (anderes LLM-Modell, andere Tools)
-- Kein persönliches Gedächtnis — fokussiert auf das Projekt
+Ein Anhang kann in Modellkontext oder Werkzeugaufrufe einfließen. Prüfe vor dem Upload vertraulicher Dateien, ob das ausgewählte Modell lokal läuft oder ein Cloud-Anbieter ist.
 
-**Wann nutzen?**
-- Software-Entwicklung (ein Projekt = ein Agent)
-- Dokument-Bearbeitung (z.B. Buch schreiben)
-- Git-Repositories verwalten
+### Tool-Bestätigungen
 
-**Beispiele:**
-- Projekt "Website-Relaunch" → Projektagent arbeitet nur in `/projects/website/`
-- Projekt "Hausautomation" → Projektagent kennt nur seine Config-Files
+Ein Agent kann so eingestellt werden, dass Werkzeugaufrufe vor der Ausführung bestätigt werden müssen. Dann zeigt der Chat:
 
-### 3. 🎓 Spezialist-Agent (Domänen-Experte)
+1. den Werkzeugnamen;
+2. die beabsichtigten Parameter;
+3. eine Schaltfläche zum Erlauben oder Ablehnen.
 
-**Was ist das?**
-- **Experte** für ein bestimmtes Thema (Kochen, Security, Medizin, ...)
-- Wird nur **bei Bedarf geliehen** (nicht dauerhaft)
-- **Lernt** aus jedem Einsatz (schreibt Notizen was funktioniert hat)
-- Kann von **mehreren Usern** genutzt werden
+Lies insbesondere Shell-, Datei-, Server-, Download-, Mail- und Smart-Home-Aktionen vollständig. Eine Bestätigung gilt für die konkrete angezeigte Aktion, nicht pauschal für alle späteren Aufrufe.
 
-**Wann nutzen?**
-- Du brauchst Experten-Wissen (z.B. "Kochrezepte", "Netzwerk-Security")
-- Masteragent oder Projektagent holt Hilfe
-- Aufgabe braucht spezialisiertes Wissen
+### Stoppen, fortsetzen und neu laden
 
-**Beispiele:**
-- *"Hole den Koch-Spezialisten und frage nach vegetarischen Rezepten für 4 Personen"*
-- *"Security-Spezialist soll meine nginx-Config prüfen"*
+- **Stoppen** bricht den aktuellen Lauf ab.
+- **Neu laden** verbindet sich wieder mit einem noch laufenden, abgekoppelten Lauf.
+- **Fortsetzen** nimmt eine pausierte Session wieder auf, zum Beispiel nach Erreichen des Iterationslimits.
+- **Erneut senden** startet einen neuen Versuch ab einer ausgewählten Nachricht.
+
+HydraHive speichert Laufzustand und Nachrichten serverseitig. Ein geschlossenes Browserfenster muss einen abgekoppelten Lauf daher nicht beenden.
+
+### Modell oder Reasoning pro Session ändern
+
+Wenn freigeschaltet, kannst du im Chat für eine einzelne Session ein anderes Modell oder eine andere Reasoning-Tiefe auswählen. Diese Auswahl überschreibt die Agentenvorgabe nur für diese Session.
+
+### Sessions organisieren
+
+Du kannst Sessions erstellen, umbenennen, einem Projekt zuordnen, ihren Status ändern und löschen. Die Chat-Suche filtert geladene Nachrichten. Der lokale Befehl `/export` formatiert den aktuell geladenen Verlauf als Markdown im Chat; er erzeugt keinen vollständigen Server-Backup.
+
+Die zuvor dokumentierten Archiv-, Tag- und Fork-Funktionen sind im aktuellen Core-Session-API nicht vorhanden. Löschen ist dauerhaft; nutze ein System-Backup, wenn der Verlauf erhalten bleiben soll.
 
 ---
 
-## Chat mit deinem Agent
+## 4. Agenten konfigurieren
 
-### Chat-Interface
+Ein Agent ist mehr als ein Chatprofil. Seine Konfiguration bestimmt, welches Modell, welcher Kontext und welche Werkzeuge verfügbar sind.
 
-```
-┌─────────────────────────────────────────────────┐
-│  [Agent: Masteragent ▼]  [Modell: Claude 3.5 ▼] │  ← Header
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  👤 User:                                       │
-│  Schreibe mir eine Python-Funktion die...      │
-│                                                 │
-│  🤖 Agent:                                      │
-│  Natürlich! Hier ist die Funktion:             │
-│  ```python                                      │
-│  def calculate_total(items):                    │
-│      return sum(i['price'] for i in items)      │
-│  ```                                            │
-│                                                 │
-│  🔧 Tool: shell_exec                            │  ← Tool-Ausführung sichtbar
-│  Command: pytest test_calculate.py             │
-│  ✅ Output: All tests passed                    │
-│                                                 │
-├─────────────────────────────────────────────────┤
-│  💬 Deine Nachricht...              [📎] [Send] │  ← Input
-└─────────────────────────────────────────────────┘
-```
+### Wichtige Felder
 
-### Funktionen
+| Feld | Bedeutung |
+|---|---|
+| **Name und Beschreibung** | sichtbare Identität und Zweck |
+| **System-Prompt** | dauerhafte Verhaltens- und Aufgabenanweisung |
+| **Primärmodell** | Standardmodell für Antworten |
+| **Fallback-Modelle** | Alternativen bei Fehlern des Primärmodells |
+| **Kompaktierungsmodell** | optionales Modell für Zusammenfassungen langer Sessions |
+| **Temperatur** | Zufälligkeit/Kreativität, soweit vom Anbieter unterstützt |
+| **Max Tokens** | maximales Ausgabe-Budget pro Modellaufruf |
+| **Reasoning** | gewünschte Denktiefe, soweit vom Modell unterstützt |
+| **Max Iterationen** | Anzahl Modell-/Werkzeugrunden vor einer Pause |
+| **Tools** | erlaubte native oder Plugin-Werkzeuge |
+| **MCP-Server** | zusätzliche Werkzeuge externer MCP-Dienste |
+| **Skills** | wiederverwendbare Anleitungen |
+| **Langzeitgedächtnis** | erlaubt Recall und Memory-Karten |
+| **Bestätigung erforderlich** | hält Tool-Aufrufe bis zur Freigabe an |
 
-#### 📎 Dateien anhängen
-- **Bilder** hochladen → Agent kann sie analysieren
-- **Dokumente** (PDF, .txt) → Agent liest sie
-- **Code-Files** → Agent kann sie reviewen
+Nicht jedes Modell unterstützt jedes Feld. HydraHive blendet Optionen nach Möglichkeit passend ein; der Anbieter kann dennoch eine Einstellung ignorieren oder ablehnen.
 
-#### 🎤 Spracheingabe (optional)
-- Mikrofon-Button → sprich deine Nachricht
-- STT via Wyoming-Whisper (lokal, keine Cloud)
+### Buddy, Projektagenten und Spezialisten
 
-#### 🔊 Sprachausgabe (optional)
-- Agent-Antworten werden vorgelesen
-- TTS konfigurierbar (Profil-Seite)
+- **Buddy** ist der persönliche Standard-Assistent eines Benutzers.
+- **Persönliche Agenten** arbeiten im eigenen Agenten-Workspace.
+- **Projektagenten** erhalten Zugriff auf den Workspace eines Projekts.
+- **Spezialisten** gehören zu einem Projekt oder übergeordneten Agenten und können über AgentLink beauftragt werden.
 
-#### 🎨 Reasoning Effort (für GPT-5 / Claude Extended Thinking)
-- **Low**: Schnelle Antworten
-- **Medium**: Normale Qualität
-- **High**: Tiefes Nachdenken (langsamer, besser)
+Ein Agent bekommt nicht automatisch Zugriff auf andere Projekte oder Benutzerressourcen.
 
-Wählbar im Chat-Header (nur bei Modellen mit Extended Thinking Support).
+### Agenten-Konfigurationsumfang
 
-### Was kann dein Agent tun?
-
-| Fähigkeit | Beispiel |
-|-----------|----------|
-| **Dateien lesen/schreiben** | *"Ändere in config.py die Zeile 23 zu X"* |
-| **Shell-Befehle** | *"Installiere nginx via apt"* |
-| **Web-Suche** | *"Suche nach aktuellen News zu Python 3.13"* |
-| **Git-Operationen** | *"Committe die Änderungen mit Message 'Fix bug'"* |
-| **Code ausführen** | *"Führe pytest aus und zeige mir die Fehler"* |
-| **Andere Agents fragen** | *"Frage den Projekt-Agent nach dem Status"* |
-| **Notizen schreiben** | *"Merke dir: Till mag keinen Kaffee"* |
-| **Todo-Listen** | *"Setze 'README schreiben' auf die Todo-Liste"* |
-
-**Wichtig:** Dein Agent arbeitet wie **Claude Code** — er tut was nötig ist, keine künstlichen Einschränkungen.
+Der aktuelle Core bietet Agenten-CRUD, System-Prompt, Soul-/Markdown-Komponenten, Vorlagen, Tools, MCP und Skills. Ein allgemeiner Agenten-Import/-Export-Endpunkt ist im aktuellen API nicht vorhanden; sichere Konfigurationen deshalb über den normalen System-/Datei-Backup-Pfad.
 
 ---
 
-## Projekte verwalten
+## 5. Skills, MCP und Plugins
 
-### Was ist ein Projekt?
+### Skills
 
-Ein **Projekt** ist:
-- Ein **Ordner** auf dem Server (Workspace)
-- Ein **Projektagent** der nur dort arbeitet
-- Optional ein **Git-Repository**
-- Optional **Samba-Share** (Netzwerk-Zugriff)
-- **Members** (welche User dürfen rein)
+Ein Skill ist eine wiederverwendbare Markdown-Anleitung mit Beschreibung und Aktivierungsregel. Skills können global, projektweit oder nur für einen Spezialisten gelten.
+
+Gute Skills enthalten:
+
+- wann sie verwendet werden sollen;
+- eine klare Schrittfolge;
+- Sicherheits- und Bestätigungsregeln;
+- erwartete Ein- und Ausgaben;
+- Verifikationsschritte.
+
+Deaktiviere einen Skill für einen Agenten, wenn er dessen Aufgabe stört oder unnötig Kontext verbraucht.
+
+### MCP-Server
+
+MCP-Server stellen externe Werkzeuge bereit. HydraHive unterstützt konfigurierte MCP-Verbindungen; tatsächlich sichtbare Werkzeuge hängen von Serverstatus und Agentenzuweisung ab.
+
+Vor der Freigabe:
+
+1. prüfe URL/Befehl und Betreiber;
+2. hinterlege nötige Credentials in HydraHive statt im Prompt;
+3. teste die Verbindung;
+4. weise nur die benötigten Werkzeuge zu.
+
+### Plugins
+
+Plugins sind lokal installierte Agentenwerkzeuge. Sie laufen als Subprozess mit eingeschränkter Umgebung, aber nicht in einer vollständig sicheren Sandbox. Installiere nur geprüften Code und gib Plugins nur den Agenten, die sie benötigen.
+
+---
+
+## 6. Projekte
+
+Ein Projekt bündelt Arbeitsdaten und Zusammenarbeit:
+
+- Mitglieder und Rollen;
+- einen isolierten Workspace;
+- Repositories;
+- Projektagenten und Spezialisten;
+- projektgebundene Aufgaben aus dem Tasks-Modul;
+- Sessions, Statistiken und Audit-Ereignisse;
+- Dateien und Medien;
+- optional VM-/Container-Zuordnung, Mounts, Integrationen und einen Code-Graphen.
 
 ### Projekt anlegen
 
-1. Das **Projekt-Cockpit** unter `/projects` öffnen.
-2. Links das Panel **Projekt** aufklappen.
-3. **+ Neues Projekt** wählen.
-4. Name, Beschreibung und Projektagent festlegen.
-5. Projekt anlegen; weitere Zugriffe und Integrationen anschließend projektbezogen konfigurieren.
+1. Öffne **Projekte**.
+2. Wähle **Neues Projekt**.
+3. Vergib Name und Beschreibung.
+4. Füge Mitglieder und Rollen hinzu.
+5. Verknüpfe vorhandene Repositories oder lege sie über GitHub/Gitea an.
+6. Erstelle anschließend Agenten und Spezialisten für konkrete Aufgaben.
 
-**Was passiert:**
-- Ein eigener Projekt-Workspace wird erstellt.
-- Ein Projektagent wird angelegt und an den Workspace gebunden.
-- Das Projekt wird als aktiver Cockpit-Kontext gespeichert.
+### Mitglieder und Rollen
 
-### Projekt verwalten
+Der Projekteigentümer verwaltet Mitgliedschaft und Projektrollen. Entferne Personen nur, wenn geklärt ist, wem offene Sessions, Aufgaben oder externe Zugänge gehören. Globale Administratorrechte ersetzen nicht die fachliche Verantwortung des Projekteigentümers.
 
-Alle Fachaktionen liegen bewusst im linken Panel **Projekt**, nicht in der globalen Topbar:
+### Dateien
 
-- **Bearbeiten** — Basisdaten, Status, Notizen und kontrolliertes Löschen
-- **Verwalten → Zugriff** — Members und Spezialisten
-- **Verwalten → Server** — Server, VMs und Container
-- **Verwalten → Mounts** — SMB- und Netzwerkfreigaben
-- **Verwalten → Git** — Init, Clone, Commit, Remotes, Pull und Push
-- **Verwalten → Integrationen** — MCP, Plugins, LLM-Projekt-Key und Samba
-- **Auswerten** — Statistiken, Sessions und Audit
+Im Dateibereich kannst du:
 
-Bestehende Secrets werden im Cockpit nicht offengelegt. Insbesondere werden gespeicherte Git-Tokens, vorhandene LLM-Projekt-Keys und Samba-Passwörter nicht angezeigt.
+- Verzeichnisse durchsuchen;
+- Dateien anzeigen und bearbeiten;
+- Dateien hoch- und herunterladen;
+- neue Dateien/Ordner anlegen;
+- Dateien löschen;
+- konfigurierte SMB-Mounts verwenden.
 
-### Globale Cockpit-Menüs
+Dateiwerkzeuge eines Projektagenten arbeiten standardmäßig relativ zum Projekt-Workspace. Absolute Pfade oder Serverwerkzeuge können weiterreichende Rechte haben und sollten nur gezielt erlaubt werden.
 
-Die obere Leiste enthält nur globale Funktionen: Cockpit-Wechsel, **Apps**, kontextuelle **Hilfe** und das Benutzermenü mit Profil, Einstellungen und Abmelden. Auf kleinen Displays liegen diese Funktionen in einem Drawer.
+### Git und Repositories
 
-### Mit Projekt arbeiten
+HydraHive zeigt Repository-Status und unterstützt Git-Aktionen. Für private Remotes muss ein passendes Credential-Profil oder Projekt-Token eingerichtet sein.
 
-**Im Chat:**
-```
-User: Arbeite an Projekt "Website-Relaunch"
-Agent: Wechsle zu Projekt-Agent...
-       [AgentLink übernimmt]
-Project-Agent: Hallo! Ich bin der Agent für Website-Relaunch.
-               Was soll ich tun?
-```
+Vor Commit oder Push:
 
-**Oder direkt:**
-- Projekte-Seite → Projekt auswählen → "Chat öffnen"
+1. prüfe `git status` und Diff;
+2. stelle nur beabsichtigte Dateien bereit;
+3. führe projektbezogene Tests aus;
+4. verwende nachvollziehbare Commit-Nachrichten;
+5. pushe erst nach erfolgreicher Prüfung.
 
-### Projekt-Workspace via Samba
+### Projektaufgaben
 
-**Wenn Samba aktiviert:**
-1. **Windows**: `\\dein-server\hydrahive-projekt-name`
-2. **Mac**: `smb://dein-server/hydrahive-projekt-name`
-3. **Login**: Dein HydraHive-Username + Passwort
+Das Aufgabenboard nutzt das erforderliche Tasks-Modul. Es unterstützt Titel, Priorität, Projektbezug und die Statuswerte `open`, `in_progress`, `done` und `cancelled`. Der aktuelle Core enthält weder Aufgabenkommentare noch GitHub-Issue-Synchronisation.
 
-Jetzt kannst du Dateien im Projekt direkt bearbeiten (z.B. mit VSCode, Word, etc.).
+### Code-Graph
 
----
+Der Code-Graph hilft bei Fragen wie:
 
-## Spezialisten nutzen
+- „Was ruft diese Funktion auf?“
+- „Welche Dateien sind von einer Änderung betroffen?“
+- „Wie hängen zwei Symbole zusammen?“
+- „Erkläre diesen Knoten.“
 
-### Spezialist anlegen
+Der Graph muss zuerst für die gewünschten Verzeichnisse gebaut werden. Nach Codeänderungen ist ein Refresh nötig; sonst beziehen sich Ergebnisse auf den letzten Build.
 
-1. **Agents-Seite** → **"Neuer Spezialist"**
-2. **Name** (z.B. "Koch-Experte")
-3. **Domäne** beschreiben (z.B. "Vegetarische Küche, mediterrane Rezepte")
-4. **Skills** zuweisen (z.B. "Rezept-Datenbank", "Nährwert-Berechnung")
-5. **LLM-Modell** wählen (kann anders sein als Masteragent)
+### Integrationen, Mounts und Laufzeitzuordnung
 
-### Spezialist nutzen
-
-**Über ask_agent-Tool:**
-```
-User: Frage den Koch-Spezialisten nach einem vegetarischen Rezept für 4 Personen
-
-Agent: [nutzt ask_agent-Tool]
-       → AgentLink leitet Anfrage an Koch-Spezialisten
-       → Koch-Spezialist antwortet mit Rezept
-       → Antwort zurück an Masteragent
-
-Agent: Der Koch-Spezialist empfiehlt:
-       Auberginen-Moussaka mit Feta...
-```
-
-**Direkt chatten:**
-- Agents-Seite → Spezialist auswählen → "Chat öffnen"
-
-### Was Spezialisten besonders macht
-
-- ✅ **Lernen**: Nach jedem Einsatz schreiben sie Notizen (was hat funktioniert, was nicht)
-- ✅ **Mehrfach-Nutzung**: Mehrere User können denselben Spezialisten nutzen
-- ✅ **Domain-Fokus**: Spezialisierte Skills und Prompts
-- ✅ **On-Demand**: Wird nicht dauerhaft betrieben, nur bei Bedarf
+Im Projekt-Cockpit können je nach Projektrolle MCP-Server-IDs, erlaubte Plugins, ein Projekt-LLM-Key, Samba, SMB-Mounts sowie VMs/Container zugeordnet werden. Die Zuordnung ändert den Projektbezug; sie ersetzt keine Ressourcenlimits des Hosts oder Providers. Ein allgemeines Projektbudget-System ist im aktuellen Core nicht vorhanden.
 
 ---
 
-## Skills & Fähigkeiten
+## 7. Modelle und Provider
 
-### Was sind Skills?
+### Cloud-Provider
 
-**Skills** sind wiederverwendbare **Verhaltensmuster** — wie Rezepte die dem Agent sagen "so gehst du vor".
+HydraHive enthält direkte Katalog-/Konfigurationspfade für Anthropic, OpenAI, OpenAI Codex OAuth, OpenRouter, Groq, Mistral, Google Gemini, NVIDIA NIM, MiniMax und Ollama. Modelle weiterer Anbieter können über Aggregatoren wie OpenRouter oder NVIDIA NIM erscheinen; das ist kein eigener direkter Provider-Adapter.
 
-**Beispiele:**
-- `code-review` → Wie macht man gutes Code-Review
-- `debugging` → Strukturierte Bug-Suche
-- `git-workflow` → Saubere Git-Commits
-- `refactor` → Code-Qualität verbessern
+Zum Einrichten:
 
-### Skill nutzen
+1. öffne **Modelle** oder **Provider**;
+2. wähle den Provider;
+3. hinterlege API-Key, OAuth-Verbindung oder Basis-URL;
+4. aktualisiere den Modellkatalog;
+5. teste ein Modell zunächst mit einem unkritischen Prompt;
+6. weise es anschließend einem Agenten zu.
 
-**Im Chat:**
-```
-User: Nutze den Skill "code-review" für die Datei app.py
+Die angezeigten Kosten sind Schätzungen auf Basis der hinterlegten Preismetadaten und gemessenen Tokens. Die Providerrechnung ist maßgeblich.
 
-Agent: [lädt code-review-Skill]
-       Ich führe jetzt einen strukturierten Code-Review durch:
-       
-       1. Lesbarkeit prüfen...
-       2. Sicherheit checken...
-       3. Performance analysieren...
-       
-       Ergebnis: 3 Warnungen gefunden...
-```
+### Lokale Modelle
 
-**Oder automatisch:**
-- Agent erkennt selbst wann ein Skill passt
-- Skill wird geladen und ausgeführt
+Für Ollama-kompatible Laufzeiten gibt es Modellbestand, Pull/Löschen und Laufzeitaktionen. Wenn `llmfit` installiert ist, zeigt HydraHive eine Hardware-Eignungsschätzung.
 
-### Eigene Skills erstellen
+Eine Eignungsschätzung garantiert weder Geschwindigkeit noch Stabilität. Kontextgröße, Quantisierung, parallele Nutzer und GPU-Offloading verändern den tatsächlichen Speicherbedarf.
 
-**Als Markdown-Datei:**
-```markdown
----
-name: mein-skill
-description: Macht etwas Cooles
-when_to_use: Wenn User X fragt
----
+### Fallbacks
 
-# Anleitung für den Agent
-
-1. Mache zuerst Y
-2. Dann prüfe Z
-3. Gib Ergebnis zurück im Format...
-```
-
-**Hochladen:**
-- Skills-Seite → "Neuer Skill" → Markdown-Datei hochladen
-- Agent kann Skill jetzt nutzen
+Fallback-Modelle werden in Reihenfolge verwendet, wenn der primäre Aufruf in einem unterstützten Fehlerfall scheitert. Nutze nur Modelle, denen derselbe Prompt- und Datenkontext anvertraut werden darf.
 
 ---
 
-## Messenger-Integration
+## 8. Medien, Prompt-Archiv, Atelier und Video Editor
+
+### Mediengenerierung
+
+HydraHive kann je nach konfiguriertem Anbieter erzeugen oder verarbeiten:
+
+- Bilder;
+- Musik;
+- Sprache/Voiceover;
+- Videos;
+- Audiotranskriptionen.
+
+Generierte Dateien erscheinen in Medienansichten und können einem Projekt zugeordnet sein. Videojobs laufen häufig asynchron; die Dauer hängt vom Anbieter ab.
+
+### Lokale Medienmodelle
+
+Auf kompatiblen NVIDIA/CUDA-Systemen kann der Installer lokale Bild-/Videomodelle vorbereiten. Modelle müssen separat installiert und benötigen erheblichen Speicher. Wenn kein kompatibler Worker verfügbar ist, bleibt die lokale Option deaktiviert oder meldet einen Infrastrukturfehler.
+
+### Prompt-Archiv
+
+Speichere gute Generierungsrezepte mit:
+
+- Titel und Kategorie;
+- variablem Prompt;
+- festem Stil-Anker;
+- Modell und Parametern;
+- Tags und Notizen;
+- optionalem Beispielmedium.
+
+Für konsistente Bildserien ist der Stil-Anker konstant zu halten; Motiv und Szene gehören in den variablen Teil.
+
+### Atelier
+
+Atelier ist ein Modul aus dem offiziellen Hub und hängt vom Video-Editor-Modul ab; die Modulverwaltung installiert die Abhängigkeit zuerst. Das Atelier organisiert kreative Projekte:
+
+1. Projekt/CI mit Stil-Anker, Palette und Format einrichten;
+2. Charaktere mit Beschreibung, Modell, Seed und Referenzen anlegen;
+3. Drehbuchkopf und Szenen definieren;
+4. Dialoge, Emotion, Kamera, Ort, Tageszeit und Musik je Szene festlegen;
+5. Bildmaterial generieren und in der Galerie prüfen;
+6. geeignete Szenen an die Videoerstellung übergeben.
+
+Nicht jede Modellkombination unterstützt Seeds, Referenzbilder oder jedes Seitenverhältnis gleich zuverlässig.
+
+### Video Editor
+
+Der Video Editor verwaltet Projekte, Assets, Timeline, Trimmen/Teilen, Transkription und Renderjobs. Große Quelldateien und Exporte benötigen ausreichend lokalen Speicher und ffmpeg-Unterstützung.
+
+---
+
+## 9. Integrierte Arbeitsbereiche
+
+Der Core und der offizielle Modul-Hub stellen zusätzliche Arbeitsbereiche bereit:
+
+- **Butler (Core):** Trigger-/Bedingungs-/Aktions-Flows, Dry-Run und Projekt-Webhooks;
+- **Zahnfee (Core/Admin):** Dental-Labor- und Auftragsworkflow;
+- **Streaming (Core):** Ghostflix-Serienauswahl und Downloadjobs in einen Plex-Pfad;
+- **Archiver:** Webseiten, Foren-Threads und Dokumente archivieren, diagnostizieren und reparieren;
+- **Atelier + Video-Editor:** KI-Medienproduktion und browserbasierter Schnitt;
+- **Blueprint:** visueller Node-Canvas für Layouts und Abläufe;
+- **Brettspiele / Minigames:** Spiele und Ergebnis-/Highscore-Speicherung;
+- **Cryptoboard:** Kurse, Watchlist, Portfolio, Trades, Wallets, Alerts, Indikatoren und News;
+- **Deep Research:** mehrstufige, quellenbasierte Rechercheberichte;
+- **Haushaltsbuch:** Haushalte, Buchungen, Budgets/Planung, Bankimport und experimenteller read-only Lidl-Plus-Sync;
+- **Home Assistant:** Entitäten lesen, Templates rendern und Dienste ausführen;
+- **Mediacenter:** profilgefilterte Suche und kontrollierte SABnzbd-Übergabe;
+- **Musicplayer:** Playlist/Equalizer für hochgeladene oder erzeugte Musik;
+- **Notizbuch:** persönliche Notizen;
+- **Meine Akte:** strukturierte Akte, eGA/FHIR-Import und Apple-Health-Ansichten;
+- **Scratchpad:** getrennte User- und Agenten-Notizzonen;
+- **Aufgaben:** persistente persönliche und projektbezogene Tasks;
+- **Voice:** Voicebox für den Home-Assistant-Voice-PE-Pfad.
+
+Das Beispiel-Modul ist nur eine Entwicklungsvorlage. Ein sichtbarer Bereich kann zusätzliche Zugangsdaten, Datenimporte oder einen externen Dienst benötigen. Medizinische, finanzielle und Krypto-Funktionen ersetzen keine professionelle Beratung.
+
+---
+
+## 10. Integrationen und Kommunikationskanäle
 
 ### WhatsApp
 
-**Was geht:**
-- Agent antwortet auf WhatsApp-Nachrichten
-- Bilder analysieren ("Was ist auf dem Foto?")
-- Dateien empfangen und verarbeiten
-
-**Einrichtung:**
-1. **System-Seite** → **WhatsApp** → **QR-Code scannen**
-2. WhatsApp-App öffnen → **Einstellungen** → **Verknüpfte Geräte**
-3. QR-Code scannen
-4. Fertig! Jetzt kann dein Masteragent WhatsApp empfangen
-
-**Filter einrichten:**
-- Nur bestimmte Kontakte → Agent antwortet nur auf ausgewählte Personen
-- Nur Gruppen → Agent antwortet nur in bestimmten WhatsApp-Gruppen
-- Keyword-Filter → Nur wenn Nachricht "!hydra" enthält
+Die Linux-Installation kann die Bridge automatisch einrichten. Pairing und Status werden in der Weboberfläche verwaltet. Ein getrenntes WhatsApp-Konto bzw. die von WhatsApp geforderte Kopplung ist nötig.
 
 ### Discord
 
-**Was geht:**
-- Bot in Discord-Server einladen
-- Agent antwortet auf Mentions (`@HydraHive wie spät ist es?`)
-- Slash-Commands (`/ask Erkläre mir Quantenphysik`)
+Hinterlege Bot-Konfiguration und Token, teste die Verbindung und ordne eingehende Nachrichten dem gewünschten Agenten zu. Bot-Rechte auf dem Discord-Server begrenzen, was HydraHive dort sehen oder senden kann.
 
-**Einrichtung:**
-1. **System-Seite** → **Discord**
-2. **Bot-Token** eingeben (von Discord Developer Portal)
-3. **Server auswählen**
-4. **Fertig!**
+### Matrix-Teamchat
 
-### Telegram
+Der Teamchat nutzt Matrix. HydraHive kann mit einem vorhandenen Homeserver arbeiten; der Extension-/Installer-Bereich kann Tuwunel als separaten Dienst bereitstellen. Räume und Mitglieder werden nicht allein durch das Aktivieren der UI erzeugt.
 
-**Was geht:**
-- Bot in Telegram-Chats nutzen
-- Private Nachrichten an Bot
-- Gruppen-Chat mit Bot
+### E-Mail
 
-**Einrichtung:**
-1. **System-Seite** → **Telegram**
-2. **Bot-Token** eingeben (von @BotFather)
-3. **Fertig!**
+IMAP dient zum Lesen, SMTP zum Senden. Die Mailwerkzeuge verändern beim Lesen standardmäßig nicht den Gelesen-Status. Verwende anwendungsspezifische Passwörter, wenn der Mailanbieter sie anbietet.
 
-### Matrix (selbst gehostet)
+### Smart Home
 
-**Was geht:**
-- Eigener Matrix-Homeserver (conduwuit)
-- Agent als Matrix-Bot
-- E2E-verschlüsselt (optional)
-
-**Einrichtung:**
-- Admin-Sache (siehe Admin-Handbuch)
+Home Assistant wird über URL und Token angebunden. Leseaktionen sind von Schaltaktionen zu unterscheiden. Bei mehrdeutigen Geräten sollte ein Agent zuerst die Entitäten auflisten, bevor er einen Dienst aufruft.
 
 ---
 
-## Butler (Automatisierung)
+## 11. Module, Themes, Plugins und Extensions
 
-### Was ist Butler?
+Diese Begriffe sind nicht austauschbar:
 
-**Butler** ist ein visueller Flow-Builder — du erstellst **Regeln** ohne Code:
+| Typ | Was wird erweitert? | Typisches Risiko |
+|---|---|---|
+| **Modul** | HydraHive-Navigation, UI, API und optional Agententools | läuft als Teil der Anwendung |
+| **Theme** | Erscheinungsbild | CSS-/Darstellungsfehler |
+| **Plugin** | Agententools | lokaler Subprozess mit Tool-Fähigkeiten |
+| **Extension** | externer Dienst/Systempaket | Installation kann Root-/Docker-Rechte verwenden |
 
-```
-Wenn [Trigger] → Prüfe [Bedingung] → Führe [Aktion] aus
-```
+### Module/Themes installieren
 
-**Beispiele:**
-- *"Wenn neue Email von Till → Leite an Masteragent → Fasse zusammen und schicke Telegram-Nachricht"*
-- *"Jeden Montag 9 Uhr → Erstelle Todo-Liste für die Woche"*
-- *"Wenn Datei in /projects/website/ geändert wird → Git-Commit → Slack-Notification"*
+1. Öffne die Modul- bzw. Theme-Verwaltung.
+2. Wähle die konfigurierte Registry/Quelle.
+3. Prüfe Version, Mindest-Core-Version und Abhängigkeiten.
+4. Starte die Installation und beobachte den Hintergrundjob.
+5. Aktiviere das Paket und lade die Oberfläche neu.
 
-### Flow erstellen
+Bei einem defekten Modul bleiben andere Module nach Möglichkeit verfügbar. Ein Backend-Neustart kann nötig sein, um entfernte Python-Module vollständig aus dem Prozess zu lösen.
 
-1. **Butler-Seite** öffnen
-2. **"Neuer Flow"** klicken
-3. **Trigger** wählen:
-   - ⏰ **Zeit** (Cron: täglich, wöchentlich, ...)
-   - 📧 **Email** (neue Email empfangen)
-   - 📁 **Datei** (Datei geändert, erstellt, gelöscht)
-   - 💬 **Messenger** (WhatsApp/Discord/Telegram-Nachricht)
-   - 🌐 **Webhook** (HTTP POST von extern)
+### Extensions installieren
 
-4. **Bedingung** hinzufügen (optional):
-   - 🔍 **Regex-Match** (Text enthält "wichtig")
-   - ⏱️ **Zeitfenster** (nur zwischen 9-17 Uhr)
-   - 👤 **User-Match** (nur wenn von User X)
+Extensions installieren Drittsoftware wie Gitea, Ollama, Plex, SearXNG oder Vaultwarden. Die genaue Auswahl steht in [FEATURES.md](FEATURES.md).
 
-5. **Aktion** wählen:
-   - 🤖 **Agent ausführen** (Masteragent beauftragen)
-   - 📧 **Email senden**
-   - 💬 **Messenger-Nachricht**
-   - 🌐 **HTTP POST** (Webhook an externe API)
-   - 📝 **Log schreiben**
+Da Installationsskripte privilegiert laufen können:
 
-6. **Aktivieren** → Flow läuft ab jetzt
-
-### Beispiel-Flow (Backup-Reminder)
-
-```
-Trigger:  ⏰ Cron: "0 20 * * 0" (Jeden Sonntag 20 Uhr)
-    ↓
-Bedingung: [keine]
-    ↓
-Aktion:   💬 Telegram-Nachricht an Admin:
-          "Backup erstellen! Letzte Woche vergessen?"
-```
+- nur als Administrator ausführen;
+- Manifest und Skript vorher prüfen;
+- Backup erstellen;
+- Ports, Speicher und bestehende Dienste kontrollieren;
+- Installationslog auf Fehler prüfen.
 
 ---
 
-## Datamining & Suche
+## 12. Vault
 
-### Was ist Datamining?
+Vault ist ein offline-first Launchpad für sensible HydraHive-Bereiche: Patientenakte, Cryptoboard, Scratchpad, Credentials, Data Mining und Memory. Beim Öffnen startet es keine breite Suche, keinen Export und keine LLM-Auswertung; diese Aktionen bleiben bewusst getrennt.
 
-**Datamining** durchsucht **alle deine Gespräche** mit Agents — findet was du vor Wochen besprochen hast.
+Die derzeit angezeigte Angabe „gesperrt nach 15 min“ ist noch kein implementierter Hard-Lock. Die Seite bezeichnet Vault-Lock/Unlock, Dokument-/OCR-Konsolidierung und einen kontextgeschützten Vault-Chat ausdrücklich als weitere Ausbaustufen. Behandle den aktuellen Vault daher als Navigations- und Soft-Guard, nicht als zusätzliche kryptografische Sperre.
 
-**Features:**
-- 🔍 **Volltextsuche** — finde Nachrichten mit bestimmten Wörtern
-- 🧠 **Semantische Suche** — finde *ähnliche* Themen (auch ohne exakte Wörter)
-- 📊 **Timeline** — was habe ich im November gemacht?
-- 🕸️ **Knowledge Graph** — Wissenskarte aller Gespräche (visuell)
+---
 
-### Suche nutzen
+## 13. Server, Compute Nodes, VMs und Container
 
-**Datamining-Seite öffnen:**
+### Federation-Workstations
 
-#### 1. Volltextsuche
-```
-Suche: "Python Tutorial"
-Filter: Von 2025-01-01 bis heute
-        Agent: Masteragent
+Administratoren können andere HydraHive/A2A-Workstations mit URL, Token und TLS-Prüfung registrieren, deren Card/Audit abrufen und Client-Konfigurationen mit API-Key, AgentLink- und optionalen Tailscale-Daten erzeugen. Das ist vom Compute-Node-Kanal getrennt.
 
-Ergebnisse:
-• [2025-11-03] Session mit Masteragent
-  "...habe ich dir ein Python-Tutorial geschickt..."
-  
-• [2025-12-15] Session mit Project-Agent
-  "...Python-Tutorial für Flask fertig..."
-```
+### Compute Nodes
 
-#### 2. Semantische Suche
-```
-Suche: "Wie koche ich Pasta?"
+Ein Compute Node wird über Bootstrap/Enrollment mit dem HydraHive-Server verbunden. Der Standardpfad verwendet Client-Zertifikate. Prüfe nach der Einrichtung:
 
-Ergebnisse (ähnliche Themen):
-• [2025-10-20] "Rezept für Spaghetti Carbonara"
-• [2025-11-05] "Kochzeit für Nudeln"
-• [2025-12-01] "Italienische Küche Tipps"
-```
+- Verbindungsstatus;
+- letzte Heartbeat-Zeit;
+- CPU/RAM/GPU-/Speicherwerte;
+- laufende Workloads;
+- Zertifikatsstatus.
 
-→ Findet **inhaltlich Ähnliches**, auch wenn Wörter anders sind!
+Weitere Details: [compute-node-runbook.md](compute-node-runbook.md).
 
-#### 3. Timeline
-```
-Zeitraum: 2025-11-01 bis 2025-11-30
+### VMs und Container
 
-November 2025:
-├─ 2025-11-03: 3 Sessions (Python, Website-Projekt, Backup)
-├─ 2025-11-10: 1 Session (Rezepte)
-├─ 2025-11-20: 5 Sessions (Code-Review, Git, Docker, ...)
-└─ 2025-11-28: 2 Sessions (Jahresplanung, Geschenke)
-```
+Auf kompatiblen Linux-Hosts können Administratoren libvirt-VMs und Incus-Container verwalten. Vor Start/Stop/Löschen:
 
-#### 4. Knowledge Graph
-```
-[Visueller Graph]
+1. prüfe laufende Workloads und Benutzer;
+2. erstelle bei Bedarf Snapshot/Backup;
+3. bestätige Ressourcenbedarf und Storage-Ziel;
+4. beobachte Status und Logs nach der Aktion.
 
-Nodes:
-• "Python" ──┬── "Flask Tutorial"
-             ├── "Pytest"
-             └── "Docker-Integration"
+Diese Funktionen sind auf macOS oder Hosts ohne Virtualisierungs-/Container-Unterstützung nicht verfügbar.
 
-• "Website" ─── "nginx Config"
-              └── "Tailwind CSS"
+---
 
-Klick auf Node → zeigt alle Sessions zu diesem Thema
+## 14. Administration und Betrieb
+
+### Benutzer
+
+Administratoren können Benutzer anlegen, Rollen ändern, Passwörter zurücksetzen und Transfers/Löschungen verwalten. HydraHive verhindert, dass der letzte Administrator über den normalen Rollenwechsel entfernt wird.
+
+### Credentials und API-Keys
+
+- Credentials speichern Zugangsdaten für Provider, URLs, Hosts oder Dienste.
+- Werte werden verschlüsselt gespeichert und in der Oberfläche maskiert.
+- URL-/Host-Muster begrenzen, wohin ein Credential injiziert werden darf.
+- API-Keys erlauben programmatischen HydraHive-Zugriff und sollten wie Passwörter behandelt werden.
+
+Lösche oder rotiere ein Credential sofort, wenn es versehentlich in Chat, Log oder Repository gelangt ist.
+
+### Logs und Fehler
+
+Hilfreiche Linux-Befehle:
+
+```bash
+sudo systemctl status hydrahive2
+sudo journalctl -u hydrahive2 -f
+sudo systemctl status nginx
+sudo tail -f /var/log/hydrahive2-update.log
 ```
 
-**Wie funktioniert das?**
-- Alle Nachrichten werden **embeddet** (in Vektoren umgewandelt)
-- UMAP reduziert auf 2D
-- HDBSCAN clustert nach Themen
-- D3.js visualisiert als interaktiven Graph
-
----
-
-## Sicherheit & Privatsphäre
-
-### Wer sieht was?
-
-| Rolle | Kann sehen | Kann NICHT sehen |
-|-------|-----------|------------------|
-| **Admin** | Alles (Logs, User, System) | Private Agent-Chats ohne Erlaubnis |
-| **User** | Eigene Agents, eigene Projekte, eigene Sessions | Andere User-Daten |
-| **Projekt-Member** | Projekt-Dateien, Projekt-Agent-Chats | Andere Projekte |
-
-### Passwort-Sicherheit
-
-- ✅ **bcrypt-Hashing** (Cost 12)
-- ✅ **Failed-Login-Lockout** (5 Versuche → 15 Min Sperre)
-- ✅ **Kein Klartext** — Passwörter werden nie gespeichert
-
-**Passwort ändern:**
-1. Profil-Seite → "Passwort ändern"
-2. Altes Passwort + neues Passwort eingeben
-3. Speichern
-
-### Tool-Bestätigung (Safety-Feature)
-
-**Problem:** Agent soll nicht einfach `rm -rf /` ausführen ohne zu fragen.
-
-**Lösung:** Pro Agent konfigurierbar:
-
-```
-Agent-Settings → Tool-Bestätigung: AN
-```
-
-**Wenn aktiviert:**
-- Agent fragt **vor jedem Tool-Call** um Erlaubnis
-- Du siehst im Chat:
-  ```
-  ⚠️ Agent möchte ausführen:
-      Tool: shell_exec
-      Command: rm important_file.txt
-      
-      [Allow] [Deny]
-  ```
-- Klick auf **Allow** → Tool wird ausgeführt
-- Klick auf **Deny** → Tool wird abgebrochen
-- Keine Antwort nach 5 Min → automatisch Deny
-
-**Wann nutzen?**
-- Produktions-Server (nichts kaputt machen)
-- Wenn Agent neue Tools bekommt (erst testen)
-- Shared Agents (mehrere User nutzen denselben)
-
-**Wann NICHT nutzen?**
-- Dev-Umgebung (nervt nur)
-- Trusted Personal Agent (du vertraust ihm)
-
-### Daten-Isolation
-
-**Pro-User:**
-- Jeder User hat **eigenen Masteragent**
-- **Eigene Projekte** (nicht sichtbar für andere)
-- **Eigene Sessions** (kein User sieht fremde Chats)
-
-**Pro-Projekt:**
-- Projektagent sieht **nur seinen Workspace**
-- Kein Zugriff auf `/home/`, `/etc/`, andere Projekte
-- Git-Repo ist **isoliert**
-
-**Spezialisten:**
-- **Geteilt** zwischen Usern (bewusst)
-- Lernen aus allen Einsätzen
-- Kein User-spezifisches Memory
-
----
-
-## Backup & Datenexport
-
-### User-Backup (DSGVO: Datenportabilität)
-
-**Was ist das?**
-- Du lädst **alle deine Daten** herunter
-- Format: `.tar.gz` (unverschlüsselt)
-- Kann auf anderem HydraHive-Server wiederhergestellt werden
-
-**Was ist drin?**
-- ✅ Alle deine Agents (Config + Memory + Workspace)
-- ✅ Alle deine Projekte (Code + Git-History)
-- ✅ Alle deine Sessions (Chats, Tool-Calls, alles)
-- ✅ Butler-Flows
-- ✅ MCP-Server-Configs
-- ✅ WhatsApp-Filters (wenn genutzt)
-
-**Backup erstellen:**
-1. **Profil-Seite** → **"Backup erstellen"**
-2. Warte (kann bei großen Projekten dauern)
-3. Download: `hydrahive-backup-<username>-<datum>.tar.gz`
-4. **Sicher ablegen!** (USB-Stick, Cloud, verschlüsselt)
-
-**Backup wiederherstellen:**
-1. **Profil-Seite** → **"Backup hochladen"**
-2. Datei auswählen → **"Restore"**
-3. System prüft Backup → stellt alles wieder her
-
-**WICHTIG:**
-- Backup ist **unverschlüsselt** — du musst es selbst verschlüsseln
-- Backup auf **anderem Server** verwenden → funktioniert (DSGVO-Portabilität)
-- Restore **überschreibt** vorhandene Daten (Vorsicht!)
-
-### System-Backup (nur Admin)
-
-**Was ist das?**
-- **Kompletter Server-Zustand**
-- Alle User, alle Projekte, alle Configs
-
-**System-Backup erstellen:**
-1. **System-Seite** (nur Admin) → **"System-Backup"**
-2. Download: `hydrahive-system-backup-<datum>.tar.gz`
-
-**System-Restore:**
-1. **System-Seite** → **"System-Backup hochladen"**
-2. Datei auswählen → **"Restore"**
-3. **Server startet neu!**
-
-**Use-Cases:**
-- Server-Migration (alter Server → neuer Server)
-- Disaster-Recovery (Festplatte kaputt)
-- Vor riskanten Updates
-
----
-
-## Häufige Fragen
-
-### Allgemein
-
-**Q: Brauche ich einen eigenen Server?**  
-A: Ja. HydraHive läuft auf Ubuntu 24.04 (empfohlen: min. 2 GB RAM, 20 GB Disk). Kann auch Raspberry Pi 5 sein.
-
-**Q: Kann ich HydraHive ohne Linux-Kenntnisse nutzen?**  
-A: **Installation** braucht Linux-Grundkenntnisse (oder Hilfe vom Admin). **Nutzung** ist rein Web-UI — kein Terminal nötig.
-
-**Q: Kostet HydraHive etwas?**  
-A: Software ist **kostenlos** (MIT-Lizenz). Du zahlst nur:
-- Server-Hosting (oder eigene Hardware)
-- LLM-API-Kosten (Anthropic, OpenAI, etc.)
-
-**Q: Welche LLM-Provider funktionieren?**  
-A: Anthropic (Claude), OpenAI (GPT-4o, GPT-5), Groq, MiniMax, Gemini, Mistral, OpenRouter, NVIDIA NIM, Deepseek.
-
-**Q: Kann ich mehrere LLM-Provider gleichzeitig nutzen?**  
-A: Ja! Jeder Agent kann ein anderes Modell nutzen. Masteragent = Claude 3.5, Projektagent = GPT-4o, Spezialist = Deepseek.
-
----
-
-### Agenten
-
-**Q: Wie viele Agents kann ich haben?**  
-A: Unbegrenzt. Du hast **einen Masteragent** (automatisch), kannst aber beliebig viele Projekt- und Spezialisten-Agents erstellen.
-
-**Q: Vergisst mein Agent nach langer Zeit was?**  
-A: **Nein!** HydraHive nutzt **Compaction** — alte Gespräche werden zusammengefasst, aber nie gelöscht. Agent erinnert sich an alles.
-
-**Q: Kann ich einen Agent löschen?**  
-A: Ja. Agents-Seite → Agent auswählen → "Löschen". **Vorsicht:** Alle Sessions, Memory, Workspace werden gelöscht (irreversibel, außer du hast Backup).
-
-**Q: Kann ein Agent auf mein ganzes System zugreifen?**  
-A: **Masteragent:** Ja (wie Claude Code — volle Tool-Macht). **Projektagent:** Nur auf seinen Workspace. **Spezialist:** Konfigurierbar (Admin entscheidet).
-
----
-
-### Projekte
-
-**Q: Kann ich Git-Repos von außen (GitHub, GitLab) nutzen?**  
-A: Ja! Projekt-Workspace kann ein `git clone` von GitHub sein. Agent kann pushen/pullen (GitHub-Token in Projekt-Config).
-
-**Q: Kann ich Dateien im Projekt mit VSCode bearbeiten?**  
-A: Ja! Via **Samba-Share** (Windows/Mac/Linux) oder **SFTP** (VSCode Remote). Projekt-Workspace ist normaler Ordner auf dem Server.
-
-**Q: Was passiert wenn zwei User gleichzeitig am selben Projekt arbeiten?**  
-A: **Projekt-Agent** arbeitet sequenziell (ein Chat = ein Durchlauf). Workspace-Dateien können parallel bearbeitet werden (wie bei normalem Git).
-
----
-
-### Sicherheit
-
-**Q: Sind meine Daten verschlüsselt?**  
-A: **Im Transit:** Ja (HTTPS, wenn konfiguriert). **At Rest:** Nein (Datenbank/Files sind unverschlüsselt auf Disk). Server-Verschlüsselung ist Admin-Aufgabe (LUKS, etc.).
-
-**Q: Kann ein anderer User meine Chats sehen?**  
-A: **Nein.** Pro-User-Isolation — kein User sieht fremde Sessions (außer Admin mit DB-Zugriff).
-
-**Q: Kann Admin meine Nachrichten mitlesen?**  
-A: Technisch **ja** (Admin hat Server-Zugriff). Aber: HydraHive ist für **Familien/Teams** gedacht wo du dem Admin vertraust (z.B. du selbst bist Admin).
-
-**Q: Was passiert wenn mein Passwort geleakt wird?**  
-A: **Sofort ändern!** Profil-Seite → Passwort ändern. Admin kann auch Passwort zurücksetzen.
-
----
-
-### Messenger
-
-**Q: Sieht WhatsApp dass ich einen Bot nutze?**  
-A: HydraHive nutzt **WhatsApp-Web-API** (wie wenn du WhatsApp am PC nutzt). WhatsApp sieht es als "verknüpftes Gerät".
-
-**Q: Kann ich WhatsApp-Nachrichten filtern?**  
-A: Ja! Filter nach Kontakt, Gruppe, Keyword. Nur gefilterte Nachrichten gehen an Agent.
-
-**Q: Antwortet Agent auf ALLE Discord-Nachrichten?**  
-A: Nur wenn **@HydraHive** erwähnt wird oder Slash-Command (`/ask`). Sonst ignoriert er.
-
----
-
-### Backup & Export
-
-**Q: Wie oft sollte ich Backup machen?**  
-A: **User-Backup:** Wöchentlich (wenn viel gearbeitet). **System-Backup (Admin):** Vor Updates, monatlich.
-
-**Q: Kann ich Backup auf anderem Server wiederherstellen?**  
-A: Ja! User-Backup ist **portabel** — funktioniert auf jedem HydraHive-Server (DSGVO-Portabilität).
-
-**Q: Ist Backup verschlüsselt?**  
-A: **Nein.** Du bekommst `.tar.gz` (unverschlüsselt). **Du** musst es verschlüsseln (z.B. mit `gpg` oder 7-Zip mit Passwort).
-
----
-
-### Performance
-
-**Q: Wie schnell antwortet der Agent?**  
-A: Hängt vom **LLM-Provider** ab. Claude/GPT-4o: ~2-5 Sek erste Antwort. Groq (Llama): <1 Sek. Lange Antworten streamen live.
-
-**Q: Kann HydraHive auf Raspberry Pi laufen?**  
-A: Ja! Raspberry Pi 5 (8 GB RAM) ist getestet. Performance gut für 1-3 User.
-
-**Q: Werden alte Sessions langsamer?**  
-A: **Nein.** Compaction sorgt dafür dass Context-Window konstant bleibt. Auch nach 1000 Nachrichten = gleiche Speed.
-
----
-
-### Datamining
-
-**Q: Kann ich nach Sessions von vor 2 Jahren suchen?**  
-A: **Ja!** Datamining durchsucht **alle Sessions** (solange DB nicht gelöscht). Timeline-Filter: `2024-01-01` bis `2024-12-31`.
-
-**Q: Was ist der Knowledge Graph?**  
-A: Visueller Graph der **alle Themen** zeigt über die du gesprochen hast. Nodes = Themen, Edges = Zusammenhänge. Klick auf Node → Sessions zu dem Thema.
-
-**Q: Brauche ich PostgreSQL für Datamining?**  
-A: **Nein** für Volltextsuche. **Ja** für Knowledge Graph + Semantische Suche (optional, Admin muss aktivieren).
-
----
+In der Admin-Oberfläche stehen zusätzlich Audit-, Security-, Fehler-, Token- und Kostenansichten zur Verfügung.
 
 ### Updates
 
-**Q: Wie update ich HydraHive?**  
-A: **Admin** klickt in Web-UI auf "System-Update" → Server zieht `git pull`, baut neu, startet neu (automatisch). Oder manuell: `sudo /opt/hydrahive2/installer/update.sh`.
+Ein Update kann aus der Oberfläche angefordert oder über den Installer ausgeführt werden. Der Updateprozess kann Quellcode, Python-Abhängigkeiten und Frontend-Build ändern und anschließend den Dienst neu starten.
 
-**Q: Gehen meine Daten beim Update verloren?**  
-A: **Nein.** Updates ändern nur Code, nie Daten. **Aber:** Vor großen Updates **Backup machen** (Sicherheit).
+Vor einem größeren Update:
+
+1. Backup/Restore-Point erstellen;
+2. freie Platte prüfen;
+3. lokale, nicht committete Änderungen sichern;
+4. Release-/Migrationshinweise lesen;
+5. nachher Backend, nginx, Module und wichtige Integrationen prüfen.
+
+### Backup
+
+Mindestens sichern:
+
+- `HH_DATA_DIR` (standardmäßig `/var/lib/hydrahive2`);
+- `/etc/hydrahive2`;
+- Projekt-Workspaces und externe Mounts, falls sie außerhalb liegen;
+- externe Datenbanken und Extension-Daten separat.
+
+Ein Backup der HydraHive-Dateien enthält nicht automatisch Daten von Docker-Volumes, entfernten Servern, Mailservern, Home Assistant oder anderen Drittanwendungen.
+
+### Migration
+
+Der Migrationsworkflow kann einen Server per rsync klonen. Bei großen Datenbeständen dauert das lange. Prüfe Quell-/Zielpfade, Kapazität, SSH-Verbindung und Servicezustand, bevor du startest.
 
 ---
 
-## Weitere Hilfe
+## 15. Datenschutz und sensible Daten
 
-- 📖 **Entwickler-Doku:** [ARCHITECTURE.md](ARCHITECTURE.md)
-- 📋 **Vollständige Spec:** [SPEC.md](../SPEC.md)
-- 💬 **GitHub Issues:** [github.com/hydrahive/hydrahive2.0/issues](https://github.com/hydrahive/hydrahive2.0/issues)
-- 📧 **Support:** (Community-Forum, Discord — noch in Planung)
+### Cloud-Grenze
+
+„Self-hosted“ bedeutet nicht automatisch „alles bleibt lokal“. Folgende Aktionen können Daten an Dritte senden:
+
+- Cloud-LLM- oder Media-Provider;
+- Websuche und Browserzugriffe;
+- E-Mail, Messenger und Git-Hosting;
+- Home Assistant oder andere externe APIs;
+- externe MCP-Server.
+
+Wähle für vertrauliche Aufgaben ein geeignetes lokales Modell oder einen ausdrücklich genehmigten Anbieter.
+
+### Medizinische Daten
+
+Patientenakte, FHIR und Health-Daten sind besonders sensibel. Gewähre nur notwendigen Benutzern und Agenten Zugriff, sichere Backups verschlüsselt und sende medizinische Inhalte nicht ungeprüft an Cloud-Modelle. HydraHive stellt keine Diagnose.
+
+### Finanz- und Kryptodaten
+
+Portfolio- und Finanzfunktionen sind Dokumentation/Auswertung, keine Anlage-, Steuer- oder Rechtsberatung. Prüfe Kurse, Buchungen und FIFO-Berechnungen gegen deine Originalunterlagen.
 
 ---
 
-**Viel Spaß mit deinem persönlichen KI-Agenten-System! 🐝**
+## 16. Häufige Probleme
+
+### Die Seite lädt nicht
+
+```bash
+sudo systemctl status hydrahive2
+sudo systemctl status nginx
+sudo journalctl -u hydrahive2 -n 100 --no-pager
+```
+
+Prüfe außerdem Server-IP, Firewall, Zertifikatswarnung und freien Speicher.
+
+### Ein Modell antwortet nicht
+
+- Providerstatus und Credential prüfen;
+- Modell im Katalog aktualisieren;
+- Kontext-/Tokenlimit prüfen;
+- testweise ein anderes erlaubtes Modell wählen;
+- Fehleransicht und Backendlog prüfen;
+- bei lokalem Modell Laufzeit und verfügbaren RAM/VRAM prüfen.
+
+### Ein Tool fehlt
+
+- ist es dem Agenten zugewiesen?
+- ist das Modul/Plugin aktiviert?
+- läuft der MCP-Server?
+- hat der Benutzer die nötige Projekt-/Admin-Berechtigung?
+- ist der externe Dienst erreichbar?
+
+### Ein Lauf scheint festzuhängen
+
+Öffne die Laufansicht und prüfe, ob:
+
+- eine Tool-Bestätigung wartet;
+- ein externer Dienst noch arbeitet;
+- der Lauf abgekoppelt weiterläuft;
+- das Iterationslimit erreicht wurde;
+- ein Fehlerereignis vorliegt.
+
+Nutze **Stoppen** nur, wenn die laufende Operation sicher abgebrochen werden kann.
+
+### Ein Modul startet nicht
+
+- Installationsjob und Backendlog prüfen;
+- `manifest.json`, Mindest-Core-Version und Abhängigkeiten prüfen;
+- Frontend neu laden;
+- Backend nach einer Moduländerung neu starten;
+- bei einem Drittmodul dessen Quelle/Version dokumentieren.
+
+### API-Dokumentation
+
+API-Dokumentation ist standardmäßig deaktiviert. Mit `HH_ENABLE_DOCS=true` liegt Swagger unter `/api/docs` und OpenAPI unter `/api/openapi.json`. Im Standard-Linux-Setup proxyt nginx `/api/` zum Loopback-Backend; veröffentliche die Dokumentation nur bewusst.
+
+---
+
+## 17. Hilfe und Fehlerberichte
+
+Bei einem Fehlerbericht sind folgende Angaben hilfreich:
+
+- HydraHive-Version oder Commit;
+- Betriebssystem und Installationsart;
+- betroffener Benutzer-/Projektbereich ohne Geheimnisse;
+- genaue Schritte zur Reproduktion;
+- erwartetes und tatsächliches Verhalten;
+- relevante Browserkonsole und Serverlogs;
+- Provider/Modell oder externe Integration;
+- Zeitpunkt und Zeitzone.
+
+API-Keys, Passwörter, Tokens, private Schlüssel, Patientendaten und vollständige vertrauliche Prompts vor dem Teilen entfernen.

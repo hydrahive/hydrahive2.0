@@ -1,49 +1,84 @@
-# HydraHive2 — Dokumentations-Index
+# HydraHive documentation
 
-Eine Übersicht über die vorhandene Doku, sortiert nach Ziel.
+This directory contains product, operator, architecture, security and implementation documentation for HydraHive.
 
-## "Ich will das System nutzen / installieren"
+> **Start here:** [FEATURES.md](FEATURES.md) is the code-backed inventory of the current product. `SPEC.md` remains the binding product baseline, while files under `specs/`, `plans/` and `audit/` can describe a point-in-time design or investigation.
 
-→ Hauptverzeichnis [README.md](../README.md) — Quick-Start, Konfiguration, Sicherheit
-→ [installer/README.md](../installer/README.md) — Installations-Details
-→ [USER_GUIDE.md](USER_GUIDE.md) — Bedienung aus Nutzersicht
-→ [COCKPITS.md](COCKPITS.md) — Cockpit-Routen, globale Menüs und Project-Cockpit
+## Current product documentation
 
-## "Ich will beitragen / Code ändern"
+| Document | Audience | Purpose |
+|---|---|---|
+| [../README.md](../README.md) | Everyone | Product overview, quick start, security summary and repository map |
+| [FEATURES.md](FEATURES.md) | Users, operators, contributors | Current implemented feature inventory, requirements and boundaries |
+| [USER_GUIDE.md](USER_GUIDE.md) | Users and administrators | Day-to-day use of chat, agents, projects, modules and operations |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Contributors and operators | Runtime architecture, data flow, storage and extension model |
+| [SECURITY_THREAT_MODEL.md](SECURITY_THREAT_MODEL.md) | Operators and reviewers | Assets, trust boundaries, controls and residual risks |
+| [RELEASE_NOTES.md](RELEASE_NOTES.md) | Users and operators | Current unreleased changes and published-release pointer |
+| [COCKPITS.md](COCKPITS.md) | Users and UI contributors | Navigation and cockpit map |
+| [../SPEC.md](../SPEC.md) | Maintainers and contributors | Binding product baseline; updates require maintainer approval |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contributors | Git workflow, checks and code conventions |
+| [../SECURITY.md](../SECURITY.md) | Security reporters | Vulnerability reporting and supported versions |
 
-In dieser Reihenfolge:
+## Architecture deep dives
 
-1. [CONTRIBUTING.md](../CONTRIBUTING.md) — Git-Workflow, Tests, Konventionen, Arbeitsregeln
-2. [SPEC.md](../SPEC.md) — Produkt-Spezifikation (heilig, nicht ohne OK ändern)
-3. [ARCHITECTURE.md](ARCHITECTURE.md) — Architektur-Überblick, wo liegt was
+The subsystem documents in [`architecture/`](architecture/) complement the high-level architecture. When an older deep dive conflicts with current code or [FEATURES.md](FEATURES.md), verify against the implementation before relying on it.
 
-## "Ich will verstehen wie ein Subsystem funktioniert"
+- [Architecture index](architecture/README.md)
+- [Authentication](architecture/auth.md)
+- [Runner](architecture/runner.md)
+- [Tools](architecture/tools.md)
+- [Memory](architecture/memory.md)
+- [Context compaction](architecture/compaction.md)
+- [Media-model integration](architecture/media-models.md)
 
-`docs/architecture/` — Subsystem-Deep-Dives:
+## Operations and deployment
 
-- [memory.md](architecture/memory.md) — Memory v2 Pipeline (Observation → Compress → Crystallize → Lessons → Context-Injection)
-- [runner.md](architecture/runner.md) — Tool-Loop, Streaming, Provider-Switch, Token-Counts
-- [compaction.md](architecture/compaction.md) — `firstKeptEntryId`-Pointer, hierarchisches Merging
-- [auth.md](architecture/auth.md) — JWT, API-Keys, Roles, OAuth-Flow
-- [tools.md](architecture/tools.md) — Tool-System
-- [media-models.md](architecture/media-models.md) — Media-Modell-Konfiguration
+- [Installer guide](../installer/README.md)
+- [Compute-node runbook](compute-node-runbook.md)
+- [Ubuntu 26.04 upgrade runbook](ubuntu-2604-upgrade-runbook.md)
+- [Ollama provider guide](ollama-provider.md)
+- [Node-agent reference](../node-agent/README.md)
+- [Module hub](https://github.com/hydrahive/hydrahive2-modules)
 
-Compute-Cluster:
+## Security
 
-- [compute-roadmap.md](compute-roadmap.md) — Master-Roadmap und aktueller Phasenstatus
-- [compute-cluster-v1.md](specs/compute-cluster-v1.md) — verbindliche V1-Spezifikation
-- [compute-cluster-v1-plan.md](specs/compute-cluster-v1-plan.md) — detaillierter, fortlaufender Taskplan
-- [Compute-Abschluss P1–P4](audit/compute-implementation-completion-2026-07-17.md) — Implementierungs- und Verifikationsbericht
+- [Threat model](SECURITY_THREAT_MODEL.md)
+- [Security hardening notes](security-hardening.md)
+- [Dependency audit, August 2026](security-dependency-audit-2026-08.md)
+- [Security policy](../SECURITY.md)
 
-Feature-Spezifikationen:
+Security audits are date-stamped snapshots. Re-run the documented checks before treating their findings as current.
 
-- [specs/README.md](specs/README.md) — **Index aller 59 Spezifikationen** mit Titel,
-  Status und Datum der letzten Änderung. Mehrteilige Reihen (z.B. Videoschnitt V1–V6b)
-  sind gruppiert; dort ist in der Regel der letzte Teil der aktuelle Stand.
-  Neu erzeugen nach dem Anlegen einer Spec: `python3 scripts/gen_spec_index.py`
+## Design records and historical documents
 
-## Pflege
+### `specs/`
 
-Wer welche Datei ändert, siehe [CONTRIBUTING.md](../CONTRIBUTING.md#doku-pflege).
-SPEC.md wird nur mit explizitem OK geändert — standalone-Commit erforderlich
-(Pre-Commit-Hook erzwingt das).
+Feature-level design documents, acceptance criteria and implementation contracts. Their filenames identify the subsystem, but not every document is a live product manual. Use them to understand why a feature was designed a certain way; use [FEATURES.md](FEATURES.md) and the code to determine what is currently present.
+
+See [specs/README.md](specs/README.md).
+
+### `plans/`
+
+Implementation plans used while building or changing a feature. A completed plan is historical evidence, not a guarantee that later refactors preserved every path or name.
+
+### `audit/`
+
+Point-in-time implementation and gap audits. The date in the filename is part of the result and should be cited when referencing it.
+
+### `compute-roadmap.md`
+
+Forward-looking planning for the compute subsystem. It should not be read as an implemented-feature list.
+
+## Documentation rules
+
+When changing HydraHive:
+
+1. update [FEATURES.md](FEATURES.md) for a new or removed user-visible capability;
+2. update [USER_GUIDE.md](USER_GUIDE.md) for changed user/admin workflows;
+3. update [ARCHITECTURE.md](ARCHITECTURE.md) or the relevant `architecture/` deep dive when components or data flow change;
+4. update [COCKPITS.md](COCKPITS.md) when navigation changes;
+5. modify `SPEC.md` only with explicit maintainer approval and in a standalone commit;
+6. label external dependencies, required credentials and infrastructure limitations explicitly;
+7. do not describe planned work as implemented.
+
+Repository conventions are defined in [CONTRIBUTING.md](../CONTRIBUTING.md).
