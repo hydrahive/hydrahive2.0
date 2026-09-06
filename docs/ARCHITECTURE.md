@@ -1,686 +1,497 @@
-# HydraHive 2.0 — Architektur-Übersicht
+# HydraHive architecture
 
-> **Stand:** 2026-05-07  
-> **Zielgruppe:** Entwickler, Contributors, System-Architekten  
-> **Verwandte Dokumente:** [SPEC.md](../SPEC.md) · [README.md](../README.md)
+> **Audience:** contributors, operators and system architects
+> **Validated against:** the current repository on 2026-09-06
+> **Related:** [feature inventory](FEATURES.md) · [product baseline](../SPEC.md) · [contributing](../CONTRIBUTING.md)
 
----
+HydraHive is a self-hosted AI orchestration platform. The control plane is a Python/FastAPI process with a React web application. It coordinates LLM calls, tools, workspaces, memory, media jobs, external integrations and optional compute infrastructure.
 
-## Inhaltsverzeichnis
-
-1. [Vision & Design-Prinzipien](#vision--design-prinzipien)
-2. [High-Level-Architektur](#high-level-architektur)
-3. [Datenfluss](#datenfluss)
-4. [Backend-Komponenten](#backend-komponenten)
-5. [Frontend-Architektur](#frontend-architektur)
-6. [Datenschicht](#datenschicht)
-7. [Sicherheitsmodell](#sicherheitsmodell)
-8. [Plugin-System](#plugin-system)
-9. [Deployment-Architektur](#deployment-architektur)
-10. [Design-Entscheidungen (WHY)](#design-entscheidungen-why)
+This document describes the current implementation. Detailed design records under `docs/specs/` and `docs/plans/` may represent an earlier point in time.
 
 ---
 
-## Vision & Design-Prinzipien
+## 1. Design principles
 
-HydraHive 2.0 ist ein **selbst gehostetes KI-Agenten-System** — kein SaaS, keine Cloud-Abhängigkeit, keine Daten die woanders landen. Es läuft als einzelner systemd-Service auf einem Linux-Server und stellt eine Web-UI + Multi-Channel-Messaging-Integration bereit.
-
-### Kern-Prinzipien
-
-1. **3-Ebenen-Architektur**: Master → Project → Specialist Agents
-2. **Zero-Context-Loss**: Append-only Compaction mit `firstKeptEntryId`-Pointer
-3. **Feature Co-location**: Alles was zusammengehört liegt zusammen (kein Shotgun Surgery)
-4. **Kleine Dateien**: Max ~200 Zeilen pro Datei, eine Verantwortung pro Modul
-5. **Plugin-First**: Alle Erweiterungen als Plugins, Core bleibt schlank
-6. **No Docker**: Direktes systemd-Deployment, kein Compose-Overhead
+1. **Self-host the control plane and user data.** HydraHive stores its own configuration, workspaces and conversation state on the host. Cloud model requests remain an explicit external data boundary.
+2. **Move resource ownership toward stable identities.** Newer principal-based paths use immutable user IDs; project resources use membership/roles. Legacy username-based routes still require route-specific ownership checks.
+3. **Give agents explicit capabilities.** Each agent receives only its configured native, MCP and plugin tools.
+4. **Keep long runs recoverable.** Sessions persist messages and tool results, can detach from HTTP requests, compact history and resume after iteration limits.
+5. **Keep extensions distinguishable.** Modules, themes, service extensions and agent-tool plugins have different contracts and trust boundaries.
+6. **Isolate failures where possible.** A broken runtime module, plugin or external provider should not prevent unrelated components from starting.
+7. **Prefer local operation, not false offline claims.** Local models and media workers are supported, but many deployments intentionally use cloud providers and third-party services.
 
 ---
 
-## High-Level-Architektur
+## 2. Runtime overview
 
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│ Clients                                                              │
+│ React web app · REST clients · SSE streams · WebSocket clients       │
+│ WhatsApp · Discord · Matrix · remote compute nodes                   │
+└─────────────────────────────────┬────────────────────────────────────┘
+                                  │ HTTPS / WS
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ nginx (default Linux deployment)                                     │
+│ TLS · static frontend · /api proxy · WS upgrades · VNC · mTLS gate  │
+└─────────────────────────────────┬────────────────────────────────────┘
+                                  │ loopback HTTP / WS
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ FastAPI application                                                  │
+│ auth/ownership · routes · module routers · static fallback           │
+├──────────────┬──────────────┬───────────────┬────────────────────────┤
+│ Agent runner │ Projects/Git │ Media jobs    │ Admin/Infrastructure   │
+│ Skills       │ Files/Graph  │ Atelier/Video │ Servers/VMs/Containers │
+│ Memory       │ Tasks        │ Local workers │ Extensions/Updates     │
+├──────────────┴──────────────┴───────────────┴────────────────────────┤
+│ Integrations: LLM/media providers · MCP · plugins · AgentLink        │
+│ Home Assistant · mail · SABnzbd/indexers · OAuth · Matrix, etc.      │
+└──────────────┬───────────────────┬───────────────────┬───────────────┘
+               │                   │                   │
+               ▼                   ▼                   ▼
+      SQLite + file store   optional PostgreSQL   external services
+      workspaces/media      data-mining mirror    and model APIs
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                         User-Interfaces                            │
-├────────────┬────────────┬────────────┬──────────┬──────────────────┤
-│  Web-UI    │ WhatsApp   │  Discord   │ Telegram │  Matrix          │
-│ (React/TS) │ (Baileys)  │ (discord.py) │        │ (conduwuit)      │
-└────────────┴────────────┴────────────┴──────────┴──────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       Reverse Proxy (nginx)                         │
-│  • TLS-Termination                                                  │
-│  • Static-File-Serving (/index.html, /assets/*)                    │
-│  • API-Proxy (/api/* → 127.0.0.1:8765)                             │
-│  • Security-Headers (CSP, X-Frame-Options, Permissions-Policy)      │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     FastAPI Backend (Python 3.12)                   │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌────────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
-│  │   API Routes   │  │    Runner    │  │   Communication       │  │
-│  │   (FastAPI)    │  │  (LLM Loop)  │  │  (Discord, WhatsApp)  │  │
-│  └────────────────┘  └──────────────┘  └───────────────────────┘  │
-│           │                  │                    │                │
-│           ▼                  ▼                    ▼                │
-│  ┌────────────────────────────────────────────────────────────┐   │
-│  │              Core Subsystems                               │   │
-│  ├────────────┬──────────┬──────────┬──────────┬─────────────┤   │
-│  │  Agents    │  Tools   │  Skills  │  Butler  │  Plugins    │   │
-│  │  (Config)  │ (shell,  │ (Markdown│ (Trigger │  (Dynamic   │   │
-│  │            │  file,   │  Prompts)│  /Action)│   Loading)  │   │
-│  │            │  git)    │          │          │             │   │
-│  └────────────┴──────────┴──────────┴──────────┴─────────────┘   │
-│           │                  │                    │                │
-│           ▼                  ▼                    ▼                │
-│  ┌────────────────────────────────────────────────────────────┐   │
-│  │              External Integrations                         │   │
-│  ├────────────┬──────────┬──────────┬──────────┬─────────────┤   │
-│  │ LiteLLM    │ AgentLink│   MCP    │  OAuth   │  Tailscale  │   │
-│  │ (Multi-    │ (Agent   │ (stdio,  │ (Anthro- │  (Mesh VPN) │   │
-│  │  Provider) │  State   │  HTTP,   │  pic,    │             │   │
-│  │            │ Transfer)│  SSE)    │ OpenAI)  │             │   │
-│  └────────────┴──────────┴──────────┴──────────┴─────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Persistence Layer                           │
-├─────────────────────┬───────────────────────┬───────────────────────┤
-│   SQLite (Core DB)  │   JSON Files (Config) │  Workspaces (Git)     │
-│  • sessions         │  • agents.json        │  • /projects/<name>/  │
-│  • messages         │  • skills/*.md        │  • /master/<user>/    │
-│  • tool_calls       │  • users.json         │  • /specialists/      │
-│  • events           │  • llm_providers.json │                       │
-│  • datamining       │  • mcp_servers.json   │                       │
-└─────────────────────┴───────────────────────┴───────────────────────┘
-```
+
+The backend application and all core router registrations are assembled in `core/src/hydrahive/api/main.py`. Runtime module routers are mounted after module discovery. The default Linux proxy configuration is generated by `installer/modules/60-nginx.sh`.
 
 ---
 
-## Datenfluss
+## 3. Main processes and components
 
-### 1. User-Request → Agent-Response
+### 3.1 FastAPI backend
 
-```
-User (Web/Messenger)
-    │
-    │ HTTP POST /api/chat/sessions/{id}/messages
-    ▼
-FastAPI Route (api/routes/chat.py)
-    │
-    │ Validate JWT, check session ownership
-    ▼
-Runner (runner/runner.py)
-    │
-    │ 1. Load agent config + system prompt + skills
-    │ 2. Load session history (with compaction)
-    │ 3. Build LiteLLM request (tools, context, user message)
-    ▼
-LiteLLM → Anthropic/OpenAI/Groq/...
-    │
-    │ Stream response chunks
-    ▼
-Runner (dispatcher.py)
-    │
-    │ Parse tool calls
-    │ Execute tools (shell_exec, file_read, ask_agent, ...)
-    │ Loop until final_text
-    ▼
-Database (db/events.py)
-    │
-    │ Store messages, tool calls, thinking blocks
-    ▼
-SSE Stream → Frontend
-    │
-    │ Real-time message updates
-    ▼
-User sees response
-```
+The backend owns:
 
-### 2. Agent → Agent (AgentLink)
+- authentication and authorization;
+- agent/session configuration;
+- the iterative model/tool runner;
+- persistence and migration initialization;
+- project workspace and source-control operations;
+- media generation and job status;
+- module/theme/plugin discovery;
+- communication channels;
+- administration and host infrastructure APIs.
 
-```
-Master Agent
-    │
-    │ Tool: ask_agent(agent_id="project-agent-1", task="...")
-    ▼
-AgentLink Client (agentlink/client.py)
-    │
-    │ POST /api/handoff (AgentLink Service)
-    │ Payload: {task, context, files, required_skills}
-    ▼
-AgentLink Service (external)
-    │
-    │ Queue state transfer
-    ▼
-Project Agent Runner
-    │
-    │ Fetch task via GET /api/handoff/pending
-    │ Execute task in isolated workspace
-    │ Return result state
-    ▼
-AgentLink Service
-    │
-    │ Deliver result back to Master Agent
-    ▼
-Master Agent continues
-```
+Startup initializes logging, the database, bundled/runtime modules, themes, background jobs and communication runtimes. Module routes are attached after module discovery. In production, nginx serves the built frontend directly; in development, Vite serves the frontend and proxies API requests.
 
-### 3. Compaction (Context Management)
+**Source:** `core/src/hydrahive/api/main.py`.
 
-```
-Session reaches token limit
-    │
-    ▼
-Compaction Hook (compaction/hooks.py)
-    │
-    │ Trigger: after_assistant_text
-    ▼
-Compactor (compaction/compactor.py)
-    │
-    │ 1. Select events [firstKeptEntryId : -100]
-    │ 2. Send to LLM: "summarize this into 5 bullet points"
-    │ 3. Create compaction_block event
-    │ 4. Increment firstKeptEntryId
-    ▼
-Database (events.py)
-    │
-    │ Append compaction block, keep pointer
-    │ Old events remain (append-only), but hidden in context
-    ▼
-Next request uses compacted context
-```
+### 3.2 React frontend
+
+The frontend is a React 19 + TypeScript + Vite single-page application. It uses route-level code splitting for most screens. Major route families cover:
+
+- Buddy, chat, agents and runs;
+- projects, tasks, files, graphs and specialists;
+- media gallery, prompt archive, Atelier and Video Editor;
+- models, providers, credentials, MCP and integrations;
+- modules, themes, plugins and extensions;
+- user feature areas such as Butler, Smart Home and Media Center;
+- admin, server, VM/container and compute-node pages.
+
+Installed module frontends are copied into `frontend/src/modules`, discovered by the build generator and compiled into the application. They can add routes, navigation, Buddy widgets, project-workspace tabs and media contributions.
+
+**Sources:** `frontend/src/App.tsx`, `frontend/src/modules/`, `frontend/package.json`.
+
+### 3.3 nginx edge
+
+The default Linux install places nginx in front of the backend. Its generated configuration:
+
+- redirects HTTP to HTTPS, except for the health-ingest path;
+- serves `frontend/dist`;
+- proxies `/api/` and WebSocket upgrades;
+- uses a self-signed certificate by default;
+- applies CSP, HSTS, frame, MIME and permissions headers;
+- applies request-size limits for chat uploads and larger API uploads;
+- proxies VNC and AgentLink paths;
+- requires a valid client certificate on the compute-agent connection endpoint and injects a proxy secret.
+
+The FastAPI process binds to loopback by default in the installer, so the proxy is the intended network entry point.
+
+**Source:** `installer/modules/60-nginx.sh`.
 
 ---
 
-## Backend-Komponenten
+## 4. Identity, authentication and authorization
 
-### Verzeichnis-Struktur
+### Authentication
 
-```
-core/src/hydrahive/
-├── agents/             # Agent persistence, validation, bootstrap
-├── agentlink/          # AgentLink client integration
-├── api/
-│   ├── routes/         # FastAPI endpoints (grouped by domain)
-│   └── middleware/     # JWT auth, CORS, rate-limiting
-├── backup/             # Backup creation + restore
-├── buddy/              # Personal Buddy agent (auto-created per user)
-├── butler/             # Visual flow-builder (Trigger → Condition → Action)
-├── communication/      # Messenger adapters (Discord, WhatsApp, Matrix)
-├── compaction/         # Context compaction logic
-├── containers/         # LXC/Docker container management (plugin-ready)
-├── credentials/        # Per-user HTTP credential store
-├── db/                 # Database layer (SQLite, PostgreSQL mirror)
-│   ├── events.py       # Core event storage
-│   ├── mirror.py       # PostgreSQL mirror for Datamining
-│   └── mirror_query.py # Advanced query layer
-├── llm/                # LLM provider catalog, model metadata
-├── mcp/                # MCP server management (stdio, HTTP, SSE)
-├── messaging/          # Internal messaging system
-├── oauth/              # OAuth flows (Anthropic, OpenAI Codex, MiniMax)
-├── plugins/            # Plugin loader, manifest parser, hub client
-├── projects/           # Project management, workspace isolation
-├── runner/             # Agent-LLM loop (core execution engine)
-│   ├── runner.py       # Main loop
-│   ├── dispatcher.py   # Tool dispatch + execution
-│   ├── _call.py        # Single LLM call abstraction
-│   ├── _codex_provider.py  # OpenAI Codex Predicted Outputs
-│   ├── _llm_bridge_backends.py  # LiteLLM backend wrappers
-│   └── tool_confirmation.py  # Per-tool confirmation UI
-├── samba/              # Samba share management for workspaces
-├── settings/           # Settings singleton (env-based config)
-├── skills/             # Skill loader, markdown parser
-├── tailscale/          # Tailscale mesh VPN integration
-├── tools/              # Core tools (shell_exec, file_*, git_*, ask_agent)
-├── vms/                # VM management (QEMU/KVM)
-└── voice/              # STT (Wyoming-Whisper) + TTS helpers
-```
+- Login credentials are verified against a file-backed user store.
+- New passwords use bcrypt.
+- Legacy SHA-256 password hashes are migrated to bcrypt after a successful login.
+- Browser/API sessions use expiring HS256 JWTs.
+- Long-lived API access can use managed `hhk_…` API keys.
 
-### Modul-Verantwortungen (Beispiele)
+### Stable ownership
 
-| Modul | Verantwortung | Import-Regel |
-|-------|--------------|-------------|
-| `runner/runner.py` | Agent-LLM-Loop, Tool-Execution orchestrieren | Import von tools, llm, db — kein Import von api |
-| `api/routes/chat.py` | REST-Endpoints für Chat-Sessions | Import von runner, db — kein Business-Logic-Code hier |
-| `tools/shell_exec.py` | shell_exec-Tool | Nur stdlib + settings — keine db/llm/api-Imports |
-| `db/events.py` | Event-Persistence | Nur sqlalchemy + pydantic — keine llm/runner-Imports |
-| `compaction/compactor.py` | Compaction-Logik | Import von llm, db — kein Import von runner/api |
-| `agentlink/client.py` | AgentLink HTTP-Client | Nur httpx + settings — kein Import von db/runner |
+New user-owned resources should depend on `require_principal`, which resolves the token's immutable user ID against the current user store. A deleted/recreated or renamed user does not silently inherit old resources just because a username matches.
 
-**Verboten:**
-- Zirkuläre Imports (Runner ↔ API)
-- AgentLink-Imports außerhalb `agentlink/`, `tools/ask_agent.py`, `api/routes/agentlink.py`
-- Hardcodierte Pfade (alles über `settings.*`)
-- `print()` statements (nur `logging.getLogger(__name__)`)
+### Roles and projects
+
+- The global roles are `admin` and `user`.
+- Admin routes enforce the current stored role.
+- The user store prevents demoting the final administrator.
+- Projects have owners and members with project-specific roles.
+- Project APIs centralize access checks rather than trusting route parameters alone.
+
+### Credential storage
+
+Credential values are encrypted with AES-GCM before being written to per-user files. Credential files are written atomically and set to mode `0600` where supported. Matching is based on profile selection and URL/host patterns; tools receive matching secrets server-side.
+
+**Sources:** `core/src/hydrahive/api/middleware/auth.py`, `api/middleware/users.py`, `api/routes/_project_route_helpers.py`, `credentials/store.py`, `projects/members.py`.
 
 ---
 
-## Frontend-Architektur
+## 5. Agent and session model
 
-### Feature-Folder-Struktur
+### Agent types
 
-```
-frontend/src/
-├── features/               # Feature-basierte Co-location
-│   ├── auth/              # Login, JWT, permissions
-│   │   ├── LoginPage.tsx
-│   │   ├── permissions.ts  ← EINZIGE Permission-Source
-│   │   └── api.ts
-│   ├── chat/              # Chat-UI, message rendering, tool cards
-│   │   ├── ChatPage.tsx
-│   │   ├── useChat.ts     ← Chat-State-Hook
-│   │   ├── api.ts         ← Chat-API-Calls
-│   │   ├── types.ts
-│   │   ├── MessageInput.tsx
-│   │   ├── ToolCards.tsx
-│   │   └── tool_cards/    ← Tool-specific cards
-│   ├── agents/            # Agent CRUD, config
-│   ├── projects/          # Project management, file tree
-│   ├── datamining/        # Timeline, graph, semantic search
-│   ├── llm/               # LLM provider catalog, OAuth
-│   ├── plugins/           # Plugin hub, install/uninstall
-│   ├── mcp/               # MCP server config
-│   ├── butler/            # Butler flow-builder UI
-│   ├── communication/     # Messenger channel config
-│   └── ...
-├── shared/                # Shared components (NOT feature-specific)
-│   ├── components/        # Reusable UI (Button, Card, Modal)
-│   ├── hooks/             # Generic hooks (useDebounce, useLocalStorage)
-│   └── utils/             # Pure functions (formatDate, parseJSON)
-├── assets/                # Images, icons
-└── i18n/                  # Translations (de, en)
-```
+HydraHive represents Buddy, personal agents, project agents and specialists through the same core agent configuration, with fields that identify ownership, project association, specialist relation and Buddy status.
 
-### Design-Pattern
+An agent configuration can select:
 
-- **Feature Co-location**: Alles was zu Chat gehört liegt in `features/chat/` — kein Splitting in `components/`, `hooks/`, `api/`, `types/` über mehrere Verzeichnisse
-- **Single Source of Truth**: Permissions nur in `features/auth/permissions.ts`, nie dupliziert
-- **API-Layer**: Jedes Feature hat `api.ts` mit allen HTTP-Calls für diese Domäne
-- **Type-Safety**: Strikte TypeScript-Types, keine `any`
-- **Atomic Components**: Kleine Komponenten (<200 Zeilen), eine Verantwortung
+- primary, fallback and compaction models;
+- system prompt and reusable skills;
+- native/plugin tools and MCP servers;
+- temperature, maximum output tokens and reasoning effort;
+- maximum iterations and context-compaction settings;
+- long-term memory and tool-confirmation behavior.
+
+### Sessions
+
+Sessions bind a user to an agent and persist messages in SQLite. Metadata can hold per-session model and reasoning overrides. Sessions can be archived, tagged, exported, forked, detached and resumed.
+
+### Projects and workspaces
+
+The run context resolves to either the agent workspace or a project workspace. Project prompts include a generated layout hint describing repositories and workspace paths. Tool context carries the authenticated user ID, project ID, session ID and effective workspace.
+
+**Sources:** `core/src/hydrahive/agents/`, `db/sessions.py`, `db/messages.py`, `runner/_run_workspace.py`, `projects/_paths.py`, `workspace/`.
 
 ---
 
-## Datenschicht
+## 6. Runner data flow
 
-### SQLite (Core DB)
+A normal chat turn follows this sequence:
 
-```sql
--- Haupttabellen
-sessions            # Agent-Sessions (user_id, agent_id, created_at)
-session_events      # Messages, tool_calls, thinking_blocks (append-only)
-session_files       # Attached files (media, documents)
-session_metadata    # firstKeptEntryId, compaction_count
-
-agents              # Agent configs (name, model, tools[], system_prompt)
-users               # users.json mirror
-llm_providers       # Provider credentials (encrypted)
-mcp_servers         # MCP server configs
-plugins             # Installed plugins
+```text
+User message
+   │
+   ▼
+Session route validates owner, agent and request
+   │
+   ├─ persist attachment metadata/files
+   ├─ create or attach a run task
+   └─ return/stream run events
+   ▼
+Runner resolves agent + project workspace + tool context
+   │
+   ├─ load system prompt and skills
+   ├─ load native, MCP and plugin schemas
+   ├─ recall long-term memory when enabled
+   └─ append user message
+   ▼
+Prepare history
+   │
+   ├─ heal incomplete tool-use sequences
+   └─ compact when context thresholds require it
+   ▼
+Call primary model; try configured fallbacks when appropriate
+   │
+   ├─ stream text/reasoning events
+   ├─ persist assistant blocks and token metadata
+   └─ audit provider/model/cost estimate
+   ▼
+No tool calls? ───────────────► complete run + background compression
+   │
+   ▼
+Validate tool calls against allowlist and permissions
+   │
+   ├─ optional user confirmation
+   ├─ execute native / MCP / plugin tool
+   ├─ persist result blocks
+   └─ continue the model loop
 ```
 
-**Append-Only Pattern:**
-- Events werden NIE gelöscht, nur `firstKeptEntryId` verschoben
-- Compaction erstellt neue Events (`compaction_block`), alte bleiben
-- Context-Window: Events ab `firstKeptEntryId` bis Ende
-- Full-History für Debugging/Datamining verfügbar
+Protective behavior includes:
 
-### PostgreSQL Mirror (Optional)
+- explicit cancellation;
+- maximum iterations, producing a resumable paused state;
+- repeated-tool-loop detection;
+- visible errors for empty model responses;
+- explicit handling of truncated tool arguments at `max_tokens`;
+- output compression/limits for very large tool results;
+- context-window-aware compaction.
 
-- Repliziert SQLite-Events nach PostgreSQL
-- Aktiviert erweiterte Datamining-Features:
-  - Graph-Visualisierung (Networkx + Numba)
-  - Semantic Search (pgvector)
-  - Timeline-Aggregationen
-- Wird nur für `/api/datamining/*` genutzt
-- Core-Funktionalität bleibt SQLite-basiert
+Run tasks are decoupled from the initial request so browser disconnects do not have to terminate work.
 
-### JSON-Konfiguration
-
-```
-/var/lib/hydrahive2/
-├── agents.json             # Agent-Definitionen
-├── users.json              # User-DB (bcrypt-hashes)
-├── llm_providers.json      # Provider-Credentials (encrypted)
-├── mcp_servers.json        # MCP-Server-Configs
-├── skills/                 # Skill-Markdown-Files
-│   ├── code-review.md
-│   ├── debugging.md
-│   └── git-workflow.md
-└── workspaces/
-    ├── master/<user_id>/   # Master-Agent-Workspaces
-    ├── projects/<proj_id>/ # Project-Agent-Workspaces
-    └── specialists/<spec_id>/  # Specialist-Agent-Memory
-```
+**Sources:** `core/src/hydrahive/runner/runner.py`, `runner/_runner_iter.py`, `runner/_runner_tools.py`, `runner/concurrency.py`, `api/routes/sessions_messages.py`, `api/routes/_session_msg_helpers.py`.
 
 ---
 
-## Sicherheitsmodell
+## 7. LLM and media provider layer
 
-### Ebenen-Modell
+### Text models
 
-| Ebene | Mechanismus | Zweck |
-|-------|------------|-------|
-| **1. User-Auth** | JWT (HS256, bcrypt) | Wer darf überhaupt ins System? |
-| **2. Ownership** | Per-User-Agent-Isolation | Welche Agents/Projects gehören diesem User? |
-| **3. Tool-Filtering** | `tools[]` am Agent | Welche Tools darf dieser Agent nutzen? |
-| **4. Tool-Confirmation** | `require_tool_confirm: bool` | Muss User vor Tool-Call bestätigen? |
-| **5. Workspace-Isolation** | Pfad-Checks in file/shell-Tools | Projekt-Agents nur im eigenen Workspace |
-| **6. Service-Hardening** | systemd-Sandbox | `ProtectSystem=strict`, `NoNewPrivileges` |
+The LLM layer normalizes calls across direct/provider-specific adapters and LiteLLM-compatible routing. It maintains:
 
-### Warum KEINE OS-Level-Sandbox pro Agent?
+- provider configuration;
+- model discovery and metadata;
+- context-window/capability records;
+- OAuth/API-key paths;
+- retry/fallback behavior;
+- token and cost accounting.
 
-**Entscheidung (aus SPEC.md):**
-- Agents arbeiten wie Claude Code — volle Tool-Macht, kein "darf ich nicht"
-- OS-Sandbox bricht privilegierte Tools (VM-Management, Container, Tailscale)
-- HydraHive 1 hatte Sandbox → wurde dadurch unbrauchbar
-- Sicherheit kommt aus **User-Auth + Owner-Check + Tool-Confirmation**, nicht aus Linux-User-Isolation
+The current provider catalog/configuration has explicit paths for Anthropic, OpenAI, OpenAI Codex OAuth, OpenRouter, Groq, Mistral, Google Gemini, NVIDIA NIM, MiniMax and Ollama. Models from additional vendors can appear through aggregators such as OpenRouter or NVIDIA NIM without implying a dedicated direct-provider adapter.
 
-**Konsequenz:**
-- Alle Agents laufen als `hydrahive`-Systemuser
-- Kein `sudo -u agent-123` pro Agent
-- Workspace-Isolation via Application-Layer (Pfad-Checks in Tools)
+### Generated media
 
-### JWT-Flow
+Media generation is split from the text runner. Tools and API routes submit image, music, speech, transcription or video work to provider-specific helpers. Async video jobs retain provider job state and media metadata until completion.
 
-```
-User → POST /api/auth/login {username, password}
-    ↓
-Backend: bcrypt.verify(password, user.password_hash)
-    ↓
-JWT erstellen: {user_id, username, is_admin, exp: 7d}
-    ↓
-Frontend: localStorage.setItem("authToken", jwt)
-    ↓
-Alle API-Calls: Authorization: Bearer <jwt>
-    ↓
-Middleware: verify_jwt() → FastAPI Dependency
-```
+Local image/video generation uses a separate local-media subsystem with model catalogs, installers, job tracking and worker backends. The automated setup is NVIDIA/CUDA-oriented and therefore host-dependent.
+
+**Sources:** `core/src/hydrahive/llm/`, `oauth/`, `tools/generate_*.py`, `tools/transcribe_audio.py`, `llm/video_backends/`, `media_*.py`, `api/routes/media_*.py`.
 
 ---
 
-## Plugin-System
+## 8. Memory and data mining
 
-### Architektur
+HydraHive keeps several related data forms:
 
-```
-plugins/
-├── loader.py           # Plugin discovery, manifest parsing
-├── manifest.py         # PluginManifest schema (Pydantic)
-├── tool_bridge.py      # Tool registration from plugins
-└── hub_client.py       # HydraHive Plugin Hub API client
+1. **messages and sessions** — the canonical conversation record;
+2. **summaries/compaction records** — condensed context for long sessions;
+3. **observations** — agent-written durable notes;
+4. **memory cards** — versioned, reinforced knowledge with confidence, expiry and supersession;
+5. **LLM/tool/session audit events** — operational and data-mining records;
+6. **optional PostgreSQL mirrors** — query-oriented copies for cross-session search and analytics.
 
-Plugin-Verzeichnis:
-/var/lib/hydrahive2/plugins/<plugin-name>/
-├── manifest.json       # Metadata, dependencies, tools, hooks
-├── __init__.py         # Plugin entry point
-└── tools/              # Tool implementations
-```
+With long-term memory enabled, the runner loads high-ranked cards and can perform cue-driven semantic recall for substantial prompts. Consolidation and compression are best-effort background jobs so a failure does not invalidate the completed answer.
 
-### Manifest-Schema (Beispiel)
+The data-mining API is an authenticated shared analytics boundary rather than a strictly per-user query layer: several endpoints can inspect the mirror globally or accept a username filter. Deployments with mutually untrusted users should restrict that surface until finer-grained authorization is added.
 
-```json
-{
-  "name": "git-stats",
-  "version": "1.0.0",
-  "description": "Git repository statistics",
-  "tools": [
-    {
-      "name": "git_commits",
-      "description": "List recent commits",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "path": {"type": "string"},
-          "limit": {"type": "integer", "default": 10}
-        }
-      }
-    }
-  ],
-  "dependencies": ["gitpython>=3.1"],
-  "hooks": {
-    "after_tool_call": "plugins.git_stats.hooks:log_git_usage"
-  }
-}
-```
-
-### Plugin-Lifecycle
-
-1. **Installation**: Download → Extract → Validate manifest → `pip install dependencies`
-2. **Registration**: Tools werden in Tool-Registry eingetragen
-3. **Agent-Assignment**: Admin aktiviert Plugin am Agent via `plugins[]`-Liste
-4. **Runtime**: Runner lädt nur aktivierte Plugins, registriert deren Tools
-5. **Update**: Check Hub API → Download new version → Reload runner
-6. **Uninstall**: Remove directory → Cleanup DB entries
-
-**Design-Regel:**
-- Core-Code wird NIE für Plugins geändert
-- Plugins greifen auf Core-APIs zu, nicht umgekehrt
-- Plugins können eigene Routes registrieren (via Hook)
+**Sources:** `core/src/hydrahive/tools/_memory_*.py`, `tools/_observations.py`, `cards/`, `db/_mirror_*.py`, `api/routes/datamining*.py`, `compaction/`.
 
 ---
 
-## Deployment-Architektur
+## 9. Persistence and filesystem layout
 
-### Production (Ubuntu 24.04 via Installer)
+### Code defaults
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Server (Ubuntu 24.04)                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  nginx (Port 80/443)                                            │
-│    │                                                            │
-│    ├─ / → /var/www/hydrahive2/index.html (SPA)                 │
-│    ├─ /api/* → http://127.0.0.1:8765 (Backend Proxy)           │
-│    └─ /assets/* → /var/www/hydrahive2/assets/ (Static Files)   │
-│                                                                 │
-│  systemd-Service: hydrahive2.service                            │
-│    ├─ User: hydrahive (unprivileged)                           │
-│    ├─ ExecStart: /opt/hydrahive2/.venv/bin/python -m hydrahive │
-│    ├─ Restart: always                                          │
-│    ├─ NoNewPrivileges: true                                    │
-│    ├─ ProtectSystem: strict                                    │
-│    └─ ReadWritePaths: /var/lib/hydrahive2 /etc/hydrahive2      │
-│                                                                 │
-│  systemd-Path: hydrahive2-update.path                           │
-│    ├─ PathChanged: /var/lib/hydrahive2/update.trigger          │
-│    └─ Trigger: hydrahive2-update.service (runs update.sh)      │
-│                                                                 │
-│  Daten:                                                         │
-│    ├─ /var/lib/hydrahive2/ (Workspaces, DB, JSON-Configs)      │
-│    ├─ /etc/hydrahive2/ (Secret-Key, users.json)                │
-│    └─ /opt/hydrahive2/ (Git-Repo, Code, venv)                  │
-│                                                                 │
-│  Logs:                                                          │
-│    ├─ journalctl -u hydrahive2 -f                              │
-│    └─ /var/log/nginx/access.log                                │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+Unless overridden:
+
+```text
+HH_DATA_DIR=/var/lib/hydrahive2
+├── sessions.db             # primary SQLite application database
+├── agents/                 # agent configuration/prompts
+├── projects/               # project metadata/configuration
+├── workspaces/             # master, project and specialist workspaces
+├── credentials/            # encrypted per-user credential profiles
+├── modules/                # installed runtime modules
+├── plugins/                # installed agent-tool plugins
+├── vms/                    # local VM disks, ISOs, logs and VNC tokens
+└── ...                     # subsystem-specific runtime state
+
+HH_CONFIG_DIR=/etc/hydrahive2
+├── users.json              # file-backed users and password hashes
+├── api_keys.json           # HydraHive API-key records
+├── llm.json                # provider/model/media-backend configuration
+├── mcp_servers.json        # MCP configuration
+├── env                     # optional systemd environment overrides
+└── compute-pki/            # compute CA and certificates
 ```
 
-### Dev-Setup (lokaler Laptop)
+Themes are copied into `frontend/src/themes` and module frontend copies into `frontend/src/modules`; they are build inputs rather than dynamically served JavaScript bundles.
 
-```bash
-# Backend (FastAPI)
-cd core
-python3.12 -m venv .venv
-.venv/bin/pip install -e .
-.venv/bin/python -m hydrahive
+Not every path exists before its feature is used. Several config stores use atomic temp-file-and-rename updates; concurrent stores add file locking where required.
 
-# Frontend (Vite)
-cd frontend
-npm install
-npm run dev  # → http://localhost:5173
+### Standard Linux deployment
 
-# Dev-Start-Script (Backend + Frontend parallel)
-./dev-start.sh
+```text
+/opt/hydrahive2             # source and Python virtual environment
+/var/lib/hydrahive2         # HH_DATA_DIR
+/etc/hydrahive2             # secrets, TLS/compute configuration and env overrides
+/etc/systemd/system          # application/helper units and timers
+/var/log/hydrahive2-*.log   # update and helper workflow logs
 ```
 
-**Unterschiede Dev ↔ Production:**
-- Dev: Backend auf `:8001`, Vite Dev-Server auf `:5173` (HMR)
-- Prod: nginx served alles unter einer Domain
-- Dev: CORS-Origins include `localhost:5173`
-- Prod: CORS-Origins leer (nginx same-origin)
+The optional PostgreSQL mirror is separate from the primary SQLite store and should not be treated as the only copy of conversation data.
 
-### Self-Update-Flow
-
-```
-Admin klickt "Update" in UI
-    ↓
-POST /api/system/update-trigger
-    ↓
-Backend: touch /var/lib/hydrahive2/update.trigger
-    ↓
-systemd-Path-Watcher: hydrahive2-update.path
-    ↓
-Trigger: hydrahive2-update.service
-    ↓
-Run (als root): /opt/hydrahive2/installer/update.sh
-    ├─ git pull
-    ├─ .venv/bin/pip install -e core --upgrade
-    ├─ cd frontend && npm install && npm run build
-    ├─ systemctl restart hydrahive2
-    └─ rm /var/lib/hydrahive2/update.trigger
-```
-
-**Warum als root?**
-- `git pull` + `systemctl restart` brauchen Schreibrechte auf `/opt/hydrahive2`
-- API-Prozess läuft als `hydrahive` (unprivileged) → kann nicht selbst restarten
-- Trigger-File-Pattern trennt Privilege-Escalation sauber (API schreibt nur File, systemd macht Rest)
+**Sources:** `core/src/hydrahive/settings/`, `installer/install.sh`, `installer/modules/20-paths.sh`, `50-systemd.sh`.
 
 ---
 
-## Design-Entscheidungen (WHY)
+## 10. Extensibility contracts
 
-### 1. Warum SQLite statt PostgreSQL für Core?
+HydraHive has four different package mechanisms.
 
-**Entscheidung:** SQLite für Sessions/Events, PostgreSQL optional nur für Datamining-Mirror
+### 10.1 Runtime modules
 
-**Begründung:**
-- ✅ Zero-Config: Kein separater DB-Server, kein Networking, kein User-Management
-- ✅ Append-Only perfekt für SQLite: kein Locking-Problem bei Writes
-- ✅ Backup = File-Copy: `cp hydrahive.db hydrahive.db.backup`
-- ✅ Single-Node-System: Kein Multi-Server-Szenario geplant
-- ❌ PostgreSQL-Overhead für kleine Instanz nicht gerechtfertigt
+Runtime modules are loaded from `HH_DATA_DIR/modules/<id>` and contain a `manifest.json`. Their Python backend exposes `register(ctx)`. Through the module context they can register:
 
-**Konsequenz:**
-- Core bleibt portabel (läuft auf Raspberry Pi 5)
-- Datamining-Features (Graph, Semantic Search) werden optional via Mirror
+- FastAPI routers;
+- native agent tools;
+- database migrations;
+- supervised periodic jobs;
+- Butler trigger, condition and action types;
+- an optional service directory declared by the module.
 
-### 2. Warum keine OS-Level-Sandbox pro Agent?
+A module can also provide a frontend package compiled into the main application. The loader records failures per module and continues loading others. The repository ships a required Tasks module, a Patientenakte module and an example template; the official hub contains the broader catalog.
 
-**Entscheidung:** Alle Agents laufen als `hydrahive`-User, keine `sudo -u agent-123`
+**Sources:** `core/src/hydrahive/modules/loader.py`, `modules/context.py`, `modules/manifest.py`, `modules/example/`.
 
-**Begründung:**
-- ✅ HydraHive 1 hatte Sandbox → wurde unbrauchbar (zu viele "darf ich nicht")
-- ✅ Privileged-Tools (VM-Management, Container, Tailscale) funktionieren nur mit breiten Rechten
-- ✅ Sicherheit kommt aus User-Auth + Owner-Pattern + Tool-Confirmation, nicht aus Linux-User-Isolation
-- ❌ Agent-pro-User würde `/dev/kvm`, Network-Namespaces, `systemctl` brechen
+### 10.2 Themes
 
-**Konsequenz:**
-- Agents arbeiten wie Claude Code (volle Tool-Macht)
-- Sicherheit = **wer darf Agent starten** (JWT) + **welche Tools** (`tools[]`) + **Bestätigung** (`require_tool_confirm`)
+Theme packages contribute CSS and metadata. The frontend applies the active theme dynamically; theme management shares the package-management UI but does not load Python backend code.
 
-### 3. Warum Feature-Folders statt Layer-Structure?
+**Sources:** `core/src/hydrahive/themes/`, `api/routes/themes.py`, `frontend/src/shared/theme.ts`, `frontend/src/shared/themes/registry.ts`, `frontend/src/themes/index.generated.ts`.
 
-**Entscheidung:** `features/chat/` statt `components/Chat + hooks/useChat + api/chatApi`
+### 10.3 Service extensions
 
-**Begründung:**
-- ✅ Co-location: Alles was zu Chat gehört liegt zusammen → kein Shotgun Surgery
-- ✅ Änderungen an Chat-Feature berühren nur ein Verzeichnis
-- ✅ Neue Features = neues Verzeichnis (einfaches Onboarding)
-- ❌ Layer-Structure verteilt eine Änderung auf 4-5 Verzeichnisse
+Service extensions are admin-managed deployment descriptors under `extensions/manifests`. Install/uninstall scripts or Docker Compose files can provision third-party software. These operations are intentionally privileged and are not the same as loading a HydraHive UI module.
 
-**Konsequenz:**
-- Code bleibt wartbar auch bei 50+ Features
-- Delete-Feature = `rm -rf features/xyz/` (keine残ified Files)
+The systemd service receives narrowly documented `sudo` capabilities for extension operations, but the current installer allows `/bin/bash` through sudo. Therefore the admin endpoint and administrator account are critical trust boundaries.
 
-### 4. Warum max ~200 Zeilen pro Datei?
+**Sources:** `core/src/hydrahive/api/routes/extensions.py`, `api/routes/_extensions_*.py`, `extensions/`, `installer/modules/50-systemd.sh`.
 
-**Entscheidung:** Eiserne Regel: Datei > 200 Zeilen → aufteilen
+### 10.4 Agent-tool plugins
 
-**Begründung:**
-- ✅ Lesbarkeit: 200 Zeilen passen auf einen Bildschirm (auch mit Comments)
-- ✅ Single Responsibility: Wenn eine Datei zu groß wird, macht sie zu viel
-- ✅ Merge-Conflicts seltener: Kleinere Dateien = weniger Kollisionen
-- ✅ LLM-Context: Claude kann 200 Zeilen komplett erfassen ohne Truncation
+Plugins are discovered from `HH_DATA_DIR/plugins/<name>/plugin.yaml`. The loader validates the manifest, imports the entry module and calls `on_load(ctx)`. A selected plugin contributes normal tool schemas to an agent, and `tool_bridge.py` calls the registered async tool implementation.
 
-**Konsequenz:**
-- Lieber 1000 kleine Dateien als 30 Monster-Dateien
-- Review-Prozess prüft Dateigröße (siehe `hh-review`-Skill)
+Plugin Python code executes inside the backend process. There is no subprocess or OS sandbox at this boundary; installed plugins are fully trusted application code. Per-plugin load failures are isolated so another broken plugin need not stop discovery.
 
-### 5. Warum AgentLink als externer Service?
-
-**Entscheidung:** AgentLink ist eigenständiges Repo, kein HydraHive-Code
-
-**Begründung:**
-- ✅ Separation of Concerns: AgentLink = State-Transfer, HydraHive = Agent-Execution
-- ✅ Federation: AgentLink kann zwei HydraHive-Server verbinden
-- ✅ Technologie-Freiheit: AgentLink könnte auf Rust/Go migriert werden ohne HydraHive zu brechen
-- ✅ Skalierung: AgentLink kann separate Redis-Cluster nutzen
-
-**Konsequenz:**
-- HydraHive importiert AgentLink nur als HTTP-Client (`agentlink/client.py`)
-- AgentLink-Code nie in HydraHive-Repo (außer Installer-Integration)
-
-### 6. Warum Append-Only statt Delete?
-
-**Entscheidung:** Events werden nie gelöscht, nur `firstKeptEntryId` verschoben
-
-**Begründung:**
-- ✅ Full-History für Debugging: Alle Tool-Calls, alle Fehler bleiben abrufbar
-- ✅ Datamining: Timeline/Graph brauchen vollständige Event-Chain
-- ✅ Compaction-Transparenz: User sieht was kompaktiert wurde
-- ✅ No-Data-Loss: Kein versehentliches Löschen wichtiger Context
-
-**Konsequenz:**
-- DB wächst langfristig → Backup-Strategy wichtig
-- PostgreSQL-Mirror für Datamining (SQLite bleibt für Runtime)
-
-### 7. Warum systemd statt Docker?
-
-**Entscheidung:** Direktes systemd-Deployment, kein Docker/Compose
-
-**Begründung:**
-- ✅ Simplicité: Ein Service-File, keine Compose-YAML, kein Image-Build
-- ✅ Ressourcen: Kein Container-Overhead (wichtig für Raspberry Pi 5)
-- ✅ Debugging: `journalctl -u hydrahive2 -f` statt Docker-Logs
-- ✅ Security: systemd-Sandbox (`ProtectSystem=strict`) funktioniert direkt
-
-**Konsequenz:**
-- Installer muss systemd-Units anlegen (kein `docker-compose up`)
-- Production = Ubuntu 24.04 LTS (andere Distros später)
+**Sources:** `core/src/hydrahive/plugins/manifest.py`, `plugins/loader.py`, `plugins/context.py`, `plugins/tool_bridge.py`.
 
 ---
 
-## Zusammenfassung
+## 11. Project engineering subsystem
 
-HydraHive 2.0 ist eine **schlanke, selbst gehostete, plugin-erweiterte KI-Agenten-Platform**.
+A project combines:
 
-**Kern-Eigenschaften:**
-- 🐝 **3-Ebenen-Architektur**: Master → Project → Specialist
-- 🔒 **Zero-Cloud**: Alles lokal, keine Daten woanders
-- 🧩 **Plugin-First**: Core bleibt klein, Features als Plugins
-- 📦 **Single-Binary**: Ein systemd-Service, SQLite-DB, JSON-Config
-- 🚀 **Self-Update**: Admin klickt Button, systemd macht `git pull + rebuild + restart`
-- 🔐 **JWT + bcrypt**: Pro-User-Isolation, keine OS-Sandbox pro Agent
-- 📊 **Append-Only**: Kein Kontextverlust, Full-History, Compaction mit Pointer
+- identity, owner and members;
+- a workspace;
+- one or more source repository directories;
+- a project agent and specialists;
+- Tasks-module records linked by project ID;
+- sessions, statistics and project audit entries;
+- optional MCP/plugin/LLM-key integration settings;
+- optional Samba/SMB mounts, VM/container assignments and media workspace;
+- an optional code graph.
 
-**Tech-Stack:**
-- Backend: Python 3.12 + FastAPI + LiteLLM
-- Frontend: React 19 + TypeScript + Vite
-- DB: SQLite (Core) + PostgreSQL (Mirror, optional)
-- Proxy: nginx
-- Service: systemd
+Git operations execute against repository mappings inside the project workspace. Gitea operations use the configured project integration/token path.
 
-**Deployment:** Ein Bash-Befehl (`sudo ./install.sh`) → fertig.
+The code graph runs the local `graphify` binary over selected project directories. Query tools expose natural-language query, explanation, shortest paths and reverse impact traversal. Graph results are only current after a successful build/refresh.
+
+**Sources:** `core/src/hydrahive/projects/`, `api/routes/projects*.py`, `code_graph*.py`, `tools/code_graph_tools.py`, `modules/tasks/`.
 
 ---
 
-**Fragen? Siehe [SPEC.md](../SPEC.md) für vollständige Produktspezifikation.**
+## 12. Compute and host infrastructure
+
+### Remote compute nodes
+
+The separate `node-agent` process runs on a managed node and connects to HydraHive. The architecture uses:
+
+- a generated compute CA;
+- node enrollment and client certificates;
+- nginx mTLS verification for the connect endpoint;
+- a proxy-injected secret and node identity headers;
+- heartbeats, metrics and command/workload messages.
+
+See [node-agent/README.md](../node-agent/README.md) and [compute-node-runbook.md](compute-node-runbook.md).
+
+### Federation workstations
+
+HydraHive can register other workstations by URL/token, refresh their A2A cards, retrieve remote audit data and generate client bootstrap configurations with optional Tailscale details. This is separate from the compute-node command channel.
+
+### Local and node-placed VMs and containers
+
+The Linux installer can provision:
+
+- libvirt/QEMU and websockify for VMs and browser VNC;
+- Incus for system containers and browser terminal sessions.
+
+These components are optional and unavailable on hosts without the required kernel, virtualization and privilege support.
+
+**Sources:** `core/src/hydrahive/compute/`, `federation/`, `vms/`, `containers/`, `api/routes/federation.py`, `node-agent/`, `installer/modules/65-vms.sh`, `70-containers.sh`.
+
+---
+
+## 13. Communication architecture
+
+Communication adapters translate an external message into a HydraHive session/run and send resulting content back to the channel.
+
+Implemented channel families include:
+
+- WhatsApp through a bundled Node bridge;
+- Discord through bot configuration;
+- Matrix-based team chat;
+- IMAP/SMTP mail tools;
+- voice upload/stream paths backed by configured STT/TTS components.
+
+Channels are optional runtimes. Their availability is determined by installed bridge components, credentials and service health, not only by the presence of API routes.
+
+**Sources:** `core/src/hydrahive/communication/`, `teamchat/`, `voice/`, `api/routes/communication_whatsapp*.py`, `communication_discord*.py`, `teamchat.py`, `stt.py`, `tts.py`.
+
+---
+
+## 14. Deployment and lifecycle
+
+### Linux
+
+`installer/install.sh` orchestrates numbered installer modules. The normal deployment consists of:
+
+- `hydrahive` service user;
+- Python 3.12 virtual environment;
+- built React assets;
+- loopback uvicorn service;
+- nginx HTTPS edge;
+- systemd helpers/timers for update, restart, voice, bridge, Samba and migration requests;
+- optional AgentLink, Samba, PostgreSQL, WhatsApp, VMs, containers, voice and Tailscale.
+
+`KillMode=process` is used so restarting the backend does not automatically kill VM/container child processes.
+
+### Updates and migration
+
+The UI can request update/restart work by writing trigger files consumed by privileged systemd helpers. The update script builds, tests and can roll back. Migration uses a dedicated rsync workflow and may run for a long time.
+
+### macOS
+
+`installer/install-mac.sh` provides an experimental native setup. It cannot provide Linux-specific systemd, libvirt, Incus or nginx service behavior unchanged.
+
+**Sources:** `installer/install.sh`, `installer/update.sh`, `installer/migrate.sh`, `installer/modules/`.
+
+---
+
+## 15. Security boundaries and operational consequences
+
+| Boundary | Consequence |
+|---|---|
+| Browser ↔ nginx | TLS and security headers protect transport/UI; default certificate is self-signed |
+| nginx ↔ FastAPI | Backend should remain loopback-only in the standard deployment |
+| User ↔ project | Membership/role checks must guard every project resource |
+| Agent ↔ tool | Tool assignment and confirmations control capability, but an allowed tool can be powerful |
+| HydraHive ↔ model provider | Prompt, attachment and tool context sent to cloud models leaves the host |
+| Core ↔ module/plugin | Installed code is trusted; failure isolation is not a malicious-code sandbox |
+| Admin ↔ extension installer | Extension installation can become root code execution by design |
+| HydraHive ↔ compute node | Node identity relies on enrollment, client certificates and proxy checks |
+| Credential store ↔ tool | Secrets are decrypted only server-side and should never be returned in tool output |
+
+For a fuller abuse-oriented analysis, see [SECURITY_THREAT_MODEL.md](SECURITY_THREAT_MODEL.md).
+
+---
+
+## 16. Verification map
+
+When changing a subsystem, use these primary verification targets:
+
+| Change | Minimum checks |
+|---|---|
+| Backend/API | `cd core && python -m pytest && python -m ruff check src tests` |
+| Frontend/routes | `cd frontend && npx tsc --noEmit && npm run build` |
+| Module | Core module-loader tests plus the module's own tests/build |
+| Plugin | Loader/executor tests and manifest fixture validation |
+| Installer/proxy | `bash -n` on changed scripts; validate generated nginx/systemd configuration on a compatible host |
+| Documentation | link/path checks, command review and source cross-check against current route/manifest/config files |
+
+CI currently runs backend tests/ruff and the frontend TypeScript check. Some infrastructure behavior can only be fully verified on a compatible Linux host.
