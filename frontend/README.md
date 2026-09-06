@@ -1,5 +1,7 @@
 # HydraHive frontend
 
+> 🇩🇪 [Deutsche Version](README.de.md)
+
 React 19 + TypeScript single-page application for HydraHive. Vite handles development and production builds; the Linux installer serves `dist/` through nginx.
 
 ## Stack

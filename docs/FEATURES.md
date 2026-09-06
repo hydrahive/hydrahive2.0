@@ -1,5 +1,7 @@
 # HydraHive feature inventory
 
+> 🇩🇪 [Deutsche Version](FEATURES.de.md)
+
 This document records the user-visible and operator-facing feature surface implemented in the current HydraHive core repository and its official module hub.
 
 It is an inventory, not a claim that every feature is active on every installation. Availability depends on the authenticated role, installed modules, selected installer components, credentials, external services and hardware.

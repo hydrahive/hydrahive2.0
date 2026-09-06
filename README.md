@@ -1,5 +1,7 @@
 # HydraHive
 
+> 🇩🇪 [Deutsche Version](README.de.md)
+
 **Self-hosted AI orchestration, project workspaces, persistent memory, automation and media production — in one extensible web cockpit.**
 
 <p align="center">

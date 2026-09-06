@@ -1,5 +1,7 @@
 # HydraHive documentation
 
+> 🇩🇪 [Deutsche Version](README.de.md)
+
 This directory contains product, operator, architecture, security and implementation documentation for HydraHive.
 
 > **Start here:** [FEATURES.md](FEATURES.md) is the code-backed inventory of the current product. `SPEC.md` remains the binding product baseline, while files under `specs/`, `plans/` and `audit/` can describe a point-in-time design or investigation.
@@ -18,6 +20,7 @@ This directory contains product, operator, architecture, security and implementa
 | [../SPEC.md](../SPEC.md) | Maintainers and contributors | Binding product baseline; updates require maintainer approval |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contributors | Git workflow, checks and code conventions |
 | [../SECURITY.md](../SECURITY.md) | Security reporters | Vulnerability reporting and supported versions |
+| [I18N.md](I18N.md) | Contributors | Documentation language-mirror convention |
 
 ## Architecture deep dives
 
