@@ -1,5 +1,7 @@
 # HydraHive architecture
 
+> 🇩🇪 [Deutsche Version](ARCHITECTURE.de.md)
+
 > **Audience:** contributors, operators and system architects
 > **Validated against:** the current repository on 2026-09-06
 > **Related:** [feature inventory](FEATURES.md) · [product baseline](../SPEC.md) · [contributing](../CONTRIBUTING.md)
