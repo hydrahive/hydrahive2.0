@@ -46,6 +46,7 @@ class VideoParams:
     seed: int | None = None
     frames: int | None = None
     image_url: str | None = None  # Startframe (data-URI/https) für I2V
+    end_image_url: str | None = None  # Endframe (data-URI/https) für FLF2V
 
 
 @dataclass(frozen=True)

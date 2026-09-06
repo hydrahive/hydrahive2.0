@@ -48,7 +48,7 @@ fi
 MEDIA_ROOT="${HH_MEDIA_ROOT:-/var/lib/hydrahive2/local-media}"
 MEDIA_IMAGE="${HH_MEDIA_IMAGE:-yanwk/comfyui-boot:cu128-slim}"
 REPO_DIR="${HH_REPO_DIR:-/opt/hydrahive2}"
-install -d -m 0755 "$MEDIA_ROOT/data" "$MEDIA_ROOT/models"/{checkpoints,diffusion_models,text_encoders,vae}
+install -d -m 0755 "$MEDIA_ROOT/data" "$MEDIA_ROOT/models"/{checkpoints,diffusion_models,text_encoders,clip_vision,vae}
 
 # Öffentliche, versionsgebundene Basismodelle. Unvollständige Downloads werden
 # fortgesetzt; erst die Mindestgröße markiert eine Datei als verwendbar.
@@ -88,6 +88,15 @@ download_model \
   "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors" \
   "$MEDIA_ROOT/models/vae/wan_2.1_vae.safetensors" 250000000 \
   "2fc39d31359a4b0a64f55876d8ff7fa8d780956ae2cb13463b0223e15148976b"
+# FLF2V (First/Last Frame to Video) für lokale Start-/Endbild-Übergänge.
+download_model \
+  "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors" \
+  "$MEDIA_ROOT/models/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors" 16000000000 \
+  "ede519ba92bff7f2cfac919058d20bb0b5084497256b4fcd0bcf104cd4d8bc83"
+download_model \
+  "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors" \
+  "$MEDIA_ROOT/models/clip_vision/clip_vision_h.safetensors" 1200000000 \
+  "badc2656bc63a68213b934144f5f63edfcc12e41eeead464512b7fa175631d72"
 
 log "ComfyUI-Image aktualisieren: $MEDIA_IMAGE"
 docker pull "$MEDIA_IMAGE" >/dev/null
@@ -132,7 +141,9 @@ from pathlib import Path
 config_path = Path(os.environ["LLM_CONFIG"])
 workflow_dir = Path(os.environ["REPO_DIR"]) / "installer" / "media-workflows"
 data = json.loads(config_path.read_text()) if config_path.exists() else {"providers": []}
-workflows = [json.loads((workflow_dir / name).read_text()) for name in ("sdxl-image.json", "wan21-t2v.json")]
+workflows = [json.loads((workflow_dir / name).read_text()) for name in (
+    "sdxl-image.json", "wan21-t2v.json", "wan21-flf2v.json",
+)]
 backend = {
     "id": "local-gpu",
     "name": "Lokale GPU (ComfyUI)",

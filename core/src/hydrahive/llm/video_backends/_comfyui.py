@@ -16,6 +16,7 @@ direkt.
 """
 from __future__ import annotations
 
+import base64
 import copy
 import logging
 import uuid
@@ -51,10 +52,17 @@ def _find_workflow(provider: dict, workflow_id: str) -> dict:
     raise RuntimeError(f"Workflow '{workflow_id}' nicht im ComfyUI-Backend konfiguriert")
 
 
-def _apply_placeholders(graph: dict, placeholders: dict, params: VideoParams) -> dict:
-    """Setzt die Werte aus params an die per placeholders adressierten Graph-Felder.
+def _apply_placeholders(
+    graph: dict,
+    placeholders: dict,
+    params: VideoParams,
+    *,
+    image_name: str | None = None,
+    end_image_name: str | None = None,
+) -> dict:
+    """Setzt Parameter und hochgeladene Bildnamen in den Workflow-Graph.
 
-    placeholders: {"prompt": "6.inputs.text", "seed": "3.inputs.seed", ...}
+    placeholders: {"prompt": "6.inputs.text", "image_url": "12.inputs.image"}
     Adressformat: "<node_id>.inputs.<field>". Unbekannte/leere Adressen werden
     still übersprungen (nicht jeder Workflow hat jedes Feld).
     """
@@ -65,7 +73,8 @@ def _apply_placeholders(graph: dict, placeholders: dict, params: VideoParams) ->
         "width": params.width,
         "height": params.height,
         "frames": params.frames,
-        "image_url": params.image_url,
+        "image_url": image_name,
+        "end_image_url": end_image_name,
     }
     for key, addr in (placeholders or {}).items():
         val = values.get(key)
@@ -83,6 +92,37 @@ def _apply_placeholders(graph: dict, placeholders: dict, params: VideoParams) ->
             continue
         node["inputs"][field] = val
     return g
+
+
+def _decode_data_uri(value: str) -> tuple[str, bytes]:
+    """Dekodiert eine lokale Bild-Data-URI für ComfyUI /upload/image."""
+    head, sep, payload = value.partition(",")
+    if not sep or ";base64" not in head:
+        raise RuntimeError("ComfyUI-Bild muss als base64 Data-URI vorliegen")
+    mime = head[5:].split(";", 1)[0] or "image/png"
+    try:
+        return mime, base64.b64decode(payload, validate=True)
+    except (ValueError, base64.binascii.Error) as exc:
+        raise RuntimeError("Ungültige Bild-Data-URI für ComfyUI") from exc
+
+
+async def _upload_image(client: httpx.AsyncClient, base: str, data_uri: str, label: str) -> str:
+    """Lädt ein Bild in ComfyUI input/ und gibt den sicheren Dateinamen zurück."""
+    mime, content = _decode_data_uri(data_uri)
+    suffix = ".jpg" if mime in {"image/jpeg", "image/jpg"} else ".png"
+    response = await client.post(
+        f"{base}/upload/image",
+        files={"image": (f"hydrahive-{label}{suffix}", content, mime)},
+        data={"type": "input", "overwrite": "false"},
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"ComfyUI /upload/image Fehler {response.status_code}: {response.text[:300]}")
+    result = response.json()
+    name = str(result.get("name") or "")
+    if not name or Path(name).name != name:
+        raise RuntimeError("ComfyUI lieferte keinen gültigen Upload-Dateinamen")
+    subfolder = str(result.get("subfolder") or "")
+    return f"{subfolder}/{name}" if subfolder else name
 
 
 class ComfyUIVideoBackend:
@@ -112,11 +152,20 @@ class ComfyUIVideoBackend:
         graph = wf.get("graph") or {}
         if not graph:
             raise RuntimeError(f"Workflow '{workflow_id}' hat keinen Graph")
-        filled = _apply_placeholders(graph, wf.get("placeholders") or {}, params)
         client_id = uuid.uuid4().hex
         base = _api_base(provider)
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
+                image_name = None
+                end_image_name = None
+                if params.image_url:
+                    image_name = await _upload_image(client, base, params.image_url, "start")
+                if params.end_image_url:
+                    end_image_name = await _upload_image(client, base, params.end_image_url, "end")
+                filled = _apply_placeholders(
+                    graph, wf.get("placeholders") or {}, params,
+                    image_name=image_name, end_image_name=end_image_name,
+                )
                 resp = await client.post(
                     f"{base}/prompt",
                     json={"prompt": filled, "client_id": client_id},
