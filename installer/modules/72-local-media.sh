@@ -92,11 +92,11 @@ download_model \
 download_model \
   "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors" \
   "$MEDIA_ROOT/models/diffusion_models/wan2.1_flf2v_720p_14B_fp8_e4m3fn.safetensors" 16000000000 \
-  "ede519ba92bff7f2cfac919058d20bb0b5084497256b4fcd0bcf104cd4d8bc83"
+  "d68ca694a695274e48e00974128337e06e497d95a1dc09e86fd2a01a405f455f"
 download_model \
   "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors" \
   "$MEDIA_ROOT/models/clip_vision/clip_vision_h.safetensors" 1200000000 \
-  "badc2656bc63a68213b934144f5f63edfcc12e41eeead464512b7fa175631d72"
+  "64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161"
 
 log "ComfyUI-Image aktualisieren: $MEDIA_IMAGE"
 docker pull "$MEDIA_IMAGE" >/dev/null
