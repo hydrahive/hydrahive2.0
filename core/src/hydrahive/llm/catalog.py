@@ -323,6 +323,17 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
             entries = [{"id": _normalize_id(pid, m), "context_window": None,
                         "is_free": None, "price_prompt": None, "price_completion": None}
                        for m in STATIC_MODELS.get(pid, [])]
+        # ProviderForm erlaubt bewusst benutzerdefinierte Modell-IDs. Sie müssen
+        # auch bei einem fehlenden/verkürzten Live-Katalog in den Pickern bleiben
+        # (z.B. Codex OAuth oder ein neuer DeepSeek-NIM-Slug).
+        known = {str(e.get("id")) for e in entries}
+        for model in p.get("models", []) or []:
+            model_id = _normalize_id(pid, str(model).strip())
+            if model_id and model_id not in known:
+                entries.append({"id": model_id, "context_window": None,
+                                "is_free": None, "price_prompt": None,
+                                "price_completion": None})
+                known.add(model_id)
         models = [_enrich(pid, e) for e in entries]
         return {
             "provider_id": pid,

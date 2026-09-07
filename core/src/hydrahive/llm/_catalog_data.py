@@ -26,6 +26,16 @@ PROVIDER_ENDPOINTS = {
 
 # Static-Fallbacks für Provider ohne Listing-Endpoint oder bei Live-Fetch-Fehlern.
 STATIC_MODELS = {
+    # Codex OAuth hat keinen öffentlichen /models-Endpunkt. Diese Liste hält
+    # die im Codex-Client verfügbaren Modelle auch ohne Live-Katalog wählbar.
+    "openai-codex": [
+        "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-luna",
+        "openai-codex/gpt-5.5", "openai-codex/gpt-5.4", "openai-codex/gpt-5.4-mini",
+        "openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.3-codex-spark",
+        "openai-codex/gpt-5.2", "openai-codex/gpt-5.2-codex",
+        "openai-codex/gpt-5.1", "openai-codex/gpt-5.1-codex-max",
+        "openai-codex/gpt-5.1-codex-mini",
+    ],
     "anthropic": [
         "claude-opus-5", "claude-fable-5", "claude-sonnet-5", "claude-sonnet-4-6",
         "claude-opus-4-8", "claude-opus-4-7",
@@ -36,18 +46,6 @@ STATIC_MODELS = {
         "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.1", "MiniMax-M2.7", "MiniMax-M1",
         "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat",
         "embo-01",
-    ],
-    "openai-codex": [
-        "openai-codex/gpt-5.6-sol",
-        "openai-codex/gpt-5.6-terra",
-        "openai-codex/gpt-5.6-luna",
-        "openai-codex/gpt-5.5",
-        "openai-codex/gpt-5.4",
-        "openai-codex/gpt-5.4-mini",
-        "openai-codex/gpt-5.3-codex-spark",
-        "openai-codex/gpt-5.1",
-        "openai-codex/gpt-5.1-codex-max",
-        "openai-codex/gpt-5.1-codex-mini",
     ],
 }
 
