@@ -1,6 +1,7 @@
 import { useState, type ComponentType } from "react"
 import {
   BrainCircuit,
+  Clock,
   Cpu,
   FileText,
   LayoutGrid,
@@ -21,6 +22,7 @@ import type { McpServerBrief } from "@/features/agents/api"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { RegistryModel } from "@/features/llm/api"
 import { useEffortLevels } from "@/features/llm/effort"
+import { ScheduledTasksPanel } from "@/features/scheduledTasks/ScheduledTasksPanel"
 
 interface Props {
   agent: Agent
@@ -63,6 +65,7 @@ export function ProjectAgentEditorTabs({
     { id: "skills", label: "Skills", icon: Sparkles },
     { id: "soul", label: "MD-Dateien", icon: BrainCircuit },
     { id: "advanced", label: "Erweitert", icon: SlidersHorizontal },
+    { id: "schedules", label: "Intervalle", icon: Clock },
   ]
 
   const activeTab = !hasMail && tab === "mail" ? "overview" : tab
@@ -145,6 +148,7 @@ export function ProjectAgentEditorTabs({
           {activeTab === "advanced" && (
             <CompactionSection agent={draft} models={models} onChange={onChange} />
           )}
+          {activeTab === "schedules" && <ScheduledTasksPanel targetType="agent" targetId={agent.id} projectId={agent.project_id} />}
         </div>
       </div>
     </div>

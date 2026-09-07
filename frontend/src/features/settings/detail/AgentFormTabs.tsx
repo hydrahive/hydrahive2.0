@@ -1,4 +1,4 @@
-import { Save, Loader2, LayoutGrid, Cpu, Wrench, Sparkles, BrainCircuit, SlidersHorizontal, Mail } from "lucide-react"
+import { Save, Loader2, LayoutGrid, Cpu, Wrench, Sparkles, BrainCircuit, SlidersHorizontal, Mail, Clock } from "lucide-react"
 import { useEffect, useMemo, useState, type ComponentType } from "react"
 import { useTranslation } from "react-i18next"
 import { agentsApi, mcpInfoApi, type McpServerBrief } from "@/features/agents/api"
@@ -12,6 +12,7 @@ import { SkillsTab } from "@/features/agents/_SkillsTab"
 import { AgentFormHeader } from "@/features/agents/_AgentFormHeader"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { RegistryModel } from "@/features/llm/api"
+import { ScheduledTasksPanel } from "@/features/scheduledTasks/ScheduledTasksPanel"
 
 interface Props {
   agent: Agent
@@ -71,6 +72,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
     { id: "skills", icon: Sparkles, label: t("tabs.skills") },
     { id: "soul", icon: BrainCircuit, label: t("tabs.soul") },
     { id: "advanced", icon: SlidersHorizontal, label: t("tabs.advanced") },
+    { id: "schedules", icon: Clock, label: "Intervalle" },
   ].filter((x) => x.show !== false)
 
   // Falls der aktive Reiter ausgeblendet ist (z.B. Mail weg), zurück auf overview.
@@ -117,6 +119,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
           {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
           {tab === "soul" && <SoulTab agent={agent} />}
           {tab === "advanced" && <CompactionSection agent={draft} models={models} onChange={patch} />}
+          {tab === "schedules" && <ScheduledTasksPanel targetType="agent" targetId={agent.id} projectId={agent.project_id} />}
         </div>
       </div>
 

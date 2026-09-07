@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, BrainCircuit, Check, Database, Loader2, Mail, Save,
+  ArrowLeft, BrainCircuit, Check, Clock, Database, Loader2, Mail, Save,
   SlidersHorizontal, Sparkles, UserRound, Wrench,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react"
@@ -17,8 +17,9 @@ import { BuddySettingsMail } from "./_BuddySettingsMail"
 import { BuddySettingsModel } from "./_BuddySettingsModel"
 import { BuddySettingsSkills } from "./_BuddySettingsSkills"
 import { BuddySettingsTools } from "./_BuddySettingsTools"
+import { ScheduledTasksPanel } from "@/features/scheduledTasks/ScheduledTasksPanel"
 
-type TabId = "identity" | "context" | "model" | "tools" | "skills" | "mail" | "advanced"
+type TabId = "identity" | "context" | "model" | "tools" | "skills" | "mail" | "advanced" | "schedules"
 interface Tab { id: TabId; icon: ComponentType<{ size?: number }>; label: string; show?: boolean }
 
 export function BuddySettingsPage() {
@@ -92,6 +93,7 @@ export function BuddySettingsPage() {
       { id: "skills", icon: Sparkles, label: t("settings.tab_skills") },
       { id: "mail", icon: Mail, label: t("settings.tab_mail"), show: hasMail },
       { id: "advanced", icon: SlidersHorizontal, label: t("settings.tab_advanced") },
+      { id: "schedules", icon: Clock, label: "Intervalle" },
     ]
     return all.filter((tab) => tab.show !== false)
   }, [hasMail, t])
@@ -125,6 +127,7 @@ export function BuddySettingsPage() {
             {visibleTab === "skills" && <BuddySettingsSkills config={config} draft={draft} onChange={applyDraft} />}
             {visibleTab === "mail" && hasMail && <BuddySettingsMail config={config} draft={draft} onChange={applyDraft} />}
             {visibleTab === "advanced" && <BuddySettingsAdvanced config={config} draft={draft} onChange={applyDraft} availableModels={models} />}
+            {visibleTab === "schedules" && <ScheduledTasksPanel targetType="buddy" targetId="buddy" />}
           </section>
         </div>}
 

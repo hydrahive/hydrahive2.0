@@ -28,6 +28,7 @@ from hydrahive.communication.whatsapp import (
 )
 from hydrahive.containers import reconciler as container_reconciler
 from hydrahive.compute import channel_monitor
+from hydrahive.schedules import scheduler as scheduled_tasks_scheduler
 from hydrahive.zahnfee import scheduler as zahnfee_scheduler
 from hydrahive.db import init_db
 from hydrahive.db import mirror as pg_mirror
@@ -166,6 +167,8 @@ async def lifespan(app: FastAPI):
     )
     compute_monitor_stop = asyncio.Event()
     compute_monitor_task = asyncio.create_task(channel_monitor.run_loop(compute_monitor_stop))
+    scheduled_tasks_stop = asyncio.Event()
+    scheduled_tasks_task = asyncio.create_task(scheduled_tasks_scheduler.run_loop(scheduled_tasks_stop))
     from hydrahive.modules import jobs as module_jobs
     module_jobs_stop = asyncio.Event()
     module_job_tasks = module_jobs.start_all(module_jobs_stop)
@@ -257,6 +260,7 @@ async def lifespan(app: FastAPI):
     vm_reconciler_stop.set()
     container_reconciler_stop.set()
     compute_monitor_stop.set()
+    scheduled_tasks_stop.set()
     module_jobs_stop.set()
     if mail_stop is not None:
         mail_stop.set()
@@ -267,6 +271,7 @@ async def lifespan(app: FastAPI):
         vm_reconciler_task,
         container_reconciler_task,
         compute_monitor_task,
+        scheduled_tasks_task,
         *module_job_tasks,
     ]
     if mail_task is not None:
