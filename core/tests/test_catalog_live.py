@@ -109,6 +109,27 @@ def test_auth_for_anthropic_oauth_uses_bearer_and_cli_headers():
     assert params == {}
 
 
+def test_codex_models_are_available_without_live_endpoint():
+    from hydrahive.llm._catalog_data import STATIC_MODELS
+
+    assert "openai-codex/gpt-5.6-sol" in STATIC_MODELS["openai-codex"]
+    assert "openai-codex/gpt-5.4-mini" in STATIC_MODELS["openai-codex"]
+
+
+def test_configured_model_is_kept_when_provider_catalog_is_empty(monkeypatch):
+    async def no_live_models(_provider_id, _key):
+        return []
+
+    monkeypatch.setattr(catalog, "_cached_fetch", no_live_models)
+    result = asyncio.run(catalog.catalog_for_providers([{
+        "id": "nvidia", "api_key": "k",
+        "models": ["nvidia_nim/deepseek-ai/deepseek-r1"],
+    }]))
+
+    ids = {m["id"] for m in result[0]["models"]}
+    assert "nvidia_nim/deepseek-ai/deepseek-r1" in ids
+
+
 def test_opus_5_is_complete_static_fallback():
     from hydrahive.llm._catalog_data import METADATA, STATIC_MODELS
 
