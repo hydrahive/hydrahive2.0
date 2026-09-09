@@ -123,7 +123,7 @@ sudo systemctl restart hydrahive2
 
 ## First login
 
-The installer prints:
+There is **no fixed default password**. On the first backend start HydraHive creates the user `admin` and generates a random password. The installer normally prints:
 
 ```text
 URL:       https://<server-ip>
@@ -131,7 +131,50 @@ Benutzer:  admin
 Passwort:  <generated value>
 ```
 
-The initial password is also captured temporarily by the installer from `/etc/hydrahive2/.admin_initial_password` or the current boot journal. Change it after the first login.
+### Where the initial password is stored
+
+The password is handled in two places during the first start:
+
+1. **Temporary file** (preferred source):
+
+   ```text
+   /etc/hydrahive2/.admin_initial_password
+   ```
+
+   The file is mode `0600` and is deleted automatically after `installer/install.sh` reads it. Check whether it still exists without printing the password:
+
+   ```bash
+   sudo test -f /etc/hydrahive2/.admin_initial_password \
+     && echo "Passwortdatei vorhanden" \
+     || echo "keine Passwortdatei vorhanden"
+   ```
+
+   If it exists, display it locally on the server:
+
+   ```bash
+   sudo cat /etc/hydrahive2/.admin_initial_password
+   ```
+
+2. **systemd journal** (fallback):
+
+   ```bash
+   sudo journalctl -u hydrahive2 -b --no-pager
+   sudo journalctl -u hydrahive2 --no-pager | grep -A8 -B2 "Erster Start"
+   ```
+
+There is no general `/var/log/hydrahive2.log` for the backend. The main service writes to the systemd journal. The files `/var/log/hydrahive2-update.log`, `hydrahive2-voice.log`, `hydrahive2-bridge.log`, `hydrahive2-samba.log` and `hydrahive2-migration.log` belong to their respective auxiliary services.
+
+### Permanent login data
+
+The user records are stored in:
+
+```text
+/etc/hydrahive2/users.json
+```
+
+This file contains only password hashes (new installations use bcrypt; legacy records may contain SHA-256), not the original password. The password cannot be recovered from `users.json`. `sessions.db` is the application/session database and is **not** the login-password store; do not delete it to reset the admin password.
+
+If the installer is run again after `admin` already exists, no new password is generated and no new password file is created. Change the password immediately after the first successful login. Never paste the password into chat or commit it to a repository.
 
 The nginx certificate is self-signed and includes loopback plus the detected server IP as subject alternative names. A browser warning is therefore expected until the certificate is explicitly trusted or replaced.
 
