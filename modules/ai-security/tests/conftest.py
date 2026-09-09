@@ -34,7 +34,7 @@ def setup_test_env():
         import bcrypt
         password_hash = bcrypt.hashpw(b"testpass123", bcrypt.gensalt()).decode("ascii")
         (root / "config" / "users.json").write_text(json.dumps({
-            "alice": {"password_hash": password_hash, "role": "user"},
+            "alice": {"password_hash": password_hash, "role": "admin"},
             "bob": {"password_hash": password_hash, "role": "user"},
         }))
 

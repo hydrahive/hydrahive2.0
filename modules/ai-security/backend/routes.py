@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from hydrahive.api.middleware.auth import require_auth
+from hydrahive.api.middleware.auth import require_admin
 from hydrahive.settings import settings
 
 from .aig_client import AigClient, AigError
@@ -16,7 +16,7 @@ from . import service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["ai-security"])
-Auth = Annotated[tuple[str, str], Depends(require_auth)]
+Auth = Annotated[tuple[str, str], Depends(require_admin)]
 
 
 class ScanIn(BaseModel):

@@ -59,7 +59,7 @@ def test_users_cannot_read_each_others_scans(client, alice, bob, monkeypatch):
     )
     scan_id = response.json()["id"]
     hidden = client.get(f"/api/modules/ai-security/scans/{scan_id}", headers=bob)
-    assert hidden.status_code == 404
+    assert hidden.status_code == 403
 
 
 def test_upstream_failure_is_not_leaked(client, alice, monkeypatch):

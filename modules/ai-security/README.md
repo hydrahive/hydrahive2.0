@@ -25,7 +25,7 @@ Die Runtime wird absichtlich nicht automatisch gestartet. HydraHive spricht eine
 
 ## API
 
-Alle Endpunkte benötigen HydraHive-Authentifizierung und liegen unter `/api/modules/ai-security`:
+Alle Endpunkte benötigen HydraHive-Authentifizierung mit Administratorrolle und liegen unter `/api/modules/ai-security`:
 
 - `GET /health`
 - `GET /targets`
