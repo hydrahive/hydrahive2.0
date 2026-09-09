@@ -72,16 +72,32 @@ def _normalize_id(provider_id: str, raw_id: str) -> str:
 
 
 def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
-    """Extrahiert strukturierte Modell-Einträge aus der /v1/models-Antwort.
+    """Extrahiert strukturierte Modell-Einträge aus Provider-Katalogantworten.
 
-    OpenRouter liefert pricing (Strings) + context_length; andere Provider oft nur id.
-    is_free = pricing.prompt und .completion sind beide '0'. Ohne pricing → None.
+    OpenAI-kompatible Provider liefern ``data[].id``. Gemini liefert
+    ``models[].name``. Der Codex-Endpoint liefert ``models[].slug`` und
+    ``context_window`` sowie Sichtbarkeit/Tool-Metadaten.
     """
     raw: list[dict]
     if isinstance(data.get("data"), list):
         raw = data["data"]
-    elif isinstance(data.get("models"), list):  # Gemini
-        raw = [{"id": m.get("name", "").replace("models/", "")} for m in data["models"] if m.get("name")]
+    elif isinstance(data.get("models"), list):
+        raw = []
+        for model in data["models"]:
+            if not isinstance(model, dict):
+                continue
+            # Codex liefert nur für den aktuellen Account sichtbare Modelle;
+            # versteckte/aus der API entfernte Modelle gehören nicht in Picker.
+            if provider_id == "openai-codex" and (
+                model.get("visibility") not in (None, "list")
+                or model.get("supported_in_api") is False
+            ):
+                continue
+            item = dict(model)
+            item["id"] = (model.get("slug") or model.get("name", "")).replace("models/", "")
+            if "context_length" not in item:
+                item["context_length"] = model.get("context_window")
+            raw.append(item)
     else:
         raw = []
 
@@ -99,6 +115,9 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
         else:
             is_free = (str(prompt) == "0" and str(completion) == "0")
         arch = m.get("architecture") or {}
+        tool_use = m.get("tool_use")
+        if tool_use is None and provider_id == "openai-codex":
+            tool_use = bool(m.get("tool_mode") or m.get("experimental_supported_tools"))
         out.append({
             "id": _normalize_id(provider_id, mid),
             "context_window": m.get("context_length"),
@@ -107,6 +126,7 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
             "price_completion": completion,
             "output_modalities": arch.get("output_modalities") or [],
             "input_modalities": arch.get("input_modalities") or [],
+            "tool_use": tool_use,
         })
     return out
 
@@ -130,7 +150,13 @@ def _auth_for(cfg: dict, api_key: str) -> tuple[dict, dict]:
     return {}, {}
 
 
-async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
+async def _fetch_live_models(
+    provider_id: str,
+    api_key: str,
+    *,
+    extra_headers: dict[str, str] | None = None,
+    extra_params: dict[str, str] | None = None,
+) -> list[dict]:
     """Holt strukturierte Modell-Einträge live. Bei Fehler: leere Liste."""
     cfg = PROVIDER_ENDPOINTS.get(provider_id, {})
     url = cfg.get("url")
@@ -139,6 +165,8 @@ async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             headers, params = _auth_for(cfg, api_key)
+            headers.update(extra_headers or {})
+            params.update(extra_params or {})
             resp = await client.get(url, headers=headers, params=params)
             resp.raise_for_status()
             data = resp.json()
@@ -146,6 +174,48 @@ async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
     except Exception as e:
         logger.warning("Catalog: live-fetch für %s fehlgeschlagen: %s", provider_id, e)
         return []
+
+
+async def _fetch_codex_live_models(provider: dict, access_token: str) -> list[dict]:
+    """Holt den account-spezifischen Codex-Katalog vom ChatGPT-Backend.
+
+    Der Endpoint ist OpenAI-kompatibel, benötigt für ChatGPT OAuth aber zusätzlich
+    die Account-ID und den Codex-Client-Kontext. Ohne Account-ID fällt der Aufrufer
+    bewusst auf STATIC_MODELS zurück.
+    """
+    oauth = provider.get("oauth") or {}
+    account_id = oauth.get("account_id", "") or ""
+    if not account_id:
+        return []
+    return await _fetch_live_models(
+        "openai-codex",
+        access_token,
+        extra_headers={
+            "chatgpt-account-id": account_id,
+            "OpenAI-Beta": "responses=experimental",
+            "originator": "hydrahive",
+            "User-Agent": "codex_cli_rs/0.55.0",
+        },
+        extra_params={"client_version": "2.0.0"},
+    )
+
+
+async def _cached_fetch_codex(provider: dict, access_token: str) -> list[dict]:
+    """Cached Codex-Live-Fetch mit OAuth-Account-Kontext."""
+    cache_key = _credential_cache_key("openai-codex", access_token)
+    now = time.monotonic()
+    hit = _cache.get(cache_key)
+    if hit and now - hit[0] < _CACHE_TTL:
+        return hit[1]
+    lock = _cache_locks.setdefault(cache_key, asyncio.Lock())
+    async with lock:
+        hit = _cache.get(cache_key)
+        if hit and time.monotonic() - hit[0] < _CACHE_TTL:
+            return hit[1]
+        entries = await _fetch_codex_live_models(provider, access_token)
+        if entries:
+            _cache[cache_key] = (time.monotonic(), entries)
+        return entries
 
 
 async def _fetch_ollama_models(provider: dict) -> list[dict]:
@@ -315,7 +385,10 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
         credentials = _catalog_credentials(p)
         entries: list[dict] = []
         for credential in credentials:
-            entries = await _cached_fetch(pid, credential)
+            if pid == "openai-codex":
+                entries = await _cached_fetch_codex(p, credential)
+            else:
+                entries = await _cached_fetch(pid, credential)
             if entries:
                 break
         live_count = len(entries)

@@ -8,16 +8,15 @@ def test_gpt54_and_55_support_low_through_xhigh():
     assert effort_levels_for_model("openai-codex/gpt-5.5") == expected
 
 
-def test_gpt56_cyber_and_luna_support_max_not_ultra():
-    expected = ("low", "medium", "high", "xhigh", "max")
-    assert effort_levels_for_model("openai-codex/gpt-5.6-cyber") == expected
+def test_gpt56_luna_supports_max_not_ultra():
     assert effort_levels_for_model("openai-codex/gpt-5.6-luna") == (
         "low", "medium", "high", "xhigh", "max",
     )
 
 
-def test_gpt56_sol_and_terra_support_ultra():
+def test_gpt6_astra_and_gpt56_sol_terra_support_ultra():
     expected = ("low", "medium", "high", "xhigh", "max", "ultra")
+    assert effort_levels_for_model("openai-codex/gpt-6-astra") == expected
     assert effort_levels_for_model("openai-codex/gpt-5.6-sol") == expected
     assert effort_levels_for_model("openai-codex/gpt-5.6-terra") == expected
 

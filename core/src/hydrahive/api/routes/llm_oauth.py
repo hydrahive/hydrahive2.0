@@ -33,7 +33,7 @@ PENDING_PATH = settings.oauth_pending_path
 PENDING_TTL_SECONDS = 600  # 10 min — nach Login muss User in dem Zeitraum exchange aufrufen
 
 CODEX_DEFAULT_MODELS = [
-    "openai-codex/gpt-5.6-cyber",
+    "openai-codex/gpt-6-astra",
     "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.4",
     "openai-codex/gpt-5.4-mini",

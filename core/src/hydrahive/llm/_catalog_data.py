@@ -18,18 +18,21 @@ PROVIDER_ENDPOINTS = {
     "openrouter": {"url": "https://openrouter.ai/api/v1/models", "auth": "bearer"},
     "gemini":     {"url": "https://generativelanguage.googleapis.com/v1beta/models",
                    "auth": "query", "query_param": "key"},
-    # MiniMax + OpenAI-Codex haben kein public /v1/models-Endpoint → static
+    # MiniMax hat keinen öffentlichen /models-Endpoint; Codex nutzt den
+    # account-authentifizierten ChatGPT-Katalog unterhalb.
     "anthropic":    {"url": "https://api.anthropic.com/v1/models", "auth": "x-api-key"},
     "minimax":      {"url": None, "auth": None},
-    "openai-codex": {"url": None, "auth": None},
+    "openai-codex": {
+        "url": "https://chatgpt.com/backend-api/codex/models",
+        "auth": "bearer",
+    },
 }
 
 # Static-Fallbacks für Provider ohne Listing-Endpoint oder bei Live-Fetch-Fehlern.
 STATIC_MODELS = {
-    # Codex OAuth hat keinen öffentlichen /models-Endpunkt. Diese Liste hält
-    # die im Codex-Client verfügbaren Modelle auch ohne Live-Katalog wählbar.
+    # Fallback falls der account-authentifizierte Codex-Katalog nicht erreichbar ist.
     "openai-codex": [
-        "openai-codex/gpt-5.6-cyber", "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-luna",
+        "openai-codex/gpt-6-astra", "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-luna",
         "openai-codex/gpt-5.5", "openai-codex/gpt-5.4", "openai-codex/gpt-5.4-mini",
         "openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.3-codex-spark",
         "openai-codex/gpt-5.2", "openai-codex/gpt-5.2-codex",
@@ -56,6 +59,7 @@ PROVIDER_PREFIX = {
     # Ollama: OpenAI-kompatibel, LiteLLM-Route "ollama/". Modelle kommen live
     # vom user-eigenen Endpoint (keine STATIC_MODELS-Hardcodes).
     "ollama": "ollama/",
+    "openai-codex": "openai-codex/",
 }
 
 # Interne Metadata-Tabelle. Per Modell-ID (mit Prefix) → Eigenschaften.
@@ -254,7 +258,7 @@ METADATA: dict[str, dict[str, Any]] = {
     # geben ~400k im Codex-Backend frei. Tool-Use bei allen Codex-Modellen.
     # Codex OAuth uses the usable windows published by the Codex client, not the
     # larger API-key windows (official openai/codex models.json).
-    "openai-codex/gpt-5.6-cyber":        {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
+    "openai-codex/gpt-6-astra":          {"context_window": 272_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-sol":          {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-terra":        {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-luna":         {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},

@@ -16,7 +16,7 @@ def test_oauth_defaults_include_latest_models():
     from hydrahive.api.routes.llm_oauth import ANTHROPIC_DEFAULT_MODELS, CODEX_DEFAULT_MODELS
 
     assert ANTHROPIC_DEFAULT_MODELS[0] == "claude-opus-5"
-    assert CODEX_DEFAULT_MODELS[0] == "openai-codex/gpt-5.6-cyber"
+    assert CODEX_DEFAULT_MODELS[0] == "openai-codex/gpt-6-astra"
 
 
 def _fake_pkce():

@@ -109,22 +109,80 @@ def test_auth_for_anthropic_oauth_uses_bearer_and_cli_headers():
     assert params == {}
 
 
-def test_codex_models_are_available_without_live_endpoint():
-    from hydrahive.llm._catalog_data import STATIC_MODELS
+def test_codex_endpoint_and_static_fallback_include_gpt6_astra():
+    from hydrahive.llm._catalog_data import METADATA, PROVIDER_ENDPOINTS, STATIC_MODELS
 
-    assert "openai-codex/gpt-5.6-cyber" in STATIC_MODELS["openai-codex"]
-    assert "openai-codex/gpt-5.6-sol" in STATIC_MODELS["openai-codex"]
-    assert "openai-codex/gpt-5.4-mini" in STATIC_MODELS["openai-codex"]
+    assert PROVIDER_ENDPOINTS["openai-codex"] == {
+        "url": "https://chatgpt.com/backend-api/codex/models",
+        "auth": "bearer",
+    }
+    assert "openai-codex/gpt-6-astra" in STATIC_MODELS["openai-codex"]
+    assert METADATA["openai-codex/gpt-6-astra"]["context_window"] == 272_000
 
 
-def test_gpt56_cyber_metadata_is_complete():
-    from hydrahive.llm._catalog_data import METADATA
+def test_parse_codex_models_uses_slug_context_and_visibility():
+    response = {"models": [
+        {"slug": "gpt-6-astra", "context_window": 272_000,
+         "visibility": "list", "supported_in_api": True, "tool_mode": "code_mode_only"},
+        {"slug": "codex-auto-review", "context_window": 272_000,
+         "visibility": "hide", "supported_in_api": False},
+    ]}
 
-    assert METADATA["openai-codex/gpt-5.6-cyber"] == {
-        "context_window": 372_000,
+    entries = catalog._parse_models_response("openai-codex", response)
+
+    assert entries == [{
+        "id": "openai-codex/gpt-6-astra",
+        "context_window": 272_000,
+        "is_free": None,
+        "price_prompt": None,
+        "price_completion": None,
+        "output_modalities": [],
+        "input_modalities": [],
         "tool_use": True,
-        "category": "code",
-        "family": "gpt-codex",
+    }]
+
+
+def test_codex_catalog_uses_live_fetch(monkeypatch):
+    async def fake_fetch(provider, token):
+        assert provider["id"] == "openai-codex"
+        assert token == "access-token"
+        return [{"id": "openai-codex/gpt-6-astra", "context_window": 272_000}]
+
+    monkeypatch.setattr(catalog, "_cached_fetch_codex", fake_fetch)
+    result = asyncio.run(catalog.catalog_for_providers([{
+        "id": "openai-codex",
+        "oauth": {"access": "access-token", "account_id": "acct-123"},
+        "models": [],
+    }]))
+
+    assert result[0]["live_count"] == 1
+    assert result[0]["models"][0]["id"] == "openai-codex/gpt-6-astra"
+
+
+def test_codex_live_fetch_passes_oauth_account_context(monkeypatch):
+    seen = {}
+
+    async def fake_fetch(provider_id, access_token, *, extra_headers=None, extra_params=None):
+        seen.update(provider_id=provider_id, access_token=access_token,
+                    headers=extra_headers, params=extra_params)
+        return [{"id": "openai-codex/gpt-6-astra"}]
+
+    monkeypatch.setattr(catalog, "_fetch_live_models", fake_fetch)
+    entries = asyncio.run(catalog._fetch_codex_live_models(
+        {"oauth": {"account_id": "acct-123"}}, "access-token",
+    ))
+
+    assert entries[0]["id"] == "openai-codex/gpt-6-astra"
+    assert seen == {
+        "provider_id": "openai-codex",
+        "access_token": "access-token",
+        "headers": {
+            "chatgpt-account-id": "acct-123",
+            "OpenAI-Beta": "responses=experimental",
+            "originator": "hydrahive",
+            "User-Agent": "codex_cli_rs/0.55.0",
+        },
+        "params": {"client_version": "2.0.0"},
     }
 
 
