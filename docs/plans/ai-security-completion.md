@@ -17,10 +17,10 @@ Das installierbare `ai-security`-Modul bietet ein nutzbares Cockpit, einen runti
 
 ### 1. Cockpit-Frontend
 
-- [ ] Health, Ziel-Allowlist, Scan starten, Status und Report anzeigen.
-- [ ] Nur Admin-Rolle sichtbar.
-- [ ] Polling mit Abbruch bei abgeschlossenem/fehlgeschlagenem Scan.
-- [ ] Keine Geheimnisse oder freien Ziel-URLs im Frontend.
+- [x] Health, Ziel-Allowlist, Scan starten, Status und Report anzeigen.
+- [x] Nur Admin-Rolle sichtbar.
+- [x] Polling mit Abbruch bei abgeschlossenem/fehlgeschlagenem Scan.
+- [x] Keine Geheimnisse oder freien Ziel-URLs im Frontend.
 
 ### 2. Runtime-Vertrag ohne Docker
 
