@@ -26,7 +26,7 @@ Das Modul wird als normale, nachinstallierbare Hub-Erweiterung ausgeliefert:
 3. Der Core enthält bis zur Hub-Auslieferung zusätzlich eine identische gebündelte Kopie für lokale Entwicklung und Tests.
 4. `has_service` bleibt im MVP `false`: Die Modulinstallation installiert nicht automatisch den privilegierten Upstream-AIG-Docker-Stack.
 5. Der installierte Adapter bleibt ohne laufenden AIG-Dienst ladbar und zeigt den Zustand über `/health` an.
-6. Ein späterer Runtime-Installer wird separat spezifiziert und darf nur nach einem isolierten Docker-Pilot mit expliziter Rechte-/Netzwerkprüfung aktiviert werden.
+6. Ein späterer Runtime-Installer wird separat spezifiziert und darf nur nach einem isolierten Runtime-Pilot mit expliziter Rechte-/Netzwerkprüfung aktiviert werden. Docker-in-Docker beziehungsweise ein zusätzlicher Docker-Stack innerhalb des HydraHive-Containers ist ausdrücklich ausgeschlossen.
 
 Damit ist das Modul im HydraHive-Modulmanager nachinstallierbar, ohne bei der Installation ungeprüft einen privilegierten Fremddienst zu starten.
 
@@ -157,7 +157,9 @@ Nur separat opt-in, mit Zielbesitz-Bestätigung, Kosten-/Request-Limit, Audit-Ev
 
 ### Service-Installation
 
-Erst nach einem Test auf einem isolierten Host. Die Installation muss Container-Rechte, Datenverzeichnisse, Bind-Adresse, Firewall und Rollback explizit prüfen. Ein Upstream-Compose mit `SYS_ADMIN`/`seccomp:unconfined` darf nicht blind Bestandteil der normalen Modulinstallation werden.
+Erst nach einem Test außerhalb des HydraHive-Containers. Der bevorzugte Runtime-Pfad ist ein dedizierter Node-/Compute-Prozess oder ein separat verwalteter Incus-Container. Docker-in-Docker, ein Docker-Socket-Mount und ein zusätzlicher Docker-Compose-Stack innerhalb eines containerisierten HydraHive-Hosts sind ausgeschlossen, weil sie Netzwerk-, Routing- und Berechtigungsprobleme verursachen können.
+
+Ein Upstream-Compose mit `SYS_ADMIN`/`seccomp:unconfined` darf nicht Bestandteil der normalen Modulinstallation werden. Ein Runtime-Installer muss Bind-Adresse, Host-/Node-Netzwerk, Firewall, Ressourcenlimits, Datenverzeichnisse und Rollback explizit prüfen.
 
 ## Akzeptanzkriterien
 
