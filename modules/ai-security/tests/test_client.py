@@ -25,6 +25,22 @@ def test_result_is_bounded():
 
 
 @pytest.mark.asyncio
+async def test_create_scan_includes_configured_model(monkeypatch):
+    monkeypatch.setenv("HH_AI_SECURITY_MODEL", "gemma4:latest")
+    monkeypatch.setenv("HH_AI_SECURITY_MODEL_TOKEN", "ollama")
+    monkeypatch.setenv("HH_AI_SECURITY_MODEL_BASE_URL", "http://ollama:11434/v1")
+    request = AsyncMock(return_value={"session_id": "scan-1"})
+    with patch.object(AigClient, "_request", new=request):
+        assert await AigClient().create_infra_scan("http://127.0.0.1:11434") == "scan-1"
+    payload = request.call_args.kwargs["json"]["content"]
+    assert payload["model"] == {
+        "model": "gemma4:latest",
+        "token": "ollama",
+        "base_url": "http://ollama:11434/v1",
+    }
+
+
+@pytest.mark.asyncio
 async def test_create_scan_requires_session_id():
     with patch.object(AigClient, "_request", new=AsyncMock(return_value={})):
         with pytest.raises(AigError, match="aig_missing_session_id"):

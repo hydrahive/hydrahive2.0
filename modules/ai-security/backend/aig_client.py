@@ -98,13 +98,17 @@ class AigClient:
             raise AigError("aig_http_error")
 
     async def create_infra_scan(self, target_url: str) -> str:
+        content: dict[str, Any] = {"target": [target_url]}
+        if settings.ai_security_model:
+            content["model"] = {
+                "model": settings.ai_security_model,
+                "token": settings.ai_security_model_token,
+                "base_url": settings.ai_security_model_base_url,
+            }
         data = await self._request(
             "POST",
             "/api/v1/app/taskapi/tasks",
-            json={
-                "type": "ai_infra_scan",
-                "content": {"target": [target_url]},
-            },
+            json={"type": "ai_infra_scan", "content": content},
         )
         session_id = data.get("session_id")
         if not isinstance(session_id, str) or not _SESSION_ID_RE.fullmatch(session_id):

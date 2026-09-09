@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { AlertTriangle, CheckCircle2, Loader2, ShieldCheck, XCircle } from "lucide-react"
+import { CockpitShell } from "@/features/cockpit/CockpitShell"
+import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { aiSecurityApi, type AISecurityHealth, type AISecurityScan } from "./api"
 
 const text: Record<string, Record<string, string>> = {
@@ -111,7 +113,10 @@ export function AISecurityPage() {
   const statusLabel = (status: AISecurityScan["status"]) => labels[status]
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 p-6">
+    <CockpitShell title={labels.title} className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]" hideHeader>
+      <CockpitTopbar active="/ai-security" context={labels.intro} />
+      <main className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex items-start gap-4">
         <div className="rounded-xl bg-indigo-500/10 p-3 text-indigo-500"><ShieldCheck size={28} /></div>
         <div>
@@ -168,6 +173,8 @@ export function AISecurityPage() {
           {selectedScan?.result ? <pre className="max-h-[32rem] overflow-auto rounded-lg bg-muted p-4 text-xs">{JSON.stringify(selectedScan.result, null, 2)}</pre> : <p className="text-sm text-muted-foreground">{selectedScan?.error_code ?? labels.noReport}</p>}
         </div>
       </section>
-    </main>
+        </div>
+      </main>
+    </CockpitShell>
   )
 }

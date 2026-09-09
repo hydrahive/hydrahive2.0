@@ -24,6 +24,26 @@ class _AiSecurityMixin:
         ).strip()
 
     @property
+    def ai_security_model(self) -> str:
+        return env_or_override(
+            "ai_security_model", "HH_AI_SECURITY_MODEL", ""
+        ).strip()
+
+    @property
+    def ai_security_model_token(self) -> str:
+        return env_or_override(
+            "ai_security_model_token", "HH_AI_SECURITY_MODEL_TOKEN", "ollama"
+        ).strip()
+
+    @property
+    def ai_security_model_base_url(self) -> str:
+        return env_or_override(
+            "ai_security_model_base_url",
+            "HH_AI_SECURITY_MODEL_BASE_URL",
+            "http://127.0.0.1:11434/v1",
+        ).strip().rstrip("/")
+
+    @property
     def ai_security_http_timeout(self) -> float:
         raw = env_or_override(
             "ai_security_http_timeout", "HH_AI_SECURITY_HTTP_TIMEOUT", "10"
