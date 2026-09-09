@@ -27,11 +27,11 @@ Nach diesem Plan existiert ein optional installierbares HydraHive-Modul `ai-secu
 
 ### Task 0: Hub-Veröffentlichung des Adapters
 
-- [ ] Test/Check schreiben: Hub-Manifest und `hub.json` enthalten ein gültiges installierbares `ai-security`-Modul.
-- [ ] Test/Check ausführen: RED beziehungsweise fehlender Hub-Eintrag.
-- [ ] Modulquelle nach `hydrahive2-modules/ai-security` synchronisieren und `hub.json` ergänzen.
-- [ ] Test/Check ausführen: GREEN; Manifest-/Hub-Parser und Modultests laufen.
-- [ ] Gezielt committen: `feat(modules): publish ai-security adapter in module hub`.
+- [x] Test/Check schreiben: Hub-Manifest und `hub.json` enthalten ein gültiges installierbares `ai-security`-Modul.
+- [x] Test/Check ausführen: RED beziehungsweise fehlender Hub-Eintrag.
+- [x] Modulquelle nach `hydrahive2-modules/ai-security` synchronisieren und `hub.json` ergänzen.
+- [x] Test/Check ausführen: GREEN; Manifest-/Hub-Parser und Modultests laufen.
+- [x] Gezielt committen: `feat(modules): publish ai-security adapter in module hub`.
 
 ### Task 1: Konfiguration und Datenmodell
 
