@@ -17,6 +17,12 @@ export HH_AI_SECURITY_TARGETS=http://127.0.0.1:11434,http://127.0.0.1:8000
 
 Der AIG-Webserver darf nicht öffentlich gebunden werden. Die Upstream-Compose-Datei muss vor einem produktiven Einsatz insbesondere auf Container-Rechte, Netzwerkzugriff und fehlende Authentifizierung geprüft werden. Das HydraHive-Modul aktiviert keinen privilegierten Docker-Service automatisch.
 
+## Cockpit
+
+Das Modul registriert `/ai-security` im Infrastrukturbereich des HydraHive-Cockpits. Die Seite ist auf Administratoren beschränkt und zeigt Runtime-Erreichbarkeit, die konfigurierte Ziel-Allowlist, laufende Scans und redigierte Reports. Bei fehlender Runtime bleibt das Modul read-only und zeigt den Zustand statt Fehlerdetails aus dem Upstream weiterzugeben.
+
+Die Runtime wird absichtlich nicht automatisch gestartet. HydraHive spricht einen separat betriebenen AI-Infra-Guard über `HH_AI_SECURITY_AIG_URL` an; Docker-in-Docker und Docker-Socket-Mounts sind nicht Teil des Moduls.
+
 ## API
 
 Alle Endpunkte benötigen HydraHive-Authentifizierung und liegen unter `/api/modules/ai-security`:
