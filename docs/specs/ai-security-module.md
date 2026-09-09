@@ -17,6 +17,19 @@ Der HydraHive-Core bleibt unabhängig vom Scanner. AI-Infra-Guard wird nicht als
 - Upstream weist selbst darauf hin, dass der Dienst nicht öffentlich betrieben werden soll.
 - Der offizielle Compose-Agent benötigt privilegierte Container-Rechte. Diese werden im ersten MVP nicht automatisch erweitert oder ungeprüft aktiviert.
 
+## Installierbarkeit und Distribution
+
+Das Modul wird als normale, nachinstallierbare Hub-Erweiterung ausgeliefert:
+
+1. Die kanonische installierbare Modulquelle liegt im Repository `hydrahive2-modules/ai-security`.
+2. `hub.json` enthält einen Eintrag für `ai-security`.
+3. Der Core enthält bis zur Hub-Auslieferung zusätzlich eine identische gebündelte Kopie für lokale Entwicklung und Tests.
+4. `has_service` bleibt im MVP `false`: Die Modulinstallation installiert nicht automatisch den privilegierten Upstream-AIG-Docker-Stack.
+5. Der installierte Adapter bleibt ohne laufenden AIG-Dienst ladbar und zeigt den Zustand über `/health` an.
+6. Ein späterer Runtime-Installer wird separat spezifiziert und darf nur nach einem isolierten Docker-Pilot mit expliziter Rechte-/Netzwerkprüfung aktiviert werden.
+
+Damit ist das Modul im HydraHive-Modulmanager nachinstallierbar, ohne bei der Installation ungeprüft einen privilegierten Fremddienst zu starten.
+
 ## MVP-Grenze
 
 ### Im MVP enthalten

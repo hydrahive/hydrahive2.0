@@ -23,7 +23,15 @@ Nach diesem Plan existiert ein optional installierbares HydraHive-Modul `ai-secu
 - `modules/ai-security/tests/test_jobs.py` — Statusübergänge und Fehlerisolation.
 - `modules/ai-security/frontend/index.tsx` — zunächst keine Navigation; Platzhalter für Phase 2 nur falls Build-Vertrag erforderlich.
 
-## Implementierungsreihenfolge
+## Installationsreihenfolge
+
+### Task 0: Hub-Veröffentlichung des Adapters
+
+- [ ] Test/Check schreiben: Hub-Manifest und `hub.json` enthalten ein gültiges installierbares `ai-security`-Modul.
+- [ ] Test/Check ausführen: RED beziehungsweise fehlender Hub-Eintrag.
+- [ ] Modulquelle nach `hydrahive2-modules/ai-security` synchronisieren und `hub.json` ergänzen.
+- [ ] Test/Check ausführen: GREEN; Manifest-/Hub-Parser und Modultests laufen.
+- [ ] Gezielt committen: `feat(modules): publish ai-security adapter in module hub`.
 
 ### Task 1: Konfiguration und Datenmodell
 
