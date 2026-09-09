@@ -112,8 +112,20 @@ def test_auth_for_anthropic_oauth_uses_bearer_and_cli_headers():
 def test_codex_models_are_available_without_live_endpoint():
     from hydrahive.llm._catalog_data import STATIC_MODELS
 
+    assert "openai-codex/gpt-5.6-cyber" in STATIC_MODELS["openai-codex"]
     assert "openai-codex/gpt-5.6-sol" in STATIC_MODELS["openai-codex"]
     assert "openai-codex/gpt-5.4-mini" in STATIC_MODELS["openai-codex"]
+
+
+def test_gpt56_cyber_metadata_is_complete():
+    from hydrahive.llm._catalog_data import METADATA
+
+    assert METADATA["openai-codex/gpt-5.6-cyber"] == {
+        "context_window": 372_000,
+        "tool_use": True,
+        "category": "code",
+        "family": "gpt-codex",
+    }
 
 
 def test_configured_model_is_kept_when_provider_catalog_is_empty(monkeypatch):

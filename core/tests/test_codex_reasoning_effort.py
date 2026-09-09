@@ -8,7 +8,9 @@ def test_gpt54_and_55_support_low_through_xhigh():
     assert effort_levels_for_model("openai-codex/gpt-5.5") == expected
 
 
-def test_gpt56_luna_supports_max_not_ultra():
+def test_gpt56_cyber_and_luna_support_max_not_ultra():
+    expected = ("low", "medium", "high", "xhigh", "max")
+    assert effort_levels_for_model("openai-codex/gpt-5.6-cyber") == expected
     assert effort_levels_for_model("openai-codex/gpt-5.6-luna") == (
         "low", "medium", "high", "xhigh", "max",
     )

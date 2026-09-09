@@ -11,7 +11,7 @@ def effort_levels_for_model(model: str) -> tuple[str, ...]:
     bare = model.removeprefix("anthropic/")
     if model.startswith(("openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra")):
         return _WITH_ULTRA
-    if model.startswith("openai-codex/gpt-5.6-luna"):
+    if model.startswith(("openai-codex/gpt-5.6-cyber", "openai-codex/gpt-5.6-luna")):
         return _WITH_MAX
     if model.startswith("openai-codex/"):
         return _STANDARD

@@ -29,7 +29,7 @@ STATIC_MODELS = {
     # Codex OAuth hat keinen öffentlichen /models-Endpunkt. Diese Liste hält
     # die im Codex-Client verfügbaren Modelle auch ohne Live-Katalog wählbar.
     "openai-codex": [
-        "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-luna",
+        "openai-codex/gpt-5.6-cyber", "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-luna",
         "openai-codex/gpt-5.5", "openai-codex/gpt-5.4", "openai-codex/gpt-5.4-mini",
         "openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.3-codex-spark",
         "openai-codex/gpt-5.2", "openai-codex/gpt-5.2-codex",
@@ -254,6 +254,7 @@ METADATA: dict[str, dict[str, Any]] = {
     # geben ~400k im Codex-Backend frei. Tool-Use bei allen Codex-Modellen.
     # Codex OAuth uses the usable windows published by the Codex client, not the
     # larger API-key windows (official openai/codex models.json).
+    "openai-codex/gpt-5.6-cyber":        {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-sol":          {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-terra":        {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-luna":         {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},

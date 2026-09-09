@@ -4,6 +4,7 @@ from hydrahive.runner._codex_provider import _build_payload
 
 
 def test_codex_oauth_context_windows_match_official_client():
+    assert context_window_for("openai-codex/gpt-5.6-cyber") == 372_000
     assert context_window_for("openai-codex/gpt-5.6-sol") == 372_000
     assert context_window_for("openai-codex/gpt-5.6-terra") == 372_000
     assert context_window_for("openai-codex/gpt-5.6-luna") == 372_000
