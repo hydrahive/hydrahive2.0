@@ -32,6 +32,23 @@ async def test_create_scan_requires_session_id():
 
 
 @pytest.mark.asyncio
+async def test_health_accepts_a_successful_runtime_response():
+    class Stream:
+        async def __aenter__(self):
+            return httpx.Response(
+                200,
+                text="ok",
+                request=httpx.Request("GET", "http://127.0.0.1:8088/"),
+            )
+
+        async def __aexit__(self, *_args):
+            return None
+
+    with patch("httpx.AsyncClient.stream", return_value=Stream()):
+        await AigClient().health()
+
+
+@pytest.mark.asyncio
 async def test_client_rejects_non_json_upstream():
     class Stream:
         def __init__(self, response):

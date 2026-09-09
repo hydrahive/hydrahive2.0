@@ -94,8 +94,6 @@ class AigClient:
             raise AigError("aig_timeout") from exc
         except httpx.HTTPError as exc:
             raise AigError("aig_unreachable") from exc
-        if len(body) > self.max_bytes:
-            raise AigError("aig_response_too_large")
         if response.status_code >= 400:
             raise AigError("aig_http_error")
 
