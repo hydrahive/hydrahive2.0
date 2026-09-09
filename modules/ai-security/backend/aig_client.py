@@ -1,6 +1,7 @@
 """Kleiner AIG-HTTP-Client mit Timeout- und Response-Limits."""
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -64,8 +65,8 @@ class AigClient:
         if response.status_code >= 400:
             raise AigError("aig_http_error")
         try:
-            payload = response.json()
-        except ValueError as exc:
+            payload = json.loads(body)
+        except (UnicodeDecodeError, ValueError) as exc:
             raise AigError("aig_invalid_json") from exc
         if not isinstance(payload, dict):
             raise AigError("aig_invalid_response")
@@ -119,10 +120,12 @@ class AigClient:
         data = await self._request(
             "GET", f"/api/v1/app/taskapi/status/{session_id}"
         )
-        status = data.get("status")
-        if status not in {"pending", "running", "completed", "failed"}:
+        task_status = data.get("status")
+        if task_status == "error":
+            return "failed"
+        if task_status not in {"pending", "running", "completed", "failed"}:
             raise AigError("aig_invalid_task_status")
-        return status
+        return task_status
 
     async def result(self, session_id: str) -> dict[str, Any]:
         return await self._request(
