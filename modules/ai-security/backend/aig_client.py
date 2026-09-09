@@ -121,6 +121,8 @@ class AigClient:
             "GET", f"/api/v1/app/taskapi/status/{session_id}"
         )
         task_status = data.get("status")
+        if task_status == "done":
+            return "completed"
         if task_status == "error":
             return "failed"
         if task_status not in {"pending", "running", "completed", "failed"}:

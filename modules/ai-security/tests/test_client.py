@@ -48,6 +48,17 @@ async def test_create_scan_requires_session_id():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("upstream_status", "expected_status"),
+    [("done", "completed"), ("error", "failed")],
+)
+async def test_status_maps_aig_terminal_states(upstream_status, expected_status):
+    request = AsyncMock(return_value={"status": upstream_status})
+    with patch.object(AigClient, "_request", new=request):
+        assert await AigClient().status("scan-1") == expected_status
+
+
+@pytest.mark.asyncio
 async def test_health_accepts_a_successful_runtime_response():
     class Stream:
         async def __aenter__(self):
