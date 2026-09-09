@@ -1,0 +1,12 @@
+{
+  "id": "ai-security",
+  "name": "AI-Sicherheit",
+  "version": "0.1.0",
+  "description": "Sicherer Adapter für lokale AI-Infra-Guard-Scans",
+  "icon": "ShieldCheck",
+  "nav_group": "admin",
+  "permissions": [],
+  "has_service": false,
+  "default_agent_tools": false,
+  "min_core_version": "2.0.0"
+}
