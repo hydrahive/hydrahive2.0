@@ -60,6 +60,7 @@ export const moduleRoutes: unknown[] = [${routes}]
 export const moduleNav: unknown[] = [${nav}]
 export const moduleI18n: unknown[] = [${i18n}]
 export const moduleBuddyWidgets: unknown[] = _mods.flatMap(m => _opt(m, "buddyWidgets"))
+export const moduleBuddyMediaWidgets: unknown[] = _mods.flatMap(m => _opt(m, "buddyMediaWidgets"))
 export const moduleWorkspaceTabs: unknown[] = _mods.flatMap(m => _opt(m, "workspaceTabs"))
 export const moduleSlotBlocks: unknown[] = _mods.flatMap(m => _opt(m, "slotBlocks"))
 export const moduleMediaSources: unknown[] = _mods.flatMap(m => _opt(m, "mediaSources"))
