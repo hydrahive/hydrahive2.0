@@ -1,12 +1,37 @@
 from __future__ import annotations
 import json, re
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 class ManifestError(Exception): ...
+
+
+def _persistent_paths(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        raise ManifestError("manifest.json: 'persistent_paths' muss eine Liste sein")
+    patterns: list[str] = []
+    for pattern in value:
+        if not isinstance(pattern, str) or not pattern:
+            raise ManifestError("manifest.json: 'persistent_paths' enthält kein gültiges Glob-Pattern")
+        parts = pattern.split("/")
+        posix_path = PurePosixPath(pattern)
+        windows_path = PureWindowsPath(pattern)
+        if (
+            "\\" in pattern
+            or "\x00" in pattern
+            or posix_path.is_absolute()
+            or windows_path.is_absolute()
+            or windows_path.drive
+            or any(part in ("", ".", "..") for part in parts)
+        ):
+            raise ManifestError(
+                f"manifest.json: ungültiges relatives persistent_paths-Pattern {pattern!r}"
+            )
+        patterns.append(pattern)
+    return tuple(patterns)
 
 
 @dataclass(frozen=True)
@@ -22,6 +47,7 @@ class ModuleManifest:
     default_agent_tools: bool = False
     min_core_version: str = "2.0.0"
     dependencies: tuple[str, ...] = ()
+    persistent_paths: tuple[str, ...] = ()
 
     @classmethod
     def load(cls, path: Path) -> "ModuleManifest":
@@ -43,4 +69,5 @@ class ModuleManifest:
             default_agent_tools=bool(d.get("default_agent_tools", False)),
             min_core_version=d.get("min_core_version", "2.0.0"),
             dependencies=tuple(d.get("dependencies", [])),
+            persistent_paths=_persistent_paths(d.get("persistent_paths", [])),
         )
