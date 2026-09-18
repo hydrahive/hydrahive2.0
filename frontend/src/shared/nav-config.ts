@@ -102,6 +102,13 @@ export function cockpitModuleItems(): NavItem[] {
   return moduleNavItems().filter((i) => i.cockpit)
 }
 
+/** Module marked for the global quick-link/header navigation. These links must
+ *  also be available in the bare CockpitTopbar, whose core tabs are otherwise
+ *  separate from the theme layout navigation. */
+export function moduleTopnavItems(): NavItem[] {
+  return moduleNavItems().filter((i) => i.topnav)
+}
+
 export function visibleItems(role: string | null): NavItem[] {
   const all = [...NAV_ITEMS, ...moduleNavItems()]
   return all.filter((i) =>
