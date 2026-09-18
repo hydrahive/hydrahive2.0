@@ -158,6 +158,54 @@ Passwort:  <generated value>
 
 The certificate warning is expected until the generated certificate is trusted or replaced. The backend itself binds to loopback by default.
 
+### Windows via WSL2 (tested)
+
+The Linux installer can be run inside **WSL2**. This is the recommended Windows setup; run the installer from the Linux distribution, not from PowerShell or a Windows Git checkout.
+
+1. Install WSL2 with Ubuntu 24.04 from an elevated PowerShell:
+
+   ```powershell
+   wsl --install -d Ubuntu-24.04
+   ```
+
+   Reboot Windows if requested, then create the Linux user when Ubuntu starts.
+
+2. Enable systemd inside the WSL distribution:
+
+   ```bash
+   sudo tee /etc/wsl.conf >/dev/null <<'EOF'
+   [boot]
+   systemd=true
+   EOF
+   ```
+
+   Restart WSL from PowerShell:
+
+   ```powershell
+   wsl --shutdown
+   ```
+
+   Start Ubuntu again and verify that systemd is available:
+
+   ```bash
+   systemctl is-system-running || true
+   ```
+
+3. Clone HydraHive into the Linux filesystem (for example `~/src`, not `/mnt/c/...`) and run the normal installer:
+
+   ```bash
+   sudo apt update
+   sudo apt install -y git
+   mkdir -p ~/src && cd ~/src
+   git clone https://github.com/hydrahive/hydrahive2.0.git
+   cd hydrahive2.0
+   sudo bash installer/install.sh
+   ```
+
+4. Open the URL printed by the installer in Windows. With the default WSL2 localhost forwarding this is usually `https://localhost`; if necessary, use the WSL address from `hostname -I` instead. The generated certificate is self-signed, so the browser warning is expected.
+
+The core HydraHive service, nginx and the web cockpit have been tested under WSL2. Hardware- and kernel-dependent optional components (for example libvirt/QEMU, Incus, Samba, Tailscale and CUDA/local-media workloads) depend on the Windows/WSL configuration and should be disabled in the installer when they are not available. For a reliable WSL installation, keep the repository and runtime data in the Linux filesystem and use the interactive wizard to decline unsupported host integrations.
+
 ### macOS
 
 An experimental native installer exists:

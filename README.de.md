@@ -158,6 +158,54 @@ Passwort:  <generierter Wert>
 
 Die Zertifikats-Warnung ist erwartet, bis das generierte Zertifikat vertraut oder ersetzt ist. Das Backend selbst bindet per Default auf Loopback.
 
+### Windows über WSL2 (getestet)
+
+Der Linux-Installer kann innerhalb von **WSL2** ausgeführt werden. Das ist der empfohlene Windows-Weg; den Installer innerhalb der Linux-Distribution ausführen, nicht aus PowerShell und nicht aus einem Windows-Git-Checkout.
+
+1. WSL2 mit Ubuntu 24.04 aus einer PowerShell mit Administratorrechten installieren:
+
+   ```powershell
+   wsl --install -d Ubuntu-24.04
+   ```
+
+   Windows neu starten, falls dazu aufgefordert, und beim ersten Ubuntu-Start den Linux-Benutzer anlegen.
+
+2. systemd innerhalb der WSL-Distribution aktivieren:
+
+   ```bash
+   sudo tee /etc/wsl.conf >/dev/null <<'EOF'
+   [boot]
+   systemd=true
+   EOF
+   ```
+
+   WSL anschließend aus PowerShell neu starten:
+
+   ```powershell
+   wsl --shutdown
+   ```
+
+   Ubuntu erneut öffnen und prüfen, ob systemd verfügbar ist:
+
+   ```bash
+   systemctl is-system-running || true
+   ```
+
+3. HydraHive im Linux-Dateisystem (zum Beispiel unter `~/src`, nicht unter `/mnt/c/...`) klonen und den normalen Installer ausführen:
+
+   ```bash
+   sudo apt update
+   sudo apt install -y git
+   mkdir -p ~/src && cd ~/src
+   git clone https://github.com/hydrahive/hydrahive2.0.git
+   cd hydrahive2.0
+   sudo bash installer/install.sh
+   ```
+
+4. Die vom Installer ausgegebene URL in Windows öffnen. Mit dem standardmäßigen WSL2-Localhost-Forwarding ist das normalerweise `https://localhost`; falls nötig, stattdessen die WSL-Adresse aus `hostname -I` verwenden. Das generierte Zertifikat ist selbstsigniert, daher ist die Browser-Warnung erwartet.
+
+Der HydraHive-Kernservice, nginx und das Web-Cockpit wurden unter WSL2 getestet. Hardware- und Kernel-abhängige optionale Komponenten (zum Beispiel libvirt/QEMU, Incus, Samba, Tailscale und CUDA-/Local-Media-Workloads) hängen von der jeweiligen Windows-/WSL-Konfiguration ab und sollten im Installer deaktiviert werden, wenn sie nicht verfügbar sind. Für eine zuverlässige WSL-Installation Repository und Laufzeitdaten im Linux-Dateisystem belassen und im interaktiven Wizard nicht unterstützte Host-Integrationen abwählen.
+
 ### macOS
 
 Es existiert ein experimenteller nativer Installer:
