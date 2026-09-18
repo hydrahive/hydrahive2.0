@@ -42,14 +42,14 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
 
         <div className="min-w-0 flex-1" />
 
-        <nav className="hidden lg:flex items-center gap-1">
-          {quickLinks.map(({ path, icon: Icon, labelKey }) => {
+        <nav className="flex min-w-0 items-center gap-1" aria-label="Schnellzugriff">
+          {quickLinks.map(({ path, icon: Icon, labelKey, topnav }) => {
             const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
             return (
               <Link
                 key={path}
                 to={path}
-                className={`flex items-center gap-1.5 rounded-[4px] px-3 py-2 text-xs transition-colors ${
+                className={`${topnav ? "" : "hidden lg:flex"} shrink-0 items-center gap-1.5 rounded-[4px] px-3 py-2 text-xs transition-colors ${
                   active ? "bg-[#1c2940] font-semibold text-[#69d7ff]" : "text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]"
                 }`}
               >
