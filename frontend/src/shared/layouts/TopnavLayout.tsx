@@ -6,7 +6,7 @@ import { DOMAIN_TW, colorFor } from "@/shared/colors"
 import { navLabel } from "@/shared/nav-label"
 import type { LayoutChrome } from "./types"
 
-/** Standard-Layout: Menü oben (1:1 das bisherige HydraHive-Design). */
+/** Standard-Layout: Menü oben für Legacy-Routen mit Cockpit-Topbar-Chrome. */
 export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
   const { t, pathname, quickLinks, currentPage, onBentoToggle, footer } = chrome
 
@@ -19,39 +19,38 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
         <div className="absolute -bottom-44 -right-24 w-[520px] h-[440px] bg-amber-500/[14%] rounded-full blur-3xl" />
       </div>
 
-      {/* Top-Bar */}
-      <header className="relative z-30 flex items-center gap-2 px-3 sm:px-4 h-12 border-b border-white/[6%] bg-zinc-950/80 backdrop-blur">
+      {/* Globale Topbar: gleiche Formensprache wie das Cockpit-Chrome. */}
+      <header className="relative z-30 flex h-[58px] min-w-0 items-center gap-3 border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-3 sm:px-[18px]">
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <img
             src="/illustrations/logo-mark.png"
             alt=""
             className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] select-none"
           />
-          <span className="hidden sm:inline font-bold text-[var(--hh-accent-text)] tracking-tight">
+          <span className="hidden font-black tracking-[-0.03em] text-[#e8eef8] sm:inline">
             HydraHive
           </span>
         </Link>
 
         {currentPage && (
-          <span className="flex items-center gap-1.5 text-[11px] sm:text-sm text-zinc-400 ml-1 sm:ml-2 truncate">
-            <span className="text-zinc-600 mx-1">/</span>
-            <span className={`w-1.5 h-1.5 rounded-full ${DOMAIN_TW[colorFor(currentPage.path)].iconBgActive}`} />
+          <span className="min-w-0 truncate text-[11px] text-[#8d9ab0] sm:text-sm">
+            <span className="mx-1 text-[#68758a] sm:mx-2">/</span>
+            <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${DOMAIN_TW[colorFor(currentPage.path)].iconBgActive}`} />
             {navLabel(t, currentPage.labelKey)}
           </span>
         )}
 
-        <div className="flex-1" />
+        <div className="min-w-0 flex-1" />
 
         <nav className="hidden lg:flex items-center gap-1">
           {quickLinks.map(({ path, icon: Icon, labelKey }) => {
             const active = path === "/" ? pathname === "/" : pathname.startsWith(path)
-            const c = DOMAIN_TW[colorFor(path)]
             return (
               <Link
                 key={path}
                 to={path}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${
-                  active ? `${c.bgActive} ${c.textActive}` : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+                className={`flex items-center gap-1.5 rounded-[4px] px-3 py-2 text-xs transition-colors ${
+                  active ? "bg-[#1c2940] font-semibold text-[#69d7ff]" : "text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]"
                 }`}
               >
                 <Icon size={13} /> {navLabel(t, labelKey)}
@@ -62,10 +61,10 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
 
         <Link
           to="/settings"
-          className={`p-1.5 rounded-md transition-colors ${
+          className={`rounded-[4px] border p-2 transition-colors ${
             pathname.startsWith("/settings")
-              ? "text-violet-300 bg-violet-500/15"
-              : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+              ? "border-[#69d7ff]/35 bg-[#1c2940] text-[#69d7ff]"
+              : "border-[#2a364b] bg-[#172133] text-[#8d9ab0] hover:border-[#46617f] hover:text-[#e8eef8]"
           }`}
           title={t("settings.gear_tooltip", { ns: "system", defaultValue: "Einstellungen" })}
         >
@@ -74,7 +73,7 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
 
         <button
           onClick={onBentoToggle}
-          className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%]"
+          className="rounded-[4px] border border-[#2a364b] bg-[#172133] p-2 text-[#8d9ab0] hover:border-[#46617f] hover:text-[#e8eef8]"
           title="Apps"
         >
           <Grip size={16} />
