@@ -28,6 +28,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | Spec | Titel | Status | Zuletzt geändert |
 |---|---|---|---|
 | [`admin-cockpit-visual-system.md`](admin-cockpit-visual-system.md) | Admin-Cockpit Visual System |  | 2026-07-16 |
+| [`full-cockpit-visual-migration.md`](full-cockpit-visual-migration.md) | Full Cockpit Visual Migration |  | 2026-09-18 |
 | [`anthropic-oauth-gui.md`](anthropic-oauth-gui.md) | Spec: Anthropic-OAuth-Login in der GUI freischalten (dritter Weg) |  | 2026-07-07 |
 | [`buddy-codex-reasoning-effort-fix.md`](buddy-codex-reasoning-effort-fix.md) | Buddy Codex Reasoning Effort Fix |  | 2026-07-11 |
 | [`buddy-idle-video.md`](buddy-idle-video.md) | Buddy-Aktionsvideos |  | 2026-07-14 |

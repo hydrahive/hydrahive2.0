@@ -67,16 +67,16 @@ export function ProjectFormTabs({ project, onSaved, onDeleted }: Props) {
   return (
     <div className="flex h-full flex-col">
       {/* Header mit Name + Save */}
-      <div className="flex items-center gap-4 border-b border-white/[6%] px-6 py-4">
-        <Folder size={18} className="shrink-0 text-violet-300" />
+      <div className="flex items-center gap-3 border-b border-[#2a364b] bg-[#101724] px-4 py-3">
+        <Folder size={18} className="shrink-0 text-[#69d7ff]" />
         <input
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          className="min-w-0 flex-1 bg-transparent text-lg font-bold text-white focus:outline-none"
+          className="min-w-0 flex-1 rounded-[4px] border border-transparent bg-transparent px-2 py-1 text-lg font-bold text-[#e8eef8] focus:border-[#2a364b] focus:bg-[#0d1420] focus:outline-none"
         />
         {dirty && (
           <button onClick={save} disabled={saving}
-            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-medium text-white shadow-md shadow-violet-900/20 transition-all hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30">
+            className="flex items-center gap-1.5 rounded-[4px] border border-[#69d7ff]/45 bg-[#163248] px-3 py-2 text-xs font-bold text-[#c8f2ff] transition-colors hover:bg-[#1b3d56] disabled:opacity-30">
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             {tCommon("actions.save")}
           </button>
@@ -84,12 +84,12 @@ export function ProjectFormTabs({ project, onSaved, onDeleted }: Props) {
       </div>
 
       {/* Karteikarten-Reiter */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-white/8 px-4 pt-2">
+      <div className="flex flex-wrap items-center gap-1 border-b border-[#2a364b] bg-[#101724] px-3 py-2">
         {TABS.map(({ id, icon: Icon, label }) => (
           <button key={id} onClick={() => setTab(id)}
-            className={`flex items-center gap-1.5 rounded-t-lg px-3 py-2 text-sm transition-colors ${
-              tab === id ? "bg-[#104E8B]/20 text-sky-200 border-b-2 border-sky-400"
-                         : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[4%]"
+            className={`flex items-center gap-1.5 rounded-[4px] border px-3 py-2 text-sm transition-colors ${
+              tab === id ? "border-[#69d7ff]/40 bg-[#1c2940] font-semibold text-[#69d7ff]"
+                         : "border-transparent text-[#8d9ab0] hover:border-[#2a364b] hover:bg-[#151c2b] hover:text-[#e8eef8]"
             }`}>
             <Icon size={14} /> {label}
           </button>

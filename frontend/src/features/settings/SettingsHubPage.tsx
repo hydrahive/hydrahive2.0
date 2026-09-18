@@ -6,6 +6,8 @@ import { SETTINGS_GROUPS, type SettingsGroup } from "./registry"
 import { GroupList } from "./GroupList"
 import { ContentArea } from "./ContentArea"
 import { SubMenu } from "./SubMenu"
+import { CockpitShell } from "@/features/cockpit/CockpitShell"
+import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 
 /**
  * Zentrale Einstellungsseite (unterm Zahnrad). 3-Spalten Master-Detail nach
@@ -32,19 +34,22 @@ export function SettingsHubPage() {
   }
 
   return (
-    <div className="flex flex-col p-3 md:p-4 h-full">
-      <div
-        className="relative flex flex-1 overflow-hidden rounded-[28px] border border-[#104E8B]/70 shadow-2xl shadow-[0_0_50px_-12px_rgba(16,78,139,0.6)] backdrop-blur"
-      >
-        <div className="pointer-events-none absolute inset-0 rounded-[28px] ring-1 ring-inset ring-[#104E8B]/30" />
+    <CockpitShell
+      title="Einstellungen"
+      className="cockpit-route flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      hideHeader
+    >
+      <CockpitTopbar active="/settings" context="Globale und projektbezogene Einstellungen" />
+      <main className="min-h-0 flex-1 overflow-hidden p-[10px]">
+        <div className="grid h-full min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#101724] lg:grid-cols-[220px_minmax(0,1fr)_250px]">
 
         {/* Links: Hauptgruppen */}
-        <div className="w-56 shrink-0 border-r border-white/8 bg-zinc-950/50">
+        <div className="min-h-0 min-w-0 border-r border-[#2a364b] bg-[#101724]">
           <GroupList role={role} activeId={active.id} onSelect={selectGroup} />
         </div>
 
         {/* Mitte: Inhalt mit Tabs */}
-        <div className="flex-1 min-w-0 bg-zinc-950/20">
+        <div className="min-h-0 min-w-0 bg-[#0d1420]">
           <ContentArea group={active} subItem={subItem} />
         </div>
 
@@ -53,7 +58,7 @@ export function SettingsHubPage() {
         {active.hasSubmenu && (() => {
           const Custom = active.submenuComponent
           return (
-            <div className="w-64 shrink-0 border-l border-white/8 bg-zinc-950/50">
+            <div className="min-h-0 min-w-0 border-l border-[#2a364b] bg-[#101724]">
               {Custom ? (
                 <Suspense fallback={
                   <div className="flex h-full items-center justify-center">
@@ -68,7 +73,8 @@ export function SettingsHubPage() {
             </div>
           )
         })()}
-      </div>
-    </div>
+        </div>
+      </main>
+    </CockpitShell>
   )
 }
