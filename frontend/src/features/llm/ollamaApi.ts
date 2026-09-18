@@ -10,6 +10,23 @@ export interface OllamaNodeContext {
   hardware_source: string
 }
 
+export interface OllamaCapabilityResult {
+  status: "verified" | "failed" | "declared" | "unknown"
+  declared: boolean | null
+  verified_at?: string | null
+  probe_version: number
+  details?: string | null
+}
+
+export interface OllamaProbeJob {
+  id: string
+  model: string
+  node_id: string
+  status: "queued" | "running" | "success" | "failed"
+  result?: OllamaCapabilityResult | null
+  error?: string | null
+}
+
 export interface OllamaModel {
   id: string
   ollama_name: string
@@ -86,4 +103,6 @@ export const ollamaCatalogApi = {
   delete: (model: string) => api.delete<{ ok: boolean; model: string }>(
     `/llm/catalog/ollama/models/${encodeURIComponent(model)}`,
   ),
+  probe: (model: string) => api.post<OllamaProbeJob>("/llm/catalog/probes", { model }),
+  probeStatus: (jobId: string) => api.get<OllamaProbeJob>(`/llm/catalog/probes/${encodeURIComponent(jobId)}`),
 }

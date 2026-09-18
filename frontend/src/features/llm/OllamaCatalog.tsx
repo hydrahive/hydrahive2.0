@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ollamaCatalogApi, type OllamaCatalog as Catalog, type OllamaModel, type OllamaPullJob } from "./ollamaApi"
 import { OllamaModelList } from "./OllamaModelList"
+import { useOllamaProbeJobs } from "./useOllamaProbeJobs"
 
 interface Props {
   onUse: (model: string) => void
@@ -22,6 +23,7 @@ export function OllamaCatalog({ onUse }: Props) {
   const [variants, setVariants] = useState<Record<string, OllamaModel[]>>({})
   const [variantLoading, setVariantLoading] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Record<string, OllamaPullJob>>({})
+  const { probeJobs, startProbe } = useOllamaProbeJobs()
   const [busyModel, setBusyModel] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -95,6 +97,15 @@ export function OllamaCatalog({ onUse }: Props) {
     await loadFamily(family)
   }
 
+  async function probe(model: string) {
+    try {
+      await startProbe(model)
+      setError(null)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught))
+    }
+  }
+
   async function install(model: string) {
     setBusyModel(model)
     try {
@@ -152,7 +163,7 @@ export function OllamaCatalog({ onUse }: Props) {
       {!!catalog?.installed_models.length && (
         <section className="overflow-hidden rounded-xl border border-white/[7%] bg-white/[2%]">
           <h2 className="border-b border-white/[6%] px-4 py-3 text-sm font-medium text-zinc-200">{t("ollama.installed_models")}</h2>
-          <OllamaModelList models={catalog.installed_models} jobs={jobs} busyModel={busyModel} onInstall={install} onDelete={remove} onUse={onUse} />
+          <OllamaModelList models={catalog.installed_models} jobs={jobs} probeJobs={probeJobs} busyModel={busyModel} onInstall={install} onDelete={remove} onProbe={probe} onUse={onUse} />
         </section>
       )}
 
@@ -179,7 +190,7 @@ export function OllamaCatalog({ onUse }: Props) {
             </button>
             {expanded === family.name && (variantLoading === family.name
               ? <div className="flex justify-center py-5"><Loader2 size={16} className="animate-spin text-violet-400" /></div>
-              : <OllamaModelList models={variants[family.name] ?? []} jobs={jobs} busyModel={busyModel} onInstall={install} onDelete={remove} onUse={onUse} />)}
+              : <OllamaModelList models={variants[family.name] ?? []} jobs={jobs} probeJobs={probeJobs} busyModel={busyModel} onInstall={install} onDelete={remove} onProbe={probe} onUse={onUse} />)}
           </div>
         ))}
         {!families.length && <p className="py-8 text-center text-sm text-zinc-600">{t("ollama.no_models")}</p>}

@@ -1,13 +1,15 @@
-import { Bot, Download, Loader2, Trash2 } from "lucide-react"
+import { Bot, Download, Loader2, ShieldCheck, Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import type { OllamaModel, OllamaPullJob } from "./ollamaApi"
+import type { OllamaModel, OllamaProbeJob, OllamaPullJob } from "./ollamaApi"
 
 interface Props {
   models: OllamaModel[]
   jobs: Record<string, OllamaPullJob>
+  probeJobs: Record<string, OllamaProbeJob>
   busyModel: string | null
   onInstall: (model: string) => void
   onDelete: (model: string) => void
+  onProbe: (model: string) => void
   onUse: (model: string) => void
 }
 
@@ -59,7 +61,7 @@ function contextTitle(model: OllamaModel, t: (key: string) => string): string | 
   return t("ollama.context_capped")
 }
 
-export function OllamaModelList({ models, jobs, busyModel, onInstall, onDelete, onUse }: Props) {
+export function OllamaModelList({ models, jobs, probeJobs, busyModel, onInstall, onDelete, onProbe, onUse }: Props) {
   const { t } = useTranslation("llm")
   if (!models.length) return <p className="py-6 text-center text-sm text-zinc-600">{t("ollama.no_variants")}</p>
 
@@ -67,8 +69,10 @@ export function OllamaModelList({ models, jobs, busyModel, onInstall, onDelete, 
     <div className="divide-y divide-white/[6%]">
       {models.map((model) => {
         const job = jobs[model.ollama_name]
+        const probe = probeJobs[model.id]
         const pct = progress(job)
         const running = job?.status === "queued" || job?.status === "pulling"
+        const probing = probe?.status === "queued" || probe?.status === "running"
         const speed = model.measured_tps ?? model.estimated_tps
         return (
           <div key={model.ollama_name} className="px-4 py-3 space-y-2 hover:bg-white/[2%]">
@@ -104,9 +108,15 @@ export function OllamaModelList({ models, jobs, busyModel, onInstall, onDelete, 
                 {model.installed ? (
                   <>
                     {model.output_modalities.includes("text") && (
-                      <button onClick={() => onUse(model.id)} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-violet-300 hover:bg-violet-500/10">
-                        <Bot size={12} /> {t("ollama.use")}
-                      </button>
+                      <>
+                        <button disabled={probing} onClick={() => onProbe(model.id)} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-sky-300 hover:bg-sky-500/10 disabled:opacity-50" title="Echten Tool-Call prüfen">
+                          {probing ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
+                          {probe?.result?.status === "verified" ? "Verifiziert" : "Tool prüfen"}
+                        </button>
+                        <button onClick={() => onUse(model.id)} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-violet-300 hover:bg-violet-500/10">
+                          <Bot size={12} /> {t("ollama.use")}
+                        </button>
+                      </>
                     )}
                     <button disabled={busyModel === model.ollama_name} onClick={() => onDelete(model.ollama_name)}
                       className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-rose-300 hover:bg-rose-500/10 disabled:opacity-50">
@@ -133,6 +143,9 @@ export function OllamaModelList({ models, jobs, busyModel, onInstall, onDelete, 
                 </p>
               </div>
             )}
+            {probe?.result && <p className={`text-[10px] ${probe.result.status === "verified" ? "text-emerald-400" : "text-amber-400"}`}>
+              Tool-Fähigkeit: {probe.result.status === "verified" ? "verifiziert" : probe.result.details || probe.result.status}
+            </p>}
           </div>
         )
       })}
