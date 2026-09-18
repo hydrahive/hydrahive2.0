@@ -55,8 +55,23 @@ def _remote_url_https() -> str | None:
         return None
 
 
+def _is_ancestor(ancestor: str, descendant: str) -> bool:
+    """Prüft eine lokale Git-Abstammungsbeziehung ohne den Clone zu verändern."""
+    result = subprocess.run(
+        ["git", "-C", str(_REPO_ROOT), "merge-base", "--is-ancestor", ancestor, descendant],
+        capture_output=True, text=True, timeout=2, check=False,
+    )
+    return result.returncode == 0
+
+
 def _check_update_behind() -> int | None:
-    """0 wenn HEAD == origin/main, 1 wenn behind, None wenn nicht detectierbar."""
+    """0 wenn der lokale Stand aktuell oder dem Remote voraus ist.
+
+    Ein lokaler Commit auf ``main`` ist kein verfügbares Remote-Update. Vorher
+    wurde jeder Hash-Unterschied als ``behind=1`` gemeldet. Dadurch zeigte die
+    UI ein Update an, obwohl ``git pull`` korrekt ``Bereits aktuell`` meldete,
+    und wartete anschließend vergeblich auf einen neuen Commit.
+    """
     if not (_REPO_ROOT / ".git").exists():
         return None
     try:
@@ -76,7 +91,10 @@ def _check_update_behind() -> int | None:
         )
         if head.returncode != 0:
             return None
-        return 0 if head.stdout.strip() == remote_sha else 1
+        local_sha = head.stdout.strip()
+        if local_sha == remote_sha or _is_ancestor(remote_sha, local_sha):
+            return 0
+        return 1
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
 
