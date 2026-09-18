@@ -126,3 +126,30 @@ def test_admin_can_start_capability_probe(client, admin_headers, monkeypatch):
     )
     assert response.status_code == 202
     assert response.json()["id"] == "probe-1"
+
+
+async def test_benchmark_reports_prompt_and_completion_rates(monkeypatch):
+    from hydrahive.llm import benchmark
+
+    async def fake_call(model, **kwargs):
+        return {"input_tokens": 100, "output_tokens": 50}
+
+    ticks = iter([10.0, 12.5])
+    monkeypatch.setattr(benchmark, "_call_benchmark_model", fake_call)
+    monkeypatch.setattr(benchmark.time, "perf_counter", lambda: next(ticks))
+    result = await benchmark.run_benchmark("ollama/gemma4:latest", node_id="wks-01")
+
+    assert result["status"] == "completed"
+    assert result["prompt_tokens"] == 100
+    assert result["completion_tokens"] == 50
+    assert result["prompt_tps"] == 40.0
+    assert result["completion_tps"] == 20.0
+
+
+def test_benchmark_endpoint_is_admin_only(client, auth_headers):
+    response = client.post(
+        "/api/llm/catalog/benchmarks",
+        headers=auth_headers,
+        json={"model": "ollama/gemma4:latest"},
+    )
+    assert response.status_code == 403

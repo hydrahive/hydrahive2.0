@@ -27,6 +27,25 @@ export interface OllamaProbeJob {
   error?: string | null
 }
 
+export interface OllamaBenchmarkResult {
+  status: "completed" | "failed"
+  latency_ms?: number
+  prompt_tokens?: number
+  completion_tokens?: number
+  prompt_tps?: number | null
+  completion_tps?: number | null
+  error?: string
+}
+
+export interface OllamaBenchmarkJob {
+  id: string
+  model: string
+  node_id: string
+  status: "queued" | "running" | "completed" | "failed"
+  result?: OllamaBenchmarkResult | null
+  error?: string | null
+}
+
 export interface OllamaModel {
   id: string
   ollama_name: string
@@ -105,4 +124,6 @@ export const ollamaCatalogApi = {
   ),
   probe: (model: string) => api.post<OllamaProbeJob>("/llm/catalog/probes", { model }),
   probeStatus: (jobId: string) => api.get<OllamaProbeJob>(`/llm/catalog/probes/${encodeURIComponent(jobId)}`),
+  benchmark: (model: string) => api.post<OllamaBenchmarkJob>("/llm/catalog/benchmarks", { model }),
+  benchmarkStatus: (jobId: string) => api.get<OllamaBenchmarkJob>(`/llm/catalog/benchmarks/${encodeURIComponent(jobId)}`),
 }

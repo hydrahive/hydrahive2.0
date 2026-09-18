@@ -1,15 +1,17 @@
-import { Bot, Download, Loader2, ShieldCheck, Trash2 } from "lucide-react"
+import { Bot, Download, Gauge, Loader2, ShieldCheck, Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import type { OllamaModel, OllamaProbeJob, OllamaPullJob } from "./ollamaApi"
+import type { OllamaBenchmarkJob, OllamaModel, OllamaProbeJob, OllamaPullJob } from "./ollamaApi"
 
 interface Props {
   models: OllamaModel[]
   jobs: Record<string, OllamaPullJob>
   probeJobs: Record<string, OllamaProbeJob>
+  benchmarkJobs: Record<string, OllamaBenchmarkJob>
   busyModel: string | null
   onInstall: (model: string) => void
   onDelete: (model: string) => void
   onProbe: (model: string) => void
+  onBenchmark: (model: string) => void
   onUse: (model: string) => void
 }
 
@@ -61,7 +63,7 @@ function contextTitle(model: OllamaModel, t: (key: string) => string): string | 
   return t("ollama.context_capped")
 }
 
-export function OllamaModelList({ models, jobs, probeJobs, busyModel, onInstall, onDelete, onProbe, onUse }: Props) {
+export function OllamaModelList({ models, jobs, probeJobs, benchmarkJobs, busyModel, onInstall, onDelete, onProbe, onBenchmark, onUse }: Props) {
   const { t } = useTranslation("llm")
   if (!models.length) return <p className="py-6 text-center text-sm text-zinc-600">{t("ollama.no_variants")}</p>
 
@@ -70,9 +72,11 @@ export function OllamaModelList({ models, jobs, probeJobs, busyModel, onInstall,
       {models.map((model) => {
         const job = jobs[model.ollama_name]
         const probe = probeJobs[model.id]
+        const benchmark = benchmarkJobs[model.id]
         const pct = progress(job)
         const running = job?.status === "queued" || job?.status === "pulling"
         const probing = probe?.status === "queued" || probe?.status === "running"
+        const benchmarking = benchmark?.status === "queued" || benchmark?.status === "running"
         const speed = model.measured_tps ?? model.estimated_tps
         return (
           <div key={model.ollama_name} className="px-4 py-3 space-y-2 hover:bg-white/[2%]">
@@ -113,6 +117,10 @@ export function OllamaModelList({ models, jobs, probeJobs, busyModel, onInstall,
                           {probing ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
                           {probe?.result?.status === "verified" ? "Verifiziert" : "Tool prüfen"}
                         </button>
+                        <button disabled={benchmarking} onClick={() => onBenchmark(model.id)} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50" title="Kurzen Token-Durchsatz messen">
+                          {benchmarking ? <Loader2 size={12} className="animate-spin" /> : <Gauge size={12} />}
+                          {benchmark?.result?.status === "completed" ? "Erneut messen" : "Benchmark"}
+                        </button>
                         <button onClick={() => onUse(model.id)} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-violet-300 hover:bg-violet-500/10">
                           <Bot size={12} /> {t("ollama.use")}
                         </button>
@@ -145,6 +153,9 @@ export function OllamaModelList({ models, jobs, probeJobs, busyModel, onInstall,
             )}
             {probe?.result && <p className={`text-[10px] ${probe.result.status === "verified" ? "text-emerald-400" : "text-amber-400"}`}>
               Tool-Fähigkeit: {probe.result.status === "verified" ? "verifiziert" : probe.result.details || probe.result.status}
+            </p>}
+            {benchmark?.result?.status === "completed" && <p className="text-[10px] text-cyan-300">
+              Benchmark: {benchmark.result.completion_tps ?? "–"} Output tok/s · {benchmark.result.prompt_tps ?? "–"} Prompt tok/s
             </p>}
           </div>
         )
