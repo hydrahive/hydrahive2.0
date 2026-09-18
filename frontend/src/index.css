@@ -381,3 +381,21 @@
   .cockpit-route [class~="text-indigo-300"],
   .cockpit-route [class~="text-sky-300"] { color: var(--cockpit-accent) !important; }
 }
+
+@layer components {
+  /* Legacy `.box` cards inside a cockpit keep their spacing, but lose the
+     old per-domain violet glow/radius so they read as one workspace. */
+  .cockpit-route .box {
+    border-radius: 4px;
+    border-color: var(--cockpit-border);
+    background: var(--cockpit-panel);
+    box-shadow: none;
+    transform: none;
+  }
+  .cockpit-route .box:hover {
+    border-color: #46617f;
+    background: var(--cockpit-panel);
+    box-shadow: 0 8px 24px -18px rgb(0 0 0 / 80%);
+    transform: none;
+  }
+}
