@@ -10,8 +10,9 @@ from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
-from hydrahive.llm import catalog as catalog_mod
+from hydrahive.llm import capability_probe, catalog as catalog_mod, node_context, ollama_manager
 from hydrahive.llm._config import load_config
+from hydrahive.llm.ollama_common import normalize_model_name
 
 router = APIRouter(prefix="/api/llm/catalog", tags=["llm-catalog"])
 
@@ -51,6 +52,35 @@ async def test_model(req: TestRequest) -> dict:
             "latency_ms": int((time.time() - t0) * 1000),
             "error": str(e)[:400],
         }
+
+
+class ProbeRequest(BaseModel):
+    model: str
+
+
+@router.post("/probes", status_code=status.HTTP_202_ACCEPTED,
+             dependencies=[Depends(require_admin)])
+async def start_capability_probe(req: ProbeRequest) -> dict:
+    """Start a safe native tool-call probe for an Ollama model."""
+    if not req.model.startswith("ollama/"):
+        raise coded(status.HTTP_400_BAD_REQUEST, "probe_model_invalid")
+    try:
+        model = f"ollama/{normalize_model_name(req.model)}"
+    except ValueError:
+        raise coded(status.HTTP_400_BAD_REQUEST, "probe_model_invalid") from None
+    provider = ollama_manager.configured_provider()
+    if not provider:
+        raise coded(status.HTTP_409_CONFLICT, "ollama_not_configured")
+    node = node_context.for_provider(provider)
+    return await capability_probe.start_probe(model, node_id=node["node_id"])
+
+
+@router.get("/probes/{job_id}", dependencies=[Depends(require_admin)])
+def get_capability_probe(job_id: str) -> dict:
+    job = capability_probe.get_probe(job_id)
+    if not job:
+        raise coded(status.HTTP_404_NOT_FOUND, "capability_probe_not_found")
+    return job
 
 
 class UseInAgentRequest(BaseModel):

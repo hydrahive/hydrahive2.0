@@ -59,3 +59,70 @@ def test_unknown_explicit_node_does_not_fall_back_to_core_hardware(monkeypatch):
     assert result["node_id"] == "missing-node"
     assert result["node_status"] == "unknown"
     assert result["hardware_source"] == "unknown"
+
+
+async def test_tool_probe_marks_only_a_real_native_tool_call_verified(monkeypatch):
+    from hydrahive.llm import capability_probe
+
+    async def fake_call(model, **kwargs):
+        assert kwargs["tools"][0]["name"] == capability_probe.PROBE_TOOL_NAME
+        return ([{
+            "type": "tool_use",
+            "id": "probe-call-1",
+            "name": capability_probe.PROBE_TOOL_NAME,
+            "input": {"value": "ok"},
+        }], "tool_use", {})
+
+    monkeypatch.setattr(capability_probe, "_call_probe_model", fake_call)
+    monkeypatch.setattr(capability_probe, "_declared", lambda model: True)
+    result = await capability_probe.probe_tools("ollama/gemma4:latest", node_id="wks-01")
+
+    assert result["status"] == "verified"
+    assert result["declared"] is True
+    assert result["details"] == "native_tool_call_and_safe_dispatch"
+
+
+async def test_tool_probe_rejects_text_imitation(monkeypatch):
+    from hydrahive.llm import capability_probe
+
+    async def fake_call(model, **kwargs):
+        return ([{"type": "text", "text": '{"tool_calls": [{"name": "catalog_probe_echo"}]}'}], "end_turn", {})
+
+    monkeypatch.setattr(capability_probe, "_call_probe_model", fake_call)
+    result = await capability_probe.probe_tools("ollama/gemma4:latest", node_id="wks-01")
+
+    assert result["status"] == "failed"
+    assert result["details"] == "no_native_tool_call"
+
+
+def test_capability_probe_endpoint_is_admin_only(client, auth_headers):
+    response = client.post(
+        "/api/llm/catalog/probes",
+        headers=auth_headers,
+        json={"model": "ollama/gemma4:latest"},
+    )
+    assert response.status_code == 403
+
+
+def test_admin_can_start_capability_probe(client, admin_headers, monkeypatch):
+    from hydrahive.api.routes import llm_catalog
+
+    monkeypatch.setattr(
+        llm_catalog.ollama_manager,
+        "configured_provider",
+        lambda: {"id": "ollama", "name": "Remote Ollama"},
+    )
+
+    async def start(model, *, node_id):
+        assert model == "ollama/gemma4:latest"
+        assert node_id == "provider:ollama"
+        return {"id": "probe-1", "model": model, "node_id": node_id, "status": "queued"}
+
+    monkeypatch.setattr(llm_catalog.capability_probe, "start_probe", start)
+    response = client.post(
+        "/api/llm/catalog/probes",
+        headers=admin_headers,
+        json={"model": "ollama/gemma4:latest"},
+    )
+    assert response.status_code == 202
+    assert response.json()["id"] == "probe-1"
