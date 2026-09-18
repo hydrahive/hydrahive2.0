@@ -35,7 +35,7 @@ export function Layout() {
   const theme = getTheme(themeId)
   // Core-Cockpits + installierte Cockpit-Module (nav mit cockpit:true) laufen
   // im bare Cockpit-Chrome statt im Theme-Layout.
-  const cockpitPaths = ["/projects", "/buddy", "/media", "/vault", "/admin", "/werkstatt", "/help",
+  const cockpitPaths = ["/projects", "/buddy", "/media", "/vault", "/admin", "/werkstatt", "/help", "/settings",
     ...cockpitModuleItems().map((i) => i.path)]
   const isCockpitRoute = cockpitPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 
