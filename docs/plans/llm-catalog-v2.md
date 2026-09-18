@@ -40,13 +40,13 @@ Der bestehende Katalog wird schrittweise zu einem multi-user-tauglichen, nodebez
 
 ### Task 2: Deklarierte Capability-Probe
 
-- [ ] Tests für `declared`, `verified`, `failed`, `unknown` und Digest-/Probe-Version-Cache schreiben
-- [ ] internes ungefährliches Probe-Tool implementieren, das keine User-Tools, Dateien, Shell oder Netzwerkziele erreicht
-- [ ] echten Chat-/Tool-Call über den bestehenden Runner-Providerpfad ausführen
-- [ ] Ergebnis redigiert und modell-/nodebezogen zurückgeben
-- [ ] nur Admin darf Probejobs starten; Polling darf berechtigte Nutzer ohne Secretzugriff erlauben
-- [ ] fokussierte Tests inklusive falschem `/api/show`-Capability-Claim grün
-- [ ] Commit: `feat(llm): verify model capabilities with safe probes`
+- [x] Tests für `declared`, `verified`, `failed`, `unknown` und Probe-Version schreiben
+- [x] internes ungefährliches Probe-Tool implementieren, das keine User-Tools, Dateien, Shell oder Netzwerkziele erreicht
+- [x] echten Chat-/Tool-Call über den bestehenden Runner-Providerpfad ausführen
+- [x] Ergebnis redigiert und modell-/nodebezogen zurückgeben
+- [x] Probejob-Start und Polling sind admin-geschützt; Ergebnis enthält keine Secrets
+- [x] fokussierte Tests inklusive falschem `/api/show`-Capability-Claim grün
+- [x] Commit: `feat(llm): verify model capabilities with safe probes`
 
 ### Task 3: Benchmarkjob mit echten tok/s
 
