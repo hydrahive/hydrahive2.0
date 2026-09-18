@@ -31,12 +31,12 @@ Der bestehende Katalog wird schrittweise zu einem multi-user-tauglichen, nodebez
 
 ### Task 1: Node-Vertrag ohne Sonder-IP
 
-- [ ] Tests für Provider ohne `node_id`, lokalen Node und unbekannten Node schreiben
-- [ ] `node_context.py` implementieren: `node_id` ableiten, Compute-Node lesen, Endpoint nie zurückgeben
-- [ ] Katalogantwort um `node_id`, `node_name`, `node_status`, `hardware_source` ergänzen
-- [ ] Remote-Fit bleibt `unknown`, wenn kein Fit-Agent auf dem Node vorhanden ist
-- [ ] fokussierte Tests grün
-- [ ] Commit: `feat(llm): add node context to model catalog`
+- [x] Tests für Provider ohne `node_id`, lokalen Node und unbekannten Node schreiben
+- [x] `node_context.py` implementieren: `node_id` ableiten, Compute-Node lesen, Endpoint nie zurückgeben
+- [x] Katalogantwort um `node_id`, `node_name`, `node_status`, `hardware_source` ergänzen
+- [x] Remote-Fit bleibt `unknown`, wenn kein Fit-Agent auf dem Node vorhanden ist
+- [x] fokussierte Tests grün
+- [x] Commit: `feat(llm): add node context to model catalog`
 
 ### Task 2: Deklarierte Capability-Probe
 
