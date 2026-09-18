@@ -507,6 +507,11 @@ HH_HOME_DIR="/home/$HH_USER"
 if id "$HH_USER" >/dev/null 2>&1 && [ ! -d "$HH_HOME_DIR/.mmx" ]; then
   install -d -o "$HH_USER" -g "$HH_USER" -m 0700 "$HH_HOME_DIR/.mmx"
 fi
+# Incus braucht diesen Cache beim Anlegen neuer Container. ProtectHome=read-only
+# macht /home sonst für den Backend-Prozess schreibgeschützt.
+if id "$HH_USER" >/dev/null 2>&1 && [ ! -d "$HH_HOME_DIR/.cache/incus" ]; then
+  install -d -o "$HH_USER" -g "$HH_USER" -m 0700 "$HH_HOME_DIR/.cache/incus"
+fi
 
 # Service-File auf HOME-Env + ReadWritePaths-Erweiterung migrieren
 SERVICE_FILE=/etc/systemd/system/hydrahive2.service
@@ -515,6 +520,7 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "^Environment=HOME=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.config" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.mmx" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "ReadWritePaths=.*\.cache/incus" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*hh-projects\.d" "$SERVICE_FILE" || NEEDS_REWRITE=1
   # Migration: alte sudo-Workarounds (ExecStartPre /run/sudo, RW=/run/sudo)
   # raus — wir nutzen jetzt tailscale --operator statt sudo
