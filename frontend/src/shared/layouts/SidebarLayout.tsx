@@ -10,7 +10,11 @@ import type { LayoutChrome } from "./types"
  *  Nutzt dieselben Nav-Daten wie das Standard-Layout — nur anders angeordnet.
  *  Beweist, dass ein Theme das komplette Layout umbaut, nicht nur Farben. */
 export function SidebarLayout({ chrome }: { chrome: LayoutChrome }) {
-  const { t, pathname, visible, currentPage, onBentoToggle, footer } = chrome
+  const { t, pathname, visible, quickLinks, currentPage, onBentoToggle, footer } = chrome
+  // Module links marked with `topnav` belong in the compact global header as
+  // well as the full app navigation. This keeps installable modules visible
+  // in sidebar-based themes, not only in the Bento menu.
+  const headerLinks = quickLinks.filter((item) => item.topnav)
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-[#0b0e16]">
@@ -78,12 +82,33 @@ export function SidebarLayout({ chrome }: { chrome: LayoutChrome }) {
 
       {/* Rechte Spalte: schmale Kopfzeile mit Breadcrumb + Content + Footer */}
       <div className="flex flex-col flex-1 min-h-0 min-w-0">
-        <header className="relative z-20 flex items-center h-12 px-4 border-b border-white/[6%] bg-zinc-950/40 backdrop-blur">
+        <header className="relative z-20 flex h-12 items-center gap-4 border-b border-white/[6%] bg-zinc-950/40 px-4 backdrop-blur">
           {currentPage && (
-            <span className="flex items-center gap-1.5 text-sm text-zinc-300 truncate">
-              <span className={`w-1.5 h-1.5 rounded-full ${DOMAIN_TW[colorFor(currentPage.path)].iconBgActive}`} />
+            <span className="flex min-w-0 items-center gap-1.5 truncate text-sm text-zinc-300">
+              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOMAIN_TW[colorFor(currentPage.path)].iconBgActive}`} />
               {navLabel(t, currentPage.labelKey)}
             </span>
+          )}
+          {headerLinks.length > 0 && (
+            <nav className="ml-auto hidden items-center gap-1 sm:flex" aria-label="Schnellzugriff">
+              {headerLinks.map(({ path, icon: Icon, labelKey }) => {
+                const active = pathname === path || pathname.startsWith(`${path}/`)
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors ${
+                      active
+                        ? "bg-[var(--hh-accent-soft)] font-semibold text-[var(--hh-accent-text)]"
+                        : "text-zinc-400 hover:bg-white/[5%] hover:text-zinc-100"
+                    }`}
+                  >
+                    <Icon size={13} />
+                    {navLabel(t, labelKey)}
+                  </Link>
+                )
+              })}
+            </nav>
           )}
         </header>
 
