@@ -2,6 +2,14 @@ import { api } from "@/shared/api-client"
 
 export type OllamaFitLevel = "perfect" | "good" | "marginal" | "too_tight" | "unknown"
 
+export interface OllamaNodeContext {
+  node_id: string
+  node_name: string
+  node_kind: string
+  node_status: string
+  hardware_source: string
+}
+
 export interface OllamaModel {
   id: string
   ollama_name: string
@@ -27,6 +35,11 @@ export interface OllamaModel {
   estimate_confidence?: string | null
   run_mode?: string | null
   best_quant?: string | null
+  node_id?: string
+  node_name?: string
+  node_kind?: string
+  node_status?: string
+  hardware_source?: string
 }
 
 export interface OllamaFamily {
@@ -58,13 +71,14 @@ export interface OllamaCatalog {
     reason?: string | null
     system?: Record<string, unknown> | null
   }
+  node: OllamaNodeContext
   families: OllamaFamily[]
   installed_models: OllamaModel[]
 }
 
 export const ollamaCatalogApi = {
   get: () => api.get<OllamaCatalog>("/llm/catalog/ollama"),
-  family: (family: string) => api.get<{ family: OllamaFamily; models: OllamaModel[] }>(
+  family: (family: string) => api.get<{ family: OllamaFamily; node: OllamaNodeContext; models: OllamaModel[] }>(
     `/llm/catalog/ollama/library/${encodeURIComponent(family)}`,
   ),
   pull: (model: string) => api.post<OllamaPullJob>("/llm/catalog/ollama/pulls", { model }),

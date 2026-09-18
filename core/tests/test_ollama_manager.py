@@ -195,6 +195,8 @@ def test_catalog_overview_keeps_local_models_when_library_is_offline(monkeypatch
     assert result["library_error"] == "ollama_library_unavailable"
     assert result["installed_models"][0]["fit"] == "good"
     assert result["installed_models"][0]["estimated_tps"] == 20.0
+    assert result["node"]["node_id"] == "provider:ollama"
+    assert result["node"]["hardware_source"] == "unknown"
 
 
 def test_family_variants_merge_library_local_and_fit(monkeypatch):

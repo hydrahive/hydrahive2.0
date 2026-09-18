@@ -140,6 +140,12 @@ export function OllamaCatalog({ onUse }: Props) {
           : t(`ollama.${catalog?.hardware_fit.reason || "fit_unavailable"}`)} ok={catalog?.hardware_fit.available} />
       </div>
 
+      {catalog?.node && <p className="text-xs text-zinc-500">
+        Ausführungs-Node: <span className="text-zinc-300">{catalog.node.node_name}</span>
+        <span className="mx-1 text-zinc-700">·</span>{catalog.node.node_status}
+        <span className="mx-1 text-zinc-700">·</span>Hardwarequelle: {catalog.node.hardware_source}
+      </p>}
+
       {error && <p className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{error}</p>}
       {catalog?.library_error && <p className="text-xs text-amber-400">{t("ollama.library_offline")}</p>}
 

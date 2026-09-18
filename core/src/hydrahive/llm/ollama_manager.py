@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 from urllib.parse import urlsplit
 
-from hydrahive.llm import ollama_client, ollama_fit, ollama_library
+from hydrahive.llm import node_context, ollama_client, ollama_fit, ollama_library
 from hydrahive.llm._config import load_config, num_ctx_for_ollama
 from hydrahive.llm._local_host import is_local_host
 from hydrahive.llm.ollama_common import validate_family_name
@@ -63,6 +63,7 @@ def _hardware_summary(fit: dict) -> dict:
 
 async def catalog_overview(provider: dict | None = None) -> dict:
     provider = provider or configured_provider()
+    node = node_context.for_provider(provider)
     fit_task = asyncio.create_task(_fit_for_provider(provider))
     family_task = asyncio.create_task(ollama_library.list_families())
     local_task = asyncio.create_task(ollama_client.list_installed(provider)) if provider else None
@@ -88,7 +89,7 @@ async def catalog_overview(provider: dict | None = None) -> dict:
     fit = await fit_task
     fit_models = fit.get("models") or {}
     free_vram = ollama_fit.free_vram_gib(fit.get("system"))
-    installed = [_merge_fit(row, fit_models, free_vram) for row in installed]
+    installed = [_merge_fit({**row, **node}, fit_models, free_vram) for row in installed]
     installed_by_family: dict[str, list[str]] = {}
     for row in installed:
         installed_by_family.setdefault(row["ollama_name"].split(":", 1)[0], []).append(row["ollama_name"])
@@ -103,6 +104,7 @@ async def catalog_overview(provider: dict | None = None) -> dict:
         "connection_error": connection_error,
         "library_error": library_error,
         "hardware_fit": _hardware_summary(fit),
+        "node": node,
         "families": families,
         "installed_models": installed,
     }
@@ -130,6 +132,7 @@ def _variant_from_library(row: dict, capabilities: list[str]) -> dict:
 async def family_variants(family: str, provider: dict | None = None) -> dict:
     family = validate_family_name(family)
     provider = provider or configured_provider()
+    node = node_context.for_provider(provider)
     tags_task = asyncio.create_task(ollama_library.list_tags(family))
     families_task = asyncio.create_task(ollama_library.list_families())
     fit_task = asyncio.create_task(_fit_for_provider(provider))
@@ -147,11 +150,11 @@ async def family_variants(family: str, provider: dict | None = None) -> dict:
     local_by_name = {row["ollama_name"]: row for row in local}
     models = []
     for tag in tags:
-        base = _variant_from_library(tag, capabilities)
+        base = {**_variant_from_library(tag, capabilities), **node}
         installed = local_by_name.get(base["ollama_name"])
         if installed:
             base.update(installed)
             base["capabilities"] = sorted(set(capabilities) | set(installed.get("capabilities") or []))
         models.append(_merge_fit(base, fit.get("models") or {},
                                  ollama_fit.free_vram_gib(fit.get("system"))))
-    return {"family": family_row or {"name": family}, "models": models}
+    return {"family": family_row or {"name": family}, "node": node, "models": models}
