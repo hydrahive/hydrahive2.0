@@ -20,6 +20,8 @@ interface ModuleNavEntry {
   /** true = Modul ist ein Cockpit-Modul: eigener Reiter im Cockpit-Top-Menü,
    *  Seite läuft im bare Cockpit-Chrome statt im Theme-Layout. */
   cockpit?: boolean
+  /** true = Modul zusätzlich als Link im oberen Quicklink-Menü anzeigen. */
+  topnav?: boolean
 }
 
 export interface NavItem {
@@ -29,6 +31,7 @@ export interface NavItem {
   group: string
   roles?: ("admin" | "user")[]
   cockpit?: boolean
+  topnav?: boolean
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -89,6 +92,7 @@ function moduleNavItems(): NavItem[] {
     group: n.group ?? "working",
     roles: n.roles,
     cockpit: n.cockpit,
+    topnav: n.topnav,
   }))
 }
 

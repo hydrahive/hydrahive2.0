@@ -63,9 +63,13 @@ export function Layout() {
   }, [theme])
 
   const visible = visibleItems(role)
-  const quickLinks = QUICK_LINK_PATHS
+  const fixedQuickLinks = QUICK_LINK_PATHS
     .map((p) => visible.find((i) => i.path === p))
-    .filter(Boolean) as typeof NAV_ITEMS
+    .filter(Boolean)
+  const moduleQuickLinks = visible.filter(
+    (item) => item.topnav && !QUICK_LINK_PATHS.includes(item.path),
+  )
+  const quickLinks = [...fixedQuickLinks, ...moduleQuickLinks] as typeof NAV_ITEMS
   const currentPage = visible.find((i) =>
     i.path === "/" ? pathname === "/" : pathname.startsWith(i.path),
   )
