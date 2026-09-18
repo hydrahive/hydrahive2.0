@@ -14,7 +14,7 @@ interface Props {
 
 export function CockpitShell({ title, eyebrow, description, actions, menu, children, className, hideHeader = false }: Props) {
   return (
-    <div className={cn("min-h-full space-y-4", className)}>
+    <div className={cn("cockpit-route min-h-full space-y-4", className)}>
       {!hideHeader && (
         <header className="shrink-0 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
