@@ -192,3 +192,38 @@ def test_litellm_call_no_num_ctx_for_cloud(monkeypatch):
     ))
     assert "num_ctx" not in captured
     assert "extra_body" not in captured
+
+
+def test_litellm_call_disables_sdk_retries(monkeypatch):
+    """Ein Provider-Timeout darf nicht dreimal den vollen Timeout abwarten."""
+    from hydrahive.runner import _llm_bridge_backends as backends
+
+    captured: dict = {}
+
+    class _Msg:
+        content = "hi"
+        tool_calls = None
+
+    class _Choice:
+        message = _Msg()
+        finish_reason = "stop"
+
+    class _Resp:
+        choices = [_Choice()]
+        usage = None
+
+    async def _fake_acompletion(**kwargs):
+        captured.update(kwargs)
+        return _Resp()
+
+    import litellm
+    monkeypatch.setattr(litellm, "acompletion", _fake_acompletion)
+
+    asyncio.run(backends.litellm_call(
+        model="ollama/qwen3:14b", system_prompt="s", messages=[],
+        tools=[], temperature=0.0, max_tokens=100,
+        api_base="http://localhost:11434",
+    ))
+
+    assert captured["timeout"] == 120
+    assert captured["num_retries"] == 0
