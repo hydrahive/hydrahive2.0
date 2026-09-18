@@ -12,7 +12,7 @@ export function WerkstattCockpitPage() {
     >
       <CockpitTopbar active="/werkstatt" context="Chat und Sessions" />
       <main className="min-h-0 flex-1 overflow-hidden p-[10px]">
-        <ChatPage />
+        <ChatPage embedded />
       </main>
     </CockpitShell>
   )
