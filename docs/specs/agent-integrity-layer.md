@@ -26,7 +26,7 @@ Der Runner erfasst pro Iteration:
 - Ergebnis-Fingerprint ohne Secret-Werte,
 - ob seit dem letzten Turn neue Evidenz oder ein neuer Zustand entstanden ist.
 
-Exakte Wiederholungen bleiben der harte Sofortschutz. Zusätzlich werden semantisch gleiche Tool-Aktionen mit variierenden flüchtigen Feldern und wiederholte Fehlerketten als Warnsignal erfasst.
+Exakte Wiederholungen bleiben der harte Sofortschutz. Zusätzlich werden semantisch gleiche Tool-Aktionen mit variierenden flüchtigen Feldern und wiederholte Fehlerketten als Warnsignal erfasst. Erfolgreiche Aktionen mit klassifizierter Evidenz gelten als Fortschritt und setzen den Ergebnis-No-Progress-Streak zurück; dadurch werden unterschiedliche Dateiänderungen mit identischem generischem Tool-Output nicht als Stillstand gewertet. Identische mutierende Aktionen bleiben unabhängig davon über `repeated_tool_action` sichtbar.
 
 ### Provenienz und Evidenz
 
@@ -52,7 +52,7 @@ Der Evidenzabgleich ist konservativ und promptfrei:
 
 Fehlende Evidenz erzeugt zunächst ausschließlich `unverified_completion_claim` im Audit. Rohbefehle, Tool-Ausgaben und Nutzertext werden nicht in das Ledger übernommen.
 
-Bei konservativ erkannten direkten Fortsetzungen und Statusfragen (`weiter`, `continue`, `auf welchem Stand sind wir?`) darf der Runner den neuesten Integrity-Evidenzsnapshot derselben Session übernehmen, sofern er höchstens 24 Stunden alt ist. Die Abfrage liest nur Zeitstempel und Metadaten. Frische, negierte oder mehrdeutige Aufträge erben keine Evidenz. Eine Übernahme erzeugt einmalig `evidence_continued`. Jede neue Artefaktänderung invalidiert zuvor übernommene oder im Lauf erzeugte Test-, Commit- und Push-Evidenz, damit Qualitätsnachweise nach weiteren Änderungen nicht als aktuell gelten.
+Bei konservativ erkannten direkten Fortsetzungen und Statusfragen (`weiter`, `continue`, `auf welchem Stand sind wir?`, `machen wir das alles noch fertig`) darf der Runner den neuesten Integrity-Evidenzsnapshot derselben Session übernehmen, sofern er höchstens 24 Stunden alt ist. Die Abfrage liest nur Zeitstempel und Metadaten. Frische, negierte oder mehrdeutige Aufträge erben keine Evidenz. Eine Übernahme erzeugt einmalig `evidence_continued`. Jede neue Artefaktänderung invalidiert zuvor übernommene oder im Lauf erzeugte Test-, Commit- und Push-Evidenz, damit Qualitätsnachweise nach weiteren Änderungen nicht als aktuell gelten.
 
 ### Beobachtungsmetriken
 

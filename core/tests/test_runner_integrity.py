@@ -153,6 +153,45 @@ def test_claim_and_tool_signals_have_safe_subjects():
     )
 
 
+def test_distinct_successful_artifact_changes_are_progress():
+    state = IntegrityState(goal="ändere drei Dateien")
+    signals = []
+    for path in ("one.py", "two.py", "three.py"):
+        signals.extend(state.record_tool(
+            "file_patch", {"path": path, "old_string": "a", "new_string": "b"},
+            ToolResult.ok("Datei gepatcht"),
+        ))
+
+    assert "no_progress" not in {signal.kind for signal in signals}
+    assert "repeated_tool_action" not in {signal.kind for signal in signals}
+    assert state.snapshot()["same_result_streak"] == 0
+
+
+def test_identical_artifact_actions_still_emit_repeated_action():
+    state = IntegrityState(goal="ändere eine Datei")
+    signals = []
+    arguments = {"path": "one.py", "old_string": "a", "new_string": "b"}
+    for _ in range(3):
+        signals.extend(state.record_tool(
+            "file_patch", arguments, ToolResult.ok("Datei gepatcht"),
+        ))
+
+    assert "repeated_tool_action" in {signal.kind for signal in signals}
+    assert "no_progress" not in {signal.kind for signal in signals}
+
+
+def test_same_read_only_results_still_emit_no_progress():
+    state = IntegrityState(goal="prüfe mehrere Quellen")
+    signals = []
+    for index in range(3):
+        signals.extend(state.record_tool(
+            "fetch_url", {"url": f"https://example.test/{index}"},
+            ToolResult.ok("pending"),
+        ))
+
+    assert "no_progress" in {signal.kind for signal in signals}
+
+
 def test_continued_evidence_verifies_claim_and_emits_signal_once():
     state = IntegrityState(
         goal="weiter", initial_evidence={"artifact_changed", "tests_passed"},

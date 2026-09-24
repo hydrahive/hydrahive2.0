@@ -17,6 +17,10 @@ _RESUME_WORDS = frozenset({
 _RESUME_ACTIONS = frozenset({
     "continue", "fortfahren", "go", "proceed", "resume", "weiter", "weitermachen",
 })
+_FINISH_CURRENT = re.compile(
+    r"^(?:(?:ok|okay) )?(?:machen wir|lass uns) (?:das|dies|alles)\b.{0,80}\bfertig\b"
+)
+_NEGATED_RESUME = re.compile(r"\b(?:abbrechen|cancel|nicht|stop|stopp|stoppen)\b")
 _STATUS_PHRASES = frozenset({
     "auf welchem stand sind wir",
     "wie ist der aktuelle stand",
@@ -33,8 +37,10 @@ def _normalize(text: str) -> str:
 def is_direct_continuation(text: str) -> bool:
     """Accept only short, unambiguous resume/status utterances."""
     normalized = _normalize(text)
-    if not normalized or len(normalized) > 120:
+    if not normalized or len(normalized) > 120 or _NEGATED_RESUME.search(normalized):
         return False
+    if _FINISH_CURRENT.match(normalized):
+        return True
     words = normalized.split()
     status_words = words[1:] if words and words[0] in {"ok", "okay", "bitte"} else words
     if " ".join(status_words) in _STATUS_PHRASES:
