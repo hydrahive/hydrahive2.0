@@ -5,10 +5,11 @@ import logging
 import time
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
+from hydrahive.runner.integrity_metrics import summarize_integrity
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,12 @@ async def check_update() -> dict:
     from hydrahive.api.version import refresh_update_status
     commit, behind = await refresh_update_status()
     return {"commit": commit, "update_behind": behind}
+
+
+@router.get("/integrity/summary", dependencies=[Depends(require_admin)])
+def integrity_summary(hours: int = Query(24, ge=1, le=720)) -> dict:
+    """Aggregierte Integrity-Signale ohne Inhalte oder Identitäten."""
+    return summarize_integrity(hours)
 
 
 _UPDATE_COOLDOWN_SEC = 300  # 5min — typische Update-Dauer
