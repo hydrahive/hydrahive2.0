@@ -52,6 +52,12 @@ Der Evidenzabgleich ist konservativ und promptfrei:
 
 Fehlende Evidenz erzeugt zunächst ausschließlich `unverified_completion_claim` im Audit. Rohbefehle, Tool-Ausgaben und Nutzertext werden nicht in das Ledger übernommen.
 
+### Beobachtungsmetriken
+
+Admins können die Beobachtung über `GET /api/system/integrity/summary?hours=24` aggregiert auswerten. Der Endpunkt akzeptiert 1–720 Stunden, liest ausschließlich Message-Metadaten und begrenzt die Verarbeitung auf 10.000 Kandidaten. Die Antwort enthält nur Zähler, Zeitfenster, Truncation-/Malformed-Hinweise und die Quote unbelegter Claims; Nachrichteninhalte sowie User-, Agent- und Session-IDs werden weder selektiert noch zurückgegeben.
+
+Kumulative Evidenz-Snapshots werden je Session als Delta gezählt, damit dieselbe Evidenz nicht in jeder Folgemessage erneut als Ereignis erscheint. Diese Metriken steuern noch kein Enforcement, sondern dienen ausschließlich der Schwellenwert- und Fehlalarmbewertung für Phase 2.
+
 ### Drift und Kontext
 
 Der Runner hält einen kompakten Ziel-/Fortschrittszustand außerhalb des Stable-Prompts. Zunächst werden nur Signale gesammelt: fehlende Zielreferenz, wiederholte Nebenpfade, wechselnde Arbeitsobjekte und fehlender Fortschritt. Ein Stop darf erst aus mehreren Signalen oder einem harten Sicherheitsereignis entstehen.
