@@ -58,6 +58,8 @@ Admins können die Beobachtung über `GET /api/system/integrity/summary?hours=24
 
 Kumulative Evidenz-Snapshots werden je Session als Delta gezählt, damit dieselbe Evidenz nicht in jeder Folgemessage erneut als Ereignis erscheint. Diese Metriken steuern noch kein Enforcement, sondern dienen ausschließlich der Schwellenwert- und Fehlalarmbewertung für Phase 2.
 
+Signale können zusätzlich ein strukturiertes `subject` tragen. Für Claims ist dies ausschließlich die feste Claim-Art (`implemented`, `tested`, `fixed` usw.), für Toolsignale der auf 80 sichere Zeichen begrenzte Toolname. Ungültige Werte, unbekannte Signal-/Evidenzarten und Subjects oberhalb von 100 Kategorien pro Signalart werden als `other` zusammengefasst. Der Admin-Endpunkt aggregiert daraus `claim_counts`, `unverified_claim_counts` und `signal_subject_counts`; alte Signale ohne Subject bleiben gültig. Argumente, Ausgaben, Texte und Identifikatoren sind als Subjects ausgeschlossen.
+
 ### Drift und Kontext
 
 Der Runner hält einen kompakten Ziel-/Fortschrittszustand außerhalb des Stable-Prompts. Zunächst werden nur Signale gesammelt: fehlende Zielreferenz, wiederholte Nebenpfade, wechselnde Arbeitsobjekte und fehlender Fortschritt. Ein Stop darf erst aus mehreren Signalen oder einem harten Sicherheitsereignis entstehen.
