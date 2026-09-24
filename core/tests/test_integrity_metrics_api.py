@@ -15,6 +15,7 @@ _SUMMARY = {
     "evidence_counts": {"tests_passed": 1},
     "completion_claims": 1,
     "unverified_completion_claims": 0,
+    "continuations_with_evidence": 0,
     "unverified_rate": 0.0,
     "malformed_metadata": 0,
     "truncated": False,

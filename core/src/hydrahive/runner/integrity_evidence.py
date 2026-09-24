@@ -4,6 +4,11 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from hydrahive.tools.base import ToolResult
+
+EVIDENCE_KINDS = frozenset({
+    "artifact_changed", "commit_created", "push_completed", "tests_passed",
+})
 _ARTIFACT_TOOLS = frozenset({"file_write", "file_patch", "write_skill", "delete_skill"})
 _UNSAFE_SHELL_FLOW = re.compile(r"\|\||(?<!\|)\|(?!\|)|;|\n|\bset\s+\+e\b", re.I)
 _NON_EXECUTING_TEST = re.compile(r"(?:--collect-only|--co\b|--help\b|--version\b)", re.I)
@@ -50,6 +55,25 @@ def completion_claim_kinds(text: str) -> list[str]:
         if matches:
             found.append(kind)
     return found
+
+
+def effective_tool_success(tool_name: str, result: ToolResult) -> bool:
+    """Distinguish a successful tool invocation from a successful operation."""
+    if not result.success:
+        return False
+    if tool_name != "shell_exec":
+        return True
+    exit_code = result.metadata.get("exit_code")
+    if exit_code is None and isinstance(result.output, dict):
+        exit_code = result.output.get("exit_code")
+    return exit_code in (None, 0)
+
+
+def update_evidence_state(current: set[str], observed: set[str]) -> None:
+    """Apply causal invalidation before adding newly observed evidence."""
+    if "artifact_changed" in observed:
+        current.difference_update({"commit_created", "push_completed", "tests_passed"})
+    current.update(observed.intersection(EVIDENCE_KINDS))
 
 
 def evidence_for_tool(

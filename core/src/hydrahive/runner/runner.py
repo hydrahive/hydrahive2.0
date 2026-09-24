@@ -41,6 +41,7 @@ from hydrahive.runner.context import (
 )
 from hydrahive.runner.events import Done, Error, Event, IterationStart
 from hydrahive.runner.integrity import IntegrityState
+from hydrahive.runner.integrity_continuity import load_continuation_evidence
 from hydrahive.skills.loader import list_for_agent as load_agent_skills
 from hydrahive.tools import ToolContext, schemas_for
 from hydrahive.tools._compress import compress_session
@@ -120,12 +121,16 @@ async def run(
 
     from hydrahive.handover import prompt_for_new_session
     handover_system = prompt_for_new_session(session_id)
+    integrity_goal = _user_text(user_input)
+    continued_evidence = load_continuation_evidence(session_id, integrity_goal)
     user_message = messages_db.append(session_id, "user", user_input)
     ctx.current_user_turn_id = user_message.id
 
     last_assistant_id: str | None = None
     recent_tool_calls: list[str] = []
-    integrity_state = IntegrityState(goal=_user_text(user_input))
+    integrity_state = IntegrityState(
+        goal=integrity_goal, initial_evidence=continued_evidence,
+    )
     total_input_tokens = total_output_tokens = total_cache_creation = total_cache_read = 0
 
     compact_model = agent.get("compact_model") or agent["llm_model"]

@@ -45,13 +45,15 @@ def _session(title: str) -> str:
 def test_summary_counts_signals_and_evidence_deltas_without_raw_data(setup_test_env):
     sid = _session("integrity-metrics-2099")
     rows = [
-        ("2099-01-01T10:00:00+00:00", (), (("completion_claim", "implemented"),)),
+        ("2099-01-01T10:00:00+00:00", (),
+         (("completion_claim", "implemented"), "evidence_continued")),
         ("2099-01-01T10:01:00+00:00", ("artifact_changed",), ()),
         ("2099-01-01T10:02:00+00:00", ("artifact_changed",),
          (("completion_claim", "tested"),)),
         ("2099-01-01T10:03:00+00:00", ("artifact_changed", "tests_passed"),
-         (("no_progress", "shell_exec"),)),
-        ("2099-01-01T10:04:00+00:00", ("artifact_changed", "tests_passed"),
+         (("no_progress", "shell_exec"), ("repeated_tool_action", "shell_exec"))),
+        ("2099-01-01T10:04:00+00:00",
+         ("artifact_changed", "push_completed", "tests_passed"),
          (("unverified_completion_claim", "implemented"),)),
     ]
     for created_at, evidence, signals in rows:
@@ -67,19 +69,23 @@ def test_summary_counts_signals_and_evidence_deltas_without_raw_data(setup_test_
     assert summary["messages_observed"] == 5
     assert summary["sessions_observed"] == 1
     assert summary["signal_counts"] == {
-        "completion_claim": 2, "no_progress": 1,
-        "unverified_completion_claim": 1,
+        "completion_claim": 2, "evidence_continued": 1, "no_progress": 1,
+        "repeated_tool_action": 1, "unverified_completion_claim": 1,
     }
     assert summary["signal_subject_counts"] == {
         "completion_claim": {"implemented": 1, "tested": 1},
         "no_progress": {"shell_exec": 1},
+        "repeated_tool_action": {"shell_exec": 1},
         "unverified_completion_claim": {"implemented": 1},
     }
     assert summary["claim_counts"] == {"implemented": 1, "tested": 1}
     assert summary["unverified_claim_counts"] == {"implemented": 1}
-    assert summary["evidence_counts"] == {"artifact_changed": 1, "tests_passed": 1}
+    assert summary["evidence_counts"] == {
+        "artifact_changed": 1, "push_completed": 1, "tests_passed": 1,
+    }
     assert summary["completion_claims"] == 2
     assert summary["unverified_completion_claims"] == 1
+    assert summary["continuations_with_evidence"] == 1
     assert summary["unverified_rate"] == 0.5
     assert "PRIVATE MESSAGE" not in repr(summary)
     assert sid not in repr(summary)

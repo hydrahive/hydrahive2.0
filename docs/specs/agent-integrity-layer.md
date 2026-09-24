@@ -52,11 +52,13 @@ Der Evidenzabgleich ist konservativ und promptfrei:
 
 Fehlende Evidenz erzeugt zunächst ausschließlich `unverified_completion_claim` im Audit. Rohbefehle, Tool-Ausgaben und Nutzertext werden nicht in das Ledger übernommen.
 
+Bei konservativ erkannten direkten Fortsetzungen und Statusfragen (`weiter`, `continue`, `auf welchem Stand sind wir?`) darf der Runner den neuesten Integrity-Evidenzsnapshot derselben Session übernehmen, sofern er höchstens 24 Stunden alt ist. Die Abfrage liest nur Zeitstempel und Metadaten. Frische, negierte oder mehrdeutige Aufträge erben keine Evidenz. Eine Übernahme erzeugt einmalig `evidence_continued`. Jede neue Artefaktänderung invalidiert zuvor übernommene oder im Lauf erzeugte Test-, Commit- und Push-Evidenz, damit Qualitätsnachweise nach weiteren Änderungen nicht als aktuell gelten.
+
 ### Beobachtungsmetriken
 
 Admins können die Beobachtung über `GET /api/system/integrity/summary?hours=24` aggregiert auswerten. Der Endpunkt akzeptiert 1–720 Stunden, liest ausschließlich Message-Metadaten und begrenzt die Verarbeitung auf 10.000 Kandidaten. Die Antwort enthält nur Zähler, Zeitfenster, Truncation-/Malformed-Hinweise und die Quote unbelegter Claims; Nachrichteninhalte sowie User-, Agent- und Session-IDs werden weder selektiert noch zurückgegeben.
 
-Kumulative Evidenz-Snapshots werden je Session als Delta gezählt, damit dieselbe Evidenz nicht in jeder Folgemessage erneut als Ereignis erscheint. Diese Metriken steuern noch kein Enforcement, sondern dienen ausschließlich der Schwellenwert- und Fehlalarmbewertung für Phase 2.
+Kumulative Evidenz-Snapshots werden je Session als Delta gezählt, damit dieselbe Evidenz nicht in jeder Folgemessage erneut als Ereignis erscheint. `continuations_with_evidence` zählt direkte Fortsetzungsläufe mit übernommener Evidenz. Diese Metriken steuern noch kein Enforcement, sondern dienen ausschließlich der Schwellenwert- und Fehlalarmbewertung für Phase 2.
 
 Signale können zusätzlich ein strukturiertes `subject` tragen. Für Claims ist dies ausschließlich die feste Claim-Art (`implemented`, `tested`, `fixed` usw.), für Toolsignale der auf 80 sichere Zeichen begrenzte Toolname. Ungültige Werte, unbekannte Signal-/Evidenzarten und Subjects oberhalb von 100 Kategorien pro Signalart werden als `other` zusammengefasst. Der Admin-Endpunkt aggregiert daraus `claim_counts`, `unverified_claim_counts` und `signal_subject_counts`; alte Signale ohne Subject bleiben gültig. Argumente, Ausgaben, Texte und Identifikatoren sind als Subjects ausgeschlossen.
 
