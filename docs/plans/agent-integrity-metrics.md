@@ -16,35 +16,35 @@ Admins erhalten eine aggregierte, datensparsame Auswertung des Integrity-Beobach
 
 ### Task 1: Aggregator
 
-- [ ] RED-Tests mit synthetischen Integrity-Metadaten schreiben.
-- [ ] Nur Metadaten selektieren, niemals `content`.
-- [ ] Signaltypen und neue Evidenz je Sessionlauf aggregieren.
-- [ ] Unbelegt-Quote berechnen.
-- [ ] Zeitfenster und maximale Kandidatenzahl begrenzen.
-- [ ] Defekte Metadaten zählen und überspringen.
+- [x] RED-Tests mit synthetischen Integrity-Metadaten schreiben.
+- [x] Nur Metadaten selektieren, niemals `content`.
+- [x] Signaltypen und neue Evidenz je Sessionlauf aggregieren.
+- [x] Unbelegt-Quote berechnen.
+- [x] Zeitfenster und maximale Kandidatenzahl begrenzen.
+- [x] Defekte Metadaten zählen und überspringen.
 
 ### Task 2: Geschützter API-Endpunkt
 
-- [ ] RED-Tests für unauthentifiziert, Nicht-Admin und Admin schreiben.
-- [ ] `GET /api/system/integrity/summary?hours=24` ergänzen.
-- [ ] `hours` auf 1–720 begrenzen.
-- [ ] Keine Identifikatoren oder Rohdaten zurückgeben.
+- [x] RED-Tests für unauthentifiziert, Nicht-Admin und Admin schreiben.
+- [x] `GET /api/system/integrity/summary?hours=24` ergänzen.
+- [x] `hours` auf 1–720 begrenzen.
+- [x] Keine Identifikatoren oder Rohdaten zurückgeben.
 
 ### Task 3: Verifikation
 
-- [ ] Integrity-, DB-, Auth- und System-Route-Tests ausführen.
-- [ ] Ruff, Compile, HH- und Security-Review ausführen.
-- [ ] Stable-Prompt unverändert bestätigen.
+- [x] Integrity-, DB-, Auth- und System-Route-Tests ausführen.
+- [x] Ruff, Compile, HH- und Security-Review ausführen.
+- [x] Stable-Prompt unverändert bestätigen.
 - [ ] PR, CI und Live-Smoke-Test abschließen.
 
 ## Akzeptanzkriterien
 
-- [ ] Endpunkt ist ausschließlich für Admins erreichbar.
-- [ ] Antwort enthält keine Nachrichtentexte, Argumente, User-, Agent- oder Session-IDs.
-- [ ] Abfrage ist auf 10.000 Kandidaten und maximal 720 Stunden begrenzt.
-- [ ] Kumulative Snapshots zählen dieselbe Evidenz nicht mehrfach.
-- [ ] Defekte Metadaten brechen die Auswertung nicht ab.
-- [ ] Keine Prompt- oder LLM-Kosten.
+- [x] Endpunkt ist ausschließlich für Admins erreichbar.
+- [x] Antwort enthält keine Nachrichtentexte, Argumente, User-, Agent- oder Session-IDs.
+- [x] Abfrage ist auf 10.000 Kandidaten und maximal 720 Stunden begrenzt.
+- [x] Kumulative Snapshots zählen dieselbe Evidenz nicht mehrfach.
+- [x] Defekte Metadaten brechen die Auswertung nicht ab.
+- [x] Keine Prompt- oder LLM-Kosten.
 
 ## Nicht in diesem Plan
 
@@ -52,3 +52,10 @@ Admins erhalten eine aggregierte, datensparsame Auswertung des Integrity-Beobach
 - Keine Einzelansicht von Sessions oder Benutzern.
 - Kein aktives Enforcement.
 - Keine Datenbankmigration.
+
+## Vorab-Verifikation
+
+- 71 kombinierte Metrics-, Integrity-, Cache-, Auth- und Admin-Tests bestanden.
+- Isolierte DB-Tests zweimal hintereinander bestanden.
+- Ruff, Compile- und Prompt-Isolationsprüfung ohne Befund.
+- Sechs während RED/GREEN entstandene, eindeutig synthetische Live-Test-Sessions gezielt entfernt; verbleibend: 0.
