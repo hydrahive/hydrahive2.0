@@ -1,7 +1,4 @@
-"""Deterministische, begrenzte Laufzeitsignale für die Agent Integrity Layer.
-
-Phase 1 beobachtet nur und persistiert weder Rohargumente noch Tool-Ausgaben.
-"""
+"""Begrenzte Beobachtungssignale ohne persistierte Rohargumente oder Outputs."""
 from __future__ import annotations
 
 import hashlib
@@ -14,10 +11,10 @@ from hydrahive.runner.integrity_evidence import (
     completion_claim_kinds,
     evidence_for_tool,
     missing_evidence_for_claim,
+    safe_signal_subject,
 )
 from hydrahive.tools.base import ToolResult
 
-# Diese Felder identifizieren einen Aufruf, nicht seine fachliche Absicht.
 _EPHEMERAL_ARGUMENT_KEYS = frozenset({
     "call_id", "request_id", "stream_id", "timestamp", "created_at",
 })
@@ -29,6 +26,7 @@ class IntegritySignal:
     kind: str
     level: str
     detail: str
+    subject: str | None = None
 
 
 def _normalize(value: Any) -> Any:
@@ -120,20 +118,21 @@ class IntegrityState:
             self._seen_result_set.add(result_digest)
 
         signals: list[IntegritySignal] = []
+        subject = safe_signal_subject(tool_name)
         if self._same_action_streak == 3:
             signals.append(IntegritySignal(
                 "repeated_tool_action", "observe",
-                "Dieselbe kanonische Tool-Aktion wurde dreimal wiederholt.",
+                "Dieselbe kanonische Tool-Aktion wurde dreimal wiederholt.", subject,
             ))
         if self._same_result_streak == 3 or self._error_streak == 3:
             signals.append(IntegritySignal(
                 "no_progress", "observe",
-                "Drei aufeinanderfolgende Tool-Ergebnisse lieferten keine neue Evidenz.",
+                "Drei aufeinanderfolgende Tool-Ergebnisse lieferten keine neue Evidenz.", subject,
             ))
         if self._error_streak == 3:
             signals.append(IntegritySignal(
                 "error_chain", "observe",
-                "Drei aufeinanderfolgende Tool-Aufrufe sind fehlgeschlagen.",
+                "Drei aufeinanderfolgende Tool-Aufrufe sind fehlgeschlagen.", subject,
             ))
         self._pending_signals.extend(signals)
         return signals
@@ -147,13 +146,13 @@ class IntegrityState:
             self._claim_kinds.add(kind)
             signals.append(IntegritySignal(
                 "completion_claim", "observe",
-                f"Completion-Claim erkannt: {kind}.",
+                f"Completion-Claim erkannt: {kind}.", kind,
             ))
             missing = missing_evidence_for_claim(kind, self._evidence_kinds)
             if missing:
                 signals.append(IntegritySignal(
                     "unverified_completion_claim", "observe",
-                    f"Completion-Claim {kind} ohne Evidenz: {', '.join(missing)}.",
+                    f"Completion-Claim {kind} ohne Evidenz: {', '.join(missing)}.", kind,
                 ))
         self._pending_signals.extend(signals)
         return signals
@@ -168,10 +167,12 @@ class IntegrityState:
 
     def drain_signals(self) -> list[dict[str, str]]:
         """Consume pending, bounded signals in JSON-safe audit form."""
-        signals = [
-            {"kind": item.kind, "level": item.level, "detail": item.detail}
-            for item in self._pending_signals
-        ]
+        signals = []
+        for item in self._pending_signals:
+            signal = {"kind": item.kind, "level": item.level, "detail": item.detail}
+            if item.subject:
+                signal["subject"] = item.subject
+            signals.append(signal)
         self._pending_signals.clear()
         return signals
 

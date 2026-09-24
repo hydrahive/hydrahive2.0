@@ -108,7 +108,8 @@ def test_drain_signals_is_bounded_and_consumes_pending_signals():
 
     assert {signal["kind"] for signal in pending} == {"repeated_tool_action", "no_progress"}
     assert state.drain_signals() == []
-    assert all(set(signal) == {"kind", "level", "detail"} for signal in pending)
+    assert all(set(signal) == {"kind", "level", "detail", "subject"} for signal in pending)
+    assert {signal["subject"] for signal in pending} == {"shell_exec"}
 
 
 def test_negated_completion_is_not_counted_as_claim():
@@ -132,3 +133,33 @@ def test_raw_secrets_never_appear_in_integrity_metadata():
     )
 
     assert secret not in repr(state.audit_metadata())
+
+
+def test_claim_and_tool_signals_have_safe_subjects():
+    state = IntegrityState(goal="prüfe")
+    state.record_assistant_text("Der Fix ist getestet.")
+    for _ in range(3):
+        state.record_tool("shell_exec", {"cmd": "false"}, ToolResult.fail("failed"))
+
+    signals = state.drain_signals()
+
+    assert any(
+        signal["kind"] == "completion_claim" and signal["subject"] == "tested"
+        for signal in signals
+    )
+    assert any(
+        signal["kind"] == "error_chain" and signal["subject"] == "shell_exec"
+        for signal in signals
+    )
+
+
+def test_untrusted_tool_name_is_collapsed_to_other_subject():
+    raw_name = "secret tool name / with spaces" + "x" * 100
+    state = IntegrityState(goal="prüfe")
+    for _ in range(3):
+        state.record_tool(raw_name, {}, ToolResult.fail("failed"))
+
+    metadata = state.audit_metadata()
+
+    assert raw_name not in repr(metadata)
+    assert any(signal.get("subject") == "other" for signal in metadata["signals"])

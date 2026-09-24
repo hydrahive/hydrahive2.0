@@ -31,6 +31,14 @@ _NEGATION_BEFORE_CLAIM = re.compile(
 )
 
 
+def safe_signal_subject(value: str) -> str:
+    """Bound cardinality and prevent raw/untrusted values entering telemetry."""
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-")
+    if 1 <= len(value) <= 80 and all(char in allowed for char in value):
+        return value
+    return "other"
+
+
 def completion_claim_kinds(text: str) -> list[str]:
     """Extract positive completion claims while ignoring local negations."""
     found: list[str] = []
