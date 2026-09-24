@@ -4,14 +4,18 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
 from hydrahive.runner.integrity_evidence import (
+    EVIDENCE_KINDS,
     completion_claim_kinds,
+    effective_tool_success,
     evidence_for_tool,
     missing_evidence_for_claim,
     safe_signal_subject,
+    update_evidence_state,
 )
 from hydrahive.tools.base import ToolResult
 
@@ -55,25 +59,23 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:20]
 
 
-def _effective_success(tool_name: str, result: ToolResult) -> bool:
-    """Distinguish a successful tool invocation from a successful operation."""
-    if not result.success:
-        return False
-    if tool_name != "shell_exec":
-        return True
-    exit_code = result.metadata.get("exit_code")
-    if exit_code is None and isinstance(result.output, dict):
-        exit_code = result.output.get("exit_code")
-    return exit_code in (None, 0)
-
-
 class IntegrityState:
     """Bounded per-run state. Phase 1 emits signals; it never blocks a run."""
 
-    def __init__(self, goal: str | None = None, *, history_limit: int = 64) -> None:
+    def __init__(
+        self, goal: str | None = None, *, history_limit: int = 64,
+        initial_evidence: Iterable[str] = (),
+    ) -> None:
         self._goal_digest = _digest(goal or "")
         self._history: deque[tuple[str, str, bool]] = deque(maxlen=max(8, history_limit))
         self._pending_signals: deque[IntegritySignal] = deque(maxlen=max(8, history_limit))
+        self._evidence_kinds = set(initial_evidence).intersection(EVIDENCE_KINDS)
+        self._continued_evidence = len(self._evidence_kinds)
+        if self._continued_evidence:
+            self._pending_signals.append(IntegritySignal(
+                "evidence_continued", "observe",
+                "Evidenz aus direkter Session-Fortsetzung übernommen.",
+            ))
         self._seen_result_digests: deque[str] = deque(maxlen=max(16, history_limit * 2))
         self._seen_result_set: set[str] = set()
         self._last_action: str | None = None
@@ -85,13 +87,12 @@ class IntegrityState:
         self._new_evidence = 0
         self._completion_claims = 0
         self._claim_kinds: set[str] = set()
-        self._evidence_kinds: set[str] = set()
 
     def record_tool(
         self, tool_name: str, arguments: dict[str, Any] | None, result: ToolResult,
     ) -> list[IntegritySignal]:
         action_digest = _digest(canonical_tool_payload(tool_name, arguments))
-        succeeded = _effective_success(tool_name, result)
+        succeeded = effective_tool_success(tool_name, result)
         result_value = result.output if succeeded else {"error": result.error, "output": result.output}
         result_digest = _digest(result_value)
         if action_digest == self._last_action:
@@ -109,7 +110,8 @@ class IntegrityState:
         self._history.append((action_digest, result_digest, succeeded))
 
         new_evidence = succeeded and result_digest not in self._seen_result_set
-        self._evidence_kinds.update(evidence_for_tool(tool_name, arguments, succeeded=succeeded))
+        observed_evidence = evidence_for_tool(tool_name, arguments, succeeded=succeeded)
+        update_evidence_state(self._evidence_kinds, observed_evidence)
         if new_evidence:
             self._new_evidence += 1
             if len(self._seen_result_digests) == self._seen_result_digests.maxlen:
@@ -190,6 +192,7 @@ class IntegrityState:
             "tool_observations": self._tool_observations,
             "unique_actions": len({item[0] for item in self._history}),
             "new_evidence": self._new_evidence,
+            "continued_evidence": self._continued_evidence,
             "completion_claims": self._completion_claims,
             "completion_claim_kinds": sorted(self._claim_kinds),
             "evidence_kinds": sorted(self._evidence_kinds),

@@ -153,6 +153,46 @@ def test_claim_and_tool_signals_have_safe_subjects():
     )
 
 
+def test_continued_evidence_verifies_claim_and_emits_signal_once():
+    state = IntegrityState(
+        goal="weiter", initial_evidence={"artifact_changed", "tests_passed"},
+    )
+
+    signals = state.record_assistant_text("Der Fix ist getestet und behoben.")
+    first_metadata = state.audit_metadata()
+    second_metadata = state.audit_metadata()
+
+    assert "unverified_completion_claim" not in {signal.kind for signal in signals}
+    assert first_metadata["snapshot"]["continued_evidence"] == 2
+    assert [signal["kind"] for signal in first_metadata["signals"]].count(
+        "evidence_continued"
+    ) == 1
+    assert second_metadata["signals"] == []
+
+
+def test_artifact_change_invalidates_stale_quality_evidence():
+    state = IntegrityState(
+        goal="weiter",
+        initial_evidence={
+            "artifact_changed", "commit_created", "push_completed", "tests_passed",
+        },
+    )
+
+    state.record_tool("file_patch", {"path": "app.py"}, ToolResult.ok("changed"))
+    signals = state.record_assistant_text("Der Fix ist getestet und behoben.")
+
+    assert state.snapshot()["evidence_kinds"] == ["artifact_changed"]
+    unverified = [signal for signal in signals if signal.kind == "unverified_completion_claim"]
+    assert {signal.subject for signal in unverified} == {"fixed", "tested"}
+
+
+def test_untrusted_initial_evidence_is_discarded():
+    state = IntegrityState(goal="weiter", initial_evidence={"private_evidence"})
+
+    assert state.snapshot()["evidence_kinds"] == []
+    assert state.snapshot()["continued_evidence"] == 0
+
+
 def test_untrusted_tool_name_is_collapsed_to_other_subject():
     raw_name = "secret tool name / with spaces" + "x" * 100
     state = IntegrityState(goal="prüfe")

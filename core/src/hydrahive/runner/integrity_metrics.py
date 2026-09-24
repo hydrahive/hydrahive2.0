@@ -7,17 +7,14 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from hydrahive.db.connection import db
-from hydrahive.runner.integrity_evidence import safe_signal_subject
+from hydrahive.runner.integrity_evidence import EVIDENCE_KINDS, safe_signal_subject
 
 _MAX_ROWS = 10_000
 _MAX_HOURS = 720
 _MAX_SUBJECTS_PER_SIGNAL = 100
 _SIGNAL_KINDS = frozenset({
-    "completion_claim", "error_chain", "no_progress", "repeated_action",
-    "unverified_completion_claim",
-})
-_EVIDENCE_KINDS = frozenset({
-    "artifact_changed", "commit_created", "deployed", "tests_passed",
+    "completion_claim", "error_chain", "evidence_continued", "no_progress",
+    "repeated_tool_action", "unverified_completion_claim",
 })
 
 
@@ -96,7 +93,7 @@ def summarize_integrity(
         }
         prior = previous_evidence.get(session_id, set())
         evidence.update(
-            item if item in _EVIDENCE_KINDS else "other"
+            item if item in EVIDENCE_KINDS else "other"
             for item in current - prior
         )
         previous_evidence[session_id] = current
@@ -121,6 +118,7 @@ def summarize_integrity(
         "evidence_counts": dict(sorted(evidence.items())),
         "completion_claims": completion,
         "unverified_completion_claims": unverified,
+        "continuations_with_evidence": signals["evidence_continued"],
         "unverified_rate": round(unverified / completion, 4) if completion else 0.0,
         "malformed_metadata": malformed,
         "truncated": candidate_rows > capped_rows,

@@ -44,6 +44,36 @@ def test_runner_persists_completion_claim_observation(setup_test_env, monkeypatc
     assert integrity["signals"][0]["kind"] == "completion_claim"
 
 
+def test_runner_continues_recent_evidence_for_direct_resume(setup_test_env, monkeypatch):
+    init_db()
+    agent_config.update(_AGENT_ID, max_iterations=1, compact_threshold_pct=100)
+    session = sessions_db.create(agent_id=_AGENT_ID, user_id="admin", title="integrity-resume")
+    messages_db.append(
+        session.id, "assistant", "previous",
+        metadata={"integrity": {
+            "mode": "observe",
+            "snapshot": {"evidence_kinds": ["artifact_changed", "tests_passed"]},
+            "signals": [],
+        }},
+    )
+
+    async def fake_stream(**kwargs):
+        yield _result([{"type": "text", "text": "Der Fix ist weiterhin getestet."}])
+
+    monkeypatch.setattr(runner_mod, "stream_llm_call", fake_stream)
+    asyncio.run(_drain(session.id, "weiter"))
+
+    assistant = [
+        message for message in messages_db.list_for_session(session.id)
+        if message.role == "assistant"
+    ][-1]
+    integrity = assistant.metadata["integrity"]
+    kinds = {signal["kind"] for signal in integrity["signals"]}
+    assert "evidence_continued" in kinds
+    assert "unverified_completion_claim" not in kinds
+    assert integrity["snapshot"]["continued_evidence"] == 2
+
+
 def test_runner_passes_state_to_tools_and_persists_snapshot(setup_test_env, monkeypatch):
     init_db()
     agent_config.update(
