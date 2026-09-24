@@ -147,6 +147,31 @@ def test_stable_unveraendert_ohne_extra_system():
     assert base in stable
 
 
+def test_integrity_observation_veraendert_stable_prompt_nicht():
+    """Phase 1 lebt in Message-Metadaten, niemals im Cache-Prefix."""
+    first, _, _ = _build("CACHE_BASELINE")
+    second, _, _ = _build("CACHE_BASELINE")
+
+    assert first == second
+    assert "integrity" not in first.lower()
+    assert len(first) == len("CACHE_BASELINE\n\nWorkspace: /var/lib/hydrahive2/workspaces/test")
+
+
+def test_integrity_metadata_wird_nicht_ans_llm_gesendet():
+    from hydrahive.db._message_model import Message
+    from hydrahive.runner.context import to_anthropic_messages
+
+    message = Message(
+        id="m1", session_id="s1", role="assistant", content="Antwort",
+        metadata={"integrity": {"signals": [{"kind": "no_progress"}]}},
+    )
+
+    payload = to_anthropic_messages([message])
+
+    assert payload == [{"role": "assistant", "content": "Antwort"}]
+    assert "integrity" not in repr(payload).lower()
+
+
 def test_extra_system_wird_vorangestellt():
     """extra_system (z.B. Sprach-Hinweis von Voice-API) sitzt vor base."""
     stable, _, _ = _build("BASE_PROMPT", extra="Antworte auf Deutsch.")
