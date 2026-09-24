@@ -101,13 +101,13 @@ Regressionstests prüfen:
 
 ## Akzeptanzkriterien
 
-- [ ] Phase 1 erfasst semantische Tool-Wiederholungen ohne Secrets zu persistieren.
-- [ ] Fehlerketten und fehlender Fortschritt sind pro Session nachvollziehbar.
-- [ ] Beobachtung ist standardmäßig aktiv, Enforcement zunächst nicht.
-- [ ] Stable-Prompt bleibt ohne zusätzliche dynamische Integrity-Daten cache-stabil.
-- [ ] Completion-Claims können von beobachteten Tool-Ergebnissen unterschieden werden.
-- [ ] Jede aktive Entscheidung enthält Signal, Schwellenwert und Reaktion im Audit.
-- [ ] Bestehende Runner-, Tool-, Compaction- und Cache-Tests bleiben grün.
+- [x] Phase 1 erfasst kanonisch äquivalente Tool-Wiederholungen, ohne Rohdaten oder Secrets in Integrity-Metadaten zu persistieren.
+- [x] Fehlerketten und fehlender Fortschritt sind pro Session in Message-Metadaten nachvollziehbar.
+- [x] Beobachtung ist standardmäßig aktiv, Enforcement zunächst nicht.
+- [x] Stable-Prompt bleibt ohne zusätzliche dynamische Integrity-Daten cache-stabil.
+- [x] Completion-Claims können von beobachteten Tool-Ergebnissen unterschieden werden.
+- [ ] Phase 2: Jede aktive Entscheidung enthält Signal, Schwellenwert und Reaktion im Audit.
+- [x] Bestehende Runner-, Tool-, Compaction- und Cache-Tests bleiben grün.
 
 ## Nicht in diesem Umfang
 

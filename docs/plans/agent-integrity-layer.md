@@ -2,7 +2,7 @@
 
 ## Ziel
 
-Ein beobachtender Integrity-State wird in den Runner integriert, ohne den Stable-Systemprompt zu vergrößern oder den Prompt-Cache zu destabilisieren. Phase 1 liefert belastbare Signale für semantische Tool-Wiederholungen, Fehlerketten, fehlenden Fortschritt, Provenienz und unbelegte Completion-Claims; aktive Enforcement-Entscheidungen bleiben bis zur Auswertung deaktiviert.
+Ein beobachtender Integrity-State wird in den Runner integriert, ohne den Stable-Systemprompt zu vergrößern oder den Prompt-Cache zu destabilisieren. Phase 1 liefert belastbare Signale für kanonisch äquivalente Tool-Wiederholungen, Fehlerketten, fehlenden Fortschritt, Provenienz und unbelegte Completion-Claims; aktive Enforcement-Entscheidungen bleiben bis zur Auswertung deaktiviert.
 
 ## Dateien
 
@@ -18,48 +18,48 @@ Ein beobachtender Integrity-State wird in den Runner integriert, ohne den Stable
 
 ### Task 1: Deterministischer Integrity-State
 
-- [ ] Tests für kanonische Tool-Signaturen und flüchtige Argumente schreiben.
-- [ ] Test muss zunächst rot sein.
-- [ ] `IntegrityState` mit bounded history und Ergebnis-Fingerprints implementieren.
-- [ ] Tests für Fehlerketten, fehlenden Fortschritt und Completion-Claims ergänzen.
-- [ ] Test grün und Datei unter ca. 200 Zeilen halten.
-- [ ] Commit: `feat(runner): add phase one integrity signals`
+- [x] Tests für kanonische Tool-Signaturen und flüchtige Argumente schreiben.
+- [x] Test muss zunächst rot sein.
+- [x] `IntegrityState` mit bounded history und Ergebnis-Fingerprints implementieren.
+- [x] Tests für Fehlerketten, fehlenden Fortschritt und Completion-Claims ergänzen.
+- [x] Test grün und Datei unter ca. 200 Zeilen halten.
+- [x] Commit: `feat(runner): add phase one integrity signals`
 
 ### Task 2: Runner verdrahten
 
-- [ ] Tests für State-Lifecycle über mehrere Iterationen schreiben.
-- [ ] State pro Run erzeugen, nicht global teilen.
-- [ ] Tool-Use und Tool-Ergebnisse nach Ausführung melden.
-- [ ] Nur Telemetrie-/Warnsignale erzeugen; keine neue harte Blockierung.
-- [ ] Bestehende Loop-, Max-Iteration- und Tool-Confirmation-Pfade unverändert lassen.
-- [ ] Commit: `feat(runner): collect integrity signals per run`
+- [x] Tests für State-Lifecycle über mehrere Iterationen schreiben.
+- [x] State pro Run erzeugen, nicht global teilen.
+- [x] Tool-Use und Tool-Ergebnisse nach Ausführung melden.
+- [x] Nur Telemetrie-/Warnsignale erzeugen; keine neue harte Blockierung.
+- [x] Bestehende Loop-, Max-Iteration- und Tool-Confirmation-Pfade unverändert lassen.
+- [x] Commit: `feat(runner): collect integrity signals per run`
 
 ### Task 3: Cache-Vertrag absichern
 
-- [ ] Test für bytegleichen Stable-Prompt bei gleichem Input ergänzen.
-- [ ] Test sicherstellen, dass Integrity-State nicht in stable/volatile injiziert wird.
-- [ ] Promptgrößen-Baseline dokumentieren.
-- [ ] Cache-Tests und Runner-Tests ausführen.
-- [ ] Commit: `test(runner): protect prompt cache from integrity state`
+- [x] Test für bytegleichen Stable-Prompt bei gleichem Input ergänzen.
+- [x] Test sicherstellen, dass Integrity-State nicht in stable/volatile injiziert wird.
+- [x] Promptgrößen-Baseline dokumentieren.
+- [x] Cache-Tests und Runner-Tests ausführen.
+- [x] Cache-Schutztests sind im Runner-Wiring-Commit `84a36360` enthalten.
 
 ### Task 4: Review und Baseline-Messung
 
-- [ ] Core-Testmatrix für Runner, Cache, Tool-Dispatcher und Compaction ausführen.
-- [ ] Ruff/Type- und Architekturchecks ausführen.
-- [ ] Telemetrie-Signale anhand vorhandener Testläufe prüfen.
-- [ ] `hh-review` und Security-Review durchführen.
-- [ ] Spec-Akzeptanzkriterien für Phase 1 aktualisieren.
-- [ ] Abschlusscommit: `docs(runner): record integrity phase one baseline`
+- [x] Core-Testmatrix für Runner, Cache, Tool-Dispatcher und Compaction ausführen.
+- [x] Ruff/Type- und Architekturchecks ausführen.
+- [x] Telemetrie-Signale anhand vorhandener Testläufe prüfen.
+- [x] `hh-review` und Security-Review durchführen.
+- [x] Spec-Akzeptanzkriterien für Phase 1 aktualisieren.
+- [x] Abschlusscommit: `docs(runner): record integrity phase one baseline`
 
 ## Akzeptanzkriterien
 
-- [ ] Kein zusätzlicher LLM-Aufruf pro Turn.
-- [ ] Stable-Prompt bleibt bytegleich und erhält keinen dynamischen Integrity-State.
-- [ ] Tool-Signaturen ignorieren ausschließlich explizit erlaubte flüchtige Felder.
-- [ ] Secret-Redaction bleibt vor Persistenz und vor Integrity-Fingerprints wirksam.
-- [ ] Beobachtungsmodus verändert das bisherige Laufzeitverhalten nicht.
-- [ ] Bisherige exakte Loop-Erkennung bleibt aktiv.
-- [ ] Alle neuen Signale sind begrenzt und verursachen keinen unbounded Memory-Verbrauch.
+- [x] Kein zusätzlicher LLM-Aufruf pro Turn.
+- [x] Stable-Prompt bleibt bytegleich und erhält keinen dynamischen Integrity-State.
+- [x] Tool-Signaturen ignorieren ausschließlich explizit erlaubte flüchtige Felder.
+- [x] Roh-Secrets erscheinen nicht in persistierten Integrity-Metadaten; Tool-Ergebnisse werden erst nach zentraler Redaction ausgewertet.
+- [x] Beobachtungsmodus verändert das bisherige Laufzeitverhalten nicht.
+- [x] Bisherige exakte Loop-Erkennung bleibt aktiv.
+- [x] Alle neuen Signale sind begrenzt und verursachen keinen unbounded Memory-Verbrauch.
 
 ## Nicht in diesem Plan
 
@@ -68,3 +68,15 @@ Ein beobachtender Integrity-State wird in den Runner integriert, ohne den Stable
 - Keine Datenbankmigration.
 - Keine Änderung an Agenten-Soul-Templates außer nach separater Cache-Messung.
 - Keine Frontend-Änderung.
+
+## Verifikation Phase 1
+
+- Baseline-Tag: `pre-agent-integrity-2026-09-23` (`4b855ee2`).
+- Feature-Commits: `a86b0ef6`, `84a36360`, `e5e7cdae`.
+- Vollständige Core-Suite: **2.213 Tests bestanden**.
+- Fokussierte Integrity-/Cache-Suite: **31 Tests bestanden**.
+- Ruff: alle geänderten Python-Dateien ohne Befund.
+- Import-/Compile-Check: erfolgreich.
+- Stable-Prompt-Code gegenüber dem Baseline-Tag: unverändert.
+- Kontroll-Baseline: `stable_chars=62`, `volatile_chars=103` für den deterministischen Test-Prompt; Integrity erhöht beide Werte um **0 Zeichen**.
+- Integrity-Metadaten werden von `to_anthropic_messages()` nicht an das Modell übertragen.
