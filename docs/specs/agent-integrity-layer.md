@@ -41,6 +41,17 @@ Tool-Ergebnisse werden als beobachtete Evidenz getrennt von Assistant-Text und A
 
 In Phase 1 werden Wirkungsbehauptungen wie „getestet“, „deployt“, „behoben“ nur erkannt und telemetriert. Eine aktive Sperre wird erst nach Messung der Fehl- und Trefferquote eingeschaltet. Für spätere Enforcement-Phasen müssen erfolgreiche Tool-Nachweise zum behaupteten Wirkungsniveau passen.
 
+Der Evidenzabgleich ist konservativ und promptfrei:
+
+- erfolgreiche Datei-/Skill-Änderungen liefern `artifact_changed`,
+- erfolgreiche, nicht maskierte Testkommandos liefern `tests_passed`,
+- fehlgeschlagene, gepipte, mit `|| true` maskierte oder reine Collect/Help-Kommandos liefern keine Testevidenz,
+- `implemented` benötigt Änderungs- oder Commit-Evidenz,
+- `tested` benötigt bestandene Testevidenz,
+- `fixed` benötigt Änderung plus bestandenen Test.
+
+Fehlende Evidenz erzeugt zunächst ausschließlich `unverified_completion_claim` im Audit. Rohbefehle, Tool-Ausgaben und Nutzertext werden nicht in das Ledger übernommen.
+
 ### Drift und Kontext
 
 Der Runner hält einen kompakten Ziel-/Fortschrittszustand außerhalb des Stable-Prompts. Zunächst werden nur Signale gesammelt: fehlende Zielreferenz, wiederholte Nebenpfade, wechselnde Arbeitsobjekte und fehlender Fortschritt. Ein Stop darf erst aus mehreren Signalen oder einem harten Sicherheitsereignis entstehen.
