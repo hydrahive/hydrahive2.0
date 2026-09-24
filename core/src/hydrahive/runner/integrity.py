@@ -6,11 +6,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
+from hydrahive.runner.integrity_evidence import (
+    completion_claim_kinds,
+    evidence_for_tool,
+    missing_evidence_for_claim,
+)
 from hydrahive.tools.base import ToolResult
 
 # Diese Felder identifizieren einen Aufruf, nicht seine fachliche Absicht.
@@ -18,16 +22,6 @@ _EPHEMERAL_ARGUMENT_KEYS = frozenset({
     "call_id", "request_id", "stream_id", "timestamp", "created_at",
 })
 _MAX_FINGERPRINT_INPUT = 8_192
-_COMPLETION_PATTERNS = {
-    "implemented": re.compile(r"\b(?:implementiert|implemented|eingebaut|built)\b", re.I),
-    "tested": re.compile(r"\b(?:getestet|tested|test(?:s)? bestanden|tests? grün)\b", re.I),
-    "deployed": re.compile(r"\b(?:deployt|deployed|ausgerollt|live geschaltet)\b", re.I),
-    "fixed": re.compile(r"\b(?:behoben|gefixt|fixed|repaired)\b", re.I),
-    "finished": re.compile(r"\b(?:fertig|erledigt|done|completed)\b", re.I),
-}
-_NEGATION_BEFORE_CLAIM = re.compile(
-    r"\b(?:nicht|not|never|kein|keine|keinen)(?:\s+\w+){0,2}\s*$", re.I,
-)
 
 
 @dataclass(frozen=True)
@@ -93,6 +87,7 @@ class IntegrityState:
         self._new_evidence = 0
         self._completion_claims = 0
         self._claim_kinds: set[str] = set()
+        self._evidence_kinds: set[str] = set()
 
     def record_tool(
         self, tool_name: str, arguments: dict[str, Any] | None, result: ToolResult,
@@ -116,6 +111,7 @@ class IntegrityState:
         self._history.append((action_digest, result_digest, succeeded))
 
         new_evidence = succeeded and result_digest not in self._seen_result_set
+        self._evidence_kinds.update(evidence_for_tool(tool_name, arguments, succeeded=succeeded))
         if new_evidence:
             self._new_evidence += 1
             if len(self._seen_result_digests) == self._seen_result_digests.maxlen:
@@ -146,17 +142,18 @@ class IntegrityState:
         if not text:
             return []
         signals: list[IntegritySignal] = []
-        for kind, pattern in _COMPLETION_PATTERNS.items():
-            matches = [
-                match for match in pattern.finditer(text)
-                if not _NEGATION_BEFORE_CLAIM.search(text[max(0, match.start() - 48):match.start()])
-            ]
-            if matches:
-                self._completion_claims += 1
-                self._claim_kinds.add(kind)
+        for kind in completion_claim_kinds(text):
+            self._completion_claims += 1
+            self._claim_kinds.add(kind)
+            signals.append(IntegritySignal(
+                "completion_claim", "observe",
+                f"Completion-Claim erkannt: {kind}.",
+            ))
+            missing = missing_evidence_for_claim(kind, self._evidence_kinds)
+            if missing:
                 signals.append(IntegritySignal(
-                    "completion_claim", "observe",
-                    f"Completion-Claim erkannt: {kind}.",
+                    "unverified_completion_claim", "observe",
+                    f"Completion-Claim {kind} ohne Evidenz: {', '.join(missing)}.",
                 ))
         self._pending_signals.extend(signals)
         return signals
@@ -194,6 +191,7 @@ class IntegrityState:
             "new_evidence": self._new_evidence,
             "completion_claims": self._completion_claims,
             "completion_claim_kinds": sorted(self._claim_kinds),
+            "evidence_kinds": sorted(self._evidence_kinds),
             "same_action_streak": self._same_action_streak,
             "same_result_streak": self._same_result_streak,
             "error_streak": self._error_streak,

@@ -93,7 +93,9 @@ def test_assistant_blocks_only_inspects_visible_text():
         {"type": "tool_use", "name": "shell_exec", "input": {"cmd": "echo deployed"}},
     ])
 
-    assert [signal.kind for signal in signals] == ["completion_claim"]
+    assert [signal.kind for signal in signals] == [
+        "completion_claim", "unverified_completion_claim",
+    ]
     assert state.snapshot()["completion_claim_kinds"] == ["tested"]
 
 
