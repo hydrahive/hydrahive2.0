@@ -13,24 +13,30 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import dataclass
 
-from hydrahive.agentlink.client import get_state, post_state
-from hydrahive.agentlink.protocol import ContextBlock, Handoff, State, TaskBlock, WorkingMemory, WSEvent
+from hydrahive.agentlink.checkpoints import checkpoint_finding
+from hydrahive.agentlink.client import get_state
+from hydrahive.agentlink.protocol import State, WSEvent
 from hydrahive.db import agent_handoffs as db_agent_handoffs
-from hydrahive.db import sessions as sessions_db
+from hydrahive.runner._handoff_reply import (
+    post_error_reply as _post_error_reply,
+    post_reply as _post_reply,
+)
+from hydrahive.runner._handoff_setup import (
+    HandoffSetupError,
+    prepare_handoff,
+    rollback_prepared,
+)
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
-_MAX_REPLY_CHARS = 12_000
 
 
-def _bounded_reply(output: str) -> str:
-    if len(output) <= _MAX_REPLY_CHARS:
-        return output
-    marker = "\n...[Antwort gekürzt]...\n"
-    head = _MAX_REPLY_CHARS * 3 // 4
-    tail = _MAX_REPLY_CHARS - head - len(marker)
-    return output[:head] + marker + output[-tail:]
+@dataclass(frozen=True, slots=True)
+class RunFailure:
+    message: str
+    kind: str | None = None
 
 
 async def handle(event: WSEvent) -> None:
@@ -64,29 +70,29 @@ async def handle(event: WSEvent) -> None:
         return
 
     _warn_if_unconfirmed(target)
-    owner = target.get("owner") or "admin"
-    session = sessions_db.create(
-        agent_id=target["id"],
-        user_id=owner,
-        project_id=target.get("project_id"),
-        title=(state.task.description or "AgentLink-Task")[:80],
-        metadata={"source": "agentlink", "incoming_state_id": state.id},
-    )
-
-    handoff_record = db_agent_handoffs.create(
-        incoming_state_id=state.id or "",
-        from_agent=state.agent_id,
-        agent_id=target["id"],
-        session_id=session.id,
-    )
-
-    asyncio.create_task(
-        _run_and_reply(state, session.id, handoff_record["id"]),
-        name=f"handoff-{state.id}",
-    )
+    prepared = None
+    try:
+        prepared = prepare_handoff(state, target, reason)
+        asyncio.create_task(
+            _run_and_reply(
+                state, prepared.session_id, prepared.handoff_id,
+                run_timeout=prepared.timeout_seconds, resumed=prepared.resumed,
+            ),
+            name=f"handoff-{state.id}",
+        )
+    except HandoffSetupError as exc:
+        logger.warning("handoff_receiver: Handoff-Setup abgelehnt: %s", exc)
+        await _post_error_reply(state, str(exc))
+        return
+    except Exception:
+        if prepared is not None:
+            rollback_prepared(prepared)
+        logger.exception("handoff_receiver: Handoff konnte nicht geplant werden")
+        await _post_error_reply(state, "Handoff konnte nicht sicher gestartet werden")
+        return
     logger.info(
         "handoff_receiver: eingehender Task von '%s' → Agent '%s' (Session %s)",
-        state.agent_id, target["id"], session.id,
+        state.agent_id, target["id"], prepared.session_id,
     )
 
 
@@ -134,10 +140,10 @@ def _build_user_input(state: State) -> str:
     return "\n".join(parts)
 
 
-async def _consume_run(session_id: str, user_input: str, output_parts: list[str]) -> str | None:
-    """Führt den Agent-Run aus und sammelt Text-Output in `output_parts`.
-    Returnt eine Fehlermeldung wenn der Runner ein Error-Event liefert, sonst None.
-    Ausgelagert, damit `_run_and_reply` sie in ein asyncio.timeout kapseln kann."""
+async def _consume_run(
+    session_id: str, user_input: str, output_parts: list[str],
+) -> RunFailure | None:
+    """Run the agent and preserve structured runner failure metadata."""
     from hydrahive.runner import runner
     from hydrahive.runner.concurrency import session_run_guard
     from hydrahive.runner.events import Error
@@ -147,30 +153,39 @@ async def _consume_run(session_id: str, user_input: str, output_parts: list[str]
             if hasattr(ev, "text"):
                 output_parts.append(ev.text)
             elif isinstance(ev, Error):
-                return ev.message
+                metadata = ev.metadata if isinstance(ev.metadata, dict) else {}
+                return RunFailure(ev.message, metadata.get("kind"))
     return None
 
 
-async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> None:
+async def _run_and_reply(
+    state: State,
+    session_id: str,
+    handoff_db_id: str,
+    *,
+    run_timeout: int | None = None,
+    resumed: bool = False,
+) -> None:
     from hydrahive.runner.concurrency import SessionAlreadyRunning
 
-    user_input = _build_user_input(state)
+    user_input = "weiter" if resumed else _build_user_input(state)
     output_parts: list[str] = []
-    error_msg: str | None = None
+    failure: RunFailure | None = None
 
+    effective_timeout = run_timeout or settings.agentlink_run_timeout
     try:
-        async with asyncio.timeout(settings.agentlink_run_timeout):
-            error_msg = await _consume_run(session_id, user_input, output_parts)
+        async with asyncio.timeout(effective_timeout):
+            failure = await _consume_run(session_id, user_input, output_parts)
     except TimeoutError:
         # Run lief länger als der Worker tolerieren soll → terminale Fehler-Antwort,
         # damit der Auftraggeber nicht ins Caller-Timeout läuft und kein in_progress-
         # Zombie zurückbleibt.
-        error_msg = (
-            f"Timeout nach {settings.agentlink_run_timeout}s — Aufgabe nicht abgeschlossen"
+        failure = RunFailure(
+            f"Timeout nach {effective_timeout}s — Aufgabe nicht abgeschlossen",
         )
         logger.warning("handoff_receiver: Run-Timeout für Session %s", session_id)
     except SessionAlreadyRunning:
-        error_msg = "Session läuft bereits — handoff ignoriert"
+        failure = RunFailure("Session läuft bereits — handoff ignoriert")
         logger.warning("handoff_receiver: Session %s läuft bereits — skip", session_id)
     except asyncio.CancelledError:
         # Worker-Shutdown/Reload: best-effort terminale Antwort posten, dann
@@ -186,18 +201,32 @@ async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> N
             logger.exception("handoff_receiver: Fehler-Antwort bei Cancel fehlgeschlagen")
         raise
     except Exception as e:
-        error_msg = str(e)
+        failure = RunFailure(str(e))
         logger.exception("handoff_receiver: Runner-Fehler für Session %s", session_id)
 
     output = "".join(output_parts)
-    if error_msg:
-        output = f"{output}\n\nTerminaler Fehler: {error_msg}" if output else error_msg
+    is_checkpoint = bool(failure and failure.kind == "max_iterations")
+    if failure:
+        label = "Pausiert" if is_checkpoint else "Terminaler Fehler"
+        output = f"{output}\n\n{label}: {failure.message}" if output else failure.message
     elif not output:
         output = "Kein Output"
-    status = "error" if error_msg else "done"
+    status = "paused" if is_checkpoint else "error" if failure else "done"
+    checkpoint = None
+    if is_checkpoint:
+        checkpoint = checkpoint_finding(
+            resume_token=handoff_db_id,
+            session_id=session_id,
+            remaining_work="Begonnenen Auftrag abschließen und Ergebnis verifizieren.",
+        )
 
-    await _post_reply(state, output, status)
+    # Activate a checkpoint before publishing its capability token, otherwise an
+    # immediate resume can race against a still-"running" DB row.
     db_agent_handoffs.update_status(handoff_db_id, status)
+    delivered = await _post_reply(state, output, status, checkpoint=checkpoint)
+    if status == "paused" and delivered is False:
+        # No caller received the capability, so do not retain an unreachable token.
+        db_agent_handoffs.update_status(handoff_db_id, "error")
 
 
 def reconcile_orphaned_handoffs() -> int:
@@ -215,35 +244,3 @@ def reconcile_orphaned_handoffs() -> int:
             len(orphans),
         )
     return len(orphans)
-
-
-async def _post_reply(incoming: State, output: str, status: str) -> None:
-    desc = incoming.task.description if incoming.task else ""
-    protocol_status = "done" if status == "done" else "blocked"
-    bounded = _bounded_reply(output)
-    reply = State(
-        agent_id=settings.agentlink_agent_id,
-        task=TaskBlock(
-            type=incoming.task.type if incoming.task else "feature",
-            description=(
-                f"Abgeschlossen: {desc[:100]}" if status == "done"
-                else f"Fehler: {output[-100:]}"
-            ),
-            status=protocol_status,
-        ),
-        context=ContextBlock(),
-        working_memory=WorkingMemory(findings=[bounded]),
-        handoff=Handoff(
-            to_agent=settings.agentlink_agent_id,
-            reason=f"reply_to:{incoming.id}",
-        ),
-    )
-    try:
-        await post_state(reply)
-        logger.info("handoff_receiver: Antwort-State gepostet (reply_to:%s)", incoming.id)
-    except Exception as e:
-        logger.error("handoff_receiver: Antwort-State posten fehlgeschlagen: %s", e)
-
-
-async def _post_error_reply(incoming: State, message: str) -> None:
-    await _post_reply(incoming, message, "error")

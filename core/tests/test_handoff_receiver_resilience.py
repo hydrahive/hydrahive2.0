@@ -15,6 +15,7 @@ import asyncio
 import pytest
 
 from hydrahive.agentlink.protocol import ContextBlock, State, TaskBlock
+from hydrahive.runner import _handoff_reply as hrep
 from hydrahive.runner import handoff_receiver as hr
 
 
@@ -29,9 +30,11 @@ def _state() -> State:
 def _capture_reply(monkeypatch) -> dict:
     captured: dict = {}
 
-    async def _fake_post_reply(incoming, output, status):
+    async def _fake_post_reply(incoming, output, status, **kwargs):
+        captured["db_status_at_reply"] = captured.get("db_status")
         captured["output"] = output
         captured["status"] = status
+        captured.update(kwargs)
 
     monkeypatch.setattr(hr, "_post_reply", _fake_post_reply)
     monkeypatch.setattr(hr.db_agent_handoffs, "update_status", lambda hid, status: captured.setdefault("db_status", status))
@@ -103,7 +106,7 @@ def test_error_reply_uses_agentlink_compatible_blocked_status(monkeypatch):
     async def _capture(state):
         captured["state"] = state
 
-    monkeypatch.setattr(hr, "post_state", _capture)
+    monkeypatch.setattr(hrep, "post_state", _capture)
 
     asyncio.run(hr._post_reply(_state(), "terminaler Fehler", "error"))
 
@@ -119,7 +122,9 @@ def test_error_reply_combines_partial_output_and_terminal_reason(monkeypatch):
 
     async def _partial_error(session_id, user_input, output_parts):
         output_parts.append("Bisher geprüft: drei Dateien.")
-        return "Max-Iterationen (16) erreicht ohne Abschluss"
+        return hr.RunFailure(
+            "Max-Iterationen (16) erreicht ohne Abschluss", kind="max_iterations",
+        )
 
     monkeypatch.setattr(hr, "_consume_run", _partial_error)
 
@@ -127,7 +132,54 @@ def test_error_reply_combines_partial_output_and_terminal_reason(monkeypatch):
 
     assert "Bisher geprüft" in captured["output"]
     assert "Max-Iterationen" in captured["output"]
-    assert captured["status"] == "error"
+    assert captured["status"] == "paused"
+    assert captured["db_status"] == "paused"
+    assert captured["db_status_at_reply"] == "paused"
+    assert captured["checkpoint"].startswith("HH_CHECKPOINT_V1:")
+
+
+def test_failed_checkpoint_delivery_revokes_unreachable_resume_token(monkeypatch):
+    updates: list[str] = []
+
+    async def _paused(session_id, user_input, output_parts):
+        return hr.RunFailure("Iterationslimit", kind="max_iterations")
+
+    async def _fail_post(_state):
+        raise RuntimeError("agentlink offline")
+
+    monkeypatch.setattr(hr, "_consume_run", _paused)
+    monkeypatch.setattr(hrep, "post_state", _fail_post)
+    monkeypatch.setattr(
+        hr.db_agent_handoffs, "update_status",
+        lambda _handoff_id, status: updates.append(status),
+    )
+
+    asyncio.run(hr._run_and_reply(
+        _state(), "sess-undelivered", "hdb-undelivered", run_timeout=30,
+    ))
+
+    assert updates == ["paused", "error"]
+
+
+def test_paused_reply_carries_checkpoint_as_separate_finding(monkeypatch):
+    captured: dict = {}
+
+    async def _capture(state):
+        captured["state"] = state
+
+    marker = hr.checkpoint_finding(
+        resume_token="handoff_12345678",
+        session_id="sess-1",
+        remaining_work="fertigstellen",
+    )
+    monkeypatch.setattr(hrep, "post_state", _capture)
+
+    asyncio.run(hr._post_reply(_state(), "Teilergebnis", "paused", checkpoint=marker))
+
+    reply = captured["state"]
+    assert reply.task.status == "blocked"
+    assert reply.task.description.startswith("Pausiert:")
+    assert reply.working_memory.findings == ["Teilergebnis", marker]
 
 
 def test_error_reply_bounds_findings_at_live_tool_result_limit(monkeypatch):
@@ -136,11 +188,29 @@ def test_error_reply_bounds_findings_at_live_tool_result_limit(monkeypatch):
     async def _capture(state):
         captured["state"] = state
 
-    monkeypatch.setattr(hr, "post_state", _capture)
+    monkeypatch.setattr(hrep, "post_state", _capture)
 
     asyncio.run(hr._post_reply(_state(), "x" * 20_000, "error"))
 
     assert len(captured["state"].working_memory.findings[0]) == 12_000
+
+
+def test_resumed_run_uses_direct_continuation_turn(monkeypatch):
+    captured = _capture_reply(monkeypatch)
+
+    async def _ok(session_id, user_input, output_parts):
+        captured["user_input"] = user_input
+        output_parts.append("Fertig")
+        return None
+
+    monkeypatch.setattr(hr, "_consume_run", _ok)
+
+    asyncio.run(hr._run_and_reply(
+        _state(), "sess-resume", "hdb-resume", run_timeout=30, resumed=True,
+    ))
+
+    assert captured["user_input"] == "weiter"
+    assert captured["status"] == "done"
 
 
 def test_successful_run_posts_done_reply(monkeypatch):

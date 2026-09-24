@@ -4,7 +4,9 @@ from __future__ import annotations
 from hydrahive.tools._project_authoring import AuthoringError, resolve_project_agent
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
-_DESCRIPTION = "Listet die Spezialisten deines Projekts (id, name, tools, status)."
+_DESCRIPTION = (
+    "Listet die Spezialisten deines Projekts inklusive Modell, Tools und Laufzeitlimits."
+)
 _SCHEMA = {"type": "object", "properties": {}, "required": []}
 
 _PROMPT_HINT = (
@@ -22,7 +24,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail(str(e))
     out = [
         {"id": a["id"], "name": a.get("name", ""), "tools": a.get("tools", []),
-         "status": a.get("status", "active")}
+         "status": a.get("status", "active"), "llm_model": a.get("llm_model", ""),
+         "max_iterations": a.get("max_iterations"), "max_tokens": a.get("max_tokens"),
+         "handoff_timeout_seconds": a.get("handoff_timeout_seconds")}
         for a in agent_config.list_all()
         if a.get("type") == "specialist" and a.get("project_id") == pid
     ]

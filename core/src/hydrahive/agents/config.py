@@ -9,7 +9,12 @@ from hydrahive.agents import _prompt, _tool_config, _validation
 from hydrahive.agents._config_utils import (
     get, list_all, list_by_owner, normalize, save_atomic,
 )
-from hydrahive.agents._defaults import DEFAULT_TOOLS
+from hydrahive.agents._defaults import (
+    DEFAULT_HANDOFF_TIMEOUT_SECONDS,
+    DEFAULT_MAX_ITERATIONS,
+    DEFAULT_SPECIALIST_MAX_ITERATIONS,
+    DEFAULT_TOOLS,
+)
 from hydrahive.agents._paths import agent_dir, config_path, ensure_workspace
 from hydrahive.db._utils import now_iso
 
@@ -37,6 +42,15 @@ def create(
     domain: str | None = None,
     system_prompt: str | None = None,
     external: bool = False,
+    compact_model: str | None = None,
+    compact_tool_result_limit: int | None = None,
+    compact_reserve_tokens: int | None = None,
+    compact_threshold_pct: int | None = None,
+    compact_max_turns: int | None = None,
+    max_iterations: int | None = None,
+    tool_result_max_chars: int | None = None,
+    cache_ttl: str | None = None,
+    handoff_timeout_seconds: int | None = None,
 ) -> dict:
     _validation.validate_type(agent_type)
     _validation.validate_model(llm_model)
@@ -60,6 +74,30 @@ def create(
         "status": "active", "created_at": now_iso(), "updated_at": now_iso(),
         "external": bool(external),
     }
+    runtime = {
+        key: value for key, value in {
+            "compact_model": compact_model,
+            "compact_tool_result_limit": compact_tool_result_limit,
+            "compact_reserve_tokens": compact_reserve_tokens,
+            "compact_threshold_pct": compact_threshold_pct,
+            "compact_max_turns": compact_max_turns,
+            "max_iterations": max_iterations,
+            "tool_result_max_chars": tool_result_max_chars,
+            "cache_ttl": cache_ttl,
+            "handoff_timeout_seconds": handoff_timeout_seconds,
+        }.items() if value is not None
+    }
+    runtime["max_iterations"] = (
+        max_iterations if max_iterations is not None
+        else DEFAULT_SPECIALIST_MAX_ITERATIONS
+        if agent_type == "specialist" else DEFAULT_MAX_ITERATIONS
+    )
+    runtime["handoff_timeout_seconds"] = (
+        handoff_timeout_seconds
+        if handoff_timeout_seconds is not None else DEFAULT_HANDOFF_TIMEOUT_SECONDS
+    )
+    _validation.normalize_compact_changes(runtime)
+    cfg.update(runtime)
     if project_id:
         cfg["project_id"] = project_id
     if domain:

@@ -54,7 +54,7 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
         tools,
         description: selectedTemplate?.description ?? "",
         temperature: selectedTemplate?.temperature ?? 0.7,
-        max_tokens: selectedTemplate?.max_tokens ?? 4096,
+        max_tokens: selectedTemplate?.max_tokens ?? 16384,
         thinking_budget: selectedTemplate?.thinking_budget ?? 0,
         mcp_servers: [],
         fallback_models: [],

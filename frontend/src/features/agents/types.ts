@@ -28,6 +28,7 @@ export interface Agent {
   tool_result_max_chars?: number  // 0 = kein Limit; live-truncation vor LLM-Call
   cache_ttl?: string              // "5m" | "1h" — Anthropic Prompt-Cache-TTL
   max_iterations?: number
+  handoff_timeout_seconds?: number
   workspace?: string
   disabled_skills?: string[]
   require_tool_confirm?: boolean
@@ -60,6 +61,7 @@ export type AgentUpdate = Partial<Pick<Agent,
   | "tool_result_max_chars"
   | "cache_ttl"
   | "max_iterations"
+  | "handoff_timeout_seconds"
   | "disabled_skills"
   | "require_tool_confirm"
   | "longterm_memory"
@@ -127,4 +129,5 @@ export interface AgentCreate {
   compact_max_turns?: number | null
   tool_result_max_chars?: number
   max_iterations?: number
+  handoff_timeout_seconds?: number
 }

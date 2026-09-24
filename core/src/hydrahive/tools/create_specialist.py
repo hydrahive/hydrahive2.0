@@ -1,7 +1,13 @@
 """create_specialist — Projekt-Agent legt einen projekt-gebundenen Spezialisten an."""
 from __future__ import annotations
 
-from hydrahive.tools._project_authoring import AuthoringError, bounded_tools, resolve_project_agent
+from hydrahive.tools._project_authoring import (
+    SPECIALIST_RUNTIME_SCHEMA,
+    AuthoringError,
+    bounded_tools,
+    resolve_project_agent,
+    specialist_runtime_changes,
+)
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
@@ -17,6 +23,7 @@ _SCHEMA = {
         "llm_model": {"type": "string", "description": "Optional; Default: dein eigenes Modell"},
         "tools": {"type": "array", "items": {"type": "string"},
                   "description": "Optional; Teilmenge deiner Tools. Default: Spezialist-Standard."},
+        **SPECIALIST_RUNTIME_SCHEMA,
     },
     "required": ["name"],
 }
@@ -38,8 +45,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("name fehlt")
 
     requested = args.get("tools")
-    tools = bounded_tools(requested, creator.get("tools", [])) if requested else list(DEFAULT_TOOLS["specialist"])
+    desired_tools = requested if requested is not None else list(DEFAULT_TOOLS["specialist"])
+    tools = bounded_tools(desired_tools, creator.get("tools", []))
     model = (args.get("llm_model") or creator.get("llm_model") or "").strip()
+    runtime = specialist_runtime_changes(args)
+    max_tokens = runtime.pop("max_tokens", DEFAULT_MAX_TOKENS)
+    reasoning_effort = runtime.pop("reasoning_effort", "")
+    fallback_models = runtime.pop("fallback_models", [])
 
     try:
         cfg = agent_config.create(
@@ -51,9 +63,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             created_by=creator.get("id"),
             description=args.get("description", ""),
             temperature=DEFAULT_TEMPERATURE,
-            max_tokens=DEFAULT_MAX_TOKENS,
+            max_tokens=max_tokens,
             thinking_budget=DEFAULT_THINKING_BUDGET,
+            reasoning_effort=reasoning_effort,
+            fallback_models=fallback_models,
             project_id=pid,
+            **runtime,
         )
     except Exception as e:
         return ToolResult.fail(f"Anlegen fehlgeschlagen: {e}")
@@ -63,7 +78,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if cfg["id"] not in allowed:
         project_config.update(pid, allowed_specialists=allowed + [cfg["id"]])
 
-    return ToolResult.ok({"id": cfg["id"], "name": name, "tools": tools, "project_id": pid})
+    return ToolResult.ok({
+        "id": cfg["id"], "name": name, "tools": tools, "project_id": pid,
+        "max_iterations": cfg.get("max_iterations"),
+        "max_tokens": cfg.get("max_tokens"),
+        "handoff_timeout_seconds": cfg.get("handoff_timeout_seconds"),
+    })
 
 
 TOOL = Tool(name="create_specialist", description=_DESCRIPTION, schema=_SCHEMA,
