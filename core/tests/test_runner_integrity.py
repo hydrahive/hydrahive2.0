@@ -37,6 +37,34 @@ def test_error_chain_and_no_progress_are_detected():
     assert "no_progress" in kinds
 
 
+def test_shell_nonzero_exit_is_failure_not_new_evidence():
+    state = IntegrityState(goal="führe Tests aus")
+    result = ToolResult.ok(
+        {"exit_code": 1, "stdout": "1 failed", "stderr": ""}, exit_code=1,
+    )
+    signals = []
+
+    for _ in range(3):
+        signals.extend(state.record_tool("shell_exec", {"cmd": "pytest"}, result))
+
+    snapshot = state.snapshot()
+    assert snapshot["new_evidence"] == 0
+    assert snapshot["error_streak"] == 3
+    assert "error_chain" in {signal.kind for signal in signals}
+
+
+def test_shell_zero_exit_is_successful_evidence():
+    state = IntegrityState(goal="führe Tests aus")
+    result = ToolResult.ok(
+        {"exit_code": 0, "stdout": "5 passed", "stderr": ""}, exit_code=0,
+    )
+
+    state.record_tool("shell_exec", {"cmd": "pytest"}, result)
+
+    assert state.snapshot()["new_evidence"] == 1
+    assert state.snapshot()["error_streak"] == 0
+
+
 def test_new_successful_evidence_resets_no_progress_streak():
     state = IntegrityState(goal="prüfe zwei Zustände")
     for _ in range(2):
