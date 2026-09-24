@@ -49,12 +49,33 @@ Live-AgentLink akzeptiert für `task.status` nur `pending`, `in_progress`, `bloc
 - [ ] 13 Projektspezialisten nach Rolle, Tools, Modell und Budget prüfen.
 - [x] hydrahive-backend/frontend/media mit passenden, vererbbaren Tools ausstatten.
 - [x] Fehlerhafte zentrale Modelle durch toolfähiges `openai-codex/gpt-5.6-sol` ersetzen.
-- [ ] Profile mit realen Handoffs testen und Erfolgs-/Timeoutquote messen.
+- [x] Profile mit realen Handoffs testen und Erfolgs-/Timeoutquote messen.
 
-Rollout-Zwischenstand: Die fünf zentralen Spezialisten Security, Test, Backend,
-Frontend und Media verwenden `openai-codex/gpt-5.6-sol`; reale Datei-Tool-Handoffs
-waren erfolgreich. Die Runtime-Caps aller 13 Agenten werden nach Deployment dieser
-Änderung über das dann erweiterte `configure_specialist` gesetzt und gemessen.
+## Rollout-Ergebnis (Live, Commit `d979c135`)
+
+Alle 13 Spezialisten laufen auf dem toolfähigen Modell `openai-codex/gpt-5.6-sol`
+mit `reasoning_effort=high` und rollenbezogenen Caps:
+
+- Implementierungsrollen: 96 Iterationen, 32.768 Tokens, 1.800 s
+- Audit-/Review-Rollen: 64 Iterationen, 32.768 Tokens, 1.200 s
+
+Die drei Profile wurden mit echten Handoffs verifiziert; der Empfänger hat die
+effektiven Budgets lokal berechnet und in der Session persistiert:
+
+| Profil | Iterationen | Tokens | Timeout |
+|---|---:|---:|---:|
+| `quick` | 8 | 8.192 | 180 s |
+| `standard` | 32 | 16.384 | 540 s |
+| `deep` | 96 | 32.768 | 1.800 s |
+
+Damit ist belegt, dass Profile die gespeicherten Agenten-Caps nur reduzieren.
+Die drei Testläufe endeten alle mit `done` in 6 bis 23 Sekunden; es traten keine
+Iterations-Pausen und keine Timeouts auf. Historische Vergleichsbasis vor der
+Umstellung: 374 `done` gegenüber 117 `error`.
+
+Der neue Caller nutzt jetzt die stabile Agent-UUID (`hydrahive/<uuid>`) statt des
+veränderlichen Anzeigenamens. Checkpoint-/Resume-Zustände `paused` und `resumed`
+sind bisher nicht aufgetreten, weil kein Lauf sein Iterationslimit erreicht hat.
 
 ## Sicherheitsregeln
 
