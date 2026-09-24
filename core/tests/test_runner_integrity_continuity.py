@@ -18,6 +18,7 @@ _AGENT_ID = "test-agent-001"
 @pytest.mark.parametrize("text", [
     "weiter",
     "Ok, dann der Reihe nach weiter.",
+    "Ok, machen wir das alles noch fertig und dann die Agenten.",
     "Bitte weitermachen",
     "continue",
     "Please proceed",
@@ -32,6 +33,8 @@ def test_direct_continuation_accepts_conservative_phrases(text):
 @pytest.mark.parametrize("text", [
     "Implementiere eine weitere Funktion",
     "Nicht weiter, bitte stoppen",
+    "Machen wir das nicht fertig, bitte stoppen",
+    "Mach die neue Agentenverwaltung fertig",
     "Continue implementing OAuth with a new database",
     "Was ist der Status von Bestellung 123?",
     "Schreibe eine Statusseite",

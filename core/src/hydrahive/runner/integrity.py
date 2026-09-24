@@ -112,6 +112,8 @@ class IntegrityState:
         new_evidence = succeeded and result_digest not in self._seen_result_set
         observed_evidence = evidence_for_tool(tool_name, arguments, succeeded=succeeded)
         update_evidence_state(self._evidence_kinds, observed_evidence)
+        if observed_evidence:
+            self._same_result_streak = 0
         if new_evidence:
             self._new_evidence += 1
             if len(self._seen_result_digests) == self._seen_result_digests.maxlen:
