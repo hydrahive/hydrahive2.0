@@ -32,6 +32,7 @@ class AgentCreate(BaseModel):
     max_iterations: int | None = None
     tool_result_max_chars: int | None = None
     cache_ttl: str | None = None
+    handoff_timeout_seconds: int | None = None
 
 
 class AgentUpdate(BaseModel):
@@ -56,6 +57,7 @@ class AgentUpdate(BaseModel):
     max_iterations: int | None = None
     tool_result_max_chars: int | None = None
     cache_ttl: str | None = None
+    handoff_timeout_seconds: int | None = None
     require_tool_confirm: bool | None = None
     longterm_memory: bool | None = None
     disabled_skills: list[str] | None = None

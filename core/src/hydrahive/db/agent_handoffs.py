@@ -42,6 +42,50 @@ def update_status(handoff_id: str, status: str) -> None:
         )
 
 
+def get_resumable(
+    handoff_id: str, *, from_agent: str, agent_id: str,
+) -> dict | None:
+    """Read a caller-/target-bound paused handoff without consuming it."""
+    with db() as conn:
+        row = conn.execute(
+            """SELECT * FROM agent_handoffs
+               WHERE id = ? AND from_agent = ? AND agent_id = ? AND status = 'paused'""",
+            (handoff_id, from_agent, agent_id),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def claim_resumable(
+    handoff_id: str, *, from_agent: str, agent_id: str,
+) -> dict | None:
+    """Atomically consume one paused handoff bound to its caller and target."""
+    with db(immediate=True) as conn:
+        row = conn.execute(
+            """SELECT * FROM agent_handoffs
+               WHERE id = ? AND from_agent = ? AND agent_id = ? AND status = 'paused'""",
+            (handoff_id, from_agent, agent_id),
+        ).fetchone()
+        if not row:
+            return None
+        changed = conn.execute(
+            """UPDATE agent_handoffs SET status = 'resumed'
+               WHERE id = ? AND status = 'paused'""",
+            (handoff_id,),
+        ).rowcount
+        return dict(row) if changed == 1 else None
+
+
+def restore_paused_claim(handoff_id: str) -> bool:
+    """Roll back a claim when resume setup fails before the run is scheduled."""
+    with db(immediate=True) as conn:
+        changed = conn.execute(
+            """UPDATE agent_handoffs SET status = 'paused'
+               WHERE id = ? AND status = 'resumed'""",
+            (handoff_id,),
+        ).rowcount
+    return changed == 1
+
+
 def list_active() -> list[dict]:
     with db() as conn:
         conn.row_factory = lambda c, r: dict(zip([col[0] for col in c.description], r))

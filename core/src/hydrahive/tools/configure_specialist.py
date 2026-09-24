@@ -1,7 +1,13 @@
 """configure_specialist — Projekt-Agent ändert einen Spezialisten seines Projekts."""
 from __future__ import annotations
 
-from hydrahive.tools._project_authoring import AuthoringError, bounded_tools, resolve_project_agent
+from hydrahive.tools._project_authoring import (
+    SPECIALIST_RUNTIME_SCHEMA,
+    AuthoringError,
+    bounded_tools,
+    resolve_project_agent,
+    specialist_runtime_changes,
+)
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
@@ -17,6 +23,7 @@ _SCHEMA = {
         "system_prompt": {"type": "string"},
         "description": {"type": "string"},
         "status": {"type": "string", "enum": ["active", "disabled"]},
+        **SPECIALIST_RUNTIME_SCHEMA,
     },
     "required": ["agent_id"],
 }
@@ -34,7 +41,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not target or target.get("type") != "specialist" or target.get("project_id") != pid:
         return ToolResult.fail("Spezialist nicht in deinem Projekt gefunden")
 
-    changes: dict = {}
+    changes = specialist_runtime_changes(args)
     if "llm_model" in args:
         changes["llm_model"] = args["llm_model"]
     if "tools" in args:
@@ -44,10 +51,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if "status" in args:
         changes["status"] = args["status"]
 
-    if changes:
-        agent_config.update(target_id, **changes)
-    if args.get("system_prompt"):
-        agent_config.set_system_prompt(target_id, args["system_prompt"])
+    try:
+        if changes:
+            agent_config.update(target_id, **changes)
+        if args.get("system_prompt"):
+            agent_config.set_system_prompt(target_id, args["system_prompt"])
+    except Exception as exc:
+        return ToolResult.fail(f"Konfiguration fehlgeschlagen: {exc}")
 
     updated = sorted([*changes, *(["system_prompt"] if args.get("system_prompt") else [])])
     return ToolResult.ok({"id": target_id, "updated": updated})

@@ -30,7 +30,9 @@
     "require_tool_confirm": "Tool-Bestätigung vor Ausführung",
     "require_tool_confirm_hint": "Wenn aktiv: vor jedem Tool-Call erscheint im Chat ein Banner mit Erlauben/Verweigern. Auto-Deny nach 5 Minuten.",
     "max_iterations": "Max Iterationen: {{count}}",
-    "max_iterations_hint": "Maximale Tool-Aufrufe pro Antwort (Standard: 30). Für komplexe Aufgaben höher setzen."
+    "max_iterations_hint": "Maximale Tool-Schleifen pro Lauf (Standard: 16, Maximum: 250).",
+    "handoff_timeout": "Spezialisten-Timeout (Sekunden)",
+    "handoff_timeout_hint": "Maximale Laufzeit eines delegierten Auftrags (30–3600 Sekunden)."
   },
   "info": {
     "title": "Info",

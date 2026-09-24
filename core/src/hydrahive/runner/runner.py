@@ -12,6 +12,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_MAX_ITERATIONS,
     DEFAULT_MAX_TOKENS,
 )
+from hydrahive.agentlink.runtime_profiles import session_budget
 from hydrahive.runner._run_workspace import (
     effective_tool_config, project_layout_hint, resolve_run_context,
 )
@@ -68,6 +69,17 @@ def _user_text(ui: "str | list") -> str:
                 out.append(b.get("text", ""))
         return " ".join(out)
     return ""
+
+
+def _runtime_limits(agent: dict, metadata: dict | None) -> tuple[int, int]:
+    """Return per-session AgentLink limits or the ordinary persisted agent caps."""
+    budget = session_budget(agent, metadata)
+    if budget:
+        return budget.max_iterations, budget.max_tokens
+    return (
+        int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS),
+        int(agent.get("max_tokens") or DEFAULT_MAX_TOKENS),
+    )
 
 
 async def run(
@@ -140,7 +152,7 @@ async def run(
     compact_max_turns: int | None = agent.get("compact_max_turns")
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
-    max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
+    max_iterations, run_max_tokens = _runtime_limits(agent, session.metadata)
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [], project_id=agent.get("project_id"))
 
     # Proaktiver Recall A: Top-N Cards einmal pro Session laden (recency × salience)
@@ -207,7 +219,7 @@ async def run(
                 anth_messages=to_anthropic_messages(heal_orphan_tool_uses(history)),
                 tool_schemas=tool_schemas,
                 temperature=agent.get("temperature", 0.7),
-                max_tokens=agent.get("max_tokens", DEFAULT_MAX_TOKENS),
+                max_tokens=run_max_tokens,
                 reasoning_effort=reasoning_effort,
             ):
                 if isinstance(item, IterationResult):
@@ -242,7 +254,7 @@ async def run(
                 provider=_provider,
                 model=result.used_model,
                 temperature=agent.get("temperature", 0.7),
-                max_tokens=agent.get("max_tokens", DEFAULT_MAX_TOKENS),
+                max_tokens=run_max_tokens,
                 reasoning_effort=reasoning_effort,
                 prompt_tokens=result.input_tokens,
                 completion_tokens=result.output_tokens,
@@ -284,7 +296,7 @@ async def run(
                 close_open_tool_uses(session_id, tool_uses, "Abgebrochen: max_tokens-Limit überschritten")
             session_end(agent["id"], session_id, status="abandoned")
             yield Error(
-                f"max_tokens ({agent.get('max_tokens', DEFAULT_MAX_TOKENS)}) erreicht — Antwort abgeschnitten. "
+                f"max_tokens ({run_max_tokens}) erreicht — Antwort abgeschnitten. "
                 "Tool-Argumente sind unvollständig. Erhöhe max_tokens oder formuliere die Aufgabe kürzer.",
                 metadata={"stop_reason": result.stop_reason, "message_id": assistant_msg.id},
             ); return

@@ -119,4 +119,8 @@ DEFAULT_COMPACT_THRESHOLD_PCT = 75
 # den Agent zu fokussierterem Vorgehen, spart durchschnittlich 30-50% Tokens.
 # Komplexe Reviews können den Wert per-Agent über `max_iterations` erhöhen.
 DEFAULT_MAX_ITERATIONS = 16
+# Delegierte Spezialisten brauchen häufiger mehrere Datei-/Testschritte als Chat-Runs.
+DEFAULT_SPECIALIST_MAX_ITERATIONS = 32
+# AgentLink target-run ceiling per specialist. Per-call budgets may only reduce it.
+DEFAULT_HANDOFF_TIMEOUT_SECONDS = 540
 

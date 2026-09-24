@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from hydrahive.agentlink.runtime_profiles import reason_with_profile
 from hydrahive.agentlink import (
     ContextBlock,
     Handoff,
@@ -25,6 +26,11 @@ from hydrahive.agentlink import (
     register_pending,
 )
 from hydrahive.settings import settings
+from hydrahive.tools._ask_agent_helpers import (
+    caller_agentlink_id as _caller_agentlink_id,
+    response_timeout as _response_timeout,
+    result_from_response as _result_from_response,
+)
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -68,6 +74,16 @@ _SCHEMA = {
                 "git":            {"type": "object"},
             },
         },
+        "profile": {
+            "type": "string",
+            "enum": ["quick", "standard", "deep"],
+            "description": "Runtime-Profil für interne Spezialisten. Default: standard.",
+        },
+        "resume_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{8,128}$",
+            "description": "Einmal-Token aus einem pausierten Spezialistenlauf.",
+        },
         "required_skills": {
             "type": "array",
             "items": {"type": "string"},
@@ -76,21 +92,6 @@ _SCHEMA = {
     },
     "required": ["agent_id", "task"],
 }
-
-
-def _result_from_response(response: State) -> ToolResult:
-    """Preserve target failure status instead of reporting every reply as success."""
-    findings = response.working_memory.findings if response.working_memory else []
-    description = response.task.description if response.task else ""
-    summary_parts = [description] if description else []
-    summary_parts.extend(f"- {item}" for item in findings if isinstance(item, str) and item)
-    output = "\n".join(summary_parts) if summary_parts else (
-        f"Antwort-State {response.id} ohne lesbaren Inhalt."
-    )
-    status = response.task.status if response.task else "blocked"
-    if status != "done":
-        return ToolResult.fail(f"Specialist-Status {status}: {output}")
-    return ToolResult.ok(output)
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
@@ -112,10 +113,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         )
 
     task_type = args.get("task_type") or "feature"
+    profile = args.get("profile") or "standard"
+    resume_token = args.get("resume_token")
     raw_context = args.get("context") or {}
     required_skills = args.get("required_skills") or []
 
     # UUID-Normalisierung zuerst: Name → UUID, damit der Auth-Check UUIDs vergleicht
+    target_agent: dict | None = None
     try:
         from hydrahive.agents import config as _ac
         all_agents = _ac.list_all()
@@ -161,20 +165,21 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if raw_context.get("code_snippet"):
         task_description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
 
-    # Caller-Name für AgentLink-Sichtbarkeit: "hydrahive/Agent Name" statt nur "hydrahive"
-    caller_al_id = settings.agentlink_agent_id
-    try:
-        from hydrahive.agents import config as _ac2
-        caller = _ac2.get(ctx.agent_id)
-        if caller and caller.get("name"):
-            caller_al_id = f"{settings.agentlink_agent_id}/{caller['name']}"
-    except Exception as e:
-        logger.debug("ask_agent: Caller-Name-Lookup fehlgeschlagen: %s", e)
+    # Security identity must be stable across renames and unique even when two
+    # agents share the same display name. UI names stay in local config/logs.
+    caller_al_id = _caller_agentlink_id(ctx.agent_id)
 
     routing_target = settings.agentlink_agent_id if _is_internal else target
     task_reason = f"hh-task: {task[:120]}"
+    if resume_token and not _is_internal:
+        return ToolResult.fail("Resume-Tokens werden nur für interne Spezialisten unterstützt")
     if _is_internal:
-        task_reason = f"hh-target:{target}|{task_reason}"
+        try:
+            task_reason = reason_with_profile(
+                target, profile, task[:120], resume_token=resume_token,
+            )
+        except ValueError as exc:
+            return ToolResult.fail(str(exc))
 
     state = State(
         agent_id=caller_al_id,
@@ -202,12 +207,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     # Nur ein Antwort-State vom beauftragten Ziel darf die Future lösen (#184).
     fut = register_pending(sent.id, routing_target)
+    wait_timeout = _response_timeout(target_agent, profile)
     try:
-        response = await asyncio.wait_for(fut, timeout=settings.agentlink_handoff_timeout)
+        response = await asyncio.wait_for(fut, timeout=wait_timeout)
     except asyncio.TimeoutError:
         cancel_pending(sent.id)
         return ToolResult.fail(
-            f"Timeout nach {settings.agentlink_handoff_timeout}s — '{target}' hat nicht "
+            f"Timeout nach {wait_timeout}s — '{target}' hat nicht "
             f"geantwortet. State-ID: {sent.id}"
         )
     except asyncio.CancelledError:
