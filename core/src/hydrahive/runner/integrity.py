@@ -27,6 +27,9 @@ _COMPLETION_PATTERNS = {
     "fixed": re.compile(r"\b(?:behoben|gefixt|fixed|repaired)\b", re.I),
     "finished": re.compile(r"\b(?:fertig|erledigt|done|completed)\b", re.I),
 }
+_NEGATION_BEFORE_CLAIM = re.compile(
+    r"\b(?:nicht|not|never|kein|keine|keinen)(?:\s+\w+){0,2}\s*$", re.I,
+)
 
 
 @dataclass(frozen=True)
@@ -133,7 +136,11 @@ class IntegrityState:
             return []
         signals: list[IntegritySignal] = []
         for kind, pattern in _COMPLETION_PATTERNS.items():
-            if pattern.search(text):
+            matches = [
+                match for match in pattern.finditer(text)
+                if not _NEGATION_BEFORE_CLAIM.search(text[max(0, match.start() - 48):match.start()])
+            ]
+            if matches:
                 self._completion_claims += 1
                 self._claim_kinds.add(kind)
                 signals.append(IntegritySignal(

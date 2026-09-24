@@ -79,3 +79,26 @@ def test_drain_signals_is_bounded_and_consumes_pending_signals():
     assert {signal["kind"] for signal in pending} == {"repeated_tool_action", "no_progress"}
     assert state.drain_signals() == []
     assert all(set(signal) == {"kind", "level", "detail"} for signal in pending)
+
+
+def test_negated_completion_is_not_counted_as_claim():
+    state = IntegrityState(goal="ändere und teste")
+
+    signals = state.record_assistant_text(
+        "Der Fix ist noch nicht implementiert und wurde nicht erfolgreich getestet."
+    )
+
+    assert signals == []
+    assert state.snapshot()["completion_claims"] == 0
+
+
+def test_raw_secrets_never_appear_in_integrity_metadata():
+    secret = "sk-live-super-secret-value"
+    state = IntegrityState(goal=f"Prüfe {secret}")
+
+    state.record_tool(
+        "fetch_url", {"headers": {"Authorization": f"Bearer {secret}"}},
+        ToolResult.ok({"token": secret}),
+    )
+
+    assert secret not in repr(state.audit_metadata())
