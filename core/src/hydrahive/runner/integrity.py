@@ -1,8 +1,6 @@
-"""Deterministische Laufzeitsignale für die Agent Integrity Layer.
+"""Deterministische, begrenzte Laufzeitsignale für die Agent Integrity Layer.
 
-Phase 1 beobachtet nur. Der State hält keine Rohargumente oder Tool-Ausgaben,
-sondern ausschließlich begrenzte Fingerprints und Zähler. Dadurch entstehen
-keine neuen Secret- oder Prompt-Cache-Pfade.
+Phase 1 beobachtet nur und persistiert weder Rohargumente noch Tool-Ausgaben.
 """
 from __future__ import annotations
 
@@ -65,6 +63,18 @@ def _digest(value: Any) -> str:
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:20]
 
 
+def _effective_success(tool_name: str, result: ToolResult) -> bool:
+    """Distinguish a successful tool invocation from a successful operation."""
+    if not result.success:
+        return False
+    if tool_name != "shell_exec":
+        return True
+    exit_code = result.metadata.get("exit_code")
+    if exit_code is None and isinstance(result.output, dict):
+        exit_code = result.output.get("exit_code")
+    return exit_code in (None, 0)
+
+
 class IntegrityState:
     """Bounded per-run state. Phase 1 emits signals; it never blocks a run."""
 
@@ -88,7 +98,8 @@ class IntegrityState:
         self, tool_name: str, arguments: dict[str, Any] | None, result: ToolResult,
     ) -> list[IntegritySignal]:
         action_digest = _digest(canonical_tool_payload(tool_name, arguments))
-        result_value = result.output if result.success else {"error": result.error}
+        succeeded = _effective_success(tool_name, result)
+        result_value = result.output if succeeded else {"error": result.error, "output": result.output}
         result_digest = _digest(result_value)
         if action_digest == self._last_action:
             self._same_action_streak += 1
@@ -98,13 +109,13 @@ class IntegrityState:
             self._same_result_streak += 1
         else:
             self._same_result_streak = 1
-        self._error_streak = self._error_streak + 1 if not result.success else 0
+        self._error_streak = self._error_streak + 1 if not succeeded else 0
         self._last_action = action_digest
         self._last_result = result_digest
         self._tool_observations += 1
-        self._history.append((action_digest, result_digest, result.success))
+        self._history.append((action_digest, result_digest, succeeded))
 
-        new_evidence = result.success and result_digest not in self._seen_result_set
+        new_evidence = succeeded and result_digest not in self._seen_result_set
         if new_evidence:
             self._new_evidence += 1
             if len(self._seen_result_digests) == self._seen_result_digests.maxlen:
