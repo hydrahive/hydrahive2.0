@@ -97,6 +97,52 @@ def test_cancelled_run_posts_error_reply_and_reraises(monkeypatch):
 
 # --- Erfolg: done-Antwort ---------------------------------------------------
 
+def test_error_reply_uses_agentlink_compatible_blocked_status(monkeypatch):
+    captured: dict = {}
+
+    async def _capture(state):
+        captured["state"] = state
+
+    monkeypatch.setattr(hr, "post_state", _capture)
+
+    asyncio.run(hr._post_reply(_state(), "terminaler Fehler", "error"))
+
+    reply = captured["state"]
+    assert reply.task.status == "blocked"
+    assert reply.task.description.startswith("Fehler:")
+    assert reply.working_memory.findings == ["terminaler Fehler"]
+
+
+def test_error_reply_combines_partial_output_and_terminal_reason(monkeypatch):
+    captured = _capture_reply(monkeypatch)
+    monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 30, raising=False)
+
+    async def _partial_error(session_id, user_input, output_parts):
+        output_parts.append("Bisher geprüft: drei Dateien.")
+        return "Max-Iterationen (16) erreicht ohne Abschluss"
+
+    monkeypatch.setattr(hr, "_consume_run", _partial_error)
+
+    asyncio.run(hr._run_and_reply(_state(), "sess-partial", "hdb-partial"))
+
+    assert "Bisher geprüft" in captured["output"]
+    assert "Max-Iterationen" in captured["output"]
+    assert captured["status"] == "error"
+
+
+def test_error_reply_bounds_findings_at_live_tool_result_limit(monkeypatch):
+    captured: dict = {}
+
+    async def _capture(state):
+        captured["state"] = state
+
+    monkeypatch.setattr(hr, "post_state", _capture)
+
+    asyncio.run(hr._post_reply(_state(), "x" * 20_000, "error"))
+
+    assert len(captured["state"].working_memory.findings[0]) == 12_000
+
+
 def test_successful_run_posts_done_reply(monkeypatch):
     captured = _capture_reply(monkeypatch)
     monkeypatch.setattr(hr.settings, "agentlink_run_timeout", 30, raising=False)

@@ -21,6 +21,16 @@ from hydrahive.db import sessions as sessions_db
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
+_MAX_REPLY_CHARS = 12_000
+
+
+def _bounded_reply(output: str) -> str:
+    if len(output) <= _MAX_REPLY_CHARS:
+        return output
+    marker = "\n...[Antwort gekürzt]...\n"
+    head = _MAX_REPLY_CHARS * 3 // 4
+    tail = _MAX_REPLY_CHARS - head - len(marker)
+    return output[:head] + marker + output[-tail:]
 
 
 async def handle(event: WSEvent) -> None:
@@ -179,7 +189,11 @@ async def _run_and_reply(state: State, session_id: str, handoff_db_id: str) -> N
         error_msg = str(e)
         logger.exception("handoff_receiver: Runner-Fehler für Session %s", session_id)
 
-    output = "".join(output_parts) if output_parts else (error_msg or "Kein Output")
+    output = "".join(output_parts)
+    if error_msg:
+        output = f"{output}\n\nTerminaler Fehler: {error_msg}" if output else error_msg
+    elif not output:
+        output = "Kein Output"
     status = "error" if error_msg else "done"
 
     await _post_reply(state, output, status)
@@ -205,15 +219,20 @@ def reconcile_orphaned_handoffs() -> int:
 
 async def _post_reply(incoming: State, output: str, status: str) -> None:
     desc = incoming.task.description if incoming.task else ""
+    protocol_status = "done" if status == "done" else "blocked"
+    bounded = _bounded_reply(output)
     reply = State(
         agent_id=settings.agentlink_agent_id,
         task=TaskBlock(
             type=incoming.task.type if incoming.task else "feature",
-            description=f"Abgeschlossen: {desc[:100]}" if status == "done" else f"Fehler: {output[:100]}",
-            status=status,
+            description=(
+                f"Abgeschlossen: {desc[:100]}" if status == "done"
+                else f"Fehler: {output[-100:]}"
+            ),
+            status=protocol_status,
         ),
         context=ContextBlock(),
-        working_memory=WorkingMemory(findings=[output[:2000]]),
+        working_memory=WorkingMemory(findings=[bounded]),
         handoff=Handoff(
             to_agent=settings.agentlink_agent_id,
             reason=f"reply_to:{incoming.id}",

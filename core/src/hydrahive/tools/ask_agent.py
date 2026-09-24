@@ -78,6 +78,21 @@ _SCHEMA = {
 }
 
 
+def _result_from_response(response: State) -> ToolResult:
+    """Preserve target failure status instead of reporting every reply as success."""
+    findings = response.working_memory.findings if response.working_memory else []
+    description = response.task.description if response.task else ""
+    summary_parts = [description] if description else []
+    summary_parts.extend(f"- {item}" for item in findings if isinstance(item, str) and item)
+    output = "\n".join(summary_parts) if summary_parts else (
+        f"Antwort-State {response.id} ohne lesbaren Inhalt."
+    )
+    status = response.task.status if response.task else "blocked"
+    if status != "done":
+        return ToolResult.fail(f"Specialist-Status {status}: {output}")
+    return ToolResult.ok(output)
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     target = (args.get("agent_id") or "").strip()
     task = (args.get("task") or "").strip()
@@ -199,19 +214,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         cancel_pending(sent.id)
         raise
 
-    # Antwort-State auswerten — Inhalt in working_memory.findings + task.description
-    findings = response.working_memory.findings if response.working_memory else []
-    description = response.task.description if response.task else ""
-    summary_parts: list[str] = []
-    if description:
-        summary_parts.append(description)
-    for f in findings:
-        if isinstance(f, str) and f:
-            summary_parts.append(f"- {f}")
-    output = "\n".join(summary_parts) if summary_parts else \
-        f"Antwort-State {response.id} ohne lesbaren Inhalt."
-
-    return ToolResult.ok(output)
+    return _result_from_response(response)
 
 
 async def _execute_federated(target: str, task: str, args: dict) -> ToolResult:
