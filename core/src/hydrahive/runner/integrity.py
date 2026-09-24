@@ -68,6 +68,7 @@ class IntegrityState:
     def __init__(self, goal: str | None = None, *, history_limit: int = 64) -> None:
         self._goal_digest = _digest(goal or "")
         self._history: deque[tuple[str, str, bool]] = deque(maxlen=max(8, history_limit))
+        self._pending_signals: deque[IntegritySignal] = deque(maxlen=max(8, history_limit))
         self._seen_result_digests: deque[str] = deque(maxlen=max(16, history_limit * 2))
         self._seen_result_set: set[str] = set()
         self._last_action: str | None = None
@@ -124,6 +125,7 @@ class IntegrityState:
                 "error_chain", "observe",
                 "Drei aufeinanderfolgende Tool-Aufrufe sind fehlgeschlagen.",
             ))
+        self._pending_signals.extend(signals)
         return signals
 
     def record_assistant_text(self, text: str | None) -> list[IntegritySignal]:
@@ -138,7 +140,33 @@ class IntegrityState:
                     "completion_claim", "observe",
                     f"Completion-Claim erkannt: {kind}.",
                 ))
+        self._pending_signals.extend(signals)
         return signals
+
+    def record_assistant_blocks(self, blocks: list[dict] | None) -> list[IntegritySignal]:
+        """Inspect only visible text blocks, never tool arguments or reasoning."""
+        signals: list[IntegritySignal] = []
+        for block in blocks or []:
+            if isinstance(block, dict) and block.get("type") == "text":
+                signals.extend(self.record_assistant_text(block.get("text")))
+        return signals
+
+    def drain_signals(self) -> list[dict[str, str]]:
+        """Consume pending, bounded signals in JSON-safe audit form."""
+        signals = [
+            {"kind": item.kind, "level": item.level, "detail": item.detail}
+            for item in self._pending_signals
+        ]
+        self._pending_signals.clear()
+        return signals
+
+    def audit_metadata(self) -> dict[str, Any]:
+        """Return a compact observation record suitable for message metadata."""
+        return {
+            "mode": "observe",
+            "snapshot": self.snapshot(),
+            "signals": self.drain_signals(),
+        }
 
     def snapshot(self) -> dict[str, Any]:
         return {

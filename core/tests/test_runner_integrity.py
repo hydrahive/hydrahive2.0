@@ -56,3 +56,26 @@ def test_completion_claims_are_telemetried_without_claim_text():
     snapshot = state.snapshot()
     assert snapshot["completion_claims"] == 2
     assert "implementiert" not in repr(snapshot)
+
+
+def test_assistant_blocks_only_inspects_visible_text():
+    state = IntegrityState(goal="prüfe den Lauf")
+    signals = state.record_assistant_blocks([
+        {"type": "text", "text": "Der Fix ist getestet."},
+        {"type": "tool_use", "name": "shell_exec", "input": {"cmd": "echo deployed"}},
+    ])
+
+    assert [signal.kind for signal in signals] == ["completion_claim"]
+    assert state.snapshot()["completion_claim_kinds"] == ["tested"]
+
+
+def test_drain_signals_is_bounded_and_consumes_pending_signals():
+    state = IntegrityState(goal="prüfe den Lauf")
+    for _ in range(4):
+        state.record_tool("shell_exec", {"cmd": "echo hi"}, ToolResult.ok("same"))
+
+    pending = state.drain_signals()
+
+    assert {signal["kind"] for signal in pending} == {"repeated_tool_action", "no_progress"}
+    assert state.drain_signals() == []
+    assert all(set(signal) == {"kind", "level", "detail"} for signal in pending)

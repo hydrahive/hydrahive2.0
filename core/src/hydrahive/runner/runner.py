@@ -40,6 +40,7 @@ from hydrahive.runner.context import (
     to_anthropic_messages,
 )
 from hydrahive.runner.events import Done, Error, Event, IterationStart
+from hydrahive.runner.integrity import IntegrityState
 from hydrahive.skills.loader import list_for_agent as load_agent_skills
 from hydrahive.tools import ToolContext, schemas_for
 from hydrahive.tools._compress import compress_session
@@ -124,6 +125,7 @@ async def run(
 
     last_assistant_id: str | None = None
     recent_tool_calls: list[str] = []
+    integrity_state = IntegrityState(goal=_user_text(user_input))
     total_input_tokens = total_output_tokens = total_cache_creation = total_cache_read = 0
 
     compact_model = agent.get("compact_model") or agent["llm_model"]
@@ -256,6 +258,7 @@ async def run(
         except Exception:
             logger.exception("llm_calls-Insert fehlgeschlagen — Telemetrie verloren, Lauf läuft weiter")
 
+        integrity_state.record_assistant_blocks(result.blocks)
         assistant_msg = messages_db.append(
             session_id, "assistant", result.blocks,
             token_count=result.output_tokens or None,
@@ -263,7 +266,8 @@ async def run(
                       "cache_creation_tokens": result.cache_creation_tokens,
                       "cache_read_tokens": result.cache_read_tokens,
                       "model": result.used_model, "stop_reason": result.stop_reason,
-                      "iteration": iteration + 1},
+                      "iteration": iteration + 1,
+                      "integrity": integrity_state.audit_metadata()},
         )
         last_assistant_id = assistant_msg.id
         history.append(assistant_msg)
@@ -336,13 +340,17 @@ async def run(
             require_confirm=bool(agent.get("require_tool_confirm", False)),
             tool_result_max_chars=tool_result_max_chars,
             iteration=iteration + 1,
+            integrity_state=integrity_state,
         ):
             if isinstance(item, list):
                 result_blocks = item
             else:
                 yield item
 
-        tool_msg = messages_db.append(session_id, "user", result_blocks)
+        tool_msg = messages_db.append(
+            session_id, "user", result_blocks,
+            metadata={"integrity": integrity_state.audit_metadata()},
+        )
         history.append(tool_msg)
 
     # Pre-Resume-Compaction (#143): Wenn die History bei max_iterations noch
