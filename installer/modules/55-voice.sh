@@ -146,7 +146,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/wyoming/bin/wyoming-faster-whisper --model small --uri tcp://0.0.0.0:10300 --data-dir /var/lib/wyoming
+ExecStart=/opt/wyoming/bin/wyoming-faster-whisper --model small --uri tcp://0.0.0.0:10300 --data-dir /var/lib/wyoming --compute-type int8 --beam-size 1 --vad-filter --initial-prompt "Diktat fuer Smart-Home-Befehle und Software-Entwicklung auf Deutsch: Python, git, commit, branch, refactor, pytest, ffmpeg, API-Endpoint. Mit korrekter Zeichensetzung."
 Restart=on-failure
 RestartSec=5
 WorkingDirectory=/var/lib/wyoming

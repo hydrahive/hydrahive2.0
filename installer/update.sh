@@ -501,6 +501,13 @@ if [ "$voice_ok" = "0" ]; then
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || log "voice-setup failed — weiter"
 fi
 
+# Bestandsmigration: STT-Inferenz auf int8 + beam-size 1 umstellen.
+# 55-voice.sh schreibt die Unit nur beim ERSTEN Anlegen des Containers —
+# bestehende Installationen liefen sonst dauerhaft in float32 weiter
+# (RTF ~0,95: Warten ≈ Sprechdauer). Idempotent, erhält Modell + Sprache.
+bash "$HH_REPO_DIR/installer/migrations/voice-stt-perf.sh" \
+  || log "stt-perf-migration failed — weiter"
+
 # mmx-Cache-Verzeichnis muss als hydrahive existieren BEVOR die Service-Unit
 # es als ReadWritePaths einträgt — sonst wirft systemd "missing path".
 HH_HOME_DIR="/home/$HH_USER"
