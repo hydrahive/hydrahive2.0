@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Query, UploadFile, status
 
 logger = logging.getLogger(__name__)
 from fastapi.responses import StreamingResponse
@@ -45,12 +45,17 @@ messages_router = APIRouter()
 def list_messages(
     session_id: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
+    limit: Annotated[int | None, Query(ge=1, le=5_000)] = None,
 ) -> list[dict]:
+    """Nachrichten einer Session; `limit` liefert nur die neuesten N.
+
+    Lange Sessions sonst: jeder Chat-Reload überträgt den kompletten Verlauf
+    (real gemessen 9.667 Nachrichten / 41 MB) und blockiert den Browser."""
     s = sessions_db.get(session_id)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
     check_owner(s, *auth)
-    msgs = messages_db.list_for_session(session_id)
+    msgs = messages_db.list_tail_for_session(session_id, limit=limit)
     # tool_calls.duration_ms in tool_use- und tool_result-Blocks einspielen.
     # tool_calls.id ≠ tool_use.id (verschiedene Namespaces) — wir mappen über
     # die Reihenfolge: tools_db.list_for_message liefert in created_at-ASC,

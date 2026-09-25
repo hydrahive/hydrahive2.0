@@ -10,47 +10,72 @@ type SetState = React.Dispatch<React.SetStateAction<ChatState>>
 // Coalescing der Live-Updates: schnelles Token-Streaming feuert sonst hunderte
 // setState-Aufrufe pro Sekunde, jeder rendert den kompletten Thread neu und
 // blockiert den Main-Thread (Tastatureingabe ruckelt). Wir puffern die letzten
-// Blocks und schreiben höchstens einmal pro Animation-Frame in den State.
+// Blocks und schreiben zeitgetaktet in den State.
 let pendingBlocks: ContentBlock[] | null = null
 let rafHandle: number | null = null
+let lastFlush = 0
 
 const supportsRaf = typeof requestAnimationFrame === "function"
+
+// Ein Frame (16 ms) reicht in langen Threads nicht: React rendert den Baum nicht
+// schnell genug, die Updates stauen sich und die Antwort baut sich sichtbar
+// zeilenweise auf. Ein ruhigeres Intervall wirkt flüssiger und hält den
+// Main-Thread frei — sichtbar wird derselbe Text, nur ohne Ruckeln.
+const MIN_FLUSH_MS = 70
+
+function now(): number {
+  return typeof performance === "object" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now()
+}
 
 function flushLive(setState: SetState) {
   rafHandle = null
   const blocks = pendingBlocks
   pendingBlocks = null
   if (!blocks) return
+  lastFlush = now()
   setState((s) => {
-    const msgs = [...s.messages]
-    const last = msgs[msgs.length - 1]
-    if (last && last.id.startsWith("live-")) {
-      msgs[msgs.length - 1] = { ...last, content: blocks }
-    }
-    return { ...s, messages: msgs }
+    const msgs = s.messages
+    const lastIndex = msgs.length - 1
+    const last = msgs[lastIndex]
+    if (!last || !last.id.startsWith("live-")) return s
+    // Nur das letzte Element ersetzen; die übrigen Referenzen bleiben identisch,
+    // damit memoisierte Nachrichten-Komponenten nicht neu rendern.
+    const next = msgs.slice()
+    next[lastIndex] = { ...last, content: blocks }
+    return { ...s, messages: next }
   })
 }
 
 export function updateLive(setState: SetState, blocks: ContentBlock[]) {
-  const snapshot = [...blocks]
+  pendingBlocks = [...blocks]
   if (!supportsRaf) {
-    pendingBlocks = snapshot
     flushLive(setState)
     return
   }
-  pendingBlocks = snapshot
-  if (rafHandle === null) {
+  if (rafHandle !== null) return
+  const wait = Math.max(0, MIN_FLUSH_MS - (now() - lastFlush))
+  if (wait === 0) {
     rafHandle = requestAnimationFrame(() => flushLive(setState))
+    return
   }
+  rafHandle = window.setTimeout(() => {
+    rafHandle = null
+    flushLive(setState)
+  }, wait) as unknown as number
 }
 
 /** Erzwingt das sofortige Anwenden eines gepufferten Live-Updates. Muss vor
  *  jedem Reload/Abschluss laufen, damit kein Frame verloren geht. */
 export function flushPendingLive(setState: SetState) {
   if (rafHandle !== null && supportsRaf) {
+    // Der Handle stammt je nach Pfad von rAF oder setTimeout — beide abräumen.
     cancelAnimationFrame(rafHandle)
+    clearTimeout(rafHandle)
     rafHandle = null
   }
+  lastFlush = 0
   if (pendingBlocks) flushLive(setState)
 }
 

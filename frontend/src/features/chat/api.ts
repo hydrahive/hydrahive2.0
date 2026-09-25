@@ -17,7 +17,10 @@ export const chatApi = {
   handover: (id: string) => api.post<{ written: boolean; reason?: string }>(`/sessions/${id}/handover`, {}),
   updateSession: (id: string, fields: { title?: string; status?: string; model_override?: string | null; reasoning_effort?: string | null; project_id?: string | null }) =>
     api.patch<Session>(`/sessions/${id}`, fields),
-  listMessages: (id: string) => api.get<Message[]>(`/sessions/${id}/messages`),
+  // limit lädt nur die neuesten N — lange Sessions würden sonst bei jedem
+  // Reload den kompletten Verlauf übertragen (gemessen: 9.667 Nachrichten, 41 MB).
+  listMessages: (id: string, limit?: number) =>
+    api.get<Message[]>(`/sessions/${id}/messages${limit ? `?limit=${limit}` : ""}`),
   logCmd: (id: string, user_text: string, assistant_text: string) =>
     api.post<{ ok: boolean }>(`/sessions/${id}/log-cmd`, { user_text, assistant_text }),
   listAgents: () => api.get<AgentBrief[]>("/agents"),
