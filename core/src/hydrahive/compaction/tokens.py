@@ -1,9 +1,35 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from hydrahive.llm._catalog_data import METADATA
+
+# Anthropic veröffentlicht jedes Modell zusätzlich als datierten Snapshot:
+# der Alias `claude-opus-5` erscheint in der Models-API als
+# `claude-opus-5-20260115`. Ohne Suffix-Abgleich schlägt der METADATA-Lookup
+# fehl und das Modell fällt auf den 32k-Default — das Fenster war dann 31x
+# zu klein. Snapshots sind immer `-JJJJMMTT`.
+_SNAPSHOT_SUFFIX = re.compile(r"-\d{8}$")
+
+
+def _metadata_for(model: str) -> dict[str, Any] | None:
+    """METADATA-Eintrag für eine Modell-ID — toleriert Provider-Prefix und
+    datierte Snapshots.
+
+    Reihenfolge: exakt → ohne Prefix → ohne Datums-Suffix → ohne beides.
+    """
+    candidates = [model, model.split("/")[-1]]
+    for base in list(candidates):
+        stripped = _SNAPSHOT_SUFFIX.sub("", base)
+        if stripped != base:
+            candidates.append(stripped)
+    for candidate in candidates:
+        meta = METADATA.get(candidate)
+        if meta:
+            return meta
+    return None
 
 # Char-based estimate. Real tokens vary by model — Anthropic ~3.5 chars/token
 # for English/code, more for German. Use 4 as a conservative-ish average.
@@ -94,20 +120,37 @@ def context_window_for(model: str) -> int:
         from hydrahive.llm import registry
         theo = registry.cached_context_window(model)
         if theo is None:
-            _meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
+            _meta = _metadata_for(model)
             if _meta and _meta.get("context_window"):
                 theo = _meta["context_window"]
         # Der Deckel richtet sich nach dem freien VRAM, sofern llmfit ihn
         # gemessen hat. Ohne diese Info bleibt es beim konservativen Fallback.
         return num_ctx_for_ollama(theo, free_vram_gib=_cached_free_vram_gib())
 
-    meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
+    meta = _metadata_for(model)
     if meta and meta.get("context_window"):
         return meta["context_window"]
 
+    # Live aus der Provider-API geholtes Fenster (Anthropic liefert es als
+    # max_input_tokens). Steht erst nach dem ersten Katalog-Refresh bereit,
+    # ist dann aber die verlässlichste Quelle für Modelle, die noch nicht in
+    # METADATA gepflegt sind.
+    try:
+        from hydrahive.llm import registry
+        live = registry.cached_context_window(model)
+    except Exception:  # noqa: BLE001 - Registry ist optional, nie blockierend
+        live = None
+    if live:
+        return live
+
     m = model.lower()
     # Heuristik nur für Nicht-Katalog-Modelle
+    # Claude 5er-Generation (Opus 5/5.5, Sonnet 5, Fable 5/5.1): 1M Kontext.
+    if "claude-opus-5" in m or "claude-sonnet-5" in m or "claude-fable-5" in m:
+        return 1_000_000
     if "claude-opus-4-8" in m or "claude-opus-4-7" in m or "claude-opus-4-6" in m:
+        return 1_000_000
+    if "claude-sonnet-4-6" in m:
         return 1_000_000
     if "claude-sonnet-4" in m or "claude-opus-4" in m:
         return 200_000

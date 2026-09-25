@@ -81,6 +81,19 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
     raw: list[dict]
     if isinstance(data.get("data"), list):
         raw = data["data"]
+        # Anthropic /v1/models liefert das Fenster als `max_input_tokens`
+        # (plus `max_tokens` für den Output). Ohne diese Zuordnung landet
+        # jedes Modell mit context_window=None im Katalog und fällt später
+        # auf die statische METADATA bzw. die Heuristik zurück — bei neuen
+        # Modellen also auf den 32k-Default. Die API ist die SSOT, nicht
+        # unsere handgepflegte Tabelle.
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            if item.get("context_length") is None:
+                window = item.get("max_input_tokens")
+                if isinstance(window, int) and window > 0:
+                    item["context_length"] = window
     elif isinstance(data.get("models"), list):
         raw = []
         for model in data["models"]:
