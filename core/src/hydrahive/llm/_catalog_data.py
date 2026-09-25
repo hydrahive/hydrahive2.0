@@ -39,8 +39,12 @@ STATIC_MODELS = {
         "openai-codex/gpt-5.1", "openai-codex/gpt-5.1-codex-max",
         "openai-codex/gpt-5.1-codex-mini",
     ],
+    # Fallback-Liste falls die Models-API nicht erreichbar ist. Im Normalfall
+    # kommt der Katalog live von /v1/models — neue Modelle erscheinen dort
+    # automatisch, ohne dass diese Liste gepflegt werden muss.
     "anthropic": [
-        "claude-opus-5", "claude-fable-5", "claude-sonnet-5", "claude-sonnet-4-6",
+        "claude-opus-5-5", "claude-fable-5-1", "claude-sonnet-5",
+        "claude-opus-5", "claude-fable-5", "claude-sonnet-4-6",
         "claude-opus-4-8", "claude-opus-4-7",
         "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219",
         "claude-3-5-haiku-20241022",
@@ -66,6 +70,11 @@ PROVIDER_PREFIX = {
 # tool_use: True/False/None (None = ungetestet/unbekannt).
 METADATA: dict[str, dict[str, Any]] = {
     # Anthropic
+    # Kontextfenster laut Anthropic-Modellübersicht. Die Models-API liefert
+    # den Wert auch live als max_input_tokens — diese Tabelle ist nur noch
+    # Fallback für den Fall, dass der Katalog-Refresh nicht gelaufen ist.
+    "claude-opus-5-5":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
+    "claude-fable-5-1":  {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-opus-5":     {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-fable-5":    {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-sonnet-5":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
