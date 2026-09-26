@@ -508,6 +508,12 @@ fi
 bash "$HH_REPO_DIR/installer/migrations/voice-stt-perf.sh" \
   || log "stt-perf-migration failed — weiter"
 
+# Bestandsmigration: venvs, deren python3 dem System-Link folgt, festnageln.
+# Nach dem Wechsel des System-python3 auf 3.14 lief SearXNG mit dem falschen
+# Interpreter und war vier Wochen ausgefallen. Idempotent.
+bash "$HH_REPO_DIR/installer/migrations/pin-venv-python.sh" \
+  || log "pin-venv-python failed — weiter"
+
 # mmx-Cache-Verzeichnis muss als hydrahive existieren BEVOR die Service-Unit
 # es als ReadWritePaths einträgt — sonst wirft systemd "missing path".
 HH_HOME_DIR="/home/$HH_USER"
