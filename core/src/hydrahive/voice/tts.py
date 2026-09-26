@@ -164,10 +164,16 @@ async def synthesize_openrouter(text: str, voice: str = "") -> tuple[bytes, str]
     from hydrahive.llm.media_models import get_media_model
     from hydrahive.tools._openrouter_media import synthesize_speech
 
+    model = get_media_model("tts")
+    # Standard ist der lokale Piper: nicht an OpenRouter schicken (dort gibt es
+    # `local/piper` nicht), sondern lokal sprechen. Voice ist bei Piper fest.
+    from hydrahive.llm.local_voice import is_local
+    if is_local(model):
+        return await synthesize_local(text)
+
     key = openrouter_key()
     if not key:
         raise RuntimeError("OpenRouter-API-Key fehlt — Provider 'openrouter' in der LLM-Config setzen")
-    model = get_media_model("tts")
     data, ext, _, _ = await synthesize_speech(text, voice, model, key=key)
     return data, ("audio/wav" if ext == "wav" else "audio/mpeg")
 

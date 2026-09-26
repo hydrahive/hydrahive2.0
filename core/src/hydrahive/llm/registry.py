@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from hydrahive.llm._config import load_config
 from hydrahive.llm.catalog import catalog_for_providers
 from hydrahive.llm import embed as _embed
+from hydrahive.llm import local_voice
 from hydrahive.llm.media_models import (
     list_speech_models, list_transcribe_models, list_video_models,
 )
@@ -128,15 +129,35 @@ async def _build() -> tuple[list[ModelEntry], bool]:
         try:
             for m in await fetch():
                 mid = m.get("id", "")
-                if mid:
-                    _add(acc, ModelEntry(id=mid, provider="openrouter", label=mid,
-                                         purposes=frozenset({purpose})))
+                if not mid:
+                    continue
+                prev = acc.get(mid)
+                if prev is not None and prev.provider != "openrouter":
+                    # Dieselbe ID steht auch in einem Chat-Katalog (z.B.
+                    # openai/whisper-1 bei OpenAI). Die Medien-Tools schicken
+                    # tts/stt/video aber ausschließlich an OpenRouter — die
+                    # Auswahl muss den Anbieter zeigen, der tatsächlich
+                    # angefragt wird. Ein reines Medienmodell ist kein Chat.
+                    keep = prev.purposes - {"chat"} if prev.purposes <= {"chat", purpose} else prev.purposes
+                    acc[mid] = ModelEntry(id=mid, provider="openrouter", label=mid,
+                                          purposes=keep | {purpose}, is_free=prev.is_free)
+                    continue
+                _add(acc, ModelEntry(id=mid, provider="openrouter", label=mid,
+                                     purposes=frozenset({purpose})))
         except Exception as e:
             logger.warning("Registry: %s-Build fehlgeschlagen: %s", purpose, e)
 
     await _modality(list_speech_models, "tts")
     await _modality(list_transcribe_models, "stt")
     await _modality(list_video_models, "video")
+    # Lokale Sprach-Dienste (Whisper/Piper) — stehen in keinem Anbieter-Katalog.
+    for purpose in ("stt", "tts"):
+        try:
+            for m in await local_voice.list_local(purpose):
+                _add(acc, ModelEntry(id=m["id"], provider="local", label=m["name"],
+                                     purposes=frozenset({purpose}), is_free=True))
+        except Exception as e:  # noqa: BLE001 - lokaler Dienst optional
+            logger.warning("Registry: lokales %s nicht ermittelbar: %s", purpose, e)
     return sorted(acc.values(), key=lambda e: (e.provider, e.label)), complete
 
 

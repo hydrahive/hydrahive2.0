@@ -182,9 +182,12 @@ export interface MediaModel {
   frame_images?: string[]
 }
 
+// `default` = gespeicherter Wert, `selected` = die passende ID in `models`.
+// Beide können sich im Präfix unterscheiden (openrouter/…, openai/…); eine
+// Auswahl muss `selected` anzeigen, sonst findet sie keine passende Option.
 export const llmModelsApi = {
   byModality: (modality?: string) =>
-    api.get<{ models: RegistryModel[]; default: string }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
+    api.get<{ models: RegistryModel[]; default: string; selected?: string }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
   media: (category: "image" | "video") =>
-    api.get<{ models: MediaModel[]; default: string }>(`/llm/media-models?category=${category}`),
+    api.get<{ models: MediaModel[]; default: string; selected?: string }>(`/llm/media-models?category=${category}`),
 }
