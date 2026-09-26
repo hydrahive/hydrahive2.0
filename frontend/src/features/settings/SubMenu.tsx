@@ -36,23 +36,24 @@ export function SubMenu({ group, activeItem, onSelect }: Props) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="border-b border-white/8 px-4 py-3">
-        <h2 className="text-sm font-semibold text-zinc-200">{group.submenuLabel ?? group.label}</h2>
+      <div className="border-b border-[#2a364b] px-3 py-3">
+        <p className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">Auswahl</p>
+        <h2 className="text-sm font-bold text-[#e8eef8]">{group.submenuLabel ?? group.label}</h2>
       </div>
       <div className="flex-1 space-y-0.5 p-2">
         {loading ? (
-          <div className="h-20 rounded-lg bg-zinc-900/50 animate-pulse" />
+          <div className="h-20 rounded-[4px] border border-[#2a364b] bg-[#151c2b] animate-pulse" />
         ) : items.length === 0 ? (
-          <p className="px-3 py-3 text-xs text-zinc-600">Keine Einträge.</p>
+          <p className="px-3 py-3 text-xs text-[#8d9ab0]">Keine Einträge.</p>
         ) : (
           items.map((it) => (
             <button
               key={it.id}
               onClick={() => onSelect(it.id)}
-              className={`w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+              className={`w-full truncate rounded-[4px] border px-3 py-2 text-left text-sm transition-colors ${
                 activeItem === it.id
-                  ? "bg-[#104E8B]/25 text-sky-200"
-                  : "text-zinc-300 hover:bg-white/[5%]"
+                  ? "border-[#69d7ff]/40 bg-[#1c2940] font-semibold text-[#69d7ff]"
+                  : "border-transparent text-[#8d9ab0] hover:border-[#2a364b] hover:bg-[#151c2b] hover:text-[#e8eef8]"
               }`}
             >
               {it.name}

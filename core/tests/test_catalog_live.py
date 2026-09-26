@@ -70,6 +70,12 @@ def test_parse_models_captures_modalities():
     assert plain["input_modalities"] == []
 
 
+def test_minimax_embedding_gets_canonical_provider_prefix():
+    enriched = catalog._enrich("minimax", {"id": "embo-01"})
+    assert enriched["id"] == "minimax/embo-01"
+    assert enriched["category"] == "embed"
+
+
 def test_enrich_passes_modalities_through():
     entry = {"id": "openrouter/openai/gpt-5-image-mini",
              "output_modalities": ["image", "text"], "input_modalities": ["text"]}
@@ -101,6 +107,97 @@ def test_auth_for_anthropic_oauth_uses_bearer_and_cli_headers():
     assert "oauth-2025-04-20" in headers["anthropic-beta"]
     assert headers["x-app"] == "cli"
     assert params == {}
+
+
+def test_codex_endpoint_and_static_fallback_include_gpt6_astra():
+    from hydrahive.llm._catalog_data import METADATA, PROVIDER_ENDPOINTS, STATIC_MODELS
+
+    assert PROVIDER_ENDPOINTS["openai-codex"] == {
+        "url": "https://chatgpt.com/backend-api/codex/models",
+        "auth": "bearer",
+    }
+    assert "openai-codex/gpt-6-astra" in STATIC_MODELS["openai-codex"]
+    assert METADATA["openai-codex/gpt-6-astra"]["context_window"] == 272_000
+
+
+def test_parse_codex_models_uses_slug_context_and_visibility():
+    response = {"models": [
+        {"slug": "gpt-6-astra", "context_window": 272_000,
+         "visibility": "list", "supported_in_api": True, "tool_mode": "code_mode_only"},
+        {"slug": "codex-auto-review", "context_window": 272_000,
+         "visibility": "hide", "supported_in_api": False},
+    ]}
+
+    entries = catalog._parse_models_response("openai-codex", response)
+
+    assert entries == [{
+        "id": "openai-codex/gpt-6-astra",
+        "context_window": 272_000,
+        "is_free": None,
+        "price_prompt": None,
+        "price_completion": None,
+        "output_modalities": [],
+        "input_modalities": [],
+        "tool_use": True,
+    }]
+
+
+def test_codex_catalog_uses_live_fetch(monkeypatch):
+    async def fake_fetch(provider, token):
+        assert provider["id"] == "openai-codex"
+        assert token == "access-token"
+        return [{"id": "openai-codex/gpt-6-astra", "context_window": 272_000}]
+
+    monkeypatch.setattr(catalog, "_cached_fetch_codex", fake_fetch)
+    result = asyncio.run(catalog.catalog_for_providers([{
+        "id": "openai-codex",
+        "oauth": {"access": "access-token", "account_id": "acct-123"},
+        "models": [],
+    }]))
+
+    assert result[0]["live_count"] == 1
+    assert result[0]["models"][0]["id"] == "openai-codex/gpt-6-astra"
+
+
+def test_codex_live_fetch_passes_oauth_account_context(monkeypatch):
+    seen = {}
+
+    async def fake_fetch(provider_id, access_token, *, extra_headers=None, extra_params=None):
+        seen.update(provider_id=provider_id, access_token=access_token,
+                    headers=extra_headers, params=extra_params)
+        return [{"id": "openai-codex/gpt-6-astra"}]
+
+    monkeypatch.setattr(catalog, "_fetch_live_models", fake_fetch)
+    entries = asyncio.run(catalog._fetch_codex_live_models(
+        {"oauth": {"account_id": "acct-123"}}, "access-token",
+    ))
+
+    assert entries[0]["id"] == "openai-codex/gpt-6-astra"
+    assert seen == {
+        "provider_id": "openai-codex",
+        "access_token": "access-token",
+        "headers": {
+            "chatgpt-account-id": "acct-123",
+            "OpenAI-Beta": "responses=experimental",
+            "originator": "hydrahive",
+            "User-Agent": "codex_cli_rs/0.55.0",
+        },
+        "params": {"client_version": "2.0.0"},
+    }
+
+
+def test_configured_model_is_kept_when_provider_catalog_is_empty(monkeypatch):
+    async def no_live_models(_provider_id, _key):
+        return []
+
+    monkeypatch.setattr(catalog, "_cached_fetch", no_live_models)
+    result = asyncio.run(catalog.catalog_for_providers([{
+        "id": "nvidia", "api_key": "k",
+        "models": ["nvidia_nim/deepseek-ai/deepseek-r1"],
+    }]))
+
+    ids = {m["id"] for m in result[0]["models"]}
+    assert "nvidia_nim/deepseek-ai/deepseek-r1" in ids
 
 
 def test_opus_5_is_complete_static_fallback():

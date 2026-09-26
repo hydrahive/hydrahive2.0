@@ -45,13 +45,13 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
   return (
     <div className="space-y-6">
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider">
+        <label className="block text-[10px] font-black uppercase tracking-[0.14em] text-[#8d9ab0]">
           {tCommon("labels.status")}
         </label>
         <select
           value={draft.status}
           onChange={(e) => onDraftChange({ ...draft, status: e.target.value as Project["status"] })}
-          className="px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-sm text-zinc-300 w-full"
+          className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"
         >
           <option value="active">{tCommon("status.active")}</option>
           <option value="paused">{tCommon("status.paused")}</option>
@@ -65,10 +65,10 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
 
       <OverridesSection project={project} onSaved={onDraftChange} />
 
-      <div className="pt-4 border-t border-white/[6%]">
-        <p className="text-xs text-zinc-600 mb-3">{t("settings.danger_zone")}</p>
+      <div className="border-t border-[#2a364b] pt-4">
+        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-[#718097]">{t("settings.danger_zone")}</p>
         <button onClick={remove}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-rose-500/30 text-rose-400 hover:bg-rose-500/[8%] transition-colors text-sm">
+          className="flex items-center gap-2 rounded-[4px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-200 transition-colors hover:bg-rose-500/15">
           <Trash2 size={14} />
           {t("settings.delete_project")}
         </button>

@@ -42,8 +42,10 @@ async def list_voices(
 ) -> JSONResponse:
     if provider == "openrouter":
         from hydrahive.llm import media_models
+        from hydrahive.llm.local_voice import is_local
         model = media_models.get_media_model("tts")
-        voices = await media_models.voices_for(model)
+        # Lokaler Piper hat eine feste Stimme -> keine Auswahl anbieten.
+        voices = [] if is_local(model) else await media_models.voices_for(model)
         return JSONResponse({"voices": [{"voice_id": v, "voice_name": v} for v in voices],
                              "model": model})
     if not voice_tts.is_available():

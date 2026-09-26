@@ -6,6 +6,7 @@ import subprocess
 from datetime import datetime, timezone
 
 from hydrahive.agentlink import is_connected as agentlink_connected
+from hydrahive.api.routes._websearch_health import websearch_health
 from hydrahive.settings import settings
 
 
@@ -53,6 +54,7 @@ def health_check() -> dict:
         "agentlink": agentlink,
         "bridge": {"ok": bridge_ok},
         "tailscale": {"ok": tailscale_ok, "configured": tailscale_present},
+        "websearch": websearch_health(),
     }
 
 

@@ -32,6 +32,26 @@ const EMPTY_STATE: ChatState = {
   error: null, errorKind: null, pendingConfirm: null, lastTurnTokens: null,
 }
 
+// Der Chat rendert ohnehin nur ein Fenster der letzten Nachrichten. Mehr als das
+// zu laden kostet nur Transfer und Parse-Zeit: eine reale Session mit 9.667
+// Nachrichten übertrug 41 MB pro Reload und blockierte den Browser sekundenlang.
+const RELOAD_MESSAGE_LIMIT = 400
+
+/**
+ * Behält lokale, noch nicht persistierte Nachrichten (`local-`/`live-`) beim
+ * Reload. Ohne das überschrieb ein parallel laufender Live-Sync-Reload den
+ * Thread mit dem Serverstand — die gerade abgeschickte Nachricht verschwand
+ * sichtbar wieder und tauchte erst Sekunden später beim nächsten Reload auf.
+ */
+export function keepUnpersisted(current: Message[], fromServer: Message[]): Message[] {
+  const pending = current.filter(
+    (m) => m.id.startsWith("local-") || m.id.startsWith("live-"),
+  )
+  if (pending.length === 0) return fromServer
+  const serverIds = new Set(fromServer.map((m) => m.id))
+  return [...fromServer, ...pending.filter((m) => !serverIds.has(m.id))]
+}
+
 export function useChat(sessionId: string | null) {
   const [state, setState] = useState<ChatState>(EMPTY_STATE)
   const abortRef = useRef<AbortController | null>(null)
@@ -53,14 +73,15 @@ export function useChat(sessionId: string | null) {
   const reload = useCallback(async () => {
     if (!sessionId) { setState(EMPTY_STATE); return }
     try {
-      const msgs = await chatApi.listMessages(sessionId)
+      const msgs = await chatApi.listMessages(sessionId, RELOAD_MESSAGE_LIMIT)
       // busy bleibt true, wenn gerade ein Run läuft (Reconnect/Sende-Stream) —
       // die Wahrheit ist der Server-Run-Status, nicht der lokale Ladevorgang.
       const stillRunning = runningRef.current
       // max_iterations-Error bleibt stehen bis der User "weitermachen" klickt —
       // Live-Sync-Reload darf ihn nicht wegwischen.
       setState((s) => ({
-        ...s, messages: msgs, busy: stillRunning, iteration: stillRunning ? s.iteration : 0,
+        ...s, messages: keepUnpersisted(s.messages, msgs),
+        busy: stillRunning, iteration: stillRunning ? s.iteration : 0,
         error: s.errorKind === "max_iterations" ? s.error : null,
         errorKind: s.errorKind === "max_iterations" ? s.errorKind : null,
       }))

@@ -72,16 +72,45 @@ def _normalize_id(provider_id: str, raw_id: str) -> str:
 
 
 def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
-    """Extrahiert strukturierte Modell-Einträge aus der /v1/models-Antwort.
+    """Extrahiert strukturierte Modell-Einträge aus Provider-Katalogantworten.
 
-    OpenRouter liefert pricing (Strings) + context_length; andere Provider oft nur id.
-    is_free = pricing.prompt und .completion sind beide '0'. Ohne pricing → None.
+    OpenAI-kompatible Provider liefern ``data[].id``. Gemini liefert
+    ``models[].name``. Der Codex-Endpoint liefert ``models[].slug`` und
+    ``context_window`` sowie Sichtbarkeit/Tool-Metadaten.
     """
     raw: list[dict]
     if isinstance(data.get("data"), list):
         raw = data["data"]
-    elif isinstance(data.get("models"), list):  # Gemini
-        raw = [{"id": m.get("name", "").replace("models/", "")} for m in data["models"] if m.get("name")]
+        # Anthropic /v1/models liefert das Fenster als `max_input_tokens`
+        # (plus `max_tokens` für den Output). Ohne diese Zuordnung landet
+        # jedes Modell mit context_window=None im Katalog und fällt später
+        # auf die statische METADATA bzw. die Heuristik zurück — bei neuen
+        # Modellen also auf den 32k-Default. Die API ist die SSOT, nicht
+        # unsere handgepflegte Tabelle.
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            if item.get("context_length") is None:
+                window = item.get("max_input_tokens")
+                if isinstance(window, int) and window > 0:
+                    item["context_length"] = window
+    elif isinstance(data.get("models"), list):
+        raw = []
+        for model in data["models"]:
+            if not isinstance(model, dict):
+                continue
+            # Codex liefert nur für den aktuellen Account sichtbare Modelle;
+            # versteckte/aus der API entfernte Modelle gehören nicht in Picker.
+            if provider_id == "openai-codex" and (
+                model.get("visibility") not in (None, "list")
+                or model.get("supported_in_api") is False
+            ):
+                continue
+            item = dict(model)
+            item["id"] = (model.get("slug") or model.get("name", "")).replace("models/", "")
+            if "context_length" not in item:
+                item["context_length"] = model.get("context_window")
+            raw.append(item)
     else:
         raw = []
 
@@ -99,6 +128,9 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
         else:
             is_free = (str(prompt) == "0" and str(completion) == "0")
         arch = m.get("architecture") or {}
+        tool_use = m.get("tool_use")
+        if tool_use is None and provider_id == "openai-codex":
+            tool_use = bool(m.get("tool_mode") or m.get("experimental_supported_tools"))
         out.append({
             "id": _normalize_id(provider_id, mid),
             "context_window": m.get("context_length"),
@@ -107,6 +139,7 @@ def _parse_models_response(provider_id: str, data: dict) -> list[dict]:
             "price_completion": completion,
             "output_modalities": arch.get("output_modalities") or [],
             "input_modalities": arch.get("input_modalities") or [],
+            "tool_use": tool_use,
         })
     return out
 
@@ -130,7 +163,13 @@ def _auth_for(cfg: dict, api_key: str) -> tuple[dict, dict]:
     return {}, {}
 
 
-async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
+async def _fetch_live_models(
+    provider_id: str,
+    api_key: str,
+    *,
+    extra_headers: dict[str, str] | None = None,
+    extra_params: dict[str, str] | None = None,
+) -> list[dict]:
     """Holt strukturierte Modell-Einträge live. Bei Fehler: leere Liste."""
     cfg = PROVIDER_ENDPOINTS.get(provider_id, {})
     url = cfg.get("url")
@@ -139,6 +178,8 @@ async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             headers, params = _auth_for(cfg, api_key)
+            headers.update(extra_headers or {})
+            params.update(extra_params or {})
             resp = await client.get(url, headers=headers, params=params)
             resp.raise_for_status()
             data = resp.json()
@@ -146,6 +187,48 @@ async def _fetch_live_models(provider_id: str, api_key: str) -> list[dict]:
     except Exception as e:
         logger.warning("Catalog: live-fetch für %s fehlgeschlagen: %s", provider_id, e)
         return []
+
+
+async def _fetch_codex_live_models(provider: dict, access_token: str) -> list[dict]:
+    """Holt den account-spezifischen Codex-Katalog vom ChatGPT-Backend.
+
+    Der Endpoint ist OpenAI-kompatibel, benötigt für ChatGPT OAuth aber zusätzlich
+    die Account-ID und den Codex-Client-Kontext. Ohne Account-ID fällt der Aufrufer
+    bewusst auf STATIC_MODELS zurück.
+    """
+    oauth = provider.get("oauth") or {}
+    account_id = oauth.get("account_id", "") or ""
+    if not account_id:
+        return []
+    return await _fetch_live_models(
+        "openai-codex",
+        access_token,
+        extra_headers={
+            "chatgpt-account-id": account_id,
+            "OpenAI-Beta": "responses=experimental",
+            "originator": "hydrahive",
+            "User-Agent": "codex_cli_rs/0.55.0",
+        },
+        extra_params={"client_version": "2.0.0"},
+    )
+
+
+async def _cached_fetch_codex(provider: dict, access_token: str) -> list[dict]:
+    """Cached Codex-Live-Fetch mit OAuth-Account-Kontext."""
+    cache_key = _credential_cache_key("openai-codex", access_token)
+    now = time.monotonic()
+    hit = _cache.get(cache_key)
+    if hit and now - hit[0] < _CACHE_TTL:
+        return hit[1]
+    lock = _cache_locks.setdefault(cache_key, asyncio.Lock())
+    async with lock:
+        hit = _cache.get(cache_key)
+        if hit and time.monotonic() - hit[0] < _CACHE_TTL:
+            return hit[1]
+        entries = await _fetch_codex_live_models(provider, access_token)
+        if entries:
+            _cache[cache_key] = (time.monotonic(), entries)
+        return entries
 
 
 async def _fetch_ollama_models(provider: dict) -> list[dict]:
@@ -202,6 +285,15 @@ def _parse_ollama_show(data: dict) -> tuple[int | None, bool | None]:
     return ctx, tool_use
 
 
+def _ollama_embedding_dim(data: dict) -> int | None:
+    """Liest die native Ausgabedimension aus Ollamas model_info."""
+    info = data.get("model_info") or {}
+    return next(
+        (v for k, v in info.items() if k.endswith(".embedding_length") and isinstance(v, int) and v > 0),
+        None,
+    )
+
+
 async def _enrich_ollama_from_show(client, base, headers, entries: list[dict]) -> None:
     """Reichert jeden Ollama-Eintrag in-place mit /api/show-Daten an.
 
@@ -217,7 +309,8 @@ async def _enrich_ollama_from_show(client, base, headers, entries: list[dict]) -
                 headers=headers,
             )
             r.raise_for_status()
-            ctx, tool_use = _parse_ollama_show(r.json())
+            show = r.json()
+            ctx, tool_use = _parse_ollama_show(show)
         except Exception as e:  # noqa: BLE001 - best effort pro Modell
             logger.debug("Catalog: /api/show für %s fehlgeschlagen: %s", entry.get("id"), e)
             return
@@ -225,6 +318,12 @@ async def _enrich_ollama_from_show(client, base, headers, entries: list[dict]) -
             entry["context_window"] = ctx
         if tool_use is not None:
             entry["tool_use"] = tool_use
+        # Native Ollama /api/show exposes embedding capability, while /v1/models
+        # usually does not. Preserve it for registry modality classification.
+        capabilities = {str(x).lower() for x in (show.get("capabilities") or [])}
+        if "embedding" in capabilities or "embed" in capabilities:
+            entry["output_modalities"] = ["embedding"]
+            entry["embed_dim"] = _ollama_embedding_dim(show)
 
     await asyncio.gather(*(one(e) for e in entries))
 
@@ -233,20 +332,27 @@ def _enrich(provider_id: str, entry: dict) -> dict[str, Any]:
     """Joint Live-Eintrag mit METADATA. Live-context_window hat Vorrang."""
     from hydrahive.llm._anthropic import _uses_effort_param
     md = METADATA.get(entry["id"], {})
+    model_id = entry["id"].lower()
+    inferred_category = "embed" if any(token in model_id for token in ("embed", "embedding")) else "chat"
+    category = entry.get("category") or md.get("category") or inferred_category
+    result_id = entry["id"]
+    if provider_id == "minimax" and category == "embed" and not result_id.startswith("minimax/"):
+        result_id = f"minimax/{result_id}"
     return {
-        "id": entry["id"],
+        "id": result_id,
         "context_window": entry.get("context_window") or md.get("context_window"),
         # Live-tool_use (z.B. aus Ollama /api/show capabilities) hat Vorrang vor
         # der statischen METADATA. `entry.get("tool_use")` kann True/False/None
         # sein — nur wenn es None ist, auf METADATA zurückfallen.
         "tool_use": entry["tool_use"] if entry.get("tool_use") is not None else md.get("tool_use"),
-        "category": md.get("category", "chat"),
+        "category": category,
         "family": md.get("family", "?"),
         "is_free": entry.get("is_free"),
         "price_prompt": entry.get("price_prompt"),
         "price_completion": entry.get("price_completion"),
         "output_modalities": entry.get("output_modalities") or [],
         "input_modalities": entry.get("input_modalities") or [],
+        "embed_dim": entry.get("embed_dim") or md.get("embed_dim"),
         "supports_effort": _uses_effort_param(entry["id"]),
         "unknown": entry["id"] not in METADATA,
     }
@@ -292,7 +398,10 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
         credentials = _catalog_credentials(p)
         entries: list[dict] = []
         for credential in credentials:
-            entries = await _cached_fetch(pid, credential)
+            if pid == "openai-codex":
+                entries = await _cached_fetch_codex(p, credential)
+            else:
+                entries = await _cached_fetch(pid, credential)
             if entries:
                 break
         live_count = len(entries)
@@ -300,6 +409,17 @@ async def catalog_for_providers(providers: list[dict]) -> list[dict]:
             entries = [{"id": _normalize_id(pid, m), "context_window": None,
                         "is_free": None, "price_prompt": None, "price_completion": None}
                        for m in STATIC_MODELS.get(pid, [])]
+        # ProviderForm erlaubt bewusst benutzerdefinierte Modell-IDs. Sie müssen
+        # auch bei einem fehlenden/verkürzten Live-Katalog in den Pickern bleiben
+        # (z.B. Codex OAuth oder ein neuer DeepSeek-NIM-Slug).
+        known = {str(e.get("id")) for e in entries}
+        for model in p.get("models", []) or []:
+            model_id = _normalize_id(pid, str(model).strip())
+            if model_id and model_id not in known:
+                entries.append({"id": model_id, "context_window": None,
+                                "is_free": None, "price_prompt": None,
+                                "price_completion": None})
+                known.add(model_id)
         models = [_enrich(pid, e) for e in entries]
         return {
             "provider_id": pid,

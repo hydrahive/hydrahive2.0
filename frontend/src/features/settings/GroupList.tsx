@@ -12,9 +12,10 @@ export function GroupList({ role, activeId, onSelect }: Props) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="border-b border-white/8 px-4 py-3">
-        <h2 className="text-sm font-semibold text-zinc-200">Einstellungen</h2>
-        <p className="text-[11px] text-zinc-500">Gruppe wählen</p>
+      <div className="border-b border-[#2a364b] px-3 py-3">
+        <p className="mb-1 inline-flex rounded-[4px] border border-[#69d7ff]/35 bg-[#1c2940] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">System</p>
+        <h2 className="text-sm font-bold text-[#e8eef8]">Einstellungen</h2>
+        <p className="text-[11px] text-[#8d9ab0]">Gruppe wählen</p>
       </div>
       <nav className="flex-1 space-y-0.5 p-2">
         {groups.map((g) => {
@@ -24,10 +25,10 @@ export function GroupList({ role, activeId, onSelect }: Props) {
             <button
               key={g.id}
               onClick={() => onSelect(g)}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+              className={`flex w-full items-center gap-2 rounded-[4px] border px-3 py-2 text-left text-sm transition-colors ${
                 active
-                  ? "bg-[#104E8B]/25 text-sky-200 ring-1 ring-inset ring-[#104E8B]/50"
-                  : "text-zinc-300 hover:bg-white/[5%]"
+                  ? "border-[#69d7ff]/40 bg-[#1c2940] font-semibold text-[#69d7ff]"
+                  : "border-transparent text-[#8d9ab0] hover:border-[#2a364b] hover:bg-[#151c2b] hover:text-[#e8eef8]"
               }`}
             >
               <Icon size={15} className="shrink-0" />

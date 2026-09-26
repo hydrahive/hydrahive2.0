@@ -34,8 +34,18 @@ def test_configures_own_project_specialist(monkeypatch):
     monkeypatch.setattr("hydrahive.agents.config.update",
                         lambda aid, **ch: captured.update({"id": aid, **ch}))
     res = asyncio.run(conf.TOOL.execute(
-        {"agent_id": "spec-1", "tools": ["file_read", "todo_write"], "status": "disabled"}, _ctx()))
+        {"agent_id": "spec-1", "tools": ["file_read", "todo_write"],
+         "status": "disabled", "max_iterations": 80, "max_tokens": 32_000,
+         "compact_threshold_pct": 65, "handoff_timeout_seconds": 1_500},
+        _ctx()))
     assert res.success
     assert captured["id"] == "spec-1"
     assert captured["tools"] == ["file_read"]   # todo_write nicht beim Erzeuger → gefiltert
     assert captured["status"] == "disabled"
+    assert captured["max_iterations"] == 80
+    assert captured["max_tokens"] == 32_000
+    assert captured["compact_threshold_pct"] == 65
+    assert captured["handoff_timeout_seconds"] == 1_500
+    assert {"max_iterations", "max_tokens", "handoff_timeout_seconds"}.issubset(
+        conf.TOOL.schema["properties"]
+    )

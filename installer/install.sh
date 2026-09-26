@@ -227,6 +227,16 @@ bash "$INSTALLER_DIR/modules/20-paths.sh"
 log "Phase 4: Python-venv + Backend"
 bash "$INSTALLER_DIR/modules/30-python.sh"
 
+log "Phase 4b: llmfit für lokale Modellbewertung"
+if ! bash "$INSTALLER_DIR/modules/35-llmfit.sh"; then
+  err_soft "llmfit-Installation fehlgeschlagen — Ollama-Verwaltung funktioniert, Hardware-Fit bleibt vorerst unbekannt."
+fi
+
+log "Phase 4c: Local Media Runtime (automatisch bei NVIDIA-GPU)"
+if ! bash "$INSTALLER_DIR/modules/72-local-media.sh"; then
+  err "Local Media Runtime konnte nicht eingerichtet werden."
+fi
+
 log "Phase 5: Frontend"
 bash "$INSTALLER_DIR/modules/40-frontend.sh"
 

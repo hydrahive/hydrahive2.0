@@ -1,6 +1,6 @@
 # Absicherung einer öffentlich erreichbaren Instanz
 
-Stand: 27.07.2026. Geprüft an der ersten Internet-Testinstanz hinter Cloudflare.
+Allgemeine Betreiber-Checkliste für öffentlich erreichbare Installationen hinter einem Reverse-Proxy.
 
 ## Was der Installer bereits mitbringt
 

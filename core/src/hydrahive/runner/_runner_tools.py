@@ -11,6 +11,7 @@ from typing import AsyncIterator
 from hydrahive.runner import tool_confirmation
 from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, ToolUseStart
+from hydrahive.runner.integrity import IntegrityState
 from hydrahive.tools import ToolContext, ToolResult
 from hydrahive.tools._protected_paths import shell_confirm_reason
 from hydrahive.tools._observations import (
@@ -29,6 +30,7 @@ async def process_tool_uses(
     require_confirm: bool,
     tool_result_max_chars: int,
     iteration: int | None = None,
+    integrity_state: IntegrityState | None = None,
 ) -> AsyncIterator[Event | list[dict]]:
     """Führt alle tool_uses einer Iteration aus, yields Events.
     Letzter yield ist die fertige `result_blocks: list[dict]`.
@@ -70,6 +72,10 @@ async def process_tool_uses(
             tool_use=tu, allowed_tools=allowed_tools, ctx=ctx,
             parent_message_id=parent_message_id, iteration=iteration,
         )
+        # execute_tool hat Secrets bereits an der zentralen Engstelle geschwärzt.
+        # Integrity erhält daher ausschließlich das redigierte Resultat.
+        if integrity_state is not None:
+            integrity_state.record_tool(tu_name, tu_args, result)
         record_observation(
             agent_id=ctx.agent_id, session_id=ctx.session_id,
             tool_name=tu_name, tool_input=tu_args,

@@ -22,12 +22,15 @@ import { CockpitPanel } from "@/features/cockpit/CockpitPanel"
 import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { buddyOfflineActions, openLocalPath } from "@/features/cockpit/actionRegistry"
+import { moduleBuddyMediaWidgets } from "@/modules/index.generated"
 import { BuddyThread } from "./_BuddyThread"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
 import { BuddyActionVisual } from "./_BuddyActionVisual"
+import { normalizeBuddyMediaWidgets } from "./moduleMediaWidgets"
 
+const BUDDY_MEDIA_WIDGETS = normalizeBuddyMediaWidgets(moduleBuddyMediaWidgets)
 const MSG_WINDOW = 60
 const MSG_WINDOW_STEP = 100
 
@@ -156,7 +159,7 @@ export function BuddyPage() {
               <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} quickActions={(insert) => <BuddyQuickActions handleSend={handleSend} insert={insert} />} />
             </div>
           </main>
-          <BuddyRightRail state={state} onSettings={() => navigate("/buddy/settings")} />
+          <BuddyRightRail state={state} onPrompt={handleSend} onSettings={() => navigate("/buddy/settings")} />
         </div>
       </CockpitShell>
     </AssistantRuntimeProvider>
@@ -172,11 +175,11 @@ function BuddyLeftRail({ state, activity, ttsSpeaking, projects, localOverviewOp
   return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Buddy" eyebrow="Companion"><div className="rounded-[4px] border border-[#2a364b] bg-[#070b12] p-3"><div className="grid h-[160px] place-items-center overflow-hidden rounded-[4px] border border-[#2a364b] bg-[radial-gradient(circle_at_50%_20%,rgba(244,114,182,.25),rgba(8,11,17,.9))]"><BuddyActionVisual activity={activity} speaking={ttsSpeaking} /></div><div className="mt-2 text-xs text-[#8d9ab0]">Reaction: {ttsSpeaking ? "spricht" : activity === "working" ? "arbeitet" : activity === "error" ? "Fehler" : activity === "success" ? "gelungen" : "wach"}</div></div><div className="mt-4 space-y-3"><label className="block text-xs font-bold uppercase tracking-[0.12em] text-[#69d7ff]">Modus</label><select className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"><option>Normaler Buddy-Chat</option><option>Fokus</option><option>Humorvoll</option><option>Kurze Antworten</option></select><div className="space-y-2">{buddyOfflineActions.map((action) => <button key={action.id} onClick={() => onLocalAction(action.id)} className="w-full rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-sm text-[#e8eef8] hover:border-[#46617f]">{action.label}<span className="block text-xs text-[#8d9ab0]">{action.description}</span></button>)}</div>{localOverviewOpen && <div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-xs leading-4 text-[#8d9ab0]"><strong className="block text-[#e8eef8]">Lokale Übersicht</strong><span>Projekt: {activeProject?.name ?? "kein Projekt gewählt"}</span><br /><span>Geladene Projekte: {projects.length}</span><br /><span>Agent: {state.agent_name}</span></div>}<p className="text-xs text-[#8d9ab0]">Agent: {state.agent_name}</p></div></CockpitPanel></aside>
 }
 
-function BuddyRightRail({ state, onSettings }: { state: BuddyState; onSettings: () => void }) {
+function BuddyRightRail({ state, onPrompt, onSettings }: { state: BuddyState; onPrompt: (text: string) => void; onSettings: () => void }) {
   const primaryLinks = [["Projekte", "/projects"], ["Media", "/media"], ["Vault", "/vault"], ["Admin", "/admin"]]
-  const toolLinks = [["Scratchpad", "/scratchpad"], ["Musik", "/musicplayer"], ["Spiele", "/minigames"], ["Boardgames", "/boardgames"]]
+  const toolLinks = [["Scratchpad", "/scratchpad"], ["Spiele", "/minigames"], ["Boardgames", "/boardgames"]]
 
-  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Kontext" eyebrow="Ruhig" actions={<button onClick={onSettings} className="rounded-[4px] border border-[#2a364b] p-1 text-[#8d9ab0] hover:text-[#e8eef8]"><Settings size={14} /></button>}><div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-3"><div className="text-[11px] uppercase tracking-[0.12em] text-[#69d7ff]">Aktiver Buddy</div><div className="mt-1 text-sm font-bold text-[#e8eef8]">{state.agent_name}</div><div className="mt-1 text-xs text-[#8d9ab0]">Module bleiben im Hintergrund. Buddy bleibt zuerst Chat und Companion.</div></div><div className="mt-3 grid grid-cols-2 gap-2">{primaryLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-xs font-bold text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><CockpitPanel title="Werkzeuge" eyebrow="Kompakt"><p className="text-xs leading-4 text-[#8d9ab0]">Keine Modul-Boxen im Buddy. Häufige Werkzeuge liegen hier als leise Links; die vollständige Verwaltung bleibt in den Cockpits.</p><div className="mt-3 flex flex-wrap gap-2">{toolLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-full border border-[#2a364b] bg-[#111827] px-3 py-1 text-xs text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><CockpitPanel title="Hinweis" eyebrow="Offline"><p className="text-xs leading-4 text-[#8d9ab0]">Diese Spalte startet keine LLM-Anfrage. Für Module: Cockpit öffnen, dort arbeiten, bei Bedarf bewusst Buddy fragen.</p></CockpitPanel></aside>
+  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Kontext" eyebrow="Ruhig" actions={<button onClick={onSettings} className="rounded-[4px] border border-[#2a364b] p-1 text-[#8d9ab0] hover:text-[#e8eef8]"><Settings size={14} /></button>}><div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-3"><div className="text-[11px] uppercase tracking-[0.12em] text-[#69d7ff]">Aktiver Buddy</div><div className="mt-1 text-sm font-bold text-[#e8eef8]">{state.agent_name}</div><div className="mt-1 text-xs text-[#8d9ab0]">Optionale Medien bleiben lokal bedienbar. Buddy bleibt zuerst Chat und Companion.</div></div><div className="mt-3 grid grid-cols-2 gap-2">{primaryLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-xs font-bold text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel>{BUDDY_MEDIA_WIDGETS.length > 0 && <div className="my-[10px] space-y-[10px]">{BUDDY_MEDIA_WIDGETS.map(({ id, component: Widget }) => <Widget key={id} onPrompt={onPrompt} projectId={state.project_id} />)}</div>}<CockpitPanel title="Werkzeuge" eyebrow="Kompakt"><p className="text-xs leading-4 text-[#8d9ab0]">Häufige lokale Werkzeuge liegen hier als leise Links; vollständige Ansichten bleiben in ihren Cockpits.</p><div className="mt-3 flex flex-wrap gap-2">{toolLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-full border border-[#2a364b] bg-[#111827] px-3 py-1 text-xs text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><CockpitPanel title="Hinweis" eyebrow="Offline"><p className="text-xs leading-4 text-[#8d9ab0]">Player und Links starten keine LLM-Anfrage. Bei Bedarf kannst du Buddy bewusst dazu fragen.</p></CockpitPanel></aside>
 }
 
 function BuddyQuickActions({ handleSend, insert }: { handleSend: (text: string) => void; insert: (text: string) => void }) {

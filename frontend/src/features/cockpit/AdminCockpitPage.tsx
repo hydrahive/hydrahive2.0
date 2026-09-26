@@ -1,4 +1,4 @@
-import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, ListChecks, MonitorCog, Network, PlugZap, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
+import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, ListChecks, MonitorCog, Network, PlugZap, RefreshCw, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
@@ -18,6 +18,7 @@ import { ContainersOverlay } from "./admin/ContainersOverlay"
 import { VMsOverlay } from "./admin/VMsOverlay"
 import { NodesOverlay } from "./admin/NodesOverlay"
 import { JobsOverlay } from "./admin/JobsOverlay"
+import { ScheduledTasksOverlay } from "./admin/ScheduledTasksOverlay"
 import { AdminInfoCard } from "./admin/AdminInfoCard"
 import { OVERLAY_BY_ACTION, OVERLAY_BY_PATH } from "./admin/adminOverlayRegistry"
 import { useAdminOverlayNavigation } from "./admin/useAdminOverlayNavigation"
@@ -33,6 +34,7 @@ const opsLinks = [
   { title: "Container", path: "/containers", icon: Container },
   { title: "Compute-Nodes", path: "/nodes", icon: Network },
   { title: "Compute-Jobs", path: "/jobs", icon: ListChecks },
+  { title: "Automationen", path: "/scheduled-tasks", icon: RefreshCw },
   { title: "Themes", path: "/themes", icon: WandSparkles },
 ]
 
@@ -198,6 +200,7 @@ export function AdminCockpitPage() {
       {overlay === "vms" && <VMsOverlay onClose={() => setOverlay(null)} />}
       {overlay === "nodes" && <NodesOverlay onClose={() => setOverlay(null)} />}
       {overlay === "jobs" && <JobsOverlay onClose={() => setOverlay(null)} />}
+      {overlay === "scheduled-tasks" && <ScheduledTasksOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
 }

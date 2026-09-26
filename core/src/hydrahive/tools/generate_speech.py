@@ -10,17 +10,20 @@ from __future__ import annotations
 import logging
 
 from hydrahive.llm._config import openrouter_key
+from hydrahive.llm.local_voice import is_local
 from hydrahive.llm.media_models import get_media_model
 from hydrahive.tools._openrouter_media import save_bytes, synthesize_speech
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.voice.tts import synthesize_local
 
 logger = logging.getLogger(__name__)
 
 _DESCRIPTION = (
-    "Wandelt Text in gesprochene Sprache über OpenRouter (echtes TTS, verbatim). "
+    "Wandelt Text in gesprochene Sprache (echtes TTS, verbatim). "
     "Die Audiodatei wird gespeichert und im Chat als Player angezeigt. "
     "Stimmen je Modell verschieden — ohne Angabe wird die Standard-Stimme genutzt. "
-    "Braucht einen konfigurierten OpenRouter API-Key."
+    "Modell 'local/piper' nutzt den lokalen Piper auf diesem Server (kein Cloud-Key, eine feste "
+    "deutsche Stimme); OpenRouter-Modelle brauchen einen OpenRouter API-Key."
 )
 
 _SCHEMA = {
@@ -36,7 +39,10 @@ _SCHEMA = {
         },
         "model": {
             "type": "string",
-            "description": "OpenRouter-Speech-Modell. Default: zentrale media_models.tts.",
+            "description": (
+                "Speech-Modell. Default: zentrale media_models.tts. "
+                "'local/piper' = lokaler Piper auf diesem Server; sonst OpenRouter-Speech-Modell."
+            ),
         },
     },
     "required": ["text"],
@@ -48,13 +54,24 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not text:
         return ToolResult.fail("Text darf nicht leer sein")
 
+    model = (args.get("model") or get_media_model("tts")).strip()
+
+    # Lokaler Piper (TTS-Container) — kein Cloud-Key nötig, eine feste Stimme.
+    if is_local(model):
+        try:
+            data, _mime = await synthesize_local(text, args.get("voice") or "")
+        except (RuntimeError, OSError) as e:
+            return ToolResult.fail(f"Lokale Sprachausgabe fehlgeschlagen: {e}")
+        path = save_bytes(data, ctx.workspace / "generated", "wav")
+        logger.info("generate_speech: gespeichert model=%s path=%s bytes=%d", model, path, len(data))
+        return ToolResult.ok(f"Sprache generiert und gespeichert: {path}", model=model, voice="")
+
     key = openrouter_key()
     if not key:
         return ToolResult.fail(
             "Kein OpenRouter API-Key konfiguriert — unter Einstellungen → Anbieter hinterlegen"
         )
 
-    model = (args.get("model") or get_media_model("tts")).strip()
     try:
         data, ext, voice, note = await synthesize_speech(
             text, args.get("voice") or "", model, key=key

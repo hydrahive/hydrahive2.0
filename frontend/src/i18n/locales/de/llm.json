@@ -12,6 +12,37 @@
     "free": "gratis",
     "set_for_agent": "Modell auf Agent setzen"
   },
+  "ollama": {
+    "connection": "Ollama-Verbindung",
+    "connected": "Verbunden",
+    "offline": "Nicht erreichbar",
+    "installed_models": "Installierte Modelle",
+    "installed": "installiert",
+    "installed_count": "{{count}} installiert",
+    "search": "Offizielle Ollama Library durchsuchen…",
+    "refresh": "Aktualisieren",
+    "install": "Installieren",
+    "remove": "Entfernen",
+    "remove_confirm": "Ollama-Modell „{{model}}“ wirklich entfernen?",
+    "use": "Im Agent nutzen",
+    "no_models": "Keine Ollama-Modelle gefunden.",
+    "no_variants": "Keine Varianten verfügbar.",
+    "pull_failed": "Installation fehlgeschlagen",
+    "library_offline": "Die offizielle Ollama Library ist gerade nicht erreichbar. Installierte Modelle bleiben verfügbar.",
+    "fit_available": "Hardware erkannt",
+    "fit_unavailable": "Hardwarebewertung nicht verfügbar",
+    "llmfit_not_installed": "llmfit nicht installiert",
+    "llmfit_failed": "llmfit konnte nicht ausgeführt werden",
+    "llmfit_remote_ollama": "Ollama läuft auf einem anderen Host; dessen Hardware-Fit ist noch nicht verfügbar",
+    "context_capped": "Genutztes Kontextfenster / theoretisches Maximum des Modells. HydraHive begrenzt den Kontext nach freiem Grafikspeicher, damit das Modell vollständig auf der GPU bleibt.",
+    "fit": {
+      "perfect": "perfekt",
+      "good": "gut",
+      "marginal": "grenzwertig",
+      "too_tight": "zu groß",
+      "unknown": "Fit unbekannt"
+    }
+  },
   "providers": {
     "title": "Provider",
     "add": "Provider hinzufügen",
@@ -42,6 +73,10 @@
     "tts": "Sprache (TTS)",
     "stt": "Transkription (STT)",
     "video": "Video",
+    "local": "lokal",
+    "free": "kostenlos",
+    "paid": "kostenpflichtig",
+    "cost_unknown": "Kosten unbekannt",
     "save_error": "Speichern fehlgeschlagen"
   },
   "media_models": {

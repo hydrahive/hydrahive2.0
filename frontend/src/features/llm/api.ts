@@ -23,6 +23,7 @@ export interface LlmConfig {
   providers: LlmProvider[]
   default_model: string
   embed_model: string
+  embed_dimensions?: Record<string, number>
   media_models?: Record<string, string>
 }
 
@@ -171,7 +172,22 @@ export interface RegistryModel {
   embed_dim: number | null
 }
 
+export interface MediaModel {
+  id: string
+  name?: string
+  provider?: string
+  local?: boolean
+  durations?: number[]
+  aspect_ratios?: string[]
+  frame_images?: string[]
+}
+
+// `default` = gespeicherter Wert, `selected` = die passende ID in `models`.
+// Beide können sich im Präfix unterscheiden (openrouter/…, openai/…); eine
+// Auswahl muss `selected` anzeigen, sonst findet sie keine passende Option.
 export const llmModelsApi = {
   byModality: (modality?: string) =>
-    api.get<{ models: RegistryModel[]; default: string }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
+    api.get<{ models: RegistryModel[]; default: string; selected?: string }>(`/llm/models${modality ? `?modality=${modality}` : ""}`),
+  media: (category: "image" | "video") =>
+    api.get<{ models: MediaModel[]; default: string; selected?: string }>(`/llm/media-models?category=${category}`),
 }

@@ -14,8 +14,9 @@ def test_gpt56_luna_supports_max_not_ultra():
     )
 
 
-def test_gpt56_sol_and_terra_support_ultra():
+def test_gpt6_astra_and_gpt56_sol_terra_support_ultra():
     expected = ("low", "medium", "high", "xhigh", "max", "ultra")
+    assert effort_levels_for_model("openai-codex/gpt-6-astra") == expected
     assert effort_levels_for_model("openai-codex/gpt-5.6-sol") == expected
     assert effort_levels_for_model("openai-codex/gpt-5.6-terra") == expected
 

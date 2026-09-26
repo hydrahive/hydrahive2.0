@@ -1,14 +1,46 @@
-import { readdirSync, statSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
-import { join, dirname } from "node:path"
+import { readdirSync, statSync, writeFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs"
+import { join, dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const modulesDir = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "modules")
 mkdirSync(modulesDir, { recursive: true })   // robust auf frischem Checkout
 const out = join(modulesDir, "index.generated.ts")
 
+function hasMissingLocalImport(moduleDir) {
+  const files = []
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (/\.(tsx?|mts|cts)$/.test(name)) files.push(p)
+    }
+  }
+  walk(moduleDir)
+  const importRe = /from\s+["'](\.\.[^"']+)["']/g
+  for (const file of files) {
+    const source = readFileSync(file, "utf8")
+    for (const match of source.matchAll(importRe)) {
+      const target = resolve(dirname(file), match[1])
+      const candidates = [target, `${target}.ts`, `${target}.tsx`, join(target, "index.tsx")]
+      if (!candidates.some((candidate) => existsSync(candidate))) return true
+    }
+  }
+  return false
+}
+
 const ids = readdirSync(modulesDir).filter((n) => {
   const p = join(modulesDir, n)
-  return statSync(p).isDirectory() && existsSync(join(p, "index.tsx"))
+  if (!statSync(p).isDirectory() || !existsSync(join(p, "index.tsx"))) return false
+  if (hasMissingLocalImport(p)) {
+    // Nur aus index.generated.ts auszublenden reicht nicht: tsconfig kompiliert
+    // weiterhin jedes *.ts(x) unter src/. Die Kopie unter frontend/src/modules
+    // ist jederzeit aus dem installierten Modul regenerierbar; deshalb entfernen
+    // wir ausschließlich diese Build-Kopie. Backend und Moduldaten bleiben intakt.
+    rmSync(p, { recursive: true, force: true })
+    console.warn(`[gen-modules] entferne Build-Kopie ${n}: Modulabhängigkeit fehlt`)
+    return false
+  }
+  return true
 })
 
 const imports = ids.map((id, i) => `import * as m${i} from "./${id}"`).join("\n")
@@ -28,6 +60,7 @@ export const moduleRoutes: unknown[] = [${routes}]
 export const moduleNav: unknown[] = [${nav}]
 export const moduleI18n: unknown[] = [${i18n}]
 export const moduleBuddyWidgets: unknown[] = _mods.flatMap(m => _opt(m, "buddyWidgets"))
+export const moduleBuddyMediaWidgets: unknown[] = _mods.flatMap(m => _opt(m, "buddyMediaWidgets"))
 export const moduleWorkspaceTabs: unknown[] = _mods.flatMap(m => _opt(m, "workspaceTabs"))
 export const moduleSlotBlocks: unknown[] = _mods.flatMap(m => _opt(m, "slotBlocks"))
 export const moduleMediaSources: unknown[] = _mods.flatMap(m => _opt(m, "mediaSources"))

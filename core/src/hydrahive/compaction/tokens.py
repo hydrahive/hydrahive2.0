@@ -1,9 +1,35 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from hydrahive.llm._catalog_data import METADATA
+
+# Anthropic veröffentlicht jedes Modell zusätzlich als datierten Snapshot:
+# der Alias `claude-opus-5` erscheint in der Models-API als
+# `claude-opus-5-20260115`. Ohne Suffix-Abgleich schlägt der METADATA-Lookup
+# fehl und das Modell fällt auf den 32k-Default — das Fenster war dann 31x
+# zu klein. Snapshots sind immer `-JJJJMMTT`.
+_SNAPSHOT_SUFFIX = re.compile(r"-\d{8}$")
+
+
+def _metadata_for(model: str) -> dict[str, Any] | None:
+    """METADATA-Eintrag für eine Modell-ID — toleriert Provider-Prefix und
+    datierte Snapshots.
+
+    Reihenfolge: exakt → ohne Prefix → ohne Datums-Suffix → ohne beides.
+    """
+    candidates = [model, model.split("/")[-1]]
+    for base in list(candidates):
+        stripped = _SNAPSHOT_SUFFIX.sub("", base)
+        if stripped != base:
+            candidates.append(stripped)
+    for candidate in candidates:
+        meta = METADATA.get(candidate)
+        if meta:
+            return meta
+    return None
 
 # Char-based estimate. Real tokens vary by model — Anthropic ~3.5 chars/token
 # for English/code, more for German. Use 4 as a conservative-ish average.
@@ -57,6 +83,22 @@ def estimate_message(message: Any) -> int:
     return estimate_message_content(getattr(message, "content", None))
 
 
+def _cached_free_vram_gib() -> float | None:
+    """Freier VRAM aus dem llmfit-Cache. Sync, ohne Subprozess.
+
+    context_window_for() ist synchron und wird auf jedem Nachrichtenpfad
+    aufgerufen — hier darf nie ein llmfit-Lauf angestoßen werden. Es zählt
+    nur, was der asynchrone Katalogpfad bereits ermittelt hat.
+    """
+    try:
+        from hydrahive.llm import ollama_fit
+        cached = ollama_fit.cached_system()
+    except Exception:  # noqa: BLE001 - Fit ist optional, nie blockierend
+        return None
+    from hydrahive.llm.ollama_fit import free_vram_gib
+    return free_vram_gib(cached)
+
+
 def context_window_for(model: str) -> int:
     """Approximate context window in tokens.
 
@@ -67,22 +109,48 @@ def context_window_for(model: str) -> int:
     # dem num_ctx, das wir an den Ollama-Endpoint schicken (gedeckelt, KV-Cache-
     # Schutz). Die Compaction muss mit exakt dieser Zahl rechnen, sonst compacted
     # sie zu spät und Ollama schneidet den Prompt vorher still ab.
+    #
+    # Die statische METADATA-Tabelle kennt KEINE Ollama-Modelle (sie deckt nur
+    # Cloud-Provider ab) — das theoretische Fenster kam hier bis Bug #(gemma4
+    # bekam num_ctx=8192 statt 131072) IMMER aus METADATA und war für jedes
+    # Ollama-Modell None. Die Registry hat das echte, live per /api/show
+    # geholte Fenster bereits gecached — das ist die richtige Quelle.
     if model.startswith("ollama/"):
         from hydrahive.llm._config import num_ctx_for_ollama
-        # theoretisches Fenster (falls im Katalog) → auf num_ctx-Cap begrenzen
-        theo = None
-        _meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
-        if _meta and _meta.get("context_window"):
-            theo = _meta["context_window"]
-        return num_ctx_for_ollama(theo)
+        from hydrahive.llm import registry
+        theo = registry.cached_context_window(model)
+        if theo is None:
+            _meta = _metadata_for(model)
+            if _meta and _meta.get("context_window"):
+                theo = _meta["context_window"]
+        # Der Deckel richtet sich nach dem freien VRAM, sofern llmfit ihn
+        # gemessen hat. Ohne diese Info bleibt es beim konservativen Fallback.
+        return num_ctx_for_ollama(theo, free_vram_gib=_cached_free_vram_gib())
 
-    meta = METADATA.get(model) or METADATA.get(model.split("/")[-1])
+    meta = _metadata_for(model)
     if meta and meta.get("context_window"):
         return meta["context_window"]
 
+    # Live aus der Provider-API geholtes Fenster (Anthropic liefert es als
+    # max_input_tokens). Steht erst nach dem ersten Katalog-Refresh bereit,
+    # ist dann aber die verlässlichste Quelle für Modelle, die noch nicht in
+    # METADATA gepflegt sind.
+    try:
+        from hydrahive.llm import registry
+        live = registry.cached_context_window(model)
+    except Exception:  # noqa: BLE001 - Registry ist optional, nie blockierend
+        live = None
+    if live:
+        return live
+
     m = model.lower()
     # Heuristik nur für Nicht-Katalog-Modelle
+    # Claude 5er-Generation (Opus 5/5.5, Sonnet 5, Fable 5/5.1): 1M Kontext.
+    if "claude-opus-5" in m or "claude-sonnet-5" in m or "claude-fable-5" in m:
+        return 1_000_000
     if "claude-opus-4-8" in m or "claude-opus-4-7" in m or "claude-opus-4-6" in m:
+        return 1_000_000
+    if "claude-sonnet-4-6" in m:
         return 1_000_000
     if "claude-sonnet-4" in m or "claude-opus-4" in m:
         return 200_000

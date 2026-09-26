@@ -48,8 +48,8 @@ async def test_eingehender_handoff_in_queue(base_url, token):
 
 def test_al_urls(base_url, token):
     al = make_al(base_url, token)
-    assert al.al_ws_url == "wss://192.168.3.22/agentlink/ws/"
-    assert al.al_rest_base == "https://192.168.3.22/agentlink/api"
+    assert al.al_ws_url == "wss://hydrahive.example.test/agentlink/ws/"
+    assert al.al_rest_base == "https://hydrahive.example.test/agentlink/api"
 
 def test_is_connected_initial_false(base_url, token):
     al = make_al(base_url, token)

@@ -140,6 +140,16 @@ log "Backend-Dependencies aktualisieren"
 hh_run_as_owner "$HH_USER" \
   "$HH_REPO_DIR/.venv/bin/python" -m pip install -e "$HH_REPO_DIR/core"
 
+log "llmfit für lokale Modellbewertung synchronisieren"
+if ! bash "$HH_REPO_DIR/installer/modules/35-llmfit.sh"; then
+  log "llmfit-Installation fehlgeschlagen — Hardware-Fit bleibt vorerst unbekannt"
+fi
+
+log "Local Media Runtime synchronisieren (automatisch bei NVIDIA-GPU)"
+if ! bash "$HH_REPO_DIR/installer/modules/72-local-media.sh"; then
+  err "Local Media Runtime konnte beim Update nicht synchronisiert werden."
+fi
+
 log "Playwright-Chromium-Version synchronisieren"
 # `pip install -e core` kann Playwright aktualisieren. Jede Playwright-Version
 # erwartet eine bestimmte Chromium-Revision; ein beliebiger alter chromium-*
@@ -491,11 +501,29 @@ if [ "$voice_ok" = "0" ]; then
   bash "$HH_REPO_DIR/installer/modules/55-voice.sh" || log "voice-setup failed — weiter"
 fi
 
+# Bestandsmigration: STT-Inferenz auf int8 + beam-size 1 umstellen.
+# 55-voice.sh schreibt die Unit nur beim ERSTEN Anlegen des Containers —
+# bestehende Installationen liefen sonst dauerhaft in float32 weiter
+# (RTF ~0,95: Warten ≈ Sprechdauer). Idempotent, erhält Modell + Sprache.
+bash "$HH_REPO_DIR/installer/migrations/voice-stt-perf.sh" \
+  || log "stt-perf-migration failed — weiter"
+
+# Bestandsmigration: venvs, deren python3 dem System-Link folgt, festnageln.
+# Nach dem Wechsel des System-python3 auf 3.14 lief SearXNG mit dem falschen
+# Interpreter und war vier Wochen ausgefallen. Idempotent.
+bash "$HH_REPO_DIR/installer/migrations/pin-venv-python.sh" \
+  || log "pin-venv-python failed — weiter"
+
 # mmx-Cache-Verzeichnis muss als hydrahive existieren BEVOR die Service-Unit
 # es als ReadWritePaths einträgt — sonst wirft systemd "missing path".
 HH_HOME_DIR="/home/$HH_USER"
 if id "$HH_USER" >/dev/null 2>&1 && [ ! -d "$HH_HOME_DIR/.mmx" ]; then
   install -d -o "$HH_USER" -g "$HH_USER" -m 0700 "$HH_HOME_DIR/.mmx"
+fi
+# Incus braucht diesen Cache beim Anlegen neuer Container. ProtectHome=read-only
+# macht /home sonst für den Backend-Prozess schreibgeschützt.
+if id "$HH_USER" >/dev/null 2>&1 && [ ! -d "$HH_HOME_DIR/.cache/incus" ]; then
+  install -d -o "$HH_USER" -g "$HH_USER" -m 0700 "$HH_HOME_DIR/.cache/incus"
 fi
 
 # Service-File auf HOME-Env + ReadWritePaths-Erweiterung migrieren
@@ -505,6 +533,7 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "^Environment=HOME=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.config" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*\.mmx" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  grep -q "ReadWritePaths=.*\.cache/incus" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q "ReadWritePaths=.*hh-projects\.d" "$SERVICE_FILE" || NEEDS_REWRITE=1
   # Migration: alte sudo-Workarounds (ExecStartPre /run/sudo, RW=/run/sudo)
   # raus — wir nutzen jetzt tailscale --operator statt sudo

@@ -5,10 +5,10 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { UpdateModal } from "@/shared/UpdateModal"
 import { AppFooter } from "@/shared/AppFooter"
 import { useLayoutUpdate } from "./useLayoutUpdate"
-import { BentoMenu } from "./BentoMenu"
-import { cockpitModuleItems, NAV_ITEMS, QUICK_LINK_PATHS, visibleItems } from "./nav-config"
+import { cockpitModuleItems, visibleItems } from "./nav-config"
+import { navLabel } from "./nav-label"
 import { getStoredThemeId, getTheme } from "./themes/registry"
-import type { LayoutChrome } from "./layouts/types"
+import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 
 /** LayoutHost — sammelt gemeinsames Chrome (Nav, Update-State), wählt das aktive
  *  Theme-Layout-Gerüst und hält globale Overlays (Bento, UpdateModal). Das
@@ -23,7 +23,6 @@ export function Layout() {
     updateState, updateError, newCommit,
     confirmUpdate, openUpdateModal, closeUpdateModal,
   } = useLayoutUpdate(role === "admin")
-  const [bentoOpen, setBentoOpen] = useState(false)
 
   // Aktives Theme (aus localStorage). Re-render bei Wechsel via Custom-Event.
   const [themeId, setThemeId] = useState(getStoredThemeId)
@@ -36,7 +35,7 @@ export function Layout() {
   const theme = getTheme(themeId)
   // Core-Cockpits + installierte Cockpit-Module (nav mit cockpit:true) laufen
   // im bare Cockpit-Chrome statt im Theme-Layout.
-  const cockpitPaths = ["/projects", "/buddy", "/media", "/vault", "/admin",
+  const cockpitPaths = ["/projects", "/buddy", "/media", "/vault", "/admin", "/werkstatt", "/help", "/settings",
     ...cockpitModuleItems().map((i) => i.path)]
   const isCockpitRoute = cockpitPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 
@@ -63,24 +62,9 @@ export function Layout() {
   }, [theme])
 
   const visible = visibleItems(role)
-  const quickLinks = QUICK_LINK_PATHS
-    .map((p) => visible.find((i) => i.path === p))
-    .filter(Boolean) as typeof NAV_ITEMS
   const currentPage = visible.find((i) =>
     i.path === "/" ? pathname === "/" : pathname.startsWith(i.path),
   )
-
-  const chrome: LayoutChrome = {
-    role, t, pathname, visible, quickLinks, currentPage,
-    onBentoToggle: () => setBentoOpen((o) => !o),
-    footer: {
-      version, commit, updateBehind, moduleUpdateCount,
-      isAdmin: role === "admin",
-      onUpdateClick: openUpdateModal,
-    },
-  }
-
-  const ActiveLayout = theme.layout
 
   return (
     <>
@@ -99,10 +83,24 @@ export function Layout() {
           />
         </div>
       ) : (
-        <ActiveLayout chrome={chrome} />
+        <div className="cockpit-route flex h-[100dvh] min-h-0 flex-col bg-[#080b11]">
+          <CockpitTopbar
+            active={pathname}
+            context={currentPage ? navLabel(t, currentPage.labelKey) : undefined}
+          />
+          <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none p-4 md:p-6">
+            <Outlet />
+          </main>
+          <AppFooter
+            version={version}
+            commit={commit}
+            updateBehind={updateBehind}
+            moduleUpdateCount={moduleUpdateCount}
+            isAdmin={role === "admin"}
+            onUpdateClick={openUpdateModal}
+          />
+        </div>
       )}
-
-      <BentoMenu open={bentoOpen} onClose={() => setBentoOpen(false)} />
 
       {updateState !== "idle" && (
         <UpdateModal

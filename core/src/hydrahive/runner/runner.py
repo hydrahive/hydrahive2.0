@@ -12,6 +12,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_MAX_ITERATIONS,
     DEFAULT_MAX_TOKENS,
 )
+from hydrahive.agentlink.runtime_profiles import session_budget
 from hydrahive.runner._run_workspace import (
     effective_tool_config, project_layout_hint, resolve_run_context,
 )
@@ -40,6 +41,8 @@ from hydrahive.runner.context import (
     to_anthropic_messages,
 )
 from hydrahive.runner.events import Done, Error, Event, IterationStart
+from hydrahive.runner.integrity import IntegrityState
+from hydrahive.runner.integrity_continuity import load_continuation_evidence
 from hydrahive.skills.loader import list_for_agent as load_agent_skills
 from hydrahive.tools import ToolContext, schemas_for
 from hydrahive.tools._compress import compress_session
@@ -66,6 +69,17 @@ def _user_text(ui: "str | list") -> str:
                 out.append(b.get("text", ""))
         return " ".join(out)
     return ""
+
+
+def _runtime_limits(agent: dict, metadata: dict | None) -> tuple[int, int]:
+    """Return per-session AgentLink limits or the ordinary persisted agent caps."""
+    budget = session_budget(agent, metadata)
+    if budget:
+        return budget.max_iterations, budget.max_tokens
+    return (
+        int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS),
+        int(agent.get("max_tokens") or DEFAULT_MAX_TOKENS),
+    )
 
 
 async def run(
@@ -119,11 +133,16 @@ async def run(
 
     from hydrahive.handover import prompt_for_new_session
     handover_system = prompt_for_new_session(session_id)
+    integrity_goal = _user_text(user_input)
+    continued_evidence = load_continuation_evidence(session_id, integrity_goal)
     user_message = messages_db.append(session_id, "user", user_input)
     ctx.current_user_turn_id = user_message.id
 
     last_assistant_id: str | None = None
     recent_tool_calls: list[str] = []
+    integrity_state = IntegrityState(
+        goal=integrity_goal, initial_evidence=continued_evidence,
+    )
     total_input_tokens = total_output_tokens = total_cache_creation = total_cache_read = 0
 
     compact_model = agent.get("compact_model") or agent["llm_model"]
@@ -133,7 +152,7 @@ async def run(
     compact_max_turns: int | None = agent.get("compact_max_turns")
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
-    max_iterations = int(agent.get("max_iterations") or DEFAULT_MAX_ITERATIONS)
+    max_iterations, run_max_tokens = _runtime_limits(agent, session.metadata)
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [], project_id=agent.get("project_id"))
 
     # Proaktiver Recall A: Top-N Cards einmal pro Session laden (recency × salience)
@@ -200,7 +219,7 @@ async def run(
                 anth_messages=to_anthropic_messages(heal_orphan_tool_uses(history)),
                 tool_schemas=tool_schemas,
                 temperature=agent.get("temperature", 0.7),
-                max_tokens=agent.get("max_tokens", DEFAULT_MAX_TOKENS),
+                max_tokens=run_max_tokens,
                 reasoning_effort=reasoning_effort,
             ):
                 if isinstance(item, IterationResult):
@@ -235,7 +254,7 @@ async def run(
                 provider=_provider,
                 model=result.used_model,
                 temperature=agent.get("temperature", 0.7),
-                max_tokens=agent.get("max_tokens", DEFAULT_MAX_TOKENS),
+                max_tokens=run_max_tokens,
                 reasoning_effort=reasoning_effort,
                 prompt_tokens=result.input_tokens,
                 completion_tokens=result.output_tokens,
@@ -256,6 +275,7 @@ async def run(
         except Exception:
             logger.exception("llm_calls-Insert fehlgeschlagen — Telemetrie verloren, Lauf läuft weiter")
 
+        integrity_state.record_assistant_blocks(result.blocks)
         assistant_msg = messages_db.append(
             session_id, "assistant", result.blocks,
             token_count=result.output_tokens or None,
@@ -263,7 +283,8 @@ async def run(
                       "cache_creation_tokens": result.cache_creation_tokens,
                       "cache_read_tokens": result.cache_read_tokens,
                       "model": result.used_model, "stop_reason": result.stop_reason,
-                      "iteration": iteration + 1},
+                      "iteration": iteration + 1,
+                      "integrity": integrity_state.audit_metadata()},
         )
         last_assistant_id = assistant_msg.id
         history.append(assistant_msg)
@@ -275,7 +296,7 @@ async def run(
                 close_open_tool_uses(session_id, tool_uses, "Abgebrochen: max_tokens-Limit überschritten")
             session_end(agent["id"], session_id, status="abandoned")
             yield Error(
-                f"max_tokens ({agent.get('max_tokens', DEFAULT_MAX_TOKENS)}) erreicht — Antwort abgeschnitten. "
+                f"max_tokens ({run_max_tokens}) erreicht — Antwort abgeschnitten. "
                 "Tool-Argumente sind unvollständig. Erhöhe max_tokens oder formuliere die Aufgabe kürzer.",
                 metadata={"stop_reason": result.stop_reason, "message_id": assistant_msg.id},
             ); return
@@ -336,13 +357,17 @@ async def run(
             require_confirm=bool(agent.get("require_tool_confirm", False)),
             tool_result_max_chars=tool_result_max_chars,
             iteration=iteration + 1,
+            integrity_state=integrity_state,
         ):
             if isinstance(item, list):
                 result_blocks = item
             else:
                 yield item
 
-        tool_msg = messages_db.append(session_id, "user", result_blocks)
+        tool_msg = messages_db.append(
+            session_id, "user", result_blocks,
+            metadata={"integrity": integrity_state.audit_metadata()},
+        )
         history.append(tool_msg)
 
     # Pre-Resume-Compaction (#143): Wenn die History bei max_iterations noch

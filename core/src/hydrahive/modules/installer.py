@@ -16,6 +16,8 @@ import logging
 import re
 import shutil
 import subprocess
+import tempfile
+import threading
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -128,6 +130,93 @@ def copy_module_in(module_id: str) -> None:
         logger.info("Modul '%s' Frontend nach %s kopiert", module_id, fe_dst)
 
 
+def _is_safe_persistent_file(root: Path, candidate: Path) -> bool:
+    """Prüft eine Glob-Datei ohne Symlinks oder Auflösung aus dem Modulroot."""
+    try:
+        relative = candidate.relative_to(root)
+        current = root
+        for part in relative.parts:
+            current /= part
+            if current.is_symlink():
+                return False
+        return candidate.is_file() and candidate.resolve().is_relative_to(root.resolve())
+    except (OSError, ValueError):
+        return False
+
+
+def _persistent_files(root: Path, patterns: tuple[str, ...]) -> dict[Path, Path]:
+    files: dict[Path, Path] = {}
+    if not root.is_dir() or root.is_symlink():
+        return files
+    for pattern in patterns:
+        for candidate in root.glob(pattern):
+            if _is_safe_persistent_file(root, candidate):
+                files[candidate.relative_to(root)] = candidate
+    return files
+
+
+def _replace_frontend(module_id: str, src: Path) -> None:
+    fe_src = src / "frontend"
+    fe_dst = _frontend_modules_dir() / module_id
+    if fe_dst.is_symlink():
+        fe_dst.unlink()
+    elif fe_dst.exists():
+        shutil.rmtree(fe_dst)
+    if fe_src.is_dir():
+        fe_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(fe_src, fe_dst, symlinks=False)
+
+
+def replace_module_in(module_id: str) -> None:
+    """Ersetzt Modulcode und übernimmt sichere Dateien aus ``persistent_paths``."""
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+
+    _validate_module_id(module_id)
+    refresh()
+    src = _cache_path_for(module_id)
+    try:
+        manifest = ModuleManifest.load(src / "manifest.json")
+    except (ManifestError, OSError) as exc:
+        raise InstallError(f"manifest_unlesbar:{module_id}: {exc}") from exc
+
+    destination = settings.modules_dir / module_id
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.is_symlink():
+        raise InstallError(f"module_root_symlink:{module_id}")
+    persistent = _persistent_files(destination, manifest.persistent_paths)
+
+    with tempfile.TemporaryDirectory(
+        prefix=f".{module_id}-update-", dir=destination.parent
+    ) as temporary:
+        temporary_root = Path(temporary)
+        staged = temporary_root / "new"
+        shutil.copytree(src, staged, symlinks=False)
+        for relative, original in persistent.items():
+            target = staged / relative
+            if target.exists() or target.is_symlink():
+                raise InstallError(f"persistent_path_collision:{module_id}:{relative}")
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(original, target, follow_symlinks=False)
+            except (FileExistsError, NotADirectoryError) as exc:
+                raise InstallError(
+                    f"persistent_path_collision:{module_id}:{relative}"
+                ) from exc
+
+        previous = temporary_root / "previous"
+        if destination.exists():
+            destination.rename(previous)
+        try:
+            staged.rename(destination)
+        except OSError:
+            if previous.exists() and not destination.exists():
+                previous.rename(destination)
+            raise
+
+    _replace_frontend(module_id, src)
+    logger.info("Modul '%s' unter Erhalt persistenter Dateien ersetzt", module_id)
+
+
 def remove_module_files(module_id: str) -> None:
     """Entfernt die Datei-Artefakte eines Moduls.
 
@@ -173,12 +262,51 @@ def _clear_ts_buildinfo(frontend_dir: Path) -> None:
 
 
 def _request_restart() -> None:
-    (settings.data_dir / ".restart_request").write_text("module-change")
+    """Fordere Neustart verzögert an, damit der SSE-Stream sauber endet.
+
+    Der Restart-Timer überwacht `.restart_request` alle fünf Sekunden. Ein
+    sofortiges Schreiben beendet den laufenden API-Prozess oft, bevor das
+    abschließende SSE-Event (`done`) beim Browser angekommen ist; die Karte
+    bleibt dann scheinbar stundenlang auf „Aktualisiert…“. Zwei Sekunden
+    Verzögerung geben dem Stream Zeit, die Abschlussmeldung auszuliefern.
+    """
+    def write_request() -> None:
+        try:
+            settings.data_dir.mkdir(parents=True, exist_ok=True)
+            (settings.data_dir / ".restart_request").write_text("module-change")
+        except OSError:
+            logger.exception("Modul-Neustarttrigger konnte nicht geschrieben werden")
+
+    timer = threading.Timer(2.0, write_request)
+    timer.daemon = True
+    timer.start()
 
 
 def _manifest_has_service(module_id: str) -> bool:
     from hydrahive.modules.manifest import ModuleManifest
     return ModuleManifest.load(settings.modules_dir / module_id / "manifest.json").has_service
+
+
+def _dependencies(module_id: str) -> tuple[str, ...]:
+    """Liest Abhängigkeiten aus dem aktuellen Hub-Manifest."""
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+    try:
+        refresh()
+        src = _cache_path_for(module_id)
+        return ModuleManifest.load(src / "manifest.json").dependencies
+    except (InstallError, ManifestError, OSError) as exc:
+        raise InstallError(f"manifest_unlesbar:{module_id}: {exc}") from exc
+
+
+def _ensure_dependencies(module_id: str, seen: set[str]) -> Iterator[str]:
+    for dep in _dependencies(module_id):
+        _validate_module_id(dep)
+        if dep in seen:
+            raise InstallError(f"zyklische Modulabhängigkeit: {module_id} → {dep}")
+        if (settings.modules_dir / dep / "manifest.json").is_file():
+            continue
+        yield f"[modules] Abhängigkeit {dep} wird installiert …"
+        yield from install(dep, _seen=seen)
 
 
 def _run_service_script(module_id: str, script: str) -> None:  # "install.sh" | "uninstall.sh"
@@ -187,8 +315,13 @@ def _run_service_script(module_id: str, script: str) -> None:  # "install.sh" | 
         subprocess.run(["bash", str(path)], check=True)
 
 
-def install(module_id: str) -> Iterator[str]:
+def install(module_id: str, *, _seen: set[str] | None = None) -> Iterator[str]:
     _validate_module_id(module_id)
+    seen = set(_seen or ())
+    if module_id in seen:
+        raise InstallError(f"zyklische Modulabhängigkeit: {module_id}")
+    seen.add(module_id)
+    yield from _ensure_dependencies(module_id, seen)
     yield f"[modules] installiere {module_id} …"
     copy_module_in(module_id); yield "[modules] Dateien kopiert"
     if _manifest_has_service(module_id):
@@ -210,11 +343,11 @@ def uninstall(module_id: str) -> Iterator[str]:
 def update(module_id: str) -> Iterator[str]:
     """Hub pullen + Dateien ersetzen + einmal bauen. Daten bleiben unangetastet."""
     _validate_module_id(module_id)
+    yield from _ensure_dependencies(module_id, {module_id})
     yield f"[modules] update {module_id} …"
     if _manifest_has_service(module_id):
         _run_service_script(module_id, "uninstall.sh"); yield "[modules] Dienst gestoppt"
-    remove_module_files(module_id); yield "[modules] alte Dateien entfernt"
-    copy_module_in(module_id); yield "[modules] neue Dateien kopiert"
+    replace_module_in(module_id); yield "[modules] Dateien sicher ersetzt"
     if _manifest_has_service(module_id):
         _run_service_script(module_id, "install.sh"); yield "[modules] Dienst gestartet"
     _frontend_build(); yield "[modules] Frontend gebaut"

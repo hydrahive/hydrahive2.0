@@ -1,0 +1,244 @@
+from hydrahive.runner.integrity import IntegrityState, canonical_tool_payload
+from hydrahive.tools.base import ToolResult
+
+
+def test_canonical_tool_payload_ignores_only_ephemeral_fields():
+    first = canonical_tool_payload("shell_exec", {"cmd": "echo hi", "request_id": "one"})
+    second = canonical_tool_payload("shell_exec", {"cmd": "echo hi", "request_id": "two"})
+    changed = canonical_tool_payload("shell_exec", {"cmd": "echo bye", "request_id": "two"})
+
+    assert first == second
+    assert first != changed
+    assert "echo hi" in first
+    assert "one" not in first
+
+
+def test_repeated_action_signal_is_bounded_and_does_not_store_arguments():
+    state = IntegrityState(goal="prüfe den Fix")
+    signals = []
+    for _ in range(4):
+        signals.extend(state.record_tool("shell_exec", {"cmd": "echo hi"}, ToolResult.ok("same")))
+
+    assert any(signal.kind == "repeated_tool_action" for signal in signals)
+    snapshot = state.snapshot()
+    assert snapshot["tool_observations"] == 4
+    assert snapshot["unique_actions"] == 1
+    assert "echo hi" not in repr(snapshot)
+
+
+def test_error_chain_and_no_progress_are_detected():
+    state = IntegrityState(goal="behebe den Fehler")
+    signals = []
+    for _ in range(3):
+        signals.extend(state.record_tool("fetch_url", {"url": "https://example.test"}, ToolResult.fail("timeout")))
+
+    kinds = {signal.kind for signal in signals}
+    assert "error_chain" in kinds
+    assert "no_progress" in kinds
+
+
+def test_shell_nonzero_exit_is_failure_not_new_evidence():
+    state = IntegrityState(goal="führe Tests aus")
+    result = ToolResult.ok(
+        {"exit_code": 1, "stdout": "1 failed", "stderr": ""}, exit_code=1,
+    )
+    signals = []
+
+    for _ in range(3):
+        signals.extend(state.record_tool("shell_exec", {"cmd": "pytest"}, result))
+
+    snapshot = state.snapshot()
+    assert snapshot["new_evidence"] == 0
+    assert snapshot["error_streak"] == 3
+    assert "error_chain" in {signal.kind for signal in signals}
+
+
+def test_shell_zero_exit_is_successful_evidence():
+    state = IntegrityState(goal="führe Tests aus")
+    result = ToolResult.ok(
+        {"exit_code": 0, "stdout": "5 passed", "stderr": ""}, exit_code=0,
+    )
+
+    state.record_tool("shell_exec", {"cmd": "pytest"}, result)
+
+    assert state.snapshot()["new_evidence"] == 1
+    assert state.snapshot()["error_streak"] == 0
+
+
+def test_new_successful_evidence_resets_no_progress_streak():
+    state = IntegrityState(goal="prüfe zwei Zustände")
+    for _ in range(2):
+        state.record_tool("shell_exec", {"cmd": "echo same"}, ToolResult.ok("same"))
+
+    signals = state.record_tool("shell_exec", {"cmd": "echo new"}, ToolResult.ok("new"))
+
+    assert not any(signal.kind == "no_progress" for signal in signals)
+    assert state.snapshot()["new_evidence"] == 2
+
+
+def test_completion_claims_are_telemetried_without_claim_text():
+    state = IntegrityState(goal="ändere und teste")
+    signals = state.record_assistant_text("Der Fix ist implementiert und erfolgreich getestet.")
+
+    assert any(signal.kind == "completion_claim" for signal in signals)
+    snapshot = state.snapshot()
+    assert snapshot["completion_claims"] == 2
+    assert "implementiert" not in repr(snapshot)
+
+
+def test_assistant_blocks_only_inspects_visible_text():
+    state = IntegrityState(goal="prüfe den Lauf")
+    signals = state.record_assistant_blocks([
+        {"type": "text", "text": "Der Fix ist getestet."},
+        {"type": "tool_use", "name": "shell_exec", "input": {"cmd": "echo deployed"}},
+    ])
+
+    assert [signal.kind for signal in signals] == [
+        "completion_claim", "unverified_completion_claim",
+    ]
+    assert state.snapshot()["completion_claim_kinds"] == ["tested"]
+
+
+def test_drain_signals_is_bounded_and_consumes_pending_signals():
+    state = IntegrityState(goal="prüfe den Lauf")
+    for _ in range(4):
+        state.record_tool("shell_exec", {"cmd": "echo hi"}, ToolResult.ok("same"))
+
+    pending = state.drain_signals()
+
+    assert {signal["kind"] for signal in pending} == {"repeated_tool_action", "no_progress"}
+    assert state.drain_signals() == []
+    assert all(set(signal) == {"kind", "level", "detail", "subject"} for signal in pending)
+    assert {signal["subject"] for signal in pending} == {"shell_exec"}
+
+
+def test_negated_completion_is_not_counted_as_claim():
+    state = IntegrityState(goal="ändere und teste")
+
+    signals = state.record_assistant_text(
+        "Der Fix ist noch nicht implementiert und wurde nicht erfolgreich getestet."
+    )
+
+    assert signals == []
+    assert state.snapshot()["completion_claims"] == 0
+
+
+def test_raw_secrets_never_appear_in_integrity_metadata():
+    secret = "sk-live-super-secret-value"
+    state = IntegrityState(goal=f"Prüfe {secret}")
+
+    state.record_tool(
+        "fetch_url", {"headers": {"Authorization": f"Bearer {secret}"}},
+        ToolResult.ok({"token": secret}),
+    )
+
+    assert secret not in repr(state.audit_metadata())
+
+
+def test_claim_and_tool_signals_have_safe_subjects():
+    state = IntegrityState(goal="prüfe")
+    state.record_assistant_text("Der Fix ist getestet.")
+    for _ in range(3):
+        state.record_tool("shell_exec", {"cmd": "false"}, ToolResult.fail("failed"))
+
+    signals = state.drain_signals()
+
+    assert any(
+        signal["kind"] == "completion_claim" and signal["subject"] == "tested"
+        for signal in signals
+    )
+    assert any(
+        signal["kind"] == "error_chain" and signal["subject"] == "shell_exec"
+        for signal in signals
+    )
+
+
+def test_distinct_successful_artifact_changes_are_progress():
+    state = IntegrityState(goal="ändere drei Dateien")
+    signals = []
+    for path in ("one.py", "two.py", "three.py"):
+        signals.extend(state.record_tool(
+            "file_patch", {"path": path, "old_string": "a", "new_string": "b"},
+            ToolResult.ok("Datei gepatcht"),
+        ))
+
+    assert "no_progress" not in {signal.kind for signal in signals}
+    assert "repeated_tool_action" not in {signal.kind for signal in signals}
+    assert state.snapshot()["same_result_streak"] == 0
+
+
+def test_identical_artifact_actions_still_emit_repeated_action():
+    state = IntegrityState(goal="ändere eine Datei")
+    signals = []
+    arguments = {"path": "one.py", "old_string": "a", "new_string": "b"}
+    for _ in range(3):
+        signals.extend(state.record_tool(
+            "file_patch", arguments, ToolResult.ok("Datei gepatcht"),
+        ))
+
+    assert "repeated_tool_action" in {signal.kind for signal in signals}
+    assert "no_progress" not in {signal.kind for signal in signals}
+
+
+def test_same_read_only_results_still_emit_no_progress():
+    state = IntegrityState(goal="prüfe mehrere Quellen")
+    signals = []
+    for index in range(3):
+        signals.extend(state.record_tool(
+            "fetch_url", {"url": f"https://example.test/{index}"},
+            ToolResult.ok("pending"),
+        ))
+
+    assert "no_progress" in {signal.kind for signal in signals}
+
+
+def test_continued_evidence_verifies_claim_and_emits_signal_once():
+    state = IntegrityState(
+        goal="weiter", initial_evidence={"artifact_changed", "tests_passed"},
+    )
+
+    signals = state.record_assistant_text("Der Fix ist getestet und behoben.")
+    first_metadata = state.audit_metadata()
+    second_metadata = state.audit_metadata()
+
+    assert "unverified_completion_claim" not in {signal.kind for signal in signals}
+    assert first_metadata["snapshot"]["continued_evidence"] == 2
+    assert [signal["kind"] for signal in first_metadata["signals"]].count(
+        "evidence_continued"
+    ) == 1
+    assert second_metadata["signals"] == []
+
+
+def test_artifact_change_invalidates_stale_quality_evidence():
+    state = IntegrityState(
+        goal="weiter",
+        initial_evidence={
+            "artifact_changed", "commit_created", "push_completed", "tests_passed",
+        },
+    )
+
+    state.record_tool("file_patch", {"path": "app.py"}, ToolResult.ok("changed"))
+    signals = state.record_assistant_text("Der Fix ist getestet und behoben.")
+
+    assert state.snapshot()["evidence_kinds"] == ["artifact_changed"]
+    unverified = [signal for signal in signals if signal.kind == "unverified_completion_claim"]
+    assert {signal.subject for signal in unverified} == {"fixed", "tested"}
+
+
+def test_untrusted_initial_evidence_is_discarded():
+    state = IntegrityState(goal="weiter", initial_evidence={"private_evidence"})
+
+    assert state.snapshot()["evidence_kinds"] == []
+    assert state.snapshot()["continued_evidence"] == 0
+
+
+def test_untrusted_tool_name_is_collapsed_to_other_subject():
+    raw_name = "secret tool name / with spaces" + "x" * 100
+    state = IntegrityState(goal="prüfe")
+    for _ in range(3):
+        state.record_tool(raw_name, {}, ToolResult.fail("failed"))
+
+    metadata = state.audit_metadata()
+
+    assert raw_name not in repr(metadata)
+    assert any(signal.get("subject") == "other" for signal in metadata["signals"])

@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react"
-import type { CSSProperties } from "react"
-import { useTranslation } from "react-i18next"
 import { Loader2 } from "lucide-react"
-import { rgbFor } from "@/shared/colors"
+import { useTranslation } from "react-i18next"
 import { Markdown } from "@/features/chat/Markdown"
+import { CockpitShell } from "@/features/cockpit/CockpitShell"
+import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { type HelpTopic, loadHelp } from "@/i18n/help/loader"
 
 const TOPICS: { id: HelpTopic; labelDe: string; labelEn: string }[] = [
   { id: "dashboard", labelDe: "Dashboard", labelEn: "Dashboard" },
-  { id: "chat",      labelDe: "Chat",      labelEn: "Chat" },
-  { id: "agents",    labelDe: "Agenten",   labelEn: "Agents" },
-  { id: "projects",  labelDe: "Projekte",  labelEn: "Projects" },
-  { id: "llm",       labelDe: "LLM",       labelEn: "LLM" },
-  { id: "mcp",       labelDe: "MCP",       labelEn: "MCP" },
-  { id: "system",    labelDe: "System",    labelEn: "System" },
+  { id: "chat", labelDe: "Chat", labelEn: "Chat" },
+  { id: "agents", labelDe: "Agenten", labelEn: "Agents" },
+  { id: "projects", labelDe: "Projekte", labelEn: "Projects" },
+  { id: "llm", labelDe: "LLM", labelEn: "LLM" },
+  { id: "mcp", labelDe: "MCP", labelEn: "MCP" },
+  { id: "system", labelDe: "System", labelEn: "System" },
 ]
 
 export function HelpPage() {
@@ -31,40 +31,49 @@ export function HelpPage() {
   }, [topic, i18n.language])
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 max-w-5xl">
-      <aside className="md:sticky md:top-2 md:self-start">
-        <h2 className="text-sm font-bold text-white mb-3 px-2">
-          {lang === "de" ? "Handbuch" : "Manual"}
-        </h2>
-        <nav className="space-y-0.5">
-          {TOPICS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTopic(t.id)}
-              className={`w-full text-left px-3 py-1.5 rounded-md text-sm transition-colors ${
-                topic === t.id
-                  ? "bg-violet-500/15 text-violet-200 border border-violet-500/30"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%] border border-transparent"
-              }`}
-            >
-              {lang === "de" ? t.labelDe : t.labelEn}
-            </button>
-          ))}
-        </nav>
-      </aside>
+    <CockpitShell
+      title={lang === "de" ? "Hilfe" : "Help"}
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      hideHeader
+    >
+      <CockpitTopbar active="/help" context={lang === "de" ? "Handbuch und Seitendokumentation" : "Manual and page documentation"} />
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <aside className="self-start rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3 lg:sticky lg:top-0">
+            <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#69d7ff]">
+              {lang === "de" ? "Handbuch" : "Manual"}
+            </p>
+            <nav className="space-y-1" aria-label={lang === "de" ? "Hilfe-Themen" : "Help topics"}>
+              {TOPICS.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setTopic(item.id)}
+                  className={`w-full rounded-[4px] border px-3 py-2 text-left text-sm transition-colors ${
+                    topic === item.id
+                      ? "border-[#69d7ff]/45 bg-[#1c2940] font-semibold text-[#69d7ff]"
+                      : "border-transparent text-[#8d9ab0] hover:border-[#2a364b] hover:bg-[#111827] hover:text-[#e8eef8]"
+                  }`}
+                >
+                  {lang === "de" ? item.labelDe : item.labelEn}
+                </button>
+              ))}
+            </nav>
+          </aside>
 
-      <article className="box overflow-hidden p-5 min-h-[300px]" style={{ "--c": rgbFor("/help") } as CSSProperties}>
-        {loading ? (
-          <div className="flex items-center gap-2 text-zinc-400 text-sm">
-            <Loader2 size={14} className="animate-spin" />
-            <span>{lang === "de" ? "Lade…" : "Loading…"}</span>
-          </div>
-        ) : (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <Markdown text={content} />
-          </div>
-        )}
-      </article>
-    </div>
+          <article className="min-h-[420px] rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-5 text-[#c8d2df]">
+            {loading ? (
+              <div className="flex items-center gap-2 text-sm text-[#8d9ab0]">
+                <Loader2 size={14} className="animate-spin" />
+                <span>{lang === "de" ? "Lade…" : "Loading…"}</span>
+              </div>
+            ) : (
+              <div className="prose prose-invert prose-sm max-w-none">
+                <Markdown text={content} />
+              </div>
+            )}
+          </article>
+        </div>
+      </main>
+    </CockpitShell>
   )
 }

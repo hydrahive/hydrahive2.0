@@ -43,6 +43,44 @@ def _backend_for_type(btype: str) -> VideoBackend | None:
     return cls() if cls else None
 
 
+def resolve_local_workflow(model_id: str, config: dict, category: str) -> tuple[VideoBackend, dict]:
+    """Löst einen lokalen Workflow auf und erzwingt seine Medienkategorie.
+
+    Eine lokale Modell-ID ist zugleich die Routing-Entscheidung. Die Kategorie
+    muss trotzdem serverseitig gegen die gespeicherte Workflow-Konfiguration
+    geprüft werden: ein Bildtool darf niemals einen Video-Graph ausführen (und
+    umgekehrt), auch nicht bei einem manipulierten Tool-Aufruf.
+    """
+    if not model_id.startswith(LOCAL_PREFIX):
+        raise ValueError("Lokales Medienmodell erwartet")
+
+    rest = model_id[len(LOCAL_PREFIX):]
+    provider_id, separator, workflow_id = rest.partition("/")
+    if not provider_id or not separator or not workflow_id:
+        raise ValueError("Ungültige lokale Modell-ID; erwartet local:<backend>/<workflow>")
+
+    provider = find_media_backend(config, provider_id)
+    if provider is None:
+        raise ValueError(f"Kein Media-Backend '{provider_id}' konfiguriert")
+    workflow = next((w for w in provider.get("workflows", []) if w.get("id") == workflow_id), None)
+    if workflow is None:
+        raise ValueError(f"Kein Workflow '{workflow_id}' für Backend '{provider_id}' konfiguriert")
+    actual_category = workflow.get("category", "video")
+    if actual_category != category:
+        raise ValueError(
+            f"Lokales Modell '{model_id}' ist ein {actual_category}-Workflow, "
+            f"nicht für {category}-Generierung"
+        )
+
+    backend = _backend_for_type(provider.get("type", ""))
+    if backend is None:
+        raise ValueError(
+            f"Unbekannter Media-Backend-Typ '{provider.get('type', '')}' "
+            f"(Provider {provider_id})"
+        )
+    return backend, provider
+
+
 def resolve_backend(model_id: str, config: dict) -> tuple[VideoBackend, dict]:
     """Findet (Backend-Adapter, Provider-Config) für eine Modell-ID.
 

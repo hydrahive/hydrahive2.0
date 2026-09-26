@@ -161,6 +161,23 @@ def validate_max_iterations(n: int) -> None:
         raise AgentValidationError("max_iterations > 250 ist exzessiv — wahrscheinlich Konfig-Fehler")
 
 
+def validate_tool_result_max_chars(n: int) -> None:
+    if not isinstance(n, int) or not 0 <= n <= 1_000_000:
+        raise AgentValidationError("tool_result_max_chars muss zwischen 0 und 1000000 liegen")
+
+
+def validate_cache_ttl(value: str) -> None:
+    if value not in {"5m", "1h"}:
+        raise AgentValidationError("cache_ttl muss '5m' oder '1h' sein")
+
+
+def validate_handoff_timeout_seconds(n: int) -> None:
+    if not isinstance(n, int) or not 30 <= n <= 3_600:
+        raise AgentValidationError(
+            "handoff_timeout_seconds muss zwischen 30 und 3600 liegen"
+        )
+
+
 def validate_compact_max_turns(n: int) -> None:
     # Untergrenze = Loop-sicherer Floor (DEFAULT_MAX_TURNS_BEFORE_COMPACT): nach
     # Compaction bleiben ~20k Tokens erhalten; ein Deckel darunter würde sofort
@@ -195,3 +212,19 @@ def normalize_compact_changes(changes: dict) -> None:
         else:
             changes[field] = int(changes[field])
             validator(changes[field])
+    for field, validator in (
+        ("tool_result_max_chars", validate_tool_result_max_chars),
+        ("handoff_timeout_seconds", validate_handoff_timeout_seconds),
+    ):
+        if field not in changes:
+            continue
+        if changes[field] in (None, ""):
+            changes.pop(field)
+        else:
+            changes[field] = int(changes[field])
+            validator(changes[field])
+    if "cache_ttl" in changes:
+        if changes["cache_ttl"] in (None, ""):
+            changes.pop("cache_ttl")
+        else:
+            validate_cache_ttl(changes["cache_ttl"])

@@ -9,7 +9,7 @@ _WITH_ULTRA = (*_WITH_MAX, "ultra")
 def effort_levels_for_model(model: str) -> tuple[str, ...]:
     """Erlaubte Effort-Werte für ein Modell, leer wenn nicht unterstützt."""
     bare = model.removeprefix("anthropic/")
-    if model.startswith(("openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra")):
+    if model.startswith(("openai-codex/gpt-6-astra", "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra")):
         return _WITH_ULTRA
     if model.startswith("openai-codex/gpt-5.6-luna"):
         return _WITH_MAX

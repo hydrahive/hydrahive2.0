@@ -18,7 +18,10 @@ from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
 
-_GIT_TIMEOUT = 60
+# Hub-Aktionen dürfen keinen SSE-Stream minutenlang blockieren. Der lokale
+# Cache bleibt bei einem Offline-Hub nutzbar; die nächste Aktualisierung versucht
+# es erneut.
+_GIT_TIMEOUT = 15
 
 
 class HubError(RuntimeError):
@@ -56,7 +59,10 @@ def _refresh_one(cache: Path, url: str) -> None:
     """Einen Hub klonen/pullen. Idempotent."""
     cache.parent.mkdir(parents=True, exist_ok=True)
     if (cache / ".git").exists():
-        result = _run_git(["pull", "--ff-only"], cwd=cache)
+        try:
+            result = _run_git(["pull", "--ff-only"], cwd=cache)
+        except subprocess.TimeoutExpired as exc:
+            raise HubError(f"git pull Timeout (>{_GIT_TIMEOUT}s)") from exc
         if result.returncode != 0:
             # ff-only schlägt fehl, wenn die Hub-History divergiert (z.B. nach
             # einem force-push/History-Rewrite im Hub-Repo). Der Cache ist eine
@@ -68,7 +74,10 @@ def _refresh_one(cache: Path, url: str) -> None:
     if cache.exists():
         import shutil
         shutil.rmtree(cache)
-    result = _run_git(["clone", "--depth=1", "--filter=blob:none", url, str(cache)])
+    try:
+        result = _run_git(["clone", "--depth=1", "--filter=blob:none", url, str(cache)])
+    except subprocess.TimeoutExpired as exc:
+        raise HubError(f"git clone Timeout (>{_GIT_TIMEOUT}s)") from exc
     if result.returncode != 0:
         raise HubError(f"git clone failed: {result.stderr.strip()}")
 
@@ -98,7 +107,7 @@ def refresh() -> None:
     for name, url, cache in _hubs():
         try:
             _refresh_one(cache, url)
-        except HubError as e:
+        except (HubError, subprocess.TimeoutExpired) as e:
             logger.warning("Hub-Refresh fehlgeschlagen (%s): %s", name or "default", e)
 
 

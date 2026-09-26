@@ -26,3 +26,18 @@ def test_uninstall_keeps_data(mod_env):
         list(uninstall("example"))
     rm.assert_called_once_with("example")
     # KEIN drop-table-Aufruf existiert — Daten bleiben per Design.
+
+
+def test_update_flow_replaces_without_removing_module_first(mod_env):
+    with (patch("hydrahive.modules.installer._ensure_dependencies", return_value=iter(())),
+          patch("hydrahive.modules.installer.replace_module_in") as replace,
+          patch("hydrahive.modules.installer.remove_module_files") as remove,
+          patch("hydrahive.modules.installer._run_service_script"),
+          patch("hydrahive.modules.installer._frontend_build"),
+          patch("hydrahive.modules.installer._request_restart"),
+          patch("hydrahive.modules.installer._manifest_has_service", return_value=False)):
+        from hydrahive.modules.installer import update
+        list(update("example"))
+
+    replace.assert_called_once_with("example")
+    remove.assert_not_called()

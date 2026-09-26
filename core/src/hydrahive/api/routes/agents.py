@@ -114,6 +114,15 @@ def create_agent(
             domain=req.domain,
             system_prompt=req.system_prompt,
             external=req.external,
+            compact_model=req.compact_model,
+            compact_tool_result_limit=req.compact_tool_result_limit,
+            compact_reserve_tokens=req.compact_reserve_tokens,
+            compact_threshold_pct=req.compact_threshold_pct,
+            compact_max_turns=req.compact_max_turns,
+            max_iterations=req.max_iterations,
+            tool_result_max_chars=req.tool_result_max_chars,
+            cache_ttl=req.cache_ttl,
+            handoff_timeout_seconds=req.handoff_timeout_seconds,
         ))
     except AgentValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))

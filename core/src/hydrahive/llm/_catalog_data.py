@@ -18,16 +18,33 @@ PROVIDER_ENDPOINTS = {
     "openrouter": {"url": "https://openrouter.ai/api/v1/models", "auth": "bearer"},
     "gemini":     {"url": "https://generativelanguage.googleapis.com/v1beta/models",
                    "auth": "query", "query_param": "key"},
-    # MiniMax + OpenAI-Codex haben kein public /v1/models-Endpoint → static
+    # MiniMax hat keinen öffentlichen /models-Endpoint; Codex nutzt den
+    # account-authentifizierten ChatGPT-Katalog unterhalb.
     "anthropic":    {"url": "https://api.anthropic.com/v1/models", "auth": "x-api-key"},
     "minimax":      {"url": None, "auth": None},
-    "openai-codex": {"url": None, "auth": None},
+    "openai-codex": {
+        "url": "https://chatgpt.com/backend-api/codex/models",
+        "auth": "bearer",
+    },
 }
 
 # Static-Fallbacks für Provider ohne Listing-Endpoint oder bei Live-Fetch-Fehlern.
 STATIC_MODELS = {
+    # Fallback falls der account-authentifizierte Codex-Katalog nicht erreichbar ist.
+    "openai-codex": [
+        "openai-codex/gpt-6-astra", "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-terra", "openai-codex/gpt-5.6-luna",
+        "openai-codex/gpt-5.5", "openai-codex/gpt-5.4", "openai-codex/gpt-5.4-mini",
+        "openai-codex/gpt-5.3-codex", "openai-codex/gpt-5.3-codex-spark",
+        "openai-codex/gpt-5.2", "openai-codex/gpt-5.2-codex",
+        "openai-codex/gpt-5.1", "openai-codex/gpt-5.1-codex-max",
+        "openai-codex/gpt-5.1-codex-mini",
+    ],
+    # Fallback-Liste falls die Models-API nicht erreichbar ist. Im Normalfall
+    # kommt der Katalog live von /v1/models — neue Modelle erscheinen dort
+    # automatisch, ohne dass diese Liste gepflegt werden muss.
     "anthropic": [
-        "claude-opus-5", "claude-fable-5", "claude-sonnet-5", "claude-sonnet-4-6",
+        "claude-opus-5-5", "claude-fable-5-1", "claude-sonnet-5",
+        "claude-opus-5", "claude-fable-5", "claude-sonnet-4-6",
         "claude-opus-4-8", "claude-opus-4-7",
         "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219",
         "claude-3-5-haiku-20241022",
@@ -36,18 +53,6 @@ STATIC_MODELS = {
         "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.1", "MiniMax-M2.7", "MiniMax-M1",
         "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat",
         "embo-01",
-    ],
-    "openai-codex": [
-        "openai-codex/gpt-5.6-sol",
-        "openai-codex/gpt-5.6-terra",
-        "openai-codex/gpt-5.6-luna",
-        "openai-codex/gpt-5.5",
-        "openai-codex/gpt-5.4",
-        "openai-codex/gpt-5.4-mini",
-        "openai-codex/gpt-5.3-codex-spark",
-        "openai-codex/gpt-5.1",
-        "openai-codex/gpt-5.1-codex-max",
-        "openai-codex/gpt-5.1-codex-mini",
     ],
 }
 
@@ -58,12 +63,18 @@ PROVIDER_PREFIX = {
     # Ollama: OpenAI-kompatibel, LiteLLM-Route "ollama/". Modelle kommen live
     # vom user-eigenen Endpoint (keine STATIC_MODELS-Hardcodes).
     "ollama": "ollama/",
+    "openai-codex": "openai-codex/",
 }
 
 # Interne Metadata-Tabelle. Per Modell-ID (mit Prefix) → Eigenschaften.
 # tool_use: True/False/None (None = ungetestet/unbekannt).
 METADATA: dict[str, dict[str, Any]] = {
     # Anthropic
+    # Kontextfenster laut Anthropic-Modellübersicht. Die Models-API liefert
+    # den Wert auch live als max_input_tokens — diese Tabelle ist nur noch
+    # Fallback für den Fall, dass der Katalog-Refresh nicht gelaufen ist.
+    "claude-opus-5-5":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
+    "claude-fable-5-1":  {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-opus-5":     {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-fable-5":    {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
     "claude-sonnet-5":   {"context_window": 1_000_000, "tool_use": True, "category": "chat", "family": "anthropic"},
@@ -198,8 +209,8 @@ METADATA: dict[str, dict[str, Any]] = {
     "nvidia_nim/nvidia/vila":                                {"context_window": 4_096,   "tool_use": False, "category": "vision",  "family": "nvidia"},
     "nvidia_nim/nvidia/riva-translate-4b-instruct":          {"context_window": 4_096,   "tool_use": False, "category": "translation", "family": "nvidia", "params": "4B"},
     "nvidia_nim/nvidia/riva-translate-4b-instruct-v1.1":     {"context_window": 4_096,   "tool_use": False, "category": "translation", "family": "nvidia", "params": "4B"},
-    "nvidia_nim/nvidia/nv-embed-v1":                         {"context_window": 32_768,  "tool_use": False, "category": "embed",   "family": "nvidia"},
-    "nvidia_nim/nvidia/nv-embedqa-e5-v5":                    {"context_window": 512,     "tool_use": False, "category": "embed",   "family": "nvidia"},
+    "nvidia_nim/nvidia/nv-embed-v1":                         {"context_window": 32_768,  "tool_use": False, "category": "embed",   "family": "nvidia", "embed_dim": 4096},
+    "nvidia_nim/nvidia/nv-embedqa-e5-v5":                    {"context_window": 512,     "tool_use": False, "category": "embed",   "family": "nvidia", "embed_dim": 1024},
     "nvidia_nim/nvidia/nvclip":                              {"context_window": 77,      "tool_use": False, "category": "embed",   "family": "nvidia"},
     "nvidia_nim/nvidia/nemoretriever-parse":                 {"context_window": 8_192,   "tool_use": False, "category": "specialized", "family": "nvidia"},
     "nvidia_nim/nvidia/nemotron-parse":                      {"context_window": 8_192,   "tool_use": False, "category": "specialized", "family": "nvidia"},
@@ -222,7 +233,9 @@ METADATA: dict[str, dict[str, Any]] = {
     # AI Singapore
     "nvidia_nim/aisingapore/sea-lion-7b-instruct":      {"context_window": 4_096,   "tool_use": False, "category": "chat",        "family": "sea-lion", "params": "7B"},
     # BAAI
-    "nvidia_nim/baai/bge-m3":                           {"context_window": 8_192,   "tool_use": False, "category": "embed",       "family": "bge"},
+    "nvidia_nim/baai/bge-m3":                           {"context_window": 8_192,   "tool_use": False, "category": "embed",       "family": "bge", "embed_dim": 1024},
+    # OpenRouter Embeddings (Verfügbarkeit bleibt live; hier nur technische Metadaten)
+    "openrouter/baai/bge-m3-20251117":                  {"context_window": 8_192,   "tool_use": False, "category": "embed",       "family": "bge", "embed_dim": 1024},
     # Writer
     "nvidia_nim/writer/palmyra-creative-122b":          {"context_window": 32_768,  "tool_use": False, "category": "chat",        "family": "palmyra",  "params": "122B"},
     "nvidia_nim/writer/palmyra-fin-70b-32k":            {"context_window": 32_768,  "tool_use": False, "category": "chat",        "family": "palmyra",  "params": "70B"},
@@ -254,6 +267,7 @@ METADATA: dict[str, dict[str, Any]] = {
     # geben ~400k im Codex-Backend frei. Tool-Use bei allen Codex-Modellen.
     # Codex OAuth uses the usable windows published by the Codex client, not the
     # larger API-key windows (official openai/codex models.json).
+    "openai-codex/gpt-6-astra":          {"context_window": 272_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-sol":          {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-terra":        {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},
     "openai-codex/gpt-5.6-luna":         {"context_window": 372_000, "tool_use": True, "category": "code", "family": "gpt-codex"},

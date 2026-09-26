@@ -17,6 +17,7 @@ from hydrahive.llm._codex_usage import fetch_usage as fetch_codex_usage
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
 from hydrahive.llm._oauth_usage import get_oauth_rate_limits
 from hydrahive.llm._openrouter_credits import fetch_credits as fetch_openrouter_credits
+from hydrahive.llm.model_ids import match_listed_id
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
@@ -39,6 +40,8 @@ class LlmConfig(BaseModel):
     providers: list[LlmProvider] = []
     default_model: str = ""
     embed_model: str = ""
+    # Live ermittelte Dimensionen dynamischer Embedding-Modelle (z.B. OpenRouter).
+    embed_dimensions: dict[str, int] = {}
     # Aktives Modell pro Media-Kategorie (image/music/tts/transcribe/video).
     # Resolver: hydrahive.llm.media_models.get_media_model
     media_models: dict[str, str] = {}
@@ -65,12 +68,26 @@ def get_config() -> dict:
 
 @router.put("", dependencies=[Depends(require_admin)])
 async def update_config(cfg: LlmConfig) -> dict:
-    old_model = _load().get("embed_model", "")
+    old = _load()
+    old_model = old.get("embed_model", "")
     data = cfg.model_dump()
-    _save(data)
-    from hydrahive.llm import registry
-    registry.invalidate()
+    # Serverseitig ermittelte Werte niemals aus dem Request übernehmen.
+    dimensions = dict(old.get("embed_dimensions") or {})
+    data["embed_dimensions"] = dimensions
     new_model = data.get("embed_model", "")
+    if new_model and new_model != old_model:
+        available = {m.id for m in await registry.list_models("embed")}
+        if new_model not in available:
+            raise coded(status.HTTP_400_BAD_REQUEST, "embed_model_unavailable")
+        from hydrahive.llm import embed
+        try:
+            dim = await embed.ensure_model_dimension(new_model)
+        except RuntimeError as exc:
+            raise coded(status.HTTP_400_BAD_REQUEST, "embed_model_probe_failed", message=str(exc))
+        dimensions[new_model] = dim
+        data["embed_dimensions"] = dimensions
+    _save(data)
+    registry.invalidate()
     if new_model != old_model:
         from hydrahive.db import mirror
         await mirror.on_embed_model_change(new_model)
@@ -157,6 +174,10 @@ async def list_llm_models(
     default = _config.get_default(purpose) if purpose else ""
     return {
         "default": default,
+        # `default` ist der gespeicherte Wert, `selected` die passende ID der
+        # Liste (z.B. text-embedding-3-small -> openai/text-embedding-3-small).
+        # Die Auswahl muss `selected` anzeigen, sonst steht dort "Auswählen…".
+        "selected": match_listed_id(default, [e.id for e in entries]),
         "models": [
             {"id": e.id, "label": e.label, "provider": e.provider,
              "purposes": sorted(e.purposes), "context_window": e.context_window,
@@ -198,7 +219,20 @@ async def list_media_models(
         local = await _local_media_models(category)
         models = list(models) + local
 
-    return {"default": media_models.get_media_model(cfg_key), "models": models}
+    return {
+        "default": media_models.get_media_model(cfg_key),
+        # Roh gespeicherter Wert (kann `openrouter/…` tragen) gegen die Liste
+        # abgleichen — `default` ist bereits entpräfixt und mit Fallback belegt.
+        "selected": match_listed_id(
+            _configured_media_value(cfg_key), [m.get("id", "") for m in models],
+        ),
+        "models": models,
+    }
+
+
+def _configured_media_value(cfg_key: str) -> str:
+    """Tatsächlich gespeicherter Wert, ohne Präfix-Kürzung und ohne Fallback."""
+    return ((_config.load_config().get("media_models") or {}).get(cfg_key) or "").strip()
 
 
 async def _local_media_models(category: str) -> list[dict]:

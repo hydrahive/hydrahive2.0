@@ -3,7 +3,7 @@
 
 Spricht gegen die HydraHive REST-API, kein direkter DB-Zugriff.
 Konfiguration via Umgebungsvariablen:
-  HH_BASE_URL   — z.B. https://192.168.178.218
+  HH_BASE_URL   — z.B. https://127.0.0.1
   HH_TOKEN      — JWT-Token (aus /api/auth/login) ODER
   HH_USER / HH_PASS — für automatischen Login
   HH_VERIFY_SSL — "1" für Zertifikat-Prüfung (default: 0 = deaktiviert)

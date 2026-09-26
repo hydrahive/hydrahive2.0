@@ -158,6 +158,16 @@ async def litellm_call(
         "temperature": temperature,
         "max_tokens": max_tokens,
         "timeout": 120,  # manche NVIDIA-NIM-Modelle hängen mit tools-Schema, hard-cap
+        # Ohne explizites max_retries greift der OpenAI-SDK-Default (2 Retries =
+        # 3 Versuche). Bei einem echten Hänger (z.B. Ollama mit num_parallel=1
+        # und einer bereits laufenden Anfrage) wartete HydraHive dadurch bis zu
+        # 3× den vollen Timeout — bei till gemessen: 362s statt 120s. Ein
+        # Timeout bedeutet praktisch nie "kurzer Netzwerk-Hänger", sondern
+        # "Provider antwortet gerade nicht" — Retries verlängern dann nur die
+        # Wartezeit ohne die Erfolgschance zu erhöhen. call_with_stream_or_fallback
+        # (runner/_call.py) hat bereits eine eigene, bewusste Retry-Strategie
+        # für den Fallback-Pfad; diese hier soll sich nicht überlagern.
+        "num_retries": 0,
     }
     if oai_tools:
         kwargs["tools"] = oai_tools

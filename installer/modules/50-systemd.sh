@@ -97,7 +97,7 @@ KillMode=process
 # Sicherheit kommt aus dem Admin-only API-Endpoint + NOPASSWD-sudoers auf /bin/bash.
 PrivateTmp=true
 ProtectHome=read-only
-ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR /home/$HH_USER/.config /home/$HH_USER/.mmx /etc/samba/hh-projects.d
+ReadWritePaths=$HH_DATA_DIR $HH_CONFIG_DIR /home/$HH_USER/.config /home/$HH_USER/.mmx /home/$HH_USER/.cache/incus /etc/samba/hh-projects.d
 
 # Files vom Backend werden mit g+w angelegt (664 statt 644). Damit der
 # Samba-User (in der hydrahive-Gruppe) Backend-erstellte Files via Group-

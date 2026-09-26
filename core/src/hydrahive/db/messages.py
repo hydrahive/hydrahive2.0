@@ -69,6 +69,31 @@ def list_for_session(session_id: str, limit: int | None = None) -> list[Message]
     return [Message.from_row(r) for r in rows]
 
 
+def list_tail_for_session(session_id: str, limit: int | None = None) -> list[Message]:
+    """Die letzten `limit` Nachrichten in chronologischer Reihenfolge.
+
+    Gegenstück zu `list_for_session(limit=...)`, das die ÄLTESTEN liefert. Der
+    Chat lädt nur das Ende des Threads — sonst wächst jeder Reload mit der
+    Sessionlänge (gemessen: 9.667 Nachrichten = 41 MB pro Aufruf)."""
+    if limit is None:
+        return list_for_session(session_id)
+    with db() as conn:
+        rows = conn.execute(
+            """SELECT * FROM messages WHERE session_id = ?
+               ORDER BY created_at DESC, rowid DESC LIMIT ?""",
+            (session_id, limit),
+        ).fetchall()
+    return [Message.from_row(r) for r in reversed(rows)]
+
+
+def count_for_session(session_id: str) -> int:
+    with db() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM messages WHERE session_id = ?", (session_id,),
+        ).fetchone()
+    return int(row["n"]) if row else 0
+
+
 def get_latest_summary(session_id: str) -> str | None:
     """Return the most recent compaction summary text, or None."""
     with db() as conn:

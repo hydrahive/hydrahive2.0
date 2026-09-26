@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from hydrahive.llm._config import load_config
 from hydrahive.llm.catalog import catalog_for_providers
 from hydrahive.llm import embed as _embed
+from hydrahive.llm import local_voice
 from hydrahive.llm.media_models import (
     list_speech_models, list_transcribe_models, list_video_models,
 )
@@ -39,9 +40,12 @@ class ModelEntry:
 
 
 def _classify_catalog_entry(entry: dict) -> frozenset[str]:
-    """Zweck-Menge eines Chat-Katalog-Eintrags. Default chat; image/music aus output_modalities."""
-    out = {"chat"}
+    """Zweck-Menge aus Live-Katalogdaten; unbekannte Einträge sind Chat."""
     om = entry.get("output_modalities") or []
+    category = entry.get("category")
+    if "embedding" in om or "embed" in om or category == "embed":
+        return frozenset({"embed"})
+    out = {"chat"}
     if "image" in om:
         out.add("image")
     if "audio" in om:
@@ -60,10 +64,6 @@ _lock = asyncio.Lock()
 
 def _providers() -> list[dict]:
     return load_config().get("providers", [])
-
-
-def _embed_models() -> list[dict]:
-    return _embed.available_for_config(load_config())
 
 
 def _add(acc: dict[str, ModelEntry], entry: ModelEntry) -> None:
@@ -103,10 +103,13 @@ async def _build() -> tuple[list[ModelEntry], bool]:
                 mid = m.get("id", "")
                 if not mid:
                     continue
+                embed_dim = m.get("embed_dim") or _embed.dim_for_model(mid) or None
+                _embed.register_model_dimension(mid, embed_dim)
                 _add(acc, ModelEntry(
                     id=mid, provider=prov.get("provider_id", ""), label=mid,
                     purposes=_classify_catalog_entry(m),
                     context_window=m.get("context_window"), is_free=m.get("is_free"),
+                    embed_dim=embed_dim,
                     source="live" if prov.get("live_count") else "fallback",
                     tool_use=m.get("tool_use"),
                 ))
@@ -122,27 +125,39 @@ async def _build() -> tuple[list[ModelEntry], bool]:
     except Exception as e:
         logger.warning("Registry: Chat-Katalog-Build fehlgeschlagen: %s", e)
         complete = False
-    try:
-        for em in _embed_models():
-            _add(acc, ModelEntry(id=em["model"], provider=em.get("provider", ""),
-                                 label=em["model"], purposes=frozenset({"embed"}),
-                                 embed_dim=em.get("dim")))
-    except Exception as e:
-        logger.warning("Registry: Embed-Build fehlgeschlagen: %s", e)
-
     async def _modality(fetch, purpose: str) -> None:
         try:
             for m in await fetch():
                 mid = m.get("id", "")
-                if mid:
-                    _add(acc, ModelEntry(id=mid, provider="openrouter", label=mid,
-                                         purposes=frozenset({purpose})))
+                if not mid:
+                    continue
+                prev = acc.get(mid)
+                if prev is not None and prev.provider != "openrouter":
+                    # Dieselbe ID steht auch in einem Chat-Katalog (z.B.
+                    # openai/whisper-1 bei OpenAI). Die Medien-Tools schicken
+                    # tts/stt/video aber ausschließlich an OpenRouter — die
+                    # Auswahl muss den Anbieter zeigen, der tatsächlich
+                    # angefragt wird. Ein reines Medienmodell ist kein Chat.
+                    keep = prev.purposes - {"chat"} if prev.purposes <= {"chat", purpose} else prev.purposes
+                    acc[mid] = ModelEntry(id=mid, provider="openrouter", label=mid,
+                                          purposes=keep | {purpose}, is_free=prev.is_free)
+                    continue
+                _add(acc, ModelEntry(id=mid, provider="openrouter", label=mid,
+                                     purposes=frozenset({purpose})))
         except Exception as e:
             logger.warning("Registry: %s-Build fehlgeschlagen: %s", purpose, e)
 
     await _modality(list_speech_models, "tts")
     await _modality(list_transcribe_models, "stt")
     await _modality(list_video_models, "video")
+    # Lokale Sprach-Dienste (Whisper/Piper) — stehen in keinem Anbieter-Katalog.
+    for purpose in ("stt", "tts"):
+        try:
+            for m in await local_voice.list_local(purpose):
+                _add(acc, ModelEntry(id=m["id"], provider="local", label=m["name"],
+                                     purposes=frozenset({purpose}), is_free=True))
+        except Exception as e:  # noqa: BLE001 - lokaler Dienst optional
+            logger.warning("Registry: lokales %s nicht ermittelbar: %s", purpose, e)
     return sorted(acc.values(), key=lambda e: (e.provider, e.label)), complete
 
 
@@ -193,6 +208,24 @@ def is_known(model_id: str) -> bool:
     """Sync: True wenn bekannt ODER Cache leer (Failopen wie heute)."""
     ids = known_ids()
     return (not ids) or (model_id in ids)
+
+
+def cached_context_window(model_id: str) -> int | None:
+    """Sync, kein Fetch: echtes Kontextfenster aus dem Registry-Cache.
+
+    Für Ollama-Modelle ist dies die einzige Quelle mit dem realen, live per
+    ``/api/show`` geholten Fenster (die statische METADATA-Tabelle in
+    ``_catalog_data`` kennt keine Ollama-Modelle). None wenn der Cache leer
+    ist oder das Modell darin fehlt — der Aufrufer muss dann selbst
+    fallbacken (z.B. auf einen konservativen Default), niemals stillschweigend
+    ein falsches Fenster annehmen.
+    """
+    if not _cache:
+        return None
+    for entry in _cache[1]:
+        if entry.id == model_id and entry.context_window:
+            return entry.context_window
+    return None
 
 
 async def awarm() -> None:

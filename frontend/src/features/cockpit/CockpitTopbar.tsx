@@ -4,7 +4,7 @@ import { HelpButton } from "@/i18n/HelpButton"
 import type { HelpTopic } from "@/i18n/help/loader"
 import { navLabel } from "@/shared/nav-label"
 import { useTranslation } from "react-i18next"
-import { cockpitModuleItems } from "@/shared/nav-config"
+import { cockpitModuleItems, moduleTopnavItems } from "@/shared/nav-config"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitAppsMenu } from "./CockpitAppsMenu"
 import { CockpitUserMenu } from "./CockpitUserMenu"
@@ -50,11 +50,15 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [menuOpen])
 
-  // Cockpit-Module (nav mit cockpit:true) als zusätzliche Reiter; Label aus dem
-  // jeweiligen Modul-i18n (<key>:title) via navLabel. Hilfe-Reiter bleibt am Ende.
-  const moduleTabs: NavTab[] = cockpitModuleItems().map((i) => ({
-    id: i.path, label: navLabel(t, i.labelKey), path: i.path,
-  }))
+  // Cockpit-Module (nav mit cockpit:true) als zusätzliche Reiter; globale
+  // Modul-Quicklinks (topnav:true) ebenfalls, damit sie auf Cockpit-Routen
+  // nicht aus dem Header verschwinden. Label aus dem jeweiligen Modul-i18n
+  // (<key>:title) via navLabel. Hilfe-Reiter bleibt am Ende.
+  const moduleTabs: NavTab[] = [...cockpitModuleItems(), ...moduleTopnavItems()]
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.path === item.path) === index)
+    .map((i) => ({
+      id: i.path, label: navLabel(t, i.labelKey), path: i.path,
+    }))
   const nav: NavTab[] = [...CORE_NAV, ...moduleTabs, { id: "help", label: "Hilfe", path: "/help" }]
 
   const activeItem = nav.find((item) => item.id === active)

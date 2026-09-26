@@ -112,8 +112,13 @@ else
     warn "Kein /dev/kvm — dieser Node kann nur Container betreiben, keine VMs. (Das ist ok.)"
 fi
 
-# --- 2. Agent installieren --------------------------------------------------
-step "Schritt 2/5: Node-Agent installieren"
+# --- 2. Lokale Media-Runtime -----------------------------------------------
+step "Schritt 2/6: Lokale Media-Runtime prüfen"
+sh "$SCRIPT_DIR/scripts/setup-local-media.sh" || die "Lokale Media-Runtime konnte nicht eingerichtet werden."
+ok "Lokale Media-Runtime geprüft"
+
+# --- 3. Agent installieren --------------------------------------------------
+step "Schritt 3/6: Node-Agent installieren"
 sh "$SCRIPT_DIR/scripts/install.sh" >/dev/null 2>&1 || sh "$SCRIPT_DIR/scripts/install.sh"
 command -v hydrahive-node >/dev/null 2>&1 || die "Installation fehlgeschlagen — 'hydrahive-node' nicht gefunden."
 ok "Agent installiert"

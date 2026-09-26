@@ -42,6 +42,7 @@ from hydrahive.api.routes.external_instances import router as external_instances
 from hydrahive.api.routes.llm import router as llm_router
 from hydrahive.api.routes.media_backends import router as media_backends_router
 from hydrahive.api.routes.llm_catalog import router as llm_catalog_router
+from hydrahive.api.routes.llm_catalog_ollama import router as llm_catalog_ollama_router
 from hydrahive.api.routes.llm_oauth import router as llm_oauth_router
 from hydrahive.api.routes.mcp import router as mcp_router
 from hydrahive.api.routes.me_preferences import router as me_preferences_router
@@ -61,6 +62,7 @@ from hydrahive.api.routes.projects_servers import router as projects_servers_rou
 from hydrahive.api.routes.projects_mounts import router as projects_mounts_router
 from hydrahive.api.routes.smbmounts import router as smbmounts_router
 from hydrahive.api.routes.sessions import router as sessions_router
+from hydrahive.api.routes.scheduled_tasks import router as scheduled_tasks_router
 from hydrahive.api.routes.skills import router as skills_router
 from hydrahive.api.routes.stt import router as stt_router
 from hydrahive.api.routes.system import router as system_router
@@ -131,6 +133,7 @@ app.include_router(communication_discord_router)
 app.include_router(llm_router)
 app.include_router(media_backends_router)
 app.include_router(llm_catalog_router)
+app.include_router(llm_catalog_ollama_router)
 app.include_router(llm_oauth_router)
 app.include_router(mcp_router)
 app.include_router(me_preferences_router)
@@ -150,6 +153,7 @@ app.include_router(projects_servers_router)
 app.include_router(smbmounts_router)
 app.include_router(projects_mounts_router)
 app.include_router(sessions_router)
+app.include_router(scheduled_tasks_router)
 app.include_router(skills_router)
 app.include_router(stt_router)
 app.include_router(tts_router)

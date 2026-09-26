@@ -51,6 +51,7 @@ import { ProjectCockpitPage } from "@/features/cockpit/ProjectCockpitPage"
 import { MediaCockpitPage } from "@/features/cockpit/MediaCockpitPage"
 import { VaultCockpitPage } from "@/features/cockpit/VaultCockpitPage"
 import { AdminCockpitPage } from "@/features/cockpit/AdminCockpitPage"
+import { WerkstattCockpitPage } from "@/features/cockpit/WerkstattCockpitPage"
 import { NotFoundPage } from "@/shared/NotFoundPage"
 import { getLanding } from "@/features/profile/LandingSwitcher"
 
@@ -84,7 +85,7 @@ export default function App() {
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<ThemedPage route="dashboard" fallback={<DashboardPage />} />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
-          <Route path="werkstatt" element={<ThemedPage route="werkstatt" fallback={<ChatPage />} />} />
+          <Route path="werkstatt" element={<WerkstattCockpitPage />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
           <Route path="devchat" element={<Navigate to="/werkstatt" replace />} />
           {/* Agenten bleiben vorerst im Settings-Hub; Projekte bekommen ein neues Cockpit. */}

@@ -115,7 +115,42 @@ def test_create_agent_success(client, admin_headers):
     assert data["name"] == "Fresh Bot"
     assert data["description"] == "A freshly created bot"
     assert data["temperature"] == 0.5
+    assert data["max_iterations"] == 32
+    assert data["handoff_timeout_seconds"] == 540
     assert "id" in data
+
+
+def test_create_agent_persists_runtime_settings(client, admin_headers):
+    data = _create_agent(
+        client, admin_headers, name="Deep Specialist",
+        max_tokens=24_000,
+        max_iterations=48,
+        compact_threshold_pct=70,
+        compact_reserve_tokens=20_000,
+        compact_tool_result_limit=4_000,
+        tool_result_max_chars=16_000,
+        cache_ttl="1h",
+        handoff_timeout_seconds=1_200,
+    )
+
+    assert data["max_tokens"] == 24_000
+    assert data["max_iterations"] == 48
+    assert data["compact_threshold_pct"] == 70
+    assert data["compact_reserve_tokens"] == 20_000
+    assert data["compact_tool_result_limit"] == 4_000
+    assert data["tool_result_max_chars"] == 16_000
+    assert data["cache_ttl"] == "1h"
+    assert data["handoff_timeout_seconds"] == 1_200
+
+
+def test_create_agent_rejects_excessive_handoff_timeout(client, admin_headers):
+    res = client.post(
+        "/api/agents", headers=admin_headers,
+        json={**_CREATE_PAYLOAD, "handoff_timeout_seconds": 3_601},
+    )
+
+    assert res.status_code == 400
+    assert error_code(res) == "validation_error"
 
 
 def test_create_agent_missing_required_fields(client, admin_headers):
@@ -138,6 +173,18 @@ def test_patch_agent_not_found(client, admin_headers):
     res = client.patch("/api/agents/ghost-id", headers=admin_headers, json={"name": "X"})
     assert res.status_code == 404
     assert error_code(res) == "agent_not_found"
+
+
+def test_patch_agent_rejects_excessive_handoff_timeout(client, admin_headers):
+    agent = _create_agent(client, admin_headers, name="Bounded Bot")
+
+    res = client.patch(
+        f"/api/agents/{agent['id']}", headers=admin_headers,
+        json={"handoff_timeout_seconds": 3_601},
+    )
+
+    assert res.status_code == 400
+    assert error_code(res) == "validation_error"
 
 
 def test_patch_agent_updates_field(client, admin_headers):

@@ -14,7 +14,7 @@
     {
       "key": "HH_WEBMIN_URL",
       "label": "Webmin-URL",
-      "placeholder": "https://192.168.3.22:10000",
+      "placeholder": "https://127.0.0.1:10000",
       "description": "Vollständige URL zum Webmin-Server (mit Port)."
     },
     {

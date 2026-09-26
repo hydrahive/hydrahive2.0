@@ -20,6 +20,8 @@ interface ModuleNavEntry {
   /** true = Modul ist ein Cockpit-Modul: eigener Reiter im Cockpit-Top-Menü,
    *  Seite läuft im bare Cockpit-Chrome statt im Theme-Layout. */
   cockpit?: boolean
+  /** true = Modul zusätzlich als Link im oberen Quicklink-Menü anzeigen. */
+  topnav?: boolean
 }
 
 export interface NavItem {
@@ -29,6 +31,7 @@ export interface NavItem {
   group: string
   roles?: ("admin" | "user")[]
   cockpit?: boolean
+  topnav?: boolean
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -89,6 +92,7 @@ function moduleNavItems(): NavItem[] {
     group: n.group ?? "working",
     roles: n.roles,
     cockpit: n.cockpit,
+    topnav: n.topnav,
   }))
 }
 
@@ -96,6 +100,13 @@ function moduleNavItems(): NavItem[] {
  *  im Top-Menü und für die bare-Chrome-Erkennung in Layout.tsx. Lazy — siehe oben. */
 export function cockpitModuleItems(): NavItem[] {
   return moduleNavItems().filter((i) => i.cockpit)
+}
+
+/** Module marked for the global quick-link/header navigation. These links must
+ *  also be available in the bare CockpitTopbar, whose core tabs are otherwise
+ *  separate from the theme layout navigation. */
+export function moduleTopnavItems(): NavItem[] {
+  return moduleNavItems().filter((i) => i.topnav)
 }
 
 export function visibleItems(role: string | null): NavItem[] {

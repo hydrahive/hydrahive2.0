@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { CheckCircle2, Link2, Network, Radio, Server, XCircle } from "lucide-react"
+import { CheckCircle2, Link2, Network, Radio, Search, Server, XCircle } from "lucide-react"
 import type { DashboardHealth } from "./api"
 
 interface Props {
@@ -10,6 +10,7 @@ interface Pill {
   label: string
   icon: typeof Server
   state: "ok" | "warn" | "off"
+  title?: string
   href: string
 }
 
@@ -41,6 +42,14 @@ export function HealthStrip({ health }: Props) {
         : health.tailscale.ok ? "ok" : "warn",
       href: "/system",
     },
+    {
+      label: "Websuche",
+      icon: Search,
+      state: !health.websearch?.configured ? "off"
+        : health.websearch.ok ? "ok" : "warn",
+      title: health.websearch?.detail,
+      href: "/system",
+    },
   ]
   return (
     <div className="flex flex-wrap gap-2">
@@ -55,7 +64,7 @@ export function HealthStrip({ health }: Props) {
         const StatusIcon = p.state === "ok" ? CheckCircle2
           : p.state === "warn" ? XCircle : null
         return (
-          <Link key={p.label} to={p.href}
+          <Link key={p.label} to={p.href} title={p.title}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] transition-colors ${cls[tone]}`}>
             <p.icon size={11} />
             <span className="font-medium">{p.label}</span>

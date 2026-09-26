@@ -207,6 +207,24 @@ def _reset_llm_registry():
 
 
 @pytest.fixture(autouse=True)
+def _no_real_local_voice(monkeypatch):
+    """Lokale Sprach-Dienste (Whisper :10300, Piper :10200) in Tests nie echt anfragen.
+
+    Die Registry nimmt `local/whisper` und `local/piper` nur auf, wenn der Dienst
+    erreichbar ist. Ohne diesen Fake hinge das Ergebnis jedes Registry-Tests davon
+    ab, ob auf der Maschine gerade die Voice-Container laufen — auf dem Server ja,
+    in CI nein. Tests, die lokale Modelle brauchen, setzen `_reachable` selbst.
+    """
+    try:
+        from hydrahive.llm import local_voice
+    except Exception:
+        yield
+        return
+    monkeypatch.setattr(local_voice, "_reachable", lambda host, port: False)
+    yield
+
+
+@pytest.fixture(autouse=True)
 def _no_real_cifs_mount(monkeypatch):
     """Niemals echtes `sudo mount.cifs` aus einem Test heraus aufrufen.
 

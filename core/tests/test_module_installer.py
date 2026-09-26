@@ -57,6 +57,98 @@ def test_remove_module_files_rejects_traversal_id(mod_env):
         remove_module_files("../../etc")
 
 
+def _module_source(path, *, persistent_paths=(), version="2.0.0"):
+    import json
+
+    (path / "backend").mkdir(parents=True)
+    (path / "backend" / "new.py").write_text("new")
+    (path / "manifest.json").write_text(json.dumps({
+        "id": "example",
+        "name": "Example",
+        "version": version,
+        "persistent_paths": list(persistent_paths),
+    }))
+
+
+def test_replace_module_preserves_declared_regular_files(mod_env):
+    from hydrahive.settings import settings
+
+    installed = settings.modules_dir / "example"
+    (installed / "audio").mkdir(parents=True)
+    (installed / "audio" / "track.mp3").write_bytes(b"legacy audio")
+    (installed / "audio" / "discard.txt").write_text("discard")
+    src = mod_env / "hub" / "example"
+    _module_source(src, persistent_paths=("audio/*.mp3",))
+
+    with (patch("hydrahive.modules.installer.refresh"),
+          patch("hydrahive.modules.installer._cache_path_for", return_value=src)):
+        from hydrahive.modules.installer import replace_module_in
+        replace_module_in("example")
+
+    assert (installed / "audio" / "track.mp3").read_bytes() == b"legacy audio"
+    assert not (installed / "audio" / "discard.txt").exists()
+    assert (installed / "backend" / "new.py").read_text() == "new"
+
+
+def test_replace_module_preserves_declared_files_across_two_updates(mod_env):
+    from hydrahive.settings import settings
+
+    installed = settings.modules_dir / "example"
+    installed.mkdir(parents=True)
+    (installed / "track.mp3").write_bytes(b"persistent audio")
+    src = mod_env / "hub" / "example"
+    _module_source(src, persistent_paths=("*.mp3",))
+
+    with (patch("hydrahive.modules.installer.refresh"),
+          patch("hydrahive.modules.installer._cache_path_for", return_value=src)):
+        from hydrahive.modules.installer import replace_module_in
+        replace_module_in("example")
+        replace_module_in("example")
+
+    assert (installed / "track.mp3").read_bytes() == b"persistent audio"
+
+
+def test_replace_module_does_not_follow_symlink_outside_module_root(mod_env):
+    from hydrahive.settings import settings
+
+    outside = mod_env / "outside"
+    outside.mkdir()
+    (outside / "track.mp3").write_bytes(b"outside audio")
+    installed = settings.modules_dir / "example"
+    installed.mkdir()
+    (installed / "audio").symlink_to(outside, target_is_directory=True)
+    src = mod_env / "hub" / "example"
+    _module_source(src, persistent_paths=("audio/*.mp3",))
+
+    with (patch("hydrahive.modules.installer.refresh"),
+          patch("hydrahive.modules.installer._cache_path_for", return_value=src)):
+        from hydrahive.modules.installer import replace_module_in
+        replace_module_in("example")
+
+    assert (outside / "track.mp3").read_bytes() == b"outside audio"
+    assert not (installed / "audio" / "track.mp3").exists()
+
+
+def test_replace_module_rejects_persistent_target_collision(mod_env):
+    import pytest
+    from hydrahive.settings import settings
+
+    installed = settings.modules_dir / "example"
+    installed.mkdir()
+    (installed / "track.mp3").write_bytes(b"legacy audio")
+    src = mod_env / "hub" / "example"
+    _module_source(src, persistent_paths=("*.mp3",))
+    (src / "track.mp3").write_bytes(b"packaged audio")
+
+    with (patch("hydrahive.modules.installer.refresh"),
+          patch("hydrahive.modules.installer._cache_path_for", return_value=src)):
+        from hydrahive.modules.installer import InstallError, replace_module_in
+        with pytest.raises(InstallError, match="persistent_path_collision"):
+            replace_module_in("example")
+
+    assert (installed / "track.mp3").read_bytes() == b"legacy audio"
+
+
 # --- Update-Erkennung (Option A: Versionsvergleich) ------------------------
 
 def test_is_update_available_semver():
