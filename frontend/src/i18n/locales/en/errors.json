@@ -151,5 +151,9 @@
   "ollama_model_not_found": "The Ollama model is not installed.",
   "ollama_model_in_use": "The model is still in use: {{references}}",
 
+  "local_media_blocked": "Installation blocked ({{reason}}).",
+  "local_media_busy": "An action for local image/video generation is already running.",
+  "local_media_not_installed": "Local image/video generation is not installed.",
+
   "validation_error": "{{message}}"
 }

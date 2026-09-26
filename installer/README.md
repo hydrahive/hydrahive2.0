@@ -14,7 +14,7 @@ The installer provisions HydraHive on an apt-based Ubuntu/Debian host. The repos
 - enough disk/RAM for selected components;
 - hardware virtualization for VM support;
 - Incus-compatible host for containers/voice;
-- NVIDIA/CUDA-compatible hardware for automated local-media setup.
+- NVIDIA GPU with at least 12 GB VRAM and 40 GB free disk for the optional local-media runtime (opt-in).
 
 I cannot confirm from repository code alone that every Debian release works unchanged; the Python fallback uses an Ubuntu PPA. Test the target OS or provide Python 3.12 before installation.
 
@@ -35,7 +35,7 @@ If the clone is not already at `/opt/hydrahive2` and `HH_REPO_DIR` was not expli
 3. prepares `/var/lib/hydrahive2` and `/etc/hydrahive2`;
 4. builds a Python virtual environment under `/opt/hydrahive2/.venv`;
 5. installs the backend in editable mode and builds `frontend/dist`;
-6. installs `llmfit` and, on compatible NVIDIA hosts, the local-media runtime;
+6. installs `llmfit` and, only if chosen (`HH_INSTALL_LOCAL_MEDIA=yes`, default no), the local-media runtime;
 7. provisions selected optional components;
 8. writes and starts the `hydrahive2.service` systemd unit;
 9. generates an application secret, compute CA and proxy secret;
@@ -193,6 +193,7 @@ The nginx certificate is self-signed and includes loopback plus the detected ser
 /var/log/hydrahive2-bridge.log           bridge setup log
 /var/log/hydrahive2-samba.log            Samba setup log
 /var/log/hydrahive2-migration.log        migration log
+/var/log/hydrahive2-local-media.log      local media (ComfyUI) install/remove log
 ```
 
 ### Main commands

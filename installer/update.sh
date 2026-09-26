@@ -145,10 +145,28 @@ if ! bash "$HH_REPO_DIR/installer/modules/35-llmfit.sh"; then
   log "llmfit-Installation fehlgeschlagen — Hardware-Fit bleibt vorerst unbekannt"
 fi
 
-log "Local Media Runtime synchronisieren (automatisch bei NVIDIA-GPU)"
-if ! bash "$HH_REPO_DIR/installer/modules/72-local-media.sh"; then
-  err "Local Media Runtime konnte beim Update nicht synchronisiert werden."
+# --- Local Media (Opt-in) ---
+# Local Media (ComfyUI, ~33 GB) wird NICHT mehr automatisch eingerichtet,
+# sondern im System-Fenster per Knopf (local-media-ctl.sh) oder bei der
+# Installation. Das Update pflegt es nur, wenn der Marker existiert.
+# Migration: Rechner, auf denen der Container schon läuft (früher automatisch
+# eingerichtet), gelten als eingeschaltet. Ein Fehler hier ist nur eine
+# Warnung — das Update läuft weiter (vorher: Abbruch vor Frontend/Neustart).
+LOCAL_MEDIA_MARKER="$HH_CONFIG_DIR/local-media.enabled"
+if [ ! -f "$LOCAL_MEDIA_MARKER" ] && command -v docker >/dev/null 2>&1 \
+   && docker container inspect hydra-comfyui >/dev/null 2>&1; then
+  log "Local Media: bestehende Installation erkannt — bleibt eingeschaltet"
+  date +%s > "$LOCAL_MEDIA_MARKER"
 fi
+if [ -f "$LOCAL_MEDIA_MARKER" ]; then
+  log "Local Media Runtime synchronisieren (eingeschaltet)"
+  if ! bash "$HH_REPO_DIR/installer/modules/72-local-media.sh"; then
+    log "WARNUNG: Local Media Runtime konnte nicht synchronisiert werden — Update läuft weiter."
+  fi
+else
+  log "Local Media nicht eingeschaltet — übersprungen (System-Fenster: Installieren)"
+fi
+# --- Local Media Ende ---
 
 log "Playwright-Chromium-Version synchronisieren"
 # `pip install -e core` kann Playwright aktualisieren. Jede Playwright-Version
@@ -405,6 +423,45 @@ EOF
   systemctl daemon-reload
   systemctl enable hydrahive2-voice.timer >/dev/null 2>&1
   systemctl restart hydrahive2-voice.timer
+fi
+
+if [ ! -f /etc/systemd/system/hydrahive2-local-media.timer ] || [ ! -f /etc/systemd/system/hydrahive2-local-media.service ]; then
+  log "Local-Media-Install-Units anlegen"
+  # Kein ExecStartPre-rm: local-media-ctl.sh löscht die Anfrage erst am Ende.
+  cat > /etc/systemd/system/hydrahive2-local-media.service <<EOF
+[Unit]
+Description=HydraHive2 Local-Media (ComfyUI) Install/Entfernen Runner
+ConditionPathExists=$HH_DATA_DIR/.local_media_request
+
+[Service]
+Type=oneshot
+TimeoutStartSec=0
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+Environment=HH_REPO_DIR=$HH_REPO_DIR
+Environment=HH_USER=$HH_USER
+ExecStart=$HH_REPO_DIR/installer/local-media-ctl.sh
+StandardOutput=append:/var/log/hydrahive2-local-media.log
+StandardError=append:/var/log/hydrahive2-local-media.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-local-media.timer <<EOF
+[Unit]
+Description=HydraHive2 Local-Media Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-local-media.service
+
+[Install]
+WantedBy=timers.target
+EOF
+  touch /var/log/hydrahive2-local-media.log
+  chmod 644 /var/log/hydrahive2-local-media.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-local-media.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-local-media.timer
 fi
 
 if ! command -v sshpass >/dev/null 2>&1; then

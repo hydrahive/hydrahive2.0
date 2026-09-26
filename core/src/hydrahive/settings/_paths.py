@@ -198,6 +198,10 @@ class _PathsMixin:
         return self.log_dir / "hydrahive2-voice.log"
 
     @cached_property
+    def local_media_log(self) -> Path:
+        return self.log_dir / "hydrahive2-local-media.log"
+
+    @cached_property
     def samba_log_path(self) -> Path:
         return Path(os.environ.get("HH_SAMBA_LOG", "/var/log/hydrahive2-samba.log"))
 

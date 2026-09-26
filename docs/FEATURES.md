@@ -310,17 +310,17 @@ Capabilities:
 
 ### Local media backend
 
-**Status: Optional; NVIDIA/CUDA and Docker required by automated installer**
+**Status: Optional, opt-in from the System window; requires an NVIDIA GPU with at least 12 GB VRAM and Docker**
 
 - ComfyUI and switch-HTTP backend registry.
 - Workflow import/parser with parameter mapping.
 - Local image/video model IDs (`local:` routing).
-- Automated ComfyUI Docker setup on NVIDIA hosts.
+- ComfyUI Docker setup via button in the System window (install/remove), blocked on too small GPUs.
 - Installer registers SDXL image, Wan text-to-video and Wan first/last-frame workflows.
 
-The local-media installer downloads large third-party models and validates pinned SHA-256 hashes. No compatible NVIDIA GPU means the phase is skipped.
+The local-media installer downloads large third-party models and validates pinned SHA-256 hashes. Install and update no longer set it up on their own (since 2026-09-26).
 
-**Sources:** `core/src/hydrahive/api/routes/media_backends.py`, `core/src/hydrahive/llm/video_backends/`, `installer/modules/72-local-media.sh`, `installer/media-workflows/`.
+**Sources:** `core/src/hydrahive/api/routes/media_backends.py`, `core/src/hydrahive/llm/video_backends/`, `installer/modules/72-local-media.sh`, `installer/modules/72-local-media-uninstall.sh`, `installer/local-media-ctl.sh`, `core/src/hydrahive/api/routes/system_local_media.py`, `installer/media-workflows/`.
 
 ---
 
@@ -624,7 +624,7 @@ The interactive Linux installer can provision:
 - dedicated service user and filesystem permissions;
 - Python environment and React build;
 - `llmfit`;
-- local ComfyUI media runtime on compatible NVIDIA systems;
+- local ComfyUI media runtime only if chosen (`HH_INSTALL_LOCAL_MEDIA`, default no);
 - WhatsApp bridge;
 - Samba project shares;
 - PostgreSQL data-mining mirror;

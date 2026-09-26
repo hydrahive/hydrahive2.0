@@ -204,5 +204,33 @@
     "title": "Settings",
     "subtitle": "Integration settings without SSH. The SearXNG URL takes effect immediately; integrations like Mail/Discord/AgentLink require a backend restart.",
     "gear_tooltip": "Settings"
+  },
+  "local_media": {
+    "title": "Local image/video generation",
+    "subtitle": "ComfyUI on your own NVIDIA GPU: images (SDXL) and videos (Wan 2.1) without cloud costs.",
+    "installed": "installed",
+    "not_installed": "not installed",
+    "gpu": "GPU: {{name}} · {{vram}} GB VRAM",
+    "gpu_none": "No NVIDIA GPU detected",
+    "install": "Install ({{size}} download)",
+    "uninstall": "Remove",
+    "blocked_title": "Not possible on this hardware",
+    "blocked": {
+      "no_gpu": "Blocked: no NVIDIA GPU found.",
+      "vram_too_small": "Blocked: the GPU does not have enough VRAM. At least {{min}} GB are required.",
+      "disk_too_small": "Blocked: not enough free disk space ({{free}} free, {{need}} required)."
+    },
+    "confirm_install": "Install now? About {{size}} of models will be downloaded ({{free}} free).",
+    "confirm_install_hint": "Depending on your connection this can take an hour or more. HydraHive stays usable meanwhile.",
+    "confirm_install_button": "Install now",
+    "confirm_uninstall": "Really remove local image/video generation?",
+    "confirm_uninstall_hint": "Container, models (~{{size}}) and the “Local GPU” backend are deleted. Default models pointing to it are reset. Docker itself stays.",
+    "confirm_uninstall_button": "Remove permanently",
+    "running_install": "Installing… the log follows along.",
+    "running_uninstall": "Removing…",
+    "done_install": "Installed. The local models are now available for image and video.",
+    "done_uninstall": "Removed. Updates will not reinstall it.",
+    "failed": "Failed — see log for details",
+    "log_empty": "Waiting for start (up to 5 seconds)…"
   }
 }

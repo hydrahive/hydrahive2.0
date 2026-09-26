@@ -121,6 +121,7 @@ CONF_VARS=(
   HH_INSTALL_NGINX
   HH_INSTALL_SAMBA
   HH_INSTALL_WHATSAPP
+  HH_INSTALL_LOCAL_MEDIA
 )
 
 save_install_conf() {
@@ -197,6 +198,9 @@ run_wizard() {
   prompt_component HH_INSTALL_NGINX      y "nginx Reverse-Proxy installieren?"
   prompt_component HH_INSTALL_SAMBA      y "Samba für Projekt-Workspace-Shares?"
   prompt_component HH_INSTALL_WHATSAPP   y "WhatsApp-Bridge installieren?"
+  # Standard NEIN: ~33 GB Download, braucht NVIDIA-GPU ab 12 GB Grafikspeicher.
+  # Nachträglich jederzeit im System-Fenster installier- und entfernbar.
+  prompt_component HH_INSTALL_LOCAL_MEDIA n "Lokale Bild-/Videogenerierung (ComfyUI, NVIDIA ab 12 GB)? [groß: ~33 GB]"
 
   # Voice braucht incus → Containers automatisch erzwingen wenn Voice gewählt
   if [ "${HH_INSTALL_VOICE}" = "yes" ] && [ "${HH_INSTALL_CONTAINERS}" = "no" ]; then
@@ -212,7 +216,7 @@ save_install_conf
 export HH_INSTALL_TAILSCALE HH_TAILSCALE_AUTHKEY \
        HH_INSTALL_POSTGRES HH_INSTALL_VOICE HH_INSTALL_CONTAINERS \
        HH_INSTALL_VMS HH_INSTALL_AGENTLINK HH_INSTALL_NGINX \
-       HH_INSTALL_SAMBA HH_INSTALL_WHATSAPP
+       HH_INSTALL_SAMBA HH_INSTALL_WHATSAPP HH_INSTALL_LOCAL_MEDIA
 
 # --------------------------------------------------------------- Module
 log "Phase 1: System-Dependencies"
@@ -232,9 +236,18 @@ if ! bash "$INSTALLER_DIR/modules/35-llmfit.sh"; then
   err_soft "llmfit-Installation fehlgeschlagen — Ollama-Verwaltung funktioniert, Hardware-Fit bleibt vorerst unbekannt."
 fi
 
-log "Phase 4c: Local Media Runtime (automatisch bei NVIDIA-GPU)"
-if ! bash "$INSTALLER_DIR/modules/72-local-media.sh"; then
-  err "Local Media Runtime konnte nicht eingerichtet werden."
+# Local Media nur auf ausdrücklichen Wunsch (Standard nein). Der Marker sorgt
+# dafür, dass update.sh die Runtime danach weiter pflegt. Ein Fehler bricht
+# die Installation nicht ab; nachholen geht im System-Fenster.
+if [ "${HH_INSTALL_LOCAL_MEDIA:-no}" = "yes" ]; then
+  log "Phase 4c: Local Media Runtime (ComfyUI)"
+  if bash "$INSTALLER_DIR/modules/72-local-media.sh"; then
+    date +%s > "$HH_CONFIG_DIR/local-media.enabled"
+  else
+    err_soft "Local Media Runtime nicht eingerichtet — später im System-Fenster nachholen."
+  fi
+else
+  log "Phase 4c: Local Media übersprungen (HH_INSTALL_LOCAL_MEDIA=no, nachträglich im System-Fenster)"
 fi
 
 log "Phase 5: Frontend"
@@ -510,6 +523,15 @@ if is_yes "${HH_INSTALL_WHATSAPP:-yes}"; then
   INSTALLED+=("whatsapp")
 else
   SKIPPED+=("whatsapp")
+fi
+
+if [ -f "$HH_CONFIG_DIR/local-media.enabled" ]; then
+  section "Lokale Bild-/Videogenerierung"
+  kv "ComfyUI:" "127.0.0.1:8188 (Docker hydra-comfyui)"
+  kv "Entfernen:" "System-Fenster → Lokale Bild-/Videogenerierung"
+  INSTALLED+=("local-media")
+else
+  SKIPPED+=("local-media")
 fi
 
 if [ ${#SKIPPED[@]} -gt 0 ]; then

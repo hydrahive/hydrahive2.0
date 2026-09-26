@@ -1,14 +1,36 @@
 #!/usr/bin/env bash
-# HydraHive2 — optionale lokale Media-Runtime (GPU-Node).
-# Idempotent: auf Maschinen ohne NVIDIA-GPU wird sauber übersprungen.
+# HydraHive2 — optionale lokale Media-Runtime (ComfyUI, ~33 GB Modelle).
+#
+# Läuft NICHT mehr automatisch: Eingeschaltet wird im System-Fenster
+# (local-media-ctl.sh) oder bei der Installation (HH_INSTALL_LOCAL_MEDIA=yes).
+# update.sh ruft dieses Skript nur auf, wenn $HH_CONFIG_DIR/local-media.enabled
+# existiert. Wer es direkt aufruft, will installieren.
+#
+# Sperre: ohne NVIDIA-GPU, unter HH_MEDIA_MIN_VRAM_MIB Grafikspeicher oder mit
+# zu wenig freiem Platz bricht das Skript ab, BEVOR Docker, Toolkit oder
+# Downloads angefasst werden. HH_MEDIA_FORCE=1 hebt die Sperre auf.
 set -euo pipefail
 
 log() { printf '\033[1;36m[hh2-media]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[hh2-media]\033[0m %s\n' "$*" >&2; }
 err() { printf '\033[1;31m[hh2-media]\033[0m %s\n' "$*" >&2; exit 1; }
 
-[ "$(id -u)" -eq 0 ] || err "Dieses Modul muss als root laufen."
-command -v nvidia-smi >/dev/null 2>&1 || { log "Keine NVIDIA-GPU erkannt — Local Media übersprungen."; exit 0; }
+[ "${HH_LOCAL_MEDIA_SKIP_ROOT_CHECK:-}" = 1 ] || [ "$(id -u)" -eq 0 ] || err "Dieses Modul muss als root laufen."
+command -v nvidia-smi >/dev/null 2>&1 || err "Keine NVIDIA-GPU erkannt — Local Media nicht installiert."
+
+MEDIA_ROOT="${HH_MEDIA_ROOT:-/var/lib/hydrahive2/local-media}"
+MIN_VRAM_MIB="${HH_MEDIA_MIN_VRAM_MIB:-12000}"
+case "$MIN_VRAM_MIB" in ''|*[!0-9]*) MIN_VRAM_MIB=12000 ;; esac
+MIN_FREE_KIB=$((40 * 1024 * 1024))
+if [ "${HH_MEDIA_FORCE:-}" != 1 ]; then
+  VRAM_MAX="$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null \
+    | tr -d ' ' | grep -E '^[0-9]+$' | sort -n | tail -1 || true)"
+  [ -n "$VRAM_MAX" ] || err "Grafikspeicher nicht ermittelbar — Local Media nicht installiert."
+  [ "$VRAM_MAX" -ge "$MIN_VRAM_MIB" ] || err "Grafikkarte hat ${VRAM_MAX} MiB, nötig sind mindestens ${MIN_VRAM_MIB} MiB — Local Media nicht installiert (HH_MEDIA_FORCE=1 übersteuert)."
+  probe="$MEDIA_ROOT"; while [ ! -e "$probe" ]; do probe="$(dirname "$probe")"; done
+  FREE_KIB="$(df -Pk "$probe" | awk 'NR==2 {print $4}')"
+  [ "${FREE_KIB:-0}" -ge "$MIN_FREE_KIB" ] || err "Zu wenig freier Platz unter $probe ($((FREE_KIB / 1024 / 1024)) GB, nötig 40 GB) — Local Media nicht installiert."
+fi
 command -v apt-get >/dev/null 2>&1 || err "apt-get wird für die GPU-Runtime benötigt."
 
 export DEBIAN_FRONTEND=noninteractive
@@ -45,7 +67,6 @@ if ! docker run --rm --gpus all nvidia/cuda:12.8.1-base-ubuntu24.04 \
   err "NVIDIA-Docker-Runtime ist nicht funktionsfähig. Treiber/Kernel prüfen."
 fi
 
-MEDIA_ROOT="${HH_MEDIA_ROOT:-/var/lib/hydrahive2/local-media}"
 MEDIA_IMAGE="${HH_MEDIA_IMAGE:-yanwk/comfyui-boot:cu128-slim}"
 REPO_DIR="${HH_REPO_DIR:-/opt/hydrahive2}"
 install -d -m 0755 "$MEDIA_ROOT/data" "$MEDIA_ROOT/models"/{checkpoints,diffusion_models,text_encoders,clip_vision,vae}

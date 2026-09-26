@@ -12,6 +12,7 @@ import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { BackupCard } from "@/features/system/BackupCard"
 import { MigrationCard } from "@/features/system/MigrationCard"
 import { HealthBar } from "@/features/system/HealthBar"
+import { LocalMediaCard } from "@/features/system/LocalMediaCard"
 import { VoiceInstallModal } from "@/features/system/VoiceInstallModal"
 import { useVoiceInstall } from "@/features/system/useVoiceInstall"
 import { PathRow } from "@/features/system/_systemHelpers"
@@ -110,6 +111,7 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
         <AgentLinkCard />
         {role === "admin" && <TailscaleCard />}
         {role === "admin" && <BridgeCard />}
+        {role === "admin" && <LocalMediaCard />}
         {role === "admin" && <SambaCard />}
         {role === "admin" && <BackupCard />}
         {role === "admin" && <MigrationCard />}
