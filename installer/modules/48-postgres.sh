@@ -74,15 +74,21 @@ SQL
   log "DSN gespeichert: $DSN_FILE"
 fi
 
-# ---------------------------------------------------------------- systemd Drop-in
-mkdir -p "$DROPIN_DIR"
-if [ ! -f "$DROPIN_FILE" ] || ! grep -q "HH_PG_MIRROR_DSN" "$DROPIN_FILE"; then
-  log "systemd Drop-in schreiben: $DROPIN_FILE"
-  cat > "$DROPIN_FILE" <<EOF
-[Service]
-Environment=HH_PG_MIRROR_DSN=$PG_DSN
-EOF
-  chmod 644 "$DROPIN_FILE"
+# ---------------------------------------------------------------- Dienst-Umgebung
+# Der DSN enthält das DB-Passwort. Früher stand er in einem 0644-Drop-in
+# (pg-mirror.conf), lesbar für jeden lokalen Benutzer. Jetzt: nur in der
+# root-0600-Datei service-secrets.env, die hydrahive2.service per
+# EnvironmentFile= lädt. Fehlt secret_key noch (Frischinstall vor
+# 50-systemd.sh), schreibt 50-systemd.sh die Datei gleich danach vollständig.
+INSTALLER_DIR="${INSTALLER_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# shellcheck source=../lib/service-secrets.sh
+source "$INSTALLER_DIR/lib/service-secrets.sh"
+if [ -s "${HH_CONFIG_DIR}/secret_key" ]; then
+  write_service_secrets
+fi
+if [ -f "$DROPIN_FILE" ]; then
+  log "Alten Drop-in mit DSN entfernen: $DROPIN_FILE"
+  rm -f "$DROPIN_FILE"
   systemctl daemon-reload
 fi
 

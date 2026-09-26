@@ -28,7 +28,15 @@ if [ ! -f "$SECRET_FILE" ]; then
   chmod 600 "$SECRET_FILE"
   chown "$HH_USER:$HH_USER" "$SECRET_FILE"
 fi
-SECRET_KEY="$(cat "$SECRET_FILE")"
+
+# HH_SECRET_KEY (und der PG-Mirror-DSN) kommen per EnvironmentFile= in den
+# Dienst, NICHT als Environment= in die Unit: /etc/systemd/system/*.service ist
+# für alle Benutzer lesbar, ebenso `systemctl show`. Quelle bleibt secret_key.
+INSTALLER_DIR="${INSTALLER_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# shellcheck source=../lib/service-secrets.sh
+source "$INSTALLER_DIR/lib/service-secrets.sh"
+SERVICE_SECRETS_ENV="$HH_CONFIG_DIR/service-secrets.env"
+write_service_secrets
 
 COMPUTE_PROXY_SECRET_FILE="$HH_CONFIG_DIR/compute_proxy_secret"
 if [ ! -f "$COMPUTE_PROXY_SECRET_FILE" ]; then
@@ -80,11 +88,11 @@ Environment=HH_DATA_DIR=$HH_DATA_DIR
 Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
 Environment=HH_HOST=$HH_HOST
 Environment=HH_PORT=$HH_PORT
-Environment=HH_SECRET_KEY=$SECRET_KEY
 Environment=HOME=/home/$HH_USER
 Environment=PATH=$HH_REPO_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=-$ENV_EXTRA
 EnvironmentFile=$COMPUTE_PROXY_ENV
+EnvironmentFile=$SERVICE_SECRETS_ENV
 ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST --port $HH_PORT --ws-max-size 65536
 Restart=on-failure
 RestartSec=5

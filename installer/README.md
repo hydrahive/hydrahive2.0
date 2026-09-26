@@ -186,6 +186,7 @@ The nginx certificate is self-signed and includes loopback plus the detected ser
 /opt/hydrahive2/                         code and virtual environment
 /var/lib/hydrahive2/                     persistent HH_DATA_DIR
 /etc/hydrahive2/                         secrets, env, TLS and compute PKI
+/etc/hydrahive2/service-secrets.env      HH_SECRET_KEY + PG mirror DSN for the service (root, 0600)
 /etc/nginx/sites-available/hydrahive2    generated nginx config
 /etc/systemd/system/hydrahive2.service   backend service
 /var/log/hydrahive2-update.log           update log
