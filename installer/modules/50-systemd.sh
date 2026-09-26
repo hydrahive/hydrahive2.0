@@ -17,6 +17,8 @@ SAMBA_SERVICE=/etc/systemd/system/hydrahive2-samba.service
 SAMBA_TIMER=/etc/systemd/system/hydrahive2-samba.timer
 MIGRATION_SERVICE=/etc/systemd/system/hydrahive2-migration.service
 MIGRATION_TIMER=/etc/systemd/system/hydrahive2-migration.timer
+LOCAL_MEDIA_SERVICE=/etc/systemd/system/hydrahive2-local-media.service
+LOCAL_MEDIA_TIMER=/etc/systemd/system/hydrahive2-local-media.timer
 
 # JWT-Secret generieren falls nicht da
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -309,6 +311,43 @@ Unit=hydrahive2-migration.service
 WantedBy=timers.target
 EOF
 
+log "Schreibe $LOCAL_MEDIA_SERVICE (Local-Media Install/Entfernen Runner)"
+# Anders als Voice: KEIN ExecStartPre-rm. local-media-ctl.sh liest das Wort
+# (install/uninstall) und löscht die Anfrage erst am Ende. Solange sie liegt,
+# zeigt die GUI "läuft" und die API lehnt weitere Klicks ab.
+cat > "$LOCAL_MEDIA_SERVICE" <<EOF
+[Unit]
+Description=HydraHive2 Local-Media (ComfyUI) Install/Entfernen Runner
+ConditionPathExists=$HH_DATA_DIR/.local_media_request
+
+[Service]
+Type=oneshot
+# ~33 GB Download — kein Start-Timeout.
+TimeoutStartSec=0
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+Environment=HH_REPO_DIR=$HH_REPO_DIR
+Environment=HH_USER=$HH_USER
+ExecStart=$HH_REPO_DIR/installer/local-media-ctl.sh
+StandardOutput=append:/var/log/hydrahive2-local-media.log
+StandardError=append:/var/log/hydrahive2-local-media.log
+EOF
+
+log "Schreibe $LOCAL_MEDIA_TIMER (Local-Media Trigger-Poller)"
+cat > "$LOCAL_MEDIA_TIMER" <<EOF
+[Unit]
+Description=HydraHive2 Local-Media Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-local-media.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # Alte Path-Units entfernen falls vorhanden
 rm -f /etc/systemd/system/hydrahive2-update.path
 rm -f /etc/systemd/system/hydrahive2-restart.path
@@ -324,6 +363,8 @@ touch /var/log/hydrahive2-samba.log
 chmod 644 /var/log/hydrahive2-samba.log
 touch /var/log/hydrahive2-migration.log
 chmod 644 /var/log/hydrahive2-migration.log
+touch /var/log/hydrahive2-local-media.log
+chmod 644 /var/log/hydrahive2-local-media.log
 
 log "systemd reload + enable"
 systemctl daemon-reload
@@ -334,8 +375,9 @@ systemctl enable hydrahive2-voice.timer >/dev/null 2>&1
 systemctl enable hydrahive2-bridge.timer >/dev/null 2>&1
 systemctl enable hydrahive2-samba.timer >/dev/null 2>&1
 systemctl enable hydrahive2-migration.timer >/dev/null 2>&1
+systemctl enable hydrahive2-local-media.timer >/dev/null 2>&1
 
-log "Starte Service + Update-/Restart-/Voice-/Bridge-/Samba-/Migration-Timer"
+log "Starte Service + Update-/Restart-/Voice-/Bridge-/Samba-/Migration-/Local-Media-Timer"
 systemctl restart hydrahive2.service
 systemctl restart hydrahive2-update.timer
 systemctl restart hydrahive2-restart.timer
@@ -343,6 +385,7 @@ systemctl restart hydrahive2-voice.timer
 systemctl restart hydrahive2-bridge.timer
 systemctl restart hydrahive2-samba.timer
 systemctl restart hydrahive2-migration.timer
+systemctl restart hydrahive2-local-media.timer
 
 sleep 2
 if systemctl is-active --quiet hydrahive2.service; then
