@@ -85,6 +85,39 @@ def test_haiku_45_keeps_200k_not_inflated_to_1m() -> None:
     assert context_window_for("claude-haiku-4-5-20251001") == 200_000
 
 
+def test_live_registry_window_beats_stale_metadata(monkeypatch) -> None:
+    """Der Live-Wert der Provider-API muss die statische Tabelle überstimmen.
+
+    Real aufgetreten nach dem 32k-Fix: Anthropic hatte das Fenster von
+    Sonnet 4.5 nachträglich auf 1M erweitert, die API meldete das auch —
+    aber die hartkodierte METADATA stand noch auf 200.000 und gewann.
+
+    Dieselbe Fehlerklasse wie der ursprüngliche Bug: eine gepflegte
+    Konstante überstimmt die Wahrheit vom Anbieter. Anbieter erweitern
+    Fenster bestehender Modelle, unsere Tabelle veraltet dabei zwangsläufig.
+    """
+    from hydrahive.llm import registry
+
+    monkeypatch.setattr(
+        registry, "cached_context_window",
+        lambda model_id: 1_000_000 if model_id == "claude-sonnet-4-5" else None,
+    )
+
+    # METADATA sagt 200_000 — der Live-Wert muss gewinnen.
+    assert METADATA["claude-sonnet-4-5"]["context_window"] == 200_000
+    assert context_window_for("claude-sonnet-4-5") == 1_000_000
+
+
+def test_metadata_still_used_when_registry_is_cold(monkeypatch) -> None:
+    """Ohne Katalog-Refresh bleibt METADATA die Quelle — kein 32k-Rückfall."""
+    from hydrahive.llm import registry
+
+    monkeypatch.setattr(registry, "cached_context_window", lambda model_id: None)
+
+    assert context_window_for("claude-sonnet-4-5") == 200_000
+    assert context_window_for("claude-opus-5-20260115") == 1_000_000
+
+
 def test_every_static_model_resolves_to_real_window() -> None:
     """Strukturtest — verhindert, dass sich der Bug wiederholt.
 
