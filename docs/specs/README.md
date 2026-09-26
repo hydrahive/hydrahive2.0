@@ -3,7 +3,7 @@
 > Automatisch erzeugt aus Dateinamen, Git-Historie und Überschriften.
 > Neu erzeugen: `python3 scripts/gen_spec_index.py`
 
-79 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
+80 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
 selbst im Kopf angibt — leer heißt: nicht angegeben, nicht automatisch geraten.
 
 ## Mehrteilige Reihen
@@ -28,7 +28,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | Spec | Titel | Status | Zuletzt geändert |
 |---|---|---|---|
 | [`admin-cockpit-visual-system.md`](admin-cockpit-visual-system.md) | Admin-Cockpit Visual System |  | 2026-07-16 |
-| [`agent-infrastructure-tools.md`](agent-infrastructure-tools.md) | Container und VMs als Agent-Werkzeuge |  | ? |
+| [`agent-infrastructure-tools.md`](agent-infrastructure-tools.md) | Container und VMs als Agent-Werkzeuge |  | 2026-09-26 |
 | [`agent-integrity-layer.md`](agent-integrity-layer.md) | Agent Integrity Layer |  | 2026-09-24 |
 | [`agentlink-checkpoint-resume.md`](agentlink-checkpoint-resume.md) | AgentLink Checkpoint and Resume |  | 2026-09-25 |
 | [`agentlink-runtime-profiles.md`](agentlink-runtime-profiles.md) | AgentLink Runtime Profiles |  | 2026-09-25 |
@@ -39,6 +39,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`buddy-media-player.md`](buddy-media-player.md) | Buddy-Media-Player |  | 2026-09-12 |
 | [`buddy-settings-cockpit.md`](buddy-settings-cockpit.md) | Buddy-Einstellungscockpit |  | 2026-07-26 |
 | [`buddy-widget-effects-plan.md`](buddy-widget-effects-plan.md) | Plan: Buddy-Widget-Effekte |  | 2026-07-10 |
+| [`central-configuration.md`](central-configuration.md) | Zentrale Konfiguration — ein Ort für alle Einstellungen |  | ? |
 | [`chat-run-decoupled.md`](chat-run-decoupled.md) | Plan: Agent-Lauf vom Browser entkoppeln (+ echter Stop) |  | 2026-07-29 |
 | [`chat-upload-safety.md`](chat-upload-safety.md) | Chat-Dateiupload: sichtbare Limits und sicheres Streaming |  | 2026-07-20 |
 | [`chat-upload-safety-plan.md`](chat-upload-safety-plan.md) | Plan: Sicherer Chat-Dateiupload bis 100 MiB |  | 2026-07-20 |
