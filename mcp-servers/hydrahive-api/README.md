@@ -30,7 +30,7 @@ Server hinzufügen (Passwort oder API-Key eintragen):
 ```bash
 # Option A: User/Passwort
 claude mcp add hydrahive -s user \
-  -e HH_BASE_URL=https://192.168.3.22 \
+  -e HH_BASE_URL=https://127.0.0.1 \
   -e HH_USER=admin \
   -e HH_PASS=DEIN_PASSWORT \
   -e HH_AGENT_ID=claude-code \
@@ -39,7 +39,7 @@ claude mcp add hydrahive -s user \
 
 # Option B: API-Key (hhk_...)
 claude mcp add hydrahive -s user \
-  -e HH_BASE_URL=https://192.168.3.22 \
+  -e HH_BASE_URL=https://127.0.0.1 \
   -e HH_API_KEY=hhk_DEIN_API_KEY \
   -e HH_AGENT_ID=claude-code \
   -e HH_VERIFY_SSL=0 \
@@ -62,7 +62,7 @@ claude mcp list
 
 | Variable | Pflicht | Beispiel | Beschreibung |
 |---|---|---|---|
-| `HH_BASE_URL` | Ja | `https://192.168.3.22` | HydraHive-Basis-URL |
+| `HH_BASE_URL` | Ja | `https://127.0.0.1` | HydraHive-Basis-URL |
 | `HH_USER` | Wenn kein API-Key | `admin` | Login-Username |
 | `HH_PASS` | Wenn kein API-Key | `...` | Login-Passwort |
 | `HH_API_KEY` | Wenn kein User/Pass | `hhk_...` | API-Key |

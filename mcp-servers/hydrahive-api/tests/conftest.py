@@ -2,7 +2,7 @@ import pytest
 
 @pytest.fixture
 def base_url() -> str:
-    return "https://192.168.3.22"
+    return "https://hydrahive.example.test"
 
 @pytest.fixture
 def token() -> str:
