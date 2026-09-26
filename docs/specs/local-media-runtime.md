@@ -89,13 +89,35 @@ Read-only geprüft am 2026-09-05:
 
 ## Installation und Updates
 
-Auf GPU-Nodes erfolgt die Einrichtung automatisch durch die Installations- und
-Updatepfade. `installer/modules/72-local-media.sh` (Server-Installation) und
-`node-agent/scripts/setup-local-media.sh` (Compute-Node) erkennen NVIDIA, sorgen
-für Docker und das signierte NVIDIA Container Toolkit, testen `--gpus all`,
-laden das gepinnte ComfyUI-Image und starten es ausschließlich auf
-`127.0.0.1:8188`. Auf Nodes ohne NVIDIA-GPU wird die Extension ohne Fehler
-übersprungen. Es gibt keine erforderliche manuelle Nachinstallation.
+**Seit 2026-09-26 Opt-in** (Plan `docs/plans/local-media-opt-in.md`). Vorher lief
+die Einrichtung auf jedem Rechner mit `nvidia-smi` automatisch bei Install und
+Update. Auf einem Server mit 5-GB-Karte wurden so ungefragt ~33 GB geladen.
+
+- **Einschalten:** System-Fenster → „Lokale Bild-/Videogenerierung“ →
+  Installieren, oder bei der Installation `HH_INSTALL_LOCAL_MEDIA=yes`
+  (Wizard-Standard: nein).
+- **Sperre:** ohne NVIDIA-GPU, unter 12 GB Grafikspeicher
+  (`HH_MEDIA_MIN_VRAM_MIB`) oder unter 40 GB freiem Platz ist der Knopf
+  gesperrt, die API antwortet mit 409, und `72-local-media.sh` bricht vor Docker
+  und Downloads ab. `HH_MEDIA_FORCE=1` übersteuert das nur im Skript.
+- **Zustand:** Marker `$HH_CONFIG_DIR/local-media.enabled`. `update.sh` pflegt
+  die Runtime nur mit Marker. Ein Fehler dabei ist eine Warnung, kein Abbruch.
+  Rechner mit bestehendem Container `hydra-comfyui` erhalten den Marker
+  einmalig automatisch.
+- **Entfernen:** gleicher Knopf, dann „Entfernen“
+  (`72-local-media-uninstall.sh`): Container, Image, Modelle, ComfyUI-Daten,
+  Backend `local-gpu` und Standard-Modelle, die darauf zeigen. Docker und das
+  NVIDIA Container Toolkit bleiben.
+- **Ablauf:** API → `$HH_DATA_DIR/.local_media_request` (nur `install` oder
+  `uninstall`) → `hydrahive2-local-media.timer/.service` (root) →
+  `installer/local-media-ctl.sh` → Log `/var/log/hydrahive2-local-media.log`.
+
+`72-local-media.sh` selbst sorgt für Docker und das signierte NVIDIA Container
+Toolkit, testet `--gpus all`, lädt das gepinnte ComfyUI-Image und startet es
+ausschließlich auf `127.0.0.1:8188`.
+
+Offen: `node-agent/scripts/setup-local-media.sh` (Compute-Node) läuft noch
+automatisch bei jeder NVIDIA-GPU. Umstellung folgt separat.
 
 ### Umsetzung
 

@@ -310,17 +310,17 @@ Capabilities:
 
 ### Local-Media-Backend
 
-**Status: Optional; NVIDIA/CUDA und Docker vom automatisierten Installer vorausgesetzt**
+**Status: Optional, Opt-in im System-Fenster; NVIDIA-GPU ab 12 GB Grafikspeicher und Docker vorausgesetzt**
 
 - ComfyUI- und Switch-HTTP-Backend-Registry.
 - Workflow-Import/Parser mit Parameter-Mapping.
 - Lokale Bild-/Video-Model-IDs (`local:`-Routing).
-- Automatisierter ComfyUI-Docker-Setup auf NVIDIA-Hosts.
+- ComfyUI-Docker-Setup per Knopf im System-Fenster (Installieren/Entfernen), gesperrt bei zu kleiner Grafikkarte.
 - Installer registriert SDXL-Image-, Wan-Text-to-Video- und Wan-First/Last-Frame-Workflows.
 
-Der Local-Media-Installer lädt große Drittanbieter-Modelle und validiert gepinnte SHA-256-Hashes. Ohne kompatible NVIDIA-GPU wird die Phase übersprungen.
+Der Local-Media-Installer lädt große Drittanbieter-Modelle und validiert gepinnte SHA-256-Hashes. Install und Update richten es nicht mehr von selbst ein (seit 2026-09-26).
 
-**Quellen:** `core/src/hydrahive/api/routes/media_backends.py`, `core/src/hydrahive/llm/video_backends/`, `installer/modules/72-local-media.sh`, `installer/media-workflows/`.
+**Quellen:** `core/src/hydrahive/api/routes/media_backends.py`, `core/src/hydrahive/llm/video_backends/`, `installer/modules/72-local-media.sh`, `installer/modules/72-local-media-uninstall.sh`, `installer/local-media-ctl.sh`, `core/src/hydrahive/api/routes/system_local_media.py`, `installer/media-workflows/`.
 
 ---
 
