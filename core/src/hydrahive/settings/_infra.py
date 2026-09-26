@@ -68,7 +68,7 @@ class _ExtensionsMixin:
 class _WebminMixin:
     @cached_property
     def webmin_url(self) -> str:
-        """Webmin-URL (z.B. https://192.168.3.22:10000). Leer ⇒ Webmin-Tools nicht registriert."""
+        """Webmin-URL (z.B. https://127.0.0.1:10000). Leer ⇒ Webmin-Tools nicht registriert."""
         return os.environ.get("HH_WEBMIN_URL", "").strip().rstrip("/")
 
     @cached_property
