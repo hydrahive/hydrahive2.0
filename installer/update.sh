@@ -620,11 +620,22 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "^EnvironmentFile=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -Fq "EnvironmentFile=$HH_CONFIG_DIR/compute-proxy.env" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q -- "--ws-max-size 65536" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  # Secrets raus aus der für alle lesbaren Unit (HH_SECRET_KEY, PG-Mirror-DSN).
+  # 50-systemd.sh übernimmt den BESTEHENDEN Schlüssel aus secret_key.
+  grep -q "^Environment=HH_SECRET_KEY=" "$SERVICE_FILE" && NEEDS_REWRITE=1
+  grep -Fq "EnvironmentFile=$HH_CONFIG_DIR/service-secrets.env" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  [ -f /etc/systemd/system/hydrahive2.service.d/pg-mirror.conf ] && NEEDS_REWRITE=1
+  [ -f "$HH_CONFIG_DIR/service-secrets.env" ] || NEEDS_REWRITE=1
+  # Rotation: secret_key löschen + Update -> 50-systemd.sh erzeugt einen neuen.
+  [ -s "$HH_CONFIG_DIR/secret_key" ] || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "Service-File braucht Update — neu schreiben"
+    # Alten DSN-Drop-in entfernen, bevor 50-systemd.sh neu startet; den DSN
+    # übernimmt service-secrets.env (aus pg_mirror.dsn).
+    rm -f /etc/systemd/system/hydrahive2.service.d/pg-mirror.conf
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
       HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
-      HH_REPO_DIR="$HH_REPO_DIR" \
+      HH_REPO_DIR="$HH_REPO_DIR" INSTALLER_DIR="$HH_REPO_DIR/installer" \
       bash "$HH_REPO_DIR/installer/modules/50-systemd.sh" || log "systemd-rewrite failed — weiter"
   fi
 fi
@@ -687,12 +698,12 @@ if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ] && [ -x "$HH_REPO_DIR/installer/mo
 fi
 
 if [ "${HH_INSTALL_POSTGRES:-yes}" != "no" ]; then
-  DROPIN_FILE="/etc/systemd/system/hydrahive2.service.d/pg-mirror.conf"
   if ! command -v psql >/dev/null 2>&1 \
      || [ ! -f "${HH_CONFIG_DIR}/pg_mirror.dsn" ] \
-     || [ ! -f "$DROPIN_FILE" ]; then
+     || ! grep -q "^HH_PG_MIRROR_DSN=" "${HH_CONFIG_DIR}/service-secrets.env" 2>/dev/null; then
     log "PostgreSQL-Mirror fehlt oder unvollständig — starte 48-postgres.sh"
     HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+      INSTALLER_DIR="$HH_REPO_DIR/installer" \
       bash "$HH_REPO_DIR/installer/modules/48-postgres.sh" || log "postgres-setup failed — weiter"
   fi
 fi
@@ -703,6 +714,12 @@ mkdir -p "$CRED_DIR"
 chown root:"$HH_USER" "$CRED_DIR"
 chmod 775 "$CRED_DIR"
 
+# Env-Datei mit HH_SECRET_KEY/PG-DSN vor dem Neustart immer frisch bauen,
+# damit Änderungen an secret_key oder pg_mirror.dsn ankommen, auch ohne
+# Unit-Rewrite. Scheitert das (secret_key fehlt), bleibt die alte Datei.
+# shellcheck source=lib/service-secrets.sh
+source "$HH_REPO_DIR/installer/lib/service-secrets.sh"
+write_service_secrets || log "WARNUNG: service-secrets.env nicht erneuert — alte Datei bleibt"
 
 log "Service neu starten"
 systemctl restart hydrahive2.service
