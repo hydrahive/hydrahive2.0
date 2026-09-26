@@ -13,6 +13,23 @@ def test_codex_oauth_context_windows_match_official_client():
     assert context_window_for("openai-codex/gpt-5.4-mini") == 272_000
 
 
+def test_codex_windows_hold_with_warm_registry(monkeypatch):
+    """Die gepflegten Fenster gelten auch, wenn der Live-Katalog geladen ist.
+
+    Der Codex-Katalog meldet für GPT-5.6 context_window=272000. Die
+    Produktionsdaten zeigen aber 924 erfolgreiche Calls mit >272k Input
+    (Maximum ~370k) — der Wert aus der API ist hier zu konservativ.
+    #440 hatte dem Live-Wert Vorrang gegeben und die 372k still auf 272k
+    gesenkt. Der obige Test lief mit leerer Registry und merkte nichts.
+    """
+    from hydrahive.llm import registry
+
+    monkeypatch.setattr(registry, "cached_context_window", lambda model_id: 272_000)
+
+    assert context_window_for("openai-codex/gpt-5.6-sol") == 372_000
+    assert context_window_for("openai-codex/gpt-5.6-luna") == 372_000
+
+
 def test_codex_payload_omits_unsupported_output_limit():
     # Der Codex-OAuth-Endpunkt lehnt max_output_tokens mit HTTP 400 ab.
     payload = _build_payload(
