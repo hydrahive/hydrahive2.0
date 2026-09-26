@@ -41,6 +41,7 @@ export interface DashboardHealth {
   agentlink: { ok: boolean; configured: boolean }
   bridge: { ok: boolean }
   tailscale: { ok: boolean; configured: boolean }
+  websearch: { ok: boolean; configured: boolean; detail: string }
 }
 
 export interface DashboardSummary {
