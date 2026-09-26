@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { llmApi, llmModelsApi, type LlmConfig, type MediaModel, type RegistryModel } from "./api"
 import { MediaModelSelect } from "./MediaModelSelect"
-import { KNOWN_PROVIDERS } from "./_llm_providers"
+import { ModelSelect } from "./ModelSelect"
 
 // Maps purpose → config field path (mirrors backend _PURPOSE_KEYS)
 type Purpose = "chat" | "embed" | "image" | "music" | "tts" | "stt" | "video"
@@ -59,62 +59,6 @@ const PURPOSES: PurposeDef[] = [
   },
 ]
 
-interface ModelSelectProps {
-  label: string
-  value: string
-  models: RegistryModel[]
-  onChange: (model: string) => void
-}
-
-function providerName(provider: string): string {
-  return KNOWN_PROVIDERS.find((p) => p.id === provider)?.name ?? provider
-}
-
-function ModelSelect({ label, value, models, onChange }: ModelSelectProps) {
-  const { t: tCommon } = useTranslation("common")
-  const { t } = useTranslation("llm")
-  const grouped = models.reduce<Record<string, RegistryModel[]>>((acc, model) => {
-    const provider = model.provider || "unknown"
-    const list = acc[provider] ?? []
-    list.push(model)
-    acc[provider] = list
-    return acc
-  }, {})
-  const groups = Object.entries(grouped)
-    .sort(([a], [b]) => providerName(a).localeCompare(providerName(b)))
-
-  function costLabel(model: RegistryModel): string {
-    if (model.provider === "ollama") return t("default_models.local")
-    if (model.is_free === true) return t("default_models.free")
-    if (model.is_free === false) return t("default_models.paid")
-    return t("default_models.cost_unknown")
-  }
-
-  return (
-    <div className="space-y-1">
-      <label className="text-[11px] text-zinc-500">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50"
-      >
-        <option value="" className="bg-zinc-900 text-zinc-400">{tCommon("actions.select")}</option>
-        {groups.map(([provider, providerModels]) => (
-          <optgroup key={provider} label={providerName(provider)} className="bg-zinc-900 text-zinc-400">
-            {[...providerModels]
-              .sort((a, b) => a.label.localeCompare(b.label))
-              .map((model) => (
-                <option key={model.id} value={model.id} className="bg-zinc-900 text-zinc-200">
-                  {providerName(provider)} · {model.label} · {costLabel(model)}
-                </option>
-              ))}
-          </optgroup>
-        ))}
-      </select>
-    </div>
-  )
-}
-
 interface DefaultModelsSectionProps {
   config: LlmConfig
   onSaved: () => void
@@ -124,6 +68,8 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
   const { t } = useTranslation("llm")
   const [modelsByPurpose, setModelsByPurpose] = useState<Partial<Record<Purpose, RegistryModel[]>>>({})
   const [mediaModels, setMediaModels] = useState<Partial<Record<"image" | "video", MediaModel[]>>>({})
+  // Vom Backend gelieferte Listen-ID zum gespeicherten Wert (siehe api.ts).
+  const [selectedByPurpose, setSelectedByPurpose] = useState<Partial<Record<Purpose, string>>>({})
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -131,24 +77,37 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
     Promise.all(
       purposes.map((p) =>
         llmModelsApi.byModality(p)
-          .then((res) => ({ purpose: p, models: res.models }))
-          .catch(() => ({ purpose: p, models: [] as RegistryModel[] }))
+          .then((res) => ({ purpose: p, models: res.models, selected: res.selected ?? "" }))
+          .catch(() => ({ purpose: p, models: [] as RegistryModel[], selected: "" }))
       )
     ).then((results) => {
       const map: Partial<Record<Purpose, RegistryModel[]>> = {}
-      for (const r of results) map[r.purpose] = r.models
+      const sel: Partial<Record<Purpose, string>> = {}
+      for (const r of results) { map[r.purpose] = r.models; sel[r.purpose] = r.selected }
       setModelsByPurpose(map)
+      setSelectedByPurpose((prev) => ({ ...prev, ...sel }))
     })
     Promise.all(["image", "video"].map((category) =>
       llmModelsApi.media(category as "image" | "video")
-        .then((res) => ({ category: category as "image" | "video", models: res.models }))
-        .catch(() => ({ category: category as "image" | "video", models: [] as MediaModel[] }))
+        .then((res) => ({ category: category as "image" | "video", models: res.models, selected: res.selected ?? "" }))
+        .catch(() => ({ category: category as "image" | "video", models: [] as MediaModel[], selected: "" }))
     )).then((results) => {
       const map: Partial<Record<"image" | "video", MediaModel[]>> = {}
-      for (const result of results) map[result.category] = result.models
+      const sel: Partial<Record<Purpose, string>> = {}
+      for (const result of results) { map[result.category] = result.models; sel[result.category] = result.selected }
       setMediaModels(map)
+      setSelectedByPurpose((prev) => ({ ...prev, ...sel }))
     })
   }, [])
+
+  // Was die Auswahl anzeigen soll: exakt gespeicherter Wert, wenn er in der
+  // Liste steht; sonst die vom Backend abgeglichene Listen-ID. Nach einer
+  // Änderung in der Auswahl ist der neue Wert immer eine Listen-ID.
+  function displayValue(def: PurposeDef, listed: { id: string }[]): string {
+    const value = def.getVal(config)
+    if (!value || listed.some((m) => m.id === value)) return value
+    return selectedByPurpose[def.purpose] || value
+  }
 
   async function handleChange(def: PurposeDef, model: string) {
     setError(null)
@@ -172,24 +131,25 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
         </p>
       )}
       {PURPOSES.map((def) => {
-        const value = def.getVal(config)
         if (def.purpose === "image" || def.purpose === "video") {
+          const listed = mediaModels[def.purpose] ?? []
           return (
             <MediaModelSelect
               key={def.purpose}
               label={t(def.labelKey)}
-              value={value}
-              models={mediaModels[def.purpose] ?? []}
+              value={displayValue(def, listed)}
+              models={listed}
               onChange={(model) => handleChange(def, model)}
             />
           )
         }
+        const listed = modelsByPurpose[def.purpose] ?? []
         return (
           <ModelSelect
             key={def.purpose}
             label={t(def.labelKey)}
-            value={value}
-            models={modelsByPurpose[def.purpose] ?? []}
+            value={displayValue(def, listed)}
+            models={listed}
             onChange={(model) => handleChange(def, model)}
           />
         )

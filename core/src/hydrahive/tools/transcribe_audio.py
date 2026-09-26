@@ -13,8 +13,10 @@ import logging
 import mimetypes
 from pathlib import Path
 
+from hydrahive.llm.local_voice import is_local
 from hydrahive.llm.media_models import get_media_model
 from hydrahive.tools._openrouter_transcribe import openrouter_key, transcribe_file
+from hydrahive.voice.stt import transcribe_bytes
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -23,11 +25,12 @@ _DEFAULT_MODEL = "openai/whisper-large-v3"
 _MAX_FILE_BYTES = 25 * 1024 * 1024  # 25 MB — Whisper-API-Limit
 
 _DESCRIPTION = (
-    "Transkribiert eine Audio-Datei (lokaler Pfad im Workspace) zu Text via OpenRouter Whisper. "
+    "Transkribiert eine Audio-Datei (lokaler Pfad im Workspace) zu Text. "
     "Nützlich für heruntergeladene Voice-Messages, Sprach-Notizen oder andere Audio-Dateien. "
     "Unterstützte Formate: mp3, mp4, m4a, webm, ogg, wav, flac. "
     "Gibt den transkribierten Text zurück. "
-    "Braucht einen konfigurierten OpenRouter API-Key."
+    "Modell 'local/whisper' nutzt den lokalen Whisper auf diesem Server (kein Cloud-Key); "
+    "OpenRouter-Modelle brauchen einen OpenRouter API-Key."
 )
 
 _SCHEMA = {
@@ -47,8 +50,9 @@ _SCHEMA = {
         "model": {
             "type": "string",
             "description": (
-                f"OpenRouter-Whisper-Modell. Default: {_DEFAULT_MODEL}. "
-                "Weitere: openai/whisper-1, openai/whisper-large-v3-turbo"
+                "Modell. Default: zentrale Einstellung media_models.transcribe. "
+                "'local/whisper' = lokaler Whisper auf diesem Server. "
+                "Cloud: openai/whisper-large-v3, openai/whisper-1, openai/whisper-large-v3-turbo"
             ),
         },
     },
@@ -89,14 +93,25 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if size == 0:
         return ToolResult.fail("Leere Audio-Datei")
 
+    model = (args.get("model") or get_media_model("transcribe") or _DEFAULT_MODEL).strip()
+    language = (args.get("language") or "").strip() or None
+
+    # Lokaler Whisper (STT-Container, ggf. GPU) — kein Cloud-Key nötig.
+    if is_local(model):
+        try:
+            text = await transcribe_bytes(path.read_bytes(), mime=_mime_for(path), language=language)
+        except (RuntimeError, OSError) as e:
+            return ToolResult.fail(f"Lokale Spracherkennung fehlgeschlagen: {e}")
+        if not text:
+            return ToolResult.fail("Transkript leer — kein Sprache im Audio erkannt?")
+        logger.info("transcribe_audio: ok model=%s file=%s chars=%d", model, path.name, len(text))
+        return ToolResult.ok(text, model=model)
+
     key = openrouter_key()
     if not key:
         return ToolResult.fail(
             "Kein OpenRouter API-Key konfiguriert — unter Einstellungen → Anbieter hinterlegen"
         )
-
-    model = (args.get("model") or get_media_model("transcribe") or _DEFAULT_MODEL).strip()
-    language = (args.get("language") or "").strip() or None
 
     filename = f"{path.stem}{path.suffix}" if path.suffix else f"{path.stem}.audio"
 

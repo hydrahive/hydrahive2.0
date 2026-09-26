@@ -17,6 +17,7 @@ from hydrahive.llm._codex_usage import fetch_usage as fetch_codex_usage
 from hydrahive.llm._minimax_usage import fetch_usage as fetch_minimax_usage
 from hydrahive.llm._oauth_usage import get_oauth_rate_limits
 from hydrahive.llm._openrouter_credits import fetch_credits as fetch_openrouter_credits
+from hydrahive.llm.model_ids import match_listed_id
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
@@ -173,6 +174,10 @@ async def list_llm_models(
     default = _config.get_default(purpose) if purpose else ""
     return {
         "default": default,
+        # `default` ist der gespeicherte Wert, `selected` die passende ID der
+        # Liste (z.B. text-embedding-3-small -> openai/text-embedding-3-small).
+        # Die Auswahl muss `selected` anzeigen, sonst steht dort "Auswählen…".
+        "selected": match_listed_id(default, [e.id for e in entries]),
         "models": [
             {"id": e.id, "label": e.label, "provider": e.provider,
              "purposes": sorted(e.purposes), "context_window": e.context_window,
@@ -214,7 +219,20 @@ async def list_media_models(
         local = await _local_media_models(category)
         models = list(models) + local
 
-    return {"default": media_models.get_media_model(cfg_key), "models": models}
+    return {
+        "default": media_models.get_media_model(cfg_key),
+        # Roh gespeicherter Wert (kann `openrouter/…` tragen) gegen die Liste
+        # abgleichen — `default` ist bereits entpräfixt und mit Fallback belegt.
+        "selected": match_listed_id(
+            _configured_media_value(cfg_key), [m.get("id", "") for m in models],
+        ),
+        "models": models,
+    }
+
+
+def _configured_media_value(cfg_key: str) -> str:
+    """Tatsächlich gespeicherter Wert, ohne Präfix-Kürzung und ohne Fallback."""
+    return ((_config.load_config().get("media_models") or {}).get(cfg_key) or "").strip()
 
 
 async def _local_media_models(category: str) -> list[dict]:
