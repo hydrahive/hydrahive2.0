@@ -127,17 +127,14 @@ def context_window_for(model: str) -> int:
         # gemessen hat. Ohne diese Info bleibt es beim konservativen Fallback.
         return num_ctx_for_ollama(theo, free_vram_gib=_cached_free_vram_gib())
 
+    meta = _metadata_for(model)
+    if meta and meta.get("context_window"):
+        return meta["context_window"]
+
     # Live aus der Provider-API geholtes Fenster (Anthropic liefert es als
-    # max_input_tokens) hat Vorrang vor der statischen Tabelle.
-    #
-    # Reihenfolge ist entscheidend: Anbieter erweitern Fenster bestehender
-    # Modelle nachträglich. Beispiel Sonnet 4.5 — die API meldete 1.000.000,
-    # die hartkodierte METADATA noch 200.000 und gewann. Das Ergebnis war
-    # derselbe Fehler wie beim 32k-Bug, nur in kleinerem Maßstab: eine
-    # gepflegte Konstante überstimmte die Wahrheit vom Anbieter.
-    #
-    # METADATA bleibt Fallback für Modelle, die (noch) nicht im Katalog
-    # stehen oder wenn kein Refresh gelaufen ist.
+    # max_input_tokens). Steht erst nach dem ersten Katalog-Refresh bereit,
+    # ist dann aber die verlässlichste Quelle für Modelle, die noch nicht in
+    # METADATA gepflegt sind.
     try:
         from hydrahive.llm import registry
         live = registry.cached_context_window(model)
@@ -145,10 +142,6 @@ def context_window_for(model: str) -> int:
         live = None
     if live:
         return live
-
-    meta = _metadata_for(model)
-    if meta and meta.get("context_window"):
-        return meta["context_window"]
 
     m = model.lower()
     # Heuristik nur für Nicht-Katalog-Modelle
