@@ -204,5 +204,33 @@
     "title": "Einstellungen",
     "subtitle": "Integrations-Settings ohne SSH. Die SearXNG-URL greift sofort; Integrationen wie Mail/Discord/AgentLink wirken nach einem Backend-Neustart.",
     "gear_tooltip": "Einstellungen"
+  },
+  "local_media": {
+    "title": "Lokale Bild-/Videogenerierung",
+    "subtitle": "ComfyUI auf der eigenen NVIDIA-Grafikkarte: Bilder (SDXL) und Videos (Wan 2.1) ohne Cloud-Kosten.",
+    "installed": "installiert",
+    "not_installed": "nicht installiert",
+    "gpu": "Grafikkarte: {{name}} · {{vram}} GB Grafikspeicher",
+    "gpu_none": "Keine NVIDIA-Grafikkarte erkannt",
+    "install": "Installieren ({{size}} Download)",
+    "uninstall": "Entfernen",
+    "blocked_title": "Auf dieser Hardware nicht möglich",
+    "blocked": {
+      "no_gpu": "Gesperrt: Es wurde keine NVIDIA-Grafikkarte gefunden.",
+      "vram_too_small": "Gesperrt: Die Grafikkarte hat zu wenig Grafikspeicher. Nötig sind mindestens {{min}} GB.",
+      "disk_too_small": "Gesperrt: Zu wenig freier Speicherplatz ({{free}} frei, nötig {{need}})."
+    },
+    "confirm_install": "Jetzt installieren? Es werden etwa {{size}} Modelle heruntergeladen ({{free}} frei).",
+    "confirm_install_hint": "Das kann je nach Leitung eine Stunde oder länger dauern. HydraHive bleibt währenddessen normal nutzbar.",
+    "confirm_install_button": "Jetzt installieren",
+    "confirm_uninstall": "Lokale Bild-/Videogenerierung wirklich entfernen?",
+    "confirm_uninstall_hint": "Container, Modelle (~{{size}}) und der Eintrag „Lokale GPU“ werden gelöscht. Standard-Modelle, die darauf zeigen, werden zurückgesetzt. Docker selbst bleibt.",
+    "confirm_uninstall_button": "Endgültig entfernen",
+    "running_install": "Wird installiert… das Log läuft mit.",
+    "running_uninstall": "Wird entfernt…",
+    "done_install": "Installiert. Die lokalen Modelle stehen jetzt bei Bild und Video zur Auswahl.",
+    "done_uninstall": "Entfernt. Das Update installiert es nicht erneut.",
+    "failed": "Fehlgeschlagen — Details im Log",
+    "log_empty": "Warte auf den Start (bis zu 5 Sekunden)…"
   }
 }
