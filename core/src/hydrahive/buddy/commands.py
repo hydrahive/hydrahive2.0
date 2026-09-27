@@ -10,7 +10,8 @@ import time
 from datetime import datetime
 
 from hydrahive.agents import config as agent_config
-from hydrahive.buddy import _build_soul, _find_buddy_for, _pick_character
+from hydrahive.buddy import _find_buddy_for, _pick_character
+from hydrahive.buddy import _soul_state as soul_state
 from hydrahive.buddy._commands_helpers import slug as _slug, snapshot_active_session as _snapshot_active_session
 from hydrahive.db import sessions as sessions_db
 from hydrahive.tools import _memory_store as memory
@@ -104,15 +105,14 @@ def reroll_character(username: str) -> dict:
     Beim nächsten Hi reagiert der Buddy als die neue Figur."""
     buddy = _require_buddy(username)
     universe, character = _pick_character()
-    memory.write_key(buddy["id"], "character", f"{character} (aus {universe})")
-    new_soul = _build_soul(username, universe, character)
-    agent_config.set_system_prompt(buddy["id"], new_soul)
-    new_session = sessions_db.create(
-        agent_id=buddy["id"], user_id=username,
-        title=f"{username}'s Buddy", project_id=None,
-    )
+    memory.write_key(buddy["id"], soul_state.CHARACTER_KEY,
+                     soul_state.format_character(character, universe))
+    # Sprache, Ton und Kontext übernehmen, Projektbindung behalten.
+    agent_config.set_system_prompt(
+        buddy["id"], soul_state.rebuild_soul(username, buddy["id"], universe, character))
+    session_id = soul_state.new_session_keeping_project(buddy["id"], username)
     return {
         "ok": True,
-        "session_id": new_session.id,
+        "session_id": session_id,
         "message": f"Neuer Charakter: {character} ({universe}). Sag Hallo.",
     }

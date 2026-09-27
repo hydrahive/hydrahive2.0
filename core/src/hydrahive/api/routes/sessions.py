@@ -104,6 +104,9 @@ def update_session(
     # reasoning_effort getrennt — unter metadata, read-modify-write
     if req.reasoning_effort is not None:
         sessions_db.set_reasoning_effort(session_id, req.reasoning_effort or None)
+    # buddy_mode — Stil-Hinweis nur für den Buddy, unter metadata
+    if req.buddy_mode is not None:
+        sessions_db.set_buddy_mode(session_id, req.buddy_mode or None)
     # project_id getrennt — eigene Spalte; bestimmt das Run-Arbeitsverzeichnis.
     if req.project_id is not None:
         pid = req.project_id or None

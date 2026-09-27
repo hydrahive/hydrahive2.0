@@ -7,8 +7,13 @@ export interface BuddyState {
   agent_name: string
   model: string
   project_id: string | null
+  /** Gesprächsmodus der aktuellen Session. */
+  mode: BuddyMode
   created: boolean
 }
+
+export type BuddyMode = "normal" | "focus" | "humor" | "brief"
+export const BUDDY_MODES: BuddyMode[] = ["normal", "focus", "humor", "brief"]
 
 export interface BuddyToolMeta {
   name: string

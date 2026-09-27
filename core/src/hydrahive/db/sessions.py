@@ -127,8 +127,8 @@ def update(
         mirror.schedule_session(s)
 
 
-def set_model_override(session_id: str, model: str | None) -> None:
-    """Setzt session.metadata['model_override']. None entfernt den Override.
+def _set_metadata_key(session_id: str, key: str, value: str | None) -> None:
+    """Setzt oder entfernt (bei leerem Wert) einen Schlüssel in session.metadata.
     BEGIN IMMEDIATE hält den Write-Lock während des gesamten Read-Modify-Write."""
     with db(immediate=True) as conn:
         row = conn.execute("SELECT metadata FROM sessions WHERE id = ?", (session_id,)).fetchone()
@@ -138,10 +138,10 @@ def set_model_override(session_id: str, model: str | None) -> None:
             md = json.loads(row["metadata"]) if row["metadata"] else {}
         except (json.JSONDecodeError, TypeError):
             md = {}
-        if model:
-            md["model_override"] = model
+        if value:
+            md[key] = value
         else:
-            md.pop("model_override", None)
+            md.pop(key, None)
         conn.execute(
             "UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
             (json.dumps(md), now_iso(), session_id),
@@ -149,30 +149,21 @@ def set_model_override(session_id: str, model: str | None) -> None:
     s = get(session_id)
     if s:
         mirror.schedule_session(s)
+
+
+def set_model_override(session_id: str, model: str | None) -> None:
+    """Setzt session.metadata['model_override']. None entfernt den Override."""
+    _set_metadata_key(session_id, "model_override", model)
 
 
 def set_reasoning_effort(session_id: str, effort: str | None) -> None:
-    """Setzt session.metadata['reasoning_effort']. None entfernt den Override.
-    BEGIN IMMEDIATE hält den Write-Lock während des gesamten Read-Modify-Write."""
-    with db(immediate=True) as conn:
-        row = conn.execute("SELECT metadata FROM sessions WHERE id = ?", (session_id,)).fetchone()
-        if not row:
-            return
-        try:
-            md = json.loads(row["metadata"]) if row["metadata"] else {}
-        except (json.JSONDecodeError, TypeError):
-            md = {}
-        if effort:
-            md["reasoning_effort"] = effort
-        else:
-            md.pop("reasoning_effort", None)
-        conn.execute(
-            "UPDATE sessions SET metadata = ?, updated_at = ? WHERE id = ?",
-            (json.dumps(md), now_iso(), session_id),
-        )
-    s = get(session_id)
-    if s:
-        mirror.schedule_session(s)
+    """Setzt session.metadata['reasoning_effort']. None entfernt den Override."""
+    _set_metadata_key(session_id, "reasoning_effort", effort)
+
+
+def set_buddy_mode(session_id: str, mode: str | None) -> None:
+    """Setzt session.metadata['buddy_mode']. None/„normal“ entfernt den Modus."""
+    _set_metadata_key(session_id, "buddy_mode", None if mode == "normal" else mode)
 
 
 def set_project(session_id: str, project_id: str | None) -> None:

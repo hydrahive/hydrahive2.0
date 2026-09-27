@@ -87,6 +87,12 @@ def _session_project_id(session_id: str) -> str | None:
     return s.project_id if s else None
 
 
+def _session_mode(session_id: str) -> str:
+    """Gesprächsmodus der Session (siehe runner._buddy_mode); Default „normal“."""
+    s = sessions_db.get(session_id)
+    return str((s.metadata or {}).get("buddy_mode") or "normal") if s else "normal"
+
+
 def get_or_create_buddy(username: str) -> dict:
     """Returns {agent_id, session_id, agent_name, model, project_id, created}.
     Erstellt Buddy bei Bedarf — Master-Agent mit Soul-Prompt + Lifetime-Session.
@@ -108,6 +114,7 @@ def get_or_create_buddy(username: str) -> dict:
             "agent_name": existing["name"],
             "model": existing["llm_model"],
             "project_id": _session_project_id(sid),
+            "mode": _session_mode(sid),
             "created": False,
         }
     cfg = load_config()
@@ -131,10 +138,9 @@ def get_or_create_buddy(username: str) -> dict:
         thinking_budget=0,
     )
     agent_config.update(agent["id"], is_buddy=True, compact_threshold_pct=70)
-    memory_store.write_key(
-        agent["id"], "character",
-        f"{character} (aus {universe})",
-    )
+    from hydrahive.buddy._soul_state import CHARACTER_KEY, format_character
+
+    memory_store.write_key(agent["id"], CHARACTER_KEY, format_character(character, universe))
     sid = _get_or_create_session(agent["id"], username)
     logger.info("Buddy für %s angelegt (agent_id=%s)", username, agent["id"])
     return {
@@ -143,6 +149,7 @@ def get_or_create_buddy(username: str) -> dict:
         "agent_name": agent["name"],
         "model": model,
         "project_id": _session_project_id(sid),
+        "mode": _session_mode(sid),
         "created": True,
     }
 
