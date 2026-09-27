@@ -38,7 +38,8 @@
     "lang_auto": "Folgt dem User",
     "tone_casual": "Locker & direkt",
     "tone_professional": "Professionell",
-    "tone_brief": "Kurz und knapp"
+    "tone_brief": "Kurz und knapp",
+    "soul_active": "Soul aktiv: Für diesen Buddy gibt es Soul-Dateien, die den Charakter-Prompt komplett ersetzen. Charakter, Sprache, Ton und Kontext von dieser Seite wirken erst, wenn die Soul geleert ist (Agenten → Buddy → Soul)."
   },
   "context": {
     "label": "Was soll Buddy dauerhaft über dich wissen?",

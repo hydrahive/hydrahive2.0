@@ -1,8 +1,13 @@
-"""Zahnfee-Briefing — lesen/schreiben aus HH_DATA_DIR/zahnfee_briefing.json."""
+"""Zahnfee-Briefing pro Nutzer — HH_DATA_DIR/zahnfee/<user>.json.
+
+Früher eine globale Datei (zahnfee_briefing.json) mit den Aktivitäten aller
+Nutzer, lesbar für jeden Login. Die Altdatei wird nicht mehr gelesen.
+"""
 from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -23,12 +28,13 @@ class Briefing:
     error: str | None = None
 
 
-def _path() -> Path:
-    return settings.data_dir / "zahnfee_briefing.json"
+def _path(username: str) -> Path:
+    safe = re.sub(r"[^a-zA-Z0-9_.-]", "_", username) or "_"
+    return settings.data_dir / "zahnfee" / f"{safe}.json"
 
 
-def load() -> Briefing | None:
-    p = _path()
+def load(username: str) -> Briefing | None:
+    p = _path(username)
     if not p.exists():
         return None
     try:
@@ -39,8 +45,8 @@ def load() -> Briefing | None:
         return None
 
 
-def save(briefing: Briefing) -> None:
-    p = _path()
+def save(briefing: Briefing, username: str) -> None:
+    p = _path(username)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(asdict(briefing), ensure_ascii=False, indent=2))
 

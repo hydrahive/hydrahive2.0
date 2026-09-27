@@ -72,6 +72,8 @@
   },
   "soul": {
     "description": "Identity, behavior and background of the agent as Markdown files.",
+    "replaces_prompt_hint": "As soon as one field is filled, the soul replaces the system prompt completely.",
+    "prompt_inactive": "Soul active — this system prompt is not used. The agent uses the soul files (tab “Soul”). Clear all fields there to use this prompt again.",
     "load_template": "Load template",
     "save_component": "Save",
     "saved": "Saved",

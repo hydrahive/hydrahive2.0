@@ -9,6 +9,10 @@ export interface BuddyState {
   project_id: string | null
   /** Gesprächsmodus der aktuellen Session. */
   mode: BuddyMode
+  /** Gewählte Denk-Tiefe dieser Session (null = Agent-Standard). */
+  reasoning_effort?: string | null
+  /** Standard-Tiefe des Buddy-Agenten (Buddy-Einstellungen). */
+  default_reasoning_effort?: string | null
   created: boolean
 }
 
@@ -30,7 +34,7 @@ export interface ClearResult { ok: boolean; session_id: string; message: string 
 export interface RememberResult { ok: boolean; key: string; message: string }
 export interface ModelsResult { current: string; available: string[] }
 export interface SetModelResult { ok: boolean; model: string; message: string }
-export interface CharacterResult { ok: boolean; session_id: string; message: string }
+export interface CharacterResult { ok: boolean; session_id: string; message: string; soul_active?: boolean }
 
 export interface BuddyConfig {
   agent_id: string
@@ -42,6 +46,7 @@ export interface BuddyConfig {
   thinking_budget: number
   reasoning_effort: ReasoningEffort
   character: string
+  soul_active?: boolean
   tools: string[]
   all_tools: string[]
   available_tools: BuddyToolMeta[]

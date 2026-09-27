@@ -19,8 +19,9 @@ Admin = Annotated[tuple[str, str], Depends(require_admin)]
 
 
 @router.get("/briefing")
-def get_briefing(_: Auth) -> dict:
-    briefing = storage.load()
+def get_briefing(auth: Auth) -> dict:
+    # Nur das eigene Briefing — es fasst private Gespräche zusammen.
+    briefing = storage.load(auth[0])
     if not briefing:
         return {"briefing": None}
     return {"briefing": asdict(briefing)}
@@ -51,9 +52,8 @@ def update_config(body: ConfigBody, _: Admin) -> dict:
 
 
 @router.post("/run")
-async def manual_run(_: Admin) -> dict:
-    """Zahnfee manuell triggern — wartet bis der Runner fertig ist."""
-    from dataclasses import asdict
+async def manual_run(admin: Admin) -> dict:
+    """Zahnfee manuell triggern (eigenes Briefing) — wartet bis der Runner fertig ist."""
     from hydrahive.zahnfee import runner
-    briefing = await runner.run()
+    briefing = await runner.run(admin[0])
     return {"ok": True, "briefing": asdict(briefing)}

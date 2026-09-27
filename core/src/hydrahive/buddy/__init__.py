@@ -93,6 +93,16 @@ def _session_mode(session_id: str) -> str:
     return str((s.metadata or {}).get("buddy_mode") or "normal") if s else "normal"
 
 
+def _session_effort(session_id: str) -> str | None:
+    """Gewählte Denk-Tiefe der Session (metadata.reasoning_effort), sonst None.
+
+    Die Buddy-Seite zeigt sie nach dem Neuladen wieder an — vorher hielt sie
+    die Auswahl nur im Browser-State und fiel auf „Aus“ zurück.
+    """
+    s = sessions_db.get(session_id)
+    return (s.metadata or {}).get("reasoning_effort") or None if s else None
+
+
 def get_or_create_buddy(username: str) -> dict:
     """Returns {agent_id, session_id, agent_name, model, project_id, created}.
     Erstellt Buddy bei Bedarf — Master-Agent mit Soul-Prompt + Lifetime-Session.
@@ -115,6 +125,8 @@ def get_or_create_buddy(username: str) -> dict:
             "model": existing["llm_model"],
             "project_id": _session_project_id(sid),
             "mode": _session_mode(sid),
+            "reasoning_effort": _session_effort(sid),
+            "default_reasoning_effort": existing.get("reasoning_effort") or None,
             "created": False,
         }
     cfg = load_config()
@@ -150,6 +162,8 @@ def get_or_create_buddy(username: str) -> dict:
         "model": model,
         "project_id": _session_project_id(sid),
         "mode": _session_mode(sid),
+        "reasoning_effort": _session_effort(sid),
+        "default_reasoning_effort": None,
         "created": True,
     }
 

@@ -1,4 +1,5 @@
 import { useState, type ComponentType } from "react"
+import { useTranslation } from "react-i18next"
 import {
   BrainCircuit,
   Clock,
@@ -34,6 +35,8 @@ interface Props {
   mcpServers: McpServerBrief[]
   onChange: (patch: Partial<Agent>) => void
   onPromptChange: (prompt: string) => void
+  soulActive: boolean
+  onSoulSaved: () => void
 }
 
 interface TabDefinition {
@@ -52,18 +55,21 @@ export function ProjectAgentEditorTabs({
   mcpServers,
   onChange,
   onPromptChange,
+  soulActive,
+  onSoulSaved,
 }: Props) {
+  const { t } = useTranslation("agents")
   const [tab, setTab] = useState("overview")
   const effortLevels = useEffortLevels(draft.llm_model)
   const hasMail = draft.tools.includes("send_mail") || draft.tools.includes("read_mail")
   const tabs: TabDefinition[] = [
     { id: "overview", label: "Übersicht", icon: LayoutGrid },
     { id: "model", label: "Modell", icon: Cpu },
-    { id: "prompt", label: "Prompt", icon: FileText },
+    { id: "prompt", label: t("fields.system_prompt"), icon: FileText },
     { id: "tools", label: "Tools", icon: Wrench },
     ...(hasMail ? [{ id: "mail", label: "Mail", icon: Mail }] : []),
     { id: "skills", label: "Skills", icon: Sparkles },
-    { id: "soul", label: "MD-Dateien", icon: BrainCircuit },
+    { id: "soul", label: t("tabs.soul"), icon: BrainCircuit },
     { id: "advanced", label: "Erweitert", icon: SlidersHorizontal },
     { id: "schedules", label: "Intervalle", icon: Clock },
   ]
@@ -138,13 +144,13 @@ export function ProjectAgentEditorTabs({
               </Field>
             </div>
           )}
-          {activeTab === "prompt" && <PromptTab prompt={prompt} onChange={onPromptChange} />}
+          {activeTab === "prompt" && <PromptTab prompt={prompt} onChange={onPromptChange} soulActive={soulActive} />}
           {activeTab === "tools" && (
             <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={onChange} />
           )}
           {activeTab === "mail" && hasMail && <MailTab draft={draft} onChange={onChange} />}
           {activeTab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={onChange} />}
-          {activeTab === "soul" && <SoulTab agent={agent} />}
+          {activeTab === "soul" && <SoulTab agent={agent} onSaved={onSoulSaved} />}
           {activeTab === "advanced" && (
             <CompactionSection agent={draft} models={models} onChange={onChange} />
           )}

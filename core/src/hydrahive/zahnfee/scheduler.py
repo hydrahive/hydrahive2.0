@@ -18,7 +18,7 @@ async def run_loop(stop: asyncio.Event) -> None:
     while not stop.is_set():
         try:
             from hydrahive.zahnfee import config as cfg_mod
-            from hydrahive.zahnfee import storage, runner
+            from hydrahive.zahnfee import runner, storage
 
             cfg = cfg_mod.load()
             if cfg.enabled:
@@ -27,20 +27,18 @@ async def run_loop(stop: asyncio.Event) -> None:
 
                 # Läuft nur einmal pro Tag zur konfigurierten Stunde
                 if now.hour == cfg.run_hour and last_run_date != today:
-                    existing = storage.load()
-                    if not existing or existing.date != today:
-                        logger.info("zahnfee: tageszeit erreicht, starte runner")
-                        last_run_date = today
-                        asyncio.create_task(runner.run(), name="zahnfee-runner")
-                        # Proaktiver Recall (L2): Cards aus den Sessions des Tages
-                        # konsolidieren — Schlaf-Batch, reuse des Zahnfee-Tages-Ticks.
-                        # Nur mit konfiguriertem Modell (sonst kein LLM-Verdichten).
-                        if cfg.model:
-                            from hydrahive.cards.consolidate import consolidate_recent
-                            asyncio.create_task(
-                                consolidate_recent(cfg.lookback_hours, cfg.model),
-                                name="cards-consolidate",
-                            )
+                    logger.info("zahnfee: tageszeit erreicht, starte runner")
+                    last_run_date = today
+                    asyncio.create_task(runner.run_all(), name="zahnfee-runner")
+                    # Proaktiver Recall (L2): Cards aus den Sessions des Tages
+                    # konsolidieren — Schlaf-Batch, reuse des Zahnfee-Tages-Ticks.
+                    # Nur mit konfiguriertem Modell (sonst kein LLM-Verdichten).
+                    if cfg.model:
+                        from hydrahive.cards.consolidate import consolidate_recent
+                        asyncio.create_task(
+                            consolidate_recent(cfg.lookback_hours, cfg.model),
+                            name="cards-consolidate",
+                        )
         except Exception as e:
             logger.warning("zahnfee scheduler fehler: %s", e)
 

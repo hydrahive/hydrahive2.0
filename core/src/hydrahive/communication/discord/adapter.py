@@ -15,8 +15,9 @@ import logging
 
 import discord
 
-from hydrahive.communication.base import ChannelStatus, IncomingEvent
+from hydrahive.communication.base import ChannelStatus
 from hydrahive.communication.discord.config import DiscordConfig, load, save
+from hydrahive.communication.discord.event import build_event
 from hydrahive.communication.discord.filter import evaluate
 from hydrahive.communication.router import handle_incoming
 from hydrahive.settings import settings
@@ -101,17 +102,15 @@ class DiscordAdapter:
                         .replace(f"<@!{client.user.id}>", "")
                         .strip())
 
-            event = IncomingEvent(
-                channel="discord",
-                external_user_id=str(message.channel.id),
-                target_username=username,
+            event = build_event(
+                cfg=current_cfg,
+                username=username,
+                author_id=str(message.author.id),
+                author_name=message.author.display_name,
+                channel_id=str(message.channel.id),
+                guild_id=str(message.guild.id) if message.guild else None,
+                is_dm=is_dm,
                 text=text,
-                sender_name=message.author.display_name,
-                metadata={
-                    "author_id": str(message.author.id),
-                    "is_dm": is_dm,
-                    "guild_id": str(message.guild.id) if message.guild else None,
-                },
             )
 
             try:

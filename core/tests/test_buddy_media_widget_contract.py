@@ -29,3 +29,22 @@ def test_media_widget_normalizer_has_stable_validation_and_ordering():
     assert "seen.has" in source
     assert "order -" in source
     assert "localeCompare" in source
+
+
+def test_buddy_rendert_modul_widgets_wieder():
+    """Regression 35627cdc: moduleBuddyWidgets (Aufgaben, Akte, Spiele) wurden nie gerendert (MED-4)."""
+    page = (ROOT / "frontend/src/features/buddy/BuddyPage.tsx").read_text()
+    rail = (ROOT / "frontend/src/features/buddy/_BuddyModuleWidgets.tsx").read_text()
+    assert "BuddyModuleWidgets" in page
+    assert "moduleBuddyWidgets" in rail
+    assert "typeof" in rail and '"function"' in rail      # nur echte Komponenten
+    assert "onPrompt={onPrompt}" in rail                  # Prompt nur auf Klick im Widget
+
+
+def test_buddy_zeigt_zahnfee_briefing_wieder():
+    """Regression d041b2cf: das Morgen-Briefing war im Buddy nirgends mehr sichtbar (MED-4)."""
+    page = (ROOT / "frontend/src/features/buddy/BuddyPage.tsx").read_text()
+    box = (ROOT / "frontend/src/features/buddy/_BuddyBriefingBox.tsx").read_text()
+    assert "BuddyBriefingBox" in page
+    assert "zahnfeeApi.briefing()" in box
+    assert not (ROOT / "frontend/src/features/buddy/_BuddyLeftPanel.tsx").exists()

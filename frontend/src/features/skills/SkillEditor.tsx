@@ -38,7 +38,7 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
     setBusy(true); setError(null)
     try {
       const tools = toolsRequired.split(",").map((s) => s.trim()).filter(Boolean)
-      const owner = scope === "agent" ? ownerForSave : skill?.owner
+      const owner = scope === "agent" || scope === "project" ? (skill?.owner ?? ownerForSave) : skill?.owner
       await skillsApi.save(scope, {
         name, description, when_to_use: whenToUse,
         tools_required: tools,

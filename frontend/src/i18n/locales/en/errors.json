@@ -23,6 +23,7 @@
 
   "agent_not_found": "Agent not found",
   "agent_no_access": "No access to this agent",
+  "soul_active": "Soul is active — the system prompt is not used. Edit the soul in the “Soul” tab or clear all fields there.",
 
   "session_not_found": "Session not found",
   "session_no_access": "No access to this session",

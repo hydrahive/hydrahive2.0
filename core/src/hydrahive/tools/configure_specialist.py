@@ -41,6 +41,14 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not target or target.get("type") != "specialist" or target.get("project_id") != pid:
         return ToolResult.fail("Spezialist nicht in deinem Projekt gefunden")
 
+    if args.get("system_prompt"):
+        from hydrahive.agents import _prompt
+        if _prompt.load_soul(target_id):
+            # Soul ersetzt system_prompt.md komplett — Schreiben wäre wirkungslos.
+            return ToolResult.fail(
+                "Soul aktiv: dieser Spezialist nutzt Soul-Dateien, ein System-Prompt "
+                "würde ignoriert. Soul im Agent-Editor bearbeiten oder dort leeren.")
+
     changes = specialist_runtime_changes(args)
     if "llm_model" in args:
         changes["llm_model"] = args["llm_model"]

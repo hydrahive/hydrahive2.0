@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 
 from hydrahive.agents import config as agent_config
+from hydrahive.agents._prompt import load_soul
 from hydrahive.buddy import _find_buddy_for, _pick_character
 from hydrahive.buddy import _soul_state as soul_state
 from hydrahive.buddy._commands_helpers import slug as _slug, snapshot_active_session as _snapshot_active_session
@@ -30,9 +31,12 @@ def clear_session(username: str) -> dict:
     current = [s for s in sessions_db.list_for_user(username) if s.agent_id == buddy["id"]]
     current.sort(key=lambda s: s.created_at, reverse=True)
     project_id = current[0].project_id if current else None
+    # Tiefe und Gesprächsmodus sind Nutzer-Einstellungen, kein Gesprächsinhalt.
+    old_md = (current[0].metadata or {}) if current else {}
+    keep = {k: old_md[k] for k in ("reasoning_effort", "buddy_mode") if old_md.get(k)}
     new_session = sessions_db.create(
         agent_id=buddy["id"], user_id=username,
-        title=f"{username}'s Buddy", project_id=project_id,
+        title=f"{username}'s Buddy", project_id=project_id, metadata=keep or None,
     )
     return {
         "ok": True,
@@ -111,8 +115,9 @@ def reroll_character(username: str) -> dict:
     agent_config.set_system_prompt(
         buddy["id"], soul_state.rebuild_soul(username, buddy["id"], universe, character))
     session_id = soul_state.new_session_keeping_project(buddy["id"], username)
-    return {
-        "ok": True,
-        "session_id": session_id,
-        "message": f"Neuer Charakter: {character} ({universe}). Sag Hallo.",
-    }
+    message = f"Neuer Charakter: {character} ({universe}). Sag Hallo."
+    soul_active = bool(load_soul(buddy["id"]))
+    if soul_active:
+        message += (" Achtung: Soul-Dateien sind aktiv und ersetzen den Charakter-Prompt. "
+                    "Die neue Figur wirkt erst, wenn die Soul geleert ist.")
+    return {"ok": True, "session_id": session_id, "message": message, "soul_active": soul_active}

@@ -54,6 +54,7 @@
   },
   "notes": {
     "hint": "Markdown notes, briefing or context for this project.",
+    "agent_hint": "Agents in project sessions receive the description and notes as a briefing (up to 4000 characters).",
     "placeholder": "# Project Briefing\n\nGoal, context, decisions…"
   },
   "files": {

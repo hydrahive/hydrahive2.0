@@ -49,3 +49,22 @@ def test_configures_own_project_specialist(monkeypatch):
     assert {"max_iterations", "max_tokens", "handoff_timeout_seconds"}.issubset(
         conf.TOOL.schema["properties"]
     )
+
+
+def test_system_prompt_bei_aktiver_soul_wird_abgelehnt(monkeypatch):
+    """Soul ersetzt den System-Prompt — Schreiben wäre wirkungslos (MED-1)."""
+    def _get(_id):
+        if _id == "proj-agent":
+            return {"id": "proj-agent", "type": "project", "owner": "u",
+                    "project_id": "P", "tools": ["file_read"]}
+        return {"id": "spec-1", "type": "specialist", "project_id": "P"}
+    written: list = []
+    monkeypatch.setattr("hydrahive.agents.config.get", _get)
+    monkeypatch.setattr("hydrahive.agents.config.update", lambda aid, **ch: written.append(ch))
+    monkeypatch.setattr("hydrahive.agents.config.set_system_prompt", lambda aid, p: written.append(p))
+    monkeypatch.setattr("hydrahive.agents._prompt.load_soul", lambda aid: "Soul-Text")
+    res = asyncio.run(conf.TOOL.execute(
+        {"agent_id": "spec-1", "system_prompt": "neu", "status": "disabled"}, _ctx()))
+    assert not res.success
+    assert "Soul" in res.error
+    assert written == []   # nichts halb angewendet

@@ -12,7 +12,7 @@ from hydrahive.agents import AgentValidationError, config as agent_config
 from hydrahive.agents import _tool_config
 from hydrahive.agents._defaults import DEFAULT_TOOLS
 from hydrahive.agents._prompt import (
-    SOUL_COMPONENTS, get_soul_components, save_soul_component,
+    SOUL_COMPONENTS, get_soul_components, load_soul, save_soul_component,
 )
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.routes._agent_schemas import (
@@ -160,11 +160,16 @@ def get_system_prompt(
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
     _check_access(agent, *auth)
-    return {"prompt": agent_config.get_system_prompt(agent_id)}
+    # Soul-Dateien ersetzen system_prompt.md komplett — die UI muss das wissen.
+    source = "soul" if load_soul(agent_id) else "prompt"
+    return {"prompt": agent_config.get_system_prompt(agent_id), "source": source}
 
 
 @router.put("/{agent_id}/system_prompt", dependencies=[Depends(require_admin)])
 def set_system_prompt(agent_id: str, req: SystemPromptUpdate) -> dict:
+    if agent_config.get(agent_id) and load_soul(agent_id):
+        # Speichern wäre wirkungslos, weil die Soul Vorrang hat.
+        raise coded(status.HTTP_409_CONFLICT, "soul_active")
     try:
         agent_config.set_system_prompt(agent_id, req.prompt)
     except KeyError:

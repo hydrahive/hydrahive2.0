@@ -13,6 +13,9 @@ passiert, ohne dass du zusehen musst.
   Zeitstempel, wann sie generiert wurde).
 - **Einstellungen**: die Zahnfee **aktivieren/deaktivieren** und das **Modell**
   wählen, mit dem das Briefing erstellt wird.
+- **Jeder hat sein eigenes Briefing**: Die Zahnfee fasst nur deine eigenen
+  Gespräche zusammen. Nutzer ohne Aktivität im Zeitraum bekommen keins.
+- **Im Buddy**: Dein Briefing steht auch rechts im Buddy-Cockpit.
 
 ## Schritt-für-Schritt
 

@@ -69,6 +69,8 @@
       "mention_enabled": "@Mentions empfangen",
       "keyword_label": "Aktivierungs-Keyword (leer = immer antworten)",
       "keyword_placeholder": "z.B. !bot",
+      "owner_users": "Besitzer (deine Discord-User-IDs)",
+      "owner_users_hint": "Nachrichten dieser IDs gelten als vertrauenswürdig (wie du selbst) und umgehen die Whitelist. Ohne Eintrag behandelt der Bot auch dich als unbekannten Kontakt. In Server-Kanälen hat jeder Nutzer ein eigenes Gespräch mit dem Bot.",
       "allowed_users": "Whitelist User-IDs (leer = alle erlauben)",
       "allowed_users_hint": "Wenn gesetzt: nur diese Discord-User-IDs dürfen.",
       "blocked_users": "Blacklist User-IDs",

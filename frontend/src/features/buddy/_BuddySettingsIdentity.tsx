@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { Dice5 } from "lucide-react"
+import { AlertTriangle, Dice5 } from "lucide-react"
 import type { BuddyConfig, BuddyConfigPatch } from "./api"
 
 interface Props {
@@ -29,6 +29,12 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
 
   return (
     <div className="space-y-6">
+      {config.soul_active ? (
+        <p className="flex items-start gap-2 rounded-[4px] border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          {t("identity.soul_active")}
+        </p>
+      ) : null}
       <div className="space-y-1.5">
         <label className="block text-xs font-medium text-[#8d9ab0]">{t("identity.name_label")}</label>
         <input

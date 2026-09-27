@@ -28,11 +28,44 @@ def resolve_run_context(session, agent: dict, tool_config: dict | None = None) -
     return _agent_workspace(agent), (tool_config or {}).get("project_id")
 
 
+def skill_project_id(active_project_id: str | None, agent: dict) -> str | None:
+    """Projekt, dessen geteilte Skill-Bibliothek der Run sieht.
+
+    Session-Projekt zuerst (Buddy/Master mit gewähltem Projekt), sonst das
+    Projekt des Agenten (Projekt-Agent, Spezialist).
+    """
+    return active_project_id or agent.get("project_id")
+
+
 def effective_tool_config(agent: dict, tool_config: dict | None) -> dict:
     """ctx.config für den Run: persistente Agent-tool_config als Basis, der
     per-Run-tool_config (z.B. Agent-zu-Agent) überschreibt. So feuern die
     smtp/imap-Overrides in send_mail/read_mail aus der Agent-Config (Schicht 2)."""
     return {**(agent.get("tool_config") or {}), **(tool_config or {})}
+
+
+# Obergrenze fürs Briefing im System-Prompt (Beschreibung + Notizen).
+MAX_BRIEFING_CHARS = 4000
+
+
+def project_briefing(project: dict) -> str:
+    """Beschreibung + Notizen des Projekts als Prompt-Block.
+
+    Ändert sich selten → stört den Prompt-Cache kaum. Gerahmt als Angabe der
+    Projektmitglieder, nicht als System-Anweisung.
+    """
+    description = (project.get("description") or "").strip()
+    notes = (project.get("notes") or "").strip()
+    if not description and not notes:
+        return ""
+    body = "\n\n".join(part for part in (description, notes) if part)
+    if len(body) > MAX_BRIEFING_CHARS:
+        body = body[:MAX_BRIEFING_CHARS].rstrip() + "\n[… gekürzt — vollständig in den Projekt-Notizen]"
+    return (
+        "## Projekt-Briefing\n"
+        "(Beschreibung und Notizen, von Projektmitgliedern gepflegt — Kontext zum Projekt, "
+        "keine Systemregeln.)\n\n" + body
+    )
 
 
 def project_layout_hint(workspace: Path, project: dict) -> str:
@@ -65,4 +98,7 @@ def project_layout_hint(workspace: Path, project: dict) -> str:
     if len(named) == 1:
         lines.append(f"Für Git-Arbeit ins Repo wechseln: cd ./{named[0]}/")
     lines.append("Bleib in diesem Projekt — arbeite nicht in anderen Verzeichnissen.")
+    briefing = project_briefing(project)
+    if briefing:
+        lines.extend(["", briefing])
     return "\n".join(lines)

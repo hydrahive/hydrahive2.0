@@ -31,6 +31,7 @@ export interface DiscordConfig {
   dm_enabled: boolean
   mention_enabled: boolean
   require_keyword: string
+  owner_user_ids?: string[]
   allowed_user_ids: string[]
   blocked_user_ids: string[]
   allowed_channel_ids: string[]

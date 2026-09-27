@@ -55,3 +55,29 @@ def test_update_session_unknown_project_404(client, auth_headers):
     r = client.patch(f"/api/sessions/{sid}", json={"project_id": "ghost-id"}, headers=auth_headers)
 
     assert r.status_code == 404, r.text
+
+
+def test_create_session_rejects_foreign_project(client, auth_headers):
+    """POST darf kein fremdes Projekt setzen — sonst Run im fremden Workspace (wie PATCH)."""
+    from hydrahive.projects import config as pc
+
+    foreign = pc.create(name="FremdCreate", llm_model="claude-sonnet-4-6", created_by="someone_else")
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-001", "project_id": foreign["id"]},
+                    headers=auth_headers)
+    assert r.status_code == 403, r.text
+
+
+def test_create_session_unknown_project_404(client, auth_headers):
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-001", "project_id": "ghost-id"},
+                    headers=auth_headers)
+    assert r.status_code == 404, r.text
+
+
+def test_create_session_with_own_project(client, auth_headers):
+    from hydrahive.projects import config as pc
+
+    proj = pc.create(name="EigenCreate", llm_model="claude-sonnet-4-6", created_by="testuser")
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-001", "project_id": proj["id"]},
+                    headers=auth_headers)
+    assert r.status_code == 201, r.text
+    assert r.json()["project_id"] == proj["id"]

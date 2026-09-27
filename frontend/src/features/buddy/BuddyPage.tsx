@@ -29,6 +29,9 @@ import { isCommand, runCommand } from "./commands"
 import { CmdPill } from "./_BuddyCmdPill"
 import { BuddyActionVisual } from "./_BuddyActionVisual"
 import { BuddyModeSelect } from "./_BuddyModeSelect"
+import { BuddyBriefingBox } from "./_BuddyBriefingBox"
+import { BuddyModuleWidgets } from "./_BuddyModuleWidgets"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { normalizeBuddyMediaWidgets } from "./moduleMediaWidgets"
 
 const BUDDY_MEDIA_WIDGETS = normalizeBuddyMediaWidgets(moduleBuddyMediaWidgets)
@@ -59,7 +62,9 @@ export function BuddyPage() {
   useEffect(() => {
     if (initRef.current) return
     initRef.current = true
-    buddyApi.state().then(setState).catch((e: unknown) => setError(e instanceof Error ? e.message : "Fehler"))
+    buddyApi.state()
+      .then((s) => { setState(s); setReasoningEffort((s.reasoning_effort ?? null) as EffortLevel | null) })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Fehler"))
   }, [])
 
   useEffect(() => {
@@ -75,7 +80,7 @@ export function BuddyPage() {
     try {
       const r = await buddyApi.clear()
       setLocalMsgs([])
-      setReasoningEffort(null)
+      // Neue Session übernimmt die Tiefe (Backend) — Anzeige bleibt deshalb stehen.
       setState((s) => (s ? { ...s, session_id: r.session_id } : s))
     } finally {
       setHandoverBusy(false)
@@ -147,7 +152,7 @@ export function BuddyPage() {
               <div className="flex shrink-0 items-center gap-2">
                 <ProjectPicker current={state.project_id} projects={projects} onPick={handleProjectPick} busy={projectBusy} />
                 {state.model && <div className="w-[210px]"><ModelPicker current={state.model} hint="Buddy-Modell wechseln" fullWidth onPick={async (m) => { await buddyApi.setModel(m); setReasoningEffort(null); setState(await buddyApi.state()) }} /></div>}
-                {effortLevels.length > 0 && <ReasoningEffortPill current={reasoningEffort} levels={effortLevels} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort ?? "" }); setReasoningEffort(effort) }} />}
+                {effortLevels.length > 0 && <ReasoningEffortPill current={reasoningEffort} levels={effortLevels} agentDefault={state.default_reasoning_effort} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort ?? "" }); setReasoningEffort(effort) }} />}
                 <HelpButton topic="buddy" />
                 <CockpitButton disabled={chat.busy || handoverBusy} tone="primary" onClick={newChat}>{handoverBusy ? "Übergabe wird erstellt …" : "Neuer Chat"}</CockpitButton>
               </div>
@@ -177,10 +182,11 @@ function BuddyLeftRail({ state, activity, ttsSpeaking, projects, localOverviewOp
 }
 
 function BuddyRightRail({ state, onPrompt, onSettings }: { state: BuddyState; onPrompt: (text: string) => void; onSettings: () => void }) {
+  const isAdmin = useAuthStore((s) => s.role) === "admin"
   const primaryLinks = [["Projekte", "/projects"], ["Media", "/media"], ["Vault", "/vault"], ["Admin", "/admin"]]
   const toolLinks = [["Scratchpad", "/scratchpad"], ["Spiele", "/minigames"], ["Boardgames", "/boardgames"]]
 
-  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Kontext" eyebrow="Ruhig" actions={<button onClick={onSettings} className="rounded-[4px] border border-[#2a364b] p-1 text-[#8d9ab0] hover:text-[#e8eef8]"><Settings size={14} /></button>}><div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-3"><div className="text-[11px] uppercase tracking-[0.12em] text-[#69d7ff]">Aktiver Buddy</div><div className="mt-1 text-sm font-bold text-[#e8eef8]">{state.agent_name}</div><div className="mt-1 text-xs text-[#8d9ab0]">Optionale Medien bleiben lokal bedienbar. Buddy bleibt zuerst Chat und Companion.</div></div><div className="mt-3 grid grid-cols-2 gap-2">{primaryLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-xs font-bold text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel>{BUDDY_MEDIA_WIDGETS.length > 0 && <div className="my-[10px] space-y-[10px]">{BUDDY_MEDIA_WIDGETS.map(({ id, component: Widget }) => <Widget key={id} onPrompt={onPrompt} projectId={state.project_id} />)}</div>}<CockpitPanel title="Werkzeuge" eyebrow="Kompakt"><p className="text-xs leading-4 text-[#8d9ab0]">Häufige lokale Werkzeuge liegen hier als leise Links; vollständige Ansichten bleiben in ihren Cockpits.</p><div className="mt-3 flex flex-wrap gap-2">{toolLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-full border border-[#2a364b] bg-[#111827] px-3 py-1 text-xs text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><CockpitPanel title="Hinweis" eyebrow="Offline"><p className="text-xs leading-4 text-[#8d9ab0]">Player und Links starten keine LLM-Anfrage. Bei Bedarf kannst du Buddy bewusst dazu fragen.</p></CockpitPanel></aside>
+  return <aside className="hidden min-h-0 overflow-y-auto xl:block"><CockpitPanel title="Kontext" eyebrow="Ruhig" actions={<button onClick={onSettings} className="rounded-[4px] border border-[#2a364b] p-1 text-[#8d9ab0] hover:text-[#e8eef8]"><Settings size={14} /></button>}><div className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-3"><div className="text-[11px] uppercase tracking-[0.12em] text-[#69d7ff]">Aktiver Buddy</div><div className="mt-1 text-sm font-bold text-[#e8eef8]">{state.agent_name}</div><div className="mt-1 text-xs text-[#8d9ab0]">Optionale Medien bleiben lokal bedienbar. Buddy bleibt zuerst Chat und Companion.</div></div><div className="mt-3 grid grid-cols-2 gap-2">{primaryLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left text-xs font-bold text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><div className="my-[10px]"><BuddyBriefingBox isAdmin={isAdmin} /></div>{BUDDY_MEDIA_WIDGETS.length > 0 && <div className="my-[10px] space-y-[10px]">{BUDDY_MEDIA_WIDGETS.map(({ id, component: Widget }) => <Widget key={id} onPrompt={onPrompt} projectId={state.project_id} />)}</div>}<BuddyModuleWidgets onPrompt={onPrompt} projectId={state.project_id} /><CockpitPanel title="Werkzeuge" eyebrow="Kompakt"><p className="text-xs leading-4 text-[#8d9ab0]">Häufige lokale Werkzeuge liegen hier als leise Links; vollständige Ansichten bleiben in ihren Cockpits.</p><div className="mt-3 flex flex-wrap gap-2">{toolLinks.map(([label, path]) => <button key={path} onClick={() => openLocalPath(path)} className="rounded-full border border-[#2a364b] bg-[#111827] px-3 py-1 text-xs text-[#e8eef8] hover:border-[#46617f]">{label}</button>)}</div></CockpitPanel><CockpitPanel title="Hinweis" eyebrow="Offline"><p className="text-xs leading-4 text-[#8d9ab0]">Player und Links starten keine LLM-Anfrage. Bei Bedarf kannst du Buddy bewusst dazu fragen.</p></CockpitPanel></aside>
 }
 
 function BuddyQuickActions({ handleSend, insert }: { handleSend: (text: string) => void; insert: (text: string) => void }) {

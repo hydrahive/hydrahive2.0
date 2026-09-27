@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { File, Folder, Plus, Search, Upload } from "lucide-react"
+import { File, Folder, Plus, RefreshCw, Search, Upload } from "lucide-react"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "../CockpitPanel"
 import { projectsApi } from "@/features/projects/api"
 import { classifyFile, type FileKind } from "@/features/chat/workspace/fileType"
+import { useRunFinished } from "@/shared/runFinished"
 
 interface ProjectFileEntry {
   name: string
@@ -55,6 +56,8 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
   }, [projectId, path])
 
   useEffect(() => { void reload() }, [reload])
+  // Agent hat evtl. Dateien angelegt/geändert → nach jedem Lauf neu laden.
+  useRunFinished(reload)
 
   async function handleUpload(files: FileList | null) {
     if (!projectId || !files || files.length === 0) return
@@ -112,6 +115,9 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
             className="hidden"
             onChange={(event) => void handleUpload(event.target.files)}
           />
+          <CockpitButton disabled={!projectId || loading} onClick={() => void reload()} aria-label="Neu laden" title="Neu laden">
+            <RefreshCw size={12} className={loading ? "inline animate-spin" : "inline"} />
+          </CockpitButton>
           <CockpitButton disabled={!projectId || busy} onClick={() => fileInputRef.current?.click()}>
             <Upload size={12} className="mr-1 inline" /> Upload
           </CockpitButton>

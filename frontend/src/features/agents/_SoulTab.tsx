@@ -13,9 +13,11 @@ const C = rgbFor("/agents")
 
 interface Props {
   agent: Agent
+  /** Nach dem Speichern: Aufrufer kann prüfen, ob die Soul jetzt aktiv ist. */
+  onSaved?: () => void
 }
 
-export function SoulTab({ agent }: Props) {
+export function SoulTab({ agent, onSaved }: Props) {
   const { t } = useTranslation("agents")
   const [soul, setSoul] = useState<Record<Component, string>>({ identity: "", behavior: "", background: "" })
   const [saved, setSaved] = useState<Record<Component, boolean>>({ identity: false, behavior: false, background: false })
@@ -31,6 +33,7 @@ export function SoulTab({ agent }: Props) {
 
   async function saveComponent(c: Component) {
     await agentsApi.setSoulComponent(agent.id, c, soul[c])
+    onSaved?.()
     setSaved((s) => ({ ...s, [c]: true }))
     setTimeout(() => setSaved((s) => ({ ...s, [c]: false })), 2000)
   }
@@ -61,7 +64,7 @@ export function SoulTab({ agent }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] text-zinc-500">{t("soul.description")}</p>
+        <p className="text-[10px] text-zinc-500">{t("soul.description")} {t("soul.replaces_prompt_hint")}</p>
         <button
           onClick={loadTemplate}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] border border-white/[8%] text-zinc-400 hover:text-zinc-200 hover:bg-white/[5%] transition-colors"

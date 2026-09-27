@@ -54,6 +54,7 @@
   },
   "notes": {
     "hint": "Markdown-Notizen, Briefing oder Kontext für dieses Projekt.",
+    "agent_hint": "Beschreibung und Notizen bekommen die Agenten in Projekt-Sessions als Briefing mit (bis 4000 Zeichen).",
     "placeholder": "# Projekt-Briefing\n\nZiel, Kontext, Entscheidungen…"
   },
   "files": {
