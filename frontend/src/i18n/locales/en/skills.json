@@ -30,5 +30,10 @@
   "agent_tab_empty": "No skills available — create one under /skills or here.",
   "agent_tab_edit": "Edit",
   "agent_tab_on": "on",
-  "agent_tab_off": "off"
+  "agent_tab_off": "off",
+  "project_title": "Project skills",
+  "project_subtitle": "Shared library: every agent working in this project sees these skills — project agent, specialists and buddy/master when the project is selected.",
+  "project_empty": "No project skills yet. The project agent can create them via write_skill, or you add one here.",
+  "project_read_only": "You only have read access to this project.",
+  "project_load_error": "Project skills could not be loaded."
 }

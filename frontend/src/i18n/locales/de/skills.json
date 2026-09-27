@@ -30,5 +30,10 @@
   "agent_tab_empty": "Keine Skills verfügbar — leg einen unter /skills oder hier an.",
   "agent_tab_edit": "Bearbeiten",
   "agent_tab_on": "an",
-  "agent_tab_off": "aus"
+  "agent_tab_off": "aus",
+  "project_title": "Projekt-Skills",
+  "project_subtitle": "Geteilte Bibliothek: Alle Agenten, die in diesem Projekt arbeiten, sehen diese Skills — Projekt-Agent, Spezialisten und Buddy/Master, wenn das Projekt gewählt ist.",
+  "project_empty": "Noch keine Projekt-Skills. Der Projekt-Agent kann sie per write_skill anlegen, oder du legst hier einen an.",
+  "project_read_only": "Du hast nur Leserechte in diesem Projekt.",
+  "project_load_error": "Projekt-Skills konnten nicht geladen werden."
 }

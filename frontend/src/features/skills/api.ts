@@ -11,6 +11,9 @@ export const skillsApi = {
     const q = qs.toString()
     return api.get<Skill[]>(`/skills${q ? "?" + q : ""}`)
   },
+  /** Geteilte Projekt-Bibliothek (Projektrolle read genügt). */
+  listProject: (projectId: string) =>
+    api.get<Skill[]>(`/skills?project_id=${encodeURIComponent(projectId)}`),
   get: (scope: SkillScope, name: string, owner?: string) => {
     const qs = owner ? `?owner=${encodeURIComponent(owner)}` : ""
     return api.get<Skill>(`/skills/${scope}/${encodeURIComponent(name)}${qs}`)

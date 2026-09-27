@@ -12,11 +12,12 @@ interface Props {
   onMounts: () => void
   onGit: () => void
   onIntegrations: () => void
+  onSkills: () => void
   onInsight: (view: ProjectInsightView) => void
   onGraph: () => void
 }
 
-export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, onIntegrations, onInsight, onGraph }: Props) {
+export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, onIntegrations, onSkills, onInsight, onGraph }: Props) {
   return <div className="mt-3 space-y-2 border-t border-[#2a364b] pt-3">
     <div className="grid grid-cols-2 gap-2">
       <CockpitButton tone="primary" onClick={onCreate}>+ Neues Projekt</CockpitButton>
@@ -28,6 +29,7 @@ export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onSe
       <ActionButton onClick={onMounts} disabled={disabled}>Externe Mounts</ActionButton>
       <ActionButton onClick={onGit} disabled={disabled}>Git</ActionButton>
       <ActionButton onClick={onIntegrations} disabled={disabled}>Samba &amp; Integrationen</ActionButton>
+      <ActionButton onClick={onSkills} disabled={disabled}>Skills</ActionButton>
     </ActionGroup>
     <ActionGroup title="Auswerten">
       <ActionButton onClick={() => onInsight("stats")} disabled={disabled}>Statistiken</ActionButton>

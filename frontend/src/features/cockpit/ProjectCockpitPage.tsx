@@ -28,6 +28,7 @@ import { ProjectGitSummary } from "./project/ProjectGitSummary"
 import { ProjectGitOverlay } from "./project/ProjectGitOverlay"
 import { ProjectGraphOverlay } from "./project/ProjectGraphOverlay"
 import { ProjectIntegrationsOverlay } from "./project/ProjectIntegrationsOverlay"
+import { ProjectSkillsOverlay } from "./project/ProjectSkillsOverlay"
 import { ProjectGitTreePanel } from "./project/ProjectGitTreePanel"
 import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
 import { ProjectSelector } from "./project/ProjectSelector"
@@ -53,6 +54,7 @@ export function ProjectCockpitPage() {
   const [graphOpen, setGraphOpen] = useState(false)
   const [gitRevision, setGitRevision] = useState(0)
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
+  const [skillsOpen, setSkillsOpen] = useState(false)
   const agentSelection = useProjectAgentSelection(prefs)
   const selectedAgentByProject = agentSelection.selectedByProject
   // Explizite User-Auswahl hat Vorrang vor dem aus den Prefs abgeleiteten Default.
@@ -160,6 +162,7 @@ export function ProjectCockpitPage() {
               onMounts={() => setMountsOpen(true)}
               onGit={() => setGitOpen(true)}
               onIntegrations={() => setIntegrationsOpen(true)}
+              onSkills={() => setSkillsOpen(true)}
               onInsight={setInsightView}
               onGraph={() => setGraphOpen(true)}
             />
@@ -265,6 +268,7 @@ export function ProjectCockpitPage() {
         <FileOverlay agentId={projectAgentId} path={wsFile.path} kind={wsFile.kind} onClose={() => setWsFile(null)} />
       )}
       {integrationsOpen && activeProject && <ProjectIntegrationsOverlay project={activeProject} onClose={() => setIntegrationsOpen(false)} onSaved={(updated) => setProjects((current) => current.map((project) => project.id === updated.id ? updated : project))} />}
+      {skillsOpen && activeProject && <ProjectSkillsOverlay project={activeProject} onClose={() => setSkillsOpen(false)} />}
       {gitOpen && activeProject && <ProjectGitOverlay project={activeProject} onClose={() => setGitOpen(false)} onChanged={() => setGitRevision((revision) => revision + 1)} />}
       {insightView && activeProject && (
         <ProjectInsightsOverlay

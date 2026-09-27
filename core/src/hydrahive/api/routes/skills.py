@@ -4,6 +4,7 @@ Scopes:
 - system  : nur Admin schreibt/löscht, alle lesen
 - user    : Owner == username (auth)
 - agent   : Owner == agent_id, Auth-Check über Agent-Owner
+- project : Owner == project_id, lesen ab Projektrolle read, schreiben ab write
 
 Listing für einen Agent ruft list_for_agent (merge system+user+agent).
 """
@@ -24,13 +25,15 @@ from hydrahive.api.routes._skill_route_helpers import (
 )
 from hydrahive.skills import delete_skill, get_skill, list_for_agent, save_skill
 from hydrahive.skills.loader import _list_dir
-from hydrahive.skills._paths import system_dir, user_dir
+from hydrahive.skills._paths import project_dir, system_dir, user_dir
 from hydrahive.skills.models import Skill, SkillScope, SkillSource, is_valid_name
 
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
 
-def _check_project_access(project_id: str | None, username: str, role: str) -> None:
+def _check_project_access(
+    project_id: str | None, username: str, role: str, required: str = "write",
+) -> None:
     """project-Scope: nur Owner/Member des Projekts (oder Admin) dürfen schreiben/löschen.
     Schließt das Tor, das durch 'project' in SkillScope sonst offenstünde."""
     from hydrahive.projects import config as project_config
@@ -42,9 +45,9 @@ def _check_project_access(project_id: str | None, username: str, role: str) -> N
     proj = project_config.get(project_id)
     if not proj:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    # Skills anlegen/ändern/löschen ist schreibend -> Rolle write.
+    # Anlegen/Ändern/Löschen braucht write, Lesen reicht read.
     try:
-        check_project_access(proj, username, role, required="write")
+        check_project_access(proj, username, role, required=required)
     except Exception:
         raise coded(status.HTTP_403_FORBIDDEN, "skill_no_access")
 
@@ -55,10 +58,15 @@ def list_skills_endpoint(
     agent_id: str | None = None,
     scope: Literal["system", "user", "agent", "all"] = "all",
     include_disabled: bool = False,
+    project_id: str | None = None,
 ) -> list[dict]:
     """Wenn agent_id gesetzt: gemergte Liste für diesen Agent (system+user+agent).
+    Wenn project_id gesetzt: nur die geteilte Projekt-Bibliothek (read-Rolle nötig).
     Sonst: filterbar nach scope."""
     username, role = auth
+    if project_id:
+        _check_project_access(project_id, username, role, required="read")
+        return [_serialize(s) for s in _list_dir(project_dir(project_id), "project", project_id)]
     if agent_id:
         agent = _check_agent_access(agent_id, username, role)
         disabled = [] if include_disabled else list(agent.get("disabled_skills", []))
@@ -98,7 +106,7 @@ def get_skill_endpoint(
             raise coded(status.HTTP_400_BAD_REQUEST, "skill_owner_required")
         _check_agent_access(owner, username, role)
     if scope == "project":
-        _check_project_access(owner, username, role)
+        _check_project_access(owner, username, role, required="read")
     s = get_skill(scope, owner or "", name)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "skill_not_found", name=name)

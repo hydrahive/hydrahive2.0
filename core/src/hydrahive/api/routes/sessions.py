@@ -43,6 +43,9 @@ def create_session(
     agent = agent_config.get(req.agent_id)
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    if req.project_id:
+        # Wie PATCH: das Projekt bestimmt Workspace, Skills und Tools des Runs.
+        _assert_project_access(req.project_id, *auth)
     s = sessions_db.create(
         agent_id=req.agent_id,
         user_id=username,

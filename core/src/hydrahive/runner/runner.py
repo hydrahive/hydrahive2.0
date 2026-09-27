@@ -14,7 +14,7 @@ from hydrahive.agents._defaults import (
 )
 from hydrahive.agentlink.runtime_profiles import session_budget
 from hydrahive.runner._run_workspace import (
-    effective_tool_config, project_layout_hint, resolve_run_context,
+    effective_tool_config, project_layout_hint, resolve_run_context, skill_project_id,
 )
 from hydrahive.compaction import compact_session, should_compact
 from hydrahive.compaction.tokens import context_window_for
@@ -158,7 +158,8 @@ async def run(
     tool_result_max_chars = int(agent.get("tool_result_max_chars") or 0)
     cache_ttl: str = agent.get("cache_ttl") or "1h"
     max_iterations, run_max_tokens = _runtime_limits(agent, session.metadata)
-    agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [], project_id=agent.get("project_id"))
+    agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [],
+                                    project_id=skill_project_id(active_project_id, agent))
 
     # Proaktiver Recall A: Top-N Cards einmal pro Session laden (recency × salience)
     # → in den gecachten Stable-Prompt gewebt. Ändert sich nur bei nächtlicher
