@@ -38,6 +38,18 @@ def test_tool_channel_ids_roundtrip_and_kept_when_missing(client, auth_headers, 
     assert r.json()["tool_channel_ids"] == []
 
 
+def test_moderation_channel_ids_roundtrip_and_kept_when_missing(client, auth_headers, discord_dir):
+    url = "/api/communication/discord/config"
+    r = client.put(url, headers=auth_headers,
+                   json=_base(tool_channel_ids=["10"], moderation_channel_ids=["10", " 10 "]))
+    assert r.status_code == 200 and r.json()["moderation_channel_ids"] == ["10"]
+    # Älteres Frontend ohne das Feld darf die Moderationsfreigabe nicht löschen
+    r = client.put(url, headers=auth_headers, json=_base(tool_channel_ids=["10"]))
+    assert r.json()["moderation_channel_ids"] == ["10"]
+    r = client.put(url, headers=auth_headers, json=_base(moderation_channel_ids=[]))
+    assert r.json()["moderation_channel_ids"] == []
+
+
 def test_channels_catalog_requires_auth(client):
     assert client.get("/api/communication/discord/channels").status_code == 401
 

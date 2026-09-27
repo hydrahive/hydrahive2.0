@@ -362,6 +362,7 @@ Die Webhook-Route behält einen deprecated Kompatibilitätspfad, wenn ein Projek
 
 - Bot-Konfiguration, Enable/Disable-State und Message-Bridge.
 - Agenten-Tools `discord_channels`, `discord_read`, `discord_post`, `discord_reply`, `discord_edit`: freigegebene Kanäle auflisten, Textkanäle/Foren/Forum-Beiträge lesen, posten (inkl. neuer Forum-Beitrag mit Titel + Tags), in Beiträgen antworten, eigene Nachrichten bearbeiten. Nur in Kanälen, die unter „Kanäle für Agenten-Werkzeuge" freigegeben sind (leer = kein Zugriff, Forum-Beiträge erben); keine @everyone-/Rollen-Pings; Gelesenes wird als Fremdinhalt gerahmt. Standardmäßig bei keinem Agenten aktiv. Spec: `docs/specs/discord-agent-tools.md`.
+- Moderations-Tools `discord_thread_manage`, `discord_message_pin`, `discord_delete`, `discord_forum_tags`: Tags von Forum-Beiträgen setzen (auch „nur Moderatoren“-Tags), Titel ändern, schließen/öffnen, sperren, anheften; Nachrichten anpinnen/löschen, Beiträge löschen; Tag-Liste eines Forums pflegen. Nur in Kanälen, die zusätzlich mit „Moderieren“ freigegeben sind (leer = keine Moderation). Löschen verlangt immer eine Bestätigung durch den Benutzer, gelöschte Inhalte werden nicht zurückgegeben, Aktionen stehen mit Grund im Discord-Audit-Log. Spec: `docs/specs/discord-moderation-tools.md`.
 
 **Quellen:** `core/src/hydrahive/communication/discord/`, `core/src/hydrahive/api/routes/communication_discord*.py`.
 

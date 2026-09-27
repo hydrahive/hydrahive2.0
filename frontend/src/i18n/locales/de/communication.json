@@ -90,7 +90,11 @@
       "unreachable": "nicht erreichbar",
       "none_selected": "Kein Kanal freigegeben — Agenten haben keinen Discord-Zugriff.",
       "count_one": "{{count}} Kanal freigegeben — speichern nicht vergessen.",
-      "count_other": "{{count}} Kanäle freigegeben — speichern nicht vergessen."
+      "count_other": "{{count}} Kanäle freigegeben — speichern nicht vergessen.",
+      "moderate": "Moderieren",
+      "moderate_hint": "Moderations-Tools erlauben: Tags setzen, Beiträge schließen/sperren/anheften, Nachrichten anpinnen/löschen, Forum-Tags pflegen. Löschen muss immer bestätigt werden.",
+      "moderated_count_one": "Davon {{count}} mit Moderation.",
+      "moderated_count_other": "Davon {{count}} mit Moderation."
     }
   }
 }

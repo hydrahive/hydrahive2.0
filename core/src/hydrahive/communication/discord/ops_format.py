@@ -85,9 +85,13 @@ def split_message(text: str) -> list[str]:
     return chunks
 
 
-def _norm(name: str) -> str:
+def norm_tag(name: str) -> str:
+    """Tag-Name ohne Emoji, Groß/klein und Mehrfach-Leerzeichen — zum Vergleichen."""
     kept = "".join(c for c in (name or "").casefold() if c.isalnum() or c.isspace())
     return re.sub(r"\s+", " ", kept).strip()
+
+
+_norm = norm_tag
 
 
 def tag_label(tag: discord.ForumTag) -> str:

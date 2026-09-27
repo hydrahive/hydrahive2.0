@@ -12,15 +12,7 @@ from hydrahive.communication.discord.ops_access import (
     NO_MASS_PINGS, DiscordToolError, Scope, discord_errors, kind, parse_id, permissions,
     resolve_channel,
 )
-
-
-def _egress_scrub(scope: Scope, agent_id: str, text: str) -> str:
-    from hydrahive.credentials import redaction
-    secrets = redaction.secret_values() | redaction.agent_secret_values(agent_id)
-    if scope.cfg.bot_token:
-        secrets.add(scope.cfg.bot_token)
-    return redaction.scrub(text, secrets)
-
+from hydrahive.communication.discord.ops_access import egress_scrub as _egress_scrub
 
 def _check_thread_writable(thread: discord.Thread) -> None:
     perms = permissions(thread)

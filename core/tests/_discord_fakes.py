@@ -35,6 +35,8 @@ class FakeMessage:
         self.embeds: list = []
         self.channel = channel
         self.edits: list[dict] = []
+        self.pinned = False
+        self.deleted = False
 
     @property
     def jump_url(self) -> str:
@@ -44,6 +46,15 @@ class FakeMessage:
         self.edits.append(kwargs)
         self.clean_content = kwargs.get("content", self.clean_content)
         return self
+
+    async def pin(self, reason=None):
+        self.pinned = True
+
+    async def unpin(self, reason=None):
+        self.pinned = False
+
+    async def delete(self, delay=None):
+        self.deleted = True
 
 
 class FakeChannel:
@@ -67,6 +78,23 @@ class FakeChannel:
         self.applied_tags: list = []
         self.sent: list[dict] = []
         self.created_threads: list[dict] = []
+        self.parent = None           # bei Threads: das Eltern-Forum (von link_thread gesetzt)
+        self.message_count = len(self.messages)
+        self.edit_calls: list[dict] = []
+        self.deleted_with: str | None = None
+
+    async def edit(self, **kwargs):
+        """Thread.edit / ForumChannel.edit — Aufrufe mitschreiben und anwenden."""
+        self.edit_calls.append(kwargs)
+        if "available_tags" in kwargs:
+            self.available_tags = list(kwargs["available_tags"])
+        for key in ("archived", "locked", "applied_tags", "name"):
+            if key in kwargs:
+                setattr(self, key, kwargs[key])
+        return self
+
+    async def delete(self, reason=None):
+        self.deleted_with = reason or ""
 
     def permissions_for(self, _member):
         return self._perms
@@ -100,6 +128,13 @@ class FakeChannel:
         return SimpleNamespace(thread=thread, message=msg)
 
 
+def link_thread(thread: FakeChannel, forum: FakeChannel) -> FakeChannel:
+    """Thread einem Forum zuordnen (parent/parent_id) wie bei echten Forum-Beiträgen."""
+    thread.parent = forum
+    thread.parent_id = forum.id
+    return thread
+
+
 class FakeClient:
     def __init__(self, channels: list[FakeChannel]):
         self._channels = {c.id: c for c in channels}
@@ -113,7 +148,7 @@ class FakeClient:
 
 
 def install(monkeypatch, tmp_path: Path, channels: list[FakeChannel], tool_ids: list[str],
-            username: str = "u", bot_token: str = ""):
+            username: str = "u", bot_token: str = "", mod_ids: list[str] | None = None):
     """Discord-Config + Fake-Adapter für `username` einrichten; liefert den Client."""
     from hydrahive.communication import registry
     from hydrahive.communication.discord import config as dc_config
@@ -121,8 +156,9 @@ def install(monkeypatch, tmp_path: Path, channels: list[FakeChannel], tool_ids: 
 
     # cached_property: Instanz-__dict__ überschreiben, nicht die Klasse.
     monkeypatch.setitem(settings.__dict__, "discord_config_dir", tmp_path)
-    dc_config.save(username, dc_config.DiscordConfig(bot_token=bot_token,
-                                                     tool_channel_ids=list(tool_ids)))
+    dc_config.save(username, dc_config.DiscordConfig(
+        bot_token=bot_token, tool_channel_ids=list(tool_ids),
+        moderation_channel_ids=list(mod_ids or [])))
     client = FakeClient(channels)
     adapter = SimpleNamespace(name="discord", label="Discord",
                               client_for=lambda u: client if u == username else None)

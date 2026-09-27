@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react"
-import { Hash, Loader2, MessagesSquare, Megaphone, RefreshCw } from "lucide-react"
+import { Hash, Loader2, MessagesSquare, Megaphone, RefreshCw, ShieldCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { communicationApi, type DiscordCatalogChannel } from "./api"
 
 interface Props {
   value: string[]
-  onChange: (ids: string[]) => void
+  /** Teilmenge von value, in der die Moderations-Tools wirken dürfen. */
+  moderated: string[]
+  onChange: (ids: string[], moderated: string[]) => void
 }
 
 const KIND_ICON = { text: Hash, news: Megaphone, forum: MessagesSquare } as const
 
 /** Freigabe der Kanäle für Agenten-Tools (discord_*). Leer = kein Zugriff. */
-export function DiscordToolChannels({ value, onChange }: Props) {
+export function DiscordToolChannels({ value, moderated, onChange }: Props) {
   const { t } = useTranslation("communication")
   const [channels, setChannels] = useState<DiscordCatalogChannel[]>([])
   const [connected, setConnected] = useState<boolean | null>(null)
@@ -33,14 +35,24 @@ export function DiscordToolChannels({ value, onChange }: Props) {
   }
 
   const selected = new Set(value)
+  const mod = new Set(moderated.filter((id) => selected.has(id)))
   const known = new Set(channels.map((c) => c.id))
   const orphaned = value.filter((id) => !known.has(id))
 
+  // Abwählen eines Kanals entzieht auch die Moderation — sie setzt Zugriff voraus.
   function toggle(id: string) {
     const next = new Set(selected)
-    if (next.has(id)) next.delete(id)
+    const nextMod = new Set(mod)
+    if (next.has(id)) { next.delete(id); nextMod.delete(id) }
     else next.add(id)
-    onChange(Array.from(next))
+    onChange(Array.from(next), Array.from(nextMod))
+  }
+
+  function toggleMod(id: string) {
+    const nextMod = new Set(mod)
+    if (nextMod.has(id)) nextMod.delete(id)
+    else nextMod.add(id)
+    onChange(Array.from(selected), Array.from(nextMod))
   }
 
   const groups = new Map<string, DiscordCatalogChannel[]>()
@@ -81,6 +93,13 @@ export function DiscordToolChannels({ value, onChange }: Props) {
                   <span className="text-xs text-zinc-200 truncate">{c.name}</span>
                   {c.kind === "forum" && <span className="text-[10px] text-violet-300/70">{t("discord.tools.forum")}</span>}
                   {!c.can_send && <span className="text-[10px] text-zinc-500">{t("discord.tools.read_only")}</span>}
+                  {selected.has(c.id) && (
+                    <button type="button" onClick={(e) => { e.preventDefault(); toggleMod(c.id) }}
+                      title={t("discord.tools.moderate_hint")}
+                      className={`ml-auto flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] ${mod.has(c.id) ? "bg-amber-400/15 text-amber-200" : "text-zinc-500 hover:text-zinc-300"}`}>
+                      <ShieldCheck size={11} />{t("discord.tools.moderate")}
+                    </button>
+                  )}
                 </label>
               )
             })}
@@ -97,6 +116,7 @@ export function DiscordToolChannels({ value, onChange }: Props) {
       </div>
       <p className="text-[10px] text-zinc-500">
         {value.length === 0 ? t("discord.tools.none_selected") : t("discord.tools.count", { count: value.length })}
+        {mod.size > 0 && ` ${t("discord.tools.moderated_count", { count: mod.size })}`}
       </p>
     </div>
   )

@@ -49,6 +49,11 @@ class Scope:
         return frozenset(self.cfg.tool_channel_ids)
 
     @property
+    def moderated(self) -> frozenset[str]:
+        # Moderation setzt Werkzeug-Zugriff voraus — nur die Schnittmenge zählt.
+        return frozenset(self.cfg.moderation_channel_ids) & self.allowed
+
+    @property
     def bot_id(self) -> int | None:
         return self.client.user.id if self.client.user else None
 
@@ -77,6 +82,15 @@ def open_scope(username: str) -> Scope:
     return Scope(username=username, client=connected_client(username), cfg=cfg)
 
 
+def egress_scrub(scope: Scope, agent_id: str, text: str) -> str:
+    """Secrets (System, Agent, eigener Bot-Token) aus ausgehendem Text entfernen."""
+    from hydrahive.credentials import redaction
+    secrets = redaction.secret_values() | redaction.agent_secret_values(agent_id)
+    if scope.cfg.bot_token:
+        secrets.add(scope.cfg.bot_token)
+    return redaction.scrub(text, secrets)
+
+
 def parse_id(raw: object, what: str = "ID") -> int:
     s = str(raw or "").strip()
     if not s.isdigit():
@@ -97,13 +111,18 @@ def kind(channel: object) -> str | None:
     return None
 
 
-def is_allowed(scope: Scope, channel: object) -> bool:
-    cid = str(getattr(channel, "id", ""))
-    if cid in scope.allowed:
+def _in(ids: frozenset[str], channel: object) -> bool:
+    if str(getattr(channel, "id", "")) in ids:
         return True
-    if kind(channel) == "thread":
-        return str(getattr(channel, "parent_id", "")) in scope.allowed
-    return False
+    return kind(channel) == "thread" and str(getattr(channel, "parent_id", "")) in ids
+
+
+def is_allowed(scope: Scope, channel: object) -> bool:
+    return _in(scope.allowed, channel)
+
+
+def is_moderated(scope: Scope, channel: object) -> bool:
+    return _in(scope.moderated, channel)
 
 
 async def fetch_any(client: discord.Client, cid: int) -> object | None:
@@ -131,6 +150,21 @@ async def resolve_channel(scope: Scope, raw_id: object) -> ToolChannel:
             f"Kanal {cid} hat einen nicht unterstützten Typ ({getattr(ch, 'type', '?')}) — "
             "unterstützt sind Text-, Ankündigungs- und Forum-Kanäle.")
     return ch  # type: ignore[return-value]
+
+
+async def resolve_moderated(scope: Scope, raw_id: object) -> ToolChannel:
+    """Wie resolve_channel, zusätzlich muss der Kanal für Moderation freigegeben sein."""
+    ch = await resolve_channel(scope, raw_id)
+    if not is_moderated(scope, ch):
+        raise DiscordToolError(
+            f"Kanal {ch.id} ist nicht für Moderation freigegeben — unter Kommunikation → "
+            "Discord beim Kanal «Moderieren» anhaken.")
+    return ch
+
+
+def require_perm(channel: ToolChannel, flag: str, label: str) -> None:
+    if not getattr(permissions(channel), flag):
+        raise DiscordToolError(f"Dem Bot fehlt in diesem Kanal die Berechtigung «{label}».")
 
 
 def permissions(channel: ToolChannel) -> discord.Permissions:

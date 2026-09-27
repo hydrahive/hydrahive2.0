@@ -13,6 +13,7 @@ const DEFAULT_CFG: DiscordConfig = {
   blocked_user_ids: [],
   allowed_channel_ids: [],
   tool_channel_ids: [],
+  moderation_channel_ids: [],
   respond_as_voice: false,
   voice_name: "German_FriendlyMan",
 }
@@ -160,7 +161,8 @@ export function DiscordFilterPanel() {
 
       <DiscordToolChannels
         value={cfg.tool_channel_ids ?? []}
-        onChange={(ids) => setCfg({ ...cfg, tool_channel_ids: ids })}
+        moderated={cfg.moderation_channel_ids ?? []}
+        onChange={(ids, moderated) => setCfg({ ...cfg, tool_channel_ids: ids, moderation_channel_ids: moderated })}
       />
 
       {/* Voice */}
