@@ -166,12 +166,12 @@ async def run(
     if agent.get("longterm_memory"):
         try:
             from hydrahive.db._mirror_cards import search_cards, top_cards_for
-            recall_cards = await top_cards_for(agent["id"], limit=8)
+            recall_cards = await top_cards_for(agent["id"], limit=8, username=session.user_id)
             # Recall C: nur bei substanzieller Eingabe (≥3 Wörter) cue-getriggert
             # suchen — kein Token-Brand bei „test"/Einzelwörtern.
             _ut = _user_text(user_input).strip()
             if len(_ut.split()) >= 3:
-                recall_search = await search_cards(_ut, limit=3)
+                recall_search = await search_cards(_ut, limit=3, username=session.user_id)
         except Exception as e:
             logger.warning("Recall fehlgeschlagen (best-effort): %s", e, exc_info=True)
 

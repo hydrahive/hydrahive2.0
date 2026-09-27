@@ -9,59 +9,63 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-async def build_topology() -> dict:
+async def build_topology(username: str | None = None) -> dict:
+    """Netz aus Agenten, Nutzern und Tools. `username` begrenzt alle Zählungen
+    auf die Events eines Nutzers (Pflicht für Nicht-Admins)."""
     from hydrahive.db import mirror
     pool = mirror._pool
     if not pool:
         return {"active": False, "nodes": [], "links": [], "active_agents": []}
 
+    uf = "username = $1 AND " if username else ""
+    params: list = [username] if username else []
     try:
         async with pool.acquire() as conn:
-            agents = await conn.fetch("""
+            agents = await conn.fetch(f"""
                 SELECT agent_name, COUNT(DISTINCT session_id) AS session_count
                 FROM events
-                WHERE agent_name IS NOT NULL AND agent_name != ''
+                WHERE {uf}agent_name IS NOT NULL AND agent_name != ''
                 GROUP BY agent_name
                 ORDER BY session_count DESC
-            """)
-            users = await conn.fetch("""
+            """, *params)
+            users = await conn.fetch(f"""
                 SELECT username, COUNT(DISTINCT session_id) AS session_count
                 FROM events
-                WHERE username IS NOT NULL AND username != ''
+                WHERE {uf}username IS NOT NULL AND username != ''
                 GROUP BY username
                 ORDER BY session_count DESC
-            """)
-            tools = await conn.fetch("""
+            """, *params)
+            tools = await conn.fetch(f"""
                 SELECT tool_name, COUNT(*) AS use_count
                 FROM events
-                WHERE event_type = 'tool_call'
+                WHERE {uf}event_type = 'tool_call'
                   AND tool_name IS NOT NULL AND tool_name != ''
                 GROUP BY tool_name
                 ORDER BY use_count DESC
                 LIMIT 60
-            """)
-            user_agent = await conn.fetch("""
+            """, *params)
+            user_agent = await conn.fetch(f"""
                 SELECT username, agent_name, COUNT(DISTINCT session_id) AS session_count
                 FROM events
-                WHERE username IS NOT NULL AND username != ''
+                WHERE {uf}username IS NOT NULL AND username != ''
                   AND agent_name IS NOT NULL AND agent_name != ''
                 GROUP BY username, agent_name
-            """)
-            agent_tool = await conn.fetch("""
+            """, *params)
+            agent_tool = await conn.fetch(f"""
                 SELECT agent_name, tool_name, COUNT(*) AS use_count
                 FROM events
-                WHERE event_type = 'tool_call'
+                WHERE {uf}event_type = 'tool_call'
                   AND agent_name IS NOT NULL AND agent_name != ''
                   AND tool_name IS NOT NULL AND tool_name != ''
                 GROUP BY agent_name, tool_name
                 ORDER BY use_count DESC
-            """)
-            active = await conn.fetch("""
+            """, *params)
+            active = await conn.fetch(f"""
                 SELECT DISTINCT agent_name
                 FROM events
-                WHERE agent_name IS NOT NULL
+                WHERE {uf}agent_name IS NOT NULL
                   AND created_at > NOW() - INTERVAL '60 seconds'
-            """)
+            """, *params)
     except Exception as e:
         logger.warning("Topology: DB-Fehler: %s", e)
         return {"active": True, "nodes": [], "links": [], "active_agents": [], "error": str(e)}

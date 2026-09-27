@@ -7,7 +7,9 @@ from typing import Any
 from hydrahive.db.connection import db
 
 
-def daily_stats(agent_id: str | None = None, days: int = 14) -> list[dict[str, Any]]:
+def daily_stats(
+    agent_id: str | None = None, days: int = 14, *, user_id: str | None = None,
+) -> list[dict[str, Any]]:
     """Token-Zeitreihe: pro Tag aggregierte Werte für Vorher/Nachher-Vergleich.
 
     Gibt eine Liste von Tages-Einträgen zurück (älteste zuerst), je mit:
@@ -21,8 +23,9 @@ def daily_stats(agent_id: str | None = None, days: int = 14) -> list[dict[str, A
                 FROM sessions
                 WHERE agent_id = ?
                   AND updated_at >= datetime('now', ?)
-                """,
-                (agent_id, f"-{days} days"),
+                  {user_filter}
+                """.format(user_filter="AND user_id = ?" if user_id else ""),
+                (agent_id, f"-{days} days") + ((user_id,) if user_id else ()),
             ).fetchall()
         else:
             session_rows = conn.execute(
@@ -30,8 +33,9 @@ def daily_stats(agent_id: str | None = None, days: int = 14) -> list[dict[str, A
                 SELECT id, date(updated_at) AS day
                 FROM sessions
                 WHERE updated_at >= datetime('now', ?)
-                """,
-                (f"-{days} days",),
+                  {user_filter}
+                """.format(user_filter="AND user_id = ?" if user_id else ""),
+                (f"-{days} days",) + ((user_id,) if user_id else ()),
             ).fetchall()
 
         if not session_rows:
@@ -71,16 +75,17 @@ def daily_stats(agent_id: str | None = None, days: int = 14) -> list[dict[str, A
     return result
 
 
-def agent_stats(agent_id: str, days: int = 7) -> dict[str, Any]:
+def agent_stats(agent_id: str, days: int = 7, *, user_id: str | None = None) -> dict[str, Any]:
     with db() as conn:
         sessions = conn.execute(
             """
             SELECT id FROM sessions
             WHERE agent_id = ?
               AND updated_at >= datetime('now', ?)
+              {user_filter}
             ORDER BY updated_at DESC
-            """,
-            (agent_id, f"-{days} days"),
+            """.format(user_filter="AND user_id = ?" if user_id else ""),
+            (agent_id, f"-{days} days") + ((user_id,) if user_id else ()),
         ).fetchall()
 
         if not sessions:

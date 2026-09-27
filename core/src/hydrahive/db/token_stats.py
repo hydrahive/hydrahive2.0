@@ -50,6 +50,7 @@ def session_stats(session_id: str) -> dict[str, Any] | None:
         "session_id": session_id,
         "title": sess["title"],
         "agent_id": sess["agent_id"],
+        "user_id": sess["user_id"],
         "status": sess["status"],
         "created_at": sess["created_at"],
         "updated_at": sess["updated_at"],
@@ -64,8 +65,11 @@ def session_stats(session_id: str) -> dict[str, Any] | None:
     }
 
 
-def latest_sessions(count: int = 5) -> list[dict[str, Any]]:
-    """Letzte N Sessions mit Token-Kurzstats — für den Daily-Stand."""
+def latest_sessions(count: int = 5, *, user_id: str | None = None) -> list[dict[str, Any]]:
+    """Letzte N Sessions mit Token-Kurzstats — für den Daily-Stand.
+    `user_id` begrenzt auf die Sessions eines Nutzers (None = alle, nur Admin)."""
+    where = "WHERE s.user_id = ?" if user_id else ""
+    params: tuple = ((user_id,) if user_id else ()) + (min(count, 100),)
     with db() as conn:
         rows = conn.execute(
             """
@@ -77,11 +81,12 @@ def latest_sessions(count: int = 5) -> list[dict[str, Any]]:
                    COALESCE(SUM(CAST(json_extract(m.metadata, '$.cache_read_tokens') AS INTEGER)), 0) AS cache_read
             FROM sessions s
             LEFT JOIN messages m ON m.session_id = s.id
+            {where}
             GROUP BY s.id
             ORDER BY s.updated_at DESC
             LIMIT ?
-            """,
-            (min(count, 100),),
+            """.format(where=where),
+            params,
         ).fetchall()
 
     result = []
