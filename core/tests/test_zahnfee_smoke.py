@@ -59,8 +59,8 @@ def test_briefing_save_and_load(setup_test_env, monkeypatch):
         went_badly="",
         today="Review",
     )
-    storage.save(briefing)
-    loaded = storage.load()
+    storage.save(briefing, "smoke-user")
+    loaded = storage.load("smoke-user")
 
     assert loaded is not None
     assert loaded.date == "2026-05-26"
@@ -72,8 +72,8 @@ def test_briefing_save_and_load(setup_test_env, monkeypatch):
 def test_briefing_load_returns_none_when_missing(setup_test_env):
     from hydrahive.zahnfee import storage
 
-    path = storage._path()
+    path = storage._path("smoke-user")
     if path.exists():
         path.unlink()
 
-    assert storage.load() is None
+    assert storage.load("smoke-user") is None

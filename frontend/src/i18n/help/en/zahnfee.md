@@ -12,6 +12,9 @@ your day. The name hints that something happens "overnight" without you watching
   timestamp of when it was generated).
 - **Settings**: **enable/disable** the Tooth Fairy and choose the **model** used to
   create the briefing.
+- **Everyone gets their own briefing**: the Tooth Fairy only summarises your own
+  conversations. Users without activity in the period get none.
+- **In Buddy**: your briefing also appears on the right in the Buddy cockpit.
 
 ## Step by step
 

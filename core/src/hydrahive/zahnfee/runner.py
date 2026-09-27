@@ -12,8 +12,13 @@ from hydrahive.zahnfee import storage
 logger = logging.getLogger(__name__)
 
 
-async def _fetch_events(lookback_hours: int) -> list[dict]:
-    """Holt Events der letzten X Stunden direkt aus der Datamining-DB."""
+def _usernames() -> list[str]:
+    from hydrahive.api.middleware.users import list_users
+    return [u["username"] for u in list_users()]
+
+
+async def _fetch_events(lookback_hours: int, username: str) -> list[dict]:
+    """Holt Events der letzten X Stunden dieses Nutzers aus der Datamining-DB."""
     from hydrahive.db import mirror_query, mirror as mirror_mod
     if not mirror_mod._pool:
         return []
@@ -22,6 +27,7 @@ async def _fetch_events(lookback_hours: int) -> list[dict]:
     try:
         events = await mirror_query.search_events(
             q="",
+            username=username,
             from_date=since.date().isoformat(),
             limit=500,
         )
@@ -109,22 +115,32 @@ def _format_events(events: list[dict]) -> str:
     return "\n".join(lines[:300])
 
 
-async def run() -> storage.Briefing:
-    """Hauptfunktion — generiert ein Briefing und speichert es."""
+async def run_all() -> None:
+    """Nächtlicher Lauf: ein Briefing je Nutzer mit Aktivität im Zeitraum."""
+    cfg = cfg_mod.load()
+    if not cfg.source_datamining:
+        return
+    for username in _usernames():
+        events = await _fetch_events(cfg.lookback_hours, username)
+        if events:
+            await run(username, events=events)
+
+
+async def run(username: str, *, events: list[dict] | None = None) -> storage.Briefing:
+    """Generiert das Briefing eines Nutzers und speichert es."""
     cfg = cfg_mod.load()
     model = cfg.model or None
 
     logger.info("zahnfee: starte briefing-generierung (lookback=%dh)", cfg.lookback_hours)
 
-    events: list[dict] = []
-    if cfg.source_datamining:
-        events = await _fetch_events(cfg.lookback_hours)
+    if events is None:
+        events = await _fetch_events(cfg.lookback_hours, username) if cfg.source_datamining else []
 
     context = _format_events(events)
     event_count = len(events)
 
     user_msg = (
-        f"Hier sind die Aktivitäten der letzten {cfg.lookback_hours} Stunden "
+        f"Hier sind die Aktivitäten von {username} der letzten {cfg.lookback_hours} Stunden "
         f"({event_count} Events):\n\n{context}\n\n"
         "Erstelle jetzt das Morgen-Briefing. "
         "Antworte AUSSCHLIESSLICH mit einem JSON-Objekt — kein Markdown, keine Erklärungen, kein Text davor oder danach:\n"
@@ -165,6 +181,6 @@ async def run() -> storage.Briefing:
             error=str(e),
         )
 
-    storage.save(briefing)
+    storage.save(briefing, username)
     logger.info("zahnfee: briefing gespeichert (%s)", briefing.date)
     return briefing

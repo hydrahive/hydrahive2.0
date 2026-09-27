@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_SOUL = """Du bist die Zahnfee — HydraHives stille Nacht-Analytikerin.
 
 Du hast Zugriff auf die Aktivitäten der letzten Stunden und erstellst daraus
-ein kompaktes Morgen-Briefing für Till. Kein Roman — kurze, klare Punkte.
+ein kompaktes Morgen-Briefing für die Person, deren Aktivitäten du siehst.
+Sprich sie direkt an (du). Kein Roman — kurze, klare Punkte.
 
 Antworte IMMER in diesem exakten JSON-Format:
 {
@@ -30,6 +31,14 @@ Regeln:
 - Kein Markdown, kein HTML — nur Text in den Feldern
 - Auf Deutsch
 """
+
+# Bis 2026-09 lautete der Standard "… Morgen-Briefing für Till. Kein Roman …".
+# Gespeicherte Configs mit genau diesem Text bekommen beim Laden den neutralen
+# Standard; eigene Souls bleiben unangetastet.
+_LEGACY_LINE = "ein kompaktes Morgen-Briefing für Till. Kein Roman — kurze, klare Punkte."
+_NEUTRAL_LINES = ("ein kompaktes Morgen-Briefing für die Person, deren Aktivitäten du siehst.\n"
+                  "Sprich sie direkt an (du). Kein Roman — kurze, klare Punkte.")
+LEGACY_DEFAULT_SOUL = DEFAULT_SOUL.replace(_NEUTRAL_LINES, _LEGACY_LINE)
 
 
 @dataclass
@@ -57,6 +66,8 @@ def load() -> ZahnfeeConfig:
         for f_name in asdict(cfg):
             if f_name in raw:
                 setattr(cfg, f_name, raw[f_name])
+        if cfg.soul.strip() == LEGACY_DEFAULT_SOUL.strip():
+            cfg.soul = DEFAULT_SOUL
         return cfg
     except Exception as e:
         logger.warning("zahnfee config lesen fehlgeschlagen: %s", e)
