@@ -50,6 +50,7 @@ export function SessionModelControls({ session, agent, onSessionChanged }: Props
           <ReasoningEffortPill
             current={(session.metadata as { reasoning_effort?: string })?.reasoning_effort}
             levels={effortLevels}
+            agentDefault={agent.reasoning_effort}
             dropUp
             onSelect={async (effort) => {
               const updated = await chatApi.updateSession(session.id, { reasoning_effort: effort ?? "" })

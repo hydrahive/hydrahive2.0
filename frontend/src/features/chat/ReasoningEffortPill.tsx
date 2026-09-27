@@ -8,6 +8,8 @@ interface Props {
   current: string | null | undefined
   levels?: string[]
   dropUp?: boolean
+  /** Agent-Standard: gilt, wenn in der Session nichts gewählt ist (Runner: session || agent). */
+  agentDefault?: string | null
   onSelect: (effort: EffortLevel | null) => Promise<void>
 }
 
@@ -17,17 +19,22 @@ interface EffortOption {
   title: string
 }
 
-export function ReasoningEffortPill({ current, levels = ["low", "medium", "high"], dropUp = false, onSelect }: Props) {
+export function ReasoningEffortPill({ current, levels = ["low", "medium", "high"], dropUp = false, agentDefault = null, onSelect }: Props) {
   const { t } = useTranslation("chat")
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState(false)
 
   const labels: Record<EffortLevel, string> = { low: "Low", medium: "Med", high: "High", xhigh: "XHigh", max: "Max", ultra: "Ultra" }
+  const levelLabel = (level: string) => labels[level as EffortLevel] ?? level
+  // Ohne Session-Wahl gilt der Agent-Standard — „Aus“ nur, wenn es keinen gibt.
+  const noneOption: EffortOption = agentDefault
+    ? { value: null, label: t("effort.default_label", { level: levelLabel(agentDefault) }), title: t("effort.default_title") }
+    : { value: null, label: t("effort.off_label"), title: t("effort.off_title") }
   const efforts: EffortOption[] = [
-    { value: null, label: t("effort.off_label"), title: t("effort.off_title") },
-    ...levels.map((level) => ({ value: level as EffortLevel, label: labels[level as EffortLevel] ?? level, title: level })),
+    noneOption,
+    ...levels.map((level) => ({ value: level as EffortLevel, label: levelLabel(level), title: level })),
   ]
-  const currentLabel = efforts.find((e) => e.value === current)?.label || t("effort.off_label")
+  const currentLabel = efforts.find((e) => e.value === (current || null))?.label || noneOption.label
 
   async function handleSelect(value: EffortLevel | null) {
     setBusy(true)
@@ -64,7 +71,7 @@ export function ReasoningEffortPill({ current, levels = ["low", "medium", "high"
                 disabled={busy}
                 title={effort.title}
                 className={`w-full px-3 py-2 text-left text-xs transition-colors
-                  ${effort.value === current
+                  ${effort.value === (current || null)
                     ? "bg-indigo-500/20 text-indigo-200"
                     : "text-zinc-300 hover:bg-zinc-800"
                   }

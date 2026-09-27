@@ -62,7 +62,9 @@ export function BuddyPage() {
   useEffect(() => {
     if (initRef.current) return
     initRef.current = true
-    buddyApi.state().then(setState).catch((e: unknown) => setError(e instanceof Error ? e.message : "Fehler"))
+    buddyApi.state()
+      .then((s) => { setState(s); setReasoningEffort((s.reasoning_effort ?? null) as EffortLevel | null) })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Fehler"))
   }, [])
 
   useEffect(() => {
@@ -78,7 +80,7 @@ export function BuddyPage() {
     try {
       const r = await buddyApi.clear()
       setLocalMsgs([])
-      setReasoningEffort(null)
+      // Neue Session übernimmt die Tiefe (Backend) — Anzeige bleibt deshalb stehen.
       setState((s) => (s ? { ...s, session_id: r.session_id } : s))
     } finally {
       setHandoverBusy(false)
@@ -150,7 +152,7 @@ export function BuddyPage() {
               <div className="flex shrink-0 items-center gap-2">
                 <ProjectPicker current={state.project_id} projects={projects} onPick={handleProjectPick} busy={projectBusy} />
                 {state.model && <div className="w-[210px]"><ModelPicker current={state.model} hint="Buddy-Modell wechseln" fullWidth onPick={async (m) => { await buddyApi.setModel(m); setReasoningEffort(null); setState(await buddyApi.state()) }} /></div>}
-                {effortLevels.length > 0 && <ReasoningEffortPill current={reasoningEffort} levels={effortLevels} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort ?? "" }); setReasoningEffort(effort) }} />}
+                {effortLevels.length > 0 && <ReasoningEffortPill current={reasoningEffort} levels={effortLevels} agentDefault={state.default_reasoning_effort} onSelect={async (effort) => { if (state.session_id) await chatApi.updateSession(state.session_id, { reasoning_effort: effort ?? "" }); setReasoningEffort(effort) }} />}
                 <HelpButton topic="buddy" />
                 <CockpitButton disabled={chat.busy || handoverBusy} tone="primary" onClick={newChat}>{handoverBusy ? "Übergabe wird erstellt …" : "Neuer Chat"}</CockpitButton>
               </div>

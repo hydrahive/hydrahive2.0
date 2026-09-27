@@ -9,6 +9,10 @@ export interface BuddyState {
   project_id: string | null
   /** Gesprächsmodus der aktuellen Session. */
   mode: BuddyMode
+  /** Gewählte Denk-Tiefe dieser Session (null = Agent-Standard). */
+  reasoning_effort?: string | null
+  /** Standard-Tiefe des Buddy-Agenten (Buddy-Einstellungen). */
+  default_reasoning_effort?: string | null
   created: boolean
 }
 
