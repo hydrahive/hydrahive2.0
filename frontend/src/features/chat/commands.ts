@@ -22,7 +22,7 @@ const HELP_TEXT = [
   "Verfügbare Befehle in dieser Session:",
   "  /help               — diese Liste",
   "  /clear              — neue Session im selben Projekt + Agent",
-  "  /model [name]       — Modell anzeigen oder Agent-Modell wechseln",
+  "  /model [name]       — Modell anzeigen oder für diese Session wechseln (/model default = zurück)",
   "  /compact            — manuelle Compaction der Session-History",
   "  /tokens             — Token-Stand + Window-Auslastung",
   "  /title <text>       — Session umbenennen",
@@ -37,20 +37,31 @@ export function isCommand(text: string): boolean {
   return text.trimStart().startsWith("/")
 }
 
-async function modelCmd(arg: string, agent: AgentBrief): Promise<ChatCommandResult> {
+/**
+ * /model wirkt wie der Modell-Picker links: nur auf DIESE Session
+ * (metadata.model_override). Das Standardmodell des Agenten bleibt unverändert.
+ * `/model default` hebt den Session-Override wieder auf.
+ */
+async function modelCmd(arg: string, agent: AgentBrief, session: Session): Promise<ChatCommandResult> {
+  const override = (session.metadata as { model_override?: string } | null)?.model_override
   if (!arg.trim()) {
     const { models } = await llmModelsApi.byModality("chat")
     const ids = models.map((m) => m.id)
-    return { message: [`Aktuell: ${agent.llm_model}`, "Verfügbar:", ...ids.map((id) => `  - ${id}`), "", "Wechseln mit `/model <name>`"].join("\n") }
+    const current = override ? `Aktuell (nur diese Session): ${override} — Agent-Standard: ${agent.llm_model}` : `Aktuell: ${agent.llm_model} (Agent-Standard)`
+    return { message: [current, "Verfügbar:", ...ids.map((id) => `  - ${id}`), "", "Wechseln mit `/model <name>` (nur diese Session), zurück mit `/model default`"].join("\n") }
   }
   const target = arg.trim()
+  if (target === "default") {
+    const updated = await chatApi.updateSession(session.id, { model_override: "" })
+    return { message: `Session nutzt wieder das Agent-Modell ${agent.llm_model}.`, sessionChanged: updated }
+  }
   const { models } = await llmModelsApi.byModality("chat")
   const ids = models.map((m) => m.id)
   if (ids.length > 0 && !ids.includes(target)) {
     return { message: `Unbekanntes Modell '${target}'. Tippe /model für die Liste.` }
   }
-  const updated = await agentsApi.update(agent.id, { llm_model: target })
-  return { message: `Modell auf ${target} gewechselt.`, agentChanged: { ...agent, llm_model: updated.llm_model } }
+  const updated = await chatApi.updateSession(session.id, { model_override: target })
+  return { message: `Modell für diese Session auf ${target} gewechselt. Das Agent-Standardmodell bleibt ${agent.llm_model}.`, sessionChanged: updated }
 }
 
 async function clearCmd(session: Session, agent: AgentBrief): Promise<ChatCommandResult> {
@@ -152,7 +163,7 @@ export async function runChatCommand(
     switch (cmd) {
       case "/help": return { message: HELP_TEXT }
       case "/clear": case "/reset": return await clearCmd(session, agent)
-      case "/model": case "/models": return await modelCmd(arg, agent)
+      case "/model": case "/models": return await modelCmd(arg, agent, session)
       case "/compact": return await compactCmd(session)
       case "/tokens": return await tokensCmd(session)
       case "/title": case "/rename": return await titleCmd(arg, session)
