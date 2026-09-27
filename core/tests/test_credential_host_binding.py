@@ -264,3 +264,19 @@ def test_api_liefert_host_bound_fuer_die_warnung(client, auth_headers):
     assert listing["api-host"]["host_bound"] is True
     for name in ("api-alles", "api-host"):
         client.delete(f"/api/credentials/{name}", headers=auth_headers)
+
+
+def test_bearbeiten_ohne_neuen_wert_behaelt_den_gespeicherten(client, auth_headers):
+    """Der Editor schickt das Wertfeld leer mit, wenn man nur das Muster ändert
+    (Wert ist in der Liste maskiert). Das darf den gespeicherten Wert nicht löschen
+    — sonst zerstört das Nachtragen des Hosts z.B. das Passwort eines SMB-Mounts."""
+    body = {"name": "edit-muster", "type": "basic", "value": f"user:{TOKEN}", "url_pattern": "*"}
+    assert client.post("/api/credentials", json=body, headers=auth_headers).status_code == 201
+    body = {**body, "value": "", "url_pattern": "https://nas.example/*"}
+    r = client.post("/api/credentials", json=body, headers=auth_headers)
+    assert r.status_code == 201, r.text
+    got = client.get("/api/credentials/edit-muster?reveal=true", headers=auth_headers).json()
+    assert got["value"] == f"user:{TOKEN}"
+    assert got["url_pattern"] == "https://nas.example/*"
+    assert got["host_bound"] is True
+    client.delete("/api/credentials/edit-muster", headers=auth_headers)

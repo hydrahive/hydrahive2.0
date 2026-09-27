@@ -71,11 +71,18 @@ def create_or_update(
         raise coded(status.HTTP_400_BAD_REQUEST, "credential_name_invalid", name=req.name)
     if req.type not in ALL_TYPES:
         raise coded(status.HTTP_400_BAD_REQUEST, "credential_type_invalid", type=req.type)
+    # Leerer Wert beim Bearbeiten = unverändert: die Liste liefert den Wert maskiert,
+    # der Editor schickt das Feld leer mit, wenn man nur z.B. das Muster ändert.
+    value = req.value
+    if not value:
+        existing = get_credential(username, req.name)
+        if existing is not None:
+            value = existing.value
     # Ohne konkreten Host ("*") wird ein Credential von fetch_url nie eingesetzt
     # (Task ef27f79b) — Speichern bleibt erlaubt, z.B. für SMB-Mounts, die es per
     # Name holen. Die UI warnt über host_bound.
     cred = Credential(
-        name=req.name, type=req.type, value=req.value,  # type: ignore[arg-type]
+        name=req.name, type=req.type, value=value,  # type: ignore[arg-type]
         url_pattern=req.url_pattern.strip() or "*",
         description=req.description,
         header_name=req.header_name,
