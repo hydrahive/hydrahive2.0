@@ -12,7 +12,7 @@ from pathlib import Path
 
 from hydrahive.credentials._crypto import decrypt, encrypt
 from hydrahive.credentials.models import (
-    ALL_TYPES, Credential, CredentialType, is_valid_name, matches_url,
+    ALL_TYPES, Credential, CredentialType, has_concrete_host, is_valid_name, matches_url,
 )
 from hydrahive.settings import settings
 
@@ -145,20 +145,20 @@ def _remove_ssh(username: str, cred_name: str) -> None:
 
 
 def match_credential(username: str, url: str, *, prefer_name: str | None = None) -> Credential | None:
-    """Findet die passendste Credential für eine URL.
+    """Findet die passende Credential für eine URL — nur bei konkretem Host im Muster.
 
-    Wenn prefer_name gesetzt: dieser Profile-Name wird zurückgegeben (sofern existent
-    und URL gegen Pattern matcht). Sonst: erstes Credential dessen url_pattern matcht.
+    Ein "*" (oder "https://*", "*.com" …) würde das Secret an jede Adresse
+    schicken, auch an eine per Prompt-Injection untergeschobene. Das gilt auch bei
+    prefer_name: Profilnamen stehen im auth_used-Feld jedes fetch_url-Ergebnisses,
+    eine Injection könnte sie einfach nennen (Security-Task ef27f79b).
+    Wenn prefer_name gesetzt: nur dieses Profil, sonst das erste passende.
     """
     raw = _load_raw(username)
-    if prefer_name:
-        if prefer_name in raw:
-            cred = _row_to_credential(prefer_name, raw[prefer_name])
-            if matches_url(cred.url_pattern, url):
-                return cred
-        return None
-    for name, row in raw.items():
-        cred = _row_to_credential(name, row)
-        if matches_url(cred.url_pattern, url):
+    names = [prefer_name] if prefer_name else list(raw)
+    for name in names:
+        if name not in raw:
+            continue
+        cred = _row_to_credential(name, raw[name])
+        if has_concrete_host(cred.url_pattern) and matches_url(cred.url_pattern, url):
             return cred
     return None

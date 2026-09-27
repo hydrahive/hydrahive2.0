@@ -18,8 +18,6 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
 }) {
   const [mcpIds, setMcpIds] = useState((project.mcp_server_ids ?? []).join(", "))
   const [plugins, setPlugins] = useState((project.allowed_plugins ?? []).join(", "))
-  const [apiKey, setApiKey] = useState("")
-  const [removeKey, setRemoveKey] = useState(false)
   const [saving, setSaving] = useState(false)
   const [samba, setSamba] = useState<SambaInfo | null>(null)
   const [sambaBusy, setSambaBusy] = useState(false)
@@ -36,14 +34,12 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
   async function save() {
     setSaving(true); setError(null)
     try {
-      const fields: { mcp_server_ids: string[]; allowed_plugins: string[]; llm_api_key?: string } = {
+      const fields = {
         mcp_server_ids: mcpIds.split(",").map((value) => value.trim()).filter(Boolean),
         allowed_plugins: plugins.split(",").map((value) => value.trim()).filter(Boolean),
       }
-      if (apiKey.trim()) fields.llm_api_key = apiKey.trim()
-      else if (removeKey) fields.llm_api_key = ""
       const updated = await projectsApi.update(project.id, fields)
-      setApiKey(""); setRemoveKey(false); onSaved(updated)
+      onSaved(updated)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Integrationen konnten nicht gespeichert werden.")
     } finally { setSaving(false) }
@@ -99,9 +95,8 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
       </div>}
     </section>}
     <section className="space-y-3 border-t border-[#2a364b] pt-4">
-      <div><label className="text-xs font-medium text-[#b8c4d8]">MCP-Server-IDs</label><input value={mcpIds} onChange={(event) => setMcpIds(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte IDs der für dieses Projekt erlaubten MCP-Server.</p></div>
-      <div><label className="text-xs font-medium text-[#b8c4d8]">Erlaubte Plugins</label><input value={plugins} onChange={(event) => setPlugins(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte Plugin-IDs; leer bedeutet kein Projekt-Override.</p></div>
-      <div><label className="text-xs font-medium text-[#b8c4d8]">LLM-API-Key ersetzen</label><input type="password" value={apiKey} onChange={(event) => { setApiKey(event.target.value); if (event.target.value) setRemoveKey(false) }} placeholder={project.llm_api_key ? "Gespeicherter Key bleibt unverändert" : "Optionaler neuer API-Key"} autoComplete="new-password" className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><label className="mt-2 flex items-center gap-2 text-xs text-[#8d9ab0]"><input type="checkbox" checked={removeKey} onChange={(event) => { setRemoveKey(event.target.checked); if (event.target.checked) setApiKey("") }} />Gespeicherten Projekt-Key entfernen</label></div>
+      <div><label className="text-xs font-medium text-[#b8c4d8]">MCP-Server-IDs</label><input value={mcpIds} onChange={(event) => setMcpIds(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte IDs. Schränkt die MCP-Server der Agenten in diesem Projekt ein, fügt keine hinzu. Leer = keine Einschränkung.</p></div>
+      <div><label className="text-xs font-medium text-[#b8c4d8]">Erlaubte Plugins</label><input value={plugins} onChange={(event) => setPlugins(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte Plugin-Namen. Andere Plugin-Tools sind in diesem Projekt gesperrt. Leer = keine Einschränkung.</p></div>
       <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-[4px] bg-[#6d5dfc] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Integrationen speichern</button>
     </section>
     {error && <p className="rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{error}</p>}

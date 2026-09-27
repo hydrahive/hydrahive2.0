@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import status
 from pydantic import BaseModel, Field
@@ -23,12 +24,24 @@ class ProjectCreate(BaseModel):
     init_git: bool = False
 
 
+# MCP-Server-IDs (mcp/_validation.validate_id) und Plugin-Namen: a-z A-Z 0-9 _ -
+_ID_ITEM = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+
+
 class ProjectUpdate(BaseModel):
+    """PATCH-Felder. Alles andere verwirft pydantic still — notes/tags und die
+    MCP-/Plugin-Einschränkung fehlten hier, das UI speicherte ins Leere
+    (Task 3223371d). Ein Projekt-LLM-Key wird bewusst NICHT angenommen: kein
+    Code nutzt ihn, und im Klartext in config.json gehört er nicht."""
     name: str | None = None
     description: str | None = None
     status: str | None = None
     members: list[str | MemberEntry] | None = None
     allowed_specialists: list[str] | None = None
+    notes: str | None = Field(default=None, max_length=100_000)
+    tags: list[Annotated[str, Field(min_length=1, max_length=64)]] | None = Field(default=None, max_length=50)
+    mcp_server_ids: list[Annotated[str, _ID_ITEM]] | None = Field(default=None, max_length=50)
+    allowed_plugins: list[Annotated[str, _ID_ITEM]] | None = Field(default=None, max_length=100)
 
 
 def check_project_access(

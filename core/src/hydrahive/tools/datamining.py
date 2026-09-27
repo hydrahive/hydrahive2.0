@@ -69,6 +69,7 @@ async def _search(args: dict, ctx: ToolContext) -> ToolResult:
             q,
             event_type=args.get("event_type") or None,
             agent_name=args.get("agent_name") or None,
+            username=ctx.user_id,
             from_date=args.get("from_date") or None,
             to_date=args.get("to_date") or None,
             semantic=False,
@@ -87,6 +88,7 @@ async def _semantic(args: dict, ctx: ToolContext) -> ToolResult:
             q,
             event_type=args.get("event_type") or None,
             agent_name=args.get("agent_name") or None,
+            username=ctx.user_id,
             semantic=True,
             limit=min(int(args.get("limit", 10)), 30),
         )
@@ -110,6 +112,7 @@ async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         sessions = await mirror_query.list_sessions(
             agent_name=args.get("agent_name") or None,
+            username=ctx.user_id,
             from_date=from_date,
             to_date=to_date + "T23:59:59",
             limit=limit,
@@ -155,7 +158,7 @@ async def _today(args: dict, ctx: ToolContext) -> ToolResult:
     from hydrahive.db import mirror_query
     date = (args.get("date") or "").strip() or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     try:
-        sessions = await mirror_query.list_sessions(limit=100)
+        sessions = await mirror_query.list_sessions(username=ctx.user_id, limit=100)
         today = [s for s in sessions if str(s.get("updated_at", ""))[:10] == date]
         return ToolResult.ok(_serialize({"date": date, "sessions": today, "count": len(today)}))
     except Exception as e:

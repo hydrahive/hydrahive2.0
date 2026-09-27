@@ -66,13 +66,11 @@
     "delete_confirm": "Really delete \"{{name}}\"?"
   },
   "overrides": {
-    "title": "Project Overrides",
-    "mcp_label": "MCP Servers (Override)",
-    "mcp_hint": "Empty = agent default MCPs. Comma-separated server IDs.",
-    "plugins_label": "Plugins (Whitelist)",
-    "plugins_hint": "Empty = all active plugins. Comma-separated plugin names.",
-    "api_key_label": "API Key (Override)",
-    "api_key_hint": "Overrides the global LLM provider key for this project."
+    "title": "Tool restrictions",
+    "mcp_label": "MCP servers (restriction)",
+    "mcp_hint": "Empty = no restriction. Otherwise only these of the agents' MCP servers (comma-separated IDs). Never adds any.",
+    "plugins_label": "Plugins (allowlist)",
+    "plugins_hint": "Empty = no restriction. Otherwise only tools of these plugins are allowed (comma-separated names)."
   },
   "servers": {
     "empty": "No servers assigned yet.",

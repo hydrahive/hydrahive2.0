@@ -12,7 +12,7 @@ from hydrahive.api.middleware.errors import coded
 from hydrahive.credentials import (
     Credential, delete_credential, get_credential, list_credentials, save_credential,
 )
-from hydrahive.credentials.models import ALL_TYPES, is_valid_name
+from hydrahive.credentials.models import ALL_TYPES, has_concrete_host, is_valid_name
 
 router = APIRouter(prefix="/api/credentials", tags=["credentials"])
 
@@ -34,6 +34,8 @@ def _serialize(c: Credential, *, mask: bool = True) -> dict:
         "value": "" if mask else c.value,
         "value_set": bool(c.value),
         "url_pattern": c.url_pattern,
+        # False = wird nie eingesetzt ("*" o.ä.) → UI warnt (Task ef27f79b).
+        "host_bound": c.type == "ssh_key" or has_concrete_host(c.url_pattern),
         "description": c.description,
         "header_name": c.header_name,
         "query_param": c.query_param,
@@ -69,9 +71,19 @@ def create_or_update(
         raise coded(status.HTTP_400_BAD_REQUEST, "credential_name_invalid", name=req.name)
     if req.type not in ALL_TYPES:
         raise coded(status.HTTP_400_BAD_REQUEST, "credential_type_invalid", type=req.type)
+    # Leerer Wert beim Bearbeiten = unverändert: die Liste liefert den Wert maskiert,
+    # der Editor schickt das Feld leer mit, wenn man nur z.B. das Muster ändert.
+    value = req.value
+    if not value:
+        existing = get_credential(username, req.name)
+        if existing is not None:
+            value = existing.value
+    # Ohne konkreten Host ("*") wird ein Credential von fetch_url nie eingesetzt
+    # (Task ef27f79b) — Speichern bleibt erlaubt, z.B. für SMB-Mounts, die es per
+    # Name holen. Die UI warnt über host_bound.
     cred = Credential(
-        name=req.name, type=req.type, value=req.value,  # type: ignore[arg-type]
-        url_pattern=req.url_pattern or "*",
+        name=req.name, type=req.type, value=value,  # type: ignore[arg-type]
+        url_pattern=req.url_pattern.strip() or "*",
         description=req.description,
         header_name=req.header_name,
         query_param=req.query_param,

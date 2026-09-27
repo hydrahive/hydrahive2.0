@@ -139,9 +139,12 @@ async def wipe_cards() -> int:
         return 0
 
 
-async def top_cards_for(agent_id: str | None, limit: int = 8) -> list[dict[str, Any]]:
+async def top_cards_for(
+    agent_id: str | None, limit: int = 8, *, username: str | None = None,
+) -> list[dict[str, Any]]:
     """Recall A: Top-N Cards eines Agents nach Belegtheit × salience × recency.
-    Ohne agent_id: über alle (Fallback).
+    Ohne agent_id: keine Cards (früher: über alle — Leck zwischen Agenten/Nutzern).
+    `username` begrenzt zusätzlich auf Karten dieses Nutzers.
 
     Belegtheit zuerst: `groundedness='claimed'` heißt, die Card stammt
     überwiegend aus Assistant-Text — also aus einer *Behauptung* des Modells,
@@ -163,29 +166,30 @@ async def top_cards_for(agent_id: str | None, limit: int = 8) -> list[dict[str, 
         "(salience = 'high') DESC, "
         "created_at DESC NULLS LAST"
     )
+    if not agent_id:
+        return []
+    user_filter = " AND username = $3" if username else ""
+    params: list = [agent_id, limit] + ([username] if username else [])
     try:
         async with pool.acquire() as conn:
-            if agent_id:
-                rows = await conn.fetch(
-                    f"SELECT {_READ_COLS} FROM cards WHERE agent_id = $1 "
-                    f"ORDER BY {order} LIMIT $2",
-                    agent_id, limit,
-                )
-            else:
-                rows = await conn.fetch(
-                    f"SELECT {_READ_COLS} FROM cards ORDER BY {order} LIMIT $1", limit
-                )
+            rows = await conn.fetch(
+                f"SELECT {_READ_COLS} FROM cards WHERE agent_id = $1{user_filter} "
+                f"ORDER BY {order} LIMIT $2",
+                *params,
+            )
         return [_parse_row(r) for r in rows]
     except Exception as e:
         logger.warning("top_cards_for(%s) fehlgeschlagen: %s", agent_id, e)
         return []
 
 
-async def search_cards(query: str, limit: int = 5) -> list[dict[str, Any]]:
+async def search_cards(query: str, limit: int = 5, *, username: str) -> list[dict[str, Any]]:
     """Recall C: cue-getriggerte pgvector-Cosine-Suche über cards.embedding —
-    selbes Muster wie _mirror_search._semantic_search, nur auf der cards-Tabelle."""
+    selbes Muster wie _mirror_search._semantic_search, nur auf der cards-Tabelle.
+    Immer auf die Karten EINES Nutzers begrenzt (username Pflicht): ohne Filter
+    landeten Erinnerungen anderer Nutzer im Prompt (Security-Task ba5fd3c3)."""
     pool = _pool()
-    if not pool or not query.strip():
+    if not pool or not query.strip() or not username:
         return []
     from hydrahive.llm._config import load_config
     from hydrahive.llm.embed import aembed
@@ -201,9 +205,9 @@ async def search_cards(query: str, limit: int = 5) -> list[dict[str, Any]]:
             rows = await conn.fetch(
                 f"SELECT {_READ_COLS}, "
                 "round((1 - (embedding <=> $1::text::vector))::numeric, 3)::float8 AS similarity "
-                "FROM cards WHERE embedding IS NOT NULL "
+                "FROM cards WHERE embedding IS NOT NULL AND username = $3 "
                 "ORDER BY embedding <=> $1::text::vector LIMIT $2",
-                vec_str, limit,
+                vec_str, limit, username,
             )
         return [_parse_row(r) for r in rows]
     except Exception as e:

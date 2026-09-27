@@ -9,11 +9,12 @@ interface EmbedStatus {
   backfill_running: boolean
 }
 
+/** Aktionen (backfill/rechunk/reset) nur mit Callbacks — Nicht-Admins bekommen keine. */
 export function EmbedStatusBar({ status, onBackfill, onReset, onRechunk }: {
   status: EmbedStatus
-  onBackfill: () => void
-  onReset: () => void
-  onRechunk: () => void
+  onBackfill?: () => void
+  onReset?: () => void
+  onRechunk?: () => void
 }) {
   const { t } = useTranslation("datamining")
   const hasEmbedModel = !!status.model
@@ -41,17 +42,17 @@ export function EmbedStatusBar({ status, onBackfill, onReset, onRechunk }: {
       )}
       {status.backfill_running ? (
         <span className="text-violet-400 shrink-0 animate-pulse">{t("embed_status")}</span>
-      ) : status.pending > 0 ? (
+      ) : status.pending > 0 && onBackfill ? (
         <button onClick={onBackfill} className="text-violet-400 hover:text-violet-300 shrink-0 transition-colors">
           backfill
         </button>
       ) : null}
-      {hasEmbedModel && (
+      {hasEmbedModel && onRechunk && (
         <button onClick={onRechunk} className="text-zinc-600 hover:text-amber-300 shrink-0 transition-colors" title="Zu lange Events neu chunken">
           ✂
         </button>
       )}
-      {hasEmbedModel && (
+      {hasEmbedModel && onReset && (
         <button onClick={onReset} className="text-zinc-600 hover:text-zinc-400 shrink-0 transition-colors" title="Alle Embeddings zurücksetzen">
           ↺
         </button>

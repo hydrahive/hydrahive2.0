@@ -157,20 +157,24 @@ async def _run_backfill(model: str, batch_size: int = 100) -> None:
 
 # ---------------------------------------------------------------- public query
 
-async def recent_events(limit: int = 100) -> list[dict]:
-    """Letzte N Events für die Datamining-Seite."""
+async def recent_events(limit: int = 100, *, username: str | None = None) -> list[dict]:
+    """Letzte N Events für die Datamining-Seite. `username` begrenzt auf einen
+    Nutzer (Pflicht für Nicht-Admins, siehe api/routes/_datamining_access)."""
     if not _pool:
         return []
+    user_filter = "WHERE username = $2" if username else ""
+    params: list = [limit] + ([username] if username else [])
     try:
         async with _pool.acquire() as conn:
-            rows = await conn.fetch("""
+            rows = await conn.fetch(f"""
                 SELECT id, session_id, username, agent_name, event_type,
                        created_at, tool_name, is_error,
                        left(coalesce(text, tool_output, tool_input::text, ''), 200) AS snippet
                 FROM events
+                {user_filter}
                 ORDER BY created_at DESC
                 LIMIT $1
-            """, limit)
+            """, *params)
             return [dict(r) for r in rows]
     except Exception as e:
         logger.warning("PG-Mirror recent_events fehlgeschlagen: %s", e)

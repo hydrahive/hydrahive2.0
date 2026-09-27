@@ -14,6 +14,7 @@ from hydrahive.api.routes._project_route_helpers import (
 from hydrahive.projects import ProjectValidationError, config as project_config
 from hydrahive.projects import audit as project_audit
 from hydrahive.projects import members as project_members
+from hydrahive.projects.public_view import public_view
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 _check_access = check_project_access
@@ -21,6 +22,14 @@ _check_access = check_project_access
 
 class MemberRoleBody(BaseModel):
     role: str = Field("write", pattern="^(read|write|admin)$")
+
+
+def _audit_details(changes: dict) -> dict:
+    """Audit speichert keine langen Freitexte; Notizen nur als Länge."""
+    out = dict(changes)
+    if "notes" in out:
+        out["notes"] = f"<{len(out['notes'])} Zeichen>"
+    return out
 
 
 def _require_project_admin(project_id: str, auth: tuple[str, str]) -> dict:
@@ -36,8 +45,8 @@ def _require_project_admin(project_id: str, auth: tuple[str, str]) -> dict:
 def list_projects(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     username, role = auth
     if role == "admin":
-        return project_config.list_all()
-    return project_config.list_for_user(username)
+        return [public_view(p) for p in project_config.list_all()]
+    return [public_view(p) for p in project_config.list_for_user(username)]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -48,14 +57,14 @@ def create_project(
     creator, _ = auth
     members = [m if isinstance(m, str) else m.model_dump() for m in req.members]
     try:
-        return project_config.create(
+        return public_view(project_config.create(
             name=req.name,
             description=req.description,
             members=members,
             llm_model=req.llm_model,
             created_by=creator,
             init_git=req.init_git,
-        )
+        ))
     except ProjectValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
@@ -69,7 +78,7 @@ def get_project(
     if not p:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     _check_access(p, *auth)
-    return p
+    return public_view(p)
 
 
 @router.patch("/{project_id}")
@@ -85,8 +94,8 @@ def update_project(
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     except ProjectValidationError as e:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
-    project_audit.log(project_id, auth[0], "project_updated", details=changes)
-    return result
+    project_audit.log(project_id, auth[0], "project_updated", details=_audit_details(changes))
+    return public_view(result)
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT,
@@ -114,7 +123,7 @@ def add_member(
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
     project_audit.log(project_id, auth[0], "member_added", target=username,
                       details={"role": role})
-    return result
+    return public_view(result)
 
 
 @router.patch("/{project_id}/members/{username}")
@@ -133,7 +142,7 @@ def set_member_role(
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
     project_audit.log(project_id, auth[0], "member_role_changed", target=username,
                       details={"role": body.role})
-    return result
+    return public_view(result)
 
 
 @router.delete("/{project_id}/members/{username}")
@@ -148,7 +157,7 @@ def remove_member(
     except KeyError:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     project_audit.log(project_id, auth[0], "member_removed", target=username)
-    return result
+    return public_view(result)
 
 
 @router.get("/{project_id}/audit")

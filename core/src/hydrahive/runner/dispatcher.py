@@ -95,7 +95,9 @@ async def execute_tool(
     # Egal wie der Key in den Output kam — env-Dump, `echo $KEY`, `cat config`.
     # Plus per-Agent-Secrets (Postfach-Passwort aus tool_config), die secret_values()
     # nicht kennt — sonst leakt ein Buddy beim Lesen der eigenen config.json.
-    secrets = redaction.secret_values() | redaction.agent_secret_values(ctx.agent_id)
+    # Plus die Credential-Werte des Session-Nutzers (echo eines eingesetzten Tokens).
+    secrets = (redaction.secret_values() | redaction.agent_secret_values(ctx.agent_id)
+               | redaction.user_secret_values(ctx.user_id))
     result = redaction.scrub_result(result, secrets)
 
     duration_ms = int((time.monotonic() - start) * 1000)

@@ -66,13 +66,11 @@
     "delete_confirm": "\"{{name}}\" wirklich löschen?"
   },
   "overrides": {
-    "title": "Projekt-Overrides",
-    "mcp_label": "MCP-Server (Override)",
-    "mcp_hint": "Leer = Standard-MCPs des Agents. Komma-getrennte Server-IDs.",
+    "title": "Tool-Einschränkungen",
+    "mcp_label": "MCP-Server (Einschränkung)",
+    "mcp_hint": "Leer = keine Einschränkung. Sonst nur diese MCP-Server der Agenten (kommagetrennte IDs). Fügt keine hinzu.",
     "plugins_label": "Plugins (Whitelist)",
-    "plugins_hint": "Leer = alle aktiven Plugins. Komma-getrennte Plugin-Namen.",
-    "api_key_label": "API-Key (Override)",
-    "api_key_hint": "Überschreibt den globalen LLM-Provider-Key für dieses Projekt."
+    "plugins_hint": "Leer = keine Einschränkung. Sonst sind nur Tools dieser Plugins erlaubt (kommagetrennte Namen)."
   },
   "servers": {
     "empty": "Noch keine Server zugewiesen.",

@@ -11,23 +11,23 @@ logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 
-from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.api.middleware.auth import require_admin
+from hydrahive.api.routes._datamining_access import AdminAuth, Auth, owns, scoped_username
 from hydrahive.db import mirror, mirror_query
 
 router = APIRouter(prefix="/api/datamining", tags=["datamining"])
 
-Auth = Annotated[tuple[str, str], Depends(require_auth)]
 
 
 @router.get("/events")
-async def get_recent_events(_auth: Auth, limit: int = 100) -> dict:
-    events = await mirror.recent_events(min(limit, 500))
+async def get_recent_events(auth: Auth, limit: int = 100) -> dict:
+    events = await mirror.recent_events(min(limit, 500), username=scoped_username(auth))
     return {"active": mirror._pool is not None, "events": events}
 
 
 @router.get("/search")
 async def search_events(
-    _auth: Auth,
+    auth: Auth,
     q: str = Query(default=""),
     event_type: str | None = None,
     agent_name: str | None = None,
@@ -45,7 +45,7 @@ async def search_events(
             q,
             event_type=event_type or None,
             agent_name=agent_name or None,
-            username=username or None,
+            username=scoped_username(auth, username),
             from_date=from_date or None,
             to_date=to_date or None,
             semantic=semantic,
@@ -59,7 +59,7 @@ async def search_events(
 
 @router.get("/sessions")
 async def list_sessions(
-    _auth: Auth,
+    auth: Auth,
     agent_name: str | None = None,
     username: str | None = None,
     from_date: str | None = None,
@@ -71,7 +71,7 @@ async def list_sessions(
         return {"active": False, "sessions": []}
     sessions = await mirror_query.list_sessions(
         agent_name=agent_name or None,
-        username=username or None,
+        username=scoped_username(auth, username),
         from_date=from_date or None,
         to_date=to_date or None,
         limit=min(limit, 500),
@@ -80,17 +80,18 @@ async def list_sessions(
 
 
 @router.get("/sessions/{session_id}")
-async def get_session(session_id: str, _auth: Auth) -> dict:
+async def get_session(session_id: str, auth: Auth) -> dict:
     detail = await mirror_query.get_session_detail(session_id)
-    if detail is None:
+    # Fremde Sessions wie nicht vorhanden behandeln (kein Existenz-Leak).
+    if detail is None or not owns(auth, (detail.get("session") or {}).get("username")):
         raise HTTPException(404, "Session nicht gefunden")
     return detail
 
 
 @router.get("/graph")
-async def get_graph(_auth: Auth) -> dict:
-    from hydrahive.db.mirror_graph_topology import build_topology
-    return await build_topology()
+async def get_graph(auth: Auth) -> dict:
+    from hydrahive.db import mirror_graph_topology
+    return await mirror_graph_topology.build_topology(username=scoped_username(auth))
 
 
 @router.get("/embed/status")
@@ -99,13 +100,13 @@ async def get_embed_status(_auth: Auth) -> dict:
 
 
 @router.post("/embed/reset")
-async def reset_embeddings(_auth: Auth, event_type: str | None = None) -> dict:
+async def reset_embeddings(_auth: AdminAuth, event_type: str | None = None) -> dict:
     count = await mirror.reset_embeddings(event_type)
     return {"ok": True, "reset": count}
 
 
 @router.post("/embed/rechunk")
-async def rechunk_events(_auth: Auth) -> dict:
+async def rechunk_events(_auth: AdminAuth) -> dict:
     """Schneidet alle tool_result-Events die länger als CHUNK_CHARS sind neu."""
     if mirror._pool is None:
         return {"ok": False, "reason": "Mirror nicht aktiv"}
@@ -115,7 +116,7 @@ async def rechunk_events(_auth: Auth) -> dict:
 
 
 @router.post("/embed/backfill")
-async def trigger_backfill(_auth: Auth) -> dict:
+async def trigger_backfill(_auth: AdminAuth) -> dict:
     from hydrahive.llm._config import load_config
     if mirror._pool is None:
         return {"ok": False, "reason": "Mirror nicht aktiv"}
@@ -184,7 +185,7 @@ async def ingest_transcript(body: _IngestRequest) -> dict:
 
 
 @router.post("/import/sqlite")
-async def start_sqlite_import(_auth: Auth) -> dict:
+async def start_sqlite_import(_auth: AdminAuth) -> dict:
     from hydrahive.db.mirror_import_sqlite import run_sqlite_import, sqlite_import_status
     s = sqlite_import_status()
     if s["running"]:
@@ -200,13 +201,13 @@ async def get_sqlite_import_status(_auth: Auth) -> dict:
 
 
 @router.post("/import/git")
-async def start_git_import(_auth: Auth, repo_path: str = "") -> dict:
+async def start_git_import(_auth: AdminAuth, repo_path: str = "") -> dict:
     from hydrahive.db.mirror_import_git import run_git_import, git_import_status
     from hydrahive.settings import settings
     s = git_import_status()
     if s["running"]:
         return {"ok": False, "reason": "Import läuft bereits"}
-    path = repo_path or str(settings.repo_dir if hasattr(settings, "repo_dir") else settings.hh_repo_dir)
+    path = repo_path or str(settings.base_dir)
     asyncio.get_running_loop().create_task(run_git_import(path))
     return {"ok": True, "repo": path}
 
@@ -218,7 +219,7 @@ async def get_git_import_status(_auth: Auth) -> dict:
 
 
 @router.post("/import/jsonl")
-async def start_jsonl_import(_auth: Auth) -> dict:
+async def start_jsonl_import(_auth: AdminAuth) -> dict:
     from hydrahive.db.mirror_import_jsonl import run_jsonl_import, jsonl_import_status
     s = jsonl_import_status()
     if s["running"]:
@@ -235,7 +236,7 @@ async def get_jsonl_import_status(_auth: Auth) -> dict:
 
 @router.post("/import/logs")
 async def start_logs_import(
-    _auth: Auth,
+    _auth: AdminAuth,
     nginx_log: str = "/var/log/nginx/access.log",
     journal_unit: str = "hydrahive2",
     journal_lines: int = 5000,
@@ -256,7 +257,7 @@ async def get_logs_import_status(_auth: Auth) -> dict:
 
 @router.post("/import/shell-history")
 async def import_shell_history(
-    _auth: Auth,
+    _auth: AdminAuth,
     file: UploadFile = File(...),
     username: str = "unknown",
 ) -> dict:
