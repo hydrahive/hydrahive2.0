@@ -131,10 +131,9 @@ def get_or_create_buddy(username: str) -> dict:
         thinking_budget=0,
     )
     agent_config.update(agent["id"], is_buddy=True, compact_threshold_pct=70)
-    memory_store.write_key(
-        agent["id"], "character",
-        f"{character} (aus {universe})",
-    )
+    from hydrahive.buddy._soul_state import CHARACTER_KEY, format_character
+
+    memory_store.write_key(agent["id"], CHARACTER_KEY, format_character(character, universe))
     sid = _get_or_create_session(agent["id"], username)
     logger.info("Buddy für %s angelegt (agent_id=%s)", username, agent["id"])
     return {

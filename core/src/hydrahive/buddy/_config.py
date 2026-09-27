@@ -69,8 +69,7 @@ def get_config(username: str) -> dict:
 
 def patch_config(username: str, changes: dict) -> dict:
     """Wendet Teiländerungen an. Baut Soul neu wenn Sprache/Ton/Kontext ändern."""
-    from hydrahive.buddy import _build_soul
-    from hydrahive.db import sessions as sessions_db
+    from hydrahive.buddy import _soul_state as soul_state
 
     buddy = _find_buddy(username)
     bid = buddy["id"]
@@ -129,23 +128,14 @@ def patch_config(username: str, changes: dict) -> dict:
         soul_dirty = True
 
     if soul_dirty:
-        character_raw = memory.read_key(bid, "character") or ""
-        if "(" in character_raw and "aus" in character_raw:
-            char_name = character_raw.split("(")[0].strip()
-            universe = character_raw.split("aus")[-1].rstrip(")").strip()
-        else:
-            universe, char_name = _pick_character()
-        language = memory.read_key(bid, "_pref_language") or "de"
-        tone = memory.read_key(bid, "_pref_tone") or "locker"
-        context = memory.read_key(bid, "_pref_context") or ""
-        new_soul = _build_soul(username, universe, char_name, language, tone, context)
-        agent_config.set_system_prompt(bid, new_soul)
-        new_session = sessions_db.create(
-            agent_id=bid,
-            user_id=username,
-            title=f"{username}'s Buddy",
-            project_id=None,
-        )
-        return {"ok": True, "new_session_id": new_session.id}
+        parsed = soul_state.parse_character(memory.read_key(bid, soul_state.CHARACTER_KEY) or "")
+        universe, char_name = parsed or _pick_character()
+        if parsed is None:
+            memory.write_key(bid, soul_state.CHARACTER_KEY,
+                             soul_state.format_character(char_name, universe))
+        agent_config.set_system_prompt(
+            bid, soul_state.rebuild_soul(username, bid, universe, char_name))
+        return {"ok": True,
+                "new_session_id": soul_state.new_session_keeping_project(bid, username)}
 
     return {"ok": True, "new_session_id": None}
