@@ -361,6 +361,7 @@ The webhook route retains a deprecated compatibility path when a project has no 
 **Status: Optional bot**
 
 - Bot configuration, enable/disable state and message bridge.
+- Agent tools `discord_channels`, `discord_read`, `discord_post`, `discord_reply`, `discord_edit`: list allowed channels, read text channels/forums/forum posts, post (incl. new forum posts with title + tags), reply in posts, edit own messages. Only in channels explicitly allowed under "Channels for agent tools" (empty = no access, forum posts inherit); no @everyone/role pings; read content is framed as untrusted. Not active by default — enable per agent. Spec: `docs/specs/discord-agent-tools.md`.
 
 **Sources:** `core/src/hydrahive/communication/discord/`, `core/src/hydrahive/api/routes/communication_discord*.py`.
 

@@ -34,8 +34,19 @@ export interface DiscordConfig {
   allowed_user_ids: string[]
   blocked_user_ids: string[]
   allowed_channel_ids: string[]
+  tool_channel_ids: string[]
   respond_as_voice: boolean
   voice_name: string
+}
+
+export interface DiscordCatalogChannel {
+  id: string
+  name: string
+  kind: "text" | "news" | "forum"
+  guild_id: string
+  guild: string
+  category: string
+  can_send: boolean
 }
 
 export const communicationApi = {
@@ -47,6 +58,8 @@ export const communicationApi = {
     getConfig: () => api.get<DiscordConfig>("/communication/discord/config"),
     putConfig: (cfg: DiscordConfig) =>
       api.put<DiscordConfig>("/communication/discord/config", cfg),
+    channels: () =>
+      api.get<{ connected: boolean; channels: DiscordCatalogChannel[] }>("/communication/discord/channels"),
   },
   whatsapp: {
     status: () => api.get<ChannelStatus>("/communication/whatsapp/status"),

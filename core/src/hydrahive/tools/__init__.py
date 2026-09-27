@@ -14,6 +14,8 @@ from hydrahive.tools import (
     ask_agent,
     code_graph_tools,
     datamining,
+    discord_read,
+    discord_write,
     analyze_image,
     generate_image,
     generate_music,
@@ -95,6 +97,11 @@ def _build_registry() -> dict[str, Tool]:
     ]
     if settings.agentlink_url:
         tools.append(ask_agent.TOOL)
+    if settings.discord_enabled:
+        # Nur mit aktivem Discord-Adapter sinnvoll; in keiner Default-Toolliste —
+        # der User schaltet sie pro Agent bewusst frei (docs/specs/discord-agent-tools.md).
+        tools.extend([discord_read.TOOL_CHANNELS, discord_read.TOOL_READ,
+                      discord_write.TOOL_POST, discord_write.TOOL_REPLY, discord_write.TOOL_EDIT])
     tools.append(web_browser.TOOL)
     tools.append(webmin_status.TOOL)
     tools.append(webmin_call.TOOL)
@@ -145,7 +152,12 @@ def register_module_tools(tools: list[Tool]) -> None:
 # Agent-Configs nachdem AgentLink z.B. aus HH_AGENTLINK_URL entfernt wird (#78).
 # ask_agent: nur aktiv wenn AgentLink konfiguriert
 # file_search, dir_list, http_request: entfernte Tools — in alten Configs tolerieren
-OPTIONAL_TOOLS: frozenset[str] = frozenset({"ask_agent", "web_browser", "file_search", "dir_list", "http_request", "webmin_status", "webmin_call"})
+OPTIONAL_TOOLS: frozenset[str] = frozenset({
+    "ask_agent", "web_browser", "file_search", "dir_list", "http_request", "webmin_status",
+    "webmin_call",
+    # nur registriert wenn HH_DISCORD_ENABLED
+    "discord_channels", "discord_read", "discord_post", "discord_reply", "discord_edit",
+})
 
 
 def list_tools() -> list[Tool]:

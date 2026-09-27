@@ -30,6 +30,7 @@ def _config_dict(cfg: dc_config.DiscordConfig, *, mask_token: bool = True) -> di
         "allowed_user_ids": cfg.allowed_user_ids,
         "blocked_user_ids": cfg.blocked_user_ids,
         "allowed_channel_ids": cfg.allowed_channel_ids,
+        "tool_channel_ids": cfg.tool_channel_ids,
         "respond_as_voice": cfg.respond_as_voice,
         "voice_name": cfg.voice_name,
     }
@@ -83,7 +84,24 @@ async def discord_put_config(payload: dict, auth=Depends(require_auth)) -> dict:
         allowed_user_ids=list(payload.get("allowed_user_ids", []) or []),
         blocked_user_ids=list(payload.get("blocked_user_ids", []) or []),
         allowed_channel_ids=list(payload.get("allowed_channel_ids", []) or []),
+        # Fehlt der Key (älteres Frontend), bleibt die Freigabe erhalten statt
+        # still gelöscht zu werden.
+        tool_channel_ids=list(payload.get("tool_channel_ids", existing.tool_channel_ids) or []),
         respond_as_voice=bool(payload.get("respond_as_voice", False)),
         voice_name=str(payload.get("voice_name", "German_FriendlyMan") or "German_FriendlyMan"),
     )
     return _config_dict(dc_config.save(username, cfg), mask_token=True)
+
+
+@router.get("/discord/channels")
+async def discord_channels(auth=Depends(require_auth)) -> dict:
+    """Kanäle, die der eigene Bot sehen darf — Auswahlliste für die Tool-Freigabe."""
+    if not get("discord"):
+        raise coded(503, "channel_unavailable", channel="discord")
+    username, _ = auth
+    from hydrahive.communication.discord import ops_access, ops_read
+    try:
+        client = ops_access.connected_client(username)
+    except ops_access.DiscordToolError:
+        return {"connected": False, "channels": []}
+    return {"connected": True, "channels": ops_read.catalog(client)}

@@ -18,6 +18,21 @@ Kurz: Dein Agent bekommt ein „Telefon", über das du ihm schreiben kannst.
 (Welche Kanäle einsatzbereit sind, hängt von deiner Installation und den
 hinterlegten Zugangsdaten ab.)
 
+## Discord-Werkzeuge für Agenten
+
+Zusätzlich kann ein Agent (z. B. dein Buddy) Discord **aktiv** nutzen: freigegebene
+Kanäle auflisten, Nachrichten und Forum-Beiträge lesen, posten, in einem Forum
+einen neuen Beitrag mit Titel und Tags anlegen, in Beiträgen antworten und eigene
+Nachrichten bearbeiten.
+
+1. Unter **Kommunikation → Discord → „Kanäle für Agenten-Werkzeuge"** die Kanäle
+   anhaken und speichern. Nichts angehakt = kein Zugriff. Beiträge in einem Forum
+   sind automatisch mit freigegeben.
+2. Beim Agenten unter **Tools** die Gruppe **Discord** einschalten.
+
+Der Bot pingt dabei nie @everyone, @here oder Rollen. Tags, die nur Moderatoren
+setzen dürfen, braucht in Discord die Bot-Berechtigung „Threads verwalten".
+
 ## Wozu ist das gut?
 
 - Du kannst deinem Agenten **von unterwegs** Aufgaben geben („Fass mir die Mails
