@@ -40,6 +40,11 @@ class DiscordAdapter:
             self._status[username] = ChannelStatus(connected=True, state="connected", detail=detail)
         return self._status.get(username, ChannelStatus(connected=False, state="disconnected"))
 
+    def client_for(self, username: str) -> discord.Client | None:
+        """Bereiter Bot-Client dieses Users (Zugang der Agenten-Tools) oder None."""
+        client = self._clients.get(username)
+        return client if client and not client.is_closed() and client.is_ready() else None
+
     async def connect(self, username: str) -> ChannelStatus:
         await self.disconnect(username)
 

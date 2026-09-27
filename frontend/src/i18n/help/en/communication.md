@@ -16,6 +16,19 @@ In short: your agent gets a "phone" you can text.
 
 (Which channels are ready depends on your installation and the stored credentials.)
 
+## Discord tools for agents
+
+An agent (e.g. your Buddy) can also use Discord **actively**: list allowed channels,
+read messages and forum posts, post, create a new forum post with title and tags,
+reply in posts and edit its own messages.
+
+1. Under **Communication → Discord → "Channels for agent tools"** tick the channels
+   and save. Nothing ticked = no access. Posts inside a forum are included.
+2. On the agent, enable the **Discord** group under **Tools**.
+
+The bot never pings @everyone, @here or roles. Tags reserved for moderators need
+the bot permission "Manage Threads" in Discord.
+
 ## What is it good for?
 
 - You can give your agent tasks **on the go** ("Summarize my mail", "How's the

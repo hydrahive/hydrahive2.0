@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Check, Save, ChevronDown, ExternalLink, BookOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { communicationApi, type DiscordConfig } from "./api"
+import { DiscordToolChannels } from "./DiscordToolChannels"
 
 const DEFAULT_CFG: DiscordConfig = {
   bot_token: "",
@@ -11,6 +12,7 @@ const DEFAULT_CFG: DiscordConfig = {
   allowed_user_ids: [],
   blocked_user_ids: [],
   allowed_channel_ids: [],
+  tool_channel_ids: [],
   respond_as_voice: false,
   voice_name: "German_FriendlyMan",
 }
@@ -155,6 +157,11 @@ export function DiscordFilterPanel() {
           <p className="text-[10px] text-zinc-600">{t(`discord.filter.${hint}`)}</p>
         </div>
       ))}
+
+      <DiscordToolChannels
+        value={cfg.tool_channel_ids ?? []}
+        onChange={(ids) => setCfg({ ...cfg, tool_channel_ids: ids })}
+      />
 
       {/* Voice */}
       <label className="flex items-center gap-2 cursor-pointer">

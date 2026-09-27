@@ -74,10 +74,23 @@
       "blocked_users": "Blacklist User-IDs",
       "blocked_users_hint": "Diese User-IDs werden immer ignoriert.",
       "allowed_channels": "Whitelist Channel-IDs (leer = alle)",
-      "allowed_channels_hint": "Wenn gesetzt: nur in diesen Channels antworten.",
+      "allowed_channels_hint": "Wenn gesetzt: nur in diesen Channels auf @Mentions antworten. Gilt nicht für die Agenten-Werkzeuge (siehe unten).",
       "voice_label": "Als Sprachnachricht antworten",
       "save": "Speichern",
       "saved": "Gespeichert"
+    },
+    "tools": {
+      "label": "Kanäle für Agenten-Werkzeuge",
+      "hint": "Nur hier dürfen Agenten mit den Discord-Tools lesen und schreiben (Beiträge in einem Forum sind mit freigegeben). Nichts ausgewählt = kein Zugriff. Die Tools schaltest du pro Agent unter «Tools» frei.",
+      "reload": "Neu laden",
+      "not_connected": "Bot nicht verbunden — zuerst oben verbinden, dann erscheinen hier die Kanäle.",
+      "no_channels": "Der Bot sieht keine Text- oder Forum-Kanäle. Ist er auf dem Server eingeladen?",
+      "forum": "Forum",
+      "read_only": "nur lesen",
+      "unreachable": "nicht erreichbar",
+      "none_selected": "Kein Kanal freigegeben — Agenten haben keinen Discord-Zugriff.",
+      "count_one": "{{count}} Kanal freigegeben — speichern nicht vergessen.",
+      "count_other": "{{count}} Kanäle freigegeben — speichern nicht vergessen."
     }
   }
 }

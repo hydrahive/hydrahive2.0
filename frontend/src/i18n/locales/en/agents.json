@@ -92,6 +92,7 @@
     "web": "Web",
     "tasks": "Tasks",
     "mail": "Mail",
+    "discord": "Discord",
     "agents": "Agents",
     "other": "Other",
     "plugin": "Plugin: {{name}}"

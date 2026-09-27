@@ -361,6 +361,7 @@ Die Webhook-Route behält einen deprecated Kompatibilitätspfad, wenn ein Projek
 **Status: Optional Bot**
 
 - Bot-Konfiguration, Enable/Disable-State und Message-Bridge.
+- Agenten-Tools `discord_channels`, `discord_read`, `discord_post`, `discord_reply`, `discord_edit`: freigegebene Kanäle auflisten, Textkanäle/Foren/Forum-Beiträge lesen, posten (inkl. neuer Forum-Beitrag mit Titel + Tags), in Beiträgen antworten, eigene Nachrichten bearbeiten. Nur in Kanälen, die unter „Kanäle für Agenten-Werkzeuge" freigegeben sind (leer = kein Zugriff, Forum-Beiträge erben); keine @everyone-/Rollen-Pings; Gelesenes wird als Fremdinhalt gerahmt. Standardmäßig bei keinem Agenten aktiv. Spec: `docs/specs/discord-agent-tools.md`.
 
 **Quellen:** `core/src/hydrahive/communication/discord/`, `core/src/hydrahive/api/routes/communication_discord*.py`.
 

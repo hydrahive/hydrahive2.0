@@ -74,10 +74,23 @@
       "blocked_users": "User ID blacklist",
       "blocked_users_hint": "These user IDs are always ignored.",
       "allowed_channels": "Channel ID whitelist (empty = all)",
-      "allowed_channels_hint": "If set: only reply in these channels.",
+      "allowed_channels_hint": "If set: only answer @mentions in these channels. Does not apply to the agent tools (see below).",
       "voice_label": "Reply as voice message",
       "save": "Save",
       "saved": "Saved"
+    },
+    "tools": {
+      "label": "Channels for agent tools",
+      "hint": "Agents may only read and write here with the Discord tools (posts inside a forum are included). Nothing selected = no access. Enable the tools per agent under «Tools».",
+      "reload": "Reload",
+      "not_connected": "Bot not connected — connect above first, then the channels appear here.",
+      "no_channels": "The bot can't see any text or forum channels. Has it been invited to the server?",
+      "forum": "Forum",
+      "read_only": "read only",
+      "unreachable": "unreachable",
+      "none_selected": "No channel allowed — agents have no Discord access.",
+      "count_one": "{{count}} channel allowed — don't forget to save.",
+      "count_other": "{{count}} channels allowed — don't forget to save."
     }
   }
 }
