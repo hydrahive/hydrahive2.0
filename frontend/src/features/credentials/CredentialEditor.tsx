@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
 import { credentialsApi } from "./api"
 import { Field, CredentialValueInput } from "./_credentialHelpers"
+import { hasConcreteHost } from "./hostPattern"
 import type { Credential, CredentialType } from "./types"
 
 interface Props {
@@ -24,7 +25,7 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
   const [name, setName] = useState(credential?.name ?? "")
   const [type, setType] = useState<CredentialType>(credential?.type ?? "bearer")
   const [value, setValue] = useState("")
-  const [urlPattern, setUrlPattern] = useState(credential?.url_pattern ?? "*")
+  const [urlPattern, setUrlPattern] = useState(credential?.url_pattern ?? "")
   const [description, setDescription] = useState(credential?.description ?? "")
   const [headerName, setHeaderName] = useState(credential?.header_name ?? "")
   const [queryParam, setQueryParam] = useState(credential?.query_param ?? "")
@@ -45,7 +46,7 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
     setBusy(true); setError(null)
     try {
       await credentialsApi.save({
-        name, type, value, url_pattern: urlPattern || "*",
+        name, type, value, url_pattern: urlPattern.trim() || "*",
         description, header_name: headerName, query_param: queryParam,
       })
       onSaved()
@@ -137,8 +138,15 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
         {!isSshKey && (
           <Field label={t("url_pattern")} hint={t("url_pattern_hint")}>
             <input value={urlPattern} onChange={(e) => setUrlPattern(e.target.value)}
-              placeholder="https://forum.metin2.de/*"
-              className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 font-mono" />
+              placeholder="https://api.example.com/*"
+              className={`w-full px-2 py-1 rounded-md bg-zinc-950 border text-xs text-zinc-200 font-mono ${
+                urlPattern && !hasConcreteHost(urlPattern) ? "border-amber-500/40" : "border-white/[8%]"
+              }`} />
+            {!hasConcreteHost(urlPattern) && (
+              <p className="text-[10px] text-amber-300 bg-amber-500/[6%] border border-amber-500/20 rounded-md px-2 py-1 mt-1">
+                {t("url_pattern_wildcard_warning")}
+              </p>
+            )}
           </Field>
         )}
 

@@ -6,6 +6,7 @@ export interface Credential {
   value: string  // beim Listing leer (gemaskt)
   value_set: boolean
   url_pattern: string
+  host_bound?: boolean  // false = Muster ohne konkreten Host ("*") → fetch_url setzt es nie ein
   description: string
   header_name: string
   query_param: string

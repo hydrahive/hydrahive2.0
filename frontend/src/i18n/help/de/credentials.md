@@ -31,9 +31,10 @@ Ohne passenden Credential bekäme der Agent nur „401 Unauthorized" oder eine L
 - **Name** — frei wählbar (nur `a-z`, `0-9`, `_`, `-`), damit du den Zugang wiedererkennst.
 - **Typ** — einer der oben genannten. Je nach Typ erscheinen passende Zusatzfelder.
 - **Wert** — das eigentliche Geheimnis (Token, `user:passwort`, Cookie-String …).
-- **URL-Pattern** — bestimmt, für welche Adressen der Zugang gilt. Ein **Glob-Muster**:
-  - `*` = für **alle** URLs (mit Vorsicht nutzen!)
+- **URL-Pattern** — bestimmt, für welche Adressen der Zugang gilt. Ein **Glob-Muster mit konkretem Host**:
   - `https://forum.example.de/*` = nur für diesen Host und alles darunter
+  - `https://*.example.de/*` = für alle Subdomains von `example.de`
+  - `*` (oder ein Muster ohne Host wie `https://*/*`) = wird von `fetch_url` **nie** eingesetzt — auch nicht, wenn ein Agent den Zugang ausdrücklich per Namen anfordert. Die Seite zeigt solche Zugänge mit einem Warnhinweis.
 - **Header-Name** / **Query-Param-Name** — nur bei den Typen „Custom Header" bzw. „Query Parameter": wie das Feld heißen soll.
 - **Beschreibung** — optionale Notiz für dich.
 
@@ -63,7 +64,7 @@ Ohne passenden Credential bekäme der Agent nur „401 Unauthorized" oder eine L
 
 - **Agent bekommt weiter 401/Login-Seite** — Das **URL-Pattern** passt nicht auf die tatsächlich aufgerufene Adresse. Prüfe Schreibweise und `*`-Platzierung.
 - **„Name ungültig"** — Nur `a-z`, `0-9`, `_`, `-`, maximal 50 Zeichen.
-- **Zu weit gefasstes Pattern** — `*` schickt den Zugang an **jede** URL. Fasse es so eng wie möglich (nur den einen Host), damit ein Token nicht versehentlich an fremde Server geht.
+- **„Kein Host — fetch_url setzt ihn nicht ein"** — Das Muster ist `*` oder nennt keinen konkreten Host. Früher ging so ein Zugang an **jede** URL, also auch an fremde Server. Heute setzt `fetch_url` ihn nie ein. Trag den Host ein, für den er gedacht ist. (Andere Stellen, die einen Zugang ausdrücklich per Namen holen, etwa ein SMB-Mount, funktionieren weiter.)
 
 ## Tipps
 

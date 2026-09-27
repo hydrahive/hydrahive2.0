@@ -31,9 +31,10 @@ Without a matching credential the agent would just get "401 Unauthorized" or a l
 - **Name** — free choice (only `a-z`, `0-9`, `_`, `-`) so you recognize the access.
 - **Type** — one of the above. Matching extra fields appear per type.
 - **Value** — the actual secret (token, `user:password`, cookie string …).
-- **URL pattern** — determines which addresses the access applies to. A **glob pattern**:
-  - `*` = for **all** URLs (use with care!)
+- **URL pattern** — determines which addresses the access applies to. A **glob pattern with a concrete host**:
   - `https://forum.example.com/*` = only this host and everything below it
+  - `https://*.example.com/*` = all subdomains of `example.com`
+  - `*` (or a pattern without a host such as `https://*/*`) = **never** attached by `fetch_url` — not even when an agent explicitly asks for the secret by name. The page marks such entries with a warning.
 - **Header name** / **Query param name** — only for "Custom Header" / "Query Parameter": what the field should be called.
 - **Description** — optional note for yourself.
 
@@ -63,7 +64,7 @@ Without a matching credential the agent would just get "401 Unauthorized" or a l
 
 - **Agent still gets 401/login page** — The **URL pattern** doesn't match the actually called address. Check spelling and `*` placement.
 - **"Name invalid"** — Only `a-z`, `0-9`, `_`, `-`, max 50 characters.
-- **Pattern too broad** — `*` sends the access to **every** URL. Keep it as narrow as possible (just the one host) so a token isn't accidentally sent to foreign servers.
+- **"No host — fetch_url never attaches it"** — The pattern is `*` or names no concrete host. Such a secret used to go to **every** URL, including foreign servers. Now `fetch_url` never attaches it. Enter the host it is meant for. (Features that fetch a secret explicitly by name, such as an SMB mount, keep working.)
 
 ## Tips
 

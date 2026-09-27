@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react"
 import { useEffect, useState } from "react"
-import { Key, Loader2, Plus } from "lucide-react"
+import { AlertTriangle, Key, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
 import { HelpButton } from "@/i18n/HelpButton"
@@ -28,6 +28,9 @@ export function CredentialsPage() {
   }
 
   useEffect(() => { reload() }, [])
+
+  // Zugänge mit "*" o.ä. setzt fetch_url nie ein (Task ef27f79b) — sichtbar machen.
+  const unbound = creds.filter((c) => c.host_bound === false).length
 
   return (
     <div className="space-y-5 max-w-4xl">
@@ -70,6 +73,13 @@ export function CredentialsPage() {
         {t("security_note")}
       </p>}
 
+      {tab === "http" && unbound > 0 && (
+        <p className="flex items-start gap-2 text-xs text-amber-200 bg-amber-500/[8%] border border-amber-500/30 rounded-md px-3 py-2">
+          <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+          {t("unbound_banner", { count: unbound })}
+        </p>
+      )}
+
       {tab === "http" && loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={20} className="animate-spin text-zinc-500" />
@@ -90,6 +100,11 @@ export function CredentialsPage() {
               </div>
               {c.description && <p className="text-xs text-zinc-400 line-clamp-1">{c.description}</p>}
               <p className="text-[10px] text-zinc-600 font-mono truncate mt-1">{c.url_pattern}</p>
+              {c.host_bound === false && (
+                <p className="flex items-center gap-1 text-[10px] text-amber-300 mt-0.5">
+                  <AlertTriangle size={10} /> {t("not_host_bound")}
+                </p>
+              )}
             </button>
           ))}
         </div>
