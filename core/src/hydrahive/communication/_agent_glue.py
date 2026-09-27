@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 
-from hydrahive.agents import config as agent_config
 from hydrahive.communication import _session_lookup
 from hydrahive.credentials import redaction
 from hydrahive.communication.base import IncomingEvent
@@ -110,10 +109,10 @@ class NoMasterError(RuntimeError):
 
 
 def _find_master(username: str) -> dict | None:
-    for a in agent_config.list_by_owner(username):
-        if a.get("type") == "master" and a.get("status") != "disabled":
-            return a
-    return None
+    """Zielagent für eingehende Kanäle: der Buddy, sonst der erste aktive Master."""
+    from hydrahive.agents.primary import primary_agent_for
+
+    return primary_agent_for(username)
 
 
 async def run_master_for_event(event: IncomingEvent, *, voice_reply: bool = False) -> str:
