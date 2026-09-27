@@ -14,6 +14,12 @@ from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, T
 from hydrahive.runner.integrity import IntegrityState
 from hydrahive.tools import ToolContext, ToolResult
 from hydrahive.tools._protected_paths import shell_confirm_reason
+
+# Tools, deren Wirkung nicht rückgängig zu machen ist: immer Bestätigung durch den
+# Benutzer, auch ohne require_tool_confirm am Agenten (Timeout = abgelehnt).
+ALWAYS_CONFIRM: dict[str, str] = {
+    "discord_delete": "Löschen in Discord lässt sich nicht rückgängig machen.",
+}
 from hydrahive.tools._observations import (
     HOOK_POST_TOOL_FAILURE,
     HOOK_POST_TOOL_USE,
@@ -48,6 +54,8 @@ async def process_tool_uses(
         confirm_reason: str | None = None
         if tu_name == "shell_exec":
             confirm_reason = shell_confirm_reason(tu_args.get("cmd", "") or "")
+        elif tu_name in ALWAYS_CONFIRM:
+            confirm_reason = ALWAYS_CONFIRM[tu_name]
         needs_confirm = require_confirm or confirm_reason is not None
 
         if needs_confirm:

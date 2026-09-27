@@ -5,8 +5,8 @@ import discord
 
 from hydrahive.communication.discord import ops_format as fmt
 from hydrahive.communication.discord.ops_access import (
-    DiscordToolError, Scope, discord_errors, kind, fetch_any, parse_id, permissions,
-    resolve_channel,
+    DiscordToolError, Scope, discord_errors, kind, fetch_any, is_moderated, parse_id,
+    permissions, resolve_channel,
 )
 
 MAX_LIMIT = 50
@@ -58,7 +58,8 @@ async def list_channels(scope: Scope) -> str:
         can_write = perms.send_messages_in_threads if k == "thread" else perms.send_messages
         line = (f"- {ch.id} · #{fmt.neutralize(ch.name)} · {_KIND_LABEL[k]} · Server "
                 f"«{fmt.neutralize(ch.guild.name)}» · "
-                f"{'lesen+schreiben' if can_write else 'nur lesen'}")
+                f"{'lesen+schreiben' if can_write else 'nur lesen'}"
+                f"{' + moderieren' if is_moderated(scope, ch) else ''}")
         if k == "forum":
             tags = ", ".join(fmt.tag_label(t) for t in ch.available_tags) or "(keine)"
             line += f"\n    Tags: {tags}"

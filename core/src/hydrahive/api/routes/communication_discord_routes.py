@@ -31,6 +31,7 @@ def _config_dict(cfg: dc_config.DiscordConfig, *, mask_token: bool = True) -> di
         "blocked_user_ids": cfg.blocked_user_ids,
         "allowed_channel_ids": cfg.allowed_channel_ids,
         "tool_channel_ids": cfg.tool_channel_ids,
+        "moderation_channel_ids": cfg.moderation_channel_ids,
         "respond_as_voice": cfg.respond_as_voice,
         "voice_name": cfg.voice_name,
     }
@@ -87,6 +88,8 @@ async def discord_put_config(payload: dict, auth=Depends(require_auth)) -> dict:
         # Fehlt der Key (älteres Frontend), bleibt die Freigabe erhalten statt
         # still gelöscht zu werden.
         tool_channel_ids=list(payload.get("tool_channel_ids", existing.tool_channel_ids) or []),
+        moderation_channel_ids=list(
+            payload.get("moderation_channel_ids", existing.moderation_channel_ids) or []),
         respond_as_voice=bool(payload.get("respond_as_voice", False)),
         voice_name=str(payload.get("voice_name", "German_FriendlyMan") or "German_FriendlyMan"),
     )

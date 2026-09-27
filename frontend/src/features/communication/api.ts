@@ -35,6 +35,7 @@ export interface DiscordConfig {
   blocked_user_ids: string[]
   allowed_channel_ids: string[]
   tool_channel_ids: string[]
+  moderation_channel_ids: string[]
   respond_as_voice: boolean
   voice_name: string
 }

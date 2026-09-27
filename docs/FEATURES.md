@@ -362,6 +362,7 @@ The webhook route retains a deprecated compatibility path when a project has no 
 
 - Bot configuration, enable/disable state and message bridge.
 - Agent tools `discord_channels`, `discord_read`, `discord_post`, `discord_reply`, `discord_edit`: list allowed channels, read text channels/forums/forum posts, post (incl. new forum posts with title + tags), reply in posts, edit own messages. Only in channels explicitly allowed under "Channels for agent tools" (empty = no access, forum posts inherit); no @everyone/role pings; read content is framed as untrusted. Not active by default — enable per agent. Spec: `docs/specs/discord-agent-tools.md`.
+- Moderation tools `discord_thread_manage`, `discord_message_pin`, `discord_delete`, `discord_forum_tags`: set forum post tags (incl. moderator-only tags), rename, close/reopen, lock, pin posts; pin/delete messages, delete posts; manage a forum's tag list. Only in channels additionally allowed with "Moderate" (empty = no moderation). Deleting always requires user confirmation, deleted content is never returned, actions carry a reason in Discord's audit log. Spec: `docs/specs/discord-moderation-tools.md`.
 
 **Sources:** `core/src/hydrahive/communication/discord/`, `core/src/hydrahive/api/routes/communication_discord*.py`.
 

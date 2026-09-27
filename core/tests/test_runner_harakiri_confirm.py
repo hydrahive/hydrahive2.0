@@ -84,6 +84,25 @@ def test_secret_read_triggers_confirm(launcher, monkeypatch, tmp_path):
     assert launcher.calls == []
 
 
+def test_discord_delete_verlangt_immer_bestaetigung(launcher, monkeypatch, tmp_path):
+    executed = []
+
+    async def _fake_exec(*, tool_use, allowed_tools, ctx, parent_message_id, iteration=None):
+        executed.append(tool_use["name"])
+        return ToolResult.ok("gelöscht"), "rec1", 5
+
+    monkeypatch.setattr(tool_confirmation, "wait", _deny)
+    monkeypatch.setattr(_runner_tools, "execute_tool", _fake_exec)
+    events = asyncio.run(_drive(
+        [{"id": "c4", "name": "discord_delete", "input": {"channel_id": "20"}}],
+        _ctx(tmp_path),
+    ))
+    confirms = [e for e in events if isinstance(e, ToolConfirmRequired)]
+    assert len(confirms) == 1 and "rückgängig" in (confirms[0].reason or "")
+    # Deny → nichts gelöscht, auch ohne require_tool_confirm am Agenten
+    assert executed == []
+
+
 def test_benign_command_runs_without_confirm(launcher, monkeypatch, tmp_path):
     called = {"wait": False, "exec_cmd": None}
 
