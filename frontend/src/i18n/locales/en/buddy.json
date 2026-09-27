@@ -121,5 +121,6 @@
     "backend_error": "✗ Error"
   },
   "briefing": { "open": "Open", "went_well": "Went well", "went_badly": "Went badly", "today": "Today" },
-  "boxes": { "extensions": "Applications", "buddy_settings": "Buddy settings", "zahnfee": "Tooth Fairy" }
+  "boxes": { "extensions": "Applications", "buddy_settings": "Buddy settings", "zahnfee": "Tooth Fairy" },
+  "mode": { "label": "Mode", "normal": "Normal buddy chat", "focus": "Focus", "humor": "Humorous", "brief": "Short answers", "hint": "Applies to this chat from the next message on.", "error": "Could not save the mode." }
 }

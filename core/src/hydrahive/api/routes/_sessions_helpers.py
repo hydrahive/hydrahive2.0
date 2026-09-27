@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.errors import coded
 
@@ -24,6 +24,9 @@ class SessionUpdate(BaseModel):
     # Aktives Projekt der Session → bestimmt das Arbeitsverzeichnis des Runs.
     # Leer-String hängt die Session vom Projekt ab. None = unverändert lassen.
     project_id: str | None = None
+    # Gesprächsmodus des Buddys: "normal" | "focus" | "humor" | "brief".
+    # Leer-String oder "normal" entfernt den Modus. None = unverändert lassen.
+    buddy_mode: str | None = Field(default=None, pattern="^(|normal|focus|humor|brief)$")
 
 
 def check_owner(session, username: str, role: str) -> None:

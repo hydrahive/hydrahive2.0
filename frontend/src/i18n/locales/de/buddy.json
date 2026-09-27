@@ -121,5 +121,6 @@
     "backend_error": "✗ Fehler"
   },
   "briefing": { "open": "Offen", "went_well": "Gut", "went_badly": "Schlecht", "today": "Heute" },
-  "boxes": { "extensions": "Anwendungen", "buddy_settings": "Buddy-Einstellungen", "zahnfee": "Zahnfee" }
+  "boxes": { "extensions": "Anwendungen", "buddy_settings": "Buddy-Einstellungen", "zahnfee": "Zahnfee" },
+  "mode": { "label": "Modus", "normal": "Normaler Buddy-Chat", "focus": "Fokus", "humor": "Humorvoll", "brief": "Kurze Antworten", "hint": "Gilt für diesen Chat ab der nächsten Nachricht.", "error": "Modus konnte nicht gespeichert werden." }
 }
