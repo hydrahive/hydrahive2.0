@@ -21,8 +21,9 @@ from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 _DESCRIPTION = (
     "HTTP-Request mit automatischer Auth-Injection. "
-    "Wenn unter /credentials ein passendes Profil existiert, wird der Token "
-    "transparent eingehängt — kommt NIE im Output zurück. "
+    "Wenn unter /credentials ein Profil existiert, dessen URL-Muster den Host "
+    "dieser Adresse nennt, wird der Token transparent eingehängt — kommt NIE im "
+    "Output zurück. Profile ohne konkreten Host ('*') werden nie eingesetzt. "
     "Methoden: GET, POST, PUT, PATCH, DELETE, HEAD. "
     "Für einfache Requests ohne Auth: shell_exec mit curl nutzen."
 )
@@ -40,7 +41,7 @@ _SCHEMA = {
         "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"], "default": "GET"},
         "body": {"type": "string", "description": "Request-Body (für POST/PUT/PATCH)."},
         "headers": {"type": "object", "description": "Optionale zusätzliche Header (Key/Value)."},
-        "auth": {"type": "string", "description": "Optional: Credential-Profilname erzwingen."},
+        "auth": {"type": "string", "description": "Optional: Credential-Profil per Name wählen (muss zum Host der URL passen)."},
         "content_type": {"type": "string", "description": "Z.B. 'application/json'."},
         "timeout": {"type": "integer", "description": "Timeout in Sekunden (default 30).", "default": 30},
     },
@@ -117,6 +118,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     # Bypass nur wenn: (1) Credential vorhanden UND (2) dessen url_pattern den Hostname
     # explizit enthält — kein Wildcard-Bypass ("*" oder bloßes Schema).
     cred = _select_cred(ctx.user_id, url, auth_name)
+    if auth_name and not cred:
+        # Nicht still ohne Auth senden: das Profil fehlt, oder sein Muster nennt
+        # keinen konkreten Host bzw. passt nicht auf diese URL (Task ef27f79b).
+        return ToolResult.fail(
+            f"Profil '{auth_name}' passt nicht auf diese URL — unter /credentials "
+            "muss das URL-Muster den Host dieser Adresse nennen (kein '*')."
+        )
     is_internal = _is_blocked(parsed.hostname)
 
     if is_internal:
