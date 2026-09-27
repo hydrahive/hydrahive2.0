@@ -29,7 +29,7 @@ export function NotesTab({ project, onSaved }: Props) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-zinc-500">{t("notes.hint")}</p>
+      <p className="text-xs text-zinc-500">{t("notes.hint")} {t("notes.agent_hint")}</p>
       {error && (
         <div className="rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
       )}
