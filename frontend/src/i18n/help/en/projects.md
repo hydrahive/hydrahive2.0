@@ -31,7 +31,7 @@ When the panel is collapsed, its actions are hidden too. Project-specific action
 - **Servers** — assign or remove servers, VMs, and containers
 - **Mounts** — create and assign SMB/network shares
 - **Git** — initialize or clone repositories, commit, configure remotes, pull, and push
-- **Integrations** — MCP server IDs, allowed plugins, project LLM key, and Samba
+- **Integrations** — Samba and tool restrictions: MCP server IDs and allowed plugins restrict the agents' tools in this project (empty = no restriction, never adds tools)
 
 ### Insights
 

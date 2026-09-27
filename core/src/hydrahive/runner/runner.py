@@ -27,6 +27,7 @@ from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._buddy_mode import with_buddy_mode
 from hydrahive.runner._emote_hint import with_emote_hint
+from hydrahive.runner._project_tool_scope import scope_tools
 from hydrahive.runner._runner_helpers import close_open_tool_uses
 from hydrahive.runner._runner_iter import (
     IterationResult,
@@ -121,14 +122,15 @@ async def run(
     base_system_prompt = with_emote_hint(base_system_prompt, is_buddy=bool(agent.get("is_buddy")))
     base_system_prompt = with_buddy_mode(base_system_prompt, is_buddy=bool(agent.get("is_buddy")),
                                          mode=(session.metadata or {}).get("buddy_mode"))
+    _proj = None
     if active_project_id:
         from hydrahive.projects import config as project_config
         _proj = project_config.get(active_project_id)
         if _proj:
             base_system_prompt = f"{base_system_prompt}\n\n{project_layout_hint(workspace, _proj)}"
 
-    local_tools: list[str] = agent.get("tools", [])
-    mcp_servers: list[str] = agent.get("mcp_servers", [])
+    local_tools, mcp_servers = scope_tools(
+        _proj, list(agent.get("tools", [])), list(agent.get("mcp_servers", [])))
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
     plugin_schemas = plugin_bridge.schemas_for(local_tools)
     tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas

@@ -31,7 +31,7 @@ Ist das Panel eingeklappt, sind auch die Aktionen verborgen. Sie stehen bewusst 
 - **Server** — Server, VMs und Container zuweisen oder entfernen
 - **Mounts** — SMB-/Netzwerkfreigaben erstellen und zuweisen
 - **Git** — Repository initialisieren oder klonen, Commits, Remotes, Pull und Push
-- **Integrationen** — MCP-Server-IDs, erlaubte Plugins, LLM-Projekt-Key und Samba
+- **Integrationen** — Samba und Tool-Einschränkungen: MCP-Server-IDs und erlaubte Plugins schränken die Tools der Agenten in diesem Projekt ein (leer = keine Einschränkung, es kommen nie Tools hinzu)
 
 ### Auswerten
 

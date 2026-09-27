@@ -14,7 +14,8 @@ export interface Project {
   mcp_server_ids: string[]
   allowed_plugins: string[]
   allowed_specialists: string[]
-  llm_api_key: string
+  has_webhook_secret?: boolean
+  git_repos?: Record<string, { has_token: boolean }>
   members: ProjectMember[]
   agent_id: string
   status: "active" | "paused" | "archived"

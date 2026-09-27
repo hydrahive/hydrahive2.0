@@ -21,6 +21,7 @@ from hydrahive.communication.whatsapp.config import _config_file as _wa_config_f
 from hydrahive.db import messages, sessions
 from hydrahive.projects import _config_io as project_config
 from hydrahive.projects._paths import project_dir, workspace_path
+from hydrahive.projects.public_view import public_view
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,14 @@ def _export_agents(tar: tarfile.TarFile, username: str) -> None:
 def _export_projects(tar: tarfile.TarFile, username: str) -> None:
     for proj in project_config.list_for_user(username):
         pid = proj["id"]
-        _add_dir(tar, f"projects/{pid}", project_dir(pid))
+        if proj.get("created_by") == username:
+            _add_dir(tar, f"projects/{pid}", project_dir(pid))
+        else:
+            # Nur Mitglied: config.json enthält Secrets des Eigentümers (webhook_secret,
+            # Git-Tokens). Restore übernimmt fremde Projekte ohnehin nicht.
+            _add_bytes(tar, f"projects/{pid}/config.json",
+                       json.dumps(public_view(proj), indent=2, ensure_ascii=False).encode())
+            _add_dir(tar, f"projects/{pid}/skills", project_dir(pid) / "skills")
         _add_dir(tar, f"workspaces/projects/{pid}", workspace_path(pid))
 
 
