@@ -1,5 +1,6 @@
 {
   "title": "Workspace",
+  "refresh": "Reload",
   "tab_files": "Files",
   "tab_git": "Git",
   "tab_editor": "Editor",

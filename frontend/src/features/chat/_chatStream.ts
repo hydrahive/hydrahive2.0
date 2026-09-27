@@ -4,6 +4,7 @@
 import type React from "react"
 import type { ContentBlock } from "./types"
 import type { ChatState } from "./useChat"
+import { notifyRunFinished } from "@/shared/runFinished"
 
 type SetState = React.Dispatch<React.SetStateAction<ChatState>>
 
@@ -134,6 +135,7 @@ export function applyStreamEvent(
     updateLive(setState, blocks)
   } else if (ev.type === "error") {
     flushPendingLive(setState)
+    notifyRunFinished()
     const meta = ev.metadata as { kind?: string } | undefined
     setState((s) => ({
       ...s,
@@ -144,6 +146,7 @@ export function applyStreamEvent(
     return "error"
   } else if (ev.type === "done") {
     flushPendingLive(setState)
+    notifyRunFinished()
     setState((s) => ({
       ...s, busy: false,
       lastTurnTokens: {
