@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from hydrahive.agents import _tool_config
 from hydrahive.agents import config as agent_config
+from hydrahive.agents._prompt import load_soul
 from hydrahive.buddy._characters import pick_character as _pick_character
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.tools import REGISTRY as TOOL_REGISTRY
@@ -45,6 +46,8 @@ def get_config(username: str) -> dict:
         "thinking_budget": buddy.get("thinking_budget", 0),
         "reasoning_effort": buddy.get("reasoning_effort", ""),
         "character": memory.read_key(bid, "character") or "",
+        # Soul-Dateien ersetzen den Charakter-Prompt komplett (Figur/Sprache/Ton wirkungslos).
+        "soul_active": bool(load_soul(bid)),
         "tools": buddy.get("tools", []),
         "all_tools": [tool["name"] for tool in available_tools],
         "available_tools": available_tools,

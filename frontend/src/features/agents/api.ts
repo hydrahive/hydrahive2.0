@@ -9,7 +9,7 @@ export const agentsApi = {
     api.patch<Agent>(`/agents/${id}`, fields),
   delete: (id: string) => api.delete<void>(`/agents/${id}`),
   getSystemPrompt: (id: string) =>
-    api.get<{ prompt: string }>(`/agents/${id}/system_prompt`),
+    api.get<{ prompt: string; source?: "soul" | "prompt" }>(`/agents/${id}/system_prompt`),
   setSystemPrompt: (id: string, prompt: string) =>
     api.put<{ prompt: string }>(`/agents/${id}/system_prompt`, { prompt }),
   getSoul: (id: string) =>

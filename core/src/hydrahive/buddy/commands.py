@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 
 from hydrahive.agents import config as agent_config
+from hydrahive.agents._prompt import load_soul
 from hydrahive.buddy import _find_buddy_for, _pick_character
 from hydrahive.buddy import _soul_state as soul_state
 from hydrahive.buddy._commands_helpers import slug as _slug, snapshot_active_session as _snapshot_active_session
@@ -111,8 +112,9 @@ def reroll_character(username: str) -> dict:
     agent_config.set_system_prompt(
         buddy["id"], soul_state.rebuild_soul(username, buddy["id"], universe, character))
     session_id = soul_state.new_session_keeping_project(buddy["id"], username)
-    return {
-        "ok": True,
-        "session_id": session_id,
-        "message": f"Neuer Charakter: {character} ({universe}). Sag Hallo.",
-    }
+    message = f"Neuer Charakter: {character} ({universe}). Sag Hallo."
+    soul_active = bool(load_soul(buddy["id"]))
+    if soul_active:
+        message += (" Achtung: Soul-Dateien sind aktiv und ersetzen den Charakter-Prompt. "
+                    "Die neue Figur wirkt erst, wenn die Soul geleert ist.")
+    return {"ok": True, "session_id": session_id, "message": message, "soul_active": soul_active}

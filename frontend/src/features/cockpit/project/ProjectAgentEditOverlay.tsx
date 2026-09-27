@@ -18,6 +18,7 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
   const [draft, setDraft] = useState<Agent | null>(null)
   const [prompt, setPrompt] = useState("")
   const [savedPrompt, setSavedPrompt] = useState("")
+  const [soulActive, setSoulActive] = useState(false)
   const [models, setModels] = useState<string[]>([])
   const [catalog, setCatalog] = useState<RegistryModel[]>([])
   const [tools, setTools] = useState<ToolMeta[]>([])
@@ -42,6 +43,7 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
         setDraft(agentData)
         setPrompt(promptData.prompt ?? "")
         setSavedPrompt(promptData.prompt ?? "")
+        setSoulActive(promptData.source === "soul")
         setCatalog(modelData.models)
         setModels(modelData.models.map((item) => item.id))
         setTools(toolData)
@@ -62,6 +64,15 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
   function patch(fields: Partial<Agent>) {
     setDraft((current) => current ? { ...current, ...fields } : current)
     setMessage(null)
+  }
+
+  async function refreshPromptSource() {
+    // Soul gespeichert: wirksamen Prompt + Quelle neu laden, ungespeicherte Prompt-Edits behalten.
+    const data = await agentsApi.getSystemPrompt(agentId).catch(() => null)
+    if (!data) return
+    setSoulActive(data.source === "soul")
+    if (!promptDirty) setPrompt(data.prompt ?? "")
+    setSavedPrompt(data.prompt ?? "")
   }
 
   function discard() {
@@ -138,6 +149,8 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
             mcpServers={mcpServers}
             onChange={patch}
             onPromptChange={(value) => { setPrompt(value); setMessage(null) }}
+            soulActive={soulActive}
+            onSoulSaved={() => void refreshPromptSource()}
           />
         ) : null}
 

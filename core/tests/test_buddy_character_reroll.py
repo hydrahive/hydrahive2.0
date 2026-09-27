@@ -73,3 +73,26 @@ def test_figur_mit_klammern_bleibt_beim_neuaufbau_erhalten(monkeypatch):
     _config.patch_config(USER, {"tone": "locker"})
     soul = agent_config.get_system_prompt(state["agent_id"])
     assert "**Marlin (Findet Nemo)** aus **Pixar**" in soul
+
+
+def test_config_meldet_aktive_soul(setup_test_env):
+    """Soul-Dateien ersetzen den Charakter-Prompt — die Einstellungen müssen das zeigen (MED-1)."""
+    from hydrahive.agents._prompt import save_soul_component
+    from hydrahive.buddy._config import get_config
+
+    state = _buddy_with_prefs()
+    assert get_config(USER)["soul_active"] is False
+    save_soul_component(state["agent_id"], "behavior", "Eigene Regeln")
+    assert get_config(USER)["soul_active"] is True
+
+
+def test_reroll_warnt_wenn_soul_die_figur_ueberdeckt():
+    from hydrahive.agents._prompt import save_soul_component
+    from hydrahive.buddy.commands import reroll_character
+
+    state = _buddy_with_prefs()
+    save_soul_component(state["agent_id"], "behavior", "Eigene Regeln")
+    result = reroll_character(USER)
+    assert result["ok"] is True
+    assert result["soul_active"] is True
+    assert "Soul" in result["message"]

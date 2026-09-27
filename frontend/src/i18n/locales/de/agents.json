@@ -72,6 +72,8 @@
   },
   "soul": {
     "description": "Identität, Verhalten und Hintergrund des Agents als Markdown-Dateien.",
+    "replaces_prompt_hint": "Sobald hier ein Feld gefüllt ist, ersetzt die Soul den System-Prompt komplett.",
+    "prompt_inactive": "Soul aktiv — dieser System-Prompt wird nicht verwendet. Der Agent nutzt die Soul-Dateien (Reiter „Soul“). Leere dort alle Felder, damit dieser Prompt wieder gilt.",
     "load_template": "Template laden",
     "save_component": "Speichern",
     "saved": "Gespeichert",
