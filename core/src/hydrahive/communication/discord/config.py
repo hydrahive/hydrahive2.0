@@ -21,6 +21,9 @@ class DiscordConfig:
     dm_enabled: bool = True
     mention_enabled: bool = True
     require_keyword: str = ""
+    # Discord-User-IDs des Besitzers: werden als vertrauenswürdig gerahmt und
+    # umgehen die User-Allowlist (nicht die Blockliste).
+    owner_user_ids: list[str] = field(default_factory=list)
     allowed_user_ids: list[str] = field(default_factory=list)
     blocked_user_ids: list[str] = field(default_factory=list)
     allowed_channel_ids: list[str] = field(default_factory=list)
@@ -59,6 +62,7 @@ def load(username: str) -> DiscordConfig:
         dm_enabled=bool(data.get("dm_enabled", True)),
         mention_enabled=bool(data.get("mention_enabled", True)),
         require_keyword=str(data.get("require_keyword", "") or ""),
+        owner_user_ids=_normalize_ids(data.get("owner_user_ids", [])),
         allowed_user_ids=_normalize_ids(data.get("allowed_user_ids", [])),
         blocked_user_ids=_normalize_ids(data.get("blocked_user_ids", [])),
         allowed_channel_ids=_normalize_ids(data.get("allowed_channel_ids", [])),
@@ -70,6 +74,7 @@ def load(username: str) -> DiscordConfig:
 
 
 def save(username: str, cfg: DiscordConfig) -> DiscordConfig:
+    cfg.owner_user_ids = _normalize_ids(cfg.owner_user_ids)
     cfg.allowed_user_ids = _normalize_ids(cfg.allowed_user_ids)
     cfg.blocked_user_ids = _normalize_ids(cfg.blocked_user_ids)
     cfg.allowed_channel_ids = _normalize_ids(cfg.allowed_channel_ids)

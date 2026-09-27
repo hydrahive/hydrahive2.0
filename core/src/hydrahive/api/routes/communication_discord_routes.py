@@ -27,6 +27,7 @@ def _config_dict(cfg: dc_config.DiscordConfig, *, mask_token: bool = True) -> di
         "dm_enabled": cfg.dm_enabled,
         "mention_enabled": cfg.mention_enabled,
         "require_keyword": cfg.require_keyword,
+        "owner_user_ids": cfg.owner_user_ids,
         "allowed_user_ids": cfg.allowed_user_ids,
         "blocked_user_ids": cfg.blocked_user_ids,
         "allowed_channel_ids": cfg.allowed_channel_ids,
@@ -82,6 +83,8 @@ async def discord_put_config(payload: dict, auth=Depends(require_auth)) -> dict:
         dm_enabled=bool(payload.get("dm_enabled", True)),
         mention_enabled=bool(payload.get("mention_enabled", True)),
         require_keyword=str(payload.get("require_keyword", "") or ""),
+        # Fehlt der Key (älteres Frontend), bleiben die Besitzer-IDs erhalten.
+        owner_user_ids=list(payload.get("owner_user_ids", existing.owner_user_ids) or []),
         allowed_user_ids=list(payload.get("allowed_user_ids", []) or []),
         blocked_user_ids=list(payload.get("blocked_user_ids", []) or []),
         allowed_channel_ids=list(payload.get("allowed_channel_ids", []) or []),

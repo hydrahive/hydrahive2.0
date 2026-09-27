@@ -69,6 +69,8 @@
       "mention_enabled": "Receive @mentions",
       "keyword_label": "Activation keyword (empty = always reply)",
       "keyword_placeholder": "e.g. !bot",
+      "owner_users": "Owner (your Discord user IDs)",
+      "owner_users_hint": "Messages from these IDs are trusted (like you) and bypass the allowlist. Without an entry the bot treats you as an unknown contact too. In server channels every user has a separate conversation with the bot.",
       "allowed_users": "User ID whitelist (empty = allow all)",
       "allowed_users_hint": "If set: only these Discord user IDs may write.",
       "blocked_users": "User ID blacklist",

@@ -4,7 +4,7 @@ Reihenfolge:
 1. Author in blocked_user_ids → reject
 2. DM und dm_enabled=False → reject
 3. Mention und mention_enabled=False → reject
-4. allowed_user_ids nicht leer und Author nicht drin → reject
+4. allowed_user_ids nicht leer und Author nicht drin (und kein Besitzer) → reject
 5. allowed_channel_ids nicht leer und Channel nicht drin → reject
 6. require_keyword gesetzt und nicht in Text → reject
 7. Sonst → accept
@@ -39,7 +39,8 @@ def evaluate(
     if not is_dm and not cfg.mention_enabled:
         return FilterResult(accepted=False, reason="mention_disabled")
 
-    if cfg.allowed_user_ids and author_id not in cfg.allowed_user_ids:
+    is_owner = author_id in cfg.owner_user_ids
+    if cfg.allowed_user_ids and author_id not in cfg.allowed_user_ids and not is_owner:
         return FilterResult(accepted=False, reason="not_in_user_allowlist")
 
     if cfg.allowed_channel_ids and channel_id not in cfg.allowed_channel_ids:

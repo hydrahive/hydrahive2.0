@@ -9,6 +9,7 @@ const DEFAULT_CFG: DiscordConfig = {
   dm_enabled: true,
   mention_enabled: true,
   require_keyword: "",
+  owner_user_ids: [],
   allowed_user_ids: [],
   blocked_user_ids: [],
   allowed_channel_ids: [],
@@ -142,6 +143,7 @@ export function DiscordFilterPanel() {
       {/* ID Lists */}
       {(
         [
+          ["owner_user_ids", "owner_users", "owner_users_hint"],
           ["allowed_user_ids", "allowed_users", "allowed_users_hint"],
           ["blocked_user_ids", "blocked_users", "blocked_users_hint"],
           ["allowed_channel_ids", "allowed_channels", "allowed_channels_hint"],
@@ -150,7 +152,7 @@ export function DiscordFilterPanel() {
         <div key={field} className="space-y-1">
           <label className="text-xs text-zinc-400">{t(`discord.filter.${label}`)}</label>
           <textarea
-            value={toLines(cfg[field])}
+            value={toLines(cfg[field] ?? [])}
             onChange={(e) => setCfg({ ...cfg, [field]: fromLines(e.target.value) })}
             rows={3}
             className="w-full bg-white/[4%] border border-white/[8%] rounded-md px-3 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none focus:border-violet-500/50 resize-y"
