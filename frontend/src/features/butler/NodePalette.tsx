@@ -8,7 +8,7 @@ import React, { useMemo } from "react"
 import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
-import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE, UNWIRED_TRIGGERS } from "./palette-data"
+import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE, isUnwired } from "./palette-data"
 import { rgbFor } from "@/shared/colors"
 
 const COLOR_MAP = {
@@ -71,7 +71,7 @@ export function NodePalette() {
               <div className="flex flex-col gap-1.5 mt-1">
                 {group.items.map((item) => {
                   const Icon = item.icon
-                  const unwired = UNWIRED_TRIGGERS.has(item.subtype)
+                  const unwired = isUnwired(item.subtype)
                   return (
                     <div
                       key={item.subtype}
@@ -89,7 +89,7 @@ export function NodePalette() {
                       <span className="truncate leading-tight">{item.label}</span>
                       {unwired && (
                         <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold bg-amber-900/60 text-amber-400 border border-amber-700/40">
-                          bald
+                          {t("badge_soon")}
                         </span>
                       )}
                     </div>

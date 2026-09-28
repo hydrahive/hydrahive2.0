@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
-import { Field, Select, TextInput } from "./_helpers"
+import { Field, TextInput } from "./_helpers"
 import type { FormProps } from "./_helpers"
-import { DISCORD_EVENT_OPTS } from "./_triggers"
 
 const ALL_DAYS = ["mo", "di", "mi", "do", "fr", "sa", "so"]
 const DAY_LABEL: Record<string, string> = { mo: "Mo", di: "Di", mi: "Mi", do: "Do", fr: "Fr", sa: "Sa", so: "So" }
@@ -77,73 +76,12 @@ export function PayloadFieldContainsForm({ params, onChange }: FormProps) {
   )
 }
 
-export function GitBranchIsForm({ params, onChange }: FormProps) {
+export function RegexMatchForm({ params, onChange }: FormProps) {
   const { t } = useTranslation("butler")
   return (
-    <Field label={t("labelBranchName")}>
-      <TextInput field="branch" params={params} onChange={onChange}
-        placeholder={t("placeholderBranchExample")} />
-    </Field>
-  )
-}
-
-export function GitAuthorIsForm({ params, onChange }: FormProps) {
-  const { t } = useTranslation("butler")
-  return (
-    <Field label={t("labelGitUsername")} hint={t("caseInsensitive")}>
-      <TextInput field="author" params={params} onChange={onChange}
-        placeholder={t("placeholderUsernameExample")} />
-    </Field>
-  )
-}
-
-export function GitActionIsForm({ params, onChange }: FormProps) {
-  const { t } = useTranslation("butler")
-  return (
-    <Field label={t("labelAction")}>
-      <Select field="action" params={params} onChange={onChange} defaultValue="opened"
-        options={[
-          { value: "opened", label: "opened" },
-          { value: "closed", label: "closed" },
-          { value: "merged", label: t("optionMergedPR") },
-          { value: "reopened", label: "reopened" },
-          { value: "labeled", label: "labeled" },
-          { value: "created", label: t("optionCreatedComment") },
-          { value: "published", label: t("optionPublishedRelease") },
-        ]} />
-    </Field>
-  )
-}
-
-export function EmailContainsForm({ params, onChange, subtype }: FormProps & { subtype?: string }) {
-  const { t } = useTranslation("butler")
-  const label = subtype === "email_from_contains" ? t("labelSenderContains")
-    : subtype === "email_subject_contains" ? t("labelSubjectContains")
-    : t("labelTextContains")
-  return (
-    <Field label={label} hint={t("caseInsensitive")}>
-      <TextInput field="keyword" params={params} onChange={onChange}
-        placeholder={t("placeholderKeywordOrDomain")} />
-    </Field>
-  )
-}
-
-export function DiscordEventIsForm({ params, onChange }: FormProps) {
-  const { t } = useTranslation("butler")
-  return (
-    <Field label={t("labelEventType")}>
-      <Select field="discord_event" params={params} onChange={onChange}
-        defaultValue="reaction_add" options={DISCORD_EVENT_OPTS(t)} />
-    </Field>
-  )
-}
-
-export function DiscordEmojiIsForm({ params, onChange }: FormProps) {
-  const { t } = useTranslation("butler")
-  return (
-    <Field label={t("labelEmoji")} hint={t("unicodeEmojiHint")}>
-      <TextInput field="emoji" params={params} onChange={onChange}
-        placeholder="👍 oder custom_emoji_name" />
+    <Field label={t("labelRegex")} hint={t("regexHint")}>
+      <TextInput field="pattern" params={params} onChange={onChange}
+        placeholder={"^/help\\b"} mono />
     </Field>
   )
 }
