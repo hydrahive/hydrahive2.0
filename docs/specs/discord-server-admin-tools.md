@@ -107,20 +107,20 @@ Jede Datei ≤ 200 Zeilen; Tests mit den vorhandenen Fakes
 
 ## 7. Akzeptanzkriterien
 
-- [ ] Leere Serverfreigabe → beide Werkzeuge lehnen verständlich ab; bestehende
+- [x] Leere Serverfreigabe → beide Werkzeuge lehnen verständlich ab; bestehende
       Werkzeuge unverändert.
-- [ ] Freigabe wirkt pro Server; ein Kanal eines nicht freigegebenen Servers ist
+- [x] Freigabe wirkt pro Server; ein Kanal eines nicht freigegebenen Servers ist
       auch bei `edit_channel` tabu.
-- [ ] Kategorie, Text-, Ankündigungs- und Forum-Kanal anlegen (Forum mit Tags und
+- [x] Kategorie, Text-, Ankündigungs- und Forum-Kanal anlegen (Forum mit Tags und
       Tagpflicht); umbenennen, verschieben, Thema, Slowmode; löschen nur mit
       Bestätigung.
-- [ ] Rechte einer Rolle pro Kanal setzen, nur mit Bestätigung.
-- [ ] Einladung erzeugen (Ablauf, max. Nutzungen), URL in der Antwort.
-- [ ] Rollen: anlegen, ändern, löschen, zuweisen, entziehen; `administrator`
+- [x] Rechte einer Rolle pro Kanal setzen, nur mit Bestätigung.
+- [x] Einladung erzeugen (Ablauf, max. Nutzungen), URL in der Antwort.
+- [x] Rollen: anlegen, ändern, löschen, zuweisen, entziehen; `administrator`
       und `manage_guild` werden immer abgelehnt; andere gefährliche Rechte nur
       mit Bestätigung; Hierarchie wird geprüft.
-- [ ] Mitglieder: Nickname, Timeout (≤ 28 Tage), Kick, Ban (0–7 Löschtage), Unban,
+- [x] Mitglieder: Nickname, Timeout (≤ 28 Tage), Kick, Ban (0–7 Löschtage), Unban,
       Liste; geschützte Personen werden abgelehnt.
-- [ ] Fehlende Discord-Rechte werden mit Namen gemeldet.
-- [ ] UI: „Server verwalten“ pro Server; PUT ohne Key löscht nichts.
+- [x] Fehlende Discord-Rechte werden mit Namen gemeldet.
+- [x] UI: „Server verwalten“ pro Server; PUT ohne Key löscht nichts.
 - [ ] Live-Test auf dem Server „HydraHive“ (nach Deploy).
