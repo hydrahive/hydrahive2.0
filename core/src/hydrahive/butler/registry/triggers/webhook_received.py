@@ -1,28 +1,24 @@
+"""webhook_received — feuert bei jedem Webhook des Projekts.
+
+Der Endpoint ``POST /api/butler/webhooks/project/{id}`` wählt die Flows schon
+projektgenau aus (Scope + Mitglieder + Secret). Ein zusätzlicher Filter über
+``hook_id`` passte nie, weil die Oberfläche keinen Doppelpunkt zuließ und der
+Kanal ``project:<id>`` heißt. Alte Flows mit ``hook_id`` laufen weiter, der
+Wert wird ignoriert.
+"""
 from hydrahive.butler.models import TriggerEvent
-from hydrahive.butler.registry import (
-    ParamSchema, TriggerSpec, register_trigger,
-)
+from hydrahive.butler.registry import TriggerSpec, register_trigger
 
 
 def _matches(params: dict, event: TriggerEvent) -> bool:
-    if event.event_type != "webhook":
-        return False
-    want_hook = params.get("hook_id") or ""
-    if not want_hook:
-        return True
-    return (event.channel or "") == want_hook
+    return event.event_type == "webhook"
 
 
 register_trigger(TriggerSpec(
     subtype="webhook_received",
     label="Webhook eingegangen",
-    description="Feuert bei einem Projekt-Webhook (POST /api/butler/webhooks/project/{id}). "
-                "Hook-ID matcht den Event-Channel (z.B. 'project:<id>'); leer = jeder Webhook.",
-    params=[
-        ParamSchema(
-            key="hook_id", label="Hook-ID", kind="text",
-            placeholder="my-hook", required=True,
-        ),
-    ],
+    description="Feuert bei jedem Webhook des Projekts "
+                "(POST /api/butler/webhooks/project/{id}, Header X-Webhook-Secret).",
+    params=[],
     matches=_matches,
 ))
