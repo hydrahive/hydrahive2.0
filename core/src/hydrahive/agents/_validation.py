@@ -127,6 +127,20 @@ def validate_max_tokens(max_tokens: int) -> None:
         raise AgentValidationError("max_tokens > 200000 ist zu viel")
 
 
+def validate_reasoning_effort(effort: str, model: str) -> None:
+    """Denk-Tiefe muss zu den Stufen des Modells passen; leer = Modellstandard."""
+    from hydrahive.llm.reasoning_effort import effort_levels_for_model
+
+    if not effort:
+        return
+    levels = effort_levels_for_model(model)
+    if effort not in levels:
+        allowed = ", ".join(levels) if levels else "keine (Modell ohne Denk-Tiefe)"
+        raise AgentValidationError(
+            f"Denk-Tiefe '{effort}' passt nicht zum Modell '{model}'. Erlaubt: {allowed}"
+        )
+
+
 def validate_compact_model(model: str) -> None:
     """Compact-Modell darf leer sein (= nutze main llm_model). Wenn gesetzt
     muss es ein bekanntes Modell sein."""

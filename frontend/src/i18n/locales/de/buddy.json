@@ -62,7 +62,11 @@
     "effort_default": "Modellstandard",
     "effort_low": "Niedrig",
     "effort_medium": "Mittel",
-    "effort_high": "Hoch"
+    "effort_high": "Hoch",
+    "effort_xhigh": "Sehr hoch",
+    "effort_max": "Maximal",
+    "effort_ultra": "Ultra",
+    "effort_unsupported": "Dieses Modell kennt keine Denk-Tiefe."
   },
   "tools": {
     "active_count": "{{active}} von {{total}} Tools aktiv",

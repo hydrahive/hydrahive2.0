@@ -27,7 +27,8 @@ export interface BuddyToolMeta {
 
 export type BuddyLanguage = "de" | "en" | "auto"
 export type BuddyTone = "locker" | "professionell" | "knapp"
-export type ReasoningEffort = "" | "low" | "medium" | "high"
+/** Leer = Modellstandard; Stufen sind modellabhängig (low … max), siehe useEffortLevels. */
+export type ReasoningEffort = "" | "low" | "medium" | "high" | "xhigh" | "max" | "ultra"
 export type CacheTtl = "5m" | "1h"
 
 export interface ClearResult { ok: boolean; session_id: string; message: string }
