@@ -13,6 +13,10 @@ from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, ToolUseStart
 from hydrahive.runner.integrity import IntegrityState
 from hydrahive.tools import ToolContext, ToolResult
+from hydrahive.tools._discord_admin_confirm import (
+    TOOL_MEMBER as _DC_MEMBER, TOOL_SERVER as _DC_SERVER,
+    confirm_reason as discord_admin_confirm_reason,
+)
 from hydrahive.tools._protected_paths import shell_confirm_reason
 
 # Tools, deren Wirkung nicht rückgängig zu machen ist: immer Bestätigung durch den
@@ -20,6 +24,7 @@ from hydrahive.tools._protected_paths import shell_confirm_reason
 ALWAYS_CONFIRM: dict[str, str] = {
     "discord_delete": "Löschen in Discord lässt sich nicht rückgängig machen.",
 }
+DISCORD_ADMIN_TOOLS = frozenset({_DC_SERVER, _DC_MEMBER})
 from hydrahive.tools._observations import (
     HOOK_POST_TOOL_FAILURE,
     HOOK_POST_TOOL_USE,
@@ -56,6 +61,9 @@ async def process_tool_uses(
             confirm_reason = shell_confirm_reason(tu_args.get("cmd", "") or "")
         elif tu_name in ALWAYS_CONFIRM:
             confirm_reason = ALWAYS_CONFIRM[tu_name]
+        elif tu_name in DISCORD_ADMIN_TOOLS:
+            # Serververwaltung: Löschen, Kick, Bann, Rechte → Bestätigung je nach Aktion.
+            confirm_reason = discord_admin_confirm_reason(tu_name, tu_args)
         needs_confirm = require_confirm or confirm_reason is not None
 
         if needs_confirm:

@@ -14,6 +14,7 @@ from hydrahive.tools import (
     ask_agent,
     code_graph_tools,
     datamining,
+    discord_admin,
     discord_moderate,
     discord_read,
     discord_write,
@@ -104,6 +105,7 @@ def _build_registry() -> dict[str, Tool]:
         tools.extend([discord_read.TOOL_CHANNELS, discord_read.TOOL_READ,
                       discord_write.TOOL_POST, discord_write.TOOL_REPLY, discord_write.TOOL_EDIT])
         tools.extend(discord_moderate.TOOLS)  # docs/specs/discord-moderation-tools.md
+        tools.extend(discord_admin.TOOLS)  # docs/specs/discord-server-admin-tools.md
     tools.append(web_browser.TOOL)
     tools.append(webmin_status.TOOL)
     tools.append(webmin_call.TOOL)
@@ -160,6 +162,7 @@ OPTIONAL_TOOLS: frozenset[str] = frozenset({
     # nur registriert wenn HH_DISCORD_ENABLED
     "discord_channels", "discord_read", "discord_post", "discord_reply", "discord_edit",
     "discord_thread_manage", "discord_message_pin", "discord_delete", "discord_forum_tags",
+    "discord_server_manage", "discord_member_manage",
 })
 
 
