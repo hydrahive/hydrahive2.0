@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react"
 import { Hash, Loader2, MessagesSquare, Megaphone, RefreshCw, ShieldCheck } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { communicationApi, type DiscordCatalogChannel } from "./api"
+import { communicationApi, type DiscordCatalogChannel, type DiscordCatalogGuild } from "./api"
+import { DiscordGuildAdminToggle } from "./DiscordGuildAdminToggle"
 
 interface Props {
   value: string[]
   /** Teilmenge von value, in der die Moderations-Tools wirken dürfen. */
   moderated: string[]
+  /** Server, auf denen die Verwaltungswerkzeuge wirken dürfen. */
+  adminGuilds: string[]
   onChange: (ids: string[], moderated: string[]) => void
+  onAdminGuildsChange: (guildIds: string[]) => void
 }
 
 const KIND_ICON = { text: Hash, news: Megaphone, forum: MessagesSquare } as const
 
 /** Freigabe der Kanäle für Agenten-Tools (discord_*). Leer = kein Zugriff. */
-export function DiscordToolChannels({ value, moderated, onChange }: Props) {
+export function DiscordToolChannels({ value, moderated, adminGuilds, onChange, onAdminGuildsChange }: Props) {
   const { t } = useTranslation("communication")
   const [channels, setChannels] = useState<DiscordCatalogChannel[]>([])
+  const [guilds, setGuilds] = useState<DiscordCatalogGuild[]>([])
   const [connected, setConnected] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
@@ -23,7 +28,7 @@ export function DiscordToolChannels({ value, moderated, onChange }: Props) {
   useEffect(() => {
     let alive = true
     communicationApi.discord.channels()
-      .then((res) => { if (alive) { setConnected(res.connected); setChannels(res.channels) } })
+      .then((res) => { if (alive) { setConnected(res.connected); setChannels(res.channels); setGuilds(res.guilds ?? []) } })
       .catch(() => { if (alive) setConnected(false) })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
@@ -60,6 +65,16 @@ export function DiscordToolChannels({ value, moderated, onChange }: Props) {
     const key = c.category ? `${c.guild} · ${c.category}` : c.guild
     groups.set(key, [...(groups.get(key) ?? []), c])
   }
+  const admin = new Set(adminGuilds)
+  const guildByName = new Map(guilds.map((g) => [g.name, g]))
+  const seenGuilds = new Set<string>()
+
+  function toggleAdmin(guildId: string) {
+    const next = new Set(admin)
+    if (next.has(guildId)) next.delete(guildId)
+    else next.add(guildId)
+    onAdminGuildsChange(Array.from(next))
+  }
 
   return (
     <div className="space-y-1.5">
@@ -80,9 +95,18 @@ export function DiscordToolChannels({ value, moderated, onChange }: Props) {
         {connected && channels.length === 0 && (
           <p className="text-[11px] text-zinc-500">{t("discord.tools.no_channels")}</p>
         )}
-        {Array.from(groups.entries()).map(([group, items]) => (
+        {Array.from(groups.entries()).map(([group, items]) => {
+          const guild = guildByName.get(items[0]?.guild ?? "")
+          const firstOfGuild = !!guild && !seenGuilds.has(guild.id)
+          if (guild) seenGuilds.add(guild.id)
+          return (
           <div key={group} className="space-y-0.5">
-            <p className="text-[10px] uppercase tracking-wide text-zinc-600">{group}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] uppercase tracking-wide text-zinc-600">{group}</p>
+              {firstOfGuild && guild && (
+                <DiscordGuildAdminToggle guild={guild} checked={admin.has(guild.id)} onToggle={toggleAdmin} />
+              )}
+            </div>
             {items.map((c) => {
               const Icon = KIND_ICON[c.kind]
               return (
@@ -104,7 +128,8 @@ export function DiscordToolChannels({ value, moderated, onChange }: Props) {
               )
             })}
           </div>
-        ))}
+          )
+        })}
         {orphaned.map((id) => (
           <label key={id} className="flex items-center gap-2 cursor-pointer rounded px-1 py-0.5 hover:bg-white/[4%]">
             <input type="checkbox" checked onChange={() => toggle(id)}
@@ -117,6 +142,7 @@ export function DiscordToolChannels({ value, moderated, onChange }: Props) {
       <p className="text-[10px] text-zinc-500">
         {value.length === 0 ? t("discord.tools.none_selected") : t("discord.tools.count", { count: value.length })}
         {mod.size > 0 && ` ${t("discord.tools.moderated_count", { count: mod.size })}`}
+        {admin.size > 0 && ` ${t("discord.admin.count", { count: admin.size })}`}
       </p>
     </div>
   )

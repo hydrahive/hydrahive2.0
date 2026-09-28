@@ -81,4 +81,4 @@ def test_channels_catalog(client, auth_headers, monkeypatch):
     monkeypatch.setitem(registry._REGISTRY, "discord",
                         SimpleNamespace(name="discord", label="Discord", client_for=lambda u: None))
     r = client.get("/api/communication/discord/channels", headers=auth_headers)
-    assert r.json() == {"connected": False, "channels": []}
+    assert r.json() == {"connected": False, "channels": [], "guilds": []}
