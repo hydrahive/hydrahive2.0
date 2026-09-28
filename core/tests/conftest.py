@@ -3,12 +3,29 @@ from __future__ import annotations
 
 import json
 import os
-import tempfile
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
-from httpx import Response
+
+# ---------------------------------------------------------------------------
+# Isolation: Die Suite darf NIE das echte Daten-/Config-Verzeichnis anfassen.
+# Muss vor jedem hydrahive-Import laufen, deshalb ganz oben. Details und der
+# Befund vom 26.09.2026 stehen in tests/_isolation.py.
+# ---------------------------------------------------------------------------
+from tests import _isolation  # noqa: E402
+from tests._isolation import (  # noqa: E402, F401 — pytest-Hooks, über conftest registriert
+    pytest_collection_finish,
+    pytest_configure,
+    pytest_runtest_call,
+    pytest_runtest_setup,
+    pytest_unconfigure,
+)
+
+_isolation.isolate_env()
+_TEST_ROOT = _isolation.TEST_ROOT
+
+from fastapi.testclient import TestClient  # noqa: E402
+from httpx import Response  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -48,48 +65,47 @@ def bearer(token: str) -> dict:
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_env():
     """Setup test environment with temporary directories."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp_path = Path(tmpdir)
+    # Pfade kommen aus dem Isolations-Block oben (gesetzt vor dem Einsammeln).
+    # Hier NICHT neu umbiegen: settings hat die Werte ggf. schon gecacht.
+    tmp_path = _TEST_ROOT
 
-        os.environ["HH_DATA_DIR"] = str(tmp_path / "data")
-        os.environ["HH_CONFIG_DIR"] = str(tmp_path / "config")
-        os.environ["HH_SECRET_KEY"] = "test-secret-key-for-jwt-signing"
-        os.environ["HH_DISCORD_ENABLED"] = "0"
-        os.environ["HH_WA_ENABLED"] = "0"
-        os.environ["HH_AGENTLINK_URL"] = ""
-        os.environ["HH_PG_MIRROR_DSN"] = ""
+    os.environ["HH_SECRET_KEY"] = "test-secret-key-for-jwt-signing"
+    os.environ["HH_DISCORD_ENABLED"] = "0"
+    os.environ["HH_WA_ENABLED"] = "0"
+    os.environ["HH_AGENTLINK_URL"] = ""
+    os.environ["HH_PG_MIRROR_DSN"] = ""
 
-        (tmp_path / "data").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "config").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "data" / "agents").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "data" / "agents").mkdir(parents=True, exist_ok=True)
 
-        users_file = tmp_path / "config" / "users.json"
-        import bcrypt
-        password_hash = bcrypt.hashpw(b"testpass123", bcrypt.gensalt()).decode("ascii")
-        users = {
-            "testuser": {"password_hash": password_hash, "role": "user"},
-            "admin": {"password_hash": password_hash, "role": "admin"},
-        }
-        users_file.write_text(json.dumps(users, indent=2))
+    users_file = tmp_path / "config" / "users.json"
+    import bcrypt
+    password_hash = bcrypt.hashpw(b"testpass123", bcrypt.gensalt()).decode("ascii")
+    users = {
+        "testuser": {"password_hash": password_hash, "role": "user"},
+        "admin": {"password_hash": password_hash, "role": "admin"},
+    }
+    users_file.write_text(json.dumps(users, indent=2))
 
-        agent_id = "test-agent-001"
-        agent_dir = tmp_path / "data" / "agents" / agent_id
-        agent_dir.mkdir(parents=True, exist_ok=True)
-        agent_config = {
-            "id": agent_id,
-            "name": "Test Agent",
-            "type": "master",
-            "owner": "admin",
-            "llm_model": "claude-3-7-sonnet-20250219",
-            "tools": [],
-            "temperature": 0.7,
-            "max_tokens": 4096,
-            "thinking_budget": 10000,
-            "created_at": "2026-01-01T00:00:00Z",
-        }
-        (agent_dir / "config.json").write_text(json.dumps(agent_config, indent=2))
+    agent_id = "test-agent-001"
+    agent_dir = tmp_path / "data" / "agents" / agent_id
+    agent_dir.mkdir(parents=True, exist_ok=True)
+    agent_config = {
+        "id": agent_id,
+        "name": "Test Agent",
+        "type": "master",
+        "owner": "admin",
+        "llm_model": "claude-3-7-sonnet-20250219",
+        "tools": [],
+        "temperature": 0.7,
+        "max_tokens": 4096,
+        "thinking_budget": 10000,
+        "created_at": "2026-01-01T00:00:00Z",
+    }
+    (agent_dir / "config.json").write_text(json.dumps(agent_config, indent=2))
 
-        yield tmp_path
+    yield tmp_path
 
 
 @pytest.fixture
