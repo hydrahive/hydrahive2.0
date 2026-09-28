@@ -83,6 +83,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not to or not subject:
         return ToolResult.fail("to und subject sind Pflicht")
 
+    # Egress-Grenze wie bei WhatsApp/Discord: keine System-, Agent- oder
+    # Nutzer-Secrets in einer ausgehenden Mail, egal wie das LLM an sie kam.
+    from hydrahive.credentials import redaction
+    secrets = redaction.egress_secrets(ctx.user_id, ctx.agent_id)
+    subject = redaction.scrub(subject, secrets)
+    body = redaction.scrub(body, secrets)
+
     msg = EmailMessage()
     msg["From"] = cfg["from"]
     msg["To"] = to

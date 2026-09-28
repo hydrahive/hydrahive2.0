@@ -173,5 +173,7 @@ async def _run_agent(
         raise RuntimeError("Session läuft bereits — Nachricht ignoriert")
 
     # Egress-Engstelle: kein lebender Secret-Wert verlässt das System Richtung
-    # externer Kontakt (WhatsApp/Discord/Voice), egal wie das LLM an ihn kam.
-    return redaction.scrub("\n\n".join(p for p in answer_parts if p.strip()))
+    # externer Kontakt (WhatsApp/Discord/Voice), egal wie das LLM an ihn kam —
+    # auch nicht die Credential-Werte des Kanal-Besitzers.
+    secrets = redaction.egress_secrets(event.target_username, agent_id)
+    return redaction.scrub("\n\n".join(p for p in answer_parts if p.strip()), secrets)
