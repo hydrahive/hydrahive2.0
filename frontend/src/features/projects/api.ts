@@ -1,5 +1,5 @@
 import { api } from "@/shared/api-client"
-import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGiteaStatus, ProjectGitRepo, ProjectRole, ProjectServer, ProjectStats, ProjectSession, ServerKind, SmbMount, SmbMountCreate } from "./types"
+import type { Project, ProjectAuditEntry, ProjectCreate, ProjectGiteaStatus, ProjectGitRepo, ProjectRole, ProjectServer, ProjectStats, ProjectSession, ProjectWebhook, ServerKind, SmbMount, SmbMountCreate } from "./types"
 
 export const projectsApi = {
   list: () => api.get<Project[]>("/projects"),
@@ -72,6 +72,11 @@ export const projectsApi = {
     api.get<{ enabled: boolean; share_name: string; user: string; password: string }>(`/projects/${id}/samba`),
   putSamba: (id: string, enabled: boolean) =>
     api.put<{ ok: boolean; enabled: boolean }>(`/projects/${id}/samba`, { enabled }),
+  // Butler-Webhook: Secret nur für Projekt-Admins (sonst 403)
+  getWebhook: (id: string) =>
+    api.get<ProjectWebhook>(`/projects/${id}/webhook`),
+  rotateWebhookSecret: (id: string) =>
+    api.post<ProjectWebhook>(`/projects/${id}/webhook/rotate`, {}),
   // SMB-Mounts: CRUD (user-scoped) + Projekt-Zuweisung
   listMounts: () => api.get<SmbMount[]>("/smb-mounts"),
   createMount: (body: SmbMountCreate) => api.post<SmbMount>("/smb-mounts", body),

@@ -5,7 +5,20 @@
   "select_or_new": "Select a project on the right or create a new one.",
   "search_placeholder": "Search or tag…",
   "webhook": {
-    "label": "Webhook URL"
+    "label": "Webhook URL",
+    "title": "Butler webhook",
+    "description": "External services use it to fire this project's Butler flows (trigger “Webhook received”).",
+    "url": "URL",
+    "secret": "Secret",
+    "secret_missing": "no secret set",
+    "show": "Show",
+    "hide": "Hide",
+    "rotate": "Regenerate",
+    "create": "Create secret",
+    "rotate_confirm": "Generate a new secret? Calls with the old secret will be rejected immediately.",
+    "rotate_failed": "The secret could not be regenerated.",
+    "copy_failed": "Could not copy to the clipboard.",
+    "header_hint": "Send it as the X-Webhook-Secret header with each call."
   },
   "tags": {
     "label": "Tags",

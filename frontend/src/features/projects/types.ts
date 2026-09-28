@@ -91,6 +91,12 @@ export interface ProjectServer {
 
 export type MountState = "unmounted" | "mounting" | "mounted" | "error"
 
+/** Butler-Webhook des Projekts; Secret nur für Projekt-Admins sichtbar. */
+export interface ProjectWebhook {
+  url_path: string
+  secret: string
+}
+
 export interface SmbMount {
   id: string
   name: string
