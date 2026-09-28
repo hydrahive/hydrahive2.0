@@ -8,19 +8,16 @@ from __future__ import annotations
 
 import pytest
 
+from tests._own_rows import only_own_rows
+
 
 @pytest.fixture(autouse=True)
 def _ensure_db(setup_test_env):
     from hydrahive.db import init_db
-    from hydrahive.db.connection import db
-
     init_db()
-    yield
-    # Tabellen nach jedem Test leeren damit Tests isoliert bleiben
-    with db() as conn:
-        conn.execute("DELETE FROM teamchat_room_agents")
-        conn.execute("DELETE FROM teamchat_rooms")
-        conn.execute("DELETE FROM teamchat_identities")
+    # Nur die im Test angelegten Zeilen wieder entfernen, nie ganze Tabellen.
+    with only_own_rows("teamchat_room_agents", "teamchat_rooms", "teamchat_identities"):
+        yield
 
 
 # ---------------------------------------------------------------------------

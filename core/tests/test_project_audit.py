@@ -8,16 +8,16 @@ import logging
 import pytest
 
 from hydrahive.projects import audit
+from tests._own_rows import only_own_rows
 
 
 @pytest.fixture(autouse=True)
 def _ensure_db(setup_test_env):
     from hydrahive.db import init_db
-    from hydrahive.db.connection import db
     init_db()
-    yield
-    with db() as conn:
-        conn.execute("DELETE FROM project_audit_log")
+    # Nur die im Test angelegten Einträge entfernen, nie das ganze Audit-Log.
+    with only_own_rows("project_audit_log"):
+        yield
 
 
 def test_log_writes_retrievable_entry():

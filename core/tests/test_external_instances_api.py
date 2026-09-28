@@ -10,9 +10,12 @@ MODEL = "claude-3-7-sonnet-20250219"
 
 @pytest.fixture(autouse=True)
 def _cleanup_external(client):
+    # Nur Instanzen entfernen, die dieser Test angelegt hat. Früher lief das
+    # über ALLE externen Instanzen und hat am 26.09.2026 echte gelöscht.
+    before = {inst["agent_id"] for inst in ei.list_instances()}
     yield
-    for inst in ei.list_instances():
-        ei.delete_instance(inst["agent_id"])
+    for agent_id in {inst["agent_id"] for inst in ei.list_instances()} - before:
+        ei.delete_instance(agent_id)
 
 
 def test_create_requires_admin(client, auth_headers):

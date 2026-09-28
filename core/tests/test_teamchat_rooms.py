@@ -9,6 +9,8 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch, call
 
+from tests._own_rows import only_own_rows
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -16,14 +18,12 @@ from unittest.mock import AsyncMock, MagicMock, patch, call
 
 @pytest.fixture(autouse=True)
 def _ensure_db(setup_test_env):
-    """DB initialisieren + teamchat_rooms nach jedem Test leeren."""
+    """DB initialisieren; danach nur die im Test angelegten Räume entfernen."""
     from hydrahive.db import init_db
-    from hydrahive.db.connection import db
 
     init_db()
-    yield
-    with db() as conn:
-        conn.execute("DELETE FROM teamchat_rooms")
+    with only_own_rows("teamchat_room_agents", "teamchat_rooms"):
+        yield
 
 
 def _make_tokens(user_id: str, access_token: str = "tok_x", device_id: str = "DEV"):
