@@ -30,7 +30,10 @@ RISKY_PERMS = {
     "view_audit_log": "Audit-Log sehen",
 }
 
-_VALID_PERMS = {name for name, _ in discord.Permissions.none()}
+# Aliase, die discord.py als Konstruktor-Argument kennt, aber nicht beim Iterieren liefert.
+_ALIASES = {"view_channel": "read_messages", "manage_emojis": "manage_expressions",
+            "manage_permissions": "manage_roles"}
+_VALID_PERMS = {name for name, _ in discord.Permissions.none()} | set(_ALIASES)
 
 
 def audit_reason(action: str) -> str:
@@ -91,7 +94,8 @@ def resolve_role(guild: discord.Guild, raw_id: object) -> discord.Role:
 
 
 def require_guild_perm(guild: discord.Guild, flag: str, label: str) -> None:
-    if not getattr(guild.me.guild_permissions, flag, False):
+    perms = guild.me.guild_permissions
+    if not (perms.administrator or getattr(perms, flag, False)):
         raise DiscordToolError(f"Dem Bot fehlt auf diesem Server die Berechtigung «{label}».")
 
 
@@ -143,7 +147,7 @@ def permissions_from_names(names: list[str] | None) -> discord.Permissions:
             raise DiscordToolError(
                 f"Unbekanntes Recht «{raw}» — gültig sind z. B. view_channel, send_messages, "
                 "manage_messages, manage_threads, kick_members.")
-        flags[name] = True
+        flags[_ALIASES.get(name, name)] = True
     return discord.Permissions(**flags)
 
 
