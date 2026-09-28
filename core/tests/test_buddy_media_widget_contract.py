@@ -31,14 +31,16 @@ def test_media_widget_normalizer_has_stable_validation_and_ordering():
     assert "localeCompare" in source
 
 
-def test_buddy_rendert_modul_widgets_wieder():
-    """Regression 35627cdc: moduleBuddyWidgets (Aufgaben, Akte, Spiele) wurden nie gerendert (MED-4)."""
+def test_buddy_rendert_keine_modul_widgets():
+    """Die alten Modul-Kacheln (Gesundheit, Aufgaben …) bleiben draußen.
+
+    35627cdc hat sie bewusst entfernt — sie schicken fast nur Prompts. Nicht als
+    Regression "reparieren" (das war c5a8303d und wurde zurückgenommen).
+    """
     page = (ROOT / "frontend/src/features/buddy/BuddyPage.tsx").read_text()
-    rail = (ROOT / "frontend/src/features/buddy/_BuddyModuleWidgets.tsx").read_text()
-    assert "BuddyModuleWidgets" in page
-    assert "moduleBuddyWidgets" in rail
-    assert "typeof" in rail and '"function"' in rail      # nur echte Komponenten
-    assert "onPrompt={onPrompt}" in rail                  # Prompt nur auf Klick im Widget
+    assert "moduleBuddyWidgets" not in page
+    assert "BuddyModuleWidgets" not in page
+    assert not (ROOT / "frontend/src/features/buddy/_BuddyModuleWidgets.tsx").exists()
 
 
 def test_buddy_zeigt_zahnfee_briefing_wieder():
