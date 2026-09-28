@@ -25,6 +25,9 @@ Quellen **importieren** und Verläufe über die Zeit ansehen.
 **Tracking**
 - **Apple Health** und **Schlaf** — Verlaufsdaten aus deinem Health-Tracking.
 
+**Datenschutz**
+- **Daten löschen** — eigene Gesundheitsdaten endgültig entfernen (siehe unten).
+
 ## Daten importieren (eGA / FHIR)
 
 Du kannst deine Kassen-Gesundheitsakte importieren, statt alles abzutippen:
@@ -53,6 +56,28 @@ geprüft hast.
 2. Einen neuen Eintrag hinzufügen und die Felder ausfüllen.
 3. Speichern. Über die Aktionen kannst du Einträge später **bearbeiten**,
    **löschen** oder **verifizieren**.
+
+## Daten löschen
+
+Unter **Datenschutz → Daten löschen** entfernst du deine eigenen Daten endgültig:
+
+- **Apple Health**: alle Lieferungen und Tageswerte, oder nur einen **Zeitraum**
+  (von–bis). Lieferungen, die auch Tage außerhalb des Zeitraums enthalten, bleiben
+  erhalten. Ihre Tageswerte im Zeitraum werden trotzdem gelöscht.
+- **FHIR-Import** oder **eGA-Import** komplett.
+- **Alles löschen**: Apple Health, beide Importe und deine komplette Akte mit allen
+  Einträgen.
+
+Zur Bestätigung tippst du **LÖSCHEN** ein. Es gibt keinen Papierkorb. Große
+Apple-Health-Bestände brauchen einige Minuten.
+
+**Gut zu wissen:**
+- Solange die Automation in **Health Auto Export** aktiv ist, kommen neue Daten
+  nach. Schalte sie dort ab, wenn du keine weiteren Daten schicken willst.
+- Agenten können lesen, aber **nie löschen**. Löschen geht nur hier.
+- Backups außerhalb von HydraHive sind nicht betroffen. Die Datenbankdatei wird
+  erst kleiner, wenn der Admin sie komprimiert (`VACUUM`). Die gelöschten
+  Inhalte werden aber sofort überschrieben.
 
 ## Typische Fragen
 

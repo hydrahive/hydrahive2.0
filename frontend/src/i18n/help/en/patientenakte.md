@@ -25,6 +25,9 @@ from official sources, and view trends over time.
 **Tracking**
 - **Apple Health** and **Sleep** — trend data from your health tracking.
 
+**Privacy**
+- **Delete data** — permanently remove your own health data (see below).
+
 ## Importing data (eGA / FHIR)
 
 You can import your insurer's health record instead of typing everything:
@@ -51,6 +54,27 @@ click — so you keep track of what you've personally checked.
 1. Pick the relevant area on the left (e.g. **Medications**).
 2. Add a new entry and fill in the fields.
 3. Save. Via the actions you can later **edit**, **delete**, or **verify** entries.
+
+## Deleting data
+
+Under **Privacy → Delete data** you permanently remove your own data:
+
+- **Apple Health**: all deliveries and daily values, or only a **period**
+  (from–to). Deliveries that also contain days outside the period are kept.
+  Their daily values inside the period are deleted anyway.
+- **FHIR import** or **eGA import** completely.
+- **Delete everything**: Apple Health, both imports and your complete record with
+  all entries.
+
+To confirm, type **LÖSCHEN**. There is no trash bin. Large Apple Health data can
+take a few minutes.
+
+**Good to know:**
+- As long as the automation in **Health Auto Export** is active, new data keeps
+  arriving. Turn it off there if you don't want to send more data.
+- Agents can read, but **never delete**. Deleting only works here.
+- Backups outside HydraHive are not affected. The database file only shrinks once
+  the admin compacts it (`VACUUM`). The deleted content is overwritten right away.
 
 ## Common questions
 
