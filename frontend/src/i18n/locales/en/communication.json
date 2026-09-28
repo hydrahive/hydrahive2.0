@@ -97,6 +97,13 @@
       "moderate_hint": "Allow moderation tools: set tags, close/lock/pin posts, pin/delete messages, manage forum tags. Deleting always needs confirmation.",
       "moderated_count_one": "{{count}} of them with moderation.",
       "moderated_count_other": "{{count}} of them with moderation."
+    },
+    "admin": {
+      "label": "Manage server",
+      "hint": "Management tools for this server: categories, channels, forums, channel permissions, invites, roles, nicknames, timeout, kick, ban. Administrator and “Manage Server” are never granted; the server owner, the bot and owner IDs are protected. Deleting, kick, ban and permissions ask you first.",
+      "no_rights": "The bot has no management rights on this server (Administrator or Manage Channels + Manage Roles).",
+      "count_one": "{{count}} server with management.",
+      "count_other": "{{count}} servers with management."
     }
   }
 }

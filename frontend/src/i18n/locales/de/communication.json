@@ -97,6 +97,13 @@
       "moderate_hint": "Moderations-Tools erlauben: Tags setzen, Beiträge schließen/sperren/anheften, Nachrichten anpinnen/löschen, Forum-Tags pflegen. Löschen muss immer bestätigt werden.",
       "moderated_count_one": "Davon {{count}} mit Moderation.",
       "moderated_count_other": "Davon {{count}} mit Moderation."
+    },
+    "admin": {
+      "label": "Server verwalten",
+      "hint": "Verwaltungswerkzeuge für diesen Server: Kategorien, Kanäle, Foren, Kanalrechte, Einladungen, Rollen, Nicknames, Timeout, Kick, Bann. Administrator und «Server verwalten» werden nie vergeben; Serverbesitzer, Bot und Besitzer-IDs sind geschützt. Löschen, Kick, Bann und Rechte fragen dich vorher.",
+      "no_rights": "Der Bot hat auf diesem Server keine Verwaltungsrechte (Administrator oder Kanäle + Rollen verwalten).",
+      "count_one": "{{count}} Server mit Verwaltung.",
+      "count_other": "{{count}} Server mit Verwaltung."
     }
   }
 }

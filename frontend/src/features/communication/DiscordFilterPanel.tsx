@@ -15,6 +15,7 @@ const DEFAULT_CFG: DiscordConfig = {
   allowed_channel_ids: [],
   tool_channel_ids: [],
   moderation_channel_ids: [],
+  admin_guild_ids: [],
   respond_as_voice: false,
   voice_name: "German_FriendlyMan",
 }
@@ -164,7 +165,9 @@ export function DiscordFilterPanel() {
       <DiscordToolChannels
         value={cfg.tool_channel_ids ?? []}
         moderated={cfg.moderation_channel_ids ?? []}
+        adminGuilds={cfg.admin_guild_ids ?? []}
         onChange={(ids, moderated) => setCfg({ ...cfg, tool_channel_ids: ids, moderation_channel_ids: moderated })}
+        onAdminGuildsChange={(guildIds) => setCfg({ ...cfg, admin_guild_ids: guildIds })}
       />
 
       {/* Voice */}

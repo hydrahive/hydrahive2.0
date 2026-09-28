@@ -37,8 +37,17 @@ export interface DiscordConfig {
   allowed_channel_ids: string[]
   tool_channel_ids: string[]
   moderation_channel_ids: string[]
+  admin_guild_ids: string[]
   respond_as_voice: boolean
   voice_name: string
+}
+
+/** Server des Bots; can_admin = Bot hat dort Administrator- oder Kanal+Rollen-Rechte. */
+export interface DiscordCatalogGuild {
+  id: string
+  name: string
+  can_admin: boolean
+  members: number
 }
 
 export interface DiscordCatalogChannel {
@@ -61,7 +70,7 @@ export const communicationApi = {
     putConfig: (cfg: DiscordConfig) =>
       api.put<DiscordConfig>("/communication/discord/config", cfg),
     channels: () =>
-      api.get<{ connected: boolean; channels: DiscordCatalogChannel[] }>("/communication/discord/channels"),
+      api.get<{ connected: boolean; channels: DiscordCatalogChannel[]; guilds?: DiscordCatalogGuild[] }>("/communication/discord/channels"),
   },
   whatsapp: {
     status: () => api.get<ChannelStatus>("/communication/whatsapp/status"),
