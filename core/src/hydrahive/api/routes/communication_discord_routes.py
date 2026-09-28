@@ -33,6 +33,7 @@ def _config_dict(cfg: dc_config.DiscordConfig, *, mask_token: bool = True) -> di
         "allowed_channel_ids": cfg.allowed_channel_ids,
         "tool_channel_ids": cfg.tool_channel_ids,
         "moderation_channel_ids": cfg.moderation_channel_ids,
+        "admin_guild_ids": cfg.admin_guild_ids,
         "respond_as_voice": cfg.respond_as_voice,
         "voice_name": cfg.voice_name,
     }
@@ -93,6 +94,7 @@ async def discord_put_config(payload: dict, auth=Depends(require_auth)) -> dict:
         tool_channel_ids=list(payload.get("tool_channel_ids", existing.tool_channel_ids) or []),
         moderation_channel_ids=list(
             payload.get("moderation_channel_ids", existing.moderation_channel_ids) or []),
+        admin_guild_ids=list(payload.get("admin_guild_ids", existing.admin_guild_ids) or []),
         respond_as_voice=bool(payload.get("respond_as_voice", False)),
         voice_name=str(payload.get("voice_name", "German_FriendlyMan") or "German_FriendlyMan"),
     )
@@ -109,5 +111,6 @@ async def discord_channels(auth=Depends(require_auth)) -> dict:
     try:
         client = ops_access.connected_client(username)
     except ops_access.DiscordToolError:
-        return {"connected": False, "channels": []}
-    return {"connected": True, "channels": ops_read.catalog(client)}
+        return {"connected": False, "channels": [], "guilds": []}
+    return {"connected": True, "channels": ops_read.catalog(client),
+            "guilds": ops_read.guild_catalog(client)}

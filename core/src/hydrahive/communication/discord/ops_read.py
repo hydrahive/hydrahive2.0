@@ -44,6 +44,18 @@ def catalog(client: discord.Client) -> list[dict]:
     return [row for _, row in rows]
 
 
+def guild_catalog(client: discord.Client) -> list[dict]:
+    """Server des Bots für die Freigabe „Server verwalten“ (UI). `can_admin`:
+    der Bot hat dort Administrator- oder Kanal- und Rollenverwaltungsrechte."""
+    out = []
+    for guild in sorted(client.guilds, key=lambda g: g.name.casefold()):
+        gp = getattr(getattr(guild, "me", None), "guild_permissions", None)
+        can_admin = bool(gp and (gp.administrator or (gp.manage_channels and gp.manage_roles)))
+        out.append({"id": str(guild.id), "name": guild.name, "can_admin": can_admin,
+                    "members": int(getattr(guild, "member_count", 0) or 0)})
+    return out
+
+
 async def list_channels(scope: Scope) -> str:
     lines = [f"Freigegebene Discord-Kanäle ({len(scope.cfg.tool_channel_ids)}). "
              "Forum-Beiträge darin sind automatisch mit freigegeben."]

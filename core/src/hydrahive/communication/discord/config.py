@@ -33,6 +33,10 @@ class DiscordConfig:
     # Teilmenge davon, in der die Moderations-Tools wirken dürfen (Tags, schließen,
     # löschen …). Leer = keine Moderation. Wirkt nur zusammen mit tool_channel_ids.
     moderation_channel_ids: list[str] = field(default_factory=list)
+    # Server (Guild-IDs), auf denen die Verwaltungswerkzeuge (Kanäle, Rollen,
+    # Mitglieder) wirken dürfen. Leer = keine Verwaltung. Unabhängig von
+    # tool_channel_ids (docs/specs/discord-server-admin-tools.md).
+    admin_guild_ids: list[str] = field(default_factory=list)
     respond_as_voice: bool = False
     voice_name: str = "German_FriendlyMan"
 
@@ -68,6 +72,7 @@ def load(username: str) -> DiscordConfig:
         allowed_channel_ids=_normalize_ids(data.get("allowed_channel_ids", [])),
         tool_channel_ids=_normalize_ids(data.get("tool_channel_ids", [])),
         moderation_channel_ids=_normalize_ids(data.get("moderation_channel_ids", [])),
+        admin_guild_ids=_normalize_ids(data.get("admin_guild_ids", [])),
         respond_as_voice=bool(data.get("respond_as_voice", False)),
         voice_name=str(data.get("voice_name", "German_FriendlyMan") or "German_FriendlyMan"),
     )
@@ -80,6 +85,7 @@ def save(username: str, cfg: DiscordConfig) -> DiscordConfig:
     cfg.allowed_channel_ids = _normalize_ids(cfg.allowed_channel_ids)
     cfg.tool_channel_ids = _normalize_ids(cfg.tool_channel_ids)
     cfg.moderation_channel_ids = _normalize_ids(cfg.moderation_channel_ids)
+    cfg.admin_guild_ids = _normalize_ids(cfg.admin_guild_ids)
     cfg.require_keyword = cfg.require_keyword.strip()
     f = _config_file(username)
     f.write_text(json.dumps(asdict(cfg), indent=2, ensure_ascii=False))
