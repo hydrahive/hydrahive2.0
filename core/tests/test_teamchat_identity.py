@@ -8,6 +8,8 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock, patch
 
+from tests._own_rows import only_own_rows
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -15,14 +17,12 @@ from unittest.mock import AsyncMock, patch
 
 @pytest.fixture(autouse=True)
 def _ensure_db(setup_test_env):
-    """DB initialisieren + teamchat_identities nach jedem Test leeren."""
+    """DB initialisieren; danach nur die im Test angelegten Identitäten entfernen."""
     from hydrahive.db import init_db
-    from hydrahive.db.connection import db
 
     init_db()
-    yield
-    with db() as conn:
-        conn.execute("DELETE FROM teamchat_identities")
+    with only_own_rows("teamchat_identities"):
+        yield
 
 
 def _make_account_tokens(user_id: str, access_token: str, device_id: str):
@@ -322,10 +322,11 @@ async def test_ensure_identity_deterministic_password(monkeypatch, setup_test_en
     assert len(pw) == 32
     assert all(c in "0123456789abcdef" for c in pw)
 
-    # Gleiche Ableitung bei zweitem Durchlauf (DB reset → provision erneut)
+    # Gleiche Ableitung bei zweitem Durchlauf: nur die eben angelegte Identität
+    # entfernen, damit neu provisioniert wird.
     from hydrahive.db.connection import db
     with db() as conn:
-        conn.execute("DELETE FROM teamchat_identities")
+        conn.execute("DELETE FROM teamchat_identities WHERE user_id = ?", ("frank",))
 
     captured_passwords.clear()
     with patch("hydrahive.teamchat.identity.client.register_account", new=capturing_register):

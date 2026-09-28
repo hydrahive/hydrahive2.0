@@ -9,11 +9,23 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 
-import pytest
-from fastapi.testclient import TestClient
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _hh_isolation import (  # noqa: E402, F401 - pytest-Hooks, über conftest registriert
+    isolated_root,
+    only_own_files,
+    only_own_rows,
+    pytest_collection_finish,
+    pytest_configure,
+    pytest_runtest_call,
+    pytest_runtest_setup,
+    pytest_unconfigure,
+    remove_test_tree,
+)
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 # Modul-Verzeichnis auf den Pfad: `from backend import ...` (Paket mit relativen Imports)
 MODULE_DIR = Path(__file__).resolve().parents[1]
@@ -23,10 +35,8 @@ if str(MODULE_DIR) not in sys.path:
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_env():
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with isolated_root() as tmpdir:
         tmp_path = Path(tmpdir)
-        os.environ["HH_DATA_DIR"] = str(tmp_path / "data")
-        os.environ["HH_CONFIG_DIR"] = str(tmp_path / "config")
         os.environ["HH_SECRET_KEY"] = "test-secret-key-for-jwt-signing"
         os.environ["HH_DISCORD_ENABLED"] = "0"
         os.environ["HH_WA_ENABLED"] = "0"
@@ -100,17 +110,12 @@ def admin_headers(client):
 def _akte_db(setup_test_env):
     """Migrierte DB + leere akte_*-Tabellen vor jedem Test."""
     from hydrahive.db import init_db
-    from hydrahive.db.connection import db
     from backend.schema import ENTITIES
 
     init_db()
-    with db() as conn:
-        for spec in ENTITIES.values():
-            conn.execute(f"DELETE FROM {spec.table}")
-        conn.execute("DELETE FROM akte_patient")
-        # Import-Stores + Health ebenfalls leeren → Test-Isolation unabhängig von Reihenfolge
-        conn.execute("DELETE FROM fhir_resources")
-        conn.execute("DELETE FROM ega_records")
-        conn.execute("DELETE FROM health_ingest")
-        conn.execute("DELETE FROM health_daily")
-    yield
+    # Nach jedem Test nur die Zeilen entfernen, die der Test angelegt hat.
+    # Import-Stores + Health gehören dazu, damit die Reihenfolge egal bleibt.
+    tables = [spec.table for spec in ENTITIES.values()]
+    tables += ["akte_patient", "fhir_resources", "ega_records", "health_ingest", "health_daily"]
+    with only_own_rows(*tables):
+        yield

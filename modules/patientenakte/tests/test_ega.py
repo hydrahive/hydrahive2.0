@@ -14,11 +14,10 @@ from backend import ega_store as ega_db
 @pytest.fixture(autouse=True)
 def _ensure_db(setup_test_env):
     from hydrahive.db import init_db
-    from hydrahive.db.connection import db
+    from _hh_isolation import only_own_rows
     init_db()
-    yield
-    with db() as conn:
-        conn.execute("DELETE FROM ega_records")
+    with only_own_rows("ega_records"):
+        yield
 
 
 # --- _stable_id ----------------------------------------------------------

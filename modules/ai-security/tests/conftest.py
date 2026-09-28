@@ -4,11 +4,23 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 
-import pytest
-from fastapi.testclient import TestClient
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _hh_isolation import (  # noqa: E402, F401 - pytest-Hooks, über conftest registriert
+    isolated_root,
+    only_own_files,
+    only_own_rows,
+    pytest_collection_finish,
+    pytest_configure,
+    pytest_runtest_call,
+    pytest_runtest_setup,
+    pytest_unconfigure,
+    remove_test_tree,
+)
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
 MODULE_DIR = Path(__file__).resolve().parents[1]
 if str(MODULE_DIR) not in sys.path:
@@ -17,10 +29,8 @@ if str(MODULE_DIR) not in sys.path:
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_env():
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with isolated_root() as tmpdir:
         root = Path(tmpdir)
-        os.environ["HH_DATA_DIR"] = str(root / "data")
-        os.environ["HH_CONFIG_DIR"] = str(root / "config")
         os.environ["HH_SECRET_KEY"] = "test-secret-key-for-jwt-signing"
         os.environ["HH_DISCORD_ENABLED"] = "0"
         os.environ["HH_WA_ENABLED"] = "0"
@@ -88,8 +98,6 @@ def bob(client):
 @pytest.fixture(autouse=True)
 def clean_scans():
     from hydrahive.db import init_db
-    from hydrahive.db.connection import db
     init_db()
-    with db() as conn:
-        conn.execute("DELETE FROM module_ai_security_scans")
-    yield
+    with only_own_rows("module_ai_security_scans"):
+        yield

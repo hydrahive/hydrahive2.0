@@ -20,11 +20,10 @@ def make_ctx(username: str = "alice", session_id: str = "sess-1") -> ToolContext
 
 @pytest.fixture(autouse=True)
 def fresh_db():
+    from _hh_isolation import only_own_rows
     init_db()
-    from hydrahive.db.connection import db
-    with db() as c:
-        c.execute("DELETE FROM module_tasks")
-    yield
+    with only_own_rows("module_tasks"):
+        yield
 
 
 # ── task_write ─────────────────────────────────────────────────────────────

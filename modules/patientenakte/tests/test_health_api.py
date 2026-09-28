@@ -8,12 +8,10 @@ from hydrahive.db import init_db
 @pytest.fixture(autouse=True)
 def _ensure_db(setup_test_env):
     """Ensure DB schema is initialized and cleaned before each test."""
-    from hydrahive.db.connection import db
+    from _hh_isolation import only_own_rows
     init_db()
-    yield
-    with db() as conn:
-        conn.execute("DELETE FROM health_ingest")
-        conn.execute("DELETE FROM health_daily")
+    with only_own_rows("health_ingest", "health_daily"):
+        yield
 
 
 def _insert_payload(metrics: list[dict], days_ago: int = 0) -> str:
