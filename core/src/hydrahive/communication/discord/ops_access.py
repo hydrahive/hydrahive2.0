@@ -83,9 +83,9 @@ def open_scope(username: str) -> Scope:
 
 
 def egress_scrub(scope: Scope, agent_id: str, text: str) -> str:
-    """Secrets (System, Agent, eigener Bot-Token) aus ausgehendem Text entfernen."""
+    """Secrets (System, Agent, Nutzer-Vault, eigener Bot-Token) aus ausgehendem Text entfernen."""
     from hydrahive.credentials import redaction
-    secrets = redaction.secret_values() | redaction.agent_secret_values(agent_id)
+    secrets = redaction.egress_secrets(scope.username, agent_id)
     if scope.cfg.bot_token:
         secrets.add(scope.cfg.bot_token)
     return redaction.scrub(text, secrets)

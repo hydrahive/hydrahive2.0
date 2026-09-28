@@ -24,10 +24,22 @@ from hydrahive.tools.base import ToolResult
 PLACEHOLDER = "[REDACTED]"
 
 __all__ = [
-    "MIN_SECRET_LEN", "PLACEHOLDER", "agent_secret_values", "detect_secrets", "mask",
-    "redact_detected", "register_pattern", "scrub", "scrub_result", "secret_values",
-    "user_secret_values",
+    "MIN_SECRET_LEN", "PLACEHOLDER", "agent_secret_values", "detect_secrets",
+    "egress_secrets", "mask", "redact_detected", "register_pattern", "scrub",
+    "scrub_result", "secret_values", "user_secret_values",
 ]
+
+
+def egress_secrets(username: str | None, agent_id: str | None = None) -> set[str]:
+    """Alle Secret-Werte, die eine ausgehende Nachricht (WhatsApp, Discord, Mail)
+    nie enthalten darf: System (env, LLM-Config), Agent (Postfach) und der
+    Credential-Vault des Nutzers, dem der Kanal gehört."""
+    secrets = set(secret_values())
+    if agent_id:
+        secrets |= agent_secret_values(agent_id)
+    if username:
+        secrets |= user_secret_values(username)
+    return secrets
 
 
 def _scrub_str(text: str, secrets: Iterable[str]) -> str:

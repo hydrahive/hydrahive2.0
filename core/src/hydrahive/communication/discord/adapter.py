@@ -161,7 +161,8 @@ class DiscordAdapter:
 
     async def send(self, username: str, to: str, text: str) -> None:
         from hydrahive.credentials import redaction
-        text = redaction.scrub(text)  # Egress-Draht-Grenze: nie Secrets nach extern
+        # Egress-Draht-Grenze: nie Secrets nach extern, auch nicht die des Nutzers.
+        text = redaction.scrub(text, redaction.egress_secrets(username))
         client = self._clients.get(username)
         if not client or not client.is_ready():
             raise RuntimeError("Discord nicht verbunden")

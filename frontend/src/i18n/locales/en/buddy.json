@@ -62,7 +62,11 @@
     "effort_default": "Model default",
     "effort_low": "Low",
     "effort_medium": "Medium",
-    "effort_high": "High"
+    "effort_high": "High",
+    "effort_xhigh": "Extra high",
+    "effort_max": "Maximum",
+    "effort_ultra": "Ultra",
+    "effort_unsupported": "This model has no reasoning effort setting."
   },
   "tools": {
     "active_count": "{{active}} of {{total}} tools enabled",

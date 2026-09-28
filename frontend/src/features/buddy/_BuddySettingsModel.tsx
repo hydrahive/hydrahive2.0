@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { useEffortLevels } from "@/features/llm/effort"
 import type { BuddyConfig, BuddyConfigPatch, ReasoningEffort } from "./api"
 
 interface Props {
@@ -16,6 +17,9 @@ export function BuddySettingsModel({ config, draft, onChange, availableModels }:
   const { t } = useTranslation("buddy")
   const [query, setQuery] = useState("")
   const model = draft.model ?? config.model
+  // Gleiche Stufen wie die Denktiefe-Pill im Chat (modellabhängig, low … max).
+  const effortLevels = useEffortLevels(model)
+  const effortLabels: Record<string, string> = { low: t("model.effort_low"), medium: t("model.effort_medium"), high: t("model.effort_high"), xhigh: t("model.effort_xhigh"), max: t("model.effort_max"), ultra: t("model.effort_ultra") }
   const fallbacks = draft.fallback_models ?? config.fallback_models
   const models = useMemo(
     () => Array.from(new Set([model, ...fallbacks, ...availableModels].filter(Boolean))).sort(),
@@ -66,12 +70,10 @@ export function BuddySettingsModel({ config, draft, onChange, availableModels }:
         <Field label={t("model.thinking_budget")} hint={t("model.thinking_hint")}>
           <input type="number" min={0} max={200000} value={draft.thinking_budget ?? config.thinking_budget} onChange={(event) => onChange({ thinking_budget: Number(event.target.value) })} className={control} />
         </Field>
-        <Field label={t("model.reasoning_effort")}>
-          <select value={draft.reasoning_effort ?? config.reasoning_effort} onChange={(event) => onChange({ reasoning_effort: event.target.value as ReasoningEffort })} className={control}>
+        <Field label={t("model.reasoning_effort")} hint={effortLevels.length === 0 ? t("model.effort_unsupported") : undefined}>
+          <select value={draft.reasoning_effort ?? config.reasoning_effort} disabled={effortLevels.length === 0} onChange={(event) => onChange({ reasoning_effort: event.target.value as ReasoningEffort })} className={control}>
             <option value="">{t("model.effort_default")}</option>
-            <option value="low">{t("model.effort_low")}</option>
-            <option value="medium">{t("model.effort_medium")}</option>
-            <option value="high">{t("model.effort_high")}</option>
+            {effortLevels.map((level) => <option key={level} value={level}>{effortLabels[level] ?? level}</option>)}
           </select>
         </Field>
       </div>

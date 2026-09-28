@@ -133,6 +133,15 @@ def update(agent_id: str, **changes: Any) -> dict:
         _validation.validate_temperature(changes["temperature"])
     if "max_tokens" in changes:
         _validation.validate_max_tokens(changes["max_tokens"])
+    new_model = changes.get("llm_model", cfg.get("llm_model", ""))
+    if "reasoning_effort" in changes:
+        _validation.validate_reasoning_effort(changes["reasoning_effort"] or "", new_model)
+    elif "llm_model" in changes and cfg.get("reasoning_effort"):
+        # Modellwechsel: passt die gespeicherte Tiefe nicht mehr, auf Modellstandard zurück.
+        try:
+            _validation.validate_reasoning_effort(cfg["reasoning_effort"], new_model)
+        except _validation.AgentValidationError:
+            changes["reasoning_effort"] = ""
     if "status" in changes:
         _validation.validate_status(changes["status"])
     if "tool_config" in changes:

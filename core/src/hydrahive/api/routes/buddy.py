@@ -156,7 +156,8 @@ class BuddyConfigPatch(BaseModel):
     temperature: float | None = Field(default=None, ge=0, le=2)
     max_tokens: int | None = Field(default=None, ge=1, le=200_000)
     thinking_budget: int | None = Field(default=None, ge=0, le=200_000)
-    reasoning_effort: str | None = Field(default=None, pattern="^(|low|medium|high)$")
+    # Stufen sind modellabhängig (low…max) — geprüft in agents._validation.
+    reasoning_effort: str | None = Field(default=None, pattern="^(|[a-z]{1,12})$")
     tools: list[Annotated[str, Field(min_length=1, max_length=128)]] | None = Field(default=None, max_length=500)
     mcp_servers: list[Annotated[str, Field(min_length=1, max_length=128)]] | None = Field(default=None, max_length=100)
     disabled_skills: list[Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,49}$")]] | None = Field(

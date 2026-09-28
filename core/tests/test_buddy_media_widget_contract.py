@@ -48,5 +48,9 @@ def test_buddy_zeigt_zahnfee_briefing_wieder():
     page = (ROOT / "frontend/src/features/buddy/BuddyPage.tsx").read_text()
     box = (ROOT / "frontend/src/features/buddy/_BuddyBriefingBox.tsx").read_text()
     assert "BuddyBriefingBox" in page
+    # Die Box sitzt in der LINKEN Leiste (unter dem Buddy-Panel), nicht rechts.
+    left = page[page.index("function BuddyLeftRail("):page.index("function BuddyRightRail(")]
+    right = page[page.index("function BuddyRightRail("):]
+    assert "<BuddyBriefingBox" in left and "<BuddyBriefingBox" not in right
     assert "zahnfeeApi.briefing()" in box
     assert not (ROOT / "frontend/src/features/buddy/_BuddyLeftPanel.tsx").exists()
