@@ -8,7 +8,7 @@ from __future__ import annotations
 
 
 def _new_session(client, auth_headers) -> str:
-    r = client.post("/api/sessions", json={"agent_id": "test-agent-001", "title": "t"}, headers=auth_headers)
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-user", "title": "t"}, headers=auth_headers)
     assert r.status_code == 201, r.text
     return r.json()["id"]
 
@@ -62,13 +62,13 @@ def test_create_session_rejects_foreign_project(client, auth_headers):
     from hydrahive.projects import config as pc
 
     foreign = pc.create(name="FremdCreate", llm_model="claude-sonnet-4-6", created_by="someone_else")
-    r = client.post("/api/sessions", json={"agent_id": "test-agent-001", "project_id": foreign["id"]},
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-user", "project_id": foreign["id"]},
                     headers=auth_headers)
     assert r.status_code == 403, r.text
 
 
 def test_create_session_unknown_project_404(client, auth_headers):
-    r = client.post("/api/sessions", json={"agent_id": "test-agent-001", "project_id": "ghost-id"},
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-user", "project_id": "ghost-id"},
                     headers=auth_headers)
     assert r.status_code == 404, r.text
 
@@ -77,7 +77,7 @@ def test_create_session_with_own_project(client, auth_headers):
     from hydrahive.projects import config as pc
 
     proj = pc.create(name="EigenCreate", llm_model="claude-sonnet-4-6", created_by="testuser")
-    r = client.post("/api/sessions", json={"agent_id": "test-agent-001", "project_id": proj["id"]},
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-user", "project_id": proj["id"]},
                     headers=auth_headers)
     assert r.status_code == 201, r.text
     assert r.json()["project_id"] == proj["id"]

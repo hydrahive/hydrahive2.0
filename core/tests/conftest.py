@@ -105,6 +105,15 @@ def setup_test_env():
     }
     (agent_dir / "config.json").write_text(json.dumps(agent_config, indent=2))
 
+    # Zweiter Agent, der testuser gehört. POST /api/sessions lässt seit dem
+    # Fix zu 1b7e6d17 nur eigene Agenten (oder Projekt-Agenten) zu.
+    user_agent_dir = tmp_path / "data" / "agents" / "test-agent-user"
+    user_agent_dir.mkdir(parents=True, exist_ok=True)
+    (user_agent_dir / "config.json").write_text(json.dumps(
+        {**agent_config, "id": "test-agent-user", "name": "Test Agent (testuser)", "owner": "testuser"},
+        indent=2,
+    ))
+
     yield tmp_path
 
 

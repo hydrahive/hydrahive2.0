@@ -97,13 +97,13 @@ def test_sessions_with_token_empty(client, auth_headers):
 def test_create_session_success(client, auth_headers):
     """POST /api/sessions mit gültigem Agent → 201 + Session-Objekt."""
     response = client.post("/api/sessions", headers=auth_headers, json={
-        "agent_id": "test-agent-001",
+        "agent_id": "test-agent-user",
         "title": "Test Session"
     })
     assert response.status_code == 201
     data = response.json()
     assert "id" in data
-    assert data["agent_id"] == "test-agent-001"
+    assert data["agent_id"] == "test-agent-user"
     assert data["user_id"] == "testuser"
     assert data["title"] == "Test Session"
     assert data["status"] == "active"
@@ -129,7 +129,7 @@ def test_admin_can_access_foreign_session(client, auth_headers, admin_headers):
     """Admin kann auf fremde Session zugreifen."""
     # User erstellt Session
     response = client.post("/api/sessions", headers=auth_headers, json={
-        "agent_id": "test-agent-001",
+        "agent_id": "test-agent-user",
         "title": "User Session"
     })
     assert response.status_code == 201
@@ -147,7 +147,7 @@ def test_user_can_access_own_session(client, auth_headers):
     """User kann auf eigene Session zugreifen."""
     # Session erstellen
     response = client.post("/api/sessions", headers=auth_headers, json={
-        "agent_id": "test-agent-001",
+        "agent_id": "test-agent-user",
         "title": "My Session"
     })
     assert response.status_code == 201

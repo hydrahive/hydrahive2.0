@@ -13,7 +13,7 @@ from hydrahive.db import messages as messages_db
 
 @pytest.fixture
 def session_id(client, auth_headers):
-    r = client.post("/api/sessions", json={"agent_id": "test-agent-001"}, headers=auth_headers)
+    r = client.post("/api/sessions", json={"agent_id": "test-agent-user"}, headers=auth_headers)
     return r.json()["id"]
 
 
