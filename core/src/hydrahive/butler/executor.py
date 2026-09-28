@@ -72,6 +72,8 @@ async def _traverse(flow, node_id, handle, event, trace, actions_executed,
 async def _run_condition(flow, node, event, trace, actions_executed, dry_run, depth):
     spec = CONDITIONS.get(node.subtype)
     if not spec:
+        logger.warning("Flow %s: Bedingung '%s' ist dem Server unbekannt, Pfad endet",
+                       flow.flow_id, node.subtype)
         trace.append(_trace_node(node, decision="unknown_condition"))
         return
     try:
@@ -89,6 +91,8 @@ async def _run_condition(flow, node, event, trace, actions_executed, dry_run, de
 async def _run_action(flow, node, event, trace, actions_executed, dry_run, depth):
     spec = ACTIONS.get(node.subtype)
     if not spec:
+        logger.warning("Flow %s: Aktion '%s' ist dem Server unbekannt, übersprungen",
+                       flow.flow_id, node.subtype)
         trace.append(_trace_node(node, decision="unknown_action"))
         return
     if dry_run:
