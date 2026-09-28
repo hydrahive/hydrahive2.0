@@ -7,20 +7,16 @@
  */
 import type { ComponentType } from "react"
 import {
-  AgentReplyForm, AgentReplyGuidedExtra, ContactKnownInfo, DiscordPostForm,
+  AgentReplyForm, AgentReplyGuidedExtra, DiscordPostForm,
   GitAddCommentForm, GitCreateIssueForm, HttpPostForm, IgnoreInfo,
   QueueInfo, ReplyFixedForm, SendEmailForm,
 } from "./_actions"
 import {
-  DiscordEmojiIsForm, DiscordEventIsForm, EmailContainsForm,
-  GitActionIsForm, GitAuthorIsForm, GitBranchIsForm,
-  MessageContainsForm, PayloadFieldContainsForm, TimeWindowForm, DayOfWeekForm,
+  DayOfWeekForm, MessageContainsForm, PayloadFieldContainsForm,
+  RegexMatchForm, TimeWindowForm,
 } from "./_conditions"
 import type { FormProps } from "./_helpers"
-import {
-  DiscordEventReceivedForm, EmailReceivedForm, GitEventForm,
-  HeartbeatForm, MessageReceivedForm,
-} from "./_triggers"
+import { CronForm, HeartbeatForm, MessageReceivedForm } from "./_triggers"
 import { WebhookTriggerForm } from "./_webhook"
 
 type FormComponent = ComponentType<FormProps & { subtype?: string }>
@@ -28,24 +24,15 @@ type FormComponent = ComponentType<FormProps & { subtype?: string }>
 export const FORMS: Record<string, FormComponent> = {
   // Triggers
   webhook_received: WebhookTriggerForm,
-  git_event_received: GitEventForm,
   heartbeat_fired: HeartbeatForm,
+  cron_fired: CronForm,
   message_received: MessageReceivedForm,
-  discord_event_received: DiscordEventReceivedForm,
-  email_received: EmailReceivedForm,
   // Conditions
   time_window: TimeWindowForm,
   day_of_week: DayOfWeekForm,
   message_contains: MessageContainsForm,
+  regex_match: RegexMatchForm,
   payload_field_contains: PayloadFieldContainsForm,
-  git_branch_is: GitBranchIsForm,
-  git_author_is: GitAuthorIsForm,
-  git_action_is: GitActionIsForm,
-  email_from_contains: EmailContainsForm,
-  email_subject_contains: EmailContainsForm,
-  email_body_contains: EmailContainsForm,
-  discord_event_is: DiscordEventIsForm,
-  discord_emoji_is: DiscordEmojiIsForm,
   // Actions
   agent_reply: AgentReplyForm,
   forward: AgentReplyForm,
@@ -56,7 +43,6 @@ export const FORMS: Record<string, FormComponent> = {
   git_create_issue: GitCreateIssueForm,
   git_add_comment: GitAddCommentForm,
   discord_post: DiscordPostForm,
-  contact_known: ContactKnownInfo,
   ignore: IgnoreInfo,
   queue: QueueInfo,
 }

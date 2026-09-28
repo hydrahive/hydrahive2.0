@@ -41,12 +41,12 @@ export function HttpPostForm({ params, onChange }: FormProps) {
           placeholder="https://example.com/webhook" />
       </Field>
       <Field label={t("labelBodyJson")}>
-        <TextArea field="body_template" params={params} onChange={onChange} rows={4} mono
+        <TextArea field="body" params={params} onChange={onChange} rows={4} mono
           placeholder={`{\n  "text": "{{event.message_text}}"\n}`} />
       </Field>
       <p className="text-[10px] text-white/25">
         {t("placeholderHint")} <code className="text-cyan-400">{"{{event.message_text}}"}</code>,{" "}
-        <code className="text-cyan-400">{"{{event.extra.repo}}"}</code> etc.
+        <code className="text-cyan-400">{"{{event.payload.field}}"}</code> etc.
       </p>
     </div>
   )
@@ -125,11 +125,6 @@ export function DiscordPostForm({ params, onChange }: FormProps) {
       </Field>
     </div>
   )
-}
-
-export function ContactKnownInfo() {
-  const { t } = useTranslation("butler")
-  return <Info>{t("contactKnownInfo")}</Info>
 }
 
 export function IgnoreInfo() {

@@ -6,12 +6,11 @@ import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, status
-from pydantic import ValidationError
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._butler_route_helpers import (
-    _ID_RE, DryRunInput, FlowInput, flow_or_404, is_admin,
+    _ID_RE, DryRunInput, FlowInput, build_flow, flow_or_404, is_admin,
 )
 from hydrahive.butler import executor as bex
 from hydrahive.butler import persistence as bp
@@ -50,15 +49,7 @@ def create_flow(
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_invalid")
     if bp.get_flow(user, body.flow_id):
         raise coded(status.HTTP_409_CONFLICT, "butler_flow_id_taken")
-    try:
-        flow = Flow(
-            flow_id=body.flow_id, name=body.name, owner=user,
-            enabled=body.enabled, scope=body.scope, scope_id=body.scope_id,
-            nodes=body.nodes, edges=body.edges,
-        )
-    except ValidationError as e:
-        raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_invalid",
-                    errors=str(e))
+    flow = build_flow(body, flow_id=body.flow_id, owner=user)
     bp.save_flow(flow, modified_by=user)
     return flow.model_dump()
 
@@ -73,16 +64,8 @@ def update_flow(
     existing = flow_or_404(user, flow_id, user, role)
     if body.flow_id != flow_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_mismatch")
-    try:
-        flow = Flow(
-            flow_id=flow_id, name=body.name, owner=existing.owner,
-            enabled=body.enabled, scope=body.scope, scope_id=body.scope_id,
-            nodes=body.nodes, edges=body.edges,
-            created_at=existing.created_at,
-        )
-    except ValidationError as e:
-        raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_invalid",
-                    errors=str(e))
+    flow = build_flow(body, flow_id=flow_id, owner=existing.owner,
+                      created_at=existing.created_at)
     bp.save_flow(flow, modified_by=user)
     return flow.model_dump()
 

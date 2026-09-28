@@ -5,7 +5,20 @@
   "select_or_new": "Wähle rechts ein Projekt oder lege ein neues an.",
   "search_placeholder": "Suchen oder Tag…",
   "webhook": {
-    "label": "Webhook-URL"
+    "label": "Webhook-URL",
+    "title": "Butler-Webhook",
+    "description": "Externe Dienste lösen damit Butler-Flows dieses Projekts aus (Trigger „Webhook empfangen“).",
+    "url": "URL",
+    "secret": "Secret",
+    "secret_missing": "kein Secret gesetzt",
+    "show": "Anzeigen",
+    "hide": "Verbergen",
+    "rotate": "Neu erzeugen",
+    "create": "Secret erzeugen",
+    "rotate_confirm": "Neues Secret erzeugen? Aufrufe mit dem alten Secret werden sofort abgelehnt.",
+    "rotate_failed": "Das Secret konnte nicht erneuert werden.",
+    "copy_failed": "Konnte nicht in die Zwischenablage kopieren.",
+    "header_hint": "Beim Aufruf als Header X-Webhook-Secret mitsenden."
   },
   "tags": {
     "label": "Tags",

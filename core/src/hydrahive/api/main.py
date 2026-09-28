@@ -58,6 +58,7 @@ from hydrahive.api.routes.code_graph import router as code_graph_router
 from hydrahive.api.routes.media_workspace import router as media_workspace_router
 from hydrahive.api.routes.projects_git import router as projects_git_router
 from hydrahive.api.routes.projects_samba import router as projects_samba_router
+from hydrahive.api.routes.projects_webhook import router as projects_webhook_router
 from hydrahive.api.routes.projects_servers import router as projects_servers_router
 from hydrahive.api.routes.projects_mounts import router as projects_mounts_router
 from hydrahive.api.routes.smbmounts import router as smbmounts_router
@@ -150,6 +151,7 @@ app.include_router(media_workspace_router)
 app.include_router(code_graph_router)
 app.include_router(projects_git_router)
 app.include_router(projects_samba_router)
+app.include_router(projects_webhook_router)
 app.include_router(projects_servers_router)
 app.include_router(smbmounts_router)
 app.include_router(projects_mounts_router)

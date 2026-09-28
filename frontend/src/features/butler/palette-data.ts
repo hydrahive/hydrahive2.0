@@ -2,48 +2,40 @@
  * Statische Palette-Daten: Default-Params, i18n-Keys, Gruppen-Struktur
  * und Kurzbeschreibung pro Subtype für die Node-Vorschau.
  *
- * Bewusst nicht über die Backend-Registry (siehe /api/butler/registry) —
- * der alte octopos-Stil definiert die Palette client-seitig damit der
- * Inspector subtype-spezifische Forms rendern kann (jeder Subtype hat
- * eigene Felder, kein generisches ParamSchema).
+ * Bewusst nicht über die Backend-Registry — der Inspector rendert
+ * subtype-spezifische Forms (jeder Subtype hat eigene Felder, kein
+ * generisches ParamSchema). Dafür gilt: Hier steht nur, was der Server
+ * auch ausführen kann. Das Backend lehnt unbekannte Subtypes beim Speichern
+ * mit `butler_subtype_unknown` ab (Spec: butler-palette-webhook-cleanup.md).
  */
 import {
-  ArrowRight, Bot, Calendar, Clock, EyeOff, Filter, GitBranch, GitPullRequest,
-  Globe, Inbox, Mail, MessageCircle, MessageSquare, Users, Webhook, Zap,
+  ArrowRight, Bot, Calendar, CalendarClock, Clock, EyeOff, Filter, GitBranch,
+  GitPullRequest, Globe, Inbox, Mail, MessageCircle, MessageSquare, Regex,
+  Webhook, Zap,
 } from "lucide-react"
 
 export function defaultParams(subtype: string): Record<string, unknown> {
   switch (subtype) {
     case "message_received":       return { channel: "all" }
-    case "webhook_received":       return { hook_id: "" }
+    case "webhook_received":       return {}
     case "heartbeat_fired":        return { agent_id: "all", task_id: "" }
-    case "git_event_received":     return { git_event: "push", channel: "both", repo: "" }
+    case "cron_fired":             return { cron: "" }
     case "time_window":            return { from: "23:00", to: "08:00" }
     case "day_of_week":            return { days: ["mo","di","mi","do","fr","sa","so"] }
-    case "contact_known":          return {}
     case "message_contains":       return { keyword: "" }
+    case "regex_match":            return { pattern: "" }
     case "payload_field_contains": return { field: "", value: "" }
-    case "git_branch_is":          return { branch: "" }
-    case "git_author_is":          return { author: "" }
-    case "git_action_is":          return { action: "opened" }
     case "agent_reply":            return { agent_id: "" }
     case "agent_reply_guided":     return { agent_id: "", instruction: "" }
     case "reply_fixed":            return { text: "" }
     case "queue":                  return {}
     case "ignore":                 return {}
     case "forward":                return { agent_id: "" }
-    case "http_post":              return { url: "", headers: {}, body_template: "{}" }
+    case "http_post":              return { url: "", headers: {}, body: "{}" }
     case "send_email":             return { to: "", subject: "", body: "" }
     case "git_create_issue":       return { repo: "", title: "", body: "" }
     case "git_add_comment":        return { repo: "", issue_number: "", body: "" }
     case "discord_post":           return { channel_id: "", message: "" }
-    case "discord_event_received": return { discord_event: "reaction_add", channel_id: "" }
-    case "email_received":         return { folder: "INBOX", from_filter: "" }
-    case "email_from_contains":    return { keyword: "" }
-    case "email_subject_contains": return { keyword: "" }
-    case "email_body_contains":    return { keyword: "" }
-    case "discord_event_is":       return { discord_event: "reaction_add" }
-    case "discord_emoji_is":       return { emoji: "" }
     default:                       return {}
   }
 }
@@ -52,22 +44,12 @@ export const PALETTE_LABEL_KEY: Record<string, string> = {
   message_received:       "nodeMessageReceived",
   webhook_received:       "nodeWebhookReceived",
   heartbeat_fired:        "nodeHeartbeatTask",
-  git_event_received:     "nodeGitEvent",
-  discord_event_received: "nodeDiscordEvent",
-  email_received:         "nodeEmailReceived",
+  cron_fired:             "nodeCronFired",
   time_window:            "nodeTimeWindow",
   day_of_week:            "nodeDayOfWeek",
-  contact_known:          "nodeContactKnown",
   message_contains:       "nodeMessageContains",
+  regex_match:            "nodeRegexMatch",
   payload_field_contains: "nodePayloadFieldContains",
-  git_branch_is:          "nodeBranchIs",
-  git_author_is:          "nodeAuthorIs",
-  git_action_is:          "nodeGitActionIs",
-  email_from_contains:    "nodeEmailFromContains",
-  email_subject_contains: "nodeEmailSubjectContains",
-  email_body_contains:    "nodeEmailBodyContains",
-  discord_event_is:       "nodeDiscordEventIs",
-  discord_emoji_is:       "nodeDiscordEmojiIs",
   agent_reply:            "nodeAgentReply",
   agent_reply_guided:     "nodeAgentReplyGuided",
   reply_fixed:            "nodeReplyFixed",
@@ -81,13 +63,18 @@ export const PALETTE_LABEL_KEY: Record<string, string> = {
   discord_post:           "nodeDiscordPost",
 }
 
-/** Trigger-Typen ohne aktive Event-Quelle im Backend. Flows mit diesen Triggern
- *  feuern nie — daher Badge in der Palette + Speichern blockiert. */
-export const UNWIRED_TRIGGERS = new Set([
-  "git_event_received",
-  "discord_event_received",
-  "email_received",
+/** Aktionen, die der Server nur als Platzhalter kennt (Log-Eintrag, keine
+ *  Wirkung). Badge in der Palette + Speichern blockiert, bis sie echt sind. */
+export const UNWIRED_ACTIONS = new Set([
+  "send_email",
+  "git_create_issue",
+  "git_add_comment",
+  "discord_post",
 ])
+
+export function isUnwired(subtype: string): boolean {
+  return UNWIRED_ACTIONS.has(subtype)
+}
 
 export const PALETTE_STRUCTURE = [
   {
@@ -97,9 +84,7 @@ export const PALETTE_STRUCTURE = [
       { type: "triggerNode", subtype: "message_received",       icon: MessageCircle },
       { type: "triggerNode", subtype: "webhook_received",       icon: Webhook },
       { type: "triggerNode", subtype: "heartbeat_fired",        icon: Clock },
-      { type: "triggerNode", subtype: "git_event_received",     icon: GitBranch },
-      { type: "triggerNode", subtype: "discord_event_received", icon: MessageSquare },
-      { type: "triggerNode", subtype: "email_received",         icon: Mail },
+      { type: "triggerNode", subtype: "cron_fired",             icon: CalendarClock },
     ],
   },
   {
@@ -108,17 +93,9 @@ export const PALETTE_STRUCTURE = [
     items: [
       { type: "conditionNode", subtype: "time_window",            icon: Clock },
       { type: "conditionNode", subtype: "day_of_week",            icon: Calendar },
-      { type: "conditionNode", subtype: "contact_known",          icon: Users },
       { type: "conditionNode", subtype: "message_contains",       icon: Filter },
+      { type: "conditionNode", subtype: "regex_match",            icon: Regex },
       { type: "conditionNode", subtype: "payload_field_contains", icon: Filter },
-      { type: "conditionNode", subtype: "git_branch_is",          icon: GitBranch },
-      { type: "conditionNode", subtype: "git_author_is",          icon: Users },
-      { type: "conditionNode", subtype: "git_action_is",          icon: Zap },
-      { type: "conditionNode", subtype: "email_from_contains",    icon: Mail },
-      { type: "conditionNode", subtype: "email_subject_contains", icon: Mail },
-      { type: "conditionNode", subtype: "email_body_contains",    icon: Mail },
-      { type: "conditionNode", subtype: "discord_event_is",       icon: MessageSquare },
-      { type: "conditionNode", subtype: "discord_emoji_is",       icon: MessageSquare },
     ],
   },
   {

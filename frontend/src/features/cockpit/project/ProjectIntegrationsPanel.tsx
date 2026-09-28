@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { CheckCircle2, Copy, Eye, EyeOff, Loader2, Save } from "lucide-react"
 import { projectsApi } from "@/features/projects/api"
 import type { Project } from "@/features/projects/types"
+import { ProjectWebhookSection } from "./ProjectWebhookSection"
 
 interface SambaInfo {
   enabled: boolean
@@ -94,6 +95,7 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
         <p className="text-[11px] text-[#718097]">Dieses Samba-Login gilt für alle aktivierten Projektfreigaben.</p>
       </div>}
     </section>}
+    <ProjectWebhookSection projectId={project.id} />
     <section className="space-y-3 border-t border-[#2a364b] pt-4">
       <div><label className="text-xs font-medium text-[#b8c4d8]">MCP-Server-IDs</label><input value={mcpIds} onChange={(event) => setMcpIds(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte IDs. Schränkt die MCP-Server der Agenten in diesem Projekt ein, fügt keine hinzu. Leer = keine Einschränkung.</p></div>
       <div><label className="text-xs font-medium text-[#b8c4d8]">Erlaubte Plugins</label><input value={plugins} onChange={(event) => setPlugins(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte Plugin-Namen. Andere Plugin-Tools sind in diesem Projekt gesperrt. Leer = keine Einschränkung.</p></div>

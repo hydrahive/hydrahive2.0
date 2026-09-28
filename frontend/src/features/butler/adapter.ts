@@ -6,6 +6,17 @@ import type {
 
 // Adapter zwischen octopos-Frontend-Shape und unserem Backend.
 
+/** Ältere Flows speicherten den HTTP-POST-Body als `body_template`; der Server
+ *  liest `body`. Beim Laden umschreiben, damit der Body nach dem nächsten
+ *  Speichern ankommt. */
+function migrateParams(subtype: string, params: Record<string, unknown>): Record<string, unknown> {
+  if (subtype === "http_post" && params.body === undefined && typeof params.body_template === "string") {
+    const { body_template, ...rest } = params
+    return { ...rest, body: body_template }
+  }
+  return params
+}
+
 export function backendToFrontend(f: BackendFlow): ButlerFlow {
   return {
     id: f.flow_id,
@@ -16,7 +27,7 @@ export function backendToFrontend(f: BackendFlow): ButlerFlow {
       id: n.id,
       type: `${n.type}Node`,
       position: n.position,
-      data: { subtype: n.subtype, label: n.label || n.subtype, params: n.params },
+      data: { subtype: n.subtype, label: n.label || n.subtype, params: migrateParams(n.subtype, n.params) },
     })) as Node<ButlerNodeData>[],
     edges: f.edges.map((e) => ({
       id: e.id,
