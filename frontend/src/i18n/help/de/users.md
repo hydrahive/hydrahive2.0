@@ -13,7 +13,9 @@ Benutzername/Passwort einzuloggen.
 - **Admin** — darf alles: Benutzer anlegen/bearbeiten/löschen, System-
   Einstellungen, Module, VMs/Container usw.
 - **Benutzer** — normaler Zugang zum Arbeiten (Chat, Projekte, …), aber ohne
-  Verwaltungs- und System-Rechte.
+  Verwaltungs- und System-Rechte. Geschützte Funktionen wie VMs, Container oder
+  Geräte schalten gibt ein Admin unter **Freigaben** frei, einzeln oder über
+  **Gruppen**.
 
 ## Schritt-für-Schritt
 

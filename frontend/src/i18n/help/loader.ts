@@ -12,7 +12,7 @@ export type HelpTopic =
   // Infrastruktur
   | "vms" | "containers" | "nodes" | "jobs" | "federation" | "streaming" | "datamining" | "memory"
   // Konfiguration
-  | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings"
+  | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
   // Einstieg
   | "onboarding"
   // Module

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { HelpButton } from "@/i18n/HelpButton"
 import { AdminOverlay } from "@/features/cockpit/admin/AdminOverlay"
 import { AdminFeedback, AdminStatus } from "@/features/cockpit/admin/ui"
 import { accessApi } from "./api"
@@ -44,7 +45,8 @@ export function GrantsOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <AdminOverlay eyebrow="Admin" title={t("grants.title")} onClose={onClose} maxWidthClass="max-w-6xl">
+    <AdminOverlay eyebrow="Admin" title={t("grants.title")} onClose={onClose} maxWidthClass="max-w-6xl"
+      headerActions={<HelpButton topic="access" />}>
       <div className="space-y-4">
         <p className="text-sm text-[#8d9ab0]">{t("grants.description")}</p>
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
