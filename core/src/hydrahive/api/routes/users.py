@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 from fastapi.responses import FileResponse
 
+from hydrahive.api.middleware import api_keys
 from hydrahive.api.middleware.errors import coded
 from pydantic import BaseModel
 
@@ -71,6 +72,8 @@ def delete_user(
     target = get_by_username(username)
     for agent in agent_config.list_by_owner(username):
         agent_config.delete(agent["id"])
+    # Keys ohne Besitzer wären sonst weiter gültig (Task a9706460).
+    api_keys.delete_for_user(username)
     delete(username)
     if target:
         access_store.purge_user(target["user_id"], actor_id=admin.user_id)

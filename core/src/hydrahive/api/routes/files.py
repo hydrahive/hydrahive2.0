@@ -18,7 +18,8 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import FileResponse
 
-from hydrahive.api.middleware.auth import _decode, get_current_user_optional
+from hydrahive.api.middleware._resolve import resolve_credential
+from hydrahive.api.middleware.auth import get_current_user_optional
 from hydrahive.api.middleware.errors import coded
 from hydrahive.settings import settings
 
@@ -78,15 +79,10 @@ def get_file(
     """
     # Fallback: Bearer-Header fehlt → versuche Query-Token
     if not user and token:
-        if token.startswith("hhk_"):
-            from hydrahive.api.middleware.api_keys import verify as verify_key
-            api_user = verify_key(token)
-            if api_user:
-                user = (api_user["username"], api_user["role"])
-        else:
-            # _decode raised 401 bei expired/invalid — durchreichen
-            payload = _decode(token)
-            user = (payload["sub"], payload["role"])
+        # Gleiche Prüfung wie der Header: aktueller Nutzer, aktuelle Rolle.
+        # 401 bei abgelaufen/ungültig/gelöscht wird durchgereicht.
+        ident = resolve_credential(token)
+        user = (ident.username, ident.role)
 
     if not user:
         raise coded(401, "authentication_required")

@@ -14,11 +14,10 @@ from __future__ import annotations
 import json
 import logging
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
-import jwt
 from hydrahive.access import check
-from hydrahive.api.middleware.auth import _decode
+from hydrahive.api.middleware._resolve import resolve_credential
 from hydrahive.containers import db as cdb
 from hydrahive.containers.console import ConsoleSession
 
@@ -27,13 +26,16 @@ router = APIRouter(tags=["containers"])
 
 
 def _authenticate(token: str | None) -> tuple[str, str] | None:
+    """Aktueller Nutzer + aktuelle Rolle (middleware/_resolve.py). Service-Keys nie."""
     if not token:
         return None
     try:
-        payload = _decode(token)
-    except (ValueError, KeyError, jwt.InvalidTokenError):
+        ident = resolve_credential(token)
+    except HTTPException:
         return None
-    return payload["sub"], payload["role"]
+    if ident.is_service:
+        return None
+    return ident.username, ident.role
 
 
 def _may_use_containers(username: str, role: str) -> bool:
