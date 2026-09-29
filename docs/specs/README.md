@@ -32,6 +32,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`agent-integrity-layer.md`](agent-integrity-layer.md) | Agent Integrity Layer |  | 2026-09-24 |
 | [`agentlink-checkpoint-resume.md`](agentlink-checkpoint-resume.md) | AgentLink Checkpoint and Resume |  | 2026-09-25 |
 | [`agentlink-runtime-profiles.md`](agentlink-runtime-profiles.md) | AgentLink Runtime Profiles |  | 2026-09-25 |
+| [`agentlink-security.md`](agentlink-security.md) | AgentLink: signierte States, Dashboard nur für Admins |  | 2026-09-29 |
 | [`ai-security-module.md`](ai-security-module.md) | Spec: AI-Security-Modul mit AI-Infra-Guard |  | 2026-09-09 |
 | [`anthropic-oauth-gui.md`](anthropic-oauth-gui.md) | Spec: Anthropic-OAuth-Login in der GUI freischalten (dritter Weg) |  | 2026-07-07 |
 | [`buddy-codex-reasoning-effort-fix.md`](buddy-codex-reasoning-effort-fix.md) | Buddy Codex Reasoning Effort Fix |  | 2026-07-11 |

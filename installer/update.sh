@@ -665,6 +665,7 @@ else
   grep -q "/api/compute/agent/connect"   "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "ssl_verify_client optional"   "$NGINX_CONF" || NEEDS_REWRITE=1
   grep -q "hydrahive-compute-secret.conf" "$NGINX_CONF" || NEEDS_REWRITE=1
+  grep -q "hh_agentlink_auth"             "$NGINX_CONF" || NEEDS_REWRITE=1
   if [ "$NEEDS_REWRITE" = "1" ]; then
     log "nginx: Config braucht Update (HTTPS / VNC-Proxy / ISO-Upload-Limit) — neu schreiben"
     HH_HOST="${HH_HOST:-127.0.0.1}"

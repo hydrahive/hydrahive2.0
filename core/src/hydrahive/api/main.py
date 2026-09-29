@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from hydrahive.api.lifespan import lifespan
 from hydrahive.api.middleware.upload_limit import ChatUploadLimitMiddleware
+from hydrahive.api.routes._agentlink_dashboard import router as agentlink_dashboard_router
 from hydrahive.api.routes.agentlink import router as agentlink_router
 from hydrahive.api.routes.agents import router as agents_router
 from hydrahive.api.routes.agent_activity import router as agent_activity_router
@@ -123,6 +124,7 @@ app.add_middleware(
 app.add_middleware(ChatUploadLimitMiddleware)
 
 app.include_router(agentlink_router)
+app.include_router(agentlink_dashboard_router)
 app.include_router(auth_router)
 app.include_router(backup_router)
 app.include_router(migration_router)
