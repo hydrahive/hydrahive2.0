@@ -3,6 +3,8 @@ import json, re
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
+from hydrahive.modules._manifest_caps import CapabilitySpec, parse_capabilities
+
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
@@ -48,6 +50,7 @@ class ModuleManifest:
     min_core_version: str = "2.0.0"
     dependencies: tuple[str, ...] = ()
     persistent_paths: tuple[str, ...] = ()
+    capabilities: tuple[CapabilitySpec, ...] = ()
 
     @classmethod
     def load(cls, path: Path) -> "ModuleManifest":
@@ -70,4 +73,5 @@ class ModuleManifest:
             min_core_version=d.get("min_core_version", "2.0.0"),
             dependencies=tuple(d.get("dependencies", [])),
             persistent_paths=_persistent_paths(d.get("persistent_paths", [])),
+            capabilities=parse_capabilities(d["id"], d.get("capabilities"), ManifestError),
         )

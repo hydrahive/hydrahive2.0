@@ -68,3 +68,63 @@ def test_manifest_rejects_invalid_persistent_globs(tmp_path):
         }))
         with pytest.raises(ManifestError, match="persistent_paths"):
             ModuleManifest.load(p)
+
+
+def _write(tmp_path, extra):
+    import json
+    p = tmp_path / "manifest.json"
+    p.write_text(json.dumps({"id": "demo", "name": "Demo", "version": "1.0.0", **extra}))
+    return p
+
+
+def test_manifest_capabilities_default_empty(tmp_path):
+    from hydrahive.modules.manifest import ModuleManifest
+    assert ModuleManifest.load(_write(tmp_path, {})).capabilities == ()
+
+
+def test_manifest_parses_capabilities(tmp_path):
+    from hydrahive.modules.manifest import ModuleManifest
+    m = ModuleManifest.load(_write(tmp_path, {"capabilities": [
+        {"id": "module.demo", "label": "Demo nutzen", "default": "everyone"},
+        {"id": "demo.control", "label": "Steuern", "default": "admin_only", "tools": ["demo_do"]},
+    ]}))
+    assert [c.id for c in m.capabilities] == ["module.demo", "demo.control"]
+    assert m.capabilities[1].default == "admin_only"
+    assert m.capabilities[1].tools == ("demo_do",)
+    assert m.capabilities[0].tools == ()
+
+
+def test_manifest_rejects_foreign_capability_prefix(tmp_path):
+    import pytest
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+    for bad in ("module.other", "other.control", "core.vms", "demo", "demo.", "demo.Bad Name"):
+        with pytest.raises(ManifestError):
+            ModuleManifest.load(_write(tmp_path, {"capabilities": [{"id": bad, "label": "x"}]}))
+
+
+def test_manifest_rejects_invalid_capability_default(tmp_path):
+    import pytest
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+    with pytest.raises(ManifestError):
+        ModuleManifest.load(_write(tmp_path, {"capabilities": [
+            {"id": "module.demo", "label": "x", "default": "nobody"}]}))
+
+
+def test_manifest_rejects_duplicate_capability(tmp_path):
+    import pytest
+    from hydrahive.modules.manifest import ManifestError, ModuleManifest
+    with pytest.raises(ManifestError):
+        ModuleManifest.load(_write(tmp_path, {"capabilities": [
+            {"id": "demo.x", "label": "a"}, {"id": "demo.x", "label": "b"}]}))
+
+
+def test_manifest_capability_default_is_everyone(tmp_path):
+    from hydrahive.modules.manifest import ModuleManifest
+    m = ModuleManifest.load(_write(tmp_path, {"capabilities": [{"id": "demo.x", "label": "a"}]}))
+    assert m.capabilities[0].default == "everyone"
+
+
+def test_manifest_still_accepts_legacy_permissions(tmp_path):
+    from hydrahive.modules.manifest import ModuleManifest
+    m = ModuleManifest.load(_write(tmp_path, {"permissions": ["demo.read"]}))
+    assert m.permissions == ("demo.read",) and m.capabilities == ()
