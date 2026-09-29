@@ -70,8 +70,9 @@ def test_filter_keeps_tool_with_grant(client, admin_headers, ha_module):
 
 
 def test_filter_leaves_unknown_and_core_tools(client, ha_module):
-    assert filter_tools("testuser", ["shell_exec", "mcp__x__y", "gibt_es_nicht"]) == [
-        "shell_exec", "mcp__x__y", "gibt_es_nicht"]
+    # shell_exec hängt seit Task 3bd963b2 an core.shell (test_access_core_shell.py).
+    assert filter_tools("testuser", ["file_read", "mcp__x__y", "gibt_es_nicht"]) == [
+        "file_read", "mcp__x__y", "gibt_es_nicht"]
 
 
 def test_tool_denied_names_capability(client, ha_module):

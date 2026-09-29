@@ -69,7 +69,9 @@ def test_tool_of_undeclared_module_has_no_capability(cat, tmp_path):
 
 
 def test_core_tool_has_no_capability_unless_mapped(cat):
-    assert cat.capability_for_tool("shell_exec", module_id="") is None
+    # shell_exec ist seit Task 3bd963b2 an core.shell gebunden (test_access_core_shell.py).
+    assert cat.capability_for_tool("file_read", module_id="") is None
+    assert cat.capability_for_tool("shell_exec", module_id="") == "core.shell"
 
 
 def test_core_tool_mapping_for_federation(cat):

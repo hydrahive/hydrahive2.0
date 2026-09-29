@@ -172,7 +172,13 @@ Manifest (neu, ersetzt das bisher ungenutzte `permissions`):
 - Das alte Feld `permissions` wird weiter gelesen und ignoriert (Kompatibilität).
 
 Core-Funktionen stehen in einer Liste im Core (`access/capabilities.py`), z. B.
-`core.vms`, `core.containers`, `core.federation`.
+`core.vms`, `core.containers`, `core.federation`, `core.shell`.
+
+Core-Werkzeuge hängen nur dann an einer Funktion, wenn die Core-Liste sie
+nennt (`tools=`). `core.shell` nennt `shell_exec` und `web_browser`. Dazu
+kommen alle Plugin-Werkzeuge (`plugin__…`), weil Plugins im Server-Prozess
+laufen und keine Workspace-Grenze prüfen. Alle übrigen Core-Werkzeuge
+(`file_read`, `fetch_url` …) bleiben ungeprüft, sie haben eigene Grenzen.
 
 ## 9. Durchsetzung
 
@@ -235,6 +241,7 @@ Damit nichts plötzlich verschwindet:
 | `module.voice` | admin_only | Verlauf der Box, Sprechen im fremden Namen |
 | `core.vms`, `core.containers` | admin_only | Host-Ressourcen, Bridged ins LAN |
 | `core.federation` | admin_only | fremde Rechner fernsteuern |
+| `core.shell` (shell_exec, web_browser, Plugins) | admin_only | läuft als Dienst-User ohne Sandbox, liest Serverdateien und Schlüssel (Task 3bd963b2) |
 | `module.archiver` | admin_only | root-Zugriff auf Dateisystem (bis Ticket #48) |
 | `module.opentor` | admin_only | rechtlich heikle Recherche |
 | `module.homeassistant` (lesen) | everyone | reine Anzeige |
