@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { HelpButton } from "@/i18n/HelpButton"
 import { ApiKeysSection } from "@/features/users/ApiKeysSection"
+import { GroupsSection } from "@/features/access/GroupsSection"
 import { ChangePasswordDialog } from "@/features/users/ChangePasswordDialog"
 import { EditUserDialog } from "@/features/users/EditUserDialog"
 import { NewUserDialog } from "@/features/users/NewUserDialog"
@@ -115,6 +116,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
+        <GroupsSection users={users.filter((u) => u.role !== "admin")} />
         <ApiKeysSection />
       </div>
 

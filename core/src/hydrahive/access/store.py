@@ -135,3 +135,12 @@ def groups_of(user_id: str) -> list[str]:
         rows = c.execute("SELECT group_id FROM access_group_members WHERE user_id = ?",
                          (user_id,)).fetchall()
     return [r[0] for r in rows]
+
+
+def purge_user(user_id: str, *, actor_id: str) -> None:
+    """Entfernt Mitgliedschaften und Freigaben eines gelöschten Nutzers (Spec §6)."""
+    from hydrahive.access.grants import purge_subject
+    with db() as c:
+        members = c.execute("DELETE FROM access_group_members WHERE user_id = ?", (user_id,)).rowcount
+        grants_n = purge_subject(c, "user", user_id)
+        audit(c, actor_id, "user_purge", f"user:{user_id}", f"members={members} grants={grants_n}")

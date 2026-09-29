@@ -76,6 +76,9 @@ from hydrahive.api.routes.tailscale import router as tailscale_router
 from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.zahnfee import router as zahnfee_router
 from hydrahive.api.routes.users import router as users_router
+from hydrahive.api.routes.access_groups import router as access_groups_router
+from hydrahive.api.routes.access_grants import router as access_grants_router
+from hydrahive.api.routes.access_me import router as access_me_router
 from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.teamchat import router as teamchat_router
@@ -123,6 +126,9 @@ app.include_router(auth_router)
 app.include_router(backup_router)
 app.include_router(migration_router)
 app.include_router(users_router)
+app.include_router(access_groups_router)
+app.include_router(access_grants_router)
+app.include_router(access_me_router)
 app.include_router(agents_router)
 app.include_router(agent_activity_router)
 app.include_router(workspace_router)

@@ -19,6 +19,7 @@ import { VMsOverlay } from "./admin/VMsOverlay"
 import { NodesOverlay } from "./admin/NodesOverlay"
 import { JobsOverlay } from "./admin/JobsOverlay"
 import { ScheduledTasksOverlay } from "./admin/ScheduledTasksOverlay"
+import { GrantsOverlay } from "@/features/access/GrantsOverlay"
 import { AdminInfoCard } from "./admin/AdminInfoCard"
 import { OVERLAY_BY_ACTION, OVERLAY_BY_PATH } from "./admin/adminOverlayRegistry"
 import { useAdminOverlayNavigation } from "./admin/useAdminOverlayNavigation"
@@ -152,6 +153,7 @@ export function AdminCockpitPage() {
             <div className="grid gap-2 md:grid-cols-2">
               <AdminInfoCard title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
               <AdminInfoCard title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
+              <AdminInfoCard title="Freigaben" icon={ShieldAlert} text="Wer darf welche Funktion nutzen? Nutzer und Gruppen freigeben." onOpen={() => openPath("/access")} />
             </div>
           </CockpitPanel>
         </main>
@@ -201,6 +203,7 @@ export function AdminCockpitPage() {
       {overlay === "nodes" && <NodesOverlay onClose={() => setOverlay(null)} />}
       {overlay === "jobs" && <JobsOverlay onClose={() => setOverlay(null)} />}
       {overlay === "scheduled-tasks" && <ScheduledTasksOverlay onClose={() => setOverlay(null)} />}
+      {overlay === "access" && <GrantsOverlay onClose={() => setOverlay(null)} />}
     </CockpitShell>
   )
 }

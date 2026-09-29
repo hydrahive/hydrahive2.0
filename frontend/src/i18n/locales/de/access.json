@@ -1,0 +1,43 @@
+{
+  "groups": {
+    "title": "Gruppen",
+    "description": "Gruppen fassen Nutzer zusammen, z. B. „Familie“ oder „Dev-Team“. Freigaben an eine Gruppe gelten für alle Mitglieder.",
+    "new": "Neue Gruppe",
+    "name": "Name",
+    "description_label": "Beschreibung",
+    "create": "Anlegen",
+    "empty": "Noch keine Gruppen.",
+    "members": "Mitglieder",
+    "members_count": "{{count}} Mitglieder",
+    "no_members": "Noch keine Mitglieder.",
+    "add_member": "Mitglied hinzufügen",
+    "choose_user": "Nutzer wählen …",
+    "remove_member": "Aus der Gruppe entfernen",
+    "delete": "Gruppe löschen",
+    "delete_confirm": "Gruppe „{{name}}“ löschen? Ihre Freigaben werden ebenfalls entfernt."
+  },
+  "grants": {
+    "title": "Freigaben",
+    "card_text": "Wer darf welche Funktion nutzen? Nutzer und Gruppen freigeben.",
+    "description": "Admins dürfen immer alles. Ein Klick auf eine Zelle schaltet zwischen –, benutzen und verwalten. Funktionen, die hier nicht stehen, sind für alle offen.",
+    "everyone": "Alle",
+    "core": "HydraHive",
+    "level_none": "–",
+    "level_use": "benutzen",
+    "level_manage": "verwalten",
+    "default_admin_only": "Start: nur Admin",
+    "tools": "Werkzeuge: {{tools}}",
+    "loading": "Freigaben werden geladen …",
+    "empty": "Noch keine prüfbaren Funktionen."
+  },
+  "me": {
+    "title": "Meine Freigaben",
+    "admin": "Als Admin darfst du alles.",
+    "none": "Du hast keine besonderen Freigaben. Alles, was nicht gesondert geschützt ist, kannst du nutzen.",
+    "groups": "Gruppen: {{groups}}"
+  },
+  "no_access": {
+    "title": "Kein Zugriff",
+    "text": "Für diesen Bereich hast du keine Freigabe. Frag einen Admin, wenn du ihn brauchst."
+  }
+}

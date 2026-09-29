@@ -15,6 +15,7 @@ import deSystem from "./locales/de/system.json"
 import deDashboard from "./locales/de/dashboard.json"
 import deHelp from "./locales/de/help.json"
 import deUsers from "./locales/de/users.json"
+import deAccess from "./locales/de/access.json"
 import deProfile from "./locales/de/profile.json"
 import deErrors from "./locales/de/errors.json"
 import dePlugins from "./locales/de/plugins.json"
@@ -50,6 +51,7 @@ import enSystem from "./locales/en/system.json"
 import enDashboard from "./locales/en/dashboard.json"
 import enHelp from "./locales/en/help.json"
 import enUsers from "./locales/en/users.json"
+import enAccess from "./locales/en/access.json"
 import enProfile from "./locales/en/profile.json"
 import enErrors from "./locales/en/errors.json"
 import enPlugins from "./locales/en/plugins.json"
@@ -78,7 +80,7 @@ const baseResources = {
     common: deCommon, auth: deAuth, nav: deNav, chat: deChat,
     agents: deAgents, projects: deProjects, llm: deLlm, mcp: deMcp,
     system: deSystem, dashboard: deDashboard, help: deHelp, users: deUsers,
-    profile: deProfile, errors: deErrors, plugins: dePlugins,
+    profile: deProfile, errors: deErrors, plugins: dePlugins, access: deAccess,
     communication: deCommunication, butler: deButler, skills: deSkills,
     credentials: deCredentials, buddy: deBuddy, datamining: deDatamining, memory: deMemory,
     analytics: deAnalytics, containers: deContainers, extensions: deExtensions,
@@ -91,7 +93,7 @@ const baseResources = {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
     agents: enAgents, projects: enProjects, llm: enLlm, mcp: enMcp,
     system: enSystem, dashboard: enDashboard, help: enHelp, users: enUsers,
-    profile: enProfile, errors: enErrors, plugins: enPlugins,
+    profile: enProfile, errors: enErrors, plugins: enPlugins, access: enAccess,
     communication: enCommunication, butler: enButler, skills: enSkills,
     credentials: enCredentials, buddy: enBuddy, datamining: enDatamining, memory: enMemory,
     analytics: enAnalytics, containers: enContainers, extensions: enExtensions,
