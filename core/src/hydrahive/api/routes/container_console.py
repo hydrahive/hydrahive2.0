@@ -17,6 +17,7 @@ import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 import jwt
+from hydrahive.access import check
 from hydrahive.api.middleware.auth import _decode
 from hydrahive.containers import db as cdb
 from hydrahive.containers.console import ConsoleSession
@@ -35,6 +36,12 @@ def _authenticate(token: str | None) -> tuple[str, str] | None:
     return payload["sub"], payload["role"]
 
 
+def _may_use_containers(username: str, role: str) -> bool:
+    """WebSocket hat keine Dependencies wie die REST-Router, daher hier direkt prüfen."""
+    uid = check.user_id_for(username)
+    return uid is not None and check.can_use(user_id=uid, role=role, capability="core.containers")
+
+
 @router.websocket("/api/containers/{container_id}/console")
 async def container_console(ws: WebSocket, container_id: str, token: str | None = None):
     auth = _authenticate(token)
@@ -42,6 +49,9 @@ async def container_console(ws: WebSocket, container_id: str, token: str | None 
         await ws.close(code=4401)
         return
     user, role = auth
+    if not _may_use_containers(user, role):
+        await ws.close(code=4403, reason="capability_denied")
+        return
 
     c = cdb.get(container_id)
     if not c or (c.owner != user and role != "admin"):

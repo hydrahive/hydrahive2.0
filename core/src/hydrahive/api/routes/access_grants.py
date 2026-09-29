@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 
 from hydrahive.access import grants, store
-from hydrahive.access.capabilities import CATALOG
+from hydrahive.access.capabilities import catalog
 from hydrahive.api.middleware.auth import AuthPrincipal, require_admin_principal
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.middleware.users import get_by_id, list_users
@@ -33,7 +33,7 @@ class GrantIn(GrantKey):
 
 
 def _check_target(key: GrantKey) -> None:
-    if not CATALOG.is_declared(key.capability):
+    if not catalog().is_declared(key.capability):
         raise coded(status.HTTP_400_BAD_REQUEST, "capability_unknown", capability=key.capability)
     if key.subject_type == "everyone" and key.subject_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "subject_invalid")
@@ -55,7 +55,7 @@ def capabilities(_admin: Admin) -> dict:
         "capabilities": [
             {"id": c.id, "label": c.label, "default": c.default, "module_id": c.module_id,
              "tools": list(c.tools), "grants": by_cap.get(c.id, [])}
-            for c in CATALOG.all()
+            for c in catalog().all()
         ],
         "groups": [{"id": g["id"], "name": g["name"]} for g in store.list_groups()],
         "users": [u for u in list_users() if u["role"] != "admin"],

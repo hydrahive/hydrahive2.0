@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 
 from hydrahive.access import grants, store
-from hydrahive.access.capabilities import CATALOG
+from hydrahive.access.capabilities import catalog
 from hydrahive.access.grants import LEVEL_RANK
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ def level(*, user_id: str, role: str, capability: str) -> str | None:
     """Stufe des Nutzers für diese Funktion: 'manage', 'use' oder None (kein Zugriff)."""
     if role == "admin":
         return "manage"
-    if not CATALOG.is_declared(capability):
+    if not catalog().is_declared(capability):
         return "use"
     try:
         return _levels(user_id).get(capability)
@@ -60,7 +60,7 @@ def can_manage(*, user_id: str, role: str, capability: str) -> bool:
 
 def capabilities_for(*, user_id: str, role: str) -> dict[str, str]:
     """Alle deklarierten Funktionen, die der Nutzer hat, mit Stufe (für /api/access/me)."""
-    declared = [c.id for c in CATALOG.all()]
+    declared = [c.id for c in catalog().all()]
     if role == "admin":
         return {cap: "manage" for cap in declared}
     try:

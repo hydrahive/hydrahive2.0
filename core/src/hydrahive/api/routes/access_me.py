@@ -10,7 +10,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from hydrahive.access import check, store
-from hydrahive.access.capabilities import CATALOG
+from hydrahive.access.capabilities import catalog
 from hydrahive.api.middleware.auth import AuthPrincipal, require_principal
 
 router = APIRouter(prefix="/api/access", tags=["access"])
@@ -26,6 +26,6 @@ def me(principal: Annotated[AuthPrincipal, Depends(require_principal)]) -> dict:
     return {
         "admin": principal.role == "admin",
         "capabilities": check.capabilities_for(user_id=principal.user_id, role=principal.role),
-        "declared": [c.id for c in CATALOG.all()],
+        "declared": [c.id for c in catalog().all()],
         "groups": groups,
     }
