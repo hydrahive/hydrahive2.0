@@ -20,6 +20,7 @@ import { NodesOverlay } from "./admin/NodesOverlay"
 import { JobsOverlay } from "./admin/JobsOverlay"
 import { ScheduledTasksOverlay } from "./admin/ScheduledTasksOverlay"
 import { GrantsOverlay } from "@/features/access/GrantsOverlay"
+import { AccessNotice } from "@/features/access/AccessNotice"
 import { AdminInfoCard } from "./admin/AdminInfoCard"
 import { OVERLAY_BY_ACTION, OVERLAY_BY_PATH } from "./admin/adminOverlayRegistry"
 import { useAdminOverlayNavigation } from "./admin/useAdminOverlayNavigation"
@@ -96,6 +97,7 @@ export function AdminCockpitPage() {
         </aside>
 
         <main className="space-y-[10px]">
+          <AccessNotice onOpen={() => setOverlay("access")} />
           <CockpitPanel title="Betriebszentrale" eyebrow="Ops">
             <div className="grid gap-2 md:grid-cols-3">
               {opsLinks.map((item) => {

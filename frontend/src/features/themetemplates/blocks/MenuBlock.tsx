@@ -4,6 +4,7 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { DOMAIN_TW, colorFor } from "@/shared/colors"
 import { navLabel } from "@/shared/nav-label"
 import { visibleItems } from "@/shared/nav-config"
+import { useMyAccess } from "@/features/access/useMyAccess"
 
 /** Navigations-Baustein für Templates.
  *    <hh-menu type="horizontal"/>  (Default)
@@ -14,9 +15,10 @@ import { visibleItems } from "@/shared/nav-config"
 export function MenuBlock({ attrs }: { attrs: Record<string, string> }) {
   const vertical = attrs.type === "vertical"
   const role = useAuthStore((s) => s.role)
+  const access = useMyAccess()
   const { t } = useTranslation("nav")
   const { pathname } = useLocation()
-  const items = visibleItems(role)
+  const items = visibleItems(role, access)
 
   return (
     <nav className={vertical ? "flex flex-col gap-0.5" : "flex flex-wrap items-center gap-1"}>
