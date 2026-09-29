@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from hydrahive.access import store
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 _ADMIN_ROUTES = [
     ("get", "/api/access/groups", None),

@@ -12,6 +12,7 @@ import pytest
 from hydrahive.access import capabilities, grants
 from hydrahive.tools import ToolContext
 from hydrahive.tools import ask_agent
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 @pytest.fixture(autouse=True)

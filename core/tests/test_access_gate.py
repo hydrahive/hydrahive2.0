@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from hydrahive.access import capabilities, grants
 from hydrahive.access.deps import require_capability
 from hydrahive.modules.manifest import ModuleManifest
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 def _uid(client, admin_headers, name: str = "testuser") -> str:

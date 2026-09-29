@@ -9,6 +9,7 @@ from hydrahive.access import capabilities as capabilities_mod
 from hydrahive.access import check, grants, store
 from hydrahive.access.capabilities import Catalog
 from hydrahive.modules.manifest import ModuleManifest
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 @pytest.fixture
