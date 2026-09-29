@@ -137,6 +137,39 @@ def list_keys(username: str | None = None) -> list[dict]:
     ]
 
 
+def bind_legacy_keys(username: str, user_id: str) -> int:
+    """Alte Keys (ohne user_id) eines Nutzers an seine feste ID binden.
+
+    Läuft beim ersten erfolgreichen Einsatz eines solchen Keys. Danach gilt er
+    nur noch für genau diesen Nutzer, nicht für einen späteren Namensvetter.
+    Sonderrollen (Service-Keys) werden nicht gebunden.
+    """
+    data = _load()
+    todo = [
+        e for e in data.values()
+        if e.get("username") == username and not e.get("user_id")
+        and e.get("role") in ("admin", "user")
+    ]
+    for entry in todo:
+        entry["user_id"] = user_id
+    if todo:
+        _save(data)
+        logger.info("%d alte(r) API-Key(s) an Nutzer '%s' gebunden", len(todo), username)
+    return len(todo)
+
+
+def delete_for_user(username: str) -> int:
+    """Löscht alle Keys eines Nutzers (beim Löschen des Nutzers). Gibt die Anzahl zurück."""
+    data = _load()
+    doomed = [kid for kid, e in data.items() if e.get("username") == username]
+    for kid in doomed:
+        del data[kid]
+    if doomed:
+        _save(data)
+        logger.info("%d API-Key(s) von '%s' gelöscht", len(doomed), username)
+    return len(doomed)
+
+
 def delete(key_id: str, username: str | None = None) -> bool:
     """Löscht einen Key. username=None → admin darf alles löschen."""
     data = _load()

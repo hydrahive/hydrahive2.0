@@ -1,7 +1,8 @@
 """Regressionstests für die Auth-Middleware.
 
 Getestet: create_token, _decode, require_auth, require_admin,
-get_current_user_optional — ohne Netzwerk, ohne DB.
+get_current_user_optional — ohne Netzwerk, ohne DB. Der Nutzerbestand wird
+per monkeypatch auf users.get_by_id gestellt (seit Task a9706460 zählt er).
 """
 from __future__ import annotations
 
@@ -98,11 +99,24 @@ def test_require_auth_ohne_credentials_wirft_401():
     assert exc_info.value.detail["code"] == "not_authenticated"
 
 
-def test_require_auth_mit_gueltigem_token_gibt_username_und_rolle():
-    token = create_token("clara", "editor")
+def test_require_auth_mit_gueltigem_token_gibt_username_und_aktuelle_rolle(monkeypatch):
+    """Seit Task a9706460 zählt die Rolle aus users.json, nicht die im Token."""
+    from hydrahive.api.middleware import users
+
+    monkeypatch.setattr(
+        users, "get_by_id",
+        lambda user_id: {"user_id": user_id, "username": "clara", "role": "user"},
+    )
+    token = create_token("clara", "admin", "stable-123")
     username, role = require_auth(_creds(token))
     assert username == "clara"
-    assert role == "editor"
+    assert role == "user"
+
+
+def test_require_auth_lehnt_token_ohne_user_id_ab():
+    with pytest.raises(HTTPException) as exc_info:
+        require_auth(_creds(create_token("clara", "admin")))
+    assert exc_info.value.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -235,7 +249,17 @@ def test_optional_mit_ungueltigem_token_gibt_none():
     assert result is None
 
 
-def test_optional_mit_gueltigem_token_gibt_username_und_rolle():
-    token = create_token("frank", "admin")
+def test_optional_mit_gueltigem_token_gibt_username_und_rolle(monkeypatch):
+    from hydrahive.api.middleware import users
+
+    monkeypatch.setattr(
+        users, "get_by_id",
+        lambda user_id: {"user_id": user_id, "username": "frank", "role": "admin"},
+    )
+    token = create_token("frank", "admin", "stable-456")
     result = get_current_user_optional(_creds(token))
     assert result == ("frank", "admin")
+
+
+def test_optional_mit_token_ohne_user_id_gibt_none():
+    assert get_current_user_optional(_creds(create_token("frank", "admin"))) is None

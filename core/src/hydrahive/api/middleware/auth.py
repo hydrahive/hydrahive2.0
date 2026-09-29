@@ -48,63 +48,37 @@ def _decode(token: str) -> dict:
 def require_auth(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> tuple[str, str]:
-    """Returns (username, role). Raises 401 if not authenticated."""
+    """Returns (username, AKTUELLE role). Raises 401 if not authenticated.
+
+    Rolle und Existenz kommen aus users.json, nicht aus dem Token
+    (middleware/_resolve.py, Task a9706460). Service-Keys liefern ihre
+    Sonderrolle (z. B. projektx) und sind damit nie Admin.
+    """
     if not creds:
         raise coded(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
-    token = creds.credentials
-    if token.startswith("hhk_"):
-        from hydrahive.api.middleware.api_keys import verify as verify_key
+    from hydrahive.api.middleware._resolve import resolve_credential
 
-        user = verify_key(token)
-        if not user:
-            raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
-        return user["username"], user["role"]
-    payload = _decode(token)
-    return payload["sub"], payload["role"]
+    ident = resolve_credential(creds.credentials)
+    return ident.username, ident.role
 
 
 def require_principal(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> AuthPrincipal:
-    """Resolve an authenticated credential against the current user store.
+    """Aktueller Nutzer mit fester ID. Service-Keys (ohne Nutzer) → 401.
 
-    Unlike ``require_auth``, this rejects legacy credentials without an immutable
-    user ID as well as credentials for deleted/recreated or renamed users. New
-    user-owned resources should depend on this function.
+    Gleiche Prüfung wie require_auth (middleware/_resolve.py), liefert aber
+    zusätzlich die unveränderliche user_id. Neue benutzereigene Ressourcen
+    sollten hierauf aufbauen.
     """
     if not creds:
         raise coded(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
+    from hydrahive.api.middleware._resolve import resolve_credential
 
-    token = creds.credentials
-    credential: dict
-    if token.startswith("hhk_"):
-        from hydrahive.api.middleware.api_keys import verify as verify_key
-
-        credential = verify_key(token) or {}
-        user_id = credential.get("user_id")
-    else:
-        credential = _decode(token)
-        user_id = credential.get("uid")
-
-    if not isinstance(user_id, str) or not user_id:
+    ident = resolve_credential(creds.credentials)
+    if ident.is_service:
         raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
-
-    from hydrahive.api.middleware.users import get_by_id
-
-    current = get_by_id(user_id)
-    if not current or current["username"] != credential.get("sub", credential.get("username")):
-        raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
-
-    # API keys are explicit credential grants. A role change invalidates them;
-    # JWTs instead receive the user's current role immediately.
-    if token.startswith("hhk_") and current["role"] != credential.get("role"):
-        raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
-
-    return AuthPrincipal(
-        user_id=current["user_id"],
-        username=current["username"],
-        role=current["role"],
-    )
+    return AuthPrincipal(user_id=ident.user_id, username=ident.username, role=ident.role)
 
 
 def require_admin(
@@ -129,20 +103,15 @@ def require_admin_principal(
 def get_current_user_optional(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> tuple[str, str] | None:
-    """Returns (username, role) or None if not authenticated. No 401 exception."""
+    """Returns (username, aktuelle role) or None if not authenticated. No 401 exception."""
     if not creds:
         return None
-    try:
-        token = creds.credentials
-        if token.startswith("hhk_"):
-            from hydrahive.api.middleware.api_keys import verify as verify_key
+    from fastapi import HTTPException
 
-            user = verify_key(token)
-            if not user:
-                return None
-            return user["username"], user["role"]
-        payload = _decode(token)
-        return payload["sub"], payload["role"]
-    except Exception as e:
-        logger.debug("optional auth: token-decode fehlgeschlagen: %s", e)
+    from hydrahive.api.middleware._resolve import resolve_credential
+    try:
+        ident = resolve_credential(creds.credentials)
+    except HTTPException as e:
+        logger.debug("optional auth: abgelehnt: %s", e.detail)
         return None
+    return ident.username, ident.role
