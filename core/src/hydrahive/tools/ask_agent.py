@@ -26,6 +26,7 @@ from hydrahive.agentlink import (
     register_pending,
 )
 from hydrahive.settings import settings
+from hydrahive.tools._ask_agent_target import resolve_target
 from hydrahive.tools._ask_agent_helpers import (
     caller_agentlink_id as _caller_agentlink_id,
     response_timeout as _response_timeout,
@@ -39,7 +40,8 @@ logger = logging.getLogger(__name__)
 _DESCRIPTION = (
     "Beauftragt einen anderen Agenten über AgentLink. Schickt einen State mit "
     "Task-Beschreibung an den Ziel-Agenten und wartet auf dessen Antwort-State. "
-    "Verwende für Handoffs an Spezialisten oder Project-Agents."
+    "Verwende für Handoffs an Spezialisten oder Project-Agents. "
+    "Erreichbar sind nur eigene Agenten (Admins: alle)."
 )
 
 _SCHEMA = {
@@ -118,21 +120,15 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     raw_context = args.get("context") or {}
     required_skills = args.get("required_skills") or []
 
-    # UUID-Normalisierung zuerst: Name → UUID, damit der Auth-Check UUIDs vergleicht
-    target_agent: dict | None = None
-    try:
-        from hydrahive.agents import config as _ac
-        all_agents = _ac.list_all()
-        target_agent = (
-            _ac.get(target)
-            or next((a for a in all_agents if a.get("name", "").lower() == target.lower()), None)
-            or next((a for a in all_agents if target.lower() in a.get("name", "").lower()), None)
-        )
-        _is_internal = bool(target_agent)
-        if _is_internal:
-            target = target_agent["id"]  # auf UUID normalisieren
-    except Exception:
-        _is_internal = False
+    # Nur Agenten, die der Besitzer des Laufs nutzen darf (Task 26841785).
+    # Danach auf UUID normalisieren, damit der Projekt-Check UUIDs vergleicht.
+    resolution = resolve_target(target, ctx.user_id)
+    if resolution.error:
+        return ToolResult.fail(resolution.error)
+    target_agent = resolution.agent
+    _is_internal = target_agent is not None
+    if _is_internal:
+        target = target_agent["id"]
 
     # Project-Agents dürfen nur freigegebene Specialists beauftragen (nach UUID-Normalisierung)
     try:
