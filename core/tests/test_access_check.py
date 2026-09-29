@@ -5,9 +5,11 @@ import json
 
 import pytest
 
+from hydrahive.access import capabilities as capabilities_mod
 from hydrahive.access import check, grants, store
 from hydrahive.access.capabilities import Catalog
 from hydrahive.modules.manifest import ModuleManifest
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 @pytest.fixture
@@ -19,7 +21,7 @@ def cat(tmp_path, monkeypatch):
         {"id": "chk.control", "label": "Steuern", "default": "admin_only", "tools": ["chk_do"]},
     ]}))
     c.register_module(ModuleManifest.load(p))
-    monkeypatch.setattr(check, "CATALOG", c)
+    monkeypatch.setattr(capabilities_mod, "CATALOG", c)
     return c
 
 

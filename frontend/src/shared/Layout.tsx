@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Outlet, useLocation } from "react-router-dom"
+import { useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { UpdateModal } from "@/shared/UpdateModal"
@@ -9,6 +9,8 @@ import { cockpitModuleItems, visibleItems } from "./nav-config"
 import { navLabel } from "./nav-label"
 import { getStoredThemeId, getTheme } from "./themes/registry"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
+import { AccessOutlet } from "@/features/access/AccessOutlet"
+import { useMyAccess } from "@/features/access/useMyAccess"
 
 /** LayoutHost — sammelt gemeinsames Chrome (Nav, Update-State), wählt das aktive
  *  Theme-Layout-Gerüst und hält globale Overlays (Bento, UpdateModal). Das
@@ -61,7 +63,8 @@ export function Layout() {
     }
   }, [theme])
 
-  const visible = visibleItems(role)
+  const access = useMyAccess()
+  const visible = visibleItems(role, access)
   const currentPage = visible.find((i) =>
     i.path === "/" ? pathname === "/" : pathname.startsWith(i.path),
   )
@@ -71,7 +74,7 @@ export function Layout() {
       {isCockpitRoute ? (
         <div className="flex h-[100dvh] min-h-0 flex-col bg-[#080b11]">
           <main className="min-h-0 flex-1 overflow-hidden">
-            <Outlet />
+            <AccessOutlet />
           </main>
           <AppFooter
             version={version}
@@ -89,7 +92,7 @@ export function Layout() {
             context={currentPage ? navLabel(t, currentPage.labelKey) : undefined}
           />
           <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-x-none p-4 md:p-6">
-            <Outlet />
+            <AccessOutlet />
           </main>
           <AppFooter
             version={version}

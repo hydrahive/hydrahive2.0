@@ -104,7 +104,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
     # Federation-Routing: "persona@workstation" → remote /remote/chat
     if "@" in target:
-        return await _execute_federated(target, task, args)
+        return await _execute_federated(target, task, args, ctx)
 
     if not settings.agentlink_url:
         return ToolResult.fail(
@@ -223,8 +223,18 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     return _result_from_response(response)
 
 
-async def _execute_federated(target: str, task: str, args: dict) -> ToolResult:
-    """Routing für 'persona@workstation' — sendet via /remote/chat."""
+async def _execute_federated(target: str, task: str, args: dict, ctx: ToolContext) -> ToolResult:
+    """Routing für 'persona@workstation' — sendet via /remote/chat.
+
+    Nur mit Freigabe core.federation für den Besitzer des Laufs
+    (docs/specs/access-groups.md §7 Regel 6).
+    """
+    from hydrahive.access import check
+    if not check.can_use_as(ctx.user_id, "core.federation"):
+        return ToolResult.fail(
+            "Keine Freigabe für die Föderation (core.federation). "
+            "Ein Admin kann sie unter Admin → Freigaben erteilen."
+        )
     persona_id, _, ws_name = target.partition("@")
     persona_id = persona_id.strip()
     ws_name = ws_name.strip()

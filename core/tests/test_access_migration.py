@@ -6,6 +6,7 @@ import sqlite3
 import pytest
 
 from hydrahive.db.connection import db
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 def _tables() -> set[str]:

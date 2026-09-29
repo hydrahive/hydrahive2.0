@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from hydrahive.access import grants, store
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 def test_grant_to_user_and_list(client):

@@ -3,8 +3,10 @@ import { BrainCircuit,
   MessageCircle, MessageSquare, MessagesSquare, MoonStar, Pickaxe, Puzzle, Server, Shield, Sparkles, Workflow,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import { moduleNav } from "@/modules/index.generated"
+import { moduleNav, moduleNavOwners } from "@/modules/index.generated"
 import { moduleIcon } from "@/shared/module-icon"
+import { pathAllowed } from "@/features/access/navAccess"
+import type { MyAccess } from "@/features/access/types"
 
 export interface NavGroup {
   key: string
@@ -109,9 +111,10 @@ export function moduleTopnavItems(): NavItem[] {
   return moduleNavItems().filter((i) => i.topnav)
 }
 
-export function visibleItems(role: string | null): NavItem[] {
+export function visibleItems(role: string | null, access: MyAccess | null = null): NavItem[] {
   const all = [...NAV_ITEMS, ...moduleNavItems()]
   return all.filter((i) =>
-    !i.roles || i.roles.length === 0 || (role !== null && i.roles.includes(role as "admin" | "user"))
+    (!i.roles || i.roles.length === 0 || (role !== null && i.roles.includes(role as "admin" | "user")))
+    && pathAllowed(i.path, access, moduleNavOwners)
   )
 }

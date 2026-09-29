@@ -58,6 +58,10 @@ function _opt<T>(mod: unknown, key: string): T[] {
 const _mods: unknown[] = [${mods}]
 export const moduleRoutes: unknown[] = [${routes}]
 export const moduleNav: unknown[] = [${nav}]
+// Nav-Pfad → Modul-ID (für Freigaben: module.<id>, docs/specs/access-groups.md §9)
+export const moduleNavOwners: Record<string, string> = Object.fromEntries(
+  [${ids.map((id, i) => `...(m${i}.nav as unknown as { path: string }[]).map((n) => [n.path, ${JSON.stringify(id)}])`).join(", ")}],
+)
 export const moduleI18n: unknown[] = [${i18n}]
 export const moduleBuddyWidgets: unknown[] = _mods.flatMap(m => _opt(m, "buddyWidgets"))
 export const moduleBuddyMediaWidgets: unknown[] = _mods.flatMap(m => _opt(m, "buddyMediaWidgets"))

@@ -3,14 +3,16 @@ import { Grid3X3, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { NAV_GROUPS, visibleItems } from "@/shared/nav-config"
+import { useMyAccess } from "@/features/access/useMyAccess"
 
 const go = (path: string) => window.open(path, "_self")
 
 export function CockpitAppsMenu({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false)
   const role = useAuthStore((state) => state.role)
+  const access = useMyAccess()
   const { t } = useTranslation("nav")
-  const items = visibleItems(role).filter((item) => item.path !== "/help")
+  const items = visibleItems(role, access).filter((item) => item.path !== "/help")
 
   return <div className="relative">
     <button onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="cockpit-apps-menu" className={compact ? "flex w-full items-center gap-2 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-2 text-xs font-bold text-[#e8eef8]" : "rounded-[4px] border border-[#2a364b] bg-[#172133] p-2 text-[#e8eef8] hover:border-[#46617f]"} title="Apps"><Grid3X3 size={16} />{compact && <span>Apps</span>}</button>

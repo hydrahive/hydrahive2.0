@@ -1,4 +1,5 @@
 {
+  "tools_blocked_hint": "Keine Freigabe für den Besitzer. Das Werkzeug wird im Lauf nicht angeboten.",
   "title": "Agenten",
   "list_title": "Agents",
   "no_agents": "Noch kein Agent",

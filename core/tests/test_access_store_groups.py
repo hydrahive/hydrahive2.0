@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from hydrahive.access import store
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 def test_create_and_get_group(client):

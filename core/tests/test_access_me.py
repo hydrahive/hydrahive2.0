@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from hydrahive.access import grants, store
 from hydrahive.db.connection import db
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 def _uid(client, admin_headers, name: str) -> str:

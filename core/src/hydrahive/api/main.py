@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -79,6 +79,7 @@ from hydrahive.api.routes.users import router as users_router
 from hydrahive.api.routes.access_groups import router as access_groups_router
 from hydrahive.api.routes.access_grants import router as access_grants_router
 from hydrahive.api.routes.access_me import router as access_me_router
+from hydrahive.access.deps import require_capability
 from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.teamchat import router as teamchat_router
@@ -166,8 +167,8 @@ app.include_router(scheduled_tasks_router)
 app.include_router(skills_router)
 app.include_router(stt_router)
 app.include_router(tts_router)
-app.include_router(vms_router)
-app.include_router(containers_router)
+app.include_router(vms_router, dependencies=[Depends(require_capability("core.vms"))])
+app.include_router(containers_router, dependencies=[Depends(require_capability("core.containers"))])
 app.include_router(compute_agent_router)
 app.include_router(compute_channel_router)
 app.include_router(compute_jobs_router)
@@ -192,12 +193,21 @@ app.include_router(system_samba_router)
 app.include_router(system_settings_router)
 app.include_router(tailscale_router)
 app.include_router(zahnfee_router)
-app.include_router(federation_router)
+app.include_router(federation_router, dependencies=[Depends(require_capability("core.federation"))])
 app.include_router(streaming_router)
 app.include_router(teamchat_router)
 app.include_router(prompt_archive_router)
 app.include_router(modules_admin_router)
 app.include_router(themes_admin_router)
+
+
+def register_module_capabilities() -> None:
+    """Trägt die capabilities aller geladenen Module in den Katalog ein
+    (docs/specs/access-groups.md §8). Vor mount_module_routers aufrufen."""
+    from hydrahive.access.capabilities import catalog
+    for entry in _modules.REGISTRY.values():
+        if entry.loaded and entry.manifest:
+            catalog().register_module(entry.manifest)
 
 
 def mount_module_routers(target_app: FastAPI) -> None:
@@ -209,7 +219,10 @@ def mount_module_routers(target_app: FastAPI) -> None:
             continue
         for r in entry.ctx.routers:
             try:
-                target_app.include_router(r, prefix=f"/api/modules/{entry.manifest.id}")
+                target_app.include_router(
+                    r, prefix=f"/api/modules/{entry.manifest.id}",
+                    dependencies=[Depends(require_capability(f"module.{entry.manifest.id}"))],
+                )
             except Exception as exc:
                 logger.error("Modul '%s': include_router fehlgeschlagen — übersprungen: %s",
                              entry.manifest.id, exc)

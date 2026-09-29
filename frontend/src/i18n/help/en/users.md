@@ -12,7 +12,8 @@ access HydraHive without logging in via username/password.
 - **Admin** — may do everything: create/edit/delete users, system settings,
   modules, VMs/containers, etc.
 - **User** — normal working access (chat, projects, …) but without admin and
-  system rights.
+  system rights. Protected features such as VMs, containers or switching
+  devices are granted by an admin under **Access**, per user or via **Groups**.
 
 ## Step by step
 

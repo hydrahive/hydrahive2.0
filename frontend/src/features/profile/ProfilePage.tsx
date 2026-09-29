@@ -6,6 +6,7 @@ import { rgbFor } from "@/shared/colors"
 import { LanguageSwitcher } from "@/i18n/LanguageSwitcher"
 import { BackupRestoreCard } from "./BackupRestoreCard"
 import { ChangeOwnPasswordCard } from "./ChangeOwnPasswordCard"
+import { MyAccessSection } from "@/features/access/MyAccessSection"
 import { LandingSwitcher } from "./LandingSwitcher"
 import { LookSwitcher } from "./LookSwitcher"
 import { ThemePicker } from "./ThemePicker"
@@ -40,6 +41,7 @@ export function ProfilePage() {
       </div>
 
       <ChangeOwnPasswordCard />
+      <MyAccessSection />
 
       <div className="box overflow-hidden p-5 space-y-3" style={{ "--c": rgbFor("/profile") } as CSSProperties}>
         <div>

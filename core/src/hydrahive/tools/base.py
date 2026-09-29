@@ -57,3 +57,4 @@ class Tool:
     execute: ExecuteFn
     category: str = "other"
     prompt_hint: str = ""
+    module_id: str = ""  # gesetzt beim Registrieren von Modul-Tools (access-groups §9)

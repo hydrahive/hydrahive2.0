@@ -39,5 +39,11 @@
   "no_access": {
     "title": "No access",
     "text": "You have no access to this area. Ask an admin if you need it."
+  },
+  "notice": {
+    "title": "New access rules after the update",
+    "text": "These features are now admin-only. Grant them to the users or groups who need them in the access table.",
+    "open": "Open access",
+    "ack": "Got it"
   }
 }

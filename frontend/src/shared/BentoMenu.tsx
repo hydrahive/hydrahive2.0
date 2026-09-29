@@ -6,6 +6,7 @@ import { NAV_GROUPS, visibleItems } from "./nav-config"
 import { navLabel } from "./nav-label"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { DOMAIN_TW, colorFor } from "./colors"
+import { useMyAccess } from "@/features/access/useMyAccess"
 
 interface Props {
   open: boolean
@@ -15,6 +16,7 @@ interface Props {
 export function BentoMenu({ open, onClose }: Props) {
   const { t } = useTranslation("nav")
   const role = useAuthStore((s) => s.role)
+  const access = useMyAccess()
   const { pathname } = useLocation()
   const ref = useRef<HTMLDivElement | null>(null)
 
@@ -35,7 +37,7 @@ export function BentoMenu({ open, onClose }: Props) {
   }, [open, onClose])
 
   if (!open) return null
-  const items = visibleItems(role)
+  const items = visibleItems(role, access)
 
   return (
     <div className="fixed inset-0 z-40 flex items-start justify-end pt-14 pr-3 sm:pr-4 pointer-events-none">

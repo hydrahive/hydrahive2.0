@@ -39,5 +39,11 @@
   "no_access": {
     "title": "Kein Zugriff",
     "text": "Für diesen Bereich hast du keine Freigabe. Frag einen Admin, wenn du ihn brauchst."
+  },
+  "notice": {
+    "title": "Neue Freigaben nach dem Update",
+    "text": "Diese Funktionen sind jetzt nur für Admins. Gib sie in der Freigabe-Tabelle an Nutzer oder Gruppen frei, die sie brauchen.",
+    "open": "Freigaben öffnen",
+    "ack": "Verstanden"
   }
 }

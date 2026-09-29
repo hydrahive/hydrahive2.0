@@ -11,6 +11,7 @@ import pytest
 
 from hydrahive.access.capabilities import Catalog
 from hydrahive.modules.manifest import ModuleManifest
+from tests._access_rows import _own_access_rows  # noqa: F401  (autouse)
 
 
 def _manifest(tmp_path, mid: str, caps=None) -> ModuleManifest:

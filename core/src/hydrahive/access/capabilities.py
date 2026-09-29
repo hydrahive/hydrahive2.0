@@ -83,3 +83,9 @@ class Catalog:
 
 
 CATALOG = Catalog.with_core()
+
+
+def catalog() -> Catalog:
+    """Die laufende Instanz. Immer darüber zugreifen, nie per ``from … import CATALOG``,
+    damit Laden von Modulen und Tests überall dieselbe Instanz sehen."""
+    return CATALOG

@@ -4,6 +4,7 @@ import logging
 import time
 from dataclasses import asdict
 
+from hydrahive.access.tool_filter import tool_denied
 from hydrahive.credentials import redaction
 from hydrahive.db import tools as tools_db
 from hydrahive.mcp import tool_bridge as mcp_bridge
@@ -54,9 +55,15 @@ async def execute_tool(
     )
     start = time.monotonic()
 
+    denied_cap = tool_denied(ctx.user_id, tool_name) if tool_name in allowed_tools else None
     if tool_name not in allowed_tools:
         result = ToolResult.fail(
             f"Tool '{tool_name}' für diesen Agent nicht erlaubt."
+        )
+    elif denied_cap:
+        result = ToolResult.fail(
+            f"Keine Freigabe für '{tool_name}' ({denied_cap}). "
+            "Ein Admin kann sie unter Admin → Freigaben erteilen."
         )
     elif tool_name.startswith(mcp_bridge.PREFIX):
         # MCP-Tool: an Bridge dispatchen, Result in unser Format wandeln
