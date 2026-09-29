@@ -85,6 +85,34 @@ async def _agentlink_heartbeat_loop(stop: asyncio.Event) -> None:
             pass
 
 
+async def dispatch_agentlink_event(event, get_state=None) -> None:
+    """handoff_received → Antwort an wartenden ask_agent oder neuer Auftrag.
+
+    AgentLink schickt die state_id. Wir laden den State: ``reply_to:<id>`` löst
+    den wartenden Aufruf, alles andere geht an den handoff_receiver.
+    Die ID wird ohne Signatur-Segment gelesen (agentlink/signing.reply_target).
+    """
+    from hydrahive.agentlink import signing
+
+    if event.type != "handoff_received" or not event.state_id:
+        return
+    try:
+        state = await (get_state or agentlink_client.get_state)(event.state_id)
+    except Exception as e:
+        logger.warning("AgentLink: get_state(%s) fehlgeschlagen: %s", event.state_id, e)
+        return
+    if not state or not state.handoff:
+        return
+    reply_to = signing.reply_target(state.handoff.reason)
+    if reply_to:
+        if agentlink_client.resolve_pending(reply_to, state):
+            logger.info("AgentLink: Antwort-State auf %s eingetroffen", reply_to)
+    elif (state.handoff.reason or "").startswith("reply_to:"):
+        logger.warning("AgentLink: Antwort-State %s ohne lesbare Ziel-ID verworfen", event.state_id)
+    else:
+        asyncio.create_task(handoff_receiver.handle(event), name=f"handoff-{event.state_id}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
@@ -189,25 +217,7 @@ async def lifespan(app: FastAPI):
     # routet handoff_received-Events via Future-Map an wartende ask_agent-Calls.
     if settings.agentlink_url:
         async def _on_event(event):
-            # handoff_received → schau ob jemand auf den Antwort-State wartet.
-            # AgentLink schickt state_id im Event; wir laden den State und prüfen
-            # ob die handoff.reason ein "reply_to:<id>" enthält.
-            if event.type != "handoff_received" or not event.state_id:
-                return
-            try:
-                state = await agentlink_client.get_state(event.state_id)
-            except Exception as e:
-                logger.warning("AgentLink: get_state(%s) fehlgeschlagen: %s", event.state_id, e)
-                return
-            if not state or not state.handoff:
-                return
-            reason = state.handoff.reason or ""
-            if reason.startswith("reply_to:"):
-                reply_to = reason.split(":", 1)[1].strip()
-                if agentlink_client.resolve_pending(reply_to, state):
-                    logger.info("AgentLink: Antwort-State auf %s eingetroffen", reply_to)
-            else:
-                asyncio.create_task(handoff_receiver.handle(event), name=f"handoff-{event.state_id}")
+            await dispatch_agentlink_event(event)
 
         agentlink_client.start_listener(_on_event)
         agentlink_stop = asyncio.Event()
