@@ -69,6 +69,13 @@ def resolve_pending(reply_to_state_id: str, response_state: State) -> bool:
     if not entry:
         return False
     fut, expected = entry
+    from hydrahive.agentlink import signing
+
+    if not signing.is_valid(response_state):
+        # Unsigniert/verändert: Future nicht lösen und nicht entfernen, die echte
+        # Antwort kann noch kommen (kein Spoof-DoS).
+        logger.warning("AgentLink: Antwort auf %s ohne gültige Signatur verworfen", reply_to_state_id)
+        return False
     if not _sender_matches(expected, response_state):
         # Gefälschter/fremder Absender: Future NICHT auflösen und NICHT entfernen,
         # damit die echte Antwort sie später noch lösen kann (kein Spoof-DoS).
@@ -89,6 +96,11 @@ def pending_handoffs_count() -> int:
 
 
 async def post_state(state: State) -> State:
+    """Sendet einen State. Jeder State wird vorher signiert (agentlink/signing.py),
+    damit Empfänger Fälschungen aus dem LAN erkennen."""
+    from hydrahive.agentlink import signing
+
+    signing.sign(state)
     url = settings.agentlink_url.rstrip("/") + "/states"
     async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.post(

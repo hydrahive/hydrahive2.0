@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 
+from hydrahive.agentlink import signing
 from hydrahive.agentlink.protocol import Handoff, State, TaskBlock, WSEvent
 from hydrahive.runner import _handoff_setup as hs
 from hydrahive.runner import handoff_receiver as hr
@@ -15,14 +16,14 @@ from hydrahive.runner import handoff_receiver as hr
 
 def test_handoff_session_inherits_target_project_id(monkeypatch):
     async def _get_state(_sid):
-        return State(
+        return signing.sign(State(
             agent_id="caller",
             task=TaskBlock(type="feature", description="analyse", status="in_progress"),
             handoff=Handoff(
                 to_agent="hydrahive",
                 reason="hh-target:spec-1|hh-runtime:v1:deep|hh-task: x",
             ),
-        )
+        ))
 
     captured: dict = {}
 
@@ -60,7 +61,7 @@ def test_handoff_session_inherits_target_project_id(monkeypatch):
 
 def test_resume_reuses_caller_bound_specialist_session(monkeypatch):
     async def _get_state(_sid):
-        return State(
+        return signing.sign(State(
             agent_id="hydrahive/project-a",
             task=TaskBlock(type="feature", description="continue", status="in_progress"),
             handoff=Handoff(
@@ -70,7 +71,7 @@ def test_resume_reuses_caller_bound_specialist_session(monkeypatch):
                     "hh-resume:v1:handoff_old123|hh-task: continue"
                 ),
             ),
-        )
+        ))
 
     class _Sess:
         id = "sess-existing"
@@ -131,7 +132,7 @@ def test_resume_reuses_caller_bound_specialist_session(monkeypatch):
 
 def test_resume_claim_is_restored_when_setup_fails(monkeypatch):
     async def _get_state(_sid):
-        return State(
+        return signing.sign(State(
             agent_id="hydrahive/project-a",
             task=TaskBlock(type="feature", description="continue", status="in_progress"),
             handoff=Handoff(
@@ -141,7 +142,7 @@ def test_resume_claim_is_restored_when_setup_fails(monkeypatch):
                     "hh-resume:v1:handoff_old123|hh-task: continue"
                 ),
             ),
-        )
+        ))
 
     class _Sess:
         id = "sess-existing"
@@ -185,7 +186,7 @@ def test_resume_claim_is_restored_when_setup_fails(monkeypatch):
 
 def test_replayed_or_foreign_resume_token_is_rejected(monkeypatch):
     async def _get_state(_sid):
-        return State(
+        return signing.sign(State(
             agent_id="hydrahive/project-b",
             task=TaskBlock(type="feature", description="continue", status="in_progress"),
             handoff=Handoff(
@@ -195,7 +196,7 @@ def test_replayed_or_foreign_resume_token_is_rejected(monkeypatch):
                     "hh-resume:v1:handoff_old123|hh-task: continue"
                 ),
             ),
-        )
+        ))
 
     captured: dict = {}
 

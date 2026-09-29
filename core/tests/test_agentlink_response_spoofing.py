@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import asyncio
 
-from hydrahive.agentlink import client
-from hydrahive.agentlink.protocol import State, TaskBlock
+from hydrahive.agentlink import client, signing
+from hydrahive.agentlink.protocol import Handoff, State, TaskBlock
 
 
 def _run(coro):
@@ -16,7 +16,13 @@ def _run(coro):
 
 
 def _reply(agent_id: str) -> State:
-    return State(agent_id=agent_id, task=TaskBlock(type="feature", description="done"))
+    """Antwort wie von der eigenen Instanz: signiert (agentlink/signing.py).
+    Diese Tests prüfen die Absender-Zuordnung, die Signatur prüft
+    test_agentlink_signing.py."""
+    return signing.sign(State(
+        agent_id=agent_id, task=TaskBlock(type="feature", description="done"),
+        handoff=Handoff(to_agent="hydrahive", reason="reply_to:x"),
+    ))
 
 
 def test_resolve_accepts_expected_sender():
