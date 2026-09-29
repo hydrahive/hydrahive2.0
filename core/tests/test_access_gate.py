@@ -109,3 +109,10 @@ def test_core_router_open_when_capability_not_declared(client, auth_headers, mon
     empty = capabilities.Catalog()
     monkeypatch.setattr(capabilities, "CATALOG", empty)
     assert client.get("/api/vms", headers=auth_headers).status_code != 403
+
+
+def test_host_disks_stays_admin_only_even_with_vms_grant(client, auth_headers, admin_headers, fresh_catalog):
+    """core.vms öffnet die VM-Seite, nicht die Admin-only-Route host-disks."""
+    grants.grant("core.vms", "user", _uid(client, admin_headers), "use", actor_id="adm")
+    r = client.get("/api/vms/host-disks", headers=auth_headers)
+    assert r.status_code == 403 and r.json()["detail"]["code"] == "admin_only"

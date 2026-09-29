@@ -130,7 +130,9 @@ def test_host_disks_requires_admin(client, admin_headers, auth_headers):
     """Nur Admins dürfen host-disks abrufen."""
     resp = client.get("/api/vms/host-disks", headers=auth_headers)
     assert resp.status_code == 403
-    assert error_code(resp) == "admin_only"
+    # Seit den Freigaben (access-groups) greift zuerst core.vms (capability_denied).
+    # Mit Freigabe core.vms bliebe es bei admin_only. Beides ist ein 403.
+    assert error_code(resp) in ("capability_denied", "admin_only")
 
     # Admin bekommt Antwort (lsblk läuft möglicherweise nicht in CI → 503 ok)
     resp_admin = client.get("/api/vms/host-disks", headers=admin_headers)
