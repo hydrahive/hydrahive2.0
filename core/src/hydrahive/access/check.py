@@ -69,3 +69,15 @@ def capabilities_for(*, user_id: str, role: str) -> dict[str, str]:
         logger.exception("access: capabilities_for %s fehlgeschlagen (fail-closed)", user_id)
         return {}
     return {cap: levels[cap] for cap in declared if cap in levels}
+
+
+def can_use_as(username: str, capability: str) -> bool:
+    """Prüfung für Werkzeuge und Läufe, die nur den Nutzernamen kennen (ToolContext.user_id).
+
+    Löst Namen → stabile user_id + aktuelle Rolle auf. Unbekannter Nutzer → False.
+    """
+    from hydrahive.api.middleware.users import get_by_username
+    user = get_by_username(username)
+    if user is None:
+        return False
+    return can_use(user_id=user["user_id"], role=user["role"], capability=capability)
