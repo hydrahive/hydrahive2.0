@@ -1,4 +1,5 @@
 {
+  "tools_blocked_hint": "No access for the owner. The tool is not offered at run time.",
   "title": "Agents",
   "list_title": "Agents",
   "no_agents": "No agents yet",

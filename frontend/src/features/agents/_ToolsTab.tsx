@@ -3,6 +3,8 @@ import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { McpSelector } from "./McpSelector"
 import { ToolsSelector } from "./ToolsSelector"
+import { blockedTools } from "@/features/access/toolAccess"
+import { useOwnerAccess } from "@/features/access/useOwnerAccess"
 import type { Agent, ToolMeta } from "./types"
 import type { McpServerBrief } from "./api"
 import { rgbFor } from "@/shared/colors"
@@ -16,6 +18,7 @@ interface Props {
 
 export function ToolsTab({ draft, tools, mcpServers, onChange }: Props) {
   const { t } = useTranslation("agents")
+  const blocked = blockedTools(tools, useOwnerAccess(draft.owner))
   return (
     <div className="space-y-4">
       <div className="box overflow-hidden px-3 py-2.5 flex items-center justify-between gap-3" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
@@ -44,6 +47,7 @@ export function ToolsTab({ draft, tools, mcpServers, onChange }: Props) {
         </p>
         <ToolsSelector
           available={tools}
+          blocked={blocked}
           selected={draft.tools}
           onChange={(v) => onChange({ tools: v })}
         />

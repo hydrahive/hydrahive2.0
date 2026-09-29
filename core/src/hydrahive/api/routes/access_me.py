@@ -29,3 +29,28 @@ def me(principal: Annotated[AuthPrincipal, Depends(require_principal)]) -> dict:
         "declared": [c.id for c in catalog().all()],
         "groups": groups,
     }
+
+
+@router.get("/users/{username}")
+def user_access(
+    username: str,
+    principal: Annotated[AuthPrincipal, Depends(require_principal)],
+) -> dict:
+    """Freigaben eines Nutzers für den Agent-Editor (gesperrte Werkzeuge anzeigen).
+
+    Admins dürfen jeden Nutzer abfragen, andere nur sich selbst.
+    """
+    from fastapi import status
+
+    from hydrahive.api.middleware.errors import coded
+    from hydrahive.api.middleware.users import get_by_username
+    if principal.role != "admin" and principal.username != username:
+        raise coded(status.HTTP_403_FORBIDDEN, "admin_only")
+    user = get_by_username(username)
+    if user is None:
+        raise coded(status.HTTP_404_NOT_FOUND, "user_not_found")
+    return {
+        "admin": user["role"] == "admin",
+        "capabilities": check.capabilities_for(user_id=user["user_id"], role=user["role"]),
+        "declared": [c.id for c in catalog().all()],
+    }

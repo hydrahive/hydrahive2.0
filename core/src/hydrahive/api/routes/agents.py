@@ -42,11 +42,13 @@ def _public(agent: dict) -> dict:
 
 @router.get("/_meta/tools")
 def list_available_tools(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    from hydrahive.access.capabilities import catalog
     core = [
-        {"name": t.name, "description": t.description, "category": t.category}
+        {"name": t.name, "description": t.description, "category": t.category,
+         "capability": catalog().capability_for_tool(t.name, module_id=getattr(t, "module_id", ""))}
         for t in TOOL_REGISTRY.values()
     ]
-    return core + plugin_bridge.all_tool_meta()
+    return core + [{**m, "capability": None} for m in plugin_bridge.all_tool_meta()]
 
 
 @router.get("/_meta/templates")

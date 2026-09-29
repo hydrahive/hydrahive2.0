@@ -87,6 +87,7 @@ export interface ToolMeta {
   name: string
   description: string
   category?: string
+  capability?: string | null
 }
 
 export interface AgentDefaults {
