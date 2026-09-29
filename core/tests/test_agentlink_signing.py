@@ -191,3 +191,46 @@ def test_post_state_signs_everything(monkeypatch):
     assert "hh-sig:" in sent[0]["handoff"]["reason"]
     assert sent[0]["id"]
     assert signing.is_valid(result)
+
+
+# --- Regression 29.09.2026 nach Deploy: Antwort-ID trotz Signatur finden -----
+# #472 hängt "|hh-sig:v1:<hex>" an reason. lifespan._on_event nahm alles nach
+# "reply_to:" als ID, also inklusive Signatur. resolve_pending fand die
+# wartende Anfrage nie, jeder ask_agent lief in den Timeout (Live-Befund).
+
+def test_reply_target_ignores_signature_segment():
+    r = signing.sign(_reply("st-live-1", "ok", signed=False))
+    assert "|hh-sig:v1:" in r.handoff.reason
+    assert signing.reply_target(r.handoff.reason) == "st-live-1"
+
+
+@pytest.mark.parametrize("reason,expected", [
+    ("reply_to:abc", "abc"),
+    ("reply_to: abc ", "abc"),
+    ("hh-target:x|hh-task: y", None),
+    ("", None),
+    ("reply_to:", None),
+])
+def test_reply_target_parsing(reason, expected):
+    assert signing.reply_target(reason) == expected
+
+
+def test_listener_resolves_signed_reply_end_to_end():
+    """Genau der Weg des Live-Fehlers: signierte Antwort → Listener → wartender Aufruf."""
+    from hydrahive.agentlink.protocol import WSEvent
+    from hydrahive.api import lifespan
+
+    reply = _reply("st-live-2", "fertig", signed=True)
+
+    async def body():
+        fut = register_pending("st-live-2", "hydrahive")
+
+        async def fake_get_state(_sid):
+            return reply
+
+        await lifespan.dispatch_agentlink_event(
+            WSEvent(type="handoff_received", state_id=reply.id), get_state=fake_get_state,
+        )
+        return fut.done() and fut.result().task.description
+
+    assert asyncio.run(body()) == "fertig"

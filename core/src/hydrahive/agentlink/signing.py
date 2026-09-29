@@ -74,3 +74,16 @@ def is_valid(state: State) -> bool:
     if sig is None:
         return False
     return hmac.compare_digest(sig, _mac(state, reason))
+
+
+def reply_target(reason: str | None) -> str | None:
+    """State-ID aus ``reply_to:<id>``, ohne das Signatur-Segment.
+
+    Regression 29.09.2026: Ohne Abtrennen landete ``|hh-sig:v1:…`` in der ID,
+    und keine Antwort fand ihren wartenden ask_agent mehr.
+    """
+    head, _sig = _split(reason or "")
+    if not head.startswith("reply_to:"):
+        return None
+    target = head.removeprefix("reply_to:").strip()
+    return target or None
