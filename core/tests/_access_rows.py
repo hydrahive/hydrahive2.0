@@ -10,7 +10,10 @@ import pytest
 
 from tests._own_rows import only_own_rows
 
-ACCESS_TABLES = ("access_capability_grants", "access_group_members", "access_groups", "access_audit")
+ACCESS_TABLES = (
+    "access_capability_grants", "access_group_members", "access_groups", "access_audit",
+    "access_seen_capabilities",
+)
 
 
 @pytest.fixture(autouse=True)

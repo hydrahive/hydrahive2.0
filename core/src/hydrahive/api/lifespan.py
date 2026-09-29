@@ -133,6 +133,8 @@ async def lifespan(app: FastAPI):
     module_system.load_all()
     from hydrahive.api.main import mount_module_routers, register_module_capabilities
     register_module_capabilities()
+    from hydrahive.access.bootstrap import apply_defaults as access_apply_defaults
+    access_apply_defaults()
     mount_module_routers(app)
     from hydrahive.modules.registry import REGISTRY as _module_registry
     from hydrahive.tools import register_module_tools

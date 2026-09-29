@@ -78,3 +78,16 @@ def delete_grant(
     if (subject_type == "everyone") == bool(subject_id):
         raise coded(status.HTTP_400_BAD_REQUEST, "subject_invalid")
     grants.revoke(capability, subject_type, subject_id, actor_id=admin.user_id)
+
+
+@router.get("/notice")
+def notice(_admin: Admin) -> dict:
+    """Heikle Funktionen, die nach dem Update nur für Admins sind (Spec §11 Punkt 3)."""
+    from hydrahive.access.bootstrap import pending_notice
+    return {"pending": pending_notice()}
+
+
+@router.post("/notice/ack", status_code=status.HTTP_204_NO_CONTENT)
+def notice_ack(admin: Admin) -> None:
+    from hydrahive.access.bootstrap import acknowledge_notice
+    acknowledge_notice(actor_id=admin.user_id)
