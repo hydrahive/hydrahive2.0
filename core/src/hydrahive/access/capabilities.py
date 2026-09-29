@@ -25,7 +25,19 @@ CORE_CAPABILITIES: tuple[Capability, ...] = (
     Capability("core.vms", "Virtuelle Maschinen", "admin_only"),
     Capability("core.containers", "Container", "admin_only"),
     Capability("core.federation", "Föderation (Workstations fernsteuern)", "admin_only"),
+    # Ein Risiko, eine Freigabe (Task 3bd963b2): Diese Werkzeuge laufen als
+    # Dienst-User ohne Sandbox und kommen an Serverdateien (Shell, Browser mit
+    # file:// und 127.0.0.1, Plugins mit freiem Pfad). Plugins: siehe PLUGIN_PREFIX.
+    Capability(
+        "core.shell", "Server-Zugriff (Shell, Browser, Plugins)", "admin_only",
+        tools=("shell_exec", "web_browser"),
+    ),
 )
+
+#: Plugin-Werkzeuge (plugin__<name>__<tool>) laufen im Server-Prozess und
+#: prüfen keine Workspace-Grenze. Sie hängen deshalb alle an core.shell.
+PLUGIN_PREFIX = "plugin__"
+PLUGIN_CAPABILITY = "core.shell"
 
 
 @dataclass
@@ -38,6 +50,8 @@ class Catalog:
         cat = cls()
         for cap in CORE_CAPABILITIES:
             cat._caps[cap.id] = cap
+            for tool in cap.tools:
+                cat._tool_map[("", tool)] = cap.id
         return cat
 
     def register_module(self, manifest: ModuleManifest) -> None:
@@ -74,7 +88,9 @@ class Catalog:
     def capability_for_tool(self, tool_name: str, *, module_id: str) -> str | None:
         """Funktion, die ein Werkzeug freischaltet. None = Werkzeug wird nicht geprüft."""
         if not module_id:
-            return None
+            if tool_name.startswith(PLUGIN_PREFIX) and PLUGIN_CAPABILITY in self._caps:
+                return PLUGIN_CAPABILITY
+            return self._tool_map.get(("", tool_name))
         mapped = self._tool_map.get((module_id, tool_name))
         if mapped:
             return mapped
