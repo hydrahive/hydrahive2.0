@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cellLevel, groupCapabilities, nextLevel, subjectsFor } from "./grantMatrix"
+import { adminNames, cellLevel, groupCapabilities, nextLevel, subjectsFor } from "./grantMatrix"
 import type { AccessCatalog } from "./types"
 
 const catalog: AccessCatalog = {
@@ -12,12 +12,17 @@ const catalog: AccessCatalog = {
       tools: ["ha_call_service"], grants: [{ subject_type: "user", subject_id: "u1", level: "manage" }] },
   ],
   groups: [{ id: "g1", name: "Familie" }],
-  users: [{ user_id: "u1", username: "anna", role: "user" }],
+  users: [{ user_id: "u1", username: "anna", role: "user" }, { user_id: "a1", username: "chefin", role: "admin" }],
 }
 
 describe("grantMatrix", () => {
   it("liefert Spalten: Alle, Gruppen, Nutzer", () => {
     expect(subjectsFor(catalog).map((s) => s.key)).toEqual(["everyone:", "group:g1", "user:u1"])
+  })
+
+  it("Admins bekommen keine eigene Spalte, stehen aber in der Admin-Liste", () => {
+    expect(subjectsFor(catalog).some((s) => s.id === "a1")).toBe(false)
+    expect(adminNames(catalog)).toEqual(["chefin"])
   })
 
   it("liest die Stufe einer Zelle", () => {

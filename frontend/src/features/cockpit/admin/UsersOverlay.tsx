@@ -116,7 +116,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        <GroupsSection users={users.filter((u) => u.role !== "admin")} />
+        <GroupsSection users={users} />
         <ApiKeysSection />
       </div>
 

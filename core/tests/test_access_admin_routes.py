@@ -113,3 +113,23 @@ def test_revoke_requires_consistent_subject(client, admin_headers):
     r = client.delete("/api/access/grants", headers=admin_headers,
                       params={"capability": "core.vms", "subject_type": "user"})
     assert r.status_code == 400
+
+
+def test_capabilities_lists_admins_too(client, admin_headers):
+    """Admins müssen in der Freigabe-Tabelle und für Gruppen auswählbar sein.
+
+    Sie dürfen ohnehin alles, sollen aber z. B. Mitglied der Gruppe „Familie“
+    sein können (Befund 29.09.: bibi, till und admin fehlten in der Auswahl).
+    """
+    users = client.get("/api/access/capabilities", headers=admin_headers).json()["users"]
+    by_name = {u["username"]: u for u in users}
+    assert "admin" in by_name and by_name["admin"]["role"] == "admin"
+    assert "testuser" in by_name and by_name["testuser"]["role"] == "user"
+
+
+def test_admin_can_be_group_member(client, admin_headers):
+    gid = client.post("/api/access/groups", json={"name": "Mit-Admin"}, headers=admin_headers).json()["id"]
+    admin_uid = _uid(client, admin_headers, "admin")
+    assert client.put(f"/api/access/groups/{gid}/members/{admin_uid}", headers=admin_headers).status_code == 204
+    members = client.get(f"/api/access/groups/{gid}", headers=admin_headers).json()["members"]
+    assert [m["username"] for m in members] == ["admin"]
