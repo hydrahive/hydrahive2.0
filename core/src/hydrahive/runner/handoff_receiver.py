@@ -15,6 +15,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
+from hydrahive.agentlink import signing
 from hydrahive.agentlink.checkpoints import checkpoint_finding
 from hydrahive.agentlink.client import get_state
 from hydrahive.agentlink.protocol import State, WSEvent
@@ -49,6 +50,18 @@ async def handle(event: WSEvent) -> None:
         logger.warning("handoff_receiver: get_state(%s) fehlgeschlagen: %s", event.state_id, e)
         return
     if not state or not state.task:
+        return
+    if not signing.is_valid(state):
+        # Nicht von dieser Instanz signiert: aus dem LAN gepostet oder verändert
+        # (nginx gibt AgentLink für das Dashboard frei). Keine Session, keine
+        # Antwort an den Absender.
+        logger.warning(
+            "handoff_receiver: State %s von %r ohne gültige Signatur verworfen",
+            state.id, state.agent_id,
+        )
+        return
+    if db_agent_handoffs.seen(state.id or ""):
+        logger.warning("handoff_receiver: State %s wurde schon verarbeitet, Wiederholung verworfen", state.id)
         return
 
     # Interne Handoffs kodieren die echte Ziel-Agent-ID im reason-Präfix:

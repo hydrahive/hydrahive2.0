@@ -1,0 +1,76 @@
+"""Signatur für AgentLink-States, die HydraHive selbst sendet (Task 3bd963b2, b1).
+
+AgentLink hat keine Anmeldung, und nginx gibt /agentlink/api ins LAN (Dashboard).
+Jeder im Netz könnte also einen State posten. Deshalb signiert HydraHive alles,
+was es sendet, und nimmt Aufträge (``hh-target:``) und Antworten (``reply_to:``)
+nur mit gültiger Signatur an.
+
+- Schlüssel: aus ``settings.secret_key`` abgeleitet, nie der rohe JWT-Schlüssel.
+- Signiert werden id, Absender, Ziel, reason (ohne Signatur), Aufgabe und
+  Kontext. Jede Änderung, auch ein anderer State mit gleicher Signatur, fällt auf.
+- Transport: letztes reason-Segment ``|hh-sig:v1:<hex>``. AgentLink speichert
+  reason unverändert, fremde Felder verwirft es.
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+import uuid
+
+from hydrahive.agentlink.protocol import State
+
+_SEGMENT = "|hh-sig:v1:"
+_CONTEXT = b"hydrahive-agentlink-state-v1"
+
+
+def _key() -> bytes:
+    from hydrahive.settings import settings
+
+    return hmac.new(settings.secret_key.encode(), _CONTEXT, hashlib.sha256).digest()
+
+
+def _split(reason: str) -> tuple[str, str | None]:
+    """reason ohne Signatur + Signatur (oder None)."""
+    head, sep, sig = reason.rpartition(_SEGMENT)
+    if not sep or not sig or "|" in sig:
+        return reason, None
+    return head, sig
+
+
+def _payload(state: State, reason: str) -> bytes:
+    body = {
+        "id": state.id,
+        "agent_id": state.agent_id,
+        "to_agent": state.handoff.to_agent if state.handoff else None,
+        "reason": reason,
+        "task": [state.task.type, state.task.description] if state.task else None,
+        "files": state.context.files if state.context else [],
+        "errors": state.context.errors if state.context else [],
+    }
+    return json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()
+
+
+def _mac(state: State, reason: str) -> str:
+    return hmac.new(_key(), _payload(state, reason), hashlib.sha256).hexdigest()
+
+
+def sign(state: State) -> State:
+    """Setzt eine id (falls leer) und hängt die Signatur an handoff.reason an."""
+    if not state.id:
+        state.id = str(uuid.uuid4())
+    if state.handoff is None:
+        return state
+    reason, _old = _split(state.handoff.reason or "")
+    state.handoff.reason = f"{reason}{_SEGMENT}{_mac(state, reason)}"
+    return state
+
+
+def is_valid(state: State) -> bool:
+    """True nur bei vorhandener, passender Signatur."""
+    if not state.id or state.handoff is None:
+        return False
+    reason, sig = _split(state.handoff.reason or "")
+    if sig is None:
+        return False
+    return hmac.compare_digest(sig, _mac(state, reason))

@@ -33,6 +33,22 @@ def create(
     }
 
 
+def seen(incoming_state_id: str) -> bool:
+    """True, wenn dieser State schon einmal einen Handoff ausgelöst hat.
+
+    Schutz gegen Wiederholung: Ein gültig signierter State darf nur einmal
+    einen Lauf starten, auch wenn sein Event erneut eintrifft.
+    """
+    if not incoming_state_id:
+        return False
+    with db() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM agent_handoffs WHERE incoming_state_id = ? LIMIT 1",
+            (incoming_state_id,),
+        ).fetchone()
+    return row is not None
+
+
 def update_status(handoff_id: str, status: str) -> None:
     completed_at = now_iso() if status != "running" else None
     with db() as conn:
