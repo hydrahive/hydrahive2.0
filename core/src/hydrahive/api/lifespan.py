@@ -136,9 +136,11 @@ async def lifespan(app: FastAPI):
     mount_module_routers(app)
     from hydrahive.modules.registry import REGISTRY as _module_registry
     from hydrahive.tools import register_module_tools
+    import dataclasses
     register_module_tools([
-        t for m in _module_registry.values()
-        if m.loaded and m.ctx for t in m.ctx.tools
+        dataclasses.replace(t, module_id=m.manifest.id)
+        for m in _module_registry.values()
+        if m.loaded and m.ctx and m.manifest for t in m.ctx.tools
     ])
     agent_bootstrap.migrate_tools(include_module_defaults=True)
     from hydrahive.llm import registry as llm_registry

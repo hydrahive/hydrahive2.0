@@ -28,6 +28,7 @@ from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._buddy_mode import with_buddy_mode
 from hydrahive.runner._emote_hint import with_emote_hint
 from hydrahive.runner._project_tool_scope import scope_tools
+from hydrahive.access.tool_filter import filter_tools as access_filter_tools
 from hydrahive.runner._runner_helpers import close_open_tool_uses
 from hydrahive.runner._runner_iter import (
     IterationResult,
@@ -131,6 +132,7 @@ async def run(
 
     local_tools, mcp_servers = scope_tools(
         _proj, list(agent.get("tools", [])), list(agent.get("mcp_servers", [])))
+    local_tools = access_filter_tools(session.user_id, local_tools)
     mcp_schemas = await mcp_bridge.schemas_for_servers(mcp_servers)
     plugin_schemas = plugin_bridge.schemas_for(local_tools)
     tool_schemas = schemas_for(local_tools) + mcp_schemas + plugin_schemas
