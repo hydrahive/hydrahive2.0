@@ -43,9 +43,11 @@ def create_session(
     agent = agent_config.get(req.agent_id)
     if not agent:
         raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+    project = None
     if req.project_id:
         # Wie PATCH: das Projekt bestimmt Workspace, Skills und Tools des Runs.
-        _assert_project_access(req.project_id, *auth)
+        project = _assert_project_access(req.project_id, *auth)
+    _assert_agent_access(agent, project, *auth)
     s = sessions_db.create(
         agent_id=req.agent_id,
         user_id=username,
@@ -119,12 +121,33 @@ def update_session(
     return serialize_session(sessions_db.get(session_id))
 
 
-def _assert_project_access(project_id: str, username: str, role: str) -> None:
+def _assert_project_access(project_id: str, username: str, role: str) -> dict:
     """Eine Session an ein Projekt heften ist schreibend -> Rolle write nötig."""
     proj = project_config.get(project_id)
     if not proj:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
     check_project_access(proj, username, role, required="write")
+    return proj
+
+
+def _assert_agent_access(agent: dict, project: dict | None, username: str, role: str) -> None:
+    """Nur eigene Agenten, oder Agenten des Projekts, an das die Session hängt.
+
+    Vorher wurde nur geprüft, ob der Agent existiert. Damit konnte jeder
+    Login eine Session mit einem fremden Buddy anlegen und darüber mit ihm
+    arbeiten, weil check_owner später nur den Session-Besitzer prüft.
+    Projekt-Mitglieder (write) dürfen weiter den Projekt-Agenten und die
+    freigegebenen Spezialisten des Projekts nutzen, aber nur mit project_id:
+    Ohne sie hätte die Session den Agenten, aber weder Workspace noch Skills
+    des Projekts.
+    """
+    if role == "admin" or agent.get("owner") == username:
+        return
+    if project is not None:
+        team = {project.get("agent_id"), *(project.get("allowed_specialists") or [])}
+        if agent["id"] in team:
+            return
+    raise coded(status.HTTP_403_FORBIDDEN, "agent_no_access")
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
