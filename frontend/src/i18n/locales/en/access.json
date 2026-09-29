@@ -1,0 +1,43 @@
+{
+  "groups": {
+    "title": "Groups",
+    "description": "Groups bundle users, e.g. “Family” or “Dev team”. Access granted to a group applies to all members.",
+    "new": "New group",
+    "name": "Name",
+    "description_label": "Description",
+    "create": "Create",
+    "empty": "No groups yet.",
+    "members": "Members",
+    "members_count": "{{count}} members",
+    "no_members": "No members yet.",
+    "add_member": "Add member",
+    "choose_user": "Choose user …",
+    "remove_member": "Remove from group",
+    "delete": "Delete group",
+    "delete_confirm": "Delete group “{{name}}”? Its access grants are removed as well."
+  },
+  "grants": {
+    "title": "Access",
+    "card_text": "Who may use which feature? Grant access to users and groups.",
+    "description": "Admins may always do everything. Click a cell to switch between –, use and manage. Features not listed here are open to everyone.",
+    "everyone": "Everyone",
+    "core": "HydraHive",
+    "level_none": "–",
+    "level_use": "use",
+    "level_manage": "manage",
+    "default_admin_only": "Default: admins only",
+    "tools": "Tools: {{tools}}",
+    "loading": "Loading access …",
+    "empty": "No protected features yet."
+  },
+  "me": {
+    "title": "My access",
+    "admin": "As an admin you may do everything.",
+    "none": "You have no special grants. Everything that is not protected separately is available to you.",
+    "groups": "Groups: {{groups}}"
+  },
+  "no_access": {
+    "title": "No access",
+    "text": "You have no access to this area. Ask an admin if you need it."
+  }
+}

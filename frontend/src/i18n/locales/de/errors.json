@@ -156,5 +156,11 @@
   "local_media_busy": "Es läuft bereits eine Aktion für die lokale Bild-/Videogenerierung.",
   "local_media_not_installed": "Die lokale Bild-/Videogenerierung ist nicht installiert.",
 
+  "group_exists": "Eine Gruppe mit diesem Namen gibt es schon",
+  "group_not_found": "Gruppe nicht gefunden",
+  "capability_unknown": "Unbekannte Funktion: {{capability}}",
+  "subject_invalid": "Ungültiger Empfänger der Freigabe",
+  "capability_denied": "Keine Freigabe für diese Funktion ({{capability}})",
+
   "validation_error": "{{message}}"
 }
