@@ -8,7 +8,6 @@ import {
   AdminFeedback,
   AdminPanel,
   AdminStatus,
-  adminActionClass,
 } from "@/features/cockpit/admin/ui"
 import { relTime, type AgentLinkStatus } from "./_agentLinkHelpers"
 import { AgentLinkKnownAgents } from "./_AgentLinkKnownAgents"
@@ -22,6 +21,7 @@ export function AgentLinkCard() {
   const [status, setStatus] = useState<AgentLinkStatus | null>(null)
   const [reconnecting, setReconnecting] = useState(false)
   const [reconnectError, setReconnectError] = useState<string | null>(null)
+  const [opening, setOpening] = useState(false)
 
   async function load() {
     try { setStatus(await api.get<AgentLinkStatus>("/agentlink/status")) }
@@ -45,6 +45,20 @@ export function AgentLinkCard() {
     } catch (e) {
       setReconnectError(e instanceof Error ? e.message : tCommon("status.error"))
     } finally { setReconnecting(false) }
+  }
+
+  // Das Dashboard prüft per nginx ein eigenes Cookie (nur Admins). Erst ausstellen
+  // lassen, dann öffnen. Tab synchron öffnen, sonst blockt der Popup-Schutz.
+  async function openDashboard() {
+    const tab = window.open("about:blank", "_blank")
+    setOpening(true); setReconnectError(null)
+    try {
+      const { url } = await api.post<{ url: string }>("/agentlink/dashboard-session", {})
+      if (tab) { tab.opener = null; tab.location.href = url } else window.location.href = url
+    } catch (e) {
+      tab?.close()
+      setReconnectError(e instanceof Error ? e.message : tCommon("status.error"))
+    } finally { setOpening(false) }
   }
 
   if (!status) return null
@@ -119,16 +133,11 @@ export function AgentLinkCard() {
             {t("agentlink.reconnect")}
           </AdminAction>
         )}
-        {status.dashboard_url && (
-          <a
-            href={status.dashboard_url}
-            target="_blank"
-            rel="noreferrer"
-            className={adminActionClass("default")}
-          >
-            <ExternalLink size={12} />
+        {role === "admin" && status.dashboard_url && (
+          <AdminAction onClick={openDashboard} disabled={opening}>
+            {opening ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
             {t("agentlink.open_dashboard")}
-          </a>
+          </AdminAction>
         )}
       </div>
     </AdminPanel>

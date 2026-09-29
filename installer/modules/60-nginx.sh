@@ -213,8 +213,27 @@ server {
         proxy_send_timeout 86400s;
     }
 
+    # AgentLink hat keine eigene Anmeldung. Alle /agentlink/-Wege prüft nginx per
+    # auth_request gegen HydraHive (Cookie hh_agentlink, nur für Admins, gesetzt
+    # über "Dashboard öffnen"). Marker hh_agentlink_auth: update.sh schreibt
+    # die Config neu, wenn er fehlt (Task 3bd963b2, b2).
+    location = /_hh_agentlink_auth {
+        internal;
+        proxy_pass http://$HH_HOST:$HH_PORT/api/agentlink/dashboard-auth;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Cookie \$http_cookie;
+        proxy_set_header X-Original-URI \$request_uri;
+    }
+
+    location @hh_agentlink_login {
+        return 302 /;
+    }
+
     # AgentLink-Frontend — SPA über denselben HTTPS-Origin, kein Mixed-Content.
     location /agentlink/ {
+        auth_request /_hh_agentlink_auth;
+        error_page 401 = @hh_agentlink_login;
         proxy_pass http://127.0.0.1:${HL_FRONTEND_PORT:-9001}/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -225,6 +244,7 @@ server {
 
     # AgentLink-Backend-API — REST-Calls des Dashboards über denselben Origin.
     location /agentlink/api/ {
+        auth_request /_hh_agentlink_auth;
         proxy_pass http://127.0.0.1:${HL_BACKEND_PORT:-9000}/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
@@ -237,6 +257,7 @@ server {
 
     # AgentLink-WebSocket — Dashboard live-updates.
     location /agentlink/ws {
+        auth_request /_hh_agentlink_auth;
         proxy_pass http://127.0.0.1:${HL_BACKEND_PORT:-9000}/ws;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
