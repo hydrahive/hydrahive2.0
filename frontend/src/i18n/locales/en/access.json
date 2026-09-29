@@ -28,7 +28,8 @@
     "default_admin_only": "Default: admins only",
     "tools": "Tools: {{tools}}",
     "loading": "Loading access …",
-    "empty": "No protected features yet."
+    "empty": "No protected features yet.",
+    "admins_always": "Admins may always do everything and need no grants: {{names}}. You can still add them to groups."
   },
   "me": {
     "title": "My access",

@@ -12,7 +12,9 @@ export function subjectsFor(catalog: AccessCatalog): MatrixSubject[] {
   return [
     { key: "everyone:", type: "everyone", id: "", label: "" },
     ...catalog.groups.map((g) => ({ key: `group:${g.id}`, type: "group" as const, id: g.id, label: g.name })),
-    ...catalog.users.map((u) => ({ key: `user:${u.user_id}`, type: "user" as const, id: u.user_id, label: u.username })),
+    // Admins dürfen immer alles: keine eigene Spalte, sonst sähe es aus, als bräuchten sie Freigaben.
+    ...catalog.users.filter((u) => u.role !== "admin")
+      .map((u) => ({ key: `user:${u.user_id}`, type: "user" as const, id: u.user_id, label: u.username })),
   ]
 }
 
@@ -40,4 +42,8 @@ export function groupCapabilities(caps: CatalogCapability[]): CapabilityGroup[] 
     else out.push({ module_id: cap.module_id, items: [cap] })
   }
   return out
+}
+
+export function adminNames(catalog: AccessCatalog): string[] {
+  return catalog.users.filter((u) => u.role === "admin").map((u) => u.username)
 }

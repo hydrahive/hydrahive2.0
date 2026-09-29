@@ -28,7 +28,8 @@
     "default_admin_only": "Start: nur Admin",
     "tools": "Werkzeuge: {{tools}}",
     "loading": "Freigaben werden geladen …",
-    "empty": "Noch keine prüfbaren Funktionen."
+    "empty": "Noch keine prüfbaren Funktionen.",
+    "admins_always": "Admins dürfen immer alles und brauchen keine Freigabe: {{names}}. In Gruppen kannst du sie trotzdem aufnehmen."
   },
   "me": {
     "title": "Meine Freigaben",

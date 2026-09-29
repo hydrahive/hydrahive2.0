@@ -58,7 +58,9 @@ def capabilities(_admin: Admin) -> dict:
             for c in catalog().all()
         ],
         "groups": [{"id": g["id"], "name": g["name"]} for g in store.list_groups()],
-        "users": [u for u in list_users() if u["role"] != "admin"],
+        # Admins mitliefern: Sie dürfen ohnehin alles, sollen aber Gruppen angehören
+        # können. Die Freigabe-Tabelle zeigt sie als „Admin, immer“ statt als Spalte.
+        "users": sorted(list_users(), key=lambda u: u["username"].lower()),
     }
 
 

@@ -4,7 +4,7 @@ import { HelpButton } from "@/i18n/HelpButton"
 import { AdminOverlay } from "@/features/cockpit/admin/AdminOverlay"
 import { AdminFeedback, AdminStatus } from "@/features/cockpit/admin/ui"
 import { accessApi } from "./api"
-import { cellLevel, groupCapabilities, nextLevel, subjectsFor, type MatrixSubject } from "./grantMatrix"
+import { adminNames, cellLevel, groupCapabilities, nextLevel, subjectsFor, type MatrixSubject } from "./grantMatrix"
 import type { AccessCatalog, CatalogCapability } from "./types"
 
 const cellTone = {
@@ -49,6 +49,9 @@ export function GrantsOverlay({ onClose }: { onClose: () => void }) {
       headerActions={<HelpButton topic="access" />}>
       <div className="space-y-4">
         <p className="text-sm text-[#8d9ab0]">{t("grants.description")}</p>
+        {catalog && adminNames(catalog).length > 0 && (
+          <p className="text-xs text-[#8d9ab0]">{t("grants.admins_always", { names: adminNames(catalog).join(", ") })}</p>
+        )}
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
         {!catalog && !error && <AdminFeedback loading>{t("grants.loading")}</AdminFeedback>}
         {catalog && catalog.capabilities.length === 0 && <AdminFeedback>{t("grants.empty")}</AdminFeedback>}
