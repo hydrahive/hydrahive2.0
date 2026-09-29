@@ -12,10 +12,17 @@ from hydrahive.api.middleware.errors import coded
 from pydantic import BaseModel
 
 from hydrahive.agents import bootstrap as agent_bootstrap, config as agent_config
-from hydrahive.api.middleware.auth import require_admin, require_auth
+from hydrahive.access import store as access_store
+from hydrahive.api.middleware.auth import (
+    AuthPrincipal,
+    require_admin,
+    require_admin_principal,
+    require_auth,
+)
 from hydrahive.api.middleware.users import (
     create,
     delete,
+    get_by_username,
     list_users,
     update_password,
     update_role,
@@ -56,12 +63,17 @@ def create_user(req: CreateUserRequest) -> dict:
     return {"username": req.username, "role": req.role}
 
 
-@router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[Depends(require_admin)])
-def delete_user(username: str) -> None:
+@router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    username: str,
+    admin: Annotated[AuthPrincipal, Depends(require_admin_principal)],
+) -> None:
+    target = get_by_username(username)
     for agent in agent_config.list_by_owner(username):
         agent_config.delete(agent["id"])
     delete(username)
+    if target:
+        access_store.purge_user(target["user_id"], actor_id=admin.user_id)
 
 
 @router.patch("/{username}", dependencies=[Depends(require_admin)])
