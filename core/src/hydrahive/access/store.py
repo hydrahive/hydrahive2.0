@@ -95,8 +95,8 @@ def delete_group(group_id: str, *, actor_id: str) -> None:
         if n == 0:
             raise GroupNotFound(group_id)
         # Freigaben an die Gruppe verlieren ihren Sinn.
-        c.execute("DELETE FROM access_capability_grants WHERE subject_type = 'group' AND subject_id = ?",
-                  (group_id,))
+        from hydrahive.access.grants import purge_subject
+        purge_subject(c, "group", group_id)
         audit(c, actor_id, "group_delete", f"group:{group_id}")
 
 
