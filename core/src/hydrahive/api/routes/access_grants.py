@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 
 from hydrahive.access import grants, store
@@ -69,7 +69,12 @@ def put_grant(body: GrantIn, admin: Admin) -> None:
 
 
 @router.delete("/grants", status_code=status.HTTP_204_NO_CONTENT)
-def delete_grant(body: GrantKey, admin: Admin) -> None:
-    if body.subject_type != "everyone" and not body.subject_id:
+def delete_grant(
+    admin: Admin,
+    capability: Annotated[str, Query(min_length=1, max_length=120)],
+    subject_type: Annotated[SubjectType, Query()],
+    subject_id: Annotated[str, Query(max_length=128)] = "",
+) -> None:
+    if (subject_type == "everyone") == bool(subject_id):
         raise coded(status.HTTP_400_BAD_REQUEST, "subject_invalid")
-    grants.revoke(body.capability, body.subject_type, body.subject_id, actor_id=admin.user_id)
+    grants.revoke(capability, subject_type, subject_id, actor_id=admin.user_id)
