@@ -95,10 +95,36 @@ def test_neu_setzt_kein_budget_tokens():
     assert "budget_tokens" not in kwargs.get("thinking", {})
 
 
-def test_neu_laesst_temperature_unangetastet():
-    """Neuer Pfad: temperature bleibt — der deprecated-Retry im Call kümmert sich."""
+def test_neu_setzt_temperature_auf_1():
+    """Adaptive thinking verlangt temperature=1 (Task 48278afd).
+
+    Anthropic antwortet sonst 400: „`temperature` may only be set to 1 when
+    thinking is enabled or in adaptive mode“ (belegt 29.09.2026, faktenpruefer,
+    claude-sonnet-5, temperature 0.7). Der alte Test erwartete, dass temperature
+    bleibt; der deprecated-Retry greift bei dieser Meldung aber nicht.
+    """
     kwargs = {"max_tokens": 8192, "temperature": 0.3}
     apply_effort(kwargs, _NEW, "high")
+    assert kwargs["temperature"] == 1.0
+
+
+def test_neu_ohne_temperature_bleibt_ohne():
+    """Fehlt temperature (z. B. nach dem deprecated-Retry), wird keins gesetzt."""
+    kwargs = {"max_tokens": 8192}
+    apply_effort(kwargs, _NEW, "high")
+    assert "temperature" not in kwargs
+
+
+def test_neu_ungueltiger_effort_laesst_temperature():
+    """Kein adaptive → temperature bleibt, wie sie ist."""
+    kwargs = {"max_tokens": 8192, "temperature": 0.3}
+    apply_effort(kwargs, _NEW, "turbo")
+    assert kwargs["temperature"] == 0.3
+
+
+def test_ohne_effort_laesst_temperature():
+    kwargs = {"max_tokens": 8192, "temperature": 0.3}
+    apply_effort(kwargs, _NEW, None)
     assert kwargs["temperature"] == 0.3
 
 
@@ -184,7 +210,7 @@ def test_opus_5_uses_adaptive_effort_including_max():
     apply_effort(kwargs, "claude-opus-5", "max")
     assert kwargs["thinking"] == {"type": "adaptive"}
     assert kwargs["output_config"]["effort"] == "max"
-    assert kwargs["temperature"] == 0.4
+    assert kwargs["temperature"] == 1.0  # adaptive verlangt 1 (Task 48278afd)
 
 
 def test_opus_4_8_in_effort_param_models():

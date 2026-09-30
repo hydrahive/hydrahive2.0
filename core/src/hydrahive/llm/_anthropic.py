@@ -47,8 +47,11 @@ def apply_effort(kwargs: dict, model: str, effort: str | None) -> None:
     """Setzt Reasoning-Effort modellabhängig (mutiert kwargs in-place).
 
     Neuer Pfad (Claude 4.6+): output_config.effort (low..max) + thinking.adaptive.
-    temperature/max_tokens bleiben unangetastet — der deprecated-temperature-Retry
-    im Call-Layer kümmert sich darum.
+    Adaptive thinking verlangt temperature=1 (sonst 400 „may only be set to 1
+    when thinking is enabled or in adaptive mode“, Task 48278afd). Ist temperature
+    gesetzt, wird sie auf 1.0 gezogen; fehlt sie, bleibt sie weg. Modelle, die
+    temperature ganz ablehnen, fängt weiter der deprecated-Retry im Call-Layer ab.
+    max_tokens bleibt unangetastet.
 
     Legacy-Pfad (Claude 4.5/älter, MiniMax): extended_thinking budget_tokens
     (nur low/medium/high), temperature=1.0, max_tokens hochgezogen.
@@ -62,6 +65,8 @@ def apply_effort(kwargs: dict, model: str, effort: str | None) -> None:
             return
         kwargs["thinking"] = {"type": "adaptive"}
         kwargs.setdefault("output_config", {})["effort"] = effort
+        if "temperature" in kwargs:
+            kwargs["temperature"] = 1.0
         return
     budget = EFFORT_TO_BUDGET.get(effort)
     if budget is None:
