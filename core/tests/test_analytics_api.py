@@ -25,6 +25,9 @@ def test_overview_braucht_auth(client):
 
 
 def test_overview_user_sieht_nur_eigene(client, auth_headers, admin_headers):
+    # Differenz statt Absolutwert: Die Test-DB ist geteilt, andere Tests
+    # legen für testuser ebenfalls heutige Kosten an.
+    before = client.get("/api/analytics/overview", headers=auth_headers).json()["today"]["cost_micros"]
     s_user = sessions_db.create(agent_id="test-agent-001", user_id="testuser", title="u").id
     s_other = sessions_db.create(agent_id="test-agent-001", user_id="admin", title="a").id
     _llm(s_user, "test-agent-001", "testuser", cost=500)
@@ -33,7 +36,7 @@ def test_overview_user_sieht_nur_eigene(client, auth_headers, admin_headers):
     r = client.get("/api/analytics/overview", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
-    assert data["today"]["cost_micros"] == 500
+    assert data["today"]["cost_micros"] - before == 500
     # Admin-Session darf nicht in den Top-Cost-Sessions des Users auftauchen
     top_sids = {row["session_id"] for row in data["top_cost_sessions"]}
     assert s_other not in top_sids

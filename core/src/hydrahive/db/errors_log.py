@@ -135,20 +135,6 @@ def recent(limit: int = 100, severity: str | None = None) -> list[dict]:
 
 
 # Quellen der Tool-Abstürze (runner/_crash_log.py). Sie stehen zusätzlich als
-# fehlgeschlagener tool_call in tool_calls.
+# fehlgeschlagener tool_call in tool_calls; db/usage_window.py zählt sie
+# deshalb nicht noch einmal in errors.
 CRASH_SOURCES = ("tool.crash", "mcp.crash", "plugin.crash")
-
-
-def crash_count(conn, *, since: str, username: str | None = None) -> int:
-    """Tool-Abstürze in Sessions, die ab `since` angelegt wurden.
-
-    Gleiche Abgrenzung wie session_metrics (Session-Beginn, Session-Besitzer),
-    damit die Zahl genau von SUM(errors) abgezogen werden kann."""
-    ph = ",".join("?" * len(CRASH_SOURCES))
-    sql = (f"SELECT COUNT(*) FROM errors_log e JOIN sessions s ON s.id = e.session_id "
-           f"WHERE e.source IN ({ph}) AND s.created_at >= ?")
-    params: tuple = (*CRASH_SOURCES, since)
-    if username is not None:
-        sql += " AND s.user_id = ?"
-        params += (username,)
-    return conn.execute(sql, params).fetchone()[0]

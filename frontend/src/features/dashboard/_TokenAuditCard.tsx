@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { formatMicrosUsd } from "@/features/chat/pricing"
 import { AlertTriangle, Coins, Cpu, TrendingUp } from "lucide-react"
 import { Link } from "react-router-dom"
 import { cn } from "@/shared/cn"
@@ -9,7 +10,7 @@ import { analyticsApi, type AnalyticsOverview } from "./api"
 const REFRESH_MS = 30_000
 
 export function TokenAuditCard() {
-  const { t } = useTranslation("dashboard")
+  const { t, i18n } = useTranslation("dashboard")
   const [data, setData] = useState<AnalyticsOverview | null>(null)
   const [error, setError] = useState(false)
 
@@ -65,8 +66,8 @@ export function TokenAuditCard() {
           sub={`${today.llm_calls || 0} LLM-Calls`}
           from="from-amber-500" to="to-orange-600" />
         <Tile icon={TrendingUp} label={t("token_audit.cost_today")}
-          value={formatCents(today.cost_micros || 0)}
-          sub={`7 Tage: ${formatCents(last7.cost_micros || 0)}`}
+          value={formatMicrosUsd(today.cost_micros || 0, i18n.language)}
+          sub={`7 Tage: ${formatMicrosUsd(last7.cost_micros || 0, i18n.language)}`}
           from="from-emerald-500" to="to-teal-600" />
         <Tile icon={Cpu} label={t("token_audit.cache_hit")}
           value={`${cacheRatio7d}%`}
@@ -97,7 +98,7 @@ export function TokenAuditCard() {
                   </p>
                 </div>
                 <span className="text-[11px] font-semibold text-amber-400 flex-shrink-0">
-                  {formatCents(s.cost_micros)}
+                  {formatMicrosUsd(s.cost_micros, i18n.language)}
                 </span>
               </Link>
             ))}
@@ -126,7 +127,7 @@ export function TokenAuditCard() {
                   {m.tok_per_s != null ? `${Math.round(m.tok_per_s)} t/s` : "–"}
                 </span>
                 <span className="text-[11px] font-semibold text-amber-400 w-16 text-right">
-                  {formatCents(m.cost_micros)}
+                  {formatMicrosUsd(m.cost_micros, i18n.language)}
                 </span>
               </div>
             ))}
@@ -177,12 +178,4 @@ function formatNumber(n: number): string {
   if (n < 1000) return String(n)
   if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`
   return `${(n / 1_000_000).toFixed(1)}M`
-}
-
-function formatCents(micros: number): string {
-  // 1 Cent = 1000 Micros → cents = micros / 1000 → € = cents / 100
-  const euro = micros / 100_000
-  if (euro < 0.01) return `${(micros / 1000).toFixed(2)}¢`
-  if (euro < 1) return `${(euro * 100).toFixed(1)}¢`
-  return `€${euro.toFixed(2)}`
 }

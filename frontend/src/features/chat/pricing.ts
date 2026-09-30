@@ -47,6 +47,14 @@ export function estimateCostUsd(
 }
 
 export function formatCost(usd: number, locale: string): string {
+  if (usd === 0) return `$${(0).toLocaleString(locale, { minimumFractionDigits: 2 })}`
   if (usd < 0.01) return `< $0.01`
   return `$${usd.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: usd < 1 ? 4 : 2 })}`
+}
+
+/** Backend-Kosten (`cost_micros`, Tausendstel Cent, Dollar-Preise aus llm/_pricing.py). */
+export const MICROS_PER_USD = 100_000
+
+export function formatMicrosUsd(micros: number, locale: string): string {
+  return formatCost(micros / MICROS_PER_USD, locale)
 }
