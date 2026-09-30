@@ -1,0 +1,80 @@
+{
+ "brainstorming.md": [
+  "9bec36e25ca5e52d8f67fe08f72fd72d3ab82df13b21d511688ffe2b1f20e572"
+ ],
+ "code-graph.md": [
+  "0435bee49b498849023e034c3b94d46b7ffb32f4792eb7102b851332a7da4cc3",
+  "c3a6f81088cf424a938d200cd3ff25dae7fb3e134a491080a15c0f37c8afe342"
+ ],
+ "code-review.md": [
+  "4e19ab05d8516e8a93144695f84c430bf95c3969a86f83bd99a0e777c3478f34",
+  "8d0d9b27ed34a42b4120206959a54ed4c14fd9fac782b34de650fbb442d57ba4",
+  "17946fac8227842c4cf3b237a0abc10a50931e31c3b253f465643d4d6835f31a"
+ ],
+ "debugging.md": [
+  "92494e297b73189542f3acbf22615750435a22318d752ea9a550fc9244fd024a",
+  "2279d30d0a3ae1dd86bf9935c395e20bda96594d641e02494aeac420675e14f6"
+ ],
+ "dispatching-parallel-agents.md": [
+  "8f91fac99a7ce94e7c7d7a4350fd2b516f9ad0b174281e22a13cade7db1d1c00"
+ ],
+ "docs.md": [
+  "ef13a3e9faf4b73ec7ed8859ea79baaff660eb9750b39dd7337bc4ec8b4a6ab3"
+ ],
+ "finishing-development-branch.md": [
+  "c38733c0e5aa9ea665eba3733f87b4aa457e62fd9a344e4c3e5221e5c9217e20"
+ ],
+ "generate-music.md": [
+  "8cc7675e3c9db50cd31dda65facdfa6e59ed35b8699255522859ffa73c4ce986",
+  "3a6e802b7dbb8d6c42309e76e480a2e7ddacfa2463fa77d289a6a357445b40f2"
+ ],
+ "generate-speech.md": [
+  "b8775141dbea05c81f2e90846134c0d935a934e0fa5d24cbe2a9a4f51c87ddcb",
+  "028e04359524707c3f91aaea4ee95b53eeb073f2c4d5ca972460f3d3619b8d75",
+  "0b132c70b6cfd3e530ebd84fa02cc4d975628ede81909596c6fae93131cda8b9",
+  "a8d2e0b1c0a0e69dc9da042fb0b2764a70c8f24ff28d8962df9eaff1ffd50a3f"
+ ],
+ "git-workflow.md": [
+  "fa999a1d1b96d506c4ff2b4428a5cc587a6dd9e5205d814174188dd09615480c"
+ ],
+ "hh-review.md": [
+  "00307d6735209b5e5d56bdf792e1c8169b157036a22767c1917d57cb8dea5c9c",
+  "7b47c2cf5503c2b8855dc893891e89e87d39b699339149198ef0fb7fbb46f22a",
+  "875543be887856920cd0859010fe4b43bf77afea45b27e22a81afbce3ab44e70"
+ ],
+ "medical-akte.md": [
+  "231ba8bf37246feb520781577be8673ab483e311763b710eaf35c227da5953a8",
+  "efd48061bb3435585db719d39f99cfe02ee4fc1daa70870ecfbc81e3f6df0052",
+  "e374230e84a025b31d81f8ec4d4d07a54f1d2e1df2ff21209c24a0c9eeb5c88e"
+ ],
+ "medical-research.md": [
+  "dd78c9ebfde305cc662a23dc027b9da77eb69f95810579dc35a2bb71c1ad8bfb"
+ ],
+ "performance-profile.md": [
+  "4ced36bc38de28251a9c9341016aad342f43f372c6f622bb82e79f7399925104"
+ ],
+ "project-management.md": [
+  "31db275e169ab611408de967f4a0dfd5442a2961878b3768323e927b22cecb10"
+ ],
+ "refactor.md": [
+  "091ca2fdc82f604b58e7c6bbdb41b550723ba7072d30b47bb3c8e276effc6c9b"
+ ],
+ "security-audit.md": [
+  "7f9ed38f934a9eb6146905af08e84a7de8531b136ab84780d2d7f146bdb337db"
+ ],
+ "skill-catalog.md": [
+  "81c20e8b2cb3d0936a41bffc94d748d4a71d2bb3cbd020a05d31f3266507d10e"
+ ],
+ "test.md": [
+  "3d98f2ba236a7595b8e4caf0660401db3289938f421939568afa062eb41c574f"
+ ],
+ "using-superpowers.md": [
+  "1f134b3fa62fcb588e0ab37206e5df583ac67d2bd7d5ac1fba3dfcd0bb044672"
+ ],
+ "verification-before-completion.md": [
+  "5386129057fad4733cb76a53402cbe9ed1d2722c347ab9a7ea5bdd4c76db9d7a"
+ ],
+ "writing-plans.md": [
+  "3338f97e160a20af6591d562e36e9d29c16c77e4a615f823490c5af36fdaeea8"
+ ]
+}
