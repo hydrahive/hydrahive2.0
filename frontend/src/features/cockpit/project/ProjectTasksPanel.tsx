@@ -1,32 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitPanel } from "../CockpitPanel"
-import { api } from "@/shared/api-client"
-
-type TaskStatus = "open" | "in_progress" | "done" | "cancelled"
-type TaskPriority = "low" | "medium" | "high"
-
-interface Task {
-  id: string
-  project_id: string | null
-  title: string
-  status: TaskStatus
-  priority: TaskPriority
-}
-
-const TASKS_BASE = "/modules/tasks/tasks"
-
-const projectTasksApi = {
-  list(projectId: string): Promise<Task[]> {
-    return api.get<Task[]>(`${TASKS_BASE}?project_id=${encodeURIComponent(projectId)}`)
-  },
-  create(projectId: string, title: string, priority: TaskPriority): Promise<Task> {
-    return api.post<Task>(TASKS_BASE, { project_id: projectId, title, priority })
-  },
-  updateStatus(taskId: string, status: TaskStatus): Promise<Task> {
-    return api.patch<Task>(`${TASKS_BASE}/${taskId}`, { status })
-  },
-}
+import { projectTasksApi, type Task, type TaskPriority, type TaskStatus } from "./_projectTasksApi"
+import { ProjectTaskDetails } from "./ProjectTaskDetails"
 
 interface Props {
   projectId: string | null
@@ -182,6 +158,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
                 {task.priority}
               </span>
             </div>
+            <ProjectTaskDetails taskId={task.id} description={task.description} historyCount={task.history_count} />
             <div className="mt-2 flex gap-1">
               {(["open", "in_progress", "done"] as TaskStatus[]).map((status) => (
                 <button
