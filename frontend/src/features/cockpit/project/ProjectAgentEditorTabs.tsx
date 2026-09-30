@@ -126,7 +126,6 @@ export function ProjectAgentEditorTabs({
             <div className="space-y-4">
               <ModelTab
                 draft={draft}
-                models={models}
                 catalog={catalog}
                 onChange={(patch) => onChange(patch.llm_model ? { ...patch, reasoning_effort: "" } : patch)}
               />
