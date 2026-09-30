@@ -12,7 +12,10 @@ import {
 import { apiKeysApi } from "./api"
 import type { ApiKey } from "./types"
 
-export function ApiKeysSection() {
+/** API-Keys verwalten. Im Admin-Cockpit (alle Keys, mit Besitzer) und im
+ *  Profil (`own`: nur eigene, ohne Besitzer-Spalte). Welche Keys man sieht,
+ *  entscheidet der Server. Anlegen/Löschen geht nur mit Login-Sitzung. */
+export function ApiKeysSection({ own = false }: { own?: boolean } = {}) {
   const { t } = useTranslation("users")
   const { t: tCommon } = useTranslation("common")
   const [keys, setKeys] = useState<ApiKey[]>([])
@@ -27,13 +30,13 @@ export function ApiKeysSection() {
 
   const load = useCallback(async () => {
     try {
-      setKeys(await apiKeysApi.list())
+      setKeys(await apiKeysApi.list(own))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : tCommon("status.error"))
     } finally {
       setLoading(false)
     }
-  }, [tCommon])
+  }, [tCommon, own])
 
   useEffect(() => {
     const initial = window.setTimeout(load, 0)
@@ -85,9 +88,9 @@ export function ApiKeysSection() {
 
   return (
     <>
-      <AdminPanel title={t("apikeys.title")} description={t("apikeys.subtitle")} icon={KeyRound} bodyClassName="space-y-4">
+      <AdminPanel title={t(own ? "apikeys.own_title" : "apikeys.title")} description={t(own ? "apikeys.own_subtitle" : "apikeys.subtitle")} icon={KeyRound} bodyClassName="space-y-4">
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
-        {loading && <AdminFeedback loading>API-Keys werden geladen …</AdminFeedback>}
+        {loading && <AdminFeedback loading>{t("apikeys.loading")}</AdminFeedback>}
 
         {newKey && (
           <div className="space-y-3 rounded-[6px] border border-amber-500/25 bg-amber-500/[7%] p-3">
@@ -124,7 +127,7 @@ export function ApiKeysSection() {
                 <KeyRound size={13} className="shrink-0 text-[#69d7ff]" />
                 <div className="min-w-0 flex-1">
                   <span className="text-sm text-[#e8eef8]">{key.name}</span>
-                  <span className="ml-2 text-xs text-[#5b6675]">{key.username}</span>
+                  {!own && <span className="ml-2 text-xs text-[#5b6675]">{key.username}</span>}
                 </div>
                 <span className="shrink-0 text-xs text-[#5b6675]">{new Date(key.created_at).toLocaleDateString()}</span>
                 <AdminAction tone="danger" className="shrink-0 px-2" onClick={() => setDeleteTarget(key)} title={t("actions.delete")} aria-label={t("actions.delete")}>

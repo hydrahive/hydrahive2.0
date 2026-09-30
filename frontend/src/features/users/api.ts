@@ -17,7 +17,7 @@ export const usersApi = {
 }
 
 export const apiKeysApi = {
-  list: () => api.get<ApiKey[]>("/auth/apikeys"),
+  list: (mine = false) => api.get<ApiKey[]>(mine ? "/auth/apikeys?mine=true" : "/auth/apikeys"),
   create: (name: string) => api.post<{ key: string; name: string; username: string }>("/auth/apikeys", { name }),
   delete: (id: string) => api.delete<void>(`/auth/apikeys/${encodeURIComponent(id)}`),
 }

@@ -162,5 +162,6 @@
   "subject_invalid": "Invalid grant recipient",
   "capability_denied": "No access to this feature ({{capability}})",
 
-  "validation_error": "{{message}}"
+  "validation_error": "{{message}}",
+  "session_required": "This needs a login session, an API key is not enough"
 }
