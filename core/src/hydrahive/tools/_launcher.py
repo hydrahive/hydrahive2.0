@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import shutil
+import signal
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import IO, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +39,39 @@ class Launcher(Protocol):
     ) -> LaunchResult: ...
 
 
+def _read(f: IO[bytes]) -> str:
+    f.seek(0)
+    return f.read().decode("utf-8", errors="replace")
+
+
+def _kill_group(pgid: int) -> None:
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass  # Gruppe schon leer
+
+
 class DevLauncher:
     """Spawns subprocesses as the service user inside `cwd`.
 
     This is the production launcher. Privilege-separation per Agent (systemd-run
     + dedicated users) is out of scope for the project's threat-model (home-lab,
     trusted agents with intentional full tool access).
+
+    Hintergrundprozesse (`cmd &`, Task 8c57e26f):
+    - Ausgabe geht in temporäre Dateien, nicht in Pipes. Der Server läuft mit
+      uvloop, und uvloop gibt dem Kind Kopien seiner Ausgabe-Sockets als weitere
+      Deskriptoren mit (auch mit close_fds). Ein Hintergrundprozess erbt sie trotz
+      `> /dev/null` und `setsid`, communicate() wartete dann bis zu seinem Ende
+      bzw. zum Timeout und stürzte dort mit ProcessLookupError ab.
+    - Bekannte Grenze: Ein Hintergrundprozess OHNE Umleitung schreibt nach dem
+      Ende von bash in die schon gelöschte Temp-Datei weiter, bis er endet.
+      Lange Läufe deshalb mit `> log 2>&1` starten.
+    - Es wird auf das Ende von bash gewartet. Hintergrundprozesse laufen danach
+      weiter, ihre spätere Ausgabe wird nicht mehr eingesammelt.
+    - Jeder Befehl bekommt eine eigene Prozessgruppe (nicht die des Servers).
+      Beim Timeout wird die ganze Gruppe beendet. Mit `setsid` Gestartetes
+      überlebt.
     """
 
     async def run(
@@ -52,30 +82,32 @@ class DevLauncher:
         env: dict | None = None,
     ) -> LaunchResult:
         cwd.mkdir(parents=True, exist_ok=True)
-        proc = await asyncio.create_subprocess_shell(
-            cmd,
-            cwd=str(cwd),
-            env=env,
-            executable=_BASH,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            return LaunchResult(
-                exit_code=-1,
-                stdout="",
-                stderr=f"Timeout nach {timeout}s",
-                timed_out=True,
+        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+            proc = await asyncio.create_subprocess_shell(
+                cmd,
+                cwd=str(cwd),
+                env=env,
+                executable=_BASH,
+                stdout=out,
+                stderr=err,
+                start_new_session=True,
             )
-        return LaunchResult(
-            exit_code=proc.returncode or 0,
-            stdout=stdout.decode("utf-8", errors="replace"),
-            stderr=stderr.decode("utf-8", errors="replace"),
-        )
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=timeout)
+            except asyncio.TimeoutError:
+                _kill_group(proc.pid)
+                await proc.wait()
+                return LaunchResult(
+                    exit_code=-1,
+                    stdout="",
+                    stderr=f"Timeout nach {timeout}s",
+                    timed_out=True,
+                )
+            return LaunchResult(
+                exit_code=proc.returncode or 0,
+                stdout=_read(out),
+                stderr=_read(err),
+            )
 
 
 _default: Launcher = DevLauncher()
