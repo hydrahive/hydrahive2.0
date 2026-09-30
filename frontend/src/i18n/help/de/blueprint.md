@@ -30,6 +30,21 @@ missverständlich.
 4. Über das **Eigenschaften-Panel** rechts Details setzen.
 5. Das Board dient dann als klare Vorlage — z.B. für einen Agenten-Auftrag.
 
+## Board an den Agenten übergeben
+
+- **Direkt im Chat:** Schreib zum Beispiel „Schau dir mein Board *Login-Seite* an und
+  bau das so“. Der Agent liest das Board mit dem Werkzeug `blueprint_read`: alle
+  Bausteine mit Beschriftung, Platzhalter und Notiz, dazu die Verbindungen, bei
+  Bedingungen mit **ja** und **nein**. Er sieht nur **deine eigenen** Boards und
+  ändert nichts daran.
+- **Als Text kopieren:** Der Knopf oben im Editor legt dasselbe als Text in die
+  Zwischenablage. Den kannst du in jeden Chat einfügen, auch bei Agenten ohne das
+  Werkzeug.
+
+Beim Buddy und beim persönlichen Assistenten ist das Werkzeug nach dem Update
+automatisch dabei. Anderen Agenten gibst du es in den Agenten-Einstellungen unter
+**Werkzeuge**.
+
 ## Tipps
 
 - **Grob vor fein**: Erst die groben Blöcke und ihre Verbindungen, dann Details.
