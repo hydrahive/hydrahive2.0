@@ -9,13 +9,14 @@ from hydrahive.credentials import redaction
 from hydrahive.db import tools as tools_db
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
+from hydrahive.runner._crash_log import record_crash
 from hydrahive.runner._media import extract_media
 from hydrahive.tools import REGISTRY, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
 
 
-_ERROR_TYPE_PREFIXES = ("Tool-Crash: ", "MCP-Crash: ")
+_ERROR_TYPE_PREFIXES = ("Tool-Crash: ", "MCP-Crash: ", "Plugin-Crash: ")
 
 
 def _extract_error_type(error: str | None) -> str | None:
@@ -71,6 +72,7 @@ async def execute_tool(
             mcp_res = await mcp_bridge.call(tool_name, args)
         except Exception as e:
             logger.exception("MCP-Tool '%s' crashte", tool_name)
+            record_crash("mcp.crash", tool_name, e, ctx, tool_call_id=record.id)
             result = ToolResult.fail(f"MCP-Crash: {type(e).__name__}: {e}")
         else:
             if mcp_res is None:
@@ -95,6 +97,7 @@ async def execute_tool(
             result = await tool.execute(args, ctx)
         except Exception as e:
             logger.exception("Tool '%s' crashte", tool_name)
+            record_crash("tool.crash", tool_name, e, ctx, tool_call_id=record.id)
             result = ToolResult.fail(f"Tool-Crash: {type(e).__name__}: {e}")
 
     # Engstelle: bekannte Secret-Werte aus dem Output schwärzen, BEVOR er in die

@@ -81,5 +81,12 @@ async def call(qualified_name: str, args: dict, tool_ctx: ToolContext) -> ToolRe
                 return await tool.execute(args, tool_ctx)
             except Exception as e:
                 logger.exception("Plugin-Tool '%s' crashte", qualified_name)
-                return ToolResult.fail(f"Plugin-Crash: {type(e).__name__}: {e}")
+                return _crash_result(qualified_name, e, tool_ctx)
     return ToolResult.fail(f"Tool '{tool_name}' im Plugin '{plugin_name}' nicht gefunden")
+
+
+def _crash_result(qualified_name: str, exc: Exception, tool_ctx: ToolContext) -> ToolResult:
+    """Absturz nach errors_log (Task ff8644b2) und als Plugin-Crash melden."""
+    from hydrahive.runner._crash_log import record_crash
+    record_crash("plugin.crash", qualified_name, exc, tool_ctx)
+    return ToolResult.fail(f"Plugin-Crash: {type(exc).__name__}: {exc}")
