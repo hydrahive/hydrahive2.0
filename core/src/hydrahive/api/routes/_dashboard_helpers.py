@@ -3,17 +3,36 @@ from __future__ import annotations
 
 import shutil
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from hydrahive.agentlink import is_connected as agentlink_connected
 from hydrahive.api.routes._websearch_health import websearch_health
 from hydrahive.settings import settings
 
 
-def today_start_iso() -> str:
-    now = datetime.now(timezone.utc)
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    return start.isoformat()
+# „Heute“ im Dashboard = deutscher Kalendertag (Till, 30.09.2026, Task a1b95d3b).
+_DAY_TZ = ZoneInfo("Europe/Berlin")
+
+
+def _local_midnight(now: datetime | None, days_back: int = 0) -> str:
+    """Deutsche Mitternacht (heute minus days_back) als UTC-Text …+00:00.
+
+    Die DB speichert UTC; im selben Textformat ist die Grenze direkt mit
+    created_at vergleichbar (auch mit alten …Z-Zeitstempeln)."""
+    local = (now or datetime.now(timezone.utc)).astimezone(_DAY_TZ)
+    day = local.date() - timedelta(days=days_back)
+    start = datetime(day.year, day.month, day.day, tzinfo=_DAY_TZ)
+    return start.astimezone(timezone.utc).isoformat()
+
+
+def today_start_iso(now: datetime | None = None) -> str:
+    return _local_midnight(now)
+
+
+def week_start_iso(now: datetime | None = None) -> str:
+    """Beginn der letzten 7 deutschen Kalendertage (heute eingeschlossen: 7 volle Tage zurück)."""
+    return _local_midnight(now, days_back=7)
 
 
 def health_check() -> dict:

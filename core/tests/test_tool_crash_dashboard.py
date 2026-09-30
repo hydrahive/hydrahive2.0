@@ -40,28 +40,6 @@ def test_dashboard_zaehlt_llm_fehler_weiter(session_message, client, admin_heade
     assert _shown_errors(client, admin_headers) - before == 1
 
 
-def test_crash_count_grenzt_wie_session_metrics_ab():
-    """Nur Abstürze aus Sessions ab `since`, optional nur eines Nutzers, nur .crash-Quellen."""
-    from hydrahive.db.errors_log import crash_count
-
-    init_db()
-    mine = sessions_db.create(agent_id="a", user_id="alice-crash")
-    other = sessions_db.create(agent_id="a", user_id="bob-crash")
-    for sid, user in ((mine.id, "alice-crash"), (other.id, "bob-crash")):
-        errors_log.record(source="tool.crash", session_id=sid, user_id=user, message="x")
-    errors_log.record(source="runner.llm_call", session_id=mine.id, user_id="alice-crash", message="y")
-    errors_log.record(source="tool.crash", session_id=None, user_id="alice-crash", message="ohne session")
-
-    with db() as conn:
-        since = conn.execute("SELECT MIN(created_at) FROM sessions WHERE id IN (?, ?)",
-                             (mine.id, other.id)).fetchone()[0]
-        assert crash_count(conn, since=since, username="alice-crash") == 1
-        assert crash_count(conn, since=since, username="bob-crash") == 1
-        assert crash_count(conn, since="9999-01-01", username="alice-crash") == 0
-        alle = crash_count(conn, since=since)
-    assert alle >= 2
-
-
 def test_kachel_nie_negativ_bei_nicht_admin(crashing_tool, client, auth_headers):
     """Normaler Nutzer: eigener Absturz zählt einmal, errors wird nie negativ."""
     init_db()

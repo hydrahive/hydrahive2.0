@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useState } from "react"
 import { ArrowLeft, MessageSquare } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { formatMicrosUsd } from "@/features/chat/pricing"
 import { Link, useParams } from "react-router-dom"
 import { rgbFor } from "@/shared/colors"
 import { analyticsApi, type SessionDetail } from "./api"
@@ -75,7 +76,7 @@ export function SessionDetailPage() {
 }
 
 function MetricsRow({ m }: { m: NonNullable<SessionDetail["metrics"]> }) {
-  const { t } = useTranslation("analytics")
+  const { t, i18n } = useTranslation("analytics")
   const totalInput = (m.input_tokens || 0) + (m.cache_read_tokens || 0) + (m.cache_creation_tokens || 0)
   const cacheRatio = totalInput > 0 ? Math.round(100 * (m.cache_read_tokens || 0) / totalInput) : 0
   const items: [string, string | number][] = [
@@ -85,7 +86,7 @@ function MetricsRow({ m }: { m: NonNullable<SessionDetail["metrics"]> }) {
     [t("metrics.cache_read"), formatN(m.cache_read_tokens || 0)],
     [t("metrics.cache_creation"), formatN(m.cache_creation_tokens || 0)],
     [t("metrics.cache_hit"), `${cacheRatio}%`],
-    [t("metrics.cost"), formatCost(m.cost_micros || 0)],
+    [t("metrics.cost"), formatMicrosUsd(m.cost_micros || 0, i18n.language)],
     [t("metrics.llm_time"), `${formatMs(m.total_llm_ms || 0)}`],
     [t("metrics.tool_calls"), m.tool_calls || 0],
     [t("metrics.tool_errors"), m.tool_errors || 0],
@@ -114,7 +115,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function LlmCallsTable({ rows }: { rows: SessionDetail["llm_calls"] }) {
-  const { t } = useTranslation("analytics")
+  const { t, i18n } = useTranslation("analytics")
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
@@ -137,7 +138,7 @@ function LlmCallsTable({ rows }: { rows: SessionDetail["llm_calls"] }) {
                 {formatN(r.cache_read_tokens || 0)}/{formatN(r.cache_creation_tokens || 0)}
               </Td>
               <Td right>{formatMs(r.total_ms || 0)}</Td>
-              <Td right className="text-amber-400">{formatCost(r.cost_micros || 0)}</Td>
+              <Td right className="text-amber-400">{formatMicrosUsd(r.cost_micros || 0, i18n.language)}</Td>
               <Td className="text-zinc-500">{r.stop_reason}</Td>
             </tr>
           ))}
@@ -256,10 +257,4 @@ function formatBytes(b: number | null): string {
   if (b < 1024) return `${b}B`
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)}kB`
   return `${(b / (1024 * 1024)).toFixed(1)}MB`
-}
-function formatCost(micros: number): string {
-  const euro = micros / 100_000
-  if (euro < 0.01) return `${(micros / 1000).toFixed(2)}¢`
-  if (euro < 1) return `${(euro * 100).toFixed(1)}¢`
-  return `€${euro.toFixed(2)}`
 }
