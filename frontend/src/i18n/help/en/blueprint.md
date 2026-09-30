@@ -29,6 +29,19 @@ describe verbally, the other guesses. With Blueprint you hand over **layout bloc
 4. Set details via the **properties panel** on the right.
 5. The board then serves as a clear template — e.g. for an agent task.
 
+## Handing a board to the agent
+
+- **Right in the chat:** Write something like "Look at my board *Login page* and
+  build it like that". The agent reads the board with the `blueprint_read` tool:
+  every block with its label, placeholder and note, plus the connections, with
+  **yes** and **no** on conditions. It only sees **your own** boards and never
+  changes them.
+- **Copy as text:** The button at the top of the editor puts the same text on the
+  clipboard. You can paste it into any chat, even for agents without the tool.
+
+The Buddy and your personal assistant get the tool automatically after the update.
+Give it to other agents in the agent settings under **Tools**.
+
 ## Tips
 
 - **Coarse before fine**: first the rough blocks and their connections, then
