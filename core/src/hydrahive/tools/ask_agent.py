@@ -33,6 +33,7 @@ from hydrahive.tools._ask_agent_helpers import (
     result_from_response as _result_from_response,
 )
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import describe
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +197,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         sent = await post_state(state)
     except Exception as e:
         logger.exception("AgentLink post_state fehlgeschlagen")
-        return ToolResult.fail(f"AgentLink-Post fehlgeschlagen: {type(e).__name__}: {e}")
+        return ToolResult.fail(f"AgentLink-Post fehlgeschlagen: {describe(e)}")
 
     if not sent.id:
         return ToolResult.fail("AgentLink lieferte keinen state.id zurück")
@@ -257,7 +258,7 @@ async def _execute_federated(target: str, task: str, args: dict, ctx: ToolContex
         return ToolResult.ok(f"[{label}]: {result}")
     except Exception as e:
         logger.exception("Federation remote_chat fehlgeschlagen: %s", e)
-        return ToolResult.fail(f"Federation-Fehler: {e}")
+        return ToolResult.fail(f"Federation-Fehler: {describe(e)}")
 
 
 TOOL = Tool(name="ask_agent", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="agents")

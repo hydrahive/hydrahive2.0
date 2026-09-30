@@ -4,6 +4,7 @@ import re
 
 from hydrahive.tools._path import PathOutsideWorkspace, safe_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import fail_with_cause
 
 
 _DESCRIPTION = (
@@ -71,7 +72,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         text = p.read_text(encoding="utf-8", errors="replace")
     except Exception as e:
-        return ToolResult.fail(f"Lesefehler: {e}")
+        return fail_with_cause("Lesefehler", e, "file_read")
 
     lines = text.splitlines()
     total = len(lines)

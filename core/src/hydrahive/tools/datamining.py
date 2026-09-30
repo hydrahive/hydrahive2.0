@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import fail_with_cause
 
 
 def _serialize(obj):
@@ -77,7 +78,8 @@ async def _search(args: dict, ctx: ToolContext) -> ToolResult:
         )
         return ToolResult.ok(_serialize({"count": len(results), "results": results}))
     except Exception as e:
-        return ToolResult.fail(f"Datamining-Suche fehlgeschlagen: {e}")
+        return fail_with_cause("Datamining-Suche fehlgeschlagen", e, "datamining_search",
+                               hint="Suchbegriff eingrenzen oder from_date setzen.")
 
 
 async def _semantic(args: dict, ctx: ToolContext) -> ToolResult:
@@ -94,7 +96,8 @@ async def _semantic(args: dict, ctx: ToolContext) -> ToolResult:
         )
         return ToolResult.ok(_serialize({"count": len(results), "results": results}))
     except Exception as e:
-        return ToolResult.fail(f"Semantische Suche fehlgeschlagen: {e}")
+        return fail_with_cause("Semantische Suche fehlgeschlagen", e, "datamining_semantic",
+                               hint="Suchbegriff eingrenzen oder Anzahl (limit) verkleinern.")
 
 
 async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
@@ -151,7 +154,8 @@ async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
             "total_sessions": len(sessions), "days": days,
         }))
     except Exception as e:
-        return ToolResult.fail(f"Timeline-Abfrage fehlgeschlagen: {e}")
+        return fail_with_cause("Timeline-Abfrage fehlgeschlagen", e, "datamining_timeline",
+                               hint="Zeitraum verkleinern (from_date/to_date).")
 
 
 async def _today(args: dict, ctx: ToolContext) -> ToolResult:
@@ -162,7 +166,7 @@ async def _today(args: dict, ctx: ToolContext) -> ToolResult:
         today = [s for s in sessions if str(s.get("updated_at", ""))[:10] == date]
         return ToolResult.ok(_serialize({"date": date, "sessions": today, "count": len(today)}))
     except Exception as e:
-        return ToolResult.fail(f"Today-Abfrage fehlgeschlagen: {e}")
+        return fail_with_cause("Today-Abfrage fehlgeschlagen", e, "datamining_today")
 
 
 TOOL_SEARCH = Tool(
