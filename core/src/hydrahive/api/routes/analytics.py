@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.routes._dashboard_helpers import today_start_iso
 from hydrahive.db.connection import db
+from hydrahive.db.errors_log import crash_count
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -66,6 +67,12 @@ def overview(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
                WHERE created_at >= ?{where_user_unqualified}""",
             params_today,
         ).fetchone()
+        today_row = dict(row_today) if row_today else {}
+        if today_row:
+            # Tool-Abstürze stehen in errors_log UND als fehlgeschlagener
+            # tool_call. Für die Kachel „Heute Fehler“ (errors + tool_errors)
+            # nur einmal zählen (Task ff8644b2).
+            today_row["errors"] -= crash_count(conn, since=today, username=None if role == "admin" else username)
 
         # last 7d
         row_7d = conn.execute(
@@ -137,7 +144,7 @@ def overview(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
             ).fetchall()
 
     return {
-        "today": dict(row_today) if row_today else {},
+        "today": today_row,
         "last_7d": dict(row_7d) if row_7d else {},
         "top_cost_sessions": [dict(r) for r in top_rows],
         "by_model": [dict(r) for r in by_model_rows],
