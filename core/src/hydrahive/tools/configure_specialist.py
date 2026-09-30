@@ -9,6 +9,7 @@ from hydrahive.tools._project_authoring import (
     specialist_runtime_changes,
 )
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import fail_with_cause
 
 _DESCRIPTION = (
     "Ändert einen Spezialisten DEINES Projekts (Modell, Tools, System-Prompt, "
@@ -65,7 +66,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         if args.get("system_prompt"):
             agent_config.set_system_prompt(target_id, args["system_prompt"])
     except Exception as exc:
-        return ToolResult.fail(f"Konfiguration fehlgeschlagen: {exc}")
+        return fail_with_cause("Konfiguration fehlgeschlagen", exc, "configure_specialist")
 
     updated = sorted([*changes, *(["system_prompt"] if args.get("system_prompt") else [])])
     return ToolResult.ok({"id": target_id, "updated": updated})

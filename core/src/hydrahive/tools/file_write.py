@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from hydrahive.tools._path import PathOutsideWorkspace, safe_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import fail_with_cause
 
 
 _DESCRIPTION = (
@@ -34,7 +35,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
     except Exception as e:
-        return ToolResult.fail(f"Schreibfehler: {e}")
+        return fail_with_cause("Schreibfehler", e, "file_write")
 
     return ToolResult.ok(
         f"Datei geschrieben: {p}",

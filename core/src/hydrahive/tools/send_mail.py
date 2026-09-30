@@ -5,6 +5,7 @@ from email.message import EmailMessage
 from email.utils import parseaddr
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import fail_with_cause
 
 
 _DESCRIPTION = (
@@ -104,7 +105,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         await asyncio.to_thread(_transport.send_message, cfg, msg)
     except Exception as e:
-        return ToolResult.fail(f"Mail-Versand fehlgeschlagen: {e}")
+        return fail_with_cause("Mail-Versand fehlgeschlagen", e, "send_mail")
 
     return ToolResult.ok(f"Mail an {to} gesendet", to=to, subject=subject)
 

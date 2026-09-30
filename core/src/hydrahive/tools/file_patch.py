@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from hydrahive.tools._path import PathOutsideWorkspace, safe_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import fail_with_cause
 
 
 _DESCRIPTION = (
@@ -44,7 +45,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         text = p.read_text(encoding="utf-8")
     except Exception as e:
-        return ToolResult.fail(f"Lesefehler: {e}")
+        return fail_with_cause("Lesefehler", e, "file_patch")
 
     count = text.count(old)
     if count == 0:
@@ -58,7 +59,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         p.write_text(new_text, encoding="utf-8")
     except Exception as e:
-        return ToolResult.fail(f"Schreibfehler: {e}")
+        return fail_with_cause("Schreibfehler", e, "file_patch")
 
     return ToolResult.ok(
         f"Datei gepatcht: {p}",

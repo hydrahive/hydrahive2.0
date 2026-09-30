@@ -9,6 +9,7 @@ from hydrahive.tools._project_authoring import (
     specialist_runtime_changes,
 )
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
+from hydrahive.tools._errors import fail_with_cause
 
 _DESCRIPTION = (
     "Legt einen neuen Spezialisten in DEINEM Projekt an (du musst Projekt-Agent sein). "
@@ -71,7 +72,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             **runtime,
         )
     except Exception as e:
-        return ToolResult.fail(f"Anlegen fehlgeschlagen: {e}")
+        return fail_with_cause("Anlegen fehlgeschlagen", e, "create_specialist")
 
     proj = project_config.get(pid)
     allowed = list((proj or {}).get("allowed_specialists", []))
