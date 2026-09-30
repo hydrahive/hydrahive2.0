@@ -11,6 +11,7 @@ import { useChatCompact } from "./useChatCompact"
 import { MessageInput } from "./MessageInput"
 import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
+import { RunErrorBanner } from "./RunErrorBanner"
 import { ToolConfirmBanner } from "./ToolConfirmBanner"
 import { ThreePanelLayout } from "./layout/ThreePanelLayout"
 import { WorkspacePanel } from "./workspace/WorkspacePanel"
@@ -316,19 +317,12 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               onScope={setPixelScope}
             />
           )}
-          {chat.error && (
-            <div className="px-4 py-2 text-xs text-rose-400 bg-rose-500/10 border-t border-rose-500/20 flex items-center justify-between gap-3">
-              <span>{chat.error}</span>
-              {chat.errorKind === "max_iterations" && (
-                <button
-                  onClick={() => handleSend(t("max_iter.continue_send"))}
-                  className="px-2 py-1 rounded-md text-xs text-rose-200 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 whitespace-nowrap"
-                >
-                  {t("max_iter.continue_label")}
-                </button>
-              )}
-            </div>
-          )}
+          <RunErrorBanner
+            error={chat.error}
+            errorKind={chat.errorKind}
+            continueLabel={t("max_iter.continue_label")}
+            onContinue={() => handleSend(t("max_iter.continue_send"))}
+          />
           {chat.pendingConfirm && (
             <ToolConfirmBanner
               pending={chat.pendingConfirm}

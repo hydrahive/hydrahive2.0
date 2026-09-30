@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { attachRun, chatApi, sendMessage, subscribeSession } from "./api"
 import { applyStreamEvent, flushPendingLive } from "./_chatStream"
-import { applyReload } from "./_reloadMerge"
+import { applyReload, errorAfterReload } from "./_reloadMerge"
 import type { ContentBlock, Message } from "./types"
 
 export interface PendingConfirm {
@@ -65,16 +65,13 @@ export function useChat(sessionId: string | null) {
       // busy bleibt true, wenn gerade ein Run läuft (Reconnect/Sende-Stream) —
       // die Wahrheit ist der Server-Run-Status, nicht der lokale Ladevorgang.
       const stillRunning = runningRef.current
-      // max_iterations-Error bleibt stehen bis der User "weitermachen" klickt —
-      // Live-Sync-Reload darf ihn nicht wegwischen.
+      // Lauf-Fehler bleiben beim Live-Sync-Reload stehen (errorAfterReload).
       setState((s) => ({
-        ...s, ...applyReload(s, sessionId, msgs, stillRunning),
+        ...s, ...errorAfterReload(s, sessionId), ...applyReload(s, sessionId, msgs, stillRunning),
         busy: stillRunning, iteration: stillRunning ? s.iteration : 0,
-        error: s.errorKind === "max_iterations" ? s.error : null,
-        errorKind: s.errorKind === "max_iterations" ? s.errorKind : null,
       }))
     } catch (e) {
-      setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Fehler" }))
+      setState((s) => ({ ...s, error: e instanceof Error ? e.message : "Fehler", errorKind: "load" }))
     }
   }, [sessionId])
 
