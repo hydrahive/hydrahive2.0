@@ -14,8 +14,15 @@ Aufrufe per `fetch_url` gegen die lokale HydraHive-API. Die Patientenakte ist ei
 installiertes Modul (`patientenakte`) — die Endpunkte liegen daher unter
 `/api/modules/patientenakte/akte`.
 
-- **Basis:** `http://127.0.0.1:8000/api/modules/patientenakte/akte` (Port ggf. anpassen)
-- **Auth:** `Authorization: Bearer <hhk_…>` (API-Key des Nutzers mit Akte-Zugriff)
+- **Basis:** `http://127.0.0.1:8001/api/modules/patientenakte/akte`
+  (8001 ist der Standard-Port des HydraHive-Backends. Weicht er auf einer Installation
+  ab, steht er in `HH_PORT`.)
+- **Zugang:** über ein **Credential-Profil**, nie über einen Key im Tool-Aufruf.
+  Der Nutzer legt unter **Zugangsdaten** ein Profil an: Typ „Bearer“, Wert = sein
+  persönlicher API-Key (`hhk_…`), URL-Muster `http://127.0.0.1:8001/*`. `fetch_url`
+  setzt den Key dann selbst ein, du siehst ihn nie. Ohne dieses Profil lehnt `fetch_url`
+  interne Adressen ab („Zugriff auf interne/private Adressen gesperrt“). Dann den Nutzer
+  bitten, das Profil anzulegen, statt nach dem Key zu fragen.
 - **Body:** JSON. Immer `Content-Type: application/json` setzen.
 - **Single-User:** Jeder Nutzer hat genau EINE Akte (kein `pid` im Pfad). Der Key
   bindet an den Nutzer; Einträge gehen direkt in dessen Akte.
@@ -75,21 +82,21 @@ Alle Entitäten akzeptieren zusätzlich: `external_id`, `quelle`, `confidence`, 
 Diagnose anlegen (aus Arztbrief-OCR):
 ```
 fetch_url(
-  "http://127.0.0.1:8000/api/modules/patientenakte/akte/conditions",
+  "http://127.0.0.1:8001/api/modules/patientenakte/akte/conditions",
   method="POST",
-  headers={"Authorization": "Bearer <hhk_…>", "Content-Type": "application/json"},
+  content_type="application/json",
   body='{"external_id":"kath-2024-11-K75.0","diagnose":"Leberabszess","icd_code":"K75.0",'
-       '"status":"behandelt","diagnostiziert_am":"2024-11-21","arzt":"Dr. Morlang",'
-       '"quelle":"Arztbrief OCR mediscan.pdf","confidence":0.9,"verifiziert":false}',
+       '"status":"behandelt","diagnostiziert_am":"2024-11-21","arzt":"Dr. Beispiel",'
+       '"quelle":"Arztbrief OCR brief.pdf","confidence":0.9,"verifiziert":false}',
 )
 ```
 
 Laborwerte als Batch (eine Tabelle, ein Datum):
 ```
 fetch_url(
-  "http://127.0.0.1:8000/api/modules/patientenakte/akte/observations/batch",
+  "http://127.0.0.1:8001/api/modules/patientenakte/akte/observations/batch",
   method="POST",
-  headers={"Authorization": "Bearer <hhk_…>", "Content-Type": "application/json"},
+  content_type="application/json",
   body='{"items":['
        '{"external_id":"lab-2025-03-01-hba1c","parameter":"HbA1c","wert":7.8,"einheit":"%","datum":"2025-03-01"},'
        '{"external_id":"lab-2025-03-01-egfr","parameter":"eGFR","wert":93,"einheit":"ml/min","datum":"2025-03-01"}'
