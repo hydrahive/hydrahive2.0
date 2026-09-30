@@ -1,18 +1,12 @@
 import { useTranslation } from "react-i18next"
 import type { RegistryModel } from "./api"
-import { KNOWN_PROVIDERS } from "./_llm_providers"
+import { providerName } from "./_llm_providers"
 
 interface ModelSelectProps {
   label: string
   value: string
   models: RegistryModel[]
   onChange: (model: string) => void
-}
-
-function providerName(provider: string): string {
-  // "local" = Dienste auf diesem Server (Whisper/Piper), kein konfigurierter Anbieter.
-  if (provider === "local") return "Dieser Server (lokal)"
-  return KNOWN_PROVIDERS.find((p) => p.id === provider)?.name ?? provider
 }
 
 /** Auswahl aus der Registry-Liste, gruppiert nach Anbieter. */

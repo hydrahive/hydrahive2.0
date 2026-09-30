@@ -137,5 +137,13 @@
     "max_turns_auto": "auto",
     "max_turns_help": "Compaction feuert auch, wenn die Nachrichten-Anzahl diesen Wert erreicht — unabhängig von den Tokens. Leer = automatisch (skaliert mit dem Context-Window, z.B. 5000 bei 1M). Nur setzen, wenn ein tool-lastiger Agent zu früh kompaktiert.",
     "reserve_help": "Wirkt nur, wenn größer als die aus dem Trigger-% abgeleitete Headroom. Bei Trigger < 100% gewinnt meist das Prozent (z.B. 75% von 1M = 250k Reserve → dieser Wert bleibt dann wirkungslos)."
+  },
+  "model_picker": {
+    "search": "Modell suchen…",
+    "all_providers": "Alle Anbieter",
+    "only_free": "nur gratis",
+    "count": "{{shown}} von {{total}} Modellen",
+    "current": "(aktuell)",
+    "none": "Kein Modell passt zum Filter."
   }
 }
