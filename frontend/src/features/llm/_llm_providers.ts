@@ -57,3 +57,9 @@ export const KNOWN_PROVIDERS = [
 ]
 
 export const EMPTY_PROVIDER: LlmProvider = { id: "", name: "", api_key: "", models: [] }
+
+/** Anzeigename eines Anbieters; "local" = Dienste auf diesem Server (Whisper/Piper). */
+export function providerName(provider: string): string {
+  if (provider === "local") return "Dieser Server (lokal)"
+  return KNOWN_PROVIDERS.find((p) => p.id === provider)?.name ?? provider
+}

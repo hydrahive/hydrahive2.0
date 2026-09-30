@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import type { Agent } from "./types"
 import type { RegistryModel } from "@/features/llm/api"
+import { AgentModelPicker } from "./_AgentModelPicker"
 
 interface Props {
   draft: Agent
@@ -15,7 +16,7 @@ export function ModelTab({ draft, models, catalog, onChange }: Props) {
   return (
     <div className="space-y-3">
       <Field label={t("fields.model")}>
-        <ModelPicker
+        <AgentModelPicker
           value={draft.llm_model}
           catalog={catalog}
           onChange={(m) => onChange({ llm_model: m })}
@@ -100,38 +101,6 @@ function Field({ label, hint, hintTone, children }: {
       <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
       {children}
       {hint && <p className={`text-[10px] ${hintClass} mt-0.5`}>{hint}</p>}
-    </div>
-  )
-}
-
-function ModelPicker({ value, catalog, onChange }: {
-  value: string; catalog: RegistryModel[]; onChange: (m: string) => void
-}) {
-  const [q, setQ] = useState("")
-  const [onlyFree, setOnlyFree] = useState(false)
-  const filtered = useMemo(() => catalog.filter((m) =>
-    (!onlyFree || m.is_free === true) &&
-    (q === "" || m.id.toLowerCase().includes(q.toLowerCase()))
-  ).slice(0, 100), [catalog, q, onlyFree])
-
-  return (
-    <div className="space-y-1">
-      <div className="flex gap-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Modell suchen…"
-          className="flex-1 px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200" />
-        <label className="flex items-center gap-1 text-[10px] text-zinc-400 whitespace-nowrap">
-          <input type="checkbox" checked={onlyFree} onChange={(e) => setOnlyFree(e.target.checked)} />
-          nur gratis
-        </label>
-      </div>
-      <select value={value} onChange={(e) => onChange(e.target.value)} size={6}
-        className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 font-mono">
-        {!filtered.some((m) => m.id === value) && value && <option value={value}>{value} (aktuell)</option>}
-        {filtered.map((m) => (
-          <option key={m.id} value={m.id}>{m.is_free === true ? "🆓 " : ""}{m.id}</option>
-        ))}
-      </select>
-      {filtered.length === 100 && <p className="text-[10px] text-zinc-600">…verfeinere die Suche (max 100 angezeigt)</p>}
     </div>
   )
 }
