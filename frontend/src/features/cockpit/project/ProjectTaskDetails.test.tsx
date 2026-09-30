@@ -1,5 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+// api-client zieht i18n → @/modules/index.generated, das gibt es nur nach der
+// Modul-Installation, nicht in der CI (gleiches Vorgehen wie users/api.test.ts).
+vi.mock("@/shared/api-client", () => ({ api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }))
 import { ProjectTaskDetails } from "./ProjectTaskDetails"
 import { formatVersionTime, historyLabel } from "./_projectTasksApi"
 
