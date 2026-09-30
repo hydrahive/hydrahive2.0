@@ -46,6 +46,9 @@
     "copied": "Kopiert!",
     "dismiss": "Schließen",
     "delete_confirm": "API-Key wirklich widerrufen?",
-    "empty": "Noch keine API-Keys angelegt."
+    "empty": "Noch keine API-Keys angelegt.",
+    "own_title": "Meine API-Keys",
+    "own_subtitle": "Für Skripte, Apps und Zugangsdaten-Profile deiner Agenten. Ein Key hat deine Rechte, gib ihn nicht weiter. Anlegen und Löschen geht nur hier mit deiner Anmeldung.",
+    "loading": "API-Keys werden geladen …"
   }
 }

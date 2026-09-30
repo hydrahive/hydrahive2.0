@@ -46,6 +46,9 @@
     "copied": "Copied!",
     "dismiss": "Dismiss",
     "delete_confirm": "Really revoke this API key?",
-    "empty": "No API keys yet."
+    "empty": "No API keys yet.",
+    "own_title": "My API keys",
+    "own_subtitle": "For scripts, apps and your agents' credential profiles. A key has your permissions, do not share it. Creating and deleting only works here with your login.",
+    "loading": "Loading API keys …"
   }
 }

@@ -10,7 +10,12 @@ from hydrahive.api.middleware.client_ip import client_ip
 from hydrahive.api.middleware.api_keys import create as create_key
 from hydrahive.api.middleware.api_keys import delete as delete_key
 from hydrahive.api.middleware.api_keys import list_keys
-from hydrahive.api.middleware.auth import AuthPrincipal, create_token, require_auth, require_principal
+from hydrahive.api.middleware.auth import (
+    AuthPrincipal,
+    create_token,
+    require_auth,
+    require_session_principal,
+)
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.middleware.users import verify
 
@@ -56,15 +61,16 @@ class CreateKeyRequest(BaseModel):
 
 
 @router.get("/apikeys")
-def get_api_keys(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+def get_api_keys(auth: Annotated[tuple[str, str], Depends(require_auth)], mine: bool = False) -> list[dict]:
+    """Admins sehen alle Keys, außer mit mine=true (Profilseite „Meine API-Keys“)."""
     username, role = auth
-    return list_keys(username=None if role == "admin" else username)
+    return list_keys(username=None if role == "admin" and not mine else username)
 
 
 @router.post("/apikeys", status_code=status.HTTP_201_CREATED)
 def create_api_key(
     req: CreateKeyRequest,
-    principal: Annotated[AuthPrincipal, Depends(require_principal)],
+    principal: Annotated[AuthPrincipal, Depends(require_session_principal)],
 ) -> dict:
     if not req.name.strip():
         raise coded(status.HTTP_400_BAD_REQUEST, "name_required")
@@ -80,9 +86,8 @@ def create_api_key(
 @router.delete("/apikeys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_api_key(
     key_id: str,
-    auth: Annotated[tuple[str, str], Depends(require_auth)],
+    principal: Annotated[AuthPrincipal, Depends(require_session_principal)],
 ) -> None:
-    username, role = auth
-    ok = delete_key(key_id, username=None if role == "admin" else username)
+    ok = delete_key(key_id, username=None if principal.role == "admin" else principal.username)
     if not ok:
         raise coded(status.HTTP_404_NOT_FOUND, "key_not_found")

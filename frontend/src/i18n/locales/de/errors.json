@@ -162,5 +162,6 @@
   "subject_invalid": "Ungültiger Empfänger der Freigabe",
   "capability_denied": "Keine Freigabe für diese Funktion ({{capability}})",
 
-  "validation_error": "{{message}}"
+  "validation_error": "{{message}}",
+  "session_required": "Dafür ist eine Anmeldung nötig, ein API-Key reicht nicht"
 }

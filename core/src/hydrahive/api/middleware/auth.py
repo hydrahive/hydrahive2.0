@@ -81,6 +81,22 @@ def require_principal(
     return AuthPrincipal(user_id=ident.user_id, username=ident.username, role=ident.role)
 
 
+def require_session_principal(
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> AuthPrincipal:
+    """Wie require_principal, aber nur mit Login-Sitzung (JWT), nicht mit API-Key.
+
+    Für Aktionen, mit denen man sich dauerhaften Zugang verschaffen kann
+    (API-Keys anlegen/löschen). Sonst könnte ein abgegriffener Key, auch über
+    ein Agent-Credential-Profil, sich selbst Ersatz-Keys erzeugen (Task 9e9439ff).
+    """
+    from hydrahive.api.middleware._resolve import API_KEY_PREFIX
+
+    if creds and creds.credentials.startswith(API_KEY_PREFIX):
+        raise coded(status.HTTP_403_FORBIDDEN, "session_required")
+    return require_principal(creds)
+
+
 def require_admin(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> tuple[str, str]:
