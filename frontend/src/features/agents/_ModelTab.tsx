@@ -1,17 +1,16 @@
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import type { Agent } from "./types"
 import type { RegistryModel } from "@/features/llm/api"
 import { AgentModelPicker } from "./_AgentModelPicker"
+import { FallbackModelsSelector } from "./_FallbackModelsSelector"
 
 interface Props {
   draft: Agent
-  models: string[]
   catalog: RegistryModel[]
   onChange: (patch: Partial<Agent>) => void
 }
 
-export function ModelTab({ draft, models, catalog, onChange }: Props) {
+export function ModelTab({ draft, catalog, onChange }: Props) {
   const { t } = useTranslation("agents")
   return (
     <div className="space-y-3">
@@ -68,7 +67,7 @@ export function ModelTab({ draft, models, catalog, onChange }: Props) {
       <Field label={t("fields.fallback_models")} hint={t("fields.fallback_hint")}>
         <FallbackModelsSelector
           primary={draft.llm_model}
-          available={models}
+          catalog={catalog}
           selected={draft.fallback_models ?? []}
           onChange={(fb) => onChange({ fallback_models: fb })}
         />
@@ -101,73 +100,6 @@ function Field({ label, hint, hintTone, children }: {
       <label className="block text-[10px] font-medium text-zinc-500">{label}</label>
       {children}
       {hint && <p className={`text-[10px] ${hintClass} mt-0.5`}>{hint}</p>}
-    </div>
-  )
-}
-
-function providerOf(model: string): string {
-  return model.includes("/") ? model.split("/")[0] : "(direkt)"
-}
-
-function FallbackModelsSelector({ primary, available, selected, onChange }: {
-  primary: string; available: string[]; selected: string[]; onChange: (s: string[]) => void
-}) {
-  const add = (m: string) => onChange([...selected, m])
-  const remove = (m: string) => onChange(selected.filter((x) => x !== m))
-  const moveUp = (i: number) => {
-    if (i === 0) return
-    const next = [...selected]
-    ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
-    onChange(next)
-  }
-
-  // Verbleibende Modelle nach Provider gruppieren → ein Dropdown pro Provider
-  // (statt hunderte Buttons untereinander).
-  const byProvider = useMemo(() => {
-    const map = new Map<string, string[]>()
-    for (const m of available) {
-      if (m === primary || selected.includes(m)) continue
-      const p = providerOf(m)
-      ;(map.get(p) ?? map.set(p, []).get(p)!).push(m)
-    }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
-  }, [available, primary, selected])
-
-  return (
-    <div className="space-y-2">
-      {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selected.map((m, i) => (
-            <span key={m} className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-md bg-violet-500/15 border border-violet-500/30 text-violet-200 text-xs font-mono">
-              <span className="text-[10px] text-violet-400 mr-0.5">{i + 1}.</span>
-              {m}
-              <button onClick={() => moveUp(i)} disabled={i === 0}
-                className="px-1 text-violet-300 hover:text-white disabled:opacity-30" title="hoch">↑</button>
-              <button onClick={() => remove(m)}
-                className="px-1 text-violet-300 hover:text-rose-300" title="entfernen">×</button>
-            </span>
-          ))}
-        </div>
-      )}
-      {byProvider.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-          {byProvider.map(([prov, ms]) => (
-            <select
-              key={prov}
-              value=""
-              onChange={(e) => { if (e.target.value) add(e.target.value) }}
-              className="w-full px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-300"
-            >
-              <option value="">+ {prov} ({ms.length})…</option>
-              {ms.map((m) => (
-                <option key={m} value={m}>{m.includes("/") ? m.split("/").slice(1).join("/") : m}</option>
-              ))}
-            </select>
-          ))}
-        </div>
-      ) : (
-        selected.length === 0 && <p className="text-xs text-zinc-600">—</p>
-      )}
     </div>
   )
 }

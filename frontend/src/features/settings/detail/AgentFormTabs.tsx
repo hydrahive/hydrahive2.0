@@ -113,7 +113,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
         )}
         <div className="max-w-3xl">
           {tab === "overview" && <OverviewTab draft={draft} onChange={patch} />}
-          {tab === "model" && <ModelTab draft={draft} models={models} catalog={catalog} onChange={patch} />}
+          {tab === "model" && <ModelTab draft={draft} catalog={catalog} onChange={patch} />}
           {tab === "tools" && <ToolsTab draft={draft} tools={tools} mcpServers={mcpServers} onChange={patch} />}
           {tab === "mail" && hasMail && <MailTab draft={draft} onChange={patch} />}
           {tab === "skills" && <SkillsTab agent={agent} draft={draft} onChange={patch} />}
