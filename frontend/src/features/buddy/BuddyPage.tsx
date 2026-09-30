@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { HelpButton } from "@/i18n/HelpButton"
+import { RunErrorBanner } from "@/features/chat/RunErrorBanner"
 import { ToolConfirmBanner } from "@/features/chat/ToolConfirmBanner"
 import { useChat } from "@/features/chat/useChat"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
@@ -159,6 +160,7 @@ export function BuddyPage() {
             {state.created && <div className="px-5 pt-3 pb-1 text-center text-[11px] text-[#69d7ff]">{t("just_woken_up")}</div>}
             <NewChatHint inputTokens={chat.lastTurnTokens?.input ?? null} onNewChat={newChat} />
             <BuddyThread hiddenCount={hiddenCount} onLoadOlder={() => setVisibleCount((n) => n + MSG_WINDOW_STEP)} loadOlderLabel={t("load_older", { count: hiddenCount })} />
+            <RunErrorBanner error={chat.error} errorKind={chat.errorKind} continueLabel={t("chat:max_iter.continue_label")} onContinue={() => handleSend(t("chat:max_iter.continue_send"))} />
             {chat.pendingConfirm && <ToolConfirmBanner pending={chat.pendingConfirm} onApprove={() => chat.confirmTool("approve")} onDeny={() => chat.confirmTool("deny")} />}
             <div className="shrink-0 border-t border-[#2a364b] bg-[#111827]">
               <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} quickActions={(insert) => <BuddyQuickActions handleSend={handleSend} insert={insert} />} />

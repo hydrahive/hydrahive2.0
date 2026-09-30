@@ -29,7 +29,7 @@ from hydrahive.runner._buddy_mode import with_buddy_mode
 from hydrahive.runner._emote_hint import with_emote_hint
 from hydrahive.runner._project_tool_scope import scope_tools
 from hydrahive.access.tool_filter import filter_tools as access_filter_tools
-from hydrahive.runner._runner_helpers import close_open_tool_uses
+from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
 from hydrahive.runner._runner_iter import (
     IterationResult,
     prepare_history,
@@ -308,6 +308,15 @@ async def run(
                 "Tool-Argumente sind unvollständig. Erhöhe max_tokens oder formuliere die Aufgabe kürzer.",
                 metadata={"stop_reason": result.stop_reason, "message_id": assistant_msg.id},
             ); return
+
+        # refusal: Das Modell hat die Antwort verweigert/abgebrochen. Auch wenn
+        # schon Text oder tool_use kam, ist die Antwort nicht vollständig.
+        # Früher: ohne Text nur „leere Antwort“, mit Text lief der Lauf weiter
+        # (Task 891f1d3a, belegt 27.09.2026).
+        if result.stop_reason == "refusal":
+            yield refusal_error(session_id, agent, ctx, result, tool_uses,
+                                assistant_msg.id, iteration)
+            return
 
         # Leerer Turn: LLM lieferte weder Text noch Tool-Use (z.B. nur reasoning-
         # Blöcke oder eine komplett leere Antwort). Früher endete das still als
