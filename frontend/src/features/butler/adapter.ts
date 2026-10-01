@@ -4,6 +4,7 @@ import type {
   BackendEdge, BackendFlow, BackendNode, ButlerFlow, ButlerNodeData,
 } from "./types"
 import { migrateParams } from "./migrateParams"
+import type { DryRunResult } from "./dryRunResult"
 
 // Adapter zwischen octopos-Frontend-Shape und unserem Backend.
 
@@ -91,9 +92,7 @@ export const butlerLegacyApi = {
     const updated = await api.put<BackendFlow>(`/butler/flows/${id}`, body)
     return { enabled: updated.enabled }
   },
-  dryRun: async (id: string, event: Record<string, unknown>): Promise<{
-    matched: boolean; actions_executed: { subtype: string }[]
-  }> => {
+  dryRun: async (id: string, event: Record<string, unknown>): Promise<DryRunResult> => {
     return api.post(`/butler/flows/${id}/dry_run`, { event })
   },
 }

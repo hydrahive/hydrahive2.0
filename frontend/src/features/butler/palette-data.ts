@@ -63,17 +63,18 @@ export const PALETTE_LABEL_KEY: Record<string, string> = {
   discord_post:           "nodeDiscordPost",
 }
 
-/** Aktionen, die der Server nur als Platzhalter kennt (Log-Eintrag, keine
- *  Wirkung). Badge in der Palette + Speichern blockiert, bis sie echt sind. */
-export const UNWIRED_ACTIONS = new Set([
+/** Spiegel von `implemented=False` in der Backend-ActionSpec-Registry
+ * (`core/src/hydrahive/butler/registry/actions/`). Es gibt derzeit keinen
+ * Registry-Endpunkt; deshalb muss diese Palette-Liste dort mitgepflegt werden. */
+export const NOT_IMPLEMENTED_ACTIONS = new Set([
   "send_email",
   "git_create_issue",
   "git_add_comment",
   "discord_post",
 ])
 
-export function isUnwired(subtype: string): boolean {
-  return UNWIRED_ACTIONS.has(subtype)
+export function isNotImplemented(subtype: string): boolean {
+  return NOT_IMPLEMENTED_ACTIONS.has(subtype)
 }
 
 export const PALETTE_STRUCTURE = [

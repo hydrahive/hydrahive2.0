@@ -15,7 +15,9 @@ from typing import Any
 
 from hydrahive.butler import persistence as bp
 from hydrahive.butler.models import Flow, TriggerEvent
-from hydrahive.butler.registry import ACTIONS, CONDITIONS, TRIGGERS
+from hydrahive.butler.registry import (
+    ACTIONS, CONDITIONS, NOT_IMPLEMENTED_DETAIL, TRIGGERS,
+)
 
 logger = logging.getLogger(__name__)
 _MAX_DEPTH = 30
@@ -95,7 +97,14 @@ async def _run_action(flow, node, event, trace, actions_executed, dry_run, depth
                        flow.flow_id, node.subtype)
         trace.append(_trace_node(node, decision="unknown_action"))
         return
-    if dry_run:
+    if dry_run and not spec.implemented:
+        trace.append(_trace_node(
+            node,
+            decision="not_implemented",
+            ok=False,
+            detail=NOT_IMPLEMENTED_DETAIL,
+        ))
+    elif dry_run:
         trace.append(_trace_node(node, decision="would_execute"))
     else:
         try:

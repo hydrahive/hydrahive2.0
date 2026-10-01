@@ -13,6 +13,8 @@ from typing import Any, Callable
 
 from hydrahive.butler.models import TriggerEvent
 
+NOT_IMPLEMENTED_DETAIL = "not_implemented: Diese Aktion ist noch nicht verfügbar"
+
 
 @dataclass(frozen=True)
 class ParamSchema:
@@ -51,6 +53,7 @@ class ActionSpec:
     description: str
     params: list[ParamSchema]
     execute: Callable[[dict[str, Any], TriggerEvent], "ActionResult"]
+    implemented: bool = True
 
 
 @dataclass
@@ -104,7 +107,7 @@ def all_specs() -> dict[str, list[dict]]:
         ],
         "actions": [
             {"subtype": s.subtype, "label": s.label, "description": s.description,
-             "params": [_ps(p) for p in s.params]}
+             "params": [_ps(p) for p in s.params], "implemented": s.implemented}
             for s in ACTIONS.values()
         ],
     }
