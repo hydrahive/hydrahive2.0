@@ -15,6 +15,8 @@ import { Markdown } from "./Markdown"
 import { ImageBlock, ToolResultCard, ToolUseCard } from "./ToolCards"
 import { extractMedia, MediaPreview } from "./MediaPreview"
 import { useVoiceOutput } from "./useVoiceOutput"
+import { DelegationResultCard } from "./DelegationResultCard"
+import { isDelegationResult } from "./delegationsApi"
 import type { ContentBlock, Message } from "./types"
 
 // ─── User Message ────────────────────────────────────────────────────────────
@@ -33,6 +35,10 @@ function HydraUserMessage() {
   const images = blocks.filter((b) => b.type === "image")
   const toolResults = blocks.filter((b) => b.type === "tool_result")
   const [copied, setCopied] = useState(false)
+
+  if (original && isDelegationResult(original.metadata)) {
+    return <MessagePrimitive.Root className="py-1"><DelegationResultCard message={original} /></MessagePrimitive.Root>
+  }
 
   if (toolResults.length > 0) {
     return (

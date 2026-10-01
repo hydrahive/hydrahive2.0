@@ -194,5 +194,22 @@
       "speech": "Sprache",
       "other": "Sonstiges"
     }
+  },
+  "delegation": {
+    "result_title_one": "Ergebnis vom Spezialisten",
+    "result_title_other": "Ergebnisse von {{count}} Spezialisten",
+    "running": "arbeitet seit {{minutes}} min · Runde {{rounds}}",
+    "cancel": "Auftrag abbrechen",
+    "waiting": "Ergebnis liegt bereit — wird nach deiner nächsten Nachricht ausgewertet",
+    "deliver_now": "Jetzt auswerten",
+    "status": {
+      "running": "läuft",
+      "done": "fertig",
+      "error": "Fehler",
+      "paused": "pausiert",
+      "timeout": "keine Antwort",
+      "cancelled": "abgebrochen",
+      "lost": "verloren"
+    }
   }
 }

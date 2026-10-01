@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Cpu, Dice5, Download, FileText, GitMerge, HelpCircle, Loader2, RotateCcw, Save, Settings, Sparkles, SquarePen, Wand2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { AssistantRuntimeProvider } from "@assistant-ui/react"
+import { DelegationStrip } from "@/features/chat/DelegationStrip"
 import { MessageInput } from "@/features/chat/MessageInput"
 import { HelpButton } from "@/i18n/HelpButton"
 import { RunErrorBanner } from "@/features/chat/RunErrorBanner"
@@ -162,6 +163,7 @@ export function BuddyPage() {
             <BuddyThread hiddenCount={hiddenCount} onLoadOlder={() => setVisibleCount((n) => n + MSG_WINDOW_STEP)} loadOlderLabel={t("load_older", { count: hiddenCount })} />
             <RunErrorBanner error={chat.error} errorKind={chat.errorKind} continueLabel={t("chat:max_iter.continue_label")} onContinue={() => handleSend(t("chat:max_iter.continue_send"))} />
             {chat.pendingConfirm && <ToolConfirmBanner pending={chat.pendingConfirm} onApprove={() => chat.confirmTool("approve")} onDeny={() => chat.confirmTool("deny")} />}
+            <DelegationStrip sessionId={state.session_id ?? null} busy={chat.busy} />
             <div className="shrink-0 border-t border-[#2a364b] bg-[#111827]">
               <MessageInput onSend={handleSend} onCancel={chat.cancel} busy={chat.busy} quickActions={(insert) => <BuddyQuickActions handleSend={handleSend} insert={insert} />} />
             </div>

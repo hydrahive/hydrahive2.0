@@ -8,6 +8,7 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react"
 import { chatApi } from "./api"
 import { agentsApi } from "@/features/agents/api"
 import { useChatCompact } from "./useChatCompact"
+import { DelegationStrip } from "./DelegationStrip"
 import { MessageInput } from "./MessageInput"
 import { NewSessionDialog } from "./NewSessionDialog"
 import { SessionList } from "./SessionList"
@@ -336,6 +337,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
               Kontext wird komprimiert…
             </div>
           )}
+          <DelegationStrip sessionId={activeId} busy={chat.busy} />
           <div className="border-t border-[#2a364b] bg-[#111827]">
             <MessageInput
               onSend={handleSend} onCancel={chat.cancel}
