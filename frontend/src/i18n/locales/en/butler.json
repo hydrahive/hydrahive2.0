@@ -49,7 +49,7 @@
   "labelRepo": "Repository",
   "labelSubject": "Subject",
   "labelTargetUrl": "Target URL",
-  "labelTaskId": "Task ID",
+  "labelTaskId": "Interval task ID (optional)",
   "labelText": "Text",
   "labelTitle": "Title",
   "labelTo": "To",

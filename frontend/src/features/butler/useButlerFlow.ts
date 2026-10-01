@@ -3,6 +3,7 @@ import { addEdge, useEdgesState, useNodesState, useReactFlow, type Connection, t
 import { api } from "@/shared/api-client"
 import { useTranslation } from "react-i18next"
 import { butlerLegacyApi } from "./adapter"
+import { dryRunEvent } from "./dryRunEvent"
 import { defaultParams, isUnwired } from "./palette-data"
 import type { BNode, ButlerFlow } from "./types"
 
@@ -103,9 +104,12 @@ export function useButlerFlow() {
     // dry_run braucht einen serverseitig gespeicherten Flow (flow_id).
     if (!activeFlowId) { showToast(t("dry_run_save_first")); return }
     try {
-      const res = await butlerLegacyApi.dryRun(activeFlowId, {
-        event_type: "message", channel: "all", message_text: "test",
-      })
+      const trigger = nodes.find(node => node.type === "triggerNode")
+      const data = trigger?.data as { subtype?: string; params?: Record<string, unknown> } | undefined
+      const res = await butlerLegacyApi.dryRun(
+        activeFlowId,
+        dryRunEvent(data?.subtype ?? "message_received", data?.params ?? {}),
+      )
       showToast(res.matched
         ? t("dry_run_matched", { count: res.actions_executed.length })
         : t("dry_run_no_match"))
