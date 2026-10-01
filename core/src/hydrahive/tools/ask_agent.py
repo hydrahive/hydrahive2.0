@@ -94,12 +94,17 @@ _SCHEMA = {
             "description": "Optionale Skill-Liste die der Ziel-Agent haben muss.",
         },
         "wait": _bg.WAIT_SCHEMA,
+        "cancel": _bg.CANCEL_SCHEMA,
     },
-    "required": ["agent_id", "task"],
+    # agent_id/task sind nur fürs Beauftragen nötig (Prüfung in _execute);
+    # für cancel= nicht. Darum hier nicht als Pflichtfelder markiert.
+    "required": [],
 }
 
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
+    if args.get("cancel"):
+        return _bg.cancel_own(ctx, str(args["cancel"]))
     target = (args.get("agent_id") or "").strip()
     task = (args.get("task") or "").strip()
     if not target:

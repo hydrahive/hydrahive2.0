@@ -28,6 +28,15 @@ DESCRIPTION_HINT = (
     "Aufträge, deren Ergebnis du im selben Zug zwingend brauchst."
 )
 
+CANCEL_SCHEMA = {
+    "type": "string",
+    "description": (
+        "Statt zu beauftragen: einen eigenen laufenden Hintergrund-Auftrag "
+        "dieser Session abbrechen (Auftrags-ID aus der Rückmeldung, 8 Zeichen "
+        "reichen). agent_id/task dann weglassen."
+    ),
+}
+
 WAIT_SCHEMA = {
     "type": "boolean",
     "description": (
@@ -84,3 +93,29 @@ def start(
         "beauftragt wurde, und mach mit anderem weiter oder beende deine Antwort.",
         delegation_id=row["id"], background=True,
     )
+
+
+def cancel_own(ctx: ToolContext, ref: str) -> ToolResult:
+    """Bricht einen laufenden Hintergrund-Auftrag DIESER Session ab.
+
+    Vorher nur per Knopf im Chat möglich (Hindernis 4, 01.10.2026). Fremde
+    Sessions sind tabu; Kurz-ID (Ende der ID) wie in der Rückmeldung.
+    """
+    from hydrahive.runner import delegation_control
+
+    ref = (ref or "").strip()
+    if len(ref) < 6:
+        return ToolResult.fail("Auftrags-ID zu kurz (mindestens 6 Zeichen).")
+    mine = [d for d in delegations_db.list_for_session(ctx.session_id, limit=100)
+            if d["id"] == ref or d["id"].endswith(ref)]
+    if not mine:
+        return ToolResult.fail(f"Kein Auftrag {ref} in dieser Session.")
+    if len(mine) > 1:
+        return ToolResult.fail(f"Auftrags-ID {ref} ist mehrdeutig, bitte länger angeben.")
+    d = mine[0]
+    # cancel() wechselt nur running → cancelled (atomar); sonst False.
+    if not delegation_control.cancel(d):
+        return ToolResult.fail(f"Auftrag {ref} läuft nicht mehr (Status: {d['status']}).")
+    logger.info("ask_agent: Hintergrund-Auftrag %s vom Agenten abgebrochen", d["id"])
+    return ToolResult.ok(f"Auftrag {d['id'][-8:]} an {d['target_name']} abgebrochen. "
+                         "Es kommt kein Ergebnis mehr.")
