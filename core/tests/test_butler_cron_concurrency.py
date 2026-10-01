@@ -101,3 +101,22 @@ async def test_verpasste_zeitpunkte_werden_pro_flow_zusammengefasst(monkeypatch)
 
     assert fired == 1
     assert calls == 1
+
+
+def test_nach_langer_pause_zaehlt_der_neueste_zeitpunkt():
+    """Zweite Sicherheitsprüfung: Bei >100 verpassten Minuten lieferte
+    _fire_times die ERSTEN 100 — der Lauf bekam einen alten Zeitpunkt."""
+    since = datetime(2026, 6, 5, 8, 0, tzinfo=UTC)
+    now = datetime(2026, 6, 5, 12, 0, 30, tzinfo=UTC)  # 240 verpasste Minuten
+    times = scheduler._fire_times("* * * * *", since, now)
+    assert times[-1] == datetime(2026, 6, 5, 12, 0, tzinfo=UTC)
+    assert len(times) <= scheduler._MAX_FIRINGS_PER_TICK
+    assert times == sorted(times)
+
+
+def test_fire_times_fenster_grenzen():
+    since = datetime(2026, 6, 5, 10, 0, tzinfo=UTC)
+    now = datetime(2026, 6, 5, 10, 3, tzinfo=UTC)
+    assert scheduler._fire_times("* * * * *", since, now) == [
+        datetime(2026, 6, 5, 10, m, tzinfo=UTC) for m in (1, 2, 3)]
+    assert scheduler._fire_times("0 * * * *", since, now) == []

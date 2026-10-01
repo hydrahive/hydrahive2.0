@@ -7,7 +7,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, status
 
-from hydrahive.api.middleware import users
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._butler_route_helpers import (
@@ -65,12 +64,11 @@ def update_flow(
     existing = flow_or_404(user, flow_id, user, role)
     if body.flow_id != flow_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_mismatch")
-    owner_role = role
-    if existing.owner != user:
-        owner_account = users.get_by_username(existing.owner)
-        owner_role = str((owner_account or {}).get("role") or "user")
+    # flow_or_404 findet nur eigene Flows; Bearbeiter == Besitzer. Würde später
+    # Fremdbearbeitung erlaubt, müsste der BEARBEITER hier geprüft werden
+    # (zweite Sicherheitsprüfung 01.10.2026).
     flow = build_flow(
-        body, flow_id=flow_id, owner=existing.owner, role=owner_role,
+        body, flow_id=flow_id, owner=existing.owner, role=role,
         created_at=existing.created_at,
     )
     bp.save_flow(flow, modified_by=user)

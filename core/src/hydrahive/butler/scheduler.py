@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from croniter import croniter
 
@@ -29,17 +29,21 @@ def _cron_trigger(flow: Flow) -> Node | None:
 
 
 def _fire_times(cron_expr: str, since: datetime, now: datetime) -> list[datetime]:
-    """Ermittelt Cron-Zeitpunkte im Fenster (since, now]."""
+    """Cron-Zeitpunkte im Fenster (since, now]. Höchstens _MAX_FIRINGS_PER_TICK,
+    und zwar die NEUESTEN: verpasste Läufe werden ohnehin zu einem
+    zusammengefasst, der zählt mit dem jüngsten Zeitpunkt."""
+    # get_prev liefert nur Zeitpunkte VOR dem Start — eine Sekunde später
+    # anfangen, damit ein Zeitpunkt genau auf `now` mitzählt (Fenster inkl. now).
     times: list[datetime] = []
-    iterator = croniter(cron_expr, since)
+    iterator = croniter(cron_expr, now + timedelta(seconds=1))
     for _ in range(_MAX_FIRINGS_PER_TICK):
-        next_fire = iterator.get_next(datetime)
-        if next_fire.tzinfo is None:
-            next_fire = next_fire.replace(tzinfo=timezone.utc)
-        if next_fire > now:
+        prev = iterator.get_prev(datetime)
+        if prev.tzinfo is None:
+            prev = prev.replace(tzinfo=timezone.utc)
+        if prev <= since:
             break
-        times.append(next_fire)
-    return times
+        times.append(prev)
+    return sorted(times)
 
 
 async def _execute_flow(flow: Flow, event: TriggerEvent, fired_at: datetime) -> None:
