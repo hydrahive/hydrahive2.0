@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { delegationsApi, type Delegation } from "./delegationsApi"
+import { isRefreshPing, POLL_MS, shouldPoll } from "./_delegationPolling"
+import { onSessionPing } from "./_sessionPings"
 
-const POLL_MS = 5000
-
-/** Hintergrund-Aufträge einer Session. Fragt alle 5 s ab, solange etwas läuft
- *  oder ein Lauf aktiv ist; sonst nur beim Wechsel von busy (Lauf-Ende). */
+/** Hintergrund-Aufträge einer Session. Lädt sofort bei Session-Wechsel,
+ *  Lauf-Start/-Ende (auch auf anderem Gerät) und fragt alle 5 s ab, solange
+ *  etwas läuft, ein eigener Lauf aktiv ist oder dieser gerade geendet hat. */
 export function useDelegations(sessionId: string | null, busy: boolean) {
   const [items, setItems] = useState<Delegation[]>([])
   const [undelivered, setUndelivered] = useState(false)
   const [now, setNow] = useState(() => Date.now())
-  const alive = useRef(true)
-
   const [loadedFor, setLoadedFor] = useState<string | null>(null)
+  const alive = useRef(true)
+  const prevBusy = useRef(busy)
+  const runEndedAt = useRef<number | null>(null)
 
   const refresh = useCallback(async () => {
     if (!sessionId) return
@@ -35,15 +37,31 @@ export function useDelegations(sessionId: string | null, busy: boolean) {
     return () => { alive.current = false }
   }, [refresh, busy])
 
+  // Lauf startet/endet (eigener, anderes Gerät, Zustellung) → sofort neu laden.
+  useEffect(() => {
+    if (!sessionId) return
+    return onSessionPing(sessionId, (kind) => { if (isRefreshPing(kind)) void refresh() })
+  }, [sessionId, refresh])
+
   // Daten einer anderen (vorherigen) Session nie anzeigen.
   const current = loadedFor !== null && loadedFor === sessionId
   const running = current ? items.filter((d) => d.status === "running") : []
+  const runningCount = running.length
 
   useEffect(() => {
-    if (!sessionId || (running.length === 0 && !busy)) return
-    const timer = setInterval(() => { void refresh() }, POLL_MS)
+    if (prevBusy.current && !busy) runEndedAt.current = Date.now()
+    prevBusy.current = busy
+    const state = () => ({
+      hasSession: !!sessionId, running: runningCount, busy,
+      runEndedAt: runEndedAt.current, now: Date.now(),
+    })
+    if (!shouldPoll(state())) return
+    const timer = setInterval(() => {
+      if (!shouldPoll(state())) { clearInterval(timer); return }
+      void refresh()
+    }, POLL_MS)
     return () => clearInterval(timer)
-  }, [sessionId, running.length, busy, refresh])
+  }, [sessionId, runningCount, busy, refresh])
 
   return { running, waiting: current && undelivered, now, refresh }
 }

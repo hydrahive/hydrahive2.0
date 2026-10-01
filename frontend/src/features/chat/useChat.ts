@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { chatApi, sendMessage, subscribeSession } from "./api"
 import { followRun, type FollowDeps } from "./_runFollow"
+import { emitSessionPing } from "./_sessionPings"
 import { applyStreamEvent, flushPendingLive } from "./_chatStream"
 import { applyReload, errorAfterReload } from "./_reloadMerge"
 import type { ContentBlock, Message } from "./types"
@@ -154,6 +155,9 @@ export function useChat(sessionId: string | null) {
     let timer: ReturnType<typeof setTimeout> | null = null
     const follow = new Set<AbortController>()
     const onPing = (kind: string) => {
+      // Weitere Teile der Oberfläche (Statusleiste der Hintergrund-Aufträge)
+      // hängen an diesem einen Abo, statt eine zweite Verbindung zu öffnen.
+      emitSessionPing(sessionId, kind)
       // Lauf startet, den dieses Fenster nicht selbst ausgelöst hat (anderes
       // Gerät, Auswertung von Spezialisten-Ergebnissen) → live anhängen.
       if (kind === "start" && !busyRef.current && !runningRef.current) {
