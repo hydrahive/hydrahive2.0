@@ -17,7 +17,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_THINKING_BUDGET,
     DEFAULT_TOOL_RESULT_MAX_CHARS,
 )
-from hydrahive.agents._paths import config_path
+from hydrahive.agents._paths import config_path, is_valid_agent_id
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,18 @@ def list_by_owner(owner: str) -> list[dict]:
 
 
 def get(agent_id: str) -> dict | None:
+    """Config des Agenten — None, wenn die ID kein gültiger Agent ist.
+
+    Die ID muss eine einfache Kennung sein und mit ``config["id"]``
+    übereinstimmen: kein Pfad, keine Config unter fremdem Namen.
+    """
+    if not is_valid_agent_id(agent_id):
+        return None
     path = config_path(agent_id)
     if not path.exists():
         return None
-    return normalize(json.loads(path.read_text()))
+    cfg = normalize(json.loads(path.read_text()))
+    if cfg.get("id") != agent_id:
+        logger.warning("Agent-Config %s trägt fremde id %r — ignoriert", path, cfg.get("id"))
+        return None
+    return cfg

@@ -32,9 +32,19 @@ def _names(value) -> list[str]:
 
 
 def _risky(names: list[str]) -> list[str]:
-    from hydrahive.communication.discord.ops_guild import FORBIDDEN_PERMS, RISKY_PERMS
+    from hydrahive.communication.discord.ops_access import DiscordToolError
+    from hydrahive.communication.discord.ops_guild import (
+        FORBIDDEN_PERMS, RISKY_PERMS, permissions_from_names,
+    )
     labels = {**RISKY_PERMS, **FORBIDDEN_PERMS}
-    return [labels[n.lower()] for n in names if n.lower() in labels]
+    found = []
+    for name in names:
+        try:
+            permissions = permissions_from_names([name])
+        except DiscordToolError:
+            continue
+        found.extend(label for flag, label in labels.items() if getattr(permissions, flag))
+    return list(dict.fromkeys(found))
 
 
 def confirm_reason(tool_name: str, args: dict) -> str | None:

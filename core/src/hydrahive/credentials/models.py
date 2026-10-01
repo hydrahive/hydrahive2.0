@@ -91,15 +91,20 @@ def matches_url(pattern: str, url: str) -> bool:
         # urllib entfernt Tab/Zeilenumbruch still, httpx lehnt sie ab — so eine URL
         # bekommt nie automatisch ein Secret.
         return False
+    if "://" not in url:
+        return False
+    after = url.split("://", 1)[1]
+    m = _AUTHORITY_END.search(after)
+    authority = after[:m.start()] if m else after
+    if "\\" in authority or "@" in authority:
+        return False
     try:
         u = urllib.parse.urlsplit(url)
         u_host, u_port = u.hostname or "", u.port
     except ValueError:
         return False
-    if not u_host or "://" not in url or not _HOST_CHARS.fullmatch(u_host):
+    if not u_host or not _HOST_CHARS.fullmatch(u_host):
         return False
-    after = url.split("://", 1)[1]
-    m = _AUTHORITY_END.search(after)
     u_rest = after[m.start():] if m else ""
     scheme, host, port, rest = _split_pattern(pattern)
     return (_glob(scheme, u.scheme, ignore_case=True)
