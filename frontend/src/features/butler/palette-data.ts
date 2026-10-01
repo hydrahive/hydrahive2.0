@@ -18,7 +18,7 @@ export function defaultParams(subtype: string): Record<string, unknown> {
   switch (subtype) {
     case "message_received":       return { channel: "all" }
     case "webhook_received":       return {}
-    case "heartbeat_fired":        return { agent_id: "all", task_id: "" }
+    case "heartbeat_fired":        return { agent_id: "all", schedule_id: "" }
     case "cron_fired":             return { cron: "" }
     case "time_window":            return { from: "23:00", to: "08:00" }
     case "day_of_week":            return { days: ["mo","di","mi","do","fr","sa","so"] }

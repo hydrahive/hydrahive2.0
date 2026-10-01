@@ -16,7 +16,7 @@ export function paramSummary(
       return t("webhookAnyHint")
     case "heartbeat_fired": {
       const agent = (params.agent_id as string) || "all"
-      const task  = (params.task_id as string) || ""
+      const task = (params.schedule_id as string) || (params.task_id as string) || ""
       return agent === "all"
         ? (task ? `${t("allAgents")} · ${task}` : t("allAgents"))
         : (task ? `${agent} · ${task}` : agent)

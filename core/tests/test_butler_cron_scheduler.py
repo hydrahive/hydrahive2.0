@@ -95,13 +95,18 @@ async def test_tick_feuert_faellige_flows(monkeypatch, capture_dispatch):
     assert event.payload.get("schedule_id") == "daily"
 
 
-async def test_tick_breites_fenster_feuert_mehrfach(monkeypatch, capture_dispatch):
+async def test_tick_breites_fenster_fasst_verpasste_zeitpunkte_zusammen(
+    monkeypatch, capture_dispatch,
+):
     flow = _cron_flow(cron="* * * * *")
     monkeypatch.setattr(sched.bp, "list_flows", lambda owner=None: [flow])
-    # Fenster umspannt zwei Minutenwechsel → zwei Dispatches
-    fired = await sched._tick(datetime(2026, 6, 5, 10, 0, 0, tzinfo=UTC), datetime(2026, 6, 5, 10, 2, 30, tzinfo=UTC))
-    assert fired == 2
-    assert len(capture_dispatch) == 2
+    fired = await sched._tick(
+        datetime(2026, 6, 5, 10, 0, 0, tzinfo=UTC),
+        datetime(2026, 6, 5, 10, 2, 30, tzinfo=UTC),
+    )
+    assert fired == 1
+    assert len(capture_dispatch) == 1
+    assert capture_dispatch[0][1].timestamp == "2026-06-05T10:02:00+00:00"
 
 
 async def test_tick_ueberspringt_nicht_faellige(monkeypatch, capture_dispatch):

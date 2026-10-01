@@ -11,7 +11,7 @@ export function HeartbeatForm({ params, onChange, agents }: FormProps) {
           agents={agents} placeholder={t("allAgents")} allowAll />
       </Field>
       <Field label={t("labelTaskId")} hint={t("allHeartbeatTasks")}>
-        <TextInput field="task_id" params={params} onChange={onChange}
+        <TextInput field="schedule_id" params={params} onChange={onChange}
           placeholder={t("placeholderTaskIdExample")} />
       </Field>
     </div>

@@ -44,12 +44,12 @@ def create_flow(
     body: FlowInput,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    user, _ = auth
+    user, role = auth
     if not _ID_RE.match(body.flow_id):
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_invalid")
     if bp.get_flow(user, body.flow_id):
         raise coded(status.HTTP_409_CONFLICT, "butler_flow_id_taken")
-    flow = build_flow(body, flow_id=body.flow_id, owner=user)
+    flow = build_flow(body, flow_id=body.flow_id, owner=user, role=role)
     bp.save_flow(flow, modified_by=user)
     return flow.model_dump()
 
@@ -64,8 +64,13 @@ def update_flow(
     existing = flow_or_404(user, flow_id, user, role)
     if body.flow_id != flow_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_mismatch")
-    flow = build_flow(body, flow_id=flow_id, owner=existing.owner,
-                      created_at=existing.created_at)
+    # flow_or_404 findet nur eigene Flows; Bearbeiter == Besitzer. Würde später
+    # Fremdbearbeitung erlaubt, müsste der BEARBEITER hier geprüft werden
+    # (zweite Sicherheitsprüfung 01.10.2026).
+    flow = build_flow(
+        body, flow_id=flow_id, owner=existing.owner, role=role,
+        created_at=existing.created_at,
+    )
     bp.save_flow(flow, modified_by=user)
     return flow.model_dump()
 
