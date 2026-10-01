@@ -112,3 +112,42 @@ def test_revoke_anthropic_keeps_api_key(client, admin_headers):
 def test_revoke_unknown_provider_400(client, admin_headers):
     r = client.delete("/api/llm/oauth/groq", headers=admin_headers)
     assert r.status_code == 400
+
+
+def _exchange_anthropic(client, admin_headers):
+    pending = {"provider": "anthropic", "verifier": "v", "state": "s", "ts": 9_999_999_999}
+    token = {"access": "sk-ant-oat01-NEW", "refresh": "ref", "expires_at": 9_999_999_999, "scope": "x"}
+    with patch("hydrahive.api.routes.llm_oauth._load_pending", return_value=pending), \
+         patch("hydrahive.api.routes.llm_oauth._delete_pending"), \
+         patch("hydrahive.api.routes.llm_oauth.anthropic_oauth.parse_callback_input",
+               return_value={"code": "c", "state": "s"}), \
+         patch("hydrahive.api.routes.llm_oauth.anthropic_oauth.exchange_code",
+               new=AsyncMock(return_value=token)):
+        return client.post("/api/llm/oauth/exchange",
+                           json={"provider": "anthropic", "code_or_url": "http://x/callback?code=c&state=s"},
+                           headers=admin_headers)
+
+
+def test_exchange_refreshes_model_catalog(client, admin_headers, monkeypatch):
+    """Task 53519b4f: Nach dem OAuth-Login waren die neuen Modelle bis zu 5 min
+    (Registry-Cache) bzw. bis zum Neustart nicht wählbar. Der Login muss den
+    Katalog neu laden lassen — wie das Speichern der LLM-Einstellungen."""
+    from hydrahive.llm import registry
+    calls: list = []
+    monkeypatch.setattr(registry, "invalidate", lambda: calls.append(1))
+    assert _exchange_anthropic(client, admin_headers).status_code == 200
+    assert calls, "registry.invalidate() nach OAuth-Login nicht aufgerufen"
+
+
+def test_revoke_refreshes_model_catalog(client, admin_headers, monkeypatch):
+    from hydrahive.llm import registry
+    from hydrahive.settings import settings
+    settings.llm_config.parent.mkdir(parents=True, exist_ok=True)
+    settings.llm_config.write_text(json.dumps({
+        "providers": [{"id": "anthropic", "name": "Anthropic", "oauth": {"access": "x"}}],
+        "default_model": "", "embed_model": "",
+    }))
+    calls: list = []
+    monkeypatch.setattr(registry, "invalidate", lambda: calls.append(1))
+    assert client.delete("/api/llm/oauth/anthropic", headers=admin_headers).status_code == 200
+    assert calls, "registry.invalidate() nach OAuth-Abmeldung nicht aufgerufen"
