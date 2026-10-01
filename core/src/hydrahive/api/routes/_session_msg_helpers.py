@@ -34,6 +34,8 @@ from hydrahive.runner.concurrency import (
     session_run_guard,
     unregister_task,
 )
+from hydrahive.runner import delegation_delivery
+from hydrahive.runner._run_origin import CHAT, RunOrigin
 from hydrahive.runner.event_bus import bus as event_bus
 
 logger = logging.getLogger(__name__)
@@ -141,7 +143,10 @@ def sse_run_response_raw(frames) -> StreamingResponse:
     )
 
 
-def start_run_task(session_id: str, user_content, *, extra_system: str | None = None) -> "asyncio.Task":
+def start_run_task(
+    session_id: str, user_content, *, extra_system: str | None = None,
+    origin: RunOrigin = CHAT, user_metadata: dict | None = None,
+) -> "asyncio.Task":
     """Startet einen Agent-Run als ENTKOPPELTEN Server-Task.
 
     Der Run hängt NICHT an der auslösenden HTTP-Verbindung — schließt der Browser
@@ -154,9 +159,15 @@ def start_run_task(session_id: str, user_content, *, extra_system: str | None = 
 
     Live-Fortschritt geht wie bisher über den broadcaster (start/activity/done);
     die Clients laden bei Ping aus der DB nach.
+
+    Hintergrund-Aufträge (docs/specs/agent-background-delegation.md): `origin`
+    erlaubt ask_agent den Hintergrund-Modus. Endet der Lauf NICHT durch Stopp,
+    werden danach wartende Spezialisten-Ergebnisse zugestellt.
     """
     if is_running(session_id):
         raise SessionAlreadyRunning(session_id)
+    if origin.kind == "chat":
+        delegation_delivery.resume(session_id)  # eigene Nachricht hebt Stopp-Pause auf
 
     # Frischen Event-Bus-Kanal öffnen (seq startet bei 0), BEVOR der erste
     # Consumer (der Sende-Stream) subscribed — kein Event geht verloren.
@@ -164,13 +175,16 @@ def start_run_task(session_id: str, user_content, *, extra_system: str | None = 
 
     async def _run() -> None:
         last_ping = 0.0
+        stopped = False
         try:
             async with session_run_guard(session_id):
                 broadcaster.broadcast(session_id, '{"t":"start"}')
+                kwargs: dict = {"origin": origin}
                 if extra_system is not None:
-                    gen = runner_run(session_id, user_content, extra_system=extra_system)
-                else:
-                    gen = runner_run(session_id, user_content)
+                    kwargs["extra_system"] = extra_system
+                if user_metadata is not None:
+                    kwargs["user_metadata"] = user_metadata
+                gen = runner_run(session_id, user_content, **kwargs)
                 async for ev in gen:
                     # Volles Event in den Bus (flüssiges Token-Streaming für ALLE
                     # Consumer, auch nach Reconnect lückenlos).
@@ -183,6 +197,8 @@ def start_run_task(session_id: str, user_content, *, extra_system: str | None = 
         except SessionAlreadyRunning:
             return  # Race verloren — anderer Task hält den Guard
         except asyncio.CancelledError:
+            stopped = True
+            delegation_delivery.pause(session_id)
             logger.info("Run gestoppt (cancel): %s", session_id)
             event_bus.publish(session_id, encode_event(
                 RunnerError(message="Lauf gestoppt.")))
@@ -193,6 +209,9 @@ def start_run_task(session_id: str, user_content, *, extra_system: str | None = 
             unregister_task(session_id)
             event_bus.close(session_id)
             broadcaster.broadcast(session_id, '{"t":"done"}')
+            if not stopped:
+                # Nach dem Aufräumen: Session ist frei → wartende Ergebnisse zustellen.
+                asyncio.get_running_loop().call_soon(delegation_delivery.kick, session_id)
 
     task = asyncio.create_task(_run())
     register_task(session_id, task)

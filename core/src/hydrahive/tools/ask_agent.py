@@ -26,6 +26,7 @@ from hydrahive.agentlink import (
     register_pending,
 )
 from hydrahive.settings import settings
+from hydrahive.tools import _ask_agent_background as _bg
 from hydrahive.tools._ask_agent_target import resolve_target
 from hydrahive.tools._ask_agent_helpers import (
     caller_agentlink_id as _caller_agentlink_id,
@@ -39,10 +40,15 @@ logger = logging.getLogger(__name__)
 
 
 _DESCRIPTION = (
-    "Beauftragt einen anderen Agenten über AgentLink. Schickt einen State mit "
-    "Task-Beschreibung an den Ziel-Agenten und wartet auf dessen Antwort-State. "
+    "Beauftragt einen anderen Agenten über AgentLink. "
     "Verwende für Handoffs an Spezialisten oder Project-Agents. "
-    "Erreichbar sind nur eigene Agenten (Admins: alle)."
+    "Erreichbar sind nur eigene Agenten (Admins: alle). "
+    "Im Chat läuft ein Auftrag an einen internen Spezialisten im HINTERGRUND: "
+    "das Werkzeug kehrt sofort zurück, das Ergebnis kommt später automatisch als "
+    "neue Nachricht und du wirst dann erneut aufgerufen. Warte nicht darauf und "
+    "sende denselben Auftrag nicht erneut. Mehrere unabhängige Aufträge kannst du "
+    "nacheinander vergeben, sie laufen gleichzeitig. wait=true nur für kurze "
+    "Aufträge, deren Ergebnis du im selben Zug zwingend brauchst."
 )
 
 _SCHEMA = {
@@ -91,6 +97,13 @@ _SCHEMA = {
             "type": "array",
             "items": {"type": "string"},
             "description": "Optionale Skill-Liste die der Ziel-Agent haben muss.",
+        },
+        "wait": {
+            "type": "boolean",
+            "description": (
+                "true = auf das Ergebnis warten (blockiert den Chat bis zur Antwort). "
+                "Default false: Hintergrund, Ergebnis kommt als neue Nachricht."
+            ),
         },
     },
     "required": ["agent_id", "task"],
@@ -162,6 +175,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if raw_context.get("code_snippet"):
         task_description = f"{task}\n\n```\n{raw_context['code_snippet']}\n```"
 
+    background = _bg.wants_background(args, ctx, _is_internal)
+    if background:
+        refused = _bg.refuse_reason(ctx)
+        if refused:
+            return ToolResult.fail(refused)
+
     # Security identity must be stable across renames and unique even when two
     # agents share the same display name. UI names stay in local config/logs.
     caller_al_id = _caller_agentlink_id(ctx.agent_id)
@@ -205,6 +224,15 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     # Nur ein Antwort-State vom beauftragten Ziel darf die Future lösen (#184).
     fut = register_pending(sent.id, routing_target)
     wait_timeout = _response_timeout(target_agent, profile)
+    if background:
+        try:
+            return _bg.start(
+                ctx=ctx, state_id=sent.id, target=target_agent, task=task,
+                timeout_seconds=wait_timeout, fut=fut,
+            )
+        except Exception:
+            # Ohne Eintrag kein Watcher → synchron weiterwarten statt Ergebnis zu verlieren.
+            logger.exception("Hintergrund-Auftrag nicht angelegt, warte synchron")
     try:
         response = await asyncio.wait_for(fut, timeout=wait_timeout)
     except asyncio.TimeoutError:

@@ -113,6 +113,23 @@ async def dispatch_agentlink_event(event, get_state=None) -> None:
         asyncio.create_task(handoff_receiver.handle(event), name=f"handoff-{event.state_id}")
 
 
+def _setup_background_delegations() -> None:
+    """Hintergrund-Aufträge (docs/specs/agent-background-delegation.md):
+    Zustell-Starter setzen; was beim letzten Lauf noch 'running' war, hat keinen
+    Watcher mehr → 'lost'. Zugestellt wird beim nächsten Lauf-Ende der Session
+    oder per Knopf — kein überraschender LLM-Lauf direkt nach dem Start."""
+    from hydrahive.api.routes._session_msg_helpers import start_run_task
+    from hydrahive.db import delegations as delegations_db
+    from hydrahive.runner import delegation_delivery
+
+    delegation_delivery.configure(start_run_task)
+    lost = delegations_db.reconcile_on_start()
+    if lost:
+        logger.warning("Hintergrund-Aufträge: %d beim Start als 'lost' markiert", lost)
+    for session_id in delegations_db.sessions_with_undelivered():
+        delegation_delivery.pause(session_id)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings.ensure_dirs()
@@ -120,6 +137,7 @@ async def lifespan(app: FastAPI):
     # Verwaiste Handoffs (durch früheren Worker-Tod auf 'running' hängen
     # geblieben) terminal markieren — sonst bleiben sie ewige in_progress-Zombies.
     handoff_receiver.reconcile_orphaned_handoffs()
+    _setup_background_delegations()
     # SMB-Auto-Remount: nach einem Reboot sind die CIFS-Mounts weg; zugewiesene
     # Shares einmalig wieder hochziehen. Im Executor, damit ein träger
     # Fileserver den Start nicht blockiert.
