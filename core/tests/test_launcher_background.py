@@ -159,3 +159,29 @@ def test_kill_group_leere_gruppe_wirft_nicht():
     p = subprocess.Popen(["true"], start_new_session=True)
     p.wait()
     _kill_group(p.pid)  # Gruppe existiert nicht mehr: darf nicht werfen
+
+
+@pytest.mark.parametrize("loop", LOOPS)
+def test_stopp_beendet_den_befehl(loop, tmp_path, pids):
+    """Lauf gestoppt (CancelledError) → Befehl und seine Kinder enden mit.
+    Auf dem Test-Server gefunden (01.10.2026): Nach „Auftrag abbrechen“ lief
+    `sleep 120` des Spezialisten verwaist weiter."""
+    async def go():
+        task = asyncio.ensure_future(DevLauncher().run(
+            "sleep 30 > /dev/null 2>&1 < /dev/null & echo $! > bg.pid; sleep 30 & echo $! > fg.pid; wait",
+            cwd=tmp_path, timeout=60))
+        for _ in range(100):
+            if (tmp_path / "fg.pid").exists() and (tmp_path / "fg.pid").read_text().strip():
+                break
+            await asyncio.sleep(0.02)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    if loop == "uvloop":
+        pytest.importorskip("uvloop").run(go())
+    else:
+        asyncio.run(go())
+    for name in ("bg.pid", "fg.pid"):
+        pid = _pid(tmp_path / name, pids)
+        assert _gone_within(pid, 3), f"{name}: Prozess läuft nach dem Stopp weiter"

@@ -70,8 +70,8 @@ class DevLauncher:
     - Es wird auf das Ende von bash gewartet. Hintergrundprozesse laufen danach
       weiter, ihre spätere Ausgabe wird nicht mehr eingesammelt.
     - Jeder Befehl bekommt eine eigene Prozessgruppe (nicht die des Servers).
-      Beim Timeout wird die ganze Gruppe beendet. Mit `setsid` Gestartetes
-      überlebt.
+      Beim Timeout und beim Stoppen des Laufs (CancelledError) wird die ganze
+      Gruppe beendet. Mit `setsid` Gestartetes überlebt.
     """
 
     async def run(
@@ -94,6 +94,11 @@ class DevLauncher:
             )
             try:
                 await asyncio.wait_for(proc.wait(), timeout=timeout)
+            except asyncio.CancelledError:
+                # Lauf gestoppt (Stopp-Knopf, abgebrochener Hintergrund-Auftrag):
+                # Befehl samt Kindern beenden, sonst läuft er verwaist weiter.
+                _kill_group(proc.pid)
+                raise
             except asyncio.TimeoutError:
                 _kill_group(proc.pid)
                 await proc.wait()
