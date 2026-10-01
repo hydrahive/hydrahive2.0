@@ -1,14 +1,16 @@
-"""Helper für Phase-2-Stubs: Action loggt nur was sie tun würde,
-Phase 4 verkabelt mit echten Channel/Email/Discord-Adaptern."""
+"""Helper für Platzhalter-Aktionen ohne externen Adapter.
+
+Die Aktion loggt nur ihre Parameter und meldet sich ehrlich als nicht verfügbar.
+"""
 from __future__ import annotations
 
 import logging
 
-from hydrahive.butler.registry import ActionResult
+from hydrahive.butler.registry import ActionResult, NOT_IMPLEMENTED_DETAIL
 
 logger = logging.getLogger(__name__)
 
 
 def stub_result(label: str, params: dict) -> ActionResult:
     logger.info("[butler-stub] %s params=%s", label, params)
-    return ActionResult(ok=True, detail=f"stub:{label}")
+    return ActionResult(ok=False, detail=NOT_IMPLEMENTED_DETAIL)

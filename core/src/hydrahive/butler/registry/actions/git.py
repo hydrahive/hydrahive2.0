@@ -47,6 +47,7 @@ register_action(ActionSpec(
         ParamSchema(key="body", label="Body (Jinja2)", kind="textarea"),
     ],
     execute=_exec_create,
+    implemented=False,
 ))
 
 register_action(ActionSpec(
@@ -61,4 +62,5 @@ register_action(ActionSpec(
                     required=True),
     ],
     execute=_exec_comment,
+    implemented=False,
 ))

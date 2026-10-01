@@ -4,7 +4,8 @@ import { api } from "@/shared/api-client"
 import { useTranslation } from "react-i18next"
 import { butlerLegacyApi } from "./adapter"
 import { dryRunEvent } from "./dryRunEvent"
-import { defaultParams, isUnwired } from "./palette-data"
+import { notImplementedAction } from "./dryRunResult"
+import { defaultParams, isNotImplemented } from "./palette-data"
 import type { BNode, ButlerFlow } from "./types"
 
 let _nSeq = 0
@@ -56,8 +57,10 @@ export function useButlerFlow() {
   }
 
   const saveFlow = async () => {
+    // Sperre seit d436aaaa (28.09.): Platzhalter-Aktionen tun nichts (Backend
+    // meldet not_implemented) — Flow erst nach Entfernen speichern.
     const unwiredNode = nodes.find(
-      (n) => isUnwired((n.data as { subtype?: string }).subtype ?? "")
+      (n) => isNotImplemented((n.data as { subtype?: string }).subtype ?? "")
     )
     if (unwiredNode) {
       showToast(t("toast_unwired", { subtype: (unwiredNode.data as { subtype?: string }).subtype }))
@@ -110,9 +113,12 @@ export function useButlerFlow() {
         activeFlowId,
         dryRunEvent(data?.subtype ?? "message_received", data?.params ?? {}),
       )
-      showToast(res.matched
-        ? t("dry_run_matched", { count: res.actions_executed.length })
-        : t("dry_run_no_match"))
+      const unavailableSubtype = notImplementedAction(res)
+      showToast(unavailableSubtype
+        ? t("dry_run_not_implemented", { subtype: unavailableSubtype })
+        : res.matched
+          ? t("dry_run_matched", { count: res.actions_executed.length })
+          : t("dry_run_no_match"))
     } catch (e) { showToast(e instanceof Error ? e.message : t("toast_error")) }
   }
 

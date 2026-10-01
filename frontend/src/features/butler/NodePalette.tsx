@@ -8,7 +8,7 @@ import React, { useMemo } from "react"
 import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
-import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE, isUnwired } from "./palette-data"
+import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE, isNotImplemented } from "./palette-data"
 import { rgbFor } from "@/shared/colors"
 
 const COLOR_MAP = {
@@ -71,23 +71,23 @@ export function NodePalette() {
               <div className="flex flex-col gap-1.5 mt-1">
                 {group.items.map((item) => {
                   const Icon = item.icon
-                  const unwired = isUnwired(item.subtype)
+                  const notImplemented = isNotImplemented(item.subtype)
                   return (
                     <div
                       key={item.subtype}
-                      title={unwired ? t("node_unwired") : undefined}
+                      title={notImplemented ? t("node_not_implemented") : undefined}
                       className={cn(
                         "relative flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition-colors",
-                        unwired
+                        notImplemented
                           ? "cursor-not-allowed border-zinc-700/50 bg-zinc-900/50 text-zinc-500"
                           : cn("cursor-grab active:cursor-grabbing", COLOR_MAP[group.color]),
                       )}
-                      draggable={!unwired}
-                      onDragStart={unwired ? undefined : (e) => onDragStart(e, item)}
+                      draggable={!notImplemented}
+                      onDragStart={notImplemented ? undefined : (e) => onDragStart(e, item)}
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0" />
                       <span className="truncate leading-tight">{item.label}</span>
-                      {unwired && (
+                      {notImplemented && (
                         <span className="ml-auto shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold bg-amber-900/60 text-amber-400 border border-amber-700/40">
                           {t("badge_soon")}
                         </span>
