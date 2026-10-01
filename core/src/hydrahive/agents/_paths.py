@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from hydrahive.settings import settings
@@ -30,20 +31,33 @@ def ensure_workspace(agent: dict) -> Path:
     return ws.resolve()
 
 
-def system_prompt_path(agent_id: str) -> Path:
-    return settings.agents_dir / agent_id / "system_prompt.md"
+# Agent-IDs sind UUIDs bzw. einfache Kennungen. Alles andere (/, \\, ..,
+# Leerzeichen) wäre ein Pfad und könnte agents_dir verlassen
+# (Sicherheitsprüfung 01.10.2026: fremde config.json aus einem Workspace).
+_AGENT_ID = re.compile(r"[A-Za-z0-9_-]{1,128}")
 
 
-def config_path(agent_id: str) -> Path:
-    return settings.agents_dir / agent_id / "config.json"
+def is_valid_agent_id(agent_id: object) -> bool:
+    return isinstance(agent_id, str) and _AGENT_ID.fullmatch(agent_id) is not None
 
 
 def agent_dir(agent_id: str) -> Path:
+    """Ordner des Agenten — ValueError bei allem, was keine Agent-ID ist."""
+    if not is_valid_agent_id(agent_id):
+        raise ValueError(f"Ungültige Agent-ID: {agent_id!r}")
     return settings.agents_dir / agent_id
 
 
+def system_prompt_path(agent_id: str) -> Path:
+    return agent_dir(agent_id) / "system_prompt.md"
+
+
+def config_path(agent_id: str) -> Path:
+    return agent_dir(agent_id) / "config.json"
+
+
 def soul_dir(agent_id: str) -> Path:
-    return settings.agents_dir / agent_id / "soul"
+    return agent_dir(agent_id) / "soul"
 
 
 def soul_file(agent_id: str, component: str) -> Path:
