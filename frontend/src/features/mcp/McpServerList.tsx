@@ -7,8 +7,8 @@ interface Props {
   servers: McpServer[]
   activeId: string | null
   onSelect: (id: string) => void
-  onNew: () => void
-  onQuickAdd: () => void
+  onNew?: () => void
+  onQuickAdd?: () => void
 }
 
 export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }: Props) {
@@ -19,19 +19,19 @@ export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }
         <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">{t("list_title")}</p>
         <div className="flex items-center gap-1">
           <HelpButton topic="mcp" />
-          <button
+          {onQuickAdd && <button
             onClick={onQuickAdd}
             title={t("actions.template_tooltip")}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-violet-300 hover:text-violet-200 hover:bg-violet-500/10 transition-colors"
           >
             <Sparkles size={12} /> {t("actions.template_button")}
-          </button>
-          <button
+          </button>}
+          {onNew && <button
             onClick={onNew}
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs text-zinc-300 hover:text-zinc-100 hover:bg-white/5 transition-colors"
           >
             <Plus size={12} /> {t("actions.new_button")}
-          </button>
+          </button>}
         </div>
       </div>
 

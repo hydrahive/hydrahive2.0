@@ -38,7 +38,7 @@ export function RecentSessions({ sessions }: Props) {
         {sessions.map((s) => {
           const Icon = (s.agent_type && TYPE_ICON[s.agent_type as keyof typeof TYPE_ICON]) || MessageSquare
           return (
-            <Link key={s.id} to={`/chat?session=${s.id}`}
+            <Link key={s.id} to={`/werkstatt/${s.id}`}
               className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-white/[4%] transition-colors">
               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500/30 to-violet-600/30 flex items-center justify-center flex-shrink-0">
                 <Icon size={10} className="text-violet-300" />

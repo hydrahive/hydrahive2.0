@@ -42,5 +42,6 @@
   },
   "new_dialog": {
     "title": "MCP-Server hinzufügen"
-  }
+  },
+  "admin_only_hint": "Nur Admins können MCP-Server anlegen, ändern oder verbinden. Vorhandene Server kannst du im Agent-Editor deinen Agenten zuweisen."
 }

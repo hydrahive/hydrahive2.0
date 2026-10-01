@@ -23,6 +23,7 @@ from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
+from hydrahive.llm import registry
 from hydrahive.oauth import anthropic as anthropic_oauth
 from hydrahive.oauth import openai_codex
 from hydrahive.settings import settings
@@ -194,6 +195,9 @@ async def oauth_exchange(req: ExchangeRequest) -> ExchangeResponse:
 
     _write_provider_oauth(req.provider, token)
     _delete_pending()
+    # Neue Modelle sofort wählbar machen statt erst nach Cache-Ablauf/Neustart
+    # (Task 53519b4f, gefunden beim Mac-Test 01.10.2026).
+    registry.invalidate()
     return ExchangeResponse(ok=True, account_id=token.get("account_id", ""))
 
 
@@ -208,4 +212,5 @@ def oauth_revoke(provider: str) -> dict:
         if p.get("id") == provider:
             p.pop("oauth", None)
     path.write_text(json.dumps(data, indent=2))
+    registry.invalidate()
     return {"ok": True}

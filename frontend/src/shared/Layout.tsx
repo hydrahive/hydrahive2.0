@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { UpdateModal } from "@/shared/UpdateModal"
+import { StaleBundleBanner } from "@/shared/StaleBundleBanner"
 import { AppFooter } from "@/shared/AppFooter"
 import { useLayoutUpdate } from "./useLayoutUpdate"
 import { cockpitModuleItems, visibleItems } from "./nav-config"
@@ -21,7 +22,7 @@ export function Layout() {
   const { pathname } = useLocation()
 
   const {
-    version, commit, updateBehind, moduleUpdateCount,
+    version, commit, updateBehind, moduleUpdateCount, stale,
     updateState, updateError, newCommit,
     confirmUpdate, openUpdateModal, closeUpdateModal,
   } = useLayoutUpdate(role === "admin")
@@ -73,6 +74,7 @@ export function Layout() {
     <>
       {isCockpitRoute ? (
         <div className="flex h-[100dvh] min-h-0 flex-col bg-[#080b11]">
+          {stale && <StaleBundleBanner />}
           <main className="min-h-0 flex-1 overflow-hidden">
             <AccessOutlet />
           </main>
@@ -87,6 +89,7 @@ export function Layout() {
         </div>
       ) : (
         <div className="cockpit-route flex h-[100dvh] min-h-0 flex-col bg-[#080b11]">
+          {stale && <StaleBundleBanner />}
           <CockpitTopbar
             active={pathname}
             context={currentPage ? navLabel(t, currentPage.labelKey) : undefined}
