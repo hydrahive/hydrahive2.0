@@ -101,14 +101,22 @@ def delete(task_id: str) -> bool:
     return cur.rowcount > 0
 
 
+# „Jetzt ausführen“ (make_due) setzt next_run_at auf diesen Wert. Er gilt auch
+# für PAUSIERTE Aufgaben: ein ausdrücklicher Startwunsch läuft genau einmal,
+# danach liegt next_run_at in der Zukunft und die Pause greift wieder.
+# Vorher nahm claim_due nur enabled=1 → „queued“, aber nie ausgeführt.
+RUN_NOW_MARKER = "1970-01-01T00:00:00Z"
+
+
 def claim_due(limit: int = 16) -> list[tuple[ScheduledTask, str]]:
     now = datetime.now(UTC)
     timestamp = now.isoformat().replace("+00:00", "Z")
     with db(immediate=True) as conn:
         rows = conn.execute(
             """SELECT * FROM scheduled_agent_tasks
-               WHERE enabled = 1 AND running = 0 AND next_run_at <= ?
-               ORDER BY next_run_at LIMIT ?""", (timestamp, limit),
+               WHERE (enabled = 1 OR next_run_at = ?) AND running = 0
+                 AND next_run_at <= ?
+               ORDER BY next_run_at LIMIT ?""", (RUN_NOW_MARKER, timestamp, limit),
         ).fetchall()
         result: list[tuple[ScheduledTask, str]] = []
         for row in rows:
@@ -133,7 +141,7 @@ def make_due(task_id: str) -> bool:
         cur = conn.execute(
             "UPDATE scheduled_agent_tasks SET next_run_at = ?, updated_at = ? "
             "WHERE task_id = ? AND running = 0",
-            ("1970-01-01T00:00:00Z", now_iso(), task_id),
+            (RUN_NOW_MARKER, now_iso(), task_id),
         )
     return cur.rowcount > 0
 
