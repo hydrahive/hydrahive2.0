@@ -67,7 +67,9 @@
     "log_title": "Live-Log",
     "log_empty": "Noch keine Ausgabe…",
     "log_disconnected": "Server unerreichbar — warte auf Neustart…",
-    "close": "Schließen"
+    "close": "Schließen",
+    "stale_hint": "Auf dem Server läuft eine neuere Version. Neu laden, um alle neuen Funktionen zu sehen.",
+    "reload": "Neu laden"
   },
   "restart": {
     "button": "Service neu starten",

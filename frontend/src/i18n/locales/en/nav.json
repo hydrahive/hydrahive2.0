@@ -67,7 +67,9 @@
     "log_title": "Live log",
     "log_empty": "No output yet…",
     "log_disconnected": "Server unreachable — waiting for restart…",
-    "close": "Close"
+    "close": "Close",
+    "stale_hint": "A newer version is running on the server. Reload to see all new features.",
+    "reload": "Reload"
   },
   "restart": {
     "button": "Restart service",

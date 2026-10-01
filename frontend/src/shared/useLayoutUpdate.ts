@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { api } from "@/shared/api-client"
 import { getModuleUpdateCount } from "@/features/modules/api"
 import type { UpdateState } from "@/shared/UpdateModal"
+import { isStale } from "@/shared/_staleBundle"
 
 export function useLayoutUpdate(isAdmin: boolean) {
   const [version, setVersion] = useState<string | null>(null)
@@ -11,11 +12,18 @@ export function useLayoutUpdate(isAdmin: boolean) {
   const [updateState, setUpdateState] = useState<"idle" | UpdateState>("idle")
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [newCommit, setNewCommit] = useState<string | null>(null)
+  // Stand, mit dem DIESES Fenster geladen wurde (erste Health-Antwort).
+  const loadedWith = useRef<string | null>(null)
+  const [stale, setStale] = useState(false)
 
   useEffect(() => {
     function loadHealth() {
       api.get<{ version: string; commit: string | null; update_behind: number | null }>("/health")
-        .then((r) => { setVersion(r.version); setCommit(r.commit); setUpdateBehind(r.update_behind) })
+        .then((r) => {
+          setVersion(r.version); setCommit(r.commit); setUpdateBehind(r.update_behind)
+          if (loadedWith.current === null) loadedWith.current = r.commit
+          setStale(isStale(loadedWith.current, r.commit))
+        })
         .catch(() => {})
     }
     loadHealth()
@@ -80,7 +88,7 @@ export function useLayoutUpdate(isAdmin: boolean) {
   }
 
   return {
-    version, commit, updateBehind, moduleUpdateCount,
+    version, commit, updateBehind, moduleUpdateCount, stale,
     updateState, updateError, newCommit,
     confirmUpdate,
     openUpdateModal: () => { setUpdateState("confirm"); setUpdateError(null); setNewCommit(null) },

@@ -133,6 +133,14 @@ export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfi
               </button>
             </>
           )}
+          {state === "done" && (
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-[var(--hh-accent-from)] to-[var(--hh-accent-to)] hover:brightness-110 text-white text-sm font-medium shadow-md shadow-black/30"
+            >
+              {t("update.reload")}
+            </button>
+          )}
           {(state === "done" || state === "failed") && (
             <button
               onClick={onClose}
