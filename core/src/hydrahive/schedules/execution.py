@@ -17,67 +17,105 @@ from hydrahive.schedules import db
 from hydrahive.schedules.models import ScheduledTask
 
 logger = logging.getLogger(__name__)
+_RUN_TIMEOUT_SECONDS = 15 * 60
+
+
+async def _run_butler_task(task: ScheduledTask, run_id: str) -> None:
+    event = TriggerEvent(
+        event_type="schedule",
+        owner=task.owner,
+        payload={
+            "schedule_id": task.task_id,
+            "task_id": task.task_id,
+            "agent_id": task.target_id,
+        },
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+    results = await butler_executor.dispatch_event(event, owner=task.owner)
+    session_ids: list[str] = []
+    errors: list[str] = []
+    for result in results:
+        try:
+            outcome = await run_scheduled_agent_actions(
+                owner=result["owner"],
+                flow_id=result["flow_id"],
+                flow_name=result["flow_name"],
+                project_id=result.get("project_id"),
+                event=event,
+                actions=result["actions_executed"],
+            )
+        except Exception as exc:
+            logger.warning(
+                "Scheduled Butler-Flow %s fehlgeschlagen: %s",
+                result["flow_id"], exc,
+            )
+            errors.append(f"{result['flow_id']}: {exc}")
+            continue
+        session_ids.extend(outcome.session_ids)
+        errors.extend(outcome.errors)
+    session_id = session_ids[-1] if session_ids else None
+    if errors:
+        db.finish(
+            task.task_id,
+            run_id,
+            status="failed",
+            session_id=session_id,
+            error="; ".join(errors)[:2000],
+        )
+    else:
+        kwargs = {"session_id": session_id} if session_id else {}
+        db.finish(task.task_id, run_id, status="succeeded", **kwargs)
+
+
+async def _run_direct_task(task: ScheduledTask, run_id: str) -> None:
+    target_id = task.target_id
+    if task.target_type == "buddy":
+        state = get_or_create_buddy(task.owner)
+        target_id = state["agent_id"]
+    agent = agent_config.get(target_id)
+    if not agent:
+        raise RuntimeError(f"Ziel-Agent nicht gefunden: {target_id}")
+    session = sessions_db.create(
+        agent_id=target_id,
+        user_id=task.owner,
+        project_id=task.project_id,
+        title=f"Automatisch: {task.title}",
+        metadata={"scheduled_task_id": task.task_id},
+    )
+    final_error: str | None = None
+    async for event in runner.run(session.id, task.prompt):
+        if isinstance(event, Error):
+            final_error = event.message
+        elif isinstance(event, Done):
+            final_error = None
+    if final_error:
+        db.finish(
+            task.task_id,
+            run_id,
+            status="failed",
+            session_id=session.id,
+            error=final_error,
+        )
+    else:
+        db.finish(task.task_id, run_id, status="succeeded", session_id=session.id)
+
+
+async def _execute_task(task: ScheduledTask, run_id: str) -> None:
+    if task.execution_mode == "butler_event":
+        await _run_butler_task(task, run_id)
+    else:
+        await _run_direct_task(task, run_id)
 
 
 async def run_task(task: ScheduledTask, run_id: str) -> None:
     try:
-        if task.execution_mode == "butler_event":
-            event = TriggerEvent(
-                event_type="schedule",
-                owner=task.owner,
-                payload={"schedule_id": task.task_id, "task_id": task.task_id,
-                         "agent_id": task.target_id},
-                timestamp=datetime.now(timezone.utc).isoformat(),
-            )
-            results = await butler_executor.dispatch_event(event, owner=task.owner)
-            session_ids: list[str] = []
-            errors: list[str] = []
-            for result in results:
-                outcome = await run_scheduled_agent_actions(
-                    owner=result["owner"],
-                    flow_id=result["flow_id"],
-                    flow_name=result["flow_name"],
-                    project_id=task.project_id,
-                    event=event,
-                    actions=result["actions_executed"],
-                )
-                session_ids.extend(outcome.session_ids)
-                errors.extend(outcome.errors)
-            session_id = session_ids[-1] if session_ids else None
-            if errors:
-                db.finish(
-                    task.task_id, run_id, status="failed", session_id=session_id,
-                    error="; ".join(errors)[:2000],
-                )
-            else:
-                kwargs = {"session_id": session_id} if session_id else {}
-                db.finish(task.task_id, run_id, status="succeeded", **kwargs)
-            return
-
-        target_id = task.target_id
-        if task.target_type == "buddy":
-            state = get_or_create_buddy(task.owner)
-            target_id = state["agent_id"]
-        agent = agent_config.get(target_id)
-        if not agent:
-            raise RuntimeError(f"Ziel-Agent nicht gefunden: {target_id}")
-        session = sessions_db.create(
-            agent_id=target_id,
-            user_id=task.owner,
-            project_id=task.project_id,
-            title=f"Automatisch: {task.title}",
-            metadata={"scheduled_task_id": task.task_id},
+        await asyncio.wait_for(
+            _execute_task(task, run_id), timeout=_RUN_TIMEOUT_SECONDS,
         )
-        final_error: str | None = None
-        async for event in runner.run(session.id, task.prompt):
-            if isinstance(event, Error):
-                final_error = event.message
-            elif isinstance(event, Done):
-                final_error = None
-        if final_error:
-            db.finish(task.task_id, run_id, status="failed", session_id=session.id, error=final_error)
-        else:
-            db.finish(task.task_id, run_id, status="succeeded", session_id=session.id)
+    except TimeoutError:
+        message = f"Zeitlimit von {_RUN_TIMEOUT_SECONDS:g} Sekunden überschritten"
+        logger.error("Scheduled task %s abgebrochen: %s", task.task_id, message)
+        db.finish(task.task_id, run_id, status="failed", error=message)
     except asyncio.CancelledError:
         db.finish(task.task_id, run_id, status="failed", error="Ausführung abgebrochen")
         raise

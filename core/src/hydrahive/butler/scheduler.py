@@ -1,14 +1,4 @@
-"""Butler Cron-Emitter — feuert cron_fired-Flows zeitgesteuert.
-
-Hintergrund-Loop (Minutentakt): lädt alle aktiven Flows mit cron_fired-
-Trigger, parst die Cron-Expression (croniter) und feuert bei Fälligkeit ein
-cron-TriggerEvent via executor.dispatch. Schließt die SPEC-Phase-2-Lücke —
-der cron_fired-Trigger hatte bislang keinen Emitter.
-
-Fälligkeit per Fenster (since, now]: jede geplante Zeit feuert genau einmal.
-Kein Catch-up über Backend-Neustarts hinweg (since wird beim Start auf now
-gesetzt) — verpasste Schedules während Downtime werden bewusst nicht nachgeholt.
-"""
+"""Zeitgesteuerter Butler-Cron-Emitter mit entkoppelten Flow-Läufen."""
 from __future__ import annotations
 
 import asyncio
@@ -24,48 +14,87 @@ from hydrahive.butler.models import Flow, Node, TriggerEvent
 
 logger = logging.getLogger(__name__)
 
-_STARTUP_DELAY = 20.0  # nach Start warten bis DB/Flows bereit
-_TICK_INTERVAL = 60.0  # Minutentakt
-_MAX_FIRINGS_PER_TICK = 100  # Kappe gegen Uhr-Sprünge / riesige Fenster
+_STARTUP_DELAY = 20.0
+_TICK_INTERVAL = 60.0
+_MAX_FIRINGS_PER_TICK = 100
+_RUN_TIMEOUT_SECONDS = 15 * 60
+_RUNNING: dict[tuple[str, str], asyncio.Task[None]] = {}
 
 
 def _cron_trigger(flow: Flow) -> Node | None:
-    for n in flow.nodes:
-        if n.type == "trigger" and n.subtype == "cron_fired":
-            return n
+    for node in flow.nodes:
+        if node.type == "trigger" and node.subtype == "cron_fired":
+            return node
     return None
 
 
 def _fire_times(cron_expr: str, since: datetime, now: datetime) -> list[datetime]:
-    """Alle Cron-Feuerzeitpunkte im Fenster (since, now].
-
-    Enumeriert ALLE Treffer (nicht nur den ersten) — wenn ein Tick langsam war
-    und das Fenster mehrere Schedule-Zeitpunkte umspannt, wird für jeden
-    gefeuert (echtes Catch-up) statt sie zu einem zusammenzufassen. Die Kappe
-    schützt vor pathologisch großen Fenstern (z.B. nach einem Uhr-Sprung).
-    """
+    """Ermittelt Cron-Zeitpunkte im Fenster (since, now]."""
     times: list[datetime] = []
-    itr = croniter(cron_expr, since)
+    iterator = croniter(cron_expr, since)
     for _ in range(_MAX_FIRINGS_PER_TICK):
-        nxt = itr.get_next(datetime)
-        if nxt.tzinfo is None:  # ältere croniter-Versionen: naive → UTC annehmen
-            nxt = nxt.replace(tzinfo=timezone.utc)
-        if nxt > now:
+        next_fire = iterator.get_next(datetime)
+        if next_fire.tzinfo is None:
+            next_fire = next_fire.replace(tzinfo=timezone.utc)
+        if next_fire > now:
             break
-        times.append(nxt)  # get_next liefert strikt > since, also im Fenster (since, now]
+        times.append(next_fire)
     return times
 
 
+async def _execute_flow(flow: Flow, event: TriggerEvent, fired_at: datetime) -> None:
+    result = await bex.dispatch(flow, event)
+    outcome = await run_scheduled_agent_actions(
+        owner=flow.owner,
+        flow_id=flow.flow_id,
+        flow_name=flow.name,
+        project_id=flow.scope_id if flow.scope == "project" else None,
+        event=event,
+        actions=result.get("actions_executed", []),
+    )
+    logger.info(
+        "butler cron gefeuert: %s/%s @%s matched=%s agent_errors=%s",
+        flow.owner, flow.flow_id, fired_at.isoformat(), result.get("matched"),
+        len(outcome.errors),
+    )
+
+
+async def _run_flow(flow: Flow, event: TriggerEvent, fired_at: datetime) -> None:
+    try:
+        await asyncio.wait_for(
+            _execute_flow(flow, event, fired_at), timeout=_RUN_TIMEOUT_SECONDS,
+        )
+    except TimeoutError:
+        logger.error(
+            "butler cron Zeitlimit überschritten; Lauf abgebrochen: %s/%s",
+            flow.owner, flow.flow_id,
+        )
+    except Exception as exc:
+        logger.warning(
+            "butler cron dispatch fehlgeschlagen %s/%s: %s",
+            flow.owner, flow.flow_id, exc,
+        )
+
+
+def _forget_task(key: tuple[str, str], task: asyncio.Task[None]) -> None:
+    if _RUNNING.get(key) is task:
+        _RUNNING.pop(key, None)
+    if not task.cancelled():
+        task.exception()
+
+
+def _start_flow(flow: Flow, event: TriggerEvent, fired_at: datetime) -> None:
+    key = (flow.owner, flow.flow_id)
+    task = asyncio.create_task(
+        _run_flow(flow, event, fired_at),
+        name=f"butler-cron-{flow.owner}-{flow.flow_id}",
+    )
+    _RUNNING[key] = task
+    task.add_done_callback(lambda done, task_key=key: _forget_task(task_key, done))
+
+
 async def _tick(since: datetime, now: datetime) -> int:
-    """Eine Auswertungsrunde — feuert alle im Fenster fälligen cron-Flows.
-
-    Liefert die Anzahl gefeuerter Events (ein Flow kann pro Tick mehrfach
-    feuern, wenn das Fenster mehrere Schedule-Zeitpunkte umspannt). Pro-Flow-
-    Fehler werden isoliert (ein kaputter Flow bricht die anderen nicht).
-
-    `bp.list_flows` ist ein synchroner JSON-Read (wenige Flows) — dasselbe
-    Muster wie der Zahnfee-Scheduler, akzeptiert im Minutentakt.
-    """
+    """Plant je fälligem, derzeit nicht laufendem Flow höchstens einen Lauf."""
     fired = 0
     for flow in bp.list_flows(owner=None):
         if not flow.enabled:
@@ -73,65 +102,69 @@ async def _tick(since: datetime, now: datetime) -> int:
         node = _cron_trigger(flow)
         if node is None:
             continue
-        cron_expr = (node.params.get("cron") or "").strip()
+        cron_expr = str(node.params.get("cron") or "").strip()
         if not cron_expr:
             continue
         try:
             fire_times = _fire_times(cron_expr, since, now)
-        except Exception as e:
+        except Exception as exc:
             logger.warning(
                 "butler cron: ungültige Expression in Flow %s/%s: %r (%s)",
-                flow.owner, flow.flow_id, cron_expr, e,
+                flow.owner, flow.flow_id, cron_expr, exc,
             )
             continue
-        schedule_id = (node.params.get("schedule_id") or "").strip()
-        for ft in fire_times:
-            event = TriggerEvent(
-                event_type="cron",
-                payload={"schedule_id": schedule_id} if schedule_id else {},
-                owner=flow.owner,
-                timestamp=ft.isoformat(),
+        if not fire_times:
+            continue
+        key = (flow.owner, flow.flow_id)
+        running = _RUNNING.get(key)
+        if running is not None and not running.done():
+            logger.info(
+                "butler cron übersprungen, Flow läuft bereits: %s/%s",
+                flow.owner, flow.flow_id,
             )
-            try:
-                result = await bex.dispatch(flow, event)
-                outcome = await run_scheduled_agent_actions(
-                    owner=flow.owner,
-                    flow_id=flow.flow_id,
-                    flow_name=flow.name,
-                    project_id=flow.scope_id if flow.scope == "project" else None,
-                    event=event,
-                    actions=result.get("actions_executed", []),
-                )
-                fired += 1
-                logger.info(
-                    "butler cron gefeuert: %s/%s @%s matched=%s agent_errors=%s",
-                    flow.owner, flow.flow_id, ft.isoformat(), result.get("matched"),
-                    len(outcome.errors),
-                )
-            except Exception as e:
-                logger.warning(
-                    "butler cron dispatch fehlgeschlagen %s/%s: %s",
-                    flow.owner, flow.flow_id, e,
-                )
+            continue
+        fired_at = fire_times[-1]
+        schedule_id = str(node.params.get("schedule_id") or "").strip()
+        event = TriggerEvent(
+            event_type="cron",
+            payload={"schedule_id": schedule_id} if schedule_id else {},
+            owner=flow.owner,
+            timestamp=fired_at.isoformat(),
+        )
+        _start_flow(flow, event, fired_at)
+        fired += 1
+    await asyncio.sleep(0)
     return fired
 
 
+async def _cancel_running() -> None:
+    tasks = list(_RUNNING.values())
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    _RUNNING.clear()
+
+
 async def run_loop(stop: asyncio.Event) -> None:
-    """Hintergrund-Loop: alle ~60s die fälligen cron-Flows feuern."""
+    """Prüft die Cron-Flows im Minutentakt und beendet Läufe beim Shutdown."""
     try:
-        await asyncio.wait_for(stop.wait(), timeout=_STARTUP_DELAY)
-        return  # Stop schon während der Startup-Verzögerung
-    except asyncio.TimeoutError:
-        pass
-    since = datetime.now(timezone.utc)
-    while not stop.is_set():
-        now = datetime.now(timezone.utc)
         try:
-            await _tick(since, now)
-        except Exception as e:
-            logger.warning("butler cron scheduler fehler: %s", e)
-        since = now
-        try:
-            await asyncio.wait_for(stop.wait(), timeout=_TICK_INTERVAL)
-        except asyncio.TimeoutError:
+            await asyncio.wait_for(stop.wait(), timeout=_STARTUP_DELAY)
+            return
+        except TimeoutError:
             pass
+        since = datetime.now(timezone.utc)
+        while not stop.is_set():
+            now = datetime.now(timezone.utc)
+            try:
+                await _tick(since, now)
+            except Exception as exc:
+                logger.warning("butler cron scheduler fehler: %s", exc)
+            since = now
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=_TICK_INTERVAL)
+            except TimeoutError:
+                pass
+    finally:
+        await _cancel_running()

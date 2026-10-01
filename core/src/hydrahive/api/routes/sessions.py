@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, status
 from hydrahive.agents import config as agent_config
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
-from hydrahive.api.routes._project_route_helpers import check_project_access
-from hydrahive.projects import config as project_config
+from hydrahive.api.routes._session_access import (
+    assert_agent_access as _assert_agent_access,
+    assert_project_access as _assert_project_access,
+)
 from hydrahive.api.routes._sessions_helpers import (
     SessionCreate,
     SessionUpdate,
@@ -121,35 +123,6 @@ def update_session(
             _assert_project_access(pid, *auth)
         sessions_db.set_project(session_id, pid)
     return serialize_session(sessions_db.get(session_id))
-
-
-def _assert_project_access(project_id: str, username: str, role: str) -> dict:
-    """Eine Session an ein Projekt heften ist schreibend -> Rolle write nötig."""
-    proj = project_config.get(project_id)
-    if not proj:
-        raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    check_project_access(proj, username, role, required="write")
-    return proj
-
-
-def _assert_agent_access(agent: dict, project: dict | None, username: str, role: str) -> None:
-    """Nur eigene Agenten, oder Agenten des Projekts, an das die Session hängt.
-
-    Vorher wurde nur geprüft, ob der Agent existiert. Damit konnte jeder
-    Login eine Session mit einem fremden Buddy anlegen und darüber mit ihm
-    arbeiten, weil check_owner später nur den Session-Besitzer prüft.
-    Projekt-Mitglieder (write) dürfen weiter den Projekt-Agenten und die
-    freigegebenen Spezialisten des Projekts nutzen, aber nur mit project_id:
-    Ohne sie hätte die Session den Agenten, aber weder Workspace noch Skills
-    des Projekts.
-    """
-    if role == "admin" or agent.get("owner") == username:
-        return
-    if project is not None:
-        team = {project.get("agent_id"), *(project.get("allowed_specialists") or [])}
-        if agent["id"] in team:
-            return
-    raise coded(status.HTTP_403_FORBIDDEN, "agent_no_access")
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)

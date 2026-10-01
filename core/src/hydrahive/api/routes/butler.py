@@ -7,6 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, status
 
+from hydrahive.api.middleware import users
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._butler_route_helpers import (
@@ -44,12 +45,12 @@ def create_flow(
     body: FlowInput,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    user, _ = auth
+    user, role = auth
     if not _ID_RE.match(body.flow_id):
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_invalid")
     if bp.get_flow(user, body.flow_id):
         raise coded(status.HTTP_409_CONFLICT, "butler_flow_id_taken")
-    flow = build_flow(body, flow_id=body.flow_id, owner=user)
+    flow = build_flow(body, flow_id=body.flow_id, owner=user, role=role)
     bp.save_flow(flow, modified_by=user)
     return flow.model_dump()
 
@@ -64,8 +65,14 @@ def update_flow(
     existing = flow_or_404(user, flow_id, user, role)
     if body.flow_id != flow_id:
         raise coded(status.HTTP_400_BAD_REQUEST, "butler_flow_id_mismatch")
-    flow = build_flow(body, flow_id=flow_id, owner=existing.owner,
-                      created_at=existing.created_at)
+    owner_role = role
+    if existing.owner != user:
+        owner_account = users.get_by_username(existing.owner)
+        owner_role = str((owner_account or {}).get("role") or "user")
+    flow = build_flow(
+        body, flow_id=flow_id, owner=existing.owner, role=owner_role,
+        created_at=existing.created_at,
+    )
     bp.save_flow(flow, modified_by=user)
     return flow.model_dump()
 

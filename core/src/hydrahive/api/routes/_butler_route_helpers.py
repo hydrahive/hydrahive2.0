@@ -6,6 +6,7 @@ from fastapi import status
 from pydantic import BaseModel, ValidationError
 
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._session_access import assert_project_access
 from hydrahive.butler import persistence as bp
 from hydrahive.butler.models import Edge, Flow, Node, TriggerEvent
 
@@ -30,7 +31,7 @@ def is_admin(role: str) -> bool:
     return role == "admin"
 
 
-def build_flow(body: FlowInput, *, flow_id: str, owner: str,
+def build_flow(body: FlowInput, *, flow_id: str, owner: str, role: str,
                created_at: str | None = None) -> Flow:
     """Baut den Flow aus der Eingabe und prüft Graph + Registry.
 
@@ -40,10 +41,19 @@ def build_flow(body: FlowInput, *, flow_id: str, owner: str,
     """
     from hydrahive.butler.registry._validation import unknown_subtypes
 
+    scope_id = body.scope_id
+    if body.scope == "user":
+        scope_id = None
+    elif body.scope == "project":
+        scope_id = (body.scope_id or "").strip()
+        if not scope_id:
+            raise coded(status.HTTP_400_BAD_REQUEST, "butler_project_scope_id_required")
+        assert_project_access(scope_id, owner, role)
+
     try:
         flow = Flow(
             flow_id=flow_id, name=body.name, owner=owner,
-            enabled=body.enabled, scope=body.scope, scope_id=body.scope_id,
+            enabled=body.enabled, scope=body.scope, scope_id=scope_id,
             nodes=body.nodes, edges=body.edges, created_at=created_at,
         )
     except ValidationError as e:

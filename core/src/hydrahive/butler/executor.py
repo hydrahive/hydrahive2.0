@@ -134,6 +134,7 @@ async def dispatch_event(event: TriggerEvent, *, owner: str | None = None,
                     "flow_id": flow.flow_id,
                     "flow_name": flow.name,
                     "owner": flow.owner,
+                    "project_id": flow.scope_id if flow.scope == "project" else None,
                     **result,
                 })
         except Exception as e:
