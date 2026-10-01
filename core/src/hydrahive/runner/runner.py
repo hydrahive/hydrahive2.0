@@ -29,6 +29,8 @@ from hydrahive.runner._buddy_mode import with_buddy_mode
 from hydrahive.runner._emote_hint import with_emote_hint
 from hydrahive.runner._project_tool_scope import scope_tools
 from hydrahive.access.tool_filter import filter_tools as access_filter_tools
+from hydrahive.runner._run_origin import OTHER, RunOrigin
+from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
 from hydrahive.runner._runner_iter import (
     IterationResult,
@@ -91,6 +93,8 @@ async def run(
     *,
     tool_config: dict | None = None,
     extra_system: str | None = None,
+    origin: RunOrigin = OTHER,
+    user_metadata: dict | None = None,
 ) -> AsyncIterator[Event]:
     session = sessions_db.get(session_id)
     if not session:
@@ -106,7 +110,8 @@ async def run(
     ctx = ToolContext(session_id=session_id, agent_id=agent["id"], user_id=session.user_id,
                      workspace=workspace, config=effective_tool_config(agent, tool_config),
                      project_id=active_project_id,
-                     current_user_input=_user_text(user_input))
+                     current_user_input=_user_text(user_input) if origin.trusted_user_input else None,
+                     origin=origin.kind, origin_depth=origin.depth)
 
     # Session-Lifecycle: start
     _first_prompt = user_input if isinstance(user_input, str) else None
@@ -142,8 +147,13 @@ async def run(
     handover_system = prompt_for_new_session(session_id)
     integrity_goal = _user_text(user_input)
     continued_evidence = load_continuation_evidence(session_id, integrity_goal)
-    user_message = messages_db.append(session_id, "user", user_input)
-    ctx.current_user_turn_id = user_message.id
+    user_message = messages_db.append(
+        session_id, "user", user_input,
+        metadata=user_metadata if user_metadata is not None else (
+            origin.as_metadata() if origin.kind != "other" else None),
+    )
+    if origin.trusted_user_input:
+        ctx.current_user_turn_id = user_message.id
 
     last_assistant_id: str | None = None
     recent_tool_calls: list[str] = []
@@ -368,18 +378,24 @@ async def run(
         # Tool-Use-Loop: in Sub-Modul. Letzter yield ist result_blocks.
         activity.set_tool(session_id, tool_uses[-1].get("name") if tool_uses else None)
         result_blocks: list[dict] = []
-        async for item in process_tool_uses(
-            tool_uses, ctx=ctx, allowed_tools=allowed_tools,
-            parent_message_id=assistant_msg.id,
-            require_confirm=bool(agent.get("require_tool_confirm", False)),
-            tool_result_max_chars=tool_result_max_chars,
-            iteration=iteration + 1,
-            integrity_state=integrity_state,
-        ):
-            if isinstance(item, list):
-                result_blocks = item
-            else:
-                yield item
+        try:
+            async for item in process_tool_uses(
+                tool_uses, ctx=ctx, allowed_tools=allowed_tools,
+                parent_message_id=assistant_msg.id,
+                require_confirm=bool(agent.get("require_tool_confirm", False)),
+                tool_result_max_chars=tool_result_max_chars,
+                iteration=iteration + 1,
+                integrity_state=integrity_state,
+                sink=result_blocks,
+            ):
+                if isinstance(item, list):
+                    result_blocks = item
+                else:
+                    yield item
+        except asyncio.CancelledError:
+            persist_on_cancel(session_id, tool_uses, result_blocks, assistant_msg.id)
+            session_end(agent["id"], session_id, status="abandoned")
+            raise
 
         tool_msg = messages_db.append(
             session_id, "user", result_blocks,

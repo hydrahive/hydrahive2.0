@@ -20,6 +20,7 @@ from hydrahive.agentlink.checkpoints import checkpoint_finding
 from hydrahive.agentlink.client import get_state
 from hydrahive.agentlink.protocol import State, WSEvent
 from hydrahive.db import agent_handoffs as db_agent_handoffs
+from hydrahive.runner._delegation_record import record_delegation_result
 from hydrahive.runner._handoff_reply import (
     post_error_reply as _post_error_reply,
     post_reply as _post_reply,
@@ -158,16 +159,24 @@ async def _consume_run(
 ) -> RunFailure | None:
     """Run the agent and preserve structured runner failure metadata."""
     from hydrahive.runner import runner
-    from hydrahive.runner.concurrency import session_run_guard
+    from hydrahive.runner.concurrency import register_task, session_run_guard, unregister_task
     from hydrahive.runner.events import Error
 
     async with session_run_guard(session_id):
-        async for ev in runner.run(session_id, user_input):
-            if hasattr(ev, "text"):
-                output_parts.append(ev.text)
-            elif isinstance(ev, Error):
-                metadata = ev.metadata if isinstance(ev.metadata, dict) else {}
-                return RunFailure(ev.message, metadata.get("kind"))
+        # Registriert: Abbrechen eines Hintergrund-Auftrags stoppt diesen Lauf
+        # gezielt (concurrency.cancel), und die Spezialisten-Session zeigt „läuft“.
+        current = asyncio.current_task()
+        if current is not None:
+            register_task(session_id, current)
+        try:
+            async for ev in runner.run(session_id, user_input):
+                if hasattr(ev, "text"):
+                    output_parts.append(ev.text)
+                elif isinstance(ev, Error):
+                    metadata = ev.metadata if isinstance(ev.metadata, dict) else {}
+                    return RunFailure(ev.message, metadata.get("kind"))
+        finally:
+            unregister_task(session_id)
     return None
 
 
@@ -204,11 +213,12 @@ async def _run_and_reply(
         # Worker-Shutdown/Reload: best-effort terminale Antwort posten, dann
         # re-raise. Ohne das bliebe der State ewig in_progress (Subagent-Zombie).
         logger.warning(
-            "handoff_receiver: Run für Session %s abgebrochen (Shutdown) — poste Fehler-Antwort",
+            "handoff_receiver: Run für Session %s abgebrochen (Stopp/Shutdown) — poste Fehler-Antwort",
             session_id,
         )
         try:
-            await asyncio.shield(_post_reply(state, "Abgebrochen (Worker-Shutdown)", "error"))
+            await asyncio.shield(_post_reply(
+                state, "Abgebrochen (gestoppt oder Server-Neustart)", "error"))
             db_agent_handoffs.update_status(handoff_db_id, "error")
         except Exception:
             logger.exception("handoff_receiver: Fehler-Antwort bei Cancel fehlgeschlagen")
@@ -236,6 +246,7 @@ async def _run_and_reply(
     # Activate a checkpoint before publishing its capability token, otherwise an
     # immediate resume can race against a still-"running" DB row.
     db_agent_handoffs.update_status(handoff_db_id, status)
+    record_delegation_result(state, status, output, checkpoint)
     delivered = await _post_reply(state, output, status, checkpoint=checkpoint)
     if status == "paused" and delivered is False:
         # No caller received the capability, so do not retain an unreachable token.

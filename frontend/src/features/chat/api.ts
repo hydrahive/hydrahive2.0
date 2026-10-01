@@ -2,6 +2,7 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { api, buildErrorMessage } from "@/shared/api-client"
 import type { AgentBrief, Message, RunnerEvent, Session } from "./types"
 import { runSseLoop } from "./_sseLoop"
+import { pingKind } from "./_runFollow"
 
 export interface ProjectBrief {
   id: string
@@ -155,14 +156,14 @@ function parseSseFrame(frame: string): RunnerEvent | null {
  */
 export async function subscribeSession(
   sessionId: string,
-  onPing: () => void,
+  onPing: (kind: string) => void,
   signal: AbortSignal,
 ): Promise<void> {
   await runSseLoop({
     url: `/api/sessions/${sessionId}/stream`,
     token: () => useAuthStore.getState().token,
     // Ein Frame mit data:-Zeile = Ping (Keepalive sind reine :-Kommentare).
-    onFrame: (frame) => { if (frame.split("\n").some((l) => l.startsWith("data:"))) onPing() },
+    onFrame: (frame) => { const kind = pingKind(frame); if (kind !== null) onPing(kind) },
     onUnauthorized: () => useAuthStore.getState().logout(),
     signal,
   })

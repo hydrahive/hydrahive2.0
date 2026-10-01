@@ -4,6 +4,13 @@ from typing import Any
 
 from hydrahive.db.messages import Message
 
+# Früher: „Truncation im vorigen Turn“. Das war fast nie die Ursache — meist
+# wurde der Lauf gestoppt oder der Server neu gestartet (Task 620bb0de).
+ORPHAN_TEXT = (
+    "Abgebrochen: kein Ergebnis gespeichert "
+    "(Lauf wurde unterbrochen, z. B. gestoppt oder Server-Neustart)"
+)
+
 
 def heal_orphan_tool_uses(history: list[Message]) -> list[Message]:
     """Anthropic API requires every tool_use in an assistant message to be
@@ -39,7 +46,7 @@ def heal_orphan_tool_uses(history: list[Message]) -> list[Message]:
                         {
                             "type": "tool_result",
                             "tool_use_id": tu.get("id", ""),
-                            "content": "Abgebrochen: kein Resultat aufgezeichnet (Truncation im vorigen Turn)",
+                            "content": ORPHAN_TEXT,
                             "is_error": True,
                         }
                         for tu in missing

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { attachRun, chatApi, sendMessage, subscribeSession } from "./api"
+import { chatApi, sendMessage, subscribeSession } from "./api"
+import { followRun, type FollowDeps } from "./_runFollow"
 import { applyStreamEvent, flushPendingLive } from "./_chatStream"
 import { applyReload, errorAfterReload } from "./_reloadMerge"
 import type { ContentBlock, Message } from "./types"
@@ -142,51 +143,41 @@ export function useChat(sessionId: string | null) {
   const reloadRef = useRef(reload)
   reloadRef.current = reload
 
+  const followDeps = (sid: string, controller: AbortController): FollowDeps => ({
+    sessionId: sid, controller, setState, runningRef, busyRef, abortRef,
+    reload: () => reloadRef.current(),
+  })
+
   useEffect(() => {
     if (!sessionId) return
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | null = null
-    const onPing = () => {
-      // Eigener Sende-Stream rendert schon (busy) → kein Reload-Clobber.
+    const follow = new Set<AbortController>()
+    const onPing = (kind: string) => {
+      // Lauf startet, den dieses Fenster nicht selbst ausgelöst hat (anderes
+      // Gerät, Auswertung von Spezialisten-Ergebnissen) → live anhängen.
+      if (kind === "start" && !busyRef.current && !runningRef.current) {
+        const c = new AbortController()
+        follow.add(c)
+        void followRun(followDeps(sessionId, c), true).finally(() => follow.delete(c))
+        return
+      }
+      // Eigener/angehängter Stream rendert schon (busy) → kein Reload-Clobber.
       // Schon ein Reload eingeplant (timer) → debouncen.
       if (busyRef.current || timer) return
       timer = setTimeout(() => { timer = null; void reloadRef.current() }, 400)
     }
     void subscribeSession(sessionId, onPing, controller.signal)
-    return () => { controller.abort(); if (timer) clearTimeout(timer) }
+    // Reconnect-in-Lauf: läuft beim Öffnen schon etwas → ab jetzt mitlesen.
+    const initial = new AbortController()
+    follow.add(initial)
+    void followRun(followDeps(sessionId, initial), false)
+    return () => {
+      controller.abort()
+      for (const c of follow) c.abort()
+      if (timer) clearTimeout(timer)
+    }
   }, [sessionId])
-
-  // Reconnect-in-Lauf: Beim Öffnen einer Session prüfen, ob dort schon ein Run
-  // läuft (von diesem oder einem anderen Gerät). Wenn ja: an den Event-Bus
-  // anhängen → live weiterschauen (flüssig) + Stop-Button aktiv. Der eigene
-  // Sende-Stream (busy schon true) übernimmt selbst, daher hier nur wenn NICHT busy.
-  useEffect(() => {
-    if (!sessionId) return
-    const controller = new AbortController()
-    let cancelled = false
-    ;(async () => {
-      try {
-        const st = await chatApi.runStatus(sessionId)
-        if (cancelled || !st.running || busyRef.current) return
-        runningRef.current = true
-        setState((s) => ({ ...s, busy: true }))
-        abortRef.current = controller
-        const blocks: ContentBlock[] = []
-        for await (const ev of attachRun(sessionId, st.latest_seq, controller.signal)) {
-          const result = applyStreamEvent(ev as Record<string, unknown>, blocks, setState)
-          if (result === "error") break
-          if (result === "done") break
-        }
-      } catch {
-        /* Run schon vorbei / Abbruch — reload holt den Endstand */
-      } finally {
-        runningRef.current = false
-        if (abortRef.current === controller) abortRef.current = null
-        if (!cancelled) { await reload() }
-      }
-    })()
-    return () => { cancelled = true; controller.abort() }
-  }, [sessionId, reload])
 
   return { ...state, send, cancel, reload, confirmTool }
 }

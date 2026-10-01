@@ -20,6 +20,8 @@ import { extractMedia, MediaPreview } from "./MediaPreview"
 import { EmoteText } from "./EmoteText"
 import { useVoiceOutput } from "./useVoiceOutput"
 import { useChatSearch } from "./ChatSearchContext"
+import { DelegationResultCard } from "./DelegationResultCard"
+import { isDelegationResult } from "./delegationsApi"
 import type { ContentBlock, Message } from "./types"
 
 function hl(text: string, query: string): ReactNode {
@@ -47,6 +49,10 @@ function ChatUserMessage() {
   const [copied, setCopied] = useState(false)
   const { query, activeMessageId } = useChatSearch()
   const isActive = original?.id === activeMessageId
+
+  if (original && isDelegationResult(original.metadata)) {
+    return <MessagePrimitive.Root className="py-1"><DelegationResultCard message={original} /></MessagePrimitive.Root>
+  }
 
   if (toolResults.length > 0) {
     return (

@@ -42,11 +42,16 @@ async def process_tool_uses(
     tool_result_max_chars: int,
     iteration: int | None = None,
     integrity_state: IntegrityState | None = None,
+    sink: list[dict] | None = None,
 ) -> AsyncIterator[Event | list[dict]]:
     """Führt alle tool_uses einer Iteration aus, yields Events.
     Letzter yield ist die fertige `result_blocks: list[dict]`.
+
+    `sink`: Liste des Aufrufers, in die jeder fertige Block SOFORT wandert.
+    Wird der Lauf mitten in der Runde gestoppt, kennt der Runner so die schon
+    fertigen Ergebnisse und speichert sie (runner/_runner_cancel.py).
     """
-    result_blocks: list[dict] = []
+    result_blocks: list[dict] = sink if sink is not None else []
     for tu in tool_uses:
         tu_id = tu.get("id", "")
         tu_name = tu.get("name", "")

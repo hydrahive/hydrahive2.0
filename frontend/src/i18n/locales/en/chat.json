@@ -194,5 +194,22 @@
       "speech": "Speech",
       "other": "Other"
     }
+  },
+  "delegation": {
+    "result_title_one": "Result from specialist",
+    "result_title_other": "Results from {{count}} specialists",
+    "running": "working for {{minutes}} min · round {{rounds}}",
+    "cancel": "Cancel task",
+    "waiting": "Result ready — will be evaluated after your next message",
+    "deliver_now": "Evaluate now",
+    "status": {
+      "running": "running",
+      "done": "done",
+      "error": "error",
+      "paused": "paused",
+      "timeout": "no answer",
+      "cancelled": "cancelled",
+      "lost": "lost"
+    }
   }
 }

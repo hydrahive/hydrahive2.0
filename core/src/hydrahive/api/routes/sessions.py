@@ -15,6 +15,7 @@ from hydrahive.api.routes._sessions_helpers import (
     check_owner,
     serialize_session,
 )
+from hydrahive.api.routes.sessions_delegations import delegations_router
 from hydrahive.api.routes.sessions_messages import messages_router
 from hydrahive.db import sessions as sessions_db
 from hydrahive.runner import tool_confirmation
@@ -26,6 +27,7 @@ class ToolConfirmDecision(BaseModel):
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 router.include_router(messages_router)
+router.include_router(delegations_router)
 
 
 @router.get("")

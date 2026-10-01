@@ -17,6 +17,8 @@ import { extractMedia, MediaPreview } from "@/features/chat/MediaPreview"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
 import { HydraMascot } from "@/shared/HydraMascot"
 import { EmoteText } from "@/features/chat/EmoteText"
+import { DelegationResultCard } from "@/features/chat/DelegationResultCard"
+import { isDelegationResult } from "@/features/chat/delegationsApi"
 import type { ContentBlock, Message } from "@/features/chat/types"
 
 function BuddyUserMessage() {
@@ -31,6 +33,10 @@ function BuddyUserMessage() {
   const images = blocks.filter((b) => b.type === "image")
   const toolResults = blocks.filter((b) => b.type === "tool_result")
   const [copied, setCopied] = useState(false)
+
+  if (original && isDelegationResult(original.metadata)) {
+    return <MessagePrimitive.Root className="py-1"><DelegationResultCard message={original} /></MessagePrimitive.Root>
+  }
 
   if (toolResults.length > 0) {
     return (
