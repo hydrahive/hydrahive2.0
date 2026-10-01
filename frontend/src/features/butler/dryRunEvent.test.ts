@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { migrateParams } from "./adapter"
+import { migrateParams } from "./migrateParams"
 import { dryRunEvent } from "./dryRunEvent"
 
 describe("dryRunEvent", () => {
