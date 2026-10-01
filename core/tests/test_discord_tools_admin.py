@@ -96,6 +96,26 @@ def test_bestaetigung_je_nach_aktion():
     assert confirm_reason("shell_exec", {"cmd": "ls"}) is None
 
 
+@pytest.mark.parametrize("action", ["create_role", "edit_role"])
+@pytest.mark.parametrize(("permission", "label"), [
+    pytest.param("manage_permissions", "Rollen verwalten", id="manage_permissions"),
+    pytest.param("manage_emojis", "Emojis verwalten", id="manage_emojis"),
+    pytest.param("  MaNaGe_PeRmIsSiOnS  ", "Rollen verwalten", id="schreibweise_leerzeichen"),
+])
+def test_rollenrechte_alias_verlangt_bestaetigung(action, permission, label):
+    from hydrahive.tools._discord_admin_confirm import confirm_reason
+    reason = confirm_reason(
+        "discord_member_manage", {"action": action, "permissions": [permission]})
+    assert reason and label in reason
+
+
+def test_unbekanntes_recht_ueberspringt_riskanten_alias_nicht():
+    from hydrahive.tools._discord_admin_confirm import confirm_reason
+    reason = confirm_reason("discord_member_manage", {
+        "action": "create_role", "permissions": ["unbekannt", "manage_permissions"]})
+    assert reason and "Rollen verwalten" in reason
+
+
 def test_runner_verlangt_bestaetigung_fuer_kick(monkeypatch, tmp_path):
     from hydrahive.runner import _runner_tools, tool_confirmation
     from hydrahive.runner.events import ToolConfirmRequired
