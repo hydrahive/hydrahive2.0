@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { butlerLegacyApi } from "./adapter"
 import { dryRunEvent } from "./dryRunEvent"
 import { notImplementedAction } from "./dryRunResult"
-import { defaultParams } from "./palette-data"
+import { defaultParams, isNotImplemented } from "./palette-data"
 import type { BNode, ButlerFlow } from "./types"
 
 let _nSeq = 0
@@ -57,6 +57,15 @@ export function useButlerFlow() {
   }
 
   const saveFlow = async () => {
+    // Sperre seit d436aaaa (28.09.): Platzhalter-Aktionen tun nichts (Backend
+    // meldet not_implemented) — Flow erst nach Entfernen speichern.
+    const unwiredNode = nodes.find(
+      (n) => isNotImplemented((n.data as { subtype?: string }).subtype ?? "")
+    )
+    if (unwiredNode) {
+      showToast(t("toast_unwired", { subtype: (unwiredNode.data as { subtype?: string }).subtype }))
+      return
+    }
     setSaving(true)
     try {
       const scope = (projectId && !activeFlowId) ? "project" as const : "user" as const
