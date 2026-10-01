@@ -11,16 +11,18 @@ interface Props {
   onSave: () => void
   onToggleConnect: () => void
   onDelete: () => void
+  readOnly?: boolean
 }
 
-export function McpServerFormHeader({ server, draftName, saving, busy, onNameChange, onSave, onToggleConnect, onDelete }: Props) {
+export function McpServerFormHeader({ server, draftName, saving, busy, onNameChange, onSave, onToggleConnect, onDelete, readOnly = false }: Props) {
   const { t } = useTranslation("mcp")
   const { t: tCommon } = useTranslation("common")
   return (
     <div className="px-6 py-4 border-b border-white/[6%] flex items-center gap-3">
       <Server size={18} className="text-violet-300 flex-shrink-0" />
-      <input value={draftName} onChange={(e) => onNameChange(e.target.value)}
+      <input value={draftName} onChange={(e) => onNameChange(e.target.value)} readOnly={readOnly}
         className="flex-1 bg-transparent text-lg font-bold text-white focus:outline-none" />
+      {!readOnly && <>
       <button onClick={onToggleConnect} disabled={busy || !server.enabled}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
           server.connected
@@ -39,6 +41,7 @@ export function McpServerFormHeader({ server, draftName, saving, busy, onNameCha
       <button onClick={onDelete} className="p-2 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors">
         <Trash2 size={15} />
       </button>
+      </>}
     </div>
   )
 }

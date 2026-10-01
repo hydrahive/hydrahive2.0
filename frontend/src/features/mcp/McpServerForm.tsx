@@ -10,9 +10,11 @@ interface Props {
   server: McpServer
   onSaved: (s: McpServer) => void
   onDeleted: () => void
+  /** Nicht-Admins: nur ansehen (Backend erlaubt Ändern nur Admins). */
+  readOnly?: boolean
 }
 
-export function McpServerForm({ server, onSaved, onDeleted }: Props) {
+export function McpServerForm({ server, onSaved, onDeleted, readOnly = false }: Props) {
   const { t } = useTranslation("mcp")
   const { t: tCommon } = useTranslation("common")
   const [draft, setDraft] = useState(server)
@@ -85,11 +87,12 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
   return (
     <div className="flex flex-col h-full">
       <McpServerFormHeader
-        server={server} draftName={draft.name} saving={saving} busy={busy}
+        server={server} draftName={draft.name} saving={saving} busy={busy} readOnly={readOnly}
         onNameChange={(name) => setDraft({ ...draft, name })}
         onSave={save} onToggleConnect={toggleConnect} onDelete={remove}
       />
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+      <fieldset disabled={readOnly} className="flex-1 overflow-y-auto px-6 py-5 space-y-5 min-w-0">
+        {readOnly && <p className="text-xs text-zinc-500">{t("admin_only_hint")}</p>}
         {error && (
           <div className="rounded-lg border border-rose-500/30 bg-rose-500/[6%] px-3 py-2 text-sm text-rose-300">{error}</div>
         )}
@@ -140,7 +143,7 @@ export function McpServerForm({ server, onSaved, onDeleted }: Props) {
         <Field label={t("fields.tools_count", { count: tools.length })}>
           <McpToolList tools={tools} />
         </Field>
-      </div>
+      </fieldset>
     </div>
   )
 }

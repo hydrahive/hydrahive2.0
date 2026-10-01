@@ -42,5 +42,6 @@
   },
   "new_dialog": {
     "title": "Add MCP server"
-  }
+  },
+  "admin_only_hint": "Only admins can create, edit or connect MCP servers. You can assign existing servers to your agents in the agent editor."
 }
