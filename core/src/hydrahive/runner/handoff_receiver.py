@@ -20,6 +20,7 @@ from hydrahive.agentlink.checkpoints import checkpoint_finding
 from hydrahive.agentlink.client import get_state
 from hydrahive.agentlink.protocol import State, WSEvent
 from hydrahive.db import agent_handoffs as db_agent_handoffs
+from hydrahive.db import errors_log
 from hydrahive.runner._delegation_record import record_delegation_result
 from hydrahive.runner._handoff_reply import (
     post_error_reply as _post_error_reply,
@@ -59,6 +60,12 @@ async def handle(event: WSEvent) -> None:
         logger.warning(
             "handoff_receiver: State %s von %r ohne gültige Signatur verworfen",
             state.id, state.agent_id,
+        )
+        # Sichtbar machen: Ein eigener Auftrag mit kaputter Signatur endete
+        # sonst still im Timeout (Befund 01.10.2026). Keine Antwort an Fälscher.
+        errors_log.record(
+            "agentlink.signature", severity="warning", error_type="signature_invalid",
+            message=f"Auftrag {state.id} von {state.agent_id!r} ohne gültige Signatur verworfen",
         )
         return
     if db_agent_handoffs.seen(state.id or ""):

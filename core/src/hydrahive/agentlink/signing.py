@@ -8,6 +8,7 @@ nur mit gültiger Signatur an.
 - Schlüssel: aus ``settings.secret_key`` abgeleitet, nie der rohe JWT-Schlüssel.
 - Signiert werden id, Absender, Ziel, reason (ohne Signatur), Aufgabe und
   Kontext. Jede Änderung, auch ein anderer State mit gleicher Signatur, fällt auf.
+  Dateien in der Form, die AgentLink speichert (path/diff/lines/hash).
 - Transport: letztes reason-Segment ``|hh-sig:v1:<hex>``. AgentLink speichert
   reason unverändert, fremde Felder verwirft es.
 """
@@ -38,14 +39,30 @@ def _split(reason: str) -> tuple[str, str | None]:
     return head, sig
 
 
+# Felder, die AgentLink pro Datei speichert (FileContext). Fehlende kommen als
+# null zurück, alles andere verwirft AgentLink. Signiert wird genau diese Form,
+# sonst passt die Signatur nach der Rundreise nicht mehr (Befund 01.10.2026).
+_FILE_KEYS = ("path", "diff", "lines", "hash")
+
+
+def _file_view(f: object) -> list:
+    d = f if isinstance(f, dict) else {}
+    out = []
+    for k in _FILE_KEYS:
+        v = d.get(k)
+        out.append(list(v) if isinstance(v, (list, tuple)) else v)
+    return out
+
+
 def _payload(state: State, reason: str) -> bytes:
+    files = state.context.files if state.context else []
     body = {
         "id": state.id,
         "agent_id": state.agent_id,
         "to_agent": state.handoff.to_agent if state.handoff else None,
         "reason": reason,
         "task": [state.task.type, state.task.description] if state.task else None,
-        "files": state.context.files if state.context else [],
+        "files": [_file_view(f) for f in files],
         "errors": state.context.errors if state.context else [],
     }
     return json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode()

@@ -113,9 +113,23 @@ def _handle(hr, monkeypatch, state: State):
 
 def test_receiver_rejects_unsigned_handoff(receiver, monkeypatch):
     hr, calls = receiver
+    logged: list = []
+    monkeypatch.setattr(hr.errors_log, "record", lambda *a, **k: logged.append((a, k)))
     _handle(hr, monkeypatch, _state())
     assert calls["prepared"] == []
     assert calls["errors"] == []      # keine Antwort an Fälscher
+    # …aber sichtbar im Fehlerprotokoll statt nur im Journal
+    assert logged and logged[0][1]["error_type"] == "signature_invalid"
+
+
+def test_receiver_accepts_related_files_after_agentlink_roundtrip(receiver, monkeypatch):
+    hr, calls = receiver
+    s = _state(sid="st-files")
+    s.context.files = [{"path": "core/x.py"}, {"path": "frontend/y.ts"}]
+    signing.sign(s)
+    s.context.files = _like_agentlink(s.context.files)
+    _handle(hr, monkeypatch, s)
+    assert calls["prepared"] == ["st-files"]
 
 
 def test_receiver_rejects_tampered_handoff(receiver, monkeypatch):
@@ -234,3 +248,44 @@ def test_listener_resolves_signed_reply_end_to_end():
         return fut.done() and fut.result().task.description
 
     assert asyncio.run(body()) == "fertig"
+
+
+# --- Rundreise über AgentLink (Befund 01.10.2026) ---------------------------
+# AgentLink speichert context.files als FileContext(path, diff, lines, hash):
+# fehlende Felder kommen als null zurück, unbekannte fallen weg. Vorher passte
+# die Signatur danach nicht mehr → jeder ask_agent mit related_files wurde vom
+# Empfänger still verworfen (Auftraggeber sah nur nach 10 min einen Timeout).
+
+def _like_agentlink(files: list[dict]) -> list[dict]:
+    keys = ("path", "diff", "lines", "hash")
+    return [{k: f.get(k) for k in keys} for f in files]
+
+
+def test_signature_survives_agentlink_roundtrip():
+    s = _state()
+    s.context.files = [{"path": "a.py"}, {"path": "b.py", "lines": [3, 9]}]
+    signing.sign(s)
+    s.context.files = _like_agentlink(s.context.files)
+    assert signing.is_valid(s)
+
+
+def test_unknown_file_keys_dropped_by_agentlink_do_not_break_signature():
+    s = _state()
+    s.context.files = [{"path": "a.py", "note": "nur lokal"}]
+    signing.sign(s)
+    s.context.files = _like_agentlink(s.context.files)
+    assert signing.is_valid(s)
+
+
+@pytest.mark.parametrize("change", [
+    lambda f: f[0].update(path="/etc/shadow"),
+    lambda f: f[0].update(diff="--- injiziert"),
+    lambda f: f[0].update(lines=[1, 2]),
+    lambda f: f[0].update(hash="abc"),
+    lambda f: f.append({"path": "neu.py", "diff": None, "lines": None, "hash": None}),
+])
+def test_real_changes_still_break_signature_after_roundtrip(change):
+    s = signing.sign(_state())
+    s.context.files = _like_agentlink(s.context.files)
+    change(s.context.files)
+    assert not signing.is_valid(s)
