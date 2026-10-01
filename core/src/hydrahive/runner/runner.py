@@ -29,6 +29,7 @@ from hydrahive.runner._buddy_mode import with_buddy_mode
 from hydrahive.runner._emote_hint import with_emote_hint
 from hydrahive.runner._project_tool_scope import scope_tools
 from hydrahive.access.tool_filter import filter_tools as access_filter_tools
+from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
 from hydrahive.runner._runner_iter import (
     IterationResult,
@@ -368,18 +369,24 @@ async def run(
         # Tool-Use-Loop: in Sub-Modul. Letzter yield ist result_blocks.
         activity.set_tool(session_id, tool_uses[-1].get("name") if tool_uses else None)
         result_blocks: list[dict] = []
-        async for item in process_tool_uses(
-            tool_uses, ctx=ctx, allowed_tools=allowed_tools,
-            parent_message_id=assistant_msg.id,
-            require_confirm=bool(agent.get("require_tool_confirm", False)),
-            tool_result_max_chars=tool_result_max_chars,
-            iteration=iteration + 1,
-            integrity_state=integrity_state,
-        ):
-            if isinstance(item, list):
-                result_blocks = item
-            else:
-                yield item
+        try:
+            async for item in process_tool_uses(
+                tool_uses, ctx=ctx, allowed_tools=allowed_tools,
+                parent_message_id=assistant_msg.id,
+                require_confirm=bool(agent.get("require_tool_confirm", False)),
+                tool_result_max_chars=tool_result_max_chars,
+                iteration=iteration + 1,
+                integrity_state=integrity_state,
+                sink=result_blocks,
+            ):
+                if isinstance(item, list):
+                    result_blocks = item
+                else:
+                    yield item
+        except asyncio.CancelledError:
+            persist_on_cancel(session_id, tool_uses, result_blocks, assistant_msg.id)
+            session_end(agent["id"], session_id, status="abandoned")
+            raise
 
         tool_msg = messages_db.append(
             session_id, "user", result_blocks,
