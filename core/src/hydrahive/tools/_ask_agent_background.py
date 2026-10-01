@@ -19,6 +19,23 @@ MAX_RUNNING_PER_SESSION = 5
 # agents → tools wäre ein Zyklus. test_background_delegation prüft Gleichheit.
 MAX_CHAIN_DEPTH = 3
 
+DESCRIPTION_HINT = (
+    "Im Chat läuft ein Auftrag an einen internen Spezialisten im HINTERGRUND: "
+    "das Werkzeug kehrt sofort zurück, das Ergebnis kommt später automatisch als "
+    "neue Nachricht und du wirst dann erneut aufgerufen. Warte nicht darauf und "
+    "sende denselben Auftrag nicht erneut. Mehrere unabhängige Aufträge kannst du "
+    "nacheinander vergeben, sie laufen gleichzeitig. wait=true nur für kurze "
+    "Aufträge, deren Ergebnis du im selben Zug zwingend brauchst."
+)
+
+WAIT_SCHEMA = {
+    "type": "boolean",
+    "description": (
+        "true = auf das Ergebnis warten (blockiert den Chat bis zur Antwort). "
+        "Default false: Hintergrund, Ergebnis kommt als neue Nachricht."
+    ),
+}
+
 
 def wants_background(args: dict, ctx: ToolContext, is_internal: bool) -> bool:
     """Hintergrund nur für interne Spezialisten aus Chat-/Zustell-Läufen,

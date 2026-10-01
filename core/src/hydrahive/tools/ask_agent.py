@@ -43,12 +43,7 @@ _DESCRIPTION = (
     "Beauftragt einen anderen Agenten über AgentLink. "
     "Verwende für Handoffs an Spezialisten oder Project-Agents. "
     "Erreichbar sind nur eigene Agenten (Admins: alle). "
-    "Im Chat läuft ein Auftrag an einen internen Spezialisten im HINTERGRUND: "
-    "das Werkzeug kehrt sofort zurück, das Ergebnis kommt später automatisch als "
-    "neue Nachricht und du wirst dann erneut aufgerufen. Warte nicht darauf und "
-    "sende denselben Auftrag nicht erneut. Mehrere unabhängige Aufträge kannst du "
-    "nacheinander vergeben, sie laufen gleichzeitig. wait=true nur für kurze "
-    "Aufträge, deren Ergebnis du im selben Zug zwingend brauchst."
+    + _bg.DESCRIPTION_HINT
 )
 
 _SCHEMA = {
@@ -98,13 +93,7 @@ _SCHEMA = {
             "items": {"type": "string"},
             "description": "Optionale Skill-Liste die der Ziel-Agent haben muss.",
         },
-        "wait": {
-            "type": "boolean",
-            "description": (
-                "true = auf das Ergebnis warten (blockiert den Chat bis zur Antwort). "
-                "Default false: Hintergrund, Ergebnis kommt als neue Nachricht."
-            ),
-        },
+        "wait": _bg.WAIT_SCHEMA,
     },
     "required": ["agent_id", "task"],
 }

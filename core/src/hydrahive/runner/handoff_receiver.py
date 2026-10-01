@@ -20,6 +20,7 @@ from hydrahive.agentlink.checkpoints import checkpoint_finding
 from hydrahive.agentlink.client import get_state
 from hydrahive.agentlink.protocol import State, WSEvent
 from hydrahive.db import agent_handoffs as db_agent_handoffs
+from hydrahive.runner._delegation_record import record_delegation_result
 from hydrahive.runner._handoff_reply import (
     post_error_reply as _post_error_reply,
     post_reply as _post_reply,
@@ -245,40 +246,11 @@ async def _run_and_reply(
     # Activate a checkpoint before publishing its capability token, otherwise an
     # immediate resume can race against a still-"running" DB row.
     db_agent_handoffs.update_status(handoff_db_id, status)
-    _record_delegation_result(state, status, output, checkpoint)
+    record_delegation_result(state, status, output, checkpoint)
     delivered = await _post_reply(state, output, status, checkpoint=checkpoint)
     if status == "paused" and delivered is False:
         # No caller received the capability, so do not retain an unreachable token.
         db_agent_handoffs.update_status(handoff_db_id, "error")
-
-
-def _record_delegation_result(
-    state: State, status: str, output: str, checkpoint: str | None,
-) -> None:
-    """Hintergrund-Auftrag aus demselben Prozess: Ergebnis direkt in die DB.
-    Unabhängig davon, ob die AgentLink-Antwort ankommt (34 verlorene
-    Fehler-Antworten seit 15.09., Task 620bb0de). Best-effort."""
-    if not state.id:
-        return
-    try:
-        from hydrahive.db import delegations as delegations_db
-        from hydrahive.runner import delegation_delivery
-        from hydrahive.runner._handoff_reply import bounded_reply
-
-        text = bounded_reply(output)
-        if checkpoint:
-            from hydrahive.agentlink.checkpoints import split_checkpoint_findings
-            _vis, cp = split_checkpoint_findings([checkpoint])
-            if cp:
-                text += (
-                    "\nFortsetzen: ask_agent für denselben agent_id mit "
-                    f"resume_token=\"{cp['resume_token']}\" aufrufen."
-                )
-        row = delegations_db.complete_by_state(state.id, status, text)
-        if row:
-            asyncio.get_running_loop().call_soon(delegation_delivery.kick, row["session_id"])
-    except Exception:
-        logger.exception("handoff_receiver: Delegations-Ergebnis für %s nicht gespeichert", state.id)
 
 
 def reconcile_orphaned_handoffs() -> int:

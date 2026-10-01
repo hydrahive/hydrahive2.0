@@ -313,3 +313,27 @@ def test_reconcile_marks_running_as_lost(session_id):
                           state_id="st-lost", depth=1, timeout_seconds=60)
     assert delegations_db.reconcile_on_start() >= 1
     assert delegations_db.get_by_state("st-lost")["status"] == "lost"
+
+
+def test_receiver_records_result_directly(session_id, starter):
+    """Kern-Fix: Der Receiver schreibt das Ergebnis selbst in die DB und stößt
+    die Zustellung an — auch wenn die AgentLink-Antwort nie ankommt."""
+    from hydrahive.agentlink.checkpoints import checkpoint_finding
+    from hydrahive.runner._delegation_record import record_delegation_result
+
+    d = delegations_db.create(session_id=session_id, agent_id="a", user_id="admin",
+                              target_agent_id="t", target_name="Prüfer", task="x",
+                              state_id="st-rec", depth=1, timeout_seconds=60)
+    state = State(id="st-rec", agent_id="caller", task=TaskBlock(type="feature", description="x"),
+                  working_memory=WorkingMemory())
+    cp = checkpoint_finding(resume_token="tok_abcdefgh12", session_id="s", remaining_work="rest")
+
+    async def go():
+        record_delegation_result(state, "paused", "Halb fertig", cp)
+        await asyncio.sleep(0)  # call_soon(kick) ausführen lassen
+
+    asyncio.run(go())
+    row = delegations_db.get(d["id"])
+    assert row["status"] == "paused"
+    assert "Halb fertig" in row["result"] and 'resume_token="tok_abcdefgh12"' in row["result"]
+    assert [s["sid"] for s in starter] == [session_id]  # Zustellung angestoßen
