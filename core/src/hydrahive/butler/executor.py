@@ -130,7 +130,12 @@ async def dispatch_event(event: TriggerEvent, *, owner: str | None = None,
         try:
             result = await dispatch(flow, event, dry_run=dry_run)
             if result["matched"]:
-                out.append({"flow_id": flow.flow_id, "owner": flow.owner, **result})
+                out.append({
+                    "flow_id": flow.flow_id,
+                    "flow_name": flow.name,
+                    "owner": flow.owner,
+                    **result,
+                })
         except Exception as e:
             logger.warning("Flow %s/%s crashed: %s", flow.owner, flow.flow_id, e)
     return out

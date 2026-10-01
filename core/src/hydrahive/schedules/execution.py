@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from hydrahive.agents import config as agent_config
 from hydrahive.buddy import get_or_create_buddy
 from hydrahive.butler import executor as butler_executor
+from hydrahive.butler._scheduled_agent_run import run_scheduled_agent_actions
 from hydrahive.butler.models import TriggerEvent
 from hydrahive.db import sessions as sessions_db
 from hydrahive.runner import runner
@@ -20,16 +22,36 @@ logger = logging.getLogger(__name__)
 async def run_task(task: ScheduledTask, run_id: str) -> None:
     try:
         if task.execution_mode == "butler_event":
-            await butler_executor.dispatch_event(
-                TriggerEvent(
-                    event_type="schedule",
-                    owner=task.owner,
-                    payload={"schedule_id": task.task_id, "task_id": task.task_id,
-                             "agent_id": task.target_id},
-                ),
+            event = TriggerEvent(
+                event_type="schedule",
                 owner=task.owner,
+                payload={"schedule_id": task.task_id, "task_id": task.task_id,
+                         "agent_id": task.target_id},
+                timestamp=datetime.now(timezone.utc).isoformat(),
             )
-            db.finish(task.task_id, run_id, status="succeeded")
+            results = await butler_executor.dispatch_event(event, owner=task.owner)
+            session_ids: list[str] = []
+            errors: list[str] = []
+            for result in results:
+                outcome = await run_scheduled_agent_actions(
+                    owner=result["owner"],
+                    flow_id=result["flow_id"],
+                    flow_name=result["flow_name"],
+                    project_id=task.project_id,
+                    event=event,
+                    actions=result["actions_executed"],
+                )
+                session_ids.extend(outcome.session_ids)
+                errors.extend(outcome.errors)
+            session_id = session_ids[-1] if session_ids else None
+            if errors:
+                db.finish(
+                    task.task_id, run_id, status="failed", session_id=session_id,
+                    error="; ".join(errors)[:2000],
+                )
+            else:
+                kwargs = {"session_id": session_id} if session_id else {}
+                db.finish(task.task_id, run_id, status="succeeded", **kwargs)
             return
 
         target_id = task.target_id

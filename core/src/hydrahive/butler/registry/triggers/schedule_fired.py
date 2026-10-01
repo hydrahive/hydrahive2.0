@@ -8,7 +8,7 @@ from hydrahive.butler.registry import ParamSchema, TriggerSpec, register_trigger
 def _matches(params: dict, event: TriggerEvent) -> bool:
     if event.event_type != "schedule":
         return False
-    wanted = str(params.get("schedule_id") or "").strip()
+    wanted = str(params.get("schedule_id") or params.get("task_id") or "").strip()
     if wanted and event.payload.get("schedule_id") != wanted:
         return False
     wanted_agent = str(params.get("agent_id") or "all").strip()

@@ -19,6 +19,7 @@ from croniter import croniter
 
 from hydrahive.butler import executor as bex
 from hydrahive.butler import persistence as bp
+from hydrahive.butler._scheduled_agent_run import run_scheduled_agent_actions
 from hydrahive.butler.models import Flow, Node, TriggerEvent
 
 logger = logging.getLogger(__name__)
@@ -93,10 +94,19 @@ async def _tick(since: datetime, now: datetime) -> int:
             )
             try:
                 result = await bex.dispatch(flow, event)
+                outcome = await run_scheduled_agent_actions(
+                    owner=flow.owner,
+                    flow_id=flow.flow_id,
+                    flow_name=flow.name,
+                    project_id=flow.scope_id if flow.scope == "project" else None,
+                    event=event,
+                    actions=result.get("actions_executed", []),
+                )
                 fired += 1
                 logger.info(
-                    "butler cron gefeuert: %s/%s @%s matched=%s",
+                    "butler cron gefeuert: %s/%s @%s matched=%s agent_errors=%s",
                     flow.owner, flow.flow_id, ft.isoformat(), result.get("matched"),
+                    len(outcome.errors),
                 )
             except Exception as e:
                 logger.warning(
