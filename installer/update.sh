@@ -571,6 +571,12 @@ bash "$HH_REPO_DIR/installer/migrations/voice-stt-perf.sh" \
 bash "$HH_REPO_DIR/installer/migrations/pin-venv-python.sh" \
   || log "pin-venv-python failed — weiter"
 
+# Bestandsmigration: SearXNG-Einstellungen auf eigene Datei + Bing/Yandex an.
+# Am 02.10.2026 waren alle aktiven Suchanbieter gesperrt (CAPTCHA, zu viele
+# Anfragen) — 0 Treffer. Sicherung + Rücksprung bei 0 Treffern. Idempotent.
+bash "$HH_REPO_DIR/installer/migrations/searxng-engines.sh" \
+  || log "searxng-engines failed — weiter"
+
 # mmx-Cache-Verzeichnis muss als hydrahive existieren BEVOR die Service-Unit
 # es als ReadWritePaths einträgt — sonst wirft systemd "missing path".
 HH_HOME_DIR="/home/$HH_USER"

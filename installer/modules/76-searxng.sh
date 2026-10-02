@@ -68,23 +68,37 @@ if [ -f "$SEARXNG_DIR/requirements.txt" ]; then
 fi
 "$SEARXNG_VENV/bin/pip" install -q --no-build-isolation "$SEARXNG_DIR"
 
-# Konfiguration erstellen (falls nicht vorhanden)
-SEARXNG_SETTINGS="$SEARXNG_DIR/searx/settings.yml"
-if [ ! -f "$SEARXNG_SETTINGS" ]; then
-  log "Standard-Konfiguration übernehmen"
-  cp "$SEARXNG_DIR/searx/settings.yml.example" "$SEARXNG_SETTINGS" 2>/dev/null || \
-  cp "$SEARXNG_DIR/searx/settings_loader.py" "$SEARXNG_SETTINGS" 2>/dev/null || true
-fi
+# Eigene Einstellungsdatei. NICHT searx/settings.yml — das ist SearXNGs
+# mitgelieferte Standarddatei (2.766 Zeilen), auf der use_default_settings
+# aufbaut. Frühere Versionen dieses Moduls haben sie überschrieben; dann
+# fehlten alle Standardwerte (Spec docs/specs/websearch-blocked-engines.md §2).
+SEARXNG_SETTINGS="$SEARXNG_DIR/searxng/settings.yml"
+OLD_SETTINGS="$SEARXNG_DIR/searx/settings.yml"
+install -d -m 0755 "$(dirname "$SEARXNG_SETTINGS")"
 
-# Konfiguration schreiben (immer neu — stellt sicher dass alle Flags korrekt sind)
-log "SearXNG konfigurieren"
 SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-# Bestehenden Secret-Key beibehalten falls schon gesetzt
-if [ -f "$SEARXNG_SETTINGS" ] && grep -q "secret_key:" "$SEARXNG_SETTINGS" 2>/dev/null; then
-  EXISTING_SECRET=$(grep "secret_key:" "$SEARXNG_SETTINGS" | awk '{print $2}' | tr -d '"')
-  [ -n "$EXISTING_SECRET" ] && SECRET="$EXISTING_SECRET"
+# Bestehenden Secret-Key beibehalten: eigene Datei, sonst (einmalig) die alte Stelle.
+for f in "$SEARXNG_SETTINGS" "$OLD_SETTINGS"; do
+  if [ -f "$f" ] && grep -q "^# HydraHive SearXNG — automatisch generiert" "$f" 2>/dev/null; then
+    EXISTING_SECRET=$(grep "secret_key:" "$f" | head -1 | awk '{print $2}' | tr -d '"')
+    if [ -n "$EXISTING_SECRET" ]; then SECRET="$EXISTING_SECRET"; break; fi
+  fi
+done
+
+# Von einer alten Version überschriebene Standarddatei wiederherstellen.
+if [ -d "$SEARXNG_DIR/.git" ] && grep -q "^# HydraHive SearXNG — automatisch generiert" "$OLD_SETTINGS" 2>/dev/null; then
+  log "SearXNG-Standarddatei wiederherstellen (war von altem Installer überschrieben)"
+  mkdir -p /var/backups
+  cp -a "$OLD_SETTINGS" "/var/backups/searxng-default-settings-$(date +%Y%m%d-%H%M%S).yml"
+  git -c safe.directory="$SEARXNG_DIR" -C "$SEARXNG_DIR" checkout -- searx/settings.yml
 fi
 
+# Nur eigene (generierte) oder fehlende Datei schreiben. Von Hand angepasste
+# Dateien bleiben stehen; die Suchanbieter ergänzt dann migrations/searxng-engines.sh.
+if [ -f "$SEARXNG_SETTINGS" ] && ! grep -q "^# HydraHive SearXNG — automatisch generiert" "$SEARXNG_SETTINGS"; then
+  log "Eigene SearXNG-Einstellungen gefunden — nicht überschrieben"
+else
+log "SearXNG konfigurieren"
 cat > "$SEARXNG_SETTINGS" <<EOFSETTINGS
 # HydraHive SearXNG — automatisch generiert von 76-searxng.sh
 use_default_settings: true
@@ -105,24 +119,21 @@ search:
     - html
     - json
 
+# Bing und Yandex einschalten (Standard: aus). Am 02.10.2026 lieferten
+# DuckDuckGo/Startpage (CAPTCHA), Brave (zu viele Anfragen) und Google (leer)
+# keine Treffer mehr. Nur name + disabled — sonst gehen SearXNGs
+# Standardfelder (shortcut, categories …) verloren.
 engines:
-  - name: google
-    engine: google
-    disabled: false
   - name: bing
-    engine: bing
     disabled: false
-  - name: duckduckgo
-    engine: duckduckgo
-    disabled: false
-  - name: wikipedia
-    engine: wikipedia
+  - name: yandex
     disabled: false
 
 ui:
   default_theme: simple
   default_locale: de
 EOFSETTINGS
+fi
 
 # Berechtigungen setzen
 chown -R "$SEARXNG_USER:$SEARXNG_USER" "$SEARXNG_DIR"

@@ -17,6 +17,7 @@ import logging
 import httpx
 
 from hydrahive.settings.overrides import resolve as resolve_setting
+from hydrahive.tools._searx_outage import describe, unavailable_engines
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ def websearch_health() -> dict:
 
     configured=False  → keine URL hinterlegt, Anzeige "aus"
     ok=False          → konfiguriert, aber keine verwertbaren Ergebnisse
+    unavailable       → gesperrte Suchanbieter ({engine, reason}), auch bei ok=True
     """
     base = (resolve_setting("searxng_url") or "").rstrip("/")
     if not base:
@@ -41,13 +43,21 @@ def websearch_health() -> dict:
             timeout=_TIMEOUT_S,
         )
         r.raise_for_status()
-        results = (r.json() or {}).get("results") or []
+        data = r.json() or {}
+        results = data.get("results") or []
     except httpx.HTTPError as e:
         logger.warning("Websuche nicht erreichbar: %s", e)
         return {"ok": False, "configured": True, "detail": f"nicht erreichbar: {type(e).__name__}"}
     except ValueError:
         return {"ok": False, "configured": True, "detail": "Antwort ist kein JSON"}
 
+    # Gesperrte Anbieter (CAPTCHA, zu viele Anfragen …) mitmelden — am 02.10.2026
+    # waren alle gesperrt und die Websuche lieferte unbemerkt 0 Treffer.
+    unavailable = unavailable_engines(data)
     if not results:
-        return {"ok": False, "configured": True, "detail": "keine Ergebnisse"}
-    return {"ok": True, "configured": True, "detail": f"{len(results)} Ergebnisse"}
+        detail = f"keine Ergebnisse — gesperrt: {describe(unavailable)}" if unavailable else "keine Ergebnisse"
+        return {"ok": False, "configured": True, "detail": detail, "unavailable": unavailable}
+    detail = f"{len(results)} Ergebnisse"
+    if unavailable:
+        detail += " · ausgefallen: " + ", ".join(u["engine"] for u in unavailable)
+    return {"ok": True, "configured": True, "detail": detail, "unavailable": unavailable}
