@@ -28,19 +28,11 @@ def _require_buddy(username: str) -> dict:
 def clear_session(username: str) -> dict:
     """Beendet aktuelle Lifetime-Session, legt neue an. Alte bleibt in DB."""
     buddy = _require_buddy(username)
-    current = [s for s in sessions_db.list_for_user(username) if s.agent_id == buddy["id"]]
-    current.sort(key=lambda s: s.created_at, reverse=True)
-    project_id = current[0].project_id if current else None
-    # Tiefe und Gesprächsmodus sind Nutzer-Einstellungen, kein Gesprächsinhalt.
-    old_md = (current[0].metadata or {}) if current else {}
-    keep = {k: old_md[k] for k in ("reasoning_effort", "buddy_mode") if old_md.get(k)}
-    new_session = sessions_db.create(
-        agent_id=buddy["id"], user_id=username,
-        title=f"{username}'s Buddy", project_id=project_id, metadata=keep or None,
-    )
+    # Projekt, Tiefe und Gesprächsmodus übernimmt der gemeinsame Helfer.
+    session_id = soul_state.new_session_keeping_project(buddy["id"], username)
     return {
         "ok": True,
-        "session_id": new_session.id,
+        "session_id": session_id,
         "message": "Frischer Chat — neue Session, alte ist im Verlauf gespeichert.",
     }
 
