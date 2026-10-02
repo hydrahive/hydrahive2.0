@@ -43,14 +43,22 @@ def rebuild_soul(username: str, agent_id: str, universe: str, character: str) ->
     return _build_soul(username, universe, character, language, tone, context)
 
 
+# Nutzer-Einstellungen der Session, kein Gesprächsinhalt — gehen in jede
+# Nachfolge-Session über (Frischer Chat, Einstellungen speichern, Neuwürfeln).
+_KEEP_METADATA = ("reasoning_effort", "buddy_mode")
+
+
 def new_session_keeping_project(agent_id: str, username: str) -> str:
-    """Neue Buddy-Session; die Projektbindung der jüngsten Session bleibt erhalten."""
+    """Neue Buddy-Session; Projektbindung, Tiefe und Gesprächsmodus der jüngsten
+    Session bleiben erhalten (vorher nur das Projekt, 02.10.2026)."""
     from hydrahive.db import sessions as sessions_db
 
     current = [s for s in sessions_db.list_for_user(username) if s.agent_id == agent_id]
     current.sort(key=lambda s: s.created_at, reverse=True)
     project_id = current[0].project_id if current else None
+    old_md = (current[0].metadata or {}) if current else {}
+    keep = {k: old_md[k] for k in _KEEP_METADATA if old_md.get(k)}
     return sessions_db.create(
         agent_id=agent_id, user_id=username,
-        title=f"{username}'s Buddy", project_id=project_id,
+        title=f"{username}'s Buddy", project_id=project_id, metadata=keep or None,
     ).id
