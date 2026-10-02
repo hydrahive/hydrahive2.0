@@ -54,6 +54,7 @@ else
   log "DSN gespeichert: $DSN_FILE"
 fi
 
-# Env-Plist für launchd (wird von 50-launchd.sh eingelesen)
-echo "$PG_DSN" > "$HH_CONFIG_DIR/.pg_dsn_tmp"
+# Den DSN liest der Start-Wrapper (installer/lib/mac-backend-start.sh) direkt
+# aus pg_mirror.dsn — kein Zwischenfile, nichts davon in der launchd-plist.
+chmod 600 "$DSN_FILE"
 log "PostgreSQL bereit (DB: $PG_DB)"

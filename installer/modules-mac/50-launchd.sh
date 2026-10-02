@@ -3,7 +3,8 @@ set -euo pipefail
 log() { printf "  · %s\n" "$*"; }
 
 PLIST_LABEL="io.hydrahive.backend"
-PLIST_FILE="/Library/LaunchDaemons/${PLIST_LABEL}.plist"
+PLIST_FILE="${HH_BACKEND_PLIST:-/Library/LaunchDaemons/${PLIST_LABEL}.plist}"
+START_WRAPPER="${HH_REPO_DIR}/installer/lib/mac-backend-start.sh"
 BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /usr/local)"
 
 # JWT-Secret
@@ -13,14 +14,13 @@ if [ ! -f "$SECRET_FILE" ]; then
   python3 -c "import secrets; print(secrets.token_urlsafe(48))" > "$SECRET_FILE"
   chmod 600 "$SECRET_FILE"
 fi
-SECRET_KEY="$(cat "$SECRET_FILE")"
-
-# PG-DSN falls vorhanden
-PG_DSN=""
-if [ -f "$HH_CONFIG_DIR/.pg_dsn_tmp" ]; then
-  PG_DSN=$(cat "$HH_CONFIG_DIR/.pg_dsn_tmp")
-  rm -f "$HH_CONFIG_DIR/.pg_dsn_tmp"
-fi
+# Secrets NICHT in die plist: sie ist root:wheel 0644 und für jeden lokalen
+# Nutzer lesbar (auch per `launchctl print`). HH_SECRET_KEY und
+# HH_PG_MIRROR_DSN liest mac-backend-start.sh beim Start aus secret_key und
+# pg_mirror.dsn (beide 0600). Reste aus alten Installationen aufräumen:
+chmod 600 "$SECRET_FILE"
+[ -f "$HH_CONFIG_DIR/pg_mirror.dsn" ] && chmod 600 "$HH_CONFIG_DIR/pg_mirror.dsn"
+rm -f "$HH_CONFIG_DIR/.pg_dsn_tmp"
 
 log "Schreibe $PLIST_FILE"
 sudo tee "$PLIST_FILE" > /dev/null <<EOF
@@ -32,6 +32,8 @@ sudo tee "$PLIST_FILE" > /dev/null <<EOF
     <string>${PLIST_LABEL}</string>
     <key>ProgramArguments</key>
     <array>
+        <string>/bin/bash</string>
+        <string>${START_WRAPPER}</string>
         <string>${HH_REPO_DIR}/.venv/bin/uvicorn</string>
         <string>hydrahive.api.main:app</string>
         <string>--host</string>
@@ -51,10 +53,6 @@ sudo tee "$PLIST_FILE" > /dev/null <<EOF
         <string>${HH_HOST}</string>
         <key>HH_PORT</key>
         <string>${HH_PORT}</string>
-        <key>HH_SECRET_KEY</key>
-        <string>${SECRET_KEY}</string>
-        <key>HH_PG_MIRROR_DSN</key>
-        <string>${PG_DSN}</string>
         <key>HOME</key>
         <string>/Users/${HH_USER}</string>
         <key>PATH</key>
