@@ -25,6 +25,7 @@ import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { buddyOfflineActions, openLocalPath } from "@/features/cockpit/actionRegistry"
 import { moduleBuddyMediaWidgets } from "@/modules/index.generated"
+import { BuddySessionPicker } from "./_BuddySessionPicker"
 import { BuddyThread } from "./_BuddyThread"
 import { buddyApi, type BuddyState } from "./api"
 import { isCommand, runCommand } from "./commands"
@@ -148,7 +149,7 @@ export function BuddyPage() {
             <div className="flex h-[58px] shrink-0 items-center justify-between gap-3 border-b border-[#2a364b] bg-[#111827] px-3">
               <div className="min-w-0">
                 <strong className="text-sm text-[#e8eef8]">Buddy-Chat</strong>
-                <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-[#8d9ab0]"><span>Session: {state.session_id?.slice(0, 12) ?? "buddy"}…</span><span>· {state.model}</span></div>
+                <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-2 text-xs text-[#8d9ab0]"><BuddySessionPicker activeId={state.session_id} disabled={chat.busy || handoverBusy} onOpened={(s) => { setLocalMsgs([]); setState(s); setReasoningEffort((s.reasoning_effort ?? null) as EffortLevel | null) }} /><span>· {state.model}</span></div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <ProjectPicker current={state.project_id} projects={projects} onPick={handleProjectPick} busy={projectBusy} />
