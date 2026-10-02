@@ -3,6 +3,7 @@ from __future__ import annotations
 import httpx
 
 from hydrahive.settings.overrides import resolve as resolve_setting
+from hydrahive.tools._searx_outage import describe, unavailable_engines
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
@@ -54,7 +55,17 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             "url": item.get("url", ""),
             "snippet": item.get("content", ""),
         })
-    return ToolResult.ok({"query": query, "results": results, "count": len(results)})
+    unavailable = unavailable_engines(data)
+    if not results and unavailable:
+        # Alle befragten Anbieter gesperrt — nicht als „gibt nichts“ tarnen.
+        return ToolResult.fail(
+            "Websuche liefert keine Treffer — Suchanbieter gesperrt: "
+            f"{describe(unavailable)}. Dienst prüfen (SearXNG)."
+        )
+    output: dict = {"query": query, "results": results, "count": len(results)}
+    if unavailable:
+        output["unavailable"] = unavailable
+    return ToolResult.ok(output)
 
 
 TOOL = Tool(name="web_search", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="web")

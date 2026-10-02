@@ -107,3 +107,31 @@ def test_pin_migration_uses_build_version_and_is_idempotent():
     assert "pyvenv.cfg" in text                      # Bauversion statt fester Zahl
     assert '= "/usr/bin/python3" ] || continue' in text  # nur betroffene venvs
     assert '= "$built" ]' in text                    # läuft passend -> nichts tun
+
+
+# --- Gesperrte Suchanbieter (02.10.2026, Spec websearch-blocked-engines §5) ---
+
+BLOCKED = [["duckduckgo", "CAPTCHA"], ["brave", "Ausgesetzt: zu viele Anfragen"]]
+
+
+def test_blocked_engines_named_when_no_results(monkeypatch):
+    """Genau der Fall vom 02.10.: Dienst läuft, alle Anbieter gesperrt."""
+    _url(monkeypatch, "http://127.0.0.1:8888")
+    monkeypatch.setattr(wh.httpx, "get", lambda *a, **k: _Resp({"results": [], "unresponsive_engines": BLOCKED}))
+
+    h = wh.websearch_health()
+
+    assert h["ok"] is False
+    assert "duckduckgo (CAPTCHA)" in h["detail"]
+    assert h["unavailable"][0] == {"engine": "duckduckgo", "reason": "CAPTCHA"}
+
+
+def test_partial_outage_stays_ok_but_is_mentioned(monkeypatch):
+    _url(monkeypatch, "http://127.0.0.1:8888")
+    monkeypatch.setattr(wh.httpx, "get", lambda *a, **k: _Resp({"results": [{"title": "x"}] * 20, "unresponsive_engines": BLOCKED}))
+
+    h = wh.websearch_health()
+
+    assert h["ok"] is True
+    assert "20 Ergebnisse" in h["detail"]
+    assert "ausgefallen: duckduckgo, brave" in h["detail"]
