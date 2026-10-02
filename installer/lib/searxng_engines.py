@@ -34,7 +34,7 @@ def merge(settings: dict) -> bool:
     if engines is None:
         engines = []
     if not isinstance(engines, list):
-        raise ValueError("engines ist keine Liste")
+        raise TypeError("engines ist keine Liste")
     present = {e.get("name") for e in engines if isinstance(e, dict)}
     missing = [name for name in WANTED if name not in present]
     if not missing:
@@ -49,9 +49,9 @@ def main(path: str) -> int:
         with open(path, encoding="utf-8") as fh:
             settings = yaml.safe_load(fh)
         if not isinstance(settings, dict):
-            raise ValueError("keine YAML-Zuordnung")
+            raise TypeError("keine YAML-Zuordnung")
         changed = merge(settings)
-    except (OSError, yaml.YAMLError, ValueError) as exc:
+    except (OSError, yaml.YAMLError, TypeError) as exc:
         sys.stderr.write(f"searxng_engines: {path} nicht verarbeitet: {exc}\n")
         return 1
     if not changed:
