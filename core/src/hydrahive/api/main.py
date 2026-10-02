@@ -223,7 +223,9 @@ def mount_module_routers(target_app: FastAPI) -> None:
             try:
                 target_app.include_router(
                     r, prefix=f"/api/modules/{entry.manifest.id}",
-                    dependencies=[Depends(require_capability(f"module.{entry.manifest.id}"))],
+                    dependencies=[Depends(require_capability(
+                        f"module.{entry.manifest.id}", allow_query_token=True,
+                    ))],
                 )
             except Exception as exc:
                 logger.error("Modul '%s': include_router fehlgeschlagen — übersprungen: %s",

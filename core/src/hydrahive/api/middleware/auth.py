@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, status
+from fastapi import Depends, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from hydrahive.api.middleware.errors import coded
@@ -79,6 +79,22 @@ def require_principal(
     if ident.is_service:
         raise coded(status.HTTP_401_UNAUTHORIZED, "invalid_token")
     return AuthPrincipal(user_id=ident.user_id, username=ident.username, role=ident.role)
+
+
+def require_principal_or_query(
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    token: Annotated[str | None, Query()] = None,
+) -> AuthPrincipal:
+    """Wie require_principal, nimmt ohne Header aber auch ``?token=``.
+
+    Für Modul-Routen: <audio>, <video>, <img> und EventSource können keinen
+    Authorization-Header setzen (Task 95137212). Der Header hat Vorrang.
+    """
+    if creds:
+        return require_principal(creds)
+    if not token:
+        raise coded(status.HTTP_401_UNAUTHORIZED, "not_authenticated")
+    return require_principal(HTTPAuthorizationCredentials(scheme="Bearer", credentials=token))
 
 
 def require_session_principal(
