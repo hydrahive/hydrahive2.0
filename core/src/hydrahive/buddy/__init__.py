@@ -69,15 +69,21 @@ def _find_buddy_for(username: str) -> dict | None:
     return None
 
 
-def _get_or_create_session(agent_id: str, username: str) -> str:
-    """Lifetime-Session: nimm die jüngste, erstelle wenn keine da."""
-    existing = [s for s in sessions_db.list_for_user(username)
-                if s.agent_id == agent_id]
-    if existing:
-        existing.sort(key=lambda s: s.created_at, reverse=True)
-        return existing[0].id
-    s = sessions_db.create(agent_id=agent_id, user_id=username,
+def _get_or_create_session(buddy: dict, username: str) -> str:
+    """Aktuelle Web-Sitzung (gemerkt oder jüngste); erstellt eine, wenn keine da.
+
+    Früher: jüngste aus ``list_for_user`` — das sind nur die 50 zuletzt
+    geänderten Sitzungen des Nutzers und enthält Kanal-Sitzungen (WhatsApp …).
+    Folge: falsche oder neue leere Sitzung (F1/F2, docs/specs/buddy-session-picker.md).
+    """
+    from hydrahive.buddy.sessions_picker import current_session, remember
+
+    current = current_session(buddy, username)
+    if current:
+        return current.id
+    s = sessions_db.create(agent_id=buddy["id"], user_id=username,
                            title=f"{username}'s Buddy", project_id=None)
+    remember(buddy["id"], s.id)
     return s.id
 
 
@@ -117,7 +123,7 @@ def get_or_create_buddy(username: str) -> dict:
     if existing:
         if existing.get("compact_threshold_pct", 100) > 70:
             agent_config.update(existing["id"], compact_threshold_pct=70)
-        sid = _get_or_create_session(existing["id"], username)
+        sid = _get_or_create_session(existing, username)
         return {
             "agent_id": existing["id"],
             "session_id": sid,
@@ -153,7 +159,7 @@ def get_or_create_buddy(username: str) -> dict:
     from hydrahive.buddy._soul_state import CHARACTER_KEY, format_character
 
     memory_store.write_key(agent["id"], CHARACTER_KEY, format_character(character, universe))
-    sid = _get_or_create_session(agent["id"], username)
+    sid = _get_or_create_session(agent_config.get(agent["id"]) or agent, username)
     logger.info("Buddy für %s angelegt (agent_id=%s)", username, agent["id"])
     return {
         "agent_id": agent["id"],

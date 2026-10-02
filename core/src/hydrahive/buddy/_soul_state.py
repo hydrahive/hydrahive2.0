@@ -49,16 +49,20 @@ _KEEP_METADATA = ("reasoning_effort", "buddy_mode")
 
 
 def new_session_keeping_project(agent_id: str, username: str) -> str:
-    """Neue Buddy-Session; Projektbindung, Tiefe und Gesprächsmodus der jüngsten
-    Session bleiben erhalten (vorher nur das Projekt, 02.10.2026)."""
+    """Neue Buddy-Session; Projektbindung, Tiefe und Gesprächsmodus der
+    aktuellen Session bleiben erhalten. Die neue wird zur aktuellen."""
+    from hydrahive.agents import config as agent_config
+    from hydrahive.buddy.sessions_picker import current_session, remember
     from hydrahive.db import sessions as sessions_db
 
-    current = [s for s in sessions_db.list_for_user(username) if s.agent_id == agent_id]
-    current.sort(key=lambda s: s.created_at, reverse=True)
-    project_id = current[0].project_id if current else None
-    old_md = (current[0].metadata or {}) if current else {}
+    buddy = agent_config.get(agent_id) or {"id": agent_id}
+    current = current_session(buddy, username)
+    project_id = current.project_id if current else None
+    old_md = (current.metadata or {}) if current else {}
     keep = {k: old_md[k] for k in _KEEP_METADATA if old_md.get(k)}
-    return sessions_db.create(
+    new_id = sessions_db.create(
         agent_id=agent_id, user_id=username,
         title=f"{username}'s Buddy", project_id=project_id, metadata=keep or None,
     ).id
+    remember(agent_id, new_id)
+    return new_id
