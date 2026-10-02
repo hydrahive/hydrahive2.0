@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import shutil
 
+from hydrahive.tools import _browser_script
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -39,7 +41,10 @@ Script-API (QuickJS, NICHT Node.js):
   await saveScreenshot(buf, "shot.jpg");         // ~/.dev-browser/tmp/shot.jpg
   console.log("output");                         // erscheint im Ergebnis
 
-Seiten bleiben zwischen Aufrufen erhalten wenn derselbe Name genutzt wird.\
+Seiten bleiben zwischen Aufrufen erhalten wenn derselbe Name genutzt wird.
+Mit `url` ist `page` schon geöffnet (Seite "main") und direkt nutzbar; ein \
+eigenes `const page = …` im Skript ist trotzdem erlaubt. Bei Fehlern kommt \
+der Grund (z. B. Zertifikat, Timeout, Zeile des Syntaxfehlers) zurück.\
 """
 
 _SCHEMA = {
@@ -52,8 +57,8 @@ _SCHEMA = {
         "url": {
             "type": "string",
             "description": (
-                "Convenience: Navigation am Anfang. Wenn angegeben wird "
-                "page.goto(URL) automatisch vorangestellt."
+                "Convenience: öffnet die Seite \"main\" mit dieser URL vorab; "
+                "im Skript ist `page` dann direkt nutzbar."
             ),
         },
         "timeout": {
@@ -85,7 +90,6 @@ def _kill_stale_daemon(dev_home: str) -> bool:
 
     Gibt True zurück, wenn etwas aufgeräumt wurde (also ein Retry sinnvoll ist).
     """
-    import os
     import signal
 
     state_dir = os.path.join(dev_home, ".dev-browser")
@@ -163,20 +167,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     url: str = (args.get("url") or "").strip()
     timeout = max(10, min(120, int(args.get("timeout") or 60)))
 
-    if url:
-        preamble = (
-            f"const page = await browser.getPage(\"main\");\n"
-            f"await page.goto({url!r}, {{waitUntil: \"domcontentloaded\"}});\n"
-        )
-        script = preamble + script
-
     if not script.strip():
         return ToolResult.fail("Kein Script angegeben")
+    script, offset = _browser_script.build(script, url)
 
     # dev-browser braucht ein beschreibbares HOME für ~/.dev-browser/ und
     # ~/.cache/ms-playwright/. /home/hydrahive ist read-only gemountet,
     # aber .config/ ist beschreibbar.
-    import os
     dev_home = os.path.expanduser("~/.config/hh-dev-browser-home")
     os.makedirs(dev_home, exist_ok=True)
     env = os.environ.copy()
@@ -243,8 +240,9 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         stdout = stdout[:_MAX_OUTPUT] + f"\n… (gekürzt, {len(stdout)} Bytes gesamt)"
 
     if exit_code != 0:
+        # Grund sichtbar machen — früher sah der Agent nur „dev-browser exit 1“.
         return ToolResult.fail(
-            f"dev-browser exit {exit_code}",
+            _browser_script.error_text(exit_code, stdout, stderr, offset),
             stdout=stdout,
             stderr=stderr[:2000],
         )
