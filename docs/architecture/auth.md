@@ -162,10 +162,27 @@ Single-Source: `frontend/src/features/auth/permissions.ts`. Sonst niemand
 schreibt Permission-Logic. Alle anderen Features importieren `canX(...)` /
 `isAdmin()` von dort.
 
+## Geräte-Routen von Modulen (ohne Nutzer-Login)
+
+Modul-Router (`ctx.register_router`) hängen unter `/api/modules/<id>` und
+verlangen immer Login + Capability `module.<id>`. Für Geräte ohne Nutzer
+(Mining-Rigs, Sensoren …) gibt es `ctx.register_device_router(router, auth=dep)`:
+
+- Pfad `/api/module-device/<id>/…`, getrennt vom Login-Präfix.
+- `auth` ist Pflicht (sonst `ValueError` beim Laden) und wird vom Kern vor
+  jede Route gehängt. Sie prüft das Geräte-Token und wirft bei Fehlschlag.
+- Davor sitzt ein Rate-Limit je Modul und Client-IP (`DEVICE_RATE_LIMIT`).
+  Auch Fehlversuche zählen.
+- Das Geräte-Token gehört dem Modul. Es ist kein Nutzer-API-Key und kommt
+  nicht an Chat, Agenten oder andere Module heran.
+
+Spec: `docs/specs/mining-modul.md` §E0.
+
 ## Wichtige Dateien
 
 | Datei | Verantwortung |
 |---|---|
+| `api/module_devices.py` | Geräte-Router der Module einhängen (auth + Rate-Limit) |
 | `api/middleware/auth.py` | `require_auth`, `require_admin`, `get_current_user_optional` |
 | `api/middleware/api_keys.py` | `create`, `verify`, `list_keys`, `delete` |
 | `auth/login_lockout.py` | User + IP Counter, Threshold-Check |

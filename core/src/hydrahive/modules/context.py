@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 from fastapi import APIRouter
 
 if TYPE_CHECKING:
@@ -30,6 +30,7 @@ class ModuleContext:
     def __init__(self, module_id: str) -> None:
         self.module_id = module_id
         self.routers: list[APIRouter] = []
+        self.device_routers: list[tuple[APIRouter, Callable[..., Any]]] = []
         self.tools: list["Tool"] = []
         self.migrations_rel: str | None = None
         self.service_rel: str | None = None
@@ -40,6 +41,19 @@ class ModuleContext:
 
     def register_router(self, router: APIRouter) -> None:
         self.routers.append(router)
+
+    def register_device_router(self, router: APIRouter, *, auth: Callable[..., Any]) -> None:
+        """Router für Geräte ohne Nutzer-Login (z. B. Mining-Rigs, Sensoren).
+
+        Wird unter ``/api/module-device/<id>`` eingehängt — getrennt von den
+        login-geschützten ``/api/modules/<id>``-Routen. ``auth`` ist eine
+        FastAPI-Dependency, die das Gerät prüft und bei Fehlschlag wirft; der
+        Kern hängt sie zwingend vor jede Route (Modul kann sie nicht vergessen)
+        und setzt zusätzlich ein Rate-Limit pro Client-IP.
+        """
+        if auth is None or not callable(auth):
+            raise ValueError("register_device_router braucht eine auth-Dependency")
+        self.device_routers.append((router, auth))
 
     def register_tool(self, tool: "Tool") -> None:
         self.tools.append(tool)
