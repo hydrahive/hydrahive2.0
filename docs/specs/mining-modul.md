@@ -67,9 +67,12 @@ Client gleicht ab. Fällt eine Antwort aus, passiert nichts Doppeltes.
 ### E0 — Kern: Geräte-Zugang für Module (Core-PR)
 
 `ctx.register_device_router(router, auth=<dependency>)` hängt den Router unter
-`/api/modules/<id>/device` **ohne** Nutzer-Login ein. Der Kern erzwingt dabei die
-übergebene Prüfung als Dependency, das Modul kann sie also nicht vergessen.
-Ohne `auth` lehnt der Kern ab. `min_core_version` des Moduls steigt entsprechend.
+`/api/module-device/<id>` **ohne** Nutzer-Login ein. Das ist bewusst ein eigenes
+Präfix, getrennt vom login-geschützten `/api/modules/<id>`. Der Kern erzwingt
+die übergebene Prüfung als Dependency, das Modul kann sie also nicht vergessen.
+Davor sitzt ein Rate-Limit je Modul und Client-IP (240/min, auch Fehlversuche
+zählen). Ohne `auth` lehnt der Kern ab. `min_core_version` des Moduls steigt
+entsprechend. Umgesetzt in PR #507 (`api/module_devices.py`).
 
 Verworfen wurden: Nutzer-API-Keys pro Rig (zu viele Rechte, kommen an Chat und
 Agenten heran); ein eigener Dienst mit eigenem Port (zusätzlicher Port, TLS und
