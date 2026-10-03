@@ -37,3 +37,8 @@ if ! grep -q "github.com" "$SSH_DIR/known_hosts" 2>/dev/null; then
   ssh-keyscan -t ed25519,rsa github.com 2>/dev/null >> "$SSH_DIR/known_hosts" || true
   chown "$HH_USER:$HH_USER" "$SSH_DIR/known_hosts"
 fi
+
+# ssh_key-Credentials aus der Web-UI für `ssh <host>` sichtbar machen.
+# shellcheck source=../lib/ssh-include.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/ssh-include.sh"
+ensure_ssh_credentials_include
