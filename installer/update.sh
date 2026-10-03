@@ -50,6 +50,10 @@ if ! grep -q "github.com" "$SSH_DIR/known_hosts" 2>/dev/null; then
   ssh-keyscan -t ed25519,rsa github.com 2>/dev/null >> "$SSH_DIR/known_hosts" || true
   chown "$HH_USER:$HH_USER" "$SSH_DIR/known_hosts"
 fi
+# ssh_key-Credentials aus der Web-UI für `ssh <host>` sichtbar machen.
+# shellcheck source=lib/ssh-include.sh
+source "$HH_REPO_DIR/installer/lib/ssh-include.sh"
+ensure_ssh_credentials_include
 
 log "git pull"
 if ! sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" pull --ff-only 2>&1; then
