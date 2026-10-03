@@ -232,6 +232,8 @@ def mount_module_routers(target_app: FastAPI) -> None:
             except Exception as exc:
                 logger.error("Modul '%s': include_router fehlgeschlagen — übersprungen: %s",
                              entry.manifest.id, exc)
+    from hydrahive.api.module_devices import mount_device_routers
+    mount_device_routers(target_app)
 
 
 @app.exception_handler(Exception)
