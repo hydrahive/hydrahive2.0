@@ -321,3 +321,32 @@ def test_empty_sessions_are_hidden_except_the_active_one():
     assert b["session_id"] in ids
     assert full in ids
     assert empty_old not in ids
+
+
+def test_frontend_picker_looks_like_a_button():
+    """Till 03.10.: „man sieht sie sehr schlecht“ — war nur grauer Text ohne Rahmen."""
+    picker = (FRONT / "_BuddySessionPicker.tsx").read_text()
+    knob = picker.split('title="Frühere Unterhaltungen"', 1)[1].split("</button>", 1)[0]
+
+    assert "border " in knob and "border-fuchsia" in knob and "bg-fuchsia" in knob
+    assert "Verlauf:" in knob                                   # sagt, wofür der Knopf ist
+    assert "text-[#8d9ab0]" not in knob.split("className=", 1)[1].split("}`}", 1)[0]
+
+
+def test_header_lets_the_picker_shrink_instead_of_overlapping():
+    """hydratest 03.10.: bei 1280–1600 px lag der Knopf über Projekt-/Modellwahl.
+
+    Die linke Spalte darf schrumpfen, aber nicht unter 12rem; ist dann kein Platz,
+    bricht die Kopfzeile um (Knopfgruppe rechts allein 592 px bei 610 px Spalte).
+    Kein overflow-hidden (würde die aufgeklappte Liste kappen).
+    """
+    page = (FRONT / "BuddyPage.tsx").read_text()
+    left = page.split("<strong className=\"text-sm text-[#e8eef8]\">Buddy-Chat</strong>", 1)[0].rsplit("<div className=", 1)[1]
+    picker = (FRONT / "_BuddySessionPicker.tsx").read_text()
+
+    assert left.startswith('"min-w-[12rem] flex-1"')            # Platz für den Knopf …
+    assert "overflow-hidden" not in left
+    header = page.split('<strong className="text-sm text-[#e8eef8]">Buddy-Chat</strong>', 1)[0].rsplit("<div className=", 2)[1]
+    assert "flex-wrap" in header and "min-h-[58px]" in header     # … sonst eigene Zeile
+    assert "flex-wrap" not in page.split("<BuddySessionPicker", 1)[0].rsplit("<div", 1)[1]
+    assert "w-full max-w-[24rem] min-w-0" in picker
