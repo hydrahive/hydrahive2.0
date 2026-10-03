@@ -66,24 +66,31 @@ def list_web(
 
 
 def _first_message(conn, session_id: str) -> str | None:
+    """Erste echte Nutzernachricht; gibt es nur Befehle, den ersten Befehl."""
     rows = conn.execute(
         "SELECT content FROM messages WHERE session_id = ? AND role = 'user' "
         "ORDER BY created_at ASC LIMIT ?",
         (session_id, _SCAN),
     ).fetchall()
+    first_command = None
     for row in rows:
-        text = preview(row["content"])
-        if text:
+        text = _clean(_text_of(row["content"]))
+        if not text:
+            continue
+        if not text.startswith("/"):
             return text
-    return None
+        first_command = first_command or text
+    return first_command
 
 
 def preview(raw: str | None) -> str | None:
     """Text einer Nutzernachricht für die Vorschau: Befehle und Werkzeug-
     Ergebnisse überspringen, Leerraum vereinheitlichen, auf 80 Zeichen kürzen."""
-    text = _text_of(raw)
-    if not text or text.startswith("/"):
-        return None
+    text = _clean(_text_of(raw))
+    return text if text and not text.startswith("/") else None
+
+
+def _clean(text: str) -> str:
     text = " ".join(text.split())
     return text if len(text) <= _PREVIEW else text[: _PREVIEW - 1] + "…"
 

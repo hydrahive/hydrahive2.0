@@ -120,6 +120,9 @@ def test_list_pages_with_has_more():
 @pytest.mark.parametrize(("messages", "expected"), [
     ([("user", [{"type": "text", "text": "Hallo   Buddy,\nwie geht's?"}])], "Hallo Buddy, wie geht's?"),
     ([("user", "/system"), ("user", "echte Frage")], "echte Frage"),
+    # Nur Befehle (z. B. „/system“ auf hydratest): Befehl statt „(noch leer)“ —
+    # sonst sieht eine Unterhaltung mit Nachrichten leer aus.
+    ([("user", "/system"), ("assistant", "System-Prompt: …")], "/system"),
     ([("user", [{"type": "tool_result", "tool_use_id": "t", "content": "x"}]), ("user", "danach")], "danach"),
     ([("assistant", "nur Antwort")], None),
     ([("user", "x" * 300)], "x" * 79 + "…"),
