@@ -321,3 +321,13 @@ def test_empty_sessions_are_hidden_except_the_active_one():
     assert b["session_id"] in ids
     assert full in ids
     assert empty_old not in ids
+
+
+def test_frontend_picker_looks_like_a_button():
+    """Till 03.10.: „man sieht sie sehr schlecht“ — war nur grauer Text ohne Rahmen."""
+    picker = (FRONT / "_BuddySessionPicker.tsx").read_text()
+    knob = picker.split('title="Frühere Unterhaltungen"', 1)[1].split("</button>", 1)[0]
+
+    assert "border " in knob and "border-fuchsia" in knob and "bg-fuchsia" in knob
+    assert "Verlauf:" in knob                                   # sagt, wofür der Knopf ist
+    assert "text-[#8d9ab0]" not in knob.split("className=", 1)[1].split("}`}", 1)[0]
