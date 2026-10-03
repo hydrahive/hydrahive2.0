@@ -38,14 +38,21 @@ def get_web(agent_id: str, user_id: str, session_id: str) -> Session | None:
     return Session.from_row(row) if row else None
 
 
-def list_web(agent_id: str, user_id: str, *, offset: int, limit: int) -> tuple[list[dict], bool]:
-    """Web-Sitzungen, zuletzt geänderte zuerst, mit Vorschau und Anzahl."""
+def list_web(
+    agent_id: str, user_id: str, *, offset: int, limit: int, keep_id: str | None = None,
+) -> tuple[list[dict], bool]:
+    """Web-Sitzungen, zuletzt geänderte zuerst, mit Vorschau und Anzahl.
+
+    Leere Sitzungen werden ausgeblendet (u. a. Altlasten aus F2), außer
+    ``keep_id`` — die aktuelle, die nach „Neuer Chat“ noch leer ist.
+    """
     with db() as conn:
         rows = conn.execute(
             f"SELECT s.*, (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) AS n "
             f"FROM sessions s WHERE s.agent_id = ? AND s.user_id = ? AND {_WEB} "
+            "AND (EXISTS (SELECT 1 FROM messages m WHERE m.session_id = s.id) OR s.id = ?) "
             "ORDER BY s.updated_at DESC, s.created_at DESC LIMIT ? OFFSET ?",
-            (agent_id, user_id, limit + 1, offset),
+            (agent_id, user_id, keep_id or "", limit + 1, offset),
         ).fetchall()
         items = [{
             "id": r["id"],

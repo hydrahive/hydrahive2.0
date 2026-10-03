@@ -45,9 +45,12 @@ def _buddy(username: str) -> dict:
 def list_sessions(username: str, *, offset: int = 0, limit: int = 30) -> dict:
     buddy = _buddy(username)
     limit = max(1, min(_MAX_PAGE, int(limit)))
-    items, has_more = web.list_web(buddy["id"], username, offset=max(0, int(offset)), limit=limit)
     active = current_session(buddy, username)
-    return {"sessions": items, "active_id": active.id if active else None, "has_more": has_more}
+    active_id = active.id if active else None
+    items, has_more = web.list_web(
+        buddy["id"], username, offset=max(0, int(offset)), limit=limit, keep_id=active_id,
+    )
+    return {"sessions": items, "active_id": active_id, "has_more": has_more}
 
 
 def open_session(username: str, session_id: str) -> dict:

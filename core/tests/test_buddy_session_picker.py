@@ -106,7 +106,9 @@ def test_list_pages_with_has_more():
 
     b = _buddy()
     for i in range(5):
-        _session(b["agent_id"], at=f"2026-05-0{i + 1}T10:00:00+00:00")
+        sid = _session(b["agent_id"])
+        _say(sid, "user", f"Frage {i}")              # leere würden ausgeblendet
+        _backdate(sid, f"2026-05-0{i + 1}T10:00:00+00:00")
 
     first = sessions_picker.list_sessions(USER, offset=0, limit=4)
     rest = sessions_picker.list_sessions(USER, offset=4, limit=4)
@@ -260,6 +262,7 @@ def test_api_list_and_open(client, auth_headers):
     from hydrahive.db import sessions as sessions_db
 
     old = sessions_db.create(agent_id=me["agent_id"], user_id="testuser", title="x").id
+    _say(old, "user", "alte Frage")
     from hydrahive.db.connection import db
     with db() as conn:
         conn.execute("UPDATE sessions SET created_at = '2026-01-01T00:00:00+00:00', "
@@ -298,3 +301,20 @@ def test_frontend_switch_reloads_only_the_tail():
 
     assert "if (state?.session_id) { chat.reload(); setVisibleCount(MSG_WINDOW) }" in page
     assert "chatApi.listMessages(sessionId, RELOAD_MESSAGE_LIMIT)" in use_chat
+
+
+def test_empty_sessions_are_hidden_except_the_active_one():
+    """Leere Unterhaltungen (u. a. Altlasten aus F2) machen die Liste unübersichtlich."""
+    from hydrahive.buddy import sessions_picker
+
+    b = _buddy()                                         # aktuelle, noch leer → bleibt sichtbar
+    empty_old = _session(b["agent_id"], at="2026-07-11T00:47:00+00:00")
+    full = _session(b["agent_id"])
+    _say(full, "user", "echte Frage")
+    _backdate(full, "2026-07-10T16:15:00+00:00")
+
+    ids = [s["id"] for s in sessions_picker.list_sessions(USER)["sessions"]]
+
+    assert b["session_id"] in ids
+    assert full in ids
+    assert empty_old not in ids
