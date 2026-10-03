@@ -32,6 +32,12 @@ export type ReasoningEffort = "" | "low" | "medium" | "high" | "xhigh" | "max" |
 export type CacheTtl = "5m" | "1h"
 
 export interface ClearResult { ok: boolean; session_id: string; message: string }
+/** Frühere Unterhaltung in der Auswahl (docs/specs/buddy-session-picker.md). */
+export interface BuddySessionRow {
+  id: string; created_at: string; updated_at: string; project_id: string | null
+  message_count: number; first_message: string | null
+}
+export interface BuddySessionList { sessions: BuddySessionRow[]; active_id: string | null; has_more: boolean }
 export interface RememberResult { ok: boolean; key: string; message: string }
 export interface ModelsResult { current: string; available: string[] }
 export interface SetModelResult { ok: boolean; model: string; message: string }
@@ -110,4 +116,8 @@ export const buddyApi = {
     api.post<{ ok: boolean }>("/buddy/log-cmd", { user_text, assistant_text }),
   getConfig: () => api.get<BuddyConfig>("/buddy/config"),
   patchConfig: (patch: BuddyConfigPatch) => api.patch<PatchResult>("/buddy/config", patch),
+  sessions: (offset = 0, limit = 30) =>
+    api.get<BuddySessionList>(`/buddy/sessions?offset=${offset}&limit=${limit}`),
+  openSession: (id: string) =>
+    api.post<BuddyState>(`/buddy/sessions/${encodeURIComponent(id)}/open`, {}),
 }
