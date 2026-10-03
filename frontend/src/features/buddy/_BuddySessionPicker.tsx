@@ -68,14 +68,14 @@ export function BuddySessionPicker({ activeId, disabled, onOpened }: Props) {
   // Sichtbar als Knopf (Rahmen + Fläche wie die Nachbarn im Kopf), nicht nur
   // grauer Text — Till 03.10.2026: „man sieht sie sehr schlecht“.
   return (
-    <div ref={box} className="relative min-w-0">
+    <div ref={box} className="relative min-w-0 shrink">
       <button
         type="button"
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
         title="Frühere Unterhaltungen"
         aria-expanded={open}
-        className={`flex max-w-[24rem] items-center gap-1.5 rounded-[4px] border px-2 py-0.5 text-xs font-medium transition-colors disabled:opacity-40 ${open
+        className={`flex w-full max-w-[24rem] min-w-0 items-center gap-1.5 rounded-[4px] border px-2 py-0.5 text-xs font-medium transition-colors disabled:opacity-40 ${open
           ? "border-fuchsia-400/60 bg-fuchsia-500/20 text-fuchsia-100"
           : "border-fuchsia-400/35 bg-fuchsia-500/10 text-fuchsia-100 hover:border-fuchsia-400/60 hover:bg-fuchsia-500/20"}`}
       >
