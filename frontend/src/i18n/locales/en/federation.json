@@ -102,5 +102,32 @@
     "error": "Error creating instance",
     "success_prefix": "Instance",
     "success_suffix": "created. Copy the block now — the API key will not be shown again."
+  },
+  "peers": {
+    "title": "Servers",
+    "subtitle": "paired HydraHive servers (via Tailscale)",
+    "pair": "Pair server",
+    "empty": "No server paired yet",
+    "pair_title": "Pair server",
+    "step1": "1. Create this server's pairing code and paste it on the other server",
+    "name_ph": "Name of this server",
+    "url_hint": "Address under which the other server reaches this one – ideally the Tailscale IP.",
+    "make_code": "Create code",
+    "copy": "Copy",
+    "copied": "Copied",
+    "own_fp": "Fingerprint of this server:",
+    "step2": "2. Paste the other server's pairing code here",
+    "add": "Add partner",
+    "error": "Action failed",
+    "fp": "Fingerprint:",
+    "status_pending": "waiting for confirmation",
+    "status_active": "active",
+    "status_blocked": "blocked",
+    "block": "Block",
+    "delete": "Remove",
+    "delete_confirm": "Remove pairing with {{name}}?",
+    "confirm_hint": "Compare fingerprints: read it on the other server under “Pair server” and type it here.",
+    "confirm": "Confirm",
+    "agents_hint": "The partner server may task these agents:"
   }
 }
