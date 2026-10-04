@@ -84,6 +84,7 @@ from hydrahive.api.routes.access_me import router as access_me_router
 from hydrahive.access.deps import require_capability
 from hydrahive.api.routes.federation import router as federation_router
 from hydrahive.api.routes.federation_peers import router as federation_peers_router
+from hydrahive.api.routes.peering import router as peering_router
 from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.teamchat import router as teamchat_router
 from hydrahive.api.routes.prompt_archive import router as prompt_archive_router
@@ -200,6 +201,8 @@ app.include_router(tailscale_router)
 app.include_router(zahnfee_router)
 app.include_router(federation_router, dependencies=[Depends(require_capability("core.federation"))])
 app.include_router(federation_peers_router, dependencies=[Depends(require_capability("core.federation"))])
+# Server-zu-Server: ohne Login, jede Anfrage Ed25519-signiert (server-peering.md)
+app.include_router(peering_router)
 app.include_router(streaming_router)
 app.include_router(teamchat_router)
 app.include_router(prompt_archive_router)

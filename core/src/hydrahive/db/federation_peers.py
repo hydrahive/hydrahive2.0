@@ -106,3 +106,31 @@ def is_agent_allowed(peer_id: str, agent_id: str) -> bool:
             (peer_id, agent_id),
         ).fetchone()
     return row is not None
+
+
+def claim_task(task_id: str, peer_id: str, direction: str) -> bool:
+    """Legt einen Auftrag an. False, wenn die ID schon bekannt ist (Replay)."""
+    with db() as conn:
+        cur = conn.execute(
+            "INSERT OR IGNORE INTO federation_peer_tasks "
+            "(task_id, peer_id, direction, status, created_at) VALUES (?, ?, ?, 'pending', ?)",
+            (task_id, peer_id, direction, now_iso()),
+        )
+    return cur.rowcount == 1
+
+
+def set_task_status(task_id: str, status: str, *, local_state_id: str | None = None) -> None:
+    with db() as conn:
+        conn.execute(
+            "UPDATE federation_peer_tasks SET status = ?, "
+            "local_state_id = COALESCE(?, local_state_id) WHERE task_id = ?",
+            (status, local_state_id, task_id),
+        )
+
+
+def get_task(task_id: str) -> dict | None:
+    with db() as conn:
+        row = conn.execute(
+            "SELECT * FROM federation_peer_tasks WHERE task_id = ?", (task_id,),
+        ).fetchone()
+    return _row(row) if row else None

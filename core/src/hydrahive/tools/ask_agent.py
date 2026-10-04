@@ -243,44 +243,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
 
 
 async def _execute_federated(target: str, task: str, args: dict, ctx: ToolContext) -> ToolResult:
-    """Routing für 'persona@workstation' — sendet via /remote/chat.
-
-    Nur mit Freigabe core.federation für den Besitzer des Laufs
-    (docs/specs/access-groups.md §7 Regel 6).
-    """
-    from hydrahive.access import check
-    if not check.can_use_as(ctx.user_id, "core.federation"):
-        return ToolResult.fail(
-            "Keine Freigabe für die Föderation (core.federation). "
-            "Ein Admin kann sie unter Admin → Freigaben erteilen."
-        )
-    persona_id, _, ws_name = target.partition("@")
-    persona_id = persona_id.strip()
-    ws_name = ws_name.strip()
-
-    try:
-        from hydrahive.db import federation as fed_db
-        from hydrahive.federation.registry import remote_chat
-
-        # Workstation by name, ID, or URL-prefix
-        ws = (
-            fed_db.get_by_name(ws_name)
-            or fed_db.get_workstation(ws_name)
-        )
-        if not ws:
-            return ToolResult.fail(
-                f"Federation-Workstation '{ws_name}' nicht gefunden. "
-                "Bitte zuerst im Federation-Panel registrieren."
-            )
-        if not ws.get("enabled"):
-            return ToolResult.fail(f"Workstation '{ws['name']}' ist deaktiviert.")
-
-        result = await remote_chat(ws["id"], task, persona_id=persona_id)
-        label = f"{persona_id}@{ws['name']}" if persona_id else ws["name"]
-        return ToolResult.ok(f"[{label}]: {result}")
-    except Exception as e:
-        logger.exception("Federation remote_chat fehlgeschlagen: %s", e)
-        return ToolResult.fail(f"Federation-Fehler: {describe(e)}")
-
+    """'<agent>@<server>': gekoppelter HydraHive-Server oder A2A-Workstation."""
+    from hydrahive.tools._ask_agent_federated import execute_federated
+    return await execute_federated(target, task, args, ctx)
 
 TOOL = Tool(name="ask_agent", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="agents")
