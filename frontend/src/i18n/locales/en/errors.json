@@ -163,5 +163,12 @@
   "capability_denied": "No access to this feature ({{capability}})",
 
   "validation_error": "{{message}}",
-  "session_required": "This needs a login session, an API key is not enough"
+  "session_required": "This needs a login session, an API key is not enough",
+
+  "peer_not_found": "Partner server not found",
+  "peer_code_invalid": "Invalid pairing code",
+  "peer_is_self": "This is this server's own pairing code",
+  "peer_exists": "This partner server is already paired",
+  "peer_fingerprint_mismatch": "Fingerprint does not match",
+  "peer_agent_unknown": "Agent {{agent_id}} does not exist here"
 }

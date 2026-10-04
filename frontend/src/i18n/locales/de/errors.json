@@ -163,5 +163,12 @@
   "capability_denied": "Keine Freigabe für diese Funktion ({{capability}})",
 
   "validation_error": "{{message}}",
-  "session_required": "Dafür ist eine Anmeldung nötig, ein API-Key reicht nicht"
+  "session_required": "Dafür ist eine Anmeldung nötig, ein API-Key reicht nicht",
+
+  "peer_not_found": "Partner-Server nicht gefunden",
+  "peer_code_invalid": "Kopplungscode ungültig",
+  "peer_is_self": "Das ist der eigene Kopplungscode",
+  "peer_exists": "Dieser Partner-Server ist schon gekoppelt",
+  "peer_fingerprint_mismatch": "Fingerprint stimmt nicht überein",
+  "peer_agent_unknown": "Agent {{agent_id}} gibt es hier nicht"
 }
