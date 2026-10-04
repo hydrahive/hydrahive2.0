@@ -9,6 +9,7 @@ import { HelpButton } from "@/i18n/HelpButton"
 import { WorkstationCard } from "./_WorkstationCard"
 import { AddWorkstationDialog } from "./_AddDialog"
 import { ClientConnectionsSection } from "./_ClientConnectionsSection"
+import { PeersSection } from "./_PeersSection"
 import { DataminingInstancesSection } from "./_DataminingInstancesSection"
 
 export function FederationPage() {
@@ -102,6 +103,10 @@ export function FederationPage() {
           onCreated={() => { setShowAdd(false); load() }}
         />
       )}
+
+      <div className="border-t border-white/[4%] pt-4">
+        <PeersSection />
+      </div>
 
       <div className="border-t border-white/[4%] pt-4">
         <ClientConnectionsSection />
