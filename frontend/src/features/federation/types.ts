@@ -92,3 +92,23 @@ export interface CreateInstanceResult {
   agent_id: string
   api_key: string
 }
+
+// Server-Kopplung HydraHive ↔ HydraHive (docs/specs/server-peering.md)
+export type PeerStatus = "pending" | "active" | "blocked"
+
+export interface Peer {
+  id: string
+  name: string
+  url: string
+  fingerprint: string
+  status: PeerStatus
+  created_at: string
+  confirmed_at: string | null
+  last_seen: string | null
+  allowed_agents: string[]
+}
+
+export interface PeerOwnCode {
+  code: string
+  fingerprint: string
+}

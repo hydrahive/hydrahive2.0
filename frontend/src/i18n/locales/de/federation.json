@@ -102,5 +102,32 @@
     "error": "Fehler beim Erstellen",
     "success_prefix": "Instanz",
     "success_suffix": "angelegt. Kopiere den Block jetzt — der API-Key wird nicht erneut angezeigt."
+  },
+  "peers": {
+    "title": "Server",
+    "subtitle": "gekoppelte HydraHive-Server (über Tailscale)",
+    "pair": "Server koppeln",
+    "empty": "Noch kein Server gekoppelt",
+    "pair_title": "Server koppeln",
+    "step1": "1. Eigenen Kopplungscode erzeugen und auf dem anderen Server einfügen",
+    "name_ph": "Name dieses Servers",
+    "url_hint": "Adresse, unter der der andere Server diesen hier erreicht – am besten die Tailscale-IP.",
+    "make_code": "Code erzeugen",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "own_fp": "Fingerprint dieses Servers:",
+    "step2": "2. Kopplungscode des anderen Servers hier einfügen",
+    "add": "Partner hinzufügen",
+    "error": "Aktion fehlgeschlagen",
+    "fp": "Fingerprint:",
+    "status_pending": "wartet auf Bestätigung",
+    "status_active": "aktiv",
+    "status_blocked": "gesperrt",
+    "block": "Sperren",
+    "delete": "Entfernen",
+    "delete_confirm": "Kopplung mit {{name}} entfernen?",
+    "confirm_hint": "Fingerprint vergleichen: Auf dem anderen Server unter „Server koppeln“ ablesen und hier eintippen.",
+    "confirm": "Bestätigen",
+    "agents_hint": "Diese Agenten darf der Partner-Server beauftragen:"
   }
 }

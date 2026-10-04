@@ -1,7 +1,7 @@
 import { api } from "@/shared/api-client"
 import type {
   A2ACard, ClientConnection, CreateClientResult, Workstation,
-  ExternalInstance, CreateInstanceResult,
+  ExternalInstance, CreateInstanceResult, Peer, PeerOwnCode,
 } from "./types"
 
 // All optional fields a workstation can have. Keeping it as a type
@@ -73,4 +73,30 @@ export const externalInstancesApi = {
 
   rotateKey: (agentId: string): Promise<{ api_key: string }> =>
     api.post(`/external-instances/${agentId}/rotate-key`, {}),
+}
+
+export const peersApi = {
+  identity: (): Promise<{ fingerprint: string }> =>
+    api.get("/federation/peers/identity"),
+
+  ownCode: (name: string, url: string): Promise<PeerOwnCode> =>
+    api.post("/federation/peers/identity/code", { name, url }),
+
+  list: (): Promise<Peer[]> =>
+    api.get("/federation/peers"),
+
+  add: (code: string): Promise<Peer> =>
+    api.post("/federation/peers", { code }),
+
+  confirm: (id: string, fingerprint: string): Promise<Peer> =>
+    api.post(`/federation/peers/${id}/confirm`, { fingerprint }),
+
+  block: (id: string): Promise<Peer> =>
+    api.post(`/federation/peers/${id}/block`, {}),
+
+  delete: (id: string): Promise<void> =>
+    api.delete(`/federation/peers/${id}`),
+
+  setAgents: (id: string, agent_ids: string[]): Promise<Peer> =>
+    api.put(`/federation/peers/${id}/agents`, { agent_ids }),
 }
