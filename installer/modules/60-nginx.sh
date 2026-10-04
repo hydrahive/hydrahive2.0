@@ -185,6 +185,23 @@ server {
         return 413 '{"detail":{"code":"upload_request_too_large","params":{"max_mib":205}}}';
     }
 
+    # Server-Kopplung (docs/specs/server-peering.md): Server-zu-Server-Aufträge
+    # ohne Login, nur Ed25519-signiert. Zusätzlich nur aus dem Tailnet (CGNAT
+    # 100.64.0.0/10 bzw. Tailscale-IPv6). Marker hh_peering_tailnet: update.sh
+    # schreibt die Config neu, wenn er fehlt.
+    location /api/peering/ {
+        allow 100.64.0.0/10;
+        allow fd7a:115c:a1e0::/48;
+        deny all;
+        proxy_pass http://$HH_HOST:$HH_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        client_max_body_size 1m;  # hh_peering_tailnet
+    }
+
     location /api/ {
         proxy_pass http://$HH_HOST:$HH_PORT;
         proxy_http_version 1.1;
