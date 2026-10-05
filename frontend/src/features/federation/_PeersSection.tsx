@@ -11,7 +11,7 @@ import { PeerPairDialog } from "./_PeerPairDialog"
 export function PeersSection() {
   const { t } = useTranslation("federation")
   const [peers, setPeers] = useState<Peer[]>([])
-  const [agents, setAgents] = useState<{ id: string; name: string }[]>([])
+  const [agents, setAgents] = useState<{ id: string; name: string; autoTools: boolean }[]>([])
   const [loading, setLoading] = useState(true)
   const [showPair, setShowPair] = useState(false)
 
@@ -26,7 +26,7 @@ export function PeersSection() {
   useEffect(() => {
     load()
     agentsApi.list()
-      .then(list => setAgents(list.map(a => ({ id: a.id, name: a.name }))))
+      .then(list => setAgents(list.map(a => ({ id: a.id, name: a.name, autoTools: !a.require_tool_confirm }))))
       .catch(() => {})
   }, [])
 

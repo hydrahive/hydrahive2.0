@@ -128,6 +128,9 @@
     "delete_confirm": "Remove pairing with {{name}}?",
     "confirm_hint": "Compare fingerprints: read it on the other server under “Pair server” and type it here.",
     "confirm": "Confirm",
-    "agents_hint": "The partner server may task these agents:"
+    "agents_hint": "The partner server may task these agents:",
+    "auto_tools_title": "Runs tools without confirmation",
+    "auto_tools_warning": "At least one released agent runs tools without confirmation. Tasks from the partner server then run unchecked – enable “Confirm tools” in these agents' settings.",
+    "call_hint": "Call from the other server: ask_agent(\"<agent name or ID>@{{server}}\")"
   }
 }

@@ -50,6 +50,8 @@ def _rejected(exc: proto.PeerRejected) -> JSONResponse:
         code = status.HTTP_400_BAD_REQUEST
     elif exc.code == "peer_replay":
         code = status.HTTP_409_CONFLICT
+    elif exc.code == "peer_rate_limited":
+        code = status.HTTP_429_TOO_MANY_REQUESTS
     elif exc.code == "peer_local_failed":
         code = status.HTTP_502_BAD_GATEWAY
     return JSONResponse(status_code=code, content={"detail": {"code": exc.code}})

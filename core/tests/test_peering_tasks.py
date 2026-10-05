@@ -197,3 +197,53 @@ def test_relay_reply_maps_local_answer(monkeypatch):
     assert sent[0][1]["status"] == "done"
     assert "Hallo zurück" in sent[0][1]["output"]
     assert sent[0][1]["task_id"] == "t-9"
+
+
+# --- Feinschliff: Name statt UUID, Ratenlimit, Antworttext ------------------
+
+def test_target_by_name_only_within_allowed(client, paired, no_agentlink, monkeypatch):
+    from hydrahive.db import federation_peers as peers_db
+    import hydrahive.agents.config as agent_config
+
+    fp, peer = paired
+    agents = {"a-1": {"id": "a-1", "name": "Buddy"}, "a-2": {"id": "a-2", "name": "Geheim"}}
+    monkeypatch.setattr(agent_config, "get", lambda aid: agents.get(aid))
+    peers_db.set_allowed_agents(peer["id"], ["a-1"])
+
+    ok = _task(target="buddy")
+    r = client.post("/api/peering/tasks", json=ok, headers=fp.headers(ok))
+    assert r.status_code == 202, r.text
+    assert no_agentlink[-1].handoff.reason.startswith("hh-target:a-1|")
+
+    secret = _task(target="Geheim")
+    r = client.post("/api/peering/tasks", json=secret, headers=fp.headers(secret))
+    assert r.json()["detail"]["code"] == "peer_agent_not_allowed"
+    assert len(no_agentlink) == 1
+
+
+def test_rate_limit_per_peer(client, paired, no_agentlink, monkeypatch):
+    import hydrahive.federation.peer_inbound as inbound
+    from hydrahive.db import federation_peers as peers_db
+
+    fp, peer = paired
+    peers_db.set_allowed_agents(peer["id"], ["agent-x"])
+    monkeypatch.setattr(inbound, "_RATE_MAX", 2)
+    inbound._rate.clear()
+    codes = []
+    for _ in range(3):
+        p = _task()
+        codes.append(client.post("/api/peering/tasks", json=p, headers=fp.headers(p)).status_code)
+    assert codes == [202, 202, 429]
+    assert len(no_agentlink) == 2
+    inbound._rate.clear()
+
+
+def test_reply_text_without_prefix():
+    import hydrahive.federation.peer_inbound as inbound
+    from hydrahive.agentlink.protocol import State, TaskBlock, WorkingMemory
+
+    done = State(agent_id="x", task=TaskBlock(type="research", description="Abgeschlossen: [Auftrag von Server vps] Sag hallo", status="done"),
+                 working_memory=WorkingMemory(findings=["Hallo!"]))
+    assert inbound._reply_text(done) == ("done", "Hallo!")
+    failed = State(agent_id="x", task=TaskBlock(type="research", description="Fehler: kein Modell", status="blocked"))
+    assert inbound._reply_text(failed) == ("error", "Fehler: kein Modell")
