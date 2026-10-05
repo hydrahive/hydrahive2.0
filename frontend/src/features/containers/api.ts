@@ -1,5 +1,7 @@
 import { api } from "@/shared/api-client"
-import type { Container, ContainerCreateInput, ContainerInfo } from "./types"
+import type {
+  Container, ContainerCreateInput, ContainerInfo, NetworkModes, PortCreateInput, PortList, PortRule, PortScope,
+} from "./types"
 
 export const containersApi = {
   list: () => api.get<Container[]>("/containers"),
@@ -21,4 +23,10 @@ export const containersApi = {
   quickImages: () => api.get<string[]>("/containers/quick-images"),
   log: (id: string) => api.get<{ text: string }>(`/containers/${id}/log`),
   config: (id: string) => api.get<{ text: string }>(`/containers/${id}/config`),
+  networkModes: () => api.get<NetworkModes>("/containers/network-modes"),
+  ports: (id: string) => api.get<PortList>(`/containers/${id}/ports`),
+  addPort: (id: string, input: PortCreateInput) => api.post<PortRule>(`/containers/${id}/ports`, input),
+  setPortScope: (id: string, portId: string, scope: PortScope) =>
+    api.patch<PortRule>(`/containers/${id}/ports/${portId}`, { scope }),
+  removePort: (id: string, portId: string) => api.delete<void>(`/containers/${id}/ports/${portId}`),
 }

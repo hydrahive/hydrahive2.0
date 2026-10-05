@@ -7,6 +7,7 @@ import logging
 from hydrahive.settings import settings
 from hydrahive.containers import db as cdb
 from hydrahive.containers import incus_client as incus
+from hydrahive.containers import nat
 from hydrahive.containers.models import Container
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ async def create_and_start(container_id: str) -> None:
             cpu=c.cpu,
             ram_mb=c.ram_mb,
             bridge=_bridge(),
+            ipv4=nat.get_ipv4(container_id) if c.network_mode == "nat" else None,
         )
     except incus.IncusError as e:
         cdb.update_state(container_id, actual="error", error_code=e.code, error_params=e.params)
@@ -88,6 +90,14 @@ async def delete(container_id: str) -> None:
     if not c:
         return
     ensure_local(c)
+    # ufw-Regeln der Portfreigaben entfernen; die Proxy-Devices gehen mit dem
+    # Container weg (docs/specs/container-nat-ports.md).
+    from hydrahive.containers import ports as cports
+    for rule in cports.list_for(container_id):
+        try:
+            await cports.remove(c.name, rule)
+        except Exception as exc:
+            logger.warning("Portfreigabe %s beim Löschen nicht entfernt: %s", rule.id, exc)
     try:
         await incus.delete(c.name, force=True)
     except incus.IncusError:

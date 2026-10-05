@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""hh-portforward — Root-Helfer für Container-Portfreigaben.
+
+docs/specs/container-nat-ports.md. Wird vom HydraHive-Backend per
+`sudo -n /usr/local/sbin/hh-portforward <aktion> …` aufgerufen. sudoers
+erlaubt NUR diesen Befehl. Jede Eingabe wird hier erneut streng geprüft;
+dem Aufrufer wird nicht vertraut.
+
+Aktionen:
+  apply  <id> <proto> <hstart> <hend> <ip> <cstart> <scope> <wan_if>
+  remove <id>
+  list
+"""
+from __future__ import annotations
+
+import ipaddress
+import re
+import subprocess
+import sys
+
+UFW = "/usr/sbin/ufw"
+NAT_NET = ipaddress.ip_network("10.10.0.0/24")
+NAT_IF = "hhnat0"
+ID_RE = re.compile(r"^[0-9a-f-]{8,40}$")
+IF_RE = re.compile(r"^[a-zA-Z0-9_.-]{1,15}$")
+COMMENT_PREFIX = "hh-port:"
+RESERVED = {22, 53, 80, 443, 3000, 3001, 5432, 6379, 8001, 8888, 9000, 9001, 10000, 41641}
+
+
+def die(msg: str, code: int = 2) -> None:
+    print(f"hh-portforward: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def port(v: str) -> int:
+    if not v.isdigit():
+        die(f"ungültiger Port {v!r}")
+    n = int(v)
+    if not 1 <= n <= 65535:
+        die(f"Port außerhalb 1–65535: {n}")
+    return n
+
+
+def ufw_active() -> bool:
+    try:
+        out = subprocess.run([UFW, "status"], capture_output=True, text=True, timeout=20, check=False).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return out.startswith("Status: active")
+
+
+def rule_numbers(tag: str) -> list[int]:
+    out = subprocess.run([UFW, "status", "numbered"], capture_output=True, text=True, timeout=20, check=False).stdout
+    nums = []
+    for line in out.splitlines():
+        m = re.match(r"^\[\s*(\d+)\]", line)
+        if m and line.rstrip().endswith(f"# {tag}"):
+            nums.append(int(m.group(1)))
+    return sorted(nums, reverse=True)
+
+
+def remove(pid: str) -> None:
+    if not ID_RE.match(pid):
+        die("ungültige ID")
+    if not ufw_active():
+        return
+    for n in rule_numbers(COMMENT_PREFIX + pid):
+        subprocess.run([UFW, "--force", "delete", str(n)], capture_output=True, timeout=20, check=True)
+
+
+def apply(args: list[str]) -> None:
+    if len(args) != 8:
+        die("apply braucht 8 Argumente")
+    pid, proto, hs, he, ip, cs, scope, wan_if = args
+    if not ID_RE.match(pid):
+        die("ungültige ID")
+    if proto not in ("tcp", "udp"):
+        die("Protokoll tcp|udp")
+    if scope not in ("public", "tailnet", "off"):
+        die("Reichweite public|tailnet|off")
+    hstart, hend, cstart = port(hs), port(he), port(cs)
+    if hend < hstart or hend - hstart >= 100:
+        die("ungültiger Portbereich")
+    if hstart < 1024 or any(p in RESERVED for p in range(hstart, hend + 1)):
+        die("Port gesperrt")
+    cend = cstart + (hend - hstart)
+    if cend > 65535:
+        die("Container-Portbereich zu groß")
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        die("ungültige IP")
+    if addr not in NAT_NET:
+        die("IP nicht im NAT-Netz")
+    if not IF_RE.match(wan_if):
+        die("ungültiges Interface")
+
+    remove(pid)
+    if scope == "off" or not ufw_active():
+        return
+    in_if = wan_if if scope == "public" else "tailscale0"
+    ports = str(cstart) if cstart == cend else f"{cstart}:{cend}"
+    subprocess.run(
+        [UFW, "route", "allow", "in", "on", in_if, "out", "on", NAT_IF,
+         "to", str(addr), "port", ports, "proto", proto,
+         "comment", COMMENT_PREFIX + pid],
+        capture_output=True, timeout=20, check=True,
+    )
+
+
+def main() -> None:
+    if len(sys.argv) < 2:
+        die("Aktion fehlt")
+    action, rest = sys.argv[1], sys.argv[2:]
+    try:
+        if action == "apply":
+            apply(rest)
+        elif action == "remove" and len(rest) == 1:
+            remove(rest[0])
+        elif action == "list" and not rest:
+            if ufw_active():
+                out = subprocess.run([UFW, "status"], capture_output=True, text=True, timeout=20, check=False).stdout
+                print("\n".join(line for line in out.splitlines() if COMMENT_PREFIX in line))
+        else:
+            die("unbekannte Aktion")
+    except subprocess.CalledProcessError as exc:
+        die(f"ufw fehlgeschlagen: {(exc.stderr or b'').decode(errors='replace')[:200]}", 3)
+
+
+if __name__ == "__main__":
+    main()

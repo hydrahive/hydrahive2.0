@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { FileText, Gauge, Settings, Terminal as TerminalIcon } from "lucide-react"
+import { FileText, Gauge, Network, Settings, Terminal as TerminalIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { containersApi } from "@/features/containers/api"
 import type { Container } from "@/features/containers/types"
@@ -8,10 +8,11 @@ import { ConsolePane } from "@/features/containers/ConsolePane"
 import { ContainerLogPane } from "@/features/containers/ContainerLogPane"
 import { ContainerStatsPane } from "@/features/containers/ContainerStatsPane"
 import { ContainerConfigPane } from "@/features/containers/ContainerConfigPane"
+import { ContainerPortsPane } from "@/features/containers/ContainerPortsPane"
 import { AdminFeedback } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
 
-type Tab = "console" | "logs" | "stats" | "config"
+type Tab = "console" | "logs" | "stats" | "config" | "ports"
 
 export function ContainerDetailOverlay({ containerId, onClose }: { containerId: string; onClose: () => void }) {
   const { t } = useTranslation("containers")
@@ -54,6 +55,7 @@ export function ContainerDetailOverlay({ containerId, onClose }: { containerId: 
             <TabButton active={tab === "logs"} onClick={() => setTab("logs")}><FileText size={12} />{t("tabs.logs")}</TabButton>
             <TabButton active={tab === "stats"} onClick={() => setTab("stats")}><Gauge size={12} />{t("tabs.stats")}</TabButton>
             <TabButton active={tab === "config"} onClick={() => setTab("config")}><Settings size={12} />{t("tabs.config")}</TabButton>
+            {container.network_mode === "nat" && <TabButton active={tab === "ports"} onClick={() => setTab("ports")}><Network size={12} />{t("tabs.ports")}</TabButton>}
           </div>
           <div className="min-h-0 flex-1 overflow-hidden rounded-[6px] border border-[#2a364b] bg-[#0e1420]">
             {tab === "console" && running && <ConsolePane containerId={container.container_id} className="h-full" />}
@@ -61,6 +63,7 @@ export function ContainerDetailOverlay({ containerId, onClose }: { containerId: 
             {tab === "logs" && <ContainerLogPane containerId={container.container_id} />}
             {tab === "stats" && <ContainerStatsPane container={container} />}
             {tab === "config" && <ContainerConfigPane containerId={container.container_id} />}
+            {tab === "ports" && <ContainerPortsPane containerId={container.container_id} />}
           </div>
         </div>
       )}

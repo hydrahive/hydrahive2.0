@@ -1,18 +1,20 @@
 import { cn } from "@/shared/cn"
 
-export function RadioCard({ active, onClick, title, desc }: {
+export function RadioCard({ active, onClick, title, desc, disabled }: {
   active: boolean
   onClick: () => void
   title: string
   desc: string
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={active}
       className={cn(
-        "rounded-[4px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69d7ff]/45",
+        "rounded-[4px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69d7ff]/45 disabled:cursor-not-allowed disabled:opacity-40",
         active
           ? "border-[#69d7ff]/60 bg-[#163248]"
           : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]",

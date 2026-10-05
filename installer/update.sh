@@ -519,6 +519,14 @@ if ! command -v incus >/dev/null 2>&1 \
     bash "$HH_REPO_DIR/installer/modules/70-containers.sh" || log "containers-setup failed — weiter"
 fi
 
+# NAT-Netz + Portfreigabe-Helfer nachziehen (docs/specs/container-nat-ports.md).
+if command -v incus >/dev/null 2>&1; then
+  # shellcheck source=lib/container-nat.sh
+  source "$HH_REPO_DIR/installer/lib/container-nat.sh"
+  ensure_container_nat || log "NAT-Netz-Setup fehlgeschlagen — weiter"
+  install_portforward_helper || log "hh-portforward-Setup fehlgeschlagen — weiter"
+fi
+
 # Bestandsmigration: vorhandene verwaltete Voice-Container müssen nach einem
 # Reboot des äußeren Hosts automatisch wiederkommen. Nicht an voice_ok koppeln —
 # ein bereits laufender Stack kann trotzdem noch ohne boot.autostart existieren.
