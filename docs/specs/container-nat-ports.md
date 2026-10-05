@@ -60,10 +60,29 @@ Eine Freigabe hat:
   - `public` → öffentliche IPv4 des Servers (aus `ip route get 1.1.1.1`)
   - `tailnet` → Tailscale-IPv4 des Servers
   - `off` → kein Device, Regel bleibt nur in der DB
-- **ufw** (falls aktiv), Kommentar `hh-port:<freigabe-id>`:
-  - `public` → `ufw allow <ports>/<proto>`
-  - `tailnet` → `ufw allow in on tailscale0 to any port <ports> proto <proto>`
+- **ufw** (falls aktiv), Kommentar `hh-port:<freigabe-id>`. Weil `nat=true`
+  per DNAT weiterleitet, laufen die Pakete durch die **FORWARD**-Kette, also
+  `ufw route` (nicht `ufw allow`), Ziel ist die Container-IP und der Container-Port:
+  - `public` → `ufw route allow in on <wan-if> out on hhnat0 to <ip> port <cports> proto <proto>`
+  - `tailnet` → dasselbe mit `in on tailscale0`
   - `off` → Regeln mit dem Kommentar entfernen
+
+### Live-Befund VPS (05.10.2026)
+
+Mit Testcontainer `debian/12` an `hhnat0`, feste IP `10.10.0.10`, getestet von .2:
+
+| Test | Ergebnis |
+|---|---|
+| Container → Internet (`apt-get install`) | ✅ |
+| TCP 25565 öffentlich, nur Proxy-Device ohne ufw-Route-Regel | ❌ Timeout (ufw FORWARD DROP) |
+| TCP 25565 öffentlich mit `ufw route allow` | ✅, Container sieht **echte Client-IP** 37.24.27.133 |
+| TCP über Tailnet (28443 → 25565) | ✅, Container sieht 10.10.0.1 (Tailscale maskiert, Client-IP geht verloren) |
+| UDP über Tailnet (27016 → 27015) | ✅ |
+| UDP 27015 öffentlich | ❌ kommt am VPS gar nicht an (tcpdump 0 Pakete): Anbieter-Firewall lässt nur TCP + ICMP durch |
+
+Folgen:
+- Hinweis in der Oberfläche bei `public` + UDP: Anbieter-Firewall muss UDP erlauben.
+- Bei `tailnet` sieht der Dienst nicht die echte Absender-IP (Tailscale-Masquerade). Für Admin-Zugänge unkritisch.
 - Ausführung als root über einen schmalen Helfer
   (`/usr/local/sbin/hh-portforward`, sudoers nur für diesen Befehl) mit eigener
   Eingabeprüfung. Das Backend ruft nie direkt `ufw` auf.
