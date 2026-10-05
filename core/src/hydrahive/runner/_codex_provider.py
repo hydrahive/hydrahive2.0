@@ -7,86 +7,24 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, AsyncIterator
+from typing import AsyncIterator
 
 import httpx
 
-from hydrahive.runner._codex_convert import (
-    codex_stop_to_anthropic,
-    messages_to_codex,
-    tools_to_codex,
+from hydrahive.runner._codex_convert import codex_stop_to_anthropic
+from hydrahive.runner._codex_http import (  # noqa: F401 — Re-Export für Aufrufer/Tests
+    CODEX_URL,
+    CodexModelNotAllowed,
+    CodexStreamError,
+    _build_payload,
+    _headers,
+    _parse_sse_line,
+    _stream_error_text,
 )
 
 logger = logging.getLogger(__name__)
 
-CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
 _TIMEOUT = 300.0
-
-
-class CodexModelNotAllowed(Exception):
-    """Codex hat das Modell mit 'not supported when using Codex with a ChatGPT account'
-    abgelehnt. Bedeutet: ChatGPT-Plus-Account hat keinen Zugriff auf dieses Modell
-    (z.B. -codex-Suffix-Varianten erfordern oft ChatGPT-Pro). Tipp an User: anderes
-    Modell wählen — gpt-5.2, gpt-5.4, gpt-5.5 funktionieren bei den meisten Accounts."""
-
-
-_DEFAULT_INSTRUCTIONS = "You are a helpful assistant."
-
-
-def _build_payload(
-    *, model: str, system_prompt: str, messages: list[dict], tools: list[dict],
-    reasoning_effort: str | None = None,
-    max_tokens: int | None = None,
-) -> dict:
-    instructions, input_items = messages_to_codex(
-        messages, system_prompt, model=f"openai-codex/{model}",
-    )
-    payload: dict[str, Any] = {
-        "model": model,
-        "input": input_items,
-        "store": False,
-        "stream": True,
-        "text": {"verbosity": "medium"},
-        "include": ["reasoning.encrypted_content"],
-        "parallel_tool_calls": True,
-        "instructions": instructions or _DEFAULT_INSTRUCTIONS,
-    }
-    # Der Codex-OAuth-/Responses-Backend lehnt max_output_tokens ab
-    # ("Unsupported parameter"). Der offizielle Codex-Client sendet es nicht;
-    # das Output-Limit wird serverseitig gesteuert. max_tokens bleibt in der
-    # Signatur für API-Parität, wird für diesen Pfad aber nicht übertragen.
-    _ = max_tokens
-    if reasoning_effort:
-        from hydrahive.llm.reasoning_effort import effort_levels_for_model
-        if reasoning_effort in effort_levels_for_model(f"openai-codex/{model}"):
-            payload["reasoning"] = {"effort": reasoning_effort}
-    codex_tools = tools_to_codex(tools)
-    if codex_tools:
-        payload["tools"] = codex_tools
-        payload["tool_choice"] = "auto"
-    return payload
-
-
-def _headers(*, access_token: str, account_id: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {access_token}",
-        "chatgpt-account-id": account_id,
-        "OpenAI-Beta": "responses=experimental",
-        "originator": "hydrahive",
-        "Content-Type": "application/json",
-    }
-
-
-def _parse_sse_line(line: str) -> dict | None:
-    if not line.startswith("data: "):
-        return None
-    body = line[6:].strip()
-    if not body or body == "[DONE]":
-        return None
-    try:
-        return json.loads(body)
-    except json.JSONDecodeError:
-        return None
 
 
 async def codex_stream(
@@ -108,6 +46,7 @@ async def codex_stream(
     text_buf = ""
     usage_in = usage_out = cache_read = 0
     reasoning_items: list[dict] = []
+    completed = False
 
     yield {"type": "message_start"}
 
@@ -190,12 +129,23 @@ async def codex_stream(
                         accumulated_fn[item_id]["arguments"] = final_args
                         yield {"type": "block_stop", "index": fn_index[item_id]}
 
+                elif t in ("error", "response.failed", "response.incomplete"):
+                    # Früher stillschweigend ignoriert: Der Lauf endete mit 0 Blöcken
+                    # und der Nutzer sah nur "leere Antwort" (Befund VPS 04.10.2026).
+                    raise CodexStreamError(_stream_error_text(t, ev))
+
                 elif t == "response.completed":
+                    completed = True
                     usage = (ev.get("response", {}) or {}).get("usage", {}) or {}
                     usage_in = int(usage.get("input_tokens") or 0)
                     usage_out = int(usage.get("output_tokens") or 0)
                     details = usage.get("input_tokens_details") or {}
                     cache_read = int(details.get("cached_tokens") or 0)
+
+    if not completed:
+        # Stream ohne response.completed: Verbindung abgebrochen oder Server hat
+        # den Lauf verworfen. Lieber klar scheitern als eine leere Antwort liefern.
+        raise CodexStreamError("Codex-Stream ohne Abschluss beendet (Verbindung abgebrochen?)")
 
     if text_index is not None:
         yield {"type": "block_stop", "index": text_index}
