@@ -61,9 +61,6 @@ async def create_container(
         raise coded(status.HTTP_400_BAD_REQUEST, "container_network_mode_invalid")
     if body.network_mode == "nat" and body.node_id != "local":
         raise coded(status.HTTP_400_BAD_REQUEST, "container_network_mode_invalid")
-    if body.network_mode != "isolated" and body.node_id == "local" \
-            and not nat.network_modes()[body.network_mode]:
-        raise coded(status.HTTP_400_BAD_REQUEST, "container_network_unavailable", mode=body.network_mode)
     # Image gegen Allowlist prüfen, BEVOR der images:-Präfix gesetzt wird (#185)
     image = body.image.strip()
     if not re.match(IMAGE_RE, image):
@@ -74,6 +71,11 @@ async def create_container(
         raise coded(status.HTTP_409_CONFLICT, "container_name_taken")
     if body.node_id == "local" and not incus.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "incus_missing")
+    # Netzprüfung nach allen Eingabeprüfungen: ein ungültiges Image soll immer
+    # als solches gemeldet werden, egal welche Netze der Server hat.
+    if body.network_mode != "isolated" and body.node_id == "local" \
+            and not nat.network_modes()[body.network_mode]:
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_network_unavailable", mode=body.network_mode)
 
     c = cdb.create(
         owner=user,
