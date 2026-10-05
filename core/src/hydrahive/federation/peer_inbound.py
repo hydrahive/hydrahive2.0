@@ -35,6 +35,41 @@ def _audit(peer: dict, message: str, *, severity: str = "info") -> None:
     errors_log.record("federation.peer", severity=severity, error_type="peer_task", message=f"{peer['name']}: {message}")
 
 
+# Ratenlimit pro Partner (Spec §Sicherheit): gleitendes Fenster im Speicher.
+_RATE_MAX = 30
+_RATE_WINDOW_S = 60.0
+_rate: dict[str, list[float]] = {}
+
+
+def _rate_ok(peer_id: str) -> bool:
+    import time
+    now = time.monotonic()
+    hits = [t for t in _rate.get(peer_id, []) if now - t < _RATE_WINDOW_S]
+    if len(hits) >= _RATE_MAX:
+        _rate[peer_id] = hits
+        return False
+    hits.append(now)
+    _rate[peer_id] = hits
+    return True
+
+
+def _resolve_target(peer_id: str, target: str) -> str:
+    """Agent-ID oder -Name → ID. Namen werden NUR unter den für diesen Partner
+    freigegebenen Agenten gesucht, damit ein Name nie an Fremde führt.
+    Uneindeutig oder unbekannt → Eingabe unverändert (scheitert dann an der Freigabe)."""
+    from hydrahive.agents import config as agent_config
+
+    allowed = peers_db.allowed_agents(peer_id)
+    if target in allowed:
+        return target
+    needle = target.strip().lower()
+    hits = []
+    for agent_id in allowed:
+        agent = agent_config.get(agent_id) or {}
+        if (agent.get("name") or "").strip().lower() == needle:
+            hits.append(agent_id)
+    return hits[0] if len(hits) == 1 else target
+
 async def accept_task(peer: dict, payload: dict) -> str:
     """Nimmt den geprüften Auftrag an. Rückgabe: lokale State-ID."""
     task_id = payload["task_id"]
@@ -44,6 +79,11 @@ async def accept_task(peer: dict, payload: dict) -> str:
         raise proto.PeerRejected("peer_payload_invalid", "Ziel oder Aufgabe fehlt")
     if not peers_db.claim_task(task_id, peer["id"], "in"):
         raise proto.PeerRejected("peer_replay", f"Auftrag {task_id} schon gesehen")
+    if not _rate_ok(peer["id"]):
+        peers_db.set_task_status(task_id, "rejected")
+        _audit(peer, "Ratenlimit überschritten", severity="warning")
+        raise proto.PeerRejected("peer_rate_limited", f"mehr als {_RATE_MAX} Aufträge/Minute")
+    target = _resolve_target(peer["id"], target)
     if not peers_db.is_agent_allowed(peer["id"], target):
         peers_db.set_task_status(task_id, "rejected")
         _audit(peer, f"Auftrag an nicht freigegebenen Agenten {target} abgelehnt", severity="warning")
@@ -75,11 +115,12 @@ async def accept_task(peer: dict, payload: dict) -> str:
 def _reply_text(response: State) -> tuple[str, str]:
     findings = response.working_memory.findings if response.working_memory else []
     visible, _checkpoint = split_checkpoint_findings(findings)
-    description = response.task.description if response.task else ""
-    parts = [description] if description else []
-    parts.extend(f"- {item}" for item in visible)
     status = "done" if response.task and response.task.status == "done" else "error"
-    return status, "\n".join(parts)
+    if visible:
+        # Die Ergebnisse stehen in findings; description ist nur "Abgeschlossen: <Aufgabe>".
+        return status, "\n\n".join(visible)
+    description = response.task.description if response.task else ""
+    return status, description
 
 
 async def _relay_reply(peer: dict, task_id: str, state_id: str, fut: asyncio.Future) -> None:

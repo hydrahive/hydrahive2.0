@@ -1,12 +1,12 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Ban, CheckCircle2, Server, Trash2 } from "lucide-react"
+import { AlertTriangle, Ban, CheckCircle2, Server, Trash2 } from "lucide-react"
 import { peersApi } from "./api"
 import type { Peer } from "./types"
 
 interface Props {
   peer: Peer
-  agents: { id: string; name: string }[]
+  agents: { id: string; name: string; autoTools: boolean }[]
   onChange: () => void
 }
 
@@ -90,15 +90,24 @@ export function PeerCard({ peer, agents, onChange }: Props) {
             const on = peer.allowed_agents.includes(a.id)
             return (
               <button key={a.id} onClick={() => toggleAgent(a.id)}
+                title={a.autoTools ? t("peers.auto_tools_title") : undefined}
                 className={`px-2 py-0.5 rounded-md text-[11px] border transition-colors ${on
                   ? "bg-violet-600/30 border-violet-500/50 text-violet-200"
                   : "bg-zinc-950/40 border-white/[6%] text-zinc-500 hover:text-zinc-300"}`}>
+                {a.autoTools && on && <AlertTriangle size={10} className="inline mr-1 text-amber-400" />}
                 {a.name}
               </button>
             )
           })}
         </div>
       </div>
+
+      {agents.some(a => a.autoTools && peer.allowed_agents.includes(a.id)) && (
+        <p className="flex items-start gap-1.5 text-[11px] text-amber-300">
+          <AlertTriangle size={12} className="mt-0.5 shrink-0" />{t("peers.auto_tools_warning")}
+        </p>
+      )}
+      <p className="text-[11px] text-zinc-500">{t("peers.call_hint", { server: peer.name })}</p>
 
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
