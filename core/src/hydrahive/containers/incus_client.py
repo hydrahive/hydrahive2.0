@@ -57,6 +57,7 @@ async def launch(name: str, image: str, *,
                  cpu: int | None = None,
                  ram_mb: int | None = None,
                  bridge: str = "br0",
+                 ipv4: str | None = None,
                  privileged: bool = True) -> None:
     """Erzeugt + startet einen Container.
 
@@ -96,9 +97,41 @@ async def launch(name: str, image: str, *,
             )
         # Restart damit das Override greift
         await _run("restart", name, timeout=60.0)
+    elif network_mode == "nat":
+        # NAT-Netz hhnat0 mit fester IP (docs/specs/container-nat-ports.md).
+        # Das default-Profil hat keine NIC; eth0 wird hier angelegt.
+        from hydrahive.containers.nat import NAT_NETWORK
+        if not ipv4:
+            raise IncusError("container_nat_no_ip")
+        rc, _, err = await _run(
+            "config", "device", "add", name, "eth0", "nic",
+            f"network={NAT_NETWORK}", f"ipv4.address={ipv4}",
+            timeout=30.0,
+        )
+        if rc != 0:
+            raise IncusError("incus_launch_failed", stderr=err[:400])
+        await _run("restart", name, timeout=60.0)
     elif network_mode == "isolated":
         await _run("config", "device", "remove", name, "eth0", timeout=30.0)
 
+
+
+async def add_proxy_device(name: str, device: str, *, listen: str, connect: str) -> None:
+    """Portfreigabe per proxy device mit nat=true (Kernel-DNAT, Client-IP bleibt)."""
+    rc, _, err = await _run(
+        "config", "device", "add", name, device, "proxy",
+        f"listen={listen}", f"connect={connect}", "nat=true",
+        timeout=30.0,
+    )
+    if rc != 0:
+        raise IncusError("incus_device_failed", stderr=err[:400])
+
+
+async def remove_device(name: str, device: str) -> None:
+    """Idempotent: fehlendes Device ist kein Fehler."""
+    rc, _, err = await _run("config", "device", "remove", name, device, timeout=30.0)
+    if rc != 0 and "not found" not in err.lower() and "doesn't exist" not in err.lower():
+        raise IncusError("incus_device_failed", stderr=err[:400])
 
 async def stop(name: str, *, force: bool = False) -> None:
     args = ["stop", name]

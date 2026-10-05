@@ -31,6 +31,7 @@ def row_to_container(r: sqlite3.Row) -> Container:
         project_id=r["project_id"] if "project_id" in keys else None,
         node_id=r["node_id"] if "node_id" in keys else "local",
         generation=r["generation"] if "generation" in keys else 0,
+        ipv4=r["ipv4"] if "ipv4" in keys else None,
     )
 
 
@@ -122,6 +123,8 @@ def update_state(
 
 def delete(container_id: str) -> None:
     with db() as conn:
+        # Portfreigaben explizit löschen, falls foreign_keys aus ist.
+        conn.execute("DELETE FROM container_ports WHERE container_id = ?", (container_id,))
         conn.execute("DELETE FROM containers WHERE container_id = ?", (container_id,))
 
 

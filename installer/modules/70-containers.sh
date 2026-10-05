@@ -96,9 +96,14 @@ if [ -f "$SERVICE_FILE" ]; then
   fi
 fi
 
-# br0-Check: für Container-Bridged genau wie für VMs
+# br0-Check: für Container-Bridged genau wie für VMs. Ohne br0 (z. B. VPS)
+# bekommen Container ein eigenes NAT-Netz (docs/specs/container-nat-ports.md).
 if ! ip link show br0 >/dev/null 2>&1; then
-  log "WARNUNG: br0 fehlt — bridged Container starten nicht. setup-bridge.sh ausführen."
+  log "Kein br0 — bridged Container gehen hier nicht, richte NAT-Netz ein"
 fi
+# shellcheck source=../lib/container-nat.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/container-nat.sh"
+ensure_container_nat
+install_portforward_helper
 
 log "Container-Setup fertig (incus $(incus version 2>/dev/null | head -1))"

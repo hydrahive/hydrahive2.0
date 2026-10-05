@@ -18,7 +18,8 @@
     "config": "Config",
     "console": "Console",
     "logs": "Logs",
-    "stats": "Stats"
+    "stats": "Stats",
+    "ports": "Ports"
   },
   "spec": {
     "cpu_unlimited": "CPU ∞",
@@ -73,7 +74,10 @@
     "back_to_list": "← Quick list",
     "error_image_missing": "Image required",
     "error_name_invalid": "Name: 1-63 chars, starts with letter, only a-z A-Z 0-9 -",
-    "remote_placement_note": "Remote placement: the container runs permanently on the selected node (admin-only). Migration is not part of V1."
+    "remote_placement_note": "Remote placement: the container runs permanently on the selected node (admin-only). Migration is not part of V1.",
+    "network_nat_title": "NAT (own IP)",
+    "network_nat_desc": "Internal network with fixed IP, services via port forwards – for VPS",
+    "network_unavailable": "Not available on this server"
   },
   "edit": {
     "field_name": "Name",
@@ -82,5 +86,27 @@
     "field_ram": "RAM (MB)",
     "field_image_readonly": "Image (read-only — Re-Create to change image)",
     "error": "Error"
+  },
+  "ports": {
+    "loading": "Loading port forwards…",
+    "only_nat": "Port forwards are only available for containers in the NAT network.",
+    "ip": "Internal IP:",
+    "col_label": "Forward",
+    "col_protocol": "Protocol",
+    "col_ports": "outside → inside",
+    "col_scope": "Reach",
+    "empty": "No port forwards yet.",
+    "label_ph": "Name, e.g. Minecraft",
+    "host_start_ph": "Outside port",
+    "host_end_ph": "to (optional)",
+    "inner_ph": "Inside port (optional)",
+    "scope_public": "Public",
+    "scope_tailnet": "Tailnet only",
+    "scope_off": "Off",
+    "add": "Forward",
+    "delete_confirm": "Delete port forward?",
+    "hint_provider": "Public ports must also be open in your hosting provider's firewall.",
+    "hint_udp": "UDP needs its own rule in the provider firewall.",
+    "hint_reserved": "Blocked: ports below 1024 and 3000, 3001, 5432, 6379, 8001, 8888, 9000, 9001, 10000, 41641. Max. 100 ports per forward. Only admins may forward publicly."
   }
 }

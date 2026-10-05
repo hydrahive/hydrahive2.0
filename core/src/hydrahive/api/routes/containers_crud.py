@@ -21,6 +21,7 @@ from hydrahive.api.routes._container_helpers import (
 from hydrahive.containers import db as cdb
 from hydrahive.containers import execution
 from hydrahive.containers import incus_client as incus
+from hydrahive.containers import nat
 from hydrahive.containers import remote
 from hydrahive.containers.models import IMAGE_RE, NAME_RE, QUICK_IMAGES
 
@@ -33,6 +34,12 @@ def list_containers(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> 
     user, role = auth
     cs = cdb.list_(owner=None if is_admin(role) else user)
     return [asdict(c) for c in cs]
+
+
+@router.get("/network-modes")
+def network_modes(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+    """Welche Netzmodi gehen auf diesem Server (bridged braucht br0, nat hhnat0)."""
+    return nat.network_modes()
 
 
 @router.get("/quick-images")
@@ -50,7 +57,9 @@ async def create_container(
         raise coded(status.HTTP_403_FORBIDDEN, "container_remote_placement_forbidden")
     if not re.match(NAME_RE, body.name):
         raise coded(status.HTTP_400_BAD_REQUEST, "container_name_invalid")
-    if body.network_mode not in ("bridged", "isolated"):
+    if body.network_mode not in ("bridged", "isolated", "nat"):
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_network_mode_invalid")
+    if body.network_mode == "nat" and body.node_id != "local":
         raise coded(status.HTTP_400_BAD_REQUEST, "container_network_mode_invalid")
     # Image gegen Allowlist prüfen, BEVOR der images:-Präfix gesetzt wird (#185)
     image = body.image.strip()
@@ -62,6 +71,11 @@ async def create_container(
         raise coded(status.HTTP_409_CONFLICT, "container_name_taken")
     if body.node_id == "local" and not incus.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "incus_missing")
+    # Netzprüfung nach allen Eingabeprüfungen: ein ungültiges Image soll immer
+    # als solches gemeldet werden, egal welche Netze der Server hat.
+    if body.network_mode != "isolated" and body.node_id == "local" \
+            and not nat.network_modes()[body.network_mode]:
+        raise coded(status.HTTP_400_BAD_REQUEST, "container_network_unavailable", mode=body.network_mode)
 
     c = cdb.create(
         owner=user,
@@ -73,6 +87,12 @@ async def create_container(
         network_mode=body.network_mode,
         node_id=body.node_id,
     )
+    if body.network_mode == "nat":
+        try:
+            nat.set_ipv4(c.container_id, nat.allocate_ipv4())
+        except ValueError:
+            cdb.delete(c.container_id)
+            raise coded(status.HTTP_409_CONFLICT, "container_nat_full")
     actor = users.get_by_username(user)
     try:
         await execution.create_and_start(

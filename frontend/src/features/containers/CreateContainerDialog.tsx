@@ -9,7 +9,7 @@ import {
   adminInputClass,
 } from "@/features/cockpit/admin/ui"
 import { NodeSelector } from "@/features/nodes/NodeSelector"
-import type { ContainerCreateInput, NetworkMode } from "./types"
+import type { ContainerCreateInput, NetworkMode, NetworkModes } from "./types"
 import { containersApi } from "./api"
 import { RadioCard } from "./_containerDialogHelpers"
 
@@ -32,6 +32,16 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
   const [quickImages, setQuickImages] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [modes, setModes] = useState<NetworkModes | null>(null)
+
+  useEffect(() => {
+    let active = true
+    containersApi.networkModes()
+      .then((m) => { if (active) { setModes(m); setNetwork(m.default) } })
+      .catch(() => { /* älterer Server: bridged/isolated wie bisher */ })
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -129,9 +139,11 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
         </div>
 
         <AdminField label={t("create.field_network")}>
-          <div className="grid grid-cols-2 gap-2">
-            <RadioCard active={network === "bridged"} onClick={() => setNetwork("bridged")}
-              title={t("create.network_bridged_title")} desc={t("create.network_bridged_desc")} />
+          <div className="grid grid-cols-3 gap-2">
+            <RadioCard active={network === "bridged"} onClick={() => setNetwork("bridged")} disabled={modes ? !modes.bridged : false}
+              title={t("create.network_bridged_title")} desc={modes && !modes.bridged ? t("create.network_unavailable") : t("create.network_bridged_desc")} />
+            <RadioCard active={network === "nat"} onClick={() => setNetwork("nat")} disabled={modes ? !modes.nat : true}
+              title={t("create.network_nat_title")} desc={modes && !modes.nat ? t("create.network_unavailable") : t("create.network_nat_desc")} />
             <RadioCard active={network === "isolated"} onClick={() => setNetwork("isolated")}
               title={t("create.network_isolated_title")} desc={t("create.network_isolated_desc")} />
           </div>

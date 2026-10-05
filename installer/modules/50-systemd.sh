@@ -5,6 +5,14 @@ set -euo pipefail
 log() { printf "  · %s\n" "$*"; }
 
 SERVICE_FILE=/etc/systemd/system/hydrahive2.service
+
+# Alle ReadWritePaths der Unit müssen existieren, sonst startet systemd den
+# Dienst nicht (status=226/NAMESPACE). Samba- und Container-Ordner fehlen,
+# wenn diese Komponenten abgewählt wurden (Befund VPS-Installation 04.10.2026).
+HH_USER="${HH_USER:-hydrahive}"
+install -d -o "$HH_USER" -g "$HH_USER" -m 0700 "/home/$HH_USER/.cache/incus"
+install -d -m 2775 /etc/samba/hh-projects.d
+chgrp "$HH_USER" /etc/samba/hh-projects.d 2>/dev/null || true
 UPDATE_SERVICE=/etc/systemd/system/hydrahive2-update.service
 UPDATE_TIMER=/etc/systemd/system/hydrahive2-update.timer
 RESTART_SERVICE=/etc/systemd/system/hydrahive2-restart.service

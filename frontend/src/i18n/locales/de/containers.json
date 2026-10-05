@@ -18,7 +18,8 @@
     "config": "Config",
     "console": "Konsole",
     "logs": "Logs",
-    "stats": "Stats"
+    "stats": "Stats",
+    "ports": "Ports"
   },
   "spec": {
     "cpu_unlimited": "CPU ∞",
@@ -73,7 +74,10 @@
     "back_to_list": "← Quick-Liste",
     "error_image_missing": "Image fehlt",
     "error_name_invalid": "Name: 1-63 Zeichen, beginnt mit Buchstabe, nur a-z A-Z 0-9 -",
-    "remote_placement_note": "Remote-Platzierung: Der Container läuft dauerhaft auf dem gewählten Node (Admin-only). Eine Migration ist in V1 nicht vorgesehen."
+    "remote_placement_note": "Remote-Platzierung: Der Container läuft dauerhaft auf dem gewählten Node (Admin-only). Eine Migration ist in V1 nicht vorgesehen.",
+    "network_nat_title": "NAT (eigene IP)",
+    "network_nat_desc": "Internes Netz mit fester IP, Dienste über Portfreigaben – für VPS",
+    "network_unavailable": "Auf diesem Server nicht verfügbar"
   },
   "edit": {
     "field_name": "Name",
@@ -82,5 +86,27 @@
     "field_ram": "RAM (MB)",
     "field_image_readonly": "Image (read-only — Re-Create für anderes Image)",
     "error": "Fehler"
+  },
+  "ports": {
+    "loading": "Lade Portfreigaben…",
+    "only_nat": "Portfreigaben gibt es nur für Container im NAT-Netz.",
+    "ip": "Interne IP:",
+    "col_label": "Freigabe",
+    "col_protocol": "Protokoll",
+    "col_ports": "außen → innen",
+    "col_scope": "Reichweite",
+    "empty": "Noch keine Portfreigaben.",
+    "label_ph": "Name, z. B. Minecraft",
+    "host_start_ph": "Port außen",
+    "host_end_ph": "bis (optional)",
+    "inner_ph": "Port innen (optional)",
+    "scope_public": "Öffentlich",
+    "scope_tailnet": "Nur Tailnet",
+    "scope_off": "Aus",
+    "add": "Freigeben",
+    "delete_confirm": "Portfreigabe löschen?",
+    "hint_provider": "Öffentliche Ports müssen zusätzlich in der Firewall deines Server-Anbieters offen sein.",
+    "hint_udp": "Für UDP braucht die Anbieter-Firewall eine eigene UDP-Regel.",
+    "hint_reserved": "Gesperrt: Ports unter 1024 sowie 3000, 3001, 5432, 6379, 8001, 8888, 9000, 9001, 10000, 41641. Max. 100 Ports pro Freigabe. Öffentlich freigeben dürfen nur Admins."
   }
 }

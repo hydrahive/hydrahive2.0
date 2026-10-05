@@ -6,7 +6,7 @@ from typing import Literal
 
 DesiredState = Literal["running", "stopped"]
 ActualState = Literal["created", "starting", "running", "stopping", "stopped", "error"]
-NetworkMode = Literal["bridged", "isolated"]
+NetworkMode = Literal["bridged", "isolated", "nat"]
 
 
 @dataclass
@@ -28,6 +28,7 @@ class Container:
     project_id: str | None = None
     node_id: str = "local"
     generation: int = 0
+    ipv4: str | None = None
 
 
 @dataclass
