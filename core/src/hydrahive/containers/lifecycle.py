@@ -45,7 +45,7 @@ async def create_and_start(container_id: str) -> None:
     except incus.IncusError as e:
         cdb.update_state(container_id, actual="error", error_code=e.code, error_params=e.params)
         raise
-    cdb.update_state(container_id, actual="running")
+    cdb.update_state(container_id, actual="running", error_code=None, error_params=None)
 
 
 async def start(container_id: str) -> None:
@@ -59,7 +59,7 @@ async def start(container_id: str) -> None:
     except incus.IncusError as e:
         cdb.update_state(container_id, actual="error", error_code=e.code, error_params=e.params)
         raise
-    cdb.update_state(container_id, actual="running")
+    cdb.update_state(container_id, actual="running", error_code=None, error_params=None)
 
 
 async def stop(container_id: str, *, force: bool = False) -> None:

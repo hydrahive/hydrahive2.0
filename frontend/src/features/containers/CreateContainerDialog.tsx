@@ -25,8 +25,10 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
   const [description, setDescription] = useState("")
   const [image, setImage] = useState("debian/12")
   const [customImage, setCustomImage] = useState(false)
-  const [cpu, setCpu] = useState<number | "">("")
-  const [ramMb, setRamMb] = useState<number | "">("")
+  // Vorschlag statt "unbegrenzt": ein Container soll den Server nicht allein
+  // auslasten können (Befund VPS 05.10.2026). Leeren = unbegrenzt.
+  const [cpu, setCpu] = useState<number | "">(2)
+  const [ramMb, setRamMb] = useState<number | "">(2048)
   const [network, setNetwork] = useState<NetworkMode>("bridged")
   const [nodeId, setNodeId] = useState("local")
   const [quickImages, setQuickImages] = useState<string[]>([])
