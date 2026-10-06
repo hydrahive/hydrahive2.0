@@ -1,4 +1,4 @@
-"""hydrahive.llm._anthropic: complete/stream retry'n ohne temperature, wenn das
+"""hydrahive.llm._anthropic_calls: complete/stream retry'n ohne temperature, wenn das
 Modell sie ablehnt (BadRequestError 'temperature is deprecated for this model').
 
 Bug: test_stream_temperature_retry.py deckt bereits den Runner-Pfad
@@ -72,7 +72,7 @@ def test_anthropic_complete_retried_ohne_temperature(monkeypatch):
         "hydrahive.llm._oauth_usage.extract_rate_limit_headers", lambda headers: None
     )
 
-    from hydrahive.llm._anthropic import anthropic_complete
+    from hydrahive.llm._anthropic_calls import anthropic_complete
     out = _run(anthropic_complete(
         key="sk-ant-test", messages=[{"role": "user", "content": "hi"}],
         model="claude-opus-4-8", temperature=1.0, max_tokens=1024,
@@ -105,7 +105,7 @@ def test_anthropic_complete_ohne_fehler_kein_retry(monkeypatch):
         "hydrahive.llm._oauth_usage.extract_rate_limit_headers", lambda headers: None
     )
 
-    from hydrahive.llm._anthropic import anthropic_complete
+    from hydrahive.llm._anthropic_calls import anthropic_complete
     out = _run(anthropic_complete(
         key="sk-ant-test", messages=[{"role": "user", "content": "hi"}],
         model="claude-sonnet-4-6", temperature=0.7, max_tokens=1024,
@@ -130,7 +130,7 @@ def test_anthropic_complete_anderer_bad_request_durchgereicht(monkeypatch):
     import anthropic
     monkeypatch.setattr(anthropic, "AsyncAnthropic", FakeClient)
 
-    from hydrahive.llm._anthropic import anthropic_complete
+    from hydrahive.llm._anthropic_calls import anthropic_complete
     with pytest.raises(anthropic.BadRequestError):
         _run(anthropic_complete(
             key="sk-ant-test", messages=[{"role": "user", "content": "hi"}],
@@ -157,7 +157,7 @@ def test_minimax_complete_retried_ohne_temperature(monkeypatch):
     import anthropic
     monkeypatch.setattr(anthropic, "AsyncAnthropic", FakeClient)
 
-    from hydrahive.llm._anthropic import minimax_complete
+    from hydrahive.llm._anthropic_calls import minimax_complete
     out = _run(minimax_complete(
         api_key="key", messages=[{"role": "user", "content": "hi"}],
         model="MiniMax-M2", temperature=1.0, max_tokens=1024,
@@ -214,7 +214,7 @@ def test_anthropic_stream_retried_ohne_temperature(monkeypatch):
     import anthropic
     monkeypatch.setattr(anthropic, "AsyncAnthropic", FakeClient)
 
-    from hydrahive.llm._anthropic import anthropic_stream
+    from hydrahive.llm._anthropic_calls import anthropic_stream
     _drain(anthropic_stream(
         key="sk-ant-test", messages=[{"role": "user", "content": "hi"}],
         model="claude-opus-4-8", temperature=1.0, max_tokens=1024,
@@ -240,7 +240,7 @@ def test_minimax_stream_retried_ohne_temperature(monkeypatch):
     import anthropic
     monkeypatch.setattr(anthropic, "AsyncAnthropic", FakeClient)
 
-    from hydrahive.llm._anthropic import minimax_stream
+    from hydrahive.llm._anthropic_calls import minimax_stream
     _drain(minimax_stream(
         api_key="key", messages=[{"role": "user", "content": "hi"}],
         model="MiniMax-M2", temperature=1.0, max_tokens=1024,

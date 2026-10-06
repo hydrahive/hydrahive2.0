@@ -15,13 +15,16 @@ import litellm
 from hydrahive.llm import _anthropic
 from hydrahive.llm import _config
 from hydrahive.llm._anthropic import (
-    anthropic_complete,
-    anthropic_stream,
     convert_images_for_minimax,
     is_minimax_model,
+    strip_provider_prefix,
+)
+from hydrahive.llm._anthropic_calls import (
+    anthropic_complete,
+    anthropic_stream,
     minimax_complete,
     minimax_stream,
-    strip_provider_prefix,
+    split_system,
 )
 from hydrahive.llm._config import apply_keys, get_provider_key, load_config
 
@@ -89,12 +92,13 @@ async def complete(
             raise ValueError("ChatGPT Plus/Pro OAuth fehlt — bitte auf /llm verbinden")
         from hydrahive.runner._codex_provider import codex_call
         # codex_call liefert (blocks, stop_reason, usage) — 3-Tupel (#200, adjacent)
+        system_text, rest = split_system(messages)  # Codex nimmt die Anweisung nur als instructions
         blocks, _, _ = await codex_call(
             access_token=codex_token["access"],
             account_id=codex_token.get("account_id", ""),
             model=target[len("openai-codex/"):],
-            system_prompt="",
-            messages=messages,
+            system_prompt=system_text,
+            messages=rest,
             tools=[],
         )
         return "".join(b.get("text", "") for b in blocks if b.get("type") == "text")
@@ -139,12 +143,13 @@ async def stream(
         if not codex_token.get("access"):
             raise ValueError("ChatGPT Plus/Pro OAuth fehlt — bitte auf /llm verbinden")
         from hydrahive.runner._codex_provider import codex_stream
+        system_text, rest = split_system(messages)
         async for ev in codex_stream(
             access_token=codex_token["access"],
             account_id=codex_token.get("account_id", ""),
             model=target[len("openai-codex/"):],
-            system_prompt="",
-            messages=messages,
+            system_prompt=system_text,
+            messages=rest,
             tools=[],
         ):
             if ev.get("type") == "text_delta":
