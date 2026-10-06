@@ -6,6 +6,32 @@ success() { echo "[OK] $*"; }
 warn()    { echo "[WARN] $*"; }
 die()     { echo "[ERROR] $*" >&2; exit 1; }
 
+# C/C++-Toolchain für cgo-Projekte (z.B. Go-Code mit "#cgo LDFLAGS: -lcryptopp").
+# Ohne diese Pakete scheitert ein unverpacktes `go test ./...` beim Linken.
+# Einzige Quelle der Liste: update.sh ruft dieses Script mit --deps-only auf,
+# damit bestehende Go-Installationen die Pakete beim HydraHive-Update bekommen.
+CGO_PACKAGES=(build-essential pkg-config libcrypto++-dev)
+
+install_cgo_deps() {
+    local missing=() p
+    for p in "${CGO_PACKAGES[@]}"; do
+        dpkg -s "$p" 2>/dev/null | grep -q "^Status: install ok installed" || missing+=("$p")
+    done
+    if [ "${#missing[@]}" -eq 0 ]; then
+        success "cgo-Pakete vorhanden (${CGO_PACKAGES[*]})"
+        return 0
+    fi
+    info "Installiere cgo-Pakete: ${missing[*]}"
+    apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${missing[@]}"
+    success "cgo-Pakete installiert: ${missing[*]}"
+}
+
+install_cgo_deps
+if [ "${1:-}" = "--deps-only" ]; then
+    exit 0
+fi
+
 ARCH="$(dpkg --print-architecture 2>/dev/null || uname -m)"
 case "${ARCH}" in
   amd64|x86_64)  GO_ARCH="amd64" ;;
