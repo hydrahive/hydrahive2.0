@@ -7,6 +7,7 @@ sofort zurück, das Ergebnis wird später als eigene Nachricht zugestellt.
 from __future__ import annotations
 
 import asyncio
+import uuid
 
 import pytest
 
@@ -42,7 +43,9 @@ def agentlink(monkeypatch):
 
     async def fake_post_state(state: State) -> State:
         posted.append(state)
-        return State(id=f"st-{len(posted)}-{id(state)}", agent_id=state.agent_id, task=state.task)
+        # uuid statt id(state): CPython vergibt id() freigegebener Objekte neu, die DB
+        # (agent_delegations.state_id UNIQUE) lebt über Tests hinweg → sporadische Kollision.
+        return State(id=f"st-{len(posted)}-{uuid.uuid4().hex}", agent_id=state.agent_id, task=state.task)
 
     def fake_register_pending(state_id: str, expected: str = ""):
         fut = asyncio.get_running_loop().create_future()
@@ -337,3 +340,24 @@ def test_receiver_records_result_directly(session_id, starter):
     assert row["status"] == "paused"
     assert "Halb fertig" in row["result"] and 'resume_token="tok_abcdefgh12"' in row["result"]
     assert [s["sid"] for s in starter] == [session_id]  # Zustellung angestoßen
+
+
+def test_background_bookkeeping_failure_returns_error_fast_instead_of_blocking(spec_agent, session_id, agentlink, starter, tmp_path, monkeypatch):
+    """CI 06.10. (73876c1a): Scheiterte das Anlegen des Hintergrund-Eintrags, wartete ask_agent
+    synchron bis zur vollen Frist (600 s) – im Chat genau das Hängen, das der Hintergrund verhindern
+    soll. Jetzt: sofort klare Meldung, wartende Antwort wird aufgeräumt."""
+    posted, futures = agentlink
+    cancelled: list[str] = []
+    monkeypatch.setattr(ask_agent, "cancel_pending", lambda sid: cancelled.append(sid))
+
+    def broken_create(**kw):
+        raise RuntimeError("DB kaputt")
+    monkeypatch.setattr(bg.delegations_db, "create", broken_create)
+
+    async def scenario():
+        return await asyncio.wait_for(
+            ask_agent._execute({"agent_id": spec_agent["id"], "task": "x"}, _ctx(session_id, tmp_path)), timeout=2)
+
+    res = asyncio.run(scenario())
+    assert res.success is False and "nicht angelegt" in res.error
+    assert len(posted) == 1 and cancelled == [next(iter(futures))]
