@@ -45,8 +45,11 @@ Unattended-Upgrade::Origins-Pattern {
   #    Vorher NUR die Tailscale-Paketliste neu laden (schnell, fasst andere
   #    Quellen nicht an). Kopie in ein Temp-Verzeichnis, weil die Quelle als
   #    tailscale.list ODER tailscale.sources (deb822) vorliegen kann.
-  local before after src tmp
-  src="$(ls /etc/apt/sources.list.d/tailscale.list /etc/apt/sources.list.d/tailscale.sources 2>/dev/null | head -1)"
+  local before after src tmp f
+  src=""
+  for f in /etc/apt/sources.list.d/tailscale.list /etc/apt/sources.list.d/tailscale.sources; do
+    if [ -f "$f" ]; then src="$f"; break; fi
+  done
   if [ -n "$src" ]; then
     tmp="$(mktemp -d)"
     cp "$src" "$tmp/"
