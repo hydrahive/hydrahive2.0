@@ -30,6 +30,11 @@ log "Tailscale-Operator auf ${HH_USER} setzen"
 tailscale set --operator="${HH_USER}" 2>/dev/null \
   || log "tailscale set --operator fehlgeschlagen (alte tailscale-Version?) — bitte manuell prüfen"
 
+# Sicherheitsupdates automatisch (unattended-upgrades + sofort beim Lauf)
+# shellcheck source=../lib/tailscale-autoupdate.sh
+source "$(dirname "$0")/../lib/tailscale-autoupdate.sh"
+ensure_tailscale_autoupdate || log "Tailscale-Autoupdate nicht eingerichtet — weiter"
+
 # Alte sudoers-Regel aufräumen falls sie aus früheren Installs vorhanden ist
 [ -f /etc/sudoers.d/hydrahive-tailscale ] && rm -f /etc/sudoers.d/hydrahive-tailscale
 
