@@ -236,6 +236,11 @@ if ! bash "$INSTALLER_DIR/modules/35-llmfit.sh"; then
   err_soft "llmfit-Installation fehlgeschlagen — Ollama-Verwaltung funktioniert, Hardware-Fit bleibt vorerst unbekannt."
 fi
 
+log "Phase 4d: graphify für den Code-Graph"
+# shellcheck source=lib/graphify.sh
+source "$INSTALLER_DIR/lib/graphify.sh"
+ensure_graphify
+
 # Local Media nur auf ausdrücklichen Wunsch (Standard nein). Der Marker sorgt
 # dafür, dass update.sh die Runtime danach weiter pflegt. Ein Fehler bricht
 # die Installation nicht ab; nachholen geht im System-Fenster.

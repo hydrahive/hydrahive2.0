@@ -144,6 +144,11 @@ log "Backend-Dependencies aktualisieren"
 hh_run_as_owner "$HH_USER" \
   "$HH_REPO_DIR/.venv/bin/python" -m pip install -e "$HH_REPO_DIR/core"
 
+# graphify für den Code-Graph vorinstallieren (sonst erst beim ersten Bauen).
+# shellcheck source=lib/graphify.sh
+source "$HH_REPO_DIR/installer/lib/graphify.sh"
+ensure_graphify
+
 log "llmfit für lokale Modellbewertung synchronisieren"
 if ! bash "$HH_REPO_DIR/installer/modules/35-llmfit.sh"; then
   log "llmfit-Installation fehlgeschlagen — Hardware-Fit bleibt vorerst unbekannt"
