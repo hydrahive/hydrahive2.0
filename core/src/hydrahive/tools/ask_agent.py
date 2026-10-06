@@ -219,14 +219,10 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     fut = register_pending(sent.id, routing_target)
     wait_timeout = _response_timeout(target_agent, profile)
     if background:
-        try:
-            return _bg.start(
-                ctx=ctx, state_id=sent.id, target=target_agent, task=task,
-                timeout_seconds=wait_timeout, fut=fut,
-            )
-        except Exception:
-            # Ohne Eintrag kein Watcher → synchron weiterwarten statt Ergebnis zu verlieren.
-            logger.exception("Hintergrund-Auftrag nicht angelegt, warte synchron")
+        return _bg.start_or_fail(
+            ctx=ctx, state_id=sent.id, target=target_agent, task=task,
+            timeout_seconds=wait_timeout, fut=fut, cancel=cancel_pending,
+        )
     try:
         response = await asyncio.wait_for(fut, timeout=wait_timeout)
     except asyncio.TimeoutError:

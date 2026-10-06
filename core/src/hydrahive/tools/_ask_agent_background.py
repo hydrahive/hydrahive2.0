@@ -95,6 +95,27 @@ def start(
     )
 
 
+def start_or_fail(*, ctx: ToolContext, state_id: str, target: dict, task: str,
+                  timeout_seconds: int, fut, cancel) -> ToolResult:
+    """Wie start(); scheitert das Anlegen, sofort Fehler statt synchron zu warten.
+
+    Früher wartete ask_agent dann bis zur Frist (600 s) – im Chat genau das Hängen,
+    das der Hintergrund verhindern soll (CI 06.10.2026, UNIQUE-Verletzung state_id).
+    """
+    try:
+        return start(ctx=ctx, state_id=state_id, target=target, task=task,
+                     timeout_seconds=timeout_seconds, fut=fut)
+    except Exception:
+        logger.exception("Hintergrund-Auftrag nicht angelegt")
+        cancel(state_id)
+        name = target.get("name") or target.get("id", "?")
+        return ToolResult.fail(
+            f"Hintergrund-Auftrag an '{name}' konnte nicht angelegt werden (interner Fehler). "
+            "Der Auftrag ist bereits gesendet, sein Ergebnis kommt aber nicht zurück. "
+            f"Nicht sofort wiederholen; ggf. mit wait=true erneut beauftragen. State-ID: {state_id}"
+        )
+
+
 def cancel_own(ctx: ToolContext, ref: str) -> ToolResult:
     """Bricht einen laufenden Hintergrund-Auftrag DIESER Session ab.
 
