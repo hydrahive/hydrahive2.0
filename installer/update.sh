@@ -717,6 +717,14 @@ if [ -x "$HH_REPO_DIR/installer/modules/75-agentlink.sh" ]; then
   fi
 fi
 
+# Go-Extension installiert? Dann cgo-Pakete nachziehen (Liste lebt in der
+# Extension selbst, --deps-only lässt die Go-Version unangetastet).
+if [ -x /usr/local/go/bin/go ] && [ -f "$HH_REPO_DIR/extensions/install/golang.sh" ]; then
+  log "Go-Extension: cgo-Pakete prüfen"
+  bash "$HH_REPO_DIR/extensions/install/golang.sh" --deps-only \
+    || log "cgo-Pakete für Go nicht installiert — weiter"
+fi
+
 if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ] && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
   log "Tailscale-Setup (installieren falls nicht da, Operator setzen)"
   bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || log "tailscale-update failed — weiter"
