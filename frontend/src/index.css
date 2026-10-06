@@ -399,3 +399,12 @@
     transform: none;
   }
 }
+
+/* Prosa-Editor (TipTap, src/shared/prose): Platzhalter im leeren Dokument. */
+.prose-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: hsl(var(--muted-foreground));
+}
