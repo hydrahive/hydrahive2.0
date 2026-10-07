@@ -14,9 +14,12 @@ import secrets
 import shutil
 from pathlib import Path
 
+from . import _orphan
+from ._orphan import BRIDGE_DIR
+
 logger = logging.getLogger(__name__)
 
-BRIDGE_DIR = Path(__file__).resolve().parent / "bridge"
+__all__ = ["BRIDGE_DIR", "BridgeProcess", "ensure_secret"]
 
 
 def ensure_secret(secret_file: Path) -> str:
@@ -88,6 +91,12 @@ class BridgeProcess:
                 "node_modules fehlen unter %s — bitte 'npm install' ausführen",
                 BRIDGE_DIR,
             )
+            return False
+        held = _orphan.release_port(self.port)
+        if held["foreign"]:
+            logger.error("Port %s ist belegt (PID %s, keine HydraHive-Bridge) — WhatsApp-Bridge wird nicht "
+                         "gestartet. Den Prozess beenden oder HH_WA_BRIDGE_PORT ändern.",
+                         self.port, ", ".join(map(str, held["foreign"])))
             return False
         self.data_dir.mkdir(parents=True, exist_ok=True)
         env = os.environ.copy()
