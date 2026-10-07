@@ -40,6 +40,8 @@ sudo tee "$PLIST_FILE" > /dev/null <<EOF
         <string>${HH_HOST}</string>
         <string>--port</string>
         <string>${HH_PORT}</string>
+        <string>--timeout-graceful-shutdown</string>
+        <string>20</string>
     </array>
     <key>WorkingDirectory</key>
     <string>${HH_REPO_DIR}</string>

@@ -643,6 +643,9 @@ if [ -f "$SERVICE_FILE" ]; then
   grep -q "^EnvironmentFile=" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -Fq "EnvironmentFile=$HH_CONFIG_DIR/compute-proxy.env" "$SERVICE_FILE" || NEEDS_REWRITE=1
   grep -q -- "--ws-max-size 65536" "$SERVICE_FILE" || NEEDS_REWRITE=1
+  # Zeitlimit beim Herunterfahren: sonst hängt jeder Neustart 90 s an offenen
+  # SSE-Verbindungen und endet mit SIGKILL (Bridge verwaist, Task 06d38ae9).
+  grep -q -- "--timeout-graceful-shutdown" "$SERVICE_FILE" || NEEDS_REWRITE=1
   # Secrets raus aus der für alle lesbaren Unit (HH_SECRET_KEY, PG-Mirror-DSN).
   # 50-systemd.sh übernimmt den BESTEHENDEN Schlüssel aus secret_key.
   grep -q "^Environment=HH_SECRET_KEY=" "$SERVICE_FILE" && NEEDS_REWRITE=1
