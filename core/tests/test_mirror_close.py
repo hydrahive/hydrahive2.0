@@ -68,6 +68,28 @@ def test_pool_close_that_hangs_is_terminated(monkeypatch):
     assert time.monotonic() - t0 < 1.5 and pool.terminated and mirror._pool is None
 
 
+def test_close_itself_blocks_new_writes(monkeypatch):
+    """close() setzt die Sperre selbst – ein Schreibwunsch während des Wartens startet keine Aufgabe."""
+    monkeypatch.setattr(mirror, "_pool", _Pool())
+    started = []
+
+    async def fake_write(pool, *a):
+        started.append(a)
+    monkeypatch.setattr(mirror, "write_message", fake_write)
+
+    async def body():
+        async def late_writer():
+            await asyncio.sleep(0.05)
+            mirror.schedule_message("spät", "s")
+        _mirror_tasks.track(asyncio.sleep(0.2))           # hält close() im Warten
+        writer = asyncio.get_running_loop().create_task(late_writer())
+        await mirror.close()
+        await writer
+    monkeypatch.setattr(_mirror_tasks, "CLOSE_WAIT_S", 0.5)
+    asyncio.run(body())
+    assert started == []
+
+
 def test_no_new_writes_after_close_started(monkeypatch):
     monkeypatch.setattr(mirror, "_pool", _Pool())
     started = []
@@ -109,8 +131,9 @@ def test_close_cancels_running_backfill(monkeypatch):
         mirror._backfill_task = asyncio.get_running_loop().create_task(asyncio.sleep(3600))
         task = mirror._backfill_task
         await mirror.close()
-        return task
-    assert asyncio.run(body()).cancelled()
+        return task.cancelled(), _mirror_tasks.closing      # noch IN der Schleife prüfen (nicht erst nach run())
+    cancelled, closing = asyncio.run(body())
+    assert cancelled and closing
 
 
 def test_embeddings_are_tracked_and_stop_when_closing(monkeypatch):

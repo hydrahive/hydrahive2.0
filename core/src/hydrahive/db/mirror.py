@@ -76,6 +76,8 @@ async def init() -> None:
             except Exception as ce:
                 logger.warning("PG-Mirror: cards-Embedding-Spalte konnte nicht angepasst werden (Rechte?): %s", ce)
         logger.info("PG-Mirror bereit")
+        from hydrahive.db._mirror_catchup import start as _start_catchup
+        _start_catchup(_pool, str(settings.sessions_db))
     except Exception as e:
         logger.warning("PG-Mirror init fehlgeschlagen — Mirror deaktiviert: %s", e)
         _pool = None
