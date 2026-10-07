@@ -101,6 +101,9 @@ class BridgeProcess:
             "node", "index.js",
             cwd=str(BRIDGE_DIR),
             env=env,
+            # Lebensader (lib/lifeline.js): stdin bleibt offen, solange das Backend lebt. Endet es hart
+            # (SIGKILL), schließt die Pipe und die Bridge beendet sich selbst statt als Waise den Port zu halten.
+            stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

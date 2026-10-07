@@ -2,6 +2,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import { connect, disconnect, send, sendAudio, getStatus } from "./lib/sock.js";
 import { logger } from "./lib/log.js";
+import { watchParent } from "./lib/lifeline.js";
 
 const PORT = parseInt(process.env.HH_WA_BRIDGE_PORT || "8767", 10);
 const HOST = "127.0.0.1";
@@ -87,9 +88,11 @@ server.listen(PORT, HOST, () => {
   logger.info({ host: HOST, port: PORT }, "WhatsApp-Bridge läuft");
 });
 
-for (const sig of ["SIGINT", "SIGTERM"]) {
-  process.on(sig, () => {
-    logger.info({ signal: sig }, "Shutdown");
-    server.close(() => process.exit(0));
-  });
+function shutdown(reason) {
+  logger.info({ reason }, "Shutdown");
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 3000).unref();   // offene Keep-Alive-Verbindungen nicht abwarten
 }
+
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => shutdown(sig));
+watchParent(() => shutdown("backend_gone"));
