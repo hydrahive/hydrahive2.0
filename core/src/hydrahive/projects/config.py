@@ -108,10 +108,13 @@ def delete(project_id: str) -> bool:
     cfg = get(project_id)
     if not cfg:
         return False
-    # Cascade: Project-Agent + Workspace + Project-Verzeichnis +
+    # Cascade: Project-Agent + Spezialisten des Projekts + Workspace + Project-Verzeichnis +
     # Server-Assignments (VMs/Container bleiben, project_id wird NULL).
     if cfg.get("agent_id"):
         agent_config.delete(cfg["agent_id"])
+    for agent in agent_config.list_all():   # create_specialist, Storyteller-Helfer – sonst verwaist
+        if agent.get("project_id") == project_id and agent.get("id") != cfg.get("agent_id"):
+            agent_config.delete(agent["id"])
     from hydrahive.vms import db as vms_db
     from hydrahive.containers import db as containers_db
     from hydrahive.samba import disable_share as samba_disable
