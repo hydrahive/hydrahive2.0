@@ -14,9 +14,12 @@ import secrets
 import shutil
 from pathlib import Path
 
+from . import _orphan
+from ._orphan import BRIDGE_DIR
+
 logger = logging.getLogger(__name__)
 
-BRIDGE_DIR = Path(__file__).resolve().parent / "bridge"
+__all__ = ["BRIDGE_DIR", "BridgeProcess", "ensure_secret"]
 
 
 def ensure_secret(secret_file: Path) -> str:
@@ -89,6 +92,12 @@ class BridgeProcess:
                 BRIDGE_DIR,
             )
             return False
+        held = _orphan.release_port(self.port)
+        if held["foreign"]:
+            logger.error("Port %s ist belegt (PID %s, keine HydraHive-Bridge) — WhatsApp-Bridge wird nicht "
+                         "gestartet. Den Prozess beenden oder HH_WA_BRIDGE_PORT ändern.",
+                         self.port, ", ".join(map(str, held["foreign"])))
+            return False
         self.data_dir.mkdir(parents=True, exist_ok=True)
         env = os.environ.copy()
         env.update({
@@ -101,6 +110,9 @@ class BridgeProcess:
             "node", "index.js",
             cwd=str(BRIDGE_DIR),
             env=env,
+            # Lebensader (lib/lifeline.js): stdin bleibt offen, solange das Backend lebt. Endet es hart
+            # (SIGKILL), schließt die Pipe und die Bridge beendet sich selbst statt als Waise den Port zu halten.
+            stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

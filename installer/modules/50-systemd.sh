@@ -101,10 +101,13 @@ Environment=PATH=$HH_REPO_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=-$ENV_EXTRA
 EnvironmentFile=$COMPUTE_PROXY_ENV
 EnvironmentFile=$SERVICE_SECRETS_ENV
-ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST --port $HH_PORT --ws-max-size 65536
+ExecStart=$HH_REPO_DIR/.venv/bin/uvicorn hydrahive.api.main:app --host $HH_HOST --port $HH_PORT --ws-max-size 65536 --timeout-graceful-shutdown 20
 Restart=on-failure
 RestartSec=5
 
+# --timeout-graceful-shutdown 20: uvicorn wartet sonst unbegrenzt auf offene SSE-
+# Verbindungen (Live-Status in jedem Browser-Tab) → systemd killt nach 90 s mit SIGKILL,
+# der Shutdown (WhatsApp-Bridge stoppen, DB-Spiegel schließen) läuft nie (Task 06d38ae9).
 # WICHTIG: nur den Backend-Prozess beim Stop/Restart killen, NICHT die qemu/incus-
 # Children. Default control-group würde laufende VMs/Container beim Update killen.
 KillMode=process
