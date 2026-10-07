@@ -32,7 +32,7 @@ import { isCommand, runChatCommand } from "./commands"
 import { ChatSearchProvider, useChatSearch } from "./ChatSearchContext"
 import { ChatSearchBar } from "./ChatSearchBar"
 import { pickSessionFor } from "./_pickSession"
-import { readStoredSession, writeStoredSession } from "./_storedSession"
+import { forgetDeleted, readStoredSession, rememberActive } from "./_storedSession"
 
 function ChatSearchScrollEffect() {
   const { activeMessageId } = useChatSearch()
@@ -130,11 +130,10 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
 
   // Offene Session pro Projekt merken, damit ein Reload nicht in einem anderen
   // Chat landet. Nur im Projekt-Kontext — ohne projectId gibt es nichts zu
-  // unterscheiden.
+  // unterscheiden. Eingebettete Chats (metadata.embedded_in) nie (Task 8fd82c02).
   useEffect(() => {
-    if (projectId === undefined || !activeId) return
-    writeStoredSession(projectId ?? null, activeId)
-  }, [projectId, activeId])
+    if (activeId) rememberActive(projectId, sessions.find((s) => s.id === activeId))
+  }, [projectId, activeId, sessions])
 
   async function handleNew(agentId: string, title: string, projectId?: string) {
     if (activeSession?.project_id) await chatApi.handover(activeSession.id)
@@ -148,7 +147,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     if (activeId === id) {
       setActiveId(null)
       // Gemerkte Session mitlöschen — sie zeigt sonst ins Leere.
-      writeStoredSession(projectId ?? null, null)
+      forgetDeleted(projectId, id)
     }
   }
 
