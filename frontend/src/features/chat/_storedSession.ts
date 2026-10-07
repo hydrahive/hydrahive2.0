@@ -1,3 +1,6 @@
+import { isEmbedded } from "./_pickSession"
+import type { Session } from "./types"
+
 const STORAGE_KEY = "hh.cockpit.activeSession"
 
 /**
@@ -21,6 +24,19 @@ export function readStoredSession(projectId: string | null): string | null {
   } catch {
     return null
   }
+}
+
+/** Offene Sitzung als Projekt-Merker speichern – nur mit Projekt (ohne Projekt tut writeStoredSession nichts)
+ *  und nie für eingebettete Chats (z. B. Storyteller-Fenster): sonst öffnet das
+ *  Cockpit danach deren Sitzung. Unbekannte Sitzung (nicht in der Liste) wird nicht gemerkt – sie wäre beim
+ *  nächsten Laden ohnehin nicht wählbar. */
+export function rememberActive(projectId: string | null | undefined, session: Session | undefined): void {
+  if (session && !isEmbedded(session)) writeStoredSession(projectId ?? null, session.id)
+}
+
+/** Merker entfernen, wenn er auf die gelöschte Sitzung zeigt (andere Merker bleiben). */
+export function forgetDeleted(projectId: string | null | undefined, sessionId: string): void {
+  if (readStoredSession(projectId ?? null) === sessionId) writeStoredSession(projectId ?? null, null)
 }
 
 export function writeStoredSession(projectId: string | null, sessionId: string | null): void {
