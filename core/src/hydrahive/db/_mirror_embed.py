@@ -21,7 +21,10 @@ def queue_embed(pool, events: list[dict]) -> None:
         text = embed_text(e)
         if text:
             try:
-                asyncio.get_running_loop().create_task(embed_event(pool, e["id"], text, model))
+                from hydrahive.db import _mirror_tasks
+                if _mirror_tasks.closing:
+                    return
+                _mirror_tasks.track(embed_event(pool, e["id"], text, model))
             except RuntimeError:
                 logger.debug("queue_embed: kein Event-Loop, Embedding-Task für Event %s übersprungen",
                              e.get("id", "?"))

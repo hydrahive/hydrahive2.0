@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from hydrahive.db import _mirror_tasks as _tasks
 from hydrahive.db._message_model import Message
 from hydrahive.db._mirror_ddl import DDL_TABLES, DDL_VIEW, ensure_embed_col
 from hydrahive.db._mirror_embed import (
@@ -81,10 +82,20 @@ async def init() -> None:
 
 
 async def close() -> None:
+    """Herunterfahren in fester Zeit: keine neuen Aufträge, Backfill abbrechen, laufende Schreibvorgänge kurz
+    abwarten (Rest abbrechen), Pool schließen – hängt das, Verbindungen trennen. Was dabei verloren geht, holt
+    ``_mirror_catchup`` beim nächsten Start aus SQLite nach."""
     global _pool
-    if _pool:
-        await _pool.close()
-        _pool = None
+    if not _pool:
+        return
+    _tasks.closing = True
+    await _cancel_backfill()
+    cancelled = await _tasks.drain(_tasks.CLOSE_WAIT_S)
+    if cancelled:
+        logger.warning("PG-Mirror: %d Schreibvorgänge beim Herunterfahren abgebrochen (Start holt sie nach)",
+                       cancelled)
+    pool, _pool = _pool, None
+    await _tasks.close_pool(pool, _tasks.POOL_CLOSE_S)
 
 
 async def _cancel_backfill() -> None:
@@ -185,20 +196,20 @@ async def recent_events(limit: int = 100, *, username: str | None = None) -> lis
 
 def schedule_message(m: Message, s: Session) -> None:
     """Von messages.append() aufgerufen — sync, fire-and-forget."""
-    if not _pool:
+    if not _pool or _tasks.closing:
         return
     try:
-        asyncio.get_running_loop().create_task(write_message(_pool, m, s))
+        _tasks.track(write_message(_pool, m, s))
     except RuntimeError:
         pass
 
 
 def schedule_session(s: Session) -> None:
     """Von sessions.create() / sessions.update() aufgerufen — sync, fire-and-forget."""
-    if not _pool:
+    if not _pool or _tasks.closing:
         return
     try:
-        asyncio.get_running_loop().create_task(write_session(_pool, s))
+        _tasks.track(write_session(_pool, s))
     except RuntimeError:
         pass
 
