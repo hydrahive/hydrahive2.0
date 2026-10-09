@@ -147,6 +147,7 @@ _BACKFILL_SQL = """
            coalesce(nullif(text,''), nullif(tool_output,''), nullif(tool_input::text,'')) AS content
     FROM events
     WHERE embedding IS NULL
+      AND coalesce(embedding_model, '') NOT LIKE 'skip:%'
       AND (nullif(text,'') IS NOT NULL OR nullif(tool_output,'') IS NOT NULL OR nullif(tool_input::text,'') IS NOT NULL)
       AND ($2::timestamptz IS NULL OR (created_at, id) > ($2::timestamptz, $3::text))
     ORDER BY created_at, id

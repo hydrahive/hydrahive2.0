@@ -46,6 +46,12 @@ async def run_loop(stop: asyncio.Event) -> None:
                             consolidate_recent(cfg.lookback_hours, cfg.model),
                             name="cards-consolidate",
                         )
+                    # Volle Werkzeug-Ausgaben nachtragen (ohne LLM, idempotent):
+                    # docs/specs/datamining-volltext-werkzeuge.md
+                    from hydrahive.db import mirror
+                    from hydrahive.db._mirror_fulltext_backfill import backfill_fulltext
+                    if mirror._pool is not None:
+                        asyncio.create_task(backfill_fulltext(mirror._pool), name="mirror-fulltext")
         except Exception as e:
             logger.warning("zahnfee scheduler fehler: %s", e)
 

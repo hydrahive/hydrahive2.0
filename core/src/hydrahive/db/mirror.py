@@ -146,12 +146,14 @@ async def reset_embeddings(event_type: str | None = None) -> int:
     async with _pool.acquire() as conn:
         if event_type:
             r = await conn.execute(
-                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL WHERE event_type=$1",
+                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL WHERE event_type=$1 "
+                "AND coalesce(embedding_model, '') NOT LIKE 'skip:%'",
                 event_type, timeout=300,
             )
         else:
             r = await conn.execute(
-                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL",
+                "UPDATE events SET embedding=NULL, embedding_model=NULL, embedded_at=NULL "
+                "WHERE coalesce(embedding_model, '') NOT LIKE 'skip:%'",
                 timeout=300,
             )
     count = int(r.split()[-1])
