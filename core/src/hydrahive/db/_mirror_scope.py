@@ -63,9 +63,11 @@ def where(sc: Scope, start: int, *, alias: str = "events") -> tuple[list[str], l
             return ["FALSE"], [], start
         conds.append(f"{alias}.project_id = ANY(${i}::text[])"); params.append(list(sc.projects)); i += 1
     if not sc.sensitive:
+        # Sensible Sitzungen EINMAL bestimmen (Index events_tool, heute 6 Sitzungen) und ausschließen.
+        # Vorher NOT EXISTS je Treffer: bei häufigen Wörtern 2,2 s statt 0,08 s (gemessen 09.10., .2).
         conds.append(
-            f"NOT EXISTS (SELECT 1 FROM events s WHERE s.session_id = {alias}.session_id "
-            f"AND s.tool_name = ANY(${i}::text[]))"
+            f"{alias}.session_id <> ALL(ARRAY(SELECT DISTINCT s.session_id FROM events s "
+            f"WHERE s.tool_name = ANY(${i}::text[])))"
         )
         params.append(list(SENSITIVE_TOOLS)); i += 1
     return conds, params, i
