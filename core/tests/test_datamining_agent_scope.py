@@ -12,14 +12,17 @@ from unittest.mock import patch
 
 import pytest
 
-from hydrahive.db._mirror_scope import SENSITIVE_TOOLS, Scope, scope_for, where
+from hydrahive.db._mirror_levels import hidden_tools
+from hydrahive.db._mirror_scope import Scope, scope_for, where
+
+NOT_NORMAL = hidden_tools("normal")
 
 
 # ── Regeln: welche Sicht hat ein Agent? ───────────────────────────────────────
 
 def test_projekt_agent_sieht_nur_sein_projekt():
     sc = scope_for({"type": "project"}, username="till", project_id="P1")
-    assert sc == Scope(username="till", scope="project", projects=("P1",), sensitive=False)
+    assert sc == Scope(username="till", scope="project", projects=("P1",), max_level="normal")
 
 
 def test_spezialist_ebenso_und_ohne_projekt_gar_nichts():
@@ -30,13 +33,13 @@ def test_spezialist_ebenso_und_ohne_projekt_gar_nichts():
 
 def test_buddy_sieht_alles_des_nutzers_auch_sensibles():
     sc = scope_for({"type": "master", "is_buddy": True}, username="till", project_id=None)
-    assert sc.scope == "user" and sc.sensitive is True
+    assert sc.scope == "user" and sc.max_level == "gesundheit"
 
 
 def test_admin_freigabe_zusaetzlicher_projekte_und_sensibel():
     agent = {"type": "project", "knowledge_access": {"projects": ["P2", "P1"], "sensitive": True}}
     sc = scope_for(agent, username="till", project_id="P1")
-    assert sc.projects == ("P1", "P2") and sc.sensitive is True
+    assert sc.projects == ("P1", "P2") and sc.max_level == "gesundheit"
 
 
 def test_unbekannter_agent_und_kaputter_wert_sind_streng():
@@ -46,7 +49,7 @@ def test_unbekannter_agent_und_kaputter_wert_sind_streng():
 
 
 def test_ohne_nutzer_nie_treffer():
-    conds, _, _ = where(Scope(username="", scope="user", sensitive=True), 1)
+    conds, _, _ = where(Scope(username="", scope="user", max_level="gesundheit"), 1)
     assert conds == ["FALSE"]
 
 
@@ -55,7 +58,7 @@ def test_werte_nur_als_parameter_nie_im_sql():
     conds, params, nxt = where(Scope(username="x' OR '1'='1", projects=(evil,)), 5)
     sql = " AND ".join(conds)
     assert evil not in sql and "x' OR" not in sql
-    assert params[0] == "x' OR '1'='1" and params[1] == [evil] and list(SENSITIVE_TOOLS) == params[2]
+    assert params[0] == "x' OR '1'='1" and params[1] == [evil] and NOT_NORMAL == params[2]
     assert "$5" in sql and "$6" in sql and "$7" in sql and nxt == 8
 
 
@@ -86,7 +89,7 @@ def test_alle_vier_werkzeuge_uebergeben_den_scope(tool_name, fn, args):
     with patch(f"hydrahive.db.mirror_query.{fn}", side_effect=fake), \
          patch("hydrahive.agents.config.get", return_value={"type": "project"}):
         asyncio.run(tool.execute(args, _ctx()))
-    assert seen["scope"] == Scope(username="till", scope="project", projects=("P1",), sensitive=False)
+    assert seen["scope"] == Scope(username="till", scope="project", projects=("P1",), max_level="normal")
 
 
 def test_sensibel_sperre_bestimmt_die_sitzungen_einmal_statt_je_treffer():
@@ -96,9 +99,9 @@ def test_sensibel_sperre_bestimmt_die_sitzungen_einmal_statt_je_treffer():
     assert len(sensible) == 1
     assert "<> ALL(ARRAY(SELECT DISTINCT s.session_id FROM events s WHERE s.tool_name = ANY($3::text[])))" in sensible[0]
     assert "NOT EXISTS" not in sensible[0] and "s.session_id = events.session_id" not in sensible[0]
-    assert params[2] == list(SENSITIVE_TOOLS)
+    assert params[2] == NOT_NORMAL
 
 
 def test_mit_freigabe_keine_sensibel_sperre():
-    conds, params, _ = where(Scope(username="till", projects=("P1",), sensitive=True), 1)
+    conds, params, _ = where(Scope(username="till", projects=("P1",), max_level="gesundheit"), 1)
     assert not any("s.tool_name" in c for c in conds) and len(params) == 2
