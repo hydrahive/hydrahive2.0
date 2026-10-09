@@ -7,14 +7,15 @@ Regeln (Spec §2):
 - immer nur Ereignisse des eigenen Nutzers,
 - ``scope="project"``: nur Projekt des Laufs + freigegebene Projekte (leer → nichts),
 - ``scope="user"``: alles des Nutzers,
-- Sitzungen mit sensiblen Werkzeugen sind unsichtbar, außer ``sensitive=True``.
+- Sitzungen über der Höchststufe des Agenten (``max_level``) sind unsichtbar. Stufe einer Sitzung =
+  höchste Stufe ihrer Werkzeuge (db/_mirror_levels.py, knowledge-spaces.md §2.1). ``sensitive: true`` aus E0
+  wird als ``max_level: gesundheit`` verstanden.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-#: Werkzeuge, deren Benutzung eine ganze Sitzung als sensibel markiert (Gesundheit).
-SENSITIVE_TOOLS: tuple[str, ...] = ("query_fhir_data", "query_health_data")
+from hydrahive.db._mirror_levels import LEVELS, hidden_tools
 
 SCOPES = ("project", "user")
 
@@ -24,14 +25,14 @@ class Scope:
     username: str
     scope: str = "project"
     projects: tuple[str, ...] = field(default_factory=tuple)
-    sensitive: bool = False
+    max_level: str = "normal"
 
 
 def defaults_for(agent_type: str) -> dict:
     """Standard je Agent-Typ: Master/Buddy sieht alles des Nutzers, sonst nur das Projekt."""
     if agent_type == "master":
-        return {"scope": "user", "projects": [], "sensitive": True}
-    return {"scope": "project", "projects": [], "sensitive": False}
+        return {"scope": "user", "projects": [], "max_level": "gesundheit"}
+    return {"scope": "project", "projects": [], "max_level": "normal"}
 
 
 def scope_for(agent: dict | None, *, username: str, project_id: str | None) -> Scope:
@@ -44,7 +45,17 @@ def scope_for(agent: dict | None, *, username: str, project_id: str | None) -> S
     if project_id:
         projects.insert(0, str(project_id))
     return Scope(username=username, scope=scope, projects=tuple(dict.fromkeys(projects)),
-                 sensitive=bool(cfg.get("sensitive")))
+                 max_level=_max_level(agent.get("knowledge_access") or {}, base["max_level"]))
+
+
+def _max_level(own: dict, default: str) -> str:
+    """Eigene Einstellung vor Standard: ``max_level`` gewinnt, sonst E0-Feld ``sensitive``
+    (true → gesundheit, false → normal), sonst Standard des Typs. Unbekannter Wert → normal (streng)."""
+    if "max_level" in own:
+        return own["max_level"] if own["max_level"] in LEVELS else "normal"
+    if "sensitive" in own:
+        return "gesundheit" if own["sensitive"] is True else "normal"
+    return default
 
 
 def where(sc: Scope, start: int, *, alias: str = "events") -> tuple[list[str], list, int]:
@@ -62,12 +73,13 @@ def where(sc: Scope, start: int, *, alias: str = "events") -> tuple[list[str], l
         if not sc.projects:
             return ["FALSE"], [], start
         conds.append(f"{alias}.project_id = ANY(${i}::text[])"); params.append(list(sc.projects)); i += 1
-    if not sc.sensitive:
-        # Sensible Sitzungen EINMAL bestimmen (Index events_tool, heute 6 Sitzungen) und ausschließen.
+    hidden = hidden_tools(sc.max_level)
+    if hidden:
+        # Sitzungen über der Höchststufe EINMAL bestimmen (Index events_tool) und ausschließen.
         # Vorher NOT EXISTS je Treffer: bei häufigen Wörtern 2,2 s statt 0,08 s (gemessen 09.10., .2).
         conds.append(
             f"{alias}.session_id <> ALL(ARRAY(SELECT DISTINCT s.session_id FROM events s "
             f"WHERE s.tool_name = ANY(${i}::text[])))"
         )
-        params.append(list(SENSITIVE_TOOLS)); i += 1
+        params.append(hidden); i += 1
     return conds, params, i

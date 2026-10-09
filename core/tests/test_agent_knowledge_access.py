@@ -58,3 +58,9 @@ def test_nur_admin_darf_ueber_die_api_setzen(client, auth_headers, admin_headers
 def test_projekt_agent_kann_es_seinem_spezialisten_nicht_geben():
     from hydrahive.tools._project_authoring import SPECIALIST_RUNTIME_FIELDS
     assert "knowledge_access" not in SPECIALIST_RUNTIME_FIELDS
+
+
+def test_max_level_wird_geprueft():
+    assert normalize({"max_level": "privat"}) == {"max_level": "privat"}
+    with pytest.raises(AgentValidationError):
+        normalize({"max_level": "geheim"})

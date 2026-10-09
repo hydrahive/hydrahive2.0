@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from hydrahive.modules._manifest_caps import CapabilitySpec, parse_capabilities
+from hydrahive.modules._manifest_sensitive import parse_sensitive_tools
 
 _ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
@@ -51,6 +52,8 @@ class ModuleManifest:
     dependencies: tuple[str, ...] = ()
     persistent_paths: tuple[str, ...] = ()
     capabilities: tuple[CapabilitySpec, ...] = ()
+    # Werkzeuge, die eine Sitzung sensibel machen: ((werkzeug, stufe), ...) – knowledge-spaces.md §2.1
+    sensitive_tools: tuple[tuple[str, str], ...] = ()
 
     @classmethod
     def load(cls, path: Path) -> "ModuleManifest":
@@ -74,4 +77,5 @@ class ModuleManifest:
             dependencies=tuple(d.get("dependencies", [])),
             persistent_paths=_persistent_paths(d.get("persistent_paths", [])),
             capabilities=parse_capabilities(d["id"], d.get("capabilities"), ManifestError),
+            sensitive_tools=parse_sensitive_tools(d.get("sensitive_tools"), ManifestError),
         )
