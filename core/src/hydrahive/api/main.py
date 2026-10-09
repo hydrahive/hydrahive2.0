@@ -38,6 +38,7 @@ from hydrahive.api.routes.research_apis import router as research_apis_router
 from hydrahive.api.routes.extensions import router as extensions_router
 from hydrahive.api.routes.dashboard import router as dashboard_router
 from hydrahive.api.routes.datamining import router as datamining_router
+from hydrahive.api.routes.datamining_fulltext import router as datamining_fulltext_router
 from hydrahive.api.routes.datamining_issues import router as datamining_issues_router
 from hydrahive.api.routes.datamining_stats import router as datamining_stats_router
 from hydrahive.api.routes.datamining_transfer import router as datamining_transfer_router
@@ -185,6 +186,7 @@ app.include_router(research_apis_router)
 app.include_router(extensions_router)
 app.include_router(dashboard_router)
 app.include_router(datamining_router)
+app.include_router(datamining_fulltext_router)
 app.include_router(datamining_issues_router)
 app.include_router(datamining_stats_router)
 app.include_router(datamining_transfer_router)
