@@ -1,6 +1,7 @@
 import { Brain } from "lucide-react"
 import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
+import { KnowledgeSection } from "./_KnowledgeSection"
 import { McpSelector } from "./McpSelector"
 import { ToolsSelector } from "./ToolsSelector"
 import { blockedTools } from "@/features/access/toolAccess"
@@ -40,6 +41,8 @@ export function ToolsTab({ draft, tools, mcpServers, onChange }: Props) {
           }`} />
         </button>
       </div>
+
+      <KnowledgeSection draft={draft} onChange={onChange} />
 
       <div className="space-y-1">
         <p className="text-[10px] font-medium text-zinc-500">

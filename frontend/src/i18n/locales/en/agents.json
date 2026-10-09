@@ -145,5 +145,24 @@
     "count": "{{shown}} of {{total}} models",
     "current": "(current)",
     "none": "No model matches the filter."
+  },
+  "knowledge": {
+    "title": "Knowledge (data mining)",
+    "hint": "What this agent may find in long-term memory. Only admins can change this.",
+    "count": "sees approx. {{n}} entries for {{user}}",
+    "count_unknown": "Data mining not reachable",
+    "scope": "Scope",
+    "scope_project": "Own project (+ selected below)",
+    "scope_user": "Everything of the owner",
+    "level": "Highest level",
+    "level_normal": "normal",
+    "level_privat": "private (mail, portfolio)",
+    "level_gesundheit": "health (records, health)",
+    "outward": "Effective only up to “normal”: the agent has tools with outside effect ({{tools}}).",
+    "projects": "Additional projects",
+    "none": "No other projects.",
+    "groups": "Groups",
+    "no_groups": "No groups yet (Admin → Access).",
+    "groups_hint": "From group members only project sessions, no buddy chats, at most level normal."
   }
 }

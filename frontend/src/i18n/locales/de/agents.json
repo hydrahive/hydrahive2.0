@@ -145,5 +145,24 @@
     "count": "{{shown}} von {{total}} Modellen",
     "current": "(aktuell)",
     "none": "Kein Modell passt zum Filter."
+  },
+  "knowledge": {
+    "title": "Wissen (Datamining)",
+    "hint": "Was dieser Agent im Langzeitgedächtnis finden darf. Nur Admins können das ändern.",
+    "count": "sieht für {{user}} ca. {{n}} Einträge",
+    "count_unknown": "Datamining nicht erreichbar",
+    "scope": "Bereich",
+    "scope_project": "Eigenes Projekt (+ unten gewählte)",
+    "scope_user": "Alles des Besitzers",
+    "level": "Höchste Stufe",
+    "level_normal": "normal",
+    "level_privat": "privat (Mail, Portfolio)",
+    "level_gesundheit": "gesundheit (Akte, Health)",
+    "outward": "Wirkt nur bis „normal“: Der Agent hat Werkzeuge mit Außenwirkung ({{tools}}).",
+    "projects": "Zusätzliche Projekte",
+    "none": "Keine weiteren Projekte.",
+    "groups": "Gruppen",
+    "no_groups": "Keine Gruppen angelegt (Admin → Freigaben).",
+    "groups_hint": "Von Gruppenmitgliedern nur Projekt-Sitzungen, keine Buddy-Chats, höchstens Stufe normal."
   }
 }
