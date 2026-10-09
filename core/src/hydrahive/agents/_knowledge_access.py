@@ -11,7 +11,7 @@ from typing import Any
 from hydrahive.agents._validation import AgentValidationError
 
 _SCOPES = ("project", "user")
-_KEYS = {"scope", "projects", "sensitive", "max_level"}
+_KEYS = {"scope", "projects", "sensitive", "max_level", "groups"}
 MAX_PROJECTS = 50
 
 
@@ -40,6 +40,15 @@ def normalize(value: Any) -> dict | None:
         if missing:
             raise AgentValidationError(f"knowledge_access.projects: unbekannte Projekte {missing}")
         out["projects"] = list(dict.fromkeys(p.strip() for p in projects))
+    if "groups" in value:
+        gids = value["groups"]
+        if not isinstance(gids, list) or not all(isinstance(g, str) and g.strip() for g in gids):
+            raise AgentValidationError("knowledge_access.groups muss eine Liste von Gruppen-IDs sein")
+        from hydrahive.access import store
+        missing = [g for g in gids if not store.get_group(g.strip())]
+        if missing:
+            raise AgentValidationError(f"knowledge_access.groups: unbekannte Gruppen {missing}")
+        out["groups"] = list(dict.fromkeys(g.strip() for g in gids))
     if "max_level" in value:
         from hydrahive.db._mirror_levels import LEVELS
         if value["max_level"] not in LEVELS:
