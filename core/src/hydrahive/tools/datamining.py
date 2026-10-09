@@ -5,6 +5,19 @@ from datetime import datetime, timezone
 
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 from hydrahive.tools._errors import fail_with_cause
+from hydrahive.tools._datamining_schemas import (
+    _SEARCH_SCHEMA,
+    _SEMANTIC_SCHEMA,
+    _TIMELINE_SCHEMA,
+    _TODAY_SCHEMA,
+)
+
+
+def _scope(ctx: ToolContext):
+    """Sicht des laufenden Agenten (docs/specs/datamining-access.md). Agent unbekannt → strengste Sicht."""
+    from hydrahive.agents import config as agent_config
+    from hydrahive.db._mirror_scope import scope_for
+    return scope_for(agent_config.get(ctx.agent_id), username=ctx.user_id, project_id=ctx.project_id)
 
 
 def _serialize(obj):
@@ -16,51 +29,6 @@ def _serialize(obj):
     if isinstance(obj, list):
         return [_serialize(i) for i in obj]
     return obj
-
-_SEARCH_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "query":      {"type": "string", "description": "Suchbegriff"},
-        "event_type": {"type": "string", "description": "Optional: user_input|assistant_text|tool_call|tool_result"},
-        "agent_name": {"type": "string", "description": "Optional: nur Events dieses Agents"},
-        "from_date":  {"type": "string", "description": "Optional: ISO-Datum z.B. 2026-01-01"},
-        "to_date":    {"type": "string", "description": "Optional: ISO-Datum"},
-        "limit":      {"type": "integer", "default": 20, "description": "Max. Ergebnisse (1-50)"},
-    },
-    "required": ["query"],
-}
-
-_SEMANTIC_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "query":      {"type": "string", "description": "Semantische Suchanfrage — findet inhaltlich Ähnliches"},
-        "event_type": {"type": "string"},
-        "agent_name": {"type": "string"},
-        "limit":      {"type": "integer", "default": 10},
-    },
-    "required": ["query"],
-}
-
-_TODAY_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "date": {"type": "string", "description": "ISO-Datum (default: heute)"},
-    },
-}
-
-_TIMELINE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "from_date":   {"type": "string", "description": "ISO-Datum z.B. '2025-11-01' (default: letzte 7 Tage)"},
-        "to_date":     {"type": "string", "description": "ISO-Datum (default: heute)"},
-        "agent_name":  {"type": "string", "description": "Optional: nur Sessions dieses Agents"},
-        "sort":        {"type": "string", "enum": ["date", "activity"],
-                        "description": "Sortierung: 'date' = neueste zuerst (default), 'activity' = meiste Events zuerst"},
-        "limit":       {"type": "integer", "default": 200, "description": "Max. Sessions"},
-    },
-    "required": [],
-}
-
 
 async def _search(args: dict, ctx: ToolContext) -> ToolResult:
     from hydrahive.db import mirror_query
@@ -75,6 +43,7 @@ async def _search(args: dict, ctx: ToolContext) -> ToolResult:
             to_date=args.get("to_date") or None,
             semantic=False,
             limit=min(int(args.get("limit", 20)), 50),
+            scope=_scope(ctx),
         )
         return ToolResult.ok(_serialize({"count": len(results), "results": results}))
     except Exception as e:
@@ -93,6 +62,7 @@ async def _semantic(args: dict, ctx: ToolContext) -> ToolResult:
             username=ctx.user_id,
             semantic=True,
             limit=min(int(args.get("limit", 10)), 30),
+            scope=_scope(ctx),
         )
         return ToolResult.ok(_serialize({"count": len(results), "results": results}))
     except Exception as e:
@@ -119,6 +89,7 @@ async def _timeline(args: dict, ctx: ToolContext) -> ToolResult:
             from_date=from_date,
             to_date=to_date + "T23:59:59",
             limit=limit,
+            scope=_scope(ctx),
         )
 
         by_day: dict = defaultdict(list)
@@ -162,7 +133,7 @@ async def _today(args: dict, ctx: ToolContext) -> ToolResult:
     from hydrahive.db import mirror_query
     date = (args.get("date") or "").strip() or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     try:
-        sessions = await mirror_query.list_sessions(username=ctx.user_id, limit=100)
+        sessions = await mirror_query.list_sessions(username=ctx.user_id, limit=100, scope=_scope(ctx))
         today = [s for s in sessions if str(s.get("updated_at", ""))[:10] == date]
         return ToolResult.ok(_serialize({"date": date, "sessions": today, "count": len(today)}))
     except Exception as e:

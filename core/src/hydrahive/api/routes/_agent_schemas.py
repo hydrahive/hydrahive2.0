@@ -62,6 +62,8 @@ class AgentUpdate(BaseModel):
     longterm_memory: bool | None = None
     disabled_skills: list[str] | None = None
     tool_config: dict | None = None
+    # Datamining-Zugriff (docs/specs/datamining-access.md). Route ist admin-only; {} = Standard je Typ.
+    knowledge_access: dict | None = None
 
 
 class SystemPromptUpdate(BaseModel):

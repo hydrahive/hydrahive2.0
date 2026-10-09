@@ -5,6 +5,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from hydrahive.db._mirror_scope import where as scope_where
+
 logger = logging.getLogger(__name__)
 
 
@@ -74,21 +76,25 @@ async def search_events(
     to_date: str | None = None,
     semantic: bool = False,
     limit: int = 20,
+    scope: Any = None,
 ) -> list[dict[str, Any]]:
+    """``scope`` (db._mirror_scope.Scope): Sicht eines Agenten. Ohne scope wie bisher (Oberfläche,
+    Zahnfee) – Agenten-Werkzeuge MÜSSEN einen scope übergeben (tools/datamining.py)."""
     pool = _pool()
     if not pool:
         return []
     try:
         async with pool.acquire() as conn:
             if semantic:
-                return await _semantic_search(conn, q, event_type, agent_name, username, from_date, to_date, limit)
-            return await _text_search(conn, q, event_type, agent_name, username, from_date, to_date, limit)
+                return await _semantic_search(conn, q, event_type, agent_name, username, from_date, to_date, limit,
+                                              scope)
+            return await _text_search(conn, q, event_type, agent_name, username, from_date, to_date, limit, scope)
     except Exception as e:
         logger.warning("search_events fehlgeschlagen: %s", e)
         raise
 
 
-async def _text_search(conn, q, event_type, agent_name, username, from_date, to_date, limit):
+async def _text_search(conn, q, event_type, agent_name, username, from_date, to_date, limit, scope=None):
     pat = f"%{q}%"
     where = ["(text ILIKE $1 OR tool_output ILIKE $1 OR tool_input::text ILIKE $1 OR tool_name ILIKE $1)"]
     params: list = [pat]
@@ -104,6 +110,9 @@ async def _text_search(conn, q, event_type, agent_name, username, from_date, to_
         where.append(f"created_at >= ${idx}"); params.append(_dt(from_date)); idx += 1
     if to_date:
         where.append(f"created_at <= ${idx}"); params.append(_dt(to_date)); idx += 1
+    if scope is not None:
+        conds, extra, idx = scope_where(scope, idx)
+        where.extend(conds); params.extend(extra)
     params.append(limit)
 
     rows = await conn.fetch(f"""
@@ -118,7 +127,7 @@ async def _text_search(conn, q, event_type, agent_name, username, from_date, to_
     return [dict(r) for r in rows]
 
 
-async def _semantic_search(conn, q, event_type, agent_name, username, from_date, to_date, limit):
+async def _semantic_search(conn, q, event_type, agent_name, username, from_date, to_date, limit, scope=None):
     from hydrahive.llm._config import load_config
     from hydrahive.llm.embed import aembed
 
@@ -144,6 +153,9 @@ async def _semantic_search(conn, q, event_type, agent_name, username, from_date,
         where.append(f"created_at >= ${idx}"); params.append(_dt(from_date)); idx += 1
     if to_date:
         where.append(f"created_at <= ${idx}"); params.append(_dt(to_date)); idx += 1
+    if scope is not None:
+        conds, extra, idx = scope_where(scope, idx)
+        where.extend(conds); params.extend(extra)
     params.append(limit)
 
     rows = await conn.fetch(f"""
