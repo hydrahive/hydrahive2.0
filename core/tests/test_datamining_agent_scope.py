@@ -87,3 +87,18 @@ def test_alle_vier_werkzeuge_uebergeben_den_scope(tool_name, fn, args):
          patch("hydrahive.agents.config.get", return_value={"type": "project"}):
         asyncio.run(tool.execute(args, _ctx()))
     assert seen["scope"] == Scope(username="till", scope="project", projects=("P1",), sensitive=False)
+
+
+def test_sensibel_sperre_bestimmt_die_sitzungen_einmal_statt_je_treffer():
+    """Gemessen 09.10. (.2): NOT EXISTS je Treffer 2,2 s bei häufigen Wörtern, Liste einmal 0,08 s – gleiche Treffer."""
+    conds, params, _ = where(Scope(username="till", projects=("P1",)), 1)
+    sensible = [c for c in conds if "s.tool_name" in c]
+    assert len(sensible) == 1
+    assert "<> ALL(ARRAY(SELECT DISTINCT s.session_id FROM events s WHERE s.tool_name = ANY($3::text[])))" in sensible[0]
+    assert "NOT EXISTS" not in sensible[0] and "s.session_id = events.session_id" not in sensible[0]
+    assert params[2] == list(SENSITIVE_TOOLS)
+
+
+def test_mit_freigabe_keine_sensibel_sperre():
+    conds, params, _ = where(Scope(username="till", projects=("P1",), sensitive=True), 1)
+    assert not any("s.tool_name" in c for c in conds) and len(params) == 2
