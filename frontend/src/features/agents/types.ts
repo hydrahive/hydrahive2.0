@@ -1,3 +1,5 @@
+import type { KnowledgeAccess } from "./knowledgeAccess"
+
 export interface Agent {
   id: string
   type: "master" | "project" | "specialist"
@@ -33,6 +35,8 @@ export interface Agent {
   disabled_skills?: string[]
   require_tool_confirm?: boolean
   longterm_memory?: boolean
+  // Datamining-Zugriff (Wissensräume, knowledge-spaces.md) – nur Admin änderbar
+  knowledge_access?: KnowledgeAccess
   // Per-Agent Postfach (Schicht 2). Leer = globale Mail-Settings. Passwort wird
   // von der API maskiert ausgeliefert ("" + password_set); leeres Passwort beim
   // Speichern = bestehendes behalten.
@@ -66,6 +70,7 @@ export type AgentUpdate = Partial<Pick<Agent,
   | "require_tool_confirm"
   | "longterm_memory"
   | "tool_config"
+  | "knowledge_access"
 >>
 
 export interface MailAccountConfig {

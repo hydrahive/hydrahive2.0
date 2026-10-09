@@ -49,7 +49,9 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
     try {
       const { id: _id, type: _type, created_at: _ca, updated_at: _ua, created_by: _cb, ...rest } = draft
       void _id; void _type; void _ca; void _ua; void _cb
-      onSaved(await agentsApi.update(agent.id, rest))
+      const saved = await agentsApi.update(agent.id, rest)
+      setDraft(saved)          // Entwurf = gespeicherter Stand (wie ProjectAgentEditOverlay)
+      onSaved(saved)
     } catch (e) {
       setError(e instanceof Error ? e.message : t("errors.save_failed"))
     } finally { setSaving(false) }
