@@ -16,6 +16,7 @@ import logging
 
 from hydrahive.db import _mirror_tasks as _tasks
 from hydrahive.db._message_model import Message
+from hydrahive.db._mirror_pool import create_mirror_pool
 from hydrahive.db._mirror_ddl import DDL_TABLES, DDL_VIEW, ensure_embed_col
 from hydrahive.db._mirror_embed import (
     backfill_loop,
@@ -56,7 +57,7 @@ async def init() -> None:
     if not dsn:
         return
     try:
-        _pool = await asyncpg.create_pool(dsn, min_size=1, max_size=4, command_timeout=10)
+        _pool = await create_mirror_pool(dsn)
         async with _pool.acquire() as conn:
             # Tabellen + Indexes zuerst — in eigenem Statement, damit sie auch
             # dann angelegt werden, wenn die View-Erstellung scheitert.
