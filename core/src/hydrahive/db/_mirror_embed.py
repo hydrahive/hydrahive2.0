@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 _EMBED_BATCH = 32  # Texte pro API-Call — reduziert Requests drastisch
-_MAX_TEXT_CHARS = 24_000  # ~6000 Tokens — sicher unter dem 8192-Token-Limit von OpenAI
+# Kürzung nach Tokens statt nach Zeichen: db/_embed_clip.py (24.000 Zeichen waren bis 9.644 Tokens > 8.192).
 
 
 def queue_embed(pool, events: list[dict]) -> None:
@@ -37,8 +37,9 @@ def embed_text(e: dict) -> str | None:
     base = e.get("text") or e.get("tool_output") or (_json.dumps(ti, ensure_ascii=False) if ti else None)
     if not base:
         return None
+    from hydrahive.db._embed_clip import clip_for_embedding
     text = f"{tool_name}: {base}" if tool_name else base
-    return text[:_MAX_TEXT_CHARS]
+    return clip_for_embedding(text)
 
 
 async def embed_event(pool, event_id: str, text: str, model: str) -> None:
@@ -79,53 +80,50 @@ async def _store_batch(pool, ids: list[str], vecs: list, model: str) -> int:
     return stored
 
 
+async def _embed_sub(pool, sub: list[tuple[str, str]], model: str) -> int:
+    """Ein Paket einbetten. Lehnt die API das ganze Paket ab (alle None), werden die Einträge einzeln
+    versucht – ein kaputter Text darf die übrigen nicht mehr blockieren (Task 36caf245)."""
+    from hydrahive.llm.embed import aembed_batch
+    ids = [s[0] for s in sub]
+    vecs = await aembed_batch([s[1] for s in sub], model)
+    if len(sub) > 1 and all(v is None for v in vecs):
+        vecs = [(await aembed_batch([text], model))[0] for _, text in sub]
+        failed = [i for i, v in zip(ids, vecs) if v is None]
+        if failed:
+            logger.warning("Backfill: %d von %d Einträgen nicht einbettbar, übersprungen: %s",
+                           len(failed), len(sub), failed[:5])
+    return await _store_batch(pool, ids, vecs, model) if pool is not None else 0
+
+
 async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: float = 1.0) -> int:
     """Iteriert über noch nicht eingebettete Events und embedded sie batchweise.
 
-    Sendet _EMBED_BATCH Texte pro API-Call statt einen — gleiche Anzahl Requests,
-    deutlich mehr Durchsatz. Bei Rate-Limits: sleep_between erhöhen.
+    Läuft per Schlüssel-Blättern (created_at, id) VORWÄRTS durch: übersprungene Einträge bleiben hinten
+    liegen statt jede Runde wieder vorn zu stehen (vorher hing der Nachtrag dauerhaft an denselben 200).
+    Abbruch nur, wenn eine ganze Runde nichts speichern konnte (API nicht erreichbar).
 
     Returns: Gesamtzahl der eingebetteten Events.
     """
-    from hydrahive.llm.embed import aembed_batch
+    from hydrahive.db._embed_clip import clip_for_embedding
 
     total = 0
+    after: tuple = (None, "")
     logger.info("Backfill gestartet (model=%s, batch=%d, embed_batch=%d)", model, batch_size, _EMBED_BATCH)
     try:
         while True:
             if pool is None:
                 break
             async with pool.acquire() as conn:
-                rows = await conn.fetch("""
-                    SELECT id, tool_name,
-                           coalesce(nullif(text,''), nullif(tool_output,''), nullif(tool_input::text,'')) AS content
-                    FROM events
-                    WHERE embedding IS NULL
-                      AND (nullif(text,'') IS NOT NULL OR nullif(tool_output,'') IS NOT NULL OR nullif(tool_input::text,'') IS NOT NULL)
-                    ORDER BY created_at
-                    LIMIT $1
-                """, batch_size)
+                rows = await conn.fetch(_BACKFILL_SQL, batch_size, after[0], after[1])
             if not rows:
                 break
-
-            items = [
-                (
-                    r["id"],
-                    (f"{r['tool_name']}: {r['content']}" if r["tool_name"] else r["content"])[:_MAX_TEXT_CHARS],
-                )
-                for r in rows
-            ]
+            after = (rows[-1]["created_at"], rows[-1]["id"])
+            items = [(r["id"], clip_for_embedding(f"{r['tool_name']}: {r['content']}" if r["tool_name"]
+                                                  else r["content"])) for r in rows]
 
             batch_stored = 0
-            # Pro Sub-Batch: ein API-Call statt N einzelne Calls
             for i in range(0, len(items), _EMBED_BATCH):
-                sub = items[i:i + _EMBED_BATCH]
-                ids = [s[0] for s in sub]
-                texts = [s[1] for s in sub]
-                vecs = await aembed_batch(texts, model)
-                if pool is None:
-                    break
-                batch_stored += await _store_batch(pool, ids, vecs, model)
+                batch_stored += await _embed_sub(pool, items[i:i + _EMBED_BATCH], model)
                 if i + _EMBED_BATCH < len(items):
                     await asyncio.sleep(sleep_between)
 
@@ -142,3 +140,15 @@ async def backfill_loop(pool, model: str, batch_size: int = 200, sleep_between: 
     except Exception as e:
         logger.warning("Backfill fehlgeschlagen nach %d Events: %s", total, e)
     return total
+
+
+_BACKFILL_SQL = """
+    SELECT id, tool_name, created_at,
+           coalesce(nullif(text,''), nullif(tool_output,''), nullif(tool_input::text,'')) AS content
+    FROM events
+    WHERE embedding IS NULL
+      AND (nullif(text,'') IS NOT NULL OR nullif(tool_output,'') IS NOT NULL OR nullif(tool_input::text,'') IS NOT NULL)
+      AND ($2::timestamptz IS NULL OR (created_at, id) > ($2::timestamptz, $3::text))
+    ORDER BY created_at, id
+    LIMIT $1
+"""
