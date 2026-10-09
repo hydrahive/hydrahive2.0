@@ -62,6 +62,15 @@ Gleiche Sicht für: `datamining_*`-Werkzeuge (heute), Karten im Prompt (`top_car
 Agent – bleibt Standard, Räume erweitern optional), später Kristalle (d666b036) und Auftrags-Wissen bei
 `ask_agent` (3994f6b1 Hebel 3).
 
+**Kartensuche (Recall C, `search_cards`)** – Nachtrag 09.10., Task ddb1ff35: filterte vorher nur nach Nutzer,
+ein Projekt-Agent bekam per Ähnlichkeit auch Karten anderer Agenten (auch aus Buddy-Sitzungen mit
+Gesundheits-/Privat-Werkzeugen). Regel jetzt (Till, 09.10.):
+- **eigene Karten** des Agenten: immer (wie `top_cards_for`),
+- **fremde Karten**: nur, wenn ihre Sitzung in der Sicht liegt (`_mirror_scope.where`),
+- ohne Sicht und ohne Agent: keine Treffer, nie ungefiltert.
+Die Vektorsuche läuft mit `hnsw.iterative_scan = relaxed_order` (nur in der Transaktion): ohne fielen bei
+enger Sicht Treffer weg (gemessen 16 Agenten × 3 Fragen: 53 statt 93 Treffer, gleiche Laufzeit).
+
 ### 2.4 Oberfläche (E2)
 Agent-Editor, Reiter „Werkzeuge“ unter dem Schalter Langzeitgedächtnis: Bereich **„Wissen“** (nur Admin):
 Projekte wählen, Gruppen wählen, Stufe wählen; Hinweis „wegen Discord/Shell höchstens normal“; Zähler

@@ -183,33 +183,5 @@ async def top_cards_for(
         return []
 
 
-async def search_cards(query: str, limit: int = 5, *, username: str) -> list[dict[str, Any]]:
-    """Recall C: cue-getriggerte pgvector-Cosine-Suche über cards.embedding —
-    selbes Muster wie _mirror_search._semantic_search, nur auf der cards-Tabelle.
-    Immer auf die Karten EINES Nutzers begrenzt (username Pflicht): ohne Filter
-    landeten Erinnerungen anderer Nutzer im Prompt (Security-Task ba5fd3c3)."""
-    pool = _pool()
-    if not pool or not query.strip() or not username:
-        return []
-    from hydrahive.llm._config import load_config
-    from hydrahive.llm.embed import aembed
-    model = load_config().get("embed_model", "")
-    if not model:
-        return []
-    try:
-        vec = await aembed(query, model, embed_type="query")
-        if vec is None:
-            return []
-        vec_str = "[" + ",".join(str(x) for x in vec) + "]"
-        async with pool.acquire() as conn:
-            rows = await conn.fetch(
-                f"SELECT {_READ_COLS}, "
-                "round((1 - (embedding <=> $1::text::vector))::numeric, 3)::float8 AS similarity "
-                "FROM cards WHERE embedding IS NOT NULL AND username = $3 "
-                "ORDER BY embedding <=> $1::text::vector LIMIT $2",
-                vec_str, limit, username,
-            )
-        return [_parse_row(r) for r in rows]
-    except Exception as e:
-        logger.warning("search_cards fehlgeschlagen: %s", e)
-        return []
+# Recall C (Kartensuche mit Sichtfilter) liegt in _mirror_cards_search; Re-Export für alte Importe.
+from hydrahive.db._mirror_cards_search import search_cards  # noqa: E402,F401
