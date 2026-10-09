@@ -144,6 +144,12 @@ def update(agent_id: str, **changes: Any) -> dict:
             changes["reasoning_effort"] = ""
     if "status" in changes:
         _validation.validate_status(changes["status"])
+    if "knowledge_access" in changes:
+        from hydrahive.agents._knowledge_access import normalize as _normalize_knowledge
+        changes["knowledge_access"] = _normalize_knowledge(changes["knowledge_access"])
+        if changes["knowledge_access"] is None:
+            changes.pop("knowledge_access")
+            cfg.pop("knowledge_access", None)
     if "tool_config" in changes:
         # Erst mergen (strippt das API-Masking-Flag `password_set` + behält
         # leere Passwörter), DANN validieren — sonst würde das vom Frontend

@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from hydrahive.db._mirror_scope import where as scope_where
 from hydrahive.db._mirror_search import _dt, _pool
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,9 @@ async def list_sessions(
     from_date: str | None = None,
     to_date: str | None = None,
     limit: int = 50,
+    scope: Any = None,
 ) -> list[dict[str, Any]]:
+    """``scope`` wie bei search_events: Pflicht für Agenten-Werkzeuge, ohne scope wie bisher."""
     pool = _pool()
     if not pool:
         return []
@@ -32,6 +35,9 @@ async def list_sessions(
         where_e.append(f"created_at >= ${idx_e}"); params_e.append(_dt(from_date)); idx_e += 1
     if to_date:
         where_e.append(f"created_at <= ${idx_e}"); params_e.append(_dt(to_date)); idx_e += 1
+    if scope is not None:
+        conds, extra, idx_e = scope_where(scope, idx_e)
+        where_e.extend(conds); params_e.extend(extra)
     params_e.append(min(limit, 500))
 
     try:
