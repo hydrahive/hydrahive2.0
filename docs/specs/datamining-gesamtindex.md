@@ -1,6 +1,6 @@
 # Datamining-Gesamtindex: Volltext über alles + Hybrid-Suche
 
-Task 75192a8e · Stand 10.10.2026 · Entwurf zur Freigabe durch Till
+Task 75192a8e · Stand 10.10.2026 · Freigabe Till 10.10. · G1 umgesetzt
 
 ## 1. Ziel
 „Kein Workflow mit Alzheimer“ (Till, 09.10.): Die Wortsuche muss **alle** Einträge durchsuchen, nicht nur ein Fenster der
@@ -35,7 +35,9 @@ doc_id      TEXT PRIMARY KEY   -- 'r:' || tool_use_id bei Werkzeug-Ergebnissen, 
 session_id, username, agent_id, project_id, created_at   -- für die Sicht (_mirror_scope.where braucht genau diese)
 tsv         TSVECTOR           -- to_tsvector('simple', left(alle Stücke zusammen, 1.000.000))
 ```
-- GIN-Index auf `tsv`; Index auf `(username, created_at)`.
+- GIN-Index auf `tsv`; Index auf `(username, created_at)` und `(session_id)`.
+- Zusätzlich Teil-Index `events(tool_use_id) WHERE tool_use_id IS NOT NULL` (additiv, 12 MB, 1,7 s): ohne ihn liest jede
+  Aktualisierung die ganze `events`-Tabelle (gemessen 106–372 ms je Aufruf, Seq Scan), mit ihm 4 ms.
 - **Kein** Text-Duplikat – Ausschnitte (`ts_headline`) werden nur für die Top-Treffer aus `events` gebaut.
 - `events` bleibt unverändert (keine DDL auf der 8,9-GB-Tabelle).
 - Anlage über `DDL_TABLES` (`CREATE … IF NOT EXISTS`), keine Spaltenänderung an bestehenden Tabellen.
@@ -46,8 +48,11 @@ tsv         TSVECTOR           -- to_tsvector('simple', left(alle Stücke zusamm
   Importe (`mirror_import_git/_shell/_logs/_sqlite`), `datamining.py` Ingest, `datamining_issues`.
   Eine gemeinsame Funktion `refresh_docs(conn, doc_ids)`, keine Kopien in jedem Pfad.
 - **Nachholen:** idempotenter Lauf, der fehlende/veraltete Dokumente findet (`events.mirrored_at` neuer als Dokument) –
-  beim Start im Hintergrund, nachts mit der Zahnfee, Admin-Route. Erster Aufbau ≈ 1,5 min (gemessen), in Paketen.
-- **Abdeckungs-Zähler:** Einträge mit Text ohne Dokument + ohne Embedding → im Datamining-Status sichtbar.
+  nachts mit der Zahnfee (nach dem Volltext-Nachtrag) + Admin-Route `POST /api/datamining/index/sync`. Leerer Index →
+  ein Voll-Aufbau (gemessen auf Kopie: 116 s, 499.038 Dokumente), danach Runden à 2.000.
+- **Abdeckungs-Zähler:** `GET /api/datamining/index/coverage` → `docs`, `missing`, `stale` (gemessen 0,8 s).
+- **Platz** (gemessen auf Kopie, alle Daten): Tabelle 274 MB + ausgelagerte große tsvector 358 MB + Indizes 252 MB
+  (GIN 201 MB) = rund **0,9 GB** zusätzlich zur 8,9-GB-Datenbank.
 
 ### 3.3 Suche
 1. **Wörter:** Zerlegung wie im verworfenen Branch (`split_words`: ≥ 3 Zeichen, ohne Füllwörter, 6 längste).
