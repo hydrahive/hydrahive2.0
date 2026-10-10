@@ -37,6 +37,7 @@ The subsystem documents in [`architecture/`](architecture/) complement the high-
 ## Operations and deployment
 
 - [Installer guide](../installer/README.md)
+- [macOS installation, step by step](INSTALL-macOS.md)
 - [Compute-node runbook](compute-node-runbook.md)
 - [Ubuntu 26.04 upgrade runbook](ubuntu-2604-upgrade-runbook.md)
 - [Ollama provider guide](ollama-provider.md)

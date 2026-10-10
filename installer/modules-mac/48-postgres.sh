@@ -34,7 +34,9 @@ if ! brew services list | grep -q "postgresql@16.*started"; then
   sleep 3
 fi
 
-export PATH="/usr/local/opt/postgresql@16/bin:$PATH"
+# postgresql@16 ist keg-only (nicht nach $(brew --prefix)/bin verlinkt). Der Pfad
+# hängt von der Mac-Art ab: /usr/local (Intel) oder /opt/homebrew (Apple Silicon).
+export PATH="$(brew --prefix postgresql@16)/bin:$PATH"
 
 # DB + User anlegen
 if [ -f "$DSN_FILE" ]; then

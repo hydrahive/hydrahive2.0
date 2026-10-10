@@ -206,15 +206,21 @@ Der Linux-Installer kann innerhalb von **WSL2** ausgeführt werden. Das ist der 
 
 Der HydraHive-Kernservice, nginx und das Web-Cockpit wurden unter WSL2 getestet. Hardware- und Kernel-abhängige optionale Komponenten (zum Beispiel libvirt/QEMU, Incus, Samba, Tailscale und CUDA-/Local-Media-Workloads) hängen von der jeweiligen Windows-/WSL-Konfiguration ab und sollten im Installer deaktiviert werden, wenn sie nicht verfügbar sind. Für eine zuverlässige WSL-Installation Repository und Laufzeitdaten im Linux-Dateisystem belassen und im interaktiven Wizard nicht unterstützte Host-Integrationen abwählen.
 
-### macOS
+### macOS (experimentell)
 
-Es existiert ein experimenteller nativer Installer:
+HydraHive läuft auch nativ auf dem Mac (Apple Silicon; Intel nur eingeschränkt, siehe Anleitung; getestet mit macOS 15). Voraussetzung ist
+[Homebrew](https://brew.sh); der Installer richtet Python, Node.js, PostgreSQL, nginx und einen Hintergrund-Dienst
+(launchd) ein:
 
 ```bash
-bash installer/install-mac.sh
+sudo mkdir -p /opt/hydrahive2 && sudo chown "$(whoami)" /opt/hydrahive2
+git clone https://github.com/hydrahive/hydrahive2.0.git /opt/hydrahive2
+cd /opt/hydrahive2 && bash installer/install-mac.sh   # ohne sudo starten
 ```
 
-Linux-only systemd, libvirt, Incus und nginx-Provisioning haben auf macOS keine automatische Parität.
+**👉 Schritt-für-Schritt-Anleitung für Einsteiger:** [docs/INSTALL-macOS.de.md](docs/INSTALL-macOS.de.md) – mit
+Voraussetzungen, Homebrew-Einrichtung, erstem Login, KI-Einrichtung, Problemlösung und einer Übersicht, **was auf dem
+Mac nicht geht** (u. a. VMs/Container, Voice-Dienst, WhatsApp, Samba).
 
 ---
 

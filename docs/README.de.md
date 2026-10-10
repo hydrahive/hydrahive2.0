@@ -37,6 +37,7 @@ Die Subsystem-Dokumente in [`architecture/`](architecture/) ergänzen die High-L
 ## Betrieb und Deployment
 
 - [Installer-Anleitung](../installer/README.md)
+- [macOS-Installation Schritt für Schritt](INSTALL-macOS.de.md)
 - [Compute-Node-Runbook](compute-node-runbook.md)
 - [Ubuntu-26.04-Upgrade-Runbook](ubuntu-2604-upgrade-runbook.md)
 - [Ollama-Provider-Anleitung](ollama-provider.md)

@@ -459,7 +459,7 @@ The UI can request update/restart work by writing trigger files consumed by priv
 
 ### macOS
 
-`installer/install-mac.sh` provides an experimental native setup. It cannot provide Linux-specific systemd, libvirt, Incus or nginx service behavior unchanged.
+`installer/install-mac.sh` provides an experimental native setup (Homebrew, launchd, nginx, PostgreSQL). It cannot provide Linux-specific systemd, libvirt, Incus or nginx service behavior unchanged. Beginner guide and feature limits: [INSTALL-macOS.md](INSTALL-macOS.md).
 
 **Sources:** `installer/install.sh`, `installer/update.sh`, `installer/migrate.sh`, `installer/modules/`.
 
