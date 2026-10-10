@@ -10,7 +10,12 @@ Feld am Projekt: `linked_projects: [<projekt-id>, …]` (max. 20). Ändern über
 `{"projects": [...]}` – erlaubt nur, wer im eigenen Projekt Admin ist UND in jedem verknüpften Projekt mindestens
 `write` hat (System-Admin immer). Sonst könnte sich jemand fremde Projekte in seinen Agenten holen. Unbekannte
 Projekte, das Projekt selbst, Doppelte → 400. Jede Änderung → Projekt-Audit (`linked_projects_changed`).
-Oberfläche: Projekt-Cockpit → Einstellungen → „Verknüpfte Projekte (nur lesen)“.
+Oberfläche: **Projekt-Cockpit → Verwalten → Zugriff** (neben Mitgliedern und Spezialisten), Abschnitt „Verknüpfte
+Projekte (nur lesen)“; zusätzlich in der alten Projektverwaltung (`/settings/projects` → Projekt → Reiter
+„Einstellungen“). Korrektur 10.10.: zuerst nur in der alten Verwaltung eingebaut – die ist vom Cockpit aus nicht
+erreichbar (Till: „gibt es gar nicht den Punkt“). Zur Auswahl stehen nur Projekte, in denen man mindestens `write`
+hat (System-Admin: alle); bereits verknüpfte bleiben sichtbar, damit man sie abwählen kann. Fehler des Servers
+erscheinen als Text (`errors.json`: `project_admin_required`, `linked_project_no_access`, `linked_projects_invalid`).
 
 ## Wirkung in einem Lauf
 Gilt für Läufe von Agenten, die zum Projekt gehören: Projekt-Agent (`project.agent_id`) und Spezialisten mit
@@ -35,3 +40,4 @@ dortigen Agenten), shell_exec-Isolation (eigener Task 3bd963b2 – Shell läuft 
 - Nutzer ohne Mitgliedschaft im verknüpften Projekt → Lesen abgelehnt, Wissen nicht sichtbar.
 - Agent eines anderen Projekts / Master: unverändert.
 - Echter Test auf hydratest mit echtem Lauf (Werkzeug-Ebene) und zwei Nutzern.
+- Oberfläche im Browser auf hydratest: im Cockpit unter Verwalten → Zugriff sichtbar, Speichern wirkt (Ordner, Audit).

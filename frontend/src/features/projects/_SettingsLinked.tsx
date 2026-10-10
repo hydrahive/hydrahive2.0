@@ -4,15 +4,19 @@
 import { useEffect, useState } from "react"
 import { Link2, Loader2, Save } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { projectsApi } from "./api"
 import { linkCandidates, linksChanged, toggleLink } from "./linkedProjects"
 import type { Project } from "./types"
 
-interface Props { project: Project; onSaved: (p: Project) => void }
+/** ``bare``: ohne eigene Trennlinie (im Cockpit steckt der Abschnitt in einer Karte). */
+interface Props { project: Project; onSaved: (p: Project) => void; bare?: boolean }
 
-export function LinkedProjectsSection({ project, onSaved }: Props) {
+export function LinkedProjectsSection({ project, onSaved, bare = false }: Props) {
   const { t } = useTranslation("projects")
   const { t: tCommon } = useTranslation("common")
+  const username = useAuthStore((s) => s.username)
+  const role = useAuthStore((s) => s.role)
   const saved = project.linked_projects ?? []
   // Nur was gerade geändert wird, liegt hier; sonst gilt der gespeicherte Stand (auch nach Speichern/Neuladen).
   const [edit, setEdit] = useState<string[] | null>(null)
@@ -34,9 +38,9 @@ export function LinkedProjectsSection({ project, onSaved }: Props) {
     } finally { setSaving(false) }
   }
 
-  const candidates = linkCandidates(all, project.id)
+  const candidates = linkCandidates(all, project.id, { username, role }, saved)
   return (
-    <div className="space-y-3 pt-4 border-t border-white/[6%]">
+    <div className={bare ? "space-y-3" : "space-y-3 pt-4 border-t border-white/[6%]"}>
       <p className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
         <Link2 size={13} />{t("linked.title")}
       </p>
