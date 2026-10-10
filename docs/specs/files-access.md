@@ -14,12 +14,14 @@ erlaubten Wurzeln. Nachweis: Ein Nutzer ohne Mitgliedschaft las eine Atelier-Dat
 | `workspaces/master/<aid>/…` | Besitzer (`owner`), System-Admin |
 | `workspaces/specialists/<aid>/…` | Besitzer; gehört der Spezialist zu einem Projekt (`project_id`), auch dessen Mitglieder; System-Admin |
 | übrige Dateien unter `workspaces/` | nur System-Admin |
+| übriges `data_dir` (sessions.db, Konfiguration) | niemand – auch wenn `data_dir` unter `/tmp` liegt oder ein Medienordner es enthält |
 | `HH_MEDIA_DIRS` | alle Angemeldeten (vom Admin bewusst freigegeben) – unverändert |
-| übriges `data_dir` (sessions.db, Konfiguration) | niemand – auch wenn `data_dir` unter `/tmp` liegt |
 | `/tmp` | nur System-Admin |
 
 - Unbekanntes Projekt bzw. unbekannter Agent (oder Agent im falschen Ordner) → 404, sonst 403.
 - Gilt für Bearer-Header und `?token=` gleich.
+- **Kein Tausch zwischen Prüfung und Senden** (Folge-Review): Die Datei wird geöffnet (`O_NOFOLLOW`), ihr echter Ort am
+  geöffneten Handle (`/proc/self/fd`) erneut geprüft und genau aus diesem Handle gesendet – auch bei Range-Anfragen.
 
 ## /tmp
 Auf Prod läuft der Dienst mit `PrivateTmp=yes`; KI-Ausgaben liegen im Workspace (`generate_image` u. a. →
@@ -31,5 +33,5 @@ Ordner je Nutzer nötig. Werkzeuge, die für normale Nutzer Medien zeigen sollen
 `?token=` (voller JWT in Bild-Links) durch eine kurzlebige, pfadgebundene Signatur ersetzen – eigener Schritt.
 
 ## Code
-`core/src/hydrahive/api/routes/_files_access.py` (`check_read`), aufgerufen in `files.get_file` nach der
-Wurzel-Prüfung. Tests: `core/tests/test_files_access.py`.
+`core/src/hydrahive/api/routes/_files_access.py` (`check_read`), `_files_stream.py` (öffnen, am Handle prüfen,
+senden), aufgerufen in `files.get_file`. Tests: `core/tests/test_files_access.py`.
