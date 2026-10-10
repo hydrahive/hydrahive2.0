@@ -7,12 +7,13 @@ für jeden angemeldeten Nutzer lesbar. Jetzt wird der AUFGELÖSTE Pfad (Symlinks
     workspaces/master/<aid>/…         Besitzer des Agenten
     workspaces/specialists/<aid>/…    Besitzer des Agenten; gehört er zu einem Projekt, auch dessen Mitglieder
     workspaces/<sonst>, /tmp          nur System-Admin
-    HH_MEDIA_DIRS                     wie bisher alle Angemeldeten (vom Admin bewusst freigegeben)
     data_dir außerhalb workspaces/    niemand (sessions.db, Konfiguration) – auch wenn data_dir unter /tmp liegt
+                                      oder ein Medienordner es enthält
+    HH_MEDIA_DIRS                     wie bisher alle Angemeldeten (vom Admin bewusst freigegeben)
 
 System-Admins dürfen alles unter den erlaubten Wurzeln. Unbekanntes Projekt bzw. unbekannter Agent → 404, damit nicht
-erkennbar ist, ob es ihn gibt. Reihenfolge: erst Workspaces, dann Medienordner, zuletzt /tmp – data_dir kann selbst
-unter /tmp liegen (Tests, HH_DATA_DIR), dann gilt die strengere Workspace-Regel.
+erkennbar ist, ob es ihn gibt. Reihenfolge: erst Workspaces, dann das übrige data_dir (gesperrt), dann Medienordner,
+zuletzt /tmp – data_dir kann selbst unter /tmp liegen (Tests, HH_DATA_DIR), dann gilt die strengere Regel.
 """
 from __future__ import annotations
 
@@ -86,13 +87,14 @@ def check_read(real: Path, username: str, role: str) -> None:
         else:
             _deny()
         return
+    if _under(real, settings.data_dir.resolve()) is not None:
+        _deny()                       # sessions.db, Konfiguration … – auch wenn data_dir unter /tmp liegt oder ein
+                                      # Medienordner es enthält (Folge-Review #539) – daher VOR den Medienordnern
     for d in settings.media_dirs:
         try:
             if _under(real, d.resolve()) is not None:
                 return
         except OSError:
             continue
-    if _under(real, settings.data_dir.resolve()) is not None:
-        _deny()                       # sessions.db, Konfiguration … – auch wenn data_dir unter /tmp liegt
     if role != "admin":               # /tmp: LLM-Ausgaben, aber auch Zwischenstände anderer Nutzer
         _deny()
