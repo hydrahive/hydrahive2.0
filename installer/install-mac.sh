@@ -65,13 +65,8 @@ fi
 SERVER_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "<ip>")
 SERVER_URL="https://${SERVER_IP}"
 
-ADMIN_PW=""
-for _ in 1 2 3 4 5; do
-  ADMIN_PW=$(log show --predicate 'process == "uvicorn"' --last 30s 2>/dev/null \
-    | grep "Passwort:" | tail -1 | awk '{print $NF}' || true)
-  [ -n "$ADMIN_PW" ] && break
-  sleep 2
-done
+log "Warte auf den ersten Start (Admin-Passwort) …"
+ADMIN_PW="$(bash "$INSTALLER_DIR/lib/mac-admin-password.sh")"
 
 printf "\n"
 printf "\033[1;32m╔══════════════════════════════════════════════╗\033[0m\n"
@@ -82,7 +77,7 @@ printf "\033[1;32m║\033[0m  Benutzer:  \033[1;37m%-33s\033[0m\033[1;32m║\033
 if [ -n "$ADMIN_PW" ]; then
   printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "$ADMIN_PW"
 else
-  printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "(siehe: log show --process uvicorn)"
+  printf "\033[1;32m║\033[0m  Passwort:  \033[1;33m%-33s\033[0m\033[1;32m║\033[0m\n" "(nicht neu – siehe Anleitung)"
 fi
 printf "\033[1;32m╠══════════════════════════════════════════════╣\033[0m\n"
 printf "\033[1;32m║\033[0m  Service:   launchctl list io.hydrahive.backend\033[1;32m ║\033[0m\n"
