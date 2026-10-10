@@ -22,7 +22,7 @@ export function Layout() {
   const { pathname } = useLocation()
 
   const {
-    version, commit, updateBehind, moduleUpdateCount, stale,
+    version, commit, updateBehind, moduleUpdateCount, pluginUpdateCount, stale,
     updateState, updateError, newCommit,
     confirmUpdate, openUpdateModal, closeUpdateModal,
   } = useLayoutUpdate(role === "admin")
@@ -83,6 +83,7 @@ export function Layout() {
             commit={commit}
             updateBehind={updateBehind}
             moduleUpdateCount={moduleUpdateCount}
+            pluginUpdateCount={pluginUpdateCount}
             isAdmin={role === "admin"}
             onUpdateClick={openUpdateModal}
           />
@@ -102,6 +103,7 @@ export function Layout() {
             commit={commit}
             updateBehind={updateBehind}
             moduleUpdateCount={moduleUpdateCount}
+            pluginUpdateCount={pluginUpdateCount}
             isAdmin={role === "admin"}
             onUpdateClick={openUpdateModal}
           />

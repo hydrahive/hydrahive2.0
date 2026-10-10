@@ -21,6 +21,11 @@ export interface InstalledPlugin {
   loaded: boolean
   error: string | null
   tools: string[]
+  /** Update-Erkennung (docs/specs/plugin-updates.md); fehlen bei älterem Backend. */
+  installed_version?: string | null
+  available_version?: string | null
+  update_available?: boolean
+  restart_needed?: boolean
 }
 
 export interface InstallResponse {

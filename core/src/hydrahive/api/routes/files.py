@@ -8,6 +8,7 @@ Auth: Bearer-Header ODER Query-Param `token=` (für `<img src=...>` Tags
 im Browser, die keinen Authorization-Header schicken können). Read-only,
 nur Pfade unter `_allowed_roots()` werden ausgeliefert. Sensitive App-
 Daten (sessions.db, wiki.db, whatsapp/Auth-State) sind NICHT erreichbar.
+Zusätzlich darf jeder nur, was ihm gehört bzw. wo er Mitglied ist (_files_access.py, Issue #538).
 """
 from __future__ import annotations
 
@@ -16,11 +17,13 @@ import mimetypes
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 from hydrahive.api.middleware._resolve import resolve_credential
 from hydrahive.api.middleware.auth import get_current_user_optional
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._files_access import check_read
+from hydrahive.api.routes._files_stream import open_checked, send_fd
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -71,7 +74,7 @@ def get_file(
     token: str | None = Query(None),
     request: Request = None,
     user=Depends(get_current_user_optional),
-) -> FileResponse:
+) -> Response:
     """File-Serving mit Auth via Bearer-Header ODER Query-Param `token=`.
 
     Frontend hängt `&token=<jwt>` an `<img src=...>`-URLs an, weil Browser
@@ -92,7 +95,9 @@ def get_file(
         raise coded(400, "path_must_be_absolute")
     if not _is_allowed(p):
         raise coded(403, "path_not_allowed")
-    if not p.exists() or not p.is_file():
-        raise coded(404, "file_not_found")
-    mime, _ = mimetypes.guess_type(str(p))
-    return FileResponse(str(p), media_type=mime or "application/octet-stream")
+    real = p.resolve()                       # ab hier nur noch der aufgelöste Pfad (Symlinks, „..“)
+    check_read(real, user[0], user[1])       # Issue #538: nur, was der Nutzer sehen darf
+    # Folge-Review #539: am geöffneten Handle nochmals prüfen und genau daraus senden (kein Tausch dazwischen).
+    fd, st = open_checked(real, lambda at: check_read(at, user[0], user[1]))
+    mime, _ = mimetypes.guess_type(str(real))
+    return send_fd(fd, st, mime or "application/octet-stream", request)

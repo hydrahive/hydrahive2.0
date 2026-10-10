@@ -49,6 +49,8 @@ def scope_for(agent: dict | None, *, username: str, project_id: str | None) -> S
     scope = cfg.get("scope") if cfg.get("scope") in SCOPES else "project"
     projects = [str(p) for p in (cfg.get("projects") or []) if p]
     if project_id:
+        from hydrahive.projects._linked import effective as linked_projects
+        projects.extend(linked_projects(agent, project_id, username))   # verknüpfte Projekte (linked-projects.md)
         projects.insert(0, str(project_id))
     own = agent.get("knowledge_access") or {}
     level = _max_level(own, base["max_level"])

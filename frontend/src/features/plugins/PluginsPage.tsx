@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Puzzle, RotateCw } from "lucide-react"
 import { HubCard, InstalledCard } from "./PluginCard"
+import { installedTabLabel } from "./pluginUpdates"
 import { usePlugins } from "./usePlugins"
 import { RestartModal } from "@/shared/RestartModal"
 import { useRestart } from "@/shared/useRestart"
@@ -14,7 +15,7 @@ export function PluginsPage() {
   const { t: tNav } = useTranslation("nav")
   const restart = useRestart()
   const [tab, setTab] = useState<Tab>("hub")
-  const { hub, installed, hubError, busyName, restartHint, installedNames,
+  const { hub, installed, hubError, busyName, restartHint, outdated, hubAction,
           handleInstall, handleUninstall, handleUpdate } = usePlugins()
 
   return (
@@ -37,7 +38,7 @@ export function PluginsPage() {
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               tab === t_id ? "border-violet-500 text-violet-300" : "border-transparent text-zinc-500 hover:text-zinc-300"
             }`}>
-            {t_id === "hub" ? t("tab_hub") : `${t("tab_installed")} (${installed.length})`}
+            {t_id === "hub" ? t("tab_hub") : installedTabLabel(t, installed.length, outdated.length)}
           </button>
         ))}
       </div>
@@ -64,8 +65,8 @@ export function PluginsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {hub.map((p) => (
-                <HubCard key={p.name} plugin={p} installed={installedNames.has(p.name)}
-                  busy={busyName === p.name} onInstall={() => handleInstall(p.name)} />
+                <HubCard key={p.name} plugin={p} action={hubAction(p.name)}
+                  busy={busyName === p.name} onInstall={() => handleInstall(p.name)} onUpdate={() => handleUpdate(p.name)} />
               ))}
             </div>
           )}

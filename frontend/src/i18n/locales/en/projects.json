@@ -195,5 +195,10 @@
     "f_credential": "Credential name (optional, empty = guest)",
     "f_readonly": "Read only",
     "credential_hint": "Auth via a 'basic' credential (user:password) under /credentials. Empty = guest access."
+  },
+  "linked": {
+    "title": "Linked projects (read only)",
+    "hint": "The project agent and this project's specialists may read the chosen projects: files (via ./linked/<name>) and earlier conversations/knowledge. Writing stays here. Only applies if the person chatting is a member of the other project. Project admins with write access to the other project can change this.",
+    "none": "No other projects visible."
   }
 }

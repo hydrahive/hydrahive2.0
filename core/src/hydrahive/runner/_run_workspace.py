@@ -68,7 +68,7 @@ def project_briefing(project: dict) -> str:
     )
 
 
-def project_layout_hint(workspace: Path, project: dict) -> str:
+def project_layout_hint(workspace: Path, project: dict, *, agent: dict | None = None, username: str = "") -> str:
     """Beschreibt die Projekt-Struktur fürs System-Prompt — wo die Repos liegen,
     welche Assets daneben. Der cwd ist der Projekt-Root; Repos sind Unterordner
     (`clone_into → workspace/<repo_name>/`). Ohne diesen Hinweis tastet der Agent
@@ -98,6 +98,10 @@ def project_layout_hint(workspace: Path, project: dict) -> str:
     if len(named) == 1:
         lines.append(f"Für Git-Arbeit ins Repo wechseln: cd ./{named[0]}/")
     lines.append("Bleib in diesem Projekt — arbeite nicht in anderen Verzeichnissen.")
+    from hydrahive.projects._linked import hint as linked_hint
+    linked = linked_hint(agent, project, username)
+    if linked:
+        lines.append(linked)
     briefing = project_briefing(project)
     if briefing:
         lines.extend(["", briefing])

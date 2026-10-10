@@ -13,5 +13,13 @@
   "hub_empty": "Keine Plugins im Hub gefunden.",
   "installed_empty": "Noch keine Plugins installiert.",
   "uninstall_confirm": "Plugin \"{{name}}\" wirklich entfernen?",
-  "restart_hint": "Plugin-Änderung übernommen. Service-Neustart empfohlen damit alte Module aus dem Speicher fallen."
+  "restart_hint": "Plugin-Änderung übernommen. Service-Neustart empfohlen damit alte Module aus dem Speicher fallen.",
+  "update_available": "Update verfügbar",
+  "update_badge": "v{{from}} → v{{to}}",
+  "restart_needed": "Neustart nötig",
+  "restart_needed_hint": "Neue Version liegt bereit – sie wird nach dem Neustart des Dienstes geladen.",
+  "update_count_one": "{{count}} Update",
+  "update_count_other": "{{count}} Updates",
+  "update_all": "Alle updaten",
+  "update_all_running": "Aktualisiere {{done}}/{{total}}…"
 }

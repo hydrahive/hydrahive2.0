@@ -33,6 +33,9 @@
   "upload_size_unknown": "Die Dateigröße konnte nicht bestimmt werden.",
 
   "project_not_found": "Projekt nicht gefunden",
+  "project_admin_required": "Nur Projekt-Admins dürfen das ändern.",
+  "linked_project_no_access": "Für ein gewähltes Projekt fehlt dir das Schreibrecht – verknüpfen geht nur mit mindestens „write“ dort.",
+  "linked_projects_invalid": "Ungültige Auswahl: unbekanntes Projekt, das Projekt selbst, doppelt oder mehr als 20.",
   "project_no_access": "Kein Zugriff auf dieses Projekt",
   "project_agent_not_found": "Project-Agent nicht gefunden",
 

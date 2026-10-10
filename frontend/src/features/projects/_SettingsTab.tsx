@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { projectsApi } from "./api"
+import { LinkedProjectsSection } from "./_SettingsLinked"
 import { OverridesSection } from "./_SettingsOverrides"
 import { SambaSection } from "./_SettingsSamba"
 import type { Project } from "./types"
@@ -62,6 +63,8 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
       {samba && (
         <SambaSection samba={samba} busy={sambaBusy} error={sambaError} onToggle={toggleSamba} />
       )}
+
+      <LinkedProjectsSection project={project} onSaved={onDraftChange} />
 
       <OverridesSection project={project} onSaved={onDraftChange} />
 

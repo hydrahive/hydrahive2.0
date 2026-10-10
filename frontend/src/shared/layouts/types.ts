@@ -25,6 +25,8 @@ export interface LayoutChrome {
     updateBehind: number | null
     /** Anzahl installierter Module mit verfügbarem Update (0 = keine). */
     moduleUpdateCount: number
+    /** Anzahl installierter Plugins mit neuer Version im Hub (0 = keine). */
+    pluginUpdateCount?: number
     isAdmin: boolean
     onUpdateClick: () => void
   }
