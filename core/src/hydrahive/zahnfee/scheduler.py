@@ -46,12 +46,11 @@ async def run_loop(stop: asyncio.Event) -> None:
                             consolidate_recent(cfg.lookback_hours, cfg.model),
                             name="cards-consolidate",
                         )
-                    # Volle Werkzeug-Ausgaben nachtragen (ohne LLM, idempotent):
-                    # docs/specs/datamining-volltext-werkzeuge.md
+                    # Datamining-Volltext pflegen (ohne LLM, idempotent): volle Werkzeug-Ausgaben +
+                    # Gesamtindex event_docs – docs/specs/datamining-volltext-werkzeuge.md, datamining-gesamtindex.md
                     from hydrahive.db import mirror
-                    from hydrahive.db._mirror_fulltext_backfill import backfill_fulltext
                     if mirror._pool is not None:
-                        asyncio.create_task(backfill_fulltext(mirror._pool), name="mirror-fulltext")
+                        asyncio.create_task(_nightly_index(mirror._pool), name="mirror-fulltext")
         except Exception as e:
             logger.warning("zahnfee scheduler fehler: %s", e)
 
@@ -60,3 +59,14 @@ async def run_loop(stop: asyncio.Event) -> None:
             await asyncio.wait_for(stop.wait(), timeout=60)
         except asyncio.TimeoutError:
             pass
+
+
+async def _nightly_index(pool) -> None:
+    """Nacheinander: volle Werkzeug-Ausgaben nachtragen, dann Gesamtindex nachholen (beides ohne LLM, idempotent)."""
+    from hydrahive.db._mirror_docs_sync import sync_docs
+    from hydrahive.db._mirror_fulltext_backfill import backfill_fulltext
+    try:
+        await backfill_fulltext(pool)
+        await sync_docs(pool)
+    except Exception as e:  # noqa: BLE001 — nächtlicher Lauf darf die Zahnfee nie stoppen
+        logger.warning("zahnfee: Datamining-Index-Pflege fehlgeschlagen: %s", e)

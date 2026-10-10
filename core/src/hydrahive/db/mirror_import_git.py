@@ -154,3 +154,6 @@ async def _insert_rows(pool, rows: list[dict]) -> None:
              r["tool_output"], r["is_error"], r["token_count"], r["created_at"])
             for r in rows
         ])
+    from hydrahive.db._mirror_docs import refresh_for_events
+    await refresh_for_events(pool, [{"id": r["id"], "event_type": r["event_type"], "tool_use_id": r.get("tool_use_id")}
+                                    for r in rows])

@@ -5,6 +5,7 @@ import json
 import logging
 
 from hydrahive.db._message_model import Message
+from hydrahive.db._mirror_docs import refresh_for_events
 from hydrahive.db._mirror_embed import queue_embed
 from hydrahive.db._mirror_explode import agent_name, explode, parse_ts
 from hydrahive.db.sessions import Session
@@ -59,5 +60,6 @@ async def write_message(pool, m: Message, s: Session) -> None:
                 for e in events
             ])
         queue_embed(pool, events)
+        await refresh_for_events(pool, events)
     except Exception as e:
         logger.warning("PG-Mirror message %s fehlgeschlagen: %s", m.id, e)

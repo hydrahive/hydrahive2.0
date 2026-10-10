@@ -72,6 +72,8 @@ async def backfill_fulltext(pool) -> dict:
                 before = await conn.fetchval("SELECT count(*) FROM events WHERE id = ANY($1::text[])", [r[0] for r in rows])
                 await conn.executemany(_INSERT_SQL, rows)
                 stats["written"] += len(rows) - before          # bereits vorhandene zählen nicht (idempotent)
+                from hydrahive.db._mirror_docs import refresh_docs
+                await refresh_docs(conn, [f"r:{r[12]}" for r in rows])
         if len(calls) < PAGE:
             break
     logger.info("Volltext-Nachtrag: %s", stats)
