@@ -67,6 +67,19 @@ tsv         TSVECTOR           -- to_tsvector('simple', left(alle Stücke zusamm
 4. **Werkzeuge:** `datamining_search` nutzt Stufe 1 (gleiches Antwortformat: Ereignisse mit snippet), Hybrid als eigener
    Schritt mit eigener Messung.
 
+**G2 umgesetzt (10.10., gemessen auf .2, echter Werkzeug-Code, Daten bis 09.10. 16:00):**
+- Rang `ts_rank(tsv, q, 1)` (Länge normiert) – von 5 Varianten am besten: echte Fragen 40 % Treffer@5 / MRR 0,275
+  (`ts_rank_cd` 40 % / 0,158; ohne Normierung 0,137), synthetisch 8 % / 0,058. Alt: **0 %**, 9 von 10 ohne Treffer.
+- Laufzeit echte Fragen Median 22 ms / max 288 ms; synthetisch Median 74 ms / max 363 ms (Ziel < 1 s ✅).
+- **Nur mit Rang-Sortierung nutzt Postgres den GIN-Index** (ohne ORDER BY: Sitzungs-Index + Filter über alle
+  500k Zeilen = 1,1 s). Test sichert die Sortierung.
+- Filter: Nutzer/Datum/Sicht direkt auf `event_docs`; `event_type` bei `r:`-Dokumenten ohne Join (immer
+  `tool_result`), sonst per Primärschlüssel; `agent_name` über die Sitzungsliste des Agenten (einmal bestimmt,
+  0,6 s → 0,12 s), weil der Name je Sitzung eindeutig ist (gemessen 0 Ausnahmen).
+- Ausschnitt: je Dokument das Ereignis/Stück MIT dem Wort, `ts_headline` um die Fundstelle (Stichprobe 20/20 mit Wort).
+- Leere Anfrage (Zahnfee: Zeitraum laden) bleibt „neueste nach Datum“. Anfrage ohne Wort ≥ 3 Zeichen (z. B. „KI“)
+  wird als Ganzes über den Index gesucht.
+
 ## 4. Etappen
 - **G1** Tabelle + Pflege + Nachholen + Zähler (ohne Suche umzustellen). Messen: Abdeckung 100 %, Aufbauzeit.
 - **G2** `datamining_search` auf `event_docs`. Abnahme Messrahmen + Agenten-Aufrufe 7 Tage danach.
