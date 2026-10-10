@@ -133,7 +133,8 @@ async def run(
         from hydrahive.projects import config as project_config
         _proj = project_config.get(active_project_id)
         if _proj:
-            base_system_prompt = f"{base_system_prompt}\n\n{project_layout_hint(workspace, _proj)}"
+            base_system_prompt = (f"{base_system_prompt}\n\n"
+                                  f"{project_layout_hint(workspace, _proj, agent=agent, username=session.user_id)}")
 
     local_tools, mcp_servers = scope_tools(
         _proj, list(agent.get("tools", [])), list(agent.get("mcp_servers", [])))

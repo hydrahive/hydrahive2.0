@@ -101,6 +101,9 @@ def update(project_id: str, **changes: Any) -> dict:
     if "members" in changes or "name" in changes:
         from hydrahive.agents._workspace_links import sync_links_for_project
         sync_links_for_project(project_id)
+    if "name" in changes:
+        from hydrahive.projects._linked import sync_pointing_to
+        sync_pointing_to(project_id)            # linked/<Name> anderer Projekte (linked-projects.md)
     return cfg
 
 
@@ -141,5 +144,7 @@ def delete(project_id: str) -> bool:
         shutil.rmtree(pd)
     for user in affected_users:
         sync_links_for_user(user)
+    from hydrahive.projects._linked import sync_pointing_to
+    sync_pointing_to(project_id)                # verwaiste linked/<Name> anderer Projekte entfernen
     logger.info("Projekt gelöscht: %s", project_id)
     return True
