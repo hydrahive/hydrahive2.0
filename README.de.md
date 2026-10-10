@@ -208,13 +208,14 @@ Der HydraHive-Kernservice, nginx und das Web-Cockpit wurden unter WSL2 getestet.
 
 ### macOS (experimentell)
 
-HydraHive läuft auch nativ auf dem Mac (Intel und Apple Silicon, getestet mit macOS 15). Voraussetzung ist
+HydraHive läuft auch nativ auf dem Mac (Apple Silicon; Intel nur eingeschränkt, siehe Anleitung; getestet mit macOS 15). Voraussetzung ist
 [Homebrew](https://brew.sh); der Installer richtet Python, Node.js, PostgreSQL, nginx und einen Hintergrund-Dienst
 (launchd) ein:
 
 ```bash
+sudo mkdir -p /opt/hydrahive2 && sudo chown "$(whoami)" /opt/hydrahive2
 git clone https://github.com/hydrahive/hydrahive2.0.git /opt/hydrahive2
-cd /opt/hydrahive2 && bash installer/install-mac.sh
+cd /opt/hydrahive2 && bash installer/install-mac.sh   # ohne sudo starten
 ```
 
 **👉 Schritt-für-Schritt-Anleitung für Einsteiger:** [docs/INSTALL-macOS.de.md](docs/INSTALL-macOS.de.md) – mit
