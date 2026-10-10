@@ -96,10 +96,17 @@ async def search_events(
 
 
 async def _text_search(conn, q, event_type, agent_name, username, from_date, to_date, limit, scope=None):
-    pat = f"%{q}%"
-    where = ["(text ILIKE $1 OR tool_output ILIKE $1 OR tool_input::text ILIKE $1 OR tool_name ILIKE $1)"]
-    params: list = [pat]
-    idx = 2
+    """Mit Suchwort: Gesamtindex (db/_mirror_textsearch.py, G2). Leere Anfrage: neueste Ereignisse wie bisher
+    (Zahnfee holt so die Ereignisse eines Zeitraums)."""
+    from hydrahive.db._mirror_textsearch import build
+    built = build(q, event_type=event_type, agent_name=agent_name, username=username, from_date=from_date,
+                  to_date=to_date, limit=limit, scope=scope, dt=_dt)
+    if built is not None:
+        sql, params = built
+        return [dict(r) for r in await conn.fetch(sql, *params)]
+    where = ["TRUE"]
+    params: list = []
+    idx = 1
 
     if event_type:
         where.append(f"event_type = ${idx}"); params.append(event_type); idx += 1
