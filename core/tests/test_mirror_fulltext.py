@@ -88,7 +88,11 @@ def test_ohne_rest_keine_ereignisse():
 
 class _Conn:
     def __init__(self, base_rows, existing):
-        self.base_rows, self.existing, self.inserted = base_rows, existing, []
+        self.base_rows, self.existing, self.inserted, self.refreshed = base_rows, existing, [], []
+
+    async def execute(self, sql, *args, **kw):                 # Gesamtindex-Pflege (refresh_docs)
+        if "INSERT INTO event_docs" in sql:
+            self.refreshed.extend(args[0])
 
     async def fetch(self, sql, ids):
         return [r for r in self.base_rows if r["tool_use_id"] in ids]
@@ -134,6 +138,7 @@ def test_nachtrag_schreibt_rest_ohne_embedding(monkeypatch):
     stats, conn, _ = _run(monkeypatch, calls, [{**BASE, "tool_use_id": "tu001"}])
     assert stats == {"calls": 1, "no_base": 0, "written": 2}
     assert {r[16] for r in conn.inserted} == {ft.SKIP_EMBED}
+    assert conn.refreshed == ["tu001"]                         # Gesamtindex für dieses Ergebnis neu
     assert {r[1] for r in conn.inserted} == {"m1"} and {r[2] for r in conn.inserted} == {"s1"}
 
 

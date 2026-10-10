@@ -108,6 +108,8 @@ async def run_shell_import(content: str, username: str) -> dict:
              r["tool_input"], None, False, None, r["created_at"])
             for r in rows
         ])
+    from hydrahive.db._mirror_docs import refresh_for_events
+    await refresh_for_events(mirror._pool, [{"id": r["id"], "event_type": r["event_type"]} for r in rows])
 
     logger.info("Shell-Import: %d Befehle für %s importiert", len(rows), username)
     return {"ok": True, "inserted": len(rows)}

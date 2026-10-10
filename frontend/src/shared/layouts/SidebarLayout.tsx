@@ -121,6 +121,7 @@ export function SidebarLayout({ chrome }: { chrome: LayoutChrome }) {
           commit={footer.commit}
           updateBehind={footer.updateBehind}
           moduleUpdateCount={footer.moduleUpdateCount}
+          pluginUpdateCount={footer.pluginUpdateCount}
           isAdmin={footer.isAdmin}
           onUpdateClick={footer.onUpdateClick}
         />

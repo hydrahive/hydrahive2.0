@@ -1,12 +1,18 @@
 import { useTranslation } from "react-i18next"
 import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, Trash2 } from "lucide-react"
+import { PluginUpdateBadge } from "@/features/plugins/PluginUpdateBadge"
+import type { HubAction } from "@/features/plugins/pluginUpdates"
+import { updateBadge } from "@/features/plugins/pluginUpdates"
 import type { HubPlugin, InstalledPlugin } from "@/features/plugins/types"
 
-/** Hub-Plugin-Karte im Cockpit-Design (Pendant zu features/plugins/PluginCard HubCard). */
-export function HubCockpitCard({ plugin, installed, busy, onInstall }: {
-  plugin: HubPlugin; installed: boolean; busy: boolean; onInstall: () => void
+const UPDATE_BTN = "border-amber-500/30 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25"
+
+/** Hub-Plugin-Karte im Cockpit-Design (Pendant zu features/plugins/PluginCard HubCard). ``action`` aus hubCardAction. */
+export function HubCockpitCard({ plugin, action, busy, onInstall, onUpdate }: {
+  plugin: HubPlugin; action: HubAction; busy: boolean; onInstall: () => void; onUpdate: () => void
 }) {
   const { t } = useTranslation("plugins")
+  const installed = action !== "install"
   return (
     <div className="flex flex-col gap-2 rounded-[6px] border border-[#2a364b] bg-[#111827] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -24,11 +30,18 @@ export function HubCockpitCard({ plugin, installed, busy, onInstall }: {
           {plugin.tags.map((tag) => <span key={tag} className="rounded bg-white/[6%] px-1.5 py-0.5 text-[10px] text-[#8d9ab0]">{tag}</span>)}
         </div>
       )}
-      <button onClick={onInstall} disabled={busy || installed}
-        className="mt-1 flex items-center gap-1.5 self-start rounded-[4px] border border-violet-500/30 bg-violet-600/20 px-3 py-1.5 text-xs font-medium text-violet-200 transition-colors hover:bg-violet-600/30 disabled:cursor-not-allowed disabled:opacity-50">
-        {busy ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-        {installed ? t("reinstall") : t("install")}
-      </button>
+      {action === "update" ? (
+        <button onClick={onUpdate} disabled={busy}
+          className={`mt-1 flex items-center gap-1.5 self-start rounded-[4px] border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${UPDATE_BTN}`}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}{t("update_available")}
+        </button>
+      ) : (
+        <button onClick={onInstall} disabled={busy || installed}
+          className="mt-1 flex items-center gap-1.5 self-start rounded-[4px] border border-violet-500/30 bg-violet-600/20 px-3 py-1.5 text-xs font-medium text-violet-200 transition-colors hover:bg-violet-600/30 disabled:cursor-not-allowed disabled:opacity-50">
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+          {installed ? t("reinstall") : t("install")}
+        </button>
+      )}
     </div>
   )
 }
@@ -38,6 +51,7 @@ export function InstalledCockpitCard({ plugin, busy, onUpdate, onUninstall }: {
   plugin: InstalledPlugin; busy: boolean; onUpdate: () => void; onUninstall: () => void
 }) {
   const { t } = useTranslation("plugins")
+  const hasUpdate = updateBadge(plugin)?.kind === "update"
   return (
     <div className="flex flex-col gap-2 rounded-[6px] border border-[#2a364b] bg-[#111827] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -55,6 +69,7 @@ export function InstalledCockpitCard({ plugin, busy, onUpdate, onUninstall }: {
           </span>
         )}
       </div>
+      <PluginUpdateBadge plugin={plugin} />
       {plugin.description && <p className="text-xs text-[#8d9ab0]">{plugin.description}</p>}
       {plugin.error && <p className="break-all font-mono text-xs text-rose-300/80">{plugin.error}</p>}
       {plugin.tools.length > 0 && (
@@ -66,8 +81,9 @@ export function InstalledCockpitCard({ plugin, busy, onUpdate, onUninstall }: {
       )}
       <div className="mt-1 flex gap-2">
         <button onClick={onUpdate} disabled={busy}
-          className="flex items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs font-medium text-[#d7deea] transition-colors hover:bg-[#1b2536] disabled:opacity-50">
-          {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}{t("update")}
+          className={"flex items-center gap-1.5 rounded-[4px] border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 " +
+            (hasUpdate ? UPDATE_BTN : "border-[#2a364b] bg-[#172133] text-[#d7deea] hover:bg-[#1b2536]")}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}{hasUpdate ? t("update_available") : t("update")}
         </button>
         <button onClick={onUninstall} disabled={busy}
           className="flex items-center gap-1.5 rounded-[4px] border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-300 transition-colors hover:bg-rose-500/20 disabled:opacity-50">

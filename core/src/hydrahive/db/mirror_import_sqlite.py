@@ -136,5 +136,7 @@ async def _insert_events(pool: Any, events: list[dict]) -> None:
                 )
                 for e in events
             ])
+        from hydrahive.db._mirror_docs import refresh_for_events
+        await refresh_for_events(pool, events)
     except Exception as e:
         logger.warning("Insert fehlgeschlagen: %s", e)

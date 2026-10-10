@@ -48,6 +48,8 @@ async def _insert_rows(rows: list[tuple]) -> int:
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16)
             ON CONFLICT (id) DO NOTHING
         """, rows)
+    from hydrahive.db._mirror_docs import refresh_for_events
+    await refresh_for_events(mirror._pool, [{"id": r[0], "event_type": r[6], "tool_use_id": r[12]} for r in rows])
     return len(rows)
 
 

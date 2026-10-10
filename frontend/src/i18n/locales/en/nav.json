@@ -54,6 +54,7 @@
     "available": "Update available — click to update",
     "force": "Force update / rebuild",
     "modules": "{{count}} module update(s) available — go to module management",
+    "plugins": "{{count}} plugin update(s) available — go to plugin management",
     "modal_title": "System update",
     "confirm_question": "Update now?",
     "confirm_question_force": "Force update?",

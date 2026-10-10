@@ -76,6 +76,11 @@ async def init() -> None:
                 await ensure_embed_col(conn, table="cards")
             except Exception as ce:
                 logger.warning("PG-Mirror: cards-Embedding-Spalte konnte nicht angepasst werden (Rechte?): %s", ce)
+            try:
+                from hydrahive.db._mirror_docs_sync import ensure as _ensure_docs
+                await _ensure_docs(conn)
+            except Exception as de:
+                logger.warning("PG-Mirror: Gesamtindex event_docs konnte nicht angelegt werden: %s", de)
         logger.info("PG-Mirror bereit")
         from hydrahive.db._mirror_catchup import start as _start_catchup
         _start_catchup(_pool, str(settings.sessions_db))
