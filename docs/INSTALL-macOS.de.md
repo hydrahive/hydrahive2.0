@@ -271,7 +271,7 @@ Der Installer arbeitet in Phasen. Jede beginnt mit einer türkisen Zeile `[hh2-m
 | **2** Verzeichnisse | Legt Ordner für Daten und Einstellungen an | Sekunden | **ja: `Password:` → Mac-Passwort** |
 | **3** Python-venv + Backend | Richtet das Programm im Hintergrund ein | 2–5 min | nein |
 | **4** Frontend | Baut die Weboberfläche | 3–10 min | nein |
-| **5** PostgreSQL | Installiert die Datenbank für Gedächtnis und Suche | 2–5 min | nein |
+| **5** PostgreSQL | Installiert die Datenbank für Gedächtnis und Suche und richtet sie als Hintergrund-Dienst ein | 2–5 min | **evtl. `Password:`** |
 | **6 / 6b** launchd-Service | Richtet HydraHive als Hintergrund-Dienst ein, der beim Hochfahren startet | Sekunden | **evtl. nochmal `Password:`** (auch in Phase 7 möglich) |
 | **7** nginx | Richtet den Webserver mit HTTPS ein | 1–2 min | nein |
 
@@ -375,9 +375,9 @@ Danach in HydraHive unter **Provider hinzufügen** den Eintrag **„Ollama (loka
 sudo launchctl list | grep io.hydrahive
 ```
 
-Erwartet sind vier Zeilen mit `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.update` und
-`io.hydrahive.restart`. Steht in der ersten Spalte eine **Zahl**, läuft der Dienst. Ein `-` ist bei
-`update`/`restart` normal, die laufen nur bei Bedarf.
+Erwartet sind fünf Zeilen mit `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.postgres`,
+`io.hydrahive.update` und `io.hydrahive.restart`. Steht in der ersten Spalte eine **Zahl**, läuft der Dienst. Ein `-`
+ist bei `update`/`restart` normal, die laufen nur bei Bedarf.
 
 ```bash
 curl -sk https://localhost/api/health
@@ -386,10 +386,10 @@ curl -sk https://localhost/api/health
 Erwartet ist eine Zeile mit `"status":"ok"`.
 
 ```bash
-brew services list | grep postgresql
+"$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1
 ```
 
-Erwartet: `postgresql@16  started`.
+Erwartet: `127.0.0.1:5432 - accepting connections` (die Datenbank).
 
 ---
 
@@ -421,11 +421,8 @@ Storyteller, Haushaltsbuch usw. und Updates über das Cockpit.
 - **Der Mac muss wach bleiben.** HydraHive läuft nur, solange der Mac an ist und **nicht schläft**. Für Dauerbetrieb:
   **Systemeinstellungen → Energie** (beim Laptop: **Batterie → Optionen**) → Ruhezustand bei ausgeschaltetem
   Display verhindern. Laptops am Netzteil lassen.
-- **Nach einem Neustart des Macs einmal anmelden.** Die Datenbank (PostgreSQL) startet erst, wenn sich **der
-  Benutzer, der installiert hat**, am Mac anmeldet. HydraHive selbst startet schon vorher, dann aber ohne
-  Gedächtnis-Suche (Datamining). Deshalb: nach jedem Neustart mit diesem Benutzer anmelden und dann einmal
-  `sudo launchctl kickstart -k system/io.hydrahive.backend` ausführen. Das ist eine bekannte Einschränkung des
-  Mac-Installers.
+- **Nach einem Neustart** starten HydraHive, Webserver und Datenbank von selbst, auch ohne dass sich jemand
+  anmeldet.
 - **Den Installations-Benutzer nicht löschen.** HydraHive läuft unter diesem Konto.
 - **Ports 80 und 443** belegt HydraHive (nginx). Läuft auf dem Mac schon ein anderer Webserver, gibt es einen Konflikt.
 - **Zugriff aus dem Netz:** Andere Geräte erreichen HydraHive über die IP-Adresse des Macs. Wechselt die Adresse,
@@ -442,7 +439,8 @@ Storyteller, Haushaltsbuch usw. und Updates über das Cockpit.
 |---|---|
 | Dienst neu starten | `sudo launchctl kickstart -k system/io.hydrahive.backend` |
 | Läuft der Dienst? | `sudo launchctl list \| grep io.hydrahive` |
-| Läuft die Datenbank? | `brew services list \| grep postgresql` |
+| Läuft die Datenbank? | `"$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1` |
+| Datenbank neu starten | `sudo launchctl kickstart -k system/io.hydrahive.postgres` |
 | Fehler-Log ansehen | `tail -50 /usr/local/var/log/hydrahive2-error.log` |
 | Update-Log ansehen | `tail -50 /usr/local/var/log/hydrahive2-update.log` |
 | Webserver-Fehler | `tail -50 /usr/local/var/log/nginx-hydrahive-error.log` |
@@ -452,10 +450,10 @@ Storyteller, Haushaltsbuch usw. und Updates über das Cockpit.
 Am einfachsten im Cockpit über die Update-Funktion. Von Hand:
 
 ```bash
-sudo HH_USER="$(whoami)" bash /opt/hydrahive2/installer/update-mac.sh
+sudo bash /opt/hydrahive2/installer/update-mac.sh
 ```
 
-`HH_USER` muss der Benutzer sein, der installiert hat. Ohne die Angabe nimmt das Skript den Namen `admin`.
+Das Skript erkennt den Benutzer, der installiert hat, selbst. Er ist der Besitzer von `/opt/hydrahive2`.
 
 ---
 
@@ -519,14 +517,14 @@ installierte Programme werden übersprungen.
 2. Fehler-Log ansehen → `tail -50 /usr/local/var/log/hydrahive2-error.log`
 3. Dienst neu starten → `sudo launchctl kickstart -k system/io.hydrahive.backend`
 
-### Datamining/Suche geht nicht (nach einem Neustart des Macs)
-Die Datenbank startet erst nach der Anmeldung (siehe [Worauf du achten musst](#worauf-du-achten-musst)).
-Melde dich an und führe dann aus:
+### Datamining/Suche geht nicht
+1. Läuft die Datenbank? → `"$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1`
+2. Wenn nicht: `sudo launchctl kickstart -k system/io.hydrahive.postgres`, dann
+   `sudo launchctl kickstart -k system/io.hydrahive.backend`
+3. Datenbank-Log ansehen → `tail -50 "$(brew --prefix)/var/log/postgresql@16.log"`
 
-```bash
-brew services start postgresql@16
-sudo launchctl kickstart -k system/io.hydrahive.backend
-```
+**Ältere Installation (vor Oktober 2026)?** Dort startete die Datenbank erst nach der Anmeldung. Ein Update
+(Cockpit oder `sudo bash /opt/hydrahive2/installer/update-mac.sh`) stellt das einmalig um.
 
 ### Update meldet „git pull fehlgeschlagen“
 Das passiert, wenn sich die Versionsgeschichte auf GitHub geändert hat. Die folgende Lösung verwirft **nur** lokale
@@ -536,7 +534,7 @@ Das passiert, wenn sich die Versionsgeschichte auf GitHub geändert hat. Die fol
 cd /opt/hydrahive2
 git fetch origin
 git reset --hard origin/main
-sudo HH_USER="$(whoami)" bash installer/update-mac.sh
+sudo bash installer/update-mac.sh
 ```
 
 ### Browser zeigt nach einem Update noch die alte Oberfläche
@@ -551,10 +549,9 @@ unkenntlich.**
 ## Deinstallieren
 
 ```bash
-sudo launchctl unload /Library/LaunchDaemons/io.hydrahive.backend.plist /Library/LaunchDaemons/io.hydrahive.nginx.plist /Library/LaunchDaemons/io.hydrahive.update.plist /Library/LaunchDaemons/io.hydrahive.restart.plist
+for p in /Library/LaunchDaemons/io.hydrahive.*.plist; do sudo launchctl unload "$p"; done
 sudo rm /Library/LaunchDaemons/io.hydrahive.*.plist
 rm "$(brew --prefix)/etc/nginx/servers/hydrahive2.conf"
-brew services stop postgresql@16
 ```
 
 Damit ist HydraHive gestoppt und startet nicht mehr. **Deine Daten sind noch da.** Erst der folgende Befehl löscht
@@ -590,12 +587,12 @@ mit `brew uninstall <name>`.
 | 4 | `brew install git && sudo mkdir -p /opt/hydrahive2 && sudo chown "$(whoami)" /opt/hydrahive2 && git clone https://github.com/hydrahive/hydrahive2.0.git /opt/hydrahive2` | `test -f /opt/hydrahive2/installer/install-mac.sh && echo ok` |
 | 5 | `cd /opt/hydrahive2 && bash installer/install-mac.sh` (dauert 15–45 min, fragt 1–2× nach dem sudo-Passwort) | grüner Kasten mit `URL` / `Benutzer: admin` / `Passwort` |
 | 6 | — | `curl -sk https://localhost/api/health` enthält `"status":"ok"` |
-| 7 | — | `sudo launchctl list \| grep io.hydrahive` zeigt `backend` und `nginx` mit PID |
-| 8 | — | `brew services list \| grep postgresql@16` zeigt `started` |
+| 7 | — | `sudo launchctl list \| grep io.hydrahive` zeigt `backend`, `nginx` und `postgres` mit PID |
+| 8 | — | `"$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1` → `accepting connections` |
 | 9 | Mensch: `https://localhost` öffnen, mit `admin` anmelden, Passwort unter `/profile` ändern, unter `/llm` einen Provider anlegen | Buddy unter `/buddy` antwortet |
 
 **Pfade:** Code `/opt/hydrahive2` · Daten `/usr/local/var/hydrahive2` · Einstellungen `/usr/local/etc/hydrahive2` ·
-Logs `/usr/local/var/log/hydrahive2*.log` · Dienste `/Library/LaunchDaemons/io.hydrahive.*.plist` ·
+Logs `/usr/local/var/log/hydrahive2*.log` · Dienste `/Library/LaunchDaemons/io.hydrahive.{backend,nginx,postgres,update,restart}.plist` ·
 Backend `127.0.0.1:8001`, nginx `:80`/`:443`.
 **Fehler:** zuerst `tail -50 /usr/local/var/log/hydrahive2-error.log`, dann die [Problemlösung](#problemlösung).
 Der Installer ist wiederholbar: Bereits installierte brew-Pakete, venv und Datenbank werden übersprungen, das Frontend wird neu gebaut.
