@@ -3,6 +3,10 @@
 Sicherheitsnetz zur Pflege beim Spiegeln: findet Dokumente, die FEHLEN oder VERALTET sind (ein Ereignis wurde nach
 dem letzten Bau gespiegelt: ``events.mirrored_at > event_docs.built_at``) und baut sie neu. Ist der Index leer,
 wird er in einem Rutsch aufgebaut (gemessen 09.10.: ~80 s für 573k Ereignisse). Idempotent: zweiter Lauf = 0.
+
+Voll-Aufbau auch bei NICHT leerem Index, sobald mindestens ``FULL_BUILD_MIN_MISSING`` Dokumente fehlen: Nach dem
+ersten Start mit G1 füllt die Pflege beim Spiegeln die Tabelle sofort mit neuen Nachrichten, bevor das Nachholen
+läuft (Befund 10.10.: 2.128 Dokumente da, 499.690 fehlend → nur Runden à 2.000 statt eines Rutsches).
 """
 from __future__ import annotations
 
@@ -13,6 +17,7 @@ from hydrahive.db._mirror_docs import BODY, DDL, DOC_KEY, MAX_DOC_CHARS, refresh
 logger = logging.getLogger(__name__)
 
 BATCH = 2000
+FULL_BUILD_MIN_MISSING = 20000   # ab so vielen fehlenden Dokumenten lohnt der Rutsch (Zählen bis hier: ~1,5 s)
 BUILD_TIMEOUT = 1800        # Sekunden; der Pool hat sonst command_timeout 10 s
 
 _FULL_BUILD = f"""
@@ -24,6 +29,15 @@ SELECT {DOC_KEY.format(a='e')}, min(e.session_id), min(e.username), min(e.agent_
        now()
 FROM events e GROUP BY 1
 ON CONFLICT (doc_id) DO NOTHING
+"""
+
+# Fehlende Dokumente zählen, aber höchstens bis $1 (für die Entscheidung Voll-Aufbau ja/nein reicht das).
+_MISSING_UP_TO = f"""
+SELECT count(*) FROM (
+  SELECT DISTINCT {DOC_KEY.format(a='e')}
+  FROM events e LEFT JOIN event_docs d ON d.doc_id = {DOC_KEY.format(a='e')}
+  WHERE d.doc_id IS NULL
+  LIMIT $1) m
 """
 
 # Fehlend ODER veraltet. LEFT JOIN über den Schlüssel-Ausdruck; DISTINCT, weil Stücke denselben Schlüssel teilen.
@@ -53,7 +67,8 @@ async def sync_docs(pool, *, max_rounds: int = 1000) -> dict:
     if pool is None:
         return stats
     async with pool.acquire() as conn:
-        if not await conn.fetchval("SELECT EXISTS (SELECT 1 FROM event_docs)"):
+        missing = await conn.fetchval(_MISSING_UP_TO, FULL_BUILD_MIN_MISSING, timeout=BUILD_TIMEOUT)
+        if missing >= FULL_BUILD_MIN_MISSING:
             await conn.execute(_FULL_BUILD, timeout=BUILD_TIMEOUT)
             stats["full_build"] = True
         for _ in range(max_rounds):

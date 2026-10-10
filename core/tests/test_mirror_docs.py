@@ -120,14 +120,15 @@ def test_pflege_ohne_pool_oder_ereignisse_nichts():
 # ── Nachhol-Lauf ─────────────────────────────────────────────────────────────
 
 class _SyncConn:
-    def __init__(self, has_docs, pending_pages):
-        self.has_docs, self.pages, self.log = has_docs, list(pending_pages), []
+    def __init__(self, missing, pending_pages):
+        self.missing, self.pages, self.log = missing, list(pending_pages), []
 
-    async def fetchval(self, sql, *a, **k):
-        return self.has_docs
+    async def fetchval(self, sql, limit, **k):
+        assert sql is s._MISSING_UP_TO and limit == s.FULL_BUILD_MIN_MISSING
+        return min(self.missing, limit)
 
     async def execute(self, sql, *a, **k):
-        self.log.append(("exec", sql.strip()[:30], a))
+        self.log.append(("exec", sql.strip()[:30], a, sql))
 
     async def fetch(self, sql, limit, **k):
         page = self.pages.pop(0) if self.pages else []
@@ -135,7 +136,7 @@ class _SyncConn:
 
 
 def test_leerer_index_wird_voll_aufgebaut_dann_nichts_mehr(monkeypatch):
-    c = _SyncConn(False, [[]])
+    c = _SyncConn(500_000, [[]])
     st = asyncio.run(s.sync_docs(_Pool(c)))
     assert st == {"full_build": True, "refreshed": 0, "rounds": 0}
     assert c.log[0][1].startswith("INSERT INTO event_docs")
@@ -143,9 +144,33 @@ def test_leerer_index_wird_voll_aufgebaut_dann_nichts_mehr(monkeypatch):
 
 def test_fehlende_und_veraltete_werden_in_runden_nachgeholt(monkeypatch):
     monkeypatch.setattr(s, "BATCH", 2)
-    c = _SyncConn(True, [["r:a", "b"], ["r:c", "d"], ["e"]])
+    c = _SyncConn(5, [["r:a", "b"], ["r:c", "d"], ["e"]])
     st = asyncio.run(s.sync_docs(_Pool(c)))
     assert st == {"full_build": False, "refreshed": 5, "rounds": 3}
+
+
+def test_viele_fehlende_trotz_gefuelltem_index_voll_aufbau():
+    """Befund 10.10.: Pflege füllte den Index direkt nach dem Start (2.128 Docs), 499.690 fehlten – trotzdem Rutsch."""
+    c = _SyncConn(499_690, [[]])
+    st = asyncio.run(s.sync_docs(_Pool(c)))
+    assert st["full_build"] is True
+    assert c.log[0][3] is s._FULL_BUILD
+
+
+def test_knapp_unter_schwelle_nur_runden():
+    c = _SyncConn(s.FULL_BUILD_MIN_MISSING - 1, [["a"]])
+    st = asyncio.run(s.sync_docs(_Pool(c)))
+    assert st == {"full_build": False, "refreshed": 1, "rounds": 1}
+    assert not any(e[3] is s._FULL_BUILD for e in c.log)
+
+
+def test_genau_an_schwelle_voll_aufbau():
+    c = _SyncConn(s.FULL_BUILD_MIN_MISSING, [[]])
+    assert asyncio.run(s.sync_docs(_Pool(c)))["full_build"] is True
+
+
+def test_fehlend_zaehlen_ist_begrenzt():
+    assert "WHERE d.doc_id IS NULL" in s._MISSING_UP_TO and "LIMIT $1" in s._MISSING_UP_TO
 
 
 def test_pending_erkennt_fehlend_und_veraltet():
