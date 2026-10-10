@@ -7,4 +7,5 @@ export const pluginsApi = {
   install: (name: string) => api.post<InstallResponse>("/plugins/install", { name }),
   uninstall: (name: string) => api.post<InstallResponse>("/plugins/uninstall", { name }),
   update: (name: string) => api.post<InstallResponse>("/plugins/update", { name }),
+  updateCount: () => api.get<{ count: number }>("/plugins/update-count"),
 }

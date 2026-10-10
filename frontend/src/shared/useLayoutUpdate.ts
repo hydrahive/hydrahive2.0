@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { api } from "@/shared/api-client"
 import { getModuleUpdateCount } from "@/features/modules/api"
+import { pluginsApi } from "@/features/plugins/api"
 import type { UpdateState } from "@/shared/UpdateModal"
 import { isStale } from "@/shared/_staleBundle"
 
@@ -9,6 +10,7 @@ export function useLayoutUpdate(isAdmin: boolean) {
   const [commit, setCommit] = useState<string | null>(null)
   const [updateBehind, setUpdateBehind] = useState<number | null>(null)
   const [moduleUpdateCount, setModuleUpdateCount] = useState(0)
+  const [pluginUpdateCount, setPluginUpdateCount] = useState(0)
   const [updateState, setUpdateState] = useState<"idle" | UpdateState>("idle")
   const [updateError, setUpdateError] = useState<string | null>(null)
   const [newCommit, setNewCommit] = useState<string | null>(null)
@@ -40,6 +42,9 @@ export function useLayoutUpdate(isAdmin: boolean) {
     function loadModuleUpdates() {
       getModuleUpdateCount()
         .then((r) => setModuleUpdateCount(r.count))
+        .catch(() => {})
+      pluginsApi.updateCount()                       // Plugins wie Module (docs/specs/plugin-updates.md)
+        .then((r) => setPluginUpdateCount(r.count))
         .catch(() => {})
     }
     loadModuleUpdates()
@@ -88,7 +93,7 @@ export function useLayoutUpdate(isAdmin: boolean) {
   }
 
   return {
-    version, commit, updateBehind, moduleUpdateCount, stale,
+    version, commit, updateBehind, moduleUpdateCount, pluginUpdateCount, stale,
     updateState, updateError, newCommit,
     confirmUpdate,
     openUpdateModal: () => { setUpdateState("confirm"); setUpdateError(null); setNewCommit(null) },
