@@ -17,12 +17,13 @@ import mimetypes
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 from hydrahive.api.middleware._resolve import resolve_credential
 from hydrahive.api.middleware.auth import get_current_user_optional
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._files_access import check_read
+from hydrahive.api.routes._files_stream import open_checked, send_fd
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ def get_file(
     token: str | None = Query(None),
     request: Request = None,
     user=Depends(get_current_user_optional),
-) -> FileResponse:
+) -> Response:
     """File-Serving mit Auth via Bearer-Header ODER Query-Param `token=`.
 
     Frontend hängt `&token=<jwt>` an `<img src=...>`-URLs an, weil Browser
@@ -96,7 +97,7 @@ def get_file(
         raise coded(403, "path_not_allowed")
     real = p.resolve()                       # ab hier nur noch der aufgelöste Pfad (Symlinks, „..“)
     check_read(real, user[0], user[1])       # Issue #538: nur, was der Nutzer sehen darf
-    if not real.is_file():
-        raise coded(404, "file_not_found")
+    # Folge-Review #539: am geöffneten Handle nochmals prüfen und genau daraus senden (kein Tausch dazwischen).
+    fd, st = open_checked(real, lambda at: check_read(at, user[0], user[1]))
     mime, _ = mimetypes.guess_type(str(real))
-    return FileResponse(str(real), media_type=mime or "application/octet-stream")
+    return send_fd(fd, st, mime or "application/octet-stream", request)

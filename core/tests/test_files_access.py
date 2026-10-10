@@ -196,3 +196,127 @@ def test_media_dirs_stay_readable_for_everyone_logged_in(client, world, tmp_path
     assert _get(client, media / "film.mp4", "f_alice").status_code == 200
     (tmp_path / "daneben.mp4").write_bytes(b"x")
     assert _get(client, tmp_path / "daneben.mp4", "f_alice").status_code == 403    # nur der Medienordner selbst
+
+
+# --- Folge-Review #539: TOCTOU und HH_MEDIA_DIRS ------------------------------------------------------------------
+
+def test_swap_after_check_does_not_leak_foreign_file(client, world, monkeypatch):
+    """Tausch zwischen Prüfung und Öffnen: die geprüfte Datei wird durch einen Symlink auf eine fremde ersetzt.
+    Ausgeliefert wird nur, was am geöffneten Handle geprüft ist – also nicht die fremde Akte."""
+    from hydrahive.api.routes import files as files_route
+    own = workspace_for(world["loose"]) / "harmlos.txt"
+    own.write_text("harmlos")
+    real_check = files_route.check_read
+    swapped = {"done": False}
+
+    def check_then_swap(real, username, role):
+        real_check(real, username, role)
+        if not swapped["done"] and real == own.resolve():
+            swapped["done"] = True
+            own.unlink()
+            own.symlink_to(world["files"]["project"])       # jetzt zeigt der Name auf alices Akte
+    monkeypatch.setattr(files_route, "check_read", check_then_swap)
+    r = _get(client, own, "f_bob")
+    assert swapped["done"]
+    assert r.status_code in (403, 404) and b"Patientenakte" not in r.content
+
+
+def test_served_from_the_opened_handle_with_ranges(client, world):
+    f = world["files"]["project"]
+    r = client.get("/api/files", params={"path": str(f)}, headers={**_h("f_alice"), "Range": "bytes=2-5"})
+    assert r.status_code == 206 and r.content == b"tien" and r.headers["content-range"] == "bytes 2-5/13"
+    r = client.get("/api/files", params={"path": str(f)}, headers=_h("f_alice"))
+    assert r.status_code == 200 and r.content == b"Patientenakte" and r.headers["content-length"] == "13"
+    assert r.headers["accept-ranges"] == "bytes"
+
+
+def test_media_dir_containing_data_dir_does_not_open_it(client, world, monkeypatch):
+    """HH_MEDIA_DIRS mit data_dir (oder einem Ordner darüber) darf sessions.db & Co. nicht freigeben."""
+    db = settings.data_dir / "geheim.db"
+    db.write_text("intern")
+    for media in (settings.data_dir, settings.data_dir.parent):
+        monkeypatch.setitem(settings.__dict__, "media_dirs", [media])
+        assert _get(client, db, "f_alice").status_code == 403, media
+        assert _get(client, world["files"]["project"], "f_bob").status_code == 403, media   # Workspace-Regel bleibt
+    db.unlink()
+
+
+def test_media_dir_inside_workspace_follows_workspace_rule(client, world, monkeypatch):
+    monkeypatch.setitem(settings.__dict__, "media_dirs", [workspace_path(world["project"]["id"])])
+    assert _get(client, world["files"]["project"], "f_bob").status_code == 403
+
+
+@pytest.mark.parametrize("rng, code, body, crange", [
+    ("bytes=0-0", 206, b"P", "bytes 0-0/13"),
+    ("bytes=10-", 206, b"kte", "bytes 10-12/13"),
+    ("bytes=-3", 206, b"kte", "bytes 10-12/13"),
+    ("bytes=5-999", 206, b"ntenakte", "bytes 5-12/13"),
+    ("bytes=0-1,3-4", 200, b"Patientenakte", None),      # mehrere Bereiche: ganze Datei
+    ("bytes=2-3,", 200, b"Patientenakte", None),
+    ("kaputt", 200, b"Patientenakte", None),
+])
+def test_ranges(client, world, rng, code, body, crange):
+    r = client.get("/api/files", params={"path": str(world["files"]["project"])}, headers={**_h("f_alice"), "Range": rng})
+    assert r.status_code == code and r.content == body and r.headers.get("content-range") == crange
+
+
+def test_range_beyond_end_is_416(client, world):
+    r = client.get("/api/files", params={"path": str(world["files"]["project"])}, headers={**_h("f_alice"), "Range": "bytes=13-"})
+    assert r.status_code == 416
+
+
+def test_directory_and_missing_file_are_404(client, world):
+    ws = workspace_path(world["project"]["id"])
+    assert _get(client, ws / "secrets", "f_alice").status_code == 404
+    assert _get(client, ws / "fehlt.txt", "f_alice").status_code == 404
+
+
+def test_swap_of_a_parent_folder_after_check_is_caught_at_the_handle(client, world, monkeypatch):
+    """Tausch eine Ebene höher: aus dem eigenen Ordner wird ein Symlink auf den fremden Projektordner. Die letzte
+    Pfadstelle ist dann kein Symlink (O_NOFOLLOW hilft nicht) – erst die Prüfung am geöffneten Handle fängt es."""
+    import shutil
+
+    from hydrahive.api.routes import files as files_route
+    own_dir = workspace_for(world["loose"]) / "ordner"
+    own_dir.mkdir()
+    (own_dir / "akte.txt").write_text("harmlos")
+    foreign_dir = world["files"]["project"].parent                 # …/projects/<pid>/secrets mit akte.txt
+    real_check = files_route.check_read
+    swapped = {"done": False}
+
+    def check_then_swap(real, username, role):
+        real_check(real, username, role)
+        if not swapped["done"]:
+            swapped["done"] = True
+            shutil.rmtree(own_dir)
+            own_dir.symlink_to(foreign_dir, target_is_directory=True)
+    monkeypatch.setattr(files_route, "check_read", check_then_swap)
+    r = _get(client, own_dir / "akte.txt", "f_bob")
+    assert swapped["done"] and r.status_code == 403 and b"Patientenakte" not in r.content
+
+
+def test_symlink_as_last_part_is_refused_by_open_itself(tmp_path):
+    """O_NOFOLLOW: ein Symlink an letzter Stelle wird nicht geöffnet – auch wenn die Prüfung ihn durchließe."""
+    from fastapi import HTTPException
+
+    from hydrahive.api.routes._files_stream import open_checked
+    target = tmp_path / "ziel.txt"
+    target.write_text("x")
+    link = tmp_path / "link.txt"
+    link.symlink_to(target)
+    with pytest.raises(HTTPException) as e:
+        open_checked(link, lambda at: None)
+    assert e.value.status_code == 403
+
+
+def test_check_sees_the_real_place_of_the_opened_file(tmp_path):
+    from hydrahive.api.routes._files_stream import open_checked
+    real_dir = tmp_path / "echt"
+    real_dir.mkdir()
+    (real_dir / "a.txt").write_text("x")
+    (tmp_path / "umweg").symlink_to(real_dir, target_is_directory=True)
+    seen = []
+    fd, _st = open_checked(tmp_path / "umweg" / "a.txt", seen.append)
+    import os
+    os.close(fd)
+    assert seen == [(real_dir / "a.txt").resolve()]
