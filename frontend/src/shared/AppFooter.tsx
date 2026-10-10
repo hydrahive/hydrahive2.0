@@ -1,17 +1,19 @@
 import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Boxes, RefreshCw, Settings } from "lucide-react"
+import { Boxes, Puzzle, RefreshCw, Settings } from "lucide-react"
 
 interface Props {
   version: string | null
   commit: string | null
   updateBehind: number | null
   moduleUpdateCount: number
+  /** Plugins mit neuer Version im Hub (docs/specs/plugin-updates.md); fehlt bei Theme-Layouts älterer Module → 0. */
+  pluginUpdateCount?: number
   isAdmin: boolean
   onUpdateClick: () => void
 }
 
-export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, isAdmin, onUpdateClick }: Props) {
+export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pluginUpdateCount = 0, isAdmin, onUpdateClick }: Props) {
   const { t } = useTranslation("nav")
   const navigate = useNavigate()
   return (
@@ -38,6 +40,16 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, is
             className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
           >
             <Boxes size={11} /> {moduleUpdateCount}
+          </button>
+        )}
+        {isAdmin && pluginUpdateCount > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate("/admin?section=plugins")}
+            title={t("update.plugins", { count: pluginUpdateCount })}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
+          >
+            <Puzzle size={11} /> {pluginUpdateCount}
           </button>
         )}
         {updateBehind !== null && (

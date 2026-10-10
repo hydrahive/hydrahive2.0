@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { RotateCw } from "lucide-react"
+import { RefreshCw, RotateCw } from "lucide-react"
+import { installedTabLabel } from "@/features/plugins/pluginUpdates"
 import { usePlugins } from "@/features/plugins/usePlugins"
 import { RestartModal } from "@/shared/RestartModal"
 import { useRestart } from "@/shared/useRestart"
@@ -15,8 +16,8 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
   const { t: tNav } = useTranslation("nav")
   const restart = useRestart()
   const [tab, setTab] = useState<Tab>("hub")
-  const { hub, installed, hubError, busyName, restartHint, installedNames,
-          handleInstall, handleUninstall, handleUpdate } = usePlugins()
+  const { hub, installed, hubError, busyName, restartHint, batch, outdated, hubAction,
+          handleInstall, handleUninstall, handleUpdate, handleUpdateAll } = usePlugins()
 
   return (
     <AdminOverlay
@@ -25,9 +26,17 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       maxWidthClass="max-w-4xl"
       headerActions={
-        <CockpitButton onClick={restart.open}>
-          <RotateCw size={12} className="mr-1 inline" />{tNav("restart.button")}
-        </CockpitButton>
+        <div className="flex items-center gap-2">
+          {outdated.length > 0 && (
+            <CockpitButton onClick={() => void handleUpdateAll()} disabled={batch !== null}>
+              <RefreshCw size={12} className={`mr-1 inline ${batch ? "animate-spin" : ""}`} />
+              {batch ? t("update_all_running", { done: batch.done, total: batch.total }) : t("update_all")}
+            </CockpitButton>
+          )}
+          <CockpitButton onClick={restart.open}>
+            <RotateCw size={12} className="mr-1 inline" />{tNav("restart.button")}
+          </CockpitButton>
+        </div>
       }
     >
       <div className="space-y-4">
@@ -37,7 +46,7 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
               className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
                 tab === tid ? "border-violet-500 text-violet-300" : "border-transparent text-[#8d9ab0] hover:text-[#e8eef8]"
               }`}>
-              {tid === "hub" ? t("tab_hub") : `${t("tab_installed")} (${installed.length})`}
+              {tid === "hub" ? t("tab_hub") : installedTabLabel(t, installed.length, outdated.length)}
             </button>
           ))}
         </div>
@@ -62,8 +71,8 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {hub.map((p) => (
-                  <HubCockpitCard key={p.name} plugin={p} installed={installedNames.has(p.name)}
-                    busy={busyName === p.name} onInstall={() => handleInstall(p.name)} />
+                  <HubCockpitCard key={p.name} plugin={p} action={hubAction(p.name)}
+                    busy={busyName === p.name} onInstall={() => handleInstall(p.name)} onUpdate={() => handleUpdate(p.name)} />
                 ))}
               </div>
             )}

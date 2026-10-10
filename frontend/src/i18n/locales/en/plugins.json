@@ -13,5 +13,13 @@
   "hub_empty": "No plugins found in hub.",
   "installed_empty": "No plugins installed yet.",
   "uninstall_confirm": "Really uninstall plugin \"{{name}}\"?",
-  "restart_hint": "Plugin change applied. A service restart is recommended so the old code drops out of memory."
+  "restart_hint": "Plugin change applied. A service restart is recommended so the old code drops out of memory.",
+  "update_available": "Update available",
+  "update_badge": "v{{from}} → v{{to}}",
+  "restart_needed": "Restart needed",
+  "restart_needed_hint": "New version is ready – it is loaded after the service restarts.",
+  "update_count_one": "{{count}} update",
+  "update_count_other": "{{count}} updates",
+  "update_all": "Update all",
+  "update_all_running": "Updating {{done}}/{{total}}…"
 }

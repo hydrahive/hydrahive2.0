@@ -2,17 +2,24 @@ import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { Loader2, Trash2, Download, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
+import { PluginUpdateBadge } from "./PluginUpdateBadge"
+import { updateBadge, type HubAction } from "./pluginUpdates"
 import type { HubPlugin, InstalledPlugin } from "./types"
+
+const UPDATE_BTN = "bg-amber-500/15 border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
 
 interface HubCardProps {
   plugin: HubPlugin
-  installed: boolean
+  /** install / update / installed – aus hubCardAction (docs/specs/plugin-updates.md). */
+  action: HubAction
   busy: boolean
   onInstall: () => void
+  onUpdate: () => void
 }
 
-export function HubCard({ plugin, installed, busy, onInstall }: HubCardProps) {
+export function HubCard({ plugin, action, busy, onInstall, onUpdate }: HubCardProps) {
   const { t } = useTranslation("plugins")
+  const installed = action !== "install"
   return (
     <div className="box overflow-hidden p-4 flex flex-col gap-2" style={{ "--c": rgbFor("/plugins") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
@@ -34,14 +41,22 @@ export function HubCard({ plugin, installed, busy, onInstall }: HubCardProps) {
           ))}
         </div>
       )}
-      <button
-        onClick={onInstall}
-        disabled={busy || installed}
-        className="mt-1 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-200 text-xs font-medium hover:bg-violet-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {busy ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-        {installed ? t("reinstall") : t("install")}
-      </button>
+      {action === "update" ? (
+        <button onClick={onUpdate} disabled={busy}
+          className={`mt-1 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium disabled:opacity-50 transition-colors ${UPDATE_BTN}`}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+          {t("update_available")}
+        </button>
+      ) : (
+        <button
+          onClick={onInstall}
+          disabled={busy || installed}
+          className="mt-1 self-start flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600/20 border border-violet-500/30 text-violet-200 text-xs font-medium hover:bg-violet-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+          {installed ? t("reinstall") : t("install")}
+        </button>
+      )}
     </div>
   )
 }
@@ -55,6 +70,7 @@ interface InstalledCardProps {
 
 export function InstalledCard({ plugin, busy, onUpdate, onUninstall }: InstalledCardProps) {
   const { t } = useTranslation("plugins")
+  const hasUpdate = updateBadge(plugin)?.kind === "update"
   return (
     <div className="box overflow-hidden p-4 flex flex-col gap-2" style={{ "--c": rgbFor("/plugins") } as CSSProperties}>
       <div className="flex items-start justify-between gap-3">
@@ -72,6 +88,7 @@ export function InstalledCard({ plugin, busy, onUpdate, onUninstall }: Installed
           </span>
         )}
       </div>
+      <PluginUpdateBadge plugin={plugin} />
       {plugin.description && <p className="text-xs text-zinc-400">{plugin.description}</p>}
       {plugin.error && (
         <p className="text-xs text-rose-300/80 font-mono break-all">{plugin.error}</p>
@@ -89,10 +106,11 @@ export function InstalledCard({ plugin, busy, onUpdate, onUninstall }: Installed
         <button
           onClick={onUpdate}
           disabled={busy}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-300 text-xs font-medium hover:bg-white/[8%] disabled:opacity-50 transition-colors"
+          className={"flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium disabled:opacity-50 transition-colors " +
+            (hasUpdate ? UPDATE_BTN : "bg-white/[5%] border-white/[8%] text-zinc-300 hover:bg-white/[8%]")}
         >
           {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-          {t("update")}
+          {hasUpdate ? t("update_available") : t("update")}
         </button>
         <button
           onClick={onUninstall}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { pluginsApi } from "./api"
+import { hubCardAction, outdatedNames } from "./pluginUpdates"
 import type { HubPlugin, InstalledPlugin } from "./types"
 
 export function usePlugins() {
@@ -10,6 +11,7 @@ export function usePlugins() {
   const [hubError, setHubError] = useState<string | null>(null)
   const [busyName, setBusyName] = useState<string | null>(null)
   const [restartHint, setRestartHint] = useState<string | null>(null)
+  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null)
 
   async function loadInstalled() {
     try { setInstalled(await pluginsApi.installed()) }
@@ -26,7 +28,10 @@ export function usePlugins() {
     }
   }
 
-  useEffect(() => { loadInstalled(); loadHub() }, [])
+  // Erst Hub auffrischen (git), DANN die Liste laden – sonst vergleicht die Update-Erkennung mit altem Cache.
+  // Laden beim Öffnen = Abgleich mit dem Server (wie ModulesOverlay).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void loadInstalled(); void loadHub().then(loadInstalled) }, [])
 
   async function handleInstall(name: string) {
     setBusyName(name)
@@ -60,9 +65,30 @@ export function usePlugins() {
     finally { setBusyName(null) }
   }
 
+  const outdated = outdatedNames(installed)
+
+  /** „Alle updaten“: nacheinander, dann EIN Neustart-Hinweis (wie bei den Modulen). */
+  async function handleUpdateAll() {
+    if (outdated.length === 0 || batch) return
+    const names = [...outdated]
+    setBatch({ done: 0, total: names.length })
+    const failed: string[] = []
+    for (let i = 0; i < names.length; i++) {
+      setBusyName(names[i])
+      try { await pluginsApi.update(names[i]) } catch { failed.push(names[i]) }
+      setBatch({ done: i + 1, total: names.length })
+    }
+    setBusyName(null); setBatch(null)
+    setRestartHint(t("restart_hint"))
+    if (failed.length) alert(failed.join(", "))
+    await loadInstalled()
+  }
+
+  const byName = new Map(installed.map((p) => [p.name, p]))
   return {
-    hub, installed, hubError, busyName, restartHint,
-    installedNames: new Set(installed.map((p) => p.name)),
-    handleInstall, handleUninstall, handleUpdate,
+    hub, installed, hubError, busyName, restartHint, batch, outdated,
+    installedNames: new Set(byName.keys()),
+    hubAction: (name: string) => hubCardAction(name, byName),
+    handleInstall, handleUninstall, handleUpdate, handleUpdateAll,
   }
 }
