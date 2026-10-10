@@ -33,6 +33,9 @@
   "upload_size_unknown": "The file size could not be determined.",
 
   "project_not_found": "Project not found",
+  "project_admin_required": "Only project admins can change this.",
+  "linked_project_no_access": "You lack write access to a selected project – linking requires at least “write” there.",
+  "linked_projects_invalid": "Invalid selection: unknown project, the project itself, duplicates or more than 20.",
   "project_no_access": "No access to this project",
   "project_agent_not_found": "Project agent not found",
 
