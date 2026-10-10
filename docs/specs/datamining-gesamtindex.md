@@ -48,8 +48,10 @@ tsv         TSVECTOR           -- to_tsvector('simple', left(alle Stücke zusamm
   Importe (`mirror_import_git/_shell/_logs/_sqlite`), `datamining.py` Ingest, `datamining_issues`.
   Eine gemeinsame Funktion `refresh_docs(conn, doc_ids)`, keine Kopien in jedem Pfad.
 - **Nachholen:** idempotenter Lauf, der fehlende/veraltete Dokumente findet (`events.mirrored_at` neuer als Dokument) –
-  nachts mit der Zahnfee (nach dem Volltext-Nachtrag) + Admin-Route `POST /api/datamining/index/sync`. Leerer Index →
-  ein Voll-Aufbau (gemessen auf Kopie: 116 s, 499.038 Dokumente), danach Runden à 2.000.
+  nachts mit der Zahnfee (nach dem Volltext-Nachtrag) + Admin-Route `POST /api/datamining/index/sync`. Fehlen mindestens
+  20.000 Dokumente (z. B. leerer Index, aber auch direkt nach dem ersten Start, wenn die Pflege beim Spiegeln schon
+  neue Nachrichten eingetragen hat – Befund 10.10.) → ein Voll-Aufbau (gemessen auf Kopie: 116 s, 499.038 Dokumente),
+  danach Runden à 2.000.
 - **Abdeckungs-Zähler:** `GET /api/datamining/index/coverage` → `docs`, `missing`, `stale` (gemessen 0,8 s).
 - **Platz** (gemessen auf Kopie, alle Daten): Tabelle 274 MB + ausgelagerte große tsvector 358 MB + Indizes 252 MB
   (GIN 201 MB) = rund **0,9 GB** zusätzlich zur 8,9-GB-Datenbank.
