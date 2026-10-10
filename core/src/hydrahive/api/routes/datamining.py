@@ -181,6 +181,9 @@ async def ingest_transcript(body: _IngestRequest) -> dict:
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15,$16)
             ON CONFLICT (id) DO NOTHING
         """, rows)
+    from hydrahive.db._mirror_docs import refresh_for_events
+    await refresh_for_events(mirror._pool, [{"id": e.id, "event_type": e.event_type, "tool_use_id": e.tool_use_id}
+                                            for e in body.events])
     return {"ok": True, "inserted": len(rows)}
 
 

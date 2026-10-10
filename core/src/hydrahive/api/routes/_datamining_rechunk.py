@@ -61,6 +61,12 @@ async def run_rechunk() -> None:
                     for ci, chunk in enumerate(new_chunks)
                 ])
                 inserted += len(new_chunks)
+                from hydrahive.db._mirror_docs import refresh_docs
+                try:
+                    await refresh_docs(conn, [f"r:{base['tool_use_id']}" if base["tool_use_id"]
+                                              else f"{mid}:{bi}:{ci}" for ci in range(len(new_chunks))])
+                except Exception as de:  # noqa: BLE001 — Index nie Grund für Abbruch; Nachhol-Lauf
+                    logger.warning("Rechunk: event_docs nicht aktualisiert (%s): %s", mid, de)
             rechunked += 1
 
         logger.info("Rechunk abgeschlossen: %d Gruppen, %d alte → %d neue Chunks", rechunked, deleted, inserted)
