@@ -6,6 +6,9 @@ set -euo pipefail
 
 HH_REPO_DIR="${HH_REPO_DIR:-/opt/hydrahive2}"
 HH_DATA_DIR="${HH_DATA_DIR:-/usr/local/var/hydrahive2}"
+# Dienstnutzer = Besitzer des Repos (der Installer legt es als dieser Nutzer an).
+# Früher fest „admin“ – beim Update von Hand liefen git/pip dann unter dem falschen Nutzer.
+HH_USER="${HH_USER:-$(ls -ld "$HH_REPO_DIR" 2>/dev/null | awk '{print $3}')}"
 HH_USER="${HH_USER:-admin}"
 HH_CONFIG_DIR="${HH_CONFIG_DIR:-/usr/local/etc/hydrahive2}"
 BACKEND_PLIST="${HH_BACKEND_PLIST:-/Library/LaunchDaemons/io.hydrahive.backend.plist}"
@@ -30,6 +33,15 @@ if git diff --name-only HEAD@{1} HEAD 2>/dev/null | grep -q "^frontend/"; then
   cd "$HH_REPO_DIR/frontend"
   sudo -u "$HH_USER" npm install --silent
   sudo -u "$HH_USER" npm run build --silent
+fi
+
+# PostgreSQL lief früher als brew-services-LaunchAgent (startet erst nach der Anmeldung).
+# Einmalig auf den LaunchDaemon umstellen – nur wenn HydraHive die Datenbank nutzt.
+PG_PLIST="${HH_PG_PLIST:-/Library/LaunchDaemons/io.hydrahive.postgres.plist}"
+if [ -s "$HH_CONFIG_DIR/pg_mirror.dsn" ] && [ ! -f "$PG_PLIST" ]; then
+  log "PostgreSQL auf LaunchDaemon umstellen (Start ohne Anmeldung)"
+  HH_USER="$HH_USER" HH_PG_PLIST="$PG_PLIST" bash "$HH_REPO_DIR/installer/lib/mac-postgres-daemon.sh" 2>&1 | tee -a "$LOG" \
+    || log "PostgreSQL-Umstellung fehlgeschlagen – Datamining evtl. erst nach Anmeldung (Log oben)"
 fi
 
 # Alte plists enthalten HH_SECRET_KEY + PG-DSN im Klartext (0644, für alle

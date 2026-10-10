@@ -27,12 +27,9 @@ if [ ! -f "$PG_EXT_DIR/vector.control" ]; then
   rm -rf "$TMP"
 fi
 
-# PostgreSQL starten
-if ! brew services list | grep -q "postgresql@16.*started"; then
-  log "Starte postgresql@16"
-  brew services start postgresql@16
-  sleep 3
-fi
+# PostgreSQL starten – als LaunchDaemon, damit die Datenbank wie das Backend schon beim
+# Hochfahren läuft – nicht erst nach der Anmeldung wie früher mit dem brew-services-Agenten.
+bash "${INSTALLER_DIR:-$HH_REPO_DIR/installer}/lib/mac-postgres-daemon.sh"
 
 # postgresql@16 ist keg-only (nicht nach $(brew --prefix)/bin verlinkt). Der Pfad
 # hängt von der Mac-Art ab: /usr/local (Intel) oder /opt/homebrew (Apple Silicon).
