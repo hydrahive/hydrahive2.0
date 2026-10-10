@@ -15,7 +15,7 @@ PUBLIC_FIELDS = (
     "id", "name", "description", "members", "agent_id", "status",
     "created_at", "updated_at", "created_by", "git_initialized",
     "samba_enabled", "notes", "tags", "metadata",
-    "mcp_server_ids", "allowed_plugins", "allowed_specialists",
+    "mcp_server_ids", "allowed_plugins", "allowed_specialists", "linked_projects",
 )
 
 

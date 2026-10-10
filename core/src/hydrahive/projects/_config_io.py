@@ -31,6 +31,7 @@ def _normalize(cfg: dict) -> dict:
     cfg.setdefault("notes", "")
     cfg.setdefault("tags", [])
     cfg.setdefault("mcp_server_ids", [])
+    cfg.setdefault("linked_projects", [])   # verknüpfte Projekte (docs/specs/linked-projects.md)
     cfg.setdefault("allowed_plugins", [])
     cfg.setdefault("allowed_specialists", [])
     cfg.setdefault("metadata", {})

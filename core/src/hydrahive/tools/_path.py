@@ -30,3 +30,10 @@ def safe_path(workspace: Path, requested: str) -> Path:
     except ValueError:
         raise PathOutsideWorkspace(f"Pfad außerhalb Workspace: {requested}")
     return p
+
+
+def read_path(ctx, requested: str) -> Path:
+    """Für LESENDE Werkzeuge (auch Plugins): eigener Workspace plus wirksam verknüpfte Projekte
+    (docs/specs/linked-projects.md). Schreibende Werkzeuge nehmen weiter ``safe_path``."""
+    from hydrahive.projects._linked import read_path as _linked_read_path
+    return _linked_read_path(ctx, requested)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from hydrahive.tools._path import PathOutsideWorkspace, safe_path
+from hydrahive.tools._path import PathOutsideWorkspace, read_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 from hydrahive.tools._errors import fail_with_cause
 
@@ -60,7 +60,7 @@ def _grep_lines(lines: list[str], pattern: str, context: int) -> tuple[str, int]
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     path_arg = args.get("path", "")
     try:
-        p = safe_path(ctx.workspace, path_arg)
+        p = read_path(ctx, path_arg)          # eigener Workspace + verknüpfte Projekte (nur lesen)
     except PathOutsideWorkspace as e:
         return ToolResult.fail(str(e))
 

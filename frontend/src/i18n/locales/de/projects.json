@@ -195,5 +195,10 @@
     "f_credential": "Credential-Name (optional, leer = Gast)",
     "f_readonly": "Nur lesen",
     "credential_hint": "Login über ein 'basic'-Credential (Benutzer:Passwort) unter /credentials. Leer = Gast-Zugang."
+  },
+  "linked": {
+    "title": "Verknüpfte Projekte (nur lesen)",
+    "hint": "Der Projekt-Agent und die Spezialisten dieses Projekts dürfen die gewählten Projekte lesen: Dateien (über ./linked/<Name>) und frühere Gespräche/Wissen. Schreiben bleibt hier. Wirkt nur, wenn die Person im Chat selbst Mitglied des anderen Projekts ist. Ändern dürfen Projekt-Admins mit Schreibrecht im anderen Projekt.",
+    "none": "Keine weiteren Projekte sichtbar."
   }
 }
