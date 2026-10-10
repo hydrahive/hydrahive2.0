@@ -14,6 +14,8 @@ export interface Project {
   mcp_server_ids: string[]
   allowed_plugins: string[]
   allowed_specialists: string[]
+  /** Verknüpfte Projekte – nur lesen (docs/specs/linked-projects.md). */
+  linked_projects?: string[]
   has_webhook_secret?: boolean
   git_repos?: Record<string, { has_token: boolean }>
   members: ProjectMember[]

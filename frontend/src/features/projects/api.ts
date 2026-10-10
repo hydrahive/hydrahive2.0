@@ -70,6 +70,8 @@ export const projectsApi = {
     api.delete<void>(`/projects/${id}/servers/${kind}/${encodeURIComponent(serverId)}`),
   getSamba: (id: string) =>
     api.get<{ enabled: boolean; share_name: string; user: string; password: string }>(`/projects/${id}/samba`),
+  putLinked: (id: string, projects: string[]) =>
+    api.put<Project>(`/projects/${id}/linked-projects`, { projects }),
   putSamba: (id: string, enabled: boolean) =>
     api.put<{ ok: boolean; enabled: boolean }>(`/projects/${id}/samba`, { enabled }),
   // Butler-Webhook: Secret nur für Projekt-Admins (sonst 403)
