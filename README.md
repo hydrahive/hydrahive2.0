@@ -136,17 +136,14 @@ cd hydrahive2.0
 sudo bash installer/install.sh
 ```
 
-The interactive wizard can install:
+Without questions the installer sets up the **core**:
 
 - the FastAPI backend, React build, service account and systemd unit;
 - nginx with a self-signed HTTPS certificate;
 - HydraLink/AgentLink;
-- PostgreSQL data mining;
-- WhatsApp, Samba, voice and Tailscale;
-- QEMU/libvirt VMs and Incus containers;
-- NVIDIA local-media runtime when compatible hardware is detected.
+- PostgreSQL data mining.
 
-Most optional components default to **yes** when no choice has been saved. Review [installer/README.md](installer/README.md) before running non-interactively on a multipurpose server.
+Add-on modules — WhatsApp, Samba, voice, Tailscale, QEMU VMs, Incus containers and the NVIDIA local-media runtime — are **off** on a new installation. Add them later in the admin cockpit (System → add-on modules), or at install time with `--with=voice,samba,…` or `--all`. See [installer/README.md](installer/README.md).
 
 At completion the installer prints:
 
@@ -202,9 +199,13 @@ The Linux installer can be run inside **WSL2**. This is the recommended Windows 
    sudo bash installer/install.sh
    ```
 
+   The installer sets up the core only (web cockpit, PostgreSQL, nginx, HydraLink) and asks no questions. Add-on modules such as VMs, containers or voice can be added later in the admin cockpit under System → add-on modules; under WSL, VMs, containers and voice usually do not work.
+
+   **No name resolution under WSL** ("Temporary failure resolving …"): the installer checks this up front and stops without changes. Usually `wsl --shutdown` in PowerShell and reopening Ubuntu helps. If not, add `dnsTunneling=false` under `[wsl2]` in `%UserProfile%\.wslconfig` and restart WSL again.
+
 4. Open the URL printed by the installer in Windows. With the default WSL2 localhost forwarding this is usually `https://localhost`; if necessary, use the WSL address from `hostname -I` instead. The generated certificate is self-signed, so the browser warning is expected.
 
-The core HydraHive service, nginx and the web cockpit have been tested under WSL2. Hardware- and kernel-dependent optional components (for example libvirt/QEMU, Incus, Samba, Tailscale and CUDA/local-media workloads) depend on the Windows/WSL configuration and should be disabled in the installer when they are not available. For a reliable WSL installation, keep the repository and runtime data in the Linux filesystem and use the interactive wizard to decline unsupported host integrations.
+The core HydraHive service, nginx and the web cockpit have been tested under WSL2. Hardware- and kernel-dependent optional components (for example libvirt/QEMU, Incus, Samba, Tailscale and CUDA/local-media workloads) depend on the Windows/WSL configuration and are not installed by default. For a reliable WSL installation, keep the repository and runtime data in the Linux filesystem.
 
 ### macOS (experimental)
 
