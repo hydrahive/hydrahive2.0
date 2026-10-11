@@ -27,6 +27,8 @@ MIGRATION_SERVICE=/etc/systemd/system/hydrahive2-migration.service
 MIGRATION_TIMER=/etc/systemd/system/hydrahive2-migration.timer
 LOCAL_MEDIA_SERVICE=/etc/systemd/system/hydrahive2-local-media.service
 LOCAL_MEDIA_TIMER=/etc/systemd/system/hydrahive2-local-media.timer
+ADDON_SERVICE=/etc/systemd/system/hydrahive2-addon.service
+ADDON_TIMER=/etc/systemd/system/hydrahive2-addon.timer
 
 # JWT-Secret generieren falls nicht da
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -367,6 +369,42 @@ Unit=hydrahive2-local-media.service
 WantedBy=timers.target
 EOF
 
+log "Schreibe $ADDON_SERVICE (Zusatz-Module Runner)"
+# Zusatz-Module aus dem Admin-Cockpit (docs/specs/installer-core-first.md §3). Wie Local Media KEIN
+# ExecStartPre-rm: addon-ctl.sh löscht die Anfrage erst am Ende – solange sie liegt, zeigt die Oberfläche „läuft“.
+cat > "$ADDON_SERVICE" <<EOF
+[Unit]
+Description=HydraHive2 Zusatz-Module Install Runner
+ConditionPathExists=$HH_DATA_DIR/.addon_request
+
+[Service]
+Type=oneshot
+# Voice/VMs laden viel nach — kein Start-Timeout.
+TimeoutStartSec=0
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+Environment=HH_REPO_DIR=$HH_REPO_DIR
+Environment=HH_USER=$HH_USER
+ExecStart=$HH_REPO_DIR/installer/addon-ctl.sh
+StandardOutput=append:/var/log/hydrahive2-addon.log
+StandardError=append:/var/log/hydrahive2-addon.log
+EOF
+
+log "Schreibe $ADDON_TIMER (Zusatz-Module Trigger-Poller)"
+cat > "$ADDON_TIMER" <<EOF
+[Unit]
+Description=HydraHive2 Zusatz-Module Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-addon.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 # Alte Path-Units entfernen falls vorhanden
 rm -f /etc/systemd/system/hydrahive2-update.path
 rm -f /etc/systemd/system/hydrahive2-restart.path
@@ -384,6 +422,8 @@ touch /var/log/hydrahive2-migration.log
 chmod 644 /var/log/hydrahive2-migration.log
 touch /var/log/hydrahive2-local-media.log
 chmod 644 /var/log/hydrahive2-local-media.log
+touch /var/log/hydrahive2-addon.log
+chmod 644 /var/log/hydrahive2-addon.log
 
 log "systemd reload + enable"
 systemctl daemon-reload
@@ -395,8 +435,9 @@ systemctl enable hydrahive2-bridge.timer >/dev/null 2>&1
 systemctl enable hydrahive2-samba.timer >/dev/null 2>&1
 systemctl enable hydrahive2-migration.timer >/dev/null 2>&1
 systemctl enable hydrahive2-local-media.timer >/dev/null 2>&1
+systemctl enable hydrahive2-addon.timer >/dev/null 2>&1
 
-log "Starte Service + Update-/Restart-/Voice-/Bridge-/Samba-/Migration-/Local-Media-Timer"
+log "Starte Service + Update-/Restart-/Voice-/Bridge-/Samba-/Migration-/Local-Media-/Addon-Timer"
 systemctl restart hydrahive2.service
 systemctl restart hydrahive2-update.timer
 systemctl restart hydrahive2-restart.timer
@@ -405,6 +446,7 @@ systemctl restart hydrahive2-bridge.timer
 systemctl restart hydrahive2-samba.timer
 systemctl restart hydrahive2-migration.timer
 systemctl restart hydrahive2-local-media.timer
+systemctl restart hydrahive2-addon.timer
 
 sleep 2
 if systemctl is-active --quiet hydrahive2.service; then

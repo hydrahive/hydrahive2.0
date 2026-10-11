@@ -480,6 +480,48 @@ EOF
   systemctl restart hydrahive2-local-media.timer
 fi
 
+# --- Zusatz-Module-Runner (hydrahive2-addon) — docs/specs/installer-core-first.md §3
+if [ ! -f /etc/systemd/system/hydrahive2-addon.timer ] || [ ! -f /etc/systemd/system/hydrahive2-addon.service ]; then
+  log "Zusatz-Module-Units anlegen"
+  # Kein ExecStartPre-rm: addon-ctl.sh löscht die Anfrage erst am Ende.
+  cat > /etc/systemd/system/hydrahive2-addon.service <<EOF
+[Unit]
+Description=HydraHive2 Zusatz-Module Install Runner
+ConditionPathExists=$HH_DATA_DIR/.addon_request
+
+[Service]
+Type=oneshot
+# Voice/VMs laden viel nach — kein Start-Timeout.
+TimeoutStartSec=0
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+Environment=HH_REPO_DIR=$HH_REPO_DIR
+Environment=HH_USER=$HH_USER
+ExecStart=$HH_REPO_DIR/installer/addon-ctl.sh
+StandardOutput=append:/var/log/hydrahive2-addon.log
+StandardError=append:/var/log/hydrahive2-addon.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-addon.timer <<EOF
+[Unit]
+Description=HydraHive2 Zusatz-Module Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-addon.service
+
+[Install]
+WantedBy=timers.target
+EOF
+  touch /var/log/hydrahive2-addon.log
+  chmod 644 /var/log/hydrahive2-addon.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-addon.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-addon.timer
+fi
+# --- Ende Zusatz-Module-Runner
+
 if ! command -v sshpass >/dev/null 2>&1; then
   log "sshpass fehlt — installiere"
   DEBIAN_FRONTEND=noninteractive apt-get install -y sshpass
