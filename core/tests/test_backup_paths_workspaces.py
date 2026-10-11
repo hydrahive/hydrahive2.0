@@ -33,3 +33,9 @@ def test_normal_workspace_files_included():
     # Normale Projektdateien werden NICHT ausgeschlossen.
     assert not is_excluded(Path("data/workspaces/projects/x/server/main.go"))
     assert not is_excluded(Path("data/modules/videoeditor/backend/routes.py"))
+
+
+def test_pending_addon_request_not_in_backup():
+    """Eine offene Zusatz-Modul-Anfrage darf nicht ins Backup – nach Restore würde sie sofort eine Installation starten
+    (installer-core-first Teil 2)."""
+    assert is_excluded(Path("data/.addon_request"))

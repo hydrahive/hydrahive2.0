@@ -1,7 +1,7 @@
 """System-Samba — Status, Setup-Trigger, Login-Anzeige.
 
-Setup-Trigger schreibt eine Datei die ein systemd-Service als root aufgreift
-(analog Bridge/Voice-Pattern). Setup installiert Samba, legt den HH_SAMBA_USER
+Setup läuft über den Zusatz-Module-Runner (installer/addon-ctl.sh, Anfrage
+„install samba“ in .addon_request; docs/specs/installer-core-first.md §3). Setup installiert Samba, legt den HH_SAMBA_USER
 mit autogeneriertem Passwort an, schreibt smb.conf-Header mit
 `include = $HH_SAMBA_INCLUDES_DIR`.
 """
@@ -15,12 +15,12 @@ from fastapi import Depends
 from fastapi import APIRouter
 
 from hydrahive.api.middleware.auth import require_admin
+from hydrahive.api.routes._addon_request import request_install
 from hydrahive.samba.manager import samba_status
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/system/samba", tags=["system"])
 
-TRIGGER = settings.data_dir / ".samba_setup_request"
 LOG_PATH = settings.samba_log_path
 
 
@@ -43,7 +43,8 @@ def setup() -> dict:
     if not settings.samba_password_file.exists():
         settings.samba_password_file.write_text(secrets.token_urlsafe(18))
         settings.samba_password_file.chmod(0o600)
-    TRIGGER.write_text("1")
+    # Läuft über den Zusatz-Module-Runner (installer/addon-ctl.sh), 409 wenn schon ein Auftrag läuft.
+    request_install("samba")
     return {"started": True}
 
 

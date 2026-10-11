@@ -8,7 +8,7 @@ from hydrahive.tailscale.admin import (
     create_invite, public_config, save_admin_config, validate_api_key,
 )
 from hydrahive.tailscale.control import logout, up
-from hydrahive.tailscale.install import install_tailscale
+from hydrahive.api.routes._addon_request import request_install
 from hydrahive.tailscale.status import get_status
 
 router = APIRouter(prefix="/api/tailscale", tags=["tailscale"])
@@ -48,13 +48,12 @@ async def tailscale_logout(_=Depends(require_admin)) -> dict:
 
 @router.post("/install")
 async def tailscale_install(_=Depends(require_admin)) -> dict:
-    """Installiert Tailscale-Binary via Installer-Modul (idempotent).
-
-    Returnt {ok, rc, output, status} — Frontend kann output bei rc != 0 anzeigen.
+    """Tailscale nachinstallieren – über den Zusatz-Module-Runner (installer/addon-ctl.sh), nicht mehr per
+    `sudo -n bash` aus dem Backend. Antwort bleibt eine Version lang kompatibel: {ok, rc, output, status, started};
+    der Fortschritt steht in /api/system/addons/log. 409 addon_busy, wenn schon ein Auftrag läuft.
     """
-    result = await install_tailscale()
-    result["status"] = await get_status()
-    return result
+    request_install("tailscale")
+    return {"ok": True, "rc": 0, "output": "", "started": True, "status": await get_status()}
 
 
 @router.get("/admin-config")
