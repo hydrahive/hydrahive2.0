@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Callable
 
 _SHELL_RUNNERS = frozenset({
     "bash", "sh", "zsh", "dash", "ksh", "mksh", "fish", "busybox",
@@ -22,7 +23,7 @@ _WORD = re.compile(r"[^\s;|&()<>`]+")
 _WORD_END = " \t\n;|&()<>`"
 
 
-def _runs_shell(line: str) -> bool:
+def runs_shell(line: str) -> bool:
     return any(os.path.basename(w.strip("'\"")) in _SHELL_RUNNERS for w in _WORD.findall(line))
 
 
@@ -63,8 +64,11 @@ def _body_end(cmd: str, start: int, markers: list[tuple[str, bool]]) -> int | No
     return min(pos, len(cmd))
 
 
-def strip_heredocs(cmd: str) -> str:
-    """Befehl ohne Heredoc-Inhalt (die Zeile mit `<<` und alles danach bleiben)."""
+def strip_heredocs(cmd: str, shell_runs: Callable[[str], bool] = runs_shell) -> str:
+    """Befehl ohne Heredoc-Inhalt (die Zeile mit `<<` und alles danach bleiben).
+
+    `shell_runs(zeile)`: True, wenn auf dem Host etwas den Inhalt als Shell-Text
+    ausführt – dann bleibt er stehen und wird geprüft."""
     out: list[str] = []
     last = line_start = i = 0
     n = len(cmd)
@@ -109,7 +113,7 @@ def strip_heredocs(cmd: str) -> str:
             if markers:
                 end = _body_end(cmd, i + 1, markers)
                 if end is not None:
-                    if not _runs_shell(cmd[line_start:i]):
+                    if not shell_runs(cmd[line_start:i]):
                         out.append(cmd[last:i + 1])
                         last = end
                     i = end
