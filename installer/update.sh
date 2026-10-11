@@ -604,7 +604,8 @@ done
 # 1. incus-Container 'hydrahive2-stt' läuft
 # 2. proxy-device 'stt-port' am Container existiert (Port-Forward zum Host)
 # 3. mmx-CLI (TTS) installiert
-# 4. Port 10300 am Host hört (End-to-End-Bestätigung)
+# 4. Whisper antwortet auf Port 10300 (End-to-End). Nur „Port hört“ reicht nicht: der incus-Proxy lauscht auch,
+#    wenn im Container kein Whisper läuft (Fund hydratest 11.10.2026).
 voice_ok=1
 if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "hydrahive2-stt,RUNNING"; then
   voice_ok=0
@@ -614,7 +615,7 @@ elif ! command -v mmx >/dev/null 2>&1; then
   voice_ok=0
 elif ! command -v ffmpeg >/dev/null 2>&1; then
   voice_ok=0
-elif ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
+elif [[ "$(printf '{"type": "describe"}\n' | timeout 4 nc -w3 127.0.0.1 10300 2>/dev/null | head -c 32 || true)" != '{"type": "info"'* ]]; then
   voice_ok=0
 fi
 voice_installed=false

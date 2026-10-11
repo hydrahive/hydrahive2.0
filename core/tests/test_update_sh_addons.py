@@ -85,3 +85,12 @@ def test_vms_installed_means_vm_manager_not_just_qemu():
     assert "/etc/systemd/system/hydrahive2-websockify.service" in line
     assert "qemu-system-x86_64" in line
     assert "hh_has qemu-system-x86_64)\"" not in _guard_before("installer/modules/65-vms.sh")
+
+
+def test_voice_ok_needs_a_real_whisper_answer():
+    """Echter Fund (hydratest, 11.10.2026): STT-Container ohne Whisper, aber der incus-Proxy lauscht auf 10300 →
+    `ss` meldete „hört“, update.sh hielt Voice für in Ordnung und reparierte nie. Bedingung 4 fragt jetzt den Dienst."""
+    t = _text()
+    block = t[t.index("voice_ok=1"):t.index("voice_installed=false")]
+    assert 'ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"' not in block
+    assert '"type": "describe"' in block and '"type": "info"' in block
