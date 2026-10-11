@@ -102,6 +102,11 @@ hh_fix_incus_bridge_dns
 hh_fix_pihole_ordering
 hh_verify_dns
 
+# sudo-rs (Ubuntu 26.04) kennt `requiretty` nicht – alte Zeile aus der Extensions-sudoers entfernen (Task ddec8288).
+# shellcheck source=installer/lib/sudoers-heal.sh
+source "$HH_REPO_DIR/installer/lib/sudoers-heal.sh"
+hh_fix_sudoers_requiretty /etc/sudoers.d/hydrahive2-extensions "$HH_USER"
+
 # Distro-Upgrades können den Interpreter eines bestehenden venv entfernen
 # (Ubuntu 24.04: Python 3.12 -> Ubuntu 26.04: Python 3.14). Vor JEDEM Zugriff
 # auf pip das venv prüfen und bei Bedarf kontrolliert neu aufbauen.
