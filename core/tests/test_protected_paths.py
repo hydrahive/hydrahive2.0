@@ -272,3 +272,35 @@ def test_dev_null_in_substitution_not_flagged(cmd):
 )
 def test_real_target_in_substitution_still_flagged(cmd, expected):
     assert wants_protected_write(cmd, P) == expected
+
+
+# 1b: Datei-Argumente lokaler Befehle wie die Shell lesen (Text in Quotes = ein Wort).
+# Echter Fall 03.10.: die Wörter im sed-Ausdruck galten als Datei-Argumente.
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "sed -i 's#rm -rf /opt/hydrahive-rig /etc/hydrahive-rig#rm -rf /opt/x /var/lib/x#' rig/uninstall.sh",
+        "sed -i \"s|/usr/local/bin|/opt/bin|g\" install.sh",
+        "sed -i -e 's/a/b/' -e 's#/etc/x#/etc/y#' notes.md",
+    ],
+)
+def test_sed_expression_words_are_not_paths(cmd):
+    assert wants_protected_write(cmd, P) is None
+
+
+@pytest.mark.parametrize(
+    "cmd,expected",
+    [
+        ("sed -i 's/a/b/' /etc/hosts", "/etc"),
+        ("sed -i 's#x#y#' '/opt/hydrahive2/config'", "/opt"),
+        ('rm -rf "/opt/x"', "/opt"),
+        ("rm -rf '/usr/local/go' build", "/usr"),
+        ("cp a.txt '/etc/x y'", "/etc"),
+        ("touch /root/.profile", "/root"),
+        # Unvollständige Quotes → bisheriges Verfahren (kein Durchrutschen).
+        ("rm -rf /opt/x 'kaputt", "/opt"),
+    ],
+)
+def test_quoted_and_plain_paths_still_flagged(cmd, expected):
+    assert wants_protected_write(cmd, P) == expected

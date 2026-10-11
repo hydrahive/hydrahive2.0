@@ -16,7 +16,7 @@ import os
 import re
 from collections.abc import Sequence
 
-from hydrahive.tools._shell_lex import mask_quotes, split_top_level
+from hydrahive.tools._shell_lex import mask_quotes, split_top_level, words
 
 # System-Wurzeln, die praktisch nie der Arbeitsbereich eines Agenten sind.
 # /tmp, /home, /var, der Workspace und Projekt-Repos sind bewusst NICHT dabei —
@@ -112,7 +112,7 @@ def _segment_target(seg: str, protected: Sequence[str]) -> str | None:
         if (h := _hit(m.group(1), protected)):
             return h
 
-    tokens = seg.split()
+    tokens = words(seg)
     while tokens and tokens[0] in _WRAPPERS:
         tokens = tokens[1:]
     if not tokens:

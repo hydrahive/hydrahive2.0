@@ -5,6 +5,8 @@ Unfälle, keine Mauer. Hier liegt nur, was die Prüfungen gemeinsam brauchen.
 """
 from __future__ import annotations
 
+import shlex
+
 
 def split_top_level(cmd: str) -> list[str]:
     """Splittet an `;`, `&`, `|`, Newline — aber nur AUSSERHALB von Quotes.
@@ -80,3 +82,17 @@ def mask_quotes(s: str) -> str:
         out.append(c)
         i += 1
     return "".join(out)
+
+
+def words(seg: str) -> list[str]:
+    """Wörter eines Befehls wie die Shell sie sieht: Text in Quotes ist EIN Wort,
+    die Quotes fallen weg (`sed -i 's#/opt/a /opt/b#' f` → 4 Wörter).
+
+    Bei unvollständigen Quotes o. Ä. Rückfall auf das einfache Splitten an
+    Leerzeichen (bisheriges Verfahren) – lieber eine Rückfrage zu viel als ein
+    durchgerutschter Pfad.
+    """
+    try:
+        return shlex.split(seg, comments=False, posix=True)
+    except ValueError:
+        return seg.split()
