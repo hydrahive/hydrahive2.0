@@ -36,10 +36,11 @@
     "lang_de": "Always German",
     "lang_en": "Always English",
     "lang_auto": "Follows user",
+    "language_hint": "Applies to all your agents and specialists, including short sentences.",
     "tone_casual": "Casual & direct",
     "tone_professional": "Professional",
     "tone_brief": "Short and concise",
-    "soul_active": "Soul active: this buddy has soul files that replace the character prompt completely. Character, language, tone and context from this page only take effect once the soul is cleared (Agents → Buddy → Soul)."
+    "soul_active": "Soul active: this buddy has soul files that replace the character prompt completely. Character, tone and context from this page only take effect once the soul is cleared (Agents → Buddy → Soul). The language always applies."
   },
   "context": {
     "label": "What should Buddy always know about you?",

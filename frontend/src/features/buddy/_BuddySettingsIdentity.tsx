@@ -71,6 +71,7 @@ export function BuddySettingsIdentity({ config, draft, onChange, onRerollCharact
           >
             {LANGUAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+          <p className="text-xs text-[#8d9ab0]">{t("identity.language_hint")}</p>
         </div>
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-[#8d9ab0]">{t("identity.tone_label")}</label>
