@@ -9,12 +9,22 @@ dem Aufrufer wird nicht vertraut.
 Aktionen:
   apply  <id> <proto> <hstart> <hend> <ip> <cstart> <scope> <wan_if>
   remove <id>
-  list
+  list   (JSON: gespeicherte hh-port-Regeln)
+
+Regeln werden geschrieben und gelöscht, egal ob ufw gerade an oder aus ist: ufw
+speichert sie auch ausgeschaltet und wendet sie beim Einschalten an. Gesucht wird
+über `ufw show added` (listet auch ausgeschaltet), gelöscht über den Regeltext
+(`ufw route delete allow …`, ohne Nummer). Früher wurde bei ausgeschaltetem ufw
+nichts geschrieben, aber Erfolg gemeldet – nach `ufw enable` waren die Freigaben
+dicht (VPS 06.10.2026). Nur Regeln mit Kommentar hh-port:<id> werden angefasst.
 """
 from __future__ import annotations
 
 import ipaddress
+import json
+import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -25,6 +35,12 @@ ID_RE = re.compile(r"^[0-9a-f-]{8,40}$")
 IF_RE = re.compile(r"^[a-zA-Z0-9_.-]{1,15}$")
 COMMENT_PREFIX = "hh-port:"
 RESERVED = {22, 53, 80, 443, 3000, 3001, 5432, 6379, 8001, 8888, 9000, 9001, 10000, 41641}
+# Genau die Form, die apply() schreibt – alles andere ist nicht unsere Regel.
+OWN_RULE = re.compile(
+    r"^allow in on (?P<in>[a-zA-Z0-9_.-]{1,15}) out on " + NAT_IF
+    + r" to (?P<ip>[0-9.]+) port (?P<port>\d{1,5}(?::\d{1,5})?) proto (?P<proto>tcp|udp)"
+    + r" comment hh-port:(?P<id>[0-9a-f-]{8,40})$"
+)
 
 
 def die(msg: str, code: int = 2) -> None:
@@ -41,31 +57,39 @@ def port(v: str) -> int:
     return n
 
 
-def ufw_active() -> bool:
-    try:
-        out = subprocess.run([UFW, "status"], capture_output=True, text=True, timeout=20, check=False).stdout
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return out.startswith("Status: active")
+def ufw_installed() -> bool:
+    return os.access(UFW, os.X_OK)
 
 
-def rule_numbers(tag: str) -> list[int]:
-    out = subprocess.run([UFW, "status", "numbered"], capture_output=True, text=True, timeout=20, check=False).stdout
-    nums = []
+def _ufw(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run([UFW, *args], capture_output=True, text=True, timeout=20, check=True)
+
+
+def own_rules() -> list[tuple[dict, list[str]]]:
+    """Gespeicherte hh-port-Regeln (auch bei ausgeschaltetem ufw): (Felder, Regel-Argumente)."""
+    out = _ufw("show", "added").stdout
+    found = []
     for line in out.splitlines():
-        m = re.match(r"^\[\s*(\d+)\]", line)
-        if m and line.rstrip().endswith(f"# {tag}"):
-            nums.append(int(m.group(1)))
-    return sorted(nums, reverse=True)
+        if not line.startswith("ufw route "):
+            continue
+        try:
+            argv = shlex.split(line)[2:]
+        except ValueError:
+            continue
+        m = OWN_RULE.match(" ".join(argv))
+        if m:
+            found.append((m.groupdict(), argv))
+    return found
 
 
 def remove(pid: str) -> None:
     if not ID_RE.match(pid):
         die("ungültige ID")
-    if not ufw_active():
+    if not ufw_installed():
         return
-    for n in rule_numbers(COMMENT_PREFIX + pid):
-        subprocess.run([UFW, "--force", "delete", str(n)], capture_output=True, timeout=20, check=True)
+    for fields, argv in own_rules():
+        if fields["id"] == pid:
+            _ufw("--force", "route", "delete", *argv)
 
 
 def apply(args: list[str]) -> None:
@@ -95,17 +119,21 @@ def apply(args: list[str]) -> None:
     if not IF_RE.match(wan_if):
         die("ungültiges Interface")
 
+    if not ufw_installed():
+        return
     remove(pid)
-    if scope == "off" or not ufw_active():
+    if scope == "off":
         return
     in_if = wan_if if scope == "public" else "tailscale0"
     ports = str(cstart) if cstart == cend else f"{cstart}:{cend}"
-    subprocess.run(
-        [UFW, "route", "allow", "in", "on", in_if, "out", "on", NAT_IF,
+    _ufw("route", "allow", "in", "on", in_if, "out", "on", NAT_IF,
          "to", str(addr), "port", ports, "proto", proto,
-         "comment", COMMENT_PREFIX + pid],
-        capture_output=True, timeout=20, check=True,
-    )
+         "comment", COMMENT_PREFIX + pid)
+
+
+def list_rules() -> None:
+    rules = [fields for fields, _ in own_rules()] if ufw_installed() else []
+    print(json.dumps([{k: f[k] for k in ("id", "in", "ip", "port", "proto")} for f in rules]))
 
 
 def main() -> None:
@@ -118,13 +146,12 @@ def main() -> None:
         elif action == "remove" and len(rest) == 1:
             remove(rest[0])
         elif action == "list" and not rest:
-            if ufw_active():
-                out = subprocess.run([UFW, "status"], capture_output=True, text=True, timeout=20, check=False).stdout
-                print("\n".join(line for line in out.splitlines() if COMMENT_PREFIX in line))
+            list_rules()
         else:
             die("unbekannte Aktion")
     except subprocess.CalledProcessError as exc:
-        die(f"ufw fehlgeschlagen: {(exc.stderr or b'').decode(errors='replace')[:200]}", 3)
+        err = exc.stderr if isinstance(exc.stderr, str) else (exc.stderr or b"").decode(errors="replace")
+        die(f"ufw fehlgeschlagen: {err[:200]}", 3)
 
 
 if __name__ == "__main__":
