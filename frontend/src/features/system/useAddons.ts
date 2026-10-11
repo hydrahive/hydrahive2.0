@@ -4,6 +4,8 @@ import { addonOutcome, addonsApi, lastRun, type AddonId, type AddonItem } from "
 export type AddonPhase = "idle" | "confirm" | "running" | "done" | "failed"
 
 const POLL_MS = 2000
+// Aufträge anderer Karten (Samba, Tailscale) laufen über denselben Runner – im Ruhezustand gelegentlich nachsehen.
+const IDLE_POLL_MS = 15_000
 // Voice lädt Modelle, VMs/Container ziehen Pakete – großzügig warten, das Log bleibt sichtbar.
 const MAX_WAIT_MS = 90 * 60 * 1000
 
@@ -36,6 +38,12 @@ export function useAddons() {
     }, 0)
     return () => clearTimeout(first)
   }, [])
+
+  useEffect(() => {
+    if (phase !== "idle") return
+    const timer = setInterval(() => { void reload() }, running ? POLL_MS : IDLE_POLL_MS)
+    return () => clearInterval(timer)
+  }, [phase, running])
 
   useEffect(() => {
     if (phase !== "running" || !target) return
