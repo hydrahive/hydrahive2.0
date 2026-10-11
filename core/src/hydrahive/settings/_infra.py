@@ -54,6 +54,11 @@ class _VmsMixin:
     def vms_bridge(self) -> str:
         return os.environ.get("HH_VMS_BRIDGE", "br0")
 
+    @cached_property
+    def container_ports_sync_interval(self) -> int:
+        """Sekunden zwischen zwei Abgleichen Portfreigaben ↔ ufw (docs/specs/container-nat-ports.md)."""
+        return int(os.environ.get("HH_CONTAINER_PORTS_SYNC_INTERVAL", "300"))
+
 
 class _ExtensionsMixin:
     @cached_property

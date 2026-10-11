@@ -63,6 +63,9 @@ async def reconcile_once() -> None:
 
 
 async def run_loop(stop: asyncio.Event) -> None:
+    # Abgleich Portfreigaben ↔ ufw läuft mit (eigenes, längeres Intervall; docs/specs/container-nat-ports.md).
+    from hydrahive.containers import ports_sync
+    sync_task = asyncio.create_task(ports_sync.run_loop(stop))
     logger.info("Container-Reconciler gestartet (Intervall %.1fs)", POLL_INTERVAL_S)
     while not stop.is_set():
         await reconcile_once()
@@ -70,4 +73,8 @@ async def run_loop(stop: asyncio.Event) -> None:
             await asyncio.wait_for(stop.wait(), timeout=POLL_INTERVAL_S)
         except asyncio.TimeoutError:
             pass
+    try:
+        await asyncio.wait_for(sync_task, timeout=5.0)
+    except (asyncio.TimeoutError, asyncio.CancelledError):
+        sync_task.cancel()
     logger.info("Container-Reconciler beendet")
