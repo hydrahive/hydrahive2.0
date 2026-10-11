@@ -304,3 +304,54 @@ def test_sed_expression_words_are_not_paths(cmd):
 )
 def test_quoted_and_plain_paths_still_flagged(cmd, expected):
     assert wants_protected_write(cmd, P) == expected
+
+
+# 1c: Heredoc-Inhalt ist Text für einen Befehl, kein Shell-Befehl. Geprüft wird er
+# nur, wenn in der Zeile ein Programm steht, das Shell-Text ausführt (bash, ssh, …).
+# Echte Fälle 07.10./09.10.: Python-Test im Heredoc, `r.key` galt als Schlüsseldatei.
+PY_HEREDOC = (
+    "cd _work/wt/st && mkdir -p backend/team && cat > tests/test_team.py <<'EOF'\n"
+    "def test_x():\n"
+    "    keys = [r.key for r in team.HELPERS]\n"
+    "    assert have == {r.key: r.key == 'structure' for r in team.HELPERS}\n"
+    "    open('/etc/shadow')\n"
+    "    rm -rf /opt/x > /etc/y\n"
+    "EOF\n"
+    "git status --short"
+)
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        PY_HEREDOC,
+        "python3 - <<'PYEOF'\nimport os\np = '/etc/ssl/private/server.key'\nPYEOF",
+        'git commit -q -F - <<EOF\nfix: rm -rf /opt/x > /etc/y\nEOF',
+        "cat >> notes.md <<-EOF\n\trm -rf /usr/lib\n\tEOF\necho fertig",
+        "cat <<A <<B\n/etc/shadow\nA\nrm -rf /opt\nB",
+        "cat <<\\EOF > out.txt\n/root/.ssh/id_rsa\nEOF",
+    ],
+)
+def test_heredoc_body_for_plain_command_not_flagged(cmd):
+    assert shell_confirm_reason(cmd) is None
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        # Programm, das Shell-Text ausführt → Inhalt wird geprüft (wie bisher).
+        "bash <<'EOF'\nrm -rf /opt/x\nEOF",
+        "cat <<EOF | sudo sh\nrm -rf /opt/x\nEOF",
+        "ssh host <<'EOF'\nok\nEOF\nrm -rf /opt/x",
+        # Was nach dem Ende-Marker folgt, ist wieder ein normaler Befehl.
+        "cat > x.py <<'EOF'\nprint(1)\nEOF\nrm -rf /opt/x",
+        # Die Zeile mit dem Heredoc selbst bleibt geprüft.
+        "cat > /etc/x.conf <<'EOF'\nfoo\nEOF",
+        "cat <<'EOF'; rm -rf /opt/x\nfoo\nEOF",
+        # Kein Heredoc: Here-String und Bit-Shift.
+        "x=$((1<<2))\nrm -rf /opt/x",
+        "cat <<< 'hi'\nrm -rf /opt/x",
+    ],
+)
+def test_heredoc_does_not_hide_real_commands(cmd):
+    assert shell_confirm_reason(cmd) is not None

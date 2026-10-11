@@ -16,6 +16,7 @@ import os
 import re
 from collections.abc import Sequence
 
+from hydrahive.tools._shell_heredoc import strip_heredocs
 from hydrahive.tools._shell_lex import mask_quotes, split_top_level, words
 
 # System-Wurzeln, die praktisch nie der Arbeitsbereich eines Agenten sind.
@@ -152,7 +153,7 @@ def wants_protected_write(cmd: str, protected: Sequence[str] | None = None) -> s
     if not cmd or not cmd.strip():
         return None
     prefixes = protected if protected is not None else default_protected()
-    for seg in split_top_level(cmd):
+    for seg in split_top_level(strip_heredocs(cmd)):
         if (h := _segment_target(seg, prefixes)):
             return h
     return None
@@ -194,7 +195,7 @@ def wants_sensitive_read(cmd: str) -> str | None:
     """
     if not cmd or not cmd.strip():
         return None
-    for seg in split_top_level(cmd):
+    for seg in split_top_level(strip_heredocs(cmd)):
         tokens = seg.split()
         ssh_ctx = _has_ssh_token(tokens)
         prev = ""
