@@ -14,6 +14,9 @@
 set -euo pipefail
 
 log() { printf "  · %s\n" "$*"; }
+# hh_host_dns_unit: läuft ein eigener DNS-Server (Pi-hole & Co.) auf dem Host?
+# shellcheck source=../lib/host-selfheal.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/host-selfheal.sh"
 
 if [ "${HH_INSTALL_VOICE:-yes}" = "no" ]; then
   log "Voice-Stack übersprungen (HH_INSTALL_VOICE=no)"
@@ -78,6 +81,14 @@ VOICE_NET="hh-voice"
 # löst auf, routet aber nicht). 53 = DNS-over-TCP, fast überall offen.
 _net_ok() { incus exec "$1" -- timeout 5 bash -c 'exec 3<>/dev/tcp/1.1.1.1/53' >/dev/null 2>&1; }
 
+# Wyoming-Dienst (Whisper/Piper) antwortet auf „describe“ mit „info“. Nur „Port offen“ täuscht: das incus-Proxy-
+# Device nimmt Verbindungen auch an, wenn im Container nichts läuft (Fund 11.10.2026).
+_wyoming_ok() {  # $1=port
+  local out
+  out="$(printf '{"type": "describe"}\n' | timeout 4 nc -w3 127.0.0.1 "$1" 2>/dev/null | head -c 32)" || true
+  [[ "$out" == '{"type": "info"'* ]]
+}
+
 _net_wait() {  # $1=ct, $2=sekunden
   local ct="$1" n="$2" i
   for i in $(seq 1 "$n"); do _net_ok "$ct" && return 0; sleep 1; done
@@ -100,13 +111,18 @@ ensure_container_net() {  # $1 = container-name; return 0 wenn ECHTER Outbound d
   fi
   # 2) NAT-Fallback (Boxen ohne br0, z.B. Minimal-Setups)
   log "  NAT-Netz '$VOICE_NET' als Fallback"
+  # raw.dnsmasq=port=0 NUR mit Host-DNS-Server (Pi-hole & Co.): der Bridge-dnsmasq würde sonst TCP <bridge-ip>:53
+  # halten und dessen Wildcard-Bind verhindern — der Host verlöre die Namensauflösung; die Container fragen dann
+  # dessen Server über die Bridge-IP. OHNE Host-DNS-Server ist der Bridge-dnsmasq die einzige Namensauflösung der
+  # Container – mit port=0 scheitert apt im Container (Fund hh-instcore 11.10.2026). DHCP bleibt so oder so.
+  local dns_opt=()
+  [ -n "$(hh_host_dns_unit)" ] && dns_opt=(raw.dnsmasq=port=0)
   if ! incus network list --format=csv -c n 2>/dev/null | grep -qx "$VOICE_NET"; then
-    # raw.dnsmasq=port=0: der Bridge-dnsmasq würde sonst TCP <bridge-ip>:53
-    # halten und einen Host-DNS-Server (Pi-hole & Co.) am Wildcard-Bind
-    # hindern — der Host verliert dann komplett die Namensauflösung.
-    # DHCP für die Container bleibt davon unberührt.
     incus network create "$VOICE_NET" ipv4.address=auto ipv4.nat=true ipv6.address=none \
-      raw.dnsmasq=port=0 2>&1 | tail -2 || true
+      "${dns_opt[@]}" 2>&1 | tail -2 || true
+  elif [ "${#dns_opt[@]}" -eq 0 ] && [ "$(incus network get "$VOICE_NET" raw.dnsmasq 2>/dev/null)" = "port=0" ]; then
+    log "  '$VOICE_NET': kein Host-DNS-Server — Bridge-DNS für die Container wieder einschalten"
+    incus network unset "$VOICE_NET" raw.dnsmasq 2>&1 | tail -2 || true
   fi
   incus config device add "$ct" eth0 nic network="$VOICE_NET" name=eth0 2>&1 | tail -2 || true
   incus restart "$ct" 2>&1 | tail -2 || true
@@ -118,11 +134,20 @@ ensure_container_net() {  # $1 = container-name; return 0 wenn ECHTER Outbound d
 if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_NAME"; then
   log "STT-Container '$CT_NAME' anlegen (Ubuntu 24.04 LXC)"
   incus launch images:ubuntu/24.04 "$CT_NAME"
+else
+  log "STT-Container '$CT_NAME' existiert bereits"
+  if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "$CT_NAME,RUNNING"; then
+    log "Container '$CT_NAME' nicht running — starte"
+    incus start "$CT_NAME" 2>&1 | tail -3 || true
+  fi
+fi
 
+# Whisper installieren, FALLS es fehlt – auch in einem bestehenden Container. Brach die Erstinstallation nach
+# „incus launch“ ab (z. B. apt ohne Netz), blieb sonst ein leerer Container zurück, den kein Lauf mehr reparierte.
+if ! incus exec "$CT_NAME" -- test -x /opt/wyoming/bin/wyoming-faster-whisper 2>/dev/null; then
   log "Container-Netzwerk sicherstellen"
   if ! ensure_container_net "$CT_NAME"; then
     log "FEHLER: STT-Container '$CT_NAME' hat kein Netz — Setup abgebrochen (br0/Netz prüfen)"
-    incus delete -f "$CT_NAME" 2>/dev/null || true
     exit 1
   fi
 
@@ -137,6 +162,10 @@ if ! incus list --format=csv -c n 2>/dev/null | grep -qx "$CT_NAME"; then
     /opt/wyoming/bin/pip install wyoming-faster-whisper
   "
 
+fi
+
+# Unit nur schreiben, wenn sie fehlt – bestehende Units (inkl. Migration voice-stt-perf.sh) bleiben unangetastet.
+if ! incus exec "$CT_NAME" -- test -f /etc/systemd/system/wyoming-whisper.service 2>/dev/null; then
   log "systemd-Unit im Container schreiben"
   incus exec "$CT_NAME" -- bash -c 'cat > /etc/systemd/system/wyoming-whisper.service <<EOF
 [Unit]
@@ -158,13 +187,6 @@ EOF
 mkdir -p /var/lib/wyoming
 systemctl daemon-reload
 systemctl enable --now wyoming-whisper.service'
-
-else
-  log "STT-Container '$CT_NAME' existiert bereits"
-  if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "$CT_NAME,RUNNING"; then
-    log "Container '$CT_NAME' nicht running — starte"
-    incus start "$CT_NAME" 2>&1 | tail -3 || true
-  fi
 fi
 
 # Verwaltete Voice-Container müssen einen Reboot des äußeren Hosts überleben.
@@ -201,7 +223,7 @@ fi
 log "Warte auf STT (Port $STT_PORT)..."
 ready=0
 for i in $(seq 1 60); do
-  if (echo "" | timeout 1 nc -w1 127.0.0.1 $STT_PORT) >/dev/null 2>&1; then
+  if _wyoming_ok "$STT_PORT"; then
     log "STT bereit"
     ready=1
     break
@@ -308,7 +330,7 @@ fi
 log "Warte auf TTS (Port $TTS_PORT)..."
 tts_ready=0
 for i in $(seq 1 60); do
-  if (echo "" | timeout 1 nc -w1 127.0.0.1 $TTS_PORT) >/dev/null 2>&1; then
+  if _wyoming_ok "$TTS_PORT"; then
     log "TTS (Piper) bereit"
     tts_ready=1
     break

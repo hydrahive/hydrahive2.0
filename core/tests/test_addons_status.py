@@ -108,3 +108,38 @@ def test_whatsapp_probe_checks_node_modules(monkeypatch, tmp_path: Path):
     assert st._whatsapp_installed() is False
     (tmp_path / "node_modules").mkdir()
     assert st._whatsapp_installed() is True
+
+
+def _server(reply: bytes | None):
+    """Lokaler TCP-Server: antwortet auf eine Zeile mit `reply` – oder schweigt (wie ein incus-Proxy ohne Dienst)."""
+    import socket as so
+    import threading
+    srv = so.socket()
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+
+    def serve():
+        conn, _ = srv.accept()
+        with conn:
+            conn.recv(256)
+            if reply is not None:
+                conn.sendall(reply)
+            else:
+                conn.recv(256)            # offen halten, nichts sagen
+    threading.Thread(target=serve, daemon=True).start()
+    return srv, srv.getsockname()[1]
+
+
+def test_voice_probe_needs_a_real_wyoming_answer(monkeypatch):
+    """Echter Fund (hh-instcore, 11.10.2026): Das incus-Proxy-Device nimmt auf 10300 Verbindungen an, auch wenn im
+    Container kein Whisper läuft. Nur „Port offen“ zeigte Voice als installiert, obwohl es fehlte."""
+    srv, port = _server(b'{"type": "info", "data_length": 2}\n{}')
+    monkeypatch.setattr(st, "_STT", ("127.0.0.1", port))
+    assert st._voice_installed() is True
+    srv.close()
+    srv, port = _server(None)
+    monkeypatch.setattr(st, "_STT", ("127.0.0.1", port))
+    assert st._voice_installed() is False
+    srv.close()
+    monkeypatch.setattr(st, "_STT", ("127.0.0.1", port))   # nichts lauscht mehr
+    assert st._voice_installed() is False

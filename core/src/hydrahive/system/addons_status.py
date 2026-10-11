@@ -28,6 +28,7 @@ WSL_LIMITED = frozenset({"vms", "containers", "voice"})
 # Nur 65-vms.sh legt diese Unit an. qemu allein reicht nicht: incus zieht qemu-system-x86 als Abhängigkeit mit.
 _VM_UNIT = Path("/etc/systemd/system/hydrahive2-websockify.service")
 _WA_BRIDGE = BRIDGE_DIR
+_STT = (STT_HOST, STT_PORT)
 _PROC_VERSION = Path("/proc/version")
 _WSL_INTEROP = Path("/proc/sys/fs/binfmt_misc/WSLInterop")
 _CONF_LINE = re.compile(r"^(HH_INSTALL_[A-Z_]+)=['\"]?(yes|no)['\"]?\s*$")
@@ -42,9 +43,13 @@ def _whatsapp_installed() -> bool:
 
 
 def _voice_installed() -> bool:
+    """Whisper muss auf „describe“ antworten. Nur „Port offen“ reicht nicht: das incus-Proxy-Device nimmt Verbindungen
+    auch an, wenn im Container kein Dienst läuft (Fund hh-instcore 11.10.2026)."""
     try:
-        with socket.create_connection((STT_HOST, STT_PORT), timeout=0.5):
-            return True
+        with socket.create_connection(_STT, timeout=1.0) as conn:
+            conn.settimeout(1.5)
+            conn.sendall(b'{"type": "describe"}\n')
+            return conn.recv(64).startswith(b'{"type": "info"')
     except OSError:
         return False
 
