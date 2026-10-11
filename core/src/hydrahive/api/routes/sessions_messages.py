@@ -21,7 +21,7 @@ from hydrahive.api.routes._session_msg_helpers import (
     run_and_stream,
 )
 from hydrahive.runner import run as runner_run
-from hydrahive.runner import concurrency
+from hydrahive.runner import concurrency, tool_confirmation
 from hydrahive.runner.concurrency import SessionAlreadyRunning, is_running, session_run_guard
 from hydrahive.runner.event_bus import bus as event_bus
 from hydrahive.runner.events import Error as RunnerError
@@ -128,6 +128,9 @@ async def run_status(
     return {
         "running": is_running(session_id),
         "latest_seq": event_bus.latest_seq(session_id),
+        # Offene Tool-Bestätigung: die Oberfläche zeigt das Banner nach dem
+        # Neuladen wieder an (docs/specs/harakiri-confirm-noise.md, Punkt 3).
+        "pending_confirm": tool_confirmation.pending_for(session_id),
     }
 
 

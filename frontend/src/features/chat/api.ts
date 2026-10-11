@@ -1,6 +1,7 @@
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { api, buildErrorMessage } from "@/shared/api-client"
 import type { AgentBrief, Message, RunnerEvent, Session } from "./types"
+import type { PendingConfirm } from "./useChat"
 import { runSseLoop } from "./_sseLoop"
 import { pingKind } from "./_runFollow"
 
@@ -51,7 +52,8 @@ export const chatApi = {
     api.post<{ stopped: boolean }>(`/sessions/${sessionId}/stop`, {}),
   /** Läuft für die Session gerade ein Run? + aktuelle Event-Seq (für Reconnect). */
   runStatus: (sessionId: string) =>
-    api.get<{ running: boolean; latest_seq: number }>(`/sessions/${sessionId}/run-status`),
+    api.get<{ running: boolean; latest_seq: number; pending_confirm?: PendingConfirm | null }>(
+      `/sessions/${sessionId}/run-status`),
 }
 
 /** Stream a user message through SSE and yield runner events as they arrive. */

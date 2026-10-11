@@ -12,24 +12,39 @@ from hydrahive.runner import tool_confirmation
 from hydrahive.runner.dispatcher import execute_tool, to_tool_result_block
 from hydrahive.runner.events import Event, ToolConfirmRequired, ToolUseResult, ToolUseStart
 from hydrahive.runner.integrity import IntegrityState
+from hydrahive.settings import settings
 from hydrahive.tools import ToolContext, ToolResult
 from hydrahive.tools._discord_admin_confirm import (
     TOOL_MEMBER as _DC_MEMBER, TOOL_SERVER as _DC_SERVER,
     confirm_reason as discord_admin_confirm_reason,
 )
-from hydrahive.tools._protected_paths import shell_confirm_reason
-
-# Tools, deren Wirkung nicht rückgängig zu machen ist: immer Bestätigung durch den
-# Benutzer, auch ohne require_tool_confirm am Agenten (Timeout = abgelehnt).
-ALWAYS_CONFIRM: dict[str, str] = {
-    "discord_delete": "Löschen in Discord lässt sich nicht rückgängig machen.",
-}
-DISCORD_ADMIN_TOOLS = frozenset({_DC_SERVER, _DC_MEMBER})
 from hydrahive.tools._observations import (
     HOOK_POST_TOOL_FAILURE,
     HOOK_POST_TOOL_USE,
     record_observation,
 )
+from hydrahive.tools._protected_paths import shell_confirm_reason
+
+# Tools, deren Wirkung nicht rückgängig zu machen ist: immer Bestätigung durch den
+# Benutzer, auch ohne require_tool_confirm am Agenten (ohne Antwort = nicht ausgeführt).
+ALWAYS_CONFIRM: dict[str, str] = {
+    "discord_delete": "Löschen in Discord lässt sich nicht rückgängig machen.",
+}
+DISCORD_ADMIN_TOOLS = frozenset({_DC_SERVER, _DC_MEMBER})
+# Ohne Antwort ist nicht „abgelehnt“: der Agent soll den Unterschied kennen.
+_NOT_RUN = {
+    "deny": "Vom Benutzer abgelehnt",
+    "timeout": "Keine Antwort auf die Bestätigung – nicht ausgeführt",
+}
+
+
+def _confirm_timeout(ctx: ToolContext) -> float | None:
+    """Chat-Fenster (chat/delegation): warten, bis jemand entscheidet (Standard).
+    Ohne Fenster (Zeitplan, Messenger, ask_agent): Limit, danach „keine Antwort“.
+    docs/specs/harakiri-confirm-noise.md, Punkt 3."""
+    if ctx.origin in ("chat", "delegation"):
+        return settings.tool_confirm_timeout_chat
+    return settings.tool_confirm_timeout
 
 
 async def process_tool_uses(
@@ -72,14 +87,16 @@ async def process_tool_uses(
         needs_confirm = require_confirm or confirm_reason is not None
 
         if needs_confirm:
-            fut = tool_confirmation.register(tu_id)
+            tool_confirmation.register(
+                tu_id, session_id=ctx.session_id, tool_name=tu_name,
+                arguments=tu_args, reason=confirm_reason,
+            )
             yield ToolConfirmRequired(
                 call_id=tu_id, tool_name=tu_name, arguments=tu_args, reason=confirm_reason
             )
-            decision = await tool_confirmation.wait(tu_id)
-            _ = fut
-            if decision == "deny":
-                result = ToolResult.fail("Vom Benutzer abgelehnt")
+            decision = await tool_confirmation.wait(tu_id, timeout=_confirm_timeout(ctx))
+            if decision != "approve":
+                result = ToolResult.fail(_NOT_RUN[decision])
                 yield ToolUseResult(
                     call_id=tu_id, tool_name=tu_name, success=False,
                     output=None, error=result.error, duration_ms=0,
