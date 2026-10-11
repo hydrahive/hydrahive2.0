@@ -239,3 +239,36 @@ def test_ssh_dash_o_only_skips_key_value_options():
     assert wants_sensitive_read("ssh host -o /etc/shadow") is not None
     # IdentityFile=... (mit =) bleibt exempt.
     assert wants_sensitive_read("ssh -o IdentityFile=/tmp/k/id_ed25519 host 'x'") is None
+
+
+# --- Fehlalarme aus echten Läufen (docs/specs/harakiri-confirm-noise.md) ------
+# 22 von 29 „Vom Benutzer abgelehnt“ (20.09.–11.10.2026): `2>/dev/null` direkt vor
+# `)` oder Backtick. Der Redirect-Scan nahm die Klammer ins Ziel (`/dev/null)`).
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "a=$(gh pr checks 551 2>/dev/null)",
+        "out=$(gh pr checks 406 2>/dev/null); n=$(printf '%s' \"$out\" | grep -c x)",
+        "s=$(du -sx -B1 \"$d\" 2>/dev/null | cut -f1)",
+        "e=$(incus exec ct -- cat /srv/r.exit 2>/dev/null)",
+        "echo `ls 2>/dev/null`",
+        "x=$(cmd >/dev/null 2>&1)",
+        "diff <(sort a 2>/dev/null) b",
+    ],
+)
+def test_dev_null_in_substitution_not_flagged(cmd):
+    assert wants_protected_write(cmd, P) is None
+    assert shell_confirm_reason(cmd) is None
+
+
+@pytest.mark.parametrize(
+    "cmd,expected",
+    [
+        ("x=$(cat a > /etc/y)", "/etc"),
+        ("echo `date > /opt/z`", "/opt"),
+        ("x=$(cmd 2>/dev/sda)", "/dev"),
+    ],
+)
+def test_real_target_in_substitution_still_flagged(cmd, expected):
+    assert wants_protected_write(cmd, P) == expected

@@ -34,7 +34,9 @@ _DEST_LAST = {"cp", "mv", "install", "rsync", "ln"}
 # Wrapper, die wir überspringen, um an den echten Befehl zu kommen.
 _WRAPPERS = {"sudo", "env", "nice", "nohup", "time", "doas"}
 
-_REDIRECT = re.compile(r">>?\s*([^\s;|&>]+)")
+# Das Ziel endet auch vor `)`, Backtick und `<`: in `$(cmd 2>/dev/null)` ist das
+# Ziel `/dev/null`, nicht `/dev/null)` (sonst greift die /dev/null-Ausnahme nicht).
+_REDIRECT = re.compile(r">>?\s*([^\s;|&><)`]+)")
 
 # Pseudo-Geräte unter /dev sind normale Redirect-Ziele (2>/dev/null ist DAS
 # häufigste Shell-Idiom) — kein Harakiri. Echte Block-Devices (/dev/sda) bleiben
