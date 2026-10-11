@@ -219,7 +219,7 @@ def test_dash_i_exemption_is_ssh_scoped():
 
 
 def test_quoted_local_redirect_target_still_flagged():
-    # _mask_quotes darf einen LOKALEN Redirect mit gequotetem Ziel nicht verstecken.
+    # mask_quotes darf einen LOKALEN Redirect mit gequotetem Ziel nicht verstecken.
     assert wants_protected_write("echo evil > '/etc/passwd'", P) == "/etc"
     assert wants_protected_write('cat x > "/opt/hydrahive2/config"', P) == "/opt"
     assert wants_protected_write("echo p >> '/etc/cron.d/job'", P) == "/etc"
@@ -239,3 +239,138 @@ def test_ssh_dash_o_only_skips_key_value_options():
     assert wants_sensitive_read("ssh host -o /etc/shadow") is not None
     # IdentityFile=... (mit =) bleibt exempt.
     assert wants_sensitive_read("ssh -o IdentityFile=/tmp/k/id_ed25519 host 'x'") is None
+
+
+# --- Fehlalarme aus echten Läufen (docs/specs/harakiri-confirm-noise.md) ------
+# 22 von 29 „Vom Benutzer abgelehnt“ (20.09.–11.10.2026): `2>/dev/null` direkt vor
+# `)` oder Backtick. Der Redirect-Scan nahm die Klammer ins Ziel (`/dev/null)`).
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "a=$(gh pr checks 551 2>/dev/null)",
+        "out=$(gh pr checks 406 2>/dev/null); n=$(printf '%s' \"$out\" | grep -c x)",
+        "s=$(du -sx -B1 \"$d\" 2>/dev/null | cut -f1)",
+        "e=$(incus exec ct -- cat /srv/r.exit 2>/dev/null)",
+        "echo `ls 2>/dev/null`",
+        "x=$(cmd >/dev/null 2>&1)",
+        "diff <(sort a 2>/dev/null) b",
+    ],
+)
+def test_dev_null_in_substitution_not_flagged(cmd):
+    assert wants_protected_write(cmd, P) is None
+    assert shell_confirm_reason(cmd) is None
+
+
+@pytest.mark.parametrize(
+    "cmd,expected",
+    [
+        ("x=$(cat a > /etc/y)", "/etc"),
+        ("echo `date > /opt/z`", "/opt"),
+        ("x=$(cmd 2>/dev/sda)", "/dev"),
+    ],
+)
+def test_real_target_in_substitution_still_flagged(cmd, expected):
+    assert wants_protected_write(cmd, P) == expected
+
+
+# 1b: Datei-Argumente lokaler Befehle wie die Shell lesen (Text in Quotes = ein Wort).
+# Echter Fall 03.10.: die Wörter im sed-Ausdruck galten als Datei-Argumente.
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "sed -i 's#rm -rf /opt/hydrahive-rig /etc/hydrahive-rig#rm -rf /opt/x /var/lib/x#' rig/uninstall.sh",
+        "sed -i \"s|/usr/local/bin|/opt/bin|g\" install.sh",
+        "sed -i -e 's/a/b/' -e 's#/etc/x#/etc/y#' notes.md",
+    ],
+)
+def test_sed_expression_words_are_not_paths(cmd):
+    assert wants_protected_write(cmd, P) is None
+
+
+@pytest.mark.parametrize(
+    "cmd,expected",
+    [
+        ("sed -i 's/a/b/' /etc/hosts", "/etc"),
+        ("sed -i 's#x#y#' '/opt/hydrahive2/config'", "/opt"),
+        ('rm -rf "/opt/x"', "/opt"),
+        ("rm -rf '/usr/local/go' build", "/usr"),
+        ("cp a.txt '/etc/x y'", "/etc"),
+        ("touch /root/.profile", "/root"),
+        # Unvollständige Quotes → bisheriges Verfahren (kein Durchrutschen).
+        ("rm -rf /opt/x 'kaputt", "/opt"),
+    ],
+)
+def test_quoted_and_plain_paths_still_flagged(cmd, expected):
+    assert wants_protected_write(cmd, P) == expected
+
+
+# 1c: Heredoc-Inhalt ist Text für einen Befehl, kein Shell-Befehl. Geprüft wird er
+# nur, wenn in der Zeile ein Programm steht, das Shell-Text ausführt (bash, ssh, …).
+# Echte Fälle 07.10./09.10.: Python-Test im Heredoc, `r.key` galt als Schlüsseldatei.
+PY_HEREDOC = (
+    "cd _work/wt/st && mkdir -p backend/team && cat > tests/test_team.py <<'EOF'\n"
+    "def test_x():\n"
+    "    keys = [r.key for r in team.HELPERS]\n"
+    "    assert have == {r.key: r.key == 'structure' for r in team.HELPERS}\n"
+    "    open('/etc/shadow')\n"
+    "    rm -rf /opt/x > /etc/y\n"
+    "EOF\n"
+    "git status --short"
+)
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        PY_HEREDOC,
+        "python3 - <<'PYEOF'\nimport os\np = '/etc/ssl/private/server.key'\nPYEOF",
+        'git commit -q -F - <<EOF\nfix: rm -rf /opt/x > /etc/y\nEOF',
+        "cat >> notes.md <<-EOF\n\trm -rf /usr/lib\n\tEOF\necho fertig",
+        "cat <<A <<B\n/etc/shadow\nA\nrm -rf /opt\nB",
+        "cat <<\\EOF > out.txt\n/root/.ssh/id_rsa\nEOF",
+        # Ohne `<<-` ist ein eingerückter Marker Teil des Inhalts.
+        "cat > a <<E\n\tE\n/etc/shadow\nE",
+    ],
+)
+def test_heredoc_body_for_plain_command_not_flagged(cmd):
+    assert shell_confirm_reason(cmd) is None
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        # Programm, das Shell-Text ausführt → Inhalt wird geprüft (wie bisher).
+        "bash <<'EOF'\nrm -rf /opt/x\nEOF",
+        "cat <<EOF | sudo sh\nrm -rf /opt/x\nEOF",
+        "ssh host <<'EOF'\nok\nEOF\nrm -rf /opt/x",
+        # Was nach dem Ende-Marker folgt, ist wieder ein normaler Befehl.
+        "cat > x.py <<'EOF'\nprint(1)\nEOF\nrm -rf /opt/x",
+        # Die Zeile mit dem Heredoc selbst bleibt geprüft.
+        "cat > /etc/x.conf <<'EOF'\nfoo\nEOF",
+        "cat <<'EOF'; rm -rf /opt/x\nfoo\nEOF",
+        # Kein Heredoc: Here-String und Bit-Shift (die Folgezeilen sind Befehle).
+        "x=$((1<<EOF))\nrm -rf /opt/x\nEOF",
+        "cat <<< EOF\nrm -rf /opt/x\nEOF",
+        # `<<` in Quotes oder im Kommentar ist kein Heredoc.
+        "echo '<<EOF'\nrm -rf /opt/x\nEOF",
+        'echo "x <<EOF y"\nrm -rf /opt/x\nEOF',
+        "# cat <<EOF\nrm -rf /opt/x\nEOF",
+        # Nicht abgeschlossen → nicht ausblenden.
+        "cat > x <<'EOF'\nrm -rf /opt/x",
+        # Ohne `<<-` beendet nur der Marker ohne Einrückung den Heredoc.
+        "cat > a <<E\nx\n\tE\nrm -rf /opt/x",
+        # Weitere Programme, die Shell-Text ausführen.
+        "sudo -u x tee a <<E\nrm -rf /opt/x\nE",
+        "ssh host <<'EOF'\ncat /etc/shadow\nEOF",
+    ],
+)
+def test_heredoc_does_not_hide_real_commands(cmd):
+    assert shell_confirm_reason(cmd) is not None
+
+
+def test_heredoc_dash_strips_tabs_before_marker():
+    # Mit `<<-` endet der Heredoc auch an einem eingerückten Marker; danach wird geprüft.
+    assert shell_confirm_reason("cat > a <<-E\n\tx\n\tE\nrm -rf /opt/x") is not None
+    assert shell_confirm_reason("cat > a <<-E\n\t/etc/shadow\n\tE\nls") is None
