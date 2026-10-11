@@ -26,6 +26,7 @@ from hydrahive.llm._pricing import cost_micros, provider_from_model
 from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._buddy_mode import with_buddy_mode
+from hydrahive.runner._language_rule import language_for, with_language_rule
 from hydrahive.runner._emote_hint import with_emote_hint
 from hydrahive.runner._project_tool_scope import scope_tools
 from hydrahive.access.tool_filter import filter_tools as access_filter_tools
@@ -128,6 +129,7 @@ async def run(
     base_system_prompt = with_emote_hint(base_system_prompt, is_buddy=bool(agent.get("is_buddy")))
     base_system_prompt = with_buddy_mode(base_system_prompt, is_buddy=bool(agent.get("is_buddy")),
                                          mode=(session.metadata or {}).get("buddy_mode"))
+    base_system_prompt = with_language_rule(base_system_prompt, language_for(session.user_id))
     _proj = None
     if active_project_id:
         from hydrahive.projects import config as project_config
