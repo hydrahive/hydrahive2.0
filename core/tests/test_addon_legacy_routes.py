@@ -85,3 +85,17 @@ def test_tailscale_busy_reports_not_ok(client, admin_headers, trigger: Path) -> 
 
 def test_old_sudo_installer_module_is_gone() -> None:
     assert not (Path(__file__).resolve().parents[1] / "src" / "hydrahive" / "tailscale" / "install.py").exists()
+
+
+@pytest.mark.parametrize("addon", ["postgres", "local_media", "samba\ninstall vms", "../x", ""])
+def test_shared_helper_enforces_the_list_itself(tmp_path: Path, addon: str) -> None:
+    """request_install ist die einzige Stelle, die .addon_request schreibt – sie muss die Liste selbst durchsetzen,
+    nicht nur die Route davor (Mutanten-Lücke 11.10.2026)."""
+    from fastapi import HTTPException
+
+    from hydrahive.api.routes._addon_request import request_install
+    trigger = tmp_path / ".addon_request"
+    with pytest.raises(HTTPException) as exc:
+        request_install(addon, trigger)
+    assert exc.value.status_code == 400
+    assert not trigger.exists()
