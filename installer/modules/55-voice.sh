@@ -79,7 +79,11 @@ VOICE_NET="hh-voice"
 
 # Echter Outbound-Test: TCP nach draußen (DNS-Auflösung allein täuscht — prod-NAT
 # löst auf, routet aber nicht). 53 = DNS-over-TCP, fast überall offen.
-_net_ok() { incus exec "$1" -- timeout 5 bash -c 'exec 3<>/dev/tcp/1.1.1.1/53' >/dev/null 2>&1; }
+# UND Namensauflösung: TCP nach 1.1.1.1 geht auch ohne DNS — apt scheiterte dann trotzdem (Fund 11.10.2026).
+_net_ok() {
+  incus exec "$1" -- timeout 5 bash -c 'exec 3<>/dev/tcp/1.1.1.1/53' >/dev/null 2>&1 \
+    && incus exec "$1" -- timeout 5 getent hosts archive.ubuntu.com >/dev/null 2>&1
+}
 
 # Wyoming-Dienst (Whisper/Piper) antwortet auf „describe“ mit „info“. Nur „Port offen“ täuscht: das incus-Proxy-
 # Device nimmt Verbindungen auch an, wenn im Container nichts läuft (Fund 11.10.2026).

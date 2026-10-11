@@ -76,3 +76,13 @@ def test_voice_nat_bridge_keeps_dns_for_containers_without_host_dns_server() -> 
     create = create[:create.index("\n  fi\n")]
     assert "raw.dnsmasq=port=0" not in create.split("\n")[0]
     assert "hh_host_dns_unit" in text
+
+
+def test_container_net_check_needs_name_resolution() -> None:
+    """Echter Fund (hh-instcore, 11.10.2026): _net_ok prüfte nur TCP nach 1.1.1.1:53. Das geht auch, wenn der Container
+    keine Namensauflösung hat – ensure_container_net kehrte sofort zurück, apt im Container scheiterte trotzdem."""
+    import re
+    text = SCRIPT.read_text()
+    fn = re.search(r"^_net_ok\(\) \{.*?^\}", text, re.S | re.M)
+    fn = fn.group(0) if fn else next(x for x in text.splitlines() if x.startswith("_net_ok()"))
+    assert "getent hosts" in fn
