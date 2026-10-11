@@ -9,7 +9,7 @@ dem Aufrufer wird nicht vertraut.
 Aktionen:
   apply  <id> <proto> <hstart> <hend> <ip> <cstart> <scope> <wan_if>
   remove <id>
-  list   (JSON: gespeicherte hh-port-Regeln)
+  list   (JSON {"ufw": installiert?, "rules": gespeicherte hh-port-Regeln})
 
 Regeln werden geschrieben und gelöscht, egal ob ufw gerade an oder aus ist: ufw
 speichert sie auch ausgeschaltet und wendet sie beim Einschalten an. Gesucht wird
@@ -132,8 +132,11 @@ def apply(args: list[str]) -> None:
 
 
 def list_rules() -> None:
-    rules = [fields for fields, _ in own_rules()] if ufw_installed() else []
-    print(json.dumps([{k: f[k] for k in ("id", "in", "ip", "port", "proto")} for f in rules]))
+    # "ufw" sagt dem Abgleich, ob es überhaupt etwas abzugleichen gibt – ohne ufw sähe sonst jede Freigabe wie
+    # „Regel fehlt“ aus und würde ständig neu gesetzt.
+    installed = ufw_installed()
+    rules = [fields for fields, _ in own_rules()] if installed else []
+    print(json.dumps({"ufw": installed, "rules": [{k: f[k] for k in ("id", "in", "ip", "port", "proto")} for f in rules]}))
 
 
 def main() -> None:

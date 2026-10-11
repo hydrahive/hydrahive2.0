@@ -23,7 +23,8 @@ def _interval() -> int:
     return max(30, settings.container_ports_sync_interval)
 
 
-async def _list_ufw() -> list[dict]:
+async def _list_ufw() -> list[dict] | None:
+    """Gespeicherte hh-port-Regeln; None, wenn ufw nicht installiert ist (dann gibt es nichts abzugleichen)."""
     proc = await asyncio.create_subprocess_exec(
         "sudo", "-n", cports.HELPER, "list",
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
@@ -31,7 +32,8 @@ async def _list_ufw() -> list[dict]:
     out, err = await asyncio.wait_for(proc.communicate(), timeout=60)
     if proc.returncode != 0:
         raise cports.PortError("container_port_apply_failed", detail=err.decode(errors="replace")[:200])
-    return json.loads(out.decode() or "[]")
+    data = json.loads(out.decode() or "{}")
+    return data.get("rules", []) if data.get("ufw") else None
 
 
 def _expected(rule: cports.PortRule, ip: str, wan_if: str) -> dict:
@@ -44,10 +46,13 @@ def _expected(rule: cports.PortRule, ip: str, wan_if: str) -> dict:
 async def sync_once() -> dict | None:
     """Ein Durchlauf. None, wenn der Ist-Stand nicht lesbar war (dann wird nichts geändert)."""
     try:
-        actual = {r["id"]: r for r in await _list_ufw()}
+        listed = await _list_ufw()
     except (cports.PortError, OSError, ValueError, asyncio.TimeoutError) as exc:
         logger.warning("Portfreigaben-Abgleich übersprungen: ufw-Regeln nicht lesbar (%s)", exc)
         return None
+    if listed is None:
+        return None
+    actual = {r["id"]: r for r in listed}
     wan_if = nat.wan_interface() or "eth0"
     known: set[str] = set()
     res = {"applied": 0, "removed": 0, "failed": 0}

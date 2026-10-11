@@ -138,7 +138,8 @@ def test_list_reports_stored_rules_even_when_off(box):
     r = run("list")
     assert r.returncode == 0, r.stderr
     got = json.loads(r.stdout)
-    assert got == [
+    assert got["ufw"] is True
+    assert got["rules"] == [
         {"id": ID, "in": "eth0", "ip": "10.10.0.10", "port": "30001", "proto": "tcp"},
         {"id": ID2, "in": "tailscale0", "ip": "10.10.0.11", "port": "27000:27015", "proto": "udp"},
     ]
@@ -150,7 +151,7 @@ def test_list_ignores_foreign_and_malformed_lines(box):
         ["allow", "22/tcp", "comment", "ssh"],
         _rule(ID),
     ])
-    assert [x["id"] for x in json.loads(run("list").stdout)] == [ID]
+    assert [x["id"] for x in json.loads(run("list").stdout)["rules"]] == [ID]
 
 
 def test_without_ufw_installed_nothing_to_do(tmp_path):
@@ -161,7 +162,7 @@ def test_without_ufw_installed_nothing_to_do(tmp_path):
         r = subprocess.run([sys.executable, str(helper), *args], capture_output=True, text=True, env=env, timeout=20)
         assert r.returncode == 0, r.stderr
     r = subprocess.run([sys.executable, str(helper), "list"], capture_output=True, text=True, env=env, timeout=20)
-    assert r.returncode == 0 and json.loads(r.stdout) == []
+    assert r.returncode == 0 and json.loads(r.stdout) == {"ufw": False, "rules": []}
 
 
 def test_rule_with_extra_prefix_is_not_ours(box):
@@ -171,7 +172,7 @@ def test_rule_with_extra_prefix_is_not_ours(box):
     # Echte ufw-Ausgabe (26.04): `ufw route limit …` – gleicher Kommentar, aber nicht unsere Form.
     foreign = ["limit"] + _rule(ID)[1:]
     set_state(active=True, rules=[foreign])
-    assert json.loads(run("list").stdout) == []
+    assert json.loads(run("list").stdout)["rules"] == []
     assert run("remove", ID).returncode == 0
     assert rules() == [foreign]
 
@@ -190,6 +191,6 @@ def test_rule_with_extra_prefix_is_not_ours(box):
 def test_only_the_exact_own_form_counts(box, variant):
     run, set_state, rules = box
     set_state(active=False, rules=[variant])
-    assert json.loads(run("list").stdout) == []
+    assert json.loads(run("list").stdout)["rules"] == []
     assert run("remove", ID).returncode == 0
     assert rules() == [variant]
