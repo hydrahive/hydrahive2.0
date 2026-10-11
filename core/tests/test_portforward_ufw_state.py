@@ -162,3 +162,14 @@ def test_without_ufw_installed_nothing_to_do(tmp_path):
         assert r.returncode == 0, r.stderr
     r = subprocess.run([sys.executable, str(helper), "list"], capture_output=True, text=True, env=env, timeout=20)
     assert r.returncode == 0 and json.loads(r.stdout) == []
+
+
+def test_rule_with_extra_prefix_is_not_ours(box):
+    """Nur genau die Form, die apply schreibt, zählt als eigene Regel – eine Regel mit vorangestelltem Teil
+    (z. B. `limit …` oder von Hand mit `from …` ergänzt) bleibt unangetastet (Mutanten-Lücke 11.10.)."""
+    run, set_state, rules = box
+    foreign = ["insert", "1"] + _rule(ID)
+    set_state(active=True, rules=[foreign])
+    assert json.loads(run("list").stdout) == []
+    assert run("remove", ID).returncode == 0
+    assert rules() == [foreign]

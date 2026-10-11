@@ -131,9 +131,14 @@ def test_stopped_container_gets_no_new_rule_and_keeps_existing(env):
 
 
 def test_bridged_containers_are_ignored(env):
-    ps = env["ps"]
-    env["container"]("sync-f", mode="bridged")
+    """Auch wenn in der Datenbank (fälschlich) eine Freigabe an einem bridged Container hängt: kein ufw-Eingriff."""
+    cp, ps = env["cp"], env["ps"]
+    cid = env["container"]("sync-f", mode="bridged")
+    from hydrahive.containers import nat
+    nat.set_ipv4(cid, "10.10.0.198")
+    cp.create(cid, "tcp", 30041, 30041, 30041, "public", "")
     assert _run(ps) == {"applied": 0, "removed": 0, "failed": 0}
+    assert env["calls"] == []
 
 
 def test_failure_is_recorded_and_others_continue(env):
