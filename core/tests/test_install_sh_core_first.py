@@ -128,5 +128,6 @@ def test_core_dependencies_do_not_rely_on_addons():
     Bisher kam es nur über incus mit – mit Container als Zusatz-Modul (aus) fehlte es: HydraLink-Installation brach ab
     (echter Lauf in frischem Ubuntu-26.04-Container, 11.10.2026)."""
     deps = (INSTALL.parent / "modules" / "00-deps.sh").read_text()
-    block = deps[deps.index("REQUIRED_PACKAGES=("):deps.index(")", deps.index("REQUIRED_PACKAGES=("))]
+    start = deps.index("REQUIRED_PACKAGES=(")
+    block = deps[start:deps.index("\n)", start)]                 # bis zur schließenden Klammer auf eigener Zeile
     assert re.search(r"^\s*rsync\s*$", block, re.M)
