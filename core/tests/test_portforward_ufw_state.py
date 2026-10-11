@@ -42,7 +42,7 @@ elif a == ["status", "numbered"]:
 elif a == ["show", "added"]:
     print("Added user rules (see 'ufw status' for running firewall):")
     for r in d["rules"]: print(text(r))
-elif a[:2] in (["route", "allow"], ["route", "limit"]):
+elif a[:1] == ["route"] and a[1:2] in (["allow"], ["limit"], ["deny"]):
     r = a[1:]
     if r in d["rules"]: print("Skipping adding existing rule")
     else: d["rules"].append(r); save(); print("Rules updated")
@@ -174,3 +174,22 @@ def test_rule_with_extra_prefix_is_not_ours(box):
     assert json.loads(run("list").stdout) == []
     assert run("remove", ID).returncode == 0
     assert rules() == [foreign]
+
+
+@pytest.mark.parametrize("variant", [
+    ["limit"] + _rule(ID)[1:],                                   # echte ufw-Form `route limit`
+    ["deny"] + _rule(ID)[1:],                                    # anderes Ziel
+    _rule(ID)[:6] + ["br0"] + _rule(ID)[7:],                     # Ausgang nicht hhnat0
+    ["allow", "in", "on", "eth0", "out", "on", "hhnat0", "from", "1.2.3.4"] + _rule(ID)[7:],  # mit Quelle
+    _rule(ID)[:-1] + [f"hh-port:{ID} extra"],                    # Kommentar mit Zusatz
+    # Fremde Regel, deren Kommentar unsere Form nachbaut (echt mit ufw 0.36.2 speicherbar, 11.10.): darf nie als
+    # eigene gelten, sonst löscht `remove` eine fremde Regel.
+    ["deny", "in", "on", "eth0", "out", "on", "hhnat0", "to", "10.10.0.9", "port", "4444", "proto", "tcp",
+     "comment", "x " + " ".join(_rule(ID))],
+])
+def test_only_the_exact_own_form_counts(box, variant):
+    run, set_state, rules = box
+    set_state(active=False, rules=[variant])
+    assert json.loads(run("list").stdout) == []
+    assert run("remove", ID).returncode == 0
+    assert rules() == [variant]
