@@ -136,17 +136,14 @@ cd hydrahive2.0
 sudo bash installer/install.sh
 ```
 
-Der interaktive Wizard kann installieren:
+Ohne Rückfragen richtet der Installer den **Kern** ein:
 
 - das FastAPI-Backend, den React-Build, den Service-Account und die systemd-Unit;
 - nginx mit selbstsigniertem HTTPS-Zertifikat;
 - HydraLink/AgentLink;
-- PostgreSQL-Data-Mining;
-- WhatsApp, Samba, Voice und Tailscale;
-- QEMU/libvirt-VMs und Incus-Container;
-- die NVIDIA-Local-Media-Runtime, wenn kompatible Hardware erkannt wird.
+- PostgreSQL-Data-Mining.
 
-Die meisten optionalen Komponenten defaultieren auf **yes**, solange keine Auswahl gespeichert ist. Vor nicht-interaktivem Lauf auf einem Mehrzweckserver [installer/README.md](installer/README.md) lesen.
+Zusatz-Module – WhatsApp, Samba, Voice, Tailscale, QEMU-VMs, Incus-Container und die NVIDIA-Local-Media-Runtime – sind bei einer neuen Installation **aus**. Sie lassen sich später im Admin-Cockpit (System → Zusatz-Module) nachinstallieren oder schon beim Installieren mit `--with=voice,samba,…` bzw. `--all` mitnehmen. Details: [installer/README.md](installer/README.md).
 
 Bei Abschluss gibt der Installer aus:
 
@@ -202,9 +199,13 @@ Der Linux-Installer kann innerhalb von **WSL2** ausgeführt werden. Das ist der 
    sudo bash installer/install.sh
    ```
 
+   Der Installer richtet nur den Kern ein (Oberfläche, PostgreSQL, nginx, HydraLink) und fragt nichts. Zusatz-Module wie VMs, Container oder Voice lassen sich später im Admin-Cockpit unter System → Zusatz-Module nachinstallieren; unter WSL laufen VMs, Container und Voice meist nicht.
+
+   **Keine Namensauflösung unter WSL** („Temporary failure resolving …“): Der Installer prüft das vorab und bricht ab, bevor er Pakete installiert. Meist hilft `wsl --shutdown` in PowerShell und ein Neustart von Ubuntu. Reicht das nicht, in `%UserProfile%\.wslconfig` unter `[wsl2]` die Zeile `dnsTunneling=false` eintragen und WSL erneut neu starten.
+
 4. Die vom Installer ausgegebene URL in Windows öffnen. Mit dem standardmäßigen WSL2-Localhost-Forwarding ist das normalerweise `https://localhost`; falls nötig, stattdessen die WSL-Adresse aus `hostname -I` verwenden. Das generierte Zertifikat ist selbstsigniert, daher ist die Browser-Warnung erwartet.
 
-Der HydraHive-Kernservice, nginx und das Web-Cockpit wurden unter WSL2 getestet. Hardware- und Kernel-abhängige optionale Komponenten (zum Beispiel libvirt/QEMU, Incus, Samba, Tailscale und CUDA-/Local-Media-Workloads) hängen von der jeweiligen Windows-/WSL-Konfiguration ab und sollten im Installer deaktiviert werden, wenn sie nicht verfügbar sind. Für eine zuverlässige WSL-Installation Repository und Laufzeitdaten im Linux-Dateisystem belassen und im interaktiven Wizard nicht unterstützte Host-Integrationen abwählen.
+Der HydraHive-Kernservice, nginx und das Web-Cockpit wurden unter WSL2 getestet. Hardware- und Kernel-abhängige optionale Komponenten (zum Beispiel libvirt/QEMU, Incus, Samba, Tailscale und CUDA-/Local-Media-Workloads) hängen von der jeweiligen Windows-/WSL-Konfiguration ab und werden vom Installer standardmäßig nicht installiert. Für eine zuverlässige WSL-Installation Repository und Laufzeitdaten im Linux-Dateisystem belassen.
 
 ### macOS (experimentell)
 

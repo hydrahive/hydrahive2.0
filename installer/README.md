@@ -2,7 +2,7 @@
 
 The installer provisions HydraHive on an apt-based Ubuntu/Debian host. The repository contains explicit upgrade handling for Ubuntu 24.04 and 26.04. Other releases must provide Python 3.12 and the required host capabilities; verify them before production use.
 
-> The default component selection is broad: nginx, AgentLink, PostgreSQL, voice, Incus containers, libvirt VMs, Samba, WhatsApp and Tailscale are enabled unless declined. Use the interactive wizard or explicit `HH_INSTALL_*` values for a minimal host.
+> A new installation installs the **core only** and asks no questions: backend, web cockpit, PostgreSQL, nginx and HydraLink. Optional components (Tailscale, voice, Incus containers, VMs, Samba, WhatsApp, local media) are **off** and can be added later in the admin cockpit (System → add-on modules) or with `--with=…` / `--all` (see `docs/specs/installer-core-first.md`).
 
 ## Requirements
 
@@ -43,57 +43,40 @@ If the clone is not already at `/opt/hydrahive2` and `HH_REPO_DIR` was not expli
 11. runs an optional LLM-provider setup wizard;
 12. prints the login URL, generated administrator password and component summary.
 
-The script is intended to be idempotent. Re-running it preserves stored wizard choices unless `--reconfigure` is supplied.
+The script is intended to be idempotent. Re-running it keeps the stored choices.
 
-## Component wizard
+Before phase 1 the installer writes `/etc/apt/apt.conf.d/80hydrahive-retries` (`Acquire::Retries "5"`) and checks name resolution for the hosts it downloads from. Without DNS it stops before installing any packages and prints the steps (including WSL hints). Skip the check with `HH_SKIP_PREFLIGHT=yes`, e.g. for a local package mirror.
 
-Interactive runs ask about:
+## Core and add-on modules
 
-| Variable | Component | Default without a saved choice |
-|---|---|---:|
-| `HH_INSTALL_TAILSCALE` | Tailscale mesh VPN | `yes` |
-| `HH_INSTALL_POSTGRES` | PostgreSQL data-mining mirror | `yes` |
-| `HH_INSTALL_VOICE` | Wyoming Faster Whisper + Piper containers and optional mmx CLI | `yes` |
-| `HH_INSTALL_CONTAINERS` | Incus container manager | `yes` |
-| `HH_INSTALL_VMS` | QEMU/KVM, libvirt and websockify | `yes` |
-| `HH_INSTALL_AGENTLINK` | HydraLink/AgentLink | `yes`; no interactive question, set `no` explicitly to skip |
-| `HH_INSTALL_NGINX` | nginx HTTPS reverse proxy | `yes` |
-| `HH_INSTALL_SAMBA` | project workspace shares | `yes` |
-| `HH_INSTALL_WHATSAPP` | WhatsApp Node bridge dependencies | `yes` |
+Always installed (no question): backend, web cockpit, PostgreSQL data-mining mirror, nginx HTTPS reverse proxy, HydraLink/AgentLink. `HH_INSTALL_POSTGRES=no`, `HH_INSTALL_NGINX=no` and `HH_INSTALL_AGENTLINK=no` remain as explicit escape hatches.
 
-Voice requires the container manager; the installer turns containers back on when voice is selected.
+Add-on modules — **off** on a new installation:
 
-Answers are stored at `/etc/hydrahive2/install.conf` with mode `0600`. Precedence is:
+| Variable | `--with` name | Component |
+|---|---|---|
+| `HH_INSTALL_TAILSCALE` | `tailscale` | Tailscale mesh VPN |
+| `HH_INSTALL_VOICE` | `voice` | Wyoming Faster Whisper + Piper containers and optional mmx CLI (pulls in containers) |
+| `HH_INSTALL_CONTAINERS` | `containers` | Incus container manager |
+| `HH_INSTALL_VMS` | `vms` | QEMU/KVM and websockify |
+| `HH_INSTALL_SAMBA` | `samba` | project workspace shares |
+| `HH_INSTALL_WHATSAPP` | `whatsapp` | WhatsApp Node bridge dependencies |
+| `HH_INSTALL_LOCAL_MEDIA` | `local_media` | local image/video generation (NVIDIA ≥ 12 GB) |
+
+```bash
+sudo bash installer/install.sh                      # core only
+sudo bash installer/install.sh --with=voice,samba   # core + listed add-ons
+sudo bash installer/install.sh --all                # core + all add-ons except local media (previous behaviour)
+sudo bash installer/install.sh --reconfigure        # ask for each add-on (default: no)
+```
+
+Choices are stored at `/etc/hydrahive2/install.conf` with mode `0600`. Precedence is:
 
 ```text
-explicit environment > saved install.conf > interactive answer > default
+explicit environment > saved install.conf > --with / --all > no
 ```
 
-### Minimal/non-interactive example
-
-```bash
-sudo env \
-  HH_INSTALL_TAILSCALE=no \
-  HH_INSTALL_POSTGRES=no \
-  HH_INSTALL_VOICE=no \
-  HH_INSTALL_CONTAINERS=no \
-  HH_INSTALL_VMS=no \
-  HH_INSTALL_AGENTLINK=no \
-  HH_INSTALL_SAMBA=no \
-  HH_INSTALL_WHATSAPP=no \
-  HH_INSTALL_NGINX=yes \
-  bash installer/install.sh --no-prompt
-```
-
-Skipping AgentLink removes agent-to-agent delegation. Skipping nginx also removes the default HTTPS/static-file edge and requires a separately configured reverse proxy or direct development-style access.
-
-### Reconfigure
-
-```bash
-sudo bash /opt/hydrahive2/installer/install.sh --reconfigure
-```
-
-This asks the component questions again. An explicit environment value still wins.
+`update.sh` maintains only wanted add-ons. On existing servers an add-on that is installed, or has no saved value yet, counts as wanted (previous behaviour); only an explicit `no` for a module that is not installed keeps it off.
 
 ## Core settings
 

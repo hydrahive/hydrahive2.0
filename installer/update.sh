@@ -77,6 +77,12 @@ if [ -z "${HH_UPDATE_REEXECED:-}" ] && [ -n "$SELF_HASH_BEFORE" ]; then
   fi
 fi
 
+# Zusatz-Module nur pflegen, wenn gewünscht (docs/specs/installer-core-first.md §2): hh_addon_wanted wertet
+# „installiert?“ + install.conf aus und schreibt das Ergebnis zurück. Bestand ohne Eintrag behält das alte Verhalten.
+# Erst NACH git pull laden – sonst läuft bei reinen Bibliotheks-Änderungen (ohne re-exec) noch der alte Stand.
+# shellcheck source=lib/install-choices.sh
+source "$HH_REPO_DIR/installer/lib/install-choices.sh"
+
 # Bestehende Installationen können eine vom Installer als root erzeugte llm.json
 # besitzen. Dann scheitern Hinzufügen, Bearbeiten und Löschen in der Web-UI.
 # shellcheck source=lib/config-permissions.sh
@@ -198,7 +204,8 @@ sudo -u hydrahive npm install --no-fund --no-audit
 sudo -u hydrahive npm run build
 
 WA_BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
-if [ -f "$WA_BRIDGE_DIR/package.json" ]; then
+wa_installed=false; [ -d "$WA_BRIDGE_DIR/node_modules" ] && wa_installed=true
+if [ -f "$WA_BRIDGE_DIR/package.json" ] && hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_WHATSAPP "$wa_installed"; then
   log "WhatsApp-Bridge: npm install"
   cd "$WA_BRIDGE_DIR"
   npm install --cache /tmp/npm-cache-hh --no-audit --no-fund
@@ -490,8 +497,9 @@ if ! command -v gh >/dev/null 2>&1; then
   DEBIAN_FRONTEND=noninteractive apt-get install -y gh
 fi
 
-if ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
-   || ! systemctl is-active --quiet hydrahive2-websockify.service; then
+if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VMS "$(hh_has qemu-system-x86_64)" \
+   && { ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
+        || ! systemctl is-active --quiet hydrahive2-websockify.service; }; then
   log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" \
     INSTALLER_DIR="$HH_REPO_DIR/installer" \
@@ -516,9 +524,10 @@ fi
 
 # incus-Setup muss VOR dem Voice-Check laufen — 55-voice.sh nutzt incus
 # als STT-Container-Runtime (kein Docker mehr).
-if ! command -v incus >/dev/null 2>&1 \
-   || ! incus storage list 2>/dev/null | grep -q "default" \
-   || [ ! -d "/home/$HH_USER/.config/incus" ]; then
+if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_CONTAINERS "$(hh_has incus)" \
+   && { ! command -v incus >/dev/null 2>&1 \
+        || ! incus storage list 2>/dev/null | grep -q "default" \
+        || [ ! -d "/home/$HH_USER/.config/incus" ]; }; then
   log "Container-Manager-Setup fehlt — starte 70-containers.sh"
   HH_USER="$HH_USER" \
     bash "$HH_REPO_DIR/installer/modules/70-containers.sh" || log "containers-setup failed — weiter"
@@ -564,7 +573,9 @@ elif ! command -v ffmpeg >/dev/null 2>&1; then
 elif ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
   voice_ok=0
 fi
-if [ "$voice_ok" = "0" ]; then
+voice_installed=false
+incus list --format=csv -c n 2>/dev/null | grep -qx "hydrahive2-stt" && voice_installed=true
+if [ "$voice_ok" = "0" ] && hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VOICE "$voice_installed"; then
   log "Voice-Setup unvollständig — starte 55-voice.sh"
   # ffmpeg am Host: Voice-Stack braucht das für mp4→pcm und ogg-Konvertierung.
   # Falls 00-deps.sh das nicht installiert hat (alte Installs vor Migration):
@@ -728,7 +739,8 @@ if [ -x /usr/local/go/bin/go ] && [ -f "$HH_REPO_DIR/extensions/install/golang.s
     || log "cgo-Pakete für Go nicht installiert — weiter"
 fi
 
-if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ] && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
+if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_TAILSCALE "$(hh_has tailscale)" \
+   && [ -x "$HH_REPO_DIR/installer/modules/80-tailscale.sh" ]; then
   log "Tailscale-Setup (installieren falls nicht da, Operator setzen)"
   bash "$HH_REPO_DIR/installer/modules/80-tailscale.sh" || log "tailscale-update failed — weiter"
 fi
