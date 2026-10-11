@@ -1,6 +1,6 @@
 # Spec: Antwortsprache für alle Agenten aus der Buddy-Einstellung
 
-Task c858b87e. Entscheidung Till 08.10.2026: „Alle Agenten nutzen die Sprache, die beim Buddy eingestellt ist. Kein
+Task c858b87e. Freigegeben von Till am 11.10.2026. Entscheidung Till 08.10.2026: „Alle Agenten nutzen die Sprache, die beim Buddy eingestellt ist. Kein
 neues Profilfeld. Der Runner setzt die Regel in den stabilen Prompt-Teil jedes Agenten des Nutzers, auch für kurze
 Zwischensätze vor Werkzeugen. ‚auto‘ heißt: keine feste Regel.“
 
