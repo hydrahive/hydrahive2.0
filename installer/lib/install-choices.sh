@@ -75,6 +75,7 @@ hh_conf_set() {
     printf "%s='%s'\n" "$key" "$value" >> "$tmp"
   fi
   chmod --reference="$conf" "$tmp" 2>/dev/null || chmod 600 "$tmp"
+  chown --reference="$conf" "$tmp" 2>/dev/null || true      # Besitzer behalten (z. B. hydrahive), mv übernimmt ihn nicht
   mv "$tmp" "$conf"
 }
 

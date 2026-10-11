@@ -91,6 +91,21 @@ def test_conf_set_keeps_mode_600(tmp_path):
     assert oct(conf.stat().st_mode & 0o777) == "0o600"
 
 
+def test_conf_set_keeps_owner(tmp_path):
+    """Echter Fund auf hydratest (11.10.2026): install.conf gehörte hydrahive, nach update.sh root – mktemp+mv übernimmt
+    den Besitzer nicht. Ohne root nicht direkt prüfbar, daher: chown wird mit --reference auf die alte Datei gerufen."""
+    conf = tmp_path / "install.conf"
+    conf.write_text("HH_INSTALL_VMS='no'\n")
+    log = tmp_path / "chown.log"
+    stub = tmp_path / "bin"
+    stub.mkdir()
+    (stub / "chown").write_text(f'#!/bin/bash\necho "$@" >> "{log}"\n')
+    (stub / "chown").chmod(0o755)
+    r = _run(f'PATH="{stub}:$PATH"; hh_conf_set "{conf}" HH_INSTALL_VMS yes')
+    assert r.returncode == 0, r.stderr
+    assert f"--reference={conf}" in log.read_text()
+
+
 def test_conf_set_refuses_foreign_keys_and_values(tmp_path):
     conf = tmp_path / "install.conf"
     conf.write_text("")
