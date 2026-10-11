@@ -42,7 +42,7 @@ elif a == ["status", "numbered"]:
 elif a == ["show", "added"]:
     print("Added user rules (see 'ufw status' for running firewall):")
     for r in d["rules"]: print(text(r))
-elif a[:2] == ["route", "allow"]:
+elif a[:2] in (["route", "allow"], ["route", "limit"]):
     r = a[1:]
     if r in d["rules"]: print("Skipping adding existing rule")
     else: d["rules"].append(r); save(); print("Rules updated")
@@ -168,7 +168,8 @@ def test_rule_with_extra_prefix_is_not_ours(box):
     """Nur genau die Form, die apply schreibt, zählt als eigene Regel – eine Regel mit vorangestelltem Teil
     (z. B. `limit …` oder von Hand mit `from …` ergänzt) bleibt unangetastet (Mutanten-Lücke 11.10.)."""
     run, set_state, rules = box
-    foreign = ["insert", "1"] + _rule(ID)
+    # Echte ufw-Ausgabe (26.04): `ufw route limit …` – gleicher Kommentar, aber nicht unsere Form.
+    foreign = ["limit"] + _rule(ID)[1:]
     set_state(active=True, rules=[foreign])
     assert json.loads(run("list").stdout) == []
     assert run("remove", ID).returncode == 0
