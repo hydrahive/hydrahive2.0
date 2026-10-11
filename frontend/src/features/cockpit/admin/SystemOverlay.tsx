@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Activity, Bot, Database, Folder, MessageSquare, Mic, RotateCw, Server, SlidersHorizontal, Wrench, Zap } from "lucide-react"
+import { Activity, Bot, Database, Folder, MessageSquare, RotateCw, Server, SlidersHorizontal, Wrench, Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { RestartModal } from "@/shared/RestartModal"
@@ -13,8 +13,7 @@ import { BackupCard } from "@/features/system/BackupCard"
 import { MigrationCard } from "@/features/system/MigrationCard"
 import { HealthBar } from "@/features/system/HealthBar"
 import { LocalMediaCard } from "@/features/system/LocalMediaCard"
-import { VoiceInstallModal } from "@/features/system/VoiceInstallModal"
-import { useVoiceInstall } from "@/features/system/useVoiceInstall"
+import { AddonsCard } from "@/features/system/AddonsCard"
 import { PathRow } from "@/features/system/_systemHelpers"
 import { formatBytes, formatUptime } from "@/features/system/systemFormat"
 import { CockpitButton } from "../CockpitButton"
@@ -30,7 +29,6 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
   const { t: tNav } = useTranslation("nav")
   const role = useAuthStore((s) => s.role)
   const restart = useRestart()
-  const voice = useVoiceInstall()
   const [info, setInfo] = useState<SystemInfo | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [checks, setChecks] = useState<HealthCheck[]>([])
@@ -61,9 +59,6 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
         <div className="flex flex-wrap items-center justify-end gap-2">
           <CockpitButton onClick={() => setShowSettings(true)}>
             <SlidersHorizontal size={12} className="mr-1 inline" />Einstellungen
-          </CockpitButton>
-          <CockpitButton onClick={voice.begin}>
-            <Mic size={12} className="mr-1 inline" />Voice installieren
           </CockpitButton>
           <CockpitButton onClick={restart.open} tone="danger">
             <RotateCw size={12} className="mr-1 inline" />{tNav("restart.button")}
@@ -109,6 +104,7 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
         )}
 
         <AgentLinkCard />
+        {role === "admin" && <AddonsCard />}
         {role === "admin" && <TailscaleCard />}
         {role === "admin" && <BridgeCard />}
         {role === "admin" && <LocalMediaCard />}
@@ -120,9 +116,6 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
       {showSettings && <SystemSettingsOverlay onClose={() => setShowSettings(false)} />}
       {restart.state !== "idle" && (
         <RestartModal state={restart.state} errorMessage={restart.error} onConfirm={restart.confirm} onClose={restart.close} />
-      )}
-      {voice.state !== "idle" && (
-        <VoiceInstallModal state={voice.state} errorMessage={voice.error} onConfirm={voice.confirm} onClose={voice.close} />
       )}
     </AdminOverlay>
   )

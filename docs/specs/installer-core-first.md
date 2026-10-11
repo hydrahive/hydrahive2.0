@@ -88,7 +88,7 @@ Wichtige Befunde:
   - Nicht installiert und Wert vorhanden (`yes`/`no`) → bleibt.
   - Nicht installiert und Wert fehlt oder ist leer → `yes`. Das ist der bisherige Standard, damit sich für bestehende
     Server nichts ändert. Nur neue Installationen schreiben `no`.
-- **„Installiert“ heißt** (Root-Sicht in `update.sh`): VMs = `qemu-system-x86_64` vorhanden; Container = `incus`
+- **„Installiert“ heißt** (Root-Sicht in `update.sh`): VMs = Unit `hydrahive2-websockify.service` (legt nur `65-vms.sh` an) **und** `qemu-system-x86_64` vorhanden – qemu allein reicht nicht, `incus` zieht es als Abhängigkeit mit (Fund 11.10.); Container = `incus`
   vorhanden; Voice = incus-Container `hydrahive2-stt` vorhanden; WhatsApp = `node_modules` der Bridge vorhanden;
   Samba = `smbd` vorhanden; Tailscale = `tailscale` vorhanden.
 - Local Media behält seinen Marker `local-media.enabled` und wird von der Migration nicht angefasst.
@@ -120,7 +120,7 @@ Wichtige Befunde:
   | Modul | Prüfung |
   |---|---|
   | containers | `incus_client.is_available()` |
-  | vms | `qemu-system-x86_64` vorhanden **und** `/dev/kvm` lesbar |
+  | vms | Unit `hydrahive2-websockify.service` **und** `qemu-system-x86_64` vorhanden (fehlendes KVM zeigt der WSL-Hinweis) |
   | samba | `samba_status()` |
   | whatsapp | `node_modules` der Bridge vorhanden |
   | voice | STT-Port `127.0.0.1:10300` erreichbar |

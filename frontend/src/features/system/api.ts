@@ -39,8 +39,6 @@ export const systemApi = {
   info: () => api.get<SystemInfo>("/system/info"),
   stats: () => api.get<SystemStats>("/system/stats"),
   health: () => api.get<{ checks: HealthCheck[] }>("/system/health"),
-  installVoice: () => api.post<{ started: boolean }>("/system/install-voice", {}),
-  voiceLog: (tail = 300) => api.get<{ lines: string[]; exists: boolean }>(`/system/install-voice/log?tail=${tail}`),
   bridgeStatus: () => api.get<{ installed: boolean; state?: string; ip?: string }>("/system/bridge/status"),
   bridgeSetup: () => api.post<{ started: boolean }>("/system/bridge/setup", {}),
   bridgeLog: (tail = 200) =>
@@ -51,8 +49,6 @@ export const systemApi = {
     includes_dir: string; includes_dir_exists: boolean;
   }>("/system/samba/status"),
   sambaSetup: () => api.post<{ started: boolean }>("/system/samba/setup", {}),
-  sambaLog: (tail = 200) =>
-    api.get<{ lines: string[]; exists: boolean }>(`/system/samba/log?tail=${tail}`),
   downloadBackup: async () => {
     const token = useAuthStore.getState().token || ""
     const r = await fetch("/api/admin/backup", {

@@ -9,6 +9,7 @@ import {
   AdminStatus,
 } from "@/features/cockpit/admin/ui"
 import { systemApi } from "./api"
+import { addonsApi, lastRun } from "./addonsApi"
 
 type Phase = "idle" | "running" | "done" | "failed"
 
@@ -38,9 +39,10 @@ export function SambaCard() {
     let alive = true
     async function pull() {
       try {
-        const response = await systemApi.sambaLog(200)
+        // Setup läuft über den Zusatz-Module-Runner – Log steht in hydrahive2-addon.log (nur der letzte Lauf).
+        const response = await addonsApi.log(200)
         if (!alive) return
-        if (response.exists) setLog(response.lines)
+        if (response.exists) setLog(lastRun(response.lines))
       } catch { /* ignore */ }
     }
     void pull()

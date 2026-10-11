@@ -51,6 +51,7 @@ EXCLUDE_PATTERNS: tuple[str, ...] = (
     ".update_request",
     ".restart_request",
     ".voice_install_request",
+    ".addon_request",    # offene Zusatz-Modul-Anfrage (addon-ctl.sh) – nach Restore nicht erneut ausführen
     ".backup-rollback-",
     ".hh2-restore-",     # transientes Extraktions-Tempdir (Restore läuft in data_dir)
 )

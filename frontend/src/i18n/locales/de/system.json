@@ -1,21 +1,5 @@
 {
   "title": "System-Status",
-  "voice_install": {
-    "title": "Voice Interface installieren",
-    "lxc_hint": "Läuft als incus-LXC (kein Docker)",
-    "download_hint": "Modelle/Stimmen werden heruntergeladen (~0,5–1 GB)",
-    "ports_hint": "STT läuft auf Port 10300, TTS (Piper) auf Port 10200",
-    "autostart_hint": "Container starten automatisch bei jedem System-Neustart",
-    "log_title": "Installations-Log",
-    "log_empty": "Warte auf Log-Ausgabe…",
-    "running": "Installation läuft — incus-Container + Modelle werden eingerichtet…",
-    "starting": "Installation wird gestartet…",
-    "done_msg": "Voice Interface erfolgreich installiert — STT Port 10300 · TTS Port 10200",
-    "failed": "Installation fehlgeschlagen",
-    "unknown_error": "Unbekannter Fehler",
-    "cancel": "Abbrechen",
-    "install": "Installieren"
-  },
   "subtitle": "Auto-Refresh alle {{seconds}}s",
   "subtitle_with_uptime": "Auto-Refresh alle {{seconds}}s · läuft seit {{uptime}}",
   "stats": {
@@ -232,5 +216,39 @@
     "done_uninstall": "Entfernt. Das Update installiert es nicht erneut.",
     "failed": "Fehlgeschlagen — Details im Log",
     "log_empty": "Warte auf den Start (bis zu 5 Sekunden)…"
+  },
+  "addons": {
+    "title": "Zusatz-Module",
+    "subtitle": "Was nicht zum Kern gehört, lässt sich hier nachinstallieren. Updates pflegen danach auch diese Module.",
+    "installed": "installiert",
+    "not_installed": "nicht installiert",
+    "running_badge": "wird installiert",
+    "install": "Installieren",
+    "busy_title": "Es läuft bereits eine Installation.",
+    "hint_wsl": "Unter WSL meist nicht verfügbar (kein KVM/systemd-Netz).",
+    "confirm": "{{name}} jetzt installieren?",
+    "confirm_requires": "Dafür wird vorher installiert: {{names}}.",
+    "confirm_restart": "HydraHive startet dabei kurz neu. Die Seite liest danach weiter mit.",
+    "confirm_button": "Jetzt installieren",
+    "running": "{{name}} wird installiert… das Log läuft mit.",
+    "done": "{{name}} ist installiert.",
+    "failed": "Installation fehlgeschlagen – Details im Log.",
+    "log_empty": "Warte auf Log-Ausgabe…",
+    "name": {
+      "containers": "Container (incus)",
+      "vms": "Virtuelle Maschinen (QEMU/KVM)",
+      "samba": "Samba-Freigaben",
+      "whatsapp": "WhatsApp-Bridge",
+      "voice": "Voice (Sprache rein/raus)",
+      "tailscale": "Tailscale"
+    },
+    "desc": {
+      "containers": "Agenten können eigene Linux-Container anlegen und darin arbeiten.",
+      "vms": "Vollständige virtuelle Maschinen mit Bildschirm im Browser.",
+      "samba": "Projekt-Ordner als Netzlaufwerk im Heimnetz.",
+      "whatsapp": "Agenten per WhatsApp erreichen.",
+      "voice": "Spracherkennung und Sprachausgabe lokal (läuft in einem Container).",
+      "tailscale": "Sicherer Zugriff von unterwegs über das eigene Tailnet."
+    }
   }
 }

@@ -78,6 +78,19 @@ explicit environment > saved install.conf > --with / --all > no
 
 `update.sh` maintains only wanted add-ons. On existing servers an add-on that is installed, or has no saved value yet, counts as wanted (previous behaviour); only an explicit `no` for a module that is not installed keeps it off.
 
+### Adding modules later (admin cockpit)
+
+Admin cockpit → **System** → card **Add-on modules**: one row per module (containers, VMs, Samba, WhatsApp, voice, Tailscale) with status and an **Install** button. Installing VMs or containers restarts HydraHive briefly; the page keeps following the log.
+
+How it works: the API only writes one line `install <module>` to `$HH_DATA_DIR/.addon_request` (fixed list, nothing else is accepted). `hydrahive2-addon.timer` picks it up, `hydrahive2-addon.service` runs `installer/addon-ctl.sh` as root and logs to `/var/log/hydrahive2-addon.log`. Only after a successful run is `HH_INSTALL_<MODULE>=yes` written to `install.conf`, so `update.sh` keeps maintaining it. Voice installs containers first if they are missing. One job at a time (a second request gets HTTP 409). Removing modules is not offered here.
+
+Same thing from a shell:
+
+```bash
+echo 'install samba' | sudo tee /var/lib/hydrahive2/.addon_request
+sudo tail -f /var/log/hydrahive2-addon.log
+```
+
 ## Core settings
 
 | Variable | Installer default | Meaning |
@@ -178,6 +191,7 @@ The nginx certificate is self-signed and includes loopback plus the detected ser
 /var/log/hydrahive2-samba.log            Samba setup log
 /var/log/hydrahive2-migration.log        migration log
 /var/log/hydrahive2-local-media.log      local media (ComfyUI) install/remove log
+/var/log/hydrahive2-addon.log            add-on modules installed from the cockpit (addon-ctl.sh)
 ```
 
 ### Main commands
@@ -192,7 +206,7 @@ sudo nginx -t
 sudo systemctl status nginx
 ```
 
-Systemd timers poll for UI-created update, restart, voice, bridge, Samba and migration request files.
+Systemd timers poll for UI-created update, restart, bridge, migration, local media and add-on request files. Voice, Samba and Tailscale are installed through the add-on runner (`.addon_request`).
 
 ## nginx behavior
 
@@ -311,7 +325,8 @@ Check Incus and the dedicated log:
 
 ```bash
 incus list
-sudo tail -n 200 /var/log/hydrahive2-voice.log
+sudo tail -n 200 /var/log/hydrahive2-addon.log   # installed from the cockpit
+sudo tail -n 200 /var/log/hydrahive2-voice.log   # older installs
 ```
 
 The voice stack depends on container support and can take substantially longer than the base installation.

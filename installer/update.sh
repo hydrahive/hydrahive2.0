@@ -480,6 +480,48 @@ EOF
   systemctl restart hydrahive2-local-media.timer
 fi
 
+# --- Zusatz-Module-Runner (hydrahive2-addon) — docs/specs/installer-core-first.md §3
+if [ ! -f /etc/systemd/system/hydrahive2-addon.timer ] || [ ! -f /etc/systemd/system/hydrahive2-addon.service ]; then
+  log "Zusatz-Module-Units anlegen"
+  # Kein ExecStartPre-rm: addon-ctl.sh löscht die Anfrage erst am Ende.
+  cat > /etc/systemd/system/hydrahive2-addon.service <<EOF
+[Unit]
+Description=HydraHive2 Zusatz-Module Install Runner
+ConditionPathExists=$HH_DATA_DIR/.addon_request
+
+[Service]
+Type=oneshot
+# Voice/VMs laden viel nach — kein Start-Timeout.
+TimeoutStartSec=0
+Environment=HH_DATA_DIR=$HH_DATA_DIR
+Environment=HH_CONFIG_DIR=$HH_CONFIG_DIR
+Environment=HH_REPO_DIR=$HH_REPO_DIR
+Environment=HH_USER=$HH_USER
+ExecStart=$HH_REPO_DIR/installer/addon-ctl.sh
+StandardOutput=append:/var/log/hydrahive2-addon.log
+StandardError=append:/var/log/hydrahive2-addon.log
+EOF
+  cat > /etc/systemd/system/hydrahive2-addon.timer <<EOF
+[Unit]
+Description=HydraHive2 Zusatz-Module Trigger Poller
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5s
+AccuracySec=1s
+Unit=hydrahive2-addon.service
+
+[Install]
+WantedBy=timers.target
+EOF
+  touch /var/log/hydrahive2-addon.log
+  chmod 644 /var/log/hydrahive2-addon.log
+  systemctl daemon-reload
+  systemctl enable hydrahive2-addon.timer >/dev/null 2>&1
+  systemctl restart hydrahive2-addon.timer
+fi
+# --- Ende Zusatz-Module-Runner
+
 if ! command -v sshpass >/dev/null 2>&1; then
   log "sshpass fehlt — installiere"
   DEBIAN_FRONTEND=noninteractive apt-get install -y sshpass
@@ -497,7 +539,9 @@ if ! command -v gh >/dev/null 2>&1; then
   DEBIAN_FRONTEND=noninteractive apt-get install -y gh
 fi
 
-if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VMS "$(hh_has qemu-system-x86_64)" \
+# „VMs installiert“ = VM-Manager eingerichtet (websockify-Unit aus 65-vms.sh) – qemu allein kommt auch mit incus.
+vms_installed=false; [ -f /etc/systemd/system/hydrahive2-websockify.service ] && command -v qemu-system-x86_64 >/dev/null 2>&1 && vms_installed=true
+if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VMS "$vms_installed" \
    && { ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
         || ! systemctl is-active --quiet hydrahive2-websockify.service; }; then
   log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"
@@ -560,7 +604,8 @@ done
 # 1. incus-Container 'hydrahive2-stt' läuft
 # 2. proxy-device 'stt-port' am Container existiert (Port-Forward zum Host)
 # 3. mmx-CLI (TTS) installiert
-# 4. Port 10300 am Host hört (End-to-End-Bestätigung)
+# 4. Whisper antwortet auf Port 10300 (End-to-End). Nur „Port hört“ reicht nicht: der incus-Proxy lauscht auch,
+#    wenn im Container kein Whisper läuft (Fund hydratest 11.10.2026).
 voice_ok=1
 if ! incus list --format=csv -c n,s 2>/dev/null | grep -qx "hydrahive2-stt,RUNNING"; then
   voice_ok=0
@@ -570,7 +615,7 @@ elif ! command -v mmx >/dev/null 2>&1; then
   voice_ok=0
 elif ! command -v ffmpeg >/dev/null 2>&1; then
   voice_ok=0
-elif ! ss -tln 2>/dev/null | grep -q "127.0.0.1:10300"; then
+elif [[ "$(printf '{"type": "describe"}\n' | timeout 4 nc -w3 127.0.0.1 10300 2>/dev/null | head -c 32 || true)" != '{"type": "info"'* ]]; then
   voice_ok=0
 fi
 voice_installed=false

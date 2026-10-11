@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes._addon_request import request_install
 from hydrahive.runner.integrity_metrics import summarize_integrity
 from hydrahive.settings import settings
 
@@ -28,8 +29,6 @@ UPDATE_SCRIPT = _installer_path("installer/update.sh")
 UPDATE_TRIGGER = settings.data_dir / ".update_request"
 UPDATE_LOG = settings.update_log
 RESTART_TRIGGER = settings.data_dir / ".restart_request"
-VOICE_SCRIPT = _installer_path("installer/modules/55-voice.sh")
-VOICE_TRIGGER = settings.data_dir / ".voice_install_request"
 VOICE_LOG = settings.voice_log
 
 
@@ -106,14 +105,9 @@ def trigger_restart() -> dict:
 
 @router.post("/install-voice", dependencies=[Depends(require_admin)])
 def trigger_voice_install() -> dict:
-    if not VOICE_SCRIPT.exists():
-        raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "voice_script_missing")
-    try:
-        VOICE_TRIGGER.write_text(str(int(time.time())))
-    except OSError as e:
-        logger.exception("Voice-Trigger-File konnte nicht geschrieben werden")
-        raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "voice_trigger_failed", message=str(e))
-    logger.info("Voice-Install-Trigger geschrieben (%s)", VOICE_TRIGGER)
+    """Alter Weg (eine Version lang): läuft jetzt über den Zusatz-Module-Runner (installer/addon-ctl.sh)."""
+    request_install("voice")
+    logger.info("Voice-Installation über den Zusatz-Module-Runner angefragt")
     return {"started": True}
 
 
