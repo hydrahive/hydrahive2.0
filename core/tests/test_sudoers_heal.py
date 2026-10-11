@@ -44,7 +44,10 @@ def box(tmp_path: Path):
         # Ersatz: lehnt ab, wenn VISUDO_REJECT gesetzt ist oder noch eine aktive requiretty-Zeile drin ist.
         'f="${@: -1}"\n'
         '[ -n "${VISUDO_REJECT:-}" ] && exit 1\n'
-        "grep -Eq '^[[:space:]]*Defaults[^#]*requiretty' \"$f\" && exit 1\n"
+        # Nur die exakte eigene Zeile gilt hier als ungültig: Der Ersatz prüft, ob die MIGRATION richtig schneidet.
+        # (Echtes sudo-rs lehnt auch Varianten wie „!requiretty, env_reset“ ab – die fasst die Migration bewusst nicht
+        # an; das echte Verhalten prüft der Container-Test.)
+        "grep -Eq '^[[:space:]]*Defaults:hydrahive[[:space:]]+!requiretty[[:space:]]*(#.*)?$' \"$f\" && exit 1\n"
         "exit 0\n"
     )
     visudo.chmod(0o755)
@@ -107,8 +110,8 @@ def test_rejected_by_visudo_keeps_the_old_file(box):
     assert r.returncode == 0, r.stderr       # Update läuft weiter
     assert target.read_text() == OLD
     assert "WARNUNG" in r.stdout
-    leftovers = [p for p in target.parent.iterdir() if p.name.startswith(target.name) and p != target]
-    assert leftovers == []                   # keine Reste neben der Datei
+    leftovers = [p.name for p in target.parent.iterdir() if target.name in p.name and p != target]
+    assert leftovers == []                   # keine Kopie (.hydrahive2-extensions.XXXX) neben der Datei
 
 
 def test_candidate_is_checked_before_replace(box):
@@ -147,11 +150,25 @@ def test_only_the_own_requiretty_line_goes(box):
 
 
 def test_line_of_another_user_is_not_removed(box):
+    """Mit eigener Zeile daneben: die eigene fällt, die fremde bleibt (visudo nimmt die Fassung an)."""
     target, _, run = box
-    text = "Defaults:anderer !requiretty\nhydrahive ALL=(ALL) NOPASSWD: /bin/bash\n"
-    _write(target, text)
-    run()
-    assert target.read_text() == text        # nicht unsere Zeile → nichts anfassen
+    _write(target, "Defaults:anderer !requiretty\nDefaults:hydrahive !requiretty\nhydrahive ALL=(ALL) NOPASSWD: /bin/bash\n")
+    assert run().returncode == 0
+    assert target.read_text() == "Defaults:anderer !requiretty\nhydrahive ALL=(ALL) NOPASSWD: /bin/bash\n"
+
+
+@pytest.mark.parametrize("keep", [
+    "Defaults:hydrahive !requiretty, env_reset",           # mehr als nur requiretty → nicht anfassen
+    "Defaults:hydrahive !requiretty_extra",                # anderes Wort
+    "# Defaults:hydrahive !requiretty",                    # Kommentar
+    "Defaults:hydrahive2 !requiretty",                     # anderer Nutzer mit gleichem Anfang
+    "Defaults:xhydrahive !requiretty",                     # anderer Nutzer mit gleichem Ende
+])
+def test_lines_that_are_not_exactly_ours_stay(box, keep):
+    target, _, run = box
+    _write(target, f"{keep}\nDefaults:hydrahive !requiretty\nhydrahive ALL=(ALL) NOPASSWD: /bin/bash\n")
+    assert run().returncode == 0
+    assert target.read_text() == f"{keep}\nhydrahive ALL=(ALL) NOPASSWD: /bin/bash\n"
 
 
 def test_update_sh_runs_the_fix_for_the_extensions_file():
