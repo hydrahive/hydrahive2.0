@@ -219,7 +219,7 @@ def test_dash_i_exemption_is_ssh_scoped():
 
 
 def test_quoted_local_redirect_target_still_flagged():
-    # _mask_quotes darf einen LOKALEN Redirect mit gequotetem Ziel nicht verstecken.
+    # mask_quotes darf einen LOKALEN Redirect mit gequotetem Ziel nicht verstecken.
     assert wants_protected_write("echo evil > '/etc/passwd'", P) == "/etc"
     assert wants_protected_write('cat x > "/opt/hydrahive2/config"', P) == "/opt"
     assert wants_protected_write("echo p >> '/etc/cron.d/job'", P) == "/etc"

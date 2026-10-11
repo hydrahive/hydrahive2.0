@@ -16,6 +16,8 @@ import os
 import re
 from collections.abc import Sequence
 
+from hydrahive.tools._shell_lex import mask_quotes, split_top_level
+
 # System-Wurzeln, die praktisch nie der Arbeitsbereich eines Agenten sind.
 # /tmp, /home, /var, der Workspace und Projekt-Repos sind bewusst NICHT dabei —
 # dort schreiben Agenten legitim, ein Popup würde nur nerven.
@@ -62,82 +64,6 @@ def _is_safe_dev(path: str) -> bool:
 _SSH_FAMILY = frozenset({"ssh", "scp", "sftp", "slogin", "sshpass", "autossh"})
 
 
-def _split_top_level(cmd: str) -> list[str]:
-    """Splittet an `;`, `&`, `|`, Newline — aber nur AUSSERHALB von Quotes.
-
-    Ersetzt das quote-blinde `re.split`: `ssh host 'a && b'` bleibt ein Segment,
-    statt in lokal aussehende `a`/`b` zu zerfallen.
-    """
-    segs: list[str] = []
-    buf: list[str] = []
-    q: str | None = None
-    i, n = 0, len(cmd)
-    while i < n:
-        c = cmd[i]
-        if q is not None:
-            buf.append(c)
-            if c == "\\" and q == '"' and i + 1 < n:
-                buf.append(cmd[i + 1])
-                i += 2
-                continue
-            if c == q:
-                q = None
-            i += 1
-            continue
-        if c in ("'", '"'):
-            q = c
-            buf.append(c)
-        elif c == "\\" and i + 1 < n:
-            buf.append(c)
-            buf.append(cmd[i + 1])
-            i += 2
-            continue
-        elif c in ";&|\n":
-            segs.append("".join(buf))
-            buf = []
-        else:
-            buf.append(c)
-        i += 1
-    if buf:
-        segs.append("".join(buf))
-    return segs
-
-
-def _mask_quotes(s: str) -> str:
-    """Ersetzt gequotete Inhalte durch Leerzeichen (Quote-Zeichen bleiben).
-
-    So matcht der Redirect-Scan nur Redirections ausserhalb von Quotes —
-    `echo x > /etc/y` innerhalb von `ssh host '...'` ist ein Remote-Redirect.
-    """
-    out: list[str] = []
-    q: str | None = None
-    i, n = 0, len(s)
-    while i < n:
-        c = s[i]
-        if q is not None:
-            if c == "\\" and q == '"' and i + 1 < n:
-                out.append("  ")
-                i += 2
-                continue
-            if c == q:
-                q = None
-                out.append(c)
-            else:
-                out.append(" ")
-            i += 1
-            continue
-        if c == "\\" and i + 1 < n:
-            out.append(c)
-            out.append(s[i + 1])
-            i += 2
-            continue
-        if c in ("'", '"'):
-            q = c
-        out.append(c)
-        i += 1
-    return "".join(out)
-
-
 def _has_ssh_token(tokens: Sequence[str]) -> bool:
     return any(os.path.basename(t.strip("'\"")) in _SSH_FAMILY for t in tokens)
 
@@ -179,7 +105,7 @@ def _segment_target(seg: str, protected: Sequence[str]) -> str | None:
     # Redirect, `ssh h 'echo>/etc/y'`). Das ZIEL darf gequotet sein (`> '/etc/x'`)
     # — deshalb am Original matchen und nur die Operator-Position gegen die
     # Maske prüfen (gleiche Länge, also positionsgleich).
-    masked = _mask_quotes(seg)
+    masked = mask_quotes(seg)
     for m in _REDIRECT.finditer(seg):
         if masked[m.start()] != seg[m.start()]:
             continue
@@ -226,7 +152,7 @@ def wants_protected_write(cmd: str, protected: Sequence[str] | None = None) -> s
     if not cmd or not cmd.strip():
         return None
     prefixes = protected if protected is not None else default_protected()
-    for seg in _split_top_level(cmd):
+    for seg in split_top_level(cmd):
         if (h := _segment_target(seg, prefixes)):
             return h
     return None
@@ -268,7 +194,7 @@ def wants_sensitive_read(cmd: str) -> str | None:
     """
     if not cmd or not cmd.strip():
         return None
-    for seg in _split_top_level(cmd):
+    for seg in split_top_level(cmd):
         tokens = seg.split()
         ssh_ctx = _has_ssh_token(tokens)
         prev = ""
