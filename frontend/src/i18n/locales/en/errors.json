@@ -157,6 +157,9 @@
 
   "local_media_blocked": "Installation blocked ({{reason}}).",
   "local_media_busy": "An action for local image/video generation is already running.",
+  "addon_busy": "An add-on installation is already running. Please wait until it has finished.",
+  "addon_unknown": "Unknown add-on module “{{addon}}”.",
+  "addon_installed": "“{{addon}}” is already installed.",
   "local_media_not_installed": "Local image/video generation is not installed.",
 
   "group_exists": "A group with this name already exists",

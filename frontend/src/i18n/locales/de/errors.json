@@ -157,6 +157,9 @@
 
   "local_media_blocked": "Installation gesperrt ({{reason}}).",
   "local_media_busy": "Es läuft bereits eine Aktion für die lokale Bild-/Videogenerierung.",
+  "addon_busy": "Es läuft bereits eine Installation eines Zusatz-Moduls. Bitte warten, bis sie fertig ist.",
+  "addon_unknown": "Unbekanntes Zusatz-Modul „{{addon}}“.",
+  "addon_installed": "„{{addon}}“ ist bereits installiert.",
   "local_media_not_installed": "Die lokale Bild-/Videogenerierung ist nicht installiert.",
 
   "group_exists": "Eine Gruppe mit diesem Namen gibt es schon",

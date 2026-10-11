@@ -10,18 +10,15 @@ import {
   AdminStatus,
 } from "@/features/cockpit/admin/ui"
 import type { TailscaleStatus } from "./_tailscaleTypes"
+import { addonOutcome, addonsApi, lastRun } from "./addonsApi"
 import { TailscaleConnectedView } from "./_TailscaleConnectedView"
 import { TailscaleInviteSection } from "./_TailscaleInviteSection"
 import { TailscaleLoginForm } from "./_TailscaleLoginForm"
 
 const REFRESH_MS = 15_000
 
-interface InstallResult {
-  ok: boolean
-  rc: number
-  output: string
-  status: TailscaleStatus
-}
+const INSTALL_POLL_MS = 2000
+const INSTALL_MAX_MS = 10 * 60 * 1000
 
 export function TailscaleCard() {
   const { t } = useTranslation("system")
@@ -46,15 +43,22 @@ export function TailscaleCard() {
     return () => clearInterval(id)
   }, [])
 
+  // Installation läuft über den Zusatz-Module-Runner (installer/addon-ctl.sh); hier nur anstoßen und mitlesen.
   async function handleInstall() {
     setInstalling(true); setError(null); setInstallOutput(null)
     try {
-      const r = await api.post<InstallResult>("/tailscale/install", {})
-      setStatus(r.status)
-      if (!r.ok) {
-        setError(t("tailscale.install_failed"))
-        setInstallOutput(r.output)
+      await addonsApi.install("tailscale")
+      const startedAt = Date.now()
+      while (Date.now() - startedAt < INSTALL_MAX_MS) {
+        await new Promise((resolve) => setTimeout(resolve, INSTALL_POLL_MS))
+        const r = await addonsApi.log(60).catch(() => null)
+        const lines = lastRun(r?.lines ?? [])
+        setInstallOutput(lines.join(""))
+        const outcome = addonOutcome(lines, "tailscale")
+        if (outcome === "failed") { setError(t("tailscale.install_failed")); return }
+        if (outcome === "ok") { await load(); return }
       }
+      setError(t("tailscale.install_failed"))
     } catch (e) {
       setError(e instanceof Error ? e.message : t("tailscale.install_failed"))
     } finally { setInstalling(false) }
