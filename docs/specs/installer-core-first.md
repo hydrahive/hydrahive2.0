@@ -1,14 +1,20 @@
 # Spec: Installer – erst der Kern, Zusatz-Module später über die Oberfläche
 
-Status: ENTWURF (wartet auf Tills OK)
+Status: FREIGEGEBEN (Till, 11.10.2026)
 Datum: 2026-10-11 · Task a594de49
 
 ## Was
 
-`install.sh` installiert ohne Rückfragen einen **funktionierenden Kern**: Backend, Oberfläche, nginx und HydraLink.
-Alle anderen Bausteine werden danach im Admin-Cockpit unter **System → Zusatz-Module** mit je einem Knopf und einer
-Log-Anzeige nachinstalliert. Das betrifft PostgreSQL, Container (incus), VMs, Samba, WhatsApp, Voice, Tailscale und
+`install.sh` installiert ohne Rückfragen einen **funktionierenden Kern**: Backend, Oberfläche, nginx, PostgreSQL und
+HydraLink. Alle anderen Bausteine werden danach im Admin-Cockpit unter **System → Zusatz-Module** mit je einem Knopf
+und einer Log-Anzeige nachinstalliert. Das betrifft Container (incus), VMs, Samba, WhatsApp, Voice, Tailscale und
 Local Media.
+
+**Entscheidungen von Till (11.10.):**
+1. nginx gehört fest zum Kern.
+2. PostgreSQL gehört ebenfalls fest zum Kern.
+3. Tailscale wird auf den gemeinsamen Runner umgestellt.
+4. Zwei PRs: zuerst Installer und `update.sh` (Abschnitte 1, 2, 4), danach die Oberfläche (Abschnitt 3).
 
 ## Warum
 
@@ -53,14 +59,15 @@ Wichtige Befunde:
 ## Soll
 
 ### 1. Installer
-- **Kern ohne Fragen:** 00, 10, 20, 30, 40, 50, 60 (nginx), 75 (HydraLink), dazu die vorhandenen Helfer (llmfit,
-  graphify).
+- **Kern ohne Fragen:** 00, 10, 20, 30, 40, 48 (PostgreSQL), 50, 60 (nginx), 75 (HydraLink), dazu die vorhandenen
+  Helfer (llmfit, graphify). `HH_INSTALL_NGINX=no` und `HH_INSTALL_POSTGRES=no` bleiben per Umgebungsvariable als
+  bewusster Notausstieg erhalten (wie heute `HH_INSTALL_AGENTLINK=no`), werden aber nicht mehr gefragt.
 - **Zusatz-Module standardmäßig aus.** Neue Installationen schreiben für alle Module `no` in install.conf.
   Der Komponenten-Wizard entfällt im Normalfall.
 - **Wer beim Installieren doch etwas mitnehmen will:**
-  - `--with=postgres,voice,…` oder die bisherigen ENV-Variablen (`HH_INSTALL_VOICE=yes` …) wirken wie heute.
+  - `--with=voice,containers,…` oder die bisherigen ENV-Variablen (`HH_INSTALL_VOICE=yes` …) wirken wie heute.
   - `--all` = bisheriges Verhalten (alles außer Local Media).
-  - `--reconfigure` fragt wie bisher alle Module ab.
+  - `--reconfigure` fragt die Zusatz-Module ab (Standard jeweils „N“).
 - **Bestands-Installationen:** Liegt install.conf schon vor, gilt sie unverändert. Ein Re-Run oder Update entfernt
   nichts und schaltet nichts ab.
 - **Abschlussübersicht:** Hinweis „Zusatz-Module: Admin-Cockpit → System → Zusatz-Module“. Unter WSL zusätzlich der
@@ -73,18 +80,24 @@ Wichtige Befunde:
   Nichts wird automatisch umgestellt.
 
 ### 2. Modul-Status ist die Wahrheit für `update.sh`
-- In install.conf steht je Modul `yes` oder `no`. **`update.sh` pflegt nur Module mit `yes`.** Das gilt auch für VMs,
-  Container und Voice; deren Zustandsprüfungen bekommen dieselbe Bedingung wie heute schon PostgreSQL und Tailscale.
-- **Migration für Bestands-Installationen ohne Eintrag:** Fehlt ein Wert, wird er beim ersten Update aus dem Zustand
-  abgeleitet. Ist das Modul installiert, wird `yes` gesetzt; sonst gilt der bisherige Standard (`yes`, damit sich für
-  bestehende Server nichts ändert). Nur neue Installationen schreiben `no`.
+- In install.conf steht je Modul `yes` oder `no`. **`update.sh` pflegt nur gewünschte Module.** Das gilt auch für VMs,
+  Container, Voice und WhatsApp; deren Zustandsprüfungen bekommen eine Bedingung wie heute schon Tailscale.
+- **„Gewünscht“ heißt** (je Update neu bewertet, Ergebnis wird in install.conf geschrieben):
+  - Das Modul ist installiert → `yes`. Das gilt auch, wenn bisher `no` drinstand: `update.sh` hat VMs, Container und
+    Voice bisher trotzdem installiert, sie sind also in Benutzung und dürfen nicht verwaisen.
+  - Nicht installiert und Wert vorhanden (`yes`/`no`) → bleibt.
+  - Nicht installiert und Wert fehlt oder ist leer → `yes`. Das ist der bisherige Standard, damit sich für bestehende
+    Server nichts ändert. Nur neue Installationen schreiben `no`.
+- **„Installiert“ heißt** (Root-Sicht in `update.sh`): VMs = `qemu-system-x86_64` vorhanden; Container = `incus`
+  vorhanden; Voice = incus-Container `hydrahive2-stt` vorhanden; WhatsApp = `node_modules` der Bridge vorhanden;
+  Samba = `smbd` vorhanden; Tailscale = `tailscale` vorhanden.
 - Local Media behält seinen Marker `local-media.enabled` und wird von der Migration nicht angefasst.
 
 ### 3. Nachinstallieren in der Oberfläche
 - **Ein gemeinsamer Runner** `installer/addon-ctl.sh` (root, über `hydrahive2-addon.service` und Timer, wie Local Media):
   - Die Trigger-Datei `$HH_DATA_DIR/.addon_request` enthält genau eine Zeile `install <modul>`. Erlaubt sind nur die
-    festen Modulnamen aus einer Liste im Skript (`postgres containers vms samba whatsapp voice tailscale`).
-    Alles andere wird verworfen.
+    festen Modulnamen aus einer Liste im Skript (`containers vms samba whatsapp voice tailscale`; PostgreSQL ist
+    jetzt Kern). Alles andere wird verworfen.
   - Der Runner setzt `HH_INSTALL_<MODUL>=yes`, ruft das Modul-Skript auf und schreibt **nur bei Erfolg** `yes` in
     install.conf (kleine Funktion, die genau eine Zeile ersetzt).
   - Abhängigkeiten: `voice` zieht vorher `containers` nach (wie heute im Wizard).
@@ -106,7 +119,6 @@ Wichtige Befunde:
 
   | Modul | Prüfung |
   |---|---|
-  | postgres | `settings.pg_mirror_dsn` gesetzt |
   | containers | `incus_client.is_available()` |
   | vms | `qemu-system-x86_64` vorhanden **und** `/dev/kvm` lesbar |
   | samba | `samba_status()` |
@@ -143,10 +155,11 @@ Wichtige Befunde:
   Backend, was die Angriffsfläche eher verkleinert.
 
 ## Akzeptanz
-1. Frische Installation (hydratest-Klon, Ubuntu 26.04) mit `sudo bash installer/install.sh`: keine Rückfragen,
-   Oberfläche erreichbar, Login geht, ein LLM-Zugang lässt sich eintragen und der Chat antwortet. install.conf hat für
-   alle Zusatz-Module `no`. `update.sh` danach installiert **nichts** nach.
-2. Im Cockpit „Zusatz-Module“: PostgreSQL, Container, Samba und WhatsApp nacheinander installieren. Der Status springt
+1. Frische Installation (neuer incus-Container, Ubuntu 26.04) mit `sudo bash installer/install.sh`: keine Rückfragen,
+   Oberfläche erreichbar, Login geht, PostgreSQL-Spiegel läuft. install.conf hat für alle Zusatz-Module `no`.
+   `update.sh` danach installiert **nichts** nach. (Ein LLM-Zugang lässt sich eintragen; ob der Chat antwortet, hängt
+   am Zugang – auf hydratest gibt es derzeit keinen.)
+2. Im Cockpit „Zusatz-Module“: Container, Samba und WhatsApp nacheinander installieren. Der Status springt
    auf „installiert“, install.conf auf `yes`, das Log ist lesbar. Ein zweiter Klick während eines Laufs ergibt 409.
 3. VMs installieren: Der Dienst startet kurz neu, die Oberfläche zeigt danach Log und Status richtig.
 4. Bestands-Installation (hydratest wie heute, alles installiert): `update.sh` installiert alles weiter, nichts wird
@@ -162,11 +175,5 @@ Wichtige Befunde:
    - vitest für die Karte.
    - Browser-Test auf hydratest über genau den Klickweg aus dieser Spec.
 
-## Offene Fragen an Till
-1. **nginx fest im Kern?** Ohne nginx ist die Oberfläche nicht erreichbar. Vorschlag: ja, ohne Frage.
-2. **PostgreSQL** (Datamining-Spiegel) auch erst später? Ohne PostgreSQL fehlt die Volltext- und semantische Suche im
-   Gedächtnis; Chat und Agenten laufen trotzdem. Vorschlag: später über die Oberfläche.
-3. **Tailscale-Weg angleichen** (vom Backend-`sudo` auf den Runner): jetzt mitmachen oder getrennt?
-4. **Reihenfolge:** zuerst Installer + update.sh (Schritte 1, 2, 4) als eigener PR, danach die Oberfläche (Schritt 3)?
-   Der erste Teil allein hilft schon bei Neuinstallationen. Für das Nachinstallieren wäre bis zum zweiten PR noch
-   `--reconfigure` nötig.
+## Entschieden (Till, 11.10.)
+Siehe oben unter „Was“: nginx und PostgreSQL fest im Kern, Tailscale über den Runner, zwei PRs.
