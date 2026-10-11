@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+// api-client zieht i18n + generierte Modul-Liste (in der CI nicht vorhanden) – hier geht es nur um reine Logik.
+vi.mock("@/shared/api-client", () => ({ api: { get: vi.fn(), post: vi.fn() } }))
 import { addonOutcome, lastRun } from "./addonsApi"
 
 const run = (...body: string[]) => ["[hh2-addon] ===== 2026-10-11 10:00:00 Anfrage: install samba =====\n", ...body]
