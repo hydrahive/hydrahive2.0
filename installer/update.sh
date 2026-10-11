@@ -26,11 +26,6 @@ if [ -f "$INSTALL_CONF" ]; then
   done < "$INSTALL_CONF"
 fi
 
-# Zusatz-Module nur pflegen, wenn gewünscht (docs/specs/installer-core-first.md §2): hh_addon_wanted wertet
-# „installiert?“ + install.conf aus und schreibt das Ergebnis zurück. Bestand ohne Eintrag behält das alte Verhalten.
-# shellcheck source=lib/install-choices.sh
-source "$HH_REPO_DIR/installer/lib/install-choices.sh"
-
 cd "$HH_REPO_DIR"
 
 # Re-exec-Schutz: nach git pull prüfen wir ob update.sh sich selbst geändert
@@ -81,6 +76,12 @@ if [ -z "${HH_UPDATE_REEXECED:-}" ] && [ -n "$SELF_HASH_BEFORE" ]; then
     HH_UPDATE_REEXECED=1 exec bash "$SELF_PATH" "$@"
   fi
 fi
+
+# Zusatz-Module nur pflegen, wenn gewünscht (docs/specs/installer-core-first.md §2): hh_addon_wanted wertet
+# „installiert?“ + install.conf aus und schreibt das Ergebnis zurück. Bestand ohne Eintrag behält das alte Verhalten.
+# Erst NACH git pull laden – sonst läuft bei reinen Bibliotheks-Änderungen (ohne re-exec) noch der alte Stand.
+# shellcheck source=lib/install-choices.sh
+source "$HH_REPO_DIR/installer/lib/install-choices.sh"
 
 # Bestehende Installationen können eine vom Installer als root erzeugte llm.json
 # besitzen. Dann scheitern Hinzufügen, Bearbeiten und Löschen in der Web-UI.

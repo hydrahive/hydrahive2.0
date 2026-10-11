@@ -67,3 +67,10 @@ def test_installed_detection_per_module_matches_spec():
 def test_postgres_and_core_unchanged():
     """PostgreSQL ist Kern: weiterhin gepflegt, solange nicht ausdrücklich HH_INSTALL_POSTGRES=no."""
     assert 'if [ "${HH_INSTALL_POSTGRES:-yes}" != "no" ]; then' in _text()
+
+
+def test_choices_library_loaded_after_git_pull():
+    """Echter Fund auf hydratest (11.10.2026): Die Bibliothek wurde vor git pull geladen – eine Änderung nur an ihr
+    (ohne update.sh-Änderung, also ohne re-exec) griff erst beim nächsten Update."""
+    src = UPDATE.read_text()
+    assert src.index('source "$HH_REPO_DIR/installer/lib/install-choices.sh"') > src.index('exec bash "$SELF_PATH"')
