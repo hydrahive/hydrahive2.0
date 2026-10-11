@@ -60,12 +60,36 @@ Eine Freigabe hat:
   - `public` → öffentliche IPv4 des Servers (aus `ip route get 1.1.1.1`)
   - `tailnet` → Tailscale-IPv4 des Servers
   - `off` → kein Device, Regel bleibt nur in der DB
-- **ufw** (falls aktiv), Kommentar `hh-port:<freigabe-id>`. Weil `nat=true`
+- **ufw** (wenn installiert – **auch wenn ausgeschaltet**, siehe „ufw aus/an“), Kommentar `hh-port:<freigabe-id>`. Weil `nat=true`
   per DNAT weiterleitet, laufen die Pakete durch die **FORWARD**-Kette, also
   `ufw route` (nicht `ufw allow`), Ziel ist die Container-IP und der Container-Port:
   - `public` → `ufw route allow in on <wan-if> out on hhnat0 to <ip> port <cports> proto <proto>`
   - `tailnet` → dasselbe mit `in on tailscale0`
   - `off` → Regeln mit dem Kommentar entfernen
+
+### ufw aus/an und Abgleich (Nachtrag 11.10.2026)
+
+**Fehler (VPS 06.10.):** Bei ausgeschaltetem ufw hat `hh-portforward` keine Regel geschrieben, aber Erfolg gemeldet
+(`applied_at` gesetzt, `last_error` leer). Nach `ufw enable` waren alle Freigaben zu, die Oberfläche zeigte „aktiv“.
+Auch `remove` tat bei ausgeschaltetem ufw nichts – eine später gelöschte Freigabe hätte ihre Regel behalten.
+
+**Geprüft (Ubuntu 26.04, ufw 0.36.2):** `ufw route allow …` speichert die Regel auch bei ausgeschaltetem ufw (user.rules)
+und sie greift nach `enable`. Doppeltes Anlegen überspringt ufw selbst. `ufw show added` listet die gespeicherten
+Regeln auch bei ausgeschaltetem ufw (`ufw status` dagegen nicht). Löschen geht ohne Nummer über den Regeltext:
+`ufw route delete allow <wie angelegt> comment '<kommentar>'`.
+
+**Soll:**
+- `hh-portforward` schreibt und löscht Regeln **unabhängig davon, ob ufw an ist**. Gefunden werden die eigenen Regeln über
+  `ufw show added` (Kommentar `hh-port:<id>`), gelöscht über ihren Regeltext. Fremde Regeln bleiben unberührt.
+  Ohne installiertes ufw: nichts zu tun (wie bisher).
+- Neue Aktion `list`: gibt die gespeicherten `hh-port`-Regeln maschinenlesbar aus (ID, Richtung, Ziel, Port, Protokoll),
+  ebenfalls unabhängig vom ufw-Zustand.
+- **Abgleich** im Backend (beim Start und dann regelmäßig, Intervall als Einstellung): Soll aus der Datenbank
+  (Freigaben mit `public`/`tailnet` an einem laufenden `nat`-Container) gegen Ist aus `list`.
+  - Fehlt eine Regel oder weicht sie ab → `apply` für diese Freigabe.
+  - `hh-port`-Regel ohne Freigabe in der Datenbank (verwaist) oder mit `off` → `remove`.
+  - Ergebnis je Freigabe in `applied_at`/`last_error`; Fehler werden geloggt, der Abgleich läuft weiter.
+  - Nur `hh-port`-Regeln werden angefasst, nie fremde.
 
 ### Live-Befund VPS (05.10.2026)
 
@@ -149,6 +173,8 @@ Fehlercodes: `container_port_reserved`, `container_port_conflict`,
 5. UDP-Bereich 27000–27015 funktioniert.
 6. Gesperrter Port (z. B. 22) und Überlappung → abgewiesen.
 7. Container löschen → Proxy-Devices und ufw-Regeln weg.
+7a. Freigabe anlegen, während ufw aus ist → nach `ufw enable` offen. Freigabe löschen, während ufw aus ist → Regel weg.
+7b. ufw-Regel von Hand gelöscht → der Abgleich stellt sie wieder her. Verwaiste `hh-port`-Regel → entfernt.
 8. .2: bestehende bridged Container unverändert.
 
 ## Etappen
