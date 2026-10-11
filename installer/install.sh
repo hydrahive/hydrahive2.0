@@ -5,14 +5,16 @@
 # Repo wurde nach /opt/hydrahive2 geklont (oder dieser Pfad existiert).
 #
 # Usage:
-#   sudo ./install.sh                    # interaktiv (fragt z.B. nach Tailscale)
-#   sudo ./install.sh --no-prompt        # keine Fragen, Defaults / ENV / install.conf
-#   sudo ./install.sh --reconfigure      # alle Fragen erneut stellen
+#   sudo ./install.sh                    # Kern ohne Fragen (Backend, Oberfläche, PostgreSQL, nginx, HydraLink)
+#   sudo ./install.sh --with=voice,vms   # Kern + genannte Zusatz-Module
+#   sudo ./install.sh --all              # Kern + alle Zusatz-Module (bisheriges Verhalten, ohne Local Media)
+#   sudo ./install.sh --reconfigure      # Zusatz-Module einzeln abfragen
 #   sudo HH_HOST=192.168.1.10 ./install.sh
 #
-# Antworten werden in /etc/hydrahive2/install.conf gespeichert. Re-Runs
-# überspringen Fragen automatisch. ENV-Variablen vor dem Aufruf gewinnen über
-# install.conf (z.B. sudo -E HH_INSTALL_TAILSCALE=no ./install.sh).
+# Zusatz-Module (Tailscale, Voice, Container, VMs, Samba, WhatsApp, Local Media) sind bei neuen Installationen
+# AUS und lassen sich später im Admin-Cockpit → System → Zusatz-Module nachinstallieren
+# (docs/specs/installer-core-first.md). Die Auswahl steht in /etc/hydrahive2/install.conf; ENV-Variablen vor dem
+# Aufruf gewinnen über install.conf (z.B. sudo -E HH_INSTALL_VOICE=yes ./install.sh).
 #
 # Was passiert:
 #   1. apt-Dependencies (python3.12, node, nginx)
@@ -33,8 +35,8 @@ HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
 HH_CONFIG_DIR="${HH_CONFIG_DIR:-/etc/hydrahive2}"
 HH_HOST="${HH_HOST:-127.0.0.1}"
 HH_PORT="${HH_PORT:-8001}"
-# HH_INSTALL_*-Defaults: NICHT hier setzen — sonst überspringt der Wizard die Frage.
-# Der Wizard setzt "yes" als Default in NO_PROMPT/no-TTY-Pfad (siehe prompt_component).
+# HH_INSTALL_*-Defaults: NICHT hier setzen — die Auswahl (lib/install-choices.sh) setzt Zusatz-Module auf „no“,
+# Kern-Teile (PostgreSQL, nginx, HydraLink) bleiben leer = an.
 
 # --------------------------------------------------------------- Helfer
 log() { printf "\033[1;36m[hh2-install]\033[0m %s\n" "$*"; }
@@ -76,41 +78,17 @@ fi
 
 export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR
 
-# --------------------------------------------------------------- Pre-Flight Wizard
-# Speichert Antworten in $HH_CONFIG_DIR/install.conf — Re-Runs fragen nicht erneut.
-# Reihenfolge der Prioritäten: ENV > install.conf > interaktive Frage > Default.
+# --------------------------------------------------------------- Auswahl der Zusatz-Module
+# Kern (immer): Backend, Oberfläche, PostgreSQL, nginx, HydraLink. Zusatz-Module bei neuen Installationen AUS
+# (docs/specs/installer-core-first.md). Reihenfolge: ENV > install.conf > --with/--all > „no“.
 #
 # Flags:
-#   --reconfigure   alle Fragen erneut stellen (auch wenn install.conf existiert)
-#   --no-prompt     keine Fragen stellen, nur ENV / install.conf / Defaults
+#   --reconfigure   Zusatz-Module einzeln abfragen (Standard jeweils „N“)
+#   --with=a,b      genannte Zusatz-Module mitinstallieren (tailscale voice containers vms samba whatsapp local_media)
+#   --all           alle Zusatz-Module außer Local Media (bisheriges Verhalten)
+#   --no-prompt     (bleibt aus Kompatibilität; es wird ohnehin nicht mehr gefragt)
+# >>> Auswahl (Block wird in core/tests/test_install_sh_core_first.py echt ausgeführt)
 INSTALL_CONF="$HH_CONFIG_DIR/install.conf"
-RECONFIGURE=0
-NO_PROMPT=0
-for arg in "$@"; do
-  case "$arg" in
-    --reconfigure) RECONFIGURE=1 ;;
-    --no-prompt)   NO_PROMPT=1   ;;
-  esac
-done
-
-is_tty() { [ -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; }
-
-load_install_conf() {
-  [ "$RECONFIGURE" = "1" ] && return 0
-  [ -f "$INSTALL_CONF" ] || return 0
-  log "Lade gespeicherte Antworten aus $INSTALL_CONF"
-  # ENV gewinnt über install.conf — nur leere Variablen aus Datei nachziehen
-  local key value
-  while IFS='=' read -r key value; do
-    case "$key" in ''|\#*) continue ;; esac
-    value="${value#\"}"; value="${value%\"}"
-    value="${value#\'}"; value="${value%\'}"
-    if [ -z "${!key:-}" ]; then
-      export "$key=$value"
-    fi
-  done < "$INSTALL_CONF"
-}
-
 CONF_VARS=(
   HH_INSTALL_TAILSCALE
   HH_INSTALL_POSTGRES
@@ -124,14 +102,43 @@ CONF_VARS=(
   HH_INSTALL_LOCAL_MEDIA
 )
 
+RECONFIGURE=0
+for arg in "$@"; do
+  case "$arg" in
+    --reconfigure) RECONFIGURE=1 ;;
+  esac
+done
+
+is_tty() { [ -t 0 ] && [ -t 1 ] && [ -r /dev/tty ]; }
+
+# shellcheck source=lib/install-choices.sh
+source "$INSTALLER_DIR/lib/install-choices.sh"
+hh_choices_parse_args "$@" || err "Ungültige Option (siehe oben)."
+
+load_install_conf() {
+  [ "$RECONFIGURE" = "1" ] && return 0
+  [ -f "$INSTALL_CONF" ] || return 0
+  log "Lade gespeicherte Auswahl aus $INSTALL_CONF"
+  # ENV gewinnt über install.conf — nur leere Variablen aus Datei nachziehen
+  local key value
+  while IFS='=' read -r key value; do
+    case "$key" in ''|\#*) continue ;; esac
+    value="${value#\"}"; value="${value%\"}"
+    value="${value#\'}"; value="${value%\'}"
+    if [ -z "${!key:-}" ]; then
+      export "$key=$value"
+    fi
+  done < "$INSTALL_CONF"
+}
+
 save_install_conf() {
   mkdir -p "$HH_CONFIG_DIR"
   {
     echo "# HydraHive2 install.conf — automatisch generiert"
-    echo "# Bei sudo bash install.sh --reconfigure werden Werte erneut abgefragt."
+    echo "# Zusatz-Module nachinstallieren: Admin-Cockpit → System → Zusatz-Module (oder install.sh --reconfigure)."
     local v
     for v in "${CONF_VARS[@]}"; do
-      echo "$v='${!v:-}'"
+      if [ -n "${!v:-}" ]; then echo "$v='${!v}'"; fi
     done
     if [ -n "${HH_TAILSCALE_AUTHKEY:-}" ]; then
       echo "HH_TAILSCALE_AUTHKEY='${HH_TAILSCALE_AUTHKEY}'"
@@ -154,69 +161,44 @@ ask_yn() {
 }
 
 prompt_component() {
-  # prompt_component VAR Default-y/n "Frage"
+  # prompt_component VAR Default-y/n "Frage" — nur bei --reconfigure mit Terminal
   local var="$1" def="$2" question="$3"
-  # Bereits gesetzt (ENV oder install.conf): nicht fragen
   [ -n "${!var:-}" ] && return 0
-  # Kein TTY oder --no-prompt: Default (rückwärts-kompatibel)
-  if ! is_tty || [ "$NO_PROMPT" = "1" ]; then
-    if [ "$def" = "y" ]; then export "$var=yes"; else export "$var=no"; fi
-    return 0
-  fi
-  if ask_yn "$question" "$def"; then
-    export "$var=yes"
-  else
-    export "$var=no"
-  fi
-}
-
-run_wizard() {
-  # Sichtbare Trennung zur log-Ausgabe oben
-  if is_tty && [ "$NO_PROMPT" != "1" ] && {
-       [ "$RECONFIGURE" = "1" ] || [ ! -f "$INSTALL_CONF" ]
-     }; then
-    printf "\n\033[1;36m── HydraHive2 Komponenten-Auswahl ──\033[0m\n" >/dev/tty
-    printf "\033[1;36m   (Enter = Standard / Großbuchstabe)\033[0m\n\n" >/dev/tty
-  fi
-  prompt_component HH_INSTALL_TAILSCALE  y "Tailscale (VPN-Mesh) installieren?"
-  # Tailscale-Auth-Key separat — nur fragen wenn Tailscale gewählt + interaktiv + Key noch leer
-  if [ "${HH_INSTALL_TAILSCALE}" = "yes" ] \
-     && [ -z "${HH_TAILSCALE_AUTHKEY:-}" ] \
-     && is_tty && [ "$NO_PROMPT" != "1" ] \
-     && { [ "$RECONFIGURE" = "1" ] || [ ! -f "$INSTALL_CONF" ]; }; then
-    printf "  Tailscale Auth-Key (leer = später manuell verbinden): " >/dev/tty
-    read -r HH_TAILSCALE_AUTHKEY </dev/tty || HH_TAILSCALE_AUTHKEY=""
-  fi
-  prompt_component HH_INSTALL_POSTGRES   y "PostgreSQL für Datamining-Mirror installieren?"
-  prompt_component HH_INSTALL_VOICE      y "Voice-Stack (Whisper-STT in LXC + mmx-TTS)? [groß: ~30 min]"
-  prompt_component HH_INSTALL_CONTAINERS y "Container-Manager (incus) installieren?"
-  prompt_component HH_INSTALL_VMS        y "VM-Manager (QEMU/KVM + websockify) installieren?"
-  # HydraLink wird NICHT abgefragt: AgentLink ist Pflichtbestandteil, ohne ihn
-  # können Agenten sich nicht gegenseitig beauftragen (ask_agent). Für
-  # Entwicklungs-Setups bleibt HH_INSTALL_AGENTLINK=no als bewusster Notausstieg
-  # per ENV erhalten.
-  prompt_component HH_INSTALL_NGINX      y "nginx Reverse-Proxy installieren?"
-  prompt_component HH_INSTALL_SAMBA      y "Samba für Projekt-Workspace-Shares?"
-  prompt_component HH_INSTALL_WHATSAPP   y "WhatsApp-Bridge installieren?"
-  # Standard NEIN: ~33 GB Download, braucht NVIDIA-GPU ab 12 GB Grafikspeicher.
-  # Nachträglich jederzeit im System-Fenster installier- und entfernbar.
-  prompt_component HH_INSTALL_LOCAL_MEDIA n "Lokale Bild-/Videogenerierung (ComfyUI, NVIDIA ab 12 GB)? [groß: ~33 GB]"
-
-  # Voice braucht incus → Containers automatisch erzwingen wenn Voice gewählt
-  if [ "${HH_INSTALL_VOICE}" = "yes" ] && [ "${HH_INSTALL_CONTAINERS}" = "no" ]; then
-    log "Voice-Stack braucht Container-Manager → HH_INSTALL_CONTAINERS=yes erzwingen"
-    HH_INSTALL_CONTAINERS=yes
-  fi
+  if ask_yn "$question" "$def"; then export "$var=yes"; else export "$var=no"; fi
 }
 
 load_install_conf
-run_wizard
+if [ "$RECONFIGURE" = "1" ] && is_tty; then
+  printf "\n\033[1;36m── HydraHive2 Zusatz-Module ──\033[0m\n" >/dev/tty
+  printf "\033[1;36m   Kern (Oberfläche, PostgreSQL, nginx, HydraLink) wird immer installiert.\033[0m\n" >/dev/tty
+  printf "\033[1;36m   Alles hier lässt sich auch später im Admin-Cockpit nachinstallieren.\033[0m\n\n" >/dev/tty
+  prompt_component HH_INSTALL_TAILSCALE  n "Tailscale (VPN-Mesh) installieren?"
+  if [ "${HH_INSTALL_TAILSCALE}" = "yes" ] && [ -z "${HH_TAILSCALE_AUTHKEY:-}" ]; then
+    printf "  Tailscale Auth-Key (leer = später manuell verbinden): " >/dev/tty
+    read -r HH_TAILSCALE_AUTHKEY </dev/tty || HH_TAILSCALE_AUTHKEY=""
+  fi
+  prompt_component HH_INSTALL_VOICE      n "Voice-Stack (Whisper-STT in LXC + mmx-TTS)? [groß: ~30 min]"
+  prompt_component HH_INSTALL_CONTAINERS n "Container-Manager (incus) installieren?"
+  prompt_component HH_INSTALL_VMS        n "VM-Manager (QEMU/KVM + websockify) installieren?"
+  prompt_component HH_INSTALL_SAMBA      n "Samba für Projekt-Workspace-Shares?"
+  prompt_component HH_INSTALL_WHATSAPP   n "WhatsApp-Bridge installieren?"
+  # ~33 GB Download, braucht NVIDIA-GPU ab 12 GB Grafikspeicher.
+  prompt_component HH_INSTALL_LOCAL_MEDIA n "Lokale Bild-/Videogenerierung (ComfyUI, NVIDIA ab 12 GB)? [groß: ~33 GB]"
+fi
+hh_choices_apply_defaults
 save_install_conf
+# <<< Auswahl
 
 export HH_INSTALL_TAILSCALE HH_TAILSCALE_AUTHKEY \
        HH_INSTALL_POSTGRES HH_INSTALL_VOICE HH_INSTALL_CONTAINERS \
        HH_INSTALL_VMS HH_INSTALL_AGENTLINK HH_INSTALL_NGINX \
        HH_INSTALL_SAMBA HH_INSTALL_WHATSAPP HH_INSTALL_LOCAL_MEDIA
+
+# --------------------------------------------------------------- Vorab-Prüfung
+# shellcheck source=lib/preflight.sh
+source "$INSTALLER_DIR/lib/preflight.sh"
+hh_apt_retries
+hh_preflight_dns || err "Abbruch vor der Installation: keine Namensauflösung (Hinweise oben)."
 
 # --------------------------------------------------------------- Module
 log "Phase 1: System-Dependencies"
@@ -258,14 +240,14 @@ fi
 log "Phase 5: Frontend"
 bash "$INSTALLER_DIR/modules/40-frontend.sh"
 
-if [ "${HH_INSTALL_WHATSAPP:-yes}" != "no" ]; then
+if [ "${HH_INSTALL_WHATSAPP:-no}" != "no" ]; then
   log "Phase 6: WhatsApp-Bridge"
   bash "$INSTALLER_DIR/modules/45-whatsapp.sh"
 else
   log "Phase 6: WhatsApp-Bridge übersprungen (HH_INSTALL_WHATSAPP=no)"
 fi
 
-if [ "${HH_INSTALL_SAMBA:-yes}" != "no" ]; then
+if [ "${HH_INSTALL_SAMBA:-no}" != "no" ]; then
   log "Phase 7a: Samba (Projekt-Workspace-Shares)"
   bash "$INSTALLER_DIR/modules/47-samba.sh"
 else
@@ -289,21 +271,21 @@ else
   log "Phase 8: nginx übersprungen (HH_INSTALL_NGINX=no)"
 fi
 
-if [ "${HH_INSTALL_VMS:-yes}" != "no" ]; then
+if [ "${HH_INSTALL_VMS:-no}" != "no" ]; then
   log "Phase 9: VM-Manager (QEMU/KVM + websockify)"
   bash "$INSTALLER_DIR/modules/65-vms.sh"
 else
   log "Phase 9: VM-Manager übersprungen (HH_INSTALL_VMS=no)"
 fi
 
-if [ "${HH_INSTALL_CONTAINERS:-yes}" != "no" ]; then
+if [ "${HH_INSTALL_CONTAINERS:-no}" != "no" ]; then
   log "Phase 10: Container-Manager (incus + dir-Storage)"
   bash "$INSTALLER_DIR/modules/70-containers.sh"
 else
   log "Phase 10: Container-Manager übersprungen (HH_INSTALL_CONTAINERS=no)"
 fi
 
-if [ "${HH_INSTALL_VOICE:-yes}" != "no" ]; then
+if [ "${HH_INSTALL_VOICE:-no}" != "no" ]; then
   log "Phase 10b: Voice-Stack (Wyoming-STT-LXC + mmx-TTS)"
   bash "$INSTALLER_DIR/modules/55-voice.sh"
 else
@@ -328,7 +310,7 @@ else
 fi
 
 log "Phase 12: Tailscale"
-if [ "${HH_INSTALL_TAILSCALE:-yes}" != "no" ]; then
+if [ "${HH_INSTALL_TAILSCALE:-no}" != "no" ]; then
   bash "$INSTALLER_DIR/modules/80-tailscale.sh"
 else
   log "Tailscale übersprungen (HH_INSTALL_TAILSCALE=no)"
@@ -419,7 +401,8 @@ kv "Logs:" "journalctl -u hydrahive2 -f"
 kv "Datenpfad:" "$HH_DATA_DIR"
 kv "Configpfad:" "$HH_CONFIG_DIR"
 kv "Update-Trigger:" "sudo touch $HH_DATA_DIR/.update_request"
-kv "Reconfigure:" "sudo bash $INSTALLER_DIR/install.sh --reconfigure"
+kv "Zusatz-Module:" "Admin-Cockpit → System → Zusatz-Module"
+kv_hint "oder:" "sudo bash $INSTALLER_DIR/install.sh --reconfigure"
 
 INSTALLED=()
 SKIPPED=()
@@ -433,7 +416,7 @@ else
   SKIPPED+=("postgres")
 fi
 
-if is_yes "${HH_INSTALL_TAILSCALE:-yes}"; then
+if is_yes "${HH_INSTALL_TAILSCALE:-no}"; then
   section "Tailscale"
   if command -v tailscale >/dev/null 2>&1; then
     TS_STATE=$(tailscale status --json 2>/dev/null \
@@ -454,7 +437,7 @@ else
   SKIPPED+=("tailscale")
 fi
 
-if is_yes "${HH_INSTALL_VOICE:-yes}"; then
+if is_yes "${HH_INSTALL_VOICE:-no}"; then
   section "Voice-Stack"
   kv "STT-Container:" "hydrahive2-stt (incus)"
   kv "STT-Port:" "127.0.0.1:10300 (Wyoming-Faster-Whisper)"
@@ -465,7 +448,7 @@ else
   SKIPPED+=("voice")
 fi
 
-if is_yes "${HH_INSTALL_VMS:-yes}"; then
+if is_yes "${HH_INSTALL_VMS:-no}"; then
   section "VM-Manager"
   kv "VNC-Proxy:" "127.0.0.1:6080 (websockify)"
   kv "Service:" "systemctl status hydrahive2-websockify"
@@ -478,7 +461,7 @@ else
   SKIPPED+=("vms")
 fi
 
-if is_yes "${HH_INSTALL_CONTAINERS:-yes}"; then
+if is_yes "${HH_INSTALL_CONTAINERS:-no}"; then
   section "Container-Manager (incus)"
   kv "Status:" "incus list"
   kv "Storage:" "default (dir-Storage)"
@@ -511,7 +494,7 @@ else
   SKIPPED+=("nginx")
 fi
 
-if is_yes "${HH_INSTALL_SAMBA:-yes}"; then
+if is_yes "${HH_INSTALL_SAMBA:-no}"; then
   section "Samba (Projekt-Workspace-Shares)"
   kv "Config-Verzeichnis:" "/etc/samba/hh-projects.d/"
   kv "Status:" "systemctl status smbd"
@@ -521,7 +504,7 @@ else
   SKIPPED+=("samba")
 fi
 
-if is_yes "${HH_INSTALL_WHATSAPP:-yes}"; then
+if is_yes "${HH_INSTALL_WHATSAPP:-no}"; then
   section "WhatsApp-Bridge"
   kv "Pfad:" "$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
   kv "Hinweis:" "Pairing über die Web-UI (Settings → WhatsApp)"
@@ -540,9 +523,13 @@ else
 fi
 
 if [ ${#SKIPPED[@]} -gt 0 ]; then
-  section "Übersprungen"
+  section "Nicht installiert (Zusatz-Module)"
   printf "  \033[2;37m%s\033[0m\n" "${SKIPPED[*]}"
-  kv_hint "Nachinstallieren:" "sudo bash $INSTALLER_DIR/install.sh --reconfigure"
+  kv_hint "Nachinstallieren:" "Admin-Cockpit → System → Zusatz-Module"
+  kv_hint "oder:" "sudo bash $INSTALLER_DIR/install.sh --reconfigure"
+  if hh_is_wsl; then
+    kv_hint "WSL:" "VMs, Container und Voice laufen unter WSL meist nicht"
+  fi
 fi
 
 if [ -n "$RE_INSTALL_HINT" ]; then
