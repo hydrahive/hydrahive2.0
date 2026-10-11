@@ -34,7 +34,7 @@ hh_preflight_dns() {
   [ -z "$failed" ] && return 0
   {
     printf '\nKeine Namensauflösung: %s lässt sich nicht auflösen.\n' "$failed"
-    printf 'Ohne Namensauflösung kann der Installer keine Pakete laden. Nichts wurde verändert.\n\n'
+    printf 'Ohne Namensauflösung kann der Installer keine Pakete laden. Es wurde noch nichts installiert.\n\n'
     printf 'Prüfen:  getent hosts archive.ubuntu.com   und   cat /etc/resolv.conf\n'
     if hh_is_wsl; then
       printf '\nUnter WSL hilft meist:\n'

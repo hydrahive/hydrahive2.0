@@ -45,7 +45,7 @@ If the clone is not already at `/opt/hydrahive2` and `HH_REPO_DIR` was not expli
 
 The script is intended to be idempotent. Re-running it keeps the stored choices.
 
-Before phase 1 the installer writes `/etc/apt/apt.conf.d/80hydrahive-retries` (`Acquire::Retries "5"`) and checks name resolution for the hosts it downloads from. Without DNS it stops before changing anything and prints the steps (including WSL hints). Skip the check with `HH_SKIP_PREFLIGHT=yes`, e.g. for a local package mirror.
+Before phase 1 the installer writes `/etc/apt/apt.conf.d/80hydrahive-retries` (`Acquire::Retries "5"`) and checks name resolution for the hosts it downloads from. Without DNS it stops before installing any packages and prints the steps (including WSL hints). Skip the check with `HH_SKIP_PREFLIGHT=yes`, e.g. for a local package mirror.
 
 ## Core and add-on modules
 

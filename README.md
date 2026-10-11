@@ -201,7 +201,7 @@ The Linux installer can be run inside **WSL2**. This is the recommended Windows 
 
    The installer sets up the core only (web cockpit, PostgreSQL, nginx, HydraLink) and asks no questions. Add-on modules such as VMs, containers or voice can be added later in the admin cockpit under System → add-on modules; under WSL, VMs, containers and voice usually do not work.
 
-   **No name resolution under WSL** ("Temporary failure resolving …"): the installer checks this up front and stops without changes. Usually `wsl --shutdown` in PowerShell and reopening Ubuntu helps. If not, add `dnsTunneling=false` under `[wsl2]` in `%UserProfile%\.wslconfig` and restart WSL again.
+   **No name resolution under WSL** ("Temporary failure resolving …"): the installer checks this up front and stops before installing any packages. Usually `wsl --shutdown` in PowerShell and reopening Ubuntu helps. If not, add `dnsTunneling=false` under `[wsl2]` in `%UserProfile%\.wslconfig` and restart WSL again.
 
 4. Open the URL printed by the installer in Windows. With the default WSL2 localhost forwarding this is usually `https://localhost`; if necessary, use the WSL address from `hostname -I` instead. The generated certificate is self-signed, so the browser warning is expected.
 

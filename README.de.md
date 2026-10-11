@@ -201,7 +201,7 @@ Der Linux-Installer kann innerhalb von **WSL2** ausgeführt werden. Das ist der 
 
    Der Installer richtet nur den Kern ein (Oberfläche, PostgreSQL, nginx, HydraLink) und fragt nichts. Zusatz-Module wie VMs, Container oder Voice lassen sich später im Admin-Cockpit unter System → Zusatz-Module nachinstallieren; unter WSL laufen VMs, Container und Voice meist nicht.
 
-   **Keine Namensauflösung unter WSL** („Temporary failure resolving …“): Der Installer prüft das vorab und bricht ohne Änderungen ab. Meist hilft `wsl --shutdown` in PowerShell und ein Neustart von Ubuntu. Reicht das nicht, in `%UserProfile%\.wslconfig` unter `[wsl2]` die Zeile `dnsTunneling=false` eintragen und WSL erneut neu starten.
+   **Keine Namensauflösung unter WSL** („Temporary failure resolving …“): Der Installer prüft das vorab und bricht ab, bevor er Pakete installiert. Meist hilft `wsl --shutdown` in PowerShell und ein Neustart von Ubuntu. Reicht das nicht, in `%UserProfile%\.wslconfig` unter `[wsl2]` die Zeile `dnsTunneling=false` eintragen und WSL erneut neu starten.
 
 4. Die vom Installer ausgegebene URL in Windows öffnen. Mit dem standardmäßigen WSL2-Localhost-Forwarding ist das normalerweise `https://localhost`; falls nötig, stattdessen die WSL-Adresse aus `hostname -I` verwenden. Das generierte Zertifikat ist selbstsigniert, daher ist die Browser-Warnung erwartet.
 
