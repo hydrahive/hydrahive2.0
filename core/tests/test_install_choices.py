@@ -87,7 +87,9 @@ def test_conf_set_keeps_mode_600(tmp_path):
     conf = tmp_path / "install.conf"
     conf.write_text("HH_INSTALL_VMS='no'\n")
     conf.chmod(0o600)
-    _run(f'hh_conf_set "{conf}" HH_INSTALL_VMS yes')
+    r = _run(f'hh_conf_set "{conf}" HH_INSTALL_VMS yes')
+    assert r.returncode == 0, r.stderr
+    assert conf.read_text() == "HH_INSTALL_VMS='yes'\n"
     assert oct(conf.stat().st_mode & 0o777) == "0o600"
 
 
@@ -108,6 +110,8 @@ def test_conf_set_keeps_owner(tmp_path):
 
 def test_conf_set_refuses_foreign_keys_and_values(tmp_path):
     conf = tmp_path / "install.conf"
+    conf.write_text("")
+    assert _run(f'hh_conf_set "{conf}" HH_INSTALL_VMS yes').returncode == 0          # gültiger Aufruf geht
     conf.write_text("")
     assert _run(f'hh_conf_set "{conf}" PATH yes').returncode != 0
     assert _run(f'hh_conf_set "{conf}" HH_INSTALL_VMS "yes; rm -rf /"').returncode != 0
