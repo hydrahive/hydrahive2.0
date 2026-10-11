@@ -25,7 +25,8 @@ RESTARTS_SERVICE = frozenset({"vms", "containers"})          # 65-vms.sh / 70-co
 REQUIRES: dict[str, list[str]] = {"voice": ["containers"]}
 WSL_LIMITED = frozenset({"vms", "containers", "voice"})
 
-_KVM = Path("/dev/kvm")
+# Nur 65-vms.sh legt diese Unit an. qemu allein reicht nicht: incus zieht qemu-system-x86 als Abhängigkeit mit.
+_VM_UNIT = Path("/etc/systemd/system/hydrahive2-websockify.service")
 _WA_BRIDGE = BRIDGE_DIR
 _PROC_VERSION = Path("/proc/version")
 _WSL_INTEROP = Path("/proc/sys/fs/binfmt_misc/WSLInterop")
@@ -33,7 +34,7 @@ _CONF_LINE = re.compile(r"^(HH_INSTALL_[A-Z_]+)=['\"]?(yes|no)['\"]?\s*$")
 
 
 def _vms_installed() -> bool:
-    return shutil.which("qemu-system-x86_64") is not None and _KVM.exists()
+    return _VM_UNIT.exists() and shutil.which("qemu-system-x86_64") is not None
 
 
 def _whatsapp_installed() -> bool:

@@ -539,7 +539,9 @@ if ! command -v gh >/dev/null 2>&1; then
   DEBIAN_FRONTEND=noninteractive apt-get install -y gh
 fi
 
-if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VMS "$(hh_has qemu-system-x86_64)" \
+# „VMs installiert“ = VM-Manager eingerichtet (websockify-Unit aus 65-vms.sh) – qemu allein kommt auch mit incus.
+vms_installed=false; [ -f /etc/systemd/system/hydrahive2-websockify.service ] && command -v qemu-system-x86_64 >/dev/null 2>&1 && vms_installed=true
+if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_VMS "$vms_installed" \
    && { ! command -v qemu-system-x86_64 >/dev/null 2>&1 \
         || ! systemctl is-active --quiet hydrahive2-websockify.service; }; then
   log "VM-Manager-Setup fehlt oder unvollständig — starte 65-vms.sh"

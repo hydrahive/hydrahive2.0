@@ -90,12 +90,14 @@ def test_is_wsl_reads_proc(tmp_path, monkeypatch):
     assert st.is_wsl() is True
 
 
-def test_vms_probe_needs_qemu_and_kvm(monkeypatch, tmp_path):
-    kvm = tmp_path / "kvm"
-    monkeypatch.setattr(st, "_KVM", kvm)
+def test_vms_probe_needs_vm_manager_unit_and_qemu(monkeypatch, tmp_path):
+    """qemu allein reicht nicht – incus bringt es als Abhängigkeit mit (Fund hh-instcore 11.10.2026). Installiert ist der
+    VM-Manager, wenn seine Unit (nur von 65-vms.sh angelegt) da ist und qemu vorhanden ist."""
+    unit = tmp_path / "hydrahive2-websockify.service"
+    monkeypatch.setattr(st, "_VM_UNIT", unit)
     monkeypatch.setattr(st.shutil, "which", lambda name: "/usr/bin/qemu-system-x86_64")
-    assert st._vms_installed() is False                         # /dev/kvm fehlt
-    kvm.write_text("")
+    assert st._vms_installed() is False                         # nur qemu (z. B. über incus) → nicht installiert
+    unit.write_text("[Unit]\n")
     assert st._vms_installed() is True
     monkeypatch.setattr(st.shutil, "which", lambda name: None)
     assert st._vms_installed() is False

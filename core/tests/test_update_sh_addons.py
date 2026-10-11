@@ -58,7 +58,7 @@ def test_tailscale_only_when_wanted():
 def test_installed_detection_per_module_matches_spec():
     """„Installiert“ (Spec §2): qemu / incus / Container hydrahive2-stt / node_modules der Bridge / tailscale."""
     t = _text()
-    assert re.search(r'hh_addon_wanted "\$INSTALL_CONF" HH_INSTALL_VMS "\$\(hh_has qemu-system-x86_64\)"', t)
+    assert re.search(r'hh_addon_wanted "\$INSTALL_CONF" HH_INSTALL_VMS "\$vms_installed"', t)
     assert re.search(r'hh_addon_wanted "\$INSTALL_CONF" HH_INSTALL_CONTAINERS "\$\(hh_has incus\)"', t)
     assert re.search(r'hh_addon_wanted "\$INSTALL_CONF" HH_INSTALL_TAILSCALE "\$\(hh_has tailscale\)"', t)
     assert 'hydrahive2-stt' in t and 'node_modules' in t
@@ -74,3 +74,14 @@ def test_choices_library_loaded_after_git_pull():
     (ohne update.sh-Änderung, also ohne re-exec) griff erst beim nächsten Update."""
     src = UPDATE.read_text()
     assert src.index('source "$HH_REPO_DIR/installer/lib/install-choices.sh"') > src.index('exec bash "$SELF_PATH"')
+
+
+def test_vms_installed_means_vm_manager_not_just_qemu():
+    """Echter Fund (hh-instcore, 11.10.2026): incus zieht qemu-system-x86 als Abhängigkeit mit. „qemu vorhanden“ machte
+    nach einer Container-Installation die VMs zu „installiert“ → update.sh setzte VMS=yes und richtete den VM-Manager
+    ein, obwohl er abgewählt war. Merkmal ist die Unit, die nur 65-vms.sh anlegt."""
+    t = _text()
+    line = next(x for x in t.splitlines() if x.startswith("vms_installed=false"))
+    assert "/etc/systemd/system/hydrahive2-websockify.service" in line
+    assert "qemu-system-x86_64" in line
+    assert "hh_has qemu-system-x86_64)\"" not in _guard_before("installer/modules/65-vms.sh")
