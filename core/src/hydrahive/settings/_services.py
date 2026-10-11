@@ -8,6 +8,16 @@ from pathlib import Path
 from hydrahive.settings.overrides import env_or_override
 
 
+def _limit_seconds(env: str, default: float) -> float | None:
+    """Sekunden aus der ENV; 0 oder negativ = ohne Limit (None). Ungültig → Standard
+    (ein Tippfehler soll Hintergrund-Läufe nicht endlos warten lassen)."""
+    try:
+        v = float(os.environ.get(env, default))
+    except ValueError:
+        v = default
+    return v if v > 0 else None
+
+
 class _ServerMixin:
     @cached_property
     def host(self) -> str:
@@ -100,6 +110,19 @@ class _AgentLinkMixin:
         Bewusst < agentlink_handoff_timeout, damit der Auftraggeber eine klare
         Fehler-Antwort bekommt, bevor sein eigenes Caller-Timeout zuschlägt."""
         return int(os.environ.get("HH_AGENTLINK_RUN_TIMEOUT", "540"))
+
+    @property
+    def tool_confirm_timeout(self) -> float | None:
+        """Sekunden, die ein Lauf OHNE Chat-Fenster (Zeitplan, Messenger, ask_agent)
+        auf eine Tool-Bestätigung wartet, danach „keine Antwort“. 0 = ohne Limit.
+        Kein cached_property: pro Aufruf gelesen (wie die Schutzregeln selbst)."""
+        return _limit_seconds("HH_TOOL_CONFIRM_TIMEOUT", 300)
+
+    @property
+    def tool_confirm_timeout_chat(self) -> float | None:
+        """Wie tool_confirm_timeout, aber für Läufe im Chat-Fenster (Buddy, Projekt-Chat,
+        Spezialisten-Auswertung). Standard 0 = warten, bis jemand entscheidet."""
+        return _limit_seconds("HH_TOOL_CONFIRM_TIMEOUT_CHAT", 0)
 
     @cached_property
     def agentlink_dashboard_url(self) -> str:
