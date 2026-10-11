@@ -330,6 +330,8 @@ PY_HEREDOC = (
         "cat >> notes.md <<-EOF\n\trm -rf /usr/lib\n\tEOF\necho fertig",
         "cat <<A <<B\n/etc/shadow\nA\nrm -rf /opt\nB",
         "cat <<\\EOF > out.txt\n/root/.ssh/id_rsa\nEOF",
+        # Ohne `<<-` ist ein eingerückter Marker Teil des Inhalts.
+        "cat > a <<E\n\tE\n/etc/shadow\nE",
     ],
 )
 def test_heredoc_body_for_plain_command_not_flagged(cmd):
@@ -348,10 +350,27 @@ def test_heredoc_body_for_plain_command_not_flagged(cmd):
         # Die Zeile mit dem Heredoc selbst bleibt geprüft.
         "cat > /etc/x.conf <<'EOF'\nfoo\nEOF",
         "cat <<'EOF'; rm -rf /opt/x\nfoo\nEOF",
-        # Kein Heredoc: Here-String und Bit-Shift.
-        "x=$((1<<2))\nrm -rf /opt/x",
-        "cat <<< 'hi'\nrm -rf /opt/x",
+        # Kein Heredoc: Here-String und Bit-Shift (die Folgezeilen sind Befehle).
+        "x=$((1<<EOF))\nrm -rf /opt/x\nEOF",
+        "cat <<< EOF\nrm -rf /opt/x\nEOF",
+        # `<<` in Quotes oder im Kommentar ist kein Heredoc.
+        "echo '<<EOF'\nrm -rf /opt/x\nEOF",
+        'echo "x <<EOF y"\nrm -rf /opt/x\nEOF',
+        "# cat <<EOF\nrm -rf /opt/x\nEOF",
+        # Nicht abgeschlossen → nicht ausblenden.
+        "cat > x <<'EOF'\nrm -rf /opt/x",
+        # Ohne `<<-` beendet nur der Marker ohne Einrückung den Heredoc.
+        "cat > a <<E\nx\n\tE\nrm -rf /opt/x",
+        # Weitere Programme, die Shell-Text ausführen.
+        "sudo -u x tee a <<E\nrm -rf /opt/x\nE",
+        "ssh host <<'EOF'\ncat /etc/shadow\nEOF",
     ],
 )
 def test_heredoc_does_not_hide_real_commands(cmd):
     assert shell_confirm_reason(cmd) is not None
+
+
+def test_heredoc_dash_strips_tabs_before_marker():
+    # Mit `<<-` endet der Heredoc auch an einem eingerückten Marker; danach wird geprüft.
+    assert shell_confirm_reason("cat > a <<-E\n\tx\n\tE\nrm -rf /opt/x") is not None
+    assert shell_confirm_reason("cat > a <<-E\n\t/etc/shadow\n\tE\nls") is None

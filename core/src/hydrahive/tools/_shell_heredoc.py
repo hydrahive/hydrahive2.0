@@ -89,9 +89,11 @@ def strip_heredocs(cmd: str) -> str:
             i = n if nl < 0 else nl
             continue
         elif cmd.startswith("<<", i):
+            # `$((1<<2))` ist ein Bit-Shift. Here-Strings (`<<<`) brauchen keine
+            # Sonderregel: _read_marker hört bei `<` auf, der Marker bleibt leer.
             head = cmd[line_start:i]
-            if cmd.startswith("<<<", i) or head.count("((") > head.count("))"):
-                i += 3 if cmd.startswith("<<<", i) else 2
+            if head.count("((") > head.count("))"):
+                i += 2
                 continue
             j = i + 2
             tabs = j < n and cmd[j] == "-"
