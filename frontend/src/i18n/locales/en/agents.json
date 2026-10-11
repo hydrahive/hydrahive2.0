@@ -29,7 +29,7 @@
     "thinking_budget": "Extended Thinking budget: {{tokens}} tokens",
     "thinking_hint": "Only relevant for Anthropic Extended-Thinking models. 0 = off.",
     "require_tool_confirm": "Confirm tools before execution",
-    "require_tool_confirm_hint": "When active: a banner appears in chat before each tool call with Allow/Deny. Auto-deny after 5 minutes.",
+    "require_tool_confirm_hint": "When active: a banner appears in chat before each tool call with Allow/Deny. In chat, the agent waits until you decide. Without a chat window (schedule, messenger), the call is not executed after 5 minutes.",
     "max_iterations": "Max iterations: {{count}}",
     "max_iterations_hint": "Maximum tool loops per run (default: 16, maximum: 250).",
     "handoff_timeout": "Specialist timeout (seconds)",

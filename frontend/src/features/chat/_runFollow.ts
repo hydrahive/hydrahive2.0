@@ -46,8 +46,9 @@ export async function followRun(d: FollowDeps, fromStart: boolean): Promise<void
       d.setState((s) => ({ ...s, messages: [...s.messages, live] }))
     } else {
       // Reconnect mitten im Lauf: nur Stopp-Knopf + Endstand (wie bisher);
-      // ein Platzhalter begänne mitten im Satz.
-      d.setState((s) => ({ ...s, busy: true }))
+      // ein Platzhalter begänne mitten im Satz. Wartet der Lauf auf eine
+      // Bestätigung, kommt das Banner wieder (docs/specs/harakiri-confirm-noise.md).
+      d.setState((s) => ({ ...s, busy: true, pendingConfirm: st.pending_confirm ?? s.pendingConfirm }))
     }
     const blocks: ContentBlock[] = []
     for await (const ev of attachRun(d.sessionId, fromStart ? 0 : st.latest_seq, d.controller.signal)) {

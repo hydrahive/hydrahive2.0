@@ -82,6 +82,24 @@ describe("followRun", () => {
     }
   })
 
+  it("Reconnect mit offener Bestätigung: Banner sofort wieder da (Lauf wartet weiter)", async () => {
+    const pending = { call_id: "c9", tool_name: "shell_exec", arguments: { cmd: "touch /etc/x" }, reason: "Schreibzugriff" }
+    runStatus.mockResolvedValue({ running: true, latest_seq: 4, pending_confirm: pending })
+    let seen: unknown = undefined
+    const t = deps()
+    attachRun.mockImplementation(async function* () { seen = t.state.pendingConfirm; yield* events([]) })
+    await followRun(t.d, false)
+    expect(seen).toEqual(pending)
+  })
+
+  it("Reconnect ohne offene Bestätigung: kein Banner", async () => {
+    runStatus.mockResolvedValue({ running: true, latest_seq: 4, pending_confirm: null })
+    attachRun.mockReturnValue(events([]))
+    const t = deps()
+    await followRun(t.d, false)
+    expect(t.state.pendingConfirm).toBeNull()
+  })
+
   it("nichts läuft → nichts tun", async () => {
     runStatus.mockResolvedValue({ running: false, latest_seq: 0 })
     const t = deps()
