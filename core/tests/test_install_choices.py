@@ -96,6 +96,7 @@ def test_conf_set_refuses_foreign_keys_and_values(tmp_path):
     conf.write_text("")
     assert _run(f'hh_conf_set "{conf}" PATH yes').returncode != 0
     assert _run(f'hh_conf_set "{conf}" HH_INSTALL_VMS "yes; rm -rf /"').returncode != 0
+    assert _run(f'hh_conf_set "{conf}" HH_INSTALL_vms yes').returncode != 0          # nur Großbuchstaben
     assert conf.read_text() == ""
 
 

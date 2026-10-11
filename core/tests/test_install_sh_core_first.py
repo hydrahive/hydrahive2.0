@@ -98,8 +98,10 @@ def test_no_component_questions_without_reconfigure():
 
 
 def test_reconfigure_defaults_are_no():
-    for m in re.finditer(r"prompt_component (HH_INSTALL_[A-Z_]+) ([yn]) ", _text()):
-        assert m.group(2) == "n", m.group(1)
+    found = re.findall(r"prompt_component (HH_INSTALL_[A-Z_]+)\s+([yn])\s", _text())
+    assert len(found) == 7, found                   # alle sieben Zusatz-Module, keins vergessen
+    for var, default in found:
+        assert default == "n", var
 
 
 def test_preflight_runs_before_phase_1():
