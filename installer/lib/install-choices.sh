@@ -78,6 +78,11 @@ hh_conf_set() {
   mv "$tmp" "$conf"
 }
 
+# „true“/„false“, je nachdem, ob ein Programm vorhanden ist (für hh_addon_wanted).
+hh_has() {
+  if command -v "$1" >/dev/null 2>&1; then echo true; else echo false; fi
+}
+
 # update.sh: Soll das Modul gepflegt werden? Schreibt das Ergebnis nach install.conf (Spec §2).
 #   installiert            → yes (auch wenn „no“ drinstand: update.sh hat es bisher trotzdem installiert)
 #   nicht inst., Wert da   → bleibt
