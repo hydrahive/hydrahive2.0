@@ -121,3 +121,12 @@ def test_summary_points_to_cockpit_for_addons():
     t = _text()
     assert "Admin-Cockpit → System → Zusatz-Module" in t
     assert "--reconfigure" in t
+
+
+def test_core_dependencies_do_not_rely_on_addons():
+    """rsync braucht HydraLink (Kern, /opt/hydralink/installer/modules/20-agentlink.sh) und die Server-Migration.
+    Bisher kam es nur über incus mit – mit Container als Zusatz-Modul (aus) fehlte es: HydraLink-Installation brach ab
+    (echter Lauf in frischem Ubuntu-26.04-Container, 11.10.2026)."""
+    deps = (INSTALL.parent / "modules" / "00-deps.sh").read_text()
+    block = deps[deps.index("REQUIRED_PACKAGES=("):deps.index(")", deps.index("REQUIRED_PACKAGES=("))]
+    assert re.search(r"^\s*rsync\s*$", block, re.M)

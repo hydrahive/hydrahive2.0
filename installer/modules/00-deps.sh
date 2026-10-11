@@ -20,6 +20,9 @@ REQUIRED_PACKAGES=(
   ffmpeg
   # sshpass: für Master-Agent-Server-Operations mit Passwort-SSH ohne pexpect-Bauten
   sshpass
+  # rsync: HydraLink-Installer (Kern) und Server-Migration. Kam früher nur über incus mit – seit incus ein
+  # Zusatz-Modul ist (installer-core-first), muss es hier stehen.
+  rsync
 )
 
 log() { printf "  · %s\n" "$*"; }
