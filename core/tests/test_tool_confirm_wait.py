@@ -183,3 +183,23 @@ def test_stop_while_waiting_leaves_no_pending(launcher, tmp_path):
     asyncio.run(body())
     assert tc.pending_for("s1") is None and tc._pending == {}
     assert launcher.calls == []
+
+
+# --- Einstellungen -----------------------------------------------------------
+
+def test_limits_defaults_and_invalid_values(monkeypatch):
+    from hydrahive.settings import settings
+
+    monkeypatch.delenv("HH_TOOL_CONFIRM_TIMEOUT", raising=False)
+    monkeypatch.delenv("HH_TOOL_CONFIRM_TIMEOUT_CHAT", raising=False)
+    assert settings.tool_confirm_timeout == 300
+    assert settings.tool_confirm_timeout_chat is None  # Chat: ohne Limit
+    monkeypatch.setenv("HH_TOOL_CONFIRM_TIMEOUT", "0")
+    monkeypatch.setenv("HH_TOOL_CONFIRM_TIMEOUT_CHAT", "600")
+    assert settings.tool_confirm_timeout is None
+    assert settings.tool_confirm_timeout_chat == 600
+    # Tippfehler → Standard, nicht „ohne Limit“.
+    monkeypatch.setenv("HH_TOOL_CONFIRM_TIMEOUT", "5min")
+    monkeypatch.setenv("HH_TOOL_CONFIRM_TIMEOUT_CHAT", "x")
+    assert settings.tool_confirm_timeout == 300
+    assert settings.tool_confirm_timeout_chat is None

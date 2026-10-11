@@ -60,7 +60,7 @@ async def wait(call_id: str, timeout: float | None) -> Outcome:
     if p is None:
         return "deny"
     try:
-        return await asyncio.wait_for(asyncio.shield(p.future), timeout=timeout)
+        return await asyncio.wait_for(p.future, timeout=timeout)
     except asyncio.TimeoutError:
         logger.warning("tool_confirm: keine Antwort für call_id=%s nach %ss", call_id, timeout)
         return "timeout"
