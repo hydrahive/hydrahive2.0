@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+// i18n zieht @/modules/index.generated – das entsteht erst beim Build (in CI fehlt es). Für den api-client reicht t().
+vi.mock("@/i18n", () => ({ default: { t: (k: string, o?: { defaultValue?: string }) => o?.defaultValue ?? k } }))
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { useVaultStore } from "./vaultStore"
