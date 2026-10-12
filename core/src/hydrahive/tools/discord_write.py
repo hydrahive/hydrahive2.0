@@ -12,6 +12,10 @@ _TEXT = {"type": "string", "description": (
     "Nachrichtentext (Discord-Markdown). Über 2000 Zeichen wird an Absätzen auf bis zu "
     "4 Nachrichten verteilt. @everyone/@here/Rollen pingen nicht.")}
 
+_IMAGES = {"type": "array", "items": {"type": "string"}, "maxItems": 4, "description": (
+    "Optional: bis zu 4 Bilder (png, jpg, gif, webp; je max. 8 MB) aus dem eigenen Arbeitsordner, z. B. "
+    "'generated/bild.png'. Hängen an der ersten Nachricht. Mit Bildern darf text leer sein.")}
+
 _POST_SCHEMA = {
     "type": "object",
     "properties": {
@@ -22,6 +26,7 @@ _POST_SCHEMA = {
         "title": {"type": "string", "description": "Nur Forum: Titel des neuen Beitrags (Pflicht, max. 100 Zeichen)."},
         "tags": {"type": "array", "items": {"type": "string"}, "description": (
             "Nur Forum: Tag-Namen (max. 5, siehe discord_channels). Groß/klein und Emoji egal.")},
+        "images": _IMAGES,
     },
     "required": ["channel_id", "text"],
 }
@@ -34,6 +39,7 @@ _REPLY_SCHEMA = {
         "text": _TEXT,
         "reply_to": {"type": "string", "description": (
             "Optional: Nachrichten-ID, auf die sich die Antwort bezieht (Discord-Antwort-Verweis).")},
+        "images": _IMAGES,
     },
     "required": ["channel_id", "text"],
 }
@@ -52,9 +58,28 @@ _EDIT_SCHEMA = {
 _Op = Callable[..., Awaitable[str]]
 
 
+def _images(args: dict, ctx: ToolContext):
+    """Bilder VOR jedem Discord-Aufruf prüfen und laden (alles oder nichts). None = keine Bilder."""
+    raw = args.get("images")
+    if not raw:
+        return None
+    if isinstance(raw, str):
+        raw = [raw]
+    if not isinstance(raw, list) or not all(isinstance(x, str) for x in raw):
+        raise ValueError("images muss eine Liste von Pfaden sein.")
+    from hydrahive.tools._discord_images import load_images
+    return load_images(ctx.workspace, raw)
+
+
 async def _run(ctx: ToolContext, op_name: str, **kwargs) -> ToolResult:
     from hydrahive.communication.discord import ops_access, ops_write
+    from hydrahive.tools._discord_images import ImageError
     op: _Op = getattr(ops_write, op_name)
+    try:
+        if "images" in kwargs:
+            kwargs["images"] = _images({"images": kwargs["images"]}, ctx)
+    except (ImageError, ValueError) as e:
+        return ToolResult.fail(str(e))
     try:
         scope = ops_access.open_scope(ctx.user_id)
         return ToolResult.ok(await op(scope, ctx.agent_id, **kwargs))
@@ -67,12 +92,14 @@ async def _post(args: dict, ctx: ToolContext) -> ToolResult:
     if isinstance(tags, str):
         tags = [t.strip() for t in tags.split(",")]
     return await _run(ctx, "post", channel_id=args.get("channel_id"),
-                      text=args.get("text") or "", title=args.get("title"), tags=tags)
+                      text=args.get("text") or "", title=args.get("title"), tags=tags,
+                      images=args.get("images"))
 
 
 async def _reply(args: dict, ctx: ToolContext) -> ToolResult:
     return await _run(ctx, "reply", channel_id=args.get("channel_id"),
-                      text=args.get("text") or "", reply_to=args.get("reply_to"))
+                      text=args.get("text") or "", reply_to=args.get("reply_to"),
+                      images=args.get("images"))
 
 
 async def _edit(args: dict, ctx: ToolContext) -> ToolResult:
@@ -84,8 +111,8 @@ TOOL_POST = Tool(
     name="discord_post",
     description=(
         "Postet in einen freigegebenen Discord-Kanal. Textkanal → Nachricht. Forum → neuer "
-        "Beitrag mit title (Pflicht), text und optional tags. Zum Antworten in einem "
-        "bestehenden Beitrag discord_reply nutzen."),
+        "Beitrag mit title (Pflicht), text und optional tags. Optional images: bis zu 4 Bilder "
+        "aus dem Arbeitsordner. Zum Antworten in einem bestehenden Beitrag discord_reply nutzen."),
     schema=_POST_SCHEMA, execute=_post, category="discord",
 )
 
@@ -93,7 +120,8 @@ TOOL_REPLY = Tool(
     name="discord_reply",
     description=(
         "Antwortet in einem Forum-Beitrag (Beitrag-ID als channel_id) oder Textkanal, optional "
-        "als Antwort auf eine bestimmte Nachricht (reply_to)."),
+        "als Antwort auf eine bestimmte Nachricht (reply_to). Optional images: bis zu 4 Bilder "
+        "aus dem Arbeitsordner."),
     schema=_REPLY_SCHEMA, execute=_reply, category="discord",
 )
 

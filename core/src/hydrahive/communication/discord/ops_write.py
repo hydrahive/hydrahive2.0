@@ -5,6 +5,9 @@ und der eigene Bot-Token) und wird mit `NO_MASS_PINGS` gesendet.
 """
 from __future__ import annotations
 
+import io
+from collections.abc import Sequence
+
 import discord
 
 from hydrahive.communication.discord import ops_format as fmt
@@ -22,14 +25,35 @@ def _check_thread_writable(thread: discord.Thread) -> None:
         raise DiscordToolError("Dem Bot fehlt die Berechtigung «Nachrichten in Threads senden».")
 
 
-async def _send_chunks(target: discord.abc.Messageable, chunks: list[str],
-                       reference: discord.PartialMessage | None = None) -> list[discord.Message]:
+def _discord_files(images: Sequence | None) -> list[discord.File]:
+    """Geprüfte Bilder (``tools._discord_images.ImageFile``: filename + data) → discord.File. Nie Pfade."""
+    return [discord.File(io.BytesIO(img.data), filename=img.filename) for img in images or ()]
+
+
+def _chunks(scope: Scope, agent_id: str, text: str, images: Sequence | None) -> list[str | None]:
+    """Text aufteilen. Nur Bilder ohne Text ist erlaubt (eine leere Nachricht mit Anhängen)."""
+    if images and not (text or "").strip():
+        return [None]           # None = kein content-Feld (discord.py lässt es weg), nur Anhänge
+    return fmt.split_message(_egress_scrub(scope, agent_id, text))
+
+
+async def _send_chunks(target: discord.abc.Messageable, chunks: list[str | None],
+                       reference: discord.PartialMessage | None = None,
+                       images: Sequence | None = None) -> list[discord.Message]:
+    """Bilder hängen nur an der ERSTEN Nachricht."""
     sent: list[discord.Message] = []
     for i, chunk in enumerate(chunks):
         ref = reference if i == 0 else None
         kwargs = {"reference": ref, "mention_author": False} if ref is not None else {}
+        if i == 0 and images:
+            kwargs["files"] = _discord_files(images)
         sent.append(await target.send(chunk, allowed_mentions=NO_MASS_PINGS, **kwargs))
     return sent
+
+
+def _img_note(images: Sequence | None) -> str:
+    n = len(images or ())
+    return f" mit {n} Bild{'' if n == 1 else 'ern'}" if n else ""
 
 
 def _summary(verb: str, msgs: list[discord.Message]) -> str:
@@ -39,13 +63,14 @@ def _summary(verb: str, msgs: list[discord.Message]) -> str:
 
 
 async def post(scope: Scope, agent_id: str, *, channel_id: object, text: str,
-               title: str | None = None, tags: list[str] | None = None) -> str:
-    """Textkanal → Nachricht; Forum → neuer Beitrag (Titel Pflicht)."""
+               title: str | None = None, tags: list[str] | None = None,
+               images: Sequence | None = None) -> str:
+    """Textkanal → Nachricht; Forum → neuer Beitrag (Titel Pflicht). ``images`` hängt an der ersten Nachricht."""
     ch = await resolve_channel(scope, channel_id)
     k = kind(ch)
-    chunks = fmt.split_message(_egress_scrub(scope, agent_id, text))
+    chunks = _chunks(scope, agent_id, text, images)
     if k == "forum":
-        return await _create_forum_post(scope, agent_id, ch, chunks, title, tags)
+        return await _create_forum_post(scope, agent_id, ch, chunks, title, tags, images)
     if title or tags:
         raise DiscordToolError("title/tags gibt es nur beim Anlegen eines Beitrags in einem Forum.")
     if k == "thread":
@@ -53,13 +78,13 @@ async def post(scope: Scope, agent_id: str, *, channel_id: object, text: str,
     elif not permissions(ch).send_messages:
         raise DiscordToolError("Dem Bot fehlt in diesem Kanal die Berechtigung «Nachrichten senden».")
     with discord_errors("Posten"):
-        sent = await _send_chunks(ch, chunks)
-    return _summary(f"Gepostet in #{ch.name}", sent)
+        sent = await _send_chunks(ch, chunks, images=images)
+    return _summary(f"Gepostet in #{ch.name}{_img_note(images)}", sent)
 
 
 async def _create_forum_post(scope: Scope, agent_id: str, forum: discord.ForumChannel,
-                             chunks: list[str], title: str | None,
-                             tags: list[str] | None) -> str:
+                             chunks: list[str | None], title: str | None,
+                             tags: list[str] | None, images: Sequence | None = None) -> str:
     title = _egress_scrub(scope, agent_id, (title or "").strip())
     if not title:
         raise DiscordToolError("Für einen neuen Forum-Beitrag ist ein Titel (title) Pflicht.")
@@ -73,17 +98,18 @@ async def _create_forum_post(scope: Scope, agent_id: str, forum: discord.ForumCh
         valid = ", ".join(fmt.tag_label(t) for t in forum.available_tags)
         raise DiscordToolError(f"Dieses Forum verlangt mindestens einen Tag. Verfügbar: {valid}")
     with discord_errors("Beitrag anlegen"):
+        extra = {"files": _discord_files(images)} if images else {}
         created = await forum.create_thread(
             name=title, content=chunks[0], applied_tags=applied,
-            allowed_mentions=NO_MASS_PINGS)
+            allowed_mentions=NO_MASS_PINGS, **extra)
         sent = [created.message] + await _send_chunks(created.thread, chunks[1:])
     tag_txt = f" mit Tags {', '.join(t.name for t in applied)}" if applied else ""
-    return (f"Forum-Beitrag «{title}» angelegt{tag_txt}. Beitrag-ID (für discord_reply/"
+    return (f"Forum-Beitrag «{title}» angelegt{tag_txt}{_img_note(images)}. Beitrag-ID (für discord_reply/"
             f"discord_read): {created.thread.id}. " + _summary("Eröffnung gesendet", sent))
 
 
 async def reply(scope: Scope, agent_id: str, *, channel_id: object, text: str,
-                reply_to: object = None) -> str:
+                reply_to: object = None, images: Sequence | None = None) -> str:
     """Antwort in einem Forum-Beitrag/Thread oder Textkanal."""
     ch = await resolve_channel(scope, channel_id)
     k = kind(ch)
@@ -95,13 +121,13 @@ async def reply(scope: Scope, agent_id: str, *, channel_id: object, text: str,
         _check_thread_writable(ch)
     elif not permissions(ch).send_messages:
         raise DiscordToolError("Dem Bot fehlt in diesem Kanal die Berechtigung «Nachrichten senden».")
-    chunks = fmt.split_message(_egress_scrub(scope, agent_id, text))
+    chunks = _chunks(scope, agent_id, text, images)
     reference = None
     with discord_errors("Antworten"):
         if reply_to:
             reference = await ch.fetch_message(parse_id(reply_to, "reply_to-ID"))
-        sent = await _send_chunks(ch, chunks, reference=reference)
-    return _summary(f"Antwort in «{ch.name}» gesendet", sent)
+        sent = await _send_chunks(ch, chunks, reference=reference, images=images)
+    return _summary(f"Antwort in «{ch.name}» gesendet{_img_note(images)}", sent)
 
 
 async def edit(scope: Scope, agent_id: str, *, channel_id: object, message_id: object,
