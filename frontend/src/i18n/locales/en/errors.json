@@ -176,5 +176,11 @@
   "peer_is_self": "This is this server's own pairing code",
   "peer_exists": "This partner server is already paired",
   "peer_fingerprint_mismatch": "Fingerprint does not match",
-  "peer_agent_unknown": "Agent {{agent_id}} does not exist here"
+  "peer_agent_unknown": "Agent {{agent_id}} does not exist here",
+
+  "vault_locked": "Vault locked – please enter your PIN.",
+  "vault_pin_wrong": "Wrong PIN.",
+  "vault_pin_exists": "A vault PIN already exists.",
+  "vault_pin_format": "The PIN must be 6 to 12 digits.",
+  "vault_too_many_attempts": "Too many wrong PINs. Try again in {{retry_after}} seconds."
 }

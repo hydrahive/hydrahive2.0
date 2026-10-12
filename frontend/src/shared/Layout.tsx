@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { UpdateModal } from "@/shared/UpdateModal"
+import { VaultPinDialog } from "@/features/vault/VaultPinDialog"
 import { StaleBundleBanner } from "@/shared/StaleBundleBanner"
 import { AppFooter } from "@/shared/AppFooter"
 import { useLayoutUpdate } from "./useLayoutUpdate"
@@ -110,6 +111,7 @@ export function Layout() {
         </div>
       )}
 
+      <VaultPinDialog />
       {updateState !== "idle" && (
         <UpdateModal
           state={updateState} newCommit={newCommit} errorMessage={updateError}

@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next"
 import { cockpitModuleItems, moduleTopnavItems } from "@/shared/nav-config"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitAppsMenu } from "./CockpitAppsMenu"
+import { VaultBadge } from "@/features/vault/VaultBadge"
 import { CockpitUserMenu } from "./CockpitUserMenu"
 
 interface Props {
@@ -78,6 +79,7 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
       <div className="hidden items-center gap-2 2xl:flex">
         {extraActions}
         {action ? <CockpitButton onClick={() => go(action.path)}>{action.label}</CockpitButton> : null}
+        <VaultBadge />
         <CockpitAppsMenu />
         <HelpButton topic={helpTopic} />
         <CockpitUserMenu />
@@ -105,6 +107,7 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
           <div className="grid gap-2 border-t border-[#2a364b] pt-4 sm:border-0 sm:pt-0">
             <div className="contents [&>button]:w-full">{extraActions}</div>
             {action ? <CockpitButton onClick={() => go(action.path)}>{action.label}</CockpitButton> : null}
+            <VaultBadge />
             <CockpitAppsMenu compact />
             <HelpButton topic={helpTopic} className="w-full justify-center" />
             <CockpitUserMenu compact />

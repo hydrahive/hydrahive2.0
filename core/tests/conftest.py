@@ -286,3 +286,17 @@ def _no_real_cifs_mount(monkeypatch):
     yield
 
 
+
+
+@pytest.fixture
+def vault_headers(client, auth_headers):
+    """auth_headers + entsperrter Vault (docs/specs/vault.md). Für Tests der Vault-Seiten (z. B. Zugangsdaten)."""
+    import time
+
+    from hydrahive.api.middleware import users
+    from hydrahive.vault import pins, tokens
+    uid = users.verify("testuser", "testpass123")["user_id"]
+    pins.set_pin(uid, "135790")
+    tok = tokens.issue(uid, generation=pins.generation(uid), now=time.time())
+    yield {**auth_headers, "X-HH-Vault": tok}
+    pins.reset(uid)

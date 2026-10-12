@@ -9,12 +9,15 @@ from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.vault.gate import require_vault_unlocked
 from hydrahive.credentials import (
     Credential, delete_credential, get_credential, list_credentials, save_credential,
 )
 from hydrahive.credentials.models import ALL_TYPES, has_concrete_host, is_valid_name
 
-router = APIRouter(prefix="/api/credentials", tags=["credentials"])
+# Die Seite Zugangsdaten gehört zum Vault (docs/specs/vault.md §8 Frage 2): ansehen/bearbeiten nur nach PIN.
+# Die BENUTZUNG durch Agenten (fetch_url, Webmin, SMB …) liest den Store direkt und bleibt frei.
+router = APIRouter(prefix="/api/credentials", tags=["credentials"], dependencies=[Depends(require_vault_unlocked)])
 
 
 class CredentialBody(BaseModel):

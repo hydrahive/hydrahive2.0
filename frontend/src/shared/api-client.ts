@@ -1,5 +1,6 @@
 import i18n from "@/i18n"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { useVaultStore, VAULT_401_CODES } from "@/features/vault/vaultStore"
 
 interface CodedDetail {
   code: string
@@ -23,25 +24,40 @@ export function buildErrorMessage(body: { detail?: unknown }, status: number): s
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().token
+  const vaultToken = useVaultStore.getState().token
   const isFormData = init?.body instanceof FormData
   const res = await fetch(`/api${path}`, {
     ...init,
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(vaultToken ? { "X-HH-Vault": vaultToken } : {}),
       ...init?.headers,
     },
   })
 
+  // Vault (docs/specs/vault.md §4.3): gleitende Sperre → verlängerten Token übernehmen.
+  const refreshed = res.headers.get("X-HH-Vault-Refresh")
+  if (refreshed) useVaultStore.getState().setToken(refreshed)
+
   if (res.status === 401) {
-    useAuthStore.getState().logout()
-    throw new Error(i18n.t("errors:not_authenticated", { defaultValue: "Not authenticated" }))
+    const body = await res.clone().json().catch(() => ({}))
+    const code = isCoded(body.detail) ? body.detail.code : ""
+    if (!VAULT_401_CODES.has(code)) {
+      useAuthStore.getState().logout()
+      throw new Error(i18n.t("errors:not_authenticated", { defaultValue: "Not authenticated" }))
+    }
   }
   if (res.status === 204) return undefined as T
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    const err = new Error(buildErrorMessage(body, res.status)) as Error & { status?: number }
+    if (res.status === 423 && isCoded(body.detail) && body.detail.code === "vault_locked") {
+      useVaultStore.getState().setToken(null)
+      useVaultStore.getState().requestUnlock(body.detail.params?.pin_set !== false)
+    }
+    const err = new Error(buildErrorMessage(body, res.status)) as Error & { status?: number; code?: string }
     err.status = res.status
+    err.code = isCoded(body.detail) ? body.detail.code : undefined
     throw err
   }
   return res.json()
