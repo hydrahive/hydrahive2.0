@@ -130,10 +130,10 @@ hat. Version 0.1.2 → 0.1.3.
    oder Prozess unter `/opt`, `/var/lib/hydrahive2`, `/srv/fast/hydrahive2`
    auf 3.12 zeigt, und entfernt dann nur die `python3.12*`/`libpython3.12*`-Pakete.
 
-## Offene Entscheidungen (Till)
+## Entscheidungen (Till, 12.10.2026)
 
-1. `duckdb`, `matplotlib`, `pandas` im Kern-venv: weglassen (Empfehlung, kein
-   Code nutzt sie) oder als optionale Abhängigkeit mitnehmen?
-2. CI: 3.12 und 3.14 testen (Empfehlung) oder nur 3.14?
-3. `voice-pe/.platformio/penv` (ESPHome-Werkzeug, 3.12): wird es noch gebraucht?
-   Wenn ja, muss es vor Etappe 6 auf 3.14 neu gebaut werden.
+1. `duckdb`, `matplotlib`, `pandas` fallen weg. Der Neubau des Kern-venv
+   übernimmt sie nicht.
+2. Die CI testet 3.12 und 3.14 (Matrix).
+3. `voice-pe/.platformio/penv` wird gebraucht und vor Etappe 6 auf 3.14 neu
+   gebaut. Das Entfernen-Skript prüft es mit.
