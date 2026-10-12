@@ -97,9 +97,9 @@ Core route registration can be reviewed in `core/src/hydrahive/api/main.py`; run
 
 **Threats:** an authenticated user searches another user's mirrored events or obtains aggregate data beyond their normal session ownership.
 
-**Implemented controls:** the API requires authentication, keeps credential values out of mirrored event payloads by design and exposes explicit analytics endpoints rather than arbitrary SQL.
+**Implemented controls:** the API requires authentication, keeps credential values out of mirrored event payloads by design and exposes explicit analytics endpoints rather than arbitrary SQL. Non-admin callers are scoped to their own username (`_datamining_access.scoped_username`): events, search, sessions, session detail (`owns`), graph and token stats. Imports, exports, re-embedding and index maintenance are admin-only. Agent tools (`datamining_search`, `datamining_semantic`) are scoped per agent via `knowledge_access` (own project by default, sensitivity levels normal/private/health, outbound-capable agents capped at normal; `docs/specs/datamining-access.md`, `docs/specs/knowledge-spaces.md`).
 
-**Residual risk:** current data-mining routes are not a strict per-user authorization boundary. Several endpoints query globally, and some accept an optional username filter. On mutually untrusted multi-user deployments, restrict/disable this surface until fine-grained ownership enforcement exists.
+**Residual risk:** a few read-only status endpoints (`/embed/status`, `/import/*/status`) return instance-wide counters, not content. Admins see all users' events by design.
 
 **Sources:** `core/src/hydrahive/api/routes/datamining*.py`, `db/_mirror_*.py`, `tools/datamining*.py`.
 

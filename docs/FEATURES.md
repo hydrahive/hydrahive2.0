@@ -336,6 +336,7 @@ The local-media installer downloads large third-party models and validates pinne
 - Runtime registry extended by modules.
 - Supervised periodic module jobs.
 - Cryptoboard contributes price/alert pollers plus Butler trigger/condition types.
+- Not yet implemented (shown as unavailable in the node palette; a run reports `not_implemented`): actions `send_email`, `discord_post`, `git_create_issue`, `git_add_comment`. The agent tools `send_mail` and `discord_post` exist separately and work.
 
 The webhook route retains a deprecated compatibility path when a project has no configured secret. Configure a secret before exposing project webhooks.
 

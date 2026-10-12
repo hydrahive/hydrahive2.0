@@ -309,7 +309,7 @@ Verified implementation properties:
 Important boundaries:
 
 - some legacy APIs still use username/role dependencies and must enforce ownership themselves;
-- authenticated data-mining queries are broader than strict per-user isolation;
+- data-mining routes scope events, sessions and stats to the caller (admins see all); agent tools are scoped per agent (`knowledge_access`); a few status endpoints still show instance-wide counters (embedding/import progress);
 - modules and plugins are trusted executable code, not security sandboxes;
 - extension installation is privileged by design;
 - the default TLS certificate is self-signed;
