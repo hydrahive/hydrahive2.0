@@ -37,7 +37,7 @@ def create_gitea_repo(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     username, role = auth
-    project = project_or_404(project_id, username, role)
+    project = project_or_404(project_id, username, role, required="write")
     _require_project_admin(project, username, role)
     repo_path = repo_path_or_404(project_id, repo_name)
     ok, err, status = _gitea.create_repo_and_remote(project_id, repo_name, repo_path)
@@ -53,7 +53,7 @@ def push_gitea_repo(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    project_or_404(project_id, *auth)
+    project_or_404(project_id, *auth, required="write")
     repo_path = repo_path_or_404(project_id, repo_name)
     ok, err = _gitea.push_remote(repo_path)
     if not ok:
@@ -68,7 +68,7 @@ def pull_gitea_repo(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    project_or_404(project_id, *auth)
+    project_or_404(project_id, *auth, required="write")
     repo_path = repo_path_or_404(project_id, repo_name)
     ok, err = _gitea.pull_remote(repo_path)
     if not ok:

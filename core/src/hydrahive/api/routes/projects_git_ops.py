@@ -26,7 +26,7 @@ def post_commit(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     username, _ = auth
-    project_or_404(project_id, *auth)
+    project_or_404(project_id, *auth, required="write")
     rp = repo_path_or_404(project_id, repo_name)
     ok, err = commit_all(rp, req.message,
                          author_name=username, author_email=f"{username}@hydrahive.local")
@@ -42,7 +42,7 @@ def post_push(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth, required="write")
     rp = repo_path_or_404(project_id, repo_name)
     ok, err = push(rp, token=token_for(p, repo_name))
     if not ok:
@@ -57,7 +57,7 @@ def post_pull(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth, required="write")
     rp = repo_path_or_404(project_id, repo_name)
     ok, err = pull(rp, token=token_for(p, repo_name))
     if not ok:
@@ -72,7 +72,7 @@ def delete_repo(
     repo_name: str,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
-    p = project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth, required="write")
     if repo_name == ROOT_REPO:
         raise coded(400, "git_cannot_delete_root")
     rp = repo_path_or_404(project_id, repo_name)
