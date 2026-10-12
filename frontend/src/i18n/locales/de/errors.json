@@ -176,5 +176,11 @@
   "peer_is_self": "Das ist der eigene Kopplungscode",
   "peer_exists": "Dieser Partner-Server ist schon gekoppelt",
   "peer_fingerprint_mismatch": "Fingerprint stimmt nicht überein",
-  "peer_agent_unknown": "Agent {{agent_id}} gibt es hier nicht"
+  "peer_agent_unknown": "Agent {{agent_id}} gibt es hier nicht",
+
+  "vault_locked": "Vault gesperrt – bitte PIN eingeben.",
+  "vault_pin_wrong": "Falsche PIN.",
+  "vault_pin_exists": "Es gibt schon eine Vault-PIN.",
+  "vault_pin_format": "Die PIN muss aus 6 bis 12 Ziffern bestehen.",
+  "vault_too_many_attempts": "Zu viele falsche PINs. Bitte in {{retry_after}} Sekunden erneut versuchen."
 }

@@ -16,7 +16,10 @@ export const useAuthStore = create<AuthState>()(
       username: null,
       role: null,
       setAuth: (token, username, role) => set({ token, username, role }),
-      logout: () => set({ token: null, username: null, role: null }),
+      logout: () => {
+        try { sessionStorage.removeItem("hh-vault") } catch { /* ignore */ }   // Vault-Entsperrung mit weg
+        set({ token: null, username: null, role: null })
+      },
     }),
     { name: "hh-auth", storage: createJSONStorage(() => sessionStorage) }
   )

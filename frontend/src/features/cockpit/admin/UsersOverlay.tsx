@@ -13,6 +13,7 @@ import type { User } from "@/features/users/types"
 import { CockpitButton } from "../CockpitButton"
 import { AdminAction, AdminConfirmDialog, AdminFeedback, AdminStatus } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
+import { VaultAdminReset } from "@/features/vault/VaultAdminReset"
 
 export function UsersOverlay({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("users")
@@ -21,6 +22,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<User | null>(null)
@@ -76,6 +78,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
       <div className="space-y-5">
         <p className="text-sm text-[#8d9ab0]">{t("subtitle")}</p>
         {actionError && <AdminFeedback tone="danger">{actionError}</AdminFeedback>}
+        {notice && <AdminFeedback tone="success">{notice}</AdminFeedback>}
         {loading && <AdminFeedback loading>Benutzer werden geladen …</AdminFeedback>}
 
         {!loading && !actionError && users.length === 0 ? (
@@ -106,6 +109,8 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
                     <AdminAction tone="ghost" className="px-2" onClick={() => setPasswordTarget(user.username)} title={t("actions.change_password")} aria-label={t("actions.change_password")}>
                       <KeyRound size={14} />
                     </AdminAction>
+                    <VaultAdminReset userId={user.user_id} username={user.username}
+                      onDone={(m) => { setActionError(null); setNotice(m) }} onError={(m) => { setNotice(null); setActionError(m) }} />
                     <AdminAction tone="danger" className="px-2" onClick={() => setDeleteTarget(user.username)} disabled={isSelf} title={t("actions.delete")} aria-label={t("actions.delete")}>
                       <Trash2 size={14} />
                     </AdminAction>

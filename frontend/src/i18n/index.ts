@@ -74,6 +74,8 @@ import enWorkspace from "./locales/en/workspace.json"
 import enZahnfee from "./locales/en/zahnfee.json"
 import enTeamchat from "./locales/en/teamchat.json"
 import enModules from "./locales/en/modules.json"
+import deVault from "./locales/de/vault.json"
+import enVault from "./locales/en/vault.json"
 
 const baseResources = {
   de: {
@@ -87,7 +89,7 @@ const baseResources = {
     federation: deFederation,
     streaming: deStreaming, vms: deVms, nodes: deNodes, jobs: deJobs, workspace: deWorkspace, zahnfee: deZahnfee,
     teamchat: deTeamchat,
-    modules: deModules,
+    modules: deModules, vault: deVault,
   },
   en: {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
@@ -100,7 +102,7 @@ const baseResources = {
     federation: enFederation,
     streaming: enStreaming, vms: enVms, nodes: enNodes, jobs: enJobs, workspace: enWorkspace, zahnfee: enZahnfee,
     teamchat: enTeamchat,
-    modules: enModules,
+    modules: enModules, vault: enVault,
   },
 }
 
@@ -130,7 +132,7 @@ i18n
     resources: mergedResources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules", "vault"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
