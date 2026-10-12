@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, status
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.api.routes._mcp_schemas import (
-    McpServerCreate, McpServerUpdate, QuickAddRequest, annotate_status as _annotate_status,
+    McpServerCreate, McpServerUpdate, QuickAddRequest, annotate_status as _annotate_status, for_viewer,
 )
 from hydrahive.mcp import McpValidationError, config as mcp_config, manager as mcp_manager
 from hydrahive.mcp import defaults as mcp_defaults
@@ -42,8 +42,8 @@ def quick_add(req: QuickAddRequest) -> dict:
 
 
 @router.get("/servers")
-def list_servers(_: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
-    return [_annotate_status(s) for s in mcp_config.list_all()]
+def list_servers(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
+    return [for_viewer(_annotate_status(s), auth[1]) for s in mcp_config.list_all()]
 
 
 @router.post("/servers", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
@@ -60,11 +60,11 @@ def create_server(req: McpServerCreate) -> dict:
 
 
 @router.get("/servers/{server_id}")
-def get_server(server_id: str, _: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
+def get_server(server_id: str, auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
     s = mcp_config.get(server_id)
     if not s:
         raise coded(status.HTTP_404_NOT_FOUND, "mcp_server_not_found")
-    return _annotate_status(s)
+    return for_viewer(_annotate_status(s), auth[1])
 
 
 @router.patch("/servers/{server_id}", dependencies=[Depends(require_admin)])

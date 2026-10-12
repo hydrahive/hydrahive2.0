@@ -20,13 +20,13 @@ class SambaToggle(BaseModel):
     enabled: bool
 
 
-def _project_or_404(project_id: str, username: str, role: str) -> dict:
+def _project_or_404(project_id: str, username: str, role: str, required: str = "read") -> dict:
+    """Projekt laden und Mindestrolle prüfen (read < write < admin, docs/specs/project-member-roles.md)."""
+    from hydrahive.api.routes._project_route_helpers import check_project_access
     p = project_config.get(project_id)
     if not p:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
-    from hydrahive.projects import _members_model
-    if role != "admin" and not _members_model.is_member(p, username):
-        raise coded(status.HTTP_403_FORBIDDEN, "project_no_access")
+    check_project_access(p, username, role, required)
     return p
 
 
@@ -57,7 +57,7 @@ def put_samba(
     req: SambaToggle,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = _project_or_404(project_id, *auth)
+    p = _project_or_404(project_id, *auth, required="write")
     if req.enabled:
         ok, err = enable_share(project_id, p["name"])
         if not ok:

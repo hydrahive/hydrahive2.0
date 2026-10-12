@@ -62,7 +62,7 @@ def assign_server(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     username, role = auth
-    _project_or_404(project_id, username, role)
+    _project_or_404(project_id, username, role, required="write")
     if req.kind == "vm":
         vm = vms_db.get_vm(req.id)
         if not vm:
@@ -94,7 +94,7 @@ def unassign_server(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
     username, role = auth
-    _project_or_404(project_id, username, role)
+    _project_or_404(project_id, username, role, required="write")
     if kind == "vm":
         vm = vms_db.get_vm(server_id)
         if not vm or vm.project_id != project_id:

@@ -40,7 +40,7 @@ def post_clone(
     req: GitRepoClone,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth, required="write")
     if not is_valid_name(req.name) or req.name == ROOT_REPO:
         raise coded(400, "git_invalid_repo_name", name=req.name)
     ok, err = clone_into(workspace_path(project_id), req.name, req.url, req.branch, req.token)
@@ -62,7 +62,7 @@ def post_init(
     req: GitRepoInit,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth, required="write")
     if not is_valid_name(req.name) or req.name == ROOT_REPO:
         raise coded(400, "git_invalid_repo_name", name=req.name)
     target = workspace_path(project_id) / req.name
@@ -83,7 +83,7 @@ def put_repo_config(
     req: GitRepoConfig,
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
-    p = project_or_404(project_id, *auth)
+    p = project_or_404(project_id, *auth, required="write")
     rp = repo_path_or_404(project_id, repo_name)
     if req.remote_url is not None:
         ok, err = set_remote(rp, req.remote_url)
