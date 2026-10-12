@@ -41,9 +41,10 @@ ohne zugleich Mail, Discord oder Shell zu haben.
     `X-HH-Health-Key`). Sie laufen über die vorhandenen **Geräte-Routen** `/api/module-device/<id>/…`
     (`api/module_devices.py`: Schlüsselprüfung des Moduls + Rate-Limit), nicht unter `/api/modules/…`, und
     sind damit weder vom Login- noch vom Vault-Tor betroffen.
-    Befund 12.10.: Der Health-Import liegt heute unter `/api/modules/patientenakte/health-data/ingest` und
-    bekommt seit dem Freigabe-Tor (fd6459c8, 29.09.) `401` → seit 30 Tagen keine Health-Daten. Wird vor V1
-    getrennt behoben (Umzug auf Geräte-Route).
+    Befund 12.10.: Der Health-Import liegt heute unter `/api/modules/patientenakte/health-data/ingest`; ohne
+    Login antwortet das Modul-Tor `401` (gemessen). Die Tabelle `health_ingest` auf .2 ist leer – der Weg
+    wurde bisher nie genutzt, ein Ausfall ist also nicht belegt. Umzug auf eine Geräte-Route ist ein eigener
+    kleiner Fix (Modul patientenakte), unabhängig von V1.
   - **API-Keys** (`hh_…`, z. B. für Skripte/Kurzbefehle): gelten als Hintergrund-Zugriff, keine PIN.
     Wer einen API-Key hat, hat ihn bewusst angelegt. Jeder Zugriff wird protokolliert (§5).
   - **Agenten-Werkzeuge** (`query_fhir_data`, `query_health_data`, `query_portfolio`, `fetch_url` mit
