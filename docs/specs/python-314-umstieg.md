@@ -75,9 +75,11 @@ nächsten `update.sh` mit `--clear` neu gebaut.
 - graphify (`graphify.sh` + `code_graph_install.py`): „vorhanden“ heißt künftig,
   dass `venv/bin/python` läuft und dieselbe Version wie das Kern-venv hat.
   Sonst Neubau mit `--clear`.
-- `update.sh`: Nach einem Neubau des Kern-venv wird `hydra-voice-bridge.service`
-  mit neu gestartet, wenn die Unit existiert (`try-restart`). Heute läuft die
-  Bridge nach Updates mit alten Paketen im Speicher weiter.
+- `update.sh`: `hydra-voice-bridge.service` (nutzt Kern-venv und Kern-Code)
+  wird vor einem Neubau des Kern-venv angehalten und nach dem Neustart von
+  hydrahive2 wieder gestartet. Ohne Neubau wird sie bei jedem Update per
+  `try-restart` mit neu gestartet. Heute läuft die Bridge nach Updates mit
+  altem Stand im Speicher weiter.
 - CI: `pytest.yml` testet 3.12 **und** 3.14 (Matrix). 24.04-Installationen
   (hydratest) bleiben auf 3.12.
 
