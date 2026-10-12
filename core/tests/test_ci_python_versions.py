@@ -1,8 +1,12 @@
 """CI testet beide unterstützten Python-Versionen (Spec python-314-umstieg).
 
 Ubuntu 24.04 (z. B. hydratest) bleibt auf 3.12, Ubuntu 26.04 (Prod) läuft
-auf 3.14. Der Job-Name ist Pflicht-Check im Branch-Schutz von main — eine
-Matrix mit eigenen Namen ließe jeden PR auf einen Check warten, der nie kommt.
+auf 3.14. Zwei Jobs laufen parallel (die Suite dauert in der CI ~8 Minuten,
+nacheinander wären es ~17).
+
+Der Name des Hauptjobs ist Pflicht-Check im Branch-Schutz von main — eine
+Matrix hängt die Version an den Namen an, dann wartete jeder PR auf einen
+Check, der nie kommt.
 """
 from __future__ import annotations
 
@@ -13,23 +17,30 @@ import yaml
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "pytest.yml"
 
 
-def _backend() -> dict:
-    return yaml.safe_load(WORKFLOW.read_text())["jobs"]["backend"]
+def _jobs() -> dict:
+    return yaml.safe_load(WORKFLOW.read_text())["jobs"]
 
 
-def test_required_check_name_unchanged() -> None:
-    job = _backend()
+def _python(job: dict) -> str:
+    setups = [s for s in job["steps"] if str(s.get("uses", "")).startswith("actions/setup-python")]
+    assert len(setups) == 1
+    return str(setups[0]["with"]["python-version"])
+
+
+def _runs_pytest(job: dict) -> bool:
+    return any("pytest tests/" in str(s.get("run", "")) for s in job["steps"])
+
+
+def test_required_check_name_unchanged_and_on_314() -> None:
+    job = _jobs()["backend"]
 
     assert job["name"] == "Backend (pytest + ruff)"
-    assert "strategy" not in job  # keine Matrix: die erzeugt neue Check-Namen
+    assert "strategy" not in job
+    assert _python(job) == "3.14"
+    assert _runs_pytest(job)
 
 
-def test_both_python_versions_set_up_and_tested() -> None:
-    steps = _backend()["steps"]
-    setups = [s for s in steps if str(s.get("uses", "")).startswith("actions/setup-python")]
-    versions = {str(s["with"]["python-version"]) for s in setups}
+def test_312_tested_in_parallel_job() -> None:
+    tested = {_python(job) for job in _jobs().values() if _runs_pytest(job)}
 
-    assert {"3.12", "3.14"} <= versions
-    runs = " ".join(str(s.get("run", "")) for s in steps)
-    assert runs.count("pytest tests/") >= 2
-    assert "python3.12 -m venv" in runs and "python3.14 -m venv" in runs
+    assert tested == {"3.12", "3.14"}
