@@ -40,13 +40,32 @@ def test_venv_with_vanished_interpreter_is_not_installed(venv: Path) -> None:
 
 
 def test_venv_with_other_python_version_is_not_installed(venv: Path) -> None:
-    (venv / "bin").mkdir(parents=True)
-    other = venv / "bin" / "python"
-    other.write_text("#!/bin/sh\necho 3.11\n")
-    other.chmod(0o755)
+    """Prod heute: Interpreter 3.12 existiert noch, HydraHive läuft auf 3.14."""
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(venv)], check=True)
+    cfg = venv / "pyvenv.cfg"
+    cfg.write_text(
+        "\n".join(
+            "version = 3.11.9" if line.startswith(("version", "version_info")) else line
+            for line in cfg.read_text().splitlines()
+        )
+        + "\n"
+    )
     _fake_graphify(venv)
 
     assert cgi.bootstrap_status() == {"installed": False}
+
+
+def test_status_does_not_spawn_processes(venv: Path, monkeypatch) -> None:
+    """bootstrap_status läuft bei jeder Status-Abfrage der Oberfläche."""
+    subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(venv)], check=True)
+    _fake_graphify(venv)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("kein Unterprozess im Status")
+
+    monkeypatch.setattr(cgi.subprocess, "run", forbidden)
+
+    assert cgi.bootstrap_status() == {"installed": True}
 
 
 def test_matching_venv_is_installed(venv: Path) -> None:
@@ -67,6 +86,7 @@ def test_ensure_rebuilds_with_clear(venv: Path, monkeypatch) -> None:
         if "venv" in cmd:
             (venv / "bin" / "python").unlink()
             (venv / "bin" / "python").symlink_to(sys.executable)
+            (venv / "pyvenv.cfg").write_text("version_info = %d.%d.0\n" % sys.version_info[:2])
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(cgi.subprocess, "run", fake_run)
