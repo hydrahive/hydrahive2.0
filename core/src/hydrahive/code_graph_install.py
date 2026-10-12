@@ -27,7 +27,7 @@ def _graphify_bin() -> Path:
 
 
 def _venv_minor(venv: Path) -> tuple[int, int] | None:
-    """Python-Version des venv laut pyvenv.cfg (3.12 schreibt `version`, 3.14 `version_info`)."""
+    """Python-Version des venv laut pyvenv.cfg (`python -m venv` schreibt `version`, uv `version_info`)."""
     try:
         lines = (venv / "pyvenv.cfg").read_text(encoding="utf-8").splitlines()
     except OSError:

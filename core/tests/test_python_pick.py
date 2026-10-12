@@ -92,6 +92,15 @@ def test_311_is_no_longer_accepted(bin_dir: Path) -> None:
     assert "3.12" in result.stderr
 
 
+def test_311_as_system_python_is_skipped(bin_dir: Path) -> None:
+    """System-Python 3.11 (z. B. Debian 12): nicht nehmen, sondern 3.12 daneben."""
+    _fake_python(bin_dir, "python3.11", "3.11")
+    _fake_python(bin_dir, "python3.12", "3.12")
+    (bin_dir / "python3").symlink_to("python3.11")
+
+    assert _pick(bin_dir).stdout.strip() == str(bin_dir / "python3.12")
+
+
 def test_bin_dir_override_must_be_absolute(bin_dir: Path) -> None:
     result = _pick(Path("relativ/bin"))
 
