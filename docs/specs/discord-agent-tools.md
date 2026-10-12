@@ -30,7 +30,7 @@ in der Discord-Konfiguration mit Auswahlliste im UI.
 - Automatisches Reagieren auf neue Forum-Beiträge (Trigger) — eigener Schritt.
 - Butler-Aktion `discord_post` bleibt vorerst Stub (Folge-Task).
 - Beitragstitel/Tags nachträglich ändern, Beiträge schließen/sperren, Löschen,
-  Reaktionen, Dateianhänge, DMs über Tools.
+  Reaktionen, Dateianhänge (Bilder seit 12.10.2026: `discord-attachments.md`), DMs über Tools.
 
 ## 3. Freigabemodell (Variante B)
 
