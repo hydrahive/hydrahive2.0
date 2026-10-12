@@ -649,6 +649,23 @@ bash "$HH_REPO_DIR/installer/migrations/voice-stt-perf.sh" \
 bash "$HH_REPO_DIR/installer/migrations/pin-venv-python.sh" \
   || log "pin-venv-python failed — weiter"
 
+# SearXNG-venv dem System-Python nachführen (Spec python-314-umstieg): auf
+# Ubuntu 26.04 von 3.12 auf 3.14. Ohne Neubau fiele die Websuche aus, sobald
+# 3.12 entfernt wird. Passt das venv, passiert nichts.
+if [ -f /etc/systemd/system/searxng.service ] && [ -d /opt/searxng/venv ]; then
+  # shellcheck source=lib/searxng-venv.sh
+  source "$HH_REPO_DIR/installer/lib/searxng-venv.sh"
+  HH_VENV_REBUILT=0
+  hh_searxng_sync_venv /opt/searxng searxng searxng.service \
+    || log "WARNUNG: SearXNG-venv nicht erneuert — Websuche prüfen"
+  # Der Neubau hat den Dienst gestoppt — auch bei Fehler wieder starten,
+  # damit der Ausfall in Dashboard/Log sichtbar wird statt still zu stehen.
+  if [ "$HH_VENV_REBUILT" = "1" ]; then
+    systemctl reset-failed searxng.service 2>/dev/null || true
+    systemctl restart searxng.service || log "WARNUNG: SearXNG-Neustart fehlgeschlagen"
+  fi
+fi
+
 # Bestandsmigration: SearXNG-Einstellungen auf eigene Datei + Bing/Yandex an.
 # Am 02.10.2026 waren alle aktiven Suchanbieter gesperrt (CAPTCHA, zu viele
 # Anfragen) — 0 Treffer. Sicherung + Rücksprung bei 0 Treffern. Idempotent.

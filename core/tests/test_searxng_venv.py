@@ -71,6 +71,24 @@ def test_matching_venv_is_left_alone(tmp_path: Path) -> None:
     assert marker.exists()
 
 
+def test_failed_package_install_is_retried_next_time(tmp_path: Path) -> None:
+    """Bricht pip nach dem Neubau ab, ist das venv leer, aber Version und pip
+    passen. Ohne Marke hielte der nächste Lauf es für gesund — SearXNG bliebe
+    ohne Pakete liegen."""
+    searxng = tmp_path / "searxng"
+    (searxng / "venv" / "bin").mkdir(parents=True)
+    (searxng / "venv" / "bin" / "python").symlink_to("/usr/bin/python3.12-entfernt")
+    (searxng / "requirements.txt").write_text("dieses-paket-gibt-es-nicht-hh==0\n")
+
+    first = _sync(searxng)
+    (searxng / "requirements.txt").write_text("")
+    second = _sync(searxng)
+
+    assert first.returncode != 0
+    assert "rebuilt=1" in second.stdout, second.stderr
+    assert not (searxng / "venv" / ".hh-incomplete").exists()
+
+
 def test_update_syncs_searxng_venv_before_engine_migration() -> None:
     text = UPDATE.read_text()
     sync = text.index("hh_searxng_sync_venv")
@@ -87,7 +105,9 @@ def test_update_syncs_searxng_venv_before_engine_migration() -> None:
 
 def test_fresh_installers_use_helper_not_fixed_or_floating_python() -> None:
     for script in (MODULE, EXTENSION):
-        text = script.read_text()
-        assert "hh_searxng_sync_venv" in text, script.name
-        assert "/usr/bin/python3.12" not in text, script.name
-        assert "python3 -m venv" not in text, script.name
+        code = "\n".join(
+            line for line in script.read_text().splitlines() if not line.lstrip().startswith("#")
+        )
+        assert "hh_searxng_sync_venv" in code, script.name
+        assert "/usr/bin/python3.12" not in code, script.name
+        assert "python3 -m venv" not in code, script.name

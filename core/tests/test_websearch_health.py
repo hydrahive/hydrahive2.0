@@ -85,12 +85,16 @@ def test_dashboard_health_includes_websearch(monkeypatch):
     assert dh.health_check()["websearch"]["ok"] is False
 
 
-def test_searxng_installer_pins_python312():
-    """Neuinstallation darf den venv nicht an das generische python3 binden."""
+def test_searxng_installer_uses_resolved_interpreter():
+    """Neuinstallation darf den venv nicht an das generische python3 binden.
+
+    Früher fest /usr/bin/python3.12; seit dem Umstieg auf 3.14 über den
+    gemeinsamen Helfer, der /usr/bin/python3 auf die versionierte Datei
+    auflöst (Spec python-314-umstieg). Details: test_searxng_venv.py.
+    """
     text = (INSTALLER / "modules" / "76-searxng.sh").read_text()
 
-    assert 'SEARXNG_PYTHON="/usr/bin/python3.12"' in text
-    assert '"$SEARXNG_PYTHON" -m venv' in text
+    assert "hh_searxng_sync_venv" in text
     assert 'python3 -m venv "$SEARXNG_VENV"' not in text
 
 
