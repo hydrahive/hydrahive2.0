@@ -42,3 +42,17 @@ def annotate_status(server: dict) -> dict:
     pool = {s["id"]: s["connected"] for s in mcp_manager.status()}
     out["connected"] = bool(pool.get(server["id"], False))
     return out
+
+
+SECRET_MASK = "***"
+
+
+def for_viewer(server: dict, role: str) -> dict:
+    """env/headers-Werte (oft API-Schlüssel) nur für Admins; andere sehen nur die Schlüsselnamen."""
+    if role == "admin":
+        return server
+    out = dict(server)
+    for field in ("env", "headers"):
+        if isinstance(out.get(field), dict):
+            out[field] = {k: SECRET_MASK for k in out[field]}
+    return out
