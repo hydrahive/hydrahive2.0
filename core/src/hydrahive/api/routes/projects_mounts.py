@@ -53,7 +53,7 @@ def assign_mount(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> dict:
     username, role = auth
-    _project_or_404(project_id, username, role)
+    _project_or_404(project_id, username, role, required="write")
     m = mounts_db.get_mount(req.id)
     if not m:
         raise coded(404, "mount_not_found")
@@ -84,7 +84,7 @@ def unassign_mount(
     auth: Annotated[tuple[str, str], Depends(require_auth)],
 ) -> None:
     username, role = auth
-    _project_or_404(project_id, username, role)
+    _project_or_404(project_id, username, role, required="write")
     m = mounts_db.get_mount(mount_id)
     if not m or m.project_id != project_id:
         raise coded(404, "mount_not_assigned")
