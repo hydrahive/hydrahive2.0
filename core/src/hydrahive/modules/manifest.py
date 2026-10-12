@@ -54,6 +54,8 @@ class ModuleManifest:
     capabilities: tuple[CapabilitySpec, ...] = ()
     # Werkzeuge, die eine Sitzung sensibel machen: ((werkzeug, stufe), ...) – knowledge-spaces.md §2.1
     sensitive_tools: tuple[tuple[str, str], ...] = ()
+    # Vault-Bereich: Oberflächen-Routen nur nach Vault-PIN (docs/specs/vault.md §4.1)
+    vault: bool = False
 
     @classmethod
     def load(cls, path: Path) -> "ModuleManifest":
@@ -78,4 +80,5 @@ class ModuleManifest:
             persistent_paths=_persistent_paths(d.get("persistent_paths", [])),
             capabilities=parse_capabilities(d["id"], d.get("capabilities"), ManifestError),
             sensitive_tools=parse_sensitive_tools(d.get("sensitive_tools"), ManifestError),
+            vault=d.get("vault", False) is True,
         )

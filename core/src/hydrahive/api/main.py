@@ -82,6 +82,8 @@ from hydrahive.api.routes.tailscale import router as tailscale_router
 from hydrahive.api.routes.tts import router as tts_router
 from hydrahive.api.routes.zahnfee import router as zahnfee_router
 from hydrahive.api.routes.users import router as users_router
+from hydrahive.api.routes.vault import router as vault_router
+from hydrahive.vault.gate import require_vault_unlocked
 from hydrahive.api.routes.access_groups import router as access_groups_router
 from hydrahive.api.routes.access_grants import router as access_grants_router
 from hydrahive.api.routes.access_me import router as access_me_router
@@ -216,6 +218,7 @@ app.include_router(teamchat_router)
 app.include_router(prompt_archive_router)
 app.include_router(modules_admin_router)
 app.include_router(themes_admin_router)
+app.include_router(vault_router)
 
 
 def register_module_capabilities() -> None:
@@ -236,12 +239,10 @@ def mount_module_routers(target_app: FastAPI) -> None:
             continue
         for r in entry.ctx.routers:
             try:
-                target_app.include_router(
-                    r, prefix=f"/api/modules/{entry.manifest.id}",
-                    dependencies=[Depends(require_capability(
-                        f"module.{entry.manifest.id}", allow_query_token=True,
-                    ))],
-                )
+                deps = [Depends(require_capability(f"module.{entry.manifest.id}", allow_query_token=True))]
+                if entry.manifest.vault:                      # Vault-Bereich: zusätzlich PIN (vault.md §4.1)
+                    deps.append(Depends(require_vault_unlocked))
+                target_app.include_router(r, prefix=f"/api/modules/{entry.manifest.id}", dependencies=deps)
             except Exception as exc:
                 logger.error("Modul '%s': include_router fehlgeschlagen — übersprungen: %s",
                              entry.manifest.id, exc)

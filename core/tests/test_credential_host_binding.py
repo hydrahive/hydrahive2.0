@@ -246,7 +246,8 @@ def test_dispatcher_schwaerzt_credential_echo(client):
         store.delete_credential("admin", "echo-test")
 
 
-def test_api_liefert_host_bound_fuer_die_warnung(client, auth_headers):
+def test_api_liefert_host_bound_fuer_die_warnung(client, vault_headers):
+    auth_headers = vault_headers
     body = {"name": "api-alles", "type": "bearer", "value": TOKEN, "url_pattern": "*"}
     r = client.post("/api/credentials", json=body, headers=auth_headers)
     assert r.status_code == 201, r.text
@@ -266,7 +267,8 @@ def test_api_liefert_host_bound_fuer_die_warnung(client, auth_headers):
         client.delete(f"/api/credentials/{name}", headers=auth_headers)
 
 
-def test_bearbeiten_ohne_neuen_wert_behaelt_den_gespeicherten(client, auth_headers):
+def test_bearbeiten_ohne_neuen_wert_behaelt_den_gespeicherten(client, vault_headers):
+    auth_headers = vault_headers
     """Der Editor schickt das Wertfeld leer mit, wenn man nur das Muster ändert
     (Wert ist in der Liste maskiert). Das darf den gespeicherten Wert nicht löschen
     — sonst zerstört das Nachtragen des Hosts z.B. das Passwort eines SMB-Mounts."""
