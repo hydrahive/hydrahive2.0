@@ -127,6 +127,33 @@ def test_restart_before_switch_rolls_back(env) -> None:
     assert not (env["cfg"] / "archive-move.json").exists()
 
 
+def test_restart_before_switch_removes_files_not_yet_in_state(env) -> None:
+    """Fund auf hydratest (13.10.): Der Zustand wird nicht nach jeder Datei geschrieben. Nach hartem Abbruch lagen am
+    Ziel Dateien, die nicht in „copied“ standen – darunter eine halb kopierte. Das Ziel war vorher leer
+    (check_target), also gehört dort alles dem Umzug und muss weg."""
+    env["new"].mkdir(parents=True)
+    (env["new"] / "projects").mkdir()
+    (env["new"] / "projects" / "halb.tar.gz").write_bytes(b"halb")
+    (env["new"] / "agents").mkdir()
+    (env["new"] / "agents" / "fertig.tar.gz").write_bytes(b"fertig")
+    (env["cfg"] / "archive-move.json").write_text(json.dumps(
+        {"state": "copying", "source": str(env["old"]), "target": str(env["new"]), "copied": []}))
+    move.recover()
+    assert not env["new"].exists() or _files(env["new"]) == {}
+    assert location.archive_root() == env["old"]
+
+
+def test_recover_never_touches_a_target_that_was_not_empty(env) -> None:
+    """Ohne Merker „Ziel war leer“ (alte Zustandsdatei) wird nur Bekanntes entfernt."""
+    env["new"].mkdir(parents=True)
+    (env["new"] / "fremd.txt").write_text("gehört nicht dem Umzug")
+    (env["cfg"] / "archive-move.json").write_text(json.dumps(
+        {"state": "copying", "source": str(env["old"]), "target": str(env["new"]), "copied": [],
+         "target_was_empty": False}))
+    move.recover()
+    assert (env["new"] / "fremd.txt").read_text() == "gehört nicht dem Umzug"
+
+
 def test_restart_after_switch_finishes_cleanup(env) -> None:
     before = _files(env["old"])
     for rel, data in before.items():
