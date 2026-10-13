@@ -127,3 +127,13 @@ def test_blocklist_same_as_python() -> None:
     text = (INSTALLER / "lib" / "archive-disk.sh").read_text()
     line = next(x for x in text.splitlines() if x.startswith("HH_ARCHIVE_DISK_BLOCKED_DEFAULT="))
     assert tuple(line.split("=", 1)[1].strip('"').split()) == disks.BLOCKED
+
+
+def test_container_root_is_allowed(box) -> None:
+    """Wie in Python: „/“ in einem Container (Wurzel ≠ „/“) ist erlaubt → Ziel /srv/hydrahive-archiv.
+    Hier nur die Liste prüfen – /srv im Test nicht anfassen."""
+    _exe(box["bin"] / "findmnt", "#!/bin/sh\necho '/ /var/lib/incus/storage-pools/x/rootfs ext4 rw,relatime 8:2'\n")
+    lib = INSTALLER / "lib" / "archive-disk.sh"
+    out = subprocess.run(["bash", "-c", f"source '{lib}'; hh_archive_disk_list"], capture_output=True, text=True,
+                         env={"PATH": f"{box['bin']}:/usr/bin:/bin", "HH_DATA_DIR": str(box["data"])}, timeout=30)
+    assert out.stdout.strip() == f"{_id('/')}\t/"

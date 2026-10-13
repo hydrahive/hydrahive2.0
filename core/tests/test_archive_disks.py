@@ -86,3 +86,30 @@ def test_root_target_check_for_runner(mi) -> None:
     for bad in ("/home", "/boot/efi", "/tmp", "/var/lib/hydrahive2/workspaces", "/etc", "/srv/fast/../../etc",
                 "/var/lib/hydrahive2/workspaces/projects/x/mounts/NAS", "relativ", ""):
         assert disks.allowed_mount(bad) is False, bad
+
+
+# Echter Auszug aus einem incus-Container (hydratest, 13.10.2026): „/“ ist selbst ein Bind-Mount aus dem Speicher-Pool
+# des Hosts (Wurzel ≠ „/“). Viele HydraHive-Installationen laufen so – „/“ muss trotzdem angeboten werden.
+CONTAINER = """\
+1541 1454 8:2 /var/lib/incus/storage-pools/default/containers/hydratest/rootfs / rw,relatime shared:1271 master:1 - ext4 /dev/sda2 rw
+1542 1541 0:115 / /dev rw,relatime shared:1272 - tmpfs none rw,size=492k
+1574 1541 0:61 / /var/lib/lxcfs rw,nosuid,nodev,relatime shared:1307 master:441 - fuse.lxcfs lxcfs rw
+1494 1541 8:2 /var/lib/incus/storage-pools/default/custom/default_vol /mnt/vol rw,relatime shared:2220 master:1 - ext4 /dev/sda2 rw
+1600 1541 8:33 /daten /mnt/zweite rw,relatime - ext4 /dev/sdc1 rw
+"""
+
+
+def test_container_root_is_offered(mi) -> None:
+    mi.write_text(CONTAINER)
+    mounts = [d["mount"] for d in disks.list_disks()]
+    assert mounts == ["/", "/mnt/zweite"], "gleiche Platte (8:2) nur einmal, über den kürzesten Einhängepunkt"
+
+
+def test_same_device_counted_by_major_minor(mi) -> None:
+    """Gezählt wird das Gerät (MAJ:MIN), wie im Root-Runner – nicht der Quell-Name."""
+    mi.write_text(
+        "1 0 8:2 / / rw - ext4 /dev/sda2 rw\n"
+        "2 1 8:2 / /mnt/gleich rw - ext4 /dev/disk/by-uuid/abc rw\n"
+        "3 1 8:3 / /mnt/anders rw - ext4 /dev/sda2 rw\n"
+    )
+    assert [d["mount"] for d in disks.list_disks()] == ["/", "/mnt/anders"]
