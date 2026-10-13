@@ -202,10 +202,12 @@ lesbar. Sie bildet zugleich den Katalog, aus dem die Archiv-Ansicht
 
 ## Etappen (angepasst)
 
-1. **Archiv-Kern + lokales System-Archiv + Samba-Freigabe:** Paket bauen
-   (tar.gz, Prüfsumme, `.json`), ins lokale Archiv schreiben, Freigabe
-   `HydraHive_Archiv` (lesen + schreiben, Papierkorb) bei Install und Update,
-   `HH_ARCHIVE_LOCAL_DIR` über `install.conf` an Dienst und Installer.
+1. **Archiv-Kern + lokales System-Archiv + Samba-Freigabe + Admin-Fenster:**
+   Paket bauen (tar.gz, Prüfsumme, `.json`), ins lokale Archiv schreiben,
+   Freigabe `HydraHive_Archiv` (lesen + schreiben, Papierkorb) bei Install und
+   Update, `HH_ARCHIVE_LOCAL_DIR` über `install.conf` an Dienst und Installer.
+   Admin-Fenster „Archiv & Sicherung“ mit Speicherort, Samba-Freigabe
+   (inkl. Papierkorb leeren) und Liste der archivierten Elemente.
 2. **Lösch-Dialog** für Agent, Projekt und Nutzer: Archiv oder unwiderruflich,
    API `mode` Pflicht, Packen im Hintergrund mit Fortschritt. Skript für die
    vorhandenen Waisen (Prod 30, hydratest 343).
@@ -216,6 +218,39 @@ lesbar. Sie bildet zugleich den Katalog, aus dem die Archiv-Ansicht
 
 Nach 1 und 2 geht nichts mehr still verloren, auch ganz ohne NAS.
 
+## Admin-Konsole (Till, 13.10.: „alles dazu muss auch in die Admin-Konsole“)
+
+Ist-Stand, im Browser auf hydratest angesehen (13.10.):
+- Admin-Seite `/admin` mit den Spalten „Admin-Bereiche“ (System, User, Module,
+  Extensions, Plugins, Credentials), „Betriebszentrale“ und „Wartung & Backups“
+  (Karten Backup → `/system`, System-Settings, Freigaben).
+- Fenster **System** (`/admin?section=system`) mit Karten untereinander, u. a.
+  „SMB-Shares (Samba)“ (Status, Login `hh`, Passwort mit Auge/Kopieren) und
+  „System-Backup“ (Knöpfe „Backup herunterladen“, „Backup wiederherstellen“).
+- System-Settings (`/system/settings`) zeigen die Einträge aus
+  `settings/editable.py`, gruppiert.
+
+**Neu: eigenes Admin-Fenster „Archiv & Sicherung“** (`/admin?section=archive`,
+Pfad `/archive`). Erreichbar über eine Karte in „Wartung & Backups“ und einen
+Eintrag „Archiv“ in „Admin-Bereiche“. Inhalt je Etappe:
+
+| Bereich im Fenster | Etappe | Inhalt |
+|---|---|---|
+| **Speicherort** | 1 | Aktives Ziel (lokal / NAS), Pfad, freier und belegter Platz, Zahl der Pakete. Erreichbarkeit grün/rot. |
+| **Samba-Freigabe** | 1 | Name `HydraHive_Archiv`, Adresse zum Kopieren (`\\<host>\HydraHive_Archiv`), Login `hh`, Passwort (Auge/Kopieren wie in der Samba-Karte), Papierkorb-Größe, Knopf „Papierkorb leeren“ (mit Namens-Bestätigung „Papierkorb“). Ist Samba aus: Hinweis + Knopf „Samba einrichten“ (vorhandener Zusatz-Modul-Weg). |
+| **Archivierte Elemente** | 1 (Liste), 6 (Wiederherstellen) | Tabelle: Art, Name, Herkunft, Besitzer, Datum, Grund, Größe. Filter nach Art. In Etappe 1 nur lesen; „von Hand abgelegt“ markiert. |
+| **Laufende Vorgänge** | 2 | Packen im Hintergrund mit Fortschritt (z. B. großes Projekt), Fehler sichtbar. |
+| **Waisen** | 2 | Anzahl verwaister Arbeitsordner, Knopf „Ins Archiv verschieben“ (statt Skript; Skript bleibt als Rückfall für Prod ohne Oberfläche). |
+| **Externer Server (NAS)** | 3 | Server, Freigabe, Unterordner, Zugangsdaten (Auswahl aus Credentials, Typ `basic`), Knopf „Verbindung testen“, Schalter „aktiv“. |
+| **System-Backup ins Archiv** | 5 | Knopf „Jetzt sichern“, Zeitplan, letzte Sicherung. Die Karte „System-Backup“ im System-Fenster verweist hierher. |
+
+Einstellungen (Pfad `HH_ARCHIVE_LOCAL_DIR`) stehen **nur lesend** im
+Fenster, weil sie über `install.conf` an Installer und Dienst gehen
+(s. o.). Änderbar über `update.sh`. Ein Knopf, der nur die Dienst-Seite
+änderte, würde die beiden auseinanderlaufen lassen.
+
+Alle Aktionen nur für Admins (`require_admin`). Texte de/en.
+
 ## Entschieden (Till, 13.10.)
 
 - Löschen fragt immer: Archiv oder unwiderruflich (Name eintippen).
@@ -223,5 +258,6 @@ Nach 1 und 2 geht nichts mehr still verloren, auch ganz ohne NAS.
   Server da ist. Die Freigabe ist **lesbar und beschreibbar**, mit
   Papierkorb als Sicherheitsnetz.
 - Reihenfolge: zuerst lokales Archiv und Lösch-Dialog, dann der externe Server.
+- Alles dazu kommt auch in die Admin-Konsole: eigenes Fenster „Archiv & Sicherung“.
 
 **Status: zur Freigabe von Etappe 1.**
