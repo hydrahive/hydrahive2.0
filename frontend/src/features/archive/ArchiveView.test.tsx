@@ -72,8 +72,10 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
   })
 
   it("Papierkorb leeren nur anbietbar, wenn etwas drin ist", () => {
-    expect(html()).toMatch(/data-archive-action="empty-trash"(?![^>]*disabled)/)
+    // Echtes Attribut disabled="" – nicht die CSS-Klasse „disabled:…“.
+    const trashButton = (out: string) => out.match(/<button[^>]*data-archive-action="empty-trash"[^>]*>/)?.[0] ?? ""
+    expect(trashButton(html())).not.toMatch(/\sdisabled=""/)
     const empty = html({ status: { ...STATUS, storage: { ...STATUS.storage, trash_bytes: 0 } } })
-    expect(empty).toMatch(/<button[^>]*data-archive-action="empty-trash"[^>]*disabled/)
+    expect(trashButton(empty)).toMatch(/\sdisabled=""/)
   })
 })

@@ -40,6 +40,7 @@ export const adminOfflineActions = [
   { id: "extensions", label: "Extensions", kind: "local-link", path: "/extensions", description: "Erweiterungen öffnen." },
   { id: "plugins", label: "Plugins", kind: "local-link", path: "/plugins", description: "Pluginverwaltung öffnen." },
   { id: "credentials", label: "Credentials", kind: "local-link", path: "/credentials", description: "Secrets-Verwaltung öffnen." },
+  { id: "archive", label: "Archiv", kind: "local-link", path: "/archive", description: "Archiv & Sicherung: gelöschte Daten und Netzwerk-Freigabe." },
 ] satisfies CockpitAction[]
 
 export const explicitAiActions = [

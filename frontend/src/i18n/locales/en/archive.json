@@ -1,0 +1,75 @@
+{
+  "title": "Archive & Backup",
+  "subtitle": "Deleted agents, projects and users end up here instead of disappearing. The archive is also reachable as a network share.",
+  "reload": "Reload",
+  "load_failed": "Could not load the archive.",
+  "storage": {
+    "title": "Storage",
+    "subtitle": "Where archives go and how much space they use.",
+    "ok": "Ready",
+    "readonly": "Not writable",
+    "missing": "Missing",
+    "target": "Target",
+    "target_local": "Local system archive",
+    "path": "Folder",
+    "count": "Packages",
+    "count_value": "{{count}} ({{manual}} placed manually)",
+    "used": "Used",
+    "free": "Free on disk",
+    "trash": "Recycle bin",
+    "empty_trash": "Empty",
+    "path_hint": "The folder is set during installation (install.conf, HH_ARCHIVE_LOCAL_DIR) and cannot be changed here."
+  },
+  "share": {
+    "title": "Network share",
+    "subtitle": "Open the archive in Windows Explorer or Finder – read and write.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "address": "Address",
+    "login": "User",
+    "password": "Password",
+    "copy_address": "Copy address",
+    "copy_password": "Copy password",
+    "copied": "Copied",
+    "no_samba": "Samba is not installed. Without Samba there is no network share – the archive itself still works.",
+    "setup_samba": "Set up Samba",
+    "setup_failed": "Could not start the Samba setup.",
+    "not_enabled": "Samba is running, but the share has not been created yet. It will be added by the next update (update.sh).",
+    "hint": "Files deleted through the share go to the recycle bin (.papierkorb) and stay there until it is emptied here."
+  },
+  "entries": {
+    "title": "Archived items",
+    "subtitle": "Everything in the archive. Restoring will come in a later stage.",
+    "filter": "Filter by type",
+    "all": "All types",
+    "empty": "The archive is empty.",
+    "manual": "Placed manually",
+    "col_name": "Name",
+    "col_kind": "Type",
+    "col_owner": "Owner",
+    "col_reason": "Reason",
+    "col_date": "Date",
+    "col_size": "Size"
+  },
+  "kind": {
+    "agents": "Agent",
+    "projects": "Project",
+    "users": "User",
+    "backups": "System backup",
+    "uploads": "Upload"
+  },
+  "reason": {
+    "agent_deleted": "Agent deleted",
+    "project_deleted": "Project deleted",
+    "user_deleted": "User deleted",
+    "backup": "System backup"
+  },
+  "trash": {
+    "title": "Empty recycle bin permanently",
+    "text": "The recycle bin holds {{size}}. These files will be deleted permanently.",
+    "type_word": "Type “{{word}}” to confirm",
+    "confirm": "Empty permanently",
+    "cancel": "Cancel",
+    "failed": "Could not empty the recycle bin."
+  }
+}
