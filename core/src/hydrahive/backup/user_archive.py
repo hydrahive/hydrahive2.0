@@ -15,7 +15,7 @@ from pathlib import Path
 
 from hydrahive.agents import config as agent_config
 from hydrahive.agents._paths import workspace_for
-from hydrahive.backup._paths import is_excluded
+from hydrahive.backup._paths import is_excluded, system_archive_root
 from hydrahive.butler import persistence as butler_persistence
 from hydrahive.communication.whatsapp.config import _config_file as _wa_config_file
 from hydrahive.db import messages, sessions
@@ -110,8 +110,9 @@ def _export_butler(tar: tarfile.TarFile, username: str) -> None:
 def _add_dir(tar: tarfile.TarFile, arcname: str, source: Path) -> None:
     if not source.exists():
         return
+    archive_root = system_archive_root()
     for item in source.rglob("*"):
-        if is_excluded(item):
+        if is_excluded(item, archive_root):
             continue
         rel = item.relative_to(source)
         tar.add(item, arcname=f"{arcname}/{rel}", recursive=False)

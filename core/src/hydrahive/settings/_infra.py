@@ -25,21 +25,6 @@ class _SambaMixin:
                                     str(self.config_dir / "samba.password")))
 
 
-class _ArchiveMixin:
-    """System-Archiv (docs/specs/archiv-system.md)."""
-
-    @cached_property
-    def archive_local_dir(self) -> Path:
-        """Lokales System-Archiv. Kommt über install.conf → Unit (Installer + Dienst
-        lesen denselben Wert). Auf Prod gehört es auf die große Platte."""
-        raw = os.environ.get("HH_ARCHIVE_LOCAL_DIR", "").strip()
-        return Path(raw) if raw else self.data_dir / "archive"
-
-    @cached_property
-    def archive_share_name(self) -> str:
-        return os.environ.get("HH_ARCHIVE_SHARE_NAME", "HydraHive_Archiv").strip() or "HydraHive_Archiv"
-
-
 class _VmsMixin:
     @cached_property
     def vms_dir(self) -> Path:

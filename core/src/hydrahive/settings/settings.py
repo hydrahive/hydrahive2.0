@@ -16,7 +16,6 @@ from __future__ import annotations
 from hydrahive.settings._ai_security import _AiSecurityMixin
 from hydrahive.settings._compute import _ComputeMixin
 from hydrahive.settings._infra import (
-    _ArchiveMixin,
     _ButlerMixin,
     _ExtensionsMixin,
     _SambaMixin,
@@ -43,7 +42,6 @@ class Settings(
     _AiSecurityMixin,
     _ComputeMixin,
     _SambaMixin,
-    _ArchiveMixin,
     _VmsMixin,
     _ExtensionsMixin,
     _WebminMixin,

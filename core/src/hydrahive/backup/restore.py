@@ -22,7 +22,7 @@ import time
 from pathlib import Path
 
 from hydrahive.backup._limits import enforce_archive_limits
-from hydrahive.backup._paths import config_dir_arcname, data_subdirs, db_arcname
+from hydrahive.backup._paths import config_dir_arcname, data_subdirs, db_arcname, system_archive_names
 from hydrahive.backup.archive import create_system_archive
 from hydrahive.backup.validate import RestoreError, validate_archive
 from hydrahive.settings import settings
@@ -124,8 +124,11 @@ def _atomic_replace_dir(src: Path, dst: Path) -> None:
         shutil.move(str(src), str(dst))
         return
 
+    keep = system_archive_names(dst)   # System-Archiv bleibt stehen, wird nie bewegt (archiv-system.md)
     old = dst.with_suffix(dst.suffix + ".old-restore")
-    if _can_rename_dir(dst, old):
+    if keep:
+        _replace_dir_contents(src, dst, keep)
+    elif _can_rename_dir(dst, old):
         # Schneller Pfad: Verzeichnis atomar tauschen.
         if old.exists():
             shutil.rmtree(old, ignore_errors=True)
@@ -165,7 +168,7 @@ def _can_rename_dir(dst: Path, probe: Path) -> bool:
     return True
 
 
-def _replace_dir_contents(src: Path, dst: Path) -> None:
+def _replace_dir_contents(src: Path, dst: Path, keep: frozenset[str] = frozenset()) -> None:
     """Ersetzt den Inhalt von ``dst`` durch den von ``src`` — Datei für Datei,
     ohne ``dst`` selbst zu bewegen (Mount-Point-/Permission-sicher).
 
@@ -186,7 +189,7 @@ def _replace_dir_contents(src: Path, dst: Path) -> None:
     try:
         # 1) bestehenden Inhalt (außer dem backup-Ordner) beiseite räumen
         for entry in list(dst.iterdir()):
-            if entry == backup:
+            if entry == backup or entry.name in keep:
                 continue
             try:
                 entry.rename(backup / entry.name)
@@ -198,7 +201,7 @@ def _replace_dir_contents(src: Path, dst: Path) -> None:
 
         # 2) neuen Inhalt hineinbringen (skip, was wir übersprungen haben)
         for entry in list(src.iterdir()):
-            if entry.name in skipped:
+            if entry.name in skipped or entry.name in keep:
                 continue
             shutil.move(str(entry), str(dst / entry.name))
             added.append(entry.name)

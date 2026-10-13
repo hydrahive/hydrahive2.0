@@ -99,8 +99,12 @@ def test_status_runs_setup_and_reports_disk(client, admin_headers, root, samba, 
 
     assert calls == [1]
     assert body["share"]["wanted"] is True
-    assert body["storage"]["is_default"] is True
-    assert body["storage"]["mount"]
+    assert body["storage"]["is_default"] is False          # Fixture legt das Archiv woanders hin
+    assert body["storage"]["mount"] and Path(body["storage"]["mount"]).is_dir()
+
+    from hydrahive.archive import location
+    monkeypatch.setattr(location, "is_default", lambda: True)
+    assert client.get("/api/admin/archive/status", headers=admin_headers).json()["storage"]["is_default"] is True
 
 
 def test_share_switch(client, admin_headers, root, samba, monkeypatch) -> None:

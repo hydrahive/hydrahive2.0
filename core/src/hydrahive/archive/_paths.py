@@ -3,15 +3,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hydrahive.settings import settings
+from hydrahive.archive import location
 
 # Feste Arten. `kind` wird zum Ordnernamen – deshalb nur aus dieser Liste.
 KINDS: tuple[str, ...] = ("agents", "projects", "users", "backups", "uploads")
-TRASH_DIR = ".papierkorb"   # Samba-Papierkorb (recycle:repository), siehe installer/lib/archive-share.sh
+TRASH_DIR = ".papierkorb"   # Samba-Papierkorb (recycle:repository), siehe archive/share.py
 
 
 def archive_root() -> Path:
-    return Path(settings.archive_local_dir)
+    # Immer über location – so gilt eine Änderung des Orts sofort überall.
+    return location.archive_root()
 
 
 def kind_dir(kind: str) -> Path:
