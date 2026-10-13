@@ -96,6 +96,22 @@ def test_mounts_are_never_packed(root: Path, src: Path, monkeypatch) -> None:
     assert not any("riesig.bin" in n for n in names)
 
 
+def test_everything_of_the_source_is_kept(root: Path, tmp_path: Path) -> None:
+    """Archiv ≠ System-Backup: Was der Nutzer hatte, kommt komplett mit – auch
+    VM-Platten (.qcow2) und Ordner namens vms/tls (System-Backup lässt die weg).
+    Auch ein Elternordner mit solchem Namen darf nichts ausschließen."""
+    src = tmp_path / "vms" / "projekt"
+    (src / "tls").mkdir(parents=True)
+    (src / "tls" / "cert.pem").write_text("c")
+    (src / "disk.qcow2").write_text("d")
+    (src / ".plugin-cache").mkdir()
+    (src / ".plugin-cache" / "x").write_text("x")
+
+    entry = package.pack(kind="projects", name="p", source_id="1", owner="o", reason="r", sources=[("ws", src)])
+
+    assert {"ws/tls/cert.pem", "ws/disk.qcow2", "ws/.plugin-cache/x"} <= _names(root / "projects" / entry["file"])
+
+
 def test_symlinks_stay_symlinks(root: Path, src: Path, tmp_path: Path) -> None:
     """Agent-Ordner enthalten Symlinks (master/<id>/projects/…). Nicht folgen."""
     outside = tmp_path / "draussen"
