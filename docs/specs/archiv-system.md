@@ -131,12 +131,28 @@ löschen“ hängen nur an der Archiv-API, nicht am NAS.
      Platte gelegt (`/var/lib/hydrahive2.hdd/workspaces` auf `sda2`, 14 TB
      frei). Für Prod daher `HH_ARCHIVE_LOCAL_DIR=/var/lib/hydrahive2.hdd/archive`
      setzen, sonst passen große Projekte nicht. Der Installer legt den Ordner
-     an. Den Eintrag in `/etc/hydrahive2/env` macht Till.
+     an.
+   - **Ein Ort für Dienst und Installer:** Der Dienst liest
+     `/etc/hydrahive2/env`, `update.sh` und `install.sh` lesen `install.conf`.
+     Darum steht `HH_ARCHIVE_LOCAL_DIR` in `install.conf`, und der Installer
+     schreibt denselben Wert in die systemd-Unit des Dienstes
+     (`Environment=`), so wie `HH_DATA_DIR`. Es gibt keine zweite Stelle, die
+     auseinanderlaufen kann. Für Prod: Till trägt die Zeile einmal in
+     `install.conf` ein und startet `update.sh`.
    - **Samba-Freigabe `HydraHive_Archiv`**, systemweit und an kein Projekt
-     gebunden. **Nur lesbar** (`read only = yes`): Man lädt herunter, aber
-     über das Netz löscht niemand aus Versehen ein Archiv. Zugang mit dem
-     vorhandenen Samba-Nutzer `hh` (Passwort in `samba.password`), wie die
-     Projekt-Freigaben.
+     gebunden. **Lesen und schreiben** (Till, 13.10.): herunterladen und
+     eigene Dateien hineinlegen. Zugang mit dem vorhandenen Samba-Nutzer `hh`
+     (Passwort in `samba.password`), wie die Projekt-Freigaben.
+     - `force user = hydrahive`, `force group = hydrahive`, Masken 0664/2775:
+       Was übers Netz hineinkommt, gehört dem Dienst. HydraHive kann es lesen,
+       katalogisieren und später als Wissen nutzen.
+     - **Samba-Papierkorb** (`vfs objects = recycle`): Übers Netz Gelöschtes
+       landet in `archive/.papierkorb/` statt sofort weg zu sein
+       (`recycle:keeptree`, `recycle:versions`, `recycle:touch`). Leeren nur
+       von Hand. So bleibt Tills Regel „keine Daten verlieren“ auch beim
+       Schreibrecht erhalten.
+     - Fremde Dateien ohne `.json` daneben zeigt die Archiv-Ansicht (Etappe 6)
+       als „von Hand abgelegt“, ohne Wiederherstellen-Knopf.
    - Eigene Datei `/etc/samba/hh-projects.d/_system-archiv.conf`, die
      `_index.conf` mit einbindet. Der Projekt-Code (`enable_share`,
      `disable_share`) fasst sie nicht an.
@@ -188,7 +204,8 @@ lesbar. Sie bildet zugleich den Katalog, aus dem die Archiv-Ansicht
 
 1. **Archiv-Kern + lokales System-Archiv + Samba-Freigabe:** Paket bauen
    (tar.gz, Prüfsumme, `.json`), ins lokale Archiv schreiben, Freigabe
-   `HydraHive_Archiv` (nur lesbar) bei Install und Update.
+   `HydraHive_Archiv` (lesen + schreiben, Papierkorb) bei Install und Update,
+   `HH_ARCHIVE_LOCAL_DIR` über `install.conf` an Dienst und Installer.
 2. **Lösch-Dialog** für Agent, Projekt und Nutzer: Archiv oder unwiderruflich,
    API `mode` Pflicht, Packen im Hintergrund mit Fortschritt. Skript für die
    vorhandenen Waisen (Prod 30, hydratest 343).
@@ -199,7 +216,12 @@ lesbar. Sie bildet zugleich den Katalog, aus dem die Archiv-Ansicht
 
 Nach 1 und 2 geht nichts mehr still verloren, auch ganz ohne NAS.
 
-## Offene Frage (eine)
+## Entschieden (Till, 13.10.)
 
-Die Freigabe `HydraHive_Archiv` **nur lesbar** (Empfehlung: herunterladen ja,
-über das Netz löschen oder ändern nein) oder auch beschreibbar?
+- Löschen fragt immer: Archiv oder unwiderruflich (Name eintippen).
+- Lokales System-Archiv mit eigener Samba-Freigabe, falls kein externer
+  Server da ist. Die Freigabe ist **lesbar und beschreibbar**, mit
+  Papierkorb als Sicherheitsnetz.
+- Reihenfolge: zuerst lokales Archiv und Lösch-Dialog, dann der externe Server.
+
+**Status: zur Freigabe von Etappe 1.**
