@@ -89,8 +89,11 @@ def test_refuses_disks_outside_the_rules(box, which) -> None:
              "nas": f"{box['tmp']}/nas", "unknown": "/gibt/es/nicht"}[which]
     r = _run(box, f"prepare-archive {_id(mount)}\n")
     assert r.returncode != 0
-    assert "[hh2-addon] FEHLER" in r.stdout
-    assert not (Path(mount) / "hydrahive-archiv").exists()
+    assert "nicht in der Liste der erlaubten Platten" in r.stdout
+    assert "Richte" not in r.stdout, "abgelehnt, bevor irgendetwas angelegt wird"
+    # Nur eigene Test-Orte prüfen – /boot/efi u. Ä. sind für den CI-Nutzer nicht lesbar (PermissionError).
+    if Path(mount).is_relative_to(box["tmp"]):
+        assert not (Path(mount) / "hydrahive-archiv").exists()
 
 
 def test_refuses_symlinked_target(box) -> None:
