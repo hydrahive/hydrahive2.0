@@ -88,6 +88,7 @@ export function ArchiveShareSection({ share, host, busy, onSetupSamba, onSwitch 
               data-archive-action="share-switch"
               onChange={(e) => onSwitch(e.target.checked)}
             />
+            {share.paused_for_move && <AdminFeedback tone="warning">{t("share.paused_for_move")}</AdminFeedback>}
             {!share.wanted && <AdminFeedback>{t("share.switched_off")}</AdminFeedback>}
             {share.wanted && !share.enabled && <AdminFeedback tone="warning">{t("share.not_enabled")}</AdminFeedback>}
             {share.wanted && share.enabled && <Login share={share} host={host} />}

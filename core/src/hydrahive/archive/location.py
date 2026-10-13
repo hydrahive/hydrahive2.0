@@ -17,6 +17,7 @@ from hydrahive.settings import settings
 logger = logging.getLogger(__name__)
 
 CONFIG_NAME = "archive.json"
+MOVE_STATE_NAME = "archive-move.json"   # solange sie liegt, läuft ein Umzug (archive/move.py)
 
 
 def _config_path() -> Path:
@@ -63,9 +64,30 @@ def is_default() -> bool:
     return archive_root() == default_root()
 
 
+def moving() -> bool:
+    return (Path(settings.config_dir) / MOVE_STATE_NAME).exists()
+
+
 def share_wanted() -> bool:
+    """Während eines Umzugs immer aus – niemand soll in einen Ort schreiben, der gerade wegkopiert wird."""
+    if moving():
+        return False
+    return share_switch()
+
+
+def share_switch() -> bool:
+    """Stellung des Schalters in der Admin-Konsole (Standard: an)."""
     value = _read().get("share", True)
     return value if isinstance(value, bool) else True
+
+
+def set_local_dir(path: Path) -> None:
+    data = _read()
+    if Path(path) == default_root():
+        data.pop("local_dir", None)
+    else:
+        data["local_dir"] = str(path)
+    _write(data)
 
 
 def set_share_wanted(enabled: bool) -> None:

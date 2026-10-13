@@ -6,6 +6,7 @@ import { AdminAction } from "@/features/cockpit/admin/ui"
 import { systemApi } from "@/features/system/api"
 import { archiveApi, type ArchiveEntry, type ArchiveKind, type ArchiveStatus } from "./api"
 import { ArchiveView } from "./ArchiveView"
+import { MoveDialog } from "./MoveDialog"
 import { TrashConfirmDialog } from "./TrashConfirmDialog"
 
 /** Admin-Fenster „Archiv & Sicherung“ (docs/specs/archiv-system.md, Etappe 1). */
@@ -17,6 +18,8 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [confirmTrash, setConfirmTrash] = useState(false)
   const [shareBusy, setShareBusy] = useState(false)
+  const [moveOpen, setMoveOpen] = useState(false)
+  const moving = !!status?.move?.running
 
   const reload = useCallback(async () => {
     try {
@@ -31,6 +34,13 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
     const first = setTimeout(() => { void reload() }, 0)
     return () => clearTimeout(first)
   }, [reload])
+
+  // Während eines Umzugs den Fortschritt abfragen (der Umzug läuft im Dienst, nicht im Browser).
+  useEffect(() => {
+    if (!moving) return
+    const timer = setInterval(() => { void reload() }, 1500)
+    return () => clearInterval(timer)
+  }, [moving, reload])
 
   async function setupSamba() {
     setShareBusy(true)
@@ -79,8 +89,12 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           onEmptyTrash={() => setConfirmTrash(true)}
           onSetupSamba={() => void setupSamba()}
           onShareSwitch={(enabled) => void switchShare(enabled)}
+          onChangeLocation={() => setMoveOpen(true)}
         />
       </div>
+      {moveOpen && (
+        <MoveDialog onClose={() => setMoveOpen(false)} onStarted={() => { setMoveOpen(false); void reload() }} />
+      )}
       {confirmTrash && status && (
         <TrashConfirmDialog
           trashBytes={status.storage.trash_bytes}

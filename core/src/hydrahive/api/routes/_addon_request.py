@@ -15,6 +15,9 @@ from hydrahive.settings import settings
 from hydrahive.system.addons_status import ADDONS
 
 _REQUEST = re.compile(r"^install ([a-z]+)\s*$")
+# Feste Zusatz-Aktion (Archiv Etappe 1b): Platte für das Archiv einrichten. Nur eine 12-stellige ID aus der
+# Platten-Liste – der Runner sucht sie in seiner eigenen Liste (installer/lib/archive-disk.sh), nie ein Pfad.
+_PREPARE = re.compile(r"^prepare-archive ([0-9a-f]{12})\s*$")
 
 
 # Pfad erst beim Aufruf auflösen (settings.data_dir ist cached_property, siehe system_local_media.py).
@@ -32,7 +35,9 @@ def running_addon(trigger: Path | None = None) -> str | None:
     except OSError:
         return "?"
     m = _REQUEST.match(text)
-    return m.group(1) if m else "?"
+    if m:
+        return m.group(1)
+    return "prepare-archive" if _PREPARE.match(text) else "?"
 
 
 def request_install(addon: str, trigger: Path | None = None) -> None:
@@ -44,3 +49,14 @@ def request_install(addon: str, trigger: Path | None = None) -> None:
         raise coded(status.HTTP_409_CONFLICT, "addon_busy")
     trigger.parent.mkdir(parents=True, exist_ok=True)
     trigger.write_text(f"install {addon}\n")
+
+
+def request_prepare_archive(disk_id: str, trigger: Path | None = None) -> None:
+    """Root-Runner soll <platte>/hydrahive-archiv für den Dienst anlegen. 400 bei falscher ID, 409 wenn belegt."""
+    if not re.fullmatch(r"[0-9a-f]{12}", disk_id):
+        raise coded(status.HTTP_400_BAD_REQUEST, "archive_location_unknown")
+    trigger = trigger or trigger_path()
+    if running_addon(trigger) is not None:
+        raise coded(status.HTTP_409_CONFLICT, "addon_busy")
+    trigger.parent.mkdir(parents=True, exist_ok=True)
+    trigger.write_text(f"prepare-archive {disk_id}\n")

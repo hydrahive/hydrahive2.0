@@ -1,16 +1,19 @@
-import { CheckCircle2, HardDrive, Trash2, XCircle } from "lucide-react"
+import { ArrowRightLeft, CheckCircle2, HardDrive, Trash2, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { AdminAction, AdminFeedback, AdminPanel, AdminStatus } from "@/features/cockpit/admin/ui"
-import type { ArchiveStorage } from "./api"
+import type { ArchiveMove, ArchiveStorage } from "./api"
+import { MoveProgress } from "./MoveProgress"
 import { formatSize } from "./format"
 
 interface Props {
   storage: ArchiveStorage
+  move?: ArchiveMove
   onEmptyTrash: () => void
+  onChangeLocation: () => void
 }
 
 /** Speicherort: wo das Archiv liegt (Platte, freier Platz), wie voll, Papierkorb. HydraHive richtet ihn selbst ein. */
-export function ArchiveStorageSection({ storage, onEmptyTrash }: Props) {
+export function ArchiveStorageSection({ storage, move, onEmptyTrash, onChangeLocation }: Props) {
   const { t } = useTranslation("archive")
   const ok = storage.exists && storage.writable
   return (
@@ -60,9 +63,13 @@ export function ArchiveStorageSection({ storage, onEmptyTrash }: Props) {
             </AdminAction>
           </span>
         </div>
-        {storage.is_default && (
-          <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{t("storage.default_hint")}</p>
-        )}
+        <MoveProgress move={move} />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{storage.is_default ? t("storage.default_hint") : ""}</p>
+          <AdminAction data-archive-action="change-location" disabled={!!move?.running} onClick={onChangeLocation}>
+            <ArrowRightLeft size={11} /> {t("storage.change")}
+          </AdminAction>
+        </div>
       </AdminPanel>
     </div>
   )

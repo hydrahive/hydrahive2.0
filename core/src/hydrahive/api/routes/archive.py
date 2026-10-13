@@ -14,7 +14,7 @@ from pydantic import BaseModel, StrictBool
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
-from hydrahive.archive import catalog, location, setup, trash
+from hydrahive.archive import catalog, location, move_job, setup, trash
 from hydrahive.archive.share import SHARE_NAME, archive_share_enabled
 from hydrahive.samba.manager import samba_status
 from hydrahive.settings import settings
@@ -63,13 +63,15 @@ def archive_status() -> dict:
         "storage": storage,
         "share": {
             "name": SHARE_NAME,
-            "wanted": location.share_wanted(),
+            "wanted": location.share_switch(),
+            "paused_for_move": location.moving(),
             "enabled": archive_share_enabled(),
             "samba_installed": s["installed"],
             "samba_running": s["running"],
             "login": s["user"],
             "password": _read_samba_password() if s["installed"] and s["password_set"] else "",
         },
+        "move": move_job.snapshot(),
     }
 
 

@@ -362,3 +362,47 @@ Freigabe-Block:
   Platte und freier Platz, kein Text mit `update.sh` oder `install.conf`.
 - E2E hydratest: Freigabe per `smbclient` lesen + schreiben, Löschen über
   Samba landet im Papierkorb, Fenster im Browser.
+
+## Etappe 1b: Ort wechseln aus der Admin-Konsole (Till, 13.10.: Umzug ja, Rechte-Knopf ja)
+
+Ziel: Ein Admin, den wir nicht kennen, legt das Archiv ohne Terminal auf eine
+andere Platte. Kein freies Pfadfeld: Er wählt eine Platte aus einer Liste.
+
+### Auswahl
+- `GET /api/admin/archive/locations`: Eintrag „Standard (bei den Projektdaten)“
+  plus je **Platte** ein Eintrag. Platte = echtes lokales Dateisystem aus
+  `/proc/self/mountinfo` (ext2/3/4, xfs, btrfs, zfs, f2fs, bcachefs), schreibbar
+  eingehängt, je Gerät (MAJ:MIN) einmal: „/“ zuerst, dann ein Einhängepunkt mit
+  echter Wurzel, dann der kürzeste. Bind-Mounts zählen mit, weil in Containern
+  (incus, LXC, Docker) schon „/“ einer ist (Fund auf hydratest, 13.10.). Nicht angeboten:
+  Netzlaufwerke (kommen mit Etappe 3), `/boot*`, `/home` (Dienst sieht es nur
+  lesend), `/tmp`, alles unter `workspaces/` (Projekt-Mounts).
+- Ziel auf der Platte ist immer der Ordner `hydrahive-archiv` direkt im
+  Einhängepunkt; für `/` ist es `/srv/hydrahive-archiv`.
+- Je Eintrag: Größe, frei, ob HydraHive dort schreiben darf, ob es der aktuelle
+  Ort ist.
+
+### Rechte-Knopf
+- Darf HydraHive auf der gewählten Platte nicht schreiben: Knopf „Platte für
+  HydraHive einrichten“. Er nutzt den vorhandenen Root-Runner der Zusatz-Module
+  (`installer/addon-ctl.sh`, Anfrage `prepare-archive <einhängepunkt>`).
+- Der Runner prüft selbst noch einmal: echter Einhängepunkt, erlaubtes
+  Dateisystem, kein gesperrter Ort, Ziel ist kein Symlink. Dann
+  `mkdir`, `chown hydrahive:hydrahive`, `chmod 2775` – nur am Zielordner.
+
+### Umzug im Hintergrund
+- `POST /api/admin/archive/move {"location": "<id aus der Liste>"}` → 202.
+  Vorher geprüft: Ziel schreibbar, leer (oder nur leere Unterordner), genug
+  Platz (belegt + 5 % Reserve), nicht innerhalb des alten Orts und umgekehrt.
+- Ablauf: Freigabe aus (niemand schreibt mehr hinein) → Dateien kopieren mit
+  Fortschritt (Bytes, Dateien) → prüfen (Pakete per sha256 aus der `.json`,
+  übrige per Größe) → Ort in `archive.json` umstellen, Freigabe am neuen Ort
+  an → **nur die geprüft kopierten** Dateien am alten Ort löschen. Was dort
+  sonst noch liegt, bleibt liegen und wird gemeldet.
+- Fehler vor dem Umstellen: Kopie am Ziel wird entfernt, alter Ort bleibt
+  unverändert aktiv, Freigabe wieder an. Neustart mitten im Umzug: Zustand
+  steht in `config_dir/archive-move.json`, beim Start wird ein halber Umzug
+  genauso zurückgerollt (vor dem Umstellen) bzw. das Aufräumen fortgesetzt
+  (nach dem Umstellen).
+- Während des Umzugs lehnt `pack()` ab (Etappe 2 zeigt das im Lösch-Dialog).
+- Fortschritt steht in `GET /status` unter `move`; das Fenster fragt ihn ab.
