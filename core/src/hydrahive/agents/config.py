@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import shutil
 import uuid
 from typing import Any
 
@@ -15,6 +14,7 @@ from hydrahive.agents._defaults import (
     DEFAULT_SPECIALIST_MAX_ITERATIONS,
     DEFAULT_TOOLS,
 )
+from hydrahive.agents._delete import delete  # noqa: F401 – Teil der öffentlichen API
 from hydrahive.agents._paths import agent_dir, config_path, ensure_workspace
 from hydrahive.db._utils import now_iso
 
@@ -187,12 +187,3 @@ def set_system_prompt(agent_id: str, prompt: str) -> None:
     _prompt.save(agent_id, prompt)
     cfg["updated_at"] = now_iso()
     save_atomic(config_path(agent_id), cfg)
-
-
-def delete(agent_id: str) -> bool:
-    d = agent_dir(agent_id)
-    if not d.exists():
-        return False
-    shutil.rmtree(d)
-    logger.info("Agent gelöscht: %s", agent_id)
-    return True

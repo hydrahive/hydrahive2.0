@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from hydrahive.api.middleware.auth import require_admin, require_auth
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes import _delete_job
 from hydrahive.api.routes._project_route_helpers import (
     ProjectCreate, ProjectUpdate, check_project_access,
 )
@@ -98,11 +99,14 @@ def update_project(
     return public_view(result)
 
 
-@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[Depends(require_admin)])
-def delete_project(project_id: str) -> None:
-    if not project_config.delete(project_id):
+@router.delete("/{project_id}", status_code=status.HTTP_202_ACCEPTED)
+def delete_project(project_id: str, admin: Annotated[tuple[str, str], Depends(require_admin)],
+                   mode: str | None = None, confirm: str | None = None):
+    """Ins Archiv oder unwiderruflich, als Auftrag (archiv-system.md, Etappe 2)."""
+    project = project_config.get(project_id)
+    if not project:
         raise coded(status.HTTP_404_NOT_FOUND, "project_not_found")
+    return _delete_job.start("project", project_id, project.get("name") or project_id, mode, confirm, admin[0])
 
 
 

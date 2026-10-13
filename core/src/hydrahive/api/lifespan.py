@@ -144,10 +144,10 @@ async def lifespan(app: FastAPI):
     from hydrahive.smbmounts.reconcile import reconcile_mounts_on_start
     asyncio.create_task(asyncio.to_thread(reconcile_mounts_on_start))
     # System-Archiv + Samba-Freigabe einrichten – ohne Installer, auf jedem Server (archiv-system.md).
-    from hydrahive.archive.move import recover as archive_recover
+    from hydrahive.archive import jobs as archive_jobs
     from hydrahive.archive.setup import ensure_archive
     async def _archive_start() -> None:
-        await asyncio.to_thread(archive_recover)     # halben Umzug nach Neustart aufräumen (Etappe 1b)
+        await archive_jobs.on_start()                # halben Umzug + Lösch-Auftrag nach Neustart (Etappe 1b/2)
         await asyncio.to_thread(ensure_archive)
     asyncio.create_task(_archive_start())
     if settings.pg_mirror_dsn:

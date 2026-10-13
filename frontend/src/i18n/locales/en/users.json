@@ -17,8 +17,7 @@
     "new": "New user",
     "edit": "Edit",
     "change_password": "Change password",
-    "delete": "Delete",
-    "delete_confirm": "Really delete user \"{{name}}\"?\n\nIncluding all assigned agents."
+    "delete": "Delete"
   },
   "errors": {
     "self_delete": "You cannot delete yourself.",

@@ -84,7 +84,6 @@
     "copy_agent_id": "Copy agent ID",
     "rotate_key": "Rotate API key",
     "delete": "Delete instance",
-    "delete_confirm": "Delete instance \"{{name}}\"? User, agent and API key will be removed.",
     "rotate_confirm": "Rotate key for \"{{name}}\"? The old key will be invalidated.",
     "new_key_prompt": "New API key (one-time — copy now):"
   },

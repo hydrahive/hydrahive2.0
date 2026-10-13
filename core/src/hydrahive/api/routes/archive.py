@@ -1,7 +1,7 @@
-"""Admin-API des System-Archivs (docs/specs/archiv-system.md, Etappe 1).
+"""Admin-API des System-Archivs (docs/specs/archiv-system.md, Etappe 1 + 2).
 
-Status (richtet dabei Ordner und Freigabe ein), Einträge, Papierkorb leeren, Freigabe-Schalter.
-Archiviert wird ab Etappe 2 beim Löschen. Alles nur für Admins.
+Status (richtet dabei Ordner und Freigabe ein), Einträge, Papierkorb leeren, Freigabe-Schalter,
+Lösch-Vorschau und Lösch-Aufträge („Laufende Vorgänge“). Alles nur für Admins.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from pydantic import BaseModel, StrictBool
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
-from hydrahive.archive import catalog, location, move_job, setup, trash
+from hydrahive.archive import _plan, catalog, jobs, location, move_job, preview, setup, trash
 from hydrahive.archive.share import SHARE_NAME, archive_share_enabled
 from hydrahive.samba.manager import samba_status
 from hydrahive.settings import settings
@@ -72,7 +72,23 @@ def archive_status() -> dict:
             "password": _read_samba_password() if s["installed"] and s["password_set"] else "",
         },
         "move": move_job.snapshot(),
+        "jobs": jobs.list_jobs(),
     }
+
+
+@router.get("/delete-preview")
+def archive_delete_preview(kind: str, id: str) -> dict:
+    try:
+        return preview.preview(kind, id)
+    except _plan.PlanError as e:
+        if e.code == "not_found":
+            raise coded(status.HTTP_404_NOT_FOUND, f"{kind}_not_found" if kind in _plan.t.KINDS else "not_found")
+        raise coded(status.HTTP_400_BAD_REQUEST, e.code)
+
+
+@router.get("/jobs")
+def archive_jobs() -> dict:
+    return jobs.list_jobs()
 
 
 @router.put("/share")

@@ -13,6 +13,7 @@ import { AgentFormHeader } from "@/features/agents/_AgentFormHeader"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 import type { RegistryModel } from "@/features/llm/api"
 import { ScheduledTasksPanel } from "@/features/scheduledTasks/ScheduledTasksPanel"
+import { DeleteDialog } from "@/features/archive/delete/DeleteDialog"
 
 interface Props {
   agent: Agent
@@ -37,6 +38,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState("overview")
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => { setDraft(agent); setError(null) }, [agent.id])
   useEffect(() => { mcpInfoApi.list().then(setMcpServers).catch(() => {}) }, [])
@@ -57,11 +59,6 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
     } finally { setSaving(false) }
   }
 
-  async function remove() {
-    if (!confirm(t("errors.delete_confirm", { name: agent.name }))) return
-    await agentsApi.delete(agent.id)
-    onDeleted()
-  }
 
   const hasMail = draft.tools.includes("send_mail") || draft.tools.includes("read_mail")
 
@@ -88,7 +85,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
         agent={agent} draftName={draft.name} draftStatus={draft.status}
         onNameChange={(name) => patch({ name })}
         onStatusChange={(status) => patch({ status })}
-        onDelete={remove}
+        onDelete={() => setDeleting(true)}
       />
 
       {/* Karteikarten-Reiter */}
@@ -139,6 +136,7 @@ export function AgentFormTabs({ agent, models, catalog, tools, onSaved, onDelete
           </button>
         </div>
       )}
+      {deleting && <DeleteDialog kind="agent" id={agent.id} onClose={() => setDeleting(false)} onDeleted={onDeleted} />}
     </div>
   )
 }

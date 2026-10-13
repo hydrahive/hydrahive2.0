@@ -28,7 +28,6 @@ export const projectsApi = {
   },
   deleteFile: (id: string, path: string) =>
     api.delete<{ ok: boolean }>(`/projects/${id}/files?path=${encodeURIComponent(path)}`),
-  delete: (id: string) => api.delete<void>(`/projects/${id}`),
   addMember: (id: string, username: string, role: ProjectRole = "write") =>
     api.post<Project>(`/projects/${id}/members/${username}`, { role }),
   setMemberRole: (id: string, username: string, role: ProjectRole) =>

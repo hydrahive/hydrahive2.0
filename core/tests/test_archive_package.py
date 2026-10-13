@@ -139,7 +139,7 @@ def test_failed_packing_leaves_nothing(root: Path, src: Path, monkeypatch) -> No
     def boom(*a, **k):
         raise OSError("Platte voll")
 
-    monkeypatch.setattr(package.tarfile.TarFile, "add", boom)
+    monkeypatch.setattr(package.tarfile.TarFile, "addfile", boom)
 
     with pytest.raises(OSError):
         package.pack(kind="agents", name="a", source_id="1", owner="o", reason="r", sources=[("ws", src)])
@@ -154,3 +154,16 @@ def test_two_packs_same_second_do_not_collide(root: Path, src: Path) -> None:
 
     assert a["file"] != b["file"]
     assert len(list((root / "agents").glob("*.tar.gz"))) == 2
+
+
+def test_subfolders_skip_and_entries(root: Path, src: Path) -> None:
+    """Etappe 2: Projekt-Pakete haben agents/<id>/agent; ersetzte Dateien (config mit ***) werden übersprungen."""
+    seen: list[int] = []
+    entry = package.pack(kind="projects", name="p", source_id="1", owner="o", reason="r",
+                         sources=[("agents/abc/agent", src), ("../../böse/../x", src)],
+                         skip={"agents/abc/agent/a.txt"}, on_file=seen.append)
+
+    names = _names(root / "projects" / entry["file"])
+    assert "agents/abc/agent/sub/b.md" in names and "agents/abc/agent/a.txt" not in names
+    assert not any(n.startswith("/") or ".." in n.split("/") for n in names)
+    assert entry["entries"] == len(names) and sum(seen) > 0

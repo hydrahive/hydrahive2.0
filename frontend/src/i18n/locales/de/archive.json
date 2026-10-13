@@ -113,5 +113,84 @@
     "target_not_empty": "Dort liegen schon Dateien.",
     "target_not_writable": "HydraHive darf dort noch nicht schreiben.",
     "not_enough_space": "Nicht genug Platz."
+  },
+  "delete": {
+    "kind": {
+      "agent": "Agent löschen",
+      "project": "Projekt löschen",
+      "user": "Nutzer löschen",
+      "instance": "Externe Instanz löschen"
+    },
+    "title": "„{{name}}“ löschen",
+    "loading": "Wird geladen …",
+    "choose": "Wie soll gelöscht werden?",
+    "size": {
+      "exact": "Größe: {{size}}",
+      "at_least": "Größe: mindestens {{size}} (genaue Zählung dauert länger)"
+    },
+    "affected": {
+      "projects": "Eigene Projekte, die mitgelöscht werden: {{names}}",
+      "agents": "Agenten mit Gedächtnis und Arbeitsordner: {{names}}",
+      "chats": "Chats: {{count}}",
+      "mounts": "Eingehängte Laufwerke werden ausgehängt und nicht gepackt: {{names}}"
+    },
+    "hand_over": "{{count}} Agent(en) in fremden Projekten gehen an den Ersteller des jeweiligen Projekts.",
+    "stays": {
+      "vms": "Bleibt bestehen: {{count}} VM(s)",
+      "containers": "Bleibt bestehen: {{count}} Container",
+      "smb_mounts": "Bleibt bestehen: {{count}} SMB-Verbindung(en)"
+    },
+    "archive": {
+      "title": "Ins Archiv (empfohlen)",
+      "free": "Frei: {{free}}",
+      "share": "per Netzwerk erreichbar als {{share}}"
+    },
+    "permanent": {
+      "title": "Unwiderruflich löschen",
+      "explain": "Ohne Sicherung. Danach lässt sich nichts zurückholen.",
+      "type_name": "Zur Bestätigung genau „{{name}}“ eintippen"
+    },
+    "reason": {
+      "moving": "Das Archiv zieht gerade um. Bitte warten, bis der Umzug fertig ist.",
+      "not_enough_space": "Im Archiv ist nicht genug Platz frei."
+    },
+    "chats_gone": "Die Chats verschwinden aus HydraHive. Beim Weg „Ins Archiv“ liegen sie danach im Paket, das Datamining behält seine Kopie.",
+    "start_archive": "Ins Archiv und löschen",
+    "start_permanent": "Unwiderruflich löschen",
+    "close_ok": "Du kannst das Fenster schließen. Der Vorgang läuft weiter und steht unter Admin → Archiv & Sicherung → Laufende Vorgänge.",
+    "step": {
+      "queued": "Wartet …",
+      "lock": "Wird gesperrt …",
+      "measure": "Größe wird gezählt …",
+      "pack": "Wird gepackt …",
+      "delete": "Wird gelöscht …",
+      "done": "Fertig"
+    },
+    "done_archive": "Gelöscht. Das Paket liegt im Archiv:",
+    "done_permanent": "Unwiderruflich gelöscht.",
+    "leftovers": "Diese eingehängten Laufwerke wurden nicht angefasst und liegen noch im Ordner:",
+    "nothing_deleted": "Es wurde nichts gelöscht.",
+    "error": {
+      "not_found": "Das gibt es nicht mehr.",
+      "pack_failed": "Packen ist gescheitert (z. B. Platte voll).",
+      "verify_failed": "Das Paket war nach dem Packen fehlerhaft und wurde verworfen.",
+      "not_enough_space": "Im Archiv ist nicht genug Platz frei.",
+      "archive_unavailable": "Das Archiv zieht gerade um.",
+      "umount_failed": "Ein Netzlaufwerk ließ sich nicht aushängen. Damit dort nichts gelöscht wird, wurde abgebrochen.",
+      "last_admin_cannot_delete": "Der letzte Admin kann nicht gelöscht werden.",
+      "interrupted": "Der Dienst wurde neu gestartet, bevor gelöscht wurde. Es wurde zurückgesetzt.",
+      "delete_incomplete": "Löschen nach dem Neustart unvollständig. Das Paket ist im Archiv; ein neuer Versuch räumt den Rest weg.",
+      "unexpected": "Unerwarteter Fehler."
+    }
+  },
+  "jobs": {
+    "title": "Laufende Vorgänge",
+    "empty": "Gerade läuft nichts.",
+    "queued": "Wartet",
+    "recent": "Zuletzt",
+    "mode": {
+      "archive": "ins Archiv",
+      "permanent": "unwiderruflich"
+    }
   }
 }

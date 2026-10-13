@@ -34,7 +34,7 @@ def test_me_for_user_lists_own_grants_and_groups(client, auth_headers, admin_hea
     assert "declared" in data and "core.vms" in data["declared"]
 
 
-def test_delete_user_purges_memberships_and_grants(client, admin_headers):
+def test_delete_user_purges_memberships_and_grants(client, admin_headers, monkeypatch):
     r = client.post("/api/users", headers=admin_headers,
                     json={"username": "wegdamit", "password": "testpass123", "role": "user"})
     assert r.status_code in (200, 201), r.text
@@ -43,7 +43,8 @@ def test_delete_user_purges_memberships_and_grants(client, admin_headers):
     store.add_member(g["id"], uid, actor_id="adm")
     grants.grant("core.vms", "user", uid, "use", actor_id="adm")
 
-    assert client.delete("/api/users/wegdamit", headers=admin_headers).status_code == 204
+    from tests._delete_sync import delete_now
+    delete_now(client, "/api/users/wegdamit", "wegdamit", admin_headers, monkeypatch)
 
     with db() as c:
         left_members = c.execute("SELECT COUNT(*) FROM access_group_members WHERE user_id = ?",

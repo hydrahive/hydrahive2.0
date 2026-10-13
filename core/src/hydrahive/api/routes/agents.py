@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, status
 
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes import _delete_job
 from hydrahive.agents import AgentValidationError, config as agent_config
 from hydrahive.agents import _tool_config
 from hydrahive.agents._defaults import DEFAULT_TOOLS
@@ -149,11 +150,8 @@ def update_agent(agent_id: str, req: AgentUpdate) -> dict:
         raise coded(status.HTTP_400_BAD_REQUEST, "validation_error", message=str(e))
 
 
-@router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[Depends(require_admin)])
-def delete_agent(agent_id: str) -> None:
-    if not agent_config.delete(agent_id):
-        raise coded(status.HTTP_404_NOT_FOUND, "agent_not_found")
+router.add_api_route("/{agent_id}", _delete_job.delete_agent, methods=["DELETE"],
+                     status_code=status.HTTP_202_ACCEPTED)   # Ins Archiv oder unwiderruflich (Etappe 2)
 
 
 @router.get("/{agent_id}/system_prompt")

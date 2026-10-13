@@ -102,7 +102,6 @@
   },
   "errors": {
     "save_failed": "Save failed",
-    "delete_confirm": "Really delete agent \"{{name}}\"? Includes memory + workspace.",
     "no_servers_yet": "No MCP servers configured yet — see MCP tab."
   },
   "new_dialog": {

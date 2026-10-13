@@ -7,7 +7,7 @@ import pytest
 
 from tests._delete_fixtures import make_agent, make_project
 
-pytest_plugins = ["tests._delete_fixtures"]  # Fixture `archive_root`
+pytest_plugins = ["tests._delete_env"]  # Fixture `archive_root`
 from tests.conftest import error_code
 
 
@@ -83,10 +83,11 @@ def test_cannot_delete_own_account(client, admin_headers, queued) -> None:
     assert r.status_code == 400 and error_code(r) == "cannot_delete_self"
 
 
-def test_last_admin_is_never_deleted(archive_root) -> None:
+def test_last_admin_is_never_deleted(archive_root, monkeypatch) -> None:
     """Fehler 3, auch wenn der Auftrag nicht vom Admin selbst kommt (z. B. aus der Reihe)."""
     from hydrahive.api.middleware import users
     from hydrahive.archive import deletion
+    monkeypatch.setattr(users, "list_users", lambda: [{"username": "admin", "role": "admin"}])
 
     result = deletion.run("user", "admin", "permanent", actor="jemand-anders")
 

@@ -6,7 +6,7 @@ import pytest
 from hydrahive.archive import deletion, package
 from tests._delete_fixtures import make_agent, make_chat, names, only_package, packages, session_exists
 
-pytest_plugins = ["tests._delete_fixtures"]  # Fixture `archive_root`
+pytest_plugins = ["tests._delete_env"]  # Fixture `archive_root`
 
 
 class _Crash(BaseException):

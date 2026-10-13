@@ -19,7 +19,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const [confirmTrash, setConfirmTrash] = useState(false)
   const [shareBusy, setShareBusy] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
-  const moving = !!status?.move?.running
+  const working = !!status?.move?.running || !!status?.jobs?.running || !!status?.jobs?.queued.length
 
   const reload = useCallback(async () => {
     try {
@@ -35,12 +35,12 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
     return () => clearTimeout(first)
   }, [reload])
 
-  // Während eines Umzugs den Fortschritt abfragen (der Umzug läuft im Dienst, nicht im Browser).
+  // Während eines Umzugs oder Lösch-Auftrags den Fortschritt abfragen (läuft im Dienst, nicht im Browser).
   useEffect(() => {
-    if (!moving) return
+    if (!working) return
     const timer = setInterval(() => { void reload() }, 1500)
     return () => clearInterval(timer)
-  }, [moving, reload])
+  }, [working, reload])
 
   async function setupSamba() {
     setShareBusy(true)

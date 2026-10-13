@@ -68,9 +68,6 @@ export const externalInstancesApi = {
   create: (name: string, llm_model: string): Promise<CreateInstanceResult> =>
     api.post("/external-instances", { name, llm_model }),
 
-  delete: (agentId: string): Promise<void> =>
-    api.delete(`/external-instances/${agentId}`),
-
   rotateKey: (agentId: string): Promise<{ api_key: string }> =>
     api.post(`/external-instances/${agentId}/rotate-key`, {}),
 }

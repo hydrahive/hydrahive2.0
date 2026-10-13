@@ -14,7 +14,7 @@ from tests._delete_fixtures import (
     make_agent, make_chat, meta, names, only_package, packages, read_member, session_exists,
 )
 
-pytest_plugins = ["tests._delete_fixtures"]  # Fixture `archive_root`
+pytest_plugins = ["tests._delete_env"]  # Fixture `archive_root`
 
 
 def _agent_exists(agent_id: str) -> bool:

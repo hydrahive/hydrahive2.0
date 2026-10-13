@@ -7,7 +7,6 @@ export const agentsApi = {
   create: (req: AgentCreate) => api.post<Agent>("/agents", req),
   update: (id: string, fields: AgentUpdate) =>
     api.patch<Agent>(`/agents/${id}`, fields),
-  delete: (id: string) => api.delete<void>(`/agents/${id}`),
   getSystemPrompt: (id: string) =>
     api.get<{ prompt: string; source?: "soul" | "prompt" }>(`/agents/${id}/system_prompt`),
   setSystemPrompt: (id: string, prompt: string) =>

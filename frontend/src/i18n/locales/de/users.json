@@ -17,8 +17,7 @@
     "new": "Neuer Benutzer",
     "edit": "Bearbeiten",
     "change_password": "Passwort ändern",
-    "delete": "Löschen",
-    "delete_confirm": "Benutzer \"{{name}}\" wirklich löschen?\n\nInkl. aller zugewiesenen Agents."
+    "delete": "Löschen"
   },
   "errors": {
     "self_delete": "Du kannst dich nicht selbst löschen.",

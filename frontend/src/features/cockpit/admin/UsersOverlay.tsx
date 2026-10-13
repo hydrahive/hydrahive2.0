@@ -9,9 +9,10 @@ import { ChangePasswordDialog } from "@/features/users/ChangePasswordDialog"
 import { EditUserDialog } from "@/features/users/EditUserDialog"
 import { NewUserDialog } from "@/features/users/NewUserDialog"
 import { usersApi } from "@/features/users/api"
+import { DeleteDialog } from "@/features/archive/delete/DeleteDialog"
 import type { User } from "@/features/users/types"
 import { CockpitButton } from "../CockpitButton"
-import { AdminAction, AdminConfirmDialog, AdminFeedback, AdminStatus } from "./ui"
+import { AdminAction, AdminFeedback, AdminStatus } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
 import { VaultAdminReset } from "@/features/vault/VaultAdminReset"
 
@@ -27,7 +28,6 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
   const [passwordTarget, setPasswordTarget] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -44,22 +44,6 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
     const initial = window.setTimeout(load, 0)
     return () => window.clearTimeout(initial)
   }, [load])
-
-  async function handleDelete() {
-    if (!deleteTarget || deleteTarget === currentUsername) return
-    setDeleting(true)
-    setActionError(null)
-    try {
-      await usersApi.delete(deleteTarget)
-      setDeleteTarget(null)
-      await load()
-    } catch (reason) {
-      setActionError(reason instanceof Error ? reason.message : tCommon("status.error"))
-      setDeleteTarget(null)
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   return (
     <AdminOverlay
@@ -128,17 +112,8 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
       {showNew && <NewUserDialog onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); load() }} />}
       {passwordTarget && <ChangePasswordDialog username={passwordTarget} onClose={() => setPasswordTarget(null)} onChanged={() => setPasswordTarget(null)} />}
       {editTarget && <EditUserDialog user={editTarget} onClose={() => setEditTarget(null)} onSaved={() => { setEditTarget(null); load() }} />}
-      {deleteTarget && (
-        <AdminConfirmDialog
-          title={t("actions.delete")}
-          confirmLabel={t("actions.delete")}
-          cancelLabel={tCommon("actions.cancel")}
-          onConfirm={handleDelete}
-          onClose={() => setDeleteTarget(null)}
-          busy={deleting}
-        >
-          {t("actions.delete_confirm", { name: deleteTarget })}
-        </AdminConfirmDialog>
+      {deleteTarget && deleteTarget !== currentUsername && (
+        <DeleteDialog kind="user" id={deleteTarget} onClose={() => setDeleteTarget(null)} onDeleted={() => { void load() }} />
       )}
     </AdminOverlay>
   )

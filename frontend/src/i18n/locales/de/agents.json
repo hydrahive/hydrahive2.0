@@ -102,7 +102,6 @@
   },
   "errors": {
     "save_failed": "Speichern fehlgeschlagen",
-    "delete_confirm": "Agent \"{{name}}\" wirklich löschen? Inkl. Memory + Workspace.",
     "no_servers_yet": "Noch keine MCP-Server angelegt — siehe MCP-Tab."
   },
   "new_dialog": {

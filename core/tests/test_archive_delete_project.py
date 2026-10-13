@@ -1,50 +1,15 @@
-"""Projekt löschen: ein Paket mit allem, ohne Laufwerke; Fehler 1 (Spec archiv-system.md, Etappe 2)."""
+"""Projekt löschen: ein Paket mit allem, ohne Laufwerke (Spec archiv-system.md, Etappe 2)."""
 from __future__ import annotations
 
 import json
-import os
-
-import pytest
 
 from hydrahive.archive import deletion
 from tests._delete_fixtures import (
     make_agent, make_chat, make_project, meta, names, only_package, packages, read_member, session_exists,
 )
+from tests._delete_mounts import mount as _mount
 
-pytest_plugins = ["tests._delete_fixtures"]  # Fixture `archive_root`
-
-
-def _mount(project_id: str, name: str = "nas"):
-    """Ein „eingehängtes“ NAS im Projekt: Datei liegt drin, Zuweisung in der DB."""
-    from hydrahive.smbmounts import db as mounts_db
-    from hydrahive.smbmounts.mounter import mountpoint_for
-    m = mounts_db.create_mount(owner="testuser", name=name, host="nas.local", share="daten")
-    mounts_db.set_project(m.mount_id, project_id)
-    mounts_db.set_state(m.mount_id, "mounted")
-    mp = mountpoint_for(project_id, name)
-    os.makedirs(mp, exist_ok=True)
-    with open(os.path.join(mp, "auf-dem-nas.txt"), "w") as fh:
-        fh.write("darf nie weg")
-    return m, mp
-
-
-@pytest.fixture
-def fake_mounts(monkeypatch):
-    """os.path.ismount für die Test-Mountpunkte; umount kann scheitern oder klappen."""
-    import hydrahive.smbmounts.mounter as mounter
-    active: set[str] = set()
-    real = os.path.ismount
-    monkeypatch.setattr(os.path, "ismount", lambda p: str(p) in active or real(p))
-    state = {"fail": False}
-
-    def umount(m):
-        if state["fail"]:
-            return False, "umount_failed"
-        active.discard(mounter.mountpoint_for(m.project_id, m.name))
-        return True, "ok"
-
-    monkeypatch.setattr(mounter, "umount", umount)
-    return active, state
+pytest_plugins = ["tests._delete_env", "tests._delete_mounts"]  # Fixtures `archive_root`, `fake_mounts`
 
 
 def test_project_package_has_everything_but_mounts(archive_root, fake_mounts) -> None:
@@ -102,77 +67,6 @@ def test_buddy_chat_in_project_survives(archive_root) -> None:
     assert session_exists(sid) and sessions.get(sid).project_id is None
 
 
-@pytest.mark.parametrize("mode", ["archive", "permanent"])
-def test_failed_umount_deletes_nothing(archive_root, fake_mounts, mode) -> None:
-    """Fehler 1: Scheitert das Aushängen, darf nichts gelöscht werden – schon gar nicht auf dem NAS."""
-    from hydrahive.agents import config as agent_config
-    from hydrahive.projects import config as project_config
-    from hydrahive.projects._paths import workspace_path
-    active, state = fake_mounts
-    p = make_project(f"Haengt D {mode}")
-    _m, mp = _mount(p["id"])
-    active.add(mp)
-    state["fail"] = True
-
-    result = deletion.run("project", p["id"], mode, actor="admin")
-
-    assert result["state"] == "failed" and result["error"] == "umount_failed"
-    assert os.path.exists(os.path.join(mp, "auf-dem-nas.txt"))
-    assert project_config.get(p["id"]) is not None and (workspace_path(p["id"]) / "code.py").exists()
-    assert agent_config.get(p["agent_id"])["status"] == "active"
-
-
-def test_project_config_delete_never_deletes_into_mount(fake_mounts) -> None:
-    """Fehler 1 auch im internen Löschen (projects/config.delete)."""
-    from hydrahive.agents import config as agent_config
-    from hydrahive.projects import config as project_config
-    active, state = fake_mounts
-    p = make_project("Intern E")
-    _m, mp = _mount(p["id"])
-    active.add(mp)
-    state["fail"] = True
-
-    with pytest.raises(project_config.ProjectDeleteBlocked):
-        project_config.delete(p["id"])
-
-    assert os.path.exists(os.path.join(mp, "auf-dem-nas.txt"))
-    assert project_config.get(p["id"]) is not None and agent_config.get(p["agent_id"]) is not None
-
-
-def test_umount_says_ok_but_still_mounted_deletes_nothing(archive_root, fake_mounts, monkeypatch) -> None:
-    """Meldet umount „ok“, hängt das Laufwerk aber noch: wie gescheitert behandeln."""
-    import hydrahive.smbmounts.mounter as mounter
-    from hydrahive.projects import config as project_config
-    active, _ = fake_mounts
-    p = make_project("Luegt F")
-    _m, mp = _mount(p["id"])
-    active.add(mp)
-    monkeypatch.setattr(mounter, "umount", lambda m: (True, "ok"))
-
-    result = deletion.run("project", p["id"], "permanent", actor="admin")
-
-    assert result["state"] == "failed" and result["error"] == "umount_failed"
-    assert os.path.exists(os.path.join(mp, "auf-dem-nas.txt")) and project_config.get(p["id"]) is not None
-
-
-def test_unregistered_mount_is_never_entered(archive_root, fake_mounts) -> None:
-    """Ein Laufwerk, das HydraHive nicht kennt (von Hand eingehängt): stehen lassen und melden."""
-    from hydrahive.projects import config as project_config
-    from hydrahive.projects._paths import workspace_path
-    active, _ = fake_mounts
-    p = make_project("Fremd G")
-    mp = workspace_path(p["id"]) / "daten" / "usb"
-    mp.mkdir(parents=True)
-    (mp / "foto.jpg").write_text("bild")
-    active.add(str(mp))
-
-    result = deletion.run("project", p["id"], "permanent", actor="admin")
-
-    assert result["state"] == "done" and result["leftovers"] == [str(mp)]
-    assert (mp / "foto.jpg").exists() and not (workspace_path(p["id"]) / "code.py").exists()
-    assert project_config.get(p["id"]) is None
-
-
 def test_specialist_workspace_goes_with_internal_agent_delete() -> None:
     """Internes Löschen hinterlässt keine neuen Waisen mehr (Arbeitsordner kommt mit)."""
     from hydrahive.agents import config as agent_config
@@ -188,3 +82,27 @@ def test_permanent_project_leaves_no_package(archive_root) -> None:
     p = make_project("Weg H")
     deletion.run("project", p["id"], "permanent", actor="admin")
     assert packages(archive_root, "projects") == []
+
+
+def test_share_comes_back_after_failure(archive_root, monkeypatch) -> None:
+    """Sperren schaltet die Projekt-Freigabe aus; scheitert das Packen, ist sie danach wieder an."""
+    from hydrahive.archive import package
+    from hydrahive.samba import manager
+    p = make_project("Freigabe I")
+    shares: set[str] = {p["id"]}
+    monkeypatch.setattr(manager, "is_share_enabled", lambda pid: pid in shares)
+    monkeypatch.setattr(manager, "disable_share", lambda pid: (shares.discard(pid), (True, ""))[1])
+    monkeypatch.setattr(manager, "enable_share", lambda pid, name: (shares.add(pid), (True, ""))[1])
+    import hydrahive.samba as samba
+    for fn in ("is_share_enabled", "disable_share", "enable_share"):
+        monkeypatch.setattr(samba, fn, getattr(manager, fn))
+    seen = []
+
+    def boom(**kw):
+        seen.append(p["id"] in shares)
+        raise OSError("Platte voll")
+
+    monkeypatch.setattr(package, "pack", boom)
+    result = deletion.run("project", p["id"], "archive", actor="admin")
+
+    assert result["error"] == "pack_failed" and seen == [False] and p["id"] in shares

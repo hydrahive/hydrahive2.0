@@ -1,21 +1,11 @@
-"""Gemeinsame Hilfen für die Lösch-Tests (Spec archiv-system.md, Etappe 2)."""
+"""Gemeinsame Hilfen für die Lösch-Tests (Spec archiv-system.md, Etappe 2). Fixture: tests/_delete_env.py."""
 from __future__ import annotations
 
 import json
 import tarfile
 from pathlib import Path
 
-import pytest
-
 MODEL = "claude-sonnet-4-6"
-
-
-@pytest.fixture
-def archive_root(tmp_path, monkeypatch) -> Path:
-    from hydrahive.archive import location
-    root = tmp_path / "archiv"
-    monkeypatch.setattr(location, "archive_root", lambda: root)
-    return root
 
 
 def make_agent(name: str, *, owner: str = "testuser", agent_type: str = "specialist",

@@ -11,7 +11,7 @@ from tests._delete_fixtures import (
     make_agent, make_chat, make_project, meta, names, packages, read_member, session_exists,
 )
 
-pytest_plugins = ["tests._delete_fixtures"]  # Fixture `archive_root`
+pytest_plugins = ["tests._delete_env"]  # Fixture `archive_root`
 
 
 @pytest.fixture
@@ -39,12 +39,14 @@ def victim():
     foreign_chat = make_chat(in_foreign["id"], user=name, project_id=foreign["id"], text="im fremden Projekt")
     cred_store.save_credential(name, Credential(name="nas", type="basic", value="nas-geheim-passwort",
                                                 url_pattern="https://nas.local/*"))
+    cred_store.save_credential(name, Credential(name="srv", type="ssh_key", value="-----BEGIN KEY-----\nx\n",
+                                                url_pattern="srv.local", header_name="root"))
     user_dir(name).mkdir(parents=True, exist_ok=True)
     (user_dir(name) / "mein-skill.md").write_text("# Skill")
     bp.save_flow(Flow(flow_id="morgens", owner=name, name="Morgens", nodes=[], edges=[]), modified_by=name)
     sched_db.create(owner=name, scope="user", project_id=None, target_type="buddy", target_id="",
                     title="Jede Stunde", prompt="wie geht's", execution_mode="direct", interval_seconds=3600)
-    user_preferences.patch(uid, {"active_vault_scope": "family"})
+    user_preferences.patch(name, {"active_vault_scope": "family"})   # die App schlüsselt mit dem Namen
     discord_config.save(name, discord_config.DiscordConfig(bot_token="DiscordBotGeheim-1234567890"))
     wa_config.save(name, wa_config.WhatsAppConfig(owner_numbers=["4915112345678"]))
     from hydrahive.zahnfee import storage as zahnfee
@@ -53,7 +55,7 @@ def victim():
     from hydrahive.db.connection import db
     with db() as conn:
         conn.execute("INSERT INTO prompt_archive (id, user_id, title, prompt, created_at, updated_at) "
-                     "VALUES (?, ?, 'Bild', 'ein Haus', 'x', 'x')", (f"pa-{uid}", uid))
+                     "VALUES (?, ?, 'Bild', 'ein Haus', 'x', 'x')", (f"pa-{uid}", name))
     return {"name": name, "uid": uid, "own": own, "foreign": foreign, "agent": agent,
             "in_foreign": in_foreign, "chat": chat, "foreign_chat": foreign_chat}
 
@@ -75,19 +77,22 @@ def _leftovers(name: str, uid: str) -> list[str]:
     out += [f"agent {a['id']}" for a in agent_config.list_by_owner(name)]
     out += [f"projekt {p['id']}" for p in _config_io.list_all() if _members_model.is_member(p, name)]
     out += ["credentials"] if _file_for(name).exists() else []
+    from hydrahive.credentials.ssh import _config_path, _key_path
+    out += ["ssh-schlüssel"] if _key_path(name, "srv").exists() else []
+    out += ["ssh-config"] if _config_path().exists() and str(_key_path(name, "srv")) in _config_path().read_text() else []
     out += ["skills"] if user_dir(name).exists() else []
     out += [f"butler {f.flow_id}" for f in bp.list_flows(owner=name)]
     out += [f"zeitplan {t.task_id}" for t in sched_db.list_(owner=name)]
     out += ["keys"] if api_keys.list_keys(username=name) else []
     with db() as conn:
-        prefs = conn.execute("SELECT 1 FROM user_preferences WHERE user_id = ?", (uid,)).fetchone()
+        prefs = conn.execute("SELECT 1 FROM user_preferences WHERE user_id IN (?, ?)", (name, uid)).fetchone()
     out += ["prefs"] if prefs else []
     out += ["discord"] if discord_file(name).exists() else []
     out += ["whatsapp"] if wa_file(name).exists() else []
     out += ["zahnfee"] if zahnfee_file(name).exists() else []
     with db() as conn:
-        out += ["prompt_archive"] if conn.execute("SELECT 1 FROM prompt_archive WHERE user_id = ?",
-                                                  (uid,)).fetchone() else []
+        out += ["prompt_archive"] if conn.execute("SELECT 1 FROM prompt_archive WHERE user_id IN (?, ?)",
+                                                  (name, uid)).fetchone() else []
         out += ["sessions"] if conn.execute("SELECT 1 FROM sessions WHERE user_id = ?", (name,)).fetchone() else []
     return out
 
@@ -157,6 +162,9 @@ def test_scheduled_buddy_does_not_come_back(archive_root, victim) -> None:
 
     asyncio.run(_run_direct_task(task, "lauf-1"))
 
+    assert agent_config.list_by_owner(victim["name"]) == []
+    from hydrahive.butler._scheduled_agent_run import _target_agent
+    assert _target_agent({"reply_via_agent": "master"}, victim["name"], "user", "morgens", None) is None
     assert agent_config.list_by_owner(victim["name"]) == []
 
 
