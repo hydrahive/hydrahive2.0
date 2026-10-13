@@ -493,7 +493,7 @@ großes Projekt zu löschen dauert sonst länger als eine HTTP-Anfrage.
 |---|---|
 | **Agent** | `agents/<id>` vollständig (Konfig, Prompt, Gedächtnis, Kristalle, Soul, …), eigener Arbeitsordner (`master/` bzw. `specialists/`, nicht der Projekt-Ordner), seine Chats als `sessions/<id>.json` (Nachrichten + Werkzeugaufrufe, eine Datei je Chat) |
 | **Projekt** | `projects/<id>`, Arbeitsordner ohne eingehängte Laufwerke, alle Agenten des Projekts wie oben, Chats des Projekts. In der `.json`: übersprungene Laufwerke, Mitglieder |
-| **Nutzer** | Nutzer-Eintrag ohne Passwort-Hash, seine Agenten (ohne Projekt-Agenten), `credentials/<name>.json` (bleibt verschlüsselt), Skills, Notizen, Butler-Abläufe, Zeitpläne, WhatsApp/Discord-Einstellungen. **Je eigenes Projekt ein eigenes Projekt-Paket**, verknüpft über `extra.part_of`, damit sich ein Projekt später auch ohne den Nutzer wiederverwenden lässt |
+| **Nutzer** | Nutzer-Eintrag ohne Passwort-Hash, seine Agenten (ohne Projekt-Agenten), `credentials/<name>.json` (bleibt verschlüsselt), Skills, Butler-Abläufe, Zeitpläne, WhatsApp/Discord-Einstellungen (Bot-Token als `***`), Morgen-Briefing (`zahnfee/<name>.json`). **Je eigenes Projekt ein eigenes Projekt-Paket**, verknüpft über `extra.part_of`, damit sich ein Projekt später auch ohne den Nutzer wiederverwenden lässt |
 | **Externe Instanz** | wie Agent, dazu der Nutzer-Eintrag der Instanz. API-Schlüssel kommen nicht mit, sie werden ungültig |
 
 Geheimnisse im Paket: siehe Frage 2.
@@ -506,8 +506,10 @@ Dialog sagt in jedem Fall, wo sie noch liegen.
 - Abgelehnt mit `400 cannot_delete_self` bzw. `400 last_admin_cannot_delete`.
 - Nach dem Packen (bzw. sofort bei „unwiderruflich“) wird alles entfernt, was
   am Namen hängt: Projekte mit `created_by` = Nutzer, seine Mitgliedschaften
-  in fremden Projekten, Zugangsdaten, Skills, Notizen, Butler-Abläufe,
-  Zeitpläne, WhatsApp/Discord.
+  in fremden Projekten, Zugangsdaten (samt SSH-Schlüssel-Dateien), Skills,
+  Butler-Abläufe, Zeitpläne, WhatsApp/Discord (laufende Verbindung wird
+  getrennt, das WhatsApp-Login `whatsapp/<name>/auth` gelöscht, sonst wäre ein
+  Namensvetter mit dem alten Konto verbunden), Morgen-Briefing.
 - Ebenso die persönlichen Zeilen in Kern-Tabellen, die am Namen oder an der
   `user_id` hängen: `user_preferences`, `prompt_archive`,
   `streaming_credentials`, `streaming_jobs`, `teamchat_identities`,
@@ -608,3 +610,32 @@ Dialog sagt in jedem Fall, wo sie noch liegen.
    Task: Schnittstelle „Nutzer gelöscht“ für Module.
 
 **Status: Etappe 2 freigegeben (Till, 13.10.).**
+
+### Funde beim Bau (13./14.10.)
+
+- **Notizen (Scratchpad) sind ein Modul** (`data_dir/scratchpad/<user_id>`),
+  kein Kern-Teil. Sie fallen unter Entscheidung 3 und bleiben vorerst liegen.
+- **Fast alle persönlichen Kern-Tabellen schlüsseln mit dem Namen**, nicht mit
+  der ID (`user_preferences`, `prompt_archive`, Streaming, Teamchat, Health,
+  FHIR, eGA). Nur `vault_pins` nutzt die ID. Gelöscht wird jeweils mit dem
+  Schlüssel, den die Tabelle wirklich benutzt.
+- **Zweite Absicherung gegen den Buddy-Wiedergänger:** Zeitpläne und Butler
+  legen keinen Buddy mehr für einen Nutzer an, den es nicht gibt (falls ein
+  Lauf genau während des Löschens startet).
+- **Wartende Aufträge laufen nach einem Neustart weiter.** Sie sind bestätigt
+  und haben noch nichts angefasst. Zurückgerollt wird nur ein Auftrag, der
+  vor Schritt 6 unterbrochen wurde.
+- **Ein Laufwerk, das umount mit „ok“ quittiert, aber noch hängt, gilt als
+  gescheitert.** Ein von Hand eingehängtes Laufwerk (HydraHive kennt es
+  nicht) bleibt samt Elternordnern stehen und steht im Ergebnis unter
+  „übrig“.
+- **Internes Löschen (`agent_config.delete`) nimmt den eigenen Arbeitsordner
+  jetzt mit.** So entstehen keine neuen Waisen. `project_config.delete` wirft
+  `ProjectDeleteBlocked`, wenn ein Laufwerk nicht aushängt (Fehler 1). Für
+  Storyteller ändert sich nichts: Seine Projekte haben keine Laufwerke.
+- **Ein Instanz-Nutzer kommt nur mit**, wenn er die Rolle `user` hat und keine
+  weiteren Agenten besitzt. Das ist dieselbe Regel wie bisher in
+  `external_instances`.
+- Einstellungen (Standard, über ENV änderbar): `archive_compress_level` 1,
+  `archive_preview_budget_s` 5, `archive_space_reserve` 0,05,
+  `archive_jobs_keep` 20.
