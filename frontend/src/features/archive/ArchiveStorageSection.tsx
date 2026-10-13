@@ -1,6 +1,6 @@
 import { CheckCircle2, HardDrive, Trash2, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { AdminAction, AdminPanel, AdminStatus } from "@/features/cockpit/admin/ui"
+import { AdminAction, AdminFeedback, AdminPanel, AdminStatus } from "@/features/cockpit/admin/ui"
 import type { ArchiveStorage } from "./api"
 import { formatSize } from "./format"
 
@@ -9,7 +9,7 @@ interface Props {
   onEmptyTrash: () => void
 }
 
-/** Speicherort: wo das Archiv liegt, wie voll, Papierkorb. Pfad nur lesend (kommt aus install.conf). */
+/** Speicherort: wo das Archiv liegt (Platte, freier Platz), wie voll, Papierkorb. HydraHive richtet ihn selbst ein. */
 export function ArchiveStorageSection({ storage, onEmptyTrash }: Props) {
   const { t } = useTranslation("archive")
   const ok = storage.exists && storage.writable
@@ -26,19 +26,26 @@ export function ArchiveStorageSection({ storage, onEmptyTrash }: Props) {
         )}
         bodyClassName="space-y-3"
       >
+        {storage.setup_error && (
+          <AdminFeedback tone="danger">
+            {t("storage.setup_failed")} <span className="font-mono">{storage.setup_error}</span>
+          </AdminFeedback>
+        )}
         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
           <span className="text-[#8d9ab0]">{t("storage.target")}</span>
           <span className="text-[#e8eef8]">{t("storage.target_local")}</span>
           <span className="text-[#8d9ab0]">{t("storage.path")}</span>
           <span className="break-all font-mono text-[#e8eef8]">{storage.path}</span>
+          <span className="text-[#8d9ab0]">{t("storage.disk")}</span>
+          <span className="break-all font-mono text-[#e8eef8]" data-archive-mount={storage.mount}>{storage.mount}</span>
+          <span className="text-[#8d9ab0]">{t("storage.free")}</span>
+          <span className="text-[#e8eef8]">{formatSize(storage.free_bytes)}</span>
           <span className="text-[#8d9ab0]">{t("storage.count")}</span>
           <span className="text-[#e8eef8]" data-archive-count={storage.count}>
             {t("storage.count_value", { count: storage.count, manual: storage.manual_count })}
           </span>
           <span className="text-[#8d9ab0]">{t("storage.used")}</span>
           <span className="text-[#e8eef8]">{formatSize(storage.used_bytes)}</span>
-          <span className="text-[#8d9ab0]">{t("storage.free")}</span>
-          <span className="text-[#e8eef8]">{formatSize(storage.free_bytes)}</span>
           <span className="text-[#8d9ab0]">{t("storage.trash")}</span>
           <span className="flex items-center gap-2 text-[#e8eef8]">
             {formatSize(storage.trash_bytes)}
@@ -53,7 +60,9 @@ export function ArchiveStorageSection({ storage, onEmptyTrash }: Props) {
             </AdminAction>
           </span>
         </div>
-        <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{t("storage.path_hint")}</p>
+        {storage.is_default && (
+          <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{t("storage.default_hint")}</p>
+        )}
       </AdminPanel>
     </div>
   )

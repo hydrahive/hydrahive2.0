@@ -9,16 +9,18 @@
     "ok": "Bereit",
     "readonly": "Nicht beschreibbar",
     "missing": "Fehlt",
+    "setup_failed": "HydraHive konnte das Archiv nicht einrichten:",
     "target": "Ziel",
     "target_local": "Lokales System-Archiv",
     "path": "Ordner",
+    "disk": "Platte",
+    "free": "Frei auf der Platte",
     "count": "Inhalt",
     "count_value": "{{count}} Pakete, dazu {{manual}} von Hand abgelegt",
     "used": "Belegt",
-    "free": "Frei auf der Platte",
     "trash": "Papierkorb",
     "empty_trash": "Leeren",
-    "path_hint": "Der Ordner wird bei der Installation festgelegt (install.conf, HH_ARCHIVE_LOCAL_DIR) und lässt sich hier nicht ändern."
+    "default_hint": "Standard: liegt bei den Projektdaten, auf derselben Platte. HydraHive richtet den Ordner und die Freigabe selbst ein."
   },
   "share": {
     "title": "Netzwerk-Freigabe",
@@ -34,8 +36,11 @@
     "no_samba": "Samba ist nicht installiert. Ohne Samba gibt es keine Netzwerk-Freigabe – das Archiv selbst funktioniert trotzdem.",
     "setup_samba": "Samba einrichten",
     "setup_failed": "Samba-Einrichtung konnte nicht gestartet werden.",
-    "not_enabled": "Samba läuft, aber die Freigabe ist noch nicht angelegt. Sie entsteht beim nächsten Update (update.sh).",
-    "hint": "Über die Freigabe gelöschte Dateien landen im Papierkorb (.papierkorb) und bleiben dort, bis er hier geleert wird."
+    "not_enabled": "Die Freigabe konnte nicht angelegt werden. Den Grund zeigt der Bereich „Speicherort“.",
+    "hint": "Über die Freigabe gelöschte Dateien landen im Papierkorb (.papierkorb) und bleiben dort, bis er hier geleert wird.",
+    "switch": "Netzwerk-Freigabe anbieten",
+    "switched_off": "Die Freigabe ist ausgeschaltet. Das Archiv funktioniert trotzdem, nur nicht übers Netz.",
+    "switch_failed": "Freigabe konnte nicht umgeschaltet werden."
   },
   "entries": {
     "title": "Archivierte Elemente",

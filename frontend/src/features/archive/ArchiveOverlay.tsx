@@ -16,6 +16,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<ArchiveKind | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmTrash, setConfirmTrash] = useState(false)
+  const [shareBusy, setShareBusy] = useState(false)
 
   const reload = useCallback(async () => {
     try {
@@ -32,8 +33,25 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   }, [reload])
 
   async function setupSamba() {
-    try { await systemApi.sambaSetup(); setError(null) }
-    catch (err) { setError(err instanceof Error ? err.message : t("share.setup_failed")) }
+    setShareBusy(true)
+    try {
+      await systemApi.sambaSetup(); setError(null)
+      // Installation läuft im Hintergrund; danach legt HydraHive die Freigabe beim nächsten Status selbst an.
+      for (let i = 0; i < 150; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        const next = await archiveApi.status()
+        setStatus(next)
+        if (next.share.samba_installed && next.share.samba_running) break
+      }
+    } catch (err) { setError(err instanceof Error ? err.message : t("share.setup_failed")) }
+    finally { setShareBusy(false) }
+  }
+
+  async function switchShare(enabled: boolean) {
+    setShareBusy(true)
+    try { await archiveApi.setShare(enabled); await reload() }
+    catch (err) { setError(err instanceof Error ? err.message : t("share.switch_failed")) }
+    finally { setShareBusy(false) }
   }
 
   return (
@@ -56,9 +74,11 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           host={window.location.hostname}
           kind={kind}
           error={error}
+          shareBusy={shareBusy}
           onKind={setKind}
           onEmptyTrash={() => setConfirmTrash(true)}
           onSetupSamba={() => void setupSamba()}
+          onShareSwitch={(enabled) => void switchShare(enabled)}
         />
       </div>
       {confirmTrash && status && (

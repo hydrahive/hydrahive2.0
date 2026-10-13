@@ -9,16 +9,18 @@
     "ok": "Ready",
     "readonly": "Not writable",
     "missing": "Missing",
+    "setup_failed": "HydraHive could not set up the archive:",
     "target": "Target",
     "target_local": "Local system archive",
     "path": "Folder",
+    "disk": "Disk",
+    "free": "Free on disk",
     "count": "Contents",
     "count_value": "{{count}} packages, plus {{manual}} placed manually",
     "used": "Used",
-    "free": "Free on disk",
     "trash": "Recycle bin",
     "empty_trash": "Empty",
-    "path_hint": "The folder is set during installation (install.conf, HH_ARCHIVE_LOCAL_DIR) and cannot be changed here."
+    "default_hint": "Default: next to the project data, on the same disk. HydraHive sets up the folder and the share itself."
   },
   "share": {
     "title": "Network share",
@@ -34,8 +36,11 @@
     "no_samba": "Samba is not installed. Without Samba there is no network share – the archive itself still works.",
     "setup_samba": "Set up Samba",
     "setup_failed": "Could not start the Samba setup.",
-    "not_enabled": "Samba is running, but the share has not been created yet. It will be added by the next update (update.sh).",
-    "hint": "Files deleted through the share go to the recycle bin (.papierkorb) and stay there until it is emptied here."
+    "not_enabled": "The share could not be created. The “Storage” section shows why.",
+    "hint": "Files deleted through the share go to the recycle bin (.papierkorb) and stay there until it is emptied here.",
+    "switch": "Offer network share",
+    "switched_off": "The share is switched off. The archive still works, just not over the network.",
+    "switch_failed": "Could not switch the share."
   },
   "entries": {
     "title": "Archived items",
