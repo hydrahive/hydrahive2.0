@@ -372,7 +372,9 @@ andere Platte. Kein freies Pfadfeld: Er wählt eine Platte aus einer Liste.
 - `GET /api/admin/archive/locations`: Eintrag „Standard (bei den Projektdaten)“
   plus je **Platte** ein Eintrag. Platte = echtes lokales Dateisystem aus
   `/proc/self/mountinfo` (ext2/3/4, xfs, btrfs, zfs, f2fs, bcachefs), schreibbar
-  eingehängt, je Gerät einmal (kürzester Einhängepunkt). Nicht angeboten:
+  eingehängt, je Gerät (MAJ:MIN) einmal: „/“ zuerst, dann ein Einhängepunkt mit
+  echter Wurzel, dann der kürzeste. Bind-Mounts zählen mit, weil in Containern
+  (incus, LXC, Docker) schon „/“ einer ist (Fund auf hydratest, 13.10.). Nicht angeboten:
   Netzlaufwerke (kommen mit Etappe 3), `/boot*`, `/home` (Dienst sieht es nur
   lesend), `/tmp`, alles unter `workspaces/` (Projekt-Mounts).
 - Ziel auf der Platte ist immer der Ordner `hydrahive-archiv` direkt im

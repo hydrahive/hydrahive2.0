@@ -4,9 +4,10 @@
 # Aufgerufen vom Zusatz-Module-Runner (addon-ctl.sh) als root, Anfrage „prepare-archive <id>“ aus der Admin-Konsole.
 # Aus der Oberfläche kommt NUR eine 12-stellige ID. Die Platten-Liste baut dieses Skript selbst (findmnt), mit
 # denselben Regeln wie core/src/hydrahive/archive/disks.py:
-#   echtes lokales Dateisystem, schreibbar eingehängt, Wurzel des Dateisystems (kein Bind-Mount), je Gerät einmal
-#   (kürzester Einhängepunkt), nicht unter /boot /home /root /tmp /var/tmp /proc /sys /dev /run /etc /usr und nicht
-#   unter workspaces. ID = erste 12 Hex-Zeichen von sha256(einhängepunkt).
+#   echtes lokales Dateisystem, schreibbar eingehängt, je Gerät (MAJ:MIN) einmal: „/“ zuerst, dann Einhängepunkt mit
+#   echter Wurzel, dann der kürzeste (Bind-Mounts zählen mit – in Containern ist schon „/“ einer); nicht unter /boot
+#   /home /root /tmp /var/tmp /proc /sys /dev /run /etc /usr und nicht unter workspaces.
+#   ID = erste 12 Hex-Zeichen von sha256(einhängepunkt).
 # Angelegt wird nur <einhängepunkt>/hydrahive-archiv (für / : /srv/hydrahive-archiv), Eigentümer $HH_USER, 2775.
 
 hh_archive_disk_say() { printf '[hh2-addon] %s\n' "$*"; }
@@ -27,16 +28,18 @@ hh_archive_disk_blocked() {
 
 # Gibt „<id>\t<einhängepunkt>“ je erlaubter Platte aus.
 hh_archive_disk_list() {
-  local target fsroot fstype opts dev
-  declare -A best=()
+  local target fsroot fstype opts dev key
+  declare -A best=() best_key=()
   while read -r target fsroot fstype opts dev; do
     target="$(printf '%b' "$target")"
-    [ "$fsroot" = "/" ] || continue
     case "$fstype" in ext2|ext3|ext4|xfs|btrfs|zfs|f2fs|bcachefs) ;; *) continue ;; esac
     case ",$opts," in *,rw,*) ;; *) continue ;; esac
     hh_archive_disk_blocked "$target" && continue
-    if [ -z "${best[$dev]:-}" ] || [ "${#target}" -lt "${#best[$dev]}" ]; then
+    # Rang wie in disks.py: („/“?, echte Wurzel?, Länge) – kleiner gewinnt.
+    key="$([ "$target" = "/" ] && echo 0 || echo 1)$([ "$fsroot" = "/" ] && echo 0 || echo 1)$(printf '%06d' "${#target}")"
+    if [ -z "${best_key[$dev]:-}" ] || [[ "$key" < "${best_key[$dev]}" ]]; then
       best[$dev]="$target"
+      best_key[$dev]="$key"
     fi
   done < <(findmnt -r -n -o TARGET,FSROOT,FSTYPE,OPTIONS,MAJ:MIN)
   local m

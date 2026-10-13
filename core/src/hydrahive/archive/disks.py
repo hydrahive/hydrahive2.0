@@ -2,8 +2,9 @@
 
 Kein freies Pfadfeld: Die Admin-Konsole bietet nur diese Liste an, die API nimmt nur deren IDs. Gleiche Regeln
 wie im Root-Runner (installer/lib/archive-disk.sh), der die Platte bei Bedarf für HydraHive einrichtet:
-- echtes lokales Dateisystem, schreibbar eingehängt, Wurzel des Dateisystems (kein Bind-Mount)
-- je Gerät nur einmal (kürzester Einhängepunkt)
+- echtes lokales Dateisystem, schreibbar eingehängt
+- je Gerät (MAJ:MIN) nur einmal: „/“ zuerst, dann ein Einhängepunkt mit echter Wurzel, dann der kürzeste.
+  Bind-Mounts zählen mit – in Containern (incus, LXC, Docker) ist schon „/“ einer.
 - nicht: /boot*, /home, /root, /tmp, /var/tmp, alles unter /proc /sys /dev /run, nichts unter workspaces
 ID = die ersten 12 Hex-Zeichen von sha256(einhängepunkt) – kein Pfad, gleich in Python und Shell.
 """
@@ -68,21 +69,25 @@ def _writable(path: Path) -> bool:
     return os.access(p, os.W_OK | os.X_OK)
 
 
+def _rank(mount: str, root: str) -> tuple[int, int, int]:
+    return (mount != "/", root != "/", len(mount))
+
+
 def _parse(text: str) -> list[dict]:
-    found: dict[str, dict] = {}
+    found: dict[str, tuple[tuple[int, int, int], dict]] = {}
     for line in text.splitlines():
         left, sep, right = line.partition(" - ")
         f, r = left.split(), right.split()
         if not sep or len(f) < 6 or len(r) < 2:
             continue
-        root, mount, opts = f[3], _unescape(f[4]), f[5].split(",")
+        majmin, root, mount, opts = f[2], f[3], _unescape(f[4]), f[5].split(",")
         fstype, device = r[0], _unescape(r[1])
-        if root != "/" or fstype not in FSTYPES or "rw" not in opts or _blocked(mount):
+        if fstype not in FSTYPES or "rw" not in opts or _blocked(mount):
             continue
-        prev = found.get(device)
-        if prev is None or len(mount) < len(prev["mount"]):
-            found[device] = {"mount": mount, "device": device, "fstype": fstype}
-    return sorted(found.values(), key=lambda d: d["mount"])
+        rank = _rank(mount, root)
+        if majmin not in found or rank < found[majmin][0]:
+            found[majmin] = (rank, {"mount": mount, "device": device, "fstype": fstype})
+    return sorted((d for _r, d in found.values()), key=lambda d: d["mount"])
 
 
 def list_disks() -> list[dict]:
