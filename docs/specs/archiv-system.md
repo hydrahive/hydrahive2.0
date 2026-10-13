@@ -110,8 +110,69 @@ Trade-off: Bis alles fertig ist, dauert es länger als bei A. Dafür muss nichts
 umgebaut werden, wenn später ein anderes Ziel dazukommt. Aufrufer wie „Agent
 löschen“ hängen nur an der Archiv-API, nicht am NAS.
 
+## Entscheidung Till (13.10.): Löschen fragt immer nach
+
+> Löschen blockieren und nachfragen, ob der Agent unwiderruflich gelöscht
+> werden soll oder wohin er gespeichert werden soll. Vielleicht wäre ein
+> Download ganz gut, wenn kein Server verfügbar ist, denn sonst können User
+> ja keine Projekte löschen, wenn sie keinen extra Server haben.
+
+Gilt für Agent, Projekt und Nutzer. Löschen geht nicht mehr mit einem Klick,
+sondern über einen Dialog mit drei Wegen:
+
+| Weg | Wann wählbar | Was passiert |
+|---|---|---|
+| **Ins Archiv** | Archiv eingerichtet **und** erreichbar | Packen, ins Archiv schreiben, Prüfsumme vergleichen, erst dann löschen |
+| **Herunterladen, dann löschen** | immer (bis zur Größengrenze, s. u.) | Paket bauen, Browser lädt herunter, erst nach Bestätigung „Datei ist gespeichert“ löschen |
+| **Unwiderruflich löschen** | immer | wie heute, aber nur nach Eintippen des Namens |
+
+- Voreinstellung: „Ins Archiv“, wenn verfügbar, sonst „Herunterladen“.
+  „Unwiderruflich“ ist nie vorausgewählt.
+- Ist ein Archiv eingerichtet, aber gerade **nicht erreichbar**, sagt der
+  Dialog das ausdrücklich („NAS 192.168.178.3 nicht erreichbar“). Er bietet
+  dann nur Download oder unwiderruflich an. Ohne Wahl wird nichts gelöscht.
+- Der Dialog zeigt, was betroffen ist: Name, Größe, beim Projekt die Zahl
+  der mitgelöschten Agenten und Sessions.
+- Die API spiegelt das: `DELETE` ohne Angabe von `mode` ergibt `409
+  delete_mode_required` mit den möglichen Wegen und der Größe. Ein Löschen
+  „aus Versehen“ ohne Wahl, etwa über alte Oberflächen oder Skripte, ist
+  damit ausgeschlossen.
+
+### Download bei großen Daten
+
+Befund Prod: Projekte bis **988 GB** („HDD Archive“ 988 GB, „hydrawow“ 126 GB,
+„Hydrahive DEV“ 29 GB). Ein Browser-Download ist dafür nicht geeignet.
+- Das Paket wird **gestreamt** (tar.gz direkt in die Antwort, keine Kopie auf
+  der Platte), damit kein zweiter Plattenplatz in Projektgröße nötig ist.
+- Eingehängte Laufwerke (z. B. `mounts/Hydrahive_backups`) werden nie mit
+  eingepackt, sonst wanderte das NAS ins Paket.
+- **Größengrenze** `HH_DELETE_DOWNLOAD_MAX_GB` (Einstellung, Standard 20 GB).
+  Darüber ist „Herunterladen“ ausgegraut, mit Hinweis: „Zu groß für den
+  Download, bitte Archiv einrichten oder Daten vorher selbst sichern.“
+- Gelöscht wird erst, wenn der Download vollständig ausgeliefert ist **und**
+  der Nutzer bestätigt. Bricht der Download ab, passiert nichts.
+
+### Agenten selbst
+
+Heute gibt es kein Werkzeug, mit dem ein Agent Agenten oder Projekte löscht.
+Das bleibt so. Agent-Werkzeuge kommen erst in Etappe 5 und können nur
+**ablegen**, nicht löschen.
+
+## Etappen (angepasst)
+
+1. **Speicher + Einstellungen:** wie oben, plus Verbindungstest.
+2. **Lösch-Dialog mit drei Wegen** für Agent, Projekt und Nutzer: Archiv,
+   gestreamter Download mit Größengrenze, unwiderruflich mit Namenseingabe.
+   API `mode` Pflicht. Skript für die vorhandenen Waisen.
+3. Projekt archivieren · 4. System-Backup ins Archiv · 5. Archiv-Ansicht +
+   Agent-Werkzeuge · 6. Archiv als Wissen (unverändert).
+
+Etappe 2 lässt sich auch ohne NAS sofort nutzen, mit Download oder
+unwiderruflich. Damit endet das stille Löschen von Gedächtnis und
+Arbeitsordnern schon vor Etappe 1, wenn man die Reihenfolge tauscht.
+
 ## Offene Frage (eine)
 
-Wenn das NAS nicht erreichbar ist (aus, Netz weg) und jemand einen Agenten
-löscht: **Löschen blockieren** (Empfehlung, „Archiv nicht erreichbar, nichts
-gelöscht“) **oder lokal zwischenlagern** und später automatisch nachschieben?
+Reihenfolge: **zuerst Etappe 2** (Lösch-Dialog mit Download, beendet sofort
+das stille Löschen, braucht kein NAS) **und dann Etappe 1** (Archiv-Speicher)?
+Oder wie geplant 1 vor 2?
