@@ -625,6 +625,10 @@ Dialog sagt in jedem Fall, wo sie noch liegen.
 - **Wartende Aufträge laufen nach einem Neustart weiter.** Sie sind bestätigt
   und haben noch nichts angefasst. Zurückgerollt wird nur ein Auftrag, der
   vor Schritt 6 unterbrochen wurde.
+- **Harter Abbruch mitten im Packen** (Strom weg, Neustart, im frischen
+  Container mit 800 MB nachgestellt): Das halbe Paket (`.part`) blieb liegen.
+  Jetzt merkt sich der Auftrag jeden Paketnamen, bevor er schreibt. Beim
+  Zurückrollen verschwinden fertige Teilpakete und halbe `.part`-Dateien.
 - **Ein Laufwerk, das umount mit „ok“ quittiert, aber noch hängt, gilt als
   gescheitert.** Ein von Hand eingehängtes Laufwerk (HydraHive kennt es
   nicht) bleibt samt Elternordnern stehen und steht im Ergebnis unter
