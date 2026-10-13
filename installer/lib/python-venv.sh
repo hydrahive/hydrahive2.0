@@ -28,22 +28,37 @@ hh_pick_python() {
   fi
 
   # Absolute Systempfade verhindern, dass ein manipuliertes PATH bei einem als
-  # root laufenden Update einen fremden Interpreter einschleust. 3.12/3.13
-  # werden wegen der breiteren Wheel-Abdeckung bevorzugt; auf Ubuntu 26.04
-  # fällt die Auswahl auf /usr/bin/python3 (3.14) zurück.
-  for candidate in \
-    /usr/bin/python3.12 \
-    /usr/bin/python3.13 \
-    /usr/bin/python3.11 \
-    /usr/bin/python3; do
-    if [ -x "$candidate" ]; then
-      printf '%s\n' "$candidate"
+  # root laufenden Update einen fremden Interpreter einschleust.
+  # HH_PYTHON_BIN_DIR (Standard /usr/bin) nur für Tests und Sonderinstallationen.
+  local bin_dir="${HH_PYTHON_BIN_DIR:-/usr/bin}"
+  case "$bin_dir" in
+    /*) ;;
+    *) printf 'HH_PYTHON_BIN_DIR muss ein absoluter Pfad sein: %s\n' "$bin_dir" >&2; return 1 ;;
+  esac
+
+  # Zuerst das System-Python der Distribution (Ubuntu 26.04: 3.14, 24.04: 3.12).
+  # Aufgelöst auf die versionierte Datei: ein venv aus /usr/bin/python3 liefe nach
+  # einem Distributionswechsel still mit dem neuen Interpreter und fände seine
+  # Pakete nicht mehr (SearXNG-Ausfall 29.08.–26.09.2026). Ein venv aus
+  # /usr/bin/python3.14 zeigt dann ins Leere, und hh_venv_needs_rebuild baut neu.
+  # Nur wenn das System-Python zu alt ist: nachinstalliertes 3.13/3.12 (deadsnakes).
+  for candidate in "$bin_dir/python3" "$bin_dir/python3.13" "$bin_dir/python3.12"; do
+    resolved="$(readlink -f -- "$candidate" 2>/dev/null || true)"
+    [ -n "$resolved" ] && [ -x "$resolved" ] || continue
+    if hh_python_at_least_312 "$resolved"; then
+      printf '%s\n' "$resolved"
       return 0
     fi
   done
 
-  printf 'Kein unterstützter Python-3-Interpreter unter /usr/bin gefunden.\n' >&2
+  printf 'Kein Python ab 3.12 unter %s gefunden (hydrahive-core verlangt >= 3.12).\n' "$bin_dir" >&2
   return 1
+}
+
+hh_python_at_least_312() {
+  local minor
+  minor="$(hh_python_minor "$1" 2>/dev/null || true)"
+  [[ "$minor" =~ ^3\.([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" -ge 12 ]
 }
 
 hh_python_minor() {

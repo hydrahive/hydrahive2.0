@@ -17,7 +17,7 @@
 # Aufruf gewinnen über install.conf (z.B. sudo -E HH_INSTALL_VOICE=yes ./install.sh).
 #
 # Was passiert:
-#   1. apt-Dependencies (python3.12, node, nginx)
+#   1. apt-Dependencies (System-Python >= 3.12, node, nginx)
 #   2. System-User 'hydrahive' anlegen
 #   3. Verzeichnisse /var/lib/hydrahive2 + /etc/hydrahive2
 #   4. Python-venv im Repo, hydrahive-core via pip install -e

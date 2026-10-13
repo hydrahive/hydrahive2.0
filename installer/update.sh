@@ -112,6 +112,17 @@ hh_fix_sudoers_requiretty /etc/sudoers.d/hydrahive2-extensions "$HH_USER"
 # auf pip das venv prüfen und bei Bedarf kontrolliert neu aufbauen.
 # shellcheck source=installer/lib/python-venv.sh
 source "$HH_REPO_DIR/installer/lib/python-venv.sh"
+# Die Voice-Bridge läuft mit demselben venv. Vor einem Neubau mit anhalten —
+# sonst läuft sie mit gelöschten Paketen weiter (Spec python-314-umstieg).
+# Wieder gestartet wird sie nach dem Neustart von hydrahive2 (Ende der Datei).
+HH_BRIDGE_STOPPED=0
+if systemctl cat hydra-voice-bridge.service >/dev/null 2>&1 \
+    && systemctl is-active --quiet hydra-voice-bridge.service \
+    && hh_venv_needs_rebuild "$HH_REPO_DIR/.venv" "$(hh_pick_python)"; then
+  log "Voice-Bridge vor dem Neubau des Python-venv anhalten"
+  systemctl stop hydra-voice-bridge.service || true
+  HH_BRIDGE_STOPPED=1
+fi
 hh_ensure_python_venv \
   "$HH_REPO_DIR/.venv" "$HH_USER" "hydrahive2.service" "$HH_REPO_DIR"
 
@@ -649,6 +660,23 @@ bash "$HH_REPO_DIR/installer/migrations/voice-stt-perf.sh" \
 bash "$HH_REPO_DIR/installer/migrations/pin-venv-python.sh" \
   || log "pin-venv-python failed — weiter"
 
+# SearXNG-venv dem System-Python nachführen (Spec python-314-umstieg): auf
+# Ubuntu 26.04 von 3.12 auf 3.14. Ohne Neubau fiele die Websuche aus, sobald
+# 3.12 entfernt wird. Passt das venv, passiert nichts.
+if [ -f /etc/systemd/system/searxng.service ] && [ -d /opt/searxng/venv ]; then
+  # shellcheck source=lib/searxng-venv.sh
+  source "$HH_REPO_DIR/installer/lib/searxng-venv.sh"
+  HH_VENV_REBUILT=0
+  hh_searxng_sync_venv /opt/searxng searxng searxng.service \
+    || log "WARNUNG: SearXNG-venv nicht erneuert — Websuche prüfen"
+  # Der Neubau hat den Dienst gestoppt — auch bei Fehler wieder starten,
+  # damit der Ausfall in Dashboard/Log sichtbar wird statt still zu stehen.
+  if [ "$HH_VENV_REBUILT" = "1" ]; then
+    systemctl reset-failed searxng.service 2>/dev/null || true
+    systemctl restart searxng.service || log "WARNUNG: SearXNG-Neustart fehlgeschlagen"
+  fi
+fi
+
 # Bestandsmigration: SearXNG-Einstellungen auf eigene Datei + Bing/Yandex an.
 # Am 02.10.2026 waren alle aktiven Suchanbieter gesperrt (CAPTCHA, zu viele
 # Anfragen) — 0 Treffer. Sicherung + Rücksprung bei 0 Treffern. Idempotent.
@@ -823,6 +851,16 @@ log "Service neu starten"
 systemctl restart hydrahive2.service
 
 sleep 2
+# Voice-Bridge nutzt das Kern-venv und den Kern-Code: mit neu starten, damit
+# sie nicht mit dem alten Stand im Speicher weiterläuft. try-restart startet
+# nur eine laufende Bridge neu; die vor dem venv-Neubau angehaltene gezielt.
+if systemctl cat hydra-voice-bridge.service >/dev/null 2>&1; then
+  if [ "$HH_BRIDGE_STOPPED" = "1" ]; then
+    systemctl start hydra-voice-bridge.service || log "WARNUNG: Voice-Bridge-Start fehlgeschlagen"
+  else
+    systemctl try-restart hydra-voice-bridge.service || log "WARNUNG: Voice-Bridge-Neustart fehlgeschlagen"
+  fi
+fi
 if systemctl is-active --quiet hydrahive2.service; then
   log "Update erfolgreich, Service läuft."
 else

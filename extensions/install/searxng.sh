@@ -16,8 +16,16 @@ info "Installiere SearXNG..."
 # --- Abhängigkeiten ---
 apt-get update -qq
 apt-get install -y --quiet \
-    python3 python3-venv python3-pip git curl \
+    python3 python3-venv python3-dev python3-pip git curl \
     2>/dev/null | grep -E "^(Get|Entpacken|Einrichten)" || true
+
+# venv über den gemeinsamen Helfer: System-Python >= 3.12, aufgelöst auf die
+# versionierte Datei, Neubau bei abweichender Version (Spec python-314-umstieg).
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../installer/lib" && pwd)"
+# shellcheck source=installer/lib/python-venv.sh
+source "${LIB_DIR}/python-venv.sh"
+# shellcheck source=installer/lib/searxng-venv.sh
+source "${LIB_DIR}/searxng-venv.sh"
 
 # --- System-User ---
 if ! id "${SEARXNG_USER}" &>/dev/null; then
@@ -30,6 +38,7 @@ if [ -d "${SEARXNG_DIR}/.git" ]; then
     info "SearXNG bereits vorhanden — aktualisiere..."
     systemctl stop searxng 2>/dev/null || true
     git -C "${SEARXNG_DIR}" pull --quiet 2>/dev/null || true
+    hh_searxng_sync_venv "${SEARXNG_DIR}" "${SEARXNG_USER}" "" || die "SearXNG-venv konnte nicht erneuert werden"
     sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -qU searxng 2>/dev/null || true
 
     # JSON-Format nachrüsten (idempotent) — heilt ältere Installationen ohne
@@ -69,13 +78,9 @@ chown -R "${SEARXNG_USER}:${SEARXNG_USER}" "${SEARXNG_DIR}"
 
 # --- Virtualenv + Dependencies ---
 info "Erstelle Python-Virtualenv und installiere Abhängigkeiten..."
-sudo -u "${SEARXNG_USER}" python3 -m venv "${SEARXNG_DIR}/venv"
-sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -q --upgrade pip setuptools wheel
-# requirements.txt statt editable install — pip install -e schlägt fehl wenn
-# Build-Deps (msgspec) im venv noch nicht vorhanden sind
-sudo -u "${SEARXNG_USER}" "${SEARXNG_DIR}/venv/bin/pip" install -q \
-    -r "${SEARXNG_DIR}/requirements.txt" \
-    || die "pip install fehlgeschlagen"
+# Legt das venv an und installiert requirements.txt (statt editable install —
+# pip install -e schlägt fehl, solange Build-Deps wie msgspec fehlen).
+hh_searxng_sync_venv "${SEARXNG_DIR}" "${SEARXNG_USER}" "" || die "pip install fehlgeschlagen"
 success "Python-Abhängigkeiten installiert"
 
 # --- Konfiguration ---

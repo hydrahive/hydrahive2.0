@@ -7,9 +7,13 @@ export LANG=C.UTF-8 LC_ALL=C.UTF-8 DEBIAN_FRONTEND=noninteractive
 
 # npm absichtlich NICHT in der Liste — NodeSource liefert npm mit nodejs zusammen.
 # Das Ubuntu-npm-Paket konfligiert sonst: "nodejs : Conflicts: npm".
+# System-Python der Distribution (Ubuntu 26.04: 3.14, 24.04: 3.12) — nicht fest
+# 3.12: das gibt es auf 26.04 nur noch aus alten Paketen oder deadsnakes
+# (Spec docs/specs/python-314-umstieg.md). python3-dev für Pakete ohne Wheel.
 REQUIRED_PACKAGES=(
-  python3.12
-  python3.12-venv
+  python3
+  python3-venv
+  python3-dev
   python3-pip
   nodejs
   git
@@ -41,18 +45,21 @@ if ! command -v node >/dev/null 2>&1 || [ "$(node -v 2>/dev/null | cut -d. -f1 |
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null
 fi
 
-# Python 3.12 falls nicht da: über deadsnakes-PPA für Ubuntu < 24.04
-if ! command -v python3.12 >/dev/null 2>&1; then
-  log "Installiere Python 3.12 via deadsnakes-PPA"
-  apt-get install -y software-properties-common
-  add-apt-repository -y ppa:deadsnakes/ppa
-fi
-
 log "apt update"
 apt-get update
 
 log "apt install: ${REQUIRED_PACKAGES[*]}"
 DEBIAN_FRONTEND=noninteractive apt-get install -y "${REQUIRED_PACKAGES[@]}"
+
+# Nur wenn das System-Python älter als 3.12 ist (Ubuntu 22.04): 3.12 aus deadsnakes.
+# hh_pick_python (lib/python-venv.sh) nimmt es dann als Ausweich.
+if ! /usr/bin/python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'; then
+  log "System-Python zu alt — installiere Python 3.12 via deadsnakes-PPA"
+  apt-get install -y software-properties-common
+  add-apt-repository -y ppa:deadsnakes/ppa
+  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get install -y python3.12 python3.12-venv python3.12-dev
+fi
 
 # uv für Python-MCP-Server (uvx)
 if ! command -v uvx >/dev/null 2>&1; then

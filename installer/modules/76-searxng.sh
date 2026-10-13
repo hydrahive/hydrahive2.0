@@ -19,15 +19,17 @@ SEARXNG_VENV="$SEARXNG_DIR/venv"
 
 log "Abhängigkeiten installieren"
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  python3.12 python3.12-venv python3-pip git libssl-dev libffi-dev
+  python3 python3-venv python3-dev python3-pip git libssl-dev libffi-dev
 
-# Fest auf 3.12 — NICHT auf das generische `python3`. Ein venv, das mit
-# `python3 -m venv` gebaut wird, verlinkt bin/python3 auf /usr/bin/python3.
-# Schwenkt das System-python3 auf eine neue Version (hier 3.12 -> 3.14),
-# startet der venv mit dem neuen Interpreter, findet seine Pakete unter
-# lib/python3.12/ nicht mehr und bricht mit ModuleNotFoundError ab.
-# Genau so war SearXNG vom 29.08. bis 26.09.2026 ausgefallen.
-SEARXNG_PYTHON="/usr/bin/python3.12"
+# Interpreter: hh_pick_python (System-Python >= 3.12, aufgelöst auf die
+# versionierte Datei). NICHT `python3 -m venv`: dann folgt bin/python dem
+# System-Link, und nach einem Python-Wechsel findet SearXNG seine Pakete nicht
+# mehr (Ausfall 29.08.–26.09.2026). Spec docs/specs/python-314-umstieg.md.
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../lib" && pwd)"
+# shellcheck source=installer/lib/python-venv.sh
+source "$LIB_DIR/python-venv.sh"
+# shellcheck source=installer/lib/searxng-venv.sh
+source "$LIB_DIR/searxng-venv.sh"
 
 # System-User anlegen (falls nicht vorhanden)
 if ! id "$SEARXNG_USER" &>/dev/null; then
@@ -43,22 +45,8 @@ else
   log "SearXNG bereits vorhanden — überspringe Clone"
 fi
 
-# Virtualenv + Abhängigkeiten
-if [ ! -f "$SEARXNG_VENV/bin/python" ]; then
-  log "Virtualenv erstellen"
-  "$SEARXNG_PYTHON" -m venv "$SEARXNG_VENV"
-fi
-
-# Bestand reparieren: ein venv, dessen python3 dem System-Link folgt, auf
-# 3.12 festnageln. Idempotent — bereits korrekte Links bleiben unverändert.
-if [ "$(readlink "$SEARXNG_VENV/bin/python3")" = "/usr/bin/python3" ]; then
-  log "venv-Interpreter auf python3.12 fixieren (folgte System-python3)"
-  ln -sfn "$SEARXNG_PYTHON" "$SEARXNG_VENV/bin/python3.12"
-  ln -sfn python3.12 "$SEARXNG_VENV/bin/python3"
-  ln -sfn python3.12 "$SEARXNG_VENV/bin/python"
-  chown -h "$SEARXNG_USER:$SEARXNG_USER" \
-    "$SEARXNG_VENV/bin/python" "$SEARXNG_VENV/bin/python3" "$SEARXNG_VENV/bin/python3.12"
-fi
+# Virtualenv anlegen bzw. bei abweichender Python-Version neu bauen.
+hh_searxng_sync_venv "$SEARXNG_DIR" "$SEARXNG_USER" "searxng.service"
 
 log "Python-Abhängigkeiten installieren"
 "$SEARXNG_VENV/bin/pip" install -q --upgrade pip setuptools wheel
