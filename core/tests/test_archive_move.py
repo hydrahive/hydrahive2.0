@@ -54,6 +54,15 @@ def test_check_target_needs_space(env, monkeypatch) -> None:
     assert "not_enough_space" in move.check_target(env["new"])
 
 
+def test_state_remembers_empty_target(env, monkeypatch) -> None:
+    """run_move schreibt den Merker, auf den sich recover() verlässt."""
+    seen = {}
+    real = move._write_state
+    monkeypatch.setattr(move, "_write_state", lambda d: (seen.update(d), real(d)))
+    move.run_move(env["new"])
+    assert seen["target_was_empty"] is True
+
+
 def test_move_copies_verifies_switches_and_cleans(env) -> None:
     before = _files(env["old"])
     result = move.run_move(env["new"])
@@ -137,7 +146,8 @@ def test_restart_before_switch_removes_files_not_yet_in_state(env) -> None:
     (env["new"] / "agents").mkdir()
     (env["new"] / "agents" / "fertig.tar.gz").write_bytes(b"fertig")
     (env["cfg"] / "archive-move.json").write_text(json.dumps(
-        {"state": "copying", "source": str(env["old"]), "target": str(env["new"]), "copied": []}))
+        {"state": "copying", "source": str(env["old"]), "target": str(env["new"]), "copied": [],
+         "target_was_empty": True}))
     move.recover()
     assert not env["new"].exists() or _files(env["new"]) == {}
     assert location.archive_root() == env["old"]

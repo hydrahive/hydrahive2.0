@@ -69,7 +69,9 @@ def run_move(target: Path, on_progress: Progress | None = None) -> dict:
     files = _files(source)
     total = sum((source / f).lstat().st_size for f in files)
     st = {"state": "copying", "source": str(source), "target": str(target), "copied": [],
-          "total_bytes": total, "copied_bytes": 0, "total_files": len(files)}
+          "total_bytes": total, "copied_bytes": 0, "total_files": len(files),
+          # check_target verlangt ein leeres Ziel → nach Abbruch gehört dort alles dem Umzug (recover).
+          "target_was_empty": not (target.exists() and _files(target))}
     report = on_progress or (lambda s: None)
     _write_state(st)
     setup.ensure_archive()          # Freigabe aus, solange umgezogen wird (location.share_wanted)
@@ -125,6 +127,7 @@ def recover() -> None:
         left = _cleanup(source, copied)
         logger.warning("Archiv-Umzug nach Neustart fertig aufgeräumt, übrig: %d", len(left))
     else:
-        _rollback(target, copied)
+        # Der Zustand wird nicht nach jeder Datei geschrieben – bei leerem Ziel alles dort Liegende zurücknehmen.
+        _rollback(target, _files(target) if st.get("target_was_empty") and target.is_dir() else copied)
         logger.warning("Halber Archiv-Umzug nach Neustart zurückgerollt (%s)", target)
     _state_path().unlink(missing_ok=True)
