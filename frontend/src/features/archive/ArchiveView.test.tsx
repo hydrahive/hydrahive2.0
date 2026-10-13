@@ -8,10 +8,11 @@ import type { ArchiveEntry, ArchiveStatus } from "./api"
 const STATUS: ArchiveStatus = {
   target: "local",
   storage: {
-    path: "/var/lib/hydrahive2.hdd/archive", exists: true, writable: true, count: 2, manual_count: 1,
+    path: "/var/lib/hydrahive2/workspaces/archive", exists: true, writable: true, count: 2, manual_count: 1,
     by_kind: { agents: 1, projects: 1 }, used_bytes: 2048, free_bytes: 14 * 1024 ** 4, trash_bytes: 512,
+    is_default: true, mount: "/var/lib/hydrahive2/workspaces", setup_error: "",
   },
-  share: { name: "HydraHive_Archiv", enabled: true, samba_installed: true, samba_running: true, login: "hh", password: "geheim-123" },
+  share: { name: "HydraHive_Archiv", wanted: true, enabled: true, samba_installed: true, samba_running: true, login: "hh", password: "geheim-123" },
 }
 const ENTRIES: ArchiveEntry[] = [
   { manual: false, path: "agents/2026-10-13_101500_Alter-Agent_0450556d.tar.gz", file: "2026-10-13_101500_Alter-Agent_0450556d.tar.gz",
@@ -21,7 +22,7 @@ const ENTRIES: ArchiveEntry[] = [
 const noop = () => {}
 const props = (p: Partial<ArchiveViewProps> = {}): ArchiveViewProps => ({
   status: STATUS, entries: ENTRIES, host: "192.168.178.2", kind: null, error: null,
-  onKind: noop, onEmptyTrash: noop, onSetupSamba: noop, ...p,
+  onKind: noop, onEmptyTrash: noop, onSetupSamba: noop, onShareSwitch: noop, shareBusy: false, ...p,
 })
 const html = (p: Partial<ArchiveViewProps> = {}) => renderToStaticMarkup(<ArchiveView {...props(p)} />).replace(/&quot;/g, '"')
 
@@ -34,7 +35,7 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
 
   it("Speicherort zeigt Pfad, Zahl und Papierkorb", () => {
     const out = html()
-    expect(out).toContain("/var/lib/hydrahive2.hdd/archive")
+    expect(out).toContain("/var/lib/hydrahive2/workspaces/archive")
     expect(out).toContain('data-archive-count="2"')
     expect(out).toContain("512 B")
   })
@@ -53,9 +54,41 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
     expect(out).not.toContain(">hh<")
   })
 
-  it("Samba da, Freigabe noch nicht angelegt: Hinweis auf Update", () => {
-    const out = html({ status: { ...STATUS, share: { ...STATUS.share, enabled: false } } })
-    expect(out).toContain("share.not_enabled")
+  it("Speicherort nennt Platte und ob es der Standard bei den Projektdaten ist", () => {
+    const out = html()
+    expect(out).toContain('data-archive-mount="/var/lib/hydrahive2/workspaces"')
+    expect(out).toContain("storage.default_hint")
+    expect(html({ status: { ...STATUS, storage: { ...STATUS.storage, is_default: false } } })).not.toContain("storage.default_hint")
+  })
+
+  it("Einrichtung fehlgeschlagen: Grund wird angezeigt", () => {
+    const out = html({ status: { ...STATUS, storage: { ...STATUS.storage, exists: false, setup_error: "Permission denied" } } })
+    expect(out).toContain("storage.setup_failed")
+    expect(out).toContain("Permission denied")
+  })
+
+  it("Freigabe-Schalter: an, aus, während des Schaltens gesperrt", () => {
+    // AdminToggle = Checkbox; renderToStaticMarkup schreibt checked="" nur, wenn an.
+    const sw = (out: string) => out.match(/<input[^>]*data-archive-action="share-switch"[^>]*>/)?.[0] ?? ""
+    expect(sw(html())).toMatch(/\schecked=""/)
+    const off = html({ status: { ...STATUS, share: { ...STATUS.share, wanted: false, enabled: false } } })
+    expect(sw(off)).not.toBe("")
+    expect(sw(off)).not.toMatch(/\schecked=""/)
+    expect(off).toContain("share.switched_off")
+    expect(off).not.toContain(">hh<")
+    expect(sw(html({ shareBusy: true }))).toMatch(/\sdisabled=""/)
+  })
+
+  it("ohne Samba kein Schalter", () => {
+    const out = html({ status: { ...STATUS, share: { ...STATUS.share, enabled: false, samba_installed: false, password: "" } } })
+    expect(out).not.toContain('data-archive-action="share-switch"')
+  })
+
+  it("nirgends Terminal-Anweisungen (Till, 13.10.: alles über die Admin-Konsole)", () => {
+    for (const s of [STATUS, { ...STATUS, share: { ...STATUS.share, enabled: false } }]) {
+      const out = html({ status: s })
+      expect(out).not.toMatch(/update\.sh|install\.conf|HH_ARCHIVE|sudo|Terminal/i)
+    }
   })
 
   it("Elemente: Name, Art, Grund; Handablage markiert", () => {
