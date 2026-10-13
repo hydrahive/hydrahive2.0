@@ -260,4 +260,82 @@ Alle Aktionen nur für Admins (`require_admin`). Texte de/en.
 - Reihenfolge: zuerst lokales Archiv und Lösch-Dialog, dann der externe Server.
 - Alles dazu kommt auch in die Admin-Konsole: eigenes Fenster „Archiv & Sicherung“.
 
-**Status: zur Freigabe von Etappe 1.**
+**Status: Etappe 1 freigegeben (Till, 13.10.).**
+
+## Etappe 1: Bauplan
+
+### Backend `core/src/hydrahive/archive/`
+
+| Datei | Inhalt |
+|---|---|
+| `_paths.py` | `archive_root()` aus `settings.archive_local_dir`; Unterordner `agents/ projects/ users/ backups/ uploads/`; `.papierkorb/` |
+| `package.py` | `pack(kind, name, source_id, owner, reason, sources: list[(arcname, Path)], extra: dict) -> Entry`. Schreibt `…tar.gz.part`, berechnet sha256 beim Schreiben, `os.replace` auf den Endnamen, danach `.json`. Ohne eingehängte Laufwerke (`os.path.ismount`) und ohne `is_excluded`. Symlinks werden als Symlinks gesichert und nicht verfolgt. |
+| `catalog.py` | `list_entries(kind=None)`: liest alle `.json` und listet Dateien ohne `.json` als `manual`. `usage()`: Platz frei/belegt, Anzahl, Papierkorb-Größe. Nichts davon in der DB, der Katalog sind die `.json`-Dateien (so bleibt er auch beim Bearbeiten über Samba stimmig). |
+| `trash.py` | `empty_trash()`: löscht nur innerhalb von `archive_root()/.papierkorb`, ohne Symlinks zu folgen |
+
+Name des Pakets: `JJJJ-MM-TT_HHMMSS_<name-sicher>_<id8>.tar.gz`. Der Name wird auf
+`[A-Za-z0-9_-]` gekürzt (max. 40). Sicherheit: `kind` aus fester Liste, Ziel
+immer unter `archive_root()` (resolve + Präfix-Prüfung).
+
+Etappe 1 baut `pack()`. Aufrufer kommen erst in Etappe 2 (Löschen). Getestet
+wird es direkt.
+
+### Settings
+`_ArchiveMixin.archive_local_dir`: `HH_ARCHIVE_LOCAL_DIR`, sonst
+`data_dir/"archive"`. `archive_share_name`: `HydraHive_Archiv`.
+
+### API `GET/POST /api/admin/archive/…` (nur Admin)
+- `GET /status`: Ziel `local`, Pfad, existiert, beschreibbar, Platz,
+  Anzahl je Art, Papierkorb-Größe; Samba: installiert, Freigabe aktiv,
+  Freigabe-Name, Login, Passwort (wie `/api/system/samba/status`).
+- `GET /entries?kind=`: Liste aus `catalog.list_entries`.
+- `POST /trash/empty` mit `{"confirm": "Papierkorb"}`; sonst 400.
+
+### Installer
+- `install.sh`: `HH_ARCHIVE_LOCAL_DIR` in `CONF_VARS` (wird gespeichert, falls gesetzt).
+- `50-systemd.sh`: `Environment=HH_ARCHIVE_LOCAL_DIR=…` in die Unit, falls gesetzt.
+  `update.sh` erkennt eine Abweichung zur Unit und schreibt sie neu.
+- `lib/archive-share.sh` (`hh_archive_ensure`): legt den Archiv-Ordner an
+  (`hydrahive:hydrahive`, 2775) und schreibt `_system-archiv.conf` in
+  `hh-projects.d`. Aufgerufen aus `47-samba.sh` und `update.sh`, wenn
+  Samba an ist. Ohne Samba wird nur der Ordner angelegt.
+- `_index.conf` erzeugt der Kern (`samba/manager._regenerate_index`). Er nimmt
+  schon heute jede `*.conf` außer `_index.conf` auf, also auch
+  `_system-archiv.conf`. Der Installer schreibt den Index nach dem Anlegen einmal neu.
+
+Freigabe-Block:
+```
+[HydraHive_Archiv]
+   comment = HydraHive System-Archiv
+   path = <archive_local_dir>
+   browseable = yes
+   read only = no
+   valid users = <samba_user>
+   force user = <hh_user>
+   force group = <hh_user>
+   create mask = 0664
+   directory mask = 2775
+   vfs objects = recycle
+   recycle:repository = .papierkorb
+   recycle:keeptree = yes
+   recycle:versions = yes
+   recycle:touch = yes
+   recycle:exclude_dir = .papierkorb
+```
+
+### Frontend
+- `features/archive/`: `api.ts`, `ArchiveOverlay.tsx` (drei Bereiche:
+  Speicherort, Samba-Freigabe, Elemente), Teil-Komponenten < 200 Zeilen, i18n de/en.
+- Admin-Registry: `archive` (Pfad `/archive`), Karte in „Wartung & Backups“,
+  Eintrag „Archiv“ in „Admin-Bereiche“.
+
+### Tests (zuerst rot)
+- `pack`: Inhalt, Prüfsumme, `.json`, kein Mount im Paket, Symlink bleibt
+  Symlink, abgebrochenes Packen hinterlässt kein Paket, Name sicher.
+- Katalog: `.json`-Einträge, fremde Dateien als `manual`, `.papierkorb` nicht gelistet.
+- Papierkorb leeren: nur innerhalb, Symlink nach draußen wird nicht verfolgt.
+- API: nur Admin, Bestätigungswort Pflicht.
+- Installer: Freigabe-Block, Index enthält die Datei, `CONF_VARS`, Unit-Zeile.
+- vitest: Fenster zeigt drei Bereiche, Samba aus → Hinweis + Knopf.
+- E2E hydratest: Freigabe per `smbclient` lesen + schreiben, Löschen über
+  Samba landet im Papierkorb, Fenster im Browser.
