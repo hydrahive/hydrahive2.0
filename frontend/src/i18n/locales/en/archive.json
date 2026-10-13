@@ -20,7 +20,8 @@
     "used": "Used",
     "trash": "Recycle bin",
     "empty_trash": "Empty",
-    "default_hint": "Default: next to the project data, on the same disk. HydraHive sets up the folder and the share itself."
+    "default_hint": "Default: next to the project data, on the same disk. HydraHive sets up the folder and the share itself.",
+    "change": "Change location"
   },
   "share": {
     "title": "Network share",
@@ -40,7 +41,8 @@
     "hint": "Files deleted through the share go to the recycle bin (.papierkorb) and stay there until it is emptied here.",
     "switch": "Offer network share",
     "switched_off": "The share is switched off. The archive still works, just not over the network.",
-    "switch_failed": "Could not switch the share."
+    "switch_failed": "Could not switch the share.",
+    "paused_for_move": "The share is paused while the archive moves."
   },
   "entries": {
     "title": "Archived items",
@@ -76,5 +78,40 @@
     "confirm": "Empty permanently",
     "cancel": "Cancel",
     "failed": "Could not empty the recycle bin."
+  },
+  "move": {
+    "title": "Change archive location",
+    "choose": "New location",
+    "default_name": "Default (next to the project data)",
+    "current": "current",
+    "free": "{{free}} free",
+    "explain": "All packages, manually placed files and the recycle bin move along. The network share pauses during the move; only after everything is copied and verified does the switch happen and the old location get cleaned up.",
+    "start": "Move",
+    "prepare": "Prepare disk for HydraHive",
+    "preparing": "Preparing …",
+    "prepare_failed": "The disk could not be prepared.",
+    "load_failed": "Could not load the disks.",
+    "done": "Move finished. The archive is now at {{target}}.",
+    "left_behind": "Left at the old location (added during the move):",
+    "state": {
+      "starting": "Starting …",
+      "copying": "Copying",
+      "verifying": "Verifying checksums",
+      "cleanup": "Cleaning up old location"
+    },
+    "error": {
+      "verify_failed": "Move cancelled: the copy did not match the original. The archive is unchanged at the old location.",
+      "copy_failed": "Move cancelled while copying. The archive is unchanged at the old location.",
+      "unexpected": "Move cancelled. The archive is unchanged at the old location."
+    }
+  },
+  "problem": {
+    "move_running": "A move is already running.",
+    "same_location": "This is the current location.",
+    "target_inside_current": "Inside the current archive.",
+    "current_inside_target": "The current archive is inside it.",
+    "target_not_empty": "There are already files there.",
+    "target_not_writable": "HydraHive may not write there yet.",
+    "not_enough_space": "Not enough space."
   }
 }

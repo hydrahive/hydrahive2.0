@@ -22,7 +22,7 @@ const ENTRIES: ArchiveEntry[] = [
 const noop = () => {}
 const props = (p: Partial<ArchiveViewProps> = {}): ArchiveViewProps => ({
   status: STATUS, entries: ENTRIES, host: "192.168.178.2", kind: null, error: null,
-  onKind: noop, onEmptyTrash: noop, onSetupSamba: noop, onShareSwitch: noop, shareBusy: false, ...p,
+  onKind: noop, onEmptyTrash: noop, onSetupSamba: noop, onShareSwitch: noop, onChangeLocation: noop, shareBusy: false, ...p,
 })
 const html = (p: Partial<ArchiveViewProps> = {}) => renderToStaticMarkup(<ArchiveView {...props(p)} />).replace(/&quot;/g, '"')
 
@@ -86,6 +86,15 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
   it("ohne Samba kein Schalter", () => {
     const out = html({ status: { ...STATUS, share: { ...STATUS.share, enabled: false, samba_installed: false, password: "" } } })
     expect(out).not.toContain('data-archive-action="share-switch"')
+  })
+
+  it("Ort wechseln: Knopf da, während eines Umzugs gesperrt, Fortschritt sichtbar", () => {
+    const b = (out: string) => out.match(/<button[^>]*data-archive-action="change-location"[^>]*>/)?.[0] ?? ""
+    expect(b(html())).not.toBe("")
+    expect(b(html())).not.toMatch(/\sdisabled=""/)
+    const moving = html({ status: { ...STATUS, move: { running: { state: "copying", copied_bytes: 1, total_bytes: 4, target: "/x" }, last: null } } })
+    expect(b(moving)).toMatch(/\sdisabled=""/)
+    expect(moving).toContain('data-archive-move-percent="25"')
   })
 
   it("nirgends Terminal-Anweisungen (Till, 13.10.: alles über die Admin-Konsole)", () => {

@@ -20,7 +20,8 @@
     "used": "Belegt",
     "trash": "Papierkorb",
     "empty_trash": "Leeren",
-    "default_hint": "Standard: liegt bei den Projektdaten, auf derselben Platte. HydraHive richtet den Ordner und die Freigabe selbst ein."
+    "default_hint": "Standard: liegt bei den Projektdaten, auf derselben Platte. HydraHive richtet den Ordner und die Freigabe selbst ein.",
+    "change": "Ort wechseln"
   },
   "share": {
     "title": "Netzwerk-Freigabe",
@@ -40,7 +41,8 @@
     "hint": "Über die Freigabe gelöschte Dateien landen im Papierkorb (.papierkorb) und bleiben dort, bis er hier geleert wird.",
     "switch": "Netzwerk-Freigabe anbieten",
     "switched_off": "Die Freigabe ist ausgeschaltet. Das Archiv funktioniert trotzdem, nur nicht übers Netz.",
-    "switch_failed": "Freigabe konnte nicht umgeschaltet werden."
+    "switch_failed": "Freigabe konnte nicht umgeschaltet werden.",
+    "paused_for_move": "Die Freigabe ruht, solange das Archiv umzieht."
   },
   "entries": {
     "title": "Archivierte Elemente",
@@ -76,5 +78,40 @@
     "confirm": "Endgültig leeren",
     "cancel": "Abbrechen",
     "failed": "Papierkorb konnte nicht geleert werden."
+  },
+  "move": {
+    "title": "Archiv-Ort wechseln",
+    "choose": "Neuer Ort",
+    "default_name": "Standard (bei den Projektdaten)",
+    "current": "aktuell",
+    "free": "{{free}} frei",
+    "explain": "Alle Pakete, Handablagen und der Papierkorb ziehen mit. Während des Umzugs ruht die Netzwerk-Freigabe; erst wenn alles kopiert und geprüft ist, wird umgestellt und am alten Ort gelöscht.",
+    "start": "Umziehen",
+    "prepare": "Platte für HydraHive einrichten",
+    "preparing": "Wird eingerichtet …",
+    "prepare_failed": "Die Platte konnte nicht eingerichtet werden.",
+    "load_failed": "Platten konnten nicht geladen werden.",
+    "done": "Umzug fertig. Das Archiv liegt jetzt unter {{target}}.",
+    "left_behind": "Am alten Ort ist liegen geblieben (kam während des Umzugs dazu):",
+    "state": {
+      "starting": "Startet …",
+      "copying": "Kopiere",
+      "verifying": "Prüfe Prüfsummen",
+      "cleanup": "Räume alten Ort auf"
+    },
+    "error": {
+      "verify_failed": "Umzug abgebrochen: Die Kopie stimmte nicht mit dem Original überein. Das Archiv liegt unverändert am alten Ort.",
+      "copy_failed": "Umzug abgebrochen beim Kopieren. Das Archiv liegt unverändert am alten Ort.",
+      "unexpected": "Umzug abgebrochen. Das Archiv liegt unverändert am alten Ort."
+    }
+  },
+  "problem": {
+    "move_running": "Es läuft schon ein Umzug.",
+    "same_location": "Das ist der aktuelle Ort.",
+    "target_inside_current": "Liegt im aktuellen Archiv.",
+    "current_inside_target": "Das aktuelle Archiv liegt darin.",
+    "target_not_empty": "Dort liegen schon Dateien.",
+    "target_not_writable": "HydraHive darf dort noch nicht schreiben.",
+    "not_enough_space": "Nicht genug Platz."
   }
 }
