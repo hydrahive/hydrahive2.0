@@ -22,8 +22,9 @@ from hydrahive.settings import settings
 
 @pytest.fixture
 def root(tmp_path, monkeypatch) -> Path:
+    from hydrahive.archive import location
     r = tmp_path / "archiv"
-    monkeypatch.setattr(settings, "archive_local_dir", r, raising=False)
+    monkeypatch.setattr(location, "archive_root", lambda: r)
     return r
 
 
@@ -41,7 +42,7 @@ def _names(tgz: Path) -> set[str]:
         return set(tar.getnames())
 
 
-def test_root_follows_setting(root: Path) -> None:
+def test_root_follows_location(root: Path) -> None:
     assert archive_root() == root
 
 

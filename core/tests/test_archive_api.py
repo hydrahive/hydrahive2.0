@@ -11,8 +11,9 @@ from hydrahive.settings import settings
 
 @pytest.fixture
 def root(tmp_path, monkeypatch) -> Path:
+    from hydrahive.archive import location
     r = tmp_path / "archiv"
-    monkeypatch.setattr(settings, "archive_local_dir", r, raising=False)
+    monkeypatch.setattr(location, "archive_root", lambda: r)
     return r
 
 
@@ -34,6 +35,7 @@ def samba(monkeypatch):
     })
     monkeypatch.setattr(route, "_read_samba_password", lambda: "geheim-123")
     monkeypatch.setattr(route, "archive_share_enabled", lambda: True)
+    monkeypatch.setattr(route.setup, "ensure_archive", lambda: {"folder": True, "share": "on"})
     return route
 
 
@@ -41,9 +43,11 @@ def samba(monkeypatch):
     ("get", "/api/admin/archive/status"),
     ("get", "/api/admin/archive/entries"),
     ("post", "/api/admin/archive/trash/empty"),
+    ("put", "/api/admin/archive/share"),
 ])
 def test_admin_only(client, auth_headers, method, url) -> None:
-    r = getattr(client, method)(url, headers=auth_headers, **({"json": {"confirm": "Papierkorb"}} if method == "post" else {}))
+    body = {"post": {"confirm": "Papierkorb"}, "put": {"enabled": False}}.get(method)
+    r = getattr(client, method)(url, headers=auth_headers, **({"json": body} if body else {}))
     assert r.status_code == 403
 
 
@@ -68,6 +72,7 @@ def test_status_without_samba(client, admin_headers, root, monkeypatch) -> None:
         "includes_dir": "/x", "includes_dir_exists": False,
     })
     monkeypatch.setattr(route, "archive_share_enabled", lambda: False)
+    monkeypatch.setattr(route.setup, "ensure_archive", lambda: {"folder": True, "share": "no_samba"})
 
     share = client.get("/api/admin/archive/status", headers=admin_headers).json()["share"]
 
@@ -75,16 +80,42 @@ def test_status_without_samba(client, admin_headers, root, monkeypatch) -> None:
     assert share["password"] == ""
 
 
-def test_share_enabled_reads_installer_file(tmp_path, monkeypatch) -> None:
-    """Der Dateiname muss zu installer/lib/archive-share.sh passen."""
+def test_share_enabled_reads_share_file(tmp_path, monkeypatch) -> None:
     from hydrahive.archive import share
     monkeypatch.setattr(settings, "samba_includes_dir", tmp_path, raising=False)
 
     assert share.archive_share_enabled() is False
     (tmp_path / "_system-archiv.conf").write_text("[HydraHive_Archiv]\n")
     assert share.archive_share_enabled() is True
-    installer = Path(__file__).resolve().parents[2] / "installer" / "lib" / "archive-share.sh"
-    assert share.SHARE_CONF_NAME in installer.read_text()
+
+
+def test_status_runs_setup_and_reports_disk(client, admin_headers, root, samba, monkeypatch) -> None:
+    """Status richtet das Archiv ein (ohne Installer) und meldet Platte und Freigabe-Wunsch."""
+    from hydrahive.api.routes import archive as route
+    calls = []
+    monkeypatch.setattr(route.setup, "ensure_archive", lambda: calls.append(1) or {"folder": True, "share": "on"})
+
+    body = client.get("/api/admin/archive/status", headers=admin_headers).json()
+
+    assert calls == [1]
+    assert body["share"]["wanted"] is True
+    assert body["storage"]["is_default"] is True
+    assert body["storage"]["mount"]
+
+
+def test_share_switch(client, admin_headers, root, samba, monkeypatch) -> None:
+    from hydrahive.api.routes import archive as route
+    from hydrahive.archive import location
+    state = {"wanted": True}
+    monkeypatch.setattr(location, "set_share_wanted", lambda v: state.__setitem__("wanted", v))
+    monkeypatch.setattr(location, "share_wanted", lambda: state["wanted"])
+    monkeypatch.setattr(route.setup, "ensure_archive", lambda: {"folder": True, "share": "off" if not state["wanted"] else "on"})
+
+    r = client.put("/api/admin/archive/share", headers=admin_headers, json={"enabled": False})
+
+    assert r.status_code == 200 and r.json()["share"] == "off"
+    assert state["wanted"] is False
+    assert client.put("/api/admin/archive/share", headers=admin_headers, json={"enabled": "ja"}).status_code == 422
 
 
 def test_entries_list_and_filter(client, admin_headers, root, packed) -> None:

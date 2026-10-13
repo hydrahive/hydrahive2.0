@@ -18,8 +18,9 @@ from hydrahive.settings import settings
 
 @pytest.fixture
 def root(tmp_path, monkeypatch) -> Path:
+    from hydrahive.archive import location
     r = tmp_path / "archiv"
-    monkeypatch.setattr(settings, "archive_local_dir", r, raising=False)
+    monkeypatch.setattr(location, "archive_root", lambda: r)
     return r
 
 
