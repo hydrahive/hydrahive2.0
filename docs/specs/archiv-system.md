@@ -125,20 +125,29 @@ löschen“ hängen nur an der Archiv-API, nicht am NAS.
 1. **Externer Server** (NAS), falls in den Einstellungen eingetragen und
    erreichbar. Damit ist das Archiv nicht auf derselben Maschine.
 2. **Lokales System-Archiv**, sonst. Immer vorhanden, ohne Einrichtung.
-   - Ort: einstellbar (`HH_ARCHIVE_LOCAL_DIR`), Standard `$HH_DATA_DIR/archive/`.
-     **Achtung Prod:** `$HH_DATA_DIR` liegt auf der kleinen Platte (`md127`,
-     469 GB, 412 GB frei). Nur `workspaces/` ist per Bind-Mount auf die große
-     Platte gelegt (`/var/lib/hydrahive2.hdd/workspaces` auf `sda2`, 14 TB
-     frei). Für Prod daher `HH_ARCHIVE_LOCAL_DIR=/var/lib/hydrahive2.hdd/archive`
-     setzen, sonst passen große Projekte nicht. Der Installer legt den Ordner
-     an.
-   - **Ein Ort für Dienst und Installer:** Der Dienst liest
-     `/etc/hydrahive2/env`, `update.sh` und `install.sh` lesen `install.conf`.
-     Darum steht `HH_ARCHIVE_LOCAL_DIR` in `install.conf`, und der Installer
-     schreibt denselben Wert in die systemd-Unit des Dienstes
-     (`Environment=`), so wie `HH_DATA_DIR`. Es gibt keine zweite Stelle, die
-     auseinanderlaufen kann. Für Prod: Till trägt die Zeile einmal in
-     `install.conf` ein und startet `update.sh`.
+   - **Ort ohne Einrichtung, auf jedem Server sinnvoll** (Till, 13.10.: „es MUSS
+     ALLES über die Admin-Konsole gehen“, es gibt viele Installationen, die wir
+     nicht kennen): Standard ist `workspaces/archive/`, also dieselbe Platte wie
+     die Projektdaten. Wer `workspaces/` auf eine große Platte gelegt hat (Prod:
+     16-TB-Platte per Bind-Mount, `$HH_DATA_DIR` selbst nur 469 GB), hat das
+     Archiv automatisch dort. Kein Eintrag in `install.conf`, keine Unit-Zeile,
+     kein Schritt im Installer.
+   - Der gewählte Ort steht in `config_dir/archive.json` (`{"local_dir": …}`).
+     Geschrieben wird er nur über die Admin-Konsole (Etappe 1b: Ort wechseln).
+     Fehlt die Datei, gilt der Standard. Eine Env-Variable gibt es nicht.
+   - **HydraHive legt Ordner und Freigabe selbst an** (`archive/setup.py`,
+     beim Start und bei jedem Status-Aufruf, idempotent, ohne root):
+     Ordner mit festen Unterordnern (2775), Freigabe-Datei
+     `_system-archiv.conf` in `hh-projects.d`, `_index.conf` über den
+     vorhandenen `samba/manager._regenerate_index`. Gemessen auf hydratest:
+     smbd übernimmt neue Freigaben aus `hh-projects.d` für neue Verbindungen
+     sofort, ein Reload (braucht root) ist nicht nötig.
+   - **Nicht ins System-Backup und nicht in den Restore:** Das Archiv liegt
+     unter `workspaces/`, das komplett gesichert wird. Ohne Ausnahme würde
+     jedes Backup das ganze Archiv enthalten (Backup im Backup) und ein
+     Restore das Archiv durch den alten Stand ersetzen. `backup/_paths` nimmt
+     genau den Ordner `workspaces/archive` aus (nicht jeden Ordner namens
+     „archive“), der Restore lässt ihn stehen.
    - **Samba-Freigabe `HydraHive_Archiv`**, systemweit und an kein Projekt
      gebunden. **Lesen und schreiben** (Till, 13.10.): herunterladen und
      eigene Dateien hineinlegen. Zugang mit dem vorhandenen Samba-Nutzer `hh`
@@ -156,8 +165,10 @@ löschen“ hängen nur an der Archiv-API, nicht am NAS.
    - Eigene Datei `/etc/samba/hh-projects.d/_system-archiv.conf`, die
      `_index.conf` mit einbindet. Der Projekt-Code (`enable_share`,
      `disable_share`) fasst sie nicht an.
-   - Angelegt bei Installation und Update (`47-samba.sh`), wenn Samba an ist.
-     Ohne Samba gibt es das Archiv trotzdem, nur eben ohne Netzfreigabe.
+   - Ein Schalter in der Admin-Konsole schaltet die Freigabe aus und wieder
+     ein (`config_dir/archive.json`: `"share": false`). Standard: an, sobald
+     Samba eingerichtet ist. Ohne Samba gibt es das Archiv trotzdem, nur eben
+     ohne Netzfreigabe; das Fenster bietet dann „Samba einrichten“ an.
 
 **Gibt es dann noch ein „nicht erreichbar“?** Nur für den externen Server.
 Ist er eingetragen, aber weg, fragt der Dialog: „NAS nicht erreichbar: ins
@@ -203,9 +214,15 @@ lesbar. Sie bildet zugleich den Katalog, aus dem die Archiv-Ansicht
 ## Etappen (angepasst)
 
 1. **Archiv-Kern + lokales System-Archiv + Samba-Freigabe + Admin-Fenster:**
-   Paket bauen (tar.gz, Prüfsumme, `.json`), ins lokale Archiv schreiben,
-   Freigabe `HydraHive_Archiv` (lesen + schreiben, Papierkorb) bei Install und
-   Update, `HH_ARCHIVE_LOCAL_DIR` über `install.conf` an Dienst und Installer.
+   Paket bauen (tar.gz, Prüfsumme, `.json`), ins lokale Archiv schreiben
+   (Standard `workspaces/archive`), Freigabe `HydraHive_Archiv` (lesen +
+   schreiben, Papierkorb) legt HydraHive selbst an, Schalter in der Konsole.
+   Kein Installer-Teil.
+1b. **Ort wechseln aus der Admin-Konsole:** Auswahl der Platten (mit freiem
+   Platz), vorhandene Pakete im Hintergrund mit Fortschritt verschieben
+   (Till, 13.10.: ja). Kann HydraHive auf der gewählten Platte nicht schreiben,
+   richtet ein Knopf die Rechte ein (über den vorhandenen Root-Runner der
+   Zusatz-Module, feste Aktion, Pfad geprüft; Till, 13.10.: ja).
    Admin-Fenster „Archiv & Sicherung“ mit Speicherort, Samba-Freigabe
    (inkl. Papierkorb leeren) und Liste der archivierten Elemente.
 2. **Lösch-Dialog** für Agent, Projekt und Nutzer: Archiv oder unwiderruflich,
@@ -244,10 +261,10 @@ Eintrag „Archiv“ in „Admin-Bereiche“. Inhalt je Etappe:
 | **Externer Server (NAS)** | 3 | Server, Freigabe, Unterordner, Zugangsdaten (Auswahl aus Credentials, Typ `basic`), Knopf „Verbindung testen“, Schalter „aktiv“. |
 | **System-Backup ins Archiv** | 5 | Knopf „Jetzt sichern“, Zeitplan, letzte Sicherung. Die Karte „System-Backup“ im System-Fenster verweist hierher. |
 
-Einstellungen (Pfad `HH_ARCHIVE_LOCAL_DIR`) stehen **nur lesend** im
-Fenster, weil sie über `install.conf` an Installer und Dienst gehen
-(s. o.). Änderbar über `update.sh`. Ein Knopf, der nur die Dienst-Seite
-änderte, würde die beiden auseinanderlaufen lassen.
+**Regel (Till, 13.10.):** Alles, was ein Nutzer einstellen muss, geht über
+dieses Fenster. Keine Shell, kein Terminal, keine Config-Datei von Hand,
+auch nicht „einmalig vor dem Update“. Der Ort wird in Etappe 1 angezeigt
+(mit Platte und freiem Platz) und ist ab Etappe 1b dort änderbar.
 
 Alle Aktionen nur für Admins (`require_admin`). Texte de/en.
 
@@ -280,9 +297,22 @@ immer unter `archive_root()` (resolve + Präfix-Prüfung).
 Etappe 1 baut `pack()`. Aufrufer kommen erst in Etappe 2 (Löschen). Getestet
 wird es direkt.
 
-### Settings
-`_ArchiveMixin.archive_local_dir`: `HH_ARCHIVE_LOCAL_DIR`, sonst
-`data_dir/"archive"`. `archive_share_name`: `HydraHive_Archiv`.
+### Ort und Einrichtung (kein Installer-Teil)
+- `archive/location.py`: `archive_root()` = `local_dir` aus
+  `config_dir/archive.json`, sonst `settings.workspaces_dir / "archive"`.
+  Kaputte Datei → Standard + Warnung im Log. `share_wanted()` aus derselben
+  Datei, Standard an.
+- `archive/setup.py` `ensure_archive()`: Ordner + Unterordner anlegen, und
+  wenn `hh-projects.d` existiert und die Freigabe gewünscht ist:
+  `_system-archiv.conf` schreiben (nur bei Änderung) und `_index.conf` über
+  `samba.manager._regenerate_index()` neu schreiben. Ist die Freigabe nicht
+  gewünscht: Datei entfernen, Index neu. Fehler werden gemeldet, nie
+  geworfen (Start darf nicht scheitern). Aufruf: `lifespan` (im Thread) und
+  `GET /status`.
+- `PUT /api/admin/archive/share {"enabled": bool}`: Schalter.
+- Backup: `backup/_paths.is_excluded` nimmt `workspaces/archive` aus (genau
+  dieser Pfad). Restore: `_atomic_replace_dir` für `workspaces` lässt den
+  vorhandenen `archive`-Ordner stehen.
 
 ### API `GET/POST /api/admin/archive/…` (nur Admin)
 - `GET /status`: Ziel `local`, Pfad, existiert, beschreibbar, Platz,
@@ -290,18 +320,6 @@ wird es direkt.
   Freigabe-Name, Login, Passwort (wie `/api/system/samba/status`).
 - `GET /entries?kind=`: Liste aus `catalog.list_entries`.
 - `POST /trash/empty` mit `{"confirm": "Papierkorb"}`; sonst 400.
-
-### Installer
-- `install.sh`: `HH_ARCHIVE_LOCAL_DIR` in `CONF_VARS` (wird gespeichert, falls gesetzt).
-- `50-systemd.sh`: `Environment=HH_ARCHIVE_LOCAL_DIR=…` in die Unit, falls gesetzt.
-  `update.sh` erkennt eine Abweichung zur Unit und schreibt sie neu.
-- `lib/archive-share.sh` (`hh_archive_ensure`): legt den Archiv-Ordner an
-  (`hydrahive:hydrahive`, 2775) und schreibt `_system-archiv.conf` in
-  `hh-projects.d`. Aufgerufen aus `47-samba.sh` und `update.sh`, wenn
-  Samba an ist. Ohne Samba wird nur der Ordner angelegt.
-- `_index.conf` erzeugt der Kern (`samba/manager._regenerate_index`). Er nimmt
-  schon heute jede `*.conf` außer `_index.conf` auf, also auch
-  `_system-archiv.conf`. Der Installer schreibt den Index nach dem Anlegen einmal neu.
 
 Freigabe-Block:
 ```
@@ -335,7 +353,12 @@ Freigabe-Block:
 - Katalog: `.json`-Einträge, fremde Dateien als `manual`, `.papierkorb` nicht gelistet.
 - Papierkorb leeren: nur innerhalb, Symlink nach draußen wird nicht verfolgt.
 - API: nur Admin, Bestätigungswort Pflicht.
-- Installer: Freigabe-Block, Index enthält die Datei, `CONF_VARS`, Unit-Zeile.
-- vitest: Fenster zeigt drei Bereiche, Samba aus → Hinweis + Knopf.
+- Einrichtung: Standardort unter `workspaces`, `archive.json` gewinnt, kaputte
+  Datei → Standard; Ordner + Freigabe-Datei + Index ohne root; Schalter aus →
+  Datei weg; ohne Samba nur Ordner; Index bleibt für das Backend schreibbar.
+- Backup/Restore: `workspaces/archive` nicht im Backup, Restore lässt es stehen,
+  andere Ordner namens `archive` (z. B. in Projekten) bleiben im Backup.
+- vitest: Fenster zeigt drei Bereiche, Samba aus → Hinweis + Knopf, Schalter,
+  Platte und freier Platz, kein Text mit `update.sh` oder `install.conf`.
 - E2E hydratest: Freigabe per `smbclient` lesen + schreiben, Löschen über
   Samba landet im Papierkorb, Fenster im Browser.
