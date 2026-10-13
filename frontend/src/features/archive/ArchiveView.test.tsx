@@ -77,6 +77,10 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
     expect(off).toContain("share.switched_off")
     expect(off).not.toContain(">hh<")
     expect(sw(html({ shareBusy: true }))).toMatch(/\sdisabled=""/)
+    // Ausgeschaltet, aber die Datei liegt noch (z. B. kurz vor dem Neuladen): kein Login anzeigen.
+    const stale = html({ status: { ...STATUS, share: { ...STATUS.share, wanted: false, enabled: true } } })
+    expect(stale).not.toContain(">hh<")
+    expect(stale).not.toContain("HydraHive_Archiv")
   })
 
   it("ohne Samba kein Schalter", () => {
