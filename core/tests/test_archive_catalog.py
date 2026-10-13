@@ -75,7 +75,10 @@ def test_hand_placed_files_are_manual(root: Path, src: Path) -> None:
 
     paths = {e["path"] for e in manual}
     assert paths == {"uploads/alte-platte.zip", "eigener-ordner/notiz.txt"}
-    assert next(e for e in manual if e["path"] == "uploads/alte-platte.zip")["size"] == 10
+    by_path = {e["path"]: e for e in manual}
+    assert by_path["uploads/alte-platte.zip"]["size"] == 10
+    assert by_path["uploads/alte-platte.zip"]["kind"] == "uploads"
+    assert by_path["eigener-ordner/notiz.txt"]["kind"] is None
 
 
 def test_trash_part_files_and_json_never_listed_as_manual(root: Path, src: Path) -> None:
