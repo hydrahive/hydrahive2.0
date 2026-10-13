@@ -119,7 +119,9 @@ def test_share_switch(client, admin_headers, root, samba, monkeypatch) -> None:
 
     assert r.status_code == 200 and r.json()["share"] == "off"
     assert state["wanted"] is False
-    assert client.put("/api/admin/archive/share", headers=admin_headers, json={"enabled": "ja"}).status_code == 422
+    for bad in ("ja", "false", 0, None):
+        assert client.put("/api/admin/archive/share", headers=admin_headers, json={"enabled": bad}).status_code == 422
+    assert state["wanted"] is False
 
 
 def test_entries_list_and_filter(client, admin_headers, root, packed) -> None:

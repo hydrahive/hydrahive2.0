@@ -61,16 +61,21 @@ def test_restore_keeps_live_archive(ws, tmp_path) -> None:
 
 
 def test_restore_ignores_archive_from_old_backup(ws, tmp_path) -> None:
-    """Enthält ein altes Backup noch ein archive/, überschreibt es das Live-Archiv nicht."""
+    """Enthält ein altes Backup noch ein archive/, überschreibt es das Live-Archiv nicht und
+    mischt auch nichts hinein (alte Pakete kämen sonst ohne Wissen des Admins zurück)."""
     from hydrahive.backup import restore
     (ws / "archive" / "agents" / "paket.tar.gz").write_bytes(b"live")
     src = tmp_path / "extract" / "workspaces"
     (src / "archive" / "agents").mkdir(parents=True)
     (src / "archive" / "agents" / "paket.tar.gz").write_bytes(b"alt")
+    (src / "archive" / "agents" / "nur-im-backup.tar.gz").write_bytes(b"alt")
 
     restore._atomic_replace_dir(src, ws)
 
     assert (ws / "archive" / "agents" / "paket.tar.gz").read_bytes() == b"live"
+    assert not (ws / "archive" / "agents" / "nur-im-backup.tar.gz").exists()
+    assert sorted(p.name for p in (ws / "archive" / "agents").iterdir()) == ["paket.tar.gz"]
+    assert sorted(p.name for p in (ws / "archive").iterdir()) == ["agents"], "nichts aus dem Backup ins Archiv gemischt"
 
 
 def test_restore_of_other_dirs_unchanged(tmp_path) -> None:

@@ -123,13 +123,22 @@ def test_switch_off_removes_share_but_keeps_data(env) -> None:
     assert result["share"] == "off"
 
 
-def test_index_stays_group_writable_for_project_shares(env) -> None:
+@pytest.mark.parametrize("umask", [0o022, 0o002])
+def test_index_stays_group_writable_for_project_shares(env, umask) -> None:
     """Fund 13.10.: Der alte Installer-Weg hinterließ _index.conf als 0644 – danach konnte das
-    Backend keine Projekt-Freigabe mehr schalten. Die Einrichtung darf das nie verschlechtern."""
+    Backend keine Projekt-Freigabe mehr schalten. Die Einrichtung muss das auch bei strenger umask
+    und bei einer schon zu engen Datei wieder geradeziehen."""
     env["inc"].mkdir()
-    setup.ensure_archive()
-    mode = stat.S_IMODE((env["inc"] / "_index.conf").stat().st_mode)
-    assert mode & 0o060 == 0o060
+    (env["inc"] / "_index.conf").write_text("")
+    os.chmod(env["inc"] / "_index.conf", 0o644)
+    old = os.umask(umask)
+    try:
+        setup.ensure_archive()
+    finally:
+        os.umask(old)
+    for name in ("_index.conf", "_system-archiv.conf"):
+        mode = stat.S_IMODE((env["inc"] / name).stat().st_mode)
+        assert mode & 0o060 == 0o060, f"{name}: {oct(mode)}"
 
 
 def test_ensure_never_raises(env, monkeypatch) -> None:
