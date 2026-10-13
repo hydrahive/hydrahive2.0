@@ -113,66 +113,93 @@ löschen“ hängen nur an der Archiv-API, nicht am NAS.
 ## Entscheidung Till (13.10.): Löschen fragt immer nach
 
 > Löschen blockieren und nachfragen, ob der Agent unwiderruflich gelöscht
-> werden soll oder wohin er gespeichert werden soll. Vielleicht wäre ein
-> Download ganz gut, wenn kein Server verfügbar ist, denn sonst können User
-> ja keine Projekte löschen, wenn sie keinen extra Server haben.
+> werden soll oder wohin er gespeichert werden soll.
 
-Gilt für Agent, Projekt und Nutzer. Löschen geht nicht mehr mit einem Klick,
-sondern über einen Dialog mit drei Wegen:
+> Wir legen eine System-Samba-Freigabe lokal für die Backups an. Wenn kein
+> Server verfügbar ist, soll es lokal in dem Samba-Share hängen, der nicht an
+> ein Projekt gebunden ist — ein System-Share, kein Agenten-Share. Darin
+> werden die Backups gespeichert, damit ich sie per Samba herunterladen kann.
 
-| Weg | Wann wählbar | Was passiert |
-|---|---|---|
-| **Ins Archiv** | Archiv eingerichtet **und** erreichbar | Packen, ins Archiv schreiben, Prüfsumme vergleichen, erst dann löschen |
-| **Herunterladen, dann löschen** | immer (bis zur Größengrenze, s. u.) | Paket bauen, Browser lädt herunter, erst nach Bestätigung „Datei ist gespeichert“ löschen |
-| **Unwiderruflich löschen** | immer | wie heute, aber nur nach Eintippen des Namens |
+### Archiv-Speicher: zwei Stufen
 
-- Voreinstellung: „Ins Archiv“, wenn verfügbar, sonst „Herunterladen“.
-  „Unwiderruflich“ ist nie vorausgewählt.
-- Ist ein Archiv eingerichtet, aber gerade **nicht erreichbar**, sagt der
-  Dialog das ausdrücklich („NAS 192.168.178.3 nicht erreichbar“). Er bietet
-  dann nur Download oder unwiderruflich an. Ohne Wahl wird nichts gelöscht.
-- Der Dialog zeigt, was betroffen ist: Name, Größe, beim Projekt die Zahl
-  der mitgelöschten Agenten und Sessions.
-- Die API spiegelt das: `DELETE` ohne Angabe von `mode` ergibt `409
-  delete_mode_required` mit den möglichen Wegen und der Größe. Ein Löschen
-  „aus Versehen“ ohne Wahl, etwa über alte Oberflächen oder Skripte, ist
-  damit ausgeschlossen.
+1. **Externer Server** (NAS), falls in den Einstellungen eingetragen und
+   erreichbar. Damit ist das Archiv nicht auf derselben Maschine.
+2. **Lokales System-Archiv**, sonst. Immer vorhanden, ohne Einrichtung.
+   - Ort: einstellbar (`HH_ARCHIVE_LOCAL_DIR`), Standard `$HH_DATA_DIR/archive/`.
+     **Achtung Prod:** `$HH_DATA_DIR` liegt auf der kleinen Platte (`md127`,
+     469 GB, 412 GB frei). Nur `workspaces/` ist per Bind-Mount auf die große
+     Platte gelegt (`/var/lib/hydrahive2.hdd/workspaces` auf `sda2`, 14 TB
+     frei). Für Prod daher `HH_ARCHIVE_LOCAL_DIR=/var/lib/hydrahive2.hdd/archive`
+     setzen, sonst passen große Projekte nicht. Der Installer legt den Ordner
+     an. Den Eintrag in `/etc/hydrahive2/env` macht Till.
+   - **Samba-Freigabe `HydraHive_Archiv`**, systemweit und an kein Projekt
+     gebunden. **Nur lesbar** (`read only = yes`): Man lädt herunter, aber
+     über das Netz löscht niemand aus Versehen ein Archiv. Zugang mit dem
+     vorhandenen Samba-Nutzer `hh` (Passwort in `samba.password`), wie die
+     Projekt-Freigaben.
+   - Eigene Datei `/etc/samba/hh-projects.d/_system-archiv.conf`, die
+     `_index.conf` mit einbindet. Der Projekt-Code (`enable_share`,
+     `disable_share`) fasst sie nicht an.
+   - Angelegt bei Installation und Update (`47-samba.sh`), wenn Samba an ist.
+     Ohne Samba gibt es das Archiv trotzdem, nur eben ohne Netzfreigabe.
 
-### Download bei großen Daten
+**Gibt es dann noch ein „nicht erreichbar“?** Nur für den externen Server.
+Ist er eingetragen, aber weg, fragt der Dialog: „NAS nicht erreichbar: ins
+lokale Archiv oder abbrechen?“. Er schreibt nicht still lokal. Das lokale
+Archiv ist voll oder nicht beschreibbar → Löschen bricht ab.
 
-Befund Prod: Projekte bis **988 GB** („HDD Archive“ 988 GB, „hydrawow“ 126 GB,
-„Hydrahive DEV“ 29 GB). Ein Browser-Download ist dafür nicht geeignet.
-- Das Paket wird **gestreamt** (tar.gz direkt in die Antwort, keine Kopie auf
-  der Platte), damit kein zweiter Plattenplatz in Projektgröße nötig ist.
-- Eingehängte Laufwerke (z. B. `mounts/Hydrahive_backups`) werden nie mit
-  eingepackt, sonst wanderte das NAS ins Paket.
-- **Größengrenze** `HH_DELETE_DOWNLOAD_MAX_GB` (Einstellung, Standard 20 GB).
-  Darüber ist „Herunterladen“ ausgegraut, mit Hinweis: „Zu groß für den
-  Download, bitte Archiv einrichten oder Daten vorher selbst sichern.“
-- Gelöscht wird erst, wenn der Download vollständig ausgeliefert ist **und**
-  der Nutzer bestätigt. Bricht der Download ab, passiert nichts.
+### Lösch-Dialog (Agent, Projekt, Nutzer)
 
-### Agenten selbst
+| Weg | Was passiert |
+|---|---|
+| **Ins Archiv** (vorausgewählt) | Packen (tar.gz + `archiv.json`), ins Ziel schreiben, Prüfsumme vergleichen, erst dann löschen. Der Dialog nennt das Ziel („NAS“ bzw. „lokales Archiv, Samba-Freigabe HydraHive_Archiv“). |
+| **Unwiderruflich löschen** | wie heute, aber nur nach Eintippen des Namens |
 
-Heute gibt es kein Werkzeug, mit dem ein Agent Agenten oder Projekte löscht.
-Das bleibt so. Agent-Werkzeuge kommen erst in Etappe 5 und können nur
-**ablegen**, nicht löschen.
+- Der Dialog zeigt, was betroffen ist: Name, Größe, beim Projekt die Zahl der
+  mitgelöschten Agenten und Sessions, sowie den freien Platz am Ziel. Passt
+  es nicht, ist „Ins Archiv“ gesperrt und nennt den Grund.
+- Großes Projekt (Prod: „HDD Archive“ 988 GB): Das Packen läuft im
+  Hintergrund, mit Fortschritt im Dialog. Gelöscht wird erst nach
+  erfolgreichem Packen. Eingehängte Laufwerke (`mounts/…`) kommen nie ins Paket.
+- API: `DELETE` ohne `mode` ergibt `409 delete_mode_required` mit möglichen
+  Zielen, Größe und freiem Platz. Ein Löschen ohne Wahl ist ausgeschlossen.
+- Agenten haben heute kein Werkzeug zum Löschen von Agenten oder Projekten.
+  Das bleibt so.
+
+Ein Browser-Download ist damit nicht nötig. Die Archive liegen in der
+Freigabe und lassen sich per Samba holen.
+
+### Aufbau im Archiv
+
+```
+archive/
+  agents/    2026-10-13_101500_<name>_<id>.tar.gz   + .json
+  projects/  2026-10-13_101500_<name>_<id>.tar.gz   + .json
+  users/     …
+  backups/   (Etappe 4: System-Backups)
+```
+
+Neben jedem Paket liegt die `.json` mit Name, Art, Besitzer, Projekt,
+Zeitpunkt, Grund, Größe und Prüfsumme. So ist es auch im Windows-Explorer
+lesbar. Sie bildet zugleich den Katalog, aus dem die Archiv-Ansicht
+(Etappe 5) liest.
 
 ## Etappen (angepasst)
 
-1. **Speicher + Einstellungen:** wie oben, plus Verbindungstest.
-2. **Lösch-Dialog mit drei Wegen** für Agent, Projekt und Nutzer: Archiv,
-   gestreamter Download mit Größengrenze, unwiderruflich mit Namenseingabe.
-   API `mode` Pflicht. Skript für die vorhandenen Waisen.
-3. Projekt archivieren · 4. System-Backup ins Archiv · 5. Archiv-Ansicht +
-   Agent-Werkzeuge · 6. Archiv als Wissen (unverändert).
+1. **Archiv-Kern + lokales System-Archiv + Samba-Freigabe:** Paket bauen
+   (tar.gz, Prüfsumme, `.json`), ins lokale Archiv schreiben, Freigabe
+   `HydraHive_Archiv` (nur lesbar) bei Install und Update.
+2. **Lösch-Dialog** für Agent, Projekt und Nutzer: Archiv oder unwiderruflich,
+   API `mode` Pflicht, Packen im Hintergrund mit Fortschritt. Skript für die
+   vorhandenen Waisen (Prod 30, hydratest 343).
+3. **Externer Server** (NAS): Einstellungen, Zugangsdaten, Verbindungstest.
+   Wenn eingetragen, ist er Ziel Nr. 1.
+4. Projekt archivieren · 5. System-Backup ins Archiv · 6. Archiv-Ansicht +
+   Agent-Werkzeuge · 7. Archiv als Wissen.
 
-Etappe 2 lässt sich auch ohne NAS sofort nutzen, mit Download oder
-unwiderruflich. Damit endet das stille Löschen von Gedächtnis und
-Arbeitsordnern schon vor Etappe 1, wenn man die Reihenfolge tauscht.
+Nach 1 und 2 geht nichts mehr still verloren, auch ganz ohne NAS.
 
 ## Offene Frage (eine)
 
-Reihenfolge: **zuerst Etappe 2** (Lösch-Dialog mit Download, beendet sofort
-das stille Löschen, braucht kein NAS) **und dann Etappe 1** (Archiv-Speicher)?
-Oder wie geplant 1 vor 2?
+Die Freigabe `HydraHive_Archiv` **nur lesbar** (Empfehlung: herunterladen ja,
+über das Netz löschen oder ändern nein) oder auch beschreibbar?
