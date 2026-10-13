@@ -72,9 +72,10 @@ def test_move_starts_in_background_and_finishes(client, admin_headers, env) -> N
 
 
 def test_move_rejects_unknown_ids_and_paths(client, admin_headers, env) -> None:
-    for bad in ("../../etc", "/etc", "cccccccccccc", "", "DEFAULT"):
+    for bad, code in (("../../etc", 400), ("/etc", 400), ("cccccccccccc", 404), ("", 400), ("DEFAULT", 400),
+                      (str(env["platte"] / "hydrahive-archiv"), 400)):
         r = client.post("/api/admin/archive/move", headers=admin_headers, json={"location": bad})
-        assert r.status_code in (400, 404), bad
+        assert r.status_code == code, bad
     assert location.is_default()
 
 
@@ -94,8 +95,17 @@ def test_prepare_writes_fixed_runner_request(client, admin_headers, env) -> None
     assert again.status_code == 409
 
 
+def test_prepare_never_for_default(client, admin_headers, env) -> None:
+    """„default“ liegt bei den Projektdaten – dort hat der Dienst schon Rechte, kein Root-Runner nötig.
+    Doppelt gesichert: Route (kind == disk) und request_prepare_archive (nur 12 Hex-Zeichen) – Mutanten-Gegenprobe
+    am einen Riegel bleibt deshalb grün, das ist gewollt."""
+    r = client.post("/api/admin/archive/locations/default/prepare", headers=admin_headers)
+    assert r.status_code == 400
+    assert not env["trigger"].exists()
+
+
 def test_prepare_only_for_listed_disks(client, admin_headers, env) -> None:
-    for bad in ("default", "cccccccccccc", "..%2F..%2Fetc", "aaaaaaaaaaa"):
+    for bad in ("default", "cccccccccccc", "..%2F..%2Fetc", "aaaaaaaaaaa", "AAAAAAAAAAAA", "aaaaaaaaaaaa%0a"):
         r = client.post(f"/api/admin/archive/locations/{bad}/prepare", headers=admin_headers)
         assert r.status_code in (400, 404), bad
     assert not env["trigger"].exists()

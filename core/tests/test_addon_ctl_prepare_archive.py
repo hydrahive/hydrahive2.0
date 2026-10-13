@@ -137,3 +137,21 @@ def test_container_root_is_allowed(box) -> None:
     out = subprocess.run(["bash", "-c", f"source '{lib}'; hh_archive_disk_list"], capture_output=True, text=True,
                          env={"PATH": f"{box['bin']}:/usr/bin:/bin", "HH_DATA_DIR": str(box["data"])}, timeout=30)
     assert out.stdout.strip() == f"{_id('/')}\t/"
+
+
+def test_refuses_file_in_place_of_target(box) -> None:
+    (box["platte"] / "hydrahive-archiv").write_text("eine Datei")
+    r = _run(box, f"prepare-archive {_id(str(box['platte']))}\n")
+    assert r.returncode != 0
+    assert (box["platte"] / "hydrahive-archiv").read_text() == "eine Datei"
+
+
+@pytest.mark.parametrize("blocked", ["/home/x", "/etc/y", "/usr/z", "/var/tmp/v"])
+def test_runner_blocklist(box, blocked) -> None:
+    """Gesperrte Orte fallen auch im Runner aus der Liste – mit der echten Sperrliste."""
+    _exe(box["bin"] / "findmnt", f"#!/bin/sh\necho '{blocked} / ext4 rw,relatime 8:99'\necho '/ / ext4 rw 8:2'\n")
+    lib = INSTALLER / "lib" / "archive-disk.sh"
+    out = subprocess.run(["bash", "-c", f"source '{lib}'; hh_archive_disk_list"], capture_output=True, text=True,
+                         env={"PATH": f"{box['bin']}:/usr/bin:/bin", "HH_DATA_DIR": str(box["data"])}, timeout=30)
+    assert blocked not in out.stdout
+    assert f"{_id('/')}\t/" in out.stdout

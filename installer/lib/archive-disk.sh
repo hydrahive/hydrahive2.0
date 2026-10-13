@@ -59,14 +59,16 @@ hh_archive_disk_prepare() {
     return 1
   fi
   if [ "$mount" = "/" ]; then target="/srv/hydrahive-archiv"; else target="$mount/hydrahive-archiv"; fi
-  if [ -L "$target" ]; then
-    hh_archive_disk_say "FEHLER: $target ist ein Symlink – wird nicht angefasst."
+  hh_archive_disk_say "Richte $target für $owner ein"
+  # mkdir ohne -p für das Ziel selbst: legt nichts über einen Symlink hinweg an. Danach nur weiter, wenn es ein
+  # echtes Verzeichnis ist (kein Symlink) – chown/chmod wirken dann garantiert auf genau diesen Ordner.
+  [ "$mount" = "/" ] && { mkdir -p -- /srv || return 1; }
+  [ -e "$target" ] || [ -L "$target" ] || mkdir -- "$target" || return 1
+  if [ -L "$target" ] || [ ! -d "$target" ]; then
+    hh_archive_disk_say "FEHLER: $target ist ein Symlink oder kein Ordner – wird nicht angefasst."
     return 1
   fi
-  hh_archive_disk_say "Richte $target für $owner ein"
-  mkdir -p -- "$target" || return 1
-  [ -L "$target" ] && { hh_archive_disk_say "FEHLER: $target ist ein Symlink – wird nicht angefasst."; return 1; }
-  chown -- "$owner:$owner" "$target" || return 1
+  chown -h -- "$owner:$owner" "$target" || return 1
   chmod 2775 -- "$target" || return 1
   return 0
 }

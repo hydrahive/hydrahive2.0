@@ -113,3 +113,26 @@ def test_same_device_counted_by_major_minor(mi) -> None:
         "3 1 8:3 / /mnt/anders rw - ext4 /dev/sda2 rw\n"
     )
     assert [d["mount"] for d in disks.list_disks()] == ["/", "/mnt/anders"]
+
+
+@pytest.mark.parametrize("mount", ["/etc/x", "/usr/local/daten", "/run/media/stick", "/home/till/platte", "/boot"])
+def test_blocked_places_never_offered(mi, mount) -> None:
+    mi.write_text(f"1 0 8:2 / / rw - ext4 /dev/sda2 rw\n2 1 8:77 / {mount} rw - ext4 /dev/sdz1 rw\n")
+    assert [d["mount"] for d in disks.list_disks()] == ["/"]
+
+
+def test_workspaces_and_project_mounts_never_offered(mi, monkeypatch) -> None:
+    from hydrahive.settings import settings
+    ws = Path("/srv/hh-test/workspaces")       # nur ein Name in mountinfo – nicht unter /tmp (das wäre schon gesperrt)
+    monkeypatch.setattr(settings, "workspaces_dir", ws, raising=False)
+    mi.write_text(f"1 0 8:2 / / rw - ext4 /dev/sda2 rw\n2 1 8:77 / {ws} rw - ext4 /dev/sdz1 rw\n"
+                  f"3 1 8:78 / {ws}/projects/p/mounts/usb rw - ext4 /dev/sdy1 rw\n")
+    assert [d["mount"] for d in disks.list_disks()] == ["/"]
+
+
+def test_real_root_wins_over_bind_mount_of_same_disk(mi) -> None:
+    """Gleiche Platte zweimal eingehängt, einmal echt, einmal als Bind-Mount mit kürzerem Pfad: der echte gewinnt."""
+    mi.write_text("1 0 8:2 / / rw - ext4 /dev/sda2 rw\n"
+                  "2 1 8:77 /unter/ordner /a rw - ext4 /dev/sdz1 rw\n"
+                  "3 1 8:77 / /mnt/echt rw - ext4 /dev/sdz1 rw\n")
+    assert [d["mount"] for d in disks.list_disks()] == ["/", "/mnt/echt"]

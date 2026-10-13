@@ -100,6 +100,48 @@ def test_checksum_mismatch_rolls_back(env, monkeypatch) -> None:
     assert not env["new"].exists() or _files(env["new"]) == {}
 
 
+def test_same_size_but_different_content_is_caught(env, monkeypatch) -> None:
+    """Gleich groß, anderer Inhalt: nur die Prüfsumme aus der .json merkt das."""
+    real = move._copy_file
+
+    def flip(src: Path, dst: Path) -> None:
+        real(src, dst)
+        if dst.name.endswith(".tar.gz"):
+            data = bytearray(dst.read_bytes())
+            data[len(data) // 2] ^= 0xFF
+            dst.write_bytes(bytes(data))
+    monkeypatch.setattr(move, "_copy_file", flip)
+    result = move.run_move(env["new"])
+    assert result["state"] == "failed" and result["error"] == "verify_failed"
+    assert location.archive_root() == env["old"]
+
+
+def test_truncated_file_without_checksum_is_caught(env, monkeypatch) -> None:
+    """Handablagen haben keine .json – dort zählt die Größe."""
+    real = move._copy_file
+
+    def cut(src: Path, dst: Path) -> None:
+        real(src, dst)
+        if dst.name == "hand.zip":
+            dst.write_bytes(b"von")
+    monkeypatch.setattr(move, "_copy_file", cut)
+    result = move.run_move(env["new"])
+    assert result["state"] == "failed" and result["error"] == "verify_failed"
+
+
+def test_share_paused_during_move(env, monkeypatch) -> None:
+    seen = []
+    real = move._copy_file
+
+    def spy(src: Path, dst: Path) -> None:
+        seen.append(location.share_wanted())
+        real(src, dst)
+    monkeypatch.setattr(move, "_copy_file", spy)
+    move.run_move(env["new"])
+    assert seen and not any(seen), "während des Kopierens ist die Freigabe aus"
+    assert location.share_wanted() is True, "danach wieder an"
+
+
 def test_copy_error_rolls_back(env, monkeypatch) -> None:
     def boom(src, dst):
         raise OSError(28, "No space left on device")
