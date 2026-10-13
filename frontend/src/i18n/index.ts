@@ -38,6 +38,7 @@ import deWorkspace from "./locales/de/workspace.json"
 import deZahnfee from "./locales/de/zahnfee.json"
 import deTeamchat from "./locales/de/teamchat.json"
 import deModules from "./locales/de/modules.json"
+import deArchive from "./locales/de/archive.json"
 
 import enCommon from "./locales/en/common.json"
 import enAuth from "./locales/en/auth.json"
@@ -74,6 +75,7 @@ import enWorkspace from "./locales/en/workspace.json"
 import enZahnfee from "./locales/en/zahnfee.json"
 import enTeamchat from "./locales/en/teamchat.json"
 import enModules from "./locales/en/modules.json"
+import enArchive from "./locales/en/archive.json"
 import deVault from "./locales/de/vault.json"
 import enVault from "./locales/en/vault.json"
 
@@ -89,7 +91,7 @@ const baseResources = {
     federation: deFederation,
     streaming: deStreaming, vms: deVms, nodes: deNodes, jobs: deJobs, workspace: deWorkspace, zahnfee: deZahnfee,
     teamchat: deTeamchat,
-    modules: deModules, vault: deVault,
+    modules: deModules, vault: deVault, archive: deArchive,
   },
   en: {
     common: enCommon, auth: enAuth, nav: enNav, chat: enChat,
@@ -102,7 +104,7 @@ const baseResources = {
     federation: enFederation,
     streaming: enStreaming, vms: enVms, nodes: enNodes, jobs: enJobs, workspace: enWorkspace, zahnfee: enZahnfee,
     teamchat: enTeamchat,
-    modules: enModules, vault: enVault,
+    modules: enModules, vault: enVault, archive: enArchive,
   },
 }
 
@@ -132,7 +134,7 @@ i18n
     resources: mergedResources,
     fallbackLng: "de",
     supportedLngs: SUPPORTED_LANGUAGES.map((l) => l.code),
-    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules", "vault"],
+    ns: ["common", "auth", "nav", "chat", "agents", "projects", "llm", "mcp", "system", "dashboard", "help", "users", "profile", "errors", "plugins", "communication", "butler", "skills", "credentials", "buddy", "datamining", "memory", "analytics", "containers", "extensions", "federation", "streaming", "vms", "workspace", "zahnfee", "teamchat", "modules", "vault", "archive"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {

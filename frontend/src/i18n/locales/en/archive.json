@@ -1,0 +1,80 @@
+{
+  "title": "Archive & Backup",
+  "subtitle": "Deleted agents, projects and users end up here instead of disappearing. The archive is also reachable as a network share.",
+  "reload": "Reload",
+  "load_failed": "Could not load the archive.",
+  "storage": {
+    "title": "Storage",
+    "subtitle": "Where archives go and how much space they use.",
+    "ok": "Ready",
+    "readonly": "Not writable",
+    "missing": "Missing",
+    "setup_failed": "HydraHive could not set up the archive:",
+    "target": "Target",
+    "target_local": "Local system archive",
+    "path": "Folder",
+    "disk": "Disk",
+    "free": "Free on disk",
+    "count": "Contents",
+    "count_value": "{{count}} packages, plus {{manual}} placed manually",
+    "used": "Used",
+    "trash": "Recycle bin",
+    "empty_trash": "Empty",
+    "default_hint": "Default: next to the project data, on the same disk. HydraHive sets up the folder and the share itself."
+  },
+  "share": {
+    "title": "Network share",
+    "subtitle": "Open the archive in Windows Explorer or Finder – read and write.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "address": "Address",
+    "login": "User",
+    "password": "Password",
+    "copy_address": "Copy address",
+    "copy_password": "Copy password",
+    "copied": "Copied",
+    "no_samba": "Samba is not installed. Without Samba there is no network share – the archive itself still works.",
+    "setup_samba": "Set up Samba",
+    "setup_failed": "Could not start the Samba setup.",
+    "not_enabled": "The share could not be created. The “Storage” section shows why.",
+    "hint": "Files deleted through the share go to the recycle bin (.papierkorb) and stay there until it is emptied here.",
+    "switch": "Offer network share",
+    "switched_off": "The share is switched off. The archive still works, just not over the network.",
+    "switch_failed": "Could not switch the share."
+  },
+  "entries": {
+    "title": "Archived items",
+    "subtitle": "Everything in the archive. Restoring will come in a later stage.",
+    "filter": "Filter by type",
+    "all": "All types",
+    "empty": "The archive is empty.",
+    "manual": "Placed manually",
+    "col_name": "Name",
+    "col_kind": "Type",
+    "col_owner": "Owner",
+    "col_reason": "Reason",
+    "col_date": "Date",
+    "col_size": "Size"
+  },
+  "kind": {
+    "agents": "Agent",
+    "projects": "Project",
+    "users": "User",
+    "backups": "System backup",
+    "uploads": "Upload"
+  },
+  "reason": {
+    "agent_deleted": "Agent deleted",
+    "project_deleted": "Project deleted",
+    "user_deleted": "User deleted",
+    "backup": "System backup"
+  },
+  "trash": {
+    "title": "Empty recycle bin permanently",
+    "text": "The recycle bin holds {{size}}. These files will be deleted permanently.",
+    "type_word": "Type “{{word}}” to confirm",
+    "confirm": "Empty permanently",
+    "cancel": "Cancel",
+    "failed": "Could not empty the recycle bin."
+  }
+}

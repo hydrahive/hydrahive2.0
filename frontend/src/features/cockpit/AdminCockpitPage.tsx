@@ -1,31 +1,16 @@
-import { Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, ListChecks, MonitorCog, Network, PlugZap, RefreshCw, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
+import { Archive, Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, KeyRound, ListChecks, MonitorCog, Network, PlugZap, RefreshCw, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
 import { CockpitTopbar } from "./CockpitTopbar"
 import { adminOfflineActions, explicitAiActions, openLocalPath } from "./actionRegistry"
-import { UsersOverlay } from "./admin/UsersOverlay"
-import { ModulesOverlay } from "./admin/ModulesOverlay"
-import { PluginsOverlay } from "./admin/PluginsOverlay"
-import { CredentialsOverlay } from "./admin/CredentialsOverlay"
-import { ThemesOverlay } from "./admin/ThemesOverlay"
-import { McpOverlay } from "./admin/McpOverlay"
-import { LlmOverlay } from "./admin/LlmOverlay"
-import { ExtensionsOverlay } from "./admin/ExtensionsOverlay"
-import { SystemOverlay } from "./admin/SystemOverlay"
-import { SystemSettingsOverlay } from "./admin/SystemSettingsOverlay"
-import { ContainersOverlay } from "./admin/ContainersOverlay"
-import { VMsOverlay } from "./admin/VMsOverlay"
-import { NodesOverlay } from "./admin/NodesOverlay"
-import { JobsOverlay } from "./admin/JobsOverlay"
-import { ScheduledTasksOverlay } from "./admin/ScheduledTasksOverlay"
-import { GrantsOverlay } from "@/features/access/GrantsOverlay"
 import { AccessNotice } from "@/features/access/AccessNotice"
 import { AdminInfoCard } from "./admin/AdminInfoCard"
+import { AdminOverlays } from "./admin/AdminOverlays"
 import { OVERLAY_BY_ACTION, OVERLAY_BY_PATH } from "./admin/adminOverlayRegistry"
 import { useAdminOverlayNavigation } from "./admin/useAdminOverlayNavigation"
 
-const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound]
+const adminIcons = [Server, Users, Boxes, PlugZap, CircuitBoard, KeyRound, Archive]
 const adminLinks = adminOfflineActions.map((action, index) => ({ id: action.id, title: action.label, path: action.path ?? "/admin", icon: adminIcons[index] ?? Server, desc: action.description ?? "Lokale Admin-Seite öffnen." }))
 
 const opsLinks = [
@@ -155,6 +140,7 @@ export function AdminCockpitPage() {
             <div className="grid gap-2 md:grid-cols-2">
               <AdminInfoCard title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
               <AdminInfoCard title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
+              <AdminInfoCard title="Archiv & Sicherung" icon={Archive} text="Gelöschte Agenten, Projekte und Nutzer, Netzwerk-Freigabe und Papierkorb." onOpen={() => openPath("/archive")} />
               <AdminInfoCard title="Freigaben" icon={ShieldAlert} text="Wer darf welche Funktion nutzen? Nutzer und Gruppen freigeben." onOpen={() => openPath("/access")} />
             </div>
           </CockpitPanel>
@@ -184,28 +170,12 @@ export function AdminCockpitPage() {
         </aside>
       </div>
 
-      {overlay === "users" && <UsersOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "modules" && <ModulesOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "plugins" && <PluginsOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "credentials" && <CredentialsOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "themes" && <ThemesOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "mcp" && <McpOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "llm" && <LlmOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "extensions" && <ExtensionsOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "system" && <SystemOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "system-settings" && <SystemSettingsOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "containers" && (
-        <ContainersOverlay
-          onClose={() => setOverlay(null)}
-          selectedContainerId={selectedContainerId}
-          onSelectContainer={setContainerDetail}
-        />
-      )}
-      {overlay === "vms" && <VMsOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "nodes" && <NodesOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "jobs" && <JobsOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "scheduled-tasks" && <ScheduledTasksOverlay onClose={() => setOverlay(null)} />}
-      {overlay === "access" && <GrantsOverlay onClose={() => setOverlay(null)} />}
+      <AdminOverlays
+        overlay={overlay}
+        selectedContainerId={selectedContainerId}
+        onClose={() => setOverlay(null)}
+        onSelectContainer={setContainerDetail}
+      />
     </CockpitShell>
   )
 }

@@ -143,6 +143,9 @@ async def lifespan(app: FastAPI):
     # Fileserver den Start nicht blockiert.
     from hydrahive.smbmounts.reconcile import reconcile_mounts_on_start
     asyncio.create_task(asyncio.to_thread(reconcile_mounts_on_start))
+    # System-Archiv + Samba-Freigabe einrichten – ohne Installer, auf jedem Server (archiv-system.md).
+    from hydrahive.archive.setup import ensure_archive
+    asyncio.create_task(asyncio.to_thread(ensure_archive))
     if settings.pg_mirror_dsn:
         await pg_mirror.init()
     from hydrahive.skills.loader import install_system_defaults

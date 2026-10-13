@@ -1,0 +1,80 @@
+{
+  "title": "Archiv & Sicherung",
+  "subtitle": "Gelöschte Agenten, Projekte und Nutzer landen hier statt im Nichts. Das Archiv ist zusätzlich als Netzwerk-Freigabe erreichbar.",
+  "reload": "Neu laden",
+  "load_failed": "Archiv konnte nicht geladen werden.",
+  "storage": {
+    "title": "Speicherort",
+    "subtitle": "Wohin archiviert wird und wie viel Platz belegt ist.",
+    "ok": "Bereit",
+    "readonly": "Nicht beschreibbar",
+    "missing": "Fehlt",
+    "setup_failed": "HydraHive konnte das Archiv nicht einrichten:",
+    "target": "Ziel",
+    "target_local": "Lokales System-Archiv",
+    "path": "Ordner",
+    "disk": "Platte",
+    "free": "Frei auf der Platte",
+    "count": "Inhalt",
+    "count_value": "{{count}} Pakete, dazu {{manual}} von Hand abgelegt",
+    "used": "Belegt",
+    "trash": "Papierkorb",
+    "empty_trash": "Leeren",
+    "default_hint": "Standard: liegt bei den Projektdaten, auf derselben Platte. HydraHive richtet den Ordner und die Freigabe selbst ein."
+  },
+  "share": {
+    "title": "Netzwerk-Freigabe",
+    "subtitle": "Das Archiv im Windows-Explorer oder Finder öffnen – lesen und schreiben.",
+    "active": "Aktiv",
+    "inactive": "Nicht aktiv",
+    "address": "Adresse",
+    "login": "Benutzer",
+    "password": "Passwort",
+    "copy_address": "Adresse kopieren",
+    "copy_password": "Passwort kopieren",
+    "copied": "Kopiert",
+    "no_samba": "Samba ist nicht installiert. Ohne Samba gibt es keine Netzwerk-Freigabe – das Archiv selbst funktioniert trotzdem.",
+    "setup_samba": "Samba einrichten",
+    "setup_failed": "Samba-Einrichtung konnte nicht gestartet werden.",
+    "not_enabled": "Die Freigabe konnte nicht angelegt werden. Den Grund zeigt der Bereich „Speicherort“.",
+    "hint": "Über die Freigabe gelöschte Dateien landen im Papierkorb (.papierkorb) und bleiben dort, bis er hier geleert wird.",
+    "switch": "Netzwerk-Freigabe anbieten",
+    "switched_off": "Die Freigabe ist ausgeschaltet. Das Archiv funktioniert trotzdem, nur nicht übers Netz.",
+    "switch_failed": "Freigabe konnte nicht umgeschaltet werden."
+  },
+  "entries": {
+    "title": "Archivierte Elemente",
+    "subtitle": "Alles, was im Archiv liegt. Wiederherstellen kommt in einer späteren Ausbaustufe.",
+    "filter": "Nach Art filtern",
+    "all": "Alle Arten",
+    "empty": "Das Archiv ist leer.",
+    "manual": "Von Hand abgelegt",
+    "col_name": "Name",
+    "col_kind": "Art",
+    "col_owner": "Besitzer",
+    "col_reason": "Grund",
+    "col_date": "Datum",
+    "col_size": "Größe"
+  },
+  "kind": {
+    "agents": "Agent",
+    "projects": "Projekt",
+    "users": "Nutzer",
+    "backups": "System-Backup",
+    "uploads": "Ablage"
+  },
+  "reason": {
+    "agent_deleted": "Agent gelöscht",
+    "project_deleted": "Projekt gelöscht",
+    "user_deleted": "Nutzer gelöscht",
+    "backup": "System-Backup"
+  },
+  "trash": {
+    "title": "Papierkorb endgültig leeren",
+    "text": "Im Papierkorb liegen {{size}}. Diese Dateien werden unwiderruflich gelöscht.",
+    "type_word": "Zum Bestätigen „{{word}}“ eintippen",
+    "confirm": "Endgültig leeren",
+    "cancel": "Abbrechen",
+    "failed": "Papierkorb konnte nicht geleert werden."
+  }
+}

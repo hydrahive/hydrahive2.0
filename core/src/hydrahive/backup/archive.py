@@ -17,6 +17,7 @@ from hydrahive.backup._paths import (
     data_subdirs,
     db_arcname,
     is_excluded,
+    system_archive_root,
 )
 from hydrahive.settings import settings
 
@@ -58,8 +59,9 @@ def _add_dir(
         logger.warning("rglob fehlgeschlagen für %s: %s", source, e)
         skipped.append(str(source))
         return
+    archive_root = system_archive_root()
     for item in items:
-        if is_excluded(item):
+        if is_excluded(item, archive_root):
             continue
         rel = item.relative_to(source)
         try:

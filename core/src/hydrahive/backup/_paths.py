@@ -66,8 +66,26 @@ EXCLUDE_DIRS: tuple[str, ...] = (
 )
 
 
-def is_excluded(path: Path) -> bool:
+def system_archive_root() -> Path:
+    """Ordner des System-Archivs (docs/specs/archiv-system.md). Nie im Backup: sonst stünde das ganze Archiv in
+    jedem Backup, und ein Restore ersetzte es durch einen alten Stand. Einmal pro Lauf holen, nicht pro Datei."""
+    from hydrahive.archive.location import archive_root
+    return archive_root()
+
+
+def system_archive_names(dst: Path) -> frozenset[str]:
+    """Name des System-Archivs, falls es direkt in ``dst`` liegt (Restore lässt es dann stehen)."""
+    root = system_archive_root()
+    return frozenset({root.name}) if root.parent == Path(dst) and root.is_dir() else frozenset()
+
+
+def is_excluded(path: Path, archive_root: Path | None = None) -> bool:
+    """``archive_root``: genau dieser Ordner fällt raus (nicht jeder Ordner namens „archive“).
+    Ohne Angabe wird er geholt – Aufrufer mit vielen Dateien geben ihn einmal mit."""
+    root = (system_archive_root() if archive_root is None else archive_root).parts
     parts = path.parts
+    if parts[:len(root)] == root:
+        return True
     # Pattern-Match auf JEDEM Path-Teil — fängt sowohl die Top-Level-Datei
     # ".update_request" als auch eine Datei UNTER ".plugin-cache/" ab.
     for part in parts:
