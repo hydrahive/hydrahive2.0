@@ -586,22 +586,16 @@ Dialog sagt in jedem Fall, wo sie noch liegen.
    Backend und Oberfläche zusammen, weil die Routen danach `mode` verlangen.
 2. **2b**: Waisen.
 
-### Offene Fragen an Till
+### Entschieden (Till, 13.10.)
 
-1. **Chats nach dem Löschen.** Heute bleiben sie in `sessions.db` (Prod: 113
-   Chats von gelöschten Agenten). Vorschlag: Bei beiden Wegen nach dem Löschen
-   aus `sessions.db` entfernen, bei „Ins Archiv“ erst nach der Prüfung (dann
-   liegen sie im Paket). Das Datamining behält seine Kopie (Wissen, Etappe 7),
-   und der Dialog sagt das. Die Alternative ist, sie wie heute zu lassen.
-2. **Geheimnisse im Paket.** Projekt-Konfigs enthalten `webhook_secret` und
-   Git-Tokens im Klartext. Das Archiv ist per Samba lesbar. Vorschlag: im Paket
-   durch `***` ersetzen. Beim späteren Wiederherstellen (Etappe 6) muss man die
-   Tokens dann neu eintragen. Die Zugangsdaten des Nutzers bleiben
-   verschlüsselt, wie sie sind. Die Alternative ist, sie unverändert
-   mitzunehmen.
-3. **Was beim Nutzer bestehen bleibt.** VMs, Container, SMB-Verbindungen und
-   Modul-Daten (rund 30 Tabellen). Vorschlag für Etappe 2: Sie bleiben, und der
-   Dialog zeigt sie mit Anzahl. Für die Module gibt es einen eigenen Task
-   (Schnittstelle „Nutzer gelöscht“ im Modul-Manifest).
+1. **Chats verschwinden.** Bei beiden Wegen werden die Chats des Gelöschten
+   aus `sessions.db` entfernt, bei „Ins Archiv“ erst nach der Prüfung des
+   Pakets. Das Datamining behält seine Kopie. Der Dialog sagt das.
+2. **Geheimnisse ersetzen.** `webhook_secret` und `git_token` in Projekt-
+   Konfigs stehen im Paket als `***`. Die Zugangsdaten des Nutzers bleiben
+   verschlüsselt, wie sie sind.
+3. **Vorerst bleiben** VMs, Container, SMB-Verbindungen und Modul-Daten
+   eines gelöschten Nutzers bestehen. Der Dialog zeigt sie mit Anzahl. Eigener
+   Task: Schnittstelle „Nutzer gelöscht“ für Module.
 
-**Status: Bauplan Etappe 2, wartet auf Freigabe.**
+**Status: Etappe 2 freigegeben (Till, 13.10.).**
