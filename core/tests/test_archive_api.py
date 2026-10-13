@@ -75,6 +75,18 @@ def test_status_without_samba(client, admin_headers, root, monkeypatch) -> None:
     assert share["password"] == ""
 
 
+def test_share_enabled_reads_installer_file(tmp_path, monkeypatch) -> None:
+    """Der Dateiname muss zu installer/lib/archive-share.sh passen."""
+    from hydrahive.archive import share
+    monkeypatch.setattr(settings, "samba_includes_dir", tmp_path, raising=False)
+
+    assert share.archive_share_enabled() is False
+    (tmp_path / "_system-archiv.conf").write_text("[HydraHive_Archiv]\n")
+    assert share.archive_share_enabled() is True
+    installer = Path(__file__).resolve().parents[2] / "installer" / "lib" / "archive-share.sh"
+    assert share.SHARE_CONF_NAME in installer.read_text()
+
+
 def test_entries_list_and_filter(client, admin_headers, root, packed) -> None:
     (root / "uploads").mkdir()
     (root / "uploads" / "hand.zip").write_bytes(b"h")

@@ -77,6 +77,7 @@ from hydrahive.api.routes.system_bridge import router as system_bridge_router
 from hydrahive.api.routes.system_local_media import router as system_local_media_router
 from hydrahive.api.routes.system_addons import router as system_addons_router
 from hydrahive.api.routes.system_samba import router as system_samba_router
+from hydrahive.api.routes.archive import router as archive_router
 from hydrahive.api.routes.system_settings import router as system_settings_router
 from hydrahive.api.routes.tailscale import router as tailscale_router
 from hydrahive.api.routes.tts import router as tts_router
@@ -136,6 +137,7 @@ app.include_router(agentlink_router)
 app.include_router(agentlink_dashboard_router)
 app.include_router(auth_router)
 app.include_router(backup_router)
+app.include_router(archive_router)
 app.include_router(migration_router)
 app.include_router(users_router)
 app.include_router(access_groups_router)
