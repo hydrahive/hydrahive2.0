@@ -498,8 +498,8 @@ großes Projekt zu löschen dauert sonst länger als eine HTTP-Anfrage.
 
 Geheimnisse im Paket: siehe Frage 2.
 
-Chats bleiben in beiden Wegen zusätzlich in `sessions.db` (wie heute, siehe
-Frage 1). Der Dialog sagt das.
+Ob die Chats danach aus `sessions.db` entfernt werden, klärt Frage 1. Der
+Dialog sagt in jedem Fall, wo sie noch liegen.
 
 ### Nutzer löschen: zusätzlich (Fehler 2 + 3)
 
@@ -585,5 +585,23 @@ Frage 1). Der Dialog sagt das.
 1. **2a**: Lösch-Wege + Auftrag + Dialog + „Laufende Vorgänge“ + Fehler 1–3.
    Backend und Oberfläche zusammen, weil die Routen danach `mode` verlangen.
 2. **2b**: Waisen.
+
+### Offene Fragen an Till
+
+1. **Chats nach dem Löschen.** Heute bleiben sie in `sessions.db` (Prod: 113
+   Chats von gelöschten Agenten). Vorschlag: Bei beiden Wegen nach dem Löschen
+   aus `sessions.db` entfernen, bei „Ins Archiv“ erst nach der Prüfung (dann
+   liegen sie im Paket). Das Datamining behält seine Kopie (Wissen, Etappe 7),
+   und der Dialog sagt das. Die Alternative ist, sie wie heute zu lassen.
+2. **Geheimnisse im Paket.** Projekt-Konfigs enthalten `webhook_secret` und
+   Git-Tokens im Klartext. Das Archiv ist per Samba lesbar. Vorschlag: im Paket
+   durch `***` ersetzen. Beim späteren Wiederherstellen (Etappe 6) muss man die
+   Tokens dann neu eintragen. Die Zugangsdaten des Nutzers bleiben
+   verschlüsselt, wie sie sind. Die Alternative ist, sie unverändert
+   mitzunehmen.
+3. **Was beim Nutzer bestehen bleibt.** VMs, Container, SMB-Verbindungen und
+   Modul-Daten (rund 30 Tabellen). Vorschlag für Etappe 2: Sie bleiben, und der
+   Dialog zeigt sie mit Anzahl. Für die Module gibt es einen eigenen Task
+   (Schnittstelle „Nutzer gelöscht“ im Modul-Manifest).
 
 **Status: Bauplan Etappe 2, wartet auf Freigabe.**
