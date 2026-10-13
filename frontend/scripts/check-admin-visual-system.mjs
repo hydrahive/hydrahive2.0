@@ -26,7 +26,6 @@ const migratedFiles = [
   "src/features/system/HealthBar.tsx",
   "src/features/system/_systemHelpers.tsx",
   "src/features/system/systemFormat.ts",
-  "src/features/system/VoiceInstallModal.tsx",
   "src/features/system/AgentLinkCard.tsx",
   "src/features/system/_AgentLinkKnownAgents.tsx",
   "src/features/system/TailscaleCard.tsx",
