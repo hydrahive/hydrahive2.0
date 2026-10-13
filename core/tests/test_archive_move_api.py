@@ -23,6 +23,7 @@ def env(tmp_path, monkeypatch) -> dict:
     platte.mkdir()
     gesperrt = tmp_path / "gesperrt"
     gesperrt.mkdir()
+    gesperrt.chmod(0o555)            # wie eine frisch eingehängte Platte, die root gehört
     fake = [
         {"id": "aaaaaaaaaaaa", "mount": str(platte), "path": str(platte / "hydrahive-archiv"), "device": "/dev/sdb1",
          "fstype": "ext4", "size_bytes": 10**12, "free_bytes": 10**11, "writable": True},
@@ -33,7 +34,8 @@ def env(tmp_path, monkeypatch) -> dict:
     trigger = tmp_path / "data" / ".addon_request"
     from hydrahive.api.routes import _addon_request
     monkeypatch.setattr(_addon_request, "trigger_path", lambda: trigger)
-    return {"platte": platte, "trigger": trigger, "cfg": cfg}
+    yield {"platte": platte, "trigger": trigger, "cfg": cfg}
+    gesperrt.chmod(0o755)
 
 
 @pytest.mark.parametrize("method,url", [
@@ -60,8 +62,8 @@ def test_move_starts_in_background_and_finishes(client, admin_headers, env) -> N
     (location.archive_root() / "uploads" / "x.txt").write_text("x")
     r = client.post("/api/admin/archive/move", headers=admin_headers, json={"location": "aaaaaaaaaaaa"})
     assert r.status_code == 202
-    from hydrahive.archive import move
-    move.wait_for_background(timeout=10)
+    from hydrahive.archive import move_job
+    move_job.wait(timeout=10)
     status = client.get("/api/admin/archive/status", headers=admin_headers).json()
     assert status["move"]["running"] is None
     assert status["move"]["last"]["state"] == "done"
@@ -79,9 +81,9 @@ def test_move_rejects_unknown_ids_and_paths(client, admin_headers, env) -> None:
 def test_move_conflict_lists_problems(client, admin_headers, env) -> None:
     r = client.post("/api/admin/archive/move", headers=admin_headers, json={"location": "bbbbbbbbbbbb"})
     assert r.status_code == 409
-    assert "target_not_writable" in r.json()["detail"]["problems"]
+    assert "target_not_writable" in r.json()["detail"]["params"]["problems"]
     r = client.post("/api/admin/archive/move", headers=admin_headers, json={"location": "default"})
-    assert r.status_code == 409 and "same_location" in r.json()["detail"]["problems"]
+    assert r.status_code == 409 and "same_location" in r.json()["detail"]["params"]["problems"]
 
 
 def test_prepare_writes_fixed_runner_request(client, admin_headers, env) -> None:

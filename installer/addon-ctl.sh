@@ -42,6 +42,19 @@ source "$HH_REPO_DIR/installer/lib/install-choices.sh"
 
 say "===== $(date '+%F %T') Anfrage: $(printf '%s' "$request" | tr -c '[:alnum:] _-' '?') ====="
 
+# Feste Zusatz-Aktion (Archiv Etappe 1b): Platte für das System-Archiv einrichten. Nur eine 12-stellige ID; die
+# Platten-Liste baut lib/archive-disk.sh selbst – kein Pfad aus der Oberfläche erreicht die Shell.
+if [[ "$request" =~ ^prepare-archive\ ([0-9a-f]{12})[[:space:]]*$ ]]; then
+  # shellcheck source=lib/archive-disk.sh
+  source "$HH_REPO_DIR/installer/lib/archive-disk.sh"
+  if hh_archive_disk_prepare "${BASH_REMATCH[1]}"; then
+    say "FERTIG: prepare-archive ok"
+    exit 0
+  fi
+  say "FEHLER: prepare-archive fehlgeschlagen — siehe oben."
+  exit 1
+fi
+
 # Genau „install <name>“ – eine Zeile, ein Wort, nur aus der Liste.
 addon=""
 if [[ "$request" =~ ^install\ ([a-z]+)[[:space:]]*$ ]] && addon_script "${BASH_REMATCH[1]}" >/dev/null; then

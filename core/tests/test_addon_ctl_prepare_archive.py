@@ -64,7 +64,9 @@ def _run(box: dict, request: str) -> subprocess.CompletedProcess[str]:
     box["trigger"].write_text(request)
     me = pwd.getpwuid(os.getuid()).pw_name
     env = {"PATH": f"{box['bin']}:/usr/bin:/bin", "HH_REPO_DIR": str(box["repo"]), "HH_DATA_DIR": str(box["data"]),
-           "HH_CONFIG_DIR": str(box["conf"]), "HH_USER": me}
+           "HH_CONFIG_DIR": str(box["conf"]), "HH_USER": me,
+           # Test-„Platten“ liegen unter /tmp (pytest) – Sperrliste ohne /tmp, sonst die echte.
+           "HH_ARCHIVE_DISK_BLOCKED": "/boot /home /root /var/tmp /proc /sys /dev /run /etc /usr"}
     shutil.copy(CTL, box["repo"] / "installer" / "addon-ctl.sh")
     return subprocess.run(["bash", str(box["repo"] / "installer" / "addon-ctl.sh")], env=env,
                           capture_output=True, text=True, timeout=30)
@@ -117,3 +119,11 @@ def test_same_id_as_python(box, monkeypatch) -> None:
     """Python (archive/disks.py) und Runner rechnen dieselbe ID."""
     from hydrahive.archive import disks
     assert disks.disk_id(str(box["platte"])) == _id(str(box["platte"]))
+
+
+def test_blocklist_same_as_python() -> None:
+    """Die Sperrliste im Runner muss zu archive/disks.py passen."""
+    from hydrahive.archive import disks
+    text = (INSTALLER / "lib" / "archive-disk.sh").read_text()
+    line = next(x for x in text.splitlines() if x.startswith("HH_ARCHIVE_DISK_BLOCKED_DEFAULT="))
+    assert tuple(line.split("=", 1)[1].strip('"').split()) == disks.BLOCKED

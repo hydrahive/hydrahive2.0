@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from hydrahive.archive import location
 from hydrahive.archive._paths import kind_dir
 
 logger = logging.getLogger(__name__)
@@ -80,9 +81,15 @@ def _add_tree(tar: tarfile.TarFile, arcname: str, source: Path) -> None:
             tar.add(p, arcname=f"{arcname}/{p.relative_to(source)}", recursive=False)
 
 
+class ArchiveBusy(RuntimeError):
+    """Das Archiv zieht gerade um – jetzt nichts hineinschreiben (Etappe 1b)."""
+
+
 def pack(*, kind: str, name: str, source_id: str, owner: str | None, reason: str,
          sources: list[tuple[str, Path]], extra: dict[str, Any] | None = None) -> dict:
     """Packt `sources` ([(arcname, pfad)]) ins Archiv. Gibt die .json-Daten zurück."""
+    if location.moving():
+        raise ArchiveBusy("Archiv zieht gerade um")
     target = _target(kind, name, source_id)
     target.parent.mkdir(parents=True, exist_ok=True)
     part = target.with_name(target.name + ".part")
