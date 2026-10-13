@@ -508,9 +508,18 @@ Dialog sagt in jedem Fall, wo sie noch liegen.
   am Namen hängt: Projekte mit `created_by` = Nutzer, seine Mitgliedschaften
   in fremden Projekten, Zugangsdaten, Skills, Notizen, Butler-Abläufe,
   Zeitpläne, WhatsApp/Discord.
+- Ebenso die persönlichen Zeilen in Kern-Tabellen, die am Namen oder an der
+  `user_id` hängen: `user_preferences`, `prompt_archive`,
+  `streaming_credentials`, `streaming_jobs`, `teamchat_identities`,
+  `vault_pins`, `health_ingest`, `health_daily`, `fhir_resources`,
+  `ega_records` (Fund beim Bau, 13.10.). Sie kommen als `db/<tabelle>.jsonl`
+  ins Nutzer-Paket. Verschlüsselte Spalten bleiben verschlüsselt.
+  Protokolle (`llm_calls`, `errors_log`, Audit-Tabellen) bleiben stehen.
+- Agenten des Nutzers in fremden Projekten gehören zum Projekt. Sie bleiben
+  und gehen an den Ersteller des Projekts über.
 - Bleibt bestehen und steht so im Dialog: VMs, Container und SMB-Verbindungen
   des Nutzers sowie Daten in Modulen (Notizbuch, Cryptoboard, Haushaltsbuch,
-  Aufgaben …, rund 30 Tabellen). Siehe Frage 3.
+  Aufgaben …, rund 30 Tabellen). Siehe Entscheidung 3.
 
 ### API
 
