@@ -1,6 +1,6 @@
-import { Archive } from "lucide-react"
+import { Archive, HardDriveDownload } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { AdminFeedback, AdminPanel, adminInputClass } from "@/features/cockpit/admin/ui"
+import { AdminAction, AdminFeedback, AdminPanel, adminInputClass } from "@/features/cockpit/admin/ui"
 import { remoteStateOf, type ArchiveEntry, type ArchiveKind } from "./api"
 import { formatSize } from "./format"
 
@@ -10,6 +10,13 @@ interface Props {
   entries: ArchiveEntry[]
   kind: ArchiveKind | null
   onKind: (kind: ArchiveKind | null) => void
+  /** Etappe 3b: lokale Kopie eines Pakets löschen, das geprüft auf dem Server liegt. */
+  onDropLocal?: (entry: ArchiveEntry) => void
+}
+
+/** Nur Pakete, nie von Hand Abgelegtes (Till, 14.10.) – und nur, wenn die Kopie geprüft auf dem Server liegt. */
+function canDrop(e: ArchiveEntry): boolean {
+  return !e.manual && e.local !== false && remoteStateOf(e) === "server"
 }
 
 function when(entry: ArchiveEntry): string {
@@ -17,8 +24,8 @@ function when(entry: ArchiveEntry): string {
   return iso.slice(0, 16).replace("T", " ")
 }
 
-/** Archivierte Elemente (nur lesen in Etappe 1). Von Hand über Samba abgelegte Dateien sind markiert. */
-export function ArchiveEntriesSection({ entries, kind, onKind }: Props) {
+/** Archivierte Elemente. Von Hand über Samba abgelegte Dateien sind markiert. */
+export function ArchiveEntriesSection({ entries, kind, onKind, onDropLocal }: Props) {
   const { t } = useTranslation("archive")
   return (
     <div data-archive-section="entries">
@@ -48,7 +55,8 @@ export function ArchiveEntriesSection({ entries, kind, onKind }: Props) {
                   <th className="py-1 pr-3 font-medium">{t("entries.col_reason")}</th>
                   <th className="py-1 pr-3 font-medium">{t("entries.col_date")}</th>
                   <th className="py-1 pr-3 font-medium">{t("entries.col_remote")}</th>
-                  <th className="py-1 text-right font-medium">{t("entries.col_size")}</th>
+                  <th className="py-1 pr-3 text-right font-medium">{t("entries.col_size")}</th>
+                  {onDropLocal && <th className="py-1 font-medium"><span className="sr-only">{t("entries.col_actions")}</span></th>}
                 </tr>
               </thead>
               <tbody className="text-[#e8eef8]">
@@ -67,7 +75,17 @@ export function ArchiveEntriesSection({ entries, kind, onKind }: Props) {
                     <td className="whitespace-nowrap py-1.5 pr-3" data-entry-remote={remoteStateOf(e)}>
                       {t(`entries.remote.${remoteStateOf(e)}`)}
                     </td>
-                    <td className="whitespace-nowrap py-1.5 text-right">{formatSize(e.size)}</td>
+                    <td className="whitespace-nowrap py-1.5 pr-3 text-right">{formatSize(e.size)}</td>
+                    {onDropLocal && (
+                      <td className="whitespace-nowrap py-1.5 text-right">
+                        {canDrop(e) && (
+                          <AdminAction tone="ghost" data-entry-drop={e.path} title={t("entries.drop_local")}
+                            onClick={() => onDropLocal(e)}>
+                            <HardDriveDownload size={11} /> {t("entries.drop_local")}
+                          </AdminAction>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

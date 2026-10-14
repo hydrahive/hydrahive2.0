@@ -55,6 +55,9 @@ class FakeRemote:
         self._check()
         return 10 * 1024 ** 4
 
+    def close(self) -> None:
+        pass
+
     def probe(self) -> None:
         self._check()
         p = self._p(".hydrahive-probe")

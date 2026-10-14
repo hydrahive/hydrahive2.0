@@ -10,6 +10,7 @@ const R: ArchiveRemote = {
   host: "192.168.178.3", share: "Hydrahive_backups", subdir: "hydrahive", user: "till",
   configured: true, password_set: true, tested: true, active: true,
   waiting: 0, last_error: null, next_try_in_s: null, on_server: 9, local_only: 0,
+  remote_only: 0, droppable: 0, droppable_bytes: 0,
 }
 const noop = () => {}
 const props = (p: Partial<RemoteViewProps> = {}): RemoteViewProps => ({

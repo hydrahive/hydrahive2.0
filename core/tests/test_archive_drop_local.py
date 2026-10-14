@@ -136,3 +136,24 @@ def test_only_one_drop_job_at_a_time(archive_root, remote_on, on_server, drop_jo
     drop_local.submit(paths=[a], actor="admin")
     with pytest.raises(jobs.JobConflict):
         drop_local.submit(paths=[b], actor="admin")
+
+
+def test_move_started_meanwhile_stops_before_the_next_package(archive_root, remote_on, on_server, drop_jobs,
+                                                               monkeypatch) -> None:
+    from hydrahive.archive import location
+    first, second = on_server(2)
+    real = drop_local._remove_local
+    moving = {"on": False}
+
+    def remove_then_move_starts(path):
+        real(path)
+        moving["on"] = True
+
+    monkeypatch.setattr(drop_local, "_remove_local", remove_then_move_starts)
+    monkeypatch.setattr(location, "moving", lambda: moving["on"])
+    job_id = drop_local.submit(paths=[first, second], actor="admin")
+    drop_jobs.process_queue()
+
+    assert not (archive_root / first).exists() and (archive_root / second).exists()
+    job = _job(drop_jobs, job_id)
+    assert job["state"] == "failed" and job["error"] == "archive_unavailable" and job["done_paths"] == [first]

@@ -182,5 +182,11 @@
   "vault_pin_wrong": "Falsche PIN.",
   "vault_pin_exists": "Es gibt schon eine Vault-PIN.",
   "vault_pin_format": "Die PIN muss aus 6 bis 12 Ziffern bestehen.",
-  "vault_too_many_attempts": "Zu viele falsche PINs. Bitte in {{retry_after}} Sekunden erneut versuchen."
+  "vault_too_many_attempts": "Zu viele falsche PINs. Bitte in {{retry_after}} Sekunden erneut versuchen.",
+
+  "archive_remote_inactive": "Die Kopie auf den Server ist ausgeschaltet.",
+  "archive_path_invalid": "Ungültiger Eintrag im Archiv.",
+  "archive_not_on_server": "Mindestens ein Paket liegt noch nicht geprüft auf dem Server.",
+  "archive_nothing_selected": "Es gibt nichts zu löschen.",
+  "delete_in_progress": "Dafür läuft schon ein Auftrag."
 }

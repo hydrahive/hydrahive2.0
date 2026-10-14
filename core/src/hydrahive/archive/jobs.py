@@ -75,10 +75,11 @@ def busy(target_id: str) -> bool:
         return any(j["target"] == target_id for j in jobs)
 
 
-def submit(kind: str, target_id: str, mode: str, *, actor: str, name: str | None = None) -> str:
+def submit(kind: str, target_id: str, mode: str, *, actor: str, name: str | None = None,
+           extra: dict | None = None) -> str:
     from hydrahive.archive.deletion import new_job
     job = new_job(kind, target_id, mode, actor)
-    job["name"] = name or target_id
+    job.update(extra or {}, name=name or target_id)
     with _lock:
         if busy(target_id):
             raise JobConflict(target_id)
@@ -118,8 +119,8 @@ def process_queue() -> None:
 
 
 def _run(job: dict) -> dict:
-    from hydrahive.archive import _orphan_run, deletion
-    return _orphan_run.execute(job) if job["kind"] == "orphans" else deletion.execute(job)
+    from hydrahive.archive import _job_kinds
+    return _job_kinds.run(job)
 
 
 def _worker() -> None:
@@ -155,11 +156,8 @@ def recover() -> None:
                 job["state"], job["error"] = "failed", "delete_incomplete"
         else:
             logger.warning("Löschauftrag %s wurde unterbrochen – zurückgerollt", job["id"])
-            if job.get("kind") == "orphans":
-                from hydrahive.archive import _orphan_run
-                _orphan_run.rollback(job)                  # fertig entfernte Ordner bleiben im Archiv
-            else:
-                deletion.rollback_lock(job)
+            from hydrahive.archive import _job_kinds
+            _job_kinds.rollback(job)
             job["state"], job["error"] = "failed", "interrupted"
         _finished(job)
     if _state["queue"]:

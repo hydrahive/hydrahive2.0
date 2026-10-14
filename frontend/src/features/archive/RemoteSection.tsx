@@ -1,4 +1,4 @@
-import { CheckCircle2, CloudUpload, RefreshCw, Save, ShieldCheck, XCircle } from "lucide-react"
+import { CheckCircle2, CloudUpload, HardDriveDownload, RefreshCw, Save, ShieldCheck, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { AdminAction, AdminFeedback, AdminField, AdminPanel, AdminStatus, AdminToggle, adminInputClass } from "@/features/cockpit/admin/ui"
 import type { ArchiveRemote, RemoteForm, RemoteTestResult } from "./api"
@@ -15,12 +15,15 @@ export interface RemoteViewProps {
   onTest: () => void
   onActive: (active: boolean) => void
   onSync: () => void
+  /** Etappe 3b: alle lokalen Kopien von Paketen löschen, die geprüft auf dem Server liegen. */
+  onDropAll?: () => void
 }
 
 const FIELDS: (keyof RemoteForm)[] = ["host", "share", "subdir", "user", "password"]
 
 /** Bereich „Externer Server“: Kopie des Archivs aufs NAS (Spec archiv-system.md, Etappe 3). */
-export function RemoteView({ remote, form, testResult, busy, error, onForm, onSave, onTest, onActive, onSync }: RemoteViewProps) {
+export function RemoteView(props: RemoteViewProps) {
+  const { remote, form, testResult, busy, error, onForm, onSave, onTest, onActive, onSync, onDropAll } = props
   const { t } = useTranslation("archive")
   const minutes = remote.next_try_in_s != null ? Math.max(1, Math.ceil(remote.next_try_in_s / 60)) : null
   return (
@@ -65,7 +68,15 @@ export function RemoteView({ remote, form, testResult, busy, error, onForm, onSa
             <dd className="text-right text-[#e8eef8]">{remote.on_server}</dd>
             <dt className="text-[#8d9ab0]">{t("remote.waiting")}</dt>
             <dd className="text-right text-[#e8eef8]" data-remote-waiting={remote.waiting}>{remote.waiting}</dd>
+            <dt className="text-[#8d9ab0]">{t("remote.server_only")}</dt>
+            <dd className="text-right text-[#e8eef8]">{remote.remote_only}</dd>
           </dl>
+        )}
+        {remote.active && onDropAll && (
+          <AdminAction data-remote-action="drop-all" disabled={busy || remote.droppable === 0} onClick={onDropAll}>
+            <HardDriveDownload size={11} />{" "}
+            {t("remote.drop_all", { count: remote.droppable, size: formatSize(remote.droppable_bytes) })}
+          </AdminAction>
         )}
         {remote.active && remote.waiting > 0 && remote.last_error && (
           <AdminFeedback tone="warning">

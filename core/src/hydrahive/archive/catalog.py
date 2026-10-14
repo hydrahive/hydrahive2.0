@@ -46,8 +46,19 @@ def _packaged(path: Path, root: Path) -> dict | None:
         return None
     if not isinstance(meta, dict):
         return None
-    return {**meta, "manual": False, "path": str(path.relative_to(root)),
+    return {**meta, "manual": False, "path": str(path.relative_to(root)), "local": path.is_file(),
             "mtime": meta_path.stat().st_mtime}
+
+
+def _server_only(meta_path: Path, root: Path) -> dict | None:
+    """.json ohne Paket daneben: lokale Kopie gelöscht, liegt nur noch auf dem Server (Etappe 3b)."""
+    pkg = meta_path.with_name(meta_path.name[:-len(".json")])
+    if pkg.exists():
+        return None
+    entry = _packaged(pkg, root)
+    if entry is None or (entry.get("remote") or {}).get("state") != "remote_only":
+        return None
+    return entry
 
 
 def list_entries(kind: str | None = None) -> list[dict]:
@@ -60,7 +71,12 @@ def list_entries(kind: str | None = None) -> list[dict]:
     out: list[dict] = []
     for path in _walk_files(root):
         rel = path.relative_to(root)
-        if _is_hidden(rel) or path.name.endswith(".tar.gz.json"):
+        if _is_hidden(rel):
+            continue
+        if path.name.endswith(".tar.gz.json"):
+            entry = _server_only(path, root)
+            if entry is not None and (kind is None or rel.parts[0] == kind):
+                out.append(entry)
             continue
         entry = _packaged(path, root) if path.name.endswith(".tar.gz") else None
         if entry is None:
@@ -102,6 +118,6 @@ def usage() -> dict:
         "path": str(root), "exists": exists,
         "writable": exists and os.access(root, os.W_OK | os.X_OK),
         "count": sum(by_kind.values()), "manual_count": sum(1 for e in entries if e["manual"]),
-        "by_kind": by_kind, "used_bytes": sum(e.get("size", 0) for e in entries),
+        "by_kind": by_kind, "used_bytes": sum(e.get("size", 0) for e in entries if e.get("local", True)),
         "free_bytes": free, "trash_bytes": _tree_bytes(root / TRASH_DIR) if exists else 0,
     }

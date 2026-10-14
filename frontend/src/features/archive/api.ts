@@ -90,6 +90,11 @@ export interface ArchiveRemote {
   next_try_in_s: number | null
   on_server: number
   local_only: number
+  /** Etappe 3b: Pakete, deren lokale Kopie gelöscht ist. */
+  remote_only: number
+  /** Pakete, deren lokale Kopie gelöscht werden darf (geprüft auf dem Server, nicht von Hand abgelegt). */
+  droppable: number
+  droppable_bytes: number
 }
 
 export interface RemoteForm {
@@ -127,11 +132,14 @@ export interface ArchiveEntry {
   sha256?: string
   source_id?: string
   remote?: { state?: string; verified_at?: string }
+  /** false = lokale Kopie gelöscht, liegt nur noch auf dem Server (Etappe 3b). */
+  local?: boolean
 }
 
-/** Stand der Kopie auf dem Server je Paket (Etappe 3). */
-export function remoteStateOf(e: { remote?: { state?: string } }): "server" | "waiting" | "local" {
+/** Stand der Kopie auf dem Server je Paket (Etappe 3, 3b). */
+export function remoteStateOf(e: { remote?: { state?: string } }): "server" | "server_only" | "waiting" | "local" {
   if (e.remote?.state === "verified") return "server"
+  if (e.remote?.state === "remote_only") return "server_only"
   if (e.remote?.state === "pending") return "waiting"
   return "local"
 }
@@ -180,6 +188,8 @@ export const archiveApi = {
   remoteTest: () => api.post<RemoteTestResult>("/admin/archive/remote/test", {}),
   remoteActive: (active: boolean) => api.post<ArchiveRemote>("/admin/archive/remote/active", { active }),
   remoteSync: () => api.post<{ queued: number }>("/admin/archive/remote/sync", {}),
+  dropLocal: (sel: { paths: string[] } | { all_verified: true }) =>
+    api.post<{ job_id: string; count: number }>("/admin/archive/entries/drop-local", sel),
   setShare: (enabled: boolean) =>
     api.put<{ folder: boolean; share: string; error?: string }>("/admin/archive/share", { enabled }),
 }

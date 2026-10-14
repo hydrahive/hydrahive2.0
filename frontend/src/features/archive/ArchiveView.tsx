@@ -24,6 +24,8 @@ export interface ArchiveViewProps {
   orphans?: OrphanScan | null
   orphansBusy?: boolean
   onCleanupOrphans?: () => void
+  /** Etappe 3b: lokale Kopie eines Pakets löschen. */
+  onDropLocal?: (entry: ArchiveEntry) => void
 }
 
 /** Reine Ansicht des Admin-Fensters „Archiv & Sicherung“ (Spec archiv-system.md, Etappe 1 + 2). */
@@ -44,7 +46,8 @@ export function ArchiveView(props: ArchiveViewProps) {
       {status?.remote && props.remote && <RemoteView remote={status.remote} {...props.remote} />}
       {status && <ArchiveJobsSection jobs={status.jobs} move={status.move} />}
       {status && <OrphansView scan={orphans} busy={orphansBusy} onCleanup={onCleanupOrphans} />}
-      <ArchiveEntriesSection entries={entries} kind={kind} onKind={onKind} />
+      <ArchiveEntriesSection entries={entries} kind={kind} onKind={onKind}
+        onDropLocal={status?.remote?.active ? props.onDropLocal : undefined} />
     </div>
   )
 }

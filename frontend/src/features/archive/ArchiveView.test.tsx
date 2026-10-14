@@ -33,7 +33,8 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
     const order = [...out.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1])
     expect(order).toEqual(["storage", "share", "jobs", "orphans", "entries"])
     const remote = { host: "nas", share: "b", subdir: "", user: "", configured: true, password_set: false, tested: false,
-      active: false, waiting: 0, last_error: null, next_try_in_s: null, on_server: 0, local_only: 2 }
+      active: false, waiting: 0, last_error: null, next_try_in_s: null, on_server: 0, local_only: 2, remote_only: 0,
+      droppable: 0, droppable_bytes: 0 }
     const noop = () => {}
     const withRemote = html({ status: { ...STATUS, remote }, remote: { form: { host: "nas", share: "b", subdir: "", user: "",
       password: "" }, testResult: null, busy: false, error: null, onForm: noop, onSave: noop, onTest: noop, onActive: noop, onSync: noop } })

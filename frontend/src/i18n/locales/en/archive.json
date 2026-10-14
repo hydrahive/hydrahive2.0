@@ -61,8 +61,11 @@
     "remote": {
       "server": "on the server",
       "waiting": "waiting",
-      "local": "only here"
-    }
+      "local": "only here",
+      "server_only": "only on the server"
+    },
+    "drop_local": "Delete local copy",
+    "col_actions": "Actions"
   },
   "kind": {
     "agents": "Agent",
@@ -128,7 +131,8 @@
       "user": "Delete user",
       "instance": "Delete external instance",
       "orphans": "Clean up orphans",
-      "orphan_agent": "Agent without project"
+      "orphan_agent": "Agent without project",
+      "drop_local": "Delete local copy"
     },
     "title": "Delete “{{name}}”",
     "loading": "Loading …",
@@ -173,7 +177,8 @@
       "measure": "Counting size …",
       "pack": "Packing …",
       "delete": "Deleting …",
-      "done": "Done"
+      "done": "Done",
+      "check": "Checking the copy on the server …"
     },
     "done_archive": "Deleted. The package is in the archive:",
     "done_permanent": "Deleted permanently.",
@@ -200,7 +205,8 @@
     "recent": "Recent",
     "mode": {
       "archive": "to archive",
-      "permanent": "permanent"
+      "permanent": "permanent",
+      "drop": "delete local copy"
     }
   },
   "orphans": {
@@ -255,6 +261,34 @@
       "not_configured": "No server set up yet.",
       "not_found": "Not found on the server.",
       "unexpected": "Unexpected server error."
+    },
+    "server_only": "Only on the server",
+    "drop_all": "Delete all local copies ({{count}}, {{size}})"
+  },
+  "drop": {
+    "title": "Delete local copy",
+    "text": "{{count}} package(s) are stored and verified on the server. The copy here is deleted, which frees {{size}}.",
+    "where": "The packages stay on this server:",
+    "safety": "Before deleting, HydraHive reads every package back from the server and compares it. If anything is off, the package stays here and is uploaded again. Every package stays visible in the list, marked “only on the server”.",
+    "cancel": "Cancel",
+    "confirm": "Delete local copy",
+    "failed": "Could not start the job.",
+    "done": "{{count}} local copy(ies) deleted, {{size}} freed.",
+    "kept_title": "Kept here:",
+    "kept": {
+      "verify_failed": "The copy on the server does not match – it will be uploaded again.",
+      "not_found": "Not found on the server – it will be uploaded again.",
+      "not_on_server": "No longer verified on the server.",
+      "gone": "No longer exists here.",
+      "unexpected": "Unexpected server error – it will be uploaded again."
+    },
+    "error": {
+      "unreachable": "Server not reachable.",
+      "auth_failed": "Login to the server rejected.",
+      "remote_inactive": "Copying to the server is switched off.",
+      "archive_unavailable": "The archive is being moved.",
+      "interrupted": "The service restarted. Packages not yet deleted are back as before.",
+      "unexpected": "Unexpected error."
     }
   }
 }

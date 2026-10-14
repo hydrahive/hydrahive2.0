@@ -3,6 +3,8 @@ import { api } from "@/shared/api-client"
 /** Lösch-Ziele (Spec archiv-system.md, Etappe 2). */
 export type DeleteKind = "agent" | "project" | "user" | "instance"
 export type DeleteMode = "archive" | "permanent"
+/** Lokale Kopie löschen (Etappe 3b): eigene Auftragsart in derselben Reihe. */
+export type JobMode = DeleteMode | "drop"
 
 export interface DeletePreview {
   kind: DeleteKind
@@ -22,15 +24,15 @@ export interface DeletePreview {
   archive: { path: string; share: string | null; free_bytes: number; possible: boolean; reason: string | null }
 }
 
-export type DeleteStep = "queued" | "lock" | "measure" | "pack" | "delete" | "done"
+export type DeleteStep = "queued" | "lock" | "measure" | "pack" | "check" | "delete" | "done"
 
 export interface DeleteJob {
   id: string
   /** Auch Waisen-Aufträge (Etappe 2b) laufen in derselben Reihe. */
-  kind: DeleteKind | "orphans" | "orphan_agent"
+  kind: DeleteKind | "orphans" | "orphan_agent" | "drop_local"
   target: string
   name: string
-  mode: DeleteMode
+  mode: JobMode
   state: "queued" | "running" | "done" | "failed"
   step: DeleteStep
   error: string | null
@@ -40,6 +42,10 @@ export interface DeleteJob {
   packages: { kind: string; file: string }[]
   package?: string
   leftovers: string[]
+  /** Nur „lokale Kopie löschen“: gelöscht, behalten (mit Grund), frei gewordener Platz. */
+  done_paths?: string[]
+  kept?: { path: string; reason: string }[]
+  freed_bytes?: number
 }
 
 export interface DeleteJobs {

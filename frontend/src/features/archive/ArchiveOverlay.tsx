@@ -6,6 +6,7 @@ import { AdminAction } from "@/features/cockpit/admin/ui"
 import { systemApi } from "@/features/system/api"
 import { archiveApi, cleanupSelection, type ArchiveEntry, type ArchiveKind, type ArchiveStatus, type OrphanScan } from "./api"
 import { ArchiveView } from "./ArchiveView"
+import { DropLocalDialog, type DropSelection } from "./DropLocalDialog"
 import { MoveDialog } from "./MoveDialog"
 import { useRemote } from "./useRemote"
 import { TrashConfirmDialog } from "./TrashConfirmDialog"
@@ -23,6 +24,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const [orphans, setOrphans] = useState<OrphanScan | null>(null)
   const [orphansBusy, setOrphansBusy] = useState(false)
   const [cleanupJobs, setCleanupJobs] = useState<string[]>([])
+  const [drop, setDrop] = useState<DropSelection | null>(null)
   const working = !!status?.move?.running || !!status?.jobs?.running || !!status?.jobs?.queued.length
 
   const reload = useCallback(async () => {
@@ -131,12 +133,17 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           onSetupSamba={() => void setupSamba()}
           onShareSwitch={(enabled) => void switchShare(enabled)}
           onChangeLocation={() => setMoveOpen(true)}
-          remote={remote}
+          remote={{ ...remote, onDropAll: () => setDrop({ all: true }) }}
+          onDropLocal={(e) => setDrop({ paths: [e.path], bytes: e.size })}
           orphans={orphans}
           orphansBusy={orphansBusy || working || cleanupJobs.length > 0}
           onCleanupOrphans={() => void cleanupOrphans()}
         />
       </div>
+      {drop && status?.remote && (
+        <DropLocalDialog remote={status.remote} selection={drop} onClose={() => setDrop(null)}
+          onStarted={() => { setDrop(null); void reload() }} />
+      )}
       {moveOpen && (
         <MoveDialog onClose={() => setMoveOpen(false)} onStarted={() => { setMoveOpen(false); void reload() }} />
       )}

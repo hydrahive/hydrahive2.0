@@ -182,5 +182,11 @@
   "vault_pin_wrong": "Wrong PIN.",
   "vault_pin_exists": "A vault PIN already exists.",
   "vault_pin_format": "The PIN must be 6 to 12 digits.",
-  "vault_too_many_attempts": "Too many wrong PINs. Try again in {{retry_after}} seconds."
+  "vault_too_many_attempts": "Too many wrong PINs. Try again in {{retry_after}} seconds.",
+
+  "archive_remote_inactive": "Copying to the server is switched off.",
+  "archive_path_invalid": "Invalid archive entry.",
+  "archive_not_on_server": "At least one package is not yet verified on the server.",
+  "archive_nothing_selected": "There is nothing to delete.",
+  "delete_in_progress": "A job for this is already running."
 }

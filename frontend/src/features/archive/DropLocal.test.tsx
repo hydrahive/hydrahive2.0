@@ -37,6 +37,8 @@ const remoteHtml = (p: Partial<RemoteViewProps> = {}) => renderToStaticMarkup(<R
   .replace(/&quot;/g, '"')
 const dropAll = (out: string) => out.match(/<[a-z]+[^>]*data-remote-action="drop-all"[^>]*>/)?.[0] ?? ""
 
+const progress = (job: DeleteJob) => renderToStaticMarkup(<DeleteProgress job={job} />).replace(/&quot;/g, '"')
+
 const JOB: DeleteJob = {
   id: "j1", kind: "drop_local", target: "drop_local", name: "2 Pakete", mode: "drop", state: "done", step: "done",
   error: null, bytes_total: 4096, bytes_done: 4096, files_total: 2, packages: [], leftovers: [],
@@ -75,16 +77,15 @@ describe("Lokale Kopie löschen (Etappe 3b)", () => {
   })
 
   it("Fortschritt: Ergebnis mit frei gewordenem Platz und behaltenen Paketen samt Grund", () => {
-    const out = renderToStaticMarkup(<DeleteProgress job={JOB} />)
+    const out = progress(JOB)
     expect(out).toContain('drop.done:{"count":1,"size":"2.0 KB"}')
     expect(out).toContain("agents/b.tar.gz")
     expect(out).toContain("drop.kept.verify_failed")
     expect(out).not.toContain("delete.done_archive")
-    const failed = renderToStaticMarkup(<DeleteProgress job={{ ...JOB, state: "failed", error: "unreachable",
-      done_paths: [], kept: [] }} />)
+    const failed = progress({ ...JOB, state: "failed", error: "unreachable", done_paths: [], kept: [] })
     expect(failed).toContain("drop.error.unreachable")
     expect(failed).toContain("delete.nothing_deleted")
-    const halfway = renderToStaticMarkup(<DeleteProgress job={{ ...JOB, state: "failed", error: "interrupted" }} />)
+    const halfway = progress({ ...JOB, state: "failed", error: "interrupted" })
     expect(halfway).not.toContain("delete.nothing_deleted")
     expect(halfway).toContain('drop.done:{"count":1,"size":"2.0 KB"}')
   })
