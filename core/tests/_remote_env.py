@@ -39,6 +39,9 @@ class FakeRemote:
 
     def read_chunks(self, rel: str):
         self._check()
+        if not self._p(rel).is_file():                     # wie SmbRemote: fehlende Datei → not_found
+            from hydrahive.archive.remote_smb import RemoteError
+            raise RemoteError("not_found")
         with open(self._p(rel), "rb") as fh:
             while chunk := fh.read(1 << 16):
                 yield chunk
