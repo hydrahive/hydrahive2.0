@@ -19,6 +19,7 @@ const ENTRIES: ArchiveEntry[] = [
   pkg({ path: "agents/oben.tar.gz", name: "Oben", remote: { state: "verified" } }),
   pkg({ path: "agents/wartet.tar.gz", name: "Wartet", remote: { state: "pending" } }),
   pkg({ path: "agents/nur-oben.tar.gz", name: "Nur oben", local: false, remote: { state: "remote_only" } }),
+  pkg({ path: "agents/von-hand-weg.tar.gz", name: "Datei fehlt", local: false, remote: { state: "verified" } }),
   { manual: true, path: "uploads/hand.pdf", file: "hand.pdf", kind: "uploads", size: 4, mtime: 1, remote: { state: "verified" } },
 ]
 const entriesHtml = (onDrop = () => {}) => renderToStaticMarkup(

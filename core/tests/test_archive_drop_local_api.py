@@ -57,14 +57,19 @@ def test_all_verified_takes_only_packages_on_the_server(client, admin_headers, a
     hand = archive_root / "uploads" / "hand.pdf"
     hand.parent.mkdir(parents=True, exist_ok=True)
     hand.write_bytes(b"%PDF")
+    hand_tgz = archive_root / "uploads" / "alte-sicherung.tar.gz"  # sieht aus wie ein Paket, hat aber keine .json
+    hand_tgz.write_bytes(b"von Hand")
     remote_queue.sync()
     remote_queue.process_queue()                                 # von Hand Abgelegtes liegt auch oben …
+    s = client.get("/api/admin/archive/status", headers=admin_headers).json()["remote"]
+    assert s["droppable"] == 2
+    assert s["droppable_bytes"] == sum((archive_root / r).stat().st_size for r in rels)
 
     body = _dropped(drop_jobs, client, admin_headers, {"all_verified": True})
 
     assert body["job_id"] and body["count"] == 2
     assert not any((archive_root / r).exists() for r in rels)
-    assert hand.exists()                                         # … bleibt aber hier (Till, 14.10.)
+    assert hand.exists() and hand_tgz.exists()                   # … bleibt aber hier (Till, 14.10.)
 
 
 def test_all_verified_with_nothing_to_do(client, admin_headers, remote_on, drop_jobs) -> None:

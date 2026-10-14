@@ -89,16 +89,20 @@ def test_server_unreachable_at_start_deletes_nothing(archive_root, remote_on, on
 
 
 def test_package_no_longer_verified_when_the_job_runs_is_kept(archive_root, remote_on, on_server,
-                                                               drop_jobs) -> None:
-    """Zwischen Einreihen und Ausführen kann sich der Stand ändern (z. B. neu eingereiht): dann nicht anfassen."""
+                                                               drop_jobs, monkeypatch) -> None:
+    """Zwischen Einreihen und Ausführen kann sich der Stand ändern (z. B. neu eingereiht): dann nicht anfassen
+    und auch nicht erst vom Server lesen."""
     from hydrahive.archive import _remote_files as rf
     [rel] = on_server(1)
     job_id = drop_local.submit(paths=[rel], actor="admin")
     rf.set_remote(rel, state="pending")
+    reads = []
+    real = remote_on.read_chunks
+    monkeypatch.setattr(remote_on, "read_chunks", lambda r: (reads.append(r), real(r))[1])
 
     drop_jobs.process_queue()
 
-    assert (archive_root / rel).exists()
+    assert (archive_root / rel).exists() and reads == []
     assert _job(drop_jobs, job_id)["kept"] == [{"path": rel, "reason": "not_on_server"}]
 
 
@@ -157,3 +161,18 @@ def test_move_started_meanwhile_stops_before_the_next_package(archive_root, remo
     assert not (archive_root / first).exists() and (archive_root / second).exists()
     job = _job(drop_jobs, job_id)
     assert job["state"] == "failed" and job["error"] == "archive_unavailable" and job["done_paths"] == [first]
+
+
+def test_queueing_a_package_that_is_only_on_the_server_changes_nothing(archive_root, remote_on, remote_queue,
+                                                                       on_server, drop_jobs) -> None:
+    """Abgleich und Löschen laufen in verschiedenen Threads: Was hier nicht mehr liegt, darf nicht wieder auf
+    „wartet“ fallen (sonst stünde ein Paket falsch in der Liste, das nur noch auf dem Server liegt)."""
+    [rel] = on_server(1)
+    drop_local.submit(paths=[rel], actor="admin")
+    drop_jobs.process_queue()
+    kind, file = rel.split("/", 1)
+
+    remote_queue.enqueue_packages([{"kind": kind, "file": file}])
+
+    assert _meta(archive_root, rel)["remote"]["state"] == "remote_only"
+    assert remote_queue.summary()["waiting"] == 0
