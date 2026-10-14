@@ -226,3 +226,59 @@ def test_startup_plus_one_more_file_is_content(archive_root) -> None:
     b, _ = _ws("master", {"aaa.md": "x", "startup.md": _startup_text()})
     found = {w["id"]: w for w in orphans.scan()["workspaces"]}
     assert found[a]["empty"] is False and found[b]["empty"] is False
+
+
+def test_auto_project_links_are_not_content(archive_root, tmp_path) -> None:
+    """Buddy-Ordner haben projects/<Name> → Projektordner (von HydraHive angelegt). Nur solche Links = leer.
+    Gefunden auf hydratest: 11 Buddy-Waisen wären sonst als Pakete ins Archiv gegangen."""
+    from hydrahive.archive import orphans
+    from hydrahive.settings import settings
+    target = settings.workspaces_dir / "projects" / str(uuid.uuid4())
+    target.mkdir(parents=True)
+    (target / "projektdatei.md").write_text("gehört dem Projekt")
+    oid, d = _ws("master", {"startup.md": _startup_text()})
+    (d / "projects").mkdir()
+    (d / "projects" / "Mein_Projekt").symlink_to(target)
+    (d / "projects" / "Weg").symlink_to(tmp_path / "gibt-es-nicht")
+    other, od = _ws("master")
+    (od / "projects").mkdir()
+    (od / "projects" / "notiz.md").write_text("selbst geschrieben")
+
+    found = {w["id"]: w for w in orphans.scan()["workspaces"]}
+
+    assert found[oid]["empty"] is True and found[other]["empty"] is False
+
+
+def test_cleanup_never_follows_project_links(archive_root, jobs) -> None:
+    from hydrahive.archive import orphans
+    from hydrahive.settings import settings
+    target = settings.workspaces_dir / "projects" / str(uuid.uuid4())
+    target.mkdir(parents=True)
+    (target / "projektdatei.md").write_text("gehört dem Projekt")
+    oid, d = _ws("master", {"startup.md": _startup_text()})
+    (d / "projects").mkdir()
+    (d / "projects" / "Mein_Projekt").symlink_to(target)
+
+    orphans.submit_cleanup(workspaces=[oid], agents=[], actor="admin")
+    jobs.process_queue()
+
+    assert not d.exists() and (target / "projektdatei.md").exists()
+
+
+def test_link_to_elsewhere_counts_as_content(archive_root, tmp_path) -> None:
+    """Ein Link auf einen fremden, existierenden Ordner ist nicht von HydraHive → Inhalt (wird archiviert)."""
+    from hydrahive.archive import orphans
+    from hydrahive.settings import settings
+    elsewhere = tmp_path / "irgendwo"
+    elsewhere.mkdir()
+    oid, d = _ws("master")
+    (d / "projects").mkdir()
+    (d / "projects" / "Fremd").symlink_to(elsewhere)
+    top, td = _ws("master")
+    (td / "link").symlink_to(elsewhere)
+    proj = settings.workspaces_dir / "projects" / str(uuid.uuid4())
+    proj.mkdir(parents=True)
+    wrong, wd = _ws("master")                                  # Projekt-Link, aber nicht unter projects/
+    (wd / "Mein_Projekt").symlink_to(proj)
+    found = {w["id"]: w for w in orphans.scan()["workspaces"]}
+    assert found[oid]["empty"] is False and found[top]["empty"] is False and found[wrong]["empty"] is False

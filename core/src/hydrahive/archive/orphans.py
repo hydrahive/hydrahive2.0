@@ -1,8 +1,8 @@
 """Waisen finden und zum Aufräumen einreihen (Spec archiv-system.md, Etappe 2b).
 
 Waise = Arbeitsordner `workspaces/{specialists,master}/<id>` ohne Agent, oder ein Agent, dessen
-Projekt es nicht mehr gibt. „Leer“ = keine Dateien oder nur die unveränderte startup.md, die
-HydraHive selbst anlegt. Das Aufräumen selbst steht in _orphan_run.py.
+Projekt es nicht mehr gibt. „Leer“ = nichts außer dem, was HydraHive selbst anlegt: die
+unveränderte startup.md und die Verknüpfungen projects/<Name> → Projektordner im Buddy-Ordner. Das Aufräumen selbst steht in _orphan_run.py.
 """
 from __future__ import annotations
 
@@ -42,20 +42,33 @@ def inspect(path: Path, template: bytes | None, deadline: float) -> dict:
     des Budgets wird nur nicht mehr weiter gezählt („mindestens“-Größe)."""
     size, files, complete, empty = 0, 0, True, None
     for dirpath, dirs, names in os.walk(path, followlinks=False):
-        dirs[:] = [d for d in dirs if not os.path.ismount(os.path.join(dirpath, d))]
-        for n in names:
+        links = [d for d in dirs if os.path.islink(os.path.join(dirpath, d))]   # Ordner-Links: zählen, nie betreten
+        dirs[:] = [d for d in dirs if d not in links and not os.path.ismount(os.path.join(dirpath, d))]
+        for n in [*names, *links]:
             p = os.path.join(dirpath, n)
             files += 1
             try:
                 size += os.lstat(p).st_size
             except OSError:
                 pass
-            if empty is None and not (dirpath == str(path) and n == "startup.md" and _same(p, template)):
-                empty = False                 # jede Datei außer der unveränderten startup.md im Hauptordner
+            if empty is None and not _generated(path, dirpath, n, p, template):
+                empty = False                 # alles, was nicht HydraHive selbst angelegt hat
         if empty is False and time.monotonic() > deadline:
             complete = False
             break
     return {"size": size, "files": files, "empty": empty is not False, "complete": complete}
+
+
+def _generated(root: Path, dirpath: str, name: str, full: str, template: bytes | None) -> bool:
+    """Von HydraHive angelegt: die unveränderte startup.md, und im Buddy-Ordner unter projects/ die
+    Verknüpfungen zu Projektordnern (agents/_workspace_links.py) – auch solche, die ins Leere zeigen."""
+    if dirpath == str(root) and name == "startup.md":
+        return _same(full, template)
+    if dirpath == str(root / "projects") and os.path.islink(full):
+        target = os.path.realpath(full)
+        projects = os.path.realpath(settings.workspaces_dir / "projects")
+        return os.path.dirname(target) == projects or not os.path.exists(full)
+    return False
 
 
 def _same(path: str, template: bytes | None) -> bool:
