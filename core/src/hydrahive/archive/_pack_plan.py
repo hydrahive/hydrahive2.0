@@ -136,8 +136,9 @@ def bundles(plan: dict, work: Path) -> list[dict]:
     return out
 
 
-def pack_all(items: list[dict], on_file: Progress) -> list[dict]:
-    """Packt und prüft jedes Paket. Bei Fehlern: alle Pakete dieses Auftrags wieder weg, Fehler weiterreichen."""
+def pack_all(items: list[dict], on_file: Progress, on_target: Callable[[Path], None] | None = None) -> list[dict]:
+    """Packt und prüft jedes Paket. Bei Fehlern: alle Pakete dieses Auftrags wieder weg, Fehler weiterreichen.
+    `on_target` erfährt jeden Paketpfad vor dem Schreiben (für das Zurückrollen nach einem Neustart)."""
     done: list[dict] = []
     try:
         main = items[-1]
@@ -147,7 +148,7 @@ def pack_all(items: list[dict], on_file: Progress) -> list[dict]:
                 extra["part_of_user"] = main["source_id"]
             meta = package.pack(kind=item["kind"], name=item["name"], source_id=item["source_id"],
                                 owner=item["owner"], reason=item["reason"], sources=item["sources"],
-                                extra=extra, skip=item["skip"], on_file=on_file)
+                                extra=extra, skip=item["skip"], on_file=on_file, on_target=on_target)
             done.append(meta)
             verify(kind_dir(meta["kind"]) / meta["file"])
         if main["kind"] == "users":
@@ -173,10 +174,11 @@ def link_parts(metas: list[dict]) -> None:
 
 
 def discard(metas: list[dict]) -> None:
+    """Pakete eines Auftrags samt Begleitdatei weg – auch halb geschriebene (.part) nach einem harten Abbruch."""
     for meta in metas:
         base = kind_dir(meta["kind"]) / meta["file"]
-        for p in (base, base.with_name(base.name + ".json")):
-            p.unlink(missing_ok=True)
+        for suffix in ("", ".part", ".json", ".json.part"):
+            base.with_name(base.name + suffix).unlink(missing_ok=True)
 
 
 __all__ = ["VerifyError", "bundles", "discard", "measure", "pack_all"]

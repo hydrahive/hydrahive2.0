@@ -107,8 +107,12 @@ def _archive(job: dict) -> str | None:
         def progress(size: int) -> None:
             job["bytes_done"] += size
 
+        def started(path: Path) -> None:               # vor dem Schreiben merken: Neustart findet es
+            job["packages"].append({"kind": path.parent.name, "file": path.name})
+            _save(job)
+
         try:
-            metas = _pack_plan.pack_all(items, progress)
+            metas = _pack_plan.pack_all(items, progress, started)
         except VerifyError:
             return "verify_failed"
         except ArchiveBusy:

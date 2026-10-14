@@ -27,6 +27,7 @@ _SAFE = re.compile(r"[^A-Za-z0-9_-]+")
 _SAFE_SEGMENT = re.compile(r"[^A-Za-z0-9_.-]+")
 
 OnFile = Callable[[int], None]   # wird je gepackter Datei mit ihrer Größe aufgerufen
+OnTarget = Callable[[Path], None]  # bekommt den Paketpfad, bevor die erste Datei geschrieben wird
 
 
 class _HashingWriter:
@@ -123,16 +124,20 @@ class ArchiveBusy(RuntimeError):
 
 def pack(*, kind: str, name: str, source_id: str, owner: str | None, reason: str,
          sources: list[tuple[str, Path]], extra: dict[str, Any] | None = None,
-         skip: set[str] | None = None, on_file: OnFile | None = None) -> dict:
+         skip: set[str] | None = None, on_file: OnFile | None = None,
+         on_target: OnTarget | None = None) -> dict:
     """Packt `sources` ([(arcname, pfad)]) ins Archiv. Gibt die .json-Daten zurück.
 
     `arcname` darf Unterordner haben („agents/<id>/agent“). `skip`: Dateien in den Ordnern, die
-    nicht gepackt werden, weil eine eigene Quelle sie ersetzt."""
+    nicht gepackt werden, weil eine eigene Quelle sie ersetzt. `on_target`: Pfad vorab melden, damit ein
+    harter Abbruch (Neustart) das halbe Paket später findet."""
     if location.moving():
         raise ArchiveBusy("Archiv zieht gerade um")
     target = _target(kind, name, source_id)
     target.parent.mkdir(parents=True, exist_ok=True)
     part = target.with_name(target.name + ".part")
+    if on_target is not None:
+        on_target(target)
     try:
         with open(part, "xb") as fh:
             writer = _HashingWriter(fh)

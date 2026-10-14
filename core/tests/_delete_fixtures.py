@@ -12,6 +12,8 @@ def make_agent(name: str, *, owner: str = "testuser", agent_type: str = "special
                project_id: str | None = None) -> dict:
     from hydrahive.agents import config as agent_config
     from hydrahive.agents._paths import agent_dir, workspace_for
+    from hydrahive.db.connection import init_db
+    init_db()                                       # auch wenn die Testdatei allein läuft
     a = agent_config.create(agent_type=agent_type, name=name, llm_model=MODEL, tools=[], owner=owner,
                             temperature=0.7, max_tokens=1000, thinking_budget=0, project_id=project_id)
     (agent_dir(a["id"]) / "crystals.jsonl").write_text('{"k": "erinnerung"}\n')

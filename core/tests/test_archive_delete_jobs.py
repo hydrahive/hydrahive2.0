@@ -85,6 +85,47 @@ def test_crash_while_deleting_finishes_after_restart(archive_root, jobs, monkeyp
     assert job["state"] == "done"
 
 
+def test_hard_kill_while_packing_leaves_no_half_packages(archive_root, jobs, monkeypatch) -> None:
+    """Harter Neustart (SIGKILL) mitten im Packen: Weder das halbe Paket (.part) noch ein schon fertiges
+    Teilpaket bleiben liegen. Gefunden im frischen Container: 800 MB .part nach Neustart."""
+    import uuid
+
+    from hydrahive.api.middleware import users
+    from tests._delete_fixtures import make_project
+    name = f"kill{uuid.uuid4().hex[:6]}"
+    users.create(name, "testpass123", role="user")
+    make_project("Kill-Projekt", created_by=name, members=[name])
+    snapshot: dict = {}
+
+    def kill_mid_user_package(size: int) -> None:
+        parts = list((archive_root / "users").glob("*.part")) if (archive_root / "users").is_dir() else []
+        if packages(archive_root, "projects") and parts and not snapshot:
+            for f in archive_root.rglob("*"):          # so liegt es da, wenn der Prozess hart stirbt
+                if f.is_file():
+                    snapshot[f] = f.read_bytes()
+            raise _Crash()
+
+    real_pack = package.pack
+    monkeypatch.setattr(package, "pack", lambda **kw: real_pack(**{**kw, "on_file": lambda n: (
+        kw["on_file"](n), kill_mid_user_package(n))}))
+    jobs.submit("user", name, "archive", actor="admin")
+    with pytest.raises(_Crash):
+        jobs.process_queue()
+    for f, data in snapshot.items():                    # SIGKILL räumt nichts auf
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(data)
+    assert any(f.name.endswith(".part") for f in snapshot) and packages(archive_root, "projects")
+
+    jobs.recover()
+
+    left = sorted(str(f.relative_to(archive_root)) for f in archive_root.rglob("*") if f.is_file()
+                  and not f.relative_to(archive_root).parts[0].startswith("."))
+    assert left == [], left
+    assert users.get_by_username(name) is not None
+    [job] = [j for j in jobs.list_jobs()["done"] if j["target"] == name]
+    assert job["state"] == "failed" and job["error"] == "interrupted"
+
+
 def test_waiting_jobs_survive_restart(archive_root, jobs) -> None:
     """Bestätigt ist bestätigt: Ein wartender Auftrag (noch nichts angefasst) läuft nach dem Neustart weiter."""
     from hydrahive.agents import config as agent_config
