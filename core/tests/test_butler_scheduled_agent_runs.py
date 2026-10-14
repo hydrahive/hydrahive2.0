@@ -6,6 +6,7 @@ import pytest
 
 from hydrahive import buddy
 from hydrahive.agents import config as agent_config
+from hydrahive.api.middleware import users
 from hydrahive.butler import executor, scheduler
 from hydrahive.butler.models import Edge, Flow, Node, NodePosition
 from hydrahive.butler.registry import load_builtins
@@ -55,6 +56,9 @@ def _runtime(monkeypatch, *, agent_owner: str = "alice", error: str | None = Non
     calls: list[dict] = []
     created: list[dict] = []
 
+    # Den Besitzer gibt es (sonst legt der Butler keinen Buddy an – archiv-system.md, Fehler 2).
+    real = users.get_by_username
+    monkeypatch.setattr(users, "get_by_username", lambda owner: real(owner) or {"username": owner, "role": "user"})
     monkeypatch.setattr(
         buddy, "get_or_create_buddy",
         lambda owner: {"agent_id": "buddy-alice", "session_id": "lifetime"},

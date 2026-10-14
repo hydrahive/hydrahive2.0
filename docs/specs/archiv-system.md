@@ -406,3 +406,240 @@ andere Platte. Kein freies Pfadfeld: Er wählt eine Platte aus einer Liste.
   (nach dem Umstellen).
 - Während des Umzugs lehnt `pack()` ab (Etappe 2 zeigt das im Lösch-Dialog).
 - Fortschritt steht in `GET /status` unter `move`; das Fenster fragt ihn ab.
+
+## Etappe 2: Bauplan (Lösch-Dialog + Waisen)
+
+Freigabe Till (13.10.): (1) Projekt = ein Paket (Arbeitsordner, Konfig, alle
+Agenten mit Gedächtnis, ohne eingehängte Laufwerke). (2) Beim Löschen eines
+Nutzers kommen seine Projekte mit ins Archiv und werden mitgelöscht. (3) Leere
+Waisen werden einfach entfernt, Waisen mit Inhalt archiviert. (4) Internes
+Aufräumen (z. B. Storyteller `drop_project`) löscht weiter direkt.
+
+### Ist-Stand (13.10., Code `8863541b`, Prod nur lesend)
+
+- Fünf Stellen in der Oberfläche löschen mit `confirm()` direkt:
+  `AgentFormTabs`, `ProjectDetailsOverlay` (Cockpit), `projects/_SettingsTab`,
+  `UsersOverlay`, `_DataminingInstancesSection`. Die vier Routen sind nur für
+  Admins. Module und Plugins rufen sie nicht über HTTP auf.
+- `pack()` aus Etappe 1 hat noch keinen Aufrufer. Packstufe ist der
+  tarfile-Standard 9. Gemessen an 400 MB gemischten Dateien: Stufe 9 braucht
+  60 s (151 MB), Stufe 6 11 s (152 MB), Stufe 1 5 s (169 MB).
+- Größtes Projekt auf Prod: „HDD Archive“, 1,06 TB in 1,85 Mio. Dateien.
+  Allein das Zählen der Größe dauert 68 s.
+- Chats liegen in `sessions.db` und bleiben dort heute auch nach dem Löschen
+  eines Agenten. Auf Prod: 113 Sessions mit 8.605 Nachrichten von 41
+  gelöschten Agenten.
+- Waisen auf Prod: 30 Arbeitsordner ohne Agent (28 leer, `05b3454f…` 144 KB
+  Recherche, `2efc2a67…` 278 MB `rom`). Dazu **7 Agenten ohne Projekt**:
+  Storyteller-Helfer vom 07.10. (vor #527), je 3 KB, ohne Sessions.
+  hydratest: 2 leere Arbeitsordner.
+- Geheimnisse: Agent-Konfigs enthalten keine. Projekt-Konfigs enthalten
+  `webhook_secret` (18) und `git_token` (6) im Klartext. Die Zugangsdaten
+  eines Nutzers (`credentials/<name>.json`) sind verschlüsselt. In den
+  `.git/config` der Arbeitsordner stehen keine Zugangsdaten (29 geprüft).
+
+**Gefundene Fehler (werden in Etappe 2 mit behoben):**
+
+1. **Projekt löschen kann Daten auf dem NAS löschen.** `projects/config.delete()`
+   ignoriert, ob das Aushängen eines Netzlaufwerks geklappt hat, und ruft dann
+   `shutil.rmtree` auf. `rmtree` beachtet keine Laufwerksgrenzen. Scheitert das
+   Aushängen (Zeitüberschreitung, „busy“), löscht es Dateien auf dem
+   Fileserver mit.
+2. **Nutzer löschen lässt Daten unter seinem Namen liegen.** Gelöscht werden
+   nur seine Agenten, API-Schlüssel und Freigaben. Liegen bleiben: Projekte,
+   die er angelegt hat (`created_by`), seine Mitgliedschaften in fremden
+   Projekten, `credentials/<name>.json`, Butler-Abläufe, Zeitpläne, Skills,
+   Notizen (Scratchpad) sowie WhatsApp- und Discord-Einstellungen. Alles davon
+   hängt am **Namen**. Ein neuer Nutzer mit demselben Namen erbt es, auch die
+   Admin-Rolle in den Projekten des alten Nutzers. Vermutung, wird zuerst mit
+   einem Test belegt: Ein Butler-Zeitplan läuft nach dem Löschen weiter und
+   legt dem gelöschten Nutzer einen neuen Buddy an.
+3. Das Backend erlaubt, das eigene Konto und den letzten Admin zu löschen.
+   Das verhindert heute nur die Oberfläche.
+
+### Ablauf eines Löschvorgangs (Hintergrund-Auftrag)
+
+Beide Wege laufen als Auftrag im Hintergrund, auch „unwiderruflich“: Ein
+großes Projekt zu löschen dauert sonst länger als eine HTTP-Anfrage.
+
+| Schritt | Ins Archiv | Unwiderruflich |
+|---|---|---|
+| 1. Sperren | Agenten auf `disabled` setzen (alter Status wird gemerkt), laufende Läufe abbrechen, Projekt-Freigabe aus | ebenso |
+| 2. Messen | Größe ohne eingehängte Laufwerke, mit Fortschritt | – |
+| 3. Platz prüfen | frei ≥ Größe + 5 %, sonst Abbruch mit Grund | – |
+| 4. Packen | `pack()` mit Fortschritt (Bytes, Dateien), Stufe aus `settings.archive_compress_level` (Standard 1, s. o.) | – |
+| 5. Prüfen | Paket ganz neu lesen: sha256 gleich `.json`, gzip fehlerfrei, Zahl der Einträge stimmt | – |
+| 6. Löschen | Laufwerke aushängen. Scheitert das: Abbruch vor dem ersten Löschen. Dann löschen, ohne je in ein eingehängtes Laufwerk zu gehen (Fehler 1) | ebenso |
+
+- Fehler in Schritt 1–5: Es wird nichts gelöscht. Halbes Paket weg, Agenten
+  wieder auf den alten Status, Freigabe wieder an. Der Grund steht im Auftrag.
+- Fehler in Schritt 6: Das Paket bleibt (die Daten sind sicher). Der Auftrag
+  meldet, was noch übrig ist. Ein neues Löschen räumt den Rest weg.
+- Neustart mitten im Auftrag: Zustand steht in `config_dir/archive-jobs.json`.
+  Vor Schritt 6 wird zurückgerollt wie bei einem Fehler, ab Schritt 6 wird das
+  Löschen fortgesetzt.
+- Es läuft immer nur ein Auftrag. Weitere warten in einer Reihe. Ein Objekt,
+  das schon im Auftrag ist, lässt sich nicht noch einmal löschen
+  (`409 delete_in_progress`).
+- Zieht das Archiv gerade um (Etappe 1b), ist „Ins Archiv“ gesperrt
+  (`archive_unavailable`, Grund `moving`). „Unwiderruflich“ geht weiter.
+- Arbeitsdateien (Sessions als JSON) entstehen in `archive/.arbeit/<auftrag>/`.
+  Sie liegen auf derselben Platte wie das Archiv, der Katalog zeigt sie nicht
+  und sie werden danach entfernt.
+
+### Was in welches Paket kommt
+
+| Art | Inhalt |
+|---|---|
+| **Agent** | `agents/<id>` vollständig (Konfig, Prompt, Gedächtnis, Kristalle, Soul, …), eigener Arbeitsordner (`master/` bzw. `specialists/`, nicht der Projekt-Ordner), seine Chats als `sessions/<id>.json` (Nachrichten + Werkzeugaufrufe, eine Datei je Chat) |
+| **Projekt** | `projects/<id>`, Arbeitsordner ohne eingehängte Laufwerke, alle Agenten des Projekts wie oben, Chats des Projekts. In der `.json`: übersprungene Laufwerke, Mitglieder |
+| **Nutzer** | Nutzer-Eintrag ohne Passwort-Hash, seine Agenten (ohne Projekt-Agenten), `credentials/<name>.json` (bleibt verschlüsselt), Skills, Butler-Abläufe, Zeitpläne, WhatsApp/Discord-Einstellungen (Bot-Token als `***`), Morgen-Briefing (`zahnfee/<name>.json`). **Je eigenes Projekt ein eigenes Projekt-Paket**, verknüpft über `extra.part_of`, damit sich ein Projekt später auch ohne den Nutzer wiederverwenden lässt |
+| **Externe Instanz** | wie Agent, dazu der Nutzer-Eintrag der Instanz. API-Schlüssel kommen nicht mit, sie werden ungültig |
+
+Geheimnisse im Paket: siehe Frage 2.
+
+Ob die Chats danach aus `sessions.db` entfernt werden, klärt Frage 1. Der
+Dialog sagt in jedem Fall, wo sie noch liegen.
+
+### Nutzer löschen: zusätzlich (Fehler 2 + 3)
+
+- Abgelehnt mit `400 cannot_delete_self` bzw. `400 last_admin_cannot_delete`.
+- Nach dem Packen (bzw. sofort bei „unwiderruflich“) wird alles entfernt, was
+  am Namen hängt: Projekte mit `created_by` = Nutzer, seine Mitgliedschaften
+  in fremden Projekten, Zugangsdaten (samt SSH-Schlüssel-Dateien), Skills,
+  Butler-Abläufe, Zeitpläne, WhatsApp/Discord (laufende Verbindung wird
+  getrennt, das WhatsApp-Login `whatsapp/<name>/auth` gelöscht, sonst wäre ein
+  Namensvetter mit dem alten Konto verbunden), Morgen-Briefing.
+- Ebenso die persönlichen Zeilen in Kern-Tabellen, die am Namen oder an der
+  `user_id` hängen: `user_preferences`, `prompt_archive`,
+  `streaming_credentials`, `streaming_jobs`, `teamchat_identities`,
+  `vault_pins`, `health_ingest`, `health_daily`, `fhir_resources`,
+  `ega_records` (Fund beim Bau, 13.10.). Sie kommen als `db/<tabelle>.jsonl`
+  ins Nutzer-Paket. Verschlüsselte Spalten bleiben verschlüsselt.
+  Protokolle (`llm_calls`, `errors_log`, Audit-Tabellen) bleiben stehen.
+- Agenten des Nutzers in fremden Projekten gehören zum Projekt. Sie bleiben
+  und gehen an den Ersteller des Projekts über.
+- Bleibt bestehen und steht so im Dialog: VMs, Container und SMB-Verbindungen
+  des Nutzers sowie Daten in Modulen (Notizbuch, Cryptoboard, Haushaltsbuch,
+  Aufgaben …, rund 30 Tabellen). Siehe Entscheidung 3.
+
+### API
+
+- `GET /api/admin/archive/delete-preview?kind=agent|project|user|instance&id=…`:
+  Name, was betroffen ist (Agenten, Chats, Projekte mit Mitgliedern, was
+  bestehen bleibt, übersprungene Laufwerke), Größe, Ziel (Pfad, Freigabe,
+  freier Platz) und ob „Ins Archiv“ geht (sonst Grund). Die Größe wird höchstens
+  `settings.archive_preview_budget_s` (Standard 5 s) gezählt. Dauert es
+  länger, kommt „mindestens X“ zurück, und Schritt 3 prüft später die genaue
+  Größe.
+- Die vorhandenen Routen `DELETE /api/agents/{id}`, `/api/projects/{id}`,
+  `/api/users/{name}` und `/api/external-instances/{id}` bekommen
+  `?mode=archive|permanent&confirm=<name>`:
+  - ohne `mode`: `409 delete_mode_required`
+  - `permanent` und `confirm` ist nicht genau der Name: `400 delete_confirm_mismatch`
+  - sonst `202 {"job_id": …}`, statt bisher 204
+- `GET /api/admin/archive/jobs`: laufender Auftrag, wartende, die letzten 20
+  fertigen (Schritt, Bytes, Dateien, Fehler). Steht auch in `GET /status`.
+- Python-Funktionen wie `agent_config.delete()` und `project_config.delete()`
+  bleiben direkt, für internes Aufräumen (Entscheidung 4). Den Fix für Fehler 1
+  bekommen sie trotzdem.
+
+### Oberfläche
+
+- `features/archive/delete/DeleteDialog.tsx`, genutzt von allen fünf Stellen.
+  Er zeigt, was betroffen ist und was bestehen bleibt, und bietet zwei Wege an:
+  - **Ins Archiv**: vorausgewählt, wenn es geht. Er nennt Ziel und freien
+    Platz. Geht es nicht, ist der Weg gesperrt, und der Grund steht daneben.
+  - **Unwiderruflich**: nie vorausgewählt, nur nach Eintippen des Namens.
+- Nach dem Start: Fortschritt im Dialog. Schließen ist erlaubt, der Auftrag
+  läuft weiter.
+- Admin-Fenster „Archiv & Sicherung“, neuer Bereich **Laufende Vorgänge**:
+  Lösch-Aufträge und Umzug mit Fortschritt und Fehlern.
+- Texte de/en, ohne `update.sh` und ohne `install.conf` (Test wie in Etappe 1).
+
+### Waisen (eigener PR)
+
+- `GET /api/admin/archive/orphans`: Arbeitsordner ohne Agent (leer oder mit
+  Inhalt, Größe) und Agenten, deren Projekt nicht mehr existiert.
+- `POST /api/admin/archive/orphans/cleanup` → 202, als Auftrag in derselben
+  Reihe. Leere Ordner entfernen. Ordner mit Inhalt und Agenten ohne Projekt
+  ins Archiv (Art `agents`, Grund `orphan`), dann entfernen. Unmittelbar vor
+  dem Entfernen wird noch einmal geprüft, ob es wirklich eine Waise ist.
+- Bereich **Waisen** im Admin-Fenster: Anzahl, Größe, Knopf „Aufräumen“.
+- Ein Skript gibt es nicht. Nach Tills Regel geht alles über die Admin-Konsole.
+
+### Tests (zuerst rot)
+
+- Routen: ohne `mode` → 409. Falscher Name → 400. Nur Admin. Eigenes Konto
+  bzw. letzter Admin → 400.
+- Agent/Projekt/Nutzer/Instanz ins Archiv: Paket enthält das Erwartete, Chats
+  als JSON, kein Laufwerk. Gelöscht wird erst nach der Prüfung.
+- Packen scheitert (Platte voll simuliert) und Prüfung scheitert (Paket
+  verändert): Es wird nichts gelöscht, Agenten haben wieder den alten Status.
+- Aushängen scheitert: Es wird nichts gelöscht, Dateien „im Laufwerk“ bleiben
+  (Fehler 1, auch für `project_config.delete()`).
+- Nutzer: Am Namen hängt danach nichts mehr. Ein neuer Nutzer mit demselben
+  Namen sieht nichts vom alten (Fehler 2). Butler-Zeitplan legt keinen Buddy
+  mehr an.
+- Neustart vor und nach Schritt 6, Reihe, `delete_in_progress`, Archiv zieht um.
+- Waisen: leer → weg, mit Inhalt → Paket, inzwischen wieder zugeordnet →
+  bleibt.
+- vitest: „Unwiderruflich“ nie vorausgewählt, Knopf erst nach dem Namen,
+  gesperrter Archiv-Weg mit Grund, Fortschritt, keine verbotenen Texte.
+- E2E hydratest mit echtem Zustand: Test-Agent, Test-Projekt mit Chat und
+  Laufwerk, Test-Nutzer mit Projekt im Browser löschen. Danach die Pakete per
+  `smbclient` holen und den Inhalt prüfen. Gegenprobe auf `main` ist rot.
+  Frischer `images:ubuntu/26.04`-Container.
+
+### PRs
+
+1. **2a**: Lösch-Wege + Auftrag + Dialog + „Laufende Vorgänge“ + Fehler 1–3.
+   Backend und Oberfläche zusammen, weil die Routen danach `mode` verlangen.
+2. **2b**: Waisen.
+
+### Entschieden (Till, 13.10.)
+
+1. **Chats verschwinden.** Bei beiden Wegen werden die Chats des Gelöschten
+   aus `sessions.db` entfernt, bei „Ins Archiv“ erst nach der Prüfung des
+   Pakets. Das Datamining behält seine Kopie. Der Dialog sagt das.
+2. **Geheimnisse ersetzen.** `webhook_secret` und `git_token` in Projekt-
+   Konfigs stehen im Paket als `***`. Die Zugangsdaten des Nutzers bleiben
+   verschlüsselt, wie sie sind.
+3. **Vorerst bleiben** VMs, Container, SMB-Verbindungen und Modul-Daten
+   eines gelöschten Nutzers bestehen. Der Dialog zeigt sie mit Anzahl. Eigener
+   Task: Schnittstelle „Nutzer gelöscht“ für Module.
+
+**Status: Etappe 2 freigegeben (Till, 13.10.).**
+
+### Funde beim Bau (13./14.10.)
+
+- **Notizen (Scratchpad) sind ein Modul** (`data_dir/scratchpad/<user_id>`),
+  kein Kern-Teil. Sie fallen unter Entscheidung 3 und bleiben vorerst liegen.
+- **Fast alle persönlichen Kern-Tabellen schlüsseln mit dem Namen**, nicht mit
+  der ID (`user_preferences`, `prompt_archive`, Streaming, Teamchat, Health,
+  FHIR, eGA). Nur `vault_pins` nutzt die ID. Gelöscht wird jeweils mit dem
+  Schlüssel, den die Tabelle wirklich benutzt.
+- **Zweite Absicherung gegen den Buddy-Wiedergänger:** Zeitpläne und Butler
+  legen keinen Buddy mehr für einen Nutzer an, den es nicht gibt (falls ein
+  Lauf genau während des Löschens startet).
+- **Wartende Aufträge laufen nach einem Neustart weiter.** Sie sind bestätigt
+  und haben noch nichts angefasst. Zurückgerollt wird nur ein Auftrag, der
+  vor Schritt 6 unterbrochen wurde.
+- **Harter Abbruch mitten im Packen** (Strom weg, Neustart, im frischen
+  Container mit 800 MB nachgestellt): Das halbe Paket (`.part`) blieb liegen.
+  Jetzt merkt sich der Auftrag jeden Paketnamen, bevor er schreibt. Beim
+  Zurückrollen verschwinden fertige Teilpakete und halbe `.part`-Dateien.
+- **Ein Laufwerk, das umount mit „ok“ quittiert, aber noch hängt, gilt als
+  gescheitert.** Ein von Hand eingehängtes Laufwerk (HydraHive kennt es
+  nicht) bleibt samt Elternordnern stehen und steht im Ergebnis unter
+  „übrig“.
+- **Internes Löschen (`agent_config.delete`) nimmt den eigenen Arbeitsordner
+  jetzt mit.** So entstehen keine neuen Waisen. `project_config.delete` wirft
+  `ProjectDeleteBlocked`, wenn ein Laufwerk nicht aushängt (Fehler 1). Für
+  Storyteller ändert sich nichts: Seine Projekte haben keine Laufwerke.
+- **Ein Instanz-Nutzer kommt nur mit**, wenn er die Rolle `user` hat und keine
+  weiteren Agenten besitzt. Das ist dieselbe Regel wie bisher in
+  `external_instances`.
+- Einstellungen (Standard, über ENV änderbar): `archive_compress_level` 1,
+  `archive_preview_budget_s` 5, `archive_space_reserve` 0,05,
+  `archive_jobs_keep` 20.

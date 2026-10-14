@@ -34,10 +34,13 @@ def test_admin_create_and_list(client, admin_headers):
     assert any(i["name"] == "api-inst" for i in lst)
 
 
-def test_delete_instance(client, admin_headers):
+def test_delete_instance(client, admin_headers, monkeypatch):
     aid = client.post("/api/external-instances",
                       json={"name": "del-inst", "llm_model": MODEL}, headers=admin_headers).json()["agent_id"]
-    assert client.delete(f"/api/external-instances/{aid}", headers=admin_headers).status_code == 204
+    from hydrahive.api.middleware import users
+    from tests._delete_sync import delete_now
+    delete_now(client, f"/api/external-instances/{aid}", "del-inst", admin_headers, monkeypatch)
+    assert users.get_by_username("del-inst") is None
 
 
 def test_rotate_key(client, admin_headers):

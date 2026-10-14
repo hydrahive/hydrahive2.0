@@ -246,12 +246,12 @@ def test_delete_agent_not_found(client, admin_headers):
     assert error_code(res) == "agent_not_found"
 
 
-def test_delete_agent_success(client, admin_headers):
+def test_delete_agent_success(client, admin_headers, monkeypatch):
     agent = _create_agent(client, admin_headers, name="Bot to Delete")
     agent_id = agent["id"]
 
-    res = client.delete(f"/api/agents/{agent_id}", headers=admin_headers)
-    assert res.status_code == 204
+    from tests._delete_sync import delete_now
+    delete_now(client, f"/api/agents/{agent_id}", "Bot to Delete", admin_headers, monkeypatch)
 
     # Nach dem Löschen nicht mehr abrufbar
     res = client.get(f"/api/agents/{agent_id}", headers=admin_headers)

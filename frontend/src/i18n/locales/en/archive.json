@@ -113,5 +113,84 @@
     "target_not_empty": "There are already files there.",
     "target_not_writable": "HydraHive may not write there yet.",
     "not_enough_space": "Not enough space."
+  },
+  "delete": {
+    "kind": {
+      "agent": "Delete agent",
+      "project": "Delete project",
+      "user": "Delete user",
+      "instance": "Delete external instance"
+    },
+    "title": "Delete “{{name}}”",
+    "loading": "Loading …",
+    "choose": "How should it be deleted?",
+    "size": {
+      "exact": "Size: {{size}}",
+      "at_least": "Size: at least {{size}} (an exact count takes longer)"
+    },
+    "affected": {
+      "projects": "Own projects deleted along with it: {{names}}",
+      "agents": "Agents with memory and working folder: {{names}}",
+      "chats": "Chats: {{count}}",
+      "mounts": "Mounted drives are unmounted and not packed: {{names}}"
+    },
+    "hand_over": "{{count}} agent(s) in other people’s projects go to the creator of that project.",
+    "stays": {
+      "vms": "Stays: {{count}} VM(s)",
+      "containers": "Stays: {{count}} container(s)",
+      "smb_mounts": "Stays: {{count}} SMB connection(s)"
+    },
+    "archive": {
+      "title": "To the archive (recommended)",
+      "free": "Free: {{free}}",
+      "share": "reachable on the network as {{share}}"
+    },
+    "permanent": {
+      "title": "Delete permanently",
+      "explain": "No backup. Nothing can be restored afterwards.",
+      "type_name": "Type exactly “{{name}}” to confirm"
+    },
+    "reason": {
+      "moving": "The archive is being moved. Please wait until the move has finished.",
+      "not_enough_space": "There is not enough free space in the archive."
+    },
+    "chats_gone": "The chats disappear from HydraHive. With “To the archive” they are kept in the package; data mining keeps its copy.",
+    "start_archive": "Archive and delete",
+    "start_permanent": "Delete permanently",
+    "close_ok": "You can close this window. The job keeps running and is listed under Admin → Archive & Backup → Running jobs.",
+    "step": {
+      "queued": "Waiting …",
+      "lock": "Locking …",
+      "measure": "Counting size …",
+      "pack": "Packing …",
+      "delete": "Deleting …",
+      "done": "Done"
+    },
+    "done_archive": "Deleted. The package is in the archive:",
+    "done_permanent": "Deleted permanently.",
+    "leftovers": "These mounted drives were left untouched and are still in the folder:",
+    "nothing_deleted": "Nothing was deleted.",
+    "error": {
+      "not_found": "It no longer exists.",
+      "pack_failed": "Packing failed (e.g. disk full).",
+      "verify_failed": "The package was damaged after packing and was discarded.",
+      "not_enough_space": "There is not enough free space in the archive.",
+      "archive_unavailable": "The archive is being moved.",
+      "umount_failed": "A network drive could not be unmounted. To make sure nothing on it gets deleted, the job was stopped.",
+      "last_admin_cannot_delete": "The last admin cannot be deleted.",
+      "interrupted": "The service restarted before anything was deleted. Everything was reset.",
+      "delete_incomplete": "Deleting after the restart is incomplete. The package is in the archive; a new attempt removes the rest.",
+      "unexpected": "Unexpected error."
+    }
+  },
+  "jobs": {
+    "title": "Running jobs",
+    "empty": "Nothing is running right now.",
+    "queued": "Waiting",
+    "recent": "Recent",
+    "mode": {
+      "archive": "to archive",
+      "permanent": "permanent"
+    }
   }
 }

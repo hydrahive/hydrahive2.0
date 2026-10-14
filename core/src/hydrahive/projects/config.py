@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 import secrets
-import shutil
 from typing import Any
 
 from hydrahive.agents import config as agent_config
 from hydrahive.db._utils import now_iso, uuid7
 from hydrahive.projects import _validation
 from hydrahive.projects import _members_model
+from hydrahive.projects._delete import ProjectDeleteBlocked, delete  # noqa: F401 – öffentliche API
 from hydrahive.projects._config_io import (
     _normalize, _save_atomic, get, list_all, list_for_user,
 )
@@ -17,11 +17,10 @@ from hydrahive.projects._paths import (
     ensure_workspace,
     project_dir,
 )
-from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get", "list_all", "list_for_user", "create", "update", "delete"]
+__all__ = ["get", "list_all", "list_for_user", "create", "update", "delete", "ProjectDeleteBlocked"]
 
 
 def create(
@@ -105,46 +104,3 @@ def update(project_id: str, **changes: Any) -> dict:
         from hydrahive.projects._linked import sync_pointing_to
         sync_pointing_to(project_id)            # linked/<Name> anderer Projekte (linked-projects.md)
     return cfg
-
-
-def delete(project_id: str) -> bool:
-    cfg = get(project_id)
-    if not cfg:
-        return False
-    # Cascade: Project-Agent + Spezialisten des Projekts + Workspace + Project-Verzeichnis +
-    # Server-Assignments (VMs/Container bleiben, project_id wird NULL).
-    if cfg.get("agent_id"):
-        agent_config.delete(cfg["agent_id"])
-    for agent in agent_config.list_all():   # create_specialist, Storyteller-Helfer – sonst verwaist
-        if agent.get("project_id") == project_id and agent.get("id") != cfg.get("agent_id"):
-            agent_config.delete(agent["id"])
-    from hydrahive.vms import db as vms_db
-    from hydrahive.containers import db as containers_db
-    from hydrahive.samba import disable_share as samba_disable
-    from hydrahive.smbmounts import db as mounts_db
-    from hydrahive.smbmounts import mounter as smb_mounter
-    from hydrahive.agents._workspace_links import sync_links_for_user
-    affected_users = set(_members_model.usernames(cfg))
-    if cfg.get("created_by"):
-        affected_users.add(cfg["created_by"])
-    vms_db.clear_project_assignments(project_id)
-    containers_db.clear_project_assignments(project_id)
-    # SMB-Mounts erst aushängen (vor rmtree!), sonst löscht rmtree in das
-    # gemountete Fileserver-Verzeichnis hinein.
-    for m in mounts_db.list_for_project(project_id):
-        smb_mounter.umount(m)
-        mounts_db.set_state(m.mount_id, "unmounted")
-    mounts_db.clear_project_assignments(project_id)
-    samba_disable(project_id)
-    ws = settings.data_dir / "workspaces" / "projects" / project_id
-    if ws.exists():
-        shutil.rmtree(ws)
-    pd = project_dir(project_id)
-    if pd.exists():
-        shutil.rmtree(pd)
-    for user in affected_users:
-        sync_links_for_user(user)
-    from hydrahive.projects._linked import sync_pointing_to
-    sync_pointing_to(project_id)                # verwaiste linked/<Name> anderer Projekte entfernen
-    logger.info("Projekt gelöscht: %s", project_id)
-    return True

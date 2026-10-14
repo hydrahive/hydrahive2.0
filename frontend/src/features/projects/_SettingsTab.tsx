@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { DeleteDialog } from "@/features/archive/delete/DeleteDialog"
 import { projectsApi } from "./api"
 import { LinkedProjectsSection } from "./_SettingsLinked"
 import { OverridesSection } from "./_SettingsOverrides"
@@ -20,6 +21,7 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
   const [samba, setSamba] = useState<{ enabled: boolean; share_name: string; user: string; password: string } | null>(null)
   const [sambaBusy, setSambaBusy] = useState(false)
   const [sambaError, setSambaError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     projectsApi.getSamba(project.id).then(setSamba).catch(() => setSamba(null))
@@ -35,12 +37,6 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
     } catch (e) {
       setSambaError(e instanceof Error ? e.message : tCommon("status.error"))
     } finally { setSambaBusy(false) }
-  }
-
-  async function remove() {
-    if (!confirm(t("delete_confirm", { name: project.name }))) return
-    await projectsApi.delete(project.id)
-    onDeleted()
   }
 
   return (
@@ -70,12 +66,13 @@ export function SettingsTab({ project, draft, onDraftChange, onDeleted }: Props)
 
       <div className="border-t border-[#2a364b] pt-4">
         <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-[#718097]">{t("settings.danger_zone")}</p>
-        <button onClick={remove}
+        <button onClick={() => setDeleting(true)}
           className="flex items-center gap-2 rounded-[4px] border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-200 transition-colors hover:bg-rose-500/15">
           <Trash2 size={14} />
           {t("settings.delete_project")}
         </button>
       </div>
+      {deleting && <DeleteDialog kind="project" id={project.id} onClose={() => setDeleting(false)} onDeleted={onDeleted} />}
     </div>
   )
 }

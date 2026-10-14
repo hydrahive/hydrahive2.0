@@ -34,7 +34,6 @@
     "agent_loading": "(geladen…)",
     "created_by": "{{date}} von {{user}}"
   },
-  "delete_confirm": "Projekt \"{{name}}\" löschen?\n\nIncl. Project-Agent, Workspace und alle Sessions.",
   "members": {
     "no_members": "Keine Members",
     "remove_confirm": "'{{username}}' aus Projekt entfernen?",
@@ -140,7 +139,8 @@
   },
   "settings": {
     "danger_zone": "Gefahrenzone — diese Aktionen können nicht rückgängig gemacht werden.",
-    "delete_project": "Projekt löschen"
+    "delete_project": "Projekt löschen",
+    "delete_hint": "Wahlweise ins Archiv (Paket mit Arbeitsordner, Agenten, Gedächtnis und Chats) oder unwiderruflich. Eingehängte Laufwerke werden vorher ausgehängt."
   },
   "samba": {
     "title": "SMB-Share",

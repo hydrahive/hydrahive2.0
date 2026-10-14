@@ -34,7 +34,6 @@
     "agent_loading": "(loading…)",
     "created_by": "{{date}} by {{user}}"
   },
-  "delete_confirm": "Delete project \"{{name}}\"?\n\nIncludes project agent, workspace, and all sessions.",
   "members": {
     "no_members": "No members",
     "remove_confirm": "Remove '{{username}}' from project?",
@@ -140,7 +139,8 @@
   },
   "settings": {
     "danger_zone": "Danger zone — these actions cannot be undone.",
-    "delete_project": "Delete project"
+    "delete_project": "Delete project",
+    "delete_hint": "Either to the archive (package with working folder, agents, memory and chats) or permanently. Mounted drives are unmounted first."
   },
   "samba": {
     "title": "SMB Share",

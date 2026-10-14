@@ -84,7 +84,6 @@
     "copy_agent_id": "Agent-ID kopieren",
     "rotate_key": "API-Key rotieren",
     "delete": "Instanz löschen",
-    "delete_confirm": "Instanz \"{{name}}\" löschen? User, Agent und API-Key werden entfernt.",
     "rotate_confirm": "Key für \"{{name}}\" rotieren? Der alte Key wird ungültig.",
     "new_key_prompt": "Neuer API-Key (einmalig — jetzt kopieren):"
   },

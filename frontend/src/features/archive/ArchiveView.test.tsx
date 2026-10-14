@@ -27,10 +27,26 @@ const props = (p: Partial<ArchiveViewProps> = {}): ArchiveViewProps => ({
 const html = (p: Partial<ArchiveViewProps> = {}) => renderToStaticMarkup(<ArchiveView {...props(p)} />).replace(/&quot;/g, '"')
 
 describe("Admin-Fenster Archiv & Sicherung", () => {
-  it("drei Bereiche: Speicherort, Samba-Freigabe, Elemente", () => {
+  it("vier Bereiche: Speicherort, Samba-Freigabe, Laufende Vorgänge, Elemente", () => {
     const out = html()
     const order = [...out.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1])
-    expect(order).toEqual(["storage", "share", "entries"])
+    expect(order).toEqual(["storage", "share", "jobs", "entries"])
+  })
+
+  it("Laufende Vorgänge: laufend mit Fortschritt, wartend, zuletzt mit Fehler", () => {
+    const job = { kind: "project" as const, target: "p", mode: "archive" as const, error: null, bytes_total: 100,
+      bytes_done: 50, files_total: 2, packages: [], leftovers: [] }
+    const jobs = {
+      running: { ...job, id: "r1", name: "Läuft", state: "running" as const, step: "pack" as const },
+      queued: [{ ...job, id: "q1", name: "Wartet", state: "queued" as const, step: "queued" as const }],
+      done: [{ ...job, id: "d1", name: "Kaputt", state: "failed" as const, step: "pack" as const, error: "pack_failed" }],
+    }
+    const out = html({ status: { ...STATUS, jobs } })
+    expect(out).toMatch(/data-delete-job="r1" data-delete-state="running"/)
+    expect(out).toContain("50%")
+    expect(out).toMatch(/data-delete-job="q1" data-delete-state="queued"/)
+    expect(out).toContain("delete.error.pack_failed")
+    expect(html()).toContain("jobs.empty")
   })
 
   it("Speicherort zeigt Pfad, Zahl und Papierkorb", () => {

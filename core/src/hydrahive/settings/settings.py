@@ -9,11 +9,13 @@ Properties sind in Mixins gruppiert:
 - `_services.py`: Server, JWT, AgentLink, Communication
 - `_ai_security.py`: optional AI-Infra-Guard adapter
 - `_infra.py`: Samba, VMs, Extensions, Butler
+- `_archive.py`: Packstufe, Vorschau-Budget, Platz-Reserve des System-Archivs
 """
 
 from __future__ import annotations
 
 from hydrahive.settings._ai_security import _AiSecurityMixin
+from hydrahive.settings._archive import _ArchiveMixin
 from hydrahive.settings._compute import _ComputeMixin
 from hydrahive.settings._infra import (
     _ButlerMixin,
@@ -46,6 +48,7 @@ class Settings(
     _ExtensionsMixin,
     _WebminMixin,
     _ButlerMixin,
+    _ArchiveMixin,
 ):
     """Aggregiert alle Settings-Mixins zu einem Singleton."""
 

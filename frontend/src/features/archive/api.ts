@@ -1,4 +1,5 @@
 import { api } from "@/shared/api-client"
+import type { DeleteJobs } from "./delete/api"
 
 export type ArchiveKind = "agents" | "projects" | "users" | "backups" | "uploads"
 
@@ -79,6 +80,8 @@ export interface ArchiveStatus {
   storage: ArchiveStorage
   share: ArchiveShare
   move?: ArchiveMove
+  /** Lösch-Aufträge („Laufende Vorgänge“, Etappe 2). */
+  jobs?: DeleteJobs
 }
 
 export interface ArchiveEntry {

@@ -52,6 +52,9 @@ def _target_agent(
 ) -> str | None:
     requested = str(action.get("reply_via_agent") or "").strip()
     if requested == "master" or not requested:
+        if users.get_by_username(owner) is None:       # gelöschter Nutzer: keinen neuen Buddy anlegen (Fehler 2)
+            logger.warning("Geplanter Butler-Flow %s/%s: Nutzer existiert nicht mehr", owner, flow_id)
+            return None
         target_id = str(buddy.get_or_create_buddy(owner)["agent_id"])
     else:
         target_id = requested

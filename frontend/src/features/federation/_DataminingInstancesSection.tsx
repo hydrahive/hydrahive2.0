@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Copy, Pickaxe, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { DeleteDialog } from "@/features/archive/delete/DeleteDialog"
 import { externalInstancesApi } from "./api"
 import type { ExternalInstance } from "./types"
 import { NewInstanceDialog } from "./_NewInstanceDialog"
@@ -19,6 +20,7 @@ export function DataminingInstancesSection() {
   const [instances, setInstances] = useState<ExternalInstance[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<ExternalInstance | null>(null)
 
   async function load() {
     try {
@@ -29,12 +31,6 @@ export function DataminingInstancesSection() {
   }
 
   useEffect(() => { load() }, [])
-
-  async function handleDelete(inst: ExternalInstance) {
-    if (!confirm(t("instances.delete_confirm", { name: inst.name }))) return
-    await externalInstancesApi.delete(inst.agent_id).catch(() => {})
-    load()
-  }
 
   async function handleRotate(inst: ExternalInstance) {
     if (!confirm(t("instances.rotate_confirm", { name: inst.name }))) return
@@ -99,7 +95,7 @@ export function DataminingInstancesSection() {
                         className="p-1 text-zinc-600 hover:text-violet-400 transition-colors" title={t("instances.rotate_key")}>
                   <RefreshCw size={13} />
                 </button>
-                <button onClick={() => handleDelete(inst)}
+                <button onClick={() => setDeleteTarget(inst)}
                         className="p-1 text-zinc-600 hover:text-red-400 transition-colors" title={t("instances.delete")}>
                   <Trash2 size={13} />
                 </button>
@@ -109,6 +105,9 @@ export function DataminingInstancesSection() {
         </div>
       )}
 
+      {deleteTarget && (
+        <DeleteDialog kind="instance" id={deleteTarget.agent_id} onClose={() => setDeleteTarget(null)} onDeleted={() => { void load() }} />
+      )}
       {showNew && (
         <NewInstanceDialog
           onClose={() => setShowNew(false)}

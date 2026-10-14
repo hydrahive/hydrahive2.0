@@ -1,6 +1,7 @@
 import { AdminFeedback } from "@/features/cockpit/admin/ui"
 import type { ArchiveEntry, ArchiveKind, ArchiveStatus } from "./api"
 import { ArchiveEntriesSection } from "./ArchiveEntriesSection"
+import { ArchiveJobsSection } from "./ArchiveJobsSection"
 import { ArchiveShareSection } from "./ArchiveShareSection"
 import { ArchiveStorageSection } from "./ArchiveStorageSection"
 
@@ -18,7 +19,7 @@ export interface ArchiveViewProps {
   onChangeLocation: () => void
 }
 
-/** Reine Ansicht des Admin-Fensters „Archiv & Sicherung“ (Spec archiv-system.md, Etappe 1). */
+/** Reine Ansicht des Admin-Fensters „Archiv & Sicherung“ (Spec archiv-system.md, Etappe 1 + 2). */
 export function ArchiveView(props: ArchiveViewProps) {
   const { status, entries, host, kind, error, shareBusy, onKind, onEmptyTrash, onSetupSamba, onShareSwitch, onChangeLocation } = props
   return (
@@ -32,6 +33,7 @@ export function ArchiveView(props: ArchiveViewProps) {
         <ArchiveShareSection share={status.share} host={host} busy={shareBusy}
           onSetupSamba={onSetupSamba} onSwitch={onShareSwitch} />
       )}
+      {status && <ArchiveJobsSection jobs={status.jobs} move={status.move} />}
       <ArchiveEntriesSection entries={entries} kind={kind} onKind={onKind} />
     </div>
   )

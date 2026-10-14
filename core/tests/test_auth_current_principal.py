@@ -154,12 +154,12 @@ def test_admin_key_after_demotion_is_rejected(client, made_users):
     assert client.get(AUTH_ROUTE, headers=_h(plain)).status_code == 401
 
 
-def test_deleting_user_deletes_their_api_keys(client, admin_headers, made_users):
+def test_deleting_user_deletes_their_api_keys(client, admin_headers, made_users, monkeypatch):
     uid = made_users("key_owner", "user")
     api_keys.create(name="k1", username="key_owner", role="user", user_id=uid)
     _legacy_key("key_owner", "user")
-    r = client.delete("/api/users/key_owner", headers=admin_headers)
-    assert r.status_code == 204, r.text
+    from tests._delete_sync import delete_now
+    delete_now(client, "/api/users/key_owner", "key_owner", admin_headers, monkeypatch)
     assert api_keys.list_keys("key_owner") == []
 
 

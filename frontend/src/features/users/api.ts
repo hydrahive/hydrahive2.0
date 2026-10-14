@@ -11,7 +11,6 @@ export const usersApi = {
     api.post<User>("/users", { username, password, role }),
   update: (username: string, patch: UserPatch) =>
     api.patch<{ ok: boolean }>(`/users/${encodeURIComponent(username)}`, patch),
-  delete: (username: string) => api.delete<void>(`/users/${encodeURIComponent(username)}`),
   changePassword: (username: string, new_password: string) =>
     api.patch<{ ok: boolean }>(`/users/${encodeURIComponent(username)}/password`, { new_password }),
 }

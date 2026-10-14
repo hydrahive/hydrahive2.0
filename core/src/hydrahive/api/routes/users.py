@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 
 from hydrahive.api.middleware import api_keys
 from hydrahive.api.middleware.errors import coded
+from hydrahive.api.routes import _delete_job
 from pydantic import BaseModel
 
 from hydrahive.agents import bootstrap as agent_bootstrap, config as agent_config
@@ -22,7 +23,6 @@ from hydrahive.api.middleware.auth import (
 )
 from hydrahive.api.middleware.users import (
     create,
-    delete,
     get_by_username,
     list_users,
     update_password,
@@ -64,19 +64,22 @@ def create_user(req: CreateUserRequest) -> dict:
     return {"username": req.username, "role": req.role}
 
 
-@router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{username}", status_code=status.HTTP_202_ACCEPTED)
 def delete_user(
     username: str,
     admin: Annotated[AuthPrincipal, Depends(require_admin_principal)],
-) -> None:
+    mode: str | None = None,
+    confirm: str | None = None,
+):
+    """Nutzer samt allem, was an seinem Namen hängt (Fehler 2), als Auftrag (archiv-system.md, Etappe 2)."""
     target = get_by_username(username)
-    for agent in agent_config.list_by_owner(username):
-        agent_config.delete(agent["id"])
-    # Keys ohne Besitzer wären sonst weiter gültig (Task a9706460).
-    api_keys.delete_for_user(username)
-    delete(username)
-    if target:
-        access_store.purge_user(target["user_id"], actor_id=admin.user_id)
+    if not target:
+        raise coded(status.HTTP_404_NOT_FOUND, "user_not_found")
+    if target["user_id"] == admin.user_id:
+        raise coded(status.HTTP_400_BAD_REQUEST, "cannot_delete_self")
+    if target["role"] == "admin" and sum(1 for u in list_users() if u["role"] == "admin") <= 1:
+        raise coded(status.HTTP_400_BAD_REQUEST, "last_admin_cannot_delete")
+    return _delete_job.start("user", username, username, mode, confirm, admin.username)
 
 
 @router.patch("/{username}", dependencies=[Depends(require_admin)])

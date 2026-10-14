@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 
 from hydrahive.agents import config as agent_config
+from hydrahive.api.middleware import users
 from hydrahive.buddy import get_or_create_buddy
 from hydrahive.butler import executor as butler_executor
 from hydrahive.api.routes._session_access import assert_agent_access, assert_project_access
@@ -98,6 +99,9 @@ def _authorize_direct(task: ScheduledTask, target_id: str) -> str | None:
 async def _run_direct_task(task: ScheduledTask, run_id: str) -> None:
     target_id = task.target_id
     if task.target_type == "buddy":
+        if users.get_by_username(task.owner) is None:  # gelöschter Nutzer: keinen neuen Buddy anlegen (Fehler 2)
+            db.finish(task.task_id, run_id, status="failed", error="owner_deleted")
+            return
         state = get_or_create_buddy(task.owner)
         target_id = state["agent_id"]
     refused = _authorize_direct(task, target_id)
