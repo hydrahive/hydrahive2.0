@@ -147,3 +147,15 @@ def test_status_shows_remote_counts(client, admin_headers, archive_root, remote_
     assert entry["remote"]["state"] == "verified"
     r = client.post("/api/admin/archive/remote/sync", headers=admin_headers)
     assert r.status_code == 202 and r.json()["queued"] == 0
+
+
+def test_package_removed_locally_before_copy_is_dropped(archive_root, remote_on, remote_queue) -> None:
+    """Wurde ein Paket verworfen oder von Hand gelöscht, bevor es hochging: aus der Reihe, kein Absturz."""
+    a = make_agent("Weg I")
+    deletion.run("agent", a["id"], "archive", actor="admin")
+    pkg = only_package(archive_root, "agents")
+    pkg.unlink()
+
+    remote_queue.process_queue()
+
+    assert remote_queue.summary()["waiting"] == 0 and remote_on.puts == 0

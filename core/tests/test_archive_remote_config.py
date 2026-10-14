@@ -100,3 +100,22 @@ def test_routes(client, admin_headers, auth_headers, fake_remote) -> None:
     status = client.get("/api/admin/archive/status", headers=admin_headers).json()
     assert status["remote"]["active"] is True and "password" not in json.dumps(status["remote"]).replace(
         "password_set", "")
+
+
+def test_change_and_back_still_needs_a_new_test(fake_remote) -> None:
+    """Geänderte Daten müssen neu getestet werden – auch wenn man danach wieder auf die alten zurückstellt."""
+    from hydrahive.archive import remote_config
+    remote_config.save(dict(GOOD))
+    remote_config.test()
+    remote_config.save({**GOOD, "share": "Andere", "password": ""})    # Passwort behalten
+    remote_config.save({**GOOD, "password": ""})
+    assert remote_config.public()["tested"] is False
+
+
+def test_saving_unchanged_values_keeps_the_test(fake_remote) -> None:
+    from hydrahive.archive import remote_config
+    remote_config.save(dict(GOOD))
+    remote_config.test()
+    remote_config.set_active(True)
+    remote_config.save({**GOOD, "password": ""})                      # nur „Speichern“ gedrückt
+    assert remote_config.public()["tested"] is True and remote_config.public()["active"] is True
