@@ -26,7 +26,8 @@ export type DeleteStep = "queued" | "lock" | "measure" | "pack" | "delete" | "do
 
 export interface DeleteJob {
   id: string
-  kind: DeleteKind
+  /** Auch Waisen-Aufträge (Etappe 2b) laufen in derselben Reihe. */
+  kind: DeleteKind | "orphans" | "orphan_agent"
   target: string
   name: string
   mode: DeleteMode

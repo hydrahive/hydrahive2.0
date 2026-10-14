@@ -568,6 +568,21 @@ Dialog sagt in jedem Fall, wo sie noch liegen.
 - Bereich **Waisen** im Admin-Fenster: Anzahl, Größe, Knopf „Aufräumen“.
 - Ein Skript gibt es nicht. Nach Tills Regel geht alles über die Admin-Konsole.
 
+#### Bauplan 2b (14.10., Ist-Stand hydratest: 268 Spezialisten-Ordner ohne Agent, 1 davon mit Inhalt; 71 Buddy-Ordner ohne Agent)
+
+- **Was ist eine Waise?**
+  - Ein Ordner `workspaces/specialists/<id>` oder `workspaces/master/<id>`, zu dem es keinen Agenten gibt. Nur gültige Agent-IDs, keine Symlinks.
+  - Ein Agent, dessen `project_id` auf ein Projekt zeigt, das es nicht mehr gibt.
+  - Projekt-Ordner `workspaces/projects/<id>` sind nicht Teil von 2b.
+- **„Leer“ heißt:** Es liegt nur drin, was HydraHive selbst anlegt. Das sind die unveränderte `startup.md` aus der Vorlage und im Buddy-Ordner unter `projects/` die Verknüpfungen auf Projektordner (`agents/_workspace_links.py`), auch solche, die ins Leere zeigen. Ein Link irgendwohin sonst zählt als Inhalt. Verknüpfungen werden nie betreten. Ob ein Ordner leer oder voll ist, hängt nie vom Zeitbudget ab. Nach Ablauf des Budgets wird nur die Größe nicht weitergezählt.
+  - Gefunden auf hydratest: Zuerst galten nach Ablauf des Budgets alle weiteren Ordner als „mit Inhalt“. Danach galten 11 Buddy-Ordner nur wegen ihrer Projekt-Links als „mit Inhalt“.
+- `GET /api/admin/archive/orphans` zählt höchstens `archive_preview_budget_s` lang und meldet danach „mindestens“.
+- `POST /api/admin/archive/orphans/cleanup` mit `{"workspaces": [...], "agents": [...]}`: genau die IDs, die das Fenster angezeigt hat. Neue Waisen, die erst nach dem Anzeigen entstanden sind, bleiben unberührt.
+  - Die Ordner laufen als **ein** Auftrag `orphans` in derselben Reihe. Der Auftrag merkt sich das Paket, bevor er schreibt. Ein Neustart verwirft nur das Paket, dessen Ordner noch nicht entfernt war.
+  - Jeder Agent ohne Projekt wird ein eigener normaler Lösch-Auftrag (`agent`, `archive`, Grund `orphan`). So gelten Sperren, Chats, Maskierung, Prüfung und Neustart-Sicherheit wie in 2a. Hat der Agent bis dahin wieder ein Projekt, endet der Auftrag mit `not_orphan`, und es wird nichts gelöscht.
+- Pakete: Art `agents`, Grund `orphan`, Name „Arbeitsordner <ID kurz>“.
+- Im Fenster gibt es keine Rückfrage, denn nichts mit Inhalt geht verloren. Der Bereich zeigt die Anzahl leerer Ordner, die Anzahl mit Inhalt samt Größe und die Agenten ohne Projekt.
+
 ### Tests (zuerst rot)
 
 - Routen: ohne `mode` → 409. Falscher Name → 400. Nur Admin. Eigenes Konto

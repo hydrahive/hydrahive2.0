@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { AdminOverlay } from "@/features/cockpit/admin/AdminOverlay"
 import { AdminAction } from "@/features/cockpit/admin/ui"
 import { systemApi } from "@/features/system/api"
-import { archiveApi, type ArchiveEntry, type ArchiveKind, type ArchiveStatus } from "./api"
+import { archiveApi, cleanupSelection, type ArchiveEntry, type ArchiveKind, type ArchiveStatus, type OrphanScan } from "./api"
 import { ArchiveView } from "./ArchiveView"
 import { MoveDialog } from "./MoveDialog"
 import { TrashConfirmDialog } from "./TrashConfirmDialog"
@@ -19,6 +19,9 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const [confirmTrash, setConfirmTrash] = useState(false)
   const [shareBusy, setShareBusy] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
+  const [orphans, setOrphans] = useState<OrphanScan | null>(null)
+  const [orphansBusy, setOrphansBusy] = useState(false)
+  const [cleanupJobs, setCleanupJobs] = useState<string[]>([])
   const working = !!status?.move?.running || !!status?.jobs?.running || !!status?.jobs?.queued.length
 
   const reload = useCallback(async () => {
@@ -34,6 +37,41 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
     const first = setTimeout(() => { void reload() }, 0)
     return () => clearTimeout(first)
   }, [reload])
+
+  // Waisen nur beim Öffnen und nach dem Aufräumen zählen – das Zählen ist teurer als der Status.
+  const loadOrphans = useCallback(async () => {
+    try { setOrphans(await archiveApi.orphans()) }
+    catch (err) { setError(err instanceof Error ? err.message : t("load_failed")) }
+  }, [t])
+
+  useEffect(() => {
+    const first = setTimeout(() => { void loadOrphans() }, 0)
+    return () => clearTimeout(first)
+  }, [loadOrphans])
+
+  async function cleanupOrphans() {
+    if (!orphans) return
+    setOrphansBusy(true)
+    try {
+      const { job_ids } = await archiveApi.cleanupOrphans(cleanupSelection(orphans))
+      setCleanupJobs(job_ids); setOrphans(null); await reload()
+    }
+    catch (err) { setError(err instanceof Error ? err.message : t("orphans.cleanup_failed")) }
+    finally { setOrphansBusy(false) }
+  }
+
+  // Nach dem Aufräumen erst neu zählen, wenn alle eigenen Aufträge fertig gemeldet sind – nicht, wenn die
+  // Reihe nur gerade leer aussieht (ein schneller Auftrag ist fertig, bevor die erste Abfrage kommt).
+  const cleanupDone = cleanupJobs.length > 0 && cleanupJobs.every((id) => status?.jobs?.done.some((j) => j.id === id))
+  useEffect(() => {
+    if (cleanupJobs.length === 0) return
+    if (!cleanupDone) {
+      const poll = setTimeout(() => { void reload() }, 1000)
+      return () => clearTimeout(poll)
+    }
+    const later = setTimeout(() => { setCleanupJobs([]); void loadOrphans() }, 0)
+    return () => clearTimeout(later)
+  }, [cleanupJobs, cleanupDone, status, reload, loadOrphans])
 
   // Während eines Umzugs oder Lösch-Auftrags den Fortschritt abfragen (läuft im Dienst, nicht im Browser).
   useEffect(() => {
@@ -90,6 +128,9 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           onSetupSamba={() => void setupSamba()}
           onShareSwitch={(enabled) => void switchShare(enabled)}
           onChangeLocation={() => setMoveOpen(true)}
+          orphans={orphans}
+          orphansBusy={orphansBusy || working || cleanupJobs.length > 0}
+          onCleanupOrphans={() => void cleanupOrphans()}
         />
       </div>
       {moveOpen && (

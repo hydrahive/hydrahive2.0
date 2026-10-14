@@ -120,7 +120,7 @@ def bundles(plan: dict, work: Path) -> list[dict]:
         extra = {"members": part["members"], "mounts_skipped": part["mounts"]}
         out.append({"kind": "projects", "name": part["name"], "source_id": part["id"], "owner": part["owner"],
                     "reason": REASON["project"], "sources": sources, "skip": skip, "extra": extra})
-    if plan["kind"] in ("agent", "instance"):
+    if plan["kind"] in ("agent", "instance", "orphan_agent"):
         sources, skip = _agent_sources(work, plan["agents"][0])
         sources += _bundle.write_sessions(work / "a", plan["sessions"])
         if plan.get("user"):

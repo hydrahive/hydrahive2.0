@@ -69,7 +69,8 @@
     "agent_deleted": "Agent deleted",
     "project_deleted": "Project deleted",
     "user_deleted": "User deleted",
-    "backup": "System backup"
+    "backup": "System backup",
+    "orphan": "Orphan cleaned up"
   },
   "trash": {
     "title": "Empty recycle bin permanently",
@@ -119,7 +120,9 @@
       "agent": "Delete agent",
       "project": "Delete project",
       "user": "Delete user",
-      "instance": "Delete external instance"
+      "instance": "Delete external instance",
+      "orphans": "Clean up orphans",
+      "orphan_agent": "Agent without project"
     },
     "title": "Delete “{{name}}”",
     "loading": "Loading …",
@@ -180,7 +183,8 @@
       "last_admin_cannot_delete": "The last admin cannot be deleted.",
       "interrupted": "The service restarted before anything was deleted. Everything was reset.",
       "delete_incomplete": "Deleting after the restart is incomplete. The package is in the archive; a new attempt removes the rest.",
-      "unexpected": "Unexpected error."
+      "unexpected": "Unexpected error.",
+      "not_orphan": "Assigned again in the meantime. Nothing was deleted."
     }
   },
   "jobs": {
@@ -192,5 +196,18 @@
       "archive": "to archive",
       "permanent": "permanent"
     }
+  },
+  "orphans": {
+    "title": "Orphans",
+    "subtitle": "Work folders without an agent, and agents whose project no longer exists.",
+    "loading": "Counting …",
+    "none": "No orphans found.",
+    "empty": "Empty work folders",
+    "full": "Work folders with content",
+    "agents": "Agents without a project",
+    "at_least": "Not everything was counted. The numbers are minimums.",
+    "what_happens": "Cleaning up removes empty folders. Anything with content goes to the archive first, so nothing is lost.",
+    "cleanup": "Clean up",
+    "cleanup_failed": "Clean-up could not be started."
   }
 }

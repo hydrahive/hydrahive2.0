@@ -9,10 +9,11 @@ from pathlib import Path
 from hydrahive.agents import config as agent_config
 from hydrahive.agents._paths import agent_dir, workspace_for
 
-KINDS = ("agent", "project", "user", "instance")
-ARCHIVE_KIND = {"agent": "agents", "instance": "agents", "project": "projects", "user": "users"}
+KINDS = ("agent", "project", "user", "instance", "orphan_agent")
+ARCHIVE_KIND = {"agent": "agents", "instance": "agents", "orphan_agent": "agents", "project": "projects",
+                "user": "users"}
 REASON = {"agent": "agent_deleted", "instance": "instance_deleted", "project": "project_deleted",
-          "user": "user_deleted"}
+          "user": "user_deleted", "orphan_agent": "orphan"}
 
 
 def own_workspace(agent: dict) -> Path | None:
