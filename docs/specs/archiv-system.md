@@ -790,6 +790,18 @@ ist. Das ersetzt „NAS ist Ziel Nr. 1, sonst Rückfrage“ aus der Planung vom
 - E2E auf hydratest gegen eine echte Samba-Freigabe; frischer
   `images:ubuntu/26.04`-Container ohne Samba (Abhängigkeit kommt per pip).
 
+### Funde beim Bau 3a (14.10.)
+
+- **Samba erlaubt `replace` über eine bestehende Datei nicht** (ACCESS_DENIED, gemessen auf hydratest).
+  Darum: alte Datei erst entfernen, dann `.part` umbenennen. Die Lücke dazwischen ist unkritisch: Die
+  Kopie gilt erst nach dem Zurücklesen als „auf dem Server“.
+- **Fehler-Codes von Samba**: Datei fehlt = `0xC0000034`/`0xC000003A`, Freigabe unbekannt =
+  `0xC00000CC`/`0xC0000225`. `SMBOSError` erbt von `OSError` und darf nie als „nicht erreichbar“ gelten.
+- **Die Archiv-Freigabe hat einen Papierkorb**: Was HydraHive auf dem Server ersetzt oder löscht, landet
+  dort (gesehen beim Test gegen hydratest). Das ist so gewollt (Etappe 1) – für ein NAS ohne Papierkorb
+  ändert sich nichts.
+- Unterordner mit führendem „/“ (wie beim Projekt-Laufwerk, `/hydrahive`) wird still bereinigt.
+
 ### PRs
 
 1. **3a**: Einstellungen, Verbindungstest, Kopier-Reihe, Abgleich, Anzeige.
