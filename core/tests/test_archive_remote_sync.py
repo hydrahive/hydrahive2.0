@@ -159,3 +159,23 @@ def test_package_removed_locally_before_copy_is_dropped(archive_root, remote_on,
     remote_queue.process_queue()
 
     assert remote_queue.summary()["waiting"] == 0 and remote_on.puts == 0
+
+
+def test_manual_file_shows_its_state_and_notices_changes(archive_root, remote_on, remote_queue) -> None:
+    """Gefunden auf hydratest: Von Hand abgelegte Dateien gingen hoch, standen in der Liste aber weiter auf
+    „nur hier“ (sie haben keine .json). Ändert sich die Datei danach, muss sie neu hoch."""
+    from hydrahive.archive import catalog
+    f = archive_root / "uploads" / "notiz.txt"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text("erste Fassung")
+    assert remote_queue.sync() == 1
+    remote_queue.process_queue()
+    [e] = [x for x in catalog.list_entries() if x["path"] == "uploads/notiz.txt"]
+    assert e["manual"] is True and e["remote"]["state"] == "verified"
+
+    f.write_text("zweite, längere Fassung")
+    [e] = [x for x in catalog.list_entries() if x["path"] == "uploads/notiz.txt"]
+    assert e["remote"] == {}
+    assert remote_queue.sync() == 1
+    remote_queue.process_queue()
+    assert (remote_on.root / "hydrahive" / "uploads" / "notiz.txt").read_text() == "zweite, längere Fassung"

@@ -88,14 +88,8 @@ def sync() -> int:
     remote = remote_smb.connect(remote_config.load())
     queued = 0
     for rel in rf.files():
-        local = archive_root() / rel
-        try:
-            meta = json.loads(rf.meta_path(rel).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            meta = None
-        if meta and (meta.get("remote") or {}).get("state") == "verified" and remote.size(rel) == local.stat().st_size:
-            continue
-        if meta is None and remote.size(rel) == local.stat().st_size:
+        size = (archive_root() / rel).stat().st_size
+        if rf.remote_of(rel).get("state") == "verified" and remote.size(rel) == size:
             continue
         queued += _queue(rel)
     _start_worker()

@@ -46,11 +46,17 @@ def _code(e: BaseException) -> str:
 
 
 class SmbRemote:
+    """Eigener Verbindungs-Speicher je Zugriff: smbclient hält sonst global eine Anmeldung pro Server offen,
+    und ein Test mit falschem Passwort liefe still über die alte, gültige (gefunden auf hydratest, 14.10.)."""
+
     def __init__(self, cfg: dict) -> None:
         self.host, self.share = cfg["host"], cfg["share"]
         self.subdir = cfg.get("subdir") or ""
         self.base = rf"\\{self.host}\{self.share}"
         self._user, self._pw = cfg.get("user") or None, cfg.get("password") or None
+        self._cache: dict = {}
+        # Anmeldedaten + eigener Speicher bei JEDEM Aufruf: ohne sie greift smbclient auf Kerberos zurück.
+        self._kw = {"connection_cache": self._cache, "username": self._user, "password": self._pw}
 
     def _unc(self, rel: str = "") -> str:
         parts = [p for p in f"{self.subdir}/{rel}".split("/") if p]
@@ -60,7 +66,7 @@ class SmbRemote:
 
     def _call(self, fn, *args, **kw):
         try:
-            return fn(*args, **kw)
+            return fn(*args, **kw, **self._kw) if _pooled(fn) else fn(*args, **kw)
         except RemoteError:
             raise
         except Exception as e:  # noqa: BLE001 – alles Fremde wird zu einem erklärbaren Code
@@ -70,8 +76,11 @@ class SmbRemote:
 
     def login(self) -> None:
         import smbclient
-        self._call(smbclient.register_session, self.host, username=self._user, password=self._pw,
-                   connection_timeout=TIMEOUT_S)
+        try:
+            smbclient.register_session(self.host, username=self._user, password=self._pw,
+                                       connection_timeout=TIMEOUT_S, connection_cache=self._cache)
+        except Exception as e:  # noqa: BLE001 – wie _call, aber ohne die Anmeldedaten doppelt
+            raise RemoteError(_code(e)) from e
         self._call(smbclient.stat_volume, self.base)
 
     def _mkdirs(self, rel_dir: str) -> None:
@@ -85,7 +94,7 @@ class SmbRemote:
         dst, part = self._unc(rel), self._unc(rel + ".part")
 
         def upload() -> None:
-            with open(local, "rb") as src, smbclient.open_file(part, mode="wb") as out:
+            with open(local, "rb") as src, smbclient.open_file(part, mode="wb", **self._kw) as out:
                 while chunk := src.read(CHUNK):
                     out.write(chunk)
 
@@ -123,14 +132,24 @@ class SmbRemote:
         probe = self._unc(".hydrahive-probe")
 
         def roundtrip() -> None:
-            with smbclient.open_file(probe, mode="wb") as fh:
+            with smbclient.open_file(probe, mode="wb", **self._kw) as fh:
                 fh.write(b"hydrahive")
-            with smbclient.open_file(probe, mode="rb") as fh:
+            with smbclient.open_file(probe, mode="rb", **self._kw) as fh:
                 if fh.read() != b"hydrahive":
                     raise RemoteError("not_writable")
-            smbclient.remove(probe)
+            smbclient.remove(probe, **self._kw)
 
         self._call(roundtrip)
+
+
+    def close(self) -> None:
+        import smbclient
+        smbclient.reset_connection_cache(fail_on_error=False, connection_cache=self._cache)
+
+
+def _pooled(fn) -> bool:
+    """smbclient-Funktionen nehmen connection_cache; eigene Hilfen (upload/roundtrip, fh.read) nicht."""
+    return (getattr(fn, "__module__", None) or "").startswith("smbclient")
 
 
 def connect(cfg: dict) -> SmbRemote:

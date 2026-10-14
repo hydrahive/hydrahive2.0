@@ -28,11 +28,12 @@ def _cleanup(cfg: dict) -> None:
     import smbclient
     from hydrahive.archive.remote_smb import SmbRemote
     remote = SmbRemote(cfg)
+    remote.login()
     root = remote._unc()
-    for dirpath, dirs, files in reversed(list(smbclient.walk(root))):
+    for dirpath, dirs, files in reversed(list(smbclient.walk(root, **remote._kw))):
         for f in files:
-            smbclient.remove(f"{dirpath}\\{f}")
-        smbclient.rmdir(dirpath)
+            smbclient.remove(f"{dirpath}\\{f}", **remote._kw)
+        smbclient.rmdir(dirpath, **remote._kw)
 
 
 def test_roundtrip_and_overwrite(tmp_path) -> None:
@@ -66,3 +67,15 @@ def test_errors_have_clear_codes(over, code) -> None:
     with pytest.raises(remote_smb.RemoteError) as e:
         remote_smb.connect(_cfg(**over)).probe()
     assert e.value.code == code
+
+
+def test_wrong_password_after_a_good_login_is_still_rejected() -> None:
+    """Gefunden auf hydratest: Nach einer gültigen Anmeldung lief ein Test mit falschem Passwort still über die
+    gemerkte Verbindung und meldete „ok“ – damit hätte man falsche Daten aktiv schalten können."""
+    from hydrahive.archive import remote_smb
+    cfg = _cfg()
+    remote_smb.connect(cfg).probe()
+    with pytest.raises(remote_smb.RemoteError) as e:
+        remote_smb.connect({**cfg, "password": "ganz-falsch"}).probe()
+    assert e.value.code == "auth_failed"
+    _cleanup(cfg)
