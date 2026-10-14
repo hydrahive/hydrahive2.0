@@ -197,3 +197,32 @@ def test_routes(client, admin_headers, auth_headers, archive_root, jobs) -> None
     r = client.post("/api/admin/archive/orphans/cleanup", headers=admin_headers, json={"workspaces": [oid], "agents": []})
     assert r.status_code == 202 and r.json()["job_ids"]
     assert d.exists()                       # nur eingereiht, Reihe läuft in diesem Test nicht
+
+
+def test_time_budget_never_turns_empty_into_content(archive_root) -> None:
+    """Gefunden auf hydratest (kalter Cache): Nach Ablauf des Zeitbudgets galten alle weiteren leeren Ordner als
+    „mit Inhalt“. Leer/voll darf nicht vom Budget abhängen – nur die Größe darf „mindestens“ sein."""
+    from hydrahive.archive import orphans
+    full, _ = _ws("specialists", {"a/b/c.md": "inhalt"})
+    empties = [_ws("specialists")[0] for _ in range(3)] + [_ws("master", {"startup.md": _startup_text()})[0]]
+
+    found = {w["id"]: w for w in orphans.orphan_workspaces(budget_s=0)}
+
+    assert all(found[e]["empty"] is True for e in empties)
+    assert found[full]["empty"] is False
+
+
+def test_only_empty_subfolders_count_as_empty(archive_root) -> None:
+    from hydrahive.archive import orphans
+    oid, d = _ws("specialists")
+    (d / "leer" / "auch_leer").mkdir(parents=True)
+    assert {w["id"]: w for w in orphans.scan()["workspaces"]}[oid]["empty"] is True
+
+
+def test_startup_plus_one_more_file_is_content(archive_root) -> None:
+    """Unveränderte startup.md + eine weitere Datei (egal in welcher Reihenfolge gelesen) = Inhalt."""
+    from hydrahive.archive import orphans
+    a, _ = _ws("master", {"startup.md": _startup_text(), "notiz.md": "x"})
+    b, _ = _ws("master", {"aaa.md": "x", "startup.md": _startup_text()})
+    found = {w["id"]: w for w in orphans.scan()["workspaces"]}
+    assert found[a]["empty"] is False and found[b]["empty"] is False

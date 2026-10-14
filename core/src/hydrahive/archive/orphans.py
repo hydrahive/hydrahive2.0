@@ -36,8 +36,11 @@ def _agent_ids() -> set[str]:
 
 
 def inspect(path: Path, template: bytes | None, deadline: float) -> dict:
-    """Größe, Dateizahl, ob leer. Geht nie in Laufwerke oder Symlinks hinein."""
-    size, files, only_startup, complete = 0, 0, True, True
+    """Größe, Dateizahl, ob leer. Geht nie in Laufwerke oder Symlinks hinein.
+
+    Leer/voll steht nach der ersten fremden Datei fest und hängt nie vom Zeitbudget ab. Nach Ablauf
+    des Budgets wird nur nicht mehr weiter gezählt („mindestens“-Größe)."""
+    size, files, complete, empty = 0, 0, True, None
     for dirpath, dirs, names in os.walk(path, followlinks=False):
         dirs[:] = [d for d in dirs if not os.path.ismount(os.path.join(dirpath, d))]
         for n in names:
@@ -46,14 +49,13 @@ def inspect(path: Path, template: bytes | None, deadline: float) -> dict:
             try:
                 size += os.lstat(p).st_size
             except OSError:
-                continue
-            if only_startup and not (dirpath == str(path) and n == "startup.md" and _same(p, template)):
-                only_startup = False
-        if time.monotonic() > deadline:
+                pass
+            if empty is None and not (dirpath == str(path) and n == "startup.md" and _same(p, template)):
+                empty = False                 # jede Datei außer der unveränderten startup.md im Hauptordner
+        if empty is False and time.monotonic() > deadline:
             complete = False
             break
-    return {"size": size, "files": files, "empty": complete and (files == 0 or (files == 1 and only_startup)),
-            "complete": complete}
+    return {"size": size, "files": files, "empty": empty is not False, "complete": complete}
 
 
 def _same(path: str, template: bytes | None) -> bool:
