@@ -69,7 +69,8 @@
     "agent_deleted": "Agent gelöscht",
     "project_deleted": "Projekt gelöscht",
     "user_deleted": "Nutzer gelöscht",
-    "backup": "System-Backup"
+    "backup": "System-Backup",
+    "orphan": "Waise aufgeräumt"
   },
   "trash": {
     "title": "Papierkorb endgültig leeren",
@@ -119,7 +120,9 @@
       "agent": "Agent löschen",
       "project": "Projekt löschen",
       "user": "Nutzer löschen",
-      "instance": "Externe Instanz löschen"
+      "instance": "Externe Instanz löschen",
+      "orphans": "Waisen aufräumen",
+      "orphan_agent": "Agent ohne Projekt"
     },
     "title": "„{{name}}“ löschen",
     "loading": "Wird geladen …",
@@ -180,7 +183,8 @@
       "last_admin_cannot_delete": "Der letzte Admin kann nicht gelöscht werden.",
       "interrupted": "Der Dienst wurde neu gestartet, bevor gelöscht wurde. Es wurde zurückgesetzt.",
       "delete_incomplete": "Löschen nach dem Neustart unvollständig. Das Paket ist im Archiv; ein neuer Versuch räumt den Rest weg.",
-      "unexpected": "Unerwarteter Fehler."
+      "unexpected": "Unerwarteter Fehler.",
+      "not_orphan": "Inzwischen wieder zugeordnet. Es wurde nichts gelöscht."
     }
   },
   "jobs": {
@@ -192,5 +196,18 @@
       "archive": "ins Archiv",
       "permanent": "unwiderruflich"
     }
+  },
+  "orphans": {
+    "title": "Waisen",
+    "subtitle": "Arbeitsordner ohne Agent und Agenten, deren Projekt es nicht mehr gibt.",
+    "loading": "Wird gezählt …",
+    "none": "Keine Waisen gefunden.",
+    "empty": "Leere Arbeitsordner",
+    "full": "Arbeitsordner mit Inhalt",
+    "agents": "Agenten ohne Projekt",
+    "at_least": "Es wurde nicht alles gezählt. Die Zahlen sind Mindestwerte.",
+    "what_happens": "Beim Aufräumen werden leere Ordner entfernt. Alles mit Inhalt kommt vorher ins Archiv, es geht also nichts verloren.",
+    "cleanup": "Aufräumen",
+    "cleanup_failed": "Aufräumen ließ sich nicht starten."
   }
 }

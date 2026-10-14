@@ -42,7 +42,7 @@ def _project_part(project: dict) -> dict:
 def build(kind: str, target_id: str) -> dict:
     if kind not in t.KINDS:
         raise PlanError("unknown_kind")
-    if kind in ("agent", "instance"):
+    if kind in ("agent", "instance", "orphan_agent"):
         return _agent_plan(kind, target_id)
     if kind == "project":
         from hydrahive.projects import config as project_config
@@ -62,6 +62,8 @@ def _agent_plan(kind: str, agent_id: str) -> dict:
         agent = None
     if not agent or (kind == "instance" and not agent.get("external")):
         raise PlanError("not_found")
+    if kind == "orphan_agent" and not _lost_project(agent):        # Etappe 2b: inzwischen wieder zugeordnet
+        raise PlanError("not_orphan")
     user = None
     owner = agent.get("owner")
     if kind == "instance" and owner:
@@ -72,6 +74,11 @@ def _agent_plan(kind: str, agent_id: str) -> dict:
         user = part if part and part["role"] == "user" else None
     return {"kind": kind, "id": agent_id, "name": agent.get("name") or agent_id, "owner": agent.get("owner"),
             "agents": [_agent_part(agent)], "sessions": t.agent_sessions(agent_id), "projects": [], "user": user}
+
+
+def _lost_project(agent: dict) -> bool:
+    from hydrahive.projects import config as project_config
+    return bool(agent.get("project_id")) and project_config.get(agent["project_id"]) is None
 
 
 def _user_part(username: str) -> dict | None:

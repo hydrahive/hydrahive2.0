@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { AdminOverlay } from "@/features/cockpit/admin/AdminOverlay"
 import { AdminAction } from "@/features/cockpit/admin/ui"
 import { systemApi } from "@/features/system/api"
-import { archiveApi, type ArchiveEntry, type ArchiveKind, type ArchiveStatus } from "./api"
+import { archiveApi, cleanupSelection, type ArchiveEntry, type ArchiveKind, type ArchiveStatus, type OrphanScan } from "./api"
 import { ArchiveView } from "./ArchiveView"
 import { MoveDialog } from "./MoveDialog"
 import { TrashConfirmDialog } from "./TrashConfirmDialog"
@@ -19,6 +19,8 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const [confirmTrash, setConfirmTrash] = useState(false)
   const [shareBusy, setShareBusy] = useState(false)
   const [moveOpen, setMoveOpen] = useState(false)
+  const [orphans, setOrphans] = useState<OrphanScan | null>(null)
+  const [orphansBusy, setOrphansBusy] = useState(false)
   const working = !!status?.move?.running || !!status?.jobs?.running || !!status?.jobs?.queued.length
 
   const reload = useCallback(async () => {
@@ -34,6 +36,32 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
     const first = setTimeout(() => { void reload() }, 0)
     return () => clearTimeout(first)
   }, [reload])
+
+  // Waisen nur beim Öffnen und nach dem Aufräumen zählen – das Zählen ist teurer als der Status.
+  const loadOrphans = useCallback(async () => {
+    try { setOrphans(await archiveApi.orphans()) }
+    catch (err) { setError(err instanceof Error ? err.message : t("load_failed")) }
+  }, [t])
+
+  useEffect(() => {
+    const first = setTimeout(() => { void loadOrphans() }, 0)
+    return () => clearTimeout(first)
+  }, [loadOrphans])
+
+  async function cleanupOrphans() {
+    if (!orphans) return
+    setOrphansBusy(true)
+    try { await archiveApi.cleanupOrphans(cleanupSelection(orphans)); setOrphans(null); await reload() }
+    catch (err) { setError(err instanceof Error ? err.message : t("orphans.cleanup_failed")) }
+    finally { setOrphansBusy(false) }
+  }
+
+  // Waisen neu zählen, sobald die Reihe wieder leer ist (nach dem Aufräumen).
+  useEffect(() => {
+    if (working || orphans) return
+    const later = setTimeout(() => { void loadOrphans() }, 0)
+    return () => clearTimeout(later)
+  }, [working, orphans, loadOrphans])
 
   // Während eines Umzugs oder Lösch-Auftrags den Fortschritt abfragen (läuft im Dienst, nicht im Browser).
   useEffect(() => {
@@ -90,6 +118,9 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           onSetupSamba={() => void setupSamba()}
           onShareSwitch={(enabled) => void switchShare(enabled)}
           onChangeLocation={() => setMoveOpen(true)}
+          orphans={orphans}
+          orphansBusy={orphansBusy || working}
+          onCleanupOrphans={() => void cleanupOrphans()}
         />
       </div>
       {moveOpen && (

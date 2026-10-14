@@ -8,13 +8,14 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, StrictBool
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
-from hydrahive.archive import _plan, catalog, jobs, location, move_job, preview, setup, trash
+from hydrahive.archive import _plan, catalog, jobs, location, move_job, orphans, preview, setup, trash
 from hydrahive.archive.share import SHARE_NAME, archive_share_enabled
 from hydrahive.samba.manager import samba_status
 from hydrahive.settings import settings
@@ -27,6 +28,11 @@ TRASH_CONFIRM_WORD = "Papierkorb"
 
 class TrashEmptyRequest(BaseModel):
     confirm: str = ""
+
+
+class OrphanCleanupRequest(BaseModel):
+    workspaces: list[str] = []
+    agents: list[str] = []
 
 
 class ShareSwitchRequest(BaseModel):
@@ -117,3 +123,20 @@ def archive_trash_empty(req: TrashEmptyRequest) -> dict:
         logger.warning("Papierkorb leeren fehlgeschlagen: %s", e)
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, "archive_trash_failed")
     return {"freed_bytes": freed}
+
+
+@router.get("/orphans")
+def archive_orphans() -> dict:
+    return orphans.scan()
+
+
+@router.post("/orphans/cleanup", status_code=status.HTTP_202_ACCEPTED)
+def archive_orphans_cleanup(req: OrphanCleanupRequest, admin: Annotated[tuple[str, str], Depends(require_admin)]) -> dict:
+    if not req.workspaces and not req.agents:
+        raise coded(status.HTTP_400_BAD_REQUEST, "orphans_nothing_selected")
+    try:
+        return {"job_ids": orphans.submit_cleanup(workspaces=req.workspaces, agents=req.agents, actor=admin[0])}
+    except ValueError:
+        raise coded(status.HTTP_400_BAD_REQUEST, "orphans_invalid_id")
+    except jobs.JobConflict:
+        raise coded(status.HTTP_409_CONFLICT, "delete_in_progress")

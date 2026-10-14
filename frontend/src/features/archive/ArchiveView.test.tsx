@@ -27,10 +27,10 @@ const props = (p: Partial<ArchiveViewProps> = {}): ArchiveViewProps => ({
 const html = (p: Partial<ArchiveViewProps> = {}) => renderToStaticMarkup(<ArchiveView {...props(p)} />).replace(/&quot;/g, '"')
 
 describe("Admin-Fenster Archiv & Sicherung", () => {
-  it("vier Bereiche: Speicherort, Samba-Freigabe, Laufende Vorgänge, Elemente", () => {
+  it("fünf Bereiche: Speicherort, Samba-Freigabe, Laufende Vorgänge, Waisen, Elemente", () => {
     const out = html()
     const order = [...out.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1])
-    expect(order).toEqual(["storage", "share", "jobs", "entries"])
+    expect(order).toEqual(["storage", "share", "jobs", "orphans", "entries"])
   })
 
   it("Laufende Vorgänge: laufend mit Fortschritt, wartend, zuletzt mit Fehler", () => {

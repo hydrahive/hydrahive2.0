@@ -99,6 +99,35 @@ export interface ArchiveEntry {
   source_id?: string
 }
 
+/** Waisen (Etappe 2b): Arbeitsordner ohne Agent und Agenten ohne Projekt. */
+export interface OrphanWorkspace {
+  id: string
+  kind: "specialists" | "master"
+  size: number
+  files: number
+  /** Keine Dateien oder nur die unveränderte startup.md. */
+  empty: boolean
+  complete: boolean
+}
+
+export interface OrphanAgent {
+  id: string
+  name: string
+  project_id: string
+  type?: string
+}
+
+export interface OrphanScan {
+  workspaces: OrphanWorkspace[]
+  agents: OrphanAgent[]
+  complete: boolean
+}
+
+/** Genau die angezeigten IDs – was erst danach verwaist, bleibt unberührt (Spec archiv-system.md, 2b). */
+export function cleanupSelection(scan: OrphanScan): { workspaces: string[]; agents: string[] } {
+  return { workspaces: scan.workspaces.map((w) => w.id), agents: scan.agents.map((a) => a.id) }
+}
+
 export const archiveApi = {
   status: () => api.get<ArchiveStatus>("/admin/archive/status"),
   entries: (kind: ArchiveKind | null) =>
@@ -107,6 +136,9 @@ export const archiveApi = {
   locations: () => api.get<{ entries: ArchiveLocation[] }>("/admin/archive/locations"),
   move: (location: string) => api.post<{ started: boolean; target: string }>("/admin/archive/move", { location }),
   prepare: (location: string) => api.post<{ started: boolean }>(`/admin/archive/locations/${location}/prepare`, {}),
+  orphans: () => api.get<OrphanScan>("/admin/archive/orphans"),
+  cleanupOrphans: (sel: { workspaces: string[]; agents: string[] }) =>
+    api.post<{ job_ids: string[] }>("/admin/archive/orphans/cleanup", sel),
   setShare: (enabled: boolean) =>
     api.put<{ folder: boolean; share: string; error?: string }>("/admin/archive/share", { enabled }),
 }

@@ -107,7 +107,6 @@ def _finished(job: dict) -> None:
 
 def process_queue() -> None:
     """Arbeitet die Reihe ab, bis sie leer ist (Hintergrund-Thread; in Tests direkt)."""
-    from hydrahive.archive import deletion
     while True:
         with _lock:
             if _state["running"] is not None or not _state["queue"]:
@@ -115,7 +114,12 @@ def process_queue() -> None:
             job = _state["queue"].pop(0)
             _state["running"] = job
             _persist()
-        _finished(deletion.execute(job))
+        _finished(_run(job))
+
+
+def _run(job: dict) -> dict:
+    from hydrahive.archive import _orphan_run, deletion
+    return _orphan_run.execute(job) if job["kind"] == "orphans" else deletion.execute(job)
 
 
 def _worker() -> None:
@@ -150,8 +154,12 @@ def recover() -> None:
                 logger.exception("Löschauftrag %s ließ sich nicht zu Ende führen", job["id"])
                 job["state"], job["error"] = "failed", "delete_incomplete"
         else:
-            logger.warning("Löschauftrag %s wurde unterbrochen – nichts gelöscht, zurückgerollt", job["id"])
-            deletion.rollback_lock(job)
+            logger.warning("Löschauftrag %s wurde unterbrochen – zurückgerollt", job["id"])
+            if job.get("kind") == "orphans":
+                from hydrahive.archive import _orphan_run
+                _orphan_run.rollback(job)                  # fertig entfernte Ordner bleiben im Archiv
+            else:
+                deletion.rollback_lock(job)
             job["state"], job["error"] = "failed", "interrupted"
         _finished(job)
     if _state["queue"]:
