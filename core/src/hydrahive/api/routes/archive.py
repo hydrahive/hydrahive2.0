@@ -79,7 +79,13 @@ def archive_status() -> dict:
         },
         "move": move_job.snapshot(),
         "jobs": jobs.list_jobs(),
+        "remote": _remote_status(),
     }
+
+
+def _remote_status() -> dict:
+    from hydrahive.api.routes.archive_remote import status_block
+    return status_block()
 
 
 @router.get("/delete-preview")

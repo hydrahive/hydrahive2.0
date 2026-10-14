@@ -175,6 +175,15 @@ async def on_start() -> None:
     await asyncio.to_thread(recover)
 
 
+def after_start() -> None:
+    """Beim Start nach recover(): Ordner + Freigabe einrichten, dann Kopier-Reihe zum NAS weiter.
+    Steht hier, damit lifespan.py nicht wächst."""
+    from hydrahive.archive import remote_sync
+    from hydrahive.archive.setup import ensure_archive
+    ensure_archive()
+    remote_sync.on_start()
+
+
 def run_async(coro, timeout: float) -> None:
     """Coroutine auf der Haupt-Schleife ausführen (z. B. Discord trennen). Ohne Schleife: auslassen."""
     if _loop is None or _loop.is_closed():

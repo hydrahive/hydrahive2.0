@@ -1,7 +1,7 @@
 import { Archive } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { AdminFeedback, AdminPanel, adminInputClass } from "@/features/cockpit/admin/ui"
-import type { ArchiveEntry, ArchiveKind } from "./api"
+import { remoteStateOf, type ArchiveEntry, type ArchiveKind } from "./api"
 import { formatSize } from "./format"
 
 const KINDS: ArchiveKind[] = ["agents", "projects", "users", "backups", "uploads"]
@@ -47,6 +47,7 @@ export function ArchiveEntriesSection({ entries, kind, onKind }: Props) {
                   <th className="py-1 pr-3 font-medium">{t("entries.col_owner")}</th>
                   <th className="py-1 pr-3 font-medium">{t("entries.col_reason")}</th>
                   <th className="py-1 pr-3 font-medium">{t("entries.col_date")}</th>
+                  <th className="py-1 pr-3 font-medium">{t("entries.col_remote")}</th>
                   <th className="py-1 text-right font-medium">{t("entries.col_size")}</th>
                 </tr>
               </thead>
@@ -63,6 +64,9 @@ export function ArchiveEntriesSection({ entries, kind, onKind }: Props) {
                       {e.manual ? t("entries.manual") : t(`reason.${e.reason}`, { defaultValue: e.reason ?? "—" })}
                     </td>
                     <td className="whitespace-nowrap py-1.5 pr-3">{when(e)}</td>
+                    <td className="whitespace-nowrap py-1.5 pr-3" data-entry-remote={remoteStateOf(e)}>
+                      {t(`entries.remote.${remoteStateOf(e)}`)}
+                    </td>
                     <td className="whitespace-nowrap py-1.5 text-right">{formatSize(e.size)}</td>
                   </tr>
                 ))}

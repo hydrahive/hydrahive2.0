@@ -7,6 +7,7 @@ import { systemApi } from "@/features/system/api"
 import { archiveApi, cleanupSelection, type ArchiveEntry, type ArchiveKind, type ArchiveStatus, type OrphanScan } from "./api"
 import { ArchiveView } from "./ArchiveView"
 import { MoveDialog } from "./MoveDialog"
+import { useRemote } from "./useRemote"
 import { TrashConfirmDialog } from "./TrashConfirmDialog"
 
 /** Admin-Fenster „Archiv & Sicherung“ (docs/specs/archiv-system.md, Etappe 1). */
@@ -37,6 +38,8 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
     const first = setTimeout(() => { void reload() }, 0)
     return () => clearTimeout(first)
   }, [reload])
+
+  const remote = useRemote(status?.remote, reload)
 
   // Waisen nur beim Öffnen und nach dem Aufräumen zählen – das Zählen ist teurer als der Status.
   const loadOrphans = useCallback(async () => {
@@ -128,6 +131,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           onSetupSamba={() => void setupSamba()}
           onShareSwitch={(enabled) => void switchShare(enabled)}
           onChangeLocation={() => setMoveOpen(true)}
+          remote={remote}
           orphans={orphans}
           orphansBusy={orphansBusy || working || cleanupJobs.length > 0}
           onCleanupOrphans={() => void cleanupOrphans()}

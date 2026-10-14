@@ -658,3 +658,155 @@ Dialog sagt in jedem Fall, wo sie noch liegen.
 - Einstellungen (Standard, über ENV änderbar): `archive_compress_level` 1,
   `archive_preview_budget_s` 5, `archive_space_reserve` 0,05,
   `archive_jobs_keep` 20.
+
+## Etappe 3: Bauplan (Kopie auf einen externen Server)
+
+**Entschieden (Till, 14.10.): Weg B** – wie bisher lokal packen und prüfen,
+danach automatisch eine Kopie auf den externen Server. Die lokale Kopie
+bleibt, **lässt sich aber löschen**, sobald die Kopie auf dem Server geprüft
+ist. Das ersetzt „NAS ist Ziel Nr. 1, sonst Rückfrage“ aus der Planung vom
+13.10.: Löschen hängt nie am NAS, es gibt keine Rückfrage, wenn es weg ist.
+
+### Ist-Stand (14.10.)
+
+- **Prod-NAS**: `//192.168.178.3/Hydrahive_backups`, Unterordner `/hydrahive`,
+  31 TB, 29 TB frei. Heute nur als Projekt-Laufwerk im DEV-Projekt
+  eingehängt. Zugangsdaten `nasbackup_hydra` (Typ basic) gehören dem Nutzer
+  `till`, nicht dem System.
+- **Einhängen** (`smbmounts/mounter.py`) braucht root (`sudo -n bash
+  mount.cifs`) und `cifs-utils`. Auf hydratest fehlen `mount.cifs` und
+  `smbclient`, der Container ist privilegiert. Auf unbekannten
+  Installationen ist beides nicht sicher vorhanden.
+- **Gemessen**: Die Python-Bibliothek `smbprotocol` (MIT, braucht nur
+  `cryptography` und `pyspnego`) spricht SMB2/3 direkt, ohne Einhängen,
+  ohne root, ohne Systempakete. Gegen die Archiv-Freigabe auf hydratest:
+  50 MB hoch mit 189 MB/s, zurücklesen mit 354 MB/s, Prüfsumme stimmt,
+  `rename` von `.part` auf den Endnamen klappt.
+
+### Wie die Kopie aufs NAS kommt: ohne Einhängen
+
+- Neue Abhängigkeit `smbprotocol` im Kern (`core/pyproject.toml`). Der
+  Installer und `update.sh` installieren sie über pip mit, ganz ohne
+  Systempaket und ohne root. Das passt zu Tills Regel „alles automatisch
+  bei Updates“.
+- Kein `mount.cifs`, kein `sudo`, kein Laufwerk im Dateisystem. Damit kann
+  auch nichts „in ein Laufwerk hinein löschen“ (Fehler 1 aus Etappe 2).
+- Hochladen: `<paket>.part` schreiben, dabei sha256 mitrechnen, dann
+  umbenennen in den Endnamen, danach die `.json`. Zum Prüfen das Paket vom
+  Server **zurücklesen** und die sha256 vergleichen. Erst dann gilt die
+  Kopie als „auf dem Server“.
+- Ablage auf dem Server wie lokal: `<unterordner>/{agents,projects,users,
+  backups,uploads}/<datei>.tar.gz` + `.json`. Damit ist das NAS auch ohne
+  HydraHive lesbar.
+
+### Einstellungen (Admin-Konsole, Bereich „Externer Server“)
+
+- Server (Hostname oder IP), Freigabe, Unterordner (optional), Benutzer,
+  Passwort, Schalter „aktiv“. Prüfung wie bei `smbmounts/models.py`
+  (`HOST_RE`, `SHARE_RE`, `SUBPATH_RE`, kein `..`).
+- **Die Zugangsdaten gehören dem System**, nicht einem Nutzer: Sie stehen
+  in `config_dir/archive-remote.json`, das Passwort darin mit
+  `credentials/_crypto.encrypt` verschlüsselt (derselbe Schlüssel wie bei
+  den Nutzer-Zugangsdaten). Die API gibt das Passwort nie zurück, nur ob
+  eines gesetzt ist. Ein leeres Passwortfeld beim Speichern behält das alte.
+- **Knopf „Verbindung testen“**: anmelden, Unterordner anlegen falls nötig,
+  eine kleine Probedatei schreiben, zurücklesen, löschen. Ergebnis mit
+  Grund: Server nicht erreichbar, Anmeldung falsch, Freigabe unbekannt,
+  keine Schreibrechte, oder ok mit freiem Platz.
+- Gespeichert wird auch ohne erfolgreichen Test. Aktiv schalten geht erst
+  nach einem erfolgreichen Test mit genau diesen Daten.
+
+### Kopieren (Hintergrund, eigene Reihe)
+
+- Nach jedem neuen Paket (Löschen, Waisen, später Backups) kommt ein
+  Eintrag in die **Kopier-Reihe** (`config_dir/archive-remote-queue.json`).
+  Ein eigener Thread arbeitet sie ab, unabhängig von der Lösch-Reihe:
+  Ein langsames oder fehlendes NAS hält kein Löschen auf.
+- **NAS nicht erreichbar**: Der Eintrag bleibt in der Reihe, neuer Versuch
+  mit wachsendem Abstand (1 min, 5 min, 30 min, dann stündlich). Keine
+  Rückfrage, kein Popup. Im Fenster steht, wie viele Pakete warten und
+  warum.
+- **Abgleich** (beim Start, nach „aktiv“ einschalten und auf Knopfdruck):
+  Alle lokalen Pakete, die auf dem Server fehlen oder anders sind, kommen
+  in die Reihe. So landen auch die Pakete aus Etappe 1 und 2 und von Hand
+  abgelegte Dateien auf dem NAS.
+- Stand je Paket in der lokalen `.json` (`remote: {state, sha256,
+  verified_at}`) und in der Liste der Elemente: „nur lokal“, „lokal +
+  Server“, „nur Server“, „wartet auf Kopie“.
+- Neustart mitten im Hochladen: Die `.part` auf dem Server wird beim
+  nächsten Versuch überschrieben, nichts gilt als kopiert, was nicht
+  zurückgelesen und geprüft ist.
+
+### Lokale Kopie löschen (Till, 14.10.)
+
+- Pro Paket in der Liste und gesammelt („Alle lokalen Kopien löschen, die
+  geprüft auf dem Server liegen“): Knopf **„Lokale Kopie löschen“**.
+- Nur möglich, wenn die Kopie auf dem Server **unmittelbar vorher** noch
+  einmal geprüft wurde: Sie existiert, und Größe und sha256 aus der
+  Server-`.json` stimmen. Das sha256 aus der Server-`.json` muss dem der
+  lokalen `.json` entsprechen. Ist der Server gerade nicht erreichbar, geht
+  der Knopf nicht (Grund steht dabei).
+- Bestätigung im Dialog ohne Namen-Eintippen, denn es geht nichts
+  verloren. Der Text sagt, wo die Kopie liegt.
+- Danach bleibt lokal nur die `.json` mit `remote.state = "remote_only"`
+  stehen. Die Liste zeigt das Paket weiter („nur Server“), der Katalog
+  bleibt vollständig. Platz wird frei.
+- Später (Etappe 6, Wiederherstellen) holt HydraHive ein solches Paket
+  vom Server zurück.
+- **Kein automatisches Löschen der lokalen Kopie** in Etappe 3. Eine
+  Einstellung „lokale Kopien nach X Tagen löschen“ kann später kommen.
+
+### Was nicht in Etappe 3 kommt
+
+- Andere Ziele als SMB (SFTP, S3) – das Muster bleibt offen dafür.
+- Löschen auf dem Server aus HydraHive heraus. Der Server ist das
+  Langzeit-Archiv, aufgeräumt wird dort von Hand oder später.
+- Das Archiv-Laufwerk „Ort wechseln“ (Etappe 1b) bleibt lokal.
+
+### API
+
+- `GET/PUT /api/admin/archive/remote` (Einstellungen, ohne Passwort),
+  `POST /api/admin/archive/remote/test`, `POST /api/admin/archive/remote/sync`
+  (Abgleich), `POST /api/admin/archive/entries/drop-local`
+  (`{"paths": [...]}` oder `{"all_verified": true}`, 202 als Auftrag).
+- `GET /api/admin/archive/status` bekommt `remote`: eingetragen, aktiv,
+  erreichbar, freier Platz, Pakete wartend/auf dem Server/nur lokal,
+  letzter Fehler.
+
+### Tests (zuerst rot)
+
+- Ein SMB-Server im Test: ein `FakeRemote` mit derselben Schnittstelle
+  (`put`, `get`, `stat`, `list`, `remove`), der in einen Ordner schreibt.
+  Dazu ein Test gegen die echte Bibliothek, wenn `HH_TEST_SMB_URL` gesetzt
+  ist (in der CI übersprungen, auf hydratest echt).
+- Einstellungen: Passwort nie in der Antwort, verschlüsselt in der Datei,
+  leeres Feld behält das alte, ungültige Namen → 400.
+- Kopieren: Paket kommt hoch, Prüfsumme gelesen und verglichen; Server weg
+  → bleibt in der Reihe, kein Fehler beim Löschen; Neustart mitten im
+  Hochladen; Abgleich findet alte Pakete.
+- Lokale Kopie löschen: nur mit geprüfter Server-Kopie; Server weg → 409;
+  sha256 auf dem Server anders → 409 und nichts gelöscht; danach „nur
+  Server“ in der Liste.
+- E2E auf hydratest gegen eine echte Samba-Freigabe; frischer
+  `images:ubuntu/26.04`-Container ohne Samba (Abhängigkeit kommt per pip).
+
+### Funde beim Bau 3a (14.10.)
+
+- **Samba erlaubt `replace` über eine bestehende Datei nicht** (ACCESS_DENIED, gemessen auf hydratest).
+  Darum: alte Datei erst entfernen, dann `.part` umbenennen. Die Lücke dazwischen ist unkritisch: Die
+  Kopie gilt erst nach dem Zurücklesen als „auf dem Server“.
+- **Fehler-Codes von Samba**: Datei fehlt = `0xC0000034`/`0xC000003A`, Freigabe unbekannt =
+  `0xC00000CC`/`0xC0000225`. `SMBOSError` erbt von `OSError` und darf nie als „nicht erreichbar“ gelten.
+- **Die Archiv-Freigabe hat einen Papierkorb**: Was HydraHive auf dem Server ersetzt oder löscht, landet
+  dort (gesehen beim Test gegen hydratest). Das ist so gewollt (Etappe 1) – für ein NAS ohne Papierkorb
+  ändert sich nichts.
+- Unterordner mit führendem „/“ (wie beim Projekt-Laufwerk, `/hydrahive`) wird still bereinigt.
+
+### PRs
+
+1. **3a**: Einstellungen, Verbindungstest, Kopier-Reihe, Abgleich, Anzeige.
+2. **3b**: Lokale Kopie löschen.
+
+**Offene Frage an Till:** Soll der Server-Bereich auch Prods
+Einstellungen vorbelegen? (Nein ist die Empfehlung: Es gibt keine
+geheime Ab-Werk-Konfiguration, jeder trägt sein NAS selbst ein.)

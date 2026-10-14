@@ -145,10 +145,9 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(asyncio.to_thread(reconcile_mounts_on_start))
     # System-Archiv + Samba-Freigabe einrichten – ohne Installer, auf jedem Server (archiv-system.md).
     from hydrahive.archive import jobs as archive_jobs
-    from hydrahive.archive.setup import ensure_archive
     async def _archive_start() -> None:
         await archive_jobs.on_start()                # halben Umzug + Lösch-Auftrag nach Neustart (Etappe 1b/2)
-        await asyncio.to_thread(ensure_archive)
+        await asyncio.to_thread(archive_jobs.after_start)   # Ordner + Freigabe, dann Kopie aufs NAS (Etappe 1/3)
     asyncio.create_task(_archive_start())
     if settings.pg_mirror_dsn:
         await pg_mirror.init()

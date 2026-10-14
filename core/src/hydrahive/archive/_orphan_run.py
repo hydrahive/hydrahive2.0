@@ -46,10 +46,13 @@ def execute(job: dict) -> dict:
                 return job
         job["leftovers"] += remove_tree(path)
         job["done_ids"].append(oid)
+        job.setdefault("made", []).extend(p for p in job["packages"] if p.get("source") == oid)
         job["packages"] = [p for p in job["packages"] if p.get("source") != oid]    # fertig: nicht mehr zurückrollen
         jobs.save(job)
     job["state"], job["step"] = "done", "done"
     jobs.save(job)
+    from hydrahive.archive import remote_sync
+    remote_sync.enqueue_packages(job.get("made") or [])           # Kopie aufs NAS, falls aktiv (Etappe 3)
     logger.info("Waisen-Auftrag %s fertig: %d entfernt, %d übersprungen", job["id"], len(job["done_ids"]),
                 len(job["skipped"]))
     return job

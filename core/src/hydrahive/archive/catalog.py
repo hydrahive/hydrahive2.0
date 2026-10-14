@@ -33,8 +33,9 @@ def _manual(path: Path, root: Path) -> dict:
     st = path.lstat()
     rel = path.relative_to(root)
     kind = rel.parts[0] if len(rel.parts) > 1 and rel.parts[0] in KINDS else None
+    from hydrahive.archive._remote_files import remote_of
     return {"manual": True, "path": str(rel), "file": path.name, "kind": kind,
-            "size": st.st_size, "mtime": st.st_mtime}
+            "size": st.st_size, "mtime": st.st_mtime, "remote": remote_of(str(rel).replace(os.sep, "/"))}
 
 
 def _packaged(path: Path, root: Path) -> dict | None:
