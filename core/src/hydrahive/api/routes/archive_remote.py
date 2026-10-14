@@ -72,8 +72,12 @@ async def remote_sync_now() -> dict:
 def status_block() -> dict:
     """Für GET /api/admin/archive/status: Einstellungen + Reihe + gezählte Pakete."""
     from hydrahive.archive import catalog
-    counts = {"on_server": 0, "local_only": 0}
+    counts = {"on_server": 0, "local_only": 0, "remote_only": 0, "droppable": 0, "droppable_bytes": 0}
     for e in catalog.list_entries():
         state = (e.get("remote") or {}).get("state")
-        counts["on_server" if state == "verified" else "local_only"] += 1
+        counts["on_server" if state in ("verified", "remote_only") else "local_only"] += 1
+        counts["remote_only"] += state == "remote_only"
+        if state == "verified" and not e["manual"]:              # nur Pakete (Till, 14.10.)
+            counts["droppable"] += 1
+            counts["droppable_bytes"] += e.get("size", 0)
     return {**remote_config.public(), **remote_sync.summary(), **counts}

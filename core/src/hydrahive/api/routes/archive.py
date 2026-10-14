@@ -1,7 +1,7 @@
 """Admin-API des System-Archivs (docs/specs/archiv-system.md, Etappe 1 + 2).
 
 Status (richtet dabei Ordner und Freigabe ein), Einträge, Papierkorb leeren, Freigabe-Schalter,
-Lösch-Vorschau und Lösch-Aufträge („Laufende Vorgänge“). Alles nur für Admins.
+Lösch-Vorschau und Lösch-Aufträge („Laufende Vorgänge“), lokale Kopie löschen (3b). Alles nur für Admins.
 """
 from __future__ import annotations
 
@@ -37,6 +37,11 @@ class OrphanCleanupRequest(BaseModel):
 
 class ShareSwitchRequest(BaseModel):
     enabled: StrictBool
+
+
+class DropLocalRequest(BaseModel):
+    paths: list[str] = []
+    all_verified: StrictBool = False
 
 
 def _read_samba_password() -> str:
@@ -115,6 +120,19 @@ def archive_entries(kind: str | None = None) -> dict:
         return {"entries": catalog.list_entries(kind=kind)}
     except ValueError:
         raise coded(status.HTTP_400_BAD_REQUEST, "archive_kind_invalid")
+
+
+@router.post("/entries/drop-local", status_code=status.HTTP_202_ACCEPTED)
+def archive_drop_local(req: DropLocalRequest, admin: Annotated[tuple[str, str], Depends(require_admin)]) -> dict:
+    """Lokale Kopie von Paketen löschen, die geprüft auf dem Server liegen (Etappe 3b)."""
+    from hydrahive.archive import drop_local
+    try:
+        rels = drop_local.select(req.paths, req.all_verified)
+        return {"job_id": drop_local.submit(paths=rels, actor=admin[0]), "count": len(rels)}
+    except drop_local.DropError as e:
+        raise coded(e.status, e.code)
+    except jobs.JobConflict:
+        raise coded(status.HTTP_409_CONFLICT, "delete_in_progress")
 
 
 @router.post("/trash/empty")

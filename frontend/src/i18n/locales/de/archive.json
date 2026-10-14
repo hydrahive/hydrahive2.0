@@ -61,8 +61,11 @@
     "remote": {
       "server": "auf dem Server",
       "waiting": "wartet",
-      "local": "nur hier"
-    }
+      "local": "nur hier",
+      "server_only": "nur auf dem Server"
+    },
+    "drop_local": "Lokale Kopie löschen",
+    "col_actions": "Aktionen"
   },
   "kind": {
     "agents": "Agent",
@@ -128,7 +131,8 @@
       "user": "Nutzer löschen",
       "instance": "Externe Instanz löschen",
       "orphans": "Waisen aufräumen",
-      "orphan_agent": "Agent ohne Projekt"
+      "orphan_agent": "Agent ohne Projekt",
+      "drop_local": "Lokale Kopie löschen"
     },
     "title": "„{{name}}“ löschen",
     "loading": "Wird geladen …",
@@ -173,7 +177,8 @@
       "measure": "Größe wird gezählt …",
       "pack": "Wird gepackt …",
       "delete": "Wird gelöscht …",
-      "done": "Fertig"
+      "done": "Fertig",
+      "check": "Kopie auf dem Server wird geprüft …"
     },
     "done_archive": "Gelöscht. Das Paket liegt im Archiv:",
     "done_permanent": "Unwiderruflich gelöscht.",
@@ -200,7 +205,8 @@
     "recent": "Zuletzt",
     "mode": {
       "archive": "ins Archiv",
-      "permanent": "unwiderruflich"
+      "permanent": "unwiderruflich",
+      "drop": "lokale Kopie löschen"
     }
   },
   "orphans": {
@@ -255,6 +261,34 @@
       "not_configured": "Noch kein Server eingetragen.",
       "not_found": "Auf dem Server nicht gefunden.",
       "unexpected": "Unerwarteter Fehler beim Server."
+    },
+    "server_only": "Nur auf dem Server",
+    "drop_all": "Alle lokalen Kopien löschen ({{count}}, {{size}})"
+  },
+  "drop": {
+    "title": "Lokale Kopie löschen",
+    "text": "{{count}} Paket(e) liegen geprüft auf dem Server. Die Kopie hier wird gelöscht, dadurch werden {{size}} frei.",
+    "where": "Die Pakete bleiben hier auf dem Server:",
+    "safety": "Vor dem Löschen liest HydraHive jedes Paket vom Server zurück und vergleicht es. Stimmt etwas nicht, bleibt das Paket hier und wird neu hochgeladen. In der Liste bleibt jedes Paket sichtbar, mit dem Stand „nur auf dem Server“.",
+    "cancel": "Abbrechen",
+    "confirm": "Lokale Kopie löschen",
+    "failed": "Auftrag ließ sich nicht starten.",
+    "done": "{{count}} lokale Kopie(n) gelöscht, {{size}} frei geworden.",
+    "kept_title": "Hier behalten:",
+    "kept": {
+      "verify_failed": "Kopie auf dem Server stimmt nicht – wird neu hochgeladen.",
+      "not_found": "Auf dem Server nicht gefunden – wird neu hochgeladen.",
+      "not_on_server": "Liegt inzwischen nicht mehr geprüft auf dem Server.",
+      "gone": "Gibt es hier nicht mehr.",
+      "unexpected": "Unerwarteter Fehler beim Server – wird neu hochgeladen."
+    },
+    "error": {
+      "unreachable": "Server nicht erreichbar.",
+      "auth_failed": "Anmeldung am Server abgelehnt.",
+      "remote_inactive": "Die Kopie auf den Server ist ausgeschaltet.",
+      "archive_unavailable": "Das Archiv zieht gerade um.",
+      "interrupted": "Der Dienst wurde neu gestartet. Pakete, die noch nicht gelöscht waren, sind wieder wie vorher.",
+      "unexpected": "Unerwarteter Fehler."
     }
   }
 }

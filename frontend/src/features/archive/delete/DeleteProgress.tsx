@@ -1,11 +1,13 @@
 import { useTranslation } from "react-i18next"
 import { AdminFeedback } from "@/features/cockpit/admin/ui"
+import { DropResult } from "../DropProgress"
 import { formatSize } from "../format"
 import type { DeleteJob } from "./api"
 
 /** Fortschritt bzw. Ergebnis eines Lösch-Auftrags – im Dialog und unter „Laufende Vorgänge“. */
 export function DeleteProgress({ job }: { job: DeleteJob }) {
   const { t } = useTranslation("archive")
+  if (job.kind === "drop_local" && (job.state === "failed" || job.state === "done")) return <DropResult job={job} />
   if (job.state === "failed") {
     return (
       <AdminFeedback tone="danger">
@@ -29,7 +31,7 @@ export function DeleteProgress({ job }: { job: DeleteJob }) {
     )
   }
   const percent = job.bytes_total > 0 ? Math.min(100, Math.floor((job.bytes_done / job.bytes_total) * 100)) : 0
-  const showBytes = job.step === "pack" && job.bytes_total > 0
+  const showBytes = (job.step === "pack" || job.step === "check") && job.bytes_total > 0
   return (
     <div className="space-y-2" data-delete-percent={percent}>
       <div className="flex justify-between text-xs text-[#8d9ab0]">

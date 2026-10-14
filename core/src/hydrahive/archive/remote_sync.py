@@ -62,12 +62,13 @@ def _persist() -> None:
 
 
 def _queue(rel: str) -> bool:
+    """Unter derselben Sperre wie „lokale Kopie löschen“ (3b): Was hier nicht mehr liegt, kommt nicht in die Reihe."""
     with _lock:
-        if any(i["rel"] == rel for i in _st()["items"]):
+        if any(i["rel"] == rel for i in _st()["items"]) or not (archive_root() / rel).is_file():
             return False
         _st()["items"].append({"rel": rel, "tries": 0, "next_at": 0})
         _persist()
-    rf.set_remote(rel, state="pending")
+        rf.set_remote(rel, state="pending")
     return True
 
 
@@ -88,7 +89,10 @@ def sync() -> int:
     remote = remote_smb.connect(remote_config.load())
     queued = 0
     for rel in rf.files():
-        size = (archive_root() / rel).stat().st_size
+        try:
+            size = (archive_root() / rel).stat().st_size
+        except OSError:                                    # inzwischen weg (z. B. lokale Kopie gelöscht)
+            continue
         if rf.remote_of(rel).get("state") == "verified" and remote.size(rel) == size:
             continue
         queued += _queue(rel)
