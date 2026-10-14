@@ -10,6 +10,9 @@ import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+# smbprotocol/spnego loggen jede SMB-Nachricht auf INFO – auf hydratest 465 von 794 Journal-Zeilen in 10 min.
+for _noisy in ("smbprotocol", "smbclient", "spnego"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 CHUNK = 4 << 20
 TIMEOUT_S = 15
