@@ -32,7 +32,10 @@ describe("Bereich Waisen", () => {
     const btn = (o: string) => o.match(/<button[^>]*data-orphans-action="cleanup"[^>]*>/)?.[0] ?? ""
     expect(btn(html(SCAN))).not.toMatch(/\sdisabled=""/)
     expect(btn(html(SCAN, true))).toMatch(/\sdisabled=""/)
-    expect(html({ complete: true, workspaces: [], agents: [] })).toContain("orphans.none")
+    const none = html({ complete: true, workspaces: [], agents: [] })
+    expect(none).toContain("orphans.none")
+    expect(btn(none)).toMatch(/\sdisabled=""/)
+    expect(btn(html(null))).toMatch(/\sdisabled=""/)
   })
 
   it("unvollständig gezählt → „mindestens“", () => {
