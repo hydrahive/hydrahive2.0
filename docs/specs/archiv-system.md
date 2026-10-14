@@ -756,6 +756,33 @@ ist. Das ersetzt „NAS ist Ziel Nr. 1, sonst Rückfrage“ aus der Planung vom
 - **Kein automatisches Löschen der lokalen Kopie** in Etappe 3. Eine
   Einstellung „lokale Kopien nach X Tagen löschen“ kann später kommen.
 
+#### Bauplan 3b (14.10., nach 3a auf Prod: 9 Pakete „verified“ auf dem NAS)
+
+- Nur für **Pakete** (`.tar.gz` mit `.json`). Bei von Hand abgelegten Dateien gibt es keinen Knopf, sie
+  bleiben lokal. Sie haben keine Begleitdatei, die nach dem Löschen im Katalog stehen bliebe.
+- `POST /api/admin/archive/entries/drop-local` mit `{"paths": [...]}` oder `{"all_verified": true}`.
+  Antwort 202 mit `job_id`. Es läuft als Auftrag `drop_local` in der vorhandenen Reihe, mit Fortschritt
+  unter „Laufende Vorgänge“, weil das Zurücklesen großer Pakete dauert.
+  - Server nicht aktiv → 409 `archive_remote_inactive`. Ein Pfad ist nicht `<art>/<datei>.tar.gz` → 400.
+  - Ein genannter Pfad ist nicht „verified“ → 409 `archive_not_on_server`, es wird nichts eingereiht.
+- **Je Paket, unmittelbar vor dem Löschen:**
+  1. Das Paket vom Server **vollständig zurücklesen** und das sha256 mit der lokalen `.json`
+     vergleichen. Das ist strenger als nur Größe und sha256 aus der Server-`.json` (Plan 13.10.), aber
+     nur so ist sicher, dass die Kopie wirklich lesbar ist.
+  2. Die Server-`.json` lesen, ihr sha256 muss gleich sein.
+  3. Erst die lokale `.json` auf `remote.state = "remote_only"` setzen, dann die lokale `.tar.gz`
+     entfernen. Bricht es dazwischen ab, setzt `recover()` den Stand für Pakete, deren Datei noch da
+     ist, auf „verified“ zurück. So geht nichts verloren und nichts steht falsch in der Liste.
+  - Weicht etwas ab oder fehlt auf dem Server: Das Paket bleibt lokal, der Stand geht auf „wartet“,
+    und es kommt neu in die Kopier-Reihe. Die übrigen Pakete laufen weiter. Ist der Server gleich zu
+    Beginn nicht erreichbar, endet der Auftrag mit `unreachable`, und es wird nichts gelöscht.
+- **Katalog:** Pakete mit `remote_only` stehen weiter in der Liste („nur auf dem Server“,
+  `local: false`). Sie zählen beim belegten Platz nicht mehr mit. Abgleich und Umzug (1b) lassen
+  sie unberührt, nur die `.json` zieht mit um.
+- **Fenster:** Pro Paket mit Stand „auf dem Server“ gibt es einen Knopf „Lokale Kopie löschen“. Im
+  Bereich „Externer Server“ gibt es „Alle lokalen Kopien löschen (Anzahl, Größe)“. Beides öffnet einen
+  Dialog mit Ort der Server-Kopie und frei werdendem Platz, ohne Namen-Eintippen.
+
 ### Was nicht in Etappe 3 kommt
 
 - Andere Ziele als SMB (SFTP, S3) – das Muster bleibt offen dafür.
