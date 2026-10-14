@@ -13,11 +13,12 @@ import pytest
 
 class FakeRemote:
     def __init__(self, root: Path) -> None:
-        self.root, self.down, self.corrupt, self.puts = root, False, False, 0
+        self.root, self.down, self.corrupt, self.puts, self.subdir = root, False, False, 0, ""
 
     def _p(self, rel: str) -> Path:
+        """Wie SmbRemote: Pfade sind relativ zum eingetragenen Unterordner."""
         assert ".." not in rel.split("/") and not rel.startswith("/"), rel
-        return self.root / rel
+        return self.root / self.subdir / rel
 
     def _check(self) -> None:
         if self.down:
@@ -65,7 +66,11 @@ def fake_remote(tmp_path, monkeypatch):
     from hydrahive.archive import remote_smb
     fake = FakeRemote(tmp_path / "nas")
     fake.root.mkdir()
-    monkeypatch.setattr(remote_smb, "connect", lambda cfg: fake)
+    def connect(cfg):
+        fake.subdir = cfg.get("subdir") or ""
+        return fake
+
+    monkeypatch.setattr(remote_smb, "connect", connect)
     return fake
 
 

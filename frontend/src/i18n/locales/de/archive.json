@@ -56,7 +56,13 @@
     "col_owner": "Besitzer",
     "col_reason": "Grund",
     "col_date": "Datum",
-    "col_size": "Größe"
+    "col_size": "Größe",
+    "col_remote": "Server",
+    "remote": {
+      "server": "auf dem Server",
+      "waiting": "wartet",
+      "local": "nur hier"
+    }
   },
   "kind": {
     "agents": "Agent",
@@ -209,5 +215,46 @@
     "what_happens": "Beim Aufräumen werden leere Ordner entfernt. Alles mit Inhalt kommt vorher ins Archiv, es geht also nichts verloren.",
     "cleanup": "Aufräumen",
     "cleanup_failed": "Aufräumen ließ sich nicht starten."
+  },
+  "remote": {
+    "title": "Externer Server (NAS)",
+    "subtitle": "Jedes Paket wird zusätzlich auf einen anderen Rechner kopiert und dort geprüft. Die Kopie hier bleibt erhalten.",
+    "state_active": "Aktiv",
+    "state_inactive": "Aus",
+    "field": {
+      "host": "Server",
+      "share": "Freigabe",
+      "subdir": "Unterordner",
+      "user": "Benutzer",
+      "password": "Passwort"
+    },
+    "help": {
+      "host": "Name oder IP-Adresse, z. B. 192.168.178.3",
+      "share": "Name der Freigabe auf dem Server",
+      "subdir": "Optional. Wird angelegt, falls er fehlt.",
+      "user": "Leer lassen für Gastzugang",
+      "password": " "
+    },
+    "password_kept": "Ein Passwort ist gespeichert. Leer lassen, um es zu behalten.",
+    "save": "Speichern",
+    "test": "Verbindung testen",
+    "sync": "Jetzt abgleichen",
+    "test_ok": "Verbindung klappt. Frei auf dem Server: {{free}}",
+    "test_first": "Erst „Verbindung testen“, dann lässt sich die Kopie einschalten.",
+    "switch": "Kopie auf den Server",
+    "on_server": "Pakete auf dem Server",
+    "waiting": "Warten auf Kopie",
+    "next_try": "Nächster Versuch in etwa {{minutes}} Minuten – von selbst, ohne Rückfrage.",
+    "hint": "Ist der Server einmal nicht erreichbar, geht Löschen trotzdem: Die Kopie wird später von selbst nachgeholt.",
+    "error": {
+      "unreachable": "Server nicht erreichbar.",
+      "auth_failed": "Anmeldung abgelehnt: Benutzer oder Passwort falsch.",
+      "share_not_found": "Diese Freigabe gibt es auf dem Server nicht.",
+      "not_writable": "Auf der Freigabe darf nicht geschrieben werden.",
+      "verify_failed": "Die Kopie auf dem Server war fehlerhaft und wird neu geschrieben.",
+      "not_configured": "Noch kein Server eingetragen.",
+      "not_found": "Auf dem Server nicht gefunden.",
+      "unexpected": "Unerwarteter Fehler beim Server."
+    }
   }
 }

@@ -56,7 +56,13 @@
     "col_owner": "Owner",
     "col_reason": "Reason",
     "col_date": "Date",
-    "col_size": "Size"
+    "col_size": "Size",
+    "col_remote": "Server",
+    "remote": {
+      "server": "on the server",
+      "waiting": "waiting",
+      "local": "only here"
+    }
   },
   "kind": {
     "agents": "Agent",
@@ -209,5 +215,46 @@
     "what_happens": "Cleaning up removes empty folders. Anything with content goes to the archive first, so nothing is lost.",
     "cleanup": "Clean up",
     "cleanup_failed": "Clean-up could not be started."
+  },
+  "remote": {
+    "title": "External server (NAS)",
+    "subtitle": "Every package is also copied to another machine and verified there. The copy here is kept.",
+    "state_active": "Active",
+    "state_inactive": "Off",
+    "field": {
+      "host": "Server",
+      "share": "Share",
+      "subdir": "Subfolder",
+      "user": "User",
+      "password": "Password"
+    },
+    "help": {
+      "host": "Name or IP address, e.g. 192.168.178.3",
+      "share": "Name of the share on the server",
+      "subdir": "Optional. Created if missing.",
+      "user": "Leave empty for guest access",
+      "password": " "
+    },
+    "password_kept": "A password is stored. Leave empty to keep it.",
+    "save": "Save",
+    "test": "Test connection",
+    "sync": "Sync now",
+    "test_ok": "Connection works. Free on the server: {{free}}",
+    "test_first": "Run “Test connection” first, then the copy can be switched on.",
+    "switch": "Copy to the server",
+    "on_server": "Packages on the server",
+    "waiting": "Waiting for copy",
+    "next_try": "Next try in about {{minutes}} minutes – automatically, no confirmation.",
+    "hint": "If the server is unreachable, deleting still works: the copy is made later automatically.",
+    "error": {
+      "unreachable": "Server not reachable.",
+      "auth_failed": "Login rejected: wrong user or password.",
+      "share_not_found": "This share does not exist on the server.",
+      "not_writable": "Writing to the share is not allowed.",
+      "verify_failed": "The copy on the server was damaged and will be written again.",
+      "not_configured": "No server set up yet.",
+      "not_found": "Not found on the server.",
+      "unexpected": "Unexpected server error."
+    }
   }
 }

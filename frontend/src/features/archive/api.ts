@@ -75,6 +75,34 @@ export interface ArchiveMove {
   last: MoveResult | null
 }
 
+/** Externer Server (Etappe 3): Einstellungen ohne Passwort + Stand der Kopier-Reihe. */
+export interface ArchiveRemote {
+  host: string
+  share: string
+  subdir: string
+  user: string
+  configured: boolean
+  password_set: boolean
+  tested: boolean
+  active: boolean
+  waiting: number
+  last_error: string | null
+  next_try_in_s: number | null
+  on_server: number
+  local_only: number
+}
+
+export interface RemoteForm {
+  host: string
+  share: string
+  subdir: string
+  user: string
+  /** Leer = altes Passwort behalten. */
+  password: string
+}
+
+export type RemoteTestResult = { ok: true; free_bytes: number } | { ok: false; error: string }
+
 export interface ArchiveStatus {
   target: "local"
   storage: ArchiveStorage
@@ -82,6 +110,7 @@ export interface ArchiveStatus {
   move?: ArchiveMove
   /** Lösch-Aufträge („Laufende Vorgänge“, Etappe 2). */
   jobs?: DeleteJobs
+  remote?: ArchiveRemote
 }
 
 export interface ArchiveEntry {
@@ -97,6 +126,14 @@ export interface ArchiveEntry {
   created_at?: string
   sha256?: string
   source_id?: string
+  remote?: { state?: string; verified_at?: string }
+}
+
+/** Stand der Kopie auf dem Server je Paket (Etappe 3). */
+export function remoteStateOf(e: { remote?: { state?: string } }): "server" | "waiting" | "local" {
+  if (e.remote?.state === "verified") return "server"
+  if (e.remote?.state === "pending") return "waiting"
+  return "local"
 }
 
 /** Waisen (Etappe 2b): Arbeitsordner ohne Agent und Agenten ohne Projekt. */
@@ -139,6 +176,10 @@ export const archiveApi = {
   orphans: () => api.get<OrphanScan>("/admin/archive/orphans"),
   cleanupOrphans: (sel: { workspaces: string[]; agents: string[] }) =>
     api.post<{ job_ids: string[] }>("/admin/archive/orphans/cleanup", sel),
+  remoteSave: (form: RemoteForm) => api.put<ArchiveRemote>("/admin/archive/remote", form),
+  remoteTest: () => api.post<RemoteTestResult>("/admin/archive/remote/test", {}),
+  remoteActive: (active: boolean) => api.post<ArchiveRemote>("/admin/archive/remote/active", { active }),
+  remoteSync: () => api.post<{ queued: number }>("/admin/archive/remote/sync", {}),
   setShare: (enabled: boolean) =>
     api.put<{ folder: boolean; share: string; error?: string }>("/admin/archive/share", { enabled }),
 }

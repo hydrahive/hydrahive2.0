@@ -37,6 +37,8 @@ dependencies = [
     # opentelemetry rein (verletzt den No-Telemetry-Guard). v1 bleibt kompatibel.
     "mcp>=1.0,<2",
     "httpx>=0.27,<1",
+    # Kopie des Archivs auf einen externen Server per SMB, ohne Einhängen und ohne root (Archiv Etappe 3).
+    "smbprotocol>=1.17,<2",
     "Pillow>=10.0,<14",
     "playwright>=1.44,<2",
     "yt-dlp>=2024.1",  # CalVer, kein Major-Schema — Deckel waere willkuerlich

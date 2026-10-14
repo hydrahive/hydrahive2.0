@@ -154,6 +154,8 @@ def finish(job: dict) -> dict:
     job["leftovers"] = sorted(set(job["leftovers"]))
     job["state"], job["step"] = "done", "done"
     _save(job)
+    from hydrahive.archive import remote_sync
+    remote_sync.enqueue_packages(job.get("packages") or [])    # Kopie aufs NAS, falls aktiv (Etappe 3)
     logger.info("Löschauftrag %s fertig: %s %s (%s)", job["id"], job["kind"], job["target"], job["mode"])
     return job
 

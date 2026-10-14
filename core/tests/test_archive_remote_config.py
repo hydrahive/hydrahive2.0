@@ -41,12 +41,19 @@ def test_empty_password_keeps_the_old_one() -> None:
 
 @pytest.mark.parametrize("field,value", [
     ("host", "nas local"), ("host", "a/b"), ("host", ""), ("share", "a\\b"), ("share", ""),
-    ("subdir", "../etc"), ("subdir", "/abs"), ("user", "a b;c"),
+    ("subdir", "../etc"), ("subdir", "a/../b"), ("user", "a b;c"),
 ])
 def test_invalid_values_are_rejected(field, value) -> None:
     from hydrahive.archive import remote_config
     with pytest.raises(remote_config.RemoteConfigError):
         remote_config.save({**GOOD, field: value})
+
+
+def test_leading_slash_in_subdir_is_normalized() -> None:
+    """Prod trägt den Unterordner als „/hydrahive“ ein (wie beim Projekt-Laufwerk) – das ist kein Fehler."""
+    from hydrahive.archive import remote_config
+    remote_config.save({**GOOD, "subdir": "/hydrahive/"})
+    assert remote_config.public()["subdir"] == "hydrahive"
 
 
 def test_changed_settings_deactivate_until_tested_again(fake_remote) -> None:

@@ -116,7 +116,7 @@ def test_restart_mid_upload_keeps_queue(archive_root, remote_on, remote_queue, m
     real = remote_on.put
 
     def crash(rel, local):
-        part = remote_on.root / (rel + ".part")
+        part = remote_on.root / "hydrahive" / (rel + ".part")
         part.parent.mkdir(parents=True, exist_ok=True)
         part.write_bytes(b"halb")
         raise _Crash()

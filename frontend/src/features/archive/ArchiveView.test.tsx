@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o ? `${k}:${JSON.stringify(o)}` : k) }) }))
+vi.mock("@/shared/api-client", () => ({ api: { get: vi.fn(), put: vi.fn(), post: vi.fn() } }))
 import { ArchiveView, type ArchiveViewProps } from "./ArchiveView"
 import type { ArchiveEntry, ArchiveStatus } from "./api"
 
@@ -31,6 +32,13 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
     const out = html()
     const order = [...out.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1])
     expect(order).toEqual(["storage", "share", "jobs", "orphans", "entries"])
+    const remote = { host: "nas", share: "b", subdir: "", user: "", configured: true, password_set: false, tested: false,
+      active: false, waiting: 0, last_error: null, next_try_in_s: null, on_server: 0, local_only: 2 }
+    const noop = () => {}
+    const withRemote = html({ status: { ...STATUS, remote }, remote: { form: { host: "nas", share: "b", subdir: "", user: "",
+      password: "" }, testResult: null, busy: false, error: null, onForm: noop, onSave: noop, onTest: noop, onActive: noop, onSync: noop } })
+    expect([...withRemote.matchAll(/data-archive-section="([a-z]+)"/g)].map((m) => m[1]))
+      .toEqual(["storage", "share", "remote", "jobs", "orphans", "entries"])
   })
 
   it("Laufende Vorgänge: laufend mit Fortschritt, wartend, zuletzt mit Fehler", () => {
@@ -54,6 +62,7 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
     expect(out).toContain("/var/lib/hydrahive2/workspaces/archive")
     expect(out).toContain('data-archive-count="2"')
     expect(out).toContain("512 B")
+    expect(out).toContain('data-entry-remote="local"')
   })
 
   it("Freigabe zeigt Netzadresse, Login und verdecktes Passwort", () => {
