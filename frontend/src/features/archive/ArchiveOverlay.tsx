@@ -21,6 +21,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const [moveOpen, setMoveOpen] = useState(false)
   const [orphans, setOrphans] = useState<OrphanScan | null>(null)
   const [orphansBusy, setOrphansBusy] = useState(false)
+  const [cleanupJobs, setCleanupJobs] = useState<string[]>([])
   const working = !!status?.move?.running || !!status?.jobs?.running || !!status?.jobs?.queued.length
 
   const reload = useCallback(async () => {
@@ -51,17 +52,26 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   async function cleanupOrphans() {
     if (!orphans) return
     setOrphansBusy(true)
-    try { await archiveApi.cleanupOrphans(cleanupSelection(orphans)); setOrphans(null); await reload() }
+    try {
+      const { job_ids } = await archiveApi.cleanupOrphans(cleanupSelection(orphans))
+      setCleanupJobs(job_ids); setOrphans(null); await reload()
+    }
     catch (err) { setError(err instanceof Error ? err.message : t("orphans.cleanup_failed")) }
     finally { setOrphansBusy(false) }
   }
 
-  // Waisen neu zählen, sobald die Reihe wieder leer ist (nach dem Aufräumen).
+  // Nach dem Aufräumen erst neu zählen, wenn alle eigenen Aufträge fertig gemeldet sind – nicht, wenn die
+  // Reihe nur gerade leer aussieht (ein schneller Auftrag ist fertig, bevor die erste Abfrage kommt).
+  const cleanupDone = cleanupJobs.length > 0 && cleanupJobs.every((id) => status?.jobs?.done.some((j) => j.id === id))
   useEffect(() => {
-    if (working || orphans) return
-    const later = setTimeout(() => { void loadOrphans() }, 0)
+    if (cleanupJobs.length === 0) return
+    if (!cleanupDone) {
+      const poll = setTimeout(() => { void reload() }, 1000)
+      return () => clearTimeout(poll)
+    }
+    const later = setTimeout(() => { setCleanupJobs([]); void loadOrphans() }, 0)
     return () => clearTimeout(later)
-  }, [working, orphans, loadOrphans])
+  }, [cleanupJobs, cleanupDone, status, reload, loadOrphans])
 
   // Während eines Umzugs oder Lösch-Auftrags den Fortschritt abfragen (läuft im Dienst, nicht im Browser).
   useEffect(() => {
@@ -119,7 +129,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           onShareSwitch={(enabled) => void switchShare(enabled)}
           onChangeLocation={() => setMoveOpen(true)}
           orphans={orphans}
-          orphansBusy={orphansBusy || working}
+          orphansBusy={orphansBusy || working || cleanupJobs.length > 0}
           onCleanupOrphans={() => void cleanupOrphans()}
         />
       </div>
