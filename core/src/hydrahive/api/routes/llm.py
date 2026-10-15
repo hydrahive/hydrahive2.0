@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, status
 
 from hydrahive.api.middleware.errors import coded
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from typing import Annotated
 
@@ -31,6 +31,13 @@ class LlmProvider(BaseModel):
     name: str
     api_key: str
     models: list[str]
+
+    @field_validator("api_key")
+    @classmethod
+    def _strip_key(cls, v: str) -> str:
+        # Beim Einfügen rutschen gern Leerzeichen/Zeilenumbrüche mit – im HTTP-Header sind sie verboten
+        # (httpx: „Illegal header value“, im Chat nur „Connection error.“).
+        return v.strip()
 
 
 class LlmConfig(BaseModel):

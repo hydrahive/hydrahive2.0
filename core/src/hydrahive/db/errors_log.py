@@ -34,6 +34,23 @@ def _new_id() -> str:
     return f"err_{secrets.token_hex(8)}"
 
 
+def _redact(message, tb_text, context):
+    """Bekannte Secret-Werte (LLM-Keys, Tokens) aus Meldung, Traceback und Kontext schwärzen.
+
+    Exceptions tragen sie manchmal im Text (z. B. httpx „Illegal header value b' sk-ant-…'“).
+    Schlägt das Schwärzen selbst fehl, wird der Fehler trotzdem gespeichert – aber ohne Traceback/Kontext,
+    damit dabei nichts Ungeschwärztes durchrutscht.
+    """
+    try:
+        from hydrahive.credentials.redaction import scrub
+        from hydrahive.credentials.secret_sources import secret_values
+        secrets = secret_values()
+        return scrub(message, secrets), scrub(tb_text, secrets), scrub(context, secrets)
+    except Exception:
+        logger.exception("errors_log: Schwärzen fehlgeschlagen – speichere ohne Traceback/Kontext")
+        return message, None, None
+
+
 def record(
     source: str,
     *,
@@ -62,6 +79,7 @@ def record(
             if tb_text is None:
                 tb_text = "".join(tb_mod.format_exception(type(exc), exc, exc.__traceback__))
 
+        message, tb_text, context = _redact(message, tb_text, context)
         with db() as conn:
             conn.execute(
                 """INSERT INTO errors_log
