@@ -82,3 +82,26 @@ def test_busy_message_exists_in_de_and_en_without_terminal_hint():
         text = json.loads((loc / lang / "errors.json").read_text(encoding="utf-8")).get("module_operation_busy", "")
         assert "{{module}}" in text, lang
         assert not any(w in text.lower() for w in ("terminal", "sudo", "systemctl", "update.sh", "install.conf"))
+
+
+def test_worker_is_a_daemon_thread():
+    """Der Ablauf darf das Beenden des Dienstes (Neustart) nicht aufhalten."""
+    gate = threading.Event()
+    seen: list[bool] = []
+
+    def gen():
+        seen.append(threading.current_thread().daemon)
+        yield "x"
+        assert gate.wait(5)
+    op = operations.start("update", "demo", gen())
+    try:
+        for t in threading.enumerate():
+            if t.name == "module-update-demo":
+                assert t.daemon
+                break
+        else:
+            raise AssertionError("kein Thread module-update-demo")
+    finally:
+        gate.set()
+        assert op.wait(5)
+    assert seen == [True]

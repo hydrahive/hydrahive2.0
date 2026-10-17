@@ -171,6 +171,28 @@ def test_busy_returns_409(client, admin_headers):
         assert op.wait(5)
 
 
+def test_each_route_starts_its_own_kind(setup_test_env):
+    """Install, Update und Deinstallation laufen als eigene Art (steht im 409 eines zweiten Starts)."""
+    import asyncio
+    import threading
+    from hydrahive.api.routes import modules as routes
+    from hydrahive.modules import operations
+    for route, target, kind in [(routes.install_module, "install", "install"), (routes.update_module, "update", "update"),
+                                (routes.uninstall_module, "uninstall", "uninstall")]:
+        gate = threading.Event()
+
+        def slow(g=gate):
+            yield "läuft"
+            assert g.wait(5)
+        with patch(f"hydrahive.api.routes.modules.installer.{target}", return_value=slow()):
+            resp = route("example")
+            op = operations.current()
+            assert op is not None and (op.kind, op.module_id) == (kind, "example"), kind
+            gate.set()
+            assert op.wait(5)
+            asyncio.run(resp.body_iterator.aclose())
+
+
 def test_route_runs_to_the_end_when_client_leaves(setup_test_env):
     """Die Route selbst: erste Zeile lesen, dann den Stream schließen (so trennt der Server einen gegangenen Browser)."""
     import asyncio
