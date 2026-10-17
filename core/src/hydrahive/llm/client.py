@@ -27,6 +27,7 @@ from hydrahive.llm._anthropic_calls import (
     split_system,
 )
 from hydrahive.llm._config import apply_keys, get_provider_key, load_config
+from hydrahive.llm._routing import litellm_target
 
 logger = logging.getLogger(__name__)
 litellm.suppress_debug_info = True
@@ -107,6 +108,7 @@ async def complete(
     resp = await litellm.acompletion(
         model=target, messages=messages,
         temperature=temperature, max_tokens=max_tokens,
+        **litellm_target(cfg, target),                    # eigene Adresse des Anbieters (Ollama, LM Studio …)
     )
     return resp.choices[0].message.content
 
@@ -160,6 +162,7 @@ async def stream(
     resp = await litellm.acompletion(
         model=target, messages=messages,
         temperature=temperature, max_tokens=max_tokens, stream=True,
+        **litellm_target(cfg, target),
     )
     async for chunk in resp:
         delta = chunk.choices[0].delta.content

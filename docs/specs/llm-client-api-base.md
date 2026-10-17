@@ -20,8 +20,8 @@ gehen an einen fremden Dienst. Der „Test“-Knopf meldet dann einen Fehler, ob
 
 ## Lösung
 
-- `_resolve_api_base(cfg, model)` zieht von `runner/llm_bridge.py` nach `llm/_config.py` um und heißt dort
-  `api_base_for(cfg, model)`. Die Paketschichtung bleibt so richtig: `llm` hängt nicht von `runner` ab. Das Verhalten
+- `_resolve_api_base(cfg, model)` zieht von `runner/llm_bridge.py` in die neue Datei `llm/_routing.py` und heißt dort
+  `api_base_for(cfg, model)`. Eine eigene Datei, weil `llm/_config.py` schon 177 Zeilen hat. Die Paketschichtung bleibt so richtig: `llm` hängt nicht von `runner` ab. Das Verhalten
   bleibt gleich: Der Präfix im Modellnamen (`ollama/`, `openai/` …) führt über `PROVIDER_PREFIX` zum Anbieter, und
   dessen `api_base` wird verwendet. Ohne eingetragene Adresse gibt es kein `api_base`-Argument; Cloud-Anbieter behalten
   ihr normales Ziel.
@@ -43,7 +43,7 @@ eingetragener Adresse gehen die Anfragen jetzt dorthin, wohin sie gehören.
 3. Ohne `api_base` am Anbieter gibt es **kein** `api_base`-Argument (Cloud-Ziel bleibt).
 4. `ollama/llama3` → `api_base` des Anbieters `ollama` und `num_ctx` (+ `extra_body.options.num_ctx`).
 5. Ein Anbieter mit Adresse, aber Modell eines anderen Anbieters (`groq/x`) → kein `api_base` (keine Verwechslung).
-6. `api_base_for` liegt in `llm/_config.py`. `runner/llm_bridge._resolve_api_base` ist dieselbe Funktion (Alias).
+6. `api_base_for` liegt in `llm/_routing.py`. `runner/llm_bridge._resolve_api_base` ist dieselbe Funktion (Alias).
 
 Gegenprobe auf `main`: 1, 2, 4 und 6 müssen rot sein. Bestehende Ollama-/Runner-Tests bleiben grün.
 

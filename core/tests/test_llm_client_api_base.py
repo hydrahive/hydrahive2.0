@@ -74,8 +74,8 @@ def test_default_model_also_uses_api_base(calls):
     assert calls[-1]["model"] == "openai/x" and calls[-1]["api_base"] == "http://lan-box:8000/v1"
 
 
-def test_api_base_for_lives_in_llm_config_and_runner_uses_it():
-    from hydrahive.llm._config import api_base_for
+def test_api_base_for_lives_in_llm_and_runner_uses_it():
+    from hydrahive.llm._routing import api_base_for
     from hydrahive.runner import llm_bridge
     assert llm_bridge._resolve_api_base is api_base_for
     assert api_base_for(CFG, "openai/x") == "http://lan-box:8000/v1"
