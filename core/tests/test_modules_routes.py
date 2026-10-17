@@ -171,8 +171,12 @@ def test_busy_returns_409(client, admin_headers):
         assert op.wait(5)
 
 
-def test_route_runs_to_the_end_when_client_leaves(client, admin_headers):
+def test_route_runs_to_the_end_when_client_leaves(setup_test_env):
+    """Die Route selbst: erste Zeile lesen, dann den Stream schließen (so trennt der Server einen gegangenen Browser)."""
+    import asyncio
     import threading
+    from hydrahive.api.routes import modules as routes
+    from hydrahive.modules import operations
     reached: list[str] = []
     gate = threading.Event()
 
@@ -181,10 +185,19 @@ def test_route_runs_to_the_end_when_client_leaves(client, admin_headers):
         assert gate.wait(5)
         reached.append("gebaut"); yield "Frontend gebaut"
         reached.append("neustart"); yield "Neustart angefordert"
+
+    async def read_first_then_leave() -> str:
+        resp = routes.update_module("example")
+        body = resp.body_iterator
+        first = await body.__anext__()
+        await body.aclose()                              # Browser ist weg
+        return first if isinstance(first, str) else first.decode()
+
     with patch("hydrahive.api.routes.modules.installer.update", return_value=gen()):
-        with client.stream("POST", "/api/admin/modules/example/update", headers=admin_headers) as r:
-            first = next(r.iter_lines())
-            assert "Dateien ersetzt" in first
-        gate.set()                                       # Browser ist weg
-        _wait_free()
+        first = asyncio.run(read_first_then_leave())
+        op = operations.current()
+        gate.set()
+        if op is not None:
+            assert op.wait(5)
+    assert "Dateien ersetzt" in first
     assert reached == ["ersetzt", "gebaut", "neustart"]
