@@ -83,3 +83,13 @@ def test_api_base_for_lives_in_llm_and_runner_uses_it():
     assert api_base_for(CFG, "groq/x") is None
     assert api_base_for(CFG, "claude-sonnet-4-6") is None
     assert api_base_for({"providers": []}, "openai/x") is None
+
+
+def test_provider_without_prefix_never_matches(monkeypatch):
+    """Ein Anbieter ohne Präfix (künftig denkbar) darf nicht jedes Modell auf seine Adresse umleiten."""
+    from hydrahive.llm import _catalog_data
+    from hydrahive.llm._routing import api_base_for
+    monkeypatch.setitem(_catalog_data.PROVIDER_PREFIX, "lokal", "")
+    cfg = {"providers": [{"id": "lokal", "api_base": "http://falsch:1"}]}
+    assert api_base_for(cfg, "groq/x") is None
+    assert api_base_for(cfg, "claude-sonnet-4-6") is None
