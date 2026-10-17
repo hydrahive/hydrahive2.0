@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from hydrahive.api.middleware.auth import require_admin
+from hydrahive.api.middleware.errors import coded
 from hydrahive.modules import REGISTRY
 from hydrahive.modules import hub_client
 from hydrahive.modules import installer
+from hydrahive.modules import operations
 
 logger = logging.getLogger(__name__)
 
@@ -101,29 +103,36 @@ def module_update_count() -> dict:
     return {"count": count}
 
 
-def _stream(gen) -> StreamingResponse:
+def _stream(kind: str, module_id: str, gen) -> StreamingResponse:
+    """Ablauf im Hintergrund starten (läuft auch ohne Browser zu Ende), Fortschritt als SSE zeigen."""
+    try:
+        op = operations.start(kind, module_id, gen)
+    except operations.OperationBusy as busy:
+        getattr(gen, "close", lambda: None)()          # nie gestartet – Generator sauber verwerfen
+        raise coded(409, "module_operation_busy", module=busy.module_id, kind=busy.kind) from busy
+
     def _events():
-        try:
-            for line in gen:
-                yield f"data: {json.dumps({'line': line})}\n\n"
-            yield "data: {\"done\": true}\n\n"
-        except Exception as exc:
-            logger.exception("Modul-Operation fehlgeschlagen")
-            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+        for event, value in operations.follow(op):
+            if event == "line":
+                yield f"data: {json.dumps({'line': value})}\n\n"
+            elif event == "done":
+                yield "data: {\"done\": true}\n\n"
+            else:
+                yield f"data: {json.dumps({'error': value})}\n\n"
 
     return StreamingResponse(_events(), media_type="text/event-stream", headers=_SSE_HEADERS)
 
 
 @router.post("/{module_id}/install", dependencies=[Depends(require_admin)])
 def install_module(module_id: str) -> StreamingResponse:
-    return _stream(installer.install(module_id))
+    return _stream("install", module_id, installer.install(module_id))
 
 
 @router.post("/{module_id}/update", dependencies=[Depends(require_admin)])
 def update_module(module_id: str) -> StreamingResponse:
-    return _stream(installer.update(module_id))
+    return _stream("update", module_id, installer.update(module_id))
 
 
 @router.delete("/{module_id}", dependencies=[Depends(require_admin)])
 def uninstall_module(module_id: str) -> StreamingResponse:
-    return _stream(installer.uninstall(module_id))
+    return _stream("uninstall", module_id, installer.uninstall(module_id))
