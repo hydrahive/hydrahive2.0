@@ -47,6 +47,8 @@ class VideoParams:
     frames: int | None = None
     image_url: str | None = None  # Startframe (data-URI/https) für I2V
     end_image_url: str | None = None  # Endframe (data-URI/https) für FLF2V
+    # Vorlagen für Bild-Workflows (data-URIs, wichtigste zuerst) → Platzhalter reference_1..N
+    references: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
+from hydrahive.llm.video_backends._comfyui_refs import suggest_references
 from hydrahive.settings import settings
 
 router = APIRouter(prefix="/api/media-backends", tags=["media-backends"])
@@ -118,7 +119,9 @@ _HEURISTICS = {
     "CLIPTextEncode": ("text", "prompt"),
     "KSampler": ("seed", "seed"),
     "KSamplerAdvanced": ("noise_seed", "seed"),
+    "RandomNoise": ("noise_seed", "seed"),
     "EmptyLatentImage": ("width", "width"),
+    "EmptyFlux2LatentImage": ("width", "width"),
     "EmptyLatentVideo": ("length", "frames"),
     "LTXVBaseSampler": ("seed", "seed"),
 }
@@ -154,4 +157,11 @@ def parse_workflow(req: ParseReq) -> dict:
             if field in inputs and param not in suggestions:
                 suggestions[param] = f"{node_id}.inputs.{field}"
 
-    return {"nodes": nodes, "suggestions": suggestions}
+    for key in ("width", "height"):                       # Höhe gehört zum selben Knoten wie die Breite
+        if key == "height" and "width" in suggestions and "height" not in suggestions:
+            node_id = suggestions["width"].split(".")[0]
+            if "height" in (graph.get(node_id, {}).get("inputs") or {}):
+                suggestions["height"] = f"{node_id}.inputs.height"
+    refs, links = suggest_references(graph)
+    suggestions.update(refs)
+    return {"nodes": nodes, "suggestions": suggestions, "reference_links": links}

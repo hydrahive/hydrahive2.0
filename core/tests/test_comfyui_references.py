@@ -184,3 +184,47 @@ def test_shipped_flux2_workflow_runs_without_references(monkeypatch) -> None:
         assert lfield not in g[lnode]["inputs"]
     seed_node, _, seed_field = wf["placeholders"]["seed"].split(".")
     assert g[seed_node]["inputs"][seed_field] == 7
+
+
+# --- Admin-Konsole: Workflow einlesen schlägt Vorlagen vor ---------------------
+
+def test_parse_workflow_suggests_references_and_links(client, admin_headers) -> None:
+    wf = json.loads(WF.read_text())
+    r = client.post("/api/media-backends/parse-workflow", json={"graph": wf["graph"]}, headers=admin_headers)
+    assert r.status_code == 200
+    data = r.json()
+    for n in (1, 2, 3):
+        assert data["suggestions"][f"reference_{n}"] == wf["placeholders"][f"reference_{n}"]
+    assert data["reference_links"] == wf["reference_links"]
+    assert data["suggestions"]["prompt"] == wf["placeholders"]["prompt"]
+    assert data["suggestions"]["seed"] == wf["placeholders"]["seed"]
+    assert data["suggestions"]["width"] == wf["placeholders"]["width"]
+    assert data["suggestions"]["height"] == wf["placeholders"]["height"]
+
+
+def test_parse_workflow_plain_load_image_is_no_reference(client, admin_headers) -> None:
+    graph = {"1": {"class_type": "LoadImage", "inputs": {"image": "a.png"}},
+             "2": {"class_type": "WanImageToVideo", "inputs": {"start_image": ["1", 0]}}}
+    data = client.post("/api/media-backends/parse-workflow", json={"graph": graph}, headers=admin_headers).json()
+    assert not any(k.startswith("reference_") for k in data["suggestions"]) and data["reference_links"] == {}
+
+
+def test_reference_slots_only_numbered() -> None:
+    from hydrahive.llm.video_backends._comfyui_refs import reference_slots
+    assert reference_slots({"reference_10": "a", "reference_2": "b", "reference_x": "c", "prompt": "d"}) == \
+        ["reference_2", "reference_10"]
+
+
+def test_link_with_two_parts_is_skipped(monkeypatch) -> None:
+    p = _provider()
+    p["workflows"][0]["reference_links"]["reference_2"] = "r2.latent"                 # Knoten gibt es, Adresse kaputt
+    g = _submit(monkeypatch, p, [_uri("A")])
+    assert "latent" in g["r2"]["inputs"] and "latent" not in g["r3"]["inputs"]
+
+
+def test_parse_workflow_image_into_conditioning_is_no_reference(client, admin_headers) -> None:
+    graph = {"1": {"class_type": "LoadImage", "inputs": {"image": "a.png"}},
+             "2": {"class_type": "VAEEncode", "inputs": {"pixels": ["1", 0], "vae": ["9", 0]}},
+             "3": {"class_type": "ReferenceLatent", "inputs": {"conditioning": ["2", 0]}}}
+    data = client.post("/api/media-backends/parse-workflow", json={"graph": graph}, headers=admin_headers).json()
+    assert data["reference_links"] == {}
