@@ -95,6 +95,8 @@ export interface MediaWorkflow {
   output_node?: string
   graph?: Record<string, unknown>
   placeholders?: Record<string, string>
+  /** Eingang je Vorlage (reference_N); fehlt die Vorlage, wird er entfernt */
+  reference_links?: Record<string, string>
   durations?: number[]
   aspect_ratios?: string[]
   frame_images?: string[]
@@ -111,6 +113,7 @@ export interface MediaBackend {
 export interface ParsedWorkflow {
   nodes: { id: string; class_type: string; inputs: string[] }[]
   suggestions: Record<string, string>
+  reference_links?: Record<string, string>
 }
 
 export const mediaBackendsApi = {

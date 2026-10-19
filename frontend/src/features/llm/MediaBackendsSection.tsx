@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Loader2, Plus, Trash2, Zap, Check, X } from "lucide-react"
 import { mediaBackendsApi, type MediaBackend, type MediaWorkflow } from "./api"
+import { workflowMaps } from "./workflowMaps"
 
 /**
  * GUI zur Verwaltung lokaler Media-Backends (ComfyUI / Switch-Wrapper).
@@ -160,7 +161,7 @@ function AddBackendForm({ onAdd, onCancel }: {
   )
 }
 
-const PARAM_KEYS = ["prompt", "seed", "width", "height", "frames", "image_url"] as const
+const PARAM_KEYS = ["prompt", "seed", "width", "height", "frames", "image_url", "reference_1", "reference_2", "reference_3"] as const
 
 function WorkflowManager({ backend, onChange }: {
   backend: MediaBackend; onChange: (b: MediaBackend) => void
@@ -199,6 +200,7 @@ function WorkflowForm({ onAdd, onCancel }: {
   const [nodes, setNodes] = useState<{ id: string; class_type: string; inputs: string[] }[]>([])
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [graph, setGraph] = useState<Record<string, unknown> | null>(null)
+  const [links, setLinks] = useState<Record<string, string>>({})
   const [err, setErr] = useState("")
 
   async function parse() {
@@ -207,7 +209,7 @@ function WorkflowForm({ onAdd, onCancel }: {
     try { g = JSON.parse(json) } catch { setErr("Kein gültiges JSON"); return }
     try {
       const r = await mediaBackendsApi.parseWorkflow(g)
-      setNodes(r.nodes); setMapping(r.suggestions); setGraph(g)
+      setNodes(r.nodes); setMapping(r.suggestions); setLinks(r.reference_links ?? {}); setGraph(g)
     } catch { setErr("Workflow konnte nicht geparst werden (API-Format nötig)") }
   }
 
@@ -238,7 +240,7 @@ function WorkflowForm({ onAdd, onCancel }: {
           <p className="text-xs text-zinc-500">Platzhalter zuordnen (Vorschläge vorbelegt):</p>
           {PARAM_KEYS.map((key) => (
             <div key={key} className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400 w-16">{key}</span>
+              <span className="text-xs text-zinc-400 w-20">{key}</span>
               <select value={mapping[key] ?? ""} onChange={(e) => setMapping({ ...mapping, [key]: e.target.value })}
                 className="flex-1 rounded bg-zinc-800 text-zinc-300 text-xs px-2 py-1 border border-zinc-700">
                 <option value="">— nicht gesetzt —</option>
@@ -251,7 +253,7 @@ function WorkflowForm({ onAdd, onCancel }: {
               onClick={() => onAdd({
                 id: label.trim().toLowerCase().replace(/\s+/g, "-"),
                 label: label.trim(), category, graph: graph!,
-                placeholders: Object.fromEntries(Object.entries(mapping).filter(([, v]) => v)),
+                ...workflowMaps(mapping, links),
               })}
               className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs disabled:opacity-40">
               Workflow speichern

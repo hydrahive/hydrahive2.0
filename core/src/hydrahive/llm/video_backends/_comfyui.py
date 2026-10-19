@@ -24,6 +24,7 @@ from pathlib import Path
 
 import httpx
 
+from hydrahive.llm.video_backends._comfyui_refs import unlink_unused, upload_references
 from hydrahive.llm.video_backends._base import (
     JobRef,
     JobStatus,
@@ -59,6 +60,7 @@ def _apply_placeholders(
     *,
     image_name: str | None = None,
     end_image_name: str | None = None,
+    reference_names: dict[str, str] | None = None,
 ) -> dict:
     """Setzt Parameter und hochgeladene Bildnamen in den Workflow-Graph.
 
@@ -75,6 +77,7 @@ def _apply_placeholders(
         "frames": params.frames,
         "image_url": image_name,
         "end_image_url": end_image_name,
+        **(reference_names or {}),
     }
     for key, addr in (placeholders or {}).items():
         val = values.get(key)
@@ -92,6 +95,7 @@ def _apply_placeholders(
             continue
         node["inputs"][field] = val
     return g
+
 
 
 def _decode_data_uri(value: str) -> tuple[str, bytes]:
@@ -162,10 +166,12 @@ class ComfyUIVideoBackend:
                     image_name = await _upload_image(client, base, params.image_url, "start")
                 if params.end_image_url:
                     end_image_name = await _upload_image(client, base, params.end_image_url, "end")
+                refs = await upload_references(client, base, wf, params.references, _upload_image)
                 filled = _apply_placeholders(
                     graph, wf.get("placeholders") or {}, params,
-                    image_name=image_name, end_image_name=end_image_name,
+                    image_name=image_name, end_image_name=end_image_name, reference_names=refs,
                 )
+                filled = unlink_unused(filled, wf.get("reference_links") or {}, set(refs))
                 resp = await client.post(
                     f"{base}/prompt",
                     json={"prompt": filled, "client_id": client_id},

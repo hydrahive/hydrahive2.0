@@ -1,0 +1,292 @@
+{
+  "id": "flux2-klein-image",
+  "label": "FLUX.2 klein 4B – Bild mit Vorlagen (lokal)",
+  "category": "image",
+  "aspect_ratios": [
+    "1:1",
+    "16:9",
+    "9:16"
+  ],
+  "output_node": "SaveImage",
+  "placeholders": {
+    "prompt": "4.inputs.text",
+    "seed": "54.inputs.noise_seed",
+    "width": "53.inputs.width",
+    "height": "53.inputs.height",
+    "reference_1": "10.inputs.image",
+    "reference_2": "20.inputs.image",
+    "reference_3": "30.inputs.image"
+  },
+  "reference_links": {
+    "reference_1": "13.inputs.latent",
+    "reference_2": "23.inputs.latent",
+    "reference_3": "33.inputs.latent"
+  },
+  "graph": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "flux-2-klein-4b.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen_3_4b.safetensors",
+        "type": "flux2"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "flux2-vae.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "",
+        "clip": [
+          "2",
+          0
+        ]
+      }
+    },
+    "10": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "example.png"
+      }
+    },
+    "11": {
+      "class_type": "ImageScaleToTotalPixels",
+      "inputs": {
+        "image": [
+          "10",
+          0
+        ],
+        "upscale_method": "lanczos",
+        "megapixels": 1.0,
+        "resolution_steps": 1
+      }
+    },
+    "12": {
+      "class_type": "VAEEncode",
+      "inputs": {
+        "pixels": [
+          "11",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "13": {
+      "class_type": "ReferenceLatent",
+      "inputs": {
+        "conditioning": [
+          "4",
+          0
+        ],
+        "latent": [
+          "12",
+          0
+        ]
+      }
+    },
+    "20": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "example.png"
+      }
+    },
+    "21": {
+      "class_type": "ImageScaleToTotalPixels",
+      "inputs": {
+        "image": [
+          "20",
+          0
+        ],
+        "upscale_method": "lanczos",
+        "megapixels": 1.0,
+        "resolution_steps": 1
+      }
+    },
+    "22": {
+      "class_type": "VAEEncode",
+      "inputs": {
+        "pixels": [
+          "21",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "23": {
+      "class_type": "ReferenceLatent",
+      "inputs": {
+        "conditioning": [
+          "13",
+          0
+        ],
+        "latent": [
+          "22",
+          0
+        ]
+      }
+    },
+    "30": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "example.png"
+      }
+    },
+    "31": {
+      "class_type": "ImageScaleToTotalPixels",
+      "inputs": {
+        "image": [
+          "30",
+          0
+        ],
+        "upscale_method": "lanczos",
+        "megapixels": 1.0,
+        "resolution_steps": 1
+      }
+    },
+    "32": {
+      "class_type": "VAEEncode",
+      "inputs": {
+        "pixels": [
+          "31",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "33": {
+      "class_type": "ReferenceLatent",
+      "inputs": {
+        "conditioning": [
+          "23",
+          0
+        ],
+        "latent": [
+          "32",
+          0
+        ]
+      }
+    },
+    "50": {
+      "class_type": "ConditioningZeroOut",
+      "inputs": {
+        "conditioning": [
+          "4",
+          0
+        ]
+      }
+    },
+    "51": {
+      "class_type": "CFGGuider",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "positive": [
+          "33",
+          0
+        ],
+        "negative": [
+          "50",
+          0
+        ],
+        "cfg": 1.0
+      }
+    },
+    "52": {
+      "class_type": "Flux2Scheduler",
+      "inputs": {
+        "steps": 4,
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    "53": {
+      "class_type": "EmptyFlux2LatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      }
+    },
+    "54": {
+      "class_type": "RandomNoise",
+      "inputs": {
+        "noise_seed": 0
+      }
+    },
+    "55": {
+      "class_type": "KSamplerSelect",
+      "inputs": {
+        "sampler_name": "euler"
+      }
+    },
+    "56": {
+      "class_type": "SamplerCustomAdvanced",
+      "inputs": {
+        "noise": [
+          "54",
+          0
+        ],
+        "guider": [
+          "51",
+          0
+        ],
+        "sampler": [
+          "55",
+          0
+        ],
+        "sigmas": [
+          "52",
+          0
+        ],
+        "latent_image": [
+          "53",
+          0
+        ]
+      }
+    },
+    "57": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "56",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "58": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "57",
+          0
+        ],
+        "filename_prefix": "hydrahive"
+      }
+    }
+  }
+}
