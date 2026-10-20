@@ -2,8 +2,8 @@
 // Platzhalter und löschte alle Anbieter. Jetzt: einzelne Zwecke gezielt speichern; vollständiges Speichern erst nach Laden.
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const put = vi.fn(async () => ({}))
-vi.mock("@/shared/api-client", () => ({ api: { put: (...a: unknown[]) => put(...a), get: vi.fn(), post: vi.fn(), delete: vi.fn() } }))
+const put = vi.fn(async (_url: string, _body: unknown) => ({}))
+vi.mock("@/shared/api-client", () => ({ api: { put: (url: string, body: unknown) => put(url, body), get: vi.fn(), post: vi.fn(), delete: vi.fn() } }))
 
 import { llmApi } from "../api"
 import { configLoaded, purposeFor } from "../defaultModelSave"

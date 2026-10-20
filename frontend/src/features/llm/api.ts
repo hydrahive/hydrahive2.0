@@ -74,6 +74,8 @@ export interface OpenRouterCredits {
 export const llmApi = {
   getConfig: () => api.get<LlmConfig>("/llm"),
   updateConfig: (cfg: LlmConfig) => api.put<LlmConfig>("/llm", cfg),
+  /** Nur das Modell EINES Zwecks setzen – der Rest der Einstellungen bleibt unberührt. */
+  setDefault: (purpose: string, model: string) => api.put<{ purpose: string; model: string }>(`/llm/default/${purpose}`, { model }),
   testConnection: (model?: string) =>
     api.post<{ ok: boolean; response: string }>("/llm/test", { model: model ?? null }),
   oauthStart: (provider: string) =>

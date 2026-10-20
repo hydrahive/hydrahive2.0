@@ -4,7 +4,8 @@ import { llmApi, llmModelsApi, type LlmConfig, type MediaModel, type RegistryMod
 import { MediaModelSelect } from "./MediaModelSelect"
 import { ModelSelect } from "./ModelSelect"
 import { LessonsModelSelect } from "./LessonsModelSelect"
-import { lessonsChoice, lessonsValue } from "./lessonsModel"
+import { lessonsChoice } from "./lessonsModel"
+import { purposeFor } from "./defaultModelSave"
 
 // Maps purpose → config field path (mirrors backend _PURPOSE_KEYS)
 type Purpose = "chat" | "embed" | "image" | "music" | "tts" | "stt" | "video"
@@ -112,7 +113,19 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
   }
 
   async function handleChange(def: PurposeDef, model: string) {
-    await saveConfig(def.setVal(config, model))
+    const single = purposeFor(def.purpose)
+    if (single) await savePurpose(single, model)
+    else await saveConfig(def.setVal(config, model))
+  }
+
+  async function savePurpose(purpose: string, model: string) {
+    setError(null)
+    try {
+      await llmApi.setDefault(purpose, model)
+      onSaved()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("default_models.save_error"))
+    }
   }
 
   async function saveConfig(updated: LlmConfig) {
@@ -162,7 +175,7 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
       <LessonsModelSelect
         value={lessonsChoice(config)}
         models={modelsByPurpose.chat ?? []}
-        onChange={(choice) => void saveConfig(lessonsValue(config, choice))}
+        onChange={(choice) => void savePurpose("lessons", choice)}
       />
     </div>
   )
