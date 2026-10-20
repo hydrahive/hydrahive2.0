@@ -245,3 +245,14 @@ def test_update_survives_missing_heal_helper(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     log = mac["log"].read_text()
     assert "Paketprüfung übersprungen" in log and "Update abgeschlossen" in log
+
+
+def test_package_named_twice_is_reinstalled_once(mac):
+    """pip check nennt ein Paket oft mehrfach (eine Zeile je Abhängigkeit) – einmal neu installieren reicht."""
+    _launchd(mac)
+    (mac["tmp"] / "pip_check.txt").write_text("litellm 1.106.0 has requirement openai>=2, but you have openai 1.0.\n"
+                                             "litellm 1.106.0 has requirement httpx>=0.28, but you have httpx 0.1.\n")
+    (mac["tmp"] / "litellm_kaputt").touch()
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _calls(mac).count("--force-reinstall --no-deps litellm") == 1
