@@ -59,5 +59,9 @@ Gilt nur für macOS. Linux (`update.sh`) bleibt unverändert.
    nach der Lock-Datei und ändert sie nie.
 4. **Jede Zeile doppelt im Verlauf** (Test über den Knopf, 21.10.): Der Update-LaunchDaemon leitet stdout/stderr
    schon nach `hydrahive2-update.log` (`55-launchd-triggers.sh`), `update-mac.sh` schreibt zusätzlich per `tee -a`
-   dorthin. Abhilfe: Zeigt die Standardausgabe bereits auf die Log-Datei (gleiche Datei: `-ef`), nur einmal schreiben
-   (`tee -a` weglassen); sonst wie bisher (Aufruf im Terminal: Datei + Bildschirm).
+   dorthin. Abhilfe: Der Update-LaunchDaemon setzt `HH_UPDATE_VIA_LAUNCHD=1`; dann schreibt `update-mac.sh` nur auf die
+   Standardausgabe (die launchd schon in die Datei leitet). Ohne die Kennung (Aufruf im Terminal) wie bisher Datei +
+   Bildschirm. Der Vergleich `[ /dev/stdout -ef "$LOG" ]` taugt nicht: auf macOS (Bash 3.2) meldet er „verschieden“,
+   obwohl es dieselbe Datei ist (geprüft auf .186).
+   `update-mac.sh` schreibt die Update-plist neu, wenn die Kennung fehlt (über `55-launchd-triggers.sh`). Die neue plist
+   gilt erst beim **nächsten** Update – das laufende Update selbst schreibt in diesem einen Fall noch doppelt.
