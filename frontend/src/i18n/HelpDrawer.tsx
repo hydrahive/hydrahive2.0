@@ -3,6 +3,7 @@ import { Loader2, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Markdown } from "@/features/chat/Markdown"
 import { type HelpTopic, loadHelp } from "./help/loader"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 interface Props {
   topic: HelpTopic
@@ -13,6 +14,9 @@ interface Props {
 export function HelpDrawer({ topic, open, onClose }: Props) {
   const { t, i18n } = useTranslation("help")
   const titleId = useId()
+  // Bleibt gerendert (Slide-Animation) → Ref nur im offenen Zustand: dann Fokus hinein, Tab bleibt drin,
+  // beim Schließen Fokus zurück (docs/specs/ui-standard.md, Regel 6). Escape bewusst nicht neu.
+  const dialogRef = useDialogFokus<HTMLElement>()
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -37,10 +41,13 @@ export function HelpDrawer({ topic, open, onClose }: Props) {
       />
       <aside
         className={`fixed bottom-0 right-0 top-0 z-[90] flex w-full max-w-2xl flex-col border-l border-[#46617f] bg-[#0e1420] shadow-2xl transition-transform duration-200 ${open ? "translate-x-0" : "translate-x-full"}`}
+        ref={open ? dialogRef : undefined}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-hidden={!open}
+        inert={!open}
       >
         <header className="flex items-center justify-between border-b border-[#2a364b] bg-[#131b2a] px-5 py-4">
           <div>

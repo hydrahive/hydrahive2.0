@@ -4,6 +4,7 @@ import type { AgentBrief } from "@/features/chat/types"
 import { projectsApi } from "@/features/projects/api"
 import type { Project } from "@/features/projects/types"
 import { CockpitButton } from "../CockpitButton"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 interface Props {
   agents: AgentBrief[]
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function ProjectCreateOverlay({ agents, onClose, onCreated }: Props) {
+  const dialogRef = useDialogFokus<HTMLElement>()
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [model, setModel] = useState(agents[0]?.llm_model ?? "")
@@ -43,7 +45,7 @@ export function ProjectCreateOverlay({ agents, onClose, onCreated }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-black/75 p-4 backdrop-blur-sm" role="presentation">
-      <section role="dialog" aria-modal="true" aria-labelledby="project-create-title" className="w-full max-w-2xl overflow-hidden rounded-[6px] border border-[#3b4a63] bg-[#111827] shadow-2xl shadow-black/60">
+      <section ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="project-create-title" className="w-full max-w-2xl overflow-hidden rounded-[6px] border border-[#3b4a63] bg-[#111827] shadow-2xl shadow-black/60">
         <header className="flex items-center justify-between gap-3 border-b border-[#2a364b] px-5 py-4">
           <div className="flex items-center gap-3"><FolderPlus size={20} className="text-[#69d7ff]" /><div><h2 id="project-create-title" className="font-black text-[#e8eef8]">Neues Projekt</h2><p className="text-xs text-[#8d9ab0]">Workspace, Projekt-Agent und optional Samba werden gemeinsam angelegt.</p></div></div>
           <button onClick={onClose} disabled={saving} aria-label="Schließen" className="rounded-[4px] border border-[#2a364b] p-2 text-[#8d9ab0] hover:text-[#e8eef8] disabled:opacity-40"><X size={16} /></button>
