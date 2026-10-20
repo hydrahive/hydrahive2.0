@@ -27,6 +27,10 @@ class EditableSetting:
 EDITABLE_SETTINGS: list[EditableSetting] = [
     EditableSetting("searxng_url", "HH_SEARXNG_URL", "string", "Websuche", "SearXNG-URL",
                     help="Basis-URL deiner SearXNG-Instanz für das web_search-Tool, z.B. https://searx.example"),
+    EditableSetting("tavily_api_key", "HH_TAVILY_API_KEY", "secret", "Websuche", "Tavily API-Key",
+                    help="Optional, kostenlos bei app.tavily.com (1.000 Suchen/Monat, ohne Kreditkarte). "
+                         "Wird nur genutzt, wenn SearXNG ausfällt oder alle Suchanbieter sperren; "
+                         "HydraHive stoppt selbst bei 950 Aufrufen im Monat."),
     EditableSetting("mail_enabled", "HH_MAIL_ENABLED", "bool", "Mail", "Mail aktiv", "0"),
     EditableSetting("mail_smtp_host", "HH_MAIL_SMTP_HOST", "string", "Mail", "SMTP-Host"),
     EditableSetting("mail_smtp_port", "HH_MAIL_SMTP_PORT", "int", "Mail", "SMTP-Port", "587"),
