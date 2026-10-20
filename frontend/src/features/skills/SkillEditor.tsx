@@ -5,6 +5,7 @@ import { skillsApi } from "./api"
 import { Field } from "./_skillHelpers"
 import { SkillSourcesList } from "./_SkillSourcesList"
 import type { Skill, SkillScope, SkillSource } from "./types"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   skill: Skill | null
@@ -18,6 +19,7 @@ interface Props {
 const NAME_RE = /^[a-z0-9][a-z0-9_-]{0,49}$/
 
 export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClose, onSaved, onDeleted }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("skills")
   const { t: tCommon } = useTranslation("common")
   const isNew = !skill
@@ -66,10 +68,10 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
-        role="dialog" aria-modal="true" aria-label={isNew ? t("new_title") : t("edit_title", { name: skill!.name })}
+        {...dlg.props}
         className="max-h-[90vh] w-full max-w-3xl space-y-3 overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-5 text-[#e8eef8] shadow-2xl shadow-black/40">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">
+          <h2 id={dlg.titelId} className="text-lg font-bold text-white">
             {isNew ? t("new_title") : t("edit_title", { name: skill!.name })}
             <span className="ml-2 text-[10px] text-zinc-500 font-normal">[{scope}]</span>
           </h2>

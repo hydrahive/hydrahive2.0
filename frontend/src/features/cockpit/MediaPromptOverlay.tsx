@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitSectionLabel } from "./CockpitPanel"
 import { mediaPromptsApi, type MediaPrompt, type MediaPromptType } from "./mediaProjectsApi"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 const types: Array<{ value: MediaPromptType; label: string }> = [
   { value: "general", label: "Allgemein" }, { value: "storyboard", label: "Storyboard" },
@@ -10,6 +11,7 @@ const types: Array<{ value: MediaPromptType; label: string }> = [
 ]
 
 export function MediaPromptOverlay({ projectId, mediaSlug, initialBody, onClose }: { projectId: string; mediaSlug: string; initialBody: string; onClose: () => void }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const [items, setItems] = useState<MediaPrompt[]>([])
   const [selected, setSelected] = useState("")
   const [type, setType] = useState<MediaPromptType>("storyboard")
@@ -38,7 +40,7 @@ export function MediaPromptOverlay({ projectId, mediaSlug, initialBody, onClose 
     } catch { setStatus("Speichern fehlgeschlagen oder Slug bereits vorhanden") }
   }
 
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="prompt-overlay-title">
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="prompt-overlay-title">
     <section className="grid h-[min(760px,92dvh)] w-full max-w-5xl grid-cols-[260px_1fr] overflow-hidden rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
       <aside className="overflow-y-auto border-r border-[#2a364b] bg-[#101724] p-3">
         <CockpitSectionLabel>Promptarchiv</CockpitSectionLabel>

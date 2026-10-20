@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import type { CSSProperties } from "react"
 import RFB from "@novnc/novnc"
 import { Maximize2, X } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
 import { vmsApi } from "./api"
 import type { VM } from "./types"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 interface Props {
   vm: VM
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export function VMConsoleModal({ vm, onClose }: Props) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
+  const titelId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
   const rfbRef = useRef<RFB | null>(null)
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("connecting")
@@ -70,11 +73,11 @@ export function VMConsoleModal({ vm, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
+    <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titelId} className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="box overflow-hidden w-full max-w-5xl h-[80vh] mx-4 flex flex-col" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/[6%]">
           <div className="flex items-center gap-3">
-            <h2 className="text-base font-bold text-white">{vm.name}</h2>
+            <h2 id={titelId} className="text-base font-bold text-white">{vm.name}</h2>
             <StatusPill status={status} />
           </div>
           <div className="flex items-center gap-2">

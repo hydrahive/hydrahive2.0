@@ -4,6 +4,7 @@ import { X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
 import { mcpApi } from "./api"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   onClose: () => void
@@ -13,6 +14,7 @@ interface Props {
 type Transport = "stdio" | "http" | "sse"
 
 export function NewMcpServerDialog({ onClose, onCreated }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("mcp")
   const { t: tCommon } = useTranslation("common")
   const [id, setId] = useState("")
@@ -55,11 +57,11 @@ export function NewMcpServerDialog({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <form onSubmit={submit} onClick={(e) => e.stopPropagation()}
         className="box overflow-hidden w-full max-w-lg p-6 space-y-4" style={{ "--c": rgbFor("/mcp") } as CSSProperties}>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">{t("new_dialog.title")}</h2>
+          <h2 id={dlg.titelId} className="text-lg font-bold text-white">{t("new_dialog.title")}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>

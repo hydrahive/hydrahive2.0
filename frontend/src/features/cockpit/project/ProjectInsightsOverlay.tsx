@@ -4,6 +4,7 @@ import { StatsTab } from "@/features/projects/_StatsTab"
 import type { Project } from "@/features/projects/types"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitSectionLabel } from "../CockpitPanel"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 export type ProjectInsightView = "stats" | "sessions" | "audit"
 
@@ -31,9 +32,10 @@ export function ProjectInsightsOverlay({ project, view, onClose, onOpenSession }
   onClose: () => void
   onOpenSession: (sessionId: string) => void
 }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const copy = VIEW_COPY[view]
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="project-insights-title">
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="project-insights-title">
       <section className="flex h-[min(760px,94dvh)] w-full max-w-4xl flex-col overflow-hidden rounded-[6px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
         <header className="flex items-center justify-between border-b border-[#2a364b] p-4">
           <div>

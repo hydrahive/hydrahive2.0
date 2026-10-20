@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Download, X } from "lucide-react"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 function fileNameFromUrl(url: string): string {
   const raw = url.split("path=")[1]?.split("&")[0] ?? ""
@@ -15,6 +16,7 @@ function fileNameFromUrl(url: string): string {
 }
 
 export function ImageLightbox({ url }: { url: string }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const { t } = useTranslation("chat")
   const [open, setOpen] = useState(false)
 
@@ -49,8 +51,11 @@ export function ImageLightbox({ url }: { url: string }) {
 
       {open && (
         <div
+          ref={dialogRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
+          aria-label={t("lightbox.view_full")}
           onClick={() => setOpen(false)}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
         >

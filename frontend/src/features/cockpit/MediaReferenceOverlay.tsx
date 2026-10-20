@@ -3,8 +3,10 @@ import type { ProjectBrief } from "@/features/chat/api"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitSectionLabel } from "./CockpitPanel"
 import { mediaAssetsApi, type MediaAssetReference } from "./mediaProjectsApi"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 export function MediaReferenceOverlay({ projectId, mediaSlug, projects, onClose }: { projectId: string; mediaSlug: string; projects: ProjectBrief[]; onClose: () => void }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const [items, setItems] = useState<MediaAssetReference[]>([])
   const [sourceProject, setSourceProject] = useState(projectId)
   const [label, setLabel] = useState("")
@@ -23,7 +25,7 @@ export function MediaReferenceOverlay({ projectId, mediaSlug, projects, onClose 
     } catch { setMessage("Referenz konnte nicht angelegt werden. Zugriff und Pfad prüfen.") }
   }
 
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="references-title">
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="references-title">
     <section className="flex h-[min(760px,92dvh)] w-full max-w-5xl flex-col overflow-hidden rounded-[4px] border border-[#46617f] bg-[#151c2b]">
       <header className="flex items-center justify-between border-b border-[#2a364b] p-4"><div><CockpitSectionLabel>Asset-Zuordnung</CockpitSectionLabel><h2 id="references-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Persistente Referenzen</h2></div><CockpitButton onClick={onClose}>Schließen</CockpitButton></header>
       <div className="grid gap-3 border-b border-[#2a364b] bg-[#101724] p-4 md:grid-cols-[1fr_150px_1fr_auto]">

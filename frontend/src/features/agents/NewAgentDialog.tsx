@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { agentsApi } from "./api"
 import type { AgentDefaults, AgentTemplate } from "./types"
 import { rgbFor } from "@/shared/colors"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   models: string[]
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
   const [type, setType] = useState("specialist")
@@ -69,12 +71,12 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <form onSubmit={submit} onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md box overflow-hidden p-6 space-y-4"
         style={{ "--c": rgbFor("/agents") } as CSSProperties}>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">{t("new_dialog.title")}</h2>
+          <h2 id={dlg.titelId} className="text-lg font-bold text-white">{t("new_dialog.title")}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>

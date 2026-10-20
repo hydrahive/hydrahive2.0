@@ -5,6 +5,7 @@ import { FileEditor } from "./FileEditor"
 import { MediaViewer } from "./MediaViewer"
 import { useWorkspace } from "./useWorkspace"
 import type { FileKind } from "./fileType"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 interface Props {
   agentId: string
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function FileOverlay({ agentId, path, kind, onClose }: Props) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const { t } = useTranslation("workspace")
   const ws = useWorkspace(agentId)
 
@@ -29,14 +31,15 @@ export function FileOverlay({ agentId, path, kind, onClose }: Props) {
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-8"
+    <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={path}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-8"
       onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
         className="w-full max-w-5xl h-[85vh] rounded-2xl border border-white/10 bg-zinc-900 shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[8%] bg-black/30">
           <span className="text-xs text-zinc-300 truncate flex-1 font-mono">{path}</span>
-          <button onClick={onClose} title={t("close")}
-            className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
+          <button onClick={onClose} title={t("close")} aria-label={t("close")}
+            className="p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>
         </div>

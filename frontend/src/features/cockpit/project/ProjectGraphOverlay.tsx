@@ -5,8 +5,10 @@ import { codeGraphApi, graphFileUrl, type CodeGraphStatus } from "../codeGraphAp
 import { CockpitButton } from "../CockpitButton"
 import { CockpitSectionLabel } from "../CockpitPanel"
 import { GraphDirBrowser } from "./_GraphDirBrowser"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 export function ProjectGraphOverlay({ project, onClose }: { project: Project; onClose: () => void }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const [status, setStatus] = useState<CodeGraphStatus | null>(null)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [selected, setSelected] = useState<string[]>([])
@@ -51,7 +53,7 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
   const cycles = status?.report?.cycles ?? []
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="project-graph-title">
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="project-graph-title">
       <section className="flex h-[min(880px,95dvh)] w-full max-w-6xl flex-col overflow-hidden rounded-[6px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
         <header className="flex items-center justify-between border-b border-[#2a364b] p-4">
           <div>

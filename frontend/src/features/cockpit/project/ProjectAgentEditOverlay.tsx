@@ -6,6 +6,7 @@ import type { AgentBrief } from "@/features/chat/types"
 import { llmModelsApi, type RegistryModel } from "@/features/llm/api"
 import { CockpitButton } from "../CockpitButton"
 import { ProjectAgentEditorTabs } from "./ProjectAgentEditorTabs"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   agentId: string
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
+  const dlg = useDialog()
   const [agent, setAgent] = useState<Agent | null>(null)
   const [draft, setDraft] = useState<Agent | null>(null)
   const [prompt, setPrompt] = useState("")
@@ -123,11 +125,11 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="flex h-[90dvh] w-full max-w-6xl flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0e1420] shadow-2xl">
+      <div {...dlg.props} className="flex h-[90dvh] w-full max-w-6xl outline-none flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0e1420] shadow-2xl">
         <header className="flex shrink-0 items-center gap-3 border-b border-[#2a364b] bg-[#131b2a] px-4 py-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">{draft?.type === "specialist" ? "Projekt-Spezialist" : "Projekt-Agent"}</p>
-            <h2 className="text-lg font-black text-[#e8eef8]">Vollständige Agenten-Einstellungen</h2>
+            <h2 id={dlg.titelId} className="text-lg font-black text-[#e8eef8]">Vollständige Agenten-Einstellungen</h2>
           </div>
           <div className="flex-1" />
           <button onClick={onClose} className="rounded-[4px] p-2 text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]" aria-label="Schließen">

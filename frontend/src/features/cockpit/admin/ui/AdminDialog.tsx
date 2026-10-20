@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { cn } from "@/shared/cn"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 interface Props {
   title: ReactNode
@@ -15,9 +16,10 @@ interface Props {
 }
 
 export function AdminDialog({ title, eyebrow, icon, children, footer, onClose, closeLabel = "Schließen", maxWidthClass = "max-w-2xl", className }: Props) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const titleId = useId()
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/80 p-4 backdrop-blur-sm" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <section className={cn("flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-[6px] border border-[#46617f] bg-[#0e1420] shadow-2xl", maxWidthClass, className)}>
         <header className="flex shrink-0 items-center gap-3 border-b border-[#2a364b] bg-[#131b2a] px-4 py-3">
           {icon && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[4px] border border-[#2a364b] bg-[#172133] text-[#69d7ff]">{icon}</span>}
