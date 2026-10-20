@@ -9,11 +9,16 @@ import { ProviderForm } from "./ProviderForm"
 import { AnthropicUsageCard } from "./AnthropicUsageCard"
 import { DefaultModelsSection } from "./DefaultModelsSection"
 import { MediaBackendsSection } from "./MediaBackendsSection"
+import { configLoaded } from "./defaultModelSave"
 
 export function LlmPage() {
   const { t } = useTranslation("llm")
   const { t: tCommon } = useTranslation("common")
-  const [config, setConfig] = useState<LlmConfig>({ providers: [], default_model: "", embed_model: "", media_models: {} })
+  // null = noch nicht geladen: dann wird nichts angezeigt, was speichern könnte (sonst überschrieb ein leerer
+  // Platzhalter alle Anbieter – gefunden 20.10.2026).
+  const [loaded, setLoaded] = useState<LlmConfig | null>(null)
+  const [loadError, setLoadError] = useState(false)
+  const config: LlmConfig = loaded ?? { providers: [], default_model: "", embed_model: "", media_models: {} }
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -21,12 +26,12 @@ export function LlmPage() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
 
   useEffect(() => {
-    llmApi.getConfig().then(setConfig).catch(() => {})
+    llmApi.getConfig().then(setLoaded).catch(() => setLoadError(true))
   }, [])
 
   async function reloadConfig() {
     try {
-      setConfig(await llmApi.getConfig())
+      setLoaded(await llmApi.getConfig())
     } catch (e) {
       console.error("LLM-Config-Reload fehlgeschlagen:", e)
     }
@@ -36,7 +41,7 @@ export function LlmPage() {
     setSaving(true)
     try {
       const saved = await llmApi.updateConfig(next)
-      setConfig(saved)
+      setLoaded(saved)
     } finally { setSaving(false) }
   }
 
@@ -52,18 +57,26 @@ export function LlmPage() {
 
   function addProvider(p: LlmProvider) {
     const next = { ...config, providers: [...config.providers, p] }
-    setConfig(next); save(next); setShowAdd(false)
+    setLoaded(next); save(next); setShowAdd(false)
   }
 
   function updateProvider(idx: number, p: LlmProvider) {
     const next = { ...config, providers: config.providers.map((cur, i) => i === idx ? p : cur) }
-    setConfig(next); save(next); setEditingIdx(null)
+    setLoaded(next); save(next); setEditingIdx(null)
   }
 
   function deleteProvider(idx: number) {
     const next = { ...config, providers: config.providers.filter((_, i) => i !== idx) }
-    setConfig(next); save(next)
+    setLoaded(next); save(next)
     if (editingIdx === idx) setEditingIdx(null)
+  }
+
+  if (!configLoaded(loaded)) {
+    return (
+      <div className="max-w-2xl py-10 text-center text-sm text-zinc-500" data-llm-loading>
+        {loadError ? tCommon("status.error") : <><Loader2 size={14} className="inline animate-spin" /> {tCommon("status.loading")}</>}
+      </div>
+    )
   }
 
   return (
@@ -102,7 +115,7 @@ export function LlmPage() {
                 onSave={(updated) => updateProvider(i, updated)}
                 onCancel={() => setEditingIdx(null)}
                 onOAuthConnected={async () => {
-                  const fresh = await llmApi.getConfig(); setConfig(fresh); setEditingIdx(null)
+                  const fresh = await llmApi.getConfig(); setLoaded(fresh); setEditingIdx(null)
                 }} />
             : <ProviderCard key={i} provider={p}
                 onEdit={() => setEditingIdx(i)}
@@ -110,12 +123,12 @@ export function LlmPage() {
                 onRevokeOAuth={async () => {
                   if (!confirm(t("providers.revoke_oauth_confirm", { provider: p.name || p.id }))) return
                   await llmApi.oauthRevoke(p.id)
-                  setConfig(await llmApi.getConfig())
+                  setLoaded(await llmApi.getConfig())
                 }} />
         ))}
         {showAdd && <ProviderForm onSave={addProvider} onCancel={() => setShowAdd(false)}
           onOAuthConnected={async () => {
-            const fresh = await llmApi.getConfig(); setConfig(fresh); setShowAdd(false)
+            const fresh = await llmApi.getConfig(); setLoaded(fresh); setShowAdd(false)
           }} />}
       </div>
 

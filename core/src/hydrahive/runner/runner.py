@@ -33,6 +33,7 @@ from hydrahive.access.tool_filter import filter_tools as access_filter_tools
 from hydrahive.runner._run_origin import OTHER, RunOrigin
 from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
+from hydrahive.runner._runner_lessons import start_lessons
 from hydrahive.runner._runner_iter import (
     IterationResult,
     prepare_history,
@@ -366,6 +367,7 @@ async def run(
             asyncio.create_task(
                 _safe_compress(agent["id"], session_id, agent["llm_model"])
             )
+            start_lessons(agent["id"], session_id)
             yield Done(message_id=assistant_msg.id, iterations=iteration + 1,
                        input_tokens=total_input_tokens, output_tokens=total_output_tokens,
                        cache_creation_tokens=total_cache_creation, cache_read_tokens=total_cache_read)

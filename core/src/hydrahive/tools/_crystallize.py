@@ -58,8 +58,11 @@ def _save_lessons(
     Ein File-Read+Write für die ganze Batch (vs. N Rewrites pro Lesson).
     Gibt Liste der gespeicherten Keys zurück.
     """
-    from hydrahive.tools._memory_store import write_keys_bulk
+    from hydrahive.llm._config import legacy_lessons_enabled
+    from hydrahive.tools import _memory_store
 
+    if not legacy_lessons_enabled():          # Lehren mit Beleg ersetzen das (docs/specs/lehren-mit-beleg.md)
+        return []
     entries: list[dict] = []
     for lesson in lessons:
         if not lesson.strip():
@@ -74,7 +77,7 @@ def _save_lessons(
     if not entries:
         return []
     try:
-        write_keys_bulk(agent_id, entries)
+        _memory_store.write_keys_bulk(agent_id, entries)
     except Exception as e:
         logger.warning("_save_lessons: Bulk-Write fehlgeschlagen: %s", e)
         return []
