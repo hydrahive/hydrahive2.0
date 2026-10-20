@@ -50,3 +50,15 @@ export function tabZiel(
   if (!zurueck && aktiv === letztes) return erstes
   return null
 }
+
+/**
+ * Oberster OFFENER Dialog aus einer Liste von ``[aria-modal=true]``-Elementen (DOM-Reihenfolge).
+ * Geschlossene Dialoge, die gerendert bleiben (z. B. HelpDrawer mit ``aria-hidden``, ``inert``,
+ * ``hidden``), zählen nicht – sonst hielte sich ein offener Dialog nie für den obersten.
+ */
+export function oberster(dialoge: readonly HTMLElement[]): HTMLElement | null {
+  for (let i = dialoge.length - 1; i >= 0; i--) {
+    if (!dialoge[i].closest("[aria-hidden='true'],[inert],[hidden]")) return dialoge[i]
+  }
+  return null
+}

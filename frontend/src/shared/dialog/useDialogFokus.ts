@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { fokussierbare, tabZiel } from "./focusTrap"
+import { fokussierbare, oberster, tabZiel } from "./focusTrap"
 
 interface Optionen {
   /** Escape schließt den Dialog. Weglassen, wenn Escape nichts tun soll (z. B. ungesicherte Eingaben). */
@@ -54,6 +54,5 @@ export function useDialogFokus<T extends HTMLElement>({ onEscape }: Optionen = {
 }
 
 function istOberster(dialog: HTMLElement): boolean {
-  const alle = document.querySelectorAll("[aria-modal='true']")
-  return alle.length === 0 || alle[alle.length - 1] === dialog
+  return oberster(Array.from(document.querySelectorAll<HTMLElement>("[aria-modal='true']"))) === dialog
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { tabZiel } from "./focusTrap"
+import { oberster, tabZiel } from "./focusTrap"
 
 // docs/specs/ui-standard.md, Regel 6: Tab bleibt im offenen Dialog.
 // Ohne jsdom: Elemente als einfache Objekte, der Container kennt seine Kinder.
@@ -36,5 +36,23 @@ describe("tabZiel – Fokusfalle im Dialog", () => {
   })
   it("Dialog ohne Bedienelemente behält den Fokus auf sich", () => {
     expect(tabZiel([], el("x"), false, dlg)).toBe(dlg)
+  })
+})
+
+describe("oberster – welcher Dialog bekommt die Tastatur", () => {
+  // closest() simuliert: geschlossen = aria-hidden/inert/hidden an sich oder einem Vorfahren
+  const dlg = (name: string, geschlossen = false) =>
+    ({ name, closest: () => (geschlossen ? {} : null) }) as unknown as HTMLElement
+
+  it("geschlossener Dialog dahinter im DOM (HelpDrawer) zählt nicht", () => {
+    const admin = dlg("admin"), hilfeZu = dlg("hilfe", true)
+    expect(oberster([admin, hilfeZu])).toBe(admin)
+  })
+  it("verschachtelt: der zuletzt geöffnete offene gewinnt", () => {
+    const a = dlg("a"), b = dlg("b")
+    expect(oberster([a, b])).toBe(b)
+  })
+  it("nur geschlossene → keiner", () => {
+    expect(oberster([dlg("x", true)])).toBeNull()
   })
 })
