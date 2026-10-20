@@ -159,6 +159,45 @@ Befehl, Zeitraum wählbar, Standard: letzte 4 Wochen, abgeschlossene Sitzungen m
 kurzer Aufruf je Sitzung mit dem gewählten Modell; Lauf ist wiederholbar (bereits ausgewertete Sitzungen werden
 übersprungen).
 
+## 10b. Bauplan L1 (Format + Schreiben + Modell-Wechsler)
+
+**Ablage:** eigene Datei je Agent `agents/<id>/lessons.jsonl` (append-only, eine Zeile je Fassung), **nicht** in
+`memory.json`. Grund: `memory.json` ist der Notizblock der Agenten (Ähnlichkeits-Prüfung, Widerspruchs-Markierung,
+`search_memory`); Lehren haben eigene Felder (Auslöser, Beleg, Bestärkungen) und eigene Regeln. Die alten
+`lesson.<hash>` bleiben in `memory.json` und werden dort nur markiert.
+
+Felder einer Lehre: `id`, `key` (Fingerabdruck des Auslösers), `cue`, `lesson`, `part`, `evidence`, `quote`
+(wörtliches Belegstück, ≤ 300 Zeichen), `confidence` (high|medium|low), `why`, `scope` (`project:<id>` oder
+`agent`), `session_id`, `created_at`, `confirmations` (Zähler), `sources` (Session-IDs), `status`
+(`active`|`contested`|`retired`).
+
+**Dateien (Kern)**
+- `lessons/__init__.py`, `lessons/model.py` – Datentyp, Prüfregeln (reine Funktionen).
+- `lessons/prompt.py` – Auftrag (aus dem Probelauf) + Verlauf aus `db/messages.list_for_session` (≤ 30.000 Zeichen,
+  Anfang 45 % / Ende 55 %), Antwort lesen (JSON).
+- `lessons/store.py` – `lessons.jsonl` lesen/schreiben, Bestärken (gleicher `key` → `confirmations + 1`, Quelle dazu),
+  Sperre je Agent.
+- `lessons/extract.py` – `extract_session(agent_id, session_id)`: Modell auflösen → Aufruf → Prüfen → Speichern.
+  Höchstens 1 Lehre; „kein Eintrag“ ist gültig; schon ausgewertete Sitzungen werden übersprungen
+  (`lessons_done.txt` je Agent).
+- `llm/_config.py` – Zweck `lessons` → `lessons_model`; `resolve_lessons_model()` (leer → `default_model`,
+  `off` → keins).
+- `runner/runner.py` – nach `session_end(..., "completed")` zusätzlich `extract_session` im Hintergrund
+  (mit `errors_log.capture`), nur ab 10 Nachrichten.
+- `tools/_crystallize.py` – `_save_lessons` nur noch, wenn `llm.json` → `legacy_lessons: true` (Standard aus).
+- Frontend `features/llm/DefaultModelsSection.tsx` – Feld „Lehren“ mit Auswahl „Standard (wie Chat)“ / Modelle / „Aus“.
+
+**Prüfregeln (Code, ohne LLM)**
+1. `cue`, `lesson`, `evidence`, `quote` vorhanden, je ≤ 600 Zeichen; `part` ∈ procedure|tool|skill|prompt|module|user-preference.
+2. `quote` kommt (nach Leerraum-Angleichung, ≥ 20 Zeichen) **wörtlich** im Verlauf vor – sonst verworfen.
+3. Lehre stützt sich auf mindestens einen Wendepunkt mit Urteil `helped` oder `hurt`.
+4. Verbotene Allgemeinplätze (Liste, z. B. „be thorough“, „read files before“, „verify changes“) → verworfen.
+
+**Bestand markieren:** einmaliger Lauf (`python -m hydrahive.lessons.mark_legacy`), setzt bei `lesson.<12 hex>`
+`legacy_lesson: true`. Kein Löschen. Umkehrbar mit `--undo`.
+
+**Nicht in L1:** Lesen vor der Arbeit (L2), Ansicht (L3), Skill-Vorschlag (L4), nachträglich lernen (L1b, eigener PR).
+
 ## 11. Probelauf (20.10.2026, nur gelesen, nichts gespeichert)
 
 12 abgeschlossene Sitzungen aus `sessions.db` (Buddy, Hydrahive DEV, flowki, hydrawow, Storyteller, HydraVR,
