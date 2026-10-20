@@ -1,6 +1,8 @@
 """Parameter und Treffer-Format von web_search (Spec docs/specs/websuche-kostenlos.md §4)."""
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 CATEGORIES = ("general", "news")
 TIME_RANGES = ("day", "week", "month", "year")
 
@@ -24,6 +26,18 @@ def searx_params(query: str, category: str, time_range: str | None) -> dict:
     if time_range:
         params["time_range"] = time_range
     return params
+
+
+def usable(item: object) -> bool:
+    """Nur Treffer mit http(s)-URL samt Host. SearXNG lieferte am 20.10.2026 von Google
+    „http:///url?opi=…“ – ohne Host, für den Agenten wertlos."""
+    if not isinstance(item, dict) or not isinstance(item.get("url"), str):
+        return False
+    try:
+        parts = urlsplit(item["url"].strip())
+    except ValueError:
+        return False
+    return parts.scheme in ("http", "https") and bool(parts.hostname)
 
 
 def map_hit(item: dict) -> dict:

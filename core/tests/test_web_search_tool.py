@@ -323,3 +323,10 @@ def test_count_applies_after_dropping_broken_hits(searx):
     searx.answers = [{"results": [broken, broken, *good]}]
     res = _search(count=3)
     assert [h["url"] for h in res.output["results"]] == [g["url"] for g in good]
+
+
+def test_only_broken_hits_with_time_range_still_switch_to_news(searx):
+    searx.answers = [{"results": [{**HIT, "url": "http:///url?q=x"}]}, {"results": [HIT]}]
+    res = _search(time_range="week")
+    assert res.output["fallback"] == "news"
+    assert res.output["count"] == 1
