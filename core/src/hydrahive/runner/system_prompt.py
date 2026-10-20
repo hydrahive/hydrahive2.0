@@ -27,6 +27,7 @@ def compose(
     allowed_tools: list[str],
     recall_cards: list[dict] | None = None,
     recall_search: list[dict] | None = None,
+    lessons: list[dict] | None = None,
 ) -> tuple[str, str, str | None]:
     """Setzt stable-, volatile- und summary-System-Prompts zusammen.
 
@@ -44,6 +45,8 @@ def compose(
     volatile = _volatile_section()
     if recall_search:
         volatile += render_search_block(recall_search)
+    if lessons:
+        volatile += render_lessons_block(lessons)
     summary_block = f"[Bisherige Zusammenfassung]\n{summary}" if summary else None
     return stable, volatile, summary_block
 
@@ -160,6 +163,19 @@ def render_cards_block(cards: list[dict]) -> str:
         "Essenz früherer Sessions. Bei konkretem Bedarf via `datamining_*` tiefer graben.\n"
         + "\n".join(lines)
     )
+
+
+def render_lessons_block(lessons: list[dict]) -> str:
+    """Lehren mit Beleg (docs/specs/lehren-mit-beleg.md 10c): je Lehre Auslöser → Handlung, im wechselnden Teil
+    (der gecachte Teil bleibt gleich). Leerer String ohne Lehren."""
+    lines = []
+    for le in lessons:
+        n = int(le.get("confirmations") or 0)
+        tag = ", ".join(x for x in (le.get("part"), le.get("confidence"), f"×{n} bestätigt" if n else "") if x)
+        lines.append(f"- WENN {le.get('cue', '').strip()} → {le.get('lesson', '').strip()} [{tag}]")
+    if not lines:
+        return ""
+    return "\n\nLehren aus früheren Aufgaben (mit Beleg) – prüfe, ob sie hier gelten:\n" + "\n".join(lines)
 
 
 def render_search_block(cards: list[dict]) -> str:

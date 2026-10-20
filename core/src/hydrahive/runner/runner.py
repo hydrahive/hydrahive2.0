@@ -33,7 +33,7 @@ from hydrahive.access.tool_filter import filter_tools as access_filter_tools
 from hydrahive.runner._run_origin import OTHER, RunOrigin
 from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
-from hydrahive.runner._runner_lessons import start_lessons
+from hydrahive.runner._runner_lessons import recall_lessons, start_lessons
 from hydrahive.runner._runner_iter import (
     IterationResult,
     prepare_history,
@@ -177,6 +177,11 @@ async def run(
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [],
                                     project_id=skill_project_id(active_project_id, agent))
 
+    # Lehren mit Beleg (L2): einmal je Eingabe, eigene Lehren im aktiven Projekt. Läuft parallel zum Erinnerungs-Abruf
+    # und zum Verlauf; gewartet wird erst vor dem ersten Modell-Aufruf (Rückfrage dauert ~2 s).
+    lessons_task = asyncio.create_task(recall_lessons(agent["id"], _user_text(user_input).strip(), active_project_id))
+    recalled_lessons: list | None = None
+
     # Proaktiver Recall A: Top-N Cards einmal pro Session laden (recency × salience)
     # → in den gecachten Stable-Prompt gewebt. Ändert sich nur bei nächtlicher
     # Konsolidierung, also cache-stabil innerhalb der Session. Best-effort.
@@ -220,6 +225,8 @@ async def run(
             else:
                 yield _item
 
+        if recalled_lessons is None:
+            recalled_lessons = await lessons_task
         stable_system, volatile_system, summary_system = compose_system_prompts(
             base_system_prompt,
             extra_system=extra_system,
@@ -231,6 +238,7 @@ async def run(
             allowed_tools=allowed_tools,
             recall_cards=recall_cards,
             recall_search=recall_search,
+            lessons=recalled_lessons,
         )
 
         result: IterationResult | None = None

@@ -96,6 +96,34 @@ def add(agent_id: str, lesson: dict, *, scope: str) -> dict:
         return row
 
 
+def _update(agent_id: str, changes: dict[str, dict]) -> list[dict]:
+    """Neue Fassungen bestehender Lehren anfügen (append-only, ein Schreibvorgang). changes: id → geänderte Felder."""
+    with _lock(agent_id) as d:
+        latest = _latest(_rows(d))
+        rows = [{**latest[lid], **patch, "updated_at": _now()} for lid, patch in changes.items() if lid in latest]
+        if rows:
+            with (d / "lessons.jsonl").open("a", encoding="utf-8") as f:
+                f.write("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+        return rows
+
+
+def set_status(agent_id: str, lesson_id: str, status: str) -> dict | None:
+    if status not in ("active", "contested", "retired"):
+        raise ValueError("unbekannter Status")
+    rows = _update(agent_id, {lesson_id: {"status": status}})
+    return rows[0] if rows else None
+
+
+def note_shown(agent_id: str, lessons: list[dict]) -> None:
+    """L2: gezeigt zählen (Grundlage für den späteren Verfall)."""
+    _update(agent_id, {r["id"]: {"shown": int(r.get("shown", 0)) + 1} for r in lessons})
+
+
+def set_cue_vecs(agent_id: str, vecs: dict[str, list[float]], model: str) -> None:
+    """L2: Embeddings der Auslöser ablegen, damit sie nur einmal je Modell berechnet werden."""
+    _update(agent_id, {lid: {"cue_vec": [round(x, 6) for x in v], "cue_model": model} for lid, v in vecs.items()})
+
+
 def _done(d: Path) -> dict[str, int]:
     path = d / "lessons_done.txt"
     out: dict[str, int] = {}
