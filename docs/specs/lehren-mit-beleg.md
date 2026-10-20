@@ -222,7 +222,9 @@ sind klein und eigenes Wissen des Agenten). Fehler beim Abruf dürfen den Lauf n
 - Embedding des **Auslösers** (`cue`) – einmal beim Speichern berechnet und in der Zeile abgelegt (`cue_vec`, Modell
   `cue_model`); fehlt es (älteres Modell, Fehler), wird es beim Lesen nachgeholt und nicht gespeichert.
 - Eingabe mit dem eingestellten `embed_model` einbetten (`embed_type="query"`), Kosinus-Ähnlichkeit.
-- Schwelle **0,35** (aus Messung an echten Lehren bestimmt, siehe L2-Probe), höchstens **3**, sortiert nach
+- Schwelle **0,42**, gemessen am 20.10. mit `text-embedding-3-small`: 10 echte Lehren, 8 passende und
+  6 unpassende Eingaben. Passende lagen bei 0,43–0,65 (immer Rang 1), unpassende bei höchstens 0,39
+  („Backup der Datenbank“ gegen „fehlende Datei“). Höchstens **3** Lehren, sortiert nach
   Ähnlichkeit × (1 + 0,2 × Bestätigungen) × Sicherheit (high 1,0 / medium 0,8 / low 0,6).
 - Ohne Embedding-Modell: einfacher Wort-Abgleich (gemeinsame Wörter ≥ 4 Buchstaben, ≥ 2 Treffer).
 
