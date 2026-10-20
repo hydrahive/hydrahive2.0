@@ -64,28 +64,28 @@ def test_nothing_below_threshold(agents, emb) -> None:
 def test_at_most_three(agents, emb) -> None:
     for i in range(5):
         _les(f"Wenn eine Datei fehlt, Fall {i}", sid=f"s{i}")
-    assert len(_pick("datei fehlt")) == 3
+    assert len(_pick("meine datei fehlt hier")) == 3
 
 
 def test_only_own_project_or_agent_scope(agents, emb) -> None:
     _les("Wenn eine Datei fehlt (p1)", scope="project:p1")
     _les("Wenn eine Datei fehlt (p2)", scope="project:p2", sid="s2")
     _les("Wenn eine Datei fehlt (ohne)", scope="agent", sid="s3")
-    assert {g["cue"] for g in _pick("datei", project="p1")} == {"Wenn eine Datei fehlt (p1)"}
-    assert {g["cue"] for g in _pick("datei", project=None)} == {"Wenn eine Datei fehlt (ohne)"}
+    assert {g["cue"] for g in _pick("wo ist die datei", project="p1")} == {"Wenn eine Datei fehlt (p1)"}
+    assert {g["cue"] for g in _pick("wo ist die datei", project=None)} == {"Wenn eine Datei fehlt (ohne)"}
 
 
 def test_only_active(agents, emb) -> None:
     les = _les("Wenn eine Datei fehlt")
     store.set_status("a", les["id"], "retired")
-    assert _pick("datei") == []
+    assert _pick("wo ist die datei") == []
 
 
 def test_ranking_prefers_confirmed_and_confident(agents, emb) -> None:
     _les("Wenn eine Datei fehlt A", confidence="low")
     b = _les("Wenn eine Datei fehlt B", sid="s2")
     _les("Wenn eine Datei fehlt B", sid="s3")                                      # B bestätigt
-    got = _pick("datei")
+    got = _pick("wo ist die datei")
     assert got[0]["id"] == b["id"] and got[0]["confirmations"] == 1
 
 
@@ -120,7 +120,7 @@ def test_without_embed_model_word_match(agents, monkeypatch) -> None:
     _les("Wenn eine Datei im Workspace fehlt")
     _les("Wenn der Chat hängt", sid="s2")
     assert [g["cue"] for g in _pick("die Datei im Workspace finde ich nicht")] == ["Wenn eine Datei im Workspace fehlt"]
-    assert _pick("eine Datei bitte") == []                                          # nur ein langes gemeinsames Wort
+    assert _pick("diese Datei bitte") == []                                         # nur ein gemeinsames Wort (Datei)
 
 
 def test_embedding_error_never_breaks(agents, monkeypatch) -> None:
@@ -178,3 +178,10 @@ def test_runner_recall_never_raises(monkeypatch) -> None:
         raise RuntimeError("weg")
     monkeypatch.setattr(recall, "pick", boom)
     assert asyncio.run(_runner_lessons.recall_lessons("a", "irgendeine längere eingabe hier", "p1")) == []
+
+
+def test_word_match_ignores_filler_words(agents, monkeypatch) -> None:
+    monkeypatch.setattr(recall, "_embed_model", lambda: "")
+    _les("Wenn eine Datei im Workspace fehlt")
+    assert _pick("wenn eine nicht dann") == []                                      # nur Füllwörter gemeinsam
+    assert _pick("eine Datei bitte") == []                                          # Füllwort + ein echtes Wort
