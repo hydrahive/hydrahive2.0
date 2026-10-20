@@ -306,3 +306,62 @@ def test_frontend_uses_npm_ci_and_never_touches_the_lock_file(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac)
     assert "npm ci" in calls and "npm install" not in calls
+
+
+def test_each_line_once_when_launchd_already_writes_to_the_log(mac):
+    """Über den Knopf: launchd leitet stdout schon in die Log-Datei → jede Zeile genau einmal (Befund 21.10. .186).
+    Erkennung über die Kennung der Update-plist, nicht über `-ef` (meldet auf macOS „verschieden“)."""
+    _launchd(mac)
+    with mac["log"].open("a") as out:
+        r = subprocess.run(["bash", str(UPDATE)], env={**_env(mac), "HH_UPDATE_VIA_LAUNCHD": "1"}, stdout=out,
+                           stderr=subprocess.STDOUT, text=True, timeout=60)
+    assert r.returncode == 0, mac["log"].read_text()
+    log = mac["log"].read_text()
+    for line in ("Update gestartet", "Python-Pakete aktualisieren", "Update abgeschlossen"):
+        assert log.count(line) == 1, (line, log)
+
+
+def test_each_line_in_log_and_on_screen_when_run_in_terminal(mac):
+    """Im Terminal: Zeile in der Datei UND auf dem Bildschirm."""
+    _launchd(mac)
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert mac["log"].read_text().count("Update abgeschlossen") == 1
+    assert "Update abgeschlossen" in r.stdout
+
+
+def test_update_plist_sets_the_marker_and_paths(mac, tmp_path):
+    """55-launchd-triggers.sh: Update-plist setzt HH_UPDATE_VIA_LAUNCHD=1 und leitet in die Log-Datei."""
+    text = TRIGGERS.read_text()
+    start = text.index("<key>Label</key>\n    <string>io.hydrahive.update</string>")
+    block = text[start:text.index("</plist>", start)]
+    assert "<key>HH_UPDATE_VIA_LAUNCHD</key>\n        <string>1</string>" in block
+    assert block.count("/usr/local/var/log/hydrahive2-update.log") == 2       # stdout + stderr
+
+
+def test_update_rewrites_trigger_plist_without_marker(mac):
+    """Alte Update-plist ohne Kennung → update-mac.sh schreibt die Trigger neu (55-launchd-triggers.sh)."""
+    _launchd(mac)
+    old = mac["tmp"] / "io.hydrahive.update.plist"
+    old.write_text("<plist><dict><key>Label</key><string>io.hydrahive.update</string></dict></plist>")
+    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{mac["calls"]}"\n'
+                                     '[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+    (mac["tmp"] / "triggers.sh").write_text(f'#!/bin/bash\necho "triggers neu" >> "{mac["calls"]}"\n')
+    r = subprocess.run(["bash", str(UPDATE)], env={**_env(mac), "HH_UPDATE_PLIST": str(old),
+                                                   "HH_TRIGGERS_SCRIPT": str(mac["tmp"] / "triggers.sh")},
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "triggers neu" in _calls(mac)
+    assert "Update-Auslöser neu einrichten" in mac["log"].read_text()
+
+
+def test_update_keeps_trigger_plist_with_marker(mac):
+    _launchd(mac)
+    cur = mac["tmp"] / "io.hydrahive.update.plist"
+    cur.write_text("<key>HH_UPDATE_VIA_LAUNCHD</key><string>1</string>")
+    (mac["tmp"] / "triggers.sh").write_text(f'#!/bin/bash\necho "triggers neu" >> "{mac["calls"]}"\n')
+    r = subprocess.run(["bash", str(UPDATE)], env={**_env(mac), "HH_UPDATE_PLIST": str(cur),
+                                                   "HH_TRIGGERS_SCRIPT": str(mac["tmp"] / "triggers.sh")},
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "triggers neu" not in _calls(mac)

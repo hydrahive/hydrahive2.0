@@ -31,6 +31,9 @@ sudo tee "$UPDATE_PLIST" > /dev/null <<EOF
         <string>${HH_DATA_DIR}</string>
         <key>HH_USER</key>
         <string>${HH_USER}</string>
+        <!-- launchd leitet stdout/stderr schon in die Log-Datei → update-mac.sh schreibt nicht zusätzlich hinein -->
+        <key>HH_UPDATE_VIA_LAUNCHD</key>
+        <string>1</string>
     </dict>
     <key>WatchPaths</key>
     <array>
