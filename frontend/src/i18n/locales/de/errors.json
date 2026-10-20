@@ -188,5 +188,6 @@
   "archive_path_invalid": "Ungültiger Eintrag im Archiv.",
   "archive_not_on_server": "Mindestens ein Paket liegt noch nicht geprüft auf dem Server.",
   "archive_nothing_selected": "Es gibt nichts zu löschen.",
-  "delete_in_progress": "Dafür läuft schon ein Auftrag."
+  "delete_in_progress": "Dafür läuft schon ein Auftrag.",
+  "module_operation_busy": "Gerade läuft schon eine Modul-Änderung ({{module}}). Bitte kurz warten und dann noch einmal versuchen."
 }

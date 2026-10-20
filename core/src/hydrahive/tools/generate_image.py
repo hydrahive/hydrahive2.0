@@ -136,6 +136,7 @@ async def _execute_local(model: str, args: dict, ctx: ToolContext) -> ToolResult
         aspect_ratio=(args.get("aspect_ratio") or "1:1").strip(),
         seed=(int(args["seed"]) if args.get("seed") is not None else None),
         image_url=image_url,
+        references=[image_url] if image_url else [],
     )
     try:
         path = await run_local_media(

@@ -188,5 +188,6 @@
   "archive_path_invalid": "Invalid archive entry.",
   "archive_not_on_server": "At least one package is not yet verified on the server.",
   "archive_nothing_selected": "There is nothing to delete.",
-  "delete_in_progress": "A job for this is already running."
+  "delete_in_progress": "A job for this is already running.",
+  "module_operation_busy": "A module change is already running ({{module}}). Please wait a moment and try again."
 }

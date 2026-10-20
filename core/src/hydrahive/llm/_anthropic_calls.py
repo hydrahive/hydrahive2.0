@@ -48,6 +48,7 @@ def _client(key: str):
     """Anthropic-SDK-Client. OAuth-Tokens brauchen auth_token + Identity-Header,
     Plain-API-Keys brauchen api_key. Beide gehen über das gleiche SDK."""
     import anthropic as _anthropic
+    key = (key or "").strip()               # alte Configs mit eingefügtem Leerzeichen/Zeilenumbruch
     if key.startswith("sk-ant-oat"):
         return _anthropic.AsyncAnthropic(
             api_key="", auth_token=key, timeout=300.0,

@@ -4,6 +4,7 @@ import logging
 
 from hydrahive.llm import client as llm_client
 from hydrahive.llm._config import apply_keys
+from hydrahive.llm._routing import api_base_for
 from hydrahive.runner._codex_provider import codex_call
 from hydrahive.runner._llm_bridge_backends import anthropic_call, litellm_call, minimax_anthropic_call
 
@@ -123,17 +124,5 @@ async def call_with_tools(
     )
 
 
-def _resolve_api_base(cfg: dict, model: str) -> str | None:
-    """Findet die api_base des Providers, zu dem `model` gehört.
-
-    Mappt den LiteLLM-Prefix aus dem Modell-String (z.B. "ollama/") zurück auf
-    die provider_id und liest deren api_base aus der Config. None, wenn kein
-    Provider mit api_base passt (Cloud-Provider behalten Default-Routing)."""
-    from hydrahive.llm._catalog_data import PROVIDER_PREFIX
-    from hydrahive.llm._config import provider_api_base
-    for provider_id, prefix in PROVIDER_PREFIX.items():
-        if prefix and model.startswith(prefix):
-            base = provider_api_base(cfg, provider_id)
-            if base:
-                return base
-    return None
+# Früherer Name; die Funktion liegt jetzt in hydrahive.llm._routing (auch für llm.client genutzt).
+_resolve_api_base = api_base_for

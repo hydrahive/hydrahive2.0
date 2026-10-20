@@ -25,6 +25,8 @@ export interface LlmConfig {
   embed_model: string
   embed_dimensions?: Record<string, number>
   media_models?: Record<string, string>
+  /** Modell für Lehren mit Beleg: "" = wie Chat, "off" = aus */
+  lessons_model?: string
 }
 
 export interface AnthropicRateLimits {
@@ -72,6 +74,8 @@ export interface OpenRouterCredits {
 export const llmApi = {
   getConfig: () => api.get<LlmConfig>("/llm"),
   updateConfig: (cfg: LlmConfig) => api.put<LlmConfig>("/llm", cfg),
+  /** Nur das Modell EINES Zwecks setzen – der Rest der Einstellungen bleibt unberührt. */
+  setDefault: (purpose: string, model: string) => api.put<{ purpose: string; model: string }>(`/llm/default/${purpose}`, { model }),
   testConnection: (model?: string) =>
     api.post<{ ok: boolean; response: string }>("/llm/test", { model: model ?? null }),
   oauthStart: (provider: string) =>
@@ -95,6 +99,8 @@ export interface MediaWorkflow {
   output_node?: string
   graph?: Record<string, unknown>
   placeholders?: Record<string, string>
+  /** Eingang je Vorlage (reference_N); fehlt die Vorlage, wird er entfernt */
+  reference_links?: Record<string, string>
   durations?: number[]
   aspect_ratios?: string[]
   frame_images?: string[]
@@ -111,6 +117,7 @@ export interface MediaBackend {
 export interface ParsedWorkflow {
   nodes: { id: string; class_type: string; inputs: string[] }[]
   suggestions: Record<string, string>
+  reference_links?: Record<string, string>
 }
 
 export const mediaBackendsApi = {

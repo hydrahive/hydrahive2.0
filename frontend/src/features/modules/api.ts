@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/features/auth/useAuthStore"
-import { api } from "@/shared/api-client"
+import { api, buildErrorMessage } from "@/shared/api-client"
 import type { ModulesIndex } from "./types"
 
 const BASE = "/admin/modules"
@@ -33,7 +33,12 @@ function stream(
     headers: authHeaders(),
     signal: ctrl.signal,
   }).then(async (r) => {
-    if (!r.ok || !r.body) { onError(`HTTP ${r.status}`); return }
+    if (!r.ok || !r.body) {
+      // Fehler mit Code (z. B. 409 „läuft schon“) übersetzt anzeigen, sonst wie bisher „HTTP …“
+      const body = await r.json().catch(() => null) as { detail?: unknown } | null
+      onError(body ? buildErrorMessage(body, r.status) : `HTTP ${r.status}`)
+      return
+    }
     const reader = r.body.getReader()
     const dec = new TextDecoder()
     let buf = ""

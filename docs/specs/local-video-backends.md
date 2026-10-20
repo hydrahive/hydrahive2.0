@@ -287,3 +287,30 @@ der Wrapper intern nutzt; HydraHive muss es NICHT kennen.
 - **ComfyUI UI→API-Format**: v1 verlangt API-Format vom User (Save API Format).
   Konverter optional als Folge-Feature.
 - **Job-Dauer**: Video-Renders dauern Minuten → async Job-Handling + Timeouts.
+
+## Nachtrag 19.10.2026: Mehrere Vorlagen und mitgelieferter Bild-Workflow FLUX.2 klein
+
+Anlass: Das Studio-Modul schickt bis zu drei Vorlagen (Fotos der angehakten Figuren, beim „Bild ändern“ das gezeigte
+Bild zuerst). Bisher kannte der ComfyUI-Adapter nur `image_url` (Startbild) und `end_image_url` (Endbild).
+Getestet auf Tills Workstation: FLUX.2 klein 4B in ComfyUI 0.21.1 hält eine Figur über das Foto sehr gut
+(etwa 9 s je Bild auf einer RTX 5060 Ti 16 GB, gleicher Startwert ergibt dasselbe Bild).
+
+**Vertrag**
+- `VideoParams.references: list[str]` (Data-URIs, Reihenfolge = Wichtigkeit, Standard leer).
+- Platzhalter `reference_1`, `reference_2`, `reference_3`, jeweils `<node>.inputs.image` eines `LoadImage`.
+- Zu jedem Platzhalter `reference_N` darf der Workflow `reference_links.reference_N = "<node>.inputs.<feld>"` nennen,
+  also den Eingang, der das Bild in den Graph einspeist (bei FLUX.2: `ReferenceLatent.inputs.latent`).
+  Gibt es Vorlage N nicht, entfernt der Adapter diesen Eingang. Der Graph läuft dann ohne die Vorlage weiter,
+  ohne Fehler wegen fehlender Datei. Fehlt `reference_links`, bleibt der Graph unverändert; dann muss der Workflow
+  selbst mit fehlenden Bildern klarkommen.
+- Mehr Vorlagen als Platzhalter: die überzähligen werden ignoriert (Log-Hinweis), kein Fehler.
+- `image_url` bleibt unverändert (Rückwärtskompatibilität, Video-Startbild).
+- Das Werkzeug `generate_image` mit lokalem Modell gibt sein Referenzbild zusätzlich als `references[0]`.
+
+**Mitgelieferter Workflow** `installer/media-workflows/flux2-klein-image.json` (Kategorie `image`, 4 Schritte,
+3 Vorlagen). Wird nicht automatisch installiert. Er dient als Vorlage für die Admin-Konsole und für
+`72-local-media.sh` in einem späteren Schritt (Modelle: `flux-2-klein-4b.safetensors`, `qwen_3_4b.safetensors`,
+`flux2-vae.safetensors` aus `Comfy-Org/vae-text-encorder-for-flux-klein-4b`, zusammen 15,6 GB).
+
+**GUI**: In der Platzhalter-Zuordnung (Admin-Konsole, Media-Backends) erscheinen zusätzlich `reference_1` bis `reference_3`.
+Die Zuordnung `reference_links` geschieht über die Workflow-Datei (keine neue Oberfläche).

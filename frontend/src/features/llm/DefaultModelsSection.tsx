@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next"
 import { llmApi, llmModelsApi, type LlmConfig, type MediaModel, type RegistryModel } from "./api"
 import { MediaModelSelect } from "./MediaModelSelect"
 import { ModelSelect } from "./ModelSelect"
+import { LessonsModelSelect } from "./LessonsModelSelect"
+import { lessonsChoice } from "./lessonsModel"
+import { purposeFor } from "./defaultModelSave"
 
 // Maps purpose → config field path (mirrors backend _PURPOSE_KEYS)
 type Purpose = "chat" | "embed" | "image" | "music" | "tts" | "stt" | "video"
@@ -110,8 +113,23 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
   }
 
   async function handleChange(def: PurposeDef, model: string) {
+    const single = purposeFor(def.purpose)
+    if (single) await savePurpose(single, model)
+    else await saveConfig(def.setVal(config, model))
+  }
+
+  async function savePurpose(purpose: string, model: string) {
     setError(null)
-    const updated = def.setVal(config, model)
+    try {
+      await llmApi.setDefault(purpose, model)
+      onSaved()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("default_models.save_error"))
+    }
+  }
+
+  async function saveConfig(updated: LlmConfig) {
+    setError(null)
     try {
       await llmApi.updateConfig(updated)
       onSaved()
@@ -154,6 +172,11 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
           />
         )
       })}
+      <LessonsModelSelect
+        value={lessonsChoice(config)}
+        models={modelsByPurpose.chat ?? []}
+        onChange={(choice) => void savePurpose("lessons", choice)}
+      />
     </div>
   )
 }
