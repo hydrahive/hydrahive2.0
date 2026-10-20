@@ -13,7 +13,8 @@ _DESCRIPTION = (
     "Websuche über lokalen SearxNG. Gibt Titel, URL, Snippet, Quelle und – falls bekannt – "
     "das Datum (published) zurück. Für aktuelle Ereignisse category='news' und time_range "
     "(day/week/month/year) nutzen. Fallen die Suchanbieter aus und ist ein Tavily-Schlüssel "
-    "eingetragen, springt Tavily automatisch ein (provider='tavily')."
+    "eingetragen, springt Tavily automatisch ein (provider='tavily'); bei wenigen allgemeinen "
+    "Treffern ergänzt Tavily die Liste (supplemented='tavily')."
 )
 
 _SCHEMA = {
@@ -67,6 +68,30 @@ async def _tavily_fallback(query: str, category: str, time_range: str | None, co
     return ToolResult.ok(output)
 
 
+SUPPLEMENT_BELOW = 3      # Spec websuche-kostenlos §11.1: weniger allgemeine Treffer → Tavily ergänzt
+
+
+async def _supplement(output: dict, query: str, time_range: str | None, count: int) -> None:
+    """Variante C: wenige allgemeine Treffer um Tavily ergänzen (ohne Doppel). Fehler/Kontingent → nur Hinweis."""
+    api_key = (resolve_setting("tavily_api_key") or "").strip()
+    if not api_key:
+        return
+    if not _tavily.reserve():
+        output["supplement_note"] = f"Tavily-Monatskontingent fast aufgebraucht ({_tavily.MONTHLY_STOP}) – nicht ergänzt."
+        return
+    try:
+        data = await _tavily.search(query, topic="general", time_range=time_range, count=count, api_key=api_key)
+    except _tavily.TavilyError as e:
+        output["supplement_note"] = f"Ergänzung fehlgeschlagen: {e}"
+        return
+    seen = {h["url"] for h in output["results"]}
+    extra = [h for h in data["results"] if h.get("url") and h["url"] not in seen]
+    if extra:
+        output["results"] = (output["results"] + extra)[:count]
+        output["count"] = len(output["results"])
+        output["supplemented"] = "tavily"
+
+
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     query = args.get("query", "").strip()
     if not query:
@@ -105,6 +130,8 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     output: dict = {"query": query, "results": results, "count": len(results)}
     if fallback:
         output["fallback"] = fallback
+    if category == "general" and not fallback and len(results) < SUPPLEMENT_BELOW:
+        await _supplement(output, query, time_range, count)
     if unavailable:
         output["unavailable"] = unavailable
     return ToolResult.ok(output)

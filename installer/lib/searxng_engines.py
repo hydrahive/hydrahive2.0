@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Bing und Yandex in einer SearXNG-Einstellungsdatei einschalten (idempotent).
+"""Suchanbieter in einer SearXNG-Einstellungsdatei angleichen (idempotent).
+
+Stand 20.10.2026 (Spec docs/specs/websuche-kostenlos.md §11.1, Till: Variante C):
+- yandex einschalten, falls nicht eingetragen;
+- bing (Web) ausschalten – liefert bei Fachfragen nur Treffer zum ersten Wort. Nur wenn der Eintrag noch unser
+  eigener vom 02.10. ist ({name: bing, disabled: false}) oder fehlt; eine eigene Wahl des Nutzers bleibt.
+  „bing news“/„bing images“ sind eigene Anbieter und bleiben unberührt.
 
 Aufruf: searxng_engines.py <settings.yml>
 Ausgabe: "changed" oder "unchanged"; Exit 1 bei unlesbarer/ungültiger Datei
@@ -11,8 +17,7 @@ Bing und Yandex funktionierten, waren aber aus. Spec:
 docs/specs/websearch-blocked-engines.md §7.
 
 Regeln:
-- Nur fehlende Einträge ergänzen ({name, disabled: false}); hat der Nutzer einen
-  der beiden selbst eingetragen (auch disabled: true), bleibt er wie er ist.
+- Fehlende Einträge ergänzen; hat der Nutzer einen Eintrag mit eigenen Feldern, bleibt er, wie er ist.
 - Alle anderen Abschnitte und Anbieter bleiben erhalten.
 - Ist nichts zu tun, wird die Datei nicht angefasst (Kommentare bleiben).
 - Läuft mit dem Python des SearXNG-venv (dort ist PyYAML installiert).
@@ -25,23 +30,29 @@ import tempfile
 
 import yaml
 
-WANTED = ("bing", "yandex")
+WANTED = {"bing": True, "yandex": False}          # Name → disabled
+OUR_OLD = {"bing": {"name": "bing", "disabled": False}}   # unser Eintrag vom 02.10., darf umgestellt werden
 
 
 def merge(settings: dict) -> bool:
-    """Ergänzt fehlende Anbieter in-place. True, wenn sich etwas geändert hat."""
+    """Gleicht Anbieter in-place an. True, wenn sich etwas geändert hat."""
     engines = settings.get("engines")
     if engines is None:
         engines = []
     if not isinstance(engines, list):
         raise TypeError("engines ist keine Liste")
-    present = {e.get("name") for e in engines if isinstance(e, dict)}
-    missing = [name for name in WANTED if name not in present]
-    if not missing:
-        return False
-    engines.extend({"name": name, "disabled": False} for name in missing)
+    changed = False
+    by_name = {e.get("name"): e for e in engines if isinstance(e, dict)}
+    for name, disabled in WANTED.items():
+        entry = by_name.get(name)
+        if entry is None:
+            engines.append({"name": name, "disabled": disabled})
+            changed = True
+        elif entry == OUR_OLD.get(name) and entry.get("disabled") != disabled:
+            entry["disabled"] = disabled
+            changed = True
     settings["engines"] = engines
-    return True
+    return changed
 
 
 def main(path: str) -> int:

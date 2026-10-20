@@ -107,13 +107,14 @@ search:
     - html
     - json
 
-# Bing und Yandex einschalten (Standard: aus). Am 02.10.2026 lieferten
-# DuckDuckGo/Startpage (CAPTCHA), Brave (zu viele Anfragen) und Google (leer)
-# keine Treffer mehr. Nur name + disabled — sonst gehen SearXNGs
+# Yandex einschalten (Standard: aus). Am 02.10.2026 lieferten DuckDuckGo/Startpage
+# (CAPTCHA), Brave (zu viele Anfragen) und Google (leer) keine Treffer mehr.
+# Bing-Web aus (20.10.2026): liefert bei Fachfragen nur Treffer zum ersten Wort;
+# „bing news“ bleibt an. Nur name + disabled — sonst gehen SearXNGs
 # Standardfelder (shortcut, categories …) verloren.
 engines:
   - name: bing
-    disabled: false
+    disabled: true
   - name: yandex
     disabled: false
 
