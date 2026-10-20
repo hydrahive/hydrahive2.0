@@ -115,8 +115,10 @@ wenn ein Agent sie bestätigt.
 
 ## 9. Etappen (Vorschlag)
 
-1. **L1 Format + Schreiben:** neuer Auftrag am Session-Ende, Prüfregeln, höchstens 1 Lehre, Bestärken statt
-   Duplikat; alte `lessons` aus `crystallize` abschalten (Schalter, Standard aus). Bestand markieren.
+1. **L1 Format + Schreiben:** neuer Auftrag am Session-Ende, Prüfregeln (inkl. „Beleg wörtlich im Verlauf“),
+   höchstens 1 Lehre, Bestärken statt Duplikat; Modell-Wechsler „Lehren“ (10a); alte `lessons` aus `crystallize`
+   abschalten (Schalter). Bestand markieren.
+   **L1b Nachträglich lernen** über frühere Sitzungen (10a).
 2. **L2 Lesen:** Suche über Auslöser, Block im Systemprompt (≤ 3), Werkzeug `lesson_feedback`.
 3. **L3 Pflege:** Verfall, angefochtene Lehren, Ansicht in der Gedächtnis-Seite (Auslöser, Beleg, Zähler).
 4. **L4 Skill-Vorschlag:** gehäufte Lehren → Vorschlag „daraus einen Skill machen“.
@@ -133,6 +135,29 @@ Messen nach L2: wie oft werden Lehren gezeigt, wie oft bestätigt, wächst die Z
    einmalig ins neue Format übernommen.
 3. **Geltung: Projekt** als Standard, Hochstufen auf global bei Bestätigung in zwei Projekten; ohne Projekt
    (Buddy) gilt die Lehre für den Agenten.
+
+## 10a. Modell-Wechsler „Lehren“ (Till 20.10.)
+
+Bisher nimmt die Zusammenfassung am Sitzungsende einfach das Modell des jeweiligen Agenten (`runner.py` →
+`compress_session(…, agent["llm_model"])`); es gibt keine zentrale Einstellung. Neu:
+
+- `llm.json` → `lessons_model` (Text). In der Admin-Konsole auf der Seite **„Standard-Modelle“** als eigenes Feld
+  **„Lehren“** neben Chat, Bild, Musik usw. (gleiche Auswahl wie Chat, inkl. lokaler Ollama-Modelle).
+- Werte: **leer** = Standard-Textmodell des Servers (`default_model`), **Modell-ID** = genau dieses,
+  **`off`** = keine Lehren schreiben (Auswahl „Aus“).
+- Zweck `lessons` in `_PURPOSE_KEYS` (Backend) und `PURPOSES` (Frontend), damit `/llm/models?modality=lessons`
+  wie bei den anderen Zwecken das gewählte Modell meldet.
+- Beim Ändern: nichts wird nachträglich umgeschrieben – das Modell gilt ab der nächsten Sitzung.
+
+**Historische Daten bleiben vollständig erhalten:** `sessions.db` und Datamining werden nur gelesen; Erinnerungs-Karten
+und Zahnfee bleiben unberührt; die 2.021 alten Lehren bekommen nur eine abnehmbare Markierung `legacy_lesson` und
+bleiben über `search_memory` auffindbar; `crystals.jsonl` wird nur ergänzt. Abgeschaltet wird (per Schalter,
+umkehrbar) nur das **Neuschreiben** allgemeiner Lehren durch die alte Zusammenfassung.
+
+**Nachträglich lernen (L1b):** Weil die Verläufe da sind, kann der neue Weg über frühere Sitzungen laufen (Knopf bzw.
+Befehl, Zeitraum wählbar, Standard: letzte 4 Wochen, abgeschlossene Sitzungen mit ≥ 10 Nachrichten). Kosten: ein
+kurzer Aufruf je Sitzung mit dem gewählten Modell; Lauf ist wiederholbar (bereits ausgewertete Sitzungen werden
+übersprungen).
 
 ## 11. Probelauf (20.10.2026, nur gelesen, nichts gespeichert)
 
