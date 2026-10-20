@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { LockKeyhole } from "lucide-react"
 import { pinValid, vaultApi } from "./api"
 import { useVaultStore } from "./vaultStore"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 type Mode = "unlock" | "setup" | "forgot"
 
@@ -16,6 +17,8 @@ export function VaultPinDialog() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
+  const titelId = useId()
+  const dialogRef = useDialogFokus<HTMLDivElement>()   // Fokusfalle; Escape bewusst aus (Spec ui-standard §6)
   if (!prompt) return null
   const m: Mode = mode ?? (prompt.pinSet ? "unlock" : "setup")
 
@@ -44,22 +47,22 @@ export function VaultPinDialog() {
 
   const input = "w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-center text-lg tracking-[0.3em] text-[#e8eef8]"
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby={titelId}>
       <form onSubmit={(e) => { e.preventDefault(); void submit() }}
         className="w-full max-w-sm space-y-3 rounded-[6px] border border-[#69d7ff]/40 bg-[#111827] p-5 shadow-2xl">
         <div className="flex items-center gap-2">
           <LockKeyhole size={18} className="text-[#69d7ff]" />
-          <h2 className="text-base font-bold text-[#e8eef8]">{t(`title_${m}`)}</h2>
+          <h2 id={titelId} className="text-base font-bold text-[#e8eef8]">{t(`title_${m}`)}</h2>
         </div>
         <p className="text-xs leading-5 text-[#8d9ab0]">{t(`text_${m}`)}</p>
         {m !== "unlock" && (
-          <input type="password" autoComplete="current-password" value={password} placeholder={t("password")}
+          <input type="password" autoComplete="current-password" value={password} placeholder={t("password")} aria-label={t("password")}
             onChange={(e) => setPassword(e.target.value)} className={input.replace("text-center text-lg tracking-[0.3em]", "text-sm")} />
         )}
         <input type="password" inputMode="numeric" autoComplete="off" autoFocus value={pin} maxLength={12}
-          placeholder={m === "unlock" ? t("pin") : t("new_pin")} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} className={input} />
+          placeholder={m === "unlock" ? t("pin") : t("new_pin")} aria-label={m === "unlock" ? t("pin") : t("new_pin")} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} className={input} />
         {m !== "unlock" && (
-          <input type="password" inputMode="numeric" autoComplete="off" value={pin2} maxLength={12} placeholder={t("repeat_pin")}
+          <input type="password" inputMode="numeric" autoComplete="off" value={pin2} maxLength={12} placeholder={t("repeat_pin")} aria-label={t("repeat_pin")}
             onChange={(e) => setPin2(e.target.value.replace(/\D/g, ""))} className={input} />
         )}
         {error && <p className="text-xs text-rose-300">{error}</p>}
