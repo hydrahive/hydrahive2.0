@@ -5,12 +5,14 @@ import { MediaShotEditor } from "./media/MediaShotEditor"
 import { updateShot } from "./media/shotUpdates"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitSectionLabel } from "./CockpitPanel"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 const empty: MediaScreenplay = { title: "", logline: "", acts: [] }
 const makeId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 const newShot = (): MediaShot => ({ id: makeId("shot"), title: "Neuer Shot", description: "", duration: 5, camera: "", character_ids: [], asset_ids: [], dialogue: "" })
 
 export function MediaScreenplayOverlay({ projectId, mediaSlug, onClose }: { projectId: string; mediaSlug: string; onClose: () => void }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const [value, setValue] = useState<MediaScreenplay>(empty)
   const [references, setReferences] = useState<MediaAssetReference[]>([])
   const [message, setMessage] = useState("Lädt…")
@@ -34,7 +36,7 @@ export function MediaScreenplayOverlay({ projectId, mediaSlug, onClose }: { proj
     setValue((old) => ({ ...old, acts: old.acts.map((act, x) => x === ai ? { ...act, scenes: act.scenes.map((scene, y) => y === si ? { ...scene, shots: scene.shots.filter((_, z) => z !== hi) } : scene) } : act) }))
   }
 
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="screenplay-title">
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="screenplay-title">
     <section className="flex h-[min(860px,95dvh)] w-full max-w-7xl flex-col overflow-hidden rounded-[4px] border border-[#46617f] bg-[#151c2b]">
       <header className="flex items-center justify-between border-b border-[#2a364b] p-4"><div><CockpitSectionLabel>Regie</CockpitSectionLabel><h2 id="screenplay-title" className="text-lg font-semibold text-[#e8eef8]">Akt → Szene → Shot</h2></div><div className="flex gap-2"><CockpitButton onClick={onClose}>Schließen</CockpitButton><CockpitButton tone="primary" onClick={save}>Speichern</CockpitButton></div></header>
       <div className="grid gap-3 border-b border-[#2a364b] p-4 md:grid-cols-2"><TextField label="Filmtitel" value={value.title} onChange={(title) => setValue({ ...value, title })} /><TextField label="Logline" value={value.logline} onChange={(logline) => setValue({ ...value, logline })} /></div>

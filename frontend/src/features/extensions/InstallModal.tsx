@@ -5,6 +5,7 @@ import { X, Terminal } from "lucide-react"
 import { rgbFor } from "@/shared/colors"
 import type { Extension, InstallMode, InstallParam } from "./types"
 import { streamAction } from "./api"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   ext: Extension
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function InstallModal({ ext, action, mode, onClose }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("extensions")
   const [params, setParams] = useState<Record<string, string>>({})
   const visibleParams = (ext.install_params ?? []).filter((p) => !p.auto_generate || p.required)
@@ -45,12 +47,12 @@ export function InstallModal({ ext, action, mode, onClose }: Props) {
     .filter((p: InstallParam) => p.required && !params[p.key]?.trim())
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="box overflow-hidden w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]" style={{ "--c": rgbFor("/mcp") } as CSSProperties}>
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[6%]">
           <Terminal size={16} className="text-violet-400" />
-          <span className="font-semibold text-zinc-100 text-sm">
+          <span id={dlg.titelId} className="font-semibold text-zinc-100 text-sm">
             {action === "install" ? t("modal.install") : t("modal.uninstall")}: {ext.name}
           </span>
           <div className="flex-1" />

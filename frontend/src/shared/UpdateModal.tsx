@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { CheckCircle, Loader2, X, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 export type UpdateState = "confirm" | "starting" | "running" | "done" | "failed"
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfirm, onClose }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("nav")
   const [logLines, setLogLines] = useState<string[]>([])
   const [logDisconnected, setLogDisconnected] = useState(false)
@@ -49,6 +51,7 @@ export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfi
 
   return (
     <div
+      {...dlg.props}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={() => dismissable && onClose()}
     >
@@ -57,7 +60,7 @@ export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfi
         className="w-full max-w-2xl mx-4 rounded-2xl border border-white/[8%] bg-zinc-900 shadow-2xl shadow-black/40 flex flex-col max-h-[85vh]"
       >
         <div className="flex items-center justify-between p-5 border-b border-white/[6%]">
-          <h2 className="text-lg font-bold text-white">{t("update.modal_title")}</h2>
+          <h2 id={dlg.titelId} className="text-lg font-bold text-white">{t("update.modal_title")}</h2>
           {dismissable && (
             <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
               <X size={16} />

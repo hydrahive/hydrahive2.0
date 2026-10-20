@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Copy, X } from "lucide-react"
 import { peersApi } from "./api"
 import { rgbFor } from "@/shared/colors"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   onClose: () => void
@@ -13,6 +14,7 @@ interface Props {
 // Schritt 1: eigenen Code erzeugen und an die Gegenseite geben.
 // Schritt 2: Code der Gegenseite einfügen → Partner wartet auf Bestätigung.
 export function PeerPairDialog({ onClose, onAdded }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("federation")
   const [name, setName] = useState(window.location.hostname.replace(/[^A-Za-z0-9._-]/g, "-"))
   const [url, setUrl] = useState(`https://${window.location.host}`)
@@ -59,10 +61,10 @@ export function PeerPairDialog({ onClose, onAdded }: Props) {
   const input = "w-full rounded-lg bg-zinc-950/60 border border-white/[8%] px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="box overflow-hidden w-full max-w-lg p-6 space-y-5" style={{ "--c": rgbFor("/federation") } as CSSProperties}>
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-zinc-100">{t("peers.pair_title")}</h2>
+          <h2 id={dlg.titelId} className="text-base font-semibold text-zinc-100">{t("peers.pair_title")}</h2>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors"><X size={16} /></button>
         </div>
 

@@ -7,6 +7,7 @@ import { credentialsApi } from "./api"
 import { Field, CredentialValueInput } from "./_credentialHelpers"
 import { hasConcreteHost } from "./hostPattern"
 import type { Credential, CredentialType } from "./types"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   credential: Credential | null
@@ -19,6 +20,7 @@ const NAME_RE = /^[a-z0-9][a-z0-9_-]{0,49}$/
 const TYPES: CredentialType[] = ["bearer", "basic", "cookie", "header", "query", "ssh_key"]
 
 export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("credentials")
   const { t: tCommon } = useTranslation("common")
   const isNew = !credential
@@ -65,14 +67,14 @@ export function CredentialEditor({ credential, onClose, onSaved, onDeleted }: Pr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
         className="box overflow-hidden w-full max-w-lg p-5 space-y-3" style={{ "--c": rgbFor("/credentials") } as CSSProperties}>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">
+          <h2 id={dlg.titelId} className="text-lg font-bold text-white">
             {isNew ? t("new_title") : t("edit_title", { name: credential!.name })}
           </h2>
-          <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
+          <button onClick={onClose} aria-label={tCommon("actions.close")} className="p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>
         </div>

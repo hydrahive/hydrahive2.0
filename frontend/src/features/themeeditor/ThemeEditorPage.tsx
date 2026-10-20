@@ -9,6 +9,7 @@ import { Blocks, Save, Upload, Copy } from "lucide-react"
 import { Button, Select } from "@/shared/ui"
 import { GrapesEditor } from "./GrapesEditor"
 import { useThemeEditor } from "./useThemeEditor"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 export function ThemeEditorPage() {
   const s = useThemeEditor()
@@ -99,12 +100,13 @@ export function ThemeEditorPage() {
 }
 
 function ForkDialog({ onClose, onFork }: { onClose: () => void; onFork: (id: string, name: string) => void }) {
+  const dlg = useDialog()
   const [name, setName] = useState("")
   const id = name.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "")
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div className="w-80 rounded-xl border border-white/10 bg-zinc-900 p-4" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-2 text-sm font-semibold text-zinc-100">Als Kopie forken</h2>
+        <h2 id={dlg.titelId} className="mb-2 text-sm font-semibold text-zinc-100">Als Kopie forken</h2>
         <p className="mb-3 text-xs text-zinc-400">
           Legt ein neues, editierbares Theme aus der aktuellen Vorlage an.
         </p>

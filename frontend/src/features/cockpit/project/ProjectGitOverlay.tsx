@@ -2,14 +2,16 @@ import { GitTab } from "@/features/projects/_GitTab"
 import type { Project } from "@/features/projects/types"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitSectionLabel } from "../CockpitPanel"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 export function ProjectGitOverlay({ project, onClose, onChanged }: {
   project: Project
   onClose: () => void
   onChanged: () => void
 }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="project-git-title">
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="project-git-title">
       <section className="flex h-[min(820px,94dvh)] w-full max-w-5xl flex-col overflow-hidden rounded-[6px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
         <header className="flex items-center justify-between border-b border-[#2a364b] p-4">
           <div>

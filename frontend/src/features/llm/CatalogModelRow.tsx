@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
 import type { AgentBrief } from "@/features/chat/types"
 import type { CatalogModel, CatalogTestResult } from "./api"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 export function CatalogModelRow({
   model, testResult, testing, onTest, onUse,
@@ -50,12 +51,13 @@ export function CatalogModelRow({
 export function UseInAgentDialog({
   model, agents, onSubmit, onCancel, error,
 }: { model: string; agents: AgentBrief[]; onSubmit: (aid: string) => void; onCancel: () => void; error: string | null }) {
+  const dlg = useDialog()
   const { t } = useTranslation("llm")
   const [pick, setPick] = useState<string>(agents[0]?.id ?? "")
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
       <div className="box overflow-hidden p-5 max-w-md w-full m-4 space-y-3" style={{ "--c": rgbFor("/llm") } as CSSProperties} onClick={(event) => event.stopPropagation()}>
-        <h3 className="text-sm font-medium text-zinc-100">{t("catalog.set_for_agent")}</h3>
+        <h3 id={dlg.titelId} className="text-sm font-medium text-zinc-100">{t("catalog.set_for_agent")}</h3>
         <p className="text-xs text-zinc-400 break-all">→ <span className="font-mono">{model}</span></p>
         <div>
           <label className="block text-xs text-zinc-500 mb-1">Agent</label>

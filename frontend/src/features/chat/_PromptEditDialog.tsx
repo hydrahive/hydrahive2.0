@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { X } from "lucide-react"
 import { PROMPT_CATEGORIES, type PromptCategory, type PromptEntry, type PromptInput } from "./promptArchive"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   /** Vorhandener Eintrag = Bearbeiten; undefined = Neu anlegen. */
@@ -12,6 +13,7 @@ interface Props {
 
 /** Modal zum Anlegen/Bearbeiten eines Prompt-Rezepts. */
 export function PromptEditDialog({ entry, onSave, onClose }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("chat")
   const [title, setTitle] = useState(entry?.title ?? "")
   const [category, setCategory] = useState<PromptCategory>(entry?.category ?? "image")
@@ -46,14 +48,14 @@ export function PromptEditDialog({ entry, onSave, onClose }: Props) {
   const field = "w-full rounded-lg bg-white/[4%] border border-white/10 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>
       <div className="w-full max-w-lg rounded-2xl bg-zinc-900 border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto"
         onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
-          <h3 className="text-sm font-semibold text-zinc-200">
+          <h3 id={dlg.titelId} className="text-sm font-semibold text-zinc-200">
             {entry ? t("prompts.edit_title") : t("prompts.new_title")}
           </h3>
-          <button onClick={onClose} className="p-1 text-zinc-500 hover:text-zinc-300"><X size={16} /></button>
+          <button onClick={onClose} aria-label={t("bubble.cancel")} className="p-1.5 text-zinc-500 hover:text-zinc-300"><X size={16} /></button>
         </div>
         <div className="p-5 space-y-3">
           <input className={field} placeholder={t("prompts.field_title")} value={title}

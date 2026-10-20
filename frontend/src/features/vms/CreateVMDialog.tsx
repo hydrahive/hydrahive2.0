@@ -10,6 +10,7 @@ import type { DiskInterface, ImportJob, ISO, MachineType, NetworkDevice, Network
 import { vmsApi } from "./api"
 import { formatBytes } from "./format"
 import { Field, Slider, RadioCard } from "./_vmDialogHelpers"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   onClose: () => void
@@ -19,6 +20,7 @@ interface Props {
 type BootSource = "iso" | "import" | "blank"
 
 export function CreateVMDialog({ onClose, onCreated }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("vms")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -91,10 +93,10 @@ export function CreateVMDialog({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
+    <div {...dlg.props} className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="box overflow-hidden w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[6%]">
-          <h2 className="text-lg font-bold text-white">{t("create.title")}</h2>
+          <h2 id={dlg.titelId} className="text-lg font-bold text-white">{t("create.title")}</h2>
           <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"><X size={16} /></button>
         </div>
         <div className="overflow-y-auto px-5 py-4 space-y-5">

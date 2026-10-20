@@ -9,6 +9,7 @@ import { CockpitButton } from "./CockpitButton"
 import { CockpitAppsMenu } from "./CockpitAppsMenu"
 import { VaultBadge } from "@/features/vault/VaultBadge"
 import { CockpitUserMenu } from "./CockpitUserMenu"
+import { fokussierbare, tabZiel } from "@/shared/dialog/focusTrap"
 
 interface Props {
   /** Core-Cockpit-Id oder Pfad eines Cockpit-Moduls (z. B. "/mediacenter"). */
@@ -46,6 +47,11 @@ export function CockpitTopbar({ active, context, action, extraActions }: Props) 
     menuRef.current?.querySelector<HTMLButtonElement>("button")?.focus()
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeMenu()
+      // Tab bleibt im Menü (docs/specs/ui-standard.md, Regel 6); Fokus/Escape regelt die Topbar selbst.
+      const menu = menuRef.current
+      if (event.key !== "Tab" || !menu) return
+      const ziel = tabZiel(fokussierbare(menu), document.activeElement, event.shiftKey, menu)
+      if (ziel) { event.preventDefault(); ziel.focus() }
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)

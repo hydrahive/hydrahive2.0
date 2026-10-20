@@ -6,6 +6,7 @@ import { rgbFor } from "@/shared/colors"
 import type { DiskInterface, HostDisk, ISO, MachineType, NetworkDevice, PassthroughDisk, VM } from "./types"
 import { vmsApi } from "./api"
 import { useAuthStore } from "@/features/auth/useAuthStore"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   vm: VM
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function EditVMDialog({ vm, onClose, onSaved }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("vms")
   const editable = vm.actual_state === "stopped" || vm.actual_state === "created" || vm.actual_state === "error"
 
@@ -87,11 +89,11 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
         className="box overflow-hidden w-full max-w-lg p-5 space-y-3" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">VM bearbeiten: {vm.name}</h2>
+          <h2 id={dlg.titelId} className="text-lg font-bold text-white">VM bearbeiten: {vm.name}</h2>
           <button onClick={onClose} className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5">
             <X size={16} />
           </button>

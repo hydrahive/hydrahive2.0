@@ -3,6 +3,7 @@ import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { federationApi } from "./api"
 import { rgbFor } from "@/shared/colors"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   onClose: () => void
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function AddWorkstationDialog({ onClose, onCreated }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("federation")
   const [name, setName] = useState("")
   const [url, setUrl] = useState("")
@@ -49,10 +51,10 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
     /\.tailnet(:|\/|$)/.test(url)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="box overflow-hidden w-full max-w-md" style={{ "--c": rgbFor("/federation") } as CSSProperties}>
         <div className="px-5 py-4 border-b border-white/8">
-          <h2 className="text-sm font-semibold text-zinc-100">{t("add_dialog.title")}</h2>
+          <h2 id={dlg.titelId} className="text-sm font-semibold text-zinc-100">{t("add_dialog.title")}</h2>
           <p className="text-xs text-zinc-500 mt-0.5">{t("add_dialog.subtitle")}</p>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-3">

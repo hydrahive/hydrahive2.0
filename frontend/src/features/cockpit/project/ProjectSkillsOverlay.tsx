@@ -7,9 +7,11 @@ import { SkillEditor } from "@/features/skills/SkillEditor"
 import type { Skill } from "@/features/skills/types"
 import { CockpitButton } from "../CockpitButton"
 import { CockpitSectionLabel } from "../CockpitPanel"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 /** Geteilte Projekt-Skill-Bibliothek: ansehen, anlegen, bearbeiten (Rechte prüft das Backend). */
 export function ProjectSkillsOverlay({ project, onClose }: { project: Project; onClose: () => void }) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   const { t } = useTranslation("skills")
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,7 +36,7 @@ export function ProjectSkillsOverlay({ project, onClose }: { project: Project; o
   useEffect(() => { void reload() }, [reload])
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" role="dialog" aria-modal="true" aria-labelledby="project-skills-title">
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="project-skills-title">
       <section className="flex h-[min(720px,94dvh)] w-full max-w-3xl flex-col overflow-hidden rounded-[6px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
         <header className="flex items-start justify-between gap-3 border-b border-[#2a364b] p-4">
           <div>

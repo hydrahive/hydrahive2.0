@@ -1,5 +1,6 @@
 import { X } from "lucide-react"
 import { useEffect } from "react"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 export interface LightboxSource {
   url: string
@@ -15,6 +16,7 @@ interface Props {
 /** Vollbild-Vorschau (Modal) für einen Clip/Film: Video mit Steuerung, Bild
  *  oder Audio. Klick auf den Hintergrund oder Esc schließt. */
 export function MediaLightbox({ source, onClose }: Props) {
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   useEffect(() => {
     if (!source) return
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
@@ -25,7 +27,7 @@ export function MediaLightbox({ source, onClose }: Props) {
   if (!source) return null
 
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-6" onClick={onClose}>
+    <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={source.label || "Vorschau"} className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-6" onClick={onClose}>
       <div className="relative flex max-h-[90vh] w-full max-w-4xl flex-col gap-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <span className="truncate font-mono text-[12px] text-[#c3ccdd]" title={source.label}>{source.label ?? ""}</span>

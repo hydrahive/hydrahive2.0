@@ -5,6 +5,7 @@ import { Download, X } from "lucide-react"
 import { clientsApi } from "./api"
 import type { ClientConfig } from "./types"
 import { rgbFor } from "@/shared/colors"
+import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
   onClose: () => void
@@ -23,6 +24,7 @@ function downloadConfig(config: ClientConfig) {
 }
 
 export function NewClientDialog({ onClose, onCreated }: Props) {
+  const dlg = useDialog()
   const { t } = useTranslation("federation")
   const [name, setName] = useState("")
   const [loading, setLoading] = useState(false)
@@ -45,10 +47,10 @@ export function NewClientDialog({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="box overflow-hidden w-full max-w-lg p-6" style={{ "--c": rgbFor("/federation") } as CSSProperties}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-semibold text-zinc-100">{t("new_client.title")}</h2>
+          <h2 id={dlg.titelId} className="text-base font-semibold text-zinc-100">{t("new_client.title")}</h2>
           <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
             <X size={16} />
           </button>
