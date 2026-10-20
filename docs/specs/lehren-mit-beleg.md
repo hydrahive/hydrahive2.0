@@ -248,6 +248,11 @@ Auch Abstände zum Mittelwert halfen nicht. Daher:
    - Ohne Kandidaten gibt es keinen Aufruf (4 von 14 Fragen).
 3. **Fallback:** Ist die Rückfrage aus, fehlerhaft oder dauert sie länger als 8 s, werden **keine** Lehren
    gezeigt. Lieber keine als eine falsche.
+4. **Zeit (gemessen auf hydratest, je 4 Läufe, luna):**
+   - Bis zum ersten Text: ohne Lehren Ø 2,7 s, mit Lehren Ø 4,1 s, also rund **+1,4 s**.
+   - Der Abruf startet parallel zum Erinnerungs-Abruf und zum Verlauf; gewartet wird erst vor dem ersten Modell-Aufruf.
+   - Ohne Kandidaten bleibt nur das Einbetten (~0,7 s), das ebenfalls parallel läuft.
+   - Aus („Lehren: Aus“) kostet es nichts.
 
 **Darstellung** im wechselnden Teil des Systemprompts (`volatile`, wie die Erinnerungs-Treffer – der gecachte Teil
 bleibt unverändert):
