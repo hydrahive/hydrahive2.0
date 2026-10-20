@@ -209,6 +209,64 @@ Felder einer Lehre: `id`, `key` (Fingerabdruck des Auslösers), `cue`, `lesson`,
   - Die Seite zeigt Bedienelemente erst nach dem Laden.
   - Der Fehler bestand schon vor diesem PR (auf `main` gleich).
 
+## 10c. Bauplan L2 (Lehren vor der Arbeit lesen)
+
+**Wann:** wie der bestehende Erinnerungs-Abruf („Relevante frühere Erinnerungen …“) einmal je Nutzer-Eingabe vor dem
+ersten Modell-Aufruf, nur bei Eingaben mit ≥ 3 Wörtern. Unabhängig vom Schalter „Langzeitgedächtnis“ (Lehren
+sind klein und eigenes Wissen des Agenten). Fehler beim Abruf dürfen den Lauf nie stören.
+
+**Welche:** eigene Lehren des Agenten mit `status: active`, deren Geltung passt: `project:<aktives Projekt>` oder
+`agent` (ohne Projekt). Lehren anderer Projekte bleiben unsichtbar.
+
+**Auswahl (Ähnlichkeit zum Auslöser):**
+- Embedding des **Auslösers** (`cue`) – einmal beim Speichern berechnet und in der Zeile abgelegt (`cue_vec`, Modell
+  `cue_model`); fehlt es (älteres Modell, Fehler), wird es beim Lesen nachgeholt und nicht gespeichert.
+- Eingabe mit dem eingestellten `embed_model` einbetten (`embed_type="query"`), Kosinus-Ähnlichkeit.
+- ~~Schwelle **0,42**~~ (überholt, siehe Nachtrag unten), gemessen am 20.10. mit `text-embedding-3-small`: 10 echte Lehren, 8 passende und
+  6 unpassende Eingaben. Passende lagen bei 0,43–0,65 (immer Rang 1), unpassende bei höchstens 0,39
+  („Backup der Datenbank“ gegen „fehlende Datei“). Höchstens **3** Lehren, sortiert nach
+  Ähnlichkeit × (1 + 0,2 × Bestätigungen) × Sicherheit (high 1,0 / medium 0,8 / low 0,6).
+- Ohne Embedding-Modell: einfacher Wort-Abgleich (gemeinsame Wörter ≥ 4 Buchstaben, ≥ 2 Treffer).
+
+**Nachtrag 20.10. – zweistufig (Till: Weg 2):** Eine feste Schwelle trägt nicht, denn jedes Embedding-Modell hat
+eine eigene Skala. Gemessen mit 10 Lehren und 14 Fragen:
+
+| Modell | passend ab | unpassend bis |
+|---|---|---|
+| text-embedding-3-small | 0,43 | 0,39 |
+| text-embedding-3-large | 0,38 | 0,34 |
+| bge-m3 (Hauptserver) | 0,53 | 0,51 |
+| qwen3-embedding | 0,51 | 0,45 |
+| nomic | Bereiche überlappen | |
+
+Auch Abstände zum Mittelwert halfen nicht. Daher:
+1. **Kandidaten:** Ähnlichkeit ≥ **0,40** (großzügig), höchstens **5**.
+2. **Rückfrage:** Ein kurzer Aufruf mit dem Modell für Lehren (`lessons_model`, also wie Chat) fragt: „Welche
+   dieser Lehren gilt für diese Eingabe? Nur wenn die Situation klar passt.“ Antwort ist eine Liste von Nummern;
+   eine leere Liste ist normal. Höchstens **3** werden übernommen.
+   - Gemessen mit bge-m3: luna 14/14 richtig, Ø 1,8 s (max 3,3 s); gemma4 13/14, Ø 4,6 s.
+   - Ohne Kandidaten gibt es keinen Aufruf (4 von 14 Fragen).
+3. **Fallback:** Ist die Rückfrage aus, fehlerhaft oder dauert sie länger als 8 s, werden **keine** Lehren
+   gezeigt. Lieber keine als eine falsche.
+4. **Zeit (gemessen auf hydratest, je 4 Läufe, luna):**
+   - Bis zum ersten Text: ohne Lehren Ø 2,7 s, mit Lehren Ø 4,1 s, also rund **+1,4 s**.
+   - Der Abruf startet parallel zum Erinnerungs-Abruf und zum Verlauf; gewartet wird erst vor dem ersten Modell-Aufruf.
+   - Ohne Kandidaten bleibt nur das Einbetten (~0,7 s), das ebenfalls parallel läuft.
+   - Aus („Lehren: Aus“) kostet es nichts.
+
+**Darstellung** im wechselnden Teil des Systemprompts (`volatile`, wie die Erinnerungs-Treffer – der gecachte Teil
+bleibt unverändert):
+
+    Lehren aus früheren Aufgaben (mit Beleg) – prüfe, ob sie hier gelten:
+    - WENN <cue> → <lesson> [<part>, <confidence>, ×<n> bestätigt]
+
+**Zählen:** Jede gezeigte Lehre bekommt `shown + 1` (eigene Zeile `shown`-Fassung, gebündelt je Lauf). Grundlage für
+den späteren Verfall (L3: 5× gezeigt, nie bestätigt → `retired`). `lesson_feedback` als Werkzeug folgt in L3.
+
+**Dateien:** `lessons/recall.py` (Auswahl, rein + Embedding-Aufruf), `lessons/store.py` (`cue_vec` speichern,
+`note_shown`), `runner/_runner_lessons.py` (`recall_lessons`), `runner/system_prompt.py` (`render_lessons_block`),
+`runner/runner.py` (Aufruf + Weitergabe).
+
 ## 11. Probelauf (20.10.2026, nur gelesen, nichts gespeichert)
 
 12 abgeschlossene Sitzungen aus `sessions.db` (Buddy, Hydrahive DEV, flowki, hydrawow, Storyteller, HydraVR,
