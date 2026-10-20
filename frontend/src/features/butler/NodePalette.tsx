@@ -59,13 +59,14 @@ export function NodePalette() {
             <button
               type="button"
               onClick={() => setOpen((prev) => ({ ...prev, [group.groupKey]: !isOpen }))}
+              aria-expanded={isOpen}
               className={cn(
-                "w-full flex items-center justify-between px-1 py-1 text-[0.55rem] font-bold uppercase tracking-widest transition-colors",
+                "w-full min-h-6 flex items-center justify-between px-1 py-1 text-[0.55rem] font-bold uppercase tracking-widest transition-colors",
                 HEADER_COLOR[group.color],
               )}
             >
               <span>{group.group}</span>
-              <span className="text-white/20">{isOpen ? "▲" : "▼"}</span>
+              <span className="text-white/20" aria-hidden="true">{isOpen ? "▲" : "▼"}</span>
             </button>
             {isOpen && (
               <div className="flex flex-col gap-1.5 mt-1">

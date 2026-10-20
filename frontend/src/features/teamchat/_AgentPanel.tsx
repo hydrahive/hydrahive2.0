@@ -33,7 +33,8 @@ export function AgentPanel({ accent, roomAgents, ownAgents, onAttach, onDetach }
         <button
           onClick={() => setPicking((v) => !v)}
           title={t("attach_agent")}
-          className="r p-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
+          aria-label={t("attach_agent")}
+          className="r p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
         >
           <Plus size={14} />
         </button>

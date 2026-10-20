@@ -19,7 +19,7 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
   return (
     <footer className="flex items-center justify-between gap-3 px-4 py-1.5 border-t border-white/[6%] bg-zinc-950/80 text-[11px] text-zinc-500">
       <div className="flex items-center gap-3">
-        <Link to="/system" className="flex items-center gap-1 hover:text-zinc-300">
+        <Link to="/system" className="flex min-h-6 items-center gap-1 hover:text-zinc-300">
           <Settings size={11} /> {t("items.system")}
         </Link>
         <span className="hidden sm:inline">·</span>
@@ -37,7 +37,7 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
             type="button"
             onClick={() => navigate("/settings/modules")}
             title={t("update.modules", { count: moduleUpdateCount })}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
+            className="flex min-h-6 items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
           >
             <Boxes size={11} /> {moduleUpdateCount}
           </button>
@@ -47,7 +47,7 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
             type="button"
             onClick={() => navigate("/admin?section=plugins")}
             title={t("update.plugins", { count: pluginUpdateCount })}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
+            className="flex min-h-6 items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
           >
             <Puzzle size={11} /> {pluginUpdateCount}
           </button>
@@ -59,7 +59,7 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
                 type="button"
                 onClick={onUpdateClick}
                 title={t("update.available")}
-                className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
+                className="min-h-6 min-w-6 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
               >
                 ↑
               </button>
@@ -77,7 +77,8 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
                 type="button"
                 onClick={onUpdateClick}
                 title={t("update.force")}
-                className="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
+                aria-label={t("update.force")}
+                className="grid min-h-6 min-w-6 place-items-center p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
               >
                 <RefreshCw size={11} />
               </button>

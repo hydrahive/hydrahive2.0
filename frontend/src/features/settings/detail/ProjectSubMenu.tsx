@@ -58,10 +58,12 @@ export function ProjectSubMenu({ activeItem, onSelect }: Props) {
             const active = p.id === activeItem
             const dim = p.status !== "active"
             return (
-              <div
+              <button
+                type="button"
                 key={p.id}
                 onClick={() => onSelect(p.id)}
-                className={`group flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 transition-all ${
+                aria-current={active ? "true" : undefined}
+                className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all ${
                   active
                     ? "bg-gradient-to-r from-indigo-600/20 to-violet-600/10 border-l-2 border-violet-500"
                     : "border-l-2 border-transparent hover:bg-white/[3%]"
@@ -92,7 +94,7 @@ export function ProjectSubMenu({ activeItem, onSelect }: Props) {
                     ))}
                   </div>
                 </div>
-              </div>
+              </button>
             )
           })
         )}

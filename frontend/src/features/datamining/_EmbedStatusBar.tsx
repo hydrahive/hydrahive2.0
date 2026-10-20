@@ -43,17 +43,17 @@ export function EmbedStatusBar({ status, onBackfill, onReset, onRechunk }: {
       {status.backfill_running ? (
         <span className="text-violet-400 shrink-0 animate-pulse">{t("embed_status")}</span>
       ) : status.pending > 0 && onBackfill ? (
-        <button onClick={onBackfill} className="text-violet-400 hover:text-violet-300 shrink-0 transition-colors">
+        <button onClick={onBackfill} className="min-h-6 text-violet-400 hover:text-violet-300 shrink-0 transition-colors">
           backfill
         </button>
       ) : null}
       {hasEmbedModel && onRechunk && (
-        <button onClick={onRechunk} className="text-zinc-600 hover:text-amber-300 shrink-0 transition-colors" title="Zu lange Events neu chunken">
+        <button onClick={onRechunk} className="grid min-h-6 min-w-6 place-items-center text-zinc-500 hover:text-amber-300 shrink-0 transition-colors" title="Zu lange Events neu chunken" aria-label="Zu lange Events neu chunken">
           ✂
         </button>
       )}
       {hasEmbedModel && onReset && (
-        <button onClick={onReset} className="text-zinc-600 hover:text-zinc-400 shrink-0 transition-colors" title="Alle Embeddings zurücksetzen">
+        <button onClick={onReset} className="grid min-h-6 min-w-6 place-items-center text-zinc-500 hover:text-zinc-300 shrink-0 transition-colors" title="Alle Embeddings zurücksetzen" aria-label="Alle Embeddings zurücksetzen">
           ↺
         </button>
       )}

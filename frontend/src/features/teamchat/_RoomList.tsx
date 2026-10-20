@@ -101,7 +101,8 @@ export function RoomList(props: RoomListProps) {
           <button
             onClick={() => setAdding((v) => !v)}
             title={t("new_room")}
-            className="p-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
+            aria-label={t("new_room")}
+            className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
           >
             <Plus size={14} />
           </button>
@@ -183,18 +184,20 @@ export function RoomList(props: RoomListProps) {
                   <span className="truncate">{r.name}</span>
                 </button>
                 {manageable && (
-                  <div className="flex items-center pr-1.5 gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                  <div className="flex items-center pr-1.5 gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
                     <button
                       onClick={() => startRename(r)}
                       title={t("rename_room")}
-                      className="p-1 rounded text-zinc-500 hover:text-zinc-200"
+                      aria-label={t("rename_room")}
+                      className="p-1.5 rounded text-zinc-500 hover:text-zinc-200"
                     >
                       <Pencil size={12} />
                     </button>
                     <button
                       onClick={() => deleteRoom(r)}
                       title={t("delete_room")}
-                      className="p-1 rounded text-zinc-500 hover:text-rose-300"
+                      aria-label={t("delete_room")}
+                      className="p-1.5 rounded text-zinc-500 hover:text-rose-300"
                     >
                       <Trash2 size={12} />
                     </button>
@@ -214,7 +217,8 @@ export function RoomList(props: RoomListProps) {
             <button
               onClick={() => setAddingMember((v) => !v)}
               title={t("add_member")}
-              className="r p-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
+              aria-label={t("add_member")}
+              className="r p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[6%] transition-all"
             >
               <UserPlus size={14} />
             </button>
