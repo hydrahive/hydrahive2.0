@@ -46,7 +46,9 @@ Hover-Flächen bis `#232b3e`.
 - Schwacher Text (Zeitstempel, Hinweise): `text-zinc-500`. Die Farbe wird zentral
   auf `#94949e` angehoben: 5,22:1 auf dem Panel, 4,70:1 auf Hover-Flächen, 6,16:1 auf `zinc-950`.
   Sie bleibt dabei unterscheidbar von `zinc-400` (`#a1a1aa`).
-- `text-zinc-600` und `#5b6675` nur für Dekoration, nie für Information.
+- Schwacher Text in Cockpit-Ansichten (feste Hex-Palette): `#7d8aa0`. Er erreicht ≥ 4,6:1 auf den
+  Cockpit-Flächen und ≥ 4,2:1 auf Chip-Flächen (`#1c2940`). Er ersetzt `#5b6675`, `#68758a` und `#5f6d84`.
+- `text-zinc-600` wird nicht mehr für Text verwendet (seit Etappe 4 entfernt).
 - Kein Alpha auf Text (`text-zinc-500/70`). Stattdessen eine passende Volltonfarbe.
 
 ### 2. Sichtbarer Fokus
@@ -105,10 +107,9 @@ In die PR-Beschreibung gehören:
    - `aria-label` an den Symbol-Buttons mit Fund
 2. Restliche Overlays auf den Dialog-Hook umstellen.
 3. Klickflächen und klickbare `div`s.
-4. Restliche Kontrast-Funde: `text-zinc-600` je Stelle prüfen (Information auf `zinc-500`,
-   Dekoration bleibt), Alpha-Text, feste Hex-Farben wie `#5b6675`.
-   Ein globales Anheben von `zinc-600` würde es mit `zinc-500` verschmelzen und
-   9 Hintergründe mitändern, deshalb erfolgt diese Arbeit Stelle für Stelle.
+4. Restliche Kontrast-Funde: `text-zinc-600` → `text-zinc-500` an allen Textstellen (die Klasse
+   bleibt bestehen, damit Flächen und Ränder in `zinc-600` unverändert bleiben), Alpha-Text,
+   feste Hex-Farben wie `#5b6675` → `#7d8aa0`.
 
 ## Nicht-Ziele
 

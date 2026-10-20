@@ -66,7 +66,7 @@ export function NewInstanceDialog({ onClose, onCreated }: Props) {
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleCreate()}
                 placeholder={t("new_instance.name_placeholder")}
-                className="w-full rounded-lg border border-white/[8%] bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20"
+                className="w-full rounded-lg border border-white/[8%] bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20"
                 autoFocus
               />
             </div>

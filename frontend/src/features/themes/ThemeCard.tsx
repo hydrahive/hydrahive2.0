@@ -18,7 +18,7 @@ function InstallLog({ lines, phase, failed }: { lines: string[]; phase: Phase; f
   if (phase === "idle") return null
   return (
     <div ref={logRef} className="overflow-y-auto p-3 font-mono text-[11px] leading-relaxed bg-zinc-950/50 rounded-lg max-h-40">
-      {lines.length === 0 && <span className="text-zinc-600">Warte …</span>}
+      {lines.length === 0 && <span className="text-zinc-500">Warte …</span>}
       {lines.map((l, i) => (
         <div key={i} className={
           l.startsWith("[FEHLER]") || l.startsWith("[ERROR]") ? "text-rose-400" : "text-zinc-300"

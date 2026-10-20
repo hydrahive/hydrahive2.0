@@ -58,8 +58,8 @@ export function ButlerCanvas({
         {nodes.length === 0 && (
           <Panel position="top-center" style={{ marginTop: 48 }}>
             <div className="text-center pointer-events-none">
-              <p className="text-white/25 text-base">{t("canvasEmptyHint")}</p>
-              <p className="text-white/15 text-sm mt-1">{t("canvasEmptySubHint")}</p>
+              <p className="text-white/50 text-base">{t("canvasEmptyHint")}</p>
+              <p className="text-white/50 text-sm mt-1">{t("canvasEmptySubHint")}</p>
             </div>
           </Panel>
         )}

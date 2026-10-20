@@ -38,7 +38,7 @@ export function LiveFeedTab({ active }: { active: boolean }) {
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
           {t("live_feed")}
         </span>
-        <span className="text-[10px] text-zinc-600 ml-auto">{events.length} {t("entries")}</span>
+        <span className="text-[10px] text-zinc-500 ml-auto">{events.length} {t("entries")}</span>
         <button onClick={load} aria-label={t("common:actions.refresh")} title={t("common:actions.refresh")} className="ml-1 grid min-h-6 min-w-6 place-items-center rounded p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors">
           <RefreshCw size={11} />
         </button>
@@ -46,15 +46,15 @@ export function LiveFeedTab({ active }: { active: boolean }) {
 
       <div className="h-80 overflow-y-auto font-mono text-[11px] leading-relaxed">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-zinc-600">{t("loading")}</div>
+          <div className="flex items-center justify-center h-full text-zinc-500">{t("loading")}</div>
         ) : events.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-zinc-600">
+          <div className="flex items-center justify-center h-full text-zinc-500">
             {mirrorActive ? t("empty") : t("not_configured")}
           </div>
         ) : (
           events.map((e) => (
             <div key={e.id} className="flex items-start gap-2 px-3 py-0.5 hover:bg-white/[3%] border-b border-white/[3%]">
-              <span className="text-zinc-600 shrink-0 w-20">{fmtTime(e.created_at)}</span>
+              <span className="text-zinc-500 shrink-0 w-20">{fmtTime(e.created_at)}</span>
               <span className="text-zinc-500 shrink-0 w-20 truncate">{e.username ?? "—"}</span>
               <span className="text-zinc-400 shrink-0 w-24 truncate">{e.agent_name ?? "—"}</span>
               <span className={`shrink-0 px-1 rounded text-[10px] font-medium ${TYPE_COLORS[e.event_type] ?? "text-zinc-400 bg-zinc-500/10"}`}>

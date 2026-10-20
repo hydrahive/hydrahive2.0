@@ -25,7 +25,7 @@ export function CompactionSection({ agent, models, onChange }: Props) {
     <div className="space-y-2">
       <div className="flex items-center gap-1.5">
         <p className="text-xs font-medium text-zinc-400">{t("compaction.section_title")}</p>
-        <span title={t("compaction.help")} className="text-zinc-600 hover:text-zinc-400 cursor-help">
+        <span title={t("compaction.help")} className="text-zinc-500 hover:text-zinc-400 cursor-help">
           <Info size={11} />
         </span>
       </div>

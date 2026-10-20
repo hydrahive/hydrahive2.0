@@ -44,7 +44,7 @@ export function ThemesOverlay({ onClose }: { onClose: () => void }) {
         <p className="text-sm text-[#8d9ab0]">
           Ein Theme wechselt das komplette Layout der Oberfläche (Menü oben ↔ links) und die Farbwelt.
           Nach der Installation ist es im Profil unter „Design" für jeden Nutzer wählbar.
-          <span className="ml-1 text-[#5b6675]">· {data.installed.length} installiert</span>
+          <span className="ml-1 text-[#7d8aa0]">· {data.installed.length} installiert</span>
         </p>
 
         {error && <div className="rounded-[6px] border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-400">{error}</div>}

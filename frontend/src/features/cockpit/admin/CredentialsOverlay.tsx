@@ -84,7 +84,7 @@ export function CredentialsOverlay({ onClose }: { onClose: () => void }) {
                       </span>
                     </div>
                     {c.description && <p className="line-clamp-1 text-xs text-[#8d9ab0]">{c.description}</p>}
-                    <p className="mt-1 truncate font-mono text-[10px] text-[#5b6675]">{c.url_pattern}</p>
+                    <p className="mt-1 truncate font-mono text-[10px] text-[#7d8aa0]">{c.url_pattern}</p>
                   </button>
                 ))}
               </div>

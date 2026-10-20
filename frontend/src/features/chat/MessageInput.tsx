@@ -150,7 +150,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
           placeholder={disabled ? t("input.placeholder_disabled") : t("input.placeholder")}
           disabled={disabled}
           rows={1}
-          className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none py-1.5 disabled:opacity-50"
+          className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-500 resize-none focus:outline-none py-1.5 disabled:opacity-50"
         />
         {busy && onCancel ? (
           <button onClick={onCancel} type="button" title={t("input.stop_title")} aria-label={t("input.stop_title")}
@@ -165,7 +165,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
         )}
       </div>
       <div className="flex items-center justify-between gap-2 mt-1.5 px-1">
-        <p className="text-[10px] text-zinc-600">{t("input.hint")}</p>
+        <p className="text-[10px] text-zinc-500">{t("input.hint")}</p>
         {quickActions && (
           <div className="flex items-center gap-1">
             {quickActions((prefix) => {

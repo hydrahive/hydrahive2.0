@@ -30,7 +30,7 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
       </div>
       <div className="flex items-center gap-2 font-mono tabular-nums">
         {version && (
-          <span>v{version}{commit && <> · <span className="text-zinc-600">{commit}</span></>}</span>
+          <span>v{version}{commit && <> · <span className="text-zinc-500">{commit}</span></>}</span>
         )}
         {isAdmin && moduleUpdateCount > 0 && (
           <button

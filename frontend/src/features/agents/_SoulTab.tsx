@@ -76,7 +76,7 @@ export function SoulTab({ agent, onSaved }: Props) {
       {COMPONENTS.map((c) => (
         <CollapsibleBox key={c} boxId={`agent-soul-${c}`} color={C} className="box-static" title={labels[c]} defaultCollapsed>
           <div className="box-b space-y-2">
-            <span className="block text-[10px] text-zinc-600">{hints[c]}</span>
+            <span className="block text-[10px] text-zinc-500">{hints[c]}</span>
             <textarea
               value={soul[c]}
               onChange={(e) => setSoul((s) => ({ ...s, [c]: e.target.value }))}

@@ -54,7 +54,7 @@ export function SkillsTab({ agent, draft, onChange }: Props) {
       </div>
 
       {skills.length === 0 ? (
-        <p className="text-xs text-zinc-600 py-6 text-center">{t("agent_tab_empty")}</p>
+        <p className="text-xs text-zinc-500 py-6 text-center">{t("agent_tab_empty")}</p>
       ) : (
         <div className="space-y-1 max-h-96 overflow-y-auto pr-1">
           {skills.map((s) => {
@@ -68,7 +68,7 @@ export function SkillsTab({ agent, draft, onChange }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-mono text-zinc-200 truncate">{s.name}</p>
-                    <span className="text-[10px] text-zinc-600 flex-shrink-0">[{s.scope}]</span>
+                    <span className="text-[10px] text-zinc-500 flex-shrink-0">[{s.scope}]</span>
                   </div>
                   {s.description && <p className="text-[11px] text-zinc-500 truncate">{s.description}</p>}
                 </div>

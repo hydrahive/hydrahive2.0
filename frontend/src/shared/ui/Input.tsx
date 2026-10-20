@@ -25,7 +25,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {...rest}
       style={{ ...ctlStyle, ...(icon ? { paddingInlineStart: "2.25rem" } : null), ...style }}
       className={cn(
-        "w-full bg-zinc-900/70 text-sm text-zinc-100 placeholder:text-zinc-600",
+        "w-full bg-zinc-900/70 text-sm text-zinc-100 placeholder:text-zinc-500",
         "border transition-colors focus:outline-none focus-visible:ring-2",
         invalid
           ? "border-red-500/60 focus-visible:ring-red-500/40"

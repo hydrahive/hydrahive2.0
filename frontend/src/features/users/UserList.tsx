@@ -16,7 +16,7 @@ export function UserList({ users, currentUsername, onEdit, onChangePassword, onD
   const { t } = useTranslation("users")
 
   if (users.length === 0) {
-    return <p className="text-sm text-zinc-600 py-6 text-center">{t("no_users")}</p>
+    return <p className="text-sm text-zinc-500 py-6 text-center">{t("no_users")}</p>
   }
 
   return (

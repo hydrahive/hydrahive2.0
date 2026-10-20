@@ -74,7 +74,7 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
 
       {phase !== "idle" && (
         <div ref={logRef} className="max-h-40 overflow-y-auto rounded-[4px] bg-[#0b111c] p-3 font-mono text-[11px] leading-relaxed">
-          {lines.length === 0 && <span className="text-[#5b6675]">{t("log.waiting")}</span>}
+          {lines.length === 0 && <span className="text-[#7d8aa0]">{t("log.waiting")}</span>}
           {lines.map((l, i) => (
             <div key={i} className={
               l.startsWith("[OK]") ? "text-emerald-400" :

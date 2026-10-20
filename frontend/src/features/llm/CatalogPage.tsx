@@ -106,7 +106,7 @@ export function CatalogPage() {
                 : "border-transparent text-zinc-500 hover:text-zinc-300"
             }`}>
             {p.provider_name}
-            <span className="ml-1.5 text-[10px] text-zinc-600">({p.live_count})</span>
+            <span className="ml-1.5 text-[10px] text-zinc-500">({p.live_count})</span>
             {!p.configured && <span className="ml-1 text-[10px] text-amber-400">(kein Key)</span>}
           </button>
         ))}
@@ -135,7 +135,7 @@ export function CatalogPage() {
             </button>
           ))}
         </div>
-        <span className="text-xs text-zinc-600 ml-auto">{filtered.length} Modelle</span>
+        <span className="text-xs text-zinc-500 ml-auto">{filtered.length} Modelle</span>
       </div>
 
       <div className="box overflow-hidden" style={{ "--c": rgbFor("/llm") } as CSSProperties}>
@@ -157,7 +157,7 @@ export function CatalogPage() {
           </tbody>
         </table>
         {filtered.length === 0 && !loading && (
-          <p className="px-3 py-6 text-center text-sm text-zinc-600">{t("catalog.empty")}</p>
+          <p className="px-3 py-6 text-center text-sm text-zinc-500">{t("catalog.empty")}</p>
         )}
       </div>
         </>

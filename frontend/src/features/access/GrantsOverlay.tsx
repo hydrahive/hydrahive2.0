@@ -8,7 +8,7 @@ import { adminNames, cellLevel, groupCapabilities, nextLevel, subjectsFor, type 
 import type { AccessCatalog, CatalogCapability } from "./types"
 
 const cellTone = {
-  none: "border-[#2a364b] text-[#5b6675]",
+  none: "border-[#2a364b] text-[#7d8aa0]",
   use: "border-[#69d7ff]/50 bg-[#69d7ff]/10 text-[#69d7ff]",
   manage: "border-emerald-400/50 bg-emerald-400/10 text-emerald-300",
 }
@@ -79,7 +79,7 @@ export function GrantsOverlay({ onClose }: { onClose: () => void }) {
                     <tr key={cap.id} className="border-t border-[#2a364b]">
                       <td className="px-3 py-2">
                         <p className="font-bold text-[#e8eef8]">{cap.label}</p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#5b6675]">
+                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#7d8aa0]">
                           <code>{cap.id}</code>
                           {cap.default === "admin_only" && <AdminStatus>{t("grants.default_admin_only")}</AdminStatus>}
                           {cap.tools.length > 0 && <span>{t("grants.tools", { tools: cap.tools.join(", ") })}</span>}

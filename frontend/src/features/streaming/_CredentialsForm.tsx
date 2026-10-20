@@ -11,7 +11,7 @@ interface Props {
   onSaved: () => void
 }
 
-const input = "w-full bg-zinc-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50"
+const input = "w-full bg-zinc-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
 
 export function CredentialsForm({ creds, onSaved }: Props) {
   const { t } = useTranslation("streaming")
@@ -75,7 +75,7 @@ export function CredentialsForm({ creds, onSaved }: Props) {
             <label className="text-xs text-zinc-400 mb-1 block">{t("credentials.plex_path")}</label>
             <input className={input} value={plexPath} onChange={e => setPlexPath(e.target.value)}
               placeholder="/media/plex" required />
-            <p className="text-[10px] text-zinc-600 mt-1">
+            <p className="text-[10px] text-zinc-500 mt-1">
               {t("credentials.plex_hint")} <code className="text-violet-400">{plexPath}/Serientitel/Staffel 1/</code>
             </p>
           </div>

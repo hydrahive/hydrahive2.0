@@ -27,7 +27,7 @@ export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
   const [preview, setPreview] = useState<LightboxSource | null>(null)
   return (
     <div className="mt-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Fertige Filme</p>
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Fertige Filme</p>
       {exports.length === 0 ? (
         <p className="text-[11px] text-[#7a869c]">Noch keine Exporte — oben „Film exportieren".</p>
       ) : (
@@ -47,7 +47,7 @@ export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
               </button>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[11px] font-semibold text-[#c3ccdd]" title={exp.name}>{exp.name}</p>
-                <p className="font-mono text-[9px] text-[#68758a]">
+                <p className="font-mono text-[9px] text-[#7d8aa0]">
                   {exp.duration != null ? timecode(exp.duration) : "—"} · {fmtSize(exp.size)} · {fmtWhen(exp.created_at)}
                 </p>
               </div>

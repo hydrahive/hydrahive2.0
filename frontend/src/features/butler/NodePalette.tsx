@@ -18,9 +18,9 @@ const COLOR_MAP = {
 } as const
 
 const HEADER_COLOR = {
-  green:  "text-green-400/70 hover:text-green-300",
-  blue:   "text-blue-400/70 hover:text-blue-300",
-  orange: "text-orange-400/70 hover:text-orange-300",
+  green:  "text-green-400 hover:text-green-300",
+  blue:   "text-blue-400 hover:text-blue-300",
+  orange: "text-orange-400 hover:text-orange-300",
 } as const
 
 export function NodePalette() {
@@ -49,7 +49,7 @@ export function NodePalette() {
 
   return (
     <div className="box overflow-y-auto w-44 shrink-0 p-3 flex flex-col gap-2" style={{ "--c": rgbFor("/butler") } as CSSProperties}>
-      <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/30 px-1 mb-1">
+      <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-white/50 px-1 mb-1">
         {t("nodePalette")}
       </p>
       {palette.map((group) => {
@@ -102,7 +102,7 @@ export function NodePalette() {
         )
       })}
       <div className="mt-auto pt-3 border-t border-white/10">
-        <p className="text-[0.55rem] text-white/20 leading-relaxed px-1">
+        <p className="text-[0.55rem] text-white/50 leading-relaxed px-1">
           {t("paletteDragHint")}
         </p>
       </div>

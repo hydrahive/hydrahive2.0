@@ -92,7 +92,7 @@ export function TokenAuditCard() {
                   <p className="text-[11px] text-zinc-200 truncate leading-tight">
                     {s.title || `Session ${s.session_id.slice(0, 8)}`}
                   </p>
-                  <p className="text-[10px] text-zinc-600 truncate leading-tight">
+                  <p className="text-[10px] text-zinc-500 truncate leading-tight">
                     {s.llm_calls} Calls · {formatNumber((s.input_tokens || 0) + (s.output_tokens || 0))} Tokens
                     {s.errors > 0 ? ` · ${s.errors} Fehler` : ""}
                   </p>
@@ -168,7 +168,7 @@ function Tile(props: {
       <div className="min-w-0 flex-1">
         <p className="text-zinc-500 text-[9px] uppercase tracking-wide truncate">{props.label}</p>
         <p className="text-base font-bold text-white leading-tight">{props.value}</p>
-        {props.sub && <p className="text-[10px] text-zinc-600 truncate">{props.sub}</p>}
+        {props.sub && <p className="text-[10px] text-zinc-500 truncate">{props.sub}</p>}
       </div>
     </div>
   )

@@ -89,7 +89,7 @@ export function NewProjectDialog({ onClose, onCreated }: Props) {
         <div className="space-y-1.5">
           <label className="block text-xs font-medium text-zinc-400">{tCommon("labels.members")}</label>
           <div className="flex flex-wrap gap-1.5 px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] min-h-[40px]">
-            {users.length === 0 && <p className="text-xs text-zinc-600">{t("new_dialog.no_users")}</p>}
+            {users.length === 0 && <p className="text-xs text-zinc-500">{t("new_dialog.no_users")}</p>}
             {users.map((u) => {
               const sel = members.includes(u)
               return (

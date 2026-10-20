@@ -117,7 +117,7 @@ export function OAuthFlow({
             placeholder={meta.mode === "code"
               ? "code#state"
               : `http://${meta.callback}/...?code=...&state=...`}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-xs font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50 resize-none" />
+            className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-xs font-mono placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 resize-none" />
           {error && <p className="text-xs text-rose-400">{error}</p>}
           <div className="flex gap-2">
             <button onClick={exchange} disabled={busy || !code.trim()}

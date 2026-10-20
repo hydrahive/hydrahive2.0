@@ -58,7 +58,7 @@ function EntryRow({ entry, actionLabel, locale }: EntryRowProps) {
         )}
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs text-zinc-500">{entry.user}</span>
-          <span className="text-xs text-zinc-600">{formatDate(entry.created_at, locale)}</span>
+          <span className="text-xs text-zinc-500">{formatDate(entry.created_at, locale)}</span>
         </div>
       </div>
     </div>
@@ -135,7 +135,7 @@ export function AuditTab({ projectId }: Props) {
             onChange={(e) => setPendingUser(e.target.value)}
             onKeyDown={handleUserKeyDown}
             placeholder={t("audit.filter.user_placeholder")}
-            className="px-2.5 py-1.5 rounded-md bg-zinc-900 border border-white/[6%] text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-violet-500/50 w-36"
+            className="px-2.5 py-1.5 rounded-md bg-zinc-900 border border-white/[6%] text-xs text-zinc-300 placeholder-zinc-500 focus:outline-none focus:border-violet-500/50 w-36"
           />
           <button
             onClick={handleUserSearch}

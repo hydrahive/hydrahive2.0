@@ -59,7 +59,7 @@ export function GroupsSection({ users }: { users: AccessUser[] }) {
                   onClick={() => setDeleteTarget(g)}><Trash2 size={13} /></AdminAction>
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {g.members.length === 0 && <span className="text-xs text-[#5b6675]">{t("groups.no_members")}</span>}
+                {g.members.length === 0 && <span className="text-xs text-[#7d8aa0]">{t("groups.no_members")}</span>}
                 {g.members.map((m) => (
                   <span key={m.user_id} className="inline-flex items-center gap-1 rounded-full border border-[#2a364b] bg-[#172133] px-2 py-0.5 text-xs text-[#e8eef8]">
                     {m.username || m.user_id}

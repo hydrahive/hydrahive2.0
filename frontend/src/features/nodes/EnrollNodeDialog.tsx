@@ -65,7 +65,7 @@ export function EnrollNodeDialog({ onClose, onCreated }: Props) {
             <AdminAction onClick={copyToken}>
               <Copy size={12} className="mr-1 inline" />{copied ? t("enroll.copied") : t("enroll.copy")}
             </AdminAction>
-            <span className="text-[11px] text-[#5b6675]">
+            <span className="text-[11px] text-[#7d8aa0]">
               {t("enroll.expires_at")}: {shortDateTime(created.expires_at)}
             </span>
           </div>

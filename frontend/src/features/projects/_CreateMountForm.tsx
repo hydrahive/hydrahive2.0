@@ -40,7 +40,7 @@ export function CreateMountForm({ onCreated }: Props) {
     } finally { setBusy(false) }
   }
 
-  const inputCls = "w-full px-2 py-1.5 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-violet-500/50 outline-none"
+  const inputCls = "w-full px-2 py-1.5 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 placeholder:text-zinc-500 focus:border-violet-500/50 outline-none"
 
   return (
     <div className="space-y-2 pt-2 border-t border-white/[6%]">
@@ -59,7 +59,7 @@ export function CreateMountForm({ onCreated }: Props) {
           {t("mounts.f_readonly")}
         </label>
       </div>
-      <p className="text-[10px] text-zinc-600">{t("mounts.credential_hint")}</p>
+      <p className="text-[10px] text-zinc-500">{t("mounts.credential_hint")}</p>
       <button onClick={submit} disabled={!canSubmit}
         className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-medium disabled:opacity-40">
         {busy && <Loader2 size={11} className="animate-spin" />}

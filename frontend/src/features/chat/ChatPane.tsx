@@ -362,7 +362,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
       </ChatSearchProvider>
     </div>
   ) : (
-    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-zinc-600">
+    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-sm text-zinc-500">
       <span>
         {preferredAgent
           ? `${preferredAgent.name} hat in diesem Projekt noch keine Session.`

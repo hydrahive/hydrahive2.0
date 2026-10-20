@@ -37,7 +37,7 @@ export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {servers.length === 0 && (
-          <p className="text-xs text-zinc-600 text-center py-6">{t("no_servers")}</p>
+          <p className="text-xs text-zinc-500 text-center py-6">{t("no_servers")}</p>
         )}
         {servers.map((s) => {
           const active = s.id === activeId
@@ -61,7 +61,7 @@ export function McpServerList({ servers, activeId, onSelect, onNew, onQuickAdd }
                 <p className={`text-sm truncate ${active ? "text-white" : "text-zinc-300"}`}>
                   {s.name}
                 </p>
-                <p className="text-[10px] text-zinc-600 mt-0.5 truncate font-mono">
+                <p className="text-[10px] text-zinc-500 mt-0.5 truncate font-mono">
                   {s.transport} · {s.id}
                 </p>
               </div>

@@ -58,7 +58,7 @@ export function ExtensionsOverlay({ onClose }: { onClose: () => void }) {
                   category === c.id ? "bg-violet-500/15 text-violet-300" : "text-[#8d9ab0] hover:bg-white/[4%] hover:text-[#e8eef8]"
                 }`}>
                 <span>{c.label}</span>
-                <span className={`text-[10px] ${category === c.id ? "text-violet-400" : "text-[#5b6675]"}`}>{c.count}</span>
+                <span className={`text-[10px] ${category === c.id ? "text-violet-400" : "text-[#7d8aa0]"}`}>{c.count}</span>
               </button>
             ))}
           </nav>

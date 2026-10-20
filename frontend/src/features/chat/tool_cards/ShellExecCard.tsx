@@ -55,7 +55,7 @@ function Section({ label, text, muted, dim }: {
   const [open, setOpen] = useState(text.length > 0 && text.split("\n").length <= 20)
   if (!text) {
     return (
-      <div className="px-3 py-1.5 text-[10.5px] text-zinc-600 font-mono italic">
+      <div className="px-3 py-1.5 text-[10.5px] text-zinc-500 font-mono italic">
         {label}: <span className="opacity-60">leer</span>
       </div>
     )
@@ -70,7 +70,7 @@ function Section({ label, text, muted, dim }: {
       >
         {open ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         <span>{label}</span>
-        {preview && <span className="text-zinc-600">· {lines} Zeilen, {text.length} chars</span>}
+        {preview && <span className="text-zinc-500">· {lines} Zeilen, {text.length} chars</span>}
       </button>
       {open && (
         <pre className={`px-3 pb-2 text-xs font-mono overflow-x-auto whitespace-pre-wrap

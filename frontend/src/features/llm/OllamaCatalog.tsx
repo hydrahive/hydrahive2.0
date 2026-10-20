@@ -204,7 +204,7 @@ export function OllamaCatalog({ onUse }: Props) {
               : <OllamaModelList models={variants[family.name] ?? []} jobs={jobs} probeJobs={probeJobs} benchmarkJobs={benchmarkJobs} busyModel={busyModel} onInstall={install} onDelete={remove} onProbe={probe} onBenchmark={runBenchmark} onUse={onUse} />)}
           </div>
         ))}
-        {!families.length && <p className="py-8 text-center text-sm text-zinc-600">{t("ollama.no_models")}</p>}
+        {!families.length && <p className="py-8 text-center text-sm text-zinc-500">{t("ollama.no_models")}</p>}
       </section>
     </div>
   )

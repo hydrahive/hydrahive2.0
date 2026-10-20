@@ -87,7 +87,7 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
               className={`w-full px-2 py-1 rounded-md bg-zinc-950 border text-xs text-zinc-200 font-mono ${
                 name && !validName ? "border-rose-500/40" : "border-white/[8%]"
               } disabled:opacity-50`} />
-            {!isNew && <p className="text-[10px] text-zinc-600 mt-0.5">{t("name_immutable")}</p>}
+            {!isNew && <p className="text-[10px] text-zinc-500 mt-0.5">{t("name_immutable")}</p>}
           </Field>
           <Field label={t("tools_required")}>
             <input value={toolsRequired} onChange={(e) => setToolsRequired(e.target.value)}

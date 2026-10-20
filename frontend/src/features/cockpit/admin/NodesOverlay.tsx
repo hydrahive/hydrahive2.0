@@ -106,9 +106,9 @@ export function NodesOverlay({ onClose }: { onClose: () => void }) {
           <AdminFeedback loading>{t("loading")}</AdminFeedback>
         ) : nodes.length === 0 ? (
           <div className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-10 text-center">
-            <Server size={28} className="mx-auto mb-3 text-[#5b6675]" />
+            <Server size={28} className="mx-auto mb-3 text-[#7d8aa0]" />
             <p className="text-sm text-[#8d9ab0]">{t("empty")}</p>
-            <p className="mt-2 text-xs text-[#5b6675]">{t("empty_hint")}</p>
+            <p className="mt-2 text-xs text-[#7d8aa0]">{t("empty_hint")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

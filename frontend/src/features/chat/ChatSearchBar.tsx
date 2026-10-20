@@ -26,7 +26,7 @@ export function ChatSearchBar({ onClose }: { onClose: () => void }) {
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={t("session.new_chat")}
-        className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 outline-none"
+        className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-500 outline-none"
       />
       {hasQuery && (
         <span className={`text-xs tabular-nums whitespace-nowrap ${matchCount === 0 ? "text-rose-400" : "text-zinc-400"}`}>

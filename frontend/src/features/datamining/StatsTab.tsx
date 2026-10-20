@@ -37,7 +37,7 @@ function DailyChart({ days }: { days: StatsDay[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-white/[6%] text-[10px] uppercase tracking-wider text-zinc-600">
+            <tr className="border-b border-white/[6%] text-[10px] uppercase tracking-wider text-zinc-500">
               <th className="text-left px-3 py-2">Datum</th>
               <th className="text-right px-3 py-2">Sessions</th>
               <th className="text-right px-3 py-2">Input</th>
@@ -64,7 +64,7 @@ function DailyChart({ days }: { days: StatsDay[] }) {
                       <div className="flex-1 h-1.5 bg-white/[8%] rounded-full overflow-hidden">
                         <div className="h-full bg-violet-500 rounded-full" style={{ width: `${barPct}%` }} />
                       </div>
-                      <span className="text-zinc-600 tabular-nums w-10 text-right">{fmt(total)}</span>
+                      <span className="text-zinc-500 tabular-nums w-10 text-right">{fmt(total)}</span>
                     </div>
                   </td>
                 </tr>
@@ -91,7 +91,7 @@ function LatestTable({ sessions, onSelect, onSelectAgent }: {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-white/[6%] text-[10px] uppercase tracking-wider text-zinc-600">
+            <tr className="border-b border-white/[6%] text-[10px] uppercase tracking-wider text-zinc-500">
               <th className="text-left px-3 py-2">{t("stats.updated")}</th>
               <th className="text-left px-3 py-2">Agent</th>
               <th className="text-left px-3 py-2">{t("sessions.col_title")}</th>
@@ -140,7 +140,7 @@ function SessionDetailPanel({ sessionId, onClose }: { sessionId: string; onClose
   }, [sessionId])
 
   if (!detail) return (
-    <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">{t("loading")}</div>
+    <div className="flex items-center justify-center h-32 text-zinc-500 text-sm">{t("loading")}</div>
   )
 
   const rows: [string, string][] = [
@@ -165,7 +165,7 @@ function SessionDetailPanel({ sessionId, onClose }: { sessionId: string; onClose
           Session-Detail
         </span>
         <span className="text-zinc-400 text-xs truncate flex-1">{detail.title ?? detail.session_id}</span>
-        <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 text-xs">✕</button>
+        <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 text-xs">✕</button>
       </div>
       <div className="p-3 grid grid-cols-2 gap-x-6 gap-y-1.5">
         {rows.map(([label, value]) => (
@@ -190,7 +190,7 @@ function AgentStatsPanel({ agentId, onClose }: { agentId: string; onClose: () =>
   }, [agentId])
 
   if (!stats) return (
-    <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">Lade…</div>
+    <div className="flex items-center justify-center h-32 text-zinc-500 text-sm">Lade…</div>
   )
 
   const rows: [string, string][] = [
@@ -210,7 +210,7 @@ function AgentStatsPanel({ agentId, onClose }: { agentId: string; onClose: () =>
           Agent-Detail ({stats.days}d)
         </span>
         <span className="text-zinc-400 text-xs truncate flex-1">{stats.agent_id}</span>
-        <button onClick={onClose} className="text-zinc-600 hover:text-zinc-300 text-xs">✕</button>
+        <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 text-xs">✕</button>
       </div>
       <div className="p-3 grid grid-cols-2 gap-x-6 gap-y-1.5">
         {rows.map(([label, value]) => (
@@ -222,11 +222,11 @@ function AgentStatsPanel({ agentId, onClose }: { agentId: string; onClose: () =>
       </div>
       {stats.top_tools.length > 0 && (
         <div className="px-3 pb-3 pt-1">
-          <div className="text-[10px] uppercase tracking-wider text-zinc-600 mb-1">Top-Tools</div>
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Top-Tools</div>
           <div className="flex flex-wrap gap-1.5">
             {stats.top_tools.map((tt) => (
               <span key={tt.tool} className="text-[11px] px-2 py-0.5 rounded bg-white/[5%] text-zinc-400">
-                {tt.tool} <span className="text-zinc-600 tabular-nums">{tt.count}</span>
+                {tt.tool} <span className="text-zinc-500 tabular-nums">{tt.count}</span>
               </span>
             ))}
           </div>
@@ -254,7 +254,7 @@ export function StatsTab({ active }: { active: boolean }) {
   }, [active, days])
 
   if (loading) return (
-    <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">Lade…</div>
+    <div className="flex items-center justify-center h-32 text-zinc-500 text-sm">Lade…</div>
   )
 
   return (

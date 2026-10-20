@@ -23,7 +23,7 @@ export function CatalogModelRow({
       <td className="px-3 py-2 text-center">
         {model.tool_use === true && <CheckCircle size={14} className="inline text-emerald-400" />}
         {model.tool_use === false && <XCircle size={14} className="inline text-rose-400" />}
-        {model.tool_use === null && <HelpCircle size={14} className="inline text-zinc-600" />}
+        {model.tool_use === null && <HelpCircle size={14} className="inline text-zinc-500" />}
       </td>
       <td className="px-3 py-2 text-xs text-zinc-400">{model.category}</td>
       <td className="px-3 py-2 text-xs text-zinc-500">{model.params ?? "—"}</td>

@@ -70,7 +70,7 @@ function UsageBar({ label, pct, right, mode = "used" }: {
 function ProviderBlock({ name, children }: { name: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#5f6d84]">{name}</p>
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#7d8aa0]">{name}</p>
       {children}
     </div>
   )

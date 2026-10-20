@@ -40,7 +40,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
     }
   }
 
-  const input = "w-full bg-zinc-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50"
+  const input = "w-full bg-zinc-800/60 border border-white/10 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
 
   // Show a contextual hint when the URL looks self-signed-ish
   // (Tailscale CGNAT 100.64.0.0/10 or .local). Pure UX — doesn't
@@ -67,7 +67,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
               onChange={e => setName(e.target.value)}
               required
             />
-            <p className="text-[10px] text-zinc-600 mt-1">
+            <p className="text-[10px] text-zinc-500 mt-1">
               Wird als @-Adresse genutzt: <code className="text-violet-400">geralt@{name || "name"}</code>
             </p>
           </div>
@@ -80,7 +80,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
               onChange={e => setUrl(e.target.value)}
               required
             />
-            <p className="text-[10px] text-zinc-600 mt-1">
+            <p className="text-[10px] text-zinc-500 mt-1">
               Vollständige URL inkl. Port. ProjektX default: <code>:8100</code> (mit
               <code> --tls-auto</code> serviert das HTTPS mit self-signed cert).
             </p>
@@ -105,7 +105,7 @@ export function AddWorkstationDialog({ onClose, onCreated }: Props) {
               />
               <span className="text-xs text-zinc-300">{t("add_dialog.tls_label")}</span>
             </label>
-            <p className="text-[10px] text-zinc-600 mt-1 ml-6">
+            <p className="text-[10px] text-zinc-500 mt-1 ml-6">
               {t("add_dialog.tls_hint")}
               {looksSelfSigned && verifyTls && (
                 <span className="text-amber-400 block mt-1">{t("add_dialog.tls_warn")}</span>

@@ -37,7 +37,7 @@ export function EmbedStatusBar({ status, onBackfill, onReset, onRechunk }: {
           <span className="text-zinc-500 shrink-0 tabular-nums">
             {status.embedded.toLocaleString()}/{status.total.toLocaleString()} eingebettet
           </span>
-          <span className="text-zinc-600 shrink-0">{status.model}</span>
+          <span className="text-zinc-500 shrink-0">{status.model}</span>
         </>
       )}
       {status.backfill_running ? (

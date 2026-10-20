@@ -35,7 +35,7 @@ export function OverridesSection({ project, onSaved }: Props) {
           <label className="block text-xs font-medium text-zinc-500">{label}</label>
           <input value={value} onChange={e => onChange(e.target.value)}
             className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-white/[8%] text-xs text-zinc-300 font-mono" />
-          <p className="text-[10px] text-zinc-600">{hint}</p>
+          <p className="text-[10px] text-zinc-500">{hint}</p>
         </div>
       ))}
       <button onClick={save} disabled={saving}

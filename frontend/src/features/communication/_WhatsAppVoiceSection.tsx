@@ -50,7 +50,7 @@ export function WhatsAppVoiceSection({ cfg, onChange }: Props) {
           <option value="es">Español</option>
           <option value="it">Italiano</option>
         </select>
-        <p className="text-[10px] text-zinc-600 mt-1">
+        <p className="text-[10px] text-zinc-500 mt-1">
           Auto-Erkennung ist robust ab ~3s Audio. Bei sehr kurzen Voices lieber explizit setzen.
         </p>
       </div>
@@ -78,7 +78,7 @@ export function WhatsAppVoiceSection({ cfg, onChange }: Props) {
             ))}
           </select>
           {voicesErr && <p className="text-[10px] text-rose-400 mt-1">Voices-Liste nicht ladbar: {voicesErr}</p>}
-          {!voicesErr && voices.length === 0 && <p className="text-[10px] text-zinc-600 mt-1">Lade Stimmen…</p>}
+          {!voicesErr && voices.length === 0 && <p className="text-[10px] text-zinc-500 mt-1">Lade Stimmen…</p>}
         </div>
       )}
     </div>

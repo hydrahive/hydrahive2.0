@@ -46,7 +46,7 @@ export function FileOverlay({ agentId, path, kind, onClose }: Props) {
         <div className="flex-1 min-h-0">
           {kind === "text" && ws.openFile && <FileEditor file={ws.openFile} onSave={ws.save} />}
           {kind === "text" && !ws.openFile && (
-            <div className="p-3 text-[11px] text-zinc-600">{ws.error ?? t("loading")}</div>
+            <div className="p-3 text-[11px] text-zinc-500">{ws.error ?? t("loading")}</div>
           )}
           {kind !== "text" && <MediaViewer agentId={agentId} path={path} kind={kind} />}
         </div>

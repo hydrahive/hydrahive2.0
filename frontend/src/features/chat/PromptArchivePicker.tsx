@@ -94,7 +94,7 @@ export function PromptArchivePicker({ onPick, disabled }: Props) {
               <Search size={13} className="text-zinc-500" />
               <input value={query} onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("prompts.search")}
-                className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none" />
+                className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none" />
             </div>
             <button onClick={() => setEditing("new")} title={t("prompts.new_title")}
               className="p-1.5 rounded-lg text-violet-300 hover:bg-violet-500/15">
@@ -109,9 +109,9 @@ export function PromptArchivePicker({ onPick, disabled }: Props) {
           </div>
           <div className="flex-1 overflow-y-auto p-1">
             {loading ? (
-              <p className="text-xs text-zinc-600 text-center py-6">{t("prompts.loading")}</p>
+              <p className="text-xs text-zinc-500 text-center py-6">{t("prompts.loading")}</p>
             ) : items.length === 0 ? (
-              <p className="text-xs text-zinc-600 text-center py-6">{t("prompts.empty")}</p>
+              <p className="text-xs text-zinc-500 text-center py-6">{t("prompts.empty")}</p>
             ) : (
               items.map((entry) => (
                 <PromptRow key={entry.id} entry={entry} owned={entry.user_id === username}

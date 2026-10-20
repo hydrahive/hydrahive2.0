@@ -16,7 +16,7 @@ export function FileTree({ agentId, path, onOpen, depth = 0 }: Props) {
     return () => { alive = false }
   }, [agentId, path])
 
-  if (entries === null) return <div className="px-2 py-1 text-[10px] text-zinc-600">…</div>
+  if (entries === null) return <div className="px-2 py-1 text-[10px] text-zinc-500">…</div>
 
   return (
     <div>

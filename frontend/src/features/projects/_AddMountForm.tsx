@@ -67,7 +67,7 @@ export function AddMountForm({ projectId, onCancel, onAssigned }: Props) {
               <FolderInput size={12} className="text-zinc-500 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-zinc-200 truncate">{m.name}</p>
-                <p className="text-[10px] text-zinc-600 truncate font-mono">
+                <p className="text-[10px] text-zinc-500 truncate font-mono">
                   //{m.host}/{m.share}{m.subpath ? "/" + m.subpath : ""}
                 </p>
               </div>

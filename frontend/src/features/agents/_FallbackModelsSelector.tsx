@@ -67,7 +67,7 @@ export function FallbackModelsSelector({ primary, catalog, selected, onChange }:
           ))}
         </div>
       ) : (
-        selected.length === 0 && <p className="text-xs text-zinc-600">—</p>
+        selected.length === 0 && <p className="text-xs text-zinc-500">—</p>
       )}
     </div>
   )

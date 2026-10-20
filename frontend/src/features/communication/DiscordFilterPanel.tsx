@@ -72,7 +72,7 @@ export function DiscordFilterPanel() {
           onChange={(e) => setTokenInput(e.target.value)}
           className="w-full bg-white/[4%] border border-white/[8%] rounded-md px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-violet-500/50 font-mono"
         />
-        <p className="text-[10px] text-zinc-600">{t("discord.filter.token_hint")}</p>
+        <p className="text-[10px] text-zinc-500">{t("discord.filter.token_hint")}</p>
       </div>
 
       {/* Setup-Anleitung (aufklappbar) */}
@@ -160,7 +160,7 @@ export function DiscordFilterPanel() {
             rows={3}
             className="w-full bg-white/[4%] border border-white/[8%] rounded-md px-3 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none focus:border-violet-500/50 resize-y"
           />
-          <p className="text-[10px] text-zinc-600">{t(`discord.filter.${hint}`)}</p>
+          <p className="text-[10px] text-zinc-500">{t(`discord.filter.${hint}`)}</p>
         </div>
       ))}
 

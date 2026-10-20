@@ -45,7 +45,7 @@ export function FileEditor({ file, onSave }: Props) {
         </button>
       </div>
       <div className="flex-1 min-h-0">
-        <Suspense fallback={<div className="p-2 text-[11px] text-zinc-600">{t("loading")}</div>}>
+        <Suspense fallback={<div className="p-2 text-[11px] text-zinc-500">{t("loading")}</div>}>
           <Monaco
             height="100%" theme="vs-dark" language={langFromPath(file.path)} value={value}
             onChange={(v) => { setValue(v ?? ""); setDirty(true) }}

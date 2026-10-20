@@ -76,7 +76,7 @@ export function ContainerCard({ container, onStart, onStop, onRestart, onDelete,
         actions={<ContainerStatusBadge state={container.actual_state} />}
         bodyClassName="space-y-3"
       >
-        {container.description && <p className="truncate font-mono text-[11px] text-[#5b6675]">{container.image}</p>}
+        {container.description && <p className="truncate font-mono text-[11px] text-[#7d8aa0]">{container.image}</p>}
 
         <div className="flex flex-wrap gap-2 text-[11px]">
           <Spec icon={Cpu} label={container.cpu ? `${container.cpu} vCPU` : t("spec.cpu_unlimited")} />

@@ -110,7 +110,7 @@ export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfi
               >
                 {logLines.length > 0
                   ? logLines.join("")
-                  : <span className="text-zinc-600">{t("update.log_empty")}</span>}
+                  : <span className="text-zinc-500">{t("update.log_empty")}</span>}
               </pre>
               {logDisconnected && (
                 <p className="text-[11px] text-zinc-500 italic">{t("update.log_disconnected")}</p>

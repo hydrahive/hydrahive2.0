@@ -148,7 +148,7 @@ export function TailscaleInviteSection() {
             </AdminAction>
           </div>
           {invite.expires && (
-            <p className="text-[10px] text-[#5b6675]">
+            <p className="text-[10px] text-[#7d8aa0]">
               {t("tailscale.invite_expires_at", { when: new Date(invite.expires).toLocaleString() })}
             </p>
           )}

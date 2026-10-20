@@ -38,7 +38,7 @@ export function NotesTab({ project, onSaved }: Props) {
         onChange={(e) => setNotes(e.target.value)}
         rows={20}
         placeholder={t("notes.placeholder")}
-        className="w-full rounded-lg border border-white/[8%] bg-white/[3%] px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 font-mono resize-y focus:outline-none focus:border-violet-500/50"
+        className="w-full rounded-lg border border-white/[8%] bg-white/[3%] px-4 py-3 text-sm text-zinc-200 placeholder-zinc-500 font-mono resize-y focus:outline-none focus:border-violet-500/50"
       />
       {dirty && (
         <button

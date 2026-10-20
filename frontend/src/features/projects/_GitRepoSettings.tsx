@@ -33,7 +33,7 @@ export function GitRepoSettings({ projectId, repo, isRoot, busy, onRun, onDelete
         </div>
         <div className="space-y-0.5">
           <label className="block text-[10px] text-zinc-500">
-            {t("git.token")} {repo.has_token && <span className="text-zinc-600">· {t("git.token_set")}</span>}
+            {t("git.token")} {repo.has_token && <span className="text-zinc-500">· {t("git.token_set")}</span>}
           </label>
           <div className="flex gap-1">
             <input type={showToken ? "text" : "password"} value={token} onChange={(e) => setToken(e.target.value)}

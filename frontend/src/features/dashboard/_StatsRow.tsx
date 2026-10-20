@@ -59,7 +59,7 @@ export function StatsRow({ stats }: Props) {
             <p className="text-zinc-500 text-[9px] uppercase tracking-wide truncate">{c.label}</p>
             <p className="text-base font-bold text-white leading-tight">
               {c.value}
-              {c.detail && <span className="text-[10px] font-normal text-zinc-600 ml-1.5">{c.detail}</span>}
+              {c.detail && <span className="text-[10px] font-normal text-zinc-500 ml-1.5">{c.detail}</span>}
             </p>
           </div>
         </div>

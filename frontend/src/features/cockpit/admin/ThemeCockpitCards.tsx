@@ -13,7 +13,7 @@ function InstallLog({ lines, phase, failed }: { lines: string[]; phase: Phase; f
   if (phase === "idle") return null
   return (
     <div ref={logRef} className="max-h-40 overflow-y-auto rounded-[4px] bg-[#0b111c] p-3 font-mono text-[11px] leading-relaxed">
-      {lines.length === 0 && <span className="text-[#5b6675]">Warte …</span>}
+      {lines.length === 0 && <span className="text-[#7d8aa0]">Warte …</span>}
       {lines.map((l, i) => (
         <div key={i} className={l.startsWith("[FEHLER]") || l.startsWith("[ERROR]") ? "text-rose-400" : "text-[#d7deea]"}>{l}</div>
       ))}

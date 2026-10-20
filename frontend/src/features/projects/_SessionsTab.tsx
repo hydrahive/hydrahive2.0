@@ -43,10 +43,10 @@ export function SessionsTab({ projectId, onOpenSession }: Props) {
         >
           <MessageSquare size={14} className="text-zinc-500 group-hover:text-violet-400 flex-shrink-0" />
           <span className="flex-1 text-sm text-zinc-300 truncate">{s.title || t("sessions.untitled")}</span>
-          <span className="text-xs text-zinc-600 flex-shrink-0">
+          <span className="text-xs text-zinc-500 flex-shrink-0">
             {new Date(s.updated_at).toLocaleDateString(i18n.language)}
           </span>
-          <ExternalLink size={11} className="text-zinc-600 group-hover:text-violet-400 flex-shrink-0" />
+          <ExternalLink size={11} className="text-zinc-500 group-hover:text-violet-400 flex-shrink-0" />
         </button>
       ))}
     </div>

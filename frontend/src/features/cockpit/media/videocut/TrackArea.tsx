@@ -116,7 +116,7 @@ export function TrackArea({
             onPointerDown={seekFromRuler}
           >
             {Array.from({ length: rulerSteps + 1 }, (_, i) => (
-              <span key={i} className="pointer-events-none absolute top-0.5 font-mono text-[9px] text-[#68758a]" style={{ left: `${i * 5 * pxPerSecond + 2}px` }}>
+              <span key={i} className="pointer-events-none absolute top-0.5 font-mono text-[9px] text-[#7d8aa0]" style={{ left: `${i * 5 * pxPerSecond + 2}px` }}>
                 {i * 5}s
               </span>
             ))}

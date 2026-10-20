@@ -48,7 +48,7 @@ export function QuickAddPanel({ existingIds, onCreated }: Props) {
                 {t.name} {installed && "✓"}
               </p>
               <p className="text-xs text-zinc-500 mt-1 leading-snug">{t.description}</p>
-              <p className="text-[10.5px] text-zinc-600 mt-2 font-mono truncate">
+              <p className="text-[10.5px] text-zinc-500 mt-2 font-mono truncate">
                 {t.command} {t.args.slice(0, 2).join(" ")}
                 {t.args.length > 2 && " …"}
               </p>

@@ -122,12 +122,12 @@ export function GitRepoCard({ projectId, repo, onChanged }: Props) {
               <p className="text-[10px] font-medium text-zinc-500 mb-1">{t("git.recent_commits")}</p>
               {repo.status.commits!.map((c) => (
                 <div key={c.hash} className="flex items-start gap-2 px-2 py-1 rounded-md bg-zinc-900 border border-white/[6%]">
-                  <GitCommitHorizontal size={11} className="text-zinc-600 mt-0.5 flex-shrink-0" />
+                  <GitCommitHorizontal size={11} className="text-zinc-500 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-zinc-300 truncate">{c.subject}</p>
-                    <p className="text-[10px] text-zinc-600">{c.author} · {c.date}</p>
+                    <p className="text-[10px] text-zinc-500">{c.author} · {c.date}</p>
                   </div>
-                  <span className="text-[10px] text-zinc-600 font-mono flex-shrink-0">{c.hash}</span>
+                  <span className="text-[10px] text-zinc-500 font-mono flex-shrink-0">{c.hash}</span>
                 </div>
               ))}
             </div>

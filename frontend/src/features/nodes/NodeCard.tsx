@@ -33,18 +33,18 @@ export function NodeCard({ node, busy = false, onApprove, onDrain, onDisable, on
               {t(`kind.${node.kind}`, { defaultValue: node.kind })}
             </span>
           </div>
-          <p className="mt-0.5 truncate font-mono text-[11px] text-[#5b6675]">{node.node_id}</p>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-[#7d8aa0]">{node.node_id}</p>
         </div>
         <NodeStatusBadge status={node.status} pulse />
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-[#8d9ab0]">
-        <span className="inline-flex items-center gap-1"><Cpu size={12} className="text-[#5b6675]" />{res.cpu_cores ?? "–"} {t("card.cpu")}</span>
-        <span className="inline-flex items-center gap-1"><MemoryStick size={12} className="text-[#5b6675]" />{res.memory_mb ? `${Math.round(res.memory_mb / 1024)}G` : "–"}</span>
-        <span className="inline-flex items-center gap-1"><HardDrive size={12} className="text-[#5b6675]" />{res.storage_gb ? `${res.storage_gb}G` : "–"}</span>
+        <span className="inline-flex items-center gap-1"><Cpu size={12} className="text-[#7d8aa0]" />{res.cpu_cores ?? "–"} {t("card.cpu")}</span>
+        <span className="inline-flex items-center gap-1"><MemoryStick size={12} className="text-[#7d8aa0]" />{res.memory_mb ? `${Math.round(res.memory_mb / 1024)}G` : "–"}</span>
+        <span className="inline-flex items-center gap-1"><HardDrive size={12} className="text-[#7d8aa0]" />{res.storage_gb ? `${res.storage_gb}G` : "–"}</span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#5b6675]">
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#7d8aa0]">
         <span>{t("card.incus")}: <span className="text-[#8d9ab0]">{caps.incus ? t("card.yes") : t("card.no")}</span></span>
         <span>{t("card.kvm")}: <span className="text-[#8d9ab0]">{caps.kvm ? t("card.yes") : t("card.no")}</span></span>
         {!isLocal && <span>{t("card.last_seen")}: <span className="text-[#8d9ab0]">{timeAgo(node.last_seen_at, t("card.never"))}</span></span>}

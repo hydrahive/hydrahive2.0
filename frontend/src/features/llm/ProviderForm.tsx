@@ -64,24 +64,24 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
           ) : (
             <input type="password" value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })}
               placeholder={known?.placeholder ?? t("form.api_key")}
-              className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+              className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
           )}
         </div>
       </div>
       {form.id === "minimax" && (
         <div>
-          <label className="block text-xs text-zinc-500 mb-1">Group ID <span className="text-zinc-600">(MiniMax)</span></label>
+          <label className="block text-xs text-zinc-500 mb-1">Group ID <span className="text-zinc-500">(MiniMax)</span></label>
           <input type="text" value={form.group_id ?? ""} onChange={(e) => setForm({ ...form, group_id: e.target.value || undefined })}
             placeholder="z.B. 123456789"
-            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
         </div>
       )}
       {needsApiBase && (
         <div>
-          <label className="block text-xs text-zinc-500 mb-1">Endpoint (api_base) <span className="text-zinc-600">(Pflicht)</span></label>
+          <label className="block text-xs text-zinc-500 mb-1">Endpoint (api_base) <span className="text-zinc-500">(Pflicht)</span></label>
           <input type="text" value={form.api_base ?? ""} onChange={(e) => setForm({ ...form, api_base: e.target.value || undefined })}
             placeholder={apiBasePlaceholder}
-            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
+            className="w-full px-3 py-2 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 text-sm font-mono placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50" />
           <p className="text-[10px] text-zinc-500 mt-1">URL deiner Ollama-Instanz. Modelle werden live von diesem Endpoint geladen. Key nur für Ollama-Cloud/geschützte Instanzen.</p>
         </div>
       )}
@@ -115,7 +115,7 @@ export function ProviderForm({ existing, onSave, onCancel, onOAuthConnected }: P
           <label className="block text-xs text-zinc-500 mb-1">Eigene Modelle (optional, kommagetrennt)</label>
           <input type="text" value={customModels} onChange={(e) => setCustomModels(e.target.value)}
             placeholder="z.B. openrouter/deepseek/deepseek-v4-flash:free"
-            className="w-full px-3 py-2 rounded-lg bg-white/[3%] border border-white/[6%] text-zinc-300 text-xs font-mono placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/40" />
+            className="w-full px-3 py-2 rounded-lg bg-white/[3%] border border-white/[6%] text-zinc-300 text-xs font-mono placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/40" />
           <p className="text-[10px] text-zinc-500 mt-1">Live-Modelle des Providers erscheinen automatisch. Hier nur Modelle ergänzen, die nicht in der Live-Liste sind.</p>
         </div>
       )}

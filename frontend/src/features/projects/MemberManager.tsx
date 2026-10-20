@@ -66,7 +66,7 @@ export function MemberManager({ project, onChange }: Props) {
     <div className="space-y-2">
       <div className="flex flex-col gap-1.5">
         {project.members.length === 0 && (
-          <p className="text-xs text-zinc-600">{t("members.no_members")}</p>
+          <p className="text-xs text-zinc-500">{t("members.no_members")}</p>
         )}
         {project.members.map((m) => (
           <div

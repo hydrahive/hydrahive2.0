@@ -107,7 +107,7 @@ export function LlmPage() {
           </button>
         </div>
         {config.providers.length === 0 && !showAdd && (
-          <p className="text-sm text-zinc-600 py-4 text-center">{t("providers.none")}</p>
+          <p className="text-sm text-zinc-500 py-4 text-center">{t("providers.none")}</p>
         )}
         {config.providers.map((p, i) => (
           editingIdx === i

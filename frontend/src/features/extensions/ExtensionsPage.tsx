@@ -112,7 +112,7 @@ export function ExtensionsPage() {
                   : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[4%]"
               }`}>
               <span>{c.label}</span>
-              <span className={`text-[10px] ${category === c.id ? "text-violet-400" : "text-zinc-600"}`}>
+              <span className={`text-[10px] ${category === c.id ? "text-violet-400" : "text-zinc-500"}`}>
                 {c.count}
               </span>
             </button>

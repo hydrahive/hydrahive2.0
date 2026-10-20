@@ -31,7 +31,7 @@ export function WorkspacePanel({ agentId, projectId, onOpenFile }: Props) {
   const [treeRevision, setTreeRevision] = useState(0)
   useRunFinished(() => setTreeRevision((n) => n + 1))
 
-  if (!agentId) return <div className="p-4 text-[11px] text-zinc-600">{t("no_file")}</div>
+  if (!agentId) return <div className="p-4 text-[11px] text-zinc-500">{t("no_file")}</div>
 
   const coreTabs: CoreTab[] = ["files", "git"]
   const allTabs = [...coreTabs, ...extraTabs.map((x) => x.id)]
@@ -66,7 +66,7 @@ export function WorkspacePanel({ agentId, projectId, onOpenFile }: Props) {
         {tab === "git" && <GitPanel agentId={agentId} />}
         {extraTabs.map(({ id, component: Comp }) =>
           tab === id ? (
-            <Suspense key={id} fallback={<div className="p-4 text-[11px] text-zinc-600">Laden…</div>}>
+            <Suspense key={id} fallback={<div className="p-4 text-[11px] text-zinc-500">Laden…</div>}>
               <Comp projectId={projectId} />
             </Suspense>
           ) : null

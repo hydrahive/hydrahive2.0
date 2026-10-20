@@ -48,7 +48,7 @@ export function AgentModelPicker({ value, catalog, onChange }: {
           </optgroup>
         ))}
       </select>
-      <p className="text-[10px] text-zinc-600">
+      <p className="text-[10px] text-zinc-500">
         {shown === 0 ? t("model_picker.none") : t("model_picker.count", { shown, total: catalog.length })}
       </p>
     </div>

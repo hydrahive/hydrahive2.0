@@ -76,7 +76,7 @@ export function SambaSection({ samba, busy, error, onToggle }: Props) {
           </div>
         </>
       )}
-      <p className="text-[10px] text-zinc-600">{t("samba.hint_inline")}</p>
+      <p className="text-[10px] text-zinc-500">{t("samba.hint_inline")}</p>
       {error && (
         <p className="text-xs text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-md px-2 py-1">{error}</p>
       )}

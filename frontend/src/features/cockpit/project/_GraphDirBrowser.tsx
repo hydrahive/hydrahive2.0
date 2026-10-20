@@ -36,7 +36,7 @@ export function GraphDirBrowser({
 
   return (
     <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3">
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Ordner durchsuchen</p>
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Ordner durchsuchen</p>
 
       {/* Breadcrumb */}
       <div className="mb-2 flex flex-wrap items-center gap-1 text-[11px] text-[#8d9ab0]">

@@ -22,7 +22,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       {...rest}
       style={{ ...ctlStyle, ...style }}
       className={cn(
-        "w-full bg-zinc-900/70 text-sm text-zinc-100 placeholder:text-zinc-600 resize-y",
+        "w-full bg-zinc-900/70 text-sm text-zinc-100 placeholder:text-zinc-500 resize-y",
         "border transition-colors focus:outline-none focus-visible:ring-2",
         invalid
           ? "border-red-500/60 focus-visible:ring-red-500/40"

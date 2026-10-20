@@ -43,8 +43,8 @@ export function ProjectTaskDetails({ taskId, description, historyCount }: {
       {open && (
         <div className="max-h-60 space-y-1.5 overflow-y-auto border-l border-white/[8%] pl-2">
           {error && <p className="text-[10px] text-rose-400">{error}</p>}
-          {versions === null && !error && <p className="text-[10px] text-zinc-600">lädt…</p>}
-          {versions?.length === 0 && <p className="text-[10px] text-zinc-600">Keine früheren Fassungen.</p>}
+          {versions === null && !error && <p className="text-[10px] text-zinc-500">lädt…</p>}
+          {versions?.length === 0 && <p className="text-[10px] text-zinc-500">Keine früheren Fassungen.</p>}
           {versions?.map((v, i) => (
             <div key={`${v.changed_at}-${i}`} className="text-[10px]">
               <div className="text-zinc-500">
@@ -52,7 +52,7 @@ export function ProjectTaskDetails({ taskId, description, historyCount }: {
                 {v.source === "restored" ? " · aus Chat-Verlauf wiederhergestellt" : ""}
               </div>
               {v.title && <div className="break-words text-zinc-400">{v.title}</div>}
-              <p className="whitespace-pre-wrap break-words text-zinc-600">{v.description}</p>
+              <p className="whitespace-pre-wrap break-words text-zinc-500">{v.description}</p>
             </div>
           ))}
         </div>

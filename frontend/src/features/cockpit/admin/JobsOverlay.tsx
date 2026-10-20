@@ -107,13 +107,13 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
           <AdminFeedback loading>{t("loading")}</AdminFeedback>
         ) : jobs.length === 0 ? (
           <div className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-10 text-center">
-            <ListChecks size={28} className="mx-auto mb-3 text-[#5b6675]" />
+            <ListChecks size={28} className="mx-auto mb-3 text-[#7d8aa0]" />
             <p className="text-sm text-[#8d9ab0]">{t("empty")}</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-[6px] border border-[#2a364b]">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#131b2a] text-[10px] uppercase tracking-wider text-[#5b6675]">
+              <thead className="bg-[#131b2a] text-[10px] uppercase tracking-wider text-[#7d8aa0]">
                 <tr>
                   <th className="px-3 py-2 font-bold">{t("columns.operation")}</th>
                   <th className="px-3 py-2 font-bold">{t("columns.resource")}</th>
@@ -138,7 +138,7 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
                     <td className="px-3 py-2 font-mono text-xs text-[#8d9ab0]">{job.resource_id ?? "–"}</td>
                     <td className="px-3 py-2 text-[#8d9ab0]">{job.node_id}</td>
                     <td className="px-3 py-2"><JobStatusBadge status={job.status} /></td>
-                    <td className="px-3 py-2 text-xs text-[#5b6675]">{shortDateTime(job.created_at)}</td>
+                    <td className="px-3 py-2 text-xs text-[#7d8aa0]">{shortDateTime(job.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

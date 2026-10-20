@@ -81,7 +81,7 @@ export function VMsOverlay({ onClose }: { onClose: () => void }) {
         ) : vms.length === 0 ? (
           <div className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-10 text-center">
             <p className="text-sm text-[#8d9ab0]">{t("empty")} <span className="text-violet-300">{t("empty_cta")}</span> {t("empty_suffix")}</p>
-            <p className="mt-2 text-xs text-[#5b6675]">{t("tip")} {t("tip_iso")}</p>
+            <p className="mt-2 text-xs text-[#7d8aa0]">{t("tip")} {t("tip_iso")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -59,16 +59,16 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
         <div className="absolute bottom-full mb-2 right-0 z-50 w-72 rounded-xl border border-white/[8%] bg-zinc-900/98 shadow-2xl backdrop-blur-sm">
           <div className="flex items-center justify-between px-3 pt-3 pb-2 border-b border-white/[6%]">
             <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">{t("skill_catalog.title")}</span>
-            <button onClick={() => setOpen(false)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
+            <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-400 transition-colors">
               <X size={12} />
             </button>
           </div>
 
           <div className="p-3 max-h-56 overflow-y-auto">
             {loading ? (
-              <p className="text-xs text-zinc-600 text-center py-4">{t("skill_catalog.loading")}</p>
+              <p className="text-xs text-zinc-500 text-center py-4">{t("skill_catalog.loading")}</p>
             ) : skills.length === 0 ? (
-              <p className="text-xs text-zinc-600 text-center py-4">{t("skill_catalog.empty")}</p>
+              <p className="text-xs text-zinc-500 text-center py-4">{t("skill_catalog.empty")}</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {skills.map((s) => (
@@ -86,7 +86,7 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
             )}
           </div>
 
-          <div className="px-3 pb-2 text-[9px] text-zinc-600 border-t border-white/[6%] pt-2">
+          <div className="px-3 pb-2 text-[9px] text-zinc-500 border-t border-white/[6%] pt-2">
             {t("skill_catalog.insert_hint")}
           </div>
         </div>

@@ -26,7 +26,7 @@ export function SessionModelControls({ session, agent, onSessionChanged }: Props
   return (
     <div className="border-t border-white/[8%] bg-black/20">
       <div className="px-2.5 py-2 border-b border-white/[5%] flex items-center gap-2">
-        <span className="text-[9px] uppercase tracking-wider text-zinc-600 w-9 shrink-0">{t("model")}</span>
+        <span className="text-[9px] uppercase tracking-wider text-zinc-500 w-9 shrink-0">{t("model")}</span>
         <div className="flex-1 min-w-0">
           <ModelPicker
             current={activeModel}
@@ -46,7 +46,7 @@ export function SessionModelControls({ session, agent, onSessionChanged }: Props
       </div>
       {supportsReasoningEffort && (
         <div className="px-2.5 py-2 flex items-center gap-2">
-          <span className="text-[9px] uppercase tracking-wider text-zinc-600 w-9 shrink-0">{t("effort_label")}</span>
+          <span className="text-[9px] uppercase tracking-wider text-zinc-500 w-9 shrink-0">{t("effort_label")}</span>
           <ReasoningEffortPill
             current={(session.metadata as { reasoning_effort?: string })?.reasoning_effort}
             levels={effortLevels}

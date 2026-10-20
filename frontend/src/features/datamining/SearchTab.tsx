@@ -45,7 +45,7 @@ export function SearchTab() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("search.placeholder")}
-            className="flex-1 bg-white/[4%] border border-white/[8%] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-white/20"
+            className="flex-1 bg-white/[4%] border border-white/[8%] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-white/20"
           />
           <button
             type="submit"
@@ -95,18 +95,18 @@ export function SearchTab() {
             </span>
           </div>
           {results.length === 0 ? (
-            <div className="flex items-center justify-center h-20 text-zinc-600 text-sm">{t("search.no_results")}</div>
+            <div className="flex items-center justify-center h-20 text-zinc-500 text-sm">{t("search.no_results")}</div>
           ) : (
             <div className="max-h-96 overflow-y-auto divide-y divide-white/[3%]">
               {results.map((r) => (
                 <div key={r.id} className="px-3 py-2 hover:bg-white/[3%]">
                   <div className="flex items-center gap-2 text-[10px] mb-1">
-                    <span className="text-zinc-600">{fmtTime(r.created_at)}</span>
+                    <span className="text-zinc-500">{fmtTime(r.created_at)}</span>
                     <span className={`px-1 rounded font-medium ${TYPE_COLORS[r.event_type] ?? "text-zinc-400 bg-zinc-500/10"}`}>
                       {r.event_type}
                     </span>
                     {r.agent_name && <span className="text-zinc-500">{r.agent_name}</span>}
-                    {r.tool_name && <span className="text-zinc-600">{r.tool_name}</span>}
+                    {r.tool_name && <span className="text-zinc-500">{r.tool_name}</span>}
                     {r.is_error && <span className="text-rose-400">ERR</span>}
                     {r.similarity !== undefined && (
                       <span className="text-violet-400 ml-auto">{Math.round(r.similarity * 100)}%</span>

@@ -130,7 +130,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
             <input type="number" min={vm.disk_gb} max={4096} step={1} value={diskGb}
               onChange={(e) => setDiskGb(parseInt(e.target.value) || vm.disk_gb)} disabled={!editable}
               className="w-full px-2 py-1 rounded-md bg-zinc-950 border border-white/[8%] text-xs text-zinc-200 disabled:opacity-50" />
-            <p className="text-[10px] text-zinc-600 mt-0.5">
+            <p className="text-[10px] text-zinc-500 mt-0.5">
               Erweitert nur die qcow2-Disk. Im Gast danach Filesystem ausbauen
               (<code className="font-mono">growpart /dev/sda 1 && resize2fs /dev/sda1</code>).
             </p>
@@ -154,7 +154,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
               <option value="sata">{t("edit.disk_sata_label")}</option>
               <option value="ide">{t("edit.disk_ide_label")}</option>
             </select>
-            <p className="text-[10px] text-zinc-600 mt-0.5">
+            <p className="text-[10px] text-zinc-500 mt-0.5">
               Bei Boot-Problemen mit importierten qcow2 (HH1/VirtualBox/etc.) auf <code className="font-mono">sata</code> umstellen — VM stoppen, hier ändern, wieder starten.
             </p>
           </Field>
@@ -166,7 +166,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
               <option value="q35">q35 (modern, ICH9, Default)</option>
               <option value="pc">pc (i440FX — FreeBSD/Windows-XP/VBox-Imports)</option>
             </select>
-            <p className="text-[10px] text-zinc-600 mt-0.5">
+            <p className="text-[10px] text-zinc-500 mt-0.5">
               Bei <code className="font-mono">cannot read MOS</code> (FreeBSD-ZFS) oder Boot-Hängern alter Gäste auf <code className="font-mono">pc</code> umstellen.
             </p>
           </Field>
@@ -178,7 +178,7 @@ export function EditVMDialog({ vm, onClose, onSaved }: Props) {
               <option value="virtio-net-pci">virtio-net-pci (schnell, Default)</option>
               <option value="e1000">e1000 (Intel-NIC, in jedem Gast-OS)</option>
             </select>
-            <p className="text-[10px] text-zinc-600 mt-0.5">
+            <p className="text-[10px] text-zinc-500 mt-0.5">
               Wenn die VM kein Netz hat (kein DHCP-IP, kein Ping), <code className="font-mono">e1000</code> versuchen — fast jedes OS hat den Treiber drin.
             </p>
           </Field>
@@ -279,7 +279,7 @@ function PassthroughSection({
       <div className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-400">
         <HardDrive size={11} />
         <span>Passthrough-Disks</span>
-        <span className="text-zinc-600 font-normal">(physische Block-Devices direkt in VM)</span>
+        <span className="text-zinc-500 font-normal">(physische Block-Devices direkt in VM)</span>
       </div>
 
       {disks.length > 0 && (
@@ -295,7 +295,7 @@ function PassthroughSection({
               <button
                 onClick={() => onRemove(d.passthrough_id)}
                 disabled={busy || !editable}
-                className="p-1 rounded text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30 shrink-0">
+                className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30 shrink-0">
                 <Trash2 size={11} />
               </button>
             </div>
@@ -330,14 +330,14 @@ function PassthroughSection({
       )}
 
       {!editable && disks.length === 0 && (
-        <p className="text-[10px] text-zinc-600">Keine Passthrough-Disks. VM stoppen zum Bearbeiten.</p>
+        <p className="text-[10px] text-zinc-500">Keine Passthrough-Disks. VM stoppen zum Bearbeiten.</p>
       )}
 
       {error && (
         <p className="text-[10px] text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded px-2 py-1">{error}</p>
       )}
 
-      <p className="text-[10px] text-zinc-600">
+      <p className="text-[10px] text-zinc-500">
         Nur unmountete Disks. VM muss gestoppt sein. Änderungen werden beim nächsten Start der VM aktiv.
       </p>
     </div>

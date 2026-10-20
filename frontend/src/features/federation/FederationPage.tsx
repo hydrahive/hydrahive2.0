@@ -71,11 +71,11 @@ export function FederationPage() {
       </div>
 
       {loading ? (
-        <div className="text-sm text-zinc-600 py-8 text-center">{t("loading")}</div>
+        <div className="text-sm text-zinc-500 py-8 text-center">{t("loading")}</div>
       ) : workstations.length === 0 ? (
         <div className="rounded-xl border border-white/[4%] bg-zinc-950/30 py-12 text-center">
           <Globe size={32} className="text-zinc-700 mx-auto mb-3" />
-          <p className="text-sm text-zinc-600">{t("empty")}</p>
+          <p className="text-sm text-zinc-500">{t("empty")}</p>
           <button
             onClick={() => setShowAdd(true)}
             className="mt-3 text-xs text-violet-400 hover:text-violet-300 transition-colors"

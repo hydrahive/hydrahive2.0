@@ -58,11 +58,11 @@ export function PeerCard({ peer, agents, onChange }: Props) {
         <div className="flex items-center gap-1 shrink-0">
           {peer.status !== "blocked" && (
             <button onClick={() => run(() => peersApi.block(peer.id))} title={t("peers.block")}
-              className="p-1 text-zinc-600 hover:text-amber-400"><Ban size={13} /></button>
+              className="p-1 text-zinc-500 hover:text-amber-400"><Ban size={13} /></button>
           )}
           <button
             onClick={() => confirm(t("peers.delete_confirm", { name: peer.name })) && run(() => peersApi.delete(peer.id))}
-            title={t("peers.delete")} className="p-1 text-zinc-600 hover:text-red-400"
+            title={t("peers.delete")} className="p-1 text-zinc-500 hover:text-red-400"
           ><Trash2 size={13} /></button>
         </div>
       </div>

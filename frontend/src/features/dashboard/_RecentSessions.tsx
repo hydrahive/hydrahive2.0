@@ -45,9 +45,9 @@ export function RecentSessions({ sessions }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] text-zinc-200 truncate leading-tight">{s.title || `Session ${s.id.slice(0, 8)}`}</p>
-                <p className="text-[10px] text-zinc-600 truncate leading-tight">{s.agent_name}</p>
+                <p className="text-[10px] text-zinc-500 truncate leading-tight">{s.agent_name}</p>
               </div>
-              <span className="text-[10px] text-zinc-600 flex-shrink-0">{relativeTime(s.updated_at)}</span>
+              <span className="text-[10px] text-zinc-500 flex-shrink-0">{relativeTime(s.updated_at)}</span>
             </Link>
           )
         })}

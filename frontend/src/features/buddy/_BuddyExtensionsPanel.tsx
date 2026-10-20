@@ -44,7 +44,7 @@ function ExtTile({ ext }: { ext: Extension }) {
       {openUrl && (
         <ExternalLink
           size={9}
-          className="absolute bottom-1.5 right-1.5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute bottom-1.5 right-1.5 text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity"
         />
       )}
     </div>
@@ -79,10 +79,10 @@ export function BuddyExtensionsPanel() {
       <div className="p-3">
         {extensions === null ? (
           <div className="flex justify-center py-4">
-            <Loader2 size={14} className="text-zinc-600 animate-spin" />
+            <Loader2 size={14} className="text-zinc-500 animate-spin" />
           </div>
         ) : extensions.length === 0 ? (
-          <p className="text-xs text-zinc-600 text-center py-3 italic">Keine Extensions installiert</p>
+          <p className="text-xs text-zinc-500 text-center py-3 italic">Keine Extensions installiert</p>
         ) : (
           <div className="grid grid-cols-3 gap-2">
             {extensions.map((ext) => (

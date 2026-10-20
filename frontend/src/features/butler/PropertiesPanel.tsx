@@ -25,7 +25,7 @@ export function PropertiesPanel({ node, agents, onChange, onDelete }: PropsPanel
   return (
     <div className="box overflow-y-auto w-56 shrink-0 p-4 flex flex-col gap-4" style={{ "--c": rgbFor("/butler") } as CSSProperties}>
       <div>
-        <p className="text-[0.55rem] font-bold uppercase tracking-widest text-white/30 mb-1">{t("properties")}</p>
+        <p className="text-[0.55rem] font-bold uppercase tracking-widest text-white/50 mb-1">{t("properties")}</p>
         <p className="text-sm font-semibold text-white">{label}</p>
       </div>
 

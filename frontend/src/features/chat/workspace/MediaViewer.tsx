@@ -23,7 +23,7 @@ export function MediaViewer({ agentId, path, kind }: Props) {
   }, [agentId, path])
 
   if (error) return <div className="p-3 text-[11px] text-rose-400">{t("loading")} ✗</div>
-  if (!url) return <div className="p-3 text-[11px] text-zinc-600">{t("loading")}</div>
+  if (!url) return <div className="p-3 text-[11px] text-zinc-500">{t("loading")}</div>
 
   return (
     <div className="flex flex-col h-full">

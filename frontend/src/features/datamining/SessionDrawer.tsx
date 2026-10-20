@@ -50,9 +50,9 @@ export function SessionDrawer({ session, onClose }: Props) {
 
       <div className="box overflow-hidden" style={{ "--c": rgbFor("/datamining") } as CSSProperties}>
         {loading ? (
-          <div className="flex items-center justify-center h-40 text-zinc-600 text-sm">{t("loading")}</div>
+          <div className="flex items-center justify-center h-40 text-zinc-500 text-sm">{t("loading")}</div>
         ) : !events || events.length === 0 ? (
-          <div className="flex items-center justify-center h-40 text-zinc-600 text-sm">{t("empty")}</div>
+          <div className="flex items-center justify-center h-40 text-zinc-500 text-sm">{t("empty")}</div>
         ) : (
           <div className="max-h-[32rem] overflow-y-auto divide-y divide-white/[3%]">
             {events.map((e, i) => (
@@ -73,7 +73,7 @@ function SessionEvent({ event: e }: { event: DmSessionEvent }) {
   return (
     <div className="px-3 py-2 hover:bg-white/[2%]">
       <div className="flex items-center gap-2 text-[10px] mb-1">
-        <span className="text-zinc-600 shrink-0">{fmtTime(e.created_at)}</span>
+        <span className="text-zinc-500 shrink-0">{fmtTime(e.created_at)}</span>
         <span className={`shrink-0 px-1 rounded font-medium ${TYPE_COLORS[e.event_type] ?? "text-zinc-400 bg-zinc-500/10"}`}>
           {e.event_type}
         </span>
@@ -88,7 +88,7 @@ function SessionEvent({ event: e }: { event: DmSessionEvent }) {
           {isLong && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-[10px] text-zinc-600 hover:text-zinc-400 mt-0.5 transition-colors"
+              className="text-[10px] text-zinc-500 hover:text-zinc-400 mt-0.5 transition-colors"
             >
               {expanded ? "↑ weniger" : "↓ mehr"}
             </button>

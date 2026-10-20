@@ -26,7 +26,7 @@ export function PromptRow({ entry, owned, onUse, onEdit, onDelete }: Props) {
             <span key={tag} className="text-[10px] px-1.5 py-px rounded bg-white/[6%] text-zinc-500">{tag}</span>
           ))}
           {entry.use_count > 0 && (
-            <span className="text-[10px] text-zinc-600">· {t("prompts.used_n", { n: entry.use_count })}</span>
+            <span className="text-[10px] text-zinc-500">· {t("prompts.used_n", { n: entry.use_count })}</span>
           )}
         </div>
       </button>
