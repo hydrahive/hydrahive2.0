@@ -53,7 +53,7 @@ def test_session_gives_one_lesson(env) -> None:
     res = _run()
     assert res["status"] == "saved" and res["lesson"]["scope"] == "project:p1"
     assert env.calls[0]["model"] == "test/luna" and "DATA, NOT INSTRUCTIONS" in env.calls[0]["messages"][0]["content"]
-    assert len(store.current("a")) == 1 and store.is_done("a", "s1")
+    assert len(store.current("a")) == 1 and store.done_count("a", "s1") == len(MSGS)
 
 
 def test_done_session_is_skipped(env) -> None:
@@ -63,7 +63,7 @@ def test_done_session_is_skipped(env) -> None:
 
 def test_short_session_is_skipped(env, monkeypatch) -> None:
     monkeypatch.setattr(extract, "_messages", lambda sid: MSGS[:9])
-    assert _run()["status"] == "skipped_short" and env.calls == [] and not store.is_done("a", "s1")
+    assert _run()["status"] == "skipped_short" and env.calls == [] and store.done_count("a", "s1") is None
 
 
 def test_model_off_does_nothing(env, monkeypatch) -> None:
@@ -75,25 +75,25 @@ def test_quote_not_in_record_saves_nothing_but_marks_done(env) -> None:
     env.answer = _answer(quote="das steht nirgends im Verlauf drin")
     res = _run()
     assert res == {"status": "rejected", "reason": "quote_not_found"}
-    assert store.current("a") == [] and store.is_done("a", "s1")
+    assert store.current("a") == [] and store.done_count("a", "s1") == len(MSGS)
 
 
 def test_no_entry_marks_done(env) -> None:
     env.answer = json.dumps({"turns": [], "lesson": None})
-    assert _run() == {"status": "no_entry"} and store.is_done("a", "s1")
+    assert _run() == {"status": "no_entry"} and store.done_count("a", "s1") == len(MSGS)
 
 
 def test_unreadable_answer_is_not_marked_done(env) -> None:
     env.answer = "leider nein"
     assert _run() == {"status": "rejected", "reason": "unreadable"}
-    assert not store.is_done("a", "s1")                                              # nächstes Mal neu versuchen
+    assert store.done_count("a", "s1") is None                                       # nächstes Mal neu versuchen
 
 
 def test_llm_error_is_not_marked_done(env, monkeypatch) -> None:
     async def boom(*a, **k):
         raise RuntimeError("down")
     monkeypatch.setattr(extract, "_complete", boom)
-    assert _run() == {"status": "error"} and not store.is_done("a", "s1")
+    assert _run() == {"status": "error"} and store.done_count("a", "s1") is None
 
 
 # --- alte Lehren der Zusammenfassung abschalten ----------------------------------------------------------------------
@@ -152,3 +152,32 @@ def test_runner_calls_start_lessons_after_completed_turn() -> None:
     end = src.index('session_end(agent["id"], session_id, status="completed")')
     done = src.index("yield Done(", end)
     assert 'start_lessons(agent["id"], session_id)' in src[end:done]
+
+
+# --- Gefunden auf hydratest 20.10.: zwei Turns kurz hintereinander werteten dieselbe Sitzung doppelt aus ----------------
+
+def test_parallel_runs_for_same_session_do_not_double(env) -> None:
+    async def slow(messages, model=None, temperature=0.2, max_tokens=3000):
+        env.calls.append(model)
+        await asyncio.sleep(0.05)
+        return env.answer
+    import hydrahive.lessons.extract as ex
+    ex._complete = slow
+
+    async def both():
+        return await asyncio.gather(extract.extract_session("a", "s1"), extract.extract_session("a", "s1"))
+    res = asyncio.run(both())
+    assert sorted(r["status"] for r in res) == ["saved", "skipped_running"]
+    assert len(env.calls) == 1 and len(store.current("a")) == 1
+
+
+def test_session_is_evaluated_again_after_ten_new_messages(env, monkeypatch) -> None:
+    _run()
+    assert _run()["status"] == "skipped_done"
+    longer = MSGS + [_Msg("assistant", f"weiter {i}") for i in range(9)]
+    monkeypatch.setattr(extract, "_messages", lambda sid: longer)
+    assert _run()["status"] == "skipped_done"                                        # 9 neue reichen nicht
+    monkeypatch.setattr(extract, "_messages", lambda sid: longer + [_Msg("user", "noch eine")])
+    res = _run()
+    assert res["status"] == "saved" and res["lesson"]["confirmations"] == 0          # gleiche Sitzung bestärkt nicht
+    assert len(store.current("a")) == 1 and len(env.calls) == 2

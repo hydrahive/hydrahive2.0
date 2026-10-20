@@ -62,11 +62,18 @@ def test_current_takes_latest_version_and_skips_broken_lines(agents) -> None:
 
 
 def test_done_sessions(agents) -> None:
-    assert not store.is_done("a", "s1")
-    store.mark_done("a", "s1")
-    store.mark_done("a", "s1")
-    assert store.is_done("a", "s1") and not store.is_done("a", "s2")
-    assert (agents / "a" / "lessons_done.txt").read_text().splitlines() == ["s1"]
+    assert store.done_count("a", "s1") is None
+    store.mark_done("a", "s1", 12)
+    store.mark_done("a", "s1", 12)
+    assert store.done_count("a", "s1") == 12 and store.done_count("a", "s2") is None
+    store.mark_done("a", "s1", 25)                                                   # neuer Stand gilt
+    assert store.done_count("a", "s1") == 25
+
+
+def test_old_done_file_without_counts_still_counts_as_done(agents) -> None:
+    (agents / "a").mkdir(parents=True)
+    (agents / "a" / "lessons_done.txt").write_text("s1\n")
+    assert store.done_count("a", "s1") == 0
 
 
 def test_unsafe_agent_id_rejected(agents) -> None:
