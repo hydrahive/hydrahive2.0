@@ -14,7 +14,18 @@ HH_CONFIG_DIR="${HH_CONFIG_DIR:-/usr/local/etc/hydrahive2}"
 BACKEND_PLIST="${HH_BACKEND_PLIST:-/Library/LaunchDaemons/io.hydrahive.backend.plist}"
 LOG="${HH_UPDATE_LOG:-/usr/local/var/log/hydrahive2-update.log}"
 
-log() { printf "[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG"; }
+UPDATE_PLIST="${HH_UPDATE_PLIST:-/Library/LaunchDaemons/io.hydrahive.update.plist}"
+TRIGGERS_SCRIPT="${HH_TRIGGERS_SCRIPT:-$HH_REPO_DIR/installer/modules-mac/55-launchd-triggers.sh}"
+
+# Über den Knopf startet launchd das Skript und leitet stdout/stderr schon in $LOG (55-launchd-triggers.sh).
+# Dann nur auf stdout schreiben – sonst steht jede Zeile doppelt im Verlauf. Im Terminal: Datei + Bildschirm.
+# (Der Vergleich `[ /dev/stdout -ef "$LOG" ]` meldet auf macOS „verschieden“, darum die Kennung.)
+if [ "${HH_UPDATE_VIA_LAUNCHD:-}" = "1" ]; then
+  to_log() { cat; }
+else
+  to_log() { tee -a "$LOG"; }
+fi
+log() { printf "[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | to_log; }
 
 rm -f "$HH_DATA_DIR/.update_request"
 log "Update gestartet"
@@ -23,7 +34,7 @@ eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew s
 
 cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
-sudo -u "$HH_USER" git pull --ff-only 2>&1 | tee -a "$LOG" || { log "git pull fehlgeschlagen"; exit 1; }
+sudo -u "$HH_USER" git pull --ff-only 2>&1 | to_log || { log "git pull fehlgeschlagen"; exit 1; }
 
 log "Python-Pakete aktualisieren"
 sudo -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core" >> "$LOG" 2>&1 \
@@ -65,8 +76,15 @@ fi
 PG_PLIST="${HH_PG_PLIST:-/Library/LaunchDaemons/io.hydrahive.postgres.plist}"
 if [ -s "$HH_CONFIG_DIR/pg_mirror.dsn" ] && [ ! -f "$PG_PLIST" ]; then
   log "PostgreSQL auf LaunchDaemon umstellen (Start ohne Anmeldung)"
-  HH_USER="$HH_USER" HH_PG_PLIST="$PG_PLIST" bash "$HH_REPO_DIR/installer/lib/mac-postgres-daemon.sh" 2>&1 | tee -a "$LOG" \
+  HH_USER="$HH_USER" HH_PG_PLIST="$PG_PLIST" bash "$HH_REPO_DIR/installer/lib/mac-postgres-daemon.sh" 2>&1 | to_log \
     || log "PostgreSQL-Umstellung fehlgeschlagen – Datamining evtl. erst nach Anmeldung (Log oben)"
+fi
+
+# Update-Auslöser ohne Kennung (ältere Installation) neu einrichten – gilt ab dem nächsten Update.
+if [ -f "$UPDATE_PLIST" ] && ! grep -q "HH_UPDATE_VIA_LAUNCHD" "$UPDATE_PLIST" 2>/dev/null; then
+  log "Update-Auslöser neu einrichten (Verlauf ohne doppelte Zeilen ab dem nächsten Update)"
+  HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_REPO_DIR="$HH_REPO_DIR" \
+    bash "$TRIGGERS_SCRIPT" 2>&1 | to_log || log "Update-Auslöser konnten nicht neu eingerichtet werden"
 fi
 
 # Alte plists enthalten HH_SECRET_KEY + PG-DSN im Klartext (0644, für alle
@@ -82,7 +100,7 @@ if grep -q "HH_SECRET_KEY\|HH_PG_MIRROR_DSN" "$BACKEND_PLIST" 2>/dev/null \
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
     HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
     HH_BACKEND_PLIST="$BACKEND_PLIST" \
-    bash "$HH_REPO_DIR/installer/modules-mac/50-launchd.sh" 2>&1 | tee -a "$LOG" \
+    bash "$HH_REPO_DIR/installer/modules-mac/50-launchd.sh" 2>&1 | to_log \
     || { log "plist-Umbau fehlgeschlagen — Fehler im Log"; exit 1; }
   log "Update abgeschlossen"
   exit 0
