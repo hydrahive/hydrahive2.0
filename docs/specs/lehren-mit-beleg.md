@@ -209,6 +209,36 @@ Felder einer Lehre: `id`, `key` (Fingerabdruck des Auslösers), `cue`, `lesson`,
   - Die Seite zeigt Bedienelemente erst nach dem Laden.
   - Der Fehler bestand schon vor diesem PR (auf `main` gleich).
 
+## 10c. Bauplan L2 (Lehren vor der Arbeit lesen)
+
+**Wann:** wie der bestehende Erinnerungs-Abruf („Relevante frühere Erinnerungen …“) einmal je Nutzer-Eingabe vor dem
+ersten Modell-Aufruf, nur bei Eingaben mit ≥ 3 Wörtern. Unabhängig vom Schalter „Langzeitgedächtnis“ (Lehren
+sind klein und eigenes Wissen des Agenten). Fehler beim Abruf dürfen den Lauf nie stören.
+
+**Welche:** eigene Lehren des Agenten mit `status: active`, deren Geltung passt: `project:<aktives Projekt>` oder
+`agent` (ohne Projekt). Lehren anderer Projekte bleiben unsichtbar.
+
+**Auswahl (Ähnlichkeit zum Auslöser):**
+- Embedding des **Auslösers** (`cue`) – einmal beim Speichern berechnet und in der Zeile abgelegt (`cue_vec`, Modell
+  `cue_model`); fehlt es (älteres Modell, Fehler), wird es beim Lesen nachgeholt und nicht gespeichert.
+- Eingabe mit dem eingestellten `embed_model` einbetten (`embed_type="query"`), Kosinus-Ähnlichkeit.
+- Schwelle **0,35** (aus Messung an echten Lehren bestimmt, siehe L2-Probe), höchstens **3**, sortiert nach
+  Ähnlichkeit × (1 + 0,2 × Bestätigungen) × Sicherheit (high 1,0 / medium 0,8 / low 0,6).
+- Ohne Embedding-Modell: einfacher Wort-Abgleich (gemeinsame Wörter ≥ 4 Buchstaben, ≥ 2 Treffer).
+
+**Darstellung** im wechselnden Teil des Systemprompts (`volatile`, wie die Erinnerungs-Treffer – der gecachte Teil
+bleibt unverändert):
+
+    Lehren aus früheren Aufgaben (mit Beleg) – prüfe, ob sie hier gelten:
+    - WENN <cue> → <lesson> [<part>, <confidence>, ×<n> bestätigt]
+
+**Zählen:** Jede gezeigte Lehre bekommt `shown + 1` (eigene Zeile `shown`-Fassung, gebündelt je Lauf). Grundlage für
+den späteren Verfall (L3: 5× gezeigt, nie bestätigt → `retired`). `lesson_feedback` als Werkzeug folgt in L3.
+
+**Dateien:** `lessons/recall.py` (Auswahl, rein + Embedding-Aufruf), `lessons/store.py` (`cue_vec` speichern,
+`note_shown`), `runner/_runner_lessons.py` (`recall_lessons`), `runner/system_prompt.py` (`render_lessons_block`),
+`runner/runner.py` (Aufruf + Weitergabe).
+
 ## 11. Probelauf (20.10.2026, nur gelesen, nichts gespeichert)
 
 12 abgeschlossene Sitzungen aus `sessions.db` (Buddy, Hydrahive DEV, flowki, hydrawow, Storyteller, HydraVR,
