@@ -244,10 +244,68 @@ def test_without_key_tavily_is_never_called(searx, tavily):
     assert res.success is False
 
 
-def test_searx_hits_do_not_touch_tavily(searx, tavily):
+def test_enough_searx_hits_do_not_touch_tavily(searx, tavily):
+    searx.answers = [{"results": [dict(HIT, url=f"https://h{i}.example") for i in range(3)]}]
     res = _search()
     assert tavily["calls"] == []
-    assert res.output.get("provider", "searxng") == "searxng"
+    assert res.output.get("provider", "searxng") == "searxng" and "supplemented" not in res.output
+
+
+# --- Spec websuche-kostenlos §11.1 (Variante C): Tavily ergänzt bei weniger als 3 Treffern ----------------
+
+def test_few_general_hits_are_supplemented_by_tavily(searx, tavily):
+    searx.answers = [{"results": [HIT]}]
+    tavily["answer"] = {"results": [{"title": "T1", "url": "https://t1.example", "snippet": "s", "source": "tavily"},
+                                    {"title": "dup", "url": "https://wetter.example", "snippet": "s", "source": "tavily"},
+                                    {"title": "T2", "url": "https://t2.example", "snippet": "s", "source": "tavily"}]}
+    res = _search(count=5)
+    assert res.success is True and res.output["supplemented"] == "tavily"
+    assert [h["url"] for h in res.output["results"]] == ["https://wetter.example", "https://t1.example", "https://t2.example"]
+    assert res.output["count"] == 3
+    assert tavily["calls"] == [{"query": "afd leak", "topic": "general", "time_range": None, "count": 5,
+                                "api_key": "tvly-GEHEIM123"}]
+
+
+def test_supplement_respects_count(searx, tavily):
+    searx.answers = [{"results": [HIT, dict(HIT, url="https://h2.example")]}]
+    tavily["answer"] = {"results": [{"title": f"T{i}", "url": f"https://t{i}.example", "snippet": "", "source": "tavily"}
+                                    for i in range(5)]}
+    res = _search(count=3)
+    assert res.output["count"] == 3 and len(res.output["results"]) == 3
+    assert res.output["results"][2]["url"] == "https://t0.example"
+
+
+def test_no_supplement_for_news(searx, tavily):
+    searx.answers = [{"results": [HIT]}]
+    res = _search(category="news")
+    assert tavily["calls"] == [] and "supplemented" not in res.output
+
+
+def test_no_supplement_without_key(searx, tavily):
+    tavily["key"] = ""
+    searx.answers = [{"results": [HIT]}]
+    res = _search()
+    assert tavily["calls"] == [] and res.output["count"] == 1 and "supplemented" not in res.output
+
+
+def test_supplement_quota_or_error_keeps_searx_hits(searx, tavily):
+    searx.answers = [{"results": [HIT]}]
+    tavily["allow"] = False
+    res = _search()
+    assert res.success is True and res.output["count"] == 1 and tavily["calls"] == []
+    assert "Monatskontingent" in res.output["supplement_note"]
+    tavily["allow"] = True
+    tavily["raise"] = ws._tavily.TavilyError("Tavily: HTTP 500")
+    res = _search()
+    assert res.success is True and res.output["count"] == 1 and "HTTP 500" in res.output["supplement_note"]
+    assert "GEHEIM" not in str(res.output)
+
+
+def test_supplement_also_with_zero_hits_and_no_outage(searx, tavily):
+    """0 Treffer ohne gemeldete Sperre (z. B. Yandex findet nichts) → bei general jetzt auch ergänzen."""
+    searx.answers = [{"results": [], "unresponsive_engines": []}]
+    res = _search()
+    assert res.output["supplemented"] == "tavily" and res.output["count"] == 1
 
 
 def test_blocked_and_empty_falls_back_to_tavily(searx, tavily):
@@ -272,9 +330,9 @@ def test_searx_http_error_falls_back_to_tavily(monkeypatch, searx, tavily):
     assert res.output["provider"] == "tavily"
 
 
-def test_empty_without_outage_does_not_use_tavily(searx, tavily):
+def test_empty_news_without_outage_does_not_use_tavily(searx, tavily):
     searx.answers = [{"results": [], "unresponsive_engines": []}]
-    res = _search()
+    res = _search(category="news")
     assert tavily["calls"] == []
     assert res.output["count"] == 0
 
@@ -297,6 +355,26 @@ def test_tavily_error_never_leaks_key(searx, tavily):
     assert "HTTP 401" in res.error
     assert "duckduckgo (CAPTCHA)" in res.error
     assert "GEHEIM" not in res.error
+
+
+def test_full_outage_uses_replacement_not_supplement(searx, tavily):
+    """Alles gesperrt + 0 Treffer → wie bisher nur Tavily (provider), genau ein Aufruf, keine Ergänzung obendrauf."""
+    searx.answers = [{"results": [], "unresponsive_engines": BLOCKED}]
+    res = _search()
+    assert res.output["provider"] == "tavily" and "supplemented" not in res.output and len(tavily["calls"]) == 1
+
+
+def test_supplement_without_new_urls_changes_nothing(searx, tavily):
+    searx.answers = [{"results": [HIT]}]
+    tavily["answer"] = {"results": [{"title": "dup", "url": "https://wetter.example", "snippet": "", "source": "tavily"}]}
+    res = _search()
+    assert res.output["count"] == 1 and "supplemented" not in res.output
+
+
+def test_news_fallback_is_not_supplemented(searx, tavily):
+    searx.answers = [{"results": []}, {"results": [HIT]}]
+    res = _search(time_range="week")
+    assert res.output["fallback"] == "news" and tavily["calls"] == []
 
 
 # Live-Abnahme 20.10.2026: SearXNG lieferte von Google einen Treffer mit kaputter URL
@@ -330,3 +408,12 @@ def test_only_broken_hits_with_time_range_still_switch_to_news(searx):
     res = _search(time_range="week")
     assert res.output["fallback"] == "news"
     assert res.output["count"] == 1
+
+
+def test_broken_hits_do_not_count_against_supplement_threshold(searx, tavily):
+    """URL-Filter + Variante C: 3 Treffer, davon 2 kaputt → nur 1 brauchbar → Tavily ergänzt."""
+    broken = {**HIT, "url": "http:///url?q=x", "engine": "google"}
+    searx.answers = [{"results": [broken, broken, HIT]}]
+    res = _search()
+    assert res.output["supplemented"] == "tavily"
+    assert [h["url"] for h in res.output["results"]] == ["https://wetter.example", "https://t.example"]
