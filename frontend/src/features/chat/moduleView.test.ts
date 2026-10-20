@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { mediaFromBlocks } from "./MediaPreview"
+import { extractMedia, mediaFromBlocks } from "./MediaPreview"
 import { FRAME_SANDBOX, isSandboxUrl, viewLinkPath } from "./moduleView"
 
 describe("module_view (Spec module-view-sandbox §2.3)", () => {
@@ -7,6 +7,11 @@ describe("module_view (Spec module-view-sandbox §2.3)", () => {
     const m = mediaFromBlocks([{ kind: "module_view", module: "diagramme", view_id: "d1", title: "Websuche" }])
     expect(m.views).toEqual([{ module: "diagramme", view_id: "d1", title: "Websuche" }])
     expect(m.images).toEqual([])
+  })
+
+  it("Text-Erkennung liefert immer eine views-Liste, auch bei leerem Text", () => {
+    expect(extractMedia("").views).toEqual([])
+    expect(extractMedia("kein Bild hier").views).toEqual([])
   })
 
   it("ohne module_view bleibt views leer", () => {
