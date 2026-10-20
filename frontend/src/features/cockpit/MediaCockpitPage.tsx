@@ -68,7 +68,7 @@ export function MediaCockpitPage() {
               return (
                 <button key={item.id} onClick={() => setView(item.id)} className={["grid w-full grid-cols-[32px_1fr] gap-2 rounded-[4px] border p-2 text-left transition-colors", active ? "border-[#ffb86b]/55 bg-[#30243a]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]"].join(" ")}>
                   <span className={["grid h-8 w-8 place-items-center rounded-[3px] border", active ? "border-[#ffb86b]/50 bg-[#ffb86b]/10 text-[#ffb86b]" : "border-[#2a364b] bg-[#0d1420] text-[#8d9ab0]"].join(" ")}><Icon size={15} /></span>
-                  <span className="min-w-0"><span className="flex items-center justify-between gap-2"><strong className="text-sm text-[#e8eef8]">{item.title}</strong><span className="font-mono text-[10px] text-[#7d8aa0]">{item.number}</span></span><span className="block text-xs leading-4 text-[#8d9ab0]">{item.text}</span>{activeIndex >= 0 && index < activeIndex && <span className="mt-1 block text-[10px] uppercase tracking-[0.12em] text-[#4ade80]">durchlaufen</span>}</span>
+                  <span className="min-w-0"><span className="flex items-center justify-between gap-2"><strong className="text-sm text-[#e8eef8]">{item.title}</strong><span className="font-mono text-[10px] text-[#8d9ab0]">{item.number}</span></span><span className="block text-xs leading-4 text-[#8d9ab0]">{item.text}</span>{activeIndex >= 0 && index < activeIndex && <span className="mt-1 block text-[10px] uppercase tracking-[0.12em] text-[#4ade80]">durchlaufen</span>}</span>
                 </button>
               )
             })}

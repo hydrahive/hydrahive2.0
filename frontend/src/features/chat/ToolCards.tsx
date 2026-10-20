@@ -45,7 +45,7 @@ export function ToolUseCard({
         <Wrench size={12} />
         <span className="flex-1">{block.name}</span>
         {block.duration_ms !== undefined && (
-          <span className="text-[10.5px] text-orange-400/60 tabular-nums">{formatDuration(block.duration_ms)}</span>
+          <span className="text-[10.5px] text-orange-400 tabular-nums">{formatDuration(block.duration_ms)}</span>
         )}
         {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
       </button>
