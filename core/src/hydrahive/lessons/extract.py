@@ -1,7 +1,9 @@
 """Eine abgeschlossene Sitzung auswerten (Spec 10b): Modell wählen → Auftrag → prüfen → höchstens eine Lehre speichern.
 
-Ergebnis (für Log und Tests): {"status": "saved"|"no_entry"|"rejected"|"skipped_done"|"skipped_short"|"off"|"error", …}.
-Unlesbare Antwort und Fehler beim Modell markieren die Sitzung NICHT als erledigt – beim nächsten Mal neu versuchen.
+Ergebnis (für Log und Tests): {"status": "saved"|"no_entry"|"rejected"|"skipped_done"|"skipped_running"|"skipped_short"|
+"off"|"error", …}. Unlesbare Antwort und Fehler beim Modell markieren die Sitzung NICHT als erledigt – nächstes Mal neu.
+Läuft eine Sitzung weiter, wird sie nach jeweils AGAIN_AFTER neuen Nachrichten erneut ausgewertet (ohne sich selbst zu
+bestärken – store.add zählt dieselbe Sitzung nur einmal). Je Sitzung läuft höchstens eine Auswertung zugleich.
 """
 from __future__ import annotations
 
@@ -12,7 +14,9 @@ from hydrahive.lessons import model, prompt, store
 logger = logging.getLogger(__name__)
 
 MIN_MESSAGES = 10
+AGAIN_AFTER = 10
 MAX_TOKENS = 3000
+_running: set[tuple[str, str]] = set()
 
 
 def _messages(session_id: str):
@@ -41,9 +45,21 @@ async def extract_session(agent_id: str, session_id: str) -> dict:
     llm = _model()
     if not llm:
         return {"status": "off"}
-    if store.is_done(agent_id, session_id):
-        return {"status": "skipped_done"}
+    job = (agent_id, session_id)
+    if job in _running:
+        return {"status": "skipped_running"}
+    _running.add(job)
+    try:
+        return await _extract(agent_id, session_id, llm)
+    finally:
+        _running.discard(job)
+
+
+async def _extract(agent_id: str, session_id: str, llm: str) -> dict:
     msgs = _messages(session_id)
+    seen = store.done_count(agent_id, session_id)
+    if seen is not None and len(msgs) < seen + AGAIN_AFTER:
+        return {"status": "skipped_done"}
     if len(msgs) < MIN_MESSAGES:
         return {"status": "skipped_short"}
     rec = prompt.record(msgs)
@@ -57,7 +73,7 @@ async def extract_session(agent_id: str, session_id: str) -> dict:
         logger.info("lessons: unlesbare Antwort bei %s/%s", agent_id, session_id)
         return {"status": "rejected", "reason": "unreadable"}
     lesson, reason = model.check(answer, rec)
-    store.mark_done(agent_id, session_id)
+    store.mark_done(agent_id, session_id, len(msgs))
     if reason == "no_entry":
         return {"status": "no_entry"}
     if lesson is None:

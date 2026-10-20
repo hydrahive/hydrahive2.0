@@ -1,5 +1,6 @@
 """Ablage der Lehren je Agent (Spec 10b): `agents/<id>/lessons.jsonl` (append-only, eine Zeile je Fassung) und
-`lessons_done.txt` (bereits ausgewertete Sitzungen). Gleicher Auslöser im gleichen Geltungsbereich → bestärken.
+`lessons_done.txt` (ausgewertete Sitzungen mit Nachrichtenzahl, „<id> <anzahl>“). Gleicher Auslöser im gleichen
+Geltungsbereich → bestärken.
 """
 from __future__ import annotations
 
@@ -95,15 +96,24 @@ def add(agent_id: str, lesson: dict, *, scope: str) -> dict:
         return row
 
 
-def is_done(agent_id: str, session_id: str) -> bool:
-    path = _dir(agent_id) / "lessons_done.txt"
-    return path.exists() and session_id in path.read_text(encoding="utf-8").splitlines()
+def _done(d: Path) -> dict[str, int]:
+    path = d / "lessons_done.txt"
+    out: dict[str, int] = {}
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            sid, _, count = line.partition(" ")
+            if sid:
+                out[sid] = int(count) if count.isdigit() else 0
+    return out
 
 
-def mark_done(agent_id: str, session_id: str) -> None:
+def done_count(agent_id: str, session_id: str) -> int | None:
+    """Nachrichtenzahl beim letzten Auswerten dieser Sitzung; None = noch nie ausgewertet."""
+    return _done(_dir(agent_id)).get(session_id)
+
+
+def mark_done(agent_id: str, session_id: str, count: int) -> None:
     with _lock(agent_id) as d:
-        path = d / "lessons_done.txt"
-        done = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
-        if session_id not in done:
-            with path.open("a", encoding="utf-8") as f:
-                f.write(session_id + "\n")
+        if _done(d).get(session_id) != count:
+            with (d / "lessons_done.txt").open("a", encoding="utf-8") as f:
+                f.write(f"{session_id} {count}\n")
