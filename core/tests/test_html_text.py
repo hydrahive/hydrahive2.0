@@ -111,7 +111,7 @@ def test_navigation_header_footer_removed_even_without_article():
 
 def test_aria_landmarks_for_navigation_are_removed():
     # Borncity (20.10.2026): Menü steckt in <div id="access" role="navigation">, kein <nav>.
-    page = ("<html><body><div role='navigation'><div><a>Start</a></div><a>Impressum</a></div>"
+    page = ("<html><body><div role='Navigation'><div><a>Start</a></div><a>Impressum</a></div>"
             "<div role='banner'>Kopf</div><div id='content'><p>Inhalt</p></div>"
             "<div role='contentinfo'>Fuß</div><div role='complementary'>Rand</div></body></html>")
     assert ht.extract(page)["text"] == "Inhalt"
