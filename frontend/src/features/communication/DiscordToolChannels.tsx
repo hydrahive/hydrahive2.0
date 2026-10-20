@@ -81,7 +81,7 @@ export function DiscordToolChannels({ value, moderated, adminGuilds, onChange, o
       <div className="flex items-center justify-between gap-2">
         <label className="text-xs text-zinc-400">{t("discord.tools.label")}</label>
         <button type="button" onClick={reload} disabled={loading}
-          className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 disabled:opacity-40">
+          className="flex min-h-6 items-center gap-1 text-[10px] text-zinc-500 hover:text-zinc-300 disabled:opacity-40">
           {loading ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
           {t("discord.tools.reload")}
         </button>
@@ -110,7 +110,7 @@ export function DiscordToolChannels({ value, moderated, adminGuilds, onChange, o
             {items.map((c) => {
               const Icon = KIND_ICON[c.kind]
               return (
-                <label key={c.id} className="flex items-center gap-2 cursor-pointer rounded px-1 py-0.5 hover:bg-white/[4%]">
+                <label key={c.id} className="flex min-h-6 items-center gap-2 cursor-pointer rounded px-1 py-0.5 hover:bg-white/[4%]">
                   <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)}
                     className="accent-[var(--hh-accent-from)] w-3.5 h-3.5" />
                   <Icon size={12} className="text-zinc-500 shrink-0" />
@@ -131,7 +131,7 @@ export function DiscordToolChannels({ value, moderated, adminGuilds, onChange, o
           )
         })}
         {orphaned.map((id) => (
-          <label key={id} className="flex items-center gap-2 cursor-pointer rounded px-1 py-0.5 hover:bg-white/[4%]">
+          <label key={id} className="flex min-h-6 items-center gap-2 cursor-pointer rounded px-1 py-0.5 hover:bg-white/[4%]">
             <input type="checkbox" checked onChange={() => toggle(id)}
               className="accent-[var(--hh-accent-from)] w-3.5 h-3.5" />
             <span className="text-xs font-mono text-zinc-400">{id}</span>

@@ -19,7 +19,7 @@ export function CmdPill({ icon, label, color, onClick }: Props) {
       type="button"
       onClick={onClick}
       title={`/${label}`}
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors ${PILL_COLORS[color]}`}
+      className={`inline-flex min-h-6 items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors ${PILL_COLORS[color]}`}
     >
       {icon}
       <span>{label}</span>

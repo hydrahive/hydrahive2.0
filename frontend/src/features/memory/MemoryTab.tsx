@@ -80,7 +80,7 @@ export function MemoryTab({ agentId }: Props) {
             className="px-2 py-1 rounded-md bg-zinc-900 border border-white/[8%] text-xs text-zinc-200 focus:outline-none focus:ring-1 focus:ring-violet-500/50"
           />
         </div>
-        <label className="flex items-center gap-1.5 text-xs text-zinc-400 cursor-pointer pb-1">
+        <label className="flex min-h-6 items-center gap-1.5 text-xs text-zinc-400 cursor-pointer pb-1">
           <input
             type="checkbox"
             checked={includeExpired}

@@ -133,8 +133,9 @@ export function ProjectTasksPanel({ projectId }: Props) {
             <button
               key={item.key}
               onClick={() => setFilter(item.key)}
+              aria-pressed={filter === item.key}
               className={[
-                "rounded-[3px] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]",
+                "min-h-6 rounded-[3px] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]",
                 filter === item.key
                   ? "bg-cyan-400/15 text-cyan-100"
                   : "bg-white/[5%] text-zinc-500 hover:text-zinc-300",
@@ -164,9 +165,10 @@ export function ProjectTasksPanel({ projectId }: Props) {
                 <button
                   key={status}
                   onClick={() => void setStatus(task, status)}
+                  aria-pressed={task.status === status}
                   className={[
-                    "rounded-[3px] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]",
-                    task.status === status ? "bg-cyan-400/15 text-cyan-100" : "bg-white/[5%] text-zinc-600 hover:text-zinc-300",
+                    "min-h-6 rounded-[3px] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]",
+                    task.status === status ? "bg-cyan-400/15 text-cyan-100" : "bg-white/[5%] text-zinc-500 hover:text-zinc-300",
                   ].join(" ")}
                 >
                   {status.replace("in_progress", "doing")}

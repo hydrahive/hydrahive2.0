@@ -45,7 +45,7 @@ export function SkillCatalogPill({ agentId, insert }: Props) {
         type="button"
         title={t("skill_catalog.title")}
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors
+        className={`inline-flex min-h-6 items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors
           ${open
             ? "text-violet-300 bg-violet-500/20 border-violet-500/40"
             : "text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 border-violet-500/30"

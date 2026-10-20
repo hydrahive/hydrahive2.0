@@ -39,7 +39,7 @@ export function LiveFeedTab({ active }: { active: boolean }) {
           {t("live_feed")}
         </span>
         <span className="text-[10px] text-zinc-600 ml-auto">{events.length} {t("entries")}</span>
-        <button onClick={load} aria-label={t("common:actions.refresh")} title={t("common:actions.refresh")} className="ml-1 rounded p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors">
+        <button onClick={load} aria-label={t("common:actions.refresh")} title={t("common:actions.refresh")} className="ml-1 grid min-h-6 min-w-6 place-items-center rounded p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors">
           <RefreshCw size={11} />
         </button>
       </div>
