@@ -22,17 +22,34 @@ log "Update gestartet"
 eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"
 
 cd "$HH_REPO_DIR"
+# git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
+OLD_HEAD="$(sudo -u "$HH_USER" git rev-parse HEAD 2>/dev/null || true)"
 sudo -u "$HH_USER" git pull --ff-only 2>&1 | tee -a "$LOG" || { log "git pull fehlgeschlagen"; exit 1; }
+NEW_HEAD="$(sudo -u "$HH_USER" git rev-parse HEAD 2>/dev/null || true)"
 
-# Python-Dependencies aktualisieren
-sudo -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install --quiet -e "$HH_REPO_DIR/core"
+log "Python-Pakete aktualisieren"
+sudo -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core" >> "$LOG" 2>&1 \
+  || { log "pip install fehlgeschlagen"; exit 1; }
+HEAL="$HH_REPO_DIR/installer/lib/mac-python-heal.sh"
+if [ -f "$HEAL" ]; then
+  # shellcheck source=lib/mac-python-heal.sh
+  source "$HEAL"
+  hh_mac_heal_python "$HH_REPO_DIR/.venv/bin" "$HH_USER" "$LOG"
+else
+  log "Paketprüfung übersprungen ($HEAL fehlt)"
+fi
 
-# Frontend neu bauen falls sich was geändert hat
-if git diff --name-only HEAD@{1} HEAD 2>/dev/null | grep -q "^frontend/"; then
-  log "Frontend-Änderungen erkannt — rebuild"
+# Frontend neu bauen: bei Änderungen unter frontend/ oder wenn der fertige Build fehlt.
+FRONTEND_CHANGED=""
+if [ -n "$OLD_HEAD" ] && [ -n "$NEW_HEAD" ] && [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
+  FRONTEND_CHANGED="$(sudo -u "$HH_USER" git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- frontend/ 2>>"$LOG" || true)"
+fi
+if [ -n "$FRONTEND_CHANGED" ] || [ ! -f "$HH_REPO_DIR/frontend/dist/index.html" ]; then
+  log "Frontend neu bauen"
   cd "$HH_REPO_DIR/frontend"
-  sudo -u "$HH_USER" npm install --silent
-  sudo -u "$HH_USER" npm run build --silent
+  sudo -u "$HH_USER" npm install >> "$LOG" 2>&1 || { log "npm install fehlgeschlagen"; exit 1; }
+  sudo -u "$HH_USER" npm run build >> "$LOG" 2>&1 || { log "Frontend-Build fehlgeschlagen"; exit 1; }
+  cd "$HH_REPO_DIR"
 fi
 
 # PostgreSQL lief früher als brew-services-LaunchAgent (startet erst nach der Anmeldung).
@@ -51,8 +68,9 @@ fi
 # Ohne Zeitlimit beim Herunterfahren hängt uvicorn an offenen SSE-Verbindungen (Task 06d38ae9).
 if grep -q "HH_SECRET_KEY\|HH_PG_MIRROR_DSN" "$BACKEND_PLIST" 2>/dev/null \
    || ! grep -q "mac-backend-start.sh" "$BACKEND_PLIST" 2>/dev/null \
-   || ! grep -q -- "--timeout-graceful-shutdown" "$BACKEND_PLIST" 2>/dev/null; then
-  log "launchd-plist enthält Secrets, keinen Start-Wrapper oder kein Zeitlimit — neu schreiben"
+   || ! grep -q -- "--timeout-graceful-shutdown" "$BACKEND_PLIST" 2>/dev/null \
+   || ! grep -q "HH_LOG_DIR" "$BACKEND_PLIST" 2>/dev/null; then
+  log "launchd-plist enthält Secrets, keinen Start-Wrapper, kein Zeitlimit oder keinen Log-Ordner — neu schreiben"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
     HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
     HH_BACKEND_PLIST="$BACKEND_PLIST" \

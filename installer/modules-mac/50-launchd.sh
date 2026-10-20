@@ -55,6 +55,8 @@ sudo tee "$PLIST_FILE" > /dev/null <<EOF
         <string>${HH_HOST}</string>
         <key>HH_PORT</key>
         <string>${HH_PORT}</string>
+        <key>HH_LOG_DIR</key>
+        <string>/usr/local/var/log</string>
         <key>HOME</key>
         <string>/Users/${HH_USER}</string>
         <key>PATH</key>
