@@ -107,10 +107,12 @@ def _update(agent_id: str, changes: dict[str, dict]) -> list[dict]:
         return rows
 
 
-def set_status(agent_id: str, lesson_id: str, status: str) -> dict | None:
+def set_status(agent_id: str, lesson_id: str, status: str, *, by: str = "") -> dict | None:
+    """Status setzen; `by` merkt, wer eine Lehre angefochten hat (für umkehrbare Läufe wie recheck --undo)."""
     if status not in ("active", "contested", "retired"):
         raise ValueError("unbekannter Status")
-    rows = _update(agent_id, {lesson_id: {"status": status}})
+    patch = {"status": status, "contested_by": by if status == "contested" else ""}
+    rows = _update(agent_id, {lesson_id: patch})
     return rows[0] if rows else None
 
 

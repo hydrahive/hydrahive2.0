@@ -102,12 +102,6 @@ def test_record_from_messages() -> None:
     assert "geheim" not in rec
 
 
-def test_record_is_cut_head_and_tail() -> None:
-    msgs = [_Msg("user", f"nachricht {i} " + "x" * 200) for i in range(400)]
-    rec = prompt.record(msgs, budget=10_000)
-    assert len(rec) < 10_200
-    assert rec.startswith("[user] nachricht 0 ") and "nachricht 399" in rec and "ausgelassen" in rec
-
 
 def test_messages_mark_record_as_data() -> None:
     m = prompt.messages("[user] hallo")

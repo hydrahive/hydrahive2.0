@@ -267,6 +267,30 @@ den späteren Verfall (L3: 5× gezeigt, nie bestätigt → `retired`). `lesson_f
 `note_shown`), `runner/_runner_lessons.py` (`recall_lessons`), `runner/system_prompt.py` (`render_lessons_block`),
 `runner/runner.py` (Aufruf + Weitergabe).
 
+## 10d. Nachbesserung: Lehre muss zum Beleg passen (20.10., Till)
+
+**Befund auf dem Hauptserver** (erste echte Lehren, Sitzung mit 4.391 Nachrichten): 2 von 4 Lehren waren schief.
+- Zitat ohne Bezug: „ja bitte merge, du bist der hauptserver :)“ sollte „Update-Mechanismus nutzen“ belegen.
+- Falsche Deutung: „Themenwechsel ohne Klärung“, obwohl Till den Wechsel selbst angestoßen hatte.
+
+Ursachen:
+1. **Verlauf mit Lücke:** Zu lange Verläufe wurden als Anfang (45 %) plus Ende gekürzt. Bei langen Sitzungen sah
+   das Modell den Start von vor Tagen und das Ende von heute und deutete die Lücke als Themenwechsel.
+2. **Zitat-Prüfung zu schwach:** Geprüft wurde nur, *ob* das Zitat vorkommt, nicht ob es die Lehre belegt.
+
+Behebung:
+1. **Nur der neue Teil:** Wird eine Sitzung erneut ausgewertet, gehen nur die Nachrichten seit der letzten Auswertung
+   ein (plus 4 davor als Zusammenhang). Ist das immer noch zu lang, zählt nur das **Ende**, ohne Lücke.
+2. **Gegenprüfung:** Ein zweiter kurzer Aufruf (Modell für Lehren) bekommt die Lehre, das Zitat und den Verlauf um das
+   Zitat (±6.000 Zeichen). Er antwortet `supported` und `quote_fits`. Gespeichert wird nur bei **beiden ja**.
+   Eine Lehre, die dem Agenten etwas vorwirft, das der Nutzer selbst verlangt hat, gilt als nicht belegt.
+   - Gemessen an den 4 echten Lehren: 4 von 4 richtig (2 gute durch, 2 schiefe raus), 2–4 s je Lehre.
+   - Das läuft im Hintergrund nach der Sitzung, die Antwortzeit ist nicht betroffen.
+   - Fehler oder Zeitüberschreitung (20 s): nicht speichern und die Sitzung nicht als erledigt markieren
+     (nächstes Mal neu versuchen).
+3. **Bestand nachprüfen:** `python -m hydrahive.lessons.recheck` prüft aktive Lehren gegen ihren Verlauf und setzt
+   nicht belegte auf `contested`. Sie werden dann nicht mehr gezeigt. Umkehrbar mit `--undo`.
+
 ## 11. Probelauf (20.10.2026, nur gelesen, nichts gespeichert)
 
 12 abgeschlossene Sitzungen aus `sessions.db` (Buddy, Hydrahive DEV, flowki, hydrawow, Storyteller, HydraVR,
