@@ -53,3 +53,7 @@ Gilt nur für macOS. Linux (`update.sh`) bleibt unverändert.
      (`git log -1 --format=%H -- frontend/`, als Dienstnutzer);
    - gebaut wird, wenn `dist/index.html` fehlt oder der Vermerk fehlt oder nicht zum aktuellen Stand passt;
    - lässt sich der Stand nicht bestimmen (git-Fehler), wird nur bei fehlendem `dist` gebaut und das im Log vermerkt.
+3. **`npm install` verändert `package-lock.json`** (auf dem Test-Mac: 4 Zeilen `"peer": true` weg, andere npm-Version
+   als beim Erzeugen). Beim nächsten Update scheitert dann `git pull --ff-only` an der lokalen Änderung – anders als
+   Linux setzt der Mac danach nicht auf `origin/main` zurück. Abhilfe: **`npm ci`** (wie die CI) – installiert genau
+   nach der Lock-Datei und ändert sie nie.

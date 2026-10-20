@@ -194,7 +194,7 @@ def test_frontend_change_triggers_build(mac):
     r = _update(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac)
-    assert "npm install" in calls and "npm run build" in calls
+    assert "npm ci" in calls and "npm run build" in calls
     assert (mac["repo"] / "frontend" / "dist" / ".hh-frontend-rev").read_text().strip() == "fe-rev-2"
 
 
@@ -273,7 +273,7 @@ def test_pip_and_npm_output_land_in_the_log(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     log = mac["log"].read_text()
     assert "pip-ausgabe install" in log
-    assert "npm-ausgabe install" in log and "npm-ausgabe run" in log
+    assert "npm-ausgabe ci" in log and "npm-ausgabe run" in log
     assert "Update abgeschlossen" in log
 
 
@@ -296,3 +296,13 @@ def test_package_named_twice_is_reinstalled_once(mac):
     r = _update(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     assert _calls(mac).count("--force-reinstall --no-deps litellm") == 1
+
+
+def test_frontend_uses_npm_ci_and_never_touches_the_lock_file(mac):
+    """npm install schrieb auf dem Test-Mac package-lock.json um → nächstes git pull --ff-only scheiterte."""
+    _launchd(mac)
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    assert "npm ci" in calls and "npm install" not in calls
