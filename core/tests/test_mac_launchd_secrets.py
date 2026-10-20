@@ -153,6 +153,9 @@ def _run_update(m: dict) -> subprocess.CompletedProcess:
     if not (inst / "modules-mac").exists():
         (inst / "modules-mac").symlink_to(INSTALLER / "modules-mac")
         (inst / "lib" / "mac-backend-start.sh").symlink_to(WRAPPER)
+    # Fertiges Frontend, damit update-mac.sh nicht neu baut (docs/specs/mac-update.md §2.3)
+    (m["repo"] / "frontend" / "dist").mkdir(parents=True, exist_ok=True)
+    (m["repo"] / "frontend" / "dist" / "index.html").write_text("<html/>")
     env = {**_env(m), "HH_UPDATE_LOG": str(m["tmp"] / "update.log")}
     (m["tmp"] / "data").mkdir(exist_ok=True)
     return subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True,
