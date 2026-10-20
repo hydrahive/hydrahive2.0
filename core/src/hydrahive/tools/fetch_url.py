@@ -16,6 +16,8 @@ from hydrahive.net.ssrf import (
     resolve_internal_ip,
     safe_async_client,
 )
+from hydrahive.tools._fetch_body import FORMATS, body_fields
+from hydrahive.tools._html_text import default_headers
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 
@@ -25,10 +27,10 @@ _DESCRIPTION = (
     "dieser Adresse nennt, wird der Token transparent eingehängt — kommt NIE im "
     "Output zurück. Profile ohne konkreten Host ('*') werden nie eingesetzt. "
     "Methoden: GET, POST, PUT, PATCH, DELETE, HEAD. "
+    "format='text' liefert bei HTML-Seiten nur den lesbaren Text (spart Token). "
     "Für einfache Requests ohne Auth: shell_exec mit curl nutzen."
 )
 
-_MAX_BYTES = 200_000
 _ALLOWED_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"}
 
 # SSRF-Schutz (_is_blocked) lebt zentral in hydrahive.net.ssrf — siehe Import oben.
@@ -44,6 +46,8 @@ _SCHEMA = {
         "auth": {"type": "string", "description": "Optional: Credential-Profil per Name wählen (muss zum Host der URL passen)."},
         "content_type": {"type": "string", "description": "Z.B. 'application/json'."},
         "timeout": {"type": "integer", "description": "Timeout in Sekunden (default 30).", "default": 30},
+        "format": {"type": "string", "enum": list(FORMATS), "default": "raw",
+                   "description": "raw = Antwort unverändert, text = bei HTML nur lesbarer Artikeltext."},
     },
     "required": ["url"],
 }
@@ -104,13 +108,18 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if method not in _ALLOWED_METHODS:
         return ToolResult.fail(f"Unzulässige Methode: {method}")
 
+    fmt = args.get("format", "raw")
+    if fmt not in FORMATS:
+        return ToolResult.fail(f"Unbekanntes format – erlaubt: {', '.join(FORMATS)}")
+
     body = args.get("body") or ""
     auth_name = (args.get("auth") or "").strip() or None
     content_type = args.get("content_type") or ("application/x-www-form-urlencoded" if body else None)
     timeout = max(1, min(120, int(args.get("timeout", 30))))
     extra_headers: dict = args.get("headers") or {}
 
-    headers: dict[str, str] = {k: str(v) for k, v in extra_headers.items()} if isinstance(extra_headers, dict) else {}
+    headers: dict[str, str] = default_headers(
+        {k: str(v) for k, v in extra_headers.items()} if isinstance(extra_headers, dict) else {})
     params: dict[str, str] = {}
     auth_used: str | None = None
 
@@ -167,17 +176,15 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail(f"HTTP-Fehler: {e}")
 
     raw = r.content
-    truncated = len(raw) > _MAX_BYTES
-    text = raw[:_MAX_BYTES].decode("utf-8", errors="replace")
+    content_type = r.headers.get("content-type", "")
     out: dict = {
         "url": url,
         "status_code": r.status_code,
         "method": method,
-        "body": text,
         "bytes": len(raw),
-        "truncated": truncated,
         "auth_used": cred.name if cred else None,
-        "content_type": r.headers.get("content-type", ""),
+        "content_type": content_type,
+        **body_fields(raw, content_type, fmt),
     }
     if auth_used:
         return ToolResult.ok(out, auth_hint=auth_used)
