@@ -33,7 +33,7 @@ from hydrahive.access.tool_filter import filter_tools as access_filter_tools
 from hydrahive.runner._run_origin import OTHER, RunOrigin
 from hydrahive.runner._runner_cancel import persist_on_cancel
 from hydrahive.runner._runner_helpers import close_open_tool_uses, refusal_error
-from hydrahive.runner._runner_lessons import start_lessons
+from hydrahive.runner._runner_lessons import recall_lessons, start_lessons
 from hydrahive.runner._runner_iter import (
     IterationResult,
     prepare_history,
@@ -197,6 +197,9 @@ async def run(
         except Exception as e:
             logger.warning("Recall fehlgeschlagen (best-effort): %s", e, exc_info=True)
 
+    # Lehren mit Beleg (L2): einmal je Eingabe, eigene Lehren des Agenten im aktiven Projekt
+    recalled_lessons = await recall_lessons(agent["id"], _user_text(user_input).strip(), active_project_id)
+
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
 
@@ -231,6 +234,7 @@ async def run(
             allowed_tools=allowed_tools,
             recall_cards=recall_cards,
             recall_search=recall_search,
+            lessons=recalled_lessons,
         )
 
         result: IterationResult | None = None

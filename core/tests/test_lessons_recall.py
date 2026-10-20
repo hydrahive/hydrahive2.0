@@ -185,3 +185,47 @@ def test_word_match_ignores_filler_words(agents, monkeypatch) -> None:
     _les("Wenn eine Datei im Workspace fehlt")
     assert _pick("wenn eine nicht dann") == []                                      # nur Füllwörter gemeinsam
     assert _pick("eine Datei bitte") == []                                          # Füllwort + ein echtes Wort
+
+
+class ScaledEmbed(FakeEmbed):
+    """Auslöser unterschiedlich lang (Wiederholung) – nur echte Kosinus-Normierung macht sie gleich ähnlich."""
+
+    async def __call__(self, texts, model, embed_type="db"):
+        self.calls.append((tuple(texts), embed_type))
+        return [[float(a in t.lower()) * (1 + t.count("!")) for a in self.AXES] for t in texts]
+
+
+def test_similarity_is_cosine_not_raw_dot(agents, monkeypatch) -> None:
+    monkeypatch.setattr(recall, "_embed", ScaledEmbed())
+    monkeypatch.setattr(recall, "_embed_model", lambda: "test/emb")
+    _les("Wenn eine Datei fehlt!!!!!")                                              # langer Vektor, gleiche Richtung
+    got = _pick("die datei finde ich nicht")
+    assert len(got) == 1 and got[0]["similarity"] == pytest.approx(1.0, abs=0.001)
+
+
+def test_confirmed_beats_unconfirmed_with_same_similarity(agents, emb) -> None:
+    a = _les("Wenn eine Datei fehlt A")
+    b = _les("Wenn eine Datei fehlt B", sid="s2")
+    _les("Wenn eine Datei fehlt B", sid="s3")
+    assert [g["id"] for g in _pick("wo ist die datei")] == [b["id"], a["id"]]
+
+
+def test_high_confidence_beats_low_with_same_similarity(agents, emb) -> None:
+    low = _les("Wenn eine Datei fehlt A", confidence="low")
+    high = _les("Wenn eine Datei fehlt B", sid="s2", confidence="high")
+    assert [g["id"] for g in _pick("wo ist die datei")] == [high["id"], low["id"]]
+
+
+def test_shown_counts_only_the_picked(agents, emb) -> None:
+    hit = _les("Wenn eine Datei fehlt")
+    miss = _les("Wenn der Chat hängt", sid="s2")
+    _pick("wo ist die datei")
+    cur = {r["id"]: r for r in store.current("a")}
+    assert cur[hit["id"]]["shown"] == 1 and "shown" not in cur[miss["id"]]
+
+
+def test_unknown_status_is_refused(agents) -> None:
+    les = _les("Wenn eine Datei fehlt")
+    with pytest.raises(ValueError):
+        store.set_status("a", les["id"], "kaputt")
+    assert store.current("a")[0]["status"] == "active"

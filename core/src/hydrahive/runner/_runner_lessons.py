@@ -1,12 +1,25 @@
-"""Lehren mit Beleg am Sitzungsende im Hintergrund anstoßen (docs/specs/lehren-mit-beleg.md 10b).
+"""Lehren mit Beleg im Runner (docs/specs/lehren-mit-beleg.md 10b + 10c).
 
-Fire-and-forget wie die Compress-Pipeline: blockiert `Done` nicht, Fehler landen in errors_log statt still zu verschwinden.
+- start_lessons: am Sitzungsende im Hintergrund auswerten (fire-and-forget wie die Compress-Pipeline).
+- recall_lessons: vor der Arbeit passende Lehren holen – best-effort, ein Fehler liefert nur eine leere Liste.
 """
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from hydrahive.db import errors_log
+
+logger = logging.getLogger(__name__)
+
+
+async def recall_lessons(agent_id: str, text: str, project_id: str | None) -> list[dict]:
+    from hydrahive.lessons import recall
+    try:
+        return await recall.pick(agent_id, text, project_id=project_id)
+    except Exception as e:  # noqa: BLE001 – Lehren sind Zugabe, der Lauf geht immer weiter
+        logger.warning("Lehren-Abruf fehlgeschlagen (best-effort): %s", e)
+        return []
 
 
 async def _safe_lessons(agent_id: str, session_id: str) -> None:
