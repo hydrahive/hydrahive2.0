@@ -198,6 +198,17 @@ Felder einer Lehre: `id`, `key` (Fingerabdruck des Auslösers), `cue`, `lesson`,
 
 **Nicht in L1:** Lesen vor der Arbeit (L2), Ansicht (L3), Skill-Vorschlag (L4), nachträglich lernen (L1b, eigener PR).
 
+**Beim Bauen ergänzt (20.10.)**
+- Je Sitzung höchstens eine Auswertung zugleich; erneut ausgewertet wird nach jeweils 10 weiteren Nachrichten
+  (`lessons_done.txt`: „<sitzung> <anzahl>“). Grund: auf hydratest erzeugten zwei schnelle Turns zwei fast gleiche Lehren.
+- **Schutz der LLM-Einstellungen:** Beim Test auf hydratest hat die Admin-Seite alle Anbieter gelöscht. Sie startet
+  mit einem leeren Platzhalter, und eine Auswahl vor dem Laden speicherte diesen. Behoben:
+  - `PUT /api/llm` lehnt das Entfernen aller Anbieter ab (`409 llm_config_would_clear`), außer mit `?allow_clear=true`.
+  - Neu `PUT /api/llm/default/{zweck}` setzt nur ein Modell.
+  - Die Standard-Modelle speichern einzeln.
+  - Die Seite zeigt Bedienelemente erst nach dem Laden.
+  - Der Fehler bestand schon vor diesem PR (auf `main` gleich).
+
 ## 11. Probelauf (20.10.2026, nur gelesen, nichts gespeichert)
 
 12 abgeschlossene Sitzungen aus `sessions.db` (Buddy, Hydrahive DEV, flowki, hydrawow, Storyteller, HydraVR,
