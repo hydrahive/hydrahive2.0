@@ -99,6 +99,14 @@ def test_invalid_module_view_gives_no_media(loaded, meta):
     assert "media" not in to_tool_result_block("t1", _view(**meta))
 
 
+def test_module_name_is_checked_even_if_registry_has_odd_key(monkeypatch):
+    """Doppelte Absicherung: auch ein seltsamer Schlüssel in der Modul-Liste wird nicht durchgereicht."""
+    odd = registry.LoadedModule(name="x", manifest=None, path=Path("/z"), loaded=True)
+    monkeypatch.setattr(registry, "REGISTRY", {"../x": odd, "Gross": odd})
+    for module in ("../x", "Gross"):
+        assert "media" not in to_tool_result_block("t1", _view(module=module))
+
+
 def test_failed_result_never_gives_module_view(loaded):
     r = ToolResult(success=False, error="kaputt", result_type="module_view",
                    metadata={"module": "diagramme", "view_id": "abc", "title": "t"})
