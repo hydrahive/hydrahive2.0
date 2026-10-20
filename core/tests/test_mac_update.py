@@ -38,6 +38,8 @@ case "$*" in
   *"rev-parse HEAD"*) if [ -f "{tmp_path}/pulled" ]; then echo neu111; else echo alt000; fi;;
   *pull*) touch "{tmp_path}/pulled"; echo "Already up to date.";;
   *diff*) cat "{tmp_path}/git_diff.txt" 2>/dev/null;;
+  *"log -1 --format=%H -- frontend/"*) if [ -f "{tmp_path}/git_kaputt" ]; then exit 128; fi
+                                       cat "{tmp_path}/frontend_rev.txt" 2>/dev/null || echo fe-rev-1;;
 esac
 exit 0
 ''')
@@ -55,6 +57,7 @@ exit 0
     (repo / "installer" / "lib" / "mac-python-heal.sh").symlink_to(INSTALLER / "lib" / "mac-python-heal.sh")
     (repo / "frontend" / "dist").mkdir(parents=True)
     (repo / "frontend" / "dist" / "index.html").write_text("<html/>")
+    (repo / "frontend" / "dist" / ".hh-frontend-rev").write_text("fe-rev-1\n")   # Build passt zum Stand
     venv = repo / ".venv" / "bin"
     venv.mkdir(parents=True)
     # pip-Attrappe: Aufrufe protokollieren; `check` meldet den Inhalt von pip_check.txt (dann Exit 1)
@@ -185,13 +188,50 @@ def test_package_names_from_pip_check_are_safe(mac):
 # --- 3. Frontend ------------------------------------------------------------------------------------
 
 def test_frontend_change_triggers_build(mac):
+    """Neuer Frontend-Stand als der gebaute → bauen, danach steht der neue Stand im Vermerk."""
     _launchd(mac)
-    (mac["tmp"] / "git_diff.txt").write_text("frontend/src/App.tsx\n")
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
     r = _update(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac)
-    assert "git diff --name-only alt000 neu111 -- frontend/" in calls
-    assert "npm install" in calls and "npm run build" in calls
+    assert "npm ci" in calls and "npm run build" in calls
+    assert (mac["repo"] / "frontend" / "dist" / ".hh-frontend-rev").read_text().strip() == "fe-rev-2"
+
+
+def test_build_catches_up_even_if_pull_brought_nothing(mac):
+    """Befund Test-Mac 20.10.: Pull brachte nichts Neues mehr, Build war aber 65 Frontend-Änderungen alt."""
+    _launchd(mac)
+    (mac["repo"] / "frontend" / "dist" / ".hh-frontend-rev").unlink()        # alter Build ohne Vermerk
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "npm run build" in _calls(mac)
+    assert (mac["repo"] / "frontend" / "dist" / ".hh-frontend-rev").read_text().strip() == "fe-rev-1"
+
+
+def test_failed_build_writes_no_marker(mac):
+    """Scheitert der Build, darf kein Vermerk entstehen – sonst gälte der kaputte Stand als gebaut."""
+    _launchd(mac)
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
+    (mac["bin"] / "npm").write_text(f'#!/bin/bash\necho "npm $*" >> "{mac["calls"]}"\n[ "$1" = run ] && exit 1\nexit 0\n')
+    r = _update(mac)
+    assert r.returncode != 0
+    assert (mac["repo"] / "frontend" / "dist" / ".hh-frontend-rev").read_text().strip() == "fe-rev-1"
+    assert "Frontend-Build fehlgeschlagen" in mac["log"].read_text()
+
+
+def test_unknown_frontend_rev_builds_only_without_dist(mac):
+    """git meldet keinen Stand: mit vorhandenem Build nicht bauen (und das sagen), ohne Build trotzdem bauen."""
+    _launchd(mac)
+    (mac["tmp"] / "git_kaputt").touch()
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "npm run build" not in _calls(mac)
+    assert "Frontend-Stand unbekannt" in mac["log"].read_text()
+    (mac["repo"] / "frontend" / "dist" / "index.html").unlink()
+    mac["calls"].write_text("")
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "npm run build" in _calls(mac)
 
 
 def test_no_frontend_change_no_build(mac):
@@ -215,7 +255,7 @@ def test_git_runs_as_service_user(mac):
                                      '[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     _launchd(mac)
     mac["calls"].write_text("")
-    (mac["tmp"] / "git_diff.txt").write_text("frontend/x.ts\n")
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
     r = _update(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac).splitlines()
@@ -228,12 +268,12 @@ def test_git_runs_as_service_user(mac):
 
 def test_pip_and_npm_output_land_in_the_log(mac):
     _launchd(mac)
-    (mac["tmp"] / "git_diff.txt").write_text("frontend/x.ts\n")
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
     r = _update(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     log = mac["log"].read_text()
     assert "pip-ausgabe install" in log
-    assert "npm-ausgabe install" in log and "npm-ausgabe run" in log
+    assert "npm-ausgabe ci" in log and "npm-ausgabe run" in log
     assert "Update abgeschlossen" in log
 
 
@@ -256,3 +296,13 @@ def test_package_named_twice_is_reinstalled_once(mac):
     r = _update(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     assert _calls(mac).count("--force-reinstall --no-deps litellm") == 1
+
+
+def test_frontend_uses_npm_ci_and_never_touches_the_lock_file(mac):
+    """npm install schrieb auf dem Test-Mac package-lock.json um → nächstes git pull --ff-only scheiterte."""
+    _launchd(mac)
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    assert "npm ci" in calls and "npm install" not in calls
