@@ -57,8 +57,8 @@ export function AdminCockpitPage() {
       hideHeader
     >
       <CockpitTopbar active="admin" context="Admin" />
-      <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_370px]">
-        <aside className="space-y-[10px]">
+      <div className="grid min-h-0 flex-1 gap-[10px] overflow-y-auto p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_370px] xl:overflow-hidden">
+        <aside className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
           <CockpitPanel title="Admin-Bereiche" eyebrow="Control">
             <div className="space-y-2">
               {adminLinks.map((item) => {
@@ -81,7 +81,7 @@ export function AdminCockpitPage() {
           </CockpitPanel>
         </aside>
 
-        <main className="space-y-[10px]">
+        <main className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
           <AccessNotice onOpen={() => setOverlay("access")} />
           <CockpitPanel title="Betriebszentrale" eyebrow="Ops">
             <div className="grid gap-2 md:grid-cols-3">
@@ -146,7 +146,7 @@ export function AdminCockpitPage() {
           </CockpitPanel>
         </main>
 
-        <aside className="space-y-[10px]">
+        <aside className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
           <CockpitPanel title="Status" eyebrow="Admin">
             <CockpitSectionLabel>Design</CockpitSectionLabel>
             <p className="mt-2 text-sm leading-5 text-[#d7deea]">
