@@ -52,6 +52,7 @@ exit 0
     (repo / "installer" / "lib").mkdir(parents=True)
     (repo / "installer" / "modules-mac").symlink_to(INSTALLER / "modules-mac")
     (repo / "installer" / "lib" / "mac-backend-start.sh").symlink_to(WRAPPER)
+    (repo / "installer" / "lib" / "mac-python-heal.sh").symlink_to(INSTALLER / "lib" / "mac-python-heal.sh")
     (repo / "frontend" / "dist").mkdir(parents=True)
     (repo / "frontend" / "dist" / "index.html").write_text("<html/>")
     venv = repo / ".venv" / "bin"
@@ -234,3 +235,13 @@ def test_pip_and_npm_output_land_in_the_log(mac):
     assert "pip-ausgabe install" in log
     assert "npm-ausgabe install" in log and "npm-ausgabe run" in log
     assert "Update abgeschlossen" in log
+
+
+def test_update_survives_missing_heal_helper(mac):
+    """Fehlt die Hilfsdatei (z. B. Sonderfall beim Wechsel), läuft das Update trotzdem durch und sagt es."""
+    _launchd(mac)
+    (mac["repo"] / "installer" / "lib" / "mac-python-heal.sh").unlink()
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    log = mac["log"].read_text()
+    assert "Paketprüfung übersprungen" in log and "Update abgeschlossen" in log

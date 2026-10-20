@@ -128,6 +128,8 @@ def _fake_repo(m: dict, owner_env: dict) -> tuple[Path, dict]:
     repo = m["tmp"] / "repo"
     (repo / "installer" / "lib").mkdir(parents=True)
     (repo / "installer" / "lib" / "mac-postgres-daemon.sh").symlink_to(DAEMON)
+    (repo / "frontend" / "dist").mkdir(parents=True)               # fertiges Frontend → kein Neubau (mac-update.md)
+    (repo / "frontend" / "dist" / "index.html").write_text("<html/>")
     (repo / ".venv" / "bin").mkdir(parents=True)
     (repo / ".venv" / "bin" / "pip").write_text("#!/bin/bash\nexit 0\n")
     (repo / ".venv" / "bin" / "pip").chmod(0o755)
@@ -139,7 +141,7 @@ def _fake_repo(m: dict, owner_env: dict) -> tuple[Path, dict]:
     data.mkdir()
     # Backend-plist „schon umgebaut“, damit update-mac.sh nicht 50-launchd.sh aufruft.
     bplist = m["tmp"] / "backend.plist"
-    bplist.write_text("mac-backend-start.sh --timeout-graceful-shutdown")
+    bplist.write_text("mac-backend-start.sh --timeout-graceful-shutdown HH_LOG_DIR")
     env = {**_env(m), "HH_REPO_DIR": str(repo), "HH_CONFIG_DIR": str(cfg), "HH_DATA_DIR": str(data),
            "HH_BACKEND_PLIST": str(bplist), "HH_UPDATE_LOG": str(m["tmp"] / "update.log"), **owner_env}
     return cfg, env
