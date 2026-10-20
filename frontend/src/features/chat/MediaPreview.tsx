@@ -57,7 +57,7 @@ export interface ExtractedMedia {
 }
 
 export function extractMedia(text: string): ExtractedMedia {
-  if (!text) return { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
+  if (!text) return { images: [], audio: [], videos: [], pdfs: [], epubs: [], views: [] }
   const dedupe = (xs: string[]) => Array.from(new Set(xs))
   const images = [
     ...(text.match(IMG_RE) || []),
