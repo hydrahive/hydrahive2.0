@@ -306,3 +306,24 @@ def test_frontend_uses_npm_ci_and_never_touches_the_lock_file(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac)
     assert "npm ci" in calls and "npm install" not in calls
+
+
+def test_each_line_once_when_launchd_already_writes_to_the_log(mac):
+    """Über den Knopf: launchd leitet stdout schon in die Log-Datei → jede Zeile genau einmal (Befund 21.10. .186)."""
+    _launchd(mac)
+    with mac["log"].open("a") as out:
+        r = subprocess.run(["bash", str(UPDATE)], env=_env(mac), stdout=out, stderr=subprocess.STDOUT, text=True,
+                           timeout=60)
+    assert r.returncode == 0, mac["log"].read_text()
+    log = mac["log"].read_text()
+    for line in ("Update gestartet", "Python-Pakete aktualisieren", "Update abgeschlossen"):
+        assert log.count(line) == 1, (line, log)
+
+
+def test_each_line_in_log_and_on_screen_when_run_in_terminal(mac):
+    """Im Terminal: Zeile in der Datei UND auf dem Bildschirm."""
+    _launchd(mac)
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert mac["log"].read_text().count("Update abgeschlossen") == 1
+    assert "Update abgeschlossen" in r.stdout
