@@ -47,6 +47,12 @@ def test_installer_restores_overwritten_default_file():
     assert "/var/backups/searxng-default-settings-" in text
 
 
+def test_new_install_writes_web_bing_off():
+    text = (INSTALLER / "modules" / "76-searxng.sh").read_text()
+    block = text[text.index("engines:"):text.index("EOFSETTINGS", text.index("engines:"))]
+    assert "- name: bing\n    disabled: true" in block and "- name: yandex\n    disabled: false" in block
+
+
 def test_generated_settings_enable_working_engines_without_overriding_defaults():
     text = MODULE.read_text()
     block = text.split("<<EOFSETTINGS", 1)[1].split("EOFSETTINGS", 1)[0]
@@ -82,14 +88,16 @@ search:
 """
 
 
-def test_adds_bing_and_yandex_and_keeps_everything_else(tmp_path):
+def test_adds_yandex_and_switches_web_bing_off_keeps_everything_else(tmp_path):
+    """Spec websuche-kostenlos §11.1 (Till, Variante C): Bing-Web liefert bei Fachfragen nur Treffer zum ersten Wort."""
     r, f = _merge(tmp_path, PROD_LIKE)
 
     assert r.returncode == 0, r.stderr
     assert r.stdout.strip() == "changed"
     d = yaml.safe_load(f.read_text())
-    assert {"name": "bing", "disabled": False} in d["engines"]
+    assert {"name": "bing", "disabled": True} in d["engines"]
     assert {"name": "yandex", "disabled": False} in d["engines"]
+    assert not any(e["name"] == "bing news" for e in d["engines"])                  # Nachrichten-Bing unberührt
     assert d["server"]["secret_key"] == "geheim-123"
     assert d["search"]["formats"] == ["html", "json"]
     assert d["use_default_settings"] is True
@@ -116,13 +124,32 @@ def test_respects_user_choice_for_bing(tmp_path):
     assert names.count("bing") == 1 and "yandex" in names
 
 
-def test_existing_comments_file_is_left_alone_when_complete(tmp_path):
-    """Prod nach dem Live-Fix: beide schon da → Datei byte-gleich (Kommentare bleiben)."""
+def test_old_own_bing_entry_is_switched_off(tmp_path):
+    """Stand vom 02.10. (unser eigener Eintrag {bing, disabled: false}) → aus; yandex bleibt."""
     content = PROD_LIKE + "\n# Live-Fix 02.10.\nengines:\n  - name: bing\n    disabled: false\n  - name: yandex\n    disabled: false\n"
+    r, f = _merge(tmp_path, content)
+
+    assert r.stdout.strip() == "changed"
+    d = yaml.safe_load(f.read_text())
+    assert {"name": "bing", "disabled": True} in d["engines"] and {"name": "yandex", "disabled": False} in d["engines"]
+
+
+def test_complete_file_is_left_alone(tmp_path):
+    """Schon auf dem neuen Stand → Datei byte-gleich (Kommentare bleiben)."""
+    content = PROD_LIKE + "\n# Stand 20.10.\nengines:\n  - name: bing\n    disabled: true\n  - name: yandex\n    disabled: false\n"
     r, f = _merge(tmp_path, content)
 
     assert r.stdout.strip() == "unchanged"
     assert f.read_text() == content
+
+
+def test_user_customised_bing_entry_is_kept(tmp_path):
+    """Hat der Nutzer bing mit eigenen Feldern eingetragen, bleibt seine Wahl (auch wenn an)."""
+    content = PROD_LIKE + "engines:\n  - name: bing\n    disabled: false\n    timeout: 6.0\n"
+    r, f = _merge(tmp_path, content)
+
+    d = yaml.safe_load(f.read_text())
+    assert {"name": "bing", "disabled": False, "timeout": 6.0} in d["engines"]
 
 
 @pytest.mark.parametrize("bad", ["engines: [\n", "- nur\n- liste\n", "engines: 5\n"])

@@ -213,3 +213,59 @@ von `format` kommen deshalb in `_html_text.py` bzw. einen kleinen Helfer, nicht 
 - Till legt bei app.tavily.com einen kostenlosen Schlüssel an und trägt ihn unter Einstellungen → Websuche ein.
 - Live-Abnahme auf .2: Suche aus 8.1 und ein `fetch_url(format="text")` auf den Borncity-Artikel. Den Tavily-Weg
   teste ich, indem ich SearXNG für einen Aufruf über die Tool-Config auf eine tote URL stelle.
+
+## 11. Nachtrag 20.10.2026 (nachmittags): Viele unpassende Treffer bei der allgemeinen Suche
+
+**Beobachtung:** Bei Fachfragen kommen viele unpassende Treffer. Beispiel „FLUX.2 klein ComfyUI …“: FluxFM
+(Radiosender), FLUX-GERÄTE GMBH (Pumpen), f.lux. Tavily springt dabei nicht ein, weil SearXNG ja Treffer liefert.
+
+**Messung** (Hauptserver, SearXNG `127.0.0.1:8888`, `language=de`, je Anbieter einzeln, die ersten 4 Treffer):
+
+| Anfrage | Bing | Yandex |
+|---|---|---|
+| python asyncio wait_for cancel task | python.org, Download, W3Schools, Wikipedia | asyncio.wait_for/Timeout, Task abbrechen … |
+| Wan 2.2 TI2V 5B VRAM | „Wide Area Network“ ×4 | Wan-Modelle lokal, Wan 2.2 … |
+| AfD Leak E-Mails | Wikipedia, afd.de, Umfragen | „Nach E-Mail-Leak: AfD prüft Klage“ … |
+| pgvector iterative scan hnsw | passend (GitHub pgvector) | passend |
+| FLUX.2 klein ComfyUI reference image | FluxFM, Pumpen, f.lux | PuLID Flux, Flux2 klein … |
+
+- **Ursache liegt bei Bing selbst:** Dieselbe Anfrage direkt an bing.com, mit Browser-Kennung und `mkt=de-DE`,
+  liefert dieselben unpassenden Treffer. Bing gewichtet ohne Anmeldung offenbar nur das erste starke Wort.
+  SearXNG gibt das nur weiter, ist also nicht die Ursache.
+- `language=en` macht es bei Bing schlimmer (persische Seiten), `all`/`auto` ändern nichts.
+- Weil Bing und Yandex gemischt werden, steht bei Fachfragen jeder zweite Treffer daneben.
+- **Tavily** liefert bei denselben Anfragen durchweg passende Treffer (1,4–1,6 s). Kontingent nach den
+  Messungen: 3 von 950 im Oktober.
+
+**Vorschläge** (Entscheidung Till):
+- **A – Bing aus der allgemeinen Suche nehmen**, nur Yandex für `general`. `bing news` bleibt für
+  Nachrichten. Kostenlos, eine Zeile in `settings.yml` (plus Migration im Installer). Risiko: Ist Yandex
+  gesperrt, gibt es 0 Treffer, und Tavily springt ein (das gibt es schon).
+- **B – Tavily zuerst** für `general`, SearXNG nur als Ersatz. Beste Treffer, kostet aber Kontingent
+  (1.000/Monat, Stopp bei 950). Bei rund 30 Suchen am Tag ist das am Monatsende knapp.
+- **C – A + gezielt Tavily:** Wie A. Liefert Yandex weniger als 3 Treffer, fragt zusätzlich Tavily.
+
+### 11.1 Entscheidung Till (20.10.): Variante C
+
+**SearXNG**
+- Der Anbieter `bing` (Web, Kategorie `general`) wird **ausgeschaltet** (`disabled: true`).
+- `bing news` und `bing images` sind eigene Anbieter und bleiben an; Nachrichten kommen weiter von Bing.
+- `yandex` bleibt an.
+- `installer/lib/searxng_engines.py`:
+  - schaltet `yandex` ein, falls es fehlt;
+  - setzt `bing` auf aus – aber **nur**, wenn der Eintrag noch der eigene Stand von früher ist
+    (`{name: bing, disabled: false}` ohne weitere Felder). Eine eigene Wahl des Nutzers bleibt.
+- `76-searxng.sh`: Neue Installationen schreiben `bing` gleich als aus.
+- Sicherung, Prüfung auf Treffer nach dem Neustart und Zurückspielen wie bisher (`migrations/searxng-engines.sh`).
+
+**web_search – Ergänzung durch Tavily**
+- Nur bei `category=general` (Nachrichten sind mit `bing news` gut versorgt).
+- Liefert SearXNG **weniger als 3** Treffer und ist ein Schlüssel eingetragen, wird **zusätzlich** Tavily gefragt.
+  Das passiert auch dann, wenn keine Anbieter als gesperrt gemeldet sind.
+- Ergebnis:
+  - Die SearXNG-Treffer stehen zuerst, dahinter die Tavily-Treffer ohne Doppel (gleiche URL).
+  - Insgesamt höchstens `count`.
+  - Kennung `"supplemented": "tavily"`.
+- Ist das Kontingent erschöpft oder Tavily fehlerhaft: einfach die SearXNG-Treffer, mit kurzem Hinweis
+  `supplement_note`. Kein Fehler.
+- Der bisherige Ersatz (alle gesperrt bzw. SearXNG weg → nur Tavily) bleibt unverändert.

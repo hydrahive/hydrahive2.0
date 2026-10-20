@@ -65,7 +65,7 @@ if [ "$result" != "changed" ] && [ "$unit_changed" = "0" ]; then
   rm -f "$backup"             # nichts geändert, keine Sicherung nötig
   exit 0
 fi
-[ "$result" = "changed" ] && log "Bing und Yandex in $settings eingeschaltet (Sicherung: $backup)"
+[ "$result" = "changed" ] && log "Suchanbieter in $settings angeglichen: Yandex an, Bing-Web aus (Sicherung: $backup)"
 
 log "SearXNG neu starten und prüfen"
 systemctl reset-failed searxng.service 2>/dev/null || true
