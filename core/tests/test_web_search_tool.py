@@ -44,6 +44,11 @@ class _Client:
         return _Resp(type(self).payload)
 
 
+def _only_searx(key: str) -> str:
+    """Nur die SearXNG-URL ist gesetzt – kein Tavily-Schlüssel (Spec websuche-kostenlos §5)."""
+    return "http://searx.test:8888" if key == "searxng_url" else ""
+
+
 def _ctx() -> ToolContext:
     return ToolContext(session_id="s", agent_id="a", user_id="u", workspace=Path("/tmp"))
 
@@ -51,7 +56,7 @@ def _ctx() -> ToolContext:
 def _run(monkeypatch, payload, query="wetter berlin"):
     _Client.payload = payload
     monkeypatch.setattr(ws.httpx, "AsyncClient", _Client)
-    monkeypatch.setattr(ws, "resolve_setting", lambda key: "http://searx.test:8888")
+    monkeypatch.setattr(ws, "resolve_setting", _only_searx)
     return asyncio.run(ws._execute({"query": query}, _ctx()))
 
 
@@ -109,7 +114,7 @@ def test_http_error_still_reported(monkeypatch):
             raise httpx.ConnectError("All connection attempts failed")
 
     monkeypatch.setattr(ws.httpx, "AsyncClient", Boom)
-    monkeypatch.setattr(ws, "resolve_setting", lambda key: "http://searx.test:8888")
+    monkeypatch.setattr(ws, "resolve_setting", _only_searx)
     res = asyncio.run(ws._execute({"query": "x"}, _ctx()))
 
     assert res.success is False
