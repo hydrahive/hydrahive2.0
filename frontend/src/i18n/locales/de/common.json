@@ -17,7 +17,8 @@
     "test": "Testen",
     "connect": "Verbinden",
     "disconnect": "Trennen",
-    "new": "Neu"
+    "new": "Neu",
+    "refresh": "Aktualisieren"
   },
   "status": {
     "active": "aktiv",

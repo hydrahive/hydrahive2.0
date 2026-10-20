@@ -1,5 +1,6 @@
-import type { ReactNode } from "react"
+import { useId, type ReactNode } from "react"
 import { X } from "lucide-react"
+import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
 
 interface Props {
   eyebrow?: string
@@ -20,16 +21,21 @@ interface Props {
  * Verhalten wie bei den Projekt-Overlays: bewusst KEIN Schließen bei Klick auf
  * den Backdrop — der Overlay schließt nur über den X-/Schließen-Button oder
  * Abbrechen/Speichern des jeweiligen Inhalts. So gehen keine Eingaben durch
- * einen versehentlichen Außenklick verloren.
+ * einen versehentlichen Außenklick verloren. Aus demselben Grund schließt auch
+ * Escape nicht. Tastatur: Fokus beim Öffnen hinein, Tab bleibt im Overlay,
+ * danach zurück zum Auslöser (docs/specs/ui-standard.md, Regel 6).
  */
 export function AdminOverlay({ eyebrow, title, headerActions, footer, onClose, children, maxWidthClass = "max-w-4xl" }: Props) {
+  const titelId = useId()
+  const dialogRef = useDialogFokus<HTMLDivElement>()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className={`flex h-[90dvh] w-full ${maxWidthClass} flex-col overflow-hidden rounded-[6px] border border-[#2a364b] bg-[#0e1420] shadow-2xl`}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titelId} tabIndex={-1}
+        className={`flex h-[90dvh] w-full ${maxWidthClass} flex-col overflow-hidden rounded-[6px] border border-[#2a364b] bg-[#0e1420] shadow-2xl outline-none`}>
         <header className="flex shrink-0 items-center gap-3 border-b border-[#2a364b] bg-[#131b2a] px-4 py-3">
           <div className="min-w-0">
             {eyebrow && <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">{eyebrow}</p>}
-            <h2 className="truncate text-lg font-black text-[#e8eef8]">{title}</h2>
+            <h2 id={titelId} className="truncate text-lg font-black text-[#e8eef8]">{title}</h2>
           </div>
           <div className="flex-1" />
           {headerActions}

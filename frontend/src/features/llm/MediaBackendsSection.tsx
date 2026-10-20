@@ -107,7 +107,7 @@ function BackendCard({ backend, onChange, onDelete }: {
           <div className="text-sm text-zinc-100 font-medium">{backend.name}</div>
           <div className="text-xs text-zinc-500 font-mono">{backend.type} · {backend.api_base}</div>
         </div>
-        <button onClick={onDelete} className="p-1.5 rounded text-zinc-500 hover:text-rose-400 hover:bg-white/5">
+        <button onClick={onDelete} aria-label={`${backend.name} entfernen`} title="Entfernen" className="p-1.5 rounded text-zinc-500 hover:text-rose-400 hover:bg-white/5">
           <Trash2 size={14} />
         </button>
       </div>

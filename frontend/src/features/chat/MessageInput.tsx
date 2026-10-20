@@ -153,12 +153,12 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
           className="flex-1 bg-transparent text-sm text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none py-1.5 disabled:opacity-50"
         />
         {busy && onCancel ? (
-          <button onClick={onCancel} type="button" title={t("input.stop_title")}
+          <button onClick={onCancel} type="button" title={t("input.stop_title")} aria-label={t("input.stop_title")}
             className="flex-shrink-0 p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 transition-all">
             <Square size={14} fill="currentColor" />
           </button>
         ) : (
-          <button onClick={submit} disabled={busy || (!text.trim() && files.length === 0) || disabled}
+          <button onClick={submit} disabled={busy || (!text.trim() && files.length === 0) || disabled} aria-label={t("common:actions.send")}
             className="flex-shrink-0 rounded-[4px] bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] p-2 text-white transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30">
             <Send size={15} />
           </button>

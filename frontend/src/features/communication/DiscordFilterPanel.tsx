@@ -63,8 +63,9 @@ export function DiscordFilterPanel() {
 
       {/* Token */}
       <div className="space-y-1">
-        <label className="text-xs text-zinc-400">{t("discord.filter.token_label")}</label>
+        <label htmlFor="discord-filter-token" className="text-xs text-zinc-400">{t("discord.filter.token_label")}</label>
         <input
+          id="discord-filter-token"
           type="password"
           value={tokenInput === "***" ? "" : tokenInput}
           placeholder={tokenInput === "***" ? "••••••••••••••••" : t("discord.filter.token_placeholder")}
@@ -151,8 +152,9 @@ export function DiscordFilterPanel() {
         ] as const
       ).map(([field, label, hint]) => (
         <div key={field} className="space-y-1">
-          <label className="text-xs text-zinc-400">{t(`discord.filter.${label}`)}</label>
+          <label htmlFor={`discord-filter-${field}`} className="text-xs text-zinc-400">{t(`discord.filter.${label}`)}</label>
           <textarea
+            id={`discord-filter-${field}`}
             value={toLines(cfg[field] ?? [])}
             onChange={(e) => setCfg({ ...cfg, [field]: fromLines(e.target.value) })}
             rows={3}

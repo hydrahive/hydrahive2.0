@@ -134,6 +134,7 @@ export function ChatView({ roomName, messages, agents, onSend }: ChatViewProps) 
             onClick={submit}
             disabled={!draft.trim()}
             title={t("send")}
+            aria-label={t("send")}
             className="shrink-0 p-2.5 rounded-xl bg-[#104E8B]/60 text-zinc-100 hover:bg-[#104E8B]/80 border border-white/[8%] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <Send size={15} />

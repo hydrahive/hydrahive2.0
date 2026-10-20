@@ -59,6 +59,7 @@
   "labelWebhookUrl": "Webhook URL",
   "newFlowName": "New Flow",
   "newFlowOption": "Create new flow",
+  "flowSelectLabel": "Select flow",
   "nodePalette": "Node Palette",
   "overnightSupported": "Overnight schedules are supported (e.g. 22:00–06:00)",
   "paletteDragHint": "Drag nodes onto the canvas",

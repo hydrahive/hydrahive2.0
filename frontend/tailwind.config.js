@@ -42,6 +42,12 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      // UI-Standard Regel 1 (docs/specs/ui-standard.md): zinc-500 nur als TEXTfarbe anheben.
+      // #71717a hatte auf dem Panel #1c2334 nur 3,24:1 (AA verlangt 4,5:1); #94949e: 5,22:1.
+      // Flächen/Ränder (bg-/border-/ring-zinc-500) bleiben bewusst #71717a.
+      textColor: ({ theme }) => ({
+        zinc: { ...theme("colors.zinc"), 500: "#94949e" },
+      }),
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

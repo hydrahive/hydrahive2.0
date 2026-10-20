@@ -87,6 +87,8 @@ export function ModulesPage() {
           <button
             onClick={load}
             disabled={loading || batch !== null}
+            aria-label={t("common:actions.refresh")}
+            title={t("common:actions.refresh")}
             className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors disabled:opacity-40">
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           </button>

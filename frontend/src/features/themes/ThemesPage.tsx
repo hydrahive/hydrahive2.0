@@ -38,6 +38,8 @@ export function ThemesPage() {
         </div>
         <button
           onClick={load}
+          aria-label="Aktualisieren"
+          title="Aktualisieren"
           className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>

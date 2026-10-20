@@ -17,7 +17,8 @@
     "test": "Test",
     "connect": "Connect",
     "disconnect": "Disconnect",
-    "new": "New"
+    "new": "New",
+    "refresh": "Refresh"
   },
   "status": {
     "active": "active",

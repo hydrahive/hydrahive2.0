@@ -59,6 +59,7 @@
   "labelWebhookUrl": "Webhook-URL",
   "newFlowName": "Neuer Flow",
   "newFlowOption": "Neuen Flow erstellen",
+  "flowSelectLabel": "Flow auswählen",
   "nodePalette": "Knoten-Palette",
   "overnightSupported": "Nachtschichten werden unterstuetzt (z.B. 22:00–06:00)",
   "paletteDragHint": "Knoten auf die Flaeche ziehen",
