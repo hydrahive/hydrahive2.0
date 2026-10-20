@@ -149,7 +149,26 @@ _PURPOSE_KEYS: dict[str, tuple[str, ...]] = {
     "tts": ("media_models", "tts"),
     "stt": ("media_models", "transcribe"),
     "video": ("media_models", "video"),
+    # Lehren mit Beleg (docs/specs/lehren-mit-beleg.md 10a): "" = wie Chat, "off" = aus
+    "lessons": ("lessons_model",),
 }
+
+
+LESSONS_OFF = "off"
+
+
+def resolve_lessons_model() -> str:
+    """Modell für Lehren am Sitzungsende: eigenes Feld, sonst Standard-Textmodell; "" = keine Lehren."""
+    cfg = load_config()
+    chosen = str(cfg.get("lessons_model") or "").strip()
+    if chosen == LESSONS_OFF:
+        return ""
+    return chosen or str(cfg.get("default_model") or "").strip()
+
+
+def legacy_lessons_enabled() -> bool:
+    """Alte allgemeine Lehren der Sitzungs-Zusammenfassung (crystallize) weiter schreiben? Standard: nein."""
+    return load_config().get("legacy_lessons") is True
 
 
 def get_default(purpose: str) -> str:

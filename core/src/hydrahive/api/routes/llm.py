@@ -55,6 +55,8 @@ class LlmConfig(BaseModel):
     # Lokale Media-Generierungs-Backends (ComfyUI, Switch-Wrapper).
     # Struktur: docs/specs/local-video-backends.md. Verwaltet über /api/media-backends.
     media_backends: list[dict] = []
+    # Lehren mit Beleg (docs/specs/lehren-mit-beleg.md 10a): "" = wie Chat, "off" = aus, sonst Modell-ID.
+    lessons_model: str = ""
 
 
 def _load() -> dict:

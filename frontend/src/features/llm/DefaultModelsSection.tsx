@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next"
 import { llmApi, llmModelsApi, type LlmConfig, type MediaModel, type RegistryModel } from "./api"
 import { MediaModelSelect } from "./MediaModelSelect"
 import { ModelSelect } from "./ModelSelect"
+import { LessonsModelSelect } from "./LessonsModelSelect"
+import { lessonsChoice, lessonsValue } from "./lessonsModel"
 
 // Maps purpose → config field path (mirrors backend _PURPOSE_KEYS)
 type Purpose = "chat" | "embed" | "image" | "music" | "tts" | "stt" | "video"
@@ -110,8 +112,11 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
   }
 
   async function handleChange(def: PurposeDef, model: string) {
+    await saveConfig(def.setVal(config, model))
+  }
+
+  async function saveConfig(updated: LlmConfig) {
     setError(null)
-    const updated = def.setVal(config, model)
     try {
       await llmApi.updateConfig(updated)
       onSaved()
@@ -154,6 +159,11 @@ export function DefaultModelsSection({ config, onSaved }: DefaultModelsSectionPr
           />
         )
       })}
+      <LessonsModelSelect
+        value={lessonsChoice(config)}
+        models={modelsByPurpose.chat ?? []}
+        onChange={(choice) => void saveConfig(lessonsValue(config, choice))}
+      />
     </div>
   )
 }

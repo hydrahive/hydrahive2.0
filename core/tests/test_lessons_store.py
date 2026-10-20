@@ -103,3 +103,15 @@ def test_legacy_lessons_switch(monkeypatch) -> None:
     assert _config.legacy_lessons_enabled() is False
     monkeypatch.setattr(_config, "load_config", lambda: {"legacy_lessons": True})
     assert _config.legacy_lessons_enabled() is True
+
+
+def test_lessons_model_saved_via_admin_api(client, admin_headers) -> None:
+    import json as _json
+    from hydrahive.settings import settings
+    cur = client.get("/api/llm", headers=admin_headers).json()
+    for value in ("off", "openai-codex/gpt-5.6-luna", ""):
+        r = client.put("/api/llm", headers=admin_headers, json={**cur, "lessons_model": value})
+        assert r.status_code == 200, r.text
+        assert _json.loads(settings.llm_config.read_text())["lessons_model"] == value
+    r = client.get("/api/llm/models?modality=lessons", headers=admin_headers)
+    assert r.status_code == 200 and r.json()["default"] == ""

@@ -25,6 +25,8 @@ export interface LlmConfig {
   embed_model: string
   embed_dimensions?: Record<string, number>
   media_models?: Record<string, string>
+  /** Modell für Lehren mit Beleg: "" = wie Chat, "off" = aus */
+  lessons_model?: string
 }
 
 export interface AnthropicRateLimits {

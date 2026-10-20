@@ -125,3 +125,30 @@ def test_mark_legacy_marks_only_hash_lessons_and_can_undo(tmp_path) -> None:
     assert mark_legacy.run(tmp_path) == {"files": 1, "marked": 0}                    # zweimal = gleich
     assert mark_legacy.run(tmp_path, undo=True) == {"files": 1, "marked": 1}
     assert "legacy_lesson" not in json.loads(mem.read_text())["lesson.0123456789ab"]
+
+
+# --- Runner stößt die Auswertung im Hintergrund an ---------------------------------------------------------------------
+
+def test_runner_starts_lessons_in_background(monkeypatch) -> None:
+    from hydrahive.lessons import extract as ex
+    from hydrahive.runner import _runner_lessons
+    seen = []
+
+    async def fake(aid, sid):
+        seen.append((aid, sid))
+        raise RuntimeError("darf den Runner nicht stören")
+
+    monkeypatch.setattr(ex, "extract_session", fake)
+
+    async def go():
+        await _runner_lessons.start_lessons("a", "s1")
+    asyncio.run(go())
+    assert seen == [("a", "s1")]
+
+
+def test_runner_calls_start_lessons_after_completed_turn() -> None:
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "src/hydrahive/runner/runner.py").read_text()
+    end = src.index('session_end(agent["id"], session_id, status="completed")')
+    done = src.index("yield Done(", end)
+    assert 'start_lessons(agent["id"], session_id)' in src[end:done]

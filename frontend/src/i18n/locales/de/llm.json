@@ -77,7 +77,11 @@
     "free": "kostenlos",
     "paid": "kostenpflichtig",
     "cost_unknown": "Kosten unbekannt",
-    "save_error": "Speichern fehlgeschlagen"
+    "save_error": "Speichern fehlgeschlagen",
+    "lessons": "Lehren",
+    "lessons_default": "Standard (wie Chat)",
+    "lessons_off": "Aus – keine Lehren schreiben",
+    "lessons_hint": "Am Ende einer Sitzung höchstens eine Lehre mit Beleg. Gilt ab der nächsten Sitzung."
   },
   "media_models": {
     "title": "Media-Modelle",

@@ -77,7 +77,11 @@
     "free": "free",
     "paid": "paid",
     "cost_unknown": "cost unknown",
-    "save_error": "Failed to save"
+    "save_error": "Failed to save",
+    "lessons": "Lessons",
+    "lessons_default": "Default (same as chat)",
+    "lessons_off": "Off – write no lessons",
+    "lessons_hint": "At most one evidence-backed lesson at the end of a session. Applies from the next session on."
   },
   "media_models": {
     "title": "Media models",
