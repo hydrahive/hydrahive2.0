@@ -34,11 +34,26 @@ class FakeEmbed:
         return [[float(a in t.lower()) for a in self.AXES] for t in texts]
 
 
+class FakeJudge:
+    """Ersetzt die Rückfrage beim Modell: sagt „passt“ zu allen Kandidaten (oder nach Regel), zählt Aufrufe."""
+
+    def __init__(self, rule=None):
+        self.calls, self.rule = [], rule
+
+    async def __call__(self, messages, model=None, temperature=0.0, max_tokens=200):
+        self.calls.append({"model": model, "messages": messages})
+        lines = [ln for ln in messages[1]["content"].splitlines() if ln[:1].isdigit()]
+        nums = [i + 1 for i, ln in enumerate(lines) if (self.rule or (lambda ln: True))(ln)]
+        return '{"apply": %s}' % nums
+
+
 @pytest.fixture
 def emb(monkeypatch):
     fake = FakeEmbed()
     monkeypatch.setattr(recall, "_embed", fake)
     monkeypatch.setattr(recall, "_embed_model", lambda: "test/emb")
+    monkeypatch.setattr(recall, "_judge_model", lambda: "test/judge")
+    monkeypatch.setattr(recall, "_complete", FakeJudge())
     return fake
 
 
@@ -117,6 +132,8 @@ def test_new_embed_model_recomputes(agents, emb, monkeypatch) -> None:
 
 def test_without_embed_model_word_match(agents, monkeypatch) -> None:
     monkeypatch.setattr(recall, "_embed_model", lambda: "")
+    monkeypatch.setattr(recall, "_judge_model", lambda: "test/judge")
+    monkeypatch.setattr(recall, "_complete", FakeJudge())
     _les("Wenn eine Datei im Workspace fehlt")
     _les("Wenn der Chat hängt", sid="s2")
     assert [g["cue"] for g in _pick("die Datei im Workspace finde ich nicht")] == ["Wenn eine Datei im Workspace fehlt"]
@@ -128,6 +145,7 @@ def test_embedding_error_never_breaks(agents, monkeypatch) -> None:
         raise RuntimeError("down")
     monkeypatch.setattr(recall, "_embed", boom)
     monkeypatch.setattr(recall, "_embed_model", lambda: "test/emb")
+    monkeypatch.setattr(recall, "_judge_model", lambda: "test/judge")
     _les("Wenn eine Datei fehlt")
     assert _pick("die datei finde ich nicht") == []
 
@@ -182,6 +200,8 @@ def test_runner_recall_never_raises(monkeypatch) -> None:
 
 def test_word_match_ignores_filler_words(agents, monkeypatch) -> None:
     monkeypatch.setattr(recall, "_embed_model", lambda: "")
+    monkeypatch.setattr(recall, "_judge_model", lambda: "test/judge")
+    monkeypatch.setattr(recall, "_complete", FakeJudge())
     _les("Wenn eine Datei im Workspace fehlt")
     assert _pick("wenn eine nicht dann") == []                                      # nur Füllwörter gemeinsam
     assert _pick("eine Datei bitte") == []                                          # Füllwort + ein echtes Wort
@@ -198,6 +218,8 @@ class ScaledEmbed(FakeEmbed):
 def test_similarity_is_cosine_not_raw_dot(agents, monkeypatch) -> None:
     monkeypatch.setattr(recall, "_embed", ScaledEmbed())
     monkeypatch.setattr(recall, "_embed_model", lambda: "test/emb")
+    monkeypatch.setattr(recall, "_judge_model", lambda: "test/judge")
+    monkeypatch.setattr(recall, "_complete", FakeJudge())
     _les("Wenn eine Datei fehlt!!!!!")                                              # langer Vektor, gleiche Richtung
     got = _pick("die datei finde ich nicht")
     assert len(got) == 1 and got[0]["similarity"] == pytest.approx(1.0, abs=0.001)
@@ -229,3 +251,86 @@ def test_unknown_status_is_refused(agents) -> None:
     with pytest.raises(ValueError):
         store.set_status("a", les["id"], "kaputt")
     assert store.current("a")[0]["status"] == "active"
+
+
+# --- Stufe 2: Rückfrage beim Modell (Nachtrag 20.10., Till: Weg 2) ---------------------------------------------------
+
+def test_judge_decides_among_candidates(agents, emb, monkeypatch) -> None:
+    judge = FakeJudge(rule=lambda ln: "Workspace" in ln)
+    monkeypatch.setattr(recall, "_complete", judge)
+    _les("Wenn eine Datei im Workspace fehlt")
+    _les("Wenn eine Datei auf dem Server fehlt", sid="s2")
+    got = _pick("wo ist die datei")
+    assert [g["cue"] for g in got] == ["Wenn eine Datei im Workspace fehlt"]
+    assert len(judge.calls) == 1 and judge.calls[0]["model"] == "test/judge"
+    msgs = judge.calls[0]["messages"]
+    assert "Similar words are not enough" in msgs[0]["content"] and "When unsure, it does not apply" in msgs[0]["content"]
+    assert "REQUEST: wo ist die datei" in msgs[1]["content"] and "1. WHEN Wenn eine Datei" in msgs[1]["content"]
+
+
+def test_judge_says_none_shows_none(agents, emb, monkeypatch) -> None:
+    monkeypatch.setattr(recall, "_complete", FakeJudge(rule=lambda ln: False))
+    _les("Wenn eine Datei fehlt")
+    assert _pick("wo ist die datei") == []
+    assert "shown" not in store.current("a")[0]                                       # nicht gezeigt → nicht gezählt
+
+
+def test_no_candidates_no_judge_call(agents, emb, monkeypatch) -> None:
+    judge = FakeJudge()
+    monkeypatch.setattr(recall, "_complete", judge)
+    _les("Wenn eine Datei fehlt")
+    assert _pick("wie wird das wetter morgen") == [] and judge.calls == []
+
+
+def test_at_most_five_candidates_go_to_judge(agents, emb, monkeypatch) -> None:
+    judge = FakeJudge()
+    monkeypatch.setattr(recall, "_complete", judge)
+    for i in range(7):
+        _les(f"Wenn eine Datei fehlt, Fall {i}", sid=f"s{i}")
+    assert len(_pick("meine datei fehlt hier")) == 3
+    assert judge.calls[0]["messages"][1]["content"].count("WHEN ") == 5
+
+
+def test_judge_answer_is_checked(agents, emb, monkeypatch) -> None:
+    _les("Wenn eine Datei fehlt")
+    for raw in ('{"apply": [7]}', '{"apply": ["1"]}', "kaputt", '{"apply": 1}', '{"apply": [0, -1]}'):
+        async def answer(*a, raw=raw, **k):
+            return raw
+        monkeypatch.setattr(recall, "_complete", answer)
+        assert _pick("wo ist die datei") == [], raw
+
+
+def test_judge_error_or_timeout_shows_nothing(agents, emb, monkeypatch) -> None:
+    _les("Wenn eine Datei fehlt")
+
+    async def boom(*a, **k):
+        raise RuntimeError("weg")
+    monkeypatch.setattr(recall, "_complete", boom)
+    assert _pick("wo ist die datei") == []
+
+    async def slow(*a, **k):
+        await asyncio.sleep(1)
+        return '{"apply": [1]}'
+    monkeypatch.setattr(recall, "_complete", slow)
+    monkeypatch.setattr(recall, "JUDGE_TIMEOUT", 0.05)
+    assert _pick("wo ist die datei") == []
+
+
+def test_no_judge_model_shows_nothing(agents, emb, monkeypatch) -> None:
+    judge = FakeJudge()
+    monkeypatch.setattr(recall, "_complete", judge)
+    monkeypatch.setattr(recall, "_judge_model", lambda: "")
+    _les("Wenn eine Datei fehlt")
+    assert _pick("wo ist die datei") == [] and judge.calls == []
+
+
+def test_candidate_floor_is_lower_than_old_threshold() -> None:
+    assert recall.CANDIDATE_FLOOR == 0.40 and recall.CANDIDATES == 5 and recall.LIMIT == 3
+
+
+def test_judge_model_is_the_lessons_model(monkeypatch) -> None:
+    from hydrahive.llm import _config
+    monkeypatch.setattr(_config, "load_config", lambda: {"default_model": "x/chat", "lessons_model": "y/lessons"})
+    assert recall._judge_model() == "y/lessons"
+    monkeypatch.setattr(_config, "load_config", lambda: {"default_model": "x/chat", "lessons_model": "off"})
+    assert recall._judge_model() == ""
