@@ -293,7 +293,7 @@ def test_supplement_quota_or_error_keeps_searx_hits(searx, tavily):
     tavily["allow"] = False
     res = _search()
     assert res.success is True and res.output["count"] == 1 and tavily["calls"] == []
-    assert "Kontingent" in res.output["supplement_note"]
+    assert "Monatskontingent" in res.output["supplement_note"]
     tavily["allow"] = True
     tavily["raise"] = ws._tavily.TavilyError("Tavily: HTTP 500")
     res = _search()
@@ -355,3 +355,23 @@ def test_tavily_error_never_leaks_key(searx, tavily):
     assert "HTTP 401" in res.error
     assert "duckduckgo (CAPTCHA)" in res.error
     assert "GEHEIM" not in res.error
+
+
+def test_full_outage_uses_replacement_not_supplement(searx, tavily):
+    """Alles gesperrt + 0 Treffer → wie bisher nur Tavily (provider), genau ein Aufruf, keine Ergänzung obendrauf."""
+    searx.answers = [{"results": [], "unresponsive_engines": BLOCKED}]
+    res = _search()
+    assert res.output["provider"] == "tavily" and "supplemented" not in res.output and len(tavily["calls"]) == 1
+
+
+def test_supplement_without_new_urls_changes_nothing(searx, tavily):
+    searx.answers = [{"results": [HIT]}]
+    tavily["answer"] = {"results": [{"title": "dup", "url": "https://wetter.example", "snippet": "", "source": "tavily"}]}
+    res = _search()
+    assert res.output["count"] == 1 and "supplemented" not in res.output
+
+
+def test_news_fallback_is_not_supplemented(searx, tavily):
+    searx.answers = [{"results": []}, {"results": [HIT]}]
+    res = _search(time_range="week")
+    assert res.output["fallback"] == "news" and tavily["calls"] == []
