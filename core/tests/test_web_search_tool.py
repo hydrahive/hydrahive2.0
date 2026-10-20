@@ -297,3 +297,29 @@ def test_tavily_error_never_leaks_key(searx, tavily):
     assert "HTTP 401" in res.error
     assert "duckduckgo (CAPTCHA)" in res.error
     assert "GEHEIM" not in res.error
+
+
+# Live-Abnahme 20.10.2026: SearXNG lieferte von Google einen Treffer mit kaputter URL
+# „http:///url?opi=89978449&q=…“ (ohne Host). Solche Treffer sind für den Agenten wertlos.
+@pytest.mark.parametrize("bad_url", ["http:///url?opi=89978449&q=CAES", "", "/url?q=x", "javascript:alert(1)",
+                                     "ftp://example.com/x", "https://"])
+def test_hits_without_usable_url_are_dropped(searx, bad_url):
+    searx.answers = [{"results": [{**HIT, "url": bad_url, "engine": "google"}, {**HIT, "engine": "bing"}]}]
+    res = _search()
+    assert [h["source"] for h in res.output["results"]] == ["bing"]
+    assert res.output["count"] == 1
+
+
+def test_only_broken_hits_count_as_no_hits(searx):
+    searx.answers = [{"results": [{**HIT, "url": "http:///url?q=x"}], "unresponsive_engines": BLOCKED}]
+    res = _search()
+    assert res.success is False
+    assert "gesperrt" in res.error
+
+
+def test_count_applies_after_dropping_broken_hits(searx):
+    broken = {**HIT, "url": "http:///url?q=x"}
+    good = [{**HIT, "url": f"https://ok{i}.example"} for i in range(3)]
+    searx.answers = [{"results": [broken, broken, *good]}]
+    res = _search(count=3)
+    assert [h["url"] for h in res.output["results"]] == [g["url"] for g in good]

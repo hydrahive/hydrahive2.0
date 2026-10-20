@@ -19,6 +19,8 @@
 
 This README is a concise product overview. The code-backed capability list, dependencies, limitations and source references are in **[docs/FEATURES.md](docs/FEATURES.md)**.
 
+**Community / Support:** [Discord](https://discord.gg/DfyzqtPpYF)
+
 ---
 
 ## What HydraHive is
