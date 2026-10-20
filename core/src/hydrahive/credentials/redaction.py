@@ -143,4 +143,5 @@ def scrub_result(result: ToolResult, secrets: Iterable[str] | None = None) -> To
         output=_scrub_value(result.output, secrets),
         error=_scrub_value(result.error, secrets),
         metadata=_scrub_value(result.metadata, secrets),
+        result_type=result.result_type,  # sonst gehen module_view/Medien-URLs verloren (Befund 20.10.2026)
     )
