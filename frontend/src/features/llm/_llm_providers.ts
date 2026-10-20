@@ -46,6 +46,11 @@ export const KNOWN_PROVIDERS = [
     models: [],
   },
   {
+    // OpenAI-kompatibel, LiteLLM-Route "deepseek/" (api-docs.deepseek.com)
+    id: "deepseek", name: "DeepSeek", placeholder: "sk-...",
+    models: [],
+  },
+  {
     // Lokaler/Remote-Ollama: user-eigener Endpoint (api_base). Kein Key nötig
     // (nur Ollama-Cloud/geschützte Instanzen). needsApiBase blendet das
     // Endpoint-Feld ein und macht den Key optional.

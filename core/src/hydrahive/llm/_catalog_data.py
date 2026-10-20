@@ -16,6 +16,8 @@ PROVIDER_ENDPOINTS = {
     "groq":       {"url": "https://api.groq.com/openai/v1/models", "auth": "bearer"},
     "mistral":    {"url": "https://api.mistral.ai/v1/models", "auth": "bearer"},
     "openrouter": {"url": "https://openrouter.ai/api/v1/models", "auth": "bearer"},
+    # DeepSeek: OpenAI-kompatibel (api-docs.deepseek.com, 20.10.2026)
+    "deepseek":   {"url": "https://api.deepseek.com/models", "auth": "bearer"},
     "gemini":     {"url": "https://generativelanguage.googleapis.com/v1beta/models",
                    "auth": "query", "query_param": "key"},
     # MiniMax hat keinen öffentlichen /models-Endpoint; Codex nutzt den
@@ -49,6 +51,8 @@ STATIC_MODELS = {
         "claude-haiku-4-5", "claude-sonnet-4-5", "claude-3-7-sonnet-20250219",
         "claude-3-5-haiku-20241022",
     ],
+    # DeepSeek: Ersatz, falls /models nicht erreichbar ist (offizielle Namen laut Doku, 20.10.2026).
+    "deepseek": ["deepseek/deepseek-flash", "deepseek/deepseek-v4-pro"],
     "minimax": [
         "MiniMax-Text-01", "MiniMax-M2", "MiniMax-M2.1", "MiniMax-M2.7", "MiniMax-M1",
         "abab6.5s-chat", "abab6.5-chat", "abab5.5-chat", "abab5.5s-chat",
@@ -64,6 +68,7 @@ PROVIDER_PREFIX = {
     # vom user-eigenen Endpoint (keine STATIC_MODELS-Hardcodes).
     "ollama": "ollama/",
     "openai-codex": "openai-codex/",
+    "deepseek": "deepseek/",
 }
 
 # Interne Metadata-Tabelle. Per Modell-ID (mit Prefix) → Eigenschaften.

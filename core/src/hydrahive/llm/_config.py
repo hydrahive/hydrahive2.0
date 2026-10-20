@@ -14,6 +14,7 @@ _ENV_MAP = {
     "mistral": "MISTRAL_API_KEY",
     "gemini": "GEMINI_API_KEY",
     "nvidia": "NVIDIA_NIM_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
     # Ollama kennt optional einen Key (Ollama-Cloud / geschützte Instanzen);
     # lokal läuft es ohne Key. Trotzdem in _ENV_MAP, damit ein gesetzter Key
     # via provider_env_vars() automatisch in der shell_exec-Denylist landet.
