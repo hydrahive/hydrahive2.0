@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
+vi.mock("@/shared/api-client", () => ({ api: { get: vi.fn() } }))
 import { ModuleViewFrame } from "./ModuleViewFrame"
 
 describe("ModuleViewFrame", () => {
