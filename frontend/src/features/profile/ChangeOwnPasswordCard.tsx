@@ -36,7 +36,7 @@ export function ChangeOwnPasswordCard() {
         <label htmlFor="profile-new-password" className="block text-xs font-medium text-zinc-400">{t("password.new_label")}</label>
         <input id="profile-new-password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} required minLength={8}
           className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm" />
-        <p className="text-[11px] text-zinc-600">{t("password.min_length_hint")}</p>
+        <p className="text-[11px] text-zinc-500">{t("password.min_length_hint")}</p>
       </div>
       {error && (
         <p className="text-sm text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-lg px-3 py-2">{error}</p>

@@ -65,7 +65,7 @@ function contextTitle(model: OllamaModel, t: (key: string) => string): string | 
 
 export function OllamaModelList({ models, jobs, probeJobs, benchmarkJobs, busyModel, onInstall, onDelete, onProbe, onBenchmark, onUse }: Props) {
   const { t } = useTranslation("llm")
-  if (!models.length) return <p className="py-6 text-center text-sm text-zinc-600">{t("ollama.no_variants")}</p>
+  if (!models.length) return <p className="py-6 text-center text-sm text-zinc-500">{t("ollama.no_variants")}</p>
 
   return (
     <div className="divide-y divide-white/[6%]">

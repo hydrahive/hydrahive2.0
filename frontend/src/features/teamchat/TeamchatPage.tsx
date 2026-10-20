@@ -81,7 +81,7 @@ export function TeamchatPage() {
           <div className="flex flex-col items-center justify-center flex-1 gap-3 text-center">
             <MessagesSquare size={56} className="text-zinc-700" />
             <p className="text-sm text-zinc-400">{t("no_room_selected")}</p>
-            <p className="text-xs text-zinc-600">{t("no_room_selected_hint")}</p>
+            <p className="text-xs text-zinc-500">{t("no_room_selected_hint")}</p>
           </div>
         )}
       </div>

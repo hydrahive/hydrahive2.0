@@ -86,7 +86,7 @@ export function DiscordToolChannels({ value, moderated, adminGuilds, onChange, o
           {t("discord.tools.reload")}
         </button>
       </div>
-      <p className="text-[10px] text-zinc-600">{t("discord.tools.hint")}</p>
+      <p className="text-[10px] text-zinc-500">{t("discord.tools.hint")}</p>
 
       <div className="max-h-56 overflow-y-auto rounded-md border border-white/[8%] bg-white/[2%] p-2 space-y-2">
         {connected === false && (
@@ -102,7 +102,7 @@ export function DiscordToolChannels({ value, moderated, adminGuilds, onChange, o
           return (
           <div key={group} className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <p className="text-[10px] uppercase tracking-wide text-zinc-600">{group}</p>
+              <p className="text-[10px] uppercase tracking-wide text-zinc-500">{group}</p>
               {firstOfGuild && guild && (
                 <DiscordGuildAdminToggle guild={guild} checked={admin.has(guild.id)} onToggle={toggleAdmin} />
               )}

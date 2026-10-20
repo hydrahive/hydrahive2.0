@@ -234,7 +234,7 @@ export function AgentPixelMonitor({ agentTools, activeAgents, doneAgents, scope,
         ))}
       </div>
       {isEmpty && (
-        <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-600 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-500 pointer-events-none">
           {scope === "all" ? "keine aktiven Agenten" : "kein aktiver Agent in diesem Chat"}
         </div>
       )}

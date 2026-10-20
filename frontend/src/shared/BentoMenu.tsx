@@ -55,7 +55,7 @@ export function BentoMenu({ open, onClose }: Props) {
           if (!groupItems.length) return null
           return (
             <div key={group.key} className="mb-3 last:mb-0">
-              <p className="text-[9px] uppercase tracking-[0.18em] text-zinc-600 font-semibold px-1 mb-1.5">
+              <p className="text-[9px] uppercase tracking-[0.18em] text-zinc-500 font-semibold px-1 mb-1.5">
                 {t(`groups.${group.labelKey}`)}
               </p>
               <div className="grid grid-cols-4 gap-1.5">

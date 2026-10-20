@@ -28,7 +28,7 @@ export function AgentLinkKnownAgents({ agents, locale }: Props) {
               {a.name || a.agent_id}
             </span>
             {a.type && (
-              <span className="whitespace-nowrap text-[10px] text-[#5b6675]">{a.type}</span>
+              <span className="whitespace-nowrap text-[10px] text-[#7d8aa0]">{a.type}</span>
             )}
             <span className="whitespace-nowrap font-mono text-[#8d9ab0]" title={a.last_seen}>
               {relTime(a.last_seen, locale)}

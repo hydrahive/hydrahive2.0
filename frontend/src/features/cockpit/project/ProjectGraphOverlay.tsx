@@ -70,7 +70,7 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
           {/* Steuerung: Verzeichnis-Auswahl + Build */}
           <div className="space-y-3">
             <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3">
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">
                 Zu scannen{selected.length ? ` (${selected.length})` : ""}
               </p>
               {selected.length === 0 ? (
@@ -93,7 +93,7 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
               )}
               {suggestions.length > 0 && (
                 <div className="mt-3">
-                  <p className="mb-1 text-[10px] uppercase tracking-[0.12em] text-[#68758a]">Vorschläge</p>
+                  <p className="mb-1 text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0]">Vorschläge</p>
                   <div className="flex flex-wrap gap-1.5">
                     {suggestions.filter((d) => !selected.includes(d)).map((dir) => (
                       <button
@@ -124,20 +124,20 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
 
             {metrics?.nodes ? (
               <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3 text-xs text-[#c3ccdd]">
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Kennzahlen</p>
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Kennzahlen</p>
                 <p>{metrics.nodes} Knoten · {metrics.edges} Kanten · {metrics.communities} Communities</p>
-                {status?.built_at ? <p className="mt-1 text-[10px] text-[#68758a]">Stand: {new Date(status.built_at).toLocaleString()}</p> : null}
+                {status?.built_at ? <p className="mt-1 text-[10px] text-[#7d8aa0]">Stand: {new Date(status.built_at).toLocaleString()}</p> : null}
               </div>
             ) : null}
 
             {god.length ? (
               <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3">
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Zentrale Knoten</p>
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Zentrale Knoten</p>
                 <ul className="space-y-0.5 text-xs text-[#c3ccdd]">
                   {god.map((g) => (
                     <li key={g.name} className="flex justify-between gap-2">
                       <span className="truncate font-mono">{g.name}</span>
-                      <span className="text-[#68758a]">{g.edges}</span>
+                      <span className="text-[#7d8aa0]">{g.edges}</span>
                     </li>
                   ))}
                 </ul>

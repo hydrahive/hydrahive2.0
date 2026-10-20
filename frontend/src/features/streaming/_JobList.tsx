@@ -50,7 +50,7 @@ export function JobList({ jobs, onDeleted }: Props) {
         {hasFinished && (
           <button
             onClick={deleteFinished}
-            className="text-[10px] text-zinc-600 hover:text-rose-400 transition-colors flex items-center gap-1"
+            className="text-[10px] text-zinc-500 hover:text-rose-400 transition-colors flex items-center gap-1"
           >
             <Trash2 size={11} />
             Fertige löschen
@@ -81,7 +81,7 @@ export function JobList({ jobs, onDeleted }: Props) {
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-[10px] text-zinc-600">
+              <span className="text-[10px] text-zinc-500">
                 {job.status === "downloading" ? `${job.progress}%` : job.status}
               </span>
               {CANCELLABLE.has(job.status) && (

@@ -59,7 +59,7 @@ export function SpecialistsTab({ project, onSaved }: Props) {
       )}
 
       {specialists.length === 0 ? (
-        <p className="text-xs text-zinc-600">{t("specialists.none")}</p>
+        <p className="text-xs text-zinc-500">{t("specialists.none")}</p>
       ) : (
         <div className="space-y-1">
           {specialists.map((s) => (
@@ -71,7 +71,7 @@ export function SpecialistsTab({ project, onSaved }: Props) {
                 className="accent-[var(--hh-accent-from)] w-3.5 h-3.5"
               />
               <span className="text-xs text-zinc-200">{s.name}</span>
-              <span className="text-[10px] text-zinc-600 font-mono">{s.id}</span>
+              <span className="text-[10px] text-zinc-500 font-mono">{s.id}</span>
             </label>
           ))}
         </div>

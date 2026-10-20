@@ -107,10 +107,10 @@ export function MediaPostProduction({ projectId }: Props) {
           </button>
           <span className="font-mono text-[11px] text-rose-300">{timecode(cursorTime)}</span>
           {timeline && (timeline.cut_points?.length ?? 0) > 0 ? (
-            <span className="text-[10px] uppercase tracking-[0.12em] text-[#68758a]">· {timeline.cut_points!.length} Schnitte</span>
+            <span className="text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0]">· {timeline.cut_points!.length} Schnitte</span>
           ) : null}
 
-          <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-[#68758a]">
+          <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0]">
             {loading ? "Lade…" : saving ? "Speichere…" : "Gespeichert"}
           </span>
         </div>
@@ -161,7 +161,7 @@ export function MediaPostProduction({ projectId }: Props) {
       {/* Rechte Spalte: Clip-Bibliothek + fertige Filme */}
       <aside className="min-w-0">
         <div className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#68758a]">Bibliothek</p>
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Bibliothek</p>
           <ClipLibrary projectId={projectId} onAdd={(item, trackId, url) => void addClip(item, trackId, url)} disabled={!timeline || saving} />
         </div>
         <ExportLibrary exports={cutExport.exports} downloadUrl={cutExport.downloadUrl} onRemove={(name) => void cutExport.remove(name)} />

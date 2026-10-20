@@ -9,7 +9,7 @@ import type { ComputeNode } from "./types"
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-[#1c2637] py-1.5 last:border-0">
-      <span className="text-[11px] uppercase tracking-wider text-[#5b6675]">{label}</span>
+      <span className="text-[11px] uppercase tracking-wider text-[#7d8aa0]">{label}</span>
       <span className="min-w-0 truncate text-right text-sm text-[#d4deeb]">{value}</span>
     </div>
   )
@@ -71,13 +71,13 @@ export function NodeDetailDialog({ node, onClose }: { node: ComputeNode; onClose
           <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#69d7ff]">{t("detail.fingerprint")}</h3>
           {node.certificate_fingerprint
             ? <AdminCodeBlock>{node.certificate_fingerprint}</AdminCodeBlock>
-            : <p className="text-xs text-[#5b6675]">{t("detail.no_fingerprint")}</p>}
+            : <p className="text-xs text-[#7d8aa0]">{t("detail.no_fingerprint")}</p>}
         </section>
 
         <section>
           <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#69d7ff]">{t("detail.health")}</h3>
           {node.health_errors.length === 0
-            ? <p className="text-xs text-[#5b6675]">{t("detail.no_health_errors")}</p>
+            ? <p className="text-xs text-[#7d8aa0]">{t("detail.no_health_errors")}</p>
             : (
               <ul className="space-y-1">
                 {node.health_errors.map((err, i) => (
@@ -90,7 +90,7 @@ export function NodeDetailDialog({ node, onClose }: { node: ComputeNode; onClose
         <section>
           <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#69d7ff]">{t("detail.labels")}</h3>
           {labelEntries.length === 0
-            ? <p className="text-xs text-[#5b6675]">{t("detail.no_labels")}</p>
+            ? <p className="text-xs text-[#7d8aa0]">{t("detail.no_labels")}</p>
             : (
               <div className="flex flex-wrap gap-1.5">
                 {labelEntries.map(([k, v]) => (

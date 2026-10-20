@@ -36,7 +36,7 @@ export function PeersSection() {
         <div className="flex items-center gap-2">
           <Server size={15} className="text-violet-400" />
           <span className="text-sm font-medium text-zinc-200">{t("peers.title")}</span>
-          <span className="text-xs text-zinc-600 ml-1">{t("peers.subtitle")}</span>
+          <span className="text-xs text-zinc-500 ml-1">{t("peers.subtitle")}</span>
         </div>
         <button
           onClick={() => setShowPair(true)}
@@ -48,11 +48,11 @@ export function PeersSection() {
       </div>
 
       {loading ? (
-        <div className="text-xs text-zinc-600 py-4 text-center">{t("loading")}</div>
+        <div className="text-xs text-zinc-500 py-4 text-center">{t("loading")}</div>
       ) : peers.length === 0 ? (
         <div className="rounded-xl border border-white/[4%] bg-zinc-950/30 py-8 text-center">
           <Server size={24} className="text-zinc-700 mx-auto mb-2" />
-          <p className="text-xs text-zinc-600">{t("peers.empty")}</p>
+          <p className="text-xs text-zinc-500">{t("peers.empty")}</p>
         </div>
       ) : (
         <div className="space-y-2">

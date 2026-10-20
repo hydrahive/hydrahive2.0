@@ -42,7 +42,7 @@ export function ClientConnectionsSection() {
         <div className="flex items-center gap-2">
           <Link2 size={15} className="text-violet-400" />
           <span className="text-sm font-medium text-zinc-200">{t("clients.title")}</span>
-          <span className="text-xs text-zinc-600 ml-1">{t("clients.subtitle")}</span>
+          <span className="text-xs text-zinc-500 ml-1">{t("clients.subtitle")}</span>
         </div>
         <button
           onClick={() => setShowNew(true)}
@@ -54,11 +54,11 @@ export function ClientConnectionsSection() {
       </div>
 
       {loading ? (
-        <div className="text-xs text-zinc-600 py-4 text-center">{t("clients.loading")}</div>
+        <div className="text-xs text-zinc-500 py-4 text-center">{t("clients.loading")}</div>
       ) : clients.length === 0 ? (
         <div className="rounded-xl border border-white/[4%] bg-zinc-950/30 py-8 text-center">
           <Link2 size={24} className="text-zinc-700 mx-auto mb-2" />
-          <p className="text-xs text-zinc-600">{t("clients.empty")}</p>
+          <p className="text-xs text-zinc-500">{t("clients.empty")}</p>
           <button
             onClick={() => setShowNew(true)}
             className="mt-2 text-xs text-violet-400 hover:text-violet-300 transition-colors"
@@ -77,12 +77,12 @@ export function ClientConnectionsSection() {
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" />
                 <div>
                   <span className="text-sm text-zinc-200">{c.name}</span>
-                  <span className="ml-2 text-xs text-zinc-600">·  {formatDate(c.created_at)}</span>
+                  <span className="ml-2 text-xs text-zinc-500">·  {formatDate(c.created_at)}</span>
                 </div>
               </div>
               <button
                 onClick={() => handleDelete(c.id, c.name)}
-                className="p-1 text-zinc-600 hover:text-red-400 transition-colors"
+                className="p-1 text-zinc-500 hover:text-red-400 transition-colors"
                 title={t("clients.remove_title")}
               >
                 <Trash2 size={13} />

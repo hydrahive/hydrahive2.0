@@ -82,7 +82,7 @@ export function MinimaxUsageCard() {
             <div key={m.label} className="space-y-0.5">
               <div className="flex items-center gap-2 text-[11px]">
                 <span className="text-zinc-300 truncate flex-1 min-w-0" title={m.label}>{m.label}</span>
-                <span className="text-zinc-600 text-[9px] whitespace-nowrap">
+                <span className="text-zinc-500 text-[9px] whitespace-nowrap">
                   {m.interval_type === "5h" ? "5h" : "tägl."} · {m.unit}
                 </span>
                 <span className="text-zinc-500 tabular-nums whitespace-nowrap">
@@ -95,7 +95,7 @@ export function MinimaxUsageCard() {
               <div className="h-1 bg-white/[5%] rounded-full overflow-hidden">
                 <div className={`h-full transition-all ${pctTone(m.interval_pct)}`} style={{ width: `${m.interval_pct}%` }} />
               </div>
-              <p className="text-[9.5px] text-zinc-600">
+              <p className="text-[9.5px] text-zinc-500">
                 {m.interval_type === "5h" ? "Rolling Reset" : "Reset"} {fmtResetIn(m.interval_reset_in_s)}
                 {m.weekly_total > 0 && (
                   <> · Woche: {m.weekly_used.toLocaleString()} / {m.weekly_total.toLocaleString()} ({m.weekly_pct}%)</>

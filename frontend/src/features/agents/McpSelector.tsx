@@ -12,7 +12,7 @@ export function McpSelector({ available, selected, onChange }: Props) {
   const { t } = useTranslation("agents")
   const { t: tCommon } = useTranslation("common")
   if (available.length === 0) {
-    return <p className="text-xs text-zinc-600">{t("errors.no_servers_yet")}</p>
+    return <p className="text-xs text-zinc-500">{t("errors.no_servers_yet")}</p>
   }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1">

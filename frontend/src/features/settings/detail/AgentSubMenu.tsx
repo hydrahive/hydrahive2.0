@@ -70,7 +70,7 @@ export function AgentSubMenu({ activeItem, onSelect }: Props) {
         {loading ? (
           <div className="h-20 animate-pulse rounded-lg bg-zinc-900/50" />
         ) : agents.length === 0 ? (
-          <p className="px-3 py-6 text-center text-xs text-zinc-600">Keine Agenten.</p>
+          <p className="px-3 py-6 text-center text-xs text-zinc-500">Keine Agenten.</p>
         ) : (
           agents.map((a) => {
             const Icon = TYPE_ICON[a.type] ?? Wrench
@@ -100,7 +100,7 @@ export function AgentSubMenu({ activeItem, onSelect }: Props) {
                     </span>
                     <p className={`truncate text-sm ${active ? "text-white" : "text-zinc-300"}`}>{a.name}</p>
                   </div>
-                  <p className="mt-0.5 truncate font-mono text-[10px] text-zinc-600">{a.llm_model}</p>
+                  <p className="mt-0.5 truncate font-mono text-[10px] text-zinc-500">{a.llm_model}</p>
                 </div>
                 {dim && (
                   <span className="shrink-0 rounded-full border border-zinc-500/20 bg-zinc-500/[8%] px-1.5 py-0.5 text-[10px] text-zinc-500">off</span>

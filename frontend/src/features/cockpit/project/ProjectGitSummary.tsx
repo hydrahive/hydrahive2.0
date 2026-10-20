@@ -99,7 +99,7 @@ export function ProjectGitSummary({ projectId }: Props) {
     <div>
       <div className="mb-3 flex justify-end"><CockpitButton disabled={!projectId || loading} onClick={() => void reload()}>Refresh</CockpitButton></div>
       {loading ? <p className="text-sm text-[#8d9ab0]">Lade Git-Status…</p> : null}
-      {!loading && repos.length === 0 ? <p className="text-sm text-zinc-600">Keine Repos im Projekt.</p> : null}
+      {!loading && repos.length === 0 ? <p className="text-sm text-zinc-500">Keine Repos im Projekt.</p> : null}
       {error ? <p className="mb-2 text-xs text-rose-300">{error}</p> : null}
       {message ? <p className="mb-2 text-xs text-emerald-300">{message}</p> : null}
 
@@ -121,7 +121,7 @@ export function ProjectGitSummary({ projectId }: Props) {
                   {status.initialized ? "git aktiv" : "kein git"}
                 </span>
               </div>
-              <p className="mt-0.5 truncate text-[11px] text-zinc-600">
+              <p className="mt-0.5 truncate text-[11px] text-zinc-500">
                 {status.branch ?? "—"} · ↑{status.ahead ?? 0} ↓{status.behind ?? 0}
               </p>
               {status.commits && status.commits.length > 0 ? (
@@ -137,7 +137,7 @@ export function ProjectGitSummary({ projectId }: Props) {
                 <CockpitButton disabled={!canPull || busyAction !== null} onClick={() => void runAction("pull")}>Pull</CockpitButton>
                 <CockpitButton disabled={!canPush || busyAction !== null} onClick={() => void runAction("push")}>Push</CockpitButton>
               </div>
-              {!activeRepo.has_token ? <p className="mt-2 text-[11px] text-zinc-600">Push benötigt ein hinterlegtes Git-Token.</p> : null}
+              {!activeRepo.has_token ? <p className="mt-2 text-[11px] text-zinc-500">Push benötigt ein hinterlegtes Git-Token.</p> : null}
             </div>
           ) : null}
         </div>
@@ -155,7 +155,7 @@ export function ProjectGitSummary({ projectId }: Props) {
             <p className="truncate text-[11px] text-zinc-500">
               Repo: {giteaStatus.owner}/{giteaStatus.repo_name}
             </p>
-            {giteaStatus.web_url ? <p className="truncate text-[11px] text-zinc-600">{giteaStatus.web_url}</p> : null}
+            {giteaStatus.web_url ? <p className="truncate text-[11px] text-zinc-500">{giteaStatus.web_url}</p> : null}
             <div className="mt-2 flex flex-wrap gap-2">
               <CockpitButton disabled={!canCreateGitea || busyAction !== null} onClick={() => void runAction("gitea-create")}>Repo erstellen</CockpitButton>
               <CockpitButton disabled={!canUseGitea || busyAction !== null} onClick={() => void runAction("gitea-push")}>Gitea Push</CockpitButton>
@@ -163,7 +163,7 @@ export function ProjectGitSummary({ projectId }: Props) {
             </div>
           </>
         ) : (
-          <p className="text-[11px] text-zinc-600">Gitea-Extension ist nicht installiert oder nicht lokal konfiguriert.</p>
+          <p className="text-[11px] text-zinc-500">Gitea-Extension ist nicht installiert oder nicht lokal konfiguriert.</p>
         )}
       </div>
     </div>

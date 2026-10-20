@@ -21,7 +21,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   if (value === null || value === undefined || value === "") return null
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-[#1c2637] py-1.5 last:border-0">
-      <span className="text-[11px] uppercase tracking-wider text-[#5b6675]">{label}</span>
+      <span className="text-[11px] uppercase tracking-wider text-[#7d8aa0]">{label}</span>
       <span className="min-w-0 truncate text-right text-sm text-[#d4deeb]">{value}</span>
     </div>
   )
@@ -126,14 +126,14 @@ export function JobDetailDialog({ job, onClose, onChanged }: Props) {
           {loading ? (
             <AdminFeedback loading>{t("loading")}</AdminFeedback>
           ) : events.length === 0 ? (
-            <p className="text-xs text-[#5b6675]">{t("detail.no_events")}</p>
+            <p className="text-xs text-[#7d8aa0]">{t("detail.no_events")}</p>
           ) : (
             <ol className="space-y-1.5">
               {events.map((event) => (
                 <li key={event.event_id} className="flex items-center gap-3 rounded-[4px] border border-[#1c2637] bg-[#0d1420] px-3 py-1.5">
-                  <span className="font-mono text-[10px] text-[#5b6675]">{t("event.sequence", { sequence: event.sequence })}</span>
+                  <span className="font-mono text-[10px] text-[#7d8aa0]">{t("event.sequence", { sequence: event.sequence })}</span>
                   <span className="flex-1 text-xs text-[#d4deeb]">{eventLabel(event, t)}</span>
-                  <span className="text-[10px] text-[#5b6675]">{shortDateTime(event.created_at)}</span>
+                  <span className="text-[10px] text-[#7d8aa0]">{shortDateTime(event.created_at)}</span>
                 </li>
               ))}
             </ol>

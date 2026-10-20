@@ -94,7 +94,7 @@ export function ModelTab({ draft, catalog, onChange }: Props) {
 function Field({ label, hint, hintTone, children }: {
   label: string; hint?: string; hintTone?: "warn"; children: React.ReactNode
 }) {
-  const hintClass = hintTone === "warn" ? "text-amber-400" : "text-zinc-600"
+  const hintClass = hintTone === "warn" ? "text-amber-400" : "text-zinc-500"
   return (
     <div className="space-y-0.5">
       <label className="block text-[10px] font-medium text-zinc-500">{label}</label>

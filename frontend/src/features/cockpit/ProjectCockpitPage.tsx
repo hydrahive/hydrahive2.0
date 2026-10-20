@@ -254,7 +254,7 @@ export function ProjectCockpitPage() {
               onSessionRequestHandled={() => setOpenSessionRequest(null)}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-zinc-600">Bitte ein Projekt auswählen.</div>
+            <div className="flex h-full items-center justify-center text-sm text-zinc-500">Bitte ein Projekt auswählen.</div>
           )}
         </main>
 

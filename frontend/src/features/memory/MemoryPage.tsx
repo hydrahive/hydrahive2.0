@@ -59,7 +59,7 @@ export function MemoryPage() {
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center flex-1 text-sm text-zinc-600">
+          <div className="flex items-center justify-center flex-1 text-sm text-zinc-500">
             {t("select_agent")}
           </div>
         )}
@@ -85,7 +85,7 @@ export function MemoryPage() {
                 }`}
               >
                 <p className="truncate">{a.name}</p>
-                <p className="text-[10px] text-zinc-600 mt-0.5 font-mono truncate">{a.id}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5 font-mono truncate">{a.id}</p>
               </button>
             ))}
           </div>

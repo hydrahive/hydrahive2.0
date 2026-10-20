@@ -31,20 +31,20 @@ export function SessionsTab({ active }: { active: boolean }) {
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
           {t("sessions.title")}
         </span>
-        <span className="text-[10px] text-zinc-600 ml-auto">{sessions.length} {t("entries")}</span>
+        <span className="text-[10px] text-zinc-500 ml-auto">{sessions.length} {t("entries")}</span>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">{t("loading")}</div>
+        <div className="flex items-center justify-center h-32 text-zinc-500 text-sm">{t("loading")}</div>
       ) : sessions.length === 0 ? (
-        <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">
+        <div className="flex items-center justify-center h-32 text-zinc-500 text-sm">
           {mirrorActive ? t("sessions.no_sessions") : t("not_configured")}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-white/[6%] text-[10px] uppercase tracking-wider text-zinc-600">
+              <tr className="border-b border-white/[6%] text-[10px] uppercase tracking-wider text-zinc-500">
                 <th className="text-left px-3 py-2">{t("sessions.col_date")}</th>
                 <th className="text-left px-3 py-2">{t("sessions.col_agent")}</th>
                 <th className="text-left px-3 py-2">{t("sessions.col_user")}</th>

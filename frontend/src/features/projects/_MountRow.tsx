@@ -25,7 +25,7 @@ export function MountRow({ mount, busy, onUnassign }: Props) {
           {mount.name}
           {mount.read_only && <span className="ml-1.5 text-[10px] text-amber-400/80">RO</span>}
         </p>
-        <p className="text-[10px] text-zinc-600 truncate font-mono">{unc}</p>
+        <p className="text-[10px] text-zinc-500 truncate font-mono">{unc}</p>
         {mount.mount_state === "error" && mount.last_error_code && (
           <p className="text-[10px] text-rose-400/80 truncate">{mount.last_error_code}</p>
         )}

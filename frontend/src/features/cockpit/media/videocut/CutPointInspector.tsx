@@ -30,7 +30,7 @@ export function CutPointInspector({ cut, onChange, onRemove, onClose }: Props) {
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-rose-300">
           Schnittpunkt · {timecode(cut.time)}
         </span>
-        <button onClick={onClose} className="text-[10px] uppercase tracking-[0.12em] text-[#68758a] hover:text-[#c3ccdd]">
+        <button onClick={onClose} className="text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0] hover:text-[#c3ccdd]">
           schließen
         </button>
       </div>
@@ -63,7 +63,7 @@ export function CutPointInspector({ cut, onChange, onRemove, onClose }: Props) {
           <span className="w-12 text-right font-mono text-[11px] text-rose-200">{(duration || DEFAULT_DURATION).toFixed(1)}s</span>
         </div>
       ) : (
-        <p className="mt-2 text-[11px] text-[#68758a]">Hartschnitt — kein Übergang.</p>
+        <p className="mt-2 text-[11px] text-[#7d8aa0]">Hartschnitt — kein Übergang.</p>
       )}
 
       <button

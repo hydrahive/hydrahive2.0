@@ -101,7 +101,7 @@ export function VMsPage() {
       ) : vms.length === 0 ? (
         <div className="box overflow-hidden p-10 text-center" style={{ "--c": rgbFor("/vms") } as CSSProperties}>
           <p className="text-sm text-zinc-400">{t("empty")} <span className="text-violet-300">{t("empty_cta")}</span> {t("empty_suffix")}</p>
-          <p className="text-xs text-zinc-600 mt-2">{t("tip")} {t("tip_iso")}</p>
+          <p className="text-xs text-zinc-500 mt-2">{t("tip")} {t("tip_iso")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -30,7 +30,7 @@ export function BubbleHeader({ createdAt, align }: { createdAt: string; align: "
   const text = formatBubbleTime(createdAt, i18n.language)
   if (!text) return null
   return (
-    <div className={`text-[10px] text-zinc-500/70 tabular-nums ${align === "right" ? "text-right" : "text-left"}`}>
+    <div className={`text-[10px] text-zinc-500 tabular-nums ${align === "right" ? "text-right" : "text-left"}`}>
       {text}
     </div>
   )
@@ -63,7 +63,7 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
   })
   if (!hasTokens && !hasModel) return null
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500/70 font-mono tabular-nums">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500 font-mono tabular-nums">
       {hasTokens && (
         <span>{t("bubble_footer.tokens", { in: fmt(meta.input_tokens), out: fmt(meta.output_tokens) })}</span>
       )}
@@ -76,7 +76,7 @@ export function AssistantFooter({ metadata }: { metadata?: Record<string, unknow
         </span>
       )}
       {hasModel && (
-        <span className="text-zinc-500/90">· {meta.model}</span>
+        <span className="text-zinc-500">· {meta.model}</span>
       )}
       {showIterations && (
         <span>· {t("bubble_footer.iterations", { n: meta.iteration })}</span>

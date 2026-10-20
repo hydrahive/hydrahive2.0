@@ -63,7 +63,7 @@ export function EpisodeList({
               E{String(ep.episode).padStart(2, "0")}
             </span>
             <span className="text-xs text-zinc-300 truncate">{ep.key.replace(/-/g, " ")}</span>
-            <span className="ml-auto text-[10px] text-zinc-600 font-mono">{ep.bunny_video_type}</span>
+            <span className="ml-auto text-[10px] text-zinc-500 font-mono">{ep.bunny_video_type}</span>
           </label>
         ))}
       </div>

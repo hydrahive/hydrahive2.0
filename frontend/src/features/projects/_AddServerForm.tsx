@@ -65,7 +65,7 @@ export function AddServerForm({ projectId, onCancel, onAdded }: Props) {
                 <Icon size={12} className="text-zinc-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-zinc-200 truncate">{s.name}</p>
-                  <p className="text-[10px] text-zinc-600 truncate">
+                  <p className="text-[10px] text-zinc-500 truncate">
                     {s.kind.toUpperCase()} · {s.cpu ?? "?"} CPU · {s.ram_mb ?? "?"} MB · {s.actual_state}
                   </p>
                 </div>

@@ -30,8 +30,8 @@ export function GitPanel({ agentId }: { agentId: string }) {
     return () => clearInterval(id)
   }, [repo, refresh])
 
-  if (repos === null) return <div className="p-2 text-[11px] text-zinc-600">{t("loading")}</div>
-  if (repos.length === 0) return <div className="p-2 text-[11px] text-zinc-600">{t("no_repo")}</div>
+  if (repos === null) return <div className="p-2 text-[11px] text-zinc-500">{t("loading")}</div>
+  if (repos.length === 0) return <div className="p-2 text-[11px] text-zinc-500">{t("no_repo")}</div>
 
   async function doCommit() {
     if (!repo) return

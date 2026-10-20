@@ -52,7 +52,7 @@ export function ProjectSubMenu({ activeItem, onSelect }: Props) {
         {loading ? (
           <div className="h-20 animate-pulse rounded-lg bg-zinc-900/50" />
         ) : projects.length === 0 ? (
-          <p className="px-3 py-6 text-center text-xs text-zinc-600">Keine Projekte.</p>
+          <p className="px-3 py-6 text-center text-xs text-zinc-500">Keine Projekte.</p>
         ) : (
           projects.map((p) => {
             const active = p.id === activeItem

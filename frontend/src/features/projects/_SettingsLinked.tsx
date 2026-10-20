@@ -45,7 +45,7 @@ export function LinkedProjectsSection({ project, onSaved, bare = false }: Props)
         <Link2 size={13} />{t("linked.title")}
       </p>
       <p className="text-[11px] text-zinc-500">{t("linked.hint")}</p>
-      {candidates.length === 0 ? <p className="text-xs text-zinc-600">{t("linked.none")}</p> : (
+      {candidates.length === 0 ? <p className="text-xs text-zinc-500">{t("linked.none")}</p> : (
         <ul className="max-h-56 space-y-1 overflow-y-auto">
           {candidates.map((p) => (
             <li key={p.id}>

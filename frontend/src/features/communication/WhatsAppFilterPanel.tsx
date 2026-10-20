@@ -138,7 +138,7 @@ function NumberList({ label, hint, value, onChange }:
       <textarea value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={"+49…"} rows={3}
         className="mt-1 w-full rounded-lg bg-white/[3%] border border-white/[8%] px-2.5 py-1.5 text-xs text-zinc-100 font-mono resize-y focus:outline-none focus:border-violet-500/50" />
-      <p className="text-[10px] text-zinc-600 mt-1">{hint}</p>
+      <p className="text-[10px] text-zinc-500 mt-1">{hint}</p>
     </div>
   )
 }

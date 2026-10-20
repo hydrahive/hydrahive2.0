@@ -52,7 +52,7 @@ function TagEditor({ project, onChange }: { project: Project; onChange: (p: Proj
         value={input} onChange={e => setInput(e.target.value)}
         onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag() } }}
         placeholder={t("tags.add_placeholder")}
-        className="bg-transparent text-xs text-zinc-400 placeholder-zinc-600 outline-none w-28"
+        className="bg-transparent text-xs text-zinc-400 placeholder-zinc-500 outline-none w-28"
       />
     </div>
   )

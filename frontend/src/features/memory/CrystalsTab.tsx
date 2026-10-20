@@ -25,14 +25,14 @@ export function CrystalsTab({ agentId }: Props) {
       .finally(() => setLoading(false))
   }, [agentId])
 
-  if (loading) return <p className="text-xs text-zinc-600 p-4">{t("loading")}</p>
+  if (loading) return <p className="text-xs text-zinc-500 p-4">{t("loading")}</p>
 
   return (
     <div className="space-y-3 p-4">
-      <p className="text-[10px] text-zinc-600">{t("crystal_count", { count: total })}</p>
+      <p className="text-[10px] text-zinc-500">{t("crystal_count", { count: total })}</p>
 
       {crystals.length === 0 ? (
-        <p className="text-xs text-zinc-600 text-center py-8">{t("no_crystals")}</p>
+        <p className="text-xs text-zinc-500 text-center py-8">{t("no_crystals")}</p>
       ) : (
         <div className="space-y-2">
           {crystals.map((c) => {
@@ -52,7 +52,7 @@ export function CrystalsTab({ agentId }: Props) {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-zinc-200 leading-relaxed line-clamp-2">{c.narrative}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[10px] text-zinc-600">
+                      <span className="text-[10px] text-zinc-500">
                         {c.created_at ? formatDate(c.created_at) : "—"}
                       </span>
                       {c.project && (
@@ -63,7 +63,7 @@ export function CrystalsTab({ agentId }: Props) {
                       </span>
                     </div>
                   </div>
-                  <span className="text-zinc-600 text-[10px] flex-shrink-0 mt-0.5">{open ? "▲" : "▼"}</span>
+                  <span className="text-zinc-500 text-[10px] flex-shrink-0 mt-0.5">{open ? "▲" : "▼"}</span>
                 </button>
 
                 {/* Expanded detail */}

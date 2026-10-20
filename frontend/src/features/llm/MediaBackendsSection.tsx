@@ -50,7 +50,7 @@ export function MediaBackendsSection() {
               onDelete={() => void persist(backends.filter((_, j) => j !== i))} />
           ))}
           {backends.length === 0 && (
-            <p className="text-xs text-zinc-600">Noch kein lokales Backend konfiguriert.</p>
+            <p className="text-xs text-zinc-500">Noch kein lokales Backend konfiguriert.</p>
           )}
         </div>
       )}
@@ -172,7 +172,7 @@ function WorkflowManager({ backend, onChange }: {
     <div className="mt-2 space-y-2 border-t border-zinc-800 pt-2">
       {wfs.map((w, i) => (
         <div key={w.id} className="flex items-center justify-between text-xs">
-          <span className="text-zinc-300">{w.label} <span className="text-zinc-600">({w.category})</span></span>
+          <span className="text-zinc-300">{w.label} <span className="text-zinc-500">({w.category})</span></span>
           <button onClick={() => onChange({ ...backend, workflows: wfs.filter((_, j) => j !== i) })}
             className="p-1 rounded text-zinc-500 hover:text-rose-400"><Trash2 size={12} /></button>
         </div>

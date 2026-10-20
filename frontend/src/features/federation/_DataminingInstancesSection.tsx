@@ -47,7 +47,7 @@ export function DataminingInstancesSection() {
         <div className="flex items-center gap-2">
           <Pickaxe size={15} className="text-violet-400" />
           <span className="text-sm font-medium text-zinc-200">{t("instances.title")}</span>
-          <span className="text-xs text-zinc-600 ml-1">{t("instances.subtitle")}</span>
+          <span className="text-xs text-zinc-500 ml-1">{t("instances.subtitle")}</span>
         </div>
         <button
           onClick={() => setShowNew(true)}
@@ -59,11 +59,11 @@ export function DataminingInstancesSection() {
       </div>
 
       {loading ? (
-        <div className="text-xs text-zinc-600 py-4 text-center">{t("instances.loading")}</div>
+        <div className="text-xs text-zinc-500 py-4 text-center">{t("instances.loading")}</div>
       ) : instances.length === 0 ? (
         <div className="rounded-xl border border-white/[4%] bg-zinc-950/30 py-8 text-center">
           <Pickaxe size={24} className="text-zinc-700 mx-auto mb-2" />
-          <p className="text-xs text-zinc-600">{t("instances.empty")}</p>
+          <p className="text-xs text-zinc-500">{t("instances.empty")}</p>
         </div>
       ) : (
         <div className="space-y-1">
@@ -74,15 +74,15 @@ export function DataminingInstancesSection() {
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/70" />
                 <div>
                   <span className="text-sm text-zinc-200">{inst.name}</span>
-                  <span className="ml-2 text-xs text-zinc-600">
+                  <span className="ml-2 text-xs text-zinc-500">
                     · {inst.session_count} {t("instances.sessions")} · {t("instances.last_activity")} {formatDate(inst.last_activity)}
                   </span>
-                  <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-zinc-600">
+                  <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-zinc-500">
                     <span className="text-zinc-500">HH_AGENT_ID</span>
                     <span className="text-zinc-400 select-all">{inst.agent_id}</span>
                     <button
                       onClick={() => navigator.clipboard.writeText(inst.agent_id)}
-                      className="text-zinc-600 hover:text-violet-400 transition-colors"
+                      className="text-zinc-500 hover:text-violet-400 transition-colors"
                       title={t("instances.copy_agent_id")}
                     >
                       <Copy size={11} />
@@ -92,11 +92,11 @@ export function DataminingInstancesSection() {
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => handleRotate(inst)}
-                        className="p-1 text-zinc-600 hover:text-violet-400 transition-colors" title={t("instances.rotate_key")}>
+                        className="p-1 text-zinc-500 hover:text-violet-400 transition-colors" title={t("instances.rotate_key")}>
                   <RefreshCw size={13} />
                 </button>
                 <button onClick={() => setDeleteTarget(inst)}
-                        className="p-1 text-zinc-600 hover:text-red-400 transition-colors" title={t("instances.delete")}>
+                        className="p-1 text-zinc-500 hover:text-red-400 transition-colors" title={t("instances.delete")}>
                   <Trash2 size={13} />
                 </button>
               </div>

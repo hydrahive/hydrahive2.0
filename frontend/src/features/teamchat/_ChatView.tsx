@@ -128,7 +128,7 @@ export function ChatView({ roomName, messages, agents, onSend }: ChatViewProps) 
             onKeyDown={onKeyDown}
             rows={1}
             placeholder={t("input_placeholder")}
-            className="flex-1 resize-none bg-white/[4%] border border-white/[8%] rounded-xl px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-[#104E8B]/70 max-h-32"
+            className="flex-1 resize-none bg-white/[4%] border border-white/[8%] rounded-xl px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-[#104E8B]/70 max-h-32"
           />
           <button
             onClick={submit}

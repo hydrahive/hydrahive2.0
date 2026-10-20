@@ -69,7 +69,7 @@ export function OverviewTab({ draft, onChange }: Props) {
         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px]">
           {info.map((r) => (
             <div key={r.label} className="contents">
-              <span className="text-zinc-600">{r.label}</span>
+              <span className="text-zinc-500">{r.label}</span>
               <span className="text-zinc-300 font-mono truncate" title={r.value ?? undefined}>{r.value}</span>
             </div>
           ))}

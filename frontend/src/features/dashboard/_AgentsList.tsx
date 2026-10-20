@@ -49,7 +49,7 @@ export function AgentsList({ agents }: Props) {
                 <Link key={a.id} to="/agents"
                   className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/[4%] transition-colors">
                   <span className="text-xs text-zinc-200 truncate flex-1 min-w-0">{a.name}</span>
-                  {a.owner && <span className="text-[10px] text-zinc-600 whitespace-nowrap">{a.owner}</span>}
+                  {a.owner && <span className="text-[10px] text-zinc-500 whitespace-nowrap">{a.owner}</span>}
                 </Link>
               ))}
             </div>

@@ -84,7 +84,7 @@ export function ZahnfeeConfig() {
           <input type="checkbox" checked={cfg.source_mail}
             onChange={(e) => setCfg({ ...cfg, source_mail: e.target.checked })}
             className="w-4 h-4 accent-violet-500" />
-          <span className="text-sm text-zinc-300">{t("config.source_mail")} <span className="text-zinc-600 text-xs">{t("config.source_mail_unavailable")}</span></span>
+          <span className="text-sm text-zinc-300">{t("config.source_mail")} <span className="text-zinc-500 text-xs">{t("config.source_mail_unavailable")}</span></span>
         </label>
       </div>
 
@@ -92,7 +92,7 @@ export function ZahnfeeConfig() {
         <div className="flex items-center justify-between">
           <label className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t("config.soul")}</label>
           <button onClick={() => setCfg({ ...cfg, soul: "" })}
-            className="flex items-center gap-1 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
             title={t("config.soul_reset")}>
             <RotateCcw size={11} /> {t("config.soul_reset_short")}
           </button>

@@ -95,7 +95,7 @@ function ChipList({ label, empty, items, selected, onToggle }: {
   return (
     <div className="space-y-1">
       <p className="text-[10px] font-medium text-zinc-500">{label}</p>
-      {items.length === 0 ? <p className="text-[10px] text-zinc-600">{empty}</p> : (
+      {items.length === 0 ? <p className="text-[10px] text-zinc-500">{empty}</p> : (
         <div className="flex flex-wrap gap-1.5">
           {items.map((it) => (
             <button key={it.id} type="button" onClick={() => onToggle(it.id)}

@@ -96,7 +96,7 @@ export function ModuleCard({ mod, onRefresh }: Props) {
       {phase !== "idle" && (
         <div ref={logRef}
           className="overflow-y-auto p-3 font-mono text-[11px] leading-relaxed bg-zinc-950/50 rounded-lg max-h-40">
-          {lines.length === 0 && <span className="text-zinc-600">{t("log.waiting")}</span>}
+          {lines.length === 0 && <span className="text-zinc-500">{t("log.waiting")}</span>}
           {lines.map((l, i) => (
             <div key={i} className={
               l.startsWith("[OK]") ? "text-emerald-400" :

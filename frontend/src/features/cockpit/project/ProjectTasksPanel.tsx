@@ -147,9 +147,9 @@ export function ProjectTasksPanel({ projectId }: Props) {
         </div>
       ) : null}
       {error ? <p className="mb-2 text-xs text-rose-300">{error}</p> : null}
-      {loading ? <p className="text-sm text-zinc-600">Lade Tasks…</p> : null}
-      {!loading && tasks.length === 0 ? <p className="text-sm text-zinc-600">Keine Tasks für dieses Projekt.</p> : null}
-      {!loading && tasks.length > 0 && visibleTasks.length === 0 ? <p className="text-sm text-zinc-600">Keine Tasks mit diesem Status.</p> : null}
+      {loading ? <p className="text-sm text-zinc-500">Lade Tasks…</p> : null}
+      {!loading && tasks.length === 0 ? <p className="text-sm text-zinc-500">Keine Tasks für dieses Projekt.</p> : null}
+      {!loading && tasks.length > 0 && visibleTasks.length === 0 ? <p className="text-sm text-zinc-500">Keine Tasks mit diesem Status.</p> : null}
       <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {visibleTasks.slice(0, 30).map((task) => (
           <div key={task.id} className="rounded-[4px] border border-[#223048] bg-[#111827] p-2">

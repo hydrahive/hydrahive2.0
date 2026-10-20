@@ -125,7 +125,7 @@ export function NewAgentDialog({ models, defaultModel, onClose, onCreated }: Pro
           <label className="block text-xs font-medium text-zinc-400">{t("new_dialog.name_label")}</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required
             placeholder={t("new_dialog.name_placeholder")}
-            className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600" />
+            className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-500" />
         </div>
 
         {!selectedTemplate && defaults && (

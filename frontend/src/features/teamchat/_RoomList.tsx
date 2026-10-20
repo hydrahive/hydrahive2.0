@@ -113,12 +113,12 @@ export function RoomList(props: RoomListProps) {
               <input
                 value={name} onChange={(e) => setName(e.target.value)}
                 placeholder={t("room_name")} autoFocus
-                className="bg-white/[5%] border border-white/[8%] rounded-md px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+                className="bg-white/[5%] border border-white/[8%] rounded-md px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
               />
               <input
                 value={memberCsv} onChange={(e) => setMemberCsv(e.target.value)}
                 placeholder={t("members_csv")}
-                className="bg-white/[5%] border border-white/[8%] rounded-md px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+                className="bg-white/[5%] border border-white/[8%] rounded-md px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
               />
               <div className="flex gap-1.5">
                 {(["private", "open"] as const).map((v) => (
@@ -231,7 +231,7 @@ export function RoomList(props: RoomListProps) {
                 value={memberName} onChange={(e) => setMemberName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") void addMember() }}
                 placeholder={t("member_username")} autoFocus
-                className="flex-1 min-w-0 bg-white/[5%] border border-white/[8%] rounded-md px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none"
+                className="flex-1 min-w-0 bg-white/[5%] border border-white/[8%] rounded-md px-2 py-1 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
               />
               <button
                 onClick={addMember} disabled={memberBusy || !memberName.trim()}
@@ -260,7 +260,7 @@ export function RoomList(props: RoomListProps) {
                   <button
                     onClick={() => onRemoveMember(username)}
                     title={t("remove_member")}
-                    className="p-0.5 rounded text-zinc-600 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-all"
+                    className="p-0.5 rounded text-zinc-500 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <X size={12} />
                   </button>

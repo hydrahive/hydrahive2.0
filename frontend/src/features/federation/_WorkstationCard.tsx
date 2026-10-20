@@ -61,7 +61,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
           {ws.has_token ? (
             <span title={t("workstation.token_ok")}><Shield size={13} className="text-emerald-400" /></span>
           ) : (
-            <span title={t("workstation.no_token")}><ShieldOff size={13} className="text-zinc-600" /></span>
+            <span title={t("workstation.no_token")}><ShieldOff size={13} className="text-zinc-500" /></span>
           )}
           {ws.verify_tls ? (
             <span title={t("workstation.tls_on")}><Lock size={12} className="text-emerald-400/70" /></span>
@@ -81,7 +81,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
             className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-zinc-200 transition-colors"
             title={ws.enabled ? t("workstation.disable") : t("workstation.enable")}
           >
-            <Activity size={13} className={ws.enabled ? "text-emerald-400" : "text-zinc-600"} />
+            <Activity size={13} className={ws.enabled ? "text-emerald-400" : "text-zinc-500"} />
           </button>
           <button
             onClick={() => onDelete(ws.id)}
@@ -108,7 +108,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
                   <span
                     key={cap}
                     className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                      val ? "bg-emerald-500/15 text-emerald-300" : "bg-zinc-800 text-zinc-600"
+                      val ? "bg-emerald-500/15 text-emerald-300" : "bg-zinc-800 text-zinc-500"
                     }`}
                   >
                     {cap}
@@ -117,7 +117,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
               </div>
               {agents.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1.5">{t("workstation.personas")}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1.5">{t("workstation.personas")}</div>
                   <div className="space-y-1">
                     {agents.map(a => (
                       <div key={a.id} className="flex items-center gap-2 text-xs">
@@ -131,7 +131,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
                 </div>
               )}
               {ws.last_seen && (
-                <div className="text-[10px] text-zinc-600">
+                <div className="text-[10px] text-zinc-500">
                   {t("workstation.last_seen")} {new Date(ws.last_seen).toLocaleString()}
                 </div>
               )}
@@ -148,7 +148,7 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
                 {ws.verify_tls ? <Lock size={12} /> : <Unlock size={12} className="text-amber-400" />}
                 {t("workstation.tls_label")}
               </div>
-              <div className="text-[10px] text-zinc-600 mt-0.5">{t("workstation.tls_hint")}</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">{t("workstation.tls_hint")}</div>
             </div>
             <button
               onClick={async () => {
@@ -187,14 +187,14 @@ export function WorkstationCard({ ws, onRefresh, onDelete, onToggle }: Props) {
                   {auditRows.length === 0 && <div>{t("workstation.audit_empty")}</div>}
                   {(auditRows as any[]).map((r, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-zinc-600 flex-shrink-0">
+                      <span className="text-zinc-500 flex-shrink-0">
                         {new Date(r.timestamp).toLocaleTimeString("de")}
                       </span>
                       <span className={r.status >= 400 ? "text-rose-400" : "text-emerald-400"}>
                         {r.status}
                       </span>
                       <span className="text-zinc-300">{r.path}</span>
-                      <span className="text-zinc-600 truncate">{r.caller}</span>
+                      <span className="text-zinc-500 truncate">{r.caller}</span>
                       {r.error && <span className="text-rose-400">{r.error}</span>}
                     </div>
                   ))}

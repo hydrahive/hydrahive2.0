@@ -80,7 +80,7 @@ function Section({ title, skills, onClick, emptyHint }: {
     <div className="space-y-2">
       <h2 className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{title}</h2>
       {skills.length === 0 ? (
-        <p className="text-xs text-zinc-600 py-3">{emptyHint}</p>
+        <p className="text-xs text-zinc-500 py-3">{emptyHint}</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {skills.map((s) => (
@@ -90,11 +90,11 @@ function Section({ title, skills, onClick, emptyHint }: {
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles size={11} className="text-violet-300 flex-shrink-0" />
                 <p className="text-sm font-mono text-zinc-200 truncate flex-1">{s.name}</p>
-                <span className="text-[10px] text-zinc-600">{s.scope}</span>
+                <span className="text-[10px] text-zinc-500">{s.scope}</span>
               </div>
               {s.description && <p className="text-xs text-zinc-400 line-clamp-2">{s.description}</p>}
               {s.when_to_use && (
-                <p className="text-[10px] text-zinc-600 mt-1 line-clamp-1 italic">→ {s.when_to_use}</p>
+                <p className="text-[10px] text-zinc-500 mt-1 line-clamp-1 italic">→ {s.when_to_use}</p>
               )}
             </button>
           ))}

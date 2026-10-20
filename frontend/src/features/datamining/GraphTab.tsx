@@ -131,7 +131,7 @@ export function GraphTab() {
         style={{ "--c": rgbFor("/datamining"), height: "calc(100dvh - 20rem)" } as CSSProperties}>
 
         {!data && !loading && (
-          <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-600">
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-500">
             Graph laden um Systemtopologie zu sehen
           </div>
         )}
@@ -171,7 +171,7 @@ export function GraphTab() {
                 <div className="text-[11px] text-zinc-500 mt-0.5">{GROUP_LABELS[selected.group]}</div>
               </div>
               <button onClick={() => setSelected(null)}
-                className="text-zinc-600 hover:text-zinc-300 flex-shrink-0 text-lg leading-none">×</button>
+                className="text-zinc-500 hover:text-zinc-300 flex-shrink-0 text-lg leading-none">×</button>
             </div>
 
             <div className="text-xs text-zinc-500 space-y-1 mb-4">
@@ -188,7 +188,7 @@ export function GraphTab() {
 
             {connections.length > 0 && (
               <div>
-                <div className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">Verbindungen</div>
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Verbindungen</div>
                 <div className="space-y-1.5">
                   {connections.slice(0, 15).map((l, i) => {
                     const src = typeof l.source === "object" ? (l.source as GraphNode).id : l.source
@@ -198,11 +198,11 @@ export function GraphTab() {
                     const [type, name] = other.split(":")
                     return (
                       <div key={i} className="flex items-center gap-1.5 text-[11px]">
-                        <span className="text-zinc-600">{arrow}</span>
+                        <span className="text-zinc-500">{arrow}</span>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                           style={{ background: GROUP_COLORS[type] ?? "#94a3b8" }} />
                         <span className="text-zinc-400 truncate">{name}</span>
-                        <span className="text-zinc-600 ml-auto flex-shrink-0">{l.value}</span>
+                        <span className="text-zinc-500 ml-auto flex-shrink-0">{l.value}</span>
                       </div>
                     )
                   })}

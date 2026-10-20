@@ -41,7 +41,7 @@ function FieldRow({ field }: { field: CredField }) {
       </span>
       {field.secret && (
         <button onClick={() => setVisible((v) => !v)}
-          className="shrink-0 p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors">
+          className="shrink-0 p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors">
           {visible ? <EyeOff size={12} /> : <Eye size={12} />}
         </button>
       )}
@@ -76,11 +76,11 @@ export function ExtensionCredentials() {
       </div>
 
       {loading ? (
-        <p className="text-xs text-zinc-600 py-6 text-center">{t("loading")}</p>
+        <p className="text-xs text-zinc-500 py-6 text-center">{t("loading")}</p>
       ) : creds.length === 0 ? (
         <div className="text-center py-10">
           <Package size={24} className="mx-auto text-zinc-700 mb-2" />
-          <p className="text-xs text-zinc-600">{t("extension_empty")}</p>
+          <p className="text-xs text-zinc-500">{t("extension_empty")}</p>
           <p className="text-[11px] text-zinc-700 mt-1">
             Werden automatisch beim Installieren von Extensions gespeichert.
           </p>

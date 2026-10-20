@@ -98,13 +98,13 @@ export function MemoryTab({ agentId }: Props) {
       </form>
 
       {/* Count */}
-      <p className="text-[10px] text-zinc-600">
+      <p className="text-[10px] text-zinc-500">
         {loading ? t("loading") : t("entry_count", { count: total })}
       </p>
 
       {/* Table */}
       {entries.length === 0 && !loading ? (
-        <p className="text-xs text-zinc-600 text-center py-8">{t("no_entries")}</p>
+        <p className="text-xs text-zinc-500 text-center py-8">{t("no_entries")}</p>
       ) : (
         <div className="box overflow-hidden" style={{ "--c": rgbFor("/agents") } as CSSProperties}>
           <table className="w-full text-xs">
@@ -142,14 +142,14 @@ export function MemoryTab({ agentId }: Props) {
                     <td className="px-3 py-2 text-zinc-500 font-mono text-[10px] truncate">
                       {entry.project ?? <span className="text-zinc-700">—</span>}
                     </td>
-                    <td className="px-3 py-2 text-zinc-600 text-[10px]">
+                    <td className="px-3 py-2 text-zinc-500 text-[10px]">
                       {entry.updated_at ? formatDate(entry.updated_at) : "—"}
                     </td>
                     <td className="px-2 py-2">
                       <button
                         onClick={() => handleDelete(entry.key)}
                         disabled={deleting === entry.key}
-                        className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+                        className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
                         title={t("delete")}
                       >
                         <Trash2 size={11} />

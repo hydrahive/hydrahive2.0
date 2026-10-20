@@ -85,7 +85,7 @@ export function CredentialsPage() {
           <Loader2 size={20} className="animate-spin text-zinc-500" />
         </div>
       ) : creds.length === 0 ? (
-        <p className="text-xs text-zinc-600 text-center py-8">{t("empty")}</p>
+        <p className="text-xs text-zinc-500 text-center py-8">{t("empty")}</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {creds.map((c) => (
@@ -99,7 +99,7 @@ export function CredentialsPage() {
                 </span>
               </div>
               {c.description && <p className="text-xs text-zinc-400 line-clamp-1">{c.description}</p>}
-              <p className="text-[10px] text-zinc-600 font-mono truncate mt-1">{c.url_pattern}</p>
+              <p className="text-[10px] text-zinc-500 font-mono truncate mt-1">{c.url_pattern}</p>
               {c.host_bound === false && (
                 <p className="flex items-center gap-1 text-[10px] text-amber-300 mt-0.5">
                   <AlertTriangle size={10} /> {t("not_host_bound")}

@@ -66,7 +66,7 @@ function ApiCard({ api, onChange }: { api: ResearchApiPublic; onChange: (a: Rese
             )}
           </div>
           <p className="text-xs text-zinc-500 mt-0.5">{api.description}</p>
-          {api.rate_limit && <p className="text-[10px] text-zinc-600 mt-0.5">{api.rate_limit}</p>}
+          {api.rate_limit && <p className="text-[10px] text-zinc-500 mt-0.5">{api.rate_limit}</p>}
         </div>
         <label className="flex items-center gap-2 shrink-0 cursor-pointer">
           <input
@@ -154,7 +154,7 @@ export function ResearchApisView() {
         if (inCat.length === 0) return null
         return (
           <div key={cat}>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-600 mb-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 mb-2">
               {CATEGORY_LABELS[cat]}
             </p>
             <div className="grid gap-3 sm:grid-cols-2">

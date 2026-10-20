@@ -45,7 +45,7 @@ export function PromptEditDialog({ entry, onSave, onClose }: Props) {
     }
   }
 
-  const field = "w-full rounded-lg bg-white/[4%] border border-white/10 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40"
+  const field = "w-full rounded-lg bg-white/[4%] border border-white/10 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/40"
 
   return (
     <div {...dlg.props} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onMouseDown={onClose}>

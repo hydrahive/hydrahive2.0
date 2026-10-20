@@ -149,7 +149,7 @@ function SessionRow({ session, active, orphaned, onSelect, onDelete }: {
           )}
           <span className="truncate">{session.title || t("session.without_title")}</span>
         </p>
-        <p className="text-xs text-zinc-600 mt-0.5">
+        <p className="text-xs text-zinc-500 mt-0.5">
           {orphaned ? `${t("session.orphaned")} · ` : ""}
           {session.status === "paused" ? "⏸ pausiert · " : ""}
           {new Date(session.updated_at).toLocaleString(i18n.language, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}

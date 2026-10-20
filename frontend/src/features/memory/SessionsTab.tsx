@@ -45,14 +45,14 @@ export function SessionsTab({ agentId }: Props) {
     }
   }
 
-  if (loading) return <p className="text-xs text-zinc-600 p-4">{t("loading")}</p>
+  if (loading) return <p className="text-xs text-zinc-500 p-4">{t("loading")}</p>
 
   return (
     <div className="space-y-3 p-4">
-      <p className="text-[10px] text-zinc-600">{t("session_count", { count: total })}</p>
+      <p className="text-[10px] text-zinc-500">{t("session_count", { count: total })}</p>
 
       {sessions.length === 0 ? (
-        <p className="text-xs text-zinc-600 text-center py-8">{t("no_sessions")}</p>
+        <p className="text-xs text-zinc-500 text-center py-8">{t("no_sessions")}</p>
       ) : (
         <div className="space-y-1.5">
           {sessions.map((s) => {
@@ -68,7 +68,7 @@ export function SessionsTab({ agentId }: Props) {
                   onClick={() => toggleSession(s.session_id)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-white/[2%] transition-colors"
                 >
-                  <span className="text-zinc-600 flex-shrink-0">
+                  <span className="text-zinc-500 flex-shrink-0">
                     {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                   </span>
 
@@ -77,7 +77,7 @@ export function SessionsTab({ agentId }: Props) {
                       {s.first_prompt ?? <span className="text-zinc-700 italic">{t("no_prompt")}</span>}
                     </p>
                     <StatusPill status={s.status} />
-                    <span className="text-[10px] text-zinc-600 font-mono whitespace-nowrap">
+                    <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
                       {s.observation_count} obs
                     </span>
                     {s.has_crystal && (
@@ -93,7 +93,7 @@ export function SessionsTab({ agentId }: Props) {
                 {open && (
                   <div className="border-t border-white/[4%] px-4 py-3 space-y-2">
                     {obsLoading === s.session_id ? (
-                      <p className="text-xs text-zinc-600">{t("loading")}</p>
+                      <p className="text-xs text-zinc-500">{t("loading")}</p>
                     ) : (observations[s.session_id] ?? []).length === 0 ? (
                       <p className="text-xs text-zinc-700">{t("no_observations")}</p>
                     ) : (
@@ -136,7 +136,7 @@ function ObservationCard({ obs }: { obs: CompressedObservation }) {
       {obs.files.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {obs.files.map((f, i) => (
-            <span key={i} className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-600">{f}</span>
+            <span key={i} className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] font-mono text-zinc-500">{f}</span>
           ))}
         </div>
       )}

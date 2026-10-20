@@ -67,7 +67,7 @@ export function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50 transition-colors text-sm"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50 transition-colors text-sm"
                 placeholder="admin"
                 required
                 autoFocus
@@ -81,7 +81,7 @@ export function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50 transition-colors text-sm"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-white/[5%] border border-white/[8%] text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50 transition-colors text-sm"
                 placeholder="••••••••"
                 required
               />

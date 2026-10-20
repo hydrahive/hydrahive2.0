@@ -67,7 +67,7 @@ export function VMLogsPanel({ vm, onClose }: Props) {
         ) : (
           <pre ref={preRef}
             className="w-full h-full overflow-auto p-3 rounded-lg bg-zinc-950 border border-white/[6%] text-[11px] font-mono leading-relaxed text-zinc-300 whitespace-pre-wrap">
-            {lines.length === 0 ? <span className="text-zinc-600">{t("logs.empty")}</span> : lines.join("\n")}
+            {lines.length === 0 ? <span className="text-zinc-500">{t("logs.empty")}</span> : lines.join("\n")}
           </pre>
         )}
       </div>

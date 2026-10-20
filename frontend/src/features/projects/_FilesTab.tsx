@@ -182,7 +182,7 @@ export function FilesTab({ projectId }: Props) {
             </button>
           )}
           {entries.length === 0 && !loading && (
-            <p className="text-xs text-zinc-600 text-center py-6">{t("files.empty")}</p>
+            <p className="text-xs text-zinc-500 text-center py-6">{t("files.empty")}</p>
           )}
           {entries.map((e) => (
             <div key={e.name} className="group flex items-center gap-2 px-3 py-2 hover:bg-white/[3%] border-b border-white/[4%] last:border-0">
@@ -195,7 +195,7 @@ export function FilesTab({ projectId }: Props) {
                   : <File size={13} className="text-zinc-500 flex-shrink-0" />}
                 <span className={`flex-1 truncate ${e.type === "dir" ? "text-zinc-200" : "text-zinc-400"}`}>{e.name}</span>
                 {e.size !== null && (
-                  <span className="text-zinc-600 flex-shrink-0">{e.size < 1024 ? `${e.size}B` : `${(e.size / 1024).toFixed(1)}KB`}</span>
+                  <span className="text-zinc-500 flex-shrink-0">{e.size < 1024 ? `${e.size}B` : `${(e.size / 1024).toFixed(1)}KB`}</span>
                 )}
               </button>
               {e.type === "file" && (

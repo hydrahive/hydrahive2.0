@@ -52,7 +52,7 @@ export function AgentPanel({ accent, roomAgents, ownAgents, onAttach, onDetach }
               onClick={() => withBusy(a.agent_id, () => onDetach(a.agent_id))}
               disabled={busyId === a.agent_id}
               title={t("detach_agent")}
-              className="p-0.5 rounded text-zinc-600 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-40"
+              className="p-0.5 rounded text-zinc-500 hover:text-rose-300 opacity-0 group-hover:opacity-100 transition-all disabled:opacity-40"
             >
               <X size={13} />
             </button>

@@ -81,9 +81,9 @@ export function ContainersOverlay({ onClose, selectedContainerId = null, onSelec
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
         {loading ? <AdminFeedback loading>{t("loading")}</AdminFeedback> : !error && containers.length === 0 ? (
           <div className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-10 text-center">
-            <Box size={28} className="mx-auto mb-3 text-[#5b6675]" />
+            <Box size={28} className="mx-auto mb-3 text-[#7d8aa0]" />
             <p className="text-sm text-[#8d9ab0]">{t("empty")}</p>
-            <p className="mt-2 text-xs text-[#5b6675]">{t("logs.tip")} <span className="text-[#69d7ff]">debian/12</span> ist gut für die meisten Dienste, <span className="text-[#69d7ff]">alpine/3.21</span> für Minimum-Footprint.</p>
+            <p className="mt-2 text-xs text-[#7d8aa0]">{t("logs.tip")} <span className="text-[#69d7ff]">debian/12</span> ist gut für die meisten Dienste, <span className="text-[#69d7ff]">alpine/3.21</span> für Minimum-Footprint.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -98,7 +98,7 @@ export function NewSessionDialog({ onClose, onCreate }: Props) {
           <label className="block text-xs font-medium text-zinc-400">{t("session.title_label")}</label>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder={t("session.title_placeholder")}
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-600" />
+            className="w-full px-3 py-2.5 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm placeholder:text-zinc-500" />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

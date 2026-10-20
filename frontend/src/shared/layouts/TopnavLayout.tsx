@@ -34,7 +34,7 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
 
         {currentPage && (
           <span className="min-w-0 truncate text-[11px] text-[#8d9ab0] sm:text-sm">
-            <span className="mx-1 text-[#68758a] sm:mx-2">/</span>
+            <span className="mx-1 text-[#7d8aa0] sm:mx-2">/</span>
             <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${DOMAIN_TW[colorFor(currentPage.path)].iconBgActive}`} />
             {navLabel(t, currentPage.labelKey)}
           </span>

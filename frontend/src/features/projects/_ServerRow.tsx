@@ -24,7 +24,7 @@ export function ServerRow({ server, busy, onUnassign }: Props) {
       <Icon size={14} className="text-violet-300 flex-shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-sm text-zinc-200 truncate">{server.name}</p>
-        <p className="text-[10px] text-zinc-600 truncate">
+        <p className="text-[10px] text-zinc-500 truncate">
           {server.kind.toUpperCase()} · {server.cpu ?? "?"} CPU · {server.ram_mb ?? "?"} MB
           {server.kind === "vm" && server.disk_gb && ` · ${server.disk_gb} GB`}
           {server.kind === "container" && server.image && ` · ${server.image}`}
