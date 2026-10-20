@@ -23,9 +23,7 @@ eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew s
 
 cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
-OLD_HEAD="$(sudo -u "$HH_USER" git rev-parse HEAD 2>/dev/null || true)"
 sudo -u "$HH_USER" git pull --ff-only 2>&1 | tee -a "$LOG" || { log "git pull fehlgeschlagen"; exit 1; }
-NEW_HEAD="$(sudo -u "$HH_USER" git rev-parse HEAD 2>/dev/null || true)"
 
 log "Python-Pakete aktualisieren"
 sudo -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core" >> "$LOG" 2>&1 \
@@ -39,16 +37,26 @@ else
   log "Paketprüfung übersprungen ($HEAL fehlt)"
 fi
 
-# Frontend neu bauen: bei Änderungen unter frontend/ oder wenn der fertige Build fehlt.
-FRONTEND_CHANGED=""
-if [ -n "$OLD_HEAD" ] && [ -n "$NEW_HEAD" ] && [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
-  FRONTEND_CHANGED="$(sudo -u "$HH_USER" git diff --name-only "$OLD_HEAD" "$NEW_HEAD" -- frontend/ 2>>"$LOG" || true)"
+# Frontend neu bauen, wenn der Build nicht zum aktuellen Stand unter frontend/ passt (Vermerk im Build,
+# docs/specs/mac-update.md §4) – holt so auch Builds nach, die frühere Updates verpasst haben.
+DIST="$HH_REPO_DIR/frontend/dist"
+MARK="$DIST/.hh-frontend-rev"
+FRONTEND_REV="$(sudo -u "$HH_USER" git log -1 --format=%H -- frontend/ 2>>"$LOG" || true)"
+BUILD=""
+if [ ! -f "$DIST/index.html" ]; then
+  BUILD="kein fertiger Build"
+elif [ -z "$FRONTEND_REV" ]; then
+  log "Frontend-Stand unbekannt (git) – vorhandener Build bleibt"
+elif [ "$(cat "$MARK" 2>/dev/null || true)" != "$FRONTEND_REV" ]; then
+  BUILD="neuer Stand"
 fi
-if [ -n "$FRONTEND_CHANGED" ] || [ ! -f "$HH_REPO_DIR/frontend/dist/index.html" ]; then
-  log "Frontend neu bauen"
+if [ -n "$BUILD" ]; then
+  log "Frontend neu bauen ($BUILD)"
   cd "$HH_REPO_DIR/frontend"
-  sudo -u "$HH_USER" npm install >> "$LOG" 2>&1 || { log "npm install fehlgeschlagen"; exit 1; }
+  # npm ci: genau nach package-lock.json, ändert sie nie (npm install schrieb sie um → nächstes git pull scheiterte)
+  sudo -u "$HH_USER" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || { log "npm ci fehlgeschlagen"; exit 1; }
   sudo -u "$HH_USER" npm run build >> "$LOG" 2>&1 || { log "Frontend-Build fehlgeschlagen"; exit 1; }
+  [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -u "$HH_USER" tee "$MARK" > /dev/null
   cd "$HH_REPO_DIR"
 fi
 
