@@ -31,6 +31,10 @@ _SCHEMA = {
 }
 
 
+def _usable_hits(data: dict) -> list:
+    return [item for item in (data.get("results") or []) if sp.usable(item)]
+
+
 class _SearxFailed(Exception):
     pass
 
@@ -111,7 +115,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     try:
         data = await _ask_searx(base, sp.searx_params(query, category, time_range))
         fallback = None
-        if not data.get("results") and category == "general" and time_range:
+        if not _usable_hits(data) and category == "general" and time_range:
             # Allgemeine Anbieter liefern mit Zeitraum oft nichts – News schon (Messung 20.10.).
             data = await _ask_searx(base, sp.searx_params(query, "news", time_range))
             fallback = "news"
@@ -119,7 +123,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return await _tavily_fallback(query, category, time_range, count, f"{e}.", []) \
             or ToolResult.fail(str(e))
 
-    results = [sp.map_hit(item) for item in (data.get("results") or [])[:count]]
+    results = [sp.map_hit(item) for item in _usable_hits(data)[:count]]
     unavailable = unavailable_engines(data)
     if not results and unavailable:
         # Alle befragten Anbieter gesperrt — nicht als „gibt nichts“ tarnen.
