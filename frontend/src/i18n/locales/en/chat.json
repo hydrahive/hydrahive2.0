@@ -211,5 +211,12 @@
       "cancelled": "cancelled",
       "lost": "lost"
     }
+  },
+  "module_view": {
+    "untitled": "View",
+    "open_big": "Open large",
+    "close": "Close",
+    "unavailable": "This view can't be loaded right now.",
+    "reload": "Reload"
   }
 }

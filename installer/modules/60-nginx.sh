@@ -202,6 +202,27 @@ server {
         client_max_body_size 1m;  # hh_peering_tailnet
     }
 
+    # Modul-Ansichten im Chat (docs/specs/module-view-sandbox.md): von Agenten erzeugtes HTML mit
+    # Inline-Skripten (z. B. Diagramme). Die App-CSP oben würde die Skripte blockieren (zwei CSPs → die
+    # strengere gewinnt). add_header hier auf Location-Ebene → die Server-Kopfzeilen gelten an dieser Stelle
+    # NICHT, darum alle nötigen hier fest. Abgeschottet: eigene leere Herkunft (sandbox ohne same-origin),
+    # nichts nachladen, nichts senden. Marker hh_module_sandbox: update.sh schreibt die Config neu, wenn er fehlt.
+    location ~ ^/api/module-device/[a-z0-9-]+/sandbox/ {
+        add_header Content-Security-Policy "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'self'" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header Cache-Control "no-store" always;
+        proxy_pass http://$HH_HOST:$HH_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        client_max_body_size 64k;  # hh_module_sandbox
+    }
+
     location /api/ {
         proxy_pass http://$HH_HOST:$HH_PORT;
         proxy_http_version 1.1;

@@ -11,6 +11,7 @@ from hydrahive.mcp import tool_bridge as mcp_bridge
 from hydrahive.plugins import tool_bridge as plugin_bridge
 from hydrahive.runner._crash_log import record_crash
 from hydrahive.runner._media import extract_media
+from hydrahive.runner._module_view import module_view_media
 from hydrahive.tools import REGISTRY, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -158,7 +159,11 @@ def to_tool_result_block(
     # URL-basierte Media-Results (image_url / audio_url / video_url) —
     # keine lokale Datei, URL direkt weiterreichen
     url_kind = {"image_url": "image", "audio_url": "audio", "video_url": "video"}.get(result.result_type)
-    if url_kind and result.output:
+    if result.result_type == "module_view":
+        view = module_view_media(result)  # Modul-Ansicht im Chat (Spec module-view-sandbox §2.2)
+        if view:
+            block["media"] = view
+    elif url_kind and result.output:
         block["media"] = [{"kind": url_kind, "url": str(result.output)}]
     else:
         workspace = ctx.workspace if ctx else None

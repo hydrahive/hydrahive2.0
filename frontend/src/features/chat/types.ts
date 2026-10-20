@@ -14,7 +14,15 @@ export type ImageSource =
   | { type: "base64"; media_type: string; data: string }
   | { type: "url"; url: string }
 
-export type ToolMedia = { kind: "image" | "audio" | "video" | "pdf" | "epub"; path?: string; url?: string }
+export type ToolMedia = {
+  kind: "image" | "audio" | "video" | "pdf" | "epub" | "module_view"
+  path?: string
+  url?: string
+  // nur bei kind "module_view" (Spec module-view-sandbox §2.2)
+  module?: string
+  view_id?: string
+  title?: string
+}
 
 export type ContentBlock =
   | { type: "text"; text: string }
