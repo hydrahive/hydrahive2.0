@@ -18,6 +18,7 @@ _DEFAULTS = {
 
 _SKIP = {"script", "style", "noscript", "svg", "template", "iframe", "nav", "footer",
          "header", "aside", "form", "button", "select", "textarea"}
+_SKIP_ROLES = {"navigation", "banner", "contentinfo", "complementary", "search"}  # = nav/header/footer/aside
 _VOID = {"br", "img", "input", "meta", "link", "hr", "source", "wbr", "area", "base", "col", "embed", "track"}
 _BLOCK = {"p", "div", "li", "tr", "br", "section", "blockquote", "pre", "table", "ul", "ol",
           "dd", "dt", "figcaption", "h1", "h2", "h3", "h4", "h5", "h6"}
@@ -60,7 +61,7 @@ class _Collector(HTMLParser):
             return
         if tag == "time" and self.time_attr is None and a.get("datetime"):
             self.time_attr = a["datetime"].strip()
-        if self.skip_depth or tag in _SKIP:
+        if self.skip_depth or tag in _SKIP or a.get("role", "").lower() in _SKIP_ROLES:
             if tag not in _VOID:
                 self.skip_depth += 1
             return
