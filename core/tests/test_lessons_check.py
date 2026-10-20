@@ -32,6 +32,8 @@ def test_long_record_keeps_only_the_end() -> None:
     assert "nachricht 399" in rec and "nachricht 0 " not in rec                    # kein alter Anfang mehr
     assert rec.startswith("…[") and "früher ausgelassen" in rec.splitlines()[0]
     assert rec.splitlines()[1].startswith("[user] nachricht ")                     # beginnt mit ganzer Zeile
+    nums = [int(ln.split()[2]) for ln in rec.splitlines()[1:]]
+    assert nums == sorted(nums) and nums[-1] == 399                                # zeitliche Reihenfolge bleibt
 
 
 def test_short_record_unchanged() -> None:
@@ -188,3 +190,46 @@ def test_recheck_without_model_does_nothing(tmp_path, monkeypatch) -> None:
     from hydrahive.lessons import recheck
     monkeypatch.setattr(recheck, "_model", lambda: "")
     assert asyncio.run(recheck.run(tmp_path)) == {"checked": 0, "contested": 0, "kept": 0, "errors": 0}
+
+
+
+def _recheck_env(tmp_path, monkeypatch, answer):
+    from hydrahive.lessons import recheck
+    from hydrahive.lessons.model import key_of
+    monkeypatch.setattr(store, "_agent_dir", lambda aid: tmp_path / aid)
+    (tmp_path / "a").mkdir()
+    rows = [store.add("a", {**_les(cue=c, **extra), "key": key_of(c), "session_id": "s1"}, scope="agent")
+            for c, extra in (("eins", {}), ("zwei", {}), ("ohne zitat", {"quote": "das steht nirgends im verlauf drin"}))]
+    store.set_status("a", rows[1]["id"], "retired")
+
+    async def judge(messages, **k):
+        if answer == "boom":
+            raise RuntimeError("weg")
+        return answer
+    monkeypatch.setattr(recheck, "_complete", judge)
+    monkeypatch.setattr(recheck, "_messages", lambda sid: MSGS)
+    monkeypatch.setattr(recheck, "_model", lambda: "test/luna")
+    return recheck, rows
+
+
+def test_recheck_skips_non_active_and_contests_missing_quote(tmp_path, monkeypatch) -> None:
+    recheck, rows = _recheck_env(tmp_path, monkeypatch, '{"supported": true, "quote_fits": true}')
+    res = asyncio.run(recheck.run(tmp_path))
+    assert res == {"checked": 2, "contested": 1, "kept": 1, "errors": 0}             # „zwei“ (retired) nicht geprüft
+    cur = {r["id"]: r for r in store.current("a")}
+    assert cur[rows[1]["id"]]["status"] == "retired" and cur[rows[2]["id"]]["status"] == "contested"
+
+
+def test_recheck_error_counts_and_keeps_status(tmp_path, monkeypatch) -> None:
+    recheck, rows = _recheck_env(tmp_path, monkeypatch, "boom")
+    res = asyncio.run(recheck.run(tmp_path))
+    assert res["errors"] == 1 and res["kept"] == 0
+    assert store.current("a")[0]["status"] == "active"
+
+
+def test_recheck_undo_restores_only_its_own(tmp_path, monkeypatch) -> None:
+    recheck, rows = _recheck_env(tmp_path, monkeypatch, '{"supported": false, "quote_fits": false}')
+    store.set_status("a", rows[1]["id"], "contested", by="hand")                      # von Hand angefochten
+    asyncio.run(recheck.run(tmp_path))
+    assert asyncio.run(recheck.run(tmp_path, undo=True)) == {"restored": 2}
+    assert store.current("a")[1]["status"] == "contested" and store.current("a")[1]["contested_by"] == "hand"
