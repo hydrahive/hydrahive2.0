@@ -181,12 +181,17 @@ def test_compose_puts_lessons_in_volatile_part(tmp_path) -> None:
     assert "WENN Wenn X" in volatile and "WENN" not in stable
 
 
-def test_runner_recalls_before_first_call() -> None:
+def test_runner_starts_recall_early_and_waits_before_first_call() -> None:
+    """Abruf läuft parallel zu Erinnerungen/Verlauf (kostet sonst ~2 s bis zur ersten Antwort); gewartet wird erst vor
+    dem Zusammenbau des Systemprompts, und nur einmal je Eingabe."""
     from pathlib import Path
     src = (Path(__file__).resolve().parents[1] / "src/hydrahive/runner/runner.py").read_text()
     loop = src.index("for iteration in range(max_iterations):")
-    assert "recall_lessons(" in src[:loop]                                          # einmal je Eingabe, vor der Schleife
-    assert "lessons=recalled_lessons" in src[loop:]
+    start = src.index("lessons_task = asyncio.create_task(recall_lessons(")
+    assert start < src.index("recall_cards: list = []") < loop                     # vor dem Erinnerungs-Abruf gestartet
+    body = src[loop:]
+    assert body.index("recalled_lessons = await lessons_task") < body.index("compose_system_prompts(")
+    assert "if recalled_lessons is None:" in body and "lessons=recalled_lessons" in body
 
 
 def test_runner_recall_never_raises(monkeypatch) -> None:
@@ -354,3 +359,24 @@ def test_judge_model_is_the_lessons_model(monkeypatch) -> None:
     assert recall._judge_model() == "y/lessons"
     monkeypatch.setattr(_config, "load_config", lambda: {"default_model": "x/chat", "lessons_model": "off"})
     assert recall._judge_model() == ""
+
+
+def test_unawaited_recall_task_ends_quietly(monkeypatch) -> None:
+    """Bricht der Lauf vor dem ersten Modell-Aufruf ab, wird lessons_task nie abgewartet. Er muss trotzdem sauber
+    enden (Zeitgrenze der Rückfrage) und darf keine „exception was never retrieved“-Warnung erzeugen."""
+    import warnings
+    from hydrahive.runner import _runner_lessons
+
+    async def slow_pick(*a, **k):
+        await asyncio.sleep(0.05)
+        raise RuntimeError("weg")
+    monkeypatch.setattr(recall, "pick", slow_pick)
+
+    async def go():
+        task = asyncio.create_task(_runner_lessons.recall_lessons("a", "eine längere eingabe hier", "p1"))
+        await asyncio.sleep(0.1)
+        return task
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        task = asyncio.run(go())
+    assert task.done() and task.exception() is None and task.result() == []

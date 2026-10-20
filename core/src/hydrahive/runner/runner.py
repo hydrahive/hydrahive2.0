@@ -177,6 +177,11 @@ async def run(
     agent_skills = load_agent_skills(agent["id"], agent["owner"], disabled=agent.get("disabled_skills") or [],
                                     project_id=skill_project_id(active_project_id, agent))
 
+    # Lehren mit Beleg (L2): einmal je Eingabe, eigene Lehren im aktiven Projekt. Läuft parallel zum Erinnerungs-Abruf
+    # und zum Verlauf; gewartet wird erst vor dem ersten Modell-Aufruf (Rückfrage dauert ~2 s).
+    lessons_task = asyncio.create_task(recall_lessons(agent["id"], _user_text(user_input).strip(), active_project_id))
+    recalled_lessons: list | None = None
+
     # Proaktiver Recall A: Top-N Cards einmal pro Session laden (recency × salience)
     # → in den gecachten Stable-Prompt gewebt. Ändert sich nur bei nächtlicher
     # Konsolidierung, also cache-stabil innerhalb der Session. Best-effort.
@@ -196,9 +201,6 @@ async def run(
                                                    agent_id=agent["id"], scope=recall_scope)
         except Exception as e:
             logger.warning("Recall fehlgeschlagen (best-effort): %s", e, exc_info=True)
-
-    # Lehren mit Beleg (L2): einmal je Eingabe, eigene Lehren des Agenten im aktiven Projekt
-    recalled_lessons = await recall_lessons(agent["id"], _user_text(user_input).strip(), active_project_id)
 
     for iteration in range(max_iterations):
         yield IterationStart(iteration=iteration + 1)
@@ -223,6 +225,8 @@ async def run(
             else:
                 yield _item
 
+        if recalled_lessons is None:
+            recalled_lessons = await lessons_task
         stable_system, volatile_system, summary_system = compose_system_prompts(
             base_system_prompt,
             extra_system=extra_system,
