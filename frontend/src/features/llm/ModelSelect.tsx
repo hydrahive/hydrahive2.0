@@ -1,3 +1,4 @@
+import { useId } from "react"
 import { useTranslation } from "react-i18next"
 import type { RegistryModel } from "./api"
 import { providerName } from "./_llm_providers"
@@ -11,6 +12,7 @@ interface ModelSelectProps {
 
 /** Auswahl aus der Registry-Liste, gruppiert nach Anbieter. */
 export function ModelSelect({ label, value, models, onChange }: ModelSelectProps) {
+  const selectId = useId()
   const { t: tCommon } = useTranslation("common")
   const { t } = useTranslation("llm")
   const grouped = models.reduce<Record<string, RegistryModel[]>>((acc, model) => {
@@ -32,8 +34,9 @@ export function ModelSelect({ label, value, models, onChange }: ModelSelectProps
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] text-zinc-500">{label}</label>
+      <label htmlFor={selectId} className="text-[11px] text-zinc-500">{label}</label>
       <select
+        id={selectId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50"

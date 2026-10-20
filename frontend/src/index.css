@@ -53,6 +53,10 @@
     --hh-accent-border: rgba(139, 92, 246, 0.30);
     --hh-scrollbar-thumb: rgba(139, 92, 246, 0.18);
     --hh-scrollbar-thumb-hover: rgba(139, 92, 246, 0.35);
+
+    /* Fokusring (docs/specs/ui-standard.md, Regel 2): helle Akzent-Textfarbe des Themes,
+       auf allen dunklen Flächen ≥ 7,6:1 (WCAG verlangt 3:1). Themes setzen --hh-accent-text. */
+    --hh-focus: var(--hh-accent-text);
   }
 
   [data-theme="cool"] {
@@ -175,6 +179,16 @@
 
   /* Firefox */
   * { scrollbar-width: thin; scrollbar-color: var(--hh-scrollbar-thumb) transparent; }
+
+  /* Sichtbarer Tastatur-Fokus für alles (docs/specs/ui-standard.md, Regel 2).
+     :where() hält die Spezifität bei 0 → eigene focus-visible:ring-…-Klassen gewinnen weiter.
+     Nur :focus-visible: Mausklick zeigt keinen Ring. */
+  :where(:focus-visible) {
+    outline: 2px solid var(--hh-focus);
+    outline-offset: 2px;
+  }
+  /* Elemente, die nur programmatisch Fokus bekommen (Dialog-Container, tabIndex=-1): kein Ring. */
+  :where([tabindex="-1"]:focus-visible) { outline: none; }
 }
 
 /* ============================================================

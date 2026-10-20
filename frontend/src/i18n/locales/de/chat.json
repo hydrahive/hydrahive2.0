@@ -120,7 +120,11 @@
     "resend": "Neu senden",
     "resend_hint": "Strg+Enter zum Senden, Esc zum Abbrechen. Verlauf ab dieser Nachricht wird verworfen.",
     "retry": "Neu generieren",
-    "retry_hint": "Antwort verwerfen und Frage neu beantworten lassen."
+    "retry_hint": "Antwort verwerfen und Frage neu beantworten lassen.",
+    "speak": "Vorlesen",
+    "stop_speaking": "Vorlesen stoppen",
+    "branch_prev": "Vorherige Variante",
+    "branch_next": "Nächste Variante"
   },
   "bubble_footer": {
     "tokens": "{{in}} ↑ · {{out}} ↓",

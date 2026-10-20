@@ -108,7 +108,7 @@ export function UiKitPage() {
           <Input placeholder="Normales Textfeld…" />
           <Input placeholder="Mit Icon…" icon={<Search size={15} />} />
           <Input placeholder="Fehlerzustand" invalid defaultValue="ungültig" />
-          <Select defaultValue="">
+          <Select defaultValue="" aria-label="Beispiel-Auswahl">
             <option value="" disabled>Bitte wählen…</option>
             <option>Option A</option>
             <option>Option B</option>

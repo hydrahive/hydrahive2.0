@@ -39,16 +39,16 @@ export function ProviderCard({
         </p>
       </div>
       {hasOAuth && onRevokeOAuth && (
-        <button onClick={onRevokeOAuth} title={t("providers.revoke_oauth")}
+        <button onClick={onRevokeOAuth} title={t("providers.revoke_oauth")} aria-label={t("providers.revoke_oauth")}
           className="p-1.5 rounded-lg text-zinc-600 hover:text-amber-300 hover:bg-amber-500/10 transition-colors">
           <Unlink size={14} />
         </button>
       )}
-      <button onClick={onEdit}
+      <button onClick={onEdit} aria-label={t("common:actions.edit")} title={t("common:actions.edit")}
         className="p-1.5 rounded-lg text-zinc-600 hover:text-violet-300 hover:bg-violet-500/10 transition-colors">
         <Pencil size={14} />
       </button>
-      <button onClick={onDelete}
+      <button onClick={onDelete} aria-label={t("common:actions.delete")} title={t("common:actions.delete")}
         className="p-1.5 rounded-lg text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors">
         <Trash2 size={14} />
       </button>

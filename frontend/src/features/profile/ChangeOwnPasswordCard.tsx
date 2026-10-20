@@ -33,8 +33,8 @@ export function ChangeOwnPasswordCard() {
         <p className="text-xs text-zinc-500 mt-0.5">{t("password.description")}</p>
       </div>
       <div className="space-y-1.5">
-        <label className="block text-xs font-medium text-zinc-400">{t("password.new_label")}</label>
-        <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} required minLength={8}
+        <label htmlFor="profile-new-password" className="block text-xs font-medium text-zinc-400">{t("password.new_label")}</label>
+        <input id="profile-new-password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} required minLength={8}
           className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-white/[8%] text-zinc-200 text-sm" />
         <p className="text-[11px] text-zinc-600">{t("password.min_length_hint")}</p>
       </div>

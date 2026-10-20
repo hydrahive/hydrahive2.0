@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useId, useMemo } from "react"
 
 export interface MediaModel {
   id: string
@@ -21,6 +21,7 @@ interface Props {
  * ohne einen zweiten, widersprüchlichen "Provider"-Wert zu speichern.
  */
 export function MediaModelSelect({ label, value, models, onChange }: Props) {
+  const selectId = useId()
   const groups = useMemo(() => {
     const cloud = models.filter((model) => !model.local)
     const local = new Map<string, MediaModel[]>()
@@ -34,8 +35,9 @@ export function MediaModelSelect({ label, value, models, onChange }: Props) {
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] text-zinc-500">{label}</label>
+      <label htmlFor={selectId} className="text-[11px] text-zinc-500">{label}</label>
       <select
+        id={selectId}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="w-full px-3 py-2.5 rounded-lg bg-zinc-900 border border-white/[8%] text-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-violet-500/50"

@@ -95,7 +95,7 @@ export function ExtensionsPage() {
             {t("installed_count", { installed: extensions.filter((e) => e.installed).length, total: extensions.length })}
           </span>
         </div>
-        <button onClick={load}
+        <button onClick={load} aria-label={t("common:actions.refresh")} title={t("common:actions.refresh")}
           className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>

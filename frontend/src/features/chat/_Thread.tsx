@@ -62,13 +62,13 @@ function HydraUserMessage() {
             </div>
             <div className="flex items-center justify-end gap-1.5">
               <ActionBarPrimitive.Edit asChild>
-                <button title={t("bubble.edit")} className="p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors">
+                <button title={t("bubble.edit")} aria-label={t("bubble.edit")} className="p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors">
                   <Check size={11} className="hidden group-data-[editing]:block text-violet-400" />
                   <span className="group-data-[editing]:hidden">✎</span>
                 </button>
               </ActionBarPrimitive.Edit>
               <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-                title={t("bubble.copy")} className="p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors">
+                title={t("bubble.copy")} aria-label={t("bubble.copy")} className="p-1 rounded text-zinc-600 hover:text-zinc-300 transition-colors">
                 {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
               </button>
             </div>
@@ -124,17 +124,18 @@ function HydraAssistantMessage() {
         {msg.branchCount > 1 && (
           <div className="flex items-center gap-1 text-[11px] text-zinc-500">
             <BranchPickerPrimitive.Previous asChild>
-              <button className="hover:text-zinc-300 transition-colors px-1">◀</button>
+              <button aria-label={t("bubble.branch_prev")} className="hover:text-zinc-300 transition-colors px-1">◀</button>
             </BranchPickerPrimitive.Previous>
             <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
             <BranchPickerPrimitive.Next asChild>
-              <button className="hover:text-zinc-300 transition-colors px-1">▶</button>
+              <button aria-label={t("bubble.branch_next")} className="hover:text-zinc-300 transition-colors px-1">▶</button>
             </BranchPickerPrimitive.Next>
           </div>
         )}
         <div className="flex items-center gap-1.5 flex-wrap">
           {fullText && (
             <button onClick={() => tts.speaking ? tts.stop() : tts.speak(fullText)}
+              aria-label={tts.speaking ? t("bubble.stop_speaking") : t("bubble.speak")}
               className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-colors ${tts.speaking ? "text-rose-300 bg-rose-500/15 border-rose-500/30 hover:bg-rose-500/25" : "text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-zinc-200 hover:bg-white/[6%]"}`}>
               {tts.speaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
             </button>
@@ -144,6 +145,7 @@ function HydraAssistantMessage() {
           )}
           {fullText && (
             <button onClick={() => { navigator.clipboard.writeText(fullText); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+              aria-label={t("bubble.copy")}
               className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-zinc-200 hover:bg-white/[6%] transition-colors">
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
             </button>
@@ -155,7 +157,7 @@ function HydraAssistantMessage() {
               </button>
             </ActionBarPrimitive.Reload>
           )}
-          <button onClick={() => setShowRaw((r) => !r)}
+          <button onClick={() => setShowRaw((r) => !r)} aria-label={t("bubble.raw")} aria-pressed={showRaw}
             className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] border transition-colors ${showRaw ? "text-amber-300 bg-amber-500/15 border-amber-500/30" : "text-zinc-400 bg-white/[3%] border-white/[8%] hover:text-zinc-200 hover:bg-white/[6%]"}`}>
             <Code size={12} />
           </button>

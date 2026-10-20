@@ -1,3 +1,4 @@
+import { useId } from "react"
 import type { Project } from "@/features/projects/types"
 
 interface Props {
@@ -8,12 +9,14 @@ interface Props {
 }
 
 export function ProjectSelector({ projects, activeProjectId, loading, onPick }: Props) {
+  const selectId = useId()
   return (
     <div>
-      <label className="mb-1 inline-flex rounded-[4px] border border-[#69d7ff]/35 bg-[#1c2940] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">
+      <label htmlFor={selectId} className="mb-1 inline-flex rounded-[4px] border border-[#69d7ff]/35 bg-[#1c2940] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">
         Projekt
       </label>
       <select
+        id={selectId}
         value={activeProjectId ?? ""}
         disabled={loading || projects.length === 0}
         onChange={(e) => onPick(e.target.value || null)}

@@ -38,6 +38,7 @@ export function ButlerTopBar({
       )}
 
       <select
+        aria-label={t("flowSelectLabel")}
         value={activeFlowId || ""}
         onChange={e => {
           const flow = flows.find(f => f.id === e.target.value)

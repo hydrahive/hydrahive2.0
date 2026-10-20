@@ -69,7 +69,7 @@ export function ExtensionCredentials() {
         <p className="text-xs text-zinc-500">
           Zugangsdaten die bei der Extension-Installation automatisch generiert wurden.
         </p>
-        <button onClick={load}
+        <button onClick={load} aria-label={t("common:actions.refresh")} title={t("common:actions.refresh")}
           className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors">
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
         </button>
