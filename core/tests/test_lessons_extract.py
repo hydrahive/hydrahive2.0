@@ -33,6 +33,8 @@ def env(tmp_path, monkeypatch):
     calls = []
 
     async def fake_complete(messages, model=None, temperature=0.7, max_tokens=4096):
+        if "quote_fits" in messages[0]["content"]:                                # Gegenprüfung (Spec 10d): belegt
+            return '{"supported": true, "quote_fits": true}'
         calls.append({"model": model, "messages": messages})
         return env.answer
 
@@ -158,6 +160,8 @@ def test_runner_calls_start_lessons_after_completed_turn() -> None:
 
 def test_parallel_runs_for_same_session_do_not_double(env) -> None:
     async def slow(messages, model=None, temperature=0.2, max_tokens=3000):
+        if "quote_fits" in messages[0]["content"]:
+            return '{"supported": true, "quote_fits": true}'
         env.calls.append(model)
         await asyncio.sleep(0.05)
         return env.answer

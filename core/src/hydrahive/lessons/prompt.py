@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 
 BUDGET = 30_000
-HEAD = 0.45
 TOOL_INPUT = 400
 TOOL_OUTPUT = 300
 
@@ -78,12 +77,21 @@ def _lines(role: str, content) -> list[str]:
 
 
 def record(messages, *, budget: int = BUDGET) -> str:
-    """Lesbarer Verlauf (Denk-Blöcke weggelassen); zu lang → Anfang und Ende, Mitte ausgelassen."""
+    """Lesbarer Verlauf (Denk-Blöcke weggelassen); zu lang → nur das Ende (ab einer ganzen Zeile).
+
+    Früher Anfang + Ende: bei langen Sitzungen sah das Modell den Start von vor Tagen und das Ende von heute und
+    deutete die Lücke als „Themenwechsel ohne Klärung“ (Spec 10d)."""
     text = "\n".join(line for m in messages for line in _lines(m.role, m.content))
     if len(text) <= budget:
         return text
-    head = int(budget * HEAD)
-    return text[:head] + f"\n…[{len(text) - budget} Zeichen ausgelassen]…\n" + text[-(budget - head):]
+    lines, kept, size = text.split("\n"), [], 0
+    for line in reversed(lines):
+        if size + len(line) + 1 > budget - 60:
+            break
+        kept.append(line)
+        size += len(line) + 1
+    note = f"…[{len(text) - size} Zeichen früher ausgelassen]…"
+    return note + "\n" + "\n".join(reversed(kept))
 
 
 def messages(rec: str) -> list[dict]:
