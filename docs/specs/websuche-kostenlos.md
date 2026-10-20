@@ -244,3 +244,28 @@ von `format` kommen deshalb in `_html_text.py` bzw. einen kleinen Helfer, nicht 
 - **B – Tavily zuerst** für `general`, SearXNG nur als Ersatz. Beste Treffer, kostet aber Kontingent
   (1.000/Monat, Stopp bei 950). Bei rund 30 Suchen am Tag ist das am Monatsende knapp.
 - **C – A + gezielt Tavily:** Wie A. Liefert Yandex weniger als 3 Treffer, fragt zusätzlich Tavily.
+
+### 11.1 Entscheidung Till (20.10.): Variante C
+
+**SearXNG**
+- Der Anbieter `bing` (Web, Kategorie `general`) wird **ausgeschaltet** (`disabled: true`).
+- `bing news` und `bing images` sind eigene Anbieter und bleiben an; Nachrichten kommen weiter von Bing.
+- `yandex` bleibt an.
+- `installer/lib/searxng_engines.py`:
+  - schaltet `yandex` ein, falls es fehlt;
+  - setzt `bing` auf aus – aber **nur**, wenn der Eintrag noch der eigene Stand von früher ist
+    (`{name: bing, disabled: false}` ohne weitere Felder). Eine eigene Wahl des Nutzers bleibt.
+- `76-searxng.sh`: Neue Installationen schreiben `bing` gleich als aus.
+- Sicherung, Prüfung auf Treffer nach dem Neustart und Zurückspielen wie bisher (`migrations/searxng-engines.sh`).
+
+**web_search – Ergänzung durch Tavily**
+- Nur bei `category=general` (Nachrichten sind mit `bing news` gut versorgt).
+- Liefert SearXNG **weniger als 3** Treffer und ist ein Schlüssel eingetragen, wird **zusätzlich** Tavily gefragt.
+  Das passiert auch dann, wenn keine Anbieter als gesperrt gemeldet sind.
+- Ergebnis:
+  - Die SearXNG-Treffer stehen zuerst, dahinter die Tavily-Treffer ohne Doppel (gleiche URL).
+  - Insgesamt höchstens `count`.
+  - Kennung `"supplemented": "tavily"`.
+- Ist das Kontingent erschöpft oder Tavily fehlerhaft: einfach die SearXNG-Treffer, mit kurzem Hinweis
+  `supplement_note`. Kein Fehler.
+- Der bisherige Ersatz (alle gesperrt bzw. SearXNG weg → nur Tavily) bleibt unverändert.
