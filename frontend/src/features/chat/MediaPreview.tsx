@@ -10,6 +10,8 @@ import { useState } from "react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { EpubViewer } from "./EpubViewer"
 import { ImageLightbox } from "./ImageLightbox"
+import { ModuleViewFrame } from "./ModuleViewFrame"
+import type { ModuleView } from "./moduleView"
 import type { ToolMedia } from "./types"
 
 // HTTP(S)-URLs
@@ -51,10 +53,11 @@ export interface ExtractedMedia {
   videos: string[]
   pdfs: string[]
   epubs: string[]
+  views: ModuleView[]
 }
 
 export function extractMedia(text: string): ExtractedMedia {
-  if (!text) return { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
+  if (!text) return { images: [], audio: [], videos: [], pdfs: [], epubs: [], views: [] }
   const dedupe = (xs: string[]) => Array.from(new Set(xs))
   const images = [
     ...(text.match(IMG_RE) || []),
@@ -70,7 +73,7 @@ export function extractMedia(text: string): ExtractedMedia {
   ]
   const pdfs = matchAll(text, ABS_PDF_RE).map(toApiUrl)
   const epubs = matchAll(text, ABS_EPUB_RE).map(toApiUrl)
-  return { images: dedupe(images), audio: dedupe(audio), videos: dedupe(videos), pdfs: dedupe(pdfs), epubs: dedupe(epubs) }
+  return { images: dedupe(images), audio: dedupe(audio), videos: dedupe(videos), pdfs: dedupe(pdfs), epubs: dedupe(epubs), views: [] }
 }
 
 export function hasMedia(text: string): boolean {
@@ -79,10 +82,14 @@ export function hasMedia(text: string): boolean {
 }
 
 export function mediaFromBlocks(media: ToolMedia[] | undefined): ExtractedMedia {
-  const empty: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
+  const empty: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [], epubs: [], views: [] }
   if (!media || media.length === 0) return empty
-  const out: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [], epubs: [] }
+  const out: ExtractedMedia = { images: [], audio: [], videos: [], pdfs: [], epubs: [], views: [] }
   for (const m of media) {
+    if (m.kind === "module_view") {
+      if (m.module && m.view_id) out.views.push({ module: m.module, view_id: m.view_id, title: m.title ?? "" })
+      continue
+    }
     // url: direkter Link (z.B. von OpenRouter-API), path: lokale Datei via /api/files
     const resolved = m.url ?? (m.path ? toApiUrl(m.path) : null)
     if (!resolved) continue
@@ -121,9 +128,13 @@ function PdfViewer({ url }: { url: string }) {
 }
 
 export function MediaPreview({ media }: { media: ExtractedMedia }) {
-  if (media.images.length + media.audio.length + media.videos.length + media.pdfs.length + media.epubs.length === 0) return null
+  if (media.images.length + media.audio.length + media.videos.length + media.pdfs.length + media.epubs.length
+      + media.views.length === 0) return null
   return (
     <div className="space-y-2">
+      {media.views.map((v) => (
+        <ModuleViewFrame key={`${v.module}/${v.view_id}`} module={v.module} viewId={v.view_id} title={v.title} />
+      ))}
       {media.images.map((url) => (
         <ImageLightbox key={url} url={url} />
       ))}

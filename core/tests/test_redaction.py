@@ -135,3 +135,14 @@ def test_detect_dedupt_mehrfache_vorkommen():
     """Derselbe Key zweimal im Text → genau ein Eintrag (Dedup)."""
     found = redaction.detect_secrets(f"{LONG_KEY} und nochmal {LONG_KEY}")
     assert found.count(LONG_KEY) == 1
+
+
+def test_scrub_result_behaelt_result_type():
+    """Befund 20.10.2026 (hydratest, Modul Diagramme): scrub_result baute das Ergebnis ohne result_type neu →
+    module_view/image_url/audio_url/video_url wurden zu 'text', der Chat zeigte nichts an."""
+    for kind in ("module_view", "image_url", "audio_url", "video_url"):
+        result = ToolResult.ok(f"x {LONG_KEY}", result_type=kind, view_id="d_1")
+        scrubbed = redaction.scrub_result(result, secrets={LONG_KEY})
+        assert scrubbed.result_type == kind
+        assert scrubbed.metadata == {"view_id": "d_1"}
+        assert LONG_KEY not in scrubbed.output

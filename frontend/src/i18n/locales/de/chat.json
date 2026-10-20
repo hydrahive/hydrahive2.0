@@ -211,5 +211,12 @@
       "cancelled": "abgebrochen",
       "lost": "verloren"
     }
+  },
+  "module_view": {
+    "untitled": "Ansicht",
+    "open_big": "Groß öffnen",
+    "close": "Schließen",
+    "unavailable": "Die Ansicht lässt sich gerade nicht laden.",
+    "reload": "Neu laden"
   }
 }
