@@ -68,7 +68,7 @@ def test_matching_lesson_is_picked(agents, emb) -> None:
     _les("Wenn der Chat hängt", sid="s2")
     got = _pick("die datei finde ich nicht")
     assert [g["cue"] for g in got] == ["Wenn eine Datei fehlt"]
-    assert got[0]["similarity"] >= recall.THRESHOLD
+    assert got[0]["similarity"] >= recall.CANDIDATE_FLOOR
 
 
 def test_nothing_below_threshold(agents, emb) -> None:
@@ -294,6 +294,26 @@ def test_at_most_five_candidates_go_to_judge(agents, emb, monkeypatch) -> None:
 def test_judge_answer_is_checked(agents, emb, monkeypatch) -> None:
     _les("Wenn eine Datei fehlt")
     for raw in ('{"apply": [7]}', '{"apply": ["1"]}', "kaputt", '{"apply": 1}', '{"apply": [0, -1]}'):
+        async def answer(*a, raw=raw, **k):
+            return raw
+        monkeypatch.setattr(recall, "_complete", answer)
+        assert _pick("wo ist die datei") == [], raw
+
+
+def test_judge_out_of_range_numbers_are_dropped_not_crashing(agents, emb, monkeypatch) -> None:
+    _les("Wenn eine Datei fehlt")
+    _les("Wenn eine Datei verschwindet", sid="s2")
+
+    async def answer(*a, **k):
+        return '{"apply": [2, 9]}'                                                    # 9 gibt es nicht
+    monkeypatch.setattr(recall, "_complete", answer)
+    got = _pick("wo ist die datei")
+    assert len(got) == 1
+
+
+def test_judge_apply_must_be_a_list(agents, emb, monkeypatch) -> None:
+    _les("Wenn eine Datei fehlt")
+    for raw in ('{"apply": "1"}', '{"apply": {"1": true}}', '{"apply": null}'):
         async def answer(*a, raw=raw, **k):
             return raw
         monkeypatch.setattr(recall, "_complete", answer)

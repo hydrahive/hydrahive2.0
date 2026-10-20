@@ -1,10 +1,14 @@
-"""Lehren vor der Arbeit auswählen (Spec 10c): passende eigene Lehren zur Eingabe, höchstens drei.
+"""Lehren vor der Arbeit auswählen (Spec 10c + Nachtrag): passende eigene Lehren zur Eingabe, höchstens drei.
 
-Ähnlichkeit = Kosinus zwischen Eingabe und Auslöser (`cue`), Schwelle aus der Messung vom 20.10.2026. Ohne
-Embedding-Modell ein einfacher Wort-Abgleich. Fehler beim Einbetten liefern einfach keine Lehren.
+Zweistufig, weil jedes Embedding-Modell eine eigene Skala hat (gemessen 20.10.2026):
+1. Kandidaten: Kosinus Eingabe ↔ Auslöser (`cue`) ≥ CANDIDATE_FLOOR, höchstens CANDIDATES (ohne Embedding-Modell:
+   Wort-Abgleich ohne Füllwörter).
+2. Rückfrage beim Modell für Lehren: welche gilt wirklich? Fehler, Zeitüberschreitung, kein Modell → keine Lehren.
 """
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import math
 import re
@@ -13,8 +17,13 @@ from hydrahive.lessons import store
 
 logger = logging.getLogger(__name__)
 
-THRESHOLD = 0.42           # gemessen: passende ≥ 0,43, unpassende ≤ 0,39 (text-embedding-3-small)
+CANDIDATE_FLOOR = 0.40     # großzügig; die Entscheidung trifft die Rückfrage
+CANDIDATES = 5
 LIMIT = 3
+JUDGE_TIMEOUT = 8.0
+JUDGE = """You decide which stored lessons apply to the user's NEW request. A lesson applies only if the situation in
+its WHEN-part clearly matches what the request is about. Similar words are not enough. When unsure, it does not apply.
+Answer with JSON only: {"apply": [numbers of the lessons that apply]} – an empty list is a normal answer."""
 MIN_WORDS = 3
 CONFIDENCE_WEIGHT = {"high": 1.0, "medium": 0.8, "low": 0.6}
 CONFIRM_BONUS = 0.2
@@ -24,6 +33,16 @@ WORD_HITS = 2
 _FILLER = frozenset("""wenn eine einer einem einen dann nicht noch auch aber oder und dass diese dieser dieses
 oben unten über unter nach beim ohne mehr sehr schon immer wird werden wurde sind kann soll muss bitte habe haben
 when with that this then than from have does into only also some what which there their about after""".split())
+
+
+def _judge_model() -> str:
+    from hydrahive.llm._config import resolve_lessons_model
+    return resolve_lessons_model()
+
+
+async def _complete(messages: list[dict], model: str | None = None, temperature: float = 0.0, max_tokens: int = 200) -> str:
+    from hydrahive.llm import client
+    return await client.complete(messages, model=model, temperature=temperature, max_tokens=max_tokens)
 
 
 def _embed_model() -> str:
@@ -70,8 +89,19 @@ def _word_similarities(text: str, rows: list[dict]) -> dict[str, float]:
     for r in rows:
         hits = len(mine & words(r.get("cue", "")))
         if hits >= WORD_HITS:
-            out[r["id"]] = THRESHOLD + 0.01 * hits
+            out[r["id"]] = CANDIDATE_FLOOR + 0.01 * hits
     return out
+
+
+async def _judge(text: str, cands: list[dict], model: str) -> list[dict]:
+    """Stufe 2: das Modell wählt aus den Kandidaten; nur gültige Nummern zählen, Reihenfolge der Kandidaten bleibt."""
+    listing = "\n".join(f"{i}. WHEN {r['cue']}" for i, r in enumerate(cands, start=1))
+    msgs = [{"role": "system", "content": JUDGE}, {"role": "user", "content": f"REQUEST: {text}\n\nLESSONS:\n{listing}"}]
+    raw = await asyncio.wait_for(_complete(msgs, model=model), timeout=JUDGE_TIMEOUT)
+    start, end = (raw or "").find("{"), (raw or "").rfind("}")
+    nums = json.loads(raw[start:end + 1]).get("apply") if start != -1 and end > start else None
+    keep = {n for n in nums if type(n) is int} if isinstance(nums, list) else set()   # nur echte Zahlen zählen
+    return [r for i, r in enumerate(cands, start=1) if i in keep]
 
 
 async def pick(agent_id: str, text: str, *, project_id: str | None) -> list[dict]:
@@ -79,16 +109,18 @@ async def pick(agent_id: str, text: str, *, project_id: str | None) -> list[dict
     if len(text.split()) < MIN_WORDS:
         return []
     rows = [r for r in store.current(agent_id) if r.get("status") == "active" and _scope_ok(r, project_id)]
-    if not rows:
+    judge = _judge_model()
+    if not rows or not judge:
         return []
     model = _embed_model()
     try:
         sims = await _similarities(agent_id, text, rows, model) if model else _word_similarities(text, rows)
-    except Exception as e:  # noqa: BLE001 – Abruf ist best-effort, darf den Lauf nie stören
-        logger.warning("lessons.recall: Einbetten fehlgeschlagen: %s", e)
+        cands = sorted((r for r in rows if sims.get(r["id"], 0.0) >= CANDIDATE_FLOOR),
+                       key=lambda r: _score(r, sims[r["id"]]), reverse=True)[:CANDIDATES]
+        chosen = (await _judge(text, cands, judge))[:LIMIT] if cands else []
+    except Exception as e:  # noqa: BLE001 – Abruf ist best-effort (auch Zeitüberschreitung), darf den Lauf nie stören
+        logger.warning("lessons.recall: Auswahl fehlgeschlagen: %s", e)
         return []
-    chosen = sorted((r for r in rows if sims.get(r["id"], 0.0) >= THRESHOLD),
-                    key=lambda r: _score(r, sims[r["id"]]), reverse=True)[:LIMIT]
     if chosen:
         store.note_shown(agent_id, chosen)
     return [{**r, "similarity": round(sims[r["id"]], 3), "cue_vec": None} for r in chosen]
