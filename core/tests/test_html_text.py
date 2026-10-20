@@ -101,3 +101,9 @@ def test_default_headers_never_override_caller_any_case():
     assert "User-Agent" not in h
     assert "Accept" not in h
     assert h["Accept-Language"].startswith("de-DE")
+
+
+def test_navigation_header_footer_removed_even_without_article():
+    page = ("<html><body><header>Kopf</header><nav><a href='/'>Start</a></nav>"
+            "<div><p>Nur Inhalt</p></div><aside>Rand</aside><footer>Fuß</footer></body></html>")
+    assert ht.extract(page)["text"] == "Nur Inhalt"
