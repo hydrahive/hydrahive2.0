@@ -17,7 +17,7 @@ from __future__ import annotations
 # Präfixe, die denselben Anbieter bezeichnen und beim Abgleich wegfallen dürfen.
 _PROVIDER_PREFIXES = (
     "openrouter/", "openai/", "nvidia_nim/", "anthropic/", "openai-codex/",
-    "ollama/", "gemini/", "mistral/", "groq/", "minimax/",
+    "ollama/", "gemini/", "mistral/", "groq/", "minimax/", "deepseek/",
 )
 
 
