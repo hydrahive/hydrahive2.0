@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, status
 
 from hydrahive.api.middleware.errors import coded
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from typing import Annotated
 
@@ -55,6 +55,8 @@ class LlmConfig(BaseModel):
     # Lokale Media-Generierungs-Backends (ComfyUI, Switch-Wrapper).
     # Struktur: docs/specs/local-video-backends.md. Verwaltet über /api/media-backends.
     media_backends: list[dict] = []
+    # Lehren mit Beleg (docs/specs/lehren-mit-beleg.md 10a): "" = wie Chat, "off" = aus, sonst Modell-ID.
+    lessons_model: str = ""
 
 
 def _load() -> dict:
@@ -74,8 +76,12 @@ def get_config() -> dict:
 
 
 @router.put("", dependencies=[Depends(require_admin)])
-async def update_config(cfg: LlmConfig) -> dict:
+async def update_config(cfg: LlmConfig, allow_clear: bool = False) -> dict:
     old = _load()
+    # Schutz (20.10.2026): Die Admin-Seite startet mit einem leeren Platzhalter. Eine Änderung vor dem Laden
+    # schickte keine Anbieter mit und löschte damit alle. Alle Anbieter entfernen geht nur noch ausdrücklich.
+    if old.get("providers") and not cfg.providers and not allow_clear:
+        raise coded(status.HTTP_409_CONFLICT, "llm_config_would_clear")
     old_model = old.get("embed_model", "")
     data = cfg.model_dump()
     # Serverseitig ermittelte Werte niemals aus dem Request übernehmen.
@@ -103,6 +109,22 @@ async def update_config(cfg: LlmConfig) -> dict:
 
 class TestRequest(BaseModel):
     model: str | None = None
+
+
+class DefaultReq(BaseModel):
+    model: str = Field(default="", max_length=200)
+
+
+@router.put("/default/{purpose}", dependencies=[Depends(require_admin)])
+def set_default_model(purpose: str, req: DefaultReq) -> dict:
+    """Nur das Modell EINES Zwecks setzen (chat, embed, image, …, lessons) – der Rest der Datei bleibt unberührt."""
+    if purpose not in _config._PURPOSE_KEYS:
+        raise coded(status.HTTP_400_BAD_REQUEST, "unknown_purpose")
+    if purpose == "embed":
+        raise coded(status.HTTP_400_BAD_REQUEST, "embed_needs_full_save")      # braucht die Dimensions-Prüfung
+    _config.set_default(purpose, req.model.strip())
+    registry.invalidate()
+    return {"purpose": purpose, "model": req.model.strip()}
 
 
 @router.post("/test", dependencies=[Depends(require_admin)])
