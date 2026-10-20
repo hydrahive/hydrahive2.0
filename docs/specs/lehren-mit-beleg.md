@@ -222,11 +222,32 @@ sind klein und eigenes Wissen des Agenten). Fehler beim Abruf dürfen den Lauf n
 - Embedding des **Auslösers** (`cue`) – einmal beim Speichern berechnet und in der Zeile abgelegt (`cue_vec`, Modell
   `cue_model`); fehlt es (älteres Modell, Fehler), wird es beim Lesen nachgeholt und nicht gespeichert.
 - Eingabe mit dem eingestellten `embed_model` einbetten (`embed_type="query"`), Kosinus-Ähnlichkeit.
-- Schwelle **0,42**, gemessen am 20.10. mit `text-embedding-3-small`: 10 echte Lehren, 8 passende und
+- ~~Schwelle **0,42**~~ (überholt, siehe Nachtrag unten), gemessen am 20.10. mit `text-embedding-3-small`: 10 echte Lehren, 8 passende und
   6 unpassende Eingaben. Passende lagen bei 0,43–0,65 (immer Rang 1), unpassende bei höchstens 0,39
   („Backup der Datenbank“ gegen „fehlende Datei“). Höchstens **3** Lehren, sortiert nach
   Ähnlichkeit × (1 + 0,2 × Bestätigungen) × Sicherheit (high 1,0 / medium 0,8 / low 0,6).
 - Ohne Embedding-Modell: einfacher Wort-Abgleich (gemeinsame Wörter ≥ 4 Buchstaben, ≥ 2 Treffer).
+
+**Nachtrag 20.10. – zweistufig (Till: Weg 2):** Eine feste Schwelle trägt nicht, denn jedes Embedding-Modell hat
+eine eigene Skala. Gemessen mit 10 Lehren und 14 Fragen:
+
+| Modell | passend ab | unpassend bis |
+|---|---|---|
+| text-embedding-3-small | 0,43 | 0,39 |
+| text-embedding-3-large | 0,38 | 0,34 |
+| bge-m3 (Hauptserver) | 0,53 | 0,51 |
+| qwen3-embedding | 0,51 | 0,45 |
+| nomic | Bereiche überlappen | |
+
+Auch Abstände zum Mittelwert halfen nicht. Daher:
+1. **Kandidaten:** Ähnlichkeit ≥ **0,40** (großzügig), höchstens **5**.
+2. **Rückfrage:** Ein kurzer Aufruf mit dem Modell für Lehren (`lessons_model`, also wie Chat) fragt: „Welche
+   dieser Lehren gilt für diese Eingabe? Nur wenn die Situation klar passt.“ Antwort ist eine Liste von Nummern;
+   eine leere Liste ist normal. Höchstens **3** werden übernommen.
+   - Gemessen mit bge-m3: luna 14/14 richtig, Ø 1,8 s (max 3,3 s); gemma4 13/14, Ø 4,6 s.
+   - Ohne Kandidaten gibt es keinen Aufruf (4 von 14 Fragen).
+3. **Fallback:** Ist die Rückfrage aus, fehlerhaft oder dauert sie länger als 8 s, werden **keine** Lehren
+   gezeigt. Lieber keine als eine falsche.
 
 **Darstellung** im wechselnden Teil des Systemprompts (`volatile`, wie die Erinnerungs-Treffer – der gecachte Teil
 bleibt unverändert):
