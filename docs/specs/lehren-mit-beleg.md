@@ -123,10 +123,47 @@ wenn ein Agent sie bestätigt.
 
 Messen nach L2: wie oft werden Lehren gezeigt, wie oft bestätigt, wächst die Zahl unkontrolliert?
 
-## 10. Offene Fragen an Till
+## 10. Entscheidungen (Vorschlag 20.10., Probelauf abgewartet)
 
-1. Soll das Schreiben der Lehre ein eigener kleiner LLM-Aufruf am Session-Ende sein (Kosten: ein kurzer Aufruf je
-   Session, lokal mit Ollama möglich) oder in die bestehende Zusammenfassung eingebaut werden?
-2. Bestand: markieren und liegen lassen (Vorschlag) oder gleich aufräumen?
-3. Gelten Lehren je Agent, je Projekt oder global als Standard? Vorschlag: je Projekt, mit Hochstufen auf global,
-   wenn dieselbe Lehre in 2 Projekten bestätigt wird.
+1. **Eigener kurzer Aufruf am Ende einer Sitzung**, nicht in der bestehenden Zusammenfassung: diese sieht nur
+   verdichtete Notizen („was gemacht wurde“), eine belegte Lehre braucht den Verlauf (Fehler → anderer Weg →
+   Erfolg, Korrekturen des Nutzers). Quelle: die Nachrichten der Sitzung, gekürzt auf etwa 30.000 Zeichen.
+   **Modell: das Standard-Textmodell des Servers** (bei Till „luna“), **nicht** gemma4 – siehe 11.
+2. **Bestand markieren und liegen lassen.** Die von Hand geschriebenen Lehren mit sprechenden Schlüsseln werden
+   einmalig ins neue Format übernommen.
+3. **Geltung: Projekt** als Standard, Hochstufen auf global bei Bestätigung in zwei Projekten; ohne Projekt
+   (Buddy) gilt die Lehre für den Agenten.
+
+## 11. Probelauf (20.10.2026, nur gelesen, nichts gespeichert)
+
+12 abgeschlossene Sitzungen aus `sessions.db` (Buddy, Hydrahive DEV, flowki, hydrawow, Storyteller, HydraVR,
+robins ding), Auftrag wie in Abschnitt 4, je Sitzung gegen die alten automatischen Lehren (`crystals.jsonl`).
+Skript und Rohdaten: Projekt-Workspace `_work/lehren-probe/`.
+
+| | alt (crystallize) | gemma4 lokal | luna (Cloud, Abo) |
+|---|---|---|---|
+| Lehren | 44 | 2 | 9 |
+| „kein Eintrag“ | – | 10 | 3 |
+| gefundene Wendepunkte | – | 6 | 62 |
+| JSON lesbar | – | 12/12 | 12/12 |
+| Zeit je Sitzung | – | Ø 12 s | Ø 12 s |
+
+**Befund**
+- **Alt:** allgemeine Sätze ohne Auslöser und Beleg („Inspect config files first …“, „Design-first workflows reduce
+  drift“), zum Teil Selbstbeobachtung der Zusammenfassung („Observations without captured outputs …“).
+- **luna:** findet die Wendepunkte und schreibt konkrete, belegte Lehren. Stichprobe gegen die echten Sitzungen
+  geprüft – Belege stimmen:
+  - „Validierungsbefehl scheitert an fehlendem Projekt-Script → `package.json` lesen, Werkzeug direkt ausführen“
+    (019f58ba: `npm error Missing script: "type-check"` → `npx tsc -b` lief).
+  - „Hänger nach Infrastruktur-Änderung → erst die letzte Stream-/Heartbeat-Änderung prüfen, dann Modellparameter“
+    (019ea28c: Till: „nein die hänger kamen von einem heartbeat fix der war broken“) – genau die Art Lehre,
+    die Wiederholungen spart.
+  - Schwächen: 1× zu speziell (TrinityCore-Login), 1× leicht ausgeschmückt (DCIM: der Nutzer schlug DCIM vor,
+    eine ausdrückliche „Korrektur“ ist es nicht). → Prüfregel in Abschnitt 4 um „Beleg muss wörtlich auffindbar
+    sein“ ergänzen (Code prüft, ob das zitierte Stück im Verlauf vorkommt).
+- **gemma4 (8B):** erkennt die Wendepunkte kaum (6 statt 62) und schreibt fast immer „kein Eintrag“; die zwei
+  Lehren sind zu allgemein bzw. falsch verstanden. **Für diese Aufgabe zu schwach** – lokal erst wieder prüfen,
+  wenn ein größeres Modell läuft.
+
+**Folgerung:** Der Ansatz trägt. Etwa 0,75 Lehren je Sitzung statt 3,7, deutlich nützlicher. Modell = luna
+(läuft über das ChatGPT-Abo, belastet das OpenRouter-Guthaben nicht).
