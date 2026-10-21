@@ -209,7 +209,8 @@ def test_mac_apply_public_forwards_from_lan_address(mac_ports):
     dev = "hhp-eeeeffff0001"
     # nat=true verbietet 0.0.0.0 (Befund 21.10.2026) → auf der VM-Adresse lauschen
     assert ("add_proxy_device", "web", dev, "tcp:192.168.64.2:30080", "tcp:10.10.0.10:80") in mac_ports
-    assert ("open", _rule("public").id, "192.168.178.186", 30080, 30080, "192.168.64.2", 30080) in mac_ports
+    # public = alle Adressen des Macs (WLAN + Kabel; Befund 21.10.2026: iMac mit zwei Adressen, nur eine erreichbar)
+    assert ("open", _rule("public").id, "0.0.0.0", 30080, 30080, "192.168.64.2", 30080) in mac_ports
     assert not any(c[0] == "helper" for c in mac_ports)       # kein sudo hh-portforward / ufw auf dem Mac
     assert mac_ports[-1] == ("mark", _rule("public").id, None)
 
@@ -230,6 +231,21 @@ def test_mac_apply_udp_refused(mac_ports):
         asyncio.run(cp.apply("web", "10.10.0.10", _rule("public", proto="udp")))
     assert e.value.params.get("detail") == "mac_udp_unsupported"
     assert ("mark", _rule("public").id, "mac_udp_unsupported") in mac_ports
+
+
+def test_mac_apply_public_without_lan_address_still_works(mac_ports, monkeypatch):
+    """public braucht auf dem Mac keine erkannte WAN-Adresse mehr (lauscht auf allen)."""
+    monkeypatch.setattr(cp.nat, "wan_ipv4", lambda: None)
+    asyncio.run(cp.apply("web", "10.10.0.10", _rule("public")))
+    assert mac_ports[-1] == ("mark", _rule("public").id, None)
+
+
+def test_mac_apply_tailnet_without_tailscale_fails(mac_ports, monkeypatch):
+    async def none():
+        return None
+    monkeypatch.setattr(cp, "_tailscale_ipv4", none)
+    with pytest.raises(cp.PortError):
+        asyncio.run(cp.apply("web", "10.10.0.10", _rule("tailnet")))
 
 
 def test_mac_apply_without_vm_address_fails(mac_ports, monkeypatch):

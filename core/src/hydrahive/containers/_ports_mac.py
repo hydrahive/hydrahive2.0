@@ -24,7 +24,8 @@ async def apply_mac(name: str, ipv4: str, rule: ports.PortRule) -> None:
         else:
             if rule.protocol != "tcp":
                 raise ports.PortError("container_port_apply_failed", detail="mac_udp_unsupported")
-            addr = ports.nat.wan_ipv4() if rule.scope == "public" else await ports._tailscale_ipv4()
+            # public: alle Adressen des Macs (WLAN und Kabel – ein iMac hat oft beide, Befund 21.10.2026).
+            addr = "0.0.0.0" if rule.scope == "public" else await ports._tailscale_ipv4()
             vm = mac_forward.vm_address()
             if not addr or not vm:
                 raise ports.PortError("container_port_apply_failed", detail=f"keine Adresse für {rule.scope}" if not addr
