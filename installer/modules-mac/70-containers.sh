@@ -108,8 +108,10 @@ export PATH="$BIN:$PATH"
 # --- 2) VM einmal anlegen bzw. starten ------------------------------------------------------------------------
 priv mkdir -p "$COLIMA_HOME" "$HH_LOG_DIR"
 priv chown -R "$HH_USER" "$COLIMA_HOME"
-if [ -f "$HH_CT_PLIST" ]; then
-  priv launchctl unload "$HH_CT_PLIST" >/dev/null 2>&1 || true   # Dienst kurz aus: nicht zwei Starts gleichzeitig
+# Läuft die VM schon unter dem Dienst (Update), bleibt sie unberührt – kein Neustart der Container.
+DAEMON_UP=""
+if [ -f "$HH_CT_PLIST" ] && as_user colima status "$PROFILE" >/dev/null 2>&1; then
+  DAEMON_UP=1
 fi
 start_vm() {
   as_user colima start "$PROFILE" --runtime incus --vm-type vz --cpu "$CPU" --memory "$MEM" --disk "$DISK" \
@@ -136,6 +138,12 @@ else
 fi
 
 # --- 4) Dienst: startet die VM beim Hochfahren, ohne Anmeldung -----------------------------------------------
+# Die VM gehört dem Dienst. Läuft sie aus Schritt 2 noch außerhalb, endet `colima start --foreground` sofort mit
+# „already running“ und launchd startet es alle 10 s neu (Befund 21.10.2026). Darum dann vorher anhalten.
+if [ -z "$DAEMON_UP" ] && as_user colima status "$PROFILE" >/dev/null 2>&1; then
+  log "VM an den Dienst übergeben"
+  as_user colima stop "$PROFILE" >/dev/null 2>&1 || true
+fi
 log "Schreibe $HH_CT_PLIST"
 priv tee "$HH_CT_PLIST" > /dev/null <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -176,7 +184,20 @@ priv tee "$HH_CT_PLIST" > /dev/null <<EOF
 </plist>
 EOF
 priv chmod 644 "$HH_CT_PLIST"
-priv launchctl load "$HH_CT_PLIST"
+if [ -z "$DAEMON_UP" ]; then
+  priv launchctl unload "$HH_CT_PLIST" >/dev/null 2>&1 || true
+  priv launchctl load "$HH_CT_PLIST"
+fi
+# Warten, bis der Dienst die VM wieder hochgefahren hat – danach erwartet der Kern einen erreichbaren incus.
+i=0
+until as_user incus info >/dev/null 2>&1; do
+  i=$((i + 1))
+  if [ "$i" -gt "${HH_CT_WAIT:-90}" ]; then
+    echo "Container-VM antwortet nach dem Start durch den Dienst nicht – siehe $HH_LOG_DIR/hydrahive2-colima.log" >&2
+    exit 1
+  fi
+  sleep 2
+done
 
 # --- 5) Wunsch merken (update-mac.sh pflegt das Modul dann mit; Cockpit zeigt „gewünscht“) ------------------
 CONF="$HH_CONFIG_DIR/install.conf"

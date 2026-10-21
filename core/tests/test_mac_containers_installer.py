@@ -70,7 +70,8 @@ cp "{dl}/${{url#https://example.test/}}" "$out"
     _exe(bin_ / "shasum", 'sha256sum "$3"\n')
     # Nach der Installation stehen colima/incus als Symlinks im bin-Ordner – dort durch Aufzeichnungen ersetzen.
     stub_colima = log + ('case "$1" in status) [ -f "' + str(tmp_path) + '/vm-running" ];; '
-                         'start) touch "' + str(tmp_path) + '/vm-running";; esac\n')
+                         'start) touch "' + str(tmp_path) + '/vm-running";; '
+                         'stop) rm -f "' + str(tmp_path) + '/vm-running";; esac\n')
     stub_incus = log + ('case "$1 $2" in "network show") [ -f "' + str(tmp_path) + '/net" ];; '
                         '"network create") touch "' + str(tmp_path) + '/net";; esac\n')
     root = tmp_path / "ctroot"
@@ -81,7 +82,7 @@ cp "{dl}/${{url#https://example.test/}}" "$out"
 
 
 def _run(m: dict, **extra) -> subprocess.CompletedProcess:
-    env = {**os.environ, "PATH": f"{m['bin']}:/usr/bin:/bin", "HH_USER": "tester",
+    env = {**os.environ, "PATH": f"{m['bin']}:/usr/bin:/bin", "HH_USER": "tester", "HH_CT_WAIT": "1",
            "HH_CONFIG_DIR": str(m["tmp"] / "etc"), "HH_DATA_DIR": str(m["data"]), "HH_LOG_DIR": str(m["tmp"] / "log"),
            "HH_CT_ROOT": str(m["root"]), "HH_CT_PLIST": str(m["plist"]), "HH_CT_DOWNLOAD": "https://example.test",
            **m["shas"], **extra}
@@ -149,14 +150,18 @@ def test_daemon_plist_runs_vm_at_boot_as_user(mac):
 
 
 def test_second_run_does_not_restart_running_vm(mac):
+    """Update: VM läuft unter dem Dienst → nicht anhalten, nicht neu starten, Dienst nicht neu laden."""
     _run(mac)
     _install_stubs(mac)
     _run(mac)
+    (mac["tmp"] / "vm-running").write_text("")                  # Dienst hat die VM hochgefahren
     mac["calls"].write_text("")
     r = _run(mac)
     assert r.returncode == 0, r.stdout + r.stderr
-    assert not any(c.startswith("colima start") for c in _calls(mac))
-    assert not any(c.startswith("incus network create") for c in _calls(mac))
+    calls = _calls(mac)
+    assert not any(c.startswith(("colima start", "colima stop")) for c in calls)
+    assert not any(c.startswith("incus network create") for c in calls)
+    assert not any(c.startswith("launchctl") for c in calls)
 
 
 def test_vm_size_capped_to_half_of_host(mac):
@@ -229,7 +234,8 @@ esac
     r = _run(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     calls = [c for c in _calls(mac) if c.startswith("colima")]
-    assert [c.split()[1] for c in calls if c.split()[1] in ("start", "stop")] == ["start", "stop", "start"]
+    # Start, (Fehler) Stop, Start – dann Übergabe an den Dienst (Stop)
+    assert [c.split()[1] for c in calls if c.split()[1] in ("start", "stop")] == ["start", "stop", "start", "stop"]
 
 
 def test_start_fails_twice_aborts(mac):
@@ -240,3 +246,29 @@ def test_start_fails_twice_aborts(mac):
     r = _run(mac)
     assert r.returncode != 0
     assert not mac["plist"].exists()
+
+
+def test_vm_handed_to_daemon(mac):
+    """Die VM aus dem Installer wird angehalten, bevor der Dienst sie übernimmt – sonst endet `colima start
+    --foreground` mit „already running“ und launchd startet es alle 10 s neu (Befund 21.10.2026)."""
+    _run(mac)
+    _install_stubs(mac)
+    (mac["tmp"] / "vm-running").write_text("")
+    mac["calls"].write_text("")
+    r = _run(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    stop = calls.index("colima stop hydrahive")
+    load = calls.index(f"launchctl load {mac['plist']}")
+    assert stop < load
+    assert "incus info" in calls[load:]                          # wartet, bis der Dienst die VM hochgefahren hat
+
+
+def test_daemon_vm_not_reachable_fails(mac):
+    _run(mac)
+    _install_stubs(mac)
+    vd = _ver_dir(mac)
+    _exe(vd / "bin" / "incus", 'case "$1" in info) exit 1;; esac\nexit 0\n')
+    r = _run(mac)
+    assert r.returncode != 0
+    assert "antwortet" in r.stderr
