@@ -272,6 +272,7 @@ The installer works in phases. Each one starts with a turquoise line `[hh2-mac] 
 | **5** PostgreSQL | Installs the database for memory and search and sets it up as a background service | 2–5 min | **maybe `Password:`** |
 | **6 / 6b** launchd service | Sets HydraHive up as a background service that starts at boot | seconds | **maybe `Password:` again** (also possible in phase 7) |
 | **6c** AgentLink | Sets up AgentLink so agents can hand tasks to each other and servers can be paired (own database in PostgreSQL, two background services) | 2–5 min | **maybe `Password:`** |
+| **6d** Containers (optional) | Only with `--with=containers`: small Linux VM with Incus (Colima), see [Containers](#containers-optional) | 3–10 min | no |
 | **7** nginx | Sets up the web server with HTTPS | 1–2 min | no |
 
 **Stay nearby.** macOS only remembers your password for 5 minutes. If phases 3–5 take longer, the installer asks
@@ -411,7 +412,8 @@ The Mac installer only sets up the **core**. The following is **not** available 
 
 | Feature | On a Mac | Why |
 |---|---|---|
-| **VMs & containers** (libvirt/QEMU, Incus) | ❌ not available | Linux only |
+| **Containers** (Incus) | ✅ optional | through a small Linux VM (Colima), see [Containers](#containers-optional) |
+| **VMs** (libvirt/QEMU) | ❌ not available | Linux only |
 | **Voice / speech recognition service** (Whisper container) | ❌ not automatic | runs in an Incus container on Linux |
 | **WhatsApp integration** | ❌ not set up | the bridge is only set up by the Linux installer |
 | **Samba shares** (project folders on the network) | ❌ not available | Linux module |
@@ -442,6 +444,42 @@ to each other), modules such as Atelier, Storyteller, Household book and so on, 
 - **macOS firewall:** if macOS asks whether `nginx` may accept incoming connections, click **"Allow"**.
 - **Backups:** your data lives in `/usr/local/var/hydrahive2`, the settings (including keys) in
   `/usr/local/etc/hydrahive2`. Back up these two folders. Time Machine includes them.
+
+---
+
+## Containers (optional)
+
+HydraHive can manage containers on a Mac – in the interface (**Containers**) and through agents (`incus …`), just
+like on Linux. A small **Linux VM** (Colima with Incus) runs in the background for this.
+
+**Turn it on** – either way:
+- during installation: `bash installer/install-mac.sh --with=containers`
+- later: **Settings → Add-on modules → Containers → Install** (takes a few minutes)
+
+| | Default | change with |
+|---|---|---|
+| VM cores | 2 | `HH_CONTAINERS_CPU` (at most half of the Mac) |
+| VM memory | 4 GB | `HH_CONTAINERS_MEMORY` (at most half of the Mac) |
+| Space for containers | 60 GB | `HH_CONTAINERS_DISK` |
+
+**Good to know:**
+- The VM permanently uses memory (about 1–2 GB actually in use). That is why the option is off by default.
+- Network: containers sit in their own network 10.10.0.0/24 (like on a VPS). Joining the home network directly
+  ("bridged" mode) is not possible on a Mac.
+- **Publishing ports** (Containers → Ports): "public" listens on all addresses of the Mac, "tailnet" only on the
+  Tailscale address. **TCP only**. The container sees the VM as sender, not the real visitor.
+- After a restart of the Mac the VM starts by itself (service `io.hydrahive.colima`), even without login. Published
+  ports are reachable again at most 30 seconds after HydraHive starts.
+- Real VMs (not containers) are not available on a Mac.
+
+**Check:**
+
+```bash
+sudo launchctl list | grep io.hydrahive.colima
+COLIMA_HOME=/usr/local/var/hydrahive2/colima /usr/local/lib/hydrahive2/containers/bin/incus list
+```
+
+Problems: log at `/usr/local/var/log/hydrahive2-colima.log` or `hydrahive2-addon.log`.
 
 ---
 

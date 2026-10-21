@@ -117,14 +117,28 @@ Reichweite public/tailnet) gibt es drei Wege:
 
 ## 7. Akzeptanzkriterien
 
-- [ ] Mac mit Option „Container“: Container-Seite funktioniert, Agenten können Container anlegen und darin arbeiten.
-- [ ] Nach Neustart des Macs ohne Anmeldung laufen VM und Container wieder.
-- [ ] Ohne Option: nichts von Colima wird installiert, kein zusätzlicher RAM-Verbrauch.
-- [ ] Downloads nur mit passender Prüfsumme; keine Dienste mit root außer dem LaunchDaemon-Rahmen.
-- [ ] Linux: keine Änderung an Linux-Installer-Dateien; volle Suite grün; hydratest-Update + Container unverändert.
+- [x] Mac mit Option „Container“: Container per API wie die Oberfläche (nat, 10.10.0.10) und per `shell_exec`-Werkzeug
+  (`incus launch/exec/list/delete`) – live .186. Echter LLM-Agentenlauf nicht möglich: Codex-Token auf .186 widerrufen.
+- [x] Nach Neustart des Macs ohne Anmeldung laufen VM und Container wieder; Portfreigabe nach ≤ 30 s wieder offen.
+- [x] Ohne Option: nichts von Colima wird installiert (Standard aus; Test).
+- [x] Downloads nur mit passender Prüfsumme (Test: falsche → Abbruch ohne Installation); Colima-Dienst unter dem Nutzer.
+- [x] Linux: keine Änderung an Linux-Installer-Dateien (git diff leer); hydratest: update.sh ok, nat-Container +
+  Portfreigabe über WAN-IP/ufw-Helfer + Löschen unverändert.
 
 ## 8. Nicht in diesem Plan
 
 - Incus-VMs auf dem Mac (erst ab M3, eigener Schritt), QEMU/libvirt-VMs.
 - SearXNG, Whisper, WhatsApp in Containern auf dem Mac (wäre der nächste Schritt, sobald Container laufen).
 - Agent-Werkzeuge für Container (Spec `agent-infrastructure-tools.md`) – gilt für Linux und Mac gleich, eigener Task.
+
+## Umsetzung (21.10.2026)
+
+Befunde bei der echten Abnahme auf .186 (alle mit Test abgesichert):
+1. `update-mac.sh` fand als root weder `npm` noch `node` („sudo: npm“ / „env: npm“) – **betraf jedes Mac-Update mit
+   Frontend-Änderung**, auch auf main. Behoben (Homebrew-bin über vollen Pfad, `sudo -u … env PATH=…`).
+2. Erster Colima-Start scheitert manchmal an `incus remote add … EOF` → einmal neu starten.
+3. VM aus dem Installer lief neben dem Dienst → Neustart-Schleife „already running“ → VM an den Dienst übergeben;
+   „gehört dem Dienst“ = `launchctl list` mit PID.
+4. Backend-PATH ohne `/sbin` → `route`/`ipconfig` mit vollem Pfad.
+5. Incus verbietet `0.0.0.0` mit `nat=true` → proxy device auf der VM-Adresse.
+6. iMac mit WLAN + Kabel: „public“ lauscht jetzt auf allen Adressen des Macs.
