@@ -60,7 +60,9 @@ if [ ! -x "$VER_DIR/tailscaled" ] || [ ! -x "$VER_DIR/tailscale" ]; then
   mkdir -p "$work/out"
   env -i HOME="$work" PATH="$work/go/bin:/usr/bin:/bin" GOPATH="$work/gopath" GOCACHE="$work/gocache" \
     GOBIN="$work/out" GOTOOLCHAIN=local GOFLAGS=-trimpath CGO_ENABLED=1 \
-    "$work/go/bin/go" install "tailscale.com/cmd/tailscale@v$TS_VERSION" "tailscale.com/cmd/tailscaled@v$TS_VERSION"
+    "$work/go/bin/go" install \
+      -ldflags "-X tailscale.com/version.longStamp=$TS_VERSION-hydrahive -X tailscale.com/version.shortStamp=$TS_VERSION" \
+      "tailscale.com/cmd/tailscale@v$TS_VERSION" "tailscale.com/cmd/tailscaled@v$TS_VERSION"
   priv mkdir -p "$VER_DIR"
   priv install -m 0755 "$work/out/tailscale" "$VER_DIR/tailscale"
   priv install -m 0755 "$work/out/tailscaled" "$VER_DIR/tailscaled"

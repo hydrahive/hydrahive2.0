@@ -90,7 +90,10 @@ def test_builds_fixed_version_and_starts_daemon(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac)
     go = [c for c in calls if c.startswith("go install")]
-    assert go == ["go install tailscale.com/cmd/tailscale@v1.104.2 tailscale.com/cmd/tailscaled@v1.104.2 "
+    # Version eingebrannt wie build_dist.sh (sonst zeigt `tailscale version` „…-ERR-BuildInfo“)
+    assert go == ["go install -ldflags -X tailscale.com/version.longStamp=1.104.2-hydrahive "
+                  "-X tailscale.com/version.shortStamp=1.104.2 "
+                  "tailscale.com/cmd/tailscale@v1.104.2 tailscale.com/cmd/tailscaled@v1.104.2 "
                   "GOTOOLCHAIN=local GOFLAGS=-trimpath"]
     for name in ("tailscale", "tailscaled"):
         assert (mac["root"] / "1.104.2" / name).exists()

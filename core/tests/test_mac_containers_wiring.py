@@ -119,6 +119,7 @@ def runner(tmp_path: Path) -> dict:
     log = tmp_path / "ran.log"
     _exe(repo / "installer" / "modules-mac" / "70-containers.sh",
          f'echo "70 user=$HH_USER" >> "{log}"\n[ -f "{tmp_path}/fail70" ] && exit 1; exit 0\n')
+    _exe(repo / "installer" / "modules-mac" / "80-tailscale.sh", f'echo "80 user=$HH_USER" >> "{log}"\n')
     _exe(repo / "installer" / "modules-mac" / "50-launchd.sh", f'echo "50" >> "{log}"\n')
     data = tmp_path / "data"
     data.mkdir()
@@ -140,7 +141,16 @@ def test_runner_installs_containers_and_restarts_backend(runner):
     assert not runner["req"].exists()                           # Anfrage weg → API meldet „fertig“
 
 
-@pytest.mark.parametrize("req", ["install samba\n", "install vms\n", "install containers; rm -rf /\n", "x\n"])
+def test_runner_installs_tailscale(runner):
+    runner["req"].write_text("install tailscale\n")
+    res = _run_runner(runner)
+    assert res.returncode == 0, res.stdout + res.stderr
+    assert runner["log"].read_text().splitlines() == ["80 user=tester", "50"]
+    assert "[hh2-addon] FERTIG: install tailscale ok" in res.stdout
+
+
+@pytest.mark.parametrize("req", ["install samba\n", "install vms\n", "install containers; rm -rf /\n", "x\n",
+                                 "install tailscale ../x\n", "install voice\n"])
 def test_runner_refuses_everything_else(runner, req):
     runner["req"].write_text(req)
     res = _run_runner(runner)
@@ -186,3 +196,40 @@ def test_backend_log_dir_matches_runner_log():
     """Das Cockpit liest settings.log_dir/hydrahive2-addon.log; die Mac-plist setzt HH_LOG_DIR=/usr/local/var/log."""
     assert "/usr/local/var/log" in LAUNCHD.read_text()
     assert 'HH_LOG_DIR="${HH_LOG_DIR:-/usr/local/var/log}"' in TRIGGER.read_text()
+
+
+
+def test_install_tailscale_option(tmp_path):
+    phases = _run_install(tmp_path, "--with=containers,tailscale")
+    assert "70-containers.sh" in phases
+    i = phases.index("80-tailscale.sh")
+    assert phases[i + 1] == "50-launchd.sh"
+    assert i < phases.index("60-nginx.sh")
+    assert "80-tailscale.sh" not in _run_install(tmp_path / "b")             # Standard aus
+
+
+def test_backend_path_contains_tailscale_when_installed(tmp_path):
+    ts = tmp_path / "tsbin"
+    ts.mkdir()
+    bin_ = tmp_path / "lbin"
+    _exe(bin_ / "sudo", '"$@"\n')
+    _exe(bin_ / "launchctl", 'case "$1" in list) echo "1 0 io.hydrahive.backend";; esac\n')
+    _exe(bin_ / "brew", "echo /usr/local\n")
+    (tmp_path / "etc").mkdir()
+    plist = tmp_path / "backend.plist"
+    env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_CONFIG_DIR": str(tmp_path / "etc"),
+           "HH_DATA_DIR": str(tmp_path / "data"), "HH_REPO_DIR": "/opt/hydrahive2", "HH_USER": "tester",
+           "HH_HOST": "127.0.0.1", "HH_PORT": "8001", "HH_BACKEND_PLIST": str(plist),
+           "HH_CT_BIN": str(tmp_path / "fehlt"), "HH_TS_BIN": str(ts)}
+    r = subprocess.run(["bash", str(LAUNCHD)], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    path = plistlib.loads(plist.read_bytes())["EnvironmentVariables"]["PATH"].split(":")
+    assert path[1] == str(ts)
+
+
+def test_update_keeps_wanted_tailscale():
+    text = UPDATE.read_text()
+    i = text.index("modules-mac/80-tailscale.sh")
+    block = text[i - 400:i + 300]
+    assert "HH_INSTALL_TAILSCALE=yes" in block and "FEHLGESCHLAGEN" in block and "exit 1" not in block
+    assert "/usr/local/lib/hydrahive2/tailscale/bin" in text
