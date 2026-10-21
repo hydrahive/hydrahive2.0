@@ -2,7 +2,18 @@
 set -euo pipefail
 log() { printf "  · %s\n" "$*"; }
 
-eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"
+# brew über den vollen Pfad: läuft dieses Skript aus update-mac.sh (root), liegt brew nicht im PATH, und
+# Homebrew verweigert root – dann über den Dienstnutzer (Befund 21.10.2026 auf dem Test-Mac).
+HH_BREW="${HH_BREW:-}"
+if [ -z "$HH_BREW" ]; then
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$candidate" ]; then HH_BREW="$candidate"; break; fi
+  done
+fi
+[ -n "$HH_BREW" ] || HH_BREW="$(command -v brew || echo brew)"
+brew() {
+  if [ "$(id -u)" -eq 0 ]; then sudo -u "${HH_USER:?HH_USER fehlt}" "$HH_BREW" "$@"; else "$HH_BREW" "$@"; fi
+}
 
 if ! brew list nginx &>/dev/null; then
   log "Installiere nginx"

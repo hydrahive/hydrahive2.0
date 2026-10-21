@@ -266,3 +266,33 @@ def test_tailscale_callers_use_shared_lookup():
                 "system/addons_status.py"):
         text = (src / rel).read_text()
         assert 'shutil.which("tailscale")' not in text, rel
+
+
+def test_nginx_as_root_finds_brew_by_full_path(tmp_path):
+    """Befund 21.10. (Test-Mac): update-mac.sh läuft als root; `brew` liegt nicht im PATH → „brew: command not
+    found“, nginx-Umbau scheiterte. 60-nginx.sh muss brew über den vollen Pfad finden (HH_BREW in Tests)."""
+    bin_ = tmp_path / "nbin"
+    bin_.mkdir()
+    prefix = tmp_path / "brew"
+    real = prefix / "bin" / "brew"
+    real.parent.mkdir(parents=True)
+    calls = tmp_path / "calls.log"
+    real.write_text(f'#!/bin/bash\necho "brew $*" >> "{calls}"\ncase "$1" in --prefix) echo "{prefix}";; list) exit 0;; esac\n')
+    real.chmod(0o755)
+    (bin_ / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{calls}"\n[ "$1" = "-u" ] && shift 2\n"$@"\n')
+    (bin_ / "launchctl").write_text("#!/bin/bash\nexit 0\n")
+    (bin_ / "ipconfig").write_text("#!/bin/bash\necho 192.168.1.5\n")
+    (bin_ / "id").write_text('#!/bin/bash\nif [ "$#" -eq 1 ] && [ "$1" = "-u" ]; then echo 0; else exec /usr/bin/id "$@"; fi\n')
+    for f in bin_.iterdir():
+        f.chmod(0o755)
+    cfg = tmp_path / "cfg"
+    (cfg / "tls").mkdir(parents=True)
+    (cfg / "tls" / "server.crt").write_text("x")
+    env = {"PATH": f"{bin_}:/usr/bin:/bin", "HH_CONFIG_DIR": str(cfg), "HH_USER": "tester",
+           "HH_REPO_DIR": "/opt/hydrahive2", "HH_PORT": "8001", "HH_BREW": str(real),
+           "HH_NGINX_PLIST": str(tmp_path / "nginx.plist")}
+    r = subprocess.run(["bash", str(NGINX_MAC)], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (prefix / "etc" / "nginx" / "servers" / "hydrahive2.conf").exists()
+    # als root: brew nur über den Dienstnutzer (Homebrew verweigert root)
+    assert f"sudo -u tester {real} --prefix" in calls.read_text()

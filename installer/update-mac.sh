@@ -100,7 +100,9 @@ fi
 
 # nginx-Konfiguration nachziehen, wenn ein Merkmal fehlt (AgentLink-Wege, Kopplung nur aus dem Tailnet,
 # Sicherheits-Kopfzeilen, Modul-Sandbox). 60-nginx.sh kommt frisch aus dem git pull oben.
-NGINX_CONF="$(sudo -u "$HH_USER" brew --prefix 2>/dev/null || echo /usr/local)/etc/nginx/servers/hydrahive2.conf"
+BREW_PREFIX="/usr/local"
+[ -x /opt/homebrew/bin/brew ] && BREW_PREFIX="/opt/homebrew"
+NGINX_CONF="$BREW_PREFIX/etc/nginx/servers/hydrahive2.conf"
 if [ -f "$NGINX_CONF" ]; then
   NEEDS_NGINX=""
   for marker in hh_agentlink_auth hh_peering_tailnet hh_module_sandbox hh_security_headers; do
