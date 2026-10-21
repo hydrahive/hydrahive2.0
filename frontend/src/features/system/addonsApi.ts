@@ -9,7 +9,7 @@ export interface AddonItem {
   enabled: boolean
   restarts_service: boolean
   requires: AddonId[]
-  hint: "wsl" | null
+  hint: "wsl" | "mac" | null
 }
 
 export interface AddonsResponse {

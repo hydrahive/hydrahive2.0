@@ -47,6 +47,8 @@ def install_addon(addon: str) -> dict:
     if addon not in ADDONS:
         raise coded(status.HTTP_400_BAD_REQUEST, "addon_unknown", addon=addon[:32])
     current = {i["id"]: i for i in list_addons(_install_conf())}
+    if current[addon]["hint"] == "mac":
+        raise coded(status.HTTP_400_BAD_REQUEST, "addon_unavailable_mac", addon=addon)
     if current[addon]["installed"]:
         raise coded(status.HTTP_409_CONFLICT, "addon_installed", addon=addon)
     request_install(addon, _trigger())

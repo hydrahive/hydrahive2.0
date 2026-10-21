@@ -32,9 +32,9 @@ export function AddonsView({ items, running, target, phase, log, error, onAsk, o
             <div className="min-w-0 flex-1">
               <p className="text-sm text-[#d4deeb]">{t(`addons.name.${item.id}`)}</p>
               <p className="text-xs text-[#8d9ab0]">{t(`addons.desc.${item.id}`)}</p>
-              {item.hint === "wsl" && (
+              {item.hint && (
                 <p className="mt-1 text-xs text-amber-300/90">
-                  <TriangleAlert size={11} className="mr-1 inline" />{t("addons.hint_wsl")}
+                  <TriangleAlert size={11} className="mr-1 inline" />{t(`addons.hint_${item.hint}`)}
                 </p>
               )}
             </div>
@@ -42,6 +42,8 @@ export function AddonsView({ items, running, target, phase, log, error, onAsk, o
               <AdminStatus tone="warning" icon={Loader2} pulse>{t("addons.running_badge")}</AdminStatus>
             ) : item.installed ? (
               <AdminStatus tone="success" icon={CheckCircle2}>{t("addons.installed")}</AdminStatus>
+            ) : item.hint === "mac" ? (
+              <AdminStatus tone="neutral" icon={XCircle}>{t("addons.not_installed")}</AdminStatus>
             ) : (
               <>
                 <AdminStatus tone="neutral" icon={XCircle}>{t("addons.not_installed")}</AdminStatus>
