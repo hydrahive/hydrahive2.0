@@ -25,8 +25,16 @@ AGENT_LABEL="homebrew.mxcl.postgresql@16"
 WAIT="${HH_PG_WAIT:-30}"
 
 as_root() { [ "$(id -u)" -eq 0 ]; }
-# Homebrew verweigert root – als root deshalb über den HydraHive-Nutzer aufrufen.
-run_brew() { if as_root; then sudo -u "$HH_USER" brew "$@"; else brew "$@"; fi; }
+# brew über den vollen Pfad: als root (update-mac.sh) liegt brew nicht im PATH – sudo setzt einen eigenen
+# (Befund 21.10.2026 auf dem Test-Mac). Homebrew verweigert root – dann über den HydraHive-Nutzer.
+HH_BREW="${HH_BREW:-}"
+if [ -z "$HH_BREW" ]; then
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$candidate" ]; then HH_BREW="$candidate"; break; fi
+  done
+fi
+[ -n "$HH_BREW" ] || HH_BREW="$(command -v brew || echo brew)"
+run_brew() { if as_root; then sudo -u "$HH_USER" "$HH_BREW" "$@"; else "$HH_BREW" "$@"; fi; }
 priv() { if as_root; then "$@"; else sudo "$@"; fi; }
 
 eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"

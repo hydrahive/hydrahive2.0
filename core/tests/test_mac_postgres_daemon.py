@@ -179,3 +179,20 @@ def test_update_nutzer_ist_besitzer_des_repos_statt_admin(fake):
     calls = fake["calls"].read_text()
     assert f"sudo -u {owner} git pull" in calls
     assert "sudo -u admin " not in calls or owner == "admin"
+
+
+def test_als_root_brew_ueber_vollen_pfad(fake, tmp_path):
+    """Befund 21.10.2026 (Test-Mac): update-mac.sh läuft als root, sudo setzt einen PATH ohne Homebrew →
+    „brew: command not found“. Das Skript muss brew über den vollen Pfad aufrufen (HH_BREW in Tests)."""
+    fake["ready"].touch()
+    real = tmp_path / "homebrew" / "bin" / "brew"
+    real.parent.mkdir(parents=True)
+    (fake["bin"] / "brew").rename(real)
+    (fake["bin"] / "id").write_text('#!/bin/bash\ncase "$*" in "-u") echo 0;; "-u tester") echo 501;; *) exec /usr/bin/id "$@";; esac\n')
+    (fake["bin"] / "id").chmod(0o755)
+    (fake["bin"] / "dscl").write_text(f'#!/bin/bash\necho "NFSHomeDirectory: {fake["home"]}"\n')
+    (fake["bin"] / "dscl").chmod(0o755)
+    env = _env(fake, HH_BREW=str(real), PATH=f"{fake['bin']}:/usr/bin:/bin")
+    r = subprocess.run(["bash", str(DAEMON)], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "brew --prefix postgresql@16" in fake["calls"].read_text()

@@ -19,6 +19,7 @@ HH_HOST="${HH_HOST:-127.0.0.1}"
 HH_PORT="${HH_PORT:-8001}"
 HH_INSTALL_NGINX="${HH_INSTALL_NGINX:-yes}"
 HH_INSTALL_POSTGRES="${HH_INSTALL_POSTGRES:-yes}"
+HH_INSTALL_AGENTLINK="${HH_INSTALL_AGENTLINK:-yes}"
 
 log() { printf "\033[1;36m[hh2-mac]\033[0m %s\n" "$*"; }
 err() { printf "\033[1;31m[hh2-mac]\033[0m %s\n" "$*" >&2; exit 1; }
@@ -28,7 +29,7 @@ err() { printf "\033[1;31m[hh2-mac]\033[0m %s\n" "$*" >&2; exit 1; }
 command -v brew >/dev/null 2>&1 || err "Homebrew fehlt. Installieren: https://brew.sh"
 
 INSTALLER_DIR="$(cd "$(dirname "$0")" && pwd)"
-export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR
+export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK
 
 log "Phase 1: System-Dependencies"
 bash "$INSTALLER_DIR/modules-mac/00-deps.sh"
@@ -54,6 +55,15 @@ bash "$INSTALLER_DIR/modules-mac/50-launchd.sh"
 
 log "Phase 6b: Update- und Restart-Trigger"
 bash "$INSTALLER_DIR/modules-mac/55-launchd-triggers.sh"
+
+# AgentLink braucht PostgreSQL (eigene Datenbank im postgresql@16 des Kerns).
+if [ "${HH_INSTALL_AGENTLINK}" != "no" ] && [ "${HH_INSTALL_POSTGRES}" != "no" ]; then
+  log "Phase 6c: AgentLink (HydraLink)"
+  bash "$INSTALLER_DIR/modules-mac/75-agentlink.sh" \
+    || log "AgentLink-Installation FEHLGESCHLAGEN – Agenten können sich nicht gegenseitig beauftragen. Nachholen: bash $INSTALLER_DIR/modules-mac/75-agentlink.sh"
+else
+  log "Phase 6c: AgentLink übersprungen"
+fi
 
 if [ "${HH_INSTALL_NGINX}" != "no" ]; then
   log "Phase 7: nginx"
