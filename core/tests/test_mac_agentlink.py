@@ -117,6 +117,7 @@ def _run_install(tmp_path: Path, **extra) -> list[str]:
     for name in [p.name for p in (INSTALLER / "modules-mac").glob("*.sh")]:
         (inst / "modules-mac" / name).write_text(f'#!/bin/bash\necho "{name}" >> "{log}"\n')
     (inst / "lib" / "mac-admin-password.sh").write_text("#!/bin/bash\necho pw\n")
+    (inst / "lib" / "mac-addon-trigger.sh").write_text("#!/bin/bash\nexit 0\n")
     (inst / "install-mac.sh").write_text(INSTALL.read_text())
     bin_ = tmp_path / "ibin"
     bin_.mkdir()
