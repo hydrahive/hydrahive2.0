@@ -275,6 +275,7 @@ Der Installer arbeitet in Phasen. Jede beginnt mit einer türkisen Zeile `[hh2-m
 | **6 / 6b** launchd-Service | Richtet HydraHive als Hintergrund-Dienst ein, der beim Hochfahren startet | Sekunden | **evtl. nochmal `Password:`** (auch in Phase 7 möglich) |
 | **6c** AgentLink | Richtet AgentLink ein, damit Agenten sich gegenseitig Aufträge geben und Server sich koppeln können (eigene Datenbank im PostgreSQL, zwei Hintergrund-Dienste) | 2–5 min | **evtl. `Password:`** |
 | **6d** Container (optional) | Nur mit `--with=containers`: kleine Linux-VM mit Incus (Colima), siehe [Container](#container-optional) | 3–10 min | nein |
+| **6e** Tailscale (optional) | Nur mit `--with=tailscale`: baut Tailscale ohne App und richtet es als Dienst ein, siehe [Tailscale](#tailscale-optional) | 1–3 min | nein |
 | **7** nginx | Richtet den Webserver mit HTTPS ein | 1–2 min | nein |
 
 **Bleib in der Nähe.** macOS merkt sich dein Passwort nur 5 Minuten. Dauern die Phasen 3–5 länger, fragt der
@@ -417,7 +418,7 @@ Der Mac-Installer richtet nur den **Kern** ein. Folgendes gibt es auf dem Mac **
 | **Voice / Spracherkennung als Dienst** (Whisper-Container) | ❌ nicht automatisch | läuft unter Linux in einem Incus-Container |
 | **WhatsApp-Anbindung** | ❌ nicht eingerichtet | Bridge wird nur vom Linux-Installer aufgesetzt |
 | **Samba-Freigaben** (Projektordner im Netzwerk) | ❌ nicht verfügbar | Linux-Modul |
-| **Tailscale-Fernzugriff & Server-Kopplung** | ⚠️ nicht automatisch | Tailscale-App für macOS selbst installieren und einmal am Bildschirm anmelden (die App fragt nach der Erlaubnis für das VPN). HydraHive findet die App danach von selbst; die Kopplung mit einem anderen HydraHive geht dann wie unter Linux |
+| **Tailscale-Fernzugriff & Server-Kopplung** | ✅ optional | automatisch über Einstellungen → Zusatz-Module → Tailscale (oder `--with=tailscale`), siehe [Tailscale](#tailscale-optional). Alternativ die Tailscale-App – **nicht beides** |
 | **Websuche (SearXNG)** | ⚠️ nicht automatisch | eigene SearXNG-Adresse in den Einstellungen eintragen, sonst funktioniert `web_search` nicht |
 | **Start-Agenten & MCP-Server** | ⚠️ nicht automatisch | Linux legt sie beim Installieren an, auf dem Mac von Hand im Cockpit anlegen |
 | **Lokale Medien-Modelle** (Bild/Video mit NVIDIA-GPU) | ❌ nicht verfügbar | braucht NVIDIA + Docker |
@@ -480,6 +481,27 @@ COLIMA_HOME=/usr/local/var/hydrahive2/colima /usr/local/lib/hydrahive2/container
 ```
 
 Probleme: Log unter `/usr/local/var/log/hydrahive2-colima.log` bzw. `hydrahive2-addon.log`.
+
+---
+
+## Tailscale (optional)
+
+Tailscale verbindet den Mac sicher mit deinen anderen Geräten und Servern – für den Zugriff von unterwegs und für
+die **Kopplung mit einem anderen HydraHive** (Agenten beauftragen Agenten auf dem anderen Server).
+
+**Einschalten:** Einstellungen → Zusatz-Module → **Tailscale → Installieren** (oder bei der Installation
+`--with=tailscale`). HydraHive baut Tailscale dafür einmal selbst (etwa 1–3 Minuten) und richtet es als Dienst ein,
+der beim Hochfahren startet – **ohne die Tailscale-App** und ohne Freigabe am Bildschirm.
+
+**Anmelden:** Einstellungen → System → Tailscale → **„Im Browser anmelden“** → Link öffnen → mit deinem
+Tailscale-Konto anmelden. Alternativ „Mit Auth-Key verbinden“.
+
+**Gut zu wissen:**
+- Ist die **Tailscale-App** schon installiert, nutzt HydraHive sie und installiert nichts zusätzlich. Beide
+  gleichzeitig vertragen sich nicht.
+- Diese Variante kann einen fremden Exit-Node nicht nutzen; Taildrop geht nur eingeschränkt. Für Fernzugriff und
+  Kopplung reicht sie vollständig. Updates kommen mit dem normalen HydraHive-Update.
+- Prüfen: `sudo launchctl list | grep io.hydrahive.tailscaled`, Log `/usr/local/var/log/hydrahive2-tailscaled.log`.
 
 ---
 
