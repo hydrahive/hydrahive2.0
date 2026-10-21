@@ -65,8 +65,9 @@ if [ -n "$BUILD" ]; then
   log "Frontend neu bauen ($BUILD)"
   cd "$HH_REPO_DIR/frontend"
   # npm ci: genau nach package-lock.json, ändert sie nie (npm install schrieb sie um → nächstes git pull scheiterte)
-  sudo -u "$HH_USER" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || { log "npm ci fehlgeschlagen"; exit 1; }
-  sudo -u "$HH_USER" npm run build >> "$LOG" 2>&1 || { log "Frontend-Build fehlgeschlagen"; exit 1; }
+  # PATH mitgeben: sudo setzt secure_path ohne Homebrew → „sudo: npm: command not found“ (Befund 21.10.2026).
+  sudo -u "$HH_USER" env "PATH=$PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || { log "npm ci fehlgeschlagen"; exit 1; }
+  sudo -u "$HH_USER" env "PATH=$PATH" npm run build >> "$LOG" 2>&1 || { log "Frontend-Build fehlgeschlagen"; exit 1; }
   [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -u "$HH_USER" tee "$MARK" > /dev/null
   cd "$HH_REPO_DIR"
 fi

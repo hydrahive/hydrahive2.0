@@ -365,3 +365,20 @@ def test_update_keeps_trigger_plist_with_marker(mac):
                        capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
     assert "triggers neu" not in _calls(mac)
+
+
+def test_npm_found_under_sudo_with_secure_path(mac, tmp_path):
+    """Befund 21.10.2026 (Test-Mac): update-mac.sh läuft als root, `sudo -u <nutzer> npm` → „sudo: npm: command not
+    found“ (sudo setzt secure_path ohne Homebrew). Jedes Mac-Update mit Frontend-Änderung brach so ab."""
+    brew_bin = tmp_path / "homebrew" / "bin"
+    brew_bin.mkdir(parents=True)
+    (mac["bin"] / "npm").rename(brew_bin / "npm")
+    # sudo wie macOS: eigener PATH ohne Homebrew
+    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\n[ "$1" = "-u" ] && shift 2\nPATH="{mac["bin"]}:/usr/bin:/bin" exec "$@"\n')
+    _launchd(mac)
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
+    env = {**_env(mac), "PATH": f"{mac['bin']}:{brew_bin}:/usr/bin:/bin"}
+    r = subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr + mac["log"].read_text()
+    calls = _calls(mac)
+    assert "npm ci" in calls and "npm run build" in calls
