@@ -98,6 +98,23 @@ if [ "${HH_INSTALL_AGENTLINK:-yes}" != "no" ] && [ -s "$HH_CONFIG_DIR/pg_mirror.
   fi
 fi
 
+# Zusatz-Module (Container): Auslöser für das Cockpit nachrüsten; gewünschte Container mitpflegen
+# (neue Werkzeug-Versionen, Dienst). docs/plans/mac-containers.md.
+ADDON_PLIST="${HH_ADDON_PLIST:-/Library/LaunchDaemons/io.hydrahive.addon.plist}"
+if [ ! -f "$ADDON_PLIST" ] && [ -f "$HH_REPO_DIR/installer/lib/mac-addon-trigger.sh" ]; then
+  log "Zusatz-Module-Auslöser einrichten (Einstellungen → Zusatz-Module)"
+  HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" HH_REPO_DIR="$HH_REPO_DIR" \
+    bash "$HH_REPO_DIR/installer/lib/mac-addon-trigger.sh" 2>&1 | to_log || log "Zusatz-Module-Auslöser fehlgeschlagen"
+fi
+if grep -q '^HH_INSTALL_CONTAINERS=yes' "$HH_CONFIG_DIR/install.conf" 2>/dev/null \
+   && [ -f "$HH_REPO_DIR/installer/modules-mac/70-containers.sh" ]; then
+  log "Container (Colima + Incus) aktualisieren"
+  if ! HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+       bash "$HH_REPO_DIR/installer/modules-mac/70-containers.sh" 2>&1 | to_log; then
+    log "Container-Update FEHLGESCHLAGEN – Container evtl. nicht erreichbar (Log oben)"
+  fi
+fi
+
 # nginx-Konfiguration nachziehen, wenn ein Merkmal fehlt (AgentLink-Wege, Kopplung nur aus dem Tailnet,
 # Sicherheits-Kopfzeilen, Modul-Sandbox). 60-nginx.sh kommt frisch aus dem git pull oben.
 BREW_PREFIX="/usr/local"
@@ -125,7 +142,8 @@ fi
 if grep -q "HH_SECRET_KEY\|HH_PG_MIRROR_DSN" "$BACKEND_PLIST" 2>/dev/null \
    || ! grep -q "mac-backend-start.sh" "$BACKEND_PLIST" 2>/dev/null \
    || ! grep -q -- "--timeout-graceful-shutdown" "$BACKEND_PLIST" 2>/dev/null \
-   || ! grep -q "HH_LOG_DIR" "$BACKEND_PLIST" 2>/dev/null; then
+   || ! grep -q "HH_LOG_DIR" "$BACKEND_PLIST" 2>/dev/null \
+   || { [ -d /usr/local/lib/hydrahive2/containers/bin ] && ! grep -q "/usr/local/lib/hydrahive2/containers/bin" "$BACKEND_PLIST" 2>/dev/null; }; then
   log "launchd-plist enthält Secrets, keinen Start-Wrapper, kein Zeitlimit oder keinen Log-Ordner — neu schreiben"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
     HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
