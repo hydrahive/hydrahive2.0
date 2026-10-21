@@ -2,7 +2,7 @@
 
 Linux: proxy device auf der WAN-/Tailscale-IP + ufw-Regel über den Root-Helfer hh-portforward.
 Mac: Incus läuft in einer Colima-VM; WAN- und Tailscale-Adresse gehören dem Mac, nicht der VM, und es gibt weder ufw
-noch den Root-Helfer. Darum: proxy device in der VM lauscht auf allen VM-Adressen, der Kern leitet vom Mac
+noch den Root-Helfer. Darum: proxy device lauscht auf der VM-Adresse (nat=true), der Kern leitet vom Mac
 (gewählte Adresse) per TCP an die VM weiter. Nur TCP, nur Ports ≥ 1024 (wie die Linux-Prüfung).
 """
 from __future__ import annotations
@@ -207,7 +207,8 @@ def _rule(scope: str, proto: str = "tcp", start: int = 30080, end: int = 30080, 
 def test_mac_apply_public_forwards_from_lan_address(mac_ports):
     asyncio.run(cp.apply("web", "10.10.0.10", _rule("public")))
     dev = "hhp-eeeeffff0001"
-    assert ("add_proxy_device", "web", dev, "tcp:0.0.0.0:30080", "tcp:10.10.0.10:80") in mac_ports
+    # nat=true verbietet 0.0.0.0 (Befund 21.10.2026) → auf der VM-Adresse lauschen
+    assert ("add_proxy_device", "web", dev, "tcp:192.168.64.2:30080", "tcp:10.10.0.10:80") in mac_ports
     assert ("open", _rule("public").id, "192.168.178.186", 30080, 30080, "192.168.64.2", 30080) in mac_ports
     assert not any(c[0] == "helper" for c in mac_ports)       # kein sudo hh-portforward / ufw auf dem Mac
     assert mac_ports[-1] == ("mark", _rule("public").id, None)

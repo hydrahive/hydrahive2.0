@@ -1,8 +1,8 @@
 """Portfreigaben auf dem Mac: TCP-Weiterleitung Mac → Colima-VM (Plan docs/plans/mac-containers.md §4, Weg A).
 
 Unter Linux lauscht das Incus-proxy-device direkt auf der WAN-/Tailscale-Adresse des Servers. Auf dem Mac läuft
-Incus in einer Linux-VM; die Adressen gehören dem Mac. Darum lauscht das proxy device in der VM auf allen
-VM-Adressen, und dieser Weiterleiter nimmt Verbindungen am Mac an (gewählte Adresse, Port ≥ 1024, kein root) und
+Incus in einer Linux-VM; die Adressen gehören dem Mac. Darum lauscht das proxy device auf der VM-Adresse
+(nat=true verbietet 0.0.0.0), und dieser Weiterleiter nimmt Verbindungen am Mac an (gewählte Adresse, Port ≥ 1024, kein root) und
 reicht sie an die VM weiter. Nur TCP. Im Container erscheint als Absender die VM, nicht der echte Client.
 """
 from __future__ import annotations
