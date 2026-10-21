@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Copy, X } from "lucide-react"
 import { peersApi } from "./api"
 import { rgbFor } from "@/shared/colors"
+import { TailnetUrlWarning } from "./_TailnetUrlWarning"
 import { useDialog } from "@/shared/dialog/useDialog"
 
 interface Props {
@@ -24,8 +25,15 @@ export function PeerPairDialog({ onClose, onAdded }: Props) {
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
 
+  // Vorschlag aus Tailscale: Die Gegenseite erreicht /api/peering/ nur über das Tailnet.
   useEffect(() => {
-    peersApi.identity().then(i => setOwn(o => o ?? { code: "", fingerprint: i.fingerprint })).catch(() => {})
+    peersApi.identity().then(i => {
+      setOwn(o => o ?? { code: "", fingerprint: i.fingerprint })
+      if (i.suggested) {
+        setName(i.suggested.name)
+        setUrl(i.suggested.url)
+      }
+    }).catch(() => {})
   }, [])
 
   async function makeCode() {
@@ -75,6 +83,7 @@ export function PeerPairDialog({ onClose, onAdded }: Props) {
             <input className={input} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://100.x.y.z" />
           </div>
           <p className="text-[11px] text-zinc-500">{t("peers.url_hint")}</p>
+          <TailnetUrlWarning url={url} />
           <button onClick={makeCode} className="px-3 py-1.5 rounded-lg text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/[6%]">
             {t("peers.make_code")}
           </button>

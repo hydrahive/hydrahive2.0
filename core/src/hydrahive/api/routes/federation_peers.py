@@ -17,6 +17,8 @@ from hydrahive.api.middleware.auth import require_admin
 from hydrahive.api.middleware.errors import coded
 from hydrahive.db import federation_peers as peers_db
 from hydrahive.federation import peer_identity as ident
+from hydrahive.federation.peer_suggest import suggest_from_tailscale
+from hydrahive.tailscale.status import get_status as get_tailscale_status
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +62,14 @@ def _norm_fp(fp: str) -> str:
 
 
 @router.get("/identity")
-def own_identity(_: _Admin) -> dict:
+async def own_identity(_: _Admin) -> dict:
+    """Fingerprint + Vorschlag für Name/Adresse. /api/peering/ ist nur aus dem
+    Tailnet erreichbar – daher die Tailscale-IP vorschlagen, nicht die LAN-Adresse."""
     pub = ident.public_key_b64()
-    return {"fingerprint": ident.fingerprint(pub)}
+    return {
+        "fingerprint": ident.fingerprint(pub),
+        "suggested": suggest_from_tailscale(await get_tailscale_status()),
+    }
 
 
 @router.post("/identity/code")
