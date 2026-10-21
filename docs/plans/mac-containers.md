@@ -1,6 +1,6 @@
 # Plan: Container auf dem Mac (Colima + Incus)
 
-Status: **ENTWURF** – wartet auf Tills Freigabe. Task f4a303a9, Etappe 2 (Etappe 1 = AgentLink, `mac-agentlink.md`).
+Status: **FREIGEGEBEN** (Till 21.10.2026: bauen; Container als Option, Standard aus; Portfreigaben Weg **A**). Task f4a303a9, Etappe 2 (Etappe 1 = AgentLink, `mac-agentlink.md`).
 
 Ziel (Till, 21.10.2026): Container auf dem Mac **wie unter Linux**, von Agenten verwaltbar. Randbedingung: **Der
 Linux-Installer darf nicht kaputtgehen.**
@@ -85,7 +85,7 @@ Was ohne Zusatz schon geht: Container sind **vom Mac selbst** erreichbar (Route 
 sie anlegen, starten, darin Befehle ausführen. Für „Port 8080 des Containers im Heimnetz anbieten“ (Linux:
 Reichweite public/tailnet) gibt es drei Wege:
 
-- **A (Vorschlag):** kleiner Weiterleiter im Kern (asyncio, nur TCP), der je Freigabe auf `0.0.0.0:<port>` bzw. der
+- **A (gewählt, Till 21.10.):** kleiner Weiterleiter im Kern (asyncio, nur TCP), der je Freigabe auf `0.0.0.0:<port>` bzw. der
   Tailscale-IP des Macs lauscht und zur VM weiterreicht. Kein root nötig (Ports ≥ 1024 – die Linux-Regeln erlauben
   ohnehin nur 1024–65535). Nachteil: UDP nicht, Client-IP im Container ist die der VM.
 - **B:** Colima mit `--network-address` (VM bekommt eine Adresse im Mac-Netz) + Lima-Port-Weiterleitung. Im Test
