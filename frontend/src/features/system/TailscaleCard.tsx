@@ -14,6 +14,7 @@ import { addonOutcome, addonsApi, lastRun } from "./addonsApi"
 import { TailscaleConnectedView } from "./_TailscaleConnectedView"
 import { TailscaleInviteSection } from "./_TailscaleInviteSection"
 import { TailscaleLoginForm } from "./_TailscaleLoginForm"
+import { TailscaleBrowserLogin } from "./_TailscaleBrowserLogin"
 
 const REFRESH_MS = 15_000
 
@@ -29,6 +30,9 @@ export function TailscaleCard() {
   const [installing, setInstalling] = useState(false)
   const [installOutput, setInstallOutput] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loginUrl, setLoginUrl] = useState<string | null>(null)
+  const [loginBusy, setLoginBusy] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   async function load() {
     try {
@@ -72,6 +76,18 @@ export function TailscaleCard() {
     } catch (e) {
       setError(e instanceof Error ? e.message : t("tailscale.error_connect"))
     } finally { setConnecting(false) }
+  }
+
+  // Anmeldung ohne Auth-Key: Link von tailscale.com holen; die Karte prüft danach alle 15 s den Status.
+  async function handleBrowserLogin() {
+    setLoginBusy(true); setLoginError(null)
+    try {
+      const r = await api.post<{ auth_url: string | null }>("/tailscale/login", {})
+      setLoginUrl(r.auth_url)
+      if (!r.auth_url) await load()
+    } catch (e) {
+      setLoginError(e instanceof Error ? e.message : t("tailscale.error_connect"))
+    } finally { setLoginBusy(false) }
   }
 
   async function handleLogout() {
@@ -128,9 +144,14 @@ export function TailscaleCard() {
       {error && !showLogin && <AdminFeedback tone="danger">{error}</AdminFeedback>}
 
       {!connected && !showLogin && (
+        <TailscaleBrowserLogin url={loginUrl ?? status.auth_url ?? null} busy={loginBusy} error={loginError}
+          onStart={handleBrowserLogin} />
+      )}
+
+      {!connected && !showLogin && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <AdminAction onClick={() => setShowLogin(true)} tone="primary">
-            <Network size={12} /> {t("tailscale.connect")}
+            <Network size={12} /> {t("tailscale.connect_authkey")}
           </AdminAction>
         </div>
       )}
