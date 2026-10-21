@@ -111,10 +111,19 @@ priv chown -R "$HH_USER" "$COLIMA_HOME"
 if [ -f "$HH_CT_PLIST" ]; then
   priv launchctl unload "$HH_CT_PLIST" >/dev/null 2>&1 || true   # Dienst kurz aus: nicht zwei Starts gleichzeitig
 fi
-if ! as_user colima status "$PROFILE" >/dev/null 2>&1; then
-  log "Starte Container-VM ($CPU Kerne, $MEM GB, $DISK GB) – beim ersten Mal einige Minuten"
+start_vm() {
   as_user colima start "$PROFILE" --runtime incus --vm-type vz --cpu "$CPU" --memory "$MEM" --disk "$DISK" \
     --network-address
+}
+if ! as_user colima status "$PROFILE" >/dev/null 2>&1; then
+  log "Starte Container-VM ($CPU Kerne, $MEM GB, $DISK GB) – beim ersten Mal einige Minuten"
+  # Erster Start: Colima richtet Incus ein; die SSH-Sitzung für den Socket kennt die neue Gruppe manchmal noch
+  # nicht → „error starting incus … EOF“. Ein zweiter Start klappt (Befund 21.10.2026, Test-Mac).
+  if ! start_vm; then
+    log "Erster Start unvollständig – starte die VM einmal neu"
+    as_user colima stop "$PROFILE" >/dev/null 2>&1 || true
+    start_vm || { echo "Container-VM startet nicht – siehe Ausgabe oben" >&2; exit 1; }
+  fi
 fi
 
 # --- 3) NAT-Netz wie auf Servern ohne br0 (installer/lib/container-nat.sh) ----------------------------------

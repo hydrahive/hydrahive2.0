@@ -207,3 +207,36 @@ def test_linux_installer_files_untouched_by_mac_containers():
     text = SCRIPT.read_text()
     for bad in ("apt-get", "systemctl", "ufw", "usermod", "/etc/systemd"):
         assert bad not in text, bad
+
+
+def test_first_start_retried_once(mac):
+    """Befund 21.10.2026 (Test-Mac, erster Start über das Cockpit): Colima legt Incus an, `incus remote add` scheitert
+    mit EOF (SSH-Sitzung kennt die neue Gruppe noch nicht) → „error starting incus“. Ein zweiter Start klappt."""
+    _run(mac)
+    vd = _ver_dir(mac)
+    flag = mac["tmp"] / "start-count"
+    _exe(vd / "bin" / "colima", f'echo "$(basename "$0") $*" >> "{mac["calls"]}"\n' + f'''
+case "$1" in
+  status) [ -f "{mac["tmp"]}/vm-running" ] ;;
+  stop) exit 0 ;;
+  start) n=$(cat "{flag}" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "{flag}"
+         [ "$n" -ge 2 ] || {{ echo "error starting incus: ... EOF" >&2; exit 1; }}
+         touch "{mac["tmp"]}/vm-running" ;;
+esac
+''')
+    _exe(vd / "bin" / "incus", mac["stub_incus"])
+    mac["calls"].write_text("")
+    r = _run(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = [c for c in _calls(mac) if c.startswith("colima")]
+    assert [c.split()[1] for c in calls if c.split()[1] in ("start", "stop")] == ["start", "stop", "start"]
+
+
+def test_start_fails_twice_aborts(mac):
+    _run(mac)
+    vd = _ver_dir(mac)
+    _exe(vd / "bin" / "colima", 'case "$1" in status) exit 1;; start) exit 1;; esac\nexit 0\n')
+    _exe(vd / "bin" / "incus", mac["stub_incus"])
+    r = _run(mac)
+    assert r.returncode != 0
+    assert not mac["plist"].exists()
