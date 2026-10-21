@@ -71,6 +71,9 @@ async def create_container(
         raise coded(status.HTTP_409_CONFLICT, "container_name_taken")
     if body.node_id == "local" and not incus.is_available():
         raise coded(status.HTTP_503_SERVICE_UNAVAILABLE, "incus_missing")
+    # Auch Container ohne HydraHive-Eintrag zählen (Waisen, Befund Mac 21.10.2026).
+    if body.node_id == "local" and await incus.instance_exists(body.name):
+        raise coded(status.HTTP_409_CONFLICT, "container_name_taken", name=body.name)
     # Netzprüfung nach allen Eingabeprüfungen: ein ungültiges Image soll immer
     # als solches gemeldet werden, egal welche Netze der Server hat.
     if body.network_mode != "isolated" and body.node_id == "local" \
@@ -89,7 +92,8 @@ async def create_container(
     )
     if body.network_mode == "nat":
         try:
-            nat.set_ipv4(c.container_id, nat.allocate_ipv4())
+            in_incus = await incus.nat_ips_in_use(nat.NAT_NETWORK)
+            nat.set_ipv4(c.container_id, nat.allocate_ipv4(exclude=in_incus))
         except ValueError:
             cdb.delete(c.container_id)
             raise coded(status.HTTP_409_CONFLICT, "container_nat_full")
@@ -100,6 +104,7 @@ async def create_container(
             actor=actor["user_id"] if actor is not None else user,
         )
     except incus.IncusError as e:
+        logger.warning("Container '%s' anlegen fehlgeschlagen: %s %s", body.name, e.code, e.params)
         cdb.delete(c.container_id)
         raise coded(status.HTTP_500_INTERNAL_SERVER_ERROR, e.code, **e.params)
     except remote.RemoteContainerError as e:

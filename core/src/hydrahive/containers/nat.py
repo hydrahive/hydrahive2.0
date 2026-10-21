@@ -56,10 +56,12 @@ def network_modes() -> dict:
     return {"bridged": bridged, "nat": nat, "isolated": True, "default": default}
 
 
-def allocate_ipv4() -> str:
-    """Nächste freie feste IP. ValueError, wenn alle vergeben sind."""
+def allocate_ipv4(exclude: set[str] | frozenset[str] = frozenset()) -> str:
+    """Nächste freie feste IP. ``exclude``: zusätzlich belegt (z. B. in Incus,
+    siehe incus_client.nat_ips_in_use). ValueError, wenn alle vergeben sind."""
     with db() as conn:
         used = {r[0] for r in conn.execute("SELECT ipv4 FROM containers WHERE ipv4 IS NOT NULL")}
+    used |= set(exclude)
     for host in range(_FIRST, _LAST + 1):
         ip = str(_SUBNET.network_address + host)
         if ip not in used:

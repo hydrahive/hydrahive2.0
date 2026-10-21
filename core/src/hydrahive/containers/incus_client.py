@@ -100,11 +100,35 @@ async def launch(name: str, image: str, *,
         opts += ["-c", "security.privileged=true"]
     args = ["launch", *opts, "--", image, name]
 
-    rc, _, err = await _run(*args, timeout=300.0)
+    try:
+        rc, _, err = await _run(*args, timeout=300.0)
+    except IncusError as e:
+        if e.code == "incus_timeout":
+            # Name war vorher frei (containers_crud prüft) → ein spät fertiger Container ist unserer.
+            await _discard(name)
+        raise
     if rc != 0:
+        # Kein delete: z. B. „already exists“ – dann gehört der Container nicht uns.
         raise IncusError("incus_launch_failed", stderr=err[:400])
+    try:
+        await _attach_network(name, network_mode, bridge=bridge, ipv4=ipv4)
+    except IncusError:
+        # Sonst bleibt ein Container ohne HydraHive-Eintrag liegen und belegt
+        # z. B. die NAT-IP (Befund Mac 21.10.2026).
+        await _discard(name)
+        raise
 
-    # Network-Device: bridged → eigene NIC auf br0 statt incusbr0
+
+async def _discard(name: str) -> None:
+    """Halbfertigen, eben angelegten Container entfernen (best effort)."""
+    try:
+        await _run("delete", name, "--force", timeout=60.0)
+    except IncusError:
+        pass
+
+
+async def _attach_network(name: str, network_mode: str, *, bridge: str, ipv4: str | None) -> None:
+    """Netz nach dem launch setzen. bridged → eigene NIC auf br0, nat → hhnat0 mit fester IP."""
     if network_mode == "bridged":
         rc, _, err = await _run(
             "config", "device", "override", name, "eth0",
@@ -112,15 +136,13 @@ async def launch(name: str, image: str, *,
             timeout=30.0,
         )
         if rc != 0:
-            # Override scheitert wenn eth0 noch nicht da ist (sollte aber sein) —
-            # alternativ neu hinzufügen
+            # Override scheitert wenn eth0 noch nicht da ist – dann neu hinzufügen
             await _run(
                 "config", "device", "add", name, "eth0",
                 "nic", "nictype=bridged", f"parent={bridge}",
                 timeout=30.0,
             )
-        # Restart damit das Override greift
-        await _run("restart", name, timeout=60.0)
+        await restart_(name)  # damit das Override greift
     elif network_mode == "nat":
         # NAT-Netz hhnat0 mit fester IP (docs/specs/container-nat-ports.md).
         # Das default-Profil hat keine NIC; eth0 wird hier angelegt.
@@ -134,10 +156,9 @@ async def launch(name: str, image: str, *,
         )
         if rc != 0:
             raise IncusError("incus_launch_failed", stderr=err[:400])
-        await _run("restart", name, timeout=60.0)
+        await restart_(name)
     elif network_mode == "isolated":
         await _run("config", "device", "remove", name, "eth0", timeout=30.0)
-
 
 
 async def add_proxy_device(name: str, device: str, *, listen: str, connect: str) -> None:
@@ -188,5 +209,5 @@ async def delete(name: str, *, force: bool = True) -> None:
 
 
 from hydrahive.containers._incus_inspect import (
-    info, list_running_names, show_log, show_config, list_images,
+    info, instance_exists, list_running_names, nat_ips_in_use, show_log, show_config, list_images,
 )
