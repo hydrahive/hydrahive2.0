@@ -23,9 +23,13 @@ HH_INSTALL_AGENTLINK="${HH_INSTALL_AGENTLINK:-yes}"
 # Container (Colima + Incus): Standard AUS – die VM kostet dauerhaft Arbeitsspeicher. Einschalten mit
 # HH_INSTALL_CONTAINERS=yes oder --with=containers; später auch im Cockpit (Einstellungen → Zusatz-Module).
 HH_INSTALL_CONTAINERS="${HH_INSTALL_CONTAINERS:-no}"
+# Tailscale (ohne App, für Fernzugriff und Server-Kopplung): Standard AUS, --with=tailscale schaltet ein.
+HH_INSTALL_TAILSCALE="${HH_INSTALL_TAILSCALE:-no}"
 for arg in "$@"; do
   case "$arg" in
-    --with=*) case ",${arg#--with=}," in *,containers,*) HH_INSTALL_CONTAINERS=yes ;; esac ;;
+    --with=*)
+      case ",${arg#--with=}," in *,containers,*) HH_INSTALL_CONTAINERS=yes ;; esac
+      case ",${arg#--with=}," in *,tailscale,*) HH_INSTALL_TAILSCALE=yes ;; esac ;;
   esac
 done
 
@@ -37,7 +41,7 @@ err() { printf "\033[1;31m[hh2-mac]\033[0m %s\n" "$*" >&2; exit 1; }
 command -v brew >/dev/null 2>&1 || err "Homebrew fehlt. Installieren: https://brew.sh"
 
 INSTALLER_DIR="$(cd "$(dirname "$0")" && pwd)"
-export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK HH_INSTALL_CONTAINERS
+export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK HH_INSTALL_CONTAINERS HH_INSTALL_TAILSCALE
 
 log "Phase 1: System-Dependencies"
 bash "$INSTALLER_DIR/modules-mac/00-deps.sh"
@@ -84,6 +88,17 @@ if [ "${HH_INSTALL_CONTAINERS}" = "yes" ]; then
   fi
 else
   log "Phase 6d: Container übersprungen (Option: --with=containers)"
+fi
+
+if [ "${HH_INSTALL_TAILSCALE}" = "yes" ]; then
+  log "Phase 6e: Tailscale (ohne App)"
+  if bash "$INSTALLER_DIR/modules-mac/80-tailscale.sh"; then
+    bash "$INSTALLER_DIR/modules-mac/50-launchd.sh"          # Backend-PATH mit tailscale
+  else
+    log "Tailscale-Installation FEHLGESCHLAGEN – nachholen im Cockpit (Einstellungen → Zusatz-Module)"
+  fi
+else
+  log "Phase 6e: Tailscale übersprungen (Option: --with=tailscale)"
 fi
 
 if [ "${HH_INSTALL_NGINX}" != "no" ]; then

@@ -26,8 +26,9 @@ ADDONS: tuple[str, ...] = ("containers", "vms", "samba", "whatsapp", "voice", "t
 RESTARTS_SERVICE = frozenset({"vms", "containers"})          # 65-vms.sh / 70-containers.sh patchen hydrahive2.service
 REQUIRES: dict[str, list[str]] = {"voice": ["containers"]}
 WSL_LIMITED = frozenset({"vms", "containers", "voice"})
-# Auf dem Mac nur Container (installer/modules-mac/70-containers.sh); der Rest braucht apt/systemd.
-MAC_INSTALLABLE = frozenset({"containers"})
+# Auf dem Mac nur Container und Tailscale (installer/modules-mac/70-containers.sh, 80-tailscale.sh);
+# der Rest braucht apt/systemd.
+MAC_INSTALLABLE = frozenset({"containers", "tailscale"})
 
 # Nur 65-vms.sh legt diese Unit an. qemu allein reicht nicht: incus zieht qemu-system-x86 als Abhängigkeit mit.
 _VM_UNIT = Path("/etc/systemd/system/hydrahive2-websockify.service")

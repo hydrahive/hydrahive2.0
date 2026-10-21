@@ -7,7 +7,7 @@ from hydrahive.api.middleware.auth import require_admin
 from hydrahive.tailscale.admin import (
     create_invite, public_config, save_admin_config, validate_api_key,
 )
-from hydrahive.tailscale.control import logout, up
+from hydrahive.tailscale.control import login, logout, up
 from hydrahive.api.routes._addon_request import request_install
 from hydrahive.tailscale.status import get_status
 
@@ -35,6 +35,16 @@ async def tailscale_up(req: UpRequest, _=Depends(require_admin)) -> dict:
         return await get_status()
     except RuntimeError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/login")
+async def tailscale_login(_=Depends(require_admin)) -> dict:
+    """Anmeldung ohne Auth-Key: Anmelde-Link von tailscale.com, den die Oberfläche öffnet (docs/plans/mac-tailscale.md).
+    auth_url ist None, wenn Tailscale schon verbunden ist."""
+    try:
+        return {"auth_url": await login()}
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
 
 
 @router.post("/logout")

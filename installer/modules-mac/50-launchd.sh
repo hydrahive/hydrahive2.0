@@ -10,6 +10,9 @@ BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /usr/local)"
 HH_CT_BIN="${HH_CT_BIN:-/usr/local/lib/hydrahive2/containers/bin}"
 CT_PATH=""
 [ -d "$HH_CT_BIN" ] && CT_PATH="${HH_CT_BIN}:"
+# Tailscale ohne App (modules-mac/80-tailscale.sh)
+HH_TS_BIN="${HH_TS_BIN:-/usr/local/lib/hydrahive2/tailscale/bin}"
+[ -d "$HH_TS_BIN" ] && CT_PATH="${CT_PATH}${HH_TS_BIN}:"
 
 # JWT-Secret
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
