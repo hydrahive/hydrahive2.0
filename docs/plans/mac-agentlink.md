@@ -1,6 +1,6 @@
 # Plan: AgentLink (HydraLink) auf dem Mac
 
-Status: **ENTWURF** – wartet auf Tills Freigabe. Task f4a303a9 (Etappe 1 von 2; Etappe 2 = Container über Colima/Incus).
+Status: **FREIGEGEBEN** (Till 21.10.2026: „ja das kannst du alles machen“) und **GEBAUT**, siehe §Umsetzung. Task f4a303a9 (Etappe 1 von 2; Etappe 2 = Container über Colima/Incus).
 
 ## Anlass
 
@@ -44,7 +44,7 @@ Gleiche Teilung wie unter Linux: HydraLink bringt seinen eigenen Mac-Installer m
 
 | Linux | Mac (neu) |
 |---|---|
-| `apt install redis-server`, systemd | `brew install redis`, LaunchDaemon `io.hydrahive.redis` (nur 127.0.0.1) |
+| `apt install redis-server`, systemd | **kein Redis** – `REDIS_URL=memory://` (Nachrichtenkanal im Prozess, siehe §Umsetzung) |
 | eigenes PostgreSQL | **das vorhandene** `postgresql@16` des Kerns, eigene DB + Rolle `agentlink` |
 | Systemnutzer `hydralink` | Dienstnutzer des Kerns (`HH_USER`), wie Backend und PostgreSQL auf dem Mac |
 | `/etc/hydralink/agentlink.env` + `EnvironmentFile` | `$HL_CONFIG_DIR/agentlink.env` (0600) + Start-Wrapper (launchd kennt kein EnvironmentFile, wie `mac-backend-start.sh`) |
@@ -58,7 +58,7 @@ Apple Silicon (`/opt/homebrew`) und Intel (`/usr/local`) über `brew --prefix`, 
 
 **Repo `hydralink`**
 - `installer/install-mac.sh` – Einstieg (als Dienstnutzer, sudo nur für LaunchDaemons), ruft die Module der Reihe nach.
-- `installer/modules-mac/00-deps.sh` – redis über brew, LaunchDaemon `io.hydrahive.redis`, brew-services-Agent abmelden.
+- `installer/modules-mac/00-deps.sh` – python@3.12/node über brew, prüft das PostgreSQL des Kerns (Redis entfallen, siehe §Umsetzung).
 - `installer/modules-mac/10-postgres.sh` – Rolle + DB `agentlink` im vorhandenen postgresql@16; Passwort nur über stdin.
 - `installer/modules-mac/20-agentlink.sh` – Code nach `/opt/hydralink/agentlink/backend`, venv, `agentlink.env`,
   Start-Wrapper `installer/lib/mac-agentlink-start.sh`, LaunchDaemon, Health-Wartezeit.
@@ -80,8 +80,8 @@ Apple Silicon (`/opt/homebrew`) und Intel (`/usr/local`) über `brew --prefix`, 
 
 ## Reihenfolge (TDD, je Schritt rot → grün → Commit)
 
-1. **hydralink: Redis** – Test: `00-deps.sh` installiert redis per brew, schreibt plist mit `UserName`, `RunAtLoad`,
-   bindet nur 127.0.0.1, meldet den brew-services-Agenten ab, ist idempotent.
+1. **hydralink: Voraussetzungen** – (ursprünglich Redis, entfallen) `00-deps.sh` installiert fehlendes python/node,
+   bricht ohne PostgreSQL des Kerns ab; `memory://`-Kanal im Backend.
 2. **hydralink: Datenbank** – Test: Rolle/DB werden angelegt, Passwort steht nie in einer Befehlszeile (nur stdin),
    Passwortdatei 0600, zweiter Lauf ändert nichts.
 3. **hydralink: Backend** – Test: venv mit Python ≥ 3.12, `agentlink.env` 0600 + atomar, **kein Passwort in der plist**,
@@ -104,12 +104,14 @@ Apple Silicon (`/opt/homebrew`) und Intel (`/usr/local`) über `brew --prefix`, 
 
 ## Akzeptanzkriterien
 
-- [ ] Frische Mac-Installation enthält AgentLink; bestehende Installation bekommt es mit einem normalen Update.
-- [ ] Nach Neustart des Macs ohne Anmeldung: Redis, AgentLink, Dashboard laufen.
-- [ ] Dashboard zeigt AgentLink verbunden; `ask_agent` funktioniert auf dem Mac.
-- [ ] `/agentlink/` nur für angemeldete Admins; `/api/peering/` nur aus dem Tailnet.
-- [ ] Keine Passwörter in plists oder Befehlszeilen.
-- [ ] Linux-Installer unverändert; volle Kern-Suite + hydralink-Tests grün; Mutanten auf die neuen Prüfungen.
+- [x] Bestehende Installation bekommt AgentLink mit einem normalen Update (live .186). Frische Installation: Phase im
+  Test mit Schein-Modulen geprüft, hydralink `install-mac.sh` als Nutzer live auf .186 – Kern-Neuinstallation nicht live.
+- [x] Nach Neustart des Macs ohne Anmeldung: AgentLink und Dashboard laufen.
+- [x] AgentLink verbunden (`/api/agentlink/status`), Handoff-Weg State → `handoff_received` live. `ask_agent` mit
+  echtem Modell nicht live (Mac hat nur Master-Agenten, keinen Spezialisten als Ziel).
+- [x] `/agentlink/` nur für angemeldete Admins; `/api/peering/` nur aus dem Tailnet.
+- [x] Keine Passwörter in plists oder Befehlszeilen.
+- [x] Linux-Installer unverändert; volle Kern-Suite + hydralink-Tests grün; Mutanten auf die neuen Prüfungen.
 
 ## Nicht in diesem Plan
 
@@ -117,3 +119,34 @@ Apple Silicon (`/opt/homebrew`) und Intel (`/usr/local`) über `brew --prefix`, 
 - SearXNG, Whisper, WhatsApp, Samba auf dem Mac.
 - Tailscale automatisch installieren (Doku: App installieren, CLI aktivieren). Nur das Finden der CLI ist drin.
 - Instanzname / AgentLink-ID je Server (Spec #517). Der Mac nutzt wie Linux die Standard-ID `hydrahive`.
+
+## Umsetzung (21.10.2026)
+
+**Abweichung vom Plan – kein Redis auf dem Mac.** Erster echter Lauf auf dem Intel-Test-Mac: Homebrew hat für
+Redis (und Valkey) keine fertigen Intel-Pakete mehr und baute Redis samt LLVM und Rust aus dem Quellcode
+(nach 6 Minuten abgebrochen). AgentLink nutzt Redis nur als Pub/Sub innerhalb **eines** uvicorn-Prozesses
+(publish → Listener → WebSocket). Neu: `REDIS_URL=memory://` – gleiche Verteilung direkt im Prozess; Linux bleibt
+bei Redis. `/health` meldet `"redis": "memory"`.
+
+**Befund bei der Abnahme – brew unter root.** `update-mac.sh` läuft als root (LaunchDaemon). `sudo` setzt einen
+eigenen PATH ohne Homebrew → „brew: command not found“ (AgentLink-Installation und nginx-Umbau scheiterten). Jetzt:
+brew über den vollen Pfad (`/opt/homebrew/bin/brew` bzw. `/usr/local/bin/brew`), npm unter sudo mit PATH. Betraf auch
+den bestehenden `mac-postgres-daemon.sh`.
+
+**Zusätzlich:** nginx-Konfiguration wird vor der Übernahme mit `nginx -t` geprüft (sonst alte bleibt).
+
+PRs: hydralink #7 (Mac-Installer + memory-Bus), hydrahive2.0 #595 (dieser Plan + Kern). Merge-Reihenfolge:
+**hydralink #7 zuerst** (der Kern klont hydralink `main`).
+
+Abnahme Intel-Test-Mac .186 (macOS 15.3.1, x86_64), Ausgangslage wie beim Tester (kein AgentLink):
+- normales Update über den Update-Auslöser → AgentLink installiert, nginx neu, Kern neu gestartet ✓
+- Neustart des Macs, **ohne Anmeldung** (`0 users`): alle 5 Dienste laufen, Kern meldet „AgentLink-WS verbunden“ ✓
+- `/api/agentlink/status`: connected, ws_connected, backend_reachable ✓
+- echter Handoff über AgentLink: State mit `handoff.to_agent` → `handoff_received` im Kanal `agent:<id>` ✓
+- von außen: `/` 200, `/agentlink/` ohne Login 302, `/api/peering/…` aus dem LAN 403, CSP/HSTS/X-Frame/Permissions ✓
+- Zugangsdaten nur in `/usr/local/etc/hydralink/*.env|password` (0600, Dienstnutzer), keine in plists ✓
+
+**Offen – Kopplung über Tailscale:** Tailscale ist auf .186 nicht installiert. Der Tailscale-API-Schlüssel auf .2
+(`/etc/hydrahive2/tailscale-admin.json`) ist abgelaufen (HTTP 401), daher kein Anmeldeschlüssel per API. Die
+Tailscale-App braucht beim ersten Start eine Freigabe am Bildschirm (Systemerweiterung/VPN), das geht nicht per SSH.
+Der Kern findet die CLI der App jetzt (`tailscale/_bin.py`); die echte Kopplung .186 ↔ .2 steht noch aus.

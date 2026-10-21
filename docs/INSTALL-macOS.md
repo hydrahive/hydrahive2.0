@@ -3,7 +3,7 @@
 > **Status: experimental.** HydraHive runs on a Mac, but the Mac installer is simpler than the Linux installer.
 > Some features are not available on a Mac (see [What does not work on a Mac](#what-does-not-work-on-a-mac)).
 > For a server that runs around the clock we recommend Linux (Ubuntu).
-> Last tested: 1 October 2026 on an Intel iMac with macOS 15.3.
+> Last tested: 21 October 2026 on an Intel iMac with macOS 15.3 (update with AgentLink). First Apple Silicon reports are coming in.
 
 Deutsche Fassung: [INSTALL-macOS.de.md](INSTALL-macOS.de.md) ·
 Having an AI do the install? → [Summary for AI assistants](#summary-for-ai-assistants)
@@ -271,6 +271,7 @@ The installer works in phases. Each one starts with a turquoise line `[hh2-mac] 
 | **4** Frontend | Builds the web interface | 3–10 min | no |
 | **5** PostgreSQL | Installs the database for memory and search and sets it up as a background service | 2–5 min | **maybe `Password:`** |
 | **6 / 6b** launchd service | Sets HydraHive up as a background service that starts at boot | seconds | **maybe `Password:` again** (also possible in phase 7) |
+| **6c** AgentLink | Sets up AgentLink so agents can hand tasks to each other and servers can be paired (own database in PostgreSQL, two background services) | 2–5 min | **maybe `Password:`** |
 | **7** nginx | Sets up the web server with HTTPS | 1–2 min | no |
 
 **Stay nearby.** macOS only remembers your password for 5 minutes. If phases 3–5 take longer, the installer asks
@@ -374,9 +375,13 @@ Details: [ollama-provider.md](ollama-provider.md)
 sudo launchctl list | grep io.hydrahive
 ```
 
-Expected: five lines with `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.postgres`,
-`io.hydrahive.update` and `io.hydrahive.restart`. A **number** in the first column means the service is running. A
-`-` is normal for `update`/`restart`, which only run when needed.
+Expected: seven lines with `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.postgres`,
+`io.hydrahive.agentlink`, `io.hydrahive.agentlink-frontend`, `io.hydrahive.update` and `io.hydrahive.restart`. A
+**number** in the first column means the service is running. A `-` is normal for `update`/`restart`, which only run
+when needed.
+
+> **Installed before October 2026?** Then AgentLink is missing (the two `agentlink` lines). A normal update in the
+> cockpit (Settings → System → Update) adds it.
 
 ```bash
 curl -sk https://localhost/api/health
@@ -390,6 +395,14 @@ Expected: a line containing `"status":"ok"`.
 
 Expected: `127.0.0.1:5432 - accepting connections` (the database).
 
+```bash
+curl -s http://127.0.0.1:9000/health
+```
+
+Expected: `"status":"healthy"` and `"redis":"memory"` (AgentLink). On a Mac AgentLink runs without Redis – Homebrew
+only offers Redis for Intel Macs as a source build, which would take hours. The cockpit home page shows
+“AgentLink connected”.
+
 ---
 
 ## What does not work on a Mac
@@ -402,7 +415,7 @@ The Mac installer only sets up the **core**. The following is **not** available 
 | **Voice / speech recognition service** (Whisper container) | ❌ not automatic | runs in an Incus container on Linux |
 | **WhatsApp integration** | ❌ not set up | the bridge is only set up by the Linux installer |
 | **Samba shares** (project folders on the network) | ❌ not available | Linux module |
-| **Tailscale remote access** | ⚠️ not automatic | install the Tailscale app for macOS yourself |
+| **Tailscale remote access & server pairing** | ⚠️ not automatic | install the Tailscale app for macOS yourself and sign in once at the screen (the app asks for VPN permission). HydraHive then finds the app on its own; pairing with another HydraHive works as on Linux |
 | **Web search (SearXNG)** | ⚠️ not automatic | enter your own SearXNG address in the settings, otherwise `web_search` won't work |
 | **Starter agents & MCP servers** | ⚠️ not automatic | Linux creates them during install; on a Mac create them by hand in the cockpit |
 | **Local media models** (image/video with an NVIDIA GPU) | ❌ not available | needs NVIDIA + Docker |
@@ -410,8 +423,8 @@ The Mac installer only sets up the **core**. The following is **not** available 
 | **Modules** (Settings → Modules) | ✅ almost all | tested: 21 of 22; **OpenTor** doesn't work (Tor only via Linux packages) |
 | **Firewall rules** (ufw) | ❌ | macOS uses its own firewall |
 
-**What works well:** cockpit, Buddy, agents, projects, workshop, datamining/memory, tasks, modules such as Atelier,
-Storyteller, Household book and so on, and updates through the cockpit.
+**What works well:** cockpit, Buddy, agents, projects, workshop, datamining/memory, tasks, AgentLink (agents hand tasks
+to each other), modules such as Atelier, Storyteller, Household book and so on, and updates through the cockpit.
 
 ---
 

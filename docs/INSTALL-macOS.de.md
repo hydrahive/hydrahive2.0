@@ -3,7 +3,7 @@
 > **Status: experimentell.** HydraHive läuft auf dem Mac, der Mac-Installer ist aber einfacher als der
 > Linux-Installer. Einige Funktionen gibt es auf dem Mac nicht (siehe [Was auf dem Mac nicht geht](#was-auf-dem-mac-nicht-geht)).
 > Für einen Server, der rund um die Uhr läuft, empfehlen wir Linux (Ubuntu).
-> Zuletzt getestet: 01.10.2026 auf einem Intel-iMac mit macOS 15.3.
+> Zuletzt getestet: 21.10.2026 auf einem Intel-iMac mit macOS 15.3 (Update mit AgentLink). Erste Rückmeldungen von Apple-Silicon-Macs laufen.
 
 English version: [INSTALL-macOS.md](INSTALL-macOS.md) ·
 Du lässt eine KI installieren? → [Kurzfassung für KI-Assistenten](#kurzfassung-für-ki-assistenten)
@@ -273,6 +273,7 @@ Der Installer arbeitet in Phasen. Jede beginnt mit einer türkisen Zeile `[hh2-m
 | **4** Frontend | Baut die Weboberfläche | 3–10 min | nein |
 | **5** PostgreSQL | Installiert die Datenbank für Gedächtnis und Suche und richtet sie als Hintergrund-Dienst ein | 2–5 min | **evtl. `Password:`** |
 | **6 / 6b** launchd-Service | Richtet HydraHive als Hintergrund-Dienst ein, der beim Hochfahren startet | Sekunden | **evtl. nochmal `Password:`** (auch in Phase 7 möglich) |
+| **6c** AgentLink | Richtet AgentLink ein, damit Agenten sich gegenseitig Aufträge geben und Server sich koppeln können (eigene Datenbank im PostgreSQL, zwei Hintergrund-Dienste) | 2–5 min | **evtl. `Password:`** |
 | **7** nginx | Richtet den Webserver mit HTTPS ein | 1–2 min | nein |
 
 **Bleib in der Nähe.** macOS merkt sich dein Passwort nur 5 Minuten. Dauern die Phasen 3–5 länger, fragt der
@@ -375,9 +376,12 @@ Danach in HydraHive unter **Provider hinzufügen** den Eintrag **„Ollama (loka
 sudo launchctl list | grep io.hydrahive
 ```
 
-Erwartet sind fünf Zeilen mit `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.postgres`,
-`io.hydrahive.update` und `io.hydrahive.restart`. Steht in der ersten Spalte eine **Zahl**, läuft der Dienst. Ein `-`
-ist bei `update`/`restart` normal, die laufen nur bei Bedarf.
+Erwartet sind sieben Zeilen mit `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.postgres`,
+`io.hydrahive.agentlink`, `io.hydrahive.agentlink-frontend`, `io.hydrahive.update` und `io.hydrahive.restart`. Steht in
+der ersten Spalte eine **Zahl**, läuft der Dienst. Ein `-` ist bei `update`/`restart` normal, die laufen nur bei Bedarf.
+
+> **Installation von vor Oktober 2026?** Dann fehlt AgentLink (die zwei `agentlink`-Zeilen). Ein normales Update im
+> Cockpit (Einstellungen → System → Update) richtet es nach.
 
 ```bash
 curl -sk https://localhost/api/health
@@ -391,6 +395,14 @@ Erwartet ist eine Zeile mit `"status":"ok"`.
 
 Erwartet: `127.0.0.1:5432 - accepting connections` (die Datenbank).
 
+```bash
+curl -s http://127.0.0.1:9000/health
+```
+
+Erwartet: `"status":"healthy"` und `"redis":"memory"` (AgentLink). Auf dem Mac läuft AgentLink ohne Redis – Homebrew
+bietet Redis für Intel-Macs nur noch zum Selbstbauen an, das würde Stunden dauern. Im Cockpit zeigt die Startseite
+„AgentLink verbunden“.
+
 ---
 
 ## Was auf dem Mac nicht geht
@@ -403,7 +415,7 @@ Der Mac-Installer richtet nur den **Kern** ein. Folgendes gibt es auf dem Mac **
 | **Voice / Spracherkennung als Dienst** (Whisper-Container) | ❌ nicht automatisch | läuft unter Linux in einem Incus-Container |
 | **WhatsApp-Anbindung** | ❌ nicht eingerichtet | Bridge wird nur vom Linux-Installer aufgesetzt |
 | **Samba-Freigaben** (Projektordner im Netzwerk) | ❌ nicht verfügbar | Linux-Modul |
-| **Tailscale-Fernzugriff** | ⚠️ nicht automatisch | Tailscale-App für macOS selbst installieren |
+| **Tailscale-Fernzugriff & Server-Kopplung** | ⚠️ nicht automatisch | Tailscale-App für macOS selbst installieren und einmal am Bildschirm anmelden (die App fragt nach der Erlaubnis für das VPN). HydraHive findet die App danach von selbst; die Kopplung mit einem anderen HydraHive geht dann wie unter Linux |
 | **Websuche (SearXNG)** | ⚠️ nicht automatisch | eigene SearXNG-Adresse in den Einstellungen eintragen, sonst funktioniert `web_search` nicht |
 | **Start-Agenten & MCP-Server** | ⚠️ nicht automatisch | Linux legt sie beim Installieren an, auf dem Mac von Hand im Cockpit anlegen |
 | **Lokale Medien-Modelle** (Bild/Video mit NVIDIA-GPU) | ❌ nicht verfügbar | braucht NVIDIA + Docker |
@@ -411,8 +423,8 @@ Der Mac-Installer richtet nur den **Kern** ein. Folgendes gibt es auf dem Mac **
 | **Module** (Einstellungen → Module) | ✅ fast alle | getestet: 21 von 22; **OpenTor** geht nicht (Tor nur über Linux-Pakete) |
 | **Firewall-Regeln** (ufw) | ❌ | macOS nutzt eine eigene Firewall |
 
-**Was gut geht:** Cockpit, Buddy, Agenten, Projekte, Werkstatt, Datamining/Gedächtnis, Aufgaben, Module wie Atelier,
-Storyteller, Haushaltsbuch usw. und Updates über das Cockpit.
+**Was gut geht:** Cockpit, Buddy, Agenten, Projekte, Werkstatt, Datamining/Gedächtnis, Aufgaben, AgentLink (Agenten
+beauftragen sich gegenseitig), Module wie Atelier, Storyteller, Haushaltsbuch usw. und Updates über das Cockpit.
 
 ---
 
