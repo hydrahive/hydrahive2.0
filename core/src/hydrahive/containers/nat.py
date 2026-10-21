@@ -80,7 +80,7 @@ def get_ipv4(container_id: str) -> str | None:
 
 def _mac_default_interface() -> str | None:
     try:
-        out = subprocess.run(["route", "-n", "get", "default"], capture_output=True, text=True, timeout=5).stdout
+        out = subprocess.run(["/sbin/route", "-n", "get", "default"], capture_output=True, text=True, timeout=5).stdout
     except (OSError, subprocess.SubprocessError):
         return None
     for line in out.splitlines():
@@ -97,7 +97,7 @@ def wan_ipv4() -> str | None:
         if not iface:
             return None
         try:
-            out = subprocess.run(["ipconfig", "getifaddr", iface], capture_output=True, text=True, timeout=5).stdout
+            out = subprocess.run(["/usr/sbin/ipconfig", "getifaddr", iface], capture_output=True, text=True, timeout=5).stdout
         except (OSError, subprocess.SubprocessError):
             return None
         return out.strip() or None

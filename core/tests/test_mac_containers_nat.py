@@ -92,8 +92,9 @@ def test_wan_ipv4_on_mac_uses_route(monkeypatch):
     """`ip route` gibt es auf dem Mac nicht – WAN-Adresse über die Standardroute (route/ipconfig)."""
     monkeypatch.setattr(_platform, "is_mac", lambda: True)
     outputs = {
-        ("route", "-n", "get", "default"): "   route to: default\n  gateway: 192.168.178.1\n  interface: en1\n",
-        ("ipconfig", "getifaddr", "en1"): "192.168.178.186\n",
+        # Volle Pfade: der Backend-Dienst hat /sbin und /usr/sbin nicht im PATH (Befund 21.10.2026, Test-Mac).
+        ("/sbin/route", "-n", "get", "default"): "   route to: default\n  gateway: 192.168.178.1\n  interface: en1\n",
+        ("/usr/sbin/ipconfig", "getifaddr", "en1"): "192.168.178.186\n",
     }
 
     class R:
