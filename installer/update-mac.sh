@@ -31,6 +31,15 @@ rm -f "$HH_DATA_DIR/.update_request"
 log "Update gestartet"
 
 eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"
+# Als root (Update-Dienst) verweigert `brew shellenv` – Homebrew-bin dann über den vollen Pfad in den PATH, sonst
+# finden npm/node nichts (Befund 21.10.2026: „env: npm: No such file or directory“).
+HH_BREW="${HH_BREW:-}"
+if [ -z "$HH_BREW" ]; then
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$candidate" ]; then HH_BREW="$candidate"; break; fi
+  done
+fi
+[ -n "$HH_BREW" ] && PATH="$(dirname "$HH_BREW"):$PATH" && export PATH
 
 cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).

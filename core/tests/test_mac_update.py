@@ -377,7 +377,10 @@ def test_npm_found_under_sudo_with_secure_path(mac, tmp_path):
     (mac["bin"] / "sudo").write_text(f'#!/bin/bash\n[ "$1" = "-u" ] && shift 2\nPATH="{mac["bin"]}:/usr/bin:/bin" exec "$@"\n')
     _launchd(mac)
     (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
-    env = {**_env(mac), "PATH": f"{mac['bin']}:{brew_bin}:/usr/bin:/bin"}
+    # Wie der echte Update-Dienst (launchd, root): PATH OHNE Homebrew; brew liegt nur unter seinem vollen Pfad.
+    (brew_bin / "brew").write_text(f'#!/bin/bash\ncase "$1" in --prefix) echo "{brew_bin.parent}";; esac\n')
+    (brew_bin / "brew").chmod(0o755)
+    env = {**_env(mac), "PATH": f"{mac['bin']}:/usr/bin:/bin", "HH_BREW": str(brew_bin / "brew")}
     r = subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr + mac["log"].read_text()
     calls = _calls(mac)
