@@ -62,11 +62,16 @@ class _FakeProc:
     """`tailscale up --json`: erst ein JSON-Block mit AuthURL, dann (nach der Anmeldung) einer mit Running."""
 
     def __init__(self, lines: list[bytes]):
-        self.stdout = asyncio.StreamReader()
-        for ln in lines:
-            self.stdout.feed_data(ln)
+        self.lines = lines
+        self.stdout: asyncio.StreamReader | None = None
         self.returncode = None
         self.killed = False
+
+    def start(self) -> "_FakeProc":
+        self.stdout = asyncio.StreamReader()                    # braucht eine laufende Schleife
+        for ln in self.lines:
+            self.stdout.feed_data(ln)
+        return self
 
     def kill(self):
         self.killed = True
@@ -82,7 +87,7 @@ def test_login_returns_auth_url(monkeypatch):
 
     async def fake_exec(*args, **kw):
         seen.append(args)
-        return proc
+        return proc.start()
 
     monkeypatch.setattr(control.asyncio, "create_subprocess_exec", fake_exec)
     monkeypatch.setattr(control, "_tailscale_bin", lambda: "/x/tailscale")
@@ -97,7 +102,7 @@ def test_login_already_running(monkeypatch):
     proc = _FakeProc([b'{\n', b'\t"BackendState": "Running"\n', b'}\n'])
 
     async def fake_exec(*args, **kw):
-        return proc
+        return proc.start()
 
     monkeypatch.setattr(control.asyncio, "create_subprocess_exec", fake_exec)
     monkeypatch.setattr(control, "_tailscale_bin", lambda: "/x/tailscale")
@@ -108,7 +113,7 @@ def test_login_timeout_kills_process(monkeypatch):
     proc = _FakeProc([b"{\n"])                    # nie fertig
 
     async def fake_exec(*args, **kw):
-        return proc
+        return proc.start()
 
     monkeypatch.setattr(control.asyncio, "create_subprocess_exec", fake_exec)
     monkeypatch.setattr(control, "_tailscale_bin", lambda: "/x/tailscale")
@@ -121,7 +126,7 @@ def test_login_only_tailscale_urls(monkeypatch):
     proc = _FakeProc([b'{"AuthURL": "https://evil.example/a/x", "BackendState": "NeedsLogin"}\n'])
 
     async def fake_exec(*args, **kw):
-        return proc
+        return proc.start()
 
     monkeypatch.setattr(control.asyncio, "create_subprocess_exec", fake_exec)
     monkeypatch.setattr(control, "_tailscale_bin", lambda: "/x/tailscale")

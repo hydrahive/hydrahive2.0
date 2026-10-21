@@ -61,9 +61,10 @@ describe("Karte Zusatz-Module", () => {
     expect(html).toMatch(/data-addon-row="vms"[\s\S]*?addons\.hint_wsl[\s\S]*?data-addon-row="samba"/)
   })
   it("Mac: Hinweis statt Installieren-Knopf bei nicht verfügbaren Modulen", () => {
-    const mac = ITEMS.map((i) => (i.id === "containers" ? i : { ...i, hint: "mac" as const }))
+    const mac = ITEMS.map((i) => (i.id === "containers" || i.id === "tailscale" ? i : { ...i, hint: "mac" as const }))
     const html = renderToStaticMarkup(<AddonsView {...props({ items: mac })} />)
-    expect(html.match(/addons\.hint_mac/g)?.length).toBe(5)
+    expect(html.match(/addons\.hint_mac/g)?.length).toBe(4)
+    expect(html).toContain('data-addon="tailscale"')
     expect(html).toContain('data-addon="containers"')
     expect(html).not.toContain('data-addon="samba"')
     expect(html).not.toContain('data-addon="vms"')

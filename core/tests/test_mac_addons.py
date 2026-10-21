@@ -1,7 +1,8 @@
-"""Zusatz-Module auf dem Mac (Plan docs/plans/mac-containers.md §3): nur „Container“ lässt sich dort nachinstallieren.
+"""Zusatz-Module auf dem Mac (Pläne docs/plans/mac-containers.md §3, mac-tailscale.md): nur „Container“ und
+„Tailscale“ lassen sich dort nachinstallieren.
 
-Die übrigen Module (VMs, Samba, WhatsApp, Voice, Tailscale) bauen auf apt/systemd bzw. Linux-Diensten auf. Auf dem
-Mac zeigt das Cockpit sie mit Hinweis „mac“ und ohne Installieren; die API lehnt sie ab. Linux unverändert.
+Die übrigen Module (VMs, Samba, WhatsApp, Voice) bauen auf apt/systemd bzw. Linux-Diensten auf. Auf dem Mac zeigt das
+Cockpit sie mit Hinweis „mac“ und ohne Installieren; die API lehnt sie ab. Linux unverändert.
 """
 from __future__ import annotations
 
@@ -22,11 +23,12 @@ def probes(monkeypatch):
     return state
 
 
-def test_mac_only_containers_installable(probes, tmp_path, monkeypatch):
+def test_mac_only_containers_and_tailscale_installable(probes, tmp_path, monkeypatch):
     monkeypatch.setattr(st, "is_mac", lambda: True)
     items = {i["id"]: i for i in st.list_addons(tmp_path / "install.conf")}
     assert items["containers"]["hint"] is None
-    for other in ("vms", "samba", "whatsapp", "voice", "tailscale"):
+    assert items["tailscale"]["hint"] is None
+    for other in ("vms", "samba", "whatsapp", "voice"):
         assert items[other]["hint"] == "mac", other
 
 
