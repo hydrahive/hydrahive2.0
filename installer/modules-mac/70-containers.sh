@@ -109,8 +109,11 @@ export PATH="$BIN:$PATH"
 priv mkdir -p "$COLIMA_HOME" "$HH_LOG_DIR"
 priv chown -R "$HH_USER" "$COLIMA_HOME"
 # Läuft die VM schon unter dem Dienst (Update), bleibt sie unberührt – kein Neustart der Container.
+# „Gehört dem Dienst“ heißt: launchd führt io.hydrahive.colima mit einer PID (colima --foreground läuft). Nur
+# „Dienst vorhanden + VM läuft“ reicht nicht – die VM kann auch von Hand/aus einem früheren Lauf stammen.
+daemon_pid() { priv launchctl list 2>/dev/null | awk '$3 == "io.hydrahive.colima" && $1 ~ /^[0-9]+$/ {print $1}'; }
 DAEMON_UP=""
-if [ -f "$HH_CT_PLIST" ] && as_user colima status "$PROFILE" >/dev/null 2>&1; then
+if [ -f "$HH_CT_PLIST" ] && [ -n "$(daemon_pid)" ] && as_user colima status "$PROFILE" >/dev/null 2>&1; then
   DAEMON_UP=1
 fi
 start_vm() {

@@ -60,7 +60,8 @@ while [ $# -gt 0 ]; do case "$1" in -o) out="$2"; shift 2;; --retry) shift 2;; -
 cp "{dl}/${{url#https://example.test/}}" "$out"
 ''')
     _exe(bin_ / "sudo", log + 'while [ $# -gt 0 ]; do case "$1" in -u) shift 2;; -n|-H) shift;; *) break;; esac; done\nexec "$@"\n')
-    _exe(bin_ / "launchctl", log)
+    _exe(bin_ / "launchctl", log + f'case "$1" in list) [ -f "{tmp_path}/daemon-pid" ] && '
+                                    f'echo "$(cat "{tmp_path}/daemon-pid") 0 io.hydrahive.colima";; esac\nexit 0\n')
     _exe(bin_ / "xattr", log)
     _exe(bin_ / "chown", log)
     _exe(bin_ / "uname", 'echo "${FAKE_UNAME_M:-x86_64}"\n')
@@ -155,13 +156,14 @@ def test_second_run_does_not_restart_running_vm(mac):
     _install_stubs(mac)
     _run(mac)
     (mac["tmp"] / "vm-running").write_text("")                  # Dienst hat die VM hochgefahren
+    (mac["tmp"] / "daemon-pid").write_text("4242")
     mac["calls"].write_text("")
     r = _run(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac)
     assert not any(c.startswith(("colima start", "colima stop")) for c in calls)
     assert not any(c.startswith("incus network create") for c in calls)
-    assert not any(c.startswith("launchctl") for c in calls)
+    assert not any(c.startswith(("launchctl load", "launchctl unload")) for c in calls)
 
 
 def test_vm_size_capped_to_half_of_host(mac):
@@ -272,3 +274,18 @@ def test_daemon_vm_not_reachable_fails(mac):
     r = _run(mac)
     assert r.returncode != 0
     assert "antwortet" in r.stderr
+
+
+def test_running_vm_without_daemon_process_is_handed_over(mac):
+    """Befund 21.10.2026: Dienst vorhanden, VM läuft – aber von Hand gestartet, Dienst ohne Prozess (Schleife
+    „already running“). Dann übergeben: anhalten, Dienst neu laden."""
+    _run(mac)
+    _install_stubs(mac)
+    _run(mac)
+    (mac["tmp"] / "vm-running").write_text("")
+    (mac["tmp"] / "daemon-pid").write_text("-")                 # launchctl list: „-“ = kein Prozess
+    mac["calls"].write_text("")
+    r = _run(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    assert calls.index("colima stop hydrahive") < calls.index(f"launchctl load {mac['plist']}")
