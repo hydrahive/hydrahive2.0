@@ -70,3 +70,16 @@ HydraHive-Servern wie unter Linux. Linux-Installer unangetastet.
 ## Nicht in diesem Plan
 - Exit-Node-Nutzung, Taildrop auf dem Mac.
 - Automatische Anmeldung ohne Tills Zutun (braucht gültigen Tailscale-API-Schlüssel auf .2 – der ist abgelaufen).
+
+## Umsetzung (21.10.2026)
+
+- `modules-mac/80-tailscale.sh`, Option `--with=tailscale`, Cockpit (Zusatz-Module), Update pflegt mit, Backend-PATH.
+- Version eingebrannt (`-ldflags` wie `build_dist.sh`), sonst meldet `tailscale version` „…-ERR-BuildInfo“.
+- `POST /api/tailscale/login` + Karte „Im Browser anmelden“ (nur Links auf login.tailscale.com).
+- **Befund:** `get_status()` stürzte vor der ersten Anmeldung ab (`TailscaleIPs: null` → „'NoneType' object is not
+  iterable“) – die Karte zeigte dann keinen Anmelde-Link. Betraf **auch Linux**. Behoben + Test.
+
+Abnahme .186: Update (mit Frontend-Build) ok, Tailscale über das Cockpit installiert (~2 min), Status `NeedsLogin` mit
+Anmelde-Link, `/api/tailscale/login` liefert Link, Neustart ohne Anmeldung → `io.hydrahive.tailscaled` läuft.
+hydratest (Linux): update.sh ok, Status `NeedsLogin` ohne Fehler, alle Zusatz-Module ohne Hinweis. Suite 4666 grün.
+**Offen:** Anmeldung mit Tills Konto (Link öffnen), danach Kopplung .186 ↔ .2.
