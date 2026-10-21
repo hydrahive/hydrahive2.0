@@ -1,7 +1,7 @@
 import { api } from "@/shared/api-client"
 import type {
   A2ACard, ClientConnection, CreateClientResult, Workstation,
-  ExternalInstance, CreateInstanceResult, Peer, PeerOwnCode,
+  ExternalInstance, CreateInstanceResult, Peer, PeerIdentity, PeerOwnCode,
 } from "./types"
 
 // All optional fields a workstation can have. Keeping it as a type
@@ -73,7 +73,7 @@ export const externalInstancesApi = {
 }
 
 export const peersApi = {
-  identity: (): Promise<{ fingerprint: string }> =>
+  identity: (): Promise<PeerIdentity> =>
     api.get("/federation/peers/identity"),
 
   ownCode: (name: string, url: string): Promise<PeerOwnCode> =>

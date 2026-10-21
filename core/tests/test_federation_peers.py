@@ -123,3 +123,43 @@ def test_rejects_own_code_duplicates_and_http(client, admin_headers):
     plain = "hhpeer1:" + base64.urlsafe_b64encode(ident.canonical(info)).decode()
     assert client.post("/api/federation/peers", headers=admin_headers, json={"code": plain}).status_code == 400
     _cleanup(client, admin_headers)
+
+
+# --- Adressvorschlag (Tailscale statt LAN, Befund 21.10.2026) ---------------
+
+def _ts(monkeypatch, status: dict):
+    from hydrahive.api.routes import federation_peers as route
+
+    async def fake():
+        return status
+    monkeypatch.setattr(route, "get_tailscale_status", fake)
+
+
+def test_identity_suggests_tailscale_address(client, admin_headers, monkeypatch):
+    _ts(monkeypatch, {"installed": True, "connected": True, "ip": "100.93.121.97",
+                      "hostname": "iMac von admin"})
+    r = client.get("/api/federation/peers/identity", headers=admin_headers)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["fingerprint"]
+    assert body["suggested"] == {"name": "iMac-von-admin", "url": "https://100.93.121.97"}
+
+
+def test_identity_no_suggestion_without_tailscale(client, admin_headers, monkeypatch):
+    for status in (
+        {"installed": False, "connected": False},
+        {"installed": True, "connected": False, "backend_state": "NeedsLogin", "ip": None},
+        {"installed": True, "connected": True, "ip": None, "hostname": "x"},
+        {"installed": True, "connected": False, "backend_state": "Stopped", "ip": "100.93.121.97"},
+        {"installed": True, "connected": True, "ip": "192.168.178.4", "hostname": "x"},
+    ):
+        _ts(monkeypatch, status)
+        r = client.get("/api/federation/peers/identity", headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["suggested"] is None, status
+
+
+def test_identity_suggestion_name_fallback(client, admin_headers, monkeypatch):
+    _ts(monkeypatch, {"installed": True, "connected": True, "ip": "100.84.107.19", "hostname": ""})
+    r = client.get("/api/federation/peers/identity", headers=admin_headers)
+    assert r.json()["suggested"] == {"name": "hydrahive", "url": "https://100.84.107.19"}

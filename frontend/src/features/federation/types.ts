@@ -108,6 +108,12 @@ export interface Peer {
   allowed_agents: string[]
 }
 
+export interface PeerIdentity {
+  fingerprint: string
+  /** Tailscale-Name + -Adresse dieses Servers; null ohne verbundenes Tailscale. */
+  suggested: { name: string; url: string } | null
+}
+
 export interface PeerOwnCode {
   code: string
   fingerprint: string
