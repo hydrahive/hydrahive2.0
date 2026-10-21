@@ -146,3 +146,26 @@ def test_login_route_admin_only(client, auth_headers, admin_headers, monkeypatch
     r = client.post("/api/tailscale/login", headers=admin_headers)
     assert r.status_code == 200
     assert r.json() == {"auth_url": "https://login.tailscale.com/a/abc123"}
+
+
+# --- Status vor der Anmeldung (Befund 21.10.2026, Test-Mac) ---------------------------------------------------
+
+def test_status_needs_login_with_null_ips(monkeypatch):
+    """Frisch installiert, noch nicht angemeldet: `TailscaleIPs: null`, `Peer` fehlt. Vorher stürzte get_status mit
+    „'NoneType' object is not iterable“ ab → Karte zeigte keinen Anmelde-Link (auch unter Linux)."""
+    from hydrahive.tailscale import status
+
+    out = ('{"Version":"1.104.2-hydrahive","BackendState":"NeedsLogin",'
+           '"AuthURL":"https://login.tailscale.com/a/abc","TailscaleIPs":null,'
+           '"Self":{"HostName":"","DNSName":"","TailscaleIPs":null},"Peer":null,"MagicDNSSuffix":""}')
+
+    async def fake_run(*args, timeout=5):
+        return 0, out, ""
+
+    monkeypatch.setattr(status, "_run", fake_run)
+    s = asyncio.run(status.get_status())
+    assert s["installed"] is True and s["connected"] is False
+    assert s["backend_state"] == "NeedsLogin"
+    assert s["auth_url"] == "https://login.tailscale.com/a/abc"
+    assert s["ip"] is None and s["peers"] == []
+    assert "error" not in s

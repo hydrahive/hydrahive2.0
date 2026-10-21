@@ -24,7 +24,7 @@ async def _run(*args: str, timeout: float = 5) -> tuple[int, str, str]:
 
 
 def _peer_dict(p: dict) -> dict:
-    ips = p.get("TailscaleIPs", [])
+    ips = p.get("TailscaleIPs") or []
     ipv4 = next((ip for ip in ips if ":" not in ip), None)
     return {
         "hostname": p.get("HostName", ""),
@@ -44,8 +44,8 @@ async def get_status() -> dict:
         if rc != 0:
             return {"installed": True, "connected": False, "error": err.strip()}
         data = json.loads(out)
-        self_info = data.get("Self", {})
-        ips = data.get("TailscaleIPs", [])
+        self_info = data.get("Self") or {}
+        ips = data.get("TailscaleIPs") or []
         ipv4 = next((ip for ip in ips if ":" not in ip), None)
         hostname = self_info.get("HostName", "")
         dns_name = self_info.get("DNSName", "").rstrip(".")
