@@ -20,6 +20,14 @@ HH_PORT="${HH_PORT:-8001}"
 HH_INSTALL_NGINX="${HH_INSTALL_NGINX:-yes}"
 HH_INSTALL_POSTGRES="${HH_INSTALL_POSTGRES:-yes}"
 HH_INSTALL_AGENTLINK="${HH_INSTALL_AGENTLINK:-yes}"
+# Container (Colima + Incus): Standard AUS – die VM kostet dauerhaft Arbeitsspeicher. Einschalten mit
+# HH_INSTALL_CONTAINERS=yes oder --with=containers; später auch im Cockpit (Einstellungen → Zusatz-Module).
+HH_INSTALL_CONTAINERS="${HH_INSTALL_CONTAINERS:-no}"
+for arg in "$@"; do
+  case "$arg" in
+    --with=*) case ",${arg#--with=}," in *,containers,*) HH_INSTALL_CONTAINERS=yes ;; esac ;;
+  esac
+done
 
 log() { printf "\033[1;36m[hh2-mac]\033[0m %s\n" "$*"; }
 err() { printf "\033[1;31m[hh2-mac]\033[0m %s\n" "$*" >&2; exit 1; }
@@ -29,7 +37,7 @@ err() { printf "\033[1;31m[hh2-mac]\033[0m %s\n" "$*" >&2; exit 1; }
 command -v brew >/dev/null 2>&1 || err "Homebrew fehlt. Installieren: https://brew.sh"
 
 INSTALLER_DIR="$(cd "$(dirname "$0")" && pwd)"
-export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK
+export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK HH_INSTALL_CONTAINERS
 
 log "Phase 1: System-Dependencies"
 bash "$INSTALLER_DIR/modules-mac/00-deps.sh"
@@ -55,6 +63,7 @@ bash "$INSTALLER_DIR/modules-mac/50-launchd.sh"
 
 log "Phase 6b: Update- und Restart-Trigger"
 bash "$INSTALLER_DIR/modules-mac/55-launchd-triggers.sh"
+bash "$INSTALLER_DIR/lib/mac-addon-trigger.sh"
 
 # AgentLink braucht PostgreSQL (eigene Datenbank im postgresql@16 des Kerns).
 if [ "${HH_INSTALL_AGENTLINK}" != "no" ] && [ "${HH_INSTALL_POSTGRES}" != "no" ]; then
@@ -63,6 +72,18 @@ if [ "${HH_INSTALL_AGENTLINK}" != "no" ] && [ "${HH_INSTALL_POSTGRES}" != "no" ]
     || log "AgentLink-Installation FEHLGESCHLAGEN – Agenten können sich nicht gegenseitig beauftragen. Nachholen: bash $INSTALLER_DIR/modules-mac/75-agentlink.sh"
 else
   log "Phase 6c: AgentLink übersprungen"
+fi
+
+if [ "${HH_INSTALL_CONTAINERS}" = "yes" ]; then
+  log "Phase 6d: Container (Colima + Incus)"
+  if bash "$INSTALLER_DIR/modules-mac/70-containers.sh"; then
+    # Backend-PATH um die Container-Werkzeuge erweitern (50-launchd.sh nimmt den Ordner auf, wenn er existiert).
+    bash "$INSTALLER_DIR/modules-mac/50-launchd.sh"
+  else
+    log "Container-Installation FEHLGESCHLAGEN – nachholen im Cockpit (Einstellungen → Zusatz-Module)"
+  fi
+else
+  log "Phase 6d: Container übersprungen (Option: --with=containers)"
 fi
 
 if [ "${HH_INSTALL_NGINX}" != "no" ]; then

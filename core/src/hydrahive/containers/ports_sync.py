@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 
+from hydrahive.containers import _platform, mac_forward
 from hydrahive.containers import db as cdb
 from hydrahive.containers import nat
 from hydrahive.containers import ports as cports
@@ -20,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 def _interval() -> int:
+    # Mac: Weiterleitungen leben im Prozess (mac_forward) – nach einem Neustart schnell wieder öffnen.
+    if _platform.is_mac():
+        return 30
     return max(30, settings.container_ports_sync_interval)
 
 
@@ -45,6 +49,8 @@ def _expected(rule: cports.PortRule, ip: str, wan_if: str) -> dict:
 
 async def sync_once() -> dict | None:
     """Ein Durchlauf. None, wenn der Ist-Stand nicht lesbar war (dann wird nichts geändert)."""
+    if _platform.is_mac():
+        return await _sync_mac()
     try:
         listed = await _list_ufw()
     except (cports.PortError, OSError, ValueError, asyncio.TimeoutError) as exc:
@@ -84,6 +90,34 @@ async def sync_once() -> dict | None:
     return res
 
 
+async def _sync_mac() -> dict:
+    """Mac: kein ufw. Ist = offene Weiterleitungen im Prozess (nach Neustart leer) → fehlende öffnen,
+    abgeschaltete/verwaiste schließen (docs/plans/mac-containers.md §4)."""
+    open_ids = mac_forward.FORWARDER.active()
+    wanted: set[str] = set()
+    res = {"applied": 0, "removed": 0, "failed": 0}
+    for c in cdb.list_(owner=None):
+        if c.node_id != "local" or c.network_mode != "nat":
+            continue
+        ip = nat.get_ipv4(c.container_id)
+        for rule in cports.list_for(c.container_id):
+            if rule.scope == "off" or c.actual_state != "running" or not ip:
+                continue
+            wanted.add(rule.id)
+            if rule.id in open_ids:
+                continue
+            try:
+                await cports.apply(c.name, ip, rule)
+                res["applied"] += 1
+            except Exception as exc:
+                res["failed"] += 1
+                logger.warning("Mac-Weiterleitung %s (%s) nicht geöffnet: %s", rule.id, c.name, exc)
+    for rule_id in sorted(open_ids - wanted):
+        await mac_forward.FORWARDER.close(rule_id)
+        res["removed"] += 1
+    return res
+
+
 async def _remove(port_id: str, res: dict) -> None:
     try:
         await cports._helper("remove", port_id)
@@ -106,4 +140,6 @@ async def run_loop(stop: asyncio.Event) -> None:
             await asyncio.wait_for(stop.wait(), timeout=_interval())
         except asyncio.TimeoutError:
             pass
+    if _platform.is_mac():
+        await mac_forward.FORWARDER.close_all()
     logger.info("Portfreigaben-Abgleich beendet")

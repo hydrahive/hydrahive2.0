@@ -31,6 +31,15 @@ rm -f "$HH_DATA_DIR/.update_request"
 log "Update gestartet"
 
 eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"
+# Als root (Update-Dienst) verweigert `brew shellenv` – Homebrew-bin dann über den vollen Pfad in den PATH, sonst
+# finden npm/node nichts (Befund 21.10.2026: „env: npm: No such file or directory“).
+HH_BREW="${HH_BREW:-}"
+if [ -z "$HH_BREW" ]; then
+  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if [ -x "$candidate" ]; then HH_BREW="$candidate"; break; fi
+  done
+fi
+[ -n "$HH_BREW" ] && PATH="$(dirname "$HH_BREW"):$PATH" && export PATH
 
 cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
@@ -65,8 +74,9 @@ if [ -n "$BUILD" ]; then
   log "Frontend neu bauen ($BUILD)"
   cd "$HH_REPO_DIR/frontend"
   # npm ci: genau nach package-lock.json, ändert sie nie (npm install schrieb sie um → nächstes git pull scheiterte)
-  sudo -u "$HH_USER" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || { log "npm ci fehlgeschlagen"; exit 1; }
-  sudo -u "$HH_USER" npm run build >> "$LOG" 2>&1 || { log "Frontend-Build fehlgeschlagen"; exit 1; }
+  # PATH mitgeben: sudo setzt secure_path ohne Homebrew → „sudo: npm: command not found“ (Befund 21.10.2026).
+  sudo -u "$HH_USER" env "PATH=$PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || { log "npm ci fehlgeschlagen"; exit 1; }
+  sudo -u "$HH_USER" env "PATH=$PATH" npm run build >> "$LOG" 2>&1 || { log "Frontend-Build fehlgeschlagen"; exit 1; }
   [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -u "$HH_USER" tee "$MARK" > /dev/null
   cd "$HH_REPO_DIR"
 fi
@@ -98,6 +108,23 @@ if [ "${HH_INSTALL_AGENTLINK:-yes}" != "no" ] && [ -s "$HH_CONFIG_DIR/pg_mirror.
   fi
 fi
 
+# Zusatz-Module (Container): Auslöser für das Cockpit nachrüsten; gewünschte Container mitpflegen
+# (neue Werkzeug-Versionen, Dienst). docs/plans/mac-containers.md.
+ADDON_PLIST="${HH_ADDON_PLIST:-/Library/LaunchDaemons/io.hydrahive.addon.plist}"
+if [ ! -f "$ADDON_PLIST" ] && [ -f "$HH_REPO_DIR/installer/lib/mac-addon-trigger.sh" ]; then
+  log "Zusatz-Module-Auslöser einrichten (Einstellungen → Zusatz-Module)"
+  HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" HH_REPO_DIR="$HH_REPO_DIR" \
+    bash "$HH_REPO_DIR/installer/lib/mac-addon-trigger.sh" 2>&1 | to_log || log "Zusatz-Module-Auslöser fehlgeschlagen"
+fi
+if grep -q '^HH_INSTALL_CONTAINERS=yes' "$HH_CONFIG_DIR/install.conf" 2>/dev/null \
+   && [ -f "$HH_REPO_DIR/installer/modules-mac/70-containers.sh" ]; then
+  log "Container (Colima + Incus) aktualisieren"
+  if ! HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+       bash "$HH_REPO_DIR/installer/modules-mac/70-containers.sh" 2>&1 | to_log; then
+    log "Container-Update FEHLGESCHLAGEN – Container evtl. nicht erreichbar (Log oben)"
+  fi
+fi
+
 # nginx-Konfiguration nachziehen, wenn ein Merkmal fehlt (AgentLink-Wege, Kopplung nur aus dem Tailnet,
 # Sicherheits-Kopfzeilen, Modul-Sandbox). 60-nginx.sh kommt frisch aus dem git pull oben.
 BREW_PREFIX="/usr/local"
@@ -125,7 +152,8 @@ fi
 if grep -q "HH_SECRET_KEY\|HH_PG_MIRROR_DSN" "$BACKEND_PLIST" 2>/dev/null \
    || ! grep -q "mac-backend-start.sh" "$BACKEND_PLIST" 2>/dev/null \
    || ! grep -q -- "--timeout-graceful-shutdown" "$BACKEND_PLIST" 2>/dev/null \
-   || ! grep -q "HH_LOG_DIR" "$BACKEND_PLIST" 2>/dev/null; then
+   || ! grep -q "HH_LOG_DIR" "$BACKEND_PLIST" 2>/dev/null \
+   || { [ -d /usr/local/lib/hydrahive2/containers/bin ] && ! grep -q "/usr/local/lib/hydrahive2/containers/bin" "$BACKEND_PLIST" 2>/dev/null; }; then
   log "launchd-plist enthält Secrets, keinen Start-Wrapper, kein Zeitlimit oder keinen Log-Ordner — neu schreiben"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
     HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \

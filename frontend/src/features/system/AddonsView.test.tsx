@@ -60,6 +60,14 @@ describe("Karte Zusatz-Module", () => {
     expect(html.match(/addons\.hint_wsl/g)?.length).toBe(1)
     expect(html).toMatch(/data-addon-row="vms"[\s\S]*?addons\.hint_wsl[\s\S]*?data-addon-row="samba"/)
   })
+  it("Mac: Hinweis statt Installieren-Knopf bei nicht verfügbaren Modulen", () => {
+    const mac = ITEMS.map((i) => (i.id === "containers" ? i : { ...i, hint: "mac" as const }))
+    const html = renderToStaticMarkup(<AddonsView {...props({ items: mac })} />)
+    expect(html.match(/addons\.hint_mac/g)?.length).toBe(5)
+    expect(html).toContain('data-addon="containers"')
+    expect(html).not.toContain('data-addon="samba"')
+    expect(html).not.toContain('data-addon="vms"')
+  })
   it("Log wird beim Lauf angezeigt, Fehlertext bei failed", () => {
     const running = renderToStaticMarkup(<AddonsView {...props({ target: "samba", phase: "running", running: "samba", log: ["[hh2-addon] Installiere samba\n"] })} />)
     expect(running).toContain("[hh2-addon] Installiere samba")

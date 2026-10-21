@@ -226,6 +226,7 @@
     "install": "Install",
     "busy_title": "An installation is already running.",
     "hint_wsl": "Usually not available under WSL (no KVM/systemd networking).",
+    "hint_mac": "Not available on a Mac (requires Linux).",
     "confirm": "Install {{name}} now?",
     "confirm_requires": "This first installs: {{names}}.",
     "confirm_restart": "HydraHive restarts briefly. The page keeps following afterwards.",

@@ -160,6 +160,7 @@
   "addon_busy": "An add-on installation is already running. Please wait until it has finished.",
   "addon_unknown": "Unknown add-on module “{{addon}}”.",
   "addon_installed": "“{{addon}}” is already installed.",
+  "addon_unavailable_mac": "“{{addon}}” is not available on a Mac.",
   "local_media_not_installed": "Local image/video generation is not installed.",
 
   "group_exists": "A group with this name already exists",

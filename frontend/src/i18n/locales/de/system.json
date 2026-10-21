@@ -226,6 +226,7 @@
     "install": "Installieren",
     "busy_title": "Es läuft bereits eine Installation.",
     "hint_wsl": "Unter WSL meist nicht verfügbar (kein KVM/systemd-Netz).",
+    "hint_mac": "Auf dem Mac nicht verfügbar (braucht Linux).",
     "confirm": "{{name}} jetzt installieren?",
     "confirm_requires": "Dafür wird vorher installiert: {{names}}.",
     "confirm_restart": "HydraHive startet dabei kurz neu. Die Seite liest danach weiter mit.",

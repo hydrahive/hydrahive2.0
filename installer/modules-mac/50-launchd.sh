@@ -6,6 +6,10 @@ PLIST_LABEL="io.hydrahive.backend"
 PLIST_FILE="${HH_BACKEND_PLIST:-/Library/LaunchDaemons/${PLIST_LABEL}.plist}"
 START_WRAPPER="${HH_REPO_DIR}/installer/lib/mac-backend-start.sh"
 BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /usr/local)"
+# Container-Werkzeuge (modules-mac/70-containers.sh): incus/colima für den Kern, nur wenn installiert.
+HH_CT_BIN="${HH_CT_BIN:-/usr/local/lib/hydrahive2/containers/bin}"
+CT_PATH=""
+[ -d "$HH_CT_BIN" ] && CT_PATH="${HH_CT_BIN}:"
 
 # JWT-Secret
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
@@ -60,7 +64,9 @@ sudo tee "$PLIST_FILE" > /dev/null <<EOF
         <key>HOME</key>
         <string>/Users/${HH_USER}</string>
         <key>PATH</key>
-        <string>${HH_REPO_DIR}/.venv/bin:${BREW_PREFIX}/opt/python@3.12/bin:${BREW_PREFIX}/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <string>${HH_REPO_DIR}/.venv/bin:${CT_PATH}${BREW_PREFIX}/opt/python@3.12/bin:${BREW_PREFIX}/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>COLIMA_HOME</key>
+        <string>${HH_DATA_DIR}/colima</string>
     </dict>
     <key>UserName</key>
     <string>${HH_USER}</string>

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Callable
 
 from hydrahive.communication.whatsapp._orphan import BRIDGE_DIR
+from hydrahive.containers._platform import is_mac
 from hydrahive.containers.incus_client import is_available as _incus_available
 from hydrahive.samba.manager import samba_status
 from hydrahive.tailscale._bin import find_tailscale
@@ -25,6 +26,8 @@ ADDONS: tuple[str, ...] = ("containers", "vms", "samba", "whatsapp", "voice", "t
 RESTARTS_SERVICE = frozenset({"vms", "containers"})          # 65-vms.sh / 70-containers.sh patchen hydrahive2.service
 REQUIRES: dict[str, list[str]] = {"voice": ["containers"]}
 WSL_LIMITED = frozenset({"vms", "containers", "voice"})
+# Auf dem Mac nur Container (installer/modules-mac/70-containers.sh); der Rest braucht apt/systemd.
+MAC_INSTALLABLE = frozenset({"containers"})
 
 # Nur 65-vms.sh legt diese Unit an. qemu allein reicht nicht: incus zieht qemu-system-x86 als Abhängigkeit mit.
 _VM_UNIT = Path("/etc/systemd/system/hydrahive2-websockify.service")
@@ -98,11 +101,18 @@ def _probe(addon: str) -> bool:
 def list_addons(conf: Path) -> list[dict]:
     enabled = _enabled(conf)
     wsl = is_wsl()
+    mac = is_mac()
     return [{
         "id": addon,
         "installed": _probe(addon),
         "enabled": enabled.get(f"HH_INSTALL_{addon.upper()}", False),
         "restarts_service": addon in RESTARTS_SERVICE,
         "requires": REQUIRES.get(addon, []),
-        "hint": "wsl" if wsl and addon in WSL_LIMITED else None,
+        "hint": _hint(addon, wsl=wsl, mac=mac),
     } for addon in ADDONS]
+
+
+def _hint(addon: str, *, wsl: bool, mac: bool) -> str | None:
+    if mac and addon not in MAC_INSTALLABLE:
+        return "mac"
+    return "wsl" if wsl and addon in WSL_LIMITED else None
