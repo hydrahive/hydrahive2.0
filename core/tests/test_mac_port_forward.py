@@ -22,10 +22,10 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
-async def _echo_server(port: int) -> asyncio.base_events.Server:
+async def _echo_server(port: int, tag: bytes = b"echo") -> asyncio.base_events.Server:
     async def handle(r: asyncio.StreamReader, w: asyncio.StreamWriter) -> None:
         data = await r.read(100)
-        w.write(b"echo:" + data)
+        w.write(tag + b":" + data)
         await w.drain()
         w.close()
 
@@ -82,12 +82,12 @@ def test_forwarder_range_maps_each_port():
                 break
             except OSError:
                 continue
-        s1, s2 = await _echo_server(tbase), await _echo_server(tbase + 1)
+        s1, s2 = await _echo_server(tbase, b"erster"), await _echo_server(tbase + 1, b"zweiter")
         fw = mac_forward.Forwarder()
         try:
             await fw.open("r2", "127.0.0.1", base, base + 1, "127.0.0.1", tbase)
-            assert await _ask(base, b"a") == b"echo:a"
-            assert await _ask(base + 1, b"b") == b"echo:b"
+            assert await _ask(base, b"a") == b"erster:a"           # jeder Port auf seinen eigenen Ziel-Port
+            assert await _ask(base + 1, b"b") == b"zweiter:b"
         finally:
             await fw.close_all()
             for s in (s1, s2):
@@ -313,6 +313,9 @@ def test_vm_address_none_when_not_running(monkeypatch):
     monkeypatch.setattr(mac_forward.subprocess, "run", lambda args, **kw: R())
     mac_forward._VM_CACHE.clear()
     assert mac_forward.vm_address() is None
+    R.stdout = '{"name":"hydrahive","status":"Stopped","address":"192.168.64.2"}\n'   # alte Adresse, VM aus
+    mac_forward._VM_CACHE.clear()
+    assert mac_forward.vm_address() is None
 
 
 def test_vm_address_without_colima(monkeypatch):
@@ -320,3 +323,106 @@ def test_vm_address_without_colima(monkeypatch):
     monkeypatch.setattr(mac_forward, "TOOLS_BIN", "/gibt/es/nicht")
     mac_forward._VM_CACHE.clear()
     assert mac_forward.vm_address() is None
+
+
+# --- Abgleich nach Neustart (Weiterleitungen leben im Prozess) -----------------------------------------------
+
+def test_mac_sync_reopens_missing_forwarders(monkeypatch):
+    """Auf dem Mac gibt es kein ufw; nach einem Neustart des Kerns fehlen alle Weiterleitungen. Der Abgleich öffnet
+    sie für laufende nat-Container wieder, schließt abgeschaltete und verwaiste."""
+    from hydrahive.containers import ports_sync as ps
+
+    monkeypatch.setattr(_platform, "is_mac", lambda: True)
+
+    class C:
+        def __init__(self, cid, name, state="running", mode="nat", node="local"):
+            self.container_id, self.name, self.actual_state, self.network_mode, self.node_id = cid, name, state, mode, node
+
+    rules = {
+        "c1": [_rule("public", start=30080), cp.PortRule(id="r-off", container_id="c1", protocol="tcp",
+                                                          host_port_start=30081, host_port_end=30081,
+                                                          container_port_start=81, scope="off", label="",
+                                                          created_at="x")],
+        "c2": [cp.PortRule(id="r-stopped", container_id="c2", protocol="tcp", host_port_start=30082,
+                           host_port_end=30082, container_port_start=82, scope="public", label="", created_at="x")],
+    }
+    monkeypatch.setattr(ps.cdb, "list_", lambda owner=None: [C("c1", "web"), C("c2", "db", state="stopped")])
+    monkeypatch.setattr(ps.nat, "get_ipv4", lambda cid: {"c1": "10.10.0.10", "c2": "10.10.0.11"}[cid])
+    monkeypatch.setattr(ps.cports, "list_for", lambda cid: rules[cid])
+    applied, closed = [], []
+
+    async def fake_apply(name, ip, rule):
+        applied.append((name, ip, rule.id))
+
+    class FW:
+        def active(self):
+            return {"r-off", "verwaist", _rule("public").id}
+
+        async def close(self, rid):
+            closed.append(rid)
+
+    fw = FW()
+    monkeypatch.setattr(ps.cports, "apply", fake_apply)
+    monkeypatch.setattr(mac_forward, "FORWARDER", fw)
+
+    # Freigabe von c1 ist schon offen → nichts tun; danach: nicht offen → apply
+    res = asyncio.run(ps.sync_once())
+    assert applied == []
+    assert sorted(closed) == ["r-off", "verwaist"]
+    assert res == {"applied": 0, "removed": 2, "failed": 0}
+
+    closed.clear()
+    fw.active = lambda: set()
+    res = asyncio.run(ps.sync_once())
+    assert applied == [("web", "10.10.0.10", _rule("public").id)]     # gestoppter Container c2 nicht
+    assert res == {"applied": 1, "removed": 0, "failed": 0}
+
+
+def test_mac_sync_never_calls_root_helper(monkeypatch):
+    from hydrahive.containers import ports_sync as ps
+
+    monkeypatch.setattr(_platform, "is_mac", lambda: True)
+    monkeypatch.setattr(ps.cdb, "list_", lambda owner=None: [])
+
+    async def boom(*a):
+        pytest.fail("hh-portforward auf dem Mac aufgerufen")
+    monkeypatch.setattr(ps, "_list_ufw", boom)
+    monkeypatch.setattr(ps.cports, "_helper", boom)
+    assert asyncio.run(ps.sync_once()) == {"applied": 0, "removed": 0, "failed": 0}
+
+
+def test_mac_sync_interval_short(monkeypatch):
+    """Weiterleitungen leben im Prozess – nach Neustart des Kerns sollen sie nicht 5 Minuten fehlen."""
+    from hydrahive.containers import ports_sync as ps
+
+    monkeypatch.setattr(_platform, "is_mac", lambda: True)
+    assert ps._interval() == 30
+    monkeypatch.setattr(_platform, "is_mac", lambda: False)
+    assert ps._interval() >= 30 and ps._interval() == max(30, ps.settings.container_ports_sync_interval)
+
+
+def test_mac_loop_closes_forwarders_on_stop(monkeypatch):
+    from hydrahive.containers import ports_sync as ps
+
+    monkeypatch.setattr(_platform, "is_mac", lambda: True)
+    monkeypatch.setattr(ps.nat, "nat_available", lambda: True)
+    closed = []
+
+    async def sync():
+        return {}
+
+    class FW:
+        async def close_all(self):
+            closed.append(True)
+
+    monkeypatch.setattr(ps, "sync_once", sync)
+    monkeypatch.setattr(mac_forward, "FORWARDER", FW())
+
+    async def run():
+        stop = asyncio.Event()
+        task = asyncio.create_task(ps.run_loop(stop))
+        await asyncio.sleep(0.05)
+        stop.set()
+        await asyncio.wait_for(task, timeout=3)
+    asyncio.run(run())
+    assert closed == [True]

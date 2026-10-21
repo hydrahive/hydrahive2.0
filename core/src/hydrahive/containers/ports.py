@@ -11,6 +11,7 @@ import asyncio
 import logging
 from dataclasses import asdict, dataclass
 
+from hydrahive.containers import _platform, mac_forward
 from hydrahive.containers import incus_client as incus
 from hydrahive.containers import nat
 from hydrahive.db._utils import now_iso, uuid7
@@ -144,6 +145,10 @@ async def _helper(*args: str) -> None:
 
 async def apply(name: str, ipv4: str, rule: PortRule) -> None:
     """Setzt Proxy-Device + ufw passend zur Reichweite. Fehler landen in last_error."""
+    if _platform.is_mac():
+        from hydrahive.containers._ports_mac import apply_mac
+        await apply_mac(name, ipv4, rule)
+        return
     dev = _device(rule)
     try:
         await incus.remove_device(name, dev)
@@ -171,7 +176,11 @@ async def apply(name: str, ipv4: str, rule: PortRule) -> None:
 
 async def remove(name: str, rule: PortRule) -> None:
     await incus.remove_device(name, _device(rule))
+    if _platform.is_mac():
+        await mac_forward.FORWARDER.close(rule.id)
+        return
     await _helper("remove", rule.id)
+
 
 
 async def _tailscale_ipv4() -> str | None:
