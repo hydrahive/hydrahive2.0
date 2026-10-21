@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import shutil
+
+from hydrahive.tailscale._bin import tailscale_bin
 
 logger = logging.getLogger(__name__)
 
 
 def _tailscale_bin() -> str:
-    return shutil.which("tailscale") or "/usr/bin/tailscale"
+    return tailscale_bin()
 
 
 async def _run(*args: str, timeout: float = 5) -> tuple[int, str, str]:

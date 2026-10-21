@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from hydrahive.agentlink import is_connected as agentlink_connected
 from hydrahive.api.routes._websearch_health import websearch_health
 from hydrahive.settings import settings
+from hydrahive.tailscale._bin import find_tailscale
 
 
 # „Heute“ im Dashboard = deutscher Kalendertag (Till, 30.09.2026, Task a1b95d3b).
@@ -57,7 +58,7 @@ def health_check() -> dict:
     except (OSError, subprocess.SubprocessError):
         pass
 
-    ts_bin = shutil.which("tailscale")
+    ts_bin = find_tailscale()
     tailscale_ok = False
     tailscale_present = bool(ts_bin)
     if tailscale_present:

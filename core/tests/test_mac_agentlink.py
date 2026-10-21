@@ -108,11 +108,39 @@ def test_can_be_skipped(mac):
 
 # --- install-mac.sh / update-mac.sh ------------------------------------------------------------------
 
-def test_install_has_agentlink_phase_before_nginx():
-    text = INSTALL.read_text()
-    assert "modules-mac/75-agentlink.sh" in text
-    assert text.index("modules-mac/75-agentlink.sh") < text.index("modules-mac/60-nginx.sh")
-    assert "HH_INSTALL_AGENTLINK" in text
+def _run_install(tmp_path: Path, **extra) -> list[str]:
+    """install-mac.sh mit Schein-Modulen: protokolliert, welche Phasen in welcher Reihenfolge laufen."""
+    inst = tmp_path / "installer"
+    (inst / "modules-mac").mkdir(parents=True)
+    (inst / "lib").mkdir()
+    log = tmp_path / "phases.log"
+    for name in [p.name for p in (INSTALLER / "modules-mac").glob("*.sh")]:
+        (inst / "modules-mac" / name).write_text(f'#!/bin/bash\necho "{name}" >> "{log}"\n')
+    (inst / "lib" / "mac-admin-password.sh").write_text("#!/bin/bash\necho pw\n")
+    (inst / "install-mac.sh").write_text(INSTALL.read_text())
+    bin_ = tmp_path / "ibin"
+    bin_.mkdir()
+    for name, body in (("uname", "echo Darwin"), ("brew", "exit 0"), ("ipconfig", "echo 10.0.0.2")):
+        (bin_ / name).write_text(f"#!/bin/bash\n{body}\n")
+        (bin_ / name).chmod(0o755)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_REPO_DIR": str(repo), **extra}
+    r = subprocess.run(["bash", str(inst / "install-mac.sh")], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    return log.read_text().splitlines()
+
+
+def test_install_has_agentlink_phase_before_nginx(tmp_path):
+    phases = _run_install(tmp_path)
+    assert "75-agentlink.sh" in phases
+    assert phases.index("48-postgres.sh") < phases.index("75-agentlink.sh") < phases.index("60-nginx.sh")
+
+
+def test_install_agentlink_can_be_skipped(tmp_path):
+    assert "75-agentlink.sh" not in _run_install(tmp_path, HH_INSTALL_AGENTLINK="no")
+    # ohne PostgreSQL keine AgentLink-Datenbank
+    assert "75-agentlink.sh" not in _run_install(tmp_path / "b", HH_INSTALL_POSTGRES="no")
 
 
 def test_update_runs_agentlink_and_reports_failure():
@@ -135,14 +163,14 @@ def _nginx_conf(tmp_path: Path) -> str:
         (bin_ / name).write_text('#!/bin/bash\n"$@"\n')
     (bin_ / "launchctl").write_text("#!/bin/bash\nexit 0\n")
     (bin_ / "ipconfig").write_text("#!/bin/bash\necho 192.168.1.5\n")
-    (bin_ / "tee").write_text('#!/bin/bash\ncat > /dev/null\n')
     for f in bin_.iterdir():
         f.chmod(0o755)
     cfg = tmp_path / "cfg"
     (cfg / "tls").mkdir(parents=True)
     (cfg / "tls" / "server.crt").write_text("x")
     env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_CONFIG_DIR": str(cfg),
-           "HH_REPO_DIR": "/opt/hydrahive2", "HH_PORT": "8001", "HH_HOST": "127.0.0.1"}
+           "HH_REPO_DIR": "/opt/hydrahive2", "HH_PORT": "8001", "HH_HOST": "127.0.0.1",
+           "HH_NGINX_PLIST": str(tmp_path / "io.hydrahive.nginx.plist")}
     r = subprocess.run(["bash", str(NGINX_MAC)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
     return (prefix / "etc" / "nginx" / "servers" / "hydrahive2.conf").read_text()
@@ -174,9 +202,10 @@ def test_nginx_peering_only_from_tailnet(tmp_path):
 
 def test_nginx_security_headers_like_linux(tmp_path):
     conf = _nginx_conf(tmp_path)
+    active = [ln.strip() for ln in conf.splitlines() if not ln.strip().startswith("#")]
     for header in ("X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Strict-Transport-Security",
                    "Permissions-Policy", "Content-Security-Policy"):
-        assert f'add_header {header} ' in conf, header
+        assert any(ln.startswith(f"add_header {header} ") for ln in active), header
     # Gleiche CSP wie Linux – sonst verhalten sich Chat, Diagramme usw. auf dem Mac anders.
     csp = [ln.strip() for ln in NGINX_LINUX.read_text().splitlines()
            if ln.strip().startswith('add_header Content-Security-Policy "default-src')][0]

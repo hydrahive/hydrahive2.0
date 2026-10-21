@@ -15,6 +15,7 @@ from typing import Callable
 from hydrahive.communication.whatsapp._orphan import BRIDGE_DIR
 from hydrahive.containers.incus_client import is_available as _incus_available
 from hydrahive.samba.manager import samba_status
+from hydrahive.tailscale._bin import find_tailscale
 from hydrahive.voice.stt import STT_HOST, STT_PORT
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ PROBES: dict[str, Callable[[], bool]] = {
     "samba": lambda: bool(samba_status()["installed"]),
     "whatsapp": _whatsapp_installed,
     "voice": _voice_installed,
-    "tailscale": lambda: shutil.which("tailscale") is not None,
+    "tailscale": lambda: find_tailscale() is not None,
 }
 
 

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import shutil
+
+from hydrahive.tailscale._bin import tailscale_bin
 
 
 def _tailscale_bin() -> str:
-    return shutil.which("tailscale") or "/usr/bin/tailscale"
+    return tailscale_bin()
 
 
 async def _run(*args: str, timeout: float = 30) -> str:

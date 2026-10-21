@@ -87,6 +87,34 @@ if [ -f "$UPDATE_PLIST" ] && ! grep -q "HH_UPDATE_VIA_LAUNCHD" "$UPDATE_PLIST" 2
     bash "$TRIGGERS_SCRIPT" 2>&1 | to_log || log "Update-Auslöser konnten nicht neu eingerichtet werden"
 fi
 
+# AgentLink (HydraLink): fehlte früher auf jedem Mac (Plan docs/plans/mac-agentlink.md). Bei jedem Update
+# nachrüsten bzw. aktualisieren – vor dem Backend-Neustart, damit der Kern sich gleich verbindet.
+# Ein Fehlschlag bricht das Update nicht ab, wird aber deutlich gemeldet (wie Linux, update.sh).
+if [ "${HH_INSTALL_AGENTLINK:-yes}" != "no" ] && [ -s "$HH_CONFIG_DIR/pg_mirror.dsn" ] \
+   && [ -f "$HH_REPO_DIR/installer/modules-mac/75-agentlink.sh" ]; then
+  log "AgentLink (HydraLink) installieren bzw. aktualisieren"
+  if ! HH_USER="$HH_USER" bash "$HH_REPO_DIR/installer/modules-mac/75-agentlink.sh" 2>&1 | to_log; then
+    log "AgentLink-Update FEHLGESCHLAGEN – Agenten können sich nicht gegenseitig beauftragen (ask_agent). Nachholen: sudo HH_USER=$HH_USER bash $HH_REPO_DIR/installer/modules-mac/75-agentlink.sh"
+  fi
+fi
+
+# nginx-Konfiguration nachziehen, wenn ein Merkmal fehlt (AgentLink-Wege, Kopplung nur aus dem Tailnet,
+# Sicherheits-Kopfzeilen, Modul-Sandbox). 60-nginx.sh kommt frisch aus dem git pull oben.
+NGINX_CONF="$(sudo -u "$HH_USER" brew --prefix 2>/dev/null || echo /usr/local)/etc/nginx/servers/hydrahive2.conf"
+if [ -f "$NGINX_CONF" ]; then
+  NEEDS_NGINX=""
+  for marker in hh_agentlink_auth hh_peering_tailnet hh_module_sandbox hh_security_headers; do
+    grep -q "$marker" "$NGINX_CONF" || NEEDS_NGINX=1
+  done
+  if [ -n "$NEEDS_NGINX" ]; then
+    log "nginx-Konfiguration neu schreiben (AgentLink, Kopplung nur aus dem Tailnet, Sicherheits-Kopfzeilen)"
+    HH_USER="$HH_USER" HH_CONFIG_DIR="$HH_CONFIG_DIR" HH_REPO_DIR="$HH_REPO_DIR" \
+      HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
+      bash "$HH_REPO_DIR/installer/modules-mac/60-nginx.sh" 2>&1 | to_log \
+      || log "nginx-Umbau fehlgeschlagen – alte Konfiguration bleibt (Log oben)"
+  fi
+fi
+
 # Alte plists enthalten HH_SECRET_KEY + PG-DSN im Klartext (0644, für alle
 # lesbar). Dann neu schreiben lassen: 50-launchd.sh übernimmt den BESTEHENDEN
 # Schlüssel aus secret_key, startet über mac-backend-start.sh und lädt neu.
