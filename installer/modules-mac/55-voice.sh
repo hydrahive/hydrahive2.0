@@ -81,8 +81,8 @@ priv chown -R "$HH_USER" "$TTS_DATA"
 
 # --- 3) Dienste (Dienstnutzer, nur 127.0.0.1) ---------------------------------------------------------------------
 xml() { local s="$1"; s="${s//&/&amp;}"; s="${s//</&lt;}"; s="${s//>/&gt;}"; printf '%s' "$s"; }
-write_plist() {   # $1=plist $2=Label $3=Log $4..=Programm + Argumente
-  local plist="$1" label="$2" logf="$3"; shift 3
+write_plist() {   # $1=plist $2=Label $3=Log $4=Ordner (HOME, gehört dem Dienstnutzer) $5..=Programm + Argumente
+  local plist="$1" label="$2" logf="$3" home="$4"; shift 4
   local args="" a
   for a in "$@"; do args="$args        <string>$(xml "$a")</string>"$'\n'; done
   priv tee "$plist" > /dev/null <<EOF
@@ -98,11 +98,13 @@ write_plist() {   # $1=plist $2=Label $3=Log $4..=Programm + Argumente
     <array>
 $args    </array>
     <key>WorkingDirectory</key>
-    <string>$(xml "$HH_DATA_DIR/voice")</string>
+    <string>$(xml "$home")</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>HOME</key>
-        <string>$(xml "$HH_DATA_DIR/voice")</string>
+        <string>$(xml "$home")</string>
+        <key>HF_HOME</key>
+        <string>$(xml "$home/.cache/huggingface")</string>
     </dict>
     <key>RunAtLoad</key>
     <true/>
@@ -120,10 +122,12 @@ EOF
 
 STT_LOG="$HH_LOG_DIR/hydrahive2-voice-stt.log"
 TTS_LOG="$HH_LOG_DIR/hydrahive2-voice-tts.log"
-write_plist "$HH_VOICE_STT_PLIST" io.hydrahive.voice-stt "$STT_LOG" \
+# HOME = eigener Ordner des Dienstes: huggingface_hub legt dort seinen Cache an. Lag HOME im root-Ordner voice/,
+# scheiterte der Modell-Download mit „Permission denied“ (Befund Mac 22.10.2026).
+write_plist "$HH_VOICE_STT_PLIST" io.hydrahive.voice-stt "$STT_LOG" "$STT_DATA" \
   "$HH_VOICE_ROOT/stt/bin/wyoming-faster-whisper" --model small --uri "tcp://127.0.0.1:$STT_PORT" \
   --data-dir "$STT_DATA" --compute-type int8 --beam-size 1 --vad-filter --initial-prompt "$STT_PROMPT"
-write_plist "$HH_VOICE_TTS_PLIST" io.hydrahive.voice-tts "$TTS_LOG" \
+write_plist "$HH_VOICE_TTS_PLIST" io.hydrahive.voice-tts "$TTS_LOG" "$TTS_DATA" \
   "$HH_VOICE_ROOT/tts/bin/python" -m wyoming_piper --voice de_DE-thorsten-medium --uri "tcp://127.0.0.1:$TTS_PORT" \
   --data-dir "$TTS_DATA" --download-dir "$TTS_DATA"
 

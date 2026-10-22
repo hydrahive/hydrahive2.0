@@ -199,6 +199,19 @@ def test_model_dirs_belong_to_service_user(mac):
         assert any(c.startswith("chown") and "tester" in c and f"voice/{sub}" in c for c in calls), sub
 
 
+def test_daemon_home_is_writable_by_service_user(mac):
+    """Befund Mac 22.10.: HOME lag im root-Ordner voice/ → huggingface_hub konnte seinen Cache nicht anlegen
+    („Permission denied“), Whisper startete nie. HOME/Arbeitsordner müssen dem Dienstnutzer gehören."""
+    _run(mac)
+    calls = _calls(mac)
+    for path in (mac["stt_plist"], mac["tts_plist"]):
+        p = _plist(path)
+        home = p["EnvironmentVariables"]["HOME"]
+        assert p["WorkingDirectory"] == home
+        assert any(c.startswith("chown") and "tester" in c and c.endswith(home) for c in calls), home
+        assert p["EnvironmentVariables"].get("HF_HOME", "").startswith(home)
+
+
 def test_waits_until_whisper_answers(mac):
     r = _run(mac)
     assert r.returncode == 0
