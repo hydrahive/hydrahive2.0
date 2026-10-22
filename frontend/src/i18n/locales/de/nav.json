@@ -64,6 +64,7 @@
     "starting": "Update wird gestartet…",
     "in_progress": "Update läuft…",
     "done": "Update fertig — neue Version: {{commit}}",
+    "done_same": "Update fertig – es gab keine neuen Änderungen.",
     "failed": "Update fehlgeschlagen: {{error}}",
     "log_title": "Live-Log",
     "log_empty": "Noch keine Ausgabe…",

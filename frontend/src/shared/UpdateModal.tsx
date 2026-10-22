@@ -90,7 +90,7 @@ export function UpdateModal({ state, newCommit, errorMessage, forceMode, onConfi
           {state === "done" && (
             <div className="flex items-center gap-2 text-sm text-emerald-300">
               <CheckCircle size={14} />
-              <span>{t("update.done", { commit: newCommit ?? "" })}</span>
+              <span>{newCommit ? t("update.done", { commit: newCommit }) : t("update.done_same")}</span>
             </div>
           )}
 

@@ -74,9 +74,19 @@ sudo tee "$RESTART_PLIST" > /dev/null <<EOF
 EOF
 
 sudo chmod 644 "$UPDATE_PLIST" "$RESTART_PLIST"
-sudo launchctl unload "$UPDATE_PLIST" 2>/dev/null || true
+# Läuft dieses Skript INNERHALB des Update-Dienstes (Knopf im Cockpit → update-mac.sh → hier), darf es
+# io.hydrahive.update nicht entladen: launchd beendet damit das laufende Update samt diesem Skript, das `load`
+# danach kommt nie – der Dienst ist weg, jeder weitere Knopfdruck landet ins Leere (Befund Mac-Tester 22.10.2026).
+# Die neue plist gilt dann ab dem nächsten Laden (Neustart oder Update aus dem Terminal).
+# Erkennung über XPC_SERVICE_NAME (setzt launchd in jedem Dienst): ältere Update-plists haben die Kennung
+# HH_UPDATE_VIA_LAUNCHD noch nicht – genau die werden hier ersetzt (Live-Befund Intel-Mac 22.10.2026).
+if [ "${XPC_SERVICE_NAME:-}" = "io.hydrahive.update" ] || [ "${HH_UPDATE_VIA_LAUNCHD:-}" = "1" ]; then
+  log "Update-Auslöser: neue Datei geschrieben, gilt ab dem nächsten Neustart (läuft gerade selbst)"
+else
+  sudo launchctl unload "$UPDATE_PLIST" 2>/dev/null || true
+  sudo launchctl load "$UPDATE_PLIST"
+fi
 sudo launchctl unload "$RESTART_PLIST" 2>/dev/null || true
-sudo launchctl load "$UPDATE_PLIST"
 sudo launchctl load "$RESTART_PLIST"
 
 log "Update- und Restart-Trigger aktiv (WatchPaths)"

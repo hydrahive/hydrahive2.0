@@ -64,6 +64,7 @@
     "starting": "Starting update…",
     "in_progress": "Update running…",
     "done": "Update complete — new version: {{commit}}",
+    "done_same": "Update finished – there were no new changes.",
     "failed": "Update failed: {{error}}",
     "log_title": "Live log",
     "log_empty": "No output yet…",

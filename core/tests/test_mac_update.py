@@ -385,3 +385,142 @@ def test_npm_found_under_sudo_with_secure_path(mac, tmp_path):
     assert r.returncode == 0, r.stdout + r.stderr + mac["log"].read_text()
     calls = _calls(mac)
     assert "npm ci" in calls and "npm run build" in calls
+
+
+# --- Knopf tot nach Update (Befund Kollege 22.10.2026) ------------------------------------------------
+
+def test_triggers_script_never_unloads_the_running_update_daemon(tmp_path):
+    """Läuft 55-launchd-triggers.sh INNERHALB des Update-Dienstes (Knopf im Cockpit), darf es io.hydrahive.update nicht
+    entladen: launchd beendet damit das laufende Update samt Skript, das `load` danach kommt nie → Dienst weg, jeder
+    weitere Knopfdruck landet ins Leere (Befund: `launchctl list` ohne io.hydrahive.update, .update_request liegt)."""
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    calls = tmp_path / "calls.log"
+    calls.write_text("")
+    for name in ("sudo",):
+        (bin_ / name).write_text('#!/bin/bash\nexec "$@"\n')
+    (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n')
+    (bin_ / "tee").write_text('#!/bin/bash\ncat > /dev/null\n')
+    (bin_ / "chmod").write_text("#!/bin/bash\nexit 0\n")
+    (bin_ / "touch").write_text("#!/bin/bash\nexit 0\n")
+    for f in bin_.iterdir():
+        f.chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_}:/usr/bin:/bin", "HH_REPO_DIR": "/opt/hydrahive2",
+           "HH_DATA_DIR": "/usr/local/var/hydrahive2", "HH_USER": "tester", "HH_UPDATE_VIA_LAUNCHD": "1"}
+    r = subprocess.run(["bash", str(TRIGGERS)], env=env, capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, r.stdout + r.stderr
+    lines = calls.read_text().splitlines()
+    assert not any(l.startswith("launchctl unload") and "io.hydrahive.update.plist" in l for l in lines), lines
+    assert not any(l.startswith("launchctl bootout") and "io.hydrahive.update" in l for l in lines), lines
+    # Restart-Auslöser darf wie bisher neu geladen werden
+    assert any("launchctl load" in l and "io.hydrahive.restart.plist" in l for l in lines), lines
+
+
+def test_triggers_script_detects_old_update_daemon_without_marker(tmp_path):
+    """Ältere Update-plist (Mai) setzt HH_UPDATE_VIA_LAUNCHD NICHT – genau die wird ersetzt. launchd setzt aber immer
+    XPC_SERVICE_NAME. Live-Befund Intel-Mac 22.10.2026: ohne diese Erkennung entlud sich der Dienst trotzdem."""
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    calls = tmp_path / "calls.log"
+    calls.write_text("")
+    (bin_ / "sudo").write_text('#!/bin/bash\nexec "$@"\n')
+    (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n')
+    (bin_ / "tee").write_text('#!/bin/bash\ncat > /dev/null\n')
+    for name in ("chmod", "touch"):
+        (bin_ / name).write_text("#!/bin/bash\nexit 0\n")
+    for f in bin_.iterdir():
+        f.chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if k not in ("HH_UPDATE_VIA_LAUNCHD", "XPC_SERVICE_NAME")}
+    env.update({"PATH": f"{bin_}:/usr/bin:/bin", "HH_REPO_DIR": "/opt/hydrahive2",
+                "HH_DATA_DIR": "/usr/local/var/hydrahive2", "HH_USER": "tester",
+                "XPC_SERVICE_NAME": "io.hydrahive.update"})
+    r = subprocess.run(["bash", str(TRIGGERS)], env=env, capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, r.stdout + r.stderr
+    lines = calls.read_text().splitlines()
+    assert not any("io.hydrahive.update.plist" in l for l in lines), lines
+
+
+def test_triggers_script_reloads_update_daemon_when_run_from_terminal(tmp_path):
+    """Im Terminal (Installer, Update von Hand) läuft das Skript NICHT im Update-Dienst → dort wie bisher neu laden."""
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    calls = tmp_path / "calls.log"
+    calls.write_text("")
+    (bin_ / "sudo").write_text('#!/bin/bash\nexec "$@"\n')
+    (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n')
+    for name in ("tee",):
+        (bin_ / name).write_text('#!/bin/bash\ncat > /dev/null\n')
+    for name in ("chmod", "touch"):
+        (bin_ / name).write_text("#!/bin/bash\nexit 0\n")
+    for f in bin_.iterdir():
+        f.chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if k not in ("HH_UPDATE_VIA_LAUNCHD", "XPC_SERVICE_NAME")}
+    env.update({"PATH": f"{bin_}:/usr/bin:/bin", "HH_REPO_DIR": "/opt/hydrahive2",
+                "HH_DATA_DIR": "/usr/local/var/hydrahive2", "HH_USER": "tester"})
+    r = subprocess.run(["bash", str(TRIGGERS)], env=env, capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, r.stdout + r.stderr
+    lines = calls.read_text().splitlines()
+    assert any(l.startswith("launchctl load") and "io.hydrahive.update.plist" in l for l in lines), lines
+
+
+def test_update_reloads_missing_update_daemon(mac):
+    """Selbstheilung: Ist der Update-Dienst nicht geladen (Folge des alten Fehlers), lädt das nächste Update (z. B. im
+    Terminal) ihn wieder."""
+    _launchd(mac)
+    plist = mac["tmp"] / "io.hydrahive.update.plist"
+    plist.write_text("<key>HH_UPDATE_VIA_LAUNCHD</key><string>1</string>")
+    r = subprocess.run(["bash", str(UPDATE)], env={**_env(mac), "HH_UPDATE_PLIST": str(plist)},
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert f"launchctl load {plist}" in _calls(mac)          # list kennt nur io.hydrahive.backend → fehlt
+
+
+def test_update_leaves_loaded_update_daemon_alone(mac):
+    _launchd(mac)
+    plist = mac["tmp"] / "io.hydrahive.update.plist"
+    plist.write_text("<key>HH_UPDATE_VIA_LAUNCHD</key><string>1</string>")
+    (mac["bin"] / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{mac["calls"]}"\n'
+                                          'case "$1" in list) echo "123 0 io.hydrahive.backend"; '
+                                          'echo "- 0 io.hydrahive.update";; esac\n')
+    r = subprocess.run(["bash", str(UPDATE)], env={**_env(mac), "HH_UPDATE_PLIST": str(plist)},
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert f"launchctl load {plist}" not in _calls(mac)
+
+
+# --- Schlusszeile für das Update-Fenster (HH-UPDATE-ENDE) -------------------------------------------------------
+
+def _last_line(m: dict) -> str:
+    return [l for l in m["log"].read_text().splitlines() if l.strip()][-1]
+
+
+def test_update_ends_with_ok_marker(mac):
+    _launchd(mac)
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _last_line(mac) == "HH-UPDATE-ENDE: ok"
+
+
+def test_update_abort_writes_error_marker_with_reason(mac):
+    """Abbruch (hier: git pull scheitert) → Fenster soll sofort „fehlgeschlagen“ mit Grund zeigen statt 10 min warten."""
+    _launchd(mac)
+    (mac["bin"] / "git").write_text('#!/bin/bash\ncase "$*" in *pull*) echo "fatal: kaputt" >&2; exit 1;; esac\nexit 0\n')
+    r = _update(mac)
+    assert r.returncode != 0
+    assert _last_line(mac) == "HH-UPDATE-ENDE: fehler git pull fehlgeschlagen"
+
+
+def test_update_unexpected_error_still_writes_marker(mac):
+    """Auch ein unerwarteter Abbruch (set -e, ohne eigene Meldung) hinterlässt eine Schlusszeile."""
+    _launchd(mac)
+    (mac["bin"] / "launchctl").write_text('#!/bin/bash\ncase "$1" in list) echo "123 0 io.hydrahive.backend";; '
+                                          'load) exit 5;; esac\nexit 0\n')
+    r = _update(mac)
+    assert r.returncode != 0
+    assert _last_line(mac).startswith("HH-UPDATE-ENDE: fehler")
+
+
+def test_update_marker_only_once(mac):
+    _launchd(mac)
+    _update(mac)
+    assert mac["log"].read_text().count("HH-UPDATE-ENDE:") == 1
