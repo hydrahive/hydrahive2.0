@@ -416,6 +416,30 @@ def test_triggers_script_never_unloads_the_running_update_daemon(tmp_path):
     assert any("launchctl load" in l and "io.hydrahive.restart.plist" in l for l in lines), lines
 
 
+def test_triggers_script_detects_old_update_daemon_without_marker(tmp_path):
+    """Ältere Update-plist (Mai) setzt HH_UPDATE_VIA_LAUNCHD NICHT – genau die wird ersetzt. launchd setzt aber immer
+    XPC_SERVICE_NAME. Live-Befund Intel-Mac 22.10.2026: ohne diese Erkennung entlud sich der Dienst trotzdem."""
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    calls = tmp_path / "calls.log"
+    calls.write_text("")
+    (bin_ / "sudo").write_text('#!/bin/bash\nexec "$@"\n')
+    (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n')
+    (bin_ / "tee").write_text('#!/bin/bash\ncat > /dev/null\n')
+    for name in ("chmod", "touch"):
+        (bin_ / name).write_text("#!/bin/bash\nexit 0\n")
+    for f in bin_.iterdir():
+        f.chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if k not in ("HH_UPDATE_VIA_LAUNCHD", "XPC_SERVICE_NAME")}
+    env.update({"PATH": f"{bin_}:/usr/bin:/bin", "HH_REPO_DIR": "/opt/hydrahive2",
+                "HH_DATA_DIR": "/usr/local/var/hydrahive2", "HH_USER": "tester",
+                "XPC_SERVICE_NAME": "io.hydrahive.update"})
+    r = subprocess.run(["bash", str(TRIGGERS)], env=env, capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, r.stdout + r.stderr
+    lines = calls.read_text().splitlines()
+    assert not any("io.hydrahive.update.plist" in l for l in lines), lines
+
+
 def test_triggers_script_reloads_update_daemon_when_run_from_terminal(tmp_path):
     """Im Terminal (Installer, Update von Hand) läuft das Skript NICHT im Update-Dienst → dort wie bisher neu laden."""
     bin_ = tmp_path / "bin"
@@ -430,7 +454,7 @@ def test_triggers_script_reloads_update_daemon_when_run_from_terminal(tmp_path):
         (bin_ / name).write_text("#!/bin/bash\nexit 0\n")
     for f in bin_.iterdir():
         f.chmod(0o755)
-    env = {k: v for k, v in os.environ.items() if k != "HH_UPDATE_VIA_LAUNCHD"}
+    env = {k: v for k, v in os.environ.items() if k not in ("HH_UPDATE_VIA_LAUNCHD", "XPC_SERVICE_NAME")}
     env.update({"PATH": f"{bin_}:/usr/bin:/bin", "HH_REPO_DIR": "/opt/hydrahive2",
                 "HH_DATA_DIR": "/usr/local/var/hydrahive2", "HH_USER": "tester"})
     r = subprocess.run(["bash", str(TRIGGERS)], env=env, capture_output=True, text=True, timeout=30)

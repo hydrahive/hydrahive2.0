@@ -78,7 +78,9 @@ sudo chmod 644 "$UPDATE_PLIST" "$RESTART_PLIST"
 # io.hydrahive.update nicht entladen: launchd beendet damit das laufende Update samt diesem Skript, das `load`
 # danach kommt nie – der Dienst ist weg, jeder weitere Knopfdruck landet ins Leere (Befund Mac-Tester 22.10.2026).
 # Die neue plist gilt dann ab dem nächsten Laden (Neustart oder Update aus dem Terminal).
-if [ "${HH_UPDATE_VIA_LAUNCHD:-}" = "1" ]; then
+# Erkennung über XPC_SERVICE_NAME (setzt launchd in jedem Dienst): ältere Update-plists haben die Kennung
+# HH_UPDATE_VIA_LAUNCHD noch nicht – genau die werden hier ersetzt (Live-Befund Intel-Mac 22.10.2026).
+if [ "${XPC_SERVICE_NAME:-}" = "io.hydrahive.update" ] || [ "${HH_UPDATE_VIA_LAUNCHD:-}" = "1" ]; then
   log "Update-Auslöser: neue Datei geschrieben, gilt ab dem nächsten Neustart (läuft gerade selbst)"
 else
   sudo launchctl unload "$UPDATE_PLIST" 2>/dev/null || true
