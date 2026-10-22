@@ -69,8 +69,9 @@ ensure_venv() {   # $1=Name  $2..=pip-Argumente
   CHANGED="$CHANGED $name"
 }
 # Nur fertige Pakete; pysilero-vad gibt es für Intel-Macs nur als Quellcode (Xcode-Kommandozeilenwerkzeuge).
-ensure_venv stt --only-binary=:all: --no-binary=pysilero-vad "${STT_PINS[@]}"
-ensure_venv tts --only-binary=:all: "${TTS_PINS[@]}"
+# Sichere Array-Schreibweise für /bin/bash 3.2 (tests/test_mac_bash32.py).
+ensure_venv stt --only-binary=:all: --no-binary=pysilero-vad ${STT_PINS[@]+"${STT_PINS[@]}"}
+ensure_venv tts --only-binary=:all: ${TTS_PINS[@]+"${TTS_PINS[@]}"}
 
 # --- 2) Modelle/Stimmen gehören dem Dienstnutzer ------------------------------------------------------------------
 STT_DATA="$HH_DATA_DIR/voice/stt"
