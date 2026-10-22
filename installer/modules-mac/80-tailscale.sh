@@ -59,8 +59,11 @@ if [ ! -x "$VER_DIR/tailscaled" ] || [ ! -x "$VER_DIR/tailscale" ]; then
   fi
   tar -xzf "$work/go.tgz" -C "$work"
   mkdir -p "$work/out"
+  # Ohne cgo: Go linkt selbst, Apples Kommandozeilenwerkzeuge (clang/ld) werden nicht gebraucht. Passten sie nicht
+  # zum SDK (Befund 23.10.2026, Tester, macOS 27: „tapi error: unknown architecture arm64e.x1“), brach der Bau ab.
+  # tailscaled läuft ohne cgo gleich (live geprüft .186: Tailnet, MagicDNS, Ping über das LAN).
   env -i HOME="$work" PATH="$work/go/bin:/usr/bin:/bin" GOPATH="$work/gopath" GOCACHE="$work/gocache" \
-    GOBIN="$work/out" GOTOOLCHAIN=local GOFLAGS=-trimpath CGO_ENABLED=1 \
+    GOBIN="$work/out" GOTOOLCHAIN=local GOFLAGS=-trimpath CGO_ENABLED=0 \
     "$work/go/bin/go" install \
       -ldflags "-X tailscale.com/version.longStamp=$TS_VERSION-hydrahive -X tailscale.com/version.shortStamp=$TS_VERSION" \
       "tailscale.com/cmd/tailscale@v$TS_VERSION" "tailscale.com/cmd/tailscaled@v$TS_VERSION"
