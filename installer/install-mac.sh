@@ -12,7 +12,14 @@
 set -euo pipefail
 
 HH_REPO_DIR="${HH_REPO_DIR:-/opt/hydrahive2}"
-HH_USER="${HH_USER:-$(whoami)}"
+# Zwei Rollen (docs/plans/mac-service-user.md):
+#   HH_BREW_USER – ruft brew auf (Homebrew gehört dem Mac-Besitzer, verweigert root)
+#   HH_USER      – Dienst-Nutzer: Besitzer von Repo/Daten, unter ihm laufen die Dienste. Standard: eigenes, verstecktes
+#                  System-Konto _hydrahive – sonst sperrt macOS 15+ alles im Heimnetz („Lokales Netzwerk“).
+#                  HH_USER=<Mac-Besitzer> setzen = alter Weg ohne eigenes Konto.
+HH_BREW_USER="${HH_BREW_USER:-$(whoami)}"
+HH_SERVICE_ACCOUNT=""
+[ -z "${HH_USER:-}" ] && HH_SERVICE_ACCOUNT=yes
 HH_DATA_DIR="${HH_DATA_DIR:-/usr/local/var/hydrahive2}"
 HH_CONFIG_DIR="${HH_CONFIG_DIR:-/usr/local/etc/hydrahive2}"
 HH_HOST="${HH_HOST:-127.0.0.1}"
@@ -40,10 +47,23 @@ log() { printf "\033[1;36m[hh2-mac]\033[0m %s\n" "$*"; }
 err() { printf "\033[1;31m[hh2-mac]\033[0m %s\n" "$*" >&2; exit 1; }
 
 [ "$(uname)" = "Darwin" ] || err "Nur für macOS."
+[ "$HH_BREW_USER" != "root" ] || err "Bitte als normaler Mac-Nutzer starten, nicht als root (Homebrew verweigert root)."
 [ -d "$HH_REPO_DIR" ] || err "Repo nicht gefunden: $HH_REPO_DIR"
 command -v brew >/dev/null 2>&1 || err "Homebrew fehlt. Installieren: https://brew.sh"
 
 INSTALLER_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Befehle als Dienst-Konto (sudo -u) brauchen einen Ordner, den das Konto lesen darf – sonst getcwd-Fehler,
+# wenn der Installer aus dem eigenen Home gestartet wird (Machbarkeit 22.10.2026).
+cd /tmp
+
+if [ -n "$HH_SERVICE_ACCOUNT" ]; then
+  log "Phase 0: Dienst-Konto (HydraHive läuft nicht als dein Nutzer – sonst sperrt macOS das Heimnetz)"
+  HH_USER="$(bash "$INSTALLER_DIR/lib/mac-service-user.sh" | tail -1)" || err "Dienst-Konto konnte nicht angelegt werden."
+  [ -n "$HH_USER" ] || err "Dienst-Konto konnte nicht angelegt werden."
+else
+  log "Phase 0: kein eigenes Dienst-Konto (HH_USER=$HH_USER gesetzt)"
+fi
+export HH_BREW_USER
 export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK HH_INSTALL_CONTAINERS HH_INSTALL_TAILSCALE HH_INSTALL_VOICE
 
 log "Phase 1: System-Dependencies"
@@ -51,6 +71,10 @@ bash "$INSTALLER_DIR/modules-mac/00-deps.sh"
 
 log "Phase 2: Verzeichnisse"
 bash "$INSTALLER_DIR/modules-mac/20-paths.sh"
+# Merker für update-mac.sh: diese Installation läuft schon unter dem Dienst-Konto (kein Umzug nötig).
+if [ -n "$HH_SERVICE_ACCOUNT" ]; then
+  ( source "$INSTALLER_DIR/lib/mac-roles.sh" && hh_conf_set "$HH_CONFIG_DIR/install.conf" HH_SERVICE_USER "$HH_USER" )
+fi
 
 log "Phase 3: Python-venv + Backend"
 bash "$INSTALLER_DIR/modules-mac/30-python.sh"
@@ -123,7 +147,8 @@ SERVER_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/
 SERVER_URL="https://${SERVER_IP}"
 
 log "Warte auf den ersten Start (Admin-Passwort) …"
-ADMIN_PW="$(bash "$INSTALLER_DIR/lib/mac-admin-password.sh")"
+# Die Datei gehört dem Dienst-Konto (0600) – lesen und löschen darf der Installer nur über sudo.
+ADMIN_PW="$(sudo env "HH_CONFIG_DIR=$HH_CONFIG_DIR" bash "$INSTALLER_DIR/lib/mac-admin-password.sh")"
 
 printf "\n"
 printf "\033[1;32m╔══════════════════════════════════════════════╗\033[0m\n"

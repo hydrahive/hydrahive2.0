@@ -118,15 +118,20 @@ def _run_install(tmp_path: Path, **extra) -> list[str]:
         (inst / "modules-mac" / name).write_text(f'#!/bin/bash\necho "{name}" >> "{log}"\n')
     (inst / "lib" / "mac-admin-password.sh").write_text("#!/bin/bash\necho pw\n")
     (inst / "lib" / "mac-addon-trigger.sh").write_text("#!/bin/bash\nexit 0\n")
+    (inst / "lib" / "mac-service-user.sh").write_text("#!/bin/bash\necho _hydrahive\n")   # eigene Tests
+    (inst / "lib" / "mac-roles.sh").write_text((INSTALLER / "lib" / "mac-roles.sh").read_text())
     (inst / "install-mac.sh").write_text(INSTALL.read_text())
     bin_ = tmp_path / "ibin"
     bin_.mkdir()
-    for name, body in (("uname", "echo Darwin"), ("brew", "exit 0"), ("ipconfig", "echo 10.0.0.2")):
+    for name, body in (("uname", "echo Darwin"), ("brew", "exit 0"), ("ipconfig", "echo 10.0.0.2"),
+                       ("sudo", 'exec "$@"'), ("chown", "exit 0")):
         (bin_ / name).write_text(f"#!/bin/bash\n{body}\n")
         (bin_ / name).chmod(0o755)
     repo = tmp_path / "repo"
     repo.mkdir()
-    env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_REPO_DIR": str(repo), **extra}
+    (tmp_path / "cfg").mkdir()
+    env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_REPO_DIR": str(repo),
+           "HH_CONFIG_DIR": str(tmp_path / "cfg"), **extra}
     r = subprocess.run(["bash", str(inst / "install-mac.sh")], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
     return log.read_text().splitlines()
@@ -161,7 +166,7 @@ def _nginx_conf(tmp_path: Path) -> str:
     prefix = tmp_path / "brew"
     (bin_ / "brew").write_text(f'#!/bin/bash\ncase "$1" in --prefix) echo "{prefix}";; list) exit 0;; esac\n')
     for name in ("sudo",):
-        (bin_ / name).write_text('#!/bin/bash\n"$@"\n')
+        (bin_ / name).write_text('#!/bin/bash\n[ "$1" = "-u" ] && shift 2\n"$@"\n')
     (bin_ / "launchctl").write_text("#!/bin/bash\nexit 0\n")
     (bin_ / "ipconfig").write_text("#!/bin/bash\necho 192.168.1.5\n")
     for f in bin_.iterdir():
@@ -170,7 +175,7 @@ def _nginx_conf(tmp_path: Path) -> str:
     (cfg / "tls").mkdir(parents=True)
     (cfg / "tls" / "server.crt").write_text("x")
     env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_CONFIG_DIR": str(cfg),
-           "HH_REPO_DIR": "/opt/hydrahive2", "HH_PORT": "8001", "HH_HOST": "127.0.0.1",
+           "HH_REPO_DIR": "/opt/hydrahive2", "HH_PORT": "8001", "HH_HOST": "127.0.0.1", "HH_USER": "tester",
            "HH_NGINX_PLIST": str(tmp_path / "io.hydrahive.nginx.plist")}
     r = subprocess.run(["bash", str(NGINX_MAC)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
@@ -297,3 +302,20 @@ def test_nginx_as_root_finds_brew_by_full_path(tmp_path):
     assert (prefix / "etc" / "nginx" / "servers" / "hydrahive2.conf").exists()
     # als root: brew nur über den Dienstnutzer (Homebrew verweigert root)
     assert f"sudo -u tester {real} --prefix" in calls.read_text()
+
+
+def test_service_account_runs_hydralink_installer_as_root_with_both_roles(mac):
+    """Dienst-Konto: hydralink-Installer wie beim Update als root (HL_USER=_hydrahive, brew als Mac-Besitzer)."""
+    r = _run(mac, HH_USER="_hydrahive", HH_BREW_USER="alexmo")
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    assert any(c.startswith("sudo env HL_USER=_hydrahive HL_BREW_USER=alexmo ") for c in calls), calls
+    assert "hl-install user=_hydrahive be=9000 fe=9001 uid=501" in calls
+    gits = [c for c in calls if c.startswith("sudo") and " git " in f" {c} "]
+    assert gits and all("-u _hydrahive" in c for c in gits), gits      # Repo gehört dem Konto
+
+
+def test_old_way_hydralink_installer_unchanged(mac):
+    r = _run(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not any(c.startswith("sudo env HL_USER=") for c in _calls(mac))

@@ -22,10 +22,11 @@ HL_REPO_URL="${HL_REPO_URL:-https://github.com/hydrahive/hydralink.git}"
 export HL_BACKEND_PORT="${HL_BACKEND_PORT:-9000}"
 export HL_FRONTEND_PORT="${HL_FRONTEND_PORT:-9001}"
 
-as_root() { [ "$(id -u)" -eq 0 ]; }
-# git als Dienstnutzer: als root lehnt git das fremde Repo ab („dubious ownership“).
-as_user() { if as_root; then sudo -u "$HH_USER" "$@"; else "$@"; fi; }
-priv() { if as_root; then "$@"; else sudo "$@"; fi; }
+# shellcheck source=../lib/mac-roles.sh
+source "$(dirname "$0")/../lib/mac-roles.sh"
+# git als Dienstnutzer: als root lehnt git das fremde Repo ab („dubious ownership“). Mit eigenem Dienst-Konto
+# auch aus dem Installer (Mac-Besitzer) über sudo -u.
+as_user() { if [ "$(id -un)" = "$HH_USER" ]; then "$@"; else ( cd /tmp && sudo -u "$HH_USER" "$@" ); fi; }
 
 if [ ! -d "$HL_DIR/.git" ]; then
   log "Klone hydralink nach $HL_DIR"
@@ -38,5 +39,12 @@ else
   as_user git -C "$HL_DIR" pull --ff-only --quiet
 fi
 
-# install-mac.sh: als Nutzer direkt; als root mit HL_USER (es ruft brew/pip/npm dann als HL_USER).
-HL_USER="$HH_USER" HL_PREFIX="$HL_DIR" bash "$HL_DIR/installer/install-mac.sh"
+# install-mac.sh: als Nutzer direkt; als root mit HL_USER (es ruft pip/npm dann als HL_USER, brew als
+# HL_BREW_USER). Mit eigenem Dienst-Konto immer wie beim Update als root – der Mac-Besitzer ist nicht der Dienst-Nutzer.
+if hh_service_account && ! as_root; then
+  sudo env "HL_USER=$HH_USER" "HL_BREW_USER=$HH_BREW_USER" "HL_PREFIX=$HL_DIR" \
+    "HL_BACKEND_PORT=$HL_BACKEND_PORT" "HL_FRONTEND_PORT=$HL_FRONTEND_PORT" "PATH=$PATH" \
+    bash "$HL_DIR/installer/install-mac.sh"
+else
+  HL_USER="$HH_USER" HL_BREW_USER="$HH_BREW_USER" HL_PREFIX="$HL_DIR" bash "$HL_DIR/installer/install-mac.sh"
+fi

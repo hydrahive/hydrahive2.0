@@ -26,7 +26,8 @@ TTS_PINS=(wyoming-piper==2.5.2 piper-tts==1.8.0 onnxruntime==1.23.2 wyoming==1.1
 # Gleicher Diktat-Hinweis wie Linux (modules/55-voice.sh)
 STT_PROMPT="Diktat fuer Smart-Home-Befehle und Software-Entwicklung auf Deutsch: Python, git, commit, branch, refactor, pytest, ffmpeg, API-Endpoint. Mit korrekter Zeichensetzung."
 
-priv() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi; }
+# shellcheck source=../lib/mac-roles.sh
+source "$(dirname "$0")/../lib/mac-roles.sh"   # priv, hh_conf_get/hh_conf_set
 
 # --- 0) Python 3.12 von Homebrew -------------------------------------------------------------------------------
 PY="${HH_VOICE_PYTHON:-}"
@@ -166,12 +167,6 @@ done
 
 # --- 5) Wunsch merken ------------------------------------------------------------------------------------------
 CONF="$HH_CONFIG_DIR/install.conf"
-if ! grep -q '^HH_INSTALL_VOICE=yes' "$CONF" 2>/dev/null; then
-  tmp_conf="$(mktemp)"
-  { grep -v '^HH_INSTALL_VOICE=' "$CONF" 2>/dev/null || true; echo "HH_INSTALL_VOICE=yes"; } > "$tmp_conf"
-  priv install -m 0640 "$tmp_conf" "$CONF"
-  rm -f "$tmp_conf"
-  priv chown "$HH_USER" "$CONF"
-fi
+[ "$(hh_conf_get "$CONF" HH_INSTALL_VOICE || true)" = "yes" ] || hh_conf_set "$CONF" HH_INSTALL_VOICE yes
 
 log "Voice bereit – Mikrofon im Chat und Vorlesen funktionieren jetzt"

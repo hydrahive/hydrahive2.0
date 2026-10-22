@@ -2,18 +2,12 @@
 set -euo pipefail
 log() { printf "  · %s\n" "$*"; }
 
-# brew über den vollen Pfad: läuft dieses Skript aus update-mac.sh (root), liegt brew nicht im PATH, und
-# Homebrew verweigert root – dann über den Dienstnutzer (Befund 21.10.2026 auf dem Test-Mac).
-HH_BREW="${HH_BREW:-}"
-if [ -z "$HH_BREW" ]; then
-  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-    if [ -x "$candidate" ]; then HH_BREW="$candidate"; break; fi
-  done
-fi
-[ -n "$HH_BREW" ] || HH_BREW="$(command -v brew || echo brew)"
-brew() {
-  if [ "$(id -u)" -eq 0 ]; then sudo -u "${HH_USER:?HH_USER fehlt}" "$HH_BREW" "$@"; else "$HH_BREW" "$@"; fi
-}
+# brew über den vollen Pfad als Homebrew-Besitzer (lib/mac-roles.sh): aus update-mac.sh (root) liegt brew nicht
+# im PATH und Homebrew verweigert root (Befund 21.10.2026). Mit eigenem Dienst-Konto gehört Homebrew weiterhin
+# dem Mac-Besitzer – nie über das Dienst-Konto.
+# shellcheck source=../lib/mac-roles.sh
+source "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")/../lib/mac-roles.sh"
+brew() { as_brew "$@"; }
 
 if ! brew list nginx &>/dev/null; then
   log "Installiere nginx"
@@ -26,18 +20,19 @@ NGINX_CONF="$NGINX_CONF_DIR/hydrahive2.conf"
 
 mkdir -p "$NGINX_CONF_DIR"
 
-# Selbstsigniertes Zertifikat
-if [ ! -f "$CERT_DIR/server.crt" ]; then
+# Selbstsigniertes Zertifikat. Über priv: der Config-Ordner gehört dem Dienst-Konto (Mac-Besitzer kommt nicht hinein);
+# nginx läuft als root und liest das Zertifikat als root.
+if ! priv test -f "$CERT_DIR/server.crt"; then
   log "Erzeuge self-signed TLS-Zertifikat"
-  mkdir -p "$CERT_DIR"
+  priv mkdir -p "$CERT_DIR"
   SERVER_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "127.0.0.1")
-  openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+  priv openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
     -keyout "$CERT_DIR/server.key" \
     -out "$CERT_DIR/server.crt" \
     -subj "/CN=hydrahive2" \
     -addext "subjectAltName=IP:${SERVER_IP},IP:127.0.0.1,DNS:localhost" \
     2>/dev/null
-  chmod 600 "$CERT_DIR/server.key"
+  priv chmod 600 "$CERT_DIR/server.key"
 fi
 
 HL_BACKEND_PORT="${HL_BACKEND_PORT:-9000}"

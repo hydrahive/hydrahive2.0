@@ -25,7 +25,8 @@ TS_STATE_DIR="$HH_DATA_DIR/tailscale"
 TS_VERSION="1.104.2"
 GO_VERSION="1.27.3"
 
-priv() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi; }
+# shellcheck source=../lib/mac-roles.sh
+source "$(dirname "$0")/../lib/mac-roles.sh"   # priv, hh_conf_get/hh_conf_set
 
 if [ -d "$HH_TS_APP" ]; then
   log "Tailscale-App ist installiert – nutze sie (keine zweite Installation, beide vertragen sich nicht)"
@@ -126,12 +127,6 @@ log "Bediener: $HH_USER"
 
 # --- 4) Wunsch merken ------------------------------------------------------------------------------------------
 CONF="$HH_CONFIG_DIR/install.conf"
-if ! grep -q '^HH_INSTALL_TAILSCALE=yes' "$CONF" 2>/dev/null; then
-  tmp_conf="$(mktemp)"
-  { grep -v '^HH_INSTALL_TAILSCALE=' "$CONF" 2>/dev/null || true; echo "HH_INSTALL_TAILSCALE=yes"; } > "$tmp_conf"
-  priv install -m 0640 "$tmp_conf" "$CONF"
-  rm -f "$tmp_conf"
-  priv chown "$HH_USER" "$CONF"
-fi
+[ "$(hh_conf_get "$CONF" HH_INSTALL_TAILSCALE || true)" = "yes" ] || hh_conf_set "$CONF" HH_INSTALL_TAILSCALE yes
 
 log "Tailscale bereit – anmelden im Cockpit (Einstellungen → System → Tailscale)"

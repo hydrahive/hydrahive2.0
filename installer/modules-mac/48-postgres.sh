@@ -2,6 +2,10 @@
 set -euo pipefail
 log()  { printf "  · %s\n" "$*"; }
 skip() { printf "  · (bereits vorhanden) %s\n" "$*"; }
+# brew als Homebrew-Besitzer, psql als Dienst-Konto (Superuser der Datenbank) – lib/mac-roles.sh
+# shellcheck source=../lib/mac-roles.sh
+source "${INSTALLER_DIR:-$HH_REPO_DIR/installer}/lib/mac-roles.sh"
+brew() { as_brew "$@"; }
 
 eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"
 
@@ -36,9 +40,12 @@ bash "${INSTALLER_DIR:-$HH_REPO_DIR/installer}/lib/mac-postgres-daemon.sh"
 export PATH="$(brew --prefix postgresql@16)/bin:$PATH"
 
 # DB + User anlegen
-if [ -f "$DSN_FILE" ]; then
+# psql über TCP (wie AgentLink): als Dienst-Konto, der Superuser-Rolle der Datenbank.
+PSQL_BIN="$(brew --prefix postgresql@16)/bin/psql"
+psql() { ( cd /tmp && as_svc "$PSQL_BIN" -h 127.0.0.1 "$@" ); }
+
+if priv test -f "$DSN_FILE"; then
   skip "pg_mirror.dsn bereits vorhanden"
-  PG_DSN=$(cat "$DSN_FILE")
 else
   log "Lege DB-User + Datenbank an"
   PG_PASS=$(openssl rand -hex 16)
@@ -48,12 +55,12 @@ else
   psql "$PG_DB" -c "CREATE EXTENSION IF NOT EXISTS vector;" 2>/dev/null || log "pgvector-Extension — nach Neustart nochmal versuchen"
 
   PG_DSN="postgresql://${PG_USER}:${PG_PASS}@127.0.0.1:5432/${PG_DB}"
-  echo "$PG_DSN" > "$DSN_FILE"
-  chmod 600 "$DSN_FILE"
+  ( umask 077; echo "$PG_DSN" | priv tee "$DSN_FILE" > /dev/null )
   log "DSN gespeichert: $DSN_FILE"
 fi
 
 # Den DSN liest der Start-Wrapper (installer/lib/mac-backend-start.sh) direkt
 # aus pg_mirror.dsn — kein Zwischenfile, nichts davon in der launchd-plist.
-chmod 600 "$DSN_FILE"
+priv chmod 600 "$DSN_FILE"
+priv chown "$HH_USER" "$DSN_FILE"
 log "PostgreSQL bereit (DB: $PG_DB)"

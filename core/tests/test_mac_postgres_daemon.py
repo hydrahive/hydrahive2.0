@@ -48,7 +48,8 @@ def fake(tmp_path: Path) -> dict:
 
 
 def _env(m: dict, **extra) -> dict:
-    return {**os.environ, "PATH": f"{m['bin']}:{os.environ['PATH']}", "HH_USER": "tester",
+    # HH_BREW_USER fest: sonst gälte der Besitzer der brew-Attrappe (Test-Nutzer) als Homebrew-Besitzer
+    return {**os.environ, "PATH": f"{m['bin']}:{os.environ['PATH']}", "HH_USER": "tester", "HH_BREW_USER": "tester",
             "HH_PG_PLIST": str(m["plist"]), "HH_PG_WAIT": "2", **extra}
 
 
@@ -95,7 +96,7 @@ def test_meldet_fehler_wenn_datenbank_nicht_antwortet(fake):
 def test_fremder_besitzer_des_datenverzeichnisses_bricht_ab(fake):
     fake["ready"].touch()
     (fake["prefix"] / "var" / "postgresql@16").mkdir(parents=True)
-    env = _env(fake, HH_USER="jemand-anderes")
+    env = _env(fake, HH_USER="jemand-anderes", HH_BREW_USER="jemand-anderes")
     (fake["bin"] / "dscl").write_text("#!/bin/bash\nexit 1\n")
     (fake["bin"] / "dscl").chmod(0o755)
     r = subprocess.run(["bash", str(DAEMON)], env=env, capture_output=True, text=True, timeout=60)
@@ -110,7 +111,7 @@ def test_eigenes_datenverzeichnis_ok(fake):
     me = subprocess.run(["id", "-un"], capture_output=True, text=True).stdout.strip()
     (fake["bin"] / "dscl").write_text(f'#!/bin/bash\necho "NFSHomeDirectory: {fake["home"]}"\n')
     (fake["bin"] / "dscl").chmod(0o755)
-    r = subprocess.run(["bash", str(DAEMON)], env=_env(fake, HH_USER=me), capture_output=True, text=True, timeout=60)
+    r = subprocess.run(["bash", str(DAEMON)], env=_env(fake, HH_USER=me, HH_BREW_USER=me), capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
 
 
@@ -196,3 +197,82 @@ def test_als_root_brew_ueber_vollen_pfad(fake, tmp_path):
     r = subprocess.run(["bash", str(DAEMON)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
     assert "brew --prefix postgresql@16" in fake["calls"].read_text()
+
+
+# ── Dienst-Konto (docs/plans/mac-service-user.md) ───────────────────────────────
+
+def _run_svc(m: dict, **extra) -> subprocess.CompletedProcess:
+    (m["bin"] / "dscl").write_text(f'#!/bin/bash\necho "NFSHomeDirectory: {m["home"]}"\n')
+    (m["bin"] / "dscl").chmod(0o755)
+    (m["bin"] / "chown").write_text(f'#!/bin/bash\necho "chown $*" >> "{m["calls"]}"\n')
+    (m["bin"] / "chown").chmod(0o755)
+    (m["pg"] / "bin" / "initdb").write_text(f'#!/bin/bash\necho "initdb $*" >> "{m["calls"]}"\n'
+                                            f'echo "initdb-env LANG=$LANG LC_ALL=$LC_ALL" >> "{m["calls"]}"\n'
+                                            'while [ $# -gt 0 ]; do [ "$1" = "-D" ] && mkdir -p "$2" && touch "$2/PG_VERSION"; shift; done\n')
+    (m["pg"] / "bin" / "initdb").chmod(0o755)
+    data = m["tmp"] / "svcdata" / "postgres"
+    # Konto _hydrahive gibt es auf dem Test-Rechner nicht → stat meldet es als Besitzer (chown ist Attrappe)
+    (m["bin"] / "stat").write_text('#!/bin/bash\necho _hydrahive\n')
+    (m["bin"] / "stat").chmod(0o755)
+    env = _env(m, HH_USER="_hydrahive", HH_BREW_USER="tester", HH_PG_DATA=str(data),
+               HH_PG_LOG=str(m["tmp"] / "pg.log"), **extra)
+    r = subprocess.run(["bash", str(DAEMON)], env=env, capture_output=True, text=True, timeout=60)
+    return r
+
+
+def test_service_account_gets_own_data_dir(fake):
+    """Datenordner gehört dem Dienst-Konto (nicht mehr im Homebrew-Ordner des Mac-Besitzers)."""
+    fake["ready"].touch()
+    r = _run_svc(fake)
+    assert r.returncode == 0, r.stdout + r.stderr
+    data = fake["tmp"] / "svcdata" / "postgres"
+    p = plistlib.loads(fake["plist"].read_bytes())
+    assert p["UserName"] == "_hydrahive"
+    assert p["ProgramArguments"] == [str(fake["pg"] / "bin" / "postgres"), "-D", str(data)]
+    assert "-U _hydrahive" in _calls_text(fake) and f"-D {data}" in _calls_text(fake)   # initdb als Konto
+    assert f"chown -R _hydrahive {data}" in _calls_text(fake)
+    assert f"chown -R _hydrahive {data.parent}\n" not in _calls_text(fake)          # nicht den ganzen Datenordner
+
+
+def test_service_account_existing_data_dir_no_initdb(fake):
+    fake["ready"].touch()
+    data = fake["tmp"] / "svcdata" / "postgres"
+    data.mkdir(parents=True)
+    (data / "PG_VERSION").write_text("16\n")
+    r = _run_svc(fake)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "initdb" not in _calls_text(fake)
+
+
+def test_brew_runs_as_brew_user_not_service_account(fake):
+    """brew gehört dem Mac-Besitzer – als root über sudo -u $HH_BREW_USER, nie als _hydrahive."""
+    fake["ready"].touch()
+    (fake["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{fake["calls"]}"\n'
+                                      '[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+    (fake["bin"] / "id").write_text('#!/bin/bash\n[ "$1" = "-u" ] && [ -z "$2" ] && echo 0 && exit 0\n'
+                                    '[ "$1" = "-un" ] && echo root && exit 0\n'      # als root (Update), nicht als Besitzer
+                                    '[ "$1" = "-u" ] && echo 501 && exit 0\nexec /usr/bin/id "$@"\n')
+    for f in ("sudo", "id"):
+        (fake["bin"] / f).chmod(0o755)
+    r = _run_svc(fake)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls_text(fake).splitlines()
+    brew_sudo = [c for c in calls if c.startswith("sudo -u") and any(w.endswith("/bin/brew") for w in c.split())]
+    assert brew_sudo and all(c.startswith("sudo -u tester ") for c in brew_sudo), brew_sudo
+    # Programme AUS Homebrew (initdb) laufen als Dienst-Konto – das ist richtig; brew selbst nie.
+    assert any(c.startswith("sudo -u _hydrahive env ") and "/bin/initdb -D" in c for c in calls)
+
+
+def _calls_text(m: dict) -> str:
+    return m["calls"].read_text() if m["calls"].exists() else ""
+
+
+def test_initdb_gets_fixed_locale(fake):
+    """Befund 22.10.2026 (M2, Knopf im Cockpit): Der Update-Dienst läuft ohne LANG – initdb brach mit „invalid locale
+    settings“ ab. initdb bekommt darum eine feste Sprache (wie die Homebrew-Formel: en_US.UTF-8)."""
+    fake["ready"].touch()
+    r = _run_svc(fake)
+    assert r.returncode == 0, r.stdout + r.stderr
+    init = [c for c in _calls_text(fake).splitlines() if c.startswith("initdb ")]
+    assert init and "--locale=en_US.UTF-8" in init[0], init
+    assert "initdb-env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8" in _calls_text(fake)
