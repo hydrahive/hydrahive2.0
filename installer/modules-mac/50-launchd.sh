@@ -5,7 +5,14 @@ log() { printf "  · %s\n" "$*"; }
 PLIST_LABEL="io.hydrahive.backend"
 PLIST_FILE="${HH_BACKEND_PLIST:-/Library/LaunchDaemons/${PLIST_LABEL}.plist}"
 START_WRAPPER="${HH_REPO_DIR}/installer/lib/mac-backend-start.sh"
-BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /usr/local)"
+# Homebrew über den vollen Pfad: aus dem Cockpit-Runner und update-mac.sh läuft dieses Skript als root ohne brew im
+# PATH. Früher fiel BREW_PREFIX dann auf /usr/local zurück – auf Apple-Macs liegt Homebrew aber unter /opt/homebrew,
+# ffmpeg & Co. fehlten im Backend-PATH (Befund MacBook Air M2, 22.10.2026: Spracheingabe „STT nicht erreichbar“).
+BREW_PREFIX=""
+for candidate in ${HH_BREW_CANDIDATES:-/opt/homebrew/bin/brew /usr/local/bin/brew}; do
+  if [ -x "$candidate" ]; then BREW_PREFIX="$(dirname "$(dirname "$candidate")")"; break; fi
+done
+[ -n "$BREW_PREFIX" ] || BREW_PREFIX="$(brew --prefix 2>/dev/null || echo /usr/local)"
 # Container-Werkzeuge (modules-mac/70-containers.sh): incus/colima für den Kern, nur wenn installiert.
 HH_CT_BIN="${HH_CT_BIN:-/usr/local/lib/hydrahive2/containers/bin}"
 CT_PATH=""
