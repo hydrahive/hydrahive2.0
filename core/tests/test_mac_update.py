@@ -403,6 +403,7 @@ def test_triggers_script_never_unloads_the_running_update_daemon(tmp_path):
     (bin_ / "tee").write_text('#!/bin/bash\ncat > /dev/null\n')
     (bin_ / "chmod").write_text("#!/bin/bash\nexit 0\n")
     (bin_ / "touch").write_text("#!/bin/bash\nexit 0\n")
+    (bin_ / "mkdir").write_text("#!/bin/bash\nexit 0\n")      # /usr/local/var/log gibt es im Test nicht
     for f in bin_.iterdir():
         f.chmod(0o755)
     env = {**os.environ, "PATH": f"{bin_}:/usr/bin:/bin", "HH_REPO_DIR": "/opt/hydrahive2",
@@ -426,7 +427,7 @@ def test_triggers_script_detects_old_update_daemon_without_marker(tmp_path):
     (bin_ / "sudo").write_text('#!/bin/bash\nexec "$@"\n')
     (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n')
     (bin_ / "tee").write_text('#!/bin/bash\ncat > /dev/null\n')
-    for name in ("chmod", "touch"):
+    for name in ("chmod", "touch", "mkdir"):
         (bin_ / name).write_text("#!/bin/bash\nexit 0\n")
     for f in bin_.iterdir():
         f.chmod(0o755)
@@ -450,7 +451,7 @@ def test_triggers_script_reloads_update_daemon_when_run_from_terminal(tmp_path):
     (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n')
     for name in ("tee",):
         (bin_ / name).write_text('#!/bin/bash\ncat > /dev/null\n')
-    for name in ("chmod", "touch"):
+    for name in ("chmod", "touch", "mkdir"):
         (bin_ / name).write_text("#!/bin/bash\nexit 0\n")
     for f in bin_.iterdir():
         f.chmod(0o755)
@@ -524,3 +525,60 @@ def test_update_marker_only_once(mac):
     _launchd(mac)
     _update(mac)
     assert mac["log"].read_text().count("HH-UPDATE-ENDE:") == 1
+
+
+# --- Umzug auf das Dienst-Konto (docs/plans/mac-service-user.md, Etappe 3) -----------------------------------------
+
+def _with_migrate(mac: dict, body: str = "exit 0") -> None:
+    p = mac["repo"] / "installer" / "lib" / "mac-migrate-service-user.sh"
+    p.write_text(f'#!/bin/bash\necho "migrate user=$HH_USER" >> "{mac["calls"]}"\n{body}\n')
+    p.chmod(0o755)
+
+
+def test_update_runs_move_to_service_account_once(mac):
+    _with_migrate(mac)
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    assert "migrate user=tester" in calls
+    # nach pip/Frontend, vor dem Neustart des Backends (der Umzug startet die Dienste selbst neu)
+    assert calls.index("pip install") < calls.index("migrate user=")
+
+
+def test_update_skips_move_when_already_service_account(mac):
+    _with_migrate(mac)
+    (mac["cfg"] / "install.conf").write_text("HH_SERVICE_USER=_hydrahive\n")
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "migrate" not in _calls(mac)
+
+
+def test_update_after_move_uses_service_account(mac):
+    """Nach dem Umzug gehört das Repo _hydrahive – git/pip laufen dann als Konto (Merker in install.conf)."""
+    (mac["cfg"] / "install.conf").write_text("HH_SERVICE_USER=_hydrahive\n")
+    (mac["bin"] / "chown").write_text("#!/bin/bash\nexit 0\n")     # Konto gibt es auf dem Test-Rechner nicht
+    (mac["bin"] / "chown").chmod(0o755)
+    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{mac["calls"]}"\n[ "$1" = "-u" ] && shift 2\n'
+                                     'exec "$@"\n')
+    env = {k: v for k, v in _env(mac).items() if k != "HH_USER"}
+    r = subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "sudo -u _hydrahive git pull" in _calls(mac)
+
+
+def test_update_move_failure_does_not_fail_update(mac):
+    """Neuer Code ist eingespielt – ein gescheiterter Umzug wird gemeldet, das Update gilt trotzdem."""
+    _with_migrate(mac, 'echo "kaputt" >&2; exit 1')
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "Dienst-Konto" in mac["log"].read_text()
+    assert "HH-UPDATE-ENDE: ok" in mac["log"].read_text()
+
+
+def test_update_successful_move_skips_old_restart(mac):
+    """Der Umzug hat die Dienste schon als Konto gestartet – kein Neustart mit der alten plist danach."""
+    _with_migrate(mac, f'echo "HH_SERVICE_USER=_hydrahive" >> "{mac["cfg"]}/install.conf"')
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    after = _calls(mac).split("migrate user=")[1]
+    assert "launchctl load" not in after

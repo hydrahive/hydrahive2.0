@@ -8,9 +8,11 @@ HH_REPO_DIR="${HH_REPO_DIR:-/opt/hydrahive2}"
 HH_DATA_DIR="${HH_DATA_DIR:-/usr/local/var/hydrahive2}"
 # Dienstnutzer = Besitzer des Repos (der Installer legt es als dieser Nutzer an).
 # Früher fest „admin“ – beim Update von Hand liefen git/pip dann unter dem falschen Nutzer.
-HH_USER="${HH_USER:-$(ls -ld "$HH_REPO_DIR" 2>/dev/null | awk '{print $3}')}"
-HH_USER="${HH_USER:-admin}"
 HH_CONFIG_DIR="${HH_CONFIG_DIR:-/usr/local/etc/hydrahive2}"
+# Nach dem Umzug auf das eigene Dienst-Konto (docs/plans/mac-service-user.md) steht es in install.conf.
+HH_SERVICE_USER="$(grep '^HH_SERVICE_USER=' "$HH_CONFIG_DIR/install.conf" 2>/dev/null | tail -1 | cut -d= -f2- || true)"
+HH_USER="${HH_USER:-${HH_SERVICE_USER:-$(ls -ld "$HH_REPO_DIR" 2>/dev/null | awk '{print $3}')}}"
+HH_USER="${HH_USER:-admin}"
 BACKEND_PLIST="${HH_BACKEND_PLIST:-/Library/LaunchDaemons/io.hydrahive.backend.plist}"
 LOG="${HH_UPDATE_LOG:-/usr/local/var/log/hydrahive2-update.log}"
 
@@ -102,6 +104,29 @@ if [ -s "$HH_CONFIG_DIR/pg_mirror.dsn" ] && [ ! -f "$PG_PLIST" ]; then
   log "PostgreSQL auf LaunchDaemon umstellen (Start ohne Anmeldung)"
   HH_USER="$HH_USER" HH_PG_PLIST="$PG_PLIST" bash "$HH_REPO_DIR/installer/lib/mac-postgres-daemon.sh" 2>&1 | to_log \
     || log "PostgreSQL-Umstellung fehlgeschlagen – Datamining evtl. erst nach Anmeldung (Log oben)"
+fi
+
+# Einmaliger Umzug auf das eigene Dienst-Konto _hydrahive (macOS 15+ sperrt sonst das Heimnetz für alle Programme
+# des angemeldeten Mac-Besitzers). Schreibt alle Dienst-Dateien neu und startet die Dienste – danach ist hier fertig.
+# Ein Fehlschlag bricht das Update nicht ab: der neue Code läuft weiter unter dem alten Nutzer, das nächste Update
+# versucht es erneut. Abschalten: HH_SERVICE_ACCOUNT=no in install.conf.
+MIGRATE="$HH_REPO_DIR/installer/lib/mac-migrate-service-user.sh"
+if [ -z "$HH_SERVICE_USER" ] && [ -f "$MIGRATE" ] && [ "${HH_USER#_}" = "$HH_USER" ]; then
+  log "HydraHive auf ein eigenes Dienst-Konto umziehen (_hydrahive) – Heimnetz-Sperre von macOS"
+  if HH_USER="$HH_USER" HH_REPO_DIR="$HH_REPO_DIR" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+       bash "$MIGRATE" 2>&1 | to_log; then
+    if grep -q '^HH_SERVICE_USER=' "$HH_CONFIG_DIR/install.conf" 2>/dev/null; then
+      log "Update abgeschlossen (HydraHive läuft jetzt als Dienst-Konto)"
+      exit 0
+    fi
+  else
+    log "Umzug auf das Dienst-Konto FEHLGESCHLAGEN – HydraHive läuft weiter wie bisher (Log oben, Sicherung siehe dort)"
+    # Dienste des alten Nutzers wieder starten (der Umzug hat sie evtl. schon angehalten).
+    for label in postgres colima backend agentlink agentlink-frontend voice-stt voice-tts; do
+      [ -f "/Library/LaunchDaemons/io.hydrahive.$label.plist" ] \
+        && launchctl bootstrap system "/Library/LaunchDaemons/io.hydrahive.$label.plist" 2>/dev/null || true
+    done
+  fi
 fi
 
 # Update-Auslöser ohne Kennung (ältere Installation) neu einrichten – gilt ab dem nächsten Update.
