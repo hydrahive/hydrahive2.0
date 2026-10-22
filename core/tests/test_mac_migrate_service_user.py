@@ -122,7 +122,7 @@ def test_services_stopped_ownership_moved_services_rewritten_as_account(mac):
     assert "addon-trigger user=_hydrahive" in calls
     assert "55-voice.sh user=_hydrahive brew=admin" in calls          # gewünscht (install.conf)
     assert not any(c.startswith("70-containers.sh") for c in calls)    # nicht gewünscht
-    assert f"tailscale set --operator=_hydrahive" in calls
+    assert "tailscale set --operator=_hydrahive" in calls
 
 
 def test_never_takes_over_whole_log_dir(mac):
