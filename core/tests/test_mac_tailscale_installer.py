@@ -30,6 +30,7 @@ def _go_tarball(calls: Path, tmp: Path) -> bytes:
     ts = (f'#!/bin/bash\necho "tailscale $*" >> "{calls}"\n'
           f'case "$1" in status) [ -f "{tmp}/ts-up" ] && exit 0; echo "Logged out."; exit 1;; esac\nexit 0\n')
     go = (f'#!/bin/bash\necho "go $* GOTOOLCHAIN=$GOTOOLCHAIN GOFLAGS=$GOFLAGS" >> "{calls}"\n'
+          f'echo "go-env CGO_ENABLED=$CGO_ENABLED" >> "{calls}"\n'
           'mkdir -p "$GOBIN"\n'
           f"cat > \"$GOBIN/tailscale\" <<'EOS'\n{ts}EOS\n"
           'printf "#!/bin/bash\\nexit 0\\n" > "$GOBIN/tailscaled"\n'
@@ -176,3 +177,12 @@ def test_no_linux_tools_and_linux_untouched():
         assert bad not in text, bad
     for f in (INSTALLER / "install.sh", INSTALLER / "update.sh", INSTALLER / "modules" / "80-tailscale.sh"):
         assert "modules-mac/80-tailscale" not in f.read_text()
+
+
+def test_build_without_apple_linker(mac):
+    """Befund 23.10.2026 (Tester, M-Mac, macOS 27): Apples Kommandozeilenwerkzeuge passten nicht zum SDK
+    („tapi error: unknown architecture arm64e.x1“) – der Bau von tailscaled brach beim Linken ab. Ohne cgo linkt Go
+    selbst; tailscaled läuft so genauso (live geprüft: Tailnet, MagicDNS, Ping über das LAN)."""
+    r = _run(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "go-env CGO_ENABLED=0" in _calls(mac)

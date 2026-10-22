@@ -79,7 +79,7 @@ def _pip_installs(m: dict) -> list[str]:
 # --- Pakete --------------------------------------------------------------------------------------------------
 
 def test_installs_pinned_packages_binary_only(mac):
-    r = _run(mac)
+    r = _run(mac, HH_VOICE_ARCH="x86_64")
     assert r.returncode == 0, r.stdout + r.stderr
     stt, tts = _pip_installs(mac)
     for pin in STT_PINS:
@@ -245,3 +245,19 @@ def test_no_linux_tools_and_linux_untouched():
         assert bad not in text, bad
     for f in (INSTALLER / "install.sh", INSTALLER / "update.sh", INSTALLER / "modules" / "55-voice.sh"):
         assert "modules-mac/55-voice" not in f.read_text()
+
+
+def test_apple_silicon_needs_no_compiler(mac):
+    """Apple-Mac: pysilero-vad gibt es fertig (macosx_11_0_arm64) – nichts selbst bauen. Sonst hinge Voice an Apples
+    Kommandozeilenwerkzeugen, die beim Tester (macOS 27) nicht zum SDK passten (Befund 23.10.2026, Tailscale)."""
+    r = _run(mac, HH_VOICE_ARCH="arm64")
+    assert r.returncode == 0, r.stdout + r.stderr
+    stt, _ = _pip_installs(mac)
+    assert "--only-binary=:all:" in stt and "--no-binary" not in stt
+
+
+def test_intel_still_builds_pysilero(mac):
+    r = _run(mac, HH_VOICE_ARCH="x86_64")
+    assert r.returncode == 0, r.stdout + r.stderr
+    stt, _ = _pip_installs(mac)
+    assert "--no-binary=pysilero-vad" in stt
