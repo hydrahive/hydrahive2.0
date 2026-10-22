@@ -233,3 +233,42 @@ def test_update_keeps_wanted_tailscale():
     block = text[i - 400:i + 300]
     assert "HH_INSTALL_TAILSCALE=yes" in block and "FEHLGESCHLAGEN" in block and "exit 1" not in block
     assert "/usr/local/lib/hydrahive2/tailscale/bin" in text
+
+
+# --- Apple Silicon: Homebrew unter /opt/homebrew (Befund MacBook Air M2, 22.10.2026) ---------------------------
+
+def _launchd_root_without_brew(tmp_path: Path, brew_prefix: Path) -> dict:
+    """50-launchd.sh wie aus dem Cockpit-Runner bzw. update-mac.sh: als root, brew NICHT im PATH."""
+    brew = brew_prefix / "bin" / "brew"
+    _exe(brew, f'[ "$1" = "--prefix" ] && echo "{brew_prefix}"\n')
+    bin_ = tmp_path / "lbin"
+    _exe(bin_ / "sudo", '"$@"\n')
+    _exe(bin_ / "launchctl", 'case "$1" in list) echo "1 0 io.hydrahive.backend";; esac\n')
+    (tmp_path / "etc").mkdir(exist_ok=True)
+    plist = tmp_path / "backend.plist"
+    env = {**os.environ, "PATH": f"{bin_}:/usr/bin:/bin", "HH_CONFIG_DIR": str(tmp_path / "etc"),
+           "HH_DATA_DIR": str(tmp_path / "data"), "HH_REPO_DIR": "/opt/hydrahive2", "HH_USER": "tester",
+           "HH_HOST": "127.0.0.1", "HH_PORT": "8001", "HH_BACKEND_PLIST": str(plist),
+           "HH_CT_BIN": str(tmp_path / "fehlt"), "HH_TS_BIN": str(tmp_path / "fehlt"),
+           "HH_BREW_CANDIDATES": str(brew)}
+    r = subprocess.run(["bash", str(LAUNCHD)], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    return plistlib.loads(plist.read_bytes())["EnvironmentVariables"]
+
+
+def test_backend_path_has_homebrew_bin_when_brew_not_in_path(tmp_path):
+    """Befund M2: Der Runner schrieb die plist als root ohne brew im PATH → `brew --prefix` scheiterte → Fallback
+    /usr/local. Auf Apple-Macs liegt Homebrew unter /opt/homebrew → ffmpeg fehlte im Backend-PATH →
+    Spracheingabe „STT nicht erreichbar“."""
+    prefix = tmp_path / "opt" / "homebrew"
+    path = _launchd_root_without_brew(tmp_path, prefix)["PATH"].split(":")
+    assert f"{prefix}/bin" in path
+    assert f"{prefix}/opt/python@3.12/bin" in path
+
+
+def test_update_rewrites_plist_without_homebrew_bin():
+    """Bestehende Apple-Macs reparieren: fehlt /opt/homebrew/bin in der plist, schreibt das Update sie neu."""
+    text = UPDATE.read_text()
+    i = text.index('bash "$HH_REPO_DIR/installer/modules-mac/50-launchd.sh"', text.index("Alte plists enthalten"))
+    cond = text[text.index("Alte plists enthalten"):i]
+    assert "/opt/homebrew/bin" in cond
