@@ -25,11 +25,14 @@ HH_INSTALL_AGENTLINK="${HH_INSTALL_AGENTLINK:-yes}"
 HH_INSTALL_CONTAINERS="${HH_INSTALL_CONTAINERS:-no}"
 # Tailscale (ohne App, für Fernzugriff und Server-Kopplung): Standard AUS, --with=tailscale schaltet ein.
 HH_INSTALL_TAILSCALE="${HH_INSTALL_TAILSCALE:-no}"
+# Voice (Spracheingabe + Vorlesen, ohne Container): Standard AUS – Sprachmodell ~460 MB, ~400 MB RAM. --with=voice.
+HH_INSTALL_VOICE="${HH_INSTALL_VOICE:-no}"
 for arg in "$@"; do
   case "$arg" in
     --with=*)
       case ",${arg#--with=}," in *,containers,*) HH_INSTALL_CONTAINERS=yes ;; esac
-      case ",${arg#--with=}," in *,tailscale,*) HH_INSTALL_TAILSCALE=yes ;; esac ;;
+      case ",${arg#--with=}," in *,tailscale,*) HH_INSTALL_TAILSCALE=yes ;; esac
+      case ",${arg#--with=}," in *,voice,*) HH_INSTALL_VOICE=yes ;; esac ;;
   esac
 done
 
@@ -41,7 +44,7 @@ err() { printf "\033[1;31m[hh2-mac]\033[0m %s\n" "$*" >&2; exit 1; }
 command -v brew >/dev/null 2>&1 || err "Homebrew fehlt. Installieren: https://brew.sh"
 
 INSTALLER_DIR="$(cd "$(dirname "$0")" && pwd)"
-export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK HH_INSTALL_CONTAINERS HH_INSTALL_TAILSCALE
+export HH_REPO_DIR HH_USER HH_DATA_DIR HH_CONFIG_DIR HH_HOST HH_PORT INSTALLER_DIR HH_INSTALL_AGENTLINK HH_INSTALL_CONTAINERS HH_INSTALL_TAILSCALE HH_INSTALL_VOICE
 
 log "Phase 1: System-Dependencies"
 bash "$INSTALLER_DIR/modules-mac/00-deps.sh"
@@ -99,6 +102,14 @@ if [ "${HH_INSTALL_TAILSCALE}" = "yes" ]; then
   fi
 else
   log "Phase 6e: Tailscale übersprungen (Option: --with=tailscale)"
+fi
+
+if [ "${HH_INSTALL_VOICE}" = "yes" ]; then
+  log "Phase 6f: Voice (Spracheingabe + Vorlesen)"
+  bash "$INSTALLER_DIR/modules-mac/55-voice.sh" \
+    || log "Voice-Installation FEHLGESCHLAGEN – nachholen im Cockpit (Einstellungen → Zusatz-Module)"
+else
+  log "Phase 6f: Voice übersprungen (Option: --with=voice)"
 fi
 
 if [ "${HH_INSTALL_NGINX}" != "no" ]; then

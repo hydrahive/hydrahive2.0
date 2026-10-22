@@ -2,8 +2,8 @@
 # macOS: Zusatz-Module aus dem Admin-Cockpit nachinstallieren – Gegenstück zu installer/addon-ctl.sh (Linux).
 #
 # Gestartet vom LaunchDaemon io.hydrahive.addon (root), sobald die API $HH_DATA_DIR/.addon_request schreibt.
-# Auf dem Mac sind nur „install containers“ und „install tailscale“ erlaubt (docs/plans/mac-containers.md,
-# mac-tailscale.md); alles andere wird verworfen.
+# Auf dem Mac sind nur „install containers“, „install voice“ und „install tailscale“ erlaubt
+# (docs/plans/mac-containers.md, mac-voice.md, mac-tailscale.md); alles andere wird verworfen.
 # Gleiches Log-Format wie Linux, damit das Fenster im Cockpit unverändert funktioniert.
 set -uo pipefail
 
@@ -23,15 +23,16 @@ trap 'rm -f "$REQUEST"' EXIT
 
 say "===== $(date '+%F %T') Anfrage: $(printf '%s' "$request" | tr -c '[:alnum:] _-' '?') ====="
 
-# Feste Liste: Modulname → Skript. Nur diese beiden gibt es auf dem Mac.
+# Feste Liste: Modulname → Skript. Nur diese gibt es auf dem Mac.
 addon=""
-if [[ "$request" =~ ^install\ (containers|tailscale)[[:space:]]*$ ]]; then
+if [[ "$request" =~ ^install\ (containers|voice|tailscale)[[:space:]]*$ ]]; then
   addon="${BASH_REMATCH[1]}"
 fi
 case "$addon" in
   containers) script=70-containers.sh ;;
+  voice)      script=55-voice.sh ;;
   tailscale)  script=80-tailscale.sh ;;
-  *) say "FEHLER: auf dem Mac nur „install containers“ oder „install tailscale“ erlaubt – Anfrage verworfen."
+  *) say "FEHLER: auf dem Mac nur „install containers“, „install voice“ oder „install tailscale“ erlaubt – Anfrage verworfen."
      exit 2 ;;
 esac
 if [ -z "$HH_USER" ] || [ "$HH_USER" = "root" ]; then

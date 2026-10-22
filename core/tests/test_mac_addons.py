@@ -23,12 +23,13 @@ def probes(monkeypatch):
     return state
 
 
-def test_mac_only_containers_and_tailscale_installable(probes, tmp_path, monkeypatch):
+def test_mac_only_containers_voice_and_tailscale_installable(probes, tmp_path, monkeypatch):
     monkeypatch.setattr(st, "is_mac", lambda: True)
     items = {i["id"]: i for i in st.list_addons(tmp_path / "install.conf")}
     assert items["containers"]["hint"] is None
     assert items["tailscale"]["hint"] is None
-    for other in ("vms", "samba", "whatsapp", "voice"):
+    assert items["voice"]["hint"] is None                       # docs/plans/mac-voice.md
+    for other in ("vms", "samba", "whatsapp"):
         assert items[other]["hint"] == "mac", other
 
 

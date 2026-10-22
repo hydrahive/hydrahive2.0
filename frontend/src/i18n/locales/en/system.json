@@ -252,7 +252,7 @@
       "vms": "Full virtual machines with a screen in the browser.",
       "samba": "Project folders as a network drive on your LAN.",
       "whatsapp": "Reach agents via WhatsApp.",
-      "voice": "Local speech recognition and speech output (runs in a container).",
+      "voice": "Local speech recognition and speech output on this server, no cloud.",
       "tailscale": "Secure access on the go through your own tailnet."
     }
   }

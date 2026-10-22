@@ -150,7 +150,7 @@ def test_runner_installs_tailscale(runner):
 
 
 @pytest.mark.parametrize("req", ["install samba\n", "install vms\n", "install containers; rm -rf /\n", "x\n",
-                                 "install tailscale ../x\n", "install voice\n"])
+                                 "install tailscale ../x\n", "install whatsapp\n", "install voice; id\n"])
 def test_runner_refuses_everything_else(runner, req):
     runner["req"].write_text(req)
     res = _run_runner(runner)

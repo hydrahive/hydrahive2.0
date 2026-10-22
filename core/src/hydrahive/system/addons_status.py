@@ -26,9 +26,11 @@ ADDONS: tuple[str, ...] = ("containers", "vms", "samba", "whatsapp", "voice", "t
 RESTARTS_SERVICE = frozenset({"vms", "containers"})          # 65-vms.sh / 70-containers.sh patchen hydrahive2.service
 REQUIRES: dict[str, list[str]] = {"voice": ["containers"]}
 WSL_LIMITED = frozenset({"vms", "containers", "voice"})
-# Auf dem Mac nur Container und Tailscale (installer/modules-mac/70-containers.sh, 80-tailscale.sh);
-# der Rest braucht apt/systemd.
-MAC_INSTALLABLE = frozenset({"containers", "tailscale"})
+# Auf dem Mac nur Container, Voice und Tailscale (installer/modules-mac/70-containers.sh, 55-voice.sh,
+# 80-tailscale.sh); der Rest braucht apt/systemd.
+MAC_INSTALLABLE = frozenset({"containers", "voice", "tailscale"})
+# Voice läuft auf dem Mac direkt (LaunchDaemons), nicht in Containern (docs/plans/mac-voice.md).
+_MAC_REQUIRES: dict[str, list[str]] = {"voice": []}
 
 # Nur 65-vms.sh legt diese Unit an. qemu allein reicht nicht: incus zieht qemu-system-x86 als Abhängigkeit mit.
 _VM_UNIT = Path("/etc/systemd/system/hydrahive2-websockify.service")
@@ -108,9 +110,15 @@ def list_addons(conf: Path) -> list[dict]:
         "installed": _probe(addon),
         "enabled": enabled.get(f"HH_INSTALL_{addon.upper()}", False),
         "restarts_service": addon in RESTARTS_SERVICE,
-        "requires": REQUIRES.get(addon, []),
+        "requires": _requires(addon, mac=mac),
         "hint": _hint(addon, wsl=wsl, mac=mac),
     } for addon in ADDONS]
+
+
+def _requires(addon: str, *, mac: bool) -> list[str]:
+    if mac and addon in _MAC_REQUIRES:
+        return list(_MAC_REQUIRES[addon])
+    return list(REQUIRES.get(addon, []))
 
 
 def _hint(addon: str, *, wsl: bool, mac: bool) -> str | None:
