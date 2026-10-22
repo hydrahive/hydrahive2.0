@@ -259,7 +259,13 @@ bash installer/install-mac.sh
 ```
 
 > ⚠️ **Nicht** `sudo bash …` eingeben! Der Installer läuft als **dein** Benutzer und fragt selbst nach dem Passwort,
-> wenn er es braucht. Mit `sudo` würde HydraHive dem Systemkonto „root“ gehören und später nicht richtig laufen.
+> wenn er es braucht. Homebrew gehört dir und verweigert das Systemkonto „root“.
+
+> ℹ️ **HydraHive bekommt ein eigenes Konto.** Der Installer legt ein verstecktes Systemkonto `_hydrahive` an. Es
+> taucht nicht im Anmeldefenster auf und hat kein Passwort. HydraHive läuft unter diesem Konto, nicht unter deinem
+> Benutzer. Der Grund: Ab macOS 15 sperrt der Datenschutz „Lokales Netzwerk“ alle Programme des angemeldeten
+> Benutzers für das Heimnetz, auch Hintergrund-Dienste. Unter dem eigenen Konto erreicht HydraHive Geräte im Heimnetz
+> (Portfreigaben, Home Assistant, andere Rechner), und HydraHive kommt nicht an deine privaten Dateien.
 
 ### Was du im Terminal siehst
 
@@ -267,6 +273,7 @@ Der Installer arbeitet in Phasen. Jede beginnt mit einer türkisen Zeile `[hh2-m
 
 | Phase | Was passiert | Dauer (ca.) | Musst du etwas tun? |
 |---|---|---|---|
+| **0** Dienst-Konto | Legt das versteckte Konto `_hydrahive` an | Sekunden | **ja: `Password:` → Mac-Passwort** |
 | **1** System-Dependencies | Installiert Python 3.12, Node.js, git, ffmpeg, GitHub-CLI, `uv` und `mmx-cli` | 5–20 min | nein |
 | **2** Verzeichnisse | Legt Ordner für Daten und Einstellungen an | Sekunden | **ja: `Password:` → Mac-Passwort** |
 | **3** Python-venv + Backend | Richtet das Programm im Hintergrund ein | 2–5 min | nein |
@@ -439,7 +446,10 @@ beauftragen sich gegenseitig), Module wie Atelier, Storyteller, Haushaltsbuch us
   Display verhindern. Laptops am Netzteil lassen.
 - **Nach einem Neustart** starten HydraHive, Webserver und Datenbank von selbst, auch ohne dass sich jemand
   anmeldet.
-- **Den Installations-Benutzer nicht löschen.** HydraHive läuft unter diesem Konto.
+- **Das Konto `_hydrahive` nicht löschen.** HydraHive läuft unter diesem Konto. Deinen eigenen Benutzer braucht
+  HydraHive nur für Homebrew (Programme wie Python, Datenbank, nginx gehören dir).
+- **Dateien aus deinem Benutzer-Ordner** (Schreibtisch, Dokumente …) sieht HydraHive nicht. Was HydraHive bearbeiten
+  soll, lädst du im Cockpit hoch.
 - **Ports 80 und 443** belegt HydraHive (nginx). Läuft auf dem Mac schon ein anderer Webserver, gibt es einen Konflikt.
 - **Zugriff aus dem Netz:** Andere Geräte erreichen HydraHive über die IP-Adresse des Macs. Wechselt die Adresse,
   z. B. in einem anderen WLAN, passt das Zertifikat nicht mehr ganz und die Browser-Warnung kommt wieder.
@@ -543,7 +553,19 @@ Am einfachsten im Cockpit über die Update-Funktion. Von Hand:
 sudo bash /opt/hydrahive2/installer/update-mac.sh
 ```
 
-Das Skript erkennt den Benutzer, der installiert hat, selbst. Er ist der Besitzer von `/opt/hydrahive2`.
+Das Skript erkennt den Dienst-Benutzer selbst.
+
+**Ältere Installationen** (vor dem eigenen Konto) zieht das nächste Update einmalig auf `_hydrahive` um. Das dauert
+einige Minuten; HydraHive ist währenddessen kurz nicht erreichbar. Vorher legt das Update eine Sicherung an
+(`/usr/local/var/hydrahive2-backup-<datum>`: Einstellungen, Chats, Datenbank). Klappt ein Schritt nicht, stellt es den
+alten Stand wieder her und versucht es beim nächsten Update erneut. Wer den Umzug nicht möchte, schreibt
+`HH_SERVICE_ACCOUNT=no` in `/usr/local/etc/hydrahive2/install.conf`.
+
+**Befehle im HydraHive-Ordner** (z. B. `git`) laufen jetzt als das Konto:
+
+```bash
+cd /tmp && sudo -u _hydrahive git -C /opt/hydrahive2 log --oneline -3
+```
 
 ---
 
