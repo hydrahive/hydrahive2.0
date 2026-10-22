@@ -8,7 +8,19 @@ HH_DATA_DIR="${HH_DATA_DIR:-/var/lib/hydrahive2}"
 HH_CONFIG_DIR="${HH_CONFIG_DIR:-/etc/hydrahive2}"
 
 log() { printf "\033[1;36m[hh2-update]\033[0m %s\n" "$*"; }
-err() { printf "\033[1;31m[hh2-update]\033[0m %s\n" "$*" >&2; exit 1; }
+# Schlusszeile für das Update-Fenster (frontend/src/shared/_updateLogStatus.ts): genau einmal, auch bei Abbruch
+# (trap). Vorher wartete das Fenster bis zu 10 min auf einen neuen Commit (Befund 22.10.2026).
+HH_FAIL_REASON=""
+err() { HH_FAIL_REASON="$*"; printf "\033[1;31m[hh2-update]\033[0m %s\n" "$*" >&2; exit 1; }
+_hh_end() {
+  local rc=$?
+  if [ "$rc" -eq 0 ]; then
+    printf 'HH-UPDATE-ENDE: ok\n'
+  else
+    printf 'HH-UPDATE-ENDE: fehler %s\n' "${HH_FAIL_REASON:-Abbruch (Code $rc) – siehe Log}"
+  fi
+}
+trap _hh_end EXIT
 
 [ "$(id -u)" -eq 0 ] || err "Bitte mit sudo / als root ausführen."
 [ -d "$HH_REPO_DIR/.git" ] || err "$HH_REPO_DIR ist kein Git-Repo."
@@ -865,6 +877,7 @@ fi
 if systemctl is-active --quiet hydrahive2.service; then
   log "Update erfolgreich, Service läuft."
 else
+  HH_FAIL_REASON="Service-Neustart fehlgeschlagen"
   log "Service-Neustart fehlgeschlagen — siehe: journalctl -u hydrahive2 -n 50"
   exit 1
 fi

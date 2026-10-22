@@ -125,13 +125,19 @@ def voice_log(tail: int = 200) -> dict:
 
 
 @router.get("/update/log", dependencies=[Depends(require_admin)])
-def update_log(tail: int = 200) -> dict:
+def update_log(tail: int = 200, since: int | None = None) -> dict:
+    """``total`` = Zeilen im Log. Mit ``since`` nur Zeilen ab dieser Nummer – das Update-Fenster merkt sich ``total``
+    beim Start und wertet so nur DIESEN Lauf aus (Schlusszeile HH-UPDATE-ENDE, frontend/_updateLogStatus.ts).
+    Ist ``since`` größer als das Log (Log neu angelegt), kommt alles."""
     if not UPDATE_LOG.exists():
-        return {"lines": [], "exists": False}
+        return {"lines": [], "exists": False, "total": 0}
     try:
         with UPDATE_LOG.open("r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()
     except (PermissionError, OSError) as e:
-        return {"lines": [], "exists": True, "error": str(e)}
+        return {"lines": [], "exists": True, "error": str(e), "total": 0}
     capped = max(1, min(tail, 1000))
-    return {"lines": lines[-capped:], "exists": True}
+    total = len(lines)
+    if since is not None and 0 <= since <= total:
+        lines = lines[since:]
+    return {"lines": lines[-capped:], "exists": True, "total": total}

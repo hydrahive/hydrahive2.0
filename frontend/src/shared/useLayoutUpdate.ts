@@ -4,6 +4,7 @@ import { getModuleUpdateCount } from "@/features/modules/api"
 import { pluginsApi } from "@/features/plugins/api"
 import type { UpdateState } from "@/shared/UpdateModal"
 import { isStale } from "@/shared/_staleBundle"
+import { waitForUpdate } from "@/shared/_waitForUpdate"
 
 export function useLayoutUpdate(isAdmin: boolean) {
   const [version, setVersion] = useState<string | null>(null)
@@ -72,24 +73,26 @@ export function useLayoutUpdate(isAdmin: boolean) {
       setUpdateState("failed"); setUpdateError(e instanceof Error ? e.message : ""); return
     }
     setUpdateState("running")
-    const oldCommit = commit
-    const startedAt = Date.now()
-    // Update braucht typisch 3-8min (git pull, deps, frontend build, agentlink,
-    // service restart). Wir warten auf commit-change, max 10min.
-    // Kein "15s-stable = done"-Fallback — der hat #zzz verursacht: Modal sagte
-    // nach 15s "fertig" obwohl Update gerade erst angefangen hatte. Pre-Check
-    // oben fängt schon den no-op-Fall (lokal bereits == remote) ab.
-    while (Date.now() - startedAt < 10 * 60 * 1000) {
-      await new Promise((r) => setTimeout(r, 3000))
-      try {
+    // Fertig bei neuem Commit ODER Schlusszeile „HH-UPDATE-ENDE“ im Log (auch ohne neuen Stand bzw. bei Abbruch,
+    // Befund 22.10.2026). Kein „15s-stable = done“-Fallback – der meldete früher „fertig“ mitten im Update.
+    // Höchstens 10 min (200 × 3 s).
+    const r = await waitForUpdate({
+      logTotal: async () => (await api.get<{ total?: number }>("/system/update/log?tail=1")).total ?? 0,
+      logSince: async (since) =>
+        (await api.get<{ lines: string[] }>(`/system/update/log?tail=50&since=${since}`)).lines,
+      health: async () => {
         const h = await api.get<{ commit: string | null; update_behind: number | null }>("/health")
-        if (h.commit && h.commit !== oldCommit) {
-          setCommit(h.commit); setUpdateBehind(h.update_behind)
-          setNewCommit(h.commit); setUpdateState("done"); return
-        }
-      } catch { /* Service restartet gerade — weiter pollen */ }
+        setUpdateBehind(h.update_behind)
+        return h.commit
+      },
+      sleep: (ms) => new Promise((res) => setTimeout(res, ms)),
+    }, commit, 200)
+    if (r.kind === "done") {
+      const changed = !!r.commit && r.commit !== commit
+      if (r.commit) setCommit(r.commit)
+      setNewCommit(changed ? r.commit : null); setUpdateState("done"); return   // null → „keine neuen Änderungen“
     }
-    setUpdateState("failed"); setUpdateError("timeout")
+    setUpdateState("failed"); setUpdateError(r.reason)
   }
 
   return {

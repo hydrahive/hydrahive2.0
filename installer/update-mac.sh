@@ -27,6 +27,20 @@ else
 fi
 log() { printf "[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | to_log; }
 
+# Schlusszeile für das Update-Fenster (frontend/src/shared/_updateLogStatus.ts): genau einmal, auch bei Abbruch.
+# Das Fenster wartete sonst bis zu 10 min auf einen neuen Commit (Befund 22.10.2026).
+HH_FAIL_REASON=""
+fail() { HH_FAIL_REASON="$*"; log "$*"; exit 1; }
+_hh_end() {
+  local rc=$?
+  if [ "$rc" -eq 0 ]; then
+    printf 'HH-UPDATE-ENDE: ok\n' | to_log
+  else
+    printf 'HH-UPDATE-ENDE: fehler %s\n' "${HH_FAIL_REASON:-Abbruch (Code $rc) – siehe Log}" | to_log
+  fi
+}
+trap _hh_end EXIT
+
 rm -f "$HH_DATA_DIR/.update_request"
 log "Update gestartet"
 
@@ -43,11 +57,11 @@ fi
 
 cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
-sudo -u "$HH_USER" git pull --ff-only 2>&1 | to_log || { log "git pull fehlgeschlagen"; exit 1; }
+sudo -u "$HH_USER" git pull --ff-only 2>&1 | to_log || fail "git pull fehlgeschlagen"
 
 log "Python-Pakete aktualisieren"
 sudo -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core" >> "$LOG" 2>&1 \
-  || { log "pip install fehlgeschlagen"; exit 1; }
+  || fail "pip install fehlgeschlagen"
 HEAL="$HH_REPO_DIR/installer/lib/mac-python-heal.sh"
 if [ -f "$HEAL" ]; then
   # shellcheck source=lib/mac-python-heal.sh
@@ -75,8 +89,8 @@ if [ -n "$BUILD" ]; then
   cd "$HH_REPO_DIR/frontend"
   # npm ci: genau nach package-lock.json, ändert sie nie (npm install schrieb sie um → nächstes git pull scheiterte)
   # PATH mitgeben: sudo setzt secure_path ohne Homebrew → „sudo: npm: command not found“ (Befund 21.10.2026).
-  sudo -u "$HH_USER" env "PATH=$PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || { log "npm ci fehlgeschlagen"; exit 1; }
-  sudo -u "$HH_USER" env "PATH=$PATH" npm run build >> "$LOG" 2>&1 || { log "Frontend-Build fehlgeschlagen"; exit 1; }
+  sudo -u "$HH_USER" env "PATH=$PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || fail "npm ci fehlgeschlagen"
+  sudo -u "$HH_USER" env "PATH=$PATH" npm run build >> "$LOG" 2>&1 || fail "Frontend-Build fehlgeschlagen"
   [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -u "$HH_USER" tee "$MARK" > /dev/null
   cd "$HH_REPO_DIR"
 fi
@@ -95,6 +109,13 @@ if [ -f "$UPDATE_PLIST" ] && ! grep -q "HH_UPDATE_VIA_LAUNCHD" "$UPDATE_PLIST" 2
   log "Update-Auslöser neu einrichten (Verlauf ohne doppelte Zeilen ab dem nächsten Update)"
   HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_REPO_DIR="$HH_REPO_DIR" \
     bash "$TRIGGERS_SCRIPT" 2>&1 | to_log || log "Update-Auslöser konnten nicht neu eingerichtet werden"
+fi
+
+# Update-Dienst nicht geladen (Folge eines alten Fehlers: der Dienst entlud sich beim Knopf-Update selbst) →
+# wieder laden, damit der Knopf im Cockpit wieder funktioniert. Läuft das Update gerade über den Dienst, ist er geladen.
+if [ -f "$UPDATE_PLIST" ] && ! launchctl list 2>/dev/null | awk '$3 == "io.hydrahive.update"' | grep -q .; then
+  log "Update-Dienst war nicht geladen – Knopf im Cockpit wieder einschalten"
+  launchctl load "$UPDATE_PLIST" 2>&1 | to_log || log "Update-Dienst konnte nicht geladen werden"
 fi
 
 # AgentLink (HydraLink): fehlte früher auf jedem Mac (Plan docs/plans/mac-agentlink.md). Bei jedem Update
@@ -180,7 +201,7 @@ if grep -q "HH_SECRET_KEY\|HH_PG_MIRROR_DSN" "$BACKEND_PLIST" 2>/dev/null \
     HH_REPO_DIR="$HH_REPO_DIR" HH_HOST="${HH_HOST:-127.0.0.1}" HH_PORT="${HH_PORT:-8001}" \
     HH_BACKEND_PLIST="$BACKEND_PLIST" \
     bash "$HH_REPO_DIR/installer/modules-mac/50-launchd.sh" 2>&1 | to_log \
-    || { log "plist-Umbau fehlgeschlagen — Fehler im Log"; exit 1; }
+    || fail "plist-Umbau fehlgeschlagen — Fehler im Log"
   log "Update abgeschlossen"
   exit 0
 fi
