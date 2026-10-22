@@ -274,6 +274,7 @@ The installer works in phases. Each one starts with a turquoise line `[hh2-mac] 
 | **6c** AgentLink | Sets up AgentLink so agents can hand tasks to each other and servers can be paired (own database in PostgreSQL, two background services) | 2–5 min | **maybe `Password:`** |
 | **6d** Containers (optional) | Only with `--with=containers`: small Linux VM with Incus (Colima), see [Containers](#containers-optional) | 3–10 min | no |
 | **6e** Tailscale (optional) | Only with `--with=tailscale`: builds Tailscale without the app and sets it up as a service, see [Tailscale](#tailscale-optional) | 1–3 min | no |
+| **6f** Voice (optional) | Only with `--with=voice`: speech input and read-aloud directly on the Mac, see [Voice](#voice-optional) | 1–5 min | no |
 | **7** nginx | Sets up the web server with HTTPS | 1–2 min | no |
 
 **Stay nearby.** macOS only remembers your password for 5 minutes. If phases 3–5 take longer, the installer asks
@@ -415,7 +416,7 @@ The Mac installer only sets up the **core**. The following is **not** available 
 |---|---|---|
 | **Containers** (Incus) | ✅ optional | through a small Linux VM (Colima), see [Containers](#containers-optional) |
 | **VMs** (libvirt/QEMU) | ❌ not available | Linux only |
-| **Voice / speech recognition service** (Whisper container) | ❌ not automatic | runs in an Incus container on Linux |
+| **Voice** (speech input + read-aloud) | ✅ optional | directly on the Mac, no containers: Settings → Add-on modules → Voice (or `--with=voice`), see [Voice](#voice-optional) |
 | **WhatsApp integration** | ❌ not set up | the bridge is only set up by the Linux installer |
 | **Samba shares** (project folders on the network) | ❌ not available | Linux module |
 | **Tailscale remote access & server pairing** | ✅ optional | automatically via Settings → Add-on modules → Tailscale (or `--with=tailscale`), see [Tailscale](#tailscale-optional). Alternatively the Tailscale app – **not both** |
@@ -502,6 +503,23 @@ account. Alternatively "Connect with auth key".
 - This variant cannot use someone else's exit node; Taildrop is limited. Remote access and pairing work fully.
   Updates come with the normal HydraHive update.
 - Check: `sudo launchctl list | grep io.hydrahive.tailscaled`, log `/usr/local/var/log/hydrahive2-tailscaled.log`.
+
+---
+
+## Voice (optional)
+
+Speech input (microphone in chat, voice messages, `transcribe_audio`) and read-aloud – local, no cloud.
+
+**Turn on:** Settings → Add-on modules → **Voice → Install** (or `--with=voice` when installing). No containers
+needed on the Mac: speech recognition (Whisper) and the voice (Piper) run as two background services directly on the
+Mac and start at boot.
+
+**Good to know:**
+- Takes about 1–5 minutes. On first start, speech recognition downloads its model (~460 MB).
+- Disk about 1.1 GB, memory about 400 MB while the service runs.
+- Updates come with the normal HydraHive update.
+- Check: `sudo launchctl list | grep io.hydrahive.voice`, logs
+  `/usr/local/var/log/hydrahive2-voice-stt.log` and `…-voice-tts.log`.
 
 ---
 

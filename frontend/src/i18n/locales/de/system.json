@@ -252,7 +252,7 @@
       "vms": "Vollständige virtuelle Maschinen mit Bildschirm im Browser.",
       "samba": "Projekt-Ordner als Netzlaufwerk im Heimnetz.",
       "whatsapp": "Agenten per WhatsApp erreichen.",
-      "voice": "Spracherkennung und Sprachausgabe lokal (läuft in einem Container).",
+      "voice": "Spracherkennung und Sprachausgabe lokal auf diesem Server, ohne Cloud.",
       "tailscale": "Sicherer Zugriff von unterwegs über das eigene Tailnet."
     }
   }

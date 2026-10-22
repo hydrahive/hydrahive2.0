@@ -276,6 +276,7 @@ Der Installer arbeitet in Phasen. Jede beginnt mit einer türkisen Zeile `[hh2-m
 | **6c** AgentLink | Richtet AgentLink ein, damit Agenten sich gegenseitig Aufträge geben und Server sich koppeln können (eigene Datenbank im PostgreSQL, zwei Hintergrund-Dienste) | 2–5 min | **evtl. `Password:`** |
 | **6d** Container (optional) | Nur mit `--with=containers`: kleine Linux-VM mit Incus (Colima), siehe [Container](#container-optional) | 3–10 min | nein |
 | **6e** Tailscale (optional) | Nur mit `--with=tailscale`: baut Tailscale ohne App und richtet es als Dienst ein, siehe [Tailscale](#tailscale-optional) | 1–3 min | nein |
+| **6f** Voice (optional) | Nur mit `--with=voice`: Spracheingabe und Vorlesen direkt auf dem Mac, siehe [Voice](#voice-optional) | 1–5 min | nein |
 | **7** nginx | Richtet den Webserver mit HTTPS ein | 1–2 min | nein |
 
 **Bleib in der Nähe.** macOS merkt sich dein Passwort nur 5 Minuten. Dauern die Phasen 3–5 länger, fragt der
@@ -415,7 +416,7 @@ Der Mac-Installer richtet nur den **Kern** ein. Folgendes gibt es auf dem Mac **
 |---|---|---|
 | **Container** (Incus) | ✅ optional | über eine kleine Linux-VM (Colima), siehe [Container](#container-optional) |
 | **VMs** (libvirt/QEMU) | ❌ nicht verfügbar | gibt es nur unter Linux |
-| **Voice / Spracherkennung als Dienst** (Whisper-Container) | ❌ nicht automatisch | läuft unter Linux in einem Incus-Container |
+| **Voice** (Spracheingabe + Vorlesen) | ✅ optional | direkt auf dem Mac, ohne Container: Einstellungen → Zusatz-Module → Voice (oder `--with=voice`), siehe [Voice](#voice-optional) |
 | **WhatsApp-Anbindung** | ❌ nicht eingerichtet | Bridge wird nur vom Linux-Installer aufgesetzt |
 | **Samba-Freigaben** (Projektordner im Netzwerk) | ❌ nicht verfügbar | Linux-Modul |
 | **Tailscale-Fernzugriff & Server-Kopplung** | ✅ optional | automatisch über Einstellungen → Zusatz-Module → Tailscale (oder `--with=tailscale`), siehe [Tailscale](#tailscale-optional). Alternativ die Tailscale-App – **nicht beides** |
@@ -502,6 +503,23 @@ Tailscale-Konto anmelden. Alternativ „Mit Auth-Key verbinden“.
 - Diese Variante kann einen fremden Exit-Node nicht nutzen; Taildrop geht nur eingeschränkt. Für Fernzugriff und
   Kopplung reicht sie vollständig. Updates kommen mit dem normalen HydraHive-Update.
 - Prüfen: `sudo launchctl list | grep io.hydrahive.tailscaled`, Log `/usr/local/var/log/hydrahive2-tailscaled.log`.
+
+---
+
+## Voice (optional)
+
+Spracheingabe (Mikrofon im Chat, Sprachnachrichten, `transcribe_audio`) und Vorlesen – lokal, ohne Cloud.
+
+**Einschalten:** Einstellungen → Zusatz-Module → **Voice → Installieren** (oder bei der Installation
+`--with=voice`). Container braucht es dafür auf dem Mac **nicht**: Spracherkennung (Whisper) und Vorlesestimme (Piper)
+laufen als zwei Hintergrund-Dienste direkt auf dem Mac und starten beim Hochfahren mit.
+
+**Gut zu wissen:**
+- Dauer etwa 1–5 Minuten. Beim ersten Start lädt die Spracherkennung ihr Sprachmodell (~460 MB).
+- Platz etwa 1,1 GB, Arbeitsspeicher etwa 400 MB, solange der Dienst läuft.
+- Updates kommen mit dem normalen HydraHive-Update.
+- Prüfen: `sudo launchctl list | grep io.hydrahive.voice`, Logs
+  `/usr/local/var/log/hydrahive2-voice-stt.log` und `…-voice-tts.log`.
 
 ---
 

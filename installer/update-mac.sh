@@ -125,6 +125,15 @@ if grep -q '^HH_INSTALL_CONTAINERS=yes' "$HH_CONFIG_DIR/install.conf" 2>/dev/nul
   fi
 fi
 
+if grep -q '^HH_INSTALL_VOICE=yes' "$HH_CONFIG_DIR/install.conf" 2>/dev/null \
+   && [ -f "$HH_REPO_DIR/installer/modules-mac/55-voice.sh" ]; then
+  log "Voice (Spracheingabe + Vorlesen) aktualisieren"
+  if ! HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" \
+       bash "$HH_REPO_DIR/installer/modules-mac/55-voice.sh" 2>&1 | to_log; then
+    log "Voice-Update FEHLGESCHLAGEN – Spracheingabe/Vorlesen evtl. gestört (Log oben)"
+  fi
+fi
+
 if grep -q '^HH_INSTALL_TAILSCALE=yes' "$HH_CONFIG_DIR/install.conf" 2>/dev/null \
    && [ -f "$HH_REPO_DIR/installer/modules-mac/80-tailscale.sh" ]; then
   log "Tailscale (ohne App) aktualisieren"
