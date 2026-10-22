@@ -27,9 +27,13 @@ COLIMA_VERSION="0.10.3"
 LIMA_VERSION="2.2.1"
 INCUS_VERSION="7.0.2"
 
-as_root() { [ "$(id -u)" -eq 0 ]; }
-as_user() { if as_root; then sudo -u "$HH_USER" env "PATH=$PATH" "HOME=$(_home)" "COLIMA_HOME=$COLIMA_HOME" "$@"; else "$@"; fi; }
-priv() { if as_root; then "$@"; else sudo "$@"; fi; }
+# shellcheck source=../lib/mac-roles.sh
+source "$(dirname "$0")/../lib/mac-roles.sh"   # as_root, priv, hh_conf_get/hh_conf_set
+# Als Dienst-Konto: aus dem Update (root) und – mit eigenem Konto _hydrahive – auch aus dem Installer (Mac-Besitzer).
+as_user() {
+  if [ "$(id -un)" = "$HH_USER" ]; then "$@"; return; fi
+  sudo -u "$HH_USER" env "PATH=$PATH" "HOME=$(_home)" "COLIMA_HOME=$COLIMA_HOME" "$@"
+}
 _home() { local h; h="$(dscl . -read "/Users/$HH_USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}' || true)"; echo "${h:-/Users/$HH_USER}"; }
 
 # --- Architektur + feste Prüfsummen (Release-Dateien der Projekte, Stand 21.10.2026) -----------------------
@@ -204,12 +208,6 @@ done
 
 # --- 5) Wunsch merken (update-mac.sh pflegt das Modul dann mit; Cockpit zeigt „gewünscht“) ------------------
 CONF="$HH_CONFIG_DIR/install.conf"
-if ! grep -q '^HH_INSTALL_CONTAINERS=yes' "$CONF" 2>/dev/null; then
-  # Ohne `sed -i` (BSD und GNU verstehen es verschieden): alte Zeile weg, neue anhängen, Datei ersetzen.
-  { grep -v '^HH_INSTALL_CONTAINERS=' "$CONF" 2>/dev/null || true; echo "HH_INSTALL_CONTAINERS=yes"; } > "$COLIMA_HOME/.install.conf.new"
-  priv install -m 0640 "$COLIMA_HOME/.install.conf.new" "$CONF"
-  rm -f "$COLIMA_HOME/.install.conf.new"
-  priv chown "$HH_USER" "$CONF"
-fi
+[ "$(hh_conf_get "$CONF" HH_INSTALL_CONTAINERS || true)" = "yes" ] || hh_conf_set "$CONF" HH_INSTALL_CONTAINERS yes
 
 log "Container bereit (Incus in der VM $PROFILE)"

@@ -36,13 +36,18 @@ def _run_install(tmp_path: Path, *args: str, **extra) -> list[str]:
         _exe(inst / "modules-mac" / name, f'echo "{name}" >> "{log}"\n')
     for name in ("mac-admin-password.sh", "mac-addon-trigger.sh"):
         _exe(inst / "lib" / name, f'echo "{name}" >> "{log}"\n')
+    _exe(inst / "lib" / "mac-service-user.sh", 'echo _hydrahive\n')       # Dienst-Konto (eigene Tests)
+    (inst / "lib" / "mac-roles.sh").write_text((INSTALLER / "lib" / "mac-roles.sh").read_text())
     (inst / "install-mac.sh").write_text(INSTALL.read_text())
     bin_ = tmp_path / "ibin"
-    for name, body in (("uname", "echo Darwin"), ("brew", "exit 0"), ("ipconfig", "echo 10.0.0.2")):
+    for name, body in (("uname", "echo Darwin"), ("brew", "exit 0"), ("ipconfig", "echo 10.0.0.2"),
+                       ("sudo", 'exec "$@"'), ("chown", "exit 0")):
         _exe(bin_ / name, body + "\n")
     repo = tmp_path / "repo"
     repo.mkdir(exist_ok=True)
-    env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_REPO_DIR": str(repo), **extra}
+    (tmp_path / "cfg").mkdir(exist_ok=True)
+    env = {**os.environ, "PATH": f"{bin_}:{os.environ['PATH']}", "HH_REPO_DIR": str(repo),
+           "HH_CONFIG_DIR": str(tmp_path / "cfg"), **extra}
     env.pop("HH_INSTALL_CONTAINERS", None) if "HH_INSTALL_CONTAINERS" not in extra else None
     r = subprocess.run(["bash", str(inst / "install-mac.sh"), *args], env=env, capture_output=True, text=True,
                        timeout=60)

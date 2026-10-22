@@ -125,7 +125,7 @@ def test_kein_dsn_zwischenfile_mehr(fake_mac):
     Jetzt wird es nirgends mehr geschrieben oder gelesen, nur Altreste gelöscht."""
     assert ".pg_dsn_tmp" not in POSTGRES.read_text()
     lines = [x for x in LAUNCHD.read_text().splitlines() if ".pg_dsn_tmp" in x]
-    assert lines and all(x.strip().startswith("rm -f") for x in lines), lines
+    assert lines and all(x.strip().startswith(("rm -f", "priv rm -f")) for x in lines), lines
     rest = fake_mac["cfg"] / ".pg_dsn_tmp"
     rest.write_text(DSN)
     _run_launchd(fake_mac)

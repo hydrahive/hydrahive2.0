@@ -289,3 +289,17 @@ def test_running_vm_without_daemon_process_is_handed_over(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac)
     assert calls.index("colima stop hydrahive") < calls.index(f"launchctl load {mac['plist']}")
+
+
+def test_service_account_vm_started_as_account_not_mac_owner(mac):
+    """Dienst-Konto: Installer läuft als Mac-Besitzer, die VM gehört aber _hydrahive (sonst sperrt macOS das LAN)."""
+    _run(mac)
+    _install_stubs(mac)
+    mac["calls"].write_text("")
+    r = _run(mac, HH_USER="_hydrahive", HH_BREW_USER="alexmo")
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    starts = [c for c in calls if c.startswith("sudo -u _hydrahive") and " colima start " in c]
+    assert starts, calls
+    assert f"HOME={mac['tmp']}/home" in starts[0] and f"COLIMA_HOME={mac['data']}/colima" in starts[0]
+    assert plistlib.loads(mac["plist"].read_bytes())["UserName"] == "_hydrahive"

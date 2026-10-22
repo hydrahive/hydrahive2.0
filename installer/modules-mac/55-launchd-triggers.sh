@@ -7,8 +7,10 @@ log() { printf "  · %s\n" "$*"; }
 UPDATE_PLIST="/Library/LaunchDaemons/io.hydrahive.update.plist"
 RESTART_PLIST="/Library/LaunchDaemons/io.hydrahive.restart.plist"
 
-touch /usr/local/var/log/hydrahive2-update.log
-chmod 644 /usr/local/var/log/hydrahive2-update.log
+# sudo: mit eigenem Dienst-Konto gehört der Log-Ordner nicht mehr dem Mac-Besitzer (20-paths.sh).
+[ -d /usr/local/var/log ] || sudo mkdir -p /usr/local/var/log
+sudo touch /usr/local/var/log/hydrahive2-update.log
+sudo chmod 644 /usr/local/var/log/hydrahive2-update.log
 
 log "Schreibe $UPDATE_PLIST"
 sudo tee "$UPDATE_PLIST" > /dev/null <<EOF

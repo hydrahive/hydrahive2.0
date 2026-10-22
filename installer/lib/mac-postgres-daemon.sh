@@ -24,25 +24,40 @@ LABEL="io.hydrahive.postgres"
 AGENT_LABEL="homebrew.mxcl.postgresql@16"
 WAIT="${HH_PG_WAIT:-30}"
 
-as_root() { [ "$(id -u)" -eq 0 ]; }
-# brew über den vollen Pfad: als root (update-mac.sh) liegt brew nicht im PATH – sudo setzt einen eigenen
-# (Befund 21.10.2026 auf dem Test-Mac). Homebrew verweigert root – dann über den HydraHive-Nutzer.
-HH_BREW="${HH_BREW:-}"
-if [ -z "$HH_BREW" ]; then
-  for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
-    if [ -x "$candidate" ]; then HH_BREW="$candidate"; break; fi
-  done
-fi
-[ -n "$HH_BREW" ] || HH_BREW="$(command -v brew || echo brew)"
-run_brew() { if as_root; then sudo -u "$HH_USER" "$HH_BREW" "$@"; else "$HH_BREW" "$@"; fi; }
-priv() { if as_root; then "$@"; else sudo "$@"; fi; }
+# Zwei Rollen: brew als Homebrew-Besitzer (verweigert root), Datenbank als Dienst-Konto (lib/mac-roles.sh).
+# readlink: update-mac.sh-Tests rufen das Skript über einen Symlink auf.
+# shellcheck source=mac-roles.sh
+source "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")/mac-roles.sh"
+run_brew() { as_brew "$@"; }
 
 eval "$(/usr/local/bin/brew shellenv zsh 2>/dev/null || /opt/homebrew/bin/brew shellenv zsh 2>/dev/null || true)"
 
 BREW_PREFIX="$(run_brew --prefix)"
 PG_PREFIX="$(run_brew --prefix postgresql@16)"
-DATA_DIR="$BREW_PREFIX/var/postgresql@16"
-PG_LOG="$BREW_PREFIX/var/log/postgresql@16.log"
+# Eigenes Dienst-Konto: eigener Datenordner (gehört dem Konto, nicht im Homebrew-Ordner des Mac-Besitzers).
+# Sonst wie bisher der Homebrew-Datenordner.
+if hh_service_account; then
+  DATA_DIR="${HH_PG_DATA:-/usr/local/var/hydrahive2/postgres}"
+  PG_LOG="${HH_PG_LOG:-/usr/local/var/log/hydrahive2-postgres.log}"
+  if [ ! -f "$DATA_DIR/PG_VERSION" ]; then
+    log "Lege Datenbank-Ordner für $HH_USER an ($DATA_DIR)"
+    priv mkdir -p "$DATA_DIR"
+    priv chown -R "$HH_USER" "$DATA_DIR"   # nur der eigene Ordner – daneben liegen z. B. Tailscale-Schlüssel (root)
+    priv chmod 700 "$DATA_DIR"
+    # Superuser = Dienst-Konto (wie Homebrew: Superuser = Besitzer); lokal trust wie Homebrew.
+    # cd /tmp: sudo -u aus einem fremden Ordner gibt sonst getcwd-Warnungen (Machbarkeit 22.10.2026).
+    # Feste Sprache: der Update-Dienst (launchd) läuft ohne LANG – initdb bricht sonst mit „invalid locale
+    # settings“ ab (Befund 22.10.2026, M2, Knopf im Cockpit). en_US.UTF-8 wie der Dienst unten und Homebrew.
+    ( cd /tmp && as_svc env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 "$PG_PREFIX/bin/initdb" -D "$DATA_DIR" -U "$HH_USER" \
+        -A trust -E UTF8 --locale=en_US.UTF-8 >/dev/null )
+  fi
+  priv mkdir -p "$(dirname "$PG_LOG")"
+  priv touch "$PG_LOG"
+  priv chown "$HH_USER" "$PG_LOG"
+else
+  DATA_DIR="$BREW_PREFIX/var/postgresql@16"
+  PG_LOG="$BREW_PREFIX/var/log/postgresql@16.log"
+fi
 
 # 0) Datenverzeichnis muss dem Nutzer gehören, unter dem der Daemon läuft (postgres verweigert
 #    sonst den Start). Bei abweichendem Besitzer abbrechen statt still umzustellen.
@@ -58,14 +73,12 @@ fi
 # 1) brew-services-Agent abmelden (startet sonst bei der Anmeldung einen zweiten Postmaster).
 log "brew-services-Agent für postgresql@16 abmelden (falls vorhanden)"
 if as_root; then
-  uid="$(id -u "$HH_USER")"
+  uid="$(id -u "$HH_BREW_USER")"
   launchctl bootout "gui/$uid/$AGENT_LABEL" >/dev/null 2>&1 || true
-  sudo -u "$HH_USER" brew services stop postgresql@16 >/dev/null 2>&1 || true
-else
-  brew services stop postgresql@16 >/dev/null 2>&1 || true
 fi
-AGENT_HOME="$(dscl . -read "/Users/$HH_USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}' || true)"
-[ -n "$AGENT_HOME" ] || AGENT_HOME="/Users/$HH_USER"
+as_brew services stop postgresql@16 >/dev/null 2>&1 || true
+AGENT_HOME="$(dscl . -read "/Users/$HH_BREW_USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}' || true)"
+[ -n "$AGENT_HOME" ] || AGENT_HOME="/Users/$HH_BREW_USER"
 priv rm -f "$AGENT_HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
 
 # 2) LaunchDaemon schreiben (Parameter wie der Service-Block der Homebrew-Formel).
@@ -91,7 +104,7 @@ priv tee "$PLIST" > /dev/null <<EOF
     <key>UserName</key>
     <string>${HH_USER}</string>
     <key>WorkingDirectory</key>
-    <string>${BREW_PREFIX}</string>
+    <string>$(dirname "$DATA_DIR")</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>

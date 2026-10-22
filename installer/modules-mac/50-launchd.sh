@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 log() { printf "  · %s\n" "$*"; }
+# shellcheck source=../lib/mac-roles.sh
+source "$(dirname "$0")/../lib/mac-roles.sh"
 
 PLIST_LABEL="io.hydrahive.backend"
 PLIST_FILE="${HH_BACKEND_PLIST:-/Library/LaunchDaemons/${PLIST_LABEL}.plist}"
@@ -23,18 +25,22 @@ HH_TS_BIN="${HH_TS_BIN:-/usr/local/lib/hydrahive2/tailscale/bin}"
 
 # JWT-Secret
 SECRET_FILE="$HH_CONFIG_DIR/secret_key"
-if [ ! -f "$SECRET_FILE" ]; then
+if ! priv test -f "$SECRET_FILE"; then
   log "Generiere JWT-Secret"
-  python3 -c "import secrets; print(secrets.token_urlsafe(48))" > "$SECRET_FILE"
-  chmod 600 "$SECRET_FILE"
+  python3 -c "import secrets; print(secrets.token_urlsafe(48))" | priv tee "$SECRET_FILE" > /dev/null
 fi
+hh_service_account && priv chown "$HH_USER" "$SECRET_FILE"
 # Secrets NICHT in die plist: sie ist root:wheel 0644 und für jeden lokalen
 # Nutzer lesbar (auch per `launchctl print`). HH_SECRET_KEY und
 # HH_PG_MIRROR_DSN liest mac-backend-start.sh beim Start aus secret_key und
 # pg_mirror.dsn (beide 0600). Reste aus alten Installationen aufräumen:
-chmod 600 "$SECRET_FILE"
-[ -f "$HH_CONFIG_DIR/pg_mirror.dsn" ] && chmod 600 "$HH_CONFIG_DIR/pg_mirror.dsn"
-rm -f "$HH_CONFIG_DIR/.pg_dsn_tmp"
+priv chmod 600 "$SECRET_FILE"
+if priv test -f "$HH_CONFIG_DIR/pg_mirror.dsn"; then priv chmod 600 "$HH_CONFIG_DIR/pg_mirror.dsn"; fi
+priv rm -f "$HH_CONFIG_DIR/.pg_dsn_tmp"
+
+# HOME: eigenes Dienst-Konto → dessen Home (Caches); alter Weg wie bisher /Users/<Mac-Besitzer>.
+SVC_HOME="/Users/${HH_USER}"
+hh_service_account && SVC_HOME="$(hh_svc_home)"
 
 log "Schreibe $PLIST_FILE"
 sudo tee "$PLIST_FILE" > /dev/null <<EOF
@@ -72,7 +78,7 @@ sudo tee "$PLIST_FILE" > /dev/null <<EOF
         <key>HH_LOG_DIR</key>
         <string>/usr/local/var/log</string>
         <key>HOME</key>
-        <string>/Users/${HH_USER}</string>
+        <string>${SVC_HOME}</string>
         <key>PATH</key>
         <string>${HH_REPO_DIR}/.venv/bin:${CT_PATH}${BREW_PREFIX}/opt/python@3.12/bin:${BREW_PREFIX}/bin:/usr/local/bin:/usr/bin:/bin</string>
         <key>COLIMA_HOME</key>
