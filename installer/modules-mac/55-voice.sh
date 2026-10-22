@@ -69,9 +69,13 @@ ensure_venv() {   # $1=Name  $2..=pip-Argumente
   printf '%s\n' "$want" | priv tee "$mark" > /dev/null
   CHANGED="$CHANGED $name"
 }
-# Nur fertige Pakete; pysilero-vad gibt es für Intel-Macs nur als Quellcode (Xcode-Kommandozeilenwerkzeuge).
+# Nur fertige Pakete. pysilero-vad gibt es nur für Apple-Macs fertig, für Intel-Macs nur als Quellcode (Xcode-
+# Kommandozeilenwerkzeuge). Auf Apple-Macs darum nichts bauen: passen die Werkzeuge nicht zum SDK, bräche Voice ab
+# (Befund 23.10.2026 beim Tester, macOS 27 – bei Tailscale: „tapi error: unknown architecture“).
 # Sichere Array-Schreibweise für /bin/bash 3.2 (tests/test_mac_bash32.py).
-ensure_venv stt --only-binary=:all: --no-binary=pysilero-vad ${STT_PINS[@]+"${STT_PINS[@]}"}
+STT_SRC=()
+[ "${HH_VOICE_ARCH:-$(uname -m)}" = "arm64" ] || STT_SRC=(--no-binary=pysilero-vad)
+ensure_venv stt --only-binary=:all: ${STT_SRC[@]+"${STT_SRC[@]}"} ${STT_PINS[@]+"${STT_PINS[@]}"}
 ensure_venv tts --only-binary=:all: ${TTS_PINS[@]+"${TTS_PINS[@]}"}
 
 # --- 2) Modelle/Stimmen gehören dem Dienstnutzer ------------------------------------------------------------------
