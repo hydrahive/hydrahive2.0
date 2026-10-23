@@ -242,3 +242,33 @@ def test_send_without_model_is_409(client, auth_headers, monkeypatch):
     assert r.status_code == 409
     assert r.json()["detail"]["code"] == "helpdesk_model_missing"
 
+
+
+def test_default_model_not_available_is_hint_not_error(setup_test_env, monkeypatch):
+    """Befund hydratest 23.10.2026: Standard-Modell steht in den Einstellungen, ist aber bei keinem Anbieter mehr
+    verfügbar → agents.create wirft AgentValidationError → Fenster bekam 500. Jetzt: Hinweis wie ohne Modell."""
+    from hydrahive.agents import AgentValidationError
+    from hydrahive.agents import config as agent_config
+    from hydrahive.helpdesk import _agent
+    from hydrahive.helpdesk._agent import get_or_create_help_agent
+
+    def boom(model):
+        raise AgentValidationError(f"Modell '{model}' ist nicht in der Live-Modell-Liste verfügbar.")
+    monkeypatch.setattr(_agent, "_check_model", boom)
+    state = get_or_create_help_agent("testuser")
+    assert state["model_missing"] is True and state["model_unavailable"] == "claude-sonnet-4-6"
+    assert not [a for a in agent_config.list_by_owner("testuser") if a.get("is_help")]
+
+
+def test_existing_agent_with_unavailable_model_is_hint(setup_test_env, monkeypatch):
+    from hydrahive.agents import AgentValidationError
+    from hydrahive.helpdesk import _agent
+    from hydrahive.helpdesk._agent import get_or_create_help_agent
+
+    get_or_create_help_agent("testuser")
+
+    def boom(model):
+        raise AgentValidationError("nicht verfügbar")
+    monkeypatch.setattr(_agent, "_check_model", boom)
+    state = get_or_create_help_agent("testuser")
+    assert state["model_missing"] is True and state["model_unavailable"] == "claude-sonnet-4-6"

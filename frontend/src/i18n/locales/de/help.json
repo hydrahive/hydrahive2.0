@@ -77,6 +77,7 @@
       "search": "sucht im Handbuch …",
       "read": "liest im Handbuch …",
       "think": "denkt nach …"
-    }
+    },
+    "model_unavailable": "Das Standard-Modell „{{model}}“ ist bei keinem eingerichteten Anbieter mehr verfügbar. Wähle unter KI-Modelle ein anderes Standard-Modell."
   }
 }

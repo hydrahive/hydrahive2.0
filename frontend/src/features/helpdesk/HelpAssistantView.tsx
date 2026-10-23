@@ -13,6 +13,7 @@ export interface HelpAssistantViewProps {
   bubbles: HelpBubble[]
   sending: boolean
   draft: string
+  unavailableModel?: string | null
   onToggle: () => void
   onDraft: (text: string) => void
   onSend: () => void
@@ -57,7 +58,9 @@ export function HelpAssistantView(p: HelpAssistantViewProps) {
         {p.status === "error" && <p data-help-error="1" className="text-red-300">{t("helpdesk.load_failed")}</p>}
         {p.status === "model_missing" && (
           <div className="space-y-3 rounded-[6px] border border-amber-300/40 bg-amber-300/10 p-3 text-amber-100">
-            <p>{t("helpdesk.model_missing")}</p>
+            <p>{p.unavailableModel
+              ? t("helpdesk.model_unavailable", { model: p.unavailableModel })
+              : t("helpdesk.model_missing")}</p>
             <button type="button" data-help-open-llm="1" onClick={p.onOpenLlm}
               className="inline-flex items-center gap-1.5 rounded-[4px] bg-[#69d7ff] px-3 py-1.5 text-xs font-semibold text-[#0b111c]">
               <Settings2 size={13} /> {t("helpdesk.open_llm")}

@@ -15,6 +15,7 @@ export function HelpAssistant() {
   const [bubbles, setBubbles] = useState<HelpBubble[]>([])
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
+  const [unavailable, setUnavailable] = useState<string | null>(null)
   const loaded = useRef(false)
 
   // Zustand erst beim ersten Öffnen holen – sonst legte jeder Seitenaufruf einen Hilfe-Agenten an.
@@ -22,6 +23,7 @@ export function HelpAssistant() {
     setStatus("loading")
     try {
       const st = await helpApi.state()
+      setUnavailable(st.model_unavailable ?? null)
       if (st.model_missing || !st.session_id) { setStatus("model_missing"); return }
       setSessionId(st.session_id)
       setBubbles(messagesToBubbles(await helpApi.messages(st.session_id)))
@@ -67,6 +69,7 @@ export function HelpAssistant() {
 
   return (
     <HelpAssistantView open={open} status={status} bubbles={bubbles} sending={sending} draft={draft}
+      unavailableModel={unavailable}
       onToggle={toggle} onDraft={setDraft} onSend={() => void send()} onOpenLlm={openLlm} />
   )
 }

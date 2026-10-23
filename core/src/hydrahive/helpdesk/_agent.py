@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import logging
 
+from hydrahive.agents import AgentValidationError
+from hydrahive.agents import _validation
 from hydrahive.agents import config as agent_config
 from hydrahive.db import sessions as sessions_db
 from hydrahive.llm._config import load_config
@@ -49,11 +51,29 @@ def _session_for(agent: dict, username: str) -> str:
     return s.id
 
 
+def _check_model(model: str) -> None:
+    _validation.validate_model(model)
+
+
+def _missing(model: str | None = None) -> dict:
+    out: dict = {"model_missing": True, "agent_id": None, "session_id": None, "created": False}
+    if model:
+        out["model_unavailable"] = model   # eingetragen, aber bei keinem Anbieter verfügbar
+    return out
+
+
 def get_or_create_help_agent(username: str) -> dict:
-    """{agent_id, session_id, created, model_missing}. Ohne Standard-Modell: nur model_missing=True."""
+    """{agent_id, session_id, created, model_missing}. Ohne nutzbares Standard-Modell: model_missing=True
+    (+ model_unavailable, wenn eins eingetragen ist, das kein Anbieter mehr anbietet)."""
     model = (load_config().get("default_model") or "").strip()
     if not model:
-        return {"model_missing": True, "agent_id": None, "session_id": None, "created": False}
+        return _missing()
+    # Befund hydratest 23.10.2026: eingetragenes, aber nicht mehr verfügbares Modell → vorher 500 im Fenster.
+    try:
+        _check_model(model)
+    except AgentValidationError:
+        logger.info("Hilfe-Assistent: Standard-Modell %s nicht verfügbar", model)
+        return _missing(model)
 
     agent = _help_agent_for(username)
     created = agent is None

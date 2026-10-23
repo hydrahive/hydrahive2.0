@@ -8,6 +8,7 @@ export interface HelpState {
   agent_id: string | null
   session_id: string | null
   created: boolean
+  model_unavailable?: string
 }
 
 export const helpApi = {

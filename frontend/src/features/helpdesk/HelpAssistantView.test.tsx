@@ -33,6 +33,12 @@ describe("Hilfe-Assistent", () => {
     expect(html).not.toContain("<textarea")
   })
 
+  it("eingetragenes, aber nicht verfügbares Modell: eigener Hinweis mit Modellnamen", () => {
+    const html = renderToStaticMarkup(<HelpAssistantView {...props({ status: "model_missing", unavailableModel: "claude-x" })} />)
+    expect(html).toContain("helpdesk.model_unavailable")
+    expect(html).toContain('data-help-open-llm="1"')
+  })
+
   it("zeigt Verlauf, „sucht im Handbuch“ und Fehler", () => {
     const html = renderToStaticMarkup(<HelpAssistantView {...props({ bubbles: [
       { id: "1", role: "user", text: "Wie geht das?" },
