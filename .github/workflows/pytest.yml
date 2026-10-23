@@ -26,6 +26,8 @@ jobs:
         timeout-minutes: 5
         run: |
           if ! command -v qemu-img >/dev/null 2>&1; then
+            # Paketindex des Runner-Images kann veraltet sein → ohne update 404 auf security.ubuntu.com
+            sudo apt-get update -q
             sudo env DEBIAN_FRONTEND=noninteractive \
               apt-get install -y --no-install-recommends qemu-utils
           fi
@@ -77,6 +79,8 @@ jobs:
         timeout-minutes: 5
         run: |
           if ! command -v qemu-img >/dev/null 2>&1; then
+            # Paketindex des Runner-Images kann veraltet sein → ohne update 404 auf security.ubuntu.com
+            sudo apt-get update -q
             sudo env DEBIAN_FRONTEND=noninteractive \
               apt-get install -y --no-install-recommends qemu-utils
           fi
