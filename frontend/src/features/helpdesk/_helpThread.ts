@@ -14,10 +14,14 @@ export interface HelpBubble {
 
 const LIVE = "live"
 
+/** Antworttext ohne Vorrede: nur der Text nach dem letzten Werkzeug-Aufruf („Ich schaue kurz nach.“ vor der Suche
+ *  klebte sonst vor der eigentlichen Antwort – Live-Befund 23.10.2026). */
 function textOf(content: Message["content"]): string {
   if (typeof content === "string") return content
   if (!Array.isArray(content)) return ""
+  const lastTool = content.map((b) => b.type).lastIndexOf("tool_use")
   return content
+    .slice(lastTool + 1)
     .filter((b): b is Extract<ContentBlock, { type: "text" }> => b.type === "text")
     .map((b) => b.text)
     .join("")
@@ -60,7 +64,7 @@ export function applyHelpEvent(bubbles: HelpBubble[], ev: RunnerEvent): HelpBubb
       if (!live?.text) setLive({ text: ev.text, busy: undefined })
       break
     case "tool_use_start":
-      setLive({ busy: busyFor(ev.tool_name) })
+      setLive({ text: "", busy: busyFor(ev.tool_name) })   // Vorrede vor dem Werkzeug verwerfen
       break
     case "error":
       if (live) list.pop()
