@@ -101,8 +101,13 @@ tools find nothing.
 1. Click the **gear** next to the account on the left.
 2. Under **Sharing with agents**, choose a project (or **My Buddy (no project)**)
    and click **Share**.
-3. From now on, agents in that project may **read** the account: search, read
-   mail, and save attachments to their workspace (`mailbox-anhaenge/`).
+3. Choose the **level**:
+   - **read**: search, read mail, and save attachments to the workspace
+     (`mailbox-anhaenge/`).
+   - **Draft**: additionally create drafts, move mail, and mark it as read or
+     flagged.
+
+You can change the level later in the list of shares.
 
 The trash icon removes the sharing again. Removing the account also removes its
 sharing.
@@ -113,8 +118,11 @@ sharing.
 - An agent sees the account only while working for a **member** of that project.
   Other projects do not see it.
 - **My Buddy** applies only to your own Buddy without a project.
-- Agents currently **cannot send, delete, move, or flag** mail. Drafts and sending
-  with confirmation will follow in later versions.
+- Agents can **never send and never delete**. You review and send a draft
+  yourself in the webmail. Sending with confirmation will follow in a later
+  version.
+- An agent only changes drafts that an agent created in **this** project. It
+  never touches your own drafts.
 
 ### The tools
 
@@ -124,6 +132,14 @@ sharing.
 | `mailbox_search` | search with the same filters as the search field (at most 50 hits) |
 | `mailbox_read` | read a message as text, with its attachment list |
 | `mailbox_attachment` | save an attachment to the workspace (up to 25 MB, never overwrites) |
+| `mailbox_draft` | Draft level: create a draft or change its own, also as reply/forward |
+| `mailbox_move` | Draft level: move mail to another folder |
+| `mailbox_flag` | Draft level: read/unread, flag/unflag |
+
+### Drafts from agents
+
+Drafts created by an agent appear under **Drafts** with the **Agent** label.
+Open them, check recipients and text, and only then send them yourself.
 
 Mail text is **untrusted content**: the agent receives it explicitly marked as
 such and must never follow instructions contained in it. Agents never see
