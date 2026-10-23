@@ -3,7 +3,8 @@
 > **Status: experimentell.** HydraHive läuft auf dem Mac, der Mac-Installer ist aber einfacher als der
 > Linux-Installer. Einige Funktionen gibt es auf dem Mac nicht (siehe [Was auf dem Mac nicht geht](#was-auf-dem-mac-nicht-geht)).
 > Für einen Server, der rund um die Uhr läuft, empfehlen wir Linux (Ubuntu).
-> Zuletzt getestet: 21.10.2026 auf einem Intel-iMac mit macOS 15.3 (Update mit AgentLink). Erste Rückmeldungen von Apple-Silicon-Macs laufen.
+> Zuletzt getestet: 23.10.2026 auf einem Intel-iMac (macOS 15.3) und einem MacBook Air M2 (macOS 27): Neuinstallation,
+> Umzug älterer Installationen per Update, Container, Tailscale und Voice.
 
 English version: [INSTALL-macOS.md](INSTALL-macOS.md) ·
 Du lässt eine KI installieren? → [Kurzfassung für KI-Assistenten](#kurzfassung-für-ki-assistenten)
@@ -34,7 +35,7 @@ Du lässt eine KI installieren? → [Kurzfassung für KI-Assistenten](#kurzfassu
 |---|---|
 | **Wie lange dauert das?** | 30–60 Minuten. Das meiste ist Warten auf Downloads. |
 | **Muss ich programmieren können?** | Nein. Du kopierst Befehle aus dieser Anleitung in das Programm **Terminal**. Jeder Befehl steht hier zum Kopieren. |
-| **Brauche ich einen speziellen Benutzer?** | **Nein, aber einen Administrator.** Du nimmst dein normales Mac-Benutzerkonto, wenn es Administratorrechte hat. HydraHive läuft danach unter **genau diesem Benutzer**. Lösche ihn später also nicht. Ein eigenes Konto nur für HydraHive ist möglich, aber nicht nötig (siehe [Schritt 2](#2-am-mac-anmelden--mit-dem-richtigen-benutzer)). |
+| **Brauche ich einen speziellen Benutzer?** | **Nein, aber einen Administrator.** Du installierst mit deinem normalen Mac-Benutzerkonto, wenn es Administratorrechte hat. HydraHive selbst läuft danach unter einem eigenen, versteckten Konto `_hydrahive`, das der Installer anlegt (siehe [Schritt 6](#6-installer-starten--und-was-dann-passiert)). Dein Konto braucht HydraHive weiter für Homebrew. |
 | **Welches Passwort wird abgefragt?** | Immer **das Passwort, mit dem du dich am Mac anmeldest**. Erst ganz am Ende bekommst du ein neues, zufälliges Passwort für HydraHive. |
 | **Brauche ich Internet?** | Ja, während der ganzen Installation. |
 | **Kostet das etwas?** | HydraHive und alle Programme, die installiert werden, sind kostenlos. Für die KI selbst brauchst du **danach** entweder einen Zugang bei einem KI-Anbieter (kostet je nach Nutzung) oder ein lokales Modell über Ollama (kostenlos, braucht viel Arbeitsspeicher). |
@@ -98,9 +99,8 @@ Wichtig ist nur: Das Konto muss **Administratorrechte** haben.
 **Merke dir den Kurznamen deines Kontos.** Den brauchst du später nicht unbedingt, er hilft aber bei Problemen.
 Du findest ihn im Terminal mit dem Befehl `whoami`.
 
-> **Soll HydraHive unter einem eigenen Konto laufen?** Das geht. Lege unter „Benutzer:innen & Gruppen“ ein neues
-> Konto vom Typ **Administrator** an (z. B. „hydrahive“), melde dich ab, melde dich mit dem neuen Konto an und
-> mach dort ab Schritt 3 weiter. Für den Anfang ist das aber **nicht nötig**.
+> **Ein eigenes Konto für HydraHive musst du nicht anlegen.** Das erledigt der Installer: HydraHive läuft unter dem
+> versteckten Systemkonto `_hydrahive` (siehe [Schritt 6](#6-installer-starten--und-was-dann-passiert)).
 
 > **Der Mac steht woanders? Fernanmeldung per SSH.** Am Mac: **Systemeinstellungen → Allgemein → Teilen →
 > „Entfernte Anmeldung“** einschalten. Dann von einem anderen Computer aus im Terminal
@@ -361,6 +361,9 @@ Nach der Installation ist **noch kein KI-Modell** eingerichtet. Ohne Modell antw
 | **Ollama (lokal)** | Datenschutz, offline | viel Arbeitsspeicher; Anleitung unten |
 
 4. Speichern. Danach unter **„Standard-Modelle“** ein Modell als Standard auswählen.
+   Für das **Gedächtnis** (Buddy findet frühere Gespräche auch, wenn andere Wörter benutzt wurden) braucht es dort
+   zusätzlich ein **Embedding-Modell**, z. B. `text-embedding-3-small` (OpenAI) oder `baai/bge-m3` (OpenRouter).
+   Ohne Embedding-Modell findet die Suche nur Stellen, in denen das gesuchte Wort genau vorkommt.
 5. **Test:** `https://localhost/buddy` öffnen und „Hallo“ schreiben. Kommt eine Antwort? → 🎉 Fertig!
 
 > Erscheinen nach einem Login keine Modelle in der Auswahl? Starte den Dienst einmal neu, siehe
@@ -386,9 +389,11 @@ Danach in HydraHive unter **Provider hinzufügen** den Eintrag **„Ollama (loka
 sudo launchctl list | grep io.hydrahive
 ```
 
-Erwartet sind sieben Zeilen mit `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.postgres`,
-`io.hydrahive.agentlink`, `io.hydrahive.agentlink-frontend`, `io.hydrahive.update` und `io.hydrahive.restart`. Steht in
-der ersten Spalte eine **Zahl**, läuft der Dienst. Ein `-` ist bei `update`/`restart` normal, die laufen nur bei Bedarf.
+Erwartet sind acht Zeilen mit `io.hydrahive.backend`, `io.hydrahive.nginx`, `io.hydrahive.postgres`,
+`io.hydrahive.agentlink`, `io.hydrahive.agentlink-frontend`, `io.hydrahive.update`, `io.hydrahive.restart` und
+`io.hydrahive.addon`. Mit den Zusatz-Modulen kommen `io.hydrahive.colima` (Container), `io.hydrahive.tailscaled`
+(Tailscale) und `io.hydrahive.voice-stt` / `io.hydrahive.voice-tts` (Voice) dazu. Steht in der ersten Spalte eine
+**Zahl**, läuft der Dienst. Ein `-` ist bei `update`, `restart` und `addon` normal, die laufen nur bei Bedarf.
 
 > **Installation von vor Oktober 2026?** Dann fehlt AgentLink (die zwei `agentlink`-Zeilen). Ein normales Update im
 > Cockpit (Einstellungen → System → Update) richtet es nach.
@@ -403,7 +408,8 @@ Erwartet ist eine Zeile mit `"status":"ok"`.
 "$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1
 ```
 
-Erwartet: `127.0.0.1:5432 - accepting connections` (die Datenbank).
+Erwartet: `127.0.0.1:5432 - accepting connections` (die Datenbank). Ist der Mac auf Deutsch eingestellt, steht dort
+`Verbindungen werden angenommen`.
 
 ```bash
 curl -s http://127.0.0.1:9000/health
@@ -488,8 +494,10 @@ genau wie unter Linux. Dafür läuft im Hintergrund eine kleine **Linux-VM** (Co
 
 ```bash
 sudo launchctl list | grep io.hydrahive.colima
-COLIMA_HOME=/usr/local/var/hydrahive2/colima /usr/local/lib/hydrahive2/containers/bin/incus list
+cd /tmp && sudo -u _hydrahive env HOME=/usr/local/var/hydrahive2/home COLIMA_HOME=/usr/local/var/hydrahive2/colima /usr/local/lib/hydrahive2/containers/bin/incus list
 ```
+
+Die VM gehört dem Konto `_hydrahive`. Als dein eigener Benutzer findet `incus` sie nicht.
 
 Probleme: Log unter `/usr/local/var/log/hydrahive2-colima.log` bzw. `hydrahive2-addon.log`.
 
@@ -541,6 +549,8 @@ laufen als zwei Hintergrund-Dienste direkt auf dem Mac und starten beim Hochfahr
 | Läuft der Dienst? | `sudo launchctl list \| grep io.hydrahive` |
 | Läuft die Datenbank? | `"$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1` |
 | Datenbank neu starten | `sudo launchctl kickstart -k system/io.hydrahive.postgres` |
+| Datenbank-Log ansehen | `tail -50 /usr/local/var/log/hydrahive2-postgres.log` |
+| Zusatz-Module-Log ansehen | `tail -50 /usr/local/var/log/hydrahive2-addon.log` |
 | Fehler-Log ansehen | `tail -50 /usr/local/var/log/hydrahive2-error.log` |
 | Update-Log ansehen | `tail -50 /usr/local/var/log/hydrahive2-update.log` |
 | Webserver-Fehler | `tail -50 /usr/local/var/log/nginx-hydrahive-error.log` |
@@ -564,8 +574,11 @@ alten Stand wieder her und versucht es beim nächsten Update erneut. Wer den Umz
 **Befehle im HydraHive-Ordner** (z. B. `git`) laufen jetzt als das Konto:
 
 ```bash
-cd /tmp && sudo -u _hydrahive git -C /opt/hydrahive2 log --oneline -3
+cd /tmp && sudo -H -u _hydrahive git -C /opt/hydrahive2 log --oneline -3
 ```
+
+`cd /tmp` und `-H` sind wichtig: sonst beschwert sich git über deinen eigenen Benutzer-Ordner. Als dein eigener
+Benutzer meldet git „dubiose Besitzverhältnisse“, denn der Ordner gehört jetzt dem Konto.
 
 ---
 
@@ -609,7 +622,7 @@ Der grüne Kasten zeigt `(nicht neu – siehe Anleitung)`. Dafür gibt es zwei G
 2. **Der Dienst hat länger als eine Minute zum Starten gebraucht.** Dann steht das Passwort noch in einer Datei:
 
    ```bash
-   cat /usr/local/etc/hydrahive2/.admin_initial_password
+   sudo cat /usr/local/etc/hydrahive2/.admin_initial_password
    ```
 
    Gibt es die Datei nicht, schau im Fehler-Log nach:
@@ -633,7 +646,11 @@ installierte Programme werden übersprungen.
 1. Läuft die Datenbank? → `"$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1`
 2. Wenn nicht: `sudo launchctl kickstart -k system/io.hydrahive.postgres`, dann
    `sudo launchctl kickstart -k system/io.hydrahive.backend`
-3. Datenbank-Log ansehen → `tail -50 "$(brew --prefix)/var/log/postgresql@16.log"`
+3. Datenbank-Log ansehen → `tail -50 /usr/local/var/log/hydrahive2-postgres.log`
+   (Installationen ohne eigenes Konto: `tail -50 "$(brew --prefix)/var/log/postgresql@16.log"`)
+4. Die Suche findet nur genaue Wörter, aber nichts Ähnliches? Dann fehlt ein **Embedding-Modell**, siehe
+   [Schritt 8](#8-ki-einrichten-sonst-antwortet-buddy-nicht). Im Fehler-Log steht dann `Embedding None` oder
+   `Batch-Embedding fehlgeschlagen`.
 
 **Ältere Installation (vor Oktober 2026)?** Dort startete die Datenbank erst nach der Anmeldung. Ein Update
 (Cockpit oder `sudo bash /opt/hydrahive2/installer/update-mac.sh`) stellt das einmalig um.
@@ -643,11 +660,27 @@ Das passiert, wenn sich die Versionsgeschichte auf GitHub geändert hat. Die fol
 Änderungen am Programmcode, nicht deine Daten:
 
 ```bash
-cd /opt/hydrahive2
-git fetch origin
-git reset --hard origin/main
-sudo bash installer/update-mac.sh
+cd /tmp
+sudo -H -u _hydrahive git -C /opt/hydrahive2 fetch origin
+sudo -H -u _hydrahive git -C /opt/hydrahive2 reset --hard origin/main
+sudo bash /opt/hydrahive2/installer/update-mac.sh
 ```
+
+Bei Installationen ohne eigenes Konto (`HH_SERVICE_ACCOUNT=no`) lässt du `sudo -H -u _hydrahive` weg.
+
+### Installer oder Zusatz-Modul bricht mit `tapi error` / `unknown architecture` ab
+Apples Kommandozeilen-Werkzeuge passen nicht zur macOS-Version. Das passiert oft nach einem großen macOS-Update.
+Im Log steht etwa `ld: tapi error: malformed file … unknown architecture arm64e.x1-macos` oder
+`clang: error: linker command failed`. Werkzeuge neu installieren:
+
+```bash
+sudo rm -rf /Library/Developer/CommandLineTools
+xcode-select --install
+```
+
+Im Fenster „Installieren“ klicken, warten und danach den Installer bzw. das Zusatz-Modul noch einmal starten.
+Tailscale und Voice (auf Apple-Macs) brauchen diese Werkzeuge nicht mehr. Die Datenbank-Erweiterung bei der
+ersten Installation und Voice auf Intel-Macs werden aber noch selbst gebaut.
 
 ### Browser zeigt nach einem Update noch die alte Oberfläche
 Das liegt am Browser-Cache. Lade die Seite mit **⌘ + Shift + R** neu.
@@ -666,11 +699,24 @@ sudo rm /Library/LaunchDaemons/io.hydrahive.*.plist
 rm "$(brew --prefix)/etc/nginx/servers/hydrahive2.conf"
 ```
 
-Damit ist HydraHive gestoppt und startet nicht mehr. **Deine Daten sind noch da.** Erst der folgende Befehl löscht
+Damit ist HydraHive gestoppt und startet nicht mehr. **Deine Daten sind noch da.** Erst die folgenden Befehle löschen
 sie endgültig, also vorher sichern:
 
 ```bash
-sudo rm -rf /opt/hydrahive2 /usr/local/var/hydrahive2 /usr/local/etc/hydrahive2
+sudo rm -rf /opt/hydrahive2 /opt/hydralink /usr/local/var/hydrahive2 /usr/local/etc/hydrahive2 /usr/local/etc/hydralink
+sudo rm -rf /usr/local/lib/hydrahive2
+sudo rm -f /usr/local/var/log/hydrahive2*.log /usr/local/var/log/agentlink*.log /usr/local/var/log/nginx-hydrahive*.log
+```
+
+`/usr/local/lib/hydrahive2` enthält die Programme für Container, Tailscale und Voice. Sicherungen vom Umzug auf das
+eigene Konto liegen unter `/usr/local/var/hydrahive2-backup-<datum>`. Die löschst du von Hand, wenn du sie nicht mehr
+brauchst.
+
+Zum Schluss das Konto `_hydrahive` entfernen:
+
+```bash
+sudo dscl . -delete /Users/_hydrahive
+sudo dscl . -delete /Groups/_hydrahive
 ```
 
 Die Programme aus Homebrew (Python, Node.js, PostgreSQL …) bleiben installiert. Entfernen kannst du sie bei Bedarf
@@ -699,12 +745,16 @@ mit `brew uninstall <name>`.
 | 4 | `brew install git && sudo mkdir -p /opt/hydrahive2 && sudo chown "$(whoami)" /opt/hydrahive2 && git clone https://github.com/hydrahive/hydrahive2.0.git /opt/hydrahive2` | `test -f /opt/hydrahive2/installer/install-mac.sh && echo ok` |
 | 5 | `cd /opt/hydrahive2 && bash installer/install-mac.sh` (dauert 15–45 min, fragt 1–2× nach dem sudo-Passwort) | grüner Kasten mit `URL` / `Benutzer: admin` / `Passwort` |
 | 6 | — | `curl -sk https://localhost/api/health` enthält `"status":"ok"` |
-| 7 | — | `sudo launchctl list \| grep io.hydrahive` zeigt `backend`, `nginx` und `postgres` mit PID |
+| 7 | — | `sudo launchctl list \| grep io.hydrahive` zeigt `backend`, `nginx`, `postgres`, `agentlink` und `agentlink-frontend` mit PID |
 | 8 | — | `"$(brew --prefix postgresql@16)/bin/pg_isready" -h 127.0.0.1` → `accepting connections` |
 | 9 | Mensch: `https://localhost` öffnen, mit `admin` anmelden, Passwort unter `/profile` ändern, unter `/llm` einen Provider anlegen | Buddy unter `/buddy` antwortet |
 
-**Pfade:** Code `/opt/hydrahive2` · Daten `/usr/local/var/hydrahive2` · Einstellungen `/usr/local/etc/hydrahive2` ·
-Logs `/usr/local/var/log/hydrahive2*.log` · Dienste `/Library/LaunchDaemons/io.hydrahive.{backend,nginx,postgres,update,restart}.plist` ·
-Backend `127.0.0.1:8001`, nginx `:80`/`:443`.
+**Konto:** Dienste laufen als verstecktes Systemkonto `_hydrahive` (UID 450–499). Code, Daten und Einstellungen gehören
+ihm. Homebrew gehört dem Menschen. `git`/`incus` im HydraHive-Ordner: `cd /tmp && sudo -H -u _hydrahive …`.
+`/usr/local/etc/hydrahive2` (inkl. `install.conf`) ist nur mit `sudo` lesbar.
+**Pfade:** Code `/opt/hydrahive2` · AgentLink `/opt/hydralink` · Daten `/usr/local/var/hydrahive2` ·
+Einstellungen `/usr/local/etc/hydrahive2` · Datenbank `/usr/local/var/hydrahive2/postgres` ·
+Logs `/usr/local/var/log/hydrahive2*.log` · Dienste `/Library/LaunchDaemons/io.hydrahive.*.plist` ·
+Backend `127.0.0.1:8001`, AgentLink `127.0.0.1:9000`, nginx `:80`/`:443`.
 **Fehler:** zuerst `tail -50 /usr/local/var/log/hydrahive2-error.log`, dann die [Problemlösung](#problemlösung).
 Der Installer ist wiederholbar: Bereits installierte brew-Pakete, venv und Datenbank werden übersprungen, das Frontend wird neu gebaut.
