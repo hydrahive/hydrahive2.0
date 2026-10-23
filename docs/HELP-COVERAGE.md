@@ -63,7 +63,8 @@
 | Archiver | /archiver | ❌ | niedrig |
 | Blueprint | /blueprint | ❌ | niedrig |
 | Boardgames/Minigames | /boardgames, /minigames | ❌ | sehr niedrig (Spiele) |
-| Musicplayer | /musicplayer | ❌ | niedrig |
+| Musicplayer | /musicplayer | ✅ | niedrig |
+| Mailbox | /mailbox | ✅ (Artikel + Button, Button im modules-Repo) | hoch |
 | Tasks | (Widget) | ❌ | niedrig |
 
 ## Zusammenfassung (Stand: Deep-Dive-Chargen 1–9 — ABGESCHLOSSEN)
