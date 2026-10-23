@@ -32,7 +32,8 @@ copy remains available under **Archive only**.
   start collapsed.
 - The round dot shows the account state. The circular arrow checks the account
   immediately.
-- The **gear** opens the account settings.
+- The **gear** opens the account settings (sender, signature, sharing with
+  agents, remove account).
 - **Drafts** contains your saved drafts.
 - **Archive only** shows mail that is no longer present on the server.
 
@@ -92,13 +93,48 @@ permission once.
 
 ## Agents and Mailbox
 
-The planned tools `mailbox_accounts`, `mailbox_search`, `mailbox_read`,
-`mailbox_draft`, and `mailbox_send` are **not available yet** in this version.
-HydraHive's general `read_mail` and `send_mail` tools use the global mail
-configuration and are not the same as the accounts in this Mailbox module.
+Agents only see a mail account **if you share it**. Without sharing, the Mailbox
+tools find nothing.
 
-Project sharing and Mailbox access for agents will follow in a later stage. Agent
-sending is intended to require a separate user confirmation for every message.
+### Share an account with a project
+
+1. Click the **gear** next to the account on the left.
+2. Under **Sharing with agents**, choose a project (or **My Buddy (no project)**)
+   and click **Share**.
+3. From now on, agents in that project may **read** the account: search, read
+   mail, and save attachments to their workspace (`mailbox-anhaenge/`).
+
+The trash icon removes the sharing again. Removing the account also removes its
+sharing.
+
+### Who may do what?
+
+- Only the account owner can share, and only with projects they are a member of.
+- An agent sees the account only while working for a **member** of that project.
+  Other projects do not see it.
+- **My Buddy** applies only to your own Buddy without a project.
+- Agents currently **cannot send, delete, move, or flag** mail. Drafts and sending
+  with confirmation will follow in later versions.
+
+### The tools
+
+| Tool | Purpose |
+|---|---|
+| `mailbox_accounts` | shared accounts and their folders |
+| `mailbox_search` | search with the same filters as the search field (at most 50 hits) |
+| `mailbox_read` | read a message as text, with its attachment list |
+| `mailbox_attachment` | save an attachment to the workspace (up to 25 MB, never overwrites) |
+
+Mail text is **untrusted content**: the agent receives it explicitly marked as
+such and must never follow instructions contained in it. Agents never see
+credentials or passwords.
+
+Every access is recorded in a **log** (who, when, which tool, result – without
+mail content). The most recent entries are shown in the account dialog under
+**Recent agent access**.
+
+The general `read_mail` and `send_mail` tools still use the global mail
+configuration and are unrelated to these accounts.
 
 ## Common problems
 

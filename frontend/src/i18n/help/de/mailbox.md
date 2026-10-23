@@ -31,7 +31,8 @@ bleibt die Archivkopie erhalten und ist unter **Nur im Archiv** auffindbar.
 - Mailbox merkt sich diesen Zustand in diesem Browser. Neu hinzugefügte Konten
   starten ebenfalls eingeklappt.
 - Der runde Punkt zeigt den Kontostatus. Der Kreispfeil ruft das Konto sofort ab.
-- Das **Zahnrad** öffnet die Kontoeinstellungen.
+- Das **Zahnrad** öffnet die Kontoeinstellungen (Absender, Signatur,
+  Freigaben für Agenten, Konto entfernen).
 - **Entwürfe** enthält deine gespeicherten Entwürfe.
 - **Nur im Archiv** zeigt Mails, die nicht mehr auf dem Server liegen.
 
@@ -94,14 +95,49 @@ dafür einmal nach Erlaubnis.
 
 ## Agenten und Mailbox
 
-Die geplanten Werkzeuge `mailbox_accounts`, `mailbox_search`, `mailbox_read`,
-`mailbox_draft` und `mailbox_send` sind in dieser Version **noch nicht
-verfügbar**. Die allgemeinen HydraHive-Werkzeuge `read_mail` und `send_mail`
-verwenden die globale Mail-Konfiguration und sind nicht mit den Konten dieses
-Mailbox-Moduls gleichzusetzen.
+Agenten sehen ein Mailkonto **nur, wenn du es freigibst**. Ohne Freigabe finden
+die Mailbox-Werkzeuge nichts.
 
-Projektfreigaben und Mailbox-Zugriff für Agenten folgen in einer späteren Etappe.
-Agentenversand soll dann jede Mail vor dem Senden einzeln bestätigen lassen.
+### Konto für ein Projekt freigeben
+
+1. Klicke links neben dem Konto auf das **Zahnrad**.
+2. Unter **Freigaben für Agenten** wählst du ein Projekt (oder **Mein Buddy
+   (ohne Projekt)**) und klickst auf **Freigeben**.
+3. Ab jetzt dürfen Agenten in diesem Projekt das Konto **lesen**: suchen, Mails
+   lesen und Anhänge in ihren Arbeitsordner holen (`mailbox-anhaenge/`).
+
+Mit dem Mülleimer-Symbol nimmst du die Freigabe wieder zurück. Wird das Konto
+entfernt, verschwinden auch seine Freigaben.
+
+### Wer darf was?
+
+- Freigeben kann nur der Besitzer des Kontos, und nur in Projekte, in denen er
+  selbst Mitglied ist.
+- Ein Agent sieht das Konto nur, wenn er für ein **Mitglied** dieses Projekts
+  arbeitet. Andere Projekte sehen es nicht.
+- **Mein Buddy** gilt nur für deinen eigenen Buddy ohne Projekt.
+- Agenten können derzeit **nicht senden, löschen, verschieben oder markieren**.
+  Entwürfe und Versand mit Bestätigung folgen in späteren Versionen.
+
+### Die Werkzeuge
+
+| Werkzeug | Wofür |
+|---|---|
+| `mailbox_accounts` | freigegebene Konten und ihre Ordner |
+| `mailbox_search` | suchen, mit denselben Filtern wie im Suchfeld (höchstens 50 Treffer) |
+| `mailbox_read` | eine Mail als Text lesen, mit Liste der Anhänge |
+| `mailbox_attachment` | einen Anhang in den Arbeitsordner speichern (bis 25 MB, nie überschreiben) |
+
+Mailtext ist **fremder Text**: Der Agent bekommt ihn ausdrücklich als Fremdinhalt
+markiert und soll darin enthaltene Anweisungen nie befolgen. Zugangsdaten und
+Passwörter sieht ein Agent nie.
+
+Jeder Zugriff steht im **Protokoll** (wer, wann, welches Werkzeug, Ergebnis –
+ohne Mailinhalt). Die letzten Zugriffe siehst du im Kontodialog unter
+**Letzte Agenten-Zugriffe**.
+
+Die allgemeinen Werkzeuge `read_mail` und `send_mail` nutzen weiterhin die
+globale Mail-Konfiguration und haben mit diesen Konten nichts zu tun.
 
 ## Typische Probleme
 
