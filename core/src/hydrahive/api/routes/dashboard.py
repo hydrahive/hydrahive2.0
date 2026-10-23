@@ -27,6 +27,7 @@ def summary(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
         all_agents = agent_config.list_all()
     else:
         all_agents = agent_config.list_by_owner(username)
+    all_agents = [a for a in all_agents if not a.get("is_help")]   # Hilfe-Assistent zählt nicht mit
     user_agent_ids = {a["id"] for a in all_agents}
 
     sessions_user = sessions_db.list_for_user(username, limit=200)

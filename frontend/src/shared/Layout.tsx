@@ -13,6 +13,7 @@ import { getStoredThemeId, getTheme } from "./themes/registry"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { AccessOutlet } from "@/features/access/AccessOutlet"
 import { useMyAccess } from "@/features/access/useMyAccess"
+import { HelpAssistant } from "@/features/helpdesk/HelpAssistant"
 
 /** LayoutHost — sammelt gemeinsames Chrome (Nav, Update-State), wählt das aktive
  *  Theme-Layout-Gerüst und hält globale Overlays (Bento, UpdateModal). Das
@@ -112,6 +113,7 @@ export function Layout() {
       )}
 
       <VaultPinDialog />
+      <HelpAssistant />
       {updateState !== "idle" && (
         <UpdateModal
           state={updateState} newCommit={newCommit} errorMessage={updateError}

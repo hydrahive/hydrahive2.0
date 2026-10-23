@@ -79,7 +79,8 @@ def list_defaults(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
 def list_agents(auth: Annotated[tuple[str, str], Depends(require_auth)]) -> list[dict]:
     username, role = auth
     agents = agent_config.list_all() if role == "admin" else agent_config.list_by_owner(username)
-    return [_public(a) for a in agents]
+    # Hilfe-Assistent (Knopf unten rechts) ist kein Agent zum Bearbeiten – docs/plans/help-assistant.md
+    return [_public(a) for a in agents if not a.get("is_help")]
 
 
 @router.get("/{agent_id}")

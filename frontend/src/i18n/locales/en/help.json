@@ -61,5 +61,23 @@
       "streaming": "Streaming",
       "extensions": "Extensions"
     }
+  },
+  "helpdesk": {
+    "title": "Help assistant",
+    "open": "Open help assistant",
+    "close": "Close",
+    "loading": "Loading …",
+    "load_failed": "The help assistant could not be loaded. Please try again later.",
+    "model_missing": "No AI is set up for the help assistant yet. Add a provider under AI models and choose a default model.",
+    "open_llm": "Set up AI",
+    "welcome": "Hi! I know the HydraHive manual. Ask me how something works – for example “How do I create an agent?” or “What can I do on this page?”",
+    "placeholder": "Your question …",
+    "send": "Send",
+    "busy": {
+      "search": "searching the manual …",
+      "read": "reading the manual …",
+      "think": "thinking …"
+    },
+    "model_unavailable": "The default model “{{model}}” is no longer available from any configured provider. Choose another default model under AI models."
   }
 }
