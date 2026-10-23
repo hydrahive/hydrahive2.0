@@ -59,10 +59,10 @@ fi
 
 cd "$HH_REPO_DIR"
 # git immer als Dienstnutzer – als root lehnt git das fremde Repo ab („dubious ownership“, docs/specs/mac-update.md).
-sudo -u "$HH_USER" git pull --ff-only 2>&1 | to_log || fail "git pull fehlgeschlagen"
+sudo -H -u "$HH_USER" git pull --ff-only 2>&1 | to_log || fail "git pull fehlgeschlagen"
 
 log "Python-Pakete aktualisieren"
-sudo -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core" >> "$LOG" 2>&1 \
+sudo -H -u "$HH_USER" "$HH_REPO_DIR/.venv/bin/pip" install -e "$HH_REPO_DIR/core" >> "$LOG" 2>&1 \
   || fail "pip install fehlgeschlagen"
 HEAL="$HH_REPO_DIR/installer/lib/mac-python-heal.sh"
 if [ -f "$HEAL" ]; then
@@ -77,7 +77,7 @@ fi
 # docs/specs/mac-update.md §4) – holt so auch Builds nach, die frühere Updates verpasst haben.
 DIST="$HH_REPO_DIR/frontend/dist"
 MARK="$DIST/.hh-frontend-rev"
-FRONTEND_REV="$(sudo -u "$HH_USER" git log -1 --format=%H -- frontend/ 2>>"$LOG" || true)"
+FRONTEND_REV="$(sudo -H -u "$HH_USER" git log -1 --format=%H -- frontend/ 2>>"$LOG" || true)"
 BUILD=""
 if [ ! -f "$DIST/index.html" ]; then
   BUILD="kein fertiger Build"
@@ -91,9 +91,9 @@ if [ -n "$BUILD" ]; then
   cd "$HH_REPO_DIR/frontend"
   # npm ci: genau nach package-lock.json, ändert sie nie (npm install schrieb sie um → nächstes git pull scheiterte)
   # PATH mitgeben: sudo setzt secure_path ohne Homebrew → „sudo: npm: command not found“ (Befund 21.10.2026).
-  sudo -u "$HH_USER" env "PATH=$PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || fail "npm ci fehlgeschlagen"
-  sudo -u "$HH_USER" env "PATH=$PATH" npm run build >> "$LOG" 2>&1 || fail "Frontend-Build fehlgeschlagen"
-  [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -u "$HH_USER" tee "$MARK" > /dev/null
+  sudo -H -u "$HH_USER" env "PATH=$PATH" npm ci --no-fund --no-audit >> "$LOG" 2>&1 || fail "npm ci fehlgeschlagen"
+  sudo -H -u "$HH_USER" env "PATH=$PATH" npm run build >> "$LOG" 2>&1 || fail "Frontend-Build fehlgeschlagen"
+  [ -n "$FRONTEND_REV" ] && printf '%s\n' "$FRONTEND_REV" | sudo -H -u "$HH_USER" tee "$MARK" > /dev/null
   cd "$HH_REPO_DIR"
 fi
 

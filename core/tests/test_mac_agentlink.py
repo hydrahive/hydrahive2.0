@@ -166,7 +166,7 @@ def _nginx_conf(tmp_path: Path) -> str:
     prefix = tmp_path / "brew"
     (bin_ / "brew").write_text(f'#!/bin/bash\ncase "$1" in --prefix) echo "{prefix}";; list) exit 0;; esac\n')
     for name in ("sudo",):
-        (bin_ / name).write_text('#!/bin/bash\n[ "$1" = "-u" ] && shift 2\n"$@"\n')
+        (bin_ / name).write_text('#!/bin/bash\n[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\n"$@"\n')
     (bin_ / "launchctl").write_text("#!/bin/bash\nexit 0\n")
     (bin_ / "ipconfig").write_text("#!/bin/bash\necho 192.168.1.5\n")
     for f in bin_.iterdir():
@@ -285,7 +285,7 @@ def test_nginx_as_root_finds_brew_by_full_path(tmp_path):
     calls = tmp_path / "calls.log"
     real.write_text(f'#!/bin/bash\necho "brew $*" >> "{calls}"\ncase "$1" in --prefix) echo "{prefix}";; list) exit 0;; esac\n')
     real.chmod(0o755)
-    (bin_ / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{calls}"\n[ "$1" = "-u" ] && shift 2\n"$@"\n')
+    (bin_ / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{calls}"\n[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\n"$@"\n')
     (bin_ / "launchctl").write_text("#!/bin/bash\nexit 0\n")
     (bin_ / "ipconfig").write_text("#!/bin/bash\necho 192.168.1.5\n")
     (bin_ / "id").write_text('#!/bin/bash\nif [ "$#" -eq 1 ] && [ "$1" = "-u" ]; then echo 0; else exec /usr/bin/id "$@"; fi\n')

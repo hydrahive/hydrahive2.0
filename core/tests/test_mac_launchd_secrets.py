@@ -33,7 +33,7 @@ def fake_mac(tmp_path: Path) -> dict:
     bin_ = tmp_path / "bin"
     bin_.mkdir()
     calls = tmp_path / "calls.log"
-    (bin_ / "sudo").write_text('#!/bin/bash\n[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+    (bin_ / "sudo").write_text('#!/bin/bash\n[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n'
                                     'case "$1" in list) echo "123 0 io.hydrahive.backend";; esac\n')
     (bin_ / "brew").write_text("#!/bin/bash\necho /usr/local\n")

@@ -34,7 +34,7 @@ def fake(tmp_path: Path) -> dict:
     (bin_ / "brew").write_text(
         f'#!/bin/bash\necho "brew $*" >> "{calls}"\n'
         f'case "$1 $2" in "--prefix ") echo "{prefix}";; "--prefix postgresql@16") echo "{pg}";; esac\n')
-    (bin_ / "sudo").write_text('#!/bin/bash\n[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+    (bin_ / "sudo").write_text('#!/bin/bash\n[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n')
     for f in bin_.iterdir():
         f.chmod(0o755)
@@ -173,13 +173,13 @@ def test_update_nutzer_ist_besitzer_des_repos_statt_admin(fake):
     _, env = _fake_repo(fake, {})
     env.pop("HH_USER")
     (fake["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{fake["calls"]}"\n'
-                                      '[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+                                      '[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     r = subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
     owner = subprocess.run(["stat", "-c", "%U", env["HH_REPO_DIR"]], capture_output=True, text=True).stdout.strip()
     calls = fake["calls"].read_text()
-    assert f"sudo -u {owner} git pull" in calls
-    assert "sudo -u admin " not in calls or owner == "admin"
+    assert f"sudo -H -u {owner} git pull" in calls
+    assert "-u admin " not in calls or owner == "admin"
 
 
 def test_als_root_brew_ueber_vollen_pfad(fake, tmp_path):
@@ -248,7 +248,7 @@ def test_brew_runs_as_brew_user_not_service_account(fake):
     """brew gehört dem Mac-Besitzer – als root über sudo -u $HH_BREW_USER, nie als _hydrahive."""
     fake["ready"].touch()
     (fake["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{fake["calls"]}"\n'
-                                      '[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+                                      '[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     (fake["bin"] / "id").write_text('#!/bin/bash\n[ "$1" = "-u" ] && [ -z "$2" ] && echo 0 && exit 0\n'
                                     '[ "$1" = "-un" ] && echo root && exit 0\n'      # als root (Update), nicht als Besitzer
                                     '[ "$1" = "-u" ] && echo 501 && exit 0\nexec /usr/bin/id "$@"\n')
