@@ -76,3 +76,16 @@ def test_tools_are_read_only_category():
 def test_tools_registered():
     from hydrahive.tools import REGISTRY
     assert "help_search" in REGISTRY and "help_read" in REGISTRY
+
+
+def test_tools_import_in_fresh_process():
+    """Import-Kreis tools → help_search → helpdesk → agents → tools darf nicht entstehen (Befund 23.10.2026)."""
+    import os
+    import subprocess
+    import sys
+    src = str(Path(__file__).resolve().parents[1] / "src")      # dieser Stand, nicht eine installierte Kopie
+    env = {**os.environ, "PYTHONPATH": src}
+    for mod in ("hydrahive.tools", "hydrahive.helpdesk._agent", "hydrahive.api.routes.agents"):
+        r = subprocess.run([sys.executable, "-c", f"import {mod}"], capture_output=True, text=True, timeout=60,
+                           env=env)
+        assert r.returncode == 0, mod + r.stderr[-500:]
