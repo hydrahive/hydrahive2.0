@@ -27,7 +27,7 @@ def mac(tmp_path: Path) -> dict:
     bin_.mkdir()
     calls = tmp_path / "calls.log"
     calls.write_text("")
-    (bin_ / "sudo").write_text('#!/bin/bash\n[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+    (bin_ / "sudo").write_text('#!/bin/bash\n[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     (bin_ / "launchctl").write_text(f'#!/bin/bash\necho "launchctl $*" >> "{calls}"\n'
                                     'case "$1" in list) echo "123 0 io.hydrahive.backend";; esac\n')
     (bin_ / "brew").write_text("#!/bin/bash\necho /usr/local\n")
@@ -252,7 +252,7 @@ def test_missing_dist_triggers_build(mac):
 def test_git_runs_as_service_user(mac):
     """Alle git-Aufrufe über sudo -u (sonst „dubious ownership“ als root)."""
     (mac["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{mac["calls"]}"\n'
-                                     '[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+                                     '[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     _launchd(mac)
     mac["calls"].write_text("")
     (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
@@ -260,7 +260,7 @@ def test_git_runs_as_service_user(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     calls = _calls(mac).splitlines()
     git_lines = [c for c in calls if c.startswith("git ")]
-    sudo_git = [c for c in calls if c.startswith("sudo -u tester git ")]
+    sudo_git = [c for c in calls if c.startswith("sudo -H -u tester git ")]
     assert git_lines and len(sudo_git) == len(git_lines)
 
 
@@ -345,7 +345,7 @@ def test_update_rewrites_trigger_plist_without_marker(mac):
     old = mac["tmp"] / "io.hydrahive.update.plist"
     old.write_text("<plist><dict><key>Label</key><string>io.hydrahive.update</string></dict></plist>")
     (mac["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{mac["calls"]}"\n'
-                                     '[ "$1" = "-u" ] && shift 2\nexec "$@"\n')
+                                     '[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nexec "$@"\n')
     (mac["tmp"] / "triggers.sh").write_text(f'#!/bin/bash\necho "triggers neu" >> "{mac["calls"]}"\n')
     r = subprocess.run(["bash", str(UPDATE)], env={**_env(mac), "HH_UPDATE_PLIST": str(old),
                                                    "HH_TRIGGERS_SCRIPT": str(mac["tmp"] / "triggers.sh")},
@@ -374,7 +374,7 @@ def test_npm_found_under_sudo_with_secure_path(mac, tmp_path):
     brew_bin.mkdir(parents=True)
     (mac["bin"] / "npm").rename(brew_bin / "npm")
     # sudo wie macOS: eigener PATH ohne Homebrew
-    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\n[ "$1" = "-u" ] && shift 2\nPATH="{mac["bin"]}:/usr/bin:/bin" exec "$@"\n')
+    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\n[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\nPATH="{mac["bin"]}:/usr/bin:/bin" exec "$@"\n')
     _launchd(mac)
     (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
     # Wie der echte Update-Dienst (launchd, root): PATH OHNE Homebrew; brew liegt nur unter seinem vollen Pfad.
@@ -558,12 +558,12 @@ def test_update_after_move_uses_service_account(mac):
     (mac["cfg"] / "install.conf").write_text("HH_SERVICE_USER=_hydrahive\n")
     (mac["bin"] / "chown").write_text("#!/bin/bash\nexit 0\n")     # Konto gibt es auf dem Test-Rechner nicht
     (mac["bin"] / "chown").chmod(0o755)
-    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{mac["calls"]}"\n[ "$1" = "-u" ] && shift 2\n'
+    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{mac["calls"]}"\n[ "$1" = "-H" ] && shift; [ "$1" = "-u" ] && shift 2\n'
                                      'exec "$@"\n')
     env = {k: v for k, v in _env(mac).items() if k != "HH_USER"}
     r = subprocess.run(["bash", str(UPDATE)], env=env, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
-    assert "sudo -u _hydrahive git pull" in _calls(mac)
+    assert "sudo -H -u _hydrahive git pull" in _calls(mac)
 
 
 def test_update_move_failure_does_not_fail_update(mac):
@@ -582,3 +582,20 @@ def test_update_successful_move_skips_old_restart(mac):
     assert r.returncode == 0, r.stdout + r.stderr
     after = _calls(mac).split("migrate user=")[1]
     assert "launchctl load" not in after
+
+
+def test_update_runs_tools_with_service_account_home(mac):
+    """Befund 23.10.2026 (.186, nach dem Umzug auf _hydrahive): update-mac.sh rief npm/pip per `sudo -u _hydrahive`
+    mit dem HOME des Mac-Besitzers auf → „npm error EACCES … /Users/admin/.npm“, jedes Update mit neuem Frontend
+    brach ab. git, pip und npm laufen jetzt mit -H (HOME des Kontos)."""
+    (mac["bin"] / "sudo").write_text(f'#!/bin/bash\necho "sudo $*" >> "{mac["calls"]}"\n'
+                                     'while [ $# -gt 0 ]; do case "$1" in -u) shift 2;; -H) shift;; *) break;; esac; done\n'
+                                     'exec "$@"\n')
+    _launchd(mac)
+    (mac["tmp"] / "frontend_rev.txt").write_text("fe-rev-2\n")
+    r = _update(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    sudo_u = [c for c in _calls(mac).splitlines() if c.startswith("sudo -u") or c.startswith("sudo -H -u")]
+    tools = [c for c in sudo_u if any(w in c for w in (" git ", " npm ", "/pip "))]
+    assert tools, _calls(mac)
+    assert all(c.startswith("sudo -H -u tester ") for c in tools), tools
