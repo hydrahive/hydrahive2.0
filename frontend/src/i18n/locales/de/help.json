@@ -61,5 +61,22 @@
       "streaming": "Streaming",
       "extensions": "Extensions"
     }
+  },
+  "helpdesk": {
+    "title": "Hilfe-Assistent",
+    "open": "Hilfe-Assistent öffnen",
+    "close": "Schließen",
+    "loading": "Wird geladen …",
+    "load_failed": "Der Hilfe-Assistent konnte nicht geladen werden. Bitte später erneut versuchen.",
+    "model_missing": "Für den Hilfe-Assistenten ist noch keine KI eingerichtet. Lege unter KI-Modelle einen Anbieter an und wähle ein Standard-Modell.",
+    "open_llm": "KI einrichten",
+    "welcome": "Hallo! Ich kenne das HydraHive-Handbuch. Frag mich, wie etwas funktioniert – zum Beispiel „Wie lege ich einen Agenten an?“ oder „Was kann ich auf dieser Seite machen?“",
+    "placeholder": "Deine Frage …",
+    "send": "Senden",
+    "busy": {
+      "search": "sucht im Handbuch …",
+      "read": "liest im Handbuch …",
+      "think": "denkt nach …"
+    }
   }
 }

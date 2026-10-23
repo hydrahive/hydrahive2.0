@@ -14,7 +14,7 @@ export type HelpTopic =
   // Konfiguration
   | "llm" | "credentials" | "system" | "extensions" | "modules" | "users" | "settings" | "access"
   // Einstieg
-  | "onboarding"
+  | "onboarding" | "helpdesk"
   // Module
   | "atelier" | "patientenakte" | "cryptoboard" | "notizbuch" | "scratchpad"
   | "deepresearch" | "homeassistant" | "archiver" | "blueprint" | "boardgames"
