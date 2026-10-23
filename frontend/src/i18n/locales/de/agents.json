@@ -97,6 +97,7 @@
     "mail": "Mail",
     "discord": "Discord",
     "agents": "Agenten",
+    "help": "Hilfe",
     "other": "Sonstige",
     "plugin": "Plugin: {{name}}"
   },
