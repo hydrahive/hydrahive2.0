@@ -103,8 +103,13 @@ die Mailbox-Werkzeuge nichts.
 1. Klicke links neben dem Konto auf das **Zahnrad**.
 2. Unter **Freigaben für Agenten** wählst du ein Projekt (oder **Mein Buddy
    (ohne Projekt)**) und klickst auf **Freigeben**.
-3. Ab jetzt dürfen Agenten in diesem Projekt das Konto **lesen**: suchen, Mails
-   lesen und Anhänge in ihren Arbeitsordner holen (`mailbox-anhaenge/`).
+3. Wähle die **Stufe**:
+   - **lesen**: suchen, Mails lesen und Anhänge in den Arbeitsordner holen
+     (`mailbox-anhaenge/`).
+   - **Entwurf**: zusätzlich Entwürfe anlegen, Mails verschieben und als
+     gelesen/markiert setzen.
+
+Die Stufe lässt sich später in der Liste der Freigaben umstellen.
 
 Mit dem Mülleimer-Symbol nimmst du die Freigabe wieder zurück. Wird das Konto
 entfernt, verschwinden auch seine Freigaben.
@@ -116,8 +121,11 @@ entfernt, verschwinden auch seine Freigaben.
 - Ein Agent sieht das Konto nur, wenn er für ein **Mitglied** dieses Projekts
   arbeitet. Andere Projekte sehen es nicht.
 - **Mein Buddy** gilt nur für deinen eigenen Buddy ohne Projekt.
-- Agenten können derzeit **nicht senden, löschen, verschieben oder markieren**.
-  Entwürfe und Versand mit Bestätigung folgen in späteren Versionen.
+- Agenten können **nie senden und nie löschen**. Einen Entwurf prüfst und
+  sendest du selbst im Webmail. Versand mit Bestätigung folgt in einer
+  späteren Version.
+- Ein Agent ändert nur Entwürfe, die ein Agent in **diesem** Projekt angelegt
+  hat. Deine eigenen Entwürfe fasst er nicht an.
 
 ### Die Werkzeuge
 
@@ -127,6 +135,14 @@ entfernt, verschwinden auch seine Freigaben.
 | `mailbox_search` | suchen, mit denselben Filtern wie im Suchfeld (höchstens 50 Treffer) |
 | `mailbox_read` | eine Mail als Text lesen, mit Liste der Anhänge |
 | `mailbox_attachment` | einen Anhang in den Arbeitsordner speichern (bis 25 MB, nie überschreiben) |
+| `mailbox_draft` | Stufe Entwurf: Entwurf anlegen oder eigenen ändern, auch als Antwort/Weiterleitung |
+| `mailbox_move` | Stufe Entwurf: Mails in einen anderen Ordner verschieben |
+| `mailbox_flag` | Stufe Entwurf: gelesen/ungelesen, markieren/Markierung entfernen |
+
+### Entwürfe vom Agenten
+
+Entwürfe eines Agenten erscheinen bei dir unter **Entwürfe** mit dem Kennzeichen
+**Agent**. Öffne sie, prüfe Empfänger und Text, und sende sie erst dann selbst.
 
 Mailtext ist **fremder Text**: Der Agent bekommt ihn ausdrücklich als Fremdinhalt
 markiert und soll darin enthaltene Anweisungen nie befolgen. Zugangsdaten und
