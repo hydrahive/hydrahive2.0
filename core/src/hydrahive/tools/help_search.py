@@ -1,6 +1,7 @@
 """Hilfe-Assistent: Handbuch nach Wörtern durchsuchen (docs/plans/help-assistant.md)."""
 from __future__ import annotations
 
+from hydrahive.helpdesk import _lang
 from hydrahive.helpdesk import _manual as manual
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
@@ -20,7 +21,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     query = str(args.get("query") or "").strip()
     if not query:
         return ToolResult.fail("query fehlt")
-    lang = str((ctx.config or {}).get("help_lang") or "de")
+    lang = _lang.help_lang(ctx.user_id)
     hits = manual.search(query[:200], lang)
     out: dict = {"hits": hits}
     if not hits:

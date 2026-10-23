@@ -74,17 +74,18 @@ def get_or_create_help_agent(username: str) -> dict:
             max_iterations=8,
         )
         agent_config.update(agent["id"], is_help=True, compact_threshold_pct=70)
+        agent = agent_config.get(agent["id"]) or agent
         logger.info("Hilfe-Assistent für %s angelegt (agent_id=%s)", username, agent["id"])
-    else:
-        fix: dict = {}
+    fix: dict = {}
+    if not created:
         if sorted(agent.get("tools") or []) != sorted(HELP_TOOLS):
             fix["tools"] = list(HELP_TOOLS)
         if agent.get("mcp_servers"):
             fix["mcp_servers"] = []
         if agent.get("llm_model") != model:
             fix["llm_model"] = model
-        if fix:
-            agent_config.update(agent["id"], **fix)
+    if fix:
+        agent_config.update(agent["id"], **fix)
     agent = agent_config.get(agent["id"]) or agent
     return {"model_missing": False, "agent_id": agent["id"], "session_id": _session_for(agent, username),
             "created": created}

@@ -22,6 +22,7 @@ from hydrahive.api.routes.backup import router as backup_router
 from hydrahive.api.routes.migration import router as migration_router
 from hydrahive.api.routes.buddy import router as buddy_router
 from hydrahive.api.routes.buddy_sessions import router as buddy_sessions_router
+from hydrahive.api.routes.helpdesk import router as helpdesk_router
 from hydrahive.api.routes.butler import router as butler_router
 from hydrahive.api.routes.files import router as files_router
 from hydrahive.api.routes.communication import router as communication_router
@@ -205,6 +206,7 @@ app.include_router(container_console_router)
 app.include_router(butler_router)
 app.include_router(buddy_router)
 app.include_router(buddy_sessions_router)
+app.include_router(helpdesk_router)
 app.include_router(files_router)
 app.include_router(system_router)
 app.include_router(system_admin_router)

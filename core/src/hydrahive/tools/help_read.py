@@ -1,6 +1,7 @@
 """Hilfe-Assistent: einen Handbuch-Artikel lesen (docs/plans/help-assistant.md)."""
 from __future__ import annotations
 
+from hydrahive.helpdesk import _lang
 from hydrahive.helpdesk import _manual as manual
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
@@ -18,7 +19,7 @@ _SCHEMA = {
 
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     topic = str(args.get("topic") or "").strip()
-    lang = str((ctx.config or {}).get("help_lang") or "de")
+    lang = _lang.help_lang(ctx.user_id)
     text = manual.read(topic, lang)
     if text is None:
         return ToolResult.fail(f"Unbekanntes Thema. Vorhanden: {', '.join(manual.topics(lang))}")

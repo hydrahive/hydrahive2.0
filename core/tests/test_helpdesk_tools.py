@@ -24,12 +24,16 @@ def repo(tmp_path: Path, monkeypatch) -> Path:
     return tmp_path
 
 
-def _ctx(lang: str = "de") -> ToolContext:
-    return ToolContext(session_id="s", agent_id="a", user_id="u", workspace=Path("/tmp"), config={"help_lang": lang})
-
-
 def _run(tool, args: dict, lang: str = "de"):
-    return asyncio.run(tool.TOOL.execute(args, _ctx(lang)))
+    """Sprache wie im Runner aus der Spracheinstellung des Nutzers (language_for)."""
+    import hydrahive.helpdesk._lang as hl
+    orig = hl.language_for
+    hl.language_for = lambda user: lang
+    try:
+        ctx = ToolContext(session_id="s", agent_id="a", user_id="u", workspace=Path("/tmp"))
+        return asyncio.run(tool.TOOL.execute(args, ctx))
+    finally:
+        hl.language_for = orig
 
 
 def test_search_returns_hits(repo):
@@ -89,3 +93,8 @@ def test_tools_import_in_fresh_process():
         r = subprocess.run([sys.executable, "-c", f"import {mod}"], capture_output=True, text=True, timeout=60,
                            env=env)
         assert r.returncode == 0, mod + r.stderr[-500:]
+
+
+def test_auto_language_reads_german(repo):
+    """Spracheinstellung „auto“ (folgt dem Nutzer) → Handbuch auf Deutsch."""
+    assert _run(help_read, {"topic": "agents"}, lang="auto").output["text"].startswith("# Agenten")
