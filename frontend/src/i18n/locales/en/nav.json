@@ -85,5 +85,6 @@
     "failed": "Restart failed: {{error}}",
     "close": "Close",
     "now": "Restart now"
-  }
+  },
+  "helpdesk_open": "Open help assistant"
 }
