@@ -57,6 +57,7 @@ export function UpdateAllResult({ state, onDismiss }: Pick<Props, "state" | "onD
           <ul className="mt-1 space-y-0.5 text-xs">
             {failed.map((f) => <li key={f.id}><span className="font-mono">{f.id}</span> – {f.reason}</li>)}
           </ul>
+          <p className="mt-2 text-xs opacity-80">{t("update.all_failed_hint")}</p>
         </div>
       )}
     </div>

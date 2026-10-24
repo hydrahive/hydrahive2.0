@@ -33,6 +33,17 @@ def _installed_versions() -> dict[str, str]:
     return out
 
 
+def _reason(exc: BaseException) -> str:
+    """Kurzer Grund in einfacher Sprache; der volle Fehler mit Pfad steht im Protokoll."""
+    if isinstance(exc, installer.InstallError):
+        return str(exc) or "Installationsfehler"
+    if isinstance(exc, PermissionError):
+        return "keine Schreibrechte auf den Modul-Ordner"
+    if isinstance(exc, subprocess.CalledProcessError):
+        return "Dienst des Moduls ließ sich nicht stoppen oder starten"
+    return "Dateifehler beim Ersetzen"
+
+
 def _version_of(module_id: str) -> str | None:
     return _installed_versions().get(module_id)
 
@@ -64,7 +75,7 @@ def update_all() -> Iterator[str]:
         try:
             yield from _update_one(mid)
         except _CAUGHT as exc:
-            reason = str(exc) or exc.__class__.__name__
+            reason = _reason(exc)
             logger.exception("Modul-Update im Sammel-Update fehlgeschlagen: %s", mid)
             failed.append((mid, reason))
             yield f"[modules] {mid}: FEHLER – {reason}"

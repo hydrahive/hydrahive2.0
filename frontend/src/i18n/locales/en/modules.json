@@ -22,7 +22,8 @@
     "all_done_failed": "{{ok}} updated, {{failed}} not",
     "all_failed_title": "Not updated:",
     "all_uptodate": "All modules are up to date",
-    "all_close": "Close"
+    "all_close": "Close",
+    "all_failed_hint": "Try those modules again with their own “Update” button. If it keeps failing, an admin finds the exact reason in the server log."
   },
   "actions": {
     "install": "Install",
