@@ -1,4 +1,6 @@
 import type { BuddyMediaWidget } from "@/modules/types"
+import { moduleBuddyMediaWidgets } from "@/modules/index.generated"
+import { moduleList } from "@/shared/moduleList"
 
 function isBuddyMediaWidget(value: unknown): value is BuddyMediaWidget {
   if (!value || typeof value !== "object") return false
@@ -21,4 +23,9 @@ export function normalizeBuddyMediaWidgets(values: unknown[]): BuddyMediaWidget[
       seen.add(widget.id)
       return true
     })
+}
+
+/** Installierte Medien-Kacheln – erst beim Rendern lesen (Lade-Schleife, Task 08c5c546). */
+export function buddyMediaWidgets(): BuddyMediaWidget[] {
+  return normalizeBuddyMediaWidgets(moduleList(moduleBuddyMediaWidgets))
 }
