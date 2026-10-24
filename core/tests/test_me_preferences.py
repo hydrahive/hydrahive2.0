@@ -14,6 +14,9 @@ def test_preferences_default(client, auth_headers):
         "active_media_project_id": None,
         "active_vault_scope": "private",
         "cockpit_layout": {},
+        "landing": "start",
+        "active_area": None,
+        "area_last": {},
     }
 
 
