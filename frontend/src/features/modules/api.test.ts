@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 vi.mock("@/features/auth/useAuthStore", () => ({ useAuthStore: { getState: () => ({ token: "t" }) } }))
 vi.mock("@/i18n", () => ({ default: { t: (k: string, o?: Record<string, unknown>) => `${k}|${JSON.stringify(o?.module ?? "")}` } }))
 vi.mock("@/features/vault/vaultStore", () => ({ useVaultStore: { getState: () => ({ token: null }) }, VAULT_401_CODES: [] }))
-import { updateModule } from "./api"
+import { updateAllModules, updateModule } from "./api"
 
 afterEach(() => { vi.unstubAllGlobals() })
 
@@ -26,5 +26,27 @@ describe("Modul-Stream", () => {
     const lines: string[] = []
     await new Promise<void>((resolve, reject) => { updateModule("example", (l) => lines.push(l), resolve, reject) })
     expect(lines).toEqual(["a", "b"])
+  })
+})
+
+// docs/specs/modul-update-alle.md: ein Aufruf für alle Module statt einer Schleife im Browser.
+describe("updateAllModules", () => {
+  it("POST /api/admin/modules/update-all mit Anmeldung, Zeilen und Abschluss", async () => {
+    const body = 'data: {"line": "x"}\n\ndata: {"done": true}\n\n'
+    const fetchMock = vi.fn(async () => new Response(body, { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+    const lines: string[] = []
+    await new Promise<void>((resolve, reject) => { updateAllModules((l) => lines.push(l), resolve, reject) })
+    expect(lines).toEqual(["x"])
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe("/api/admin/modules/update-all")
+    expect(init.method).toBe("POST")
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer t")
+  })
+
+  it("Fehler im Ablauf kommt als Fehler an", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response('data: {"error": "module_update_all_failed: a (x)"}\n\n', { status: 200 })))
+    const msg = await new Promise<string>((resolve) => { updateAllModules(() => {}, () => resolve("done"), resolve) })
+    expect(msg).toBe("module_update_all_failed: a (x)")
   })
 })
