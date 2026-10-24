@@ -102,3 +102,18 @@ Gegenprobe: Die neuen Tests sind auf `main` rot.
 
 - Rechte des Archiver-Ordners auf hydratest (Zustand des Testservers, kein Code-Fehler).
 - Fortschritt nach dem Neuladen der Seite wieder anzeigen.
+
+## Nachtrag: verständlicher Grund
+
+Beim echten Test auf hydratest stand im Ergebnis der rohe Systemfehler, z. B.
+„archiver – [Errno 13] Permission denied: '/var/lib/hydrahive2/modules/archiver' -> '…/previous'“.
+Für Laien ist das unverständlich.
+
+- Die Zeile `… <id>: FEHLER – <Grund>` enthält einen **kurzen Grund in einfacher Sprache**:
+  - `PermissionError`: „keine Schreibrechte auf den Modul-Ordner“
+  - anderer `OSError`: „Dateifehler beim Ersetzen“
+  - `CalledProcessError`: „Dienst des Moduls ließ sich nicht stoppen oder starten“
+  - `InstallError`: dessen Text (Code, z. B. `module_not_in_hub:<id>`)
+- Der vollständige Fehler mit Pfad steht weiter im Server-Protokoll (`logger.exception`).
+- Die Ergebnisbox zeigt unter der Liste den Hinweis: „Einzelne Module erneut über ihren Knopf ‚Aktualisieren'
+  versuchen. Bleibt es dabei, sieht ein Admin im Server-Protokoll den genauen Grund.“
