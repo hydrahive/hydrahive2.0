@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ArrowUpCircle, Boxes, RefreshCw } from "lucide-react"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { ModulesIndex } from "./types"
-import { listModules, updateModule } from "./api"
+import { listModules } from "./api"
+import { UpdateAllButton, UpdateAllResult } from "./UpdateAllPanel"
+import { useUpdateAll } from "./useUpdateAll"
 import { ModuleCard } from "./ModuleCard"
 
 export function ModulesPage() {
@@ -11,8 +13,6 @@ export function ModulesPage() {
   const [data, setData] = useState<ModulesIndex>({ modules: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null)
-  const stopRef = useRef<(() => void) | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -29,30 +29,11 @@ export function ModulesPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
 
-  useEffect(() => () => stopRef.current?.(), [])
-
   const outdated = data.modules.filter((m) => m.update_available)
   const installedCount = data.modules.filter((m) => m.installed).length
 
-  /** Alle veralteten Module sequentiell aktualisieren (ein Stream nach dem anderen). */
-  const updateAll = useCallback(async () => {
-    if (outdated.length === 0 || batch) return
-    setBatch({ done: 0, total: outdated.length })
-    for (let i = 0; i < outdated.length; i++) {
-      await new Promise<void>((resolve) => {
-        stopRef.current = updateModule(
-          outdated[i].id,
-          () => { /* Batch kompakt — pro-Modul-Logs zeigt die Karte selbst */ },
-          () => resolve(),
-          () => resolve(), // Fehler eines Moduls stoppt den Batch nicht
-        )
-      })
-      setBatch({ done: i + 1, total: outdated.length })
-    }
-    stopRef.current = null
-    setBatch(null)
-    await load()
-  }, [outdated, batch, load])
+  // Ein Ablauf für alle: einmal bauen, einmal Neustart (docs/specs/modul-update-alle.md).
+  const all = useUpdateAll(outdated.length, load)
 
   return (
     <div className="space-y-5">
@@ -73,20 +54,11 @@ export function ModulesPage() {
           <HelpButton topic="modules" />
         </div>
         <div className="flex items-center gap-2">
-          {outdated.length > 0 && (
-            <button
-              onClick={updateAll}
-              disabled={batch !== null}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-medium transition-colors disabled:opacity-60">
-              <RefreshCw size={12} className={batch ? "animate-spin" : ""} />
-              {batch
-                ? t("update.all_running", { done: batch.done, total: batch.total })
-                : t("update.all")}
-            </button>
-          )}
+          <UpdateAllButton outdatedCount={outdated.length} state={all} onStart={all.start}
+            buttonClass="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-medium transition-colors disabled:opacity-60" />
           <button
             onClick={load}
-            disabled={loading || batch !== null}
+            disabled={loading || all.running}
             aria-label={t("common:actions.refresh")}
             title={t("common:actions.refresh")}
             className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[5%] transition-colors disabled:opacity-40">
@@ -95,6 +67,7 @@ export function ModulesPage() {
         </div>
       </div>
 
+      <UpdateAllResult state={all} onDismiss={all.dismiss} />
       {error && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
           {error}

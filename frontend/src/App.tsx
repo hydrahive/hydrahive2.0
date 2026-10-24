@@ -53,7 +53,8 @@ import { VaultCockpitPage } from "@/features/cockpit/VaultCockpitPage"
 import { AdminCockpitPage } from "@/features/cockpit/AdminCockpitPage"
 import { WerkstattCockpitPage } from "@/features/cockpit/WerkstattCockpitPage"
 import { NotFoundPage } from "@/shared/NotFoundPage"
-import { getLanding } from "@/features/profile/LandingSwitcher"
+import { LandingRedirect } from "@/features/profile/LandingRedirect"
+import { StartDeskPage } from "@/features/startdesk/StartDeskPage"
 
 function Guard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -80,7 +81,8 @@ export default function App() {
             </Guard>
           }
         >
-          <Route index element={getLanding() === "dashboard" ? <DashboardPage /> : <Navigate to="/buddy" replace />} />
+          <Route index element={<LandingRedirect />} />
+          <Route path="start" element={<StartDeskPage />} />
           <Route path="buddy" element={<ThemedPage route="buddy" fallback={<BuddyPage />} />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
           <Route path="dashboard" element={<ThemedPage route="dashboard" fallback={<DashboardPage />} />} />

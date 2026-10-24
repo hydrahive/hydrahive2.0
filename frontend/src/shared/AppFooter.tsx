@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Boxes, Puzzle, RefreshCw, Settings } from "lucide-react"
+import { Boxes, HelpCircle, Puzzle, RefreshCw, Settings } from "lucide-react"
+import { requestHelpToggle } from "@/features/helpdesk/helpApi"
 
 interface Props {
   version: string | null
@@ -29,6 +30,17 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
         </span>
       </div>
       <div className="flex items-center gap-2 font-mono tabular-nums">
+        {/* Handy: Hilfe-Assistent hier statt schwebend über dem Inhalt (docs/specs/chat-mobile-compact.md) */}
+        <button
+          type="button"
+          data-help-footer="1"
+          onClick={requestHelpToggle}
+          title={t("helpdesk_open")}
+          aria-label={t("helpdesk_open")}
+          className="grid min-h-6 min-w-6 place-items-center rounded p-1 text-[#69d7ff] hover:bg-white/5 sm:hidden"
+        >
+          <HelpCircle size={14} />
+        </button>
         {version && (
           <span>v{version}{commit && <> · <span className="text-zinc-500">{commit}</span></>}</span>
         )}

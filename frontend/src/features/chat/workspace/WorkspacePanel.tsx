@@ -6,6 +6,7 @@ import { FileTree } from "./FileTree"
 import { GitPanel } from "./GitPanel"
 import { classifyFile, type FileKind } from "./fileType"
 import { moduleWorkspaceTabs } from "@/modules/index.generated"
+import { moduleList } from "@/shared/moduleList"
 
 interface WorkspaceTabDef {
   id: string
@@ -13,7 +14,8 @@ interface WorkspaceTabDef {
   component: ComponentType<{ projectId?: string | null }>
 }
 
-const extraTabs = moduleWorkspaceTabs as WorkspaceTabDef[]
+// Erst beim Rendern lesen (Lade-Schleife Modul → ChatPane, Task 08c5c546).
+const workspaceTabs = () => moduleList<WorkspaceTabDef>(moduleWorkspaceTabs)
 
 type CoreTab = "files" | "git"
 type Tab = CoreTab | string
@@ -33,6 +35,7 @@ export function WorkspacePanel({ agentId, projectId, onOpenFile }: Props) {
 
   if (!agentId) return <div className="p-4 text-[11px] text-zinc-500">{t("no_file")}</div>
 
+  const extraTabs = workspaceTabs()
   const coreTabs: CoreTab[] = ["files", "git"]
   const allTabs = [...coreTabs, ...extraTabs.map((x) => x.id)]
 

@@ -6,6 +6,9 @@ const DEFAULT_PREFS: UserPreferences = {
   active_media_project_id: null,
   active_vault_scope: "private",
   cockpit_layout: {},
+  landing: "start",
+  active_area: null,
+  area_last: {},
 }
 
 export function useUserPreferences() {

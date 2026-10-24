@@ -12,22 +12,27 @@ import { primaryMediaWorkflow } from "./media/mediaRegistry"
  *  Die Schritte liefert das Modul, deshalb ist die ID nicht mehr fest bekannt. */
 type MediaView = string
 
-/** Produktions-Workflow aus einem Modul (Atelier). Nicht installiert → null;
- *  das Cockpit zeigt dann nur den Videoschnitt. */
-const workflow = primaryMediaWorkflow()
-const WorkflowPage = workflow?.component ?? null
-
 const ICONS: Record<string, typeof Users> = { characters: Users, generate: Sparkles, gallery: Images, clips: Video, film: Film }
 
-const steps = (workflow?.steps ?? []).map((step, index) => ({
-  id: step.id,
-  number: String(index + 1).padStart(2, "0"),
-  title: step.title,
-  text: step.text,
-  icon: ICONS[step.icon ?? step.id] ?? Sparkles,
-}))
+/** Produktions-Workflow aus einem Modul (Atelier). Nicht installiert → null;
+ *  das Cockpit zeigt dann nur den Videoschnitt. Erst beim Rendern lesen
+ *  (Lade-Schleife, Task 08c5c546). */
+function useWorkflow() {
+  return useMemo(() => {
+    const workflow = primaryMediaWorkflow()
+    const steps = (workflow?.steps ?? []).map((step, index) => ({
+      id: step.id,
+      number: String(index + 1).padStart(2, "0"),
+      title: step.title,
+      text: step.text,
+      icon: ICONS[step.icon ?? step.id] ?? Sparkles,
+    }))
+    return { workflow, WorkflowPage: workflow?.component ?? null, steps }
+  }, [])
+}
 
 export function MediaCockpitPage() {
+  const { workflow, WorkflowPage, steps } = useWorkflow()
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState("")
   // Ohne Produktions-Workflow (Modul fehlt) startet das Cockpit direkt im Schnitt.

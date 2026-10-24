@@ -24,6 +24,8 @@ interface ModuleNavEntry {
   cockpit?: boolean
   /** true = Modul zusätzlich als Link im oberen Quicklink-Menü anzeigen. */
   topnav?: boolean
+  /** Bereich der Startseite/Bereichs-Leiste (docs/specs/startdesktop.md), z. B. "medien". */
+  area?: string
 }
 
 export interface NavItem {
@@ -34,6 +36,10 @@ export interface NavItem {
   roles?: ("admin" | "user")[]
   cockpit?: boolean
   topnav?: boolean
+  /** Bereich der Startseite/Bereichs-Leiste; hat Vorrang vor der Kern-Tabelle (startdesk/areas.ts). */
+  area?: string
+  /** Modul-ID bei Modul-Einträgen – für den Anzeigenamen (navLabel) aus dem Modul-Namensraum. */
+  moduleId?: string
 }
 
 export const NAV_GROUPS: NavGroup[] = [
@@ -95,6 +101,8 @@ function moduleNavItems(): NavItem[] {
     roles: n.roles,
     cockpit: n.cockpit,
     topnav: n.topnav,
+    area: n.area,
+    moduleId: moduleNavOwners[n.path],
   }))
 }
 

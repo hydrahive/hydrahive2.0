@@ -28,8 +28,9 @@ export function ThreePanelLayout({ left, center, right }: Props) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(panels)) } catch { /* ignore */ }
   }, [panels])
 
+  // Füllt genau seinen Rahmen (Werkstatt-Cockpit, p-[10px]) – docs/specs/chat-mobile-compact.md
   return (
-    <div className="flex h-[calc(100%+2rem)] md:h-[calc(100%+3rem)] -m-4 md:-m-6 overflow-hidden">
+    <div className="flex h-full min-h-0 overflow-hidden">
       <CollapsiblePanel side="left" open={panels.left} width={280}
         onToggle={() => setPanels((p) => ({ ...p, left: !p.left }))}>
         {left}

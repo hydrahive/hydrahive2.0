@@ -1,4 +1,5 @@
 import { moduleMediaSources, moduleMediaWorkflows } from "@/modules/index.generated"
+import { moduleList } from "@/shared/moduleList"
 import type { ComponentType } from "react"
 
 /** Ein Eintrag der Medien-Bibliothek, normalisiert über alle Quellen.
@@ -42,17 +43,18 @@ export interface MediaWorkflow {
   }>
 }
 
-export const mediaSources = moduleMediaSources as MediaSource[]
-export const mediaWorkflows = moduleMediaWorkflows as MediaWorkflow[]
+// Erst beim Aufruf lesen (Lade-Schleife, Task 08c5c546).
+export const mediaSources = () => moduleList<MediaSource>(moduleMediaSources)
+export const mediaWorkflows = () => moduleList<MediaWorkflow>(moduleMediaWorkflows)
 
 /** Erster verfügbarer Workflow (aktuell: Atelier) oder null wenn keiner installiert. */
 export function primaryMediaWorkflow(): MediaWorkflow | null {
-  return mediaWorkflows[0] ?? null
+  return mediaWorkflows()[0] ?? null
 }
 
 /** Projekt-Root über die erste Quelle, die einen liefert. */
 export async function resolveMediaRoot(projectId: string): Promise<string | null> {
-  for (const source of mediaSources) {
+  for (const source of mediaSources()) {
     try {
       const root = await source.resolveRoot(projectId)
       if (root) return root
@@ -66,6 +68,6 @@ export async function resolveMediaRoot(projectId: string): Promise<string | null
 /** Sammelt die Bibliothek aller registrierten Quellen. Eine defekte Quelle
  *  darf die übrigen nicht verhindern. */
 export async function loadMediaLibrary(projectId: string, root: string | null): Promise<MediaLibraryItem[]> {
-  const results = await Promise.allSettled(mediaSources.map((source) => source.loadItems(projectId, root)))
+  const results = await Promise.allSettled(mediaSources().map((source) => source.loadItems(projectId, root)))
   return results.flatMap((result) => (result.status === "fulfilled" ? result.value : []))
 }

@@ -40,7 +40,8 @@
     "memory": "Memory",
     "wiki": "Wiki",
     "help": "Help",
-    "modules": "Modules"
+    "modules": "Modules",
+    "settings_hub": "Settings"
   },
   "apps_menu": "Apps",
   "sidebar": {
@@ -85,5 +86,6 @@
     "failed": "Restart failed: {{error}}",
     "close": "Close",
     "now": "Restart now"
-  }
+  },
+  "helpdesk_open": "Open help assistant"
 }

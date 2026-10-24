@@ -26,7 +26,8 @@
     "title": "Startseite",
     "description": "Welche Seite nach dem Login zuerst angezeigt wird.",
     "buddy": "Buddy",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "start": "Startseite mit Bereichen"
   },
   "backup": {
     "title": "Eigene Daten",

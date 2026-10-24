@@ -352,3 +352,9 @@ def update(module_id: str) -> Iterator[str]:
         _run_service_script(module_id, "install.sh"); yield "[modules] Dienst gestartet"
     _frontend_build(); yield "[modules] Frontend gebaut"
     _request_restart(); yield "[modules] Neustart angefordert — fertig"
+
+
+def update_all() -> Iterator[str]:
+    """Alle Module mit Update: ersetzen, einmal bauen, einmal neu starten (docs/specs/modul-update-alle.md)."""
+    from hydrahive.modules.update_all import update_all as _update_all
+    yield from _update_all()

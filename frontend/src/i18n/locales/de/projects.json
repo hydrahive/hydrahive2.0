@@ -200,5 +200,11 @@
     "title": "Verknüpfte Projekte (nur lesen)",
     "hint": "Der Projekt-Agent und die Spezialisten dieses Projekts dürfen die gewählten Projekte lesen: Dateien (über ./linked/<Name>) und frühere Gespräche/Wissen. Schreiben bleibt hier. Wirkt nur, wenn die Person im Chat selbst Mitglied des anderen Projekts ist. Ändern dürfen Projekt-Admins mit Schreibrecht im anderen Projekt.",
     "none": "Keine weiteren Projekte sichtbar."
+  },
+  "cockpit_tabs": {
+    "project": "Projekt",
+    "chat": "Chat",
+    "files": "Dateien & Tasks",
+    "label": "Bereich wählen"
   }
 }
