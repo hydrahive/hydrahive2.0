@@ -154,3 +154,34 @@ def test_ungueltige_modulordner_werden_ignoriert(mod_env):
     with _env(mod_env, hub=hub) as calls:
         _run()
     assert [c for c in calls if c.startswith("replace:")] == ["replace:alpha", "replace:delta", "replace:gamma"]
+
+
+# Nachtrag im Spec: verständlicher Grund statt Systemfehler mit Pfad.
+@pytest.mark.parametrize("exc,reason", [
+    (PermissionError(13, "Permission denied", "/var/lib/x/delta"), "keine Schreibrechte auf den Modul-Ordner"),
+    (OSError(28, "No space left on device"), "Dateifehler beim Ersetzen"),
+    (subprocess.CalledProcessError(1, ["bash", "install.sh"]), "Dienst des Moduls ließ sich nicht stoppen oder starten"),
+])
+def test_grund_in_einfacher_sprache_ohne_pfad(mod_env, exc, reason):
+    with _env(mod_env, fail={"delta": exc}):
+        lines = _run()
+    line = next(l for l in lines if l.startswith("[modules] delta: FEHLER"))
+    assert line == f"[modules] delta: FEHLER – {reason}"
+    assert "/var/lib" not in "\n".join(lines)
+    assert lines[-1] == f"[modules] Fehlgeschlagen: delta ({reason})"
+
+
+def test_install_error_behaelt_seinen_code(mod_env):
+    from hydrahive.modules.installer import InstallError
+    with _env(mod_env, fail={"delta": InstallError("module_not_in_hub:delta")}):
+        lines = _run()
+    assert "[modules] delta: FEHLER – module_not_in_hub:delta" in lines
+
+
+def test_voller_fehler_im_protokoll(mod_env, caplog):
+    import logging
+    err = PermissionError(13, "Permission denied", "/var/lib/x/delta")
+    with caplog.at_level(logging.ERROR, logger="hydrahive.modules.update_all"), _env(mod_env, fail={"delta": err}):
+        _run()
+    rec = next(r for r in caplog.records if "delta" in r.getMessage())
+    assert rec.exc_info and "/var/lib/x/delta" in str(rec.exc_info[1])

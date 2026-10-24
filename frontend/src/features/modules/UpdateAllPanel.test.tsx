@@ -56,6 +56,11 @@ describe("UpdateAllResult", () => {
     expect(h).toContain("Kein Modul konnte aktualisiert werden")
     expect(h).toMatch(/a<\/span> – x/)
   })
+  it("bei Fehlern: Hinweis, was man tun kann (einzeln erneut, Protokoll)", () => {
+    const h = res(st(["[modules] x: FEHLER – keine Schreibrechte auf den Modul-Ordner"], false))
+    expect(h).toContain("update.all_failed_hint")
+    expect(res(st(["[modules] a: fertig (1 → 2)"], false))).not.toContain("update.all_failed_hint")
+  })
   it("nichts zu tun: „Alle Module sind aktuell“", () => {
     expect(res(st(["[modules] Alle Module sind aktuell"], false, null, 0))).toContain("update.all_uptodate")
   })
