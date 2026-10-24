@@ -9,9 +9,12 @@ from __future__ import annotations
 import email
 import imaplib
 import logging
+import ssl
 from dataclasses import dataclass
 from email.header import decode_header, make_header
 from email.utils import parseaddr
+
+from hydrahive.communication.mail import _tls
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +96,7 @@ def fetch(cfg: dict, folder: str, *, criterion: str = "ALL",
     out: list[MailMessage] = []
     conn = None
     try:
-        conn = imaplib.IMAP4_SSL(host, port)
+        conn = imaplib.IMAP4_SSL(host, port, ssl_context=_tls.context(), timeout=30)
         conn.login(user, password)
         conn.select(folder, readonly=True)
         typ, data = conn.search(None, criterion)
@@ -104,6 +107,8 @@ def fetch(cfg: dict, folder: str, *, criterion: str = "ALL",
             if typ != "OK" or not msg_data or not msg_data[0]:
                 continue
             out.append(_parse(mid, msg_data[0][1]))
+    except ssl.SSLCertVerificationError:
+        raise  # nicht als „keine Nachrichten“ verschlucken – Aufrufer zeigt _tls.hint()
     except imaplib.IMAP4.error as e:
         logger.warning("imap IMAP-Fehler: %s", e)
     except Exception as e:

@@ -9,11 +9,15 @@ Port abgeleitet (IANA-Konvention):
 
 Damit kann Port 465 (z.B. KASserver/All-Inkl) nicht mehr mit STARTTLS-Logik
 angesprochen werden — der häufigste Grund für Connection-Timeouts.
+
+Zertifikat und Hostname werden geprüft (_tls.context, Task e6a2e5c2).
 """
 from __future__ import annotations
 
 import smtplib
 from email.message import EmailMessage
+
+from hydrahive.communication.mail import _tls
 
 _IMPLICIT_SSL_PORT = 465
 _TIMEOUT = 30
@@ -26,7 +30,7 @@ def send_message(cfg: dict, msg: EmailMessage) -> None:
     pw = cfg.get("password")
 
     if port == _IMPLICIT_SSL_PORT:
-        with smtplib.SMTP_SSL(host, port, timeout=_TIMEOUT) as s:
+        with smtplib.SMTP_SSL(host, port, timeout=_TIMEOUT, context=_tls.context()) as s:
             if user and pw:
                 s.login(user, pw)
             s.send_message(msg)
@@ -35,7 +39,7 @@ def send_message(cfg: dict, msg: EmailMessage) -> None:
     with smtplib.SMTP(host, port, timeout=_TIMEOUT) as s:
         s.ehlo()
         if cfg.get("use_tls", True):
-            s.starttls()
+            s.starttls(context=_tls.context())
             s.ehlo()
         if user and pw:
             s.login(user, pw)

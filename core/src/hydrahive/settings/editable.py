@@ -40,6 +40,11 @@ EDITABLE_SETTINGS: list[EditableSetting] = [
     EditableSetting("mail_imap_host", "HH_MAIL_IMAP_HOST", "string", "Mail", "IMAP-Host",
                     help="Server zum Empfangen. Leer = derselbe Host wie SMTP (üblich). Login = SMTP-User/-Passwort."),
     EditableSetting("mail_imap_port", "HH_MAIL_IMAP_PORT", "int", "Mail", "IMAP-Port", "993"),
+    EditableSetting("mail_tls_insecure", "HH_MAIL_TLS_INSECURE", "bool", "Mail",
+                    "Zertifikat des Mailservers nicht prüfen (unsicher)", "0",
+                    help="Nur für einen eigenen Mailserver im Heimnetz mit selbstsigniertem Zertifikat einschalten. "
+                    "Dann prüft HydraHive nicht, ob es wirklich mit deinem Server spricht – im Netz könnte jemand das "
+                    "Mail-Passwort mitlesen. Verschlüsselt wird trotzdem."),
     EditableSetting("discord_enabled", "HH_DISCORD_ENABLED", "bool", "Discord", "Discord aktiv", "1"),
     EditableSetting("agentlink_url", "HH_AGENTLINK_URL", "string", "AgentLink", "AgentLink-URL"),
     EditableSetting("agentlink_token", "HH_AGENTLINK_TOKEN", "secret", "AgentLink", "AgentLink-Token"),

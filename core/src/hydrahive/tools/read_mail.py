@@ -76,9 +76,12 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     unread_only = args.get("unread_only", True)
     criterion = "UNSEEN" if unread_only else "ALL"
 
-    from hydrahive.communication.mail import imap_poll
-    mails = await asyncio.to_thread(
-        imap_poll.fetch, cfg, folder, criterion=criterion, limit=limit)
+    from hydrahive.communication.mail import _tls, imap_poll
+    try:
+        mails = await asyncio.to_thread(
+            imap_poll.fetch, cfg, folder, criterion=criterion, limit=limit)
+    except Exception as e:  # noqa: BLE001 - fetch lässt nur Zertifikatsfehler durch
+        return ToolResult.fail(f"Mail-Abruf fehlgeschlagen: {_tls.hint(e) or type(e).__name__}")
     mails = list(reversed(mails))  # neueste zuerst
 
     if not mails:

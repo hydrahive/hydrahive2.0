@@ -53,7 +53,7 @@ class _FakeIMAP:
 
 def _patch_imap(monkeypatch, raws):
     from hydrahive.communication.mail import imap_poll
-    monkeypatch.setattr(imap_poll.imaplib, "IMAP4_SSL", lambda host, port: _FakeIMAP(raws))
+    monkeypatch.setattr(imap_poll.imaplib, "IMAP4_SSL", lambda host, port, **kw: _FakeIMAP(raws))
 
 
 def _settings(monkeypatch, **over):
