@@ -39,7 +39,9 @@ describe("StartDeskPage", () => {
     const h = html()
     for (const t of ["Medienstudio", "Schreibbüro", "Arbeiten mit Agenten"]) expect(h).toContain(t)
     expect(h).not.toContain("Freizeit")
-    expect(h).toMatch(/data-area-tile="schreiben"[\s\S]*?>2<\/span>/)
+    const tile = (id: string) => h.match(new RegExp(`<button[^>]*data-area-tile="${id}"[^>]*>([\\s\\S]*?)</button>`))![1]
+    const count = (id: string) => tile(id).match(/<span[^>]*rounded-full[^>]*>(\d+)<\/span>/)![1]
+    expect([count("medien"), count("schreiben"), count("agenten")]).toEqual(["1", "2", "1"])
   })
   it("Kacheln und Buddy-Knopf sind Knöpfe (type=button)", () => {
     const h = html()

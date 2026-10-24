@@ -63,6 +63,10 @@ describe("fillAreas", () => {
     const got = fillAreas([item("/studio"), item("/studio")], true)
     expect(got[0].items).toHaveLength(1)
   })
+  it("bei doppeltem Pfad gewinnt der erste Eintrag (Kern vor Modul)", () => {
+    const got = fillAreas([item("/studio", { labelKey: "kern" }), item("/studio", { labelKey: "modul" })], true)
+    expect(got[0].items.map((i) => i.labelKey)).toEqual(["kern"])
+  })
 })
 
 describe("areaForPath", () => {
