@@ -19,10 +19,11 @@ export function HelpButton({ topic, className }: Props) {
         type="button"
         onClick={() => setOpen(true)}
         title={t("help_button")}
+        aria-label={t("help_label")}
         className={adminActionClass("default", className)}
       >
         <HelpCircle size={14} />
-        <span>{t("help_label")}</span>
+        <span className="hidden sm:inline">{t("help_label")}</span>
       </button>
       <HelpDrawer topic={topic} open={open} onClose={() => setOpen(false)} />
     </>

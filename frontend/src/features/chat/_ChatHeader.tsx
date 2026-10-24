@@ -1,8 +1,8 @@
-import { useState } from "react"
-import { Archive, ChevronDown, Loader2, SquarePen } from "lucide-react"
+import { Archive, Loader2, SquarePen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { HelpButton } from "@/i18n/HelpButton"
 import { NewChatHint } from "./NewChatHint"
+import { SessionMenu } from "./_SessionMenu"
 import { TokenMeter } from "./TokenMeter"
 import type { ChatState } from "./useChat"
 import type { AgentBrief, Session } from "./types"
@@ -33,12 +33,11 @@ export function ChatHeader({
   cockpitMode = false, sessions = [], activeSessionId = null, onSelectSession,
 }: Props) {
   const { t, i18n } = useTranslation("chat")
-  const [sessionMenuOpen, setSessionMenuOpen] = useState(false)
 
   if (cockpitMode) {
     return (
       <>
-        <div className="flex min-h-[52px] items-center justify-between gap-3 border-b border-[#2a364b] bg-[#121a29] px-[14px]">
+        <div className="flex min-h-[52px] items-center justify-between gap-2 border-b border-[#2a364b] bg-[#121a29] px-[14px]">
           <div className="min-w-0 flex-1">
             <h2
               className="truncate text-sm font-bold text-[#e8eef8]"
@@ -46,9 +45,9 @@ export function ChatHeader({
             >
               {session.title || t("session.untitled", { defaultValue: "Neue Session" })}
             </h2>
-            <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[#8d9ab0]">
-              <span>Session: {session.id.slice(0, 8)}…</span>
-              {agent && <span>· {agent.llm_model}</span>}
+            <p className="mt-0.5 flex min-w-0 flex-nowrap items-center gap-2 text-xs text-[#8d9ab0] sm:flex-wrap">
+              <span className="hidden sm:inline">Session: {session.id.slice(0, 8)}…</span>
+              {agent && <span className="min-w-0 truncate" title={agent.llm_model}>· {agent.llm_model}</span>}
               {lastTurnTokens && !busy && (
                 <span title={t("tokens.tooltip")}>
                   · letzter Turn: <span className="tabular-nums">
@@ -62,60 +61,30 @@ export function ChatHeader({
               {compactNote && <span className="text-[#fbbf24]">· {compactNote}</span>}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {sessions.length > 0 && onSelectSession && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setSessionMenuOpen((open) => !open)}
-                  className="flex max-w-[240px] items-center gap-2 rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2.5 py-1.5 text-xs font-semibold text-[#e8eef8] outline-none hover:border-[#46617f]"
-                  title="Projekt-Session wählen"
-                >
-                  <span className="truncate">{session.title || "Neue Session"}</span>
-                  <ChevronDown size={12} className="shrink-0 text-[#8d9ab0]" />
-                </button>
-                {sessionMenuOpen && (
-                  <div className="absolute right-0 z-30 mt-1 max-h-[320px] w-[280px] overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-1 shadow-2xl shadow-black/50">
-                    {sessions.map((item) => {
-                      const active = item.id === (activeSessionId ?? session.id)
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            onSelectSession(item.id)
-                            setSessionMenuOpen(false)
-                          }}
-                          className={[
-                            "block w-full truncate rounded-[4px] px-2.5 py-2 text-left text-xs font-semibold transition-colors",
-                            active ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#cdd7e6] hover:bg-[#172133] hover:text-[#e8eef8]",
-                          ].join(" ")}
-                        >
-                          {item.title || "Neue Session"}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+              <SessionMenu session={session} sessions={sessions} activeSessionId={activeSessionId} onSelectSession={onSelectSession} />
             )}
-            <TokenMeter sessionId={session.id} refresh={tokenRefresh} />
+            <div className="hidden sm:flex" data-token-meter="1"><TokenMeter sessionId={session.id} refresh={tokenRefresh} /></div>
             <button
               onClick={onCompact}
               disabled={compacting || orphaned}
               title={t("compact.tooltip")}
-              className="rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs font-bold text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label="Komprimieren"
+              className="shrink-0 rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1.5 sm:px-3 text-xs font-bold text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
             >
-              {compacting ? <Loader2 size={12} className="mr-1 inline animate-spin" /> : <Archive size={12} className="mr-1 inline" />}
-              Komprimieren
+              {compacting ? <Loader2 size={12} className="inline animate-spin sm:mr-1" /> : <Archive size={12} className="inline sm:mr-1" />}
+              <span className="hidden sm:inline">Komprimieren</span>
             </button>
             <button
               onClick={onNewSession}
               disabled={busy || newSessionBusy}
               title={t("session.new_chat")}
-              className="rounded-[4px] border border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label={newSessionBusy ? "Übergabe wird erstellt …" : "Neuer Chat"}
+              className="shrink-0 rounded-[4px] border border-transparent bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] px-2 py-1.5 sm:px-3 text-xs font-bold text-white transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              {newSessionBusy ? <Loader2 size={12} className="mr-1 inline animate-spin" /> : <SquarePen size={12} className="mr-1 inline" />} {newSessionBusy ? "Übergabe wird erstellt …" : "Neuer Chat"}
+              {newSessionBusy ? <Loader2 size={12} className="inline animate-spin sm:mr-1" /> : <SquarePen size={12} className="inline sm:mr-1" />}
+              <span className="hidden sm:inline">{newSessionBusy ? "Übergabe wird erstellt …" : "Neuer Chat"}</span>
             </button>
           </div>
         </div>
@@ -134,7 +103,7 @@ export function ChatHeader({
 
   return (
     <>
-      <div className="flex h-[52px] items-center gap-3 border-b border-[#2a364b] bg-[#121a29] px-[14px]">
+      <div className="flex h-[52px] items-center gap-2 border-b sm:gap-3 border-[#2a364b] bg-[#121a29] px-[14px]">
         <div className="flex-1 min-w-0">
           <h2
             className="text-sm font-bold text-[#e8eef8] truncate flex items-center gap-2"
@@ -143,7 +112,7 @@ export function ChatHeader({
             {session.title}
           </h2>
           <p className="text-xs text-[#8d9ab0] mt-0.5 flex items-center gap-2 flex-wrap">
-            <span>{t("session.id_short")}: {session.id.slice(0, 8)}…</span>
+            <span className="hidden sm:inline">{t("session.id_short")}: {session.id.slice(0, 8)}…</span>
             {agent && <span className="text-zinc-500">· {agent.llm_model.replace(/^anthropic\//, "")}</span>}
             {lastTurnTokens && !busy && (
               <span className="text-zinc-500" title={t("tokens.tooltip")}>
@@ -162,25 +131,27 @@ export function ChatHeader({
             {compactNote && <span className="text-amber-400">· {compactNote}</span>}
           </p>
         </div>
-        <TokenMeter sessionId={session.id} refresh={tokenRefresh} />
+        <div className="hidden sm:flex" data-token-meter="1"><TokenMeter sessionId={session.id} refresh={tokenRefresh} /></div>
         <HelpButton topic="chat" />
         <button
           onClick={onNewSession}
           disabled={busy || newSessionBusy}
           title={t("session.new_chat")}
-          className="flex items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label={t("session.new_chat")}
+          className="flex shrink-0 items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1.5 sm:px-3 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
         >
           {newSessionBusy ? <Loader2 size={12} className="animate-spin" /> : <SquarePen size={12} />}
-          {newSessionBusy ? "Übergabe wird erstellt …" : t("session.new_chat")}
+          <span className="hidden sm:inline">{newSessionBusy ? "Übergabe wird erstellt …" : t("session.new_chat")}</span>
         </button>
         <button
           onClick={onCompact}
           disabled={compacting || orphaned}
           title={t("compact.tooltip")}
-          className="flex items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label={t("compact.button")}
+          className="flex shrink-0 items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1.5 sm:px-3 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
         >
           {compacting ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
-          {t("compact.button")}
+          <span className="hidden sm:inline">{t("compact.button")}</span>
         </button>
       </div>
 

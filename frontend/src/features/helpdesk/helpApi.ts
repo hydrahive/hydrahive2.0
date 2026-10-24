@@ -67,3 +67,12 @@ export function readOpen(): boolean {
 export function writeOpen(open: boolean): void {
   try { sessionStorage.setItem(OPEN_KEY, open ? "1" : "0") } catch { /* privater Modus */ }
 }
+
+/** Andere Stellen (Fußzeile auf dem Handy) schalten den Assistenten über dieses Ereignis.
+ * docs/specs/chat-mobile-compact.md */
+export const HELP_TOGGLE_EVENT = "hh:help-toggle"
+
+export function requestHelpToggle(): void {
+  if (typeof window === "undefined" || !window) return
+  window.dispatchEvent(new Event(HELP_TOGGLE_EVENT))
+}

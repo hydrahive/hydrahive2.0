@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { applyHelpEvent, messagesToBubbles, type HelpBubble } from "./_helpThread"
 import { HelpAssistantView, type HelpStatus } from "./HelpAssistantView"
-import { helpApi, readOpen, sendHelpMessage, writeOpen } from "./helpApi"
+import { HELP_TOGGLE_EVENT, helpApi, readOpen, sendHelpMessage, writeOpen } from "./helpApi"
 
 export function HelpAssistant() {
   const { pathname } = useLocation()
@@ -38,7 +38,11 @@ export function HelpAssistant() {
     if (open && !loaded.current) void load()
   }, [open, load])
 
-  const toggle = () => setOpen((o) => { writeOpen(!o); return !o })
+  const toggle = useCallback(() => setOpen((o) => { writeOpen(!o); return !o }), [])
+  useEffect(() => {
+    window.addEventListener(HELP_TOGGLE_EVENT, toggle)
+    return () => window.removeEventListener(HELP_TOGGLE_EVENT, toggle)
+  }, [toggle])
 
   const send = async () => {
     const text = draft.trim()

@@ -32,7 +32,7 @@ export function HelpAssistantView(p: HelpAssistantViewProps) {
     return (
       <button type="button" data-help-toggle="1" onClick={p.onToggle} title={t("helpdesk.open")}
         aria-label={t("helpdesk.open")}
-        className="fixed bottom-14 right-4 z-[70] flex h-12 w-12 items-center justify-center rounded-full border border-[#69d7ff]/50 bg-[#13202f] text-[#69d7ff] shadow-xl hover:bg-[#1a2b3f]">
+        className="fixed bottom-14 right-4 z-[70] hidden h-12 w-12 sm:flex items-center justify-center rounded-full border border-[#69d7ff]/50 bg-[#13202f] text-[#69d7ff] shadow-xl hover:bg-[#1a2b3f]">
         <HelpCircle size={22} />
       </button>
     )
