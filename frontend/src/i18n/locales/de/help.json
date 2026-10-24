@@ -80,5 +80,22 @@
       "think": "denkt nach …"
     },
     "model_unavailable": "Das Standard-Modell „{{model}}“ ist bei keinem eingerichteten Anbieter mehr verfügbar. Wähle unter KI-Modelle ein anderes Standard-Modell."
+  },
+  "report": {
+    "title": "Fehlerbericht",
+    "loading": "Bericht wird geladen …",
+    "to": "An: {{to}}",
+    "send": "Senden",
+    "discard": "Verwerfen",
+    "sent": "Danke! Der Bericht ist an {{to}} gesendet.",
+    "discarded": "Bericht verworfen.",
+    "gone": "Dieser Bericht ist nicht mehr da (schon gesendet, verworfen oder abgelaufen).",
+    "no_account": "Auf dieser Installation ist kein Mailkonto eingerichtet. Du kannst den fertigen Bericht in deinem Mailprogramm abschicken.",
+    "open_mail": "Im Mailprogramm öffnen",
+    "copy": "Text kopieren",
+    "copied": "Kopiert",
+    "truncated": "Der Bericht ist für den Mail-Link gekürzt – füge bei Bedarf den kopierten vollen Text ein.",
+    "setup_mail": "Mailzugang einrichten",
+    "ask_admin": "Damit Berichte direkt gesendet werden, kann ein Admin den Mailzugang einrichten."
   }
 }

@@ -7,10 +7,24 @@ export type HelpBusy = "search" | "read" | "think"
 
 export interface HelpBubble {
   id: string
-  role: "user" | "assistant" | "error"
+  role: "user" | "assistant" | "error" | "report"
   text: string
   busy?: HelpBusy
+  /** role "report": Entwurf eines Fehlerberichts (docs/plans/help-error-report.md) – die Karte lädt ihn selbst. */
+  reportId?: string
 }
+
+export const REPORT_TOOL = "error_report_prepare"
+
+/** report_id aus dem Ergebnis von error_report_prepare (Objekt live, JSON-Text im Verlauf) – sonst null. */
+export function reportIdOf(output: unknown): string | null {
+  let o = output
+  if (typeof o === "string") { try { o = JSON.parse(o) } catch { return null } }
+  const id = (o as { report_id?: unknown } | null)?.report_id
+  return typeof id === "string" && /^[A-Za-z0-9_-]{6,64}$/.test(id) ? id : null
+}
+
+const reportBubble = (id: string): HelpBubble => ({ id: `report-${id}`, role: "report", text: "", reportId: id })
 
 const LIVE = "live"
 
@@ -30,7 +44,17 @@ function textOf(content: Message["content"]): string {
 
 export function messagesToBubbles(messages: Message[]): HelpBubble[] {
   const out: HelpBubble[] = []
+  const reportCalls = new Set<string>()
   for (const m of messages) {
+    if (Array.isArray(m.content)) {
+      for (const b of m.content) {
+        if (b.type === "tool_use" && b.name === REPORT_TOOL) reportCalls.add(b.id)
+        if (b.type === "tool_result" && reportCalls.has(b.tool_use_id) && !b.is_error) {
+          const id = reportIdOf(b.content)
+          if (id) out.push(reportBubble(id))
+        }
+      }
+    }
     if (m.role !== "user" && m.role !== "assistant") continue
     const text = textOf(m.content)
     if (!text) continue
@@ -66,6 +90,14 @@ export function applyHelpEvent(bubbles: HelpBubble[], ev: RunnerEvent): HelpBubb
     case "tool_use_start":
       setLive({ text: "", busy: busyFor(ev.tool_name) })   // Vorrede vor dem Werkzeug verwerfen
       break
+    case "tool_use_result": {
+      const id = ev.tool_name === REPORT_TOOL && ev.success ? reportIdOf(ev.output) : null
+      if (id) {
+        if (live) list.pop()                 // Karte vor die folgende Antwort, die Live-Blase danach neu
+        list.push(reportBubble(id))
+      }
+      break
+    }
     case "error":
       if (live) list.pop()
       list.push({ id: LIVE, role: "error", text: ev.message })

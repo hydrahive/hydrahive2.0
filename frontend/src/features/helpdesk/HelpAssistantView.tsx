@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Markdown } from "@/features/chat/Markdown"
 import type { HelpBubble } from "./_helpThread"
+import { HelpReportCard } from "./HelpReportCard"
 
 export type HelpStatus = "loading" | "ready" | "model_missing" | "error"
 
@@ -93,6 +94,7 @@ export function HelpAssistantView(p: HelpAssistantViewProps) {
 
 function Bubble({ b }: { b: HelpBubble }) {
   const { t } = useTranslation("help")
+  if (b.role === "report" && b.reportId) return <HelpReportCard reportId={b.reportId} />
   if (b.role === "error") {
     return <p data-help-error="1" className="rounded-[6px] border border-red-400/40 bg-red-400/10 p-2 text-red-200">{b.text}</p>
   }

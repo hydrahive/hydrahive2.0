@@ -52,6 +52,9 @@ EDITABLE_SETTINGS: list[EditableSetting] = [
                     help="Basis-URL deiner Home-Assistant-Instanz, z.B. http://192.168.178.x:8123 (ohne /api). Lokal oder Nabu-Casa-Cloud-URL."),
     EditableSetting("homeassistant_token", "HH_HOMEASSISTANT_TOKEN", "secret", "Home Assistant", "Long-Lived Access Token",
                     help="In Home Assistant unter Profil → Sicherheit → 'Long-Lived Access Tokens' erstellen. Wird nur serverseitig genutzt und nie an den Browser ausgeliefert."),
+    EditableSetting("help_error_report_enabled", "HH_HELP_ERROR_REPORT", "bool", "Hilfe", "Fehlerberichte erlauben",
+                    "true", help="Der Hilfe-Assistent kann Fehler mit den echten Fehlerdaten an issue@hydrahive.org "
+                    "melden – immer erst nach Vorschau und Klick des Nutzers, über das Mailkonto oben."),
     EditableSetting("update_check_enabled", "HH_UPDATE_CHECK_ENABLED", "bool", "System", "Update-Check aktiv", "true"),
     EditableSetting("module_hub_extra_git_urls", "HH_MODULE_HUB_GIT_URLS", "string", "Module", "Zusätzliche Modul-Hubs",
                     help="Komma-separierte Git-URLs interner Hubs (z.B. Gitea), zusätzlich zum öffentlichen GitHub-Hub. Deren Module erscheinen mit unter den verfügbaren. Greift nach Backend-Neustart."),

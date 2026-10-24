@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-HELP_TOOLS = ["help_search", "help_read"]
+HELP_TOOLS = ["help_search", "help_read", "error_report_prepare"]
 
 
 @pytest.fixture(scope="module", autouse=True)

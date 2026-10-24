@@ -1,7 +1,7 @@
 // Hilfe-Assistent (docs/plans/help-assistant.md): Verlauf aus der Sitzung und aus dem Live-Stream als einfache
 // Sprechblasen. Werkzeug-Aufrufe (help_search/help_read) sieht der Nutzer nicht als Text, nur als „sucht im Handbuch“.
 import { describe, expect, it } from "vitest"
-import { applyHelpEvent, messagesToBubbles, type HelpBubble } from "./_helpThread"
+import { applyHelpEvent, messagesToBubbles, reportIdOf, type HelpBubble } from "./_helpThread"
 import type { Message } from "@/features/chat/types"
 
 const msg = (id: string, role: Message["role"], content: Message["content"]): Message => ({
@@ -87,3 +87,51 @@ describe("applyHelpEvent", () => {
     expect(JSON.stringify(start)).toBe(before)
   })
 })
+
+describe("Fehlerbericht im Verlauf (docs/plans/help-error-report.md)", () => {
+  const ok = (id: string) => ({ type: "tool_use_result" as const, call_id: "c", tool_name: "error_report_prepare",
+    success: true, output: { report_id: id, subject: "[HydraHive-Fehler] X" }, error: null, duration_ms: 3 })
+
+  it("live: Werkzeug-Ergebnis legt eine Bericht-Karte an, der Antworttext folgt danach", () => {
+    let b = applyHelpEvent([], { type: "tool_use_start", call_id: "c", tool_name: "error_report_prepare", arguments: {} })
+    b = applyHelpEvent(b, ok("Rep-0000001"))
+    b = applyHelpEvent(b, { type: "text_delta", text: "Bitte prüfen und senden." })
+    expect(b.filter((x) => x.role === "report").map((x) => x.reportId)).toEqual(["Rep-0000001"])
+    expect(b.at(-1)?.text).toBe("Bitte prüfen und senden.")
+  })
+
+  it("live: fehlgeschlagenes oder fremdes Werkzeug ergibt keine Karte", () => {
+    const failed = { ...ok("Rep-0000002"), success: false, output: null, error: "aus" }
+    expect(applyHelpEvent([], failed).some((x) => x.role === "report")).toBe(false)
+    expect(applyHelpEvent([], { ...ok("Rep-0000003"), tool_name: "help_read" }).some((x) => x.role === "report")).toBe(false)
+  })
+
+  it("Verlauf: Karte aus dem gespeicherten Werkzeug-Ergebnis", () => {
+    const b = messagesToBubbles([
+      msg("1", "user", "Senden geht nicht"),
+      msg("2", "assistant", [{ type: "tool_use", id: "t1", name: "error_report_prepare", input: { description: "x" } }]),
+      msg("3", "tool", [{ type: "tool_result", tool_use_id: "t1", content: JSON.stringify({ report_id: "Rep-0000009", subject: "s" }) }]),
+      msg("4", "assistant", [{ type: "text", text: "Liegt im Fenster." }]),
+    ])
+    expect(b.map((x) => [x.role, x.reportId ?? x.text])).toEqual([
+      ["user", "Senden geht nicht"], ["report", "Rep-0000009"], ["assistant", "Liegt im Fenster."],
+    ])
+  })
+
+  it("nur gültige IDs (16 Zeichen wie token_urlsafe(12), keine Sonderzeichen)", () => {
+    expect(reportIdOf({ report_id: "AbC-_123456789xy" })).toBe("AbC-_123456789xy")
+    expect(reportIdOf('{"report_id":"AbC-_123456789xy"}')).toBe("AbC-_123456789xy")
+    expect(reportIdOf({ report_id: "../../x" })).toBeNull()
+    expect(reportIdOf({ report_id: "x" })).toBeNull()
+    expect(reportIdOf("kein json")).toBeNull()
+  })
+
+  it("Verlauf: kaputtes Ergebnis wird ignoriert", () => {
+    const b = messagesToBubbles([
+      msg("2", "assistant", [{ type: "tool_use", id: "t1", name: "error_report_prepare", input: {} }]),
+      msg("3", "tool", [{ type: "tool_result", tool_use_id: "t1", content: "kein json", is_error: true }]),
+    ])
+    expect(b).toEqual([])
+  })
+})
+

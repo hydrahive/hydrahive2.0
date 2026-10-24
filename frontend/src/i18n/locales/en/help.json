@@ -80,5 +80,22 @@
       "think": "thinking …"
     },
     "model_unavailable": "The default model “{{model}}” is no longer available from any configured provider. Choose another default model under AI models."
+  },
+  "report": {
+    "title": "Error report",
+    "loading": "Loading report …",
+    "to": "To: {{to}}",
+    "send": "Send",
+    "discard": "Discard",
+    "sent": "Thank you! The report has been sent to {{to}}.",
+    "discarded": "Report discarded.",
+    "gone": "This report is no longer available (already sent, discarded or expired).",
+    "no_account": "No mail account is set up on this installation. You can send the finished report from your mail program.",
+    "open_mail": "Open in mail program",
+    "copy": "Copy text",
+    "copied": "Copied",
+    "truncated": "The report was shortened for the mail link – paste the copied full text if needed.",
+    "setup_mail": "Set up mail access",
+    "ask_admin": "To send reports directly, an admin can set up mail access."
   }
 }

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 vi.mock("@/features/chat/Markdown", () => ({ Markdown: ({ text }: { text: string }) => <div>{text}</div> }))
+vi.mock("./HelpReportCard", () => ({ HelpReportCard: ({ reportId }: { reportId: string }) => <div data-card={reportId} /> }))
 import { HelpAssistantView, type HelpAssistantViewProps } from "./HelpAssistantView"
 
 const noop = () => {}
@@ -77,5 +78,11 @@ describe("Hilfe-Assistent – Handy", () => {
     expect(cls).toContain("hidden")
     expect(cls).toContain("sm:flex")
     expect(cls).not.toContain("flex")
+  })
+
+  it("Bericht-Blase zeigt die Fehlerbericht-Karte (docs/plans/help-error-report.md)", () => {
+    const html = renderToStaticMarkup(<HelpAssistantView {...props({ bubbles: [
+      { id: "report-Rep-0000001", role: "report", text: "", reportId: "Rep-0000001" }] })} />)
+    expect(html).toContain('data-card="Rep-0000001"')
   })
 })
