@@ -144,9 +144,13 @@ def test_abhaengigkeiten_je_modul_sichergestellt(mod_env):
 
 
 def test_ungueltige_modulordner_werden_ignoriert(mod_env):
-    (mod_env / "modules" / ".alpha-update-xyz").mkdir()
+    # Rest eines abgebrochenen Ersetzens (replace_module_in: .<id>-update-…): Ordner mit gültigem Manifest, alte Version.
+    hidden = mod_env / "modules" / ".alpha-update-xyz"
+    hidden.mkdir()
+    (hidden / "manifest.json").write_text(json.dumps({"id": "alpha", "name": "alpha", "version": "0.0.1"}))
     (mod_env / "modules" / "kaputt").mkdir()
     (mod_env / "modules" / "kaputt" / "manifest.json").write_text("{nicht json")
-    with _env(mod_env) as calls:
+    hub = {**HUB, ".alpha-update-xyz": "9.9.9", "kaputt": "9.9.9"}
+    with _env(mod_env, hub=hub) as calls:
         _run()
     assert [c for c in calls if c.startswith("replace:")] == ["replace:alpha", "replace:delta", "replace:gamma"]
