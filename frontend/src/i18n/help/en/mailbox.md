@@ -112,6 +112,15 @@ You can change the level later in the list of shares.
 The trash icon removes the sharing again. Removing the account also removes its
 sharing.
 
+When you share, the project's **project agent** automatically receives the
+matching Mailbox tools, including the draft tools for the Draft level. Removing
+the project's last share removes them again. The agent's other tools stay
+unchanged. The change applies from the next message to the agent; no restart is
+needed.
+
+Other agents, such as specialists, do not receive the tools automatically. If
+needed, tick them in the agent configuration under **Tools**.
+
 ### Who may do what?
 
 - Only the account owner can share, and only with projects they are a member of.
@@ -160,5 +169,9 @@ configuration and are unrelated to these accounts.
   Microsoft accounts can renew their sign-in from the account dialog.
 - **Sent mail is missing from the folder:** Sending can succeed even when a
   provider files the Sent copy with a delay. The local archived copy remains.
+- **The agent says it has no mail tools:** Check that the account is shared with
+  exactly this project, then send the agent a new message. The tools are named
+  `mailbox_…`. `read_mail` belongs to the old global mailbox under Settings →
+  Mail and is unrelated to Mailbox.
 - **Folders collapse again after reloading:** The browser must not block local
   storage or clear it when closing.
