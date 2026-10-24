@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react"
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }) }))
 vi.mock("@/features/cockpit/CockpitTopbar", () => ({ CockpitTopbar: () => <header data-topbar="1" /> }))
 vi.mock("@/features/auth/useAuthStore", () => ({ useAuthStore: (sel: (s: { username: string }) => unknown) => sel({ username: "till" }) }))
-const I = (() => null) as unknown as LucideIcon
+const { I } = vi.hoisted(() => ({ I: (() => null) as unknown as LucideIcon }))
 vi.mock("./useAreas", async () => {
   const { fillAreas } = await import("./areaLogic")
   const items = ["/storyteller", "/notizbuch", "/studio", "/projects"].map((p) => ({ path: p, icon: I, labelKey: p.slice(1), group: "working" }))

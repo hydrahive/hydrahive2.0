@@ -8,15 +8,15 @@ vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (k: string) => k }
 vi.mock("@/i18n/HelpButton", () => ({ HelpButton: () => <span data-help="1" /> }))
 vi.mock("@/features/vault/VaultBadge", () => ({ VaultBadge: () => null }))
 vi.mock("@/features/cockpit/CockpitUserMenu", () => ({ CockpitUserMenu: () => <span data-user="1" /> }))
-const I = (() => null) as unknown as LucideIcon
+const { I } = vi.hoisted(() => ({ I: (() => null) as unknown as LucideIcon }))
 vi.mock("./useAreas", async () => {
   const { fillAreas } = await import("./areaLogic")
   const items = ["/storyteller", "/notizbuch", "/scratchpad", "/studio", "/tonstudio", "/projects"]
     .map((p) => ({ path: p, icon: I, labelKey: p.slice(1), group: "working" }))
   return { useAreas: () => ({ areas: fillAreas(items, true), label: (i: { labelKey: string }) => `L:${i.labelKey}` }) }
 })
-let active: string | null = null
-vi.mock("./useAreaPrefs", () => ({ useAreaPrefs: () => ({ active, last: {}, setActive: () => {}, remember: () => {} }) }))
+const st = vi.hoisted(() => ({ active: null as string | null }))
+vi.mock("./useAreaPrefs", () => ({ useAreaPrefs: () => ({ active: st.active, last: {}, setActive: () => {}, remember: () => {} }) }))
 import { AreaTopbar } from "./AreaTopbar"
 
 const render = (path: string, props: Parameters<typeof AreaTopbar>[0] = {}) =>
@@ -41,9 +41,9 @@ describe("AreaTopbar", () => {
     expect(h).toMatch(/<button[^>]*aria-current="page"[^>]*>L:studio<\/button>/)
   })
   it("Seite ohne Bereich: zuletzt aktiver Bereich vom Server", () => {
-    active = "medien"
+    st.active = "medien"
     expect(tabs(render("/profile"))).toEqual(["L:studio", "L:tonstudio"])
-    active = null
+    st.active = null
     const h = render("/profile")
     expect(tabs(h)).toEqual([])
     expect(h).toContain("Bereich wählen")
