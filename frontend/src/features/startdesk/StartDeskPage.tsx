@@ -11,6 +11,7 @@ import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { visibleItems, type NavItem } from "@/shared/nav-config"
 import { navLabel } from "@/shared/nav-label"
 import { EXTRA_ITEMS, fillGroups, type FilledGroup } from "./startLogic"
+import { LABELS } from "./groups"
 
 function greeting(now: Date): string {
   const h = now.getHours()
@@ -31,7 +32,7 @@ export function StartDeskPage() {
   )
   const openId = params.get("gruppe")
   const open = groups.find((g) => g.group.id === openId) ?? null
-  const label = (i: NavItem) => (i.labelKey === "settings_hub" ? "Einstellungen" : navLabel(t, i.labelKey))
+  const label = (i: NavItem) => LABELS[i.path] ?? navLabel(t, i.labelKey)
   const hits = query.trim()
     ? groups.flatMap((g) => g.items.map((i) => ({ i, g }))).filter(({ i }) => label(i).toLowerCase().includes(query.trim().toLowerCase()))
     : []

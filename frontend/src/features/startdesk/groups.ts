@@ -51,3 +51,21 @@ export const OTHER_GROUP: StartGroup = {
   id: "weitere", title: "Weitere", blurb: "Noch nicht einsortiert", icon: Boxes,
   tone: "from-white/10 border-white/20 text-zinc-300", paths: [],
 }
+
+/** VORSCHAU: feste Anzeigenamen. Einige Module liefern heute nur ihren internen Schlüssel
+ *  („aiSecurity“, „musicplayer“, „bg_title“) – das betrifft auch die obere Leiste und wird beim
+ *  echten Einbau an der Wurzel behoben. */
+export const LABELS: Record<string, string> = {
+  "/studio": "Studio (Film)", "/atelier": "Atelier", "/videoeditor": "Video-Editor", "/tonstudio": "Tonstudio",
+  "/musicplayer": "Mediaplayer", "/media": "Media-Projekte",
+  "/storyteller": "Storyteller", "/notizbuch": "Notizbuch", "/scratchpad": "Scratchpad", "/diagramme": "Diagramme", "/blueprint": "Blueprint",
+  "/deepresearch": "Deep Research", "/archiver": "Archiv", "/recht": "Recht", "/datamining": "Datamining", "/memory": "Gedächtnis", "/opentor": "OpenTor OSINT",
+  "/projects": "Projekte", "/werkstatt": "Werkstatt (Chat)", "/buddy": "Buddy", "/tickets": "Tickets", "/settings/agents": "Agenten",
+  "/skills": "Skills", "/butler": "Butler (Abläufe)", "/zahnfee": "Zahnfee",
+  "/mailbox": "Mailbox", "/communication": "Messenger", "/teamchat": "Team-Chat", "/voip": "Telefon (VoIP)", "/voice": "Sprachassistent",
+  "/haushaltsbuch": "Haushaltsbuch", "/akte": "Meine Akte", "/homeassistant": "Home Assistant", "/vault": "Tresor (Vault)",
+  "/cryptoboard": "Krypto-Kurse", "/mining": "Mining", "/vitrine": "Vitrine",
+  "/mediacenter": "Mediacenter", "/boardgames": "Brettspiele", "/minigames": "Minispiele", "/vr": "VR-Brille", "/streaming": "Streaming",
+  "/admin": "Admin", "/settings": "Einstellungen", "/dashboard": "Systemstatus", "/vms": "VMs", "/containers": "Container",
+  "/federation": "Föderation", "/mcp": "MCP-Server", "/plugins": "Plugins", "/ai-security": "AI-Sicherheit",
+}
