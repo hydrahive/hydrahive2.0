@@ -159,8 +159,24 @@ def test_cancel_rejects_terminal_job_and_every_transition_is_audited(jobs_db: st
         actions = [
             row["action"]
             for row in conn.execute(
-                "SELECT action FROM compute_audit_log WHERE node_id = ? AND action LIKE 'job.%' ORDER BY created_at",
+                # rowid = Einfügereihenfolge; created_at allein ist in derselben
+                # Millisekunde gleich (Task 4e5eaba5).
+                "SELECT action FROM compute_audit_log WHERE node_id = ? AND action LIKE 'job.%' ORDER BY created_at, rowid",
                 (jobs_db,),
             )
         ]
     assert actions == ["job.queued", "job.cancelled"]
+
+
+def test_protokoll_gleicher_zeitstempel_neueste_zuerst(jobs_db: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Task 4e5eaba5: Zwei Einträge derselben Millisekunde – list_records zeigt den
+    später geschriebenen zuerst (Sortierung created_at DESC, audit_id DESC)."""
+    from hydrahive.compute import audit
+    from hydrahive.db import _utils
+
+    monkeypatch.setattr(audit, "now_iso", lambda: "2026-10-24T12:00:00.000+00:00")
+    monkeypatch.setattr(_utils.time, "time", lambda: 1_792_000_000.0)
+    for n in range(30):
+        audit.record(actor="admin", action=f"probe.{n:02d}", node_id=jobs_db)
+    got = [r["action"] for r in audit.list_records(node_id=jobs_db) if r["action"].startswith("probe.")]
+    assert got == [f"probe.{n:02d}" for n in reversed(range(30))]
