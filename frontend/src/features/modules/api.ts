@@ -84,6 +84,15 @@ export function uninstallModule(
   return stream(`/${id}`, "DELETE", onLine, onDone, onError)
 }
 
+/** Alle Module mit verfügbarem Update in EINEM Ablauf (einmal bauen, einmal Neustart) – docs/specs/modul-update-alle.md. */
+export function updateAllModules(
+  onLine: (line: string) => void,
+  onDone: () => void,
+  onError: (msg: string) => void,
+): () => void {
+  return stream("/update-all", "POST", onLine, onDone, onError)
+}
+
 export function updateModule(
   id: string,
   onLine: (line: string) => void,
