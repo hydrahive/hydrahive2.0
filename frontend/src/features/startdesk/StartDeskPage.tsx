@@ -49,7 +49,7 @@ export function StartDeskPage() {
             <GroupView fg={open} label={label} onBack={() => setParams({})} onOpen={(p) => navigate(p)} />
           ) : (
             <>
-              <h1 className="text-2xl font-black text-[#e8eef8] sm:text-3xl">{greeting(new Date())}{username ? `, ${username}` : ""}</h1>
+              <h1 className="text-xl font-black text-[#e8eef8] sm:text-3xl">{greeting(new Date())}{username ? `, ${username}` : ""}</h1>
               <p className="mt-1 text-sm text-[#8d9ab0]">Wohin möchtest du?</p>
               <label className="mt-4 flex max-w-xl items-center gap-2 rounded-[6px] border border-[#2a364b] bg-[#0d1420] px-3 py-2.5 focus-within:border-[#46617f]">
                 <Search size={16} className="shrink-0 text-[#8d9ab0]" />
@@ -62,7 +62,7 @@ export function StartDeskPage() {
                   {hits.map(({ i, g }) => <AppTile key={i.path} item={i} label={label(i)} tone={g.group.tone} hint={g.group.title} onOpen={() => navigate(i.path)} />)}
                 </div>
               ) : (
-                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
                   {groups.map((fg) => <GroupTile key={fg.group.id} fg={fg} label={label} onOpen={() => setParams({ gruppe: fg.group.id })} />)}
                 </div>
               )}
@@ -79,14 +79,14 @@ function GroupTile({ fg, label, onOpen }: { fg: FilledGroup; label: (i: NavItem)
   const Icon = group.icon
   return (
     <button type="button" onClick={onOpen}
-      className={`group flex min-h-[150px] flex-col rounded-[8px] border bg-gradient-to-br to-[#111827] p-4 text-left transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 ${group.tone}`}>
+      className={`group flex min-h-[118px] flex-col rounded-[8px] border bg-gradient-to-br to-[#111827] p-3 text-left sm:min-h-[150px] sm:p-4 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 ${group.tone}`}>
       <div className="flex items-center justify-between">
-        <Icon size={28} />
+        <Icon size={24} className="sm:h-7 sm:w-7" />
         <span className="rounded-full border border-current/30 px-2 py-0.5 text-[11px] font-bold opacity-80">{items.length}</span>
       </div>
-      <h2 className="mt-3 text-lg font-black text-[#e8eef8]">{group.title}</h2>
+      <h2 className="mt-2 text-[15px] font-black leading-tight text-[#e8eef8] sm:mt-3 sm:text-lg">{group.title}</h2>
       <p className="mt-0.5 text-xs text-[#8d9ab0]">{group.blurb}</p>
-      <p className="mt-auto pt-3 truncate text-[11px] text-[#718097]">{items.slice(0, 4).map(label).join(" · ")}{items.length > 4 ? " …" : ""}</p>
+      <p className="mt-auto hidden truncate pt-3 text-[11px] text-[#718097] sm:block">{items.slice(0, 4).map(label).join(" · ")}{items.length > 4 ? " …" : ""}</p>
     </button>
   )
 }
