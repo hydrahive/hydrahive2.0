@@ -10,6 +10,8 @@ import { CockpitAppsMenu } from "./CockpitAppsMenu"
 import { VaultBadge } from "@/features/vault/VaultBadge"
 import { CockpitUserMenu } from "./CockpitUserMenu"
 import { fokussierbare, tabZiel } from "@/shared/dialog/focusTrap"
+import { AreaTopbar } from "@/features/startdesk/AreaTopbar"
+import { usePreviewOn } from "@/features/startdesk/usePreviewOn"
 
 interface Props {
   /** Core-Cockpit-Id oder Pfad eines Cockpit-Moduls (z. B. "/mediacenter"). */
@@ -31,7 +33,14 @@ const CORE_NAV: NavTab[] = [
 
 const go = (path: string) => window.open(path, "_self")
 
-export function CockpitTopbar({ active, context, action, extraActions }: Props) {
+export function CockpitTopbar(props: Props) {
+  // VORSCHAU Startdesktop (Task 7876c5df): mit eingeschalteter Vorschau die Bereichs-Leiste zeigen.
+  const preview = usePreviewOn()
+  if (preview) return <AreaTopbar />
+  return <ClassicTopbar {...props} />
+}
+
+function ClassicTopbar({ active, context, action, extraActions }: Props) {
   const { t } = useTranslation("nav")
   const [menuOpen, setMenuOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
