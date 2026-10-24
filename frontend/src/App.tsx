@@ -11,6 +11,7 @@ const appModuleRoutes = moduleRoutes as ModuleRoute[]
 import { DashboardPage } from "@/features/dashboard/DashboardPage"
 import { SessionDetailPage } from "@/features/analytics/SessionDetailPage"
 import { ChatPage } from "@/features/chat/ChatPage"
+import { StartDeskPage } from "@/features/startdesk/StartDeskPage"
 
 import { LlmPage } from "@/features/llm/LlmPage"
 import { CatalogPage } from "@/features/llm/CatalogPage"
@@ -91,6 +92,7 @@ export default function App() {
           {/* Agenten bleiben vorerst im Settings-Hub; Projekte bekommen ein neues Cockpit. */}
           <Route path="agents" element={<Navigate to="/settings/agents" replace />} />
           <Route path="projects" element={<ProjectCockpitPage />} />
+          <Route path="start-vorschau" element={<StartDeskPage />} />
           <Route path="media" element={<MediaCockpitPage />} />
           <Route path="vault" element={<VaultCockpitPage />} />
           <Route path="admin" element={<AdminGuard><AdminCockpitPage /></AdminGuard>} />
