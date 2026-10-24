@@ -83,7 +83,8 @@ async def run_loop(stop: asyncio.Event) -> None:
             if mails:
                 _seen.save_seen(seen_path, seen)
         except Exception as e:
-            logger.warning("mail_watcher Loop-Fehler: %s", e)
+            from hydrahive.communication.mail import _tls
+            logger.warning("mail_watcher Loop-Fehler: %s", _tls.hint(e) or e)
 
         try:
             await asyncio.wait_for(stop.wait(), timeout=interval)

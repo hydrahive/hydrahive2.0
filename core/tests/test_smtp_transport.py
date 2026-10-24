@@ -16,7 +16,7 @@ class _FakeSMTP:
     """Zeichnet auf, was aufgerufen wurde — für SMTP und SMTP_SSL gleichermaßen."""
     last: "list[_FakeSMTP]" = []
 
-    def __init__(self, host, port, timeout=None):
+    def __init__(self, host, port, timeout=None, context=None):
         self.host, self.port, self.timeout = host, port, timeout
         self.calls: list = []
         type(self).last.append(self)
@@ -30,7 +30,7 @@ class _FakeSMTP:
     def ehlo(self):
         self.calls.append("ehlo")
 
-    def starttls(self):
+    def starttls(self, context=None):
         self.calls.append("starttls")
 
     def login(self, user, pw):

@@ -51,10 +51,12 @@ def send(report: dict) -> dict:
     msg["Subject"] = report["subject"]
     msg["X-HydraHive-Report"] = report["id"]
     msg.set_content(report["body"])
-    from hydrahive.communication.mail import _transport
+    from hydrahive.communication.mail import _tls, _transport
     try:
         _transport.send_message(cfg, msg)
     except Exception as e:  # noqa: BLE001 - jede Störung → Fehlermeldung ohne Passwort, Entwurf bleibt
+        if (h := _tls.hint(e)):
+            raise SendFailed(h) from None
         from hydrahive.credentials.redaction import scrub
         raise SendFailed(scrub(f"{type(e).__name__}: {e}", {cfg.get("password") or ""} - {""})[:300]) from None
     return {"sent": True, "to": _report.recipient()}

@@ -100,11 +100,13 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     msg.set_content(body)
 
     # Lazy: tools wird früh geladen — kein Top-Level-Import in communication (Zirkel).
-    from hydrahive.communication.mail import _transport
+    from hydrahive.communication.mail import _tls, _transport
 
     try:
         await asyncio.to_thread(_transport.send_message, cfg, msg)
     except Exception as e:
+        if (h := _tls.hint(e)):
+            return ToolResult.fail(f"Mail-Versand fehlgeschlagen: {h}")
         return fail_with_cause("Mail-Versand fehlgeschlagen", e, "send_mail")
 
     return ToolResult.ok(f"Mail an {to} gesendet", to=to, subject=subject)
