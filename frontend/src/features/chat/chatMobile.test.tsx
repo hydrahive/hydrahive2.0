@@ -47,6 +47,19 @@ describe.each([["Projekt-Cockpit", true], ["Werkstatt", false]])("ChatHeader (%s
   })
 })
 
+describe("ChatHeader Projekt-Cockpit: Modellzeile", () => {
+  it("bricht auf dem Handy nicht um, langer Modellname wird gekürzt und steht voll im title", () => {
+    const html = header(true, { agent: { id: "a1", name: "A", type: "x", llm_model: "openrouter/anthropic/claude-sonnet-4.5", status: "active" } })
+    const line = html.match(/<p class="([^"]*)">/)
+    expect(line).not.toBeNull()
+    const cls = line![1].split(" ")
+    expect(cls).toContain("flex-nowrap")
+    expect(cls).toContain("sm:flex-wrap")
+    expect(cls).not.toContain("flex-wrap")
+    expect(html).toMatch(/<span class="[^"]*\btruncate\b[^"]*" title="openrouter\/anthropic\/claude-sonnet-4\.5">· openrouter\/anthropic\/claude-sonnet-4\.5<\/span>/)
+  })
+})
+
 describe("ChatHeader Projekt-Cockpit: Sitzungsauswahl", () => {
   it("ist auf dem Handy schmal (höchstens 140 px), ab sm wie bisher", () => {
     const b = buttons(header(true)).find((x) => x.attrs.includes("Projekt-Session wählen"))
