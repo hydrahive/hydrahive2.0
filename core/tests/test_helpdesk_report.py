@@ -68,6 +68,13 @@ def test_secrets_geschwaerzt_auch_in_beschreibung_und_traceback(u):
     assert SECRET not in d["body"] and SECRET not in d["subject"]
 
 
+def test_keine_behauptung_zum_versandweg(u):
+    """Befund Live-Test 24.10.: ohne Mailkonto stand „Gesendet über das Mailkonto“ im Text – der Weg steht erst beim
+    Senden fest, deshalb nichts darüber im Bericht."""
+    from hydrahive.helpdesk import _report
+    assert "Mailkonto" not in _report.prepare(u, "x", "/")["body"]
+
+
 def test_ohne_fehler_trotzdem_bericht(u):
     from hydrahive.helpdesk import _report
     d = _report.prepare(u, "Knopf reagiert nicht", "/chat")

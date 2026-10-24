@@ -117,7 +117,7 @@ def build(user: str, description: str, path: str | None) -> dict:
         f"HydraHive: {_version()}   System: {_system()}   Python: {platform.python_version()}",
         f"Module: {_modules()}", "",
         "Fehler (letzte 24 h, dieser Nutzer, geschwärzt):", *blocks, "",
-        f"Bericht-ID: {rid}   Gesendet über das Mailkonto der Installation.",
+        f"Bericht-ID: {rid}",
     ])
     subject = _clean(f"[HydraHive-Fehler] {first} – {page} – {_version()}", secrets)[:200]
     return {"id": rid, "subject": subject, "body": body, "errors": len(errs)}
