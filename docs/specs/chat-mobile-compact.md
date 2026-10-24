@@ -72,3 +72,24 @@ Bei 1280 und 1600 px:
 
 - Die eingeklappten Seitenstreifen der Werkstatt (je 32 px) bleiben.
 - Der Inhalt der Befehls-Knöpfe ändert sich nicht.
+
+## Nachtrag: Werkstatt-Rahmen und Modellzeile
+
+Gefunden bei der Browser-Prüfung:
+
+- **Werkstatt ragt über den Rahmen:**
+  - `ThreePanelLayout` gleicht mit `-m-4 md:-m-6` und `h-[calc(100%+2rem/3rem)]` den alten Seitenabstand aus
+    (4ab3d865, 01.06.).
+  - Seit 0e6df831 (18.09.) sitzt die Werkstatt in einem Rahmen mit `p-[10px]`. Deshalb ragt die Ansicht auf
+    allen Breiten 6–14 px über den Rahmen, und der Knopf „Aufklappen“ ist angeschnitten.
+  - Lösung: `ThreePanelLayout` füllt einfach seinen Rahmen (`h-full`, kein negativer Rand).
+  - Benutzt wird es nur von `ChatPane` mit Seitenleisten, also Werkstatt und `werkstatt/:sid`, beide im
+    10-px-Rahmen.
+- **Modellzeile bricht um:**
+  - Im Projekt-Cockpit bricht der Modellname unter dem Titel in zwei Zeilen (Kopf 71 px).
+  - Lösung: Die Zeile unter dem Titel bricht unter `sm` nicht um. Der Modellname wird mit „…“ gekürzt
+    (`truncate`), der volle Name steht im `title`.
+
+Weitere Akzeptanzkriterien:
+- Werkstatt bei 393 und 1600 px: Die Dreispalten-Ansicht liegt vollständig im Rahmen, kein Knopf ist angeschnitten.
+- Projekte bei 393 px: Chat-Kopf höchstens 64 px.
