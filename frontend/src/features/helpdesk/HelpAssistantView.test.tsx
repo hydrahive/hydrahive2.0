@@ -67,3 +67,15 @@ describe("Hilfe-Assistent", () => {
     expect(html).toMatch(/role="dialog"[^>]*aria-label="helpdesk.title"/)
   })
 })
+
+// docs/specs/chat-mobile-compact.md: Der schwebende Knopf überdeckte auf dem Handy Chat-Knöpfe.
+describe("Hilfe-Assistent – Handy", () => {
+  it("der schwebende Knopf ist unter sm ausgeblendet und ab sm sichtbar", () => {
+    const html = renderToStaticMarkup(<HelpAssistantView {...props({ open: false })} />)
+    const btn = html.match(/<button[^>]*data-help-toggle="1"[^>]*>/)?.[0] ?? ""
+    const cls = (btn.match(/class="([^"]*)"/)?.[1] ?? "").split(" ")
+    expect(cls).toContain("hidden")
+    expect(cls).toContain("sm:flex")
+    expect(cls).not.toContain("flex")
+  })
+})

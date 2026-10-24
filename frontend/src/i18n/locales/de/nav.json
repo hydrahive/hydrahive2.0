@@ -85,5 +85,6 @@
     "failed": "Restart fehlgeschlagen: {{error}}",
     "close": "Schließen",
     "now": "Jetzt neu starten"
-  }
+  },
+  "helpdesk_open": "Hilfe-Assistent öffnen"
 }

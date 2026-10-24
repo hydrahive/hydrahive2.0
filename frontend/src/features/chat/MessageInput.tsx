@@ -165,9 +165,10 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
         )}
       </div>
       <div className="flex items-center justify-between gap-2 mt-1.5 px-1">
-        <p className="text-[10px] text-zinc-500">{t("input.hint")}</p>
+        <p className="hidden shrink-0 text-[10px] text-zinc-500 sm:block">{t("input.hint")}</p>
         {quickActions && (
-          <div className="flex items-center gap-1">
+          // Handy: eine wischbare Zeile statt abgeschnittener Knöpfe (docs/specs/chat-mobile-compact.md)
+          <div className="flex min-w-0 flex-nowrap items-center gap-1 overflow-x-auto [&>*]:shrink-0" data-quick-actions="1">
             {quickActions((prefix) => {
               setText(prefix.endsWith(" ") ? prefix : prefix + " ")
               textRef.current?.focus()
