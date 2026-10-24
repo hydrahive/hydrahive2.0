@@ -10,6 +10,9 @@ import { describe, expect, it } from "vitest"
 // nachdem index.generated fertig ist; kein Modul importiert sie.
 const SRC = join(__dirname, "..")
 const ALLOWED = new Set(["App.tsx", "i18n/index.ts"])
+// Kern-Funktionen, die Modul-Listen lesen – auch sie nicht beim Laden aufrufen.
+const ACCESSORS = new Set(["moduleNavItems", "mediaSources", "mediaWorkflows", "primaryMediaWorkflow",
+  "slotBlocks", "getBlock", "buddyMediaWidgets"])
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -33,6 +36,7 @@ export function eagerModuleReads(code: string, fileName = "x.tsx"): string[] {
   const visit = (n: ts.Node) => {
     if (ts.isFunctionLike(n) || ts.isImportDeclaration(n)) return
     if (ts.isIdentifier(n) && imported.has(n.text)) hits.push(n.text)
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && ACCESSORS.has(n.expression.text)) hits.push(`${n.expression.text}()`)
     ts.forEachChild(n, visit)
   }
   sf.statements.forEach(visit)
@@ -48,6 +52,10 @@ describe("Wächter: Modul-Listen nicht beim Laden lesen", () => {
     expect(eagerModuleReads(imp + "export function f() { return moduleX }")).toEqual([])
     expect(eagerModuleReads(imp + "const f = () => moduleX")).toEqual([])
     expect(eagerModuleReads(`const moduleX = 1\nconst a = moduleX`)).toEqual([])
+    expect(eagerModuleReads(`const w = primaryMediaWorkflow()`)).toEqual(["primaryMediaWorkflow()"])
+    expect(eagerModuleReads(`import { type ModT } from "@/modules/index.generated"\nlet a: ModT[] = []`)).toEqual([])
+    expect(eagerModuleReads(`const n = moduleNavItems().length`)).toEqual(["moduleNavItems()"])
+    expect(eagerModuleReads(`function F() { return primaryMediaWorkflow() }`)).toEqual([])
   })
 
   it("keine Kern-Datei liest Modul-Listen beim Laden", () => {
