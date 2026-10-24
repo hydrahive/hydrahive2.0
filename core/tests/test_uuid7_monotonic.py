@@ -41,11 +41,12 @@ def test_neue_millisekunde_aufsteigend(clock) -> None:
 
 
 def test_zaehler_beginnt_je_millisekunde_unten(clock) -> None:
-    for _ in range(50):
-        _utils.uuid7()
-    clock.ms += 1
-    b = uuid.UUID(_utils.uuid7()).int
-    assert (b >> 64) & 0xFFF < 0x800  # Platz für viele weitere IDs dieser Millisekunde
+    """Start der Millisekunde liegt in der unteren Hälfte → Platz für ≥ 2048
+    weitere IDs. 20 Millisekunden, damit ein Zufallsstart über 0x7FF sicher auffiele."""
+    for _ in range(20):
+        clock.ms += 1
+        b = uuid.UUID(_utils.uuid7()).int
+        assert (b >> 64) & 0xFFF < 0x800
 
 
 def test_uhr_geht_zurueck_trotzdem_aufsteigend(clock) -> None:
@@ -72,3 +73,13 @@ def test_format_version_und_variante(clock) -> None:
 def test_zufallsteil_bleibt_zufaellig(clock) -> None:
     lows = {uuid.UUID(_utils.uuid7()).int & ((1 << 62) - 1) for _ in range(200)}
     assert len(lows) == 200
+
+
+def test_nach_ueberlauf_zaehler_wieder_unten(clock) -> None:
+    """Nach dem Überlauf beginnt die nächste Millisekunde mit Zähler 0 und hat
+    wieder Platz für viele IDs (nicht sofort erneuter Überlauf)."""
+    ids = [_utils.uuid7() for _ in range(4097)]
+    after = [i for i in ids if _ts_ms(i) == clock.ms + 1]
+    assert after, "Überlauf muss in die nächste Millisekunde führen"
+    first_seq = (uuid.UUID(after[0]).int >> 64) & 0xFFF
+    assert first_seq == 0
