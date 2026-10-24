@@ -34,6 +34,8 @@ import { ProjectWorkspacePanel } from "./project/ProjectWorkspacePanel"
 import { ProjectSelector } from "./project/ProjectSelector"
 import { ProjectTasksPanel } from "./project/ProjectTasksPanel"
 import { ProjectActionGroups } from "./project/ProjectActionGroups"
+import { ProjectMobileTabs } from "./project/ProjectMobileTabs"
+import { paneClass, tabAfterAgentPick, type MobileTab } from "./project/mobileTabs"
 
 export function ProjectCockpitPage() {
   const prefs = useUserPreferences()
@@ -55,6 +57,8 @@ export function ProjectCockpitPage() {
   const [gitRevision, setGitRevision] = useState(0)
   const [integrationsOpen, setIntegrationsOpen] = useState(false)
   const [skillsOpen, setSkillsOpen] = useState(false)
+  // Nur unter 1280 px sichtbar: welcher Bereich gerade die volle Höhe bekommt.
+  const [mobileTab, setMobileTab] = useState<MobileTab>("chat")
   const agentSelection = useProjectAgentSelection(prefs)
   const selectedAgentByProject = agentSelection.selectedByProject
   // Explizite User-Auswahl hat Vorrang vor dem aus den Prefs abgeleiteten Default.
@@ -95,6 +99,7 @@ export function ProjectCockpitPage() {
     agentSelection.select(activeProjectId, agentId)
     setOpenSessionRequest(sessionId)
     setInsightView(null)
+    setMobileTab(tabAfterAgentPick())
   }
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null
@@ -142,8 +147,10 @@ export function ProjectCockpitPage() {
         context={activeProject ? `Projekt bleibt gespeichert: ${activeProject.name}` : undefined}
       />
       {error && <div className="mx-[10px] mt-[10px] shrink-0 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</div>}
-      <div className="grid min-h-0 flex-1 gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[270px_minmax(420px,1fr)_360px]">
-        <aside className="min-h-0 space-y-[10px] overflow-y-auto pr-1">
+      <ProjectMobileTabs active={mobileTab} onChange={setMobileTab} />
+      <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-[10px] overflow-hidden p-[10px] xl:grid-cols-[270px_minmax(420px,1fr)_360px]">
+        <aside id="project-pane-project" role="tabpanel" aria-labelledby="project-tab-project"
+          className={`min-h-0 space-y-[10px] overflow-y-auto pr-1 ${paneClass("project", mobileTab, "block")}`}>
           <CollapsibleCockpitPanel
             title="Projekt"
             eyebrow="Projekt"
@@ -183,6 +190,7 @@ export function ProjectCockpitPage() {
               onSelect={(agentId) => {
                 if (!activeProjectId) return
                 agentSelection.select(activeProjectId, agentId)
+                setMobileTab(tabAfterAgentPick())
               }}
               onEdit={setEditingAgentId}
               onNewSession={(agentId) => { void startSessionWithAgent(agentId) }}
@@ -230,7 +238,8 @@ export function ProjectCockpitPage() {
           </CollapsibleCockpitPanel>
         </aside>
 
-        <main className="min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
+        <main id="project-pane-chat" role="tabpanel" aria-labelledby="project-tab-chat"
+          className={`min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b] ${paneClass("chat", mobileTab, "block")}`}>
           {/*
             Erst rendern, wenn die Preferences geladen sind. Sonst mountet die
             ChatPane mit dem noch leeren Default (selectedAgentId fällt auf den
@@ -258,7 +267,8 @@ export function ProjectCockpitPage() {
           )}
         </main>
 
-        <aside className="grid min-h-0 gap-[10px] overflow-hidden xl:grid-rows-[32fr_38fr_30fr]">
+        <aside id="project-pane-files" role="tabpanel" aria-labelledby="project-tab-files"
+          className={`grid min-h-0 auto-rows-[minmax(320px,auto)] gap-[10px] overflow-y-auto xl:auto-rows-auto xl:grid-rows-[32fr_38fr_30fr] xl:overflow-hidden ${paneClass("files", mobileTab, "grid")}`}>
           <ProjectGitTreePanel projectId={activeProjectId} />
           <ProjectWorkspacePanel projectId={activeProjectId} onOpenFile={(path, kind) => setWsFile({ path, kind })} />
           <ProjectTasksPanel projectId={activeProjectId} />
@@ -275,7 +285,7 @@ export function ProjectCockpitPage() {
           project={activeProject}
           view={insightView}
           onClose={() => setInsightView(null)}
-          onOpenSession={(sessionId) => { setOpenSessionRequest(sessionId); setInsightView(null) }}
+          onOpenSession={(sessionId) => { setOpenSessionRequest(sessionId); setInsightView(null); setMobileTab(tabAfterAgentPick()) }}
         />
       )}
       {graphOpen && activeProject && <ProjectGraphOverlay project={activeProject} onClose={() => setGraphOpen(false)} />}
