@@ -75,9 +75,9 @@ def test_ein_fehler_stoppt_die_anderen_nicht(mod_env):
     with _env(mod_env, fail={"delta": err}) as calls:
         lines = _run()
     assert calls == ["refresh", "replace:alpha", "replace:delta", "replace:gamma", "build", "restart"]
-    assert any(l.startswith("[modules] delta: FEHLER") and "Permission denied" in l for l in lines)
+    assert "[modules] delta: FEHLER – keine Schreibrechte auf den Modul-Ordner" in lines
     assert lines[-2] == "[modules] Fertig: 2 aktualisiert, 1 fehlgeschlagen"
-    assert lines[-1].startswith("[modules] Fehlgeschlagen: delta (") and "Permission denied" in lines[-1]
+    assert lines[-1] == "[modules] Fehlgeschlagen: delta (keine Schreibrechte auf den Modul-Ordner)"
 
 
 @pytest.mark.parametrize("exc", [
