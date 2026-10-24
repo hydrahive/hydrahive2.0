@@ -87,3 +87,16 @@ freigegeben. Anker zum Zurückgehen: Tag `anker/vor-startdesktop-2026-10-24` in 
 - Etappe 2: `area` in den Modul-Manifesten.
 - Eigene Bereiche oder eigene Reihenfolge je Nutzer.
 - „Weitergeben an …“ zwischen Apps.
+
+## Nachtrag: Merker vor dem Laden
+
+Gefunden im echten Test auf hydratest (24.10.): Ruft man eine App-Seite direkt auf, merkt sich die Leiste
+die App, noch bevor die Einstellungen vom Server geladen sind. Dabei überschreibt sie die Merker der anderen
+Bereiche am Server. Folge: Ein Bereich öffnete wieder seine erste App statt der zuletzt benutzten.
+
+Lösung in `useAreaPrefs`:
+- Vor dem Laden wird nichts gespeichert, Änderungen werden nur lokal vorgemerkt.
+- Nach dem Laden werden sie mit dem Server-Stand zusammengeführt. Bei demselben Bereich gewinnt der lokale
+  Wert, ein lokal gewählter Bereich gewinnt ebenfalls.
+- Danach wird einmal der vollständige Stand gespeichert.
+- Scheitert das Laden, gilt der lokale Stand, und Speichern bleibt möglich.
