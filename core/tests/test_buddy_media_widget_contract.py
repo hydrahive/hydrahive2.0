@@ -15,11 +15,16 @@ def test_module_generator_collects_dedicated_buddy_media_widgets():
 
 
 def test_buddy_consumes_only_the_dedicated_media_widget_export():
-    source = (ROOT / "frontend/src/features/buddy/BuddyPage.tsx").read_text()
+    """Buddy liest nur moduleBuddyMediaWidgets – seit Task 08c5c546 erst beim
+    Rendern über buddyMediaWidgets() (Lade-Schleife, docs/specs/modul-ladeschleife.md)."""
+    page = (ROOT / "frontend/src/features/buddy/BuddyPage.tsx").read_text()
+    widgets = (ROOT / "frontend/src/features/buddy/moduleMediaWidgets.ts").read_text()
 
-    assert "moduleBuddyMediaWidgets" in source
-    assert "normalizeBuddyMediaWidgets" in source
-    assert "BUDDY_MEDIA_WIDGETS.map" in source
+    assert "buddyMediaWidgets()" in page
+    assert "BUDDY_MEDIA_WIDGETS.map" in page
+    assert "moduleBuddyMediaWidgets" in widgets
+    assert "normalizeBuddyMediaWidgets(moduleList(moduleBuddyMediaWidgets))" in widgets
+    assert "moduleBuddyWidgets" not in widgets
 
 
 def test_media_widget_normalizer_has_stable_validation_and_ordering():

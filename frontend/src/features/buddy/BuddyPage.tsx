@@ -24,7 +24,6 @@ import { CockpitPanel } from "@/features/cockpit/CockpitPanel"
 import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import { buddyOfflineActions, openLocalPath } from "@/features/cockpit/actionRegistry"
-import { moduleBuddyMediaWidgets } from "@/modules/index.generated"
 import { BuddySessionPicker } from "./_BuddySessionPicker"
 import { BuddyThread } from "./_BuddyThread"
 import { buddyApi, type BuddyState } from "./api"
@@ -34,9 +33,8 @@ import { BuddyActionVisual } from "./_BuddyActionVisual"
 import { BuddyModeSelect } from "./_BuddyModeSelect"
 import { BuddyBriefingBox } from "./_BuddyBriefingBox"
 import { useAuthStore } from "@/features/auth/useAuthStore"
-import { normalizeBuddyMediaWidgets } from "./moduleMediaWidgets"
+import { buddyMediaWidgets } from "./moduleMediaWidgets"
 
-const BUDDY_MEDIA_WIDGETS = normalizeBuddyMediaWidgets(moduleBuddyMediaWidgets)
 const MSG_WINDOW = 60
 const MSG_WINDOW_STEP = 100
 
@@ -187,6 +185,7 @@ function BuddyLeftRail({ state, activity, ttsSpeaking, projects, localOverviewOp
 }
 
 function BuddyRightRail({ state, onPrompt, onSettings }: { state: BuddyState; onPrompt: (text: string) => void; onSettings: () => void }) {
+  const BUDDY_MEDIA_WIDGETS = buddyMediaWidgets()
   const primaryLinks = [["Projekte", "/projects"], ["Media", "/media"], ["Vault", "/vault"], ["Admin", "/admin"]]
   const toolLinks = [["Scratchpad", "/scratchpad"], ["Spiele", "/minigames"], ["Boardgames", "/boardgames"]]
 

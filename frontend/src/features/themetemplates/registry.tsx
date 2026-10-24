@@ -15,6 +15,7 @@ import { StreamingPage } from "@/features/streaming/StreamingPage"
 import { McpPage } from "@/features/mcp/McpPage"
 import { ZahnfeePage } from "@/features/zahnfee/ZahnfeePage"
 import { moduleSlotBlocks } from "@/modules/index.generated"
+import { moduleList } from "@/shared/moduleList"
 import { TailscaleCard } from "@/features/system/TailscaleCard"
 import { AgentLinkCard } from "@/features/system/AgentLinkCard"
 import { MinimaxUsageCard } from "@/features/system/MinimaxUsageCard"
@@ -43,7 +44,7 @@ const flowPage = (Comp: () => ReactNode) =>
 
 /** Komplettes Baustein-Inventar. Damit lässt sich JEDE Grundseite in ein
  *  Template setzen — auch die, für die noch kein fertiges Template existiert. */
-export const SLOT_BLOCKS: SlotBlock[] = [
+const CORE_BLOCKS: SlotBlock[] = [
   // Navigation
   { name: "menu", label: "Navigationsmenü (type=horizontal|vertical)", render: (a) => <MenuBlock attrs={a} /> },
 
@@ -75,12 +76,15 @@ export const SLOT_BLOCKS: SlotBlock[] = [
   { name: "tailscale", label: "Tailscale-Status", render: () => <TailscaleCard /> },
   { name: "agentlink", label: "AgentLink-Status", render: () => <AgentLinkCard /> },
   { name: "minimax", label: "MiniMax-Nutzung", render: () => <MinimaxUsageCard /> },
-
-  // Modul-Bausteine (z.B. Atelier) — nur vorhanden wenn das Modul installiert
-  // ist. Kein harter Core→Modul-Import, damit der Core ohne Module baubar bleibt.
-  ...(moduleSlotBlocks as SlotBlock[]),
 ]
 
+/** Kern-Bausteine plus Modul-Bausteine (z.B. Atelier) — Modul-Teil nur wenn
+ *  installiert, kein harter Core→Modul-Import. Erst beim Aufruf lesen
+ *  (Lade-Schleife, Task 08c5c546). */
+export function slotBlocks(): SlotBlock[] {
+  return [...CORE_BLOCKS, ...moduleList<SlotBlock>(moduleSlotBlocks)]
+}
+
 export function getBlock(name: string): SlotBlock | undefined {
-  return SLOT_BLOCKS.find((b) => b.name === name.toLowerCase())
+  return slotBlocks().find((b) => b.name === name.toLowerCase())
 }

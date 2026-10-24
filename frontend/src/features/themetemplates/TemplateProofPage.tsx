@@ -3,7 +3,7 @@ import { Code2, Eye } from "lucide-react"
 import { renderTemplate } from "./TemplateRenderer"
 import { TemplateBoundary } from "./TemplateBoundary"
 import { SAMPLE_TEMPLATE } from "./_sampleTemplate"
-import { SLOT_BLOCKS } from "./registry"
+import { slotBlocks } from "./registry"
 
 /** Proof-Seite für das Template-System (Weg: Mittelweg).
  *  Zeigt: Designer-HTML mit <hh-…/>-Platzhaltern wird zu echtem UI, Bausteine
@@ -25,7 +25,7 @@ export function TemplateProofPage() {
 
       <div className="flex flex-wrap gap-2 items-center text-xs text-zinc-400">
         <span className="text-zinc-500">Verfügbare Bausteine:</span>
-        {SLOT_BLOCKS.map((b) => (
+        {slotBlocks().map((b) => (
           <code key={b.name} className="px-1.5 py-0.5 rounded bg-white/[6%] text-[var(--hh-accent-text)]">
             &lt;hh-{b.name}/&gt;
           </code>
