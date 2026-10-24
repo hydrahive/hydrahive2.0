@@ -114,6 +114,16 @@ Die Stufe lässt sich später in der Liste der Freigaben umstellen.
 Mit dem Mülleimer-Symbol nimmst du die Freigabe wieder zurück. Wird das Konto
 entfernt, verschwinden auch seine Freigaben.
 
+Beim Freigeben bekommt der **Projekt-Agent** dieses Projekts die passenden
+Mailbox-Werkzeuge automatisch, bei der Stufe Entwurf auch die Entwurfs-Werkzeuge.
+Nimmst du die letzte Freigabe des Projekts zurück, werden sie wieder entfernt.
+Andere Werkzeuge des Agenten bleiben dabei unverändert. Die Änderung gilt ab der
+nächsten Nachricht an den Agenten, ein Neustart ist nicht nötig.
+
+Andere Agenten, zum Beispiel Spezialisten, bekommen die Werkzeuge nicht
+automatisch. Bei Bedarf hakst du sie in der Agenten-Konfiguration unter
+**Tools** an.
+
 ### Wer darf was?
 
 - Freigeben kann nur der Besitzer des Kontos, und nur in Projekte, in denen er
@@ -164,5 +174,9 @@ globale Mail-Konfiguration und haben mit diesen Konten nichts zu tun.
 - **Gesendete Mail fehlt im Ordner:** Der Versand kann erfolgreich sein, obwohl der
   Anbieter die Gesendet-Kopie verzögert ablegt. Die lokale Archivkopie bleibt
   erhalten.
+- **Agent sagt, er habe keine Mail-Werkzeuge:** Prüfe, ob das Konto für genau
+  dieses Projekt freigegeben ist, und schick ihm eine neue Nachricht. Die
+  Werkzeuge heißen `mailbox_…`. `read_mail` gehört zum alten globalen Postfach
+  unter Einstellungen → Mail und hat mit der Mailbox nichts zu tun.
 - **Ordner klappt nach Neuladen wieder zu:** Der Browser darf den lokalen Speicher
   nicht blockieren oder beim Schließen löschen.
