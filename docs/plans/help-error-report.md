@@ -34,11 +34,9 @@ Beschreibung wie „geht nicht“.
 
 ## Schalter und Adresse
 
-- `help_error_report_enabled` (bool) in `EDITABLE_SETTINGS`, Gruppe „Hilfe“, **Standard an**? → **Standard aus**
-  wäre vorsichtiger, verhindert aber die Meldungen gerade bei den externen Nutzern, für die es gedacht ist. Weil
-  jeder Bericht ohnehin erst nach Klick und mit sichtbarem Inhalt gesendet wird, ist der Standard **an**, der Admin
-  kann ihn ausschalten. (Entscheidung offen für Till, siehe unten.)
-- Zieladresse: Konstante `ERROR_REPORT_TO` im Kern, überschreibbar mit `HH_ERROR_REPORT_TO` (für Firmen, die
+- `help_error_report_enabled` (bool) in `EDITABLE_SETTINGS`, Gruppe „Hilfe“, **Standard an** (Till 24.10.2026).
+  Jeder Bericht wird ohnehin erst nach Klick und mit sichtbarem Inhalt gesendet; der Admin kann ihn ausschalten.
+- Zieladresse: **`issue@hydrahive.org`** (Till 24.10.2026), Konstante `ERROR_REPORT_TO` im Kern, überschreibbar mit `HH_ERROR_REPORT_TO` (für Firmen, die
   Berichte selbst sammeln wollen). **Keine Zugangsdaten im Code** – gesendet wird immer über das Konto der
   Installation.
 
@@ -98,7 +96,7 @@ keine Sitzungs- oder Agenten-ID, keine Pfade unterhalb von `$HOME` (auf `~` gek�
 - Werkzeug kann nicht senden (es gibt keinen Pfad dorthin); Entwurf läuft ab.
 - Frontend: Karte, Senden, mailto-Knopf + Einrichten-Link (Admin) bzw. Hinweis (Nutzer).
 
-## Offen für Till
+## Entschieden (Till 24.10.2026)
 
-1. **Zieladresse** des Fehler-Postfachs.
-2. Schalter-Standard **an** (Vorschlag, wegen der externen Nutzer) oder aus.
+1. Zieladresse `issue@hydrahive.org`.
+2. Schalter standardmäßig **an**.

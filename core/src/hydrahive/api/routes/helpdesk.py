@@ -40,7 +40,9 @@ async def helpdesk_message(body: HelpMessage, auth: _Auth):
         raise coded(status.HTTP_409_CONFLICT, "helpdesk_model_missing")
     if body.session_id != state["session_id"]:
         raise coded(status.HTTP_404_NOT_FOUND, "session_not_found")
+    from hydrahive.helpdesk._report import remember_page
     from hydrahive.runner._language_rule import language_for
+    remember_page(state["session_id"], body.path)
     try:
         return await run_and_stream(state["session_id"], body.text,
                                     extra_system=context_block(body.path, language_for(auth[0])))

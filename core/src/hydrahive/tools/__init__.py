@@ -26,6 +26,7 @@ from hydrahive.tools import (
     transcribe_audio,
     file_patch,
     file_read,
+    error_report_prepare,
     help_read,
     help_search,
     file_write,
@@ -110,7 +111,7 @@ def _build_registry() -> dict[str, Tool]:
         tools.extend(discord_admin.TOOLS)  # docs/specs/discord-server-admin-tools.md
     tools.append(web_browser.TOOL)
     # Hilfe-Assistent (docs/plans/help-assistant.md): nur lesen, in keiner Default-Toolliste
-    tools.extend([help_search.TOOL, help_read.TOOL])
+    tools.extend([help_search.TOOL, help_read.TOOL, error_report_prepare.TOOL])
     tools.append(webmin_status.TOOL)
     tools.append(webmin_call.TOOL)
     return {t.name: t for t in tools}
