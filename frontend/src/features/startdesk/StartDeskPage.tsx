@@ -3,7 +3,7 @@
 // Erreichbar unter /start-vorschau; die Bereichs-Leiste lässt sich hier ein- und ausschalten.
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Search } from "lucide-react"
+import { MessageCircleHeart, Search } from "lucide-react"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 import type { NavItem } from "@/shared/nav-config"
@@ -54,9 +54,12 @@ export function StartDeskPage() {
               {hits.map(({ i, g }) => <AppTile key={i.path} item={i} label={label(i)} tone={g.group.tone} hint={g.group.title} onOpen={() => navigate(i.path)} />)}
             </div>
           ) : (
-            <div className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+            <>
+            <BuddyButton onOpen={() => navigate("/buddy")} />
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
               {groups.map((fg) => <GroupTile key={fg.group.id} fg={fg} label={label} onOpen={() => openArea(fg)} />)}
             </div>
+            </>
           )}
         </div>
       </main>
@@ -90,5 +93,24 @@ function AppTile({ item, label, tone, hint, onOpen }: { item: NavItem; label: st
       <span className="mt-2 w-full truncate text-sm font-bold text-[#e8eef8]">{label}</span>
       {hint && <span className="w-full truncate text-[11px] text-[#718097]">{hint}</span>}
     </button>
+  )
+}
+
+/** Schnellsprung zum Buddy: breiter Bildknopf mittig über den Bereichen. Bild: Ausschnitt aus buddy-success.mp4. */
+function BuddyButton({ onOpen }: { onOpen: () => void }) {
+  return (
+    <div className="mt-5 flex justify-center">
+      <button type="button" onClick={onOpen} aria-label="Mit Buddy sprechen"
+        className="group relative w-full max-w-2xl overflow-hidden rounded-[10px] border border-[#ff6fae]/40 text-left shadow-lg shadow-black/40 transition hover:-translate-y-0.5 hover:border-[#ff9cc8]/70 hover:shadow-xl hover:shadow-[#ff6fae]/10">
+        <img src="/startdesk/buddy-knopf.webp" alt="" className="h-[120px] w-full object-cover object-[50%_35%] transition duration-300 group-hover:scale-[1.03] sm:h-[150px]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#080b11]/90 via-[#080b11]/35 to-transparent" />
+        <div className="absolute inset-y-0 left-0 flex flex-col justify-center gap-1 px-4 sm:px-6">
+          <span className="flex items-center gap-2 text-xl font-black text-[#e8eef8] drop-shadow sm:text-2xl">
+            <MessageCircleHeart size={22} className="text-[#ff9cc8]" /> Buddy
+          </span>
+          <span className="text-xs font-semibold text-[#e8eef8]/85 drop-shadow sm:text-sm">Einfach fragen – ich helfe dir weiter</span>
+        </div>
+      </button>
+    </div>
   )
 }
