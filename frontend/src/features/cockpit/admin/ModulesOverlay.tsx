@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ArrowUpCircle, RefreshCw } from "lucide-react"
-import { listModules, updateModule } from "@/features/modules/api"
+import { listModules } from "@/features/modules/api"
+import { UpdateAllButton, UpdateAllResult } from "@/features/modules/UpdateAllPanel"
+import { useUpdateAll } from "@/features/modules/useUpdateAll"
 import type { ModulesIndex } from "@/features/modules/types"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
@@ -12,8 +14,6 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<ModulesIndex>({ modules: [] })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null)
-  const stopRef = useRef<(() => void) | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -23,24 +23,12 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load() }, [load])
-  useEffect(() => () => stopRef.current?.(), [])
 
   const outdated = data.modules.filter((m) => m.update_available)
   const installedCount = data.modules.filter((m) => m.installed).length
 
-  const updateAll = useCallback(async () => {
-    if (outdated.length === 0 || batch) return
-    setBatch({ done: 0, total: outdated.length })
-    for (let i = 0; i < outdated.length; i++) {
-      await new Promise<void>((resolve) => {
-        stopRef.current = updateModule(outdated[i].id, () => {}, () => resolve(), () => resolve())
-      })
-      setBatch({ done: i + 1, total: outdated.length })
-    }
-    stopRef.current = null
-    setBatch(null)
-    await load()
-  }, [outdated, batch, load])
+  // Ein Ablauf für alle: einmal bauen, einmal Neustart (docs/specs/modul-update-alle.md).
+  const all = useUpdateAll(outdated.length, load)
 
   return (
     <AdminOverlay
@@ -50,13 +38,9 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
       maxWidthClass="max-w-5xl"
       headerActions={
         <div className="flex items-center gap-2">
-          {outdated.length > 0 && (
-            <CockpitButton onClick={updateAll} disabled={batch !== null}>
-              <RefreshCw size={12} className={`mr-1 inline ${batch ? "animate-spin" : ""}`} />
-              {batch ? t("update.all_running", { done: batch.done, total: batch.total }) : t("update.all")}
-            </CockpitButton>
-          )}
-          <CockpitButton onClick={load} disabled={loading || batch !== null}>
+          <UpdateAllButton outdatedCount={outdated.length} state={all} onStart={all.start}
+            buttonClass="flex items-center gap-1.5 rounded-[4px] border border-amber-500/30 bg-amber-500/15 px-3 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-500/25 disabled:opacity-70" />
+          <CockpitButton onClick={load} disabled={loading || all.running}>
             <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
           </CockpitButton>
         </div>
@@ -72,6 +56,7 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
+        <UpdateAllResult state={all} onDismiss={all.dismiss} />
         {error && <div className="rounded-[6px] border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-400">{error}</div>}
 
         {loading && data.modules.length === 0 ? (

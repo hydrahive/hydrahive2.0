@@ -15,7 +15,15 @@
     "count_one": "{{count}} Update",
     "count_other": "{{count}} Updates",
     "all": "Alle updaten",
-    "all_running": "Aktualisiere ({{done}}/{{total}})…"
+    "all_running": "Aktualisiere ({{done}}/{{total}})…",
+    "all_build": "Oberfläche wird gebaut …",
+    "all_restart": "HydraHive startet neu …",
+    "all_done": "{{count}} Module aktualisiert",
+    "all_done_failed": "{{ok}} aktualisiert, {{failed}} nicht",
+    "all_failed_title": "Nicht aktualisiert:",
+    "all_uptodate": "Alle Module sind aktuell",
+    "all_close": "Schließen",
+    "all_failed_hint": "Einzelne Module erneut über ihren Knopf „Aktualisieren“ versuchen. Bleibt es dabei, sieht ein Admin im Server-Protokoll den genauen Grund."
   },
   "actions": {
     "install": "Installieren",

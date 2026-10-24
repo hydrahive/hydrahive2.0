@@ -123,6 +123,16 @@ def _stream(kind: str, module_id: str, gen) -> StreamingResponse:
     return StreamingResponse(_events(), media_type="text/event-stream", headers=_SSE_HEADERS)
 
 
+@router.post("/update-all", dependencies=[Depends(require_admin)])
+def update_all_modules() -> StreamingResponse:
+    """Alle Module mit verfügbarem Update in einem Ablauf (docs/specs/modul-update-alle.md).
+    Steht vor /{module_id}/…, damit „update-all“ nie als Modul-ID gilt."""
+    if operations.current() is not None:          # erst prüfen, dann den Ablauf überhaupt anlegen
+        busy = operations.current()
+        raise coded(409, "module_operation_busy", module=busy.module_id, kind=busy.kind)
+    return _stream("update-all", "*", installer.update_all())
+
+
 @router.post("/{module_id}/install", dependencies=[Depends(require_admin)])
 def install_module(module_id: str) -> StreamingResponse:
     return _stream("install", module_id, installer.install(module_id))
