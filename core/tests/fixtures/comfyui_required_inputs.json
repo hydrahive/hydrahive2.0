@@ -1,0 +1,133 @@
+{
+ "_quelle": "ComfyUI 0.21.1 auf WKS .197 (/object_info, 24.10.2026), nur Pflichtfelder (input.required)",
+ "nodes": {
+  "CFGGuider": [
+   "cfg",
+   "model",
+   "negative",
+   "positive"
+  ],
+  "CLIPLoader": [
+   "clip_name",
+   "type"
+  ],
+  "CLIPTextEncode": [
+   "clip",
+   "text"
+  ],
+  "CLIPVisionEncode": [
+   "clip_vision",
+   "crop",
+   "image"
+  ],
+  "CLIPVisionLoader": [
+   "clip_name"
+  ],
+  "CheckpointLoaderSimple": [
+   "ckpt_name"
+  ],
+  "ConditioningZeroOut": [
+   "conditioning"
+  ],
+  "CreateVideo": [
+   "fps",
+   "images"
+  ],
+  "EmptyFlux2LatentImage": [
+   "batch_size",
+   "height",
+   "width"
+  ],
+  "EmptyHunyuanLatentVideo": [
+   "batch_size",
+   "height",
+   "length",
+   "width"
+  ],
+  "EmptyLatentImage": [
+   "batch_size",
+   "height",
+   "width"
+  ],
+  "Flux2Scheduler": [
+   "height",
+   "steps",
+   "width"
+  ],
+  "ImageScaleToTotalPixels": [
+   "image",
+   "megapixels",
+   "resolution_steps",
+   "upscale_method"
+  ],
+  "KSampler": [
+   "cfg",
+   "denoise",
+   "latent_image",
+   "model",
+   "negative",
+   "positive",
+   "sampler_name",
+   "scheduler",
+   "seed",
+   "steps"
+  ],
+  "KSamplerSelect": [
+   "sampler_name"
+  ],
+  "LoadImage": [
+   "image"
+  ],
+  "ModelSamplingSD3": [
+   "model",
+   "shift"
+  ],
+  "RandomNoise": [
+   "noise_seed"
+  ],
+  "ReferenceLatent": [
+   "conditioning"
+  ],
+  "SamplerCustomAdvanced": [
+   "guider",
+   "latent_image",
+   "noise",
+   "sampler",
+   "sigmas"
+  ],
+  "SaveImage": [
+   "filename_prefix",
+   "images"
+  ],
+  "SaveVideo": [
+   "codec",
+   "filename_prefix",
+   "format",
+   "video"
+  ],
+  "UNETLoader": [
+   "unet_name",
+   "weight_dtype"
+  ],
+  "VAEDecode": [
+   "samples",
+   "vae"
+  ],
+  "VAEEncode": [
+   "pixels",
+   "vae"
+  ],
+  "VAELoader": [
+   "vae_name"
+  ],
+  "WanFirstLastFrameToVideo": [
+   "batch_size",
+   "height",
+   "length",
+   "negative",
+   "positive",
+   "vae",
+   "width"
+  ]
+ }
+}
