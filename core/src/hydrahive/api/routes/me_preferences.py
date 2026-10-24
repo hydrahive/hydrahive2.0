@@ -19,6 +19,9 @@ class PreferencesOut(BaseModel):
     active_media_project_id: str | None = None
     active_vault_scope: VaultScope = "private"
     cockpit_layout: dict[str, Any] = Field(default_factory=dict)
+    landing: str = "start"
+    active_area: str | None = None
+    area_last: dict[str, str] = Field(default_factory=dict)
 
 
 class PreferencesPatch(BaseModel):
@@ -28,6 +31,11 @@ class PreferencesPatch(BaseModel):
     active_media_project_id: str | None = None
     active_vault_scope: VaultScope | None = None
     cockpit_layout: dict[str, Any] | None = None
+    # Bewusst locker typisiert: Falsches wird in db.user_preferences verworfen statt mit 422 abgelehnt,
+    # damit ein alter Browser mit veraltetem Wert nicht dauernd Fehler bekommt (docs/specs/startdesktop.md).
+    landing: Any = None
+    active_area: Any = None
+    area_last: Any = None
 
 
 def _visible_project_ids(username: str, role: str) -> set[str]:

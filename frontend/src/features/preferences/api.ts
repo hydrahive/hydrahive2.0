@@ -7,6 +7,12 @@ export interface UserPreferences {
   active_media_project_id: string | null
   active_vault_scope: VaultScope
   cockpit_layout: Record<string, unknown>
+  /** Startseite nach dem Anmelden (docs/specs/startdesktop.md). */
+  landing: "start" | "buddy" | "dashboard"
+  /** Zuletzt aktiver Bereich der Bereichs-Leiste. */
+  active_area: string | null
+  /** Bereich → zuletzt benutzter Pfad. */
+  area_last: Record<string, string>
 }
 
 export type UserPreferencesPatch = Partial<UserPreferences>

@@ -26,7 +26,8 @@
     "title": "Start page",
     "description": "Which page is shown first after login.",
     "buddy": "Buddy",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "start": "Home with areas"
   },
   "backup": {
     "title": "My data",
