@@ -6,8 +6,8 @@ log() { printf "  · %s\n" "$*"; }
 
 cd "$HH_REPO_DIR/frontend"
 
-log "npm install (kann ein paar Minuten dauern)"
-npm install --no-fund --no-audit
+log "npm ci (kann ein paar Minuten dauern)"
+npm ci --no-fund --no-audit
 
 log "npm run build → dist/"
 npm run build

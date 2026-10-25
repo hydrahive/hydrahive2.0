@@ -68,16 +68,13 @@ source "$HH_REPO_DIR/installer/lib/ssh-include.sh"
 ensure_ssh_credentials_include
 
 log "git pull"
-if ! sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" pull --ff-only 2>&1; then
-  DIVERGED=$(sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" status --porcelain=v1 2>/dev/null; \
-             sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" log --oneline origin/main..HEAD 2>/dev/null | wc -l)
-  if sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" fetch origin 2>&1; then
-    log "Fast-forward fehlgeschlagen — divergierte History erkannt, reset auf origin/main"
-    sudo -u hydrahive git -c safe.directory="$HH_REPO_DIR" reset --hard origin/main
-  else
-    err "git fetch fehlgeschlagen — Netzwerk oder Auth prüfen"
-  fi
-fi
+# Verwirft nichts still und bleibt auf dem eigenen Branch (docs/specs/update-git-sicher.md, Task cabd0df1).
+# Früher: scheiterte pull --ff-only, wurde hart auf main zurückgesetzt.
+HH_GIT="sudo -u hydrahive git -c safe.directory=$HH_REPO_DIR"
+# shellcheck source=lib/git-update.sh
+source "$HH_REPO_DIR/installer/lib/git-update.sh"
+hh_git_update "$HH_REPO_DIR"
+cd "$HH_REPO_DIR"
 
 # Wenn update.sh selbst durch den Pull verändert wurde: einmalig re-exec mit
 # der neuen Version. HH_UPDATE_REEXECED schützt vor Endlos-Loop.
@@ -226,17 +223,19 @@ hh_run_as_owner_home "$HH_USER" "$HH_HOME" \
 log "Frontend neu bauen"
 cd "$HH_REPO_DIR/frontend"
 # Self-Heal: falls jemand manuell als root gepullt hat, gehören Source-Files
-# (inkl. package-lock.json) root — npm install als hydrahive kriegt EACCES.
+# (inkl. package-lock.json) root — npm als hydrahive kriegt dann EACCES.
 chown -R "$HH_USER:$HH_USER" "$HH_REPO_DIR" 2>/dev/null || true
-sudo -u hydrahive npm install --no-fund --no-audit
+# npm ci: installiert genau nach package-lock.json und ändert sie nie (npm install schrieb sie um →
+# nächstes Update scheiterte am Git-Schritt; docs/specs/update-git-sicher.md).
+sudo -u hydrahive npm ci --no-fund --no-audit
 sudo -u hydrahive npm run build
 
 WA_BRIDGE_DIR="$HH_REPO_DIR/core/src/hydrahive/communication/whatsapp/bridge"
 wa_installed=false; [ -d "$WA_BRIDGE_DIR/node_modules" ] && wa_installed=true
 if [ -f "$WA_BRIDGE_DIR/package.json" ] && hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_WHATSAPP "$wa_installed"; then
-  log "WhatsApp-Bridge: npm install"
+  log "WhatsApp-Bridge: npm ci"
   cd "$WA_BRIDGE_DIR"
-  npm install --cache /tmp/npm-cache-hh --no-audit --no-fund
+  npm ci --cache /tmp/npm-cache-hh --no-audit --no-fund
   chown -R hydrahive:hydrahive "$WA_BRIDGE_DIR/node_modules"
 fi
 
