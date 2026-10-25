@@ -191,8 +191,13 @@ def test_fetch_fehler_bricht_ab(repos) -> None:
     assert "Netzwerk oder Zugang" in r.stderr
 
 
+def _code(text: str) -> str:
+    """Nur Befehlszeilen – Kommentare dürfen den alten Weg erklären."""
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+
+
 def test_update_sh_nutzt_den_sicheren_weg() -> None:
-    text = UPDATE.read_text()
+    text = _code(UPDATE.read_text())
     assert "reset --hard origin/main" not in text
     assert 'source "$HH_REPO_DIR/installer/lib/git-update.sh"' in text
     assert re.search(r'^hh_git_update "\$HH_REPO_DIR"', text, re.M)
@@ -201,10 +206,79 @@ def test_update_sh_nutzt_den_sicheren_weg() -> None:
 
 
 def test_erstinstallation_und_whatsapp_mit_npm_ci() -> None:
-    fe = (REPO_ROOT / "installer" / "modules" / "40-frontend.sh").read_text()
-    wa = (REPO_ROOT / "installer" / "modules" / "45-whatsapp.sh").read_text()
-    upd = UPDATE.read_text()
+    fe = _code((REPO_ROOT / "installer" / "modules" / "40-frontend.sh").read_text())
+    wa = _code((REPO_ROOT / "installer" / "modules" / "45-whatsapp.sh").read_text())
+    upd = _code(UPDATE.read_text())
     assert "npm ci " in fe and "npm install --no-fund" not in fe
     assert "npm ci " in wa and "npm install --cache" not in wa
     wa_upd = upd[upd.index("WA_BRIDGE_DIR="):upd.index('log "Systemd-Timer-Units')]
     assert "npm ci " in wa_upd and "npm install" not in wa_upd
+
+
+def test_branch_vor_main_springt_nie_auf_main(repos) -> None:
+    """Feature-Branch liegt vor main: ein Update auf ihm darf nie nach main wechseln."""
+    _, dev, server = repos
+    git(dev, "checkout", "-q", "-b", "feat/z")
+    z1 = commit(dev, "core/z.py", "z = 1\n", "z1")
+    git(dev, "push", "-q", "origin", "feat/z")
+    git(server, "fetch", "-q", "origin")
+    git(server, "checkout", "-q", "-B", "feat/z", "origin/feat/z")
+    main_tip = git(server, "rev-parse", "origin/main")
+    r = run_update(server)
+    assert r.returncode == 0, r.stderr
+    assert head(server) == z1
+    assert git(server, "rev-parse", "--abbrev-ref", "HEAD") == "feat/z"
+    assert git(server, "rev-parse", "origin/main") == main_tip      # fremder Stand wird nicht überschrieben
+
+
+def test_neue_unversionierte_datei_stoert_nicht(repos) -> None:
+    """Nicht eingecheckte Dateien (z. B. dist/, Notizen) sind kein Grund zum Abbruch und bleiben."""
+    _, dev, server = repos
+    new = commit(dev, "core/a.py", "a = 2\n", "a2")
+    git(dev, "push", "-q", "origin", "main")
+    (server / "notiz.txt").write_text("lokal\n")
+    r = run_update(server)
+    assert r.returncode == 0, r.stderr
+    assert head(server) == new
+    assert (server / "notiz.txt").read_text() == "lokal\n"
+
+
+def test_vorspulen_ist_kein_reset_unversionierte_kollision_bleibt(repos) -> None:
+    """origin bringt eine Datei, die lokal unversioniert schon existiert: Vorspulen bricht ab statt
+    sie zu überschreiben (ein Reset würde sie still ersetzen)."""
+    _, dev, server = repos
+    commit(dev, "core/neu.py", "neu = 'origin'\n", "neu")
+    git(dev, "push", "-q", "origin", "main")
+    (server / "core/neu.py").write_text("neu = 'lokal'\n")
+    r = run_update(server)
+    assert r.returncode != 0
+    assert (server / "core/neu.py").read_text() == "neu = 'lokal'\n"
+
+
+def test_origin_nur_weiter_ohne_rewrite_setzt_nicht_zurueck(repos) -> None:
+    """Lokal ein eigener Commit, origin ist normal weitergelaufen (kein Rewrite): Abbruch, kein Tag."""
+    _, dev, server = repos
+    mine = commit(server, "core/b.py", "b = 1\n", "lokal")
+    commit(dev, "core/a.py", "a = 2\n", "a2")
+    git(dev, "push", "-q", "origin", "main")
+    r = run_update(server)
+    assert r.returncode != 0
+    assert head(server) == mine
+    assert git(server, "tag", "--list", "hh-update-vorher-*") == ""
+
+
+def test_lokal_hinter_altem_origin_und_origin_neu_geschrieben(repos) -> None:
+    """Server stand hinter dem alten origin-Stand (alter Fetch), dann Rewrite: trotzdem nur Reset mit Sicherung,
+    weil alle lokalen Commits in der alten origin-Geschichte lagen."""
+    _, dev, server = repos
+    commit(dev, "core/a.py", "a = 2\n", "a2")
+    git(dev, "push", "-q", "origin", "main")
+    git(server, "fetch", "-q", "origin")          # kennt a2, steht aber noch davor
+    old = head(server)
+    git(dev, "reset", "-q", "--hard", "HEAD~2")
+    rewritten = commit(dev, "core/a.py", "a = 'neu'\n", "rewrite")
+    git(dev, "push", "-q", "-f", "origin", "main")
+    r = run_update(server)
+    assert r.returncode == 0, r.stderr
+    assert head(server) == rewritten
+    assert git(server, "rev-parse", git(server, "tag", "--list", "hh-update-vorher-*")) == old
