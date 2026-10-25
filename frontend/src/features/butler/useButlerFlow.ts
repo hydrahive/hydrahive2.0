@@ -6,12 +6,14 @@ import { butlerLegacyApi } from "./adapter"
 import { dryRunEvent } from "./dryRunEvent"
 import { notImplementedAction } from "./dryRunResult"
 import { defaultParams, isNotImplemented } from "./palette-data"
+import { findModuleNode, moduleDefaults, useModuleNodes } from "./moduleNodes"
 import type { BNode, ButlerFlow } from "./types"
 
 let _nSeq = 0
 export function genId(type: string) { return `${type}-${++_nSeq}-${Date.now()}` }
 
 export function useButlerFlow() {
+  const moduleNodes = useModuleNodes()
   const { t } = useTranslation("butler")
 
   const projectId = useMemo(() => {
@@ -132,8 +134,10 @@ export function useButlerFlow() {
     if (!raw) return
     const { type, subtype, label } = JSON.parse(raw) as { type: string; subtype: string; label: string }
     const position = rf.screenToFlowPosition({ x: event.clientX, y: event.clientY })
-    setNodes(ns => [...ns, { id: genId(type), type, position, data: { subtype, label, params: defaultParams(subtype) } } as BNode])
-  }, [rf, setNodes])
+    const mod = findModuleNode(moduleNodes, subtype)
+    const params = mod ? moduleDefaults(mod) : defaultParams(subtype)
+    setNodes(ns => [...ns, { id: genId(type), type, position, data: { subtype, label, params } } as BNode])
+  }, [rf, setNodes, moduleNodes])
 
   const onDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "move" }, [])
   const onNodeClick = useCallback((_: React.MouseEvent, node: BNode) => { setSelectedId(node.id) }, [])

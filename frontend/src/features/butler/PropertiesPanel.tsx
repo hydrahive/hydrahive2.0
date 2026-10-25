@@ -6,6 +6,8 @@ import type { CSSProperties } from "react"
 import { Trash2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { EXTRA_FORMS, FORMS } from "./properties/registry"
+import { SchemaForm } from "./properties/SchemaForm"
+import { findModuleNode, useModuleNodes } from "./moduleNodes"
 import type { BNode } from "./types"
 import { rgbFor } from "@/shared/colors"
 
@@ -21,6 +23,8 @@ export function PropertiesPanel({ node, agents, onChange, onDelete }: PropsPanel
   const { subtype, label, params } = node.data
   const Form = FORMS[subtype]
   const Extra = EXTRA_FORMS[subtype]
+  const moduleNodes = useModuleNodes()
+  const moduleNode = Form ? undefined : findModuleNode(moduleNodes, subtype)
 
   return (
     <div className="box overflow-y-auto w-56 shrink-0 p-4 flex flex-col gap-4" style={{ "--c": rgbFor("/butler") } as CSSProperties}>
@@ -31,6 +35,7 @@ export function PropertiesPanel({ node, agents, onChange, onDelete }: PropsPanel
 
       {Form && <Form params={params} onChange={onChange} agents={agents} subtype={subtype} />}
       {Extra && <Extra params={params} onChange={onChange} agents={agents} />}
+      {moduleNode && <SchemaForm node={moduleNode} params={params} onChange={onChange} />}
 
       <div className="mt-auto pt-3 border-t border-white/10">
         <button type="button" onClick={onDelete}

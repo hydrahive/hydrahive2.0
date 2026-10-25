@@ -112,5 +112,9 @@
   "regexHint": "Wird gegen den Nachrichtentext geprüft, Groß-/Kleinschreibung zählt",
   "webhookAnyHint": "Jeder Webhook des Projekts",
   "webhookNeedsProject": "Dieser Trigger braucht ein Projekt. Öffne den Butler aus dem Projekt-Cockpit, dann steht hier die Webhook-URL.",
-  "webhookSecretHint": "Der Aufruf braucht den Header X-Webhook-Secret. Das Secret steht im Projekt-Cockpit unter Integrationen."
+  "webhookSecretHint": "Der Aufruf braucht den Header X-Webhook-Secret. Das Secret steht im Projekt-Cockpit unter Integrationen.",
+  "groupModules": "Module",
+  "schemaNone": "– keine Auswahl –",
+  "schemaListHint": "Eine Angabe pro Zeile.",
+  "schemaFromModule": "Baustein aus dem Modul „{{module}}“"
 }

@@ -4,11 +4,13 @@
  * collapsible. Items werden via dataTransfer mit MIME-Type
  * "application/butler-node" auf den Canvas gezogen.
  */
+import { Puzzle } from "lucide-react"
 import React, { useMemo } from "react"
 import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
 import { PALETTE_LABEL_KEY, PALETTE_STRUCTURE, isNotImplemented } from "./palette-data"
+import { type ModuleNode, paletteGroupsFor, useModuleNodes } from "./moduleNodes"
 import { rgbFor } from "@/shared/colors"
 
 const COLOR_MAP = {
@@ -24,7 +26,15 @@ const HEADER_COLOR = {
 } as const
 
 export function NodePalette() {
+  return <NodePaletteView moduleNodes={useModuleNodes()} />
+}
+
+const KIND_COLOR = { trigger: "green", condition: "blue", action: "orange" } as const
+
+/** Palette; Modul-Bausteine (Server-Registry) als eigene Gruppe „Module“ unter den eingebauten. */
+export function NodePaletteView({ moduleNodes }: { moduleNodes: ModuleNode[] }) {
   const { t } = useTranslation("butler")
+  const moduleGroups = useMemo(() => paletteGroupsFor(moduleNodes), [moduleNodes])
   const [open, setOpen] = React.useState<Record<string, boolean>>({
     groupTrigger: true, groupCondition: false, groupAction: false,
   })
@@ -101,6 +111,31 @@ export function NodePalette() {
           </div>
         )
       })}
+      {moduleGroups.length > 0 && (
+        <div data-butler-module-group="1">
+          <button type="button" onClick={() => setOpen((prev) => ({ ...prev, groupModules: !(prev.groupModules ?? true) }))}
+            aria-expanded={open.groupModules ?? true}
+            className="w-full min-h-6 flex items-center justify-between px-1 py-1 text-[0.55rem] font-bold uppercase tracking-widest text-violet-300 hover:text-violet-200">
+            <span>{t("groupModules")}</span>
+            <span className="text-white/20" aria-hidden="true">{(open.groupModules ?? true) ? "▲" : "▼"}</span>
+          </button>
+          {(open.groupModules ?? true) && moduleGroups.map((g) => (
+            <div key={g.kind} className="mt-1 flex flex-col gap-1.5">
+              {g.items.map((item) => (
+                <div key={item.subtype} data-butler-module-node={item.subtype} draggable={item.implemented}
+                  title={item.implemented ? t("schemaFromModule", { module: item.module }) : t("node_not_implemented")}
+                  onDragStart={item.implemented ? (e) => onDragStart(e, item) : undefined}
+                  className={cn("relative flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition-colors",
+                    item.implemented ? cn("cursor-grab active:cursor-grabbing", COLOR_MAP[KIND_COLOR[g.kind]])
+                      : "cursor-not-allowed border-zinc-700/50 bg-zinc-900/50 text-zinc-500")}>
+                  <Puzzle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate leading-tight">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="mt-auto pt-3 border-t border-white/10">
         <p className="text-[0.55rem] text-white/50 leading-relaxed px-1">
           {t("paletteDragHint")}
