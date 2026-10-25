@@ -10,6 +10,13 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@/shared/cn"
 import type { ButlerNodeData } from "./types"
 import { paramSummary } from "./paramSummary"
+import { findModuleNode, moduleSummary, useModuleNodes } from "./moduleNodes"
+
+/** Kurzvorschau: eingebaute Bausteine über paramSummary, Modul-Bausteine aus ihrem Schema. */
+function useSummary(data: ButlerNodeData, t: (k: string) => string): string {
+  const mod = findModuleNode(useModuleNodes(), data.subtype)
+  return paramSummary(data.subtype, data.params, t) || (mod ? moduleSummary(mod, data.params) : "")
+}
 
 interface NodeProps {
   data: ButlerNodeData
@@ -18,7 +25,7 @@ interface NodeProps {
 
 export function TriggerNodeComp({ data, selected }: NodeProps) {
   const { t } = useTranslation("butler")
-  const summary = paramSummary(data.subtype, data.params, t)
+  const summary = useSummary(data, t)
   return (
     <div className={cn(
       "min-w-[185px] rounded-xl border-2 px-3 py-2.5 shadow-lg select-none",
@@ -39,7 +46,7 @@ export function TriggerNodeComp({ data, selected }: NodeProps) {
 
 export function ConditionNodeComp({ data, selected }: NodeProps) {
   const { t } = useTranslation("butler")
-  const summary = paramSummary(data.subtype, data.params, t)
+  const summary = useSummary(data, t)
   return (
     <div className={cn(
       "min-w-[185px] rounded-xl border-2 px-3 py-2.5 shadow-lg select-none",
@@ -67,7 +74,7 @@ export function ConditionNodeComp({ data, selected }: NodeProps) {
 
 export function ActionNodeComp({ data, selected }: NodeProps) {
   const { t } = useTranslation("butler")
-  const summary = paramSummary(data.subtype, data.params, t)
+  const summary = useSummary(data, t)
   return (
     <div className={cn(
       "min-w-[185px] rounded-xl border-2 px-3 py-2.5 shadow-lg select-none",

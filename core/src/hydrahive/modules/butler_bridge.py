@@ -25,6 +25,10 @@ from hydrahive.butler.registry import (
 from hydrahive.modules.registry import REGISTRY
 
 logger = logging.getLogger(__name__)
+# (art, subtype) → Modul-ID der erfolgreich eingespeisten Modul-Bausteine – für den Butler-Editor
+# (docs/specs/butler-module-nodes.md: GET /api/butler/registry liefert genau diese).
+MODULE_SUBTYPES: dict[tuple[str, str], str] = {}
+_KIND_TYPE = {"Trigger": "trigger", "Condition": "condition", "Action": "action"}
 
 
 def register_module_butler_subtypes() -> int:
@@ -57,6 +61,7 @@ def _register_group(
                 )
                 continue
             register_fn(spec)
+            MODULE_SUBTYPES[(_KIND_TYPE[kind], spec.subtype)] = mid
             count += 1
             logger.info("Modul %s: Butler-%s '%s' registriert", mid, kind, spec.subtype)
         except Exception as e:
