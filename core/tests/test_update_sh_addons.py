@@ -46,7 +46,7 @@ def test_voice_only_when_wanted():
 
 
 def test_whatsapp_only_when_wanted():
-    g = _guard_before('log "WhatsApp-Bridge: npm install"')
+    g = _guard_before('log "WhatsApp-Bridge: npm ci"')  # seit Task cabd0df1 npm ci statt npm install
     assert "hh_addon_wanted" in g and "HH_INSTALL_WHATSAPP" in g
 
 
