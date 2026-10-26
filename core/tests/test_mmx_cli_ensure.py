@@ -36,7 +36,7 @@ echo "npm $*" >> "$CALLS"
 [ "$*" = "root -g" ] && {{ echo "{root}"; exit 0; }}
 [ -n "${{NPM_FAIL:-}}" ] && {{ echo "npm ERR! 503" >&2; exit 1; }}
 case "$*" in *install*-g*mmx-cli@*)
-  v="${{*##*mmx-cli@}}"; v="${{v%% *}}"
+  for a in "$@"; do case "$a" in mmx-cli@*) v="${{a#mmx-cli@}}" ;; esac; done
   mkdir -p "{root}/mmx-cli"; printf '{{"name":"mmx-cli","version":"%s"}}\\n' "$v" > "{root}/mmx-cli/package.json" ;;
 esac
 exit 0

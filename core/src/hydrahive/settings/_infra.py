@@ -72,6 +72,12 @@ class _ExtensionsMixin:
 
 class _WebminMixin:
     @cached_property
+    def reboot_required_file(self) -> Path:
+        """Marke „Neustart des Rechners nötig“ (Ubuntu; installer/lib/system-upgrade.sh setzt sie auch nach
+        Grafiktreiber-Updates). docs/specs/system-updates.md."""
+        return Path(os.environ.get("HH_REBOOT_REQUIRED_FILE", "/run/reboot-required"))
+
+    @cached_property
     def webmin_url(self) -> str:
         """Webmin-URL (z.B. https://127.0.0.1:10000). Leer ⇒ Webmin-Tools nicht registriert."""
         return os.environ.get("HH_WEBMIN_URL", "").strip().rstrip("/")

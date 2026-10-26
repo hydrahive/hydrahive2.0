@@ -41,9 +41,10 @@ def env(tmp_path: Path):
     calls = tmp_path / "calls.log"
     # npm install -g dev-browser@X legt ein dev-browser-Programm in bin/ an (wie global npm).
     _stub(bin_dir, "npm", f"""
+# npm root -g braucht kein Netz – NPM_FAIL betrifft nur Installationen.
+[ "$*" = "root -g" ] && {{ echo "{env_root}"; exit 0; }}
 [ -n "${{NPM_FAIL:-}}" ] && {{ echo "npm ERR! network" >&2; exit 1; }}
 case "$*" in
-  "root -g") echo "{env_root}" ;;
   *install*-g*dev-browser@*)
     mkdir -p "{env_root}/dev-browser" && printf '{{\n  "name": "dev-browser",\n  "version": "0.2.9"\n}}\n' > "{env_root}/dev-browser/package.json"
     cat > "{bin_dir}/dev-browser" <<'EOF'

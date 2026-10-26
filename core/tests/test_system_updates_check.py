@@ -123,7 +123,10 @@ def test_health_ohne_apt_ohne_pruefung(monkeypatch) -> None:
     assert all(c.get("name_code") != "system_updates" for c in out["checks"])
 
 
-def test_setting_standardpfad() -> None:
+def test_setting_standardpfad(monkeypatch) -> None:
     from pathlib import Path
-    from hydrahive.settings import settings
-    assert Path(settings.reboot_required_file) == Path("/run/reboot-required")
+    from hydrahive.settings.settings import Settings
+    monkeypatch.delenv("HH_REBOOT_REQUIRED_FILE", raising=False)
+    assert Settings().reboot_required_file == Path("/run/reboot-required")
+    monkeypatch.setenv("HH_REBOOT_REQUIRED_FILE", "/x/y")
+    assert Settings().reboot_required_file == Path("/x/y")

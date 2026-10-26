@@ -40,6 +40,22 @@ ensure_dev_browser() {
       return 0
     fi
     hash -r
+  else
+    # Vorhanden, aber andere Version (Befund .4: 0.2.7 statt 0.2.9; Task f24c39bf): auf die Soll-Version.
+    # Unbekannte Version (package.json nicht lesbar) → nichts erzwingen.
+    local have
+    have="$(_dev_browser_version)" || have=""
+    if [ -n "$have" ] && [ "$have" != "$HH_DEV_BROWSER_VERSION" ]; then
+      $log_fn "Browser-Werkzeug: dev-browser $have → $HH_DEV_BROWSER_VERSION anheben"
+      if ! out=$(npm install -g --no-fund --no-audit "dev-browser@$HH_DEV_BROWSER_VERSION" 2>&1); then
+        $log_fn "WARNUNG: dev-browser-Anhebung fehlgeschlagen – $have bleibt"
+        printf '%s\n' "$out" | tail -3 | sed 's/^/    /'
+        return 0
+      fi
+      hash -r
+      # Neue Version → Laufzeit und Chromium passend neu einrichten (unten).
+      runtime="$runtime.neu-einrichten"
+    fi
   fi
 
   if [ -d "$runtime" ] && [ -d "$chromium" ]; then
@@ -50,6 +66,7 @@ ensure_dev_browser() {
   $log_fn "Browser-Werkzeug: Laufzeit und Chromium nach $home einrichten"
   local tmp_log
   tmp_log="$(mktemp "${TMPDIR:-/tmp}/dev-browser-install.XXXXXX")"
+  runtime="$home/.dev-browser/node_modules"
   if sudo -u "$user" env HOME="$home" dev-browser install </dev/null >"$tmp_log" 2>&1 \
      && [ -d "$runtime" ] && [ -d "$chromium" ]; then
     $log_fn "Browser-Werkzeug bereit (dev-browser $(_dev_browser_version))"

@@ -11,6 +11,10 @@ export interface UpdateProbe {
   sleep: (ms: number) => Promise<void>
 }
 
+/** Höchstzahl der Prüfungen im 3-s-Takt = 30 min. Das Update hebt auch Systempakete an (docs/specs/system-updates.md)
+ *  – viele davon dauern länger als die früheren 10 min. */
+export const UPDATE_MAX_CHECKS = 600
+
 export type WaitResult = { kind: "done"; commit: string | null } | { kind: "failed"; reason: string }
 
 /** Wartet auf das Ende eines Updates.

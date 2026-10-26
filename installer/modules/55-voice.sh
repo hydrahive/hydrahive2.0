@@ -30,9 +30,11 @@ STT_PORT=10300
 HH_USER_VOICE="${HH_USER:-hydrahive}"
 HH_HOME_VOICE="/home/$HH_USER_VOICE"
 
+# shellcheck source=../lib/mmx-cli.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/mmx-cli.sh"
 if ! command -v mmx >/dev/null 2>&1; then
-  log "Installiere mmx-cli (npm-global)"
-  npm install -g mmx-cli --no-fund --no-audit || \
+  log "Installiere mmx-cli $HH_MMX_VERSION (npm-global)"
+  npm install -g "mmx-cli@$HH_MMX_VERSION" --no-fund --no-audit || \
     log "mmx-cli-Install fehlgeschlagen — TTS via MiniMax nicht verfügbar"
 fi
 
