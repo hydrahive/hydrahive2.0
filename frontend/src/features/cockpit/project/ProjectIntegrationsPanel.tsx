@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { CheckCircle2, Copy, Eye, EyeOff, Loader2, Save } from "lucide-react"
 import { projectsApi } from "@/features/projects/api"
 import type { Project } from "@/features/projects/types"
+import { shareAddresses, type SharePlatform } from "@/features/projects/shareAddress"
 import { ProjectWebhookSection } from "./ProjectWebhookSection"
 
 interface SambaInfo {
@@ -9,6 +10,7 @@ interface SambaInfo {
   share_name: string
   user: string
   password: string
+  platform?: SharePlatform
 }
 
 type CopiedField = "url" | "user" | "password" | null
@@ -68,14 +70,15 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
     }
   }
 
-  const sambaUrl = samba ? `\\\\${window.location.hostname}\\${samba.share_name}` : ""
+  const addr = samba ? shareAddresses(samba.platform, window.location.hostname, samba.share_name) : null
+  const sambaUrl = addr?.primary ?? ""
 
   return <div className="space-y-5">
     {samba && <section className="space-y-3">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-medium text-[#e8eef8]">Samba-Projektfreigabe</h3>
-          <p className="text-[11px] text-[#718097]">Workspace dieses Projekts im Netzwerk bereitstellen.</p>
+          <h3 className="text-sm font-medium text-[#e8eef8]">{samba.platform === "mac" ? "Projekt im Netz freigeben" : "Samba-Projektfreigabe"}</h3>
+          <p className="text-[11px] text-[#718097]">Workspace dieses Projekts im Netzwerk bereitstellen – ohne Shell, im Finder oder Explorer.</p>
         </div>
         <label className="flex items-center gap-2 text-xs text-[#b8c4d8]">
           <input type="checkbox" checked={samba.enabled} disabled={sambaBusy} onChange={toggleSamba} />
@@ -84,6 +87,10 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
       </div>
       {samba.enabled && <div className="space-y-2">
         <CopyRow label="Adresse" value={sambaUrl} copied={copied === "url"} onCopy={() => copy(sambaUrl, "url")} />
+        <p className="text-[11px] text-[#718097]" data-share-hint={samba.platform ?? "linux"}>
+          {samba.platform === "mac" ? "Mac: Finder → Gehe zu → Mit Server verbinden. Windows: " : "Windows-Explorer. Mac-Finder (Gehe zu → Mit Server verbinden): "}
+          <code>{addr?.secondary}</code>
+        </p>
         <CopyRow label="Benutzer" value={samba.user} copied={copied === "user"} onCopy={() => copy(samba.user, "user")} />
         <SecretRow
           value={samba.password}
@@ -92,7 +99,7 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
           onToggle={() => setShowPassword((visible) => !visible)}
           onCopy={() => copy(samba.password, "password")}
         />
-        <p className="text-[11px] text-[#718097]">Dieses Samba-Login gilt für alle aktivierten Projektfreigaben.</p>
+        <p className="text-[11px] text-[#718097]">Diese Zugangsdaten gelten für alle freigegebenen Projekte.</p>
       </div>}
     </section>}
     <ProjectWebhookSection projectId={project.id} />

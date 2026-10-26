@@ -150,7 +150,11 @@
     "user_label": "User",
     "password_label": "Passwort",
     "copy": "Kopieren",
-    "copied": "Kopiert!"
+    "copied": "Kopiert!",
+    "also_mac": "Mac-Finder (Gehe zu → Mit Server verbinden): {{address}}",
+    "also_windows": "Windows-Explorer: {{address}}",
+    "hint_inline_mac": "Im Finder: Gehe zu → Mit Server verbinden, Adresse oben eingeben. Die Zugangsdaten gelten für alle freigegebenen Projekte. Die Dateifreigabe muss unter Einstellungen → Zusatz-Module eingerichtet sein.",
+    "title_mac": "Projekt im Netz freigeben"
   },
   "audit": {
     "empty": "Noch keine Einträge.",

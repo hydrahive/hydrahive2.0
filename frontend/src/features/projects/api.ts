@@ -68,7 +68,8 @@ export const projectsApi = {
   unassignServer: (id: string, kind: ServerKind, serverId: string) =>
     api.delete<void>(`/projects/${id}/servers/${kind}/${encodeURIComponent(serverId)}`),
   getSamba: (id: string) =>
-    api.get<{ enabled: boolean; share_name: string; user: string; password: string }>(`/projects/${id}/samba`),
+    api.get<{ enabled: boolean; share_name: string; user: string; password: string; platform?: "linux" | "mac" }>(
+      `/projects/${id}/samba`),
   putLinked: (id: string, projects: string[]) =>
     api.put<Project>(`/projects/${id}/linked-projects`, { projects }),
   putSamba: (id: string, enabled: boolean) =>

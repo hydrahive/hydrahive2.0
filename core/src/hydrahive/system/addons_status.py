@@ -26,9 +26,9 @@ ADDONS: tuple[str, ...] = ("containers", "vms", "samba", "whatsapp", "voice", "t
 RESTARTS_SERVICE = frozenset({"vms", "containers"})          # 65-vms.sh / 70-containers.sh patchen hydrahive2.service
 REQUIRES: dict[str, list[str]] = {"voice": ["containers"]}
 WSL_LIMITED = frozenset({"vms", "containers", "voice"})
-# Auf dem Mac nur Container, Voice und Tailscale (installer/modules-mac/70-containers.sh, 55-voice.sh,
-# 80-tailscale.sh); der Rest braucht apt/systemd.
-MAC_INSTALLABLE = frozenset({"containers", "voice", "tailscale"})
+# Auf dem Mac nur Container, Voice, Tailscale und Dateifreigabe (installer/modules-mac/70-containers.sh, 55-voice.sh,
+# 80-tailscale.sh, 47-filesharing.sh – macOS-eigene Freigabe statt Samba); der Rest braucht apt/systemd.
+MAC_INSTALLABLE = frozenset({"containers", "voice", "tailscale", "samba"})
 # Voice läuft auf dem Mac direkt (LaunchDaemons), nicht in Containern (docs/plans/mac-voice.md).
 _MAC_REQUIRES: dict[str, list[str]] = {"voice": []}
 

@@ -3,12 +3,14 @@ import type { CSSProperties } from "react"
 import { CheckCircle2, Copy, Eye, EyeOff, FolderOpen, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
+import { shareAddresses, type SharePlatform } from "./shareAddress"
 
 interface SambaInfo {
   enabled: boolean
   share_name: string
   user: string
   password: string
+  platform?: SharePlatform
 }
 
 interface Props {
@@ -16,12 +18,14 @@ interface Props {
   busy: boolean
   error: string | null
   onToggle: () => void
+  host?: string
 }
 
-export function SambaSection({ samba, busy, error, onToggle }: Props) {
+export function SambaSection({ samba, busy, error, onToggle, host }: Props) {
   const { t } = useTranslation("projects")
   const [copied, setCopied] = useState<"" | "url" | "user" | "password">("")
   const [showPwd, setShowPwd] = useState(false)
+  const addr = shareAddresses(samba.platform, host ?? window.location.hostname, samba.share_name)
 
   async function copyText(value: string, key: "url" | "user" | "password") {
     await navigator.clipboard.writeText(value)
@@ -32,7 +36,7 @@ export function SambaSection({ samba, busy, error, onToggle }: Props) {
     <div className="box overflow-hidden p-3 space-y-2" style={{ "--c": rgbFor("/projects") } as CSSProperties}>
       <div className="flex items-center gap-2">
         <FolderOpen size={14} className="text-amber-300" />
-        <p className="text-sm font-medium text-zinc-200 flex-1">{t("samba.title")}</p>
+        <p className="text-sm font-medium text-zinc-200 flex-1">{t(samba.platform === "mac" ? "samba.title_mac" : "samba.title")}</p>
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={samba.enabled} disabled={busy}
             onChange={onToggle} className="w-4 h-4 accent-amber-500" />
@@ -44,9 +48,9 @@ export function SambaSection({ samba, busy, error, onToggle }: Props) {
         <>
           <div className="flex items-center gap-2 pt-1">
             <code className="text-xs text-amber-300 bg-amber-500/[6%] border border-amber-500/20 rounded px-2 py-1 font-mono flex-1 truncate">
-              {`\\\\${window.location.hostname}\\${samba.share_name}`}
+              {addr.primary}
             </code>
-            <button onClick={() => copyText(`\\\\${window.location.hostname}\\${samba.share_name}`, "url")}
+            <button onClick={() => copyText(addr.primary, "url")}
               className="p-1.5 rounded text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
               title={copied === "url" ? t("samba.copied") : t("samba.copy")}>
               {copied === "url" ? <CheckCircle2 size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -76,7 +80,8 @@ export function SambaSection({ samba, busy, error, onToggle }: Props) {
           </div>
         </>
       )}
-      <p className="text-[10px] text-zinc-500">{t("samba.hint_inline")}</p>
+      {samba.enabled && <p className="text-[10px] text-zinc-500">{t(samba.platform === "mac" ? "samba.also_windows" : "samba.also_mac", { address: addr.secondary })}</p>}
+      <p className="text-[10px] text-zinc-500">{t(samba.platform === "mac" ? "samba.hint_inline_mac" : "samba.hint_inline")}</p>
       {error && (
         <p className="text-xs text-rose-300 bg-rose-500/[6%] border border-rose-500/20 rounded-md px-2 py-1">{error}</p>
       )}

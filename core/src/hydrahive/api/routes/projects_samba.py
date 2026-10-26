@@ -10,6 +10,7 @@ from hydrahive.api.middleware.auth import require_auth
 from hydrahive.api.middleware.errors import coded
 from hydrahive.projects import config as project_config
 from hydrahive.samba import disable_share, enable_share, is_share_enabled
+from hydrahive.samba import manager as samba_manager
 from hydrahive.samba.manager import share_name_for
 from hydrahive.settings import settings
 
@@ -46,8 +47,10 @@ def get_samba(
     return {
         "enabled": enabled,
         "share_name": share_name_for(project_id, p["name"]),
-        "user": settings.samba_user,
+        "user": samba_manager.share_user(),
         "password": password,
+        # Mac: macOS-Dateifreigabe (smb://…, docs/plans/mac-file-sharing.md); Linux: Samba
+        "platform": "mac" if samba_manager.is_mac() else "linux",
     }
 
 

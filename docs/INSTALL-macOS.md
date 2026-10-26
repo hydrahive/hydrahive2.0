@@ -430,7 +430,7 @@ The Mac installer only sets up the **core**. The following is **not** available 
 | **VMs** (libvirt/QEMU) | ❌ not available | Linux only |
 | **Voice** (speech input + read-aloud) | ✅ optional | directly on the Mac, no containers: Settings → Add-on modules → Voice (or `--with=voice`), see [Voice](#voice-optional) |
 | **WhatsApp integration** | ❌ not set up | the bridge is only set up by the Linux installer |
-| **Samba shares** (project folders on the network) | ❌ not available | Linux module |
+| **Share project folders on the network** (like Samba) | ✅ optional | via macOS file sharing: Settings → Add-on modules → Samba / file sharing, see [Files in Finder](#files-in-finder-share-a-project-on-the-network) |
 | **Tailscale remote access & server pairing** | ✅ optional | automatically via Settings → Add-on modules → Tailscale (or `--with=tailscale`), see [Tailscale](#tailscale-optional). Alternatively the Tailscale app – **not both** |
 | **Web search (SearXNG)** | ⚠️ not automatic | enter your own SearXNG address in the settings, otherwise `web_search` won't work |
 | **Starter agents & MCP servers** | ⚠️ not automatic | Linux creates them during install; on a Mac create them by hand in the cockpit |
@@ -452,7 +452,8 @@ to each other), modules such as Atelier, Storyteller, Household book and so on, 
 - **After a restart** HydraHive, the web server and the database start by themselves, even if nobody logs in.
 - **Don't delete the `_hydrahive` account.** HydraHive runs under it. Your own user is only needed for Homebrew.
 - **Files in your home folder** (Desktop, Documents …) are not visible to HydraHive. Upload what it should work on
-  in the cockpit.
+  in the cockpit – or share the project on the network and put the files there in Finder
+  (see [Files in Finder](#files-in-finder-share-a-project-on-the-network)).
 - **Ports 80 and 443** are taken by HydraHive (nginx). If another web server is already running on the Mac, they will
   conflict.
 - **Access from the network:** other devices reach HydraHive via the Mac's IP address. If the address changes, e.g.
@@ -519,6 +520,30 @@ account. Alternatively "Connect with auth key".
 - This variant cannot use someone else's exit node; Taildrop is limited. Remote access and pairing work fully.
   Updates come with the normal HydraHive update.
 - Check: `sudo launchctl list | grep io.hydrahive.tailscaled`, log `/usr/local/var/log/hydrahive2-tailscaled.log`.
+
+---
+
+## Files in Finder (share a project on the network)
+
+Project folders live under `/usr/local/var/hydrahive2/workspaces/projects/`. That folder belongs to the service account
+`_hydrahive` – your own account can **not** open it in Finder. That is intentional: nobody needs a terminal or admin
+rights for this. Instead you share single projects on the network, like Samba on Linux:
+
+1. **Set up once:** Settings → Add-on modules → **Samba / file sharing → Install**. HydraHive turns on macOS file sharing
+   (SMB) and creates its own account **`hhshare`**. That account cannot log in to the Mac and has no shell – it only
+   serves the shares.
+2. **Share a project:** open the project → Settings or Integrations → turn on **Share project on the network** → **Enabled**. Address, user
+   and password are shown there.
+3. **Connect:**
+   - **Mac:** Finder → menu **Go → Connect to Server** (⌘K) → `smb://<Mac's address>/<share>` → "Registered User" →
+     user `hhshare` and the password from the cockpit.
+   - **Windows:** Explorer → address bar `\\<Mac's address>\<share>`.
+
+**Good to know:**
+- Only what you turn on per project is shared – never the whole data folder, settings or database.
+- The credentials apply to all shared projects (per-employee access will follow).
+- Whatever you put into the share, HydraHive sees immediately – and vice versa.
+- Check: System Settings → General → Sharing → **File Sharing** is on; log `/usr/local/var/log/hydrahive2-shares.log`.
 
 ---
 

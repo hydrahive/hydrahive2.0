@@ -24,6 +24,7 @@ Du lässt eine KI installieren? → [Kurzfassung für KI-Assistenten](#kurzfassu
 8. [KI einrichten (sonst antwortet Buddy nicht)](#8-ki-einrichten-sonst-antwortet-buddy-nicht)
 9. [Prüfen, ob alles läuft](#9-prüfen-ob-alles-läuft)
 - [Was auf dem Mac nicht geht](#was-auf-dem-mac-nicht-geht) · [Worauf du achten musst](#worauf-du-achten-musst) ·
+  [Dateien im Finder](#dateien-im-finder-projekt-im-netz-freigeben) ·
   [Nützliche Befehle](#nützliche-befehle) · [Problemlösung](#problemlösung) · [Deinstallieren](#deinstallieren) ·
   [Kurzfassung für KI-Assistenten](#kurzfassung-für-ki-assistenten)
 
@@ -431,7 +432,7 @@ Der Mac-Installer richtet nur den **Kern** ein. Folgendes gibt es auf dem Mac **
 | **VMs** (libvirt/QEMU) | ❌ nicht verfügbar | gibt es nur unter Linux |
 | **Voice** (Spracheingabe + Vorlesen) | ✅ optional | direkt auf dem Mac, ohne Container: Einstellungen → Zusatz-Module → Voice (oder `--with=voice`), siehe [Voice](#voice-optional) |
 | **WhatsApp-Anbindung** | ❌ nicht eingerichtet | Bridge wird nur vom Linux-Installer aufgesetzt |
-| **Samba-Freigaben** (Projektordner im Netzwerk) | ❌ nicht verfügbar | Linux-Modul |
+| **Projektordner im Netz freigeben** (wie Samba) | ✅ optional | über die macOS-Dateifreigabe: Einstellungen → Zusatz-Module → Samba-Freigaben / Dateifreigabe, siehe [Dateien im Finder](#dateien-im-finder-projekt-im-netz-freigeben) |
 | **Tailscale-Fernzugriff & Server-Kopplung** | ✅ optional | automatisch über Einstellungen → Zusatz-Module → Tailscale (oder `--with=tailscale`), siehe [Tailscale](#tailscale-optional). Alternativ die Tailscale-App – **nicht beides** |
 | **Websuche (SearXNG)** | ⚠️ nicht automatisch | eigene SearXNG-Adresse in den Einstellungen eintragen, sonst funktioniert `web_search` nicht |
 | **Start-Agenten & MCP-Server** | ⚠️ nicht automatisch | Linux legt sie beim Installieren an, auf dem Mac von Hand im Cockpit anlegen |
@@ -455,7 +456,8 @@ beauftragen sich gegenseitig), Module wie Atelier, Storyteller, Haushaltsbuch us
 - **Das Konto `_hydrahive` nicht löschen.** HydraHive läuft unter diesem Konto. Deinen eigenen Benutzer braucht
   HydraHive nur für Homebrew (Programme wie Python, Datenbank, nginx gehören dir).
 - **Dateien aus deinem Benutzer-Ordner** (Schreibtisch, Dokumente …) sieht HydraHive nicht. Was HydraHive bearbeiten
-  soll, lädst du im Cockpit hoch.
+  soll, lädst du im Cockpit hoch – oder du gibst das Projekt im Netz frei und legst die Dateien im Finder hinein
+  (siehe [Dateien im Finder](#dateien-im-finder-projekt-im-netz-freigeben)).
 - **Ports 80 und 443** belegt HydraHive (nginx). Läuft auf dem Mac schon ein anderer Webserver, gibt es einen Konflikt.
 - **Zugriff aus dem Netz:** Andere Geräte erreichen HydraHive über die IP-Adresse des Macs. Wechselt die Adresse,
   z. B. in einem anderen WLAN, passt das Zertifikat nicht mehr ganz und die Browser-Warnung kommt wieder.
@@ -521,6 +523,32 @@ Tailscale-Konto anmelden. Alternativ „Mit Auth-Key verbinden“.
 - Diese Variante kann einen fremden Exit-Node nicht nutzen; Taildrop geht nur eingeschränkt. Für Fernzugriff und
   Kopplung reicht sie vollständig. Updates kommen mit dem normalen HydraHive-Update.
 - Prüfen: `sudo launchctl list | grep io.hydrahive.tailscaled`, Log `/usr/local/var/log/hydrahive2-tailscaled.log`.
+
+---
+
+## Dateien im Finder (Projekt im Netz freigeben)
+
+Die Projektordner liegen unter `/usr/local/var/hydrahive2/workspaces/projects/`. Dieser Ordner gehört dem
+Dienst-Konto `_hydrahive` – mit deinem eigenen Konto kommst du dort im Finder **nicht** hinein. Das ist Absicht:
+Niemand braucht dafür ein Terminal oder Admin-Rechte. Stattdessen gibst du einzelne Projekte im Netz frei, wie unter
+Linux mit Samba:
+
+1. **Einmal einrichten:** Einstellungen → Zusatz-Module → **Samba-Freigaben / Dateifreigabe → Installieren**. HydraHive schaltet die
+   macOS-Dateifreigabe (SMB) ein und legt ein eigenes Konto **`hhshare`** an. Dieses Konto kann sich am Mac nicht
+   anmelden und hat keine Shell – es ist nur für die Freigaben da.
+2. **Projekt freigeben:** Projekt öffnen → Einstellungen bzw. Integrationen → **Projekt im Netz freigeben** → **Aktiviert** einschalten. Dort
+   stehen Adresse, Benutzer und Passwort.
+3. **Verbinden:**
+   - **Mac:** Finder → Menü **Gehe zu → Mit Server verbinden** (⌘K) → `smb://<Adresse des Macs>/<Freigabe>` →
+     „Registrierter Benutzer“ → Benutzer `hhshare` und das Passwort aus dem Cockpit.
+   - **Windows:** Explorer → Adresszeile `\\<Adresse des Macs>\<Freigabe>`.
+
+**Gut zu wissen:**
+- Freigegeben wird nur, was du im Projekt einschaltest – nie der ganze Daten-Ordner, nie Einstellungen oder Datenbank.
+- Die Zugangsdaten gelten für alle freigegebenen Projekte (eigene Zugänge je Mitarbeiter folgen).
+- Was du über die Freigabe ablegst, sieht HydraHive sofort – und umgekehrt.
+- Prüfen: Systemeinstellungen → Allgemein → Teilen → **Dateifreigabe** ist an; Log
+  `/usr/local/var/log/hydrahive2-shares.log`.
 
 ---
 

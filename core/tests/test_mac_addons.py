@@ -1,8 +1,8 @@
-"""Zusatz-Module auf dem Mac (Pläne docs/plans/mac-containers.md §3, mac-tailscale.md): nur „Container“ und
-„Tailscale“ lassen sich dort nachinstallieren.
+"""Zusatz-Module auf dem Mac (Pläne docs/plans/mac-containers.md §3, mac-tailscale.md, mac-voice.md,
+mac-file-sharing.md): Container, Voice, Tailscale und Dateifreigabe lassen sich dort nachinstallieren.
 
-Die übrigen Module (VMs, Samba, WhatsApp, Voice) bauen auf apt/systemd bzw. Linux-Diensten auf. Auf dem Mac zeigt das
-Cockpit sie mit Hinweis „mac“ und ohne Installieren; die API lehnt sie ab. Linux unverändert.
+Die übrigen Module (VMs, WhatsApp) bauen auf apt/systemd bzw. Linux-Diensten auf. Auf dem Mac zeigt das Cockpit sie
+mit Hinweis „mac“ und ohne Installieren; die API lehnt sie ab. Linux unverändert.
 """
 from __future__ import annotations
 
@@ -23,13 +23,14 @@ def probes(monkeypatch):
     return state
 
 
-def test_mac_only_containers_voice_and_tailscale_installable(probes, tmp_path, monkeypatch):
+def test_mac_only_containers_voice_tailscale_and_sharing_installable(probes, tmp_path, monkeypatch):
     monkeypatch.setattr(st, "is_mac", lambda: True)
     items = {i["id"]: i for i in st.list_addons(tmp_path / "install.conf")}
     assert items["containers"]["hint"] is None
     assert items["tailscale"]["hint"] is None
     assert items["voice"]["hint"] is None                       # docs/plans/mac-voice.md
-    for other in ("vms", "samba", "whatsapp"):
+    assert items["samba"]["hint"] is None                       # docs/plans/mac-file-sharing.md (macOS-Freigabe)
+    for other in ("vms", "whatsapp"):
         assert items[other]["hint"] == "mac", other
 
 
@@ -55,7 +56,7 @@ def test_api_refuses_mac_limited_addon(client, admin_headers, tmp_path, monkeypa
     trigger = tmp_path / ".addon_request"
     monkeypatch.setattr(system_addons, "_trigger", lambda: trigger)
     monkeypatch.setattr(system_addons, "_install_conf", lambda: tmp_path / "install.conf")
-    r = client.post("/api/system/addons/samba/install", headers=admin_headers)
+    r = client.post("/api/system/addons/whatsapp/install", headers=admin_headers)
     assert r.status_code == 400
     assert r.json()["detail"]["code"] == "addon_unavailable_mac"
     assert not trigger.exists()

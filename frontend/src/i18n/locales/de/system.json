@@ -242,7 +242,7 @@
     "name": {
       "containers": "Container (incus)",
       "vms": "Virtuelle Maschinen (QEMU/KVM)",
-      "samba": "Samba-Freigaben",
+      "samba": "Samba-Freigaben / Dateifreigabe",
       "whatsapp": "WhatsApp-Bridge",
       "voice": "Voice (Sprache rein/raus)",
       "tailscale": "Tailscale"
