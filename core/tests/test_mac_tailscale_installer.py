@@ -131,6 +131,35 @@ def test_existing_app_is_left_alone(mac):
     assert not mac["plist"].exists()
 
 
+def test_app_dazu_gekommen_eigener_dienst_wird_abgeschaltet(mac):
+    """Befund Berkan 26.10.: erst eigener Build, später die App installiert → eigener Dienst lief/lag weiter,
+    HydraHive fragte ihn statt der App. Jetzt: Dienst entladen, plist rückholbar beiseite, nichts gelöscht."""
+    _run(mac)
+    assert mac["plist"].exists()
+    mac["calls"].write_text("")
+    mac["app"].mkdir()
+    r = _run(mac)
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = _calls(mac)
+    assert f"launchctl unload {mac['plist']}" in calls
+    assert not mac["plist"].exists()
+    assert Path(str(mac["plist"]) + ".aus-wegen-app").exists()
+    assert (mac["root"] / "1.104.2" / "tailscale").exists()          # Build bleibt (rückholbar)
+    assert "eigenen Tailscale-Dienst abgeschaltet" in r.stdout
+    assert not any(c.startswith(("go ", "curl")) for c in calls)
+
+
+def test_app_dazu_gekommen_zweiter_lauf_ruhig(mac):
+    _run(mac)
+    mac["app"].mkdir()
+    _run(mac)
+    mac["calls"].write_text("")
+    r = _run(mac)
+    assert r.returncode == 0
+    assert _calls(mac) == []
+    assert "abgeschaltet" not in r.stdout
+
+
 def test_second_run_no_rebuild_no_restart(mac):
     _run(mac)
     (mac["tmp"] / "ts-pid").write_text("")                       # Dienst läuft
