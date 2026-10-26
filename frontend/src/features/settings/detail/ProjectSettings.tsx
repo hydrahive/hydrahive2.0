@@ -6,8 +6,8 @@ import { ProjectFormTabs } from "./ProjectFormTabs"
 import type { Project } from "@/features/projects/types"
 
 /**
- * Projekt-Einstellungen für den Settings-Hub. Submenü rechts wählt das Projekt,
- * hier werden dessen Settings als Karteikarten gezeigt (ohne Auswertungs-Tabs).
+ * Projekt-Einstellungen in „Meine Einstellungen“. Das Auswahlfeld oben
+ * (ProjectSection) wählt das Projekt; hier dessen Karteikarten (ohne Auswertung).
  */
 export function ProjectSettings({ itemId }: { itemId: string | null }) {
   const [project, setProject] = useState<Project | null>(null)
@@ -26,7 +26,7 @@ export function ProjectSettings({ itemId }: { itemId: string | null }) {
     return (
       <div className="flex flex-col items-center gap-2 py-16">
         <p className="text-center text-sm text-zinc-500">
-          Rechts ein Projekt wählen, um seine Einstellungen zu bearbeiten.
+          Oben ein Projekt wählen, um seine Einstellungen zu bearbeiten.
         </p>
         <div className="flex items-center gap-1.5 text-xs text-zinc-500">
           <span>Neu hier? Erst die Hilfe lesen:</span>
