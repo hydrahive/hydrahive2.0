@@ -41,8 +41,9 @@ exit 0
     for name in ("dseditgroup", "pwpolicy", "launchctl", "sharing", "chown", "defaults", "createhomedir"):
         _exe(b / name, log + ("[ -f \"$(dirname \"$0\")/../sharing-fails\" ] && exit 1\n" if name == "sharing" else "")
              + "exit 0\n")
-    _exe(b / "chmod", log + 'case "$1" in +a|-a|=a|-N) exit 0;; esac\nexec /bin/chmod "$@"\n')
-    _exe(b / "sudo", log + 'exec "$@"\n')
+    _exe(b / "chmod", log + '[ "$1" = "-h" ] && shift\ncase "$1" in +a|-a|=a|-N) exit 0;; esac\nexec /bin/chmod "$@"\n')
+    _exe(b / "sudo", log + 'while [ "${1:-}" = "-n" ] || [ "${1:-}" = "-u" ]; do [ "$1" = "-u" ] && shift; shift; done\n'
+                          'exec "$@"\n')
     _exe(b / "id", 'if [ "$1" = "-u" ] && [ "$#" -eq 1 ]; then echo 0; else exec /usr/bin/id "$@"; fi\n')
     data = tmp_path / "data"
     (data / "workspaces" / "projects" / PID).mkdir(parents=True)
@@ -91,6 +92,26 @@ def test_setup_passwort_nie_auf_der_kommandozeile(mac) -> None:
     assert not any(pw in x for x in _calls(mac)), "Passwort darf nicht in Prozessliste/Aufrufen stehen"
 
 
+def test_setup_schaltet_smb_passwort_hash_vor_dem_passwort_ein(mac) -> None:
+    """Echter Mac (macOS 27, 26.10.): ohne SMB-NT-Hash legt dscl passwd nur PBKDF2/SRP an → NT_STATUS_LOGON_FAILURE.
+    Der Hash entsteht erst beim Passwort-Setzen, also muss danach noch einmal gesetzt werden. pwpolicy stürzt aber ab
+    (rc 139), wenn das Konto noch gar kein Passwort hat → Reihenfolge passwd, pwpolicy, passwd."""
+    _setup(mac)
+    c = _calls(mac)
+    hashes = [i for i, x in enumerate(c) if x.startswith("pwpolicy -u hhshare sethashtypes SMB-NT on")]
+    passwd = [i for i, x in enumerate(c) if x == "dscl ."]
+    assert hashes, c
+    assert passwd and passwd[0] < hashes[0], "erst ein Passwort, sonst stürzt pwpolicy ab"
+    assert hashes[0] < passwd[-1], "nach SMB-NT das Passwort noch einmal setzen, damit der Hash entsteht"
+
+
+def test_setup_laedt_smbd_wirklich(mac) -> None:
+    """Echter Mac: smbd ist nicht geladen (Disabled=true) → kickstart findet den Dienst nicht. load -w lädt ihn."""
+    _setup(mac)
+    assert any(x == "launchctl load -w /System/Library/LaunchDaemons/com.apple.smbd.plist" for x in _calls(mac)), \
+        _calls(mac)
+
+
 def test_setup_nur_durchgehen_auf_dem_weg_kein_chown_r(mac) -> None:
     _setup(mac)
     c = _calls(mac)
@@ -135,6 +156,56 @@ def test_ctl_freigeben(mac) -> None:
     assert any(x.startswith("chmod +a user:hhshare allow ") and "file_inherit,directory_inherit" in x
                and x.endswith(str(path)) for x in c)
     assert _state(mac, PID) == "on"
+
+
+def test_ctl_dienst_konto_bekommt_vererbte_rechte(mac) -> None:
+    """Echter Mac 26.10.: was der Kunde per SMB anlegt, gehört hhshare (0600) – der Agent (_hydrahive) kam nicht mehr
+    heran. Darum erbt jede neue Datei auch einen Eintrag für das Dienst-Konto."""
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "P", str(path))
+    _ctl(mac)
+    assert any(x.startswith("chmod +a user:_hydrahive allow ") and "file_inherit,directory_inherit" in x
+               and x.endswith(str(path)) for x in _calls(mac)), _calls(mac)
+
+
+def test_ctl_vorhandene_dateien_als_dienst_konto_ohne_symlinks(mac) -> None:
+    """Vorhandene Dateien/Ordner bekommen die Rechte nachträglich – aber nie über einen Symlink (chmod -R folgte am
+    echten Mac einem Link nach /tmp und setzte dort die Freigabe-Rechte!) und nur mit den Rechten des Dienst-Kontos,
+    damit selbst ein Wettlauf nichts außerhalb dessen erreicht, was dem Dienst-Konto ohnehin gehört."""
+    path = mac["data"] / "workspaces" / "projects" / PID
+    (path / "unter").mkdir()
+    (path / "unter" / "a.txt").write_text("x")
+    outside = mac["tmp"] / "draussen"
+    outside.mkdir()
+    (path / "link").symlink_to(outside)
+    _want(mac, PID, "on", "P", str(path))
+    _ctl(mac)
+    c = _calls(mac)
+    plus = [x for x in c if x.startswith("chmod") and "+a" in x]
+    assert any(str(path / "unter" / "a.txt") in x.split() and "user:hhshare" in x for x in plus), plus
+    assert any(str(path / "unter") in x.split() and "user:_hydrahive" in x for x in plus), plus
+    assert not any(str(outside) in x or str(path / "link") in x.split() for x in plus), "nie über/auf einen Symlink"
+    assert not any(x.startswith("chmod -R") for x in c), "kein chmod -R (folgt Symlinks)"
+    assert any(x.startswith("sudo -n -u _hydrahive find ") for x in c), c
+
+
+@pytest.mark.parametrize("user", [None, "root", "a b", "-x"])
+def test_ctl_ohne_gueltiges_dienst_konto_kein_freigeben(mac, user) -> None:
+    """Ohne Dienst-Konto oder mit root würde find/chmod mit vollen Rechten laufen – dann lieber gar nicht."""
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "P", str(path))
+    env = {k: v for k, v in _env(mac).items() if k != "HH_USER"}
+    if user is not None:
+        env["HH_USER"] = user
+    subprocess.run(["bash", str(CTL)], env=env, capture_output=True, text=True, timeout=60)
+    assert not any(x.startswith("sharing -a") or "find" in x for x in _calls(mac)), _calls(mac)
+    assert _state(mac, PID) == "error:user"
+
+
+def test_setup_gibt_dem_dienst_das_dienst_konto_mit(mac) -> None:
+    _setup(mac)
+    plist = (mac["tmp"] / "io.hydrahive.shares.plist").read_text()
+    assert "<key>HH_USER</key>" in plist and "<string>_hydrahive</string>" in plist
 
 
 def test_ctl_abschalten(mac) -> None:

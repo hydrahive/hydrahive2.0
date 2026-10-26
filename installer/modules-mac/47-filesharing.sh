@@ -45,7 +45,13 @@ priv dscl . -create "/Users/$SHARE_USER" UserShell /usr/bin/false
 priv dscl . -create "/Users/$SHARE_USER" IsHidden 1
 # Passwort setzen ohne es als Argument zu übergeben (nicht in der Prozessliste): dscl liest im interaktiven Modus
 # Befehle von der Standardeingabe.
-printf 'passwd /Users/%s %s\n' "$SHARE_USER" "$(cat "$PWFILE")" | priv dscl . >/dev/null 2>&1
+set_pw() { printf 'passwd /Users/%s %s\n' "$SHARE_USER" "$(cat "$PWFILE")" | priv dscl . >/dev/null 2>&1; }
+# macOS legt den Passwort-Hash für SMB nur an, wenn er fürs Konto eingeschaltet ist – und erst beim Passwort-Setzen.
+# Ohne ihn: NT_STATUS_LOGON_FAILURE. pwpolicy stürzt aber ab, solange das Konto kein Passwort hat (beides live am Mac
+# mit macOS 27 gesehen). Deshalb: Passwort, SMB-Hash an, Passwort noch einmal.
+set_pw
+priv pwpolicy -u "$SHARE_USER" sethashtypes SMB-NT on >/dev/null 2>&1 || log "Achtung: SMB-Passwort-Hash nicht eingeschaltet"
+set_pw
 
 # --- Rechte: nur durchgehen bis zu den Projekten ---
 SEARCH="user:$SHARE_USER allow search"
@@ -62,8 +68,9 @@ chmod 750 "$SHARES"
 
 # --- SMB-Dienst an ---
 log "Schalte die macOS-Dateifreigabe (SMB) ein"
+# smbd ist ab Werk nicht geladen (Disabled=true in der System-plist) – kickstart allein findet ihn dann nicht.
 priv launchctl enable system/com.apple.smbd
-priv launchctl kickstart -k system/com.apple.smbd >/dev/null 2>&1 || true
+priv launchctl load -w /System/Library/LaunchDaemons/com.apple.smbd.plist >/dev/null 2>&1 || true
 
 # --- LaunchDaemon für die Projekt-Freigaben ---
 log "Schreibe $PLIST"
@@ -85,6 +92,8 @@ priv tee "$PLIST" > /dev/null <<EOF
         <string>${HH_DATA_DIR}</string>
         <key>HH_CONFIG_DIR</key>
         <string>${HH_CONFIG_DIR}</string>
+        <key>HH_USER</key>
+        <string>${HH_USER}</string>
         <key>PATH</key>
         <string>/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
