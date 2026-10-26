@@ -56,3 +56,11 @@ describe("Warten auf das Ende eines Updates", () => {
     expect(r).toEqual({ kind: "done", commit: "neu" })
   })
 })
+
+// docs/specs/system-updates.md: Das Update hebt jetzt auch Systempakete an – das dauert länger als 10 min.
+import { UPDATE_MAX_CHECKS } from "./_waitForUpdate"
+describe("Wartezeit des Update-Fensters", () => {
+  it("höchstens 30 Minuten (bei 3 s Takt)", () => {
+    expect(UPDATE_MAX_CHECKS * 3).toBe(30 * 60)
+  })
+})
