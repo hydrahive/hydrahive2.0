@@ -1,4 +1,4 @@
-import { Archive, Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, Globe, KeyRound, ListChecks, MonitorCog, Network, PlugZap, RefreshCw, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
+import { Archive, Boxes, Brain, CircuitBoard, Container, DatabaseBackup, GitBranch, Globe, KeyRound, ListChecks, MonitorCog, MoonStar, Network, PlugZap, RefreshCw, Server, ShieldAlert, SlidersHorizontal, Users, WandSparkles } from "lucide-react"
 import { CockpitButton } from "./CockpitButton"
 import { CockpitPanel, CockpitSectionLabel } from "./CockpitPanel"
 import { CockpitShell } from "./CockpitShell"
@@ -24,6 +24,7 @@ const opsLinks = [
   { title: "Automationen", path: "/scheduled-tasks", icon: RefreshCw },
   { title: "Themes", path: "/themes", icon: WandSparkles },
   { title: "Föderation", path: "/federation", icon: Globe },
+  { title: "Zahnfee", path: "/zahnfee-config", icon: MoonStar },
 ]
 
 const integrationLinks = [

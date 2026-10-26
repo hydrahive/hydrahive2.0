@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Boxes, HelpCircle, Puzzle, RefreshCw, Settings } from "lucide-react"
 import { requestHelpToggle } from "@/features/helpdesk/helpApi"
+import { UPDATE_TARGETS } from "./updateTargets"
 
 interface Props {
   version: string | null
@@ -47,7 +48,7 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
         {isAdmin && moduleUpdateCount > 0 && (
           <button
             type="button"
-            onClick={() => navigate("/settings/modules")}
+            onClick={() => navigate(UPDATE_TARGETS.modules)}
             title={t("update.modules", { count: moduleUpdateCount })}
             className="flex min-h-6 items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
           >
@@ -57,7 +58,7 @@ export function AppFooter({ version, commit, updateBehind, moduleUpdateCount, pl
         {isAdmin && pluginUpdateCount > 0 && (
           <button
             type="button"
-            onClick={() => navigate("/admin?section=plugins")}
+            onClick={() => navigate(UPDATE_TARGETS.plugins)}
             title={t("update.plugins", { count: pluginUpdateCount })}
             className="flex min-h-6 items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25"
           >

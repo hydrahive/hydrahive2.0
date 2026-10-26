@@ -74,7 +74,7 @@ export function ZahnfeePage() {
         </div>
         <HelpButton topic="zahnfee" />
         <Link
-          to="/settings"
+          to="/admin?section=zahnfee"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
           title={t("config.title")}
         >

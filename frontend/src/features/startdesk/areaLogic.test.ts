@@ -21,6 +21,11 @@ describe("Bereichs-Tabelle", () => {
     const all = AREAS.flatMap((a) => a.paths)
     expect(new Set(all).size).toBe(all.length)
   })
+  // Plan docs/plans/meine-einstellungen.md, Task 4: „Meine Einstellungen“ ist persönlich und
+  // gehört nicht in „Verwaltung“ (Admin-Einstellungen leben im Admin-Cockpit).
+  it("„Meine Einstellungen“ (/settings) steht in keinem Bereich", () => {
+    expect(AREAS.flatMap((a) => a.paths)).not.toContain("/settings")
+  })
   it("Beispiel-Modul, Hilfe und Projekt-Einstellungen werden nicht gezeigt", () => {
     expect(HIDDEN_PATHS).toEqual(expect.arrayContaining(["/example", "/help", "/settings/projects"]))
   })
@@ -79,7 +84,6 @@ describe("areaForPath", () => {
     const hit = areaForPath(areas, "/settings/agents/x")!
     expect(hit.item.path).toBe("/settings/agents")
     expect(hit.area.area.id).toBe("agenten")
-    expect(areaForPath(areas, "/settings/llm")!.area.area.id).toBe("verwaltung")
   })
   it("kein Treffer bei ähnlichem Anfang ohne Schrägstrich, und bei fremden Seiten", () => {
     expect(areaForPath(areas, "/studioX")).toBeNull()

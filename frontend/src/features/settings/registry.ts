@@ -1,44 +1,21 @@
 import { lazy, type LazyExoticComponent, type ComponentType } from "react"
-import {
-  Bot, FolderKanban, MessageCircle, Workflow, MoonStar, Sparkles, Server,
-  Puzzle, Globe, Cpu, Package, Boxes, Palette, Users, Key,
-  SlidersHorizontal, Database, Network, type LucideIcon,
-} from "lucide-react"
+import { Bot, FolderKanban, Key, MessageCircle, Sparkles, Workflow, type LucideIcon } from "lucide-react"
 
-// Lazy-geladene bestehende Feature-Pages, die direkt eingebettet werden.
-// Code-split: nur geladen, wenn die Gruppe geöffnet wird.
-const LlmPage = lazy(() => import("@/features/llm/LlmPage").then((m) => ({ default: m.LlmPage })))
+// Lazy-geladene Feature-Pages, die direkt eingebettet werden (nur geladen, wenn die Gruppe offen ist).
 const CredentialsPage = lazy(() => import("@/features/credentials/CredentialsPage").then((m) => ({ default: m.CredentialsPage })))
 const SkillsPage = lazy(() => import("@/features/skills/SkillsPage").then((m) => ({ default: m.SkillsPage })))
-const UsersPage = lazy(() => import("@/features/users/UsersPage").then((m) => ({ default: m.UsersPage })))
-const SettingsPage = lazy(() => import("@/features/system/SettingsPage").then((m) => ({ default: m.SettingsPage })))
-const ModulesPage = lazy(() => import("@/features/modules/ModulesPage").then((m) => ({ default: m.ModulesPage })))
-const ThemesPage = lazy(() => import("@/features/themes/ThemesPage").then((m) => ({ default: m.ThemesPage })))
-const ExtensionsPage = lazy(() => import("@/features/extensions/ExtensionsPage").then((m) => ({ default: m.ExtensionsPage })))
-const PluginsPage = lazy(() => import("@/features/plugins/PluginsPage").then((m) => ({ default: m.PluginsPage })))
-const FederationPage = lazy(() => import("@/features/federation/FederationPage").then((m) => ({ default: m.FederationPage })))
+const ButlerPage = lazy(() => import("@/features/butler/ButlerPage").then((m) => ({ default: m.ButlerPage })))
 
-// Per-Tab-Inhalte für Multi-Tab-Gruppen (Kommunikation, Verbindungen, System).
+// Per-Tab-Inhalte der Gruppe Kommunikation.
 const CommDiscord = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommDiscord })))
 const CommWhatsApp = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommWhatsApp })))
 const CommMail = lazy(() => import("./tabs/CommunicationTabs").then((m) => ({ default: m.CommMail })))
-const ConnTailscale = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnTailscale })))
-const ConnAgentLink = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnAgentLink })))
-const ConnSamba = lazy(() => import("./tabs/ConnectionTabs").then((m) => ({ default: m.ConnSamba })))
-const SysBackup = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysBackup })))
-const SysBridge = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysBridge })))
-const SysStatus = lazy(() => import("./tabs/SystemTabs").then((m) => ({ default: m.SysStatus })))
-const ZahnfeeConfig = lazy(() => import("@/features/zahnfee/ZahnfeeConfig").then((m) => ({ default: m.ZahnfeeConfig })))
 
-// Detail-Komponente (Submenü-Schema): Agenten — zeigt Settings des gewählten Agenten.
+// Detail-Komponenten (Submenü-Schema): Einstellungen des gewählten Agenten/Projekts.
 const AgentSettings = lazy(() => import("./detail/AgentSettings").then((m) => ({ default: m.AgentSettings })))
 const AgentSubMenu = lazy(() => import("./detail/AgentSubMenu").then((m) => ({ default: m.AgentSubMenu })))
 const ProjectSettings = lazy(() => import("./detail/ProjectSettings").then((m) => ({ default: m.ProjectSettings })))
 const ProjectSubMenu = lazy(() => import("./detail/ProjectSubMenu").then((m) => ({ default: m.ProjectSubMenu })))
-
-// Noch nicht ins Schema migriert (Vollbild via EmbedFrame): MCP, Butler.
-const McpPage = lazy(() => import("@/features/mcp/McpPage").then((m) => ({ default: m.McpPage })))
-const ButlerPage = lazy(() => import("@/features/butler/ButlerPage").then((m) => ({ default: m.ButlerPage })))
 
 /**
  * Settings-Gruppen-Registry (SSOT für die linke Auswahl-Spalte).
@@ -86,10 +63,9 @@ export interface SettingsGroup {
 }
 
 export const SETTINGS_GROUPS: SettingsGroup[] = [
-  // Agenten & Projekte bringen ihre eigene Liste+Detail-Ansicht (Vollbild) mit
-  // — das ist bereits die ideale Settings-UI. Daher kein zusätzliches Submenü,
-  // sondern ein klarer Verweis auf die vollwertige Seite (kein erzwungenes
-  // Einbetten, das die bestehende Bedienung verschlechtern würde).
+  // „Meine Einstellungen“: nur, was jeder Nutzer für sich einstellt. Admin-Einstellungen
+  // (Module, KI-Modelle, System, Benutzer …) leben im Admin-Cockpit; alte Adressen leiten
+  // per legacyRedirects.ts dorthin um (docs/plans/meine-einstellungen.md).
   { id: "agents", label: "Agenten", icon: Bot, hasSubmenu: true,
     submenuLabel: "Agenten", tabs: ["Einstellungen"], route: "/agents",
     detailComponent: AgentSettings, submenuComponent: AgentSubMenu },
@@ -99,37 +75,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: "communication", label: "Kommunikation", icon: MessageCircle, hasSubmenu: false,
     tabs: ["Discord", "WhatsApp", "Mail"], route: "/communication",
     tabComponents: { Discord: CommDiscord, WhatsApp: CommWhatsApp, Mail: CommMail } },
-  { id: "butler", label: "Butler", icon: Workflow, hasSubmenu: false,
-    tabs: ["Flows"], route: "/butler", component: ButlerPage, fullscreen: true },
-  { id: "zahnfee", label: "Zahnfee", icon: MoonStar, hasSubmenu: false,
-    tabs: ["Einstellungen"], route: "/zahnfee", component: ZahnfeeConfig, adminOnly: true },
-  { id: "skills", label: "Skills", icon: Sparkles, hasSubmenu: false,
-    tabs: ["Bibliothek"], route: "/skills", component: SkillsPage },
-  { id: "mcp", label: "MCP", icon: Server, hasSubmenu: false,
-    tabs: ["Server"], route: "/mcp", component: McpPage, fullscreen: true },
-  { id: "plugins", label: "Plugins", icon: Puzzle, hasSubmenu: false,
-    tabs: ["Installiert"], route: "/plugins", component: PluginsPage, adminOnly: true },
-  { id: "federation", label: "Föderation", icon: Globe, hasSubmenu: false,
-    tabs: ["Instanzen"], route: "/federation", component: FederationPage },
-  { id: "llm", label: "KI-Modelle", icon: Cpu, hasSubmenu: false,
-    tabs: ["Provider & Modelle"], route: "/llm", component: LlmPage },
   { id: "credentials", label: "Zugangsdaten", icon: Key, hasSubmenu: false,
     tabs: ["Credentials"], route: "/credentials", component: CredentialsPage },
-
-  { id: "extensions", label: "Erweiterungen", icon: Package, hasSubmenu: false,
-    tabs: ["Installiert"], route: "/extensions", component: ExtensionsPage, adminOnly: true },
-  { id: "modules", label: "Module", icon: Boxes, hasSubmenu: false,
-    tabs: ["Verfügbar"], route: "/modules", component: ModulesPage, adminOnly: true },
-  { id: "themes", label: "Themes", icon: Palette, hasSubmenu: false,
-    tabs: ["Verfügbar"], route: "/themes", component: ThemesPage, adminOnly: true },
-  { id: "connections", label: "Verbindungen", icon: Network, hasSubmenu: false,
-    tabs: ["Tailscale", "AgentLink", "Samba"], route: "/system",
-    tabComponents: { Tailscale: ConnTailscale, AgentLink: ConnAgentLink, Samba: ConnSamba } },
-  { id: "system", label: "System", icon: SlidersHorizontal, hasSubmenu: false,
-    tabs: ["Status", "Backup", "Bridge"], route: "/system", adminOnly: true,
-    tabComponents: { Status: SysStatus, Backup: SysBackup, Bridge: SysBridge } },
-  { id: "settings_values", label: "Globale Settings", icon: Database, hasSubmenu: false,
-    tabs: ["Werte"], route: "/system/settings", component: SettingsPage, adminOnly: true },
-  { id: "users", label: "Benutzer", icon: Users, hasSubmenu: false,
-    tabs: ["Verwaltung"], route: "/users", component: UsersPage, adminOnly: true },
+  { id: "skills", label: "Skills", icon: Sparkles, hasSubmenu: false,
+    tabs: ["Bibliothek"], route: "/skills", component: SkillsPage },
+  { id: "butler", label: "Butler", icon: Workflow, hasSubmenu: false,
+    tabs: ["Flows"], route: "/butler", component: ButlerPage, fullscreen: true },
 ]
