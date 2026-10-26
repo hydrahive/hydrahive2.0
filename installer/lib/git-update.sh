@@ -6,8 +6,13 @@
 # Dienstnutzer mit safe.directory). Vorher galt: scheiterte `pull --ff-only`,
 # folgte `reset --hard origin/main` – lokale Änderungen weg, Branch auf main.
 
-# Einzige Datei, die das Update selbst verändern darf (npm schrieb sie früher um).
-HH_GIT_SELF_OWNED="frontend/package-lock.json"
+# Dateien, die das Update selbst verändern durfte: alle getrackten package-lock.json, die es per npm anfasst
+# (bis #625 schrieb `npm install` sie um). Befund .4 am 26.10.: auch die WhatsApp-Bridge (Task 928f868e).
+# Ein Test prüft, dass jede getrackte package-lock.json hier steht.
+HH_GIT_SELF_OWNED=(
+  "frontend/package-lock.json"
+  "core/src/hydrahive/communication/whatsapp/bridge/package-lock.json"
+)
 
 hh_git_update() {
   local repo=$1 branch remote before_remote dirty ahead
@@ -17,11 +22,14 @@ hh_git_update() {
     || err "Kein Branch ausgecheckt (losgelöster Stand) – Update angehalten, nichts verändert."
   remote="origin/$branch"
 
-  # Von uns selbst umgeschriebene Lock-Datei zurück auf den Stand im Repo.
-  if ! $HH_GIT diff --quiet -- "$HH_GIT_SELF_OWNED" 2>/dev/null; then
-    log "$HH_GIT_SELF_OWNED zurück auf den Repo-Stand (vom letzten Update umgeschrieben)"
-    $HH_GIT checkout -- "$HH_GIT_SELF_OWNED"
-  fi
+  # Von uns selbst umgeschriebene Lock-Dateien zurück auf den Stand im Repo.
+  local own
+  for own in "${HH_GIT_SELF_OWNED[@]}"; do
+    if ! $HH_GIT diff --quiet -- "$own" 2>/dev/null; then
+      log "$own zurück auf den Repo-Stand (vom letzten Update umgeschrieben)"
+      $HH_GIT checkout -- "$own"
+    fi
+  done
 
   dirty=$($HH_GIT status --porcelain --untracked-files=no)
   if [ -n "$dirty" ]; then

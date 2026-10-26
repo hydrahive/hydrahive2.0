@@ -61,3 +61,14 @@ er hat sie am 25.10.2026 gegeben.
   - Feature-Branch per deploy-test.sh → bleibt auf dem Branch
   - eine absichtlich geänderte Datei → Abbruch mit Meldung, danach zurück
 - Frische Kopie: Erst-Installation baut das Frontend mit `npm ci`.
+
+## Nachtrag 26.10.2026: alle Lock-Dateien, die das Update anfasst (Task 928f868e)
+
+Auf der .4 brach das erste Update mit dem neuen Skript ab: „Lokale Änderungen in:
+`core/src/hydrahive/communication/whatsapp/bridge/package-lock.json`“.
+- Ursache: Auch die WhatsApp-Bridge lief bis #625 mit `npm install`, das ihre Lock-Datei umschreibt. Zurückgesetzt
+  wurde aber nur die Frontend-Lock.
+- Ab jetzt ist `HH_GIT_SELF_OWNED` eine **Liste** aller getrackten `package-lock.json`, die das Update selbst per npm
+  anfasst: Frontend und WhatsApp-Bridge.
+- Ein Wächter-Test prüft: Jede getrackte `package-lock.json` im Repo steht in der Liste. Eine neue Lock-Datei fällt
+  dann sofort auf.
