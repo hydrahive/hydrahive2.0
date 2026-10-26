@@ -72,11 +72,25 @@ exec "$@"
     return {"bin": bin_dir, "home": home, "calls": calls, "tmp": tmp_path}
 
 
+def _sys_bin(env) -> Path:
+    """Nur die Grundbefehle, die das Skript braucht – ohne ein echtes dev-browser/npm des Rechners
+    (auf dem Hauptserver liegt seit #627 ein echtes /usr/bin/dev-browser, das die Attrappe verdeckte)."""
+    d = env["tmp"] / "sysbin"
+    if not d.exists():
+        d.mkdir()
+        import shutil
+        for tool in ("bash", "mkdir", "mktemp", "rm", "tail", "sed", "head", "cat", "chmod", "env", "printf", "dirname"):
+            found = shutil.which(tool, path="/usr/bin:/bin")
+            if found:
+                (d / tool).symlink_to(found)
+    return d
+
+
 def run(env, **extra) -> subprocess.CompletedProcess[str]:
     script = f'set -euo pipefail; log(){{ echo "LOG $*"; }}; source "{HELPER}"; ensure_dev_browser; echo "RC=$?"'
     return subprocess.run(
         ["bash", "-c", script], capture_output=True, text=True,
-        env={"PATH": f"{env['bin']}:/usr/bin:/bin", "CALLS": str(env["calls"]), "HH_USER": "hydrahive",
+        env={"PATH": f"{env['bin']}:{_sys_bin(env)}", "CALLS": str(env["calls"]), "HH_USER": "hydrahive",
              "DEV_BROWSER_HOME": str(env["home"]), "TMPDIR": str(env["tmp"]), **extra},
     )
 
