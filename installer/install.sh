@@ -204,6 +204,11 @@ hh_preflight_dns || err "Abbruch vor der Installation: keine Namensauflösung (H
 log "Phase 1: System-Dependencies"
 bash "$INSTALLER_DIR/modules/00-deps.sh"
 
+# Automatische Sicherheitsupdates + Dienst-Neustarts danach (docs/specs/system-updates.md).
+# shellcheck source=lib/system-upgrade.sh
+source "$INSTALLER_DIR/lib/system-upgrade.sh"
+hh_ensure_auto_updates
+
 log "Phase 2: System-User"
 bash "$INSTALLER_DIR/modules/10-user.sh"
 

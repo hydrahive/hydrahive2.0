@@ -4,7 +4,7 @@ import { getModuleUpdateCount } from "@/features/modules/api"
 import { pluginsApi } from "@/features/plugins/api"
 import type { UpdateState } from "@/shared/UpdateModal"
 import { isStale } from "@/shared/_staleBundle"
-import { waitForUpdate } from "@/shared/_waitForUpdate"
+import { UPDATE_MAX_CHECKS, waitForUpdate } from "@/shared/_waitForUpdate"
 
 export function useLayoutUpdate(isAdmin: boolean) {
   const [version, setVersion] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export function useLayoutUpdate(isAdmin: boolean) {
     setUpdateState("running")
     // Fertig bei neuem Commit ODER Schlusszeile „HH-UPDATE-ENDE“ im Log (auch ohne neuen Stand bzw. bei Abbruch,
     // Befund 22.10.2026). Kein „15s-stable = done“-Fallback – der meldete früher „fertig“ mitten im Update.
-    // Höchstens 10 min (200 × 3 s).
+    // Höchstens 30 min (UPDATE_MAX_CHECKS × 3 s) – das Update hebt auch Systempakete an.
     const r = await waitForUpdate({
       logTotal: async () => (await api.get<{ total?: number }>("/system/update/log?tail=1")).total ?? 0,
       logSince: async (since) =>
@@ -86,7 +86,7 @@ export function useLayoutUpdate(isAdmin: boolean) {
         return h.commit
       },
       sleep: (ms) => new Promise((res) => setTimeout(res, ms)),
-    }, commit, 200)
+    }, commit, UPDATE_MAX_CHECKS)
     if (r.kind === "done") {
       const changed = !!r.commit && r.commit !== commit
       if (r.commit) setCommit(r.commit)
