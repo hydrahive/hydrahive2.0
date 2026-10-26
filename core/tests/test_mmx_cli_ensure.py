@@ -116,3 +116,21 @@ def test_neuinstallation_nutzt_soll_version() -> None:
         assert "npm install -g mmx-cli " not in text and "npm install -g mmx-cli\n" not in text, path.name
         assert 'mmx-cli@$HH_MMX_VERSION' in text or 'mmx-cli@${HH_MMX_VERSION}' in text, path.name
         assert "lib/mmx-cli.sh" in text, path.name
+
+
+def test_programm_da_version_unlesbar_nichts(env) -> None:
+    """mmx anders installiert (keine npm-package.json) → nichts erzwingen."""
+    _installed(env, "1.0.12")
+    (env["root"] / "mmx-cli" / "package.json").unlink()
+    r = run(env)
+    assert "RC=0" in r.stdout
+    assert "install" not in _calls(env)
+
+
+def test_paket_da_programm_fehlt_nichts(env) -> None:
+    """Reste eines npm-Pakets ohne mmx-Programm: Neuinstallation ist Sache von 00-deps/55-voice."""
+    _installed(env, "1.0.12")
+    (env["bin"] / "mmx").unlink()
+    r = run(env)
+    assert "RC=0" in r.stdout
+    assert "install" not in _calls(env)
