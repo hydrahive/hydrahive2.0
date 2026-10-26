@@ -1,6 +1,6 @@
 """Browser-Automation via dev-browser (QuickJS WASM Sandbox).
 
-Erfordert: npm install -g dev-browser && dev-browser install
+Erfordert dev-browser; Installer und update.sh richten es ein (installer/lib/dev-browser.sh).
 
 Das Script läuft in einer QuickJS-Sandbox — kein Zugriff auf Host-Filesystem
 oder Netzwerk außer über den Browser. Volle Playwright-API verfügbar.
@@ -159,8 +159,8 @@ async def _run_dev_browser(
 async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if not shutil.which("dev-browser"):
         return ToolResult.fail(
-            "dev-browser nicht installiert. "
-            "Ausführen: npm install -g dev-browser && dev-browser install"
+            "Das Browser-Werkzeug ist auf diesem Server noch nicht eingerichtet. "
+            "Ein Admin kann es mit „System aktualisieren“ in der Admin-Konsole nachholen."
         )
 
     script: str = args.get("script") or ""

@@ -220,6 +220,11 @@ hh_run_as_owner_home "$HH_USER" "$HH_HOME" \
   "$HH_REPO_DIR/.venv/bin/python" -m playwright install chromium \
   || log "Playwright-Chromium-Install fehlgeschlagen — Streaming-Scraper nicht verfügbar"
 
+# Browser-Werkzeug der Agenten: holt dev-browser nach, wenn es fehlt (docs/specs/dev-browser-nachinstallieren.md).
+# shellcheck source=lib/dev-browser.sh
+source "$HH_REPO_DIR/installer/lib/dev-browser.sh"
+ensure_dev_browser
+
 log "Frontend neu bauen"
 cd "$HH_REPO_DIR/frontend"
 # Self-Heal: falls jemand manuell als root gepullt hat, gehören Source-Files

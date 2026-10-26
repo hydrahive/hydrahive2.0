@@ -240,6 +240,11 @@ fi
 log "Phase 5: Frontend"
 bash "$INSTALLER_DIR/modules/40-frontend.sh"
 
+log "Phase 5b: Browser-Werkzeug für Agenten"
+# shellcheck source=lib/dev-browser.sh
+source "$INSTALLER_DIR/lib/dev-browser.sh"
+ensure_dev_browser
+
 if [ "${HH_INSTALL_WHATSAPP:-no}" != "no" ]; then
   log "Phase 6: WhatsApp-Bridge"
   bash "$INSTALLER_DIR/modules/45-whatsapp.sh"
