@@ -43,3 +43,14 @@ describe("HealthBar – Systemupdates", () => {
     expect((en.checks as Record<string, string>).sysupd_ok).toBe("up to date")
   })
 })
+
+describe("HealthBar – lange Texte", () => {
+  it("bricht um statt abzuschneiden (375 px: „Neustart des Rechners nötig“ endete mit …)", () => {
+    const html = renderToStaticMarkup(
+      <HealthBar checks={[{ name_code: "system_updates", ok: false, detail_code: "sysupd_reboot" }]} />)
+    const p = html.match(/<p class="([^"]*)"[^>]*>Neustart des Rechners nötig<\/p>/)
+    expect(p, html).toBeTruthy()
+    expect(p![1].split(" ")).not.toContain("truncate")
+    expect(p![1].split(" ")).toContain("break-words")
+  })
+})

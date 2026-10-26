@@ -15,7 +15,7 @@ export function HealthBar({ checks }: { checks: HealthCheck[] }) {
             <AdminStatus tone={check.ok ? "success" : "danger"} icon={check.ok ? CheckCircle : XCircle}>
               {name}
             </AdminStatus>
-            <p className="mt-2 truncate text-xs leading-relaxed text-[#8d9ab0]" title={detail}>{detail}</p>
+            <p className="mt-2 break-words text-xs leading-relaxed text-[#8d9ab0]" title={detail}>{detail}</p>
           </div>
         )
       })}
