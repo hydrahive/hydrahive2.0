@@ -49,10 +49,13 @@ async def login(timeout: float = 20) -> str | None:
     wechselt dann auf „Running“). Rückgabe: der Link, oder None, wenn Tailscale schon verbunden ist.
     Nur Links auf login.tailscale.com werden weitergegeben (die Oberfläche öffnet sie).
     """
-    proc = await asyncio.create_subprocess_exec(
-        _tailscale_bin(), "up", "--json",
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            _tailscale_bin(), "up", "--json",
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise RuntimeError(f"Tailscale nicht startbar: {exc}") from exc
 
     async def first_block() -> dict:
         buf = ""
@@ -71,7 +74,9 @@ async def login(timeout: float = 20) -> str | None:
         block = await asyncio.wait_for(first_block(), timeout=timeout)
     except (asyncio.TimeoutError, RuntimeError) as exc:
         proc.kill()
-        raise RuntimeError("Tailscale lieferte keinen Anmelde-Link") from exc
+        reason = await _stderr_tail(proc)
+        msg = "Tailscale lieferte keinen Anmelde-Link"
+        raise RuntimeError(f"{msg}: {reason}" if reason else msg) from exc
     if block.get("BackendState") == "Running" and not block.get("AuthURL"):
         return None
     url = str(block.get("AuthURL") or "")
@@ -81,6 +86,19 @@ async def login(timeout: float = 20) -> str | None:
     _PENDING.add(proc)
     asyncio.get_running_loop().create_task(_reap(proc))
     return url
+
+
+async def _stderr_tail(proc: asyncio.subprocess.Process) -> str:
+    """Letzte Zeile der Fehlerausgabe (z. B. „failed to connect to local Tailscale service“), höchstens 300 Zeichen."""
+    stderr = getattr(proc, "stderr", None)
+    if stderr is None:
+        return ""
+    try:
+        raw = await asyncio.wait_for(stderr.read(4096), timeout=2)
+    except (asyncio.TimeoutError, OSError):
+        return ""
+    lines = [ln.strip() for ln in raw.decode(errors="replace").splitlines() if ln.strip()]
+    return lines[-1][:300] if lines else ""
 
 
 async def _reap(proc: asyncio.subprocess.Process) -> None:
