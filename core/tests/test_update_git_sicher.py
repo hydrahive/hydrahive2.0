@@ -19,6 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER = REPO_ROOT / "installer" / "lib" / "git-update.sh"
 UPDATE = REPO_ROOT / "installer" / "update.sh"
 LOCK = "frontend/package-lock.json"
+WA_LOCK = "core/src/hydrahive/communication/whatsapp/bridge/package-lock.json"
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -45,6 +46,7 @@ def repos(tmp_path: Path):
     git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
     git(tmp_path, "clone", "-q", str(origin), str(dev))
     commit(dev, LOCK, '{"lock": 1, "peer": true}\n', "lock")
+    commit(dev, WA_LOCK, '{"bridge": 1, "peer": true}\n', "wa-lock")
     commit(dev, "core/a.py", "a = 1\n", "a1")
     git(dev, "push", "-q", "origin", "main")
     git(tmp_path, "clone", "-q", str(origin), str(server))
@@ -282,3 +284,26 @@ def test_lokal_hinter_altem_origin_und_origin_neu_geschrieben(repos) -> None:
     assert r.returncode == 0, r.stderr
     assert head(server) == rewritten
     assert git(server, "rev-parse", git(server, "tag", "--list", "hh-update-vorher-*")) == old
+
+
+def test_whatsapp_lock_wird_ebenfalls_zurueckgesetzt(repos) -> None:
+    """Befund .4 am 26.10.: Die Bridge-Lock war von npm install umgeschrieben → Update hielt an."""
+    _, dev, server = repos
+    new = commit(dev, "core/a.py", "a = 2\n", "a2")
+    git(dev, "push", "-q", "origin", "main")
+    (server / WA_LOCK).write_text('{"bridge": 1}\n')
+    (server / LOCK).write_text('{"lock": 1}\n')
+    r = run_update(server)
+    assert r.returncode == 0, r.stderr
+    assert head(server) == new
+    assert (server / WA_LOCK).read_text() == '{"bridge": 1, "peer": true}\n'
+    assert git(server, "status", "--porcelain") == ""
+
+
+def test_jede_getrackte_lock_datei_steht_in_der_liste() -> None:
+    tracked = subprocess.run(["git", "ls-files", "*package-lock.json"], cwd=REPO_ROOT, check=True,
+                             capture_output=True, text=True).stdout.split()
+    assert tracked, "keine package-lock.json gefunden"
+    owned = subprocess.run(["bash", "-c", f'source "{HELPER}"; printf "%s\\n" "${{HH_GIT_SELF_OWNED[@]}}"'],
+                           capture_output=True, text=True).stdout.split()
+    assert sorted(owned) == sorted(tracked)
