@@ -125,6 +125,14 @@ hh_fix_incus_bridge_dns
 hh_fix_pihole_ordering
 hh_verify_dns
 
+# Das ganze System mit aktualisieren, nicht nur HydraHive (docs/specs/system-updates.md, Task f24c39bf).
+# Nach der Selbstheilung (DNS) und vor Node.js (ein angehobenes Node.js ist so schon für den Frontend-Bau da).
+# Abschalten: HH_SYSTEM_UPGRADE=no in install.conf.
+# shellcheck source=lib/system-upgrade.sh
+source "$HH_REPO_DIR/installer/lib/system-upgrade.sh"
+hh_ensure_auto_updates
+hh_system_upgrade
+
 # sudo-rs (Ubuntu 26.04) kennt `requiretty` nicht – alte Zeile aus der Extensions-sudoers entfernen (Task ddec8288).
 # shellcheck source=installer/lib/sudoers-heal.sh
 source "$HH_REPO_DIR/installer/lib/sudoers-heal.sh"
@@ -238,6 +246,11 @@ hh_run_as_owner_home "$HH_USER" "$HH_HOME" \
 # shellcheck source=lib/dev-browser.sh
 source "$HH_REPO_DIR/installer/lib/dev-browser.sh"
 ensure_dev_browser
+
+# mmx-cli auf die feste Soll-Version (installiert wird es nur mit Voice/00-deps).
+# shellcheck source=lib/mmx-cli.sh
+source "$HH_REPO_DIR/installer/lib/mmx-cli.sh"
+ensure_mmx_cli
 
 log "Frontend neu bauen"
 cd "$HH_REPO_DIR/frontend"

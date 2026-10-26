@@ -41,9 +41,10 @@ def env(tmp_path: Path):
     calls = tmp_path / "calls.log"
     # npm install -g dev-browser@X legt ein dev-browser-Programm in bin/ an (wie global npm).
     _stub(bin_dir, "npm", f"""
+# npm root -g braucht kein Netz – NPM_FAIL betrifft nur Installationen.
+[ "$*" = "root -g" ] && {{ echo "{env_root}"; exit 0; }}
 [ -n "${{NPM_FAIL:-}}" ] && {{ echo "npm ERR! network" >&2; exit 1; }}
 case "$*" in
-  "root -g") echo "{env_root}" ;;
   *install*-g*dev-browser@*)
     mkdir -p "{env_root}/dev-browser" && printf '{{\n  "name": "dev-browser",\n  "version": "0.2.9"\n}}\n' > "{env_root}/dev-browser/package.json"
     cat > "{bin_dir}/dev-browser" <<'EOF'
@@ -186,3 +187,56 @@ def test_werkzeug_fehler_verstaendlich() -> None:
     text = TOOL.read_text()
     assert "npm install -g dev-browser" not in text
     assert "System aktualisieren" in text
+
+
+# --- Ältere Version wird angehoben (Task f24c39bf, Befund .4: 0.2.7 statt 0.2.9) ----------------------------------
+
+def _set_installed(env, version: str) -> None:
+    """Zustand wie auf der .4: dev-browser in alter Version mit eingerichteter Laufzeit."""
+    run(env)
+    pkg = env["tmp"] / "npm-root" / "dev-browser" / "package.json"
+    pkg.write_text(f'{{\n  "name": "dev-browser",\n  "version": "{version}"\n}}\n')
+    env["calls"].unlink()
+
+
+def test_alte_version_wird_angehoben(env) -> None:
+    _set_installed(env, "0.2.7")
+    r = run(env)
+    assert r.returncode == 0, r.stderr
+    c = calls(env)
+    assert re.search(r"^npm install -g .*dev-browser@0\.2\.9$", c, re.M)
+    assert "Browser-Werkzeug: dev-browser 0.2.7 → 0.2.9 anheben" in r.stdout
+    # Neue Version → Laufzeit/Chromium passend neu einrichten, auch wenn die alten Ordner noch da sind.
+    assert "dev-browser install" in c
+    assert "Browser-Werkzeug bereit (dev-browser 0.2.9)" in r.stdout
+
+
+def test_neuere_version_wird_auf_soll_gesetzt(env) -> None:
+    """Soll ist bewusst fest (kein ungeprüfter 1.0-Sprung) – auch eine abweichend neuere wird zurückgesetzt."""
+    _set_installed(env, "1.0.0-rc.4")
+    r = run(env)
+    assert re.search(r"^npm install -g .*dev-browser@0\.2\.9$", calls(env), re.M)
+    assert "1.0.0-rc.4 → 0.2.9" in r.stdout
+
+
+def test_soll_version_kein_npm(env) -> None:
+    _set_installed(env, "0.2.9")
+    run(env)
+    assert "npm install" not in calls(env) and "dev-browser install" not in calls(env)
+
+
+def test_anheben_scheitert_warnung_alte_bleibt(env) -> None:
+    _set_installed(env, "0.2.7")
+    r = run(env, NPM_FAIL="1")
+    assert "RC=0" in r.stdout
+    assert "WARNUNG: dev-browser-Anhebung fehlgeschlagen – 0.2.7 bleibt" in r.stdout
+    assert "dev-browser install" not in calls(env)
+
+
+def test_version_unbekannt_wird_nicht_angehoben(env) -> None:
+    """Ohne lesbare package.json (z. B. anders installiert) nichts erzwingen – nur melden."""
+    _set_installed(env, "0.2.9")
+    (env["tmp"] / "npm-root" / "dev-browser" / "package.json").unlink()
+    r = run(env)
+    assert "npm install" not in calls(env)
+    assert r.returncode == 0

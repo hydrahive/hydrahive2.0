@@ -88,9 +88,11 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 # mmx CLI (MiniMax official CLI für Bild/Video/Musik-Generierung + TTS)
+# shellcheck source=../lib/mmx-cli.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/mmx-cli.sh"
 if ! command -v mmx >/dev/null 2>&1; then
-  log "Installiere mmx-cli (MiniMax CLI)"
-  npm install -g mmx-cli --no-fund --no-audit
+  log "Installiere mmx-cli $HH_MMX_VERSION (MiniMax CLI)"
+  npm install -g "mmx-cli@$HH_MMX_VERSION" --no-fund --no-audit
 fi
 # `mmx auth login` läuft NICHT hier — als root würde der Token in /root/.mmx/
 # landen, der Backend-Service liest aber /home/$HH_USER/.mmx/. 55-voice.sh

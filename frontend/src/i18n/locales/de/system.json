@@ -36,7 +36,13 @@
     "workspaces": "Workspaces",
     "workspaces_missing": "Verzeichnis fehlt",
     "disk": "Disk",
-    "disk_detail": "{{free_gb}} GB frei ({{free_pct}}%)"
+    "disk_detail": "{{free_gb}} GB frei ({{free_pct}}%)",
+    "system_updates": "System",
+    "sysupd_ok": "aktuell",
+    "sysupd_pending": "{{count}} Updates offen – kommen mit dem nächsten Update",
+    "sysupd_reboot": "Neustart des Rechners nötig",
+    "sysupd_pending_reboot": "{{count}} Updates offen · Neustart des Rechners nötig",
+    "sysupd_unknown": "Stand gerade nicht abrufbar"
   },
   "uptime": {
     "seconds": "{{n}}s",

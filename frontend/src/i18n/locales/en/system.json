@@ -36,7 +36,13 @@
     "workspaces": "Workspaces",
     "workspaces_missing": "Directory missing",
     "disk": "Disk",
-    "disk_detail": "{{free_gb}} GB free ({{free_pct}}%)"
+    "disk_detail": "{{free_gb}} GB free ({{free_pct}}%)",
+    "system_updates": "System",
+    "sysupd_ok": "up to date",
+    "sysupd_pending": "{{count}} updates pending – installed with the next update",
+    "sysupd_reboot": "Computer restart needed",
+    "sysupd_pending_reboot": "{{count}} updates pending · computer restart needed",
+    "sysupd_unknown": "Status currently unavailable"
   },
   "uptime": {
     "seconds": "{{n}}s",

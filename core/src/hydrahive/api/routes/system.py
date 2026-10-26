@@ -17,6 +17,7 @@ from hydrahive.api.routes._system_checks import (
     count_agents,
     count_projects,
 )
+from hydrahive.api.routes._system_updates import check_system_updates
 from hydrahive.db.connection import db
 from hydrahive.settings import settings
 
@@ -87,11 +88,8 @@ def stats(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
 
 @router.get("/health")
 def health(_: Annotated[tuple[str, str], Depends(require_auth)]) -> dict:
-    return {
-        "checks": [
-            check_db_writable(),
-            check_llm_configured(),
-            check_workspace_dir(),
-            check_disk(),
-        ],
-    }
+    checks = [check_db_writable(), check_llm_configured(), check_workspace_dir(), check_disk()]
+    system_updates = check_system_updates()
+    if system_updates:
+        checks.append(system_updates)
+    return {"checks": checks}
