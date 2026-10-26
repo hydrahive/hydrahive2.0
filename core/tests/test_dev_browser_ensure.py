@@ -27,7 +27,7 @@ TOOL = REPO / "core" / "src" / "hydrahive" / "tools" / "web_browser.py"
 
 def _stub(bin_dir: Path, name: str, body: str) -> None:
     p = bin_dir / name
-    p.write_text(f"#!/usr/bin/env bash\necho \"{name} $*\" >> \"$CALLS\"\n{body}\n")
+    p.write_text(f"#!/bin/bash\necho \"{name} $*\" >> \"$CALLS\"\n{body}\n")
     p.chmod(0o755)
 
 
@@ -44,7 +44,7 @@ def env(tmp_path: Path):
 case "$*" in
   *"install -g dev-browser@"*)
     cat > "{bin_dir}/dev-browser" <<'EOF'
-#!/usr/bin/env bash
+#!/bin/bash
 echo "dev-browser $*" >> "$CALLS"
 if [ "$1" = install ]; then
   [ -n "${{DB_INSTALL_FAIL:-}}" ] && {{ echo "chromium download failed" >&2; exit 1; }}
@@ -59,8 +59,10 @@ esac
 exit 0
 """)
     # sudo -u USER env HOME=… cmd … → Befehl ohne Benutzerwechsel ausführen.
+    # sudo -u USER env HOME=… cmd … → Befehl ohne Benutzerwechsel; PATH bleibt (Attrappen finden).
     _stub(bin_dir, "sudo", """
 while [ "$1" = -u ] || [ "$1" = -H ]; do [ "$1" = -u ] && shift; shift; done
+if [ "$1" = env ]; then shift; exec env "PATH=$PATH" "$@"; fi
 exec "$@"
 """)
     _stub(bin_dir, "chown", "exit 0")
