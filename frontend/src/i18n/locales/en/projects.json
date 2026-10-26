@@ -153,7 +153,8 @@
     "copied": "Copied!",
     "also_mac": "Mac Finder (Go → Connect to Server): {{address}}",
     "also_windows": "Windows Explorer: {{address}}",
-    "hint_inline_mac": "In Finder: Go → Connect to Server, enter the address above. The credentials apply to all shared projects. File sharing must be set up under Settings → Add-on modules.",
+    "local_mac": "On this Mac: Finder → your home folder → folder “HydraHive” → {{name}}. No password needed. From other computers on the network:",
+    "hint_inline_mac": "From another computer: Finder → Go → Connect to Server, enter the address above. The credentials apply to all shared projects. File sharing must be set up under Settings → Add-on modules.",
     "title_mac": "Share project on the network"
   },
   "audit": {

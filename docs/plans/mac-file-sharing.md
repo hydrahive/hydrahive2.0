@@ -84,3 +84,26 @@ Mac, sondern nutzen ihn:
 ## 6. Nicht in diesem Plan
 - Variante b (eigene Zugänge je Mitarbeiter, nur eigene Projekte) – eigener Plan, Linux + Mac.
 - ZIP-Download im Cockpit (eigener Task).
+
+
+## Nachtrag 26.10.2026 – Live-Befund: der Finder verbindet sich nicht mit dem eigenen Mac
+
+Am MacBook (macOS 27, .44) liefert „Mit Server verbinden“ (NetFS) für **jede eigene Adresse** des Macs
+(`127.0.0.1`, LAN, Tailscale) Fehler 65 („keine Route“), noch vor der Anmeldung. Fremde Rechner erreicht derselbe Weg;
+`mount_smbfs` und Zugriffe von anderen Rechnern auf die Freigabe funktionieren. Der Mac-Besitzer kommt per SMB also
+nicht an seine eigenen Dateien. Tills Vorgabe: „er MUSS einfach an seine Dateien kommen“.
+
+Lösung (nur Mac-Dateien, Linux unverändert):
+- **Mac-Besitzer** = Besitzer von Homebrew (`lib/mac-roles.sh`, wie im ganzen Mac-Installer), an den Dienst
+  `io.hydrahive.shares` als `HH_MAC_OWNER` übergeben. Ist er gleich dem Dienst-Konto (alte Installationen), entfällt
+  der Zusatz.
+- Er darf bis zu den Projekten **durchgehen** (ACL `search`, kein `list` – andere Projekte bleiben unsichtbar) und
+  bekommt auf jedes **eingeschaltete** Projekt dasselbe vererbte Recht wie `hhshare`.
+- Eintrag `~/HydraHive/<Freigabename>` (Verknüpfung auf den Projektordner), angelegt **als Besitzer** (root folgt im
+  Benutzerordner keinen Links). Vorhandene Einträge mit gleichem Namen, die nicht von uns sind, bleiben unangetastet.
+  Ausschalten nimmt Recht und Eintrag wieder weg.
+- **Fehler mit `sharing -r`:** `-r` erwartet den Datensatz-Namen, nicht den SMB-Namen. Ausschalten entfernte nichts,
+  jedes Einschalten legte `<id>-1`, `<id>-2` … an. Jetzt `sharing -a … -n <id>` und Entfernen **aller** Datensätze,
+  deren Pfad der Projektordner ist (aus `sharing -l`).
+- **Update:** `update-mac.sh` führt `47-filesharing.sh` aus, wenn die Freigabe eingerichtet ist; das Modul beauftragt
+  alle eingeschalteten Projekte neu.

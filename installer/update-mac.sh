@@ -180,6 +180,17 @@ if grep -q '^HH_INSTALL_VOICE=yes' "$HH_CONFIG_DIR/install.conf" 2>/dev/null \
   fi
 fi
 
+# Dateifreigabe (Projekt im Netz + ~/HydraHive für den Mac-Besitzer): nur pflegen, wenn sie eingerichtet ist
+# (docs/plans/mac-file-sharing.md). Zieht eingeschaltete Projekte nach.
+if [ -f "${HH_SHARES_PLIST:-/Library/LaunchDaemons/io.hydrahive.shares.plist}" ] \
+   && [ -f "$HH_REPO_DIR/installer/modules-mac/47-filesharing.sh" ]; then
+  log "Dateifreigabe aktualisieren"
+  if ! HH_USER="$HH_USER" HH_DATA_DIR="$HH_DATA_DIR" HH_CONFIG_DIR="$HH_CONFIG_DIR" HH_REPO_DIR="$HH_REPO_DIR" \
+       bash "$HH_REPO_DIR/installer/modules-mac/47-filesharing.sh" 2>&1 | to_log; then
+    log "Dateifreigabe-Update FEHLGESCHLAGEN – Projekt-Freigaben evtl. gestört (Log oben)"
+  fi
+fi
+
 if grep -q '^HH_INSTALL_TAILSCALE=yes' "$HH_CONFIG_DIR/install.conf" 2>/dev/null \
    && [ -f "$HH_REPO_DIR/installer/modules-mac/80-tailscale.sh" ]; then
   log "Tailscale (ohne App) aktualisieren"
