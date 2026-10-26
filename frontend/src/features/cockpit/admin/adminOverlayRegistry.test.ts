@@ -24,3 +24,13 @@ describe("Admin-Registry: Archiv & Sicherung", () => {
     expect(isAdminOverlayId(null)).toBe(false)
   })
 })
+
+// Plan docs/plans/admin-luecken-schliessen.md, Task 6: Föderation als Admin-Fenster.
+describe("Admin-Registry: Föderation", () => {
+  it("federation ist ein gültiges Admin-Fenster", () => {
+    expect(isAdminOverlayId("federation")).toBe(true)
+  })
+  it("Pfad /federation öffnet das Fenster", () => {
+    expect(OVERLAY_BY_PATH["/federation"]).toBe("federation")
+  })
+})

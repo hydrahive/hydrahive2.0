@@ -132,5 +132,11 @@
     "auto_tools_title": "Führt Werkzeuge ohne Rückfrage aus",
     "auto_tools_warning": "Mindestens ein freigegebener Agent führt Werkzeuge ohne Rückfrage aus. Aufträge vom Partner-Server laufen damit ungebremst – bei diesen Agenten in den Einstellungen „Werkzeuge bestätigen“ einschalten.",
     "call_hint": "Aufruf vom anderen Server: ask_agent(\"<Agent-Name oder ID>@{{server}}\")"
+  },
+  "tabs": {
+    "workstations": "Workstations",
+    "peers": "Server",
+    "clients": "Clients",
+    "datamining": "Datamining"
   }
 }
