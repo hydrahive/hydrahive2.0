@@ -1,12 +1,15 @@
 import { Suspense, useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 import type { SettingsGroup } from "./registry"
+import { CONTENT_WIDTH } from "./layout"
 
 /**
  * Inhalt eines Reiters von „Meine Einstellungen“.
  * Innere Reiter nur, wenn die Gruppe mehrere Teile hat (z. B. Kommunikation: Discord · WhatsApp · Mail).
- * `fullHeight`-Inhalte (Butler-Editor, Agenten/Projekte) bekommen die volle Fläche ohne Innenabstand.
+ * `fullHeight`-Inhalte (Butler-Editor, Agenten/Projekte) bekommen die volle Höhe ohne Innenabstand.
+ * Alles sitzt mittig in derselben Höchstbreite wie der Kopf (CONTENT_WIDTH); nur `wide` (Butler) nutzt die volle Breite.
  */
+
 export function ContentArea({ group }: { group: SettingsGroup }) {
   const [tab, setTab] = useState(group.tabs[0] ?? "")
   useEffect(() => { setTab(group.tabs[0] ?? "") }, [group.id, group.tabs])
@@ -19,7 +22,7 @@ export function ContentArea({ group }: { group: SettingsGroup }) {
   )
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className={`flex h-full min-h-0 flex-col ${group.wide ? "" : CONTENT_WIDTH}`}>
       {group.tabs.length > 1 && (
         <div role="tablist" aria-label={group.label} className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[#2a364b] px-3 py-1.5">
           {group.tabs.map((name) => (

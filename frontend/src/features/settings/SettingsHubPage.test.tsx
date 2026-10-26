@@ -55,6 +55,9 @@ describe("Meine Einstellungen: Reiter statt Spalten", () => {
     expect(h).not.toContain("Gruppe wählen")
     expect(h).not.toMatch(/lg:grid-cols-\[220px/)
   })
+  it("Kopf mit Titel und Reitern sitzt mittig in derselben Höchstbreite wie der Inhalt", () => {
+    expect(render("/settings/agents")).toMatch(/<header[^>]*>\s*<div class="[^"]*mx-auto[^"]*max-w-5xl/)
+  })
   it("innere Reiter nur, wo eine Gruppe mehrere Teile hat", () => {
     expect(render("/settings/communication")).toContain('data-inner-tabs="3"')
     expect(render("/settings/credentials")).toContain('data-inner-tabs="0"')

@@ -17,3 +17,10 @@ describe("Meine Einstellungen: Gruppen", () => {
     expect(SETTINGS_GROUPS.filter((g) => g.adminOnly)).toEqual([])
   })
 })
+
+// Plan docs/plans/meine-einstellungen-kompakt.md: zentriert, nur der Butler-Editor braucht die volle Breite.
+describe("Meine Einstellungen: Breite", () => {
+  it("nur Butler ist eine breite Arbeitsfläche", () => {
+    expect(SETTINGS_GROUPS.filter((g) => g.wide).map((g) => g.id)).toEqual(["butler"])
+  })
+})

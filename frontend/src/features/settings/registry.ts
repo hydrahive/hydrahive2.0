@@ -34,6 +34,8 @@ export interface SettingsGroup {
   component?: LazyExoticComponent<ComponentType>
   /** Inhalt bringt eigenes Layout mit voller Höhe mit (Butler-Editor, Agenten/Projekte): kein Innenabstand. */
   fullHeight?: boolean
+  /** Arbeitsfläche, die die volle Breite braucht (Butler-Editor); alles andere sitzt mittig in max-w-5xl. */
+  wide?: boolean
   adminOnly?: boolean
 }
 
@@ -44,5 +46,5 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     tabComponents: { Discord: CommDiscord, WhatsApp: CommWhatsApp, Mail: CommMail } },
   { id: "credentials", label: "Zugangsdaten", icon: Key, tabs: [], component: CredentialsPage },
   { id: "skills", label: "Skills", icon: Sparkles, tabs: [], component: SkillsPage },
-  { id: "butler", label: "Butler", icon: Workflow, tabs: [], component: ButlerPage, fullHeight: true },
+  { id: "butler", label: "Butler", icon: Workflow, tabs: [], component: ButlerPage, fullHeight: true, wide: true },
 ]

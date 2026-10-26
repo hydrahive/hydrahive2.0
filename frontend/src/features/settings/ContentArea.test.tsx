@@ -27,6 +27,14 @@ describe("ContentArea", () => {
     expect(html).toContain('data-content="a"')
     expect(html).not.toContain('data-content="b"')
   })
+  // Till 26.10.: Inhalt bei breiten Fenstern zentrieren (feste Höchstbreite), Editoren (wide) über die volle Breite.
+  it("Inhalt sitzt mittig in fester Höchstbreite", () => {
+    expect(renderToStaticMarkup(<ContentArea group={group({ component: C("x") })} />)).toMatch(/class="[^"]*mx-auto[^"]*max-w-5xl[^"]*"/)
+    expect(renderToStaticMarkup(<ContentArea group={group({ component: C("x"), fullHeight: true })} />)).toMatch(/class="[^"]*mx-auto[^"]*max-w-5xl[^"]*"/)
+  })
+  it("wide (Butler-Editor): volle Breite, nicht zentriert", () => {
+    expect(renderToStaticMarkup(<ContentArea group={group({ component: C("x"), fullHeight: true, wide: true })} />)).not.toContain("max-w-5xl")
+  })
   it("fullHeight: kein Innenabstand, kein eigenes Scrollen", () => {
     expect(renderToStaticMarkup(<ContentArea group={group({ component: C("x"), fullHeight: true })} />)).toContain("overflow-hidden")
     expect(renderToStaticMarkup(<ContentArea group={group({ component: C("x") })} />)).toContain("overflow-y-auto p-4")

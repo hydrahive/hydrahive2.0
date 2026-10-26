@@ -1,6 +1,7 @@
 import { Navigate, useNavigate, useParams } from "react-router-dom"
 import { SETTINGS_GROUPS } from "./registry"
 import { ContentArea } from "./ContentArea"
+import { CONTENT_WIDTH } from "./layout"
 import { legacyTarget } from "./legacyRedirects"
 import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
@@ -24,7 +25,8 @@ export function SettingsHubPage() {
       <CockpitTopbar active="/settings" context="Deine persönlichen Einstellungen" />
       <main className="min-h-0 flex-1 overflow-hidden p-[10px]">
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0d1420]">
-          <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#2a364b] bg-[#101724] px-3 py-2">
+          <header className="shrink-0 border-b border-[#2a364b] bg-[#101724] px-3 py-2">
+            <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${CONTENT_WIDTH}`}>
             <h1 className="text-sm font-black text-[#e8eef8]">Meine Einstellungen</h1>
             <div role="tablist" aria-label="Meine Einstellungen" className="flex min-w-0 basis-full gap-1 overflow-x-auto sm:basis-auto sm:flex-1">
               {SETTINGS_GROUPS.map((g) => {
@@ -39,6 +41,7 @@ export function SettingsHubPage() {
                     }`}><Icon size={14} className="shrink-0" />{g.label}</button>
                 )
               })}
+            </div>
             </div>
           </header>
           <section id="settings-pane" role="tabpanel" aria-labelledby={`settings-tab-${active.id}`} className="min-h-0 flex-1">
