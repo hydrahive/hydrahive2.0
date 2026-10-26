@@ -230,3 +230,34 @@ def test_auto_updates_install_fehler_nur_warnung(env) -> None:
     assert "WARNUNG" in r.stdout
     # Konfiguration wird trotzdem geschrieben (greift, sobald die Pakete da sind).
     assert env["apt_conf"].exists()
+
+
+# --- Befunde aus der Probe auf hydratest (26.10.) ----------------------------------------------------------------
+
+def test_lizenz_bereits_angenommener_pakete_gilt_beim_anheben(env) -> None:
+    """msodbcsql18 (Microsoft) brach das Anheben mit „The EULA was not accepted“ ab – installiert war es längst."""
+    _stub(env["bin"], "apt-get", 'echo "EULA=${ACCEPT_EULA:-}" >> "$CALLS"; exit 0')
+    run(env, "hh_system_upgrade")
+    lines = [x for x in calls(env) if x.startswith("EULA=")]
+    assert lines and all(x == "EULA=Y" for x in lines), lines
+
+
+def test_nach_fehlschlag_werden_die_uebrigen_pakete_fertig_eingerichtet(env) -> None:
+    """Bricht dpkg bei einem Paket ab, bleiben andere entpackt, aber nicht eingerichtet → dpkg --configure -a."""
+    r = run(env, "hh_system_upgrade", APT_UPGRADE_FAIL="1")
+    c = calls(env)
+    i_upg = next(i for i, x in enumerate(c) if x.startswith("apt-get") and " upgrade" in x)
+    assert "dpkg --configure -a" in c[i_upg + 1:], c
+    assert "RC=0" in r.stdout
+
+
+def test_fehlergrund_steht_im_log(env) -> None:
+    out = "".join(f"Unpacking pkg{i} ...\\n" for i in range(8))
+    out = ("Preparing to unpack .../msodbcsql18.deb ...\\nERROR: The EULA was not accepted. Installation aborted.\\n"
+           "dpkg: error processing archive msodbcsql18.deb (--unpack):\\n" + out
+           + "Errors were encountered while processing:\\n msodbcsql18.deb\\nE: Sub-process /usr/bin/dpkg returned an error code (1)\\n")
+    _stub(env["bin"], "apt-get", f"""for a in "$@"; do [ "$a" = upgrade ] && {{ printf '%b' "{out}"; exit 100; }}; done; exit 0""")
+    r = run(env, "hh_system_upgrade")
+    assert "ERROR: The EULA was not accepted" in r.stdout
+    assert "dpkg: error processing archive msodbcsql18.deb" in r.stdout
+    assert "Unpacking pkg" not in r.stdout     # nur Fehlerzeilen, kein Rauschen
