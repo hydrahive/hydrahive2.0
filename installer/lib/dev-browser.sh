@@ -11,6 +11,13 @@
 # Feste Version: kein ungeprüfter Sprung auf die 1.0-Vorabversion („next“). Wechsel bewusst hier.
 HH_DEV_BROWSER_VERSION="${HH_DEV_BROWSER_VERSION:-0.2.9}"
 
+# Installierte Version aus dem npm-Paket (dev-browser kennt kein --version: „unexpected argument“).
+_dev_browser_version() {
+  local root
+  root="$(npm root -g 2>/dev/null)" || return 0
+  sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$root/dev-browser/package.json" 2>/dev/null | head -1
+}
+
 ensure_dev_browser() {
   local user="${HH_USER:-hydrahive}" home log_fn=log out
   declare -F log >/dev/null 2>&1 || log_fn=echo
@@ -36,7 +43,7 @@ ensure_dev_browser() {
   fi
 
   if [ -d "$runtime" ] && [ -d "$chromium" ]; then
-    $log_fn "Browser-Werkzeug vorhanden (dev-browser $(dev-browser --version 2>/dev/null | head -1))"
+    $log_fn "Browser-Werkzeug vorhanden (dev-browser $(_dev_browser_version))"
     return 0
   fi
 
@@ -45,7 +52,7 @@ ensure_dev_browser() {
   tmp_log="$(mktemp "${TMPDIR:-/tmp}/dev-browser-install.XXXXXX")"
   if sudo -u "$user" env HOME="$home" dev-browser install </dev/null >"$tmp_log" 2>&1 \
      && [ -d "$runtime" ] && [ -d "$chromium" ]; then
-    $log_fn "Browser-Werkzeug bereit (dev-browser $(dev-browser --version 2>/dev/null | head -1))"
+    $log_fn "Browser-Werkzeug bereit (dev-browser $(_dev_browser_version))"
   else
     $log_fn "WARNUNG: Browser-Werkzeug nicht vollständig eingerichtet (Laufzeit oder Chromium fehlt)"
     tail -3 "$tmp_log" | sed 's/^/    /'

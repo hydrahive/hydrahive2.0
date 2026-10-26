@@ -37,12 +37,15 @@ def env(tmp_path: Path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     home = tmp_path / "hh-dev-browser-home"
+    env_root = tmp_path / "npm-root"
     calls = tmp_path / "calls.log"
     # npm install -g dev-browser@X legt ein dev-browser-Programm in bin/ an (wie global npm).
     _stub(bin_dir, "npm", f"""
 [ -n "${{NPM_FAIL:-}}" ] && {{ echo "npm ERR! network" >&2; exit 1; }}
 case "$*" in
+  "root -g") echo "{env_root}" ;;
   *install*-g*dev-browser@*)
+    mkdir -p "{env_root}/dev-browser" && printf '{{\n  "name": "dev-browser",\n  "version": "0.2.9"\n}}\n' > "{env_root}/dev-browser/package.json"
     cat > "{bin_dir}/dev-browser" <<'EOF'
 #!/bin/bash
 echo "dev-browser $*" >> "$CALLS"
@@ -51,7 +54,7 @@ if [ "$1" = install ]; then
   [ -n "${{DB_INSTALL_NOOP:-}}" ] && exit 0
   mkdir -p "$HOME/.dev-browser/node_modules" "$HOME/.cache/ms-playwright"
 fi
-[ "$1" = --version ] && echo "0.2.9"
+[ "$1" = --version ] && {{ echo "error: unexpected argument '--version' found" >&2; exit 2; }}
 exit 0
 EOF
     chmod +x "{bin_dir}/dev-browser" ;;
@@ -90,7 +93,7 @@ def test_fehlt_komplett_wird_installiert(env) -> None:
     assert "dev-browser install" in c
     assert (env["home"] / ".dev-browser" / "node_modules").is_dir()
     assert (env["home"] / ".cache" / "ms-playwright").is_dir()
-    assert "Browser-Werkzeug bereit" in r.stdout
+    assert "Browser-Werkzeug bereit (dev-browser 0.2.9)" in r.stdout
 
 
 def test_alles_da_nichts_passiert(env) -> None:
@@ -98,8 +101,8 @@ def test_alles_da_nichts_passiert(env) -> None:
     env["calls"].unlink()
     r = run(env)
     assert r.returncode == 0
-    assert "npm" not in calls(env) and "dev-browser install" not in calls(env)
-    assert "vorhanden" in r.stdout
+    assert "npm install" not in calls(env) and "dev-browser install" not in calls(env)
+    assert "Browser-Werkzeug vorhanden (dev-browser 0.2.9)" in r.stdout
 
 
 def test_nur_chromium_fehlt_nur_install(env) -> None:
