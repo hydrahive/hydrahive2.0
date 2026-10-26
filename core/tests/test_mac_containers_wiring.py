@@ -125,6 +125,7 @@ def runner(tmp_path: Path) -> dict:
     _exe(repo / "installer" / "modules-mac" / "70-containers.sh",
          f'echo "70 user=$HH_USER" >> "{log}"\n[ -f "{tmp_path}/fail70" ] && exit 1; exit 0\n')
     _exe(repo / "installer" / "modules-mac" / "80-tailscale.sh", f'echo "80 user=$HH_USER" >> "{log}"\n')
+    _exe(repo / "installer" / "modules-mac" / "47-filesharing.sh", f'echo "47 user=$HH_USER" >> "{log}"\n')
     _exe(repo / "installer" / "modules-mac" / "50-launchd.sh", f'echo "50" >> "{log}"\n')
     data = tmp_path / "data"
     data.mkdir()
@@ -154,7 +155,16 @@ def test_runner_installs_tailscale(runner):
     assert "[hh2-addon] FERTIG: install tailscale ok" in res.stdout
 
 
-@pytest.mark.parametrize("req", ["install samba\n", "install vms\n", "install containers; rm -rf /\n", "x\n",
+def test_runner_installs_file_sharing(runner):
+    """install samba = macOS-Dateifreigabe (docs/plans/mac-file-sharing.md)."""
+    runner["req"].write_text("install samba\n")
+    res = _run_runner(runner)
+    assert res.returncode == 0, res.stdout + res.stderr
+    assert runner["log"].read_text().splitlines() == ["47 user=tester", "50"]
+    assert "[hh2-addon] FERTIG: install samba ok" in res.stdout
+
+
+@pytest.mark.parametrize("req", ["install samba; id\n", "install vms\n", "install containers; rm -rf /\n", "x\n",
                                  "install tailscale ../x\n", "install whatsapp\n", "install voice; id\n"])
 def test_runner_refuses_everything_else(runner, req):
     runner["req"].write_text(req)

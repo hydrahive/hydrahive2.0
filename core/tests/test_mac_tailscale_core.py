@@ -23,7 +23,8 @@ def test_tailscale_installable_on_mac(monkeypatch, tmp_path):
     items = {i["id"]: i for i in st.list_addons(tmp_path / "install.conf")}
     assert items["tailscale"]["hint"] is None
     assert items["containers"]["hint"] is None
-    assert all(items[a]["hint"] == "mac" for a in ("vms", "samba", "whatsapp"))
+    assert all(items[a]["hint"] == "mac" for a in ("vms", "whatsapp"))
+    assert items["samba"]["hint"] is None                       # macOS-Dateifreigabe (docs/plans/mac-file-sharing.md)
 
 
 # --- CLI-Suche --------------------------------------------------------------------------------------------------

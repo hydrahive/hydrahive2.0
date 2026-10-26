@@ -23,7 +23,8 @@ def test_voice_installable_on_mac_without_containers(monkeypatch, tmp_path):
     items = _items(monkeypatch, tmp_path, mac=True)
     assert items["voice"]["hint"] is None
     assert items["voice"]["requires"] == []                       # Mac: läuft ohne Container
-    assert all(items[a]["hint"] == "mac" for a in ("vms", "samba", "whatsapp"))
+    assert all(items[a]["hint"] == "mac" for a in ("vms", "whatsapp"))
+    assert items["samba"]["hint"] is None                       # macOS-Dateifreigabe (docs/plans/mac-file-sharing.md)
 
 
 def test_voice_on_linux_still_needs_containers(monkeypatch, tmp_path):

@@ -12,7 +12,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from hydrahive.containers._platform import is_mac
 from hydrahive.projects._paths import workspace_path
+from hydrahive.samba import _mac
 from hydrahive.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -81,7 +83,19 @@ def _reload_smbd() -> bool:
         return False
 
 
+def share_user() -> str:
+    """Konto, mit dem sich Mitarbeiter verbinden (Linux: HH_SAMBA_USER, Mac: das Freigabe-Konto)."""
+    return _mac.SHARE_USER if is_mac() else settings.samba_user
+
+
 def enable_share(project_id: str, project_name: str) -> tuple[bool, str]:
+    if is_mac():                                          # macOS-Dateifreigabe (docs/plans/mac-file-sharing.md)
+        if not _mac.valid_project_id(project_id):
+            return False, "samba_bad_project"
+        if not _mac.account_exists():
+            return False, "samba_not_installed"
+        _mac.request(project_id, True, _safe_share_name(project_name, project_id), workspace_path(project_id))
+        return True, ""
     if not settings.samba_includes_dir.exists():
         return False, "samba_not_installed"
     cfg = _config_path(project_id)
@@ -96,6 +110,11 @@ def enable_share(project_id: str, project_name: str) -> tuple[bool, str]:
 
 
 def disable_share(project_id: str) -> tuple[bool, str]:
+    if is_mac():
+        if not _mac.valid_project_id(project_id):
+            return False, "samba_bad_project"
+        _mac.request(project_id, False, "", workspace_path(project_id))
+        return True, ""
     cfg = _config_path(project_id)
     if cfg.exists():
         try:
@@ -108,6 +127,8 @@ def disable_share(project_id: str) -> tuple[bool, str]:
 
 
 def is_share_enabled(project_id: str) -> bool:
+    if is_mac():
+        return _mac.valid_project_id(project_id) and _mac.state(project_id) == "on"
     return _config_path(project_id).exists()
 
 
@@ -128,6 +149,8 @@ def _find_smbd() -> str | None:
 
 
 def samba_status() -> dict:
+    if is_mac():
+        return _mac.status()
     smbd_bin = _find_smbd()
     installed = bool(smbd_bin)
     running = False

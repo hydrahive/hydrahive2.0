@@ -248,7 +248,7 @@
     "name": {
       "containers": "Containers (incus)",
       "vms": "Virtual machines (QEMU/KVM)",
-      "samba": "Samba shares",
+      "samba": "Samba / file sharing",
       "whatsapp": "WhatsApp bridge",
       "voice": "Voice (speech in/out)",
       "tailscale": "Tailscale"
