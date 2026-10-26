@@ -44,17 +44,39 @@ def test_own_mac_build_found_without_path(monkeypatch, tmp_path):
     assert _bin.find_tailscale() == own
 
 
-def test_order_path_then_own_then_app(monkeypatch, tmp_path):
+def test_ohne_app_path_dann_eigener_build(monkeypatch, tmp_path):
     own = _exe(tmp_path / "own" / "tailscale")
-    app = _exe(tmp_path / "app" / "Tailscale")
     monkeypatch.setattr(_bin, "MAC_OWN_CLI", own)
-    monkeypatch.setattr(_bin, "MACOS_APP_CLI", app)
+    monkeypatch.setattr(_bin, "MACOS_APP_CLI", str(tmp_path / "keine-app"))
     monkeypatch.setattr(_bin.shutil, "which", lambda n: "/im/path/tailscale")
     assert _bin.find_tailscale() == "/im/path/tailscale"
     monkeypatch.setattr(_bin.shutil, "which", lambda n: None)
     assert _bin.find_tailscale() == own
     os.remove(own)
+    assert _bin.find_tailscale() is None
+
+
+def test_app_hat_vorrang_vor_path_und_eigenem_build(monkeypatch, tmp_path):
+    """Befund Berkan 26.10.: Der Backend-PATH enthält den eigenen bin-Ordner – gefragt wurde die tote eigene CLI,
+    obwohl die Tailscale-App lief und angemeldet war. Ist die App da, gilt sie (beide vertragen sich nicht)."""
+    own = _exe(tmp_path / "own" / "bin" / "tailscale")
+    app = _exe(tmp_path / "app" / "Tailscale")
+    monkeypatch.setattr(_bin, "MAC_OWN_CLI", own)
+    monkeypatch.setattr(_bin, "MACOS_APP_CLI", app)
+    monkeypatch.setattr(_bin.shutil, "which", lambda n: own)          # PATH zeigt auf den eigenen Build
     assert _bin.find_tailscale() == app
+    monkeypatch.setattr(_bin.shutil, "which", lambda n: "/opt/homebrew/bin/tailscale")
+    assert _bin.find_tailscale() == app
+
+
+def test_app_ohne_ausfuehrrecht_zaehlt_nicht(monkeypatch, tmp_path):
+    app = tmp_path / "app" / "Tailscale"
+    app.parent.mkdir(parents=True)
+    app.write_text("x")
+    app.chmod(0o644)
+    monkeypatch.setattr(_bin, "MACOS_APP_CLI", str(app))
+    monkeypatch.setattr(_bin.shutil, "which", lambda n: "/im/path/tailscale")
+    assert _bin.find_tailscale() == "/im/path/tailscale"
 
 
 # --- Anmeldung per Link ---------------------------------------------------------------------------------------
@@ -170,3 +192,51 @@ def test_status_needs_login_with_null_ips(monkeypatch):
     assert s["auth_url"] == "https://login.tailscale.com/a/abc"
     assert s["ip"] is None and s["peers"] == []
     assert "error" not in s
+
+
+# --- Fehler bei der Anmeldung verständlich (Befund Berkan: internal_error) --------------------------------------
+
+def test_login_meldet_tailscale_fehlertext(monkeypatch):
+    """tailscale up endet sofort mit Fehler (Dienst nicht erreichbar) → der Grund steht im Fehlertext."""
+    class P(_FakeProc):
+        def __init__(self):
+            super().__init__([])
+            self.stderr = None
+
+        def start(self):
+            super().start()
+            self.stderr = asyncio.StreamReader()
+            self.stderr.feed_data(b"failed to connect to local Tailscale service; is Tailscale running?\n")
+            self.stderr.feed_eof()
+            assert self.stdout is not None
+            self.stdout.feed_eof()
+            return self
+
+    async def fake_exec(*a, **kw):
+        assert kw.get("stderr") == asyncio.subprocess.PIPE
+        return P().start()
+
+    monkeypatch.setattr(control.asyncio, "create_subprocess_exec", fake_exec)
+    with pytest.raises(RuntimeError) as e:
+        asyncio.run(control.login(timeout=2))
+    assert "failed to connect to local Tailscale service" in str(e.value)
+
+
+def test_login_programm_fehlt_kein_internal_error(monkeypatch):
+    async def fake_exec(*a, **kw):
+        raise FileNotFoundError(2, "No such file or directory")
+    monkeypatch.setattr(control.asyncio, "create_subprocess_exec", fake_exec)
+    with pytest.raises(RuntimeError) as e:
+        asyncio.run(control.login(timeout=2))
+    assert "Tailscale" in str(e.value)
+
+
+def test_login_route_startfehler_502(client, admin_headers, monkeypatch):
+    from hydrahive.api.routes import tailscale as route
+
+    async def boom():
+        raise RuntimeError("Tailscale nicht erreichbar: failed to connect")
+    monkeypatch.setattr(route, "login", boom)
+    r = client.post("/api/tailscale/login", headers=admin_headers)
+    assert r.status_code == 502
+    assert "failed to connect" in r.json()["detail"]

@@ -83,3 +83,23 @@ Abnahme .186: Update (mit Frontend-Build) ok, Tailscale über das Cockpit instal
 Anmelde-Link, `/api/tailscale/login` liefert Link, Neustart ohne Anmeldung → `io.hydrahive.tailscaled` läuft.
 hydratest (Linux): update.sh ok, Status `NeedsLogin` ohne Fehler, alle Zusatz-Module ohne Hinweis. Suite 4666 grün.
 **Offen:** Anmeldung mit Tills Konto (Link öffnen), danach Kopplung .186 ↔ .2.
+
+## Nachtrag 26.10.2026: App vorhanden → App hat Vorrang (Befund Berkan)
+
+**Befund:** „Mit Browser anmelden“ meldete `internal_error`. Auf dem Mac lagen beide Varianten: HydraHives eigener
+Build (mit Dienst `io.hydrahive.tailscaled`, inzwischen gestoppt) und die Tailscale-App, mit der Berkan angemeldet ist.
+- `_bin.py` suchte PATH → eigener Build → App. Der Backend-PATH enthält den eigenen bin-Ordner, also wurde
+  immer die tote eigene CLI gefragt („failed to connect to local Tailscale service“).
+- `80-tailscale.sh` erkannte die App, beendete sich aber nur – eigener Dienst und Build blieben liegen.
+- `login()` verwarf die Fehlerausgabe von `tailscale up`; ein Startfehler (OSError) wurde nicht abgefangen.
+
+**Änderung:**
+1. `_bin.py`: Ist die App-CLI da, wird **immer** sie genommen (vor PATH und eigenem Build). Ohne App wie bisher.
+   Linux unverändert (dort gibt es den App-Pfad nicht).
+2. `80-tailscale.sh`: App vorhanden **und** eigener Dienst eingerichtet → Dienst entladen, plist nach
+   `<plist>.aus-wegen-app` umbenennen (rückholbar, nichts gelöscht), Hinweis ausgeben. Build-Ordner bleibt.
+3. `login()`: Fehlerausgabe von `tailscale up` wird mitgelesen und im Fehlertext gemeldet; OSError beim Start →
+   verständlicher Fehler (502) statt `internal_error`.
+
+**Nicht getestet ohne echten Mac:** ob die App-CLI vom Dienst-Konto `_hydrahive` aus bedient werden darf (die
+GUI-Variante verbindet sich mit der App des angemeldeten Nutzers). Abnahme durch Berkan nach dem Update.

@@ -30,6 +30,13 @@ source "$(dirname "$0")/../lib/mac-roles.sh"   # priv, hh_conf_get/hh_conf_set
 
 if [ -d "$HH_TS_APP" ]; then
   log "Tailscale-App ist installiert – nutze sie (keine zweite Installation, beide vertragen sich nicht)"
+  # App kam nach dem eigenen Build dazu (Befund Berkan 26.10.2026): eigenen Dienst abschalten, plist rückholbar
+  # beiseitelegen. Der Build-Ordner bleibt; der Kern nimmt bei vorhandener App ohnehin deren CLI (_bin.py).
+  if [ -f "$HH_TS_PLIST" ]; then
+    priv launchctl unload "$HH_TS_PLIST" >/dev/null 2>&1 || true
+    priv mv -f "$HH_TS_PLIST" "$HH_TS_PLIST.aus-wegen-app"
+    log "eigenen Tailscale-Dienst abgeschaltet (zurückholbar: $HH_TS_PLIST.aus-wegen-app)"
+  fi
   exit 0
 fi
 
