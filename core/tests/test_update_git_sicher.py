@@ -307,3 +307,14 @@ def test_jede_getrackte_lock_datei_steht_in_der_liste() -> None:
     owned = subprocess.run(["bash", "-c", f'source "{HELPER}"; printf "%s\\n" "${{HH_GIT_SELF_OWNED[@]}}"'],
                            capture_output=True, text=True).stdout.split()
     assert sorted(owned) == sorted(tracked)
+
+
+def test_update_laedt_den_git_schritt_von_github() -> None:
+    """Befund .4: Der fehlerhafte Git-Schritt lag lokal und hielt jedes Update an, bevor die Reparatur
+    ankommen konnte. update.sh lädt ihn deshalb zuerst aus origin/<branch>, lokal nur als Rückfall."""
+    text = _code(UPDATE)
+    start = text.index('HH_GIT="sudo -u hydrahive git')
+    block = text[start:text.index('hh_git_update "$HH_REPO_DIR"', start)]
+    assert 'show "origin/$HH_GIT_BRANCH:installer/lib/git-update.sh"' in block
+    assert 'bash -n "$HH_GIT_LIB"' in block                       # nur gültiges Skript laden
+    assert block.index('source "$HH_GIT_LIB"') < block.index('source "$HH_REPO_DIR/installer/lib/git-update.sh"')

@@ -71,8 +71,22 @@ log "git pull"
 # Verwirft nichts still und bleibt auf dem eigenen Branch (docs/specs/update-git-sicher.md, Task cabd0df1).
 # Früher: scheiterte pull --ff-only, wurde hart auf main zurückgesetzt.
 HH_GIT="sudo -u hydrahive git -c safe.directory=$HH_REPO_DIR"
-# shellcheck source=lib/git-update.sh
-source "$HH_REPO_DIR/installer/lib/git-update.sh"
+# Den Git-Schritt aus dem Stand AUF GITHUB laden, nicht aus dem lokalen: Sonst bleibt ein Server mit einer
+# fehlerhaften lokalen Fassung für immer daran hängen, weil die Reparatur erst NACH diesem Schritt ankäme
+# (Befund .4 am 26.10.2026, Task 928f868e). Nur lesen – fetch ändert keine Dateien. Rückfall: lokale Datei.
+HH_GIT_LIB="$(mktemp)"
+HH_GIT_BRANCH="$($HH_GIT symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+if [ -n "$HH_GIT_BRANCH" ] \
+   && $HH_GIT fetch --quiet origin "+refs/heads/$HH_GIT_BRANCH:refs/remotes/origin/$HH_GIT_BRANCH" 2>/dev/null \
+   && $HH_GIT show "origin/$HH_GIT_BRANCH:installer/lib/git-update.sh" > "$HH_GIT_LIB" 2>/dev/null \
+   && [ -s "$HH_GIT_LIB" ] && bash -n "$HH_GIT_LIB"; then
+  # shellcheck source=lib/git-update.sh
+  source "$HH_GIT_LIB"
+else
+  # shellcheck source=lib/git-update.sh
+  source "$HH_REPO_DIR/installer/lib/git-update.sh"
+fi
+rm -f "$HH_GIT_LIB"
 hh_git_update "$HH_REPO_DIR"
 cd "$HH_REPO_DIR"
 
