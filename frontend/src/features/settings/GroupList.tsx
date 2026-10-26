@@ -6,15 +6,15 @@ interface Props {
   onSelect: (g: SettingsGroup) => void
 }
 
-/** Linke Spalte: alle Settings-Hauptgruppen, logisch geordnet. */
+/** Linke Spalte von „Meine Einstellungen“: die persönlichen Gruppen. */
 export function GroupList({ role, activeId, onSelect }: Props) {
   const groups = SETTINGS_GROUPS.filter((g) => !g.adminOnly || role === "admin")
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="border-b border-[#2a364b] px-3 py-3">
-        <p className="mb-1 inline-flex rounded-[4px] border border-[#69d7ff]/35 bg-[#1c2940] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">System</p>
-        <h2 className="text-sm font-bold text-[#e8eef8]">Einstellungen</h2>
+        <p className="mb-1 inline-flex rounded-[4px] border border-[#69d7ff]/35 bg-[#1c2940] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">Persönlich</p>
+        <h2 className="text-sm font-bold text-[#e8eef8]">Meine Einstellungen</h2>
         <p className="text-[11px] text-[#8d9ab0]">Gruppe wählen</p>
       </div>
       <nav className="flex-1 space-y-0.5 p-2">

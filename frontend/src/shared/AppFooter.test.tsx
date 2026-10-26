@@ -42,3 +42,11 @@ describe("AppFooter – Hilfe-Knopf auf dem Handy", () => {
     expect(helpButton(render({ isAdmin: false }))).not.toBe("")
   })
 })
+
+// Plan docs/plans/meine-einstellungen.md, Task 4: Modul-Updates führen direkt ins Admin-Fenster (nicht über den alten Hub).
+import { UPDATE_TARGETS } from "./updateTargets"
+describe("AppFooter – Ziele der Update-Hinweise", () => {
+  it("Module und Plugins öffnen das jeweilige Admin-Fenster", () => {
+    expect(UPDATE_TARGETS).toEqual({ modules: "/admin?section=modules", plugins: "/admin?section=plugins" })
+  })
+})

@@ -1,8 +1,8 @@
-export type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions" | "system" | "system-settings" | "containers" | "vms" | "nodes" | "jobs" | "scheduled-tasks" | "access" | "archive" | "federation"
+export type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions" | "system" | "system-settings" | "containers" | "vms" | "nodes" | "jobs" | "scheduled-tasks" | "access" | "archive" | "federation" | "zahnfee"
 
 const ADMIN_OVERLAY_IDS = new Set<AdminOverlayId>([
   "users", "modules", "plugins", "credentials", "themes", "mcp", "llm",
-  "extensions", "system", "system-settings", "containers", "vms", "nodes", "jobs", "scheduled-tasks", "access", "archive", "federation",
+  "extensions", "system", "system-settings", "containers", "vms", "nodes", "jobs", "scheduled-tasks", "access", "archive", "federation", "zahnfee",
 ])
 
 export function isAdminOverlayId(value: string | null): value is AdminOverlayId {
@@ -20,4 +20,5 @@ export const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = {
   "/system": "system", "/system/settings": "system-settings", "/containers": "containers",
   "/vms": "vms", "/nodes": "nodes", "/jobs": "jobs", "/scheduled-tasks": "scheduled-tasks",
   "/access": "access", "/archive": "archive", "/federation": "federation",
+  "/zahnfee-config": "zahnfee",
 }
