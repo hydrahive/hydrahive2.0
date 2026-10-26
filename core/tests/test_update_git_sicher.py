@@ -312,7 +312,7 @@ def test_jede_getrackte_lock_datei_steht_in_der_liste() -> None:
 def test_update_laedt_den_git_schritt_von_github() -> None:
     """Befund .4: Der fehlerhafte Git-Schritt lag lokal und hielt jedes Update an, bevor die Reparatur
     ankommen konnte. update.sh lädt ihn deshalb zuerst aus origin/<branch>, lokal nur als Rückfall."""
-    text = _code(UPDATE)
+    text = _code(UPDATE.read_text())
     start = text.index('HH_GIT="sudo -u hydrahive git')
     block = text[start:text.index('hh_git_update "$HH_REPO_DIR"', start)]
     assert 'show "origin/$HH_GIT_BRANCH:installer/lib/git-update.sh"' in block
