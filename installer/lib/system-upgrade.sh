@@ -81,18 +81,23 @@ hh_system_upgrade() {
 
   local apt_opts=(-o DPkg::Lock::Timeout=600)
   # Eine kaputte Fremdquelle darf die übrigen Updates nicht verhindern.
-  DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get "${apt_opts[@]}" -qq update >/dev/null 2>&1 \
+  ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get "${apt_opts[@]}" -qq update >/dev/null 2>&1 \
     || _su_log "WARNUNG: Paketlisten nicht vollständig abrufbar – aktualisiere mit dem, was da ist"
 
   local out rc=0
   # upgrade --with-new-pkgs: neue Abhängigkeiten (z. B. neue Kernel) kommen mit, entfernt wird nie etwas.
   # confdef/confold: von Hand geänderte Konfigurationen bleiben.
   # LC_ALL=C: feste englische Ausgabe, damit das Zählen nicht von der Systemsprache abhängt.
-  out="$(LC_ALL=C DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get "${apt_opts[@]}" -y --with-new-pkgs \
-    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade 2>&1)" || rc=$?
+  # ACCEPT_EULA=Y: Microsoft-Pakete (msodbcsql18, mssql-tools18) fragen bei JEDER neuen Version erneut nach der
+  # Lizenz und brechen sonst ab (Befund hydratest 26.10.). Angehoben wird nur, was schon installiert ist –
+  # die Lizenz wurde dabei bereits angenommen.
+  out="$(LC_ALL=C ACCEPT_EULA=Y DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get "${apt_opts[@]}" -y \
+    --with-new-pkgs -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade 2>&1)" || rc=$?
   if [ "$rc" -ne 0 ]; then
     _su_log "WARNUNG: Systemupdate fehlgeschlagen – HydraHive-Update läuft weiter"
-    printf '%s\n' "$out" | tail -3 | sed 's/^/    /'
+    printf '%s\n' "$out" | grep -E '^(E:|ERROR|dpkg: error|Errors were)' | head -6 | sed 's/^/    /'
+    # Pakete, die nach dem Abbruch nur entpackt sind, fertig einrichten (sonst blockieren sie das nächste apt).
+    dpkg --configure -a >/dev/null 2>&1 || true
     return 0
   fi
 

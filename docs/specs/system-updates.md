@@ -55,7 +55,17 @@ komplette System updaten und nicht nur unsere Sachen.“ Anlass: PHP2Shell (CVE-
 4. Log: Anzahl aktualisierter Pakete, „Neustart des Rechners nötig“, wenn `/run/reboot-required` existiert.
    Wurden Grafiktreiber (`nvidia-*`, `libnvidia-*`) angehoben, schreibt das Update `/run/reboot-required`
    selbst. Der Treiber im Kernel passt bis zum Neustart nicht zur neuen Bibliothek.
-5. Scheitert ein Schritt, bleibt es bei einer WARNUNG. Das HydraHive-Update läuft weiter.
+5. Scheitert ein Schritt, bleibt es bei einer WARNUNG mit den Fehlerzeilen (`E:`, `ERROR`, `dpkg: error`).
+   Das HydraHive-Update läuft weiter. Danach noch einmal `dpkg --configure -a`, damit nur entpackte Pakete
+   fertig eingerichtet werden.
+6. `ACCEPT_EULA=Y`: Microsoft-Pakete (msodbcsql18, mssql-tools18) fragen bei jeder neuen Version erneut nach
+   der Lizenz und brechen sonst ab (Befund hydratest 26.10.). Angehoben wird nur Installiertes, die Lizenz
+   wurde also schon angenommen.
+
+Probe hydratest 26.10. (erste Fassung): 224 von 225 Paketen angehoben. `msodbcsql18` scheiterte an der Lizenz.
+Bei der Aktualisierung von netplan/systemd wurde systemd-networkd neu gestartet, und eth0 bekam per DHCP eine
+neue Adresse (.217 → .37). Gewöhnliches Ubuntu-Verhalten bei einem Container ohne feste DHCP-Zuordnung, kein
+Fehler des Updates. Server mit fester Adresse (.2 hat br0 statisch) sind nicht betroffen.
 
 Abschalten für Sonderfälle: `HH_SYSTEM_UPGRADE=no` in `install.conf`. Standard ist an.
 
