@@ -42,7 +42,7 @@ def env(tmp_path: Path):
     _stub(bin_dir, "npm", f"""
 [ -n "${{NPM_FAIL:-}}" ] && {{ echo "npm ERR! network" >&2; exit 1; }}
 case "$*" in
-  *"install -g dev-browser@"*)
+  *install*-g*dev-browser@*)
     cat > "{bin_dir}/dev-browser" <<'EOF'
 #!/bin/bash
 echo "dev-browser $*" >> "$CALLS"
@@ -61,7 +61,7 @@ exit 0
     # sudo -u USER env HOME=… cmd … → Befehl ohne Benutzerwechsel ausführen.
     # sudo -u USER env HOME=… cmd … → Befehl ohne Benutzerwechsel; PATH bleibt (Attrappen finden).
     _stub(bin_dir, "sudo", """
-while [ "$1" = -u ] || [ "$1" = -H ]; do [ "$1" = -u ] && shift; shift; done
+while :; do case "$1" in -u) shift 2 ;; -H) shift ;; *) break ;; esac; done
 if [ "$1" = env ]; then shift; exec env "PATH=$PATH" "$@"; fi
 exec "$@"
 """)
@@ -86,7 +86,7 @@ def test_fehlt_komplett_wird_installiert(env) -> None:
     r = run(env)
     assert r.returncode == 0, r.stderr
     c = calls(env)
-    assert "npm install -g dev-browser@0.2.9" in c
+    assert re.search(r"^npm install -g .*dev-browser@0\.2\.9$", c, re.M)
     assert "dev-browser install" in c
     assert (env["home"] / ".dev-browser" / "node_modules").is_dir()
     assert (env["home"] / ".cache" / "ms-playwright").is_dir()
