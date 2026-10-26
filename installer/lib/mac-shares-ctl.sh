@@ -17,6 +17,15 @@ RIGHTS="allow list,add_file,search,delete,add_subdirectory,delete_child,readattr
 ACE_RW="user:$SHARE_USER $RIGHTS"
 # Was der Kunde per SMB anlegt, gehört hhshare (0600) – ohne eigenen Eintrag käme der Agent nicht mehr heran.
 ACE_HH="user:$HH_USER $RIGHTS"
+# Mac-Besitzer: Der Finder verbindet sich nicht per SMB mit dem eigenen Mac (live 26.10.: NetFS 65 bei jeder eigenen
+# Adresse). Er bekommt das Projekt deshalb direkt: Recht darauf + Eintrag ~/HydraHive/<Freigabename>.
+OWNER="${HH_MAC_OWNER:-}"
+if ! [[ "$OWNER" =~ ^[A-Za-z_][A-Za-z0-9_.-]{0,31}$ ]] || [ "$OWNER" = root ] || [ "$OWNER" = "$HH_USER" ] \
+   || [ "$OWNER" = "$SHARE_USER" ]; then
+  OWNER=""
+fi
+ACE_OW="user:$OWNER $RIGHTS"
+DENY_OW="user:$OWNER deny list,search"     # 47-filesharing.sh sperrt jedes Projekt für den Besitzer, bis es frei ist
 
 say() { printf '[hh2-shares] %s\n' "$*"; }
 state() { printf '%s\n' "$2" > "$DIR/$1.state"; }
@@ -27,9 +36,48 @@ state() { printf '%s\n' "$2" > "$DIR/$1.state"; }
 # Symlink (kein chmod -R – das folgte am echten Mac einem Link nach draußen), Links selbst bleiben unberührt.
 grant_existing() {
   local path="$1" ace
-  for ace in "$ACE_RW" "$ACE_HH"; do
+  for ace in "$ACE_RW" "$ACE_HH" ${OWNER:+"$ACE_OW"}; do
     sudo -n -u "$HH_USER" find "$path" -mindepth 1 ! -type l -exec chmod -h +a "$ace" {} + 2>/dev/null || true
   done
+}
+
+# Alle Freigabe-Datensätze, deren Pfad der Projektordner ist, entfernen. `sharing -r` will den Datensatz-Namen
+# (Standard: Ordnername), nicht den SMB-Namen – live 26.10. blieben so Freigaben stehen und vermehrten sich (<id>-1 …).
+remove_records() {
+  local rec
+  while IFS= read -r rec; do
+    [ -n "$rec" ] && sharing -r "$rec" >/dev/null 2>&1
+  done < <(sharing -l 2>/dev/null | awk -v p="$1" '
+    /^name:/ { sub(/^name:[ \t]+/, ""); n = $0 }
+    /^path:/ { sub(/^path:[ \t]+/, ""); if ($0 == p) print n }')
+}
+
+owner_home() {
+  local h
+  h="$(dscl . -read "/Users/$OWNER" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
+  case "$h" in /?*) [ -d "$h" ] && printf '%s\n' "$h" ;; esac
+}
+
+# Einträge in ~/HydraHive, die auf dieses Projekt zeigen, entfernen – nur unsere Verknüpfungen, alles andere bleibt.
+# Alles im Benutzerordner läuft als Besitzer (root soll dort keinen Links folgen).
+owner_unlink() {
+  local path="$1" home e
+  home="$(owner_home)" || return 0
+  [ -n "$home" ] || return 0
+  for e in "$home/HydraHive"/*; do
+    [ -L "$e" ] && [ "$(readlink "$e")" = "$path" ] && sudo -n -u "$OWNER" rm -f "$e"
+  done
+}
+
+owner_link() {
+  local path="$1" name="$2" home
+  home="$(owner_home)" || return 0
+  [ -n "$home" ] || { say "Benutzerordner von $OWNER nicht gefunden"; return 0; }
+  sudo -n -u "$OWNER" mkdir -p "$home/HydraHive" || return 0
+  if [ -e "$home/HydraHive/$name" ] || [ -L "$home/HydraHive/$name" ]; then
+    say "~/HydraHive/$name gibt es schon – nicht angefasst"; return 0
+  fi
+  sudo -n -u "$OWNER" ln -s "$path" "$home/HydraHive/$name" || say "Verknüpfung ~/HydraHive/$name fehlgeschlagen"
 }
 
 handle() {
@@ -55,13 +103,15 @@ handle() {
     "$(cd "$HH_DATA_DIR" && pwd -P)/workspaces/projects/$id") ;;
     *) say "verworfen ($id): Pfad führt aus dem Projektbereich"; state "$id" "error:path"; return ;;
   esac
-  local old=""
-  [ -f "$DIR/$id.name" ] && old="$(cat "$DIR/$id.name")"
   if [ "$mode" = "off" ]; then
-    if [ -n "$old" ] && [[ "$old" =~ ^[A-Za-z0-9_-]{1,50}$ ]]; then
-      sharing -r "$old" >/dev/null 2>&1 || true
-    fi
+    remove_records "$path"
     chmod -a "$ACE_RW" "$path" 2>/dev/null || true
+    if [ -n "$OWNER" ]; then
+      owner_unlink "$path"
+      chmod -a "$ACE_OW" "$path" 2>/dev/null || true
+      chmod -a "$DENY_OW" "$path" 2>/dev/null || true
+      chmod +a "$DENY_OW" "$path" 2>/dev/null || true
+    fi
     rm -f "$DIR/$id.name"
     state "$id" "off"; say "aus: $id"; return
   fi
@@ -71,18 +121,22 @@ handle() {
   if ! [[ "$HH_USER" =~ ^[A-Za-z_][A-Za-z0-9_.-]{0,31}$ ]] || [ "$HH_USER" = "root" ]; then
     say "FEHLER ($id): Dienst-Konto unbekannt"; state "$id" "error:user"; return
   fi
-  if [ -n "$old" ] && [ "$old" != "$name" ] && [[ "$old" =~ ^[A-Za-z0-9_-]{1,50}$ ]]; then
-    sharing -r "$old" >/dev/null 2>&1 || true            # umbenannt: alte Freigabe weg
-  fi
-  chmod -a "$ACE_RW" "$path" 2>/dev/null || true         # nie doppelt
-  chmod -a "$ACE_HH" "$path" 2>/dev/null || true
-  if ! chmod +a "$ACE_RW" "$path" || ! chmod +a "$ACE_HH" "$path"; then
-    state "$id" "error:acl"; say "FEHLER ($id): Rechte"; return
-  fi
+  local ace
+  [ -n "$OWNER" ] && chmod -a "$DENY_OW" "$path" 2>/dev/null
+  for ace in "$ACE_RW" "$ACE_HH" ${OWNER:+"$ACE_OW"}; do
+    chmod -a "$ace" "$path" 2>/dev/null || true            # nie doppelt
+    if ! chmod +a "$ace" "$path"; then
+      state "$id" "error:acl"; say "FEHLER ($id): Rechte"; return
+    fi
+  done
   grant_existing "$path"
-  sharing -r "$name" >/dev/null 2>&1 || true
-  if ! sharing -a "$path" -S "$name" -s 001 -g 000; then
+  remove_records "$path"                                    # alte/doppelte Datensätze (auch umbenannt) weg
+  if ! sharing -a "$path" -S "$name" -n "$id" -s 001 -g 000; then
     state "$id" "error:sharing"; say "FEHLER ($id): sharing"; return
+  fi
+  if [ -n "$OWNER" ]; then
+    owner_unlink "$path"                                    # umbenannt: alter Eintrag weg
+    owner_link "$path" "$name"
   fi
   printf '%s\n' "$name" > "$DIR/$id.name"
   state "$id" "on"; say "an: $id als $name"

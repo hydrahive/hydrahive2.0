@@ -534,13 +534,19 @@ rights for this. Instead you share single projects on the network, like Samba on
    serves the shares.
 2. **Share a project:** open the project → Settings or Integrations → turn on **Share project on the network** → **Enabled**. Address, user
    and password are shown there.
-3. **Connect:**
-   - **Mac:** Finder → menu **Go → Connect to Server** (⌘K) → `smb://<Mac's address>/<share>` → "Registered User" →
-     user `hhshare` and the password from the cockpit.
+3. **On the Mac itself (no password):** Finder → your **home folder** (house icon, ⇧⌘H) → folder **“HydraHive”** →
+   the project. Only the projects you shared are there. Tip: drag the folder into the Finder sidebar.
+
+   > Why not “Connect to Server”? Finder does **not** connect to the Mac it runs on (“server not available” – also
+   > with `localhost` or the Mac's own address). That is macOS, not a HydraHive bug.
+4. **From other computers on the network:**
+   - **Another Mac:** Finder → menu **Go → Connect to Server** (⌘K) → `smb://<Mac's address>/<share>` →
+     "Registered User" → user `hhshare` and the password from the cockpit.
    - **Windows:** Explorer → address bar `\\<Mac's address>\<share>`.
 
 **Good to know:**
 - Only what you turn on per project is shared – never the whole data folder, settings or database.
+- Turn sharing off and the project disappears from the “HydraHive” folder as well.
 - The credentials apply to all shared projects (per-employee access will follow).
 - Whatever you put into the share, HydraHive sees immediately – and vice versa.
 - Check: System Settings → General → Sharing → **File Sharing** is on; log `/usr/local/var/log/hydrahive2-shares.log`.

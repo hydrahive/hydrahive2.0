@@ -23,6 +23,15 @@ describe("Freigabe-Abschnitt im Projekt", () => {
     expect(h.indexOf("smb://")).toBeLessThan(h.indexOf("\\\\"))
     expect(h).toContain("Gehe zu → Mit Server verbinden")
   })
+  it("Mac: am Mac selbst über den Benutzerordner (Finder verbindet sich nicht mit dem eigenen Mac)", () => {
+    const h = html("mac")
+    expect(h).toContain("Benutzerordner")
+    expect(h).toContain("HydraHive")
+    expect(h.indexOf("Benutzerordner")).toBeLessThan(h.indexOf("smb://"))
+  })
+  it("Linux: kein Benutzerordner-Hinweis", () => {
+    expect(html("linux")).not.toContain("Benutzerordner")
+  })
   it("Linux: wie bisher (SMB-Share, Windows-Adresse zuerst), Mac-Adresse als Zusatz", () => {
     const h = html("linux")
     expect(h).toContain("SMB-Share")

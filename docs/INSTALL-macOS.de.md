@@ -538,13 +538,21 @@ Linux mit Samba:
    anmelden und hat keine Shell – es ist nur für die Freigaben da.
 2. **Projekt freigeben:** Projekt öffnen → Einstellungen bzw. Integrationen → **Projekt im Netz freigeben** → **Aktiviert** einschalten. Dort
    stehen Adresse, Benutzer und Passwort.
-3. **Verbinden:**
-   - **Mac:** Finder → Menü **Gehe zu → Mit Server verbinden** (⌘K) → `smb://<Adresse des Macs>/<Freigabe>` →
+3. **Am Mac selbst (ohne Passwort):** Finder → dein **Benutzerordner** (das Haus-Symbol, ⇧⌘H) → Ordner
+   **„HydraHive“** → das Projekt. Dort liegen nur die Projekte, die du freigegeben hast. Tipp: den Ordner in die
+   Seitenleiste des Finders ziehen.
+
+   > Warum nicht „Mit Server verbinden“? Der Finder verbindet sich **nicht** mit dem Mac, auf dem er selbst läuft
+   > („Server nicht erreichbar“ – auch mit `localhost` oder der eigenen Adresse). Das ist macOS, kein Fehler von
+   > HydraHive.
+4. **Von anderen Rechnern im Netz:**
+   - **Anderer Mac:** Finder → Menü **Gehe zu → Mit Server verbinden** (⌘K) → `smb://<Adresse des Macs>/<Freigabe>` →
      „Registrierter Benutzer“ → Benutzer `hhshare` und das Passwort aus dem Cockpit.
    - **Windows:** Explorer → Adresszeile `\\<Adresse des Macs>\<Freigabe>`.
 
 **Gut zu wissen:**
 - Freigegeben wird nur, was du im Projekt einschaltest – nie der ganze Daten-Ordner, nie Einstellungen oder Datenbank.
+- Schaltest du die Freigabe aus, verschwindet das Projekt auch wieder aus dem Ordner „HydraHive“.
 - Die Zugangsdaten gelten für alle freigegebenen Projekte (eigene Zugänge je Mitarbeiter folgen).
 - Was du über die Freigabe ablegst, sieht HydraHive sofort – und umgekehrt.
 - Prüfen: Systemeinstellungen → Allgemein → Teilen → **Dateifreigabe** ist an; Log

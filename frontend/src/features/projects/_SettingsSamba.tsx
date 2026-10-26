@@ -46,6 +46,9 @@ export function SambaSection({ samba, busy, error, onToggle, host }: Props) {
       </div>
       {samba.enabled && (
         <>
+          {samba.platform === "mac" && (
+            <p className="text-xs text-zinc-300 pt-1">{t("samba.local_mac", { name: samba.share_name })}</p>
+          )}
           <div className="flex items-center gap-2 pt-1">
             <code className="text-xs text-amber-300 bg-amber-500/[6%] border border-amber-500/20 rounded px-2 py-1 font-mono flex-1 truncate">
               {addr.primary}

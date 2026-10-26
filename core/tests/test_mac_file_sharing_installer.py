@@ -30,16 +30,21 @@ def mac(tmp_path: Path) -> dict:
     users = tmp_path / "users"
     users.mkdir()
     # dscl: -read /Users/x → 0 wenn angelegt; -create /Users/x → anlegen; -list /Users UniqueID → belegte IDs
+    home = tmp_path / "home"
+    home.mkdir()
     _exe(b / "dscl", log + f'''
 case "$2" in
-  -read) [ -f "{users}/$(basename "$3")" ] && {{ echo "UniqueID: 499"; exit 0; }}; exit 56 ;;
+  -read) [ "${{4:-}}" = "NFSHomeDirectory" ] && {{ echo "NFSHomeDirectory: {home}"; exit 0; }}
+         [ -f "{users}/$(basename "$3")" ] && {{ echo "UniqueID: 499"; exit 0; }}; exit 56 ;;
   -create) [ "$#" -eq 3 ] && touch "{users}/$(basename "$3")"; exit 0 ;;
   -list) echo "root 0"; echo "_hydrahive 498"; exit 0 ;;
 esac
 exit 0
 ''')
     for name in ("dseditgroup", "pwpolicy", "launchctl", "sharing", "chown", "defaults", "createhomedir"):
-        _exe(b / name, log + ("[ -f \"$(dirname \"$0\")/../sharing-fails\" ] && exit 1\n" if name == "sharing" else "")
+        _exe(b / name, log + ("[ -f \"$(dirname \"$0\")/../sharing-fails\" ] && exit 1\n"
+                              "[ \"$1\" = -l ] && cat \"$(dirname \"$0\")/../sharing-list.txt\" 2>/dev/null\n"
+                              if name == "sharing" else "")
              + "exit 0\n")
     _exe(b / "chmod", log + '[ "$1" = "-h" ] && shift\ncase "$1" in +a|-a|=a|-N) exit 0;; esac\nexec /bin/chmod "$@"\n')
     _exe(b / "sudo", log + 'while [ "${1:-}" = "-n" ] || [ "${1:-}" = "-u" ]; do [ "$1" = "-u" ] && shift; shift; done\n'
@@ -49,13 +54,13 @@ exit 0
     (data / "workspaces" / "projects" / PID).mkdir(parents=True)
     conf = tmp_path / "etc"
     conf.mkdir()
-    return {"tmp": tmp_path, "bin": b, "calls": calls, "data": data, "conf": conf, "users": users}
+    return {"tmp": tmp_path, "bin": b, "calls": calls, "data": data, "conf": conf, "users": users, "home": home}
 
 
 def _env(m: dict, **extra) -> dict:
     return {**os.environ, "PATH": f"{m['bin']}:/usr/bin:/bin", "HH_USER": "_hydrahive", "HH_DATA_DIR": str(m["data"]),
             "HH_CONFIG_DIR": str(m["conf"]), "HH_SHARES_PLIST": str(m["tmp"] / "io.hydrahive.shares.plist"),
-            "HH_REPO_DIR": str(INSTALLER.parent), "HH_LOG_DIR": str(m["tmp"] / "log"), **extra}
+            "HH_REPO_DIR": str(INSTALLER.parent), "HH_LOG_DIR": str(m["tmp"] / "log"), "HH_MAC_OWNER": "alex", **extra}
 
 
 def _setup(m: dict, **extra) -> subprocess.CompletedProcess:
@@ -152,7 +157,7 @@ def test_ctl_freigeben(mac) -> None:
     r = _ctl(mac)
     assert r.returncode == 0, r.stdout + r.stderr
     c = _calls(mac)
-    assert any(x == f"sharing -a {path} -S Mein_Projekt -s 001 -g 000" for x in c), c
+    assert any(x == f"sharing -a {path} -S Mein_Projekt -n {PID} -s 001 -g 000" for x in c), c
     assert any(x.startswith("chmod +a user:hhshare allow ") and "file_inherit,directory_inherit" in x
                and x.endswith(str(path)) for x in c)
     assert _state(mac, PID) == "on"
@@ -208,16 +213,214 @@ def test_setup_gibt_dem_dienst_das_dienst_konto_mit(mac) -> None:
     assert "<key>HH_USER</key>" in plist and "<string>_hydrahive</string>" in plist
 
 
-def test_ctl_abschalten(mac) -> None:
+def _sharing_list(m: dict, *records: tuple[str, str]) -> None:
+    """Ausgabe von `sharing -l` wie auf macOS 27 (Datensatz-Name, Pfad, smb-Block)."""
+    out = "\n\t\t\tList of Share Points\n"
+    for name, path in records:
+        out += f"name:\t\t{name}\npath:\t\t{path}\n\tsmb:\t{{\n    \t\tname:\tX\n    \t\tshared:\t1\n\t}}\n\n"
+    (m["tmp"] / "sharing-list.txt").write_text(out)
+
+
+def test_ctl_abschalten_entfernt_alle_datensaetze_des_projekts(mac) -> None:
+    """Live am Mac (26.10.): `sharing -r` will den Datensatz-Namen (Ordnername), nicht den SMB-Namen – Ausschalten
+    entfernte nichts, jedes Einschalten legte einen weiteren Datensatz (<id>-1, …) an. Jetzt: alle Datensätze, deren
+    Pfad der Projektordner ist, entfernen – fremde Freigaben bleiben."""
     path = mac["data"] / "workspaces" / "projects" / PID
-    _want(mac, PID, "on", "Mein_Projekt", str(path))
+    _sharing_list(mac, (PID, str(path)), (f"{PID}-1", str(path)), ("Alex Mo’s Public Folder", "/Users/alex/Public"))
+    _want(mac, PID, "off", "", str(path))
+    r = _ctl(mac)
+    assert r.returncode == 0
+    c = _calls(mac)
+    assert f"sharing -r {PID}" in c and f"sharing -r {PID}-1" in c, c
+    assert not any("Public" in x and x.startswith("sharing -r") for x in c), c
+    assert _state(mac, PID) == "off"
+
+
+def test_ctl_einschalten_raeumt_alte_datensaetze_vorher_weg(mac) -> None:
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _sharing_list(mac, (PID, str(path)), (f"{PID}-1", str(path)))
+    _want(mac, PID, "on", "P", str(path))
+    _ctl(mac)
+    c = _calls(mac)
+    add = c.index(f"sharing -a {path} -S P -n {PID} -s 001 -g 000")
+    assert c.index(f"sharing -r {PID}") < add and c.index(f"sharing -r {PID}-1") < add, c
+
+
+# --- Zugang für den Mac-Besitzer im Benutzerordner (Finder verbindet sich nicht mit dem eigenen Mac) --------------
+
+def _link(m: dict, name: str) -> Path:
+    return m["home"] / "HydraHive" / name
+
+
+def test_ctl_besitzer_bekommt_projekt_im_benutzerordner(mac) -> None:
+    """Live am Mac (26.10.): „Mit Server verbinden“ zum eigenen Mac scheitert (NetFS 65 bei jeder eigenen Adresse).
+    Der Mac-Besitzer kommt deshalb direkt dran: Recht auf das Projekt + Eintrag ~/HydraHive/<Name>."""
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "test123", str(path))
+    _ctl(mac)
+    c = _calls(mac)
+    assert any(x.startswith("chmod +a user:alex allow ") and "file_inherit,directory_inherit" in x
+               and x.endswith(str(path)) for x in c), c
+    link = _link(mac, "test123")
+    assert link.is_symlink() and os.readlink(link) == str(path)
+    assert any(x.startswith("sudo -n -u alex ln ") for x in c), "Eintrag als Besitzer anlegen, nicht als root"
+    assert any(x.startswith("sudo -n -u alex mkdir ") for x in c)
+
+
+def test_ctl_einschalten_hebt_sperre_auf_ausschalten_setzt_sie(mac) -> None:
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "P", str(path))
+    _ctl(mac)
+    c = _calls(mac)
+    assert f"chmod -a user:alex deny list,search {path}" in c, c
+    _want(mac, PID, "off", "", str(path))
+    mac["calls"].write_text("")
+    _ctl(mac)
+    assert f"chmod +a user:alex deny list,search {path}" in _calls(mac), _calls(mac)
+
+
+def test_ctl_besitzer_rechte_auch_auf_vorhandene_dateien(mac) -> None:
+    path = mac["data"] / "workspaces" / "projects" / PID
+    (path / "a.txt").write_text("x")
+    _want(mac, PID, "on", "P", str(path))
+    _ctl(mac)
+    assert any(str(path / "a.txt") in x.split() and "user:alex" in x and "+a" in x for x in _calls(mac)), _calls(mac)
+
+
+def test_ctl_abschalten_nimmt_besitzer_zugang_weg(mac) -> None:
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "P", str(path))
     _ctl(mac)
     _want(mac, PID, "off", "", str(path))
     mac["calls"].write_text("")
-    r = _ctl(mac)
-    assert r.returncode == 0
-    assert any(x == "sharing -r Mein_Projekt" for x in _calls(mac)), _calls(mac)
-    assert _state(mac, PID) == "off"
+    _ctl(mac)
+    c = _calls(mac)
+    assert not _link(mac, "P").exists() and not _link(mac, "P").is_symlink()
+    assert any(x.startswith("chmod -a user:alex allow ") and x.endswith(str(path)) for x in c), c
+
+
+def test_ctl_umbenennen_entfernt_alten_eintrag(mac) -> None:
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "Alt", str(path))
+    _ctl(mac)
+    _want(mac, PID, "on", "Neu", str(path))
+    _ctl(mac)
+    assert not _link(mac, "Alt").is_symlink() and _link(mac, "Neu").is_symlink()
+
+
+def test_ctl_fremder_eintrag_im_benutzerordner_bleibt(mac) -> None:
+    """Was der Besitzer selbst unter ~/HydraHive angelegt hat (echter Ordner, Link woandershin), fassen wir nicht an."""
+    path = mac["data"] / "workspaces" / "projects" / PID
+    (mac["home"] / "HydraHive" / "P").mkdir(parents=True)
+    (mac["home"] / "HydraHive" / "P" / "eigenes.txt").write_text("x")
+    (mac["home"] / "HydraHive" / "Q").symlink_to(mac["tmp"])
+    _want(mac, PID, "on", "P", str(path))
+    _ctl(mac)
+    assert (mac["home"] / "HydraHive" / "P" / "eigenes.txt").exists()
+    assert not (mac["home"] / "HydraHive" / "P" / PID).exists(), "kein Link im fremden Ordner"
+    assert _state(mac, PID) == "on", "SMB-Freigabe klappt trotzdem"
+    _want(mac, PID, "off", "", str(path))
+    _ctl(mac)
+    assert (mac["home"] / "HydraHive" / "P" / "eigenes.txt").exists()
+    assert (mac["home"] / "HydraHive" / "Q").is_symlink()
+
+
+@pytest.mark.parametrize("owner", ["", "root", "a b", "_hydrahive"])
+def test_ctl_ohne_gueltigen_besitzer_nur_smb(mac, owner) -> None:
+    """Kein/ungültiger Besitzer (oder Besitzer = Dienst-Konto, alte Installationen): SMB geht, kein Besitzer-Zugang."""
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "P", str(path))
+    subprocess.run(["bash", str(CTL)], env=_env(mac, HH_MAC_OWNER=owner), capture_output=True, text=True,
+                   timeout=60)
+    c = _calls(mac)
+    assert any(x.startswith("sharing -a") for x in c)
+    assert not any(" ln " in f" {x} " for x in c), c
+    if owner not in ("", "_hydrahive"):
+        assert not any(f"user:{owner} " in x for x in c), c
+    assert _state(mac, PID) == "on"
+
+
+def test_setup_besitzer_darf_bis_zu_den_projekten_durchgehen(mac) -> None:
+    _setup(mac)
+    acl = [x for x in _calls(mac) if x.startswith("chmod +a user:alex")]
+    for d in (mac["data"], mac["data"] / "workspaces", mac["data"] / "workspaces" / "projects"):
+        assert any(x == f"chmod +a user:alex allow search {d}" for x in acl), acl
+    assert not any(" allow " in x and "list" in x for x in acl), "nur durchgehen, nicht auflisten"
+
+
+DENY_LATER = "user:alex deny list,search,read,file_inherit,directory_inherit,only_inherit,limit_inherit"
+
+
+def test_setup_besitzer_sieht_nichts_ausser_dem_weg(mac) -> None:
+    """Live am Mac (26.10.): Unter dem Daten-Ordner (750) ist fast alles 755/644 – mit „durchgehen“ hätte der Besitzer
+    alle Projekte auflisten, master/ lesen und sessions.db öffnen können. Deshalb: auf dem Weg nicht auflisten, alles
+    daneben sperren (auch was später entsteht), nicht freigegebene Projekte zu. (Am Mac in /tmp nachgeprüft.)"""
+    d, ws = mac["data"], mac["data"] / "workspaces"
+    (ws / "master").mkdir()
+    (d / "sessions.db").write_text("x")
+    (d / ".versteckt").mkdir()
+    (ws / "projects" / "anderes").mkdir()
+    _setup(mac)
+    c = _calls(mac)
+    for x in (d, ws, ws / "projects"):
+        assert f"chmod +a user:alex deny list {x}" in c, c
+        assert f"chmod +a {DENY_LATER} {x}" in c, c
+    for x in (ws / "master", d / ".versteckt", ws / "projects" / "anderes", ws / "projects" / PID):
+        assert f"chmod -h +a user:alex deny list,search {x}" in c, c
+    assert f"chmod -h +a user:alex deny read {d / 'sessions.db'}" in c, c
+    for x in (ws, ws / "projects"):
+        assert not any(y.startswith("chmod") and "user:alex deny" in y and "search" in y and y.endswith(f"+a user:alex"
+                       f" deny list,search {x}") for y in c), "Weg selbst bleibt begehbar"
+
+
+def test_setup_ohne_besitzer_keine_sperren(mac) -> None:
+    _setup(mac, HH_MAC_OWNER="")
+    assert not any(" deny " in x for x in _calls(mac)), _calls(mac)
+
+
+def test_setup_sperren_erst_entfernen_dann_setzen(mac) -> None:
+    """macOS-`chmod -a` zieht die Rechte aus JEDEM passenden Eintrag ab (live am Mac: das zweite -a leerte die gerade
+    gesetzte Sperre „deny list“, workspaces/ und projects/ blieben auflistbar). Pro Ordner: alle -a vor allen +a."""
+    _setup(mac)
+    c = _calls(mac)
+    for d in (mac["data"], mac["data"] / "workspaces", mac["data"] / "workspaces" / "projects"):
+        idx = [(i, x.split()[1]) for i, x in enumerate(c)
+               if x.startswith("chmod ") and "user:alex deny" in x and x.endswith(f" {d}")]
+        minus = [i for i, op in idx if op == "-a"]
+        plus = [i for i, op in idx if op == "+a"]
+        assert minus and plus and max(minus) < min(plus), (d, idx)
+
+
+def test_setup_gibt_dem_dienst_den_besitzer_mit(mac) -> None:
+    _setup(mac)
+    plist = (mac["tmp"] / "io.hydrahive.shares.plist").read_text()
+    assert "<key>HH_MAC_OWNER</key>" in plist and "<string>alex</string>" in plist
+
+
+def test_setup_erkennt_besitzer_ueber_homebrew(mac) -> None:
+    """Ohne Angabe: Besitzer von Homebrew = der Mensch am Mac (wie überall im Mac-Installer, lib/mac-roles.sh)."""
+    brew = mac["tmp"] / "brew"
+    brew.write_text("")
+    brew.chmod(0o755)
+    env = {k: v for k, v in _env(mac, HH_BREW_CANDIDATES=str(brew)).items() if k != "HH_MAC_OWNER"}
+    r = subprocess.run(["bash", str(SETUP)], env=env, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    me = subprocess.run(["id", "-un"], capture_output=True, text=True).stdout.strip()
+    assert f"<string>{me}</string>" in (mac["tmp"] / "io.hydrahive.shares.plist").read_text()
+
+
+def test_setup_zieht_vorhandene_freigaben_nach(mac) -> None:
+    """Nach Update/Neuinstallation: eingeschaltete Projekte neu beauftragen (Besitzer-Zugang, Rechte, Datensätze)."""
+    d = mac["conf"] / "mac-shares.d"
+    d.mkdir()
+    (d / f"{PID}.name").write_text("test123\n")
+    (d / f"{PID}.state").write_text("on\n")
+    (d / "anderes.name").write_text("aus\n")
+    (d / "anderes.state").write_text("off\n")
+    _setup(mac)
+    want = d / f"{PID}.want"
+    assert want.read_text().splitlines() == ["on", "test123", str(mac["data"] / "workspaces" / "projects" / PID)]
+    assert not (d / "anderes.want").exists()
 
 
 @pytest.mark.parametrize("pid, name, path_kind", [
@@ -342,3 +545,32 @@ def test_ctl_projekte_ordner_selbst_umgebogen(mac, tmp_path) -> None:
                        timeout=60)
     assert r.returncode == 0
     assert not any(x.startswith("sharing -a") for x in _calls(mac)), _calls(mac)
+
+
+# --- Update: Freigabe mitpflegen ----------------------------------------------------------------------------------
+
+UPDATE = INSTALLER / "update-mac.sh"
+
+
+def _run_update_sharing(tmp_path: Path, plist_exists: bool) -> list[str]:
+    """Nur den Freigabe-Block von update-mac.sh ausführen."""
+    text = UPDATE.read_text()
+    start = text.index("# Dateifreigabe")
+    end = text.index("if grep -q '^HH_INSTALL_TAILSCALE=yes'")
+    repo, ran = tmp_path / "repo", tmp_path / "ran.log"
+    _exe(repo / "installer" / "modules-mac" / "47-filesharing.sh", f'echo "47 user=$HH_USER" >> "{ran}"\n')
+    plist = tmp_path / "io.hydrahive.shares.plist"
+    if plist_exists:
+        plist.write_text("x")
+    script = ('log() { echo "$*"; }\nto_log() { cat; }\n'
+              f'HH_REPO_DIR="{repo}"\nHH_CONFIG_DIR="{tmp_path}"\nHH_DATA_DIR="{tmp_path}"\nHH_USER=tester\n'
+              f'HH_SHARES_PLIST="{plist}"\n' + text[start:end])
+    r = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, r.stdout + r.stderr
+    return ran.read_text().splitlines() if ran.exists() else []
+
+
+def test_update_pflegt_freigabe_nur_wenn_installiert(tmp_path) -> None:
+    """Der Fix muss beim Kunden per Update ankommen – aber nichts einrichten, was er nicht wollte."""
+    assert _run_update_sharing(tmp_path / "a", plist_exists=True) == ["47 user=tester"]
+    assert _run_update_sharing(tmp_path / "b", plist_exists=False) == []
