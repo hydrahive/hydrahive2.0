@@ -23,34 +23,10 @@ MCP_PACKAGES=(
   "@modelcontextprotocol/server-time"
 )
 
-# dev-browser: Browser-Automation für Agenten (QuickJS Sandbox + Playwright)
-# HOME muss beschreibbar sein für ~/.cache/ms-playwright/ (Chromium-Download)
-DEV_BROWSER_HOME="$(eval echo ~$HH_USER)/.config/hh-dev-browser-home"
-mkdir -p "$DEV_BROWSER_HOME"
-chown "$HH_USER:$HH_USER" "$DEV_BROWSER_HOME"
-
-if ! command -v dev-browser >/dev/null 2>&1; then
-  log "dev-browser installieren…"
-  npm install -g --silent dev-browser 2>&1 | grep -v "^npm warn" || true
-fi
-
-# Chromium im richtigen HOME installieren (überlebt Reboots)
-# Früher: `dev-browser install --yes 2>/dev/null || true` als root. `--yes`
-# gibt es nicht → sofortiger Abbruch, Fehler verschluckt, Log meldete trotzdem
-# „installiert“ (auf hydratest am 02.10.2026 so vorgefunden). Jetzt als
-# $HH_USER (dem gehört das HOME) und mit Prüfung, ob wirklich alles da ist.
-if [ ! -d "$DEV_BROWSER_HOME/.dev-browser/node_modules" ] || [ ! -d "$DEV_BROWSER_HOME/.cache/ms-playwright" ]; then
-  log "dev-browser install (Laufzeit + Chromium nach $DEV_BROWSER_HOME)…"
-  if sudo -u "$HH_USER" env HOME="$DEV_BROWSER_HOME" dev-browser install </dev/null >/tmp/dev-browser-install.log 2>&1 \
-     && [ -d "$DEV_BROWSER_HOME/.dev-browser/node_modules" ] && [ -d "$DEV_BROWSER_HOME/.cache/ms-playwright" ]; then
-    log "dev-browser Chromium installiert"
-  else
-    log "WARNUNG: dev-browser install fehlgeschlagen — Browser-Werkzeug geht nicht (Log: /tmp/dev-browser-install.log)"
-    tail -3 /tmp/dev-browser-install.log 2>/dev/null | sed 's/^/    /' || true
-  fi
-else
-  log "dev-browser Chromium bereits vorhanden — überspringe"
-fi
+# dev-browser (Browser-Werkzeug der Agenten): gemeinsame Funktion, läuft auch in install.sh/update.sh.
+# shellcheck source=../lib/dev-browser.sh
+source "$HH_REPO_DIR/installer/lib/dev-browser.sh"
+ensure_dev_browser
 
 log "MCP-Server: installiere ${#MCP_PACKAGES[@]} npm-Pakete…"
 npm install -g --silent "${MCP_PACKAGES[@]}" 2>&1 | grep -v "^npm warn" || true

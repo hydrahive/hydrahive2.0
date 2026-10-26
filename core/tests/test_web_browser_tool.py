@@ -161,6 +161,8 @@ def test_success_path_unchanged(fake):
 # Fehler per 2>/dev/null || true verschluckt; außerdem lief es als root.
 
 MCP = Path(__file__).resolve().parents[2] / "installer" / "modules" / "87-mcp-servers.sh"
+# Seit Task 3d517e82 liegt der dev-browser-Teil in einer gemeinsamen Funktion (install.sh, update.sh, 87-…).
+DEVB = Path(__file__).resolve().parents[2] / "installer" / "lib" / "dev-browser.sh"
 
 
 def _code(path: Path) -> str:
@@ -169,19 +171,18 @@ def _code(path: Path) -> str:
 
 
 def test_installer_calls_dev_browser_install_without_unknown_flag():
-    text = _code(MCP)
+    text = _code(DEVB)
 
     assert "dev-browser install --yes" not in text
-    assert 'sudo -u "$HH_USER" env HOME="$DEV_BROWSER_HOME" dev-browser install' in text
+    assert 'sudo -u "$user" env HOME="$home" dev-browser install' in text
 
 
 def test_installer_checks_the_real_runtime_files_and_does_not_hide_errors():
-    text = _code(MCP)
-    block = text.split("dev-browser installieren", 1)[1].split('log "MCP-Server:', 1)[0]
+    text = _code(DEVB)
 
-    # Bedingung prüft beides, was der Daemon braucht (Laufzeit UND Chromium) —
+    # Geprüft wird beides, was der Daemon braucht (Laufzeit UND Chromium) —
     # auf hydratest fehlte die Laufzeit, Chromium-Ordner allein hätte nichts gesagt.
-    cond = next(line for line in block.splitlines() if line.lstrip().startswith("if [ ! -d"))
-    assert '.dev-browser/node_modules" ]' in cond and '.cache/ms-playwright" ]' in cond
-    assert "2>/dev/null || true" not in block
-    assert "WARNUNG" in block                     # Fehlschlag wird sichtbar gemeldet
+    assert 'runtime="$home/.dev-browser/node_modules"' in text and 'chromium="$home/.cache/ms-playwright"' in text
+    assert 'if [ -d "$runtime" ] && [ -d "$chromium" ]; then' in text
+    assert "2>/dev/null || true\n" not in text.replace('chown "$user:$user" "$home" 2>/dev/null || true', "")
+    assert "WARNUNG" in text                      # Fehlschlag wird sichtbar gemeldet
