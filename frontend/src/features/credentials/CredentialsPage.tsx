@@ -4,6 +4,7 @@ import { AlertTriangle, Key, Loader2, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { rgbFor } from "@/shared/colors"
 import { HelpButton } from "@/i18n/HelpButton"
+import { countUnbound } from "./unbound"
 import { useAuthStore } from "@/features/auth/useAuthStore"
 import { credentialsApi } from "./api"
 import { CredentialEditor } from "./CredentialEditor"
@@ -30,7 +31,7 @@ export function CredentialsPage() {
   useEffect(() => { reload() }, [])
 
   // Zugänge mit "*" o.ä. setzt fetch_url nie ein (Task ef27f79b) — sichtbar machen.
-  const unbound = creds.filter((c) => c.host_bound === false).length
+  const unbound = countUnbound(creds)
 
   return (
     <div className="space-y-5 max-w-4xl">

@@ -6,8 +6,10 @@ import { credentialsApi } from "@/features/credentials/api"
 import { CredentialEditor } from "@/features/credentials/CredentialEditor"
 import { ExtensionCredentials } from "@/features/credentials/ExtensionCredentials"
 import type { Credential } from "@/features/credentials/types"
+import { countUnbound } from "@/features/credentials/unbound"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { CredentialCockpitCard, UnboundBanner } from "./CredentialCockpitCard"
 
 type Tab = "http" | "extensions"
 
@@ -65,6 +67,8 @@ export function CredentialsOverlay({ onClose }: { onClose: () => void }) {
               {t("security_note")}
             </p>
 
+            <UnboundBanner count={countUnbound(creds)} />
+
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 size={20} className="animate-spin text-[#8d9ab0]" />
@@ -73,20 +77,7 @@ export function CredentialsOverlay({ onClose }: { onClose: () => void }) {
               <p className="py-8 text-center text-xs text-[#8d9ab0]">{t("empty")}</p>
             ) : (
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                {creds.map((c) => (
-                  <button key={c.name} onClick={() => setEditor(c)}
-                    className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-3 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]">
-                    <div className="mb-1 flex items-center gap-2">
-                      <Key size={11} className="shrink-0 text-amber-300" />
-                      <p className="flex-1 truncate font-mono text-sm text-[#e8eef8]">{c.name}</p>
-                      <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/[8%] px-1.5 py-0.5 text-[10px] text-violet-300">
-                        {t(`type_${c.type}`)}
-                      </span>
-                    </div>
-                    {c.description && <p className="line-clamp-1 text-xs text-[#8d9ab0]">{c.description}</p>}
-                    <p className="mt-1 truncate font-mono text-[10px] text-[#7d8aa0]">{c.url_pattern}</p>
-                  </button>
-                ))}
+                {creds.map((c) => <CredentialCockpitCard key={c.name} credential={c} onOpen={() => setEditor(c)} />)}
               </div>
             )}
           </>

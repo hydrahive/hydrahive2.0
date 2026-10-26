@@ -132,5 +132,11 @@
     "auto_tools_title": "Runs tools without confirmation",
     "auto_tools_warning": "At least one released agent runs tools without confirmation. Tasks from the partner server then run unchecked – enable “Confirm tools” in these agents' settings.",
     "call_hint": "Call from the other server: ask_agent(\"<agent name or ID>@{{server}}\")"
+  },
+  "tabs": {
+    "workstations": "Workstations",
+    "peers": "Servers",
+    "clients": "Clients",
+    "datamining": "Datamining"
   }
 }

@@ -15,6 +15,7 @@ import { JobsOverlay } from "./JobsOverlay"
 import { ScheduledTasksOverlay } from "./ScheduledTasksOverlay"
 import { GrantsOverlay } from "@/features/access/GrantsOverlay"
 import { ArchiveOverlay } from "@/features/archive/ArchiveOverlay"
+import { FederationOverlay } from "./FederationOverlay"
 import type { AdminOverlayId } from "./adminOverlayRegistry"
 
 interface Props {
@@ -51,6 +52,7 @@ export function AdminOverlays({ overlay, selectedContainerId, onClose, onSelectC
       {overlay === "scheduled-tasks" && <ScheduledTasksOverlay onClose={onClose} />}
       {overlay === "access" && <GrantsOverlay onClose={onClose} />}
       {overlay === "archive" && <ArchiveOverlay onClose={onClose} />}
+      {overlay === "federation" && <FederationOverlay onClose={onClose} />}
     </>
   )
 }

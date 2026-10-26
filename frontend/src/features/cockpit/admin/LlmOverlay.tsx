@@ -6,6 +6,7 @@ import { ProviderCard } from "@/features/llm/ProviderCard"
 import { ProviderForm } from "@/features/llm/ProviderForm"
 import { AnthropicUsageCard } from "@/features/llm/AnthropicUsageCard"
 import { DefaultModelsSection } from "@/features/llm/DefaultModelsSection"
+import { MediaBackendsSection } from "@/features/llm/MediaBackendsSection"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
 
@@ -93,6 +94,8 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
         </div>
 
         <DefaultModelsSection config={config} onSaved={reloadConfig} />
+
+        <MediaBackendsSection />
 
         <div className="flex items-center gap-3">
           <CockpitButton tone="primary" onClick={testConnection} disabled={testing || !config.default_model}>
