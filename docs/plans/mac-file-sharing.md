@@ -107,3 +107,8 @@ Lösung (nur Mac-Dateien, Linux unverändert):
   deren Pfad der Projektordner ist (aus `sharing -l`).
 - **Update:** `update-mac.sh` führt `47-filesharing.sh` aus, wenn die Freigabe eingerichtet ist; das Modul beauftragt
   alle eingeschalteten Projekte neu.
+- **Abschirmung (live nachgeprüft):** Unter dem Daten-Ordner (750) ist fast alles 755/644. „Durchgehen“ allein hätte
+  dem Besitzer alle Projekte, `master/` und `sessions.db` geöffnet. Deshalb auf dem Weg `deny list`, alles daneben
+  `deny list,search` bzw. `deny read`, dazu eine vererbte Sperre nur für Neues (`only_inherit`). Freigegebene
+  Projekte öffnet `mac-shares-ctl.sh` einzeln. macOS-`chmod -a` zieht Rechte aus jedem passenden Eintrag ab, deshalb
+  pro Ordner erst alle `-a`, dann alle `+a`.

@@ -62,15 +62,44 @@ set_pw
 priv pwpolicy -u "$SHARE_USER" sethashtypes SMB-NT on >/dev/null 2>&1 || log "Achtung: SMB-Passwort-Hash nicht eingeschaltet"
 set_pw
 
-# --- Rechte: nur durchgehen bis zu den Projekten (nicht auflisten – andere Projekte bleiben unsichtbar) ---
+# --- Rechte: nur durchgehen bis zu den Projekten ---
+WAY=("$HH_DATA_DIR" "$HH_DATA_DIR/workspaces" "$HH_DATA_DIR/workspaces/projects")
 for who in "$SHARE_USER" ${HH_MAC_OWNER:+"$HH_MAC_OWNER"}; do
   SEARCH="user:$who allow search"
-  for d in "$HH_DATA_DIR" "$HH_DATA_DIR/workspaces" "$HH_DATA_DIR/workspaces/projects"; do
+  for d in ${WAY[@]+"${WAY[@]}"}; do
     [ -d "$d" ] || continue
     priv chmod -a "$SEARCH" "$d" 2>/dev/null || true
     priv chmod +a "$SEARCH" "$d"
   done
 done
+
+# Der Mac-Besitzer ist ein echtes Konto: Unter dem Daten-Ordner (750) ist fast alles 755/644 (live 26.10.). Mit
+# „durchgehen“ allein könnte er alle Projekte auflisten, master/ lesen, sessions.db öffnen. Deshalb (am Mac in /tmp
+# nachgeprüft): Weg nicht auflisten, alles daneben sperren, auch was später entsteht (vererbte Sperre, nur für
+# Neues). Freigegebene Projekte öffnet mac-shares-ctl.sh einzeln wieder.
+if [ -n "$HH_MAC_OWNER" ]; then
+  O="user:$HH_MAC_OWNER"
+  for d in ${WAY[@]+"${WAY[@]}"}; do
+    [ -d "$d" ] || continue
+    # macOS-chmod -a zieht Rechte aus JEDEM passenden Eintrag ab (live: leerte die eben gesetzte Sperre) → erst alle
+    # weg, dann alle neu.
+    LATER="$O deny list,search,read,file_inherit,directory_inherit,only_inherit,limit_inherit"
+    priv chmod -a "$O deny list" "$d" 2>/dev/null || true
+    priv chmod -a "$LATER" "$d" 2>/dev/null || true
+    priv chmod +a "$O deny list" "$d"
+    priv chmod +a "$LATER" "$d"
+  done
+  for d in ${WAY[@]+"${WAY[@]}"}; do
+    [ -d "$d" ] || continue
+    for e in "$d"/* "$d"/.[!.]* "$d"/..?*; do
+      [ -e "$e" ] || [ -L "$e" ] || continue
+      case "$e" in "$HH_DATA_DIR/workspaces"|"$HH_DATA_DIR/workspaces/projects") continue ;; esac
+      if [ -d "$e" ] && [ ! -L "$e" ]; then ace="$O deny list,search"; else ace="$O deny read"; fi
+      priv chmod -h -a "$ace" "$e" 2>/dev/null || true
+      priv chmod -h +a "$ace" "$e" || log "Achtung: Sperre auf $e nicht gesetzt"
+    done
+  done
+fi
 
 # --- Auftrags-Ordner (Backend schreibt, root liest) ---
 mkdir -p "$SHARES"

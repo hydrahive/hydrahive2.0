@@ -267,6 +267,18 @@ def test_ctl_besitzer_bekommt_projekt_im_benutzerordner(mac) -> None:
     assert any(x.startswith("sudo -n -u alex mkdir ") for x in c)
 
 
+def test_ctl_einschalten_hebt_sperre_auf_ausschalten_setzt_sie(mac) -> None:
+    path = mac["data"] / "workspaces" / "projects" / PID
+    _want(mac, PID, "on", "P", str(path))
+    _ctl(mac)
+    c = _calls(mac)
+    assert f"chmod -a user:alex deny list,search {path}" in c, c
+    _want(mac, PID, "off", "", str(path))
+    mac["calls"].write_text("")
+    _ctl(mac)
+    assert f"chmod +a user:alex deny list,search {path}" in _calls(mac), _calls(mac)
+
+
 def test_ctl_besitzer_rechte_auch_auf_vorhandene_dateien(mac) -> None:
     path = mac["data"] / "workspaces" / "projects" / PID
     (path / "a.txt").write_text("x")
@@ -333,7 +345,50 @@ def test_setup_besitzer_darf_bis_zu_den_projekten_durchgehen(mac) -> None:
     acl = [x for x in _calls(mac) if x.startswith("chmod +a user:alex")]
     for d in (mac["data"], mac["data"] / "workspaces", mac["data"] / "workspaces" / "projects"):
         assert any(x == f"chmod +a user:alex allow search {d}" for x in acl), acl
-    assert not any("list" in x for x in acl), "nur durchgehen, nicht auflisten (andere Projekte bleiben unsichtbar)"
+    assert not any(" allow " in x and "list" in x for x in acl), "nur durchgehen, nicht auflisten"
+
+
+DENY_LATER = "user:alex deny list,search,read,file_inherit,directory_inherit,only_inherit,limit_inherit"
+
+
+def test_setup_besitzer_sieht_nichts_ausser_dem_weg(mac) -> None:
+    """Live am Mac (26.10.): Unter dem Daten-Ordner (750) ist fast alles 755/644 – mit „durchgehen“ hätte der Besitzer
+    alle Projekte auflisten, master/ lesen und sessions.db öffnen können. Deshalb: auf dem Weg nicht auflisten, alles
+    daneben sperren (auch was später entsteht), nicht freigegebene Projekte zu. (Am Mac in /tmp nachgeprüft.)"""
+    d, ws = mac["data"], mac["data"] / "workspaces"
+    (ws / "master").mkdir()
+    (d / "sessions.db").write_text("x")
+    (d / ".versteckt").mkdir()
+    (ws / "projects" / "anderes").mkdir()
+    _setup(mac)
+    c = _calls(mac)
+    for x in (d, ws, ws / "projects"):
+        assert f"chmod +a user:alex deny list {x}" in c, c
+        assert f"chmod +a {DENY_LATER} {x}" in c, c
+    for x in (ws / "master", d / ".versteckt", ws / "projects" / "anderes", ws / "projects" / PID):
+        assert f"chmod -h +a user:alex deny list,search {x}" in c, c
+    assert f"chmod -h +a user:alex deny read {d / 'sessions.db'}" in c, c
+    for x in (ws, ws / "projects"):
+        assert not any(y.startswith("chmod") and "user:alex deny" in y and "search" in y and y.endswith(f"+a user:alex"
+                       f" deny list,search {x}") for y in c), "Weg selbst bleibt begehbar"
+
+
+def test_setup_ohne_besitzer_keine_sperren(mac) -> None:
+    _setup(mac, HH_MAC_OWNER="")
+    assert not any(" deny " in x for x in _calls(mac)), _calls(mac)
+
+
+def test_setup_sperren_erst_entfernen_dann_setzen(mac) -> None:
+    """macOS-`chmod -a` zieht die Rechte aus JEDEM passenden Eintrag ab (live am Mac: das zweite -a leerte die gerade
+    gesetzte Sperre „deny list“, workspaces/ und projects/ blieben auflistbar). Pro Ordner: alle -a vor allen +a."""
+    _setup(mac)
+    c = _calls(mac)
+    for d in (mac["data"], mac["data"] / "workspaces", mac["data"] / "workspaces" / "projects"):
+        idx = [(i, x.split()[1]) for i, x in enumerate(c)
+               if x.startswith("chmod ") and "user:alex deny" in x and x.endswith(f" {d}")]
+        minus = [i for i, op in idx if op == "-a"]
+        plus = [i for i, op in idx if op == "+a"]
+        assert minus and plus and max(minus) < min(plus), (d, idx)
 
 
 def test_setup_gibt_dem_dienst_den_besitzer_mit(mac) -> None:

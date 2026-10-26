@@ -25,6 +25,7 @@ if ! [[ "$OWNER" =~ ^[A-Za-z_][A-Za-z0-9_.-]{0,31}$ ]] || [ "$OWNER" = root ] ||
   OWNER=""
 fi
 ACE_OW="user:$OWNER $RIGHTS"
+DENY_OW="user:$OWNER deny list,search"     # 47-filesharing.sh sperrt jedes Projekt für den Besitzer, bis es frei ist
 
 say() { printf '[hh2-shares] %s\n' "$*"; }
 state() { printf '%s\n' "$2" > "$DIR/$1.state"; }
@@ -108,6 +109,8 @@ handle() {
     if [ -n "$OWNER" ]; then
       owner_unlink "$path"
       chmod -a "$ACE_OW" "$path" 2>/dev/null || true
+      chmod -a "$DENY_OW" "$path" 2>/dev/null || true
+      chmod +a "$DENY_OW" "$path" 2>/dev/null || true
     fi
     rm -f "$DIR/$id.name"
     state "$id" "off"; say "aus: $id"; return
@@ -119,6 +122,7 @@ handle() {
     say "FEHLER ($id): Dienst-Konto unbekannt"; state "$id" "error:user"; return
   fi
   local ace
+  [ -n "$OWNER" ] && chmod -a "$DENY_OW" "$path" 2>/dev/null
   for ace in "$ACE_RW" "$ACE_HH" ${OWNER:+"$ACE_OW"}; do
     chmod -a "$ace" "$path" 2>/dev/null || true            # nie doppelt
     if ! chmod +a "$ace" "$path"; then
