@@ -1,84 +1,52 @@
-import { Suspense, useEffect, useState } from "react"
-import { Navigate, useParams, useNavigate } from "react-router-dom"
-import { Loader2 } from "lucide-react"
-import { useAuthStore } from "@/features/auth/useAuthStore"
-import { SETTINGS_GROUPS, type SettingsGroup } from "./registry"
-import { GroupList } from "./GroupList"
+import { Navigate, useNavigate, useParams } from "react-router-dom"
+import { SETTINGS_GROUPS } from "./registry"
 import { ContentArea } from "./ContentArea"
-import { SubMenu } from "./SubMenu"
+import { CONTENT_WIDTH } from "./layout"
 import { legacyTarget } from "./legacyRedirects"
 import { CockpitShell } from "@/features/cockpit/CockpitShell"
 import { CockpitTopbar } from "@/features/cockpit/CockpitTopbar"
 
 /**
- * „Meine Einstellungen“ (unterm Zahnrad/Benutzermenü): nur persönliche Einstellungen.
- * Alte Adressen von Admin-Gruppen leiten ins Admin-Cockpit um (legacyRedirects.ts).
- * Ursprünglich die zentrale Einstellungsseite. 3-Spalten Master-Detail nach
- * Tills Blueprint-Board, im Werkbank-Look (blauer Rahmen #104E8B):
- *   links   = Hauptgruppen (Auswahl)
- *   mitte   = Inhalt mit Karteikarten-Tabs
- *   rechts  = kontextabhängiges Submenü (nur wenn group.hasSubmenu)
+ * „Meine Einstellungen“ (Benutzermenü/Zahnrad): persönliche Einstellungen als Reiter.
+ * Kompakt nach docs/plans/meine-einstellungen-kompakt.md: Reiterleiste oben statt Spalten
+ * links/rechts; der Inhalt nutzt die volle Breite. Alte Adressen von Admin-Gruppen leiten
+ * ins Admin-Cockpit um (legacyRedirects.ts).
  */
 export function SettingsHubPage() {
-  const role = useAuthStore((s) => s.role) ?? "user"
   const navigate = useNavigate()
   const { groupId } = useParams<{ groupId?: string }>()
   const redirect = legacyTarget(groupId)
-  const groups = SETTINGS_GROUPS.filter((g) => !g.adminOnly || role === "admin")
-
-  // Aktive Gruppe aus der URL (/settings/:groupId), Fallback erste Gruppe.
-  const active = groups.find((g) => g.id === groupId) ?? groups[0]
-  const [subItem, setSubItem] = useState<string | null>(null)
-
-  // Submenü-Auswahl zurücksetzen, wenn die Gruppe wechselt (auch via Deeplink).
-  useEffect(() => { setSubItem(null) }, [active.id])
-
-  const selectGroup = (g: SettingsGroup) => {
-    navigate(`/settings/${g.id}`)
-  }
+  const active = SETTINGS_GROUPS.find((g) => g.id === groupId) ?? SETTINGS_GROUPS[0]
 
   if (redirect) return <Navigate to={redirect} replace />
 
   return (
-    <CockpitShell
-      title="Meine Einstellungen"
-      className="cockpit-route flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
-      hideHeader
-    >
+    <CockpitShell title="Meine Einstellungen" className="cockpit-route flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]" hideHeader>
       <CockpitTopbar active="/settings" context="Deine persönlichen Einstellungen" />
       <main className="min-h-0 flex-1 overflow-hidden p-[10px]">
-        <div className="grid h-full min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#101724] lg:grid-cols-[220px_minmax(0,1fr)_250px]">
-
-        {/* Links: Hauptgruppen */}
-        <div className="min-h-0 min-w-0 border-r border-[#2a364b] bg-[#101724]">
-          <GroupList role={role} activeId={active.id} onSelect={selectGroup} />
-        </div>
-
-        {/* Mitte: Inhalt mit Tabs */}
-        <div className="min-h-0 min-w-0 bg-[#0d1420]">
-          <ContentArea group={active} subItem={subItem} />
-        </div>
-
-        {/* Rechts: Submenü — nur wenn die Gruppe eins braucht. Eigene
-            submenuComponent (z.B. Agentenliste mit Farben) hat Vorrang. */}
-        {active.hasSubmenu && (() => {
-          const Custom = active.submenuComponent
-          return (
-            <div className="min-h-0 min-w-0 border-l border-[#2a364b] bg-[#101724]">
-              {Custom ? (
-                <Suspense fallback={
-                  <div className="flex h-full items-center justify-center">
-                    <Loader2 size={18} className="animate-spin text-zinc-500" />
-                  </div>
-                }>
-                  <Custom activeItem={subItem} onSelect={setSubItem} />
-                </Suspense>
-              ) : (
-                <SubMenu group={active} activeItem={subItem} onSelect={setSubItem} />
-              )}
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0d1420]">
+          <header className="shrink-0 border-b border-[#2a364b] bg-[#101724] px-3 py-2">
+            <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 ${CONTENT_WIDTH}`}>
+            <h1 className="text-sm font-black text-[#e8eef8]">Meine Einstellungen</h1>
+            <div role="tablist" aria-label="Meine Einstellungen" className="flex min-w-0 basis-full gap-1 overflow-x-auto sm:basis-auto sm:flex-1">
+              {SETTINGS_GROUPS.map((g) => {
+                const Icon = g.icon
+                const selected = g.id === active.id
+                return (
+                  <button key={g.id} type="button" role="tab" id={`settings-tab-${g.id}`}
+                    aria-selected={selected} aria-controls="settings-pane"
+                    onClick={() => navigate(`/settings/${g.id}`)}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-[3px] px-3 py-1.5 text-xs font-bold transition-colors sm:text-sm ${
+                      selected ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#8d9ab0] hover:bg-white/5 hover:text-[#e8eef8]"
+                    }`}><Icon size={14} className="shrink-0" />{g.label}</button>
+                )
+              })}
             </div>
-          )
-        })()}
+            </div>
+          </header>
+          <section id="settings-pane" role="tabpanel" aria-labelledby={`settings-tab-${active.id}`} className="min-h-0 flex-1">
+            <ContentArea key={active.id} group={active} />
+          </section>
         </div>
       </main>
     </CockpitShell>

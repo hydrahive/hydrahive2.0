@@ -1,4 +1,4 @@
-// Plan docs/plans/meine-einstellungen.md, Task 3: alte Admin-Adressen leiten um, sonst „Meine Einstellungen“.
+// Plan docs/plans/meine-einstellungen.md (Umleitung) und meine-einstellungen-kompakt.md (Reiter statt Spalten).
 import { renderToStaticMarkup } from "react-dom/server"
 import type { ReactNode } from "react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
@@ -12,9 +12,7 @@ vi.mock("react-router-dom", async (orig) => ({
 vi.mock("react", async (orig) => ({ ...(await orig<typeof import("react")>()), lazy: () => () => null }))
 vi.mock("@/features/cockpit/CockpitShell", () => ({ CockpitShell: ({ children }: { children: ReactNode }) => <div>{children}</div> }))
 vi.mock("@/features/cockpit/CockpitTopbar", () => ({ CockpitTopbar: () => null }))
-vi.mock("@/features/auth/useAuthStore", () => ({ useAuthStore: (sel: (s: { role: string }) => unknown) => sel({ role: "admin" }) }))
-vi.mock("./ContentArea", () => ({ ContentArea: ({ group }: { group: { id: string } }) => <div data-group={group.id} /> }))
-vi.mock("./SubMenu", () => ({ SubMenu: () => null }))
+vi.mock("./ContentArea", () => ({ ContentArea: ({ group }: { group: { id: string; tabs: string[] } }) => <div data-group={group.id} data-inner-tabs={group.tabs.length} /> }))
 import { SettingsHubPage } from "./SettingsHubPage"
 
 const render = (url: string) => renderToStaticMarkup(
@@ -25,27 +23,44 @@ const render = (url: string) => renderToStaticMarkup(
     </Routes>
   </MemoryRouter>,
 )
+const tabs = (h: string) => [...h.matchAll(/<button[^>]*role="tab"[^>]*>(?:<svg[\s\S]*?<\/svg>)?([^<]*)<\/button>/g)].map((m) => m[1])
+const selected = (h: string) => [...h.matchAll(/<button[^>]*role="tab"[^>]*aria-selected="true"[^>]*>(?:<svg[\s\S]*?<\/svg>)?([^<]*)</g)].map((m) => m[1])
 
-describe("Meine Einstellungen", () => {
+describe("Meine Einstellungen: Umleitung", () => {
   it("alte Adresse einer Admin-Gruppe landet im Admin-Fenster", () => {
     expect(render("/settings/modules")).toContain('data-at="/admin?section=modules"')
     expect(render("/settings/connections")).toContain('data-at="/admin?section=system"')
     expect(render("/settings/zahnfee")).toContain('data-at="/admin?section=zahnfee"')
   })
-  it("persönliche Gruppe bleibt hier, Kopf heißt „Meine Einstellungen“", () => {
-    const html = render("/settings/credentials")
-    expect(html).toContain('data-group="credentials"')
-    expect(html).toContain("Meine Einstellungen")
-    expect(html).not.toContain("data-at=")
+})
+
+describe("Meine Einstellungen: Reiter statt Spalten", () => {
+  it("sechs Reiter in fester Reihenfolge, Kopf heißt „Meine Einstellungen“", () => {
+    const h = render("/settings")
+    expect(tabs(h)).toEqual(["Agenten", "Projekte", "Kommunikation", "Zugangsdaten", "Skills", "Butler"])
+    expect(h).toContain("Meine Einstellungen")
   })
-  it("unbekannte Gruppe: erste Gruppe, keine Umleitung", () => {
-    expect(render("/settings/xyz")).toContain('data-group="agents"')
+  it("Reiter folgt der URL", () => {
+    const h = render("/settings/credentials")
+    expect(selected(h)).toEqual(["Zugangsdaten"])
+    expect(h).toContain('data-group="credentials"')
+    expect(h).not.toContain("data-at=")
   })
-  it("Liste links zeigt keine Admin-Gruppen mehr", () => {
-    const html = render("/settings")
-    for (const label of ["Module", "Plugins", "KI-Modelle", "Benutzer", "Globale Settings", "Föderation"]) {
-      expect(html).not.toContain(`<span class="truncate">${label}</span>`)
-    }
-    expect(html).toContain('<span class="truncate">Zugangsdaten</span>')
+  it("ohne/unbekannte Gruppe: erster Reiter", () => {
+    expect(selected(render("/settings"))).toEqual(["Agenten"])
+    expect(selected(render("/settings/xyz"))).toEqual(["Agenten"])
+  })
+  it("keine Gruppen-Spalte und keine Rechtsspalte mehr", () => {
+    const h = render("/settings/agents")
+    expect(h).not.toContain("Gruppe wählen")
+    expect(h).not.toMatch(/lg:grid-cols-\[220px/)
+  })
+  it("Kopf mit Titel und Reitern sitzt mittig in derselben Höchstbreite wie der Inhalt", () => {
+    expect(render("/settings/agents")).toMatch(/<header[^>]*>\s*<div class="[^"]*mx-auto[^"]*max-w-5xl/)
+  })
+  it("innere Reiter nur, wo eine Gruppe mehrere Teile hat", () => {
+    expect(render("/settings/communication")).toContain('data-inner-tabs="3"')
+    expect(render("/settings/credentials")).toContain('data-inner-tabs="0"')
+    expect(render("/settings/agents")).toContain('data-inner-tabs="0"')
   })
 })
