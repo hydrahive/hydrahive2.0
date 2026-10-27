@@ -8,6 +8,7 @@ import { useRestart } from "@/shared/useRestart"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
 import { HubCockpitCard, InstalledCockpitCard } from "./PluginCockpitCards"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 type Tab = "hub" | "installed"
 
@@ -20,7 +21,7 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
           handleInstall, handleUninstall, handleUpdate, handleUpdateAll } = usePlugins()
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["plugins"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

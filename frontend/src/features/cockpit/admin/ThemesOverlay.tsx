@@ -5,6 +5,7 @@ import { listThemes } from "@/features/themes/api"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
 import { AvailableThemeCockpitCard, InstalledThemeCockpitCard } from "./ThemeCockpitCards"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 export function ThemesOverlay({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<ThemesIndex>({ installed: [], available: [] })
@@ -24,7 +25,7 @@ export function ThemesOverlay({ onClose }: { onClose: () => void }) {
   const available = data.available.filter((t) => !installedIds.has(t.id))
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["themes"]}
       eyebrow="Admin"
       title="Themes"
       onClose={onClose}

@@ -8,6 +8,7 @@ import { CATEGORIES, type Extension, type InstallMode } from "@/features/extensi
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
 import { useDockerInstall } from "./useDockerInstall"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 interface ModalState { ext: Extension; action: "install" | "uninstall"; mode: InstallMode }
 
@@ -34,7 +35,7 @@ export function ExtensionsOverlay({ onClose }: { onClose: () => void }) {
   const dockerAvailable = extensions.some((e) => e.docker_available)
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["extensions"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

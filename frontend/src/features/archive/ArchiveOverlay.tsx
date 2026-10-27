@@ -10,6 +10,7 @@ import { DropLocalDialog, type DropSelection } from "./DropLocalDialog"
 import { MoveDialog } from "./MoveDialog"
 import { useRemote } from "./useRemote"
 import { TrashConfirmDialog } from "./TrashConfirmDialog"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 /** Admin-Fenster „Archiv & Sicherung“ (docs/specs/archiv-system.md, Etappe 1). */
 export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
@@ -108,7 +109,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["archive"]}
       eyebrow="Admin · Wartung"
       title={t("title")}
       onClose={onClose}

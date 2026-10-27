@@ -6,6 +6,7 @@ import { AdminFeedback, AdminStatus } from "@/features/cockpit/admin/ui"
 import { accessApi } from "./api"
 import { adminNames, cellLevel, groupCapabilities, nextLevel, subjectsFor, type MatrixSubject } from "./grantMatrix"
 import type { AccessCatalog, CatalogCapability } from "./types"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const cellTone = {
   none: "border-[#2a364b] text-[#7d8aa0]",
@@ -45,7 +46,7 @@ export function GrantsOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <AdminOverlay eyebrow="Admin" title={t("grants.title")} onClose={onClose} maxWidthClass="max-w-6xl"
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["access"]} eyebrow="Admin" title={t("grants.title")} onClose={onClose} maxWidthClass="max-w-6xl"
       headerActions={<HelpButton topic="access" />}>
       <div className="space-y-4">
         <p className="text-sm text-[#8d9ab0]">{t("grants.description")}</p>

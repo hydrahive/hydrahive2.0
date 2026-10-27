@@ -9,6 +9,7 @@ import { DefaultModelsSection } from "@/features/llm/DefaultModelsSection"
 import { MediaBackendsSection } from "@/features/llm/MediaBackendsSection"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 export function LlmOverlay({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("llm")
@@ -47,7 +48,7 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["llm"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

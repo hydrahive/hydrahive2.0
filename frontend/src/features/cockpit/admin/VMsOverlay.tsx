@@ -13,6 +13,7 @@ import { ImportJobsPanel } from "@/features/vms/ImportJobsPanel"
 import { VMLogsPanel } from "@/features/vms/VMLogsPanel"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const POLL_MS = 4000
 
@@ -50,7 +51,7 @@ export function VMsOverlay({ onClose }: { onClose: () => void }) {
   }, [vms])
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["vms"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

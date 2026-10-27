@@ -14,6 +14,7 @@ import { CockpitButton } from "../CockpitButton"
 import { AdminFeedback, AdminStat } from "./ui"
 import { adminInputClass } from "./ui/AdminField"
 import { AdminOverlay } from "./AdminOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const POLL_MS = 5000
 const JOB_STATUSES: JobStatus[] = ["queued", "leased", "running", "succeeded", "failed", "cancelled", "expired"]
@@ -61,7 +62,7 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
   }), [jobs])
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["jobs"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

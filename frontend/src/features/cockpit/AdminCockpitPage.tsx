@@ -61,7 +61,7 @@ export function AdminCockpitPage() {
       <CockpitTopbar active="admin" context="Admin" />
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-y-auto p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_370px] xl:overflow-hidden">
         <aside className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
-          <CockpitPanel title="Admin-Bereiche" eyebrow="Control">
+          <CockpitPanel theme="status" title="Admin-Bereiche" eyebrow="Control">
             <div className="space-y-2">
               {adminLinks.map((item) => {
                 const Icon = item.icon
@@ -85,7 +85,7 @@ export function AdminCockpitPage() {
 
         <main className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
           <AccessNotice onOpen={() => setOverlay("access")} />
-          <CockpitPanel title="Betriebszentrale" eyebrow="Ops">
+          <CockpitPanel theme="werkzeug" title="Betriebszentrale" eyebrow="Ops">
             <div className="grid gap-2 md:grid-cols-3">
               {opsLinks.map((item) => {
                 const Icon = item.icon
@@ -103,7 +103,7 @@ export function AdminCockpitPage() {
             </div>
           </CockpitPanel>
 
-          <CockpitPanel title="Sicherheitsregeln" eyebrow="Guard">
+          <CockpitPanel theme="wissen" title="Sicherheitsregeln" eyebrow="Guard">
             <div className="rounded-[4px] border border-amber-400/20 bg-amber-500/[6%] p-4">
               <div className="mb-3 flex items-center gap-2">
                 <ShieldAlert size={18} className="text-amber-300" />
@@ -123,7 +123,7 @@ export function AdminCockpitPage() {
             </div>
           </CockpitPanel>
 
-          <CockpitPanel title="Integrationen" eyebrow="Connect">
+          <CockpitPanel theme="werkzeug" title="Integrationen" eyebrow="Connect">
             <div className="grid gap-2 md:grid-cols-4">
               {integrationLinks.map((item) => {
                 const Icon = item.icon
@@ -138,7 +138,7 @@ export function AdminCockpitPage() {
             </div>
           </CockpitPanel>
 
-          <CockpitPanel title="Wartung & Backups" eyebrow="Recovery">
+          <CockpitPanel theme="werkzeug" title="Wartung & Backups" eyebrow="Recovery">
             <div className="grid gap-2 md:grid-cols-2">
               <AdminInfoCard title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
               <AdminInfoCard title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
@@ -149,19 +149,19 @@ export function AdminCockpitPage() {
         </main>
 
         <aside className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
-          <CockpitPanel title="Status" eyebrow="Admin">
+          <CockpitPanel theme="status" title="Status" eyebrow="Admin">
             <CockpitSectionLabel>Design</CockpitSectionLabel>
             <p className="mt-2 text-sm leading-5 text-[#d7deea]">
               Admin ist jetzt kein leerer Platzhalter mehr. Es ist die strukturierte Startseite für vorhandene Admin- und Infrastruktur-Module.
             </p>
           </CockpitPanel>
 
-          <CockpitPanel title="Optionale KI" eyebrow="Explizit">
+          <CockpitPanel theme="ideen" title="Optionale KI" eyebrow="Explizit">
             <p className="text-xs leading-4 text-[#8d9ab0]">Admin-Kacheln öffnen lokale Seiten und starten keine Analyse. KI-Hilfe ist ein bewusst separater Schritt.</p>
             <CockpitButton onClick={() => openLocalPath(explicitAiActions.find((action) => action.id === "admin-agent")?.path ?? "/buddy")} className="mt-3">Admin-Agent bewusst öffnen</CockpitButton>
           </CockpitPanel>
 
-          <CockpitPanel title="Nächste Ausbaustufen" eyebrow="Roadmap">
+          <CockpitPanel theme="ideen" title="Nächste Ausbaustufen" eyebrow="Roadmap">
             <ol className="space-y-2 text-xs leading-4 text-[#8d9ab0]">
               <li><span className="font-semibold text-[#e8eef8]">1.</span> Kompakte Live-Systemmetriken einbinden.</li>
               <li><span className="font-semibold text-[#e8eef8]">2.</span> Modul-/Extension-Health als Ampel.</li>

@@ -25,7 +25,7 @@ export function VaultCockpitPage() {
       <CockpitTopbar active="vault" context="Sensible Bereiche · PIN-geschützt" />
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-y-auto p-[10px] xl:grid-cols-[minmax(420px,1fr)_380px] xl:overflow-hidden">
         <main className="min-h-0 space-y-[10px] overflow-y-auto">
-          <CockpitPanel title="Deine sensiblen Bereiche" eyebrow="Vault">
+          <CockpitPanel theme="kontakt" title="Deine sensiblen Bereiche" eyebrow="Vault">
             {areas.length === 0 ? (
               <p className="text-sm text-[#8d9ab0]">
                 Noch keine sensiblen Module installiert. Meine Akte, Cryptoboard und Haushaltsbuch installiert der Admin
@@ -47,7 +47,7 @@ export function VaultCockpitPage() {
             )}
           </CockpitPanel>
 
-          <CockpitPanel title="Verlauf" eyebrow="Suche">
+          <CockpitPanel theme="status" title="Verlauf" eyebrow="Suche">
             <div className="grid gap-2 md:grid-cols-2">
               {historyLinks.map(({ title, path, icon: Icon, desc }) => (
                 <button key={path} onClick={() => openLocalPath(path)}
@@ -62,7 +62,7 @@ export function VaultCockpitPage() {
             </div>
           </CockpitPanel>
 
-          <CockpitPanel title="Grundsatz" eyebrow="Schutz">
+          <CockpitPanel theme="wissen" title="Grundsatz" eyebrow="Schutz">
             <div className="flex items-start gap-3 rounded-[4px] border border-emerald-400/20 bg-emerald-500/[6%] p-3">
               <ShieldCheck size={18} className="mt-0.5 text-emerald-300" />
               <p className="text-sm leading-5 text-[#d7deea]">

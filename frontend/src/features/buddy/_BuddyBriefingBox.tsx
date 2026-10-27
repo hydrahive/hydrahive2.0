@@ -29,7 +29,7 @@ export function BuddyBriefingBox({ isAdmin }: { isAdmin: boolean }) {
   ].filter((s) => s.value) : []
 
   return (
-    <CockpitPanel title={t("boxes.zahnfee")} eyebrow={briefing?.date ?? "Briefing"}>
+    <CockpitPanel theme="wissen" title={t("boxes.zahnfee")} eyebrow={briefing?.date ?? "Briefing"}>
       {briefing === undefined ? (
         <Loader2 size={14} className="animate-spin text-[#8d9ab0]" />
       ) : !briefing ? (

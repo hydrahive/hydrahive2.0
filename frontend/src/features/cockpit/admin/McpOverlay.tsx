@@ -7,6 +7,7 @@ import { QuickAddPanel } from "@/features/mcp/QuickAddPanel"
 import type { McpServer } from "@/features/mcp/types"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 export function McpOverlay({ onClose }: { onClose: () => void }) {
   const [servers, setServers] = useState<McpServer[]>([])
@@ -34,7 +35,7 @@ export function McpOverlay({ onClose }: { onClose: () => void }) {
   const active = servers.find((s) => s.id === activeId) ?? null
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["mcp"]}
       eyebrow="Admin"
       title="MCP-Server"
       onClose={onClose}
