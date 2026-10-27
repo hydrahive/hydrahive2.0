@@ -15,7 +15,10 @@ describe("BoxHead", () => {
   it("Name des Kopfes als Hinweis beim Überfahren", () => {
     expect(html).toContain('title="Macher"')
   })
-  it("feste Größe 36 px", () => {
-    expect(html).toMatch(/h-9 w-9/)
+  // Till 27.10.: Köpfe waren meist nicht ganz zu sehen → Kreis 46 px, Bild 42 px, 5 px von oben:
+  // gemessen liegt dann bei allen fünf Köpfen das ganze Fell mit 1,5 px Abstand im Kreis (vorher bis zu 30 % außerhalb).
+  it("Kreis 46 px, Kopf passt ganz hinein", () => {
+    expect(html).toMatch(/h-\[46px\] w-\[46px\]/)
+    expect(html).toMatch(/top-\[5px\] h-\[42px\]/)
   })
 })
