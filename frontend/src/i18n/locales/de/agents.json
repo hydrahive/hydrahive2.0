@@ -55,7 +55,7 @@
     "advanced": "Erweitert"
   },
   "mail": {
-    "intro": "Eigenes Postfach für diesen Buddy. Alles leer = die globalen Mail-Settings (System → Einstellungen → Mail) werden genutzt. Gefüllt = dieser Buddy sendet/liest über sein eigenes Konto.",
+    "intro": "Eigenes Postfach für diesen Buddy. Alles leer = die globalen Mail-Settings (Admin → Globale Settings → Mail) werden genutzt. Gefüllt = dieser Buddy sendet/liest über sein eigenes Konto.",
     "smtp_title": "SMTP (Senden)",
     "imap_title": "IMAP (Empfangen)",
     "host": "Host",

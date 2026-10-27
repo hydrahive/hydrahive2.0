@@ -197,7 +197,7 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Integration settings without SSH. The SearXNG URL takes effect immediately; integrations like Mail/Discord/AgentLink require a backend restart.",
-    "gear_tooltip": "Settings"
+    "gear_tooltip": "My settings"
   },
   "local_media": {
     "title": "Local image/video generation",

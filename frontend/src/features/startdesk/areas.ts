@@ -40,9 +40,9 @@ export const AREAS: Area[] = [
   { id: "freizeit", title: "Freizeit", blurb: "Filme finden, spielen, abschalten", icon: Gamepad2,
     tone: "from-[#22d3ee]/20 border-[#22d3ee]/40", text: "text-[#67e8f9]",
     paths: ["/mediacenter", "/boardgames", "/minigames", "/vr", "/streaming"] },
-  { id: "verwaltung", title: "Verwaltung", blurb: "System, Benutzer und Einstellungen", icon: Settings2,
+  { id: "verwaltung", title: "Verwaltung", blurb: "System, Benutzer und Server", icon: Settings2,
     tone: "from-[#94a3b8]/20 border-[#94a3b8]/40", text: "text-[#cbd5e1]", adminOnly: true,
-    paths: ["/admin", "/settings", "/dashboard", "/vms", "/containers", "/federation", "/mcp", "/plugins", "/ai-security"] },
+    paths: ["/admin", "/dashboard", "/vms", "/containers", "/federation", "/mcp", "/plugins", "/ai-security"] },
 ]
 
 /** Nirgends zeigen. */

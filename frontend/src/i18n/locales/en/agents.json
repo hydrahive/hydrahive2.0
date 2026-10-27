@@ -55,7 +55,7 @@
     "advanced": "Advanced"
   },
   "mail": {
-    "intro": "Dedicated mailbox for this buddy. All empty = the global mail settings (System → Settings → Mail) are used. Filled = this buddy sends/reads via its own account.",
+    "intro": "Dedicated mailbox for this buddy. All empty = the global mail settings (Admin → Global settings → Mail) are used. Filled = this buddy sends/reads via its own account.",
     "smtp_title": "SMTP (sending)",
     "imap_title": "IMAP (receiving)",
     "host": "Host",

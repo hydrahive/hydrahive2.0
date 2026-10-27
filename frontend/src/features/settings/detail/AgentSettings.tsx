@@ -7,10 +7,9 @@ import { llmModelsApi, type RegistryModel } from "@/features/llm/api"
 import type { Agent, ToolMeta } from "@/features/agents/types"
 
 /**
- * Agenten-EINSTELLUNGEN für den Settings-Hub. Die Agentenliste rendert NICHT
- * hier, sondern im Submenü rechts (Tills Schema: Submenü = die Agenten). Diese
- * Komponente bekommt die gewählte agentId und zeigt nur dessen Settings-Form
- * (Overview/Modell/Tools/Mail/Skills/Soul) — ohne die alte Vollbild-Liste.
+ * Agenten-Einstellungen in „Meine Einstellungen“. Die Auswahl sitzt oben im
+ * Auswahlfeld (AgentSection); diese Komponente bekommt die gewählte agentId und
+ * zeigt dessen Formular (Übersicht/Modell/Tools/Postfach/Skills/Soul …).
  */
 export function AgentSettings({ itemId }: { itemId: string | null }) {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -42,7 +41,7 @@ export function AgentSettings({ itemId }: { itemId: string | null }) {
     return (
       <div className="flex flex-col items-center gap-2 py-16">
         <p className="text-center text-sm text-zinc-500">
-          Rechts einen Agenten wählen, um seine Einstellungen zu bearbeiten.
+          Oben einen Agenten wählen, um seine Einstellungen zu bearbeiten.
         </p>
         <div className="flex items-center gap-1.5 text-xs text-zinc-500">
           <span>Neu hier? Erst die Hilfe lesen:</span>

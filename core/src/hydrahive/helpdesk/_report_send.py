@@ -1,5 +1,5 @@
 """Fehlerbericht senden (docs/plans/help-error-report.md): über das eingetragene Mailkonto der Installation
-(System → Einstellungen → Mail, derselbe Weg wie send_mail) an die feste Adresse. Ohne Mailkonto: mailto-Daten,
+(Admin → Globale Settings → Mail, derselbe Weg wie send_mail) an die feste Adresse. Ohne Mailkonto: mailto-Daten,
 damit der Nutzer den fertigen Bericht in seinem Mailprogramm abschickt. Keine Zugangsdaten im Code.
 """
 from __future__ import annotations

@@ -154,7 +154,7 @@
     "also_mac": "Mac-Finder (Gehe zu → Mit Server verbinden): {{address}}",
     "also_windows": "Windows-Explorer: {{address}}",
     "local_mac": "Am Mac selbst: Finder → dein Benutzerordner → Ordner „HydraHive“ → {{name}}. Dafür brauchst du kein Passwort. Von anderen Rechnern im Netz:",
-    "hint_inline_mac": "Von einem anderen Rechner: Finder → Gehe zu → Mit Server verbinden, Adresse oben eingeben. Die Zugangsdaten gelten für alle freigegebenen Projekte. Die Dateifreigabe muss unter Einstellungen → Zusatz-Module eingerichtet sein.",
+    "hint_inline_mac": "Von einem anderen Rechner: Finder → Gehe zu → Mit Server verbinden, Adresse oben eingeben. Die Zugangsdaten gelten für alle freigegebenen Projekte. Die Dateifreigabe muss unter Admin → System → Zusatz-Module eingerichtet sein.",
     "title_mac": "Projekt im Netz freigeben"
   },
   "audit": {

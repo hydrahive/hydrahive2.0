@@ -111,7 +111,7 @@
     "step1": "1. Eigenen Kopplungscode erzeugen und auf dem anderen Server einfügen",
     "name_ph": "Name dieses Servers",
     "url_hint": "Adresse, unter der der andere Server diesen hier erreicht. Es muss die Tailscale-Adresse sein (100.x.y.z) – wird automatisch eingetragen, wenn Tailscale verbunden ist.",
-    "url_not_tailnet": "Das ist keine Tailscale-Adresse. Die Kopplung läuft nur über Tailscale – unter dieser Adresse kommen Aufträge nie an. Tailscale verbinden (Einstellungen → System → Tailscale) und die 100.x.y.z-Adresse eintragen.",
+    "url_not_tailnet": "Das ist keine Tailscale-Adresse. Die Kopplung läuft nur über Tailscale – unter dieser Adresse kommen Aufträge nie an. Tailscale verbinden (Admin → System → Tailscale) und die 100.x.y.z-Adresse eintragen.",
     "make_code": "Code erzeugen",
     "copy": "Kopieren",
     "copied": "Kopiert",

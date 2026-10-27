@@ -34,3 +34,14 @@ describe("Admin-Registry: Föderation", () => {
     expect(OVERLAY_BY_PATH["/federation"]).toBe("federation")
   })
 })
+
+// Plan docs/plans/meine-einstellungen.md, Task 5: Zahnfee-Einstellungen als Admin-Fenster.
+describe("Admin-Registry: Zahnfee", () => {
+  it("zahnfee ist ein gültiges Admin-Fenster", () => {
+    expect(isAdminOverlayId("zahnfee")).toBe(true)
+  })
+  it("Kachel-Pfad /zahnfee-config öffnet das Fenster (die Seite /zahnfee bleibt die Auswertung)", () => {
+    expect(OVERLAY_BY_PATH["/zahnfee-config"]).toBe("zahnfee")
+    expect(OVERLAY_BY_PATH["/zahnfee"]).toBeUndefined()
+  })
+})
