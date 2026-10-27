@@ -5,7 +5,7 @@ export function NotFoundPage() {
   return (
     <div className="flex items-center justify-center min-h-[70vh]">
       <EmptyState
-        src="/illustrations/404-confused.png"
+        mood="confused"
         size={180}
         title="Seite nicht gefunden"
         hint="Diese Adresse führt ins Leere — die Hydra ist genauso ratlos wie du."

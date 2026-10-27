@@ -9,6 +9,7 @@ import { DataminingInstancesSection } from "@/features/federation/_DataminingIns
 import { FEDERATION_TABS, parseFederationTab, type FederationTab } from "@/features/federation/federationTabs"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 /** Föderation im Admin-Cockpit (/admin?section=federation&tab=…): ein Teil pro Reiter statt einer langen Seite. */
 export function FederationOverlay({ onClose }: { onClose: () => void }) {
@@ -24,7 +25,7 @@ export function FederationOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["federation"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

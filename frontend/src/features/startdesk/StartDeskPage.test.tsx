@@ -33,7 +33,9 @@ describe("StartDeskPage", () => {
     const firstArea = h.indexOf("Medienstudio")
     expect(buddy).toBeGreaterThan(-1)
     expect(buddy).toBeLessThan(firstArea)
-    expect(h).toContain('src="/startdesk/buddy-knopf.webp"')
+    // Neues Banner mit der bunten Hydra (rechts, Köpfe vollständig) – Till 27.10.: Köpfe waren abgeschnitten.
+    expect(h).toContain('src="/startdesk/buddy-banner.webp"')
+    expect(h).toMatch(/src="\/startdesk\/buddy-banner.webp"[^>]*class="[^"]*object-\[75%_50%\]/)
   })
   it("eine Kachel je gefülltem Bereich, mit Anzahl der Apps", () => {
     const h = html()
@@ -47,5 +49,19 @@ describe("StartDeskPage", () => {
     const h = html()
     expect([...h.matchAll(/<button[^>]*data-area-tile="[a-z-]+"[^>]*>/g)].every((m) => m[0].includes('type="button"'))).toBe(true)
     expect(h).toMatch(/<button[^>]*type="button"[^>]*aria-label="Mit Buddy sprechen"|<button[^>]*aria-label="Mit Buddy sprechen"[^>]*type="button"/)
+  })
+
+  // Task 0dda5420, Etappe Startseite: Tills bunte Hydra als Maskottchen.
+  it("jede Bereichs-Kachel zeigt einen Hydra-Kopf als Deko (ohne Alternativtext)", () => {
+    const h = html()
+    for (const [id, kopf] of [["medien", "kopf-3-orange"], ["schreiben", "kopf-5-brille"], ["agenten", "kopf-2-lila"]]) {
+      const tile = h.match(new RegExp(`<button[^>]*data-area-tile="${id}"[^>]*>([\\s\\S]*?)</button>`))![1]
+      expect(tile).toMatch(new RegExp(`<img[^>]*src="/startdesk/koepfe/${kopf}.webp"[^>]*>`))
+      expect(tile).toMatch(/<img[^>]*alt=""[^>]*aria-hidden="true"|<img[^>]*aria-hidden="true"[^>]*alt=""/)
+      expect(tile).toMatch(/<img[^>]*loading="lazy"/)
+    }
+  })
+  it("Begrüßung mit der ganzen Hydra", () => {
+    expect(html()).toMatch(/<img[^>]*src="\/startdesk\/koepfe\/hydra-voll.webp"/)
   })
 })

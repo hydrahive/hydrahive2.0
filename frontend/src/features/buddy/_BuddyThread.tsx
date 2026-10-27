@@ -16,6 +16,7 @@ import { ImageBlock, ToolResultCard, ToolUseCard } from "@/features/chat/ToolCar
 import { extractMedia, MediaPreview } from "@/features/chat/MediaPreview"
 import { useVoiceOutput } from "@/features/chat/useVoiceOutput"
 import { HydraMascot } from "@/shared/HydraMascot"
+import { BuddyAvatar } from "./_BuddyAvatar"
 import { EmoteText } from "@/features/chat/EmoteText"
 import { DelegationResultCard } from "@/features/chat/DelegationResultCard"
 import { isDelegationResult } from "@/features/chat/delegationsApi"
@@ -95,7 +96,7 @@ function BuddyAssistantMessage() {
   return (
     <MessagePrimitive.Root className="flex items-start gap-3 py-1">
       <div className="flex-shrink-0 mt-0.5">
-        <HydraMascot state={isLive ? "thinking" : "idle"} size={30} animate={isLive} />
+        <BuddyAvatar live={isLive} />
       </div>
       <div className="flex-1 min-w-0 space-y-2">
         {original && <BubbleHeader createdAt={original.created_at} align="left" />}

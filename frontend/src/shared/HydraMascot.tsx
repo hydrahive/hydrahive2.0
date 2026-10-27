@@ -1,23 +1,6 @@
-export type MascotState =
-  | "idle"
-  | "working"
-  | "speaking"
-  | "sleeping"
-  | "confused"
-  | "celebrate"
-  | "thinking"
-  | "error"
+import { MASCOT_SRC, type MascotState } from "./mascotSrc"
 
-const SRC: Record<MascotState, string> = {
-  idle: "/illustrations/hydra-idle.png",
-  working: "/illustrations/hydra-working.png",
-  speaking: "/illustrations/hydra-speaking.png",
-  sleeping: "/illustrations/hydra-sleeping.png",
-  confused: "/illustrations/hydra-confused.png",
-  celebrate: "/illustrations/hydra-celebrate.png",
-  thinking: "/illustrations/hydra-thinking.png",
-  error: "/illustrations/hydra-error.png",
-}
+export type { MascotState }
 
 interface Props {
   state?: MascotState
@@ -29,11 +12,12 @@ interface Props {
 export function HydraMascot({ state = "idle", size = 32, animate = false, className = "" }: Props) {
   return (
     <img
-      src={SRC[state]}
+      src={MASCOT_SRC[state]}
       alt=""
       width={size}
       height={size}
-      className={`object-contain select-none pointer-events-none drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] ${animate ? "animate-pulse" : ""} ${className}`}
+      draggable={false}
+      className={`object-contain select-none pointer-events-none drop-shadow-[0_3px_8px_rgba(0,0,0,0.45)] ${animate ? "animate-pulse" : ""} ${className}`}
     />
   )
 }

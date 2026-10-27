@@ -15,6 +15,7 @@ import { CockpitButton } from "../CockpitButton"
 import { AdminAction, AdminFeedback, AdminStatus } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
 import { VaultAdminReset } from "@/features/vault/VaultAdminReset"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 export function UsersOverlay({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("users")
@@ -46,7 +47,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
   }, [load])
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["users"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

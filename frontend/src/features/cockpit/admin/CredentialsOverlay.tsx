@@ -10,6 +10,7 @@ import { countUnbound } from "@/features/credentials/unbound"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
 import { CredentialCockpitCard, UnboundBanner } from "./CredentialCockpitCard"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 type Tab = "http" | "extensions"
 
@@ -28,7 +29,7 @@ export function CredentialsOverlay({ onClose }: { onClose: () => void }) {
   useEffect(() => { reload() }, [])
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["credentials"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

@@ -23,7 +23,7 @@ export function CockpitPlaceholderPage({ title, eyebrow, description, bullets, m
       actions={mockupPath && <CockpitButton onClick={() => window.open(mockupPath, "_blank")}>Mockup öffnen</CockpitButton>}
     >
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <CockpitPanel title="Etappe 1" eyebrow="Cockpit-Shell">
+        <CockpitPanel theme="status" title="Etappe 1" eyebrow="Cockpit-Shell">
           <p className="text-sm leading-6 text-zinc-400">
             Diese Seite ist der stabile Einstiegspunkt für das neue Cockpit. Die alten Seiten bleiben während der Migration weiter erreichbar.
           </p>
@@ -36,7 +36,7 @@ export function CockpitPlaceholderPage({ title, eyebrow, description, bullets, m
           </div>
           {children}
         </CockpitPanel>
-        <CockpitPanel title="Wichtige Regel" eyebrow="Migration">
+        <CockpitPanel theme="wissen" title="Wichtige Regel" eyebrow="Migration">
           <p className="text-sm leading-6 text-zinc-400">
             Bestehende Funktionen werden eingebettet, nicht neu erfunden. Besonders der Chat bleibt vollständig: Uploads, Tools, Tokens, Slash-Befehle und Vibe-Coding.
           </p>

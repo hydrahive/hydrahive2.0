@@ -6,6 +6,7 @@ import { CockpitTopbar } from "./CockpitTopbar"
 import { adminOfflineActions, explicitAiActions, openLocalPath } from "./actionRegistry"
 import { AccessNotice } from "@/features/access/AccessNotice"
 import { AdminInfoCard } from "./admin/AdminInfoCard"
+import { TileIcon } from "@/shared/brand/TileIcon"
 import { AdminOverlays } from "./admin/AdminOverlays"
 import { OVERLAY_BY_ACTION, OVERLAY_BY_PATH } from "./admin/adminOverlayRegistry"
 import { useAdminOverlayNavigation } from "./admin/useAdminOverlayNavigation"
@@ -61,7 +62,7 @@ export function AdminCockpitPage() {
       <CockpitTopbar active="admin" context="Admin" />
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-y-auto p-[10px] xl:grid-cols-[280px_minmax(520px,1fr)_370px] xl:overflow-hidden">
         <aside className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
-          <CockpitPanel title="Admin-Bereiche" eyebrow="Control">
+          <CockpitPanel theme="status" title="Admin-Bereiche" eyebrow="Control">
             <div className="space-y-2">
               {adminLinks.map((item) => {
                 const Icon = item.icon
@@ -69,9 +70,9 @@ export function AdminCockpitPage() {
                   <button
                     key={item.path}
                     onClick={() => openArea(item.id, item.path)}
-                    className="group flex w-full items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
+                    className="group flex w-full items-center gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2.5 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
                   >
-                    <Icon size={18} className="mt-0.5 text-[#69d7ff]" />
+                    <TileIcon target={item.path} icon={Icon} />
                     <span>
                       <span className="block text-sm font-bold text-[#e8eef8]">{item.title}</span>
                       <span className="mt-1 block text-xs leading-4 text-[#8d9ab0]">{item.desc}</span>
@@ -85,7 +86,7 @@ export function AdminCockpitPage() {
 
         <main className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
           <AccessNotice onOpen={() => setOverlay("access")} />
-          <CockpitPanel title="Betriebszentrale" eyebrow="Ops">
+          <CockpitPanel theme="werkzeug" title="Betriebszentrale" eyebrow="Ops">
             <div className="grid gap-2 md:grid-cols-3">
               {opsLinks.map((item) => {
                 const Icon = item.icon
@@ -93,17 +94,17 @@ export function AdminCockpitPage() {
                   <button
                     key={item.path}
                     onClick={() => openPath(item.path)}
-                    className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]"
+                    className="group flex items-center gap-2.5 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left hover:border-[#46617f] hover:bg-[#172133]"
                   >
-                    <Icon size={18} className="mb-3 text-[#69d7ff]" />
-                    <span className="text-sm font-bold text-[#e8eef8]">{item.title}</span>
+                    <TileIcon target={item.path} icon={Icon} />
+                    <span className="min-w-0 text-sm font-bold text-[#e8eef8]">{item.title}</span>
                   </button>
                 )
               })}
             </div>
           </CockpitPanel>
 
-          <CockpitPanel title="Sicherheitsregeln" eyebrow="Guard">
+          <CockpitPanel theme="wissen" title="Sicherheitsregeln" eyebrow="Guard">
             <div className="rounded-[4px] border border-amber-400/20 bg-amber-500/[6%] p-4">
               <div className="mb-3 flex items-center gap-2">
                 <ShieldAlert size={18} className="text-amber-300" />
@@ -123,13 +124,13 @@ export function AdminCockpitPage() {
             </div>
           </CockpitPanel>
 
-          <CockpitPanel title="Integrationen" eyebrow="Connect">
+          <CockpitPanel theme="werkzeug" title="Integrationen" eyebrow="Connect">
             <div className="grid gap-2 md:grid-cols-4">
               {integrationLinks.map((item) => {
                 const Icon = item.icon
                 return (
                   <button key={item.title} onClick={() => openPath(item.path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
-                    <Icon size={16} className="mb-2 text-[#69d7ff]" />
+                    <div className="mb-1"><TileIcon target={item.title === "Gitea" ? "gitea" : item.path} icon={Icon} /></div>
                     <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
                     <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
                   </button>
@@ -138,30 +139,30 @@ export function AdminCockpitPage() {
             </div>
           </CockpitPanel>
 
-          <CockpitPanel title="Wartung & Backups" eyebrow="Recovery">
+          <CockpitPanel theme="werkzeug" title="Wartung & Backups" eyebrow="Recovery">
             <div className="grid gap-2 md:grid-cols-2">
-              <AdminInfoCard title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
-              <AdminInfoCard title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
-              <AdminInfoCard title="Archiv & Sicherung" icon={Archive} text="Gelöschte Agenten, Projekte und Nutzer, Netzwerk-Freigabe und Papierkorb." onOpen={() => openPath("/archive")} />
-              <AdminInfoCard title="Freigaben" icon={ShieldAlert} text="Wer darf welche Funktion nutzen? Nutzer und Gruppen freigeben." onOpen={() => openPath("/access")} />
+              <AdminInfoCard title="Backup" art="backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
+              <AdminInfoCard title="System-Settings" art="/system/settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
+              <AdminInfoCard title="Archiv & Sicherung" art="/archive" icon={Archive} text="Gelöschte Agenten, Projekte und Nutzer, Netzwerk-Freigabe und Papierkorb." onOpen={() => openPath("/archive")} />
+              <AdminInfoCard title="Freigaben" art="/access" icon={ShieldAlert} text="Wer darf welche Funktion nutzen? Nutzer und Gruppen freigeben." onOpen={() => openPath("/access")} />
             </div>
           </CockpitPanel>
         </main>
 
         <aside className="space-y-[10px] xl:min-h-0 xl:overflow-y-auto xl:pr-1">
-          <CockpitPanel title="Status" eyebrow="Admin">
+          <CockpitPanel theme="status" title="Status" eyebrow="Admin">
             <CockpitSectionLabel>Design</CockpitSectionLabel>
             <p className="mt-2 text-sm leading-5 text-[#d7deea]">
               Admin ist jetzt kein leerer Platzhalter mehr. Es ist die strukturierte Startseite für vorhandene Admin- und Infrastruktur-Module.
             </p>
           </CockpitPanel>
 
-          <CockpitPanel title="Optionale KI" eyebrow="Explizit">
+          <CockpitPanel theme="ideen" title="Optionale KI" eyebrow="Explizit">
             <p className="text-xs leading-4 text-[#8d9ab0]">Admin-Kacheln öffnen lokale Seiten und starten keine Analyse. KI-Hilfe ist ein bewusst separater Schritt.</p>
             <CockpitButton onClick={() => openLocalPath(explicitAiActions.find((action) => action.id === "admin-agent")?.path ?? "/buddy")} className="mt-3">Admin-Agent bewusst öffnen</CockpitButton>
           </CockpitPanel>
 
-          <CockpitPanel title="Nächste Ausbaustufen" eyebrow="Roadmap">
+          <CockpitPanel theme="ideen" title="Nächste Ausbaustufen" eyebrow="Roadmap">
             <ol className="space-y-2 text-xs leading-4 text-[#8d9ab0]">
               <li><span className="font-semibold text-[#e8eef8]">1.</span> Kompakte Live-Systemmetriken einbinden.</li>
               <li><span className="font-semibold text-[#e8eef8]">2.</span> Modul-/Extension-Health als Ampel.</li>

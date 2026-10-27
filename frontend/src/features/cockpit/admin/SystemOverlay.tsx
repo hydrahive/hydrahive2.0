@@ -20,6 +20,7 @@ import { CockpitButton } from "../CockpitButton"
 import { AdminPanel, AdminStat } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
 import { SystemSettingsOverlay } from "./SystemSettingsOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const REFRESH_MS = 10_000
 
@@ -50,7 +51,7 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
   }, [])
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["system"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

@@ -10,7 +10,7 @@ interface Props {
 
 export function ProjectFilesPanel({ agentId, projectId, onOpenFile }: Props) {
   return (
-    <CockpitPanel title="Dateien & Workspace" eyebrow="Workspace" className="min-h-0 flex flex-col overflow-hidden p-0">
+    <CockpitPanel theme="werkzeug" title="Dateien & Workspace" eyebrow="Workspace" className="min-h-0 flex flex-col overflow-hidden p-0">
       <div className="min-h-0 flex-1 overflow-hidden">
         <WorkspacePanel agentId={agentId} projectId={projectId} onOpenFile={onOpenFile} />
       </div>

@@ -8,6 +8,7 @@ import type { ModulesIndex } from "@/features/modules/types"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
 import { ModuleCockpitCard } from "./ModuleCockpitCard"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 export function ModulesOverlay({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("modules")
@@ -31,7 +32,7 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
   const all = useUpdateAll(outdated.length, load)
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["modules"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}
