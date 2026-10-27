@@ -98,7 +98,7 @@ export function DashboardPage() {
 
       {!data && (
         <EmptyState
-          src="/illustrations/empty-dashboard.png"
+          mood="working"
           size={150}
           hint={t("loading")}
           className="min-h-[50vh]"

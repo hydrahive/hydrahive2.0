@@ -69,13 +69,13 @@ export function SessionList({ sessions, activeId, knownAgentIds, buddyAgentIds, 
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {tab === "direct" && direct.length === 0 && (
-          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint={t("session.no_direct")} />
+          <EmptyState mood="sleeping" size={92} hint={t("session.no_direct")} />
         )}
         {tab === "projects" && projectSessions.length === 0 && (
-          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint={t("session.no_project")} />
+          <EmptyState mood="sleeping" size={92} hint={t("session.no_project")} />
         )}
         {tab === "buddy" && buddy.length === 0 && (
-          <EmptyState src="/illustrations/empty-sessions.png" size={92} hint={t("session.no_buddy")} />
+          <EmptyState mood="sleeping" size={92} hint={t("session.no_buddy")} />
         )}
         {tab === "direct" && direct.map((s) => (
           <SessionRow key={s.id} session={s} active={s.id === activeId}
