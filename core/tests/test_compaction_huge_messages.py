@@ -23,7 +23,8 @@ def _msg(role, content, i=0):
     return Message(id=f"m{i}", session_id="s", role=role, content=content, created_at="2026-10-27T00:00:00Z")
 
 
-B64 = base64.b64encode(b"\xff\xd8\xff" + b"x" * 2_000_000).decode()
+B64 = base64.b64encode(b"\xff\xd8\xff" + b"x" * 2_000_000).decode()   # Datei: 2.000.003 Bytes = 1,9 MB
+GONE = B64[:5_000]   # ein Stück der Daten – darf nirgends mehr auftauchen
 
 
 # --- 1. Bilder, PDFs und andere Nicht-Text-Blöcke -----------------------------------------------------------------
@@ -32,8 +33,8 @@ def test_bild_wird_platzhalter():
     m = _msg("user", [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": B64}},
                       {"type": "text", "text": "Was steht auf dem Foto?"}])
     out = serialize_for_summary([m])
-    assert B64[:200] not in out
-    assert "[Bild: image/jpeg, 2,7 MB]" in out
+    assert GONE not in out
+    assert "[Bild: image/jpeg, 1,9 MB]" in out
     assert "Was steht auf dem Foto?" in out
     assert len(out) < 500
 
@@ -42,8 +43,8 @@ def test_pdf_wird_platzhalter_mit_namen():
     m = _msg("user", [{"type": "document", "title": "Kaufvertrag.pdf",
                        "source": {"type": "base64", "media_type": "application/pdf", "data": B64}}])
     out = serialize_for_summary([m])
-    assert B64[:200] not in out
-    assert "[Dokument: Kaufvertrag.pdf, application/pdf, 2,7 MB]" in out
+    assert GONE not in out
+    assert "[Dokument: Kaufvertrag.pdf, application/pdf, 1,9 MB]" in out
 
 
 def test_bild_als_url_ohne_daten():
@@ -57,15 +58,15 @@ def test_bild_im_tool_ergebnis():
         {"type": "text", "text": "Screenshot:"},
         {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": B64}}]}])
     out = serialize_for_summary([m])
-    assert B64[:200] not in out
-    assert "[Bild: image/png, 2,7 MB]" in out and "Screenshot:" in out
+    assert GONE not in out
+    assert "[Bild: image/png, 1,9 MB]" in out and "Screenshot:" in out
 
 
 def test_bild_beim_assistenten():
     m = _msg("assistant", [{"type": "text", "text": "Hier das Bild"},
                            {"type": "image", "source": {"type": "base64", "media_type": "image/webp", "data": B64}}])
     out = serialize_for_summary([m])
-    assert B64[:200] not in out and "[Bild: image/webp, 2,7 MB]" in out
+    assert GONE not in out and "[Bild: image/webp, 1,9 MB]" in out
 
 
 def test_unbekannte_bloecke_beim_assistenten_werden_nicht_ausgeschrieben():
