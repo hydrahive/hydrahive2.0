@@ -6,6 +6,7 @@ import { CockpitTopbar } from "./CockpitTopbar"
 import { adminOfflineActions, explicitAiActions, openLocalPath } from "./actionRegistry"
 import { AccessNotice } from "@/features/access/AccessNotice"
 import { AdminInfoCard } from "./admin/AdminInfoCard"
+import { TileIcon } from "@/shared/brand/TileIcon"
 import { AdminOverlays } from "./admin/AdminOverlays"
 import { OVERLAY_BY_ACTION, OVERLAY_BY_PATH } from "./admin/adminOverlayRegistry"
 import { useAdminOverlayNavigation } from "./admin/useAdminOverlayNavigation"
@@ -69,9 +70,9 @@ export function AdminCockpitPage() {
                   <button
                     key={item.path}
                     onClick={() => openArea(item.id, item.path)}
-                    className="group flex w-full items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
+                    className="group flex w-full items-center gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2.5 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
                   >
-                    <Icon size={18} className="mt-0.5 text-[#69d7ff]" />
+                    <TileIcon target={item.path} icon={Icon} />
                     <span>
                       <span className="block text-sm font-bold text-[#e8eef8]">{item.title}</span>
                       <span className="mt-1 block text-xs leading-4 text-[#8d9ab0]">{item.desc}</span>
@@ -93,10 +94,10 @@ export function AdminCockpitPage() {
                   <button
                     key={item.path}
                     onClick={() => openPath(item.path)}
-                    className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]"
+                    className="group flex items-center gap-2.5 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left hover:border-[#46617f] hover:bg-[#172133]"
                   >
-                    <Icon size={18} className="mb-3 text-[#69d7ff]" />
-                    <span className="text-sm font-bold text-[#e8eef8]">{item.title}</span>
+                    <TileIcon target={item.path} icon={Icon} />
+                    <span className="min-w-0 text-sm font-bold text-[#e8eef8]">{item.title}</span>
                   </button>
                 )
               })}
@@ -129,7 +130,7 @@ export function AdminCockpitPage() {
                 const Icon = item.icon
                 return (
                   <button key={item.title} onClick={() => openPath(item.path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
-                    <Icon size={16} className="mb-2 text-[#69d7ff]" />
+                    <div className="mb-1"><TileIcon target={item.title === "Gitea" ? "gitea" : item.path} icon={Icon} /></div>
                     <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
                     <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
                   </button>
@@ -140,10 +141,10 @@ export function AdminCockpitPage() {
 
           <CockpitPanel theme="werkzeug" title="Wartung & Backups" eyebrow="Recovery">
             <div className="grid gap-2 md:grid-cols-2">
-              <AdminInfoCard title="Backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
-              <AdminInfoCard title="System-Settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
-              <AdminInfoCard title="Archiv & Sicherung" icon={Archive} text="Gelöschte Agenten, Projekte und Nutzer, Netzwerk-Freigabe und Papierkorb." onOpen={() => openPath("/archive")} />
-              <AdminInfoCard title="Freigaben" icon={ShieldAlert} text="Wer darf welche Funktion nutzen? Nutzer und Gruppen freigeben." onOpen={() => openPath("/access")} />
+              <AdminInfoCard title="Backup" art="backup" icon={DatabaseBackup} text="Backup/Restore bleibt im Systembereich, damit bestehende Confirmations und Guards greifen." onOpen={() => openPath("/system")} />
+              <AdminInfoCard title="System-Settings" art="/system/settings" icon={SlidersHorizontal} text="Globale Einstellungen öffnen eingerastet über dem Admin-Cockpit." onOpen={() => openPath("/system/settings")} />
+              <AdminInfoCard title="Archiv & Sicherung" art="/archive" icon={Archive} text="Gelöschte Agenten, Projekte und Nutzer, Netzwerk-Freigabe und Papierkorb." onOpen={() => openPath("/archive")} />
+              <AdminInfoCard title="Freigaben" art="/access" icon={ShieldAlert} text="Wer darf welche Funktion nutzen? Nutzer und Gruppen freigeben." onOpen={() => openPath("/access")} />
             </div>
           </CockpitPanel>
         </main>
