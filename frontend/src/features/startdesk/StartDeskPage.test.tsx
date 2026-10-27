@@ -33,7 +33,9 @@ describe("StartDeskPage", () => {
     const firstArea = h.indexOf("Medienstudio")
     expect(buddy).toBeGreaterThan(-1)
     expect(buddy).toBeLessThan(firstArea)
-    expect(h).toContain('src="/startdesk/buddy-knopf.webp"')
+    // Neues Banner mit der bunten Hydra (rechts, Köpfe vollständig) – Till 27.10.: Köpfe waren abgeschnitten.
+    expect(h).toContain('src="/startdesk/buddy-banner.webp"')
+    expect(h).toMatch(/src="\/startdesk\/buddy-banner.webp"[^>]*class="[^"]*object-\[75%_50%\]/)
   })
   it("eine Kachel je gefülltem Bereich, mit Anzahl der Apps", () => {
     const h = html()

@@ -12,6 +12,8 @@ describe("BuddyHero", () => {
   const html = renderToStaticMarkup(<BuddyHero agentName="till's Buddy" />)
   it("Hintergrund ist Tills Hydra am Schreibtisch, Name bleibt lesbar darüber", () => {
     expect(html).toContain('src="/hydra/schreibtisch.webp"')
+    // Bildausschnitt so, dass die Köpfe (oberes Drittel des Bildes) ganz zu sehen sind
+    expect(html).toMatch(/src="\/hydra\/schreibtisch.webp"[^>]*class="[^"]*object-center/)
     expect(html).toContain("till&#x27;s Buddy")
     expect(html).toContain("Aktiver Buddy")
     expect(existsSync(join(PUBLIC, "hydra/schreibtisch.webp"))).toBe(true)
