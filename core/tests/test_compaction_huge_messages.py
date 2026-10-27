@@ -180,3 +180,26 @@ def test_vorige_zusammenfassung_zaehlt_mit(monkeypatch):
     hist = "\n".join(f"[User]: frage {i} " + "z" * 200 for i in range(20_000))
     asyncio.run(summ.summarize(model="claude-sonnet-4-6", serialized_history=hist, previous_summary=prev))
     assert calls and max(calls) < int(1_000_000 * 1.2)
+
+
+def test_merge_groesser_als_fenster_wird_nicht_gesendet(monkeypatch):
+    """Auch der Zusammenführ-Schritt prüft vor dem Senden (eine einzelne riesige Teil-Zusammenfassung)."""
+    calls: list[int] = []
+    _fake_llm(monkeypatch, calls)
+    with pytest.raises(summ.SummaryTooLarge):
+        asyncio.run(summ._merge_summaries("claude-sonnet-4-6", ["S" * 3_000_000], 4096, 10_000_000))
+    assert calls == []
+
+
+def test_merge_einer_einzelnen_riesigen_teilzusammenfassung_endet(monkeypatch):
+    """Ohne Abbruchbedingung rief sich der Merge bei EINER zu großen Teil-Zusammenfassung endlos selbst auf."""
+    import sys
+    calls: list[int] = []
+    _fake_llm(monkeypatch, calls)
+    old = sys.getrecursionlimit()
+    sys.setrecursionlimit(200)
+    try:
+        with pytest.raises(summ.SummaryTooLarge):
+            asyncio.run(summ._merge_summaries("claude-sonnet-4-6", ["S" * 3_000_000], 4096, 1_000))
+    finally:
+        sys.setrecursionlimit(old)
