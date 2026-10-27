@@ -85,17 +85,24 @@ def test_unbekannte_bloecke_beim_nutzer_werden_gekuerzt():
 
 # --- 2. Lange Texte je Block gekürzt ------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("role,content", [
-    ("user", "A" * 2_000_000),
-    ("user", [{"type": "text", "text": "A" * 2_000_000}]),
-    ("assistant", "A" * 2_000_000),
-    ("assistant", [{"type": "text", "text": "A" * 2_000_000}]),
-    ("assistant", [{"type": "thinking", "thinking": "A" * 2_000_000}]),
-    ("system", "A" * 2_000_000),
-])
-def test_lange_texte_werden_gekuerzt(role, content):
+_BIG = "A" * 2_000_000
+# Kurze IDs: Ohne sie steckt der 2-MB-Text im Testnamen – `pytest -v` in der CI brauchte dafür über eine Stunde
+# pro Name und lief 6 h bis zum Abbruch (27.10.2026).
+_LONG_CASES = {
+    "user-text": ("user", lambda: _BIG),
+    "user-block": ("user", lambda: [{"type": "text", "text": _BIG}]),
+    "assistant-text": ("assistant", lambda: _BIG),
+    "assistant-block": ("assistant", lambda: [{"type": "text", "text": _BIG}]),
+    "assistant-thinking": ("assistant", lambda: [{"type": "thinking", "thinking": _BIG}]),
+    "system": ("system", lambda: _BIG),
+}
+
+
+@pytest.mark.parametrize("case", sorted(_LONG_CASES))
+def test_lange_texte_werden_gekuerzt(case):
     from hydrahive.compaction.serialize import TEXT_BLOCK_LIMIT
-    out = serialize_for_summary([_msg(role, content)])
+    role, make = _LONG_CASES[case]
+    out = serialize_for_summary([_msg(role, make())])
     assert len(out) < TEXT_BLOCK_LIMIT + 500
     assert "[gekürzt:" in out
 
