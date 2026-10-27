@@ -40,6 +40,9 @@ dependencies = [
     # Kopie des Archivs auf einen externen Server per SMB, ohne Einhängen und ohne root (Archiv Etappe 3).
     "smbprotocol>=1.17,<2",
     "Pillow>=10.0,<14",
+    # Musik-Kopfdaten (Künstler, Titel, Album, Länge …) aus MP3/FLAC/M4A lesen – reines Python, MIT, ohne
+    # Abhängigkeiten. Für Module wie radiostream (Bibliothek von der NAS-Freigabe), Till 26.10.2026.
+    "mutagen>=1.47,<2",
     "playwright>=1.44,<2",
     "yt-dlp>=2024.1",  # CalVer, kein Major-Schema — Deckel waere willkuerlich
     "python-multipart>=0.0.9,<1",
