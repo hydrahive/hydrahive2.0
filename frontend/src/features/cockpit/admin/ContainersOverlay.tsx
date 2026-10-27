@@ -11,6 +11,7 @@ import { CockpitButton } from "../CockpitButton"
 import { AdminFeedback, AdminStat } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
 import { ContainerDetailOverlay } from "./ContainerDetailOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const POLL_MS = 4000
 
@@ -53,7 +54,7 @@ export function ContainersOverlay({ onClose, selectedContainerId = null, onSelec
   }), [containers])
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["containers"]}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

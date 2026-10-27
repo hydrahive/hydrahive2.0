@@ -6,7 +6,7 @@ import { VAULT_ACTIVE, VAULT_PLANNED } from "./vaultStatusText"
 export function VaultStatusPanel() {
   return (
     <>
-      <CockpitPanel title="Schon aktiv" eyebrow="Schutz">
+      <CockpitPanel theme="status" title="Schon aktiv" eyebrow="Schutz">
         <ul className="space-y-2">
           {VAULT_ACTIVE.map((t) => (
             <li key={t} className="flex gap-2 text-xs leading-4 text-[#d7deea]">
@@ -15,7 +15,7 @@ export function VaultStatusPanel() {
           ))}
         </ul>
       </CockpitPanel>
-      <CockpitPanel title="In Arbeit" eyebrow="Geplant">
+      <CockpitPanel theme="status" title="In Arbeit" eyebrow="Geplant">
         <ul className="space-y-2">
           {VAULT_PLANNED.map((t) => (
             <li key={t} className="flex gap-2 text-xs leading-4 text-[#8d9ab0]">

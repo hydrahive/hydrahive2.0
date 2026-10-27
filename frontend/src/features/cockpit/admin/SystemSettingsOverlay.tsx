@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { settingsApi, type EditableSetting } from "@/features/system/settingsApi"
 import { AdminFeedback, AdminPanel, AdminToggle, adminInputClass } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const BOOL_TRUE = new Set(["1", "true", "yes", "on"])
 type RowStatus = "idle" | "saving" | "saved" | "error"
@@ -81,7 +82,7 @@ export function SystemSettingsOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <AdminOverlay eyebrow="Admin · System" title={t("settings.title")} onClose={onClose} maxWidthClass="max-w-3xl">
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["system-settings"]} eyebrow="Admin · System" title={t("settings.title")} onClose={onClose} maxWidthClass="max-w-3xl">
       <div className="space-y-4">
         <p className="text-sm text-[#8d9ab0]">{t("settings.subtitle")}</p>
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react"
 import { cn } from "@/shared/cn"
+import { BoxHead } from "@/shared/brand/BoxHead"
+import { BOX_THEMES, type BoxTheme } from "@/shared/brand/boxThemes"
 
 interface Props {
   title?: string
@@ -7,16 +9,23 @@ interface Props {
   actions?: ReactNode
   children: ReactNode
   className?: string
+  /** Thema der Box: fester Hydra-Kopf links im Kopf + feiner Verlauf in dessen Farbe. */
+  theme?: BoxTheme
 }
 
-export function CockpitPanel({ title, eyebrow, actions, children, className }: Props) {
+export function CockpitPanel({ title, eyebrow, actions, children, className, theme }: Props) {
   return (
-    <section className={cn("min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3 text-[#e8eef8]", className)}>
-      {(title || eyebrow || actions) && (
+    <section data-box-theme={theme}
+      className={cn("min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3 text-[#e8eef8]",
+        theme && `bg-gradient-to-b ${BOX_THEMES[theme].wash} to-[#151c2b] to-[90px]`, className)}>
+      {(title || eyebrow || actions || theme) && (
         <div className="mb-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {theme && <BoxHead theme={theme} />}
+            <div className="min-w-0">
             {eyebrow && <CockpitSectionLabel>{eyebrow}</CockpitSectionLabel>}
             {title && <h2 className="truncate text-sm font-bold text-[#e8eef8]">{title}</h2>}
+            </div>
           </div>
           {actions && <div className="shrink-0">{actions}</div>}
         </div>

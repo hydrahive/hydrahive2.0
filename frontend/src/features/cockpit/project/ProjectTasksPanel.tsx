@@ -102,7 +102,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
   }
 
   return (
-    <CockpitPanel title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={openCreate}>Task +</CockpitButton>} className="flex min-h-0 flex-col">
+    <CockpitPanel theme="status" title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={openCreate}>Task +</CockpitButton>} className="flex min-h-0 flex-col">
       {createOpen && <div className="mb-3 space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
         <input
           ref={titleInputRef}

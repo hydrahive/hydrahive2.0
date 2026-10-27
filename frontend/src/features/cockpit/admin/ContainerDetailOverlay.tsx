@@ -11,6 +11,7 @@ import { ContainerConfigPane } from "@/features/containers/ContainerConfigPane"
 import { ContainerPortsPane } from "@/features/containers/ContainerPortsPane"
 import { AdminFeedback } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
+import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 type Tab = "console" | "logs" | "stats" | "config" | "ports"
 
@@ -38,7 +39,7 @@ export function ContainerDetailOverlay({ containerId, onClose }: { containerId: 
   const running = container?.actual_state === "running"
 
   return (
-    <AdminOverlay
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["containers"]}
       eyebrow="Admin · Container"
       title={container?.name ?? "Container-Details"}
       onClose={onClose}

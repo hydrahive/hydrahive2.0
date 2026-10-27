@@ -1,6 +1,8 @@
 import { useId, type ReactNode } from "react"
 import { X } from "lucide-react"
 import { useDialogFokus } from "@/shared/dialog/useDialogFokus"
+import { BoxHead } from "@/shared/brand/BoxHead"
+import { BOX_THEMES, type BoxTheme } from "@/shared/brand/boxThemes"
 
 interface Props {
   eyebrow?: string
@@ -13,6 +15,8 @@ interface Props {
   children: ReactNode
   /** Maximale Breite; Default max-w-4xl. */
   maxWidthClass?: string
+  /** Thema des Fensters: fester Hydra-Kopf links im Kopf + Verlauf in dessen Farbe. */
+  theme?: BoxTheme
 }
 
 /**
@@ -25,14 +29,16 @@ interface Props {
  * Escape nicht. Tastatur: Fokus beim Öffnen hinein, Tab bleibt im Overlay,
  * danach zurück zum Auslöser (docs/specs/ui-standard.md, Regel 6).
  */
-export function AdminOverlay({ eyebrow, title, headerActions, footer, onClose, children, maxWidthClass = "max-w-4xl" }: Props) {
+export function AdminOverlay({ eyebrow, title, headerActions, footer, onClose, children, maxWidthClass = "max-w-4xl", theme }: Props) {
   const titelId = useId()
   const dialogRef = useDialogFokus<HTMLDivElement>()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titelId} tabIndex={-1}
         className={`flex h-[90dvh] w-full ${maxWidthClass} flex-col overflow-hidden rounded-[6px] border border-[#2a364b] bg-[#0e1420] shadow-2xl outline-none`}>
-        <header className="flex shrink-0 items-center gap-3 border-b border-[#2a364b] bg-[#131b2a] px-4 py-3">
+        <header data-box-theme={theme}
+          className={`flex shrink-0 items-center gap-3 border-b border-[#2a364b] px-4 py-3 ${theme ? `bg-gradient-to-r ${BOX_THEMES[theme].wash} to-[#131b2a] to-60%` : "bg-[#131b2a]"}`}>
+          {theme && <BoxHead theme={theme} />}
           <div className="min-w-0">
             {eyebrow && <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">{eyebrow}</p>}
             <h2 id={titelId} className="truncate text-lg font-black text-[#e8eef8]">{title}</h2>
