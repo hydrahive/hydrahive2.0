@@ -30,6 +30,13 @@ describe("AreaTopbar", () => {
   it("Start-Knopf führt zur Startseite", () => {
     expect(render("/storyteller")).toMatch(/<button[^>]*aria-label="Start"/)
   })
+  it("oben links das neue Hydra-Logo statt Haus-Symbol und Text", () => {
+    const h = render("/storyteller")
+    const start = h.match(/<button[^>]*aria-label="Start"[^>]*>([\s\S]*?)<\/button>/)![1]
+    expect(start).toContain('src="/brand/logo-schriftzug.webp"')
+    expect(start).toContain('src="/brand/logo-emblem.webp"')
+    expect(start).not.toContain("<svg")
+  })
   it("Bereich folgt der App: Storyteller → Schreibbüro, nur dessen Apps als Reiter", () => {
     const h = render("/storyteller")
     expect(h).toMatch(/aria-haspopup="menu"[^>]*>[\s\S]*?Schreibbüro/)

@@ -2,7 +2,7 @@
 // Ersetzt die frühere Cockpit-Leiste; CockpitTopbar reicht seine Props hierher durch.
 import { useEffect, type ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { Home } from "lucide-react"
+import { HydraLogo } from "@/shared/brand/HydraLogo"
 import { HelpButton } from "@/i18n/HelpButton"
 import type { HelpTopic } from "@/i18n/help/loader"
 import { VaultBadge } from "@/features/vault/VaultBadge"
@@ -36,8 +36,8 @@ export function AreaTopbar({ action, extraActions, help = "onboarding" }: AreaTo
   return (
     <header className="relative flex h-[58px] shrink-0 items-center gap-2 border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-3 sm:gap-3 sm:px-[18px]">
       <button type="button" onClick={() => navigate("/start")} title="Start – alle Bereiche" aria-label="Start"
-        className="flex shrink-0 items-center gap-1.5 font-black tracking-[-0.03em] text-[#e8eef8]">
-        <Home size={16} className="text-[#69d7ff]" /><span className="hidden md:inline">HydraHive</span>
+        className="flex shrink-0 items-center rounded-[4px] transition-opacity hover:opacity-90">
+        <HydraLogo variant="responsive" />
       </button>
 
       <AreaSwitcher areas={areas} active={active}

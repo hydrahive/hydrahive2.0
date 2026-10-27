@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { api } from "@/shared/api-client"
 import { useAuthStore } from "./useAuthStore"
+import { BRAND } from "@/shared/brand/brand"
 
 interface LoginResponse {
   access_token: string
@@ -48,12 +49,13 @@ export function LoginPage() {
           {/* Logo */}
           <div className="text-center mb-8">
             <img
-              src="/illustrations/hydra-idle.png"
-              alt="HydraHive"
-              className="w-24 h-24 mx-auto mb-3 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,0.45)] select-none"
+              src={BRAND.emblemLarge}
+              alt=""
+              draggable={false}
+              className="w-28 h-28 mx-auto mb-3 object-contain drop-shadow-[0_0_22px_rgba(105,215,255,0.35)] select-none"
             />
-            <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-300 via-violet-300 to-purple-300 bg-clip-text text-transparent">
-              HydraHive
+            <h1 className="flex justify-center">
+              <img src={BRAND.wordmark} alt="HydraHive" draggable={false} className="h-10 w-auto select-none" />
             </h1>
             <p className="text-zinc-500 text-sm mt-1">{t("login.subtitle")}</p>
           </div>
