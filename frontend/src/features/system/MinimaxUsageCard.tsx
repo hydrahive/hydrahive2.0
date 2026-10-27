@@ -75,7 +75,7 @@ export function MinimaxUsageCard() {
       {!usage.available ? (
         <p className="text-xs text-rose-300/80">{t(`minimax.error_${usage.reason}`, { defaultValue: usage.reason })}</p>
       ) : !usage.models || usage.models.length === 0 ? (
-        <EmptyState src="/illustrations/empty-quota.png" size={84} hint={t("minimax.no_data")} />
+        <EmptyState mood="thinking" size={84} hint={t("minimax.no_data")} />
       ) : (
         <div className="space-y-2">
           {usage.models.map((m) => (
