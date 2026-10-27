@@ -31,6 +31,26 @@ describe("Bereichs-Tabelle", () => {
   })
 })
 
+// Task 0dda5420: jeder Bereich hat einen Hydra-Kopf, farblich passend; Datei liegt in public/.
+describe("Bereichs-Köpfe", () => {
+  it("jeder Bereich (auch „Weitere“) hat einen vorhandenen Kopf", async () => {
+    const { existsSync } = await import("node:fs")
+    const { join } = await import("node:path")
+    for (const a of [...AREAS, OTHER_AREA]) {
+      expect(a.head, a.id).toMatch(/^\/startdesk\/koepfe\/[a-z0-9-]+\.webp$/)
+      expect(existsSync(join(__dirname, "../../../public", a.head)), a.head).toBe(true)
+    }
+  })
+  it("Köpfe passen zu Charakter und Farbe (Macher, Professor, Denker, Träumer, Buddy)", () => {
+    const head = (id: string) => AREAS.find((a) => a.id === id)!.head.replace("/startdesk/koepfe/", "")
+    expect(Object.fromEntries(AREAS.map((a) => [a.id, head(a.id)]))).toEqual({
+      medien: "kopf-3-orange.webp", schreiben: "kopf-5-brille.webp", wissen: "kopf-4-tuerkis.webp",
+      agenten: "kopf-2-lila.webp", kommunikation: "kopf-1-mint.webp", zuhause: "kopf-1-mint.webp",
+      freizeit: "kopf-2-lila.webp", verwaltung: "kopf-5-brille.webp",
+    })
+  })
+})
+
 describe("fillAreas", () => {
   const visible = [item("/storyteller"), item("/notizbuch"), item("/studio"), item("/admin"), item("/example"), item("/neuesmodul"), item("/tonstudio")]
 
