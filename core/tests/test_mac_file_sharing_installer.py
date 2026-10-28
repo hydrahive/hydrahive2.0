@@ -32,7 +32,9 @@ def mac(tmp_path: Path) -> dict:
     # dscl: -read /Users/x → 0 wenn angelegt; -create /Users/x → anlegen; -list /Users UniqueID → belegte IDs
     home = tmp_path / "home"
     home.mkdir()
+    # dscl . ohne Befehl liest Befehle von stdin (set_pw) – wie das echte Programm lesen, sonst SIGPIPE beim Schreiber
     _exe(b / "dscl", log + f'''
+[ "$#" -eq 1 ] && {{ cat >/dev/null; exit 0; }}
 case "$2" in
   -read) [ "${{4:-}}" = "NFSHomeDirectory" ] && {{ echo "NFSHomeDirectory: {home}"; exit 0; }}
          [ -f "{users}/$(basename "$3")" ] && {{ echo "UniqueID: 499"; exit 0; }}; exit 56 ;;
