@@ -5,7 +5,22 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from hydrahive.settings import settings
+
+
+@pytest.fixture(autouse=True)
+def _restore_llm_config():
+    """Die Tests schreiben die gemeinsame llm.json der Sitzung. Danach den alten Stand zurück, sonst sehen spätere Tests
+    (z. B. test_media_backends_api „leer initial“) das Backend „wks“ – mit pytest -n zufällig rot."""
+    path = settings.llm_config
+    before = path.read_bytes() if path.exists() else None
+    yield
+    if before is None:
+        path.unlink(missing_ok=True)
+    else:
+        path.write_bytes(before)
 
 
 def _seed() -> dict:
