@@ -12,6 +12,17 @@ logger = logging.getLogger(__name__)
 _USABLE_FRACTION = 0.80
 
 
+class SummaryTooLarge(RuntimeError):
+    """Der Prompt wäre größer als das Modell-Fenster – wird nicht gesendet (kostet nur, Task 5406d099)."""
+
+
+def _guard(model: str, *texts: str) -> None:
+    need = sum(estimate_dense_text(t) for t in texts if t)
+    window = context_window_for(model)
+    if need > window:
+        raise SummaryTooLarge(f"Zusammenfassung zu groß für {model}: etwa {need} > {window} Tokens – nicht gesendet")
+
+
 def _compaction_model(model: str) -> str:
     """MiniMax-Modelle aktivieren bei bestimmten Prompts intern Web-Search → HTTP 500.
     Für Compaction auf den ersten non-MiniMax-Provider ausweichen."""
@@ -50,8 +61,9 @@ async def summarize(
     instructions_tokens = estimate_text(_SUMMARY_INSTRUCTIONS)
     facts_str = _facts_string(facts) if facts else ""
     facts_tokens = estimate_text(facts_str)
-    prev_tokens = estimate_text(previous_summary) if previous_summary else 0
 
+    # Frühere Zusammenfassung dicht geschätzt: sie geht mit dem ersten Stück in denselben Aufruf.
+    prev_tokens = estimate_dense_text(previous_summary) if previous_summary else 0
     fixed_overhead = instructions_tokens + facts_tokens + prev_tokens + max_tokens + 1000
     usable_for_history = int(window * _USABLE_FRACTION) - fixed_overhead
     if usable_for_history < 10_000:
@@ -109,12 +121,14 @@ async def _single_summarize(
     else:
         user_parts.append("KONVERSATION zum Zusammenfassen:")
     user_parts.append(history_text)
+    content = "\n".join(user_parts)
+    _guard(model, system_prompt, content)
 
     from hydrahive.runner.llm_bridge import call_with_tools
     blocks, _, _ = await call_with_tools(
         model=model,
         system_prompt=system_prompt,
-        messages=[{"role": "user", "content": "\n".join(user_parts)}],
+        messages=[{"role": "user", "content": content}],
         tools=[],
         temperature=0.3,
         max_tokens=max_tokens,
@@ -132,7 +146,8 @@ async def _merge_summaries(
         f"## Teil-Zusammenfassung {i+1}/{len(summaries)}\n\n{s}"
         for i, s in enumerate(summaries)
     )
-    if estimate_dense_text(combined) <= usable_per_call:
+    if estimate_dense_text(combined) <= usable_per_call or len(summaries) <= 1:
+        _guard(model, _MERGE_INSTRUCTIONS, combined)
         from hydrahive.runner.llm_bridge import call_with_tools
         blocks, _, _ = await call_with_tools(
             model=model,
