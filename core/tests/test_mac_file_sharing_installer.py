@@ -78,8 +78,8 @@ def _calls(m: dict) -> list[str]:
 def test_attrappe_dscl_liest_die_eingabe_wie_das_echte_programm(mac) -> None:
     """set_pw schreibt per Pipe in `dscl .`. Liest die Attrappe nicht, bekommt printf unter Last SIGPIPE (141) und
     pipefail+set -e bricht 47-filesharing.sh zufällig ab (Testreihe mit -n 24). Der Schreiber wartet, bis eine nicht
-    lesende Attrappe längst beendet wäre – so wird das Rennen zur Gewissheit."""
-    sh = f'set -o pipefail; {{ sleep 0.5; printf "passwd /Users/x y\\n"; }} | "{mac["bin"] / "dscl"}" .'
+    lesende Attrappe längst beendet wäre – so wird das Rennen zur Gewissheit. Zwei Teile: Sie muss ALLES lesen."""
+    sh = f'set -o pipefail; {{ sleep 0.5; printf "passwd "; sleep 0.3; printf "/Users/x y\\n"; sleep 0.3; printf "quit\\n"; }} | "{mac["bin"] / "dscl"}" .'
     r = subprocess.run(["bash", "-c", sh], capture_output=True, text=True, timeout=30)
     assert r.returncode == 0, f"rc {r.returncode}: dscl-Attrappe muss stdin lesen"
 
