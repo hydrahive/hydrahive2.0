@@ -75,6 +75,15 @@ def _calls(m: dict) -> list[str]:
     return m["calls"].read_text().splitlines()
 
 
+def test_attrappe_dscl_liest_die_eingabe_wie_das_echte_programm(mac) -> None:
+    """set_pw schreibt per Pipe in `dscl .`. Liest die Attrappe nicht, bekommt printf unter Last SIGPIPE (141) und
+    pipefail+set -e bricht 47-filesharing.sh zufällig ab (Testreihe mit -n 24). Der Schreiber wartet, bis eine nicht
+    lesende Attrappe längst beendet wäre – so wird das Rennen zur Gewissheit."""
+    sh = f'set -o pipefail; {{ sleep 0.5; printf "passwd /Users/x y\\n"; }} | "{mac["bin"] / "dscl"}" .'
+    r = subprocess.run(["bash", "-c", sh], capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, f"rc {r.returncode}: dscl-Attrappe muss stdin lesen"
+
+
 # --- 47-filesharing.sh ---------------------------------------------------------------------------------------------
 
 def test_setup_legt_konto_ohne_shell_an_und_schaltet_smb_ein(mac) -> None:
