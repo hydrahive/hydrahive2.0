@@ -32,7 +32,9 @@ def mac(tmp_path: Path) -> dict:
     # dscl: -read /Users/x → 0 wenn angelegt; -create /Users/x → anlegen; -list /Users UniqueID → belegte IDs
     home = tmp_path / "home"
     home.mkdir()
+    # dscl . ohne Befehl liest Befehle von stdin (set_pw) – wie das echte Programm lesen, sonst SIGPIPE beim Schreiber
     _exe(b / "dscl", log + f'''
+[ "$#" -eq 1 ] && {{ cat >/dev/null; exit 0; }}
 case "$2" in
   -read) [ "${{4:-}}" = "NFSHomeDirectory" ] && {{ echo "NFSHomeDirectory: {home}"; exit 0; }}
          [ -f "{users}/$(basename "$3")" ] && {{ echo "UniqueID: 499"; exit 0; }}; exit 56 ;;
@@ -73,6 +75,15 @@ def _ctl(m: dict) -> subprocess.CompletedProcess:
 
 def _calls(m: dict) -> list[str]:
     return m["calls"].read_text().splitlines()
+
+
+def test_attrappe_dscl_liest_die_eingabe_wie_das_echte_programm(mac) -> None:
+    """set_pw schreibt per Pipe in `dscl .`. Liest die Attrappe nicht, bekommt printf unter Last SIGPIPE (141) und
+    pipefail+set -e bricht 47-filesharing.sh zufällig ab (Testreihe mit -n 24). Der Schreiber wartet, bis eine nicht
+    lesende Attrappe längst beendet wäre – so wird das Rennen zur Gewissheit. Zwei Teile: Sie muss ALLES lesen."""
+    sh = f'set -o pipefail; {{ sleep 0.5; printf "passwd "; sleep 0.3; printf "/Users/x y\\n"; sleep 0.3; printf "quit\\n"; }} | "{mac["bin"] / "dscl"}" .'
+    r = subprocess.run(["bash", "-c", sh], capture_output=True, text=True, timeout=30)
+    assert r.returncode == 0, f"rc {r.returncode}: dscl-Attrappe muss stdin lesen"
 
 
 # --- 47-filesharing.sh ---------------------------------------------------------------------------------------------
