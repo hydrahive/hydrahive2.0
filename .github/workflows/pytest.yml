@@ -112,15 +112,14 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      # Dateien, die sonst erst `npm run build` (prebuild) erzeugt: Module-, Theme-
-      # und Emote-Register. Ohne sie fehlen @/modules/index.generated u. a. – tsc
+      # Dateien, die sonst erst `npm run build` (prebuild) erzeugt: Module- und
+      # Emote-Register. Ohne sie fehlen @/modules/index.generated u. a. – tsc
       # und jeder vitest-Test, der i18n zieht, scheitern dann (ERR_MODULE_NOT_FOUND).
       - name: Generierte Dateien
         working-directory: frontend
         run: |
           node scripts/gen-emotes.mjs
           node scripts/gen-modules.mjs
-          node scripts/gen-themes.mjs
 
       # -b: tsconfig.json hat `files: []` und nur references. Ohne -b prüft tsc
       # keine einzige Datei (Typfehler fielen hier bisher nie auf).

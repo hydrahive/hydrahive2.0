@@ -35,6 +35,10 @@ describe("Layout-Themes sind entfernt", () => {
     expect(pkg).not.toContain("gen-themes")
     expect(pkg).not.toContain("grapesjs")
   })
+  it("CI ruft den gelöschten Theme-Generator nicht mehr auf", () => {
+    const wf = join(FE, "..", ".github", "workflows")
+    for (const f of readdirSync(wf)) expect(readFileSync(join(wf, f), "utf8"), f).not.toContain("gen-themes")
+  })
   it("kein Quelltext verweist mehr auf das Theme-System", () => {
     const bad = /hh-active-theme"\)|hh-theme-change|shared\/themes|shared\/layouts|themetemplates|themeeditor|features\/themes\//
     const hits = [...files(SRC), ...files(join(FE, "scripts"))]
