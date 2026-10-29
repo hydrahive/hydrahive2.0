@@ -5,9 +5,8 @@
   "type": "module",
   "scripts": {
     "gen:emotes": "node scripts/gen-emotes.mjs",
-    "gen:themes": "node scripts/gen-themes.mjs",
-    "dev": "node scripts/gen-emotes.mjs && node scripts/gen-themes.mjs && vite",
-    "prebuild": "node scripts/gen-emotes.mjs && node scripts/gen-modules.mjs && node scripts/gen-themes.mjs",
+    "dev": "node scripts/gen-emotes.mjs && vite",
+    "prebuild": "node scripts/gen-emotes.mjs && node scripts/gen-modules.mjs",
     "build": "tsc -b && vite build",
     "check:cockpit-offline": "node scripts/check-cockpit-offline-first.mjs",
     "check:admin-visual": "node scripts/check-admin-visual-system.mjs",
@@ -18,7 +17,6 @@
   "dependencies": {
     "@assistant-ui/react": "^0.12.28",
     "@assistant-ui/react-markdown": "^0.12.11",
-    "@grapesjs/react": "^2.0.0",
     "@monaco-editor/react": "^4.7.0",
     "@novnc/novnc": "^1.7.0",
     "@tiptap/extension-typography": "^3.31.4",
@@ -35,7 +33,6 @@
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "epubjs": "^0.3.93",
-    "grapesjs": "^0.22.16",
     "i18next": "^26.0.8",
     "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^1.11.0",

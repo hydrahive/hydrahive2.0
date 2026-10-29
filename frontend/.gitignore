@@ -27,10 +27,4 @@ dist-ssr
 src/modules/*/
 src/modules/index.generated.ts
 
-# Theme system — index ist generiert; Hub-installierte Themes sind
-# install-managed. Das mitgelieferte Beispiel-Theme (aurora) + README bleiben
-# als Vorlage im Repo.
-src/themes/index.generated.ts
-src/themes/*/
-!src/themes/aurora/
 .npm-cache/

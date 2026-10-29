@@ -1,7 +1,7 @@
-export type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "themes" | "mcp" | "llm" | "extensions" | "system" | "system-settings" | "containers" | "vms" | "nodes" | "jobs" | "scheduled-tasks" | "access" | "archive" | "federation" | "zahnfee"
+export type AdminOverlayId = "users" | "modules" | "plugins" | "credentials" | "mcp" | "llm" | "extensions" | "system" | "system-settings" | "containers" | "vms" | "nodes" | "jobs" | "scheduled-tasks" | "access" | "archive" | "federation" | "zahnfee"
 
 const ADMIN_OVERLAY_IDS = new Set<AdminOverlayId>([
-  "users", "modules", "plugins", "credentials", "themes", "mcp", "llm",
+  "users", "modules", "plugins", "credentials", "mcp", "llm",
   "extensions", "system", "system-settings", "containers", "vms", "nodes", "jobs", "scheduled-tasks", "access", "archive", "federation", "zahnfee",
 ])
 
@@ -16,7 +16,7 @@ export const OVERLAY_BY_ACTION: Record<string, AdminOverlayId> = {
 
 export const OVERLAY_BY_PATH: Record<string, AdminOverlayId> = {
   "/modules": "modules", "/plugins": "plugins", "/credentials": "credentials",
-  "/themes": "themes", "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions",
+  "/mcp": "mcp", "/llm": "llm", "/extensions": "extensions",
   "/system": "system", "/system/settings": "system-settings", "/containers": "containers",
   "/vms": "vms", "/nodes": "nodes", "/jobs": "jobs", "/scheduled-tasks": "scheduled-tasks",
   "/access": "access", "/archive": "archive", "/federation": "federation",

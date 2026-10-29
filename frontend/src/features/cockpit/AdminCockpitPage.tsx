@@ -23,7 +23,6 @@ const opsLinks = [
   { title: "Compute-Nodes", path: "/nodes", icon: Network },
   { title: "Compute-Jobs", path: "/jobs", icon: ListChecks },
   { title: "Automationen", path: "/scheduled-tasks", icon: RefreshCw },
-  { title: "Themes", path: "/themes", icon: WandSparkles },
   { title: "Föderation", path: "/federation", icon: Globe },
   { title: "Zahnfee", path: "/zahnfee-config", icon: MoonStar },
 ]

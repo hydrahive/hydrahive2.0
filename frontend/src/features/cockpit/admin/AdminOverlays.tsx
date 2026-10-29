@@ -2,7 +2,6 @@ import { UsersOverlay } from "./UsersOverlay"
 import { ModulesOverlay } from "./ModulesOverlay"
 import { PluginsOverlay } from "./PluginsOverlay"
 import { CredentialsOverlay } from "./CredentialsOverlay"
-import { ThemesOverlay } from "./ThemesOverlay"
 import { McpOverlay } from "./McpOverlay"
 import { LlmOverlay } from "./LlmOverlay"
 import { ExtensionsOverlay } from "./ExtensionsOverlay"
@@ -34,7 +33,6 @@ export function AdminOverlays({ overlay, selectedContainerId, onClose, onSelectC
       {overlay === "modules" && <ModulesOverlay onClose={onClose} />}
       {overlay === "plugins" && <PluginsOverlay onClose={onClose} />}
       {overlay === "credentials" && <CredentialsOverlay onClose={onClose} />}
-      {overlay === "themes" && <ThemesOverlay onClose={onClose} />}
       {overlay === "mcp" && <McpOverlay onClose={onClose} />}
       {overlay === "llm" && <LlmOverlay onClose={onClose} />}
       {overlay === "extensions" && <ExtensionsOverlay onClose={onClose} />}

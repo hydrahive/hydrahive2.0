@@ -12,7 +12,7 @@ describe("TILE_ART", () => {
   })
   it("deckt alle Ziele von Admin-Cockpit und Buddy ab", () => {
     for (const k of ["/system", "/users", "/modules", "/extensions", "/plugins", "/credentials", "/archive",
-      "/llm", "/mcp", "/skills", "/vms", "/containers", "/nodes", "/jobs", "/scheduled-tasks", "/themes",
+      "/llm", "/mcp", "/skills", "/vms", "/containers", "/nodes", "/jobs", "/scheduled-tasks",
       "/federation", "/zahnfee-config", "/system/settings", "/access", "/projects", "/media", "/vault", "/admin",
       "/scratchpad", "/minigames", "/boardgames", "buddy:today", "buddy:remember", "buddy:project", "gitea", "backup"]) {
       expect(TILE_ART[k], k).toMatch(/^\/kacheln\/[a-z-]+\.webp$/)

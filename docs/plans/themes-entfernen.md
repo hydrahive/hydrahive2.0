@@ -47,7 +47,7 @@ zahnfee). Nach dem Plan zeigen alle die echte Seite, auch mit altem `hh-active-t
   Kommentar „liefert das Theme“ korrigieren
 - [ ] `shared/themes/`, `shared/layouts/` (inkl. `layoutLogo.test.ts`), `src/themes/` löschen
 - [ ] `scripts/gen-themes.mjs` löschen, `package.json`: Skript `gen:themes` und Aufrufe in `dev`/`prebuild` entfernen
-- [ ] alter Browser-Eintrag: `main.tsx` entfernt einmalig `localStorage["hh-active-theme"]` (Aufräumen, schadet nicht)
+- [x] alter Browser-Eintrag `hh-active-theme`: wird von niemandem mehr gelesen → kein eigener Aufräum-Code (bewusst entschieden, wäre toter Code)
 
 ### Task A5: Abhängigkeiten
 - [ ] `grapesjs`, `@grapesjs/react` aus `package.json` + `package-lock.json` (per `npm uninstall`)
