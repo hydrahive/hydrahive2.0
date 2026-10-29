@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { Film, Images, Scissors, Sparkles, Users, Video } from "lucide-react"
+import { useAuthStore } from "@/features/auth/useAuthStore"
 import { projectsApi } from "@/features/projects/api"
+import { ownProjects } from "@/features/projects/membership"
 import type { Project } from "@/features/projects/types"
 import { TileIcon } from "@/shared/brand/TileIcon"
 import { CockpitSectionLabel } from "./CockpitPanel"
@@ -34,19 +36,23 @@ function useWorkflow() {
 
 export function MediaCockpitPage() {
   const { workflow, WorkflowPage, steps } = useWorkflow()
-  const [projects, setProjects] = useState<Project[]>([])
+  const username = useAuthStore((s) => s.username)
+  const [projects, setProjects] = useState<Project[] | null>(null)
   const [projectId, setProjectId] = useState("")
   // Ohne Produktions-Workflow (Modul fehlt) startet das Cockpit direkt im Schnitt.
   const [view, setView] = useState<MediaView>(workflow ? "generate" : "editor")
 
   useEffect(() => {
-    projectsApi.list().then((items) => {
+    // Nur eigene Projekte: Admins bekommen von /api/projects alle, Atelier/Studio
+    // erlauben aber nur Mitglieder (sonst „Projekt nicht gefunden“, Task 308b7c91).
+    projectsApi.list().then((all) => {
+      const items = ownProjects(all, username)
       setProjects(items)
-      setProjectId((current) => current || items[0]?.id || "")
+      setProjectId((current) => (items.some((p) => p.id === current) ? current : items[0]?.id || ""))
     })
-  }, [])
+  }, [username])
 
-  const project = useMemo(() => projects.find((item) => item.id === projectId), [projects, projectId])
+  const project = useMemo(() => projects?.find((item) => item.id === projectId), [projects, projectId])
   const isEditor = view === "editor" || !WorkflowPage
   const activeIndex = steps.findIndex((item) => item.id === view)
   const activeStep = steps[activeIndex]
@@ -58,8 +64,9 @@ export function MediaCockpitPage() {
         <aside className="panel min-h-0 overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3">
           <CockpitSectionLabel>Projekt</CockpitSectionLabel>
           <select aria-label="Projekt" value={projectId} onChange={(event) => setProjectId(event.target.value)} className="mt-2 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]">
-            {projects.length === 0 && <option value="">Projekte laden…</option>}
-            {projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            {projects === null && <option value="">Projekte laden…</option>}
+            {projects?.length === 0 && <option value="">Kein eigenes Projekt</option>}
+            {projects?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
 
           {steps.length > 0 && <>
