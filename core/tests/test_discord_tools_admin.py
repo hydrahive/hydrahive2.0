@@ -123,7 +123,9 @@ def test_runner_verlangt_bestaetigung_fuer_kick(monkeypatch, tmp_path):
     from tests.test_runner_harakiri_confirm import _ctx, _deny, _drive
 
     monkeypatch.setattr(_runner_tools, "record_observation", lambda **k: None)
-    tool_confirmation._pending.clear()
+    # Eigene, nach dem Test verworfene Liste: wait ist ersetzt, die offene Bestätigung c9 (Sitzung s1) bliebe sonst
+    # liegen und spätere Tests im selben Prozess (test_tool_confirm_wait, pytest -n) fänden sie.
+    monkeypatch.setattr(tool_confirmation, "_pending", {})
     executed = []
 
     async def _fake_exec(*, tool_use, allowed_tools, ctx, parent_message_id, iteration=None):
