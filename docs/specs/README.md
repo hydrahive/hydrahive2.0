@@ -3,7 +3,7 @@
 > Automatisch erzeugt aus Dateinamen, Git-Historie und Überschriften.
 > Neu erzeugen: `python3 scripts/gen_spec_index.py`
 
-134 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
+135 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
 selbst im Kopf angibt — leer heißt: nicht angegeben, nicht automatisch geraten.
 
 ## Mehrteilige Reihen
@@ -63,7 +63,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`cockpit-responsive-topbar.md`](cockpit-responsive-topbar.md) | Cockpit-Chrome P1: Responsive Topbar und Mobile-Navigation |  | 2026-07-11 |
 | [`code-graph.md`](code-graph.md) | Code-Graph — Projekt-Codebase als navigierbarer Wissensgraph (Etappe 1) |  | 2026-07-13 |
 | [`comfyui-workflows-pflichtfelder.md`](comfyui-workflows-pflichtfelder.md) | Mitgelieferte ComfyUI-Abläufe: Pflichtfelder vollständig |  | 2026-10-24 |
-| [`compact-riesige-nachrichten.md`](compact-riesige-nachrichten.md) | Compact bei riesigen Einzelnachrichten |  | ? |
+| [`compact-riesige-nachrichten.md`](compact-riesige-nachrichten.md) | Compact bei riesigen Einzelnachrichten |  | 2026-10-27 |
 | [`compute-cluster-v1.md`](compute-cluster-v1.md) | HydraHive Compute Cluster V1 — Node Agent + Incus |  | 2026-07-19 |
 | [`compute-cluster-v1-plan.md`](compute-cluster-v1-plan.md) | Plan: HydraHive Compute Cluster V1 |  | 2026-07-20 |
 | [`container-nat-ports.md`](container-nat-ports.md) | Container auf VPS: NAT-Netz und Portfreigaben | freigegeben von Till · **Task:** fa358d87 | 2026-10-11 |
@@ -128,6 +128,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`project-handover.md`](project-handover.md) | Spec: Globale Projekt-Handover-Datei |  | 2026-07-11 |
 | [`project-member-roles.md`](project-member-roles.md) | Spec: Projekt-Member-Rechte (Read / Write / Admin) |  | 2026-07-29 |
 | [`prompt-archive.md`](prompt-archive.md) | Feature-Spec: Prompt-Archiv (Prompt Library) | Entwurf | 2026-06-25 |
+| [`pytest-parallel.md`](pytest-parallel.md) | Testreihe auf mehreren Kernen (pytest-xdist) |  | ? |
 | [`python-314-umstieg.md`](python-314-umstieg.md) | Umstieg auf Python 3.14 (Ubuntu 26.04) |  | 2026-10-12 |
 | [`refusal-visible.md`](refusal-visible.md) | Lauf-Abbrüche sichtbar machen (refusal + Buddy-Fehleranzeige) |  | 2026-09-30 |
 | [`repo-zugang.md`](repo-zugang.md) | Spec: Zugang zum Code über GitHub-Freischaltung (privates Repo) |  | 2026-10-15 |

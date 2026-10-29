@@ -62,7 +62,7 @@ jobs:
       - name: Run pytest
         run: |
           cd core
-          PYTHONPATH=src pytest tests/ -v --tb=short
+          PYTHONPATH=src pytest tests/ -n auto -v --tb=short
 
   backend-py312:
     name: Backend (pytest, Python 3.12)
@@ -93,7 +93,7 @@ jobs:
       - name: Run pytest
         run: |
           cd core
-          PYTHONPATH=src pytest tests/ -q --tb=short
+          PYTHONPATH=src pytest tests/ -n auto -q --tb=short
 
   frontend:
     name: Frontend (TypeScript)

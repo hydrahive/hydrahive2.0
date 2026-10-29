@@ -53,6 +53,8 @@ dependencies = [
     "matrix-nio>=0.25,<0.26",
     "asyncpg>=0.29,<1",
     "pytest>=9.0,<10",
+    # Testreihe auf mehreren Kernen (docs/specs/pytest-parallel.md): CI mit -n auto, lokal -n 16.
+    "pytest-xdist>=3.6,<4",
     "pytest-asyncio>=1.4,<2",
 ]
 
