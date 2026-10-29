@@ -101,7 +101,6 @@ from hydrahive.api.routes.streaming import router as streaming_router
 from hydrahive.api.routes.teamchat import router as teamchat_router
 from hydrahive.api.routes.prompt_archive import router as prompt_archive_router
 from hydrahive.api.routes.modules import router as modules_admin_router
-from hydrahive.api.routes.themes import router as themes_admin_router
 from hydrahive.api.routes.vms import router as vms_router
 from hydrahive.api.version import current_status
 from hydrahive import modules as _modules
@@ -229,7 +228,6 @@ app.include_router(streaming_router)
 app.include_router(teamchat_router)
 app.include_router(prompt_archive_router)
 app.include_router(modules_admin_router)
-app.include_router(themes_admin_router)
 app.include_router(vault_router)
 
 

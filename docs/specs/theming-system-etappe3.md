@@ -1,5 +1,7 @@
 # Theme-System Etappe 3 — Hub-Installer (WordPress-Gefühl)
 
+> **Zurückgenommen am 29.10.2026** (Task 3c82a8d5, Plan `docs/plans/themes-entfernen.md`): Till – „ein Theme reicht“. Das Layout-Theme-System wurde in Oberfläche und Backend entfernt. Dieses Dokument bleibt nur als Historie.
+
 Status: FREIGEGEBEN (Weg A — eigenes Git-Hub-Repo, wie Module).
 Baut auf Etappe 1 (PR #245) + Etappe 2 (PR #246) auf.
 

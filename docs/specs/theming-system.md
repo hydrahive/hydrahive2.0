@@ -1,5 +1,7 @@
 # Theme-System — installierbare Designs (WordPress-Prinzip)
 
+> **Zurückgenommen am 29.10.2026** (Task 3c82a8d5, Plan `docs/plans/themes-entfernen.md`): Till – „ein Theme reicht“. Das Layout-Theme-System wurde in Oberfläche und Backend entfernt. Dieses Dokument bleibt nur als Historie.
+
 Status: **ENTWURF — wartet auf Freigabe**
 Autor: Agent · Datum: 2026-07-02 · Branch-Ziel: `feature/theme-system`
 
