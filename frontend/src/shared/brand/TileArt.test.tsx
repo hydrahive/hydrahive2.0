@@ -13,6 +13,11 @@ describe("TileIcon", () => {
     expect(html).toMatch(/h-12 w-12/)
     expect(html).not.toContain("<svg")
   })
+  it("klein (sm): 28-px-Bild, passt in ein 32-px-Feld mit Rand", () => {
+    const html = renderToStaticMarkup(<TileIcon target="/vms" icon={Server} size="sm" />)
+    expect(html).toMatch(/h-7 w-7/)
+    expect(html).not.toMatch(/h-12 w-12/)
+  })
   it("ohne Bildchen: das bisherige Symbol", () => {
     const html = renderToStaticMarkup(<TileIcon target="/neu" icon={Server} />)
     expect(html).not.toContain("<img")
