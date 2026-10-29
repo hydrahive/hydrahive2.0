@@ -152,8 +152,9 @@ async def litellm_call(
     oai_messages = messages_to_openai(messages, system_prompt)
     oai_tools = tools_to_openai(tools)
 
+    from hydrahive.llm._routing import litellm_model
     kwargs: dict[str, Any] = {
-        "model": model,
+        "model": litellm_model(model),  # Ollama → /api/chat (docs/specs/ollama-chat-route.md)
         "messages": oai_messages,
         "temperature": temperature,
         "max_tokens": max_tokens,

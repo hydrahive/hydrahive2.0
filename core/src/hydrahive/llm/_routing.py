@@ -21,6 +21,17 @@ def api_base_for(cfg: dict, model: str) -> str | None:
     return None
 
 
+def litellm_model(model: str) -> str:
+    """Ziel für den LiteLLM-Aufruf. `ollama/<name>` → `ollama_chat/<name>` (docs/specs/ollama-chat-route.md).
+
+    LiteLLMs `ollama/` spricht /api/generate und rät Werkzeugaufrufe aus Text – lokale Agenten erfanden dadurch
+    Werkzeuge oder antworteten leer. `ollama_chat/` nutzt /api/chat mit echtem Werkzeug-Feld. Die Modell-ID bleibt
+    überall sonst `ollama/<name>`; nur der Aufruf selbst geht an das andere Ziel."""
+    if model.startswith("ollama/"):
+        return "ollama_chat/" + model[len("ollama/"):]
+    return model
+
+
 def litellm_target(cfg: dict, model: str) -> dict:
     """Zusätzliche Argumente für litellm.acompletion: api_base (falls eingetragen) und für Ollama num_ctx.
 
