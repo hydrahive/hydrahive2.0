@@ -16,6 +16,10 @@ export const TILE_ART: Record<string, string> = {
   "/scratchpad": `${K}/scratchpad.webp`, "/minigames": `${K}/spiele.webp`, "/boardgames": `${K}/boardgames.webp`,
   "buddy:today": `${K}/heute.webp`, "buddy:remember": `${K}/idee.webp`, "buddy:project": `${K}/projekt.webp`,
   gitea: `${K}/gitea.webp`, backup: `${K}/backup.webp`,
+  // Medien-Cockpit: Schritte des Arbeitsbereichs (Schritt-ID aus dem Modul) + Videoschnitt
+  "media:characters": `${K}/media-charaktere.webp`, "media:generate": `${K}/media-bild.webp`,
+  "media:gallery": `${K}/media-galerie.webp`, "media:clips": `${K}/media-clips.webp`,
+  "media:film": `${K}/media-film.webp`, "media:editor": `${K}/media-schnitt.webp`,
 }
 
 export function tileArt(target: string): string | null {
