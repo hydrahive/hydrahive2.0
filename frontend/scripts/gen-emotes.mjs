@@ -10,7 +10,7 @@ const emoteDir = join(here, "..", "public", "illustrations", "emoticons")
 const outFile = join(here, "..", "src", "features", "chat", "_emoteNames.generated.ts")
 
 const names = readdirSync(emoteDir)
-  .filter((f) => /^hydra-[a-z0-9-]+\.png$/.test(f) && f !== "hydra-wow2.png")
+  .filter((f) => /^hydra-[a-z0-9-]+\.png$/.test(f))
   .map((f) => f.slice("hydra-".length, -".png".length))
   .sort()
 
