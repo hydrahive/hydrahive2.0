@@ -28,6 +28,6 @@ export const ADMIN_OVERLAY_THEME: Record<AdminOverlayId, BoxTheme> = {
   modules: "werkzeug", plugins: "werkzeug", extensions: "werkzeug", containers: "werkzeug",
   vms: "werkzeug", nodes: "werkzeug", jobs: "werkzeug", "scheduled-tasks": "werkzeug", archive: "werkzeug",
   system: "status", "system-settings": "status",
-  themes: "ideen", llm: "ideen", mcp: "ideen", federation: "ideen",
+  llm: "ideen", mcp: "ideen", federation: "ideen",
   zahnfee: "wissen",
 }

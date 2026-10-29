@@ -6,7 +6,7 @@ import { ADMIN_OVERLAY_THEME, BOX_THEMES } from "./boxThemes"
 import { isAdminOverlayId } from "@/features/cockpit/admin/adminOverlayRegistry"
 
 const PUBLIC = join(__dirname, "../../../public")
-const OVERLAY_IDS = ["users", "modules", "plugins", "credentials", "themes", "mcp", "llm", "extensions", "system",
+const OVERLAY_IDS = ["users", "modules", "plugins", "credentials", "mcp", "llm", "extensions", "system",
   "system-settings", "containers", "vms", "nodes", "jobs", "scheduled-tasks", "access", "archive", "federation", "zahnfee"]
 
 describe("BOX_THEMES", () => {

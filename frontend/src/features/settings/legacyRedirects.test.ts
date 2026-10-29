@@ -6,7 +6,7 @@ import { ADMIN_GROUP_TARGET, legacyTarget } from "./legacyRedirects"
 describe("legacyTarget", () => {
   it.each([
     ["modules", "/admin?section=modules"], ["plugins", "/admin?section=plugins"],
-    ["themes", "/admin?section=themes"], ["extensions", "/admin?section=extensions"],
+    ["extensions", "/admin?section=extensions"],
     ["mcp", "/admin?section=mcp"], ["llm", "/admin?section=llm"],
     ["federation", "/admin?section=federation"], ["connections", "/admin?section=system"],
     ["system", "/admin?section=system"], ["settings_values", "/admin?section=system-settings"],
@@ -15,7 +15,7 @@ describe("legacyTarget", () => {
     expect(legacyTarget(group)).toBe(target)
   })
 
-  it.each(["agents", "projects", "communication", "skills", "butler", "credentials", "xyz", "toString", "constructor", undefined])(
+  it.each(["agents", "projects", "communication", "skills", "butler", "credentials", "themes", "xyz", "toString", "constructor", undefined])(
     "%s bleibt im Hub", (group) => {
       expect(legacyTarget(group)).toBeNull()
     })

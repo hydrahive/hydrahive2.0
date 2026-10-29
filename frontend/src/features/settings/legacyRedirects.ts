@@ -6,7 +6,6 @@
 export const ADMIN_GROUP_TARGET: Record<string, string> = {
   modules: "/admin?section=modules",
   plugins: "/admin?section=plugins",
-  themes: "/admin?section=themes",
   extensions: "/admin?section=extensions",
   mcp: "/admin?section=mcp",
   llm: "/admin?section=llm",

@@ -3,7 +3,6 @@ import { useAuthStore } from "@/features/auth/useAuthStore"
 import { LoginPage } from "@/features/auth/LoginPage"
 import { Layout } from "@/shared/Layout"
 import type { ReactElement } from "react"
-import { lazy, Suspense } from "react"
 import { moduleRoutes } from "@/modules/index.generated"
 
 interface ModuleRoute { path: string; element: ReactElement }
@@ -26,13 +25,7 @@ import { UiKitPage } from "@/features/uikit/UiKitPage"
 import { PluginsPage } from "@/features/plugins/PluginsPage"
 import { ExtensionsPage } from "@/features/extensions/ExtensionsPage"
 import { ModulesPage } from "@/features/modules/ModulesPage"
-import { ThemesPage } from "@/features/themes/ThemesPage"
 // GrapesJS ist groß (~1 MB) → nur laden wenn der Editor wirklich geöffnet wird.
-const ThemeEditorPage = lazy(() =>
-  import("@/features/themeeditor/ThemeEditorPage").then((m) => ({ default: m.ThemeEditorPage })),
-)
-import { TemplateProofPage } from "@/features/themetemplates/TemplateProofPage"
-import { ThemedPage } from "@/features/themetemplates/ThemedPage"
 import { CommunicationPage } from "@/features/communication/CommunicationPage"
 import { TeamchatPage } from "@/features/teamchat/TeamchatPage"
 import { VMsPage } from "@/features/vms/VMsPage"
@@ -83,9 +76,9 @@ export default function App() {
         >
           <Route index element={<LandingRedirect />} />
           <Route path="start" element={<StartDeskPage />} />
-          <Route path="buddy" element={<ThemedPage route="buddy" fallback={<BuddyPage />} />} />
+          <Route path="buddy" element={<BuddyPage />} />
           <Route path="buddy/settings" element={<BuddySettingsPage />} />
-          <Route path="dashboard" element={<ThemedPage route="dashboard" fallback={<DashboardPage />} />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="analytics/session/:sid" element={<SessionDetailPage />} />
           <Route path="werkstatt" element={<WerkstattCockpitPage />} />
           <Route path="werkstatt/:sid" element={<ChatPage />} />
@@ -96,20 +89,20 @@ export default function App() {
           <Route path="media" element={<MediaCockpitPage />} />
           <Route path="vault" element={<VaultCockpitPage />} />
           <Route path="admin" element={<AdminGuard><AdminCockpitPage /></AdminGuard>} />
-          <Route path="communication" element={<ThemedPage route="communication" fallback={<CommunicationPage />} />} />
-          <Route path="teamchat" element={<ThemedPage route="teamchat" fallback={<TeamchatPage />} />} />
-          <Route path="vms" element={<ThemedPage route="vms" fallback={<VMsPage />} />} />
-          <Route path="containers" element={<ThemedPage route="containers" fallback={<ContainersPage />} />} />
+          <Route path="communication" element={<CommunicationPage />} />
+          <Route path="teamchat" element={<TeamchatPage />} />
+          <Route path="vms" element={<VMsPage />} />
+          <Route path="containers" element={<ContainersPage />} />
           <Route path="containers/:id" element={<ContainerDetailPage />} />
-          <Route path="butler" element={<ThemedPage route="butler" fallback={<ButlerPage />} />} />
-          <Route path="federation" element={<ThemedPage route="federation" fallback={<FederationPage />} />} />
-          <Route path="streaming" element={<ThemedPage route="streaming" fallback={<StreamingPage />} />} />
-          <Route path="datamining" element={<ThemedPage route="datamining" fallback={<DataminingPage />} />} />
-          <Route path="memory" element={<ThemedPage route="memory" fallback={<MemoryPage />} />} />
+          <Route path="butler" element={<ButlerPage />} />
+          <Route path="federation" element={<FederationPage />} />
+          <Route path="streaming" element={<StreamingPage />} />
+          <Route path="datamining" element={<DataminingPage />} />
+          <Route path="memory" element={<MemoryPage />} />
           <Route path="llm" element={<LlmPage />} />
           <Route path="llm/catalog" element={<CatalogPage />} />
-          <Route path="mcp" element={<ThemedPage route="mcp" fallback={<McpPage />} />} />
-          <Route path="skills" element={<ThemedPage route="skills" fallback={<SkillsPage />} />} />
+          <Route path="mcp" element={<McpPage />} />
+          <Route path="skills" element={<SkillsPage />} />
           <Route path="ui-kit" element={<UiKitPage />} />
           <Route path="credentials" element={<CredentialsPage />} />
           <Route path="settings" element={<SettingsHubPage />} />
@@ -120,12 +113,9 @@ export default function App() {
           <Route path="plugins" element={<AdminGuard><PluginsPage /></AdminGuard>} />
           <Route path="extensions" element={<AdminGuard><ExtensionsPage /></AdminGuard>} />
           <Route path="modules" element={<AdminGuard><ModulesPage /></AdminGuard>} />
-          <Route path="themes" element={<AdminGuard><ThemesPage /></AdminGuard>} />
-          <Route path="theme-editor" element={<AdminGuard><Suspense fallback={<div className="p-8 text-sm text-zinc-500">Editor lädt …</div>}><ThemeEditorPage /></Suspense></AdminGuard>} />
-          <Route path="template-proof" element={<AdminGuard><TemplateProofPage /></AdminGuard>} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="help" element={<HelpPage />} />
-          <Route path="zahnfee" element={<AdminGuard><ThemedPage route="zahnfee" fallback={<ZahnfeePage />} /></AdminGuard>} />
+          <Route path="zahnfee" element={<AdminGuard><ZahnfeePage /></AdminGuard>} />
           {appModuleRoutes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

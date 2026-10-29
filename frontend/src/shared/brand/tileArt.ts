@@ -10,7 +10,7 @@ export const TILE_ART: Record<string, string> = {
   "/extensions": `${K}/extensions.webp`, "/plugins": `${K}/plugins.webp`, "/credentials": `${K}/credentials.webp`,
   "/archive": `${K}/archiv.webp`, "/llm": `${K}/llm.webp`, "/mcp": `${K}/mcp.webp`, "/skills": `${K}/skills.webp`,
   "/vms": `${K}/vms.webp`, "/containers": `${K}/containers.webp`, "/nodes": `${K}/nodes.webp`, "/jobs": `${K}/jobs.webp`,
-  "/scheduled-tasks": `${K}/automation.webp`, "/themes": `${K}/themes.webp`, "/federation": `${K}/federation.webp`,
+  "/scheduled-tasks": `${K}/automation.webp`, "/federation": `${K}/federation.webp`,
   "/zahnfee-config": `${K}/zahnfee.webp`, "/system/settings": `${K}/system-settings.webp`, "/access": `${K}/freigaben.webp`,
   "/projects": `${K}/projekt.webp`, "/media": `${K}/media.webp`, "/vault": `${K}/vault.webp`, "/admin": `${K}/admin.webp`,
   "/scratchpad": `${K}/scratchpad.webp`, "/minigames": `${K}/spiele.webp`, "/boardgames": `${K}/boardgames.webp`,
