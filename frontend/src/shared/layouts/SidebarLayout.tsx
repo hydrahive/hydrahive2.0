@@ -2,6 +2,7 @@ import { Link, Outlet } from "react-router-dom"
 import { Grip, Settings } from "lucide-react"
 import { AppFooter } from "@/shared/AppFooter"
 import { AvatarMenu } from "@/shared/AvatarMenu"
+import { HydraLogo } from "@/shared/brand/HydraLogo"
 import { DOMAIN_TW, colorFor } from "@/shared/colors"
 import { navLabel } from "@/shared/nav-label"
 import type { LayoutChrome } from "./types"
@@ -27,13 +28,8 @@ export function SidebarLayout({ chrome }: { chrome: LayoutChrome }) {
       {/* Seitenleiste links */}
       <aside className="relative z-30 flex flex-col w-60 shrink-0 border-r border-white/[6%] bg-zinc-950/80 backdrop-blur">
         <div className="flex items-center gap-2 h-12 px-4 border-b border-white/[6%]">
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              src="/illustrations/logo-mark.png"
-              alt=""
-              className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] select-none"
-            />
-            <span className="font-bold text-[var(--hh-accent-text)] tracking-tight">HydraHive</span>
+          <Link to="/" className="flex items-center gap-2" aria-label="Startseite">
+            <HydraLogo variant="wordmark" className="h-8" />
           </Link>
         </div>
 
