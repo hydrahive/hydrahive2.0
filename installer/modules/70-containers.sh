@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Container-Manager Setup: incus + dir-Storage + Default-Profil-Tweaks.
+# Container-Manager Setup: incus + dir-Storage (nur beim ersten Mal) + Default-Profil-Tweaks.
 #
 # Idempotent: prüft jeden Schritt einzeln.
 #
@@ -20,30 +20,10 @@ HH_USER="${HH_USER:-hydrahive}"
 log "incus-Paket installieren"
 DEBIAN_FRONTEND=noninteractive apt-get install -y incus
 
-# incus admin init mit dir-Storage falls noch nicht initialisiert
-if ! incus storage list 2>/dev/null | grep -q "default.*dir"; then
-  log "incus initialisieren (dir-Storage, kein Bridge-Auto-Setup)"
-  cat <<EOF | incus admin init --preseed 2>&1 | tail -5
-config: {}
-networks: []
-storage_pools:
-- config: {}
-  description: ""
-  name: default
-  driver: dir
-profiles:
-- config: {}
-  description: ""
-  devices:
-    root:
-      path: /
-      pool: default
-      type: disk
-  name: default
-projects: []
-cluster: null
-EOF
-fi
+# incus nur einrichten, wenn es noch keinen Speicher gibt (docs/specs/incus-init-update.md)
+# shellcheck source=../lib/incus-init.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/incus-init.sh"
+ensure_incus_initialized
 
 # images-Remote (offizielles Public-Repo) sicherstellen
 if ! incus remote list 2>/dev/null | grep -q "images.*linuxcontainers.org"; then

@@ -627,9 +627,11 @@ fi
 
 # incus-Setup muss VOR dem Voice-Check laufen — 55-voice.sh nutzt incus
 # als STT-Container-Runtime (kein Docker mehr).
+# Eingerichtet = incus hat irgendeinen Speicher; der Name zählt nicht (docs/specs/incus-init-update.md).
+source "$HH_REPO_DIR/installer/lib/incus-init.sh"
 if hh_addon_wanted "$INSTALL_CONF" HH_INSTALL_CONTAINERS "$(hh_has incus)" \
    && { ! command -v incus >/dev/null 2>&1 \
-        || ! incus storage list 2>/dev/null | grep -q "default" \
+        || ! incus_is_initialized \
         || [ ! -d "/home/$HH_USER/.config/incus" ]; }; then
   log "Container-Manager-Setup fehlt — starte 70-containers.sh"
   HH_USER="$HH_USER" \

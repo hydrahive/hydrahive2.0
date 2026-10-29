@@ -19,14 +19,15 @@ echo "$*" >> "$FAKE_LOG"
 if [ "$1 $2" = "admin init" ]; then cat >> "$FAKE_LOG.preseed"; exit 0; fi
 if [ "$1 $2" = "admin waitready" ]; then exit "${FAKE_RC:-0}"; fi
 if [ "$1 $2" = "storage list" ]; then
-  [ "${FAKE_RC:-0}" = 0 ] || { echo "Error: daemon not reachable" >&2; exit 1; }
+  [ "${FAKE_RC:-0}" = 0 ] || { printf '%s' "${FAKE_ERR_OUT:-}"; echo "Error: daemon not reachable" >&2; exit 1; }
   printf '%s' "${FAKE_POOLS:-}"; exit 0
 fi
 exit 0
 """
 
 
-def _run(tmp: Path, call: str, pools: str = "", rc: int = 0) -> tuple[subprocess.CompletedProcess, list[str], str]:
+def _run(tmp: Path, call: str, pools: str = "", rc: int = 0,
+         err_out: str = "") -> tuple[subprocess.CompletedProcess, list[str], str]:
     bindir = tmp / "bin"
     bindir.mkdir(exist_ok=True)
     fake = bindir / "incus"
@@ -35,7 +36,7 @@ def _run(tmp: Path, call: str, pools: str = "", rc: int = 0) -> tuple[subprocess
     log = tmp / "calls.log"
     log.write_text("")
     env = {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}", "FAKE_LOG": str(log),
-           "FAKE_POOLS": pools, "FAKE_RC": str(rc)}
+           "FAKE_POOLS": pools, "FAKE_RC": str(rc), "FAKE_ERR_OUT": err_out}
     r = subprocess.run(["bash", "-c", f'set -euo pipefail; log() {{ echo "LOG: $*"; }}; source "$1"; {call}',
                         "t", str(LIB)], env=env, capture_output=True, text=True, timeout=30)
     pre = tmp / "calls.log.preseed"
@@ -97,3 +98,15 @@ def test_containers_skript_nutzt_die_gemeinsame_funktion():
     t = CONTAINERS.read_text()
     assert "admin init" not in t
     assert "incus-init.sh" in t and "ensure_incus_initialized" in t
+
+
+def test_fehler_zaehlt_auch_wenn_incus_dabei_etwas_ausgibt(tmp_path):
+    """Nur der Rückgabewert entscheidet – nicht, ob zufällig Text auf stdout landet."""
+    r, _, _ = _run(tmp_path, "incus_is_initialized", rc=1, err_out="ssd,btrfs,,12,CREATED\n")
+    assert r.returncode != 0
+
+
+def test_nur_leerzeilen_heisst_kein_speicher(tmp_path):
+    r, calls, _ = _run(tmp_path, "ensure_incus_initialized", pools="  \n\n")
+    assert r.returncode == 0, r.stderr
+    assert _inits(calls) == ["admin init --preseed"]
