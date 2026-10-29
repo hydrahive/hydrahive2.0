@@ -154,6 +154,7 @@ export function ProjectCockpitPage() {
           <CollapsibleCockpitPanel
             title="Projekt"
             eyebrow="Projekt"
+            theme="werkzeug"
             summary={activeProject?.name ?? "Kein Projekt"}
             collapsed={leftPanelCollapsed.project}
             onToggle={() => setLeftPanelCollapsed("project", !leftPanelCollapsed.project)}
@@ -178,6 +179,7 @@ export function ProjectCockpitPage() {
           <CollapsibleCockpitPanel
             title="Projekt-Agenten & Spezialisten"
             eyebrow="Projekt-Team"
+            theme="kontakt"
             summary={selectedAgent?.name ?? "Kein Agent"}
             collapsed={leftPanelCollapsed.agents}
             onToggle={() => setLeftPanelCollapsed("agents", !leftPanelCollapsed.agents)}
@@ -206,6 +208,7 @@ export function ProjectCockpitPage() {
           <CollapsibleCockpitPanel
             title="Git Status"
             eyebrow="Git"
+            theme="status"
             summary="Repository-Status"
             collapsed={leftPanelCollapsed.git}
             onToggle={() => setLeftPanelCollapsed("git", !leftPanelCollapsed.git)}
@@ -216,6 +219,7 @@ export function ProjectCockpitPage() {
           <CollapsibleCockpitPanel
             title="KI Einstellungen"
             eyebrow="Chat"
+            theme="ideen"
             summary={selectedAgentModel || "Kein Modell"}
             collapsed={leftPanelCollapsed.ai}
             onToggle={() => setLeftPanelCollapsed("ai", !leftPanelCollapsed.ai)}
@@ -230,6 +234,7 @@ export function ProjectCockpitPage() {
           <CollapsibleCockpitPanel
             title="Verbrauch"
             eyebrow="Guthaben"
+            theme="wissen"
             summary="Modell-Kontingente"
             collapsed={leftPanelCollapsed.usage}
             onToggle={() => setLeftPanelCollapsed("usage", !leftPanelCollapsed.usage)}
