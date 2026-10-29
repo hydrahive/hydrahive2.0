@@ -7,13 +7,14 @@ import { describe, expect, it } from "vitest"
 
 const FE = join(__dirname, "..", "..")
 const SRC = join(FE, "src")
-const SELF = __filename
+// Dürfen die Altlast beim Namen nennen: dieser Wächter und das Aufräumskript für alte Installationen samt Test.
+const ALLOWED = new Set([__filename, join(FE, "scripts", "cleanup-legacy.mjs"), join(SRC, "features", "cleanupLegacy.test.ts")])
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {
     const p = join(dir, n)
     if (statSync(p).isDirectory()) return n === "modules" ? [] : files(p)
-    return /\.(tsx?|mjs|css)$/.test(n) && p !== SELF ? [p] : []
+    return /\.(tsx?|mjs|css)$/.test(n) && !ALLOWED.has(p) ? [p] : []
   })
 }
 
