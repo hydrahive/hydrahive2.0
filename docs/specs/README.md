@@ -142,8 +142,8 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`system-updates.md`](system-updates.md) | Systemupdates: das ganze System mit aktualisieren |  | 2026-10-26 |
 | [`theme-editor.md`](theme-editor.md) | Theme-Editor & Ordner-Themes |  | 2026-07-02 |
 | [`theme-templates-brainstorm.md`](theme-templates-brainstorm.md) | Brainstorm-Anker: Theme-Templates mit Platzhaltern |  | 2026-07-02 |
-| [`theming-system.md`](theming-system.md) | Theme-System — installierbare Designs (WordPress-Prinzip) |  | 2026-07-02 |
-| [`theming-system-etappe3.md`](theming-system-etappe3.md) | Theme-System Etappe 3 — Hub-Installer (WordPress-Gefühl) |  | 2026-07-02 |
+| [`theming-system.md`](theming-system.md) | Theme-System — installierbare Designs (WordPress-Prinzip) – **zurückgenommen 29.10.2026** |  | 2026-07-02 |
+| [`theming-system-etappe3.md`](theming-system-etappe3.md) | Theme-System Etappe 3 — Hub-Installer (WordPress-Gefühl) – **zurückgenommen 29.10.2026** |  | 2026-07-02 |
 | [`tool-gate-non-tool-models.md`](tool-gate-non-tool-models.md) | Tool-Gate für Modelle ohne Function-Calling |  | 2026-07-27 |
 | [`ubuntu-2604-support.md`](ubuntu-2604-support.md) | Ubuntu 26.04 LTS Support | Installation auf 26.04 läuft fehlerfrei durch | 2026-08-19 |
 | [`ui-standard.md`](ui-standard.md) | HydraHive-UI-Standard (Barrierefreiheit und Bedienbarkeit) |  | 2026-10-20 |
