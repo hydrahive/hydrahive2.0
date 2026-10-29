@@ -27,7 +27,7 @@ from hydrahive.llm._anthropic_calls import (
     split_system,
 )
 from hydrahive.llm._config import apply_keys, get_provider_key, load_config
-from hydrahive.llm._routing import litellm_target
+from hydrahive.llm._routing import litellm_model, litellm_target
 
 logger = logging.getLogger(__name__)
 litellm.suppress_debug_info = True
@@ -106,7 +106,7 @@ async def complete(
 
     apply_keys(cfg)
     resp = await litellm.acompletion(
-        model=target, messages=messages,
+        model=litellm_model(target), messages=messages,  # Ollama → /api/chat
         temperature=temperature, max_tokens=max_tokens,
         **litellm_target(cfg, target),                    # eigene Adresse des Anbieters (Ollama, LM Studio …)
     )
@@ -160,7 +160,7 @@ async def stream(
 
     apply_keys(cfg)
     resp = await litellm.acompletion(
-        model=target, messages=messages,
+        model=litellm_model(target), messages=messages,  # Ollama → /api/chat
         temperature=temperature, max_tokens=max_tokens, stream=True,
         **litellm_target(cfg, target),
     )

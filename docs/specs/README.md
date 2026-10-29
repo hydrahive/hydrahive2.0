@@ -3,7 +3,7 @@
 > Automatisch erzeugt aus Dateinamen, Git-Historie und Überschriften.
 > Neu erzeugen: `python3 scripts/gen_spec_index.py`
 
-135 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
+136 Spezifikationen. Die Spalte **Status** zeigt nur, was die Spec
 selbst im Kopf angibt — leer heißt: nicht angegeben, nicht automatisch geraten.
 
 ## Mehrteilige Reihen
@@ -111,6 +111,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`modul-update-unabhaengig-vom-browser.md`](modul-update-unabhaengig-vom-browser.md) | Modul-Install, -Update und -Deinstallation laufen zu Ende, auch ohne offenen Browser |  | 2026-10-17 |
 | [`modul-updates.md`](modul-updates.md) | Spec: Modul-Update-Erkennung, Übersichtlichkeit & Footer-Indikatoren |  | 2026-07-07 |
 | [`module-view-sandbox.md`](module-view-sandbox.md) | Modul-Ansichten im Chat (abgeschottet) – Spec |  | 2026-10-20 |
+| [`ollama-chat-route.md`](ollama-chat-route.md) | Ollama über /api/chat ansprechen (Werkzeuge für lokale Agenten) |  | ? |
 | [`ollama-model-manager.md`](ollama-model-manager.md) | Ollama-Modellmanager |  | 2026-08-31 |
 | [`ollama-provider.md`](ollama-provider.md) | Spec: Ollama als LLM-Provider |  | 2026-07-24 |
 | [`plugin-updates.md`](plugin-updates.md) | Plugins: neue Version anzeigen und aktualisieren – wie bei den Modulen |  | 2026-10-10 |
@@ -128,7 +129,7 @@ frühere Teile beschreiben bereits umgesetzte Etappen.
 | [`project-handover.md`](project-handover.md) | Spec: Globale Projekt-Handover-Datei |  | 2026-07-11 |
 | [`project-member-roles.md`](project-member-roles.md) | Spec: Projekt-Member-Rechte (Read / Write / Admin) |  | 2026-07-29 |
 | [`prompt-archive.md`](prompt-archive.md) | Feature-Spec: Prompt-Archiv (Prompt Library) | Entwurf | 2026-06-25 |
-| [`pytest-parallel.md`](pytest-parallel.md) | Testreihe auf mehreren Kernen (pytest-xdist) |  | ? |
+| [`pytest-parallel.md`](pytest-parallel.md) | Testreihe auf mehreren Kernen (pytest-xdist) |  | 2026-10-29 |
 | [`python-314-umstieg.md`](python-314-umstieg.md) | Umstieg auf Python 3.14 (Ubuntu 26.04) |  | 2026-10-12 |
 | [`refusal-visible.md`](refusal-visible.md) | Lauf-Abbrüche sichtbar machen (refusal + Buddy-Fehleranzeige) |  | 2026-09-30 |
 | [`repo-zugang.md`](repo-zugang.md) | Spec: Zugang zum Code über GitHub-Freischaltung (privates Repo) |  | 2026-10-15 |
