@@ -2,6 +2,7 @@ import { Link, Outlet } from "react-router-dom"
 import { Grip, Settings } from "lucide-react"
 import { AppFooter } from "@/shared/AppFooter"
 import { AvatarMenu } from "@/shared/AvatarMenu"
+import { HydraLogo } from "@/shared/brand/HydraLogo"
 import { DOMAIN_TW, colorFor } from "@/shared/colors"
 import { navLabel } from "@/shared/nav-label"
 import type { LayoutChrome } from "./types"
@@ -21,15 +22,8 @@ export function TopnavLayout({ chrome }: { chrome: LayoutChrome }) {
 
       {/* Globale Topbar: gleiche Formensprache wie das Cockpit-Chrome. */}
       <header className="relative z-30 flex h-[58px] min-w-0 items-center gap-3 border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-3 sm:px-[18px]">
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <img
-            src="/illustrations/logo-mark.png"
-            alt=""
-            className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] select-none"
-          />
-          <span className="hidden font-black tracking-[-0.03em] text-[#e8eef8] sm:inline">
-            HydraHive
-          </span>
+        <Link to="/" className="flex items-center gap-2 shrink-0" aria-label="Startseite">
+          <HydraLogo variant="responsive" />
         </Link>
 
         {currentPage && (
