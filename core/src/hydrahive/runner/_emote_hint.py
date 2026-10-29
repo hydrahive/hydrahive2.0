@@ -5,8 +5,9 @@ als kleines Bild. Damit der Buddy die Emotes von selbst nutzt (statt Unicode),
 hängt der Runner diesen Hinweis nur an den Buddy-Prompt an — zur Laufzeit, nicht
 in den editierbaren Prompt gebacken.
 
-Die Namensliste spiegelt EMOTE_NAMES aus dem Frontend. Bei Änderungen dort hier
-nachziehen (selten — Emotes ändern sich kaum).
+Die Namensliste spiegelt die Emote-Dateien im Frontend
+(`frontend/public/illustrations/emoticons/hydra-*.png`). Ein Test
+(`test_emote_hint.py`) schlägt fehl, wenn hier ein Name fehlt oder zu viel ist.
 """
 from __future__ import annotations
 
@@ -30,6 +31,14 @@ EMOTE_NAMES = [
     "boom", "skull", "siren", "stop", "confetti", "gift", "dice", "gold",
     "crystal", "dna", "dragon", "gear", "laptop", "mic", "speaker", "speech",
     "spy", "tophat", "popcorn",
+    # Gesichter (bunte Hydra, Okt 2026)
+    "blush", "eyeroll", "dizzy", "pensive", "hearts-face", "upsidedown", "zzz",
+    "drop", "redheart", "star-glow", "100", "no", "pray",
+    # Gegenstände, Natur, Technik (bunte Hydra, Okt 2026)
+    "battery", "beaver", "calendar", "camera", "chart-up", "cheers", "desktop",
+    "fishing", "floppy", "gamepad", "headphones", "key", "link", "lock", "lock-key",
+    "microphone", "microscope", "moneybag", "music", "salad", "satellite", "snail",
+    "snake", "stethoscope", "sun", "tree", "virus",
 ]
 
 HYDRA_EMOTE_HINT = (
