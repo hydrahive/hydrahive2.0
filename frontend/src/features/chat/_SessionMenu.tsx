@@ -25,7 +25,7 @@ export function SessionMenu({ session, sessions, activeSessionId, onSelectSessio
         <ChevronDown size={12} className="shrink-0 text-[#9aa7bc]" />
       </button>
       {open && (
-        <div className="absolute right-0 z-30 mt-1 max-h-[320px] w-[min(280px,calc(100vw-2rem))] overflow-y-auto rounded-[4px] border border-s-rand bg-s-tief p-1 shadow-2xl shadow-black/50">
+        <div className="absolute right-0 z-30 mt-1 max-h-[320px] w-[min(280px,calc(100vw-2rem))] overflow-y-auto rounded-[4px] border border-s-rand bg-s-box p-1 shadow-2xl shadow-black/50">
           {sessions.map((item) => {
             const active = item.id === (activeSessionId ?? session.id)
             return (

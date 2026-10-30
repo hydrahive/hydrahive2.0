@@ -20,7 +20,7 @@ export function AdminDialog({ title, eyebrow, icon, children, footer, onClose, c
   const titleId = useId()
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-black/80 p-4 backdrop-blur-sm" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <section className={cn("flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-[6px] border border-s-rand-hover bg-s-tief shadow-2xl", maxWidthClass, className)}>
+      <section className={cn("flex max-h-[88dvh] w-full flex-col overflow-hidden rounded-[6px] border border-s-rand-hover bg-s-box shadow-2xl", maxWidthClass, className)}>
         <header className="flex shrink-0 items-center gap-3 border-b border-s-rand bg-s-kopf px-4 py-3">
           {icon && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[4px] border border-s-rand bg-s-innen text-[#69d7ff]">{icon}</span>}
           <div className="min-w-0 flex-1">

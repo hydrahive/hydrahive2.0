@@ -125,7 +125,7 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div {...dlg.props} className="flex h-[90dvh] w-full max-w-6xl outline-none flex-col overflow-hidden rounded-[4px] border border-s-rand bg-s-tief shadow-2xl">
+      <div {...dlg.props} className="flex h-[90dvh] w-full max-w-6xl outline-none flex-col overflow-hidden rounded-[4px] border border-s-rand bg-s-box shadow-2xl">
         <header className="flex shrink-0 items-center gap-3 border-b border-s-rand bg-s-kopf px-4 py-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">{draft?.type === "specialist" ? "Projekt-Spezialist" : "Projekt-Agent"}</p>

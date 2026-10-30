@@ -86,7 +86,7 @@ export function BuddySessionPicker({ activeId, disabled, onOpened }: Props) {
       </button>
       {open && (
         <div role="listbox" aria-label="Frühere Unterhaltungen"
-          className="absolute left-0 top-6 z-30 max-h-[24rem] w-[24rem] overflow-y-auto rounded-[4px] border border-s-rand bg-s-tief p-1 shadow-xl">
+          className="absolute left-0 top-6 z-30 max-h-[24rem] w-[24rem] overflow-y-auto rounded-[4px] border border-s-rand bg-s-box p-1 shadow-xl">
           {rows.map((r) => (
             <button key={r.id} type="button" role="option" aria-selected={r.id === activeId}
               onClick={() => void pick(r.id)}

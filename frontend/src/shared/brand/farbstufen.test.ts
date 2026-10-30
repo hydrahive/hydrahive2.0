@@ -94,6 +94,16 @@ describe("Farbstufen", () => {
     expect(funde).toEqual([])
   })
 
+  it("schwebende Fenster und Menüs liegen auf der Box-Stufe, nicht eingelassen (tief)", () => {
+    const funde: string[] = []
+    for (const datei of kernDateien(join(__dirname, "..", ".."))) {
+      for (const m of readFileSync(datei, "utf8").matchAll(/["`]([^"`\n]*\bbg-s-tief\b[^"`\n]*)["`]/g)) {
+        if (/\b(fixed|absolute)\b/.test(m[1]) && /\bshadow-(xl|2xl)\b/.test(m[1])) funde.push(`${datei.split("/src/")[1]}: ${m[1].slice(0, 80)}`)
+      }
+    }
+    expect(funde).toEqual([])
+  })
+
   it("die alten Cockpit-Variablen zeigen auf die Stufen", () => {
     expect(CSS).toMatch(/--cockpit-panel:\s*rgb\(var\(--hh-s-box\)\)/)
     expect(CSS).toMatch(/--cockpit-border:\s*rgb\(var\(--hh-s-rand\)\)/)
