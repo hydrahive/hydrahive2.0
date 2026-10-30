@@ -53,6 +53,21 @@ describe("Admin-Fenster Archiv & Sicherung", () => {
     expect(bereiche(withRemote)).toEqual(["storage", "share", "remote", "jobs", "orphans", "entries"])
   })
 
+  it("Zuletzt: erledigte Aufträge kompakt als aufklappbare Zeile mit Ergebnis (Plan admin-reiter-archiv)", () => {
+    const job = { kind: "project" as const, target: "p", mode: "permanent" as const, error: null, bytes_total: 0,
+      bytes_done: 0, files_total: 0, packages: [], leftovers: [], step: "pack" as const }
+    const jobs = { running: null, queued: [], done: [
+      { ...job, id: "ok1", name: "Fertig", state: "done" as const },
+      { ...job, id: "f1", name: "Kaputt", state: "failed" as const, error: "pack_failed" },
+    ] }
+    const out = html1({ tab: "vorgaenge", status: { ...STATUS, jobs } })
+    expect(out).toMatch(/<details[^>]*data-delete-job="ok1"[^>]*data-delete-state="done"/)
+    expect(out).not.toMatch(/<details[^>]*data-delete-job="ok1"[^>]*\sopen/)
+    expect(out).toMatch(/data-job-result="done"/)
+    expect(out).toMatch(/data-job-result="failed"/)
+    expect(out).toContain("delete.error.pack_failed")
+  })
+
   it("Laufende Vorgänge: laufend mit Fortschritt, wartend, zuletzt mit Fehler", () => {
     const job = { kind: "project" as const, target: "p", mode: "archive" as const, error: null, bytes_total: 100,
       bytes_done: 50, files_total: 2, packages: [], leftovers: [] }
