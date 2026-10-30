@@ -7,6 +7,7 @@ import { useUpdateAll } from "@/features/modules/useUpdateAll"
 import type { ModulesIndex } from "@/features/modules/types"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { modulesStatus } from "./overlayStatus"
 import { ModuleCockpitCard } from "./ModuleCockpitCard"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
@@ -32,7 +33,7 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
   const all = useUpdateAll(outdated.length, load)
 
   return (
-    <AdminOverlay theme={ADMIN_OVERLAY_THEME["modules"]}
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["modules"]} status={modulesStatus({ error, outdated: outdated.length })}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}

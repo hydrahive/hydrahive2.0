@@ -11,6 +11,7 @@ import type { ComputeNode } from "@/features/nodes/types"
 import { CockpitButton } from "../CockpitButton"
 import { AdminConfirmDialog, AdminFeedback, AdminStat } from "./ui"
 import { AdminOverlay } from "./AdminOverlay"
+import { nodesStatus } from "./overlayStatus"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const POLL_MS = 5000
@@ -74,7 +75,7 @@ export function NodesOverlay({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <AdminOverlay theme={ADMIN_OVERLAY_THEME["nodes"]}
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["nodes"]} status={nodesStatus({ error, ...summary })}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}
