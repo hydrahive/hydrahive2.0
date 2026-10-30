@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { Activity, Bot, Database, Folder, MessageSquare, RotateCw, Server, SlidersHorizontal, Wrench, Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuthStore } from "@/features/auth/useAuthStore"
@@ -17,7 +18,8 @@ import { AddonsCard } from "@/features/system/AddonsCard"
 import { PathRow } from "@/features/system/_systemHelpers"
 import { formatBytes, formatUptime } from "@/features/system/systemFormat"
 import { CockpitButton } from "../CockpitButton"
-import { AdminPanel, AdminStat } from "./ui"
+import { AdminPanel, AdminStat, AdminTabs } from "./ui"
+import { parseSystemTab, systemTabs, type SystemTab } from "./systemTabs"
 import { AdminOverlay } from "./AdminOverlay"
 import { SystemSettingsOverlay } from "./SystemSettingsOverlay"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
@@ -34,6 +36,14 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [checks, setChecks] = useState<HealthCheck[]>([])
   const [showSettings, setShowSettings] = useState(false)
+  const isAdmin = role === "admin"
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = parseSystemTab(searchParams.get("tab"), isAdmin)
+  function selectTab(next: SystemTab) {
+    const params = new URLSearchParams(searchParams)
+    params.set("tab", next)
+    setSearchParams(params, { replace: true })
+  }
 
   async function loadAll() {
     try {
@@ -56,7 +66,7 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
       title={t("title")}
       onClose={onClose}
       maxWidthClass="max-w-6xl"
-      headerActions={role === "admin" ? (
+      headerActions={isAdmin ? (
         <div className="flex flex-wrap items-center justify-end gap-2">
           <CockpitButton onClick={() => setShowSettings(true)}>
             <SlidersHorizontal size={12} className="mr-1 inline" />Einstellungen
@@ -74,44 +84,60 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
             : t("subtitle", { seconds: REFRESH_MS / 1000 })}
         </p>
 
-        <HealthBar checks={checks} />
+        <AdminTabs label={t("title")} idPrefix="system" active={tab} onSelect={selectTab} tabs={systemTabs(checks, isAdmin, t)}>
+          {tab === "ueberblick" && (
+            <div className="space-y-6">
+              <HealthBar checks={checks} />
+              {stats && (
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                  <AdminStat icon={Bot} label={t("stats.agents")} value={stats.agents.total}
+                    detail={Object.entries(stats.agents.by_type).map(([key, value]) => t("stats.agents_detail", { count: value, type: tAgents(`type.${key}`) })).join(", ")} />
+                  <AdminStat icon={Folder} label={t("stats.projects")} value={stats.projects.total}
+                    detail={t("stats.projects_detail", { count: stats.projects.active })} />
+                  <AdminStat icon={MessageSquare} label={t("stats.sessions")} value={stats.sessions.total}
+                    detail={t("stats.sessions_detail", { count: stats.sessions.active })} />
+                  <AdminStat icon={Activity} label={t("stats.messages")} value={stats.messages.total}
+                    detail={t("stats.messages_detail", { count: stats.messages.compactions })} />
+                  <AdminStat icon={Wrench} label={t("stats.tool_calls")} value={stats.tool_calls.total}
+                    detail={t("stats.tool_calls_detail", { rate: stats.tool_calls.success_rate })} />
+                  <AdminStat icon={Database} label={t("stats.db_size")} value={info ? formatBytes(info.db_size_bytes) : "—"}
+                    detail={t("stats.db_size_detail")} />
+                  <AdminStat icon={Zap} label={t("stats.python")} value={info?.python ?? "—"} detail={info?.platform} />
+                  <AdminStat icon={Server} label={t("stats.version")} value={info?.version ?? "—"}
+                    detail={t("stats.version_detail")} />
+                </div>
+              )}
 
-        {stats && (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <AdminStat icon={Bot} label={t("stats.agents")} value={stats.agents.total}
-              detail={Object.entries(stats.agents.by_type).map(([key, value]) => t("stats.agents_detail", { count: value, type: tAgents(`type.${key}`) })).join(", ")} />
-            <AdminStat icon={Folder} label={t("stats.projects")} value={stats.projects.total}
-              detail={t("stats.projects_detail", { count: stats.projects.active })} />
-            <AdminStat icon={MessageSquare} label={t("stats.sessions")} value={stats.sessions.total}
-              detail={t("stats.sessions_detail", { count: stats.sessions.active })} />
-            <AdminStat icon={Activity} label={t("stats.messages")} value={stats.messages.total}
-              detail={t("stats.messages_detail", { count: stats.messages.compactions })} />
-            <AdminStat icon={Wrench} label={t("stats.tool_calls")} value={stats.tool_calls.total}
-              detail={t("stats.tool_calls_detail", { rate: stats.tool_calls.success_rate })} />
-            <AdminStat icon={Database} label={t("stats.db_size")} value={info ? formatBytes(info.db_size_bytes) : "—"}
-              detail={t("stats.db_size_detail")} />
-            <AdminStat icon={Zap} label={t("stats.python")} value={info?.python ?? "—"} detail={info?.platform} />
-            <AdminStat icon={Server} label={t("stats.version")} value={info?.version ?? "—"}
-              detail={t("stats.version_detail")} />
-          </div>
-        )}
-
-        {info && (
-          <AdminPanel title={t("paths.title")} bodyClassName="space-y-1">
-            <PathRow label={t("paths.data")} value={info.data_dir} />
-            <PathRow label={t("paths.config")} value={info.config_dir} />
-            <PathRow label={t("paths.db")} value={info.db_path} />
-          </AdminPanel>
-        )}
-
-        <AgentLinkCard />
-        {role === "admin" && <AddonsCard />}
-        {role === "admin" && <TailscaleCard />}
-        {role === "admin" && <BridgeCard />}
-        {role === "admin" && <LocalMediaCard />}
-        {role === "admin" && <SambaCard />}
-        {role === "admin" && <BackupCard />}
-        {role === "admin" && <MigrationCard />}
+              {info && (
+                <AdminPanel title={t("paths.title")} bodyClassName="space-y-1">
+                  <PathRow label={t("paths.data")} value={info.data_dir} />
+                  <PathRow label={t("paths.config")} value={info.config_dir} />
+                  <PathRow label={t("paths.db")} value={info.db_path} />
+                </AdminPanel>
+              )}
+            </div>
+          )}
+          {tab === "netzwerk" && (
+            <div className="space-y-6">
+              <AgentLinkCard />
+              {isAdmin && <TailscaleCard />}
+              {isAdmin && <BridgeCard />}
+              {isAdmin && <SambaCard />}
+            </div>
+          )}
+          {tab === "erweiterungen" && isAdmin && (
+            <div className="space-y-6">
+              <AddonsCard />
+              <LocalMediaCard />
+            </div>
+          )}
+          {tab === "sicherung" && isAdmin && (
+            <div className="space-y-6">
+              <BackupCard />
+              <MigrationCard />
+            </div>
+          )}
+        </AdminTabs>
       </div>
 
       {showSettings && <SystemSettingsOverlay onClose={() => setShowSettings(false)} />}
