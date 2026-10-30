@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import { RefreshCw } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { AdminOverlay } from "@/features/cockpit/admin/AdminOverlay"
-import { AdminAction } from "@/features/cockpit/admin/ui"
+import { AdminAction, AdminTabs } from "@/features/cockpit/admin/ui"
 import { systemApi } from "@/features/system/api"
 import { archiveApi, cleanupSelection, type ArchiveEntry, type ArchiveKind, type ArchiveStatus, type OrphanScan } from "./api"
+import { archiveTabs, parseArchiveTab, type ArchiveTab } from "./archiveTabs"
 import { ArchiveView } from "./ArchiveView"
 import { DropLocalDialog, type DropSelection } from "./DropLocalDialog"
 import { MoveDialog } from "./MoveDialog"
@@ -15,6 +17,13 @@ import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 /** Admin-Fenster „Archiv & Sicherung“ (docs/specs/archiv-system.md, Etappe 1). */
 export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation("archive")
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = parseArchiveTab(searchParams.get("tab"))
+  function selectTab(next: ArchiveTab) {
+    const params = new URLSearchParams(searchParams)
+    params.set("tab", next)
+    setSearchParams(params, { replace: true })
+  }
   const [status, setStatus] = useState<ArchiveStatus | null>(null)
   const [entries, setEntries] = useState<ArchiveEntry[]>([])
   const [kind, setKind] = useState<ArchiveKind | null>(null)
@@ -122,7 +131,10 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
     >
       <div className="space-y-3 p-4">
         <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
+        <AdminTabs label={t("title")} idPrefix="archive" active={tab} onSelect={selectTab}
+          tabs={archiveTabs(status, orphans, entries.length, t)}>
         <ArchiveView
+          tab={tab}
           status={status}
           entries={entries}
           host={window.location.hostname}
@@ -140,6 +152,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
           orphansBusy={orphansBusy || working || cleanupJobs.length > 0}
           onCleanupOrphans={() => void cleanupOrphans()}
         />
+        </AdminTabs>
       </div>
       {drop && status?.remote && (
         <DropLocalDialog remote={status.remote} selection={drop} onClose={() => setDrop(null)}

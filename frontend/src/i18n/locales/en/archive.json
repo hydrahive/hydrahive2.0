@@ -290,5 +290,10 @@
       "interrupted": "The service restarted. Packages not yet deleted are back as before.",
       "unexpected": "Unexpected error."
     }
+  },
+  "tabs": {
+    "speicher": "Storage",
+    "vorgaenge": "Tasks",
+    "inhalt": "Contents"
   }
 }

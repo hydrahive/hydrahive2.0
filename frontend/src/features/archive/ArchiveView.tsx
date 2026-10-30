@@ -1,5 +1,6 @@
 import { AdminFeedback } from "@/features/cockpit/admin/ui"
 import type { ArchiveEntry, ArchiveKind, ArchiveStatus, OrphanScan } from "./api"
+import type { ArchiveTab } from "./archiveTabs"
 import { ArchiveEntriesSection } from "./ArchiveEntriesSection"
 import { ArchiveJobsSection } from "./ArchiveJobsSection"
 import { ArchiveShareSection } from "./ArchiveShareSection"
@@ -8,6 +9,8 @@ import { OrphansView } from "./OrphansSection"
 import { RemoteView, type RemoteViewProps } from "./RemoteSection"
 
 export interface ArchiveViewProps {
+  /** Reiter (Plan admin-reiter-archiv): zeigt nur dessen Bereiche. */
+  tab: ArchiveTab
   status: ArchiveStatus | null
   entries: ArchiveEntry[]
   host: string
@@ -28,26 +31,32 @@ export interface ArchiveViewProps {
   onDropLocal?: (entry: ArchiveEntry) => void
 }
 
-/** Reine Ansicht des Admin-Fensters „Archiv & Sicherung“ (Spec archiv-system.md, Etappe 1 + 2). */
+/** Reine Ansicht des Admin-Fensters „Archiv & Sicherung“ (Spec archiv-system.md, Etappe 1 + 2), ein Reiter. */
 export function ArchiveView(props: ArchiveViewProps) {
-  const { status, entries, host, kind, error, shareBusy, onKind, onEmptyTrash, onSetupSamba, onShareSwitch, onChangeLocation } = props
+  const { tab, status, entries, host, kind, error, shareBusy, onKind, onEmptyTrash, onSetupSamba, onShareSwitch, onChangeLocation } = props
   const { orphans = null, orphansBusy = false, onCleanupOrphans = () => {} } = props
   return (
     <div className="space-y-3">
       {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
-      {status && (
-        <ArchiveStorageSection storage={status.storage} move={status.move} onEmptyTrash={onEmptyTrash}
-          onChangeLocation={onChangeLocation} />
+      {tab === "speicher" && status && (
+        <>
+          <ArchiveStorageSection storage={status.storage} move={status.move} onEmptyTrash={onEmptyTrash}
+            onChangeLocation={onChangeLocation} />
+          <ArchiveShareSection share={status.share} host={host} busy={shareBusy}
+            onSetupSamba={onSetupSamba} onSwitch={onShareSwitch} />
+          {status.remote && props.remote && <RemoteView remote={status.remote} {...props.remote} />}
+        </>
       )}
-      {status && (
-        <ArchiveShareSection share={status.share} host={host} busy={shareBusy}
-          onSetupSamba={onSetupSamba} onSwitch={onShareSwitch} />
+      {tab === "vorgaenge" && status && (
+        <>
+          <ArchiveJobsSection jobs={status.jobs} move={status.move} />
+          <OrphansView scan={orphans} busy={orphansBusy} onCleanup={onCleanupOrphans} />
+        </>
       )}
-      {status?.remote && props.remote && <RemoteView remote={status.remote} {...props.remote} />}
-      {status && <ArchiveJobsSection jobs={status.jobs} move={status.move} />}
-      {status && <OrphansView scan={orphans} busy={orphansBusy} onCleanup={onCleanupOrphans} />}
-      <ArchiveEntriesSection entries={entries} kind={kind} onKind={onKind}
-        onDropLocal={status?.remote?.active ? props.onDropLocal : undefined} />
+      {tab === "inhalt" && (
+        <ArchiveEntriesSection entries={entries} kind={kind} onKind={onKind}
+          onDropLocal={status?.remote?.active ? props.onDropLocal : undefined} />
+      )}
     </div>
   )
 }
