@@ -110,7 +110,8 @@ export function ProjectCockpitPage() {
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? null
   const selectedAgentModel = selectedAgent?.llm_model ?? ""
   type LeftPanelId = "project" | "agents" | "git" | "ai" | "usage"
-  const leftPanelDefaults: Record<LeftPanelId, boolean> = { project: false, agents: false, git: true, ai: true, usage: false }
+  // Nur Projekt und Team offen; Git, KI und Verbrauch zugeklappt (Plan projekt-cockpit-kompakt). Gewählter Zustand bleibt je Nutzer gespeichert.
+  const leftPanelDefaults: Record<LeftPanelId, boolean> = { project: false, agents: false, git: true, ai: true, usage: true }
   const leftPanelCollapsed = { ...leftPanelDefaults, ...((prefs.preferences.cockpit_layout?.project_left_collapsed ?? {}) as Partial<Record<LeftPanelId, boolean>>) }
   const setLeftPanelCollapsed = (panel: LeftPanelId, collapsed: boolean) => {
     void prefs.patch({
@@ -273,7 +274,7 @@ export function ProjectCockpitPage() {
         </main>
 
         <aside id="project-pane-files" role="tabpanel" aria-labelledby="project-tab-files"
-          className={`grid min-h-0 auto-rows-[minmax(320px,auto)] gap-[10px] overflow-y-auto xl:auto-rows-auto xl:grid-rows-[32fr_38fr_30fr] xl:overflow-hidden ${paneClass("files", mobileTab, "grid")}`}>
+          className={`grid min-h-0 auto-rows-[minmax(320px,auto)] gap-[10px] overflow-y-auto xl:auto-rows-auto xl:grid-rows-[28fr_50fr_22fr] xl:overflow-hidden ${paneClass("files", mobileTab, "grid")}`}>
           <ProjectGitTreePanel projectId={activeProjectId} />
           <ProjectWorkspacePanel projectId={activeProjectId} onOpenFile={(path, kind) => setWsFile({ path, kind })} />
           <ProjectTasksPanel projectId={activeProjectId} />
