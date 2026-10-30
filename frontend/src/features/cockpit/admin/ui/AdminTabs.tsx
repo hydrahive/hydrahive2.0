@@ -19,6 +19,8 @@ interface Props<T extends string> {
   tabs: readonly AdminTab<T>[]
   active: T
   onSelect: (id: T) => void
+  /** Viele Reiter (z. B. 10 Einstellungs-Gruppen): festes Raster mit gleich breiten Reitern statt einer Zeile. */
+  grid?: boolean
   children: ReactNode
 }
 
@@ -27,7 +29,7 @@ interface Props<T extends string> {
  * aktiven Reiter in der Adresse (`tab=`, siehe adminTabs.ts). Tastatur: ←/→ wechseln, nur der aktive Reiter
  * ist per Tab erreichbar (WAI-ARIA Tabs).
  */
-export function AdminTabs<T extends string>({ label, idPrefix, tabs, active, onSelect, children }: Props<T>) {
+export function AdminTabs<T extends string>({ label, idPrefix, tabs, active, onSelect, grid, children }: Props<T>) {
   const { t } = useTranslation("common")
   const leiste = useRef<HTMLDivElement>(null)
   const ids = tabs.map((tab) => tab.id)
@@ -43,14 +45,15 @@ export function AdminTabs<T extends string>({ label, idPrefix, tabs, active, onS
   return (
     <div className="space-y-3">
       <div ref={leiste} role="tablist" aria-label={label} onKeyDown={onKeyDown}
-        className="grid grid-cols-2 gap-1 rounded-[4px] border border-s-rand bg-s-innen p-1 sm:flex sm:flex-wrap">
+        className={`grid grid-cols-2 gap-1 rounded-[4px] border border-s-rand bg-s-innen p-1 ${
+          grid ? "sm:grid-cols-3 lg:grid-cols-4" : "sm:flex sm:flex-wrap"}`}>
         {tabs.map((tab) => {
           const an = tab.id === active
           return (
             <button key={tab.id} type="button" role="tab" id={`${idPrefix}-tab-${tab.id}`}
               aria-selected={an} aria-controls={`${idPrefix}-pane`} tabIndex={an ? 0 : -1}
               onClick={() => onSelect(tab.id)}
-              className={`relative flex min-w-0 items-center justify-center gap-1.5 rounded-[3px] px-3 py-2 text-xs font-bold transition-colors sm:flex-1 sm:text-sm ${
+              className={`relative flex min-w-0 items-center justify-center gap-1.5 rounded-[3px] py-2 text-xs font-bold transition-colors sm:flex-auto sm:text-sm ${grid ? "px-2" : "px-3"} ${
                 an ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#9aa7bc] hover:bg-s-hebung hover:text-[#e8eef8]"
               }`}>
               <span className="truncate">{tab.label}</span>

@@ -38,4 +38,11 @@ describe("AdminTabs", () => {
     expect(out).toContain('data-tab-dot="vorgaenge"')
     expect(out).toMatch(/sr-only[^>]*>[^<]+</)
   })
+  it("Raster-Variante für viele Reiter: gleich breite Spalten statt einer Zeile", () => {
+    const raster = renderToStaticMarkup(
+      <AdminTabs label="E" idPrefix="e" tabs={TABS} active="speicher" onSelect={() => {}} grid><p /></AdminTabs>,
+    )
+    expect(raster).toMatch(/role="tablist"[^>]*lg:grid-cols-4/)
+    expect(html()).not.toContain("lg:grid-cols-4")
+  })
 })
