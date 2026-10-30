@@ -6,9 +6,9 @@ import { join } from "node:path"
 
 const src = (p: string) => readFileSync(join(__dirname, p), "utf8")
 
+// Die alte Modul-Seite leitet seit Plan alte-seiten-umleiten ins Admin-Fenster um – nur noch eine Stelle.
 describe.each([
   ["Admin-Cockpit", "./ModulesOverlay.tsx"],
-  ["Modul-Seite", "../../modules/ModulesPage.tsx"],
 ])("„Alle updaten“ (%s)", (_name, file) => {
   it("nutzt den gemeinsamen Ablauf useUpdateAll mit der Zahl offener Updates", () => {
     expect(src(file)).toMatch(/useUpdateAll\(outdated\.length,\s*load\)/)
