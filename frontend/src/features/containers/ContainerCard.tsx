@@ -76,7 +76,7 @@ export function ContainerCard({ container, onStart, onStop, onRestart, onDelete,
         actions={<ContainerStatusBadge state={container.actual_state} />}
         bodyClassName="space-y-3"
       >
-        {container.description && <p className="truncate font-mono text-[11px] text-[#7d8aa0]">{container.image}</p>}
+        {container.description && <p className="truncate font-mono text-[11px] text-[#9aa7bc]">{container.image}</p>}
 
         <div className="flex flex-wrap gap-2 text-[11px]">
           <Spec icon={Cpu} label={container.cpu ? `${container.cpu} vCPU` : t("spec.cpu_unlimited")} />
@@ -87,12 +87,12 @@ export function ContainerCard({ container, onStart, onStop, onRestart, onDelete,
         </div>
 
         {info?.alive && memoryMb != null && container.ram_mb && (
-          <div className="text-[11px] text-[#8d9ab0]">
+          <div className="text-[11px] text-[#9aa7bc]">
             <div className="flex items-baseline justify-between">
               <span>RAM</span>
               <span className="font-mono">{memoryMb} / {container.ram_mb} MB</span>
             </div>
-            <div className="mt-1 h-1 overflow-hidden rounded-full bg-[#0b111c]">
+            <div className="mt-1 h-1 overflow-hidden rounded-full bg-s-tief">
               <div className="h-full bg-[#69d7ff] transition-all" style={{ width: `${memoryPercent ?? 0}%` }} />
             </div>
           </div>
@@ -135,7 +135,7 @@ export function ContainerCard({ container, onStart, onStop, onRestart, onDelete,
 
 function Spec({ icon: Icon, label, accent = false }: { icon?: ComponentType<{ size?: number; className?: string }>; label: string; accent?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-[4px] border px-2 py-1 ${accent ? "border-[#69d7ff]/35 bg-[#163248] text-[#c8f2ff]" : "border-[#2a364b] bg-[#0d1420] text-[#8d9ab0]"}`}>
+    <span className={`inline-flex items-center gap-1 rounded-[4px] border px-2 py-1 ${accent ? "border-[#69d7ff]/35 bg-[#163248] text-[#c8f2ff]" : "border-s-rand bg-s-tief text-[#9aa7bc]"}`}>
       {Icon && <Icon size={11} />}{label}
     </span>
   )

@@ -40,12 +40,12 @@ export function DropLocalView({ remote, count, bytes, busy, error, onConfirm, on
       <div className="space-y-3 p-4 text-sm text-[#e8eef8]">
         <p>{t("drop.text", { count, size: formatSize(bytes) })}</p>
         <div className="space-y-1">
-          <p className="text-xs text-[#8d9ab0]">{t("drop.where")}</p>
-          <p className="break-all rounded-[4px] border border-[#2a364b] bg-[#111827] px-2 py-1.5 font-mono text-xs">
+          <p className="text-xs text-[#9aa7bc]">{t("drop.where")}</p>
+          <p className="break-all rounded-[4px] border border-s-rand bg-s-innen px-2 py-1.5 font-mono text-xs">
             {serverPath(remote)}
           </p>
         </div>
-        <p className="text-xs leading-relaxed text-[#8d9ab0]">{t("drop.safety")}</p>
+        <p className="text-xs leading-relaxed text-[#9aa7bc]">{t("drop.safety")}</p>
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
       </div>
     </AdminDialog>

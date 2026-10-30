@@ -88,7 +88,7 @@ export function BridgeCard() {
       bodyClassName="space-y-3"
     >
       {status?.installed && status.ip && (
-        <p className="font-mono text-xs text-[#8d9ab0]">br0 · {status.ip}</p>
+        <p className="font-mono text-xs text-[#9aa7bc]">br0 · {status.ip}</p>
       )}
 
       {!status?.installed && phase === "idle" && (
@@ -101,7 +101,7 @@ export function BridgeCard() {
         <div className="space-y-3">
           <AdminFeedback tone="warning">
             <p>{t("bridge.confirm_question")}</p>
-            <p className="mt-1 text-[#8d9ab0]">{t("bridge.confirm_hint")}</p>
+            <p className="mt-1 text-[#9aa7bc]">{t("bridge.confirm_hint")}</p>
           </AdminFeedback>
           <div className="flex justify-end gap-2">
             <AdminAction onClick={() => setPhase("idle")}>{tCommon("actions.cancel")}</AdminAction>

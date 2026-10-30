@@ -31,9 +31,9 @@ export function BuddyBriefingBox({ isAdmin }: { isAdmin: boolean }) {
   return (
     <CockpitPanel theme="wissen" title={t("boxes.zahnfee")} eyebrow={briefing?.date ?? "Briefing"}>
       {briefing === undefined ? (
-        <Loader2 size={14} className="animate-spin text-[#8d9ab0]" />
+        <Loader2 size={14} className="animate-spin text-[#9aa7bc]" />
       ) : !briefing ? (
-        <p className="text-xs leading-4 text-[#8d9ab0]">
+        <p className="text-xs leading-4 text-[#9aa7bc]">
           {t("left_panel.no_briefing")}
           {isAdmin ? <> <Link to="/zahnfee" className="text-[#69d7ff] hover:underline">{t("left_panel.setup")}</Link></> : null}
         </p>

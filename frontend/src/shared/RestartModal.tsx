@@ -36,7 +36,7 @@ export function RestartModal({ state, errorMessage, onConfirm, onClose }: Props)
         {state === "confirm" && (
           <>
             <p className="text-sm text-[#e8eef8]">{t("restart.confirm_question")}</p>
-            <p className="text-xs leading-relaxed text-[#8d9ab0]">{t("restart.confirm_hint")}</p>
+            <p className="text-xs leading-relaxed text-[#9aa7bc]">{t("restart.confirm_hint")}</p>
           </>
         )}
         {state === "starting" && <AdminFeedback tone="warning" loading>{t("restart.starting")}</AdminFeedback>}

@@ -50,15 +50,15 @@ export function ContainerDetailOverlay({ containerId, onClose }: { containerId: 
         <AdminFeedback loading>{t("detail.loading")}</AdminFeedback>
       ) : (
         <div className="flex h-full min-h-[32rem] flex-col gap-3">
-          <p className="shrink-0 truncate font-mono text-xs text-[#8d9ab0]">{container.image}</p>
-          <div className="flex shrink-0 items-center gap-1 border-b border-[#2a364b]" role="tablist">
+          <p className="shrink-0 truncate font-mono text-xs text-[#9aa7bc]">{container.image}</p>
+          <div className="flex shrink-0 items-center gap-1 border-b border-s-rand" role="tablist">
             <TabButton active={tab === "console"} onClick={() => setTab("console")} disabled={!running}><TerminalIcon size={12} />{t("tabs.console")}</TabButton>
             <TabButton active={tab === "logs"} onClick={() => setTab("logs")}><FileText size={12} />{t("tabs.logs")}</TabButton>
             <TabButton active={tab === "stats"} onClick={() => setTab("stats")}><Gauge size={12} />{t("tabs.stats")}</TabButton>
             <TabButton active={tab === "config"} onClick={() => setTab("config")}><Settings size={12} />{t("tabs.config")}</TabButton>
             {container.network_mode === "nat" && <TabButton active={tab === "ports"} onClick={() => setTab("ports")}><Network size={12} />{t("tabs.ports")}</TabButton>}
           </div>
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[6px] border border-[#2a364b] bg-[#0e1420]">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[6px] border border-s-rand bg-s-tief">
             {tab === "console" && running && <ConsolePane containerId={container.container_id} className="h-full" />}
             {tab === "console" && !running && <div className="grid h-full place-items-center"><AdminFeedback>{t("detail.console_not_running")}</AdminFeedback></div>}
             {tab === "logs" && <ContainerLogPane containerId={container.container_id} />}
@@ -75,7 +75,7 @@ export function ContainerDetailOverlay({ containerId, onClose }: { containerId: 
 function TabButton({ active, onClick, disabled, children }: { active: boolean; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return (
     <button type="button" role="tab" aria-selected={active} onClick={onClick} disabled={disabled}
-      className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${active ? "border-[#69d7ff] text-[#c8f2ff]" : "border-transparent text-[#8d9ab0] hover:text-[#e8eef8]"}`}>
+      className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${active ? "border-[#69d7ff] text-[#c8f2ff]" : "border-transparent text-[#9aa7bc] hover:text-[#e8eef8]"}`}>
       {children}
     </button>
   )

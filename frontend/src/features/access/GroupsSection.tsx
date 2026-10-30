@@ -51,19 +51,19 @@ export function GroupsSection({ users }: { users: AccessUser[] }) {
         {groups.map((g) => {
           const free = users.filter((u) => !g.members.some((m) => m.user_id === u.user_id))
           return (
-            <div key={g.id} className="rounded-[6px] border border-[#2a364b] bg-[#0d1420] p-3">
+            <div key={g.id} className="rounded-[6px] border border-s-rand bg-s-tief p-3">
               <div className="flex items-center gap-2">
                 <p className="flex-1 text-sm font-bold text-[#e8eef8]">{g.name}</p>
-                <span className="text-xs text-[#8d9ab0]">{t("groups.members_count", { count: g.members.length })}</span>
+                <span className="text-xs text-[#9aa7bc]">{t("groups.members_count", { count: g.members.length })}</span>
                 <AdminAction tone="danger" className="px-2" title={t("groups.delete")} aria-label={t("groups.delete")}
                   onClick={() => setDeleteTarget(g)}><Trash2 size={13} /></AdminAction>
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {g.members.length === 0 && <span className="text-xs text-[#7d8aa0]">{t("groups.no_members")}</span>}
+                {g.members.length === 0 && <span className="text-xs text-[#9aa7bc]">{t("groups.no_members")}</span>}
                 {g.members.map((m) => (
-                  <span key={m.user_id} className="inline-flex items-center gap-1 rounded-full border border-[#2a364b] bg-[#172133] px-2 py-0.5 text-xs text-[#e8eef8]">
+                  <span key={m.user_id} className="inline-flex items-center gap-1 rounded-full border border-s-rand bg-s-innen px-2 py-0.5 text-xs text-[#e8eef8]">
                     {m.username || m.user_id}
-                    <button type="button" className="text-[#8d9ab0] hover:text-rose-300" title={t("groups.remove_member")}
+                    <button type="button" className="text-[#9aa7bc] hover:text-rose-300" title={t("groups.remove_member")}
                       aria-label={t("groups.remove_member")} onClick={() => removeMember(g.id, m.user_id)}><X size={11} /></button>
                   </span>
                 ))}

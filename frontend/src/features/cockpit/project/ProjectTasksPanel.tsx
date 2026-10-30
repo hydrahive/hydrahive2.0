@@ -102,8 +102,8 @@ export function ProjectTasksPanel({ projectId }: Props) {
   }
 
   return (
-    <CockpitPanel theme="status" title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={openCreate}>Task +</CockpitButton>} className="flex min-h-0 flex-col">
-      {createOpen && <div className="mb-3 space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
+    <CockpitPanel theme="status" title="Projekt-Tasks" eyebrow="Tasks" actions={<CockpitButton disabled={!projectId || loading} onClick={openCreate}>Task +</CockpitButton>} bodyClassName="flex flex-col">
+      {createOpen && <div className="mb-3 space-y-2 rounded-[4px] border border-s-rand bg-s-innen p-2">
         <input
           ref={titleInputRef}
           value={title}
@@ -111,14 +111,14 @@ export function ProjectTasksPanel({ projectId }: Props) {
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") void createTask() }}
           placeholder="Neuer Projekt-Task…"
-          className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1.5 text-sm text-[#e8eef8] outline-none placeholder:text-[#8d9ab0] focus:border-[#46617f]"
+          className="w-full rounded-[4px] border border-s-rand bg-s-tief px-2 py-1.5 text-sm text-[#e8eef8] outline-none placeholder:text-[#9aa7bc] focus:border-s-rand-hover"
         />
         <div className="flex gap-2">
           <select
             value={priority}
             disabled={!projectId || creating}
             onChange={(e) => setPriority(e.target.value as TaskPriority)}
-            className="min-w-0 flex-1 rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1.5 text-xs font-semibold text-[#e8eef8] outline-none"
+            className="min-w-0 flex-1 rounded-[4px] border border-s-rand bg-s-tief px-2 py-1.5 text-xs font-semibold text-[#e8eef8] outline-none"
           >
             <option value="low">low</option>
             <option value="medium">medium</option>
@@ -152,7 +152,7 @@ export function ProjectTasksPanel({ projectId }: Props) {
       {!loading && tasks.length > 0 && visibleTasks.length === 0 ? <p className="text-sm text-zinc-500">Keine Tasks mit diesem Status.</p> : null}
       <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
         {visibleTasks.slice(0, 30).map((task) => (
-          <div key={task.id} className="rounded-[4px] border border-[#223048] bg-[#111827] p-2">
+          <div key={task.id} className="rounded-[4px] border border-s-rand bg-s-innen p-2">
             <div className="flex items-start justify-between gap-2">
               <p className="min-w-0 text-sm font-semibold text-[#e8eef8]">{task.title}</p>
               <span className="shrink-0 rounded-[3px] bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-black uppercase text-amber-200">

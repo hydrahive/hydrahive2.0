@@ -21,7 +21,7 @@ export function ProjectAgentsPanel({ agents, projectAgentId, specialistAgentIds 
     .filter((agent): agent is AgentBrief => Boolean(agent))
 
   return shown.length === 0 ? (
-    <p className="text-sm text-[#8d9ab0]">Keine Agenten oder Spezialisten gefunden.</p>
+    <p className="text-sm text-[#9aa7bc]">Keine Agenten oder Spezialisten gefunden.</p>
   ) : (
     <div className="space-y-1.5">
       {shown.map((agent) => {
@@ -35,8 +35,8 @@ export function ProjectAgentsPanel({ agents, projectAgentId, specialistAgentIds 
           <div
             key={agent.id}
             className={[
-              "flex items-center gap-1 rounded-[4px] border bg-[#111827] p-1 transition-colors",
-              selected ? "border-[#69d7ff]/50 bg-[#1c2940]" : "border-[#2a364b] hover:border-[#46617f]",
+              "flex items-center gap-1 rounded-[4px] border bg-s-innen p-1 transition-colors",
+              selected ? "border-[#69d7ff]/50 bg-[#1c2940]" : "border-s-rand hover:border-s-rand-hover",
             ].join(" ")}
           >
             <button
@@ -46,17 +46,17 @@ export function ProjectAgentsPanel({ agents, projectAgentId, specialistAgentIds 
             >
               <span className="flex items-center gap-1.5">
                 <span className="truncate">{agent.name}</span>
-                <span className="shrink-0 rounded-[3px] border border-[#2a364b] px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#8d9ab0]">
+                <span className="shrink-0 rounded-[3px] border border-s-rand px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#9aa7bc]">
                   {isLead ? "Lead" : "Spezialist"}
                 </span>
               </span>
-              <span className="mt-1 block truncate font-mono text-[10px] font-normal text-[#8d9ab0]">{agent.llm_model || "Kein Modell zugewiesen"}</span>
+              <span className="mt-1 block truncate font-mono text-[10px] font-normal text-[#9aa7bc]">{agent.llm_model || "Kein Modell zugewiesen"}</span>
             </button>
             {onNewSession ? (
               <button
                 onClick={() => onNewSession(agent.id)}
                 disabled={busy}
-                className="rounded-[4px] p-1.5 text-[#8d9ab0] transition-colors hover:bg-white/[8%] hover:text-[#69d7ff] disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-[4px] p-1.5 text-[#9aa7bc] transition-colors hover:bg-white/[8%] hover:text-[#69d7ff] disabled:cursor-not-allowed disabled:opacity-40"
                 title={`Neue Session mit ${agent.name} starten (bisherige Session wird übergeben)`}
               >
                 {busyHere ? <Loader2 size={13} className="animate-spin" /> : <SquarePen size={13} />}
@@ -66,7 +66,7 @@ export function ProjectAgentsPanel({ agents, projectAgentId, specialistAgentIds 
               <button
                 onClick={() => onEdit(agent.id)}
                 disabled={busy}
-                className="rounded-[4px] p-1.5 text-[#8d9ab0] hover:bg-white/[8%] hover:text-[#e8eef8] disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-[4px] p-1.5 text-[#9aa7bc] hover:bg-white/[8%] hover:text-[#e8eef8] disabled:cursor-not-allowed disabled:opacity-40"
                 title={`${isLead ? "Projekt-Agent" : "Spezialist"} bearbeiten`}
               >
                 <Pencil size={13} />

@@ -50,47 +50,47 @@ export function BuddySettingsTools({ config, draft, onChange, mcpServers }: Prop
     <div className="space-y-6">
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs text-[#8d9ab0]">{t("tools.active_count", { active: activeTools.size, total: catalog.length })}</p>
+          <p className="text-xs text-[#9aa7bc]">{t("tools.active_count", { active: activeTools.size, total: catalog.length })}</p>
           <div className="flex gap-2">
-            <button type="button" onClick={() => toggleAll(true)} className="rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1 text-xs text-[#d7deea] hover:border-[#46617f]">{t("tools.enable_all")}</button>
-            <button type="button" onClick={() => toggleAll(false)} className="rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1 text-xs text-[#d7deea] hover:border-[#46617f]">{t("tools.disable_all")}</button>
+            <button type="button" onClick={() => toggleAll(true)} className="rounded-[4px] border border-s-rand bg-s-innen px-2 py-1 text-xs text-[#d7deea] hover:border-s-rand-hover">{t("tools.enable_all")}</button>
+            <button type="button" onClick={() => toggleAll(false)} className="rounded-[4px] border border-s-rand bg-s-innen px-2 py-1 text-xs text-[#d7deea] hover:border-s-rand-hover">{t("tools.disable_all")}</button>
           </div>
         </div>
-        <label className="mb-3 flex items-center gap-2 rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2">
-          <Search size={14} className="text-[#718097]" />
+        <label className="mb-3 flex items-center gap-2 rounded-[4px] border border-s-rand bg-s-tief px-3 py-2">
+          <Search size={14} className="text-[#9aa7bc]" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("tools.search")} className="min-w-0 flex-1 bg-transparent text-sm text-[#e8eef8] outline-none placeholder:text-[#59677d]" />
         </label>
         <div className="max-h-[52vh] space-y-4 overflow-y-auto pr-1">
           {categories.map(({ category, tools }) => <section key={category}>
-            <h3 className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#718097]">{category} · {tools.length}</h3>
+            <h3 className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-[#9aa7bc]">{category} · {tools.length}</h3>
             <div className="grid gap-2 sm:grid-cols-2">
               {tools.map((tool) => {
                 const active = activeTools.has(tool.name)
                 const missing = !knownNames.has(tool.name)
-                return <button key={tool.name} type="button" onClick={() => toggle(tool.name)} className={`rounded-[4px] border p-3 text-left ${active ? "border-[#69d7ff]/50 bg-[#163248]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]"}`}>
+                return <button key={tool.name} type="button" onClick={() => toggle(tool.name)} className={`rounded-[4px] border p-3 text-left ${active ? "border-[#69d7ff]/50 bg-[#163248]" : "border-s-rand bg-s-innen hover:border-s-rand-hover"}`}>
                   <span className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${active ? "bg-[#69d7ff]" : "bg-[#59677d]"}`} />{missing && <AlertTriangle size={13} className="text-amber-300" />}<span className="min-w-0 truncate font-mono text-xs font-semibold text-[#e8eef8]">{tool.name}</span></span>
-                  <span className="mt-1 block line-clamp-2 text-[11px] leading-4 text-[#8d9ab0]">{tool.description || t("tools.no_description")}</span>
+                  <span className="mt-1 block line-clamp-2 text-[11px] leading-4 text-[#9aa7bc]">{tool.description || t("tools.no_description")}</span>
                 </button>
               })}
             </div>
           </section>)}
-          {categories.length === 0 && <p className="py-8 text-center text-sm text-[#718097]">{t("tools.no_results")}</p>}
+          {categories.length === 0 && <p className="py-8 text-center text-sm text-[#9aa7bc]">{t("tools.no_results")}</p>}
         </div>
       </div>
 
-      <section className="border-t border-[#2a364b] pt-5">
+      <section className="border-t border-s-rand pt-5">
         <h3 className="text-sm font-bold text-[#e8eef8]">{t("tools.mcp_title")}</h3>
-        <p className="mb-3 text-xs text-[#718097]">{t("tools.mcp_hint")}</p>
+        <p className="mb-3 text-xs text-[#9aa7bc]">{t("tools.mcp_hint")}</p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {[...mcpServers, ...unknownMcp.map((id) => ({ id, name: id, enabled: false, connected: false }))].map((server) => {
             const active = selectedMcp.includes(server.id)
-            return <button key={server.id} type="button" onClick={() => toggleMcp(server.id)} className={`flex items-center gap-2 rounded-[4px] border p-2 text-left ${active ? "border-[#69d7ff]/50 bg-[#163248]" : "border-[#2a364b] bg-[#111827]"}`}><Server size={14} className={active ? "text-[#69d7ff]" : "text-[#718097]"} /><span className="min-w-0 flex-1 truncate text-xs text-[#e8eef8]">{server.name}</span><span className={`h-2 w-2 rounded-full ${server.connected ? "bg-emerald-400" : "bg-[#59677d]"}`} /></button>
+            return <button key={server.id} type="button" onClick={() => toggleMcp(server.id)} className={`flex items-center gap-2 rounded-[4px] border p-2 text-left ${active ? "border-[#69d7ff]/50 bg-[#163248]" : "border-s-rand bg-s-innen"}`}><Server size={14} className={active ? "text-[#69d7ff]" : "text-[#9aa7bc]"} /><span className="min-w-0 flex-1 truncate text-xs text-[#e8eef8]">{server.name}</span><span className={`h-2 w-2 rounded-full ${server.connected ? "bg-emerald-400" : "bg-[#59677d]"}`} /></button>
           })}
-          {mcpServers.length === 0 && unknownMcp.length === 0 && <p className="text-xs text-[#718097]">{t("tools.no_mcp")}</p>}
+          {mcpServers.length === 0 && unknownMcp.length === 0 && <p className="text-xs text-[#9aa7bc]">{t("tools.no_mcp")}</p>}
         </div>
       </section>
 
-      <section className="grid gap-3 border-t border-[#2a364b] pt-5 sm:grid-cols-2">
+      <section className="grid gap-3 border-t border-s-rand pt-5 sm:grid-cols-2">
         <Toggle label={t("tools.longterm_memory")} hint={t("tools.longterm_hint")} checked={draft.longterm_memory ?? config.longterm_memory} onChange={(checked) => onChange({ longterm_memory: checked })} />
         <Toggle label={t("tools.confirm")} hint={t("tools.confirm_hint")} checked={draft.require_tool_confirm ?? config.require_tool_confirm} onChange={(checked) => onChange({ require_tool_confirm: checked })} />
       </section>
@@ -99,5 +99,5 @@ export function BuddySettingsTools({ config, draft, onChange, mcpServers }: Prop
 }
 
 function Toggle({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  return <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 accent-[#69d7ff]" /><span><span className="block text-sm font-semibold text-[#e8eef8]">{label}</span><span className="mt-1 block text-xs leading-4 text-[#8d9ab0]">{hint}</span></span></label>
+  return <label className="flex cursor-pointer items-start gap-3 rounded-[4px] border border-s-rand bg-s-innen p-3"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="mt-1 accent-[#69d7ff]" /><span><span className="block text-sm font-semibold text-[#e8eef8]">{label}</span><span className="mt-1 block text-xs leading-4 text-[#9aa7bc]">{hint}</span></span></label>
 }

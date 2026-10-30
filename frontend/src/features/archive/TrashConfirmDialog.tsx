@@ -48,7 +48,7 @@ export function TrashConfirmDialog({ trashBytes, onClose, onDone }: Props) {
       <div className="space-y-3 p-4 text-sm text-[#e8eef8]">
         <p>{t("trash.text", { size: formatSize(trashBytes) })}</p>
         <label className="block space-y-1.5">
-          <span className="text-xs text-[#8d9ab0]">{t("trash.type_word", { word: TRASH_CONFIRM_WORD })}</span>
+          <span className="text-xs text-[#9aa7bc]">{t("trash.type_word", { word: TRASH_CONFIRM_WORD })}</span>
           <input className={adminInputClass} value={typed} autoFocus
             onChange={(e) => setTyped(e.target.value)} placeholder={TRASH_CONFIRM_WORD} />
         </label>

@@ -33,14 +33,14 @@ function Login({ share, host }: { share: ArchiveShare; host: string }) {
   const unc = uncPath(host, share.name)
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
-      <span className="text-[#8d9ab0]">{t("share.address")}</span>
+      <span className="text-[#9aa7bc]">{t("share.address")}</span>
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="min-w-0 flex-1 truncate font-mono text-[#e8eef8]">{unc}</span>
         <CopyButton value={unc} label={t("share.copy_address")} />
       </span>
-      <span className="text-[#8d9ab0]">{t("share.login")}</span>
+      <span className="text-[#9aa7bc]">{t("share.login")}</span>
       <span className="font-mono text-[#e8eef8]">{share.login}</span>
-      <span className="text-[#8d9ab0]">{t("share.password")}</span>
+      <span className="text-[#9aa7bc]">{t("share.password")}</span>
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="min-w-0 flex-1 truncate font-mono text-[#e8eef8]">
           {showPwd ? share.password : "••••••••••••"}
@@ -94,7 +94,7 @@ export function ArchiveShareSection({ share, host, busy, onSetupSamba, onSwitch 
             {share.wanted && share.enabled && <Login share={share} host={host} />}
           </>
         )}
-        <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{t("share.hint")}</p>
+        <p className="text-[11px] leading-relaxed text-[#9aa7bc]">{t("share.hint")}</p>
       </AdminPanel>
     </div>
   )

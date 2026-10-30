@@ -71,7 +71,7 @@ export function ClipLibrary({ projectId, onAdd, disabled }: Props) {
 
       <div className="mt-2 grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-3">
         {visible.map((item) => (
-          <div key={item.key} className="rounded-[3px] border border-[#223048] bg-[#111827] p-1">
+          <div key={item.key} className="rounded-[3px] border border-s-rand bg-s-innen p-1">
             <button
               type="button"
               onClick={() => openPreview(item)}

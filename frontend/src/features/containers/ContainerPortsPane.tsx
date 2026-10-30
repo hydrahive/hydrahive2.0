@@ -79,21 +79,21 @@ export function ContainerPortsPane({ containerId }: { containerId: string }) {
 
   return (
     <div className="h-full space-y-4 overflow-auto p-4">
-      <p className="text-xs text-[#8d9ab0]">{t("ports.ip")} <code className="text-[#c8f2ff]">{data.ipv4}</code></p>
+      <p className="text-xs text-[#9aa7bc]">{t("ports.ip")} <code className="text-[#c8f2ff]">{data.ipv4}</code></p>
 
       <table className="w-full text-left text-xs">
-        <thead className="text-[#8d9ab0]">
+        <thead className="text-[#9aa7bc]">
           <tr><th className="py-1">{t("ports.col_label")}</th><th>{t("ports.col_protocol")}</th><th>{t("ports.col_ports")}</th><th>{t("ports.col_scope")}</th><th /></tr>
         </thead>
         <tbody>
-          {data.ports.length === 0 && <tr><td colSpan={5} className="py-3 text-[#8d9ab0]">{t("ports.empty")}</td></tr>}
+          {data.ports.length === 0 && <tr><td colSpan={5} className="py-3 text-[#9aa7bc]">{t("ports.empty")}</td></tr>}
           {data.ports.map((p) => <PortRow key={p.id} rule={p} busy={busy}
             onScope={(s) => run(() => containersApi.setPortScope(containerId, p.id, s))}
             onDelete={() => run(() => containersApi.removePort(containerId, p.id))} />)}
         </tbody>
       </table>
 
-      <form onSubmit={add} className="grid grid-cols-2 gap-2 rounded-[6px] border border-[#2a364b] p-3 md:grid-cols-6">
+      <form onSubmit={add} className="grid grid-cols-2 gap-2 rounded-[6px] border border-s-rand p-3 md:grid-cols-6">
         <input className={cn(adminInputClass, "md:col-span-2")} placeholder={t("ports.label_ph")} value={label} onChange={(e) => setLabel(e.target.value)} maxLength={64} />
         <select className={adminInputClass} value={protocol} onChange={(e) => setProtocol(e.target.value as PortProtocol | "both")}>
           <option value="tcp">TCP</option><option value="udp">UDP</option><option value="both">TCP + UDP</option>
@@ -105,7 +105,7 @@ export function ContainerPortsPane({ containerId }: { containerId: string }) {
           {SCOPES.map(({ scope: s, icon: Icon }) => (
             <button key={s} type="button" onClick={() => setScope(s)} aria-pressed={scope === s}
               className={cn("flex items-center gap-1 rounded-[4px] border px-2 py-1 text-[11px]",
-                scope === s ? "border-[#69d7ff]/60 bg-[#163248] text-[#c8f2ff]" : "border-[#2a364b] text-[#8d9ab0]")}>
+                scope === s ? "border-[#69d7ff]/60 bg-[#163248] text-[#c8f2ff]" : "border-s-rand text-[#9aa7bc]")}>
               <Icon size={12} />{t(`ports.scope_${s}`)}
             </button>
           ))}
@@ -117,7 +117,7 @@ export function ContainerPortsPane({ containerId }: { containerId: string }) {
       </form>
 
       {publicAny && <AdminFeedback tone="warning">{t("ports.hint_provider")}{publicUdp ? ` ${t("ports.hint_udp")}` : ""}</AdminFeedback>}
-      <p className="text-[11px] text-[#8d9ab0]">{t("ports.hint_reserved")}</p>
+      <p className="text-[11px] text-[#9aa7bc]">{t("ports.hint_reserved")}</p>
       {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
     </div>
   )
@@ -129,7 +129,7 @@ function PortRow({ rule, busy, onScope, onDelete }: {
   const { t } = useTranslation("containers")
   const innerEnd = rule.container_port_start + (rule.host_port_end - rule.host_port_start)
   return (
-    <tr className="border-t border-[#2a364b] align-middle text-[#e8eef8]">
+    <tr className="border-t border-s-rand align-middle text-[#e8eef8]">
       <td className="py-1.5">{rule.label || "—"}{rule.last_error && <p className="text-[10px] text-red-400">{rule.last_error}</p>}</td>
       <td className="uppercase">{rule.protocol}</td>
       <td className="font-mono">{range(rule.host_port_start, rule.host_port_end)} → {range(rule.container_port_start, innerEnd)}</td>
@@ -139,7 +139,7 @@ function PortRow({ rule, busy, onScope, onDelete }: {
             <button key={s} type="button" disabled={busy || rule.scope === s} onClick={() => onScope(s)}
               title={t(`ports.scope_${s}`)} aria-pressed={rule.scope === s}
               className={cn("rounded-[4px] border p-1",
-                rule.scope === s ? "border-[#69d7ff]/60 bg-[#163248] text-[#c8f2ff]" : "border-[#2a364b] text-[#5d6a80] hover:text-[#e8eef8]")}>
+                rule.scope === s ? "border-[#69d7ff]/60 bg-[#163248] text-[#c8f2ff]" : "border-s-rand text-[#5d6a80] hover:text-[#e8eef8]")}>
               <Icon size={12} />
             </button>
           ))}

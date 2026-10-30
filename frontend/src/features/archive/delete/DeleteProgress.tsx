@@ -34,11 +34,11 @@ export function DeleteProgress({ job }: { job: DeleteJob }) {
   const showBytes = (job.step === "pack" || job.step === "check") && job.bytes_total > 0
   return (
     <div className="space-y-2" data-delete-percent={percent}>
-      <div className="flex justify-between text-xs text-[#8d9ab0]">
+      <div className="flex justify-between text-xs text-[#9aa7bc]">
         <span>{t(`delete.step.${job.step}`)}</span>
         {showBytes && <span>{formatSize(job.bytes_done)} / {formatSize(job.bytes_total)} · {percent}%</span>}
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[#172133]">
+      <div className="h-2 overflow-hidden rounded-full bg-s-innen">
         <div className="h-full bg-[#69d7ff] transition-all" style={{ width: `${showBytes ? percent : 8}%` }} />
       </div>
     </div>

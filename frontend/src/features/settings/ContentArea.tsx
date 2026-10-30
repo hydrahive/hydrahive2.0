@@ -24,11 +24,11 @@ export function ContentArea({ group }: { group: SettingsGroup }) {
   return (
     <div className={`flex h-full min-h-0 flex-col ${group.wide ? "" : CONTENT_WIDTH}`}>
       {group.tabs.length > 1 && (
-        <div role="tablist" aria-label={group.label} className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-[#2a364b] px-3 py-1.5">
+        <div role="tablist" aria-label={group.label} className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-s-rand px-3 py-1.5">
           {group.tabs.map((name) => (
             <button key={name} type="button" role="tab" aria-selected={tab === name} onClick={() => setTab(name)}
               className={`shrink-0 rounded-[3px] px-3 py-1 text-xs font-semibold transition-colors ${
-                tab === name ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#8d9ab0] hover:bg-white/5 hover:text-[#e8eef8]"
+                tab === name ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#9aa7bc] hover:bg-white/5 hover:text-[#e8eef8]"
               }`}>{name}</button>
           ))}
         </div>

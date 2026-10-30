@@ -43,12 +43,12 @@ export function GitPanel({ agentId }: { agentId: string }) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-[#151c2b] text-[11px] text-[#e8eef8]">
+    <div className="flex h-full flex-col bg-s-box text-[11px] text-[#e8eef8]">
       {/* Repo-Picker (nur bei mehreren) + Branch */}
-      <div className="flex items-center gap-2 border-b border-[#2a364b] bg-[#121a29] px-2 py-1.5">
+      <div className="flex items-center gap-2 border-b border-s-rand bg-s-kopf px-2 py-1.5">
         {repos.length > 1 ? (
           <select value={repo ?? ""} onChange={(e) => { setRepo(e.target.value); setStatus(null); setDiff(null) }}
-            className="max-w-[60%] rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-1.5 py-0.5 text-[10px] text-[#e8eef8]">
+            className="max-w-[60%] rounded-[4px] border border-s-rand bg-s-tief px-1.5 py-0.5 text-[10px] text-[#e8eef8]">
             {repos.map((r) => (
               <option key={r.name} value={r.name}>{r.name === "_root" ? "/" : r.name}</option>
             ))}
@@ -60,7 +60,7 @@ export function GitPanel({ agentId }: { agentId: string }) {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {status?.files.map((f) => (
-          <div key={f.path} className="flex items-center gap-1.5 border-b border-[#223048] px-2 py-1 hover:bg-[#172133]">
+          <div key={f.path} className="flex items-center gap-1.5 border-b border-s-rand px-2 py-1 hover:bg-s-hebung">
             <input type="checkbox" checked={f.staged} className="accent-violet-500 shrink-0"
               onChange={(e) => repo && gitApi.stage(agentId, repo, f.path, e.target.checked).then(refresh).catch(() => {})} />
             <span className={`font-mono shrink-0 w-5 text-center ${f.status === "M" ? "text-amber-400" : f.status === "??" ? "text-emerald-400" : "text-zinc-400"}`}>
@@ -72,11 +72,11 @@ export function GitPanel({ agentId }: { agentId: string }) {
         ))}
       </div>
       {diff !== null && (
-        <pre className="max-h-40 overflow-auto border-t border-[#2a364b] bg-[#0d1420] px-2 py-1 font-mono text-[10px] text-[#8d9ab0] whitespace-pre-wrap">{diff || "—"}</pre>
+        <pre className="max-h-40 overflow-auto border-t border-s-rand bg-s-tief px-2 py-1 font-mono text-[10px] text-[#9aa7bc] whitespace-pre-wrap">{diff || "—"}</pre>
       )}
-      <div className="flex flex-col gap-1.5 border-t border-[#2a364b] bg-[#111827] p-2">
+      <div className="flex flex-col gap-1.5 border-t border-s-rand bg-s-innen p-2">
         <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("commit_message")}
-          className="rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1 text-[10px] text-[#e8eef8] outline-none focus:border-[#46617f]" />
+          className="rounded-[4px] border border-s-rand bg-s-tief px-2 py-1 text-[10px] text-[#e8eef8] outline-none focus:border-s-rand-hover" />
         <button disabled={busy || !message.trim() || !status?.files.some((f) => f.staged)}
           onClick={doCommit}
           className="rounded-[4px] bg-gradient-to-br from-[#1fb6ff] to-[#8b5cf6] px-2 py-1 text-[10px] font-bold text-white hover:brightness-110 disabled:opacity-40">

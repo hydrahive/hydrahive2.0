@@ -90,7 +90,7 @@ export function ClipBlock({ clip, label, tone, pxPerSecond, snapTargets, onPrevi
         onPreview={(v) => onTrimPreview("end", v)} onCommit={(v) => onTrimCommit("end", v)} />
 
       <p className="truncate text-[9px] font-semibold leading-3 text-[#e8eef8]">{label}</p>
-      <p className="font-mono text-[8px] text-[#8d9ab0]">{fmtDur(clip.duration)}</p>
+      <p className="font-mono text-[8px] text-[#9aa7bc]">{fmtDur(clip.duration)}</p>
       <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={onRemove}

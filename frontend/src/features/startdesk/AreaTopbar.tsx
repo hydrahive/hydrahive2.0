@@ -34,7 +34,7 @@ export function AreaTopbar({ action, extraActions, help = "onboarding" }: AreaTo
   }, [hit?.area.area.id, pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <header className="relative flex h-[58px] shrink-0 items-center gap-2 border-b border-[#2a364b] bg-gradient-to-b from-[#131b2a] to-[#0e1420] px-3 sm:gap-3 sm:px-[18px]">
+    <header className="relative flex h-[58px] shrink-0 items-center gap-2 border-b border-s-rand bg-gradient-to-b from-s-kopf to-s-tief px-3 sm:gap-3 sm:px-[18px]">
       <button type="button" onClick={() => navigate("/start")} title="Start – alle Bereiche" aria-label="Start"
         className="flex shrink-0 items-center rounded-[4px] transition-opacity hover:opacity-90">
         <HydraLogo variant="responsive" />
@@ -48,7 +48,7 @@ export function AreaTopbar({ action, extraActions, help = "onboarding" }: AreaTo
           const on = hit?.item.path === i.path
           return (
             <button key={i.path} type="button" onClick={() => navigate(i.path)} aria-current={on ? "page" : undefined}
-              className={`shrink-0 rounded-[4px] px-2.5 py-2 ${on ? `bg-[#1c2940] font-semibold ${active.area.text}` : "text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]"}`}>
+              className={`shrink-0 rounded-[4px] px-2.5 py-2 ${on ? `bg-[#1c2940] font-semibold ${active.area.text}` : "text-[#9aa7bc] hover:bg-white/[6%] hover:text-[#e8eef8]"}`}>
               {label(i)}
             </button>
           )
@@ -60,7 +60,7 @@ export function AreaTopbar({ action, extraActions, help = "onboarding" }: AreaTo
         {extraActions && <div className="hidden items-center gap-2 lg:flex">{extraActions}</div>}
         {action && (
           <button type="button" onClick={() => navigate(action.path)}
-            className="hidden rounded-[4px] border border-[#2a364b] bg-[#172133] px-3 py-1.5 text-xs font-bold text-[#e8eef8] hover:border-[#46617f] md:block">
+            className="hidden rounded-[4px] border border-s-rand bg-s-innen px-3 py-1.5 text-xs font-bold text-[#e8eef8] hover:border-s-rand-hover md:block">
             {action.label}
           </button>
         )}

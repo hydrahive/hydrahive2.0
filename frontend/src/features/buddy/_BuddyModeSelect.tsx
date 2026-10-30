@@ -31,11 +31,11 @@ export function BuddyModeSelect({ sessionId, initial }: { sessionId: string; ini
         id="buddy-mode"
         value={mode}
         onChange={(e) => void change(e.target.value as BuddyMode)}
-        className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]"
+        className="w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8]"
       >
         {BUDDY_MODES.map((m) => <option key={m} value={m}>{t(`mode.${m}`)}</option>)}
       </select>
-      <p className={`text-xs ${error ? "text-rose-400" : "text-[#8d9ab0]"}`}>{error ? t("mode.error") : t("mode.hint")}</p>
+      <p className={`text-xs ${error ? "text-rose-400" : "text-[#9aa7bc]"}`}>{error ? t("mode.error") : t("mode.hint")}</p>
     </>
   )
 }

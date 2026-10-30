@@ -41,21 +41,21 @@ export function MediaPromptOverlay({ projectId, mediaSlug, initialBody, onClose 
   }
 
   return <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="prompt-overlay-title">
-    <section className="grid h-[min(760px,92dvh)] w-full max-w-5xl grid-cols-[260px_1fr] overflow-hidden rounded-[4px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
-      <aside className="overflow-y-auto border-r border-[#2a364b] bg-[#101724] p-3">
+    <section className="grid h-[min(760px,92dvh)] w-full max-w-5xl grid-cols-[260px_1fr] overflow-hidden rounded-[4px] border border-s-rand-hover bg-s-box shadow-2xl">
+      <aside className="overflow-y-auto border-r border-s-rand bg-s-tief p-3">
         <CockpitSectionLabel>Promptarchiv</CockpitSectionLabel>
         <button onClick={() => { setSelected(""); setTitle("Neuer Prompt"); setBody(initialBody); setModel("") }} className="mt-3 w-full rounded-[4px] border border-[#ffb86b]/55 bg-[#ffb86b]/10 p-2 text-left text-sm text-[#ffb86b]">+ Neuer Draft</button>
-        <div className="mt-3 space-y-2">{items.map((item) => <button key={`${item.type}/${item.slug}`} onClick={() => setSelected(`${item.type}/${item.slug}`)} className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] p-2 text-left hover:border-[#46617f]"><strong className="block truncate text-sm text-[#e8eef8]">{item.title}</strong><span className="text-[11px] text-[#8d9ab0]">{item.type} · {item.status}</span></button>)}</div>
+        <div className="mt-3 space-y-2">{items.map((item) => <button key={`${item.type}/${item.slug}`} onClick={() => setSelected(`${item.type}/${item.slug}`)} className="w-full rounded-[4px] border border-s-rand bg-s-tief p-2 text-left hover:border-s-rand-hover"><strong className="block truncate text-sm text-[#e8eef8]">{item.title}</strong><span className="text-[11px] text-[#9aa7bc]">{item.type} · {item.status}</span></button>)}</div>
       </aside>
       <main className="flex min-h-0 flex-col">
-        <header className="flex items-center justify-between border-b border-[#2a364b] p-4"><div><CockpitSectionLabel>Offline-Workspace</CockpitSectionLabel><h2 id="prompt-overlay-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Prompt bearbeiten</h2></div><CockpitButton onClick={onClose}>Schließen</CockpitButton></header>
+        <header className="flex items-center justify-between border-b border-s-rand p-4"><div><CockpitSectionLabel>Offline-Workspace</CockpitSectionLabel><h2 id="prompt-overlay-title" className="mt-1 text-lg font-semibold text-[#e8eef8]">Prompt bearbeiten</h2></div><CockpitButton onClick={onClose}>Schließen</CockpitButton></header>
         <div className="grid flex-1 content-start gap-3 overflow-y-auto p-4 md:grid-cols-2">
-          <label className="text-xs text-[#8d9ab0]">Typ<select disabled={!!active} value={type} onChange={(event) => setType(event.target.value as MediaPromptType)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]">{types.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label className="text-xs text-[#8d9ab0]">Modell<input value={model} onChange={(event) => setModel(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]" /></label>
-          <label className="text-xs text-[#8d9ab0] md:col-span-2">Titel<input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]" /></label>
-          <label className="text-xs text-[#8d9ab0] md:col-span-2">Prompt<textarea value={body} onChange={(event) => setBody(event.target.value)} rows={18} className="mt-1 w-full resize-y rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 font-mono text-sm leading-5 text-[#e8eef8]" /></label>
+          <label className="text-xs text-[#9aa7bc]">Typ<select disabled={!!active} value={type} onChange={(event) => setType(event.target.value as MediaPromptType)} className="mt-1 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8]">{types.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+          <label className="text-xs text-[#9aa7bc]">Modell<input value={model} onChange={(event) => setModel(event.target.value)} className="mt-1 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8]" /></label>
+          <label className="text-xs text-[#9aa7bc] md:col-span-2">Titel<input value={title} onChange={(event) => setTitle(event.target.value)} className="mt-1 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8]" /></label>
+          <label className="text-xs text-[#9aa7bc] md:col-span-2">Prompt<textarea value={body} onChange={(event) => setBody(event.target.value)} rows={18} className="mt-1 w-full resize-y rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 font-mono text-sm leading-5 text-[#e8eef8]" /></label>
         </div>
-        <footer className="flex items-center justify-between gap-3 border-t border-[#2a364b] p-3"><p className="text-xs text-[#8d9ab0]">{status}</p><CockpitButton tone="primary" onClick={save}>Draft speichern</CockpitButton></footer>
+        <footer className="flex items-center justify-between gap-3 border-t border-s-rand p-3"><p className="text-xs text-[#9aa7bc]">{status}</p><CockpitButton tone="primary" onClick={save}>Draft speichern</CockpitButton></footer>
       </main>
     </section>
   </div>

@@ -45,9 +45,9 @@ export function ContainerLogPane({ containerId }: Props) {
   }, [auto, load])
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#0e1420]">
-      <div className="flex shrink-0 items-center justify-between border-b border-[#2a364b] bg-[#131b2a] px-4 py-2">
-        <p className="text-xs text-[#8d9ab0]">{t("logs.lifecycle_title")}</p>
+    <div className="flex h-full min-h-0 flex-col bg-s-tief">
+      <div className="flex shrink-0 items-center justify-between border-b border-s-rand bg-s-kopf px-4 py-2">
+        <p className="text-xs text-[#9aa7bc]">{t("logs.lifecycle_title")}</p>
         <div className="flex items-center gap-2">
           <AdminToggle label={t("logs.auto_refresh")} checked={auto} onChange={(event) => setAuto(event.target.checked)} />
           <AdminAction onClick={load} disabled={loading} aria-label="Logs neu laden" title="Logs neu laden" className="px-2 py-1.5">

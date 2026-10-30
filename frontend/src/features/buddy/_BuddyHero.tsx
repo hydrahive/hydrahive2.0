@@ -4,11 +4,11 @@ import { HEAD_TAGS } from "./_buddyHeads"
 
 export function BuddyHero({ agentName }: { agentName: string }) {
   return (
-    <div className="overflow-hidden rounded-[6px] border border-[#2a364b] bg-[#0d1420]">
+    <div className="overflow-hidden rounded-[6px] border border-s-rand bg-s-tief">
       <div className="relative h-[160px]">
         <img src="/hydra/schreibtisch.webp" alt="" loading="lazy" draggable={false}
           className="absolute inset-0 h-full w-full select-none object-cover object-center" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d1420] via-[#0d1420]/55 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-s-tief via-s-tief/55 to-transparent" />
         <div className="absolute inset-x-3 bottom-2.5">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#69d7ff] drop-shadow">Aktiver Buddy</div>
           <div className="truncate text-sm font-black text-[#e8eef8] drop-shadow">{agentName}</div>

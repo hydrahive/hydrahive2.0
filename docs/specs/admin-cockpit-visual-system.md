@@ -25,27 +25,49 @@ Das Ergebnis besitzt keine durchgehende visuelle Hierarchie. Die neue Spezifikat
 
 ## Visuelle Regeln
 
-### Palette
+### Palette: Farbstufen (seit 30.10.2026, Plan `docs/plans/farbstufen-kopffarben.md`)
 
-| Rolle | Wert | Verwendung |
+Flächen und Ränder stehen **nur** in `frontend/src/index.css` als `--hh-s-*`. Tailwind verweist darauf
+(`bg-s-box`, `border-s-rand`, `bg-s-innen/80`). Feste Dunkeltöne wie `bg-[#151c2b]` sind verboten,
+der Wächter-Test `shared/brand/farbstufen.test.ts` schlägt sonst an. Jede Stufe ist heller als die darunter.
+
+| Stufe | Wert | Verwendung |
 |---|---|---|
-| App-/Overlay-Grund | `#0e1420` | Hauptfläche eines Overlays |
-| Tiefe Fläche | `#0b111c` / `#0d1420` | Footer, Inputs, Konsolen, eingelassene Bereiche |
-| Panel | `#111827` / `#151c2b` | Karten und Gruppen |
-| Panel-Header | `#131b2a` | Kopfbereiche und abgesetzte Zeilen |
-| Border | `#2a364b` | Standardrahmen und Trenner |
-| Hover-Border | `#46617f` | Hover/fokussierte neutrale Controls |
+| `s-grund` | `#080b11` | App-Hintergrund |
+| `s-tief` | `#0e141f` | eingelassen: Eingaben, Konsolen, Fußzeilen, Seitenleisten in Fenstern |
+| `s-box` | `#172030` | Box, Fenster, Menü, Seitenpanel |
+| `s-kopf` | `#1f2a3d` | Kopfzeile von Box und Fenster, Kopfleisten |
+| `s-innen` | `#243047` | Zeile/Karte in einer Box, normale Knöpfe |
+| `s-hebung` | `#2b3852` | Hover von Innenzeilen und Knöpfen |
+| `s-rand` | `#34425c` | Standardrand und Trenner |
+| `s-rand-hover` | `#46617f` | Hover-/Fokusrand |
+
+Gemessene Abstände: Grund→Box 1,22 · Box→Kopf 1,13 · Box→Innen 1,24 · Box→Rand 1,62.
+
+| Schrift | Wert | Verwendung |
+|---|---|---|
 | Primärtext | `#e8eef8` | Überschriften und Werte |
-| Sekundärtext | `#8d9ab0` | Beschreibungen und Labels |
-| Schwacher Text | `#5b6675` | Platzhalter und deaktivierte Hinweise |
-| Cockpit-Akzent | `#69d7ff` / `#c8f2ff` | Primäraktionen, Fokus, aktive Tabs, Icons, Eyebrows |
+| Sekundärtext | `#9aa7bc` | Beschreibungen, Labels, schwache Hinweise. ≥ 4,8:1 auf jeder Stufe |
+| Cockpit-Akzent | `#69d7ff` / `#c8f2ff` | Primäraktionen, Fokus, aktive Tabs, Icons |
+
+### Kopffarbe und Zustand
+
+- Jede Box und jedes Fenster mit Thema (`theme`) trägt die **Farbe seines Hydra-Kopfs**: 4-px-Streifen links,
+  leicht getönte Kopfzeile, Etikett in Kopffarbe (Professor amber, Macher orange, Denker türkis, Träumer lila,
+  Buddy mint). Quelle: `shared/brand/boxThemes.ts` (`farbe`), Logik in `shared/brand/boxLook.ts`.
+- **Zustand** (`status`) nur aus echten Daten:
+  - `warnung` und `fehler` **übermalen** die Kopffarbe (gelb `#fbbf24` / rot `#fb7185`), mit farbigem Rand.
+  - `ok` lässt die Kopffarbe und zeigt nur das Schild.
+- Das Schild (`BoxStatusSchild`) zeigt immer **Symbol und Wort**, nie nur Farbe.
 
 ### Semantische Farben
 
 - Grün/Emerald: ausschließlich Erfolg, online, gesund oder abgeschlossen.
 - Gelb/Amber: ausschließlich Warnung, ausstehend oder laufend.
 - Rot/Rose: ausschließlich Fehler, offline oder destruktive Aktion.
-- Semantische Farben dürfen keine rein dekorative Card-, Avatar-, Blob-, Tag- oder Button-Farbe sein.
+- Ausnahme: Kopffarben der Hydra (Streifen/Tönung). Professor (amber) und Buddy (mint) sind Themenfarben, keine
+  Zustände. Ein Zustand erscheint immer zusätzlich als Schild mit Wort.
+- Sonst dürfen semantische Farben keine rein dekorative Card-, Avatar-, Blob-, Tag- oder Button-Farbe sein.
 
 ### Verbotene Legacy-Muster im Admin-Erreichbarkeitsbaum
 

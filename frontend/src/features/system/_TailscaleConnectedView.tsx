@@ -29,29 +29,29 @@ export function TailscaleConnectedView({ status, loggingOut, onLogout }: Props) 
   return (
     <>
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-        <span className="text-[#8d9ab0]">IP</span>
+        <span className="text-[#9aa7bc]">IP</span>
         <span className="font-mono text-[#e8eef8]">{status.ip ?? "—"}</span>
-        <span className="text-[#8d9ab0]">{t("tailscale.hostname")}</span>
+        <span className="text-[#9aa7bc]">{t("tailscale.hostname")}</span>
         <span className="font-mono text-[#e8eef8]">{status.hostname ?? "—"}</span>
-        <span className="text-[#8d9ab0]">{t("tailscale.dns")}</span>
+        <span className="text-[#9aa7bc]">{t("tailscale.dns")}</span>
         <span className="truncate font-mono text-[#e8eef8]">{status.dns_name ?? "—"}</span>
         {status.tailnet && <>
-          <span className="text-[#8d9ab0]">Tailnet</span>
+          <span className="text-[#9aa7bc]">Tailnet</span>
           <span className="font-mono text-[#e8eef8]">{status.tailnet}</span>
         </>}
         {status.version && <>
-          <span className="text-[#8d9ab0]">{t("tailscale.version")}</span>
-          <span className="font-mono text-[11px] text-[#8d9ab0]">{status.version}</span>
+          <span className="text-[#9aa7bc]">{t("tailscale.version")}</span>
+          <span className="font-mono text-[11px] text-[#9aa7bc]">{status.version}</span>
         </>}
         {status.exit_node_active && <>
-          <span className="text-[#8d9ab0]">{t("tailscale.exit_node")}</span>
+          <span className="text-[#9aa7bc]">{t("tailscale.exit_node")}</span>
           <span className="font-mono text-[#c8f2ff]">→ {status.exit_node_active}</span>
         </>}
       </div>
 
       {status.peers && status.peers.length > 0 && (
-        <div className="border-t border-[#2a364b] pt-3">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8d9ab0]">
+        <div className="border-t border-s-rand pt-3">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9aa7bc]">
             {t("tailscale.peers", { count: status.peers.length })}
           </p>
           <div className="space-y-1.5">
@@ -64,10 +64,10 @@ export function TailscaleConnectedView({ status, loggingOut, onLogout }: Props) 
                 >
                   <span className="sr-only">{p.online ? "Online" : "Offline"}</span>
                 </AdminStatus>
-                <span className={`min-w-0 flex-1 truncate font-mono ${p.online ? "text-[#e8eef8]" : "text-[#8d9ab0]"}`}>
+                <span className={`min-w-0 flex-1 truncate font-mono ${p.online ? "text-[#e8eef8]" : "text-[#9aa7bc]"}`}>
                   {p.hostname}
                 </span>
-                <span className="font-mono text-[#8d9ab0]">{p.ip ?? "—"}</span>
+                <span className="font-mono text-[#9aa7bc]">{p.ip ?? "—"}</span>
                 {p.exit_node && <AdminStatus tone="neutral">EXIT</AdminStatus>}
                 {p.exit_node_option && !p.exit_node && <AdminStatus tone="neutral">exit?</AdminStatus>}
               </div>

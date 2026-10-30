@@ -115,7 +115,7 @@ export function CreateContainerDialog({ onClose, onCreated }: Props) {
                 <button key={quickImage} type="button" onClick={() => setImage(quickImage)} aria-pressed={image === quickImage}
                   className={`rounded-[4px] border p-2.5 text-left font-mono text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#69d7ff]/45 ${image === quickImage
                     ? "border-[#69d7ff]/60 bg-[#163248] text-[#c8f2ff]"
-                    : "border-[#2a364b] bg-[#111827] text-[#b9c5d6] hover:border-[#46617f]"}`}>
+                    : "border-s-rand bg-s-innen text-[#b9c5d6] hover:border-s-rand-hover"}`}>
                   {quickImage}
                 </button>
               ))}

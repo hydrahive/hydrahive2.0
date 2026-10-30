@@ -78,7 +78,7 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="text-sm font-medium text-[#e8eef8]">{samba.platform === "mac" ? "Projekt im Netz freigeben" : "Samba-Projektfreigabe"}</h3>
-          <p className="text-[11px] text-[#718097]">Workspace dieses Projekts im Netzwerk bereitstellen – ohne Shell, im Finder oder Explorer.</p>
+          <p className="text-[11px] text-[#9aa7bc]">Workspace dieses Projekts im Netzwerk bereitstellen – ohne Shell, im Finder oder Explorer.</p>
         </div>
         <label className="flex items-center gap-2 text-xs text-[#b8c4d8]">
           <input type="checkbox" checked={samba.enabled} disabled={sambaBusy} onChange={toggleSamba} />
@@ -87,7 +87,7 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
       </div>
       {samba.enabled && <div className="space-y-2">
         <CopyRow label="Adresse" value={sambaUrl} copied={copied === "url"} onCopy={() => copy(sambaUrl, "url")} />
-        <p className="text-[11px] text-[#718097]" data-share-hint={samba.platform ?? "linux"}>
+        <p className="text-[11px] text-[#9aa7bc]" data-share-hint={samba.platform ?? "linux"}>
           {samba.platform === "mac" ? "Mac: Finder → Gehe zu → Mit Server verbinden. Windows: " : "Windows-Explorer. Mac-Finder (Gehe zu → Mit Server verbinden): "}
           <code>{addr?.secondary}</code>
         </p>
@@ -99,13 +99,13 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
           onToggle={() => setShowPassword((visible) => !visible)}
           onCopy={() => copy(samba.password, "password")}
         />
-        <p className="text-[11px] text-[#718097]">Diese Zugangsdaten gelten für alle freigegebenen Projekte.</p>
+        <p className="text-[11px] text-[#9aa7bc]">Diese Zugangsdaten gelten für alle freigegebenen Projekte.</p>
       </div>}
     </section>}
     <ProjectWebhookSection projectId={project.id} />
-    <section className="space-y-3 border-t border-[#2a364b] pt-4">
-      <div><label className="text-xs font-medium text-[#b8c4d8]">MCP-Server-IDs</label><input value={mcpIds} onChange={(event) => setMcpIds(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte IDs. Schränkt die MCP-Server der Agenten in diesem Projekt ein, fügt keine hinzu. Leer = keine Einschränkung.</p></div>
-      <div><label className="text-xs font-medium text-[#b8c4d8]">Erlaubte Plugins</label><input value={plugins} onChange={(event) => setPlugins(event.target.value)} className="mt-1 w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#718097]">Kommagetrennte Plugin-Namen. Andere Plugin-Tools sind in diesem Projekt gesperrt. Leer = keine Einschränkung.</p></div>
+    <section className="space-y-3 border-t border-s-rand pt-4">
+      <div><label className="text-xs font-medium text-[#b8c4d8]">MCP-Server-IDs</label><input value={mcpIds} onChange={(event) => setMcpIds(event.target.value)} className="mt-1 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#9aa7bc]">Kommagetrennte IDs. Schränkt die MCP-Server der Agenten in diesem Projekt ein, fügt keine hinzu. Leer = keine Einschränkung.</p></div>
+      <div><label className="text-xs font-medium text-[#b8c4d8]">Erlaubte Plugins</label><input value={plugins} onChange={(event) => setPlugins(event.target.value)} className="mt-1 w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8]" /><p className="mt-1 text-[11px] text-[#9aa7bc]">Kommagetrennte Plugin-Namen. Andere Plugin-Tools sind in diesem Projekt gesperrt. Leer = keine Einschränkung.</p></div>
       <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-[4px] bg-[#6d5dfc] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Integrationen speichern</button>
     </section>
     {error && <p className="rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{error}</p>}
@@ -113,9 +113,9 @@ export function ProjectIntegrationsPanel({ project, onSaved }: {
 }
 
 function CopyRow({ label, value, copied, onCopy }: { label: string; value: string; copied: boolean; onCopy: () => void }) {
-  return <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2"><span className="text-xs text-[#718097]">{label}</span><code className="truncate rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-2 py-1 text-xs text-[#d6deeb]">{value}</code><button type="button" onClick={onCopy} aria-label={`${label} kopieren`} className="rounded p-1.5 text-[#8d9ab0] hover:bg-white/5 hover:text-white">{copied ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Copy size={13} />}</button></div>
+  return <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2"><span className="text-xs text-[#9aa7bc]">{label}</span><code className="truncate rounded-[4px] border border-s-rand bg-s-tief px-2 py-1 text-xs text-[#d6deeb]">{value}</code><button type="button" onClick={onCopy} aria-label={`${label} kopieren`} className="rounded p-1.5 text-[#9aa7bc] hover:bg-white/5 hover:text-white">{copied ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Copy size={13} />}</button></div>
 }
 
 function SecretRow({ value, visible, copied, onToggle, onCopy }: { value: string; visible: boolean; copied: boolean; onToggle: () => void; onCopy: () => void }) {
-  return <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2"><span className="text-xs text-[#718097]">Passwort</span><code className="truncate rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-2 py-1 text-xs text-[#d6deeb]">{value ? (visible ? value : "••••••••••••") : "Nicht eingerichtet"}</code><div className="flex"><button type="button" onClick={onToggle} disabled={!value} aria-label={visible ? "Passwort verbergen" : "Passwort anzeigen"} className="rounded p-1.5 text-[#8d9ab0] hover:bg-white/5 hover:text-white disabled:opacity-40">{visible ? <EyeOff size={13} /> : <Eye size={13} />}</button><button type="button" onClick={onCopy} disabled={!value} aria-label="Passwort kopieren" className="rounded p-1.5 text-[#8d9ab0] hover:bg-white/5 hover:text-white disabled:opacity-40">{copied ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Copy size={13} />}</button></div></div>
+  return <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2"><span className="text-xs text-[#9aa7bc]">Passwort</span><code className="truncate rounded-[4px] border border-s-rand bg-s-tief px-2 py-1 text-xs text-[#d6deeb]">{value ? (visible ? value : "••••••••••••") : "Nicht eingerichtet"}</code><div className="flex"><button type="button" onClick={onToggle} disabled={!value} aria-label={visible ? "Passwort verbergen" : "Passwort anzeigen"} className="rounded p-1.5 text-[#9aa7bc] hover:bg-white/5 hover:text-white disabled:opacity-40">{visible ? <EyeOff size={13} /> : <Eye size={13} />}</button><button type="button" onClick={onCopy} disabled={!value} aria-label="Passwort kopieren" className="rounded p-1.5 text-[#9aa7bc] hover:bg-white/5 hover:text-white disabled:opacity-40">{copied ? <CheckCircle2 size={13} className="text-emerald-400" /> : <Copy size={13} />}</button></div></div>
 }

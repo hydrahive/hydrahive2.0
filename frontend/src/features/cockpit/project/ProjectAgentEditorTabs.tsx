@@ -78,7 +78,7 @@ export function ProjectAgentEditorTabs({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <nav className="flex shrink-0 flex-wrap gap-1 border-b border-[#2a364b] bg-[#0b111c] px-4 pt-2">
+      <nav className="flex shrink-0 flex-wrap gap-1 border-b border-s-rand bg-s-tief px-4 pt-2">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -87,7 +87,7 @@ export function ProjectAgentEditorTabs({
             className={`flex items-center gap-1.5 rounded-t-[4px] border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
               activeTab === id
                 ? "border-[#69d7ff] bg-[#69d7ff]/10 text-[#c8f2ff]"
-                : "border-transparent text-[#8d9ab0] hover:bg-white/[4%] hover:text-[#e8eef8]"
+                : "border-transparent text-[#9aa7bc] hover:bg-white/[4%] hover:text-[#e8eef8]"
             }`}
           >
             <Icon size={13} />
@@ -139,7 +139,7 @@ export function ProjectAgentEditorTabs({
                   <option value="">Modellstandard</option>
                   {effortLevels.map((level) => <option key={level} value={level}>{effortLabel(level)}</option>)}
                 </select>
-                <p className="mt-1 text-[11px] text-[#8d9ab0]">Standard für den Agenten; eine Session-Auswahl hat Vorrang.</p>
+                <p className="mt-1 text-[11px] text-[#9aa7bc]">Standard für den Agenten; eine Session-Auswahl hat Vorrang.</p>
               </Field>
             </div>
           )}
@@ -160,7 +160,7 @@ export function ProjectAgentEditorTabs({
   )
 }
 
-const controlClass = "w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60 disabled:opacity-50"
+const controlClass = "w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60 disabled:opacity-50"
 
 function effortLabel(level: string) {
   return ({ low: "Low", medium: "Medium", high: "High", xhigh: "Extra High", max: "Max", ultra: "Ultra" } as Record<string, string>)[level] ?? level
@@ -169,7 +169,7 @@ function effortLabel(level: string) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold text-[#8d9ab0]">{label}</label>
+      <label className="mb-1 block text-xs font-semibold text-[#9aa7bc]">{label}</label>
       {children}
     </div>
   )

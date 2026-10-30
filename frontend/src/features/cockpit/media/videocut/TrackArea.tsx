@@ -111,12 +111,12 @@ export function TrackArea({
         <div className="grid gap-2" style={{ gridTemplateColumns: `${LABEL_COL}px 1fr` }}>
           <div />
           <div
-            className="relative h-6 cursor-pointer touch-none rounded-[3px] border border-[#2a364b] bg-[#111827]"
+            className="relative h-6 cursor-pointer touch-none rounded-[3px] border border-s-rand bg-s-innen"
             style={{ width: `${innerWidth}px` }}
             onPointerDown={seekFromRuler}
           >
             {Array.from({ length: rulerSteps + 1 }, (_, i) => (
-              <span key={i} className="pointer-events-none absolute top-0.5 font-mono text-[9px] text-[#7d8aa0]" style={{ left: `${i * 5 * pxPerSecond + 2}px` }}>
+              <span key={i} className="pointer-events-none absolute top-0.5 font-mono text-[9px] text-[#9aa7bc]" style={{ left: `${i * 5 * pxPerSecond + 2}px` }}>
                 {i * 5}s
               </span>
             ))}
@@ -131,11 +131,11 @@ export function TrackArea({
             const Icon = meta.icon
             return (
               <div key={def.id} className="grid gap-2" style={{ gridTemplateColumns: `${LABEL_COL}px 1fr` }}>
-                <div className="flex items-center gap-1.5 rounded-[3px] border border-[#2a364b] bg-[#111827] px-2 py-2" style={{ borderLeft: `3px solid ${meta.tone}` }}>
+                <div className="flex items-center gap-1.5 rounded-[3px] border border-s-rand bg-s-innen px-2 py-2" style={{ borderLeft: `3px solid ${meta.tone}` }}>
                   <Icon size={14} className="shrink-0" />
                   <span className="truncate text-[12px] font-semibold text-[#c3ccdd]">{def.name}</span>
                 </div>
-                <div className="relative h-14 rounded-[3px] border border-[#223048] bg-[#0d1420]" style={{ width: `${innerWidth}px` }}>
+                <div className="relative h-14 rounded-[3px] border border-s-rand bg-s-tief" style={{ width: `${innerWidth}px` }}>
                   <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: `${5 * pxPerSecond}px 100%` }} />
                   {(track?.clips ?? []).map((clip) => (
                     <ClipBlock

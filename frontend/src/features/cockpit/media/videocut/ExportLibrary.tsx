@@ -26,19 +26,19 @@ function fmtWhen(iso: string): string {
 export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
   const [preview, setPreview] = useState<LightboxSource | null>(null)
   return (
-    <div className="mt-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
-      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Fertige Filme</p>
+    <div className="mt-3 rounded-[4px] border border-s-rand bg-s-innen p-2">
+      <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9aa7bc]">Fertige Filme</p>
       {exports.length === 0 ? (
         <p className="text-[11px] text-[#7a869c]">Noch keine Exporte — oben „Film exportieren".</p>
       ) : (
         <ul className="space-y-1.5">
           {exports.map((exp) => (
-            <li key={exp.name} className="flex items-center gap-2 rounded-[3px] border border-[#223048] bg-[#0d1420] p-1.5">
+            <li key={exp.name} className="flex items-center gap-2 rounded-[3px] border border-s-rand bg-s-tief p-1.5">
               <button
                 type="button"
                 onClick={() => setPreview({ url: downloadUrl(exp.path), kind: "video", label: exp.name })}
                 title="Vorschau ansehen"
-                className="group/thumb relative h-9 w-16 shrink-0 overflow-hidden rounded-[3px] border border-[#2a364b] bg-black"
+                className="group/thumb relative h-9 w-16 shrink-0 overflow-hidden rounded-[3px] border border-s-rand bg-black"
               >
                 <video src={downloadUrl(exp.path)} className="h-full w-full object-cover" preload="metadata" muted />
                 <span className="absolute inset-0 grid place-items-center bg-black/25 transition-colors group-hover/thumb:bg-black/40">
@@ -47,7 +47,7 @@ export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
               </button>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[11px] font-semibold text-[#c3ccdd]" title={exp.name}>{exp.name}</p>
-                <p className="font-mono text-[9px] text-[#7d8aa0]">
+                <p className="font-mono text-[9px] text-[#9aa7bc]">
                   {exp.duration != null ? timecode(exp.duration) : "—"} · {fmtSize(exp.size)} · {fmtWhen(exp.created_at)}
                 </p>
               </div>
@@ -63,7 +63,7 @@ export function ExportLibrary({ exports, downloadUrl, onRemove }: Props) {
                 type="button"
                 onClick={() => onRemove(exp.name)}
                 title="Löschen"
-                className="grid h-6 w-6 shrink-0 place-items-center rounded-[3px] border border-[#2a364b] text-[#8d9ab0] hover:border-rose-500/40 hover:text-rose-300"
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-[3px] border border-s-rand text-[#9aa7bc] hover:border-rose-500/40 hover:text-rose-300"
               >
                 <Trash2 size={12} />
               </button>

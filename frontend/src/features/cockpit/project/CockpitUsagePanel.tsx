@@ -55,7 +55,7 @@ function UsageBar({ label, pct, right, mode = "used" }: {
   const tone = mode === "remaining" ? barToneRemaining(clamped) : barToneUsed(clamped)
   return (
     <div className="flex items-center gap-2">
-      <span className="w-9 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[#8d9ab0]">{label}</span>
+      <span className="w-9 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[#9aa7bc]">{label}</span>
       <div className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[6%]">
         <div className={`absolute inset-y-0 left-0 rounded-full ${tone}`} style={{ width: `${clamped}%` }} />
       </div>
@@ -70,7 +70,7 @@ function UsageBar({ label, pct, right, mode = "used" }: {
 function ProviderBlock({ name, children }: { name: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#7d8aa0]">{name}</p>
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#9aa7bc]">{name}</p>
       {children}
     </div>
   )

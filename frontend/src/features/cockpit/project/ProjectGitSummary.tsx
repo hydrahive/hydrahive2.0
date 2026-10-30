@@ -98,7 +98,7 @@ export function ProjectGitSummary({ projectId }: Props) {
   return (
     <div>
       <div className="mb-3 flex justify-end"><CockpitButton disabled={!projectId || loading} onClick={() => void reload()}>Refresh</CockpitButton></div>
-      {loading ? <p className="text-sm text-[#8d9ab0]">Lade Git-Status…</p> : null}
+      {loading ? <p className="text-sm text-[#9aa7bc]">Lade Git-Status…</p> : null}
       {!loading && repos.length === 0 ? <p className="text-sm text-zinc-500">Keine Repos im Projekt.</p> : null}
       {error ? <p className="mb-2 text-xs text-rose-300">{error}</p> : null}
       {message ? <p className="mb-2 text-xs text-emerald-300">{message}</p> : null}

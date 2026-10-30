@@ -28,7 +28,7 @@ export function TailscaleLoginForm({ connecting, error, onConnect, onCancel }: P
   }
 
   return (
-    <div className="space-y-3 border-t border-[#2a364b] pt-3">
+    <div className="space-y-3 border-t border-s-rand pt-3">
       <AdminField
         label={(
           <>

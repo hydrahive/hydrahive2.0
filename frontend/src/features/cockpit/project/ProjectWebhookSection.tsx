@@ -52,10 +52,10 @@ export function ProjectWebhookSection({ projectId }: { projectId: string }) {
     } finally { setBusy(false) }
   }
 
-  return <section className="space-y-3 border-t border-[#2a364b] pt-4">
+  return <section className="space-y-3 border-t border-s-rand pt-4">
     <div>
       <h3 className="text-sm font-medium text-[#e8eef8]">{t("webhook.title")}</h3>
-      <p className="text-[11px] text-[#718097]">{t("webhook.description")}</p>
+      <p className="text-[11px] text-[#9aa7bc]">{t("webhook.description")}</p>
     </div>
     <Row label={t("webhook.url")} value={url} copied={copied === "url"} onCopy={() => copy(url, "url")} />
     <Row
@@ -64,7 +64,7 @@ export function ProjectWebhookSection({ projectId }: { projectId: string }) {
       copied={copied === "secret"}
       onCopy={hook.secret ? () => copy(hook.secret, "secret") : undefined}
       extra={hook.secret && (
-        <button type="button" onClick={() => setVisible((v) => !v)} className="text-[#8d9ab0] hover:text-[#e8eef8]"
+        <button type="button" onClick={() => setVisible((v) => !v)} className="text-[#9aa7bc] hover:text-[#e8eef8]"
           title={visible ? t("webhook.hide") : t("webhook.show")}>
           {visible ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
@@ -72,11 +72,11 @@ export function ProjectWebhookSection({ projectId }: { projectId: string }) {
     />
     <div className="flex items-center gap-3">
       <button type="button" onClick={rotate} disabled={busy}
-        className="flex items-center gap-2 rounded-[4px] border border-[#2a364b] px-3 py-1.5 text-xs text-[#b8c4d8] hover:bg-[#1a2333] disabled:opacity-50">
+        className="flex items-center gap-2 rounded-[4px] border border-s-rand px-3 py-1.5 text-xs text-[#b8c4d8] hover:bg-s-hebung disabled:opacity-50">
         {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
         {hook.secret ? t("webhook.rotate") : t("webhook.create")}
       </button>
-      <span className="text-[11px] text-[#718097]">{t("webhook.header_hint")}</span>
+      <span className="text-[11px] text-[#9aa7bc]">{t("webhook.header_hint")}</span>
     </div>
     {error && <p className="rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{error}</p>}
   </section>
@@ -86,12 +86,12 @@ function Row({ label, value, copied, onCopy, extra }: {
   label: string; value: string; copied: boolean; onCopy?: () => void; extra?: ReactNode
 }) {
   return <div className="grid grid-cols-[80px_1fr_auto] items-center gap-2">
-    <span className="text-xs text-[#718097]">{label}</span>
-    <code className="truncate rounded-[4px] border border-[#2a364b] bg-[#0b1220] px-2 py-1 text-[11px] text-[#b8c4d8]" title={value}>{value}</code>
+    <span className="text-xs text-[#9aa7bc]">{label}</span>
+    <code className="truncate rounded-[4px] border border-s-rand bg-s-tief px-2 py-1 text-[11px] text-[#b8c4d8]" title={value}>{value}</code>
     <span className="flex items-center gap-2">
       {extra}
       {onCopy && (
-        <button type="button" onClick={onCopy} className="text-[#8d9ab0] hover:text-[#e8eef8]">
+        <button type="button" onClick={onCopy} className="text-[#9aa7bc] hover:text-[#e8eef8]">
           {copied ? <CheckCircle2 size={14} className="text-emerald-400" /> : <Copy size={14} />}
         </button>
       )}

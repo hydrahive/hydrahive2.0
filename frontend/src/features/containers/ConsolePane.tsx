@@ -96,10 +96,10 @@ export function ConsolePane({ containerId, className }: Props) {
   }, [containerId, t])
 
   return (
-    <div className={`flex min-h-0 flex-col bg-[#0b111c] ${className ?? ""}`}>
+    <div className={`flex min-h-0 flex-col bg-s-tief ${className ?? ""}`}>
       {error && <AdminFeedback tone="danger" className="m-2 shrink-0">{error}</AdminFeedback>}
-      <div className="min-h-0 flex-1 bg-[#0b111c] p-2" ref={wrapRef} />
-      <div className="flex shrink-0 items-center justify-between border-t border-[#2a364b] bg-[#0d1420] px-4 py-2 font-mono text-[11px] text-[#8d9ab0]">
+      <div className="min-h-0 flex-1 bg-s-tief p-2" ref={wrapRef} />
+      <div className="flex shrink-0 items-center justify-between border-t border-s-rand bg-s-tief px-4 py-2 font-mono text-[11px] text-[#9aa7bc]">
         <span>incus exec — Strg+D zum Beenden</span>
         <AdminStatus tone={STATUS_TONES[status]} dot>{status}</AdminStatus>
       </div>

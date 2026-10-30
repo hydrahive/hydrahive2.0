@@ -54,14 +54,14 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
 
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-black/80 p-4" ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="project-graph-title">
-      <section className="flex h-[min(880px,95dvh)] w-full max-w-6xl flex-col overflow-hidden rounded-[6px] border border-[#46617f] bg-[#151c2b] shadow-2xl">
-        <header className="flex items-center justify-between border-b border-[#2a364b] p-4">
+      <section className="flex h-[min(880px,95dvh)] w-full max-w-6xl flex-col overflow-hidden rounded-[6px] border border-s-rand-hover bg-s-box shadow-2xl">
+        <header className="flex items-center justify-between border-b border-s-rand p-4">
           <div>
             <CockpitSectionLabel>Codebase-Analyse</CockpitSectionLabel>
             <h2 id="project-graph-title" className="mt-1 flex items-center gap-2 text-lg font-semibold text-[#e8eef8]">
               <Network size={18} /> Code-Graph
             </h2>
-            <p className="mt-1 text-xs text-[#8d9ab0]">{project.name} · lokal, ohne LLM</p>
+            <p className="mt-1 text-xs text-[#9aa7bc]">{project.name} · lokal, ohne LLM</p>
           </div>
           <CockpitButton onClick={onClose}>Schließen</CockpitButton>
         </header>
@@ -69,8 +69,8 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
         <main className="grid min-h-0 flex-1 gap-3 overflow-y-auto p-4 lg:grid-cols-[280px_1fr]">
           {/* Steuerung: Verzeichnis-Auswahl + Build */}
           <div className="space-y-3">
-            <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3">
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">
+            <div className="rounded-[4px] border border-s-rand bg-s-innen p-3">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9aa7bc]">
                 Zu scannen{selected.length ? ` (${selected.length})` : ""}
               </p>
               {selected.length === 0 ? (
@@ -93,13 +93,13 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
               )}
               {suggestions.length > 0 && (
                 <div className="mt-3">
-                  <p className="mb-1 text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0]">Vorschläge</p>
+                  <p className="mb-1 text-[10px] uppercase tracking-[0.12em] text-[#9aa7bc]">Vorschläge</p>
                   <div className="flex flex-wrap gap-1.5">
                     {suggestions.filter((d) => !selected.includes(d)).map((dir) => (
                       <button
                         key={dir}
                         onClick={() => toggle(dir)}
-                        className="rounded-full border border-[#2a364b] bg-[#0d1420] px-2 py-0.5 text-[11px] font-mono text-[#8d9ab0] hover:border-cyan-400/40 hover:text-cyan-100"
+                        className="rounded-full border border-s-rand bg-s-tief px-2 py-0.5 text-[11px] font-mono text-[#9aa7bc] hover:border-cyan-400/40 hover:text-cyan-100"
                       >
                         + {dir}
                       </button>
@@ -116,28 +116,28 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
                 {building ? <Loader2 size={14} className="animate-spin" /> : <Network size={14} />}
                 {building ? "Baue Graph…" : "Graph bauen"}
               </button>
-              {building ? <p className="mt-2 text-[11px] text-[#8d9ab0]">Erstlauf richtet das Analyse-Tool ein — kann einen Moment dauern.</p> : null}
+              {building ? <p className="mt-2 text-[11px] text-[#9aa7bc]">Erstlauf richtet das Analyse-Tool ein — kann einen Moment dauern.</p> : null}
               {error ? <p className="mt-2 text-[11px] text-rose-300">{error}</p> : null}
             </div>
 
             <GraphDirBrowser projectId={project.id} selected={selected} onToggle={toggle} />
 
             {metrics?.nodes ? (
-              <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3 text-xs text-[#c3ccdd]">
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Kennzahlen</p>
+              <div className="rounded-[4px] border border-s-rand bg-s-innen p-3 text-xs text-[#c3ccdd]">
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9aa7bc]">Kennzahlen</p>
                 <p>{metrics.nodes} Knoten · {metrics.edges} Kanten · {metrics.communities} Communities</p>
-                {status?.built_at ? <p className="mt-1 text-[10px] text-[#7d8aa0]">Stand: {new Date(status.built_at).toLocaleString()}</p> : null}
+                {status?.built_at ? <p className="mt-1 text-[10px] text-[#9aa7bc]">Stand: {new Date(status.built_at).toLocaleString()}</p> : null}
               </div>
             ) : null}
 
             {god.length ? (
-              <div className="rounded-[4px] border border-[#2a364b] bg-[#101724] p-3">
-                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Zentrale Knoten</p>
+              <div className="rounded-[4px] border border-s-rand bg-s-innen p-3">
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9aa7bc]">Zentrale Knoten</p>
                 <ul className="space-y-0.5 text-xs text-[#c3ccdd]">
                   {god.map((g) => (
                     <li key={g.name} className="flex justify-between gap-2">
                       <span className="truncate font-mono">{g.name}</span>
-                      <span className="text-[#7d8aa0]">{g.edges}</span>
+                      <span className="text-[#9aa7bc]">{g.edges}</span>
                     </li>
                   ))}
                 </ul>
@@ -160,7 +160,7 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
           </div>
 
           {/* Interaktiver Graph */}
-          <div className="min-h-[400px] overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0d1420]">
+          <div className="min-h-[400px] overflow-hidden rounded-[4px] border border-s-rand bg-s-tief">
             {htmlUrl ? (
               <iframe src={htmlUrl} title="Code-Graph" className="h-full min-h-[400px] w-full border-0" />
             ) : (
@@ -175,7 +175,7 @@ export function ProjectGraphOverlay({ project, onClose }: { project: Project; on
           </div>
         </main>
 
-        <footer className="border-t border-[#2a364b] p-3 text-xs text-[#8d9ab0]">
+        <footer className="border-t border-s-rand p-3 text-xs text-[#9aa7bc]">
           Code-Graph läuft komplett lokal (tree-sitter AST) — keine API-Kosten, kein Datenabfluss.
         </footer>
       </section>

@@ -109,7 +109,7 @@ export function TailscaleCard() {
         icon={WifiOff}
         bodyClassName="space-y-3"
       >
-        <p className="text-xs text-[#8d9ab0]">{t("tailscale.install_hint")}</p>
+        <p className="text-xs text-[#9aa7bc]">{t("tailscale.install_hint")}</p>
         <AdminAction onClick={handleInstall} disabled={installing} tone="primary">
           <Download size={12} className={installing ? "animate-pulse" : ""} />
           {installing ? t("tailscale.installing") : t("tailscale.install_button")}

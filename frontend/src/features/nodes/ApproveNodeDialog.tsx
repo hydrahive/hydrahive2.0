@@ -53,7 +53,7 @@ export function ApproveNodeDialog({ node, onClose, onApproved }: Props) {
         <p className="text-sm leading-relaxed text-[#d4deeb]">{t("approve.intro")}</p>
         {node.certificate_fingerprint && (
           <div className="space-y-1">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#8d9ab0]">{t("approve.reported_fingerprint")}</span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#9aa7bc]">{t("approve.reported_fingerprint")}</span>
             <AdminCodeBlock>{node.certificate_fingerprint}</AdminCodeBlock>
           </div>
         )}

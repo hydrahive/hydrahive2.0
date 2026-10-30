@@ -9,7 +9,7 @@ import type { AccessCatalog, CatalogCapability } from "./types"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const cellTone = {
-  none: "border-[#2a364b] text-[#7d8aa0]",
+  none: "border-s-rand text-[#9aa7bc]",
   use: "border-[#69d7ff]/50 bg-[#69d7ff]/10 text-[#69d7ff]",
   manage: "border-emerald-400/50 bg-emerald-400/10 text-emerald-300",
 }
@@ -49,17 +49,17 @@ export function GrantsOverlay({ onClose }: { onClose: () => void }) {
     <AdminOverlay theme={ADMIN_OVERLAY_THEME["access"]} eyebrow="Admin" title={t("grants.title")} onClose={onClose} maxWidthClass="max-w-6xl"
       headerActions={<HelpButton topic="access" />}>
       <div className="space-y-4">
-        <p className="text-sm text-[#8d9ab0]">{t("grants.description")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("grants.description")}</p>
         {catalog && adminNames(catalog).length > 0 && (
-          <p className="text-xs text-[#8d9ab0]">{t("grants.admins_always", { names: adminNames(catalog).join(", ") })}</p>
+          <p className="text-xs text-[#9aa7bc]">{t("grants.admins_always", { names: adminNames(catalog).join(", ") })}</p>
         )}
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
         {!catalog && !error && <AdminFeedback loading>{t("grants.loading")}</AdminFeedback>}
         {catalog && catalog.capabilities.length === 0 && <AdminFeedback>{t("grants.empty")}</AdminFeedback>}
         {catalog && catalog.capabilities.length > 0 && (
-          <div className="overflow-x-auto rounded-[6px] border border-[#2a364b]">
+          <div className="overflow-x-auto rounded-[6px] border border-s-rand">
             <table className="w-full text-xs">
-              <thead className="bg-[#131b2a] text-[#8d9ab0]">
+              <thead className="bg-s-kopf text-[#9aa7bc]">
                 <tr>
                   <th className="px-3 py-2 text-left font-bold"> </th>
                   {subjects.map((s) => (
@@ -71,16 +71,16 @@ export function GrantsOverlay({ onClose }: { onClose: () => void }) {
               </thead>
               <tbody>
                 {groupCapabilities(catalog.capabilities).map((grp) => [
-                  <tr key={`h-${grp.module_id}`} className="bg-[#0d1420]">
+                  <tr key={`h-${grp.module_id}`} className="bg-s-tief">
                     <td colSpan={subjects.length + 1} className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#69d7ff]">
                       {grp.module_id || t("grants.core")}
                     </td>
                   </tr>,
                   ...grp.items.map((cap) => (
-                    <tr key={cap.id} className="border-t border-[#2a364b]">
+                    <tr key={cap.id} className="border-t border-s-rand">
                       <td className="px-3 py-2">
                         <p className="font-bold text-[#e8eef8]">{cap.label}</p>
-                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#7d8aa0]">
+                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#9aa7bc]">
                           <code>{cap.id}</code>
                           {cap.default === "admin_only" && <AdminStatus>{t("grants.default_admin_only")}</AdminStatus>}
                           {cap.tools.length > 0 && <span>{t("grants.tools", { tools: cap.tools.join(", ") })}</span>}

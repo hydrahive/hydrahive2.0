@@ -26,14 +26,14 @@ export function DeleteView({ preview, mode, typed, busy, error, onMode, onTyped,
   return (
     <div className="space-y-3 p-4 text-sm text-[#e8eef8]">
       <Affected preview={preview} />
-      <p className="text-xs text-[#8d9ab0]">
+      <p className="text-xs text-[#9aa7bc]">
         {preview.size.complete ? t("delete.size.exact", { size }) : t("delete.size.at_least", { size })}
       </p>
       <div className="space-y-2" role="radiogroup" aria-label={t("delete.choose")}>
         <Choice mode="archive" active={mode === "archive"} disabled={!a.possible} onPick={onMode}
           icon={<Archive size={16} className="mt-0.5 shrink-0 text-[#69d7ff]" />} title={t("delete.archive.title")}>
-          <span className="block break-all font-mono text-xs text-[#8d9ab0]">{a.path}</span>
-          <span className="block text-xs text-[#8d9ab0]">
+          <span className="block break-all font-mono text-xs text-[#9aa7bc]">{a.path}</span>
+          <span className="block text-xs text-[#9aa7bc]">
             {t("delete.archive.free", { free: formatSize(a.free_bytes) })}
             {a.share && ` · ${t("delete.archive.share", { share: a.share })}`}
           </span>
@@ -41,7 +41,7 @@ export function DeleteView({ preview, mode, typed, busy, error, onMode, onTyped,
         </Choice>
         <Choice mode="permanent" active={mode === "permanent"} disabled={false} onPick={onMode}
           icon={<Trash2 size={16} className="mt-0.5 shrink-0 text-rose-300" />} title={t("delete.permanent.title")}>
-          <span className="block text-xs text-[#8d9ab0]">{t("delete.permanent.explain")}</span>
+          <span className="block text-xs text-[#9aa7bc]">{t("delete.permanent.explain")}</span>
         </Choice>
       </div>
       {mode === "permanent" && (
@@ -49,7 +49,7 @@ export function DeleteView({ preview, mode, typed, busy, error, onMode, onTyped,
           {t("delete.permanent.type_name", { name: preview.name })}
           <input value={typed} onChange={(e) => onTyped(e.target.value)} autoComplete="off" spellCheck={false}
             data-delete-input="name"
-            className="mt-1 w-full rounded-[4px] border border-rose-500/30 bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8]" />
+            className="mt-1 w-full rounded-[4px] border border-rose-500/30 bg-s-tief px-3 py-2 text-sm text-[#e8eef8]" />
         </label>
       )}
       <AdminFeedback>{t("delete.chats_gone")}</AdminFeedback>
@@ -68,7 +68,7 @@ function Affected({ preview }: { preview: DeletePreview }) {
   const { t } = useTranslation("archive")
   const stays = Object.entries(preview.stays).filter(([, n]) => (n ?? 0) > 0)
   return (
-    <div className="space-y-1 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-xs text-[#c9d3e3]">
+    <div className="space-y-1 rounded-[4px] border border-s-rand bg-s-innen p-3 text-xs text-[#c9d3e3]">
       {preview.projects.length > 0 && preview.kind === "user" && (
         <p>{t("delete.affected.projects", { names: preview.projects.map((p) => p.name).join(", ") })}</p>
       )}
@@ -78,7 +78,7 @@ function Affected({ preview }: { preview: DeletePreview }) {
         <p>{t("delete.affected.mounts", { names: preview.mounts_skipped.join(", ") })}</p>
       )}
       {preview.hand_over > 0 && <p>{t("delete.hand_over", { count: preview.hand_over })}</p>}
-      {stays.map(([key, n]) => <p key={key} className="text-[#8d9ab0]">{t(`delete.stays.${key}`, { count: n })}</p>)}
+      {stays.map(([key, n]) => <p key={key} className="text-[#9aa7bc]">{t(`delete.stays.${key}`, { count: n })}</p>)}
     </div>
   )
 }
@@ -92,7 +92,7 @@ function Choice({ mode, active, disabled, onPick, icon, title, children }: {
       onClick={() => onPick(mode)}
       className={cn(
         "flex w-full items-start gap-3 rounded-[4px] border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-        active ? "border-[#69d7ff]/60 bg-[#163248]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]",
+        active ? "border-[#69d7ff]/60 bg-[#163248]" : "border-s-rand bg-s-innen hover:border-s-rand-hover",
       )}>
       {icon}
       <span className="min-w-0 flex-1 space-y-0.5"><span className="block font-bold">{title}</span>{children}</span>

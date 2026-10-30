@@ -65,11 +65,11 @@ export function EnrollNodeDialog({ onClose, onCreated }: Props) {
             <AdminAction onClick={copyToken}>
               <Copy size={12} className="mr-1 inline" />{copied ? t("enroll.copied") : t("enroll.copy")}
             </AdminAction>
-            <span className="text-[11px] text-[#7d8aa0]">
+            <span className="text-[11px] text-[#9aa7bc]">
               {t("enroll.expires_at")}: {shortDateTime(created.expires_at)}
             </span>
           </div>
-          <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{t("enroll.token_next")}</p>
+          <p className="text-[11px] leading-relaxed text-[#9aa7bc]">{t("enroll.token_next")}</p>
         </div>
       </AdminDialog>
     )

@@ -96,7 +96,7 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
   }
 
   return (
-    <div className="border-t border-[#2a364b] bg-[#111827] p-[10px]"
+    <div className="border-t border-s-rand bg-s-innen p-[10px]"
       onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
@@ -113,8 +113,8 @@ export function MessageInput({ onSend, onCancel, busy, disabled, quickActions }:
         </div>
       )}
       {uploadError && <p role="alert" className="mb-2 text-xs text-rose-400">{uploadError}</p>}
-      <div className={`flex items-end gap-2 rounded-[4px] border bg-[#080d15] px-3 py-2 transition-colors
-        ${dragOver ? "border-[#69d7ff]/60 bg-[#0d1420]" : "border-[#2a364b] focus-within:border-[#46617f]"}`}>
+      <div className={`flex items-end gap-2 rounded-[4px] border bg-s-tief px-3 py-2 transition-colors
+        ${dragOver ? "border-[#69d7ff]/60 bg-s-tief" : "border-s-rand focus-within:border-s-rand-hover"}`}>
         <button
           type="button"
           disabled={disabled || busy}

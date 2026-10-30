@@ -31,9 +31,9 @@ export function ContainerConfigPane({ containerId }: Props) {
   }, [load])
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#0e1420]">
-      <div className="flex shrink-0 items-center justify-between border-b border-[#2a364b] bg-[#131b2a] px-4 py-2">
-        <p className="font-mono text-xs text-[#8d9ab0]">incus config show</p>
+    <div className="flex h-full min-h-0 flex-col bg-s-tief">
+      <div className="flex shrink-0 items-center justify-between border-b border-s-rand bg-s-kopf px-4 py-2">
+        <p className="font-mono text-xs text-[#9aa7bc]">incus config show</p>
         <AdminAction onClick={load} disabled={loading} aria-label="Konfiguration neu laden" title="Konfiguration neu laden" className="px-2 py-1.5">
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
         </AdminAction>

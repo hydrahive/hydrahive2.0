@@ -14,6 +14,7 @@ import { CockpitButton } from "../CockpitButton"
 import { AdminFeedback, AdminStat } from "./ui"
 import { adminInputClass } from "./ui/AdminField"
 import { AdminOverlay } from "./AdminOverlay"
+import { jobsStatus } from "./overlayStatus"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 const POLL_MS = 5000
@@ -62,7 +63,7 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
   }), [jobs])
 
   return (
-    <AdminOverlay theme={ADMIN_OVERLAY_THEME["jobs"]}
+    <AdminOverlay theme={ADMIN_OVERLAY_THEME["jobs"]} status={jobsStatus({ error, failed: summary.failed })}
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}
@@ -77,7 +78,7 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-6">
-        <p className="text-sm text-[#8d9ab0]">{t("subtitle")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
 
         <div className="grid grid-cols-3 gap-3">
           <AdminStat icon={ListChecks} label={t("summary.total")} value={summary.total} />
@@ -87,14 +88,14 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
 
         <div className="flex flex-wrap gap-3">
           <label className="flex-1 min-w-[180px] space-y-1">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#8d9ab0]">{t("filter.node")}</span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#9aa7bc]">{t("filter.node")}</span>
             <select className={adminInputClass} value={nodeFilter} onChange={(e) => setNodeFilter(e.target.value)}>
               <option value="">{t("filter.all_nodes")}</option>
               {nodes.map((n) => <option key={n.node_id} value={n.node_id}>{n.name}</option>)}
             </select>
           </label>
           <label className="flex-1 min-w-[180px] space-y-1">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#8d9ab0]">{t("filter.status")}</span>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#9aa7bc]">{t("filter.status")}</span>
             <select className={adminInputClass} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="">{t("filter.all_states")}</option>
               {JOB_STATUSES.map((s) => <option key={s} value={s}>{t(`status.${s}`)}</option>)}
@@ -107,14 +108,14 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
         {loading ? (
           <AdminFeedback loading>{t("loading")}</AdminFeedback>
         ) : jobs.length === 0 ? (
-          <div className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-10 text-center">
-            <ListChecks size={28} className="mx-auto mb-3 text-[#7d8aa0]" />
-            <p className="text-sm text-[#8d9ab0]">{t("empty")}</p>
+          <div className="rounded-[6px] border border-s-rand bg-s-innen p-10 text-center">
+            <ListChecks size={28} className="mx-auto mb-3 text-[#9aa7bc]" />
+            <p className="text-sm text-[#9aa7bc]">{t("empty")}</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-[6px] border border-[#2a364b]">
+          <div className="overflow-hidden rounded-[6px] border border-s-rand">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#131b2a] text-[10px] uppercase tracking-wider text-[#7d8aa0]">
+              <thead className="bg-s-kopf text-[10px] uppercase tracking-wider text-[#9aa7bc]">
                 <tr>
                   <th className="px-3 py-2 font-bold">{t("columns.operation")}</th>
                   <th className="px-3 py-2 font-bold">{t("columns.resource")}</th>
@@ -128,18 +129,18 @@ export function JobsOverlay({ onClose }: { onClose: () => void }) {
                   <tr
                     key={job.job_id}
                     onClick={() => setDetailJob(job)}
-                    className="cursor-pointer border-t border-[#1c2637] hover:bg-[#141d2d]"
+                    className="cursor-pointer border-t border-s-rand hover:bg-s-hebung"
                   >
                     <td className="px-3 py-2">
                       <span className="font-mono text-xs text-[#e8eef8]">{job.operation}</span>
-                      <span className="ml-2 rounded-[3px] border border-[#2a364b] bg-[#172133] px-1 py-0.5 text-[9px] uppercase text-[#8d9ab0]">
+                      <span className="ml-2 rounded-[3px] border border-s-rand bg-s-innen px-1 py-0.5 text-[9px] uppercase text-[#9aa7bc]">
                         {t(`resource_kind.${job.resource_kind}`, { defaultValue: job.resource_kind })}
                       </span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-xs text-[#8d9ab0]">{job.resource_id ?? "–"}</td>
-                    <td className="px-3 py-2 text-[#8d9ab0]">{job.node_id}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-[#9aa7bc]">{job.resource_id ?? "–"}</td>
+                    <td className="px-3 py-2 text-[#9aa7bc]">{job.node_id}</td>
                     <td className="px-3 py-2"><JobStatusBadge status={job.status} /></td>
-                    <td className="px-3 py-2 text-xs text-[#7d8aa0]">{shortDateTime(job.created_at)}</td>
+                    <td className="px-3 py-2 text-xs text-[#9aa7bc]">{shortDateTime(job.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

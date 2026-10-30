@@ -69,7 +69,7 @@ export function AgentLinkCard() {
         description={t("agentlink.not_configured")}
         icon={Link2Off}
       >
-        <p className="text-xs leading-relaxed text-[#8d9ab0]">{t("agentlink.not_configured_hint")}</p>
+        <p className="text-xs leading-relaxed text-[#9aa7bc]">{t("agentlink.not_configured_hint")}</p>
       </AdminPanel>
     )
   }
@@ -88,30 +88,30 @@ export function AgentLinkCard() {
       bodyClassName="space-y-3"
     >
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-        <span className="text-[#8d9ab0]">{t("agentlink.url")}</span>
+        <span className="text-[#9aa7bc]">{t("agentlink.url")}</span>
         <span className="truncate font-mono text-[#e8eef8]">{status.url ?? "—"}</span>
-        <span className="text-[#8d9ab0]">{t("agentlink.ws")}</span>
+        <span className="text-[#9aa7bc]">{t("agentlink.ws")}</span>
         <span className={`truncate font-mono ${status.ws_connected ? "text-emerald-300" : "text-rose-300"}`}>
           {status.ws_url ?? "—"}
         </span>
-        <span className="text-[#8d9ab0]">{t("agentlink.agent_id")}</span>
+        <span className="text-[#9aa7bc]">{t("agentlink.agent_id")}</span>
         <span className="font-mono text-[#e8eef8]">{status.agent_id ?? "—"}</span>
-        <span className="text-[#8d9ab0]">{t("agentlink.timeout")}</span>
+        <span className="text-[#9aa7bc]">{t("agentlink.timeout")}</span>
         <span className="font-mono text-[#e8eef8]">{status.handoff_timeout_s ?? "—"}s</span>
         {status.last_connect_at && <>
-          <span className="text-[#8d9ab0]">{t("agentlink.last_connect")}</span>
-          <span className="font-mono text-[#8d9ab0]" title={status.last_connect_at}>
+          <span className="text-[#9aa7bc]">{t("agentlink.last_connect")}</span>
+          <span className="font-mono text-[#9aa7bc]" title={status.last_connect_at}>
             vor {relTime(status.last_connect_at, i18n.language)}
           </span>
         </>}
         {(status.reconnect_attempts ?? 0) > 0 && <>
-          <span className="text-[#8d9ab0]">{t("agentlink.reconnects")}</span>
-          <span className={`font-mono ${(status.reconnect_attempts ?? 0) > 5 ? "text-amber-300" : "text-[#8d9ab0]"}`}>
+          <span className="text-[#9aa7bc]">{t("agentlink.reconnects")}</span>
+          <span className={`font-mono ${(status.reconnect_attempts ?? 0) > 5 ? "text-amber-300" : "text-[#9aa7bc]"}`}>
             {status.reconnect_attempts}
           </span>
         </>}
         {(status.pending_handoffs ?? 0) > 0 && <>
-          <span className="text-[#8d9ab0]">{t("agentlink.pending")}</span>
+          <span className="text-[#9aa7bc]">{t("agentlink.pending")}</span>
           <span className="font-mono text-amber-300">{status.pending_handoffs}</span>
         </>}
       </div>

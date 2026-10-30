@@ -30,11 +30,11 @@ export function ArchiveJobsSection({ jobs, move }: { jobs: DeleteJobs | undefine
 function JobRow({ job, label }: { job: DeleteJob; label?: string }) {
   const { t } = useTranslation("archive")
   return (
-    <div className="space-y-1.5 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3" data-delete-job={job.id}
+    <div className="space-y-1.5 rounded-[4px] border border-s-rand bg-s-innen p-3" data-delete-job={job.id}
       data-delete-state={job.state}>
       <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs">
         <span className="font-bold text-[#e8eef8]">{t(`delete.kind.${job.kind}`)}: {job.name}</span>
-        <span className="text-[#8d9ab0]">{label ?? t(`jobs.mode.${job.mode}`)}</span>
+        <span className="text-[#9aa7bc]">{label ?? t(`jobs.mode.${job.mode}`)}</span>
       </div>
       {job.state !== "queued" && <DeleteProgress job={job} />}
     </div>

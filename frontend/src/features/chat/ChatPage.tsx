@@ -12,10 +12,10 @@ export function ChatPage(props?: { embedded?: boolean }) {
   if (embedded) return <ChatPane deepLinkSid={deepLinkSid} />
 
   return (
-    <CockpitShell title="Werkstatt" className="cockpit-route flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]" hideHeader>
+    <CockpitShell title="Werkstatt" className="cockpit-route flex h-full min-h-0 flex-col overflow-hidden bg-s-grund" hideHeader>
       <CockpitTopbar active="werkstatt" context="Chat-Arbeitsfläche" />
       <main className="min-h-0 flex-1 overflow-hidden p-[10px]">
-        <div className="h-full min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b]">
+        <div className="h-full min-h-0 overflow-hidden rounded-[4px] border border-s-rand bg-s-box">
           <ChatPane deepLinkSid={deepLinkSid} />
         </div>
       </main>

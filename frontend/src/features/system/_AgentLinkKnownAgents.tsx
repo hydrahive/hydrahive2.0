@@ -10,8 +10,8 @@ interface Props {
 export function AgentLinkKnownAgents({ agents, locale }: Props) {
   const { t } = useTranslation("system")
   return (
-    <div className="border-t border-[#2a364b] pt-3">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8d9ab0]">
+    <div className="border-t border-s-rand pt-3">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9aa7bc]">
         {t("agentlink.known_agents", { count: agents.length })}
       </p>
       <div className="space-y-1.5">
@@ -28,9 +28,9 @@ export function AgentLinkKnownAgents({ agents, locale }: Props) {
               {a.name || a.agent_id}
             </span>
             {a.type && (
-              <span className="whitespace-nowrap text-[10px] text-[#7d8aa0]">{a.type}</span>
+              <span className="whitespace-nowrap text-[10px] text-[#9aa7bc]">{a.type}</span>
             )}
-            <span className="whitespace-nowrap font-mono text-[#8d9ab0]" title={a.last_seen}>
+            <span className="whitespace-nowrap font-mono text-[#9aa7bc]" title={a.last_seen}>
               {relTime(a.last_seen, locale)}
             </span>
           </div>

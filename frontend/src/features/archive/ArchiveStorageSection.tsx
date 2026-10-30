@@ -35,21 +35,21 @@ export function ArchiveStorageSection({ storage, move, onEmptyTrash, onChangeLoc
           </AdminFeedback>
         )}
         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
-          <span className="text-[#8d9ab0]">{t("storage.target")}</span>
+          <span className="text-[#9aa7bc]">{t("storage.target")}</span>
           <span className="text-[#e8eef8]">{t("storage.target_local")}</span>
-          <span className="text-[#8d9ab0]">{t("storage.path")}</span>
+          <span className="text-[#9aa7bc]">{t("storage.path")}</span>
           <span className="break-all font-mono text-[#e8eef8]">{storage.path}</span>
-          <span className="text-[#8d9ab0]">{t("storage.disk")}</span>
+          <span className="text-[#9aa7bc]">{t("storage.disk")}</span>
           <span className="break-all font-mono text-[#e8eef8]" data-archive-mount={storage.mount}>{storage.mount}</span>
-          <span className="text-[#8d9ab0]">{t("storage.free")}</span>
+          <span className="text-[#9aa7bc]">{t("storage.free")}</span>
           <span className="text-[#e8eef8]">{formatSize(storage.free_bytes)}</span>
-          <span className="text-[#8d9ab0]">{t("storage.count")}</span>
+          <span className="text-[#9aa7bc]">{t("storage.count")}</span>
           <span className="text-[#e8eef8]" data-archive-count={storage.count}>
             {t("storage.count_value", { count: storage.count, manual: storage.manual_count })}
           </span>
-          <span className="text-[#8d9ab0]">{t("storage.used")}</span>
+          <span className="text-[#9aa7bc]">{t("storage.used")}</span>
           <span className="text-[#e8eef8]">{formatSize(storage.used_bytes)}</span>
-          <span className="text-[#8d9ab0]">{t("storage.trash")}</span>
+          <span className="text-[#9aa7bc]">{t("storage.trash")}</span>
           <span className="flex items-center gap-2 text-[#e8eef8]">
             {formatSize(storage.trash_bytes)}
             <AdminAction
@@ -65,7 +65,7 @@ export function ArchiveStorageSection({ storage, move, onEmptyTrash, onChangeLoc
         </div>
         <MoveProgress move={move} />
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{storage.is_default ? t("storage.default_hint") : ""}</p>
+          <p className="text-[11px] leading-relaxed text-[#9aa7bc]">{storage.is_default ? t("storage.default_hint") : ""}</p>
           <AdminAction data-archive-action="change-location" disabled={!!move?.running} onClick={onChangeLocation}>
             <ArrowRightLeft size={11} /> {t("storage.change")}
           </AdminAction>

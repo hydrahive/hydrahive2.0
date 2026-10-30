@@ -47,7 +47,7 @@ export function ExtensionsOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-4">
-        <p className="text-sm text-[#8d9ab0]">
+        <p className="text-sm text-[#9aa7bc]">
           {t("installed_count", { installed: extensions.filter((e) => e.installed).length, total: extensions.length })}
         </p>
 
@@ -56,17 +56,17 @@ export function ExtensionsOverlay({ onClose }: { onClose: () => void }) {
             {categoriesWithCount.map((c) => (
               <button key={c.id} onClick={() => setCategory(c.id)}
                 className={`flex items-center justify-between rounded-[4px] px-3 py-1.5 text-left text-xs font-medium transition-colors ${
-                  category === c.id ? "bg-violet-500/15 text-violet-300" : "text-[#8d9ab0] hover:bg-white/[4%] hover:text-[#e8eef8]"
+                  category === c.id ? "bg-violet-500/15 text-violet-300" : "text-[#9aa7bc] hover:bg-white/[4%] hover:text-[#e8eef8]"
                 }`}>
                 <span>{c.label}</span>
-                <span className={`text-[10px] ${category === c.id ? "text-violet-400" : "text-[#7d8aa0]"}`}>{c.count}</span>
+                <span className={`text-[10px] ${category === c.id ? "text-violet-400" : "text-[#9aa7bc]"}`}>{c.count}</span>
               </button>
             ))}
           </nav>
 
           <div className="w-full md:hidden">
             <select value={category} onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-sm text-[#e8eef8] focus:border-violet-500/60 focus:outline-none">
+              className="w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8] focus:border-violet-500/60 focus:outline-none">
               {categoriesWithCount.map((c) => <option key={c.id} value={c.id}>{c.label} ({c.count})</option>)}
             </select>
           </div>
@@ -79,7 +79,7 @@ export function ExtensionsOverlay({ onClose }: { onClose: () => void }) {
                   <p className={`text-sm font-medium ${dockerAvailable ? "text-emerald-300" : "text-blue-300"}`}>
                     {dockerAvailable ? t("docker.available") : t("docker.not_installed")}
                   </p>
-                  <p className="mt-0.5 text-xs text-[#8d9ab0]">{dockerAvailable ? t("docker.available_hint") : t("docker.not_installed_hint")}</p>
+                  <p className="mt-0.5 text-xs text-[#9aa7bc]">{dockerAvailable ? t("docker.available_hint") : t("docker.not_installed_hint")}</p>
                 </div>
                 {!dockerAvailable && (
                   <button onClick={docker.install} disabled={docker.installing}
@@ -91,7 +91,7 @@ export function ExtensionsOverlay({ onClose }: { onClose: () => void }) {
             )}
 
             {category === "dockertools" && docker.log && (
-              <div className="max-h-48 overflow-y-auto rounded-[6px] border border-[#2a364b] bg-[#0b111c] p-4 font-mono text-xs leading-relaxed">
+              <div className="max-h-48 overflow-y-auto rounded-[6px] border border-s-rand bg-s-tief p-4 font-mono text-xs leading-relaxed">
                 {docker.log.map((l, i) => (
                   <div key={i} className={l.startsWith("[OK]") ? "text-emerald-400" : l.startsWith("[FEHLER]") ? "text-rose-400" : "text-[#d7deea]"}>{l}</div>
                 ))}
@@ -99,9 +99,9 @@ export function ExtensionsOverlay({ onClose }: { onClose: () => void }) {
             )}
 
             {loading && extensions.length === 0 ? (
-              <p className="text-sm text-[#8d9ab0]">{t("loading")}</p>
+              <p className="text-sm text-[#9aa7bc]">{t("loading")}</p>
             ) : visible.length === 0 ? (
-              <p className="text-sm text-[#8d9ab0]">{t("empty_category")}</p>
+              <p className="text-sm text-[#9aa7bc]">{t("empty_category")}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {visible.map((ext) => (

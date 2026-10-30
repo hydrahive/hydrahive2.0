@@ -25,7 +25,7 @@ export function DelegationStrip({ sessionId, busy }: { sessionId: string | null;
   }
 
   return (
-    <div className="border-t border-[#2a364b] bg-[#101826] px-4 py-1.5 text-xs text-[#c7d2e5] space-y-1">
+    <div className="border-t border-s-rand bg-s-innen px-4 py-1.5 text-xs text-[#c7d2e5] space-y-1">
       {running.map((d) => (
         <div key={d.id} className="flex items-center gap-2">
           <Loader2 size={12} className="animate-spin text-sky-300 shrink-0" />

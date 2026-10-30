@@ -19,7 +19,7 @@ export function CredentialCockpitCard({ credential: c, onOpen }: { credential: C
   const { t } = useTranslation("credentials")
   return (
     <button onClick={onOpen}
-      className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-3 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]">
+      className="rounded-[6px] border border-s-rand bg-s-innen p-3 text-left transition-colors hover:border-s-rand-hover hover:bg-s-hebung">
       <div className="mb-1 flex items-center gap-2">
         <Key size={11} className="shrink-0 text-amber-300" />
         <p className="flex-1 truncate font-mono text-sm text-[#e8eef8]">{c.name}</p>
@@ -27,8 +27,8 @@ export function CredentialCockpitCard({ credential: c, onOpen }: { credential: C
           {t(`type_${c.type}`)}
         </span>
       </div>
-      {c.description && <p className="line-clamp-1 text-xs text-[#8d9ab0]">{c.description}</p>}
-      <p className="mt-1 truncate font-mono text-[10px] text-[#7d8aa0]">{c.url_pattern}</p>
+      {c.description && <p className="line-clamp-1 text-xs text-[#9aa7bc]">{c.description}</p>}
+      <p className="mt-1 truncate font-mono text-[10px] text-[#9aa7bc]">{c.url_pattern}</p>
       {c.host_bound === false && (
         <p className="mt-0.5 flex items-center gap-1 text-[10px] text-amber-300">
           <AlertTriangle size={10} /> {t("not_host_bound")}
