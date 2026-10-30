@@ -37,6 +37,11 @@ class AgentCreate(BaseModel):
 
 class AgentUpdate(BaseModel):
     name: str | None = None
+    # Nur damit ein Versuch sichtbar mit agent_managed scheitert statt still verworfen zu werden – gesetzt werden
+    # diese Felder hier nie (agents/config.update verwirft sie bzw. agents/_managed.guard lehnt ab).
+    type: str | None = None
+    project_id: str | None = None
+    managed_by: str | None = None
     llm_model: str | None = None
     tools: list[str] | None = None
     owner: str | None = None

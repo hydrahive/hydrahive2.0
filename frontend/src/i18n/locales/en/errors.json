@@ -161,5 +161,6 @@
   "archive_nothing_selected": "There is nothing to delete.",
   "delete_in_progress": "A job for this is already running.",
   "module_operation_busy": "A module change is already running ({{module}}). Please wait a moment and try again.",
-  "module_update_all_failed": "No module could be updated: {{detail}}"
+  "module_update_all_failed": "No module could be updated: {{detail}}",
+  "agent_managed": "This agent is managed by a module. Tools, prompt and soul can't be changed here."
 }

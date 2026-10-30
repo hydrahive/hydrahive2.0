@@ -86,7 +86,8 @@ def update(project_id: str, **changes: Any) -> dict:
     cfg = get(project_id)
     if not cfg:
         raise KeyError(f"Projekt '{project_id}' nicht gefunden")
-    for protected in ("id", "agent_id", "created_at", "created_by"):
+    # execution nur über projects/execution.py (Admin/Kern-Funktion, mit Prüfung und Protokoll)
+    for protected in ("id", "agent_id", "created_at", "created_by", "execution"):
         changes.pop(protected, None)
     if "name" in changes:
         _validation.validate_name(changes["name"])

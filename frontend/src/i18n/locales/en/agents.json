@@ -164,5 +164,8 @@
     "groups": "Groups",
     "no_groups": "No groups yet (Admin → Access).",
     "groups_hint": "From group members only project sessions, no buddy chats, at most level normal."
+  },
+  "managed": {
+    "hint": "This agent is managed by the module “{{module}}”. Tools, prompt and soul are set by the module – only the model can be changed here."
   }
 }

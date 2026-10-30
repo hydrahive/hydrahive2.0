@@ -18,6 +18,7 @@ import { OverviewTab } from "@/features/agents/_OverviewTab"
 import { PromptTab } from "@/features/agents/_PromptTab"
 import { SkillsTab } from "@/features/agents/_SkillsTab"
 import { SoulTab } from "@/features/agents/_SoulTab"
+import { activeTabFor, isManaged, visibleTabs } from "@/features/agents/managedAgent"
 import { ToolsTab } from "@/features/agents/_ToolsTab"
 import type { McpServerBrief } from "@/features/agents/api"
 import type { Agent, ToolMeta } from "@/features/agents/types"
@@ -62,7 +63,7 @@ export function ProjectAgentEditorTabs({
   const [tab, setTab] = useState("overview")
   const effortLevels = useEffortLevels(draft.llm_model)
   const hasMail = draft.tools.includes("send_mail") || draft.tools.includes("read_mail")
-  const tabs: TabDefinition[] = [
+  const allTabs: TabDefinition[] = [
     { id: "overview", label: "Übersicht", icon: LayoutGrid },
     { id: "model", label: "Modell", icon: Cpu },
     { id: "prompt", label: t("fields.system_prompt"), icon: FileText },
@@ -73,8 +74,9 @@ export function ProjectAgentEditorTabs({
     { id: "advanced", label: "Erweitert", icon: SlidersHorizontal },
     { id: "schedules", label: "Intervalle", icon: Clock },
   ]
+  const tabs = visibleTabs(allTabs, agent)          // verwaltete Agenten: nur Übersicht, Modell, Intervalle
 
-  const activeTab = !hasMail && tab === "mail" ? "overview" : tab
+  const activeTab = activeTabFor(tab, tabs, hasMail)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -98,6 +100,11 @@ export function ProjectAgentEditorTabs({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         <div className="mx-auto max-w-4xl">
+          {isManaged(agent) && (
+            <p className="mb-3 rounded-[4px] border border-sky-500/30 bg-sky-500/[6%] px-3 py-2 text-xs text-sky-200" data-agent-managed>
+              {t("managed.hint", { module: agent.managed_by })}
+            </p>
+          )}
           {activeTab === "overview" && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">

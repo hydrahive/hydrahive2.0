@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 
-from hydrahive.tools._launcher import get_launcher
+from hydrahive.tools import _launcher_container
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 
 logger = logging.getLogger(__name__)
@@ -184,8 +184,11 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     if timeout < 1 or timeout > 600:
         return ToolResult.fail("Timeout muss zwischen 1 und 600 Sekunden liegen")
 
-    launcher = get_launcher()
-    res = await launcher.run(cmd, cwd=ctx.workspace, timeout=timeout, env=_build_env(ctx))
+    try:
+        launcher = _launcher_container.launcher_for(ctx)
+        res = await launcher.run(cmd, cwd=ctx.workspace, timeout=timeout, env=_build_env(ctx))
+    except _launcher_container.ExecutionUnavailable as e:
+        return ToolResult.fail(f"{e.code}: Befehl nicht ausgeführt – Ausführungsort des Projekts nicht verfügbar.")
 
     output = {
         "exit_code": res.exit_code,

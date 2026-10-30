@@ -19,6 +19,7 @@ export interface Agent {
   created_at: string
   updated_at: string
   project_id?: string | null
+  managed_by?: string | null    // verwaltet von Modul (docs/specs/projekt-container-ausfuehrung.md)
   domain?: string | null
   // Per-Agent Compaction-Settings (#82). Alle optional, Backend backfillt
   // Defaults bei alten Agents.

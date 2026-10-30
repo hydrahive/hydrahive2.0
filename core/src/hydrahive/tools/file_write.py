@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from hydrahive.tools import _fs
 from hydrahive.tools._path import PathOutsideWorkspace, safe_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 from hydrahive.tools._errors import fail_with_cause
@@ -27,19 +28,33 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("content muss ein String sein")
 
     try:
-        p = safe_path(ctx.workspace, path_arg)
-    except PathOutsideWorkspace as e:
-        return ToolResult.fail(str(e))
-
-    try:
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
-    except Exception as e:
-        return fail_with_cause("Schreibfehler", e, "file_write")
+        ex = _fs._execution(ctx)
+    except _fs.ExecutionUnavailable as e:
+        return ToolResult.fail(f"{e.code}: Datei nicht geschrieben – Ausführungsort des Projekts nicht verfügbar.")
+    if ex["mode"] == "container":              # docs/specs/projekt-container-ausfuehrung.md
+        try:
+            target = await _fs.resolve(ex, path_arg, must_exist=False)
+            await _fs.write_bytes(ex, target, content.encode("utf-8"))
+        except PathOutsideWorkspace as e:
+            return ToolResult.fail(str(e))
+        except _fs.ContainerFsError as e:
+            return ToolResult.fail(f"Schreibfehler: {e}")
+        shown = target
+    else:
+        try:
+            p = safe_path(ctx.workspace, path_arg)
+        except PathOutsideWorkspace as e:
+            return ToolResult.fail(str(e))
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+        except Exception as e:
+            return fail_with_cause("Schreibfehler", e, "file_write")
+        shown = str(p)
 
     return ToolResult.ok(
-        f"Datei geschrieben: {p}",
-        path=str(p),
+        f"Datei geschrieben: {shown}",
+        path=shown,
         bytes=len(content.encode("utf-8")),
         lines=content.count("\n") + 1,
     )

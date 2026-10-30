@@ -4,7 +4,8 @@ import logging
 import uuid
 from typing import Any
 
-from hydrahive.agents import _prompt, _tool_config, _validation
+from hydrahive.agents import _managed, _prompt, _tool_config, _validation
+from hydrahive.agents._managed import AgentManaged, set_managed  # noqa: F401 – öffentliche API
 from hydrahive.agents._config_utils import (
     get, list_all, list_by_owner, normalize, save_atomic,
 )
@@ -115,12 +116,15 @@ def create(
     return cfg
 
 
-def update(agent_id: str, **changes: Any) -> dict:
+def update(agent_id: str, *, _managed_by: str | None = None, **changes: Any) -> dict:
     cfg = get(agent_id)
     if not cfg:
         raise KeyError(f"Agent '{agent_id}' nicht gefunden")
+    # Verwaltete Agenten (agents/_managed.py): feste Felder nur mit der Kennung des Moduls. Auch Felder, die hier
+    # gleich verworfen würden (type, managed_by), lösen die Sperre aus – ein Versuch soll sichtbar scheitern.
+    _managed.guard(cfg, changes, _managed_by)
 
-    for protected in ("id", "type", "created_at", "created_by"):
+    for protected in ("id", "type", "created_at", "created_by", _managed.FIELD):
         changes.pop(protected, None)
 
     if "tools" in changes:
@@ -180,10 +184,11 @@ def get_system_prompt(agent_id: str) -> str:
     return _prompt.load(agent_id, cfg.get("type", "specialist"))
 
 
-def set_system_prompt(agent_id: str, prompt: str) -> None:
+def set_system_prompt(agent_id: str, prompt: str, *, _managed_by: str | None = None) -> None:
     cfg = get(agent_id)
     if not cfg:
         raise KeyError(f"Agent '{agent_id}' nicht gefunden")
+    _managed.guard(cfg, {"system_prompt": object()}, _managed_by)   # jede Prompt-Änderung zählt
     _prompt.save(agent_id, prompt)
     cfg["updated_at"] = now_iso()
     save_atomic(config_path(agent_id), cfg)
