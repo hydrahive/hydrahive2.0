@@ -15,7 +15,9 @@ import { FederationOverlay } from "./FederationOverlay"
 const render = (url: string) =>
   renderToStaticMarkup(<MemoryRouter initialEntries={[url]}><FederationOverlay onClose={() => {}} /></MemoryRouter>)
 const parts = (h: string) => [...h.matchAll(/data-part="([a-z]+)"/g)].map((m) => m[1])
-const selected = (h: string) => [...h.matchAll(/<button[^>]*role="tab"[^>]*aria-selected="true"[^>]*>([^<]*)</g)].map((m) => m[1])
+// Name des gewählten Reiters, egal wie der Knopf innen aufgebaut ist (AdminTabs setzt ihn in ein <span>).
+const selected = (h: string) => [...h.matchAll(/<button[^>]*role="tab"[^>]*aria-selected="true"[^>]*>([\s\S]*?)<\/button>/g)]
+  .map((m) => m[1].replace(/<[^>]+>/g, "").trim())
 
 describe("Admin-Fenster Föderation", () => {
   it("vier Reiter", () => {

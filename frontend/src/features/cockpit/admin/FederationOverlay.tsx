@@ -9,6 +9,7 @@ import { DataminingInstancesSection } from "@/features/federation/_DataminingIns
 import { FEDERATION_TABS, parseFederationTab, type FederationTab } from "@/features/federation/federationTabs"
 import { CockpitButton } from "../CockpitButton"
 import { AdminOverlay } from "./AdminOverlay"
+import { AdminTabs } from "./ui"
 import { ADMIN_OVERLAY_THEME } from "@/shared/brand/boxThemes"
 
 /** Föderation im Admin-Cockpit (/admin?section=federation&tab=…): ein Teil pro Reiter statt einer langen Seite. */
@@ -38,23 +39,13 @@ export function FederationOverlay({ onClose }: { onClose: () => void }) {
     >
       <div className="space-y-4">
         <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
-        <div role="tablist" aria-label={t("title")}
-          className="grid grid-cols-2 gap-1 rounded-[4px] border border-s-rand bg-s-innen p-1 sm:grid-cols-4">
-          {FEDERATION_TABS.map((id) => (
-            <button key={id} type="button" role="tab" id={`federation-tab-${id}`}
-              aria-selected={id === tab} aria-controls="federation-pane"
-              onClick={() => selectTab(id)}
-              className={`min-w-0 truncate rounded-[3px] px-2 py-2 text-xs font-bold transition-colors sm:text-sm ${
-                id === tab ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#9aa7bc] hover:bg-white/5 hover:text-[#e8eef8]"
-              }`}>{t(`tabs.${id}`)}</button>
-          ))}
-        </div>
-        <div id="federation-pane" role="tabpanel" aria-labelledby={`federation-tab-${tab}`}>
+        <AdminTabs label={t("title")} idPrefix="federation" active={tab} onSelect={selectTab}
+          tabs={FEDERATION_TABS.map((id) => ({ id, label: t(`tabs.${id}`) }))}>
           {tab === "workstations" && <WorkstationsPanel showAdd={showAdd} onShowAdd={setShowAdd} />}
           {tab === "peers" && <PeersSection />}
           {tab === "clients" && <ClientConnectionsSection />}
           {tab === "datamining" && <DataminingInstancesSection />}
-        </div>
+        </AdminTabs>
       </div>
     </AdminOverlay>
   )

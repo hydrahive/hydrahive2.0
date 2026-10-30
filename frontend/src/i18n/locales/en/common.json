@@ -66,5 +66,8 @@
     "warnung": "Warning",
     "fehler": "Error",
     "ok": "Running"
+  },
+  "tabs": {
+    "attention": "(needs attention)"
   }
 }
