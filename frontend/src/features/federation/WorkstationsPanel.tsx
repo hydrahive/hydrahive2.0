@@ -15,7 +15,7 @@ interface Props {
 }
 
 /** Workstation-Teil der Föderation: Info, Liste, Leer-Zustand, Hinzufügen-Dialog.
- *  Genutzt von der Hub-Seite (FederationPage) und vom Admin-Fenster (FederationOverlay). */
+ *  Genutzt vom Föderations-Fenster (FederationOverlay, auch über die alte Adresse /federation). */
 export function WorkstationsPanel({ showAdd, onShowAdd }: Props) {
   const { t } = useTranslation("federation")
   const [workstations, setWorkstations] = useState<Workstation[]>([])

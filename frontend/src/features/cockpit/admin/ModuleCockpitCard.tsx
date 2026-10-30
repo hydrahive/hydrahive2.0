@@ -14,8 +14,7 @@ interface Props {
   onAction?: () => void
 }
 
-/** Modul-Karte im Cockpit-Design (Pendant zu features/modules/ModuleCard,
- *  ohne box/zinc — nutzt dieselbe Stream-API). */
+/** Modul-Karte des Admin-Fensters „Module“ (Stream-API aus features/modules/api). */
 export function ModuleCockpitCard({ mod, onRefresh, onAction }: Props) {
   const { t } = useTranslation("modules")
   const [phase, setPhase] = useState<Phase>("idle")
