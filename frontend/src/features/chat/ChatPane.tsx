@@ -286,8 +286,8 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
     <div className="flex h-full min-w-0 flex-col">
       <ChatSearchProvider messages={allMessages}>
         <ChatSearchScrollEffect />
-        <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#151c2b] text-[#e8eef8]">
-          <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#2a364b]" />
+        <div className="relative flex h-full w-full flex-col overflow-hidden bg-s-box text-[#e8eef8]">
+          <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-s-rand" />
           {searchOpen && <ChatSearchBar onClose={() => setSearchOpen(false)} />}
           <ChatHeader
             session={activeSession} agent={activeAgent} orphaned={activeOrphaned}
@@ -337,7 +337,7 @@ export function ChatPane({ deepLinkSid = null, projectId, showSidePanels = true,
             </div>
           )}
           <DelegationStrip sessionId={activeId} busy={chat.busy} />
-          <div className="border-t border-[#2a364b] bg-[#111827]">
+          <div className="border-t border-s-rand bg-s-innen">
             <MessageInput
               onSend={handleSend} onCancel={chat.cancel}
               busy={chat.busy} disabled={activeOrphaned}

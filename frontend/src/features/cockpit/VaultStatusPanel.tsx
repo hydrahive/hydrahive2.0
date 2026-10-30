@@ -18,7 +18,7 @@ export function VaultStatusPanel() {
       <CockpitPanel theme="status" title="In Arbeit" eyebrow="Geplant">
         <ul className="space-y-2">
           {VAULT_PLANNED.map((t) => (
-            <li key={t} className="flex gap-2 text-xs leading-4 text-[#8d9ab0]">
+            <li key={t} className="flex gap-2 text-xs leading-4 text-[#9aa7bc]">
               <CircleDashed size={14} className="mt-px shrink-0 text-amber-300" />{t}
             </li>
           ))}

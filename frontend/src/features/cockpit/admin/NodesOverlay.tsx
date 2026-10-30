@@ -92,7 +92,7 @@ export function NodesOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-6">
-        <p className="text-sm text-[#8d9ab0]">{t("subtitle")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <AdminStat icon={Server} label={t("summary.total")} value={summary.total} />
@@ -106,10 +106,10 @@ export function NodesOverlay({ onClose }: { onClose: () => void }) {
         {loading ? (
           <AdminFeedback loading>{t("loading")}</AdminFeedback>
         ) : nodes.length === 0 ? (
-          <div className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-10 text-center">
-            <Server size={28} className="mx-auto mb-3 text-[#7d8aa0]" />
-            <p className="text-sm text-[#8d9ab0]">{t("empty")}</p>
-            <p className="mt-2 text-xs text-[#7d8aa0]">{t("empty_hint")}</p>
+          <div className="rounded-[6px] border border-s-rand bg-s-innen p-10 text-center">
+            <Server size={28} className="mx-auto mb-3 text-[#9aa7bc]" />
+            <p className="text-sm text-[#9aa7bc]">{t("empty")}</p>
+            <p className="mt-2 text-xs text-[#9aa7bc]">{t("empty_hint")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

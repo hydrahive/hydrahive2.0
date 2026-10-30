@@ -50,15 +50,15 @@ export function ContainerStatsPane({ container: currentContainer }: Props) {
           <AdminPanel title="RAM" icon={MemoryStick}>
             <div className="font-mono text-xs text-[#b9c5d6]">
               {memoryMb ?? "—"} MB
-              {currentContainer.ram_mb && <span className="text-[#8d9ab0]"> / {currentContainer.ram_mb} MB</span>}
+              {currentContainer.ram_mb && <span className="text-[#9aa7bc]"> / {currentContainer.ram_mb} MB</span>}
             </div>
             {memoryPercent != null && (
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#0b111c]">
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-s-tief">
                 <div className="h-full bg-[#69d7ff] transition-all" style={{ width: `${memoryPercent}%` }} />
               </div>
             )}
             {info.memory_peak_bytes && (
-              <p className="mt-1.5 text-[11px] text-[#8d9ab0]">
+              <p className="mt-1.5 text-[11px] text-[#9aa7bc]">
                 Peak: {Math.round(info.memory_peak_bytes / 1024 / 1024)} MB
               </p>
             )}
@@ -66,7 +66,7 @@ export function ContainerStatsPane({ container: currentContainer }: Props) {
 
           <AdminPanel title="CPU" icon={Cpu}>
             <div className="font-mono text-xs text-[#b9c5d6]">{(info.cpu_usage_ns ?? 0) / 1e9} s gesamt</div>
-            <p className="mt-1 text-[11px] text-[#8d9ab0]">
+            <p className="mt-1 text-[11px] text-[#9aa7bc]">
               {currentContainer.cpu ? t("spec.cpu_limit", { cpu: currentContainer.cpu }) : t("spec.no_limit")}
             </p>
           </AdminPanel>

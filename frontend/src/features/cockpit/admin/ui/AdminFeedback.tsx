@@ -4,7 +4,7 @@ import { cn } from "@/shared/cn"
 import type { AdminStatusTone } from "./AdminStatus"
 
 const styles: Record<AdminStatusTone, string> = {
-  neutral: "border-[#2a364b] bg-[#131b2a] text-[#8d9ab0]",
+  neutral: "border-s-rand bg-s-kopf text-[#9aa7bc]",
   success: "border-emerald-500/25 bg-emerald-500/[7%] text-emerald-300",
   warning: "border-amber-500/25 bg-amber-500/[7%] text-amber-300",
   danger: "border-rose-500/25 bg-rose-500/[7%] text-rose-300",
@@ -24,7 +24,7 @@ export function AdminFeedback({ tone = "neutral", children, loading = false, cla
 
 export function AdminCodeBlock({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <pre className={cn("overflow-auto whitespace-pre-wrap rounded-[4px] border border-[#2a364b] bg-[#080d15] p-3 font-mono text-[11px] leading-relaxed text-[#b9c5d6]", className)}>
+    <pre className={cn("overflow-auto whitespace-pre-wrap rounded-[4px] border border-s-rand bg-s-tief p-3 font-mono text-[11px] leading-relaxed text-[#b9c5d6]", className)}>
       {children}
     </pre>
   )

@@ -13,7 +13,7 @@ export function ProjectMobileTabs({ active, onChange }: Props) {
     <div
       role="tablist"
       aria-label={t("cockpit_tabs.label")}
-      className="mx-[10px] mt-[10px] grid shrink-0 grid-cols-3 gap-1 rounded-[4px] border border-[#2a364b] bg-[#111827] p-1 xl:hidden"
+      className="mx-[10px] mt-[10px] grid shrink-0 grid-cols-3 gap-1 rounded-[4px] border border-s-rand bg-s-box p-1 xl:hidden"
     >
       {MOBILE_TABS.map((tab) => {
         const selected = tab === active
@@ -27,7 +27,7 @@ export function ProjectMobileTabs({ active, onChange }: Props) {
             aria-controls={`project-pane-${tab}`}
             onClick={() => onChange(tab)}
             className={`min-w-0 truncate rounded-[3px] px-1 py-2 text-xs font-bold sm:px-2 sm:text-sm transition-colors ${
-              selected ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#8d9ab0] hover:bg-white/5 hover:text-[#e8eef8]"
+              selected ? "bg-[#1c2940] text-[#69d7ff]" : "text-[#9aa7bc] hover:bg-white/5 hover:text-[#e8eef8]"
             }`}
           >
             {t(`cockpit_tabs.${tab}`)}

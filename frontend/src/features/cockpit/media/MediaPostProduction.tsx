@@ -27,7 +27,7 @@ function TransportButton({ icon: Icon, label, onClick, primary, disabled }: {
   return (
     <button type="button" title={label} aria-label={label} onClick={onClick} disabled={disabled}
       className={["grid h-8 w-8 place-items-center rounded-[4px] border transition-colors disabled:opacity-40",
-        primary ? "border-[#ffb86b]/50 bg-[#ffb86b]/10 text-[#ffb86b] hover:bg-[#ffb86b]/20" : "border-[#2a364b] bg-[#111827] text-[#8d9ab0] hover:text-[#c3ccdd]"].join(" ")}>
+        primary ? "border-[#ffb86b]/50 bg-[#ffb86b]/10 text-[#ffb86b] hover:bg-[#ffb86b]/20" : "border-s-rand bg-s-innen text-[#9aa7bc] hover:text-[#c3ccdd]"].join(" ")}>
       <Icon size={15} />
     </button>
   )
@@ -83,7 +83,7 @@ export function MediaPostProduction({ projectId }: Props) {
         </div>
 
         {/* Transport + Zeitanzeige */}
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#2a364b] pt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-s-rand pt-3">
           <TransportButton icon={SkipBack} label="Zum Anfang" onClick={toStart} disabled={!canPlay} />
           {playing ? (
             <TransportButton icon={Pause} label="Pause" onClick={pause} primary disabled={!canPlay} />
@@ -93,7 +93,7 @@ export function MediaPostProduction({ projectId }: Props) {
           <TransportButton icon={Square} label="Stopp" onClick={stop} disabled={!canPlay} />
           <TransportButton icon={SkipForward} label="Zum Ende" onClick={toEnd} disabled={!canPlay} />
           <TransportButton icon={SplitSquareHorizontal} label="Am Playhead teilen" onClick={() => splitAt(currentTime)} disabled={!timeline || saving} />
-          <span className="ml-1 font-mono text-[11px] text-[#8d9ab0]">{timecode(currentTime)} / {timecode(duration)}</span>
+          <span className="ml-1 font-mono text-[11px] text-[#9aa7bc]">{timecode(currentTime)} / {timecode(duration)}</span>
 
           {/* Schnittpunkt am roten Cursor setzen und direkt auswählen */}
           <button
@@ -107,10 +107,10 @@ export function MediaPostProduction({ projectId }: Props) {
           </button>
           <span className="font-mono text-[11px] text-rose-300">{timecode(cursorTime)}</span>
           {timeline && (timeline.cut_points?.length ?? 0) > 0 ? (
-            <span className="text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0]">· {timeline.cut_points!.length} Schnitte</span>
+            <span className="text-[10px] uppercase tracking-[0.12em] text-[#9aa7bc]">· {timeline.cut_points!.length} Schnitte</span>
           ) : null}
 
-          <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0]">
+          <span className="ml-auto text-[10px] uppercase tracking-[0.12em] text-[#9aa7bc]">
             {loading ? "Lade…" : saving ? "Speichere…" : "Gespeichert"}
           </span>
         </div>
@@ -160,8 +160,8 @@ export function MediaPostProduction({ projectId }: Props) {
 
       {/* Rechte Spalte: Clip-Bibliothek + fertige Filme */}
       <aside className="min-w-0">
-        <div className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-2">
-          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#7d8aa0]">Bibliothek</p>
+        <div className="rounded-[4px] border border-s-rand bg-s-innen p-2">
+          <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9aa7bc]">Bibliothek</p>
           <ClipLibrary projectId={projectId} onAdd={(item, trackId, url) => void addClip(item, trackId, url)} disabled={!timeline || saving} />
         </div>
         <ExportLibrary exports={cutExport.exports} downloadUrl={cutExport.downloadUrl} onRemove={(name) => void cutExport.remove(name)} />

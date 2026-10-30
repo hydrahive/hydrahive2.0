@@ -8,7 +8,7 @@ interface Props {
   availableModels: string[]
 }
 
-const control = "w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
+const control = "w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
 
 export function BuddySettingsAdvanced({ config, draft, onChange, availableModels }: Props) {
   const { t } = useTranslation("buddy")
@@ -49,7 +49,7 @@ export function BuddySettingsAdvanced({ config, draft, onChange, availableModels
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return <div><label className="mb-1 block text-xs font-semibold text-[#8d9ab0]">{label}</label>{children}{hint && <p className="mt-1 text-[11px] text-[#718097]">{hint}</p>}</div>
+  return <div><label className="mb-1 block text-xs font-semibold text-[#9aa7bc]">{label}</label>{children}{hint && <p className="mt-1 text-[11px] text-[#9aa7bc]">{hint}</p>}</div>
 }
 
 function NumberField({ label, hint, value, min, max, step = 1, onChange }: { label: string; hint?: string; value: number; min: number; max: number; step?: number; onChange: (value: number) => void }) {

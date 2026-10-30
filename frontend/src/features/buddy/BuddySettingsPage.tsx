@@ -101,25 +101,25 @@ export function BuddySettingsPage() {
   const visibleTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "tools"
   const dirty = Object.keys(draft).length > 0
 
-  return <CockpitShell title={t("settings.title")} className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]" hideHeader>
+  return <CockpitShell title={t("settings.title")} className="flex h-full min-h-0 flex-col overflow-hidden bg-s-grund" hideHeader>
     <CockpitTopbar active="buddy" context={config?.name ?? t("settings.title")} />
     <main className="min-h-0 flex-1 overflow-y-auto p-[10px]">
       <div className="mx-auto flex min-h-full max-w-7xl flex-col gap-4">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <button type="button" onClick={() => navigate("/buddy")} aria-label={t("settings.back")} className="mt-0.5 rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-2 text-[#8d9ab0] hover:border-[#46617f] hover:text-[#e8eef8]"><ArrowLeft size={16} /></button>
-            <div><h1 className="text-xl font-black text-[#e8eef8]">{t("settings.title")}</h1><p className="mt-1 text-sm text-[#8d9ab0]">{t("settings.subtitle")}</p></div>
+            <button type="button" onClick={() => navigate("/buddy")} aria-label={t("settings.back")} className="mt-0.5 rounded-[4px] border border-s-rand bg-s-innen p-2 text-[#9aa7bc] hover:border-s-rand-hover hover:text-[#e8eef8]"><ArrowLeft size={16} /></button>
+            <div><h1 className="text-xl font-black text-[#e8eef8]">{t("settings.title")}</h1><p className="mt-1 text-sm text-[#9aa7bc]">{t("settings.subtitle")}</p></div>
           </div>
-          {config && <span className="rounded-[4px] border border-[#2a364b] bg-[#151c2b] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#69d7ff]">{config.character || "Buddy"}</span>}
+          {config && <span className="rounded-[4px] border border-s-rand bg-s-innen px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#69d7ff]">{config.character || "Buddy"}</span>}
         </header>
 
         {error && <div className="flex items-center justify-between gap-3 rounded-[4px] border border-rose-400/25 bg-rose-500/10 p-3 text-xs text-rose-200" role="alert"><span>{error}</span>{!config && <button type="button" onClick={() => void load()} className="font-bold underline">{t("settings.retry")}</button>}</div>}
 
         {loading && !config ? <div className="flex flex-1 items-center justify-center py-24"><Loader2 size={22} className="animate-spin text-[#69d7ff]" /></div> : config && <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[210px_minmax(0,1fr)]">
-          <nav className="flex gap-1 overflow-x-auto rounded-[6px] border border-[#2a364b] bg-[#101724] p-2 lg:flex-col lg:self-start" aria-label={t("settings.sections")}>
-            {tabs.map(({ id, icon: Icon, label }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={visibleTab === id ? "flex shrink-0 items-center gap-2 rounded-[4px] border border-[#69d7ff]/40 bg-[#1c2940] px-3 py-2 text-left text-xs font-bold text-[#c8f2ff]" : "flex shrink-0 items-center gap-2 rounded-[4px] border border-transparent px-3 py-2 text-left text-xs font-semibold text-[#8d9ab0] hover:bg-white/5 hover:text-[#e8eef8]"}><Icon size={14} />{label}</button>)}
+          <nav className="flex gap-1 overflow-x-auto rounded-[6px] border border-s-rand bg-s-box p-2 lg:flex-col lg:self-start" aria-label={t("settings.sections")}>
+            {tabs.map(({ id, icon: Icon, label }) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={visibleTab === id ? "flex shrink-0 items-center gap-2 rounded-[4px] border border-[#69d7ff]/40 bg-[#1c2940] px-3 py-2 text-left text-xs font-bold text-[#c8f2ff]" : "flex shrink-0 items-center gap-2 rounded-[4px] border border-transparent px-3 py-2 text-left text-xs font-semibold text-[#9aa7bc] hover:bg-white/5 hover:text-[#e8eef8]"}><Icon size={14} />{label}</button>)}
           </nav>
-          <section className="min-w-0 rounded-[6px] border border-[#2a364b] bg-[#101724] p-4 sm:p-5">
+          <section className="min-w-0 rounded-[6px] border border-s-rand bg-s-box p-4 sm:p-5">
             {visibleTab === "identity" && <BuddySettingsIdentity config={config} draft={draft} onChange={applyDraft} onRerollCharacter={() => void rerollCharacter()} busy={busy} />}
             {visibleTab === "context" && <BuddySettingsContext config={config} draft={draft} onChange={applyDraft} />}
             {visibleTab === "model" && <BuddySettingsModel config={config} draft={draft} onChange={applyDraft} availableModels={models} />}
@@ -131,9 +131,9 @@ export function BuddySettingsPage() {
           </section>
         </div>}
 
-        {config && <footer className="sticky bottom-0 flex items-center justify-end gap-3 rounded-[6px] border border-[#2a364b] bg-[#101724]/95 px-4 py-3 backdrop-blur">
+        {config && <footer className="sticky bottom-0 flex items-center justify-end gap-3 rounded-[6px] border border-s-rand bg-s-box/95 px-4 py-3 backdrop-blur">
           {saved && <span className="flex items-center gap-1.5 text-xs text-emerald-300"><Check size={13} />{t("saved")}</span>}
-          {dirty && <button type="button" onClick={() => setDraft({})} disabled={busy} className="rounded-[4px] px-3 py-2 text-xs font-bold text-[#8d9ab0] hover:bg-white/5 hover:text-[#e8eef8]">{t("cancel")}</button>}
+          {dirty && <button type="button" onClick={() => setDraft({})} disabled={busy} className="rounded-[4px] px-3 py-2 text-xs font-bold text-[#9aa7bc] hover:bg-white/5 hover:text-[#e8eef8]">{t("cancel")}</button>}
           <button type="button" onClick={() => void save()} disabled={!dirty || busy} className="flex items-center gap-1.5 rounded-[4px] border border-[#69d7ff]/45 bg-[#163248] px-4 py-2 text-xs font-bold text-[#c8f2ff] hover:bg-[#1b3d56] disabled:cursor-not-allowed disabled:opacity-40">{busy ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}{t("save")}</button>
         </footer>}
       </div>

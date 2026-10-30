@@ -51,22 +51,22 @@ export function McpOverlay({ onClose }: { onClose: () => void }) {
         <aside className="space-y-1.5">
           <button onClick={() => setActiveId(null)}
             className={`flex w-full items-center gap-2 rounded-[4px] border px-3 py-2 text-left text-xs font-medium transition-colors ${
-              activeId === null ? "border-[#46617f] bg-[#172133] text-[#e8eef8]" : "border-[#2a364b] bg-[#111827] text-[#8d9ab0] hover:border-[#46617f] hover:text-[#e8eef8]"
+              activeId === null ? "border-s-rand-hover bg-s-innen text-[#e8eef8]" : "border-s-rand bg-s-innen text-[#9aa7bc] hover:border-s-rand-hover hover:text-[#e8eef8]"
             }`}>
             <Plus size={13} /> Schnell hinzufügen
           </button>
           {servers.length === 0 ? (
-            <p className="py-6 text-center text-xs text-[#8d9ab0]">Noch keine Server.</p>
+            <p className="py-6 text-center text-xs text-[#9aa7bc]">Noch keine Server.</p>
           ) : (
             servers.map((s) => (
               <button key={s.id} onClick={() => setActiveId(s.id)}
                 className={`flex w-full items-start gap-2 rounded-[4px] border px-3 py-2 text-left transition-colors ${
-                  s.id === activeId ? "border-[#46617f] bg-[#172133]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]"
+                  s.id === activeId ? "border-s-rand-hover bg-s-innen" : "border-s-rand bg-s-innen hover:border-s-rand-hover"
                 }`}>
                 <Server size={13} className="mt-0.5 shrink-0 text-[#69d7ff]" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-xs font-medium text-[#e8eef8]">{s.name || s.id}</span>
-                  <span className="mt-0.5 block truncate font-mono text-[10px] text-[#7d8aa0]">{s.id}</span>
+                  <span className="mt-0.5 block truncate font-mono text-[10px] text-[#9aa7bc]">{s.id}</span>
                 </span>
               </button>
             ))

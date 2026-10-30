@@ -12,7 +12,7 @@ export function VaultBadgeView({ status, onLock }: { status: VaultStatus | null;
   if (!status?.pin_set) return null
   if (!status.unlocked) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-[4px] border border-[#2a364b] px-2 py-1 text-xs text-[#8d9ab0]" title={t("locked")}>
+      <span className="inline-flex items-center gap-1 rounded-[4px] border border-s-rand px-2 py-1 text-xs text-[#9aa7bc]" title={t("locked")}>
         <LockKeyhole size={13} />{t("locked")}
       </span>
     )

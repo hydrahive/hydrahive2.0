@@ -66,7 +66,7 @@ export function VMsOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-6">
-        <p className="text-sm text-[#8d9ab0]">{t("subtitle")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <SummaryCard label={t("summary.total")} value={summary.total} />
@@ -78,11 +78,11 @@ export function VMsOverlay({ onClose }: { onClose: () => void }) {
         {error && <div className="rounded-[6px] border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</div>}
 
         {loading ? (
-          <p className="text-sm text-[#8d9ab0]">{t("loading")}</p>
+          <p className="text-sm text-[#9aa7bc]">{t("loading")}</p>
         ) : vms.length === 0 ? (
-          <div className="rounded-[6px] border border-[#2a364b] bg-[#111827] p-10 text-center">
-            <p className="text-sm text-[#8d9ab0]">{t("empty")} <span className="text-violet-300">{t("empty_cta")}</span> {t("empty_suffix")}</p>
-            <p className="mt-2 text-xs text-[#7d8aa0]">{t("tip")} {t("tip_iso")}</p>
+          <div className="rounded-[6px] border border-s-rand bg-s-innen p-10 text-center">
+            <p className="text-sm text-[#9aa7bc]">{t("empty")} <span className="text-violet-300">{t("empty_cta")}</span> {t("empty_suffix")}</p>
+            <p className="mt-2 text-xs text-[#9aa7bc]">{t("tip")} {t("tip_iso")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -115,8 +115,8 @@ export function VMsOverlay({ onClose }: { onClose: () => void }) {
 
 function SummaryCard({ label, value, highlight }: { label: string; value: number | string; highlight?: boolean }) {
   return (
-    <div className={`rounded-[6px] border p-4 ${highlight ? "border-emerald-500/30 bg-emerald-500/5" : "border-[#2a364b] bg-[#111827]"}`}>
-      <p className="text-[11px] uppercase tracking-wider text-[#8d9ab0]">{label}</p>
+    <div className={`rounded-[6px] border p-4 ${highlight ? "border-emerald-500/30 bg-emerald-500/5" : "border-s-rand bg-s-innen"}`}>
+      <p className="text-[11px] uppercase tracking-wider text-[#9aa7bc]">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${highlight ? "text-emerald-200" : "text-[#e8eef8]"}`}>{value}</p>
     </div>
   )

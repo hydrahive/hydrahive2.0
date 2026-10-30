@@ -40,9 +40,9 @@ export function InputMonitor({ title, trackId, timeline, media, currentTime, cur
     <div className="flex min-w-0 flex-col">
       <div className="flex items-center justify-between px-1 pb-1">
         <span className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: accent }}>{title}</span>
-        <span className="font-mono text-[10px] text-[#7d8aa0]">{timecode(position)}</span>
+        <span className="font-mono text-[10px] text-[#9aa7bc]">{timecode(position)}</span>
       </div>
-      <div className="relative aspect-video overflow-hidden rounded-[4px] border border-[#2a364b] bg-black">
+      <div className="relative aspect-video overflow-hidden rounded-[4px] border border-s-rand bg-black">
         {clipMedia && clipMedia.kind === "video" ? (
           <VideoSurface key={active!.clip.id} url={clipMedia.url} localTime={active!.localTime + active!.clip.source_in} playing={playing} />
         ) : clipMedia && clipMedia.kind === "image" ? (

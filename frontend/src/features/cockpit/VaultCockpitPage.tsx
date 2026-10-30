@@ -21,13 +21,13 @@ export function VaultCockpitPage() {
   return (
     <CockpitShell eyebrow="Vault" title="Vault-Cockpit" hideHeader
       description="Sensible Bereiche an einem Ort: Gesundheit, Finanzen und Zugangsdaten."
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]">
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-s-grund">
       <CockpitTopbar active="vault" context="Sensible Bereiche · PIN-geschützt" />
       <div className="grid min-h-0 flex-1 gap-[10px] overflow-y-auto p-[10px] xl:grid-cols-[minmax(420px,1fr)_380px] xl:overflow-hidden">
         <main className="min-h-0 space-y-[10px] overflow-y-auto">
           <CockpitPanel theme="kontakt" title="Deine sensiblen Bereiche" eyebrow="Vault">
             {areas.length === 0 ? (
-              <p className="text-sm text-[#8d9ab0]">
+              <p className="text-sm text-[#9aa7bc]">
                 Noch keine sensiblen Module installiert. Meine Akte, Cryptoboard und Haushaltsbuch installiert der Admin
                 unter Einstellungen → Module.
               </p>
@@ -35,11 +35,11 @@ export function VaultCockpitPage() {
               <div className="grid gap-2 md:grid-cols-2">
                 {areas.map(({ id, title, path, icon: Icon, desc }) => (
                   <button key={id} onClick={() => openLocalPath(path)}
-                    className="flex items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                    className="flex items-start gap-3 rounded-[4px] border border-s-rand bg-s-innen p-3 text-left hover:border-s-rand-hover hover:bg-s-hebung">
                     <Icon size={18} className="mt-0.5 text-[#69d7ff]" />
                     <span className="min-w-0">
                       <span className="block text-sm font-bold text-[#e8eef8]">{title}</span>
-                      <span className="mt-1 block text-xs leading-4 text-[#8d9ab0]">{desc}</span>
+                      <span className="mt-1 block text-xs leading-4 text-[#9aa7bc]">{desc}</span>
                     </span>
                   </button>
                 ))}
@@ -51,11 +51,11 @@ export function VaultCockpitPage() {
             <div className="grid gap-2 md:grid-cols-2">
               {historyLinks.map(({ title, path, icon: Icon, desc }) => (
                 <button key={path} onClick={() => openLocalPath(path)}
-                  className="flex items-start gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                  className="flex items-start gap-3 rounded-[4px] border border-s-rand bg-s-innen p-3 text-left hover:border-s-rand-hover hover:bg-s-hebung">
                   <Icon size={17} className="mt-0.5 text-[#69d7ff]" />
                   <span>
                     <span className="block text-sm font-bold text-[#e8eef8]">{title}</span>
-                    <span className="mt-1 block text-xs leading-4 text-[#8d9ab0]">{desc}</span>
+                    <span className="mt-1 block text-xs leading-4 text-[#9aa7bc]">{desc}</span>
                   </span>
                 </button>
               ))}

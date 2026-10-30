@@ -41,11 +41,11 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-4">
-        <div className="flex gap-2 border-b border-[#2a364b]">
+        <div className="flex gap-2 border-b border-s-rand">
           {(["hub", "installed"] as Tab[]).map((tid) => (
             <button key={tid} onClick={() => setTab(tid)}
               className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-                tab === tid ? "border-violet-500 text-violet-300" : "border-transparent text-[#8d9ab0] hover:text-[#e8eef8]"
+                tab === tid ? "border-violet-500 text-violet-300" : "border-transparent text-[#9aa7bc] hover:text-[#e8eef8]"
               }`}>
               {tid === "hub" ? t("tab_hub") : installedTabLabel(t, installed.length, outdated.length)}
             </button>
@@ -66,9 +66,9 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
           <div>
             {hubError && <div className="mb-4 rounded-[4px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">{hubError}</div>}
             {hub === null ? (
-              <p className="text-sm text-[#8d9ab0]">{t("loading")}</p>
+              <p className="text-sm text-[#9aa7bc]">{t("loading")}</p>
             ) : hub.length === 0 ? (
-              <p className="text-sm text-[#8d9ab0]">{t("hub_empty")}</p>
+              <p className="text-sm text-[#9aa7bc]">{t("hub_empty")}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {hub.map((p) => (
@@ -83,7 +83,7 @@ export function PluginsOverlay({ onClose }: { onClose: () => void }) {
         {tab === "installed" && (
           <div>
             {installed.length === 0 ? (
-              <p className="text-sm text-[#8d9ab0]">{t("installed_empty")}</p>
+              <p className="text-sm text-[#9aa7bc]">{t("installed_empty")}</p>
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {installed.map((p) => (

@@ -13,7 +13,7 @@ interface Props {
 export function ExportBar({ status, error, disabled, onExport }: Props) {
   const running = status === "running"
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#2a364b] pt-3">
+    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-s-rand pt-3">
       <button
         type="button"
         onClick={onExport}
@@ -23,7 +23,7 @@ export function ExportBar({ status, error, disabled, onExport }: Props) {
         {running ? <Loader2 size={14} className="animate-spin" /> : <Film size={14} />}
         {running ? "Rendere…" : "Film exportieren"}
       </button>
-      {running ? <span className="text-[11px] text-[#8d9ab0]">Das kann je nach Länge einen Moment dauern…</span> : null}
+      {running ? <span className="text-[11px] text-[#9aa7bc]">Das kann je nach Länge einen Moment dauern…</span> : null}
       {status === "done" ? <span className="text-[11px] text-emerald-300">Fertig — siehe „Fertige Filme".</span> : null}
       {status === "error" ? <span className="text-[11px] text-rose-300">{error}</span> : null}
     </div>

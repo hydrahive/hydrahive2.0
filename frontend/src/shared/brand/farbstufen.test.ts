@@ -1,6 +1,6 @@
 // Plan docs/plans/farbstufen-kopffarben.md, Task 1: Helligkeitsstufen an EINER Stelle (index.css),
 // Tailwind verweist nur darauf. Dazu die gemessenen Abstände und die Lesbarkeit der Schrift.
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
@@ -24,6 +24,28 @@ function leucht([r, g, b]: number[]): number {
 function kontrast(a: number[], b: number[]): number {
   const [x, y] = [leucht(a), leucht(b)].sort((p, q) => q - p)
   return (x + 0.05) / (y + 0.05)
+}
+
+/** Alle Kern-Quelldateien (ohne src/modules: die gehören den Modul-Repos, ohne Tests). */
+function kernDateien(dir: string): string[] {
+  return readdirSync(dir).flatMap((n) => {
+    const p = join(dir, n)
+    if (statSync(p).isDirectory()) return n === "modules" ? [] : kernDateien(p)
+    return /\.(tsx?|css)$/.test(n) && !/\.test\.tsx?$/.test(n) ? [p] : []
+  })
+}
+
+/** Neutrales Dunkelblau/-grau der alten Cockpit-Flächen: dunkel und kaum gesättigt.
+ *  Akzentflächen (Cyan-Knopf #163248, Etikett #1c2940 …) sind gesättigter und bleiben erlaubt. */
+const AUSWAHL_TOENE = new Set(["1c2940", "30243a"]) // „ausgewählt“-Markierungen, keine Flächenstufe
+
+function istNeutralDunkel(h: string): boolean {
+  if (AUSWAHL_TOENE.has(h.toLowerCase())) return false
+  const [r, g, b] = hex(`#${h}`)
+  const max = Math.max(r, g, b), min = Math.min(r, g, b)
+  const hell = (max + min) / 2 / 255
+  const satt = max === min ? 0 : (max - min) / (255 - Math.abs(max + min - 255))
+  return hell < 0.25 && satt < 0.42
 }
 
 describe("Farbstufen", () => {
@@ -58,6 +80,18 @@ describe("Farbstufen", () => {
       expect(kontrast(hex("#e8eef8"), stufe(s)), `Haupttext auf ${s}`).toBeGreaterThanOrEqual(4.5)
       expect(kontrast(hex("#9aa7bc"), stufe(s)), `Nebentext auf ${s}`).toBeGreaterThanOrEqual(4.5)
     }
+  })
+
+  it("Wächter: keine festen neutralen Dunkeltöne mehr für Flächen und Ränder (Module ausgenommen)", () => {
+    const funde: string[] = []
+    for (const datei of kernDateien(join(__dirname, "..", ".."))) {
+      const text = readFileSync(datei, "utf8")
+      for (const m of text.matchAll(/(?:bg|border(?:-[trblxy])?|from|to|via|ring|divide)-\[#([0-9a-fA-F]{6})\]/g)) {
+        if (istNeutralDunkel(m[1])) funde.push(`${datei.split("/src/")[1]}: ${m[0]}`)
+      }
+      for (const m of text.matchAll(/text-\[#(8d9ab0|7d8aa0|718097)\]/gi)) funde.push(`${datei.split("/src/")[1]}: ${m[0]}`)
+    }
+    expect(funde).toEqual([])
   })
 
   it("die alten Cockpit-Variablen zeigen auf die Stufen", () => {

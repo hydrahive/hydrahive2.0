@@ -37,7 +37,7 @@ export function MoveView({ locations, selected, busy, preparing, error, onSelect
             onClick={() => onSelect(l.id)}
             className={cn(
               "flex w-full items-start gap-3 rounded-[4px] border p-3 text-left transition-colors disabled:cursor-default",
-              selected === l.id ? "border-[#69d7ff]/60 bg-[#163248]" : "border-[#2a364b] bg-[#111827] hover:border-[#46617f]",
+              selected === l.id ? "border-[#69d7ff]/60 bg-[#163248]" : "border-s-rand bg-s-innen hover:border-s-rand-hover",
             )}
           >
             <HardDrive size={16} className="mt-0.5 shrink-0 text-[#69d7ff]" />
@@ -46,8 +46,8 @@ export function MoveView({ locations, selected, busy, preparing, error, onSelect
                 {l.kind === "default" ? t("move.default_name") : l.mount}
                 {l.current && <span className="ml-2 text-xs font-normal text-emerald-300">{t("move.current")}</span>}
               </span>
-              <span className="block break-all font-mono text-xs text-[#8d9ab0]">{l.path}</span>
-              <span className="block text-xs text-[#8d9ab0]">
+              <span className="block break-all font-mono text-xs text-[#9aa7bc]">{l.path}</span>
+              <span className="block text-xs text-[#9aa7bc]">
                 {t("move.free", { free: formatSize(l.free_bytes) })}
                 {l.kind === "disk" && ` · ${l.device} · ${l.fstype}`}
               </span>

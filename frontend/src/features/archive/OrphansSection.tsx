@@ -32,18 +32,18 @@ export function OrphansView({ scan, busy, onCleanup }: Props) {
         {nothing && <AdminFeedback tone="success">{t("orphans.none")}</AdminFeedback>}
         {scan && !nothing && (
           <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-[#8d9ab0]">{t("orphans.empty")}</dt>
+            <dt className="text-[#9aa7bc]">{t("orphans.empty")}</dt>
             <dd className="text-right text-[#e8eef8]" data-orphans-empty={empty.length}>{empty.length}</dd>
-            <dt className="text-[#8d9ab0]">{t("orphans.full")}</dt>
+            <dt className="text-[#9aa7bc]">{t("orphans.full")}</dt>
             <dd className="text-right text-[#e8eef8]" data-orphans-full={full.length}>
               {full.length} · {formatSize(fullBytes)}
             </dd>
-            <dt className="text-[#8d9ab0]">{t("orphans.agents")}</dt>
+            <dt className="text-[#9aa7bc]">{t("orphans.agents")}</dt>
             <dd className="text-right text-[#e8eef8]" data-orphans-agents={agents.length}>{agents.length}</dd>
           </dl>
         )}
-        {scan && !scan.complete && <p className="text-xs text-[#8d9ab0]">{t("orphans.at_least")}</p>}
-        {scan && !nothing && <p className="text-xs text-[#8d9ab0]">{t("orphans.what_happens")}</p>}
+        {scan && !scan.complete && <p className="text-xs text-[#9aa7bc]">{t("orphans.at_least")}</p>}
+        {scan && !nothing && <p className="text-xs text-[#9aa7bc]">{t("orphans.what_happens")}</p>}
       </AdminPanel>
     </div>
   )

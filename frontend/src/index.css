@@ -368,7 +368,7 @@
   .cockpit-route [class~="bg-zinc-800"],
   .cockpit-route [class~="bg-zinc-800/80"],
   .cockpit-route [class~="bg-zinc-800/60"],
-  .cockpit-route [class~="bg-zinc-800/50"] { background-color: #172133 !important; }
+  .cockpit-route [class~="bg-zinc-800/50"] { background-color: rgb(var(--hh-s-innen)) !important; }
   .cockpit-route [class~="bg-white/[2%]"],
   .cockpit-route [class~="bg-white/[3%]"],
   .cockpit-route [class~="bg-white/[4%]"],
@@ -419,7 +419,7 @@
     transform: none;
   }
   .cockpit-route .box:hover {
-    border-color: #46617f;
+    border-color: rgb(var(--hh-s-rand-hover));
     background: var(--cockpit-panel);
     box-shadow: 0 8px 24px -18px rgb(0 0 0 / 80%);
     transform: none;

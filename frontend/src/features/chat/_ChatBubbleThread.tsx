@@ -125,7 +125,7 @@ function ChatAssistantMessage() {
           </pre>
         ) : blocks.map((b, i) => {
           if (b.type === "text" && b.text) return (
-            <div key={i} className="rounded-[14px] border border-[#2a364b] bg-[#1b2536] px-3 py-2.5 text-[#e8eef8]">
+            <div key={i} className="rounded-[14px] border border-s-rand bg-s-hebung px-3 py-2.5 text-[#e8eef8]">
               {monoMode
                 ? <pre className="font-mono text-xs whitespace-pre-wrap break-words m-0">{query ? hl(b.text, query) : b.text}</pre>
                 : <Markdown text={b.text} />}

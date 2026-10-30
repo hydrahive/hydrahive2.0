@@ -11,7 +11,7 @@ interface Props {
   availableModels: string[]
 }
 
-const control = "w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
+const control = "w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
 
 export function BuddySettingsModel({ config, draft, onChange, availableModels }: Props) {
   const { t } = useTranslation("buddy")
@@ -43,19 +43,19 @@ export function BuddySettingsModel({ config, draft, onChange, availableModels }:
       <div>
         <div className="mb-2 flex items-end justify-between gap-3">
           <div>
-            <label className="text-xs font-semibold text-[#8d9ab0]">{t("model.fallbacks")}</label>
-            <p className="text-[11px] text-[#718097]">{t("model.fallbacks_hint")}</p>
+            <label className="text-xs font-semibold text-[#9aa7bc]">{t("model.fallbacks")}</label>
+            <p className="text-[11px] text-[#9aa7bc]">{t("model.fallbacks_hint")}</p>
           </div>
-          <span className="text-xs tabular-nums text-[#8d9ab0]">{fallbacks.length}/10</span>
+          <span className="text-xs tabular-nums text-[#9aa7bc]">{fallbacks.length}/10</span>
         </div>
-        <label className="mb-2 flex items-center gap-2 rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2">
-          <Search size={14} className="text-[#718097]" />
+        <label className="mb-2 flex items-center gap-2 rounded-[4px] border border-s-rand bg-s-tief px-3 py-2">
+          <Search size={14} className="text-[#9aa7bc]" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("model.search_models")} className="min-w-0 flex-1 bg-transparent text-sm text-[#e8eef8] outline-none placeholder:text-[#59677d]" />
         </label>
         <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
           {filtered.filter((item) => item !== model).map((item) => {
             const checked = fallbacks.includes(item)
-            return <button key={item} type="button" onClick={() => toggleFallback(item)} className={`rounded-[4px] border p-2 text-left text-xs font-mono ${checked ? "border-[#69d7ff]/50 bg-[#163248] text-[#c8f2ff]" : "border-[#2a364b] bg-[#111827] text-[#8d9ab0] hover:border-[#46617f]"}`}>{item}</button>
+            return <button key={item} type="button" onClick={() => toggleFallback(item)} className={`rounded-[4px] border p-2 text-left text-xs font-mono ${checked ? "border-[#69d7ff]/50 bg-[#163248] text-[#c8f2ff]" : "border-s-rand bg-s-innen text-[#9aa7bc] hover:border-s-rand-hover"}`}>{item}</button>
           })}
         </div>
       </div>
@@ -82,5 +82,5 @@ export function BuddySettingsModel({ config, draft, onChange, availableModels }:
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return <div><label className="mb-1 block text-xs font-semibold text-[#8d9ab0]">{label}</label>{children}{hint && <p className="mt-1 text-[11px] text-[#718097]">{hint}</p>}</div>
+  return <div><label className="mb-1 block text-xs font-semibold text-[#9aa7bc]">{label}</label>{children}{hint && <p className="mt-1 text-[11px] text-[#9aa7bc]">{hint}</p>}</div>
 }

@@ -43,7 +43,7 @@ export function LoadOlderSentinel({ hasMore, onLoadMore, visibleCount }: Props) 
         type="button"
         onClick={handleLoadMore}
         disabled={loading}
-        className="flex items-center gap-2 rounded-[4px] px-2 py-1 text-xs text-[#8d9ab0] transition-colors hover:bg-white/[6%] hover:text-[#e8eef8] disabled:cursor-default disabled:hover:bg-transparent"
+        className="flex items-center gap-2 rounded-[4px] px-2 py-1 text-xs text-[#9aa7bc] transition-colors hover:bg-white/[6%] hover:text-[#e8eef8] disabled:cursor-default disabled:hover:bg-transparent"
       >
         {loading ? (
           <>

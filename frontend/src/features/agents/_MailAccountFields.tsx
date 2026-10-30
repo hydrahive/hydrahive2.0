@@ -12,8 +12,8 @@ interface Props {
 type Block = "smtp" | "imap"
 
 const inputCls =
-  "w-full rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-3 py-2 text-xs text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
-const labelCls = "block text-[10px] font-semibold text-[#8d9ab0]"
+  "w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-xs text-[#e8eef8] outline-none focus:border-[#69d7ff]/60"
+const labelCls = "block text-[10px] font-semibold text-[#9aa7bc]"
 
 /**
  * Geteilte SMTP/IMAP-Felder fürs „eigenes Postfach". Wird vom Agent-Editor
@@ -49,12 +49,12 @@ export function MailAccountFields({ value, onChange }: Props) {
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-1.5">
-        <Info size={12} className="mt-0.5 text-[#718097] shrink-0" />
-        <p className="text-xs text-[#8d9ab0]">{t("mail.intro")}</p>
+        <Info size={12} className="mt-0.5 text-[#9aa7bc] shrink-0" />
+        <p className="text-xs text-[#9aa7bc]">{t("mail.intro")}</p>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-[#8d9ab0]">{t("mail.smtp_title")}</p>
+        <p className="text-xs font-medium text-[#9aa7bc]">{t("mail.smtp_title")}</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-0.5">
             <label className={labelCls}>{t("mail.host")}</label>
@@ -82,17 +82,17 @@ export function MailAccountFields({ value, onChange }: Props) {
               placeholder={smtp.password_set ? t("mail.password_keep") : t("mail.password_placeholder")}
               onChange={(e) => setField("smtp", "password", e.target.value)} />
           </div>
-          <label className="flex items-center gap-1.5 self-end pb-1 text-[11px] text-[#8d9ab0]">
+          <label className="flex items-center gap-1.5 self-end pb-1 text-[11px] text-[#9aa7bc]">
             <input type="checkbox" checked={smtp.use_tls ?? true}
               onChange={(e) => setField("smtp", "use_tls", e.target.checked)} />
             {t("mail.starttls")}
           </label>
         </div>
-        <p className="text-[10px] text-[#718097]">{t("mail.tls_hint")}</p>
+        <p className="text-[10px] text-[#9aa7bc]">{t("mail.tls_hint")}</p>
       </div>
 
       <div className="space-y-2">
-        <p className="text-xs font-medium text-[#8d9ab0]">{t("mail.imap_title")}</p>
+        <p className="text-xs font-medium text-[#9aa7bc]">{t("mail.imap_title")}</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-0.5">
             <label className={labelCls}>{t("mail.host")}</label>

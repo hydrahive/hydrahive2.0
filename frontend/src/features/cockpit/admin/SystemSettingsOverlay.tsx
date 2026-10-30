@@ -28,7 +28,7 @@ function SettingRow({ setting, onSaved }: { setting: EditableSetting; onSaved: (
   const original = setting.type === "secret" ? "" : setting.value
 
   return (
-    <div className="grid gap-3 border-b border-[#2a364b] py-3 last:border-0 md:grid-cols-[minmax(0,1fr)_14rem] md:items-start">
+    <div className="grid gap-3 border-b border-s-rand py-3 last:border-0 md:grid-cols-[minmax(0,1fr)_14rem] md:items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-[#e8eef8]">{setting.label}</span>
@@ -39,7 +39,7 @@ function SettingRow({ setting, onSaved }: { setting: EditableSetting; onSaved: (
           {status === "saving" && <Loader2 size={13} className="animate-spin text-amber-300" aria-label="Wird gespeichert" />}
           {status === "error" && <span className="text-[11px] text-rose-300">Fehler beim Speichern</span>}
         </div>
-        {setting.help && <p className="mt-1 text-xs leading-relaxed text-[#8d9ab0]">{setting.help}</p>}
+        {setting.help && <p className="mt-1 text-xs leading-relaxed text-[#9aa7bc]">{setting.help}</p>}
       </div>
 
       <div className="w-full">
@@ -84,7 +84,7 @@ export function SystemSettingsOverlay({ onClose }: { onClose: () => void }) {
   return (
     <AdminOverlay theme={ADMIN_OVERLAY_THEME["system-settings"]} eyebrow="Admin · System" title={t("settings.title")} onClose={onClose} maxWidthClass="max-w-3xl">
       <div className="space-y-4">
-        <p className="text-sm text-[#8d9ab0]">{t("settings.subtitle")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("settings.subtitle")}</p>
         {error && <AdminFeedback tone="danger">{error}</AdminFeedback>}
         {!settings && !error && <AdminFeedback loading>Systemeinstellungen werden geladen …</AdminFeedback>}
         {groups.map(([group, rows]) => (

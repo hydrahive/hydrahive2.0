@@ -139,7 +139,7 @@ export function ProjectCockpitPage() {
           <CockpitButton tone="primary" onClick={() => setCreateProjectOpen(true)}>+ Neues Projekt</CockpitButton>
         </>
       )}
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-s-grund"
       hideHeader
     >
       <CockpitTopbar
@@ -160,7 +160,7 @@ export function ProjectCockpitPage() {
             onToggle={() => setLeftPanelCollapsed("project", !leftPanelCollapsed.project)}
           >
             <ProjectSelector projects={projects} activeProjectId={activeProjectId} loading={loading || prefs.loading} onPick={pickProject} />
-            {activeProject && <p className="mt-3 line-clamp-3 text-xs text-[#8d9ab0]">{activeProject.description || "Keine Beschreibung."}</p>}
+            {activeProject && <p className="mt-3 line-clamp-3 text-xs text-[#9aa7bc]">{activeProject.description || "Keine Beschreibung."}</p>}
             <ProjectActionGroups
               disabled={!activeProject}
               onCreate={() => setCreateProjectOpen(true)}
@@ -244,7 +244,7 @@ export function ProjectCockpitPage() {
         </aside>
 
         <main id="project-pane-chat" role="tabpanel" aria-labelledby="project-tab-chat"
-          className={`min-h-0 overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#151c2b] ${paneClass("chat", mobileTab, "block")}`}>
+          className={`min-h-0 overflow-hidden rounded-[4px] border border-s-rand bg-s-box ${paneClass("chat", mobileTab, "block")}`}>
           {/*
             Erst rendern, wenn die Preferences geladen sind. Sonst mountet die
             ChatPane mit dem noch leeren Default (selectedAgentId fällt auf den
@@ -254,7 +254,7 @@ export function ProjectCockpitPage() {
             aufgehen statt der zuletzt offenen Spezialisten-Session.
           */}
           {prefs.loading || loading ? (
-            <div className="flex h-full items-center justify-center text-sm text-[#8d9ab0]">
+            <div className="flex h-full items-center justify-center text-sm text-[#9aa7bc]">
               <Loader2 size={14} className="mr-2 animate-spin" /> Arbeitsbereich wird geladen …
             </div>
           ) : activeProjectId ? (

@@ -40,21 +40,21 @@ export function WorkspacePanel({ agentId, projectId, onOpenFile }: Props) {
   const allTabs = [...coreTabs, ...extraTabs.map((x) => x.id)]
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-[#151c2b] text-[#e8eef8]">
-      <div className="flex items-center justify-between border-b border-[#2a364b] bg-[#121a29] px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#69d7ff]">
+    <div className="flex h-full flex-col overflow-hidden bg-s-box text-[#e8eef8]">
+      <div className="flex items-center justify-between border-b border-s-rand bg-s-kopf px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#69d7ff]">
         {t("title")}
         <button type="button" onClick={() => setTreeRevision((n) => n + 1)} title={t("refresh")} aria-label={t("refresh")}
-          className="rounded-[4px] p-1 text-[#8d9ab0] hover:bg-[#172133] hover:text-[#e8eef8]">
+          className="rounded-[4px] p-1 text-[#9aa7bc] hover:bg-s-hebung hover:text-[#e8eef8]">
           <RefreshCw size={12} />
         </button>
       </div>
-      <div className="flex border-b border-[#2a364b] bg-[#111827] text-[10px]">
+      <div className="flex border-b border-s-rand bg-s-kopf text-[10px]">
         {allTabs.map((id) => {
           const extra = extraTabs.find((x) => x.id === id)
           const label = extra ? extra.label : t(`tab_${id}`)
           return (
             <button key={id} onClick={() => setTab(id)}
-              className={`flex-1 border-b-2 py-1.5 font-semibold transition-colors ${tab === id ? "border-[#69d7ff] bg-[#1c2940] text-[#69d7ff]" : "border-transparent text-[#8d9ab0] hover:bg-[#172133] hover:text-[#e8eef8]"}`}>
+              className={`flex-1 border-b-2 py-1.5 font-semibold transition-colors ${tab === id ? "border-[#69d7ff] bg-[#1c2940] text-[#69d7ff]" : "border-transparent text-[#9aa7bc] hover:bg-s-hebung hover:text-[#e8eef8]"}`}>
               {label}
             </button>
           )

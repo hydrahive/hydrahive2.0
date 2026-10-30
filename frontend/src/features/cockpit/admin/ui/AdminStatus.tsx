@@ -5,7 +5,7 @@ import { cn } from "@/shared/cn"
 export type AdminStatusTone = "neutral" | "success" | "warning" | "danger"
 
 const toneClasses: Record<AdminStatusTone, string> = {
-  neutral: "border-[#2a364b] bg-[#172133] text-[#8d9ab0]",
+  neutral: "border-s-rand bg-s-innen text-[#9aa7bc]",
   success: "border-emerald-500/25 bg-emerald-500/[8%] text-emerald-300",
   warning: "border-amber-500/25 bg-amber-500/[8%] text-amber-300",
   danger: "border-rose-500/25 bg-rose-500/[8%] text-rose-300",

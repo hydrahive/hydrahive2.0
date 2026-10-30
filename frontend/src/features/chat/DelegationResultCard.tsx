@@ -36,7 +36,7 @@ export function DelegationResultCard({ message }: { message: Message }) {
   const items = meta?.delegations ?? []
 
   return (
-    <div data-msg-id={message.id} className="my-1 rounded-[14px] border border-[#2a364b] bg-[#141c2b] px-3 py-2 text-sm">
+    <div data-msg-id={message.id} className="my-1 rounded-[14px] border border-s-rand bg-s-innen px-3 py-2 text-sm">
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 text-left text-[#c7d2e5]">
         <Users size={14} className="text-sky-300 shrink-0" />
         <span className="font-medium">{t("delegation.result_title", { count: items.length })}</span>

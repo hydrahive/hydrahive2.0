@@ -47,7 +47,7 @@ export function ArchiveEntriesSection({ entries, kind, onKind, onDropLocal }: Pr
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-[#8d9ab0]">
+              <thead className="text-[#9aa7bc]">
                 <tr>
                   <th className="py-1 pr-3 font-medium">{t("entries.col_name")}</th>
                   <th className="py-1 pr-3 font-medium">{t("entries.col_kind")}</th>
@@ -61,7 +61,7 @@ export function ArchiveEntriesSection({ entries, kind, onKind, onDropLocal }: Pr
               </thead>
               <tbody className="text-[#e8eef8]">
                 {entries.map((e) => (
-                  <tr key={e.path} className="border-t border-[#1e2738]"
+                  <tr key={e.path} className="border-t border-s-rand"
                     {...(e.manual ? { "data-archive-manual": e.path } : {})}>
                     <td className="max-w-[18rem] truncate py-1.5 pr-3" title={e.path}>
                       {e.manual ? <span className="font-mono">{e.path}</span> : e.name}

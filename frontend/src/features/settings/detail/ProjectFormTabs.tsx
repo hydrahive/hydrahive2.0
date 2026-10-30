@@ -67,12 +67,12 @@ export function ProjectFormTabs({ project, onSaved, onDeleted }: Props) {
   return (
     <div className="flex h-full flex-col">
       {/* Header mit Name + Save */}
-      <div className="flex items-center gap-3 border-b border-[#2a364b] bg-[#101724] px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-s-rand bg-s-kopf px-4 py-3">
         <Folder size={18} className="shrink-0 text-[#69d7ff]" />
         <input
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          className="min-w-0 flex-1 rounded-[4px] border border-transparent bg-transparent px-2 py-1 text-lg font-bold text-[#e8eef8] focus:border-[#2a364b] focus:bg-[#0d1420] focus:outline-none"
+          className="min-w-0 flex-1 rounded-[4px] border border-transparent bg-transparent px-2 py-1 text-lg font-bold text-[#e8eef8] focus:border-s-rand-hover focus:bg-s-tief focus:outline-none"
         />
         {dirty && (
           <button onClick={save} disabled={saving}
@@ -84,12 +84,12 @@ export function ProjectFormTabs({ project, onSaved, onDeleted }: Props) {
       </div>
 
       {/* Karteikarten-Reiter */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-[#2a364b] bg-[#101724] px-3 py-2">
+      <div className="flex flex-wrap items-center gap-1 border-b border-s-rand bg-s-kopf px-3 py-2">
         {TABS.map(({ id, icon: Icon, label }) => (
           <button key={id} onClick={() => setTab(id)}
             className={`flex items-center gap-1.5 rounded-[4px] border px-3 py-2 text-sm transition-colors ${
               tab === id ? "border-[#69d7ff]/40 bg-[#1c2940] font-semibold text-[#69d7ff]"
-                         : "border-transparent text-[#8d9ab0] hover:border-[#2a364b] hover:bg-[#151c2b] hover:text-[#e8eef8]"
+                         : "border-transparent text-[#9aa7bc] hover:border-s-rand-hover hover:bg-s-hebung hover:text-[#e8eef8]"
             }`}>
             <Icon size={14} /> {label}
           </button>

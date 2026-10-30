@@ -77,7 +77,7 @@ export function DeleteDialog({ kind, id, onClose, onDeleted }: Props) {
       {jobId && (
         <div className="space-y-2 p-4">
           {job ? <DeleteProgress job={job} /> : <AdminFeedback loading>{t("delete.step.queued")}</AdminFeedback>}
-          {job?.state !== "done" && job?.state !== "failed" && <p className="text-xs text-[#8d9ab0]">{t("delete.close_ok")}</p>}
+          {job?.state !== "done" && job?.state !== "failed" && <p className="text-xs text-[#9aa7bc]">{t("delete.close_ok")}</p>}
         </div>
       )}
     </AdminDialog>

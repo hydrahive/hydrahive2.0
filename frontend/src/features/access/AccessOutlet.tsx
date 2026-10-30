@@ -19,9 +19,9 @@ export function NoAccess() {
   return (
     <div className="grid min-h-[60vh] place-items-center p-6">
       <div className="max-w-sm text-center">
-        <Lock size={28} className="mx-auto mb-3 text-[#8d9ab0]" />
+        <Lock size={28} className="mx-auto mb-3 text-[#9aa7bc]" />
         <h2 className="text-lg font-bold text-[#e8eef8]">{t("no_access.title")}</h2>
-        <p className="mt-2 text-sm text-[#8d9ab0]">{t("no_access.text")}</p>
+        <p className="mt-2 text-sm text-[#9aa7bc]">{t("no_access.text")}</p>
       </div>
     </div>
   )

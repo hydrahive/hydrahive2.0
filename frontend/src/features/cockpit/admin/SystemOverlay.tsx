@@ -68,7 +68,7 @@ export function SystemOverlay({ onClose }: { onClose: () => void }) {
       ) : undefined}
     >
       <div className="space-y-6">
-        <p className="text-sm text-[#8d9ab0]">
+        <p className="text-sm text-[#9aa7bc]">
           {info
             ? t("subtitle_with_uptime", { seconds: REFRESH_MS / 1000, uptime: formatUptime(info.uptime_seconds, t) })
             : t("subtitle", { seconds: REFRESH_MS / 1000 })}

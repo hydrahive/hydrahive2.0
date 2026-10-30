@@ -42,7 +42,7 @@ export function Layout() {
   return (
     <>
       {isCockpitRoute ? (
-        <div className="flex h-[100dvh] min-h-0 flex-col bg-[#080b11]">
+        <div className="flex h-[100dvh] min-h-0 flex-col bg-s-grund">
           {stale && <StaleBundleBanner />}
           <main className="min-h-0 flex-1 overflow-hidden">
             <AccessOutlet />
@@ -58,7 +58,7 @@ export function Layout() {
           />
         </div>
       ) : (
-        <div className="cockpit-route flex h-[100dvh] min-h-0 flex-col bg-[#080b11]">
+        <div className="cockpit-route flex h-[100dvh] min-h-0 flex-col bg-s-grund">
           {stale && <StaleBundleBanner />}
           <CockpitTopbar
             active={pathname}

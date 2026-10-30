@@ -25,12 +25,12 @@ export function CutPointInspector({ cut, onChange, onRemove, onClose }: Props) {
   }
 
   return (
-    <div className="mt-3 rounded-[4px] border border-rose-500/30 bg-[#141b28] p-3">
+    <div className="mt-3 rounded-[4px] border border-rose-500/30 bg-s-innen p-3">
       <div className="mb-2 flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-rose-300">
           Schnittpunkt · {timecode(cut.time)}
         </span>
-        <button onClick={onClose} className="text-[10px] uppercase tracking-[0.12em] text-[#7d8aa0] hover:text-[#c3ccdd]">
+        <button onClick={onClose} className="text-[10px] uppercase tracking-[0.12em] text-[#9aa7bc] hover:text-[#c3ccdd]">
           schließen
         </button>
       </div>
@@ -44,7 +44,7 @@ export function CutPointInspector({ cut, onChange, onRemove, onClose }: Props) {
             className={["rounded-[3px] border px-2 py-1 text-[11px] font-semibold transition-colors",
               effect === t.id
                 ? "border-rose-400/60 bg-rose-500/15 text-rose-100"
-                : "border-[#2a364b] bg-[#111827] text-[#8d9ab0] hover:text-[#c3ccdd]"].join(" ")}
+                : "border-s-rand bg-s-innen text-[#9aa7bc] hover:text-[#c3ccdd]"].join(" ")}
           >
             {t.label}
           </button>
@@ -54,7 +54,7 @@ export function CutPointInspector({ cut, onChange, onRemove, onClose }: Props) {
       {/* Dauer-Slider (nur bei echten Übergängen) */}
       {effect !== "cut" ? (
         <div className="mt-3 flex items-center gap-2">
-          <span className="text-[11px] text-[#8d9ab0]">Dauer</span>
+          <span className="text-[11px] text-[#9aa7bc]">Dauer</span>
           <input
             type="range" min={0.2} max={5} step={0.1} value={duration || DEFAULT_DURATION}
             onChange={(e) => onChange({ duration: Number(e.target.value) })}
@@ -63,12 +63,12 @@ export function CutPointInspector({ cut, onChange, onRemove, onClose }: Props) {
           <span className="w-12 text-right font-mono text-[11px] text-rose-200">{(duration || DEFAULT_DURATION).toFixed(1)}s</span>
         </div>
       ) : (
-        <p className="mt-2 text-[11px] text-[#7d8aa0]">Hartschnitt — kein Übergang.</p>
+        <p className="mt-2 text-[11px] text-[#9aa7bc]">Hartschnitt — kein Übergang.</p>
       )}
 
       <button
         onClick={onRemove}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-[3px] border border-[#2a364b] px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/10"
+        className="mt-3 inline-flex items-center gap-1.5 rounded-[3px] border border-s-rand px-2 py-1 text-[11px] text-rose-300 hover:bg-rose-500/10"
       >
         <Trash2 size={12} /> Schnittpunkt löschen
       </button>

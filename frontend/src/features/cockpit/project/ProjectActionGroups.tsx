@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, onIntegrations, onSkills, onInsight, onGraph }: Props) {
-  return <div className="mt-3 space-y-2 border-t border-[#2a364b] pt-3">
+  return <div className="mt-3 space-y-2 border-t border-s-rand pt-3">
     <div className="grid grid-cols-2 gap-2">
       <CockpitButton tone="primary" onClick={onCreate}>+ Neues Projekt</CockpitButton>
       <CockpitButton onClick={onEdit} disabled={disabled}>Bearbeiten</CockpitButton>
@@ -42,12 +42,12 @@ export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onSe
 
 function ActionGroup({ title, children }: { title: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
-  return <div className="rounded-[4px] border border-[#2a364b] bg-[#101724]">
+  return <div className="rounded-[4px] border border-s-rand bg-s-innen">
     <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-semibold text-[#b8c4d8] hover:bg-white/[3%]"><span>{title}</span>{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
-    {open && <div className="grid grid-cols-2 gap-1 border-t border-[#2a364b] p-2">{children}</div>}
+    {open && <div className="grid grid-cols-2 gap-1 border-t border-s-rand p-2">{children}</div>}
   </div>
 }
 
 function ActionButton(props: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button {...props} className="rounded-[4px] border border-transparent px-2 py-1.5 text-left text-xs text-[#8d9ab0] hover:border-[#2a364b] hover:bg-[#172133] hover:text-[#e8eef8] disabled:cursor-not-allowed disabled:opacity-40" />
+  return <button {...props} className="rounded-[4px] border border-transparent px-2 py-1.5 text-left text-xs text-[#9aa7bc] hover:border-s-rand-hover hover:bg-s-hebung hover:text-[#e8eef8] disabled:cursor-not-allowed disabled:opacity-40" />
 }

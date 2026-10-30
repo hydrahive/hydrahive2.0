@@ -45,16 +45,16 @@ export function VaultPinDialog() {
     }
   }
 
-  const input = "w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2 text-center text-lg tracking-[0.3em] text-[#e8eef8]"
+  const input = "w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-center text-lg tracking-[0.3em] text-[#e8eef8]"
   return (
     <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[100] grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby={titelId}>
       <form onSubmit={(e) => { e.preventDefault(); void submit() }}
-        className="w-full max-w-sm space-y-3 rounded-[6px] border border-[#69d7ff]/40 bg-[#111827] p-5 shadow-2xl">
+        className="w-full max-w-sm space-y-3 rounded-[6px] border border-[#69d7ff]/40 bg-s-box p-5 shadow-2xl">
         <div className="flex items-center gap-2">
           <LockKeyhole size={18} className="text-[#69d7ff]" />
           <h2 id={titelId} className="text-base font-bold text-[#e8eef8]">{t(`title_${m}`)}</h2>
         </div>
-        <p className="text-xs leading-5 text-[#8d9ab0]">{t(`text_${m}`)}</p>
+        <p className="text-xs leading-5 text-[#9aa7bc]">{t(`text_${m}`)}</p>
         {m !== "unlock" && (
           <input type="password" autoComplete="current-password" value={password} placeholder={t("password")} aria-label={t("password")}
             onChange={(e) => setPassword(e.target.value)} className={input.replace("text-center text-lg tracking-[0.3em]", "text-sm")} />
@@ -68,10 +68,10 @@ export function VaultPinDialog() {
         {error && <p className="text-xs text-rose-300">{error}</p>}
         <div className="flex items-center justify-between gap-2 pt-1">
           {m === "unlock"
-            ? <button type="button" onClick={() => { setMode("forgot"); setError("") }} className="text-xs text-[#8d9ab0] hover:text-[#e8eef8]">{t("forgot")}</button>
+            ? <button type="button" onClick={() => { setMode("forgot"); setError("") }} className="text-xs text-[#9aa7bc] hover:text-[#e8eef8]">{t("forgot")}</button>
             : <span />}
           <div className="flex gap-2">
-            <button type="button" onClick={close} className="rounded-[4px] px-3 py-1.5 text-sm text-[#8d9ab0] hover:text-[#e8eef8]">{t("cancel")}</button>
+            <button type="button" onClick={close} className="rounded-[4px] px-3 py-1.5 text-sm text-[#9aa7bc] hover:text-[#e8eef8]">{t("cancel")}</button>
             <button type="submit" disabled={busy} className="rounded-[4px] border border-[#69d7ff]/50 bg-[#69d7ff]/15 px-3 py-1.5 text-sm font-semibold text-[#69d7ff] disabled:opacity-40">
               {t(m === "unlock" ? "unlock" : "save")}
             </button>

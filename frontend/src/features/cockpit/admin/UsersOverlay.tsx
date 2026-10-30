@@ -61,7 +61,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
       )}
     >
       <div className="space-y-5">
-        <p className="text-sm text-[#8d9ab0]">{t("subtitle")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
         {actionError && <AdminFeedback tone="danger">{actionError}</AdminFeedback>}
         {notice && <AdminFeedback tone="success">{notice}</AdminFeedback>}
         {loading && <AdminFeedback loading>Benutzer werden geladen …</AdminFeedback>}
@@ -74,8 +74,8 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
               const isSelf = user.username === currentUsername
               const RoleIcon = user.role === "admin" ? Crown : UserIcon
               return (
-                <div key={user.username} className="flex items-center gap-3 rounded-[6px] border border-[#2a364b] bg-[#111827] p-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-[#2a364b] bg-[#172133] text-sm font-black text-[#69d7ff]">
+                <div key={user.username} className="flex items-center gap-3 rounded-[6px] border border-s-rand bg-s-innen p-3">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-s-rand bg-s-innen text-sm font-black text-[#69d7ff]">
                     {user.username[0]?.toUpperCase() ?? "?"}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -83,7 +83,7 @@ export function UsersOverlay({ onClose }: { onClose: () => void }) {
                       <p className="truncate text-sm font-bold text-[#e8eef8]">{user.username}</p>
                       {isSelf && <AdminStatus>{t("you_marker")}</AdminStatus>}
                     </div>
-                    <p className="mt-1 flex items-center gap-1 text-xs text-[#8d9ab0]">
+                    <p className="mt-1 flex items-center gap-1 text-xs text-[#9aa7bc]">
                       <RoleIcon size={11} className="text-[#69d7ff]" />{t(`role.${user.role}`)}
                     </p>
                   </div>

@@ -24,7 +24,7 @@ export function CockpitShell({ title, eyebrow, description, actions, menu, child
               </p>
             )}
             <h1 className="mt-2 truncate text-2xl font-black tracking-tight text-[#e8eef8]">{title}</h1>
-            {description && <p className="mt-1 max-w-3xl text-sm text-[#8d9ab0]">{description}</p>}
+            {description && <p className="mt-1 max-w-3xl text-sm text-[#9aa7bc]">{description}</p>}
             {menu && <div className="mt-3">{menu}</div>}
           </div>
           {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}

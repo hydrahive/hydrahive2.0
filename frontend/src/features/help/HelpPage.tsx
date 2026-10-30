@@ -33,13 +33,13 @@ export function HelpPage() {
   return (
     <CockpitShell
       title={lang === "de" ? "Hilfe" : "Help"}
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-s-grund"
       hideHeader
     >
       <CockpitTopbar active="/help" context={lang === "de" ? "Handbuch und Seitendokumentation" : "Manual and page documentation"} />
       <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="self-start rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-3 lg:sticky lg:top-0">
+          <aside className="self-start rounded-[4px] border border-s-rand bg-s-box p-3 lg:sticky lg:top-0">
             <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#69d7ff]">
               {lang === "de" ? "Handbuch" : "Manual"}
             </p>
@@ -51,7 +51,7 @@ export function HelpPage() {
                   className={`w-full rounded-[4px] border px-3 py-2 text-left text-sm transition-colors ${
                     topic === item.id
                       ? "border-[#69d7ff]/45 bg-[#1c2940] font-semibold text-[#69d7ff]"
-                      : "border-transparent text-[#8d9ab0] hover:border-[#2a364b] hover:bg-[#111827] hover:text-[#e8eef8]"
+                      : "border-transparent text-[#9aa7bc] hover:border-s-rand-hover hover:bg-s-hebung hover:text-[#e8eef8]"
                   }`}
                 >
                   {lang === "de" ? item.labelDe : item.labelEn}
@@ -60,9 +60,9 @@ export function HelpPage() {
             </nav>
           </aside>
 
-          <article className="min-h-[420px] rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-5 text-[#c8d2df]">
+          <article className="min-h-[420px] rounded-[4px] border border-s-rand bg-s-box p-5 text-[#c8d2df]">
             {loading ? (
-              <div className="flex items-center gap-2 text-sm text-[#8d9ab0]">
+              <div className="flex items-center gap-2 text-sm text-[#9aa7bc]">
                 <Loader2 size={14} className="animate-spin" />
                 <span>{lang === "de" ? "Lade…" : "Loading…"}</span>
               </div>

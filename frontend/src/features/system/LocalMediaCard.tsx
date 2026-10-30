@@ -32,7 +32,7 @@ export function LocalMediaCard() {
   return (
     <AdminPanel title={t("local_media.title")} description={t("local_media.subtitle")} icon={ImagePlay}
       actions={badge} bodyClassName="space-y-3">
-      {s && <p className="font-mono text-xs text-[#8d9ab0]">{gpuLine}</p>}
+      {s && <p className="font-mono text-xs text-[#9aa7bc]">{gpuLine}</p>}
 
       {blocked && (
         <AdminFeedback tone="warning">
@@ -58,7 +58,7 @@ export function LocalMediaCard() {
         <div className="space-y-3">
           <AdminFeedback tone="warning">
             <p>{t(`local_media.confirm_${verb}`, { size: gib(s.download_bytes), free: gib(s.free_bytes) })}</p>
-            <p className="mt-1 text-[#8d9ab0]">{t(`local_media.confirm_${verb}_hint`, { size: gib(s.download_bytes) })}</p>
+            <p className="mt-1 text-[#9aa7bc]">{t(`local_media.confirm_${verb}_hint`, { size: gib(s.download_bytes) })}</p>
           </AdminFeedback>
           <div className="flex justify-end gap-2">
             <AdminAction onClick={lm.close}>{tCommon("actions.cancel")}</AdminAction>

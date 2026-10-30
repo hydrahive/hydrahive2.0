@@ -40,17 +40,17 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
   const busy = phase === "running"
 
   return (
-    <div className="flex flex-col gap-3 rounded-[6px] border border-[#2a364b] bg-[#111827] p-4">
+    <div className="flex flex-col gap-3 rounded-[6px] border border-s-rand bg-s-innen p-4">
       <div className="flex items-start gap-3">
-        <div className={"shrink-0 rounded-[4px] p-2 " + (mod.installed ? "bg-emerald-500/10 text-emerald-400" : "bg-[#1b2536] text-[#8d9ab0]")}>
+        <div className={"shrink-0 rounded-[4px] p-2 " + (mod.installed ? "bg-emerald-500/10 text-emerald-400" : "bg-s-hebung text-[#9aa7bc]")}>
           <Boxes size={18} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-[#e8eef8]">{mod.name}</span>
-            <span className="font-mono text-[10px] text-[#8d9ab0]">{mod.id}</span>
+            <span className="font-mono text-[10px] text-[#9aa7bc]">{mod.id}</span>
             {mod.version && (
-              <span className="rounded-full border border-[#2a364b] bg-[#0d1420] px-1.5 py-0.5 text-[10px] text-[#8d9ab0]">v{mod.version}</span>
+              <span className="rounded-full border border-s-rand bg-s-tief px-1.5 py-0.5 text-[10px] text-[#9aa7bc]">v{mod.version}</span>
             )}
             {mod.update_available && mod.available_version && (
               <span title={t("update.available")} className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
@@ -67,14 +67,14 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
               </span>
             ))}
           </div>
-          {mod.description && <p className="mt-1 text-[12px] leading-snug text-[#8d9ab0]">{mod.description}</p>}
+          {mod.description && <p className="mt-1 text-[12px] leading-snug text-[#9aa7bc]">{mod.description}</p>}
           {mod.error && <p className="mt-0.5 font-mono text-[11px] text-rose-400">{mod.error}</p>}
         </div>
       </div>
 
       {phase !== "idle" && (
-        <div ref={logRef} className="max-h-40 overflow-y-auto rounded-[4px] bg-[#0b111c] p-3 font-mono text-[11px] leading-relaxed">
-          {lines.length === 0 && <span className="text-[#7d8aa0]">{t("log.waiting")}</span>}
+        <div ref={logRef} className="max-h-40 overflow-y-auto rounded-[4px] bg-s-tief p-3 font-mono text-[11px] leading-relaxed">
+          {lines.length === 0 && <span className="text-[#9aa7bc]">{t("log.waiting")}</span>}
           {lines.map((l, i) => (
             <div key={i} className={
               l.startsWith("[OK]") ? "text-emerald-400" :
@@ -94,7 +94,7 @@ export function ModuleCockpitCard({ mod, onRefresh }: Props) {
         <div className="flex gap-2">
           <button onClick={() => run("update")} disabled={busy}
             className={"flex flex-1 items-center justify-center gap-1.5 rounded-[4px] border py-1.5 text-xs font-medium transition-colors disabled:opacity-40 " +
-              (mod.update_available ? "border-amber-500/30 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25" : "border-[#2a364b] bg-[#172133] text-[#69d7ff] hover:bg-[#1b2536]")}>
+              (mod.update_available ? "border-amber-500/30 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25" : "border-s-rand bg-s-innen text-[#69d7ff] hover:bg-s-hebung")}>
             <RefreshCw size={11} className={busy && action === "update" ? "animate-spin" : ""} />
             {busy && action === "update" ? t("actions.updating") : mod.update_available ? t("update.available") : t("actions.update")}
           </button>

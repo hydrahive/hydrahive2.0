@@ -28,7 +28,7 @@ export function AgentSection() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-[#2a364b] px-4 py-2.5">
+      <div className="shrink-0 border-b border-s-rand px-4 py-2.5">
         <ItemPicker label="Agent" items={items} value={value} onChange={select} onCreate={() => setCreating(true)} />
       </div>
       <div className="min-h-0 flex-1">

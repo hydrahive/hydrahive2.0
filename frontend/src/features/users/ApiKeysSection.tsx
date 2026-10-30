@@ -123,20 +123,20 @@ export function ApiKeysSection({ own = false }: { own?: boolean } = {}) {
         {keys.length > 0 ? (
           <div className="space-y-1.5">
             {keys.map((key) => (
-              <div key={key.id} className="flex items-center gap-3 rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-3 py-2">
+              <div key={key.id} className="flex items-center gap-3 rounded-[4px] border border-s-rand bg-s-tief px-3 py-2">
                 <KeyRound size={13} className="shrink-0 text-[#69d7ff]" />
                 <div className="min-w-0 flex-1">
                   <span className="text-sm text-[#e8eef8]">{key.name}</span>
-                  {!own && <span className="ml-2 text-xs text-[#7d8aa0]">{key.username}</span>}
+                  {!own && <span className="ml-2 text-xs text-[#9aa7bc]">{key.username}</span>}
                 </div>
-                <span className="shrink-0 text-xs text-[#7d8aa0]">{new Date(key.created_at).toLocaleDateString()}</span>
+                <span className="shrink-0 text-xs text-[#9aa7bc]">{new Date(key.created_at).toLocaleDateString()}</span>
                 <AdminAction tone="danger" className="shrink-0 px-2" onClick={() => setDeleteTarget(key)} title={t("actions.delete")} aria-label={t("actions.delete")}>
                   <Trash2 size={13} />
                 </AdminAction>
               </div>
             ))}
           </div>
-        ) : !loading && !error && !newKey ? <p className="text-xs italic text-[#7d8aa0]">{t("apikeys.empty")}</p> : null}
+        ) : !loading && !error && !newKey ? <p className="text-xs italic text-[#9aa7bc]">{t("apikeys.empty")}</p> : null}
       </AdminPanel>
 
       {deleteTarget && (

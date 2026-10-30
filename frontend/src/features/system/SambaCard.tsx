@@ -93,9 +93,9 @@ export function SambaCard() {
     >
       {status?.installed && status.password_set && (
         <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs">
-          <span className="text-[#8d9ab0]">{t("samba.user")}</span>
+          <span className="text-[#9aa7bc]">{t("samba.user")}</span>
           <span className="font-mono text-[#e8eef8]">{status.user}</span>
-          <span className="text-[#8d9ab0]">{t("samba.password")}</span>
+          <span className="text-[#9aa7bc]">{t("samba.password")}</span>
           <span className="flex min-w-0 items-center gap-1.5">
             <span className="min-w-0 flex-1 truncate font-mono text-[#e8eef8]">
               {showPwd ? status.password : "••••••••••••"}

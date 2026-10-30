@@ -125,26 +125,26 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
       </div>
 
       <div className="mb-2 flex gap-1.5">
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1.5 text-xs text-[#8d9ab0]">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-[4px] border border-s-rand bg-s-tief px-2 py-1.5 text-xs text-[#9aa7bc]">
           <Search size={12} />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Datei suchen…"
-            className="min-w-0 flex-1 bg-transparent text-[#e8eef8] outline-none placeholder:text-[#8d9ab0]"
+            className="min-w-0 flex-1 bg-transparent text-[#e8eef8] outline-none placeholder:text-[#9aa7bc]"
           />
         </label>
         <CockpitButton disabled={!projectId || busy} onClick={() => setNewFileOpen((open) => !open)}><Plus size={12} className="mr-1 inline" /> Neu</CockpitButton>
       </div>
 
       {newFileOpen && (
-        <div className="mb-2 flex gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#111827] p-1.5">
+        <div className="mb-2 flex gap-1.5 rounded-[4px] border border-s-rand bg-s-innen p-1.5">
           <input
             value={newFileName}
             onChange={(event) => setNewFileName(event.target.value)}
             onKeyDown={(event) => { if (event.key === "Enter") void createFile() }}
             placeholder="neue-datei.md"
-            className="min-w-0 flex-1 rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1 text-xs text-[#e8eef8] outline-none placeholder:text-[#8d9ab0] focus:border-[#46617f]"
+            className="min-w-0 flex-1 rounded-[4px] border border-s-rand bg-s-tief px-2 py-1 text-xs text-[#e8eef8] outline-none placeholder:text-[#9aa7bc] focus:border-s-rand-hover"
             autoFocus
           />
           <CockpitButton tone="primary" disabled={busy || !newFileName.trim()} onClick={() => void createFile()}>Erstellen</CockpitButton>
@@ -155,7 +155,7 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
         <button
           type="button"
           onClick={() => setPath(parentPath)}
-          className="mb-2 w-full rounded-[4px] border border-[#2a364b] bg-[#111827] px-2 py-1 text-left text-xs text-[#8d9ab0] hover:border-[#46617f] hover:text-[#e8eef8]"
+          className="mb-2 w-full rounded-[4px] border border-s-rand bg-s-innen px-2 py-1 text-left text-xs text-[#9aa7bc] hover:border-s-rand-hover hover:text-[#e8eef8]"
         >
           ../ {parentPath || "Projektwurzel"}
         </button>
@@ -163,10 +163,10 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
 
       {error ? <p className="mb-2 text-xs text-rose-300">{error}</p> : null}
       {message ? <p className="mb-2 text-xs text-emerald-300">{message}</p> : null}
-      {loading ? <p className="text-xs text-[#8d9ab0]">Lade Workspace…</p> : null}
+      {loading ? <p className="text-xs text-[#9aa7bc]">Lade Workspace…</p> : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-[4px] border border-[#223048] bg-[#111827]">
-        {!loading && filtered.length === 0 ? <p className="p-2 text-xs text-[#8d9ab0]">Keine Dateien gefunden.</p> : null}
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-[4px] border border-s-rand bg-s-innen">
+        {!loading && filtered.length === 0 ? <p className="p-2 text-xs text-[#9aa7bc]">Keine Dateien gefunden.</p> : null}
         {filtered.map((entry) => {
           const childPath = path ? `${path}/${entry.name}` : entry.name
           return (
@@ -174,13 +174,13 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
               key={`${entry.type}:${entry.name}`}
               type="button"
               onClick={() => entry.type === "dir" ? setPath(childPath) : onOpenFile(childPath, classifyFile(childPath))}
-              className="flex w-full items-center justify-between gap-2 border-b border-[#223048] px-2 py-1.5 text-left text-xs text-[#d8e0ec] hover:bg-[#172133]"
+              className="flex w-full items-center justify-between gap-2 border-b border-s-rand px-2 py-1.5 text-left text-xs text-[#d8e0ec] hover:bg-s-hebung"
             >
               <span className="flex min-w-0 items-center gap-2">
-                {entry.type === "dir" ? <Folder size={13} className="shrink-0 text-[#69d7ff]/75" /> : <File size={13} className="shrink-0 text-[#8d9ab0]" />}
+                {entry.type === "dir" ? <Folder size={13} className="shrink-0 text-[#69d7ff]/75" /> : <File size={13} className="shrink-0 text-[#9aa7bc]" />}
                 <span className="truncate">{entry.name}{entry.type === "dir" ? "/" : ""}</span>
               </span>
-              <span className="shrink-0 text-[11px] text-[#8d9ab0]">{formatSize(entry.size)}</span>
+              <span className="shrink-0 text-[11px] text-[#9aa7bc]">{formatSize(entry.size)}</span>
             </button>
           )
         })}

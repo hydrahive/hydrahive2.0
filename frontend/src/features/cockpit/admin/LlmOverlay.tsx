@@ -60,20 +60,20 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-6">
-        <p className="text-sm text-[#8d9ab0]">{t("subtitle")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
 
         <AnthropicUsageCard />
 
         <div className="space-y-2">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#8d9ab0]">{t("providers.title")}</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#9aa7bc]">{t("providers.title")}</p>
             <button onClick={() => setShowAdd(!showAdd)}
-              className="flex items-center gap-1.5 rounded-[4px] px-3 py-1.5 text-xs text-[#8d9ab0] transition-colors hover:bg-white/5 hover:text-[#e8eef8]">
+              className="flex items-center gap-1.5 rounded-[4px] px-3 py-1.5 text-xs text-[#9aa7bc] transition-colors hover:bg-white/5 hover:text-[#e8eef8]">
               <Plus size={13} /> {tCommon("actions.add")}
             </button>
           </div>
           {config.providers.length === 0 && !showAdd && (
-            <p className="py-4 text-center text-sm text-[#8d9ab0]">{t("providers.none")}</p>
+            <p className="py-4 text-center text-sm text-[#9aa7bc]">{t("providers.none")}</p>
           )}
           {config.providers.map((p, i) => (
             editingIdx === i
@@ -103,7 +103,7 @@ export function LlmOverlay({ onClose }: { onClose: () => void }) {
             {testing ? <Loader2 size={14} className="mr-1 inline animate-spin" /> : <Zap size={14} className="mr-1 inline" />}
             {t("test.button")}
           </CockpitButton>
-          {saving && <span className="text-xs text-[#8d9ab0]">{t("test.saving")}</span>}
+          {saving && <span className="text-xs text-[#9aa7bc]">{t("test.saving")}</span>}
           {testResult && (
             <span className={`flex items-center gap-1.5 text-sm ${testResult.ok ? "text-emerald-400" : "text-rose-400"}`}>
               {testResult.ok ? <CheckCircle size={15} /> : <XCircle size={15} />}

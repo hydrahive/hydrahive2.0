@@ -104,7 +104,7 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
         </AdminField>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3">
+          <div className="space-y-2 rounded-[4px] border border-s-rand bg-s-innen p-3">
             <AdminToggle label={t("edit.field_cpu")} checked={cpuSet}
               onChange={(event) => setCpuSet(event.target.checked)} disabled={!editable} />
             <AdminField label={cpuSet ? t("edit.field_cpu") : "unbegrenzt"}>
@@ -112,7 +112,7 @@ export function EditContainerDialog({ container, onClose, onSaved }: Props) {
                 onChange={(event) => setCpu(parseInt(event.target.value, 10) || 1)} className={adminInputClass} />
             </AdminField>
           </div>
-          <div className="space-y-2 rounded-[4px] border border-[#2a364b] bg-[#111827] p-3">
+          <div className="space-y-2 rounded-[4px] border border-s-rand bg-s-innen p-3">
             <AdminToggle label={t("edit.field_ram")} checked={ramSet}
               onChange={(event) => setRamSet(event.target.checked)} disabled={!editable} />
             <AdminField label={ramSet ? t("edit.field_ram") : "unbegrenzt"}>

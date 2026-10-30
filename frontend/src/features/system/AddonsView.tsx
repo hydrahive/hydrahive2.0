@@ -31,7 +31,7 @@ export function AddonsView({ items, running, target, phase, log, error, onAsk, o
           <li key={item.id} data-addon-row={item.id} className="flex flex-wrap items-center gap-3 py-2">
             <div className="min-w-0 flex-1">
               <p className="text-sm text-[#d4deeb]">{t(`addons.name.${item.id}`)}</p>
-              <p className="text-xs text-[#8d9ab0]">{t(`addons.desc.${item.id}`)}</p>
+              <p className="text-xs text-[#9aa7bc]">{t(`addons.desc.${item.id}`)}</p>
               {item.hint && (
                 <p className="mt-1 text-xs text-amber-300/90">
                   <TriangleAlert size={11} className="mr-1 inline" />{t(`addons.hint_${item.hint}`)}
@@ -65,7 +65,7 @@ export function AddonsView({ items, running, target, phase, log, error, onAsk, o
               <p className="mt-1">{t("addons.confirm_requires", { names: missing.map((m) => t(`addons.name.${m}`)).join(", ") })}</p>
             )}
             {(current.restarts_service || missing.some((m) => items?.find((i) => i.id === m)?.restarts_service)) && (
-              <p className="mt-1 text-[#8d9ab0]">{t("addons.confirm_restart")}</p>
+              <p className="mt-1 text-[#9aa7bc]">{t("addons.confirm_restart")}</p>
             )}
           </AdminFeedback>
           <div className="flex justify-end gap-2">

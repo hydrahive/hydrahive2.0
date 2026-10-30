@@ -48,7 +48,7 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3 text-sm text-[#8d9ab0]">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-[#9aa7bc]">
           <span>{t("installed_count", { count: installedCount })}</span>
           {outdated.length > 0 && (
             <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
@@ -61,9 +61,9 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
         {error && <div className="rounded-[6px] border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-400">{error}</div>}
 
         {loading && data.modules.length === 0 ? (
-          <p className="text-sm text-[#8d9ab0]">{t("loading")}</p>
+          <p className="text-sm text-[#9aa7bc]">{t("loading")}</p>
         ) : data.modules.length === 0 ? (
-          <p className="text-sm text-[#8d9ab0]">{t("empty")}</p>
+          <p className="text-sm text-[#9aa7bc]">{t("empty")}</p>
         ) : (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {data.modules.map((mod) => <ModuleCockpitCard key={mod.id} mod={mod} onRefresh={load} />)}

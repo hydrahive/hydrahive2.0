@@ -69,7 +69,7 @@ export function SkillEditor({ skill, defaultScope = "user", ownerForSave, onClos
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
         {...dlg.props}
-        className="max-h-[90vh] w-full max-w-3xl space-y-3 overflow-y-auto rounded-[4px] border border-[#2a364b] bg-[#151c2b] p-5 text-[#e8eef8] shadow-2xl shadow-black/40">
+        className="max-h-[90vh] w-full max-w-3xl space-y-3 overflow-y-auto rounded-[4px] border border-s-rand bg-s-box p-5 text-[#e8eef8] shadow-2xl shadow-black/40">
         <div className="flex items-center justify-between">
           <h2 id={dlg.titelId} className="text-lg font-bold text-white">
             {isNew ? t("new_title") : t("edit_title", { name: skill!.name })}

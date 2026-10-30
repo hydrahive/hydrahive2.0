@@ -14,20 +14,20 @@ export function HubCockpitCard({ plugin, action, busy, onInstall, onUpdate }: {
   const { t } = useTranslation("plugins")
   const installed = action !== "install"
   return (
-    <div className="flex flex-col gap-2 rounded-[6px] border border-[#2a364b] bg-[#111827] p-4">
+    <div className="flex flex-col gap-2 rounded-[6px] border border-s-rand bg-s-innen p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-[#e8eef8]">{plugin.name}</h3>
-          <p className="font-mono text-xs text-[#8d9ab0]">v{plugin.version}{plugin.author && <> · {plugin.author}</>}</p>
+          <p className="font-mono text-xs text-[#9aa7bc]">v{plugin.version}{plugin.author && <> · {plugin.author}</>}</p>
         </div>
         {installed && (
           <span className="shrink-0 rounded border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300">{t("installed_badge")}</span>
         )}
       </div>
-      <p className="text-xs text-[#8d9ab0]">{plugin.description}</p>
+      <p className="text-xs text-[#9aa7bc]">{plugin.description}</p>
       {plugin.tags && plugin.tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {plugin.tags.map((tag) => <span key={tag} className="rounded bg-white/[6%] px-1.5 py-0.5 text-[10px] text-[#8d9ab0]">{tag}</span>)}
+          {plugin.tags.map((tag) => <span key={tag} className="rounded bg-white/[6%] px-1.5 py-0.5 text-[10px] text-[#9aa7bc]">{tag}</span>)}
         </div>
       )}
       {action === "update" ? (
@@ -53,11 +53,11 @@ export function InstalledCockpitCard({ plugin, busy, onUpdate, onUninstall }: {
   const { t } = useTranslation("plugins")
   const hasUpdate = updateBadge(plugin)?.kind === "update"
   return (
-    <div className="flex flex-col gap-2 rounded-[6px] border border-[#2a364b] bg-[#111827] p-4">
+    <div className="flex flex-col gap-2 rounded-[6px] border border-s-rand bg-s-innen p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-[#e8eef8]">{plugin.name}</h3>
-          <p className="font-mono text-xs text-[#8d9ab0]">{plugin.version ? `v${plugin.version}` : "—"}</p>
+          <p className="font-mono text-xs text-[#9aa7bc]">{plugin.version ? `v${plugin.version}` : "—"}</p>
         </div>
         {plugin.loaded ? (
           <span className="flex shrink-0 items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300">
@@ -70,7 +70,7 @@ export function InstalledCockpitCard({ plugin, busy, onUpdate, onUninstall }: {
         )}
       </div>
       <PluginUpdateBadge plugin={plugin} />
-      {plugin.description && <p className="text-xs text-[#8d9ab0]">{plugin.description}</p>}
+      {plugin.description && <p className="text-xs text-[#9aa7bc]">{plugin.description}</p>}
       {plugin.error && <p className="break-all font-mono text-xs text-rose-300/80">{plugin.error}</p>}
       {plugin.tools.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -82,7 +82,7 @@ export function InstalledCockpitCard({ plugin, busy, onUpdate, onUninstall }: {
       <div className="mt-1 flex gap-2">
         <button onClick={onUpdate} disabled={busy}
           className={"flex items-center gap-1.5 rounded-[4px] border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 " +
-            (hasUpdate ? UPDATE_BTN : "border-[#2a364b] bg-[#172133] text-[#d7deea] hover:bg-[#1b2536]")}>
+            (hasUpdate ? UPDATE_BTN : "border-s-rand bg-s-innen text-[#d7deea] hover:bg-s-hebung")}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}{hasUpdate ? t("update_available") : t("update")}
         </button>
         <button onClick={onUninstall} disabled={busy}

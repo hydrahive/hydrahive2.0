@@ -37,7 +37,7 @@ export function ChatHeader({
   if (cockpitMode) {
     return (
       <>
-        <div className="flex min-h-[52px] items-center justify-between gap-2 border-b border-[#2a364b] bg-[#121a29] px-[14px]">
+        <div className="flex min-h-[52px] items-center justify-between gap-2 border-b border-s-rand bg-s-kopf px-[14px]">
           <div className="min-w-0 flex-1">
             <h2
               className="truncate text-sm font-bold text-[#e8eef8]"
@@ -45,7 +45,7 @@ export function ChatHeader({
             >
               {session.title || t("session.untitled", { defaultValue: "Neue Session" })}
             </h2>
-            <p className="mt-0.5 flex min-w-0 flex-nowrap items-center gap-2 text-xs text-[#8d9ab0] sm:flex-wrap">
+            <p className="mt-0.5 flex min-w-0 flex-nowrap items-center gap-2 text-xs text-[#9aa7bc] sm:flex-wrap">
               <span className="hidden sm:inline">Session: {session.id.slice(0, 8)}…</span>
               {agent && <span className="min-w-0 truncate" title={agent.llm_model}>· {agent.llm_model}</span>}
               {lastTurnTokens && !busy && (
@@ -71,7 +71,7 @@ export function ChatHeader({
               disabled={compacting || orphaned}
               title={t("compact.tooltip")}
               aria-label="Komprimieren"
-              className="shrink-0 rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1.5 sm:px-3 text-xs font-bold text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
+              className="shrink-0 rounded-[4px] border border-s-rand bg-s-innen px-2 py-1.5 sm:px-3 text-xs font-bold text-[#e8eef8] transition-colors hover:border-s-rand-hover hover:bg-s-hebung disabled:cursor-not-allowed disabled:opacity-30"
             >
               {compacting ? <Loader2 size={12} className="inline animate-spin sm:mr-1" /> : <Archive size={12} className="inline sm:mr-1" />}
               <span className="hidden sm:inline">Komprimieren</span>
@@ -103,7 +103,7 @@ export function ChatHeader({
 
   return (
     <>
-      <div className="flex h-[52px] items-center gap-2 border-b sm:gap-3 border-[#2a364b] bg-[#121a29] px-[14px]">
+      <div className="flex h-[52px] items-center gap-2 border-b sm:gap-3 border-s-rand bg-s-kopf px-[14px]">
         <div className="flex-1 min-w-0">
           <h2
             className="text-sm font-bold text-[#e8eef8] truncate flex items-center gap-2"
@@ -111,7 +111,7 @@ export function ChatHeader({
           >
             {session.title}
           </h2>
-          <p className="text-xs text-[#8d9ab0] mt-0.5 flex items-center gap-2 flex-wrap">
+          <p className="text-xs text-[#9aa7bc] mt-0.5 flex items-center gap-2 flex-wrap">
             <span className="hidden sm:inline">{t("session.id_short")}: {session.id.slice(0, 8)}…</span>
             {agent && <span className="text-zinc-500">· {agent.llm_model.replace(/^anthropic\//, "")}</span>}
             {lastTurnTokens && !busy && (
@@ -138,7 +138,7 @@ export function ChatHeader({
           disabled={busy || newSessionBusy}
           title={t("session.new_chat")}
           aria-label={t("session.new_chat")}
-          className="flex shrink-0 items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1.5 sm:px-3 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex shrink-0 items-center gap-1.5 rounded-[4px] border border-s-rand bg-s-innen px-2 py-1.5 sm:px-3 text-xs text-[#e8eef8] transition-colors hover:border-s-rand-hover hover:bg-s-hebung disabled:cursor-not-allowed disabled:opacity-30"
         >
           {newSessionBusy ? <Loader2 size={12} className="animate-spin" /> : <SquarePen size={12} />}
           <span className="hidden sm:inline">{newSessionBusy ? "Übergabe wird erstellt …" : t("session.new_chat")}</span>
@@ -148,7 +148,7 @@ export function ChatHeader({
           disabled={compacting || orphaned}
           title={t("compact.tooltip")}
           aria-label={t("compact.button")}
-          className="flex shrink-0 items-center gap-1.5 rounded-[4px] border border-[#2a364b] bg-[#172133] px-2 py-1.5 sm:px-3 text-xs text-[#e8eef8] transition-colors hover:border-[#46617f] hover:bg-[#1b2536] disabled:cursor-not-allowed disabled:opacity-30"
+          className="flex shrink-0 items-center gap-1.5 rounded-[4px] border border-s-rand bg-s-innen px-2 py-1.5 sm:px-3 text-xs text-[#e8eef8] transition-colors hover:border-s-rand-hover hover:bg-s-hebung disabled:cursor-not-allowed disabled:opacity-30"
         >
           {compacting ? <Loader2 size={12} className="animate-spin" /> : <Archive size={12} />}
           <span className="hidden sm:inline">{t("compact.button")}</span>

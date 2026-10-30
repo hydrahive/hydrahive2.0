@@ -33,7 +33,7 @@ export function HelpAssistantView(p: HelpAssistantViewProps) {
     return (
       <button type="button" data-help-toggle="1" onClick={p.onToggle} title={t("helpdesk.open")}
         aria-label={t("helpdesk.open")}
-        className="fixed bottom-14 right-4 z-[70] hidden h-12 w-12 sm:flex items-center justify-center rounded-full border border-[#69d7ff]/50 bg-[#13202f] text-[#69d7ff] shadow-xl hover:bg-[#1a2b3f]">
+        className="fixed bottom-14 right-4 z-[70] hidden h-12 w-12 sm:flex items-center justify-center rounded-full border border-[#69d7ff]/50 bg-s-box text-[#69d7ff] shadow-xl hover:bg-s-hebung">
         <HelpCircle size={22} />
       </button>
     )
@@ -42,19 +42,19 @@ export function HelpAssistantView(p: HelpAssistantViewProps) {
   const canSend = p.status === "ready" && !p.sending && p.draft.trim().length > 0
   return (
     <section data-help-panel="1" role="dialog" aria-label={t("helpdesk.title")}
-      className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-[#111827] shadow-2xl sm:inset-auto sm:bottom-14 sm:right-4 sm:h-[min(560px,calc(100dvh-5rem))] sm:w-[400px] sm:rounded-[8px] sm:border sm:border-[#2a364b]">
-      <header className="flex items-center justify-between border-b border-[#2a364b] px-3 py-2">
+      className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-s-box shadow-2xl sm:inset-auto sm:bottom-14 sm:right-4 sm:h-[min(560px,calc(100dvh-5rem))] sm:w-[400px] sm:rounded-[8px] sm:border sm:border-s-rand">
+      <header className="flex items-center justify-between border-b border-s-rand px-3 py-2">
         <div className="flex items-center gap-2">
           <HelpCircle size={16} className="text-[#69d7ff]" />
           <strong className="text-sm text-[#e8eef8]">{t("helpdesk.title")}</strong>
         </div>
         <button type="button" onClick={p.onToggle} aria-label={t("helpdesk.close")} title={t("helpdesk.close")}
-          className="text-[#8d9ab0] hover:text-[#e8eef8]"><X size={16} /></button>
+          className="text-[#9aa7bc] hover:text-[#e8eef8]"><X size={16} /></button>
       </header>
 
       <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
         {p.status === "loading" && (
-          <p className="flex items-center gap-2 text-[#8d9ab0]"><Loader2 size={14} className="animate-spin" />{t("helpdesk.loading")}</p>
+          <p className="flex items-center gap-2 text-[#9aa7bc]"><Loader2 size={14} className="animate-spin" />{t("helpdesk.loading")}</p>
         )}
         {p.status === "error" && <p data-help-error="1" className="text-red-300">{t("helpdesk.load_failed")}</p>}
         {p.status === "model_missing" && (
@@ -69,18 +69,18 @@ export function HelpAssistantView(p: HelpAssistantViewProps) {
           </div>
         )}
         {p.status === "ready" && p.bubbles.length === 0 && (
-          <p className="text-[#8d9ab0]">{t("helpdesk.welcome")}</p>
+          <p className="text-[#9aa7bc]">{t("helpdesk.welcome")}</p>
         )}
         {p.status === "ready" && p.bubbles.map((b) => <Bubble key={b.id} b={b} />)}
       </div>
 
       {p.status === "ready" && (
-        <form className="flex items-end gap-2 border-t border-[#2a364b] p-2"
+        <form className="flex items-end gap-2 border-t border-s-rand p-2"
           onSubmit={(e) => { e.preventDefault(); if (canSend) p.onSend() }}>
           <textarea value={p.draft} rows={2} placeholder={t("helpdesk.placeholder")}
             onChange={(e) => p.onDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (canSend) p.onSend() } }}
-            className="min-h-[2.5rem] flex-1 resize-none rounded-[4px] border border-[#2a364b] bg-[#0b111c] px-2 py-1.5 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60" />
+            className="min-h-[2.5rem] flex-1 resize-none rounded-[4px] border border-s-rand bg-s-tief px-2 py-1.5 text-sm text-[#e8eef8] outline-none focus:border-[#69d7ff]/60" />
           <button type="submit" data-help-send="1" disabled={!canSend} aria-label={t("helpdesk.send")}
             title={t("helpdesk.send")}
             className="flex h-9 w-9 items-center justify-center rounded-[4px] bg-[#69d7ff] text-[#0b111c] disabled:opacity-40">
@@ -102,10 +102,10 @@ function Bubble({ b }: { b: HelpBubble }) {
     return <p className="ml-8 whitespace-pre-wrap rounded-[6px] bg-[#1d3047] p-2 text-[#e8eef8]">{b.text}</p>
   }
   return (
-    <div className="mr-4 rounded-[6px] bg-[#162133] p-2 text-[#d4deeb]">
+    <div className="mr-4 rounded-[6px] bg-s-innen p-2 text-[#d4deeb]">
       {b.text && <Markdown text={b.text} />}
       {b.busy && (
-        <p className="flex items-center gap-1.5 text-xs text-[#8d9ab0]">
+        <p className="flex items-center gap-1.5 text-xs text-[#9aa7bc]">
           <Loader2 size={12} className="animate-spin" />{t(`helpdesk.busy.${b.busy}`)}
         </p>
       )}

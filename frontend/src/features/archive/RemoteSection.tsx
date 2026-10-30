@@ -61,14 +61,14 @@ export function RemoteView(props: RemoteViewProps) {
           : <AdminFeedback tone="danger">{t(`remote.error.${testResult.error}`, { defaultValue: t("remote.error.unexpected") })}</AdminFeedback>)}
         <AdminToggle label={t("remote.switch")} checked={remote.active} data-remote-action="active"
           disabled={busy || !remote.tested} onChange={(e) => onActive(e.target.checked)} />
-        {!remote.tested && remote.configured && <p className="text-[11px] text-[#8d9ab0]">{t("remote.test_first")}</p>}
+        {!remote.tested && remote.configured && <p className="text-[11px] text-[#9aa7bc]">{t("remote.test_first")}</p>}
         {remote.active && (
           <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-[#8d9ab0]">{t("remote.on_server")}</dt>
+            <dt className="text-[#9aa7bc]">{t("remote.on_server")}</dt>
             <dd className="text-right text-[#e8eef8]">{remote.on_server}</dd>
-            <dt className="text-[#8d9ab0]">{t("remote.waiting")}</dt>
+            <dt className="text-[#9aa7bc]">{t("remote.waiting")}</dt>
             <dd className="text-right text-[#e8eef8]" data-remote-waiting={remote.waiting}>{remote.waiting}</dd>
-            <dt className="text-[#8d9ab0]">{t("remote.server_only")}</dt>
+            <dt className="text-[#9aa7bc]">{t("remote.server_only")}</dt>
             <dd className="text-right text-[#e8eef8]">{remote.remote_only}</dd>
           </dl>
         )}
@@ -84,7 +84,7 @@ export function RemoteView(props: RemoteViewProps) {
             {minutes != null && t("remote.next_try", { minutes })}
           </AdminFeedback>
         )}
-        <p className="text-[11px] leading-relaxed text-[#8d9ab0]">{t("remote.hint")}</p>
+        <p className="text-[11px] leading-relaxed text-[#9aa7bc]">{t("remote.hint")}</p>
       </AdminPanel>
     </div>
   )

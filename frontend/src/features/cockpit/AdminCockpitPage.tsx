@@ -55,7 +55,7 @@ export function AdminCockpitPage() {
       title="Admin-Cockpit"
       description="Schaltzentrale für System, User, Module, Integrationen, Credentials und Infrastruktur. Die Route bleibt durch AdminGuard geschützt."
       actions={<CockpitButton tone="primary" onClick={() => setOverlay("system")}>System öffnen</CockpitButton>}
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-s-grund"
       hideHeader
     >
       <CockpitTopbar active="admin" context="Admin" />
@@ -69,12 +69,12 @@ export function AdminCockpitPage() {
                   <button
                     key={item.path}
                     onClick={() => openArea(item.id, item.path)}
-                    className="group flex w-full items-center gap-3 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2.5 text-left transition-colors hover:border-[#46617f] hover:bg-[#172133]"
+                    className="group flex w-full items-center gap-3 rounded-[4px] border border-s-rand bg-s-innen p-2.5 text-left transition-colors hover:border-s-rand-hover hover:bg-s-hebung"
                   >
                     <TileIcon target={item.path} icon={Icon} />
                     <span>
                       <span className="block text-sm font-bold text-[#e8eef8]">{item.title}</span>
-                      <span className="mt-1 block text-xs leading-4 text-[#8d9ab0]">{item.desc}</span>
+                      <span className="mt-1 block text-xs leading-4 text-[#9aa7bc]">{item.desc}</span>
                     </span>
                   </button>
                 )
@@ -93,7 +93,7 @@ export function AdminCockpitPage() {
                   <button
                     key={item.path}
                     onClick={() => openPath(item.path)}
-                    className="group flex items-center gap-2.5 rounded-[4px] border border-[#2a364b] bg-[#111827] p-2 text-left hover:border-[#46617f] hover:bg-[#172133]"
+                    className="group flex items-center gap-2.5 rounded-[4px] border border-s-rand bg-s-innen p-2 text-left hover:border-s-rand-hover hover:bg-s-hebung"
                   >
                     <TileIcon target={item.path} icon={Icon} />
                     <span className="min-w-0 text-sm font-bold text-[#e8eef8]">{item.title}</span>
@@ -118,7 +118,7 @@ export function AdminCockpitPage() {
                   "Module/Extensions nur per explizitem Klick.",
                   "Backups/Restore bleiben in Systemkarten.",
                   "Logs und Status werden nicht breit gepollt.",
-                ].map((item) => <div key={item} className="rounded-[4px] border border-[#2a364b] bg-[#131b2a] p-2 text-xs text-[#8d9ab0]">• {item}</div>)}
+                ].map((item) => <div key={item} className="rounded-[4px] border border-s-rand bg-s-kopf p-2 text-xs text-[#9aa7bc]">• {item}</div>)}
               </div>
             </div>
           </CockpitPanel>
@@ -128,10 +128,10 @@ export function AdminCockpitPage() {
               {integrationLinks.map((item) => {
                 const Icon = item.icon
                 return (
-                  <button key={item.title} onClick={() => openPath(item.path)} className="rounded-[4px] border border-[#2a364b] bg-[#111827] p-3 text-left hover:border-[#46617f] hover:bg-[#172133]">
+                  <button key={item.title} onClick={() => openPath(item.path)} className="rounded-[4px] border border-s-rand bg-s-innen p-3 text-left hover:border-s-rand-hover hover:bg-s-hebung">
                     <div className="mb-1"><TileIcon target={item.title === "Gitea" ? "gitea" : item.path} icon={Icon} /></div>
                     <h3 className="text-sm font-bold text-[#e8eef8]">{item.title}</h3>
-                    <p className="mt-1 text-xs leading-4 text-[#8d9ab0]">{item.text}</p>
+                    <p className="mt-1 text-xs leading-4 text-[#9aa7bc]">{item.text}</p>
                   </button>
                 )
               })}
@@ -157,12 +157,12 @@ export function AdminCockpitPage() {
           </CockpitPanel>
 
           <CockpitPanel theme="ideen" title="Optionale KI" eyebrow="Explizit">
-            <p className="text-xs leading-4 text-[#8d9ab0]">Admin-Kacheln öffnen lokale Seiten und starten keine Analyse. KI-Hilfe ist ein bewusst separater Schritt.</p>
+            <p className="text-xs leading-4 text-[#9aa7bc]">Admin-Kacheln öffnen lokale Seiten und starten keine Analyse. KI-Hilfe ist ein bewusst separater Schritt.</p>
             <CockpitButton onClick={() => openLocalPath(explicitAiActions.find((action) => action.id === "admin-agent")?.path ?? "/buddy")} className="mt-3">Admin-Agent bewusst öffnen</CockpitButton>
           </CockpitPanel>
 
           <CockpitPanel theme="ideen" title="Nächste Ausbaustufen" eyebrow="Roadmap">
-            <ol className="space-y-2 text-xs leading-4 text-[#8d9ab0]">
+            <ol className="space-y-2 text-xs leading-4 text-[#9aa7bc]">
               <li><span className="font-semibold text-[#e8eef8]">1.</span> Kompakte Live-Systemmetriken einbinden.</li>
               <li><span className="font-semibold text-[#e8eef8]">2.</span> Modul-/Extension-Health als Ampel.</li>
               <li><span className="font-semibold text-[#e8eef8]">3.</span> Audit-/Log-Panel mit klaren Filtern.</li>

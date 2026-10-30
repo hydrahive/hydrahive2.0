@@ -76,9 +76,9 @@ export function TailscaleInviteSection() {
   if (!cfg) return null
 
   return (
-    <div className="space-y-3 border-t border-[#2a364b] pt-3">
+    <div className="space-y-3 border-t border-s-rand pt-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8d9ab0]">
+        <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9aa7bc]">
           <KeyRound size={11} className="text-[#69d7ff]" /> {t("tailscale.invite_title")}
         </p>
         <AdminAction
@@ -91,10 +91,10 @@ export function TailscaleInviteSection() {
         </AdminAction>
       </div>
 
-      <p className="text-[11px] text-[#8d9ab0]">{t("tailscale.invite_explainer")}</p>
+      <p className="text-[11px] text-[#9aa7bc]">{t("tailscale.invite_explainer")}</p>
 
       {showSettings && (
-        <div className="space-y-3 rounded-[4px] border border-[#2a364b] bg-[#131b2a] p-3">
+        <div className="space-y-3 rounded-[4px] border border-s-rand bg-s-kopf p-3">
           <AdminField
             label={t("tailscale.admin_api_key_label")}
             help={t("tailscale.admin_api_key_hint")}
@@ -139,7 +139,7 @@ export function TailscaleInviteSection() {
       {invite?.auth_key && (
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1.5 font-mono text-[11px] text-[#e8eef8]">
+            <code className="min-w-0 flex-1 truncate rounded-[4px] border border-s-rand bg-s-tief px-2 py-1.5 font-mono text-[11px] text-[#e8eef8]">
               {invite.auth_key}
             </code>
             <AdminAction onClick={handleCopy}>
@@ -148,7 +148,7 @@ export function TailscaleInviteSection() {
             </AdminAction>
           </div>
           {invite.expires && (
-            <p className="text-[10px] text-[#7d8aa0]">
+            <p className="text-[10px] text-[#9aa7bc]">
               {t("tailscale.invite_expires_at", { when: new Date(invite.expires).toLocaleString() })}
             </p>
           )}

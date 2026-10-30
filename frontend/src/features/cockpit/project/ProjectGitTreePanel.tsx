@@ -58,32 +58,32 @@ export function ProjectGitTreePanel({ projectId }: Props) {
         <select
           value={selectedRepo ?? ""}
           onChange={(event) => setSelectedRepo(event.target.value || null)}
-          className="mb-2 w-full rounded-[4px] border border-[#2a364b] bg-[#0d1420] px-2 py-1.5 text-xs font-semibold text-[#e8eef8] outline-none hover:border-[#46617f]"
+          className="mb-2 w-full rounded-[4px] border border-s-rand bg-s-tief px-2 py-1.5 text-xs font-semibold text-[#e8eef8] outline-none hover:border-s-rand-hover"
         >
           {repos.map((repo) => <option key={repo.name} value={repo.name}>{repo.name}</option>)}
         </select>
       )}
 
       {error ? <p className="text-xs text-rose-300">{error}</p> : null}
-      {loading ? <p className="text-xs text-[#8d9ab0]">Lade Git Tree…</p> : null}
-      {!loading && !activeRepo ? <p className="text-xs text-[#8d9ab0]">Kein Repository im Projekt.</p> : null}
+      {loading ? <p className="text-xs text-[#9aa7bc]">Lade Git Tree…</p> : null}
+      {!loading && !activeRepo ? <p className="text-xs text-[#9aa7bc]">Kein Repository im Projekt.</p> : null}
 
       {activeRepo && (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-[4px] border border-[#223048] bg-[#111827] p-2 font-mono text-xs leading-6 text-[#cdd7e6]">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-[4px] border border-s-rand bg-s-innen p-2 font-mono text-xs leading-6 text-[#cdd7e6]">
           <div className="mb-1 flex items-center gap-2 text-[#69d7ff]">
             <span>{status?.branch ?? "—"}</span>
-            {status?.ahead || status?.behind ? <span className="text-[10px] text-[#8d9ab0]">↑{status?.ahead ?? 0} ↓{status?.behind ?? 0}</span> : null}
+            {status?.ahead || status?.behind ? <span className="text-[10px] text-[#9aa7bc]">↑{status?.ahead ?? 0} ↓{status?.behind ?? 0}</span> : null}
           </div>
           {commits.length > 0 ? (
             commits.slice(0, 8).map((commit, index) => (
               <div key={commit.hash} className="truncate">
-                <span className="text-[#8d9ab0]">{index === commits.length - 1 ? "└─" : "├─"}</span>{" "}
+                <span className="text-[#9aa7bc]">{index === commits.length - 1 ? "└─" : "├─"}</span>{" "}
                 <span className="text-[#69d7ff]">{commit.hash.slice(0, 8)}</span>{" "}
                 <span>{commit.subject}</span>
               </div>
             ))
           ) : (
-            <div className="text-[#8d9ab0]">└─ keine Commits verfügbar</div>
+            <div className="text-[#9aa7bc]">└─ keine Commits verfügbar</div>
           )}
         </div>
       )}

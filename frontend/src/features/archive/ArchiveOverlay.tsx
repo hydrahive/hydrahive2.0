@@ -121,7 +121,7 @@ export function ArchiveOverlay({ onClose }: { onClose: () => void }) {
       )}
     >
       <div className="space-y-3 p-4">
-        <p className="text-sm text-[#8d9ab0]">{t("subtitle")}</p>
+        <p className="text-sm text-[#9aa7bc]">{t("subtitle")}</p>
         <ArchiveView
           status={status}
           entries={entries}

@@ -125,21 +125,21 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div {...dlg.props} className="flex h-[90dvh] w-full max-w-6xl outline-none flex-col overflow-hidden rounded-[4px] border border-[#2a364b] bg-[#0e1420] shadow-2xl">
-        <header className="flex shrink-0 items-center gap-3 border-b border-[#2a364b] bg-[#131b2a] px-4 py-3">
+      <div {...dlg.props} className="flex h-[90dvh] w-full max-w-6xl outline-none flex-col overflow-hidden rounded-[4px] border border-s-rand bg-s-tief shadow-2xl">
+        <header className="flex shrink-0 items-center gap-3 border-b border-s-rand bg-s-kopf px-4 py-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#69d7ff]">{draft?.type === "specialist" ? "Projekt-Spezialist" : "Projekt-Agent"}</p>
             <h2 id={dlg.titelId} className="text-lg font-black text-[#e8eef8]">Vollständige Agenten-Einstellungen</h2>
           </div>
           <div className="flex-1" />
-          <button onClick={onClose} className="rounded-[4px] p-2 text-[#8d9ab0] hover:bg-white/[6%] hover:text-[#e8eef8]" aria-label="Schließen">
+          <button onClick={onClose} className="rounded-[4px] p-2 text-[#9aa7bc] hover:bg-white/[6%] hover:text-[#e8eef8]" aria-label="Schließen">
             <X size={16} />
           </button>
         </header>
 
         {error ? <p className="mx-4 mt-3 rounded-[4px] border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{error}</p> : null}
         {message ? <p className="mx-4 mt-3 rounded-[4px] border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{message}</p> : null}
-        {loading ? <p className="p-5 text-sm text-[#8d9ab0]">Lade Agent und Einstellungen…</p> : null}
+        {loading ? <p className="p-5 text-sm text-[#9aa7bc]">Lade Agent und Einstellungen…</p> : null}
         {agent && draft ? (
           <ProjectAgentEditorTabs
             agent={agent}
@@ -156,8 +156,8 @@ export function ProjectAgentEditOverlay({ agentId, onClose, onSaved }: Props) {
           />
         ) : null}
 
-        <footer className="flex shrink-0 items-center gap-2 border-t border-[#2a364b] bg-[#0b111c] px-4 py-3">
-          <p className="truncate text-xs text-[#8d9ab0]">Agent-ID: <span className="font-mono">{agentId}</span></p>
+        <footer className="flex shrink-0 items-center gap-2 border-t border-s-rand bg-s-tief px-4 py-3">
+          <p className="truncate text-xs text-[#9aa7bc]">Agent-ID: <span className="font-mono">{agentId}</span></p>
           <div className="flex-1" />
           {dirty ? <CockpitButton disabled={saving} onClick={discard}>Verwerfen</CockpitButton> : null}
           <CockpitButton disabled={saving} onClick={onClose}>Schließen</CockpitButton>

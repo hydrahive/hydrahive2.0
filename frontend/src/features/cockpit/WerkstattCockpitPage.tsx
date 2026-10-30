@@ -7,7 +7,7 @@ export function WerkstattCockpitPage() {
   return (
     <CockpitShell
       title="Werkstatt"
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#080b11]"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-s-grund"
       hideHeader
     >
       <CockpitTopbar active="/werkstatt" context="Chat und Sessions" />
