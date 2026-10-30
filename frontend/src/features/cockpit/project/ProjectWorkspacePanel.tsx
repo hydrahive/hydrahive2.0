@@ -101,7 +101,7 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
   const parentPath = path.split("/").slice(0, -1).join("/")
 
   return (
-    <CockpitPanel className="flex min-h-0 flex-col p-3">
+    <CockpitPanel flush bodyClassName="flex flex-col p-3">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <CockpitSectionLabel>Dateimanager</CockpitSectionLabel>

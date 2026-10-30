@@ -43,7 +43,7 @@ export function ProjectGitTreePanel({ projectId }: Props) {
   const commits = status?.commits ?? []
 
   return (
-    <CockpitPanel className="flex min-h-0 flex-col p-3">
+    <CockpitPanel flush bodyClassName="flex flex-col p-3">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <CockpitSectionLabel>Git Tree</CockpitSectionLabel>
