@@ -118,3 +118,31 @@ def test_configure_specialist_werkzeug_gesperrt(managed):
 def test_oeffentliche_ansicht_zeigt_verwaltung(client, admin_headers, managed):
     r = client.get(f"/api/agents/{managed}", headers=admin_headers)
     assert r.json().get("managed_by") == "hydralabor"
+
+
+def test_speichern_mit_ganzem_objekt_und_nur_modell_geaendert(client, admin_headers, managed):
+    """Die Einstellungsseite schickt das ganze Objekt (tools, project_id, managed_by …) – unverändert mitgeschickte
+    feste Felder dürfen das Speichern eines erlaubten Felds nicht blockieren."""
+    full = client.get(f"/api/agents/{managed}", headers=admin_headers).json()
+    for k in ("id", "type", "created_at", "updated_at", "created_by"):
+        full.pop(k, None)
+    full["llm_model"] = "test/other"
+    r = client.patch(f"/api/agents/{managed}", headers=admin_headers, json=full)
+    assert r.status_code == 200, r.text
+    assert r.json()["llm_model"] == "test/other" and r.json()["managed_by"] == "hydralabor"
+
+
+def test_ganzes_objekt_mit_geaenderten_werkzeugen_bleibt_gesperrt(client, admin_headers, managed):
+    full = client.get(f"/api/agents/{managed}", headers=admin_headers).json()
+    for k in ("id", "type", "created_at", "updated_at", "created_by"):
+        full.pop(k, None)
+    full["tools"] = full["tools"] + ["web_browser"]
+    r = client.patch(f"/api/agents/{managed}", headers=admin_headers, json=full)
+    assert r.status_code == 409 and error_code(r) == "agent_managed"
+
+
+def test_werkzeuge_in_anderer_reihenfolge_gelten_als_aenderung(managed):
+    """Keine Mengen-Logik: jede Abweichung zählt, damit nichts durchrutscht."""
+    from hydrahive.agents import config as agent_config
+    with pytest.raises(agent_config.AgentManaged):
+        agent_config.update(managed, tools=["file_read", "shell_exec"])
