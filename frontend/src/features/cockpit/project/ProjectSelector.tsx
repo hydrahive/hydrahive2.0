@@ -12,14 +12,14 @@ export function ProjectSelector({ projects, activeProjectId, loading, onPick }: 
   const selectId = useId()
   return (
     <div>
-      <label htmlFor={selectId} className="mb-1 inline-flex rounded-[4px] border border-[#69d7ff]/35 bg-[#1c2940] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">
-        Projekt
-      </label>
+      {/* Kein zweites sichtbares „Projekt“-Etikett: der Kasten heißt schon so (Plan projekt-cockpit-kompakt). */}
+      <label htmlFor={selectId} className="sr-only">Projekt wählen</label>
       <select
         id={selectId}
         value={activeProjectId ?? ""}
         disabled={loading || projects.length === 0}
         onChange={(e) => onPick(e.target.value || null)}
+        title="Die Auswahl wird für dein Konto gespeichert."
         className="w-full rounded-[4px] border border-s-rand bg-s-tief px-3 py-2 text-sm font-semibold text-[#e8eef8] outline-none transition-colors hover:border-s-rand-hover disabled:opacity-50"
       >
         {projects.length === 0 ? (
@@ -28,7 +28,6 @@ export function ProjectSelector({ projects, activeProjectId, loading, onPick }: 
           projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)
         )}
       </select>
-      <p className="mt-1 text-[11px] text-[#9aa7bc]">Auswahl wird serverseitig pro User gespeichert.</p>
     </div>
   )
 }

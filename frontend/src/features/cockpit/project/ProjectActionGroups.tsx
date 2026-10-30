@@ -18,34 +18,43 @@ interface Props {
 }
 
 export function ProjectActionGroups({ disabled, onCreate, onEdit, onAccess, onServers, onMounts, onGit, onIntegrations, onSkills, onInsight, onGraph }: Props) {
-  return <div className="mt-3 space-y-2 border-t border-s-rand pt-3">
+  const [open, setOpen] = useState<"verwalten" | "auswerten" | null>(null)
+  const toggle = (g: "verwalten" | "auswerten") => setOpen((cur) => (cur === g ? null : g))
+  // Zwei Gruppen nebeneinander, aufgeklappt über die volle Breite (Plan projekt-cockpit-kompakt).
+  return <div className="mt-2 space-y-2 border-t border-s-rand pt-2">
     <div className="grid grid-cols-2 gap-2">
       <CockpitButton tone="primary" onClick={onCreate}>+ Neues Projekt</CockpitButton>
       <CockpitButton onClick={onEdit} disabled={disabled}>Bearbeiten</CockpitButton>
+      <GroupToggle title="Verwalten" open={open === "verwalten"} onClick={() => toggle("verwalten")} />
+      <GroupToggle title="Auswerten" open={open === "auswerten"} onClick={() => toggle("auswerten")} />
     </div>
-    <ActionGroup title="Verwalten">
+    {open === "verwalten" && <ActionGroup>
       <ActionButton onClick={onAccess} disabled={disabled}>Zugriff</ActionButton>
       <ActionButton onClick={onServers} disabled={disabled}>Server</ActionButton>
       <ActionButton onClick={onMounts} disabled={disabled}>Externe Mounts</ActionButton>
       <ActionButton onClick={onGit} disabled={disabled}>Git</ActionButton>
       <ActionButton onClick={onIntegrations} disabled={disabled}>Samba &amp; Integrationen</ActionButton>
       <ActionButton onClick={onSkills} disabled={disabled}>Skills</ActionButton>
-    </ActionGroup>
-    <ActionGroup title="Auswerten">
+    </ActionGroup>}
+    {open === "auswerten" && <ActionGroup>
       <ActionButton onClick={() => onInsight("stats")} disabled={disabled}>Statistiken</ActionButton>
       <ActionButton onClick={() => onInsight("sessions")} disabled={disabled}>Sessions</ActionButton>
       <ActionButton onClick={() => onInsight("audit")} disabled={disabled}>Audit</ActionButton>
       <ActionButton onClick={onGraph} disabled={disabled}>Code-Graph</ActionButton>
-    </ActionGroup>
+    </ActionGroup>}
   </div>
 }
 
-function ActionGroup({ title, children }: { title: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false)
-  return <div className="rounded-[4px] border border-s-rand bg-s-innen">
-    <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-semibold text-[#b8c4d8] hover:bg-white/[3%]"><span>{title}</span>{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}</button>
-    {open && <div className="grid grid-cols-2 gap-1 border-t border-s-rand p-2">{children}</div>}
-  </div>
+function GroupToggle({ title, open, onClick }: { title: string; open: boolean; onClick: () => void }) {
+  return <button type="button" onClick={onClick} aria-expanded={open}
+    className={`flex items-center justify-between rounded-[4px] border px-2.5 py-1.5 text-left text-xs font-semibold hover:bg-s-hebung ${
+      open ? "border-s-rand-hover bg-s-hebung text-[#e8eef8]" : "border-s-rand bg-s-innen text-[#b8c4d8]"}`}>
+    <span>{title}</span>{open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+  </button>
+}
+
+function ActionGroup({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-2 gap-1 rounded-[4px] border border-s-rand bg-s-innen p-2">{children}</div>
 }
 
 function ActionButton(props: ButtonHTMLAttributes<HTMLButtonElement>) {

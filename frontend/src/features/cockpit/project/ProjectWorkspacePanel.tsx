@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { File, Folder, Plus, RefreshCw, Search, Upload } from "lucide-react"
 import { CockpitButton } from "../CockpitButton"
-import { CockpitPanel, CockpitSectionLabel } from "../CockpitPanel"
+import { CockpitPanel } from "../CockpitPanel"
 import { projectsApi } from "@/features/projects/api"
 import { classifyFile, type FileKind } from "@/features/chat/workspace/fileType"
 import { useRunFinished } from "@/shared/runFinished"
@@ -102,12 +102,12 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
 
   return (
     <CockpitPanel flush bodyClassName="flex flex-col p-3">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <CockpitSectionLabel>Dateimanager</CockpitSectionLabel>
-          <h2 className="truncate text-sm font-bold text-[#e8eef8]">Workspace</h2>
-        </div>
-        <>
+      {/* Kopf in einer Zeile (Plan projekt-cockpit-kompakt): mehr Höhe für die Dateiliste. */}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="min-w-0 truncate text-sm font-bold text-[#e8eef8]">
+          <span className="mr-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#69d7ff]">Dateien</span>Workspace
+        </h2>
+        <div className="flex shrink-0 gap-1.5">
           <input
             ref={fileInputRef}
             type="file"
@@ -121,7 +121,7 @@ export function ProjectWorkspacePanel({ projectId, onOpenFile }: Props) {
           <CockpitButton disabled={!projectId || busy} onClick={() => fileInputRef.current?.click()}>
             <Upload size={12} className="mr-1 inline" /> Upload
           </CockpitButton>
-        </>
+        </div>
       </div>
 
       <div className="mb-2 flex gap-1.5">

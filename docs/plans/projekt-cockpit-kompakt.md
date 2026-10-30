@@ -11,6 +11,7 @@ Task `36bd2884`, Folgeschritt nach #666 (Admin-Startseite). Till am 30.10.2026: 
 ## Ziel
 1. **Team-Liste kompakt:**
    - eine Zeile je Agent (Name, kleines Rollen-Schild, Modell nur als Tooltip und beim Lead bzw. gewählten Agenten)
+   - Umsetzung: 4 statt 5 (gemessen: bei 1440×900 passen so Git und KI noch ohne Scrollen)
    - Es werden der Lead, der gewählte Agent und weitere bis **5 Agenten** gezeigt, dazu der Knopf „Alle 15 anzeigen“ bzw. „Weniger“.
    - Ab 8 Agenten erscheint eine Suchzeile (filtert Name und Modell).
 2. **Rechte Spalte:** Der Workspace bekommt den meisten Platz.
