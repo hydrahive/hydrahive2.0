@@ -23,7 +23,9 @@ class FakeContainer:
 
     def __init__(self) -> None:
         self.files: dict[str, bytes] = {"/work/a.txt": b"eins\nzwei\ndrei\n", "/etc/passwd": b"root:x:0:0\n"}
-        self.dirs = {"/", "/work", "/etc", "/work/sub"}
+        self.dirs = {"/", "/work", "/etc", "/work/sub", "/workshop"}
+        self.files["/workshop/geheim.txt"] = b"nachbar\n"
+        self.realpath_fails = False
         self.links: dict[str, str] = {"/work/raus": "/etc", "/work/pw": "/etc/passwd"}
         self.calls: list[list[str]] = []
 
@@ -52,14 +54,18 @@ class FakeContainer:
             cmd = args[i + 1:]
             if cmd[0] == "realpath":
                 flag, path = cmd[1], cmd[-1]
+                if self.realpath_fails:                      # z. B. Container-Fehler: rc≠0, aber Text auf stdout
+                    return 1, b"/work/a.txt\n", b"Fehler"
                 r = self._real(path, must_exist=(flag == "-e"))
+                if flag == "-m" and r is None:
+                    r = posixpath.normpath(path if path.startswith("/") else "/work/" + path)
                 return (0, (r + "\n").encode(), b"") if r else (1, b"", b"No such file")
             if cmd[0] == "cat":
                 path = cmd[-1]
                 if path in self.files:
                     return 0, self.files[path], b""
                 return 1, b"", b"No such file"
-            if cmd[0] == "sh" and "install" in cmd[2]:
+            if cmd[0] == "sh" and 'mv -f "$t" "$1"' in cmd[2]:
                 target = cmd[-1]
                 parent = posixpath.dirname(target)
                 self.dirs.add(parent)
@@ -74,6 +80,7 @@ class FakeContainer:
 def ct(monkeypatch):
     fake = FakeContainer()
     monkeypatch.setattr(_fs, "_incus", fake.run)
+    monkeypatch.setattr(_fs, "_INCUS", "incus")
     monkeypatch.setattr(_fs, "_execution", lambda ctx: dict(_CT))
     return fake
 
@@ -106,7 +113,8 @@ def test_lesen_mit_grep_und_bereich(ct, host_ws):
 
 
 @pytest.mark.parametrize("path", ["/etc/passwd", "../etc/passwd", "/work/../etc/passwd", "raus/passwd", "pw",
-                                  "/", "/work/sub/../../etc/passwd"])
+                                  "/", "/work/sub/../../etc/passwd", "/workshop/geheim.txt",
+                                  "../workshop/geheim.txt"])
 def test_lesen_ausserhalb_abgelehnt(ct, host_ws, path):
     res = _run(file_read, {"path": path}, _ctx(host_ws))
     assert not res.success
@@ -122,7 +130,7 @@ def test_schreiben_landet_nur_im_container(ct, host_ws):
 
 def test_schreiben_als_nutzer_nicht_als_root(ct, host_ws):
     _run(file_write, {"path": "x.txt", "content": "a"}, _ctx(host_ws))
-    w = [c for c in ct.calls if c[1] == "exec" and "install" in " ".join(c)]
+    w = [c for c in ct.calls if c[1] == "exec" and 'mv -f "$t" "$1"' in " ".join(c)]
     assert w and all(c[c.index("--user") + 1] == "1000" for c in w)
 
 
@@ -138,7 +146,7 @@ def test_zielpfad_als_ein_argument(ct, host_ws):
     """Ein Pfad mit Sonderzeichen wird nie in einen Shell-Text eingesetzt."""
     name = "sub/a b;$(touch x)`id`.txt"
     _run(file_write, {"path": name, "content": "a"}, _ctx(host_ws))
-    w = [c for c in ct.calls if c[1] == "exec" and "install" in " ".join(c)][0]
+    w = [c for c in ct.calls if c[1] == "exec" and 'mv -f "$t" "$1"' in " ".join(c)][0]
     script = w[w.index("--") + 3]
     assert "touch" not in script and "`id`" not in script
     assert w[-1] == "/work/sub/a b;$(touch x)`id`.txt"
@@ -186,3 +194,49 @@ def test_ausfuehrung_unklar_kein_zugriff(monkeypatch, host_ws):
         res = _run(mod, args, _ctx(host_ws))
         assert not res.success and "project_execution_unavailable" in (res.error or "")
     assert list(host_ws.rglob("*")) == []
+
+
+def test_fehler_von_realpath_zaehlt_auch_mit_ausgabe(ct, host_ws):
+    ct.realpath_fails = True
+    assert not _run(file_read, {"path": "a.txt"}, _ctx(host_ws)).success
+    assert not _run(file_write, {"path": "a.txt", "content": "x"}, _ctx(host_ws)).success
+    assert ct.files["/work/a.txt"] == b"eins\nzwei\ndrei\n"
+
+
+def test_lesen_nicht_vorhandener_datei_klare_meldung(ct, host_ws):
+    res = _run(file_read, {"path": "fehlt.txt"}, _ctx(host_ws))
+    assert not res.success and "nicht gefunden" in (res.error or "")
+    assert not any("cat" in c for c in ct.calls)
+    res = _run(file_patch, {"path": "fehlt.txt", "old_string": "a", "new_string": "b"}, _ctx(host_ws))
+    assert not res.success and "nicht gefunden" in (res.error or "")
+    assert "/work/fehlt.txt" not in ct.files
+
+
+def test_realpath_prueft_existenz_beim_lesen(ct, host_ws):
+    _run(file_read, {"path": "a.txt"}, _ctx(host_ws))
+    rp = [c for c in ct.calls if "realpath" in c]
+    assert rp and rp[0][rp[0].index("realpath") + 1] == "-e"
+    ct.calls.clear()
+    _run(file_write, {"path": "neu.txt", "content": "x"}, _ctx(host_ws))
+    rp = [c for c in ct.calls if "realpath" in c]
+    assert rp and rp[0][rp[0].index("realpath") + 1] == "-m"
+
+
+def test_incus_bekommt_keine_server_umgebung(monkeypatch, host_ws):
+    """Auch der echte Aufrufweg (_incus) gibt incus nur PATH mit."""
+    seen = {}
+
+    class P:
+        returncode = 0
+
+        async def communicate(self, data=None):
+            return b"/work/a.txt\n", b""
+
+    async def fake(*a, **k):
+        seen["env"] = k.get("env")
+        return P()
+
+    monkeypatch.setenv("GH_TOKEN", "ghp_SERVER")
+    monkeypatch.setattr(_fs.asyncio, "create_subprocess_exec", fake)
+    asyncio.run(_fs._incus(["incus", "exec", "x", "--", "true"], None))
+    assert seen["env"] == {"PATH": "/usr/bin:/bin"}

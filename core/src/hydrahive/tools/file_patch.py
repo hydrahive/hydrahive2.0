@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from hydrahive.tools import _fs
 from hydrahive.tools._path import PathOutsideWorkspace, safe_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 from hydrahive.tools._errors import fail_with_cause
@@ -35,17 +36,31 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         return ToolResult.fail("old_string und new_string sind identisch")
 
     try:
-        p = safe_path(ctx.workspace, path_arg)
-    except PathOutsideWorkspace as e:
-        return ToolResult.fail(str(e))
-
-    if not p.is_file():
-        return ToolResult.fail(f"Datei nicht gefunden: {path_arg}")
-
-    try:
-        text = p.read_text(encoding="utf-8")
-    except Exception as e:
-        return fail_with_cause("Lesefehler", e, "file_patch")
+        ex = _fs._execution(ctx)
+    except _fs.ExecutionUnavailable as e:
+        return ToolResult.fail(f"{e.code}: Datei nicht geändert – Ausführungsort des Projekts nicht verfügbar.")
+    container = ex["mode"] == "container"      # docs/specs/projekt-container-ausfuehrung.md
+    if container:
+        try:
+            target = await _fs.resolve(ex, path_arg, must_exist=True)
+            text = (await _fs.read_bytes(ex, target)).decode("utf-8")
+        except FileNotFoundError:
+            return ToolResult.fail(f"Datei nicht gefunden: {path_arg}")
+        except PathOutsideWorkspace as e:
+            return ToolResult.fail(str(e))
+        except (_fs.ContainerFsError, UnicodeDecodeError) as e:
+            return ToolResult.fail(f"Lesefehler: {e}")
+    else:
+        try:
+            p = safe_path(ctx.workspace, path_arg)
+        except PathOutsideWorkspace as e:
+            return ToolResult.fail(str(e))
+        if not p.is_file():
+            return ToolResult.fail(f"Datei nicht gefunden: {path_arg}")
+        try:
+            text = p.read_text(encoding="utf-8")
+        except Exception as e:
+            return fail_with_cause("Lesefehler", e, "file_patch")
 
     count = text.count(old)
     if count == 0:
@@ -56,14 +71,22 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
         )
 
     new_text = text.replace(old, new) if replace_all else text.replace(old, new, 1)
-    try:
-        p.write_text(new_text, encoding="utf-8")
-    except Exception as e:
-        return fail_with_cause("Schreibfehler", e, "file_patch")
+    if container:
+        try:
+            await _fs.write_bytes(ex, target, new_text.encode("utf-8"))
+        except _fs.ContainerFsError as e:
+            return ToolResult.fail(f"Schreibfehler: {e}")
+        shown = target
+    else:
+        try:
+            p.write_text(new_text, encoding="utf-8")
+        except Exception as e:
+            return fail_with_cause("Schreibfehler", e, "file_patch")
+        shown = str(p)
 
     return ToolResult.ok(
-        f"Datei gepatcht: {p}",
-        path=str(p),
+        f"Datei gepatcht: {shown}",
+        path=shown,
         replacements=count if replace_all else 1,
     )
 

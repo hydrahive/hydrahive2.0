@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from hydrahive.tools import _fs
 from hydrahive.tools._path import PathOutsideWorkspace, read_path
 from hydrahive.tools.base import Tool, ToolContext, ToolResult
 from hydrahive.tools._errors import fail_with_cause
@@ -57,22 +58,42 @@ def _grep_lines(lines: list[str], pattern: str, context: int) -> tuple[str, int]
     return "\n".join(result), matches
 
 
-async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
+async def _read_text(args: dict, ctx: ToolContext) -> tuple[str, str] | ToolResult:
+    """(Text, Anzeigepfad) vom Server oder aus dem Projekt-Container (docs/specs/projekt-container-ausfuehrung.md)."""
     path_arg = args.get("path", "")
+    try:
+        ex = _fs._execution(ctx)
+    except _fs.ExecutionUnavailable as e:
+        return ToolResult.fail(f"{e.code}: Datei nicht gelesen – Ausführungsort des Projekts nicht verfügbar.")
+    if ex["mode"] == "container":
+        try:
+            path = await _fs.resolve(ex, path_arg, must_exist=True)
+            return (await _fs.read_bytes(ex, path)).decode("utf-8", errors="replace"), path
+        except FileNotFoundError:
+            return ToolResult.fail(f"Datei nicht gefunden: {path_arg}")
+        except PathOutsideWorkspace as e:
+            return ToolResult.fail(str(e))
+        except _fs.ContainerFsError as e:
+            return ToolResult.fail(f"Lesefehler: {e}")
     try:
         p = read_path(ctx, path_arg)          # eigener Workspace + verknüpfte Projekte (nur lesen)
     except PathOutsideWorkspace as e:
         return ToolResult.fail(str(e))
-
     if not p.exists():
         return ToolResult.fail(f"Datei nicht gefunden: {path_arg}")
     if not p.is_file():
         return ToolResult.fail(f"Kein File: {path_arg}")
-
     try:
-        text = p.read_text(encoding="utf-8", errors="replace")
+        return p.read_text(encoding="utf-8", errors="replace"), str(p)
     except Exception as e:
         return fail_with_cause("Lesefehler", e, "file_read")
+
+
+async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
+    got = await _read_text(args, ctx)
+    if isinstance(got, ToolResult):
+        return got
+    text, shown = got
 
     lines = text.splitlines()
     total = len(lines)
@@ -84,7 +105,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
             numbered, match_count = _grep_lines(lines, grep_pattern, context)
         except ValueError as e:
             return ToolResult.fail(str(e))
-        return ToolResult.ok(numbered, path=str(p), total_lines=total, matches=match_count)
+        return ToolResult.ok(numbered, path=shown, total_lines=total, matches=match_count)
 
     offset = max(1, int(args.get("offset", 1)))
     limit = max(1, min(20000, int(args.get("limit", 2000))))
@@ -92,7 +113,7 @@ async def _execute(args: dict, ctx: ToolContext) -> ToolResult:
     end = start + limit
     selected = lines[start:end]
     numbered = "\n".join(f"{i + offset:6d}\t{line}" for i, line in enumerate(selected))
-    return ToolResult.ok(numbered, path=str(p), total_lines=total, returned_lines=len(selected), truncated=end < total)
+    return ToolResult.ok(numbered, path=shown, total_lines=total, returned_lines=len(selected), truncated=end < total)
 
 
 TOOL = Tool(name="file_read", description=_DESCRIPTION, schema=_SCHEMA, execute=_execute, category="files")
