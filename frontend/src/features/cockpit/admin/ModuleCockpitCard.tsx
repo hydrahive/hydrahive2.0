@@ -22,6 +22,7 @@ export function ModuleCockpitCard({ mod, onRefresh, onAction }: Props) {
   const [action, setAction] = useState<Action>("install")
   const [lines, setLines] = useState<string[]>([])
   const [failed, setFailed] = useState(false)
+  const [open, setOpen] = useState(false)
   const logRef = useRef<HTMLDivElement>(null)
   const stopRef = useRef<(() => void) | null>(null)
 
@@ -43,7 +44,7 @@ export function ModuleCockpitCard({ mod, onRefresh, onAction }: Props) {
   const busy = phase === "running"
 
   return (
-    <div className="flex flex-col gap-3 rounded-[6px] border border-s-rand bg-s-innen p-4">
+    <div className="flex flex-col gap-2.5 rounded-[6px] border border-s-rand bg-s-innen p-3">
       <div className="flex items-start gap-3">
         <div className={"shrink-0 rounded-[4px] p-2 " + (mod.installed ? "bg-emerald-500/10 text-emerald-400" : "bg-s-hebung text-[#9aa7bc]")}>
           <Boxes size={18} />
@@ -70,7 +71,13 @@ export function ModuleCockpitCard({ mod, onRefresh, onAction }: Props) {
               </span>
             ))}
           </div>
-          {mod.description && <p className="mt-1 text-[12px] leading-snug text-[#9aa7bc]">{mod.description}</p>}
+          {/* Zwei Zeilen, Klick zeigt alles (eine Beschreibung hat 1400 Zeichen und machte die Kartenreihe 460 px hoch). */}
+          {mod.description && (
+            <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} title={open ? undefined : mod.description}
+              className={`mt-1 w-full text-left text-[12px] leading-snug text-[#9aa7bc] hover:text-[#c8d2df] ${open ? "block" : "line-clamp-2"}`}>
+              {mod.description}
+            </button>
+          )}
           {mod.error && <p className="mt-0.5 font-mono text-[11px] text-rose-400">{mod.error}</p>}
         </div>
       </div>

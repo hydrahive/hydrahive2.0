@@ -51,7 +51,7 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
       eyebrow="Admin"
       title={t("title")}
       onClose={onClose}
-      maxWidthClass="max-w-5xl"
+      maxWidthClass="max-w-6xl"
       headerActions={
         <div className="flex items-center gap-2">
           <UpdateAllButton outdatedCount={outdated.length} state={all} onStart={all.start}
@@ -89,7 +89,7 @@ export function ModulesOverlay({ onClose }: { onClose: () => void }) {
           ) : visible.length === 0 ? (
             <AdminFeedback>{query.trim() ? t("search.none") : t("empty")}</AdminFeedback>
           ) : (
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
               {visible.map((mod) => (
                 <ModuleCockpitCard key={mod.id} mod={mod} onRefresh={load}
                   onAction={() => setPinned((p) => new Map(p).set(mod.id, tab))} />
