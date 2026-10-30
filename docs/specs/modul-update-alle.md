@@ -117,3 +117,24 @@ Für Laien ist das unverständlich.
 - Der vollständige Fehler mit Pfad steht weiter im Server-Protokoll (`logger.exception`).
 - Die Ergebnisbox zeigt unter der Liste den Hinweis: „Einzelne Module erneut über ihren Knopf ‚Aktualisieren'
   versuchen. Bleibt es dabei, sieht ein Admin im Server-Protokoll den genauen Grund.“
+
+## Nachtrag: Dienst nach dem Ersetzen neu prüfen (30.10.2026, Task 38789c08)
+
+**Befund (Hauptserver):** Radiostream 0.1.1 → 0.2.0 über „Alle updaten“. 0.2.0 bringt erstmals einen Dienst mit
+(`has_service: true`, `extension/install.sh`). `_update_one` las `has_service` **einmal vor** dem Ersetzen, also aus
+dem alten Manifest (`false`), und nutzte den Wert auch für `install.sh` danach. Folge: Das Modul war ersetzt, aber
+Pakete, Dienste und Geheimnisse fehlten. Das Einzel-Update (`installer.update`) liest nach dem Ersetzen neu und war
+deshalb nicht betroffen.
+
+**Regel:** `uninstall.sh` richtet sich nach dem **alten** Manifest (vor dem Ersetzen), `install.sh` nach dem **neuen**
+(nach dem Ersetzen). Damit gilt für jeden Wechsel:
+
+| alt | neu | uninstall.sh | install.sh |
+|---|---|---|---|
+| kein Dienst | Dienst | – | ja |
+| Dienst | Dienst | ja | ja |
+| Dienst | kein Dienst | ja | – |
+| kein Dienst | kein Dienst | – | – |
+
+**Tests:** je Zeile der Tabelle ein Fall gegen das echte Lesen des Manifests (kein Ersatz für `_manifest_has_service`);
+Gegenprobe gegen `main` muss bei „kein Dienst → Dienst“ rot sein.

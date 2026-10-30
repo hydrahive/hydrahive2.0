@@ -51,11 +51,12 @@ def _version_of(module_id: str) -> str | None:
 def _update_one(module_id: str) -> Iterator[str]:
     """Wie installer.update(), aber ohne Build und Neustart (die kommen am Ende einmal)."""
     yield from installer._ensure_dependencies(module_id, {module_id})
-    has_service = installer._manifest_has_service(module_id)
-    if has_service:
+    # Stoppen nach dem ALTEN Manifest, Starten nach dem NEUEN – ein Update kann den ersten Dienst mitbringen
+    # (Radiostream 0.2.0) oder ihn entfernen (docs/specs/modul-update-alle.md, Nachtrag 30.10.).
+    if installer._manifest_has_service(module_id):
         installer._run_service_script(module_id, "uninstall.sh")
     installer.replace_module_in(module_id)
-    if has_service:
+    if installer._manifest_has_service(module_id):
         installer._run_service_script(module_id, "install.sh")
 
 

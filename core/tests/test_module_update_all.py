@@ -185,3 +185,38 @@ def test_voller_fehler_im_protokoll(mod_env, caplog):
         _run()
     rec = next(r for r in caplog.records if "delta" in r.getMessage())
     assert rec.exc_info and "/var/lib/x/delta" in str(rec.exc_info[1])
+
+
+# --- Nachtrag 30.10.: Dienst nach dem Ersetzen neu prüfen (Task 38789c08, Radiostream 0.1.1 → 0.2.0) ----------
+
+@contextmanager
+def _env_real_manifest(mod_env, *, before: bool, after: bool):
+    """Nur `gamma` hat ein Update. Das Manifest wird ECHT gelesen (kein Ersatz für _manifest_has_service)."""
+    _write_installed(mod_env, versions={"gamma": "0.1.0"}, service=("gamma",) if before else ())
+    calls: list[str] = []
+
+    def replace(mid):
+        calls.append(f"replace:{mid}")
+        (mod_env / "modules" / mid / "manifest.json").write_text(
+            json.dumps({"id": mid, "name": mid, "version": "0.2.0", "has_service": after}))
+
+    with (patch("hydrahive.modules.installer.refresh", side_effect=lambda: None),
+          patch("hydrahive.modules.installer.available_version", side_effect=lambda mid: "0.2.0"),
+          patch("hydrahive.modules.installer._ensure_dependencies", side_effect=lambda mid, seen: iter(())),
+          patch("hydrahive.modules.installer.replace_module_in", side_effect=replace),
+          patch("hydrahive.modules.installer._run_service_script", side_effect=lambda mid, s: calls.append(s)),
+          patch("hydrahive.modules.installer._frontend_build", side_effect=lambda: None),
+          patch("hydrahive.modules.installer._request_restart", side_effect=lambda: None)):
+        yield calls
+
+
+@pytest.mark.parametrize(("before", "after", "expected"), [
+    (False, True, ["replace:gamma", "install.sh"]),                    # Radiostream 0.2.0: erster Dienst
+    (True, True, ["uninstall.sh", "replace:gamma", "install.sh"]),
+    (True, False, ["uninstall.sh", "replace:gamma"]),                  # Dienst fällt weg: stoppen, nicht starten
+    (False, False, ["replace:gamma"]),
+])
+def test_dienst_vorher_aus_altem_nachher_aus_neuem_manifest(mod_env, before, after, expected):
+    with _env_real_manifest(mod_env, before=before, after=after) as calls:
+        _run()
+    assert calls == expected
